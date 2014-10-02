@@ -2274,8 +2274,7 @@ namespace TBSyzygy {
                     {
                         if (i < NONE) p[i++] = pop_lsq (bb); else
                             break;
-                    }
-                    while (bb != U64(0));
+                    } while (bb != U64(0));
                 }
                 idx = encode_piece (tbep, tbep->norm[bside], p, tbep->factor[bside]);
                 res = decompress_pairs (tbep->precomp[bside], idx);
@@ -2682,11 +2681,11 @@ namespace TBSyzygy {
 
         Value Wdl_to_Value[5] =
         {
-            VALUE_MATED_IN_MAX_PLY + 1,
+            -VALUE_MATE_IN_MAX_DEPTH + 1,
             VALUE_DRAW - 2,
             VALUE_DRAW,
             VALUE_DRAW + 2,
-            VALUE_MATES_IN_MAX_PLY - 1
+            +VALUE_MATE_IN_MAX_DEPTH - 1
         };
 
     }

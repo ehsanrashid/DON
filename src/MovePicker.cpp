@@ -250,7 +250,7 @@ namespace MovePick {
             {
                 value<CAPTURE> ();
             }
-            return;
+        break;
 
         case KILLER_S1:
             kcur = kend = killers;
@@ -324,7 +324,7 @@ namespace MovePick {
 
             killers_size = u08(kend - kcur);
             end = cur + 1;
-            return;
+        break;
 
         case QUIET_1_S1:
             end = quiets_end = generate<QUIET> (moves, pos);
@@ -337,22 +337,22 @@ namespace MovePick {
                     insertion_sort (cur, end);
                 }
             }
-            return;
+        break;
 
         case QUIET_2_S1:
             cur = end;
             end = quiets_end;
-            if (depth >= 3*i16(PLY_ONE))
+            if (depth >= 3*DEPTH_ONE)
             {
                 insertion_sort (cur, end);
             }
-            return;
+        break;
 
         case BAD_CAPTURE_S1:
             // Just pick them in reverse order to get MVV/LVA ordering
             cur = moves+MAX_MOVES-1;
             end = bad_captures_end;
-            return;
+        break;
 
         case EVASION_S2:
             end = generate<EVASION> (moves, pos);
@@ -360,11 +360,11 @@ namespace MovePick {
             {
                 value<EVASION> ();
             }
-            return;
+        break;
 
         case QUIET_CHECK_S3:
             end = generate<QUIET_CHECK> (moves, pos);
-            return;
+        break;
 
         case EVASION_S1:
         case QSEARCH_0:
@@ -375,10 +375,11 @@ namespace MovePick {
 
         case STOP:
             end = cur+1; // Avoid another generate_next_stage() call
-            return;
+        break;
 
         default:
             ASSERT (false);
+        break;
         }
     }
 
@@ -407,6 +408,7 @@ namespace MovePick {
             case PROBCUT:
                 ++cur;
                 return tt_move;
+            break;
 
             case CAPTURE_S1:
                 do
@@ -421,9 +423,8 @@ namespace MovePick {
                         // Losing capture, move it to the tail of the array
                         (bad_captures_end--)->move = move;
                     }
-                }
-                while (cur < end);
-                break;
+                } while (cur < end);
+            break;
 
             case KILLER_S1:
                 do
@@ -440,7 +441,7 @@ namespace MovePick {
                 }
                 while (kcur < kend);
                 cur = end;
-                break;
+            break;
 
             case QUIET_1_S1:
             case QUIET_2_S1:
@@ -468,13 +469,12 @@ namespace MovePick {
                         return move;
                     }
                     
-                }
-                while (cur < end);
-                break;
+                } while (cur < end);
+            break;
 
             case BAD_CAPTURE_S1:
                 return (cur--)->move;
-                break;
+            break;
 
             case EVASION_S2:
             case CAPTURE_S3:
@@ -486,9 +486,8 @@ namespace MovePick {
                     {
                         return move;
                     }
-                }
-                while (cur < end);
-                break;
+                } while (cur < end);
+            break;
 
             case CAPTURE_S5:
                 do
@@ -498,9 +497,8 @@ namespace MovePick {
                     {
                         return move;
                     }
-                }
-                while (cur < end);
-                break;
+                } while (cur < end);
+            break;
 
             case CAPTURE_S6:
                 do
@@ -510,9 +508,8 @@ namespace MovePick {
                     {
                         return move;
                     }
-                }
-                while (cur < end);
-                break;
+                } while (cur < end);
+            break;
 
             case QUIET_CHECK_S3:
                 do
@@ -522,15 +519,16 @@ namespace MovePick {
                     {
                         return move;
                     }
-                }
-                while (cur < end);
-                break;
+                } while (cur < end);
+            break;
 
             case STOP:
                 return MOVE_NONE;
+            break;
 
             default:
                 ASSERT (false);
+            break;
             }
         }
         while (true); // (stage <= STOP)

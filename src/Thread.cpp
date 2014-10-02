@@ -293,7 +293,7 @@ namespace Threads {
     void ThreadPool::configure ()
     {
         u32 threads = i32(Options["Threads"]);
-        split_depth = i32(Options["Split Depth"])*PLY_ONE;
+        split_depth = i32(Options["Split Depth"])*DEPTH_ONE;
 
         ASSERT (threads > 0);
 
@@ -301,7 +301,7 @@ namespace Threads {
         // Determines the best optimal minimum split depth automatically
         if (0 == split_depth)
         {
-            split_depth = (threads < 8 ? 4 : 7)*PLY_ONE;
+            split_depth = (threads < 8 ? 4 : 7)*DEPTH_ONE;
         }
 
         while (size () < threads)

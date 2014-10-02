@@ -235,9 +235,9 @@ namespace UCI {
         // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
-        Options["Hash File"]                    << Option ("Hash.dat", Search::auto_save_hash);
+        Options["Hash File"]                    << Option ("Hash.dat", Search::configure_auto_save);
         // Auto Save Hash Time (min)
-        Options["Auto Save Hash (min)"]         << Option ( 0, 0, 60, Search::auto_save_hash);
+        Options["Auto Save Hash (min)"]         << Option ( 0, 0, 60, Search::configure_auto_save);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
@@ -324,10 +324,10 @@ namespace UCI {
         Options["Fixed Contempt"]               << Option (   0,-100,+100, Search::configure_contempt);
         // Time (sec) for Timed Contempt
         // Default +6, Min 0, Max +900.
-        Options["Timed Contempt (sec)"]         << Option (+ 22,   0,+900, Search::configure_contempt);
+        Options["Timed Contempt (sec)"]         << Option (+ 30,   0,+900, Search::configure_contempt);
         // Centipawn (cp) for Valued Contempt
         // Default +50, Min 0, Max +1000.
-        Options["Valued Contempt (cp)"]         << Option (+ 34,   0,+1000, Search::configure_contempt);
+        Options["Valued Contempt (cp)"]         << Option (+ 40,   0,+1000, Search::configure_contempt);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
@@ -342,9 +342,6 @@ namespace UCI {
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
         Options["Fifty Move Distance"]          << Option (+ 50,+  5,+ 50, on_50_move_dist);
 
-        Options["Space Activity"]               << Option ( 0,-1000,+1000, Evaluate::configure);
-        Options["King Safety"]                  << Option ( 0,-1000,+1000, Evaluate::configure);
-
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option ( 50, 0, 100, Time::configure);
         //// Be prepared to always play at least this many moves, in num of moves.
@@ -356,14 +353,12 @@ namespace UCI {
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Move Time"]            << Option ( 20, 0, 5000, Time::configure);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (+ 90,+ 10,+ 1000, Time::configure);
+        Options["Move Slowness"]                << Option (+ 85,+ 10,+ 1000, Time::configure);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.
         //
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["Ponder"]                       << Option (true, Time::configure);
-
-        Options["Capture Factor"]               << Option (+ 1638,+  0,+ 2000, Search::configure_contempt);
 
         // Debug Options
         // -------------

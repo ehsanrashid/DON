@@ -30,7 +30,7 @@ namespace Transposition {
         u16 _move;
         i16 _value;
         i16 _eval;
-        u08 _depth;
+        i08 _depth;
         u08 _gen_bnd;
 
         friend class TranspositionTable;
@@ -40,9 +40,9 @@ namespace Transposition {
         inline Move  move  () const { return Move(_move); }
         inline Value value () const { return Value(_value); }
         inline Value eval  () const { return Value(_eval); }
-        inline Depth depth () const { return Depth(_depth) + DEPTH_NONE; }
+        inline Depth depth () const { return Depth(_depth); }
         inline Bound bound () const { return Bound(_gen_bnd & 0x03); }
-        inline u08   gen   () const { return u08(_gen_bnd & 0xFC); }
+        inline u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
 
         inline void save (u16 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
@@ -50,7 +50,7 @@ namespace Transposition {
             _move  = u16(m);
             _value = u16(v);
             _eval  = u16(e);
-            _depth = u08(d - DEPTH_NONE);
+            _depth = i08(d);
             _gen_bnd = g | u08(b);
         }
 

@@ -252,9 +252,15 @@ namespace MoveGen {
                 Bitboard enemies;
                 switch (GT)
                 {
-                case EVASION: enemies = pos.pieces (C_) & targets; break;
-                case CAPTURE: enemies = targets;                   break;
-                default:      enemies = pos.pieces (C_);           break;
+                case EVASION:
+                    enemies = pos.pieces (C_) & targets;
+                break;
+                case CAPTURE:
+                    enemies = targets;
+                break;
+                default:
+                    enemies = pos.pieces (C_);
+                break;
                 }
 
                 Bitboard empties = U64(0);
@@ -272,7 +278,7 @@ namespace MoveGen {
                         // only blocking squares are important
                         push_1 &= targets;
                         push_2 &= targets;
-                        break;
+                    break;
 
                     case CHECK:
                     case QUIET_CHECK:
@@ -297,9 +303,10 @@ namespace MoveGen {
                                 push_2 |= push_cd_2;
                             }
                         }
-                        break;
+                    break;
 
-                    default: break;
+                    default:
+                    break;
                     }
                     
                     while (push_1 != U64(0)) { Square dst = pop_lsq (push_1); (moves++)->move = mk_move<NORMAL> (dst - PUSH, dst); }

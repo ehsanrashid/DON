@@ -420,8 +420,7 @@ namespace UCI {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
             }
 
-        }
-        while (running && cmd != "quit");
+        } while (running && cmd != "quit");
     }
 
     void stop ()

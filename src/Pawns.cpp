@@ -14,33 +14,40 @@ namespace Pawns {
         // Doubled pawn penalty by file
         const Score PAWN_DOUBLED_SCORE[F_NO] =
         {
-            S(+13,+43), S(+20,+48), S(+23,+48), S(+23,+48), S(+23,+48), S(+23,+48), S(+20,+48), S(+13,+43)
+            S(+13,+43), S(+20,+48), S(+23,+48), S(+23,+48),
+            S(+23,+48), S(+23,+48), S(+20,+48), S(+13,+43)
         };
 
         // Isolated pawn penalty by [opposed][file]
         const Score PAWN_ISOLATED_SCORE[2][F_NO] =
         {
-            {S(+37,+45), S(+54,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+60,+52), S(+54,+52), S(+37,+45)},
-            {S(+25,+30), S(+36,+35), S(+40,+35), S(+40,+35), S(+40,+35), S(+40,+35), S(+36,+35), S(+25,+30)}
+            {S(+37,+45), S(+54,+52), S(+60,+52), S(+60,+52),
+            S(+60,+52), S(+60,+52), S(+54,+52), S(+37,+45)},
+            {S(+25,+30), S(+36,+35), S(+40,+35), S(+40,+35),
+            S(+40,+35), S(+40,+35), S(+36,+35), S(+25,+30)}
         };
 
         // Backward pawn penalty by [opposed][file]
         const Score PAWN_BACKWARD_SCORE[2][F_NO] =
         {
-            {S(+30,+42), S(+43,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+49,+46), S(+43,+46), S(+30,+42)},
-            {S(+20,+28), S(+29,+31), S(+33,+31), S(+33,+31), S(+33,+31), S(+33,+31), S(+29,+31), S(+20,+28)}
+            {S(+30,+42), S(+43,+46), S(+49,+46), S(+49,+46),
+            S(+49,+46), S(+49,+46), S(+43,+46), S(+30,+42)},
+            {S(+20,+28), S(+29,+31), S(+33,+31), S(+33,+31),
+            S(+33,+31), S(+33,+31), S(+29,+31), S(+20,+28)}
         };
 
         // Candidate passed pawn bonus by [rank]
         const Score PAWN_CANDIDATE_SCORE[R_NO] =
         {
-            S(+ 0,+ 0), S(+ 6,+13), S(+ 6,+13), S(+14,+29), S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0)
+            S(+ 0,+ 0), S(+ 6,+13), S(+ 6,+13), S(+14,+29),
+            S(+34,+68), S(+83,166), S(+ 0,+ 0), S(+ 0,+ 0)
         };
         
         // Levers bonus by [rank]
         const Score PAWN_LEVER_SCORE[R_NO] = 
         {
-            S(+ 0,+ 0), S(+ 0,+ 0), S(+ 6,+ 6), S(+12,+12), S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
+            S(+ 0,+ 0), S(+ 0,+ 0), S(+ 6,+ 6), S(+12,+12),
+            S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
         };
 
         // Connected pawn bonus by [file] and [rank] (initialized by formula)
@@ -64,9 +71,9 @@ namespace Pawns {
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
         const Value STORM_DANGER_VALUES[3][R_NO] =
         {
-            { V(+ 0),  V(+66), V(+130), V(+52), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+64), V(+128), V(+51), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
             { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+160), V(+25), V(+12),  V(+ 0),  V(+ 0),  V(+ 0) }
+            { V(+ 0),  V(+ 0), V(+160), V(+25), V(+13),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
 
         // Max bonus for king safety by pawns.
@@ -85,27 +92,24 @@ namespace Pawns {
             const Delta RCAP = WHITE == C ? DEL_NE : DEL_SW;
             const Delta LCAP = WHITE == C ? DEL_NW : DEL_SE;
 
-            const Bitboard pawns[CLR_NO] =
-            {
-                pos.pieces<PAWN> (C ),
-                pos.pieces<PAWN> (C_)
-            };
+            const Bitboard pawns_0 = pos.pieces<PAWN> (C );
+            const Bitboard pawns_1 = pos.pieces<PAWN> (C_);
 
-            e->pawns_attacks  [C] = shift_del<RCAP> (pawns[0]) | shift_del<LCAP> (pawns[0]);
-            //e->blocked_pawns  [C] = pawns[0] & shift_del<PULL> (pawns[1]);
+            e->pawns_attacks  [C] = shift_del<RCAP> (pawns_0) | shift_del<LCAP> (pawns_0);
+            //e->blocked_pawns  [C] = pawns_0 & shift_del<PULL> (pawns_1);
             e->passed_pawns   [C] = U64(0);
             e->unstopped_pawns[C] = U64(0);
             e->semiopen_files [C] = 0xFF;
             e->king_sq        [C] = SQ_NO;
 
-            Bitboard center_pawns = pawns[0] & EXT_CENTER_bb[C];
-            if (center_pawns)
+            Bitboard center_pawns = pawns_0 & EXT_CENTER_bb[C];
+            if (center_pawns != U64(0))
             {
                 Bitboard color_pawns;
                 color_pawns = center_pawns & LIHT_bb;
-                e->pawns_on_sqrs[C][WHITE] = (color_pawns ? pop_count<MAX15>(color_pawns) : 0);
+                e->pawns_on_sqrs[C][WHITE] = (color_pawns != U64(0) ? pop_count<MAX15>(color_pawns) : 0);
                 color_pawns = center_pawns & DARK_bb;
-                e->pawns_on_sqrs[C][BLACK] = (color_pawns ? pop_count<MAX15>(color_pawns) : 0);
+                e->pawns_on_sqrs[C][BLACK] = (color_pawns != U64(0) ? pop_count<MAX15>(color_pawns) : 0);
             }
             else
             {
@@ -133,16 +137,16 @@ namespace Pawns {
                 // Connectors rank, for connected pawns detection
                 //Bitboard con_rank = sup_rank | rank_bb (s);
 
-                Bitboard friend_adj_pawns = pawns[0] & ADJ_FILE_bb[f];
+                Bitboard friend_adj_pawns = pawns_0 & ADJ_FILE_bb[f];
                 // Flag the pawn as supported, connected, levered, opposed, isolated and passed, (but not the backward one).
                 bool supported = (friend_adj_pawns & sup_rank);
                 bool connected = (friend_adj_pawns & (sup_rank | rank_bb (s)));
-                bool levered   = (pawns[1] & PAWN_ATTACKS[C][s]);
-                bool opposed   = (pawns[1] & FRONT_SQRS_bb[C][s]);
+                bool levered   = (pawns_1 & PAWN_ATTACKS[C][s]);
+                bool opposed   = (pawns_1 & FRONT_SQRS_bb[C][s]);
                 bool isolated  = !(friend_adj_pawns);
-                bool passed    = !(pawns[1] & PAWN_PASS_SPAN[C][s]);
+                bool passed    = !(pawns_1 & PAWN_PASS_SPAN[C][s]);
                 // Bitboard doublers
-                Bitboard doublers = (pawns[0] & FRONT_SQRS_bb[C][s]);
+                Bitboard doublers = (pawns_0 & FRONT_SQRS_bb[C][s]);
 
                 bool backward;
                 // Test for backward pawn.
@@ -153,7 +157,7 @@ namespace Pawns {
                 if (  passed || isolated || connected || levered
                    || r >= R_6
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
-                   || (pawns[0] & PAWN_ATTACK_SPAN[C_][s] && !(pawns[1] & (s-PUSH)))
+                   || (pawns_0 & PAWN_ATTACK_SPAN[C_][s] && !(pawns_1 & (s-PUSH)))
                    )
                 {
                     backward = false;
@@ -169,27 +173,19 @@ namespace Pawns {
 
                     // If have an enemy pawn in the same or next rank, the pawn is
                     // backward because it cannot advance without being captured.
-                    backward = pawns[1] & (b | shift_del<PUSH> (b));
+                    backward = pawns_1 & (b | shift_del<PUSH> (b));
                 }
 
                 // A not passed pawn is a candidate to become passed, if it is free to
                 // advance and if the number of friendly pawns beside or behind this
                 // pawn on adjacent files is higher or equal than the number of
                 // enemy pawns in the forward direction on the adjacent files.
-                bool candidate = false;
-                if (!(passed || isolated || backward || opposed)) // r > R_6
-                {
-                    Bitboard helpers = (friend_adj_pawns & PAWN_ATTACK_SPAN[C_][s+PUSH]); // Only behind friend adj pawns are Helpers
-                    if (helpers != U64(0))
-                    {
-                        Bitboard guarders = U64(0);    // Only front enemy adj pawns
-                        candidate = ((more_than_one (helpers) ? pop_count<MAX15> (helpers) : 1)
-                                 >= ((guarders = pawns[1] & PAWN_ATTACK_SPAN[C][s]) != U64(0) ?
-                                      more_than_one (guarders) ? pop_count<MAX15> (guarders) : 1 : 0));
-                    }
-                }
+                Bitboard helpers = U64(0);
+                bool candidate = !(passed || isolated || backward || opposed)
+                   && (helpers = friend_adj_pawns & PAWN_ATTACK_SPAN[C_][s+PUSH]) != U64(0)
+                   &&  pop_count<MAX15> (helpers) >= pop_count<MAX15> (pawns_1 & PAWN_ATTACK_SPAN[C][s]);
 
-                ASSERT (passed ^ (opposed || (pawns[1] & PAWN_ATTACK_SPAN[C][s])));
+                ASSERT (passed ^ (opposed || (pawns_1 & PAWN_ATTACK_SPAN[C][s])));
 
                 // Score this pawn
                 Score score = SCORE_ZERO;
@@ -230,7 +226,8 @@ namespace Pawns {
                             / i32(rank_dist (s, scan_frntmost_sq (C, doublers)));
                     // TODO::
                     //Bitboard doubly_doublers = (friend_adj_pawns & PAWN_ATTACK_SPAN[C][s]);
-                    //if (doubly_doublers) score -= PAWN_DOUBLED_SCORE[f] * i32(rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
+                    //if (doubly_doublers != U64(0)) score -= PAWN_DOUBLED_SCORE[f] * i32(rank_dist (s, scan_backmost_sq (C, doubly_doublers))) / 4;
+                    //else score -= PAWN_DOUBLED_SCORE[f];
                 }
                 else
                 {
@@ -351,9 +348,10 @@ namespace Pawns {
 
         if (e->pawn_key != pawn_key)
         {
-            e->pawn_key    = pawn_key;
-            e->pawn_score  = evaluate<WHITE> (pos, e)
-                           - evaluate<BLACK> (pos, e);
+            e->pawn_key   = pawn_key;
+            e->pawn_score =
+                + evaluate<WHITE> (pos, e)
+                - evaluate<BLACK> (pos, e);
         }
         return e;
     }
@@ -365,7 +363,7 @@ namespace Pawns {
         {
             for (i08 f = F_A; f <= F_H; ++f)
             {
-                i32 value = 1 * r * (r-1) * (r-2) + PAWN_FILE_WEIGHTS[f] * (r/2 + 1);
+                i32 value = r*(r-1)*(r-2) + (r/2+1)*PAWN_FILE_WEIGHTS[f];
                 PAWN_CONNECTED_SCORE[f][r] = mk_score (value, value);
             }
         }

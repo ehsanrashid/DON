@@ -72,17 +72,17 @@ namespace Notation {
         {
             ostringstream oss;
 
-            if (abs (v) < VALUE_MATES_IN_MAX_PLY)
+            if (abs (v) < +VALUE_MATE_IN_MAX_DEPTH)
             {
                 oss << setprecision (2) << fixed << showpos << value_to_cp (WHITE == pos.active () ? +v : -v);
             }
             else
             {
-                if (v > VALUE_ZERO) //if (v >= VALUE_MATES_IN_MAX_PLY)
+                if (v > VALUE_ZERO) //if (v >= +VALUE_MATE_IN_MAX_DEPTH)
                 {
                     oss << "#" << showpos << +i32(VALUE_MATE - v + 1) / 2;
                 }
-                else                //if (v <= VALUE_MATED_IN_MAX_PLY)
+                else                //if (v <= -VALUE_MATE_IN_MAX_DEPTH)
                 {
                     oss << "#" << showpos << -i32(VALUE_MATE + v + 0) / 2;
                 }
@@ -267,13 +267,13 @@ namespace Notation {
     {
         ostringstream oss;
 
-        if (abs (v) < VALUE_MATES_IN_MAX_PLY)
+        if (abs (v) < +VALUE_MATE_IN_MAX_DEPTH)
         {
             oss << "cp " << i32(100 * value_to_cp (v));
         }
         else
         {
-            oss << "mate " << i32(v > VALUE_ZERO ? (VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
+            oss << "mate " << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
         }
 
         oss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");

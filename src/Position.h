@@ -129,9 +129,9 @@ private:
     Color    _active;
     // Ply of the game, incremented after every move.
     i32      _game_ply;
-    bool     _chess960;
-
     u64      _game_nodes;
+    
+    bool     _chess960;
 
     Threads::Thread *_thread;
 
@@ -219,6 +219,7 @@ public:
     Key pawn_key      () const;
     Key posi_key      () const;
     Key posi_exc_key  () const;
+    Key posi_move_key (Move m) const;
 
     Value non_pawn_material (Color c) const;    // Incremental piece-square evaluation
 
@@ -261,15 +262,15 @@ public:
     Bitboard pinneds     (Color c)   const;
     Bitboard discoverers (Color c)   const;
 
-    bool pseudo_legal (Move m)       const;
-    bool legal        (Move m, Bitboard pinned)  const;
-    bool legal        (Move m)       const;
-    bool capture      (Move m)       const;
-    bool capture_or_promotion (Move m)    const;
+    bool pseudo_legal (Move m)  const;
+    bool legal        (Move m, Bitboard pinned) const;
+    bool legal        (Move m)  const;
+    bool capture      (Move m)  const;
+    bool capture_or_promotion (Move m)  const;
     bool gives_check     (Move m, const CheckInfo &ci) const;
     //bool gives_checkmate (Move m, const CheckInfo &ci) const;
-    bool advanced_pawn_push (Move m)      const;
-    Piece moving_piece (Move m)  const;
+    bool advanced_pawn_push (Move m)    const;
+    Piece moving_piece (Move m) const;
 
     bool passed_pawn  (Color c, Square s) const;
     bool pawn_on_7thR (Color c) const;
@@ -429,10 +430,11 @@ inline i32  Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = max ((game_ply - (BLACK == active)) / 2, 0) + 1
 inline i32  Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
-inline bool Position::chess960  () const { return _chess960; }
 // Nodes visited
 inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
+
+inline bool Position::chess960  () const { return _chess960; }
 inline Threads::Thread* Position::thread () const { return _thread; }
 
 // Attackers to the square 's' by color 'c' on occupancy 'occ'

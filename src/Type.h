@@ -192,13 +192,11 @@ enum Value : i32
 
     VALUE_NONE      = SHRT_MAX,
     VALUE_INFINITE  = +i16(VALUE_NONE) - 1,
-    //VALUE_INFINITE_ = -i16(VALUE_INFINITE),
 
     VALUE_MATE      = +i16(VALUE_INFINITE) - 1,
     VALUE_KNOWN_WIN = +i16(VALUE_MATE) / 3,
 
-    VALUE_MATES_IN_MAX_PLY = +i16(VALUE_MATE) - i16(MAX_DEPTH),
-    VALUE_MATED_IN_MAX_PLY = -i16(VALUE_MATE) + i16(MAX_DEPTH),
+    VALUE_MATE_IN_MAX_DEPTH = +i16(VALUE_MATE) - i16(MAX_DEPTH),
 
     VALUE_MG_PAWN =  198,  VALUE_EG_PAWN =  258,
     VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  846,
@@ -206,7 +204,6 @@ enum Value : i32
     VALUE_MG_ROOK = 1270,  VALUE_EG_ROOK = 1278,
     VALUE_MG_QUEN = 2521,  VALUE_EG_QUEN = 2558,
 
-    VALUE_MARGIN = VALUE_MG_BSHP - VALUE_MG_NIHT,
     VALUE_MIDGAME = 15581, VALUE_ENDGAME = 3998
 };
 
@@ -218,15 +215,13 @@ enum Score : i32 { SCORE_ZERO = 0 };
 
 enum Depth : i16
 {
-    PLY_HALF            =  1,
-    PLY_ONE             =  2 * i16(PLY_HALF),
+    DEPTH_ZERO          =  0,
+    DEPTH_ONE           =  1, // One Ply
+    DEPTH_QS_CHECKS     =  0,
+    DEPTH_QS_NO_CHECKS  = -1,
+    DEPTH_QS_RECAPTURES = -5,
 
-    DEPTH_ZERO          =  0 * i16(PLY_ONE),
-    DEPTH_QS_CHECKS     =  0 * i16(PLY_ONE),
-    DEPTH_QS_NO_CHECKS  = -1 * i16(PLY_ONE),
-    DEPTH_QS_RECAPTURES = -5 * i16(PLY_ONE),
-
-    DEPTH_NONE          = -6 * i16(PLY_ONE)
+    DEPTH_NONE          = -6
 };
 
 enum Bound : u08
@@ -265,8 +260,9 @@ enum Bound : u08
 
 enum Phase : i16
 {
-    PHASE_ENDGAME =   0,
-    PHASE_MIDGAME = 128,
+    PHASE_ENDGAME    =   0,
+    PHASE_MIDGAME    = 128,
+    PHASE_KINGSAFETY =  20,
 
     MG       = 0,
     EG       = 1,
@@ -276,7 +272,6 @@ enum Phase : i16
 enum ScaleFactor : u08
 {
     SCALE_FACTOR_DRAW    =   0,
-
     SCALE_FACTOR_PAWNS   =  48,
     SCALE_FACTOR_NORMAL  =  64,
     SCALE_FACTOR_MAX     = 128,

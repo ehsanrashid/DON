@@ -9,7 +9,7 @@ class Position;
 namespace Evaluate {
 
     // Tempo bonus. Must be visible to search.
-    const Value TempoBonus = Value(17);
+    const Value TEMPO = Value(17);
 
     extern std::string trace (const Position &pos);
 

@@ -59,12 +59,8 @@ namespace Time {
 
     void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply)
     {
-        // Initializes:
-        // instability factor to 1.0
-        // recapture factor to 1.0
-        // and search times to maximum values
+        // Initializes: instability factor and search times to maximum values
         _instability_factor = 1.0f;
-        _capture_factor     = 1.0f;
         _optimum_time =
         _maximum_time =
             max (gameclock.time, MinimumMoveTime);

@@ -69,7 +69,7 @@ namespace MovePick {
             Square s    = dst_sq (m);
 
             i16 cnt = _counts[p][s][0] + d;
-            if (cnt > 2000)
+            if (cnt > 16000)
             {
                 cnt /= 2;
                 _counts[p][s][1] /= 2;
@@ -84,7 +84,7 @@ namespace MovePick {
             Square s    = dst_sq (m);
 
             i16 cnt = _counts[p][s][1] + d;
-            if (cnt > 2000)
+            if (cnt > 16000)
             {
                 cnt /= 2;
                 _counts[p][s][0] /= 2;

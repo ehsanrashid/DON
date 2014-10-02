@@ -182,8 +182,7 @@ namespace BitBases {
             {
                 repeat |= UNKNOWN == db[idx] && UNKNOWN != db[idx].classify (db);
             }
-        }
-        while (repeat);
+        } while (repeat);
 
         // Map 32 results into one KPKBitbase[] entry
         for (idx = 0; idx < MAX_INDEX; ++idx)

@@ -147,8 +147,7 @@ namespace BitBoard {
 
                     ++size;
                     occ = (occ - mask) & mask;
-                }
-                while (occ != U64(0));
+                } while (occ != U64(0));
 
                 // Set the offset for the table_bb of the next square. Have individual
                 // table_bb sizes for each square with "Fancy Magic Bitboards".
@@ -171,8 +170,7 @@ namespace BitBoard {
                     {
                         magics_bb[s] = rkiss.magic_rand<Bitboard> (booster);
                         index = (mask * magics_bb[s]) >> 0x38;
-                    }
-                    while (pop_count<MAX15> (index) < 6);
+                    } while (pop_count<MAX15> (index) < 6);
 
                     fill (attacks_bb[s], attacks_bb[s] + size, U64(0)); //fill_n (attacks_bb[s], size, U64(0));
 
@@ -192,8 +190,7 @@ namespace BitBoard {
                         ASSERT (reference[i]);
                         attacks = reference[i];
                     }
-                }
-                while (i < size);
+                } while (i < size);
 #           else
                 (void) magics_bb; 
                 (void) m_index; 
