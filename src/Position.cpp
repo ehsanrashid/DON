@@ -854,10 +854,7 @@ bool Position::pseudo_legal (Move m) const
         // cannot be on the 8th/1st rank.
         if (R_1 == r_org || R_8 == r_org) return false;
         if (R_1 == r_dst || R_2 == r_dst) return false;
-        if (mtype (m) == NORMAL)
-        {
-            if (R_7 == r_org || R_8 == r_dst) return false;
-        }
+        if (NORMAL == mtype (m) && (R_7 == r_org || R_8 == r_dst)) return false;
         
         // Move direction must be compatible with pawn color
         Delta delta = dst - org;
@@ -878,7 +875,7 @@ bool Position::pseudo_legal (Move m) const
             {
                 return false;
             }
-            break;
+        break;
         case DEL_NE:
         case DEL_NW:
         case DEL_SE:
@@ -894,7 +891,7 @@ bool Position::pseudo_legal (Move m) const
             {
                 return false;
             }
-            break;
+        break;
         case DEL_NN:
         case DEL_SS:
             // Double pawn push. The destination square must be on the fourth
@@ -910,9 +907,10 @@ bool Position::pseudo_legal (Move m) const
             {
                 return false;
             }
-            break;
+        break;
         default:
             return false;
+        break;
         }
 
     }
@@ -932,16 +930,16 @@ bool Position::pseudo_legal (Move m) const
             // as invalid moves like B1A1 when opposite queen is on C1.
             return !attackers_to (dst, pasive, _types_bb[NONE] - org); // Remove 'org' but not place 'dst'
         }
+
         // Double check? In this case a king move is required
         if (more_than_one (_si->checkers)) return false;
-        if (PAWN == pt && ENPASSANT == mtype (m))
-        {
+
+        return PAWN == pt && ENPASSANT == mtype (m) ?
             // Move must be a capture of the checking en-passant pawn
             // or a blocking evasion of the checking piece
-            return _si->checkers & cap || BETWEEN_SQRS_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]] & dst;
-        }
-        // Move must be a capture or a blocking evasion of the checking piece
-        return (_si->checkers | BETWEEN_SQRS_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]]) & dst;
+            _si->checkers & cap || BETWEEN_SQRS_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]] & dst :
+            // Move must be a capture or a blocking evasion of the checking piece
+            (_si->checkers | BETWEEN_SQRS_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]]) & dst;
     }
     return true;
 }

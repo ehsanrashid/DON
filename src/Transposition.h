@@ -65,7 +65,7 @@ namespace Transposition {
     // padding     (2 bytes)
     struct TTCluster
     {
-        TTEntry entry[ClusterEntries];
+        TTEntry entries[ClusterEntries];
         u08     padding[2];
     };
 
@@ -186,7 +186,7 @@ namespace Transposition {
         // The lower order bits of the key are used to get the index of the cluster inside the table.
         inline TTEntry* cluster_entry (const Key key) const
         {
-            return _hash_table[key & _cluster_mask].entry;
+            return _hash_table[key & _cluster_mask].entries;
         }
 
         // permill_full() returns an approximation of the per-mille of the 
@@ -201,7 +201,7 @@ namespace Transposition {
             u64 scan_cluster = std::min (U64(10000), _cluster_count);
             for (const TTCluster *itc = _hash_table; itc < _hash_table + scan_cluster; ++itc)
             {
-                const TTEntry *tte = itc->entry;
+                const TTEntry *tte = itc->entries;
                 if (  (tte+0)->gen () == _generation
                    || (tte+1)->gen () == _generation
                    || (tte+2)->gen () == _generation
