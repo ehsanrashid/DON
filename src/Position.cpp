@@ -434,7 +434,7 @@ bool Position::ok (i08 *step) const
 
             // There should be one and only one KING of color
             Bitboard kings = colors & _types_bb[KING];
-            if (!kings || more_than_one (kings))
+            if (kings == U64(0) || more_than_one (kings))
             {
                 return false;
             }
@@ -932,24 +932,17 @@ bool Position::pseudo_legal (Move m) const
             // as invalid moves like B1A1 when opposite queen is on C1.
             return !attackers_to (dst, pasive, _types_bb[NONE] - org); // Remove 'org' but not place 'dst'
         }
-        else
+        // Double check? In this case a king move is required
+        if (more_than_one (_si->checkers)) return false;
+        if (PAWN == pt && ENPASSANT == mtype (m))
         {
-            // Double check? In this case a king move is required
-            if (more_than_one (_si->checkers)) return false;
-            if (PAWN == pt && ENPASSANT == mtype (m))
-            {
-                // Move must be a capture of the checking en-passant pawn
-                // or a blocking evasion of the checking piece
-                return _si->checkers & cap || BETWEEN_SQRS_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]] & dst;
-            }
-            else
-            {
-                // Move must be a capture or a blocking evasion of the checking piece
-                return (_si->checkers | BETWEEN_SQRS_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]]) & dst;
-            }
+            // Move must be a capture of the checking en-passant pawn
+            // or a blocking evasion of the checking piece
+            return _si->checkers & cap || BETWEEN_SQRS_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]] & dst;
         }
+        // Move must be a capture or a blocking evasion of the checking piece
+        return (_si->checkers | BETWEEN_SQRS_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]]) & dst;
     }
-
     return true;
 }
 
@@ -1050,6 +1043,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     case NORMAL:
         return false;
     break;
+
     case CASTLE:
     {
         // Castling with check ?
@@ -1099,7 +1093,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 //        Position pos = *this;
 //        StateInfo si;
 //        pos.do_move (m, si, &ci);
-//        return !MoveList<LEGAL> (pos).size ();
+//        return MoveList<LEGAL> (pos).size () == 0;
 //    }
 //    return false;
 //}
@@ -1684,11 +1678,11 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         }
 
         // Update prefetch access to pawns_table
-        prefetch ((char *) _thread->pawns_table[_si->pawn_key]);
+        prefetch (reinterpret_cast<char *>(_thread->pawns_table[_si->pawn_key]));
     }
 
     // Prefetch TT access as soon as know the new hash key
-    prefetch ((char *) TT.cluster_entry (key));
+    prefetch (reinterpret_cast<char *>(TT.cluster_entry (key)));
 
     // Update the key with the final value
     _si->posi_key     = key;
@@ -1811,7 +1805,7 @@ void Position::  do_null_move (StateInfo &si)
     _active = ~_active;
     _si->posi_key ^= Zob._.mover_side;
 
-    prefetch ((char *) TT.cluster_entry (_si->posi_key));
+    prefetch (reinterpret_cast<char *>(TT.cluster_entry (_si->posi_key)));
 
     _si->clock50++;
     _si->null_ply = 0;
