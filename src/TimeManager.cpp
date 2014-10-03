@@ -11,12 +11,12 @@ namespace Time {
 
         enum TimeT { OPTIMUM_TIME, MAXIMUM_TIME };
 
-        const float MAX_STEP_RATIO  = 07.00f; // When in trouble, can step over reserved time with this ratio
-        const float MAX_STEAL_RATIO = 00.33f; // However must not steal time from remaining moves over this ratio
+        const float MAX_STEP_RATIO  = 7.00f; // When in trouble, can step over reserved time with this ratio
+        const float MAX_STEAL_RATIO = 0.33f; // However must not steal time from remaining moves over this ratio
 
-        const float SCALE     = 09.30f;
+        const float SCALE     =  9.30f;
         const float SHIFT     = 59.80f;
-        const float SKEW_RATE = 00.172f;
+        const float SKEW_RATE =  0.172f;
 
         u08 MaximumMoveHorizon    = 50; // Plan time management at most this many moves ahead, in num of moves.
         u08 EmergencyMoveHorizon  = 40; // Be prepared to always play at least this many moves, in num of moves.

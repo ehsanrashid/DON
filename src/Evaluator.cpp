@@ -172,9 +172,9 @@ namespace Evaluate {
         // which piece type attacks which one.
         const Score THREAT_SCORE[THREAT_NO][TOTL] =
         {
-            { S(+ 7,+39), S(+24,+49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Minor
-            { S(+10,+39), S(+15,+45), S(+15,+45), S(+18,+ 49), S(+24,+ 52) }, // Major
-            { S(+ 0,+64), S(+0,+128), S(+ 0,+ 0), S(+ 0,+  0), S(+ 0,+  0)  }  // Royal
+            { S(+ 7,+39), S(+24, +49), S(+24,+49), S(+38,+100), S(+41,+104) }, // Minor
+            { S(+10,+39), S(+15, +45), S(+15,+45), S(+18,+ 49), S(+24,+ 52) }, // Major
+            { S(+ 2,+58), S(+ 6,+125), S(+ 0,+ 0), S(+ 0,+  0), S(+ 0,+  0)  }  // Royal
         };
 
         // PAWN_THREATEN_SCORE[PieceT] contains a penalty according to
@@ -317,7 +317,8 @@ namespace Evaluate {
 
             // Init king safety tables only if going to use them
             // Do not evaluate king safety when you are close to the endgame so the weight of king safety is small
-            if (ei.mi->game_phase > PHASE_KINGSAFETY)
+            //if (ei.mi->game_phase > PHASE_KINGSAFETY)
+            if (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
             {
                 king_attacks += ek_sq;
                 Rank ekr = rel_rank (C_, ek_sq);
