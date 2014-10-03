@@ -473,6 +473,9 @@ namespace Search {
 
                 (ss)->current_move = move;
 
+                // Speculative prefetch
+                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
+
                 // Make and search the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
@@ -1108,7 +1111,11 @@ namespace Search {
                 }
 
                 bool move_pv = PVNode && (1 == legals);
+                
                 (ss)->current_move = move;
+
+                // Speculative prefetch
+                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
 
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check ? ci : NULL);

@@ -119,43 +119,6 @@ namespace {
     };
 #undef S
 
-    // prefetch() preloads the given address in L1/L2 cache.
-    // This is a non-blocking function that doesn't stall
-    // the CPU waiting for data to be loaded from memory,
-    // which can be quite slow.
-#ifdef PREFETCH
-
-#   if (defined(_MSC_VER) || defined(__INTEL_COMPILER))
-
-#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
-
-    inline void prefetch (const char *addr)
-    {
-#       if defined(__INTEL_COMPILER)
-        {
-            // This hack prevents prefetches from being optimized away by
-            // Intel compiler. Both MSVC and gcc seem not be affected by this.
-            __asm__ ("");
-        }
-#       endif
-        _mm_prefetch (addr, _MM_HINT_T0);
-    }
-
-#   else
-
-    inline void prefetch (const char *addr)
-    {
-        __builtin_prefetch (addr);
-    }
-
-#   endif
-
-#else
-
-    inline void prefetch (const char *) {}
-
-#endif
-
 } // namespace
 
 u08 Position::_FiftyMoveDist;
@@ -655,10 +618,7 @@ Value Position::see      (Move m) const
             // Stop before processing a king capture
             if (KING == captured)
             {
-                if (stm_attackers == attackers)
-                {
-                    ++depth;
-                }
+                if (stm_attackers == attackers) ++depth;
                 break;
             }
 

@@ -548,6 +548,43 @@ enum SyncT { IO_LOCK, IO_UNLOCK };
 
 extern std::ostream& operator<< (std::ostream &os, const SyncT &sync);
 
+// prefetch() preloads the given address in L1/L2 cache.
+// This is a non-blocking function that doesn't stall
+// the CPU waiting for data to be loaded from memory,
+// which can be quite slow.
+#ifdef PREFETCH
+
+#   if (defined(_MSC_VER) || defined(__INTEL_COMPILER))
+
+#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+
+    inline void prefetch (const char *addr)
+    {
+#       if defined(__INTEL_COMPILER)
+        {
+            // This hack prevents prefetches from being optimized away by
+            // Intel compiler. Both MSVC and gcc seem not be affected by this.
+            __asm__ ("");
+        }
+#       endif
+        _mm_prefetch (addr, _MM_HINT_T0);
+    }
+
+#   else
+
+    inline void prefetch (const char *addr)
+    {
+        __builtin_prefetch (addr);
+    }
+
+#   endif
+
+#else
+
+    inline void prefetch (const char *) {}
+
+#endif
+
 inline char toggle_case (unsigned char c) { return char (islower (c) ? toupper (c) : tolower (c)); }
 
 inline bool white_spaces (const std::string &str)
