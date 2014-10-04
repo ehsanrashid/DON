@@ -324,10 +324,10 @@ namespace UCI {
         Options["Fixed Contempt"]               << Option (   0,-100,+100, Search::configure_contempt);
         // Time (sec) for Timed Contempt
         // Default +6, Min 0, Max +900.
-        Options["Timed Contempt (sec)"]         << Option (+ 30,   0,+900, Search::configure_contempt);
+        Options["Timed Contempt (sec)"]         << Option (+ 22,   0,+900, Search::configure_contempt);
         // Centipawn (cp) for Valued Contempt
         // Default +50, Min 0, Max +1000.
-        Options["Valued Contempt (cp)"]         << Option (+ 40,   0,+1000, Search::configure_contempt);
+        Options["Valued Contempt (cp)"]         << Option (+ 34,   0,+1000, Search::configure_contempt);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
@@ -353,7 +353,7 @@ namespace UCI {
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Move Time"]            << Option ( 20, 0, 5000, Time::configure);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (+ 85,+ 10,+ 1000, Time::configure);
+        Options["Move Slowness"]                << Option (+ 90,+ 10,+ 1000, Time::configure);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.
         //
