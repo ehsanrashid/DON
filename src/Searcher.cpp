@@ -188,7 +188,8 @@ namespace Search {
             HistoryStatistics.success (pos, move, cnt);
             for (u08 i = 0; i < quiets; ++i)
             {
-                if (move != quiet_moves[i]) HistoryStatistics.failure (pos, quiet_moves[i], cnt);
+                //if (move != quiet_moves[i])
+                HistoryStatistics.failure (pos, quiet_moves[i], cnt);
             }
             Move opp_move = (ss-1)->current_move;
             if (_ok (opp_move))
@@ -1165,8 +1166,7 @@ namespace Search {
                         // Re-search at intermediate depth if reduction is very high
                         if (alpha < value && reduction_depth >= 4*DEPTH_ONE)
                         {
-                            if (SP_NODE) alpha = splitpoint->alpha;
-
+                            //if (SP_NODE) alpha = splitpoint->alpha;
                             reduced_depth = max (new_depth - reduction_depth/2, DEPTH_ONE);
                             // Search with reduced depth
                             value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
@@ -1174,15 +1174,14 @@ namespace Search {
                             // Re-search at intermediate depth if reduction is very high
                             if (alpha < value && reduction_depth >= 8*DEPTH_ONE)
                             {
-                                if (SP_NODE) alpha = splitpoint->alpha;
-
+                                //if (SP_NODE) alpha = splitpoint->alpha;
                                 reduced_depth = max (new_depth - reduction_depth/4, DEPTH_ONE);
                                 // Search with reduced depth
                                 value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
                             }
                         }
 
-                        full_depth_search = alpha < value && reduced_depth < new_depth; //reduction_depth != DEPTH_ZERO;
+                        full_depth_search = alpha < value && reduction_depth != DEPTH_ZERO;
                     }
 
                     // Step 16. Full depth search, when LMR is skipped or fails high
