@@ -154,19 +154,21 @@ Position& Position::operator= (const Position &pos)
     return *this;
 }
 
+// posi_move_key() computes the new hash key after the given moven. Needed for speculative prefetch.
+// It doesn't recognize special moves like castling, en-passant and promotions.
 Key Position::posi_move_key (Move m) const
 {
     Square org = org_sq (m)
         ,   dst = dst_sq (m);
 
-    Piece pt = _board[org]
-        , ct = _board[dst];
+    PieceT pt = ptype (_board[org])
+        ,  ct = ptype (_board[dst]);
 
-    Key key = _si->posi_key ^ Zob._.mover_side;
-    if (ct != EMPTY) key ^= Zob._.piece_square[color (ct)][ptype (ct)][dst];
-    key ^= Zob._.piece_square[color (pt)][ptype (pt)][org];
-    key ^= Zob._.piece_square[color (pt)][ptype (pt)][dst];
-    return key;
+    return _si->posi_key
+        ^  Zob._.mover_side
+        ^  Zob._.piece_square[_active][pt][org]
+        ^  Zob._.piece_square[_active][pt][dst]
+        ^  (ct != NONE ? Zob._.piece_square[~_active][ct][dst] : U64(0));
 
 }
 

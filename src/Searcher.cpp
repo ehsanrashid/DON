@@ -188,7 +188,7 @@ namespace Search {
             HistoryStatistics.success (pos, move, cnt);
             for (u08 i = 0; i < quiets; ++i)
             {
-                HistoryStatistics.failure (pos, quiet_moves[i], cnt);
+                if (move != quiet_moves[i]) HistoryStatistics.failure (pos, quiet_moves[i], cnt);
             }
             Move opp_move = (ss-1)->current_move;
             if (_ok (opp_move))
@@ -473,7 +473,7 @@ namespace Search {
 
                 (ss)->current_move = move;
 
-                // Speculative prefetch
+                // Speculative prefetch as early as possible
                 prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
 
                 // Make and search the move
@@ -804,12 +804,12 @@ namespace Search {
                                     if (null_value >= beta)
                                     {
                                         // Do not return unproven unproven wins
-                                        if (null_value >= VALUE_KNOWN_WIN)
+                                        if (null_value >= VALUE_MATE_IN_MAX_DEPTH)
                                         {
                                             null_value = beta;
                                         }
                                         // Don't do zugzwang verification search at low depths
-                                        if (depth < 12*DEPTH_ONE)
+                                        if (depth < 12*DEPTH_ONE && beta < VALUE_KNOWN_WIN)
                                         {
                                             return null_value;
                                         }
@@ -1067,7 +1067,7 @@ namespace Search {
                             Value futility_value = (ss)->static_eval + FutilityMargins[predicted_depth]
                                                  + GainStatistics[pos[org_sq (move)]][dst_sq (move)] + VALUE_EG_PAWN/2;
 
-                            if (alpha >= futility_value && futility_value > -VALUE_KNOWN_WIN)
+                            if (alpha >= futility_value /*&& futility_value > -VALUE_KNOWN_WIN*/)
                             {
                                 best_value = max (futility_value, best_value);
 
@@ -1114,7 +1114,7 @@ namespace Search {
                 
                 (ss)->current_move = move;
 
-                // Speculative prefetch
+                // Speculative prefetch as early as possible
                 prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
 
                 // Step 14. Make the move
@@ -1170,6 +1170,16 @@ namespace Search {
                             reduced_depth = max (new_depth - reduction_depth/2, DEPTH_ONE);
                             // Search with reduced depth
                             value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
+
+                            // Re-search at intermediate depth if reduction is very high
+                            if (alpha < value && reduction_depth >= 8*DEPTH_ONE)
+                            {
+                                if (SP_NODE) alpha = splitpoint->alpha;
+
+                                reduced_depth = max (new_depth - reduction_depth/4, DEPTH_ONE);
+                                // Search with reduced depth
+                                value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
+                            }
                         }
 
                         full_depth_search = alpha < value && reduced_depth < new_depth; //reduction_depth != DEPTH_ZERO;
