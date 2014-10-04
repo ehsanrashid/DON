@@ -513,17 +513,25 @@ template<PieceT PT>
 PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
 {
     Bitboard bb = stm_attackers & _types_bb[PT];
-    if (bb)
+    if (bb != U64(0))
     {
         occupied ^= (bb & ~(bb - 1));
 
-        if (PAWN == PT || BSHP == PT || QUEN == PT)
+        switch (PT)
         {
-            attackers |= attacks_bb<BSHP> (dst, occupied) & (_types_bb[BSHP]|_types_bb[QUEN]);
-        }
-        if (ROOK == PT || QUEN == PT)
-        {
-            attackers |= attacks_bb<ROOK> (dst, occupied) & (_types_bb[ROOK]|_types_bb[QUEN]);
+        case PAWN:
+        case BSHP:
+            attackers |= (attacks_bb<BSHP> (dst, occupied) & (_types_bb[BSHP]|_types_bb[QUEN]));
+        break;
+        case ROOK:
+            attackers |= (attacks_bb<ROOK> (dst, occupied) & (_types_bb[ROOK]|_types_bb[QUEN]));
+        break;
+        case QUEN:
+            attackers |= (attacks_bb<BSHP> (dst, occupied) & (_types_bb[BSHP]|_types_bb[QUEN]))
+                      |  (attacks_bb<ROOK> (dst, occupied) & (_types_bb[ROOK]|_types_bb[QUEN]));
+        break;
+        default:
+        break;
         }
         attackers &= occupied; // After X-ray that may add already processed pieces
 
