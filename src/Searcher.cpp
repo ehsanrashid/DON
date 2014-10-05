@@ -852,6 +852,9 @@ namespace Search {
                                 while ((move = mp.next_move<false> ()) != MOVE_NONE)
                                 {
                                     if (!pos.legal (move, ci->pinneds)) continue;
+                                    
+                                    // Speculative prefetch as early as possible
+                                    prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
 
                                     (ss)->current_move = move;
                                     pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);

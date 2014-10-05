@@ -178,17 +178,12 @@ bool Position::draw () const
 {
     // Draw by Threefold Repetition?
     const StateInfo *psi = _si;
-    u08 ply = min (_si->clock50, _si->null_ply);
-    while (ply >= 2)
+    for (u08 ply = min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
     {
         //psi = psi->p_si; if (psi == NULL) break; 
         //psi = psi->p_si; if (psi == NULL) break;
         psi = psi->p_si->p_si;
-        if (psi->posi_key == _si->posi_key)
-        {
-            return true; // Draw at first repetition
-        }
-        ply -= 2;
+        if (psi->posi_key == _si->posi_key) return true; // Draw at first repetition
     }
     /*
     // Draw by Material?
@@ -230,18 +225,15 @@ bool Position::repeated () const
     StateInfo *si = _si;
     while (si != NULL)
     {
-        u08 i = 4, e = min (si->clock50, si->null_ply);
-        if (e < i) return false;
+        u08 ply = min (si->clock50, si->null_ply);
+        if (4 > ply) return false;
         StateInfo *psi = si->p_si->p_si;
         do
         {
             psi = psi->p_si->p_si;
-            if (psi->posi_key == si->posi_key)
-            {
-                return true;
-            }
-            i += 2;
-        } while (i <= e);
+            if (psi->posi_key == si->posi_key) return true;
+            ply -= 2;
+        } while (4 <= ply);
 
         si = si->p_si;
     }
@@ -1087,8 +1079,7 @@ void Position::clear ()
         }
     }
 
-    //fill (_castle_rook, _castle_rook + sizeof (_castle_rook) / sizeof (*_castle_rook), SQ_NO);
-    memset (_castle_rook, SQ_NO, sizeof (_castle_rook));
+    fill (_castle_rook, _castle_rook + sizeof (_castle_rook) / sizeof (*_castle_rook), SQ_NO);
 
     _sb.en_passant_sq = SQ_NO;
     _sb.capture_type  = NONE;

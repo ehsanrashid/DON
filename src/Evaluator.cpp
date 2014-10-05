@@ -627,9 +627,11 @@ namespace Evaluate {
 
             Score score = mk_score (value, -0x10 * ei.pi->min_kp_dist[C]);
             
+            /*
             Bitboard mobile = PIECE_ATTACKS[KING][fk_sq] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]) ;
             i32 mob = mobile != U64(0) ? pop_count<MAX15> (mobile) : 0;
             score += MOBILITY_SCORE[KING][mob];
+            */
 
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[C_] > 0)
