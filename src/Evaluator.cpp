@@ -866,9 +866,7 @@ namespace Evaluate {
                 const Square s = pop_lsq (passed_pawns);
                 ASSERT (pos.passed_pawn (C, s));
                 
-                const Rank pr = rel_rank (C, s);
-
-                i32 r = max (i32(pr) - i32(R_2), 1);
+                i32 r = max (i32(rel_rank (C, s)) - i32(R_2), 1);
                 i32 rr = r * (r - 1);
 
                 // Base bonus depends on rank
@@ -903,70 +901,26 @@ namespace Evaluate {
                         pinned = !(pin_sq == block_sq || BETWEEN_SQRS_bb[fk_sq][pin_sq] & block_sq);
                     }
 
-                    Bitboard pawnR7_capture = U64(0);
-
                     // If the pawn is free to advance, increase bonus
-                    if (  !pinned
-                       && (  pos.empty (block_sq)
-                          || (pr == R_7 && (pawnR7_capture = pos.pieces (C_) & PAWN_ATTACKS[C][s]) != U64(0))
-                          )
-                       )
+                    if (!pinned && pos.empty (block_sq))
                     {
                         // Squares to queen
                         const Bitboard front_squares = FRONT_SQRS_bb[C ][s];
-                        const Bitboard queen_squares = pr == R_7 ? front_squares | pawnR7_capture : front_squares;
                         const Bitboard behind_majors = FRONT_SQRS_bb[C_][s] & pos.pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ());
 
-                        Bitboard unsafe_squares;
+                        Bitboard unsafe_squares = front_squares
+                            ,      safe_squares = front_squares;
                         // If there is an enemy rook or queen attacking the pawn from behind,
                         // add all X-ray attacks by the rook or queen. Otherwise consider only
                         // the squares in the pawn's path attacked or occupied by the enemy.
-                        if ((behind_majors & pos.pieces (C_)) != U64(0))
+                        if ((behind_majors & pos.pieces (C_)) == U64(0))
                         {
-                            //unsafe_squares = pr == R_7 ?
-                            //                 front_squares | (queen_squares & ei.pin_attacked_by[C_][NONE]) :
-                            //                 front_squares;
-                            unsafe_squares = front_squares;
-                        }
-                        else
-                        {
-                            unsafe_squares = pr == R_7 ?
-                                             (front_squares & pos.pieces(C_)) | (queen_squares & ei.pin_attacked_by[C_][NONE]) :
-                                             (front_squares & (pos.pieces(C_) | ei.pin_attacked_by[C_][NONE]));
+                            unsafe_squares &= (pos.pieces(C_) | ei.pin_attacked_by[C_][NONE]);
                         }
 
-                        Bitboard safe_squares;
-                        if ((behind_majors & pos.pieces (C )) != U64(0))
+                        if ((behind_majors & pos.pieces (C )) == U64(0))
                         {
-                            safe_squares = front_squares;
-                        }
-                        else
-                        {
-                            /*
-                            if (pr == R_7)
-                            {
-                                // Pawn on Rank-7 attacks except the current one's
-                                Bitboard pawns_on_R7    = (pos.pieces<PAWN> (C) - s) & rel_rank_bb (C, R_7);
-                                Bitboard pawnR7_attacks = pawns_on_R7 != U64(0) ? 
-                                                            shift_del<WHITE == C ? DEL_NE : DEL_SW> (pawns_on_R7) |
-                                                            shift_del<WHITE == C ? DEL_NW : DEL_SE> (pawns_on_R7) :
-                                                            U64(0);
-
-                                safe_squares = queen_squares & ( pawnR7_attacks
-                                                               | ei.pin_attacked_by[C ][NIHT]
-                                                               | ei.pin_attacked_by[C ][BSHP]
-                                                               | ei.pin_attacked_by[C ][ROOK]
-                                                               | ei.pin_attacked_by[C ][QUEN]
-                                                               | ei.pin_attacked_by[C ][KING]);
-                            }
-                            else
-                            {
-                                safe_squares = front_squares & ei.pin_attacked_by[C ][NONE];
-                            }
-                            */
-                            safe_squares = pr == R_7 ?
-                                            queen_squares & ei.pin_attacked_by[C ][NONE] :
-                                            front_squares & ei.pin_attacked_by[C ][NONE];
+                            safe_squares &= ei.pin_attacked_by[C ][NONE];
                         }
 
                         // Give a big bonus if there aren't enemy attacks, otherwise
@@ -979,12 +933,7 @@ namespace Evaluate {
                         {
                             // Give a big bonus if the path to queen is fully defended,
                             // a smaller bonus if at least block square is defended.
-                            k += pr == R_7 ?
-                                safe_squares & queen_squares ?
-                                    6 : safe_squares & block_sq ?
-                                        4 : 0
-                                    :
-                                safe_squares == front_squares ?
+                            k += safe_squares == front_squares ?
                                     6 : safe_squares & block_sq ?
                                         4 : 0;
 
@@ -1008,46 +957,6 @@ namespace Evaluate {
                     }
                 
                 }
-
-                //// Connected passed pawns are a dangerous long term threat
-                //if (ei.pi->passed_pawns[C] & ADJ_FILE_bb[_file (s)])
-                //{
-                //    mg_value += mg_value / 4;
-                //    eg_value += eg_value / 4;
-                //}
-
-                /*
-                // Increase the bonus if the passed pawn is supported by a friendly pawn
-                // on the same rank and a bit smaller if it's on the previous rank.
-                Bitboard supporting_pawns = pos.pieces<PAWN> (C) & ADJ_FILE_bb[_file (s)];
-                if (supporting_pawns & rank_bb (s))
-                {
-                    eg_value += Value(20 * r);
-                }
-                else
-                if (supporting_pawns & rank_bb (s - PUSH))
-                {
-                    eg_value += Value(12 * r);
-                }
-
-                // Rook pawns are a special case: They are sometimes worse, and
-                // sometimes better than other passed pawns. It is difficult to find
-                // good rules for determining whether they are good or bad. For now,
-                // we try the following: Increase the value for rook pawns if the
-                // other side has no pieces apart from a knight, and decrease the
-                // value if the other side has a rook or queen.
-                if (FILE_EDGE_bb & s)
-                {
-                    if (pos.non_pawn_material (C_) <= VALUE_MG_NIHT)
-                    {
-                        eg_value += eg_value / 4;
-                    }
-                    else if (pos.pieces (C_, ROOK, QUEN))
-                    {
-                        eg_value -= eg_value / 4;
-                    }
-                }
-                */
 
                 // Increase the bonus if more non-pawn pieces
                 if (piece_majority)
