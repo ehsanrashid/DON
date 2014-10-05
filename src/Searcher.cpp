@@ -1063,7 +1063,7 @@ namespace Search {
                         }
 
                         // Value based pruning
-                        Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth-i32(SP_NODE), legals);
+                        Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth/*-i32(SP_NODE)*/, legals);
 
                         // Futility pruning: parent node
                         if (predicted_depth < FutilityMarginDepth)
