@@ -627,6 +627,10 @@ namespace Evaluate {
 
             Score score = mk_score (value, -0x10 * ei.pi->min_kp_dist[C]);
             
+            Bitboard mobile = PIECE_ATTACKS[KING][fk_sq] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]) ;
+            i32 mob = mobile != U64(0) ? pop_count<MAX15> (mobile) : 0;
+            score += MOBILITY_SCORE[KING][mob];
+
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[C_] > 0)
             {
@@ -1307,7 +1311,7 @@ namespace Evaluate {
             {
                 fill (*Terms, *Terms + sizeof (Terms) / sizeof (**Terms), SCORE_ZERO);
 
-                Value value = evaluate<true> (pos);// + TEMPO;    // Tempo bonus = 0.07
+                Value value = evaluate<true> (pos);// + TEMPO_VALUE;    // Tempo bonus = 0.07
                 value = WHITE == pos.active () ? +value : -value; // White's point of view
 
                 stringstream ss;
@@ -1344,7 +1348,7 @@ namespace Evaluate {
     // and interpolates between them based on the remaining material.
     Value evaluate  (const Position &pos)
     {
-        return evaluate<false> (pos) + TEMPO;
+        return evaluate<false> (pos) + TEMPO_VALUE;
     }
 
     // trace() is like evaluate() but instead of a value returns a string suitable

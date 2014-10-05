@@ -370,7 +370,7 @@ namespace Search {
                 else
                 {
                     (ss)->static_eval = best_value = 
-                        (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
+                        (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO_VALUE;
                 }
 
                 if (alpha < best_value)
@@ -700,7 +700,7 @@ namespace Search {
                     else
                     {
                         (ss)->static_eval = static_eval =
-                            (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
+                            (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO_VALUE;
 
                         TT.store (
                             posi_key,
@@ -1166,7 +1166,6 @@ namespace Search {
                         // Re-search at intermediate depth if reduction is very high
                         if (alpha < value && reduction_depth >= 4*DEPTH_ONE)
                         {
-                            //if (SP_NODE) alpha = splitpoint->alpha;
                             reduced_depth = max (new_depth - reduction_depth/2, DEPTH_ONE);
                             // Search with reduced depth
                             value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
@@ -1174,7 +1173,6 @@ namespace Search {
                             // Re-search at intermediate depth if reduction is very high
                             if (alpha < value && reduction_depth >= 8*DEPTH_ONE)
                             {
-                                //if (SP_NODE) alpha = splitpoint->alpha;
                                 reduced_depth = max (new_depth - reduction_depth/4, DEPTH_ONE);
                                 // Search with reduced depth
                                 value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);

@@ -1377,21 +1377,21 @@ Value Position::compute_non_pawn_material (Color c) const
 
 #undef do_capture
 
-#define do_capture() {                                                        \
-    remove_piece (cap);                                                       \
-    if (PAWN == ct)                                                           \
-    {                                                                         \
-        _si->pawn_key ^= Zob._.piece_square[pasive][PAWN][cap];               \
-    }                                                                         \
-    else                                                                      \
-    {                                                                         \
-        _si->non_pawn_matl[pasive] -= PIECE_VALUE[MG][ct];                    \
-    }                                                                         \
-    _si->matl_key ^= Zob._.piece_square[pasive][ct][_piece_count[pasive][ct]];\
-    prefetch ((char *) _thread->material_table[_si->matl_key]);               \
-    key ^= Zob._.piece_square[pasive][ct][cap];                               \
-    _si->psq_score -= PSQT[pasive][ct][cap];                                  \
-    _si->clock50 = 0;                                                         \
+#define do_capture() {                                                          \
+    remove_piece (cap);                                                         \
+    if (PAWN == ct)                                                             \
+    {                                                                           \
+        _si->pawn_key ^= Zob._.piece_square[pasive][PAWN][cap];                 \
+    }                                                                           \
+    else                                                                        \
+    {                                                                           \
+        _si->non_pawn_matl[pasive] -= PIECE_VALUE[MG][ct];                      \
+    }                                                                           \
+    _si->matl_key ^= Zob._.piece_square[pasive][ct][_piece_count[pasive][ct]];  \
+    prefetch (reinterpret_cast<char *>(_thread->material_table[_si->matl_key]));\
+    key ^= Zob._.piece_square[pasive][ct][cap];                                 \
+    _si->psq_score -= PSQT[pasive][ct][cap];                                    \
+    _si->clock50 = 0;                                                           \
 }
 
 // do_move() do the move with checking info
@@ -1648,9 +1648,6 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         // Update prefetch access to pawns_table
         prefetch (reinterpret_cast<char *>(_thread->pawns_table[_si->pawn_key]));
     }
-
-    // Prefetch TT access as soon as know the new hash key
-    prefetch (reinterpret_cast<char *>(TT.cluster_entry (key)));
 
     // Update the key with the final value
     _si->posi_key     = key;
