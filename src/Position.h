@@ -144,7 +144,7 @@ private:
 
     Bitboard check_blockers (Color piece_c, Color king_c) const;
 
-    template<bool DO>
+    template<bool Do>
     void do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst);
 
     template<PieceT PT>
@@ -611,7 +611,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
 }
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.
-template<bool DO>
+template<bool Do>
 inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
     // Move the piece. The tricky Chess960 castle is handled earlier
@@ -620,10 +620,10 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     king_dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
     rook_dst = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
-    remove_piece (DO ? king_org : king_dst);
-    remove_piece (DO ? rook_org : rook_dst);
-    place_piece (DO ? king_dst : king_org, _active, KING);
-    place_piece (DO ? rook_dst : rook_org, _active, ROOK);
+    remove_piece (Do ? king_org : king_dst);
+    remove_piece (Do ? rook_org : rook_dst);
+    place_piece (Do ? king_dst : king_org, _active, KING);
+    place_piece (Do ? rook_dst : rook_org, _active, ROOK);
 }
 
 // ----------------------------------------------
