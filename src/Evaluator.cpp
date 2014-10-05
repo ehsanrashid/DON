@@ -626,12 +626,6 @@ namespace Evaluate {
             }
 
             Score score = mk_score (value, -0x10 * ei.pi->min_kp_dist[C]);
-            
-            /*
-            Bitboard mobile = PIECE_ATTACKS[KING][fk_sq] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]) ;
-            i32 mob = mobile != U64(0) ? pop_count<MAX15> (mobile) : 0;
-            score += MOBILITY_SCORE[KING][mob];
-            */
 
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[C_] > 0)
@@ -766,6 +760,12 @@ namespace Evaluate {
                 score -= KING_DANGER[attack_units];
 
             }
+
+            /*
+            Bitboard mobile = PIECE_ATTACKS[KING][fk_sq] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]) ;
+            i32 mob = mobile != U64(0) ? pop_count<MAX15> (mobile) : 0;
+            score += MOBILITY_SCORE[KING][mob];
+            */
 
             if (Trace)
             {
@@ -915,18 +915,13 @@ namespace Evaluate {
                         // Squares to queen
                         const Bitboard front_squares = FRONT_SQRS_bb[C ][s];
                         const Bitboard queen_squares = pr == R_7 ? front_squares | pawnR7_capture : front_squares;
-                        const Bitboard back_squares  = FRONT_SQRS_bb[C_][s];
-                        const Bitboard occ           = pos.pieces ();
+                        const Bitboard behind_majors = FRONT_SQRS_bb[C_][s] & pos.pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ());
 
                         Bitboard unsafe_squares;
                         // If there is an enemy rook or queen attacking the pawn from behind,
                         // add all X-ray attacks by the rook or queen. Otherwise consider only
                         // the squares in the pawn's path attacked or occupied by the enemy.
-                        if (  (  (back_squares & pos.pieces<ROOK> (C_) && ei.pin_attacked_by[C_][ROOK] & s)
-                              || (back_squares & pos.pieces<QUEN> (C_) && ei.pin_attacked_by[C_][QUEN] & s)
-                              )
-                           && back_squares & pos.pieces (C_, ROOK, QUEN) & attacks_bb<ROOK> (s, occ)
-                           )
+                        if ((behind_majors & pos.pieces (C_)) != U64(0))
                         {
                             unsafe_squares = pr == R_7 ?
                                              front_squares | (queen_squares & ei.pin_attacked_by[C_][NONE]) :
@@ -935,16 +930,12 @@ namespace Evaluate {
                         else
                         {
                             unsafe_squares = pr == R_7 ?
-                                             (front_squares & occ) | (queen_squares & ei.pin_attacked_by[C_][NONE]) :
-                                             (front_squares & (occ | ei.pin_attacked_by[C_][NONE]));
+                                             (front_squares & pos.pieces(C_)) | (queen_squares & ei.pin_attacked_by[C_][NONE]) :
+                                             (front_squares & (pos.pieces(C_) | ei.pin_attacked_by[C_][NONE]));
                         }
 
                         Bitboard safe_squares;
-                        if (  (  (back_squares & pos.pieces<ROOK> (C ) && ei.pin_attacked_by[C ][ROOK] & s)
-                              || (back_squares & pos.pieces<QUEN> (C ) && ei.pin_attacked_by[C ][QUEN] & s)
-                              )
-                           && back_squares & pos.pieces (C , ROOK, QUEN) & attacks_bb<ROOK> (s, occ)
-                           )
+                        if ((behind_majors & pos.pieces (C )) != U64(0))
                         {
                             safe_squares = front_squares;
                         }
@@ -975,12 +966,13 @@ namespace Evaluate {
                         // Give a big bonus if there aren't enemy attacks, otherwise
                         // a smaller bonus if block square is not attacked.
                         i32 k = pr == R_7 ?
-                                unsafe_squares != queen_squares ?
-                                    15 : 0 :
+                                unsafe_squares == queen_squares ?
+                                    unsafe_squares & block_sq ?
+                                        0 : 9 : 15
+                                    :
                                 unsafe_squares != U64(0) ?
                                     unsafe_squares & block_sq ?
-                                        0 : 9 :
-                                    15;
+                                        0 : 9 : 15;
 
                         if (safe_squares != U64(0))
                         {
@@ -988,13 +980,15 @@ namespace Evaluate {
                             // a smaller bonus if at least block square is defended.
                             k += pr == R_7 ?
                                 safe_squares & queen_squares ?
-                                    6 : 0 :
+                                    6 : safe_squares & block_sq ?
+                                        4 : 0
+                                    :
                                 safe_squares == front_squares ?
                                     6 : safe_squares & block_sq ?
                                         4 : 0;
 
                             // If the block square is defended by a pawn add more small bonus.
-                            if (ei.pin_attacked_by[C][PAWN] & block_sq) k += 1;
+                            if (ei.ful_attacked_by[C][PAWN] & block_sq) k += 1;
                         }
 
                         if (k != 0)
