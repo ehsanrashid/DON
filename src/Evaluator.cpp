@@ -863,7 +863,7 @@ namespace Evaluate {
             Bitboard passed_pawns = ei.pi->passed_pawns[C];
             while (passed_pawns != U64(0))
             {
-                const Square s = pop_lsq (passed_pawns);
+                Square s = pop_lsq (passed_pawns);
                 ASSERT (pos.passed_pawn (C, s));
                 
                 i32 r = max (i32(rel_rank (C, s)) - i32(R_2), 1);
@@ -905,9 +905,8 @@ namespace Evaluate {
                     if (!pinned && pos.empty (block_sq))
                     {
                         // Squares to queen
-                        const Bitboard front_squares = FRONT_SQRS_bb[C ][s];
-                        const Bitboard behind_majors = FRONT_SQRS_bb[C_][s] & pos.pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ());
-
+                        Bitboard front_squares = FRONT_SQRS_bb[C ][s];
+                        Bitboard behind_majors = FRONT_SQRS_bb[C_][s] & pos.pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ());
                         Bitboard unsafe_squares = front_squares
                             ,      safe_squares = front_squares;
                         // If there is an enemy rook or queen attacking the pawn from behind,

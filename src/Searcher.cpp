@@ -123,8 +123,8 @@ namespace Search {
                 move = MOVE_NONE;
 
                 // RootMoves are already sorted by score in descending order
-                const Value variance = min (RootMoves[0].value[0] - RootMoves[candidates - 1].value[0], VALUE_MG_PAWN);
-                const Value weakness = Value(MAX_DEPTH - 2 * level);
+                Value variance = min (RootMoves[0].value[0] - RootMoves[candidates - 1].value[0], VALUE_MG_PAWN);
+                Value weakness = Value(MAX_DEPTH - 2 * level);
                 Value max_value = -VALUE_INFINITE;
                 // Choose best move. For each move score add two terms both dependent on
                 // weakness, one deterministic and bigger for weaker moves, and one random,
@@ -273,7 +273,7 @@ namespace Search {
             return ss.str ();
         }
 
-        template<NodeT NT, bool IN_CHECK>
+        template<NodeT NT, bool InCheck>
         // search_quien() is the quiescence search function,
         // which is called by the main depth limited search function
         // when the remaining depth is ZERO.
@@ -282,7 +282,7 @@ namespace Search {
             const bool    PVNode = NT == PV;
 
             ASSERT (NT == PV || NT == NonPV);
-            ASSERT (IN_CHECK == (pos.checkers () != U64(0)));
+            ASSERT (InCheck == (pos.checkers () != U64(0)));
             ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
             ASSERT (PVNode || alpha == beta-1);
             ASSERT (depth <= DEPTH_ZERO);
@@ -295,7 +295,7 @@ namespace Search {
             // Check for immediate draw
             if (pos.draw ())           return DrawValue[pos.active ()];
             // Check for maximum ply reached
-            if ((ss)->ply > MAX_DEPTH) return IN_CHECK ? DrawValue[pos.active ()] : evaluate (pos);
+            if ((ss)->ply > MAX_DEPTH) return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
 
             // To flag EXACT a node with eval above alpha and no available moves
             Value pv_alpha = PVNode ? alpha : -VALUE_INFINITE;
@@ -318,13 +318,13 @@ namespace Search {
                 tt_value = value_of_tt (tte->value (), (ss)->ply);
                 tt_depth = tte->depth ();
                 tt_bound = tte->bound ();
-                if (!IN_CHECK) best_value = tte->eval ();
+                if (!InCheck) best_value = tte->eval ();
             }
 
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in search_quien use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            Depth qs_depth = (IN_CHECK || depth >= DEPTH_QS_CHECKS) ?
+            Depth qs_depth = (InCheck || depth >= DEPTH_QS_CHECKS) ?
                                DEPTH_QS_CHECKS :
                                DEPTH_QS_NO_CHECKS;
 
@@ -346,7 +346,7 @@ namespace Search {
             Value futility_base;
 
             // Evaluate the position statically
-            if (IN_CHECK)
+            if (InCheck)
             {
                 (ss)->static_eval = best_value;
                 futility_base = best_value = -VALUE_INFINITE;
@@ -423,7 +423,7 @@ namespace Search {
                 if (!PVNode && !MateSearch)
                 {
                     // Futility pruning
-                    if (  !IN_CHECK
+                    if (  !InCheck
                        && !gives_check
                        && move != tt_move
                        && futility_base > -VALUE_KNOWN_WIN
@@ -454,7 +454,7 @@ namespace Search {
                     // Don't search moves with negative SEE values
                     if (  move != tt_move
                        && mtype (move) != PROMOTE
-                       && (  !IN_CHECK
+                       && (  !InCheck
                           // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
                           || (  best_value > -VALUE_MATE_IN_MAX_DEPTH
                              && !pos.can_castle (pos.active ())
@@ -520,7 +520,7 @@ namespace Search {
 
             // All legal moves have been searched.
             // A special case: If in check and no legal moves were found, it is checkmate.
-            if (IN_CHECK)
+            if (InCheck)
             {
                 if (best_value == -VALUE_INFINITE)
                 {
@@ -541,7 +541,7 @@ namespace Search {
             return best_value;
         }
 
-        template<NodeT NT, bool SP_NODE, bool DO_NULLMOVE>
+        template<NodeT NT, bool SPNode, bool DoNullMove>
         // search<>() is the main depth limited search function
         // for PV/NonPV nodes also for normal/splitpoint nodes.
         // It calls itself recursively with decreasing (remaining) depth
@@ -578,11 +578,11 @@ namespace Search {
             bool in_check = pos.checkers () != U64(0);
             bool singular_ext_node = false;
 
-            SplitPoint *splitpoint = SP_NODE ? (ss)->splitpoint : NULL;
+            SplitPoint *splitpoint = SPNode ? (ss)->splitpoint : NULL;
 
             CheckInfo cc, *ci = NULL;
 
-            if (SP_NODE)
+            if (SPNode)
             {
                 best_value  = splitpoint->best_value;
                 best_move   = splitpoint->best_move;
@@ -753,7 +753,7 @@ namespace Search {
                         }
 
                         // Step 7,8,9.
-                        if (DO_NULLMOVE)
+                        if (DoNullMove)
                         {
                             ASSERT ((ss-1)->current_move != MOVE_NONE);
                             ASSERT ((ss-1)->current_move != MOVE_NULL);
@@ -903,7 +903,7 @@ namespace Search {
             }
 
             // Splitpoint start
-            // When in check and at SP_NODE search starts from here
+            // When in check and at SPNode search starts from here
 
             Value value = best_value;
 
@@ -949,7 +949,7 @@ namespace Search {
 
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
-            while ((move = mp.next_move<SP_NODE> ()) != MOVE_NONE)
+            while ((move = mp.next_move<SPNode> ()) != MOVE_NONE)
             {
                 ASSERT (_ok (move));
 
@@ -962,7 +962,7 @@ namespace Search {
 
                 bool move_legal = RootNode || pos.legal (move, ci->pinneds);
 
-                if (SP_NODE)
+                if (SPNode)
                 {
                     // Shared counter cannot be decremented later if move turns out to be illegal
                     if (!move_legal) continue;
@@ -1058,12 +1058,12 @@ namespace Search {
                            && legals >= FutilityMoveCounts[improving][depth]
                            )
                         {
-                            if (SP_NODE) splitpoint->mutex.lock ();
+                            if (SPNode) splitpoint->mutex.lock ();
                             continue;
                         }
 
                         // Value based pruning
-                        Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth/*-i32(SP_NODE)*/, legals);
+                        Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth/*-i32(SPNode)*/, legals);
 
                         // Futility pruning: parent node
                         if (predicted_depth < FutilityMarginDepth)
@@ -1075,7 +1075,7 @@ namespace Search {
                             {
                                 best_value = max (futility_value, best_value);
 
-                                if (SP_NODE)
+                                if (SPNode)
                                 {
                                     splitpoint->mutex.lock ();
                                     // Max value
@@ -1090,13 +1090,13 @@ namespace Search {
                            && pos.see_sign (move) < VALUE_ZERO
                            )
                         {
-                            if (SP_NODE) splitpoint->mutex.lock ();
+                            if (SPNode) splitpoint->mutex.lock ();
                             continue;
                         }
                     }
                 }
 
-                if (!SP_NODE)
+                if (!SPNode)
                 {
                     // Check for legality just before making the move
                     if (!RootNode && !move_legal)
@@ -1160,7 +1160,7 @@ namespace Search {
                             reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
                         }
 
-                        if (SP_NODE) alpha = splitpoint->alpha;
+                        if (SPNode) alpha = splitpoint->alpha;
 
                         Depth reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
                         // Search with reduced depth
@@ -1188,7 +1188,7 @@ namespace Search {
                     // Step 16. Full depth search, when LMR is skipped or fails high
                     if (full_depth_search)
                     {
-                        if (SP_NODE) alpha = splitpoint->alpha;
+                        if (SPNode) alpha = splitpoint->alpha;
 
                         value = new_depth < DEPTH_ONE ?
                                     gives_check ?
@@ -1222,7 +1222,7 @@ namespace Search {
                 ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
                 // Step 18. Check for new best move
-                if (SP_NODE)
+                if (SPNode)
                 {
                     splitpoint->mutex.lock ();
                     alpha      = splitpoint->alpha;
@@ -1268,27 +1268,27 @@ namespace Search {
 
                 if (best_value < value)
                 {
-                    best_value = (SP_NODE) ? splitpoint->best_value = value : value;
+                    best_value = (SPNode) ? splitpoint->best_value = value : value;
 
                     if (alpha < value)
                     {
-                        best_move = (SP_NODE) ? splitpoint->best_move = move : move;
+                        best_move = (SPNode) ? splitpoint->best_move = move : move;
 
                         if (value >= beta)  // Fail high
                         {
-                            if (SP_NODE) splitpoint->cut_off = true;
+                            if (SPNode) splitpoint->cut_off = true;
 
                             break;
                         }
 
                         ASSERT (value < beta);
                         // Update alpha here! always alpha < beta
-                        if (PVNode) alpha = (SP_NODE) ? splitpoint->alpha = value : value;
+                        if (PVNode) alpha = (SPNode) ? splitpoint->alpha = value : value;
                     }
                 }
 
                 // Step 19. Check for splitting the search (at non-splitpoint node)
-                if (!SP_NODE)
+                if (!SPNode)
                 {
                     if (  Threadpool.split_depth <= depth
                        && Threadpool.size () > 1
@@ -1314,7 +1314,7 @@ namespace Search {
             }
 
             // Step 20. Check for checkmate and stalemate
-            if (!SP_NODE)
+            if (!SPNode)
             {
                 // All possible moves have been searched and if there are no legal moves,
                 // it must be mate or stalemate, so return value accordingly.
@@ -1484,8 +1484,7 @@ namespace Search {
                         }
 
                         ASSERT (-VALUE_INFINITE <= bound[0] && bound[0] < bound[1] && bound[1] <= +VALUE_INFINITE);
-                    }
-                    while (true); //(bound[0] < bound[1]);
+                    } while (true); //(bound[0] < bound[1]);
 
                     // Sort the PV lines searched so far and update the GUI
                     //RootMoves.sort_beg (PVIndex + 1);
