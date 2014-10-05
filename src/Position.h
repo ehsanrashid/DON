@@ -171,8 +171,8 @@ public:
     Position& operator= (const Position &pos);
 
     Piece    operator[] (Square s)      const;
-    Bitboard operator[] (Color  c)      const;
-    Bitboard operator[] (PieceT pt)     const;
+    //Bitboard operator[] (Color  c)      const;
+    //Bitboard operator[] (PieceT pt)     const;
     const Square* operator[] (Piece p)  const;
 
     bool   empty   (Square s)   const;
@@ -317,8 +317,8 @@ public:
 // -------------------------------
 
 INLINE Piece         Position::operator[] (Square s)  const { return _board[s]; }
-INLINE Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
-INLINE Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
+//INLINE Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
+//INLINE Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
 INLINE const Square* Position::operator[] (Piece  p)  const { return _piece_list[color (p)][ptype (p)]; }
 
 INLINE bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
