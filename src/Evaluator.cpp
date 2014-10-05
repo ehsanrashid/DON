@@ -923,9 +923,10 @@ namespace Evaluate {
                         // the squares in the pawn's path attacked or occupied by the enemy.
                         if ((behind_majors & pos.pieces (C_)) != U64(0))
                         {
-                            unsafe_squares = pr == R_7 ?
-                                             front_squares | (queen_squares & ei.pin_attacked_by[C_][NONE]) :
-                                             front_squares;
+                            //unsafe_squares = pr == R_7 ?
+                            //                 front_squares | (queen_squares & ei.pin_attacked_by[C_][NONE]) :
+                            //                 front_squares;
+                            unsafe_squares = front_squares;
                         }
                         else
                         {
@@ -941,6 +942,7 @@ namespace Evaluate {
                         }
                         else
                         {
+                            /*
                             if (pr == R_7)
                             {
                                 // Pawn on Rank-7 attacks except the current one's
@@ -961,16 +963,15 @@ namespace Evaluate {
                             {
                                 safe_squares = front_squares & ei.pin_attacked_by[C ][NONE];
                             }
+                            */
+                            safe_squares = pr == R_7 ?
+                                            queen_squares & ei.pin_attacked_by[C ][NONE] :
+                                            front_squares & ei.pin_attacked_by[C ][NONE];
                         }
 
                         // Give a big bonus if there aren't enemy attacks, otherwise
                         // a smaller bonus if block square is not attacked.
-                        i32 k = pr == R_7 ?
-                                unsafe_squares == queen_squares ?
-                                    unsafe_squares & block_sq ?
-                                        0 : 9 : 15
-                                    :
-                                unsafe_squares != U64(0) ?
+                        i32 k = unsafe_squares != U64(0) ?
                                     unsafe_squares & block_sq ?
                                         0 : 9 : 15;
 

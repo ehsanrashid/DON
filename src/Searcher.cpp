@@ -895,10 +895,10 @@ namespace Search {
                        !RootNode
                     && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                     && tt_move != MOVE_NONE
+                    &&    depth >= 8*DEPTH_ONE //(PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
+                    && tt_depth >= depth-3*DEPTH_ONE
                     && abs (tt_value) < VALUE_KNOWN_WIN
-                    && (tt_bound & BND_LOWER)
-                    &&  tt_depth >= depth-3*DEPTH_ONE
-                    &&     depth >= 8*DEPTH_ONE;//(PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE);
+                    && (tt_bound & BND_LOWER);
 
             }
 
@@ -1934,8 +1934,8 @@ namespace Search {
         }
         for (d = 0; d < FutilityMoveCountDepth; ++d)
         {
-            FutilityMoveCounts[0][d] = u08(2.400f + 0.222f * pow (0.00f + 2*d, 1.80f));
-            FutilityMoveCounts[1][d] = u08(3.000f + 0.300f * pow (0.98f + 2*d, 1.80f));
+            FutilityMoveCounts[0][d] = u08(2.40f + 0.773f * pow (0.00f + d, 1.80f));
+            FutilityMoveCounts[1][d] = u08(2.90f + 1.045f * pow (0.49f + d, 1.80f));
         }
 
         float red[2];
