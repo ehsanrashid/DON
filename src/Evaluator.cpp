@@ -323,14 +323,15 @@ namespace Evaluate {
                 king_attacks += ek_sq;
                 Rank ekr = rel_rank (C_, ek_sq);
                 ei.king_ring[C_] = king_attacks | (DIST_RINGS_bb[ek_sq][1] &
-                                                            (ekr < R_4 ? PAWN_PASS_SPAN[C_][ek_sq] :
-                                                             ekr < R_6 ? (PAWN_PASS_SPAN[C_][ek_sq]|rank_bb (ek_sq+PULL)|rank_bb (ek_sq)) :
-                                                                         (PAWN_PASS_SPAN[C_][ek_sq]|rank_bb (ek_sq+PULL)|rank_bb (ek_sq)|rank_bb (ek_sq-PULL)|PAWN_PASS_SPAN[C][ek_sq])
+                                                            (ekr < R_4 ? (PAWN_PASS_SPAN[C_][ek_sq]) :
+                                                             ekr < R_6 ? (rank_bb (ek_sq+PULL)) :
+                                                             ekr < R_8 ? (rank_bb (ek_sq+PULL)|rank_bb (ek_sq))
+                                                                         (rank_bb (ek_sq-PULL)|rank_bb (ek_sq))
                                                             ));
 
                 if (king_attacks & ei.pin_attacked_by[C][PAWN])
                 {
-                    Bitboard attackers = pos.pieces<PAWN> (C) & shift_del<PULL> (king_attacks & (rank_bb (ek_sq+PULL)|rank_bb (ek_sq)));
+                    Bitboard attackers = pos.pieces<PAWN> (C) & (king_attacks|(DIST_RINGS_bb[ek_sq][1] & (rank_bb (ek_sq+PULL)|rank_bb (ek_sq))));
                     ei.king_ring_attackers_count [C] += (more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1);
                     ei.king_ring_attackers_weight[C] += ei.king_ring_attackers_count [C]*KING_ATTACK_WEIGHT[PAWN];
                 }
@@ -889,10 +890,10 @@ namespace Evaluate {
                     if (pinned)
                     {
                         // Only one real pinner exist other are fake pinner
-                        Bitboard pawn_pinners =
+                        Bitboard pawn_pinners = pos.pieces (C_) & RAY_LINE_bb[fk_sq][s] &
                             ( (attacks_bb<ROOK> (s, pos.pieces ()) & pos.pieces (ROOK, QUEN))
                             | (attacks_bb<BSHP> (s, pos.pieces ()) & pos.pieces (BSHP, QUEN))
-                            ) &  pos.pieces (C_) & RAY_LINE_bb[fk_sq][s];
+                            );
                         pinned = !(BETWEEN_SQRS_bb[fk_sq][scan_lsq (pawn_pinners)] & block_sq);
                     }
 
@@ -909,12 +910,12 @@ namespace Evaluate {
                         // the squares in the pawn's path attacked or occupied by the enemy.
                         if ((behind_majors & pos.pieces (C_)) == U64(0))
                         {
-                            unsafe_squares &= (pos.pieces(C_) | ei.pin_attacked_by[C_][NONE]);
+                            unsafe_squares &= (ei.pin_attacked_by[C_][NONE]|pos.pieces(C_));
                         }
 
                         if ((behind_majors & pos.pieces (C )) == U64(0))
                         {
-                            safe_squares &= (pos.pieces(C ) | ei.pin_attacked_by[C ][NONE]);
+                            safe_squares &= (ei.pin_attacked_by[C ][NONE]|pos.pieces(C ));
                         }
 
                         // Give a big bonus if there aren't enemy attacks, otherwise
