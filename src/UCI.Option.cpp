@@ -353,7 +353,7 @@ namespace UCI {
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Move Time"]            << Option ( 20, 0, 5000, Time::configure);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (+100,+ 10,+ 1000, Time::configure);
+        Options["Move Slowness"]                << Option (+110,+ 10,+ 1000, Time::configure);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.
         //

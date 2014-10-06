@@ -180,8 +180,12 @@ namespace Transposition {
                 rte = ite;
             }
         }
-
-        // By default replace first entry
+        // By default replace last entry
+        if (rte == fte)
+        {
+            memmove (fte, fte+1, (ClusterEntries - 1)*TTEntrySize);
+            rte = fte + (ClusterEntries - 1);
+        }
         rte->save (key16, move, value, eval, depth, bound, _generation);
     }
 

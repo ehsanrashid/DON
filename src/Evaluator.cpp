@@ -288,7 +288,7 @@ namespace Evaluate {
         inline void init_evaluation (const Position &pos, EvalInfo &ei)
         {
             const Color  C_  = WHITE == C ? BLACK : WHITE;
-            const Delta PULL = WHITE == C ? DEL_S : DEL_N;
+            const Delta PUSH = WHITE == C ? DEL_N: DEL_S;
 
             Square fk_sq = pos.king_sq (C );
             Square ek_sq = pos.king_sq (C_);
@@ -323,20 +323,17 @@ namespace Evaluate {
                 king_attacks += ek_sq;
                 Rank ekr = rel_rank (C_, ek_sq);
                 ei.king_ring[C_] = king_attacks | (DIST_RINGS_bb[ek_sq][1] &
-                                                            (ekr < R_4 ? (PAWN_PASS_SPAN[C_][ek_sq]) :
-                                                             ekr < R_6 ? (rank_bb (ek_sq+PULL)) :
-                                                             ekr < R_8 ? (rank_bb (ek_sq+PULL)|rank_bb (ek_sq)) :
-                                                                         (rank_bb (ek_sq-PULL)|rank_bb (ek_sq))
+                                                            (ekr < R_6 ? (PAWN_PASS_SPAN[C_][ek_sq]) :
+                                                                         (PAWN_PASS_SPAN[C ][ek_sq])
                                                             ));
 
                 if (king_attacks & ei.pin_attacked_by[C][PAWN])
                 {
-                    Bitboard attackers = pos.pieces<PAWN> (C) & (king_attacks|(DIST_RINGS_bb[ek_sq][1] & (rank_bb (ek_sq+PULL)|rank_bb (ek_sq))));
-                    ei.king_ring_attackers_count [C] += (more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1);
+                    Bitboard attackers = pos.pieces<PAWN> (C) & (king_attacks|(DIST_RINGS_bb[ek_sq][1] & (rank_bb (ek_sq-PUSH)|rank_bb (ek_sq))));
+                    ei.king_ring_attackers_count [C] += attackers != U64(0) ? (more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1) : 0;
                     ei.king_ring_attackers_weight[C] += ei.king_ring_attackers_count [C]*KING_ATTACK_WEIGHT[PAWN];
                 }
             }
-            
         }
 
         template<Color C, PieceT PT, bool Trace>
