@@ -325,7 +325,7 @@ namespace Evaluate {
                 ei.king_ring[C_] = king_attacks | (DIST_RINGS_bb[ek_sq][1] &
                                                             (ekr < R_4 ? (PAWN_PASS_SPAN[C_][ek_sq]) :
                                                              ekr < R_6 ? (rank_bb (ek_sq+PULL)) :
-                                                             ekr < R_8 ? (rank_bb (ek_sq+PULL)|rank_bb (ek_sq))
+                                                             ekr < R_8 ? (rank_bb (ek_sq+PULL)|rank_bb (ek_sq)) :
                                                                          (rank_bb (ek_sq-PULL)|rank_bb (ek_sq))
                                                             ));
 
