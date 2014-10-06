@@ -597,32 +597,30 @@ namespace Evaluate {
 
             Value value = VALUE_ZERO;
             Rank kr = rel_rank (C, fk_sq);
+            // If can castle use the value after the castle if is bigger
+            if (kr == R_1 && pos.can_castle (C))
+            {
+                value = ei.pi->shelter_storm[C][CS_NO];
+
+                if (    pos.can_castle (Castling<C, CS_K>::Right)
+                    && !pos.castle_impeded (Castling<C, CS_K>::Right)
+                    && (pos.king_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE]) == U64(0)
+                   )
+                {
+                    value = max (value, ei.pi->shelter_storm[C][CS_K]);
+                }
+                if (    pos.can_castle (Castling<C, CS_Q>::Right)
+                    && !pos.castle_impeded (Castling<C, CS_Q>::Right)
+                    && (pos.king_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE]) == U64(0)
+                   )
+                {
+                    value = max (value, ei.pi->shelter_storm[C][CS_Q]);
+                }
+            }
+            else
             if (kr <= R_4)
             {
-                // If can castle use the value after the castle if is bigger
-                if (kr == R_1 && pos.can_castle (C))
-                {
-                    value = ei.pi->shelter_storm[C][CS_NO];
-
-                    if (    pos.can_castle (Castling<C, CS_K>::Right)
-                       && ! pos.castle_impeded (Castling<C, CS_K>::Right)
-                       && !(pos.king_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE])
-                       )
-                    {
-                        value = max (value, ei.pi->shelter_storm[C][CS_K]);
-                    }
-                    if (    pos.can_castle (Castling<C, CS_Q>::Right)
-                       && ! pos.castle_impeded (Castling<C, CS_Q>::Right)
-                       && !(pos.king_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE])
-                       )
-                    {
-                        value = max (value, ei.pi->shelter_storm[C][CS_Q]);
-                    }
-                }
-                else
-                {
-                    value = ei.pi->shelter_storm[C][CS_NO];
-                }
+                value = ei.pi->shelter_storm[C][CS_NO];
             }
 
             Score score = mk_score (value, -0x10 * ei.pi->min_kp_dist[C]);
@@ -815,21 +813,19 @@ namespace Evaluate {
                 threaten_pieces = weak_pieces & (ei.pin_attacked_by[C][NIHT]|ei.pin_attacked_by[C][BSHP]);
                 if (threaten_pieces != U64(0))
                 {
-                    score += ((threaten_pieces & pos.pieces<QUEN> ()) ? THREAT_SCORE[MINOR][QUEN] :
-                              (threaten_pieces & pos.pieces<ROOK> ()) ? THREAT_SCORE[MINOR][ROOK] :
-                              (threaten_pieces & pos.pieces<BSHP> ()) ? THREAT_SCORE[MINOR][BSHP] :
-                              (threaten_pieces & pos.pieces<NIHT> ()) ? THREAT_SCORE[MINOR][NIHT] :
-                                                                        THREAT_SCORE[MINOR][PAWN]);
+                    score += ((threaten_pieces & pos.pieces<QUEN> ()) != U64(0) ? THREAT_SCORE[MINOR][QUEN] :
+                              (threaten_pieces & pos.pieces<ROOK> ()) != U64(0) ? THREAT_SCORE[MINOR][ROOK] :
+                              (threaten_pieces & pos.pieces<BSHP> ()) != U64(0) ? THREAT_SCORE[MINOR][BSHP] :
+                              (threaten_pieces & pos.pieces<NIHT> ()) != U64(0) ? THREAT_SCORE[MINOR][NIHT] : THREAT_SCORE[MINOR][PAWN]);
                 }
                 // Threaten pieces by Major
                 threaten_pieces = weak_pieces & (ei.pin_attacked_by[C][ROOK]|ei.pin_attacked_by[C][QUEN]);
                 if (threaten_pieces != U64(0))
                 {
-                    score += ((threaten_pieces & pos.pieces<QUEN> ()) ? THREAT_SCORE[MAJOR][QUEN] :
-                              (threaten_pieces & pos.pieces<ROOK> ()) ? THREAT_SCORE[MAJOR][ROOK] :
-                              (threaten_pieces & pos.pieces<BSHP> ()) ? THREAT_SCORE[MAJOR][BSHP] :
-                              (threaten_pieces & pos.pieces<NIHT> ()) ? THREAT_SCORE[MAJOR][NIHT] :
-                                                                        THREAT_SCORE[MAJOR][PAWN]);
+                    score += ((threaten_pieces & pos.pieces<QUEN> ()) != U64(0) ? THREAT_SCORE[MAJOR][QUEN] :
+                              (threaten_pieces & pos.pieces<ROOK> ()) != U64(0) ? THREAT_SCORE[MAJOR][ROOK] :
+                              (threaten_pieces & pos.pieces<BSHP> ()) != U64(0) ? THREAT_SCORE[MAJOR][BSHP] :
+                              (threaten_pieces & pos.pieces<NIHT> ()) != U64(0) ? THREAT_SCORE[MAJOR][NIHT] : THREAT_SCORE[MAJOR][PAWN]);
                 }
 
                 // Threaten pieces by King
@@ -894,11 +890,10 @@ namespace Evaluate {
                     {
                         // Only one real pinner exist other are fake pinner
                         Bitboard pawn_pinners =
-                            ( (PIECE_ATTACKS[ROOK][fk_sq] & pos.pieces (QUEN, ROOK))
-                            | (PIECE_ATTACKS[BSHP][fk_sq] & pos.pieces (QUEN, BSHP))
+                            ( (attacks_bb<ROOK> (s, pos.pieces ()) & pos.pieces (ROOK, QUEN))
+                            | (attacks_bb<BSHP> (s, pos.pieces ()) & pos.pieces (BSHP, QUEN))
                             ) &  pos.pieces (C_) & RAY_LINE_bb[fk_sq][s];
-                        Square pin_sq = scan_lsq (pawn_pinners);
-                        pinned = !(pin_sq == block_sq || BETWEEN_SQRS_bb[fk_sq][pin_sq] & block_sq);
+                        pinned = !(BETWEEN_SQRS_bb[fk_sq][scan_lsq (pawn_pinners)] & block_sq);
                     }
 
                     // If the pawn is free to advance, increase bonus

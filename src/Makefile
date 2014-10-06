@@ -177,7 +177,6 @@ endif
 
 ifeq ($(ARCH),ppc-32)
 	arch = ppc
-	lpg  = yes
 endif
 
 ifeq ($(ARCH),ppc-64)
@@ -195,7 +194,6 @@ endif
 ifeq ($(ARCH),ppc-32-pop)
 	arch = ppc
 	pop  = yes
-	lpg  = yes
 endif
 
 ifeq ($(ARCH),ppc-64-pop)
@@ -347,9 +345,8 @@ endif
 ### 3.7 Prefetch
 ifeq ($(pfch),yes)
 	CXXFLAGS += -DPREFETCH
-
 	ifeq ($(sse),yes)
-		CXXFLAGS += -msse
+		CXXFLAGS    += -msse
 		DEPENDFLAGS += -msse
 	endif
 endif
@@ -361,7 +358,10 @@ endif
 
 ### 3.9 ABM (Adv Bit Manipulation)
 ifeq ($(abm),yes)
-	CXXFLAGS += -DABM -msse3 -mpopcnt 
+	CXXFLAGS += -DABM -msse3
+	ifneq ($(comp),icc)
+		CXXFLAGS += -mpopcnt
+	endif
 endif
 
 ### 3.10 BM2 (Bit Manipulation 2)

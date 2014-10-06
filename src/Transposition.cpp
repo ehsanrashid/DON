@@ -195,7 +195,7 @@ namespace Transposition {
         {
             if (ite->_key == key16)
             {
-                ite->_gen_bnd = _generation | ite->bound (); // Refresh
+                ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
                 return ite;
             }
             if (ite->_key == 0) return NULL;
