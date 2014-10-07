@@ -58,8 +58,6 @@ namespace Search {
             return Depth (Reductions[PVNode][imp][min (d, ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
         }
 
-        const Depth NullDepth     = Depth(2);
-
         const u08   MAX_QUIETS    = 64;
 
         const point INFO_INTERVAL = 3000; // 3 sec
@@ -309,6 +307,8 @@ namespace Search {
                 , best_value = VALUE_NONE;
             Depth tt_depth   = DEPTH_NONE;
             Bound tt_bound   = BND_NONE;
+            
+            Thread *thread  = pos.thread ();
 
             posi_key = pos.posi_key ();
             tte      = TT.retrieve (posi_key);
@@ -473,12 +473,13 @@ namespace Search {
                 if (!pos.legal (move, ci->pinneds)) continue;
 
                 (ss)->current_move = move;
-
-                // Speculative prefetch as early as possible
-                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
-
                 // Make and search the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
+
+                // Speculative prefetch as early as possible
+                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
+                if (PAWN == ptype (pos[org_sq (move)])) prefetch (reinterpret_cast<char *>(thread->pawns_table[pos.pawn_key ()]));
+                if (pos.capture_or_promotion (move)) prefetch (reinterpret_cast<char *>(thread->material_table[pos.matl_key ()]));
 
                 Value value = gives_check ?
                                     -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
@@ -574,6 +575,7 @@ namespace Search {
             Depth tt_depth    = DEPTH_NONE;
             Bound tt_bound    = BND_NONE;
 
+            Thread *thread  = pos.thread ();
             // Step 1. Initialize node
             bool in_check = pos.checkers () != U64(0);
             bool singular_ext_node = false;
@@ -780,7 +782,7 @@ namespace Search {
                                 }
 
                                 // Step 8. Null move search with verification search
-                                if (  depth >= NullDepth
+                                if (  depth > 1*DEPTH_ONE
                                    && static_eval >= beta
                                    )
                                 {
@@ -793,6 +795,9 @@ namespace Search {
 
                                     // Do null move
                                     pos.do_null_move (si);
+
+                                    // Speculative prefetch as early as possible
+                                    prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
 
                                     // Null (zero) window (alpha, beta) = (beta-1, beta):
                                     Value null_value = rdepth < DEPTH_ONE ?
@@ -832,7 +837,7 @@ namespace Search {
                             // If have a very good capture (i.e. SEE > see[captured_piece_type])
                             // and a reduced search returns a value much above beta,
                             // can (almost) safely prune the previous move.
-                            if (  depth >= RazorDepth+DEPTH_ONE
+                            if (  depth > RazorDepth
                                && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
                                )
                             {
@@ -852,12 +857,15 @@ namespace Search {
                                 while ((move = mp.next_move<false> ()) != MOVE_NONE)
                                 {
                                     if (!pos.legal (move, ci->pinneds)) continue;
-                                    
-                                    // Speculative prefetch as early as possible
-                                    prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
 
                                     (ss)->current_move = move;
                                     pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
+
+                                    // Speculative prefetch as early as possible
+                                    prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
+                                    if (PAWN == ptype (pos[org_sq (move)])) prefetch (reinterpret_cast<char *>(thread->pawns_table[pos.pawn_key ()]));
+                                    if (pos.capture_or_promotion (move)) prefetch (reinterpret_cast<char *>(thread->material_table[pos.matl_key ()]));
+
                                     Value value = -search_depth<NonPV, false, true> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
                                     pos.undo_move ();
 
@@ -876,7 +884,7 @@ namespace Search {
                        && (PVNode || (ss)->static_eval + VALUE_EG_PAWN >= beta)   // IID Margin
                        )
                     {
-                        Depth iid_depth = (2*(depth - 2*DEPTH_ONE - (PVNode ? DEPTH_ZERO : depth/4)))/2; // IID Reduced Depth
+                        Depth iid_depth = depth - 2*DEPTH_ONE - (PVNode ? DEPTH_ZERO : depth/4); // IID Reduced Depth
                         
                         search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
@@ -912,7 +920,7 @@ namespace Search {
                 || ((ss-0)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval >= (ss-2)->static_eval);
 
-            Thread *thread  = pos.thread ();
+            
             point time;
 
             if (RootNode)
@@ -1115,14 +1123,16 @@ namespace Search {
                 }
 
                 bool move_pv = PVNode && (1 == legals);
-                
-                (ss)->current_move = move;
 
-                // Speculative prefetch as early as possible
-                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
+                (ss)->current_move = move;
 
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
+
+                // Speculative prefetch as early as possible
+                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
+                if (PAWN == ptype (pos[org_sq (move)])) prefetch (reinterpret_cast<char *>(pos.thread ()->pawns_table[pos.pawn_key ()]));
+                if (capture_or_promotion) prefetch (reinterpret_cast<char *>(pos.thread ()->material_table[pos.matl_key ()]));
 
                 // Step 15, 16.
                 if (!move_pv)
@@ -1130,7 +1140,7 @@ namespace Search {
                     bool full_depth_search = true;
                     // Step 15. Reduced depth search (LMR).
                     // If the move fails high will be re-searched at full depth.
-                    if (  depth >= 3*DEPTH_ONE
+                    if (  depth > 2*DEPTH_ONE
                        && move != tt_move
                        && move != (ss)->killer_moves[0]
                        && move != (ss)->killer_moves[1]
@@ -1648,8 +1658,11 @@ namespace Search {
 
             pv.push_back (m);
             pos.do_move (m, *si++);
+
             ++ply;
             expected_value = -expected_value;
+
+            prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
             tte = TT.retrieve (pos.posi_key ());
         } while (  tte != NULL
                 && expected_value == value_of_tt (tte->value (), ply+1)
@@ -1682,6 +1695,7 @@ namespace Search {
         {
             ASSERT (MoveList<LEGAL> (pos).contains (m));
 
+            prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
             tte = TT.retrieve (pos.posi_key ());
             // Don't overwrite correct entries
             if (tte == NULL || tte->move () != m)
@@ -1696,6 +1710,7 @@ namespace Search {
             }
 
             pos.do_move (m, *si++);
+
             m = pv[++ply];
         } while (MOVE_NONE != m);
 

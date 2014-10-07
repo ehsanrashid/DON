@@ -558,7 +558,7 @@ extern std::ostream& operator<< (std::ostream &os, const SyncT &sync);
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
-    inline void prefetch (const char *addr)
+    INLINE void prefetch (const char *addr)
     {
 #       if defined(__INTEL_COMPILER)
         {
@@ -572,7 +572,7 @@ extern std::ostream& operator<< (std::ostream &os, const SyncT &sync);
 
 #   else
 
-    inline void prefetch (const char *addr)
+    INLINE void prefetch (const char *addr)
     {
         __builtin_prefetch (addr);
     }
@@ -581,7 +581,7 @@ extern std::ostream& operator<< (std::ostream &os, const SyncT &sync);
 
 #else
 
-    inline void prefetch (const char *) {}
+    INLINE void prefetch (const char *) {}
 
 #endif
 

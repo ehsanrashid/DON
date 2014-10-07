@@ -219,7 +219,7 @@ public:
     Key pawn_key      () const;
     Key posi_key      () const;
     Key posi_exc_key  () const;
-    Key posi_move_key (Move m) const;
+    //Key posi_move_key (Move m) const;
 
     Value non_pawn_material (Color c) const;    // Incremental piece-square evaluation
 

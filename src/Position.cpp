@@ -153,7 +153,7 @@ Position& Position::operator= (const Position &pos)
 
     return *this;
 }
-
+/*
 // posi_move_key() computes the new hash key after the given moven. Needed for speculative prefetch.
 // It doesn't recognize special moves like castling, en-passant and promotions.
 Key Position::posi_move_key (Move m) const
@@ -171,7 +171,7 @@ Key Position::posi_move_key (Move m) const
         ^  (ct != NONE ? Zob._.piece_square[~_active][ct][dst] : U64(0));
 
 }
-
+*/
 // Draw by: Material, 50 Move Rule, Threefold repetition, [Stalemate].
 // It does not detect stalemates, this must be done by the search.
 bool Position::draw () const
@@ -1379,7 +1379,6 @@ Value Position::compute_non_pawn_material (Color c) const
         _si->non_pawn_matl[pasive] -= PIECE_VALUE[MG][ct];                      \
     }                                                                           \
     _si->matl_key ^= Zob._.piece_square[pasive][ct][_piece_count[pasive][ct]];  \
-    prefetch (reinterpret_cast<char *>(_thread->material_table[_si->matl_key]));\
     key ^= Zob._.piece_square[pasive][ct][cap];                                 \
     _si->psq_score -= PSQT[pasive][ct][cap];                                    \
     _si->clock50 = 0;                                                           \
@@ -1635,9 +1634,6 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
                 key ^= Zob._.en_passant[_file (ep_sq)];
             }
         }
-
-        // Update prefetch access to pawns_table
-        prefetch (reinterpret_cast<char *>(_thread->pawns_table[_si->pawn_key]));
     }
 
     // Update the key with the final value
@@ -1760,8 +1756,6 @@ void Position::  do_null_move (StateInfo &si)
 
     _active = ~_active;
     _si->posi_key ^= Zob._.mover_side;
-
-    prefetch (reinterpret_cast<char *>(TT.cluster_entry (_si->posi_key)));
 
     _si->clock50++;
     _si->null_ply = 0;
