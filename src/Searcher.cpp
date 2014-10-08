@@ -1425,11 +1425,7 @@ namespace Search {
             FollowupMoveStats.clear ();
 
             Skills.set_level (SkillLevel);
-            // Do have to play with skill handicap?
-            // In this case enable MultiPV search by skill candidates size
-            // that will use behind the scenes to retrieve a set of possible moves.
-            PVLimit = min (max (MultiPV, Skills.candidates_size ()), RootSize);
-
+            
             Value best_value = VALUE_ZERO
                 , a_bound    = -VALUE_INFINITE
                 , b_bound    = +VALUE_INFINITE
@@ -1458,7 +1454,10 @@ namespace Search {
 
                 const bool aspiration = depth > 2*DEPTH_ONE;
 
-                //PVLimit = aspiration ? MultiPV : min (max (MultiPV, MIN_SKILL_MULTIPV), RootSize);
+                // Do have to play with skill handicap?
+                // In this case enable MultiPV search by skill candidates size
+                // that will use behind the scenes to retrieve a set of possible moves.
+                PVLimit = min (max (MultiPV, aspiration ? Skills.candidates_size () : MIN_SKILL_MULTIPV), RootSize);
                 // MultiPV loop. Perform a full root search for each PV line
                 for (PVIndex = 0; PVIndex < PVLimit; ++PVIndex)
                 {
@@ -1585,7 +1584,7 @@ namespace Search {
                 if (!Signals.ponderhit_stop && Limits.use_timemanager ())
                 {
                     // Time adjustments
-                    if (aspiration && PVLimit == 1)
+                    if (aspiration && MultiPV == 1)
                     {
                         // Take in account some extra time if the best move has changed
                         TimeMgr.instability (RootMoves.best_move_change);
