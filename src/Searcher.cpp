@@ -368,7 +368,7 @@ namespace Search {
                 }
                 else
                 {
-                    (ss)->static_eval = best_value = 
+                    (ss)->static_eval = best_value =
                         (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO_VALUE;
                 }
 
@@ -411,12 +411,14 @@ namespace Search {
                 cc = CheckInfo (pos);
                 ci = &cc;
             }
+
             Move move;
+            u08 legals = 0;
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move<false> ()) != MOVE_NONE)
             {
                 ASSERT (_ok (move));
-
+                
                 bool gives_check = pos.gives_check (move, *ci);
 
                 if (!PVNode && !MateSearch)
@@ -474,6 +476,8 @@ namespace Search {
                 // Check for legality just before making the move
                 if (!pos.legal (move, ci->pinneds)) continue;
 
+                ++legals;
+
                 bool capture_or_promotion = pos.capture_or_promotion (move);
                 
                 (ss)->current_move = move;
@@ -483,10 +487,37 @@ namespace Search {
                 if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *>(thread->pawns_table[pos.pawn_key ()]));
                 if (capture_or_promotion) prefetch (reinterpret_cast<char *>(thread->material_table[pos.matl_key ()]));
 
-                Value value =
-                    gives_check ?
-                        -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
-                        -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
+                Value value;
+                
+                //value =
+                //    gives_check ?
+                //        -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
+                //        -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
+                
+                bool move_pv = PVNode && 1 == legals;
+
+                if (move_pv)
+                {
+                    value =
+                        gives_check ?
+                            -search_quien<PV, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
+                            -search_quien<PV, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
+                }
+                else
+                {
+                    value =
+                        gives_check ?
+                            -search_quien<NonPV, true > (pos, ss+1, -alpha-1, -alpha, depth-DEPTH_ONE) :
+                            -search_quien<NonPV, false> (pos, ss+1, -alpha-1, -alpha, depth-DEPTH_ONE);
+                    
+                    if (alpha < value && value < beta)
+                    {
+                        value =
+                            gives_check ?
+                                -search_quien<PV, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
+                                -search_quien<PV, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
+                    }
+                }
 
                 pos.undo_move ();
 
@@ -529,7 +560,7 @@ namespace Search {
                 if (best_value == -VALUE_INFINITE)
                 {
                     // Plies to mate from the root
-                    return mated_in ((ss)->ply);
+                    best_value = mated_in ((ss)->ply);
                 }
             }
 
@@ -914,6 +945,7 @@ namespace Search {
                     && tt_move != MOVE_NONE
                     &&    depth >= 8*DEPTH_ONE //(PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
                     && tt_depth >= depth-3*DEPTH_ONE
+                    //&& abs (beta)     < +VALUE_KNOWN_WIN
                     && abs (tt_value) < +VALUE_KNOWN_WIN
                     && (tt_bound & BOUND_LOWER);
 
@@ -1134,7 +1166,7 @@ namespace Search {
                     }
                 }
 
-                bool move_pv = PVNode && (1 == legals);
+                bool move_pv = PVNode && 1 == legals;
 
                 (ss)->current_move = move;
 

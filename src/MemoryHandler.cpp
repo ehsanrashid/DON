@@ -78,15 +78,14 @@ namespace Memory {
             }
             
             TOKEN_PRIVILEGES token_priv;
-            // Enable or Disable privilege
-            token_priv.PrivilegeCount = 1;
-            token_priv.Privileges[0].Attributes = (enable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
             // Get the luid
             if (!LookupPrivilegeValue (NULL, privilege_lp, &token_priv.Privileges[0].Luid))
             {
                 //exit_error (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
             }
-
+            // Enable or Disable privilege
+            token_priv.PrivilegeCount = 1;
+            token_priv.Privileges[0].Attributes = (enable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
             //BOOL status = 
             AdjustTokenPrivileges (token_handle, FALSE, &token_priv, 0, static_cast<PTOKEN_PRIVILEGES>(NULL), 0);
 
@@ -156,7 +155,7 @@ namespace Memory {
                 if (mem_ref != -1)
                 {
                     UsePages = true;
-                    memset (mem_ref, 0x00, SHMSZ);
+                    //memset (mem_ref, 0x00, SHMSZ);
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
