@@ -9,8 +9,6 @@ namespace Time {
 
     namespace {
 
-        enum TimeT { OPTIMUM_TIME, MAXIMUM_TIME };
-
         const float MAX_STEP_RATIO  = 7.00f; // When in trouble, can step over reserved time with this ratio
         const float MAX_STEAL_RATIO = 0.33f; // However must not steal time from remaining moves over this ratio
 
@@ -18,13 +16,13 @@ namespace Time {
         const float SHIFT     = 59.80f;
         const float SKEW_RATE =  0.172f;
 
-        u08 MaximumMoveHorizon    = 50; // Plan time management at most this many moves ahead, in num of moves.
-        u08 EmergencyMoveHorizon  = 40; // Be prepared to always play at least this many moves, in num of moves.
-        u32 EmergencyClockTime    = 60; // Always attempt to keep at least this much time at clock, in milliseconds.
-        u32 EmergencyMoveTime     = 30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
-        u32 MinimumMoveTime       = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
-        i32 MoveSlowness          = 90; // Slowliness, in %age.
-        bool Ponder               = true; // Whether or not the engine should analyze when it is the opponent's turn.
+        u08 MaximumMoveHorizon   = 50; // Plan time management at most this many moves ahead, in num of moves.
+        u08 EmergencyMoveHorizon = 40; // Be prepared to always play at least this many moves, in num of moves.
+        u32 EmergencyClockTime   = 60; // Always attempt to keep at least this much time at clock, in milliseconds.
+        u32 EmergencyMoveTime    = 30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
+        u32 MinimumMoveTime      = 20; // No matter what, use at least this much time before doing the move, in milliseconds.
+        i32 MoveSlowness         = 90; // Slowliness, in %age.
+        bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
         // move_importance() is a skew-logistic function based on naive statistical
         // analysis of "how many games are still undecided after 'n' half-moves".
@@ -35,22 +33,24 @@ namespace Time {
             return pow ((1 + exp ((game_ply - SHIFT) / SCALE)), -SKEW_RATE) + FLT_MIN; // Ensure non-zero
         }
 
+        enum TimeT { TIME_OPTIMUM, TIME_MAXIMUM };
+
         template<TimeT TT>
         // remaining_time<>() calculate the time remaining
         inline u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
         {
-            const float TStepRatio  = OPTIMUM_TIME == TT ? 1.0f : MAX_STEP_RATIO;
-            const float TStealRatio = MAXIMUM_TIME == TT ? 0.0f : MAX_STEAL_RATIO;
+            const float TStepRatio  = TIME_OPTIMUM == TT ? 1.0f : MAX_STEP_RATIO;
+            const float TStealRatio = TIME_MAXIMUM == TT ? 0.0f : MAX_STEAL_RATIO;
 
-            float  this_move_imp = move_importance (game_ply) * MoveSlowness / 0x64; // 100
-            float other_move_imp = 0.0f;
+            float move_imp_0 = move_importance (game_ply) * MoveSlowness / 0x64; // 100
+            float move_imp_1 = 0.0f;
             for (u08 i = 1; i < movestogo; ++i)
             {
-                other_move_imp += move_importance (game_ply + 2 * i);
+                move_imp_1 += move_importance (game_ply + 2 * i);
             }
 
-            float time_ratio1 = (TStepRatio * this_move_imp) / (TStepRatio * this_move_imp + other_move_imp);
-            float time_ratio2 = (this_move_imp + TStealRatio * other_move_imp) / (this_move_imp + other_move_imp);
+            float time_ratio1 = (TStepRatio * move_imp_0) / (TStepRatio * move_imp_0 + move_imp_1);
+            float time_ratio2 = (move_imp_0 + TStealRatio * move_imp_1) / (move_imp_0 + move_imp_1);
 
             return i32(time * min (time_ratio1, time_ratio2));
         }
@@ -79,8 +79,8 @@ namespace Time {
 
             hyp_time = max (0, hyp_time);
 
-            u32 opt_time = MinimumMoveTime + remaining_time<OPTIMUM_TIME> (hyp_time, hyp_movestogo, game_ply);
-            u32 max_time = MinimumMoveTime + remaining_time<MAXIMUM_TIME> (hyp_time, hyp_movestogo, game_ply);
+            u32 opt_time = MinimumMoveTime + remaining_time<TIME_OPTIMUM> (hyp_time, hyp_movestogo, game_ply);
+            u32 max_time = MinimumMoveTime + remaining_time<TIME_MAXIMUM> (hyp_time, hyp_movestogo, game_ply);
 
             _optimum_time = min (opt_time, _optimum_time);
             _maximum_time = min (max_time, _maximum_time);

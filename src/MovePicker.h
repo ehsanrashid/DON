@@ -49,13 +49,13 @@ namespace MovePick {
     {
 
     private:
-        i16   _counts[TOT_PIECE][SQ_NO][2];
+        u16   _counts[TOT_PIECE][SQ_NO][2];
         Value _values[TOT_PIECE][SQ_NO];
 
     public:
     
-        static const Value MinValue = Value(-2001);
-        static const Value MaxValue = Value(+2000);
+        static const Value MinValue = Value(-5001);
+        static const Value MaxValue = Value(+5000);
     
         inline void clear ()
         {
@@ -63,12 +63,12 @@ namespace MovePick {
             std::fill (*_values, *_values + sizeof (_values) / sizeof (**_values), MinValue);
         }
 
-        inline void success (const Position &pos, Move m, i16 d)
+        inline void success (const Position &pos, Move m, u16 d)
         {
-            Piece p     = pos[org_sq (m)];
-            Square s    = dst_sq (m);
+            Piece p  = pos[org_sq (m)];
+            Square s = dst_sq (m);
 
-            i16 cnt = _counts[p][s][0] + d;
+            u16 cnt = _counts[p][s][0] + d;
             if (cnt > 16000)
             {
                 cnt /= 2;
@@ -80,10 +80,10 @@ namespace MovePick {
 
         inline void failure (const Position &pos, Move m, i16 d)
         {
-            Piece p     = pos[org_sq (m)];
-            Square s    = dst_sq (m);
+            Piece p  = pos[org_sq (m)];
+            Square s = dst_sq (m);
 
-            i16 cnt = _counts[p][s][1] + d;
+            u16 cnt = _counts[p][s][1] + d;
             if (cnt > 16000)
             {
                 cnt /= 2;
@@ -97,9 +97,9 @@ namespace MovePick {
         {
             if (_values[p][s] <= MinValue)
             {
-                i16 succ = _counts[p][s][0];
-                i16 fail = _counts[p][s][1];
-                _values[p][s] = (succ + fail > 0) ? (MaxValue * (succ-fail)) / (succ+fail) : VALUE_ZERO;
+                u16 succ = _counts[p][s][0];
+                u16 fail = _counts[p][s][1];
+                _values[p][s] = (succ + fail > 0) ? Value((abs (succ-fail)*(succ-fail))/(succ+fail)) : VALUE_ZERO;
             }
 
             return _values[p][s];

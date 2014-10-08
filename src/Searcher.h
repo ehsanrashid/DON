@@ -205,8 +205,8 @@ namespace Search {
     extern void configure_auto_save (const UCI::Option &);
     extern void configure_contempt (const UCI::Option &);
     extern void configure_multipv (const UCI::Option &);
-    extern void change_level (const UCI::Option &opt);
-    extern void search_log (const UCI::Option &opt);
+    extern void change_skill_level (const UCI::Option &opt);
+    extern void change_search_log (const UCI::Option &opt);
 
 }
 

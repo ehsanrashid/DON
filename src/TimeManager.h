@@ -8,12 +8,12 @@ namespace Time {
 
     // TimeManager class computes the optimal time to think depending on the
     // maximum available time, the move game number and other parameters.
-    //Support four different kind of time controls:
+    // Support four different kind of time controls:
     //
-    //increment == 0 && moves_to_go == 0 means: x basetime  [sudden death!]
-    //increment == 0 && moves_to_go != 0 means: x moves in y minutes
-    //increment >  0 && moves_to_go == 0 means: x basetime + z increment
-    //increment >  0 && moves_to_go != 0 means: x moves in y minutes + z increment
+    // moves_to_go = 0, increment = 0 means: x basetime  [sudden death!]
+    // moves_to_go = 0, increment > 0 means: x basetime + z increment
+    // moves_to_go > 0, increment = 0 means: x moves in y minutes
+    // moves_to_go > 0, increment > 0 means: x moves in y minutes + z increment
     class TimeManager
     {
     private:

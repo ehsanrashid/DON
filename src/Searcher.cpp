@@ -158,7 +158,7 @@ namespace Search {
 
         };
 
-        u08   Level = MAX_SKILL_LEVEL;
+        u08   SkillLevel = MAX_SKILL_LEVEL;
         Skill Skills;
 
         bool    MateSearch;
@@ -182,11 +182,10 @@ namespace Search {
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
-            i16 cnt = 4*i16(depth)*i16(depth);
+            u16 cnt = 4*u16(depth)*u16(depth);
             HistoryStatistics.success (pos, move, cnt);
             for (u08 i = 0; i < quiets; ++i)
             {
-                //if (move != quiet_moves[i])
                 HistoryStatistics.failure (pos, quiet_moves[i], cnt);
             }
             Move opp_move = (ss-1)->current_move;
@@ -1358,7 +1357,7 @@ namespace Search {
                    && !pos.capture_or_promotion (best_move)
                    )
                 {
-                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets);
+                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets-1);
                 }
 
                 TT.store (
@@ -1393,7 +1392,7 @@ namespace Search {
             CounterMoveStats.clear ();
             FollowupMoveStats.clear ();
 
-            Skills.set_level (Level);
+            Skills.set_level (SkillLevel);
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill candidates size
             // that will use behind the scenes to retrieve a set of possible moves.
@@ -2021,12 +2020,12 @@ namespace Search {
         //i32 MultiPV_cp= i32(Options["MultiPV_cp"]);
     }
 
-    void change_level (const Option &opt)
+    void change_skill_level (const Option &opt)
     {
-        Level = u08(i32(opt));
+        SkillLevel = u08(i32(opt));
     }
 
-    void search_log (const Option &opt)
+    void change_search_log (const Option &opt)
     {
         SearchLog = string(opt);
         if (!white_spaces (SearchLog))

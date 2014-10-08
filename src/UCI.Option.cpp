@@ -297,7 +297,7 @@ namespace UCI {
         // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
         //
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
-        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, Search::change_level);
+        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, Search::change_skill_level);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
@@ -365,7 +365,7 @@ namespace UCI {
         // The filename of the debug log.
         Options["Debug Log"]                    << Option ("", on_debug_log);
         // The filename of the search log.
-        Options["Search Log"]                   << Option ("", Search::search_log);
+        Options["Search Log"]                   << Option ("", Search::change_search_log);
 
         // ---------------------------------------------------------------------------------------
         // Other Options
