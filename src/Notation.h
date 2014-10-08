@@ -10,9 +10,9 @@ class Position;
 
 namespace Notation {
 
-    inline char to_char   (File f, bool lower = true) { return char (i08(f) - i08(F_A)) + (lower ? 'a' : 'A'); }
+    inline char to_char (File f, bool lower = true) { return char (i08(f) - i08(F_A)) + (lower ? 'a' : 'A'); }
 
-    inline char to_char   (Rank r) { return char (i08(r) - i08(R_1)) + '1'; }
+    inline char to_char (Rank r) { return char (i08(r) - i08(R_1)) + '1'; }
 
     inline std::string to_string (Square s)
     {

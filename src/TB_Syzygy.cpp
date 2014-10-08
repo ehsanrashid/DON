@@ -2957,7 +2957,7 @@ namespace TBSyzygy {
             
             pos.undo_move ();
             if (!success) return false;
-            RootMoves[i].value[0] = Value (v);
+            RootMoves[i].new_value = Value (v);
         }
 
         // Obtain 50-move counter for the root position.
@@ -2997,7 +2997,7 @@ namespace TBSyzygy {
             i32 best = 0xFFFF;
             for (size_t i = 0; i < RootMoves.size (); ++i)
             {
-                i32 v = RootMoves[i].value[0];
+                i32 v = RootMoves[i].new_value;
                 if (0 < v && v < best)
                 {
                     best = v;
@@ -3012,7 +3012,7 @@ namespace TBSyzygy {
             }
             for (size_t i = 0; i < RootMoves.size (); ++i)
             {
-                i32 v = RootMoves[i].value[0];
+                i32 v = RootMoves[i].new_value;
                 if (0 < v && v <= max)
                 {
                     RootMoves[j++] = RootMoves[i];
@@ -3024,7 +3024,7 @@ namespace TBSyzygy {
             i32 best = 0;
             for (size_t i = 0; i < RootMoves.size (); ++i)
             {
-                i32 v = RootMoves[i].value[0];
+                i32 v = RootMoves[i].new_value;
                 if (best > v)
                 {
                     best = v;
@@ -3037,7 +3037,7 @@ namespace TBSyzygy {
             }
             for (size_t i = 0; i < RootMoves.size (); ++i)
             {
-                if (RootMoves[i].value[0] == best)
+                if (RootMoves[i].new_value == best)
                 {
                     RootMoves[j++] = RootMoves[i];
                 }
@@ -3048,7 +3048,7 @@ namespace TBSyzygy {
             // Try all moves that preserve the draw.
             for (size_t i = 0; i < RootMoves.size (); ++i)
             {
-                if (RootMoves[i].value[0] == VALUE_ZERO)
+                if (RootMoves[i].new_value == VALUE_ZERO)
                 {
                     RootMoves[j++] = RootMoves[i];
                 }
@@ -3087,7 +3087,7 @@ namespace TBSyzygy {
             i32 v = -probe_wdl (pos, &success);
             pos.undo_move ();
             if (!success) return false;
-            RootMoves[i].value[0] = Value (v);
+            RootMoves[i].new_value = Value (v);
             if (best < v)
             {
                 best = v;
@@ -3097,7 +3097,7 @@ namespace TBSyzygy {
         size_t j = 0;
         for (size_t i = 0; i < RootMoves.size (); ++i)
         {
-            if (RootMoves[i].value[0] == best)
+            if (RootMoves[i].new_value == best)
             {
                 RootMoves[j++] = RootMoves[i];
             }

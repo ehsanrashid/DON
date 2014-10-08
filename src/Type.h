@@ -227,7 +227,7 @@ enum Depth : i16
 enum Bound : u08
 {
     // NONE BOUND           - NO_NODE
-    BND_NONE    = 0,
+    BOUND_NONE  = 0,
 
     // UPPER (BETA) BOUND   - ALL_NODE
     // BETA evaluation, when do not reach up to ALPHA the move is 'Fail-Low' 
@@ -237,14 +237,14 @@ enum Bound : u08
     // Engine will not make the move that allowed the opponent to put in this position.
     // What the actual evaluation of the position was?
     // It was atmost ALPHA (or lower).
-    BND_UPPER   = 1,
+    BOUND_UPPER = 1,
 
     // LOWER (ALPHA) BOUND  - CUT_NODE
     // ALPHA evaluation, when exceed BETA the move is too good.
     // 'Fail-High' or 'BETA-Cutoff' and cut off the rest of the search.
     // Since some of the search is cut off, What the actual evaluation of the position was?
     // It was atleast BETA or higher.
-    BND_LOWER   = 2,
+    BOUND_LOWER = 2,
 
     // EXACT (-) BOUND      - PV_NODE
     // EXACT evaluation, when receive a definite evaluation,
@@ -254,7 +254,7 @@ enum Bound : u08
     // while the min-player improved his score as well (score < beta), beta the min so far.
     // The current node searched was an expected PV-Node,
     // which was confirmed by the search in finding and collecting a principal variation.
-    BND_EXACT   = BND_LOWER | BND_UPPER
+    BOUND_EXACT = BOUND_LOWER | BOUND_UPPER
 
 };
 
@@ -422,7 +422,7 @@ inline bool opposite_colors (Square s1, Square s2)
     return ((s >> 3) ^ s) & BLACK;
 }
 
-inline Delta pawn_push (Color c) { return (WHITE == c) ? DEL_N : DEL_S; }
+inline Delta pawn_push (Color c) { return WHITE == c ? DEL_N : DEL_S; }
 
 inline CRight mk_castle_right (Color c)           { return CRight(CR_W << (c << BLACK)); }
 inline CRight mk_castle_right (Color c, CSide cs) { return CRight(CR_WK << ((CS_Q == cs) + (c << BLACK))); }

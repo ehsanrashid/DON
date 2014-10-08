@@ -98,15 +98,16 @@ namespace Search {
     // Value is normally set at -VALUE_INFINITE for all non-pv moves.
     struct RootMove
     {
-        Value value[2];
         u64   nodes;
+        Value new_value;
+        Value old_value;
         std::vector<Move> pv;
 
         explicit RootMove (Move m = MOVE_NONE)
             : nodes (U64(0))
+            , new_value (-VALUE_INFINITE)
+            , old_value (-VALUE_INFINITE)
         {
-            value[0] = -VALUE_INFINITE;
-            value[1] = -VALUE_INFINITE;
             pv.push_back (m);
             if (m != MOVE_NONE) pv.push_back (MOVE_NONE);
         }
@@ -114,21 +115,21 @@ namespace Search {
         //RootMove (const RootMove &rm) { *this = rm; }
         //RootMove& RootMove::operator= (const RootMove &rm)
         //{
-        //    nodes    = rm.nodes;
-        //    value[0] = rm.value[0];
-        //    value[1] = rm.value[1];
-        //    pv       = rm.pv;
+        //    nodes     = rm.nodes;
+        //    new_value = rm.new_value;
+        //    old_value = rm.old_value;
+        //    pv        = rm.pv;
         //    return *this;
         //}
 
         // Ascending Sort
 
-        friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return (rm1.value[0] >  rm2.value[0]); }
-        friend bool operator>  (const RootMove &rm1, const RootMove &rm2) { return (rm1.value[0] <  rm2.value[0]); }
-        friend bool operator<= (const RootMove &rm1, const RootMove &rm2) { return (rm1.value[0] >= rm2.value[0]); }
-        friend bool operator>= (const RootMove &rm1, const RootMove &rm2) { return (rm1.value[0] <= rm2.value[0]); }
-        friend bool operator== (const RootMove &rm1, const RootMove &rm2) { return (rm1.value[0] == rm2.value[0]); }
-        friend bool operator!= (const RootMove &rm1, const RootMove &rm2) { return (rm1.value[0] != rm2.value[0]); }
+        friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value >  rm2.new_value); }
+        friend bool operator>  (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value <  rm2.new_value); }
+        friend bool operator<= (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value >= rm2.new_value); }
+        friend bool operator>= (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value <= rm2.new_value); }
+        friend bool operator== (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value == rm2.new_value); }
+        friend bool operator!= (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value != rm2.new_value); }
 
         friend bool operator== (const RootMove &rm, const Move &m) { return (rm.pv[0] == m); }
         friend bool operator!= (const RootMove &rm, const Move &m) { return (rm.pv[0] != m); }

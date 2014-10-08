@@ -113,7 +113,7 @@ namespace Memory {
 
     }
 
-    void create_memory  (void *&mem_ref, size_t mem_size, size_t alignment)
+    void create_memory (void *&mem_ref, size_t mem_size, size_t alignment)
     {
         UsePages = false;
 
@@ -180,7 +180,7 @@ namespace Memory {
         cerr << "ERROR: failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
     }
 
-    void   free_memory  (void *mem)
+    void   free_memory (void *mem)
     {
         if (mem == NULL) return;
 
@@ -205,7 +205,7 @@ namespace Memory {
         ALIGNED_FREE (mem);
     }
     
-    void initialize     ()
+    void initialize    ()
     {
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 

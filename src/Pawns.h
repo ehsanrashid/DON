@@ -17,29 +17,28 @@ namespace Pawns {
         Key      pawn_key;
         Score    pawn_score;
 
-        Bitboard pawns_attacks  [CLR_NO];
+        Bitboard pawns_attacks [CLR_NO];
 
-        //Bitboard blocked_pawns  [CLR_NO];
-        Bitboard passed_pawns   [CLR_NO];
-        Bitboard unstopped_pawns[CLR_NO];
+        //Bitboard blocked_pawns [CLR_NO];
+        Bitboard passed_pawns  [CLR_NO];
 
-        u08      semiopen_files [CLR_NO];
-        u08      pawn_span      [CLR_NO];
+        u08      semiopen_files[CLR_NO];
+        u08      pawn_span     [CLR_NO];
         // Count of pawns on LIGHT and DARK squares
-        u08      pawns_on_sqrs  [CLR_NO][CLR_NO]; // [color][light/dark squares]
+        u08      pawns_on_sqrs [CLR_NO][CLR_NO]; // [color][light/dark squares]
 
-        Square   king_sq        [CLR_NO];
-        Value    shelter_storm  [CLR_NO][3];
-        u08      min_kp_dist    [CLR_NO];
+        Square   king_sq       [CLR_NO];
+        Value    shelter_storm [CLR_NO][3];
+        u08      kp_dist       [CLR_NO];
 
         template<Color C>
-        inline u08  semiopen_file (File f) const
+        inline u08 semiopen_file (File f) const
         {
             return semiopen_files[C] & (1 << f);
         }
 
         template<Color C>
-        inline u08  semiopen_side (File f, bool left) const
+        inline u08 semiopen_side (File f, bool left) const
         {
             return semiopen_files[C] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
         }
@@ -74,11 +73,11 @@ namespace Pawns {
                 shelter_storm[C][CS_Q ] = kr == R_1 ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_C1)) : VALUE_ZERO;
                 shelter_storm[C][CS_NO] = kr <= R_4 ? pawn_shelter_storm<C> (pos, k_sq) : VALUE_ZERO;
 
-                min_kp_dist[C] = 0;
+                kp_dist[C] = 0;
                 Bitboard pawns = pos.pieces<PAWN> (C);
                 if (pawns != U64(0))
                 {
-                    while (!(BitBoard::DIST_RINGS_bb[k_sq][min_kp_dist[C]++] & pawns)) {}
+                    while (!(BitBoard::DIST_RINGS_bb[k_sq][kp_dist[C]++] & pawns)) {}
                 }
             }
         }
@@ -89,8 +88,6 @@ namespace Pawns {
 
     extern Entry* probe (const Position &pos, Table &table);
     
-    extern void initialize ();
-
 }
 
 #endif // _PAWNS_H_INC_

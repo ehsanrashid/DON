@@ -112,7 +112,6 @@ namespace Engine {
         Position ::initialize ();
         BitBases ::initialize ();
         Search   ::initialize ();
-        Pawns    ::initialize ();
         EndGame  ::initialize ();
         Threadpool.initialize ();
         Evaluate ::configure (UCI::Option());

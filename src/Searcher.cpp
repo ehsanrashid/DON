@@ -121,7 +121,7 @@ namespace Search {
                 move = MOVE_NONE;
 
                 // RootMoves are already sorted by score in descending order
-                Value variance = min (RootMoves[0].value[0] - RootMoves[candidates - 1].value[0], VALUE_MG_PAWN);
+                Value variance = min (RootMoves[0].new_value - RootMoves[candidates - 1].new_value, VALUE_MG_PAWN);
                 Value weakness = Value(MAX_DEPTH - 2 * level);
                 Value max_value = -VALUE_INFINITE;
                 // Choose best move. For each move score add two terms both dependent on
@@ -129,16 +129,16 @@ namespace Search {
                 // then choose the move with the resulting highest score.
                 for (u08 i = 0; i < candidates; ++i)
                 {
-                    Value v = RootMoves[i].value[0];
+                    Value v = RootMoves[i].new_value;
 
                     // Don't allow crazy blunders even at very low skills
-                    if (i > 0 && RootMoves[i-1].value[0] > (v + 2*VALUE_MG_PAWN))
+                    if (i > 0 && RootMoves[i-1].new_value > (v + 2*VALUE_MG_PAWN))
                     {
                         break;
                     }
 
                     // This is our magic formula
-                    v += (weakness * i32(RootMoves[0].value[0] - v)
+                    v += (weakness * i32(RootMoves[0].new_value - v)
                       +   variance * i32(rk.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2));
 
                     if (max_value < v)
@@ -243,14 +243,14 @@ namespace Search {
                 if (updated)
                 {
                     d = depth;
-                    v = RootMoves[i].value[0];
+                    v = RootMoves[i].new_value;
                 }
                 else
                 {
                     if (1 == depth) return "";
 
                     d = depth - 1;
-                    v = RootMoves[i].value[1];
+                    v = RootMoves[i].old_value;
                 }
 
                 // Not at first line
@@ -306,7 +306,7 @@ namespace Search {
             Value tt_value   = VALUE_NONE
                 , best_value = VALUE_NONE;
             Depth tt_depth   = DEPTH_NONE;
-            Bound tt_bound   = BND_NONE;
+            Bound tt_bound   = BOUND_NONE;
             
             Thread *thread  = pos.thread ();
 
@@ -333,9 +333,9 @@ namespace Search {
             if (  tte != NULL
                && tt_depth >= qs_depth
                && tt_value != VALUE_NONE // Only in case of TT access race
-               && (         PVNode ? tt_bound == BND_EXACT :
-                  tt_value >= beta ? tt_bound &  BND_LOWER :
-                                     tt_bound &  BND_UPPER
+               && (         PVNode ? tt_bound == BOUND_EXACT :
+                  tt_value >= beta ? tt_bound &  BOUND_LOWER :
+                                     tt_bound &  BOUND_UPPER
                   )
                )
             {
@@ -361,7 +361,7 @@ namespace Search {
 
                     // Can tt_value be used as a better position evaluation?
                     if (  VALUE_NONE != tt_value
-                       && tt_bound & (best_value < tt_value ? BND_LOWER : BND_UPPER)
+                       && tt_bound & (best_value < tt_value ? BOUND_LOWER : BOUND_UPPER)
                        )
                     {
                         best_value = tt_value;
@@ -384,7 +384,7 @@ namespace Search {
                                 posi_key,
                                 MOVE_NONE,
                                 DEPTH_NONE,
-                                BND_LOWER,
+                                BOUND_LOWER,
                                 value_to_tt (best_value, (ss)->ply),
                                 (ss)->static_eval);
                         }
@@ -443,7 +443,7 @@ namespace Search {
                         // Prune moves with negative or equal SEE and also moves with positive
                         // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
                         if (  futility_base < beta
-                           && pos.see (move) <= VALUE_ZERO
+                           && pos.see (move) <= VALUE_ZERO //beta - futility_base
                            )
                         {
                             best_value = max (futility_base, best_value);
@@ -457,8 +457,8 @@ namespace Search {
                        && (  !InCheck
                           // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
                           || (  best_value > -VALUE_MATE_IN_MAX_DEPTH
-                             && !pos.can_castle (pos.active ())
                              && !pos.capture (move)
+                             && !pos.can_castle (pos.active ())
                              )
                           )
                        && pos.see_sign (move) < VALUE_ZERO
@@ -469,21 +469,25 @@ namespace Search {
 
                 }
 
+                // Speculative prefetch as early as possible
+                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
+
                 // Check for legality just before making the move
                 if (!pos.legal (move, ci->pinneds)) continue;
 
+                bool capture_or_promotion = pos.capture_or_promotion (move);
+                
                 (ss)->current_move = move;
                 // Make and search the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
-                // Speculative prefetch as early as possible
-                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
-                if (PAWN == ptype (pos[org_sq (move)])) prefetch (reinterpret_cast<char *>(thread->pawns_table[pos.pawn_key ()]));
-                if (pos.capture_or_promotion (move)) prefetch (reinterpret_cast<char *>(thread->material_table[pos.matl_key ()]));
+                if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *>(thread->pawns_table[pos.pawn_key ()]));
+                if (capture_or_promotion) prefetch (reinterpret_cast<char *>(thread->material_table[pos.matl_key ()]));
 
-                Value value = gives_check ?
-                                    -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
-                                    -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
+                Value value =
+                    gives_check ?
+                        -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
+                        -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
 
                 pos.undo_move ();
 
@@ -504,7 +508,7 @@ namespace Search {
                                 posi_key,
                                 best_move,
                                 qs_depth,
-                                BND_LOWER,
+                                BOUND_LOWER,
                                 value_to_tt (best_value, (ss)->ply),
                                 (ss)->static_eval);
 
@@ -534,7 +538,7 @@ namespace Search {
                 posi_key,
                 best_move,
                 qs_depth,
-                PVNode && pv_alpha < best_value ? BND_EXACT : BND_UPPER,
+                PVNode && pv_alpha < best_value ? BOUND_EXACT : BOUND_UPPER,
                 value_to_tt (best_value, (ss)->ply),
                 (ss)->static_eval);
 
@@ -573,10 +577,10 @@ namespace Search {
                 , best_value  = -VALUE_INFINITE;
 
             Depth tt_depth    = DEPTH_NONE;
-            Bound tt_bound    = BND_NONE;
+            Bound tt_bound    = BOUND_NONE;
 
-            Thread *thread  = pos.thread ();
             // Step 1. Initialize node
+            Thread *thread  = pos.thread ();
             bool in_check = pos.checkers () != U64(0);
             bool singular_ext_node = false;
 
@@ -656,9 +660,9 @@ namespace Search {
                     if (  tte != NULL
                        && tt_value != VALUE_NONE // Only in case of TT access race
                        && tt_depth >= depth
-                       && (         PVNode ? tt_bound == BND_EXACT :
-                          tt_value >= beta ? tt_bound &  BND_LOWER :
-                                             tt_bound &  BND_UPPER
+                       && (         PVNode ? tt_bound == BOUND_EXACT :
+                          tt_value >= beta ? tt_bound &  BOUND_LOWER :
+                                             tt_bound &  BOUND_UPPER
                           )
                        )
                     {
@@ -693,7 +697,7 @@ namespace Search {
 
                         // Can tt_value be used as a better position evaluation?
                         if (  VALUE_NONE != tt_value
-                           && tt_bound & (static_eval < tt_value ? BND_LOWER : BND_UPPER)
+                           && tt_bound & (static_eval < tt_value ? BOUND_LOWER : BOUND_UPPER)
                            )
                         {
                             static_eval = tt_value;
@@ -708,7 +712,7 @@ namespace Search {
                             posi_key,
                             MOVE_NONE,
                             DEPTH_NONE,
-                            BND_NONE,
+                            BOUND_NONE,
                             VALUE_NONE,
                             (ss)->static_eval);
                     }
@@ -736,7 +740,7 @@ namespace Search {
                            && !pos.pawn_on_7thR (pos.active ())
                            )
                         {
-                            if (  depth <= DEPTH_ONE
+                            if (  depth <= 1*DEPTH_ONE
                                && static_eval + RazorMargins[3*DEPTH_ONE] <= alpha
                                )
                             {
@@ -770,7 +774,7 @@ namespace Search {
                                 // Betting that the opponent doesn't have a move that will reduce
                                 // the score by more than FutilityMargins[depth] if do a null move.
                                 if (  depth < FutilityMarginDepth
-                                   && static_eval < VALUE_KNOWN_WIN // Do not return unproven wins
+                                   && static_eval < +VALUE_KNOWN_WIN // Do not return unproven wins
                                    )
                                 {
                                     Value stand_pat = static_eval - FutilityMargins[depth];
@@ -800,9 +804,10 @@ namespace Search {
                                     prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
 
                                     // Null (zero) window (alpha, beta) = (beta-1, beta):
-                                    Value null_value = rdepth < DEPTH_ONE ?
-                                                            -search_quien<NonPV, false>        (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
-                                                            -search_depth<NonPV, false, false> (pos, ss+1, -beta, -beta+1, rdepth, !cut_node);
+                                    Value null_value =
+                                        rdepth < DEPTH_ONE ?
+                                            -search_quien<NonPV, false>        (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
+                                            -search_depth<NonPV, false, false> (pos, ss+1, -beta, -beta+1, rdepth, !cut_node);
 
                                     // Undo null move
                                     pos.undo_null_move ();
@@ -810,20 +815,21 @@ namespace Search {
                                     if (null_value >= beta)
                                     {
                                         // Do not return unproven unproven wins
-                                        if (null_value >= VALUE_MATE_IN_MAX_DEPTH)
+                                        if (null_value >= +VALUE_MATE_IN_MAX_DEPTH)
                                         {
                                             null_value = beta;
                                         }
                                         // Don't do zugzwang verification search at low depths
-                                        if (depth < 12*DEPTH_ONE && beta < VALUE_KNOWN_WIN)
+                                        if (depth < 8*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
                                         {
                                             return null_value;
                                         }
                                         
                                         // Do verification search at high depths
-                                        Value ver_value = rdepth < DEPTH_ONE ?
-                                                                search_quien<NonPV, false>        (pos, ss, beta-1, beta, DEPTH_ZERO) :
-                                                                search_depth<NonPV, false, false> (pos, ss, beta-1, beta, rdepth, false);
+                                        Value ver_value =
+                                            rdepth < DEPTH_ONE ?
+                                                search_quien<NonPV, false>        (pos, ss, beta-1, beta, DEPTH_ZERO) :
+                                                search_depth<NonPV, false, false> (pos, ss, beta-1, beta, rdepth, false);
 
                                         if (ver_value >= beta)
                                         {
@@ -856,15 +862,19 @@ namespace Search {
                                 }
                                 while ((move = mp.next_move<false> ()) != MOVE_NONE)
                                 {
+                                    //// Speculative prefetch as early as possible
+                                    //prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
+
                                     if (!pos.legal (move, ci->pinneds)) continue;
 
+                                    bool capture_or_promotion = pos.capture_or_promotion (move);
+
                                     (ss)->current_move = move;
+                                    
                                     pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
 
-                                    // Speculative prefetch as early as possible
-                                    prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
-                                    if (PAWN == ptype (pos[org_sq (move)])) prefetch (reinterpret_cast<char *>(thread->pawns_table[pos.pawn_key ()]));
-                                    if (pos.capture_or_promotion (move)) prefetch (reinterpret_cast<char *>(thread->material_table[pos.matl_key ()]));
+                                    if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *>(thread->pawns_table[pos.pawn_key ()]));
+                                    if (capture_or_promotion) prefetch (reinterpret_cast<char *>(thread->material_table[pos.matl_key ()]));
 
                                     Value value = -search_depth<NonPV, false, true> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
                                     pos.undo_move ();
@@ -905,8 +915,8 @@ namespace Search {
                     && tt_move != MOVE_NONE
                     &&    depth >= 8*DEPTH_ONE //(PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
                     && tt_depth >= depth-3*DEPTH_ONE
-                    && abs (tt_value) < VALUE_KNOWN_WIN
-                    && (tt_bound & BND_LOWER);
+                    && abs (tt_value) < +VALUE_KNOWN_WIN
+                    && (tt_bound & BOUND_LOWER);
 
             }
 
@@ -1057,7 +1067,7 @@ namespace Search {
                     if (  !capture_or_promotion
                        && !in_check
                        && !dangerous
-                       && move != tt_move
+                       //&& move != tt_move
                        && best_value > -VALUE_MATE_IN_MAX_DEPTH
                        )
                     {
@@ -1104,6 +1114,9 @@ namespace Search {
                     }
                 }
 
+                // Speculative prefetch as early as possible
+                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
+
                 if (!SPNode)
                 {
                     // Check for legality just before making the move
@@ -1129,9 +1142,7 @@ namespace Search {
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
-                // Speculative prefetch as early as possible
-                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
-                if (PAWN == ptype (pos[org_sq (move)])) prefetch (reinterpret_cast<char *>(pos.thread ()->pawns_table[pos.pawn_key ()]));
+                if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *>(pos.thread ()->pawns_table[pos.pawn_key ()]));
                 if (capture_or_promotion) prefetch (reinterpret_cast<char *>(pos.thread ()->material_table[pos.matl_key ()]));
 
                 // Step 15, 16.
@@ -1141,10 +1152,10 @@ namespace Search {
                     // Step 15. Reduced depth search (LMR).
                     // If the move fails high will be re-searched at full depth.
                     if (  depth > 2*DEPTH_ONE
+                       && !capture_or_promotion
                        && move != tt_move
                        && move != (ss)->killer_moves[0]
                        && move != (ss)->killer_moves[1]
-                       && !capture_or_promotion
                        )
                     {
                         Depth reduction_depth = reduction<PVNode> (improving, depth, legals);
@@ -1200,11 +1211,12 @@ namespace Search {
                     {
                         if (SPNode) alpha = splitpoint->alpha;
 
-                        value = new_depth < DEPTH_ONE ?
-                                    gives_check ?
-                                        -search_quien<NonPV, true >   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                                        -search_quien<NonPV, false>   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                                    -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
+                        value =
+                            new_depth < DEPTH_ONE ?
+                                gives_check ?
+                                    -search_quien<NonPV, true >   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
+                                    -search_quien<NonPV, false>   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
+                                -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
                     }
                 }
 
@@ -1218,11 +1230,12 @@ namespace Search {
                     // alpha >= value and to try another better move.
                     if (move_pv || (alpha < value && (RootNode || value < beta)))
                     {
-                        value = new_depth < DEPTH_ONE ?
-                                    gives_check ?
-                                        -search_quien<PV, true >   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                                        -search_quien<PV, false>   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                                    -search_depth<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
+                        value =
+                            new_depth < DEPTH_ONE ?
+                                gives_check ?
+                                    -search_quien<PV, true >   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
+                                    -search_quien<PV, false>   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
+                                -search_depth<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                     }
                 }
 
@@ -1256,7 +1269,7 @@ namespace Search {
                     // PV move or new best move ?
                     if (move_pv || alpha < value)
                     {
-                        rm.value[0] = value;
+                        rm.new_value = value;
                         rm.extract_pv_from_tt (pos);
 
                         // Record how often the best move has been changed in each iteration.
@@ -1272,7 +1285,7 @@ namespace Search {
                         // All other moves but the PV are set to the lowest value, this
                         // is not a problem when sorting becuase sort is stable and move
                         // position in the list is preserved, just the PV is pushed up.
-                        rm.value[0] = -VALUE_INFINITE;
+                        rm.new_value = -VALUE_INFINITE;
                     }
                 }
 
@@ -1352,7 +1365,7 @@ namespace Search {
                     posi_key,
                     best_move,
                     depth,
-                    best_value >= beta ? BND_LOWER : PVNode && best_move != MOVE_NONE ? BND_EXACT : BND_UPPER,
+                    best_value >= beta ? BOUND_LOWER : PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
                     value_to_tt (best_value, (ss)->ply),
                     (ss)->static_eval);
             }
@@ -1387,8 +1400,10 @@ namespace Search {
             PVLimit = min (max (MultiPV, Skills.candidates_size ()), RootSize);
 
             Value best_value = VALUE_ZERO
-                , bound [2]  = { -VALUE_INFINITE, +VALUE_INFINITE }
-                , window[2]  = { VALUE_ZERO, VALUE_ZERO };
+                , a_bound    = -VALUE_INFINITE
+                , b_bound    = +VALUE_INFINITE
+                , a_window   = VALUE_ZERO
+                , b_window   = VALUE_ZERO;
 
             Depth depth = DEPTH_ZERO;
 
@@ -1407,7 +1422,7 @@ namespace Search {
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
                 for (u08 i = 0; i < RootSize; ++i)
                 {
-                    RootMoves[i].value[1] = RootMoves[i].value[0];
+                    RootMoves[i].old_value = RootMoves[i].new_value;
                 }
 
                 const bool aspiration = depth > 2*DEPTH_ONE;
@@ -1422,19 +1437,19 @@ namespace Search {
                     // Reset Aspiration window starting size
                     if (aspiration)
                     {
-                        window[0] =
-                        window[1] =
+                        a_window =
+                        b_window =
                             Value(depth < 16*DEPTH_ONE ? 22 - depth/4 : 14); // Decreasing window
 
-                        bound [0] = max (RootMoves[PVIndex].value[1] - window[0], -VALUE_INFINITE);
-                        bound [1] = min (RootMoves[PVIndex].value[1] + window[1], +VALUE_INFINITE);
+                        a_bound = max (RootMoves[PVIndex].old_value - a_window, -VALUE_INFINITE);
+                        b_bound = min (RootMoves[PVIndex].old_value + b_window, +VALUE_INFINITE);
                     }
 
                     // Start with a small aspiration window and, in case of fail high/low,
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search_depth<Root, false, true> (RootPos, ss, bound[0], bound[1], depth, false);
+                        best_value = search_depth<Root, false, true> (RootPos, ss, a_bound, b_bound, depth, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1462,39 +1477,39 @@ namespace Search {
                         // When failing high/low give some update
                         // (without cluttering the UI) before to re-search.
                         if (  iteration_time > INFO_INTERVAL
-                           && (bound[0] >= best_value || best_value >= bound[1])
+                           && (a_bound >= best_value || best_value >= b_bound)
                            )
                         {
-                            sync_cout << info_multipv (RootPos, depth, bound[0], bound[1], iteration_time) << sync_endl;
+                            sync_cout << info_multipv (RootPos, depth, a_bound, b_bound, iteration_time) << sync_endl;
                         }
 
                         // In case of failing low/high increase aspiration window and
                         // re-search, otherwise exit the loop.
-                        if (best_value <= bound[0])
+                        if (best_value <= a_bound)
                         {
-                            window[0] *= 1.345f;
-                            bound [0] = max (best_value - window[0], -VALUE_INFINITE);
-                            //if (window[1] > 1) window[1] *= 0.955f;
-                            //bound [1] = min (best_value + window[1], +VALUE_INFINITE);
+                            a_window *= 1.345f;
+                            a_bound   = max (best_value - a_window, -VALUE_INFINITE);
+                            //if (b_window > 1) b_window *= 0.955f;
+                            //b_bound = min (best_value + b_window, +VALUE_INFINITE);
 
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
                         }
                         else
-                        if (best_value >= bound[1])
+                        if (best_value >= b_bound)
                         {
-                            window[1] *= 1.345f;
-                            bound [1] = min (best_value + window[1], +VALUE_INFINITE);
-                            //if (window[0] > 1) window[0] *= 0.955f;
-                            //bound [0] = max (best_value - window[0], -VALUE_INFINITE);
+                            b_window *= 1.345f;
+                            b_bound   = min (best_value + b_window, +VALUE_INFINITE);
+                            //if (a_window > 1) a_window *= 0.955f;
+                            //a_bound = max (best_value - a_window, -VALUE_INFINITE);
                         }
                         else
                         {
                             break;
                         }
 
-                        ASSERT (-VALUE_INFINITE <= bound[0] && bound[0] < bound[1] && bound[1] <= +VALUE_INFINITE);
-                    } while (true); //(bound[0] < bound[1]);
+                        ASSERT (-VALUE_INFINITE <= a_bound && a_bound < b_bound && b_bound <= +VALUE_INFINITE);
+                    } while (true); //(a_bound < b_bound);
 
                     // Sort the PV lines searched so far and update the GUI
                     //RootMoves.sort_beg (PVIndex + 1);
@@ -1504,13 +1519,13 @@ namespace Search {
                        || iteration_time > INFO_INTERVAL
                        )
                     {
-                        sync_cout << info_multipv (RootPos, depth, bound[0], bound[1], iteration_time) << sync_endl;
+                        sync_cout << info_multipv (RootPos, depth, a_bound, b_bound, iteration_time) << sync_endl;
                     }
                 }
 
                 if (ContemptValue > 0)
                 {
-                    i16 valued_contempt = i16(RootMoves[0].value[0])/ContemptValue;
+                    i16 valued_contempt = i16(RootMoves[0].new_value)/ContemptValue;
                     DrawValue[ RootColor] = BaseContempt[ RootColor] - Value(valued_contempt);
                     DrawValue[~RootColor] = BaseContempt[~RootColor] + Value(valued_contempt);
                 }
@@ -1526,7 +1541,7 @@ namespace Search {
                 if (!white_spaces (SearchLog))
                 {
                     LogFile logfile (SearchLog);
-                    logfile << pretty_pv (RootPos, depth, RootMoves[0].value[0], iteration_time, &RootMoves[0].pv[0]) << endl;
+                    logfile << pretty_pv (RootPos, depth, RootMoves[0].new_value, iteration_time, &RootMoves[0].pv[0]) << endl;
                 }
 
                 // Requested to stop?
@@ -1650,7 +1665,7 @@ namespace Search {
         i08 ply = 0; // Ply starts from 1, we need to start from 0
         Move m = pv[ply];
         pv.clear ();
-        Value expected_value = value[0];
+        Value expected_value = new_value;
         const TTEntry *tte;
         do
         {
@@ -1662,8 +1677,9 @@ namespace Search {
             ++ply;
             expected_value = -expected_value;
 
-            prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
-            tte = TT.retrieve (pos.posi_key ());
+            Key posi_key = pos.posi_key ();
+            //prefetch (reinterpret_cast<char*>(TT.cluster_entry (posi_key)));
+            tte = TT.retrieve (posi_key);
         } while (  tte != NULL
                 && expected_value == value_of_tt (tte->value (), ply+1)
                 && (m = tte->move ()) != MOVE_NONE // Local copy, TT could change
@@ -1695,16 +1711,17 @@ namespace Search {
         {
             ASSERT (MoveList<LEGAL> (pos).contains (m));
 
-            prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
-            tte = TT.retrieve (pos.posi_key ());
+            Key posi_key = pos.posi_key ();
+            //prefetch (reinterpret_cast<char*>(TT.cluster_entry (posi_key)));
+            tte = TT.retrieve (posi_key);
             // Don't overwrite correct entries
             if (tte == NULL || tte->move () != m)
             {
                 TT.store (
-                    pos.posi_key (),
+                    posi_key,
                     m,
                     DEPTH_NONE,
-                    BND_NONE,
+                    BOUND_NONE,
                     VALUE_NONE,
                     VALUE_NONE); // evaluate (pos) ->To evaluate again
             }

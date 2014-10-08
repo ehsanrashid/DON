@@ -12,16 +12,16 @@ namespace Transposition {
 
     using namespace std;
 
-    const u08 TranspositionTable::TTEntrySize   = sizeof (TTEntry);   // 10
+    const u08 TranspositionTable::TTEntrySize   = sizeof (TTEntry);   // 16
 
-    const u08 TranspositionTable::TTClusterSize = sizeof (TTCluster); // 32
+    const u08 TranspositionTable::TTClusterSize = sizeof (TTCluster); // 64
 
     const u32 TranspositionTable::BufferSize = 0x10000;
 
     const u08 TranspositionTable::MaxHashBit  = 36;
     // 4 MB
     const u32 TranspositionTable::MinTTSize   = 4;
-    // 1048576 MB (1024 GB) (1 TB)
+    // 2097152 MB (2048 GB) (2 TB)
     const u32 TranspositionTable::MaxTTSize   = (U64(1) << (MaxHashBit-1 - 20)) * TTClusterSize;
 
     const u32 TranspositionTable::DefTTSize   = 16;
@@ -149,55 +149,53 @@ namespace Transposition {
     // * if the depth of e1 is bigger than the depth of e2.
     void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval)
     {
-        u16 key16    = key >> 0x30; // 16 upper-bit of key inside cluster
         TTEntry *fte = cluster_entry (key);
         TTEntry *rte = fte;
         for (TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
         {
             if (ite->_key == 0)     // Empty entry? then write
             {
-                ite->save (key16, move, value, eval, depth, bound, _generation);
+                ite->save (key, move, value, eval, depth, bound, _generation);
                 return;
             }
-            if (ite->_key == key16) // Old entry? then overwrite
+            if (ite->_key == key) // Old entry? then overwrite
             {
                 // Preserve any existing TT move
                 if (move == MOVE_NONE && ite->_move != MOVE_NONE)
                 {
                     move = Move(ite->_move);
                 }
-                ite->save (key16, move, value, eval, depth, bound, _generation);
+                ite->save (key, move, value, eval, depth, bound, _generation);
                 return;
             }
         
             //if (ite == fte) continue;
 
             // Implementation of replacement strategy when a collision occurs
-            if ( ((ite->gen () == _generation || ite->bound () == BND_EXACT)
+            if ( ((ite->gen () == _generation || ite->bound () == BOUND_EXACT)
                 - (rte->gen () == _generation)
                 - (ite->_depth < rte->_depth)) < 0)
             {
                 rte = ite;
             }
         }
-        // By default replace last entry
-        if (rte == fte)
-        {
-            memmove (fte, fte+1, (ClusterEntries - 1)*TTEntrySize);
-            rte = fte + (ClusterEntries - 1);
-        }
-        rte->save (key16, move, value, eval, depth, bound, _generation);
+        //// By default replace first entry and make place in the last
+        //if (rte == fte)
+        //{
+        //    memmove (fte, fte+1, (ClusterEntries - 1)*TTEntrySize);
+        //    rte = fte + (ClusterEntries - 1);
+        //}
+        rte->save (key, move, value, eval, depth, bound, _generation);
     }
 
     // retrieve() looks up the entry in the transposition table.
     // Returns a pointer to the entry found or NULL if not found.
     const TTEntry* TranspositionTable::retrieve (Key key) const
     {
-        u16 key16    = key >> 0x30; // 16 upper-bit of key inside cluster
         TTEntry *fte = cluster_entry (key);
         for (TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
         {
-            if (ite->_key == key16)
+            if (ite->_key == key)
             {
                 ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
                 return ite;

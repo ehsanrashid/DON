@@ -620,23 +620,33 @@ namespace Evaluate {
                 value = ei.pi->shelter_storm[C][CS_NO];
             }
 
-            Score score = mk_score (value, -0x10 * ei.pi->min_kp_dist[C]);
+            Score score = mk_score (value, -0x10 * ei.pi->kp_dist[C]);
 
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[C_] > 0)
             {
                 const Bitboard occ = pos.pieces ();
 
-                // Find the attacked squares around the king which has no defenders
+                Bitboard king_ex_defended =
+                    ( ei.pin_attacked_by[C ][PAWN]
+                    | ei.pin_attacked_by[C ][NIHT]
+                    | ei.pin_attacked_by[C ][BSHP]
+                    | ei.pin_attacked_by[C ][ROOK]
+                    | ei.pin_attacked_by[C ][QUEN]);
+                // Attacked squares around the king which has no defenders
                 // apart from the king itself
                 Bitboard undefended =
                     ei.ful_attacked_by[C ][KING] // King-zone
                   & ei.ful_attacked_by[C_][NONE]
-                  & ~( ei.pin_attacked_by[C ][PAWN]
-                     | ei.pin_attacked_by[C ][NIHT]
-                     | ei.pin_attacked_by[C ][BSHP]
-                     | ei.pin_attacked_by[C ][ROOK]
-                     | ei.pin_attacked_by[C ][QUEN]);
+                  & ~king_ex_defended;
+
+                //// Defended attacked squares around the king             
+                //Bitboard defended =
+                //    ei.ful_attacked_by[C ][KING] // King-zone
+                //  //& ( ei.pin_attacked_by[C_][BSHP]
+                //  //  | ei.pin_attacked_by[C_][NIHT])
+                //  & ei.ful_attacked_by[C_][NONE]
+                //  & king_ex_defended;
 
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KING_DANGER[] array. The initial value is based on the
@@ -647,7 +657,8 @@ namespace Evaluate {
                     + min (ei.king_ring_attackers_count[C_] * ei.king_ring_attackers_weight[C_]/4, 20) // King-ring attacks
                     +  3 * ei.king_zone_attacks_count[C_] // King-zone attacks
                     +  3 * (undefended != U64(0) ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0) // King-zone undefended pieces
-                    +  2 * (ei.pinneds[C] != U64(0)) // King pinned piece
+                    +  2 * (ei.pinneds[C] != U64(0) ? (more_than_one (ei.pinneds[C]) ? pop_count<MAX15> (ei.pinneds[C]) : 1) : 0) // King pinned piece
+                    //-  1 * (defended != U64(0) ? (more_than_one (defended) ? pop_count<MAX15> (defended) : 1) : 0)
                     - 15 * (pos.count<QUEN>(C_) == 0)
                     - i32(value) / 32;
 
@@ -1243,7 +1254,7 @@ namespace Evaluate {
     // evaluate() is the main evaluation function.
     // It always computes two values, an endgame value and a middle game value, in score
     // and interpolates between them based on the remaining material.
-    Value evaluate  (const Position &pos)
+    Value evaluate (const Position &pos)
     {
         return evaluate<false> (pos) + TEMPO_VALUE;
     }
@@ -1251,7 +1262,7 @@ namespace Evaluate {
     // trace() is like evaluate() but instead of a value returns a string suitable
     // to be print on stdout with the detailed descriptions and values of each
     // evaluation term. Used mainly for debugging.
-    string trace    (const Position &pos)
+    string trace   (const Position &pos)
     {
         return Tracer::trace (pos);
     }

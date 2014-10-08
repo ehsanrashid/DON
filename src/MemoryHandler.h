@@ -7,11 +7,11 @@
 
 namespace Memory {
 
-    extern void create_memory   (void *&mem_ref, size_t mem_size, size_t alignment);
+    extern void create_memory (void *&mem_ref, size_t mem_size, size_t alignment);
 
-    extern void   free_memory   (void *mem);
+    extern void   free_memory (void *mem);
 
-    extern void initialize      ();
+    extern void initialize    ();
 
 }
 

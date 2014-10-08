@@ -232,8 +232,8 @@ inline Square  scan_msq (Bitboard bb)
 
 // scan_frntmost_sq() and scan_backmost_sq() find the square
 // corresponding to the most/least advanced bit relative to the given color.
-INLINE Square scan_frntmost_sq (Color c, Bitboard bb) { return (WHITE == c) ? scan_msq (bb) : scan_lsq (bb); }
-INLINE Square scan_backmost_sq (Color c, Bitboard bb) { return (WHITE == c) ? scan_lsq (bb) : scan_msq (bb); }
+INLINE Square scan_frntmost_sq (Color c, Bitboard bb) { return WHITE == c ? scan_msq (bb) : scan_lsq (bb); }
+INLINE Square scan_backmost_sq (Color c, Bitboard bb) { return WHITE == c ? scan_lsq (bb) : scan_msq (bb); }
 
 INLINE Square pop_lsq (Bitboard &bb)
 {

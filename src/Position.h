@@ -42,24 +42,25 @@ struct StateInfo
 public:
     Value  non_pawn_matl[CLR_NO];
     Score  psq_score;
+    // Number of halfmoves clock since the last pawn advance or any capture.
+    // used to determine if a draw can be claimed under the 50-move rule.
+    u08    clock50;
+    u08    null_ply;
     Key    matl_key;       // Hash key of materials.
     Key    pawn_key;       // Hash key of pawns.
     CRight castle_rights;  // Castling-rights information for both side.
     // "In passing" - Target square in algebraic notation.
     // If there's no en-passant target square is "-".
     Square en_passant_sq;
-    // Number of halfmoves clock since the last pawn advance or any capture.
-    // used to determine if a draw can be claimed under the 50-move rule.
-    u08    clock50;
-    u08    null_ply;
     // -------------------------------------
-    Key    posi_key;       // Hash key of position.
     Move   last_move;      // Move played on the previous position.
     PieceT capture_type;   // Piece type captured.
-    
+
+    Key    posi_key;       // Hash key of position.
     Bitboard checkers;     // Checkers bitboard.
 
     StateInfo *p_si;
+    
 };
 
 typedef std::stack<StateInfo>   StateInfoStack;
@@ -219,7 +220,7 @@ public:
     Key pawn_key      () const;
     Key posi_key      () const;
     Key posi_exc_key  () const;
-    //Key posi_move_key (Move m) const;
+    Key posi_move_key (Move m) const;
 
     Value non_pawn_material (Color c) const;    // Incremental piece-square evaluation
 
@@ -410,6 +411,22 @@ inline Key    Position::matl_key      () const { return _si->matl_key; }
 inline Key    Position::pawn_key      () const { return _si->pawn_key; }
 inline Key    Position::posi_key      () const { return _si->posi_key; }
 inline Key    Position::posi_exc_key  () const { return _si->posi_key ^ Zobrist::Exclusion; }
+// posi_move_key() computes the new hash key after the given moven. Needed for speculative prefetch.
+// It doesn't recognize special moves like castling, en-passant and promotions.
+inline Key Position::posi_move_key (Move m) const
+{
+    Square org = org_sq (m)
+        ,   dst = dst_sq (m);
+
+    PieceT pt = ptype (_board[org])
+        ,  ct = ptype (_board[dst]);
+
+    return _si->posi_key
+        ^  Zob._.mover_side
+        ^  Zob._.piece_square[_active][pt][org]
+        ^  Zob._.piece_square[_active][pt][dst]
+        ^  (ct != NONE ? Zob._.piece_square[~_active][ct][dst] : U64(0));
+}
 
 inline Score  Position::psq_score     () const { return _si->psq_score; }
 inline Value  Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }

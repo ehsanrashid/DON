@@ -37,7 +37,7 @@ namespace MovePick {
             Square s = dst_sq (m);
             Piece p  = pos[s];
 
-            _values[p][s] = std::max (g, _values[p][s]-1);
+            _values[p][s] = g >= _values[p][s] ? g : (g + 4*i16(_values[p][s]))/5;
         }
     };
 

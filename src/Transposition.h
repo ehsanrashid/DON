@@ -10,9 +10,9 @@
 
 namespace Transposition {
 
-    // Transposition Entry needs 10 byte to be stored
+    // Transposition Entry needs 16 byte to be stored
     //
-    //  Key--------- 16 bits
+    //  Key--------- 64 bits
     //  Move-------- 16 bits
     //  Value------- 16 bits
     //  Evaluation-- 16 bits
@@ -20,13 +20,13 @@ namespace Transposition {
     //  Generation-- 06 bits
     //  Bound------- 02 bits
     //  ====================
-    //  Total------- 80 bits = 10 bytes
+    //  Total-------128 bits = 16 bytes
     struct TTEntry
     {
 
     private:
 
-        u16 _key;
+        u64 _key;
         u16 _move;
         i16 _value;
         i16 _eval;
@@ -44,20 +44,20 @@ namespace Transposition {
         inline Bound bound () const { return Bound(_gen_bnd & 0x03); }
         inline u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
 
-        inline void save (u16 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
+        inline void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
-            _key   = u16(k);
+            _key   = u64(k);
             _move  = u16(m);
             _value = u16(v);
             _eval  = u16(e);
             _depth = i08(d);
-            _gen_bnd = g | u08(b);
+            _gen_bnd = u08(g | b);
         }
 
     };
 
     // Number of entries in a cluster
-    const u08 ClusterEntries = 3;
+    const u08 ClusterEntries = 4;
 
     // TTCluster is a 32 bytes cluster of TT entries consisting of:
     //
@@ -66,7 +66,6 @@ namespace Transposition {
     struct TTCluster
     {
         TTEntry entries[ClusterEntries];
-        u08     padding[2];
     };
 
     // A Transposition Table consists of a 2^power number of clusters
@@ -205,6 +204,7 @@ namespace Transposition {
                 if (  (tte+0)->gen () == _generation
                    || (tte+1)->gen () == _generation
                    || (tte+2)->gen () == _generation
+                   || (tte+3)->gen () == _generation
                    )
                 {
                     ++full_cluster;
