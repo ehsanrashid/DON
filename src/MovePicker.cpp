@@ -161,20 +161,20 @@ namespace MovePick {
         for (ValMove *itr = moves; itr != end; ++itr)
         {
             m = itr->move;
-
+            ASSERT (ptype (pos[org_sq (m)]) != NONE);
             if (mtype (m) == NORMAL)
             {
-                itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)]));
+                itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)]))-1;
             }
             else
             if (mtype (m) == ENPASSANT)
             {
-                itr->value = PIECE_VALUE[MG][PAWN];
+                itr->value = PIECE_VALUE[MG][PAWN] -1;
             }
             else
             if (mtype (m) == PROMOTE)
             {
-                itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] + PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN];
+                itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] + PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] -1;
             }
         }
     }
@@ -200,7 +200,7 @@ namespace MovePick {
         for (ValMove *itr = moves; itr != end; ++itr)
         {
             m = itr->move;
-
+            ASSERT (ptype (pos[org_sq (m)]) != NONE);
             Value gain_value = pos.see_sign (m);
             if (gain_value < VALUE_ZERO)
             {
@@ -211,17 +211,17 @@ namespace MovePick {
             {
                 if (mtype (m) == NORMAL)
                 {
-                    itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)])) + HistoryStats::MaxValue;
+                    itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)]))-1 + HistoryStats::MaxValue;
                 }
                 else
                 if (mtype (m) == ENPASSANT)
                 {
-                    itr->value = PIECE_VALUE[MG][PAWN] + HistoryStats::MaxValue;
+                    itr->value = PIECE_VALUE[MG][PAWN] -1 + HistoryStats::MaxValue;
                 }
                 else
                 if (mtype (m) == PROMOTE)
                 {
-                    itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] + PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] + HistoryStats::MaxValue;
+                    itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] + PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] -1 + HistoryStats::MaxValue;
                 }
             }
             else

@@ -323,7 +323,8 @@ namespace Evaluate {
                 king_attacks += ek_sq;
                 Rank ekr = rel_rank (C_, ek_sq);
                 ei.king_ring[C_] = king_attacks|(DIST_RINGS_bb[ek_sq][1] &
-                                                        (ekr < R_7 ? (PAWN_PASS_SPAN[C_][ek_sq]) :
+                                                        (ekr < R_5 ? (PAWN_PASS_SPAN[C_][ek_sq]) :
+                                                         ekr < R_7 ? (PAWN_PASS_SPAN[C_][ek_sq]|PAWN_PASS_SPAN[C ][ek_sq]) :
                                                                      (PAWN_PASS_SPAN[C ][ek_sq])));
 
                 if (king_attacks & ei.pin_attacked_by[C][PAWN])
