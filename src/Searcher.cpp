@@ -858,7 +858,7 @@ namespace Search {
                                             null_value = beta;
                                         }
                                         // Don't do zugzwang verification search at low depths
-                                        if (depth < 8*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
+                                        if (depth < 8*DEPTH_ONE && null_value < +VALUE_KNOWN_WIN)
                                         {
                                             return null_value;
                                         }
@@ -871,7 +871,7 @@ namespace Search {
 
                                         if (ver_value >= beta)
                                         {
-                                            return null_value;
+                                            return ver_value;//null_value;
                                         }
                                     }
                                 }
