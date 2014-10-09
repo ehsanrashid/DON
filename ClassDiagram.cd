@@ -177,8 +177,8 @@
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="splitpoints" />
-      <Field Name="material_table" />
-      <Field Name="pawns_table" />
+      <Field Name="matl_table" />
+      <Field Name="pawn_table" />
       <Field Name="active_pos" />
       <Field Name="active_splitpoint" />
     </ShowAsAssociation>

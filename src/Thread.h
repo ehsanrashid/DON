@@ -238,8 +238,8 @@ namespace Threads {
     public:
         SplitPoint splitpoints[MAX_SPLIT_POINT_THREADS];
         
-        Material::Table  material_table;
-        Pawns   ::Table  pawns_table;
+        Pawns   ::Table  pawn_table;
+        Material::Table  matl_table;
 
         Position *active_pos;
 

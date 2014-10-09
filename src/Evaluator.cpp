@@ -1015,7 +1015,7 @@ namespace Evaluate {
 
             EvalInfo ei;
             // Probe the material hash table
-            ei.mi  = Material::probe (pos, thread->material_table);
+            ei.mi  = Material::probe (pos, thread->matl_table);
 
             // If have a specialized evaluation function for the current material
             // configuration, call it and return.
@@ -1033,7 +1033,7 @@ namespace Evaluate {
             score += ei.mi->matl_score;
 
             // Probe the pawn hash table
-            ei.pi  = Pawns::probe (pos, thread->pawns_table);
+            ei.pi  = Pawns::probe (pos, thread->pawn_table);
             score += apply_weight (ei.pi->pawn_score, Weights[PAWN_STRUCTURE]);
 
             ei.ful_attacked_by[WHITE][NONE] = ei.pin_attacked_by[WHITE][NONE] = U64(0);

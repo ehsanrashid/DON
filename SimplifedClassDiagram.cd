@@ -2,7 +2,7 @@
 <ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="NameAndType">
   <Class Name="Threads::Thread">
     <Position X="5.75" Y="17" Width="2.75" />
-    <AssociationLine Name="material_table" Type="Material::Table" FixedFromPoint="true" FixedToPoint="true">
+    <AssociationLine Name="matl_table" Type="Material::Table" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="8.125" Y="19.416" />
         <Point X="8.125" Y="19.791" />
@@ -10,7 +10,7 @@
         <Point X="11.675" Y="20.25" />
       </Path>
     </AssociationLine>
-    <AssociationLine Name="pawns_table" Type="Pawns::Table" FixedFromPoint="true" FixedToPoint="true">
+    <AssociationLine Name="pawn_table" Type="Pawns::Table" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="7.938" Y="19.416" />
         <Point X="7.938" Y="19.791" />
@@ -24,8 +24,8 @@
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="splitpoints" />
-      <Field Name="material_table" />
-      <Field Name="pawns_table" />
+      <Field Name="matl_table" />
+      <Field Name="pawn_table" />
       <Field Name="active_pos" />
       <Field Name="active_splitpoint" />
     </ShowAsAssociation>

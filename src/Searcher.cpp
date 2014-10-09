@@ -492,8 +492,8 @@ namespace Search {
                 // Make and search the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
-                prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
-                prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
+                prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
+                prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
                 Value value;
                 
@@ -900,8 +900,8 @@ namespace Search {
                                 }
                                 while ((move = mp.next_move<false> ()) != MOVE_NONE)
                                 {
-                                    //// Speculative prefetch as early as possible
-                                    //prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
+                                    // Speculative prefetch as early as possible
+                                    prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
 
                                     if (!pos.legal (move, ci->pinneds)) continue;
 
@@ -909,8 +909,8 @@ namespace Search {
                                     
                                     pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
 
-                                    prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
-                                    prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
+                                    prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
+                                    prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
                                     Value value = -search_depth<NonPV, false, true> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
                                     pos.undo_move ();
@@ -1179,8 +1179,8 @@ namespace Search {
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
-                prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
-                prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
+                prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
+                prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
                 // Step 15, 16.
                 if (!move_pv)
