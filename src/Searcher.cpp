@@ -953,7 +953,7 @@ namespace Search {
                     && tt_depth >= depth-3*DEPTH_ONE
                     //&& abs (beta)     < +VALUE_KNOWN_WIN
                     && abs (tt_value) < +VALUE_KNOWN_WIN
-                    && (tt_bound & BOUND_LOWER);
+                    && tt_bound & BOUND_LOWER;
 
             }
 
@@ -1436,7 +1436,7 @@ namespace Search {
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to retrieve a set of possible moves.
-            //PVLimit = min (max (MultiPV, skill_pv), RootSize);
+            PVLimit = min (max (MultiPV, skill_pv), RootSize);
 
             Value best_value = VALUE_ZERO
                 , a_bound    = -VALUE_INFINITE
@@ -1464,9 +1464,9 @@ namespace Search {
                     RootMoves[i].old_value = RootMoves[i].new_value;
                 }
 
-                const bool aspiration = depth > 2*DEPTH_ONE;
+                const bool aspiration = depth > 4*DEPTH_ONE;
 
-                PVLimit = min (max (MultiPV, aspiration ? skill_pv : MIN_SKILL_MULTIPV), RootSize);
+                //PVLimit = min (max (MultiPV, aspiration ? skill_pv : MIN_SKILL_MULTIPV), RootSize);
                 // MultiPV loop. Perform a full root search for each PV line
                 for (PVIndex = 0; PVIndex < PVLimit; ++PVIndex)
                 {
@@ -1478,7 +1478,7 @@ namespace Search {
                     {
                         a_window =
                         b_window =
-                            Value(depth < 16*DEPTH_ONE ? 22 - depth/4 : 14); // Decreasing window
+                            Value(depth < 32*DEPTH_ONE ? 22 - depth/4 : 14); // Decreasing window
 
                         a_bound = max (RootMoves[PVIndex].old_value - a_window, -VALUE_INFINITE);
                         b_bound = min (RootMoves[PVIndex].old_value + b_window, +VALUE_INFINITE);
@@ -1711,7 +1711,7 @@ namespace Search {
             expected_value = -expected_value;
 
             Key posi_key = pos.posi_key ();
-            //prefetch (reinterpret_cast<char*> (TT.cluster_entry (posi_key)));
+            prefetch (reinterpret_cast<char*> (TT.cluster_entry (posi_key)));
             tte = TT.retrieve (posi_key);
         } while (  tte != NULL
                 && expected_value == value_of_tt (tte->value (), ply+1)
@@ -1745,7 +1745,7 @@ namespace Search {
             ASSERT (MoveList<LEGAL> (pos).contains (m));
 
             Key posi_key = pos.posi_key ();
-            //prefetch (reinterpret_cast<char*> (TT.cluster_entry (posi_key)));
+            prefetch (reinterpret_cast<char*> (TT.cluster_entry (posi_key)));
             tte = TT.retrieve (posi_key);
             // Don't overwrite correct entries
             if (tte == NULL || tte->move () != m)
