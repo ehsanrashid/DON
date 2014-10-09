@@ -14,7 +14,7 @@ namespace Threads {
     struct SplitPoint;
 }
 
-typedef std::auto_ptr<StateInfoStack>       StateInfoStackPtr;
+typedef std::auto_ptr<StateInfoStack>   StateInfoStackPtr;
 
 namespace Search {
 
@@ -137,7 +137,7 @@ namespace Search {
         void extract_pv_from_tt (Position &pos);
         void  insert_pv_into_tt (Position &pos);
 
-        std::string info_pv (const Position &pos) const;
+        std::string info_pv () const;
     };
 
     class RootMoveList
@@ -205,8 +205,8 @@ namespace Search {
     extern void configure_auto_save (const UCI::Option &);
     extern void configure_contempt (const UCI::Option &);
     extern void configure_multipv (const UCI::Option &);
-    extern void change_skill_level (const UCI::Option &opt);
     extern void change_search_log (const UCI::Option &opt);
+    extern void change_skill_level (const UCI::Option &opt);
 
 }
 

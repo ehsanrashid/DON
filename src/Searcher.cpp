@@ -58,6 +58,7 @@ namespace Search {
             return Depth (Reductions[PVNode][imp][min (d, ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
         }
 
+
         const u08   MAX_QUIETS    = 64;
 
         const point INFO_INTERVAL = 3000; // 3 sec
@@ -87,28 +88,38 @@ namespace Search {
 
         string SearchLog;
 
+
         struct Skill
         {
+
         private:
-            u08  level;
-            u08  candidates;
-            Move move;
+            u08  _level;
+            Move _best_move;
 
         public:
 
-            Skill () : level (0), candidates (0), move (MOVE_NONE) {}
-            explicit Skill (u08 lvl) { set_level (lvl); }
-
-            void set_level (u08 lvl)
+            Skill ()
+                : _level (0)
+                , _best_move (MOVE_NONE)
+            {}
+            explicit Skill (u08 level)
             {
-                level = lvl;
-                candidates = lvl < MAX_SKILL_LEVEL ? min (MIN_SKILL_MULTIPV, RootSize) : 0;
-                move = MOVE_NONE;
+                initialize (level);
             }
 
-            u08 candidates_size () const { return candidates; }
+            void initialize (u08 level)
+            {
+                _level = level;
+            }
+            
+            void clear ()
+            {
+                _best_move = MOVE_NONE;
+            }
 
-            bool can_pick_move (Depth depth) const { return depth == (1 + level); }
+            u08  pv_size () const { return _level < MAX_SKILL_LEVEL ? min (MIN_SKILL_MULTIPV, RootSize) : 0; }
+
+            bool can_pick_move (Depth depth) const { return depth == 1 + _level; }
 
             // When playing with a strength handicap, choose best move among the first 'candidates'
             // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
@@ -118,16 +129,17 @@ namespace Search {
                 // PRNG sequence should be not deterministic
                 for (i08 i = now () % 50; i > 0; --i) rk.rand64 ();
 
-                move = MOVE_NONE;
+                _best_move = MOVE_NONE;
 
+                u08 skill_pv = pv_size ();
                 // RootMoves are already sorted by score in descending order
-                Value variance = min (RootMoves[0].new_value - RootMoves[candidates - 1].new_value, VALUE_MG_PAWN);
-                Value weakness = Value(MAX_DEPTH - 2 * level);
+                Value variance = min (RootMoves[0].new_value - RootMoves[skill_pv - 1].new_value, VALUE_MG_PAWN);
+                Value weakness = Value(MAX_DEPTH - 2 * _level);
                 Value max_value = -VALUE_INFINITE;
                 // Choose best move. For each move score add two terms both dependent on
                 // weakness, one deterministic and bigger for weaker moves, and one random,
                 // then choose the move with the resulting highest score.
-                for (u08 i = 0; i < candidates; ++i)
+                for (u08 i = 0; i < skill_pv; ++i)
                 {
                     Value v = RootMoves[i].new_value;
 
@@ -138,30 +150,29 @@ namespace Search {
                     }
 
                     // This is our magic formula
-                    v += (weakness * i32(RootMoves[0].new_value - v)
-                      +   variance * i32(rk.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2));
+                    v += weakness * i32(RootMoves[0].new_value - v)
+                      +  variance * i32(rk.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2);
 
                     if (max_value < v)
                     {
-                        max_value = v;
-                        move = RootMoves[i].pv[0];
+                        max_value  = v;
+                        _best_move = RootMoves[i].pv[0];
                     }
                 }
-                return move;
+                return _best_move;
             }
 
             void play_move ()
             {
                 // Swap best PV line with the sub-optimal one
-                swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), move != MOVE_NONE ? move : pick_move ()));
+                swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), _best_move != MOVE_NONE ? _best_move : pick_move ()));
             }
 
         };
 
-        u08   SkillLevel = MAX_SKILL_LEVEL;
         Skill Skills;
 
-        bool    MateSearch;
+        bool  MateSearch;
 
         // Gain statistics
         GainStats    GainStatistics;
@@ -234,7 +245,7 @@ namespace Search {
 
             for (u08 i = 0; i < PVLimit; ++i)
             {
-                bool updated = (i <= PVIndex);
+                bool updated = i <= PVIndex;
 
                 i16   d;
                 Value v;
@@ -264,7 +275,7 @@ namespace Search {
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * MILLI_SEC / time
                     << " hashfull " << 0//TT.permill_full ()
-                    << " pv"        << RootMoves[i].info_pv (pos);
+                    << " pv"        << RootMoves[i].info_pv ();
             }
 
             return ss.str ();
@@ -307,8 +318,6 @@ namespace Search {
             Depth tt_depth   = DEPTH_NONE;
             Bound tt_bound   = BOUND_NONE;
             
-            Thread *thread  = pos.thread ();
-
             posi_key = pos.posi_key ();
             tte      = TT.retrieve (posi_key);
             if (tte != NULL)
@@ -320,6 +329,7 @@ namespace Search {
                 if (!InCheck) best_value = tte->eval ();
             }
 
+            Thread *thread = pos.thread ();
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in search_quien use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
@@ -471,7 +481,7 @@ namespace Search {
                 }
 
                 // Speculative prefetch as early as possible
-                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
+                prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
 
                 // Check for legality just before making the move
                 if (!pos.legal (move, ci->pinneds)) continue;
@@ -484,8 +494,8 @@ namespace Search {
                 // Make and search the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
-                if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *>(thread->pawns_table[pos.pawn_key ()]));
-                if (capture_or_promotion) prefetch (reinterpret_cast<char *>(thread->material_table[pos.matl_key ()]));
+                if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
+                if (capture_or_promotion) prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
 
                 Value value;
                 
@@ -610,8 +620,8 @@ namespace Search {
             Bound tt_bound    = BOUND_NONE;
 
             // Step 1. Initialize node
-            Thread *thread  = pos.thread ();
-            bool in_check = pos.checkers () != U64(0);
+            Thread *thread = pos.thread ();
+            bool in_check  = pos.checkers () != U64(0);
             bool singular_ext_node = false;
 
             SplitPoint *splitpoint = SPNode ? (ss)->splitpoint : NULL;
@@ -831,7 +841,7 @@ namespace Search {
                                     pos.do_null_move (si);
 
                                     // Speculative prefetch as early as possible
-                                    prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_key ())));
+                                    prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_key ())));
 
                                     // Null (zero) window (alpha, beta) = (beta-1, beta):
                                     Value null_value =
@@ -893,7 +903,7 @@ namespace Search {
                                 while ((move = mp.next_move<false> ()) != MOVE_NONE)
                                 {
                                     //// Speculative prefetch as early as possible
-                                    //prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
+                                    //prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
 
                                     if (!pos.legal (move, ci->pinneds)) continue;
 
@@ -903,8 +913,8 @@ namespace Search {
                                     
                                     pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
 
-                                    if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *>(thread->pawns_table[pos.pawn_key ()]));
-                                    if (capture_or_promotion) prefetch (reinterpret_cast<char *>(thread->material_table[pos.matl_key ()]));
+                                    if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
+                                    if (capture_or_promotion) prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
 
                                     Value value = -search_depth<NonPV, false, true> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
                                     pos.undo_move ();
@@ -1041,7 +1051,7 @@ namespace Search {
                                 << "info"
                                 //<< " depth "          << u16(depth)
                                 << " currmovenumber " << setw (2) << u16(legals + PVIndex)
-                                << " currmove "       << move_to_can (move, pos.chess960 ())
+                                << " currmove "       << move_to_can (move, Chess960)
                                 << " time "           << time
                                 << sync_endl;
                         }
@@ -1146,7 +1156,7 @@ namespace Search {
                 }
 
                 // Speculative prefetch as early as possible
-                prefetch (reinterpret_cast<char*>(TT.cluster_entry (pos.posi_move_key (move))));
+                prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
 
                 if (!SPNode)
                 {
@@ -1173,8 +1183,8 @@ namespace Search {
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
-                if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *>(pos.thread ()->pawns_table[pos.pawn_key ()]));
-                if (capture_or_promotion) prefetch (reinterpret_cast<char *>(pos.thread ()->material_table[pos.matl_key ()]));
+                if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
+                if (capture_or_promotion) prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
 
                 // Step 15, 16.
                 if (!move_pv)
@@ -1424,8 +1434,14 @@ namespace Search {
             CounterMoveStats.clear ();
             FollowupMoveStats.clear ();
 
-            Skills.set_level (SkillLevel);
-            
+            u08 skill_pv = Skills.pv_size ();
+            if (skill_pv != 0) Skills.clear ();
+
+            // Do have to play with skill handicap?
+            // In this case enable MultiPV search by skill pv size
+            // that will use behind the scenes to retrieve a set of possible moves.
+            //PVLimit = min (max (MultiPV, skill_pv), RootSize);
+
             Value best_value = VALUE_ZERO
                 , a_bound    = -VALUE_INFINITE
                 , b_bound    = +VALUE_INFINITE
@@ -1454,10 +1470,7 @@ namespace Search {
 
                 const bool aspiration = depth > 2*DEPTH_ONE;
 
-                // Do have to play with skill handicap?
-                // In this case enable MultiPV search by skill candidates size
-                // that will use behind the scenes to retrieve a set of possible moves.
-                PVLimit = min (max (MultiPV, aspiration ? Skills.candidates_size () : MIN_SKILL_MULTIPV), RootSize);
+                PVLimit = min (max (MultiPV, aspiration ? skill_pv : MIN_SKILL_MULTIPV), RootSize);
                 // MultiPV loop. Perform a full root search for each PV line
                 for (PVIndex = 0; PVIndex < PVLimit; ++PVIndex)
                 {
@@ -1561,7 +1574,7 @@ namespace Search {
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
-                if (Skills.candidates_size () != 0 && Skills.can_pick_move (depth))
+                if (skill_pv != 0 && Skills.can_pick_move (depth))
                 {
                     Skills.play_move ();
                 }
@@ -1627,7 +1640,7 @@ namespace Search {
 
             }
 
-            if (Skills.candidates_size () != 0) Skills.play_move ();
+            if (skill_pv != 0) Skills.play_move ();
         }
 
         // perft<>() is our utility to verify move generation. All the leaf nodes
@@ -1657,7 +1670,7 @@ namespace Search {
                 if (RootNode)
                 {
                     sync_cout <<  left << setw ( 7) << setfill (' ') <<
-                              //move_to_can (*ms, pos.chess960 ())
+                              //move_to_can (*ms, Chess960)
                               move_to_san (*ms, pos)
                               << right << setw (12) << setfill ('.') << inter_nodes << sync_endl;
                 }
@@ -1683,11 +1696,13 @@ namespace Search {
     // initialize the PRNG only once
     OpeningBook::PolyglotBook Book;
 
+    // ------------------------------------
+
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
     // Consider also failing high nodes and not only EXACT nodes so to
     // allow to always have a ponder move even when fail high at root node.
     // This results in a long PV to print that is important for position analysis.
-    void RootMove::extract_pv_from_tt (Position &pos)
+    void   RootMove::extract_pv_from_tt (Position &pos)
     {
         StateInfo states[MAX_DEPTH_6]
                 , *si = states;
@@ -1708,7 +1723,7 @@ namespace Search {
             expected_value = -expected_value;
 
             Key posi_key = pos.posi_key ();
-            //prefetch (reinterpret_cast<char*>(TT.cluster_entry (posi_key)));
+            //prefetch (reinterpret_cast<char*> (TT.cluster_entry (posi_key)));
             tte = TT.retrieve (posi_key);
         } while (  tte != NULL
                 && expected_value == value_of_tt (tte->value (), ply+1)
@@ -1729,7 +1744,7 @@ namespace Search {
     // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
     // inserts the PV back into the TT. This makes sure the old PV moves are searched
     // first, even if the old TT entries have been overwritten.
-    void RootMove::insert_pv_into_tt (Position &pos)
+    void   RootMove:: insert_pv_into_tt (Position &pos)
     {
         StateInfo states[MAX_DEPTH_6]
                 , *si = states;
@@ -1742,7 +1757,7 @@ namespace Search {
             ASSERT (MoveList<LEGAL> (pos).contains (m));
 
             Key posi_key = pos.posi_key ();
-            //prefetch (reinterpret_cast<char*>(TT.cluster_entry (posi_key)));
+            //prefetch (reinterpret_cast<char*> (TT.cluster_entry (posi_key)));
             tte = TT.retrieve (posi_key);
             // Don't overwrite correct entries
             if (tte == NULL || tte->move () != m)
@@ -1768,15 +1783,17 @@ namespace Search {
         } while (0 != ply);
     }
 
-    string RootMove::info_pv (const Position &pos) const
+    string RootMove::info_pv () const
     {
         stringstream ss;
         for (u08 i = 0; pv[i] != MOVE_NONE; ++i)
         {
-            ss << " " << move_to_can (pv[i], pos.chess960 ());
+            ss << " " << move_to_can (pv[i], Chess960);
         }
         return ss.str ();
     }
+
+    // ------------------------------------
 
     void RootMoveList::initialize (const Position &pos, const vector<Move> &root_moves)
     {
@@ -1964,10 +1981,10 @@ namespace Search {
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position
-        sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], RootPos.chess960 ());
+        sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], Chess960);
         if (RootMoves[0].pv[0] != MOVE_NONE)
         {
-            cout << " ponder " << move_to_can (RootMoves[0].pv[1], RootPos.chess960 ());
+            cout << " ponder " << move_to_can (RootMoves[0].pv[1], Chess960);
         }
         cout << sync_endl;
 
@@ -1980,6 +1997,8 @@ namespace Search {
         configure_auto_save (Option());
         configure_contempt (Option());
         configure_multipv (Option());
+        SearchLog = "";
+        Skills.initialize (MAX_SKILL_LEVEL);
 
         u08 d;  // depth
         u08 mc; // move count
@@ -2051,11 +2070,6 @@ namespace Search {
         //i32 MultiPV_cp= i32(Options["MultiPV_cp"]);
     }
 
-    void change_skill_level (const Option &opt)
-    {
-        SkillLevel = u08(i32(opt));
-    }
-
     void change_search_log (const Option &opt)
     {
         SearchLog = string(opt);
@@ -2070,6 +2084,11 @@ namespace Search {
             }
             if (white_spaces (SearchLog)) SearchLog = "SearchLog.txt";
         }
+    }
+
+    void change_skill_level (const Option &opt)
+    {
+        Skills.initialize (u08(i32(opt)));
     }
 }
 
