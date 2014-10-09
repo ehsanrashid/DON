@@ -133,9 +133,9 @@ namespace Search {
 
                 u08 skill_pv = pv_size ();
                 // RootMoves are already sorted by score in descending order
-                Value variance = min (RootMoves[0].new_value - RootMoves[skill_pv - 1].new_value, VALUE_MG_PAWN);
-                Value weakness = Value(MAX_DEPTH - 2 * _level);
-                Value max_value = -VALUE_INFINITE;
+                Value variance   = min (RootMoves[0].new_value - RootMoves[skill_pv - 1].new_value, VALUE_MG_PAWN);
+                Value weakness   = Value(MAX_DEPTH - 2 * _level);
+                Value best_value = -VALUE_INFINITE;
                 // Choose best move. For each move score add two terms both dependent on
                 // weakness, one deterministic and bigger for weaker moves, and one random,
                 // then choose the move with the resulting highest score.
@@ -153,9 +153,9 @@ namespace Search {
                     v += weakness * i32(RootMoves[0].new_value - v)
                       +  variance * i32(rk.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2);
 
-                    if (max_value < v)
+                    if (best_value < v)
                     {
-                        max_value  = v;
+                        best_value = v;
                         _best_move = RootMoves[i].pv[0];
                     }
                 }
@@ -170,7 +170,7 @@ namespace Search {
 
         };
 
-        Skill Skills;
+        Skill Skills (MAX_SKILL_LEVEL);
 
         bool  MateSearch;
 
@@ -488,14 +488,12 @@ namespace Search {
 
                 ++legals;
 
-                bool capture_or_promotion = pos.capture_or_promotion (move);
-                
                 (ss)->current_move = move;
                 // Make and search the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
-                if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
-                if (capture_or_promotion) prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
+                prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
+                prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
 
                 Value value;
                 
@@ -907,14 +905,12 @@ namespace Search {
 
                                     if (!pos.legal (move, ci->pinneds)) continue;
 
-                                    bool capture_or_promotion = pos.capture_or_promotion (move);
-
                                     (ss)->current_move = move;
                                     
                                     pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
 
-                                    if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
-                                    if (capture_or_promotion) prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
+                                    prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
+                                    prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
 
                                     Value value = -search_depth<NonPV, false, true> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
                                     pos.undo_move ();
@@ -1183,8 +1179,8 @@ namespace Search {
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check ? ci : NULL);
 
-                if (PAWN == ptype (pos[dst_sq (move)])) prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
-                if (capture_or_promotion) prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
+                prefetch (reinterpret_cast<char *> (thread->pawns_table[pos.pawn_key ()]));
+                prefetch (reinterpret_cast<char *> (thread->material_table[pos.matl_key ()]));
 
                 // Step 15, 16.
                 if (!move_pv)
@@ -1558,9 +1554,7 @@ namespace Search {
                     //RootMoves.sort_beg (PVIndex + 1);
                     stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
 
-                    if (  PVIndex + 1 == PVLimit
-                       || iteration_time > INFO_INTERVAL
-                       )
+                    if (PVIndex + 1 == PVLimit || iteration_time > INFO_INTERVAL)
                     {
                         sync_cout << info_multipv (RootPos, depth, a_bound, b_bound, iteration_time) << sync_endl;
                     }
@@ -1605,9 +1599,7 @@ namespace Search {
 
                     // If there is only one legal move available or 
                     // If all of the available time has been used.
-                    if (  RootSize == 1
-                       || iteration_time > TimeMgr.available_time ()
-                       )
+                    if (RootSize == 1 || iteration_time > TimeMgr.available_time ())
                     {
                         stop = true;
                     }
@@ -1654,12 +1646,8 @@ namespace Search {
             CheckInfo ci (pos);
             for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
             {
-                u64 inter_nodes;
-                if (RootNode && depth <= DEPTH_ONE)
-                {
-                    inter_nodes = 1;
-                }
-                else
+                u64 inter_nodes = 1;
+                if (!RootNode || depth > DEPTH_ONE)
                 {
                     Move m = *ms;
                     pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
@@ -1998,7 +1986,6 @@ namespace Search {
         configure_contempt (Option());
         configure_multipv (Option());
         SearchLog = "";
-        Skills.initialize (MAX_SKILL_LEVEL);
 
         u08 d;  // depth
         u08 mc; // move count

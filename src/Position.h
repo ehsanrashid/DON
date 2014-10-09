@@ -241,8 +241,8 @@ public:
     bool    draw      () const;
     bool    repeated  () const;
 
-    u64  game_nodes ()   const;
-    void game_nodes (u64 nodes);
+    u64   game_nodes ()   const;
+    void  game_nodes (u64 nodes);
     Phase game_phase ()  const;
 
     Threads::Thread* thread () const;
@@ -396,9 +396,9 @@ inline i32 Position::count<NONPAWN> () const
 template<PieceT PT>
 inline const Square* Position::list (Color c) const { return _piece_list[c][PT]; }
 // Castling rights for both side
-inline CRight   Position::castle_rights () const { return _si->castle_rights; }
+inline CRight Position::castle_rights () const { return _si->castle_rights; }
 // Target square in algebraic notation. If there's no en passant target square is "-"
-inline Square   Position::en_passant_sq () const { return _si->en_passant_sq; }
+inline Square Position::en_passant_sq () const { return _si->en_passant_sq; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the 50-move rule.
 inline u08    Position::clock50       () const { return _si->clock50; }
@@ -413,10 +413,10 @@ inline Key    Position::posi_key      () const { return _si->posi_key; }
 inline Key    Position::posi_exc_key  () const { return _si->posi_key ^ Zobrist::Exclusion; }
 // posi_move_key() computes the new hash key after the given moven. Needed for speculative prefetch.
 // It doesn't recognize special moves like castling, en-passant and promotions.
-inline Key Position::posi_move_key (Move m) const
+inline Key    Position::posi_move_key (Move m) const
 {
     Square org = org_sq (m)
-        ,   dst = dst_sq (m);
+        ,  dst = dst_sq (m);
 
     PieceT pt = ptype (_board[org])
         ,  ct = ptype (_board[dst]);
