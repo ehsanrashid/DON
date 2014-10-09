@@ -949,7 +949,7 @@ namespace Search {
                        !RootNode
                     && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                     && tt_move != MOVE_NONE
-                    &&    depth >= 8*DEPTH_ONE //(PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
+                    &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE) //8*DEPTH_ONE
                     && tt_depth >= depth-3*DEPTH_ONE
                     //&& abs (beta)     < +VALUE_KNOWN_WIN
                     && abs (tt_value) < +VALUE_KNOWN_WIN
@@ -2133,20 +2133,20 @@ namespace Threads {
             Threadpool.mutex.unlock ();
         }
 
-        point time = now_time - SearchTime;
+        point movetime = now_time - SearchTime;
 
         if (  (  Limits.use_timemanager ()
-                    // No more time
-              && (  time > TimeMgr.maximum_time () - 2 * TimerResolution
-                    // or Still at first move
+                    // No more movetime
+              && (  movetime > TimeMgr.maximum_time () - 2 * TimerResolution
+                    // Still at first move
                  || (   Signals.root_1stmove
                     && !Signals.root_failedlow
-                    && time > TimeMgr.available_time () * (RootMoves.best_move_change < 1.0e-4f ? 50 : 75) / 100
+                    && movetime > TimeMgr.available_time () * (RootMoves.best_move_change < 1.0e-4f ? 50 : 75) / 100
                     )
                  )
               )
-           || (Limits.movetime != 0 && time  >= Limits.movetime)
-           || (Limits.nodes    != 0 && nodes >= Limits.nodes)
+           || (Limits.movetime != 0 && movetime >= Limits.movetime)
+           || (Limits.nodes    != 0 && nodes    >= Limits.nodes)
            )
         {
             Signals.force_stop = true;
