@@ -35,6 +35,14 @@ namespace Time {
     
     };
 
+    extern u08      MaximumMoveHorizon  ;
+    extern u08      EmergencyMoveHorizon;
+    extern u32      EmergencyClockTime  ;
+    extern u32      EmergencyMoveTime   ;
+    extern u32      MinimumMoveTime     ;
+    extern i32      MoveSlowness        ;
+    extern bool     Ponder              ;
+
     extern void configure (const UCI::Option &);
 
 }

@@ -19,6 +19,7 @@ namespace UCI {
     using namespace Transposition;
     using namespace Threads;
     using namespace Search;
+    using namespace Time;
 
     Option::Option (OnChange on_change)
         : _type ("button")
@@ -235,9 +236,9 @@ namespace UCI {
         // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
-        Options["Hash File"]                    << Option ("Hash.dat", Search::configure_auto_save);
+        Options["Hash File"]                    << Option (HashFile.c_str(), Search::configure_auto_save);
         // Auto Save Hash Time (min)
-        Options["Auto Save Hash (min)"]         << Option ( 0, 0, 60, Search::configure_auto_save);
+        Options["Auto Save Hash (min)"]         << Option ( AutoSaveTime, 0, 60, Search::configure_auto_save);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
@@ -261,10 +262,10 @@ namespace UCI {
         // Openings Book Options
         // ---------------------
         // The filename of the Opening Book.
-        Options["Book File"]                    << Option ("", Search::configure_book);
+        Options["Book File"]                    << Option (BookFile.c_str(), Search::configure_book);
         // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
-        Options["Best Book Move"]               << Option (true, Search::configure_book);
+        Options["Best Book Move"]               << Option (BestBookMove, Search::configure_book);
 
 
         // End-Game Table Bases Options
@@ -321,13 +322,13 @@ namespace UCI {
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -100, Max +100.
-        Options["Fixed Contempt"]               << Option (   0,-100,+100, Search::configure_contempt);
+        Options["Fixed Contempt"]               << Option (FixedContempt,-100,+100, Search::configure_contempt);
         // Time (sec) for Timed Contempt
         // Default +6, Min 0, Max +900.
-        Options["Timed Contempt (sec)"]         << Option (+ 22,   0,+900, Search::configure_contempt);
+        Options["Timed Contempt (sec)"]         << Option (ContemptTime ,   0,+900, Search::configure_contempt);
         // Centipawn (cp) for Valued Contempt
         // Default +50, Min 0, Max +1000.
-        Options["Valued Contempt (cp)"]         << Option (+ 34,   0,+1000, Search::configure_contempt);
+        Options["Valued Contempt (cp)"]         << Option (ContemptValue,   0,+1000, Search::configure_contempt);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
@@ -343,29 +344,29 @@ namespace UCI {
         Options["Fifty Move Distance"]          << Option (+ 50,+  5,+ 50, on_50_move_dist);
 
         //// Plan time management at most this many moves ahead, in num of moves.
-        //Options["Maximum Move Horizon"]         << Option ( 50, 0, 100, Time::configure);
+        //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, Time::configure);
         //// Be prepared to always play at least this many moves, in num of moves.
-        //Options["Emergency Move Horizon"]       << Option ( 40, 0, 100, Time::configure);
+        //Options["Emergency Move Horizon"]       << Option (EmergencyMoveHorizon, 0, 100, Time::configure);
         //// Always attempt to keep at least this much time at clock, in milliseconds.
-        //Options["Emergency Clock Time"]         << Option ( 60, 0, 30000, Time::configure);
+        //Options["Emergency Clock Time"]         << Option (EmergencyClockTime  , 0, 30000, Time::configure);
         //// Attempt to keep at least this much time for each remaining move, in milliseconds.
-        //Options["Emergency Move Time"]          << Option ( 30, 0, 5000, Time::configure);
+        //Options["Emergency Move Time"]          << Option (EmergencyMoveTime   , 0, 5000, Time::configure);
         //// The minimum amount of time to analyze, in milliseconds.
-        //Options["Minimum Move Time"]            << Option ( 20, 0, 5000, Time::configure);
+        //Options["Minimum Move Time"]            << Option (MinimumMoveTime     , 0, 5000, Time::configure);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (+110,+ 10,+ 1000, Time::configure);
+        Options["Move Slowness"]                << Option (MoveSlowness        ,+ 10,+ 1000, Time::configure);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.
         //
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["Ponder"]                       << Option (true, Time::configure);
+        Options["Ponder"]                       << Option (Ponder             , Time::configure);
 
         // Debug Options
         // -------------
         // The filename of the debug log.
         Options["Debug Log"]                    << Option ("", on_debug_log);
         // The filename of the search log.
-        Options["Search Log"]                   << Option ("", Search::change_search_log);
+        Options["Search Log"]                   << Option (SearchLog.c_str(), Search::change_search_log);
 
         // ---------------------------------------------------------------------------------------
         // Other Options

@@ -182,17 +182,29 @@ namespace Search {
 
     };
 
-    extern bool                  Chess960;
+    extern bool                 Chess960;
 
-    extern LimitsT               Limits;
-    extern SignalsT volatile     Signals;
+    extern LimitsT              Limits;
+    extern SignalsT volatile    Signals;
 
-    extern RootMoveList          RootMoves;
-    extern Position              RootPos;
-    extern StateInfoStackPtr     SetupStates;
+    extern RootMoveList         RootMoves;
+    extern Position             RootPos;
+    extern StateInfoStackPtr    SetupStates;
 
-    extern Time::point           SearchTime;
-    
+    extern Time::point          SearchTime;
+
+    extern i16                  FixedContempt
+        ,                       ContemptTime 
+        ,                       ContemptValue;
+
+    extern std::string          HashFile;
+    extern u16                  AutoSaveTime;
+
+    extern std::string          BookFile;
+    extern bool                 BestBookMove;
+
+    extern std::string          SearchLog;
+
     extern OpeningBook::PolyglotBook Book;
 
     extern u64 perft (Position &pos, Depth depth);

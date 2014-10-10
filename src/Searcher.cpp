@@ -76,17 +76,7 @@ namespace Search {
         Value   DrawValue[CLR_NO]
             ,   BaseContempt[CLR_NO];
 
-        i16     FixedContempt
-            ,   ContemptTime
-            ,   ContemptValue;
 
-        string HashFile;
-        u16    AutoSaveTime;
-
-        string BookFile;
-        bool   BestBookMove;
-
-        string SearchLog;
 
 
         struct Skill
@@ -1682,6 +1672,18 @@ namespace Search {
 
     point               SearchTime;
 
+    i16                 FixedContempt = 0
+        ,               ContemptTime  = 22
+        ,               ContemptValue = 34;
+
+    string              HashFile     = "Hash.dat";
+    u16                 AutoSaveTime = 0;
+
+    string              BookFile     = "";
+    bool                BestBookMove = true;
+
+    string              SearchLog    = "";
+
     // initialize the PRNG only once
     OpeningBook::PolyglotBook Book;
 
@@ -1986,7 +1988,6 @@ namespace Search {
         configure_auto_save (Option());
         configure_contempt (Option());
         configure_multipv (Option());
-        SearchLog = "";
 
         u08 d;  // depth
         u08 mc; // move count
