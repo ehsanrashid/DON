@@ -305,7 +305,7 @@ namespace UCI {
         // Default 1, Min 1, Max 50.
         //
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["MultiPV"]                      << Option ( 1, 1, 50, Search::configure_multipv);
+        Options["MultiPV"]                      << Option (MultiPV, 1, 50, Search::configure_multipv);
 
         // TODO::
         // Limit the multi-PV analysis to moves within a range of the best move.
@@ -314,7 +314,7 @@ namespace UCI {
         // Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
         // A value of 0 means that this parameter will not be taken into account.
         // The MultiPV_cp feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        //Options["MultiPV_cp"]                   << Option (0, 0, VALUE_NONE+1, Search::configure_multipv);
+        //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, VALUE_NONE+1, Search::configure_multipv);
 
         // Changes playing style.
         // ----------------------

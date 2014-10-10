@@ -193,6 +193,9 @@ namespace Search {
 
     extern Time::point          SearchTime;
 
+    extern u08                  MultiPV;
+    //extern i32                MultiPV_cp;
+
     extern i16                  FixedContempt
         ,                       ContemptTime 
         ,                       ContemptValue;

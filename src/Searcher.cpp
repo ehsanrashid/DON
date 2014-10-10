@@ -67,7 +67,6 @@ namespace Search {
         i32     RootPly;
 
         u08     RootSize   // RootMove Count
-            ,   MultiPV
             ,   PVLimit
             ,   PVIndex;
 
@@ -75,8 +74,6 @@ namespace Search {
 
         Value   DrawValue[CLR_NO]
             ,   BaseContempt[CLR_NO];
-
-
 
 
         struct Skill
@@ -1672,6 +1669,9 @@ namespace Search {
 
     point               SearchTime;
 
+    u08                 MultiPV       = 1;
+    //i32                 MultiPV_cp    = 0;
+
     i16                 FixedContempt = 0
         ,               ContemptTime  = 22
         ,               ContemptValue = 34;
@@ -1984,11 +1984,6 @@ namespace Search {
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
-        configure_book (Option());
-        configure_auto_save (Option());
-        configure_contempt (Option());
-        configure_multipv (Option());
-
         u08 d;  // depth
         u08 mc; // move count
         // Initialize lookup tables
@@ -2056,7 +2051,7 @@ namespace Search {
     void configure_multipv (const Option &)
     {
         MultiPV        = u08(i32(Options["MultiPV"]));
-        //i32 MultiPV_cp= i32(Options["MultiPV_cp"]);
+        //MultiPV_cp= i32(Options["MultiPV_cp"]);
     }
 
     void change_search_log (const Option &opt)
