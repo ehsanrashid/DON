@@ -1676,13 +1676,13 @@ namespace Search {
         ,               ContemptTime  = 22
         ,               ContemptValue = 34;
 
-    string              HashFile     = "Hash.dat";
-    u16                 AutoSaveTime = 0;
+    string              HashFile      = "Hash.dat";
+    u16                 AutoSaveTime  = 0;
 
-    string              BookFile     = "";
-    bool                BestBookMove = true;
+    string              BookFile      = "";
+    bool                BestBookMove  = true;
 
-    string              SearchLog    = "";
+    string              SearchLog     = "";
 
     // initialize the PRNG only once
     OpeningBook::PolyglotBook Book;
