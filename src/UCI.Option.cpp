@@ -128,51 +128,51 @@ namespace UCI {
     namespace {
 
 #   ifdef LPAGES
-        void on_large_pages (const Option &)
+        void large_pages (const Option &)
         {
             TT.resize ();
         }
 #   endif
 
-        void on_clear_hash  (const Option &)
+        void clear_hash  (const Option &)
         {
             TT.clear ();
         }
 
-        void on_never_clear_hash (const Option &opt)
+        void never_clear_hash (const Option &opt)
         {
             TranspositionTable::ClearHash = !bool(opt);
         }
 
-        void on_resize_hash (const Option &opt)
+        void change_hash (const Option &opt)
         {
             TT.auto_size (i32(opt), false);
         }
 
-        void on_save_hash   (const Option &)
+        void save_hash   (const Option &)
         {
             string hash_fn = string(Options["Hash File"]);
             TT.save (hash_fn);
         }
 
-        void on_load_hash   (const Option &)
+        void load_hash   (const Option &)
         {
             string hash_fn = string(Options["Hash File"]);
             TT.load (hash_fn);
         }
 
-        void on_50_move_dist (const Option &opt)
+        void fifty_move_dist (const Option &opt)
         {
             Position::_FiftyMoveDist = u08(2 * i32(opt));
         }
 
-        void on_debug_log (const Option &opt)
+        void debug_log (const Option &opt)
         {
             Debug::log_debug (false);
             if (!white_spaces (string(opt))) Debug::log_debug (true);
         }
 
-        void on_uci_chess960 (const Option &opt)
+        void uci_chess960 (const Option &opt)
         {
             Search::Chess960 = bool(opt);
         }
@@ -196,21 +196,21 @@ namespace UCI {
         // For 16 Min games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
-        Options["Hash"]                         << Option (TranspositionTable::DefTTSize, 0, TranspositionTable::MaxTTSize, on_resize_hash);
+        Options["Hash"]                         << Option (TranspositionTable::DefTTSize, 0, TranspositionTable::MaxTTSize, change_hash);
 #ifdef LPAGES
-        Options["Large Pages"]                  << Option (true, on_large_pages);
+        Options["Large Pages"]                  << Option (true, large_pages);
 #endif
 
         // Button to clear the Hash Memory.
         // If the Never Clear Hash option is enabled, this button doesn't do anything.
-        Options["Clear Hash"]                   << Option (on_clear_hash);
+        Options["Clear Hash"]                   << Option (clear_hash);
 
         // This option prevents the Hash Memory from being cleared between successive games or positions belonging to different games.
         // Default false
         //
         // Check this option also if you want to Load the Hash from disk file,
         // otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
-        Options["Never Clear Hash"]             << Option (false, on_never_clear_hash);
+        Options["Never Clear Hash"]             << Option (false, never_clear_hash);
 
         // Persistent Hash Options
         // -----------------------
@@ -245,7 +245,7 @@ namespace UCI {
         // Some GUIs (e.g. Shredder, Fritz) wait for sending the button command to the engine until you click OK in the engine options window.
         // The size of the file will be identical to the size of the hash memory, so this operation could take a while.
         // This feature can be used to interrupt and restart a deep analysis at any time.
-        Options["Save Hash"]                    << Option (on_save_hash);
+        Options["Save Hash"]                    << Option (save_hash);
 
         // Load a previously saved Hash file from disk.
         // Use the Load Hash File button after loading the game or position, but before starting the analysis.
@@ -253,7 +253,7 @@ namespace UCI {
         // The size of the Hash memory will automatically be set to the size of the saved file.
         // Please make sure to check the Never Clear Hash option,
         // as otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
-        Options["Load Hash"]                    << Option (on_load_hash);
+        Options["Load Hash"]                    << Option (load_hash);
 
 
         // Position Learning Options
@@ -341,7 +341,7 @@ namespace UCI {
         //
         // By setting Fifty Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          << Option (+ 50,+  5,+ 50, on_50_move_dist);
+        Options["Fifty Move Distance"]          << Option (Position::_FiftyMoveDist,+  5,+ 50, fifty_move_dist);
 
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, Time::configure);
@@ -364,7 +364,7 @@ namespace UCI {
         // Debug Options
         // -------------
         // The filename of the debug log.
-        Options["Debug Log"]                    << Option ("", on_debug_log);
+        Options["Debug Log"]                    << Option ("", debug_log);
         // The filename of the search log.
         Options["Search Log"]                   << Option (SearchLog.c_str(), Search::change_search_log);
 
@@ -376,7 +376,7 @@ namespace UCI {
         // Chess960 is a chess variant where the back ranks are scrambled.
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         // Default false.
-        Options["UCI_Chess960"]                 << Option (Search::Chess960, on_uci_chess960);
+        Options["UCI_Chess960"]                 << Option (Search::Chess960, uci_chess960);
         
         // Weaken engine.
         //Options["UCI_LimitStrength"]            << Option (false);

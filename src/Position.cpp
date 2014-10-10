@@ -121,7 +121,7 @@ namespace {
 
 } // namespace
 
-u08 Position::_FiftyMoveDist;
+u08 Position::_FiftyMoveDist = 50;
 
 void Position::initialize ()
 {
