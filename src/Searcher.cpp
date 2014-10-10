@@ -24,6 +24,7 @@ namespace Search {
     using namespace MoveGen;
     using namespace MovePick;
     using namespace Transposition;
+    using namespace OpeningBook;
     using namespace Evaluate;
     using namespace Notation;
     using namespace Debug;
@@ -58,7 +59,6 @@ namespace Search {
             return Depth (Reductions[PVNode][imp][min (d, ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
         }
 
-
         const u08   MAX_QUIETS    = 64;
 
         const point INFO_INTERVAL = 3000; // 3 sec
@@ -70,11 +70,19 @@ namespace Search {
             ,   PVLimit
             ,   PVIndex;
 
-        TimeManager TimeMgr;
-
         Value   DrawValue[CLR_NO]
             ,   BaseContempt[CLR_NO];
 
+        bool    MateSearch;
+
+        TimeManager  TimeMgr;
+        // Gain statistics
+        GainStats    GainStatistics;
+        // History statistics
+        HistoryStats HistoryStatistics;
+        // Move statistics
+        MoveStats    CounterMoveStats    // Counter
+            ,        FollowupMoveStats;  // Followup
 
         struct Skill
         {
@@ -158,16 +166,6 @@ namespace Search {
         };
 
         Skill Skills (MAX_SKILL_LEVEL);
-
-        bool  MateSearch;
-
-        // Gain statistics
-        GainStats    GainStatistics;
-        // History statistics
-        HistoryStats HistoryStatistics;
-        // Move statistics
-        MoveStats   CounterMoveStats    // Counter
-            ,       FollowupMoveStats;  // Followup
 
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
@@ -1685,7 +1683,7 @@ namespace Search {
     string              SearchLog     = "";
 
     // initialize the PRNG only once
-    OpeningBook::PolyglotBook Book;
+    PolyglotBook        Book;
 
     // ------------------------------------
 
