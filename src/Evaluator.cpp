@@ -923,7 +923,7 @@ namespace Evaluate {
 
                         if ((behind_majors & pos.pieces (C )) == U64(0))
                         {
-                            safe_squares &= (ei.pin_attacked_by[C ][NONE]);
+                              safe_squares &= (ei.pin_attacked_by[C ][NONE]);
                         }
 
                         // Give a big bonus if there aren't enemy attacks, otherwise

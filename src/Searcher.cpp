@@ -326,7 +326,6 @@ namespace Search {
                 tt_value = value_of_tt (tte->value (), (ss)->ply);
                 tt_depth = tte->depth ();
                 tt_bound = tte->bound ();
-                if (!InCheck) best_value = tte->eval ();
             }
 
             Thread *thread = pos.thread ();
@@ -357,13 +356,15 @@ namespace Search {
             // Evaluate the position statically
             if (InCheck)
             {
-                (ss)->static_eval = best_value;
-                futility_base = best_value = -VALUE_INFINITE;
+                (ss)->static_eval = VALUE_NONE;
+                best_value        =
+                futility_base     = -VALUE_INFINITE;
             }
             else
             {
                 if (tte != NULL)
                 {
+                    best_value = tte->eval ();
                     // Never assume anything on values stored in TT
                     if (VALUE_NONE == best_value) best_value = evaluate (pos);
                     (ss)->static_eval = best_value;
@@ -522,11 +523,11 @@ namespace Search {
                     {
                         value =
                             gives_check ?
-                                -search_quien<PV, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
-                                -search_quien<PV, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
+                                -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
+                                -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
                     }
                 }
-
+                // Undo the move
                 pos.undo_move ();
 
                 ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
@@ -539,8 +540,8 @@ namespace Search {
                     if (alpha < value)
                     {
                         best_move = move;
-
-                        if (value >= beta)  // Fail high
+                        // Fail high
+                        if (value >= beta)
                         {
                             TT.store (
                                 posi_key,
@@ -563,13 +564,10 @@ namespace Search {
 
             // All legal moves have been searched.
             // A special case: If in check and no legal moves were found, it is checkmate.
-            if (InCheck)
+            if (InCheck && best_value == -VALUE_INFINITE)
             {
-                if (best_value == -VALUE_INFINITE)
-                {
-                    // Plies to mate from the root
-                    best_value = mated_in ((ss)->ply);
-                }
+                // Plies to mate from the root
+                best_value = mated_in ((ss)->ply);
             }
 
             TT.store (
@@ -686,7 +684,6 @@ namespace Search {
                     tt_value = value_of_tt (tte->value (), (ss)->ply);
                     tt_depth = tte->depth ();
                     tt_bound = tte->bound ();
-                    if (!in_check) static_eval = tte->eval ();
                 }
 
                 if (!RootNode)
@@ -723,12 +720,13 @@ namespace Search {
                 // Step 5. Evaluate the position statically and update parent's gain statistics
                 if (in_check)
                 {
-                    (ss)->static_eval = static_eval;
+                    (ss)->static_eval = static_eval = VALUE_NONE;
                 }
                 else
                 {
                     if (tte != NULL)
                     {
+                        static_eval = tte->eval ();
                         // Never assume anything on values stored in TT
                         if (VALUE_NONE == static_eval) static_eval = evaluate (pos);
                         (ss)->static_eval = static_eval;
@@ -858,7 +856,7 @@ namespace Search {
                                             null_value = beta;
                                         }
                                         // Don't do zugzwang verification search at low depths
-                                        if (depth < 8*DEPTH_ONE && null_value < +VALUE_KNOWN_WIN)
+                                        if (depth < 8*DEPTH_ONE && beta < +VALUE_KNOWN_WIN)
                                         {
                                             return null_value;
                                         }
@@ -913,6 +911,7 @@ namespace Search {
                                     prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
                                     Value value = -search_depth<NonPV, false, true> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
+                                    
                                     pos.undo_move ();
 
                                     if (value >= rbeta)
@@ -1204,12 +1203,14 @@ namespace Search {
                             reduction_depth += DEPTH_ONE;
                         }
                         // Decrease reduction for counter moves
-                        if (reduction_depth && (move == counter_moves[0] || move == counter_moves[1]))
+                        if (  reduction_depth > DEPTH_ZERO
+                           && (move == counter_moves[0] || move == counter_moves[1])
+                           )
                         {
                             reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
                         }
                         // Decrease reduction for moves that escape a capture
-                        if (  reduction_depth
+                        if (  reduction_depth > DEPTH_ZERO
                            && mt == NORMAL
                            && ptype (pos[dst_sq (move)]) != PAWN
                            && pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO // Reverse move
@@ -1333,8 +1334,8 @@ namespace Search {
                     if (alpha < value)
                     {
                         best_move = (SPNode) ? splitpoint->best_move = move : move;
-
-                        if (value >= beta)  // Fail high
+                        // Fail high
+                        if (value >= beta)
                         {
                             if (SPNode) splitpoint->cut_off = true;
 
@@ -1439,10 +1440,10 @@ namespace Search {
             PVLimit = min (max (MultiPV, skill_pv), RootSize);
 
             Value best_value = VALUE_ZERO
-                , a_bound    = -VALUE_INFINITE
-                , b_bound    = +VALUE_INFINITE
-                , a_window   = VALUE_ZERO
-                , b_window   = VALUE_ZERO;
+                , bound_a    = -VALUE_INFINITE
+                , bound_b    = +VALUE_INFINITE
+                , window_a   = VALUE_ZERO
+                , window_b   = VALUE_ZERO;
 
             Depth depth = DEPTH_ZERO;
 
@@ -1476,19 +1477,19 @@ namespace Search {
                     // Reset Aspiration window starting size
                     if (aspiration)
                     {
-                        a_window =
-                        b_window =
+                        window_a =
+                        window_b =
                             Value(depth < 32*DEPTH_ONE ? 22 - depth/4 : 14); // Decreasing window
 
-                        a_bound = max (RootMoves[PVIndex].old_value - a_window, -VALUE_INFINITE);
-                        b_bound = min (RootMoves[PVIndex].old_value + b_window, +VALUE_INFINITE);
+                        bound_a = max (RootMoves[PVIndex].old_value - window_a, -VALUE_INFINITE);
+                        bound_b = min (RootMoves[PVIndex].old_value + window_b, +VALUE_INFINITE);
                     }
 
                     // Start with a small aspiration window and, in case of fail high/low,
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search_depth<Root, false, true> (RootPos, ss, a_bound, b_bound, depth, false);
+                        best_value = search_depth<Root, false, true> (RootPos, ss, bound_a, bound_b, depth, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1516,39 +1517,39 @@ namespace Search {
                         // When failing high/low give some update
                         // (without cluttering the UI) before to re-search.
                         if (  iteration_time > INFO_INTERVAL
-                           && (a_bound >= best_value || best_value >= b_bound)
+                           && (bound_a >= best_value || best_value >= bound_b)
                            )
                         {
-                            sync_cout << info_multipv (RootPos, depth, a_bound, b_bound, iteration_time) << sync_endl;
+                            sync_cout << info_multipv (RootPos, depth, bound_a, bound_b, iteration_time) << sync_endl;
                         }
 
                         // In case of failing low/high increase aspiration window and
                         // re-search, otherwise exit the loop.
-                        if (best_value <= a_bound)
+                        if (best_value <= bound_a)
                         {
-                            a_window *= 1.345f;
-                            a_bound   = max (best_value - a_window, -VALUE_INFINITE);
-                            //if (b_window > 1) b_window *= 0.955f;
-                            //b_bound = min (best_value + b_window, +VALUE_INFINITE);
+                            window_a *= 1.345f;
+                            bound_a   = max (best_value - window_a, -VALUE_INFINITE);
+                            //if (window_b > 1) window_b *= 0.955f;
+                            //bound_b = min (best_value + window_b, +VALUE_INFINITE);
 
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
                         }
                         else
-                        if (best_value >= b_bound)
+                        if (best_value >= bound_b)
                         {
-                            b_window *= 1.345f;
-                            b_bound   = min (best_value + b_window, +VALUE_INFINITE);
-                            //if (a_window > 1) a_window *= 0.955f;
-                            //a_bound = max (best_value - a_window, -VALUE_INFINITE);
+                            window_b *= 1.345f;
+                            bound_b   = min (best_value + window_b, +VALUE_INFINITE);
+                            //if (window_a > 1) window_a *= 0.955f;
+                            //bound_a = max (best_value - window_a, -VALUE_INFINITE);
                         }
                         else
                         {
                             break;
                         }
 
-                        ASSERT (-VALUE_INFINITE <= a_bound && a_bound < b_bound && b_bound <= +VALUE_INFINITE);
-                    } while (true); //(a_bound < b_bound);
+                        ASSERT (-VALUE_INFINITE <= bound_a && bound_a < bound_b && bound_b <= +VALUE_INFINITE);
+                    } while (true); //(bound_a < bound_b);
 
                     // Sort the PV lines searched so far and update the GUI
                     //RootMoves.sort_beg (PVIndex + 1);
@@ -1556,7 +1557,7 @@ namespace Search {
 
                     if (PVIndex + 1 == PVLimit || iteration_time > INFO_INTERVAL)
                     {
-                        sync_cout << info_multipv (RootPos, depth, a_bound, b_bound, iteration_time) << sync_endl;
+                        sync_cout << info_multipv (RootPos, depth, bound_a, bound_b, iteration_time) << sync_endl;
                     }
                 }
 
@@ -1591,7 +1592,7 @@ namespace Search {
                 if (!Signals.ponderhit_stop && Limits.use_timemanager ())
                 {
                     // Time adjustments
-                    if (aspiration && MultiPV == 1)
+                    if (aspiration && PVLimit == 1)
                     {
                         // Take in account some extra time if the best move has changed
                         TimeMgr.instability (RootMoves.best_move_change);
