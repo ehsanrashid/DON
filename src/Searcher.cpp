@@ -477,11 +477,6 @@ namespace Search {
 
                 Value value;
                 
-                //value =
-                //    gives_check ?
-                //        -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
-                //        -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
-                
                 bool move_pv = PVNode && 1 == legals;
 
                 if (move_pv)

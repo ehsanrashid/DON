@@ -160,8 +160,6 @@ bool Position::draw () const
     const StateInfo *psi = _si;
     for (u08 ply = min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
     {
-        //psi = psi->p_si; if (psi == NULL) break; 
-        //psi = psi->p_si; if (psi == NULL) break;
         psi = psi->p_si->p_si;
         if (psi->posi_key == _si->posi_key) return true; // Draw at first repetition
     }
