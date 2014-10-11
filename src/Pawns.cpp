@@ -10,14 +10,14 @@ namespace Pawns {
     #define V Value
 
         // Weakness of our pawn shelter in front of the king indexed by [rank]
-        const Value SHELTER_WEAKNESS_VALUES[R_NO] =
+        const Value SHELTER_WEAKNESS[R_NO] =
         {
             V(+100), V(+  0), V(+ 27), V(+ 73), V(+ 92), V(+101), V(+101), V(+  0)
         };
 
         // Danger of enemy pawns moving toward our king indexed by
         // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
-        const Value STORM_DANGER_VALUES[3][R_NO] =
+        const Value STORM_DANGER[3][R_NO] =
         {
             { V(+ 0),  V(+64), V(+128), V(+51), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
             { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
@@ -27,14 +27,14 @@ namespace Pawns {
         // Max bonus for king safety by pawns.
         // Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizon.
-        const Value PAWN_KING_SAFETY_VALUE = V(+263);
+        const Value KING_SAFETY_BY_PAWN = V(+263);
 
     #undef V
 
     #define S(mg, eg) mk_score(mg, eg)
 
         // Connected pawn bonus by [opposed][phalanx][rank]
-        const Score PAWN_CONNECTED_SCORES[2][2][R_NO] =
+        const Score PAWN_CONNECTED[2][2][R_NO] =
         {
             {
                 { S(0,0), S(3, 6), S(7,15), S( 5,10), S(28,57), S(37, 75), S(67,135), S(129,258) },
@@ -46,15 +46,15 @@ namespace Pawns {
             }
         };
 
-        // Doubled pawn penalty by file
-        const Score PAWN_DOUBLED_SCORES[F_NO] =
+        // Doubled pawn penalty by [file]
+        const Score PAWN_DOUBLED[F_NO] =
         {
             S(+13,+43), S(+20,+48), S(+23,+48), S(+23,+48),
             S(+23,+48), S(+23,+48), S(+20,+48), S(+13,+43)
         };
 
         // Isolated pawn penalty by [opposed][file]
-        const Score PAWN_ISOLATED_SCORES[2][F_NO] =
+        const Score PAWN_ISOLATED[2][F_NO] =
         {
             {S(+37,+45), S(+54,+52), S(+60,+52), S(+60,+52),
             S(+60,+52), S(+60,+52), S(+54,+52), S(+37,+45)},
@@ -63,7 +63,7 @@ namespace Pawns {
         };
 
         // Backward pawn penalty by [opposed][file]
-        const Score PAWN_BACKWARD_SCORES[2][F_NO] =
+        const Score PAWN_BACKWARD[2][F_NO] =
         {
             {S(+30,+42), S(+43,+46), S(+49,+46), S(+49,+46),
             S(+49,+46), S(+49,+46), S(+43,+46), S(+30,+42)},
@@ -72,15 +72,15 @@ namespace Pawns {
         };
 
         // Levers bonus by [rank]
-        const Score PAWN_LEVER_SCORE[R_NO] = 
+        const Score PAWN_LEVER[R_NO] = 
         {
             S(+ 0,+ 0), S(+ 0,+ 0), S(+ 6,+ 6), S(+12,+12),
             S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
         };
 
-        const Score PAWN_SPAN_SCORE        = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
-        const Score PAWN_UNSTOPPABLE_SCORE = S(+ 0,+20); // Bonus for pawn going to promote
-        const Score PAWN_UNSUPPORTED_SCORE = S(+20,+10); // Penalty for Unsupported pawn
+        const Score PAWN_SPAN        = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
+        const Score PAWN_UNSTOPPABLE = S(+ 0,+20); // Bonus for pawn going to promote
+        const Score PAWN_UNSUPPORTED = S(+20,+10); // Penalty for Unsupported pawn
 
         template<Color C>
         inline Score evaluate (const Position &pos, Entry *e)
@@ -177,33 +177,33 @@ namespace Pawns {
 
                 if (connected != U64(0))
                 {
-                    score += PAWN_CONNECTED_SCORES[opposed][phalanx][r];
+                    score += PAWN_CONNECTED[opposed][phalanx][r];
                 }
 
                 if (isolated)
                 {
-                    score -= PAWN_ISOLATED_SCORES[opposed][f];
+                    score -= PAWN_ISOLATED[opposed][f];
                 }
                 else
                 {
                     if (supported == U64(0))
                     {
-                        score -= PAWN_UNSUPPORTED_SCORE;
+                        score -= PAWN_UNSUPPORTED;
                     }
                     if (backward)
                     {
-                        score -= PAWN_BACKWARD_SCORES[opposed][f];
+                        score -= PAWN_BACKWARD[opposed][f];
                     }
                 }
                 
                 if (r > R_4 && levered)
                 {
-                    score += PAWN_LEVER_SCORE[r];
+                    score += PAWN_LEVER[r];
                 }
 
                 if (doubled != U64(0))
                 {
-                    score -= PAWN_DOUBLED_SCORES[f] / i32(rank_dist (s, scan_frntmost_sq (C, doubled)));
+                    score -= PAWN_DOUBLED[f] / i32(rank_dist (s, scan_frntmost_sq (C, doubled)));
                 }
                 else
                 {
@@ -232,7 +232,7 @@ namespace Pawns {
             // So give a bonus according to file distance between left and right outermost pawns span.
             i32 span = e->semiopen_files[C] ^ 0xFF;
             e->pawn_span[C] = span != 0 ? u08(scan_msq (span)) - u08(scan_lsq (span)) : 0;
-            pawn_score += PAWN_SPAN_SCORE * i32(e->pawn_span[C]);
+            pawn_score += PAWN_SPAN * i32(e->pawn_span[C]);
 
             return pawn_score;
         }
@@ -253,7 +253,7 @@ namespace Pawns {
         Bitboard our_front_pawns = front_pawns & pos.pieces (C );
         Bitboard opp_front_pawns = front_pawns & pos.pieces (C_);
 
-        Value value = PAWN_KING_SAFETY_VALUE;
+        Value value = KING_SAFETY_BY_PAWN;
 
         File kf = _file (k_sq);
         i08 kfl = min (max (kf, F_B), F_G);
@@ -277,8 +277,8 @@ namespace Pawns {
                 mid_pawns = our_front_pawns & FILE_bb[f];
                 u08 r0 = mid_pawns != U64(0) ? rel_rank (C, scan_backmost_sq (C , mid_pawns)) : R_1;
                 value -= 
-                      + SHELTER_WEAKNESS_VALUES[r0]
-                      + STORM_DANGER_VALUES[r0 == R_1 ? 0 : r0 + 1 != r1 ? 1 : 2][r1];
+                      + SHELTER_WEAKNESS[r0]
+                      + STORM_DANGER[r0 == R_1 ? 0 : r0 + 1 != r1 ? 1 : 2][r1];
             }
         }
 
@@ -292,7 +292,7 @@ namespace Pawns {
     Score Entry::evaluate_unstoppable_pawns () const
     {
         return passed_pawns[C] != U64(0) ?
-            PAWN_UNSTOPPABLE_SCORE * i32(rel_rank (C, scan_frntmost_sq (C, passed_pawns[C]))) :
+            PAWN_UNSTOPPABLE * i32(rel_rank (C, scan_frntmost_sq (C, passed_pawns[C]))) :
             SCORE_ZERO;
     }
 

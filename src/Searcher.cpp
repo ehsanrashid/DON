@@ -809,7 +809,7 @@ namespace Search {
                                     (ss)->current_move = MOVE_NULL;
 
                                     // Null move dynamic (variable) reduction based on depth and static evaluation
-                                    Depth R = (3 + depth/4 + min (i32 (static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
+                                    Depth R = (3 + depth/4 + min (i32 (static_eval - beta)/VALUE_MG_PAWN, 3))*DEPTH_ONE;
                                     
                                     Depth rdepth = depth - R;
 
@@ -1083,7 +1083,6 @@ namespace Search {
                     if (  !capture_or_promotion
                        && !in_check
                        && !dangerous
-                       && move != tt_move
                        && best_value > -VALUE_MATE_IN_MAX_DEPTH
                        )
                     {
@@ -1097,7 +1096,7 @@ namespace Search {
                         }
 
                         // Value based pruning
-                        Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth/*-i32(SPNode)*/, legals);
+                        Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth, legals);
 
                         // Futility pruning: parent node
                         if (predicted_depth < FutilityMarginDepth)
@@ -1333,7 +1332,7 @@ namespace Search {
                 {
                     if (  Threadpool.split_depth <= depth
                        && Threadpool.size () > 1
-                       && thread->splitpoint_threads < MAX_SPLIT_POINT_THREADS
+                       && thread->splitpoint_count < MAX_SPLITPOINTS
                        && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
                        )
                     {
@@ -2102,7 +2101,7 @@ namespace Threads {
             // all the currently active positions nodes.
             for (u08 t = 0; t < Threadpool.size (); ++t)
             {
-                for (u08 s = 0; s < Threadpool[t]->splitpoint_threads; ++s)
+                for (u08 s = 0; s < Threadpool[t]->splitpoint_count; ++s)
                 {
                     SplitPoint &sp = Threadpool[t]->splitpoints[s];
                     sp.mutex.lock ();
@@ -2154,7 +2153,7 @@ namespace Threads {
     {
         // Pointer 'splitpoint' is not null only if called from split<>(), and not
         // at the thread creation. So it means this is the splitpoint's master.
-        SplitPoint *splitpoint = splitpoint_threads ? active_splitpoint : NULL;
+        SplitPoint *splitpoint = splitpoint_count ? active_splitpoint : NULL;
         ASSERT (splitpoint == NULL || (splitpoint->master == this && searching));
 
         do
@@ -2224,8 +2223,8 @@ namespace Threads {
                     for (u08 t = 0; t < Threadpool.size (); ++t)
                     {
                         Thread *thread = Threadpool[t];
-                        const u08 size = thread->splitpoint_threads; // Local copy
-                        sp = size > 0 ? &thread->splitpoints[size - 1] : NULL;
+                        const u08 count = thread->splitpoint_count; // Local copy
+                        sp = count > 0 ? &thread->splitpoints[count - 1] : NULL;
 
                         if (  sp != NULL
                            && (sp)->slave_searching
