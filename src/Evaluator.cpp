@@ -251,13 +251,13 @@ namespace Evaluate {
         Score KING_DANGER[MAX_ATTACK_UNITS];
 
         // KING_ATTACK_WEIGHT[PieceT] contains king attack weights by piece type
-        const i32   KING_ATTACK_WEIGHT[NONE] = { + 1, + 4, + 4, + 6, +10, 0 };
+        const i32   KING_ATTACK_WEIGHT[NONE] = { + 1, + 4, + 4, + 6, +10, + 1 };
 
         // Bonuses for safe checks
-        const i32    SAFE_CHECK_WEIGHT[NONE] = { + 0, + 3, + 2, + 8, +12, 0 };
+        const i32    SAFE_CHECK_WEIGHT[NONE] = { + 0, + 3, + 2, + 8, +12, + 0 };
 
         // Bonuses for contact safe checks
-        const i32 CONTACT_CHECK_WEIGHT[NONE] = { + 0, + 0, + 3, +16, +24, 0 };
+        const i32 CONTACT_CHECK_WEIGHT[NONE] = { + 0, + 0, + 3, +16, +24, + 0 };
 
         const ScaleFactor PAWN_SPAN_SCALE[2] = { ScaleFactor(38), ScaleFactor(56) };
 
@@ -568,9 +568,9 @@ namespace Evaluate {
 
             if (king_ring_attackers_count > 0)
             {
-                ei.king_ring_attackers_count [C] += king_ring_attackers_count;
-                ei.king_ring_attackers_weight[C] += king_ring_attackers_count*KING_ATTACK_WEIGHT[PT];
-                ei.king_zone_attacks_count   [C] += king_zone_attacks_count;
+                ei.king_ring_attackers_count [C ] += king_ring_attackers_count;
+                ei.king_ring_attackers_weight[C ] += king_ring_attackers_count*KING_ATTACK_WEIGHT[PT];
+                ei.king_zone_attacks_count   [C ] += king_zone_attacks_count;
             }
 
             if (Trace)
@@ -584,7 +584,7 @@ namespace Evaluate {
 
         template<Color C, bool Trace>
         // evaluate_king<>() assigns bonuses and penalties to a king of a given color
-        inline Score evaluate_king (const Position &pos, const EvalInfo &ei)
+        inline Score evaluate_king (const Position &pos, EvalInfo &ei)
         {
             const Color C_ = WHITE == C ? BLACK : WHITE;
 
@@ -623,6 +623,17 @@ namespace Evaluate {
 
             Score score = mk_score (value, -0x10 * ei.pi->kp_dist[C]);
 
+            /*
+            Bitboard attacks = ei.ful_attacked_by[C_][KING];
+            if ((ei.king_ring[C ] & attacks) != U64(0))
+            {
+                ei.king_ring_attackers_count[C_]++;
+                Bitboard zone_attacks = ei.ful_attacked_by[C ][KING] & attacks;
+                if (zone_attacks != U64(0)) ei.king_zone_attacks_count[C_] += (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1);
+                ei.king_ring_attackers_weight[C_] += ei.king_ring_attackers_count [C_]*KING_ATTACK_WEIGHT[KING];
+            }
+            */
+
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[C_] > 0)
             {
@@ -638,7 +649,7 @@ namespace Evaluate {
                 // apart from the king itself
                 Bitboard undefended =
                     ei.ful_attacked_by[C ][KING] // King-zone
-                  & ei.ful_attacked_by[C_][NONE]
+                  & ei.pin_attacked_by[C_][NONE]
                   & ~king_ex_defended;
 
                 //// Defended attacked squares around the king             
@@ -646,7 +657,7 @@ namespace Evaluate {
                 //    ei.ful_attacked_by[C ][KING] // King-zone
                 //  //& ( ei.pin_attacked_by[C_][BSHP]
                 //  //  | ei.pin_attacked_by[C_][NIHT])
-                //  & ei.ful_attacked_by[C_][NONE]
+                //  & ei.pin_attacked_by[C_][NONE]
                 //  & king_ex_defended;
 
                 // Initialize the 'attack_units' variable, which is used later on as an
@@ -769,7 +780,7 @@ namespace Evaluate {
             }
 
             /*
-            Bitboard mobile = PIECE_ATTACKS[KING][fk_sq] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]) ;
+            Bitboard mobile = ei.ful_attacked_by[C ][KING] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]) ;
             i32 mob = mobile != U64(0) ? pop_count<MAX15> (mobile) : 0;
             score += MOBILITY_SCORE[KING][mob];
             */
@@ -918,7 +929,7 @@ namespace Evaluate {
                         // the squares in the pawn's path attacked or occupied by the enemy.
                         if ((behind_majors & pos.pieces (C_)) == U64(0))
                         {
-                            unsafe_squares &= (ei.pin_attacked_by[C_][NONE]|pos.pieces(C_));
+                            unsafe_squares &= (ei.pin_attacked_by[C_][NONE]|pos.pieces());
                         }
 
                         if ((behind_majors & pos.pieces (C )) == U64(0))

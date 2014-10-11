@@ -121,10 +121,10 @@ namespace Memory {
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
             mem_ref = VirtualAlloc
-                (NULL,                      // System selects address
-                 mem_size,                  // Size of allocation
-                 MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, // Type of Allocation
-                 PAGE_READWRITE);           // Protection of Allocation
+                (NULL,                                  // System selects address
+                 mem_size,                              // Size of allocation
+                 MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,// Type of Allocation
+                 PAGE_READWRITE);                       // Protection of Allocation
 
             if (mem_ref != NULL)
             {
@@ -134,7 +134,7 @@ namespace Memory {
             }
 
             mem_ref = VirtualAlloc
-                (NULL,                  // System selects address
+                (NULL,                 // System selects address
                 mem_size,              // Size of allocation
                 MEM_COMMIT|MEM_RESERVE,// Type of Allocation
                 PAGE_READWRITE);       // Protection of Allocation
@@ -142,6 +142,7 @@ namespace Memory {
             if (mem_ref != NULL)
             {
                 UsePages = true;
+                memset (mem_ref, 0x00, mem_size);
                 sync_cout << "info string Page Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
@@ -155,7 +156,7 @@ namespace Memory {
                 if (mem_ref != -1)
                 {
                     UsePages = true;
-                    //memset (mem_ref, 0x00, SHMSZ);
+                    memset (mem_ref, 0x00, mem_size);
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }

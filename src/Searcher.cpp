@@ -294,12 +294,12 @@ namespace Search {
             Value pv_alpha = PVNode ? alpha : -VALUE_INFINITE;
 
             // Transposition table lookup
-            Key posi_key;// = U64(0);
-            const TTEntry *tte;
+            Key   posi_key;
+            const TTEntry *tte = NULL;
             Move  tt_move    = MOVE_NONE
                 , best_move  = MOVE_NONE;
             Value tt_value   = VALUE_NONE
-                , best_value = VALUE_NONE;
+                , best_value = -VALUE_INFINITE;
             Depth tt_depth   = DEPTH_NONE;
             Bound tt_bound   = BOUND_NONE;
             
@@ -336,14 +336,11 @@ namespace Search {
                 return tt_value;
             }
 
-            Value futility_base;
-
+            Value futility_base = -VALUE_INFINITE;
             // Evaluate the position statically
             if (InCheck)
             {
                 (ss)->static_eval = VALUE_NONE;
-                best_value        =
-                futility_base     = -VALUE_INFINITE;
             }
             else
             {
@@ -424,6 +421,7 @@ namespace Search {
                        && !gives_check
                        && move != tt_move
                        && futility_base > -VALUE_KNOWN_WIN
+                       && futility_base < beta
                        && !pos.advanced_pawn_push (move)
                        )
                     {
@@ -436,12 +434,8 @@ namespace Search {
                             best_value = max (futility_value, best_value);
                             continue;
                         }
-
-                        // Prune moves with negative or equal SEE and also moves with positive
-                        // SEE where capturing piece loses a tempo and SEE < beta - futility_base.
-                        if (  futility_base < beta
-                           && pos.see (move) <= VALUE_ZERO //beta - futility_base
-                           )
+                        // Prune moves with negative or zero SEE
+                        if (pos.see (move) <= VALUE_ZERO)
                         {
                             best_value = max (futility_base, best_value);
                             continue;
@@ -586,8 +580,8 @@ namespace Search {
             ASSERT (PVNode || alpha == beta-1);
             ASSERT (depth > DEPTH_ZERO);
 
-            Key   posi_key;// = U64(0);
-            const TTEntry *tte;// = NULL;
+            Key   posi_key;
+            const TTEntry *tte = NULL;
             Move  move
                 , tt_move     = MOVE_NONE
                 , exclude_move= MOVE_NONE
@@ -605,12 +599,13 @@ namespace Search {
             bool in_check  = pos.checkers () != U64(0);
             bool singular_ext_node = false;
 
-            SplitPoint *splitpoint = SPNode ? (ss)->splitpoint : NULL;
+            SplitPoint *splitpoint = NULL;
 
             CheckInfo cc, *ci = NULL;
 
             if (SPNode)
             {
+                splitpoint  = (ss)->splitpoint;
                 best_value  = splitpoint->best_value;
                 best_move   = splitpoint->best_move;
 
@@ -840,8 +835,8 @@ namespace Search {
                                         {
                                             null_value = beta;
                                         }
-                                        // Don't do zugzwang verification search at low depths
-                                        if (depth < 8*DEPTH_ONE && beta < +VALUE_KNOWN_WIN)
+                                        // Don't do verification search at low depths
+                                        if (depth <= 8*DEPTH_ONE && beta < +VALUE_KNOWN_WIN)
                                         {
                                             return null_value;
                                         }
@@ -854,7 +849,7 @@ namespace Search {
 
                                         if (ver_value >= beta)
                                         {
-                                            return ver_value;//null_value;
+                                            return ver_value;
                                         }
                                     }
                                 }
@@ -910,7 +905,7 @@ namespace Search {
 
                     // Step 10. Internal iterative deepening (skipped when in check)
                     if (  tt_move == MOVE_NONE
-                       && depth >= (PVNode ? 5*DEPTH_ONE : 8*DEPTH_ONE)           // IID Activation Depth
+                       && depth > (PVNode ? 4*DEPTH_ONE : 8*DEPTH_ONE)           // IID Activation Depth
                        && (PVNode || (ss)->static_eval + VALUE_EG_PAWN >= beta)   // IID Margin
                        )
                     {
@@ -933,7 +928,7 @@ namespace Search {
                        !RootNode
                     && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                     && tt_move != MOVE_NONE
-                    &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE) //8*DEPTH_ONE
+                    &&    depth > (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE) //8*DEPTH_ONE
                     && tt_depth >= depth-3*DEPTH_ONE
                     //&& abs (beta)     < +VALUE_KNOWN_WIN
                     && abs (tt_value) < +VALUE_KNOWN_WIN
@@ -1088,7 +1083,7 @@ namespace Search {
                     if (  !capture_or_promotion
                        && !in_check
                        && !dangerous
-                       //&& move != tt_move
+                       && move != tt_move
                        && best_value > -VALUE_MATE_IN_MAX_DEPTH
                        )
                     {
@@ -1110,7 +1105,7 @@ namespace Search {
                             Value futility_value = (ss)->static_eval + FutilityMargins[predicted_depth]
                                                  + GainStatistics[pos[org_sq (move)]][dst_sq (move)] + VALUE_EG_PAWN/2;
 
-                            if (alpha >= futility_value /*&& futility_value > -VALUE_KNOWN_WIN*/)
+                            if (alpha >= futility_value)
                             {
                                 best_value = max (futility_value, best_value);
 
@@ -1362,18 +1357,6 @@ namespace Search {
             // Step 20. Check for checkmate and stalemate
             if (!SPNode)
             {
-                // All possible moves have been searched and if there are no legal moves,
-                // it must be mate or stalemate, so return value accordingly.
-                // If in a singular extension search then return a fail low score (alpha).
-                // If we have pruned all the moves without searching return a fail-low score (alpha).
-                if (best_value == -VALUE_INFINITE || legals == 0)
-                {
-                    best_value = 
-                        exclude_move != MOVE_NONE ? alpha :
-                        in_check ? mated_in ((ss)->ply) :
-                        DrawValue[pos.active ()];
-                }
-                else
                 // Quiet best move: Update history, killer, counter & followup moves
                 if (  !in_check
                    && best_value >= beta
@@ -1384,11 +1367,24 @@ namespace Search {
                     update_stats (pos, ss, best_move, depth, quiet_moves, quiets-1);
                 }
 
+                // If all possible moves have been searched and if there are no legal moves,
+                // If in a singular extension search then return a fail low score (alpha).
+                // Otherwise it must be mate or stalemate, so return value accordingly.
+                if (legals == 0)
+                {
+                    best_value = 
+                        exclude_move != MOVE_NONE ?
+                            alpha : in_check ?
+                                mated_in ((ss)->ply) :
+                                DrawValue[pos.active ()];
+                }
+
                 TT.store (
                     posi_key,
                     best_move,
                     depth,
-                    best_value >= beta ? BOUND_LOWER : PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
+                    best_value >= beta ? BOUND_LOWER :
+                        PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
                     value_to_tt (best_value, (ss)->ply),
                     (ss)->static_eval);
             }
@@ -1464,7 +1460,7 @@ namespace Search {
                     {
                         window_a =
                         window_b =
-                            Value(depth < 32*DEPTH_ONE ? 22 - depth/4 : 14); // Decreasing window
+                            Value(depth <= 32*DEPTH_ONE ? 22 - (depth-1)/4 : 14); // Decreasing window
 
                         bound_a = max (RootMoves[PVIndex].old_value - window_a, -VALUE_INFINITE);
                         bound_b = min (RootMoves[PVIndex].old_value + window_b, +VALUE_INFINITE);
@@ -1577,7 +1573,7 @@ namespace Search {
                 if (!Signals.ponderhit_stop && Limits.use_timemanager ())
                 {
                     // Time adjustments
-                    if (aspiration && PVLimit == 1)
+                    if (aspiration && MultiPV == 1)
                     {
                         // Take in account some extra time if the best move has changed
                         TimeMgr.instability (RootMoves.best_move_change);
@@ -1757,7 +1753,7 @@ namespace Search {
                     DEPTH_NONE,
                     BOUND_NONE,
                     VALUE_NONE,
-                    VALUE_NONE); // evaluate (pos) ->To evaluate again
+                    VALUE_NONE);
             }
 
             pos.do_move (m, *si++);

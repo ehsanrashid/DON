@@ -11,6 +11,9 @@ namespace Pawns {
     // returns a pointer to an Entry object.
     struct Entry
     {
+    private:
+        template<Color C>
+        Value pawn_shelter_storm (const Position &pos, Square k_sq) const;
 
     public:
 
@@ -54,11 +57,9 @@ namespace Pawns {
             return pawns_on_sqrs[C][WHITE] + pawns_on_sqrs[C][BLACK];
         }
 
-        template<Color C>
-        Score evaluate_unstoppable_pawns () const;
 
         template<Color C>
-        Value pawn_shelter_storm (const Position &pos, Square k_sq);
+        Score evaluate_unstoppable_pawns () const;
 
         template<Color C>
         inline void evaluate_king_pawn_safety (const Position &pos)
@@ -77,7 +78,7 @@ namespace Pawns {
                 Bitboard pawns = pos.pieces<PAWN> (C);
                 if (pawns != U64(0))
                 {
-                    while (!(BitBoard::DIST_RINGS_bb[k_sq][kp_dist[C]++] & pawns)) {}
+                    while ((BitBoard::DIST_RINGS_bb[k_sq][kp_dist[C]++] & pawns) == U64(0)) {}
                 }
             }
         }
