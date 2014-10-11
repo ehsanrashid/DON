@@ -294,7 +294,7 @@ namespace MoveGen {
                             // if the pawn is not on the same file as the enemy king, because
                             // don't generate captures. Note that a possible discovery check
                             // promotion has been already generated among captures.
-                            if (pawns_on_Rx & ci->discoverers)
+                            if ((pawns_on_Rx & ci->discoverers) != U64(0))
                             {
                                 Bitboard push_cd_1 = shift_del<PUSH> (pawns_on_Rx & ci->discoverers   ) & empties;
                                 Bitboard push_cd_2 = shift_del<PUSH> (push_cd_1 & rel_rank_bb (C, R_3)) & empties;
@@ -344,7 +344,7 @@ namespace MoveGen {
                 }
 
                 // Promotions (queening and under-promotions)
-                if (pawns_on_R7)
+                if (pawns_on_R7 != U64(0))
                 {
                     // All time except when EVASION then 2nd condition must true
                     if (EVASION != GT || (targets & rel_rank_bb (C, R_8)))
@@ -527,7 +527,7 @@ namespace MoveGen {
 
         check_sq = SQ_NO;
         Bitboard slid_attacks = U64(0);
-        Bitboard sliders = checkers & ~(pos.pieces (NIHT, PAWN));
+        Bitboard sliders = checkers & ~pos.pieces (NIHT, PAWN);
         // Find squares attacked by slider checkers, will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
         while (sliders != U64(0))
@@ -573,8 +573,8 @@ namespace MoveGen {
         while (cur != end)
         {
             Move m = cur->move;
-            if (  (ENPASSANT == mtype (m) || pinneds != U64(0) || (org_sq (m) == king_sq))
-                && !pos.legal (m, pinneds)
+            if (  (ENPASSANT == mtype (m) || pinneds != U64(0) || org_sq (m) == king_sq)
+               && !pos.legal (m, pinneds)
                )
             {
                 cur->move = (--end)->move;

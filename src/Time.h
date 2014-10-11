@@ -43,7 +43,7 @@ namespace Time {
 
     typedef i64     point;
 
-    const point MILLI_SEC         = 1000;
+    const point MILLI_SEC        = 1000;
     const point MINUTE_MILLI_SEC = MILLI_SEC * 60;
     const point HOUR_MILLI_SEC   = MINUTE_MILLI_SEC * 60;
 

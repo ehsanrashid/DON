@@ -163,7 +163,7 @@ namespace UCI {
 
         void fifty_move_dist (const Option &opt)
         {
-            Position::_FiftyMoveDist = u08(2 * i32(opt));
+            Position::FiftyMoveDist = u08(2 * i32(opt));
         }
 
         void debug_log (const Option &opt)
@@ -341,7 +341,7 @@ namespace UCI {
         //
         // By setting Fifty Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          << Option (Position::_FiftyMoveDist,+  5,+ 50, fifty_move_dist);
+        Options["Fifty Move Distance"]          << Option (Position::FiftyMoveDist,+  5,+ 50, fifty_move_dist);
 
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, Time::configure);

@@ -153,7 +153,7 @@ private:
 
 public:
 
-    static u08 _FiftyMoveDist;
+    static u08  FiftyMoveDist;
 
     static void initialize ();
 

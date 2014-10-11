@@ -147,7 +147,8 @@ namespace Material {
         {
             memset (e, 0x00, sizeof (*e));
             e->matl_key      = matl_key;
-            e->factor[WHITE] = e->factor[BLACK] = SCALE_FACTOR_NORMAL;
+            e->factor[WHITE] =
+            e->factor[BLACK] = SCALE_FACTOR_NORMAL;
             e->game_phase    = pos.game_phase ();
 
             // Let's look if have a specialized evaluation function for this
@@ -203,13 +204,10 @@ namespace Material {
                 e->scaling_func[BLACK] = &ScaleKQKRPs[BLACK];
             }
 
-            const Value npm[CLR_NO] = 
-            {
-                pos.non_pawn_material (WHITE),
-                pos.non_pawn_material (BLACK),
-            };
+            const Value npm_w = pos.non_pawn_material (WHITE)
+                      , npm_b = pos.non_pawn_material (BLACK);
 
-            if (  npm[WHITE] + npm[BLACK] == VALUE_ZERO
+            if (  npm_w + npm_b == VALUE_ZERO
                && pos.pieces<PAWN> () != U64(0)
                )
             {
@@ -241,13 +239,13 @@ namespace Material {
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
 
-            if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BSHP)
+            if (npm_w - npm_b <= VALUE_MG_BSHP)
             {
                 if (pos.count<PAWN> (WHITE) == 0)
                 {
                     e->factor[WHITE] = u08(
-                        npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm[BLACK] <= VALUE_MG_BSHP ? 4 : 12);
+                        npm_w <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
+                        npm_b <= VALUE_MG_BSHP ? 4 : 12);
                 }
                 else
                 if (pos.count<PAWN> (WHITE) == 1)
@@ -256,13 +254,13 @@ namespace Material {
                 }
             }
 
-            if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BSHP)
+            if (npm_b - npm_w <= VALUE_MG_BSHP)
             {
                 if (pos.count<PAWN> (BLACK) == 0)
                 {
                     e->factor[BLACK] = u08(
-                        npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm[WHITE] <= VALUE_MG_BSHP ? 4 : 12);
+                        npm_b <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
+                        npm_w <= VALUE_MG_BSHP ? 4 : 12);
                 }
                 else
                 if (pos.count<PAWN> (BLACK) == 1)
@@ -272,11 +270,8 @@ namespace Material {
             }
 
             // Compute the space weight
-            if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_NIHT)
-            {
-                i32 minor_count = pos.count<NIHT> () + pos.count<BSHP> ();
-                e->space_weight = mk_score (minor_count * minor_count, 0);
-            }
+            i32 minor_count = pos.count<NIHT> () + pos.count<BSHP> ();
+            e->space_weight = mk_score (minor_count * minor_count, 0);
 
             // Evaluate the material imbalance.
             // Use KING as a place holder for the bishop pair "extended piece",

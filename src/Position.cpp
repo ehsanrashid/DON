@@ -121,12 +121,10 @@ namespace {
 
 } // namespace
 
-u08 Position::_FiftyMoveDist = 50;
+u08 Position::FiftyMoveDist = 50;
 
 void Position::initialize ()
 {
-    _FiftyMoveDist = u08(2 * i32(Options["Fifty Move Distance"]));
-
     for (i08 pt = PAWN; pt <= KING; ++pt)
     {
         Score score = mk_score (PIECE_VALUE[MG][pt], PIECE_VALUE[EG][pt]);
@@ -190,7 +188,7 @@ bool Position::draw () const
     */
     // Draw by 50 moves Rule?
     // Not in check or in check have legal moves 
-    if (  _FiftyMoveDist <= _si->clock50
+    if (  FiftyMoveDist <= _si->clock50
        && (_si->checkers == U64(0) || MoveList<LEGAL> (*this).size () != 0)
        )
     {
@@ -630,8 +628,8 @@ Value Position::see_sign (Move m) const
     // Early return if SEE cannot be negative because captured piece value
     // is not less then capturing one. Note that king moves always return
     // here because king midgame value is set to 0.
-    if ( PIECE_VALUE[MG][ptype (_board[org_sq (m)])]
-      <= PIECE_VALUE[MG][ptype (_board[dst_sq (m)])]
+    if (  PIECE_VALUE[MG][ptype (_board[org_sq (m)])]
+       <= PIECE_VALUE[MG][ptype (_board[dst_sq (m)])]
        )
     {
         return VALUE_KNOWN_WIN;
@@ -671,7 +669,7 @@ bool Position::pseudo_legal (Move m) const
     if (!_ok (m)) return false;
 
     Square org = org_sq (m)
-        ,   dst = dst_sq (m);
+        ,  dst = dst_sq (m);
 
     Rank r_org = rel_rank (_active, org);
     Rank r_dst = rel_rank (_active, dst);
