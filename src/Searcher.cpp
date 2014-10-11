@@ -497,8 +497,8 @@ namespace Search {
                     {
                         value =
                             gives_check ?
-                                -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
-                                -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
+                                -search_quien<PV, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
+                                -search_quien<PV, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
                     }
                 }
                 // Undo the move

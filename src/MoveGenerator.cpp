@@ -40,7 +40,7 @@ namespace MoveGen {
                             {
                                 continue;
                             }
-                            if (ci->discoverers && (ci->discoverers & s))
+                            if (ci->discoverers != U64(0) && (ci->discoverers & s))
                             {
                                 continue;
                             }
@@ -93,7 +93,7 @@ namespace MoveGen {
                 Delta step = (king_dst > king_org ? DEL_E : DEL_W);
                 for (i08 s = king_dst; s != king_org; s -= step)
                 {
-                    if (pos.attackers_to (Square(s), C_))
+                    if (pos.attackers_to (Square(s), C_) != U64(0))
                     {
                         return;
                     }
@@ -347,10 +347,11 @@ namespace MoveGen {
                 if (pawns_on_R7 != U64(0))
                 {
                     // All time except when EVASION then 2nd condition must true
-                    if (EVASION != GT || (targets & rel_rank_bb (C, R_8)))
+                    if (EVASION != GT || (targets & rel_rank_bb (C, R_8)) != U64(0))
                     {
-                        if      (CAPTURE == GT) empties = ~pos.pieces ();
-                        else if (EVASION == GT) empties &= targets;
+                        if (CAPTURE == GT) empties = ~pos.pieces ();
+                        else
+                        if (EVASION == GT) empties &= targets;
 
                         generate_promotion<LCAP> (moves, pawns_on_R7, enemies, ci);
                         generate_promotion<RCAP> (moves, pawns_on_R7, enemies, ci);
@@ -366,10 +367,10 @@ namespace MoveGen {
         INLINE ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
         {
             Generator<GT, C, PAWN>::generate (moves, pos, targets, ci);
-            /*if (pos.count<NIHT> (C))*/ Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
-            /*if (pos.count<BSHP> (C))*/ Generator<GT, C, BSHP>::generate (moves, pos, targets, ci);
-            /*if (pos.count<ROOK> (C))*/ Generator<GT, C, ROOK>::generate (moves, pos, targets, ci);
-            /*if (pos.count<QUEN> (C))*/ Generator<GT, C, QUEN>::generate (moves, pos, targets, ci);
+            /*if (pos.count<NIHT> (C) !=0)*/ Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
+            /*if (pos.count<BSHP> (C) !=0)*/ Generator<GT, C, BSHP>::generate (moves, pos, targets, ci);
+            /*if (pos.count<ROOK> (C) !=0)*/ Generator<GT, C, ROOK>::generate (moves, pos, targets, ci);
+            /*if (pos.count<QUEN> (C) !=0)*/ Generator<GT, C, QUEN>::generate (moves, pos, targets, ci);
             Generator<GT, C, KING>::generate (moves, pos, targets, ci);
 
             return moves;
@@ -501,8 +502,8 @@ namespace MoveGen {
         ASSERT (checkers); // If any checker exists
 
         Color active = pos.active ();
+        Square king_sq = pos.king_sq (active);
 
-        Square  king_sq = pos.king_sq (active);
         Square check_sq;
 
         //// Generates evasions for king, capture and non-capture moves excluding friends

@@ -270,8 +270,11 @@ namespace Material {
             }
 
             // Compute the space weight
-            i32 minor_count = pos.count<NIHT> () + pos.count<BSHP> ();
-            e->space_weight = mk_score (minor_count * minor_count, 0);
+            if (npm_w + npm_b >= 2*VALUE_MG_QUEN + 4*VALUE_MG_ROOK + 2*VALUE_MG_NIHT)
+            {
+                i32 minor_count = pos.count<NIHT> () + pos.count<BSHP> ();
+                e->space_weight = mk_score (minor_count * minor_count, 0);
+            }
 
             // Evaluate the material imbalance.
             // Use KING as a place holder for the bishop pair "extended piece",

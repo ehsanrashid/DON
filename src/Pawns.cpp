@@ -79,8 +79,8 @@ namespace Pawns {
         };
 
         const Score SPAN        = S(+ 0,+15); // Bonus for file distance of the two outermost pawns
-        const Score UNSTOPPABLE = S(+ 0,+20); // Bonus for pawn going to promote
-        const Score UNSUPPORTED = S(+20,+10); // Penalty for Unsupported pawn
+        const Score UNSTOPPABLE = S(+ 0,+20); // Bonus for unstoppable pawn going to promote
+        const Score UNSUPPORTED = S(+20,+10); // Penalty for unsupported pawn
 
         template<Color C>
         inline Score evaluate (const Position &pos, Entry *e)
@@ -119,7 +119,6 @@ namespace Pawns {
 
             const Square *pl = pos.list<PAWN> (C);
             Square s;
-            // Loop through all pawns of the current color and score each pawn
             while ((s = *pl++) != SQ_NO)
             {
                 ASSERT (pos[s] == (C | PAWN));
@@ -127,7 +126,6 @@ namespace Pawns {
                 File f = _file (s);
                 Rank r = rel_rank (C, s);
                 
-                // This file cannot be semi-open
                 e->semiopen_files[C] &= ~(1 << f);
 
                 Bitboard prank_bb  = rank_bb (s - PUSH);
@@ -172,7 +170,6 @@ namespace Pawns {
 
                 ASSERT (passed ^ (opposed || (opp_pawns & PAWN_ATTACK_SPAN[C][s])));
 
-                // Score this pawn
                 Score score = SCORE_ZERO;
 
                 if (connected != U64(0))
@@ -270,7 +267,7 @@ namespace Pawns {
                && rel_rank (C, k_sq) + 1 == r1
                )
             {
-                value += Value(200); // Enemy pawn in front Shelter
+                value += Value(200); // Enemy pawn in front shelter
             }
             else
             {
