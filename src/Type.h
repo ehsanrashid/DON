@@ -505,8 +505,8 @@ inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move(P
 
 inline Move mk_move (Square org, Square dst) { return mk_move<NORMAL> (org, dst); }
 
-inline float  value_to_cp (Value value) { return (float) value / i32(VALUE_EG_PAWN); }
-inline Value cp_to_value (float cp)     { return (Value) i32(cp * i32(VALUE_EG_PAWN)); }
+inline float value_to_cp (Value  v) { return (float)     v / i32(VALUE_EG_PAWN); }
+inline Value cp_to_value (float cp) { return (Value)i32(cp * i32(VALUE_EG_PAWN)); }
 
 inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
