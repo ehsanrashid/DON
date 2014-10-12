@@ -302,7 +302,7 @@ namespace Search {
 
             // Transposition table lookup
             Key   posi_key;
-            const TTEntry *tte = NULL;
+            const Entry *tte = NULL;
             Move  tt_move    = MOVE_NONE
                 , best_move  = MOVE_NONE;
             Value tt_value   = VALUE_NONE
@@ -587,7 +587,7 @@ namespace Search {
             ASSERT (depth > DEPTH_ZERO);
 
             Key   posi_key;
-            const TTEntry *tte = NULL;
+            const Entry *tte  = NULL;
             Move  move
                 , tt_move     = MOVE_NONE
                 , exclude_move= MOVE_NONE
@@ -870,9 +870,9 @@ namespace Search {
                                )
                             {
                                 Depth reduced_depth = depth - ProbCutDepth; // Shallow Depth
-                                Value reduced_beta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
+                                Value extended_beta = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
                                 //ASSERT (reduced_depth >= DEPTH_ONE);
-                                //ASSERT (reduced_beta <= +VALUE_INFINITE);
+                                //ASSERT (extended_beta <= +VALUE_INFINITE);
 
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
@@ -893,11 +893,11 @@ namespace Search {
                                     prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
                                     prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
-                                    Value value = -search_depth<NonPV, false, true> (pos, ss+1, -reduced_beta, -reduced_beta+1, reduced_depth, !cut_node);
+                                    Value value = -search_depth<NonPV, false, true> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
                                     
                                     pos.undo_move ();
 
-                                    if (value >= reduced_beta)
+                                    if (value >= extended_beta)
                                     {
                                         return value;
                                     }
@@ -1693,7 +1693,7 @@ namespace Search {
         Move m = pv[ply];
         pv.clear ();
         Value expected_value = new_value;
-        const TTEntry *tte;
+        const Entry *tte;
         do
         {
             ASSERT (MoveList<LEGAL> (pos).contains (m));
@@ -1733,7 +1733,7 @@ namespace Search {
 
         i08 ply = 0; // Ply starts from 1, we need to start from 0
         Move m = pv[ply];
-        const TTEntry *tte;
+        const Entry *tte;
         do
         {
             ASSERT (MoveList<LEGAL> (pos).contains (m));

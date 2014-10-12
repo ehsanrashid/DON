@@ -77,7 +77,7 @@ void benchmark (istream &is, const Position &pos)
     vector<string> fens;
 
     // Assign default values to missing arguments
-    string hash       = (is >> token) && !white_spaces (token) ? token : to_string (TranspositionTable::DefTTSize);
+    string hash       = (is >> token) && !white_spaces (token) ? token : to_string (TranspositionTable::DefSize);
     string threads    = (is >> token) && !white_spaces (token) ? token : "1";
     string limit_val  = (is >> token) && !white_spaces (token) ? token : "13";
     string limit_type = (is >> token) && !white_spaces (token) ? token : "depth";

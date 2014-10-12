@@ -57,7 +57,7 @@
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="_hash_table" />
+      <Field Name="_clusters" />
     </ShowAsAssociation>
   </Class>
   <Class Name="std::basic_tie_buf&lt;Elem, Traits&gt;" Collapsed="true">
@@ -325,7 +325,7 @@
       <Field Name="_table" />
     </ShowAsAssociation>
   </Struct>
-  <Struct Name="Transposition::TTEntry">
+  <Struct Name="Transposition::Entry">
     <Position X="25.75" Y="23.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ABCoAAAAAACAAACAAACIQAAAAAAAACAAAAICIAAAAAA=</HashCode>
@@ -491,7 +491,7 @@
       <Field Name="pv" />
     </ShowAsAssociation>
   </Struct>
-  <Struct Name="Transposition::TTCluster">
+  <Struct Name="Transposition::Cluster">
     <Position X="22.5" Y="24.75" Width="1.75" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACEAA=</HashCode>
