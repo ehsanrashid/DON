@@ -224,8 +224,7 @@ namespace Search {
         // and so refer to the previous search score.
         inline string info_multipv (const Position &pos, i16 depth, Value alpha, Value beta, point time)
         {
-            ASSERT (time >= 0);
-            if (time == 0) time = 1;
+            ASSERT (time > 0);
 
             stringstream ss;
 
@@ -949,7 +948,7 @@ namespace Search {
             {
                 if (Threadpool.main () == thread)
                 {
-                    time = now () - SearchTime;
+                    time = max (point(1), now () - SearchTime);
                     if (time > INFO_INTERVAL)
                     {
                         sync_cout
@@ -1011,7 +1010,7 @@ namespace Search {
 
                     if (Threadpool.main () == thread)
                     {
-                        time = now () - SearchTime;
+                        time = max (point(1), now () - SearchTime);
                         if (time > INFO_INTERVAL)
                         {
                             sync_cout
@@ -1479,7 +1478,7 @@ namespace Search {
                             RootMoves[i].insert_pv_into_tt (RootPos);
                         }
 
-                        iteration_time = now () - SearchTime;
+                        iteration_time = max (point(1), now () - SearchTime);
 
                         // If search has been stopped break immediately.
                         // Sorting and writing PV back to TT is safe becuase
@@ -1546,7 +1545,7 @@ namespace Search {
                     Skills.play_move ();
                 }
 
-                iteration_time = now () - SearchTime;
+                iteration_time = max (point(1), now () - SearchTime);
 
                 if (!white_spaces (SearchLog))
                 {
@@ -1889,8 +1888,7 @@ namespace Search {
             {
                 LogFile logfile (SearchLog);
 
-                point time = now () - SearchTime;
-                if (time == 0) time = 1;
+                point time = max (point(1), now () - SearchTime);
 
                 logfile
                     << "Time (ms)  : " << time                                      << "\n"
@@ -1935,8 +1933,7 @@ namespace Search {
         }
 
     finish:
-        point time = now () - SearchTime;
-        if (time == 0) time = 1;
+        point time = max (point(1), now () - SearchTime);
 
         // When search is stopped this info is printed
         sync_cout

@@ -168,9 +168,9 @@ namespace Evaluate {
         };
 
         enum ThreatT { PIADA, MINOR, MAJOR, ROYAL, THREAT_NO };
-        // THREATEN[attacking][attacked] contains bonuses according to
-        // which piece type attacks which one.
-        const Score THREATEN[THREAT_NO][NONE] =
+        // PIECE_THREATEN[attacking][attacked] contains bonuses
+        // according to which piece type attacks which one.
+        const Score PIECE_THREATEN[THREAT_NO][NONE] =
         {
             { S(+ 0,+ 0), S(+80,+119), S(+80,+119), S(+117,+199), S(+127,+218), S(+ 0,+ 0) }, // Pawns
             { S(+ 7,+39), S(+24, +49), S(+24,+ 49), S(+ 38,+100), S(+ 41,+104), S(+ 0,+ 0) }, // Minor
@@ -190,7 +190,7 @@ namespace Evaluate {
         const Score ROOK_ON_PAWNS           = S(+10,+28); // Bonus for rook on pawns
         const Score ROOK_TRAPPED            = S(+92,+ 0); // Penalty for rook trapped
         
-        const Score HANGED                  = S(+23,+20); // Bonus for each enemy hanged piece       
+        const Score PIECE_HANGED            = S(+23,+20); // Bonus for each enemy hanged piece       
 
     #undef S
 
@@ -332,16 +332,13 @@ namespace Evaluate {
         // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color except PAWN
         inline Score evaluate_pieces (const Position &pos, EvalInfo &ei, Bitboard mobility_area, Score &mobility)
         {
-            const Color  C_      = WHITE == C ? BLACK : WHITE;
-            const Delta PUSH     = WHITE == C ? DEL_N : DEL_S;
-            const Square fk_sq   = pos.king_sq (C);
-            const Bitboard occ   = pos.pieces ();
-            const Bitboard pinneds = ei.pinneds[C];
+            const Color  C_  = WHITE == C ? BLACK : WHITE;
+            const Delta PUSH = WHITE == C ? DEL_N : DEL_S;
+
+            Score score = SCORE_ZERO;
 
             ei.ful_attacked_by[C][PT] = U64(0);
             ei.pin_attacked_by[C][PT] = U64(0);
-
-            Score score = SCORE_ZERO;
             
             u08 king_ring_attackers_count = 0;
             u08 king_zone_attacks_count   = 0;
@@ -355,9 +352,9 @@ namespace Evaluate {
 
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks =
-                    (BSHP == PT) ? attacks_bb<BSHP> (s, (occ ^ pos.pieces (C, QUEN, BSHP)) | pinneds) :
-                    (ROOK == PT) ? attacks_bb<ROOK> (s, (occ ^ pos.pieces (C, QUEN, ROOK)) | pinneds) :
-                    (QUEN == PT) ? attacks_bb<BSHP> (s, occ) | attacks_bb<ROOK> (s, occ) :
+                    (BSHP == PT) ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) | ei.pinneds[C]) :
+                    (ROOK == PT) ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) | ei.pinneds[C]) :
+                    (QUEN == PT) ? attacks_bb<BSHP> (s, pos.pieces ()) | attacks_bb<ROOK> (s, pos.pieces ()) :
                                    PIECE_ATTACKS[PT][s];
 
                 ei.ful_attacked_by[C][PT] |= attacks;
@@ -373,7 +370,7 @@ namespace Evaluate {
                 // of threat evaluation must be done later when have full attack info.
                 if (ei.pin_attacked_by[C_][PAWN] & s)
                 {
-                    score -= THREATEN[PIADA][PT];
+                    score -= PIECE_THREATEN[PIADA][PT];
                 }
 
                 // Special extra evaluation for pieces
@@ -514,9 +511,9 @@ namespace Evaluate {
                     }
                 }
 
-                if (pinneds & s)
+                if (ei.pinneds[C] & s)
                 {
-                    attacks &= RAY_LINE_bb[fk_sq][s];
+                    attacks &= RAY_LINE_bb[pos.king_sq (C)][s];
                 }
                 ei.pin_attacked_by[C][PT] |= attacks;
 
@@ -528,8 +525,8 @@ namespace Evaluate {
                 {
                     if (mob <= 3 && ei.pi->semiopen_file<C > (f) == 0)
                     {
-                        const File kf = _file (fk_sq);
-                        const Rank kr = rel_rank (C, fk_sq);
+                        const File kf = _file (pos.king_sq (C));
+                        const Rank kr = rel_rank (C, pos.king_sq (C));
                         // Penalize rooks which are trapped by a king.
                         // Penalize more if the king has lost its castling capability.
                         if (  (kf < F_E) == (f < kf)
@@ -795,9 +792,9 @@ namespace Evaluate {
 
             if (protected_pieces != U64(0))
             {
-                score += ((protected_pieces & pos.pieces<QUEN> ()) ? THREATEN[MINOR][QUEN] :
-                          (protected_pieces & pos.pieces<ROOK> ()) ? THREATEN[MINOR][ROOK] :
-                          (protected_pieces & pos.pieces<BSHP> ()) ? THREATEN[MINOR][BSHP] : THREATEN[MINOR][NIHT]);
+                score += ((protected_pieces & pos.pieces<QUEN> ()) ? PIECE_THREATEN[MINOR][QUEN] :
+                          (protected_pieces & pos.pieces<ROOK> ()) ? PIECE_THREATEN[MINOR][ROOK] :
+                          (protected_pieces & pos.pieces<BSHP> ()) ? PIECE_THREATEN[MINOR][BSHP] : PIECE_THREATEN[MINOR][NIHT]);
             }
 
             // Add a bonus according if the attacking pieces are minor or major
@@ -809,28 +806,28 @@ namespace Evaluate {
                 threaten_pieces = weak_pieces & (ei.pin_attacked_by[C][NIHT]|ei.pin_attacked_by[C][BSHP]);
                 if (threaten_pieces != U64(0))
                 {
-                    score += ((threaten_pieces & pos.pieces<QUEN> ()) != U64(0) ? THREATEN[MINOR][QUEN] :
-                              (threaten_pieces & pos.pieces<ROOK> ()) != U64(0) ? THREATEN[MINOR][ROOK] :
-                              (threaten_pieces & pos.pieces<BSHP> ()) != U64(0) ? THREATEN[MINOR][BSHP] :
-                              (threaten_pieces & pos.pieces<NIHT> ()) != U64(0) ? THREATEN[MINOR][NIHT] : THREATEN[MINOR][PAWN]);
+                    score += ((threaten_pieces & pos.pieces<QUEN> ()) != U64(0) ? PIECE_THREATEN[MINOR][QUEN] :
+                              (threaten_pieces & pos.pieces<ROOK> ()) != U64(0) ? PIECE_THREATEN[MINOR][ROOK] :
+                              (threaten_pieces & pos.pieces<BSHP> ()) != U64(0) ? PIECE_THREATEN[MINOR][BSHP] :
+                              (threaten_pieces & pos.pieces<NIHT> ()) != U64(0) ? PIECE_THREATEN[MINOR][NIHT] : PIECE_THREATEN[MINOR][PAWN]);
                 }
                 // Threaten pieces by Major
                 threaten_pieces = weak_pieces & (ei.pin_attacked_by[C][ROOK]|ei.pin_attacked_by[C][QUEN]);
                 if (threaten_pieces != U64(0))
                 {
-                    score += ((threaten_pieces & pos.pieces<QUEN> ()) != U64(0) ? THREATEN[MAJOR][QUEN] :
-                              (threaten_pieces & pos.pieces<ROOK> ()) != U64(0) ? THREATEN[MAJOR][ROOK] :
-                              (threaten_pieces & pos.pieces<BSHP> ()) != U64(0) ? THREATEN[MAJOR][BSHP] :
-                              (threaten_pieces & pos.pieces<NIHT> ()) != U64(0) ? THREATEN[MAJOR][NIHT] : THREATEN[MAJOR][PAWN]);
+                    score += ((threaten_pieces & pos.pieces<QUEN> ()) != U64(0) ? PIECE_THREATEN[MAJOR][QUEN] :
+                              (threaten_pieces & pos.pieces<ROOK> ()) != U64(0) ? PIECE_THREATEN[MAJOR][ROOK] :
+                              (threaten_pieces & pos.pieces<BSHP> ()) != U64(0) ? PIECE_THREATEN[MAJOR][BSHP] :
+                              (threaten_pieces & pos.pieces<NIHT> ()) != U64(0) ? PIECE_THREATEN[MAJOR][NIHT] : PIECE_THREATEN[MAJOR][PAWN]);
                 }
 
                 // Threaten pieces by King
                 threaten_pieces = weak_pieces & ei.ful_attacked_by[C][KING];
-                if (threaten_pieces != U64(0)) score += (more_than_one (threaten_pieces) ? THREATEN[ROYAL][1] : THREATEN[ROYAL][0]); 
+                if (threaten_pieces != U64(0)) score += (more_than_one (threaten_pieces) ? PIECE_THREATEN[ROYAL][1] : PIECE_THREATEN[ROYAL][0]); 
 
                 // Hanging pieces
                 Bitboard hanged_pieces = weak_pieces & ~ei.pin_attacked_by[C_][NONE];
-                if (hanged_pieces != U64(0)) score += HANGED * (more_than_one (hanged_pieces) ? pop_count<MAX15> (hanged_pieces) : 1);
+                if (hanged_pieces != U64(0)) score += PIECE_HANGED * (more_than_one (hanged_pieces) ? pop_count<MAX15> (hanged_pieces) : 1);
             }
 
             if (Trace)
