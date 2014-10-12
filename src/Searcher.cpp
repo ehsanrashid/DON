@@ -67,8 +67,8 @@ namespace Search {
         i32     RootPly;
 
         u08     RootSize   // RootMove Count
-            ,   PVLimit
-            ,   PVIndex;
+            ,   LimitPV
+            ,   IndexPV;
 
         Value   DrawValue[CLR_NO]
             ,   BaseContempt[CLR_NO];
@@ -228,9 +228,9 @@ namespace Search {
 
             stringstream ss;
 
-            for (u08 i = 0; i < PVLimit; ++i)
+            for (u08 i = 0; i < LimitPV; ++i)
             {
-                bool updated = i <= PVIndex;
+                bool updated = i <= IndexPV;
 
                 i16   d;
                 Value v;
@@ -255,7 +255,7 @@ namespace Search {
                     << " multipv "  << u16(i + 1)
                     << " depth "    << d
                     << " seldepth " << u16(Threadpool.max_ply)
-                    << " score "    << ((i == PVIndex) ? pretty_score (v, alpha, beta) : pretty_score (v))
+                    << " score "    << ((i == IndexPV) ? pretty_score (v, alpha, beta) : pretty_score (v))
                     << " time "     << time
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * MILLI_SEC / time
@@ -399,11 +399,7 @@ namespace Search {
             // be generated.
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, dst_sq ((ss-1)->current_move));
             StateInfo si;
-            if (ci == NULL)
-            {
-                cc = CheckInfo (pos);
-                ci = &cc;
-            }
+            if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
 
             Move move;
             u08 legals = 0;
@@ -660,7 +656,7 @@ namespace Search {
 
                 tte      = TT.retrieve (posi_key);
                 (ss)->tt_move =
-                tt_move  = RootNode ? RootMoves[PVIndex].pv[0] :
+                tt_move  = RootNode ? RootMoves[IndexPV].pv[0] :
                            tte != NULL ? tte->move () : MOVE_NONE;
                 if (tte != NULL)
                 {
@@ -874,11 +870,8 @@ namespace Search {
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
                                 MovePicker mp (pos, HistoryStatistics, tt_move, pos.capture_type ());
-                                if (ci == NULL)
-                                {
-                                    cc = CheckInfo (pos);
-                                    ci = &cc;
-                                }
+                                if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
+
                                 while ((move = mp.next_move<false> ()) != MOVE_NONE)
                                 {
                                     // Speculative prefetch as early as possible
@@ -908,8 +901,8 @@ namespace Search {
 
                     // Step 10. Internal iterative deepening (skipped when in check)
                     if (  tt_move == MOVE_NONE
-                       && depth > (PVNode ? 4*DEPTH_ONE : 8*DEPTH_ONE)           // IID Activation Depth
-                       && (PVNode || (ss)->static_eval + VALUE_EG_PAWN >= beta)   // IID Margin
+                       && depth > (PVNode ? 4*DEPTH_ONE : 8*DEPTH_ONE)          // IID Activation Depth
+                       && (PVNode || (ss)->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                        )
                     {
                         Depth iid_depth = depth - 2*DEPTH_ONE - (PVNode ? DEPTH_ZERO : depth/4); // IID Reduced Depth
@@ -949,7 +942,6 @@ namespace Search {
                 || ((ss-0)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval >= (ss-2)->static_eval);
 
-            
             point time;
 
             if (RootNode)
@@ -968,16 +960,12 @@ namespace Search {
                 }
             }
 
-            Move *counter_moves  =  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move));
+            Move * counter_moves =  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move));
             Move *followup_moves = FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move));
 
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
             StateInfo si;
-            if (ci == NULL)
-            {
-                cc = CheckInfo (pos);
-                ci = &cc;
-            }
+            if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
 
             u08   legals = 0
                 , quiets = 0;
@@ -995,7 +983,7 @@ namespace Search {
                 // At root obey the "searchmoves" option and skip moves not listed in
                 // RootMove list, as a consequence any illegal move is also skipped.
                 // In MultiPV mode also skip PV moves which have been already searched.
-                if (RootNode && !count (RootMoves.begin () + PVIndex, RootMoves.end (), move)) continue;
+                if (RootNode && !count (RootMoves.begin () + IndexPV, RootMoves.end (), move)) continue;
 
                 bool move_legal = RootNode || pos.legal (move, ci->pinneds);
 
@@ -1028,7 +1016,7 @@ namespace Search {
                             sync_cout
                                 << "info"
                                 //<< " depth "          << u16(depth)
-                                << " currmovenumber " << setw (2) << u16(legals + PVIndex)
+                                << " currmovenumber " << setw (2) << u16(legals + IndexPV)
                                 << " currmove "       << move_to_can (move, Chess960)
                                 << " time "           << time
                                 << sync_endl;
@@ -1420,7 +1408,7 @@ namespace Search {
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to retrieve a set of possible moves.
-            PVLimit = min (max (MultiPV, skill_pv), RootSize);
+            LimitPV = min (max (MultiPV, skill_pv), RootSize);
 
             Value best_value = VALUE_ZERO
                 , bound_a    = -VALUE_INFINITE
@@ -1450,9 +1438,9 @@ namespace Search {
 
                 const bool aspiration = depth > 4*DEPTH_ONE;
 
-                //PVLimit = min (max (MultiPV, aspiration ? skill_pv : MIN_SKILL_MULTIPV), RootSize);
+                //LimitPV = min (max (MultiPV, aspiration ? skill_pv : MIN_SKILL_MULTIPV), RootSize);
                 // MultiPV loop. Perform a full root search for each PV line
-                for (PVIndex = 0; PVIndex < PVLimit; ++PVIndex)
+                for (IndexPV = 0; IndexPV < LimitPV; ++IndexPV)
                 {
                     // Requested to stop?
                     if (Signals.force_stop) break;
@@ -1464,8 +1452,8 @@ namespace Search {
                         window_b =
                             Value(depth <= 32*DEPTH_ONE ? 22 - (depth-1)/4 : 14); // Decreasing window
 
-                        bound_a = max (RootMoves[PVIndex].old_value - window_a, -VALUE_INFINITE);
-                        bound_b = min (RootMoves[PVIndex].old_value + window_b, +VALUE_INFINITE);
+                        bound_a = max (RootMoves[IndexPV].old_value - window_a, -VALUE_INFINITE);
+                        bound_b = min (RootMoves[IndexPV].old_value + window_b, +VALUE_INFINITE);
                     }
 
                     // Start with a small aspiration window and, in case of fail high/low,
@@ -1480,12 +1468,12 @@ namespace Search {
                         // want to keep the same order for all the moves but the new PV
                         // that goes to the front. Note that in case of MultiPV search
                         // the already searched PV lines are preserved.
-                        //RootMoves.sort_end (PVIndex);
-                        stable_sort (RootMoves.begin () + PVIndex, RootMoves.end ());
+                        //RootMoves.sort_end (IndexPV);
+                        stable_sort (RootMoves.begin () + IndexPV, RootMoves.end ());
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
-                        for (i08 i = PVIndex; i >= 0; --i)
+                        for (i08 i = IndexPV; i >= 0; --i)
                         {
                             RootMoves[i].insert_pv_into_tt (RootPos);
                         }
@@ -1535,10 +1523,10 @@ namespace Search {
                     } while (true); //(bound_a < bound_b);
 
                     // Sort the PV lines searched so far and update the GUI
-                    //RootMoves.sort_beg (PVIndex + 1);
-                    stable_sort (RootMoves.begin (), RootMoves.begin () + PVIndex + 1);
+                    //RootMoves.sort_beg (IndexPV + 1);
+                    stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
 
-                    if (PVIndex + 1 == PVLimit || iteration_time > INFO_INTERVAL)
+                    if (IndexPV + 1 == LimitPV || iteration_time > INFO_INTERVAL)
                     {
                         sync_cout << info_multipv (RootPos, depth, bound_a, bound_b, iteration_time) << sync_endl;
                     }
@@ -1575,7 +1563,7 @@ namespace Search {
                 if (!Signals.ponderhit_stop && Limits.use_timemanager ())
                 {
                     // Time adjustments
-                    if (aspiration && MultiPV == 1)
+                    if (aspiration && LimitPV == 1)
                     {
                         // Take in account some extra time if the best move has changed
                         TimeMgr.instability (RootMoves.best_move_change);

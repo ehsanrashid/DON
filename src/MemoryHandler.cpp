@@ -46,7 +46,7 @@ namespace Memory {
 
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-        //void exit_error (const LPSTR api_lp, DWORD error_code)
+        //void show_error (const LPSTR api_name, DWORD error_code)
         //{
         //    LPSTR msg_buffer_lp = NULL;
         //
@@ -58,7 +58,7 @@ namespace Memory {
         //                     msg_buffer_lp, 0, NULL);
         //
         //    //... now display this string
-        //    _tprintf (TEXT ("ERROR: API        = %s.\n") , api_lp);
+        //    _tprintf (TEXT ("ERROR: API        = %s.\n") , api_name);
         //    _tprintf (TEXT ("       error code = %lu.\n"), error_code);
         //    _tprintf (TEXT ("       message    = %s.\n") , msg_buffer_lp);
         //
@@ -68,39 +68,40 @@ namespace Memory {
         //    error_code = GetLastError ();
         //}
 
-        void setup_privilege (const LPSTR privilege_lp, BOOL enable)
+        void setup_privilege (const char *privilege_name, bool enable)
         {
             HANDLE token_handle;
             // Open process token
             if (!OpenProcessToken (GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &token_handle))
             {
-                //exit_error (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
+                //show_error (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
             }
             
             TOKEN_PRIVILEGES token_priv;
             // Get the luid
-            if (!LookupPrivilegeValue (NULL, privilege_lp, &token_priv.Privileges[0].Luid))
+            if (!LookupPrivilegeValue (NULL, const_cast<LPCSTR> (privilege_name), &token_priv.Privileges[0].Luid))
             {
-                //exit_error (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
+                //show_error (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
             }
-            // Enable or Disable privilege
+
             token_priv.PrivilegeCount = 1;
+            // Enable or Disable privilege
             token_priv.Privileges[0].Attributes = (enable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
             //BOOL status = 
-            AdjustTokenPrivileges (token_handle, FALSE, &token_priv, 0, static_cast<PTOKEN_PRIVILEGES>(NULL), 0);
+            AdjustTokenPrivileges (token_handle, FALSE, &token_priv, 0, PTOKEN_PRIVILEGES(NULL), 0);
 
             // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
             // So always check for the last error_code value.
             //DWORD error_code = GetLastError ();
             //if (!status || error_code != ERROR_SUCCESS)
             //{
-            //    exit_error (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
+            //    show_error (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
             //}
 
             // Close the handle
             if (!CloseHandle (token_handle))
             {
-                //exit_error (TEXT (const_cast<LPSTR> ("CloseHandle")), GetLastError ());
+                //show_error (TEXT (const_cast<LPSTR> ("CloseHandle")), GetLastError ());
             }
         }
 
@@ -209,7 +210,7 @@ namespace Memory {
     {
 #   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-        setup_privilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), TRUE);
+        setup_privilege (SE_LOCK_MEMORY_NAME, true);
         
 #   else    // Linux - Unix
 

@@ -36,13 +36,13 @@ namespace Transposition {
     #ifdef LPAGES
 
         size_t offset = max (alignment-1, sizeof (void *));
-
+       
         Memory::create_memory (_mem, mem_size, alignment);
         if (_mem != NULL)
         {
-            void *ptr = reinterpret_cast<void *>((uintptr_t(_mem) + offset) & ~uintptr_t(offset));
-            _hash_table = static_cast<TTCluster *>(ptr);
-            ASSERT (0 == (uintptr_t(_hash_table) & (alignment - 1)));
+            void *ptr   = reinterpret_cast<void*> ((size_t(_mem) + offset) & ~size_t(offset));
+            _hash_table = reinterpret_cast<TTCluster*> (ptr);
+            ASSERT (0 == (size_t(_hash_table) & (alignment - 1)));
             return;
         }
 
@@ -69,10 +69,10 @@ namespace Transposition {
         {
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
 
-            void **ptr = reinterpret_cast<void **>((uintptr_t(mem) + offset) & ~uintptr_t(alignment - 1));
+            void **ptr  = reinterpret_cast<void**> ((size_t(mem) + offset) & ~size_t(alignment - 1));
             ptr[-1]     = mem;
-            _hash_table = reinterpret_cast<TTCluster *>(ptr);
-            ASSERT (0 == (uintptr_t(_hash_table) & (alignment - 1)));
+            _hash_table = reinterpret_cast<TTCluster*> (ptr);
+            ASSERT (0 == (size_t(_hash_table) & (alignment - 1)));
             return;
         }
 

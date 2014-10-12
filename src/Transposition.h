@@ -194,24 +194,23 @@ namespace Transposition {
         // It is used to display the "info hashfull ..." information in UCI.
         // "the hash is <x> permill full", the engine should send this info regularly.
         // hash, are using <x>%. of the state of full.
-        inline u32 permill_full () const
+        inline u16 permill_full () const
         {
             u64 full_cluster = 0;
             u64 scan_cluster = std::min (U64(10000), _cluster_count);
             for (const TTCluster *itc = _hash_table; itc < _hash_table + scan_cluster; ++itc)
             {
-                const TTEntry *tte = itc->entries;
-                if (  (tte+0)->gen () == _generation
-                   || (tte+1)->gen () == _generation
-                   || (tte+2)->gen () == _generation
-                   || (tte+3)->gen () == _generation
-                   )
+                const TTEntry *fte = itc->entries;
+                for (const TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
                 {
-                    ++full_cluster;
+                    if (ite->gen () == _generation)
+                    {
+                        ++full_cluster;
+                    }
                 }
             }
 
-            return u32(1000 * full_cluster / scan_cluster);
+            return u16(full_cluster * 1000 / scan_cluster);
         }
 
         u32 resize (size_t mem_size_mb, bool force = false);
@@ -235,20 +234,20 @@ namespace Transposition {
         {
                 u32 mem_size_mb = tt.size ();
                 u08 dummy = 0;
-                os.write (reinterpret_cast<const CharT *>(&mem_size_mb)   , sizeof (mem_size_mb));
-                os.write (reinterpret_cast<const CharT *>(&dummy), sizeof (dummy));
-                os.write (reinterpret_cast<const CharT *>(&dummy), sizeof (dummy));
-                os.write (reinterpret_cast<const CharT *>(&dummy), sizeof (dummy));
-                os.write (reinterpret_cast<const CharT *>(&dummy), sizeof (dummy));
-                os.write (reinterpret_cast<const CharT *>(&tt._cluster_count) , sizeof (tt._cluster_count));
-                os.write (reinterpret_cast<const CharT *>(&dummy), sizeof (dummy));
-                os.write (reinterpret_cast<const CharT *>(&dummy), sizeof (dummy));
-                os.write (reinterpret_cast<const CharT *>(&dummy), sizeof (dummy));
-                os.write (reinterpret_cast<const CharT *>(&tt._generation), sizeof (tt._generation));
+                os.write (reinterpret_cast<const CharT*> (&mem_size_mb)   , sizeof (mem_size_mb));
+                os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+                os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+                os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+                os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+                os.write (reinterpret_cast<const CharT*> (&tt._cluster_count) , sizeof (tt._cluster_count));
+                os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+                os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+                os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+                os.write (reinterpret_cast<const CharT*> (&tt._generation), sizeof (tt._generation));
                 u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
                 for (u32 i = 0; i < cluster_bulk; ++i)
                 {
-                    os.write (reinterpret_cast<const CharT *>(tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
+                    os.write (reinterpret_cast<const CharT*> (tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
                 }
                 return os;
         }
@@ -260,22 +259,22 @@ namespace Transposition {
                 u32 mem_size_mb;
                 u08 generation;
                 u08 dummy;
-                is.read (reinterpret_cast<CharT *>(&mem_size_mb)  , sizeof (mem_size_mb));
-                is.read (reinterpret_cast<CharT *>(&dummy), sizeof (dummy));
-                is.read (reinterpret_cast<CharT *>(&dummy), sizeof (dummy));
-                is.read (reinterpret_cast<CharT *>(&dummy), sizeof (dummy));
-                is.read (reinterpret_cast<CharT *>(&dummy), sizeof (dummy));
-                is.read (reinterpret_cast<CharT *>(&tt._cluster_count), sizeof (tt._cluster_count));
-                is.read (reinterpret_cast<CharT *>(&dummy), sizeof (dummy));
-                is.read (reinterpret_cast<CharT *>(&dummy), sizeof (dummy));
-                is.read (reinterpret_cast<CharT *>(&dummy), sizeof (dummy));
-                is.read (reinterpret_cast<CharT *>(&generation)   , sizeof (generation));
+                is.read (reinterpret_cast<CharT*> (&mem_size_mb)  , sizeof (mem_size_mb));
+                is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+                is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+                is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+                is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+                is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
+                is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+                is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+                is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+                is.read (reinterpret_cast<CharT*> (&generation)   , sizeof (generation));
                 tt.resize (mem_size_mb);
                 tt._generation = (generation > 0 ? generation - 4 : 0);
                 u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
                 for (u32 i = 0; i < cluster_bulk; ++i)
                 {
-                    is.read (reinterpret_cast<CharT *>(tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
+                    is.read (reinterpret_cast<CharT*> (tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
                 }
                 return is;
         }

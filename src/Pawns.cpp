@@ -91,16 +91,16 @@ namespace Pawns {
             const Delta RCAP = WHITE == C ? DEL_NE : DEL_SW;
             const Delta LCAP = WHITE == C ? DEL_NW : DEL_SE;
 
-            const Bitboard our_pawns = pos.pieces<PAWN> (C );
+            const Bitboard own_pawns = pos.pieces<PAWN> (C );
             const Bitboard opp_pawns = pos.pieces<PAWN> (C_);
 
-            e->pawns_attacks  [C] = shift_del<RCAP> (our_pawns) | shift_del<LCAP> (our_pawns);
-            //e->blocked_pawns  [C] = our_pawns & shift_del<PULL> (opp_pawns);
+            e->pawns_attacks  [C] = shift_del<RCAP> (own_pawns) | shift_del<LCAP> (own_pawns);
+            //e->blocked_pawns  [C] = own_pawns & shift_del<PULL> (opp_pawns);
             e->passed_pawns   [C] = U64(0);
             e->semiopen_files [C] = 0xFF;
             e->king_sq        [C] = SQ_NO;
 
-            Bitboard center_pawns = our_pawns & EXT_CENTER_bb[C];
+            Bitboard center_pawns = own_pawns & EXT_CENTER_bb[C];
             if (center_pawns != U64(0))
             {
                 Bitboard color_pawns;
@@ -130,10 +130,10 @@ namespace Pawns {
 
                 Bitboard prank_bb  = rank_bb (s - PUSH);
 
-                Bitboard adjacents = our_pawns & ADJ_FILE_bb[f];
+                Bitboard adjacents = own_pawns & ADJ_FILE_bb[f];
                 Bitboard supported = (adjacents & prank_bb);
                 Bitboard connected = (adjacents & (prank_bb | rank_bb (s)));
-                Bitboard doubled   = (our_pawns & FRONT_SQRS_bb[C][s]);
+                Bitboard doubled   = (own_pawns & FRONT_SQRS_bb[C][s]);
 
                 bool phalanx       = connected & rank_bb (s);
                 bool levered       = (opp_pawns & PAWN_ATTACKS[C][s]);
@@ -149,7 +149,7 @@ namespace Pawns {
                 // Then it cannot be backward either.
                 if (  passed || isolated || levered || connected || r >= R_6
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
-                   || (our_pawns & PAWN_ATTACK_SPAN[C_][s] && !(opp_pawns & (s-PUSH)))
+                   || (own_pawns & PAWN_ATTACK_SPAN[C_][s] && !(opp_pawns & (s-PUSH)))
                    )
                 {
                     backward = false;
@@ -172,7 +172,7 @@ namespace Pawns {
 
                 Score score = SCORE_ZERO;
 
-                if (connected != U64(0))
+                if (connected)
                 {
                     score += CONNECTED[opposed][phalanx][r];
                 }
@@ -183,7 +183,7 @@ namespace Pawns {
                 }
                 else
                 {
-                    if (supported == U64(0))
+                    if (!supported)
                     {
                         score -= UNSUPPORTED;
                     }
@@ -198,15 +198,15 @@ namespace Pawns {
                     score += LEVER[r];
                 }
 
-                if (doubled != U64(0))
+                if (doubled)
                 {
                     score -= DOUBLED[f] / i32(rank_dist (s, scan_frntmost_sq (C, doubled)));
                 }
                 else
                 {
-                    // Passed pawns will be properly scored in evaluation because need
-                    // full attack info to evaluate passed pawns.
                     // Only the frontmost passed pawn on each file is considered a true passed pawn.
+                    // Passed pawns will be properly scored in evaluation
+                    // because complete attack info needed to evaluate passed pawns.
                     if (passed)
                     {
                         e->passed_pawns[C] += s;
