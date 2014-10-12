@@ -36,10 +36,13 @@ namespace Threads {
     template<class T>
     void delete_thread (T *th)
     {
-        th->kill ();                // Search must be already finished
-        th->notify_one ();
-        thread_join (th->native_handle);   // Wait for thread termination
-        delete th;
+        if (th != NULL)
+        {
+            th->kill ();                    // Search must be already finished
+            th->notify_one ();
+            thread_join (th->native_handle);// Wait for thread termination
+            delete th;
+        }
     }
 
     // explicit template instantiations
@@ -262,7 +265,7 @@ namespace Threads {
         max_ply = 0;
         push_back (new_thread<MainThread> ());
         
-        timer_th         = new_thread<TimerThread> ();
+        timer_th        = new_thread<TimerThread> ();
         timer_th->task  = check_limits;
         timer_th->resolution = TimerResolution;
         
@@ -276,10 +279,8 @@ namespace Threads {
     // the threads before to free ThreadPool object.
     void ThreadPool::deinitialize ()
     {
-        if (Threadpool.auto_save_th) delete_thread (auto_save_th);
-
+        delete_thread (auto_save_th);
         delete_thread (timer_th); // As first because check_limits() accesses threads data
-
         for (iterator itr = begin (); itr != end (); ++itr)
         {
             delete_thread (*itr);

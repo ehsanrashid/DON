@@ -74,6 +74,7 @@ namespace Search {
             ,   BaseContempt[CLR_NO];
 
         bool    MateSearch;
+        bool    FirstAutoSave;
 
         TimeManager  TimeMgr;
         // Gain statistics
@@ -1861,6 +1862,7 @@ namespace Search {
 
             if (AutoSaveTime > 0)
             {
+                FirstAutoSave = true;
                 Threadpool.auto_save_th        = new_thread<TimerThread> ();
                 Threadpool.auto_save_th->task  = auto_save;
                 Threadpool.auto_save_th->resolution = AutoSaveTime*MINUTE_MILLI_SEC;
@@ -2136,6 +2138,11 @@ namespace Threads {
 
     void auto_save ()
     {
+        if (FirstAutoSave)
+        {
+            FirstAutoSave = false;
+            return;
+        }
         TT.save (HashFile);
     }
 

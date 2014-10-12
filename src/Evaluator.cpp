@@ -1213,7 +1213,7 @@ namespace Evaluate {
                 stringstream ss;
 
                 ss  << showpoint << showpos << setprecision (2) << fixed
-                    << "      Eval term |    White    |    Black    |     Total    \n"
+                    << "         Entity |    White    |    Black    |     Total    \n"
                     << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
                     << "----------------+-------------+-------------+--------------\n";
                 write (ss, "Material"  , MATERIAL);
@@ -1228,10 +1228,10 @@ namespace Evaluate {
                 write (ss, "Threat"    , THREAT);
                 write (ss, "Passer"    , PASSER);
                 write (ss, "Space"     , SPACE);
-                ss  << "---------------------+-------------+-------------+--------------\n";
+                ss  << "----------------+-------------+-------------+--------------\n";
                 write (ss, "Total"     , TOTAL);
                 ss  << "\n"
-                    << "Total evaluation: " << value_to_cp (value) << " (white side)\n";
+                    << "Evaluation: " << value_to_cp (value) << " (white side)\n";
 
                 return ss.str ();
             }
