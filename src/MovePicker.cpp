@@ -17,7 +17,7 @@ namespace MovePick {
             EVASION_S1, EVASION_S2,
             QSEARCH_0 , CAPTURE_S3, QUIET_CHECK_S3,
             QSEARCH_1 , CAPTURE_S4,
-            PROBCUT   , CAPTURE_S5,
+            PROB_CUT  , CAPTURE_S5,
             RECAPTURE , CAPTURE_S6,
             STOP
         };
@@ -60,7 +60,9 @@ namespace MovePick {
 
         stage = pos.checkers () != U64(0) ? EVASION_S1 : MAIN_S;
 
-        tt_move = ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE;
+        tt_move = ttm != MOVE_NONE
+               && pos.pseudo_legal (ttm) ?
+                    ttm : MOVE_NONE;
         end += tt_move != MOVE_NONE;
     }
 
@@ -93,12 +95,7 @@ namespace MovePick {
             // Skip TT move if is not a capture or a promotion, this avoids search_quien
             // tree explosion due to a possible perpetual check or similar rare cases
             // when TT table is full.
-            if (  ttm != MOVE_NONE
-               && !pos.capture_or_promotion (ttm)
-               )
-            {
-                ttm = MOVE_NONE;
-            }
+            if (ttm != MOVE_NONE && !pos.capture_or_promotion (ttm)) ttm = MOVE_NONE;
         }
         else
         {
@@ -107,11 +104,13 @@ namespace MovePick {
             ttm = MOVE_NONE;
         }
 
-        tt_move = ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE;
+        tt_move = ttm != MOVE_NONE
+               && pos.pseudo_legal (ttm) ?
+                    ttm : MOVE_NONE;
         end += tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &p, HistoryStats &h, Move ttm,          PieceT pt)
+    MovePicker::MovePicker (const Position &p, HistoryStats &h, Move ttm, PieceT pt)
         : cur (moves)
         , end (moves)
         , pos (p)
@@ -123,18 +122,16 @@ namespace MovePick {
     {
         ASSERT (pos.checkers () == U64(0));
 
-        stage = PROBCUT;
+        stage = PROB_CUT;
 
         // In ProbCut generate only captures better than parent's captured piece
         capture_threshold = PIECE_VALUE[MG][pt];
 
-        tt_move = ttm != MOVE_NONE && pos.pseudo_legal (ttm) ? ttm : MOVE_NONE;
-        if (  tt_move != MOVE_NONE
-           && (!pos.capture (tt_move) || pos.see (tt_move) <= capture_threshold)
-           )
-        {
-            tt_move = MOVE_NONE;
-        }
+        tt_move = ttm != MOVE_NONE
+               && pos.pseudo_legal (ttm)
+               && pos.capture (ttm)
+               && pos.see (ttm) > capture_threshold ?
+                    ttm : MOVE_NONE;
         end += tt_move != MOVE_NONE;
     }
 
@@ -369,7 +366,7 @@ namespace MovePick {
         case EVASION_S1:
         case QSEARCH_0:
         case QSEARCH_1:
-        case PROBCUT:
+        case PROB_CUT:
         case RECAPTURE:
             stage = STOP;
 
@@ -405,7 +402,7 @@ namespace MovePick {
             case EVASION_S1:
             case QSEARCH_0:
             case QSEARCH_1:
-            case PROBCUT:
+            case PROB_CUT:
                 ++cur;
                 return tt_move;
             break;

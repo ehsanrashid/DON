@@ -195,7 +195,7 @@ namespace MovePick {
 
         MovePicker (const Position&, HistoryStats&, Move, Depth, Move*, Move*, Search::Stack*);
         MovePicker (const Position&, HistoryStats&, Move, Depth, Square);
-        MovePicker (const Position&, HistoryStats&, Move,        PieceT);
+        MovePicker (const Position&, HistoryStats&, Move, PieceT);
 
         // Picks and moves to the front the best move in the range [cur, end],
         // it is faster than sorting all the moves in advance when moves are few, as

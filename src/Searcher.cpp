@@ -33,31 +33,39 @@ namespace Search {
     namespace {
 
         const Depth FutilityMarginDepth = Depth(7);
-        // Futility margin lookup table (initialized at startup)
+
         CACHE_ALIGN(16)
-        Value FutilityMargins[FutilityMarginDepth];  // [depth]
+        // Futility margin lookup table (initialized at startup)
+        // [depth]
+        Value FutilityMargins[FutilityMarginDepth];
 
         const Depth RazorDepth = Depth(4);
-        // Razoring margin lookup table (initialized at startup)
         CACHE_ALIGN(16)
-        Value RazorMargins[RazorDepth];              // [depth]
+        // Razoring margin lookup table (initialized at startup)
+        // [depth]
+        Value RazorMargins[RazorDepth];
 
         const Depth FutilityMoveCountDepth = Depth(16);
-        // Futility move count lookup table (initialized at startup)
         CACHE_ALIGN(16)
-        u08   FutilityMoveCounts[2][FutilityMoveCountDepth]; // [improving][depth]
+        // Futility move count lookup table (initialized at startup)
+        // [improving][depth]
+        u08   FutilityMoveCounts[2][FutilityMoveCountDepth];
 
         const Depth ReductionDepth     = Depth(32);
         const u08   ReductionMoveCount = 64;
-        // Reductions lookup table (initialized at startup)
         CACHE_ALIGN(16)
-        u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];  // [pv][improving][depth][move_num]
+        // Reductions lookup table (initialized at startup)
+        // [pv][improving][depth][move_num]
+        u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];
 
         template<bool PVNode>
         inline Depth reduction (bool imp, Depth d, i32 mn)
         {
             return Depth (Reductions[PVNode][imp][min (d, ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
         }
+
+        const Depth ProbCutDepth = Depth(4);
+        const Depth ShallowDepth = Depth(4);
 
         const u08   MAX_QUIETS    = 64;
 
@@ -858,11 +866,11 @@ namespace Search {
                             // If have a very good capture (i.e. SEE > see[captured_piece_type])
                             // and a reduced search returns a value much above beta,
                             // can (almost) safely prune the previous move.
-                            if (  depth > RazorDepth
+                            if (  depth > ProbCutDepth
                                && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
                                )
                             {
-                                Depth rdepth = depth - RazorDepth;
+                                Depth rdepth = depth - ShallowDepth;
                                 Value rbeta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE);
                                 //ASSERT (rdepth >= DEPTH_ONE);
                                 //ASSERT (rbeta <= +VALUE_INFINITE);
