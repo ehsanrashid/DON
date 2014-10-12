@@ -54,18 +54,17 @@ namespace Search {
         const Depth ReductionDepth     = Depth(32);
         const u08   ReductionMoveCount = 64;
         CACHE_ALIGN(16)
-        // Reductions lookup table (initialized at startup)
+        // ReductionDepths lookup table (initialized at startup)
         // [pv][improving][depth][move_num]
-        u08   Reductions[2][2][ReductionDepth][ReductionMoveCount];
+        u08   ReductionDepths[2][2][ReductionDepth][ReductionMoveCount];
 
         template<bool PVNode>
-        inline Depth reduction (bool imp, Depth d, i32 mn)
+        inline Depth reduction_depths (bool imp, Depth d, i32 mn)
         {
-            return Depth (Reductions[PVNode][imp][min (d, ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
+            return Depth (ReductionDepths[PVNode][imp][min (d, ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
         }
 
         const Depth ProbCutDepth = Depth(4);
-        const Depth ShallowDepth = Depth(4);
 
         const u08   MAX_QUIETS    = 64;
 
@@ -770,12 +769,12 @@ namespace Search {
                                 return search_quien<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
                             }
 
-                            Value ralpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
-                            //ASSERT (ralpha >= -VALUE_INFINITE);
+                            Value reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
+                            //ASSERT (reduced_alpha >= -VALUE_INFINITE);
 
-                            Value ver_value = search_quien<NonPV, false> (pos, ss, ralpha, ralpha+1, DEPTH_ZERO);
+                            Value ver_value = search_quien<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
 
-                            if (ver_value <= ralpha)
+                            if (ver_value <= reduced_alpha)
                             {
                                 return ver_value;
                             }
@@ -815,10 +814,10 @@ namespace Search {
                                 {
                                     (ss)->current_move = MOVE_NULL;
 
-                                    // Null move dynamic (variable) reduction based on depth and static evaluation
-                                    Depth R = (3 + depth/4 + min (i32 (static_eval - beta)/VALUE_MG_PAWN, 3))*DEPTH_ONE;
+                                    // Null move dynamic reduction based on depth and static evaluation
+                                    Depth reduction_depth = (3 + depth/4 + min (i32 (static_eval - beta)/VALUE_MG_PAWN, 3))*DEPTH_ONE;
                                     
-                                    Depth rdepth = depth - R;
+                                    Depth reduced_depth = depth - reduction_depth;
 
                                     // Do null move
                                     pos.do_null_move (si);
@@ -828,9 +827,9 @@ namespace Search {
 
                                     // Null (zero) window (alpha, beta) = (beta-1, beta):
                                     Value null_value =
-                                        rdepth < DEPTH_ONE ?
+                                        reduced_depth < DEPTH_ONE ?
                                             -search_quien<NonPV, false>        (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
-                                            -search_depth<NonPV, false, false> (pos, ss+1, -beta, -beta+1, rdepth, !cut_node);
+                                            -search_depth<NonPV, false, false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node);
 
                                     // Undo null move
                                     pos.undo_null_move ();
@@ -850,9 +849,9 @@ namespace Search {
                                         
                                         // Do verification search at high depths
                                         Value ver_value =
-                                            rdepth < DEPTH_ONE ?
+                                            reduced_depth < DEPTH_ONE ?
                                                 search_quien<NonPV, false>        (pos, ss, beta-1, beta, DEPTH_ZERO) :
-                                                search_depth<NonPV, false, false> (pos, ss, beta-1, beta, rdepth, false);
+                                                search_depth<NonPV, false, false> (pos, ss, beta-1, beta, reduced_depth, false);
 
                                         if (ver_value >= beta)
                                         {
@@ -870,10 +869,10 @@ namespace Search {
                                && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
                                )
                             {
-                                Depth rdepth = depth - ShallowDepth;
-                                Value rbeta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE);
-                                //ASSERT (rdepth >= DEPTH_ONE);
-                                //ASSERT (rbeta <= +VALUE_INFINITE);
+                                Depth reduced_depth = depth - ProbCutDepth; // Shallow Depth
+                                Value reduced_beta  = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
+                                //ASSERT (reduced_depth >= DEPTH_ONE);
+                                //ASSERT (reduced_beta <= +VALUE_INFINITE);
 
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
@@ -894,11 +893,11 @@ namespace Search {
                                     prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
                                     prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
-                                    Value value = -search_depth<NonPV, false, true> (pos, ss+1, -rbeta, -rbeta+1, rdepth, !cut_node);
+                                    Value value = -search_depth<NonPV, false, true> (pos, ss+1, -reduced_beta, -reduced_beta+1, reduced_depth, !cut_node);
                                     
                                     pos.undo_move ();
 
-                                    if (value >= rbeta)
+                                    if (value >= reduced_beta)
                                     {
                                         return value;
                                     }
@@ -1064,13 +1063,13 @@ namespace Search {
                    && ext == DEPTH_ZERO
                    )
                 {
-                    Value rbeta = tt_value - 2*i32(depth);
+                    Value bound = tt_value - 2*i32(depth);
 
                     (ss)->exclude_move = move;
-                    value = search_depth<NonPV, false, false> (pos, ss, rbeta-1, rbeta, depth/2, cut_node);
+                    value = search_depth<NonPV, false, false> (pos, ss, bound-1, bound, depth/2, cut_node);
                     (ss)->exclude_move = MOVE_NONE;
 
-                    if (value < rbeta) ext = DEPTH_ONE;
+                    if (value < bound) ext = DEPTH_ONE;
                 }
 
                 // Update the current move (this must be done after singular extension search)
@@ -1095,7 +1094,7 @@ namespace Search {
                         }
 
                         // Value based pruning
-                        Depth predicted_depth = new_depth - reduction<PVNode> (improving, depth, legals);
+                        Depth predicted_depth = new_depth - reduction_depths<PVNode> (improving, depth, legals);
 
                         // Futility pruning: parent node
                         if (predicted_depth < FutilityMarginDepth)
@@ -1172,7 +1171,7 @@ namespace Search {
                        && move != (ss)->killer_moves[1]
                        )
                     {
-                        Depth reduction_depth = reduction<PVNode> (improving, depth, legals);
+                        Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legals);
 
                         if (  (!PVNode && cut_node)
                            || HistoryStatistics.value (pos[dst_sq (move)], dst_sq (move)) < VALUE_ZERO
@@ -1994,10 +1993,10 @@ namespace Search {
         }
 
         float red[2];
-        Reductions[0][0][0][0] =
-        Reductions[0][1][0][0] =
-        Reductions[1][0][0][0] =
-        Reductions[1][1][0][0] = 0;
+        ReductionDepths[0][0][0][0] =
+        ReductionDepths[0][1][0][0] =
+        ReductionDepths[1][0][0][0] =
+        ReductionDepths[1][1][0][0] = 0;
         // Initialize reductions lookup table
         for (d = 1; d < ReductionDepth; ++d) // depth
         {
@@ -2005,15 +2004,15 @@ namespace Search {
             {
                 red[0] = 0.000f + log (float(d)) * log (float(mc)) / 3.00f;
                 red[1] = 0.333f + log (float(d)) * log (float(mc)) / 2.25f;
-                Reductions[1][1][d][mc] = u08(red[0] >= 1.0f ? red[0] + 0.5f : 0);
-                Reductions[0][1][d][mc] = u08(red[1] >= 1.0f ? red[1] + 0.5f : 0);
+                ReductionDepths[1][1][d][mc] = u08(red[0] >= 1.0f ? red[0] + 0.5f : 0);
+                ReductionDepths[0][1][d][mc] = u08(red[1] >= 1.0f ? red[1] + 0.5f : 0);
 
-                Reductions[1][0][d][mc] = Reductions[1][1][d][mc];
-                Reductions[0][0][d][mc] = Reductions[0][1][d][mc];
+                ReductionDepths[1][0][d][mc] = ReductionDepths[1][1][d][mc];
+                ReductionDepths[0][0][d][mc] = ReductionDepths[0][1][d][mc];
                 // Smoother transition for LMR
-                if (Reductions[0][0][d][mc] >= 2*DEPTH_ONE)
+                if (ReductionDepths[0][0][d][mc] >= 2*DEPTH_ONE)
                 {
-                    Reductions[0][0][d][mc] += DEPTH_ONE;
+                    ReductionDepths[0][0][d][mc] += DEPTH_ONE;
                 }
             }
         }
