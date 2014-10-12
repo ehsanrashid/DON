@@ -9,7 +9,7 @@ class Position;
 namespace Evaluate {
 
     // Tempo bonus. Must be visible to search.
-    const Value TEMPO_VALUE = Value(17);
+    const Value TEMPO = Value(17);
 
     extern Value evaluate    (const Position &pos);
 

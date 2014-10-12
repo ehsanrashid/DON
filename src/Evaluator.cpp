@@ -70,20 +70,24 @@ namespace Evaluate {
                 MATERIAL = 6, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, TOTAL, TERM_NO
             };
 
-            Score Terms[CLR_NO][TERM_NO];
+            Score Scores[CLR_NO][TERM_NO];
 
-            inline void add_term (u08 term, Score w_score, Score b_score = SCORE_ZERO)
+            inline void set (u08 idx, Color c, Score score)
             {
-                Terms[WHITE][term] = w_score;
-                Terms[BLACK][term] = b_score;
+                Scores[c][idx] = score;
+            }
+            inline void set (u08 idx, Score score_w, Score score_b = SCORE_ZERO)
+            {
+                set (idx, WHITE, score_w);
+                set (idx, BLACK, score_b);
             }
 
-            inline void format_row (stringstream &ss, const string &name, u08 term)
+            inline void write (stringstream &ss, const string &name, u08 idx)
             {
-                Score score_w = Terms[WHITE][term]
-                    , score_b = Terms[BLACK][term];
+                Score score_w = Scores[WHITE][idx]
+                    , score_b = Scores[BLACK][idx];
 
-                switch (term)
+                switch (idx)
                 {
                 case MATERIAL: case IMBALANCE: case PAWN: case TOTAL:
                     ss  << setw (15) << name << " |  ----  ---- |  ----  ---- | " << showpos
@@ -163,7 +167,7 @@ namespace Evaluate {
             }
         };
 
-        enum ThreatT { PAWNS, MINOR, MAJOR, ROYAL, THREAT_NO };
+        enum ThreatT { PIADA, MINOR, MAJOR, ROYAL, THREAT_NO };
         // THREATEN[attacking][attacked] contains bonuses according to
         // which piece type attacks which one.
         const Score THREATEN[THREAT_NO][NONE] =
@@ -369,7 +373,7 @@ namespace Evaluate {
                 // of threat evaluation must be done later when have full attack info.
                 if (ei.pin_attacked_by[C_][PAWN] & s)
                 {
-                    score -= THREATEN[PAWNS][PT];
+                    score -= THREATEN[PIADA][PT];
                 }
 
                 // Special extra evaluation for pieces
@@ -548,7 +552,7 @@ namespace Evaluate {
 
             if (Trace)
             {
-                Tracer::Terms[C][PT] = score;
+                Tracer::set (PT, C, score);
             }
 
             return score;
@@ -760,7 +764,7 @@ namespace Evaluate {
 
             if (Trace)
             {
-                Tracer::Terms[C][KING] = score;
+                Tracer::set (KING, C, score);
             }
 
             return score;
@@ -831,7 +835,7 @@ namespace Evaluate {
 
             if (Trace)
             {
-                Tracer::Terms[C][Tracer::THREAT] = score;
+                Tracer::set (Tracer::THREAT, C, score);
             }
 
             return score;
@@ -1004,7 +1008,7 @@ namespace Evaluate {
             // configuration, call it and return.
             if (ei.mi->specialized_eval_exists ())
             {
-                return ei.mi->evaluate (pos);
+                return ei.mi->evaluate (pos) + TEMPO;
             }
 
             // Score is computed from the point of view of white.
@@ -1121,23 +1125,23 @@ namespace Evaluate {
             // In case of tracing add each evaluation contributions for both white and black
             if (Trace)
             {
-                Tracer::add_term (PAWN             , ei.pi->pawn_score);
-                Tracer::add_term (Tracer::MATERIAL , pos.psq_score ());
-                Tracer::add_term (Tracer::IMBALANCE, ei.mi->matl_score);
+                Tracer::set (PAWN             , ei.pi->pawn_score);
+                Tracer::set (Tracer::MATERIAL , pos.psq_score ());
+                Tracer::set (Tracer::IMBALANCE, ei.mi->matl_score);
 
-                Tracer::add_term (Tracer::MOBILITY
+                Tracer::set (Tracer::MOBILITY
                     , apply_weight (mobility_w, Weights[PIECE_MOBILITY])
                     , apply_weight (mobility_b, Weights[PIECE_MOBILITY]));
 
-                Tracer::add_term (Tracer::PASSER
+                Tracer::set (Tracer::PASSER
                     , apply_weight (passed_pawn_w, Weights[PASSED_PAWN])
                     , apply_weight (passed_pawn_b, Weights[PASSED_PAWN]));
 
-                Tracer::add_term (Tracer::SPACE
+                Tracer::set (Tracer::SPACE
                     , apply_weight (space_w != 0 ? space_w * space_weight : SCORE_ZERO, Weights[SPACE_ACTIVITY])
                     , apply_weight (space_b != 0 ? space_b * space_weight : SCORE_ZERO, Weights[SPACE_ACTIVITY]));
 
-                Tracer::add_term (Tracer::TOTAL    , score);
+                Tracer::set (Tracer::TOTAL    , score);
 
             }
 
@@ -1194,16 +1198,16 @@ namespace Evaluate {
             
             Value value = Value((mg * i32(game_phase) + eg * i32(PHASE_MIDGAME - game_phase)) / i32(PHASE_MIDGAME));
 
-            return WHITE == pos.active () ? +value : -value;
+            return (WHITE == pos.active () ? +value : -value) + TEMPO;
         }
 
         namespace Tracer {
 
             string trace (const Position &pos)
             {
-                fill (*Terms, *Terms + sizeof (Terms) / sizeof (**Terms), SCORE_ZERO);
+                fill (*Scores, *Scores + sizeof (Scores) / sizeof (**Scores), SCORE_ZERO);
 
-                Value value = evaluate<true> (pos);// + TEMPO_VALUE;    // Tempo bonus = 0.07
+                Value value = evaluate<true> (pos);
                 value = WHITE == pos.active () ? +value : -value; // White's point of view
 
                 stringstream ss;
@@ -1212,20 +1216,20 @@ namespace Evaluate {
                     << "      Eval term |    White    |    Black    |     Total    \n"
                     << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
                     << "----------------+-------------+-------------+--------------\n";
-                format_row (ss, "Material"  , MATERIAL);
-                format_row (ss, "Imbalance" , IMBALANCE);
-                format_row (ss, "Pawn"      , PAWN);
-                format_row (ss, "Knight"    , NIHT);
-                format_row (ss, "Bishop"    , BSHP);
-                format_row (ss, "Rook"      , ROOK);
-                format_row (ss, "Queen"     , QUEN);
-                format_row (ss, "King"      , KING);
-                format_row (ss, "Mobility"  , MOBILITY);
-                format_row (ss, "Threat"    , THREAT);
-                format_row (ss, "Passer"    , PASSER);
-                format_row (ss, "Space"     , SPACE);
+                write (ss, "Material"  , MATERIAL);
+                write (ss, "Imbalance" , IMBALANCE);
+                write (ss, "Pawn"      , PAWN);
+                write (ss, "Knight"    , NIHT);
+                write (ss, "Bishop"    , BSHP);
+                write (ss, "Rook"      , ROOK);
+                write (ss, "Queen"     , QUEN);
+                write (ss, "King"      , KING);
+                write (ss, "Mobility"  , MOBILITY);
+                write (ss, "Threat"    , THREAT);
+                write (ss, "Passer"    , PASSER);
+                write (ss, "Space"     , SPACE);
                 ss  << "---------------------+-------------+-------------+--------------\n";
-                format_row (ss, "Total"     , TOTAL);
+                write (ss, "Total"     , TOTAL);
                 ss  << "\n"
                     << "Total evaluation: " << value_to_cp (value) << " (white side)\n";
 
@@ -1240,7 +1244,7 @@ namespace Evaluate {
     // and interpolates between them based on the remaining material.
     Value evaluate (const Position &pos)
     {
-        return evaluate<false> (pos) + TEMPO_VALUE;
+        return evaluate<false> (pos);
     }
 
     // trace() is like evaluate() but instead of a value returns a string suitable

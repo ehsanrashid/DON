@@ -362,7 +362,7 @@ namespace Search {
                 else
                 {
                     (ss)->static_eval = best_value =
-                        (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO_VALUE;
+                        (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
                 }
 
                 if (alpha < best_value)
@@ -477,6 +477,12 @@ namespace Search {
 
                 Value value;
                 
+                value =
+                    gives_check ?
+                        -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
+                        -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
+
+                /*
                 bool move_pv = PVNode && 1 == legals;
 
                 if (move_pv)
@@ -501,6 +507,8 @@ namespace Search {
                                 -search_quien<PV, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
                     }
                 }
+                */
+
                 // Undo the move
                 pos.undo_move ();
 
@@ -538,7 +546,7 @@ namespace Search {
 
             // All legal moves have been searched.
             // A special case: If in check and no legal moves were found, it is checkmate.
-            if (InCheck && best_value == -VALUE_INFINITE)
+            if (InCheck && legals == 0)
             {
                 // Plies to mate from the root
                 best_value = mated_in ((ss)->ply);
@@ -717,7 +725,7 @@ namespace Search {
                     else
                     {
                         (ss)->static_eval = static_eval =
-                            (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO_VALUE;
+                            (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
 
                         TT.store (
                             posi_key,
