@@ -34,7 +34,7 @@ namespace Time {
             const float TStepRatio  = TIME_OPTIMUM == TT ? 1.0f : MAX_STEP_RATIO;
             const float TStealRatio = TIME_MAXIMUM == TT ? 0.0f : MAX_STEAL_RATIO;
 
-            float move_imp_0 = move_importance (game_ply) * MoveSlowness / 0x64; // 100
+            float move_imp_0 = move_importance (game_ply) * MoveSlowness / 100;
             float move_imp_1 = 0.0f;
             for (u08 i = 1; i < movestogo; ++i)
             {
@@ -71,13 +71,11 @@ namespace Time {
         for (u08 hyp_movestogo = 1; hyp_movestogo <= movestogo; ++hyp_movestogo)
         {
             // Calculate thinking time for hypothetic "moves to go"-value
-            i32 hyp_time =
+            i32 hyp_time = max (
                 + gameclock.time
                 + gameclock.inc * (hyp_movestogo-1)
                 - EmergencyClockTime
-                - EmergencyMoveTime * min (hyp_movestogo, EmergencyMoveHorizon);
-
-            hyp_time = max (0, hyp_time);
+                - EmergencyMoveTime * min (hyp_movestogo, EmergencyMoveHorizon), 0U);
 
             u32 opt_time = MinimumMoveTime + remaining_time<TIME_OPTIMUM> (hyp_time, hyp_movestogo, game_ply);
             u32 max_time = MinimumMoveTime + remaining_time<TIME_MAXIMUM> (hyp_time, hyp_movestogo, game_ply);
