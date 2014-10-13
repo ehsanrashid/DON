@@ -111,10 +111,11 @@ namespace Engine {
         Zobrist  ::initialize ();
         Position ::initialize ();
         BitBases ::initialize ();
+        Pawns    ::initialize ();
+        Evaluate ::initialize ();
         Search   ::initialize ();
         EndGame  ::initialize ();
         Threadpool.initialize ();
-        Evaluate ::initialize ();
 
         TT.auto_size (i32(Options["Hash"]), true);
 

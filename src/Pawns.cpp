@@ -33,18 +33,10 @@ namespace Pawns {
 
     #define S(mg, eg) mk_score(mg, eg)
 
-        // Connected pawn bonus by [opposed][phalanx][rank]
-        const Score CONNECTED[2][2][R_NO] =
-        {
-            {
-                { S(0,0), S(3, 6), S(7,15), S( 5,10), S(28,57), S(37, 75), S(67,135), S(129,258) },
-                { S(1,3), S(5,10), S(6,13), S(16,33), S(33,66), S(52,105), S(98,196), S(129,258) }
-            },
-            {
-                { S(0,0), S(3, 3), S(7, 7), S( 5, 5), S(28,28), S(37, 37), S(67, 67), S(129,129) },
-                { S(1,1), S(5, 5), S(6, 6), S(16,16), S(33,33), S(52, 52), S(98, 98), S(129,129) }
-            }
-        };
+        const i16 SEED[R_NO] = { 0, 6, 15, 10, 57, 75, 135, 258 };
+
+        // Connected pawn bonus by [opposed][phalanx][rank] (by formula)
+        Score CONNECTED[2][2][R_NO];
 
         // Doubled pawn penalty by [file]
         const Score DOUBLED[F_NO] =
@@ -130,12 +122,12 @@ namespace Pawns {
 
                 Bitboard prank_bb  = rank_bb (s - PUSH);
 
-                Bitboard adjacents = own_pawns & ADJ_FILE_bb[f];
+                Bitboard adjacents = (own_pawns & ADJ_FILE_bb[f]);
                 Bitboard supported = (adjacents & prank_bb);
                 Bitboard connected = (adjacents & (prank_bb | rank_bb (s)));
                 Bitboard doubled   = (own_pawns & FRONT_SQRS_bb[C][s]);
 
-                bool phalanx       = connected & rank_bb (s);
+                bool phalanx       = (connected & rank_bb (s));
                 bool levered       = (opp_pawns & PAWN_ATTACKS[C][s]);
                 bool opposed       = (opp_pawns & FRONT_SQRS_bb[C][s]);
                 bool isolated      = !(adjacents);
@@ -318,6 +310,24 @@ namespace Pawns {
                 - evaluate<BLACK> (pos, e);
         }
         return e;
+    }
+
+    // initialize() Instead of hard-coded tables, when makes sense,
+    // prefer to calculate them with a formula to reduce independent parameters
+    // and to allow easier tuning and better insight.
+    void initialize ()
+    {
+        for (i08 opposed = 0; opposed < 2; ++opposed)
+        {
+            for (i08 phalanx = 0; phalanx < 2; ++phalanx)
+            {
+                for (Rank r = R_2; r < R_8; ++r)
+                {
+                    i32 value = SEED[r] + (phalanx ? (SEED[r + 1] - SEED[r]) >> 1 : 0);
+                    CONNECTED[opposed][phalanx][r] = mk_score (value >> 1, value >> opposed);
+                }
+            }
+        }
     }
 
 } // namespace Pawns

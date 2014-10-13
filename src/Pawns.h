@@ -89,6 +89,7 @@ namespace Pawns {
 
     extern Entry* probe (const Position &pos, Table &table);
     
+    extern void initialize ();
 }
 
 #endif // _PAWNS_H_INC_
