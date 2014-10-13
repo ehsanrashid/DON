@@ -182,6 +182,34 @@ namespace Search {
 
     };
 
+    struct Skill
+    {
+
+    private:
+        u08  _level;
+        Move _best_move;
+
+    public:
+
+        explicit Skill (u08 level = MAX_SKILL_LEVEL)
+        {
+            change_level (level);
+        }
+
+        void change_level (u08 level) { _level = level; }
+
+        void clear () { _best_move = MOVE_NONE; }
+
+        bool can_pick_move (Depth depth) const { return depth == 1 + _level; }
+
+        u08  pv_size () const;
+
+        Move pick_move ();
+
+        void play_move ();
+
+    };
+
     extern bool                 Chess960;
 
     extern LimitsT              Limits;
@@ -210,13 +238,14 @@ namespace Search {
 
     extern OpeningBook::PolyglotBook Book;
 
-    extern u64 perft (Position &pos, Depth depth);
+    extern Skill                Skills;
+
+
+    extern u64  perft (Position &pos, Depth depth);
 
     extern void think ();
 
     extern void initialize ();
-
-    extern void change_skill_level (const UCI::Option &opt);
 
 }
 

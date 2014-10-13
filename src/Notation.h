@@ -5,6 +5,7 @@
 #include <iostream>
 
 #include "Type.h"
+#include "Time.h"
 
 class Position;
 
@@ -32,7 +33,7 @@ namespace Notation {
 
     extern std::string pretty_score (Value v, Value alpha = -VALUE_INFINITE, Value beta = VALUE_INFINITE);
 
-    extern std::string pretty_pv (Position &pos, i32 depth, Value value, u64 msecs, const Move pv[]);
+    extern std::string pretty_pv (Position &pos, i32 depth, Value value, Time::point time, const Move pv[]);
     
 }
 

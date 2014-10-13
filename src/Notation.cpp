@@ -5,7 +5,6 @@
 
 #include "Position.h"
 #include "MoveGenerator.h"
-#include "Time.h"
 
 namespace Notation {
 
@@ -92,15 +91,15 @@ namespace Notation {
         }
 
         // time to string
-        string pretty_time (u64 msecs)
+        string pretty_time (point time)
         {
-            u32 hours   = u32(msecs / HOUR_MILLI_SEC);
-            msecs      %= HOUR_MILLI_SEC;
-            u32 minutes = u32(msecs / MINUTE_MILLI_SEC);
-            msecs      %= MINUTE_MILLI_SEC;
-            u32 seconds = u32(msecs / MILLI_SEC);
-            msecs      %= MILLI_SEC;
-            msecs      /= 10;
+            u32 hours  = u32(time / HOUR_MILLI_SEC);
+            time      %= HOUR_MILLI_SEC;
+            u32 minutes= u32(time / MINUTE_MILLI_SEC);
+            time      %= MINUTE_MILLI_SEC;
+            u32 seconds= u32(time / MILLI_SEC);
+            time      %= MILLI_SEC;
+            time      /= 10;
 
             ostringstream oss;
 
@@ -108,7 +107,7 @@ namespace Notation {
                 <<             hours   << ":"
                 << setw (2) << minutes << ":"
                 << setw (2) << seconds << "."
-                << setw (2) << msecs;
+                << setw (2) << time;
 
             return oss.str ();
         }
@@ -287,13 +286,13 @@ namespace Notation {
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv (Position &pos, i32 depth, Value value, u64 msecs, const Move pv[])
+    string pretty_pv (Position &pos, i32 depth, Value value, point time, const Move pv[])
     {
         ostringstream oss;
 
-        oss << setw (4) << depth
-            << setw (8) << pretty_value (value, pos)
-            << setw (12) << pretty_time (msecs);
+        oss << setw ( 4) << depth
+            << setw ( 8) << pretty_value (value, pos)
+            << setw (12) << pretty_time (time);
 
         u64 game_nodes = pos.game_nodes ();
         if (game_nodes < M)     oss << setw (8) << game_nodes / 1 << "  ";

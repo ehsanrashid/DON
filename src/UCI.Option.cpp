@@ -166,13 +166,6 @@ namespace UCI {
             Position::FiftyMoveDist = u08(2 * i32(opt));
         }
 
-        void configure_book (const Option &)
-        {
-            Book.close ();
-            BookFile     = string(Options["Book File"]);
-            BestBookMove = bool(Options["Best Book Move"]);
-        }
-
         void configure_auto_save (const Option &)
         {
             HashFile     = string(Options["Hash File"]);
@@ -206,6 +199,18 @@ namespace UCI {
                 }
                 if (white_spaces (SearchLog)) SearchLog = "SearchLog.txt";
             }
+        }
+
+        void configure_book (const Option &)
+        {
+            Book.close ();
+            BookFile     = string(Options["Book File"]);
+            BestBookMove = bool(Options["Best Book Move"]);
+        }
+
+        void change_skill_level (const Option &opt)
+        {
+            Skills.change_level (u08(i32(opt)));
         }
 
         void configure_time (const Option &)

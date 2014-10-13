@@ -92,89 +92,6 @@ namespace Search {
         MoveStats    CounterMoveStats    // Counter
             ,        FollowupMoveStats;  // Followup
 
-        struct Skill
-        {
-
-        private:
-            u08  _level;
-            Move _best_move;
-
-        public:
-
-            Skill ()
-                : _level (0)
-                , _best_move (MOVE_NONE)
-            {}
-            explicit Skill (u08 level)
-            {
-                initialize (level);
-            }
-
-            void initialize (u08 level)
-            {
-                _level = level;
-            }
-            
-            void clear ()
-            {
-                _best_move = MOVE_NONE;
-            }
-
-            u08  pv_size () const { return _level < MAX_SKILL_LEVEL ? min (MIN_SKILL_MULTIPV, RootSize) : 0; }
-
-            bool can_pick_move (Depth depth) const { return depth == 1 + _level; }
-
-            // When playing with a strength handicap, choose best move among the first 'candidates'
-            // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-            Move pick_move ()
-            {
-                static RKISS rk;
-                // PRNG sequence should be not deterministic
-                for (i08 i = now () % 50; i > 0; --i) rk.rand64 ();
-
-                _best_move = MOVE_NONE;
-
-                u08 skill_pv = pv_size ();
-                // RootMoves are already sorted by score in descending order
-                Value variance   = min (RootMoves[0].new_value - RootMoves[skill_pv - 1].new_value, VALUE_MG_PAWN);
-                Value weakness   = Value(MAX_DEPTH - 2 * _level);
-                Value best_value = -VALUE_INFINITE;
-                // Choose best move. For each move score add two terms both dependent on
-                // weakness, one deterministic and bigger for weaker moves, and one random,
-                // then choose the move with the resulting highest score.
-                for (u08 i = 0; i < skill_pv; ++i)
-                {
-                    Value v = RootMoves[i].new_value;
-
-                    // Don't allow crazy blunders even at very low skills
-                    if (i > 0 && RootMoves[i-1].new_value > (v + 2*VALUE_MG_PAWN))
-                    {
-                        break;
-                    }
-
-                    // This is our magic formula
-                    v += weakness * i32(RootMoves[0].new_value - v)
-                      +  variance * i32(rk.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2);
-
-                    if (best_value < v)
-                    {
-                        best_value = v;
-                        _best_move = RootMoves[i].pv[0];
-                    }
-                }
-                return _best_move;
-            }
-
-            void play_move ()
-            {
-                // Swap best PV line with the sub-optimal one
-                swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), _best_move != MOVE_NONE ? _best_move : pick_move ()));
-            }
-
-        };
-
-        Skill Skills (MAX_SKILL_LEVEL);
-
         // update_stats() updates history, killer, counter & followup moves
         // after a fail-high of a quiet move.
         inline void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, Move *quiet_moves, u08 quiets)
@@ -231,7 +148,7 @@ namespace Search {
         // and so refer to the previous search score.
         inline string info_multipv (const Position &pos, i16 depth, Value alpha, Value beta, point time)
         {
-            ASSERT (time > 0);
+            ASSERT (time >= 0);
 
             stringstream ss;
 
@@ -265,7 +182,7 @@ namespace Search {
                     << " score "    << ((i == IndexPV) ? pretty_score (v, alpha, beta) : pretty_score (v))
                     << " time "     << time
                     << " nodes "    << pos.game_nodes ()
-                    << " nps "      << pos.game_nodes () * MILLI_SEC / time
+                    << " nps "      << pos.game_nodes () * MILLI_SEC / max (time, point(1))
                     << " hashfull " << 0//TT.permill_full ()
                     << " pv"        << RootMoves[i].info_pv ();
             }
@@ -955,7 +872,7 @@ namespace Search {
             {
                 if (Threadpool.main () == thread)
                 {
-                    time = max (point(1), now () - SearchTime);
+                    time = now () - SearchTime;
                     if (time > INFO_INTERVAL)
                     {
                         sync_cout
@@ -1017,7 +934,7 @@ namespace Search {
 
                     if (Threadpool.main () == thread)
                     {
-                        time = max (point(1), now () - SearchTime);
+                        time = now () - SearchTime;
                         if (time > INFO_INTERVAL)
                         {
                             sync_cout
@@ -1484,7 +1401,7 @@ namespace Search {
                             RootMoves[i].insert_pv_into_tt (RootPos);
                         }
 
-                        iteration_time = max (point(1), now () - SearchTime);
+                        iteration_time = now () - SearchTime;
 
                         // If search has been stopped break immediately.
                         // Sorting and writing PV back to TT is safe becuase
@@ -1500,7 +1417,7 @@ namespace Search {
                             sync_cout << info_multipv (RootPos, depth, bound_a, bound_b, iteration_time) << sync_endl;
                         }
 
-                        if (bound_a > best_value && best_value < bound_b)
+                        if (bound_a < best_value && best_value < bound_b)
                         {
                             break;
                         }
@@ -1520,6 +1437,7 @@ namespace Search {
                             window_b *= 1.345f;
                             bound_b   = min (best_value + window_b, +VALUE_INFINITE);
                         }
+                        
 
                         ASSERT (-VALUE_INFINITE <= bound_a && bound_a < bound_b && bound_b <= +VALUE_INFINITE);
                     } while (true); //(bound_a < bound_b);
@@ -1547,7 +1465,7 @@ namespace Search {
                     Skills.play_move ();
                 }
 
-                iteration_time = max (point(1), now () - SearchTime);
+                iteration_time = now () - SearchTime;
 
                 if (!white_spaces (SearchLog))
                 {
@@ -1673,6 +1591,8 @@ namespace Search {
     // initialize the PRNG only once
     PolyglotBook        Book;
 
+    Skill               Skills (MAX_SKILL_LEVEL);
+
     // ------------------------------------
 
     // RootMove::extract_pv_from_tt() builds a PV by adding moves from the TT table.
@@ -1787,7 +1707,61 @@ namespace Search {
 
     // ------------------------------------
 
-    u64 perft (Position &pos, Depth depth)
+    u08  Skill::pv_size () const
+    {
+        return _level < MAX_SKILL_LEVEL ? min (MIN_SKILL_MULTIPV, RootSize) : 0;
+    }
+
+    // When playing with a strength handicap, choose best move among the first 'candidates'
+    // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
+    Move Skill::pick_move ()
+    {
+        static RKISS rk;
+        // PRNG sequence should be not deterministic
+        for (i08 i = now () % 50; i > 0; --i) rk.rand64 ();
+
+        _best_move = MOVE_NONE;
+
+        u08 skill_pv = pv_size ();
+        // RootMoves are already sorted by score in descending order
+        Value variance   = min (RootMoves[0].new_value - RootMoves[skill_pv - 1].new_value, VALUE_MG_PAWN);
+        Value weakness   = Value(MAX_DEPTH - 2 * _level);
+        Value best_value = -VALUE_INFINITE;
+        // Choose best move. For each move score add two terms both dependent on
+        // weakness, one deterministic and bigger for weaker moves, and one random,
+        // then choose the move with the resulting highest score.
+        for (u08 i = 0; i < skill_pv; ++i)
+        {
+            Value v = RootMoves[i].new_value;
+
+            // Don't allow crazy blunders even at very low skills
+            if (i > 0 && RootMoves[i-1].new_value > (v + 2*VALUE_MG_PAWN))
+            {
+                break;
+            }
+
+            // This is our magic formula
+            v += weakness * i32(RootMoves[0].new_value - v)
+                +  variance * i32(rk.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2);
+
+            if (best_value < v)
+            {
+                best_value = v;
+                _best_move = RootMoves[i].pv[0];
+            }
+        }
+        return _best_move;
+    }
+
+    // Swap best PV line with the sub-optimal one
+    void Skill::play_move ()
+    {
+        swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), _best_move != MOVE_NONE ? _best_move : pick_move ()));
+    }
+
+    // ------------------------------------
+
+    u64  perft (Position &pos, Depth depth)
     {
         return perft<true> (pos, depth);
     }
@@ -1890,12 +1864,12 @@ namespace Search {
             {
                 LogFile logfile (SearchLog);
 
-                point time = max (point(1), now () - SearchTime);
+                point time = now () - SearchTime;
 
                 logfile
                     << "Time (ms)  : " << time                                      << "\n"
                     << "Nodes (N)  : " << RootPos.game_nodes ()                     << "\n"
-                    << "Speed (N/s): " << RootPos.game_nodes () * MILLI_SEC / time  << "\n"
+                    << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / max (time, point(1)) << "\n"
                     << "Hash-full  : " << TT.permill_full ()                        << "\n"
                     << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
                 if (RootMoves[0].pv[0] != MOVE_NONE)
@@ -1914,6 +1888,7 @@ namespace Search {
                 << "info"
                 << " depth " << 0
                 << " score " << pretty_score (RootPos.checkers () != U64(0) ? -VALUE_MATE : VALUE_DRAW)
+                << " time "  << 0
                 << sync_endl;
 
             RootMoves.push_back (RootMove (MOVE_NONE));
@@ -1935,14 +1910,14 @@ namespace Search {
         }
 
     finish:
-        point time = max (point(1), now () - SearchTime);
+        point time = now () - SearchTime;
 
         // When search is stopped this info is printed
         sync_cout
             << "info"
             << " time "     << time
             << " nodes "    << RootPos.game_nodes ()
-            << " nps "      << RootPos.game_nodes () * MILLI_SEC / time
+            << " nps "      << RootPos.game_nodes () * MILLI_SEC / max (time, point(1))
             << " hashfull " << 0//TT.permill_full ()
             << sync_endl;
 
@@ -2013,11 +1988,6 @@ namespace Search {
         }
     }
 
-
-    void change_skill_level (const Option &opt)
-    {
-        Skills.initialize (u08(i32(opt)));
-    }
 }
 
 namespace Threads {
