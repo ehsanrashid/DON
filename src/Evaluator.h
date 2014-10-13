@@ -15,7 +15,7 @@ namespace Evaluate {
 
     extern std::string trace (const Position &pos);
 
-    extern void configure (const UCI::Option &);
+    extern void configure_eval (const UCI::Option &);
 }
 
 #endif // _EVALUATOR_H_INC_

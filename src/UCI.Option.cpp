@@ -166,6 +166,59 @@ namespace UCI {
             Position::FiftyMoveDist = u08(2 * i32(opt));
         }
 
+        void configure_book (const Option &)
+        {
+            Book.close ();
+            BookFile     = string(Options["Book File"]);
+            BestBookMove = bool(Options["Best Book Move"]);
+        }
+
+        void configure_auto_save (const Option &)
+        {
+            HashFile     = string(Options["Hash File"]);
+            AutoSaveTime = u16(i32(Options["Auto Save Hash (min)"]));
+        }
+
+        void configure_contempt (const Option &)
+        {
+            FixedContempt = i16(i32(Options["Fixed Contempt"]));
+            ContemptTime  = i16(i32(Options["Timed Contempt (sec)"]));
+            ContemptValue = i16(i32(Options["Valued Contempt (cp)"]));
+        }
+
+        void configure_multipv (const Option &)
+        {
+            MultiPV        = u08(i32(Options["MultiPV"]));
+            //MultiPV_cp= i32(Options["MultiPV_cp"]);
+        }
+
+        void change_search_log (const Option &opt)
+        {
+            SearchLog = string(opt);
+            if (!white_spaces (SearchLog))
+            {
+                trim (SearchLog);
+                if (!white_spaces (SearchLog))
+                {
+                    convert_path (SearchLog);
+                    remove_extension (SearchLog);
+                    if (!white_spaces (SearchLog)) SearchLog += ".txt";
+                }
+                if (white_spaces (SearchLog)) SearchLog = "SearchLog.txt";
+            }
+        }
+
+        void configure_time (const Option &)
+        {
+            //MaximumMoveHorizon   = i32(Options["Maximum Move Horizon"]);
+            //EmergencyMoveHorizon = i32(Options["Emergency Move Horizon"]);
+            //EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
+            //EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
+            //MinimumMoveTime      = i32(Options["Minimum Move Time"]);
+            MoveSlowness         = i32(Options["Move Slowness"]);
+            Ponder               = bool(Options["Ponder"]);
+        }
+
         void debug_log (const Option &opt)
         {
             Debug::log_debug (false);
@@ -238,9 +291,9 @@ namespace UCI {
         // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
-        Options["Hash File"]                    << Option (HashFile.c_str(), Search::configure_auto_save);
+        Options["Hash File"]                    << Option (HashFile.c_str(), configure_auto_save);
         // Auto Save Hash Time (min)
-        Options["Auto Save Hash (min)"]         << Option ( AutoSaveTime, 0, 60, Search::configure_auto_save);
+        Options["Auto Save Hash (min)"]         << Option ( AutoSaveTime, 0, 60, configure_auto_save);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
@@ -264,10 +317,10 @@ namespace UCI {
         // Openings Book Options
         // ---------------------
         // The filename of the Opening Book.
-        Options["Book File"]                    << Option (BookFile.c_str(), Search::configure_book);
+        Options["Book File"]                    << Option (BookFile.c_str(), configure_book);
         // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
-        Options["Best Book Move"]               << Option (BestBookMove, Search::configure_book);
+        Options["Best Book Move"]               << Option (BestBookMove, configure_book);
 
 
         // End-Game Table Bases Options
@@ -283,7 +336,7 @@ namespace UCI {
         // DON will automatically limit the number of Threads to the number of logical processors of your hardware.
         // If your computer supports hyper-threading it is recommended not using more threads than physical cores,
         // as the extra hyper-threads would usually degrade the performance of the engine. 
-        Options["Threads"]                      << Option ( 1, 1, MAX_THREADS, Threads::configure_threadpool);
+        Options["Threads"]                      << Option ( 1, 1, MAX_THREADS, configure_threadpool);
 
         // Minimum depth at which work will be split between cores, when using multiple threads.
         // Default 0, Min 0, Max 15.
@@ -291,7 +344,7 @@ namespace UCI {
         // Default 0 means auto setting which depends on the threads.
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
-        Options["Split Depth"]                  << Option ( 0, 0, MAX_SPLIT_DEPTH, Threads::configure_threadpool);
+        Options["Split Depth"]                  << Option ( 0, 0, MAX_SPLIT_DEPTH, configure_threadpool);
 
         // Game Play Options
         // -----------------
@@ -300,14 +353,14 @@ namespace UCI {
         // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
         //
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
-        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, Search::change_skill_level);
+        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, change_skill_level);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
         // Default 1, Min 1, Max 50.
         //
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["MultiPV"]                      << Option (MultiPV, 1, 50, Search::configure_multipv);
+        Options["MultiPV"]                      << Option (MultiPV, 1, 50, configure_multipv);
 
         // TODO::
         // Limit the multi-PV analysis to moves within a range of the best move.
@@ -324,13 +377,13 @@ namespace UCI {
         // Positive values of contempt favor more "risky" play,
         // while negative values will favor draws. Zero is neutral.
         // Default 0, Min -100, Max +100.
-        Options["Fixed Contempt"]               << Option (FixedContempt,-100,+100, Search::configure_contempt);
+        Options["Fixed Contempt"]               << Option (FixedContempt,-100,+100, configure_contempt);
         // Time (sec) for Timed Contempt
         // Default +6, Min 0, Max +900.
-        Options["Timed Contempt (sec)"]         << Option (ContemptTime ,   0,+900, Search::configure_contempt);
+        Options["Timed Contempt (sec)"]         << Option (ContemptTime ,   0,+900, configure_contempt);
         // Centipawn (cp) for Valued Contempt
         // Default +50, Min 0, Max +1000.
-        Options["Valued Contempt (cp)"]         << Option (ContemptValue,   0,+1000, Search::configure_contempt);
+        Options["Valued Contempt (cp)"]         << Option (ContemptValue,   0,+1000, configure_contempt);
 
         // The number of moves after which the 50-move rule will kick in.
         // Default 50, Min 5, Max 50.
@@ -346,29 +399,29 @@ namespace UCI {
         Options["Fifty Move Distance"]          << Option (Position::FiftyMoveDist,+  5,+ 50, fifty_move_dist);
 
         //// Plan time management at most this many moves ahead, in num of moves.
-        //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, Time::configure);
+        //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, configure_time);
         //// Be prepared to always play at least this many moves, in num of moves.
-        //Options["Emergency Move Horizon"]       << Option (EmergencyMoveHorizon, 0, 100, Time::configure);
+        //Options["Emergency Move Horizon"]       << Option (EmergencyMoveHorizon, 0, 100, configure_time);
         //// Always attempt to keep at least this much time at clock, in milliseconds.
-        //Options["Emergency Clock Time"]         << Option (EmergencyClockTime  , 0, 30000, Time::configure);
+        //Options["Emergency Clock Time"]         << Option (EmergencyClockTime  , 0, 30000, configure_time);
         //// Attempt to keep at least this much time for each remaining move, in milliseconds.
-        //Options["Emergency Move Time"]          << Option (EmergencyMoveTime   , 0, 5000, Time::configure);
+        //Options["Emergency Move Time"]          << Option (EmergencyMoveTime   , 0, 5000, configure_time);
         //// The minimum amount of time to analyze, in milliseconds.
-        //Options["Minimum Move Time"]            << Option (MinimumMoveTime     , 0, 5000, Time::configure);
+        //Options["Minimum Move Time"]            << Option (MinimumMoveTime     , 0, 5000, configure_time);
         // How slow you want engine to play, 100 is neutral, in %age.
-        Options["Move Slowness"]                << Option (MoveSlowness        ,+ 10,+ 1000, Time::configure);
+        Options["Move Slowness"]                << Option (MoveSlowness        ,+ 10,+ 1000, configure_time);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.
         //
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["Ponder"]                       << Option (Ponder              , Time::configure);
+        Options["Ponder"]                       << Option (Ponder              , configure_time);
 
         // Debug Options
         // -------------
         // The filename of the debug log.
         Options["Debug Log"]                    << Option ("", debug_log);
         // The filename of the search log.
-        Options["Search Log"]                   << Option (SearchLog.c_str(), Search::change_search_log);
+        Options["Search Log"]                   << Option (SearchLog.c_str(), change_search_log);
 
         // ---------------------------------------------------------------------------------------
         // Other Options

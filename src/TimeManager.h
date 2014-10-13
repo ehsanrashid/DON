@@ -43,8 +43,6 @@ namespace Time {
     extern i32  MoveSlowness        ;
     extern bool Ponder              ;
 
-    extern void configure (const UCI::Option &);
-
 }
 
 #endif // _TIME_MANAGER_H_INC_

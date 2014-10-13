@@ -2013,47 +2013,6 @@ namespace Search {
         }
     }
 
-    void configure_book (const Option &)
-    {
-        Book.close ();
-        BookFile     = string(Options["Book File"]);
-        BestBookMove = bool(Options["Best Book Move"]);
-    }
-
-    void configure_auto_save (const Option &)
-    {
-        HashFile     = string(Options["Hash File"]);
-        AutoSaveTime = u16(i32(Options["Auto Save Hash (min)"]));
-    }
-
-    void configure_contempt (const Option &)
-    {
-        FixedContempt = i16(i32(Options["Fixed Contempt"]));
-        ContemptTime  = i16(i32(Options["Timed Contempt (sec)"]));
-        ContemptValue = i16(i32(Options["Valued Contempt (cp)"]));
-    }
-
-    void configure_multipv (const Option &)
-    {
-        MultiPV        = u08(i32(Options["MultiPV"]));
-        //MultiPV_cp= i32(Options["MultiPV_cp"]);
-    }
-
-    void change_search_log (const Option &opt)
-    {
-        SearchLog = string(opt);
-        if (!white_spaces (SearchLog))
-        {
-            trim (SearchLog);
-            if (!white_spaces (SearchLog))
-            {
-                convert_path (SearchLog);
-                remove_extension (SearchLog);
-                if (!white_spaces (SearchLog)) SearchLog += ".txt";
-            }
-            if (white_spaces (SearchLog)) SearchLog = "SearchLog.txt";
-        }
-    }
 
     void change_skill_level (const Option &opt)
     {
