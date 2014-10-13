@@ -21,7 +21,7 @@ namespace MovePick {
     {
 
     private:
-        Value _values[TOT_PIECE][SQ_NO];
+        Value _values[PIECE_NO][SQ_NO];
 
     public:
 
@@ -49,8 +49,8 @@ namespace MovePick {
     {
 
     private:
-        u16   _counts[TOT_PIECE][SQ_NO][2];
-        Value _values[TOT_PIECE][SQ_NO];
+        u16   _counts[PIECE_NO][SQ_NO][2];
+        Value _values[PIECE_NO][SQ_NO];
 
     public:
     
@@ -114,7 +114,7 @@ namespace MovePick {
     {
 
     private:
-        Move _moves[TOT_PIECE][SQ_NO][2];
+        Move _moves[PIECE_NO][SQ_NO][2];
 
     public:
 
@@ -126,8 +126,8 @@ namespace MovePick {
         inline void update (const Position &pos, Move m1, Move m2)
         {
             Square s = dst_sq (m1);
-            Piece p  = pos[s];
-            if (m2 != _moves[p][s][0])
+            Piece  p = pos[s];
+            if (_moves[p][s][0] != m2)
             {
                 _moves[p][s][1] = _moves[p][s][0];
                 _moves[p][s][0] = m2;

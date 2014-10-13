@@ -153,7 +153,7 @@ enum Piece : u08
     B_KING    , //  1101
 
     // TOTAL piece is 14
-    TOT_PIECE   //  1110
+    PIECE_NO   //  1110
 
     //W_PIECE = 0x00, //  0...
     //B_PIECE = 0x08, //  1...
