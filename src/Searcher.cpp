@@ -1445,7 +1445,6 @@ namespace Search {
 
                 const bool aspiration = depth > 4*DEPTH_ONE;
 
-                //LimitPV = min (max (MultiPV, aspiration ? skill_pv : MIN_SKILL_MULTIPV), RootSize);
                 // MultiPV loop. Perform a full root search for each PV line
                 for (IndexPV = 0; IndexPV < LimitPV; ++IndexPV)
                 {
@@ -1501,15 +1500,17 @@ namespace Search {
                             sync_cout << info_multipv (RootPos, depth, bound_a, bound_b, iteration_time) << sync_endl;
                         }
 
+                        if (bound_a > best_value && best_value < bound_b)
+                        {
+                            break;
+                        }
+                        
                         // In case of failing low/high increase aspiration window and
                         // re-search, otherwise exit the loop.
                         if (best_value <= bound_a)
                         {
                             window_a *= 1.345f;
                             bound_a   = max (best_value - window_a, -VALUE_INFINITE);
-                            //if (window_b > 1) window_b *= 0.955f;
-                            //bound_b = min (best_value + window_b, +VALUE_INFINITE);
-
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
                         }
@@ -1518,12 +1519,6 @@ namespace Search {
                         {
                             window_b *= 1.345f;
                             bound_b   = min (best_value + window_b, +VALUE_INFINITE);
-                            //if (window_a > 1) window_a *= 0.955f;
-                            //bound_a = max (best_value - window_a, -VALUE_INFINITE);
-                        }
-                        else
-                        {
-                            break;
                         }
 
                         ASSERT (-VALUE_INFINITE <= bound_a && bound_a < bound_b && bound_b <= +VALUE_INFINITE);

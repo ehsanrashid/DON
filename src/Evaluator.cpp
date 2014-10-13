@@ -178,8 +178,6 @@ namespace Evaluate {
             { S(+ 2,+58), S(+ 6,+125), S(+ 0,+  0), S(+  0,+  0), S(+  0,+  0), S(+ 0,+ 0) }  // Royal
         };
         
-        //const Score KNIGHT_PAWNS            = S(+ 8,+10); // Penalty for knight with pawns
-
         const Score BISHOP_PAWNS            = S(+ 8,+12); // Penalty for bishop with more pawns on same color
         const Score BISHOP_TRAPPED          = S(+50,+40); // Penalty for bishop trapped with pawns
 
@@ -379,10 +377,6 @@ namespace Evaluate {
                 {
                 if (NIHT == PT)
                 {
-                    // Penalty for knight when there are few friendly pawns
-                    //score -= KNIGHT_PAWNS * max (5 - pos.count<PAWN> (C), 0);
-                    //score -= KNIGHT_PAWNS * max (5 - ei.pi->pawns_on_center<C> (), 0);
-
                     // Outpost bonus for Knight
                     if (!(ei.pin_attacked_by[C_][PAWN] & s))
                     {
@@ -403,17 +397,6 @@ namespace Evaluate {
                                             || (pos.pieces<BSHP> (C_) & squares_of_color (s)) != U64(0)) ?
                                                 1.75f : // If there are enemy Knights or Bishops
                                                 2.50f;  // If there are no enemy Knights or Bishops
-                                
-                                //// Increase bonus more if the piece blocking enemy pawn
-                                //if (pos[s + pawn_push (C)] == (C_|PAWN))
-                                //{
-                                //    value *= 1.50f;
-                                //}
-                                //// Increase bonus more if the piece blocking enemy semiopen file
-                                //if (ei.pi->semiopen_file<C_> (f))
-                                //{
-                                //    value *= 1.50f;
-                                //}
                             }
 
                             score += mk_score (value * 2, value / 2);
@@ -445,17 +428,6 @@ namespace Evaluate {
                                             || (pos.pieces<BSHP> (C_) & squares_of_color (s)) != U64(0)) ?
                                                 1.75f : // If there are enemy Knights or Bishops
                                                 2.50f;  // If there are no enemy Knights or Bishops
-
-                                //// Increase bonus more if the piece blocking enemy pawn
-                                //if (pos[s + pawn_push (C)] == (C_|PAWN))
-                                //{
-                                //    value *= 1.50f;
-                                //}
-                                //// Increase bonus more if the piece blocking enemy semiopen file
-                                //if (ei.pi->semiopen_file<C_> (f))
-                                //{
-                                //    value *= 1.50f;
-                                //}
                             }
 
                             score += mk_score (value * 2, value / 2);
@@ -597,17 +569,6 @@ namespace Evaluate {
 
             Score score = mk_score (value, -0x10 * ei.pi->kp_dist[C]);
 
-            /*
-            Bitboard attacks = ei.ful_attacked_by[C_][KING];
-            if ((ei.king_ring[C ] & attacks) != U64(0))
-            {
-                ei.king_ring_attackers_count[C_]++;
-                Bitboard zone_attacks = ei.ful_attacked_by[C ][KING] & attacks;
-                if (zone_attacks != U64(0)) ei.king_zone_attacks_count[C_] += (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1);
-                ei.king_ring_attackers_weight[C_] += ei.king_ring_attackers_count [C_]*KING_ATTACK[KING];
-            }
-            */
-
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[C_] > 0)
             {
@@ -626,14 +587,6 @@ namespace Evaluate {
                   & ei.pin_attacked_by[C_][NONE]
                   & ~king_ex_defended;
 
-                //// Defended attacked squares around the king             
-                //Bitboard defended =
-                //    ei.ful_attacked_by[C ][KING] // King-zone
-                //  //& ( ei.pin_attacked_by[C_][BSHP]
-                //  //  | ei.pin_attacked_by[C_][NIHT])
-                //  & ei.pin_attacked_by[C_][NONE]
-                //  & king_ex_defended;
-
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KING_DANGER[] array. The initial value is based on the
                 // number and types of the enemy's attacking pieces, the number of
@@ -644,7 +597,6 @@ namespace Evaluate {
                     +  3 * ei.king_zone_attacks_count[C_] // King-zone attacks
                     +  3 * (undefended != U64(0) ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0) // King-zone undefended pieces
                     +  2 * (ei.pinneds[C] != U64(0) ? (more_than_one (ei.pinneds[C]) ? pop_count<MAX15> (ei.pinneds[C]) : 1) : 0) // King pinned piece
-                    //-  1 * (defended != U64(0) ? (more_than_one (defended) ? pop_count<MAX15> (defended) : 1) : 0)
                     - 15 * (pos.count<QUEN>(C_) == 0)
                     - i32(value) / 32;
 
@@ -752,12 +704,6 @@ namespace Evaluate {
                 score -= KING_DANGER[attack_units];
 
             }
-
-            /*
-            Bitboard mobile = ei.ful_attacked_by[C ][KING] & ~(pos.pieces (C) | ei.ful_attacked_by[C_][NONE]) ;
-            i32 mob = mobile != U64(0) ? pop_count<MAX15> (mobile) : 0;
-            score += PIECE_MOBILIZE[KING][mob];
-            */
 
             if (Trace)
             {
@@ -973,7 +919,7 @@ namespace Evaluate {
             // pawn, or if it is undefended and attacked by an enemy piece.
             Bitboard safe_space =
                   SPACE_MASK[C]
-                & ~pos.pieces<PAWN> (C)//~ei.pi->blocked_pawns[C]
+                & ~pos.pieces<PAWN> (C)
                 & ~ei.pin_attacked_by[C_][PAWN]
                 & (ei.pin_attacked_by[C ][NONE]|~ei.pin_attacked_by[C_][NONE]);
 
