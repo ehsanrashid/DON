@@ -311,7 +311,6 @@ namespace Threads {
 
     };
 
-    void configure_threadpool (const UCI::Option &);
 }
 
 inline u32 cpu_count ()

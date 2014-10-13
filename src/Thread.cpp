@@ -374,10 +374,5 @@ namespace Threads {
         }
         main_th->mutex.unlock ();
     }
-
-
-    void configure_threadpool (const Option &)
-    {
-        Threadpool.configure ();
-    }
+    
 }

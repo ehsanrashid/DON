@@ -161,6 +161,11 @@ namespace UCI {
             TT.load (hash_fn);
         }
 
+        void configure_threadpool (const Option &)
+        {
+            Threadpool.configure ();
+        }
+
         void fifty_move_dist (const Option &opt)
         {
             Position::FiftyMoveDist = u08(2 * i32(opt));

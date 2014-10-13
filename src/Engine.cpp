@@ -114,7 +114,7 @@ namespace Engine {
         Search   ::initialize ();
         EndGame  ::initialize ();
         Threadpool.initialize ();
-        Evaluate ::configure_eval (UCI::Option());
+        Evaluate ::initialize ();
 
         TT.auto_size (i32(Options["Hash"]), true);
 
