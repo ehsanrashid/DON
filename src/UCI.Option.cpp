@@ -174,7 +174,7 @@ namespace UCI {
 
         void uci_chess960 (const Option &opt)
         {
-            Search::Chess960 = bool(opt);
+            Chess960 = bool(opt);
         }
     }
 
@@ -378,7 +378,7 @@ namespace UCI {
         // Chess960 is a chess variant where the back ranks are scrambled.
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         // Default false.
-        Options["UCI_Chess960"]                 << Option (Search::Chess960, uci_chess960);
+        Options["UCI_Chess960"]                 << Option (Chess960, uci_chess960);
         
         // Weaken engine.
         //Options["UCI_LimitStrength"]            << Option (false);
