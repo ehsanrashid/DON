@@ -302,7 +302,7 @@ namespace Search {
 
             // Transposition table lookup
             Key   posi_key;
-            const Entry *tte = NULL;
+            const Entry *tte;
             Move  tt_move    = MOVE_NONE
                 , best_move  = MOVE_NONE;
             Value tt_value   = VALUE_NONE
@@ -587,7 +587,7 @@ namespace Search {
             ASSERT (depth > DEPTH_ZERO);
 
             Key   posi_key;
-            const Entry *tte  = NULL;
+            const Entry *tte;
             Move  move
                 , tt_move     = MOVE_NONE
                 , exclude_move= MOVE_NONE
