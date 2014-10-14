@@ -14,54 +14,57 @@ namespace OpeningBook {
     using namespace MoveGen;
     using namespace Notation;
 
-    #define STM_POS(x)  ((PGHEADER_SIZE) + (x)*(PGENTRY_SIZE))
+    #define STM_POS(x)  (streampos)(u64(PGHEADER_SIZE) + (x)*u64(PGENTRY_SIZE))
 
+    const streampos PolyglotBook::PGENTRY_SIZE  = sizeof (Entry);
+    const streampos PolyglotBook::PGHEADER_SIZE = 0*PGENTRY_SIZE;
+    const streampos PolyglotBook::ERROR_INDEX   = streampos(-1);
 
-    inline bool operator== (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    inline bool operator== (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
     {
         return (pe1.key == pe2.key)
             && (pe1.move == pe2.move)
             && (pe1.weight == pe2.weight);
     }
 
-    inline bool operator!= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    inline bool operator!= (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
     {
         return !(pe1 == pe2);
     }
 
-    inline bool operator>  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    inline bool operator>  (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
     {
-        return (pe1.key != pe2.key)
-            ? (pe1.key > pe2.key)
-            : (pe1.move > pe2.move);      // order by move value
-        //: (pe1.weight > pe2.weight);  // order by weight value
+        return (pe1.key != pe2.key) ?
+                (pe1.key > pe2.key) :
+                //(pe1.move > pe2.move);      // order by move value
+                (pe1.weight > pe2.weight);  // order by weight value
     }
 
-    inline bool operator<  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    inline bool operator<  (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
     {
-        return (pe1.key != pe2.key)
-            ? (pe1.key < pe2.key)
-            : (pe1.move < pe2.move);      // order by move value
-        //: (pe1.weight < pe2.weight);  // order by weight value
+        return (pe1.key != pe2.key) ?
+                (pe1.key < pe2.key) :
+                //(pe1.move < pe2.move);      // order by move value
+                (pe1.weight < pe2.weight);  // order by weight value
     }
 
-    inline bool operator>= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    inline bool operator>= (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
     {
-        return (pe1.key != pe2.key)
-            ? (pe1.key >= pe2.key)
-            : (pe1.move >= pe2.move);      // order by move value
-        //: (pe1.weight >= pe2.weight);  // order by weight value
+        return (pe1.key != pe2.key) ?
+                (pe1.key >= pe2.key) :
+                //(pe1.move >= pe2.move);      // order by move value
+                (pe1.weight >= pe2.weight);  // order by weight value
     }
 
-    inline bool operator<= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    inline bool operator<= (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
     {
-        return (pe1.key != pe2.key)
-            ? (pe1.key <= pe2.key)
-            : (pe1.move <= pe2.move);      // order by move value
-        //: (pe1.weight <= pe2.weight);  // order by weight value
+        return (pe1.key != pe2.key) ?
+                (pe1.key <= pe2.key) :
+                //(pe1.move <= pe2.move);      // order by move value
+                (pe1.weight <= pe2.weight);  // order by weight value
     }
 
-    PolyglotBook::PBEntry::operator string () const
+    PolyglotBook::Entry::operator string () const
     {
         ostringstream oss;
 
@@ -94,7 +97,7 @@ namespace OpeningBook {
         return *this;
     }
     template<>
-    PolyglotBook& PolyglotBook::operator>> (PBEntry &pbe)
+    PolyglotBook& PolyglotBook::operator>> (Entry &pbe)
     {
         *this >> pbe.key >> pbe.move >> pbe.weight >> pbe.learn;
         return *this;
@@ -111,7 +114,7 @@ namespace OpeningBook {
         return *this;
     }
     template<>
-    PolyglotBook& PolyglotBook::operator<< (PBEntry &pbe)
+    PolyglotBook& PolyglotBook::operator<< (Entry &pbe)
     {
         *this << pbe.key << pbe.move << pbe.weight << pbe.learn;
         return *this;
@@ -147,19 +150,17 @@ namespace OpeningBook {
         clear (); // Reset any error flag to allow retry open()
         _book_fn = book_fn;
         _mode    = mode;
-        return fstream::is_open ();
+        return is_open ();
     }
 
-    void PolyglotBook::close () { if (fstream::is_open ()) fstream::close (); }
-
-    u64 PolyglotBook::find_index (const Key key)
+    streampos PolyglotBook::find_index (const Key key)
     {
-        if (!fstream::is_open ()) return ERROR_INDEX;
+        if (!is_open ()) return ERROR_INDEX;
 
-        u64 beg = u64(0);
-        u64 end = u64((size () - PGHEADER_SIZE) / PGENTRY_SIZE - 1);
+        streampos beg = streampos(0);
+        streampos end = streampos((size () - PGHEADER_SIZE) / PGENTRY_SIZE - 1);
 
-        PBEntry pbe;
+        Entry pbe;
 
         ASSERT (beg <= end);
 
@@ -172,7 +173,7 @@ namespace OpeningBook {
         {
             while (beg < end && good ())
             {
-                u64 mid = (beg + end) / 2;
+                streampos mid = (beg + end) / 2;
                 ASSERT (mid >= beg && mid < end);
 
                 seekg (STM_POS (mid));
@@ -184,7 +185,7 @@ namespace OpeningBook {
                 }
                 else
                 {
-                    beg = mid + 1;
+                    beg = u64(mid) + 1;
                 }
             }
         }
@@ -192,38 +193,38 @@ namespace OpeningBook {
         ASSERT (beg == end);
         return (key == pbe.key) ? beg : ERROR_INDEX;
     }
-    u64 PolyglotBook::find_index (const Position &pos)
+    streampos PolyglotBook::find_index (const Position &pos)
     {
         return find_index (ZobPG.compute_posi_key (pos));
     }
 
-    u64 PolyglotBook::find_index (const string &fen, bool c960)
+    streampos PolyglotBook::find_index (const string &fen, bool c960)
     {
         return find_index (ZobPG.compute_fen_key (fen, c960));
     }
 
     Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     {
-        //if (!fstream::is_open () || !(_mode & ios_base::in))
+        //if (!is_open () || !(_mode & ios_base::in))
         //{
         //    if (!open (_book_fn, ios_base::in)) return MOVE_NONE;
         //}
 
         Key key = ZobPG.compute_posi_key (pos);
 
-        u64 index = find_index (key);
+        streampos index = find_index (key);
         if (ERROR_INDEX == index) return MOVE_NONE;
 
         seekg (STM_POS (index));
 
         Move move = MOVE_NONE;
 
-        PBEntry pbe;
+        Entry pbe;
 
         u16 max_weight = 0;
         u32 weight_sum = 0;
 
-        //vector<PBEntry> pe_list;
+        //vector<Entry> pe_list;
         //while ((*this >> pbe), (pbe.key == key))
         //{
         //    pe_list.push_back (pbe);
@@ -234,7 +235,7 @@ namespace OpeningBook {
         //
         //if (pick_best)
         //{
-        //    vector<PBEntry>::const_iterator ms = pe_list.begin ();
+        //    vector<Entry>::const_iterator ms = pe_list.begin ();
         //    while (ms != pe_list.end ())
         //    {
         //        pbe = *ms;
@@ -254,7 +255,7 @@ namespace OpeningBook {
         //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
         //
         //    u32 rand = (_rkiss.rand<u32> () % weight_sum);
-        //    vector<PBEntry>::const_iterator ms = pe_list.begin ();
+        //    vector<Entry>::const_iterator ms = pe_list.begin ();
         //    while (ms != pe_list.end ())
         //    {
         //        pbe = *ms;
@@ -341,11 +342,11 @@ namespace OpeningBook {
 
     string PolyglotBook::read_entries (const Position &pos)
     {
-        if (!fstream::is_open () || !(_mode & in)) return "";
+        if (!is_open () || !(_mode & in)) return "";
 
         Key key = ZobPG.compute_posi_key (pos);
 
-        u64 index = find_index (key);
+        streampos index = find_index (key);
         if (ERROR_INDEX == index)
         {
             cerr << "ERROR: no such key... "
@@ -356,9 +357,9 @@ namespace OpeningBook {
 
         seekg (STM_POS (index));
 
-        PBEntry pbe;
+        Entry pbe;
 
-        vector<PBEntry> pe_list;
+        vector<Entry> pe_list;
 
         u32 weight_sum = 0;
         while ((*this >> pbe), (pbe.key == key))
@@ -369,7 +370,7 @@ namespace OpeningBook {
 
         //TODO::
         ostringstream oss;
-        //for_each (pe_list.begin (), pe_list.end (), [&oss, &weight_sum] (PBEntry _pbe)
+        //for_each (pe_list.begin (), pe_list.end (), [&oss, &weight_sum] (Entry _pbe)
         //{
         //    oss << setfill ('0')
         //        << _pbe << " prob: " << right << fixed << width_prec (6, 2)
@@ -380,11 +381,11 @@ namespace OpeningBook {
         return oss.str ();
     }
 
-    void PolyglotBook::insert_entry (const PBEntry &pbe)
+    void PolyglotBook::insert_entry (const Entry &pbe)
     {
-        if (!fstream::is_open () || !(_mode & out)) return;
+        if (!is_open () || !(_mode & out)) return;
 
-        u64 index = find_index (pbe.key);
+        streampos index = find_index (pbe.key);
         if (ERROR_INDEX == index)
         {
 

@@ -17,7 +17,7 @@ namespace OpeningBook {
 // The entries are ordered according to the key in ascending order.
 // Polyglot book file has *.bin extension
 class PolyglotBook
-    : private std::fstream
+    : public std::fstream
     , public std::noncopyable
 {
 
@@ -28,14 +28,14 @@ public:
     //  - Move      2 bytes
     //  - Weight    2 bytes
     //  - Learn     4 bytes
-    struct PBEntry
+    struct Entry
     {
         u64 key;
         u16 move;
         u16 weight;
         u32 learn;
 
-        PBEntry ()
+        Entry ()
             : key (U64(0))
             , move (MOVE_NONE)
             , weight (0)
@@ -46,7 +46,7 @@ public:
 
         template<class CharT, class Traits>
         friend std::basic_ostream<CharT, Traits>&
-            operator<< (std::basic_ostream<CharT, Traits> &os, const PBEntry &pbe)
+            operator<< (std::basic_ostream<CharT, Traits> &os, const Entry &pbe)
         {
             os << std::string (pbe);
             return os;
@@ -54,17 +54,16 @@ public:
 
     };
 
-    static const u08 PGENTRY_SIZE   = sizeof (PBEntry);
-    static const u08 PGHEADER_SIZE  = 0*PGENTRY_SIZE;
-
-    static const u64 ERROR_INDEX    = u64(-1);
+    static const streampos PGENTRY_SIZE;
+    static const streampos PGHEADER_SIZE;
+    static const streampos ERROR_INDEX;
 
 private:
 
     std::string _book_fn;
-    std::ios_base::openmode _mode;
+    openmode    _mode;
 
-    u64    _size_book;
+    streampos   _size_book;
 
     RKISS       _rkiss;
 
@@ -76,37 +75,34 @@ private:
 public:
     // find_index() takes a hash-key as input, and search through the book file for the given key.
     // Returns the index of the 1st book entry with the same key as the input.
-    u64 find_index (const Key key);
-    u64 find_index (const Position &pos);
-    u64 find_index (const std::string &fen, bool c960 = false);
-
-public:
+    streampos find_index (const Key key);
+    streampos find_index (const Position &pos);
+    streampos find_index (const std::string &fen, bool c960 = false);
 
     PolyglotBook ();
 
     // mode = std::ios_base::in|std::ios_base::out
-    PolyglotBook (const std::string &book_fn, std::ios_base::openmode mode);
+    PolyglotBook (const std::string &book_fn, openmode mode);
     ~PolyglotBook ();
 
-    bool open (const std::string &book_fn, std::ios_base::openmode mode);
-    void close ();
+    bool open (const std::string &book_fn, openmode mode);
+    
+    void close () { if (is_open ()) std::fstream::close (); }
 
     std::string filename () const { return _book_fn; }
 
-    u64 size ()
+    streampos size ()
     {
         if (0 >= _size_book)
         {
-            u64 pos_cur = tellg ();
-            seekg (0L, std::ios_base::end);
+            streampos cur_pos = tellg ();
+            seekg (0L, end);
             _size_book = tellg ();
-            seekg (pos_cur, std::ios_base::beg);
+            seekg (cur_pos, beg);
             clear ();
         }
         return _size_book;
     }
-
-    bool is_open () const { return std::fstream::is_open (); }
 
     // probe_move() tries to find a book move for the given position.
     // If no move is found returns MOVE_NONE.
@@ -116,7 +112,7 @@ public:
 
     std::string read_entries (const Position &pos);
 
-    void insert_entry (const PolyglotBook::PBEntry &pbe);
+    void insert_entry (const Entry &pbe);
 
     //void write ();
 

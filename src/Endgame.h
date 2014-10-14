@@ -80,9 +80,9 @@ namespace EndGame {
             , _weak_side (~c)
         {}
 
-        inline Color color () const { return _stong_side; }
+        inline Color color () const override { return _stong_side; }
 
-        T operator() (const Position &pos) const;
+        T operator() (const Position &pos) const override;
     };
 
     // Endgames class stores in two std::map the pointers to endgame evaluation
