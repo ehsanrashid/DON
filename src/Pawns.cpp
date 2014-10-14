@@ -79,15 +79,13 @@ namespace Pawns {
         {
             const Color  C_  = WHITE == C ? BLACK  : WHITE;
             const Delta PUSH = WHITE == C ? DEL_N  : DEL_S;
-            //const Delta PULL = WHITE == C ? DEL_S  : DEL_N;
-            const Delta RCAP = WHITE == C ? DEL_NE : DEL_SW;
-            const Delta LCAP = WHITE == C ? DEL_NW : DEL_SE;
 
             const Bitboard own_pawns = pos.pieces<PAWN> (C );
             const Bitboard opp_pawns = pos.pieces<PAWN> (C_);
 
-            e->pawns_attacks  [C] = shift_del<RCAP> (own_pawns) | shift_del<LCAP> (own_pawns);
-            //e->blocked_pawns  [C] = own_pawns & shift_del<PULL> (opp_pawns);
+            e->pawns_attacks  [C] = shift_del<WHITE == C ? DEL_NE : DEL_SW> (own_pawns) |
+                                    shift_del<WHITE == C ? DEL_NW : DEL_SE> (own_pawns);
+            //e->blocked_pawns  [C] = own_pawns & shift_del<WHITE == C ? DEL_S : DEL_N> (opp_pawns);
             e->passed_pawns   [C] = U64(0);
             e->semiopen_files [C] = 0xFF;
             e->king_sq        [C] = SQ_NO;

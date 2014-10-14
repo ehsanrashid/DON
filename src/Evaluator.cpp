@@ -286,16 +286,24 @@ namespace Evaluate {
             Bitboard pinneds = ei.pinneds[C] = pos.pinneds (C);
             ei.ful_attacked_by[C][NONE] |= ei.ful_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
             
-            Bitboard pawns_attacks = U64(0);
-            const Square *pl = pos.list<PAWN> (C);
-            Square s;
-            // Loop through all pawns of the current color
-            while ((s = *pl++) != SQ_NO)
+            Bitboard pinned_pawns = pinneds & pos.pieces <PAWN> (C);
+            if (pinned_pawns != U64(0))
             {
-                pawns_attacks |= (pinneds & s) ? PAWN_ATTACKS[C][s] & RAY_LINE_bb[fk_sq][s] : PAWN_ATTACKS[C][s];
+                Bitboard free_pawns    = pos.pieces <PAWN> (C) & ~pinned_pawns;
+                Bitboard pawns_attacks = shift_del<WHITE == C ? DEL_NE : DEL_SW> (free_pawns) |
+                                         shift_del<WHITE == C ? DEL_NW : DEL_SE> (free_pawns);
+                while (pinned_pawns != U64(0))
+                {
+                    Square s = pop_lsq (pinned_pawns);
+                    pawns_attacks |= PAWN_ATTACKS[C][s] & RAY_LINE_bb[fk_sq][s];
+                }
+                ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PAWN] = pawns_attacks;
             }
-            ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PAWN] = pawns_attacks;
-            
+            else
+            {
+                ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
+            }
+
             Bitboard king_attacks        = PIECE_ATTACKS[KING][ek_sq];
             ei.ful_attacked_by[C_][KING] = king_attacks;
             ei.pin_attacked_by[C_][KING] = king_attacks;
