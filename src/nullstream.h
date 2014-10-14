@@ -26,13 +26,12 @@ namespace std {
         : public basic_streambuf<CharT, Traits>
         , public noncopyable
     {
+    private:
 
     public:
         typedef typename basic_streambuf<CharT, Traits>::int_type int_type;
 
         basic_null_buffer() {}
-
-    private:
 
         //virtual int_type overflow (int_type c) override
         //{
@@ -59,19 +58,16 @@ namespace std {
     };
 
     template<class CharT, class Traits, class T>
-    inline basic_null_stream<CharT, Traits>& operator<< (
-        basic_null_stream<CharT, Traits> &nstream, T const &)
+    inline basic_null_stream<CharT, Traits>& operator<< (basic_null_stream<CharT, Traits> &nstream, T const &)
     {
         return nstream;
     }
 
     template<class CharT, class Traits>
-    inline basic_null_stream<CharT, Traits>& operator<< (
-        basic_null_stream<CharT, Traits> &nstream, basic_ostream<CharT, Traits> &(basic_ostream<CharT, Traits> &))
+    inline basic_null_stream<CharT, Traits>& operator<< (basic_null_stream<CharT, Traits> &nstream, basic_ostream<CharT, Traits> &(basic_ostream<CharT, Traits> &))
     {
         return nstream;
     }
-
 
     // helper declarations for narrow and wide streams
     typedef basic_null_stream<char>     null_stream;
