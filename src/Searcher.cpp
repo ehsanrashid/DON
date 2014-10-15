@@ -713,7 +713,7 @@ namespace Search {
                                 // Betting that the opponent doesn't have a move that will reduce
                                 // the score by more than FutilityMargins[depth] if do a null move.
                                 if (  depth < FutilityMarginDepth
-                                   && static_eval < +VALUE_KNOWN_WIN // Do not return unproven wins
+                                   && abs (static_eval) < +VALUE_KNOWN_WIN // Do not return unproven wins
                                    )
                                 {
                                     Value stand_pat = static_eval - FutilityMargins[depth];
@@ -754,12 +754,12 @@ namespace Search {
                                     if (null_value >= beta)
                                     {
                                         // Do not return unproven unproven wins
-                                        if (null_value >= +VALUE_MATE_IN_MAX_DEPTH)
+                                        if (abs (null_value) >= +VALUE_MATE_IN_MAX_DEPTH)
                                         {
                                             null_value = beta;
                                         }
                                         // Don't do verification search at low depths
-                                        if (depth <= 8*DEPTH_ONE && beta < +VALUE_KNOWN_WIN)
+                                        if (depth <= 8*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
                                         {
                                             return null_value;
                                         }
@@ -2052,7 +2052,7 @@ namespace Threads {
                     // Still at first move
                  || (   Signals.root_1stmove
                     && !Signals.root_failedlow
-                    && movetime > TimeMgr.available_time () * (RootMoves.best_move_change < 1.0e-4f ? 50 : 75) / 100
+                    && movetime > TimeMgr.available_time () * (RootMoves.best_move_change < 0.0001f ? 50 : 75) / 100
                     )
                  )
               )
@@ -2079,7 +2079,7 @@ namespace Threads {
     {
         // Pointer 'splitpoint' is not null only if called from split<>(), and not
         // at the thread creation. So it means this is the splitpoint's master.
-        SplitPoint *splitpoint = splitpoint_count ? active_splitpoint : NULL;
+        SplitPoint *splitpoint = splitpoint_count > 0 ? active_splitpoint : NULL;
         ASSERT (splitpoint == NULL || (splitpoint->master == this && searching));
 
         do
@@ -2091,19 +2091,17 @@ namespace Threads {
 
                 Threadpool.mutex.lock ();
 
-                ASSERT (searching);
                 ASSERT (active_splitpoint != NULL);
-
                 SplitPoint *sp = active_splitpoint;
 
                 Threadpool.mutex.unlock ();
 
+                Stack stack[MAX_DEPTH_6]
+                   , *ss = stack+2; // To allow referencing (ss-2)
+
                 Position pos (*(sp)->pos, this);
 
-                Stack stack[MAX_DEPTH_6]
-                    , *ss = stack+2; // To allow referencing (ss-2)
                 memcpy (ss-2, (sp)->ss-2, 5*sizeof (*ss));
-
                 (ss)->splitpoint = sp;
 
                 // Lock splitpoint
