@@ -318,7 +318,7 @@ namespace Threads {
 
         sync_cout
             << "info string Thread(s) "   << u16(threads) << ".\n"
-            << "info string Split Depth " << split_depth << sync_endl;
+            << "info string Split Depth " << u16(split_depth) << sync_endl;
     }
 
     // available_slave() tries to find an idle thread

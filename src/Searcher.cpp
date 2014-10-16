@@ -1,6 +1,7 @@
 ﻿#include "Searcher.h"
 
 #include <cfloat>
+#include <cmath>
 #include <sstream>
 #include <iomanip>
 

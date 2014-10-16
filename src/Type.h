@@ -3,6 +3,7 @@
 
 #include <cctype>
 #include <climits>
+#include <string>
 #include <vector>
 #include <algorithm>
 #include <iosfwd>

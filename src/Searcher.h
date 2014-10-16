@@ -131,8 +131,8 @@ namespace Search {
         friend bool operator== (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value == rm2.new_value); }
         friend bool operator!= (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value != rm2.new_value); }
 
-        friend bool operator== (const RootMove &rm, const Move &m) { return (rm.pv[0] == m); }
-        friend bool operator!= (const RootMove &rm, const Move &m) { return (rm.pv[0] != m); }
+        friend bool operator== (const RootMove &rm, Move m) { return (rm.pv[0] == m); }
+        friend bool operator!= (const RootMove &rm, Move m) { return (rm.pv[0] != m); }
 
         void extract_pv_from_tt (Position &pos);
         void  insert_pv_into_tt (Position &pos);
