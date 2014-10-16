@@ -54,8 +54,8 @@ namespace MovePick {
 
     public:
     
-        static const Value MinValue = Value(-5001);
-        static const Value MaxValue = Value(+5000);
+        static const Value MinValue;
+        static const Value MaxValue;
     
         inline void clear ()
         {
