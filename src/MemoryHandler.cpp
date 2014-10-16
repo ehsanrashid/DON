@@ -4,12 +4,12 @@
 
 #include "UCI.h"
 #include "Engine.h"
+#include <cstdlib>
 
 #if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
 #   include <tchar.h>
 #   include <cstdio>
-#   include <cstdlib>
 
 // disable macros min() and max()
 #   ifndef  NOMINMAX
@@ -24,17 +24,23 @@
 #   undef NOMINMAX
 #   undef WIN32_LEAN_AND_MEAN
 
-#   define MEMALIGN(mem, alignment, size)  mem = _aligned_malloc (size, alignment)
-#   define ALIGNED_FREE(mem)                _aligned_free (mem);
-
 #   define SE_PRIVILEGE_DISABLED       (0x00000000L)
+
+#   define MEMALIGN(mem, alignment, size)  mem = _aligned_malloc (size, alignment)
+#   define ALIGNED_FREE(mem)                     _aligned_free (mem);
 
 #else    // Linux - Unix
 
 #   include <sys/ipc.h>
 #   include <sys/shm.h>
+#   include <sys/mman.h>
+
+#   define MEMALIGN(mem, alignment, size)  posix_memalign (mem, alignment, size)
+#   define ALIGNED_FREE(mem)               free (mem);
 
 #endif
+
+
 
 namespace Memory {
 
@@ -154,7 +160,7 @@ namespace Memory {
             if (SharedMemoryKey >= 0)
             {
                 mem_ref = shmat (SharedMemoryKey, NULL, 0x0);
-                if (mem_ref != -1)
+                if (mem_ref != (char*) -1)
                 {
                     UsePages = true;
                     memset (mem_ref, 0x00, mem_size);
