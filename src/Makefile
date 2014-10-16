@@ -129,7 +129,6 @@ endif
 ifeq ($(ARCH),general-64)
 	arch = any
 	bits = 64
-	lpg  = yes
 endif
 
 ifeq ($(ARCH),x86-64)
