@@ -1,6 +1,7 @@
 #include "TimeManager.h"
 
 #include <cfloat>
+#include <cmath>
 
 namespace Time {
 
