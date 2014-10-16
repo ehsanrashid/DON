@@ -412,7 +412,7 @@ namespace MoveGen {
         ASSERT (RELAX == GT || CAPTURE == GT || QUIET == GT);
         ASSERT (pos.checkers () == U64(0));
 
-        Color active = pos.active ();
+        Color active    = pos.active ();
 
         Bitboard targets = 
             CAPTURE == GT ?  pos.pieces (~active) :
@@ -501,8 +501,8 @@ namespace MoveGen {
         Bitboard checkers = pos.checkers ();
         ASSERT (checkers); // If any checker exists
 
-        Color active = pos.active ();
-        Square king_sq = pos.king_sq (active);
+        Color active    = pos.active ();
+        Square king_sq  = pos.king_sq (active);
 
         Square check_sq;
 
