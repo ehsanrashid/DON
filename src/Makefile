@@ -137,7 +137,6 @@ ifeq ($(ARCH),x86-64)
 	pfch = yes
 	sse  = yes
 	bsfq = yes
-	lpg  = yes
 endif
 
 ifeq ($(ARCH),general-64-pop)
