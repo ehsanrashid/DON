@@ -35,6 +35,10 @@
 #   include <sys/shm.h>
 #   include <sys/mman.h>
 
+#   ifndef SHM_HUGETLB
+#       define SHM_HUGETLB     04000
+#   endif
+
 #   define MEMALIGN(mem, alignment, size)  posix_memalign (mem, alignment, size)
 #   define ALIGNED_FREE(mem)               free (mem);
 
