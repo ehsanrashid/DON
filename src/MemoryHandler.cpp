@@ -157,7 +157,7 @@ namespace Memory {
                 sync_cout << "info string Page Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
-            cerr << "ERROR: VirtualAlloc() virtual memory alloc failed.";
+            cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << endl;
 
 #   else    // Linux - Unix
 
@@ -179,7 +179,7 @@ namespace Memory {
                 }
                 return;
             }
-            cerr << "ERROR: shmget() shared memory alloc failed.";
+            cerr << "ERROR: shmget() shared memory alloc failed." << endl;
 
 #   endif
         }
