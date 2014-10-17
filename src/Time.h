@@ -8,7 +8,7 @@
 
 #include "Platform.h"
 
-#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#if defined(_WIN32)
 
 #   ifdef _MSC_VER
 #       pragma warning (disable: 4996) // Function _ftime() may be unsafe
@@ -38,9 +38,6 @@ INLINE u64 system_time_msec ()
 
 namespace Time {
 
-    //enum point : u64 { MILLI_SEC = 1000 };
-    //INLINE point  operator-  (const point &p1, const point &p2) { return point (u64(p1) - u64(p2)); }
-
     typedef i64     point;
 
     const point MILLI_SEC        = 1000;
@@ -53,7 +50,7 @@ namespace Time {
     {
         std::ostringstream oss;
 
-#   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#   if defined(_WIN32)
 
         time_t time = (p / MILLI_SEC);
         char *str_time = ctime (&time);
@@ -79,8 +76,6 @@ namespace Time {
             << std::setw (3) << (p % MILLI_SEC);
 
 #   else
-
-//        // TODO::
 
 #   endif
 

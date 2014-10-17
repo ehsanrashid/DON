@@ -10,7 +10,7 @@
 #include "Searcher.h"
 
 // Windows or MinGW
-#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#if defined(_WIN32)
 
 #   ifndef  NOMINMAX
 #       define NOMINMAX // disable macros min() and max()
@@ -108,7 +108,7 @@ namespace Threads {
     inline void cond_timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec)
     {
 
-#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#if defined(_WIN32)
 
         i32 tm = msec;
 

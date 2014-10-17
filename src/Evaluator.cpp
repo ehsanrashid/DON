@@ -779,7 +779,7 @@ namespace Evaluate {
                 threaten_pieces = weak_pieces & ei.ful_attacked_by[C][KING];
                 if (threaten_pieces != U64(0)) score += (more_than_one (threaten_pieces) ? PIECE_THREATEN[ROYAL][1] : PIECE_THREATEN[ROYAL][0]); 
 
-                // Hanging pieces
+                // Hanged pieces
                 Bitboard hanged_pieces = weak_pieces & ~ei.pin_attacked_by[C_][NONE];
                 if (hanged_pieces != U64(0)) score += PIECE_HANGED * (more_than_one (hanged_pieces) ? pop_count<MAX15> (hanged_pieces) : 1);
             }

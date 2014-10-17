@@ -74,7 +74,7 @@ typedef        uint64_t    u64;
 #endif
 
 // Windows or MinGW
-#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#if defined(_WIN32)
 
 // Auto make 64-bit compiles
 #   ifdef _WIN64
