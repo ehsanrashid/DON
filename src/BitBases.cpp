@@ -30,7 +30,7 @@ namespace BitBases {
 
         private:
 
-            template<Color C>
+            template<Color Own>
             Result classify (const vector<KPKPosition> &db);
 
             Color  _active;
@@ -113,7 +113,7 @@ namespace BitBases {
             return wk_sq + (bk_sq << 6) + (c << 12) + (_file (wp_sq) << 13) + ((i32(R_7) - i32(_rank (wp_sq))) << 15);
         }
 
-        template<Color C>
+        template<Color Own>
         inline Result KPKPosition::classify (const vector<KPKPosition>& db)
         {
 
@@ -127,19 +127,19 @@ namespace BitBases {
             // If all moves lead to positions classified as WIN, the result of the current position is WIN
             // otherwise the current position is classified as UNKNOWN.
 
-            const Color C_ = WHITE == C ? BLACK : WHITE;
+            const Color Opp = WHITE == Own ? BLACK : WHITE;
 
             Result r = INVALID;
 
-            Bitboard b = PIECE_ATTACKS[KING][WHITE == C ? _wk_sq : _bk_sq];
+            Bitboard b = PIECE_ATTACKS[KING][WHITE == Own ? _wk_sq : _bk_sq];
             while (b != U64(0))
             {
-                r |= WHITE == C ?
-                    db[index(C_, _bk_sq, pop_lsq (b), _p_sq)] :
-                    db[index(C_, pop_lsq (b), _wk_sq, _p_sq)];
+                r |= WHITE == Own ?
+                    db[index(Opp, _bk_sq, pop_lsq (b), _p_sq)] :
+                    db[index(Opp, pop_lsq (b), _wk_sq, _p_sq)];
             }
 
-            if (WHITE == C && _rank (_p_sq) < R_7)
+            if (WHITE == Own && _rank (_p_sq) < R_7)
             {
                 Square s = _p_sq + DEL_N;
 
@@ -151,7 +151,7 @@ namespace BitBases {
                 }
             }
 
-            result = WHITE == C ?
+            result = WHITE == Own ?
                      (r & WIN  ? WIN  : r & UNKNOWN ? UNKNOWN : DRAW) :
                      (r & DRAW ? DRAW : r & UNKNOWN ? UNKNOWN : WIN);
 

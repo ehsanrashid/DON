@@ -34,7 +34,7 @@ namespace Material {
         inline bool specialized_eval_exists ()      const { return ( evaluation_func != NULL); }
         inline Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
         
-        template<Color C>
+        template<Color Own>
         // Entry::scale_factor() takes a position and a color as input, and
         // returns a scale factor for the given color. Have to provide the
         // position in addition to the color, because the scale factor need not
@@ -43,12 +43,12 @@ namespace Material {
         // which checks for draws with rook pawns and wrong-colored bishops.
         inline ScaleFactor scale_factor (const Position &pos) const
         {
-            if (scaling_func[C] != NULL)
+            if (scaling_func[Own] != NULL)
             {
-                ScaleFactor sf = (*scaling_func[C]) (pos);
+                ScaleFactor sf = (*scaling_func[Own]) (pos);
                 if (SCALE_FACTOR_NONE != sf) return sf;
             }
-            return ScaleFactor (factor[C]);
+            return ScaleFactor (factor[Own]);
         }
 
     };

@@ -73,7 +73,7 @@ namespace EndGame {
             return sq;
         }
 
-        template<Color C>
+        template<Color Own>
         // Get the material key of a Position out of the given endgame key code
         // like "KBPKN". The trick here is to first forge an ad-hoc fen string
         // and then let a Position object to do the work for us.
@@ -88,7 +88,7 @@ namespace EndGame {
                 code.substr (0, code.find ('K', 1)), // Strong
             };
 
-            transform (sides[C].begin (), sides[C].end (), sides[C].begin (), ::tolower);
+            transform (sides[Own].begin (), sides[Own].end (), sides[Own].begin (), ::tolower);
             
             string fen = sides[0] + char (8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
                        + sides[1] + char (8 - sides[1].length () + '0') + " w - - 0 1";

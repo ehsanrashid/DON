@@ -272,109 +272,109 @@ namespace Evaluate {
         }
 
         //  --- init evaluation info --->
-        template<Color C>
+        template<Color Own>
         // init_evaluation<>() initializes king bitboards for given color adding
         // pawn attacks. To be done at the beginning of the evaluation.
         inline void init_evaluation (const Position &pos, EvalInfo &ei)
         {
-            const Color  C_  = WHITE == C ? BLACK : WHITE;
-            const Delta PUSH = WHITE == C ? DEL_N: DEL_S;
+            const Color  Opp = WHITE == Own ? BLACK : WHITE;
+            const Delta PUSH = WHITE == Own ? DEL_N: DEL_S;
 
-            Square fk_sq = pos.king_sq (C );
-            Square ek_sq = pos.king_sq (C_);
+            Square fk_sq = pos.king_sq (Own);
+            Square ek_sq = pos.king_sq (Opp);
 
-            Bitboard pinneds = ei.pinneds[C] = pos.pinneds (C);
-            ei.ful_attacked_by[C][NONE] |= ei.ful_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
+            Bitboard pinneds = ei.pinneds[Own] = pos.pinneds (Own);
+            ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PAWN] = ei.pi->pawns_attacks[Own];
             
-            Bitboard pinned_pawns = pinneds & pos.pieces <PAWN> (C);
+            Bitboard pinned_pawns = pinneds & pos.pieces <PAWN> (Own);
             if (pinned_pawns != U64(0))
             {
-                Bitboard free_pawns    = pos.pieces <PAWN> (C) & ~pinned_pawns;
-                Bitboard pawns_attacks = shift_del<WHITE == C ? DEL_NE : DEL_SW> (free_pawns) |
-                                         shift_del<WHITE == C ? DEL_NW : DEL_SE> (free_pawns);
+                Bitboard free_pawns    = pos.pieces <PAWN> (Own) & ~pinned_pawns;
+                Bitboard pawns_attacks = shift_del<WHITE == Own ? DEL_NE : DEL_SW> (free_pawns) |
+                                         shift_del<WHITE == Own ? DEL_NW : DEL_SE> (free_pawns);
                 while (pinned_pawns != U64(0))
                 {
                     Square s = pop_lsq (pinned_pawns);
-                    pawns_attacks |= PAWN_ATTACKS[C][s] & RAY_LINE_bb[fk_sq][s];
+                    pawns_attacks |= PAWN_ATTACKS[Own][s] & RAY_LINE_bb[fk_sq][s];
                 }
-                ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PAWN] = pawns_attacks;
+                ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PAWN] = pawns_attacks;
             }
             else
             {
-                ei.pin_attacked_by[C][NONE] |= ei.pin_attacked_by[C][PAWN] = ei.pi->pawns_attacks[C];
+                ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PAWN] = ei.pi->pawns_attacks[Own];
             }
 
             Bitboard king_attacks        = PIECE_ATTACKS[KING][ek_sq];
-            ei.ful_attacked_by[C_][KING] = king_attacks;
-            ei.pin_attacked_by[C_][KING] = king_attacks;
+            ei.ful_attacked_by[Opp][KING] = king_attacks;
+            ei.pin_attacked_by[Opp][KING] = king_attacks;
             
-            ei.king_ring_attackers_count [C ] = 0;
-            ei.king_ring_attackers_weight[C ] = 0;
-            ei.king_zone_attacks_count   [C ] = 0;
-            ei.king_ring                 [C_] = U64(0);
+            ei.king_ring_attackers_count [Own] = 0;
+            ei.king_ring_attackers_weight[Own] = 0;
+            ei.king_zone_attacks_count   [Own] = 0;
+            ei.king_ring                 [Opp] = U64(0);
 
             // Init king safety tables only if going to use them
             // Do not evaluate king safety when you are close to the endgame so the weight of king safety is small
             //if (ei.mi->game_phase > PHASE_KINGSAFETY)
-            if (pos.non_pawn_material (C) > VALUE_MG_QUEN + VALUE_MG_PAWN)
+            if (pos.non_pawn_material (Own) > VALUE_MG_QUEN + VALUE_MG_PAWN)
             {
                 king_attacks += ek_sq;
-                Rank ekr = rel_rank (C_, ek_sq);
-                ei.king_ring[C_] = king_attacks|(DIST_RINGS_bb[ek_sq][1] &
-                                                        (ekr < R_5 ? (PAWN_PASS_SPAN[C_][ek_sq]) :
-                                                         ekr < R_7 ? (PAWN_PASS_SPAN[C_][ek_sq]|PAWN_PASS_SPAN[C ][ek_sq]) :
-                                                                     (PAWN_PASS_SPAN[C ][ek_sq])));
+                Rank ekr = rel_rank (Opp, ek_sq);
+                ei.king_ring[Opp] = king_attacks|(DIST_RINGS_bb[ek_sq][1] &
+                                                        (ekr < R_5 ? (PAWN_PASS_SPAN[Opp][ek_sq]) :
+                                                         ekr < R_7 ? (PAWN_PASS_SPAN[Opp][ek_sq]|PAWN_PASS_SPAN[Own][ek_sq]) :
+                                                                     (PAWN_PASS_SPAN[Own][ek_sq])));
 
-                if (king_attacks & ei.pin_attacked_by[C][PAWN])
+                if (king_attacks & ei.pin_attacked_by[Own][PAWN])
                 {
-                    Bitboard attackers = pos.pieces<PAWN> (C) & (king_attacks|(DIST_RINGS_bb[ek_sq][1] & (rank_bb (ek_sq-PUSH)|rank_bb (ek_sq))));
-                    ei.king_ring_attackers_count [C] += attackers != U64(0) ? (more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1) : 0;
-                    ei.king_ring_attackers_weight[C] += ei.king_ring_attackers_count [C]*KING_ATTACK[PAWN];
+                    Bitboard attackers = pos.pieces<PAWN> (Own) & (king_attacks|(DIST_RINGS_bb[ek_sq][1] & (rank_bb (ek_sq-PUSH)|rank_bb (ek_sq))));
+                    ei.king_ring_attackers_count [Own] += attackers != U64(0) ? (more_than_one (attackers) ? pop_count<MAX15> (attackers) : 1) : 0;
+                    ei.king_ring_attackers_weight[Own] += ei.king_ring_attackers_count [Own]*KING_ATTACK[PAWN];
                 }
             }
         }
 
-        template<Color C, PieceT PT, bool Trace>
+        template<Color Own, PieceT PT, bool Trace>
         // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color except PAWN
         inline Score evaluate_pieces (const Position &pos, EvalInfo &ei, Bitboard mobility_area, Score &mobility)
         {
-            const Color  C_  = WHITE == C ? BLACK : WHITE;
-            const Delta PUSH = WHITE == C ? DEL_N : DEL_S;
+            const Color  Opp = WHITE == Own ? BLACK : WHITE;
+            const Delta PUSH = WHITE == Own ? DEL_N : DEL_S;
 
             Score score = SCORE_ZERO;
 
-            ei.ful_attacked_by[C][PT] = U64(0);
-            ei.pin_attacked_by[C][PT] = U64(0);
+            ei.ful_attacked_by[Own][PT] = U64(0);
+            ei.pin_attacked_by[Own][PT] = U64(0);
             
             u08 king_ring_attackers_count = 0;
             u08 king_zone_attacks_count   = 0;
 
-            const Square *pl = pos.list<PT> (C);
+            const Square *pl = pos.list<PT> (Own);
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
                 const File f = _file (s);
-                const Rank r = rel_rank (C, s);
+                const Rank r = rel_rank (Own, s);
 
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks =
-                    (BSHP == PT) ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (C, QUEN, BSHP)) | ei.pinneds[C]) :
-                    (ROOK == PT) ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (C, QUEN, ROOK)) | ei.pinneds[C]) :
+                    (BSHP == PT) ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
+                    (ROOK == PT) ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
                     (QUEN == PT) ? attacks_bb<BSHP> (s, pos.pieces ()) | attacks_bb<ROOK> (s, pos.pieces ()) :
                                    PIECE_ATTACKS[PT][s];
 
-                ei.ful_attacked_by[C][PT] |= attacks;
+                ei.ful_attacked_by[Own][PT] |= attacks;
 
-                if ((ei.king_ring[C_] & attacks) != U64(0))
+                if ((ei.king_ring[Opp] & attacks) != U64(0))
                 {
                     ++king_ring_attackers_count;
-                    Bitboard zone_attacks = ei.ful_attacked_by[C_][KING] & attacks;
+                    Bitboard zone_attacks = ei.ful_attacked_by[Opp][KING] & attacks;
                     king_zone_attacks_count += zone_attacks != U64(0) ? (more_than_one (zone_attacks) ? pop_count<MAX15> (zone_attacks) : 1) : 0;
                 }
 
                 // Decrease score if attacked by an enemy pawn. Remaining part
                 // of threat evaluation must be done later when have full attack info.
-                if (ei.pin_attacked_by[C_][PAWN] & s)
+                if (ei.pin_attacked_by[Opp][PAWN] & s)
                 {
                     score -= PIECE_THREATEN[PIADA][PT];
                 }
@@ -386,23 +386,23 @@ namespace Evaluate {
                 if (NIHT == PT)
                 {
                     // Outpost bonus for Knight
-                    if (!(ei.pin_attacked_by[C_][PAWN] & s))
+                    if (!(ei.pin_attacked_by[Opp][PAWN] & s))
                     {
                         // Initial bonus based on square
-                        Value value = OUTPOSTS[0][rel_sq (C, s)];
+                        Value value = OUTPOSTS[0][rel_sq (Own, s)];
 
                         // Increase bonus if supported by pawn, especially if the opponent has
                         // no minor piece which can exchange the outpost piece.
                         if (value != VALUE_ZERO)
                         {
                             // Supporting pawns
-                            if (ei.pin_attacked_by[C][PAWN] & s)
+                            if (ei.pin_attacked_by[Own][PAWN] & s)
                             {
-                                value *= (  (pos.pieces<NIHT> (C_) & PIECE_ATTACKS[NIHT][s]) != U64(0)
-                                         || (pos.pieces<BSHP> (C_) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
+                                value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
+                                         || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
                                             1.50f : // If attacked by enemy Knights or Bishops
-                                            (  (pos.pieces<NIHT> (C_)) != U64(0)
-                                            || (pos.pieces<BSHP> (C_) & squares_of_color (s)) != U64(0)) ?
+                                            (  (pos.pieces<NIHT> (Opp)) != U64(0)
+                                            || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
                                                 1.75f : // If there are enemy Knights or Bishops
                                                 2.50f;  // If there are no enemy Knights or Bishops
                             }
@@ -414,26 +414,26 @@ namespace Evaluate {
 
                 if (BSHP == PT)
                 {
-                    score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor<C> (s);
+                    score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor<Own> (s);
 
                     // Outpost bonus for Bishop
-                    if (!(ei.pin_attacked_by[C_][PAWN] & s))
+                    if (!(ei.pin_attacked_by[Opp][PAWN] & s))
                     {
                         // Initial bonus based on square
-                        Value value = OUTPOSTS[1][rel_sq (C, s)];
+                        Value value = OUTPOSTS[1][rel_sq (Own, s)];
 
                         // Increase bonus if supported by pawn, especially if the opponent has
                         // no minor piece which can exchange the outpost piece.
                         if (value != VALUE_ZERO)
                         {
                             // Supporting pawns
-                            if (ei.pin_attacked_by[C][PAWN] & s)
+                            if (ei.pin_attacked_by[Own][PAWN] & s)
                             {
-                                value *= (  (pos.pieces<NIHT> (C_) & PIECE_ATTACKS[NIHT][s]) != U64(0)
-                                         || (pos.pieces<BSHP> (C_) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
+                                value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
+                                         || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
                                             1.50f : // If attacked by enemy Knights or Bishops
-                                            (  (pos.pieces<NIHT> (C_)) != U64(0)
-                                            || (pos.pieces<BSHP> (C_) & squares_of_color (s)) != U64(0)) ?
+                                            (  (pos.pieces<NIHT> (Opp)) != U64(0)
+                                            || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
                                                 1.75f : // If there are enemy Knights or Bishops
                                                 2.50f;  // If there are no enemy Knights or Bishops
                             }
@@ -449,14 +449,14 @@ namespace Evaluate {
                     // a friendly pawn on b2/g2 (b7/g7 for black).
                     if (pos.chess960 ())
                     {
-                        if ((FILE_EDGE_bb & R1_bb) & rel_sq (C, s))
+                        if ((FILE_EDGE_bb & R1_bb) & rel_sq (Own, s))
                         {
                             Delta del = PUSH + ((F_A == f) ? DEL_E : DEL_W);
-                            if (pos[s + del] == (C | PAWN))
+                            if (pos[s + del] == (Own | PAWN))
                             {
                                 score -= BISHOP_TRAPPED *
                                     (  !pos.empty (s + del + PUSH) ?
-                                       4 : pos[s + del + del] == (C | PAWN) ?
+                                       4 : pos[s + del + del] == (Own | PAWN) ?
                                        2 : 1);
                             }
                         }
@@ -478,24 +478,24 @@ namespace Evaluate {
                     if (R_4 < r)
                     {
                         // Rook piece attacking enemy pawns on the same rank/file
-                        const Bitboard rook_on_pawns = pos.pieces<PAWN> (C_) & PIECE_ATTACKS[ROOK][s];
+                        const Bitboard rook_on_pawns = pos.pieces<PAWN> (Opp) & PIECE_ATTACKS[ROOK][s];
                         score += rook_on_pawns != U64(0) ? ROOK_ON_PAWNS * (more_than_one (rook_on_pawns) ? pop_count<MAX15> (rook_on_pawns) : 1) : SCORE_ZERO;
                     }
 
                     // Give a bonus for a rook on a open or semi-open file
-                    if (ei.pi->semiopen_file<C > (f) != 0)
+                    if (ei.pi->semiopen_file<Own> (f) != 0)
                     {
-                        score += ei.pi->semiopen_file<C_> (f) != 0 ?
+                        score += ei.pi->semiopen_file<Opp> (f) != 0 ?
                                  ROOK_ON_OPENFILE :
                                  ROOK_ON_SEMIOPENFILE;
                     }
                 }
 
-                if (ei.pinneds[C] & s)
+                if (ei.pinneds[Own] & s)
                 {
-                    attacks &= RAY_LINE_bb[pos.king_sq (C)][s];
+                    attacks &= RAY_LINE_bb[pos.king_sq (Own)][s];
                 }
-                ei.pin_attacked_by[C][PT] |= attacks;
+                ei.pin_attacked_by[Own][PT] |= attacks;
 
                 Bitboard mobile = attacks & mobility_area;
                 i32 mob = mobile != U64(0) ? pop_count<QUEN != PT ? MAX15 : FULL> (mobile) : 0;
@@ -503,18 +503,18 @@ namespace Evaluate {
 
                 if (ROOK == PT)
                 {
-                    if (mob <= 3 && ei.pi->semiopen_file<C > (f) == 0)
+                    if (mob <= 3 && ei.pi->semiopen_file<Own> (f) == 0)
                     {
-                        const File kf = _file (pos.king_sq (C));
-                        const Rank kr = rel_rank (C, pos.king_sq (C));
+                        const File kf = _file (pos.king_sq (Own));
+                        const Rank kr = rel_rank (Own, pos.king_sq (Own));
                         // Penalize rooks which are trapped by a king.
                         // Penalize more if the king has lost its castling capability.
                         if (  (kf < F_E) == (f < kf)
                            && (kr == R_1 || kr == r)
-                           && (ei.pi->semiopen_side<C> (kf, f < kf) == 0)
+                           && (ei.pi->semiopen_side<Own> (kf, f < kf) == 0)
                            )
                         {
-                            score -= (ROOK_TRAPPED - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (C));
+                            score -= (ROOK_TRAPPED - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (Own));
                         }
                     }
                 }
@@ -522,77 +522,77 @@ namespace Evaluate {
 
             if (king_ring_attackers_count > 0)
             {
-                ei.king_ring_attackers_count [C ] += king_ring_attackers_count;
-                ei.king_ring_attackers_weight[C ] += king_ring_attackers_count*KING_ATTACK[PT];
-                ei.king_zone_attacks_count   [C ] += king_zone_attacks_count;
+                ei.king_ring_attackers_count [Own] += king_ring_attackers_count;
+                ei.king_ring_attackers_weight[Own] += king_ring_attackers_count*KING_ATTACK[PT];
+                ei.king_zone_attacks_count   [Own] += king_zone_attacks_count;
             }
 
             if (Trace)
             {
-                Tracer::set (PT, C, score);
+                Tracer::set (PT, Own, score);
             }
 
             return score;
         }
         //  --- init evaluation info <---
 
-        template<Color C, bool Trace>
+        template<Color Own, bool Trace>
         // evaluate_king<>() assigns bonuses and penalties to a king of a given color
         inline Score evaluate_king (const Position &pos, EvalInfo &ei)
         {
-            const Color C_ = WHITE == C ? BLACK : WHITE;
+            const Color Opp = WHITE == Own ? BLACK : WHITE;
 
-            const Square fk_sq = pos.king_sq (C);
+            const Square fk_sq = pos.king_sq (Own);
 
             // King shelter and enemy pawns storm
-            ei.pi->evaluate_king_pawn_safety<C> (pos);
+            ei.pi->evaluate_king_pawn_safety<Own> (pos);
 
             Value value = VALUE_ZERO;
-            Rank kr = rel_rank (C, fk_sq);
+            Rank kr = rel_rank (Own, fk_sq);
             // If can castle use the value after the castle if is bigger
-            if (kr == R_1 && pos.can_castle (C))
+            if (kr == R_1 && pos.can_castle (Own))
             {
-                value = ei.pi->shelter_storm[C][CS_NO];
+                value = ei.pi->shelter_storm[Own][CS_NO];
 
-                if (    pos.can_castle (Castling<C, CS_K>::Right)
-                    && !pos.castle_impeded (Castling<C, CS_K>::Right)
-                    && (pos.king_path (Castling<C, CS_K>::Right) & ei.ful_attacked_by[C_][NONE]) == U64(0)
+                if (    pos.can_castle (Castling<Own, CS_K>::Right)
+                    && !pos.castle_impeded (Castling<Own, CS_K>::Right)
+                    && (pos.king_path (Castling<Own, CS_K>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
                    )
                 {
-                    value = max (value, ei.pi->shelter_storm[C][CS_K]);
+                    value = max (value, ei.pi->shelter_storm[Own][CS_K]);
                 }
-                if (    pos.can_castle (Castling<C, CS_Q>::Right)
-                    && !pos.castle_impeded (Castling<C, CS_Q>::Right)
-                    && (pos.king_path (Castling<C, CS_Q>::Right) & ei.ful_attacked_by[C_][NONE]) == U64(0)
+                if (    pos.can_castle (Castling<Own, CS_Q>::Right)
+                    && !pos.castle_impeded (Castling<Own, CS_Q>::Right)
+                    && (pos.king_path (Castling<Own, CS_Q>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
                    )
                 {
-                    value = max (value, ei.pi->shelter_storm[C][CS_Q]);
+                    value = max (value, ei.pi->shelter_storm[Own][CS_Q]);
                 }
             }
             else
             if (kr <= R_4)
             {
-                value = ei.pi->shelter_storm[C][CS_NO];
+                value = ei.pi->shelter_storm[Own][CS_NO];
             }
 
-            Score score = mk_score (value, -0x10 * ei.pi->kp_dist[C]);
+            Score score = mk_score (value, -0x10 * ei.pi->kp_dist[Own]);
 
             // Main king safety evaluation
-            if (ei.king_ring_attackers_count[C_] > 0)
+            if (ei.king_ring_attackers_count[Opp] > 0)
             {
                 const Bitboard occ = pos.pieces ();
 
                 Bitboard king_ex_defended =
-                    ( ei.pin_attacked_by[C ][PAWN]
-                    | ei.pin_attacked_by[C ][NIHT]
-                    | ei.pin_attacked_by[C ][BSHP]
-                    | ei.pin_attacked_by[C ][ROOK]
-                    | ei.pin_attacked_by[C ][QUEN]);
+                    ( ei.pin_attacked_by[Own][PAWN]
+                    | ei.pin_attacked_by[Own][NIHT]
+                    | ei.pin_attacked_by[Own][BSHP]
+                    | ei.pin_attacked_by[Own][ROOK]
+                    | ei.pin_attacked_by[Own][QUEN]);
                 // Attacked squares around the king which has no defenders
                 // apart from the king itself
                 Bitboard undefended =
-                    ei.ful_attacked_by[C ][KING] // King-zone
-                  & ei.pin_attacked_by[C_][NONE]
+                    ei.ful_attacked_by[Own][KING] // King-zone
+                  & ei.pin_attacked_by[Opp][NONE]
                   & ~king_ex_defended;
 
                 // Initialize the 'attack_units' variable, which is used later on as an
@@ -601,31 +601,31 @@ namespace Evaluate {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + min (ei.king_ring_attackers_count[C_] * ei.king_ring_attackers_weight[C_]/4, 20) // King-ring attacks
-                    +  3 * ei.king_zone_attacks_count[C_] // King-zone attacks
+                    + min (ei.king_ring_attackers_count[Opp] * ei.king_ring_attackers_weight[Opp]/4, 20) // King-ring attacks
+                    +  3 * ei.king_zone_attacks_count[Opp] // King-zone attacks
                     +  3 * (undefended != U64(0) ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0) // King-zone undefended pieces
-                    +  2 * (ei.pinneds[C] != U64(0) ? (more_than_one (ei.pinneds[C]) ? pop_count<MAX15> (ei.pinneds[C]) : 1) : 0) // King pinned piece
-                    - 15 * (pos.count<QUEN>(C_) == 0)
+                    +  2 * (ei.pinneds[Own] != U64(0) ? (more_than_one (ei.pinneds[Own]) ? pop_count<MAX15> (ei.pinneds[Own]) : 1) : 0) // King pinned piece
+                    - 15 * (pos.count<QUEN>(Opp) == 0)
                     - i32(value) / 32;
 
                 // Undefended squares around king not occupied by enemy's
-                undefended &= ~pos.pieces (C_);
+                undefended &= ~pos.pieces (Opp);
                 if (undefended != U64(0))
                 {
                     Bitboard undefended_attacked;
-                    if (pos.count<QUEN> (C_) > 0)
+                    if (pos.count<QUEN> (Opp) > 0)
                     {
                         // Analyse enemy's safe queen contact checks.
                         // Undefended squares around the king attacked by enemy queen...
-                        undefended_attacked = undefended & ei.pin_attacked_by[C_][QUEN];
-                        Bitboard unsafe = ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][BSHP]|ei.ful_attacked_by[C_][ROOK]|ei.ful_attacked_by[C_][KING];
+                        undefended_attacked = undefended & ei.pin_attacked_by[Opp][QUEN];
+                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]|ei.ful_attacked_by[Opp][BSHP]|ei.ful_attacked_by[Opp][ROOK]|ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
                             if (  (unsafe & sq)
-                               || (  pos.count<QUEN> (C_) > 1
-                                  && more_than_one (pos.pieces<QUEN> (C_) & (PIECE_ATTACKS[BSHP][sq]|PIECE_ATTACKS[ROOK][sq]))
-                                  && more_than_one (pos.pieces<QUEN> (C_) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (C_))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (C_))))
+                               || (  pos.count<QUEN> (Opp) > 1
+                                  && more_than_one (pos.pieces<QUEN> (Opp) & (PIECE_ATTACKS[BSHP][sq]|PIECE_ATTACKS[ROOK][sq]))
+                                  && more_than_one (pos.pieces<QUEN> (Opp) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (Opp))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (Opp))))
                                   )
                                )
                             {
@@ -633,21 +633,21 @@ namespace Evaluate {
                             }
                         }
                     }
-                    if (pos.count<ROOK> (C_) > 0)
+                    if (pos.count<ROOK> (Opp) > 0)
                     {
                         // Analyse enemy's safe rook contact checks.
                         // Undefended squares around the king attacked by enemy rooks...
-                        undefended_attacked = undefended & ei.pin_attacked_by[C_][ROOK];
+                        undefended_attacked = undefended & ei.pin_attacked_by[Opp][ROOK];
                         // Consider only squares where the enemy rook gives check
                         undefended_attacked &= PIECE_ATTACKS[ROOK][fk_sq];
-                        Bitboard unsafe = ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][BSHP]|ei.ful_attacked_by[C_][QUEN]|ei.ful_attacked_by[C_][KING];
+                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]|ei.ful_attacked_by[Opp][BSHP]|ei.ful_attacked_by[Opp][QUEN]|ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
                             if (  (unsafe & sq)
-                               || (  pos.count<ROOK> (C_) > 1
-                                  && more_than_one (pos.pieces<ROOK> (C_) & PIECE_ATTACKS[ROOK][sq])
-                                  && more_than_one (pos.pieces<ROOK> (C_) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (C_)))
+                               || (  pos.count<ROOK> (Opp) > 1
+                                  && more_than_one (pos.pieces<ROOK> (Opp) & PIECE_ATTACKS[ROOK][sq])
+                                  && more_than_one (pos.pieces<ROOK> (Opp) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (Opp)))
                                   )
                                )
                             {
@@ -655,24 +655,24 @@ namespace Evaluate {
                             }
                         }
                     }
-                    if (pos.count<BSHP> (C_) > 0)
+                    if (pos.count<BSHP> (Opp) > 0)
                     {
                         // Analyse enemy's safe rook contact checks.
                         // Undefended squares around the king attacked by enemy bishop...
-                        undefended_attacked = undefended & ei.pin_attacked_by[C_][BSHP];
+                        undefended_attacked = undefended & ei.pin_attacked_by[Opp][BSHP];
                         // Consider only squares where the enemy bishop gives check
                         undefended_attacked &= PIECE_ATTACKS[BSHP][fk_sq];
-                        Bitboard unsafe = ei.ful_attacked_by[C_][PAWN]|ei.ful_attacked_by[C_][NIHT]|ei.ful_attacked_by[C_][ROOK]|ei.ful_attacked_by[C_][QUEN]|ei.ful_attacked_by[C_][KING];
+                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]|ei.ful_attacked_by[Opp][ROOK]|ei.ful_attacked_by[Opp][QUEN]|ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
                             Bitboard bishops = U64(0);
                             if (  (unsafe & sq)
-                               || (  pos.count<BSHP> (C_) > 1
-                                  && (bishops = pos.pieces<BSHP> (C_) & squares_of_color (sq)) != U64(0)
+                               || (  pos.count<BSHP> (Opp) > 1
+                                  && (bishops = pos.pieces<BSHP> (Opp) & squares_of_color (sq)) != U64(0)
                                   && more_than_one (bishops)
                                   && more_than_one (bishops & PIECE_ATTACKS[BSHP][sq])
-                                  && more_than_one (bishops & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (C_)))
+                                  && more_than_one (bishops & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (Opp)))
                                   )
                                )
                             {
@@ -685,23 +685,23 @@ namespace Evaluate {
                 }
 
                 // Analyse the enemies safe distance checks for sliders and knights
-                const Bitboard safe_area = ~(pos.pieces (C_) | ei.pin_attacked_by[C][NONE]);
-                const Bitboard rook_check = (ei.pin_attacked_by[C_][ROOK]|ei.pin_attacked_by[C_][QUEN]) != U64(0) ? attacks_bb<ROOK> (fk_sq, occ) & safe_area : U64(0);
-                const Bitboard bshp_check = (ei.pin_attacked_by[C_][BSHP]|ei.pin_attacked_by[C_][QUEN]) != U64(0) ? attacks_bb<BSHP> (fk_sq, occ) & safe_area : U64(0);
+                const Bitboard safe_area = ~(pos.pieces (Opp) | ei.pin_attacked_by[Own][NONE]);
+                const Bitboard rook_check = (ei.pin_attacked_by[Opp][ROOK]|ei.pin_attacked_by[Opp][QUEN]) != U64(0) ? attacks_bb<ROOK> (fk_sq, occ) & safe_area : U64(0);
+                const Bitboard bshp_check = (ei.pin_attacked_by[Opp][BSHP]|ei.pin_attacked_by[Opp][QUEN]) != U64(0) ? attacks_bb<BSHP> (fk_sq, occ) & safe_area : U64(0);
 
                 // Enemies safe-checks
                 Bitboard safe_check;
                 // Queens safe-checks
-                safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[C_][QUEN];
+                safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[Opp][QUEN];
                 if (safe_check != U64(0)) attack_units += SAFE_CHECK[QUEN] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
                 // Rooks safe-checks
-                safe_check = rook_check & ei.pin_attacked_by[C_][ROOK];
+                safe_check = rook_check & ei.pin_attacked_by[Opp][ROOK];
                 if (safe_check != U64(0)) attack_units += SAFE_CHECK[ROOK] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
                 // Bishops safe-checks
-                safe_check = bshp_check & ei.pin_attacked_by[C_][BSHP];
+                safe_check = bshp_check & ei.pin_attacked_by[Opp][BSHP];
                 if (safe_check != U64(0)) attack_units += SAFE_CHECK[BSHP] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
                 // Knights safe-checks
-                safe_check = PIECE_ATTACKS[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[C_][NIHT];
+                safe_check = PIECE_ATTACKS[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[Opp][NIHT];
                 if (safe_check != U64(0)) attack_units += SAFE_CHECK[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 
                 // To index KING_DANGER[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
@@ -715,32 +715,32 @@ namespace Evaluate {
 
             if (Trace)
             {
-                Tracer::set (KING, C, score);
+                Tracer::set (KING, Own, score);
             }
 
             return score;
         }
 
-        template<Color C, bool Trace>
+        template<Color Own, bool Trace>
         // evaluate_threats<>() assigns bonuses according to the type of attacking piece
         // and the type of attacked one.
         inline Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
-            const Color C_ = WHITE == C ? BLACK : WHITE;
+            const Color Opp = WHITE == Own ? BLACK : WHITE;
 
-            Bitboard enemies = pos.pieces (C_);
+            Bitboard enemies = pos.pieces (Opp);
 
             // Enemies protected by pawn and attacked by minors
             Bitboard protected_pieces = 
-                   (enemies ^ pos.pieces<PAWN> (C_))
-                &  ei.pin_attacked_by[C_][PAWN]
-                & (ei.pin_attacked_by[C ][NIHT]|ei.pin_attacked_by[C ][BSHP]);
+                   (enemies ^ pos.pieces<PAWN> (Opp))
+                &  ei.pin_attacked_by[Opp][PAWN]
+                & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
 
             // Enemies not defended by pawn and attacked by any piece
             Bitboard weak_pieces = 
                    enemies
-                & ~ei.pin_attacked_by[C_][PAWN]
-                &  ei.pin_attacked_by[C ][NONE];
+                & ~ei.pin_attacked_by[Opp][PAWN]
+                &  ei.pin_attacked_by[Own][NONE];
             
             Score score = SCORE_ZERO;
 
@@ -757,7 +757,7 @@ namespace Evaluate {
                 // Threaten pieces
                 Bitboard threaten_pieces;
                 // Threaten pieces by Minor
-                threaten_pieces = weak_pieces & (ei.pin_attacked_by[C][NIHT]|ei.pin_attacked_by[C][BSHP]);
+                threaten_pieces = weak_pieces & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
                 if (threaten_pieces != U64(0))
                 {
                     score += ((threaten_pieces & pos.pieces<QUEN> ()) != U64(0) ? PIECE_THREATEN[MINOR][QUEN] :
@@ -766,7 +766,7 @@ namespace Evaluate {
                               (threaten_pieces & pos.pieces<NIHT> ()) != U64(0) ? PIECE_THREATEN[MINOR][NIHT] : PIECE_THREATEN[MINOR][PAWN]);
                 }
                 // Threaten pieces by Major
-                threaten_pieces = weak_pieces & (ei.pin_attacked_by[C][ROOK]|ei.pin_attacked_by[C][QUEN]);
+                threaten_pieces = weak_pieces & (ei.pin_attacked_by[Own][ROOK]|ei.pin_attacked_by[Own][QUEN]);
                 if (threaten_pieces != U64(0))
                 {
                     score += ((threaten_pieces & pos.pieces<QUEN> ()) != U64(0) ? PIECE_THREATEN[MAJOR][QUEN] :
@@ -776,40 +776,40 @@ namespace Evaluate {
                 }
 
                 // Threaten pieces by King
-                threaten_pieces = weak_pieces & ei.ful_attacked_by[C][KING];
+                threaten_pieces = weak_pieces & ei.ful_attacked_by[Own][KING];
                 if (threaten_pieces != U64(0)) score += (more_than_one (threaten_pieces) ? PIECE_THREATEN[ROYAL][1] : PIECE_THREATEN[ROYAL][0]); 
 
                 // Hanged pieces
-                Bitboard hanged_pieces = weak_pieces & ~ei.pin_attacked_by[C_][NONE];
+                Bitboard hanged_pieces = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
                 if (hanged_pieces != U64(0)) score += PIECE_HANGED * (more_than_one (hanged_pieces) ? pop_count<MAX15> (hanged_pieces) : 1);
             }
 
             if (Trace)
             {
-                Tracer::set (Tracer::THREAT, C, score);
+                Tracer::set (Tracer::THREAT, Own, score);
             }
 
             return score;
         }
 
-        template<Color C>
+        template<Color Own>
         // evaluate_passed_pawns<>() evaluates the passed pawns of the given color
         inline Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
         {
-            const Color C_   = WHITE == C ? BLACK : WHITE;
-            const Delta PUSH = WHITE == C ? DEL_N : DEL_S;
+            const Color Opp  = WHITE == Own ? BLACK : WHITE;
+            const Delta PUSH = WHITE == Own ? DEL_N : DEL_S;
 
-            bool piece_majority = pos.count<NONPAWN>(C ) > pos.count<NONPAWN>(C_);
+            bool piece_majority = pos.count<NONPAWN>(Own) > pos.count<NONPAWN>(Opp);
 
             Score score = SCORE_ZERO;
 
-            Bitboard passed_pawns = ei.pi->passed_pawns[C];
+            Bitboard passed_pawns = ei.pi->passed_pawns[Own];
             while (passed_pawns != U64(0))
             {
                 Square s = pop_lsq (passed_pawns);
-                ASSERT (pos.passed_pawn (C, s));
+                ASSERT (pos.passed_pawn (Own, s));
                 
-                i32 r = max (i32(rel_rank (C, s)) - i32(R_2), 1);
+                i32 r = max (i32(rel_rank (Own, s)) - i32(R_2), 1);
                 i32 rr = r * (r - 1);
 
                 // Base bonus depends on rank
@@ -819,24 +819,24 @@ namespace Evaluate {
 
                 if (rr != 0)
                 {
-                    Square fk_sq = pos.king_sq (C );
-                    Square ek_sq = pos.king_sq (C_);
+                    Square fk_sq = pos.king_sq (Own);
+                    Square ek_sq = pos.king_sq (Opp);
 
                     // Adjust bonus based on kings proximity
                     eg_value += 
                         + (5 * rr * SQR_DIST[ek_sq][block_sq])
                         - (2 * rr * SQR_DIST[fk_sq][block_sq]);
                     // If block square is not the queening square then consider also a second push
-                    if (rel_rank (C, block_sq) != R_8)
+                    if (rel_rank (Own, block_sq) != R_8)
                     {
                         eg_value -= (1 * rr * SQR_DIST[fk_sq][block_sq + PUSH]);
                     }
 
-                    bool pinned = (ei.pinneds[C] & s);
+                    bool pinned = (ei.pinneds[Own] & s);
                     if (pinned)
                     {
                         // Only one real pinner exist other are fake pinner
-                        Bitboard pawn_pinners = pos.pieces (C_) & RAY_LINE_bb[fk_sq][s] &
+                        Bitboard pawn_pinners = pos.pieces (Opp) & RAY_LINE_bb[fk_sq][s] &
                             ( (attacks_bb<ROOK> (s, pos.pieces ()) & pos.pieces (ROOK, QUEN))
                             | (attacks_bb<BSHP> (s, pos.pieces ()) & pos.pieces (BSHP, QUEN))
                             );
@@ -847,21 +847,21 @@ namespace Evaluate {
                     if (!pinned && pos.empty (block_sq))
                     {
                         // Squares to queen
-                        Bitboard front_squares = FRONT_SQRS_bb[C ][s];
-                        Bitboard behind_majors = FRONT_SQRS_bb[C_][s] & pos.pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ());
+                        Bitboard front_squares = FRONT_SQRS_bb[Own][s];
+                        Bitboard behind_majors = FRONT_SQRS_bb[Opp][s] & pos.pieces (ROOK, QUEN) & attacks_bb<ROOK> (s, pos.pieces ());
                         Bitboard unsafe_squares = front_squares
                             ,      safe_squares = front_squares;
                         // If there is an enemy rook or queen attacking the pawn from behind,
                         // add all X-ray attacks by the rook or queen. Otherwise consider only
                         // the squares in the pawn's path attacked or occupied by the enemy.
-                        if ((behind_majors & pos.pieces (C_)) == U64(0))
+                        if ((behind_majors & pos.pieces (Opp)) == U64(0))
                         {
-                            unsafe_squares &= (ei.pin_attacked_by[C_][NONE]|pos.pieces());
+                            unsafe_squares &= (ei.pin_attacked_by[Opp][NONE]|pos.pieces());
                         }
 
-                        if ((behind_majors & pos.pieces (C )) == U64(0))
+                        if ((behind_majors & pos.pieces (Own)) == U64(0))
                         {
-                              safe_squares &= (ei.pin_attacked_by[C ][NONE]);
+                              safe_squares &= (ei.pin_attacked_by[Own][NONE]);
                         }
 
                         // Give a big bonus if there aren't enemy attacks, otherwise
@@ -879,7 +879,7 @@ namespace Evaluate {
                                         4 : 0;
 
                             // If the block square is defended by a pawn add more small bonus.
-                            if (ei.ful_attacked_by[C][PAWN] & block_sq) k += 1;
+                            if (ei.ful_attacked_by[Own][PAWN] & block_sq) k += 1;
                         }
 
                         if (k != 0)
@@ -890,7 +890,7 @@ namespace Evaluate {
                     }
                     else
                     {
-                        if (pinned || (pos.pieces (C) & block_sq))
+                        if (pinned || (pos.pieces (Own) & block_sq))
                         {
                             mg_value += 3*rr + 2*r + 3;
                             eg_value += 1*rr + 2*r + 0;
@@ -911,7 +911,7 @@ namespace Evaluate {
             return score;
         }
 
-        template<Color C>
+        template<Color Own>
         // evaluate_space_activity<>() computes the space evaluation for a given side. The
         // space evaluation is a simple bonus based on the number of safe squares
         // available for minor pieces on the central four files on ranks 2--4. Safe
@@ -920,27 +920,27 @@ namespace Evaluate {
         // material hash table. The aim is to improve play on game opening.
         inline i32 evaluate_space_activity (const Position &pos, const EvalInfo &ei)
         {
-            const Color C_ = WHITE == C ? BLACK : WHITE;
+            const Color Opp = WHITE == Own ? BLACK : WHITE;
 
             // Find the safe squares for our pieces inside the area defined by
             // SPACE_MASK[]. A square is unsafe if it is attacked by an enemy
             // pawn, or if it is undefended and attacked by an enemy piece.
             Bitboard safe_space =
-                  SPACE_MASK[C]
-                & ~pos.pieces<PAWN> (C)
-                & ~ei.pin_attacked_by[C_][PAWN]
-                & (ei.pin_attacked_by[C ][NONE]|~ei.pin_attacked_by[C_][NONE]);
+                  SPACE_MASK[Own]
+                & ~pos.pieces<PAWN> (Own)
+                & ~ei.pin_attacked_by[Opp][PAWN]
+                & (ei.pin_attacked_by[Own][NONE]|~ei.pin_attacked_by[Opp][NONE]);
 
-            // Since SPACE_MASK[C] is fully on our half of the board
-            ASSERT (u32(safe_space >> (WHITE == C ? 32 : 00)) == 0);
+            // Since SPACE_MASK[Own] is fully on our half of the board
+            ASSERT (u32(safe_space >> (WHITE == Own ? 32 : 00)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
-            Bitboard behind = pos.pieces<PAWN> (C);
-            behind |= shift_del<WHITE == C ? DEL_S  : DEL_N > (behind);
-            behind |= shift_del<WHITE == C ? DEL_SS : DEL_NN> (behind);
+            Bitboard behind = pos.pieces<PAWN> (Own);
+            behind |= shift_del<WHITE == Own ? DEL_S  : DEL_N > (behind);
+            behind |= shift_del<WHITE == Own ? DEL_SS : DEL_NN> (behind);
 
             // Count safe_space + (behind & safe_space) with a single pop_count
-            return pop_count<FULL> ((WHITE == C ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
+            return pop_count<FULL> ((WHITE == Own ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
         }
 
         template<bool Trace>

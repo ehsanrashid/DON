@@ -12,7 +12,7 @@ namespace Pawns {
     struct Entry
     {
     private:
-        template<Color C>
+        template<Color Own>
         Value pawn_shelter_storm (const Position &pos, Square k_sq) const;
 
     public:
@@ -34,51 +34,51 @@ namespace Pawns {
         Value    shelter_storm [CLR_NO][3];
         u08      kp_dist       [CLR_NO];
 
-        template<Color C>
+        template<Color Own>
         inline u08 semiopen_file (File f) const
         {
-            return semiopen_files[C] & (1 << f);
+            return semiopen_files[Own] & (1 << f);
         }
 
-        template<Color C>
+        template<Color Own>
         inline u08 semiopen_side (File f, bool left) const
         {
-            return semiopen_files[C] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
+            return semiopen_files[Own] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
         }
 
-        template<Color C>
+        template<Color Own>
         inline i32 pawns_on_squarecolor (Square s) const
         {
-            return pawns_on_sqrs[C][!(BitBoard::LIHT_bb & BitBoard::SQUARE_bb[s])];
+            return pawns_on_sqrs[Own][!(BitBoard::LIHT_bb & BitBoard::SQUARE_bb[s])];
         }
-        template<Color C>
+        template<Color Own>
         inline i32 pawns_on_center () const
         {
-            return pawns_on_sqrs[C][WHITE] + pawns_on_sqrs[C][BLACK];
+            return pawns_on_sqrs[Own][WHITE] + pawns_on_sqrs[Own][BLACK];
         }
 
 
-        template<Color C>
+        template<Color Own>
         Score evaluate_unstoppable_pawns () const;
 
-        template<Color C>
+        template<Color Own>
         inline void evaluate_king_pawn_safety (const Position &pos)
         {
-            Square k_sq = pos.king_sq (C);
-            if (king_sq[C] != k_sq)
+            Square k_sq = pos.king_sq (Own);
+            if (king_sq[Own] != k_sq)
             {
-                king_sq[C] = k_sq;
+                king_sq[Own] = k_sq;
 
-                Rank kr = rel_rank (C, k_sq);
-                shelter_storm[C][CS_K ] = kr == R_1 ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_G1)) : VALUE_ZERO;
-                shelter_storm[C][CS_Q ] = kr == R_1 ? pawn_shelter_storm<C> (pos, rel_sq (C, SQ_C1)) : VALUE_ZERO;
-                shelter_storm[C][CS_NO] = kr <= R_4 ? pawn_shelter_storm<C> (pos, k_sq) : VALUE_ZERO;
+                Rank kr = rel_rank (Own, k_sq);
+                shelter_storm[Own][CS_K ] = kr == R_1 ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1)) : VALUE_ZERO;
+                shelter_storm[Own][CS_Q ] = kr == R_1 ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1)) : VALUE_ZERO;
+                shelter_storm[Own][CS_NO] = kr <= R_4 ? pawn_shelter_storm<Own> (pos, k_sq) : VALUE_ZERO;
 
-                kp_dist[C] = 0;
-                Bitboard pawns = pos.pieces<PAWN> (C);
+                kp_dist[Own] = 0;
+                Bitboard pawns = pos.pieces<PAWN> (Own);
                 if (pawns != U64(0))
                 {
-                    while ((BitBoard::DIST_RINGS_bb[k_sq][kp_dist[C]++] & pawns) == U64(0)) {}
+                    while ((BitBoard::DIST_RINGS_bb[k_sq][kp_dist[Own]++] & pawns) == U64(0)) {}
                 }
             }
         }

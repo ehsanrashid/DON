@@ -59,47 +59,47 @@ namespace Material {
         Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
 
         // Helper templates used to detect a given material distribution
-        template<Color C>
+        template<Color Own>
         inline bool is_KXK (const Position &pos)
         {
-            const Color C_ = WHITE == C ? BLACK : WHITE;
+            const Color Opp = WHITE == Own ? BLACK : WHITE;
 
-            return pos.non_pawn_material (C ) >= VALUE_MG_ROOK
-                && pos.non_pawn_material (C_) == VALUE_ZERO
-                && pos.count<PAWN> (C_) == 0;
+            return pos.non_pawn_material (Own) >= VALUE_MG_ROOK
+                && pos.non_pawn_material (Opp) == VALUE_ZERO
+                && pos.count<PAWN> (Opp) == 0;
         }
 
-        template<Color C> 
+        template<Color Own> 
         inline bool is_KBPsKs (const Position &pos)
         {
-            const Color C_ = WHITE == C ? BLACK : WHITE;
+            const Color Opp = WHITE == Own ? BLACK : WHITE;
 
-            return pos.non_pawn_material (C ) == VALUE_MG_BSHP
-                && pos.non_pawn_material (C_) == VALUE_ZERO
-                //&& pos.count<BSHP> (C ) == 1
-                && pos.count<PAWN> (C ) >= 1;
+            return pos.non_pawn_material (Own) == VALUE_MG_BSHP
+                && pos.non_pawn_material (Opp) == VALUE_ZERO
+                //&& pos.count<BSHP> (Own) == 1
+                && pos.count<PAWN> (Own) >= 1;
         }
 
-        template<Color C>
+        template<Color Own>
         inline bool is_KQKRPs (const Position &pos)
         {
-            const Color C_ = WHITE == C ? BLACK : WHITE;
+            const Color Opp = WHITE == Own ? BLACK : WHITE;
 
-            return pos.non_pawn_material (C ) == VALUE_MG_QUEN
-                && pos.non_pawn_material (C_) == VALUE_MG_ROOK
-                //&& pos.count<QUEN> (C ) == 1
-                //&& pos.count<ROOK> (C_) == 1
-                && pos.count<PAWN> (C ) == 0
-                && pos.count<PAWN> (C_) >= 1;
+            return pos.non_pawn_material (Own) == VALUE_MG_QUEN
+                && pos.non_pawn_material (Opp) == VALUE_MG_ROOK
+                //&& pos.count<QUEN> (Own) == 1
+                //&& pos.count<ROOK> (Opp) == 1
+                && pos.count<PAWN> (Own) == 0
+                && pos.count<PAWN> (Opp) >= 1;
         }
 
-        template<Color C>
+        template<Color Own>
         // imbalance<>() calculates imbalance comparing
         // piece count of each piece type for both colors.
         // KING == BISHOP_PAIR
         inline Value imbalance (const i32 count[][NONE])
         {
-            const Color C_ = WHITE == C ? BLACK : WHITE;
+            const Color Opp = WHITE == Own ? BLACK : WHITE;
 
             i32 value = VALUE_ZERO;
 
@@ -108,22 +108,22 @@ namespace Material {
             // Second-degree polynomial material imbalance
             for (i08 pt1 = PAWN; pt1 < KING; ++pt1)
             {
-                if (count[C ][pt1] > 0)
+                if (count[Own][pt1] > 0)
                 {
                     i32 v = OwnSideLinearCoefficient[pt1];
 
                     for (i08 pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
-                        v += count[C ][pt2] * OwnSideQuadraticCoefficient[pt1][pt2]
-                          +  count[C_][pt2] * OppSideQuadraticCoefficient[pt1][pt2];
+                        v += count[Own][pt2] * OwnSideQuadraticCoefficient[pt1][pt2]
+                          +  count[Opp][pt2] * OppSideQuadraticCoefficient[pt1][pt2];
                     }
-                    v += count[C ][KING] * OwnSideQuadraticCoefficient[pt1][KING]
-                      +  count[C_][KING] * OppSideQuadraticCoefficient[pt1][KING];
+                    v += count[Own][KING] * OwnSideQuadraticCoefficient[pt1][KING]
+                      +  count[Opp][KING] * OppSideQuadraticCoefficient[pt1][KING];
 
-                    value += count[C ][pt1] * v;
+                    value += count[Own][pt1] * v;
                 }
             }
-            value += count[C ][KING] * OwnSideLinearCoefficient[KING];
+            value += count[Own][KING] * OwnSideLinearCoefficient[KING];
 
             return Value(value);
         }
