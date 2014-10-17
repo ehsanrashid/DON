@@ -52,7 +52,7 @@ namespace Search {
         // [improving][depth]
         u08   FutilityMoveCounts[2][FutilityMoveCountDepth];
 
-        const Depth ReductionDepth     = Depth(32);
+        const Depth ReductionDepth = Depth(32);
         const u08   ReductionMoveCount = 64;
         CACHE_ALIGN(16)
         // ReductionDepths lookup table (initialized at startup)
@@ -60,12 +60,12 @@ namespace Search {
         u08   ReductionDepths[2][2][ReductionDepth][ReductionMoveCount];
 
         template<bool PVNode>
-        inline Depth reduction_depths (bool imp, Depth d, i32 mn)
+        inline Depth reduction_depths (bool imp, Depth d, i32 mc)
         {
-            return Depth (ReductionDepths[PVNode][imp][min (d, ReductionDepth-1)][min (mn, ReductionMoveCount-1)]);
+            return Depth (ReductionDepths[PVNode][imp][min (d, ReductionDepth-1)][min (mc, ReductionMoveCount-1)]);
         }
 
-        const Depth ProbCutDepth = Depth(4);
+        const Depth ProbCutDepth  = Depth(4);
 
         const u08   MAX_QUIETS    = 64;
 

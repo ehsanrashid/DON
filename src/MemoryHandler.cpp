@@ -2,9 +2,10 @@
 
 #include "MemoryHandler.h"
 
-#include "UCI.h"
-#include "Engine.h"
 #include <cstdlib>
+#include "UCI.h"
+#include "Thread.h"
+#include "Engine.h"
 
 #if defined(_WIN32)
 
