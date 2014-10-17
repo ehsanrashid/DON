@@ -45,12 +45,12 @@ namespace Evaluate {
 
             // king_ring_attackers_count[color] is the number of pieces of the given color
             // which attack a square in the king_ring of the enemy king.
-            int king_ring_attackers_count[CLR_NO];
+            u08 king_ring_attackers_count[CLR_NO];
 
             // king_ring_attackers_weight[Color] is the sum of the "weight" of the pieces
             // of the given color which attack a square in the king_ring of the enemy king.
             // The weights of the individual piece types are given by the variables KING_ATTACK[PieceT]
-            i32 king_ring_attackers_weight[CLR_NO];
+            u32 king_ring_attackers_weight[CLR_NO];
 
             // king_zone_attacks_count[Color] is the sum of attacks of the pieces
             // of the given color which attack a square directly adjacent to the enemy king.
@@ -520,7 +520,7 @@ namespace Evaluate {
                 }
             }
 
-            if (king_ring_attackers_count > 0)
+            if (king_ring_attackers_count != 0)
             {
                 ei.king_ring_attackers_count [Own] += king_ring_attackers_count;
                 ei.king_ring_attackers_weight[Own] += king_ring_attackers_count*KING_ATTACK[PT];
@@ -580,7 +580,7 @@ namespace Evaluate {
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[Opp] > 0)
             {
-                const Bitboard occ = pos.pieces ();
+                Bitboard occ = pos.pieces ();
 
                 Bitboard king_ex_defended =
                     ( ei.pin_attacked_by[Own][PAWN]
@@ -601,8 +601,8 @@ namespace Evaluate {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + min (ei.king_ring_attackers_count[Opp] * ei.king_ring_attackers_weight[Opp]/4, 20) // King-ring attacks
-                    +  3 * ei.king_zone_attacks_count[Opp] // King-zone attacks
+                    + min ((ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp])/4, 20U) // King-ring attacks
+                    +  3 *  ei.king_zone_attacks_count[Opp] // King-zone attacks
                     +  3 * (undefended != U64(0) ? (more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1) : 0) // King-zone undefended pieces
                     +  2 * (ei.pinneds[Own] != U64(0) ? (more_than_one (ei.pinneds[Own]) ? pop_count<MAX15> (ei.pinneds[Own]) : 1) : 0) // King pinned piece
                     - 15 * (pos.count<QUEN>(Opp) == 0)
