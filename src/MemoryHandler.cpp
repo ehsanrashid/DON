@@ -162,7 +162,25 @@ namespace Memory {
 #   else    // Linux - Unix
 
             shm = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
-            if (shm >= 0)
+            if (shm != -1)
+            {
+                mem_ref = shmat (shm, NULL, 0x0);
+                if (mem_ref != (char*) -1)
+                {
+                    UsePages = true;
+                    memset (mem_ref, 0x00, mem_size);
+                    sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                    return;
+                }
+                cerr << "ERROR: shmat() shared memory attach failed.";
+                if (shmctl (shm, IPC_RMID, NULL) == -1)
+                {
+                    cerr << "ERROR: shmctl(IPC_RMID) failed.";
+                }
+                return;
+            }
+            shm = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W);
+            if (shm != -1)
             {
                 mem_ref = shmat (shm, NULL, 0x0);
                 if (mem_ref != (char*) -1)
