@@ -251,7 +251,7 @@ endif
 ifeq ($(COMP),clang)
 	comp= clang
 	CXX = clang++
-	CXXFLAGS += -pedantic -Wno-long-long -Wno-unused-parameter -Wextra -Wshadow
+	CXXFLAGS += -pedantic -Wno-long-long -Wextra -Wshadow
 endif
 
 ifeq ($(comp),icc)
