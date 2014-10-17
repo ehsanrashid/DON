@@ -288,7 +288,7 @@ namespace Threads {
     public:
         Mutex       mutex;
         Condition   sleep_condition;
-        TimerThread *timer_th;
+        TimerThread *limits_check_th;
         TimerThread *auto_save_th;
 
         Depth   split_depth;
@@ -364,17 +364,13 @@ inline u32 cpu_count ()
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream &os, const SyncT &sync)
 {
-    static Threads::Mutex mutex;
+    static Threads::Mutex io_mutex;
 
-    if (sync == IO_LOCK)
-    {
-        mutex.lock ();
-    }
-    else
-    if (sync == IO_UNLOCK)
-    {
-        mutex.unlock ();
-    }
+    (sync == IO_LOCK) ?
+        io_mutex.lock () :
+    (sync == IO_UNLOCK) ?
+        io_mutex.unlock () : (void) 0;
+
     return os;
 }
 

@@ -1540,7 +1540,7 @@ namespace Search {
             for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
             {
                 u64 inter_nodes = 1;
-                if (!RootNode || depth > DEPTH_ONE)
+                if (!RootNode || depth > 1*DEPTH_ONE)
                 {
                     Move m = *ms;
                     pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
@@ -1846,12 +1846,12 @@ namespace Search {
                 Threadpool.auto_save_th->notify_one ();
             }
 
-            Threadpool.timer_th->start ();
-            Threadpool.timer_th->notify_one (); // Wake up the recurring timer
+            Threadpool.limits_check_th->start ();
+            Threadpool.limits_check_th->notify_one (); // Wake up the recurring timer
 
             search_iter_deepening (); // Let's start searching !
 
-            Threadpool.timer_th->stop ();
+            Threadpool.limits_check_th->stop ();
 
             if (AutoSaveTime > 0)
             {

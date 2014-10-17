@@ -265,9 +265,9 @@ namespace Threads {
         max_ply = 0;
         push_back (new_thread<MainThread> ());
         
-        timer_th        = new_thread<TimerThread> ();
-        timer_th->task  = check_limits;
-        timer_th->resolution = TimerResolution;
+        limits_check_th             = new_thread<TimerThread> ();
+        limits_check_th->task       = check_limits;
+        limits_check_th->resolution = TimerResolution;
         
         auto_save_th    = NULL;
 
@@ -280,7 +280,7 @@ namespace Threads {
     void ThreadPool::deinitialize ()
     {
         delete_thread (auto_save_th);
-        delete_thread (timer_th); // As first because check_limits() accesses threads data
+        delete_thread (limits_check_th); // As first because check_limits() accesses threads data
         for (iterator itr = begin (); itr != end (); ++itr)
         {
             delete_thread (*itr);
