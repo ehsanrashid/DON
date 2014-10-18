@@ -155,8 +155,8 @@ void benchmark (istream &is, const Position &pos)
         else
         {
             TT.clear ();
-            Threadpool.start_thinking (root_pos, limits, states);
-            Threadpool.wait_for_think_finished ();
+            Threadpool.start_main (root_pos, limits, states);
+            Threadpool.wait_for_main ();
             nodes += RootPos.game_nodes ();
         }
     }

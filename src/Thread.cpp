@@ -108,7 +108,7 @@ namespace Threads {
 
         // Make a local copy to be sure doesn't become zero under our feet while
         // testing next condition and so leading to an out of bound access.
-        const u08 count = splitpoint_count;
+        u08 count = splitpoint_count;
 
         // No splitpoints means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.
@@ -265,9 +265,9 @@ namespace Threads {
         max_ply = 0;
         push_back (new_thread<MainThread> ());
         
-        limits_check_th             = new_thread<TimerThread> ();
-        limits_check_th->task       = check_limits;
-        limits_check_th->resolution = TimerResolution;
+        check_limits_th             = new_thread<TimerThread> ();
+        check_limits_th->task       = check_limits;
+        check_limits_th->resolution = TimerResolution;
         
         auto_save_th    = NULL;
 
@@ -280,7 +280,7 @@ namespace Threads {
     void ThreadPool::deinitialize ()
     {
         delete_thread (auto_save_th);
-        delete_thread (limits_check_th); // As first because check_limits() accesses threads data
+        delete_thread (check_limits_th); // As first because check_limits() accesses threads data
         for (iterator itr = begin (); itr != end (); ++itr)
         {
             delete_thread (*itr);
@@ -336,13 +336,13 @@ namespace Threads {
         return NULL;
     }
     
-    // start_thinking() wakes up the main thread sleeping in MainThread::idle_loop()
+    // start_main() wakes up the main thread sleeping in MainThread::idle_loop()
     // so to start a new search, then returns immediately.
-    void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, StateInfoStackPtr &states)
+    void ThreadPool::start_main (const Position &pos, const LimitsT &limits, StateInfoStackPtr &states)
     {
         SearchTime = Time::now (); // As early as possible
 
-        wait_for_think_finished ();
+        wait_for_main ();
 
         RootPos     = pos;
         RootMoves.initialize (pos, limits.root_moves);
@@ -363,8 +363,8 @@ namespace Threads {
         main_th->notify_one ();     // Starts main thread
     }
 
-    // wait_for_think_finished() waits for main thread to go to sleep then returns
-    void ThreadPool::wait_for_think_finished ()
+    // wait_for_main() waits for main thread to go to sleep then returns
+    void ThreadPool::wait_for_main ()
     {
         MainThread *main_th = main ();
         main_th->mutex.lock ();

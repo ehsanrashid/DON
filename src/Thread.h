@@ -288,7 +288,7 @@ namespace Threads {
     public:
         Mutex       mutex;
         Condition   sleep_condition;
-        TimerThread *limits_check_th;
+        TimerThread *check_limits_th;
         TimerThread *auto_save_th;
 
         Depth   split_depth;
@@ -303,9 +303,9 @@ namespace Threads {
 
         Thread* available_slave (const Thread *master) const;
 
-        void start_thinking (const Position &pos, const LimitsT &limit, StateInfoStackPtr &states);
+        void start_main (const Position &pos, const LimitsT &limit, StateInfoStackPtr &states);
 
-        void wait_for_think_finished ();
+        void wait_for_main ();
 
         void configure ();
 

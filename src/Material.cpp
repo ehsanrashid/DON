@@ -250,7 +250,7 @@ namespace Material {
                 else
                 if (pos.count<PAWN> (WHITE) == 1)
                 {
-                    e->factor[WHITE] = u08(SCALE_FACTOR_PAWNS);
+                    e->factor[WHITE] = u08(SCALE_FACTOR_ONEPAWN);
                 }
             }
 
@@ -265,7 +265,7 @@ namespace Material {
                 else
                 if (pos.count<PAWN> (BLACK) == 1)
                 {
-                    e->factor[BLACK] = u08(SCALE_FACTOR_PAWNS);
+                    e->factor[BLACK] = u08(SCALE_FACTOR_ONEPAWN);
                 }
             }
 

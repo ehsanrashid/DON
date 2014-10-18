@@ -1846,12 +1846,12 @@ namespace Search {
                 Threadpool.auto_save_th->notify_one ();
             }
 
-            Threadpool.limits_check_th->start ();
-            Threadpool.limits_check_th->notify_one (); // Wake up the recurring timer
+            Threadpool.check_limits_th->start ();
+            Threadpool.check_limits_th->notify_one (); // Wake up the recurring timer
 
             search_iter_deepening (); // Let's start searching !
 
-            Threadpool.limits_check_th->stop ();
+            Threadpool.check_limits_th->stop ();
 
             if (AutoSaveTime > 0)
             {
@@ -2148,7 +2148,7 @@ namespace Threads {
                     for (u08 t = 0; t < Threadpool.size (); ++t)
                     {
                         Thread *thread = Threadpool[t];
-                        const u08 count = thread->splitpoint_count; // Local copy
+                        u08 count = thread->splitpoint_count; // Local copy
                         sp = count > 0 ? &thread->splitpoints[count - 1] : NULL;
 
                         if (  sp != NULL

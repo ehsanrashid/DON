@@ -158,16 +158,17 @@ public:
     static void initialize ();
 
     Position () { clear (); }
-
-    explicit Position (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
+    Position (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    explicit Position (const Position  &pos, Threads::Thread *th = NULL) { *this = pos; _thread = th; }
-    
+    Position (const Position  &pos, Threads::Thread *th = NULL)
+    { 
+        *this = pos;
+        _thread = th;
+    }
     explicit Position (i32) {}
-
-   ~Position() { _thread = NULL; }
+    //~Position() { _thread = NULL; }
 
     Position& operator= (const Position &pos);
 
@@ -268,7 +269,7 @@ public:
     bool legal        (Move m)  const;
     bool capture      (Move m)  const;
     bool capture_or_promotion (Move m)  const;
-    bool gives_check     (Move m, const CheckInfo &ci) const;
+    bool gives_check  (Move m, const CheckInfo &ci) const;
     //bool gives_checkmate (Move m, const CheckInfo &ci) const;
     bool advanced_pawn_push (Move m)    const;
     Piece moving_piece (Move m) const;
@@ -300,8 +301,7 @@ public:
 
     void flip ();
 
-    std::string fen (bool c960, bool full = true) const;
-    std::string fen () const { return fen (false); }
+    std::string fen (bool c960 = false, bool full = true) const;
     
     operator std::string () const;
 

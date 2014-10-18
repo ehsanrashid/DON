@@ -304,7 +304,7 @@ namespace Evaluate {
                 ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PAWN] = ei.pi->pawns_attacks[Own];
             }
 
-            Bitboard king_attacks        = PIECE_ATTACKS[KING][ek_sq];
+            Bitboard king_attacks         = PIECE_ATTACKS[KING][ek_sq];
             ei.ful_attacked_by[Opp][KING] = king_attacks;
             ei.pin_attacked_by[Opp][KING] = king_attacks;
             
@@ -353,8 +353,8 @@ namespace Evaluate {
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
-                const File f = _file (s);
-                const Rank r = rel_rank (Own, s);
+                File f = _file (s);
+                Rank r = rel_rank (Own, s);
 
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks =
@@ -478,7 +478,7 @@ namespace Evaluate {
                     if (R_4 < r)
                     {
                         // Rook piece attacking enemy pawns on the same rank/file
-                        const Bitboard rook_on_pawns = pos.pieces<PAWN> (Opp) & PIECE_ATTACKS[ROOK][s];
+                        Bitboard rook_on_pawns = pos.pieces<PAWN> (Opp) & PIECE_ATTACKS[ROOK][s];
                         score += rook_on_pawns != U64(0) ? ROOK_ON_PAWNS * (more_than_one (rook_on_pawns) ? pop_count<MAX15> (rook_on_pawns) : 1) : SCORE_ZERO;
                     }
 
@@ -505,8 +505,8 @@ namespace Evaluate {
                 {
                     if (mob <= 3 && ei.pi->semiopen_file<Own> (f) == 0)
                     {
-                        const File kf = _file (pos.king_sq (Own));
-                        const Rank kr = rel_rank (Own, pos.king_sq (Own));
+                        File kf = _file (pos.king_sq (Own));
+                        Rank kr = rel_rank (Own, pos.king_sq (Own));
                         // Penalize rooks which are trapped by a king.
                         // Penalize more if the king has lost its castling capability.
                         if (  (kf < F_E) == (f < kf)
@@ -542,7 +542,7 @@ namespace Evaluate {
         {
             const Color Opp = WHITE == Own ? BLACK : WHITE;
 
-            const Square fk_sq = pos.king_sq (Own);
+            Square fk_sq = pos.king_sq (Own);
 
             // King shelter and enemy pawns storm
             ei.pi->evaluate_king_pawn_safety<Own> (pos);
@@ -685,9 +685,9 @@ namespace Evaluate {
                 }
 
                 // Analyse the enemies safe distance checks for sliders and knights
-                const Bitboard safe_area = ~(pos.pieces (Opp) | ei.pin_attacked_by[Own][NONE]);
-                const Bitboard rook_check = (ei.pin_attacked_by[Opp][ROOK]|ei.pin_attacked_by[Opp][QUEN]) != U64(0) ? attacks_bb<ROOK> (fk_sq, occ) & safe_area : U64(0);
-                const Bitboard bshp_check = (ei.pin_attacked_by[Opp][BSHP]|ei.pin_attacked_by[Opp][QUEN]) != U64(0) ? attacks_bb<BSHP> (fk_sq, occ) & safe_area : U64(0);
+                Bitboard safe_area = ~(pos.pieces (Opp) | ei.pin_attacked_by[Own][NONE]);
+                Bitboard rook_check = (ei.pin_attacked_by[Opp][ROOK]|ei.pin_attacked_by[Opp][QUEN]) != U64(0) ? attacks_bb<ROOK> (fk_sq, occ) & safe_area : U64(0);
+                Bitboard bshp_check = (ei.pin_attacked_by[Opp][BSHP]|ei.pin_attacked_by[Opp][QUEN]) != U64(0) ? attacks_bb<BSHP> (fk_sq, occ) & safe_area : U64(0);
 
                 // Enemies safe-checks
                 Bitboard safe_check;
@@ -746,9 +746,9 @@ namespace Evaluate {
 
             if (protected_pieces != U64(0))
             {
-                score += ((protected_pieces & pos.pieces<QUEN> ()) ? PIECE_THREATEN[MINOR][QUEN] :
-                          (protected_pieces & pos.pieces<ROOK> ()) ? PIECE_THREATEN[MINOR][ROOK] :
-                          (protected_pieces & pos.pieces<BSHP> ()) ? PIECE_THREATEN[MINOR][BSHP] : PIECE_THREATEN[MINOR][NIHT]);
+                score += ((protected_pieces & pos.pieces<QUEN> ()) != U64(0) ? PIECE_THREATEN[MINOR][QUEN] :
+                          (protected_pieces & pos.pieces<ROOK> ()) != U64(0) ? PIECE_THREATEN[MINOR][ROOK] :
+                          (protected_pieces & pos.pieces<BSHP> ()) != U64(0) ? PIECE_THREATEN[MINOR][BSHP] : PIECE_THREATEN[MINOR][NIHT]);
             }
 
             // Add a bonus according if the attacking pieces are minor or major
@@ -1040,13 +1040,13 @@ namespace Evaluate {
                   -  evaluate_threats<BLACK, Trace> (pos, ei);
 
             // Evaluate passed pawns, needed full attack information including king
-            const Score passed_pawn_w = evaluate_passed_pawns<WHITE> (pos, ei)
-                      , passed_pawn_b = evaluate_passed_pawns<BLACK> (pos, ei);
+            Score passed_pawn_w = evaluate_passed_pawns<WHITE> (pos, ei)
+                , passed_pawn_b = evaluate_passed_pawns<BLACK> (pos, ei);
             // Weight passed pawns
             score += apply_weight (passed_pawn_w - passed_pawn_b, Weights[PASSED_PAWN]);
 
-            const Value npm_w = pos.non_pawn_material (WHITE)
-                      , npm_b = pos.non_pawn_material (BLACK);
+            Value npm_w = pos.non_pawn_material (WHITE)
+                , npm_b = pos.non_pawn_material (BLACK);
 
             // If one side has only a king, score for potential unstoppable pawns
             if (npm_b == VALUE_ZERO)
@@ -1112,7 +1112,7 @@ namespace Evaluate {
             // If don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
             if (  game_phase < PHASE_MIDGAME
-               && (scale_fac == SCALE_FACTOR_NORMAL || scale_fac == SCALE_FACTOR_PAWNS)
+               && (scale_fac == SCALE_FACTOR_NORMAL || scale_fac == SCALE_FACTOR_ONEPAWN)
                )
             {
                 if (pos.opposite_bishops ())

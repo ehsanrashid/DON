@@ -224,7 +224,7 @@ namespace UCI {
                 }
             }
 
-            Threadpool.start_thinking (RootPos, limits, SetupStates);
+            Threadpool.start_main (RootPos, limits, SetupStates);
         }
 
         inline void exe_ponderhit ()
@@ -428,7 +428,7 @@ namespace UCI {
         // Send stop command
         exe_stop ();
         // Cannot quit while search stream active
-        Threadpool.wait_for_think_finished ();
+        Threadpool.wait_for_main ();
         // Close book if open
         Book.close ();
         // Close log file
