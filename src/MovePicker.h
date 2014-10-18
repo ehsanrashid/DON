@@ -2,10 +2,9 @@
 #define _MOVE_PICKER_H_INC_
 
 #include "Type.h"
+#include "Position.h"
 #include "MoveGenerator.h"
 #include "Searcher.h"
-
-class Position;
 
 namespace MovePick {
 

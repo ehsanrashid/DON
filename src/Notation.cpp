@@ -192,9 +192,7 @@ namespace Notation {
 
         Square org = org_sq (m);
         Square dst = dst_sq (m);
-        PieceT pt  = ptype (pos[org]);
-
-        MoveT mt = mtype (m);
+        MoveT  mt  = mtype (m);
 
         if (mt == CASTLE)
         {
@@ -202,6 +200,8 @@ namespace Notation {
         }
         else
         {
+            PieceT pt  = ptype (pos[org]);
+
             if (PAWN != pt)
             {
                 san = PIECE_CHAR[pt];
