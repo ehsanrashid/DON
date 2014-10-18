@@ -2053,7 +2053,7 @@ namespace Threads {
                     // Still at first move
                  || (   Signals.root_1stmove
                     && !Signals.root_failedlow
-                    && movetime > TimeMgr.available_time () * pow (2, RootMoves.best_move_change) / 1.414f // 2^0.5
+                    && movetime > TimeMgr.available_time () * 0.75
                     )
                  )
               )
