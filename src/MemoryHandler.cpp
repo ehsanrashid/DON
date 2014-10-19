@@ -123,7 +123,7 @@ namespace Memory {
 
     }
 
-    void create_memory (void *&mem_ref, size_t mem_size, size_t alignment)
+    void alloc_memory (void *&mem_ref, size_t mem_size, size_t alignment)
     {
         UsePages = false;
 
@@ -213,7 +213,7 @@ namespace Memory {
         cerr << "ERROR: Hash allocate failed " << (mem_size >> 20) << " MB." << endl;
     }
 
-    void   free_memory (void *mem)
+    void  free_memory (void *mem)
     {
         if (mem == NULL) return;
 
@@ -243,7 +243,7 @@ namespace Memory {
         ALIGN_FREE (mem);
     }
     
-    void initialize    ()
+    void initialize   ()
     {
 
 #   if defined(_WIN32)

@@ -40,7 +40,7 @@ namespace Transposition {
 
         size_t offset = max (alignment-1, sizeof (void *));
        
-        Memory::create_memory (_mem, mem_size, alignment);
+        Memory::alloc_memory (_mem, mem_size, alignment);
         if (_mem != NULL)
         {
             void *ptr = reinterpret_cast<void*> ((size_t(_mem) + offset) & ~size_t(offset));

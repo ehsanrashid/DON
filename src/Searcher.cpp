@@ -830,7 +830,7 @@ namespace Search {
                        && (PVNode || (ss)->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                        )
                     {
-                        Depth iid_depth = depth - 2*DEPTH_ONE - (PVNode ? DEPTH_ZERO : depth/4); // IID Reduced Depth
+                        Depth iid_depth = (2*(depth - 2*DEPTH_ONE) - (PVNode ? DEPTH_ZERO : depth/2))/2; // IID Reduced Depth
                         
                         search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
@@ -849,9 +849,8 @@ namespace Search {
                        !RootNode
                     && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                     && tt_move != MOVE_NONE
-                    &&    depth > (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE) //8*DEPTH_ONE
+                    &&    depth > (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
                     && tt_depth >= depth-3*DEPTH_ONE
-                    //&& abs (beta)     < +VALUE_KNOWN_WIN
                     && abs (tt_value) < +VALUE_KNOWN_WIN
                     && tt_bound & BOUND_LOWER;
 
@@ -1114,15 +1113,17 @@ namespace Search {
                             reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
                         }
 
+                        Depth reduced_depth;
+                        
                         if (SPNode) alpha = splitpoint->alpha;
-
-                        Depth reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
+                        reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
                         // Search with reduced depth
                         value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
 
                         // Re-search at intermediate depth if reduction is very high
                         if (alpha < value && reduction_depth >= 4*DEPTH_ONE)
                         {
+                            if (SPNode) alpha = splitpoint->alpha;
                             reduced_depth = max (new_depth - reduction_depth/2, DEPTH_ONE);
                             // Search with reduced depth
                             value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
@@ -1130,6 +1131,7 @@ namespace Search {
                             // Re-search at intermediate depth if reduction is very high
                             if (alpha < value && reduction_depth >= 8*DEPTH_ONE)
                             {
+                                if (SPNode) alpha = splitpoint->alpha;
                                 reduced_depth = max (new_depth - reduction_depth/4, DEPTH_ONE);
                                 // Search with reduced depth
                                 value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
@@ -1272,16 +1274,6 @@ namespace Search {
             // Step 20. Check for checkmate and stalemate
             if (!SPNode)
             {
-                // Quiet best move: Update history, killer, counter & followup moves
-                if (  !in_check
-                   && best_value >= beta
-                   && best_move != MOVE_NONE
-                   && !pos.capture_or_promotion (best_move)
-                   )
-                {
-                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets-1);
-                }
-
                 // If all possible moves have been searched and if there are no legal moves,
                 // If in a singular extension search then return a fail low score (alpha).
                 // Otherwise it must be mate or stalemate, so return value accordingly.
@@ -1292,6 +1284,16 @@ namespace Search {
                             alpha : in_check ?
                                 mated_in ((ss)->ply) :
                                 DrawValue[pos.active ()];
+                }
+                else
+                // Quiet best move: Update history, killer, counter & followup moves
+                if (  !in_check
+                   && best_value >= beta
+                   && best_move != MOVE_NONE
+                   && !pos.capture_or_promotion (best_move)
+                   )
+                {
+                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets-1);
                 }
 
                 TT.store (
@@ -1620,9 +1622,7 @@ namespace Search {
             ++ply;
             expected_value = -expected_value;
 
-            Key posi_key = pos.posi_key ();
-            prefetch (reinterpret_cast<char*> (TT.cluster_entry (posi_key)));
-            tte = TT.retrieve (posi_key);
+            tte = TT.retrieve (pos.posi_key ());
         } while (  tte != NULL
                 && expected_value == value_of_tt (tte->value (), ply+1)
                 && (m = tte->move ()) != MOVE_NONE // Local copy, TT could change
@@ -1654,14 +1654,12 @@ namespace Search {
         {
             ASSERT (MoveList<LEGAL> (pos).contains (m));
 
-            Key posi_key = pos.posi_key ();
-            prefetch (reinterpret_cast<char*> (TT.cluster_entry (posi_key)));
-            tte = TT.retrieve (posi_key);
+            tte = TT.retrieve (pos.posi_key ());
             // Don't overwrite correct entries
             if (tte == NULL || tte->move () != m)
             {
                 TT.store (
-                    posi_key,
+                    pos.posi_key (),
                     m,
                     DEPTH_NONE,
                     BOUND_NONE,
