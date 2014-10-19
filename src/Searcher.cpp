@@ -34,7 +34,6 @@ namespace Search {
     namespace {
 
         const Depth FutilityMarginDepth = Depth(7);
-
         CACHE_ALIGN(16)
         // Futility margin lookup table (initialized at startup)
         // [depth]
@@ -485,7 +484,7 @@ namespace Search {
             return best_value;
         }
 
-        template<NodeT NT, bool SPNode, bool DoNullMove>
+        template<NodeT NT, bool SPNode, bool NullMove>
         // search<>() is the main depth limited search function
         // for PV/NonPV nodes also for normal/splitpoint nodes.
         // It calls itself recursively with decreasing (remaining) depth
@@ -699,7 +698,7 @@ namespace Search {
                         }
 
                         // Step 7,8,9.
-                        if (DoNullMove)
+                        if (NullMove)
                         {
                             ASSERT ((ss-1)->current_move != MOVE_NONE);
                             ASSERT ((ss-1)->current_move != MOVE_NULL);
@@ -904,12 +903,19 @@ namespace Search {
 
                 if (move == exclude_move) continue;
 
+                bool move_legal;
                 // At root obey the "searchmoves" option and skip moves not listed in
                 // RootMove list, as a consequence any illegal move is also skipped.
                 // In MultiPV mode also skip PV moves which have been already searched.
-                if (RootNode && !count (RootMoves.begin () + IndexPV, RootMoves.end (), move)) continue;
-
-                bool move_legal = RootNode || pos.legal (move, ci->pinneds);
+                if (RootNode)
+                {
+                    if (count (RootMoves.begin () + IndexPV, RootMoves.end (), move) == 0) continue;
+                    move_legal = true;
+                }
+                else
+                {
+                    move_legal = pos.legal (move, ci->pinneds);
+                }
 
                 if (SPNode)
                 {
