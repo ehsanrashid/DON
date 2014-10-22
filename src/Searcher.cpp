@@ -1543,7 +1543,6 @@ namespace Search {
         {
             u64 leaf_nodes = U64(0);
 
-            StateInfo si;
             CheckInfo ci (pos);
             for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
             {
@@ -1551,6 +1550,7 @@ namespace Search {
                 if (!RootNode || depth > 1*DEPTH_ONE)
                 {
                     Move m = *ms;
+                    StateInfo si;
                     pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
                     inter_nodes = depth <= 2*DEPTH_ONE ? MoveList<LEGAL>(pos).size () : perft<false> (pos, depth-DEPTH_ONE);
                     pos.undo_move ();
