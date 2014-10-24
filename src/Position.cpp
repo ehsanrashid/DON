@@ -953,8 +953,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         dst             = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
         Square rook_dst = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
 
-        return   PIECE_ATTACKS[ROOK][rook_dst] & ci.king_sq // First x-ray check then full check
-              && attacks_bb<ROOK> (rook_dst, (_types_bb[NONE] - org - rook_org + dst + rook_dst)) & ci.king_sq;
+        return PIECE_ATTACKS[ROOK][rook_dst] & ci.king_sq // First x-ray check then full check
+            && attacks_bb<ROOK> (rook_dst, (_types_bb[NONE] - org - rook_org + dst + rook_dst)) & ci.king_sq;
     }
     break;
     
@@ -966,9 +966,9 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         Square cap = _file (dst) | _rank (org);
         Bitboard mocc = _types_bb[NONE] - org - cap + dst;
         // if any attacker then in check
-        return (  attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]))
-               || attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]))
-               );
+        return attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]))
+            || attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]));
+               
     }
     break;
 
@@ -1237,36 +1237,33 @@ void Position::set_castle (Color c, Square rook_org)
 bool Position::can_en_passant (Square ep_sq) const
 {
     ASSERT (_ok (ep_sq));
-
     ASSERT (R_6 == rel_rank (_active, ep_sq));
 
     Square cap = ep_sq + pawn_push (~_active);
     if (!((_color_bb[~_active]&_types_bb[PAWN]) & cap)) return false;
     //if ((~_active | PAWN) != _board[cap]) return false;
+    
+    // En-passant attackes
+    Bitboard attacks = PAWN_ATTACKS[~_active][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
+    ASSERT (pop_count<FULL> (attacks) <= 2);
+    if (!attacks) return false;
 
-    Bitboard ep_attacks = PAWN_ATTACKS[~_active][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
-    ASSERT (pop_count<FULL> (ep_attacks) <= 2);
-    if (!ep_attacks) return false;
+    Move moves[3], *m = moves;
 
-    Move    ep_moves[3]
-        ,   *curr = ep_moves;
-
-    fill (ep_moves, ep_moves + sizeof (ep_moves) / sizeof (*ep_moves), MOVE_NONE);
-    while (ep_attacks != U64(0))
+    fill (moves, moves + sizeof (moves) / sizeof (*moves), MOVE_NONE);
+    while (attacks != U64(0))
     {
-        *(curr++) = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq);
+        *(m++) = mk_move<ENPASSANT> (pop_lsq (attacks), ep_sq);
     }
 
     // Check en-passant is legal for the position
     Square   ksq = _piece_list[_active][KING][0];
-    const Bitboard occ = _types_bb[NONE] + ep_sq - cap;
-    for (curr = ep_moves; *curr != MOVE_NONE; ++curr)
+    Bitboard occ = _types_bb[NONE] + ep_sq - cap;
+    for (m = moves; *m != MOVE_NONE; ++m)
     {
-        Move m = *curr;
-        Bitboard mocc = occ - org_sq (m);
-        if (!(  attacks_bb<ROOK> (ksq, mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))
-             || attacks_bb<BSHP> (ksq, mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))
-             )
+        Bitboard mocc = occ - org_sq (*m);
+        if (  !(attacks_bb<ROOK> (ksq, mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
+           && !(attacks_bb<BSHP> (ksq, mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP])))
            )
         {
             return true;

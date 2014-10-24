@@ -689,11 +689,11 @@ namespace Search {
                             Value reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
                             //ASSERT (reduced_alpha >= -VALUE_INFINITE);
 
-                            Value ver_value = search_quien<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
+                            Value value = search_quien<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
 
-                            if (ver_value <= reduced_alpha)
+                            if (value <= reduced_alpha)
                             {
-                                return ver_value;
+                                return value;
                             }
                         }
 
@@ -765,14 +765,14 @@ namespace Search {
                                         }
                                         
                                         // Do verification search at high depths
-                                        Value ver_value =
+                                        Value value =
                                             reduced_depth < DEPTH_ONE ?
                                                 search_quien<NonPV, false>        (pos, ss, beta-1, beta, DEPTH_ZERO) :
                                                 search_depth<NonPV, false, false> (pos, ss, beta-1, beta, reduced_depth, false);
 
-                                        if (ver_value >= beta)
+                                        if (value >= beta)
                                         {
-                                            return ver_value;
+                                            return value;
                                         }
                                     }
                                 }
