@@ -1279,7 +1279,7 @@ bool Position::can_en_passant (Square ep_sq) const
 // updated by do_move and undo_move when the program is running in debug mode.
 Score Position::compute_psq_score () const
 {
-    Score score  = SCORE_ZERO;
+    Score  score = SCORE_ZERO;
     Bitboard occ = _types_bb[NONE];
     while (occ != U64(0))
     {
@@ -1316,7 +1316,7 @@ Value Position::compute_non_pawn_material (Color c) const
         _si->non_pawn_matl[~_active] -= PIECE_VALUE[MG][ct];                      \
     }                                                                             \
     _si->matl_key ^= Zob._.piece_square[~_active][ct][_piece_count[~_active][ct]];\
-    key ^= Zob._.piece_square[~_active][ct][cap];                                 \
+    key           ^= Zob._.piece_square[~_active][ct][cap];                       \
     _si->psq_score -= PSQT[~_active][ct][cap];                                    \
     _si->clock50 = 0;                                                             \
 }
@@ -1378,14 +1378,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         }
         else
         {
-            if (PAWN == pt)
-            {
-                _si->clock50 = 0;
-            }
-            else
-            {
-                _si->clock50++;
-            }
+            _si->clock50 = PAWN == pt ? 0 : _si->clock50+1;
         }
 
         // Move the piece
@@ -1395,13 +1388,17 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         if (PAWN == pt)
         {
             _si->pawn_key ^=
-                Zob._.piece_square[_active][PAWN][org] ^
-                Zob._.piece_square[_active][PAWN][dst];
+                 Zob._.piece_square[_active][PAWN][org]
+                ^Zob._.piece_square[_active][PAWN][dst];
         }
 
-        key ^= Zob._.piece_square[_active][pt][org] ^ Zob._.piece_square[_active][pt][dst];
+        key ^=
+             Zob._.piece_square[_active][pt][org]
+            ^Zob._.piece_square[_active][pt][dst];
         // Update incremental score
-        _si->psq_score += PSQT[_active][pt][dst] - PSQT[_active][pt][org];
+        _si->psq_score +=
+            +PSQT[_active][pt][dst]
+            -PSQT[_active][pt][org];
     }
     break;
 
@@ -1414,12 +1411,18 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         Square rook_org, rook_dst;
         do_castling<true> (org, dst, rook_org, rook_dst);
 
-        key ^= Zob._.piece_square[_active][KING][org     ] ^ Zob._.piece_square[_active][KING][dst     ];
-        key ^= Zob._.piece_square[_active][ROOK][rook_org] ^ Zob._.piece_square[_active][ROOK][rook_dst];
+        key ^=
+             Zob._.piece_square[_active][KING][org     ]
+            ^Zob._.piece_square[_active][KING][dst     ]
+            ^Zob._.piece_square[_active][ROOK][rook_org]
+            ^Zob._.piece_square[_active][ROOK][rook_dst];
         // Update incremental score
-        _si->psq_score += PSQT[_active][KING][dst     ] - PSQT[_active][KING][org     ];
-        _si->psq_score += PSQT[_active][ROOK][rook_dst] - PSQT[_active][ROOK][rook_org];
-        
+        _si->psq_score +=
+            +PSQT[_active][KING][dst     ]
+            -PSQT[_active][KING][org     ]
+            +PSQT[_active][ROOK][rook_dst]
+            -PSQT[_active][ROOK][rook_org];
+
         _si->clock50++;
     }
     break;
@@ -1445,11 +1448,13 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         if (PAWN == pt)
         {
             _si->pawn_key ^=
-                Zob._.piece_square[_active][PAWN][org] ^
-                Zob._.piece_square[_active][PAWN][dst];
+                 Zob._.piece_square[_active][PAWN][org]
+                ^Zob._.piece_square[_active][PAWN][dst];
         }
         
-        key ^= Zob._.piece_square[_active][pt][org] ^ Zob._.piece_square[_active][pt][dst];
+        key ^=
+             Zob._.piece_square[_active][pt][org]
+            ^Zob._.piece_square[_active][pt][dst];
         // Update incremental score
         _si->psq_score += PSQT[_active][pt][dst] - PSQT[_active][pt][org];
     }
@@ -1480,15 +1485,19 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         place_piece (dst, _active, ppt);
 
         _si->matl_key ^=
-            Zob._.piece_square[_active][PAWN][_piece_count[_active][PAWN]] ^
-            Zob._.piece_square[_active][ppt][_piece_count[_active][ppt] - 1];
+             Zob._.piece_square[_active][PAWN][_piece_count[_active][PAWN]]
+            ^Zob._.piece_square[_active][ppt][_piece_count[_active][ppt] - 1];
 
         _si->pawn_key ^= Zob._.piece_square[_active][PAWN][org];
 
-        key ^= Zob._.piece_square[_active][PAWN][org] ^ Zob._.piece_square[_active][ppt][dst];
+        key ^=
+             Zob._.piece_square[_active][PAWN][org]
+            ^Zob._.piece_square[_active][ppt][dst];
 
         // Update incremental score
-        _si->psq_score += PSQT[_active][ppt][dst] - PSQT[_active][PAWN][org];
+        _si->psq_score +=
+            +PSQT[_active][ppt][dst]
+            -PSQT[_active][PAWN][org];
         // Update material
         _si->non_pawn_matl[_active] += PIECE_VALUE[MG][ppt];
     }
