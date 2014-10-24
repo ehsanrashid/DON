@@ -748,7 +748,8 @@ namespace Evaluate {
             {
                 score += ((protected_pieces & pos.pieces<QUEN> ()) != U64(0) ? PIECE_THREATEN[MINOR][QUEN] :
                           (protected_pieces & pos.pieces<ROOK> ()) != U64(0) ? PIECE_THREATEN[MINOR][ROOK] :
-                          (protected_pieces & pos.pieces<BSHP> ()) != U64(0) ? PIECE_THREATEN[MINOR][BSHP] : PIECE_THREATEN[MINOR][NIHT]);
+                          (protected_pieces & pos.pieces<BSHP> ()) != U64(0) ? PIECE_THREATEN[MINOR][BSHP] :
+                          (protected_pieces & pos.pieces<NIHT> ()) != U64(0) ? PIECE_THREATEN[MINOR][NIHT] : PIECE_THREATEN[MINOR][PAWN]);
             }
 
             // Add a bonus according if the attacking pieces are minor or major
