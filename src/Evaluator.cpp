@@ -582,7 +582,7 @@ namespace Evaluate {
             {
                 Bitboard occ = pos.pieces ();
 
-                Bitboard king_ex_defended =
+                Bitboard king_ex_attacks =
                     ( ei.pin_attacked_by[Own][PAWN]
                     | ei.pin_attacked_by[Own][NIHT]
                     | ei.pin_attacked_by[Own][BSHP]
@@ -593,7 +593,7 @@ namespace Evaluate {
                 Bitboard undefended =
                     ei.ful_attacked_by[Own][KING] // King-zone
                   & ei.pin_attacked_by[Opp][NONE]
-                  & ~king_ex_defended;
+                  & ~king_ex_attacks;
 
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KING_DANGER[] array. The initial value is based on the
