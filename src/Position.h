@@ -555,6 +555,7 @@ inline Piece Position::moving_piece (Move m) const { return _board[org_sq (m)]; 
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {
     ASSERT (EMPTY == _board[s]);
+
     _board[s] = (c | pt);
 
     Bitboard bb      = BitBoard::SQUARE_bb[s];
@@ -580,9 +581,8 @@ inline void  Position::remove_piece (Square s)
     // the list and not in its original place, it means index[] and pieceList[]
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
-    Piece  p  = _board[s];
-    Color  c  = color (p);
-    PieceT pt = ptype (p);
+    Color  c  = color (_board[s]);
+    PieceT pt = ptype (_board[s]);
     _board[s] = EMPTY;
 
     Bitboard bb      = ~BitBoard::SQUARE_bb[s];
@@ -608,12 +608,11 @@ inline void  Position::  move_piece (Square s1, Square s2)
     ASSERT (EMPTY == _board[s2]);
     ASSERT (_piece_index[s1] != -1);
 
-    Piece  p  = _board[s1];
-    Color  c  = color (p);
-    PieceT pt = ptype (p);
+    Color  c  = color (_board[s1]);
+    PieceT pt = ptype (_board[s1]);
 
+    _board[s2] = _board[s1];
     _board[s1] = EMPTY;
-    _board[s2] = p;
 
     Bitboard bb = BitBoard::SQUARE_bb[s1] ^ BitBoard::SQUARE_bb[s2];
     _color_bb[c]    ^= bb;
@@ -632,10 +631,9 @@ template<bool Do>
 inline void Position::do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst)
 {
     // Move the piece. The tricky Chess960 castle is handled earlier
-    const bool king_side = (king_dst > king_org);
     rook_org = king_dst; // castle is always encoded as "King captures friendly Rook"
-    king_dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
-    rook_dst = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
+    king_dst = rel_sq (_active, (king_dst > king_org) ? SQ_G1 : SQ_C1);
+    rook_dst = rel_sq (_active, (king_dst > king_org) ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
     remove_piece (Do ? king_org : king_dst);
     remove_piece (Do ? rook_org : rook_dst);
@@ -647,14 +645,11 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
 
 inline CheckInfo::CheckInfo (const Position &pos)
 {
-    Color active = pos.active ();
-    Color pasive = ~active;
+    king_sq = pos.king_sq (~pos.active ());
+    pinneds = pos.pinneds ( pos.active ());
+    discoverers = pos.discoverers (pos.active ());
 
-    king_sq = pos.king_sq (pasive);
-    pinneds = pos.pinneds (active);
-    discoverers = pos.discoverers (active);
-
-    checking_bb[PAWN] = BitBoard::PAWN_ATTACKS[pasive][king_sq];
+    checking_bb[PAWN] = BitBoard::PAWN_ATTACKS[~pos.active ()][king_sq];
     checking_bb[NIHT] = BitBoard::PIECE_ATTACKS[NIHT][king_sq];
     checking_bb[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
     checking_bb[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());
