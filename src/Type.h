@@ -542,13 +542,6 @@ public:
 
 };
 
-enum SyncT { IO_LOCK, IO_UNLOCK };
-
-#define sync_cout std::cout << IO_LOCK
-#define sync_endl std::endl << IO_UNLOCK
-
-extern std::ostream& operator<< (std::ostream &os, const SyncT &sync);
-
 // prefetch() preloads the given address in L1/L2 cache.
 // This is a non-blocking function that doesn't stall
 // the CPU waiting for data to be loaded from memory,

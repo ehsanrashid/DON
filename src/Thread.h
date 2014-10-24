@@ -313,56 +313,14 @@ namespace Threads {
 
 }
 
-inline u32 cpu_count ()
-{
-#ifdef WIN32
 
-    SYSTEM_INFO sys_info;
-    GetSystemInfo (&sys_info);
-    return sys_info.dwNumberOfProcessors;
+enum SyncT { IO_LOCK, IO_UNLOCK };
 
-#elif MACOS
-
-    u32 count;
-    u32 len = sizeof (count);
-
-    i32 nm[2];
-    nm[0] = CTL_HW;
-    nm[1] = HW_AVAILCPU;
-    sysctl (nm, 2, &count, &len, NULL, 0);
-    if (count < 1)
-    {
-        nm[1] = HW_NCPU;
-        sysctl (nm, 2, &count, &len, NULL, 0);
-        if (count < 1) count = 1;
-    }
-    return count;
-
-#elif _SC_NPROCESSORS_ONLN // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
-
-    return sysconf (_SC_NPROCESSORS_ONLN);
-
-#elif __IRIX
-
-    return sysconf (_SC_NPROC_ONLN);
-
-#elif __HPUX
-
-    pst_dynamic psd;
-    return (pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1)
-        ? 1 : psd.psd_proc_cnt;
-
-    //return mpctl (MPC_GETNUMSPUS, NULL, NULL);
-
-#else
-
-    return 1;
-
-#endif
-}
+#define sync_cout std::cout << IO_LOCK
+#define sync_endl std::endl << IO_UNLOCK
 
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<< (std::ostream &os, const SyncT &sync)
+inline std::ostream& operator<< (std::ostream &os, SyncT sync)
 {
     static Threads::Mutex io_mutex;
 
@@ -375,5 +333,53 @@ inline std::ostream& operator<< (std::ostream &os, const SyncT &sync)
 }
 
 extern Threads::ThreadPool  Threadpool;
+
+//inline u32 cpu_count ()
+//{
+//#ifdef WIN32
+//
+//    SYSTEM_INFO sys_info;
+//    GetSystemInfo (&sys_info);
+//    return sys_info.dwNumberOfProcessors;
+//
+//#elif MACOS
+//
+//    u32 count;
+//    u32 len = sizeof (count);
+//
+//    i32 nm[2];
+//    nm[0] = CTL_HW;
+//    nm[1] = HW_AVAILCPU;
+//    sysctl (nm, 2, &count, &len, NULL, 0);
+//    if (count < 1)
+//    {
+//        nm[1] = HW_NCPU;
+//        sysctl (nm, 2, &count, &len, NULL, 0);
+//        if (count < 1) count = 1;
+//    }
+//    return count;
+//
+//#elif _SC_NPROCESSORS_ONLN // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
+//
+//    return sysconf (_SC_NPROCESSORS_ONLN);
+//
+//#elif __IRIX
+//
+//    return sysconf (_SC_NPROC_ONLN);
+//
+//#elif __HPUX
+//
+//    pst_dynamic psd;
+//    return (pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1)
+//        ? 1 : psd.psd_proc_cnt;
+//
+//    //return mpctl (MPC_GETNUMSPUS, NULL, NULL);
+//
+//#else
+//
+//    return 1;
+//
+//#endif
+//}
 
 #endif // _THREAD_H_INC_

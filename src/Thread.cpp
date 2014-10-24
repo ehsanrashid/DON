@@ -6,7 +6,7 @@
 #include "Endgame.h"
 #include "UCI.h"
 
-Threads::ThreadPool     Threadpool; // Global ThreadPool
+Threads::ThreadPool Threadpool; // Global ThreadPool
 
 namespace Threads {
 
