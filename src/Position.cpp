@@ -1158,9 +1158,8 @@ bool Position::setup (const string &f, Thread *th, bool c960, bool full)
        && (iss >> row && (row == '3' || row == '6'))
        )
     {
-        if (!(  (WHITE == _active && '6' != row)
-             || (BLACK == _active && '3' != row)
-             )
+        if (  (WHITE == _active && '6' == row)
+           || (BLACK == _active && '3' == row)
            )
         {
             Square ep_sq = to_square (col, row);
@@ -1240,13 +1239,13 @@ bool Position::can_en_passant (Square ep_sq) const
     ASSERT (R_6 == rel_rank (_active, ep_sq));
 
     Square cap = ep_sq + pawn_push (~_active);
-    if (!((_color_bb[~_active]&_types_bb[PAWN]) & cap)) return false;
-    //if ((~_active | PAWN) != _board[cap]) return false;
+    //if (!((_color_bb[~_active]&_types_bb[PAWN]) & cap)) return false;
+    if ((~_active | PAWN) != _board[cap]) return false;
     
     // En-passant attackes
     Bitboard attacks = PAWN_ATTACKS[~_active][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
     ASSERT (pop_count<FULL> (attacks) <= 2);
-    if (!attacks) return false;
+    if (attacks == U64(0)) return false;
 
     Move moves[3], *m = moves;
 
@@ -1257,13 +1256,12 @@ bool Position::can_en_passant (Square ep_sq) const
     }
 
     // Check en-passant is legal for the position
-    Square   ksq = _piece_list[_active][KING][0];
     Bitboard occ = _types_bb[NONE] + ep_sq - cap;
     for (m = moves; *m != MOVE_NONE; ++m)
     {
         Bitboard mocc = occ - org_sq (*m);
-        if (  !(attacks_bb<ROOK> (ksq, mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
-           && !(attacks_bb<BSHP> (ksq, mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP])))
+        if (  !(attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
+           && !(attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP])))
            )
         {
             return true;

@@ -410,7 +410,7 @@ inline Bitboard Position::checkers    () const { return _si->checkers; }
 inline Key    Position::matl_key      () const { return _si->matl_key; }
 inline Key    Position::pawn_key      () const { return _si->pawn_key; }
 inline Key    Position::posi_key      () const { return _si->posi_key; }
-inline Key    Position::posi_exc_key  () const { return _si->posi_key ^ Zobrist::Exclusion; }
+inline Key    Position::posi_exc_key  () const { return _si->posi_key ^ Zobrist::EXC_KEY; }
 // posi_move_key() computes the new hash key after the given moven. Needed for speculative prefetch.
 // It doesn't recognize special moves like castling, en-passant and promotions.
 inline Key    Position::posi_move_key (Move m) const

@@ -185,12 +185,13 @@ namespace OpeningBook {
                 }
                 else
                 {
-                    beg = u64(mid) + 1;
+                    beg = mid + streampos(1);
                 }
             }
-        }
 
-        ASSERT (beg == end);
+            ASSERT (beg == end);
+        }
+        
         return (key == pbe.key) ? beg : ERROR_INDEX;
     }
     streampos PolyglotBook::find_index (const Position &pos)

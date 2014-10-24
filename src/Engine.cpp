@@ -108,7 +108,7 @@ namespace Engine {
 
         UCI      ::initialize ();
         BitBoard ::initialize ();
-        Zobrist  ::initialize ();
+        //Zobrist  ::initialize ();
         Position ::initialize ();
         BitBases ::initialize ();
         Pawns    ::initialize ();

@@ -17,8 +17,7 @@ namespace Zobrist {
     //const Key PG_PAWN_KEY = U64(0x37FC40DA841E1692);
     //const Key PG_POSI_KEY = U64(0x463B96181691FC9C);
 
-    extern RKISS Rkiss;
-    extern Key   Exclusion;
+    const Key EXC_KEY = U64(0xFFFFFFFFFFFFFFFF);
 
     // Zobrist Random numbers
     union Zob
@@ -52,7 +51,7 @@ namespace Zobrist {
 
     };
 
-    extern void initialize ();
+    //extern void initialize ();
 
 }
 

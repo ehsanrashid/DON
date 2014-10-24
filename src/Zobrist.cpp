@@ -11,9 +11,6 @@ namespace Zobrist {
     using namespace std;
     using namespace BitBoard;
 
-    RKISS   Rkiss;
-    Key     Exclusion;
-
     void Zob::initialize (RKISS &rk)
     {
         for (u16 i = 0; i < ZOB_SIZE; ++i)
@@ -191,12 +188,10 @@ namespace Zobrist {
         return fen_key;
     }
 
-    void initialize ()
-    {
-        //ZobRnd.initialize (rkiss);
-
-        Exclusion = Rkiss.rand64 ();
-    }
+    //void initialize ()
+    //{
+    //    //ZobRnd.initialize (RKISS());
+    //}
 
 }
 
