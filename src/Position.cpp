@@ -1228,7 +1228,7 @@ void Position::set_castle (Color c, Square rook_org)
         if (king_org != s && rook_org != s)
         {
             _castle_path[cr] += Square(s);
-            _king_path[cr] += Square(s);
+              _king_path[cr] += Square(s);
         }
     }
 }
@@ -1454,7 +1454,9 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
              Zob._.piece_square[_active][pt][org]
             ^Zob._.piece_square[_active][pt][dst];
         // Update incremental score
-        _si->psq_score += PSQT[_active][pt][dst] - PSQT[_active][pt][org];
+        _si->psq_score +=
+            +PSQT[_active][pt][dst]
+            -PSQT[_active][pt][org];
     }
     break;
 
@@ -1484,17 +1486,17 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
         _si->matl_key ^=
              Zob._.piece_square[_active][PAWN][_piece_count[_active][PAWN]]
-            ^Zob._.piece_square[_active][ppt][_piece_count[_active][ppt] - 1];
+            ^Zob._.piece_square[_active][ppt ][_piece_count[_active][ppt] - 1];
 
         _si->pawn_key ^= Zob._.piece_square[_active][PAWN][org];
 
         key ^=
              Zob._.piece_square[_active][PAWN][org]
-            ^Zob._.piece_square[_active][ppt][dst];
+            ^Zob._.piece_square[_active][ppt ][dst];
 
         // Update incremental score
         _si->psq_score +=
-            +PSQT[_active][ppt][dst]
+            +PSQT[_active][ppt ][dst]
             -PSQT[_active][PAWN][org];
         // Update material
         _si->non_pawn_matl[_active] += PIECE_VALUE[MG][ppt];
@@ -1507,8 +1509,8 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     }
 
     // Update castle rights if needed
-    u08 cr = _si->castle_rights & (_castle_mask[org] | _castle_mask[dst]);
-    if (cr)
+    u08 cr = _si->castle_rights & (_castle_mask[org]|_castle_mask[dst]);
+    if (cr != 0)
     {
         Bitboard b = cr;
         _si->castle_rights &= ~cr;
@@ -1565,7 +1567,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         key ^= Zob._.en_passant[_file (_si->en_passant_sq)];
         _si->en_passant_sq = SQ_NO;
     }
-    // Handle pawn en-passant square setting
+    // Handle pawn en-passant square
     if (PAWN == pt)
     {
         if (DEL_NN == (u08(dst) ^ u08(org)))

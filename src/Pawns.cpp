@@ -315,14 +315,14 @@ namespace Pawns {
     // and to allow easier tuning and better insight.
     void initialize ()
     {
-        for (i08 opposed = 0; opposed < 2; ++opposed)
+        for (i08 opposed = 0; opposed <= 1; ++opposed)
         {
-            for (i08 phalanx = 0; phalanx < 2; ++phalanx)
+            for (i08 phalanx = 0; phalanx <= 1; ++phalanx)
             {
                 for (Rank r = R_2; r < R_8; ++r)
                 {
-                    i32 value = SEED[r] + (phalanx ? (SEED[r + 1] - SEED[r]) >> 1 : 0);
-                    CONNECTED[opposed][phalanx][r] = mk_score (value >> 1, value >> opposed);
+                    i32 value = SEED[r] + (phalanx != 0 ? (SEED[r + 1] - SEED[r])/2 : 0);
+                    CONNECTED[opposed][phalanx][r] = mk_score (value/2, value >> opposed);
                 }
             }
         }

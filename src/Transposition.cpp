@@ -177,12 +177,12 @@ namespace Transposition {
                 rte = ite;
             }
         }
-        //// By default replace first entry and make place in the last
-        //if (rte == fte)
-        //{
-        //    memmove (fte, fte+1, (ClusterEntries - 1)*EntrySize);
-        //    rte = fte + (ClusterEntries - 1);
-        //}
+        // By default replace first entry and make place in the last
+        if (rte == fte)
+        {
+            memmove (fte, fte+1, (ClusterEntries - 1)*EntrySize);
+            rte = fte + (ClusterEntries - 1);
+        }
         rte->save (key, move, value, eval, depth, bound, _generation);
     }
 

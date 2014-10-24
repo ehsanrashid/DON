@@ -93,10 +93,9 @@ namespace Zobrist {
             posi_key ^= _.castle_right[0][pop_lsq (b)];
         }
 
-        Square ep_sq = pos.en_passant_sq ();
-        if (SQ_NO != ep_sq)
+        if (SQ_NO != pos.en_passant_sq ())
         {
-            posi_key ^= _.en_passant[_file (ep_sq)];
+            posi_key ^= _.en_passant[_file (pos.en_passant_sq ())];
         }
         if (WHITE == pos.active ())
         {
