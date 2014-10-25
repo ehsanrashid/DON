@@ -103,11 +103,11 @@ namespace Search {
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
-            u16 cnt = 4*u16(depth)*u16(depth);
-            HistoryStatistics.success (pos, move, cnt);
+            Value value = Value(4*u16(depth)*u16(depth));
+            HistoryStatistics.update (pos, move, value);
             for (u08 i = 0; i < quiets; ++i)
             {
-                HistoryStatistics.failure (pos, quiet_moves[i], cnt);
+                HistoryStatistics.update (pos, quiet_moves[i], -value);
             }
             Move opp_move = (ss-1)->current_move;
             if (_ok (opp_move))
@@ -1839,7 +1839,10 @@ namespace Search {
 
             // Reset the threads, still sleeping: will wake up at split time
             Threadpool.max_ply = 0;
-
+            if (bool(Options["Auto Load Saved Hash"]))
+            {
+                TT.load (HashFile);
+            }
             if (AutoSaveTime > 0)
             {
                 FirstAutoSave = true;

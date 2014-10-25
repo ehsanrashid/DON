@@ -35,7 +35,6 @@ namespace MovePick {
         {
             Square s = dst_sq (m);
             Piece  p = pos[s];
-
             _values[p][s] = std::max (g, _values[p][s] - 1);
         }
     };
@@ -48,59 +47,26 @@ namespace MovePick {
     {
 
     private:
-        u16   _counts[PIECE_NO][SQ_NO][2];
         Value _values[PIECE_NO][SQ_NO];
 
     public:
     
-        static const Value MinValue;
         static const Value MaxValue;
     
         inline void clear ()
         {
-            std::fill (**_counts, **_counts + sizeof (_counts) / sizeof (***_counts), 0x00);
-            std::fill (*_values, *_values + sizeof (_values) / sizeof (**_values), MinValue);
+            std::fill (*_values, *_values + sizeof (_values) / sizeof (**_values), VALUE_ZERO);
         }
 
-        inline void success (const Position &pos, Move m, u16 d)
+        inline void update (const Position &pos, Move m, Value v)
         {
-            Piece p  = pos[org_sq (m)];
+            Piece  p = pos[org_sq (m)];
             Square s = dst_sq (m);
-
-            u16 cnt = _counts[p][s][0] + d;
-            if (cnt > 16000)
-            {
-                cnt /= 2;
-                _counts[p][s][1] /= 2;
-            }
-            _counts[p][s][0] = cnt;
-            _values[p][s] = MinValue;
-        }
-
-        inline void failure (const Position &pos, Move m, i16 d)
-        {
-            Piece p  = pos[org_sq (m)];
-            Square s = dst_sq (m);
-
-            u16 cnt = _counts[p][s][1] + d;
-            if (cnt > 16000)
-            {
-                cnt /= 2;
-                _counts[p][s][0] /= 2;
-            }
-            _counts[p][s][1] = cnt;
-            _values[p][s] = MinValue;
+            if (abs (_values[p][s] + v) < MaxValue) _values[p][s] += v;
         }
 
         inline Value value (Piece p, Square s)
         {
-            if (_values[p][s] <= MinValue)
-            {
-                u16 succ = _counts[p][s][0];
-                u16 fail = _counts[p][s][1];
-                _values[p][s] = (succ+fail) != 0 ? Value((abs (succ-fail)*(succ-fail))/(succ+fail)) : VALUE_ZERO;
-            }
-
             return _values[p][s];
         }
 

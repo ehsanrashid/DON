@@ -260,10 +260,10 @@ namespace UCI {
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
         Options["Hash"]                         << Option (TranspositionTable::DefSize,
-                                                           TranspositionTable::MinSize,
+                                                           0,//TranspositionTable::MinSize,
                                                            TranspositionTable::MaxSize, change_hash);
 #ifdef LPAGES
-        Options["Large Pages"]                  << Option (false, large_pages);
+        Options["Large Pages"]                  << Option (true, large_pages);
 #endif
 
         // Button to clear the Hash Memory.
@@ -304,6 +304,7 @@ namespace UCI {
         Options["Hash File"]                    << Option (HashFile.c_str(), configure_auto_save);
         // Auto Save Hash Time (min)
         Options["Auto Save Hash (min)"]         << Option ( AutoSaveTime, 0, 60, configure_auto_save);
+        Options["Auto Load Saved Hash"]         << Option (false);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
