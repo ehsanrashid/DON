@@ -263,7 +263,7 @@ namespace UCI {
                                                            TranspositionTable::MinSize,
                                                            TranspositionTable::MaxSize, change_hash);
 #ifdef LPAGES
-        Options["Large Pages"]                  << Option (true, large_pages);
+        Options["Large Pages"]                  << Option (false, large_pages);
 #endif
 
         // Button to clear the Hash Memory.

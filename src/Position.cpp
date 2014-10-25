@@ -158,10 +158,13 @@ bool Position::draw () const
 {
     // Draw by Threefold Repetition?
     const StateInfo *psi = _si;
-    for (u08 ply = min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
+    for (u08 ply = std::min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
     {
         psi = psi->p_si->p_si;
-        if (psi->posi_key == _si->posi_key) return true; // Draw at first repetition
+        if (psi->posi_key == _si->posi_key)
+        {
+            return true; // Draw at first repetition
+        }
     }
     /*
     // Draw by Material?
@@ -1182,7 +1185,7 @@ bool Position::setup (const string &f, Thread *th, bool c960, bool full)
 
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
-    _si->clock50 = u08((SQ_NO != _si->en_passant_sq) ? 0 : clk50);
+    _si->clock50 = u08(SQ_NO != _si->en_passant_sq ? 0 : clk50);
     _game_ply = max (2*(g_move - 1), 0) + (BLACK == _active);
 
     _si->matl_key = Zob.compute_matl_key (*this);

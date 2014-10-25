@@ -34,9 +34,9 @@ namespace MovePick {
         inline void update (const Position &pos, Move m, Value g)
         {
             Square s = dst_sq (m);
-            Piece p  = pos[s];
+            Piece  p = pos[s];
 
-            _values[p][s] = g >= _values[p][s] ? g : (g + 4*i16(_values[p][s]))/5;
+            _values[p][s] = std::max (g, _values[p][s] - 1);
         }
     };
 
