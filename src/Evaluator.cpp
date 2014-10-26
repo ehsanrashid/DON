@@ -989,24 +989,24 @@ namespace Evaluate {
                    , mobility_area_b = ~pos.pieces (BLACK, PAWN, KING) & ~ei.pin_attacked_by[WHITE][NONE];
 
             score += 
-              + evaluate_pieces<WHITE, NIHT, Trace> (pos, ei, mobility_area_w, mobility_w)
-              - evaluate_pieces<BLACK, NIHT, Trace> (pos, ei, mobility_area_b, mobility_b);
+                + evaluate_pieces<WHITE, NIHT, Trace> (pos, ei, mobility_area_w, mobility_w)
+                - evaluate_pieces<BLACK, NIHT, Trace> (pos, ei, mobility_area_b, mobility_b);
             ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][NIHT];
             ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][NIHT];
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][NIHT];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][NIHT];
 
             score += 
-              + evaluate_pieces<WHITE, BSHP, Trace> (pos, ei, mobility_area_w, mobility_w)
-              - evaluate_pieces<BLACK, BSHP, Trace> (pos, ei, mobility_area_b, mobility_b);
+                + evaluate_pieces<WHITE, BSHP, Trace> (pos, ei, mobility_area_w, mobility_w)
+                - evaluate_pieces<BLACK, BSHP, Trace> (pos, ei, mobility_area_b, mobility_b);
             ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][BSHP];
             ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][BSHP];
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][BSHP];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][BSHP];
 
             score += 
-              + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area_w, mobility_w)
-              - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility_area_b, mobility_b);
+                + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area_w, mobility_w)
+                - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility_area_b, mobility_b);
             ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][ROOK];
             ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][ROOK];
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][ROOK];
@@ -1016,8 +1016,8 @@ namespace Evaluate {
             mobility_area_b &= ~ei.pin_attacked_by[WHITE][NONE];
 
             score += 
-              + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area_w, mobility_w)
-              - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area_b, mobility_b);
+                + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area_w, mobility_w)
+                - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area_b, mobility_b);
             ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][QUEN];
             ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][QUEN];
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][QUEN];
@@ -1033,12 +1033,14 @@ namespace Evaluate {
 
             // Evaluate kings after all other pieces because needed complete attack
             // information when computing the king safety evaluation.
-            score += evaluate_king<WHITE, Trace> (pos, ei)
-                  -  evaluate_king<BLACK, Trace> (pos, ei);
+            score +=
+                + evaluate_king<WHITE, Trace> (pos, ei)
+                - evaluate_king<BLACK, Trace> (pos, ei);
 
             // Evaluate tactical threats, needed full attack information including king
-            score += evaluate_threats<WHITE, Trace> (pos, ei)
-                  -  evaluate_threats<BLACK, Trace> (pos, ei);
+            score += 
+                + evaluate_threats<WHITE, Trace> (pos, ei)
+                - evaluate_threats<BLACK, Trace> (pos, ei);
 
             // Evaluate passed pawns, needed full attack information including king
             Score passed_pawn_w = evaluate_passed_pawns<WHITE> (pos, ei)

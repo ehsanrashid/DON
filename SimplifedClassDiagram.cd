@@ -378,7 +378,7 @@
       <Field Name="last_move" />
       <Field Name="capture_type" />
       <Field Name="checkers" />
-      <Field Name="p_si" />
+      <Field Name="ptr" />
     </ShowAsAssociation>
   </Struct>
   <Struct Name="CheckInfo">

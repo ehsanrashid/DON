@@ -160,7 +160,7 @@ bool Position::draw () const
     const StateInfo *psi = _si;
     for (u08 ply = std::min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
     {
-        psi = psi->p_si->p_si;
+        psi = psi->ptr->ptr;
         if (psi->posi_key == _si->posi_key)
         {
             return true; // Draw at first repetition
@@ -208,15 +208,15 @@ bool Position::repeated () const
     {
         u08 ply = min (si->clock50, si->null_ply);
         if (4 > ply) return false;
-        StateInfo *psi = si->p_si->p_si;
+        StateInfo *psi = si->ptr->ptr;
         do
         {
-            psi = psi->p_si->p_si;
+            psi = psi->ptr->ptr;
             if (psi->posi_key == si->posi_key) return true;
             ply -= 2;
         } while (4 <= ply);
 
-        si = si->p_si;
+        si = si->ptr;
     }
     return false;
 }
@@ -1334,8 +1334,8 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     memcpy (&si, _si, STATEINFO_COPY_SIZE);
 
     // Switch state pointer to point to the new, ready to be updated, state.
-    si.p_si = _si;
-    _si     = &si;
+    si.ptr = _si;
+    _si    = &si;
 
     Color pasive = ~_active;
 
@@ -1361,45 +1361,30 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     {
         ASSERT (PAWN == promote (m) - NIHT);
 
-        if (PAWN == pt)
-        {
-            u08 f_del = file_dist (cap, org);
-            ASSERT (0 == f_del || 1 == f_del);
-            if (1 == f_del) ct = ptype (_board[cap]);
-        }
-        else
-        {
-            ct = ptype (_board[cap]);
-        }
-
-        ASSERT (KING != ct);   // Can't capture the KING
+        ct = ptype (_board[cap]);
+        ASSERT (KING != ct);
         if (NONE != ct)
         {
             do_capture ();
         }
         else
         {
-            PAWN == pt ? _si->clock50 = 0 : _si->clock50++;
+            (PAWN == pt) ? _si->clock50 = 0 : _si->clock50++;
         }
 
-        // Move the piece
         move_piece (org, dst);
-
-        // Update pawns hash key
         if (PAWN == pt)
         {
             _si->pawn_key ^=
                  Zob._.piece_square[_active][PAWN][org]
                 ^Zob._.piece_square[_active][PAWN][dst];
         }
-
         key ^=
              Zob._.piece_square[_active][pt][org]
             ^Zob._.piece_square[_active][pt][dst];
-        // Update incremental score
         _si->psq_score +=
-            +PSQT[_active][pt][dst]
-            -PSQT[_active][pt][org];
+            -PSQT[_active][pt][org]
+            +PSQT[_active][pt][dst];
     }
     break;
 
@@ -1407,7 +1392,6 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     {
         ASSERT (KING == pt);
         ASSERT (ROOK == ptype (_board[dst]));
-        //ct = NONE;
 
         Square rook_org, rook_dst;
         do_castling<true> (org, dst, rook_org, rook_dst);
@@ -1417,12 +1401,11 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
             ^Zob._.piece_square[_active][KING][dst     ]
             ^Zob._.piece_square[_active][ROOK][rook_org]
             ^Zob._.piece_square[_active][ROOK][rook_dst];
-        // Update incremental score
         _si->psq_score +=
-            +PSQT[_active][KING][dst     ]
             -PSQT[_active][KING][org     ]
-            +PSQT[_active][ROOK][rook_dst]
-            -PSQT[_active][ROOK][rook_org];
+            +PSQT[_active][KING][dst     ]
+            -PSQT[_active][ROOK][rook_org]
+            +PSQT[_active][ROOK][rook_dst];
 
         _si->clock50++;
     }
@@ -1430,49 +1413,39 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 
     case ENPASSANT:
     {
-        ASSERT (PAWN == pt);                // Moving type must be pawn
-        ASSERT (dst == _si->en_passant_sq); // Destination must be en-passant
+        ASSERT (PAWN == pt);
+        ASSERT (dst == _si->en_passant_sq);
         ASSERT (R_5 == rel_rank (_active, org));
         ASSERT (R_6 == rel_rank (_active, dst));
-        ASSERT (empty (cap));      // Capture Square must be empty
+        ASSERT (empty (cap));
 
         cap += pawn_push (pasive);
         ASSERT ((pasive | PAWN) == _board[cap]);
         ct = PAWN;
-
         do_capture ();
 
-        // Move the piece
         move_piece (org, dst);
 
-        // Update pawns hash key
-        if (PAWN == pt)
-        {
-            _si->pawn_key ^=
-                 Zob._.piece_square[_active][PAWN][org]
-                ^Zob._.piece_square[_active][PAWN][dst];
-        }
-        
+        _si->pawn_key ^=
+             Zob._.piece_square[_active][PAWN][org]
+            ^Zob._.piece_square[_active][PAWN][dst];
         key ^=
-             Zob._.piece_square[_active][pt][org]
-            ^Zob._.piece_square[_active][pt][dst];
-        // Update incremental score
+             Zob._.piece_square[_active][PAWN][org]
+            ^Zob._.piece_square[_active][PAWN][dst];
         _si->psq_score +=
-            +PSQT[_active][pt][dst]
-            -PSQT[_active][pt][org];
+            -PSQT[_active][PAWN][org]
+            +PSQT[_active][PAWN][dst];
     }
     break;
 
     case PROMOTE:
     {
-        ASSERT (PAWN == pt);    // Moving type must be PAWN
+        ASSERT (PAWN == pt);
         ASSERT (R_7 == rel_rank (_active, org));
         ASSERT (R_8 == rel_rank (_active, dst));
 
         ct = ptype (_board[cap]);
-        ASSERT (PAWN != ct);
-
-        ASSERT (KING != ct);    // Can't capture the KING
+        ASSERT (PAWN != ct && KING != ct);
         if (NONE != ct)
         {
             do_capture ();
@@ -1490,18 +1463,14 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         _si->matl_key ^=
              Zob._.piece_square[_active][PAWN][_piece_count[_active][PAWN]]
             ^Zob._.piece_square[_active][ppt ][_piece_count[_active][ppt] - 1];
-
-        _si->pawn_key ^= Zob._.piece_square[_active][PAWN][org];
-
+        _si->pawn_key ^=
+             Zob._.piece_square[_active][PAWN][org];
         key ^=
              Zob._.piece_square[_active][PAWN][org]
             ^Zob._.piece_square[_active][ppt ][dst];
-
-        // Update incremental score
         _si->psq_score +=
             +PSQT[_active][ppt ][dst]
             -PSQT[_active][PAWN][org];
-        // Update material
         _si->non_pawn_matl[_active] += PIECE_VALUE[MG][ppt];
     }
     break;
@@ -1511,7 +1480,6 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     break;
     }
 
-    // Update castle rights if needed
     u08 cr = _si->castle_rights & (_castle_mask[org]|_castle_mask[dst]);
     if (cr != 0)
     {
@@ -1523,7 +1491,6 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         }
     }
 
-    // Update checkers bitboard: piece must be already moved due to attacks_bb()
     _si->checkers = U64(0);
     if (ci != NULL)
     {
@@ -1560,17 +1527,14 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         }
     }
 
-    // Switch side to move
     _active = pasive;
     key ^= Zob._.mover_side;
 
-    // Reset old en-passant square
     if (SQ_NO != _si->en_passant_sq)
     {
         key ^= Zob._.en_passant[_file (_si->en_passant_sq)];
         _si->en_passant_sq = SQ_NO;
     }
-    // Handle pawn en-passant square
     if (PAWN == pt)
     {
         if (DEL_NN == (u08(dst) ^ u08(org)))
@@ -1584,7 +1548,6 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         }
     }
 
-    // Update the key with the final value
     _si->posi_key     = key;
     _si->last_move    = m;
     _si->capture_type = ct;
@@ -1609,7 +1572,7 @@ void Position::  do_move (string &can, StateInfo &si)
 // undo_move() undo the last move
 void Position::undo_move ()
 {
-    ASSERT (_si->p_si);
+    ASSERT (_si->ptr);
     Move m = _si->last_move;
     ASSERT (_ok (m));
 
@@ -1629,7 +1592,7 @@ void Position::undo_move ()
     {
     case NORMAL:
     {
-        move_piece (dst, org); // Put the piece back at the origin square
+        move_piece (dst, org);
     }
     break;
 
@@ -1647,10 +1610,10 @@ void Position::undo_move ()
         ASSERT (PAWN == _si->capture_type);
         ASSERT (R_5 == rel_rank (_active, org));
         ASSERT (R_6 == rel_rank (_active, dst));
-        ASSERT (dst == _si->p_si->en_passant_sq);
+        ASSERT (dst == _si->ptr->en_passant_sq);
         cap -= pawn_push (_active);
         ASSERT (empty (cap));
-        move_piece (dst, org); // Put the piece back at the origin square
+        move_piece (dst, org);
     }
     break;
 
@@ -1659,10 +1622,8 @@ void Position::undo_move ()
         ASSERT (promote (m) == ptype (_board[dst]));
         ASSERT (R_8 == rel_rank (_active, dst));
         ASSERT (NIHT <= promote (m) && promote (m) <= QUEN);
-        // Replace the promoted piece with the PAWN
         remove_piece (dst);
         place_piece (org, _active, PAWN);
-        //pt = PAWN;
     }
     break;
 
@@ -1670,15 +1631,14 @@ void Position::undo_move ()
         ASSERT (false);
     break;
     }
-    // If there was any capture piece
+
     if (NONE != _si->capture_type)
     {
-        place_piece (cap, ~_active, _si->capture_type); // Restore the captured piece
+        place_piece (cap, ~_active, _si->capture_type);
     }
 
     --_game_ply;
-    // Finally point our state pointer back to the previous state
-    _si     = _si->p_si;
+    _si = _si->ptr;
 
     ASSERT (ok ());
 }
@@ -1693,8 +1653,8 @@ void Position::  do_null_move (StateInfo &si)
     memcpy (&si, _si, sizeof (si));
 
     // Switch our state pointer to point to the new, ready to be updated, state.
-    si.p_si = _si;
-    _si     = &si;
+    si.ptr = _si;
+    _si    = &si;
 
     if (SQ_NO != _si->en_passant_sq)
     {
@@ -1713,11 +1673,11 @@ void Position::  do_null_move (StateInfo &si)
 // undo_null_move() undo the last null-move
 void Position::undo_null_move ()
 {
-    ASSERT (_si->p_si);
+    ASSERT (_si->ptr);
     ASSERT (_si->checkers == U64(0));
 
     _active = ~_active;
-    _si     = _si->p_si;
+    _si     = _si->ptr;
 
     ASSERT (ok ());
 }
@@ -1825,10 +1785,10 @@ string Position::fen (bool c960, bool full) const
 // printed to the standard output
 Position::operator string () const
 {
-    const string EDGE  = " +---+---+---+---+---+---+---+---+\n";
-    const string ROW_1 = "| . |   | . |   | . |   | . |   |\n" + EDGE;
-    const string ROW_2 = "|   | . |   | . |   | . |   | . |\n" + EDGE;
-    const u16 ROW_LEN  = ROW_1.length () + 1;
+    static string EDGE  = " +---+---+---+---+---+---+---+---+\n";
+    static string ROW_1 = "| . |   | . |   | . |   | . |   |\n" + EDGE;
+    static string ROW_2 = "|   | . |   | . |   | . |   | . |\n" + EDGE;
+    static u16 ROW_LEN  = ROW_1.length () + 1;
 
     string board = EDGE;
 

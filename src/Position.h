@@ -55,11 +55,10 @@ public:
     // -------------------------------------
     Move   last_move;      // Move played on the previous position.
     PieceT capture_type;   // Piece type captured.
-
     Key    posi_key;       // Hash key of position.
     Bitboard checkers;     // Checkers bitboard.
 
-    StateInfo *p_si;
+    StateInfo *ptr;
     
 };
 
