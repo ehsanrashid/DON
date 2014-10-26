@@ -165,9 +165,7 @@ void benchmark (istream &is, const Position &pos)
 
     Debug::dbg_print (); // Just before to exit
 
-    time = now () - time;
-    // Ensure non-zero to avoid a 'divide by zero'
-    if (time == 0) time = 1;
+    time = now () - time; if (time == 0) time = 1;
 
     cerr
         << "\n===========================\n"

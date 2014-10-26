@@ -7,7 +7,7 @@
 
 namespace Memory {
 
-    extern void alloc_memory (void *&mem_ref, size_t mem_size, size_t alignment);
+    extern void alloc_memory (void *&mem_ref, u64 mem_size, u32 alignment);
 
     extern void  free_memory (void *mem);
 

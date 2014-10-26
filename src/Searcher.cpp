@@ -462,10 +462,10 @@ namespace Search {
                     }
                 }
             }
-
+            
             // All legal moves have been searched.
             // A special case: If in check and no legal moves were found, it is checkmate.
-            if (InCheck && best_value == -VALUE_INFINITE/*legals == 0*/)
+            if (InCheck && legals == 0)
             {
                 // Plies to mate from the root
                 best_value = mated_in ((ss)->ply);
@@ -694,7 +694,6 @@ namespace Search {
                             }
                         }
 
-                        // Step 7,8,9.
                         if (NullMove)
                         {
                             ASSERT ((ss-1)->current_move != MOVE_NONE);
@@ -703,7 +702,6 @@ namespace Search {
 
                             StateInfo si;
 
-                            // Step 7,8.
                             if (pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
                             {
                                 // Step 7. Futility pruning: child node
@@ -729,7 +727,7 @@ namespace Search {
                                     (ss)->current_move = MOVE_NULL;
 
                                     // Null move dynamic reduction based on depth and static evaluation
-                                    Depth reduction_depth = (3 + depth/4 + min (i32 (static_eval - beta)/VALUE_MG_PAWN, 3))*DEPTH_ONE;
+                                    Depth reduction_depth = (3 + depth/4 + min (i32 (static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
                                     
                                     Depth reduced_depth   = depth - reduction_depth;
 
@@ -750,15 +748,11 @@ namespace Search {
 
                                     if (null_value >= beta)
                                     {
-                                        // Do not return unproven unproven wins
-                                        if (null_value >= +VALUE_MATE_IN_MAX_DEPTH)
-                                        {
-                                            null_value = beta;
-                                        }
                                         // Don't do verification search at low depths
                                         if (depth < 8*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
                                         {
-                                            return null_value;
+                                            // Don't return unproven unproven mates
+                                            return null_value < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
                                         }
                                         
                                         // Do verification search at high depths
@@ -769,7 +763,8 @@ namespace Search {
 
                                         if (value >= beta)
                                         {
-                                            return null_value;
+                                            // Don't return unproven unproven mates
+                                            return value < +VALUE_MATE_IN_MAX_DEPTH ? value : beta;
                                         }
                                     }
                                 }
@@ -855,7 +850,7 @@ namespace Search {
             // Splitpoint start
             // When in check and at SPNode search starts from here
 
-            Value value = best_value;
+            Value value = -VALUE_INFINITE;
 
             bool improving =
                    ((ss-2)->static_eval == VALUE_NONE)
@@ -1028,7 +1023,6 @@ namespace Search {
                                 if (SPNode)
                                 {
                                     splitpoint->mutex.lock ();
-                                    // Max value
                                     if (splitpoint->best_value < best_value) splitpoint->best_value = best_value;
                                 }
                                 continue;
@@ -1051,14 +1045,12 @@ namespace Search {
 
                 if (!SPNode)
                 {
-                    // Check for legality just before making the move
                     if (!RootNode && !move_legal)
                     {
                         --legals;
                         continue;
                     }
 
-                    // Save the quiet move
                     if (  quiets < MAX_QUIETS
                        && !capture_or_promotion
                        )
@@ -1077,7 +1069,6 @@ namespace Search {
                 prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
                 prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
-                // Step 15, 16.
                 if (!move_pv)
                 {
                     bool full_depth_search = true;
@@ -1277,7 +1268,7 @@ namespace Search {
                 // If all possible moves have been searched and if there are no legal moves,
                 // If in a singular extension search then return a fail low score (alpha).
                 // Otherwise it must be mate or stalemate, so return value accordingly.
-                if (best_value == -VALUE_INFINITE || legals == 0)
+                if (legals == 0)
                 {
                     best_value = 
                         exclude_move != MOVE_NONE ?
@@ -2005,17 +1996,32 @@ namespace Threads {
             dbg_print ();
         }
 
-        if (Limits.ponder || Signals.force_stop)
+        point movetime = now_time - SearchTime;
+        if (!Limits.ponder && Limits.use_timemanager ())
         {
-            return;
+            if (  movetime > TimeMgr.maximum_time () - 2 * TimerResolution
+                    // Still at first move
+                 || (   Signals.root_1stmove
+                    && !Signals.root_failedlow
+                    && movetime > TimeMgr.available_time () * 0.75f
+                    )
+               )
+            {
+               Signals.force_stop = true;
+            }
         }
-
-        u64 nodes = 0;
+        else
+        if (Limits.movetime != 0 && movetime >= Limits.movetime)
+        {
+            Signals.force_stop = true;
+        }
+        else
         if (Limits.nodes != 0)
         {
-            Threadpool.mutex.lock ();
+            u64 nodes = RootPos.game_nodes ();
 
-            nodes = RootPos.game_nodes ();
+            Threadpool.mutex.lock ();
+            
             // Loop across all splitpoints and sum accumulated splitpoint nodes plus
             // all the currently active positions nodes.
             for (u08 t = 0; t < Threadpool.size (); ++t)
@@ -2040,25 +2046,11 @@ namespace Threads {
             }
 
             Threadpool.mutex.unlock ();
-        }
 
-        point movetime = now_time - SearchTime;
-
-        if (  (  Limits.use_timemanager ()
-                    // No more movetime
-              && (  movetime > TimeMgr.maximum_time () - 2 * TimerResolution
-                    // Still at first move
-                 || (   Signals.root_1stmove
-                    && !Signals.root_failedlow
-                    && movetime > TimeMgr.available_time () * 0.75f
-                    )
-                 )
-              )
-           || (Limits.movetime != 0 && movetime >= Limits.movetime)
-           || (Limits.nodes    != 0 && nodes    >= Limits.nodes)
-           )
-        {
-            Signals.force_stop = true;
+            if (nodes >= Limits.nodes)
+            {
+                Signals.force_stop = true;
+            }
         }
     }
 

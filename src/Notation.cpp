@@ -45,8 +45,7 @@ namespace Notation {
             while (pcs != U64(0))
             {
                 Square amb_org = pop_lsq (pcs);
-                Move move = mk_move<NORMAL> (amb_org, dst);
-                if (!pos.legal (move, pinneds))
+                if (!pos.legal (mk_move<NORMAL> (amb_org, dst), pinneds))
                 {
                     amb -= amb_org;
                 }

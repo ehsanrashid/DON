@@ -123,7 +123,7 @@ namespace Memory {
 
     }
 
-    void alloc_memory (void *&mem_ref, size_t mem_size, size_t alignment)
+    void alloc_memory (void *&mem_ref, u64 mem_size, u32 alignment)
     {
         UsePages = false;
 
