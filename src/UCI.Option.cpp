@@ -175,6 +175,7 @@ namespace UCI {
         {
             HashFile     = string(Options["Hash File"]);
             AutoSaveTime = u16(i32(Options["Auto Save Hash (min)"]));
+            AutoLoadHash = bool(Options["Auto Load Saved Hash"]);
         }
 
         void configure_contempt (const Option &)
@@ -303,8 +304,8 @@ namespace UCI {
         // By default DON will use the hash.dat file in the current folder of the engine.
         Options["Hash File"]                    << Option (HashFile.c_str(), configure_auto_save);
         // Auto Save Hash Time (min)
-        Options["Auto Save Hash (min)"]         << Option ( AutoSaveTime, 0, 60, configure_auto_save);
-        Options["Auto Load Saved Hash"]         << Option (false);
+        Options["Auto Save Hash (min)"]         << Option (AutoSaveTime, 0, 60, configure_auto_save);
+        Options["Auto Load Saved Hash"]         << Option (AutoLoadHash);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
@@ -407,7 +408,7 @@ namespace UCI {
         //
         // By setting Fifty Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          << Option (Position::FiftyMoveDist,+  5,+ 50, fifty_move_dist);
+        Options["Fifty Move Distance"]          << Option (Position::FiftyMoveDist/2,+  5,+ 50, fifty_move_dist);
 
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, configure_time);

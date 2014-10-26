@@ -207,12 +207,11 @@ namespace Search {
             (ss)->current_move = MOVE_NONE;
             (ss)->ply = (ss-1)->ply + 1;
 
-            // Check for aborted search
-            if (Signals.force_stop)    return VALUE_ZERO;
-            // Check for immediate draw
-            if (pos.draw ())           return DrawValue[pos.active ()];
-            // Check for maximum ply reached
-            if ((ss)->ply > MAX_DEPTH) return InCheck ? DrawValue[pos.active ()] : evaluate (pos);
+            // Check for aborted search, immediate draw or maximum ply reached
+            if (Signals.force_stop || pos.draw () || (ss)->ply > MAX_DEPTH)
+            {
+                return (ss)->ply > MAX_DEPTH && !InCheck ? evaluate (pos) : DrawValue[pos.active ()];
+            }
 
             // To flag EXACT a node with eval above alpha and no available moves
             Value pv_alpha = PVNode ? alpha : -VALUE_INFINITE;
@@ -466,7 +465,7 @@ namespace Search {
 
             // All legal moves have been searched.
             // A special case: If in check and no legal moves were found, it is checkmate.
-            if (InCheck && legals == 0)
+            if (InCheck && best_value == -VALUE_INFINITE/*legals == 0*/)
             {
                 // Plies to mate from the root
                 best_value = mated_in ((ss)->ply);
@@ -550,13 +549,11 @@ namespace Search {
                 if (!RootNode)
                 {
                     // Step 2. Check end condition
-
-                    // Check for aborted search
-                    if (Signals.force_stop)    return VALUE_ZERO;
-                    // Check for immediate draw
-                    if (pos.draw ())           return DrawValue[pos.active ()];
-                    // Check for maximum ply reached
-                    if ((ss)->ply > MAX_DEPTH) return in_check ? DrawValue[pos.active ()] : evaluate (pos);
+                    // Check for aborted search, immediate draw or maximum ply reached
+                    if (Signals.force_stop || pos.draw () || (ss)->ply > MAX_DEPTH)
+                    {
+                        return (ss)->ply > MAX_DEPTH && !in_check ? evaluate (pos) : DrawValue[pos.active ()];
+                    }
 
                     // Step 3. Mate distance pruning. Even if mate at the next move our score
                     // would be at best mates_in((ss)->ply+1), but if alpha is already bigger because
@@ -576,7 +573,7 @@ namespace Search {
                 exclude_move = (ss)->exclude_move;
                 posi_key = exclude_move == MOVE_NONE ?
                             pos.posi_key () :
-                            pos.posi_exc_key ();
+                            pos.posi_key () ^ Zobrist::EXC_KEY;
 
                 tte      = TT.retrieve (posi_key);
                 (ss)->tt_move =
@@ -734,7 +731,7 @@ namespace Search {
                                     // Null move dynamic reduction based on depth and static evaluation
                                     Depth reduction_depth = (3 + depth/4 + min (i32 (static_eval - beta)/VALUE_MG_PAWN, 3))*DEPTH_ONE;
                                     
-                                    Depth reduced_depth = depth - reduction_depth;
+                                    Depth reduced_depth   = depth - reduction_depth;
 
                                     // Do null move
                                     pos.do_null_move (si);
@@ -754,12 +751,12 @@ namespace Search {
                                     if (null_value >= beta)
                                     {
                                         // Do not return unproven unproven wins
-                                        if (abs (null_value) >= +VALUE_MATE_IN_MAX_DEPTH)
+                                        if (null_value >= +VALUE_MATE_IN_MAX_DEPTH)
                                         {
                                             null_value = beta;
                                         }
                                         // Don't do verification search at low depths
-                                        if (depth <= 8*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
+                                        if (depth < 8*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
                                         {
                                             return null_value;
                                         }
@@ -772,7 +769,7 @@ namespace Search {
 
                                         if (value >= beta)
                                         {
-                                            return value;
+                                            return null_value;
                                         }
                                     }
                                 }
@@ -848,7 +845,7 @@ namespace Search {
                        !RootNode
                     && exclude_move == MOVE_NONE // Recursive singular search is not allowed
                     && tt_move != MOVE_NONE
-                    &&    depth > (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
+                    &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
                     && tt_depth >= depth-3*DEPTH_ONE
                     && abs (tt_value) < +VALUE_KNOWN_WIN
                     && tt_bound & BOUND_LOWER;
@@ -954,7 +951,6 @@ namespace Search {
                     }
                 }
 
-                // Decide the new search depth
                 Depth ext = DEPTH_ZERO;
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
@@ -1129,7 +1125,6 @@ namespace Search {
                         // Re-search at intermediate depth if reduction is very high
                         if (alpha < value && reduction_depth >= 4*DEPTH_ONE)
                         {
-                            if (SPNode) alpha = splitpoint->alpha;
                             reduced_depth = max (new_depth - reduction_depth/2, DEPTH_ONE);
                             // Search with reduced depth
                             value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
@@ -1137,7 +1132,6 @@ namespace Search {
                             // Re-search at intermediate depth if reduction is very high
                             if (alpha < value && reduction_depth >= 8*DEPTH_ONE)
                             {
-                                if (SPNode) alpha = splitpoint->alpha;
                                 reduced_depth = max (new_depth - reduction_depth/4, DEPTH_ONE);
                                 // Search with reduced depth
                                 value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
@@ -1283,7 +1277,7 @@ namespace Search {
                 // If all possible moves have been searched and if there are no legal moves,
                 // If in a singular extension search then return a fail low score (alpha).
                 // Otherwise it must be mate or stalemate, so return value accordingly.
-                if (legals == 0)
+                if (best_value == -VALUE_INFINITE || legals == 0)
                 {
                     best_value = 
                         exclude_move != MOVE_NONE ?
@@ -1382,6 +1376,7 @@ namespace Search {
                     {
                         window_a =
                         window_b =
+                            //Value(16);
                             Value(depth <= 32*DEPTH_ONE ? 22 - (depth-1)/4 : 14); // Decreasing window
 
                         bound_a = max (RootMoves[IndexPV].old_value - window_a, -VALUE_INFINITE);
@@ -1586,6 +1581,7 @@ namespace Search {
 
     string              HashFile      = "Hash.dat";
     u16                 AutoSaveTime  = 0;
+    bool                AutoLoadHash  = false;
 
     string              BookFile      = "";
     bool                BestBookMove  = true;
@@ -1834,11 +1830,11 @@ namespace Search {
 
             // Reset the threads, still sleeping: will wake up at split time
             Threadpool.max_ply = 0;
-            if (bool(Options["Auto Load Saved Hash"]))
+            if (AutoLoadHash)
             {
                 TT.load (HashFile);
             }
-            if (AutoSaveTime > 0)
+            if (AutoSaveTime != 0)
             {
                 FirstAutoSave = true;
                 Threadpool.auto_save_th        = new_thread<TimerThread> ();
@@ -1956,7 +1952,6 @@ namespace Search {
         }
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
-            //FutilityMargins      [d] = Value(i32(0x00 + (0xB4 + 1*d)*d));
             FutilityMargins      [d] = Value(i32(0x00 + (0xC8 + 0*d)*d));
         }
         for (d = 0; d < FutilityMoveCountDepth; ++d)
@@ -2055,7 +2050,7 @@ namespace Threads {
                     // Still at first move
                  || (   Signals.root_1stmove
                     && !Signals.root_failedlow
-                    && movetime > TimeMgr.available_time () * 0.75
+                    && movetime > TimeMgr.available_time () * 0.75f
                     )
                  )
               )
@@ -2082,7 +2077,7 @@ namespace Threads {
     {
         // Pointer 'splitpoint' is not null only if called from split<>(), and not
         // at the thread creation. So it means this is the splitpoint's master.
-        SplitPoint *splitpoint = splitpoint_count > 0 ? active_splitpoint : NULL;
+        SplitPoint *splitpoint = splitpoint_count != 0 ? active_splitpoint : NULL;
         ASSERT (splitpoint == NULL || (splitpoint->master == this && searching));
 
         do
@@ -2151,7 +2146,8 @@ namespace Threads {
                     {
                         Thread *thread = Threadpool[t];
                         u08 count = thread->splitpoint_count; // Local copy
-                        sp = count > 0 ? &thread->splitpoints[count - 1] : NULL;
+
+                        sp = count != 0 ? &thread->splitpoints[count - 1] : NULL;
 
                         if (  sp != NULL
                            && (sp)->slave_searching

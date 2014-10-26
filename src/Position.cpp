@@ -121,7 +121,7 @@ namespace {
 
 } // namespace
 
-u08 Position::FiftyMoveDist = 50;
+u08 Position::FiftyMoveDist = 100;
 
 void Position::initialize ()
 {
@@ -156,16 +156,27 @@ Position& Position::operator= (const Position &pos)
 // It does not detect stalemates, this must be done by the search.
 bool Position::draw () const
 {
+    // Draw by 50 moves Rule?
+    // Not in check or in check have legal moves 
+    if (  _si->clock50 >= FiftyMoveDist
+       && (_si->checkers == U64(0) || MoveList<LEGAL> (*this).size () != 0)
+       )
+    {
+        return true;
+    }
     // Draw by Threefold Repetition?
     const StateInfo *psi = _si;
+    //u08 cnt = 1;
     for (u08 ply = std::min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
     {
         psi = psi->ptr->ptr;
         if (psi->posi_key == _si->posi_key)
         {
-            return true; // Draw at first repetition
+            //if (++cnt >= 3)
+            return true;
         }
     }
+
     /*
     // Draw by Material?
     if (  _types_bb[PAWN] == U64(0)
@@ -187,14 +198,6 @@ bool Position::draw () const
         return true;
     }
     */
-    // Draw by 50 moves Rule?
-    // Not in check or in check have legal moves 
-    if (  FiftyMoveDist <= _si->clock50
-       && (_si->checkers == U64(0) || MoveList<LEGAL> (*this).size () != 0)
-       )
-    {
-        return true;
-    }
 
     return false;
 }
@@ -712,13 +715,12 @@ bool Position::pseudo_legal (Move m) const
            )
             return false;
 
-        const bool king_side = (dst > org); 
-        if (castle_impeded (mk_castle_right (_active, king_side ? CS_K : CS_Q))) return false;
+        if (castle_impeded (mk_castle_right (_active, (dst > org) ? CS_K : CS_Q))) return false;
 
         // Castle is always encoded as "King captures friendly Rook"
-        ASSERT (dst == castle_rook (mk_castle_right (_active, king_side ? CS_K : CS_Q)));
-        dst = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
-        Delta step = (king_side ? DEL_E : DEL_W);
+        ASSERT (dst == castle_rook (mk_castle_right (_active, (dst > org) ? CS_K : CS_Q)));
+        dst = rel_sq (_active, (dst > org) ? SQ_G1 : SQ_C1);
+        Delta step = ((dst > org) ? DEL_E : DEL_W);
         for (i08 s = dst; s != org; s -= step)
         {
             if (attackers_to (Square(s), ~_active, _types_bb[NONE]))
@@ -908,9 +910,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
         Bitboard mocc = _types_bb[NONE] - org - cap + dst;
         // If any attacker then in check & not legal
-        return !(  attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))
-                || attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))
-                );
+        return !(attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
+            && !(attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP])));
     }
     break;
 
@@ -951,10 +952,9 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     case CASTLE:
     {
         // Castling with check ?
-        const bool king_side = (dst > org);
         Square rook_org = dst; // 'King captures the rook' notation
-        dst             = rel_sq (_active, king_side ? SQ_G1 : SQ_C1);
-        Square rook_dst = rel_sq (_active, king_side ? SQ_F1 : SQ_D1);
+        dst             = rel_sq (_active, (dst > org) ? SQ_G1 : SQ_C1);
+        Square rook_dst = rel_sq (_active, (dst > org) ? SQ_F1 : SQ_D1);
 
         return PIECE_ATTACKS[ROOK][rook_dst] & ci.king_sq // First x-ray check then full check
             && attacks_bb<ROOK> (rook_dst, (_types_bb[NONE] - org - rook_org + dst + rook_dst)) & ci.king_sq;
@@ -1208,10 +1208,9 @@ void Position::set_castle (Color c, Square rook_org)
     Square king_org = _piece_list[c][KING][0];
     ASSERT (king_org != rook_org);
 
-    const bool king_side = (rook_org > king_org);
-    CRight cr = mk_castle_right (c, king_side ? CS_K : CS_Q);
-    Square rook_dst = rel_sq (c, king_side ? SQ_F1 : SQ_D1);
-    Square king_dst = rel_sq (c, king_side ? SQ_G1 : SQ_C1);
+    CRight cr = mk_castle_right (c, (rook_org > king_org) ? CS_K : CS_Q);
+    Square rook_dst = rel_sq (c, (rook_org > king_org) ? SQ_F1 : SQ_D1);
+    Square king_dst = rel_sq (c, (rook_org > king_org) ? SQ_G1 : SQ_C1);
 
     _si->castle_rights     |= cr;
 
@@ -1373,6 +1372,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         }
 
         move_piece (org, dst);
+
         if (PAWN == pt)
         {
             _si->pawn_key ^=

@@ -134,6 +134,7 @@ namespace MovePick {
                && pos.capture (ttm)
                && pos.see (ttm) > capture_threshold ?
                     ttm : MOVE_NONE;
+
         end += tt_move != MOVE_NONE;
     }
 

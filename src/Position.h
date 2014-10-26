@@ -42,16 +42,17 @@ struct StateInfo
 public:
     Value  non_pawn_matl[CLR_NO];
     Score  psq_score;
-    // Number of halfmoves clock since the last pawn advance or any capture.
-    // used to determine if a draw can be claimed under the 50-move rule.
-    u08    clock50;
-    u08    null_ply;
+
     Key    matl_key;       // Hash key of materials.
     Key    pawn_key;       // Hash key of pawns.
     CRight castle_rights;  // Castling-rights information for both side.
     // "In passing" - Target square in algebraic notation.
     // If there's no en-passant target square is "-".
     Square en_passant_sq;
+    // Number of halfmoves clock since the last pawn advance or any capture.
+    // used to determine if a draw can be claimed under the 50-move rule.
+    u08    clock50;
+    u08    null_ply;
     // -------------------------------------
     Move   last_move;      // Move played on the previous position.
     PieceT capture_type;   // Piece type captured.
@@ -219,7 +220,6 @@ public:
     Key matl_key      () const;
     Key pawn_key      () const;
     Key posi_key      () const;
-    Key posi_exc_key  () const;
     Key posi_move_key (Move m) const;
 
     Value non_pawn_material (Color c) const;    // Incremental piece-square evaluation
@@ -409,7 +409,6 @@ inline Bitboard Position::checkers    () const { return _si->checkers; }
 inline Key    Position::matl_key      () const { return _si->matl_key; }
 inline Key    Position::pawn_key      () const { return _si->pawn_key; }
 inline Key    Position::posi_key      () const { return _si->posi_key; }
-inline Key    Position::posi_exc_key  () const { return _si->posi_key ^ Zobrist::EXC_KEY; }
 // posi_move_key() computes the new hash key after the given moven. Needed for speculative prefetch.
 // It doesn't recognize special moves like castling, en-passant and promotions.
 inline Key    Position::posi_move_key (Move m) const
