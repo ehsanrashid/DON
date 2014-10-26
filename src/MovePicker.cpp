@@ -183,7 +183,7 @@ namespace MovePick {
         for (ValMove *itr = moves; itr != end; ++itr)
         {
             Move m = itr->move;
-            itr->value = history.value (pos[org_sq (m)], dst_sq (m));
+            itr->value = history[pos[org_sq (m)]][dst_sq (m)];
         }
     }
 
@@ -222,7 +222,7 @@ namespace MovePick {
             }
             else
             {
-                itr->value = history.value (pos[org_sq (m)], dst_sq (m));
+                itr->value = history[pos[org_sq (m)]][dst_sq (m)];
             }
         }
     }

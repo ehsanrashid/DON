@@ -1097,7 +1097,7 @@ namespace Search {
                         Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legals);
 
                         if (  (!PVNode && cut_node)
-                           || HistoryStatistics.value (pos[dst_sq (move)], dst_sq (move)) < VALUE_ZERO
+                           || HistoryStatistics[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
                            )
                         {
                             reduction_depth += DEPTH_ONE;
@@ -1426,13 +1426,8 @@ namespace Search {
                             sync_cout << info_multipv (RootPos, depth, bound_a, bound_b, iteration_time) << sync_endl;
                         }
 
-                        if (bound_a < best_value && best_value < bound_b)
-                        {
-                            break;
-                        }
-                        
-                        // In case of failing low/high increase aspiration window and
-                        // re-search, otherwise exit the loop.
+                        // In case of failing low/high increase aspiration window and re-search,
+                        // otherwise exit the loop.
                         if (best_value <= bound_a)
                         {
                             window_a *= 1.345f;
@@ -1446,10 +1441,10 @@ namespace Search {
                             window_b *= 1.345f;
                             bound_b   = min (best_value + window_b, +VALUE_INFINITE);
                         }
-                        
+                        else break;
 
                         ASSERT (-VALUE_INFINITE <= bound_a && bound_a < bound_b && bound_b <= +VALUE_INFINITE);
-                    } while (true); //(bound_a < bound_b);
+                    } while (true);
 
                     // Sort the PV lines searched so far and update the GUI
                     //RootMoves.sort_beg (IndexPV + 1);

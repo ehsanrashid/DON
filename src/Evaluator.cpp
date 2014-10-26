@@ -1004,9 +1004,6 @@ namespace Evaluate {
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][BSHP];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][BSHP];
 
-            mobility_area_w &= (~ei.pin_attacked_by[BLACK][NONE]|ei.pin_attacked_by[WHITE][NONE]);
-            mobility_area_b &= (~ei.pin_attacked_by[WHITE][NONE]|ei.pin_attacked_by[BLACK][NONE]);
-
             score += 
               + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area_w, mobility_w)
               - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility_area_b, mobility_b);
@@ -1015,8 +1012,8 @@ namespace Evaluate {
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][ROOK];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][ROOK];
 
-            mobility_area_w &= (~ei.pin_attacked_by[BLACK][NONE]|ei.pin_attacked_by[WHITE][NONE]);
-            mobility_area_b &= (~ei.pin_attacked_by[WHITE][NONE]|ei.pin_attacked_by[BLACK][NONE]);
+            mobility_area_w &= ~ei.pin_attacked_by[BLACK][NONE];
+            mobility_area_b &= ~ei.pin_attacked_by[WHITE][NONE];
 
             score += 
               + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area_w, mobility_w)

@@ -52,7 +52,9 @@ namespace MovePick {
     public:
     
         static const Value MaxValue;
-    
+        
+        inline const Value* operator[] (Piece p) const { return _values[p]; }
+
         inline void clear ()
         {
             std::fill (*_values, *_values + sizeof (_values) / sizeof (**_values), VALUE_ZERO);
@@ -63,11 +65,6 @@ namespace MovePick {
             Piece  p = pos[org_sq (m)];
             Square s = dst_sq (m);
             if (abs (_values[p][s] + v) < MaxValue) _values[p][s] += v;
-        }
-
-        inline Value value (Piece p, Square s)
-        {
-            return _values[p][s];
         }
 
     };

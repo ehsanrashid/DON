@@ -1379,7 +1379,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         }
         else
         {
-            _si->clock50 = PAWN == pt ? 0 : _si->clock50+1;
+            PAWN == pt ? _si->clock50 = 0 : _si->clock50++;
         }
 
         // Move the piece
