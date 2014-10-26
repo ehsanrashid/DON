@@ -2000,11 +2000,11 @@ namespace Threads {
         if (!Limits.ponder && Limits.use_timemanager ())
         {
             if (  movetime > TimeMgr.maximum_time () - 2 * TimerResolution
-                    // Still at first move
-                 || (   Signals.root_1stmove
-                    && !Signals.root_failedlow
-                    && movetime > TimeMgr.available_time () * 0.75f
-                    )
+                  // Still at first move
+               || (   Signals.root_1stmove
+                  && !Signals.root_failedlow
+                  && movetime > TimeMgr.available_time () * 0.75f
+                  )
                )
             {
                Signals.force_stop = true;
