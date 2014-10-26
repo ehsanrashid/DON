@@ -305,7 +305,7 @@ namespace UCI {
         Options["Hash File"]                    << Option (HashFile.c_str(), configure_auto_save);
         // Auto Save Hash Time (min)
         Options["Auto Save Hash (min)"]         << Option (AutoSaveTime, 0, 60, configure_auto_save);
-        Options["Auto Load Saved Hash"]         << Option (AutoLoadHash);
+        Options["Auto Load Saved Hash"]         << Option (AutoLoadHash, configure_auto_save);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
