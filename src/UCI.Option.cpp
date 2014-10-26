@@ -171,7 +171,7 @@ namespace UCI {
             Position::FiftyMoveDist = u08(2 * i32(opt));
         }
 
-        void configure_auto_save (const Option &)
+        void configure_hash (const Option &)
         {
             HashFile     = string(Options["Hash File"]);
             AutoSaveTime = u16(i32(Options["Auto Save Hash (min)"]));
@@ -302,10 +302,10 @@ namespace UCI {
         // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
-        Options["Hash File"]                    << Option (HashFile.c_str(), configure_auto_save);
+        Options["Hash File"]                    << Option (HashFile.c_str(), configure_hash);
         // Auto Save Hash Time (min)
-        Options["Auto Save Hash (min)"]         << Option (AutoSaveTime, 0, 60, configure_auto_save);
-        Options["Auto Load Saved Hash"]         << Option (AutoLoadHash, configure_auto_save);
+        Options["Auto Save Hash (min)"]         << Option (AutoSaveTime, 0, 60, configure_hash);
+        Options["Auto Load Saved Hash"]         << Option (AutoLoadHash, configure_hash);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.
