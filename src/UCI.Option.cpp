@@ -173,9 +173,9 @@ namespace UCI {
 
         void configure_hash (const Option &)
         {
-            HashFile     = string(Options["Hash File"]);
-            AutoSaveTime = u16(i32(Options["Auto Save Hash (min)"]));
-            AutoLoadHash = bool(Options["Auto Load Saved Hash"]);
+            HashFile         = string(Options["Hash File"]);
+            AutoSaveHashTime = u16(i32(Options["Auto Save Hash (min)"]));
+            AutoLoadHash     = bool(Options["Auto Load Saved Hash"]);
         }
 
         void configure_contempt (const Option &)
@@ -304,7 +304,8 @@ namespace UCI {
         // By default DON will use the hash.dat file in the current folder of the engine.
         Options["Hash File"]                    << Option (HashFile.c_str(), configure_hash);
         // Auto Save Hash Time (min)
-        Options["Auto Save Hash (min)"]         << Option (AutoSaveTime, 0, 60, configure_hash);
+        Options["Auto Save Hash (min)"]         << Option (AutoSaveHashTime, 0, 60, configure_hash);
+        // Auto Load Saved Hash (bool)
         Options["Auto Load Saved Hash"]         << Option (AutoLoadHash, configure_hash);
 
         // Save the current Hash table to a disk file specified by the Hash File option.

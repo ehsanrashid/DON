@@ -19,8 +19,6 @@ namespace MoveGen {
             Generator () {}
 
         public:
-            // template<GenT GT, Color C, PieceT PT>
-            // void Generator<GT, C, PT>::generate()
             // Generates piece common move
             static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
             {
@@ -40,7 +38,7 @@ namespace MoveGen {
                             {
                                 continue;
                             }
-                            if (ci->discoverers != U64(0) && (ci->discoverers & s))
+                            if (ci->discoverers && ci->discoverers & s)
                             {
                                 continue;
                             }
@@ -68,9 +66,6 @@ namespace MoveGen {
             
             Generator () {}
 
-            // template<GenT GT, Color C>
-            // template<CSide SIDE, bool Chess960>
-            // void Generator<GT, KING>::generate_castling()
             template<CRight CR, bool Chess960>
             // Generates KING castling move
             static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= NULL*/)
@@ -179,9 +174,6 @@ namespace MoveGen {
             
             Generator () {}
 
-            // template<GenT GT, Color C>
-            // template<Delta D>
-            // void Generator<GT, C, PAWN>::generate_promotion()
             template<Delta D>
             // Generates PAWN promotion move
             static INLINE void generate_promotion (ValMove *&moves, Bitboard pawns_on_R7, Bitboard targets, const CheckInfo *ci)
@@ -213,13 +205,9 @@ namespace MoveGen {
                         if (ci != NULL)
                         {
                             if (PIECE_ATTACKS[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
-                        }
 
-                        if (CHECK == GT)
-                        {
-                            if (ci != NULL)
+                            if (CHECK == GT)
                             {
-                                //if (PIECE_ATTACKS[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
                                 if (attacks_bb<BSHP> (dst, targets) & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, BSHP);
                                 if (attacks_bb<ROOK> (dst, targets) & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, ROOK);
                                 if (attacks_bb<QUEN> (dst, targets) & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, QUEN);
@@ -234,8 +222,6 @@ namespace MoveGen {
             }
 
         public:
-            // template<GenT GT, Color C>
-            // void Generator<GT, C, PAWN>::generate()
             // Generates PAWN common move
             static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
             {
@@ -334,7 +320,7 @@ namespace MoveGen {
                             if (EVASION != GT || (targets & (ep_sq - PUSH)))
                             {
                                 Bitboard ep_attacks = PAWN_ATTACKS[C_][ep_sq] & pawns_on_Rx & rel_rank_bb (C, R_5);
-                                ASSERT (ep_attacks);
+                                ASSERT (ep_attacks != U64(0));
                                 ASSERT (pop_count<MAX15> (ep_attacks) <= 2);
 
                                 while (ep_attacks != U64(0)) { (moves++)->move = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq); }
@@ -375,33 +361,6 @@ namespace MoveGen {
 
             return moves;
         }
-
-        //INLINE void filter_illegal (ValMove *beg, ValMove *&end, const Position &pos)
-        //{
-        //    Square king_sq = pos.king_sq (pos.active ());
-        //    Bitboard pinneds = pos.pinneds (pos.active ());
-        //
-        //    //moves.erase (
-        //    //    remove_if (moves.begin (), moves.end (), [&] (Move m)
-        //    //{
-        //    //    return ((ENPASSANT == mtype (m) || pinneds || (org_sq (m) == king_sq))) && !pos.legal (m, pinneds); 
-        //    //}), moves.end ());
-        //
-        //    while (beg != end)
-        //    {
-        //        Move m = beg->move;
-        //        if (  (ENPASSANT == mtype (m) || pinneds || (org_sq (m) == king_sq))
-        //           && !pos.legal (m, pinneds)
-        //           )
-        //        {
-        //            beg->move = (--end)->move;
-        //        }
-        //        else
-        //        {
-        //            ++beg;
-        //        }
-        //    }
-        //}
 
     }
 

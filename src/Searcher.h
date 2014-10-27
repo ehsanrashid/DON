@@ -229,7 +229,7 @@ namespace Search {
         ,                       ContemptValue;
 
     extern std::string          HashFile;
-    extern u16                  AutoSaveTime;
+    extern u16                  AutoSaveHashTime;
     extern bool                 AutoLoadHash;
 
     extern std::string          BookFile;

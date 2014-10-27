@@ -275,8 +275,8 @@ namespace Search {
                     (ss)->static_eval = best_value;
 
                     // Can tt_value be used as a better position evaluation?
-                    if (  VALUE_NONE != tt_value
-                       && tt_bound & (best_value < tt_value ? BOUND_LOWER : BOUND_UPPER)
+                    if (  (VALUE_NONE != tt_value)
+                       && (tt_bound & (best_value < tt_value ? BOUND_LOWER : BOUND_UPPER))
                        )
                     {
                         best_value = tt_value;
@@ -632,8 +632,8 @@ namespace Search {
                         (ss)->static_eval = static_eval;
 
                         // Can tt_value be used as a better position evaluation?
-                        if (  VALUE_NONE != tt_value
-                           && tt_bound & (static_eval < tt_value ? BOUND_LOWER : BOUND_UPPER)
+                        if (  (VALUE_NONE != tt_value)
+                           && (tt_bound & (static_eval < tt_value ? BOUND_LOWER : BOUND_UPPER))
                            )
                         {
                             static_eval = tt_value;
@@ -817,7 +817,7 @@ namespace Search {
 
                     // Step 10. Internal iterative deepening (skipped when in check)
                     if (  tt_move == MOVE_NONE
-                       && depth > (PVNode ? 4*DEPTH_ONE : 8*DEPTH_ONE)          // IID Activation Depth
+                       && depth > (PVNode ? 4*DEPTH_ONE : 7*DEPTH_ONE)          // IID Activation Depth
                        && (PVNode || (ss)->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                        )
                     {
@@ -836,15 +836,6 @@ namespace Search {
                     }
                 }
 
-                singular_ext_node =
-                       !RootNode
-                    && exclude_move == MOVE_NONE // Recursive singular search is not allowed
-                    && tt_move != MOVE_NONE
-                    &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
-                    && tt_depth >= depth-3*DEPTH_ONE
-                    && abs (tt_value) < +VALUE_KNOWN_WIN
-                    && tt_bound & BOUND_LOWER;
-
             }
 
             // Splitpoint start
@@ -856,6 +847,15 @@ namespace Search {
                    ((ss-2)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval >= (ss-2)->static_eval);
+
+            singular_ext_node =
+                       !RootNode && !SPNode
+                    && exclude_move == MOVE_NONE // Recursive singular search is not allowed
+                    && tt_move != MOVE_NONE
+                    &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
+                    && tt_depth >= depth-3*DEPTH_ONE
+                    && abs (tt_value) < +VALUE_KNOWN_WIN
+                    && tt_bound & BOUND_LOWER;
 
             point time;
 
@@ -1339,11 +1339,8 @@ namespace Search {
             point iteration_time;
 
             // Iterative deepening loop until target depth reached
-            while (++depth <= MAX_DEPTH && (Limits.depth == 0 || depth <= Limits.depth))
+            while (++depth <= MAX_DEPTH && !Signals.force_stop && (Limits.depth == 0 || depth <= Limits.depth))
             {
-                // Requested to stop?
-                if (Signals.force_stop) break;
-
                 // Age out PV variability metric
                 RootMoves.best_move_change *= 0.5f;
 
@@ -1359,15 +1356,11 @@ namespace Search {
                 // MultiPV loop. Perform a full root search for each PV line
                 for (IndexPV = 0; IndexPV < LimitPV; ++IndexPV)
                 {
-                    // Requested to stop?
-                    if (Signals.force_stop) break;
-
                     // Reset Aspiration window starting size
                     if (aspiration)
                     {
                         window_a =
                         window_b =
-                            //Value(16);
                             Value(depth <= 32*DEPTH_ONE ? 22 - (depth-1)/4 : 14); // Decreasing window
 
                         bound_a = max (RootMoves[IndexPV].old_value - window_a, -VALUE_INFINITE);
@@ -1436,17 +1429,21 @@ namespace Search {
                     //RootMoves.sort_beg (IndexPV + 1);
                     stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
 
-                    if (!Signals.force_stop && (IndexPV + 1 == LimitPV || iteration_time > INFO_INTERVAL))
+                    if (Signals.force_stop) break;
+
+                    if (IndexPV + 1 == LimitPV || iteration_time > INFO_INTERVAL)
                     {
                         sync_cout << info_multipv (RootPos, depth, bound_a, bound_b, iteration_time) << sync_endl;
                     }
                 }
 
-                if (ContemptValue > 0)
+                if (Signals.force_stop) break;
+
+                if (ContemptValue != 0)
                 {
-                    i16 valued_contempt = i16(RootMoves[0].new_value)/ContemptValue;
-                    DrawValue[ RootColor] = BaseContempt[ RootColor] - Value(valued_contempt);
-                    DrawValue[~RootColor] = BaseContempt[~RootColor] + Value(valued_contempt);
+                    i32 valued_contempt   = i32(RootMoves[0].new_value)/ContemptValue;
+                    DrawValue[ RootColor] = BaseContempt[ RootColor] - valued_contempt;
+                    DrawValue[~RootColor] = BaseContempt[~RootColor] + valued_contempt;
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
@@ -1462,9 +1459,6 @@ namespace Search {
                     LogFile logfile (SearchLog);
                     logfile << pretty_pv (RootPos, depth, RootMoves[0].new_value, iteration_time, &RootMoves[0].pv[0]) << endl;
                 }
-
-                // Requested to stop?
-                if (Signals.force_stop) break;
 
                 // Stop the search early:
                 bool stop = false;
@@ -1542,7 +1536,7 @@ namespace Search {
                     sync_cout <<  left << setw ( 7) << setfill (' ') <<
                               //move_to_can (*ms, Chess960)
                               move_to_san (*ms, pos)
-                              << right << setw (12) << setfill ('.') << inter_nodes << sync_endl;
+                              << right << setw (16) << setfill ('.') << inter_nodes << sync_endl;
                 }
 
                 leaf_nodes += inter_nodes;
@@ -1571,7 +1565,7 @@ namespace Search {
         ,               ContemptValue = 34;
 
     string              HashFile      = "Hash.dat";
-    u16                 AutoSaveTime  = 0;
+    u16                 AutoSaveHashTime  = 0;
     bool                AutoLoadHash  = false;
 
     string              BookFile      = "";
@@ -1805,9 +1799,9 @@ namespace Search {
 
             TimeMgr.initialize (Limits.gameclock[RootColor], Limits.movestogo, RootPly);
 
-            i16 timed_contempt = 0;
+            i32 timed_contempt = 0;
             i16 diff_time = 0;
-            if (  ContemptTime > 0
+            if (  ContemptTime != 0
                && (diff_time = i16(Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time)/MILLI_SEC) != 0
                //&& ContemptTime <= abs (diff_time)
                )
@@ -1825,12 +1819,12 @@ namespace Search {
             {
                 TT.load (HashFile);
             }
-            if (AutoSaveTime != 0 && !white_spaces (HashFile))
+            if (AutoSaveHashTime != 0 && !white_spaces (HashFile))
             {
                 FirstAutoSave = true;
                 Threadpool.auto_save_th        = new_thread<TimerThread> ();
                 Threadpool.auto_save_th->task  = auto_save;
-                Threadpool.auto_save_th->resolution = AutoSaveTime*MINUTE_MILLI_SEC;
+                Threadpool.auto_save_th->resolution = AutoSaveHashTime*MINUTE_MILLI_SEC;
                 Threadpool.auto_save_th->start ();
                 Threadpool.auto_save_th->notify_one ();
             }
