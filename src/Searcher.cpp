@@ -1436,7 +1436,7 @@ namespace Search {
                     //RootMoves.sort_beg (IndexPV + 1);
                     stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
 
-                    if (IndexPV + 1 == LimitPV || iteration_time > INFO_INTERVAL)
+                    if (!Signals.force_stop && (IndexPV + 1 == LimitPV || iteration_time > INFO_INTERVAL))
                     {
                         sync_cout << info_multipv (RootPos, depth, bound_a, bound_b, iteration_time) << sync_endl;
                     }
