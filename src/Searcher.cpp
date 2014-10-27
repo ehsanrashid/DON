@@ -1825,7 +1825,7 @@ namespace Search {
             {
                 TT.load (HashFile);
             }
-            if (AutoSaveTime != 0)
+            if (AutoSaveTime != 0 && !white_spaces (HashFile))
             {
                 FirstAutoSave = true;
                 Threadpool.auto_save_th        = new_thread<TimerThread> ();
@@ -1842,7 +1842,7 @@ namespace Search {
 
             Threadpool.check_limits_th->stop ();
 
-            if (AutoSaveTime > 0)
+            if (Threadpool.auto_save_th != NULL && Threadpool.auto_save_th->run)
             {
                 Threadpool.auto_save_th->stop ();
                 Threadpool.auto_save_th->kill ();
