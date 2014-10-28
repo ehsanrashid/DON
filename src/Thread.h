@@ -78,7 +78,7 @@ namespace Threads {
 
     const u08 MAX_THREADS     = 128; // Maximum Threads
     const u08 MAX_SPLITPOINTS =   8; // Maximum Threads per Splitpoint
-    const u08 MAX_SPLIT_DEPTH =  15; // Maximum Split Depth
+    const u08 MAX_SPLIT_DEPTH =  12; // Maximum Split Depth
     
     extern void check_limits ();
     extern void auto_save ();
