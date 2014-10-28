@@ -752,7 +752,7 @@ namespace Search {
                                         if (depth < 8*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
                                         {
                                             // Don't return unproven unproven mates
-                                            return null_value < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
+                                            return abs (null_value) < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
                                         }
                                         
                                         // Do verification search at high depths
@@ -764,7 +764,7 @@ namespace Search {
                                         if (value >= beta)
                                         {
                                             // Don't return unproven unproven mates
-                                            return value < +VALUE_MATE_IN_MAX_DEPTH ? value : beta;
+                                            return abs (value) < +VALUE_MATE_IN_MAX_DEPTH ? value : beta;
                                         }
                                     }
                                 }
