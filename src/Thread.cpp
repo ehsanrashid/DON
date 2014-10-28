@@ -300,7 +300,7 @@ namespace Threads {
 
         // Split depth '0' has a special meaning:
         // Determines the best optimal minimum split depth automatically
-        if (0 == split_depth)
+        if (DEPTH_ZERO == split_depth)
         {
             split_depth = (threads < 8 ? 4 : 7)*DEPTH_ONE;
         }

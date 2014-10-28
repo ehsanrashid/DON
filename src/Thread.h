@@ -291,8 +291,8 @@ namespace Threads {
         TimerThread *check_limits_th;
         TimerThread *auto_save_th;
 
-        Depth   split_depth;
-        u08     max_ply;
+        Depth       split_depth;
+        u08         max_ply;
         
         MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
 
