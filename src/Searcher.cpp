@@ -1837,7 +1837,7 @@ namespace Search {
 
             Threadpool.check_limits_th->stop ();
 
-            if (Threadpool.auto_save_th != NULL && Threadpool.auto_save_th->run)
+            if (Threadpool.auto_save_th != NULL)
             {
                 Threadpool.auto_save_th->stop ();
                 Threadpool.auto_save_th->kill ();

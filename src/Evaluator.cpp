@@ -90,7 +90,7 @@ namespace Evaluate {
                 switch (idx)
                 {
                 case MATERIAL: case IMBALANCE: case PAWN: case TOTAL:
-                    ss  << setw (15) << name << " |  ----  ---- |  ----  ---- | " << showpos
+                    ss  << setw (15) << name << " | ----- ----- | ----- ----- | " << showpos
                         << setw ( 5) << value_to_cp (mg_value (score_w - score_b)) << " "
                         << setw ( 5) << value_to_cp (eg_value (score_w - score_b)) << "\n";
                 break;

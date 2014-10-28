@@ -302,7 +302,7 @@ namespace Threads {
         // Determines the best optimal minimum split depth automatically
         if (DEPTH_ZERO == split_depth)
         {
-            split_depth = (threads < 8 ? 4 : 7)*DEPTH_ONE;
+            split_depth = min (4 + max (i32(threads)-2, 0)/2, i32(MAX_SPLIT_DEPTH))*DEPTH_ONE;
         }
 
         while (size () < threads)
@@ -340,9 +340,9 @@ namespace Threads {
     // so to start a new search, then returns immediately.
     void ThreadPool::start_main (const Position &pos, const LimitsT &limits, StateInfoStackPtr &states)
     {
-        SearchTime = Time::now (); // As early as possible
-
         wait_for_main ();
+
+        SearchTime = Time::now (); // As early as possible
 
         RootPos     = pos;
         RootMoves.initialize (pos, limits.root_moves);

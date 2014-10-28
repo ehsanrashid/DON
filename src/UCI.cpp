@@ -353,10 +353,6 @@ namespace UCI {
             benchmark (ss, RootPos);
         }
 
-        inline void exe_bench (cmdstream &cmds)
-        {
-            benchmark (cmds, RootPos);
-        }
         // Stops the search
         inline void exe_stop ()
         {
@@ -411,7 +407,8 @@ namespace UCI {
             else if (token == "flip")       exe_flip ();
             else if (token == "eval")       exe_eval ();
             else if (token == "perft")      exe_perft (cmds);
-            else if (token == "bench")      exe_bench (cmds);
+            else if (token == "bench")      benchmark (cmds, RootPos);
+            else if (token == "autotune")   auto_tune (cmds);
             else if (token == "cls")        system ("cls");
             else
             {

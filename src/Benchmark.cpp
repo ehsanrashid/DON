@@ -141,9 +141,8 @@ void benchmark (istream &is, const Position &pos)
     {
         Position root_pos (fens[i], Threadpool.main (), Chess960, false);
 
-        cerr
-            << "\n---------------\n" 
-            << "Position: " << setw (2) << (i + 1) << "/" << total << "\n";
+        cerr << "\n---------------\n" 
+             << "Position: " << setw (2) << (i + 1) << "/" << total << "\n";
 
         if (limit_type == "perft")
         {
@@ -167,10 +166,65 @@ void benchmark (istream &is, const Position &pos)
 
     time = now () - time; if (time == 0) time = 1;
 
-    cerr
-         << "\n===========================\n"
+    cerr << "\n===========================\n"
          << "Total time (ms) : " << time  << "\n"
          << "Nodes searched  : " << nodes << "\n"
          << "Nodes/second    : " << nodes * MILLI_SEC / time
          << "\n---------------------------\n" << endl;
+}
+
+void auto_tune (istream &is)
+{
+    string token;
+    string threads    = (is >> token) && !white_spaces (token) ? token : "1";
+
+    Options["Threads"] = threads;
+    LimitsT limits;
+    limits.depth = 10;
+    Depth sd = Threadpool.split_depth;
+
+    vector<string> fens;
+    fens.assign (DEFAULT_FEN, DEFAULT_FEN + FEN_COUNT);
+    u16 total = fens.size ();
+    StateInfoStackPtr states;
+    
+    u64 info[4][2];
+    for (i32 d = 0; d < 4; ++d)
+    {
+        Threadpool.split_depth = (d+4)*DEPTH_ONE;
+        cerr << "Split Depth     : " << i32(Threadpool.split_depth);
+
+        u64   nodes    = 0;
+        point time     = now ();
+        for (u16 i = 0; i < total; ++i)
+        {
+            Position root_pos (fens[i], Threadpool.main (), Chess960, false);
+
+            cerr << "\n---------------\n" 
+                 << "Position: " << setw (2) << (i + 1) << "/" << total << "\n";
+
+            TT.clear ();
+            Threadpool.start_main (root_pos, limits, states);
+            Threadpool.wait_for_main ();
+            nodes += RootPos.game_nodes ();
+        }
+
+        time = now () - time; if (time == 0) time = 1;
+
+        info[d][0] = time;
+        info[d][1] = nodes;
+    }
+
+    for (i32 d = 0; d < 4; ++d)
+    {
+        cerr << "\n---------------------------\n"
+             << "Split Depth     : " << d+4
+             << "\n===========================\n"
+             << "Total time (ms) : " << info[d][0]  << "\n"
+             << "Nodes searched  : " << info[d][1] << "\n"
+             << "Nodes/second    : " << info[d][1] * MILLI_SEC / info[d][0]
+             << "\n---------------------------" << endl;
+    }
+
+    Threadpool.split_depth = sd;
 }
