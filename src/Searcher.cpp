@@ -1441,7 +1441,7 @@ namespace Search {
 
                 if (ContemptValue != 0)
                 {
-                    i32 valued_contempt   = i32(RootMoves[0].new_value)/ContemptValue;
+                    Value valued_contempt   = Value(i32(RootMoves[0].new_value)/ContemptValue);
                     DrawValue[ RootColor] = BaseContempt[ RootColor] - valued_contempt;
                     DrawValue[~RootColor] = BaseContempt[~RootColor] + valued_contempt;
                 }
@@ -1546,7 +1546,7 @@ namespace Search {
 
     } // namespace
 
-    bool                Chess960 = false;
+    bool                Chess960        = false;
 
     LimitsT             Limits;
     SignalsT volatile   Signals;
@@ -1557,21 +1557,21 @@ namespace Search {
 
     point               SearchTime;
 
-    u08                 MultiPV       = 1;
-    //i32                 MultiPV_cp    = 0;
+    u08                 MultiPV         = 1;
+    //i32                 MultiPV_cp      = 0;
 
-    i16                 FixedContempt = 0
-        ,               ContemptTime  = 22
-        ,               ContemptValue = 34;
+    i16                 FixedContempt   = 0
+        ,               ContemptTime    = 22
+        ,               ContemptValue   = 34;
 
-    string              HashFile      = "Hash.dat";
-    u16                 AutoSaveHashTime  = 0;
-    bool                AutoLoadHash  = false;
+    string              HashFile        = "Hash.dat";
+    u16                 AutoSaveHashTime= 0;
+    bool                AutoLoadHash    = false;
 
-    string              BookFile      = "";
-    bool                BestBookMove  = true;
+    string              BookFile        = "";
+    bool                BestBookMove    = true;
 
-    string              SearchLog     = "";
+    string              SearchLog       = "";
 
     // initialize the PRNG only once
     PolyglotBook        Book;
@@ -1799,17 +1799,17 @@ namespace Search {
 
             TimeMgr.initialize (Limits.gameclock[RootColor], Limits.movestogo, RootPly);
 
-            i32 timed_contempt = 0;
+            i16 timed_contempt = 0;
             i16 diff_time = 0;
             if (  ContemptTime != 0
                && (diff_time = i16(Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time)/MILLI_SEC) != 0
                //&& ContemptTime <= abs (diff_time)
                )
             {
-                timed_contempt = diff_time / ContemptTime;
+                timed_contempt = diff_time/ContemptTime;
             }
 
-            Value contempt = Value(cp_to_value (float(FixedContempt + timed_contempt) / 0x64)); // 100
+            Value contempt = cp_to_value (float(FixedContempt + timed_contempt) / 0x64);
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 
@@ -1818,6 +1818,7 @@ namespace Search {
             if (AutoLoadHash)
             {
                 TT.load (HashFile);
+                AutoLoadHash = false;
             }
             if (AutoSaveHashTime != 0 && !white_spaces (HashFile))
             {

@@ -578,7 +578,7 @@ namespace Evaluate {
             Score score = mk_score (value, -0x10 * ei.pi->kp_dist[Own]);
 
             // Main king safety evaluation
-            if (ei.king_ring_attackers_count[Opp] > 0)
+            if (ei.king_ring_attackers_count[Opp] != 0)
             {
                 Bitboard occ = pos.pieces ();
 
