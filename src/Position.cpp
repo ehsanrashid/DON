@@ -1814,7 +1814,7 @@ Position::operator string () const
 
     oss << "Fen: " << fen () << "\n"
         << "Key: " << hex << uppercase << setfill ('0') << setw (16) 
-        << _si->posi_key << dec << "\n";
+        << _si->posi_key << dec << setfill (' ') << "\n";
 
     oss << "Checkers: ";
     Bitboard chkrs = _si->checkers;

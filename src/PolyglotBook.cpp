@@ -79,7 +79,8 @@ namespace OpeningBook {
             << " move: "   << setw (5) << left << move_to_can (m)
             << setfill ('0')
             << " weight: " << setw (4) << right << dec << weight
-            << " learn: "  << setw (2) << learn;
+            << " learn: "  << setw (2) << learn
+            << setfill (' ');
 
         return oss.str ();
     }
@@ -376,7 +377,7 @@ namespace OpeningBook {
         //    oss << setfill ('0')
         //        << _pbe << " prob: " << right << fixed << width_prec (6, 2)
         //        << (weight_sum ? 100 * (float) _pbe.weight / weight_sum : 0.0)
-        //        << endl;
+        //        << setfill (' ') << endl;
         //});
 
         return oss.str ();

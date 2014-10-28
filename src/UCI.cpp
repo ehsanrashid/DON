@@ -341,18 +341,16 @@ namespace UCI {
 
         inline void exe_perft (cmdstream &cmds)
         {
-            i32 depth;
-            // Read perft 'depth'
-            if (cmds >> depth)
-            {
-                stringstream ss;
-                string fen_fn;
-                ss  << i32(Options["Hash"])    << " "
-                    << i32(Options["Threads"]) << " "
-                    << depth << " perft " << ((cmds >> fen_fn) ? fen_fn : "");
+            stringstream ss;
+            i32    depth;
+            depth  = ((cmds >> depth) ? depth : 1);
+            string fen_fn;
+            fen_fn = ((cmds >> fen_fn) ? fen_fn : "");
+            ss  << i32(Options["Hash"])    << " "
+                << i32(Options["Threads"]) << " "
+                << depth << " perft " << fen_fn;
 
-                benchmark (ss, RootPos);
-            }
+            benchmark (ss, RootPos);
         }
 
         inline void exe_bench (cmdstream &cmds)

@@ -106,7 +106,8 @@ namespace Notation {
                 <<             hours   << ":"
                 << setw (2) << minutes << ":"
                 << setw (2) << seconds << "."
-                << setw (2) << time;
+                << setw (2) << time
+                << setfill (' ');
 
             return oss.str ();
         }

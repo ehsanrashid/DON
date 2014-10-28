@@ -161,16 +161,16 @@ void benchmark (istream &is, const Position &pos)
         }
     }
 
-    cerr<< "\n---------------------------\n";
+    cerr << "\n---------------------------\n";
 
     Debug::dbg_print (); // Just before to exit
 
     time = now () - time; if (time == 0) time = 1;
 
     cerr
-        << "\n===========================\n"
-        << "Total time (ms) : " << time  << "\n"
-        << "Nodes searched  : " << nodes << "\n"
-        << "Nodes/second    : " << nodes * MILLI_SEC / time
-        << "\n---------------------------\n" << endl;
+         << "\n===========================\n"
+         << "Total time (ms) : " << time  << "\n"
+         << "Nodes searched  : " << nodes << "\n"
+         << "Nodes/second    : " << nodes * MILLI_SEC / time
+         << "\n---------------------------\n" << endl;
 }

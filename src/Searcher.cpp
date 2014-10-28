@@ -1533,10 +1533,10 @@ namespace Search {
 
                 if (RootNode)
                 {
-                    sync_cout <<  left << setw ( 7) << setfill (' ') <<
+                    sync_cout <<  left << setw ( 7) <<
                               //move_to_can (*ms, Chess960)
                               move_to_san (*ms, pos)
-                              << right << setw (16) << setfill ('.') << inter_nodes << sync_endl;
+                              << right << setw (16) << setfill ('.') << inter_nodes << setfill (' ') << sync_endl;
                 }
 
                 leaf_nodes += inter_nodes;
@@ -1552,7 +1552,7 @@ namespace Search {
     SignalsT volatile   Signals;
 
     RootMoveList        RootMoves;
-    Position            RootPos;
+    Position            RootPos (0);
     StateInfoStackPtr   SetupStates;
 
     point               SearchTime;
