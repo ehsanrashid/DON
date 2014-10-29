@@ -180,15 +180,14 @@ void auto_tune (istream &is)
 
     Options["Threads"] = threads;
     LimitsT limits;
-    limits.depth = 10;
-    Depth sd = Threadpool.split_depth;
+    limits.depth = 15;
 
     vector<string> fens;
     fens.assign (DEFAULT_FEN, DEFAULT_FEN + FEN_COUNT);
     u16 total = fens.size ();
     StateInfoStackPtr states;
     
-    u64 info[4][2];
+    u64 nps[4];
     for (i32 d = 0; d < 4; ++d)
     {
         Threadpool.split_depth = (d+4)*DEPTH_ONE;
@@ -211,20 +210,23 @@ void auto_tune (istream &is)
 
         time = now () - time; if (time == 0) time = 1;
 
-        info[d][0] = time;
-        info[d][1] = nodes;
+        nps[d] = nodes* MILLI_SEC/time;
     }
 
+    Depth  opt_split_depth = DEPTH_ZERO;
+    u64    max_nps = 0;
     for (i32 d = 0; d < 4; ++d)
     {
         cerr << "\n---------------------------\n"
-             << "Split Depth     : " << d+4
-             << "\n===========================\n"
-             << "Total time (ms) : " << info[d][0]  << "\n"
-             << "Nodes searched  : " << info[d][1] << "\n"
-             << "Nodes/second    : " << info[d][1] * MILLI_SEC / info[d][0]
+             << "Split Depth  : " << d+4 << "\n"
+             << "Nodes/second : " << nps[d]
              << "\n---------------------------" << endl;
+        if (nps[d] > max_nps)
+        {
+            max_nps = nps[d];
+            opt_split_depth = (d+4)*DEPTH_ONE;
+        }
     }
 
-    Threadpool.split_depth = sd;
+    Threadpool.split_depth = opt_split_depth;
 }

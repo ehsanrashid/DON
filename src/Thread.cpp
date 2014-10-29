@@ -302,7 +302,7 @@ namespace Threads {
         // Determines the best optimal minimum split depth automatically
         if (DEPTH_ZERO == split_depth)
         {
-            split_depth = min (4 + max (i32(threads)-2, 0)/2, i32(MAX_SPLIT_DEPTH))*DEPTH_ONE;
+            split_depth = min (4 + max (i32(threads)-1, 0)/3, i32(MAX_SPLIT_DEPTH))*DEPTH_ONE;
         }
 
         while (size () < threads)
