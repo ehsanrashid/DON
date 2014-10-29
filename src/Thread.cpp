@@ -157,10 +157,10 @@ namespace Threads {
         Threadpool.mutex.lock ();
         sp.mutex.lock ();
 
-        sp.slave_searching = true;
+        sp.slave_searching  = true;
         ++splitpoint_count;
-        active_splitpoint = &sp;
-        active_pos = NULL;
+        active_splitpoint   = &sp;
+        active_pos          = NULL;
 
         Thread *slave;
         while ((slave = Threadpool.available_slave (this)) != NULL)
@@ -269,7 +269,7 @@ namespace Threads {
         check_limits_th->task       = check_limits;
         check_limits_th->resolution = TimerResolution;
         
-        auto_save_th    = NULL;
+        auto_save_th                = NULL;
 
         configure ();
     }
@@ -344,9 +344,9 @@ namespace Threads {
 
         SearchTime = Time::now (); // As early as possible
 
-        RootPos     = pos;
+        RootPos = pos;
         RootMoves.initialize (pos, limits.root_moves);
-        Limits      = limits;
+        Limits  = limits;
         if (states.get () != NULL) // If don't set a new position, preserve current state
         {
             SetupStates = states;  // Ownership transfer here

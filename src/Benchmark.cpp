@@ -176,7 +176,7 @@ void benchmark (istream &is, const Position &pos)
 void auto_tune (istream &is)
 {
     string token;
-    string threads    = (is >> token) && !white_spaces (token) ? token : "1";
+    string threads = (is >> token) && !white_spaces (token) ? token : "1";
 
     Options["Threads"] = threads;
     LimitsT limits;
@@ -213,15 +213,16 @@ void auto_tune (istream &is)
         nps[d] = nodes* MILLI_SEC/time;
     }
 
-    Depth  opt_split_depth = DEPTH_ZERO;
-    u64    max_nps = 0;
+    Depth opt_split_depth = DEPTH_ZERO;
+    u64 max_nps = 0;
     for (i32 d = 0; d < 4; ++d)
     {
         cerr << "\n---------------------------\n"
              << "Split Depth  : " << d+4 << "\n"
              << "Nodes/second : " << nps[d]
              << "\n---------------------------" << endl;
-        if (nps[d] > max_nps)
+
+        if (max_nps < nps[d])
         {
             max_nps = nps[d];
             opt_split_depth = (d+4)*DEPTH_ONE;

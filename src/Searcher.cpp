@@ -519,7 +519,7 @@ namespace Search {
             // Step 1. Initialize node
             Thread *thread = pos.thread ();
             bool in_check  = pos.checkers () != U64(0);
-            bool singular_ext_node = false;
+            bool singular_ext_node;
 
             SplitPoint *splitpoint = NULL;
 
