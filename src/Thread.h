@@ -77,7 +77,7 @@ namespace Threads {
     using namespace MovePick;
 
     const u08 MAX_THREADS     = 128; // Maximum Threads
-    const u08 MAX_SPLITPOINTS =   8; // Maximum Threads per Splitpoint
+    const u08 MAX_SPLITPOINTS =   8; // Maximum Splitpoints
     const u08 MAX_SPLIT_DEPTH =  12; // Maximum Split Depth
     
     extern void check_limits ();
