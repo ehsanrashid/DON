@@ -249,8 +249,6 @@ namespace Evaluate {
         // Bonuses for contact safe checks
         const i32 CONTACT_CHECK[NONE] = { + 0, + 0, + 3, +16, +24, + 0 };
 
-        const ScaleFactor PAWN_SPAN_SCALE[2] = { ScaleFactor(38), ScaleFactor(56) };
-
         // weight_option() computes the value of an evaluation weight,
         // by combining UCI-configurable weights with an internal weight.
         inline Weight weight_option (i32 opt_value, const Score &internal_weight)
@@ -1120,30 +1118,30 @@ namespace Evaluate {
             {
                 if (pos.opposite_bishops ())
                 {
-                    // Both sides with opposite-colored bishops only ignoring any pawns.
+                    // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
+                    // is almost a draw, in case of KBP vs KB is even more a draw.
                     if (  npm_w == VALUE_MG_BSHP
                        && npm_b == VALUE_MG_BSHP
                        )
                     {
-                        // It is almost certainly a draw even with pawns.
                         i32 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
                         scale_fac = pawn_diff == 0 ? ScaleFactor (4) : ScaleFactor (8 * pawn_diff);
                     }
-                    // Both sides with opposite-colored bishops, but also other pieces. 
+                    // Endgame with opposite-colored bishops, but also other pieces. Still
+                    // a bit drawish, but not as drawish as with only the two bishops. 
                     else
                     {
-                        // Still a bit drawish, but not as drawish as with only the two bishops.
                         scale_fac = ScaleFactor (50 * i32(scale_fac) / i32(SCALE_FACTOR_NORMAL));
                     }
                 }
+                // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 else
                 if (  abs (eg) <= VALUE_EG_BSHP
                    && ei.pi->pawn_span[strong_side] <= 1
                    && !pos.passed_pawn (~strong_side, pos.king_sq (~strong_side))
                    )
                 {
-                    // Endings where weaker side can place his king in front of the strong side pawns are drawish.
-                    scale_fac = PAWN_SPAN_SCALE[ei.pi->pawn_span[strong_side]];
+                    scale_fac = ei.pi->pawn_span[strong_side] != 0 ? ScaleFactor(56) : ScaleFactor(38);
                 }
             }
 

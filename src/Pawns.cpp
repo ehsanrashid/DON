@@ -70,7 +70,6 @@ namespace Pawns {
             S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
         };
 
-        const Score SPAN        = S(+ 0,+ 8); // Bonus for file distance of the two outermost pawns
         const Score UNSTOPPABLE = S(+ 0,+20); // Bonus for unstoppable pawn going to promote
         const Score UNSUPPORTED = S(+20,+10); // Penalty for unsupported pawn
 
@@ -215,11 +214,8 @@ namespace Pawns {
             //cout << "-------------" << endl;
 #endif
 
-            // In endgame it's better to have pawns on both wings.
-            // So give a bonus according to file distance between left and right outermost pawns span.
             i32 span = e->semiopen_files[Own] ^ 0xFF;
             e->pawn_span[Own] = span != 0 ? u08(scan_msq (span)) - u08(scan_lsq (span)) : 0;
-            pawn_score += SPAN * i32(e->pawn_span[Own]);
 
             return pawn_score;
         }

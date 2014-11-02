@@ -1378,9 +1378,11 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
                  Zob._.piece_square[_active][PAWN][org]
                 ^Zob._.piece_square[_active][PAWN][dst];
         }
+
         key ^=
              Zob._.piece_square[_active][pt][org]
             ^Zob._.piece_square[_active][pt][dst];
+
         _si->psq_score +=
             -PSQT[_active][pt][org]
             +PSQT[_active][pt][dst];
@@ -1396,13 +1398,14 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         do_castling<true> (org, dst, rook_org, rook_dst);
 
         key ^=
-             Zob._.piece_square[_active][KING][org     ]
-            ^Zob._.piece_square[_active][KING][dst     ]
+             Zob._.piece_square[_active][KING][     org]
+            ^Zob._.piece_square[_active][KING][     dst]
             ^Zob._.piece_square[_active][ROOK][rook_org]
             ^Zob._.piece_square[_active][ROOK][rook_dst];
+
         _si->psq_score +=
-            -PSQT[_active][KING][org     ]
-            +PSQT[_active][KING][dst     ]
+            -PSQT[_active][KING][     org]
+            +PSQT[_active][KING][     dst]
             -PSQT[_active][ROOK][rook_org]
             +PSQT[_active][ROOK][rook_dst];
 
@@ -1428,9 +1431,11 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         _si->pawn_key ^=
              Zob._.piece_square[_active][PAWN][org]
             ^Zob._.piece_square[_active][PAWN][dst];
+
         key ^=
              Zob._.piece_square[_active][PAWN][org]
             ^Zob._.piece_square[_active][PAWN][dst];
+
         _si->psq_score +=
             -PSQT[_active][PAWN][org]
             +PSQT[_active][PAWN][dst];
@@ -1462,14 +1467,18 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         _si->matl_key ^=
              Zob._.piece_square[_active][PAWN][_piece_count[_active][PAWN]]
             ^Zob._.piece_square[_active][ppt ][_piece_count[_active][ppt] - 1];
+
         _si->pawn_key ^=
              Zob._.piece_square[_active][PAWN][org];
+
         key ^=
              Zob._.piece_square[_active][PAWN][org]
             ^Zob._.piece_square[_active][ppt ][dst];
+
         _si->psq_score +=
             +PSQT[_active][ppt ][dst]
             -PSQT[_active][PAWN][org];
+
         _si->non_pawn_matl[_active] += PIECE_VALUE[MG][ppt];
     }
     break;
