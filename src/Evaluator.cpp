@@ -123,7 +123,7 @@ namespace Evaluate {
         // Internal evaluation weights
         const Score INTERNAL_WEIGHTS[EVAL_NO] =
         {
-            S(+289,+344), // Mobility
+            S(+289,+344), // Piece Mobility
             S(+233,+201), // Pawn Structure
             S(+221,+273), // Passed Pawns
             S(+ 46,+  0), // Space Activity
@@ -806,7 +806,7 @@ namespace Evaluate {
             while (passed_pawns != U64(0))
             {
                 Square s = pop_lsq (passed_pawns);
-                ASSERT (pos.passed_pawn (Own, s));
+                assert (pos.passed_pawn (Own, s));
                 
                 i32 r = max (i32(rel_rank (Own, s)) - i32(R_2), 1);
                 i32 rr = r * (r - 1);
@@ -878,7 +878,7 @@ namespace Evaluate {
                                         4 : 0;
 
                             // If the block square is defended by a pawn add more small bonus.
-                            if (ei.ful_attacked_by[Own][PAWN] & block_sq) k += 1;
+                            if (ei.pin_attacked_by[Own][PAWN] & block_sq) k += 1;
                         }
 
                         if (k != 0)
@@ -931,7 +931,7 @@ namespace Evaluate {
                 & (ei.pin_attacked_by[Own][NONE]|~ei.pin_attacked_by[Opp][NONE]);
 
             // Since SPACE_MASK[Own] is fully on our half of the board
-            ASSERT (u32(safe_space >> (WHITE == Own ? 32 : 00)) == 0);
+            assert (u32(safe_space >> (WHITE == Own ? 32 : 00)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
             Bitboard behind = pos.pieces<PAWN> (Own);
@@ -946,7 +946,7 @@ namespace Evaluate {
         // evaluate<>()
         inline Value evaluate (const Position &pos)
         {
-            ASSERT (pos.checkers () == U64(0));
+            assert (pos.checkers () == U64(0));
 
             Thread *thread = pos.thread ();
 
@@ -1060,7 +1060,7 @@ namespace Evaluate {
             }
 
             Phase game_phase = ei.mi->game_phase;
-            ASSERT (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
+            assert (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
 
             // Evaluate space for both sides, only in middle-game.
             i32 space_w = SCORE_ZERO
@@ -1101,8 +1101,8 @@ namespace Evaluate {
 
             i32 mg = i32(mg_value (score));
             i32 eg = i32(eg_value (score));
-            ASSERT (-VALUE_INFINITE < mg && mg < +VALUE_INFINITE);
-            ASSERT (-VALUE_INFINITE < eg && eg < +VALUE_INFINITE);
+            assert (-VALUE_INFINITE < mg && mg < +VALUE_INFINITE);
+            assert (-VALUE_INFINITE < eg && eg < +VALUE_INFINITE);
 
             Color strong_side = (eg > VALUE_DRAW) ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
@@ -1211,9 +1211,9 @@ namespace Evaluate {
     // and setup king danger tables.
     void initialize ()
     {
-        Weights[PIECE_MOBILITY] = weight_option (1000 , INTERNAL_WEIGHTS[PIECE_MOBILITY ]);
-        Weights[PAWN_STRUCTURE] = weight_option (1000 , INTERNAL_WEIGHTS[PAWN_STRUCTURE ]);
-        Weights[PASSED_PAWN   ] = weight_option (1000 , INTERNAL_WEIGHTS[PASSED_PAWN    ]);
+        Weights[PIECE_MOBILITY] = weight_option (1000 , INTERNAL_WEIGHTS[PIECE_MOBILITY]);
+        Weights[PAWN_STRUCTURE] = weight_option (1000 , INTERNAL_WEIGHTS[PAWN_STRUCTURE]);
+        Weights[PASSED_PAWN   ] = weight_option (1000 , INTERNAL_WEIGHTS[PASSED_PAWN   ]);
         Weights[SPACE_ACTIVITY] = weight_option (1000 , INTERNAL_WEIGHTS[SPACE_ACTIVITY]);
         Weights[KING_SAFETY   ] = weight_option (1000 , INTERNAL_WEIGHTS[KING_SAFETY   ]);
 

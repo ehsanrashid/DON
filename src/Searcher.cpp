@@ -126,7 +126,7 @@ namespace Search {
         // The function is called before storing a value to the transposition table.
         inline Value value_to_tt (Value v, i32 ply)
         {
-            ASSERT (v != VALUE_NONE);
+            assert (v != VALUE_NONE);
             return v >= +VALUE_MATE_IN_MAX_DEPTH ? v + ply :
                    v <= -VALUE_MATE_IN_MAX_DEPTH ? v - ply :
                    v;
@@ -148,7 +148,7 @@ namespace Search {
         // and so refer to the previous search score.
         inline string info_multipv (const Position &pos, i16 depth, Value alpha, Value beta, point time)
         {
-            ASSERT (time >= 0);
+            assert (time >= 0);
 
             stringstream ss;
 
@@ -198,20 +198,22 @@ namespace Search {
         {
             const bool    PVNode = NT == PV;
 
-            ASSERT (NT == PV || NT == NonPV);
-            ASSERT (InCheck == (pos.checkers () != U64(0)));
-            ASSERT (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
-            ASSERT (PVNode || alpha == beta-1);
-            ASSERT (depth <= DEPTH_ZERO);
+            assert (NT == PV || NT == NonPV);
+            assert (InCheck == (pos.checkers () != U64(0)));
+            assert (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
+            assert (PVNode || alpha == beta-1);
+            assert (depth <= DEPTH_ZERO);
 
             (ss)->current_move = MOVE_NONE;
             (ss)->ply = (ss-1)->ply + 1;
 
             // Check for aborted search, immediate draw or maximum ply reached
-            if (Signals.force_stop || pos.draw () || (ss)->ply > MAX_DEPTH)
+            if (Signals.force_stop || pos.draw () || (ss)->ply >= MAX_DEPTH)
             {
-                return (ss)->ply > MAX_DEPTH && !InCheck ? evaluate (pos) : DrawValue[pos.active ()];
+                return (ss)->ply >= MAX_DEPTH && !InCheck ? evaluate (pos) : DrawValue[pos.active ()];
             }
+
+            assert (0 <= (ss)->ply && (ss)->ply < MAX_DEPTH);
 
             // To flag EXACT a node with eval above alpha and no available moves
             Value pv_alpha = PVNode ? alpha : -VALUE_INFINITE;
@@ -304,11 +306,11 @@ namespace Search {
                                 (ss)->static_eval);
                         }
 
-                        ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+                        assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
                         return best_value;
                     }
 
-                    ASSERT (best_value < beta);
+                    assert (best_value < beta);
                     // Update alpha here! always alpha < beta
                     if (PVNode) alpha = best_value;
                 }
@@ -329,7 +331,7 @@ namespace Search {
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move<false> ()) != MOVE_NONE)
             {
-                ASSERT (_ok (move));
+                assert (_ok (move));
                 
                 bool gives_check = pos.gives_check (move, *ci);
 
@@ -344,7 +346,7 @@ namespace Search {
                        && !pos.advanced_pawn_push (move)
                        )
                     {
-                        ASSERT (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
+                        assert (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
 
                         Value futility_value = futility_base + PIECE_VALUE[EG][ptype (pos[dst_sq (move)])];
 
@@ -431,7 +433,7 @@ namespace Search {
                 // Undo the move
                 pos.undo_move ();
 
-                ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
+                assert (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
                 // Check for new best move
                 if (best_value < value)
@@ -452,11 +454,11 @@ namespace Search {
                                 value_to_tt (best_value, (ss)->ply),
                                 (ss)->static_eval);
 
-                            ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+                            assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
                             return best_value;
                         }
 
-                        ASSERT (value < beta);
+                        assert (value < beta);
                         // Update alpha here! always alpha < beta
                         if (PVNode) alpha = value;
                     }
@@ -479,7 +481,7 @@ namespace Search {
                 value_to_tt (best_value, (ss)->ply),
                 (ss)->static_eval);
 
-            ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+            assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
         }
 
@@ -498,9 +500,9 @@ namespace Search {
             const bool RootNode = NT == Root;
             const bool   PVNode = NT == Root || NT == PV;
 
-            ASSERT (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
-            ASSERT (PVNode || alpha == beta-1);
-            ASSERT (depth > DEPTH_ZERO);
+            assert (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
+            assert (PVNode || alpha == beta-1);
+            assert (depth > DEPTH_ZERO);
 
             Key   posi_key;
             const Entry *tte;
@@ -531,14 +533,12 @@ namespace Search {
                 best_value  = splitpoint->best_value;
                 best_move   = splitpoint->best_move;
 
-                ASSERT (splitpoint->best_value > -VALUE_INFINITE);
-                ASSERT (splitpoint->legals > 0);
+                assert (splitpoint->best_value > -VALUE_INFINITE);
+                assert (splitpoint->legals > 0);
             }
             else
             {
                 (ss)->ply = (ss-1)->ply + 1;
-                (ss)->current_move = (ss+1)->exclude_move = MOVE_NONE;
-                fill ((ss+2)->killer_moves, (ss+2)->killer_moves + sizeof ((ss+2)->killer_moves) / sizeof (*((ss+2)->killer_moves)), MOVE_NONE);
 
                 // Used to send 'seldepth' info to GUI
                 if (PVNode)
@@ -550,9 +550,9 @@ namespace Search {
                 {
                     // Step 2. Check end condition
                     // Check for aborted search, immediate draw or maximum ply reached
-                    if (Signals.force_stop || pos.draw () || (ss)->ply > MAX_DEPTH)
+                    if (Signals.force_stop || pos.draw () || (ss)->ply >= MAX_DEPTH)
                     {
-                        return (ss)->ply > MAX_DEPTH && !in_check ? evaluate (pos) : DrawValue[pos.active ()];
+                        return (ss)->ply >= MAX_DEPTH && !in_check ? evaluate (pos) : DrawValue[pos.active ()];
                     }
 
                     // Step 3. Mate distance pruning. Even if mate at the next move our score
@@ -566,6 +566,11 @@ namespace Search {
 
                     if (alpha >= beta) return alpha;
                 }
+
+                assert (0 <= (ss)->ply && (ss)->ply < MAX_DEPTH);
+                
+                (ss)->current_move = (ss+1)->exclude_move = MOVE_NONE;
+                fill ((ss+2)->killer_moves, (ss+2)->killer_moves + sizeof ((ss+2)->killer_moves) / sizeof (*((ss+2)->killer_moves)), MOVE_NONE);
 
                 // Step 4. Transposition table lookup
                 // Don't want the score of a partial search to overwrite a previous full search
@@ -684,7 +689,7 @@ namespace Search {
                             }
 
                             Value reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
-                            //ASSERT (reduced_alpha >= -VALUE_INFINITE);
+                            //assert (reduced_alpha >= -VALUE_INFINITE);
 
                             Value value = search_quien<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
 
@@ -696,9 +701,9 @@ namespace Search {
 
                         if (NullMove)
                         {
-                            ASSERT ((ss-1)->current_move != MOVE_NONE);
-                            ASSERT ((ss-1)->current_move != MOVE_NULL);
-                            ASSERT (exclude_move == MOVE_NONE);
+                            assert ((ss-1)->current_move != MOVE_NONE);
+                            assert ((ss-1)->current_move != MOVE_NULL);
+                            assert (exclude_move == MOVE_NONE);
 
                             StateInfo si;
 
@@ -780,8 +785,8 @@ namespace Search {
                             {
                                 Depth reduced_depth = depth - ProbCutDepth; // Shallow Depth
                                 Value extended_beta = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
-                                //ASSERT (reduced_depth >= DEPTH_ONE);
-                                //ASSERT (extended_beta <= +VALUE_INFINITE);
+                                //assert (reduced_depth >= DEPTH_ONE);
+                                //assert (extended_beta <= +VALUE_INFINITE);
 
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
@@ -875,8 +880,12 @@ namespace Search {
                 }
             }
 
-            Move * counter_moves =  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move));
-            Move *followup_moves = FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move));
+            Move * counter_moves =  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move))
+               , *followup_moves = FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move));
+            //Move  counter_moves[2]
+            //   , followup_moves[2];
+            //memcpy ( counter_moves,  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)), sizeof ( counter_moves));
+            //memcpy (followup_moves, FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)), sizeof (followup_moves));
 
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
             StateInfo si;
@@ -891,7 +900,7 @@ namespace Search {
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move<SPNode> ()) != MOVE_NONE)
             {
-                ASSERT (_ok (move));
+                assert (_ok (move));
 
                 if (move == exclude_move) continue;
 
@@ -1168,7 +1177,7 @@ namespace Search {
                 // Step 17. Undo move
                 pos.undo_move ();
 
-                ASSERT (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
+                assert (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
                 // Step 18. Check for new best move
                 if (SPNode)
@@ -1230,7 +1239,7 @@ namespace Search {
                             break;
                         }
 
-                        ASSERT (value < beta);
+                        assert (value < beta);
                         // Update alpha here! always alpha < beta
                         if (PVNode) alpha = (SPNode) ? splitpoint->alpha = value : value;
                     }
@@ -1245,7 +1254,7 @@ namespace Search {
                        && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
                        )
                     {
-                        ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
+                        assert (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
 
                         thread->split (pos, ss, alpha, beta, best_value, best_move, depth, legals, mp, NT, cut_node);
                         
@@ -1297,11 +1306,11 @@ namespace Search {
                     (ss)->static_eval);
             }
 
-            ASSERT (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+            assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
         }
 
-        CACHE_ALIGN(32) Stack Stacks[MAX_DEPTH_6];
+        CACHE_ALIGN(32) Stack Stacks[MAX_DEPTH+4]; // To allow referencing (ss+2)
         // search_iter_deepening() is the main iterative deepening search function.
         // It calls search() repeatedly with increasing depth until:
         // - the allocated thinking time has been consumed,
@@ -1339,7 +1348,7 @@ namespace Search {
             point iteration_time;
 
             // Iterative deepening loop until target depth reached
-            while (++depth <= MAX_DEPTH && !Signals.force_stop && (Limits.depth == 0 || depth <= Limits.depth))
+            while (++depth < MAX_DEPTH && !Signals.force_stop && (Limits.depth == 0 || depth <= Limits.depth))
             {
                 // Age out PV variability metric
                 RootMoves.best_move_change *= 0.5f;
@@ -1422,7 +1431,7 @@ namespace Search {
                         }
                         else break;
 
-                        ASSERT (-VALUE_INFINITE <= bound_a && bound_a < bound_b && bound_b <= +VALUE_INFINITE);
+                        assert (-VALUE_INFINITE <= bound_a && bound_a < bound_b && bound_b <= +VALUE_INFINITE);
                     } while (true);
 
                     // Sort the PV lines searched so far and update the GUI
@@ -1586,7 +1595,7 @@ namespace Search {
     // This results in a long PV to print that is important for position analysis.
     void   RootMove::extract_pv_from_tt (Position &pos)
     {
-        StateInfo states[MAX_DEPTH_6]
+        StateInfo states[MAX_DEPTH]
                 , *si = states;
 
         i08 ply = 0; // Ply starts from 1, we need to start from 0
@@ -1596,7 +1605,7 @@ namespace Search {
         const Entry *tte;
         do
         {
-            ASSERT (MoveList<LEGAL> (pos).contains (m));
+            assert (MoveList<LEGAL> (pos).contains (m));
 
             pv.push_back (m);
             pos.do_move (m, *si++);
@@ -1626,7 +1635,7 @@ namespace Search {
     // first, even if the old TT entries have been overwritten.
     void   RootMove:: insert_pv_into_tt (Position &pos)
     {
-        StateInfo states[MAX_DEPTH_6]
+        StateInfo states[MAX_DEPTH]
                 , *si = states;
 
         i08 ply = 0; // Ply starts from 1, we need to start from 0
@@ -1634,7 +1643,7 @@ namespace Search {
         const Entry *tte;
         do
         {
-            ASSERT (MoveList<LEGAL> (pos).contains (m));
+            assert (MoveList<LEGAL> (pos).contains (m));
 
             tte = TT.retrieve (pos.posi_key ());
             // Don't overwrite correct entries
@@ -2065,24 +2074,24 @@ namespace Threads {
         // Pointer 'splitpoint' is not null only if called from split<>(), and not
         // at the thread creation. So it means this is the splitpoint's master.
         SplitPoint *splitpoint = splitpoint_count != 0 ? active_splitpoint : NULL;
-        ASSERT (splitpoint == NULL || (splitpoint->master == this && searching));
+        assert (splitpoint == NULL || (splitpoint->master == this && searching));
 
         do
         {
             // If this thread has been assigned work, launch a search
             while (searching)
             {
-                ASSERT (alive);
+                assert (alive);
 
                 Threadpool.mutex.lock ();
 
-                ASSERT (active_splitpoint != NULL);
+                assert (active_splitpoint != NULL);
                 SplitPoint *sp = active_splitpoint;
 
                 Threadpool.mutex.unlock ();
 
-                Stack stack[MAX_DEPTH_6]
-                   , *ss = stack+2; // To allow referencing (ss-2)
+                Stack stack[MAX_DEPTH+4]// To allow referencing (ss+2)
+                   , *ss = stack+2;     // To allow referencing (ss-2)
 
                 Position pos (*(sp)->pos, this);
 
@@ -2092,7 +2101,7 @@ namespace Threads {
                 // Lock splitpoint
                 (sp)->mutex.lock ();
 
-                ASSERT (active_pos == NULL);
+                assert (active_pos == NULL);
 
                 active_pos = &pos;
 
@@ -2101,10 +2110,10 @@ namespace Threads {
                 case  Root: search_depth<Root , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
                 case    PV: search_depth<PV   , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
                 case NonPV: search_depth<NonPV, true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                default: ASSERT (false);
+                default: assert (false);
                 }
 
-                ASSERT (searching);
+                assert (searching);
                 searching  = false;
                 active_pos = NULL;
                 (sp)->slaves_mask.reset (idx);
@@ -2117,7 +2126,7 @@ namespace Threads {
                    && (sp)->slaves_mask.none ()
                    )
                 {
-                    ASSERT (!(sp)->master->searching);
+                    assert (!(sp)->master->searching);
                     (sp)->master->notify_one ();
                 }
 
@@ -2169,7 +2178,7 @@ namespace Threads {
             // If master and all slaves have finished then exit idle_loop()
             if (splitpoint != NULL && splitpoint->slaves_mask.none ())
             {
-                ASSERT (!searching);
+                assert (!searching);
                 mutex.unlock ();
                 break;
             }

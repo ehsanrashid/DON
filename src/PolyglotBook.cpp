@@ -163,7 +163,7 @@ namespace OpeningBook {
 
         Entry pbe;
 
-        ASSERT (beg <= end);
+        assert (beg <= end);
 
         if (beg == end)
         {
@@ -175,7 +175,7 @@ namespace OpeningBook {
             while (beg < end && good ())
             {
                 streampos mid = (beg + end) / 2;
-                ASSERT (mid >= beg && mid < end);
+                assert (mid >= beg && mid < end);
 
                 seekg (STM_POS (mid));
 
@@ -190,7 +190,7 @@ namespace OpeningBook {
                 }
             }
 
-            ASSERT (beg == end);
+            assert (beg == end);
         }
         
         return (key == pbe.key) ? beg : ERROR_INDEX;

@@ -33,8 +33,8 @@ namespace Transposition {
 
     void TranspositionTable::alloc_aligned_memory (u64 mem_size, u32 alignment)
     {
-        ASSERT (0 == (alignment & (alignment - 1)));
-        ASSERT (0 == (mem_size  & (alignment - 1)));
+        assert (0 == (alignment & (alignment - 1)));
+        assert (0 == (mem_size  & (alignment - 1)));
 
     #ifdef LPAGES
 
@@ -45,7 +45,7 @@ namespace Transposition {
         {
             void *ptr = reinterpret_cast<void*> ((u64(_mem) + offset) & ~u64(offset));
             _clusters = reinterpret_cast<Cluster*> (ptr);
-            ASSERT (0 == (u64(_clusters) & (alignment - 1)));
+            assert (0 == (u64(_clusters) & (alignment - 1)));
             return;
         }
 
@@ -75,7 +75,7 @@ namespace Transposition {
             void **ptr = reinterpret_cast<void**> ((u64(mem) + offset) & ~u64(alignment - 1));
             ptr[-1]    = mem;
             _clusters  = reinterpret_cast<Cluster*> (ptr);
-            ASSERT (0 == (u64(_clusters) & (alignment - 1)));
+            assert (0 == (u64(_clusters) & (alignment - 1)));
             return;
         }
 
@@ -95,7 +95,7 @@ namespace Transposition {
         u64 mem_size = mem_size_mb << 20;
         u08 hash_bit = BitBoard::scan_msq (mem_size / ClusterSize);
 
-        ASSERT (hash_bit < MaxHashBit);
+        assert (hash_bit < MaxHashBit);
 
         u64 cluster_count = u64(1) << hash_bit;
 

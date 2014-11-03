@@ -55,17 +55,17 @@ namespace UCI {
 
     Option::operator bool () const
     {
-        ASSERT (_type == "check");
+        assert (_type == "check");
         return (_value == "true");
     }
     Option::operator i32 () const
     {
-        ASSERT (_type == "spin");
+        assert (_type == "spin");
         return atoi (_value.c_str ());
     }
     Option::operator string () const
     {
-        ASSERT (_type == "string");
+        assert (_type == "string");
         return _value;
     }
 
@@ -75,7 +75,7 @@ namespace UCI {
     // so let's check the bounds anyway.
     Option& Option::operator= (const string &value)
     {
-        ASSERT (!_type.empty ());
+        assert (!_type.empty ());
 
         if (!( (_type != "button" && value.empty ())
             || (_type == "check"  && value != "true" && value != "false")

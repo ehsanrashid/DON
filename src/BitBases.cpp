@@ -196,7 +196,7 @@ namespace BitBases {
 
     bool probe_kpk (Color c, Square wk_sq, Square wp_sq, Square bk_sq)
     {
-        ASSERT (_file (wp_sq) <= F_D);
+        assert (_file (wp_sq) <= F_D);
 
         u32 idx = index (c, bk_sq, wk_sq, wp_sq);
         return KPKBitbase[idx / 32] & (1 << (idx & 0x1F));

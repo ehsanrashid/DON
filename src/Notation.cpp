@@ -29,7 +29,7 @@ namespace Notation {
         // NOTE: for pawns it is not needed because 'org' file is explicit.
         AmbiguityT ambiguity (Move m, const Position &pos)
         {
-            ASSERT (pos.legal (m));
+            assert (pos.legal (m));
 
             Square org = org_sq (m);
             Square dst = dst_sq (m);
@@ -185,8 +185,8 @@ namespace Notation {
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
-        ASSERT (pos.legal (m));
-        ASSERT (MoveList<LEGAL> (pos).contains (m));
+        assert (pos.legal (m));
+        assert (MoveList<LEGAL> (pos).contains (m));
 
         string san;
 
@@ -213,7 +213,7 @@ namespace Notation {
                 case AMB_RANK: san += to_char (_file (org)); break;
                 case AMB_FILE: san += to_char (_rank (org)); break;
                 case AMB_SQR:  san += to_string (org);       break;
-                default:       ASSERT (false);               break;
+                default:       assert (false);               break;
                 }
             }
             if (pos.capture (m))

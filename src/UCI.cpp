@@ -152,7 +152,7 @@ namespace UCI {
                     {
                         fen += string (" ", !white_spaces (fen)) + token;
                     }
-                    //ASSERT (_ok (fen));
+                    //assert (_ok (fen));
                     //if (!_ok (fen)) return;
                 }
             }

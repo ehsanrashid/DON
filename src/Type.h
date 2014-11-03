@@ -6,14 +6,14 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <cassert>
 #include <iosfwd>
 #include "Platform.h"
 
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const u08   MAX_DEPTH    = 120;           // Maximum Depth (Ply)
-const u08   MAX_DEPTH_6  = MAX_DEPTH + 6; // Maximum Stack Size
+const u08   MAX_DEPTH   = 128; // Maximum Depth (Ply)
 
 // File of Square
 enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
@@ -278,6 +278,9 @@ enum ScaleFactor : u08
     SCALE_FACTOR_MAX     = 128,
     SCALE_FACTOR_NONE    = 255
 };
+
+template<typename T>
+inline T dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
 
 #undef BASIC_OPERATORS
 #undef ARTHMAT_OPERATORS

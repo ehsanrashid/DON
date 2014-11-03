@@ -22,7 +22,7 @@ namespace MoveGen {
             // Generates piece common move
             static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
             {
-                ASSERT (KING != PT && PAWN != PT);
+                assert (KING != PT && PAWN != PT);
 
                 const Square *pl = pos.list<PT> (C);
                 Square s;
@@ -70,8 +70,8 @@ namespace MoveGen {
             // Generates KING castling move
             static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= NULL*/)
             {
-                ASSERT (EVASION != GT);
-                ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64(0));
+                assert (EVASION != GT);
+                assert (!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64(0));
                 
                 //if (EVASION == GT) return;
                 //if (!pos.can_castle (CR) || pos.castle_impeded (CR) || pos.checkers () != U64(0)) return;
@@ -81,7 +81,7 @@ namespace MoveGen {
                 Square king_org = pos.king_sq (C);
                 Square rook_org = pos.castle_rook (CR);
 
-                ASSERT (ROOK == ptype (pos[rook_org]));
+                assert (ROOK == ptype (pos[rook_org]));
                 //if (ROOK != ptype (pos[rook_org])) return;
 
                 Square king_dst = rel_sq (C, ((CR == CR_WK || CR == CR_BK) ? SQ_G1 : SQ_C1));
@@ -178,7 +178,7 @@ namespace MoveGen {
             // Generates PAWN promotion move
             static INLINE void generate_promotion (ValMove *&moves, Bitboard pawns_on_R7, Bitboard targets, const CheckInfo *ci)
             {
-                ASSERT ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D));
+                assert ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D));
 
                 Bitboard promotes = shift_del<D> (pawns_on_R7) & targets;
                 while (promotes != U64(0))
@@ -310,7 +310,7 @@ namespace MoveGen {
                     Square ep_sq = pos.en_passant_sq ();
                     if (SQ_NO != ep_sq)
                     {
-                        ASSERT (_rank (ep_sq) == rel_rank (C, R_6));
+                        assert (_rank (ep_sq) == rel_rank (C, R_6));
                         if (pawns_on_Rx & rel_rank_bb (C, R_5))
                         {
                             // An en-passant capture can be an evasion only if the checking piece
@@ -320,8 +320,8 @@ namespace MoveGen {
                             if (EVASION != GT || (targets & (ep_sq - PUSH)))
                             {
                                 Bitboard ep_attacks = PAWN_ATTACKS[C_][ep_sq] & pawns_on_Rx & rel_rank_bb (C, R_5);
-                                ASSERT (ep_attacks != U64(0));
-                                ASSERT (pop_count<MAX15> (ep_attacks) <= 2);
+                                assert (ep_attacks != U64(0));
+                                assert (pop_count<MAX15> (ep_attacks) <= 2);
 
                                 while (ep_attacks != U64(0)) { (moves++)->move = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq); }
                             }
@@ -368,8 +368,8 @@ namespace MoveGen {
     // Generates all pseudo-legal moves.
     inline ValMove* generate (ValMove *moves, const Position &pos)
     {
-        ASSERT (RELAX == GT || CAPTURE == GT || QUIET == GT);
-        ASSERT (pos.checkers () == U64(0));
+        assert (RELAX == GT || CAPTURE == GT || QUIET == GT);
+        assert (pos.checkers () == U64(0));
 
         Color active    = pos.active ();
 
@@ -403,7 +403,7 @@ namespace MoveGen {
     // Returns a pointer to the end of the move list.
     ValMove* generate<QUIET_CHECK> (ValMove *moves, const Position &pos)
     {
-        ASSERT (pos.checkers () == U64(0));
+        assert (pos.checkers () == U64(0));
 
         Color active    = pos.active ();
         Bitboard empties= ~pos.pieces ();
@@ -458,7 +458,7 @@ namespace MoveGen {
     ValMove* generate<EVASION    > (ValMove *moves, const Position &pos)
     {
         Bitboard checkers = pos.checkers ();
-        ASSERT (checkers); // If any checker exists
+        assert (checkers); // If any checker exists
 
         Color active    = pos.active ();
         Square king_sq  = pos.king_sq (active);
@@ -493,7 +493,7 @@ namespace MoveGen {
         while (sliders != U64(0))
         {
             check_sq = pop_lsq (sliders);
-            ASSERT (color (pos[check_sq]) == ~active);
+            assert (color (pos[check_sq]) == ~active);
             slid_attacks |= RAY_LINE_bb[check_sq][king_sq] - check_sq;
         }
 

@@ -110,7 +110,7 @@ namespace Pawns {
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
-                ASSERT (pos[s] == (Own | PAWN));
+                assert (pos[s] == (Own | PAWN));
 
                 File f = _file (s);
                 Rank r = rel_rank (Own, s);
@@ -157,7 +157,7 @@ namespace Pawns {
                     backward = opp_pawns & (b | shift_del<PUSH> (b));
                 }
 
-                ASSERT (passed ^ (opposed || (opp_pawns & PAWN_ATTACK_SPAN[Own][s])));
+                assert (passed ^ (opposed || (opp_pawns & PAWN_ATTACK_SPAN[Own][s])));
 
                 Score score = SCORE_ZERO;
 
@@ -242,7 +242,7 @@ namespace Pawns {
         i08 kfl = min (max (kf, F_B), F_G);
         for (i08 f = kfl - 1; f <= kfl + 1; ++f)
         {
-            ASSERT (F_A <= f && f <= F_H);
+            assert (F_A <= f && f <= F_H);
 
             Bitboard mid_pawns;
 

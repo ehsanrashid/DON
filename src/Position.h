@@ -534,14 +534,14 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 inline bool Position::capture       (Move m) const
 {
     return mtype (m) == NORMAL || mtype (m) == PROMOTE ? EMPTY != _board[dst_sq (m)] :
-           mtype (m) == ENPASSANT ? _si->en_passant_sq != SQ_NO : //&& dst_sq (m) == _si->en_passant_sq :
+           mtype (m) == ENPASSANT ? _si->en_passant_sq != SQ_NO && _si->en_passant_sq == dst_sq (m) :
            false;
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
     return mtype (m) == NORMAL ? EMPTY != _board[dst_sq (m)] :
-           mtype (m) == ENPASSANT ? _si->en_passant_sq != SQ_NO : //&& dst_sq (m) == _si->en_passant_sq :
+           mtype (m) == ENPASSANT ? _si->en_passant_sq != SQ_NO && _si->en_passant_sq == dst_sq (m) :
            mtype (m) != CASTLE;
 }
 inline bool Position::advanced_pawn_push    (Move m) const
@@ -552,7 +552,7 @@ inline Piece Position::moving_piece (Move m) const { return _board[org_sq (m)]; 
 
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {
-    ASSERT (EMPTY == _board[s]);
+    assert (EMPTY == _board[s]);
 
     _board[s] = (c | pt);
 
@@ -567,12 +567,12 @@ inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 }
 inline void  Position:: place_piece (Square s, Piece p)
 {
-    ASSERT (_ok (p));
+    assert (_ok (p));
     place_piece (s, color (p), ptype (p));
 }
 inline void  Position::remove_piece (Square s)
 {
-    ASSERT (EMPTY != _board[s]);
+    assert (EMPTY != _board[s]);
 
     // WARNING: This is not a reversible operation. If remove a piece in
     // do_move() and then replace it in undo_move() will put it at the end of
@@ -602,9 +602,9 @@ inline void  Position::remove_piece (Square s)
 }
 inline void  Position::  move_piece (Square s1, Square s2)
 {
-    ASSERT (EMPTY != _board[s1]);
-    ASSERT (EMPTY == _board[s2]);
-    ASSERT (_piece_index[s1] != -1);
+    assert (EMPTY != _board[s1]);
+    assert (EMPTY == _board[s2]);
+    assert (_piece_index[s1] != -1);
 
     Color  c  = color (_board[s1]);
     PieceT pt = ptype (_board[s1]);

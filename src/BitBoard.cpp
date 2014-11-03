@@ -187,7 +187,7 @@ namespace BitBoard {
                             break;
                         }
 
-                        ASSERT (reference[i]);
+                        assert (reference[i]);
                         attacks = reference[i];
                     }
                 } while (i < size);
@@ -256,9 +256,9 @@ namespace BitBoard {
         {
             for (i08 s = SQ_A1; s <= SQ_H8; ++s)
             {
-                FRONT_SQRS_bb  [c][s] = FRONT_RANK_bb[c][_rank (Square(s))] &    FILE_bb[_file (Square(s))];
+                FRONT_SQRS_bb   [c][s] = FRONT_RANK_bb[c][_rank (Square(s))] &     FILE_bb[_file (Square(s))];
                 PAWN_ATTACK_SPAN[c][s] = FRONT_RANK_bb[c][_rank (Square(s))] & ADJ_FILE_bb[_file (Square(s))];
-                PAWN_PASS_SPAN[c][s]   = FRONT_SQRS_bb[c][s] | PAWN_ATTACK_SPAN[c][s];
+                PAWN_PASS_SPAN  [c][s] = FRONT_SQRS_bb[c][s] | PAWN_ATTACK_SPAN[c][s];
             }
         }
 

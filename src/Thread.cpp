@@ -124,11 +124,11 @@ namespace Threads {
     void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
         Depth depth, u08 legals, MovePicker &movepicker, NodeT node_type, bool cut_node)
     {
-        ASSERT (pos.ok ());
-        ASSERT (searching);
-        ASSERT (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
-        ASSERT (Threadpool.split_depth <= depth);
-        ASSERT (splitpoint_count < MAX_SPLITPOINTS);
+        assert (pos.ok ());
+        assert (searching);
+        assert (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
+        assert (Threadpool.split_depth <= depth);
+        assert (splitpoint_count < MAX_SPLITPOINTS);
 
         // Pick the next available splitpoint from the splitpoint stack
         SplitPoint &sp = splitpoints[splitpoint_count];
@@ -182,8 +182,8 @@ namespace Threads {
 
         // In helpful master concept a master can help only a sub-tree of its splitpoint,
         // and because here is all finished is not possible master is booked.
-        ASSERT (!searching);
-        ASSERT (!active_pos);
+        assert (!searching);
+        assert (!active_pos);
 
         // Have returned from the idle loop, which means that all threads are finished.
         // Note that setting 'searching' and decreasing splitpoint_count is
@@ -246,7 +246,7 @@ namespace Threads {
             {
                 searching = true;
                 think ();   // Start thinking
-                ASSERT (searching);
+                assert (searching);
                 searching = false;
                 thinking  = false;
             }
@@ -296,7 +296,7 @@ namespace Threads {
         u32 threads = i32(Options["Threads"]);
         split_depth = i32(Options["Split Depth"])*DEPTH_ONE;
 
-        ASSERT (threads > 0);
+        assert (threads > 0);
 
         // Split depth '0' has a special meaning:
         // Determines the best optimal minimum split depth automatically
@@ -350,7 +350,7 @@ namespace Threads {
         if (states.get () != NULL) // If don't set a new position, preserve current state
         {
             SetupStates = states;  // Ownership transfer here
-            ASSERT (states.get () == NULL);
+            assert (states.get () == NULL);
         }
 
         Signals.force_stop     = false;

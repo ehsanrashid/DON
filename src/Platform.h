@@ -115,23 +115,4 @@ typedef        uint64_t    u64;
 
 #endif
 
-// ---
-
-#undef ASSERT
-#undef ASSERT_MSG
-
-#ifdef NDEBUG
-
-#   define ASSERT(condition)          ((void) 0)
-#   define ASSERT_MSG(condition, msg) ((void) 0)
-
-#else
-
-#   include <cassert>
-
-#   define ASSERT(condition)          (void)( (!!(condition)) || (_wassert(_CRT_WIDE(#condition), _CRT_WIDE(__FILE__), __LINE__), 0) )
-#   define ASSERT_MSG(condition, msg) (void)( (!!(condition)) || (_wassert(_CRT_WIDE(msg),        _CRT_WIDE(__FILE__), __LINE__), 0) )
-
-#endif
-
 #endif // _PLATFORM_H_INC_

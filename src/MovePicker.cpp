@@ -56,7 +56,7 @@ namespace MovePick {
         , followup_moves (fm)
         , depth (d)
     {
-        ASSERT (d > DEPTH_ZERO);
+        assert (d > DEPTH_ZERO);
 
         bad_captures_end = moves+MAX_MOVES-1;
 
@@ -78,7 +78,7 @@ namespace MovePick {
         , followup_moves (NULL)
         , depth (d)
     {
-        ASSERT (d <= DEPTH_ZERO);
+        assert (d <= DEPTH_ZERO);
 
         if (pos.checkers () != U64(0))
         {
@@ -122,7 +122,7 @@ namespace MovePick {
         , followup_moves (NULL)
         , depth (DEPTH_ZERO)
     {
-        ASSERT (pos.checkers () == U64(0));
+        assert (pos.checkers () == U64(0));
 
         stage = PROB_CUT;
 
@@ -160,7 +160,7 @@ namespace MovePick {
         for (ValMove *itr = moves; itr != end; ++itr)
         {
             Move m = itr->move;
-            ASSERT (ptype (pos[org_sq (m)]) != NONE);
+            assert (ptype (pos[org_sq (m)]) != NONE);
             if (mtype (m) == NORMAL)
             {
                 itr->value = PIECE_VALUE[MG][ptype (pos[dst_sq (m)])] - i32(ptype (pos[org_sq (m)]))-1;
@@ -197,7 +197,7 @@ namespace MovePick {
         for (ValMove *itr = moves; itr != end; ++itr)
         {
             Move m = itr->move;
-            ASSERT (ptype (pos[org_sq (m)]) != NONE);
+            assert (ptype (pos[org_sq (m)]) != NONE);
             Value gain_value = pos.see_sign (m);
             if (gain_value < VALUE_ZERO)
             {
@@ -375,7 +375,7 @@ namespace MovePick {
         break;
 
         default:
-            ASSERT (false);
+            assert (false);
         break;
         }
     }
@@ -435,8 +435,7 @@ namespace MovePick {
                     {
                         return move;
                     }
-                }
-                while (kcur < kend);
+                } while (kcur < kend);
                 cur = end;
             break;
 
@@ -524,7 +523,7 @@ namespace MovePick {
             break;
 
             default:
-                ASSERT (false);
+                assert (false);
             break;
             }
         }
