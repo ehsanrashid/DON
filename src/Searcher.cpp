@@ -1360,7 +1360,7 @@ namespace Search {
                     RootMoves[i].old_value = RootMoves[i].new_value;
                 }
 
-                const bool aspiration = depth > 4*DEPTH_ONE;
+                bool aspiration = depth > 4*DEPTH_ONE;
 
                 // MultiPV loop. Perform a full root search for each PV line
                 for (IndexPV = 0; IndexPV < LimitPV; ++IndexPV)
@@ -1450,7 +1450,7 @@ namespace Search {
 
                 if (ContemptValue != 0)
                 {
-                    Value valued_contempt   = Value(i32(RootMoves[0].new_value)/ContemptValue);
+                    Value valued_contempt = Value(i32(RootMoves[0].new_value)/ContemptValue);
                     DrawValue[ RootColor] = BaseContempt[ RootColor] - valued_contempt;
                     DrawValue[~RootColor] = BaseContempt[~RootColor] + valued_contempt;
                 }
@@ -1542,10 +1542,12 @@ namespace Search {
 
                 if (RootNode)
                 {
-                    sync_cout <<  left << setw ( 7) <<
-                              //move_to_can (*ms, Chess960)
-                              move_to_san (*ms, pos)
-                              << right << setw (16) << setfill ('.') << inter_nodes << setfill (' ') << sync_endl;
+                    sync_cout <<  left << setw ( 7)
+                              //<< move_to_can (*ms, Chess960)
+                              << move_to_san (*ms, pos)
+                              << right << setw (16)
+                              << setfill ('.') << inter_nodes
+                              << setfill (' ') << sync_endl;
                 }
 
                 leaf_nodes += inter_nodes;
@@ -1595,8 +1597,7 @@ namespace Search {
     // This results in a long PV to print that is important for position analysis.
     void   RootMove::extract_pv_from_tt (Position &pos)
     {
-        StateInfo states[MAX_DEPTH]
-                , *si = states;
+        StateInfo states[MAX_DEPTH], *si = states;
 
         i08 ply = 0; // Ply starts from 1, we need to start from 0
         Move m = pv[ply];
@@ -1635,8 +1636,7 @@ namespace Search {
     // first, even if the old TT entries have been overwritten.
     void   RootMove:: insert_pv_into_tt (Position &pos)
     {
-        StateInfo states[MAX_DEPTH]
-                , *si = states;
+        StateInfo states[MAX_DEPTH], *si = states;
 
         i08 ply = 0; // Ply starts from 1, we need to start from 0
         Move m = pv[ply];
@@ -2040,7 +2040,7 @@ namespace Threads {
                     {
                         if (sp.slaves_mask.test (idx))
                         {
-                            const Position *pos = Threadpool[idx]->active_pos;
+                            Position *pos = Threadpool[idx]->active_pos;
                             if (pos != NULL) nodes += pos->game_nodes ();
                         }
                     }
@@ -2090,8 +2090,7 @@ namespace Threads {
 
                 Threadpool.mutex.unlock ();
 
-                Stack stack[MAX_DEPTH+4]// To allow referencing (ss+2)
-                   , *ss = stack+2;     // To allow referencing (ss-2)
+                Stack stack[MAX_DEPTH+4], *ss = stack+2;    // To allow referencing (ss+2) & (ss-2)
 
                 Position pos (*(sp)->pos, this);
 

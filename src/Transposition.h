@@ -213,10 +213,8 @@ namespace Transposition {
 
         u32 auto_size (u64 mem_size_mb, bool force = false);
 
-        // store() writes a new entry in the transposition table.
         void store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval);
 
-        // retrieve() looks up the entry in the transposition table.
         const Entry* retrieve (Key key) const;
 
         void save (std::string &hash_fn);
@@ -248,7 +246,7 @@ namespace Transposition {
 
         template<class CharT, class Traits>
         friend std::basic_istream<CharT, Traits>&
-            operator>> (std::basic_istream<CharT, Traits> &is, TranspositionTable &tt)
+            operator>> (std::basic_istream<CharT, Traits> &is,       TranspositionTable &tt)
         {
                 u32 mem_size_mb;
                 u08 generation;

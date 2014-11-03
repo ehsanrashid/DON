@@ -278,30 +278,22 @@ namespace OpeningBook {
             max_weight = max (max_weight, pbe.weight);
             weight_sum += pbe.weight;
 
-            // Choose book move according to its score.
-            // If a move has a very high score it has a higher probability
-            // of being choosen than a move with a lower score.
-            // Note that first entry is always chosen.
-
-            //u32 rand = _rkiss.rand<u32> ();
-            //if ((weight_sum && rand % weight_sum < pbe.weight) ||
-            //    (pick_best && (pbe.weight == max_weight)))
-            //{
-            //    move = Move(pbe.move);
-            //}
-
             if (pick_best)
             {
                 if (pbe.weight == max_weight) move = Move(pbe.move);
             }
+            // Choose book move according to its score.
+            // If a move has a very high score it has a higher probability
+            // of being choosen than a move with a lower score.
             else
-            if (weight_sum)
+            if (weight_sum != 0)
             {
                 u16 rand = _rkiss.rand<u16> () % weight_sum;
                 if (pbe.weight > rand) move = Move(pbe.move);
             }
+            // Note that first entry is always chosen if not pick best and sum of weight = 0
             else
-            if (MOVE_NONE == move) // if not pick best and sum of weight = 0
+            if (MOVE_NONE == move)
             {
                 move = Move(pbe.move);
             }
@@ -332,7 +324,6 @@ namespace OpeningBook {
         for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
         {
             Move m = *ms;
-            //if ((m ^ mtype (m)) == move)
             if ((m & ~PROMOTE) == move)
             {
                 return m;

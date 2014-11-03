@@ -394,22 +394,23 @@ inline Depth& operator*= (Depth &d, float f) { d = Depth(i32(i32(d) * f)); retur
 inline bool  _ok       (Color c) { return (WHITE == c) || (BLACK == c); }
 inline Color operator~ (Color c) { return Color(c^BLACK); }
 
-inline bool _ok       (File f) { return !(f & ~i08(F_H)); }
-inline File operator~ (File f) { return File(f ^ i08(F_H)); }
+inline bool _ok       (File f) { return    !(f & ~i08(F_H)); }
+inline File operator~ (File f) { return File(f ^  i08(F_H)); }
 inline File to_file   (char f) { return File(f - 'a'); }
 
-inline bool _ok       (Rank r) { return !(r & ~i08(R_8)); }
-inline Rank operator~ (Rank r) { return Rank(r ^ i08(R_8)); }
+inline bool _ok       (Rank r) { return    !(r & ~i08(R_8)); }
+inline Rank operator~ (Rank r) { return Rank(r ^  i08(R_8)); }
 inline Rank to_rank   (char r) { return Rank(r - '1'); }
 
 inline Square operator| (File f, Rank r) { return Square(( r << 3) | i08(f)); }
 inline Square operator| (Rank r, File f) { return Square((~r << 3) | i08(f)); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
-inline bool _ok     (Square s) { return !(s & ~i08(SQ_H8)); }
-inline File _file   (Square s) { return File(s & i08(F_H)); }
+
+inline bool _ok     (Square s) { return    !(s & ~i08(SQ_H8)); }
+inline File _file   (Square s) { return File(s &  i08(F_H)); }
 inline Rank _rank   (Square s) { return Rank(s >> 3); }
-inline Diag _diag18 (Square s) { return Diag((s >> 3) - (s & i08(SQ_H1)) + i08(SQ_H1)); } // R - F + 7
-inline Diag _diag81 (Square s) { return Diag((s >> 3) + (s & i08(SQ_H1))); }              // R + F
+//inline Diag _diag18 (Square s) { return Diag((s >> 3) - (s & i08(SQ_H1)) + i08(SQ_H1)); } // R - F + 7
+//inline Diag _diag81 (Square s) { return Diag((s >> 3) + (s & i08(SQ_H1))); }              // R + F
 inline Color color (Square s) { return Color(!((s ^ (s >> 3)) & BLACK)); }
 // FLIP   => SQ_A1 -> SQ_A8
 inline Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
@@ -441,15 +442,15 @@ struct Castling
             (CS == CS_Q) ? CR_BQ : CR_BK;
 };
 
-inline bool   _ok    (PieceT pt) { return (PAWN <= pt && pt <= KING); }
+inline bool   _ok    (PieceT pt) { return PAWN <= pt && pt <= KING; }
 
-inline Piece  operator| (Color c, PieceT pt) { return Piece((c << 3) | pt); }
+inline Piece operator| (Color c, PieceT pt) { return Piece((c << 3) | pt); }
 //inline Piece mk_piece  (Color c, PieceT pt) { return (c|pt); }
 
 inline bool   _ok   (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
 inline PieceT ptype (Piece p) { return PieceT(p & TOTL); }
 inline Color  color (Piece p) { return Color(p >> 3); }
-inline Piece  operator~ (Piece p) { return Piece(p ^ (BLACK << 3)); }
+inline Piece  operator~ (Piece p) { return Piece(p ^ 8/*(BLACK << 3)*/); }
 
 inline Square org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
 inline Square dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
@@ -457,32 +458,28 @@ inline PieceT promote (Move m) { return PieceT(((m >> 12) & ROOK) + NIHT); }
 inline MoveT  mtype   (Move m) { return MoveT(PROMOTE & m); }
 inline bool   _ok     (Move m)
 {
-    //if (MOVE_NONE == m || MOVE_NULL == m)
-    //{
-    //    return false;
-    //}
-    //Square org = org_sq (m);
-    //Square dst = dst_sq (m);
-    //if (org == dst) return false;
-    //
-    //u08 del_f = BitBoard::file_dist (org, dst);
-    //u08 del_r = BitBoard::rank_dist (org, dst);
-    //if (  (del_f == del_r)
-    //    || (0 == del_f) || (0 == del_r)
-    //    || (5 == del_f*del_f + del_r*del_r))
-    //{
-    //    return true;
-    //}
-    //return false;
-    //return (org_sq (m) != dst_sq (m));
-
-    return (MOVE_NONE != m) && (MOVE_NULL != m) && (org_sq (m) != dst_sq (m));
+    Square org = org_sq (m);
+    Square dst = dst_sq (m);
+    if (org != dst)
+    {
+        u08 del_f = dist (_file (org), _file (dst));
+        u08 del_r = dist (_rank (org), _rank (dst));
+        if (  del_f == del_r
+           || 0 == del_f
+           || 0 == del_r
+           || 5 == del_f*del_f + del_r*del_r
+           )
+        {
+            return true;
+        }
+    }
+    return false;
 }
 
-inline void org_sq    (Move &m, Square org) { m &= 0xF03F; m |= (org << 6); }
-inline void dst_sq    (Move &m, Square dst) { m &= 0xFFC0; m |= (dst << 0); }
-inline void   promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12); }
-//inline void mtype     (Move &m, MoveT mt)   { m &= ~PROMOTE; m |= mt; }
+//inline void org_sq  (Move &m, Square org) { m &= 0xF03F; m |= (org << 6); }
+//inline void dst_sq  (Move &m, Square dst) { m &= 0xFFC0; m |= (dst << 0); }
+inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12); }
+//inline void mtype   (Move &m, MoveT mt)   { m &= ~PROMOTE; m |= mt; }
 //inline Move operator~ (Move m)
 //{
 //    Move mm = m;
@@ -591,17 +588,17 @@ inline bool white_spaces (const std::string &str)
 
 inline void trim (std::string &str)
 {
-    size_t pb = str.find_first_not_of (" \t\n");
-    size_t pe = str.find_last_not_of (" \t\n");
-    pb = pb == std::string::npos ? 0 : pb;
-    pe = pe == std::string::npos ? pb : pe - pb + 1;
-    str = str.substr (pb, pe);
+    size_t p0 = str.find_first_not_of (" \t\n");
+    size_t p1 = str.find_last_not_of (" \t\n");
+    p0  = p0 == std::string::npos ?  0 : p0;
+    p1  = p1 == std::string::npos ? p0 : p1 - p0 + 1;
+    str = str.substr (p0, p1);
 }
 
 inline void remove_extension (std::string &filename)
 {
     size_t last_dot = filename.find_last_of ('.');
-    filename = last_dot == std::string::npos ? filename : filename.substr (0, last_dot); 
+    if (last_dot != std::string::npos) filename = filename.substr (0, last_dot); 
 }
 
 inline void convert_path (std::string &path)

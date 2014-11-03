@@ -148,7 +148,6 @@ namespace Transposition {
     void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval)
     {
         Entry *fte = cluster_entry (key);
-        Entry *rte = fte;
         for (Entry *ite = fte; ite < fte + ClusterEntries; ++ite)
         {
             if (ite->_key == 0)   // Empty entry? then write
@@ -158,17 +157,15 @@ namespace Transposition {
             }
             if (ite->_key == key) // Old entry? then overwrite
             {
-                // Preserve any existing TT move
-                if (move == MOVE_NONE && ite->_move != MOVE_NONE)
-                {
-                    move = Move(ite->_move);
-                }
-                ite->save (key, move, value, eval, depth, bound, _generation);
+                // Save preserving any existing TT move
+                ite->save (key, move != MOVE_NONE ? move : Move(ite->_move), value, eval, depth, bound, _generation);
                 return;
             }
-        
-            //if (ite == fte) continue;
+        }
 
+        Entry *rte = fte;
+        for (Entry *ite = fte+1; ite < fte + ClusterEntries; ++ite)
+        {
             // Implementation of replacement strategy when a collision occurs
             if ( ((ite->gen () == _generation || ite->bound () == BOUND_EXACT)
                 - (rte->gen () == _generation)

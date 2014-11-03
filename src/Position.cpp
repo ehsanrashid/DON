@@ -445,6 +445,7 @@ bool Position::ok (i08 *step) const
         Square ep_sq = _si->en_passant_sq;
         if (SQ_NO != ep_sq)
         {
+            if (_si->clock50 != 0) return false;
             if (R_6 != rel_rank (_active, ep_sq)) return false;
             if (!can_en_passant (ep_sq)) return false;
         }
@@ -678,11 +679,10 @@ bool Position::pseudo_legal (Move m) const
     Rank r_org = rel_rank (_active, org);
     Rank r_dst = rel_rank (_active, dst);
     
-    Piece p = _board[org];
-    PieceT pt = ptype (p);
+    PieceT pt = ptype (_board[org]);
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
-    if (NONE == pt || _active != color (p)) return false;
+    if (NONE == pt || _active != color (_board[org])) return false;
 
     PieceT ct = NONE;
 
@@ -835,7 +835,7 @@ bool Position::pseudo_legal (Move m) const
     }
     else
     {
-        if (!(attacks_bb (p, org, _types_bb[NONE]) & dst)) return false;
+        if (!(attacks_bb (_board[org], org, _types_bb[NONE]) & dst)) return false;
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves
