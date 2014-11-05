@@ -62,8 +62,8 @@ namespace MovePick {
 
         inline void update (const Position &pos, Move m, Value v)
         {
-            Piece  p = pos[org_sq (m)];
             Square s = dst_sq (m);
+            Piece  p = pos[org_sq (m)];
             if (abs (_values[p][s] + v) < MaxValue) _values[p][s] += v;
         }
 

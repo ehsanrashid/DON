@@ -322,7 +322,7 @@ namespace Search {
             // to search the moves. Because the depth is <= 0 here, only captures,
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
-            MovePicker mp (pos, HistoryStatistics, tt_move, depth, dst_sq ((ss-1)->current_move));
+            MovePicker mp (pos, HistoryStatistics, tt_move, depth, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO);
             StateInfo si;
             if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
 
@@ -880,8 +880,8 @@ namespace Search {
                 }
             }
 
-            Move * counter_moves =  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move))
-               , *followup_moves = FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move));
+            Move * counter_moves = _ok ((ss-1)->current_move) ?  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)) : NULL
+               , *followup_moves = _ok ((ss-2)->current_move) ? FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)) : NULL;
             //Move  counter_moves[2]
             //   , followup_moves[2];
             //memcpy ( counter_moves,  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)), sizeof ( counter_moves));
@@ -961,13 +961,6 @@ namespace Search {
 
                 bool gives_check = pos.gives_check (move, *ci);
 
-                MoveT mt = mtype (move);
-
-                bool dangerous =
-                       gives_check
-                    || NORMAL != mt
-                    || pos.advanced_pawn_push (move);
-
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
                 {
@@ -1003,12 +996,16 @@ namespace Search {
                 {
                     if (  !capture_or_promotion
                        && !in_check
-                       && !dangerous
                        && best_value > -VALUE_MATE_IN_MAX_DEPTH
+                           // Dangerous
+                       && !(  gives_check
+                           || mtype (move) != NORMAL 
+                           || pos.advanced_pawn_push (move)
+                           )
                        )
                     {
                         // Move count based pruning
-                        if (  depth < FutilityMoveCountDepth
+                        if (   depth <  FutilityMoveCountDepth
                            && legals >= FutilityMoveCounts[improving][depth]
                            )
                         {
@@ -1100,6 +1097,7 @@ namespace Search {
                         }
                         // Decrease reduction for counter moves
                         if (  reduction_depth > DEPTH_ZERO
+                           && counter_moves != NULL
                            && (move == counter_moves[0] || move == counter_moves[1])
                            )
                         {
@@ -1107,7 +1105,7 @@ namespace Search {
                         }
                         // Decrease reduction for moves that escape a capture
                         if (  reduction_depth > DEPTH_ZERO
-                           && mt == NORMAL
+                           && mtype (move) == NORMAL
                            && ptype (pos[dst_sq (move)]) != PAWN
                            && pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO // Reverse move
                            )
@@ -1418,7 +1416,7 @@ namespace Search {
                         // otherwise exit the loop.
                         if (best_value <= bound_a)
                         {
-                            window_a *= 1.345f;
+                            window_a *= 1.375f;
                             bound_a   = max (best_value - window_a, -VALUE_INFINITE);
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
@@ -1426,7 +1424,7 @@ namespace Search {
                         else
                         if (best_value >= bound_b)
                         {
-                            window_b *= 1.345f;
+                            window_b *= 1.375f;
                             bound_b   = min (best_value + window_b, +VALUE_INFINITE);
                         }
                         else break;
@@ -1581,13 +1579,11 @@ namespace Search {
 
     string              BookFile        = "";
     bool                BestBookMove    = true;
+    PolyglotBook        Book;
 
     string              SearchLog       = "";
 
-    // initialize the PRNG only once
-    PolyglotBook        Book;
-
-    Skill               Skills (MAX_SKILL_LEVEL);
+    Skill               Skills;
 
     // ------------------------------------
 
@@ -1730,9 +1726,8 @@ namespace Search {
                 break;
             }
 
-            // This is our magic formula
             v += weakness * i32(RootMoves[0].new_value - v)
-                +  variance * i32(rk.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2);
+              +  variance * i32(rk.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2);
 
             if (best_value < v)
             {
@@ -2091,10 +2086,9 @@ namespace Threads {
                 Threadpool.mutex.unlock ();
 
                 Stack stack[MAX_DEPTH+4], *ss = stack+2;    // To allow referencing (ss+2) & (ss-2)
+                memcpy (ss-2, (sp)->ss-2, 5*sizeof (*ss));
 
                 Position pos (*(sp)->pos, this);
-
-                memcpy (ss-2, (sp)->ss-2, 5*sizeof (*ss));
                 (ss)->splitpoint = sp;
 
                 // Lock splitpoint

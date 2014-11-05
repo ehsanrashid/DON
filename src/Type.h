@@ -458,22 +458,24 @@ inline PieceT promote (Move m) { return PieceT(((m >> 12) & ROOK) + NIHT); }
 inline MoveT  mtype   (Move m) { return MoveT(PROMOTE & m); }
 inline bool   _ok     (Move m)
 {
-    Square org = org_sq (m);
-    Square dst = dst_sq (m);
-    if (org != dst)
-    {
-        u08 del_f = dist (_file (org), _file (dst));
-        u08 del_r = dist (_rank (org), _rank (dst));
-        if (  del_f == del_r
-           || 0 == del_f
-           || 0 == del_r
-           || 5 == del_f*del_f + del_r*del_r
-           )
-        {
-            return true;
-        }
-    }
-    return false;
+    //Square org = org_sq (m);
+    //Square dst = dst_sq (m);
+    //if (org != dst)
+    //{
+    //    u08 del_f = dist (_file (org), _file (dst));
+    //    u08 del_r = dist (_rank (org), _rank (dst));
+    //    if (  del_f == del_r
+    //       || 0 == del_f
+    //       || 0 == del_r
+    //       || 5 == del_f*del_f + del_r*del_r
+    //       )
+    //    {
+    //        return true;
+    //    }
+    //}
+    //return false;
+
+    return org_sq (m) != dst_sq (m);
 }
 
 //inline void org_sq  (Move &m, Square org) { m &= 0xF03F; m |= (org << 6); }

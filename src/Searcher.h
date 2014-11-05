@@ -234,10 +234,9 @@ namespace Search {
 
     extern std::string          BookFile;
     extern bool                 BestBookMove;
+    extern OpeningBook::PolyglotBook Book;
 
     extern std::string          SearchLog;
-
-    extern OpeningBook::PolyglotBook Book;
 
     extern Skill                Skills;
 

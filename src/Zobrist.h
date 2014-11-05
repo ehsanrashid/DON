@@ -55,7 +55,6 @@ namespace Zobrist {
 
 }
 
-
 extern const Zobrist::Zob  ZobPG;
 //extern       Zobrist::Zob  ZobRnd;
 

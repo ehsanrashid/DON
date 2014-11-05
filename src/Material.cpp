@@ -77,7 +77,7 @@ namespace Material {
             return pos.non_pawn_material (Own) == VALUE_MG_BSHP
                 && pos.non_pawn_material (Opp) == VALUE_ZERO
                 //&& pos.count<BSHP> (Own) == 1
-                && pos.count<PAWN> (Own) >= 1;
+                && pos.count<PAWN> (Own) != 0;
         }
 
         template<Color Own>
@@ -90,7 +90,7 @@ namespace Material {
                 //&& pos.count<QUEN> (Own) == 1
                 //&& pos.count<ROOK> (Opp) == 1
                 && pos.count<PAWN> (Own) == 0
-                && pos.count<PAWN> (Opp) >= 1;
+                && pos.count<PAWN> (Opp) != 0;
         }
 
         template<Color Own>
@@ -108,7 +108,7 @@ namespace Material {
             // Second-degree polynomial material imbalance
             for (i08 pt1 = PAWN; pt1 < KING; ++pt1)
             {
-                if (count[Own][pt1] > 0)
+                if (count[Own][pt1] != 0)
                 {
                     i32 v = OwnSideLinearCoefficient[pt1];
 

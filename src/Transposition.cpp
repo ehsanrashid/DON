@@ -147,18 +147,16 @@ namespace Transposition {
     // * if the depth of e1 is bigger than the depth of e2.
     void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval)
     {
-        Entry *fte = cluster_entry (key);
-        for (Entry *ite = fte; ite < fte + ClusterEntries; ++ite)
+        assert (key != U64(0));
+
+        Entry *const fte = cluster_entry (key);
+        for (Entry *ite = fte  ; ite < fte + ClusterEntries; ++ite)
         {
-            if (ite->_key == 0)   // Empty entry? then write
-            {
-                ite->save (key, move, value, eval, depth, bound, _generation);
-                return;
-            }
-            if (ite->_key == key) // Old entry? then overwrite
+            // Empty entry then write otherwise overwrite
+            if (ite->_key == U64(0) || ite->_key == key)
             {
                 // Save preserving any existing TT move
-                ite->save (key, move != MOVE_NONE ? move : Move(ite->_move), value, eval, depth, bound, _generation);
+                ite->save (key, move != MOVE_NONE ? move : ite->move (), value, eval, depth, bound, _generation);
                 return;
             }
         }
@@ -187,15 +185,16 @@ namespace Transposition {
     // Returns a pointer to the entry found or NULL if not found.
     const Entry* TranspositionTable::retrieve (Key key) const
     {
-        Entry *fte = cluster_entry (key);
-        for (Entry *ite = fte; ite < fte + ClusterEntries; ++ite)
+        assert (key != U64(0));
+
+        Entry *const fte = cluster_entry (key);
+        for (Entry *ite = fte; ite < fte + ClusterEntries && ite->_key != U64(0); ++ite)
         {
             if (ite->_key == key)
             {
                 ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
                 return ite;
             }
-            if (ite->_key == 0) return NULL;
         }
         return NULL;
     }

@@ -230,12 +230,8 @@ namespace Transposition {
                 os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
                 os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
                 os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-                os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-                os.write (reinterpret_cast<const CharT*> (&tt._cluster_count) , sizeof (tt._cluster_count));
-                os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-                os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-                os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
                 os.write (reinterpret_cast<const CharT*> (&tt._generation), sizeof (tt._generation));
+                os.write (reinterpret_cast<const CharT*> (&tt._cluster_count) , sizeof (tt._cluster_count));
                 u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
                 for (u32 i = 0; i < cluster_bulk; ++i)
                 {
@@ -255,14 +251,10 @@ namespace Transposition {
                 is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
                 is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
                 is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-                is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-                is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
-                is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-                is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-                is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
                 is.read (reinterpret_cast<CharT*> (&generation)   , sizeof (generation));
+                is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
                 tt.resize (mem_size_mb);
-                tt._generation = (generation > 0 ? generation - 4 : 0);
+                tt._generation = generation != 0 ? generation - 4 : 0;
                 u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
                 for (u32 i = 0; i < cluster_bulk; ++i)
                 {

@@ -159,11 +159,11 @@ namespace EndGame {
         Value value = pos.count<PAWN> (_stong_side) * VALUE_EG_PAWN
             +   PUSH_TO_EDGE[wk_sq] + PUSH_CLOSE[SQR_DIST[sk_sq][wk_sq]];
 
-        if (  pos.count<QUEN> (_stong_side) > 0
-           || pos.count<ROOK> (_stong_side) > 0
-           || (pos.count<BSHP> (_stong_side) > 0 && pos.count<NIHT> (_stong_side) > 0)
-           || pos.bishops_pair (_stong_side)
-           || pos.count<NIHT> (_stong_side) > 2
+        if (   pos.count<QUEN> (_stong_side) != 0
+           ||  pos.count<ROOK> (_stong_side) != 0
+           || (pos.count<BSHP> (_stong_side) != 0 && pos.count<NIHT> (_stong_side) != 0)
+           ||  pos.bishops_pair (_stong_side)
+           ||  pos.count<NIHT> (_stong_side) > 2
            )
         {
             value += pos.non_pawn_material (_stong_side) + VALUE_KNOWN_WIN;
@@ -699,9 +699,9 @@ namespace EndGame {
 
         // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
         // it's probably at least a draw even with the pawn.
-        return probe_kpk (c, sk_sq, sp_sq, wk_sq)
-            ? SCALE_FACTOR_NONE
-            : SCALE_FACTOR_DRAW;
+        return probe_kpk (c, sk_sq, sp_sq, wk_sq) ?
+                SCALE_FACTOR_NONE :
+                SCALE_FACTOR_DRAW;
     }
 
     template<>
@@ -716,12 +716,9 @@ namespace EndGame {
         Square sp_sq = normalize (pos, _stong_side, pos.list<PAWN> (_stong_side)[0]);
         Square wk_sq = normalize (pos, _stong_side, pos.king_sq (_weak_side));
 
-        if (sp_sq == SQ_A7 && SQR_DIST[SQ_A8][wk_sq] <= 1)
-        {
-            return SCALE_FACTOR_DRAW;
-        }
-
-        return SCALE_FACTOR_NONE;
+        return sp_sq == SQ_A7 && SQR_DIST[SQ_A8][wk_sq] <= 1 ?
+                SCALE_FACTOR_DRAW :
+                SCALE_FACTOR_NONE;
     }
 
     template<>
@@ -799,8 +796,7 @@ namespace EndGame {
         Square wk_sq = pos.king_sq (_weak_side);
         Square sp_sq1 = pos.list<PAWN> (_stong_side)[0];
         Square sp_sq2 = pos.list<PAWN> (_stong_side)[1];
-        Rank r1 = _rank (sp_sq1);
-        Rank r2 = _rank (sp_sq2);
+        
         Square block_sq1, block_sq2;
 
         if (rel_rank (_stong_side, sp_sq1) > rel_rank (_stong_side, sp_sq2))
@@ -816,9 +812,10 @@ namespace EndGame {
 
         switch (file_dist (sp_sq1, sp_sq2))
         {
+        // Both pawns are on the same file. It's an easy draw if the defender firmly
+        // controls some square in the frontmost pawn's path.
         case 0:
-            // Both pawns are on the same file. It's an easy draw if the defender firmly
-            // controls some square in the frontmost pawn's path.
+        {
             if (  _file (wk_sq) == _file (block_sq1)
                && rel_rank (_stong_side, wk_sq) >= rel_rank (_stong_side, block_sq1)
                && opposite_colors (wk_sq, sb_sq)
@@ -826,13 +823,16 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_DRAW;
             }
-
-            break;
-            
+        }
+        break;
+        // Pawns on adjacent files. It's a draw if the defender firmly controls the
+        // square in front of the frontmost pawn's path, and the square diagonally
+        // behind this square on the file of the other pawn.
         case 1:
-            // Pawns on adjacent files. It's a draw if the defender firmly controls the
-            // square in front of the frontmost pawn's path, and the square diagonally
-            // behind this square on the file of the other pawn.
+        {
+            Rank r1 = _rank (sp_sq1);
+            Rank r2 = _rank (sp_sq2);
+            
             if (  (wk_sq == block_sq1)
                && opposite_colors (wk_sq, sb_sq)
                && (  wb_sq == block_sq2
@@ -853,11 +853,10 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_DRAW;
             }
-
-            break;
-
+        }
+        break;
+        // The pawns are not on the same file or adjacent files. No scaling.
         default:
-            // The pawns are not on the same file or adjacent files. No scaling.
             break;
         }
 
@@ -923,7 +922,7 @@ namespace EndGame {
     {
         assert (pos.non_pawn_material (_stong_side) == VALUE_MG_BSHP);
         assert (pos.count<BSHP> (_stong_side) == 1);
-        assert (pos.count<PAWN> (_stong_side) >= 1);
+        assert (pos.count<PAWN> (_stong_side) != 0);
         // No assertions about the material of _weak_side, because we want draws to
         // be detected even when the weaker side has some materials or pawns.
 
@@ -984,7 +983,7 @@ namespace EndGame {
             Square wk_sq = pos.king_sq (_weak_side);
             Square sb_sq = pos.list<BSHP> (_stong_side)[0];
 
-            if (pos.count<PAWN> (_weak_side) >= 1)
+            if (pos.count<PAWN> (_weak_side) != 0)
             {
                 // Get _weak_side pawn that is closest to home rank
                 Square wp_sq = scan_backmost_sq (_weak_side, pos.pieces<PAWN> (_weak_side));
@@ -1048,7 +1047,7 @@ namespace EndGame {
     {
         assert (verify_material (pos, _stong_side, VALUE_MG_QUEN, 0));
         assert (pos.count<ROOK> (_weak_side) == 1);
-        assert (pos.count<PAWN> (_weak_side) >= 1);
+        assert (pos.count<PAWN> (_weak_side) != 0);
 
         Square wk_sq = pos.king_sq (_weak_side);
         Square wr_sq = pos.list<ROOK> (_weak_side)[0];
@@ -1056,9 +1055,10 @@ namespace EndGame {
         if (  rel_rank (_weak_side, wk_sq) <= R_2
            && rel_rank (_weak_side, pos.king_sq (_stong_side)) >= R_4
            && rel_rank (_weak_side, wr_sq) == R_3
-           &&  pos.pieces<PAWN> (_weak_side)
-             & PIECE_ATTACKS[KING][wk_sq]
-             & PAWN_ATTACKS[_stong_side][wr_sq]
+           && ( pos.pieces<PAWN> (_weak_side)
+              & PIECE_ATTACKS[KING][wk_sq]
+              & PAWN_ATTACKS[_stong_side][wr_sq]
+              )
            )
         {
             return SCALE_FACTOR_DRAW;

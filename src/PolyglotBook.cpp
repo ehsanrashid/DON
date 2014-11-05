@@ -14,11 +14,11 @@ namespace OpeningBook {
     using namespace MoveGen;
     using namespace Notation;
 
-    #define STM_POS(x)  (streampos)(u64(PGHEADER_SIZE) + (x)*u64(PGENTRY_SIZE))
+    #define STM_POS(x)  (streampos)(u64(HeaderSize) + (x)*u64(EntrySize))
 
-    const streampos PolyglotBook::PGENTRY_SIZE  = sizeof (Entry);
-    const streampos PolyglotBook::PGHEADER_SIZE = 0*PGENTRY_SIZE;
-    const streampos PolyglotBook::ERROR_INDEX   = streampos(-1);
+    const streampos PolyglotBook::EntrySize  = sizeof (Entry);
+    const streampos PolyglotBook::HeaderSize = 0*EntrySize;
+    const streampos PolyglotBook::ErrorIndex   = streampos(-1);
 
     inline bool operator== (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
     {
@@ -156,10 +156,10 @@ namespace OpeningBook {
 
     streampos PolyglotBook::find_index (const Key key)
     {
-        if (!is_open ()) return ERROR_INDEX;
+        if (!is_open ()) return ErrorIndex;
 
         streampos beg = streampos(0);
-        streampos end = streampos((size () - PGHEADER_SIZE) / PGENTRY_SIZE - 1);
+        streampos end = streampos((size () - HeaderSize) / EntrySize - 1);
 
         Entry pbe;
 
@@ -193,7 +193,7 @@ namespace OpeningBook {
             assert (beg == end);
         }
         
-        return (key == pbe.key) ? beg : ERROR_INDEX;
+        return (key == pbe.key) ? beg : ErrorIndex;
     }
     streampos PolyglotBook::find_index (const Position &pos)
     {
@@ -215,7 +215,7 @@ namespace OpeningBook {
         Key key = ZobPG.compute_posi_key (pos);
 
         streampos index = find_index (key);
-        if (ERROR_INDEX == index) return MOVE_NONE;
+        if (ErrorIndex == index) return MOVE_NONE;
 
         seekg (STM_POS (index));
 
@@ -340,7 +340,7 @@ namespace OpeningBook {
         Key key = ZobPG.compute_posi_key (pos);
 
         streampos index = find_index (key);
-        if (ERROR_INDEX == index)
+        if (ErrorIndex == index)
         {
             cerr << "ERROR: no such key... "
                 << hex << uppercase << key
@@ -379,7 +379,7 @@ namespace OpeningBook {
         if (!is_open () || !(_mode & out)) return;
 
         streampos index = find_index (pbe.key);
-        if (ERROR_INDEX == index)
+        if (ErrorIndex == index)
         {
 
         }

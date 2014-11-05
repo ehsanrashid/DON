@@ -1,7 +1,9 @@
 #include "Zobrist.h"
+
 #include <sstream>
-#include "Position.h"
+
 #include "RKISS.h"
+#include "Position.h"
 
 //Zobrist::Zob ZobRnd;
 const Zobrist::Zob &Zob = ZobPG; // Global Zobrist
@@ -93,14 +95,8 @@ namespace Zobrist {
             posi_key ^= _.castle_right[0][pop_lsq (b)];
         }
 
-        if (SQ_NO != pos.en_passant_sq ())
-        {
-            posi_key ^= _.en_passant[_file (pos.en_passant_sq ())];
-        }
-        if (WHITE == pos.active ())
-        {
-            posi_key ^= _.mover_side;
-        }
+        posi_key ^= SQ_NO != pos.en_passant_sq () ? _.en_passant[_file (pos.en_passant_sq ())] : U64(0);
+        posi_key ^= WHITE == pos.active () ? _.mover_side : U64(0);
 
         return posi_key;
     }
