@@ -332,13 +332,13 @@ namespace BitBoard {
 
 #ifndef NDEBUG
 
-    const string ROW  = "|. . . . . . . .|\n";
-    const u16 ROW_LEN = ROW.length () + 1;
-
     // pretty() returns an ASCII representation of a bitboard to print on console output
     // Bitboard in an easily readable format. This is sometimes useful for debugging.
     string pretty (Bitboard bb, char p)
     {
+        static string ROW  = "|. . . . . . . .|\n";
+        static u16 ROW_LEN = ROW.length () + 1;
+
         string sbb;
         sbb = " /---------------\\\n";
         for (i08 r = R_8; r >= R_1; --r)
