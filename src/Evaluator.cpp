@@ -353,7 +353,7 @@ namespace Evaluate {
             // Init king safety tables only if going to use them
             // Do not evaluate king safety when you are close to the endgame so the weight of king safety is small
             //if (ei.mi->game_phase > PHASE_KINGSAFETY)
-            if (pos.non_pawn_material (Own) > VALUE_MG_QUEN + VALUE_MG_PAWN)
+            if (pos.non_pawn_material (Own) >= VALUE_MG_QUEN)
             {
                 king_attacks += ek_sq;
                 Rank ekr = rel_rank (Opp, ek_sq);
