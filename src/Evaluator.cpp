@@ -62,6 +62,10 @@ namespace Evaluate {
 
         };
 
+        template<bool Trace>
+        // evaluate<>()
+        Value evaluate (const Position &pos);
+
         namespace Tracer {
 
             // Used for tracing
@@ -107,7 +111,38 @@ namespace Evaluate {
                 }
             }
 
-            string trace (const Position &pos);
+            string trace (const Position &pos)
+            {
+                fill (*Scores, *Scores + sizeof (Scores) / sizeof (**Scores), SCORE_ZERO);
+
+                Value value = evaluate<true> (pos);
+                value = WHITE == pos.active () ? +value : -value; // White's point of view
+
+                stringstream ss;
+
+                ss  << showpoint << showpos << setprecision (2) << fixed
+                    << "         Entity |    White    |    Black    |     Total    \n"
+                    << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
+                    << "----------------+-------------+-------------+--------------\n";
+                write (ss, "Material"  , MATERIAL);
+                write (ss, "Imbalance" , IMBALANCE);
+                write (ss, "Pawn"      , PAWN);
+                write (ss, "Knight"    , NIHT);
+                write (ss, "Bishop"    , BSHP);
+                write (ss, "Rook"      , ROOK);
+                write (ss, "Queen"     , QUEN);
+                write (ss, "King"      , KING);
+                write (ss, "Mobility"  , MOBILITY);
+                write (ss, "Threat"    , THREAT);
+                write (ss, "Passer"    , PASSER);
+                write (ss, "Space"     , SPACE);
+                ss  << "----------------+-------------+-------------+--------------\n";
+                write (ss, "Total"     , TOTAL);
+                ss  << "\n"
+                    << "Evaluation: " << value_to_cp (value) << " (white side)\n";
+
+                return ss.str ();
+            }
 
         }
 
@@ -1170,42 +1205,6 @@ namespace Evaluate {
             return (WHITE == pos.active () ? +value : -value) + TEMPO;
         }
 
-        namespace Tracer {
-
-            string trace (const Position &pos)
-            {
-                fill (*Scores, *Scores + sizeof (Scores) / sizeof (**Scores), SCORE_ZERO);
-
-                Value value = evaluate<true> (pos);
-                value = WHITE == pos.active () ? +value : -value; // White's point of view
-
-                stringstream ss;
-
-                ss  << showpoint << showpos << setprecision (2) << fixed
-                    << "         Entity |    White    |    Black    |     Total    \n"
-                    << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
-                    << "----------------+-------------+-------------+--------------\n";
-                write (ss, "Material"  , MATERIAL);
-                write (ss, "Imbalance" , IMBALANCE);
-                write (ss, "Pawn"      , PAWN);
-                write (ss, "Knight"    , NIHT);
-                write (ss, "Bishop"    , BSHP);
-                write (ss, "Rook"      , ROOK);
-                write (ss, "Queen"     , QUEN);
-                write (ss, "King"      , KING);
-                write (ss, "Mobility"  , MOBILITY);
-                write (ss, "Threat"    , THREAT);
-                write (ss, "Passer"    , PASSER);
-                write (ss, "Space"     , SPACE);
-                ss  << "----------------+-------------+-------------+--------------\n";
-                write (ss, "Total"     , TOTAL);
-                ss  << "\n"
-                    << "Evaluation: " << value_to_cp (value) << " (white side)\n";
-
-                return ss.str ();
-            }
-        }
-
     }
 
     // evaluate() is the main evaluation function.
@@ -1224,8 +1223,7 @@ namespace Evaluate {
         return Tracer::trace (pos);
     }
 
-    // initialize() computes evaluation weights from the corresponding UCI parameters
-    // and setup king danger tables.
+    // initialize() init evaluation weights
     void initialize ()
     {
         Weights[PIECE_MOBILITY] = weight_option (1000 , INTERNAL_WEIGHTS[PIECE_MOBILITY]);
