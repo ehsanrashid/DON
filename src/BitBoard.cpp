@@ -158,7 +158,7 @@ namespace BitBoard {
                     attacks_bb[s + 1] = attacks_bb[s] + size;
                 }
 
-#           ifndef BM2
+#       ifndef BM2
                 u16 booster = MAGIC_BOOSTERS[_rank (Square(s))];
 
                 // Find a magic for square 's' picking up an (almost) random number
@@ -193,10 +193,10 @@ namespace BitBoard {
                         attacks = reference[i];
                     }
                 } while (i < size);
-#           else
+#       else
                 (void) magics_bb; 
                 (void) m_index; 
-#           endif
+#       endif
             }
         }
 
