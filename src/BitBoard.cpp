@@ -89,14 +89,14 @@ namespace BitBoard {
 
         typedef u16(*Indexer) (Square s, Bitboard occ);
 
-#ifndef BM2
+#   ifndef BM2
         const u16 MAGIC_BOOSTERS[R_NO] =
-#   ifdef BIT64
+#       ifdef BIT64
             { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
-#   else
+#       else
             { 0x3C9, 0x7B8, 0xB22, 0x21E, 0x815, 0xB24, 0x6AC, 0x0A4 }; // 32-bit
+#       endif
 #   endif
-#endif
 
         inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
         {

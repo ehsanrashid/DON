@@ -231,11 +231,11 @@ namespace BitBoard {
 
     inline bool more_than_one (Bitboard bb)
     {
-#ifdef BM2
-        return _blsr_u64 (bb);
-#else
+#   ifndef BM2
         return (bb) & (bb - 1);
-#endif
+#   else
+        return _blsr_u64 (bb);
+#   endif
     }
 
     // Shift the bitboard using delta
@@ -297,35 +297,35 @@ namespace BitBoard {
     template<>
     INLINE u16 magic_index<BSHP> (Square s, Bitboard occ)
     {
-#ifdef BM2
+#   ifndef BM2
+#       ifdef BIT64
+            return u16(((occ & B_MASK_bb[s]) * B_MAGIC_bb[s]) >> B_SHIFT[s]);
+#       else
+            u32 lo = (u32(occ >> 0x00) & u32(B_MASK_bb[s] >> 0x00)) * u32(B_MAGIC_bb[s] >> 0x00);
+            u32 hi = (u32(occ >> 0x20) & u32(B_MASK_bb[s] >> 0x20)) * u32(B_MAGIC_bb[s] >> 0x20);
+            return ((lo ^ hi) >> B_SHIFT[s]);
+#       endif
+#   else
         // Parallel bits extract (pext)
         return u16(_pext_u64 (occ, B_MASK_bb[s]));
-#else
-#   ifdef BIT64
-        return u16(((occ & B_MASK_bb[s]) * B_MAGIC_bb[s]) >> B_SHIFT[s]);
-#   else
-        u32 lo = (u32(occ >> 0x00) & u32(B_MASK_bb[s] >> 0x00)) * u32(B_MAGIC_bb[s] >> 0x00);
-        u32 hi = (u32(occ >> 0x20) & u32(B_MASK_bb[s] >> 0x20)) * u32(B_MAGIC_bb[s] >> 0x20);
-        return ((lo ^ hi) >> B_SHIFT[s]);
 #   endif
-#endif
     }
 
     template<>
     INLINE u16 magic_index<ROOK> (Square s, Bitboard occ)
     {
-#ifdef BM2
+#   ifndef BM2
+#       ifdef BIT64
+            return u16(((occ & R_MASK_bb[s]) * R_MAGIC_bb[s]) >> R_SHIFT[s]);
+#       else
+            u32 lo = (u32(occ >> 0x00) & u32(R_MASK_bb[s] >> 0x00)) * u32(R_MAGIC_bb[s] >> 0x00);
+            u32 hi = (u32(occ >> 0x20) & u32(R_MASK_bb[s] >> 0x20)) * u32(R_MAGIC_bb[s] >> 0x20);
+            return ((lo ^ hi) >> R_SHIFT[s]);
+#       endif
+#   else
         // Parallel bits extract (pext)
         return u16(_pext_u64 (occ, R_MASK_bb[s]));
-#else
-#   ifdef BIT64
-        return u16(((occ & R_MASK_bb[s]) * R_MAGIC_bb[s]) >> R_SHIFT[s]);
-#   else
-        u32 lo = (u32(occ >> 0x00) & u32(R_MASK_bb[s] >> 0x00)) * u32(R_MAGIC_bb[s] >> 0x00);
-        u32 hi = (u32(occ >> 0x20) & u32(R_MASK_bb[s] >> 0x20)) * u32(R_MAGIC_bb[s] >> 0x20);
-        return ((lo ^ hi) >> R_SHIFT[s]);
 #   endif
-#endif
     }
 
     template<>
