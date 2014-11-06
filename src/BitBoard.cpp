@@ -100,9 +100,11 @@ namespace BitBoard {
 
         inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
         {
+#   ifndef BM2
             Bitboard occupancy[MAX_LMOVES];
             Bitboard reference[MAX_LMOVES];
             RKISS rkiss;
+#   endif
 
             attacks_bb[SQ_A1] = table_bb;
 
