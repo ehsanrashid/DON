@@ -608,7 +608,7 @@ inline void convert_path (std::string &path)
     std::replace (path.begin (), path.end (), '\\', '/'); // Replace all '\' to '/'
 }
 
-CACHE_ALIGN(8) extern const Value PIECE_VALUE[PHASE_NO][TOTL];
+extern const Value PIECE_VALUE[PHASE_NO][TOTL];
 
 extern const std::string PIECE_CHAR;
 extern const std::string COLOR_CHAR;

@@ -17,14 +17,14 @@ using namespace MoveGen;
 using namespace Threads;
 using namespace Notation;
 
-CACHE_ALIGN(8) const Value PIECE_VALUE[PHASE_NO][TOTL] =
+const Value PIECE_VALUE[PHASE_NO][TOTL] =
 {
     { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
 };
 
 // PSQT[Color][PieceType][Square] contains Color-PieceType-Square scores.
-CACHE_ALIGN(64) Score PSQT[CLR_NO][NONE][SQ_NO];
+Score PSQT[CLR_NO][NONE][SQ_NO];
 
 const string PIECE_CHAR ("PNBRQK  pnbrqk");
 const string COLOR_CHAR ("wb-");

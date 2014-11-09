@@ -66,7 +66,7 @@ namespace BitBoard {
     };
 
     // SQUARES
-    CACHE_ALIGN(64) const Bitboard SQUARE_bb[SQ_NO] =
+    const Bitboard SQUARE_bb[SQ_NO] =
     {
 #undef S_16
 #undef S_8
@@ -83,18 +83,18 @@ namespace BitBoard {
 #undef S_2
     };
     // FILES
-    CACHE_ALIGN(8) const Bitboard   FILE_bb[F_NO] =
+    const Bitboard   FILE_bb[F_NO] =
     {
         FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb
     };
     // RANKS
-    CACHE_ALIGN(8) const Bitboard   RANK_bb[R_NO] =
+    const Bitboard   RANK_bb[R_NO] =
     {
         R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb
     };
 
     // ADJACENT FILES used for isolated-pawn
-    CACHE_ALIGN(8) const Bitboard ADJ_FILE_bb[F_NO] =
+    const Bitboard ADJ_FILE_bb[F_NO] =
     {
         FB_bb,
         FA_bb|FC_bb,
@@ -106,7 +106,7 @@ namespace BitBoard {
         FG_bb
     };
     // ADJACENT RANKS
-    CACHE_ALIGN(8) const Bitboard ADJ_RANK_bb[R_NO] =
+    const Bitboard ADJ_RANK_bb[R_NO] =
     {
         R2_bb,
         R1_bb|R3_bb,
@@ -118,7 +118,7 @@ namespace BitBoard {
         R7_bb,
     };
     // FRONT RANK
-    CACHE_ALIGN(8) const Bitboard FRONT_RANK_bb[CLR_NO][R_NO] =
+    const Bitboard FRONT_RANK_bb[CLR_NO][R_NO] =
     {
         {
         R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
@@ -142,36 +142,36 @@ namespace BitBoard {
         }
     };
 
-    CACHE_ALIGN(64) extern Bitboard FRONT_SQRS_bb[CLR_NO][SQ_NO];
+    extern Bitboard FRONT_SQRS_bb[CLR_NO][SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard BETWEEN_SQRS_bb[SQ_NO][SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard RAY_LINE_bb[SQ_NO][SQ_NO];
+    extern Bitboard BETWEEN_SQRS_bb[SQ_NO][SQ_NO];
+    extern Bitboard RAY_LINE_bb[SQ_NO][SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard DIST_RINGS_bb[SQ_NO][F_NO];
+    extern Bitboard DIST_RINGS_bb[SQ_NO][F_NO];
 
-    CACHE_ALIGN(64) extern Bitboard PAWN_ATTACK_SPAN[CLR_NO][SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard PAWN_PASS_SPAN[CLR_NO][SQ_NO];
+    extern Bitboard PAWN_ATTACK_SPAN[CLR_NO][SQ_NO];
+    extern Bitboard PAWN_PASS_SPAN[CLR_NO][SQ_NO];
 
     // attacks of the pawns & pieces
-    CACHE_ALIGN(64) extern Bitboard PAWN_ATTACKS[CLR_NO][SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard PIECE_ATTACKS[NONE][SQ_NO];
+    extern Bitboard PAWN_ATTACKS[CLR_NO][SQ_NO];
+    extern Bitboard PIECE_ATTACKS[NONE][SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard *B_ATTACK_bb[SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard *R_ATTACK_bb[SQ_NO];
+    extern Bitboard *B_ATTACK_bb[SQ_NO];
+    extern Bitboard *R_ATTACK_bb[SQ_NO];
 
-    CACHE_ALIGN(64) extern Bitboard    B_MASK_bb[SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard    R_MASK_bb[SQ_NO];
+    extern Bitboard    B_MASK_bb[SQ_NO];
+    extern Bitboard    R_MASK_bb[SQ_NO];
 
 #ifndef BM2
-    CACHE_ALIGN(64) extern Bitboard   B_MAGIC_bb[SQ_NO];
-    CACHE_ALIGN(64) extern Bitboard   R_MAGIC_bb[SQ_NO];
+    extern Bitboard   B_MAGIC_bb[SQ_NO];
+    extern Bitboard   R_MAGIC_bb[SQ_NO];
 
-    CACHE_ALIGN(8) extern u08          B_SHIFT  [SQ_NO];
-    CACHE_ALIGN(8) extern u08          R_SHIFT  [SQ_NO];
+    extern u08          B_SHIFT  [SQ_NO];
+    extern u08          R_SHIFT  [SQ_NO];
 #endif
 
-    CACHE_ALIGN(8) extern u08 F_R_DIST[F_NO][R_NO];
-    CACHE_ALIGN(8) extern u08 SQR_DIST[SQ_NO][SQ_NO];
+    extern u08     F_R_DIST[F_NO][R_NO];
+    extern u08     SQR_DIST[SQ_NO][SQ_NO];
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  SQUARE_bb[s]; }
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  SQUARE_bb[s]; }

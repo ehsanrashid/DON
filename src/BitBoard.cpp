@@ -9,42 +9,42 @@ namespace BitBoard {
     using namespace Notation;
 
     // FRONT SQUARES
-    CACHE_ALIGN(64) Bitboard FRONT_SQRS_bb[CLR_NO][SQ_NO];
+    Bitboard FRONT_SQRS_bb[CLR_NO][SQ_NO];
 
-    CACHE_ALIGN(64) Bitboard BETWEEN_SQRS_bb[SQ_NO][SQ_NO];
-    CACHE_ALIGN(64) Bitboard RAY_LINE_bb[SQ_NO][SQ_NO];
+    Bitboard BETWEEN_SQRS_bb[SQ_NO][SQ_NO];
+    Bitboard RAY_LINE_bb[SQ_NO][SQ_NO];
 
-    CACHE_ALIGN(64) Bitboard DIST_RINGS_bb[SQ_NO][F_NO];
+    Bitboard DIST_RINGS_bb[SQ_NO][F_NO];
 
     // Span of the attacks of pawn
-    CACHE_ALIGN(64) Bitboard PAWN_ATTACK_SPAN[CLR_NO][SQ_NO];
+    Bitboard PAWN_ATTACK_SPAN[CLR_NO][SQ_NO];
 
     // Path of the passed pawn
-    CACHE_ALIGN(64) Bitboard PAWN_PASS_SPAN[CLR_NO][SQ_NO];
+    Bitboard PAWN_PASS_SPAN[CLR_NO][SQ_NO];
 
     // Attacks of the pawns
-    CACHE_ALIGN(64) Bitboard PAWN_ATTACKS[CLR_NO][SQ_NO];
+    Bitboard PAWN_ATTACKS[CLR_NO][SQ_NO];
 
     // Attacks of the pieces
-    CACHE_ALIGN(64) Bitboard PIECE_ATTACKS[NONE][SQ_NO];
+    Bitboard PIECE_ATTACKS[NONE][SQ_NO];
 
-    CACHE_ALIGN(64) Bitboard*B_ATTACK_bb[SQ_NO];
-    CACHE_ALIGN(64) Bitboard*R_ATTACK_bb[SQ_NO];
+    Bitboard*B_ATTACK_bb[SQ_NO];
+    Bitboard*R_ATTACK_bb[SQ_NO];
 
-    CACHE_ALIGN(64) Bitboard   B_MASK_bb[SQ_NO];
-    CACHE_ALIGN(64) Bitboard   R_MASK_bb[SQ_NO];
+    Bitboard   B_MASK_bb[SQ_NO];
+    Bitboard   R_MASK_bb[SQ_NO];
 
 #ifndef BM2
-    CACHE_ALIGN(64) Bitboard  B_MAGIC_bb[SQ_NO];
-    CACHE_ALIGN(64) Bitboard  R_MAGIC_bb[SQ_NO];
+    Bitboard  B_MAGIC_bb[SQ_NO];
+    Bitboard  R_MAGIC_bb[SQ_NO];
 
-    CACHE_ALIGN(8) u08         B_SHIFT   [SQ_NO];
-    CACHE_ALIGN(8) u08         R_SHIFT   [SQ_NO];
+    u08         B_SHIFT [SQ_NO];
+    u08         R_SHIFT [SQ_NO];
 #endif
 
     // FILE & RANK distance
-    CACHE_ALIGN(8) u08 F_R_DIST[F_NO][R_NO];
-    CACHE_ALIGN(8) u08 SQR_DIST[SQ_NO][SQ_NO];
+    u08   F_R_DIST[F_NO][R_NO];
+    u08   SQR_DIST[SQ_NO][SQ_NO];
 
     namespace {
 
@@ -52,8 +52,8 @@ namespace BitBoard {
 //        const u64 DE_BRUIJN_64 = U64(0x3F79D71B4CB0A89);
 //        const u32 DE_BRUIJN_32 = U32(0x783A9B23);
 //
-//        CACHE_ALIGN (8) i08 MSB_TABLE[UCHAR_MAX + 1];
-//        CACHE_ALIGN (8) Square BSF_TABLE[SQ_NO];
+//        i08 MSB_TABLE[UCHAR_MAX + 1];
+//        Square BSF_TABLE[SQ_NO];
 //
 //        INLINE unsigned bsf_index (Bitboard bb)
 //        {
@@ -84,8 +84,8 @@ namespace BitBoard {
         //                           102400 = 0x19000
         const u32 MAX_RMOVES = U32(0x19000);
 
-        CACHE_ALIGN(64) Bitboard B_TABLE_bb[MAX_BMOVES];
-        CACHE_ALIGN(64) Bitboard R_TABLE_bb[MAX_RMOVES];
+        Bitboard B_TABLE_bb[MAX_BMOVES];
+        Bitboard R_TABLE_bb[MAX_RMOVES];
 
         typedef u16(*Indexer) (Square s, Bitboard occ);
 

@@ -104,15 +104,4 @@ typedef        uint64_t    u64;
 
 #endif
 
-#if (defined(_MSC_VER) || defined(__INTEL_COMPILER))
-
-#   define CACHE_ALIGN(x)     __declspec(align(x))
-//#   define CACHE_ALIGN(x)     alignas(x)
-
-#else
-
-#   define CACHE_ALIGN(x)     __attribute__((aligned(x)))
-
-#endif
-
 #endif // _PLATFORM_H_INC_

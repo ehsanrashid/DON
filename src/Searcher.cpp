@@ -34,26 +34,22 @@ namespace Search {
     namespace {
 
         const Depth FutilityMarginDepth = Depth(7);
-        CACHE_ALIGN(16)
         // Futility margin lookup table (initialized at startup)
         // [depth]
         Value FutilityMargins[FutilityMarginDepth];
 
         const Depth RazorDepth = Depth(4);
-        CACHE_ALIGN(16)
         // Razoring margin lookup table (initialized at startup)
         // [depth]
         Value RazorMargins[RazorDepth];
 
         const Depth FutilityMoveCountDepth = Depth(16);
-        CACHE_ALIGN(16)
         // Futility move count lookup table (initialized at startup)
         // [improving][depth]
         u08   FutilityMoveCounts[2][FutilityMoveCountDepth];
 
         const Depth ReductionDepth = Depth(32);
         const u08   ReductionMoveCount = 64;
-        CACHE_ALIGN(16)
         // ReductionDepths lookup table (initialized at startup)
         // [pv][improving][depth][move_num]
         u08   ReductionDepths[2][2][ReductionDepth][ReductionMoveCount];
@@ -340,7 +336,6 @@ namespace Search {
                     // Futility pruning
                     if (  !InCheck
                        && !gives_check
-                       && move != tt_move
                        && futility_base > -VALUE_KNOWN_WIN
                        && futility_base < beta
                        && !pos.advanced_pawn_push (move)
@@ -364,8 +359,7 @@ namespace Search {
                     }
 
                     // Don't search moves with negative SEE values
-                    if (  move != tt_move
-                       && mtype (move) != PROMOTE
+                    if (  mtype (move) != PROMOTE
                        && (  !InCheck
                           // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
                           || (  best_value > -VALUE_MATE_IN_MAX_DEPTH
@@ -1082,7 +1076,7 @@ namespace Search {
                     // If the move fails high will be re-searched at full depth.
                     if (  depth > 2*DEPTH_ONE
                        && !capture_or_promotion
-                       && move != tt_move
+                       && legals > 1
                        && move != (ss)->killer_moves[0]
                        && move != (ss)->killer_moves[1]
                        )
@@ -1308,7 +1302,7 @@ namespace Search {
             return best_value;
         }
 
-        CACHE_ALIGN(32) Stack Stacks[MAX_DEPTH+4]; // To allow referencing (ss+2)
+        Stack Stacks[MAX_DEPTH+4]; // To allow referencing (ss+2)
         // search_iter_deepening() is the main iterative deepening search function.
         // It calls search() repeatedly with increasing depth until:
         // - the allocated thinking time has been consumed,
@@ -1416,16 +1410,18 @@ namespace Search {
                         // otherwise exit the loop.
                         if (best_value <= bound_a)
                         {
-                            window_a *= 1.375f;
+                            bound_b   = (bound_a + bound_b) / 2;
                             bound_a   = max (best_value - window_a, -VALUE_INFINITE);
+                            window_a *= 1.50f;
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
                         }
                         else
                         if (best_value >= bound_b)
                         {
-                            window_b *= 1.375f;
+                            bound_a   = (bound_a + bound_b) / 2;
                             bound_b   = min (best_value + window_b, +VALUE_INFINITE);
+                            window_b *= 1.50f;
                         }
                         else break;
 
@@ -1967,7 +1963,7 @@ namespace Search {
 
                 ReductionDepths[1][0][d][mc] = ReductionDepths[1][1][d][mc];
                 ReductionDepths[0][0][d][mc] = ReductionDepths[0][1][d][mc];
-                // Smoother transition for LMR
+                // Increase reduction when eval is not improving
                 if (ReductionDepths[0][0][d][mc] >= 2*DEPTH_ONE)
                 {
                     ReductionDepths[0][0][d][mc] += DEPTH_ONE;
