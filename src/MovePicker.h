@@ -145,13 +145,12 @@ namespace MovePick {
 
         MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 
-        template<GenT>
+        template<GenT GT>
         // value() assign a numerical move ordering score to each move in a move list.
         // The moves with highest scores will be picked first.
         void value ();
 
         void generate_next_stage ();
-
 
     public:
 

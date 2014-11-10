@@ -143,6 +143,10 @@ namespace MovePick {
     // value() assign a numerical move ordering score to each move in a move list.
     // The moves with highest scores will be picked first.
 
+    template<GenT GT>
+    void MovePicker::value ()
+    {}
+
     template<>
     // Winning and equal captures in the main search are ordered by MVV/LVA.
     // Suprisingly, this appears to perform slightly better than SEE based
@@ -380,6 +384,12 @@ namespace MovePick {
             assert (false);
         break;
         }
+    }
+
+    template<bool SPNode>
+    Move MovePicker::next_move ()
+    {
+        return MOVE_NONE;
     }
 
     template<>
