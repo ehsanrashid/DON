@@ -397,33 +397,6 @@ namespace Search {
                         -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
                         -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
 
-                /*
-                bool move_pv = PVNode && 1 == legals;
-
-                if (move_pv)
-                {
-                    value =
-                        gives_check ?
-                            -search_quien<PV, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
-                            -search_quien<PV, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
-                }
-                else
-                {
-                    value =
-                        gives_check ?
-                            -search_quien<NonPV, true > (pos, ss+1, -alpha-1, -alpha, depth-DEPTH_ONE) :
-                            -search_quien<NonPV, false> (pos, ss+1, -alpha-1, -alpha, depth-DEPTH_ONE);
-                    
-                    if (alpha < value && value < beta)
-                    {
-                        value =
-                            gives_check ?
-                                -search_quien<PV, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
-                                -search_quien<PV, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
-                    }
-                }
-                */
-
                 // Undo the move
                 pos.undo_move ();
 
@@ -1059,8 +1032,6 @@ namespace Search {
                     }
                 }
 
-                bool move_pv = PVNode && 1 == legals;
-
                 (ss)->current_move = move;
 
                 // Step 14. Make the move
@@ -1069,7 +1040,7 @@ namespace Search {
                 prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
                 prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
-                if (!move_pv)
+                if (!PVNode || legals > 1)
                 {
                     bool full_depth_search = true;
                     // Step 15. Reduced depth search (LMR).
@@ -1155,7 +1126,7 @@ namespace Search {
                     // - fail high move (search only if value < beta)
                     // otherwise let the parent node fail low with
                     // alpha >= value and to try another better move.
-                    if (move_pv || (alpha < value && (RootNode || value < beta)))
+                    if (legals == 1 || (alpha < value && (RootNode || value < beta)))
                     {
                         value =
                             new_depth < DEPTH_ONE ?
@@ -1194,7 +1165,7 @@ namespace Search {
                     //rm.nodes += pos.game_nodes () - nodes;
 
                     // PV move or new best move ?
-                    if (move_pv || alpha < value)
+                    if (legals == 1 || alpha < value)
                     {
                         rm.new_value = value;
                         rm.extract_pv_from_tt (pos);
@@ -1202,7 +1173,7 @@ namespace Search {
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
-                        if (!move_pv)
+                        if (legals > 1)
                         {
                             RootMoves.best_move_change++;
                         }
