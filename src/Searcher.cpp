@@ -99,7 +99,7 @@ namespace Search {
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
-            Value value = Value(4*u16(depth)*u16(depth));
+            Value value = Value(u16(depth)*u16(depth));
             HistoryStatistics.update (pos, move, value);
             for (u08 i = 0; i < quiets; ++i)
             {
@@ -175,7 +175,7 @@ namespace Search {
                     << " multipv "  << u16(i + 1)
                     << " depth "    << d
                     << " seldepth " << u16(Threadpool.max_ply)
-                    << " score "    << ((i == IndexPV) ? pretty_score (v, alpha, beta) : pretty_score (v))
+                    << " score "    << (i == IndexPV ? pretty_score (v, alpha, beta) : pretty_score (v))
                     << " time "     << time
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * MILLI_SEC / max (time, point(1))
