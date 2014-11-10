@@ -279,9 +279,6 @@ enum ScaleFactor : u08
     SCALE_FACTOR_NONE    = 255
 };
 
-template<typename T>
-inline T dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
-
 #undef BASIC_OPERATORS
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
