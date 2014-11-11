@@ -42,7 +42,7 @@ namespace BitBoard {
     u08         R_SHIFT [SQ_NO];
 #endif
 
-    u08   SQR_DIST[SQ_NO][SQ_NO];
+    u08        SQR_DIST [SQ_NO][SQ_NO];
 
     namespace {
 
