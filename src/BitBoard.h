@@ -166,12 +166,11 @@ namespace BitBoard {
     extern Bitboard   B_MAGIC_bb[SQ_NO];
     extern Bitboard   R_MAGIC_bb[SQ_NO];
 
-    extern u08          B_SHIFT  [SQ_NO];
-    extern u08          R_SHIFT  [SQ_NO];
+    extern u08          B_SHIFT [SQ_NO];
+    extern u08          R_SHIFT [SQ_NO];
 #endif
 
-    extern u08     F_R_DIST[F_NO][R_NO];
-    extern u08     SQR_DIST[SQ_NO][SQ_NO];
+    extern u08         SQR_DIST [SQ_NO][SQ_NO];
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  SQUARE_bb[s]; }
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  SQUARE_bb[s]; }
@@ -206,10 +205,6 @@ namespace BitBoard {
     inline Bitboard& operator+= (Bitboard &bb, Rank   r) { return bb |= RANK_bb[r]; }
     inline Bitboard& operator-= (Bitboard &bb, Rank   r) { return bb &=~RANK_bb[r]; }
     */
-
-    inline u08 file_dist (Square s1, Square s2) { return F_R_DIST[_file (s1)][_file (s2)]; }
-
-    inline u08 rank_dist (Square s1, Square s2) { return F_R_DIST[_rank (s1)][_rank (s2)]; }
 
     // ----------------------------------------------------
 
@@ -370,7 +365,7 @@ inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
 template<> inline i32 dist<Square> (Square s1, Square s2) { return BitBoard::SQR_DIST[s1][s2]; }
 
 template<typename T1, typename T2>
-inline i32 dist (T2 x, T2 y);
+inline i32 dist (T2, T2);
 
 template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
 template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }

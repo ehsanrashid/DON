@@ -1,4 +1,5 @@
 #include "Pawns.h"
+#include "BitBoard.h"
 
 namespace Pawns {
 
@@ -189,7 +190,7 @@ namespace Pawns {
 
                 if (doubled)
                 {
-                    score -= DOUBLED[f] / i32(rank_dist (s, scan_frntmost_sq (Own, doubled)));
+                    score -= DOUBLED[f] / i32(dist<Rank> (s, scan_frntmost_sq (Own, doubled)));
                 }
                 else
                 {

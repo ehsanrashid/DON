@@ -42,8 +42,6 @@ namespace BitBoard {
     u08         R_SHIFT [SQ_NO];
 #endif
 
-    // FILE & RANK distance
-    u08   F_R_DIST[F_NO][R_NO];
     u08   SQR_DIST[SQ_NO][SQ_NO];
 
     namespace {
@@ -226,29 +224,13 @@ namespace BitBoard {
         //    MSB_TABLE[b] = more_than_one (b) ? MSB_TABLE[b - 1] : scan_lsq (b);
         //}
 
-        for (i08 f = F_A; f <= F_H; ++f)
-        {
-            for (i08 r = R_1; r <= R_8; ++r)
-            {
-                F_R_DIST[f][r] = u08(abs (f - r));
-            }
-        }
-
         for (i08 s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
             for (i08 s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
                 if (s1 != s2)
                 {
-                    File f1 = _file (Square(s1));
-                    Rank r1 = _rank (Square(s1));
-                    File f2 = _file (Square(s2));
-                    Rank r2 = _rank (Square(s2));
-
-                    u08 dFile = F_R_DIST[f1][f2];
-                    u08 dRank = F_R_DIST[r1][r2];
-
-                    SQR_DIST[s1][s2]  = max (dFile , dRank);
+                    SQR_DIST[s1][s2]  = u08(max (dist<File> (Square(s1), Square(s2)) , dist<Rank> (Square(s1), Square(s2))));
                     DIST_RINGS_bb[s1][SQR_DIST[s1][s2] - 1] += Square(s2);
                 }
             }

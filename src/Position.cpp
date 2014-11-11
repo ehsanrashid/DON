@@ -793,7 +793,7 @@ bool Position::pseudo_legal (Move m) const
         case DEL_S:
             // Pawn push. The destination square must be empty.
             if (!( empty (dst)
-                && 0 == F_R_DIST[_file (dst)][_file (org)]
+                && 0 == dist<File> (dst, org)
                  )
                )
                 return false;
@@ -807,7 +807,7 @@ bool Position::pseudo_legal (Move m) const
             // File distance b/w cap and org must be one, avoids a7h5
             if (!( NONE != ct
                 && ~_active == color (_board[cap])
-                && 1 == F_R_DIST[_file (cap)][_file (org)]
+                && 1 == dist<File> (cap, org)
                  )
                )
                 return false;
@@ -821,7 +821,7 @@ bool Position::pseudo_legal (Move m) const
                 && R_4 == r_dst
                 && empty (dst)
                 && empty (dst - pawn_push (_active))
-                && 0 == F_R_DIST[_file (dst)][_file (org)]
+                && 0 == dist<File> (dst, org)
                  )
                )
                 return false;
