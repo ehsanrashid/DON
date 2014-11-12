@@ -55,9 +55,9 @@ namespace Search {
         u08   ReductionDepths[2][2][ReductionDepth][ReductionMoveCount];
 
         template<bool PVNode>
-        inline Depth reduction_depths (bool imp, Depth d, i32 mc)
+        inline Depth reduction_depths (bool imp, Depth d, u08 mc)
         {
-            return Depth (ReductionDepths[PVNode][imp][min (d, ReductionDepth-1)][min (mc, ReductionMoveCount-1)]);
+            return Depth (ReductionDepths[PVNode][imp][min (d, ReductionDepth-1)][min<u08> (mc, ReductionMoveCount-1)]);
         }
 
         const Depth ProbCutDepth  = Depth(4);
@@ -133,7 +133,7 @@ namespace Search {
         // to "plies to mate/be mated from the root".
         inline Value value_of_tt (Value v, i32 ply)
         {
-            return v == VALUE_NONE             ? VALUE_NONE :
+            return v == VALUE_NONE               ? VALUE_NONE :
                    v >= +VALUE_MATE_IN_MAX_DEPTH ? v - ply :
                    v <= -VALUE_MATE_IN_MAX_DEPTH ? v + ply :
                    v;
@@ -238,9 +238,9 @@ namespace Search {
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in search_quien use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            Depth qs_depth = (InCheck || depth >= DEPTH_QS_CHECKS) ?
-                               DEPTH_QS_CHECKS :
-                               DEPTH_QS_NO_CHECKS;
+            Depth qs_depth = InCheck || depth >= DEPTH_QS_CHECKS ?
+                                DEPTH_QS_CHECKS :
+                                DEPTH_QS_NO_CHECKS;
 
             CheckInfo cc, *ci = NULL;
 

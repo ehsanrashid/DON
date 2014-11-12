@@ -374,21 +374,19 @@ ARTHMAT_OPERATORS (Score)
 /// a very high risk of overflow. So user should explicitly convert to integer.
 inline Score operator* (Score s1, Score s2);
 /// Division of a Score must be handled separately for each term
-inline Score operator/ (Score s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+inline Score operator/   (Score  s, i32   i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
 inline Score  operator*  (Score  s, float f) { return mk_score (mg_value (s) * f, eg_value (s) * f); }
 inline Score& operator*= (Score &s, float f) { s = mk_score (mg_value (s) * f, eg_value (s) * f); return s; }
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)
 inline Depth  operator/  (Depth  d, i32 i) { return Depth(u08(d) / i); }
-inline Depth  operator*  (Depth  d, float f) { return Depth(i32(i32(d) * f)); }
-inline Depth& operator*= (Depth &d, float f) { d = Depth(i32(i32(d) * f)); return d; }
 
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
-inline bool  _ok       (Color c) { return (WHITE == c) || (BLACK == c); }
+inline bool  _ok       (Color c) { return WHITE == c || BLACK == c; }
 inline Color operator~ (Color c) { return Color(c^BLACK); }
 
 inline bool _ok       (File f) { return    !(f & ~i08(F_H)); }
@@ -488,7 +486,7 @@ inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | ((pt - 
 //}
 
 template<MoveT MT>
-inline Move mk_move (Square org, Square dst) { return Move(MT | (org << 6) | (dst << 0)); }
+inline Move mk_move (Square org, Square dst) { return Move(MT | (org << 6) | dst); }
 // --------------------------------
 // explicit template instantiations
 template Move mk_move<NORMAL>    (Square org, Square dst);
@@ -501,7 +499,7 @@ template Move mk_move<ENPASSANT> (Square org, Square dst);
 template<MoveT MT>
 inline Move mk_move (Square org, Square dst, PieceT pt) { return MOVE_NONE; }
 template<>
-inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move(PROMOTE | (( i08(pt) - i08(NIHT)) << 12) | (org << 6) | (dst << 0)); }
+inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move(PROMOTE | ((((i08(pt) - i08(NIHT)) << 6) | org) << 6) | dst); }
 
 inline Move mk_move (Square org, Square dst) { return mk_move<NORMAL> (org, dst); }
 
