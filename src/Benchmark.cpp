@@ -230,4 +230,5 @@ void auto_tune (istream &is)
     }
 
     Threadpool.split_depth = opt_split_depth;
+    sync_cout << "info string Split Depth " << u16(opt_split_depth) << sync_endl;
 }

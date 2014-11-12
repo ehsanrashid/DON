@@ -44,7 +44,7 @@ namespace MovePick {
     // search captures, promotions and some checks) and about how important good
     // move ordering is at the current node.
 
-    const Value HistoryStats::MaxValue = Value(+0x200);
+    const Value HistoryStats::MaxValue = Value(+0x800);
 
     MovePicker::MovePicker (const Position &p, HistoryStats &h, Move ttm, Depth d, Move *cm, Move *fm, Stack *s)
         : cur (moves)
