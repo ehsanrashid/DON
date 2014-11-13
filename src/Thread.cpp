@@ -121,7 +121,7 @@ namespace Threads {
     // and then helper threads are told that they have been assigned work. This causes them to instantly
     // leave their idle loops and call search<>().
     // When all threads have returned from search() then split() returns.
-    void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
+    void Thread::split (Position &pos, Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
         Depth depth, u08 legals, MovePicker &movepicker, NodeT node_type, bool cut_node)
     {
         assert (pos.ok ());

@@ -133,9 +133,8 @@ namespace Search {
 
         friend bool operator== (const RootMove &rm, Move m) { return (rm.pv[0] == m); }
         friend bool operator!= (const RootMove &rm, Move m) { return (rm.pv[0] != m); }
-
-        void extract_pv_from_tt (Position &pos);
-        void  insert_pv_into_tt (Position &pos);
+        
+        void insert_pv_into_tt (Position &pos);
 
         std::string info_pv () const;
     };
@@ -164,14 +163,31 @@ namespace Search {
         //}
     };
 
+    struct PVEntry
+    {
+        Move pv[MAX_DEPTH+1];
+
+        void update (Move move, PVEntry *child)
+        {
+            pv[0] = move;
+
+            u08 i = 1;
+            for (; i < MAX_DEPTH && child != NULL && child->pv[i - 1] != MOVE_NONE; ++i)
+            {
+                pv[i] = child->pv[i - 1];
+            }
+            pv[i] = MOVE_NONE;
+        } 
+    };
+
     // The Stack struct keeps track of the information needed to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
     // has its own array of Stack objects, indexed by the current ply.
     struct Stack
     {
         SplitPoint *splitpoint;
-
-        u08     ply;
+        PVEntry    *pv;
+        u08         ply;
 
         Move    tt_move
             ,   current_move
