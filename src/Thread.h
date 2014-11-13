@@ -153,9 +153,9 @@ namespace Threads {
 
     public:
         // Const data after splitpoint has been setup
-        const Stack    *ss;
         const Position *pos;
 
+        Stack  *ss;
         Thread *master;
         Value   beta;
         Depth   depth;

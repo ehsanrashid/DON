@@ -280,8 +280,8 @@ namespace Search {
                     (ss)->static_eval = best_value;
 
                     // Can tt_value be used as a better position evaluation?
-                    if (  (VALUE_NONE != tt_value)
-                       && (tt_bound & (best_value < tt_value ? BOUND_LOWER : BOUND_UPPER))
+                    if (  VALUE_NONE != tt_value
+                       && tt_bound & (best_value < tt_value ? BOUND_LOWER : BOUND_UPPER)
                        )
                     {
                         best_value = tt_value;
@@ -570,33 +570,32 @@ namespace Search {
                     tt_bound = tte->bound ();
                 }
 
-                if (!PVNode)
+                
+                // At PV nodes check for exact scores, while at non-PV nodes check for
+                // a fail high/low. Biggest advantage at probing at PV nodes is to have a
+                // smooth experience in analysis mode. Don't probe at Root nodes otherwise
+                // should also update RootMoveList to avoid bogus output.
+                if (  !PVNode
+                    && tte != NULL
+                    && tt_value != VALUE_NONE // Only in case of TT access race
+                    && tt_depth >= depth
+                    && tt_value >= beta ? (tt_bound &  BOUND_LOWER) :
+                                            (tt_bound &  BOUND_UPPER)
+                   )
                 {
-                    // At PV nodes check for exact scores, while at non-PV nodes check for
-                    // a fail high/low. Biggest advantage at probing at PV nodes is to have a
-                    // smooth experience in analysis mode. Don't probe at Root nodes otherwise
-                    // should also update RootMoveList to avoid bogus output.
-                    if (  tte != NULL
-                       && tt_value != VALUE_NONE // Only in case of TT access race
-                       && tt_depth >= depth
-                       && tt_value >= beta ? (tt_bound &  BOUND_LOWER) :
-                                             (tt_bound &  BOUND_UPPER)
+                    (ss)->current_move = tt_move; // Can be MOVE_NONE
+
+                    // If tt_move is quiet, update history, killer moves, countermove and followupmove on TT hit
+                    if (  !in_check
+                        && tt_value >= beta
+                        && tt_move != MOVE_NONE
+                        && !pos.capture_or_promotion (tt_move)
                        )
                     {
-                        (ss)->current_move = tt_move; // Can be MOVE_NONE
-
-                        // If tt_move is quiet, update history, killer moves, countermove and followupmove on TT hit
-                        if (  !in_check
-                           && tt_value >= beta
-                           && tt_move != MOVE_NONE
-                           && !pos.capture_or_promotion (tt_move)
-                           )
-                        {
-                            update_stats (pos, ss, tt_move, depth, NULL, 0);
-                        }
-
-                        return tt_value;
+                        update_stats (pos, ss, tt_move, depth, NULL, 0);
                     }
+
+                    return tt_value;
                 }
 
                 // Step 5. Evaluate the position statically and update parent's gain statistics
@@ -614,8 +613,8 @@ namespace Search {
                         (ss)->static_eval = static_eval;
 
                         // Can tt_value be used as a better position evaluation?
-                        if (  (VALUE_NONE != tt_value)
-                           && (tt_bound & (static_eval < tt_value ? BOUND_LOWER : BOUND_UPPER))
+                        if (  VALUE_NONE != tt_value
+                           && tt_bound & (static_eval < tt_value ? BOUND_LOWER : BOUND_UPPER)
                            )
                         {
                             static_eval = tt_value;
