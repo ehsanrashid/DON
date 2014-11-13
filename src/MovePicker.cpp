@@ -99,7 +99,7 @@ namespace MovePick {
         {
             stage = RECAPTURE;
             recapture_sq = dst_sq;
-            ttm = MOVE_NONE;
+            ttm   = MOVE_NONE;
         }
 
         tt_move = ttm != MOVE_NONE
