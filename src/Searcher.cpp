@@ -224,7 +224,7 @@ namespace Search {
 
             // Transposition table lookup
             Key   posi_key;
-            const Entry *tte;
+            const TTEntry *tte;
             Move  tt_move    = MOVE_NONE
                 , best_move  = MOVE_NONE;
             Value tt_value   = VALUE_NONE
@@ -484,7 +484,7 @@ namespace Search {
             assert (depth > DEPTH_ZERO);
 
             Key   posi_key;
-            const Entry *tte;
+            const TTEntry *tte;
             Move  move
                 , tt_move     = MOVE_NONE
                 , exclude_move= MOVE_NONE
@@ -1188,7 +1188,7 @@ namespace Search {
                     {
                         rm.new_value = value;
                         rm.pv.resize(1);
-                        for (i32 i = 0; i < MAX_DEPTH && (ss+1)->pv != NULL && (ss+1)->pv->pv[i] != MOVE_NONE; ++i)
+                        for (u08 i = 0; i < MAX_DEPTH && (ss+1)->pv != NULL && (ss+1)->pv->pv[i] != MOVE_NONE; ++i)
                         {
                             rm.pv.push_back((ss+1)->pv->pv[i]);
                         }
@@ -1590,9 +1590,9 @@ namespace Search {
     {
         StateInfo states[MAX_DEPTH], *si = states;
 
-        i08 ply = 0; // Ply starts from 1, we need to start from 0
-        const Entry *tte;
-        for (; ply < i08(pv.size()); ++ply)
+        u08 ply = 0; // Ply starts from 1, we need to start from 0
+        const TTEntry *tte;
+        for (; ply < u08(pv.size ()); ++ply)
         {
             Move m = pv[ply];
             assert (MoveList<LEGAL> (pos).contains (m));
@@ -1623,7 +1623,7 @@ namespace Search {
     string RootMove::info_pv () const
     {
         stringstream ss;
-        for (u08 i = 0; i < pv.size (); ++i)
+        for (u08 i = 0; i < u08(pv.size ()); ++i)
         {
             ss << " " << move_to_can (pv[i], Chess960);
         }

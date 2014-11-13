@@ -146,7 +146,7 @@ namespace Search {
     public:
         float best_move_change;
 
-        void initialize (const Position &pos, const std::vector<Move> &root_moves);
+        void initialize (const Position &pos, const vector<Move> &root_moves);
 
         //inline void sort_full ()     { std::stable_sort (begin (), end ()); }
         //inline void sort_beg (i32 n) { std::stable_sort (begin (), begin () + n); }

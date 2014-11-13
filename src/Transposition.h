@@ -11,7 +11,7 @@
 
 namespace Transposition {
 
-    // Transposition Entry needs 16 byte to be stored
+    // TTEntry needs 16 byte to be stored
     //
     //  Key--------- 64 bits
     //  Move-------- 16 bits
@@ -22,7 +22,7 @@ namespace Transposition {
     //  Bound------- 02 bits
     //  ====================
     //  Total-------128 bits = 16 bytes
-    struct Entry
+    struct TTEntry
     {
 
     private:
@@ -60,12 +60,12 @@ namespace Transposition {
     // Number of entries in a cluster
     const u08 ClusterEntries = 4;
 
-    // Cluster is a 64 bytes cluster of TT entries
+    // TTCluster is a 64 bytes cluster of TT entries
     //
     // 4 x Entry (4 x 16 bytes)
-    struct Cluster
+    struct TTCluster
     {
-        Entry entries[ClusterEntries];
+        TTEntry entries[ClusterEntries];
     };
 
     // A Transposition Table consists of a 2^power number of clusters
@@ -82,7 +82,7 @@ namespace Transposition {
         void    *_mem;
     #endif
 
-        Cluster *_clusters;
+        TTCluster *_clusters;
         u64      _cluster_count;
         u64      _cluster_mask;
         u08      _generation;
@@ -177,7 +177,7 @@ namespace Transposition {
 
         // cluster_entry() returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
-        inline Entry* cluster_entry (const Key key) const
+        inline TTEntry* cluster_entry (const Key key) const
         {
             return _clusters[key & _cluster_mask].entries;
         }
@@ -192,10 +192,10 @@ namespace Transposition {
         {
             u64 full_cluster = 0;
             u64 scan_cluster = std::min (U64(10000), _cluster_count);
-            for (const Cluster *itc = _clusters; itc < _clusters + scan_cluster; ++itc)
+            for (const TTCluster *itc = _clusters; itc < _clusters + scan_cluster; ++itc)
             {
-                const Entry *fte = itc->entries;
-                for (const Entry *ite = fte; ite < fte + ClusterEntries; ++ite)
+                const TTEntry *fte = itc->entries;
+                for (const TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
                 {
                     if (ite->gen () == _generation)
                     {
@@ -215,7 +215,7 @@ namespace Transposition {
 
         void store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval);
 
-        const Entry* retrieve (Key key) const;
+        const TTEntry* retrieve (Key key) const;
 
         void save (std::string &hash_fn);
         void load (std::string &hash_fn);
