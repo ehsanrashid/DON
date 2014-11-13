@@ -486,7 +486,7 @@ inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | ((pt - 
 //}
 
 template<MoveT MT>
-inline Move mk_move (Square org, Square dst) { return Move(MT | (org << 6) | dst); }
+inline Move mk_move (Square org, Square dst) { return Move(MT | u16(org << 6) | u16(dst)); }
 // --------------------------------
 // explicit template instantiations
 template Move mk_move<NORMAL>    (Square org, Square dst);
@@ -499,7 +499,7 @@ template Move mk_move<ENPASSANT> (Square org, Square dst);
 template<MoveT MT>
 inline Move mk_move (Square org, Square dst, PieceT pt) { return MOVE_NONE; }
 template<>
-inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move(PROMOTE | ((((i08(pt) - i08(NIHT)) << 6) | org) << 6) | dst); }
+inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move(PROMOTE | ((((i08(pt) - i08(NIHT)) << 6) | u16(org)) << 6) | u16(dst)); }
 
 inline Move mk_move (Square org, Square dst) { return mk_move<NORMAL> (org, dst); }
 

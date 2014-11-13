@@ -94,11 +94,6 @@ namespace MovePick {
         if (d > DEPTH_QS_RECAPTURES)
         {
             stage = QSEARCH_1;
-
-            // Skip TT move if is not a capture or a promotion, this avoids search_quien
-            // tree explosion due to a possible perpetual check or similar rare cases
-            // when TT table is full.
-            if (ttm != MOVE_NONE && !pos.capture_or_promotion (ttm)) ttm = MOVE_NONE;
         }
         else
         {

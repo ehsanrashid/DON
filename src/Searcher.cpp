@@ -142,7 +142,7 @@ namespace Search {
         // info_multipv() formats PV information according to UCI protocol.
         // UCI requires to send all the PV lines also if are still to be searched
         // and so refer to the previous search score.
-        inline string info_multipv (const Position &pos, i16 depth, Value alpha, Value beta, point time)
+        inline string info_multipv (const Position &pos, Depth depth, Value alpha, Value beta, point time)
         {
             assert (time >= 0);
 
@@ -152,7 +152,7 @@ namespace Search {
             {
                 bool updated = i <= IndexPV;
 
-                i16   d;
+                Depth d;
                 Value v;
 
                 if (updated)
@@ -164,7 +164,7 @@ namespace Search {
                 {
                     if (1 == depth) return "";
 
-                    d = depth - 1;
+                    d = depth - DEPTH_ONE;
                     v = RootMoves[i].old_value;
                 }
 
@@ -173,7 +173,7 @@ namespace Search {
 
                 ss  << "info"
                     << " multipv "  << u16(i + 1)
-                    << " depth "    << d
+                    << " depth "    << u16(d/DEPTH_ONE)
                     << " seldepth " << u16(Threadpool.max_ply)
                     << " score "    << (i == IndexPV ? pretty_score (v, alpha, beta) : pretty_score (v))
                     << " time "     << time
@@ -840,7 +840,7 @@ namespace Search {
                     {
                         sync_cout
                             << "info"
-                            << " depth " << u16(depth)
+                            << " depth " << u16(depth/DEPTH_ONE)
                             << " time "  << time
                             << sync_endl;
                     }
@@ -913,7 +913,7 @@ namespace Search {
                         {
                             sync_cout
                                 << "info"
-                                //<< " depth "          << u16(depth)
+                                //<< " depth "          << u16(depth/DEPTH_ONE)
                                 << " currmovenumber " << setw (2) << u16(legals + IndexPV)
                                 << " currmove "       << move_to_can (move, Chess960)
                                 << " time "           << time
