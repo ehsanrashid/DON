@@ -256,7 +256,7 @@ namespace Search {
                && tte != NULL
                && tt_depth >= qs_depth
                && tt_value != VALUE_NONE // Only in case of TT access race
-               && (tt_value >= beta ? (tt_bound &  BOUND_LOWER) : (tt_bound &  BOUND_UPPER))
+               && (tt_value >= beta ? (tt_bound & BOUND_LOWER) : (tt_bound & BOUND_UPPER))
                )
             {
                 (ss)->current_move = tt_move; // Can be MOVE_NONE
@@ -577,7 +577,7 @@ namespace Search {
                     && tte != NULL
                     && tt_value != VALUE_NONE // Only in case of TT access race
                     && tt_depth >= depth
-                    && (tt_value >= beta ? (tt_bound &  BOUND_LOWER) : (tt_bound &  BOUND_UPPER))
+                    && (tt_value >= beta ? (tt_bound & BOUND_LOWER) : (tt_bound & BOUND_UPPER))
                    )
                 {
                     (ss)->current_move = tt_move; // Can be MOVE_NONE
@@ -1586,9 +1586,9 @@ namespace Search {
     {
         StateInfo states[MAX_DEPTH], *si = states;
 
-        u08 ply = 0; // Ply starts from 1, we need to start from 0
+        u08 ply;
         const TTEntry *tte;
-        for (; ply < u08(pv.size ()); ++ply)
+        for (ply = 0; ply < u08(pv.size ()) && pv[ply] != MOVE_NONE; ++ply)
         {
             Move m = pv[ply];
             assert (MoveList<LEGAL> (pos).contains (m));
@@ -1619,7 +1619,7 @@ namespace Search {
     string RootMove::info_pv () const
     {
         stringstream ss;
-        for (u08 i = 0; i < u08(pv.size ()); ++i)
+        for (u08 i = 0; i < u08(pv.size ()) && pv[i] != MOVE_NONE; ++i)
         {
             ss << " " << move_to_can (pv[i], Chess960);
         }
