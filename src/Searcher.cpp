@@ -256,8 +256,7 @@ namespace Search {
                && tte != NULL
                && tt_depth >= qs_depth
                && tt_value != VALUE_NONE // Only in case of TT access race
-               && tt_value >= beta ? (tt_bound &  BOUND_LOWER) :
-                                     (tt_bound &  BOUND_UPPER)
+               && (tt_value >= beta ? (tt_bound &  BOUND_LOWER) : (tt_bound &  BOUND_UPPER))
                )
             {
                 (ss)->current_move = tt_move; // Can be MOVE_NONE
@@ -281,7 +280,7 @@ namespace Search {
 
                     // Can tt_value be used as a better position evaluation?
                     if (  VALUE_NONE != tt_value
-                       && tt_bound & (best_value < tt_value ? BOUND_LOWER : BOUND_UPPER)
+                       && (tt_bound & (best_value < tt_value ? BOUND_LOWER : BOUND_UPPER))
                        )
                     {
                         best_value = tt_value;
@@ -419,7 +418,7 @@ namespace Search {
                         best_move = move;
                          if (PVNode)
                          {
-                             (ss)->pv->update (move, &pv);
+                             (ss)->pv->update (best_move, &pv);
                          }
 
                         // Fail high
@@ -570,7 +569,6 @@ namespace Search {
                     tt_bound = tte->bound ();
                 }
 
-                
                 // At PV nodes check for exact scores, while at non-PV nodes check for
                 // a fail high/low. Biggest advantage at probing at PV nodes is to have a
                 // smooth experience in analysis mode. Don't probe at Root nodes otherwise
@@ -579,8 +577,7 @@ namespace Search {
                     && tte != NULL
                     && tt_value != VALUE_NONE // Only in case of TT access race
                     && tt_depth >= depth
-                    && tt_value >= beta ? (tt_bound &  BOUND_LOWER) :
-                                            (tt_bound &  BOUND_UPPER)
+                    && (tt_value >= beta ? (tt_bound &  BOUND_LOWER) : (tt_bound &  BOUND_UPPER))
                    )
                 {
                     (ss)->current_move = tt_move; // Can be MOVE_NONE
@@ -614,7 +611,7 @@ namespace Search {
 
                         // Can tt_value be used as a better position evaluation?
                         if (  VALUE_NONE != tt_value
-                           && tt_bound & (static_eval < tt_value ? BOUND_LOWER : BOUND_UPPER)
+                           && (tt_bound & (static_eval < tt_value ? BOUND_LOWER : BOUND_UPPER))
                            )
                         {
                             static_eval = tt_value;
@@ -836,7 +833,7 @@ namespace Search {
                     &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
                     && tt_depth >= depth-3*DEPTH_ONE
                     && abs (tt_value) < +VALUE_KNOWN_WIN
-                    && tt_bound & BOUND_LOWER;
+                    && (tt_bound & BOUND_LOWER);
 
             point time;
 
@@ -1186,7 +1183,7 @@ namespace Search {
                     if (legals == 1 || alpha < value)
                     {
                         rm.new_value = value;
-                        rm.pv.resize(1);
+                        rm.pv.resize (1);
                         for (u08 i = 0; i < MAX_DEPTH && (ss+1)->pv != NULL && (ss+1)->pv->pv[i] != MOVE_NONE; ++i)
                         {
                             rm.pv.push_back((ss+1)->pv->pv[i]);

@@ -475,7 +475,7 @@ inline bool   _ok     (Move m)
 
 //inline void org_sq  (Move &m, Square org) { m &= 0xF03F; m |= (org << 6); }
 //inline void dst_sq  (Move &m, Square dst) { m &= 0xFFC0; m |= (dst << 0); }
-inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | ((pt - NIHT) & ROOK) << 12); }
+inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | (pt - NIHT) << 12); }
 //inline void mtype   (Move &m, MoveT mt)   { m &= ~PROMOTE; m |= mt; }
 //inline Move operator~ (Move m)
 //{
@@ -499,7 +499,7 @@ template Move mk_move<ENPASSANT> (Square org, Square dst);
 template<MoveT MT>
 inline Move mk_move (Square org, Square dst, PieceT pt) { return MOVE_NONE; }
 template<>
-inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move(PROMOTE | ((((u16(pt) - u16(NIHT)) << 6) | u16(org)) << 6) | u16(dst)); }
+inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move(PROMOTE | ((((pt - NIHT) << 6) | u16(org)) << 6) | u16(dst)); }
 
 inline Move mk_move (Square org, Square dst) { return mk_move<NORMAL> (org, dst); }
 
