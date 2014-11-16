@@ -827,7 +827,7 @@ namespace Search {
                     &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
                     && tt_depth >= depth-3*DEPTH_ONE
                     && abs (tt_value) < +VALUE_KNOWN_WIN
-                    && tt_bound & BOUND_LOWER;
+                    && (tt_bound & BOUND_LOWER);
 
             point time;
 
