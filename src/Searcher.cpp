@@ -173,7 +173,7 @@ namespace Search {
 
                 ss  << "info"
                     << " multipv "  << u16(i + 1)
-                    << " depth "    << u16(d/DEPTH_ONE)
+                    << " depth "    << u16(d)
                     << " seldepth " << u16(Threadpool.max_ply)
                     << " score "    << (i == IndexPV ? pretty_score (v, alpha, beta) : pretty_score (v))
                     << " time "     << time
@@ -840,7 +840,7 @@ namespace Search {
                     {
                         sync_cout
                             << "info"
-                            << " depth " << u16(depth/DEPTH_ONE)
+                            << " depth " << u16(depth)
                             << " time "  << time
                             << sync_endl;
                     }
@@ -913,7 +913,7 @@ namespace Search {
                         {
                             sync_cout
                                 << "info"
-                                //<< " depth "          << u16(depth/DEPTH_ONE)
+                                //<< " depth "          << u16(depth)
                                 << " currmovenumber " << setw (2) << u16(legals + IndexPV)
                                 << " currmove "       << move_to_can (move, Chess960)
                                 << " time "           << time
