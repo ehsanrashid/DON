@@ -213,12 +213,13 @@ namespace Search {
 
             PVEntry pv;
             Value pv_alpha = -VALUE_INFINITE;
+
             if (PVNode)
             {
                 // To flag EXACT a node with eval above alpha and no available moves
-                pv_alpha = alpha;
+                pv_alpha        = alpha;
 
-                (ss+1)->pv = &pv;
+                (ss+1)->pv      = &pv;
                 (ss)->pv->pv[0] = MOVE_NONE;
             }
 
@@ -416,10 +417,11 @@ namespace Search {
                     if (alpha < value)
                     {
                         best_move = move;
-                         if (PVNode)
-                         {
-                             (ss)->pv->update (best_move, &pv);
-                         }
+
+                        if (PVNode)
+                        {
+                            (ss)->pv->update (best_move, &pv);
+                        }
 
                         // Fail high
                         if (value >= beta)
@@ -1140,7 +1142,6 @@ namespace Search {
                     // alpha >= value and to try another better move.
                     if (legals == 1 || (alpha < value && (RootNode || value < beta)))
                     {
-                        pv.pv[0] = MOVE_NONE;
                         (ss+1)->pv = &pv;
 
                         value =
@@ -1184,9 +1185,9 @@ namespace Search {
                     {
                         rm.new_value = value;
                         rm.pv.resize (1);
-                        for (u08 i = 0; i < MAX_DEPTH && (ss+1)->pv != NULL && (ss+1)->pv->pv[i] != MOVE_NONE; ++i)
+                        for (u08 i = 0; (ss+1)->pv != NULL && i < MAX_DEPTH && (ss+1)->pv->pv[i] != MOVE_NONE; ++i)
                         {
-                            rm.pv.push_back((ss+1)->pv->pv[i]);
+                            rm.pv.push_back ((ss+1)->pv->pv[i]);
                         }
 
                         // Record how often the best move has been changed in each iteration.
@@ -1213,10 +1214,11 @@ namespace Search {
                     if (alpha < value)
                     {
                         best_move = (SPNode) ? splitpoint->best_move = move : move;
+
                         if (NT == PV)
                         {
-                            ss->pv->update (move, (ss+1)->pv);
-                            if (SPNode) splitpoint->ss->pv->update (move, (ss+1)->pv);
+                            ss->pv->update (best_move, (ss+1)->pv);
+                            if (SPNode) splitpoint->ss->pv->update (best_move, (ss+1)->pv);
                         }
 
                         // Fail high
@@ -2036,9 +2038,10 @@ namespace Threads {
                 Threadpool.mutex.unlock ();
 
                 Stack stack[MAX_DEPTH+4], *ss = stack+2;    // To allow referencing (ss+2) & (ss-2)
+                Position pos (*((sp)->pos), this);
+                
                 memcpy (ss-2, (sp)->ss-2, 5*sizeof (*ss));
 
-                Position pos (*(sp)->pos, this);
                 (ss)->splitpoint = sp;
 
                 // Lock splitpoint

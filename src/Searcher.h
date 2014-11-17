@@ -177,7 +177,7 @@ namespace Search {
             pv[0] = move;
 
             u08 i = 1;
-            for ( ; i < MAX_DEPTH && child != NULL && child->pv[i - 1] != MOVE_NONE; ++i)
+            for ( ; child != NULL && i < MAX_DEPTH && child->pv[i - 1] != MOVE_NONE; ++i)
             {
                 pv[i] = child->pv[i - 1];
             }
