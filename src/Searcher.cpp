@@ -99,7 +99,7 @@ namespace Search {
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
-            Value value = Value(4*u16(depth)*u16(depth));
+            Value value = Value(u16(depth)*u16(depth));
             HistoryStatistics.update (pos, move, value);
             for (u08 i = 0; i < quiets; ++i)
             {
