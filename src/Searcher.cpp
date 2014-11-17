@@ -99,7 +99,7 @@ namespace Search {
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
-            Value value = Value(4*u16(depth)*u16(depth));
+            Value value = Value(u16(depth)*u16(depth));
             HistoryStatistics.update (pos, move, value);
             for (u08 i = 0; i < quiets; ++i)
             {
@@ -1586,11 +1586,11 @@ namespace Search {
                 && ply < MAX_DEPTH
                 && (!pos.draw () || ply < 2));
         
-        do
+        while (0 != ply)
         {
             pos.undo_move ();
             --ply;
-        } while (0 != ply);
+        }
 
         pv.push_back (MOVE_NONE); // Must be zero-terminating
     }
@@ -1626,11 +1626,11 @@ namespace Search {
             m = pv[++ply];
         } while (MOVE_NONE != m);
 
-        do
+        while (0 != ply)
         {
             pos.undo_move ();
             --ply;
-        } while (0 != ply);
+        }
     }
 
     string RootMove::info_pv () const
