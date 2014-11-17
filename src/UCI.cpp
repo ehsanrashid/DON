@@ -373,6 +373,7 @@ namespace UCI {
             if (running && !getline (cin, cmd, '\n')) cmd = "quit";
 
             cmdstream cmds (cmd);
+            token.clear ();
             cmds >> skipws >> token;
 
             if      (white_spaces (token)) continue;
