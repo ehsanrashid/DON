@@ -1609,11 +1609,11 @@ namespace Search {
             pos.do_move (m, *si++);
         }
 
-        do
+        while (0 != ply)
         {
             pos.undo_move ();
             --ply;
-        } while (0 != ply);
+        }
     }
 
     string RootMove::info_pv () const
