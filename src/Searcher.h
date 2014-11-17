@@ -109,7 +109,7 @@ namespace Search {
             , old_value (-VALUE_INFINITE)
         {
             pv.push_back (m);
-            if (m != MOVE_NONE) pv.push_back (MOVE_NONE);
+            pv.push_back (MOVE_NONE);
         }
         
         //RootMove (const RootMove &rm) { *this = rm; }
@@ -167,12 +167,17 @@ namespace Search {
     {
         Move pv[MAX_DEPTH+1];
 
+        PVEntry ()
+        {
+            pv[0] = MOVE_NONE;
+        }
+        
         void update (Move move, PVEntry *child)
         {
             pv[0] = move;
 
             u08 i = 1;
-            for (; i < MAX_DEPTH && child != NULL && child->pv[i - 1] != MOVE_NONE; ++i)
+            for ( ; i < MAX_DEPTH && child != NULL && child->pv[i - 1] != MOVE_NONE; ++i)
             {
                 pv[i] = child->pv[i - 1];
             }
