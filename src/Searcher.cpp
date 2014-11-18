@@ -225,7 +225,7 @@ namespace Search {
 
             assert (0 <= (ss)->ply && (ss)->ply < MAX_DEPTH);
 
-            Move pv[MAX_DEPTH+1];
+            Move  pv[MAX_DEPTH+1];
             Value pv_alpha = -VALUE_INFINITE;
             
             if (PVNode)
@@ -869,10 +869,6 @@ namespace Search {
 
             Move * counter_moves = _ok ((ss-1)->current_move) ?  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)) : NULL
                , *followup_moves = _ok ((ss-2)->current_move) ? FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)) : NULL;
-            //Move  counter_moves[2]
-            //   , followup_moves[2];
-            //memcpy ( counter_moves,  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)), sizeof ( counter_moves));
-            //memcpy (followup_moves, FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)), sizeof (followup_moves));
 
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
             StateInfo si;
