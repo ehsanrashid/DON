@@ -116,6 +116,20 @@ namespace Search {
                 FollowupMoveStats.update (pos, own_move, move);
             }
         }
+        
+        // update_pv() copies child node pv[] adding current move
+        inline void update_pv (Move *dst, Move move, Move *src)
+        {
+            *dst++ = move;
+            if (src != NULL)
+            {
+                while (*src != MOVE_NONE)
+                {
+                    *dst++ = *src++;
+                }
+            }
+            *dst = MOVE_NONE;
+        }
 
         // value_to_tt() adjusts a mate score from "plies to mate from the root" to
         // "plies to mate from the current position". Non-mate scores are unchanged.
@@ -184,20 +198,6 @@ namespace Search {
             }
 
             return ss.str ();
-        }
-
-        // update_pv() copies child node pv[] adding current move
-        inline void update_pv (Move *pv, Move move, Move *child)
-        {
-            *pv++ = move;
-            if (child != NULL)
-            {
-                while (*child != MOVE_NONE)
-                {
-                    *pv++ = *child++;
-                }
-            }
-            *pv = MOVE_NONE;
         }
 
         template<NodeT NT, bool InCheck>
@@ -1232,10 +1232,9 @@ namespace Search {
                     {
                         best_move = (SPNode) ? splitpoint->best_move = move : move;
 
-                        if (PVNode && !RootNode)
+                        if (PVNode)
                         {
-                            update_pv ((ss)->pv, best_move, (ss+1)->pv);
-                            if (SPNode) update_pv ((splitpoint->ss)->pv, best_move, (ss+1)->pv);
+                            update_pv (SPNode ? splitpoint->ss->pv : ss->pv, best_move, (ss+1)->pv);
                         }
 
                         // Fail high
@@ -1318,6 +1317,7 @@ namespace Search {
         }
 
         Stack Stacks[MAX_DEPTH+4]; // To allow referencing (ss+2)
+        Move  pv[MAX_DEPTH+1];
         // search_iter_deepening() is the main iterative deepening search function.
         // It calls search() repeatedly with increasing depth until:
         // - the allocated thinking time has been consumed,
@@ -1329,6 +1329,8 @@ namespace Search {
         {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
             memset (ss-2, 0x00, 5*sizeof (*ss));
+            memset (pv, MOVE_NONE, sizeof (pv));
+            ss->pv = pv;
 
             TT.new_gen ();
             GainStatistics.clear ();
