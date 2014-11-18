@@ -1317,7 +1317,6 @@ namespace Search {
         }
 
         Stack Stacks[MAX_DEPTH+4]; // To allow referencing (ss+2)
-        Move  pv[MAX_DEPTH+1];
         // search_iter_deepening() is the main iterative deepening search function.
         // It calls search() repeatedly with increasing depth until:
         // - the allocated thinking time has been consumed,
@@ -1329,6 +1328,8 @@ namespace Search {
         {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
             memset (ss-2, 0x00, 5*sizeof (*ss));
+
+            Move  pv[MAX_DEPTH+1];
             memset (pv, MOVE_NONE, sizeof (pv));
             ss->pv = pv;
 
