@@ -433,7 +433,7 @@ namespace Search {
 
                         if (PVNode)
                         {
-                            update_pv((ss)->pv, move, (ss+1)->pv);
+                            update_pv((ss)->pv, best_move, (ss+1)->pv);
                         }
 
                         // Fail high
