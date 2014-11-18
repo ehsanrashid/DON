@@ -227,12 +227,14 @@ namespace Search {
 
             Move pv[MAX_DEPTH+1];
             Value pv_alpha = -VALUE_INFINITE;
-
+            
             if (PVNode)
             {
                 // To flag EXACT a node with eval above alpha and no available moves
                 pv_alpha    = alpha;
+
                 (ss+1)->pv  = pv;
+                memset (pv, MOVE_NONE, sizeof (pv));
                 (ss)->pv[0] = MOVE_NONE;
             }
 
@@ -433,7 +435,7 @@ namespace Search {
 
                         if (PVNode)
                         {
-                            update_pv((ss)->pv, best_move, (ss+1)->pv);
+                            update_pv ((ss)->pv, best_move, (ss+1)->pv);
                         }
 
                         // Fail high
@@ -881,7 +883,7 @@ namespace Search {
 
             Move  quiet_moves[MAX_QUIETS]
                 , pv[MAX_DEPTH+1];
-
+            
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move<SPNode> ()) != MOVE_NONE)
@@ -1152,7 +1154,7 @@ namespace Search {
                     // alpha >= value and to try another better move.
                     if (legals == 1 || (alpha < value && (RootNode || value < beta)))
                     {
-                        pv[0] = MOVE_NONE;
+                        memset (pv, MOVE_NONE, sizeof (pv));
                         (ss+1)->pv = pv;
 
                         value =
@@ -1603,10 +1605,11 @@ namespace Search {
     {
         StateInfo states[MAX_DEPTH], *si = states;
 
-        u08 ply;
+        size_t ply;
         Move m;
         const TTEntry *tte;
-        for (ply = 0; ply < u08(pv.size ()) && (m = pv[ply]) != MOVE_NONE; ++ply)
+        //assert (pv[pv.size ()-1] == MOVE_NONE);
+        for (ply = 0; ply < pv.size () && (m = pv[ply]) != MOVE_NONE; ++ply)
         {
             assert (MoveList<LEGAL> (pos).contains (m));
 
@@ -1636,9 +1639,10 @@ namespace Search {
     string RootMove::info_pv () const
     {
         stringstream ss;
-        for (u08 i = 0; i < u08(pv.size ()) && pv[i] != MOVE_NONE; ++i)
+        Move m;
+        for (size_t i = 0; i < pv.size () && (m = pv[i]) != MOVE_NONE; ++i)
         {
-            ss << " " << move_to_can (pv[i], Chess960);
+            ss << " " << move_to_can (m, Chess960);
         }
         return ss.str ();
     }
@@ -1961,6 +1965,7 @@ namespace Threads {
             last_time = now_time;
             dbg_print ();
         }
+        //if (Signals.force_stop) return;
 
         point movetime = now_time - SearchTime;
         if (!Limits.ponder && Limits.use_timemanager ())

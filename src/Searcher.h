@@ -109,7 +109,6 @@ namespace Search {
             , old_value (-VALUE_INFINITE)
         {
             pv.push_back (m);
-            pv.push_back (MOVE_NONE);
         }
         
         //RootMove (const RootMove &rm) { *this = rm; }
