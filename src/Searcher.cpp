@@ -190,9 +190,12 @@ namespace Search {
         inline void update_pv (Move *pv, Move move, Move *child)
         {
             *pv++ = move;
-            while (child != NULL && *child != MOVE_NONE)
+            if (child != NULL)
             {
-                *pv++ = *child++;
+                while (*child != MOVE_NONE)
+                {
+                    *pv++ = *child++;
+                }
             }
             *pv = MOVE_NONE;
         }
