@@ -1193,9 +1193,14 @@ namespace Search {
                     {
                         rm.new_value = value;
                         rm.pv.resize (1);
-                        for (u08 i = 0; (ss+1)->pv != NULL && (ss+1)->pv[i] != MOVE_NONE; ++i)
+                        Move *m = (ss+1)->pv;
+                        if (m != NULL)
                         {
-                            rm.pv.push_back ((ss+1)->pv[i]);
+                            while (*m != MOVE_NONE)
+                            {
+                                rm.pv.push_back (*m);
+                                ++m;
+                            }
                         }
 
                         // Record how often the best move has been changed in each iteration.
