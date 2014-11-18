@@ -163,35 +163,13 @@ namespace Search {
         //}
     };
 
-    struct PVEntry
-    {
-        Move pv[MAX_DEPTH+1];
-
-        PVEntry ()
-        {
-            pv[0] = MOVE_NONE;
-        }
-        
-        void update (Move move, PVEntry *child)
-        {
-            pv[0] = move;
-
-            u08 i = 1;
-            for ( ; child != NULL && i < MAX_DEPTH && child->pv[i - 1] != MOVE_NONE; ++i)
-            {
-                pv[i] = child->pv[i - 1];
-            }
-            pv[i] = MOVE_NONE;
-        } 
-    };
-
     // The Stack struct keeps track of the information needed to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
     // has its own array of Stack objects, indexed by the current ply.
     struct Stack
     {
         SplitPoint *splitpoint;
-        PVEntry    *pv;
+        Move       *pv;
         u08         ply;
 
         Move    tt_move

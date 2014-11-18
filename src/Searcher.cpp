@@ -186,6 +186,16 @@ namespace Search {
             return ss.str ();
         }
 
+        // update_pv() copies child node pv[] adding current move
+        inline void update_pv (Move *pv, Move move, Move *child)
+        {
+            for (*pv++ = move; child != NULL && *child != MOVE_NONE; )
+            {
+                *pv++ = *child++;
+            }
+            *pv = MOVE_NONE;
+        }
+
         template<NodeT NT, bool InCheck>
         // search_quien() is the quiescence search function,
         // which is called by the main depth limited search function
@@ -211,16 +221,15 @@ namespace Search {
 
             assert (0 <= (ss)->ply && (ss)->ply < MAX_DEPTH);
 
-            PVEntry pv;
+            Move pv[MAX_DEPTH+1];
             Value pv_alpha = -VALUE_INFINITE;
 
             if (PVNode)
             {
                 // To flag EXACT a node with eval above alpha and no available moves
-                pv_alpha        = alpha;
-
-                (ss+1)->pv      = &pv;
-                (ss)->pv->pv[0] = MOVE_NONE;
+                pv_alpha    = alpha;
+                (ss+1)->pv  = pv;
+                (ss)->pv[0] = MOVE_NONE;
             }
 
             // Transposition table lookup
@@ -420,7 +429,7 @@ namespace Search {
 
                         if (PVNode)
                         {
-                            (ss)->pv->update (best_move, &pv);
+                            update_pv((ss)->pv, move, (ss+1)->pv);
                         }
 
                         // Fail high
@@ -571,10 +580,7 @@ namespace Search {
                     tt_bound = tte->bound ();
                 }
 
-                // At PV nodes check for exact scores, while at non-PV nodes check for
-                // a fail high/low. Biggest advantage at probing at PV nodes is to have a
-                // smooth experience in analysis mode. Don't probe at Root nodes otherwise
-                // should also update RootMoveList to avoid bogus output.
+                // At non-PV nodes we check for a fail high/low. We don't probe at PV nodes
                 if (  !PVNode
                     && tte != NULL
                     && tt_value != VALUE_NONE // Only in case of TT access race
@@ -870,7 +876,7 @@ namespace Search {
                 , quiets = 0;
 
             Move quiet_moves[MAX_QUIETS] = { MOVE_NONE };
-            PVEntry pv;
+            Move pv[MAX_DEPTH+1];
 
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -1142,7 +1148,8 @@ namespace Search {
                     // alpha >= value and to try another better move.
                     if (legals == 1 || (alpha < value && (RootNode || value < beta)))
                     {
-                        (ss+1)->pv = &pv;
+                        pv[0] = MOVE_NONE;
+                        (ss+1)->pv = pv;
 
                         value =
                             new_depth < DEPTH_ONE ?
@@ -1185,9 +1192,9 @@ namespace Search {
                     {
                         rm.new_value = value;
                         rm.pv.resize (1);
-                        for (u08 i = 0; (ss+1)->pv != NULL && i < MAX_DEPTH && (ss+1)->pv->pv[i] != MOVE_NONE; ++i)
+                        for (u08 i = 0; (ss+1)->pv != NULL && (ss+1)->pv[i] != MOVE_NONE; ++i)
                         {
-                            rm.pv.push_back ((ss+1)->pv->pv[i]);
+                            rm.pv.push_back ((ss+1)->pv[i]);
                         }
 
                         // Record how often the best move has been changed in each iteration.
@@ -1215,10 +1222,10 @@ namespace Search {
                     {
                         best_move = (SPNode) ? splitpoint->best_move = move : move;
 
-                        if (NT == PV)
+                        if (PVNode && !RootNode)
                         {
-                            ss->pv->update (best_move, (ss+1)->pv);
-                            if (SPNode) splitpoint->ss->pv->update (best_move, (ss+1)->pv);
+                            update_pv ((ss)->pv, best_move, (ss+1)->pv);
+                            if (SPNode) update_pv ((splitpoint->ss)->pv, best_move, (ss+1)->pv);
                         }
 
                         // Fail high
