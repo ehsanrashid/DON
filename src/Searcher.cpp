@@ -189,7 +189,8 @@ namespace Search {
         // update_pv() copies child node pv[] adding current move
         inline void update_pv (Move *pv, Move move, Move *child)
         {
-            for (*pv++ = move; child != NULL && *child != MOVE_NONE; )
+            *pv++ = move;
+            while (child != NULL && *child != MOVE_NONE)
             {
                 *pv++ = *child++;
             }
@@ -875,8 +876,8 @@ namespace Search {
             u08   legals = 0
                 , quiets = 0;
 
-            Move quiet_moves[MAX_QUIETS] = { MOVE_NONE };
-            Move pv[MAX_DEPTH+1];
+            Move  quiet_moves[MAX_QUIETS]
+                , pv[MAX_DEPTH+1];
 
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
