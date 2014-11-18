@@ -1201,8 +1201,7 @@ namespace Search {
                         {
                             while (*m != MOVE_NONE)
                             {
-                                rm.pv.push_back (*m);
-                                ++m;
+                                rm.pv.push_back (*m++);
                             }
                         }
 
