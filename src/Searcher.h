@@ -111,16 +111,6 @@ namespace Search {
             pv.push_back (m);
         }
         
-        //RootMove (const RootMove &rm) { *this = rm; }
-        //RootMove& RootMove::operator= (const RootMove &rm)
-        //{
-        //    nodes     = rm.nodes;
-        //    new_value = rm.new_value;
-        //    old_value = rm.old_value;
-        //    pv        = rm.pv;
-        //    return *this;
-        //}
-
         // Ascending Sort
 
         friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value >  rm2.new_value); }
@@ -147,10 +137,6 @@ namespace Search {
 
         void initialize (const Position &pos, const vector<Move> &root_moves);
 
-        //inline void sort_full ()     { std::stable_sort (begin (), end ()); }
-        //inline void sort_beg (i32 n) { std::stable_sort (begin (), begin () + n); }
-        //inline void sort_end (i32 n) { std::stable_sort (begin () + n, end ()); }
-        
         //u64 game_nodes () const
         //{
         //    u64 nodes = U64(0);

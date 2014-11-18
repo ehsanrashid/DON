@@ -232,9 +232,9 @@ namespace Search {
             {
                 // To flag EXACT a node with eval above alpha and no available moves
                 pv_alpha    = alpha;
-
-                (ss+1)->pv  = pv;
+                
                 memset (pv, MOVE_NONE, sizeof (pv));
+                (ss+1)->pv  = pv;
                 (ss)->pv[0] = MOVE_NONE;
             }
 
@@ -1395,7 +1395,6 @@ namespace Search {
                         // want to keep the same order for all the moves but the new PV
                         // that goes to the front. Note that in case of MultiPV search
                         // the already searched PV lines are preserved.
-                        //RootMoves.sort_end (IndexPV);
                         stable_sort (RootMoves.begin () + IndexPV, RootMoves.end ());
 
                         // Write PV back to transposition table in case the relevant
@@ -1444,7 +1443,6 @@ namespace Search {
                     } while (true);
 
                     // Sort the PV lines searched so far and update the GUI
-                    //RootMoves.sort_beg (IndexPV + 1);
                     stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
 
                     if (Signals.force_stop) break;
@@ -1601,19 +1599,17 @@ namespace Search {
     // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
     // inserts the PV back into the TT. This makes sure the old PV moves are searched
     // first, even if the old TT entries have been overwritten.
-    void   RootMove:: insert_pv_into_tt (Position &pos)
+    void   RootMove::insert_pv_into_tt (Position &pos)
     {
         StateInfo states[MAX_DEPTH], *si = states;
 
         size_t ply;
-        Move m;
-        const TTEntry *tte;
-        //assert (pv[pv.size ()-1] == MOVE_NONE);
-        for (ply = 0; ply < pv.size () && (m = pv[ply]) != MOVE_NONE; ++ply)
+        for (ply = 0; ply < pv.size (); ++ply)
         {
+            Move m = pv[ply];
             assert (MoveList<LEGAL> (pos).contains (m));
 
-            tte = TT.retrieve (pos.posi_key ());
+            const TTEntry *tte = TT.retrieve (pos.posi_key ());
             // Don't overwrite correct entries
             if (tte == NULL || tte->move () != m)
             {
@@ -1639,10 +1635,9 @@ namespace Search {
     string RootMove::info_pv () const
     {
         stringstream ss;
-        Move m;
-        for (size_t i = 0; i < pv.size () && (m = pv[i]) != MOVE_NONE; ++i)
+        for (size_t i = 0; i < pv.size (); ++i)
         {
-            ss << " " << move_to_can (m, Chess960);
+            ss << " " << move_to_can (pv[i], Chess960);
         }
         return ss.str ();
     }
