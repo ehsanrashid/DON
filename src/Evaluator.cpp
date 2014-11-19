@@ -49,12 +49,12 @@ namespace Evaluate {
 
             // king_ring_attackers_weight[Color] is the sum of the "weight" of the pieces
             // of the given color which attack a square in the king_ring of the enemy king.
-            // The weights of the individual piece types are given by the variables KING_ATTACK[PieceT]
+            // The weights of the individual piece types are given by the KING_ATTACK[PieceT]
             u32 king_ring_attackers_weight[CLR_NO];
 
             // king_zone_attacks_count[Color] is the sum of attacks of the pieces
             // of the given color which attack a square directly adjacent to the enemy king.
-            // The weights of the individual piece types are given by the variables KING_ATTACK[PieceT]
+            // The weights of the individual piece types are given by the KING_ATTACK[PieceT]
             // Pieces which attack more than one square are counted multiple times.
             // For instance, if black's king is on g8 and there's a white knight on g5,
             // this knight adds 2 to king_zone_attacks_count[WHITE].

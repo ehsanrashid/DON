@@ -1228,10 +1228,15 @@ namespace Search {
                     {
                         best_move = (SPNode) ? splitpoint->best_move = move : move;
 
-                        if (PVNode)
+                        if (PVNode && !RootNode)
                         {
-                            update_pv (SPNode ? splitpoint->ss->pv : ss->pv, best_move, (ss+1)->pv);
+                            update_pv ((ss)->pv, best_move, (ss+1)->pv);
+                            if (SPNode) update_pv (splitpoint->ss->pv, best_move, (ss+1)->pv);
                         }
+                        //if (PVNode)
+                        //{
+                        //    update_pv (SPNode ? splitpoint->ss->pv : (ss)->pv, best_move, (ss+1)->pv);
+                        //}
 
                         // Fail high
                         if (value >= beta)
@@ -1959,7 +1964,6 @@ namespace Threads {
             last_time = now_time;
             dbg_print ();
         }
-        //if (Signals.force_stop) return;
 
         point movetime = now_time - SearchTime;
         if (!Limits.ponder && Limits.use_timemanager ())
