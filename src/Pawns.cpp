@@ -190,7 +190,7 @@ namespace Pawns {
 
                 if (doubled)
                 {
-                    score -= DOUBLED[f] / i32(dist<Rank> (s, scan_frntmost_sq (Own, doubled)));
+                    score -= DOUBLED[f] / dist<Rank> (s, scan_frntmost_sq (Own, doubled));
                 }
                 else
                 {

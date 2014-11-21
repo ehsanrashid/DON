@@ -118,17 +118,17 @@ namespace Search {
         }
         
         // update_pv() copies child node pv[] adding current move
-        inline void update_pv (Move *dst, Move move, Move *src)
+        inline void update_pv (Move *pv, Move move, Move *child_pv)
         {
-            *dst++ = move;
-            if (src != NULL)
+            *pv++ = move;
+            if (child_pv != NULL)
             {
-                while (*src != MOVE_NONE)
+                while (*child_pv != MOVE_NONE)
                 {
-                    *dst++ = *src++;
+                    *pv++ = *child_pv++;
                 }
             }
-            *dst = MOVE_NONE;
+            *pv = MOVE_NONE;
         }
 
         // value_to_tt() adjusts a mate score from "plies to mate from the root" to
@@ -315,13 +315,8 @@ namespace Search {
                     {
                         if (tte == NULL)
                         {
-                            TT.store (
-                                posi_key,
-                                MOVE_NONE,
-                                DEPTH_NONE,
-                                BOUND_LOWER,
-                                value_to_tt (best_value, (ss)->ply),
-                                (ss)->static_eval);
+                            TT.store (posi_key, MOVE_NONE, DEPTH_NONE, BOUND_LOWER,
+                                value_to_tt (best_value, (ss)->ply), (ss)->static_eval);
                         }
 
                         assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -441,13 +436,8 @@ namespace Search {
                         // Fail high
                         if (value >= beta)
                         {
-                            TT.store (
-                                posi_key,
-                                best_move,
-                                qs_depth,
-                                BOUND_LOWER,
-                                value_to_tt (best_value, (ss)->ply),
-                                (ss)->static_eval);
+                            TT.store (posi_key, best_move, qs_depth, BOUND_LOWER, 
+                                value_to_tt (best_value, (ss)->ply), (ss)->static_eval);
 
                             assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
                             return best_value;
@@ -468,13 +458,9 @@ namespace Search {
                 best_value = mated_in ((ss)->ply);
             }
 
-            TT.store (
-                posi_key,
-                best_move,
-                qs_depth,
+            TT.store (posi_key, best_move, qs_depth,
                 PVNode && pv_alpha < best_value ? BOUND_EXACT : BOUND_UPPER,
-                value_to_tt (best_value, (ss)->ply),
-                (ss)->static_eval);
+                value_to_tt (best_value, (ss)->ply), (ss)->static_eval);
 
             assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -636,13 +622,7 @@ namespace Search {
                         (ss)->static_eval = static_eval =
                             (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
 
-                        TT.store (
-                            posi_key,
-                            MOVE_NONE,
-                            DEPTH_NONE,
-                            BOUND_NONE,
-                            VALUE_NONE,
-                            (ss)->static_eval);
+                        TT.store (posi_key, MOVE_NONE, DEPTH_NONE, BOUND_NONE, VALUE_NONE, (ss)->static_eval);
                     }
 
                     move = (ss-1)->current_move;
@@ -1233,10 +1213,6 @@ namespace Search {
                             update_pv ((ss)->pv, best_move, (ss+1)->pv);
                             if (SPNode) update_pv (splitpoint->ss->pv, best_move, (ss+1)->pv);
                         }
-                        //if (PVNode)
-                        //{
-                        //    update_pv (SPNode ? splitpoint->ss->pv : (ss)->pv, best_move, (ss+1)->pv);
-                        //}
 
                         // Fail high
                         if (value >= beta)
@@ -1303,14 +1279,10 @@ namespace Search {
                     update_stats (pos, ss, best_move, depth, quiet_moves, quiets-1);
                 }
 
-                TT.store (
-                    posi_key,
-                    best_move,
-                    depth,
+                TT.store (posi_key, best_move, depth,
                     best_value >= beta ? BOUND_LOWER :
                         PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
-                    value_to_tt (best_value, (ss)->ply),
-                    (ss)->static_eval);
+                    value_to_tt (best_value, (ss)->ply), (ss)->static_eval);
             }
 
             assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -1329,10 +1301,6 @@ namespace Search {
         {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
             memset (ss-2, 0x00, 5*sizeof (*ss));
-
-            Move  pv[MAX_DEPTH+1];
-            memset (pv, MOVE_NONE, sizeof (pv));
-            ss->pv = pv;
 
             TT.new_gen ();
             GainStatistics.clear ();
@@ -1617,13 +1585,7 @@ namespace Search {
             // Don't overwrite correct entries
             if (tte == NULL || tte->move () != m)
             {
-                TT.store (
-                    pos.posi_key (),
-                    m,
-                    DEPTH_NONE,
-                    BOUND_NONE,
-                    VALUE_NONE,
-                    VALUE_NONE);
+                TT.store (pos.posi_key (), m, DEPTH_NONE, BOUND_NONE, VALUE_NONE, VALUE_NONE);
             }
 
             pos.do_move (m, *si++);
