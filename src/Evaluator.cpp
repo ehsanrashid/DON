@@ -769,9 +769,8 @@ namespace Evaluate {
 
             // Enemies protected by pawn and attacked by pieces
             Bitboard protected_enemies = 
-                   (enemies ^ pos.pieces<PAWN> (Opp))
-                &  ei.pin_attacked_by[Opp][PAWN]
-                & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]|ei.pin_attacked_by[Own][ROOK]|ei.pin_attacked_by[Own][QUEN]);
+                  (enemies ^ pos.pieces<PAWN> (Opp))
+                &  ei.pin_attacked_by[Opp][PAWN];
 
             // Enemies not defended by pawn and attacked by any piece
             Bitboard weak_enemies = 

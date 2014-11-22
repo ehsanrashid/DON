@@ -107,9 +107,8 @@ namespace Search {
             : nodes (U64(0))
             , new_value (-VALUE_INFINITE)
             , old_value (-VALUE_INFINITE)
-        {
-            pv.push_back (m);
-        }
+            , pv (1, m)
+        {}
         
         // Ascending Sort
 

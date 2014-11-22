@@ -1174,13 +1174,12 @@ namespace Search {
                     {
                         rm.new_value = value;
                         rm.pv.resize (1);
+
+                        assert ((ss+1)->pv != NULL);
                         Move *m = (ss+1)->pv;
-                        if (m != NULL)
+                        while (*m != MOVE_NONE)
                         {
-                            while (*m != MOVE_NONE)
-                            {
-                                rm.pv.push_back (*m++);
-                            }
+                            rm.pv.push_back (*m++);
                         }
 
                         // Record how often the best move has been changed in each iteration.
@@ -1210,8 +1209,7 @@ namespace Search {
 
                         if (PVNode && !RootNode)
                         {
-                            update_pv ((ss)->pv, best_move, (ss+1)->pv);
-                            if (SPNode) update_pv (splitpoint->ss->pv, best_move, (ss+1)->pv);
+                            update_pv (SPNode ? splitpoint->ss->pv : (ss)->pv, best_move, (ss+1)->pv);
                         }
 
                         // Fail high
