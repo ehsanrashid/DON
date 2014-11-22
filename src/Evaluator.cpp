@@ -202,17 +202,17 @@ namespace Evaluate {
             }
         };
 
-        enum ThreatT { PIADA, PROT_MINOR, PROT_ROOK, PROT_QUEN, WEAK_MINOR, WEAK_ROOK, WEAK_QUEN, ROYAL, THREAT_NO };
+        enum ThreatT { PIADA, DFND_MINOR, DFND_ROOK, DFND_QUEN, WEAK_MINOR, WEAK_ROOK, WEAK_QUEN, ROYAL, THREAT_NO };
         // PIECE_THREATEN[attacking][attacked] contains bonuses
         // according to which piece type attacks which one.
         const Score PIECE_THREATEN[THREAT_NO][NONE] =
         {
             { S(+ 0,+ 0), S(+87,+118), S(+84,+112), S(+114,+203), S(+121,+217), S(+ 0,+ 0) }, // Pawns
-            { S(+ 0,+ 0), S(+19, +37), S(+24, +37), S(+ 44,+ 97), S(+ 35,+106), S(+ 0,+ 0) }, // Minor on protected
-            { S(+ 0,+ 0), S(+ 9, +14), S(+ 9, +14), S(+  7,+ 14), S(+ 24,+ 48), S(+ 0,+ 0) }, // Rook on protected
-            { S(+ 0,+ 0), S(+ 3, + 5), S(+ 3, + 5), S(+  4,+  6), S(+ 12,+ 24), S(+ 0,+ 0) }, // Queen on protected
+            { S(+ 0,+ 0), S(+19, +37), S(+24, +37), S(+ 44,+ 97), S(+ 35,+106), S(+ 0,+ 0) }, // Minor on defended
+            { S(+ 0,+ 0), S(+ 9, +14), S(+ 9, +14), S(+  7,+ 14), S(+ 24,+ 48), S(+ 0,+ 0) }, // Rook  on defended
+            { S(+ 0,+ 0), S(+ 3, + 5), S(+ 3, + 5), S(+  4,+  6), S(+ 12,+ 24), S(+ 0,+ 0) }, // Queen on defended
             { S(+ 0,+32), S(+31, +41), S(+31, +50), S(+ 41,+100), S(+ 41,+104), S(+ 0,+ 0) }, // Minor on weak
-            { S(+ 0,+27), S(+24, +49), S(+24, +49), S(+ 40,+ 50), S(+ 40,+100), S(+ 0,+ 0) }, // Rook on weak
+            { S(+ 0,+27), S(+24, +49), S(+24, +49), S(+ 40,+ 50), S(+ 40,+100), S(+ 0,+ 0) }, // Rook  on weak
             { S(+ 0,+22), S(+18, +38), S(+18, +38), S(+ 20,+ 41), S(+ 23,+ 51), S(+ 0,+ 0) }, // Queen on weak
             { S(+ 2,+58), S(+ 6,+125), S(+ 0,+  0), S(+  0,+  0), S(+  0,+  0), S(+ 0,+ 0) }  // Royal
         };
@@ -767,10 +767,11 @@ namespace Evaluate {
 
             Bitboard enemies = pos.pieces (Opp);
 
-            // Enemies protected by pawn and attacked by pieces
-            Bitboard protected_enemies = 
+            // Enemies excluding pawn defended by pawn and attacked by any piece
+            Bitboard defended_enemies = 
                   (enemies ^ pos.pieces<PAWN> (Opp))
-                &  ei.pin_attacked_by[Opp][PAWN];
+                &  ei.pin_attacked_by[Opp][PAWN]
+                &  ei.pin_attacked_by[Own][NONE];
 
             // Enemies not defended by pawn and attacked by any piece
             Bitboard weak_enemies = 
@@ -782,25 +783,25 @@ namespace Evaluate {
 
             Score score = SCORE_ZERO;
 
-            if (protected_enemies != U64(0))
+            if (defended_enemies != U64(0))
             {
                 // Protected enemies attacked by minor pieces
-                threaten_enemies = protected_enemies & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
+                threaten_enemies = defended_enemies & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
                 while (threaten_enemies != U64(0))
                 {
-                    score += PIECE_THREATEN[PROT_MINOR][ptype (pos[pop_lsq (threaten_enemies)])];
+                    score += PIECE_THREATEN[DFND_MINOR][ptype (pos[pop_lsq (threaten_enemies)])];
                 }
                 // Protected enemies attacked by Rook
-                threaten_enemies = protected_enemies & (ei.pin_attacked_by[Own][ROOK]);
+                threaten_enemies = defended_enemies & (ei.pin_attacked_by[Own][ROOK]);
                 while (threaten_enemies != U64(0))
                 {
-                    score += PIECE_THREATEN[PROT_ROOK][ptype (pos[pop_lsq (threaten_enemies)])];
+                    score += PIECE_THREATEN[DFND_ROOK][ptype (pos[pop_lsq (threaten_enemies)])];
                 }
                 // Protected enemies attacked by Queen
-                threaten_enemies = protected_enemies & (ei.pin_attacked_by[Own][QUEN]);
+                threaten_enemies = defended_enemies & (ei.pin_attacked_by[Own][QUEN]);
                 while (threaten_enemies != U64(0))
                 {
-                    score += PIECE_THREATEN[PROT_QUEN][ptype (pos[pop_lsq (threaten_enemies)])];
+                    score += PIECE_THREATEN[DFND_QUEN][ptype (pos[pop_lsq (threaten_enemies)])];
                 }
             }
 

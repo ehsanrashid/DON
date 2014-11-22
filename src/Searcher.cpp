@@ -118,7 +118,7 @@ namespace Search {
         }
         
         // update_pv() copies child node pv[] adding current move
-        inline void update_pv (Move *pv, Move move, Move *child_pv)
+        inline void update_pv (Move *pv, Move move, const Move *child_pv)
         {
             *pv++ = move;
             if (child_pv != NULL)
@@ -1169,7 +1169,7 @@ namespace Search {
                     // Remember searched nodes counts for this rootmove
                     //rm.nodes += pos.game_nodes () - nodes;
 
-                    // PV move or new best move ?
+                    // 1st legal move or new best move ?
                     if (legals == 1 || alpha < value)
                     {
                         rm.new_value = value;
