@@ -1156,9 +1156,9 @@ namespace Evaluate {
             assert (-VALUE_INFINITE < mg && mg < +VALUE_INFINITE);
             assert (-VALUE_INFINITE < eg && eg < +VALUE_INFINITE);
 
-            Color strong_side = (eg > VALUE_DRAW) ? WHITE : BLACK;
+            Color strong_side = eg > VALUE_DRAW ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
-            ScaleFactor scale_fac = (strong_side == WHITE) ?
+            ScaleFactor scale_fac = strong_side == WHITE ?
                 ei.mi->scale_factor<WHITE> (pos) :
                 ei.mi->scale_factor<BLACK> (pos);
 
