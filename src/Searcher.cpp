@@ -1791,7 +1791,7 @@ namespace Search {
                     << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / max (time, point(1)) << "\n"
                     << "Hash-full  : " << TT.permill_full ()                        << "\n"
                     << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
-                if (RootMoves[0].pv[0] != MOVE_NONE)
+                if (RootMoves[0].pv[0] != MOVE_NONE && RootMoves[0].pv.size () > 1)
                 {
                     StateInfo si;
                     RootPos.do_move (RootMoves[0].pv[0], si);
