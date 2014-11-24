@@ -1852,7 +1852,7 @@ namespace Search {
 
         // Best move could be MOVE_NONE when searching on a stalemate position
         sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], Chess960);
-        if (RootMoves[0].pv[0] != MOVE_NONE)
+        if (RootMoves[0].pv[0] != MOVE_NONE && RootMoves[0].pv.size () > 1)
         {
             cout << " ponder " << move_to_can (RootMoves[0].pv[1], Chess960);
         }
@@ -1925,8 +1925,11 @@ namespace Threads {
             dbg_print ();
         }
 
+        // An engine may not stop pondering until told so by the GUI
+        if (Limits.ponder) return;
+
         point movetime = now_time - SearchTime;
-        if (!Limits.ponder && Limits.use_timemanager ())
+        if (Limits.use_timemanager ())
         {
             if (  movetime > TimeMgr.maximum_time () - 2 * TimerResolution
                   // Still at first move
