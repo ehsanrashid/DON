@@ -99,7 +99,7 @@ namespace Search {
             }
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
-            Value value = Value(u16(depth)*u16(depth));
+            Value value = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
             HistoryStatistics.update (pos, move, value);
             for (u08 i = 0; i < quiets; ++i)
             {
@@ -176,7 +176,7 @@ namespace Search {
                 }
                 else
                 {
-                    if (1 == depth) return "";
+                    if (DEPTH_ONE == depth) return "";
 
                     d = depth - DEPTH_ONE;
                     v = RootMoves[i].old_value;
@@ -186,8 +186,8 @@ namespace Search {
                 if (ss.rdbuf ()->in_avail ()) ss << "\n";
 
                 ss  << "info"
-                    << " multipv "  << u16(i + 1)
-                    << " depth "    << u16(d)
+                    << " multipv "  << i + 1
+                    << " depth "    << d/DEPTH_ONE
                     << " seldepth " << u16(Threadpool.max_ply)
                     << " score "    << (i == IndexPV ? pretty_score (v, alpha, beta) : pretty_score (v))
                     << " time "     << time
@@ -699,7 +699,7 @@ namespace Search {
                                     (ss)->current_move = MOVE_NULL;
 
                                     // Null move dynamic reduction based on depth and static evaluation
-                                    Depth reduction_depth = (3 + depth/4 + min (i32 (static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
+                                    Depth reduction_depth = (3 + depth/4 + min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
                                     
                                     Depth reduced_depth   = depth - reduction_depth;
 
@@ -840,7 +840,7 @@ namespace Search {
                     {
                         sync_cout
                             << "info"
-                            << " depth " << u16(depth)
+                            << " depth " << depth/DEPTH_ONE
                             << " time "  << time
                             << sync_endl;
                     }
@@ -910,7 +910,7 @@ namespace Search {
                         {
                             sync_cout
                                 << "info"
-                                //<< " depth "          << u16(depth)
+                                //<< " depth "          << depth/DEPTH_ONE
                                 << " currmovenumber " << setw (2) << u16(legals + IndexPV)
                                 << " currmove "       << move_to_can (move, Chess960)
                                 << " time "           << time
@@ -948,7 +948,7 @@ namespace Search {
                    && ext == DEPTH_ZERO
                    )
                 {
-                    Value bound = tt_value - 2*i32(depth);
+                    Value bound = tt_value - 2*(depth/DEPTH_ONE);
 
                     (ss)->exclude_move = move;
                     value = search_depth<NonPV, false, false> (pos, ss, bound-1, bound, depth/2, cut_node);

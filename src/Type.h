@@ -192,12 +192,12 @@ enum Value : i32
     VALUE_DRAW      = 0,
 
     VALUE_NONE      = SHRT_MAX,
-    VALUE_INFINITE  = +i16(VALUE_NONE) - 1,
+    VALUE_INFINITE  = +VALUE_NONE - 1,
 
-    VALUE_MATE      = +i16(VALUE_INFINITE) - 1,
-    VALUE_KNOWN_WIN = +i16(VALUE_MATE) / 3,
+    VALUE_MATE      = +VALUE_INFINITE - 1,
+    VALUE_KNOWN_WIN = +VALUE_MATE / 3,
 
-    VALUE_MATE_IN_MAX_DEPTH = +i16(VALUE_MATE) - i16(MAX_DEPTH),
+    VALUE_MATE_IN_MAX_DEPTH = +VALUE_MATE - MAX_DEPTH,
 
     VALUE_MG_PAWN =  198,  VALUE_EG_PAWN =  258,
     VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  846,
@@ -357,30 +357,30 @@ inline Value  operator/  (Value  v, i32 i) { return Value(i32(v) / i); }
 inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
 inline Value  operator*  (Value  v, float f) { return Value(i32(i32(v) * f)); }
 inline Value& operator*= (Value &v, float f) { v = Value(i32(i32(v) * f)); return v; }
+inline i32    operator/  (Value v1, Value v2) { return i32(v1) / i32(v2); }
 
-// Score
-inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
+// Make score from mid and end values
+inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 0x10) + eg); }
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
 // and so is a right shift of a signed integer.
-
 inline Value mg_value (Score s) { return Value(((s + 0x8000) & ~0xFFFF) / 0x10000); }
-
 inline Value eg_value (Score s) { return Value(i32(u32(s) & 0x7FFFU) - i32(u32(s) & 0x8000U)); }
 
 ARTHMAT_OPERATORS (Score)
 /// Only declared but not defined. Don't want to multiply two scores due to
 /// a very high risk of overflow. So user should explicitly convert to integer.
-inline Score operator* (Score s1, Score s2);
+inline Score  operator*  (Score s1, Score s2);
 /// Division of a Score must be handled separately for each term
-inline Score operator/   (Score  s, i32   i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+inline Score  operator/  (Score  s, i32   i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
 inline Score  operator*  (Score  s, float f) { return mk_score (mg_value (s) * f, eg_value (s) * f); }
 inline Score& operator*= (Score &s, float f) { s = mk_score (mg_value (s) * f, eg_value (s) * f); return s; }
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)
-inline Depth  operator/  (Depth  d, i32 i) { return Depth(u08(d) / i); }
+inline Depth  operator/  (Depth d, i32 i) { return Depth(i32(d) / i); }
+inline i32    operator/  (Depth d1, Depth d2) { return i32(d1) / i32(d2); }
 
 #undef INC_DEC_OPERATORS
 #undef ARTHMAT_OPERATORS
@@ -437,7 +437,7 @@ struct Castling
             (CS == CS_Q) ? CR_BQ : CR_BK;
 };
 
-inline bool   _ok    (PieceT pt) { return PAWN <= pt && pt <= KING; }
+inline bool   _ok   (PieceT pt) { return PAWN <= pt && pt <= KING; }
 
 inline Piece operator| (Color c, PieceT pt) { return Piece((c << 3) | pt); }
 //inline Piece mk_piece  (Color c, PieceT pt) { return (c|pt); }

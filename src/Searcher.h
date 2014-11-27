@@ -183,7 +183,7 @@ namespace Search {
 
         void clear () { _best_move = MOVE_NONE; }
 
-        bool can_pick_move (Depth depth) const { return depth == 1 + _level; }
+        bool can_pick_move (Depth depth) const { return depth/DEPTH_ONE == 1 + _level; }
 
         u08  pv_size () const;
 
