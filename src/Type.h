@@ -263,7 +263,6 @@ enum Phase : i16
 {
     PHASE_ENDGAME    =   0,
     PHASE_MIDGAME    = 128,
-    PHASE_KINGSAFETY =  20,
 
     MG       = 0,
     EG       = 1,
