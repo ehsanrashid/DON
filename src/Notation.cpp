@@ -284,7 +284,7 @@ namespace Notation {
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv (Position &pos, i32 depth, Value value, point time, const Move pv[])
+    string pretty_pv (Position &pos, i32 depth, Value value, point time, const Move *pv)
     {
         ostringstream oss;
 

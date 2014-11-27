@@ -52,12 +52,12 @@ namespace Search {
         const u08   ReductionMoveCount = 64;
         // ReductionDepths lookup table (initialized at startup)
         // [pv][improving][depth][move_num]
-        u08   ReductionDepths[2][2][ReductionDepth][ReductionMoveCount];
+        Depth ReductionDepths[2][2][ReductionDepth][ReductionMoveCount];
 
         template<bool PVNode>
         inline Depth reduction_depths (bool imp, Depth d, u08 mc)
         {
-            return Depth (ReductionDepths[PVNode][imp][min (d, ReductionDepth-1)][min<u08> (mc, ReductionMoveCount-1)]);
+            return ReductionDepths[PVNode][imp][min (d, ReductionDepth-1)][min<u08> (mc, ReductionMoveCount-1)];
         }
 
         const Depth ProbCutDepth  = Depth(4);
@@ -668,8 +668,7 @@ namespace Search {
 
                         if (NullMove)
                         {
-                            assert ((ss-1)->current_move != MOVE_NONE);
-                            assert ((ss-1)->current_move != MOVE_NULL);
+                            assert ((ss-1)->current_move != MOVE_NONE && (ss-1)->current_move != MOVE_NULL);
                             assert (exclude_move == MOVE_NONE);
 
                             StateInfo si;
@@ -1795,7 +1794,7 @@ namespace Search {
                 {
                     StateInfo si;
                     RootPos.do_move (RootMoves[0].pv[0], si);
-                    logfile << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos);
+                    logfile << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos) << "\n";
                     RootPos.undo_move ();
                 }
                 logfile << endl;
@@ -1884,7 +1883,7 @@ namespace Search {
         ReductionDepths[0][0][0][0] =
         ReductionDepths[0][1][0][0] =
         ReductionDepths[1][0][0][0] =
-        ReductionDepths[1][1][0][0] = 0;
+        ReductionDepths[1][1][0][0] = DEPTH_ZERO;
         // Initialize reductions lookup table
         for (d = 1; d < ReductionDepth; ++d) // depth
         {
@@ -1892,8 +1891,8 @@ namespace Search {
             {
                 red[0] = 0.000f + log (float(d)) * log (float(mc)) / 3.00f;
                 red[1] = 0.333f + log (float(d)) * log (float(mc)) / 2.25f;
-                ReductionDepths[1][1][d][mc] = u08(red[0] >= 1.0f ? red[0] + 0.5f : 0);
-                ReductionDepths[0][1][d][mc] = u08(red[1] >= 1.0f ? red[1] + 0.5f : 0);
+                ReductionDepths[1][1][d][mc] = red[0] >= 1.0f ? Depth (u08(red[0] + 0.5f)) : DEPTH_ZERO;
+                ReductionDepths[0][1][d][mc] = red[1] >= 1.0f ? Depth (u08(red[1] + 0.5f)) : DEPTH_ZERO;
 
                 ReductionDepths[1][0][d][mc] = ReductionDepths[1][1][d][mc];
                 ReductionDepths[0][0][d][mc] = ReductionDepths[0][1][d][mc];
