@@ -1748,6 +1748,7 @@ namespace Search {
 
             // Reset the threads, still sleeping: will wake up at split time
             Threadpool.max_ply = 0;
+
             if (AutoLoadHash)
             {
                 TT.load (HashFile);
@@ -1773,7 +1774,6 @@ namespace Search {
             if (Threadpool.auto_save_th != NULL)
             {
                 Threadpool.auto_save_th->stop ();
-                Threadpool.auto_save_th->kill ();
                 delete_thread (Threadpool.auto_save_th);
                 Threadpool.auto_save_th = NULL;
             }
