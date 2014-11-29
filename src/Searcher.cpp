@@ -1054,7 +1054,7 @@ namespace Search {
                        )
                     {
                         Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legals);
-
+                        // Increase reduction
                         if (  (!PVNode && cut_node)
                            || HistoryStatistics[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
                            )
@@ -1067,7 +1067,7 @@ namespace Search {
                            && (move == counter_moves[0] || move == counter_moves[1])
                            )
                         {
-                            reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
+                            reduction_depth -= DEPTH_ONE;
                         }
                         // Decrease reduction for moves that escape a capture
                         if (  reduction_depth > DEPTH_ZERO
@@ -1076,7 +1076,7 @@ namespace Search {
                            && pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO // Reverse move
                            )
                         {
-                            reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
+                            reduction_depth -= DEPTH_ONE;
                         }
 
                         Depth reduced_depth;
@@ -1346,7 +1346,7 @@ namespace Search {
                     {
                         window_a =
                         window_b =
-                            Value(depth <= 32*DEPTH_ONE ? 22 - (depth-1)/4 : 14); // Decreasing window
+                            Value(depth <= 32*DEPTH_ONE ? 22 - (u16(depth)-1)/4 : 14); // Decreasing window
 
                         bound_a = max (RootMoves[IndexPV].old_value - window_a, -VALUE_INFINITE);
                         bound_b = min (RootMoves[IndexPV].old_value + window_b, +VALUE_INFINITE);
@@ -2036,7 +2036,7 @@ namespace Threads {
                 case  Root: search_depth<Root , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
                 case    PV: search_depth<PV   , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
                 case NonPV: search_depth<NonPV, true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                default: assert (false);
+                default   : assert (false);
                 }
 
                 assert (searching);
