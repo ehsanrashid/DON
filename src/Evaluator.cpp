@@ -652,7 +652,7 @@ namespace Evaluate {
                     Bitboard undefended_attacked;
                     if (pos.count<QUEN> (Opp) > 0)
                     {
-                        // Analyse enemy's safe queen contact checks.
+                        // Analyze enemy's safe queen contact checks.
                         // Undefended squares around the king attacked by enemy queen...
                         undefended_attacked = undefended & ei.pin_attacked_by[Opp][QUEN];
                         Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]|ei.ful_attacked_by[Opp][BSHP]|ei.ful_attacked_by[Opp][ROOK]|ei.ful_attacked_by[Opp][KING];
@@ -672,7 +672,7 @@ namespace Evaluate {
                     }
                     if (pos.count<ROOK> (Opp) > 0)
                     {
-                        // Analyse enemy's safe rook contact checks.
+                        // Analyze enemy's safe rook contact checks.
                         // Undefended squares around the king attacked by enemy rooks...
                         undefended_attacked = undefended & ei.pin_attacked_by[Opp][ROOK];
                         // Consider only squares where the enemy rook gives check
@@ -694,7 +694,7 @@ namespace Evaluate {
                     }
                     if (pos.count<BSHP> (Opp) > 0)
                     {
-                        // Analyse enemy's safe rook contact checks.
+                        // Analyze enemy's safe rook contact checks.
                         // Undefended squares around the king attacked by enemy bishop...
                         undefended_attacked = undefended & ei.pin_attacked_by[Opp][BSHP];
                         // Consider only squares where the enemy bishop gives check

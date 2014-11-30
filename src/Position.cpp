@@ -245,10 +245,10 @@ bool Position::ok (i08 *step) const
 
     if (step) *step = 1;
     // step 1
-    if ( (WHITE != _active && BLACK != _active)
-      || (W_KING != _board[_piece_list[WHITE][KING][0]])
-      || (B_KING != _board[_piece_list[BLACK][KING][0]])
-      || (_si->clock50 > 100)
+    if (  (WHITE != _active && BLACK != _active)
+       || (W_KING != _board[_piece_list[WHITE][KING][0]])
+       || (B_KING != _board[_piece_list[BLACK][KING][0]])
+       || (_si->clock50 > 100)
        )
     {
         return false;
@@ -319,10 +319,8 @@ bool Position::ok (i08 *step) const
         }
 
         // The union of separate piece type must be equal to occupied squares
-        if (  (_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]
-              |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE]
-           || (_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]
-              ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]
+        if (  (_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]|_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE]
+           || (_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]
            )
         {
             return false;
@@ -411,8 +409,8 @@ bool Position::ok (i08 *step) const
     // step 6
     if (step && ++(*step), test_king_capture)
     {
-        if (  (attackers_to (_piece_list[~_active][KING][0], _active))
-           || (pop_count<MAX15> (_si->checkers)) > 2
+        if (  attackers_to (_piece_list[~_active][KING][0], _active)
+           || pop_count<MAX15> (_si->checkers) > 2
            )
         {
             return false;
