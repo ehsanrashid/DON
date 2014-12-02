@@ -343,7 +343,7 @@ bool Position::ok (i08 *step) const
             // check if the number of Pawns plus the number of
             // extra Queens, Rooks, Bishops, Knights exceeds 8
             // (which can result only by promotion)
-            if (  (_piece_count[c][PAWN]
+            if (  (   _piece_count[c][PAWN]
                + max (_piece_count[c][NIHT] - 2, 0)
                + max (_piece_count[c][BSHP] - 2, 0)
                + max (_piece_count[c][ROOK] - 2, 0)
@@ -358,11 +358,11 @@ bool Position::ok (i08 *step) const
                 Bitboard bishops = colors & _types_bb[BSHP];
                 u08 bishop_count[CLR_NO] =
                 {
-                    pop_count<MAX15> (LIHT_bb & bishops),
-                    pop_count<MAX15> (DARK_bb & bishops),
+                    u08(pop_count<MAX15> (LIHT_bb & bishops)),
+                    u08(pop_count<MAX15> (DARK_bb & bishops)),
                 };
 
-                if (  (_piece_count[c][PAWN]
+                if (  (   _piece_count[c][PAWN]
                    + max (bishop_count[WHITE] - 1, 0)
                    + max (bishop_count[BLACK] - 1, 0)) > 8
                    )
