@@ -30,10 +30,6 @@ EXE = DON
 
 ### Installation dir definitions
 PREFIX = /usr/local
-# Haiku has a non-standard filesystem layout
-ifeq ($(UNAME),Haiku)
-	PREFIX = /boot/system/non-packaged
-endif
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
@@ -452,10 +448,6 @@ help:
 	@echo "clang                   > LLVM Clang compiler"
 	@echo "icc                     > Intel compiler"
 	@echo ""
-	@echo "Non-standard targets:"
-	@echo "---------------------"
-	@echo "make hpux               > Compile for HP-UX. Compiler = aCC"
-	@echo ""
 	@echo "Examples. If you don't know what to do, you likely want to run: "
 	@echo "----------------------------------------------------------------"
 	@echo "make build ARCH=x86-64    (This is for 64-bit systems)"
@@ -594,14 +586,3 @@ icc-profile-clean:
 
 -include .depend
 
-
-### ==========================================================================
-### Section 6. Non-standard targets
-### ==========================================================================
-
-hpux:
-	$(MAKE)      \
-	CXX = '/opt/aCC/bin/aCC -AA +hpxstd98 -mt +O3 -DNDEBUG' \
-	CXXFLAGS= "" \
-	LDFLAGS = "" \
-	all
