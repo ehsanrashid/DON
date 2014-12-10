@@ -245,10 +245,10 @@ bool Position::ok (i08 *step) const
 
     if (step) *step = 1;
     // step 1
-    if ( (WHITE != _active && BLACK != _active)
-      || (W_KING != _board[_piece_list[WHITE][KING][0]])
-      || (B_KING != _board[_piece_list[BLACK][KING][0]])
-      || (_si->clock50 > 100)
+    if (  (WHITE != _active && BLACK != _active)
+       || (W_KING != _board[_piece_list[WHITE][KING][0]])
+       || (B_KING != _board[_piece_list[BLACK][KING][0]])
+       || (_si->clock50 > 100)
        )
     {
         return false;
@@ -319,10 +319,8 @@ bool Position::ok (i08 *step) const
         }
 
         // The union of separate piece type must be equal to occupied squares
-        if (  (_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]
-              |_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE]
-           || (_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]
-              ^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]
+        if (  (_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]|_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE]
+           || (_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]
            )
         {
             return false;
@@ -345,7 +343,7 @@ bool Position::ok (i08 *step) const
             // check if the number of Pawns plus the number of
             // extra Queens, Rooks, Bishops, Knights exceeds 8
             // (which can result only by promotion)
-            if (  (_piece_count[c][PAWN]
+            if (  (   _piece_count[c][PAWN]
                + max (_piece_count[c][NIHT] - 2, 0)
                + max (_piece_count[c][BSHP] - 2, 0)
                + max (_piece_count[c][ROOK] - 2, 0)
@@ -360,11 +358,11 @@ bool Position::ok (i08 *step) const
                 Bitboard bishops = colors & _types_bb[BSHP];
                 u08 bishop_count[CLR_NO] =
                 {
-                    pop_count<MAX15> (LIHT_bb & bishops),
-                    pop_count<MAX15> (DARK_bb & bishops),
+                    u08(pop_count<MAX15> (LIHT_bb & bishops)),
+                    u08(pop_count<MAX15> (DARK_bb & bishops)),
                 };
 
-                if (  (_piece_count[c][PAWN]
+                if (  (   _piece_count[c][PAWN]
                    + max (bishop_count[WHITE] - 1, 0)
                    + max (bishop_count[BLACK] - 1, 0)) > 8
                    )
@@ -411,8 +409,8 @@ bool Position::ok (i08 *step) const
     // step 6
     if (step && ++(*step), test_king_capture)
     {
-        if (  (attackers_to (_piece_list[~_active][KING][0], _active))
-           || (pop_count<MAX15> (_si->checkers)) > 2
+        if (  attackers_to (_piece_list[~_active][KING][0], _active)
+           || pop_count<MAX15> (_si->checkers) > 2
            )
         {
             return false;

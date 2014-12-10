@@ -233,7 +233,7 @@ namespace Search {
                 // To flag EXACT a node with eval above alpha and no available moves
                 pv_alpha    = alpha;
                 
-                memset (pv, MOVE_NONE, sizeof (pv));
+                fill (pv, pv + sizeof (pv) / sizeof (*pv), MOVE_NONE);
                 (ss+1)->pv  = pv;
                 (ss)->pv[0] = MOVE_NONE;
             }
@@ -1054,7 +1054,7 @@ namespace Search {
                        )
                     {
                         Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legals);
-
+                        // Increase reduction
                         if (  (!PVNode && cut_node)
                            || HistoryStatistics[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
                            )
@@ -1067,7 +1067,7 @@ namespace Search {
                            && (move == counter_moves[0] || move == counter_moves[1])
                            )
                         {
-                            reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
+                            reduction_depth -= DEPTH_ONE;
                         }
                         // Decrease reduction for moves that escape a capture
                         if (  reduction_depth > DEPTH_ZERO
@@ -1076,7 +1076,7 @@ namespace Search {
                            && pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO // Reverse move
                            )
                         {
-                            reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
+                            reduction_depth -= DEPTH_ONE;
                         }
 
                         Depth reduced_depth;
@@ -1129,7 +1129,7 @@ namespace Search {
                     // alpha >= value and to try another better move.
                     if (legals == 1 || (alpha < value && (RootNode || value < beta)))
                     {
-                        memset (pv, MOVE_NONE, sizeof (pv));
+                        fill (pv, pv + sizeof (pv) / sizeof (*pv), MOVE_NONE);
                         (ss+1)->pv = pv;
 
                         value =
@@ -1321,10 +1321,8 @@ namespace Search {
 
             Depth depth = DEPTH_ZERO;
 
-            point iteration_time;
-
             // Iterative deepening loop until target depth reached
-            while (++depth < MAX_DEPTH && !Signals.force_stop && (Limits.depth == 0 || depth <= Limits.depth))
+            while (++depth < MAX_DEPTH && !Signals.force_stop && (0 == Limits.depth || depth <= Limits.depth))
             {
                 // Age out PV variability metric
                 RootMoves.best_move_change *= 0.5f;
@@ -1337,6 +1335,7 @@ namespace Search {
                 }
 
                 bool aspiration = depth > 4*DEPTH_ONE;
+                point iteration_time;
 
                 // MultiPV loop. Perform a full root search for each PV line
                 for (IndexPV = 0; IndexPV < LimitPV; ++IndexPV)
@@ -1346,7 +1345,7 @@ namespace Search {
                     {
                         window_a =
                         window_b =
-                            Value(depth <= 32*DEPTH_ONE ? 22 - (depth-1)/4 : 14); // Decreasing window
+                            Value(depth <= 32*DEPTH_ONE ? 22 - (u16(depth)-1)/4 : 14); // Decreasing window
 
                         bound_a = max (RootMoves[IndexPV].old_value - window_a, -VALUE_INFINITE);
                         bound_b = min (RootMoves[IndexPV].old_value + window_b, +VALUE_INFINITE);
@@ -1499,7 +1498,7 @@ namespace Search {
         // perft<>() is our utility to verify move generation. All the leaf nodes
         // up to the given depth are generated and counted and the sum returned.
         template<bool RootNode>
-        u64 perft (Position &pos, Depth depth)
+        inline u64 perft (Position &pos, Depth depth)
         {
             u64 leaf_nodes = U64(0);
 
@@ -1528,6 +1527,7 @@ namespace Search {
 
                 leaf_nodes += inter_nodes;
             }
+
             return leaf_nodes;
         }
 
@@ -1927,9 +1927,9 @@ namespace Threads {
         // An engine may not stop pondering until told so by the GUI
         if (Limits.ponder) return;
 
-        point movetime = now_time - SearchTime;
         if (Limits.use_timemanager ())
         {
+            point movetime = now_time - SearchTime;
             if (  movetime > TimeMgr.maximum_time () - 2 * TimerResolution
                   // Still at first move
                || (   Signals.root_1stmove
@@ -1942,9 +1942,13 @@ namespace Threads {
             }
         }
         else
-        if (Limits.movetime != 0 && movetime >= Limits.movetime)
+        if (Limits.movetime != 0)
         {
-            Signals.force_stop = true;
+            point movetime = now_time - SearchTime;
+            if (movetime >= Limits.movetime)
+            {
+                Signals.force_stop = true;
+            }
         }
         else
         if (Limits.nodes != 0)
@@ -2036,7 +2040,7 @@ namespace Threads {
                 case  Root: search_depth<Root , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
                 case    PV: search_depth<PV   , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
                 case NonPV: search_depth<NonPV, true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                default: assert (false);
+                default   : assert (false);
                 }
 
                 assert (searching);
