@@ -4,6 +4,7 @@
 
 #include "manipulator.h"
 #include "Position.h"
+#include "PRNG.h"
 #include "Zobrist.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
@@ -13,6 +14,8 @@ namespace OpeningBook {
     using namespace std;
     using namespace MoveGen;
     using namespace Notation;
+
+    PRNG pr (Time::now ());
 
     #define STM_POS(x)  (streampos)(u64(HeaderSize) + (x)*u64(EntrySize))
 
@@ -256,7 +259,7 @@ namespace OpeningBook {
         //    //2) pick a random number that is 0 or greater and is less than the sum of the weights
         //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
         //
-        //    u32 rand = (_rkiss.rand<u32> () % weight_sum);
+        //    u32 rand = (pr.rand<u32> () % weight_sum);
         //    vector<Entry>::const_iterator ms = pe_list.begin ();
         //    while (ms != pe_list.end ())
         //    {
@@ -288,7 +291,7 @@ namespace OpeningBook {
             else
             if (weight_sum != 0)
             {
-                u16 rand = _rkiss.rand<u16> () % weight_sum;
+                u16 rand = pr.rand<u16> () % weight_sum;
                 if (pbe.weight > rand) move = Move(pbe.move);
             }
             // Note that first entry is always chosen if not pick best and sum of weight = 0

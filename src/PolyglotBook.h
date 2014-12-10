@@ -4,7 +4,7 @@
 #include <fstream>
 
 #include "Type.h"
-#include "RKISS.h"
+
 #include "noncopyable.h"
 
 class Position;
@@ -64,8 +64,6 @@ namespace OpeningBook {
         openmode    _mode;
 
         streampos   _size_book;
-
-        RKISS       _rkiss;
 
         template<class T>
         PolyglotBook& operator>> (T &t);

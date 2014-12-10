@@ -420,7 +420,7 @@ inline Key    Position::posi_move_key (Move m) const
         ,  ct = ptype (_board[dst]);
 
     return _si->posi_key
-        ^  Zob._.mover_side
+        ^  Zob._.act_side
         ^  Zob._.piece_square[_active][pt][org]
         ^  Zob._.piece_square[_active][pt][dst]
         ^  (ct != NONE ? Zob._.piece_square[~_active][ct][dst] : U64(0));

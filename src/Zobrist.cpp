@@ -2,7 +2,7 @@
 
 #include <sstream>
 
-#include "RKISS.h"
+#include "PRNG.h"
 #include "Position.h"
 
 //Zobrist::Zob ZobRnd;
@@ -13,11 +13,11 @@ namespace Zobrist {
     using namespace std;
     using namespace BitBoard;
 
-    void Zob::initialize (RKISS &rk)
+    void Zob::initialize (PRNG &pr)
     {
         for (u16 i = 0; i < ZOB_SIZE; ++i)
         {
-            zobrist[i] = rk.rand64 ();
+            zobrist[i] = pr.rand<Key> ();
         }
     }
 
@@ -96,7 +96,7 @@ namespace Zobrist {
         }
 
         posi_key ^= SQ_NO != pos.en_passant_sq () ? _.en_passant[_file (pos.en_passant_sq ())] : U64(0);
-        posi_key ^= WHITE == pos.active () ? _.mover_side : U64(0);
+        posi_key ^= WHITE == pos.active () ? _.act_side : U64(0);
 
         return posi_key;
     }
@@ -140,7 +140,7 @@ namespace Zobrist {
         assert (kf[BLACK] != F_NO);
 
         iss >> ch;
-        if ('w' == ch) fen_key ^= _.mover_side;
+        if ('w' == ch) fen_key ^= _.act_side;
 
         iss >> ch;
         if (c960)
@@ -182,11 +182,6 @@ namespace Zobrist {
 
         return fen_key;
     }
-
-    //void initialize ()
-    //{
-    //    //ZobRnd.initialize (RKISS());
-    //}
 
 }
 

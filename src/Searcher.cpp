@@ -11,6 +11,7 @@
 #include "MovePicker.h"
 #include "Material.h"
 #include "Pawns.h"
+#include "PRNG.h"
 #include "Evaluator.h"
 #include "Thread.h"
 #include "Notation.h"
@@ -1631,9 +1632,7 @@ namespace Search {
     // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
     Move Skill::pick_move ()
     {
-        static RKISS rk;
-        // PRNG sequence should be not deterministic
-        for (i08 i = now () % 50; i > 0; --i) rk.rand64 ();
+        static PRNG pr (Time::now ());
 
         _best_move = MOVE_NONE;
 
@@ -1656,7 +1655,7 @@ namespace Search {
             }
 
             v += weakness * i32(RootMoves[0].new_value - v)
-              +  variance * i32(rk.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2);
+              +  variance * i32(pr.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2);
 
             if (best_value < v)
             {

@@ -1519,7 +1519,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
     }
 
     _active = pasive;
-    key ^= Zob._.mover_side;
+    key ^= Zob._.act_side;
 
     if (SQ_NO != _si->en_passant_sq)
     {
@@ -1652,7 +1652,7 @@ void Position::  do_null_move (StateInfo &si)
         _si->posi_key ^= Zob._.en_passant[_file (_si->en_passant_sq)];
         _si->en_passant_sq = SQ_NO;
     }
-    _si->posi_key ^= Zob._.mover_side;
+    _si->posi_key ^= Zob._.act_side;
     _si->clock50++;
     _si->null_ply = 0;
 
