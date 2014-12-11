@@ -1821,7 +1821,7 @@ Position::operator string () const
     {
         oss << "<none>";
     }
-    
+
     oss << "\n";
     /*
     MoveList<LEGAL> ms (*this);

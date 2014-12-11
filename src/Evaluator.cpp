@@ -1191,7 +1191,7 @@ namespace Evaluate {
 
             // Interpolates between a middle game and a (scaled by 'scale_fac') endgame score, based on game phase.
             eg = eg * i32(scale_fac) / i32(SCALE_FACTOR_NORMAL);
-            
+
             Value value = Value((mg * i32(game_phase) + eg * i32(PHASE_MIDGAME - game_phase)) / i32(PHASE_MIDGAME));
 
             return (WHITE == pos.active () ? +value : -value) + TEMPO;

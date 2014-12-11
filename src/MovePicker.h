@@ -50,7 +50,7 @@ namespace MovePick {
         Value _values[PIECE_NO][SQ_NO];
 
     public:
-    
+
         static const Value MaxValue;
         
         inline const Value* operator[] (Piece p) const { return _values[p]; }

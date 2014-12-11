@@ -112,7 +112,7 @@ namespace Threads {
 
         // No splitpoints means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.
-        return count == 0 || splitpoints[count - 1].slaves_mask.test (master->idx);
+        return 0 == count || splitpoints[count - 1].slaves_mask.test (master->idx);
     }
 
     // split<>() does the actual work of distributing the work at a node between several available threads.
@@ -265,11 +265,11 @@ namespace Threads {
         push_back (new_thread<MainThread> ());
 
         max_ply                     = 0;
-        
+
         check_limits_th             = new_thread<TimerThread> ();
         check_limits_th->task       = check_limits;
         check_limits_th->resolution = TimerResolution;
-        
+
         auto_save_th                = NULL;
 
         configure ();
@@ -336,7 +336,7 @@ namespace Threads {
         }
         return NULL;
     }
-    
+
     // start_main() wakes up the main thread sleeping in MainThread::idle_loop()
     // so to start a new search, then returns immediately.
     void ThreadPool::start_main (const Position &pos, const LimitsT &limits, StateInfoStackPtr &states)
@@ -375,5 +375,5 @@ namespace Threads {
         }
         main_th->mutex.unlock ();
     }
-    
+
 }

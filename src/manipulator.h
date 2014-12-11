@@ -50,7 +50,7 @@ namespace std {
     private:
 
         basic_ostream<C>& (*_fp_manip) (basic_ostream<C>&, T);
-        T       _val;
+        T _val;
 
     public:
         manip_infra (basic_ostream<C>& (*fp_manip) (basic_ostream<C>&, T), T val)
@@ -58,7 +58,7 @@ namespace std {
             , _val (val)
         {}
 
-        void operator() (basic_ostream<C>& os) const
+        void operator() (basic_ostream<C> &os) const
         {
             // Invoke the function pointer with the stream and value
             _fp_manip (os, _val);
@@ -99,7 +99,7 @@ namespace std {
         return (os);
     }
 
-    inline manip_infra<char, char> set_fill(char c)
+    inline manip_infra<char, char> set_fill (char c)
     {
         return (manip_infra<char, char> (set_fill, c));
     }
@@ -113,7 +113,6 @@ namespace std {
     //};
 
     //istream &operator>> (istream &, eat);
-
 
 }
 

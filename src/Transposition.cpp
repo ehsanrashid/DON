@@ -2,6 +2,7 @@
 
 #include <string>
 #include <fstream>
+
 #include "BitScan.h"
 #include "Engine.h"
 
@@ -10,7 +11,7 @@ Transposition::TranspositionTable  TT; // Global Transposition Table
 namespace Transposition {
 
     using namespace std;
-    
+
     // Size of Transposition entry (bytes)
     // 16 bytes
     const u08 TranspositionTable::EntrySize   = sizeof (TTEntry);
@@ -39,7 +40,7 @@ namespace Transposition {
     #ifdef LPAGES
 
         u32 offset = max (alignment-1, u32(sizeof (void *)));
-       
+
         Memory::alloc_memory (_mem, mem_size, alignment);
         if (_mem != NULL)
         {
@@ -81,7 +82,7 @@ namespace Transposition {
 
         cerr << "ERROR: Hash allocate failed " << (mem_size >> 20) << " MB." << endl;
     #endif
-        
+
     }
 
     // resize(mb) sets the size of the table, measured in mega-bytes.

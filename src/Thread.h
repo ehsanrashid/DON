@@ -92,7 +92,7 @@ namespace Threads {
     {
     private:
         Lock _lock;
-        
+
         friend struct Condition;
 
     public:

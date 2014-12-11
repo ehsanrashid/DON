@@ -3,28 +3,28 @@
 
 #include "Type.h"
 
-/// xorshift64* pseudo-random number generator
-/// Designed and placed into the public domain by Sebastiano Vigna
-/// For analysis see http://vigna.di.unimi.it/ftp/papers/xorshift.pdf
+// xorshift64* pseudo-random number generator
+// Designed and placed into the public domain by Sebastiano Vigna
+// For analysis see http://vigna.di.unimi.it/ftp/papers/xorshift.pdf
 
 class PRNG
 {
 
 private:
 
-    u64 x;
+    u64 s;
 
     u64 rand64 ()
     {
-        x ^= x >> 12;
-        x ^= x << 25;
-        x ^= x >> 27;
-        return x * U64(0x2545F4914F6CDD1D);
+        s ^= s >> 12;
+        s ^= s << 25;
+        s ^= s >> 27;
+        return s * U64(0x2545F4914F6CDD1D);
     }
 
 public:
 
-    PRNG (u64 seed) : x (seed) { assert (seed != 0); }
+    PRNG (u64 seed) : s (seed) { assert (seed != 0); }
 
     template<typename T> T rand () { return T(rand64 ()); }
 

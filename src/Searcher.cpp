@@ -796,7 +796,7 @@ namespace Search {
                            )
                         {
                             Depth iid_depth = (2*(depth - 2*DEPTH_ONE) - (PVNode ? DEPTH_ZERO : depth/2))/2; // IID Reduced Depth
-                        
+
                             search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
                             tte = TT.retrieve (posi_key);

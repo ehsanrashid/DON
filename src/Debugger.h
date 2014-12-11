@@ -22,7 +22,7 @@ namespace Debug {
         explicit LogFile (const std::string &fn = "Log.txt")
             : std::ofstream (fn.c_str (), out|app)
         {}
-    
+
         ~LogFile ()
         {
             if (is_open ()) close ();

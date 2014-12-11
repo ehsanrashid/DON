@@ -115,7 +115,7 @@ namespace Pawns {
 
                 File f = _file (s);
                 Rank r = rel_rank (Own, s);
-                
+
                 e->semiopen_files[Own] &= ~(1 << f);
 
                 Bitboard prank_bb  = rank_bb (s - PUSH);

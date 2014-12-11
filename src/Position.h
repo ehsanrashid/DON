@@ -60,7 +60,7 @@ public:
     Bitboard checkers;     // Checkers bitboard.
 
     StateInfo *ptr;
-    
+
 };
 
 typedef std::stack<StateInfo>   StateInfoStack;
