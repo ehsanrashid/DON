@@ -467,7 +467,7 @@ namespace Search {
             return best_value;
         }
 
-        template<NodeT NT, bool SPNode, bool NullMove>
+        template<NodeT NT, bool SPNode, bool Pruning>
         // search<>() is the main depth limited search function
         // for PV/NonPV nodes also for normal/splitpoint nodes.
         // It calls itself recursively with decreasing (remaining) depth
@@ -626,49 +626,50 @@ namespace Search {
                         TT.store (posi_key, MOVE_NONE, DEPTH_NONE, BOUND_NONE, VALUE_NONE, (ss)->static_eval);
                     }
 
-                    move = (ss-1)->current_move;
-                    // Updates Gain Statistics
-                    if (  move != MOVE_NONE
-                       && move != MOVE_NULL
-                       && mtype (move) == NORMAL
-                       && (ss-0)->static_eval != VALUE_NONE
-                       && (ss-1)->static_eval != VALUE_NONE
-                       && pos.capture_type () == NONE
-                       )
+                    if (Pruning)
                     {
-                        GainStatistics.update (pos, move, -(ss-1)->static_eval - (ss-0)->static_eval);
-                    }
-
-                    if (!PVNode && !MateSearch) // (is omitted in PV nodes)
-                    {
-                        // Step 6. Razoring sort of forward pruning where rather than skipping an entire subtree,
-                        // you search it to a reduced depth, typically one less than normal depth.
-                        if (  depth < RazorDepth
-                           && static_eval + RazorMargins[depth] <= alpha
-                           && tt_move == MOVE_NONE
-                           && !pos.pawn_on_7thR (pos.active ())
+                        move = (ss-1)->current_move;
+                        // Updates Gain Statistics
+                        if (  move != MOVE_NONE
+                           && move != MOVE_NULL
+                           && mtype (move) == NORMAL
+                           && (ss-0)->static_eval != VALUE_NONE
+                           && (ss-1)->static_eval != VALUE_NONE
+                           && pos.capture_type () == NONE
                            )
                         {
-                            if (  depth <= 1*DEPTH_ONE
-                               && static_eval + RazorMargins[3*DEPTH_ONE] <= alpha
-                               )
-                            {
-                                return search_quien<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
-                            }
-
-                            Value reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
-                            //assert (reduced_alpha >= -VALUE_INFINITE);
-
-                            Value value = search_quien<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
-
-                            if (value <= reduced_alpha)
-                            {
-                                return value;
-                            }
+                            GainStatistics.update (pos, move, -(ss-1)->static_eval - (ss-0)->static_eval);
                         }
 
-                        if (NullMove)
+                        if (!PVNode && !MateSearch) // (is omitted in PV nodes)
                         {
+                            // Step 6. Razoring sort of forward pruning where rather than skipping an entire subtree,
+                            // you search it to a reduced depth, typically one less than normal depth.
+                            if (  depth < RazorDepth
+                               && static_eval + RazorMargins[depth] <= alpha
+                               && tt_move == MOVE_NONE
+                               && !pos.pawn_on_7thR (pos.active ())
+                               )
+                            {
+                                if (  depth <= 1*DEPTH_ONE
+                                   && static_eval + RazorMargins[3*DEPTH_ONE] <= alpha
+                                   )
+                                {
+                                    return search_quien<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
+                                }
+
+                                Value reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
+                                //assert (reduced_alpha >= -VALUE_INFINITE);
+
+                                Value value = search_quien<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
+
+                                if (value <= reduced_alpha)
+                                {
+                                    return value;
+                                }
+                            }
+
+
                             assert ((ss-1)->current_move != MOVE_NONE && (ss-1)->current_move != MOVE_NULL);
                             assert (exclude_move == MOVE_NONE);
 
@@ -680,7 +681,7 @@ namespace Search {
                                 // Betting that the opponent doesn't have a move that will reduce
                                 // the score by more than FutilityMargins[depth] if do a null move.
                                 if (  depth < FutilityMarginDepth
-                                   && abs (static_eval) < +VALUE_KNOWN_WIN // Do not return unproven wins
+                                    && abs (static_eval) < +VALUE_KNOWN_WIN // Do not return unproven wins
                                    )
                                 {
                                     Value stand_pat = static_eval - FutilityMargins[depth];
@@ -693,7 +694,7 @@ namespace Search {
 
                                 // Step 8. Null move search with verification search
                                 if (  depth > 1*DEPTH_ONE
-                                   && static_eval >= beta
+                                    && static_eval >= beta
                                    )
                                 {
                                     (ss)->current_move = MOVE_NULL;
@@ -747,7 +748,7 @@ namespace Search {
                             // and a reduced search returns a value much above beta,
                             // can (almost) safely prune the previous move.
                             if (  depth > ProbCutDepth
-                               && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
+                                && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
                                )
                             {
                                 Depth reduced_depth = depth - ProbCutDepth; // Shallow Depth
@@ -785,25 +786,25 @@ namespace Search {
                                 }
                             }
                         }
-                    }
 
-                    // Step 10. Internal iterative deepening (skipped when in check)
-                    if (  tt_move == MOVE_NONE
-                       && depth > (PVNode ? 4*DEPTH_ONE : 7*DEPTH_ONE)          // IID Activation Depth
-                       && (PVNode || (ss)->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
-                       )
-                    {
-                        Depth iid_depth = (2*(depth - 2*DEPTH_ONE) - (PVNode ? DEPTH_ZERO : depth/2))/2; // IID Reduced Depth
-                        
-                        search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
-
-                        tte = TT.retrieve (posi_key);
-                        if (tte != NULL)
+                        // Step 10. Internal iterative deepening (skipped when in check)
+                        if (  tt_move == MOVE_NONE
+                           && depth > (PVNode ? 4*DEPTH_ONE : 7*DEPTH_ONE)          // IID Activation Depth
+                           && (PVNode || (ss)->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
+                           )
                         {
-                            tt_move  = tte->move ();
-                            tt_value = value_of_tt (tte->value (), (ss)->ply);
-                            tt_depth = tte->depth ();
-                            tt_bound = tte->bound ();
+                            Depth iid_depth = (2*(depth - 2*DEPTH_ONE) - (PVNode ? DEPTH_ZERO : depth/2))/2; // IID Reduced Depth
+                        
+                            search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
+
+                            tte = TT.retrieve (posi_key);
+                            if (tte != NULL)
+                            {
+                                tt_move  = tte->move ();
+                                tt_value = value_of_tt (tte->value (), (ss)->ply);
+                                tt_depth = tte->depth ();
+                                tt_bound = tte->bound ();
+                            }
                         }
                     }
                 }

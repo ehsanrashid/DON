@@ -15,8 +15,6 @@ namespace OpeningBook {
     using namespace MoveGen;
     using namespace Notation;
 
-    PRNG pr (Time::now ());
-
     #define STM_POS(x)  (streampos)(u64(HeaderSize) + (x)*u64(EntrySize))
 
     const streampos PolyglotBook::EntrySize  = sizeof (Entry);
@@ -210,6 +208,8 @@ namespace OpeningBook {
 
     Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     {
+        static PRNG pr (Time::now ());
+
         //if (!is_open () || !(_mode & ios_base::in))
         //{
         //    if (!open (_book_fn, ios_base::in)) return MOVE_NONE;

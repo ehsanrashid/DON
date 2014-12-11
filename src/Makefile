@@ -51,7 +51,6 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # debug   = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode
 # optimize= yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
 # arch    = (name)    --- (-arch)          --- Target architecture
-# os      = (name)    ---                  --- Target operating system
 # bits    = 64/32     --- -DBIT64         --- 64/32-bit operating system
 # pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
 # bsfq    = yes/no    --- -DBSFQ           --- Use Bitscans x86_64 asm-instruction (only with GCC and ICC 64-bit)
@@ -73,7 +72,6 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 debug   = no
 optimize= yes
 
-os   = any
 bits = 32
 pfch = no
 sse  = no
@@ -509,7 +507,6 @@ config-sanity:
 	@echo "debug   : '$(debug)'"
 	@echo "optimize: '$(optimize)'"
 	@echo "arch    : '$(arch)'"
-	@echo "os      : '$(os)'"
 	@echo "bits    : '$(bits)'"
 	@echo "pfch    : '$(pfch)'"
 	@echo "sse     : '$(sse)'"
@@ -531,7 +528,6 @@ config-sanity:
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
 	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
 	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "armv7"
-	@test "$(os)" = "any" || test "$(os)" = "osx"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(pfch)" = "yes" || test "$(pfch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
