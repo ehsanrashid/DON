@@ -113,7 +113,7 @@ namespace Evaluate {
 
             string trace (const Position &pos)
             {
-                fill (*Scores, *Scores + sizeof (Scores) / sizeof (**Scores), SCORE_ZERO);
+                fill (*Scores, *Scores + sizeof (Scores)/sizeof (**Scores), SCORE_ZERO);
 
                 Value value = evaluate<true> (pos);
                 value = WHITE == pos.active () ? +value : -value; // White's point of view

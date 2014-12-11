@@ -1016,7 +1016,7 @@ void Position::clear ()
         }
     }
 
-    fill (_castle_rook, _castle_rook + sizeof (_castle_rook) / sizeof (*_castle_rook), SQ_NO);
+    fill (_castle_rook, _castle_rook + sizeof (_castle_rook)/sizeof (*_castle_rook), SQ_NO);
 
     _sb.en_passant_sq = SQ_NO;
     _sb.capture_type  = NONE;
@@ -1244,7 +1244,7 @@ bool Position::can_en_passant (Square ep_sq) const
 
     Move moves[3], *m = moves;
 
-    fill (moves, moves + sizeof (moves) / sizeof (*moves), MOVE_NONE);
+    fill (moves, moves + sizeof (moves)/sizeof (*moves), MOVE_NONE);
     while (attacks != U64(0))
     {
         *(m++) = mk_move<ENPASSANT> (pop_lsq (attacks), ep_sq);

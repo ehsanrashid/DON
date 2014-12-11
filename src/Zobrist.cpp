@@ -15,7 +15,7 @@ namespace Zobrist {
 
     void Zob::initialize (PRNG &pr)
     {
-        for (u16 i = 0; i < ZOB_SIZE; ++i)
+        for (u16 i = 0; i < sizeof (zobrist)/sizeof (*zobrist); ++i)
         {
             zobrist[i] = pr.rand<Key> ();
         }

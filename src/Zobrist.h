@@ -8,11 +8,6 @@ class Position;
 
 namespace Zobrist {
 
-    // 2*6*64 + 2*2 + 8 + 1
-    //    768 +   4 + 8 + 1
-    //                  781
-    const u16 ZOB_SIZE = 781;
-
     //const Key PG_MATL_KEY = U64(0xB76D8438E5D28230);
     //const Key PG_PAWN_KEY = U64(0x37FC40DA841E1692);
     //const Key PG_POSI_KEY = U64(0x463B96181691FC9C);
@@ -23,7 +18,10 @@ namespace Zobrist {
     union Zob
     {
     public:
-        Key zobrist[ZOB_SIZE];
+        // 2*6*64 + 2*2 + 8 + 1
+        //    768 +   4 + 8 + 1
+        //                  781
+        Key zobrist[781];
 
         struct
         {

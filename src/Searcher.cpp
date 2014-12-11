@@ -234,7 +234,7 @@ namespace Search {
                 // To flag EXACT a node with eval above alpha and no available moves
                 pv_alpha    = alpha;
                 
-                fill (pv, pv + sizeof (pv) / sizeof (*pv), MOVE_NONE);
+                fill (pv, pv + sizeof (pv)/sizeof (*pv), MOVE_NONE);
                 (ss+1)->pv  = pv;
                 (ss)->pv[0] = MOVE_NONE;
             }
@@ -552,7 +552,7 @@ namespace Search {
                 assert (0 <= (ss)->ply && (ss)->ply < MAX_DEPTH);
                 
                 (ss)->current_move = (ss+1)->exclude_move = MOVE_NONE;
-                fill ((ss+2)->killer_moves, (ss+2)->killer_moves + sizeof ((ss+2)->killer_moves) / sizeof (*((ss+2)->killer_moves)), MOVE_NONE);
+                fill ((ss+2)->killer_moves, (ss+2)->killer_moves + sizeof ((ss+2)->killer_moves)/sizeof (*((ss+2)->killer_moves)), MOVE_NONE);
 
                 // Step 4. Transposition table lookup
                 // Don't want the score of a partial search to overwrite a previous full search
@@ -1131,7 +1131,7 @@ namespace Search {
                     // alpha >= value and to try another better move.
                     if (legals == 1 || (alpha < value && (RootNode || value < beta)))
                     {
-                        fill (pv, pv + sizeof (pv) / sizeof (*pv), MOVE_NONE);
+                        fill (pv, pv + sizeof (pv)/sizeof (*pv), MOVE_NONE);
                         (ss+1)->pv = pv;
 
                         value =
