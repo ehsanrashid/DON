@@ -5,9 +5,6 @@
 #include "PRNG.h"
 #include "Position.h"
 
-//Zobrist::Zob ZobRnd;
-const Zobrist::Zob &Zob = ZobPG; // Global Zobrist
-
 namespace Zobrist {
 
     using namespace std;
@@ -185,8 +182,9 @@ namespace Zobrist {
 
 }
 
+// Global Zobrist
 // Random numbers from PolyGlot, used to compute book hash keys
-const Zobrist::Zob ZobPG =
+const Zobrist::Zob Zob =
 {
 
     // WHITE_PAWN
