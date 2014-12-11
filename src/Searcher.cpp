@@ -78,6 +78,8 @@ namespace Search {
             ,   BaseContempt[CLR_NO];
 
         bool    MateSearch;
+        bool    SearchLogWrite;
+
         bool    FirstAutoSave;
 
         TimeManager  TimeMgr;
@@ -1440,7 +1442,7 @@ namespace Search {
 
                 iteration_time = now () - SearchTime;
 
-                if (!white_spaces (SearchLog))
+                if (SearchLogWrite)
                 {
                     LogFile logfile (SearchLog);
                     logfile << pretty_pv (RootPos, depth, RootMoves[0].new_value, iteration_time, &RootMoves[0].pv[0]) << endl;
@@ -1683,11 +1685,14 @@ namespace Search {
     // Main searching method
     void think ()
     {
-        RootColor = RootPos.active ();
-        RootPly   = RootPos.game_ply ();
-        RootSize  = RootMoves.size ();
+        RootColor   = RootPos.active ();
+        RootPly     = RootPos.game_ply ();
+        RootSize    = RootMoves.size ();
 
-        if (!white_spaces (SearchLog))
+        MateSearch  = 0 != Limits.mate;
+
+        SearchLogWrite = !white_spaces (SearchLog);
+        if (SearchLogWrite)
         {
             LogFile logfile (SearchLog);
 
@@ -1705,8 +1710,6 @@ namespace Search {
                 << "-----------------------------------------------------------"
                 << endl;
         }
-
-        MateSearch = Limits.mate != 0;
 
         if (RootSize != 0)
         {
@@ -1778,7 +1781,7 @@ namespace Search {
                 Threadpool.auto_save_th = NULL;
             }
 
-            if (!white_spaces (SearchLog))
+            if (SearchLogWrite)
             {
                 LogFile logfile (SearchLog);
 
@@ -1811,7 +1814,7 @@ namespace Search {
 
             RootMoves.push_back (RootMove (MOVE_NONE));
 
-            if (!white_spaces (SearchLog))
+            if (SearchLogWrite)
             {
                 LogFile logfile (SearchLog);
 
@@ -1828,6 +1831,7 @@ namespace Search {
         }
 
     finish:
+
         point time = now () - SearchTime;
 
         // When search is stopped this info is printed
