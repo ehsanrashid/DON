@@ -92,7 +92,7 @@ void benchmark (istream &is, const Position &pos)
     //value = value >= 0 ? +value : -value;
 
     LimitsT limits;
-    if      (limit_type == "time")     limits.gameclock[WHITE].time = limits.gameclock[BLACK].time = value * MILLI_SEC; // movetime is in ms
+    if      (limit_type == "time")     limits.game_clock[WHITE].time = limits.game_clock[BLACK].time = value * MILLI_SEC; // movetime is in ms
     if      (limit_type == "movetime") limits.movetime = value * MILLI_SEC; // movetime is in ms
     else if (limit_type == "nodes")    limits.nodes    = value;
     else if (limit_type == "mate")     limits.mate     = u08(value);

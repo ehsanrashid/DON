@@ -47,12 +47,13 @@ namespace Transposition {
 
         inline void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
-            _key     = u64(k);
-            _move    = u16(m);
-            _value   = u16(v);
-            _eval    = u16(e);
-            _depth   = i08(d);
-            _gen_bnd = u08(g | b);
+            (m != MOVE_NONE || k != _key) ? // Preserve any existing TT move
+                _move   = u16(m) : 0;
+            _key        = u64(k);
+            _value      = u16(v);
+            _eval       = u16(e);
+            _depth      = i08(d);
+            _gen_bnd    = u08(g | b);
         }
 
     };

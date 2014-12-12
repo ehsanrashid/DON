@@ -34,7 +34,7 @@ namespace Search {
     {
     public:
 
-        GameClock gameclock[CLR_NO];
+        GameClock game_clock[CLR_NO];
         std::vector<Move> root_moves;   // restrict search to these moves only
 
         u32  movetime;  // search <x> time in milli-seconds

@@ -126,14 +126,14 @@ namespace OpeningBook {
         : fstream ()
         , _book_fn ("")
         , _mode (openmode (0))
-        , _size_book (0)
+        , _size (0)
     {}
 
     PolyglotBook::PolyglotBook (const string &book_fn, openmode mode)
         : fstream (book_fn.c_str (), mode|binary)
         , _book_fn (book_fn)
         , _mode (mode)
-        , _size_book (0)
+        , _size (0)
     {}
 
     PolyglotBook::~PolyglotBook ()

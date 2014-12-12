@@ -1702,8 +1702,8 @@ namespace Search {
                 << "RootSize : " << u16(RootSize)                    << "\n"
                 << "Infinite : " << Limits.infinite                  << "\n"
                 << "Ponder   : " << Limits.ponder                    << "\n"
-                << "ClockTime: " << Limits.gameclock[RootColor].time << "\n"
-                << "Increment: " << Limits.gameclock[RootColor].inc  << "\n"
+                << "ClockTime: " << Limits.game_clock[RootColor].time << "\n"
+                << "Increment: " << Limits.game_clock[RootColor].inc  << "\n"
                 << "MoveTime : " << Limits.movetime                  << "\n"
                 << "MovesToGo: " << u16(Limits.movestogo)            << "\n"
                 << " Depth Score    Time       Nodes  PV\n"
@@ -1733,12 +1733,12 @@ namespace Search {
                 }
             }
 
-            TimeMgr.initialize (Limits.gameclock[RootColor], Limits.movestogo, RootPly);
+            TimeMgr.initialize (Limits.game_clock[RootColor], Limits.movestogo, RootPly);
 
             i16 timed_contempt = 0;
             i16 diff_time = 0;
             if (  ContemptTime != 0
-               && (diff_time = i16(Limits.gameclock[RootColor].time - Limits.gameclock[~RootColor].time)/MILLI_SEC) != 0
+               && (diff_time = i16(Limits.game_clock[RootColor].time - Limits.game_clock[~RootColor].time)/MILLI_SEC) != 0
                //&& ContemptTime <= abs (diff_time)
                )
             {

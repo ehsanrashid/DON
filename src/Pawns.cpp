@@ -17,12 +17,13 @@ namespace Pawns {
         };
 
         // Danger of enemy pawns moving toward our king indexed by
-        // [no friendly pawn | pawn unblocked | pawn blocked][rank of enemy pawn]
-        const Value STORM_DANGER[3][R_NO] =
+        // [no friendly pawn | pawn unblocked | pawn blocked |  pawn blocked on A/H][rank of enemy pawn]
+        const Value STORM_DANGER[4][R_NO] =
         {
             { V(+ 0),  V(+64), V(+128), V(+51), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
             { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+160), V(+25), V(+13),  V(+ 0),  V(+ 0),  V(+ 0) }
+            { V(+ 0),  V(+ 0), V(+160), V(+25), V(+13),  V(+ 0),  V(+ 0),  V(+ 0) },
+            { V(+ 0),  V(+ 0), V(+ 80), V(+13), V(+ 7),  V(+ 0),  V(+ 0),  V(+ 0) }
         };
 
         // Max bonus for king safety by pawns.
@@ -262,7 +263,7 @@ namespace Pawns {
                 u08 r0 = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
                 value -= 
                       + SHELTER_WEAKNESS[r0]
-                      + STORM_DANGER[r0 == R_1 ? 0 : r0 + 1 != r1 ? 1 : 2][r1];
+                      + STORM_DANGER[r0 == R_1 ? 0 : r0 + 1 != r1 ? 1 : f == F_A || f == F_H ? 3 : 2][r1];
             }
         }
 

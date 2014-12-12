@@ -58,13 +58,13 @@ namespace Time {
     i32  MoveSlowness        = 110; // Slowliness, in %age.
     bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
-    void TimeManager::initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply)
+    void TimeManager::initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply)
     {
         // Initializes: instability factor and search times to maximum values
         _instability_factor = 1.0f;
         _optimum_time =
         _maximum_time =
-            max (gameclock.time, MinimumMoveTime);
+            max (game_clock.time, MinimumMoveTime);
 
         movestogo = movestogo != 0 ? min (movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
         // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
@@ -73,8 +73,8 @@ namespace Time {
         {
             // Calculate thinking time for hypothetic "moves to go"-value
             i32 hyp_time = max (
-                + gameclock.time
-                + gameclock.inc * (hyp_movestogo-1)
+                + game_clock.time
+                + game_clock.inc * (hyp_movestogo-1)
                 - EmergencyClockTime
                 - EmergencyMoveTime * min (hyp_movestogo, EmergencyMoveHorizon), 0U);
 

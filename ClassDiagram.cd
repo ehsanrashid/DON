@@ -462,7 +462,7 @@
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="gameclock" />
+      <Field Name="game_clock" />
     </ShowAsAssociation>
   </Struct>
   <Struct Name="Search::SignalsT" Collapsed="true">

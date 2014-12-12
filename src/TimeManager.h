@@ -31,7 +31,7 @@ namespace Time {
 
         inline void instability (float best_move_change) { _instability_factor = 1.0f + best_move_change; }
 
-        void initialize (const GameClock &gameclock, u08 movestogo, i32 game_ply);
+        void initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply);
 
     };
 

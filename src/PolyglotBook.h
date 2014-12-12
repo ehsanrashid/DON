@@ -62,7 +62,7 @@ namespace OpeningBook {
         std::string _book_fn;
         openmode    _mode;
 
-        streampos   _size_book;
+        streampos   _size;
 
         template<class T>
         PolyglotBook& operator>> (T &t);
@@ -90,15 +90,15 @@ namespace OpeningBook {
 
         streampos size ()
         {
-            if (0 >= _size_book)
+            if (0 >= _size)
             {
                 streampos cur_pos = tellg ();
                 seekg (0L, end);
-                _size_book = tellg ();
+                _size = tellg ();
                 seekg (cur_pos, beg);
                 clear ();
             }
-            return _size_book;
+            return _size;
         }
 
         // probe_move() tries to find a book move for the given position.

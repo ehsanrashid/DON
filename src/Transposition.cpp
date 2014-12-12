@@ -156,8 +156,7 @@ namespace Transposition {
             // Empty entry then write otherwise overwrite
             if (ite->_key == U64(0) || ite->_key == key)
             {
-                // Save preserving any existing TT move
-                ite->save (key, move != MOVE_NONE ? move : ite->move (), value, eval, depth, bound, _generation);
+                ite->save (key, move, value, eval, depth, bound, _generation);
                 return;
             }
         }

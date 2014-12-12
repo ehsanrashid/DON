@@ -563,7 +563,7 @@
       <Field Name="root_moves" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
-      <Field Name="gameclock" />
+      <Field Name="game_clock" />
     </ShowAsCollectionAssociation>
   </Struct>
   <Struct Name="Search::SignalsT" Collapsed="true">

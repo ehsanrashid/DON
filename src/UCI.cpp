@@ -199,10 +199,10 @@ namespace UCI {
             i64     value;
             while (cmds >> token)
             {
-                if      (token == "wtime")      { cmds >> value; limits.gameclock[WHITE].time = u32(value >= 0 ? +value : -value); }
-                else if (token == "btime")      { cmds >> value; limits.gameclock[BLACK].time = u32(value >= 0 ? +value : -value); }
-                else if (token == "winc")       { cmds >> value; limits.gameclock[WHITE].inc  = u32(value >= 0 ? +value : -value); }
-                else if (token == "binc")       { cmds >> value; limits.gameclock[BLACK].inc  = u32(value >= 0 ? +value : -value); }
+                if      (token == "wtime")      { cmds >> value; limits.game_clock[WHITE].time = u32(value >= 0 ? +value : -value); }
+                else if (token == "btime")      { cmds >> value; limits.game_clock[BLACK].time = u32(value >= 0 ? +value : -value); }
+                else if (token == "winc")       { cmds >> value; limits.game_clock[WHITE].inc  = u32(value >= 0 ? +value : -value); }
+                else if (token == "binc")       { cmds >> value; limits.game_clock[BLACK].inc  = u32(value >= 0 ? +value : -value); }
                 else if (token == "movetime")   { cmds >> value; limits.movetime  = u32(value >= 0 ? +value : -value); }
                 else if (token == "movestogo")  { cmds >> value; limits.movestogo = u08(value >= 0 ? +value : -value); }
                 else if (token == "depth")      { cmds >> value; limits.depth     = u08(value >= 0 ? +value : -value); }
