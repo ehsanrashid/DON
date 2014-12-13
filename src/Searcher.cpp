@@ -1508,8 +1508,12 @@ namespace Search {
             CheckInfo ci (pos);
             for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
             {
-                u64 inter_nodes = 1;
-                if (!RootNode || depth > 1*DEPTH_ONE)
+                u64 inter_nodes;
+                if (RootNode && depth <= 1*DEPTH_ONE)
+                {
+                    inter_nodes = 1;
+                }
+                else
                 {
                     Move m = *ms;
                     StateInfo si;
@@ -1524,8 +1528,8 @@ namespace Search {
                               //<< move_to_can (*ms, Chess960)
                               << move_to_san (*ms, pos)
                               << right << setw (16)
-                              << setfill ('.') << inter_nodes
-                              << setfill (' ') << sync_endl;
+                              << setfill ('.') << inter_nodes << setfill (' ')
+                              << left << sync_endl;
                 }
 
                 leaf_nodes += inter_nodes;
