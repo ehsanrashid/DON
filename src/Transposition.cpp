@@ -136,17 +136,17 @@ namespace Transposition {
         assert (key != U64(0));
 
         TTEntry *const fte = cluster_entry (key);
-        for (TTEntry *ite = fte; ite < fte + ClusterEntries && ite->_key != U64(0); ++ite)
+        for (TTEntry *ite = fte  ; ite < fte + ClusterEntries; ++ite)
         {
-            if (ite->_key == U64(0) || ite->_key == key)
+            if (ite->_key == U64(0))
             {
-                if (ite->_key == key)
-                {
-                    ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
-                    found = true;
-                    return ite;
-                }
                 found = false;
+                return ite;
+            }
+            if (ite->_key == key)
+            {
+                ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
+                found = true;
                 return ite;
             }
         }
