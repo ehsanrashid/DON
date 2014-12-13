@@ -47,8 +47,8 @@ namespace Transposition {
 
         inline void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
-            (m != MOVE_NONE || k != _key) ? // Preserve any existing TT move
-                _move   = u16(m) : 0;
+            if (m != MOVE_NONE || k != _key) // Preserve any existing TT move
+                _move   = u16(m);
             _key        = u64(k);
             _value      = u16(v);
             _eval       = u16(e);
@@ -175,6 +175,7 @@ namespace Transposition {
         // It increments the "Generation" variable, which is used to distinguish
         // transposition table entries from previous searches from entries from the current search.
         inline void new_gen () { _generation += 4; }
+        u08 get_gen () const { return _generation; }
 
         // cluster_entry() returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
@@ -214,9 +215,7 @@ namespace Transposition {
 
         u32 auto_size (u64 mem_size_mb, bool force = false);
 
-        void store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval);
-
-        const TTEntry* retrieve (Key key) const;
+        TTEntry* probe (Key key, bool &found) const;
 
         void save (std::string &hash_fn);
         void load (std::string &hash_fn);

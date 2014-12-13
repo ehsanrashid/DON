@@ -243,7 +243,9 @@ namespace Search {
 
             // Transposition table lookup
             Key   posi_key;
-            const TTEntry *tte;
+            TTEntry *tte = NULL;
+            bool  tt_hit = false;
+
             Move  tt_move    = MOVE_NONE
                 , best_move  = MOVE_NONE;
             Value tt_value   = VALUE_NONE
@@ -252,8 +254,8 @@ namespace Search {
             Bound tt_bound   = BOUND_NONE;
             
             posi_key = pos.posi_key ();
-            tte      = TT.retrieve (posi_key);
-            if (tte != NULL)
+            tte      = TT.probe (posi_key, tt_hit);
+            if (tt_hit)
             {
                 tt_move  = tte->move ();
                 tt_value = value_of_tt (tte->value (), (ss)->ply);
@@ -272,7 +274,7 @@ namespace Search {
             CheckInfo cc, *ci = NULL;
 
             if (  !PVNode 
-               && tte != NULL
+               && tt_hit
                && tt_depth >= qs_depth
                && tt_value != VALUE_NONE // Only in case of TT access race
                && (tt_value >= beta ? (tt_bound & BOUND_LOWER) : (tt_bound & BOUND_UPPER))
@@ -290,7 +292,7 @@ namespace Search {
             }
             else
             {
-                if (tte != NULL)
+                if (tt_hit)
                 {
                     best_value = tte->eval ();
                     // Never assume anything on values stored in TT
@@ -316,10 +318,9 @@ namespace Search {
                     // Stand pat. Return immediately if static value is at least beta
                     if (best_value >= beta)
                     {
-                        if (tte == NULL)
+                        if (!tt_hit)
                         {
-                            TT.store (posi_key, MOVE_NONE, DEPTH_NONE, BOUND_LOWER,
-                                value_to_tt (best_value, (ss)->ply), (ss)->static_eval);
+                            tte->save (posi_key, MOVE_NONE, value_to_tt (best_value, (ss)->ply), (ss)->static_eval, DEPTH_NONE, BOUND_LOWER, TT.get_gen ());
                         }
 
                         assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -439,8 +440,7 @@ namespace Search {
                         // Fail high
                         if (value >= beta)
                         {
-                            TT.store (posi_key, best_move, qs_depth, BOUND_LOWER, 
-                                value_to_tt (best_value, (ss)->ply), (ss)->static_eval);
+                            tte->save (posi_key, best_move, value_to_tt (best_value, (ss)->ply), (ss)->static_eval, qs_depth, BOUND_LOWER, TT.get_gen ());
 
                             assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
                             return best_value;
@@ -461,9 +461,8 @@ namespace Search {
                 best_value = mated_in ((ss)->ply);
             }
 
-            TT.store (posi_key, best_move, qs_depth,
-                PVNode && pv_alpha < best_value ? BOUND_EXACT : BOUND_UPPER,
-                value_to_tt (best_value, (ss)->ply), (ss)->static_eval);
+            tte->save (posi_key, best_move, value_to_tt (best_value, (ss)->ply), (ss)->static_eval, qs_depth,
+                PVNode && pv_alpha < best_value ? BOUND_EXACT : BOUND_UPPER, TT.get_gen ());
 
             assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -489,7 +488,9 @@ namespace Search {
             assert (depth > DEPTH_ZERO);
 
             Key   posi_key;
-            const TTEntry *tte;
+            TTEntry *tte = NULL;
+            bool  tt_hit = false;
+
             Move  move
                 , tt_move     = MOVE_NONE
                 , exclude_move= MOVE_NONE
@@ -564,11 +565,11 @@ namespace Search {
                             pos.posi_key () :
                             pos.posi_key () ^ Zobrist::EXC_KEY;
 
-                tte      = TT.retrieve (posi_key);
+                tte      = TT.probe (posi_key, tt_hit);
                 (ss)->tt_move =
                 tt_move  = RootNode ? RootMoves[IndexPV].pv[0] :
-                           tte != NULL ? tte->move () : MOVE_NONE;
-                if (tte != NULL)
+                           tt_hit ? tte->move () : MOVE_NONE;
+                if (tt_hit)
                 {
                     tt_value = value_of_tt (tte->value (), (ss)->ply);
                     tt_depth = tte->depth ();
@@ -577,7 +578,7 @@ namespace Search {
 
                 // At non-PV nodes we check for a fail high/low. We don't probe at PV nodes
                 if (  !PVNode
-                    && tte != NULL
+                    && tt_hit
                     && tt_value != VALUE_NONE // Only in case of TT access race
                     && tt_depth >= depth
                     && (tt_value >= beta ? (tt_bound & BOUND_LOWER) : (tt_bound & BOUND_UPPER))
@@ -605,7 +606,7 @@ namespace Search {
                 }
                 else
                 {
-                    if (tte != NULL)
+                    if (tt_hit)
                     {
                         static_eval = tte->eval ();
                         // Never assume anything on values stored in TT
@@ -625,7 +626,7 @@ namespace Search {
                         (ss)->static_eval = static_eval =
                             (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
 
-                        TT.store (posi_key, MOVE_NONE, DEPTH_NONE, BOUND_NONE, VALUE_NONE, (ss)->static_eval);
+                        tte->save (posi_key, MOVE_NONE, VALUE_NONE, (ss)->static_eval, DEPTH_NONE, BOUND_NONE, TT.get_gen ());
                     }
 
                     if (Pruning)
@@ -799,8 +800,8 @@ namespace Search {
 
                             search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
-                            tte = TT.retrieve (posi_key);
-                            if (tte != NULL)
+                            tte = TT.probe (posi_key, tt_hit);
+                            if (tt_hit)
                             {
                                 tt_move  = tte->move ();
                                 tt_value = value_of_tt (tte->value (), (ss)->ply);
@@ -1279,10 +1280,11 @@ namespace Search {
                     update_stats (pos, ss, best_move, depth, quiet_moves, quiets-1);
                 }
 
-                TT.store (posi_key, best_move, depth,
+                tte->save (posi_key, best_move,
+                    value_to_tt (best_value, (ss)->ply), (ss)->static_eval, depth,
                     best_value >= beta ? BOUND_LOWER :
                         PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
-                    value_to_tt (best_value, (ss)->ply), (ss)->static_eval);
+                    TT.get_gen ());
             }
 
             assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -1313,7 +1315,7 @@ namespace Search {
 
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
-            // that will use behind the scenes to retrieve a set of possible moves.
+            // that will use behind the scenes to get a set of possible moves.
             LimitPV = min (max (MultiPV, skill_pv), RootSize);
 
             Value best_value = VALUE_ZERO
@@ -1584,12 +1586,13 @@ namespace Search {
         {
             Move m = pv[ply];
             assert (MoveList<LEGAL> (pos).contains (m));
-
-            const TTEntry *tte = TT.retrieve (pos.posi_key ());
+            
+            bool tt_hit = false;
+            TTEntry *tte = TT.probe (pos.posi_key (), tt_hit);
             // Don't overwrite correct entries
-            if (tte == NULL || tte->move () != m)
+            if (!tt_hit || tte->move () != m)
             {
-                TT.store (pos.posi_key (), m, DEPTH_NONE, BOUND_NONE, VALUE_NONE, VALUE_NONE);
+                tte->save (pos.posi_key (), m, VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.get_gen ());
             }
 
             pos.do_move (m, *si++);

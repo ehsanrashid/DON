@@ -129,35 +129,25 @@ namespace Transposition {
         return 0;
     }
 
-    // store() writes a new entry in the transposition table.
-    // It contains folowing valuable information.
-    //  - Key
-    //  - Move
-    //  - Depth
-    //  - Bound
-    //  - Nodes
-    //  - Value
-    //  - Evaluation
-    // The lower order bits of position key are used to decide on which cluster the position will be placed.
-    // The upper order bits of position key are used to store in entry.
-    // When a new entry is written and there are no empty entries available in cluster,
-    // it replaces the least valuable of these entries.
-    // An entry e1 is considered to be more valuable than a entry e2
-    // * if e1 is from the current search and e2 is from a previous search.
-    // * if e1 & e2 is from a current search then EXACT bound is valuable.
-    // * if the depth of e1 is bigger than the depth of e2.
-    void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval)
+    // probe() looks up the entry in the transposition table.
+    // Returns a pointer to the entry found or NULL if not found.
+    TTEntry* TranspositionTable::probe (Key key, bool &found) const
     {
         assert (key != U64(0));
 
         TTEntry *const fte = cluster_entry (key);
-        for (TTEntry *ite = fte  ; ite < fte + ClusterEntries; ++ite)
+        for (TTEntry *ite = fte; ite < fte + ClusterEntries && ite->_key != U64(0); ++ite)
         {
-            // Empty entry then write otherwise overwrite
             if (ite->_key == U64(0) || ite->_key == key)
             {
-                ite->save (key, move, value, eval, depth, bound, _generation);
-                return;
+                if (ite->_key == key)
+                {
+                    ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
+                    found = true;
+                    return ite;
+                }
+                found = false;
+                return ite;
             }
         }
 
@@ -178,25 +168,8 @@ namespace Transposition {
             memmove (fte, fte+1, (ClusterEntries - 1)*EntrySize);
             rte = fte + (ClusterEntries - 1);
         }
-        rte->save (key, move, value, eval, depth, bound, _generation);
-    }
-
-    // retrieve() looks up the entry in the transposition table.
-    // Returns a pointer to the entry found or NULL if not found.
-    const TTEntry* TranspositionTable::retrieve (Key key) const
-    {
-        assert (key != U64(0));
-
-        TTEntry *const fte = cluster_entry (key);
-        for (TTEntry *ite = fte; ite < fte + ClusterEntries && ite->_key != U64(0); ++ite)
-        {
-            if (ite->_key == key)
-            {
-                ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
-                return ite;
-            }
-        }
-        return NULL;
+        found = false;
+        return rte;
     }
 
     void TranspositionTable::save (string &hash_fn)
