@@ -114,20 +114,20 @@ namespace Notation {
 
     }
 
-    // move_from_can(can, pos) takes a position and a string representing a move in
-    // simple coordinate algebraic notation and returns an equivalent legal move if any.
+    // move_from_can(can, pos) converts a string representing a move in coordinate algebraic notation
+    // to the corresponding legal move, if any.
     Move move_from_can (const string &can, const Position &pos)
     {
-        string scan = can;
-        if (5 == scan.length ())
+        string can_copy = can;
+        if (5 == can_copy.length ())
         {
             // Promotion piece in lowercase
-            if (isupper (u08(scan[4]))) scan[4] = u08(tolower (scan[4]));
+            if (isupper (u08(can_copy[4]))) can_copy[4] = u08(tolower (can_copy[4]));
         }
 
         for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
         {
-            if (scan == move_to_can (*ms, pos.chess960 ()))
+            if (can_copy == move_to_can (*ms, pos.chess960 ()))
             {
                 return *ms;
             }
@@ -135,8 +135,8 @@ namespace Notation {
         return MOVE_NONE;
     }
 
-    // move_from_san(can, pos) takes a position and a string representing a move in
-    // single algebraic notation and returns an equivalent legal move if any.
+    // move_from_san(san, pos) converts a string representing a move in short algebraic notation
+    // to the corresponding legal move, if any.
     Move move_from_san (const string &san, Position &pos)
     {
         for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
@@ -148,16 +148,15 @@ namespace Notation {
         }
         return MOVE_NONE;
     }
+    
+    //// move_from_lan(lan, pos) converts a string representing a move in long algebraic notation
+    //// to the corresponding legal move, if any.
     //Move move_from_lan (const string &lan, const Position &pos)
     //{
     //    return MOVE_NONE;
     //}
-    //Move move_from_fan (const string &fan, const Position &pos)
-    //{
-    //    return MOVE_NONE;
-    //}
 
-    // move_to_can(m, c960) converts a move to a string in coordinate algebraic notation (g1f3, a7a8q, etc.).
+    // move_to_can(m, c960) converts a move to a string in coordinate algebraic notation representation.
     // The only special case is castling moves,
     //  - e1g1 notation in normal chess mode,
     //  - e1h1 notation in chess960 mode.
@@ -177,8 +176,7 @@ namespace Notation {
         return can;
     }
 
-    // move_to_san(m, pos) takes a position and a legal move as input
-    // and returns its short algebraic notation representation.
+    // move_to_san(m, pos) converts a move to a string in short algebraic notation representation.
     string move_to_san (Move m, Position &pos)
     {
         if (MOVE_NONE == m) return "(none)";
@@ -240,18 +238,11 @@ namespace Notation {
         return san;
     }
 
-    // TODO::
-    //// move_to_lan(m, pos) takes a position and a legal move as input
-    //// and returns its long algebraic notation representation.
+    //// move_to_lan(m, pos) converts a move to a string in long algebraic notation representation.
     //string move_to_lan (Move m, Position &pos)
     //{
     //    string lan;
     //    return lan;
-    //}
-    //string move_to_fan (Move m, Position &pos)
-    //{
-    //    string fan;
-    //    return fan;
     //}
 
     // pretty_score() converts a value to a string suitable
