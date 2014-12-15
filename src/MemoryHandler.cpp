@@ -242,14 +242,14 @@ namespace Memory {
 
         ALIGN_FREE (mem);
     }
-    
+
     void initialize   ()
     {
 
 #   if defined(_WIN32)
 
         setup_privilege (SE_LOCK_MEMORY_NAME, true);
-        
+
 #   else    // Linux - Unix
 
 #   endif

@@ -2,14 +2,6 @@
 <ClassDiagram MajorVersion="1" MinorVersion="1" MembersFormat="NameAndType">
   <Class Name="Threads::Thread">
     <Position X="5.75" Y="17" Width="2.75" />
-    <AssociationLine Name="matl_table" Type="Material::Table" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="8.125" Y="19.416" />
-        <Point X="8.125" Y="19.791" />
-        <Point X="11.675" Y="19.791" />
-        <Point X="11.675" Y="20.25" />
-      </Path>
-    </AssociationLine>
     <AssociationLine Name="pawn_table" Type="Pawns::Table" FixedFromPoint="true" FixedToPoint="true">
       <Path>
         <Point X="7.938" Y="19.416" />
@@ -18,29 +10,30 @@
         <Point X="9.762" Y="20.25" />
       </Path>
     </AssociationLine>
+    <AssociationLine Name="matl_table" Type="Material::Table" FixedFromPoint="true" FixedToPoint="true">
+      <Path>
+        <Point X="8.125" Y="19.416" />
+        <Point X="8.125" Y="19.791" />
+        <Point X="11.675" Y="19.791" />
+        <Point X="11.675" Y="20.25" />
+      </Path>
+    </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AEgAACIAAQAAAAAAAAAEAAAAQBAAIABAAAAAAAAQIgA=</HashCode>
+      <HashCode>AEgAECIAAQAAAgAgAAAAAAAAABAAIAAAAAAAAAAQIgA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="splitpoints" />
-      <Field Name="matl_table" />
       <Field Name="pawn_table" />
+      <Field Name="matl_table" />
       <Field Name="active_pos" />
       <Field Name="active_splitpoint" />
     </ShowAsAssociation>
   </Class>
   <Class Name="Position">
     <Position X="11.5" Y="2.25" Width="3.25" />
-    <AssociationLine Name="_thread" Type="Threads::Thread" FixedFromPoint="true" FixedToPoint="true">
-      <Path>
-        <Point X="14.406" Y="15.76" />
-        <Point X="14.406" Y="17.812" />
-        <Point X="8.5" Y="17.812" />
-      </Path>
-    </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AkoAAwJPAQQACBmwVYepIAEjgbFLHoRwDBg0JCAgJyA=</HashCode>
+      <HashCode>AkoAAwJPAQQACBmwVYepIAEjgbVKHoRwDBgwJCAgJSA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -63,7 +56,7 @@
   <Class Name="OpeningBook::PolyglotBook" Collapsed="true">
     <Position X="6.5" Y="25.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAABAAEgACAACAqCAAwAAAAAACAAAAIBEEEAAASA=</HashCode>
+      <HashCode>AAAAAABAAAAICAAKAqCAAwAAAAAAAABAAIAEEEAAASA=</HashCode>
       <FileName>src\PolyglotBook.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -76,7 +69,7 @@
         <Point X="7.042" Y="7.719" Type="JumpEnd" />
         <Point X="6.458" Y="7.719" Type="JumpStart" />
         <Point X="6.292" Y="7.719" Type="JumpEnd" />
-        <Point X="6.146" Y="7.719" Type="JumpStart" />
+        <Point X="5.99" Y="7.719" Type="JumpStart" />
         <Point X="5.823" Y="7.719" Type="JumpEnd" />
         <Point X="5.349" Y="7.719" Type="JumpStart" />
         <Point X="5.182" Y="7.719" Type="JumpEnd" />
@@ -87,7 +80,7 @@
       </Path>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AhABAAkGAgAAgEAAgAAAAIQAQgAACCIQAAAgIUAQEgA=</HashCode>
+      <HashCode>AhABAAkGAgAggEAAgAAAAIQAQgAACCIQAAAgIUAQEgA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -117,7 +110,7 @@
   <Class Name="Transposition::TranspositionTable">
     <Position X="6.75" Y="26.75" Width="2.75" />
     <TypeIdentifier>
-      <HashCode>JkgAAIAMCICAAAAEiIAgIAAABAAAIAEBAyAAAASAAAA=</HashCode>
+      <HashCode>AkiAAAAMGICIAAAUCIAgIAAADAAAIAEBAyAAAASAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -127,7 +120,7 @@
   <Class Name="Time::TimeManager">
     <Position X="13.75" Y="26.5" Width="2.25" />
     <TypeIdentifier>
-      <HashCode>ARAAAgAAAAAAAAgAAAEAAAAAAIEAAAACAgAAAAAAAAA=</HashCode>
+      <HashCode>ARAAAAAAAAAAAAgAAAEAAAAAAIAAAAACAgAAAAAAAAA=</HashCode>
       <FileName>src\TimeManager.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -298,7 +291,7 @@
       </Path>
     </InheritanceLine>
     <TypeIdentifier>
-      <HashCode>AAAAAAAEAAAACCAAAEEAAAJCQAAAAAAAAAAIIAAAIAQ=</HashCode>
+      <HashCode>AAAACAAEQAAACAAAAEEAAAICQAAAQAAAAAAIAAAAIAQ=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -316,7 +309,7 @@
         <Point X="16.25" Y="9.344" />
         <Point X="15" Y="9.344" />
         <Point X="15" Y="15.885" />
-        <Point X="14.489" Y="15.885" Type="JumpStart" />
+        <Point X="14.49" Y="15.885" Type="JumpStart" />
         <Point X="14.323" Y="15.885" Type="JumpEnd" />
         <Point X="13.333" Y="15.885" Type="JumpStart" />
         <Point X="13.167" Y="15.885" Type="JumpEnd" />
@@ -340,7 +333,7 @@
         <Point X="16.5" Y="10.123" />
         <Point X="15" Y="10.123" />
         <Point X="15" Y="15.885" />
-        <Point X="14.489" Y="15.885" Type="JumpStart" />
+        <Point X="14.49" Y="15.885" Type="JumpStart" />
         <Point X="14.323" Y="15.885" Type="JumpEnd" />
         <Point X="13.333" Y="15.885" Type="JumpStart" />
         <Point X="13.167" Y="15.885" Type="JumpEnd" />
@@ -364,7 +357,7 @@
       </Path>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AgAAAQAEAAAEAAgAAQAAAAAhAAAAAAAQAAgAAAAAIAI=</HashCode>
+      <HashCode>AgAAAQAEAAAAAAgAAQAAAAAhAAAAAEAQAAgAAAAAIAI=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -374,9 +367,9 @@
       <Field Name="pawn_key" />
       <Field Name="castle_rights" />
       <Field Name="en_passant_sq" />
-      <Field Name="posi_key" />
       <Field Name="last_move" />
       <Field Name="capture_type" />
+      <Field Name="posi_key" />
       <Field Name="checkers" />
       <Field Name="ptr" />
     </ShowAsAssociation>
@@ -419,7 +412,7 @@
   <Struct Name="MovePick::HistoryStats">
     <Position X="1" Y="11" Width="2.75" />
     <TypeIdentifier>
-      <HashCode>AEAAAAAAAAAAAAgAAAAAAAAAAIAAACIAAAAgABAAACA=</HashCode>
+      <HashCode>AEAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAgAAAEACA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
     <ShowAsCollectionAssociation>
@@ -436,22 +429,19 @@
       <Field Name="_moves" />
     </ShowAsCollectionAssociation>
   </Struct>
-  <Struct Name="Transposition::Entry">
+  <Struct Name="Transposition::TTEntry">
     <Position X="11" Y="29" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ABCoAAAAAACAAACAAACIQAAAAAAAACAAAAICIAAAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Transposition::Cluster">
+  <Struct Name="Transposition::TTCluster">
     <Position X="11" Y="27" Width="1.75" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACEAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAgAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
-    <ShowAsCollectionAssociation>
-      <Field Name="entry" />
-    </ShowAsCollectionAssociation>
   </Struct>
   <Struct Name="Castling&lt;C, CS&gt;">
     <Position X="19" Y="0.75" Width="1.5" />
@@ -573,7 +563,7 @@
       <Field Name="root_moves" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
-      <Field Name="gameclock" />
+      <Field Name="game_clock" />
     </ShowAsCollectionAssociation>
   </Struct>
   <Struct Name="Search::SignalsT" Collapsed="true">
@@ -594,20 +584,17 @@
       </Path>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAAAAAEAAAAAAAAAAAABgAAAAAAAACACAAAAAAAQIAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAABgAAIAAAAAAACgAAAAAAQIAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="pv" />
     </ShowAsAssociation>
-    <ShowAsCollectionAssociation>
-      <Field Name="value" />
-    </ShowAsCollectionAssociation>
   </Struct>
   <Struct Name="Search::Stack">
     <Position X="1.75" Y="6.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAQAgAAAAAAAAAAAAAAAwAACAAAAAAAQCAAAAA=</HashCode>
+      <HashCode>AAAAAAAQAgAAAAAAAAAAAAAAAwAACAAAAAAAQCAQAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -616,6 +603,7 @@
       <Field Name="current_move" />
       <Field Name="exclude_move" />
       <Field Name="static_eval" />
+      <Field Name="pv" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="killer_moves" />
@@ -685,7 +673,7 @@
         <Point X="16.76" Y="11.047" Type="JumpEnd" />
         <Point X="15" Y="11.047" />
         <Point X="15" Y="16.26" />
-        <Point X="14.489" Y="16.26" Type="JumpStart" />
+        <Point X="14.49" Y="16.26" Type="JumpStart" />
         <Point X="14.323" Y="16.26" Type="JumpEnd" />
         <Point X="13.333" Y="16.26" Type="JumpStart" />
         <Point X="13.167" Y="16.26" Type="JumpEnd" />
@@ -704,7 +692,7 @@
       </Path>
     </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AgMAAQAgAAAAIAAAAAAAAANAAMAAAgAAEAAQAoEAgAA=</HashCode>
+      <HashCode>AgMAAQAgAAAAIAAAAAQAAAMAAMAAAgAAEAAQAoEAAAA=</HashCode>
       <FileName>src\Pawns.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -714,7 +702,6 @@
     <ShowAsCollectionAssociation>
       <Field Name="pawns_attacks" />
       <Field Name="passed_pawns" />
-      <Field Name="unstopped_pawns" />
       <Field Name="king_sq" />
       <Field Name="shelter_storm" />
     </ShowAsCollectionAssociation>
@@ -758,17 +745,10 @@
     </ShowAsCollectionAssociation>
   </Struct>
   <Struct Name="Evaluate::`anonymous-namespace'::Weight" Collapsed="true">
-    <Position X="28.25" Y="3.75" Width="1.5" />
+    <Position X="30" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
-    </TypeIdentifier>
-  </Struct>
-  <Struct Name="Search::`anonymous-namespace'::Skill" Collapsed="true">
-    <Position X="26.5" Y="3.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>FAAAIAAAAAAAAECAIAAAAAAAEAEAAAAAACAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.cpp</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="Threads::Condition" Collapsed="true">
@@ -776,6 +756,20 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAKAAAAAAAAAAAAAAAgAAAAEAABAAAAAAAQ=</HashCode>
       <FileName>src\Thread.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Search::PVEntry">
+    <Position X="0.5" Y="4.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAUAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Search::Skill">
+    <Position X="23.25" Y="0.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>FEAAICAgAAAAAEAAAAABAQAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Typedef Name="StateInfoStack" Collapsed="true">
@@ -1027,7 +1021,7 @@
   <Enum Name="Piece" Collapsed="true">
     <Position X="12.5" Y="16.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAIAAgAQMAAAgAwRTAAAAIAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAIAAgAQMAAAgAgRTAAAAIAAAAAQAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -1048,7 +1042,7 @@
   <Enum Name="Value" Collapsed="true">
     <Position X="4.75" Y="12.75" Width="1.75" />
     <TypeIdentifier>
-      <HashCode>gAAQAwAAQAQgIAgAAQEAEhAAIMDAQAAAAAAAAAAACAA=</HashCode>
+      <HashCode>gAAQAgAAQARgIAgAAQEAEBAAIMDAQAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -1062,28 +1056,28 @@
   <Enum Name="Depth" Collapsed="true">
     <Position X="8.5" Y="10.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAIMAAAAAACAIAgAAAAgAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAMAAAAAACAAAgAAAAgQAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Bound" Collapsed="true">
     <Position X="30" Y="5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAACAAAAAAAAAAEAAAAAAAAAAAAQAAACAAAA=</HashCode>
+      <HashCode>AgAAAIAIAAIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Phase" Collapsed="true">
     <Position X="28.25" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAQEAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAoAA=</HashCode>
+      <HashCode>AAQEAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAABoAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="ScaleFactor" Collapsed="true">
     <Position X="33.5" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAACAAAAAAACABAAAAAAAAAAAAAAAAAAAAAAAACAgAA=</HashCode>
+      <HashCode>AAACAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAACAggA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -1091,7 +1085,7 @@
     <Position X="26.5" Y="7.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>gAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Type.h</FileName>
+      <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="BitBoard::BitCountT" Collapsed="true">
@@ -1139,7 +1133,7 @@
   <Enum Name="Evaluate::`anonymous-namespace'::Tracer::TermT" Collapsed="true">
     <Position X="28.25" Y="7.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>IAAAAEAAgQAAAAEAAEAAAABAAAAAAAAAAAAAAABAAAA=</HashCode>
+      <HashCode>IAAAAEAAIQAAAAEAAEAAAABAAAAAAAAAAAAAAABAAAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Enum>

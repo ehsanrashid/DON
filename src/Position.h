@@ -60,7 +60,7 @@ public:
     Bitboard checkers;     // Checkers bitboard.
 
     StateInfo *ptr;
-    
+
 };
 
 typedef std::stack<StateInfo>   StateInfoStack;
@@ -162,7 +162,7 @@ public:
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    Position (const Position  &pos, Threads::Thread *th = NULL)
+    Position (const Position &pos, Threads::Thread *th = NULL)
     { 
         *this = pos;
         _thread = th;
@@ -420,7 +420,7 @@ inline Key    Position::posi_move_key (Move m) const
         ,  ct = ptype (_board[dst]);
 
     return _si->posi_key
-        ^  Zob._.mover_side
+        ^  Zob._.act_side
         ^  Zob._.piece_square[_active][pt][org]
         ^  Zob._.piece_square[_active][pt][dst]
         ^  (ct != NONE ? Zob._.piece_square[~_active][ct][dst] : U64(0));

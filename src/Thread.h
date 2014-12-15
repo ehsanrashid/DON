@@ -92,7 +92,7 @@ namespace Threads {
     {
     private:
         Lock _lock;
-        
+
         friend struct Condition;
 
     public:
@@ -153,9 +153,9 @@ namespace Threads {
 
     public:
         // Const data after splitpoint has been setup
-        const Stack    *ss;
         const Position *pos;
 
+        Stack  *ss;
         Thread *master;
         Value   beta;
         Depth   depth;
@@ -257,7 +257,7 @@ namespace Threads {
 
         bool available_to (const Thread *master) const;
 
-        void split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
+        void split (Position &pos, Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
             Depth depth, u08 legals, MovePicker &movepicker, NodeT node_type, bool cut_node);
 
     };

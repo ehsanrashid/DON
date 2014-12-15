@@ -129,7 +129,7 @@ namespace Engine {
     void exit (i32 code)
     {
         UCI      ::stop ();
-        
+
         Threadpool.deinitialize ();
         EndGame  ::deinitialize ();
         UCI      ::deinitialize ();

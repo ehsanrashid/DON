@@ -4,7 +4,6 @@
 #include <fstream>
 
 #include "Type.h"
-#include "RKISS.h"
 #include "noncopyable.h"
 
 class Position;
@@ -28,14 +27,14 @@ namespace OpeningBook {
         //  - Move      2 bytes
         //  - Weight    2 bytes
         //  - Learn     4 bytes
-        struct Entry
+        struct PBEntry
         {
             u64 key;
             u16 move;
             u16 weight;
             u32 learn;
 
-            Entry ()
+            PBEntry ()
                 : key (U64(0))
                 , move (MOVE_NONE)
                 , weight (0)
@@ -46,7 +45,7 @@ namespace OpeningBook {
 
             template<class CharT, class Traits>
             friend std::basic_ostream<CharT, Traits>&
-                operator<< (std::basic_ostream<CharT, Traits> &os, const Entry &pbe)
+                operator<< (std::basic_ostream<CharT, Traits> &os, const PBEntry &pbe)
             {
                 os << std::string (pbe);
                 return os;
@@ -63,9 +62,7 @@ namespace OpeningBook {
         std::string _book_fn;
         openmode    _mode;
 
-        streampos   _size_book;
-
-        RKISS       _rkiss;
+        streampos   _size;
 
         template<class T>
         PolyglotBook& operator>> (T &t);
@@ -93,15 +90,15 @@ namespace OpeningBook {
 
         streampos size ()
         {
-            if (0 >= _size_book)
+            if (0 >= _size)
             {
                 streampos cur_pos = tellg ();
                 seekg (0L, end);
-                _size_book = tellg ();
+                _size = tellg ();
                 seekg (cur_pos, beg);
                 clear ();
             }
-            return _size_book;
+            return _size;
         }
 
         // probe_move() tries to find a book move for the given position.
@@ -112,7 +109,7 @@ namespace OpeningBook {
 
         std::string read_entries (const Position &pos);
 
-        void insert_entry (const Entry &pbe);
+        void insert_entry (const PBEntry &pbe);
 
         //void write ();
 

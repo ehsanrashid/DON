@@ -28,7 +28,7 @@ namespace MovePick {
 
         inline void clear ()
         {
-            std::fill (*_values, *_values + sizeof (_values) / sizeof (**_values), VALUE_ZERO);
+            std::fill (*_values, *_values + sizeof (_values)/sizeof (**_values), VALUE_ZERO);
         }
 
         inline void update (const Position &pos, Move m, Value g)
@@ -50,14 +50,14 @@ namespace MovePick {
         Value _values[PIECE_NO][SQ_NO];
 
     public:
-    
+
         static const Value MaxValue;
         
         inline const Value* operator[] (Piece p) const { return _values[p]; }
 
         inline void clear ()
         {
-            std::fill (*_values, *_values + sizeof (_values) / sizeof (**_values), VALUE_ZERO);
+            std::fill (*_values, *_values + sizeof (_values)/sizeof (**_values), VALUE_ZERO);
         }
 
         inline void update (const Position &pos, Move m, Value v)
@@ -82,7 +82,7 @@ namespace MovePick {
 
         inline void clear ()
         {
-            std::fill (**_moves, **_moves + sizeof (_moves) / sizeof (***_moves), MOVE_NONE);
+            std::fill (**_moves, **_moves + sizeof (_moves)/sizeof (***_moves), MOVE_NONE);
         }
 
         inline void update (const Position &pos, Move m1, Move m2)

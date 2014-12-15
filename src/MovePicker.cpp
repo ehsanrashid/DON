@@ -533,8 +533,7 @@ namespace MovePick {
                 assert (false);
             break;
             }
-        }
-        while (true); // (stage <= STOP)
+        } while (true); // (stage <= STOP)
     }
 
     template<>

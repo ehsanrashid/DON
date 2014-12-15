@@ -11,7 +11,7 @@
 
 namespace Transposition {
 
-    // Transposition Entry needs 16 byte to be stored
+    // TTEntry needs 16 byte to be stored
     //
     //  Key--------- 64 bits
     //  Move-------- 16 bits
@@ -22,7 +22,7 @@ namespace Transposition {
     //  Bound------- 02 bits
     //  ====================
     //  Total-------128 bits = 16 bytes
-    struct Entry
+    struct TTEntry
     {
 
     private:
@@ -47,12 +47,13 @@ namespace Transposition {
 
         inline void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
-            _key     = u64(k);
-            _move    = u16(m);
-            _value   = u16(v);
-            _eval    = u16(e);
-            _depth   = i08(d);
-            _gen_bnd = u08(g | b);
+            if (m != MOVE_NONE || k != _key) // Preserve any existing TT move
+                _move   = u16(m);
+            _key        = u64(k);
+            _value      = u16(v);
+            _eval       = u16(e);
+            _depth      = i08(d);
+            _gen_bnd    = u08(g | b);
         }
 
     };
@@ -60,12 +61,12 @@ namespace Transposition {
     // Number of entries in a cluster
     const u08 ClusterEntries = 4;
 
-    // Cluster is a 64 bytes cluster of TT entries
+    // TTCluster is a 64 bytes cluster of TT entries
     //
     // 4 x Entry (4 x 16 bytes)
-    struct Cluster
+    struct TTCluster
     {
-        Entry entries[ClusterEntries];
+        TTEntry entries[ClusterEntries];
     };
 
     // A Transposition Table consists of a 2^power number of clusters
@@ -82,7 +83,7 @@ namespace Transposition {
         void    *_mem;
     #endif
 
-        Cluster *_clusters;
+        TTCluster *_clusters;
         u64      _cluster_count;
         u64      _cluster_mask;
         u08      _generation;
@@ -174,10 +175,11 @@ namespace Transposition {
         // It increments the "Generation" variable, which is used to distinguish
         // transposition table entries from previous searches from entries from the current search.
         inline void new_gen () { _generation += 4; }
+        u08 generation () const { return _generation; }
 
         // cluster_entry() returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
-        inline Entry* cluster_entry (const Key key) const
+        inline TTEntry* cluster_entry (const Key key) const
         {
             return _clusters[key & _cluster_mask].entries;
         }
@@ -192,10 +194,10 @@ namespace Transposition {
         {
             u64 full_cluster = 0;
             u64 scan_cluster = std::min (U64(10000), _cluster_count);
-            for (const Cluster *itc = _clusters; itc < _clusters + scan_cluster; ++itc)
+            for (const TTCluster *itc = _clusters; itc < _clusters + scan_cluster; ++itc)
             {
-                const Entry *fte = itc->entries;
-                for (const Entry *ite = fte; ite < fte + ClusterEntries; ++ite)
+                const TTEntry *fte = itc->entries;
+                for (const TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
                 {
                     if (ite->gen () == _generation)
                     {
@@ -213,9 +215,7 @@ namespace Transposition {
 
         u32 auto_size (u64 mem_size_mb, bool force = false);
 
-        void store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval);
-
-        const Entry* retrieve (Key key) const;
+        TTEntry* probe (Key key, bool &found) const;
 
         void save (std::string &hash_fn);
         void load (std::string &hash_fn);

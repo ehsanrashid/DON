@@ -34,7 +34,7 @@ namespace Search {
     {
     public:
 
-        GameClock gameclock[CLR_NO];
+        GameClock game_clock[CLR_NO];
         std::vector<Move> root_moves;   // restrict search to these moves only
 
         u32  movetime;  // search <x> time in milli-seconds
@@ -107,21 +107,9 @@ namespace Search {
             : nodes (U64(0))
             , new_value (-VALUE_INFINITE)
             , old_value (-VALUE_INFINITE)
-        {
-            pv.push_back (m);
-            pv.push_back (MOVE_NONE);
-        }
+            , pv (1, m)
+        {}
         
-        //RootMove (const RootMove &rm) { *this = rm; }
-        //RootMove& RootMove::operator= (const RootMove &rm)
-        //{
-        //    nodes     = rm.nodes;
-        //    new_value = rm.new_value;
-        //    old_value = rm.old_value;
-        //    pv        = rm.pv;
-        //    return *this;
-        //}
-
         // Ascending Sort
 
         friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value >  rm2.new_value); }
@@ -133,9 +121,8 @@ namespace Search {
 
         friend bool operator== (const RootMove &rm, Move m) { return (rm.pv[0] == m); }
         friend bool operator!= (const RootMove &rm, Move m) { return (rm.pv[0] != m); }
-
-        void extract_pv_from_tt (Position &pos);
-        void  insert_pv_into_tt (Position &pos);
+        
+        void insert_pv_into_tt (Position &pos);
 
         std::string info_pv () const;
     };
@@ -147,12 +134,8 @@ namespace Search {
     public:
         float best_move_change;
 
-        void initialize (const Position &pos, const std::vector<Move> &root_moves);
+        void initialize (const Position &pos, const vector<Move> &root_moves);
 
-        //inline void sort_full ()     { std::stable_sort (begin (), end ()); }
-        //inline void sort_beg (i32 n) { std::stable_sort (begin (), begin () + n); }
-        //inline void sort_end (i32 n) { std::stable_sort (begin () + n, end ()); }
-        
         //u64 game_nodes () const
         //{
         //    u64 nodes = U64(0);
@@ -170,8 +153,8 @@ namespace Search {
     struct Stack
     {
         SplitPoint *splitpoint;
-
-        u08     ply;
+        Move       *pv;
+        u08         ply;
 
         Move    tt_move
             ,   current_move
@@ -200,7 +183,7 @@ namespace Search {
 
         void clear () { _best_move = MOVE_NONE; }
 
-        bool can_pick_move (Depth depth) const { return depth == 1 + _level; }
+        bool can_pick_move (Depth depth) const { return depth/DEPTH_ONE == 1 + _level; }
 
         u08  pv_size () const;
 

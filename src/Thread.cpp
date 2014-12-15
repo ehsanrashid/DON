@@ -112,7 +112,7 @@ namespace Threads {
 
         // No splitpoints means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.
-        return (count == 0) || splitpoints[count - 1].slaves_mask.test (master->idx);
+        return 0 == count || splitpoints[count - 1].slaves_mask.test (master->idx);
     }
 
     // split<>() does the actual work of distributing the work at a node between several available threads.
@@ -121,7 +121,7 @@ namespace Threads {
     // and then helper threads are told that they have been assigned work. This causes them to instantly
     // leave their idle loops and call search<>().
     // When all threads have returned from search() then split() returns.
-    void Thread::split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
+    void Thread::split (Position &pos, Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
         Depth depth, u08 legals, MovePicker &movepicker, NodeT node_type, bool cut_node)
     {
         assert (pos.ok ());
@@ -262,13 +262,14 @@ namespace Threads {
     // and need a fully initialized engine.
     void ThreadPool::initialize ()
     {
-        max_ply = 0;
         push_back (new_thread<MainThread> ());
-        
+
+        max_ply                     = 0;
+
         check_limits_th             = new_thread<TimerThread> ();
         check_limits_th->task       = check_limits;
         check_limits_th->resolution = TimerResolution;
-        
+
         auto_save_th                = NULL;
 
         configure ();
@@ -335,7 +336,7 @@ namespace Threads {
         }
         return NULL;
     }
-    
+
     // start_main() wakes up the main thread sleeping in MainThread::idle_loop()
     // so to start a new search, then returns immediately.
     void ThreadPool::start_main (const Position &pos, const LimitsT &limits, StateInfoStackPtr &states)
@@ -374,5 +375,5 @@ namespace Threads {
         }
         main_th->mutex.unlock ();
     }
-    
+
 }

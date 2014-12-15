@@ -1,6 +1,6 @@
 ﻿#include "BitBoard.h"
 
-#include "RKISS.h"
+#include "PRNG.h"
 #include "Notation.h"
 
 namespace BitBoard {
@@ -88,11 +88,11 @@ namespace BitBoard {
         typedef u16(*Indexer) (Square s, Bitboard occ);
 
 #   ifndef BM2
-        const u16 MAGIC_BOOSTERS[R_NO] =
+        const u16 SEEDS[R_NO] =
 #       ifdef BIT64
-            { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
+            { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF }; // 64-bit
 #       else
-            { 0x3C9, 0x7B8, 0xB22, 0x21E, 0x815, 0xB24, 0x6AC, 0x0A4 }; // 32-bit
+            { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C }; // 32-bit
 #       endif
 #   endif
 
@@ -101,7 +101,7 @@ namespace BitBoard {
 #       ifndef BM2
             Bitboard occupancy[MAX_LMOVES];
             Bitboard reference[MAX_LMOVES];
-            RKISS rkiss;
+            
 #       endif
 
             attacks_bb[SQ_A1] = table_bb;
@@ -127,7 +127,7 @@ namespace BitBoard {
 #           else
                     32
 #           endif
-                    - pop_count<MAX15> (mask);
+                    - u08(pop_count<MAX15> (mask));
 #       else
                 (void) shift;
 #       endif
@@ -157,8 +157,8 @@ namespace BitBoard {
                 }
 
 #       ifndef BM2
-                u16 booster = MAGIC_BOOSTERS[_rank (Square(s))];
 
+                PRNG rng(SEEDS[_rank (Square(s))]);
                 // Find a magic for square 's' picking up an (almost) random number
                 // until found the one that passes the verification test.
                 u32 i;
@@ -168,7 +168,7 @@ namespace BitBoard {
                     u16 index;
                     do
                     {
-                        magics_bb[s] = rkiss.magic_rand<Bitboard> (booster);
+                        magics_bb[s] = rng.sparse_rand<Bitboard> ();
                         index = (mask * magics_bb[s]) >> 0x38;
                     } while (pop_count<MAX15> (index) < 6);
 

@@ -30,10 +30,6 @@ EXE = DON
 
 ### Installation dir definitions
 PREFIX = /usr/local
-# Haiku has a non-standard filesystem layout
-ifeq ($(UNAME),Haiku)
-	PREFIX = /boot/system/non-packaged
-endif
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
@@ -55,7 +51,6 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # debug   = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode
 # optimize= yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
 # arch    = (name)    --- (-arch)          --- Target architecture
-# os      = (name)    ---                  --- Target operating system
 # bits    = 64/32     --- -DBIT64         --- 64/32-bit operating system
 # pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
 # bsfq    = yes/no    --- -DBSFQ           --- Use Bitscans x86_64 asm-instruction (only with GCC and ICC 64-bit)
@@ -77,7 +72,6 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 debug   = no
 optimize= yes
 
-os   = any
 bits = 32
 pfch = no
 sse  = no
@@ -452,10 +446,6 @@ help:
 	@echo "clang                   > LLVM Clang compiler"
 	@echo "icc                     > Intel compiler"
 	@echo ""
-	@echo "Non-standard targets:"
-	@echo "---------------------"
-	@echo "make hpux               > Compile for HP-UX. Compiler = aCC"
-	@echo ""
 	@echo "Examples. If you don't know what to do, you likely want to run: "
 	@echo "----------------------------------------------------------------"
 	@echo "make build ARCH=x86-64    (This is for 64-bit systems)"
@@ -517,7 +507,6 @@ config-sanity:
 	@echo "debug   : '$(debug)'"
 	@echo "optimize: '$(optimize)'"
 	@echo "arch    : '$(arch)'"
-	@echo "os      : '$(os)'"
 	@echo "bits    : '$(bits)'"
 	@echo "pfch    : '$(pfch)'"
 	@echo "sse     : '$(sse)'"
@@ -539,7 +528,6 @@ config-sanity:
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
 	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
 	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "armv7"
-	@test "$(os)" = "any" || test "$(os)" = "osx"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(pfch)" = "yes" || test "$(pfch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
@@ -594,14 +582,3 @@ icc-profile-clean:
 
 -include .depend
 
-
-### ==========================================================================
-### Section 6. Non-standard targets
-### ==========================================================================
-
-hpux:
-	$(MAKE)      \
-	CXX = '/opt/aCC/bin/aCC -AA +hpxstd98 -mt +O3 -DNDEBUG' \
-	CXXFLAGS= "" \
-	LDFLAGS = "" \
-	all

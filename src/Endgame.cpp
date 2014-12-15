@@ -412,9 +412,7 @@ namespace EndGame {
 
         if (pos.bishops_pair (_stong_side))
         {
-            u08 diag18_dist = min (dist (wk_sq, SQ_A1), dist (wk_sq, SQ_H8));
-            u08 diag81_dist = min (dist (wk_sq, SQ_A8), dist (wk_sq, SQ_H1));
-            if (diag81_dist < diag18_dist)
+            if (min (dist (wk_sq, SQ_A8), dist (wk_sq, SQ_H1)) < min (dist (wk_sq, SQ_A1), dist (wk_sq, SQ_H8)))
             {
                 sk_sq = ~sk_sq;
                 wk_sq = ~wk_sq;

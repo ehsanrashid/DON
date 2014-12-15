@@ -2,6 +2,7 @@
 
 #include <string>
 #include <fstream>
+
 #include "BitScan.h"
 #include "Engine.h"
 
@@ -10,13 +11,13 @@ Transposition::TranspositionTable  TT; // Global Transposition Table
 namespace Transposition {
 
     using namespace std;
-    
+
     // Size of Transposition entry (bytes)
     // 16 bytes
-    const u08 TranspositionTable::EntrySize   = sizeof (Entry);
+    const u08 TranspositionTable::EntrySize   = sizeof (TTEntry);
     // Size of Transposition cluster in (bytes)  
     // 64 bytes
-    const u08 TranspositionTable::ClusterSize = sizeof (Cluster);
+    const u08 TranspositionTable::ClusterSize = sizeof (TTCluster);
     // Maximum bit of hash for cluster
     const u08 TranspositionTable::MaxHashBit  = 36;
     // Minimum size of Transposition table (mega-byte)
@@ -39,12 +40,12 @@ namespace Transposition {
     #ifdef LPAGES
 
         u32 offset = max (alignment-1, u32(sizeof (void *)));
-       
+
         Memory::alloc_memory (_mem, mem_size, alignment);
         if (_mem != NULL)
         {
             void *ptr = reinterpret_cast<void*> ((u64(_mem) + offset) & ~u64(offset));
-            _clusters = reinterpret_cast<Cluster*> (ptr);
+            _clusters = reinterpret_cast<TTCluster*> (ptr);
             assert (0 == (u64(_clusters) & (alignment - 1)));
             return;
         }
@@ -74,14 +75,14 @@ namespace Transposition {
 
             void **ptr = reinterpret_cast<void**> ((u64(mem) + offset) & ~u64(alignment - 1));
             ptr[-1]    = mem;
-            _clusters  = reinterpret_cast<Cluster*> (ptr);
+            _clusters  = reinterpret_cast<TTCluster*> (ptr);
             assert (0 == (u64(_clusters) & (alignment - 1)));
             return;
         }
 
         cerr << "ERROR: Hash allocate failed " << (mem_size >> 20) << " MB." << endl;
     #endif
-        
+
     }
 
     // resize(mb) sets the size of the table, measured in mega-bytes.
@@ -128,41 +129,30 @@ namespace Transposition {
         return 0;
     }
 
-    // store() writes a new entry in the transposition table.
-    // It contains folowing valuable information.
-    //  - Key
-    //  - Move
-    //  - Depth
-    //  - Bound
-    //  - Nodes
-    //  - Value
-    //  - Evaluation
-    // The lower order bits of position key are used to decide on which cluster the position will be placed.
-    // The upper order bits of position key are used to store in entry.
-    // When a new entry is written and there are no empty entries available in cluster,
-    // it replaces the least valuable of these entries.
-    // An entry e1 is considered to be more valuable than a entry e2
-    // * if e1 is from the current search and e2 is from a previous search.
-    // * if e1 & e2 is from a current search then EXACT bound is valuable.
-    // * if the depth of e1 is bigger than the depth of e2.
-    void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval)
+    // probe() looks up the entry in the transposition table.
+    // Returns a pointer to the entry found or NULL if not found.
+    TTEntry* TranspositionTable::probe (Key key, bool &found) const
     {
         assert (key != U64(0));
 
-        Entry *const fte = cluster_entry (key);
-        for (Entry *ite = fte  ; ite < fte + ClusterEntries; ++ite)
+        TTEntry *const fte = cluster_entry (key);
+        for (TTEntry *ite = fte  ; ite < fte + ClusterEntries; ++ite)
         {
-            // Empty entry then write otherwise overwrite
-            if (ite->_key == U64(0) || ite->_key == key)
+            if (ite->_key == U64(0))
             {
-                // Save preserving any existing TT move
-                ite->save (key, move != MOVE_NONE ? move : ite->move (), value, eval, depth, bound, _generation);
-                return;
+                found = false;
+                return ite;
+            }
+            if (ite->_key == key)
+            {
+                ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
+                found = true;
+                return ite;
             }
         }
 
-        Entry *rte = fte;
-        for (Entry *ite = fte+1; ite < fte + ClusterEntries; ++ite)
+        TTEntry *rte = fte;
+        for (TTEntry *ite = fte+1; ite < fte + ClusterEntries; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
             if ( ((ite->gen () == _generation || ite->bound () == BOUND_EXACT)
@@ -178,25 +168,8 @@ namespace Transposition {
             memmove (fte, fte+1, (ClusterEntries - 1)*EntrySize);
             rte = fte + (ClusterEntries - 1);
         }
-        rte->save (key, move, value, eval, depth, bound, _generation);
-    }
-
-    // retrieve() looks up the entry in the transposition table.
-    // Returns a pointer to the entry found or NULL if not found.
-    const Entry* TranspositionTable::retrieve (Key key) const
-    {
-        assert (key != U64(0));
-
-        Entry *const fte = cluster_entry (key);
-        for (Entry *ite = fte; ite < fte + ClusterEntries && ite->_key != U64(0); ++ite)
-        {
-            if (ite->_key == key)
-            {
-                ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
-                return ite;
-            }
-        }
-        return NULL;
+        found = false;
+        return rte;
     }
 
     void TranspositionTable::save (string &hash_fn)

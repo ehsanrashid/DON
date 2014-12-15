@@ -4,6 +4,7 @@
 
 #include "manipulator.h"
 #include "Position.h"
+#include "PRNG.h"
 #include "Zobrist.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
@@ -16,23 +17,23 @@ namespace OpeningBook {
 
     #define STM_POS(x)  (streampos)(u64(HeaderSize) + (x)*u64(EntrySize))
 
-    const streampos PolyglotBook::EntrySize  = sizeof (Entry);
+    const streampos PolyglotBook::EntrySize  = sizeof (PBEntry);
     const streampos PolyglotBook::HeaderSize = 0*EntrySize;
-    const streampos PolyglotBook::ErrorIndex   = streampos(-1);
+    const streampos PolyglotBook::ErrorIndex = streampos(-1);
 
-    inline bool operator== (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
+    inline bool operator== (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return (pe1.key == pe2.key)
             && (pe1.move == pe2.move)
             && (pe1.weight == pe2.weight);
     }
 
-    inline bool operator!= (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
+    inline bool operator!= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return !(pe1 == pe2);
     }
 
-    inline bool operator>  (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
+    inline bool operator>  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return (pe1.key != pe2.key) ?
                 (pe1.key > pe2.key) :
@@ -40,7 +41,7 @@ namespace OpeningBook {
                 (pe1.weight > pe2.weight);  // order by weight value
     }
 
-    inline bool operator<  (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
+    inline bool operator<  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return (pe1.key != pe2.key) ?
                 (pe1.key < pe2.key) :
@@ -48,7 +49,7 @@ namespace OpeningBook {
                 (pe1.weight < pe2.weight);  // order by weight value
     }
 
-    inline bool operator>= (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
+    inline bool operator>= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return (pe1.key != pe2.key) ?
                 (pe1.key >= pe2.key) :
@@ -56,7 +57,7 @@ namespace OpeningBook {
                 (pe1.weight >= pe2.weight);  // order by weight value
     }
 
-    inline bool operator<= (const PolyglotBook::Entry &pe1, const PolyglotBook::Entry &pe2)
+    inline bool operator<= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return (pe1.key != pe2.key) ?
                 (pe1.key <= pe2.key) :
@@ -64,7 +65,7 @@ namespace OpeningBook {
                 (pe1.weight <= pe2.weight);  // order by weight value
     }
 
-    PolyglotBook::Entry::operator string () const
+    PolyglotBook::PBEntry::operator string () const
     {
         ostringstream oss;
 
@@ -98,7 +99,7 @@ namespace OpeningBook {
         return *this;
     }
     template<>
-    PolyglotBook& PolyglotBook::operator>> (Entry &pbe)
+    PolyglotBook& PolyglotBook::operator>> (PBEntry &pbe)
     {
         *this >> pbe.key >> pbe.move >> pbe.weight >> pbe.learn;
         return *this;
@@ -115,7 +116,7 @@ namespace OpeningBook {
         return *this;
     }
     template<>
-    PolyglotBook& PolyglotBook::operator<< (Entry &pbe)
+    PolyglotBook& PolyglotBook::operator<< (PBEntry &pbe)
     {
         *this << pbe.key << pbe.move << pbe.weight << pbe.learn;
         return *this;
@@ -125,14 +126,14 @@ namespace OpeningBook {
         : fstream ()
         , _book_fn ("")
         , _mode (openmode (0))
-        , _size_book (0)
+        , _size (0)
     {}
 
     PolyglotBook::PolyglotBook (const string &book_fn, openmode mode)
         : fstream (book_fn.c_str (), mode|binary)
         , _book_fn (book_fn)
         , _mode (mode)
-        , _size_book (0)
+        , _size (0)
     {}
 
     PolyglotBook::~PolyglotBook ()
@@ -161,7 +162,7 @@ namespace OpeningBook {
         streampos beg = streampos(0);
         streampos end = streampos((size () - HeaderSize) / EntrySize - 1);
 
-        Entry pbe;
+        PBEntry pbe;
 
         assert (beg <= end);
 
@@ -197,22 +198,24 @@ namespace OpeningBook {
     }
     streampos PolyglotBook::find_index (const Position &pos)
     {
-        return find_index (ZobPG.compute_posi_key (pos));
+        return find_index (Zob.compute_posi_key (pos));
     }
 
     streampos PolyglotBook::find_index (const string &fen, bool c960)
     {
-        return find_index (ZobPG.compute_fen_key (fen, c960));
+        return find_index (Zob.compute_fen_key (fen, c960));
     }
 
     Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     {
+        static PRNG pr (Time::now ());
+
         //if (!is_open () || !(_mode & ios_base::in))
         //{
         //    if (!open (_book_fn, ios_base::in)) return MOVE_NONE;
         //}
 
-        Key key = ZobPG.compute_posi_key (pos);
+        Key key = Zob.compute_posi_key (pos);
 
         streampos index = find_index (key);
         if (ErrorIndex == index) return MOVE_NONE;
@@ -221,12 +224,12 @@ namespace OpeningBook {
 
         Move move = MOVE_NONE;
 
-        Entry pbe;
+        PBEntry pbe;
 
         u16 max_weight = 0;
         u32 weight_sum = 0;
 
-        //vector<Entry> pe_list;
+        //vector<PBEntry> pe_list;
         //while ((*this >> pbe), (pbe.key == key))
         //{
         //    pe_list.push_back (pbe);
@@ -237,7 +240,7 @@ namespace OpeningBook {
         //
         //if (pick_best)
         //{
-        //    vector<Entry>::const_iterator ms = pe_list.begin ();
+        //    vector<PBEntry>::const_iterator ms = pe_list.begin ();
         //    while (ms != pe_list.end ())
         //    {
         //        pbe = *ms;
@@ -256,8 +259,8 @@ namespace OpeningBook {
         //    //2) pick a random number that is 0 or greater and is less than the sum of the weights
         //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
         //
-        //    u32 rand = (_rkiss.rand<u32> () % weight_sum);
-        //    vector<Entry>::const_iterator ms = pe_list.begin ();
+        //    u32 rand = (pr.rand<u32> () % weight_sum);
+        //    vector<PBEntry>::const_iterator ms = pe_list.begin ();
         //    while (ms != pe_list.end ())
         //    {
         //        pbe = *ms;
@@ -288,7 +291,7 @@ namespace OpeningBook {
             else
             if (weight_sum != 0)
             {
-                u16 rand = _rkiss.rand<u16> () % weight_sum;
+                u16 rand = pr.rand<u16> () % weight_sum;
                 if (pbe.weight > rand) move = Move(pbe.move);
             }
             // Note that first entry is always chosen if not pick best and sum of weight = 0
@@ -337,7 +340,7 @@ namespace OpeningBook {
     {
         if (!is_open () || !(_mode & in)) return "";
 
-        Key key = ZobPG.compute_posi_key (pos);
+        Key key = Zob.compute_posi_key (pos);
 
         streampos index = find_index (key);
         if (ErrorIndex == index)
@@ -350,9 +353,9 @@ namespace OpeningBook {
 
         seekg (STM_POS (index));
 
-        Entry pbe;
+        PBEntry pbe;
 
-        vector<Entry> pe_list;
+        vector<PBEntry> pe_list;
 
         u32 weight_sum = 0;
         while ((*this >> pbe), (pbe.key == key))
@@ -363,7 +366,7 @@ namespace OpeningBook {
 
         //TODO::
         ostringstream oss;
-        //for_each (pe_list.begin (), pe_list.end (), [&oss, &weight_sum] (Entry _pbe)
+        //for_each (pe_list.begin (), pe_list.end (), [&oss, &weight_sum] (PBEntry _pbe)
         //{
         //    oss << setfill ('0')
         //        << _pbe << " prob: " << right << fixed << width_prec (6, 2)
@@ -374,7 +377,7 @@ namespace OpeningBook {
         return oss.str ();
     }
 
-    void PolyglotBook::insert_entry (const Entry &pbe)
+    void PolyglotBook::insert_entry (const PBEntry &pbe)
     {
         if (!is_open () || !(_mode & out)) return;
 

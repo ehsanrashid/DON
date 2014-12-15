@@ -631,7 +631,7 @@
     <ClInclude Include="src\Platform.h" />
     <ClInclude Include="src\PolyglotBook.h" />
     <ClInclude Include="src\Position.h" />
-    <ClInclude Include="src\RKISS.h" />
+    <ClInclude Include="src\PRNG.h" />
     <ClInclude Include="src\Searcher.h" />
     <ClInclude Include="src\Thread.h" />
     <ClInclude Include="src\tiebuffer.h" />

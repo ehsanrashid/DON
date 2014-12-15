@@ -3,15 +3,10 @@
 
 #include "Type.h"
 
-class RKISS;
+class PRNG;
 class Position;
 
 namespace Zobrist {
-
-    // 2*6*64 + 2*2 + 8 + 1
-    //    768 +   4 + 8 + 1
-    //                  781
-    const u16 ZOB_SIZE = 781;
 
     //const Key PG_MATL_KEY = U64(0xB76D8438E5D28230);
     //const Key PG_PAWN_KEY = U64(0x37FC40DA841E1692);
@@ -23,19 +18,22 @@ namespace Zobrist {
     union Zob
     {
     public:
-        Key zobrist[ZOB_SIZE];
+        // 2*6*64 + 2*2 + 8 + 1
+        //    768 +   4 + 8 + 1
+        //                  781
+        Key zobrist[781];
 
         struct
         {
             Key piece_square[CLR_NO][NONE][SQ_NO];  // [COLOR][PIECE][SQUARE]
             Key castle_right[CLR_NO][CS_NO];        // [COLOR][CASTLE SIDE]
             Key en_passant  [F_NO];                 // [ENPASSANT FILE]
-            Key mover_side;                         // COLOR
+            Key act_side;                           // COLOR
         } _;
 
     public:
 
-        void initialize (RKISS &rk);
+        void initialize (PRNG &pr);
 
     public:
         // Hash key of the material situation.
@@ -50,13 +48,8 @@ namespace Zobrist {
 
     };
 
-    //extern void initialize ();
-
 }
 
-extern const Zobrist::Zob  ZobPG;
-//extern       Zobrist::Zob  ZobRnd;
-
-extern const Zobrist::Zob &Zob; // Global Zobrist
+extern const Zobrist::Zob Zob; // Global Zobrist
 
 #endif // _ZOBRIST_H_INC_
