@@ -320,7 +320,7 @@ namespace Search {
                     {
                         if (!tt_hit)
                         {
-                            tte->save (posi_key, MOVE_NONE, value_to_tt (best_value, (ss)->ply), (ss)->static_eval, DEPTH_NONE, BOUND_LOWER, TT.get_gen ());
+                            tte->save (posi_key, MOVE_NONE, value_to_tt (best_value, (ss)->ply), (ss)->static_eval, DEPTH_NONE, BOUND_LOWER, TT.generation ());
                         }
 
                         assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -440,7 +440,7 @@ namespace Search {
                         // Fail high
                         if (value >= beta)
                         {
-                            tte->save (posi_key, best_move, value_to_tt (best_value, (ss)->ply), (ss)->static_eval, qs_depth, BOUND_LOWER, TT.get_gen ());
+                            tte->save (posi_key, best_move, value_to_tt (best_value, (ss)->ply), (ss)->static_eval, qs_depth, BOUND_LOWER, TT.generation ());
 
                             assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
                             return best_value;
@@ -462,7 +462,7 @@ namespace Search {
             }
 
             tte->save (posi_key, best_move, value_to_tt (best_value, (ss)->ply), (ss)->static_eval, qs_depth,
-                PVNode && pv_alpha < best_value ? BOUND_EXACT : BOUND_UPPER, TT.get_gen ());
+                PVNode && pv_alpha < best_value ? BOUND_EXACT : BOUND_UPPER, TT.generation ());
 
             assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
@@ -626,7 +626,7 @@ namespace Search {
                         (ss)->static_eval = static_eval =
                             (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
 
-                        tte->save (posi_key, MOVE_NONE, VALUE_NONE, (ss)->static_eval, DEPTH_NONE, BOUND_NONE, TT.get_gen ());
+                        tte->save (posi_key, MOVE_NONE, VALUE_NONE, (ss)->static_eval, DEPTH_NONE, BOUND_NONE, TT.generation ());
                     }
 
                     if (Pruning)
@@ -1284,7 +1284,7 @@ namespace Search {
                     value_to_tt (best_value, (ss)->ply), (ss)->static_eval, depth,
                     best_value >= beta ? BOUND_LOWER :
                         PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
-                    TT.get_gen ());
+                    TT.generation ());
             }
 
             assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
@@ -1592,7 +1592,7 @@ namespace Search {
             // Don't overwrite correct entries
             if (!tt_hit || tte->move () != m)
             {
-                tte->save (pos.posi_key (), m, VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.get_gen ());
+                tte->save (pos.posi_key (), m, VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.generation ());
             }
 
             pos.do_move (m, *si++);

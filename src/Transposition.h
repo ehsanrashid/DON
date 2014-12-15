@@ -175,7 +175,7 @@ namespace Transposition {
         // It increments the "Generation" variable, which is used to distinguish
         // transposition table entries from previous searches from entries from the current search.
         inline void new_gen () { _generation += 4; }
-        u08 get_gen () const { return _generation; }
+        u08 generation () const { return _generation; }
 
         // cluster_entry() returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
