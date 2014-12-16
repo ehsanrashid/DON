@@ -3,7 +3,6 @@
 
 #include "Type.h"
 
-class PRNG;
 class Position;
 
 namespace Zobrist {
@@ -30,10 +29,6 @@ namespace Zobrist {
             Key en_passant  [F_NO];                 // [ENPASSANT FILE]
             Key act_side;                           // COLOR
         } _;
-
-    public:
-
-        void initialize (PRNG &pr);
 
     public:
         // Hash key of the material situation.

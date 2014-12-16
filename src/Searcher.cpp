@@ -1517,9 +1517,8 @@ namespace Search {
                 }
                 else
                 {
-                    Move m = *ms;
                     StateInfo si;
-                    pos.do_move (m, si, pos.gives_check (m, ci) ? &ci : NULL);
+                    pos.do_move (*ms, si, pos.gives_check (*ms, ci) ? &ci : NULL);
                     inter_nodes = depth <= 2*DEPTH_ONE ? MoveList<LEGAL>(pos).size () : perft<false> (pos, depth-DEPTH_ONE);
                     pos.undo_move ();
                 }

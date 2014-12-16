@@ -190,9 +190,9 @@ namespace Notation {
         Square dst = dst_sq (m);
         MoveT  mt  = mtype (m);
 
-        if (mt == CASTLE)
+        if (CASTLE == mt)
         {
-            san = (dst > org) ? "O-O" : "O-O-O";
+            san = (dst > org ? "O-O" : "O-O-O");
         }
         else
         {
@@ -212,12 +212,18 @@ namespace Notation {
                 default:       assert (false);               break;
                 }
             }
+
             if (pos.capture (m))
             {
-                if (PAWN == pt) san = to_char (_file (org));
+                if (PAWN == pt)
+                {
+                    san = to_char (_file (org));
+                }
                 san += "x";
             }
+
             san += to_string (dst);
+
             if (PROMOTE == mt && PAWN == pt)
             {
                 san += "=";

@@ -253,7 +253,7 @@ namespace MovePick {
         case KILLER_S1:
             kcur = kend = killers;
             // Killer moves usually come right after the hash move and (good) captures
-            fill (killers, killers + sizeof (killers) / sizeof (*killers), MOVE_NONE);
+            fill (killers, killers + sizeof (killers)/sizeof (*killers), MOVE_NONE);
             // Init killers bitboards to shortcut move's validity check later on
             killers_org = killers_dst = U64(0);
             Move m;

@@ -2,21 +2,12 @@
 
 #include <sstream>
 
-#include "PRNG.h"
 #include "Position.h"
 
 namespace Zobrist {
 
     using namespace std;
     using namespace BitBoard;
-
-    void Zob::initialize (PRNG &pr)
-    {
-        for (u16 i = 0; i < sizeof (zobrist)/sizeof (*zobrist); ++i)
-        {
-            zobrist[i] = pr.rand<Key> ();
-        }
-    }
 
     // Hash key of the material situation.
     Key Zob::compute_matl_key (const Position &pos) const
@@ -41,13 +32,6 @@ namespace Zobrist {
     {
         Key pawn_key = U64(0);
 
-        //Bitboard pawns = pos.pieces<PAWN> ();
-        //while (pawns != U64(0))
-        //{
-        //    Square s = pop_lsq (pawns);
-        //    pawn_key ^= _.piece_square[color (pos[s])][PAWN][s];
-        //}
-
         for (i08 c = WHITE; c <= BLACK; ++c)
         {
             const Square *pl = pos.list<PAWN> (Color(c));
@@ -64,14 +48,6 @@ namespace Zobrist {
     Key Zob::compute_posi_key (const Position &pos) const
     {
         Key posi_key = U64(0);
-
-        //Bitboard occ = pos.pieces ();
-        //while (occ != U64(0))
-        //{
-        //    Square s = pop_lsq (occ);
-        //    Piece p = pos[s];
-        //    posi_key ^= _.piece_square[color (p)][ptype (p)][s];
-        //}
 
         for (i08 c = WHITE; c <= BLACK; ++c)
         {
@@ -410,7 +386,7 @@ const Zobrist::Zob Zob =
     U64(0x70CC73D90BC26E24), U64(0xE21A6B35DF0C3AD7), U64(0x003A93D8B2806962), U64(0x1C99DED33CB890A1),
     U64(0xCF3145DE0ADD4289), U64(0xD0E4427A5514FB72), U64(0x77C621CC9FB3A483), U64(0x67A34DAC4356550B),
 
-    // TURN
+    // ACTIVE_SIDE
     U64(0xF8D626AAAF278509)
 
 };
