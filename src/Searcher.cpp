@@ -241,11 +241,6 @@ namespace Search {
                 (ss)->pv[0] = MOVE_NONE;
             }
 
-            // Transposition table lookup
-            Key   posi_key;
-            TTEntry *tte = NULL;
-            bool  tt_hit = false;
-
             Move  tt_move    = MOVE_NONE
                 , best_move  = MOVE_NONE;
             Value tt_value   = VALUE_NONE
@@ -253,8 +248,10 @@ namespace Search {
             Depth tt_depth   = DEPTH_NONE;
             Bound tt_bound   = BOUND_NONE;
             
-            posi_key = pos.posi_key ();
-            tte      = TT.probe (posi_key, tt_hit);
+            // Transposition table lookup
+            Key posi_key = pos.posi_key ();
+            bool  tt_hit = false;
+            TTEntry *tte = TT.probe (posi_key, tt_hit);
             if (tt_hit)
             {
                 tt_move  = tte->move ();
@@ -800,6 +797,7 @@ namespace Search {
 
                             search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
+                            tt_hit = false;
                             tte = TT.probe (posi_key, tt_hit);
                             if (tt_hit)
                             {

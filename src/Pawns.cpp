@@ -233,24 +233,20 @@ namespace Pawns {
     {
         const Color Opp = WHITE == Own ? BLACK : WHITE;
 
-        Rank kr = _rank (k_sq);
-        Bitboard front_pawns = pos.pieces<PAWN> () & (FRONT_RANK_bb[Own][kr] | RANK_bb[kr]);
-        Bitboard our_front_pawns = front_pawns & pos.pieces (Own);
-        Bitboard opp_front_pawns = front_pawns & pos.pieces (Opp);
+        Bitboard front_pawns = pos.pieces<PAWN> () & (FRONT_RANK_bb[Own][_rank (k_sq)] | RANK_bb[_rank (k_sq)]);
 
         Value value = KING_SAFETY_BY_PAWN;
 
-        File kf = _file (k_sq);
-        i08 kfl = min (max (kf, F_B), F_G);
+        i08 kfl = min (max (_file (k_sq), F_B), F_G);
         for (i08 f = kfl - 1; f <= kfl + 1; ++f)
         {
             assert (F_A <= f && f <= F_H);
 
             Bitboard mid_pawns;
 
-            mid_pawns = opp_front_pawns & FILE_bb[f];
+            mid_pawns = front_pawns & pos.pieces (Opp) & FILE_bb[f];
             u08 r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
-            if (  kf == f
+            if (  _file (k_sq) == f
                && END_EDGE_bb & (File(f) | Rank(r1))
                && rel_rank (Own, k_sq) + 1 == r1
                )
@@ -259,7 +255,7 @@ namespace Pawns {
             }
             else
             {
-                mid_pawns = our_front_pawns & FILE_bb[f];
+                mid_pawns = front_pawns & pos.pieces (Own) & FILE_bb[f];
                 u08 r0 = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
                 value -= 
                       + SHELTER_WEAKNESS[r0]
@@ -317,7 +313,7 @@ namespace Pawns {
         {
             for (i08 phalanx = 0; phalanx <= 1; ++phalanx)
             {
-                for (Rank r = R_2; r < R_8; ++r)
+                for (i08 r = R_2; r < R_8; ++r)
                 {
                     i32 value = SEED[r] + (phalanx != 0 ? (SEED[r + 1] - SEED[r])/2 : 0);
                     CONNECTED[opposed][phalanx][r] = mk_score (value/2, value >> opposed);

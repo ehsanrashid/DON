@@ -13,8 +13,8 @@ namespace Time {
         const float MAX_STEP_RATIO  = 7.00f; // When in trouble, can step over reserved time with this ratio
         const float MAX_STEAL_RATIO = 0.33f; // However must not steal time from remaining moves over this ratio
 
-        const float SCALE     =  9.30f;
-        const float SHIFT     = 59.80f;
+        const float PLY_SCALE =  9.300f;
+        const float PLY_SHIFT = 59.800f;
         const float SKEW_RATE =  0.172f;
 
         // move_importance() is a skew-logistic function based on naive statistical
@@ -23,7 +23,7 @@ namespace Time {
         // Data was extracted from CCRL game database with some simple filtering criteria.
         inline float move_importance (i32 game_ply)
         {
-            return pow ((1 + exp ((game_ply - SHIFT) / SCALE)), -SKEW_RATE) + FLT_MIN; // Ensure non-zero
+            return pow ((1 + exp ((game_ply - PLY_SHIFT) / PLY_SCALE)), -SKEW_RATE) + FLT_MIN; // Ensure non-zero
         }
 
         enum TimeT { TIME_OPTIMUM, TIME_MAXIMUM };
@@ -55,7 +55,7 @@ namespace Time {
     u32  EmergencyClockTime  =  60; // Always attempt to keep at least this much time at clock, in milliseconds.
     u32  EmergencyMoveTime   =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
     u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
-    i32  MoveSlowness        = 110; // Slowliness, in %age.
+    i32  MoveSlowness        = 110; // Move Slowness, in %age.
     bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
     void TimeManager::initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply)
