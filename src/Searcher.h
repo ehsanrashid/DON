@@ -54,7 +54,7 @@ namespace Search {
             , ponder    (false)
             , infinite  (false)
         {}
-        
+
         bool use_timemanager () const
         {
             return !(infinite || movetime || depth || nodes || mate);
@@ -121,7 +121,7 @@ namespace Search {
 
         friend bool operator== (const RootMove &rm, Move m) { return (rm.pv[0] == m); }
         friend bool operator!= (const RootMove &rm, Move m) { return (rm.pv[0] != m); }
-        
+
         void insert_pv_into_tt (Position &pos);
 
         std::string info_pv () const;

@@ -103,7 +103,7 @@ namespace Notation {
             ostringstream oss;
 
             oss << setfill ('0')
-                <<             hours   << ":"
+                << setw (2) << hours   << ":"
                 << setw (2) << minutes << ":"
                 << setw (2) << seconds << "."
                 << setw (2) << time
@@ -148,7 +148,7 @@ namespace Notation {
         }
         return MOVE_NONE;
     }
-    
+
     //// move_from_lan(lan, pos) converts a string representing a move in long algebraic notation
     //// to the corresponding legal move, if any.
     //Move move_from_lan (const string &lan, const Position &pos)
