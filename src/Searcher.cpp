@@ -1483,14 +1483,7 @@ namespace Search {
                 {
                     // If allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "ponderhit" or "stop".
-                    if (Limits.ponder)
-                    {
-                        Signals.ponderhit_stop = true;
-                    }
-                    else
-                    {
-                        Signals.force_stop     = true;
-                    }
+                    Limits.ponder ? Signals.ponderhit_stop = true : Signals.force_stop = true;
                 }
 
             }
