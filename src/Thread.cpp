@@ -222,8 +222,7 @@ namespace Threads {
             mutex.unlock ();
 
             if (run) task ();
-        }
-        while (alive);
+        } while (alive);
     }
 
     // ------------------------------------
@@ -250,8 +249,7 @@ namespace Threads {
                 searching = false;
                 thinking  = false;
             }
-        }
-        while (alive);
+        } while (alive);
     }
 
     // ------------------------------------

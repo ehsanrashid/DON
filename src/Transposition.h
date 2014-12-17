@@ -217,7 +217,7 @@ namespace Transposition {
 
         TTEntry* probe (Key key, bool &found) const;
 
-        void save (std::string &hash_fn);
+        void save (std::string &hash_fn) const;
         void load (std::string &hash_fn);
 
         template<class CharT, class Traits>

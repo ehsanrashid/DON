@@ -585,9 +585,9 @@ namespace Evaluate {
             ei.pi->evaluate_king_pawn_safety<Own> (pos);
 
             Value value = VALUE_ZERO;
-            Rank kr = rel_rank (Own, fk_sq);
+
             // If can castle use the value after the castle if is bigger
-            if (kr == R_1 && pos.can_castle (Own))
+            if (rel_rank (Own, fk_sq) == R_1 && pos.can_castle (Own))
             {
                 value = ei.pi->shelter_storm[Own][CS_NO];
 
@@ -607,7 +607,7 @@ namespace Evaluate {
                 }
             }
             else
-            if (kr <= R_4)
+            if (rel_rank (Own, fk_sq) <= R_4)
             {
                 value = ei.pi->shelter_storm[Own][CS_NO];
             }
@@ -842,9 +842,9 @@ namespace Evaluate {
             const Color Opp  = WHITE == Own ? BLACK : WHITE;
             const Delta PUSH = WHITE == Own ? DEL_N : DEL_S;
 
-            bool piece_majority = pos.count<NONPAWN>(Own) > pos.count<NONPAWN>(Opp);
-
             Score score = SCORE_ZERO;
+
+            bool piece_majority = pos.count<NONPAWN>(Own) > pos.count<NONPAWN>(Opp);
 
             Bitboard passed_pawns = ei.pi->passed_pawns[Own];
             while (passed_pawns != U64(0))

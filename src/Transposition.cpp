@@ -172,7 +172,7 @@ namespace Transposition {
         return rte;
     }
 
-    void TranspositionTable::save (string &hash_fn)
+    void TranspositionTable::save (string &hash_fn) const
     {
         convert_path (hash_fn);
         if (white_spaces (hash_fn)) return;
