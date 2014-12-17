@@ -233,12 +233,11 @@ namespace Pawns {
     {
         const Color Opp = WHITE == Own ? BLACK : WHITE;
 
-        Bitboard front_pawns = pos.pieces<PAWN> () & (FRONT_RANK_bb[Own][_rank (k_sq)] | RANK_bb[_rank (k_sq)]);
-
         Value value = KING_SAFETY_BY_PAWN;
 
-        i08 kfl = min (max (_file (k_sq), F_B), F_G);
-        for (i08 f = kfl - 1; f <= kfl + 1; ++f)
+        Bitboard front_pawns = pos.pieces<PAWN> () & (FRONT_RANK_bb[Own][_rank (k_sq)] | RANK_bb[_rank (k_sq)]);
+        i08 kf = min (max (_file (k_sq), F_B), F_G);
+        for (i08 f = kf - 1; f <= kf + 1; ++f)
         {
             assert (F_A <= f && f <= F_H);
 
