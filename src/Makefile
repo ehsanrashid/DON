@@ -1,21 +1,6 @@
-# DON, a UCI chess playing engine derived from Glaurung 2.1 and Stockfish.
-# Copyright (C) 2004-2008 Tord Romstad (Glaurung author)
-# Copyright (C) 2008-2014 Marco Costalba, Joona Kiiski, Tord Romstad (Stockfish authors)
-# Copyright (C) 2008-2014 Ehsan Rashid (DON author)
+# DON, a UCI chess playing engine
+# Copyright (C) 2008-2014 Ehsan Rashid
 #
-# DON is free software: you can redistribute it or modify it
-# under the terms of the GNU General Public License as published by
-# the Free Software Foundation, either version 3 of the License, or
-# (at your option) any later version.
-#
-# DON is distributed in the hope that it will be useful,
-# but WITHOUT ANY WARRANTY; without even the implied warranty of
-# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-# GNU General Public License for more details.
-#
-# You should have received a copy of the GNU General Public License
-# along with this program. If not, see <http://www.gnu.org/licenses/>.
-
 # DON is housed in https://github.com/erashid/DON 
 
 ### ==========================================================================
@@ -51,7 +36,7 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # debug   = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode
 # optimize= yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
 # arch    = (name)    --- (-arch)          --- Target architecture
-# bits    = 64/32     --- -DBIT64         --- 64/32-bit operating system
+# bits    = 64/32     --- -DBIT64          --- 64/32-bit operating system
 # pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
 # bsfq    = yes/no    --- -DBSFQ           --- Use Bitscans x86_64 asm-instruction (only with GCC and ICC 64-bit)
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions instructions
@@ -173,7 +158,7 @@ ifeq ($(ARCH),x86-64-bm2)
 endif
 
 ifeq ($(ARCH),ppc-32)
-	arch = ppc
+	arch = ppc32
 endif
 
 ifeq ($(ARCH),ppc-64)
@@ -189,7 +174,7 @@ ifeq ($(ARCH),armv7)
 endif
 
 ifeq ($(ARCH),ppc-32-pop)
-	arch = ppc
+	arch = ppc32
 	pop  = yes
 endif
 
@@ -527,7 +512,7 @@ config-sanity:
 	@test "$(debug)" = "yes" || test "$(debug)" = "no"
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
 	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
-	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc" || test "$(arch)" = "armv7"
+	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc32" || test "$(arch)" = "armv7"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(pfch)" = "yes" || test "$(pfch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
