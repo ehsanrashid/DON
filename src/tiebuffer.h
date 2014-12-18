@@ -40,17 +40,14 @@ namespace std {
         {
             static int_type last_ch = '\n';
             
-            bool error = false;
             if ('\n' == last_ch)
             {
                 u32 length = u32(strlen (prefix));
                 if (_filestm->rdbuf ()->sputn (prefix, length) != length)
                 {
-                    error = true;
+                    return EOF; // Error
                 }
             }
-            if (error) return EOF;
-
             last_ch = _filestm->rdbuf ()->sputc (Elem (c));
 
             return last_ch;
