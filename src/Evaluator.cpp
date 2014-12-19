@@ -1002,7 +1002,7 @@ namespace Evaluate {
             // configuration, call it and return.
             if (ei.mi->specialized_eval_exists ())
             {
-                return ei.mi->evaluate (pos) + TEMPO;
+                return ei.mi->evaluate (pos);
             }
 
             // Score is computed from the point of view of white.

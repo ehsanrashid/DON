@@ -456,7 +456,8 @@ profile-build:
 	@$(PGOBENCH) > /dev/null
 	@echo ""
 	@echo "Step 3/4. Building final executable ..."
-	@touch *.cpp
+	@rm ucioption.gc*
+	@touch *.cpp *.h
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_use)
 	@echo ""
 	@echo "Step 4/4. Deleting profile data ..."
@@ -532,13 +533,13 @@ gcc-profile-prepare:
 
 gcc-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP)  \
-	EXTRACXXFLAGS='-fprofile-generate' \
+	EXTRACXXFLAGS='-fprofile-arcs' \
 	EXTRALDFLAGS='-lgcov'              \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP)  \
-	EXTRACXXFLAGS='-fprofile-use'      \
+	EXTRACXXFLAGS='-fbranch-probabilities'      \
 	EXTRALDFLAGS='-lgcov'              \
 	all
 
