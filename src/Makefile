@@ -456,7 +456,6 @@ profile-build:
 	@$(PGOBENCH) > /dev/null
 	@echo ""
 	@echo "Step 3/4. Building final executable ..."
-	@rm ucioption.gc*
 	@touch *.cpp *.h
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_use)
 	@echo ""
@@ -538,6 +537,7 @@ gcc-profile-make:
 	all
 
 gcc-profile-use:
+	@rm -f UCI.Option.gc*
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP)  \
 	EXTRACXXFLAGS='-fbranch-probabilities'      \
 	EXTRALDFLAGS='-lgcov'              \
