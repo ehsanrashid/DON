@@ -10,26 +10,49 @@ namespace Pawns {
 
     #define V Value
 
-        // Weakness of our pawn shelter in front of the king indexed by [rank]
-        const Value SHELTER_WEAKNESS[R_NO] =
+        // Weakness of our pawn shelter in front of the king indexed by [distance from edge][rank]
+        const Value SHELTER_WEAKNESS[F_NO/2][R_NO] =
         {
-            V(+100), V(+  0), V(+ 27), V(+ 73), V(+ 92), V(+101), V(+101), V(+  0)
+            { V(101), V(10), V(24), V(68), V(90), V( 95), V(102) },
+            { V(105), V( 1), V(30), V(76), V(95), V(100), V(105) },
+            { V( 99), V( 0), V(32), V(72), V(92), V(101), V(100) },
+            { V( 94), V( 1), V(31), V(68), V(89), V( 98), V(106) }
         };
 
-        // Danger of enemy pawns moving toward our king indexed by
-        // [no friendly pawn | pawn unblocked | pawn blocked |  pawn blocked on A/H][rank of enemy pawn]
-        const Value STORM_DANGER[4][R_NO] =
+        enum Type { NO_FRIEND_PAWN, UNBLOCKED, BLOCKED_BY_PAWN, BLOCKED_BY_KING , TYPE_NO};
+        // Danger of enemy pawns moving toward our king indexed by [type][distance from edge][rank]
+        const Value STORM_DANGER[TYPE_NO][F_NO/2][R_NO] =
         {
-            { V(+ 0),  V(+64), V(+128), V(+51), V(+26),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+26),  V(+32), V(+ 96), V(+38), V(+20),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+160), V(+25), V(+13),  V(+ 0),  V(+ 0),  V(+ 0) },
-            { V(+ 0),  V(+ 0), V(+ 80), V(+13), V(+ 7),  V(+ 0),  V(+ 0),  V(+ 0) }
+            {
+                { V( 0),  V(  61), V( 128), V(47), V(27) },
+                { V( 0),  V(  66), V( 131), V(49), V(27) },
+                { V( 0),  V(  62), V( 126), V(52), V(23) },
+                { V( 0),  V(  63), V( 128), V(52), V(26) }
+            },
+            {
+                { V(25),  V(  33), V(  95), V(39), V(21) },
+                { V(24),  V(  33), V(  97), V(42), V(22) },
+                { V(24),  V(  33), V(  93), V(35), V(23) },
+                { V(26),  V(  27), V(  96), V(37), V(22) }
+            },
+            {
+                { V( 0),  V(   0), V(  80), V(14), V( 8) },
+                { V( 0),  V(   0), V( 163), V(28), V(12) },
+                { V( 0),  V(   0), V( 163), V(25), V(15) },
+                { V( 0),  V(   0), V( 161), V(24), V(14) }
+            },
+            {
+                { V( 0),  V(-300), V(-300), V(54), V(23) },
+                { V( 0),  V(  67), V( 128), V(46), V(24) },
+                { V( 0),  V(  64), V( 130), V(50), V(29) },
+                { V( 0),  V(  63), V( 127), V(51), V(24) }
+            } 
         };
 
         // Max bonus for king safety by pawns.
         // Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizon.
-        const Value KING_SAFETY_BY_PAWN = V(+263);
+        const Value KING_SAFETY_BY_PAWN = V(+261);
 
     #undef V
 
@@ -236,30 +259,28 @@ namespace Pawns {
         Value value = KING_SAFETY_BY_PAWN;
 
         Bitboard front_pawns = pos.pieces<PAWN> () & (FRONT_RANK_bb[Own][_rank (k_sq)] | RANK_bb[_rank (k_sq)]);
-        i08 kf = min (max (_file (k_sq), F_B), F_G);
-        for (i08 f = kf - 1; f <= kf + 1; ++f)
+        Bitboard own_pawns = front_pawns & pos.pieces (Own);
+        Bitboard opp_pawns = front_pawns & pos.pieces (Opp);
+
+        i08 kfc = min (max (_file (k_sq), F_B), F_G);
+        for (i08 f = kfc - 1; f <= kfc + 1; ++f)
         {
             assert (F_A <= f && f <= F_H);
 
             Bitboard mid_pawns;
+            
+            mid_pawns = own_pawns & FILE_bb[f];
+            u08 r0 = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
 
-            mid_pawns = front_pawns & pos.pieces (Opp) & FILE_bb[f];
+            mid_pawns = opp_pawns & FILE_bb[f];
             u08 r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
-            if (  _file (k_sq) == f
-               && END_EDGE_bb & (File(f) | Rank(r1))
-               && rel_rank (Own, k_sq) + 1 == r1
-               )
-            {
-                value += Value(200); // Enemy pawn in front shelter
-            }
-            else
-            {
-                mid_pawns = front_pawns & pos.pieces (Own) & FILE_bb[f];
-                u08 r0 = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
-                value -= 
-                      + SHELTER_WEAKNESS[r0]
-                      + STORM_DANGER[r0 == R_1 ? 0 : r0 + 1 != r1 ? 1 : f == F_A || f == F_H ? 3 : 2][r1];
-            }
+
+            value -= SHELTER_WEAKNESS[min<i08> (f, i08(F_H) - f)][r0]
+                  +  STORM_DANGER
+                        [f == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
+                        r0 == R_1                                            ? NO_FRIEND_PAWN :
+                        r1 == r0 + 1                                         ? BLOCKED_BY_PAWN  : UNBLOCKED]
+                        [min<i08> (f, i08(F_H) - f)][r1];
         }
 
         return value;

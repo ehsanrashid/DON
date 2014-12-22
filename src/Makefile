@@ -523,7 +523,7 @@ config-sanity:
 	@test "$(lpg)" = "yes" || test "$(lpg)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 
-# generating obj file
+# Generating obj file
 $(EXE): $(OBJS)
 	$(CXX) -o $@ $(OBJS) $(LDFLAGS)
 
@@ -537,6 +537,8 @@ gcc-profile-make:
 	all
 
 gcc-profile-use:
+# Deleting corrupt ucioption.gc* profile files is necessary to avoid an 
+# "internal compiler error" for gcc versions 4.7.x
 	@rm -f UCI.Option.gc*
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP)  \
 	EXTRACXXFLAGS='-fbranch-probabilities'      \
