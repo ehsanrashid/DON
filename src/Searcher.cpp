@@ -204,10 +204,10 @@ namespace Search {
         }
 
         template<NodeT NT, bool InCheck>
-        // search_quien() is the quiescence search function,
+        // quien_search() is the quiescence search function,
         // which is called by the main depth limited search function
         // when the remaining depth is ZERO.
-        inline Value search_quien  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth)
+        inline Value quien_search  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth)
         {
             const bool    PVNode = NT == PV;
 
@@ -262,7 +262,7 @@ namespace Search {
 
             Thread *thread = pos.thread ();
             // Decide whether or not to include checks, this fixes also the type of
-            // TT entry depth that are going to use. Note that in search_quien use
+            // TT entry depth that are going to use. Note that in quien_search use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
             Depth qs_depth = InCheck || depth >= DEPTH_QS_CHECKS ?
                                 DEPTH_QS_CHECKS :
@@ -412,8 +412,8 @@ namespace Search {
                 
                 value =
                     gives_check ?
-                        -search_quien<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
-                        -search_quien<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
+                        -quien_search<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
+                        -quien_search<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
 
                 // Undo the move
                 pos.undo_move ();
@@ -469,13 +469,13 @@ namespace Search {
         // search<>() is the main depth limited search function
         // for PV/NonPV nodes also for normal/splitpoint nodes.
         // It calls itself recursively with decreasing (remaining) depth
-        // until we run out of depth, and then drops into search_quien.
+        // until we run out of depth, and then drops into quien_search.
         // When called just after a splitpoint the search is simpler because
         // already probed the hash table, done a null move search, and searched
         // the first move before splitting, don't have to repeat all this work again.
         // Also don't need to store anything to the hash table here.
         // This is taken care of after return from the splitpoint.
-        inline Value search_depth  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
+        inline Value depth_search  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
         {
             const bool RootNode = NT == Root;
             const bool   PVNode = NT == Root || NT == PV;
@@ -655,13 +655,13 @@ namespace Search {
                                    && static_eval + RazorMargins[3*DEPTH_ONE] <= alpha
                                    )
                                 {
-                                    return search_quien<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
+                                    return quien_search<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
                                 }
 
                                 Value reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
                                 //assert (reduced_alpha >= -VALUE_INFINITE);
 
-                                Value value = search_quien<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
+                                Value value = quien_search<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
 
                                 if (value <= reduced_alpha)
                                 {
@@ -713,8 +713,8 @@ namespace Search {
                                     // Null (zero) window (alpha, beta) = (beta-1, beta):
                                     Value null_value =
                                         reduced_depth < DEPTH_ONE ?
-                                            -search_quien<NonPV, false>        (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
-                                            -search_depth<NonPV, false, false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node);
+                                            -quien_search<NonPV, false>        (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
+                                            -depth_search<NonPV, false, false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node);
 
                                     // Undo null move
                                     pos.undo_null_move ();
@@ -731,8 +731,8 @@ namespace Search {
                                         // Do verification search at high depths
                                         Value value =
                                             reduced_depth < DEPTH_ONE ?
-                                                search_quien<NonPV, false>        (pos, ss, beta-1, beta, DEPTH_ZERO) :
-                                                search_depth<NonPV, false, false> (pos, ss, beta-1, beta, reduced_depth, false);
+                                                quien_search<NonPV, false>        (pos, ss, beta-1, beta, DEPTH_ZERO) :
+                                                depth_search<NonPV, false, false> (pos, ss, beta-1, beta, reduced_depth, false);
 
                                         if (value >= beta)
                                         {
@@ -775,7 +775,7 @@ namespace Search {
                                     prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
                                     prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
-                                    Value value = -search_depth<NonPV, false, true> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
+                                    Value value = -depth_search<NonPV, false, true> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
                                     
                                     pos.undo_move ();
 
@@ -795,7 +795,7 @@ namespace Search {
                         {
                             Depth iid_depth = (2*(depth - 2*DEPTH_ONE) - (PVNode ? DEPTH_ZERO : depth/2))/2; // IID Reduced Depth
 
-                            search_depth<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
+                            depth_search<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
                             tt_hit = false;
                             tte = TT.probe (posi_key, tt_hit);
@@ -953,7 +953,7 @@ namespace Search {
                     Value bound = tt_value - 2*(depth/DEPTH_ONE);
 
                     (ss)->exclude_move = move;
-                    value = search_depth<NonPV, false, false> (pos, ss, bound-1, bound, depth/2, cut_node);
+                    value = depth_search<NonPV, false, false> (pos, ss, bound-1, bound, depth/2, cut_node);
                     (ss)->exclude_move = MOVE_NONE;
 
                     if (value < bound) ext = DEPTH_ONE;
@@ -1087,21 +1087,21 @@ namespace Search {
                         if (SPNode) alpha = splitpoint->alpha;
                         reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
                         // Search with reduced depth
-                        value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
+                        value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
 
                         // Re-search at intermediate depth if reduction is very high
                         if (alpha < value && reduction_depth >= 4*DEPTH_ONE)
                         {
                             reduced_depth = max (new_depth - reduction_depth/2, DEPTH_ONE);
                             // Search with reduced depth
-                            value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
+                            value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
 
                             // Re-search at intermediate depth if reduction is very high
                             if (alpha < value && reduction_depth >= 8*DEPTH_ONE)
                             {
                                 reduced_depth = max (new_depth - reduction_depth/4, DEPTH_ONE);
                                 // Search with reduced depth
-                                value = -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
+                                value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
                             }
                         }
 
@@ -1116,9 +1116,9 @@ namespace Search {
                         value =
                             new_depth < DEPTH_ONE ?
                                 gives_check ?
-                                    -search_quien<NonPV, true >   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                                    -search_quien<NonPV, false>   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                                -search_depth<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
+                                    -quien_search<NonPV, true >   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
+                                    -quien_search<NonPV, false>   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
+                                -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
                     }
                 }
 
@@ -1138,9 +1138,9 @@ namespace Search {
                         value =
                             new_depth < DEPTH_ONE ?
                                 gives_check ?
-                                    -search_quien<PV, true >   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                                    -search_quien<PV, false>   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                                -search_depth<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
+                                    -quien_search<PV, true >   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
+                                    -quien_search<PV, false>   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
+                                -depth_search<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                     }
                 }
 
@@ -1290,14 +1290,14 @@ namespace Search {
         }
 
         Stack Stacks[MAX_DEPTH+4]; // To allow referencing (ss+2)
-        // search_iter_deepening() is the main iterative deepening search function.
+        // iter_deepening_search() is the main iterative deepening search function.
         // It calls search() repeatedly with increasing depth until:
         // - the allocated thinking time has been consumed,
         // - the user stops the search,
         // - the maximum search depth is reached.
         // Time management; with iterative deepining enabled you can specify how long
         // you want the computer to think rather than how deep you want it to think. 
-        inline void search_iter_deepening ()
+        inline void iter_deepening_search ()
         {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
             memset (ss-2, 0x00, 5*sizeof (*ss));
@@ -1358,7 +1358,7 @@ namespace Search {
                     // research with bigger window until not failing high/low anymore.
                     do
                     {
-                        best_value = search_depth<Root, false, true> (RootPos, ss, bound_a, bound_b, depth, false);
+                        best_value = depth_search<Root, false, true> (RootPos, ss, bound_a, bound_b, depth, false);
 
                         // Bring to front the best move. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
@@ -1766,7 +1766,7 @@ namespace Search {
             Threadpool.check_limits_th->start ();
             Threadpool.check_limits_th->notify_one (); // Wake up the recurring timer
 
-            search_iter_deepening (); // Let's start searching !
+            iter_deepening_search (); // Let's start searching !
 
             Threadpool.check_limits_th->stop ();
 
@@ -2037,9 +2037,9 @@ namespace Threads {
 
                 switch ((sp)->node_type)
                 {
-                case  Root: search_depth<Root , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                case    PV: search_depth<PV   , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                case NonPV: search_depth<NonPV, true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
+                case  Root: depth_search<Root , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
+                case    PV: depth_search<PV   , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
+                case NonPV: depth_search<NonPV, true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
                 default   : assert (false);
                 }
 
