@@ -271,24 +271,24 @@ namespace Pawns {
         Bitboard opp_pawns = front_pawns & pos.pieces (Opp);
 
         i08 kfc = min (max (_file (k_sq), F_B), F_G);
-        for (i08 f = kfc - 1; f <= kfc + 1; ++f)
+        for (i32 f = kfc - 1; f <= kfc + 1; ++f)
         {
             assert (F_A <= f && f <= F_H);
 
             Bitboard mid_pawns;
             
             mid_pawns = own_pawns & FILE_bb[f];
-            u08 r0 = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
+            Rank r0 = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
 
             mid_pawns = opp_pawns & FILE_bb[f];
-            u08 r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
+            Rank r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
-            value -= SHELTER_WEAKNESS[min<i08> (f, i08(F_H) - f)][r0]
+            value -= SHELTER_WEAKNESS[min (f, i32(F_H) - f)][r0]
                   +  STORM_DANGER
-                        [f == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
-                        r0 == R_1                                            ? NO_FRIEND_PAWN :
-                        r1 == r0 + 1                                         ? BLOCKED_BY_PAWN  : UNBLOCKED]
-                        [min<i08> (f, i08(F_H) - f)][r1];
+                        [ f == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
+                         r0 == R_1                                            ? NO_FRIEND_PAWN :
+                         r1 == r0 + 1                                         ? BLOCKED_BY_PAWN  : UNBLOCKED]
+                        [min (f, i32(F_H) - f)][r1];
         }
 
         return value;
