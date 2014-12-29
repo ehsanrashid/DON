@@ -1011,7 +1011,7 @@ namespace Evaluate {
             // Initialize score by reading the incrementally updated scores included
             // in the position object (material + piece square tables) and adding Tempo bonus. 
             score  = pos.psq_score ();
-            score += ei.mi->matl_score;
+            score += ei.mi->imbalance;
 
             // Probe the pawn hash table
             ei.pi  = Pawns::probe (pos, thread->pawn_table);
@@ -1123,7 +1123,7 @@ namespace Evaluate {
             {
                 Tracer::set (PAWN             , ei.pi->pawn_score);
                 Tracer::set (Tracer::MATERIAL , pos.psq_score ());
-                Tracer::set (Tracer::IMBALANCE, ei.mi->matl_score);
+                Tracer::set (Tracer::IMBALANCE, ei.mi->imbalance);
 
                 Tracer::set (Tracer::MOBILITY
                     , apply_weight (mobility_w, Weights[PIECE_MOBILITY])

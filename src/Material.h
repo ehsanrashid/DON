@@ -9,7 +9,7 @@ class Position;
 namespace Material {
 
     // Material::Entry contains various information about a material configuration.
-    // It contains a material balance evaluation, a function pointer to a special
+    // It contains a material imbalance evaluation, a function pointer to a special
     // endgame evaluation function (which in most cases is NULL, meaning that the
     // standard evaluation function will be used), and "scale factors".
     //
@@ -23,7 +23,7 @@ namespace Material {
     public:
 
         Key     matl_key;
-        Score   matl_score;
+        Score   imbalance;
         u08     factor[CLR_NO];
         Score   space_weight;
         Phase   game_phase;

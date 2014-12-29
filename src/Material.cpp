@@ -12,7 +12,7 @@ namespace Material {
 
     namespace {
 
-        // Polynomial material balance parameters:
+        // Polynomial material imbalance parameters:
 
         const i32 OwnSideLinearCoefficient[NONE] =
         {
@@ -292,7 +292,7 @@ namespace Material {
             };
 
             Value value = Value((imbalance<WHITE> (count) - imbalance<BLACK> (count)) >> 4);
-            e->matl_score = mk_score (value, value);
+            e->imbalance = mk_score (value, value);
         }
 
         return e;

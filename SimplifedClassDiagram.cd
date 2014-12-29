@@ -484,7 +484,7 @@
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="matl_key" />
-      <Field Name="matl_score" />
+      <Field Name="imbalance" />
       <Field Name="evaluation_func" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
