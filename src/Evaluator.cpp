@@ -231,7 +231,7 @@ namespace Evaluate {
 
     #undef S
 
-    #define V Value
+    #define V(v) Value(v)
 
         // OUTPOSTS[Square] contains bonus of outpost,
         // indexed by square (from white's point of view).

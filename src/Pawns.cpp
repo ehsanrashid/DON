@@ -8,7 +8,7 @@ namespace Pawns {
 
     namespace {
 
-    #define V Value
+    #define V(v) Value(v)
 
         // Weakness of our pawn shelter in front of the king indexed by [distance from edge][rank]
         const Value SHELTER_WEAKNESS[F_NO/2][R_NO] =
