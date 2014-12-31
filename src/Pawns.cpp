@@ -312,6 +312,7 @@ namespace Pawns {
 
     template Score Entry::evaluate_unstoppable_pawns<WHITE> () const;
     template Score Entry::evaluate_unstoppable_pawns<BLACK> () const;
+    // --------------------------------
 
     // probe() takes a position object as input, computes a Pawn::Entry object,
     // and returns a pointer to Pawn::Entry object.

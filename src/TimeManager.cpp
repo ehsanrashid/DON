@@ -45,7 +45,7 @@ namespace Time {
             float time_ratio1 = (TStepRatio * move_imp_0) / (TStepRatio * move_imp_0 + move_imp_1);
             float time_ratio2 = (move_imp_0 + TStealRatio * move_imp_1) / (move_imp_0 + move_imp_1);
 
-            return i32(time * min (time_ratio1, time_ratio2));
+            return time * min (time_ratio1, time_ratio2);
         }
 
     }

@@ -28,27 +28,24 @@ namespace MoveGen {
                 Square s;
                 while ((s = *pl++) != SQ_NO)
                 {
-                    if (CHECK == GT || QUIET_CHECK == GT)
+                    if ((CHECK == GT || QUIET_CHECK == GT) && ci != NULL)
                     {
-                        if (ci != NULL)
+                        if (  (BSHP == PT || ROOK == PT || QUEN == PT)
+                           && !(PIECE_ATTACKS[PT][s] & targets & ci->checking_bb[PT])
+                           )
                         {
-                            if (  (BSHP == PT || ROOK == PT || QUEN == PT)
-                               && !(PIECE_ATTACKS[PT][s] & targets & ci->checking_bb[PT])
-                               )
-                            {
-                                continue;
-                            }
-                            if (ci->discoverers && ci->discoverers & s)
-                            {
-                                continue;
-                            }
+                            continue;
+                        }
+                        if (ci->discoverers && ci->discoverers & s)
+                        {
+                            continue;
                         }
                     }
 
                     Bitboard attacks = attacks_bb<PT> (s, pos.pieces ()) & targets;
-                    if (CHECK == GT || QUIET_CHECK == GT)
+                    if ((CHECK == GT || QUIET_CHECK == GT) && ci != NULL)
                     {
-                        if (ci != NULL) attacks &= ci->checking_bb[PT];
+                        attacks &= ci->checking_bb[PT];
                     }
 
                     while (attacks != U64(0)) { (moves++)->move = mk_move<NORMAL> (s, pop_lsq (attacks)); }
@@ -376,12 +373,12 @@ namespace MoveGen {
         assert (RELAX == GT || CAPTURE == GT || QUIET == GT);
         assert (pos.checkers () == U64(0));
 
-        Color active    = pos.active ();
+        Color active = pos.active ();
 
         Bitboard targets = 
+            RELAX   == GT ? ~pos.pieces ( active) :
             CAPTURE == GT ?  pos.pieces (~active) :
             QUIET   == GT ? ~pos.pieces () :
-            RELAX   == GT ? ~pos.pieces (active) :
             U64(0);
 
         return WHITE == active ? generate_moves<GT, WHITE> (moves, pos, targets) :
@@ -410,7 +407,7 @@ namespace MoveGen {
     {
         assert (pos.checkers () == U64(0));
 
-        Color active    = pos.active ();
+        Color active = pos.active ();
         Bitboard empties= ~pos.pieces ();
         CheckInfo ci (pos);
         // Pawns excluded will be generated together with direct checks
@@ -436,7 +433,7 @@ namespace MoveGen {
     // Returns a pointer to the end of the move list.
     ValMove* generate<CHECK      > (ValMove *moves, const Position &pos)
     {
-        Color active    = pos.active ();
+        Color active = pos.active ();
         Bitboard targets= ~pos.pieces (active);
         CheckInfo ci (pos);
         // Pawns excluded, will be generated together with direct checks
@@ -465,8 +462,8 @@ namespace MoveGen {
         Bitboard checkers = pos.checkers ();
         assert (checkers); // If any checker exists
 
-        Color active    = pos.active ();
-        Square king_sq  = pos.king_sq (active);
+        Color active = pos.active ();
+        Square king_sq = pos.king_sq (active);
 
         Square check_sq;
 
