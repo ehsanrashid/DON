@@ -87,18 +87,17 @@ namespace BitBoard {
 
         typedef u16(*Indexer) (Square s, Bitboard occ);
 
-#   ifndef BM2
-        const u32 SEEDS[R_NO] =
-#       ifdef BIT64
-            { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF }; // 64-bit
-#       else
-            { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C }; // 32-bit
-#       endif
-#   endif
-
         inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
         {
 #       ifndef BM2
+
+            const u32 SEEDS[R_NO] =
+#           ifdef BIT64
+                { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF }; // 64-bit
+#           else
+                { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C }; // 32-bit
+#           endif
+
             Bitboard occupancy[MAX_LMOVES];
             Bitboard reference[MAX_LMOVES];
             
