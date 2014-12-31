@@ -88,7 +88,7 @@ namespace BitBoard {
         typedef u16(*Indexer) (Square s, Bitboard occ);
 
 #   ifndef BM2
-        const u16 SEEDS[R_NO] =
+        const u32 SEEDS[R_NO] =
 #       ifdef BIT64
             { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF }; // 64-bit
 #       else
@@ -165,12 +165,10 @@ namespace BitBoard {
 
                 do
                 {
-                    u16 index;
                     do
                     {
                         magics_bb[s] = rng.sparse_rand<Bitboard> ();
-                        index = (mask * magics_bb[s]) >> 0x38;
-                    } while (pop_count<MAX15> (index) < 6);
+                    } while (pop_count<MAX15> ((mask * magics_bb[s]) >> 0x38) < 6);
 
                     fill (attacks_bb[s], attacks_bb[s] + size, U64(0)); //fill_n (attacks_bb[s], size, U64(0));
 
