@@ -415,6 +415,8 @@ namespace Search {
                         -quien_search<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
                         -quien_search<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
 
+                bool next_legal = PVNode && (ss+1)->pv != NULL && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
+
                 // Undo the move
                 pos.undo_move ();
 
@@ -431,9 +433,16 @@ namespace Search {
 
                         if (PVNode)
                         {
-                            update_pv ((ss)->pv, best_move, (ss+1)->pv);
+                            if (next_legal)
+                            {
+                                update_pv ((ss)->pv, best_move, (ss+1)->pv);
+                            }
+                            else
+                            {
+                                Move *mm = (ss)->pv;
+                                *mm++ = best_move; *mm = MOVE_NONE;
+                            }
                         }
-
                         // Fail high
                         if (value >= beta)
                         {
@@ -1142,6 +1151,8 @@ namespace Search {
                                 -depth_search<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                     }
                 }
+                
+                bool next_legal = PVNode && !RootNode && (ss+1)->pv != NULL && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
 
                 // Step 17. Undo move
                 pos.undo_move ();
@@ -1208,10 +1219,17 @@ namespace Search {
                         best_move = (SPNode) ? splitpoint->best_move = move : move;
 
                         if (PVNode && !RootNode)
-                        {
-                            update_pv (SPNode ? splitpoint->ss->pv : (ss)->pv, best_move, (ss+1)->pv);
+                        {    
+                            if (next_legal)
+                            {
+                                update_pv (SPNode ? splitpoint->ss->pv : (ss)->pv, best_move, (ss+1)->pv);
+                            }
+                            else
+                            {
+                                Move *mm = SPNode ? splitpoint->ss->pv : (ss)->pv;
+                                *mm++ = best_move; *mm = MOVE_NONE;
+                            }
                         }
-
                         // Fail high
                         if (value >= beta)
                         {
@@ -1575,7 +1593,7 @@ namespace Search {
         {
             Move m = pv[ply];
             assert (MoveList<LEGAL> (pos).contains (m));
-            
+
             bool tt_hit  = false;
             TTEntry *tte = TT.probe (pos.posi_key (), tt_hit);
             // Don't overwrite correct entries
