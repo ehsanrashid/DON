@@ -68,13 +68,10 @@ namespace MoveGen {
 
             template<CRight CR, bool Chess960>
             // Generates KING castling move
-            static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= NULL*/)
+            static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci)
             {
                 assert (EVASION != GT);
                 assert (!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64(0));
-                
-                //if (EVASION == GT) return;
-                //if (!pos.can_castle (CR) || pos.castle_impeded (CR) || pos.checkers () != U64(0)) return;
 
                 const Color Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -82,7 +79,6 @@ namespace MoveGen {
                 Square rook_org = pos.castle_rook (CR);
 
                 assert (ROOK == ptype (pos[rook_org]));
-                //if (ROOK != ptype (pos[rook_org])) return;
 
                 Square king_dst = rel_sq (Own, ((CR == CR_WK || CR == CR_BK) ? SQ_G1 : SQ_C1));
                 Delta step = (king_dst > king_org ? DEL_E : DEL_W);
