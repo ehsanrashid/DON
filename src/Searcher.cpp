@@ -796,8 +796,7 @@ namespace Search {
                             Depth iid_depth = (2*(depth - 2*DEPTH_ONE) - (PVNode ? DEPTH_ZERO : depth/2))/2; // IID Reduced Depth
 
                             depth_search<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
-
-                            tt_hit = false;
+                            
                             tte = TT.probe (posi_key, tt_hit);
                             if (tt_hit)
                             {
@@ -1577,7 +1576,7 @@ namespace Search {
             Move m = pv[ply];
             assert (MoveList<LEGAL> (pos).contains (m));
             
-            bool tt_hit = false;
+            bool tt_hit  = false;
             TTEntry *tte = TT.probe (pos.posi_key (), tt_hit);
             // Don't overwrite correct entries
             if (!tt_hit || tte->move () != m)

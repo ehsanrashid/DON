@@ -140,7 +140,7 @@ namespace Transposition {
         {
             if (ite->_key == U64(0))
             {
-                //found = false;
+                found = false;
                 return ite;
             }
             if (ite->_key == key)
@@ -168,7 +168,7 @@ namespace Transposition {
             memmove (fte, fte+1, (ClusterEntries - 1)*EntrySize);
             rte = fte + (ClusterEntries - 1);
         }
-        //found = false;
+        found = false;
         return rte;
     }
 
