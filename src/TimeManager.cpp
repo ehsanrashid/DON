@@ -10,19 +10,16 @@ namespace Time {
 
     namespace {
 
-        const float MAX_STEP_RATIO  = 7.00f; // When in trouble, can step over reserved time with this ratio
-        const float MAX_STEAL_RATIO = 0.33f; // However must not steal time from remaining moves over this ratio
-
-        const float PLY_SCALE =  9.300f;
-        const float PLY_SHIFT = 59.800f;
-        const float SKEW_RATE =  0.172f;
-
         // move_importance() is a skew-logistic function based on naive statistical
         // analysis of "how many games are still undecided after 'n' half-moves".
         // Game is considered "undecided" as long as neither side has >275cp advantage.
         // Data was extracted from CCRL game database with some simple filtering criteria.
         inline float move_importance (i32 game_ply)
         {
+            const float PLY_SCALE =  9.300f;
+            const float PLY_SHIFT = 59.800f;
+            const float SKEW_RATE =  0.172f;
+
             return pow ((1 + exp ((game_ply - PLY_SHIFT) / PLY_SCALE)), -SKEW_RATE) + FLT_MIN; // Ensure non-zero
         }
 
@@ -32,6 +29,9 @@ namespace Time {
         // remaining_time<>() calculate the time remaining
         inline u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
         {
+            const float MAX_STEP_RATIO  = 7.00f; // When in trouble, can step over reserved time with this ratio
+            const float MAX_STEAL_RATIO = 0.33f; // However must not steal time from remaining moves over this ratio
+
             const float TStepRatio  = TIME_OPTIMUM == TT ? 1.0f : MAX_STEP_RATIO;
             const float TStealRatio = TIME_MAXIMUM == TT ? 0.0f : MAX_STEAL_RATIO;
 

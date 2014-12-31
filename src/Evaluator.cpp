@@ -315,7 +315,7 @@ namespace Evaluate {
         inline void init_evaluation (const Position &pos, EvalInfo &ei)
         {
             const Color  Opp = WHITE == Own ? BLACK : WHITE;
-            const Delta PUSH = WHITE == Own ? DEL_N: DEL_S;
+            const Delta Push = WHITE == Own ? DEL_N: DEL_S;
 
             Square fk_sq = pos.king_sq (Own);
             Square ek_sq = pos.king_sq (Opp);
@@ -364,7 +364,7 @@ namespace Evaluate {
 
                 if (king_attacks & ei.pin_attacked_by[Own][PAWN])
                 {
-                    Bitboard attackers = pos.pieces<PAWN> (Own) & (king_attacks|(DIST_RINGS_bb[ek_sq][1] & (rank_bb (ek_sq-PUSH)|rank_bb (ek_sq))));
+                    Bitboard attackers = pos.pieces<PAWN> (Own) & (king_attacks|(DIST_RINGS_bb[ek_sq][1] & (rank_bb (ek_sq-Push)|rank_bb (ek_sq))));
                     ei.king_ring_attackers_count [Own] += attackers != U64(0) ? more_than_one (attackers) ? u08(pop_count<MAX15> (attackers)) : 1 : 0;
                     ei.king_ring_attackers_weight[Own] += ei.king_ring_attackers_count [Own]*KING_ATTACK[PAWN];
                 }
@@ -376,7 +376,7 @@ namespace Evaluate {
         inline Score evaluate_pieces (const Position &pos, EvalInfo &ei, Bitboard mobility_area, Score &mobility)
         {
             const Color  Opp = WHITE == Own ? BLACK : WHITE;
-            const Delta PUSH = WHITE == Own ? DEL_N : DEL_S;
+            const Delta Push = WHITE == Own ? DEL_N : DEL_S;
 
             Score score = SCORE_ZERO;
 
@@ -488,11 +488,11 @@ namespace Evaluate {
                     {
                         if ((FILE_EDGE_bb & R1_bb) & rel_sq (Own, s))
                         {
-                            Delta del = PUSH + ((F_A == f) ? DEL_E : DEL_W);
+                            Delta del = Push + ((F_A == f) ? DEL_E : DEL_W);
                             if (pos[s + del] == (Own | PAWN))
                             {
                                 score -= BISHOP_TRAPPED *
-                                    (  !pos.empty (s + del + PUSH) ?
+                                    (  !pos.empty (s + del + Push) ?
                                        4 : pos[s + del + del] == (Own | PAWN) ?
                                        2 : 1);
                             }
@@ -502,7 +502,7 @@ namespace Evaluate {
 
                 // Bishop or knight behind a pawn
                 if (  r < R_5
-                   && pos.pieces<PAWN> () & (s + PUSH)
+                   && pos.pieces<PAWN> () & (s + Push)
                    )
                 {
                     score += MINOR_BEHIND_PAWN;
@@ -840,7 +840,7 @@ namespace Evaluate {
         inline Score evaluate_passed_pawns (const Position &pos, const EvalInfo &ei)
         {
             const Color Opp  = WHITE == Own ? BLACK : WHITE;
-            const Delta PUSH = WHITE == Own ? DEL_N : DEL_S;
+            const Delta Push = WHITE == Own ? DEL_N : DEL_S;
 
             Score score = SCORE_ZERO;
 
@@ -858,7 +858,7 @@ namespace Evaluate {
                 // Base bonus depends on rank
                 Value mg_value = Value(17 * (rr + 0*r + 0));
                 Value eg_value = Value( 7 * (rr + 1*r + 1));
-                Square block_sq = s + PUSH;
+                Square block_sq = s + Push;
 
                 if (rr != 0)
                 {
@@ -872,7 +872,7 @@ namespace Evaluate {
                     // If block square is not the queening square then consider also a second push
                     if (rel_rank (Own, block_sq) != R_8)
                     {
-                        eg_value -= (1 * rr * SQR_DIST[fk_sq][block_sq + PUSH]);
+                        eg_value -= (1 * rr * SQR_DIST[fk_sq][block_sq + Push]);
                     }
 
                     bool pinned = (ei.pinneds[Own] & s);

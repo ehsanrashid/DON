@@ -110,7 +110,7 @@ namespace Pawns {
         inline Score evaluate (const Position &pos, Entry *e)
         {
             const Color  Opp = WHITE == Own ? BLACK  : WHITE;
-            const Delta PUSH = WHITE == Own ? DEL_N  : DEL_S;
+            const Delta Push = WHITE == Own ? DEL_N  : DEL_S;
 
             const Bitboard own_pawns = pos.pieces<PAWN> (Own);
             const Bitboard opp_pawns = pos.pieces<PAWN> (Opp);
@@ -150,7 +150,7 @@ namespace Pawns {
 
                 e->semiopen_files[Own] &= ~(1 << f);
 
-                Bitboard prank_bb  = rank_bb (s - PUSH);
+                Bitboard prank_bb  = rank_bb (s - Push);
 
                 Bitboard adjacents = (own_pawns & ADJ_FILE_bb[f]);
                 Bitboard supported = (adjacents & prank_bb);
@@ -171,7 +171,7 @@ namespace Pawns {
                 // Then it cannot be backward either.
                 if (  passed || isolated || levered || connected || r >= R_6
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
-                   || (own_pawns & PAWN_ATTACK_SPAN[Opp][s] && !(opp_pawns & (s-PUSH)))
+                   || (own_pawns & PAWN_ATTACK_SPAN[Opp][s] && !(opp_pawns & (s-Push)))
                    )
                 {
                     backward = false;
@@ -187,7 +187,7 @@ namespace Pawns {
 
                     // If have an enemy pawn in the same or next rank, the pawn is
                     // backward because it cannot advance without being captured.
-                    backward = opp_pawns & (b | shift_del<PUSH> (b));
+                    backward = opp_pawns & (b | shift_del<Push> (b));
                 }
 
                 assert (passed ^ (opposed || (opp_pawns & PAWN_ATTACK_SPAN[Own][s])));
