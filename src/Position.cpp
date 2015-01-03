@@ -871,16 +871,19 @@ bool Position::legal        (Move m, Bitboard pinned) const
     switch (mtype (m))
     {
     case NORMAL:
-    case PROMOTE:
     {
+        if (_color_bb[_active] & dst) return false;
+
         // In case of king moves under check have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
         if (KING == ptype (_board[org]))
         {
-            return !(_color_bb[_active] & dst) && !attackers_to (dst, ~_active, _types_bb[NONE] - org); // Remove 'org' but not place 'dst'
+            return !attackers_to (dst, ~_active, _types_bb[NONE] - org); // Remove 'org' but not place 'dst'
         }
-
+    }
+    case PROMOTE:
+    {
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
