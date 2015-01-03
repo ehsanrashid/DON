@@ -58,7 +58,7 @@ namespace EndGame {
 
         virtual ~EndgameBase () {}
 
-        virtual Color color () const = 0;
+        virtual Color strong_side () const = 0;
 
         virtual T operator() (const Position &pos) const = 0;
 
@@ -70,17 +70,17 @@ namespace EndGame {
     {
 
     private:
-        const Color _stong_side
+        const Color _strong_side
                   , _weak_side;
 
     public:
 
         explicit Endgame (Color c)
-            : _stong_side (c)
+            : _strong_side (c)
             , _weak_side (~c)
         {}
 
-        inline Color color () const override { return _stong_side; }
+        inline Color strong_side () const override { return _strong_side; }
 
         T operator() (const Position &pos) const override;
     };

@@ -162,7 +162,7 @@ namespace Evaluate {
             S(+233,+201), // Pawn Structure
             S(+221,+273), // Passed Pawns
             S(+ 46,+  0), // Space Activity
-            S(+318,+  0)  // King Safety
+            S(+321,+  0)  // King Safety
         };
 
         // PIECE_MOBILIZE[PieceT][Attacks] contains bonuses for mobility,
@@ -280,13 +280,13 @@ namespace Evaluate {
         Score KING_DANGER[MAX_ATTACK_UNITS];
 
         // KING_ATTACK[PieceT] contains king attack weights by piece type
-        const i32   KING_ATTACK[NONE] = { + 1, + 4, + 4, + 6, +10, + 1 };
+        const i32   KING_ATTACK[NONE] = { + 1, +12, + 4, + 9, +10, + 0 };
 
         // Bonuses for safe checks
-        const i32    SAFE_CHECK[NONE] = { + 0, + 3, + 2, + 8, +12, + 0 };
+        const i32    SAFE_CHECK[NONE] = { + 0, +14, + 7, +36, +50, + 0 };
 
         // Bonuses for contact safe checks
-        const i32 CONTACT_CHECK[NONE] = { + 0, + 0, + 3, +16, +24, + 0 };
+        const i32 CONTACT_CHECK[NONE] = { + 0, + 0, +12, +68, +92, + 0 };
 
         // weight_option() computes the value of an evaluation weight,
         // by combining UCI-configurable weights with an internal weight.
@@ -638,12 +638,12 @@ namespace Evaluate {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + min ((ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp])/4, 20U) // King-ring attacks
-                    +  3 *  ei.king_zone_attacks_count[Opp] // King-zone attacks
-                    +  3 * (undefended != U64(0) ? more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1 : 0) // King-zone undefended pieces
-                    +  2 * (ei.pinneds[Own] != U64(0) ? more_than_one (ei.pinneds[Own]) ? pop_count<MAX15> (ei.pinneds[Own]) : 1 : 0) // King pinned piece
-                    - 15 * (pos.count<QUEN>(Opp) == 0)
-                    - i32(value) / 32;
+                    + min ((ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp])/2, 77U) // King-ring attacks
+                    + 10 * (ei.king_zone_attacks_count[Opp]) // King-zone attacks
+                    + 19 * (undefended != U64(0) ? more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1 : 0) // King-zone undefended pieces
+                    +  9 * (ei.pinneds[Own] != U64(0) ? more_than_one (ei.pinneds[Own]) ? pop_count<MAX15> (ei.pinneds[Own]) : 1 : 0) // King pinned piece
+                    - 60 * (pos.count<QUEN>(Opp) == 0)
+                    - i32(value) / 8;
 
                 // Undefended squares around king not occupied by enemy's
                 undefended &= ~pos.pieces (Opp);
@@ -742,7 +742,7 @@ namespace Evaluate {
                 if (safe_check != U64(0)) attack_units += more_than_one (safe_check) ? SAFE_CHECK[NIHT] * pop_count<MAX15> (safe_check) : SAFE_CHECK[NIHT];
 
                 // To index KING_DANGER[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
-                attack_units = min (max (attack_units, 0), MAX_ATTACK_UNITS-1);
+                attack_units = min (max (attack_units/4, 0), MAX_ATTACK_UNITS-1);
 
                 // Finally, extract the king danger score from the KING_DANGER[]
                 // array and subtract the score from evaluation.
@@ -992,11 +992,9 @@ namespace Evaluate {
         {
             assert (pos.checkers () == U64(0));
 
-            Thread *thread = pos.thread ();
-
             EvalInfo ei;
             // Probe the material hash table
-            ei.mi  = Material::probe (pos, thread->matl_table);
+            ei.mi  = Material::probe (pos);
 
             // If have a specialized evaluation function for the current material
             // configuration, call it and return.
@@ -1014,7 +1012,7 @@ namespace Evaluate {
             score += ei.mi->imbalance;
 
             // Probe the pawn hash table
-            ei.pi  = Pawns::probe (pos, thread->pawn_table);
+            ei.pi  = Pawns::probe (pos);
             score += apply_weight (ei.pi->pawn_score, Weights[PAWN_STRUCTURE]);
 
             ei.ful_attacked_by[WHITE][NONE] = ei.pin_attacked_by[WHITE][NONE] = U64(0);

@@ -87,7 +87,7 @@ namespace Pawns {
 
     typedef HashTable<Entry, 0x4000> Table; // 16384
 
-    extern Entry* probe (const Position &pos, Table &table);
+    extern Entry* probe (const Position &pos);
     
     extern void initialize ();
 }

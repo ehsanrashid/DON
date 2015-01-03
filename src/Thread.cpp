@@ -23,7 +23,7 @@ namespace Threads {
     }
 
     // Helpers to launch a thread after creation and joining before delete. Must be
-    // outside Thread c'tor and d'tor because object shall be fully initialized
+    // outside Thread c'tor and d'tor because object must be fully initialized
     // when start_routine (and hence virtual idle_loop) is called and when joining.
     template<class T>
     T* new_thread ()
@@ -38,7 +38,9 @@ namespace Threads {
     {
         if (th != NULL)
         {
+            th->mutex.lock ();
             th->kill ();                    // Search must be already finished
+            th->mutex.unlock ();
             th->notify_one ();
             thread_join (th->native_handle);// Wait for thread termination
             delete th;
@@ -73,8 +75,8 @@ namespace Threads {
 
     // ------------------------------------
 
-    // Thread c'tor just inits data but does not launch any thread of execution that
-    // instead will be started only upon c'tor returns.
+    // Thread c'tor makes some init but does not launch any execution thread that
+    // will be started only when c'tor returns.
     Thread::Thread () //: splitpoints ()  // Value-initialization bug in MSVC
         : active_pos (NULL)
         , idx (Threadpool.size ())  // Starts from 0

@@ -3,11 +3,13 @@
 #include <cstring>
 
 #include "Position.h"
+#include "Thread.h"
 
 namespace Material {
 
     using namespace std;
     using namespace BitBoard;
+    using namespace Threads;
     using namespace EndGame;
 
     namespace {
@@ -135,10 +137,10 @@ namespace Material {
     // If the material configuration is not already present in the table,
     // it is computed and stored there, so don't have to recompute everything
     // when the same material configuration occurs again.
-    Entry* probe     (const Position &pos, Table &table)
+    Entry* probe     (const Position &pos)
     {
         Key matl_key = pos.matl_key ();
-        Entry *e     = table[matl_key];
+        Entry *e     = pos.thread ()->matl_table[matl_key];
 
         // If e->_matl_key matches the position's material hash key, it means that
         // have analysed this material configuration before, and can simply
@@ -178,7 +180,7 @@ namespace Material {
             EndgameBase<ScaleFactor> *eg_sf;
             if (EndGames->probe (matl_key, eg_sf))
             {
-                e->scaling_func[eg_sf->color ()] = eg_sf;
+                e->scaling_func[eg_sf->strong_side ()] = eg_sf;
                 return e;
             }
 
@@ -207,6 +209,7 @@ namespace Material {
             const Value npm_w = pos.non_pawn_material (WHITE)
                       , npm_b = pos.non_pawn_material (BLACK);
 
+            // Only pawns on the board
             if (  npm_w + npm_b == VALUE_ZERO
                && pos.pieces<PAWN> () != U64(0)
                )

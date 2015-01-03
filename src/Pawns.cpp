@@ -1,10 +1,12 @@
 #include "Pawns.h"
 #include "BitBoard.h"
+#include "Thread.h"
 
 namespace Pawns {
 
     using namespace std;
     using namespace BitBoard;
+    using namespace Threads;
 
     namespace {
 
@@ -13,10 +15,10 @@ namespace Pawns {
         // Weakness of our pawn shelter in front of the king indexed by [distance from edge][rank]
         const Value SHELTER_WEAKNESS[F_NO/2][R_NO] =
         {
-            { V(+101), V(+10), V(+24), V(+68), V(+90), V(+ 95), V(+102) },
-            { V(+105), V(+ 1), V(+30), V(+76), V(+95), V(+100), V(+105) },
-            { V(+ 99), V(+ 0), V(+32), V(+72), V(+92), V(+101), V(+100) },
-            { V(+ 94), V(+ 1), V(+31), V(+68), V(+89), V(+ 98), V(+106) }
+            { V(+100), V(+13), V(+24), V(+64), V(+89), V(+ 93), V(+104) },
+            { V(+110), V(+ 1), V(+29), V(+75), V(+96), V(+102), V(+107) },
+            { V(+102), V(+ 0), V(+39), V(+74), V(+88), V(+101), V(+ 98) },
+            { V(+ 88), V(+ 4), V(+33), V(+67), V(+92), V(+ 94), V(+107) }
         };
 
         enum Type { NO_FRIEND_PAWN, UNBLOCKED, BLOCKED_BY_PAWN, BLOCKED_BY_KING , TYPE_NO};
@@ -24,35 +26,35 @@ namespace Pawns {
         const Value STORM_DANGER[TYPE_NO][F_NO/2][R_NO] =
         {
             {
-                { V(  0),  V(+ 61), V(+128), V(+47), V(+27) },
-                { V(  0),  V(+ 66), V(+131), V(+49), V(+27) },
-                { V(  0),  V(+ 62), V(+126), V(+52), V(+23) },
-                { V(  0),  V(+ 63), V(+128), V(+52), V(+26) }
+                { V(  0),  V(+ 63), V(+128), V(+43), V(+27) },
+                { V(  0),  V(+ 62), V(+131), V(+44), V(+26) },
+                { V(  0),  V(+ 59), V(+121), V(+50), V(+28) },
+                { V(  0),  V(+ 62), V(+127), V(+54), V(+28) }
             },
             {
-                { V(+25),  V(+ 33), V(+ 95), V(+39), V(+21) },
-                { V(+24),  V(+ 33), V(+ 97), V(+42), V(+22) },
-                { V(+24),  V(+ 33), V(+ 93), V(+35), V(+23) },
-                { V(+26),  V(+ 27), V(+ 96), V(+37), V(+22) }
+                { V(+24),  V(+ 40), V(+ 93), V(+42), V(+22) },
+                { V(+24),  V(+ 28), V(+101), V(+38), V(+20) },
+                { V(+24),  V(+ 32), V(+ 95), V(+36), V(+23) },
+                { V(+27),  V(+ 24), V(+ 99), V(+36), V(+24) }
             },
             {
-                { V(  0),  V(   0), V(+ 80), V(+14), V(+ 8) },
-                { V(  0),  V(   0), V(+163), V(+28), V(+12) },
-                { V(  0),  V(   0), V(+163), V(+25), V(+15) },
-                { V(  0),  V(   0), V(+161), V(+24), V(+14) }
+                { V(  0),  V(   0), V(+ 81), V(+16), V(+ 6) },
+                { V(  0),  V(   0), V(+165), V(+29), V(+ 9) },
+                { V(  0),  V(   0), V(+163), V(+23), V(+12) },
+                { V(  0),  V(   0), V(+161), V(+28), V(+13) }
             },
             {
-                { V(  0),  V(-300), V(-300), V(+54), V(+23) },
-                { V(  0),  V(+ 67), V(+128), V(+46), V(+24) },
-                { V(  0),  V(+ 64), V(+130), V(+50), V(+29) },
-                { V(  0),  V(+ 63), V(+127), V(+51), V(+24) }
+                { V(  0),  V(-296), V(-299), V(+55), V(+25) },
+                { V(  0),  V(+ 67), V(+131), V(+46), V(+21) },
+                { V(  0),  V(+ 65), V(+135), V(+50), V(+31) },
+                { V(  0),  V(+ 62), V(+128), V(+51), V(+24) }
             } 
         };
 
         // Max bonus for king safety by pawns.
         // Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizon.
-        const Value KING_SAFETY_BY_PAWN = V(+261);
+        const Value KING_SAFETY_BY_PAWN = V(+257);
 
     #undef V
 
@@ -318,10 +320,10 @@ namespace Pawns {
     // and returns a pointer to Pawn::Entry object.
     // The result is also stored in a hash table, so don't have
     // to recompute everything when the same pawn structure occurs again.
-    Entry* probe (const Position &pos, Table &table)
+    Entry* probe (const Position &pos)
     {
         Key pawn_key = pos.pawn_key ();
-        Entry *e     = table[pawn_key];
+        Entry *e     = pos.thread ()->pawn_table[pawn_key];
 
         if (e->pawn_key != pawn_key)
         {

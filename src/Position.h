@@ -138,6 +138,9 @@ private:
 
     // ------------------------
 
+    // Disable the default copy constructor
+    Position (const Position &pos);
+
     void set_castle (Color c, Square rook_org);
 
     bool can_en_passant (Square ep_sq) const;
