@@ -25,7 +25,6 @@ namespace Material {
         Key     matl_key;
         Score   imbalance;
         u08     factor[CLR_NO];
-        Score   space_weight;
         Phase   game_phase;
 
         EndGame::EndgameBase<Value>         *evaluation_func;

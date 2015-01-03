@@ -958,10 +958,10 @@ namespace Evaluate {
         // evaluate_space_activity<>() computes the space evaluation for a given side. The
         // space evaluation is a simple bonus based on the number of safe squares
         // available for minor pieces on the central four files on ranks 2--4. Safe
-        // squares one, two or three squares behind a friendly pawn are counted
-        // twice. Finally, the space bonus is scaled by a weight taken from the
-        // material hash table. The aim is to improve play on game opening.
-        inline i32 evaluate_space_activity (const Position &pos, const EvalInfo &ei)
+        // squares one, two or three squares behind a friendly pawn are counted twice.
+        // Finally, the space bonus is multiplied by a weight.
+        // The aim is to improve play on game opening.
+        inline Score evaluate_space_activity (const Position &pos, const EvalInfo &ei)
         {
             const Color Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -983,7 +983,10 @@ namespace Evaluate {
             behind |= shift_del<WHITE == Own ? DEL_SS : DEL_NN> (behind);
 
             // Count safe_space + (behind & safe_space) with a single pop_count
-            return pop_count<FULL> ((WHITE == Own ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
+            i32 bonus = pop_count<FULL> ((WHITE == Own ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
+            i32 weight = pos.count<NIHT> () + pos.count<BSHP> ();
+
+            return mk_score (bonus * weight * weight, 0);
         }
 
         template<bool Trace>
@@ -1105,15 +1108,14 @@ namespace Evaluate {
             assert (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
 
             // Evaluate space for both sides, only in middle-game.
-            i32 space_w = SCORE_ZERO
-              , space_b = SCORE_ZERO;
-            Score space_weight = ei.mi->space_weight;
-            if (space_weight != SCORE_ZERO)
-            {
-                space_w = evaluate_space_activity<WHITE> (pos, ei);
-                space_b = evaluate_space_activity<BLACK> (pos, ei);
+            Score space_w = SCORE_ZERO
+              ,   space_b = SCORE_ZERO;
 
-                score += apply_weight ((space_w - space_b)*space_weight, Weights[SPACE_ACTIVITY]);
+            if (npm_w + npm_b >= 2*VALUE_MG_QUEN + 4*VALUE_MG_ROOK + 2*VALUE_MG_NIHT)
+            {
+                space_w = evaluate_space_activity<WHITE>(pos, ei);
+                space_b = evaluate_space_activity<BLACK>(pos, ei);
+                score += apply_weight (space_w - space_b, Weights[SPACE_ACTIVITY]);
             }
 
             // In case of tracing add each evaluation contributions for both white and black
@@ -1132,11 +1134,10 @@ namespace Evaluate {
                     , apply_weight (passed_pawn_b, Weights[PASSED_PAWN]));
 
                 Tracer::set (Tracer::SPACE
-                    , apply_weight (space_w != 0 ? space_w * space_weight : SCORE_ZERO, Weights[SPACE_ACTIVITY])
-                    , apply_weight (space_b != 0 ? space_b * space_weight : SCORE_ZERO, Weights[SPACE_ACTIVITY]));
+                    , apply_weight (space_w, Weights[SPACE_ACTIVITY])
+                    , apply_weight (space_b, Weights[SPACE_ACTIVITY]));
 
                 Tracer::set (Tracer::TOTAL    , score);
-
             }
 
             // --------------------------------------------------
