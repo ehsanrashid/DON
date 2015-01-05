@@ -192,8 +192,9 @@ namespace Search {
                     << " multipv "  << i + 1
                     << " depth "    << d/DEPTH_ONE
                     << " seldepth " << u16(Threadpool.max_ply)
-                    << " score "    << (i == IndexPV ? pretty_score (v, alpha, beta) : pretty_score (v))
-                    << " time "     << time
+                    << " score "    << to_string (v);
+                if (i == IndexPV) ss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
+                ss  << " time "     << time
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * MILLI_SEC / max (time, point(1))
                     << " hashfull " << 0//TT.permill_full ()
@@ -1821,7 +1822,7 @@ namespace Search {
             sync_cout
                 << "info"
                 << " depth " << 0
-                << " score " << pretty_score (RootPos.checkers () != U64(0) ? -VALUE_MATE : VALUE_DRAW)
+                << " score " << to_string (RootPos.checkers () != U64(0) ? -VALUE_MATE : VALUE_DRAW)
                 << " time "  << 0
                 << sync_endl;
 

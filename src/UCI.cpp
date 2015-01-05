@@ -27,9 +27,9 @@ namespace UCI {
         // Root position
         Position RootPos (0);
 
-        // Keep track of position keys along the setup moves
-        // (from start position to the position just before to start searching).
-        // Needed by repetition draw detection.
+        // Stack to keep track of the position states along the setup moves
+        // (from the start position to the position just before the search starts).
+        // Needed by 'draw by repetition' detection.
         StateInfoStackPtr SetupStates;
 
 
@@ -190,7 +190,7 @@ namespace UCI {
         //  - mate
         //  - infinite
         //  - ponder
-        // Starts the search.
+        // Then starts the search.
         inline void exe_go (cmdstream &cmds)
         {
             LimitsT limits;
@@ -356,10 +356,11 @@ namespace UCI {
 
     }
 
-    // Wait for a command from the user, parse this text string as an UCI command,
-    // and call the appropriate functions. Also intercepts EOF from stdin to ensure
-    // that exit gracefully if the GUI dies unexpectedly. In addition to the UCI
-    // commands, the function also supports a few debug commands.
+    // start() waits for a command from stdin, parses it and calls the appropriate
+    // function. Also intercepts EOF from stdin to ensure gracefully exiting if the
+    // GUI dies unexpectedly. When called with some command line arguments, e.g. to
+    // run 'bench', once the command is executed the function returns immediately.
+    // In addition to the UCI ones, also some additional debug commands are supported.
     void start (const string &arg)
     {
         RootPos.setup (STARTUP_FEN, Threadpool.main ());
@@ -369,7 +370,7 @@ namespace UCI {
         string token;
         do
         {
-            // Block here waiting for input
+            // Block here waiting for input or EOF
             if (running && !getline (cin, cmd, '\n')) cmd = "quit";
 
             cmdstream cmds (cmd);
@@ -413,6 +414,7 @@ namespace UCI {
         } while (running && cmd != "quit");
     }
 
+    // stop() stops all the threads and other stuff.
     void stop ()
     {
         // Send stop command

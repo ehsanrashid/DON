@@ -192,7 +192,7 @@ namespace EndGame {
 
         Value value;
 
-        if (probe_kpk (c, sk_sq, sp_sq, wk_sq))
+        if (probe (c, sk_sq, sp_sq, wk_sq))
         {
             value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + _rank (sp_sq);
         }
@@ -697,7 +697,7 @@ namespace EndGame {
 
         // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
         // it's probably at least a draw even with the pawn.
-        return probe_kpk (c, sk_sq, sp_sq, wk_sq) ?
+        return probe (c, sk_sq, sp_sq, wk_sq) ?
                 SCALE_FACTOR_NONE :
                 SCALE_FACTOR_DRAW;
     }

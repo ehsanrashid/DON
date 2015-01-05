@@ -274,7 +274,7 @@ namespace Evaluate {
         // from the KING_DANGER[]. Various little "meta-bonuses" measuring
         // the strength of the enemy attack are added up into an integer, which
         // is used as an index to KING_DANGER[].
-        const u08 MAX_ATTACK_UNITS = 100;
+        const i32 MAX_ATTACK_UNITS = 400;
         // KING_DANGER[attack_units] contains the king danger weighted score
         // indexed by a calculated integer number.
         Score KING_DANGER[MAX_ATTACK_UNITS];
@@ -742,7 +742,7 @@ namespace Evaluate {
                 if (safe_check != U64(0)) attack_units += more_than_one (safe_check) ? SAFE_CHECK[NIHT] * pop_count<MAX15> (safe_check) : SAFE_CHECK[NIHT];
 
                 // To index KING_DANGER[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
-                attack_units = min (max (attack_units/4, 0), MAX_ATTACK_UNITS-1);
+                attack_units = min (max (attack_units, 0), MAX_ATTACK_UNITS-1);
 
                 // Finally, extract the king danger score from the KING_DANGER[]
                 // array and subtract the score from evaluation.
@@ -1223,15 +1223,15 @@ namespace Evaluate {
         Weights[SPACE_ACTIVITY] = weight_option (1000 , INTERNAL_WEIGHTS[SPACE_ACTIVITY]);
         Weights[KING_SAFETY   ] = weight_option (1000 , INTERNAL_WEIGHTS[KING_SAFETY   ]);
 
-        const i32 MAX_SLOPE  =   30;
-        const i32 PEAK_VALUE = 1280;
+        const float MAX_SLOPE  =    7.5f;
+        const float PEAK_VALUE = 1280.0f;
 
+        float mg = 0.0f;
         KING_DANGER[0] = SCORE_ZERO;
-        i32 mg = 0;
-        for (u08 i = 1; i < MAX_ATTACK_UNITS; ++i)
+        for (i32 i = 1; i < MAX_ATTACK_UNITS; ++i)
         {
-            mg = min (min (i32(0.4*i*i), mg + MAX_SLOPE), PEAK_VALUE);
-            KING_DANGER[i] = apply_weight (mk_score (mg, 0), Weights[KING_SAFETY]);
+            mg = min (min (0.025f*i*i, mg + MAX_SLOPE), PEAK_VALUE);
+            KING_DANGER[i] = apply_weight (mk_score (i32(mg), 0), Weights[KING_SAFETY]);
         }
     }
 

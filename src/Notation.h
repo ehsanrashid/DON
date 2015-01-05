@@ -29,7 +29,7 @@ namespace Notation {
     extern std::string move_to_san (Move m, Position &pos);
     //extern std::string move_to_lan (Move m, Position &pos);
 
-    extern std::string pretty_score (Value v, Value alpha = -VALUE_INFINITE, Value beta = +VALUE_INFINITE);
+    extern std::string to_string (Value v);
 
     extern std::string pretty_pv (Position &pos, i32 depth, Value value, Time::point time, const Move *pv);
     

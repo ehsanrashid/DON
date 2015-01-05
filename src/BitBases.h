@@ -7,7 +7,7 @@ namespace BitBases {
 
     void initialize ();
 
-    bool probe_kpk (Color c, Square wk_sq, Square wp_sq, Square bk_sq);
+    bool probe (Color c, Square wk_sq, Square wp_sq, Square bk_sq);
 
 }
 

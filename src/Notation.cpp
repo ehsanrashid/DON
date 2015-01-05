@@ -251,13 +251,13 @@ namespace Notation {
     //    return lan;
     //}
 
-    // pretty_score() converts a value to a string suitable
+    // to_string() converts a value to a string suitable
     // for use with the UCI protocol specifications:
     //
     // cp   <x>   The score x from the engine's point of view in centipawns.
     // mate <y>   Mate in y moves, not plies.
     //            If the engine is getting mated use negative values for y.
-    string pretty_score (Value v, Value alpha, Value beta)
+    string to_string (Value v)
     {
         ostringstream oss;
 
@@ -269,8 +269,6 @@ namespace Notation {
         {
             oss << "mate " << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
         }
-
-        oss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
 
         return oss.str ();
     }

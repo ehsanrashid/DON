@@ -23,15 +23,15 @@ namespace BitBases {
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
         const u32 MAX_INDEX = 2*24*i08(SQ_NO)*i08(SQ_NO); // stm * wp_sq * wk_sq * bk_sq = 196608
         // Each u32 stores results of 32 positions, one per bit
-        u32 KPKBitbase[MAX_INDEX/32];
+        u32 KPK_Bitbase[MAX_INDEX/32];
 
-        struct KPKPosition
+        struct KPK_Position
         {
 
         private:
 
             template<Color Own>
-            Result classify (const vector<KPKPosition> &db);
+            Result classify (const vector<KPK_Position> &db);
 
             Color  _active;
             Square _bk_sq
@@ -42,18 +42,18 @@ namespace BitBases {
 
         public:
 
-            KPKPosition (u32 idx);
+            KPK_Position (u32 idx);
 
             operator Result () const { return result; }
 
-            Result classify (const vector<KPKPosition>& db)
+            Result classify (const vector<KPK_Position>& db)
             {
                 return WHITE == _active ? classify<WHITE> (db) : classify<BLACK> (db);
             }
 
         };
 
-        inline KPKPosition::KPKPosition (u32 idx)
+        inline KPK_Position::KPK_Position (u32 idx)
         {
             _wk_sq  = Square((idx >> 0) & 0x3F);
             _bk_sq  = Square((idx >> 6) & 0x3F);
@@ -114,7 +114,7 @@ namespace BitBases {
         }
 
         template<Color Own>
-        inline Result KPKPosition::classify (const vector<KPKPosition>& db)
+        inline Result KPK_Position::classify (const vector<KPK_Position>& db)
         {
 
             // White to Move:
@@ -162,14 +162,14 @@ namespace BitBases {
 
     void initialize ()
     {
-        vector<KPKPosition> db;
+        vector<KPK_Position> db;
         db.reserve (MAX_INDEX);
 
         u32 idx;
         // Initialize db with known win / draw positions
         for (idx = 0; idx < MAX_INDEX; ++idx)
         {
-            db.push_back (KPKPosition (idx));
+            db.push_back (KPK_Position (idx));
         }
 
         bool repeat;
@@ -184,22 +184,22 @@ namespace BitBases {
             }
         } while (repeat);
 
-        // Map 32 results into one KPKBitbase[] entry
+        // Map 32 results into one KPK_Bitbase[] entry
         for (idx = 0; idx < MAX_INDEX; ++idx)
         {
             if (WIN == db[idx])
             {
-                KPKBitbase[idx / 32] |= 1 << (idx & 0x1F);
+                KPK_Bitbase[idx / 32] |= 1 << (idx & 0x1F);
             }
         }
     }
 
-    bool probe_kpk (Color c, Square wk_sq, Square wp_sq, Square bk_sq)
+    bool probe (Color c, Square wk_sq, Square wp_sq, Square bk_sq)
     {
         assert (_file (wp_sq) <= F_D);
 
         u32 idx = index (c, bk_sq, wk_sq, wp_sq);
-        return KPKBitbase[idx / 32] & (1 << (idx & 0x1F));
+        return KPK_Bitbase[idx / 32] & (1 << (idx & 0x1F));
     }
 
 }
