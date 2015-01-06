@@ -192,9 +192,9 @@ namespace Search {
                     << " multipv "  << i + 1
                     << " depth "    << d/DEPTH_ONE
                     << " seldepth " << u16(Threadpool.max_ply)
-                    << " score "    << to_string (v);
-                if (i == IndexPV) ss << (beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "");
-                ss  << " time "     << time
+                    << " score "    << to_string (v)
+                    << (i == IndexPV ? beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "" : "")
+                    << " time "     << time
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * MILLI_SEC / max (time, point(1))
                     << " hashfull " << 0//TT.permill_full ()
@@ -710,7 +710,7 @@ namespace Search {
                                     (ss)->current_move = MOVE_NULL;
 
                                     // Null move dynamic reduction based on depth and static evaluation
-                                    Depth reduction_depth = (3 + depth/4 + min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
+                                    Depth reduction_depth = ((0x337 + 0x43 * depth) / 0x100 + min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
                                     
                                     Depth reduced_depth   = depth - reduction_depth;
 
