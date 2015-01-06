@@ -147,9 +147,9 @@ namespace Evaluate {
         }
 
         enum EvalWeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PASSED_PAWN, SPACE_ACTIVITY, KING_SAFETY, EVAL_NO };
-        
+
         struct Weight { i32 mg, eg; };
-        
+
         // Evaluation weights, initialized from UCI options
         Weight Weights[EVAL_NO];
 

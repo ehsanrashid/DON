@@ -710,9 +710,7 @@ namespace Search {
                                     (ss)->current_move = MOVE_NULL;
 
                                     // Null move dynamic reduction based on depth and static evaluation
-                                    Depth reduction_depth = ((0x337 + 0x43 * depth) / 0x100 + min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
-                                    
-                                    Depth reduced_depth   = depth - reduction_depth;
+                                    Depth reduced_depth = depth - ((0x337 + 0x43 * depth) / 0x100 + min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
 
                                     // Do null move
                                     pos.do_null_move (si);
@@ -737,7 +735,7 @@ namespace Search {
                                             // Don't return unproven unproven mates
                                             return abs (null_value) < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
                                         }
-                                        
+
                                         // Do verification search at high depths
                                         Value value =
                                             reduced_depth < DEPTH_ONE ?
@@ -779,14 +777,14 @@ namespace Search {
                                     if (!pos.legal (move, ci->pinneds)) continue;
 
                                     (ss)->current_move = move;
-                                    
+
                                     pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
 
                                     prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
                                     prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
                                     Value value = -depth_search<NonPV, false, true> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
-                                    
+
                                     pos.undo_move ();
 
                                     if (value >= extended_beta)
@@ -806,7 +804,7 @@ namespace Search {
                             Depth iid_depth = (2*(depth - 2*DEPTH_ONE) - (PVNode ? DEPTH_ZERO : depth/2))/2; // IID Reduced Depth
 
                             depth_search<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
-                            
+
                             tte = TT.probe (posi_key, tt_hit);
                             if (tt_hit)
                             {
