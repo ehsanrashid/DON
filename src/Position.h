@@ -21,10 +21,9 @@ extern Score PSQT[CLR_NO][NONE][SQ_NO];
 // Check the validity of FEN string
 extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 
-// StateInfo stores information to restore Position object to its previous state when retracting a move.
-// Whenever a move is made on the board (do_move), a StateInfo object must be passed as a parameter.
-//
-// StateInfo consists of the following data:
+// StateInfo stores information needed to restore a Position object to its previous state
+// when we retract a move. Whenever a move is made on the board (by calling do_move),
+// a StateInfo object must be passed as a parameter.
 //
 //  - Castling-rights information for both sides.
 //  - En-passant square (SQ_NO if no en passant capture is possible).
@@ -65,8 +64,8 @@ public:
 
 typedef std::stack<StateInfo>   StateInfoStack;
 
-// CheckInfo struct is initialized at c'tor time.
 // CheckInfo stores critical information used to detect if a move gives check.
+//
 //  - Checking squares from which the enemy king can be checked
 //  - Pinned pieces.
 //  - Check discoverer pieces.
@@ -98,8 +97,8 @@ public:
 //  - StateInfo object for the base status.
 //  - StateInfo pointer for the current status.
 //  - Information about the castling rights for both sides.
-//  - The initial files of the kings and both pairs of rooks. This is
-//    used to implement the Chess960 castling rules.
+//  - Initial files of the kings and both pairs of rooks, also kings path
+//    This is used to implement the Chess960 castling rules.
 //  - Nodes visited during search.
 //  - Chess 960 info
 class Position
@@ -137,9 +136,8 @@ private:
     Threads::Thread *_thread;
 
     // ------------------------
-
-    // Disable the default copy constructor
-    Position (const Position &pos);
+    
+    Position (const Position &pos); // Disable the default copy constructor
 
     void set_castle (Color c, Square rook_org);
 
@@ -160,7 +158,7 @@ public:
 
     static void initialize ();
 
-    Position () { clear (); }
+    Position () { clear (); } // To define the global object RootPos
     Position (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
@@ -536,16 +534,16 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 // capture(m) tests move is capture
 inline bool Position::capture       (Move m) const
 {
-    return mtype (m) == NORMAL || mtype (m) == PROMOTE ? EMPTY != _board[dst_sq (m)] :
-           mtype (m) == ENPASSANT ? _si->en_passant_sq != SQ_NO && _si->en_passant_sq == dst_sq (m) :
-           false;
+    // Castling is encoded as "king captures the rook"
+    return ((mtype (m) == NORMAL || mtype (m) == PROMOTE) && EMPTY != _board[dst_sq (m)])
+        ||  (mtype (m) == ENPASSANT);
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
-    return mtype (m) == NORMAL ? EMPTY != _board[dst_sq (m)] :
-           mtype (m) == ENPASSANT ? _si->en_passant_sq != SQ_NO && _si->en_passant_sq == dst_sq (m) :
-           mtype (m) != CASTLE;
+    return (mtype (m) == NORMAL && EMPTY != _board[dst_sq (m)])
+        || (mtype (m) == ENPASSANT)
+        || (mtype (m) == PROMOTE);
 }
 inline bool Position::advanced_pawn_push    (Move m) const
 {

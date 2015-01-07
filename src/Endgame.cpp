@@ -159,10 +159,10 @@ namespace EndGame {
         Value value = pos.count<PAWN> (_strong_side) * VALUE_EG_PAWN
             +   PUSH_TO_EDGE[wk_sq] + PUSH_CLOSE[dist (sk_sq, wk_sq)];
 
-        if (   pos.count<QUEN> (_strong_side) != 0
-           ||  pos.count<ROOK> (_strong_side) != 0
-           || (pos.count<BSHP> (_strong_side) != 0 && pos.count<NIHT> (_strong_side) != 0)
-           ||  pos.bishops_pair (_strong_side)
+        if (   pos.count<QUEN> (_strong_side) > 0
+           ||  pos.count<ROOK> (_strong_side) > 0
+           || (pos.count<BSHP> (_strong_side) > 0 && pos.count<NIHT> (_strong_side) > 0)
+           || (pos.count<BSHP> (_strong_side) > 1 && opposite_colors (pos.list<BSHP>(_strong_side)[0], pos.list<BSHP>(_strong_side)[1]))
            ||  pos.count<NIHT> (_strong_side) > 2
            )
         {

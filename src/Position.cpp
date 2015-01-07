@@ -138,9 +138,8 @@ void Position::initialize ()
     }
 }
 
-// operator= (pos), copy the 'pos'.
-// The new born Position object should not depend on any external data
-// so that why detach the state info pointer from the source one.
+// Position::operator=() creates a copy of 'pos' but detaching the state pointer
+// from the source to be self-consistent and not depending on any external data.
 Position& Position::operator= (const Position &pos)
 {
     memcpy (this, &pos, sizeof (*this));
