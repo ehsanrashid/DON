@@ -1,5 +1,5 @@
 # DON, a UCI chess playing engine
-# Copyright (C) 2008-2014 Ehsan Rashid
+# Ehsan Rashid Copyright (C) 2008+
 #
 # DON is housed in https://github.com/erashid/DON 
 
@@ -378,6 +378,13 @@ ifeq ($(comp),gcc)
 		endif
 	endif
 	endif
+endif
+
+### 3.14 Android 5 can only run position independent executables.
+### Note that this breaks Android 4.0 and earlier.
+ifeq ($(arch),armv7)
+	CXXFLAGS += -fPIE
+	LDFLAGS  += -fPIE -pie
 endif
 
 ifneq ($(VER),)
