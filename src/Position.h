@@ -163,8 +163,8 @@ public:
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    Position (const Position &pos, Threads::Thread *th = NULL)
-    { 
+    Position (const Position &pos, Threads::Thread *th)
+    {
         *this = pos;
         _thread = th;
     }

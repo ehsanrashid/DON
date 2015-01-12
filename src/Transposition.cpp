@@ -12,24 +12,6 @@ namespace Transposition {
 
     using namespace std;
 
-    // Size of Transposition entry (bytes)
-    // 16 bytes
-    const u08 TranspositionTable::EntrySize   = sizeof (TTEntry);
-    // Size of Transposition cluster in (bytes)  
-    // 64 bytes
-    const u08 TranspositionTable::ClusterSize = sizeof (TTCluster);
-    // Maximum bit of hash for cluster
-    const u08 TranspositionTable::MaxHashBit  = 36;
-    // Minimum size of Transposition table (mega-byte)
-    // 4 MB
-    const u32 TranspositionTable::MinSize     = 4;
-    // Maximum size of Transposition table (mega-byte)
-    // 2097152 MB (2048 GB) (2 TB)
-    const u32 TranspositionTable::MaxSize     = (U64(1) << (MaxHashBit-1 - 20)) * ClusterSize;
-    // Defualt size of Transposition table (mega-byte)
-    const u32 TranspositionTable::DefSize     = 16;
-    const u32 TranspositionTable::BufferSize  = 0x10000;
-
     bool TranspositionTable::ClearHash        = true;
 
     void TranspositionTable::alloc_aligned_memory (u64 mem_size, u32 alignment)

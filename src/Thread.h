@@ -214,7 +214,7 @@ namespace Threads {
     {
     public:
         bool run;
-        i32 resolution; // This is the minimum interval in msec between two check_limits() calls
+        i32 resolution; // Millisec between two check_time() calls
         void (*task) ();
 
         TimerThread () : run (false) {}
@@ -294,7 +294,7 @@ namespace Threads {
         Depth       split_depth;
         u08         max_ply;
         
-        MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
+        MainThread* main () { return static_cast<MainThread*> (at(0)); }
 
         // No c'tor and d'tor, threads rely on globals that should
         // be initialized and valid during the whole thread lifetime.

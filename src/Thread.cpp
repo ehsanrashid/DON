@@ -77,7 +77,7 @@ namespace Threads {
 
     // Thread c'tor makes some init but does not launch any execution thread that
     // will be started only when c'tor returns.
-    Thread::Thread () //: splitpoints ()  // Value-initialization bug in MSVC
+    Thread::Thread () //: splitpoints ()  // Initialization of non POD broken in MSVC
         : active_pos (NULL)
         , idx (Threadpool.size ())  // Starts from 0
         , active_splitpoint (NULL)
