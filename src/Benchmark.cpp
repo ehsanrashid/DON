@@ -63,14 +63,14 @@ namespace {
 //  - limit value spent for each position (default is 13 depth),
 //  - type of the limit value:
 //     * 'depth' (default).
-//     * 'time' in secs
+//     * 'time' in millisecs.
 //     * 'nodes' to search.
 //     * 'mate' in moves
 //  - filename where to look for positions in fen format (defaults are the positions defined above)
 //     * 'default' for builtin position
 //     * 'current' for current position
 //     * '<filename>' containing fens position
-// example: bench 32 1 10 depth default
+// example: bench 32 1 10000 depth default
 void benchmark (istream &is, const Position &pos)
 {
     string token;
@@ -93,7 +93,7 @@ void benchmark (istream &is, const Position &pos)
 
     LimitsT limits;
     if      (limit_type == "time")     limits.game_clock[WHITE].time = limits.game_clock[BLACK].time = value * MILLI_SEC; // movetime is in ms
-    if      (limit_type == "movetime") limits.movetime = value * MILLI_SEC; // movetime is in ms
+    if      (limit_type == "movetime") limits.movetime = value; // movetime is in millisecs
     else if (limit_type == "nodes")    limits.nodes    = value;
     else if (limit_type == "mate")     limits.mate     = u08(value);
     //else if (limit_type == "depth")

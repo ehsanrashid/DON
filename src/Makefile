@@ -18,7 +18,7 @@ PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
-PGOBENCH  = ./$(EXE) bench 16 1 1 movetime default
+PGOBENCH  = ./$(EXE) bench 16 1 1000 movetime default
 
 ### Object files
 OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o Material.o \
