@@ -36,8 +36,6 @@ const BitCountT MAX15 = CNT_HW;
 template<>
 INLINE i32 pop_count<CNT_HW> (Bitboard bb)
 {
-    //if (!bb) return 0;
-
 #       ifdef BIT64
     {
         return i32(_mm_popcnt_u64 (bb));
@@ -56,8 +54,6 @@ INLINE i32 pop_count<CNT_HW> (Bitboard bb)
 template<>
 INLINE i32 pop_count<CNT_HW> (Bitboard bb)
 {
-    //if (!bb) return 0;
-
 #      ifdef BIT64
     {
         return i32(__popcnt64 (bb));
@@ -81,24 +77,24 @@ INLINE i32 pop_count<CNT_HW> (Bitboard bb)
 //    return i32(__m64_popcnt (bb));
 //}
 
-#else
+#else // GCC or compatible compiler
 
 template<>
 INLINE i32 pop_count<CNT_HW> (Bitboard bb)
 {
     // Assembly code by Heinz van Saanen
-    __asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
-    return bb;
-//#   ifdef BIT64
-//    {
-//        return i32(__builtin_popcountll (bb));
-//    }
-//#   else
-//    {
-//        return i32(__builtin_popcountl (bb) + __builtin_popcountl (bb >> 32));
-//        //return i32(__builtin_popcountll (bb));
-//    }
-//#   endif
+    //__asm__ ("popcnt %1, %0" : "=r" (bb) : "r" (bb));
+    //return bb;
+#   ifdef BIT64
+    {
+        return i32(__builtin_popcountll (bb));
+    }
+#   else
+    {
+        return i32(__builtin_popcountl (bb) + __builtin_popcountl (bb >> 32));
+        //return i32(__builtin_popcountll (bb));
+    }
+#   endif
 }
 
 #endif
@@ -2177,38 +2173,30 @@ INLINE i32 pop_count<CNT_HW> (Bitboard bb)
 const BitCountT FULL  = CNT_FULL;
 const BitCountT MAX15 = CNT_MAX15;
 
-namespace {
-
-    const Bitboard M1_64 = U64(0x5555555555555555);
-    const Bitboard M2_64 = U64(0x3333333333333333);
-    const Bitboard M4_64 = U64(0x0F0F0F0F0F0F0F0F);
-    const Bitboard MX_64 = U64(0x2222222222222222);
-    const Bitboard H4_64 = U64(0x1111111111111111);
-    const Bitboard H8_64 = U64(0x0101010101010101);
-
-}
+const u64 M1_64 = U64(0x5555555555555555);
+const u64 M2_64 = U64(0x3333333333333333);
+const u64 M4_64 = U64(0x0F0F0F0F0F0F0F0F);
+const u64 MX_64 = U64(0x2222222222222222);
+const u64 H4_64 = U64(0x1111111111111111);
+const u64 H8_64 = U64(0x0101010101010101);
 
 template<>
 // Full pop count of the bitboard (64-bit)
 INLINE i32 pop_count<CNT_FULL> (Bitboard bb)
 {
-    if (!bb) return 0;
-    
     bb -= (bb >> 1) & M1_64;
     bb = ((bb >> 2) & M2_64) + (bb & M2_64);
     bb = ((bb >> 4) + bb) & M4_64;
-    return (bb * H8_64) >> 0x38;             // 56;
+    return (bb * H8_64) >> 0x38; // 56;
 }
 
 template<>
 // Max15 pop count of the bitboard (64-bit)
 INLINE i32 pop_count<CNT_MAX15> (Bitboard bb)
 {
-    if (!bb) return 0;
-
     bb -= (bb >> 1) & M1_64;
     bb = ((bb >> 2) & M2_64) + (bb & M2_64);
-    return (bb * H4_64) >> 0x3C;            // 60;
+    return (bb * H4_64) >> 0x3C; // 60;
 }
 
 #       else
@@ -2216,46 +2204,38 @@ INLINE i32 pop_count<CNT_MAX15> (Bitboard bb)
 const BitCountT FULL  = CNT_FULL;
 const BitCountT MAX15 = CNT_MAX15;
 
-namespace {
-
-    const u32 M1_32 = U32(0x55555555);
-    const u32 M2_32 = U32(0x33333333);
-    const u32 M4_32 = U32(0x0F0F0F0F);
-    const u32 H4_32 = U32(0x11111111);
-    const u32 H8_32 = U32(0x01010101);
-
-}
+const u32 M1_32 = U32(0x55555555);
+const u32 M2_32 = U32(0x33333333);
+const u32 M4_32 = U32(0x0F0F0F0F);
+const u32 H4_32 = U32(0x11111111);
+const u32 H8_32 = U32(0x01010101);
 
 template<>
 // Full pop count of the bitboard (32-bit)
 INLINE i32 pop_count<CNT_FULL> (Bitboard bb)
 {
-    if (!bb) return 0;
-
     u32 w0 = u32(bb);
     u32 w1 = u32(bb >> 32);
     w0 -= (w0 >> 1) & M1_32;                 // 0-2 in 2 bits
     w1 -= (w1 >> 1) & M1_32;
-    w0 = ((w0 >> 2) & M2_32) + (w0 & M2_32);// 0-4 in 4 bits
+    w0 = ((w0 >> 2) & M2_32) + (w0 & M2_32); // 0-4 in 4 bits
     w1 = ((w1 >> 2) & M2_32) + (w1 & M2_32);
     w0 = ((w0 >> 4) + w0) & M4_32;
     w1 = ((w1 >> 4) + w1) & M4_32;
-    return ((w0 + w1) * H8_32) >> 0x18;      // 24;
+    return ((w0 + w1) * H8_32) >> 0x18; // 24;
 }
 
 template<>
 // Max15 pop count of the bitboard (32-bit)
 INLINE i32 pop_count<CNT_MAX15> (Bitboard bb)
 {
-    if (!bb) return 0;
-
     u32 w0 = u32(bb);
     u32 w1 = u32(bb >> 32);
     w0 -= (w0 >> 1) & M1_32;                 // 0-2 in 2 bits
     w1 -= (w1 >> 1) & M1_32;
-    w0 = ((w0 >> 2) & M2_32) + (w0 & M2_32);// 0-4 in 4 bits
+    w0 = ((w0 >> 2) & M2_32) + (w0 & M2_32); // 0-4 in 4 bits
     w1 = ((w1 >> 2) & M2_32) + (w1 & M2_32);
-    return ((w0 + w1) * H4_32) >> 0x1C;      // 28;
+    return ((w0 + w1) * H4_32) >> 0x1C; // 28;
 }
 
 #       endif

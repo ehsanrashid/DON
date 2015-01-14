@@ -525,8 +525,8 @@ namespace MoveGen {
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
         ValMove *end = pos.checkers () != U64(0) ?
-            generate<EVASION> (moves, pos) :
-            generate<RELAX  > (moves, pos);
+                            generate<EVASION> (moves, pos) :
+                            generate<RELAX  > (moves, pos);
 
         Square   king_sq = pos.king_sq (pos.active ());
         Bitboard pinneds = pos.pinneds (pos.active ());
