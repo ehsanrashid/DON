@@ -393,9 +393,9 @@ inline Square operator| (File f, Rank r) { return Square(( r << 3) | i08(f)); }
 inline Square operator| (Rank r, File f) { return Square((~r << 3) | i08(f)); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
-inline bool  _ok    (Square s) { return    !(s & ~i08(SQ_H8)); }
-inline File  _file  (Square s) { return File(s &  i08(F_H)); }
-inline Rank  _rank  (Square s) { return Rank(s >> 3); }
+inline bool  _ok   (Square s) { return    !(s & ~i08(SQ_H8)); }
+inline File  _file (Square s) { return File(s &  i08(F_H)); }
+inline Rank  _rank (Square s) { return Rank(s >> 3); }
 inline Color color (Square s) { return Color(!((s ^ (s >> 3)) & BLACK)); }
 
 // FLIP   => SQ_A1 -> SQ_A8
