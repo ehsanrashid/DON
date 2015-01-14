@@ -9,7 +9,7 @@
 #include "Debugger.h"
 
 using namespace std;
-using namespace Search;
+using namespace Searcher;
 using namespace Transposition;
 using namespace MoveGen;
 using namespace Time;

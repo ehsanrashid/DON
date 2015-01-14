@@ -679,7 +679,7 @@
     <Alias n="37" Id="(@1 Namespace=Pawns)" />
     <Alias n="38" Id="(@1 Namespace=&quot;Pawns::`anonymous namespace'&quot;)" />
     <Alias n="39" Id="(@1 Namespace=Search)" />
-    <Alias n="40" Id="(@1 Namespace=&quot;Search::`anonymous namespace'&quot;)" />
+    <Alias n="40" Id="(@1 Namespace=&quot;Searcher::`anonymous namespace'&quot;)" />
     <Alias n="41" Id="(@1 Namespace=std)" />
     <Alias n="42" Id="(@1 Namespace=TBSyzygy)" />
     <Alias n="43" Id="(@1 Namespace=&quot;TBSyzygy::`anonymous namespace'&quot;)" />

@@ -12,7 +12,7 @@ namespace Threads {
 
     using namespace std;
     using namespace MoveGen;
-    using namespace Search;
+    using namespace Searcher;
     using namespace UCI;
 
     namespace {

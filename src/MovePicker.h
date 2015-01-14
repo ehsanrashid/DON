@@ -123,7 +123,7 @@ namespace MovePick {
         const Position &pos;
         HistoryStats &history;
 
-        Search::Stack *ss;
+        Searcher::Stack *ss;
 
         Move   killers[6]
             ,  *counter_moves
@@ -154,7 +154,7 @@ namespace MovePick {
 
     public:
 
-        MovePicker (const Position&, HistoryStats&, Move, Depth, Move*, Move*, Search::Stack*);
+        MovePicker (const Position&, HistoryStats&, Move, Depth, Move*, Move*, Searcher::Stack*);
         MovePicker (const Position&, HistoryStats&, Move, Depth, Square);
         MovePicker (const Position&, HistoryStats&, Move, PieceT);
 

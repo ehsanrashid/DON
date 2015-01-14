@@ -15,7 +15,7 @@ using namespace std;
 
 namespace UCI {
 
-    using namespace Search;
+    using namespace Searcher;
     using namespace MoveGen;
     using namespace Threads;
     using namespace Notation;
@@ -330,7 +330,7 @@ namespace UCI {
 
         inline void exe_eval ()
         {
-            sync_cout << Evaluate::trace (RootPos) << sync_endl;
+            sync_cout << Evaluator::trace (RootPos) << sync_endl;
         }
 
         inline void exe_perft (cmdstream &cmds)

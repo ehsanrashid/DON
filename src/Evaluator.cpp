@@ -8,7 +8,7 @@
 #include "MoveGenerator.h"
 #include "Thread.h"
 
-namespace Evaluate {
+namespace Evaluator {
 
     using namespace std;
     using namespace BitBoard;

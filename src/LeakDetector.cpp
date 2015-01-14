@@ -19,10 +19,10 @@ namespace LeakDetector {
     namespace {
 
         // Node of Memory Leak Info
-        struct LEAK_INFO
+        struct LeakInfo
         {
             // Memory Allocation Info
-            struct MEM_INFO
+            struct MemInfo
             {
                 void    *address;
                 size_t  size;
@@ -31,21 +31,21 @@ namespace LeakDetector {
 
             } mem_info;
 
-            LEAK_INFO *next;
+            LeakInfo *next;
 
         };
 
 
-        LEAK_INFO *pHead = NULL;
-        LEAK_INFO *pCurr = NULL;
+        LeakInfo *pHead = NULL;
+        LeakInfo *pCurr = NULL;
 
         // Makes and appends the allocated memory info to the list
         void append_mem_info (void *mem_ref, size_t size, const char filename[], u32 line_no)
         {
             // append the above info to the list
-            LEAK_INFO *p_new = 
-                (LEAK_INFO *) malloc (sizeof (*p_new));
-                //new LEAK_INFO ();
+            LeakInfo *p_new = 
+                (LeakInfo *) malloc (sizeof (*p_new));
+                //new LeakInfo ();
             if (p_new)
             {
                 p_new->mem_info.address   = mem_ref;
@@ -68,8 +68,8 @@ namespace LeakDetector {
         // Removes the allocated memory info if is part of the list
         void remove_mem_info (void *mem_ref)
         {
-            LEAK_INFO *p_old = NULL;
-            LEAK_INFO *p_cur = pHead;
+            LeakInfo *p_old = NULL;
+            LeakInfo *p_cur = pHead;
             // check if allocate memory is in list
             while (p_cur != NULL)
             {
@@ -83,7 +83,7 @@ namespace LeakDetector {
                     }
                     else
                     {
-                        LEAK_INFO *p_tmp = pHead;
+                        LeakInfo *p_tmp = pHead;
                         pHead = pHead->next;
                         free (p_tmp);
                         //delete p_tmp;
@@ -103,7 +103,7 @@ namespace LeakDetector {
             pCurr = pHead;
             while (pCurr != NULL)
             {
-                LEAK_INFO *p_tmp = pCurr;
+                LeakInfo *p_tmp = pCurr;
                 pCurr = pCurr->next;
                 free (p_tmp);
                 //delete p_tmp;
@@ -148,7 +148,7 @@ namespace LeakDetector {
         if (fp_write != NULL)
         {
             char info_buf[1024];
-            LEAK_INFO *leak_info;
+            LeakInfo *leak_info;
             leak_info = pHead;
             size_t copied;
             i32 x;

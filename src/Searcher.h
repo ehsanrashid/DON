@@ -16,7 +16,7 @@ namespace Threads {
 
 typedef std::auto_ptr<StateInfoStack>   StateInfoStackPtr;
 
-namespace Search {
+namespace Searcher {
 
     using namespace Threads;
 

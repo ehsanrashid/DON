@@ -20,14 +20,14 @@
 using namespace std;
 using namespace Time;
 
-namespace Search {
+namespace Searcher {
 
     using namespace BitBoard;
     using namespace MoveGen;
     using namespace MovePick;
     using namespace Transposition;
     using namespace OpeningBook;
-    using namespace Evaluate;
+    using namespace Evaluator;
     using namespace Notation;
     using namespace Debug;
     using namespace UCI;

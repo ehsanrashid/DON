@@ -846,7 +846,7 @@
     <Alias n="27" Id="(@1 Namespace=Pawns)" />
     <Alias n="28" Id="(@1 Namespace=&quot;Pawns::`anonymous namespace'&quot;)" />
     <Alias n="29" Id="(@1 Namespace=Search)" />
-    <Alias n="30" Id="Namespace=&quot;Search::`anonymous namespace'&quot;" />
+    <Alias n="30" Id="Namespace=&quot;Searcher::`anonymous namespace'&quot;" />
     <Alias n="31" Id="(@1 @30)" />
     <Alias n="32" Id="(@1 Namespace=std)" />
     <Alias n="33" Id="(@1 Namespace=TBSyzygy)" />
@@ -869,9 +869,9 @@
     <Alias n="50" Id="(@1 @30 Member=(Name=reduction&lt;0&gt; OverloadingParameters=[(Type=bool),@46,(Type=int)]))" />
     <Alias n="51" Id="(@1 @30 Member=(Name=reduction&lt;1&gt; OverloadingParameters=[(Type=bool),@46,(Type=int)]))" />
     <Alias n="52" Id="(Type=Value)" />
-    <Alias n="53" Id="(@1 @30 Member=(Name=search_quien&lt;0&gt; OverloadingParameters=[(Type=&quot;Position &amp;&quot;),(Type=&quot;Search::Stack *&quot;),@52,@52,@46]))" />
-    <Alias n="54" Id="(@1 @30 Member=(Name=search_quien&lt;1&gt; OverloadingParameters=[(Type=&quot;Position &amp;&quot;),(Type=&quot;Search::Stack *&quot;),@52,@52,@46]))" />
-    <Alias n="55" Id="OverloadingParameters=[(Type=&quot;Position &amp;&quot;),(Type=&quot;Search::Stack *&quot;),@52,@52,@46,(Type=bool)]" />
+    <Alias n="53" Id="(@1 @30 Member=(Name=search_quien&lt;0&gt; OverloadingParameters=[(Type=&quot;Position &amp;&quot;),(Type=&quot;Searcher::Stack *&quot;),@52,@52,@46]))" />
+    <Alias n="54" Id="(@1 @30 Member=(Name=search_quien&lt;1&gt; OverloadingParameters=[(Type=&quot;Position &amp;&quot;),(Type=&quot;Searcher::Stack *&quot;),@52,@52,@46]))" />
+    <Alias n="55" Id="OverloadingParameters=[(Type=&quot;Position &amp;&quot;),(Type=&quot;Searcher::Stack *&quot;),@52,@52,@46,(Type=bool)]" />
     <Alias n="56" Id="(@1 @30 Member=(Name=&quot;search_depth&lt;0,0,1&gt;&quot; @55))" />
     <Alias n="57" Id="(@1 @30 Member=(Name=&quot;search_depth&lt;0,1,1&gt;&quot; @55))" />
     <Alias n="58" Id="(@1 @30 Member=(Name=&quot;search_depth&lt;1,0,1&gt;&quot; @55))" />

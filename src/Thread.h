@@ -73,7 +73,7 @@ typedef void* (*StartRoutine) (void*);
 
 namespace Threads {
 
-    using namespace Search;
+    using namespace Searcher;
     using namespace MovePick;
 
     const u08 MAX_THREADS     = 128; // Maximum Threads

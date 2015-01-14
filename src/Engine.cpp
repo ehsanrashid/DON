@@ -112,10 +112,10 @@ namespace Engine {
         Position ::initialize ();
         BitBases ::initialize ();
         Pawns    ::initialize ();
-        Evaluate ::initialize ();
+        Evaluator::initialize ();
         EndGame  ::initialize ();
         Threadpool.initialize ();
-        Search   ::initialize ();
+        Searcher ::initialize ();
 
         TT.auto_size (i32(Options["Hash"]), true);
 

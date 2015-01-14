@@ -6,7 +6,7 @@
 
 class Position;
 
-namespace Evaluate {
+namespace Evaluator {
 
     // Tempo bonus. Must be visible to search.
     const Value TEMPO = Value(17);
