@@ -691,7 +691,7 @@ namespace Search {
                                 // Betting that the opponent doesn't have a move that will reduce
                                 // the score by more than FutilityMargins[depth] if do a null move.
                                 if (  depth < FutilityMarginDepth
-                                    && abs (static_eval) < +VALUE_KNOWN_WIN // Do not return unproven wins
+                                   && abs (static_eval) < +VALUE_KNOWN_WIN // Do not return unproven wins
                                    )
                                 {
                                     Value stand_pat = static_eval - FutilityMargins[depth];
@@ -704,7 +704,7 @@ namespace Search {
 
                                 // Step 8. Null move search with verification search
                                 if (  depth > 1*DEPTH_ONE
-                                    && static_eval >= beta
+                                   && static_eval >= beta
                                    )
                                 {
                                     (ss)->current_move = MOVE_NULL;
@@ -756,7 +756,7 @@ namespace Search {
                             // and a reduced search returns a value much above beta,
                             // can (almost) safely prune the previous move.
                             if (  depth > ProbCutDepth
-                                && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
+                               && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
                                )
                             {
                                 Depth reduced_depth = depth - ProbCutDepth; // Shallow Depth

@@ -105,9 +105,9 @@ namespace BitBases {
         //
         // bit  0- 5: white king square (from SQ_A1 to SQ_H8)
         // bit  6-11: black king square (from SQ_A1 to SQ_H8)
-        // bit    12: side to move (WHITE or BLACK)
+        // bit    12: side to move color (WHITE or BLACK)
         // bit 13-14: white pawn file (from F_A to F_D)
-        // bit 15-17: white pawn R_7 - rank (from R_7 - R_7 to R_7 - R_2)
+        // bit 15-17: white pawn R_7 - rank (from R_7 to R_2)
         inline u32 index (Color c, Square bk_sq, Square wk_sq, Square wp_sq)
         {
             return wk_sq | (bk_sq << 6) | (c << 12) | (_file (wp_sq) << 13) | ((i32(R_7) - i32(_rank (wp_sq))) << 15);

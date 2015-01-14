@@ -19,13 +19,6 @@ const u08   MAX_DEPTH   = 128; // Maximum Depth (Ply)
 enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
 // Rank of Square
 enum Rank : i08 { R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO };
-// Diagonal of Square
-enum Diag : i08
-{
-    D_01, D_02, D_03, D_04, D_05, D_06, D_07, D_08,
-    D_09, D_10, D_11, D_12, D_13, D_14, D_15, D_NO
-
-};
 
 // Color of Square and Side
 enum Color : i08 { WHITE, BLACK, CLR_NO };
@@ -163,10 +156,10 @@ enum Piece : u08
 // Types of Move
 enum MoveT : u16
 {
-    NORMAL    = 0 << 14, //0x0000, // 0000
-    CASTLE    = 1 << 14, //0x4000, // 0100
-    ENPASSANT = 2 << 14, //0x8000, // 1000
-    PROMOTE   = 3 << 14  //0xC000, // 11xx
+    NORMAL    = 0x0000, // 0- 0000
+    CASTLE    = 0x4000, // 1- 0100
+    ENPASSANT = 0x8000, // 2- 1000
+    PROMOTE   = 0xC000, // 3- 11xx
 };
 
 // Move stored in 16-bits
@@ -217,7 +210,7 @@ enum Score : i32 { SCORE_ZERO = 0 };
 enum Depth : i16
 {
     DEPTH_ZERO          =  0,
-    DEPTH_ONE           =  1, // One Ply
+    DEPTH_ONE           =  1,
     DEPTH_QS_CHECKS     =  0,
     DEPTH_QS_NO_CHECKS  = -1,
     DEPTH_QS_RECAPTURES = -5,
@@ -400,12 +393,11 @@ inline Square operator| (File f, Rank r) { return Square(( r << 3) | i08(f)); }
 inline Square operator| (Rank r, File f) { return Square((~r << 3) | i08(f)); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
-inline bool _ok     (Square s) { return    !(s & ~i08(SQ_H8)); }
-inline File _file   (Square s) { return File(s &  i08(F_H)); }
-inline Rank _rank   (Square s) { return Rank(s >> 3); }
-//inline Diag _diag18 (Square s) { return Diag((s >> 3) - (s & i08(SQ_H1)) + i08(SQ_H1)); } // R - F + 7
-//inline Diag _diag81 (Square s) { return Diag((s >> 3) + (s & i08(SQ_H1))); }              // R + F
+inline bool  _ok    (Square s) { return    !(s & ~i08(SQ_H8)); }
+inline File  _file  (Square s) { return File(s &  i08(F_H)); }
+inline Rank  _rank  (Square s) { return Rank(s >> 3); }
 inline Color color (Square s) { return Color(!((s ^ (s >> 3)) & BLACK)); }
+
 // FLIP   => SQ_A1 -> SQ_A8
 inline Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
 // MIRROR => SQ_A1 -> SQ_H1
