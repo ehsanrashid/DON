@@ -357,8 +357,11 @@ inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 0x10) + eg); }
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
 // and so is a right shift of a signed integer.
-inline Value mg_value (Score s) { return Value(((s + 0x8000) & ~0xFFFF) / 0x10000); }
-inline Value eg_value (Score s) { return Value(i32(u32(s) & 0x7FFFU) - i32(u32(s) & 0x8000U)); }
+
+union ValueUnion { u16 u; i16 s; };
+
+inline Value mg_value (Score s) { ValueUnion mg = { u16(u32(s + 0x8000) >> 0x10) }; return Value(mg.s); }
+inline Value eg_value (Score s) { ValueUnion eg = { u16(u32(s         )        ) }; return Value(eg.s); }
 
 ARTHMAT_OPERATORS (Score)
 /// Only declared but not defined. Don't want to multiply two scores due to

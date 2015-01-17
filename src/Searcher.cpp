@@ -349,14 +349,14 @@ namespace Searcher {
                 assert (_ok (move));
                 
                 bool gives_check = pos.gives_check (move, *ci);
-
-                if (!PVNode && !MateSearch)
+                
+                if (!MateSearch)
                 {
                     // Futility pruning
                     if (  !InCheck
                        && !gives_check
                        && futility_base > -VALUE_KNOWN_WIN
-                       && futility_base < beta
+                       && futility_base <= alpha
                        && !pos.advanced_pawn_push (move)
                        )
                     {
@@ -364,7 +364,7 @@ namespace Searcher {
 
                         Value futility_value = futility_base + PIECE_VALUE[EG][ptype (pos[dst_sq (move)])];
 
-                        if (futility_value < beta)
+                        if (futility_value <= alpha)
                         {
                             best_value = max (futility_value, best_value);
                             continue;
@@ -391,7 +391,6 @@ namespace Searcher {
                     {
                         continue;
                     }
-
                 }
 
                 // Speculative prefetch as early as possible
@@ -516,7 +515,7 @@ namespace Searcher {
             bool singular_ext_node;
 
             SplitPoint *splitpoint = NULL;
-
+            StateInfo si;
             CheckInfo cc, *ci = NULL;
 
             if (SPNode)
@@ -651,7 +650,7 @@ namespace Searcher {
                             GainStatistics.update (pos, move, -(ss-1)->static_eval - (ss-0)->static_eval);
                         }
 
-                        if (!PVNode && !MateSearch) // (is omitted in PV nodes)
+                        if (!PVNode && !MateSearch)
                         {
                             // Step 6. Razoring sort of forward pruning where rather than skipping an entire subtree,
                             // you search it to a reduced depth, typically one less than normal depth.
@@ -669,7 +668,6 @@ namespace Searcher {
                                 }
 
                                 Value reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
-                                //assert (reduced_alpha >= -VALUE_INFINITE);
 
                                 Value value = quien_search<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
 
@@ -678,79 +676,80 @@ namespace Searcher {
                                     return value;
                                 }
                             }
+                        }
 
+                        // Step 7. Futility pruning: child node
+                        // Betting that the opponent doesn't have a move that will reduce
+                        // the score by more than FutilityMargins[depth] if do a null move.
+                        if (  !RootNode && !MateSearch
+                           && depth < FutilityMarginDepth
+                           && abs (static_eval) < +VALUE_KNOWN_WIN // Do not return unproven wins
+                           && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
+                           )
+                        {
+                            Value stand_pat = static_eval - FutilityMargins[depth];
 
+                            if (stand_pat >= beta)
+                            {
+                                return stand_pat;
+                            }
+                        }
+
+                        // Step 8. Null move search with verification search
+                        if (  !PVNode && !MateSearch
+                           && depth > 1*DEPTH_ONE
+                           && static_eval >= beta
+                           && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
+                           )
+                        {
                             assert ((ss-1)->current_move != MOVE_NONE && (ss-1)->current_move != MOVE_NULL);
                             assert (exclude_move == MOVE_NONE);
 
-                            StateInfo si;
+                            (ss)->current_move = MOVE_NULL;
+                            
+                            // Null move dynamic reduction based on depth and static evaluation
+                            Depth reduced_depth = depth - ((0x337 + 0x43 * depth) / 0x100 + min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
 
-                            if (pos.non_pawn_material (pos.active ()) > VALUE_ZERO)
+                            // Do null move
+                            pos.do_null_move (si);
+
+                            // Speculative prefetch as early as possible
+                            prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_key ())));
+
+                            // Null (zero) window (alpha, beta) = (beta-1, beta):
+                            Value null_value =
+                                reduced_depth < DEPTH_ONE ?
+                                    -quien_search<NonPV, false>        (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
+                                    -depth_search<NonPV, false, false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node);
+
+                            // Undo null move
+                            pos.undo_null_move ();
+
+                            if (null_value >= beta)
                             {
-                                // Step 7. Futility pruning: child node
-                                // Betting that the opponent doesn't have a move that will reduce
-                                // the score by more than FutilityMargins[depth] if do a null move.
-                                if (  depth < FutilityMarginDepth
-                                   && abs (static_eval) < +VALUE_KNOWN_WIN // Do not return unproven wins
-                                   )
+                                // Don't do verification search at low depths
+                                if (depth < 8*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
                                 {
-                                    Value stand_pat = static_eval - FutilityMargins[depth];
-
-                                    if (stand_pat >= beta)
-                                    {
-                                        return stand_pat;
-                                    }
+                                    // Don't return unproven unproven mates
+                                    return abs (null_value) < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
                                 }
 
-                                // Step 8. Null move search with verification search
-                                if (  depth > 1*DEPTH_ONE
-                                   && static_eval >= beta
-                                   )
+                                // Do verification search at high depths
+                                Value value =
+                                    reduced_depth < DEPTH_ONE ?
+                                        quien_search<NonPV, false>        (pos, ss, beta-1, beta, DEPTH_ZERO) :
+                                        depth_search<NonPV, false, false> (pos, ss, beta-1, beta, reduced_depth, false);
+
+                                if (value >= beta)
                                 {
-                                    (ss)->current_move = MOVE_NULL;
-
-                                    // Null move dynamic reduction based on depth and static evaluation
-                                    Depth reduced_depth = depth - ((0x337 + 0x43 * depth) / 0x100 + min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
-
-                                    // Do null move
-                                    pos.do_null_move (si);
-
-                                    // Speculative prefetch as early as possible
-                                    prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_key ())));
-
-                                    // Null (zero) window (alpha, beta) = (beta-1, beta):
-                                    Value null_value =
-                                        reduced_depth < DEPTH_ONE ?
-                                            -quien_search<NonPV, false>        (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
-                                            -depth_search<NonPV, false, false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node);
-
-                                    // Undo null move
-                                    pos.undo_null_move ();
-
-                                    if (null_value >= beta)
-                                    {
-                                        // Don't do verification search at low depths
-                                        if (depth < 8*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
-                                        {
-                                            // Don't return unproven unproven mates
-                                            return abs (null_value) < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
-                                        }
-
-                                        // Do verification search at high depths
-                                        Value value =
-                                            reduced_depth < DEPTH_ONE ?
-                                                quien_search<NonPV, false>        (pos, ss, beta-1, beta, DEPTH_ZERO) :
-                                                depth_search<NonPV, false, false> (pos, ss, beta-1, beta, reduced_depth, false);
-
-                                        if (value >= beta)
-                                        {
-                                            // Don't return unproven unproven mates
-                                            return abs (value) < +VALUE_MATE_IN_MAX_DEPTH ? value : beta;
-                                        }
-                                    }
+                                    // Don't return unproven unproven mates
+                                    return abs (value) < +VALUE_MATE_IN_MAX_DEPTH ? value : beta;
                                 }
                             }
-
+                        }
+                        
+                        if (!PVNode && !MateSearch) // (is omitted in PV nodes)
+                        {
                             // Step 9. Prob-Cut
                             // If have a very good capture (i.e. SEE > see[captured_piece_type])
                             // and a reduced search returns a value much above beta,
@@ -761,8 +760,6 @@ namespace Searcher {
                             {
                                 Depth reduced_depth = depth - ProbCutDepth; // Shallow Depth
                                 Value extended_beta = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
-                                //assert (reduced_depth >= DEPTH_ONE);
-                                //assert (extended_beta <= +VALUE_INFINITE);
 
                                 // Initialize a MovePicker object for the current position,
                                 // and prepare to search the moves.
@@ -777,7 +774,7 @@ namespace Searcher {
                                     if (!pos.legal (move, ci->pinneds)) continue;
 
                                     (ss)->current_move = move;
-
+                                    
                                     pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
 
                                     prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
@@ -832,7 +829,7 @@ namespace Searcher {
             singular_ext_node =
                        !RootNode && !SPNode
                     && exclude_move == MOVE_NONE // Recursive singular search is not allowed
-                    && tt_move != MOVE_NONE
+                    &&      tt_move != MOVE_NONE
                     &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
                     && tt_depth >= depth-3*DEPTH_ONE
                     && abs (tt_value) < +VALUE_KNOWN_WIN
@@ -860,7 +857,6 @@ namespace Searcher {
                , *followup_moves = _ok ((ss-2)->current_move) ? FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)) : NULL;
 
             MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
-            StateInfo si;
             if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
 
             u08   legals = 0
@@ -969,8 +965,8 @@ namespace Searcher {
                 // Update the current move (this must be done after singular extension search)
                 Depth new_depth = depth - DEPTH_ONE + ext;
 
-                // Step 13. Pruning at shallow depth (exclude PV nodes)
-                if (!PVNode && !MateSearch)
+                // Step 13. Pruning at shallow depth
+                if (!MateSearch)
                 {
                     if (  !capture_or_promotion
                        && !in_check
@@ -983,7 +979,7 @@ namespace Searcher {
                        )
                     {
                         // Move count based pruning
-                        if (   depth <  FutilityMoveCountDepth
+                        if (  depth <  FutilityMoveCountDepth
                            && legals >= FutilityMoveCounts[improving][depth]
                            )
                         {
@@ -1023,7 +1019,6 @@ namespace Searcher {
                         }
                     }
                 }
-
                 // Speculative prefetch as early as possible
                 prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
 
@@ -1051,82 +1046,84 @@ namespace Searcher {
                 prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
                 prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
-                if (!PVNode || legals > 1)
+                bool full_depth_search;
+
+                // Step 15. Reduced depth search (LMR).
+                // If the move fails high will be re-searched at full depth.
+                if (  depth > 2*DEPTH_ONE
+                   && !capture_or_promotion
+                   && legals > 1
+                   && move != (ss)->killer_moves[0]
+                   && move != (ss)->killer_moves[1]
+                   )
                 {
-                    bool full_depth_search = true;
-                    // Step 15. Reduced depth search (LMR).
-                    // If the move fails high will be re-searched at full depth.
-                    if (  depth > 2*DEPTH_ONE
-                       && !capture_or_promotion
-                       && legals > 1
-                       && move != (ss)->killer_moves[0]
-                       && move != (ss)->killer_moves[1]
+                    Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legals);
+                    // Increase reduction
+                    if (  (!PVNode && cut_node)
+                       || HistoryStatistics[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
                        )
                     {
-                        Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legals);
-                        // Increase reduction
-                        if (  (!PVNode && cut_node)
-                           || HistoryStatistics[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
-                           )
-                        {
-                            reduction_depth += DEPTH_ONE;
-                        }
-                        // Decrease reduction for counter moves
-                        if (  reduction_depth > DEPTH_ZERO
-                           && counter_moves != NULL
-                           && (move == counter_moves[0] || move == counter_moves[1])
-                           )
-                        {
-                            reduction_depth -= DEPTH_ONE;
-                        }
-                        // Decrease reduction for moves that escape a capture
-                        if (  reduction_depth > DEPTH_ZERO
-                           && mtype (move) == NORMAL
-                           && ptype (pos[dst_sq (move)]) != PAWN
-                           && pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO // Reverse move
-                           )
-                        {
-                            reduction_depth -= DEPTH_ONE;
-                        }
+                        reduction_depth += DEPTH_ONE;
+                    }
+                    // Decrease reduction for counter moves
+                    if (  reduction_depth > DEPTH_ZERO
+                       && counter_moves != NULL
+                       && (move == counter_moves[0] || move == counter_moves[1])
+                       )
+                    {
+                        reduction_depth -= DEPTH_ONE;
+                    }
+                    // Decrease reduction for moves that escape a capture
+                    if (  reduction_depth > DEPTH_ZERO
+                       && mtype (move) == NORMAL
+                       && ptype (pos[dst_sq (move)]) != PAWN
+                       && pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO // Reverse move
+                       )
+                    {
+                        reduction_depth -= DEPTH_ONE;
+                    }
 
-                        Depth reduced_depth;
+                    Depth reduced_depth;
                         
-                        if (SPNode) alpha = splitpoint->alpha;
-                        reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
+                    if (SPNode) alpha = splitpoint->alpha;
+                    reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
+                    // Search with reduced depth
+                    value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
+
+                    // Re-search at intermediate depth if reduction is very high
+                    if (alpha < value && reduction_depth >= 4*DEPTH_ONE)
+                    {
+                        reduced_depth = max (new_depth - reduction_depth/2, DEPTH_ONE);
                         // Search with reduced depth
                         value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
 
                         // Re-search at intermediate depth if reduction is very high
-                        if (alpha < value && reduction_depth >= 4*DEPTH_ONE)
+                        if (alpha < value && reduction_depth >= 8*DEPTH_ONE)
                         {
-                            reduced_depth = max (new_depth - reduction_depth/2, DEPTH_ONE);
+                            reduced_depth = max (new_depth - reduction_depth/4, DEPTH_ONE);
                             // Search with reduced depth
                             value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
-
-                            // Re-search at intermediate depth if reduction is very high
-                            if (alpha < value && reduction_depth >= 8*DEPTH_ONE)
-                            {
-                                reduced_depth = max (new_depth - reduction_depth/4, DEPTH_ONE);
-                                // Search with reduced depth
-                                value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
-                            }
                         }
-
-                        full_depth_search = alpha < value && reduction_depth != DEPTH_ZERO;
                     }
 
-                    // Step 16. Full depth search, when LMR is skipped or fails high
-                    if (full_depth_search)
-                    {
-                        if (SPNode) alpha = splitpoint->alpha;
+                    full_depth_search = alpha < value && reduction_depth != DEPTH_ZERO;
+                }
+                else
+                {
+                    full_depth_search = !PVNode || legals > 1;
+                }
 
-                        value =
-                            new_depth < DEPTH_ONE ?
-                                gives_check ?
-                                    -quien_search<NonPV, true >   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                                    -quien_search<NonPV, false>   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                                -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
-                    }
+                // Step 16. Full depth search, when LMR is skipped or fails high
+                if (full_depth_search)
+                {
+                    if (SPNode) alpha = splitpoint->alpha;
+
+                    value =
+                        new_depth < DEPTH_ONE ?
+                            gives_check ?
+                                -quien_search<NonPV, true >   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
+                                -quien_search<NonPV, false>   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
+                            -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
                 }
 
                 // Principal Variation Search (PV nodes only)
