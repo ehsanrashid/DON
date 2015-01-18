@@ -205,9 +205,9 @@ namespace Searcher {
         }
 
         template<NodeT NT, bool InCheck>
-        // quien_search() is the quiescence search function,
+        // quien_search<>() is the quiescence search function,
         // which is called by the main depth limited search function
-        // when the remaining depth is ZERO.
+        // when the remaining depth is ZERO or less.
         inline Value quien_search  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth)
         {
             const bool    PVNode = NT == PV;
@@ -475,7 +475,7 @@ namespace Searcher {
         }
 
         template<NodeT NT, bool SPNode, bool Pruning>
-        // search<>() is the main depth limited search function
+        // depth_search<>() is the main depth limited search function
         // for PV/NonPV nodes also for normal/splitpoint nodes.
         // It calls itself recursively with decreasing (remaining) depth
         // until we run out of depth, and then drops into quien_search.
@@ -1397,7 +1397,8 @@ namespace Searcher {
 
                         // When failing high/low give some update
                         // (without cluttering the UI) before to re-search.
-                        if (  iteration_time > INFO_INTERVAL
+                        if (  MultiPV == 1
+                           && iteration_time > INFO_INTERVAL
                            && (bound_a >= best_value || best_value >= bound_b)
                            )
                         {

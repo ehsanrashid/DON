@@ -27,7 +27,7 @@ namespace Transposition {
         if (_mem != NULL)
         {
             void *ptr = reinterpret_cast<void*> ((u64(_mem) + offset) & ~u64(offset));
-            _clusters = reinterpret_cast<TTCluster*> (ptr);
+            _clusters = reinterpret_cast<Cluster*> (ptr);
             assert (0 == (u64(_clusters) & (alignment - 1)));
             return;
         }
@@ -57,7 +57,7 @@ namespace Transposition {
 
             void **ptr = reinterpret_cast<void**> ((u64(mem) + offset) & ~u64(alignment - 1));
             ptr[-1]    = mem;
-            _clusters  = reinterpret_cast<TTCluster*> (ptr);
+            _clusters  = reinterpret_cast<Cluster*> (ptr);
             assert (0 == (u64(_clusters) & (alignment - 1)));
             return;
         }

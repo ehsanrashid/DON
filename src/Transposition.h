@@ -72,10 +72,10 @@ namespace Transposition {
         // Number of entries in a cluster
         static const u08 ClusterEntries = 4;
 
-        // TTCluster is a 64 bytes cluster of TT entries
+        // Cluster is a 64 bytes cluster of TT entries
         //
         // 4 x Entry (4 x 16 bytes)
-        struct TTCluster
+        struct Cluster
         {
             TTEntry entries[ClusterEntries];
         };
@@ -84,10 +84,10 @@ namespace Transposition {
         void    *_mem;
     #endif
 
-        TTCluster *_clusters;
-        u64        _cluster_count;
-        u64        _cluster_mask;
-        u08        _generation;
+        Cluster *_clusters;
+        u64      _cluster_count;
+        u64      _cluster_mask;
+        u08      _generation;
 
         void alloc_aligned_memory (u64 mem_size, u32 alignment);
 
@@ -118,7 +118,7 @@ namespace Transposition {
         static const u08 EntrySize   = sizeof (TTEntry);
         // Size of Transposition cluster in (bytes)
         // 64 bytes
-        static const u08 ClusterSize = sizeof (TTCluster);
+        static const u08 ClusterSize = sizeof (Cluster);
         // Maximum bit of hash for cluster
         static const u08 MaxHashBit  = 36;
         // Minimum size of Transposition table (mega-byte)
@@ -126,7 +126,12 @@ namespace Transposition {
         static const u32 MinSize     = 4;
         // Maximum size of Transposition table (mega-byte)
         // 2097152 MB (2048 GB) (2 TB)
-        static const u32 MaxSize     = (U64(1) << (MaxHashBit-1 - 20)) * ClusterSize;
+        static const u32 MaxSize     =
+        #ifdef BIT64
+            (U64(1) << (MaxHashBit-1 - 20)) * ClusterSize;
+        #else
+            2048;
+        #endif
         // Defualt size of Transposition table (mega-byte)
         static const u32 DefSize     = 16;
         static const u32 BufferSize  = 0x10000;
@@ -203,9 +208,9 @@ namespace Transposition {
         {
             u64 full_cluster = 0;
             u64 scan_cluster = std::min (U64(10000), _cluster_count);
-            for (const TTCluster *itc = _clusters; itc < _clusters + scan_cluster; ++itc)
+            for (const Cluster *c = _clusters; c < _clusters + scan_cluster; ++c)
             {
-                const TTEntry *fte = itc->entries;
+                const TTEntry *fte = c->entries;
                 for (const TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
                 {
                     if (ite->gen () == _generation)
