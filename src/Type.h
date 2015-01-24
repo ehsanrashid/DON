@@ -15,17 +15,17 @@ typedef u64     Bitboard;
 
 const u08   MAX_DEPTH   = 128; // Maximum Depth (Ply)
 
-// File of Square
+// File
 enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
-// Rank of Square
+// Rank
 enum Rank : i08 { R_1, R_2, R_3, R_4, R_5, R_6, R_7, R_8, R_NO };
 
-// Color of Square and Side
+// Color
 enum Color : i08 { WHITE, BLACK, CLR_NO };
 
-// Square needs 6-bits (0-5) to be stored
-// bit 0-2: File
-// bit 3-5: Rank
+// Square
+// File: 3-bit
+// Rank: 3-bit 
 enum Square : i08
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
@@ -40,7 +40,7 @@ enum Square : i08
 
 };
 
-// Delta of Square
+// Delta
 enum Delta : i08
 {
     DEL_O =  0,
@@ -153,7 +153,7 @@ enum Piece : u08
     //B_PIECE = 0x08, //  1...
 };
 
-// Types of Move
+// Move Type
 enum MoveT : u16
 {
     NORMAL    = 0x0000, // 0- 0000
@@ -177,6 +177,17 @@ enum Move : u16
 {
     MOVE_NONE = 0x00,
     MOVE_NULL = 0x41
+};
+
+enum Depth : i16
+{
+    DEPTH_ZERO          =  0,
+    DEPTH_ONE           =  1,
+    DEPTH_QS_CHECKS     =  0,
+    DEPTH_QS_NO_CHECKS  = -1,
+    DEPTH_QS_RECAPTURES = -5,
+
+    DEPTH_NONE          = -6
 };
 
 enum Value : i32
@@ -206,17 +217,6 @@ enum Value : i32
 // for midgame value. Compiler is free to choose the enum type as long as can
 // keep its data, so ensure Score to be an integer type.
 enum Score : i32 { SCORE_ZERO = 0 };
-
-enum Depth : i16
-{
-    DEPTH_ZERO          =  0,
-    DEPTH_ONE           =  1,
-    DEPTH_QS_CHECKS     =  0,
-    DEPTH_QS_NO_CHECKS  = -1,
-    DEPTH_QS_RECAPTURES = -5,
-
-    DEPTH_NONE          = -6
-};
 
 enum Bound : u08
 {
