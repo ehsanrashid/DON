@@ -157,7 +157,7 @@ namespace EndGame {
         Square wk_sq = pos.king_sq (_weak_side);
 
         Value value = pos.count<PAWN> (_strong_side) * VALUE_EG_PAWN
-            +   PUSH_TO_EDGE[wk_sq] + PUSH_CLOSE[dist (sk_sq, wk_sq)];
+                    + PUSH_TO_EDGE[wk_sq] + PUSH_CLOSE[dist (sk_sq, wk_sq)];
 
         if (   pos.count<QUEN> (_strong_side) > 0
            ||  pos.count<ROOK> (_strong_side) > 0
@@ -229,7 +229,7 @@ namespace EndGame {
         }
 
         Value value = VALUE_KNOWN_WIN
-            + PUSH_CLOSE[dist (sk_sq, wk_sq)] + PUSH_TO_CORNER[wk_sq];
+                    + PUSH_CLOSE[dist (sk_sq, wk_sq)] + PUSH_TO_CORNER[wk_sq];
 
         return _strong_side == pos.active () ? +value : -value;
     }
@@ -388,7 +388,7 @@ namespace EndGame {
         Square wk_sq = pos.king_sq (_weak_side);
 
         Value value  = VALUE_EG_QUEN - VALUE_EG_ROOK
-            + PUSH_TO_EDGE[wk_sq] + PUSH_CLOSE[dist (sk_sq, wk_sq)];
+                     + PUSH_TO_EDGE[wk_sq] + PUSH_CLOSE[dist (sk_sq, wk_sq)];
 
         return _strong_side == pos.active () ? +value : -value;
     }
@@ -587,7 +587,7 @@ namespace EndGame {
             {
                 u08 d = dist (sp_sq + 3 * push, wk_sq);
                 return (d <= 2 && !(d == 0 && wk_sq == pos.king_sq(_strong_side) + 2 * push)) ?
-                    ScaleFactor (24) : ScaleFactor (48);
+                            ScaleFactor (24) : ScaleFactor (48);
             }
 
             // When the pawn has moved to the 6th rank can be fairly sure it's drawn
@@ -698,8 +698,7 @@ namespace EndGame {
         // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
         // it's probably at least a draw even with the pawn.
         return probe (c, sk_sq, sp_sq, wk_sq) ?
-                SCALE_FACTOR_NONE :
-                SCALE_FACTOR_DRAW;
+                    SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
     }
 
     template<>
@@ -715,8 +714,7 @@ namespace EndGame {
         Square wk_sq = normalize (pos, _strong_side, pos.king_sq (_weak_side));
 
         return sp_sq == SQ_A7 && dist (SQ_A8, wk_sq) <= 1 ?
-                SCALE_FACTOR_DRAW :
-                SCALE_FACTOR_NONE;
+                    SCALE_FACTOR_DRAW : SCALE_FACTOR_NONE;
     }
 
     template<>

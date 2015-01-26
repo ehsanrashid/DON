@@ -34,17 +34,17 @@ namespace Searcher {
 
     namespace {
 
-        const Depth FutilityMarginDepth = Depth(7);
+        const Depth FutilityMarginDepth     = Depth(7);
         // Futility margin lookup table (initialized at startup)
         // [depth]
         Value FutilityMargins[FutilityMarginDepth];
 
-        const Depth RazorDepth = Depth(4);
+        const Depth RazorDepth     = Depth(4);
         // Razoring margin lookup table (initialized at startup)
         // [depth]
         Value RazorMargins[RazorDepth];
 
-        const Depth FutilityMoveCountDepth = Depth(16);
+        const Depth FutilityMoveCountDepth  = Depth(16);
         // Futility move count lookup table (initialized at startup)
         // [improving][depth]
         u08   FutilityMoveCounts[2][FutilityMoveCountDepth];
@@ -61,11 +61,11 @@ namespace Searcher {
             return ReductionDepths[PVNode][imp][min (d, ReductionDepth-1)][min<u08> (mc, ReductionMoveCount-1)];
         }
 
-        const Depth ProbCutDepth  = Depth(4);
+        const Depth ProbCutDepth   = Depth(4);
 
-        const u08   MAX_QUIETS    = 64;
+        const u08   MAX_QUIETS     = 64;
 
-        const point INFO_INTERVAL = 3000; // 3 sec
+        const point INFO_INTERVAL  = 3000; // 3 sec
 
         Color   RootColor;
         i32     RootPly;
@@ -294,7 +294,10 @@ namespace Searcher {
                 {
                     best_value = tte->eval ();
                     // Never assume anything on values stored in TT
-                    if (VALUE_NONE == best_value) best_value = evaluate (pos);
+                    if (VALUE_NONE == best_value)
+                    {
+                        best_value = evaluate (pos);
+                    }
                     (ss)->static_eval = best_value;
 
                     // Can tt_value be used as a better position evaluation?
@@ -461,7 +464,7 @@ namespace Searcher {
             
             // All legal moves have been searched.
             // A special case: If in check and no legal moves were found, it is checkmate.
-            if (InCheck && legals == 0)
+            if (InCheck && 0 == legals)
             {
                 // Plies to mate from the root
                 best_value = mated_in ((ss)->ply);
@@ -494,8 +497,8 @@ namespace Searcher {
             assert (depth > DEPTH_ZERO);
 
             Key   posi_key;
-            TTEntry *tte = NULL;
             bool  tt_hit = false;
+            TTEntry *tte = NULL;
 
             Move  move
                 , tt_move     = MOVE_NONE
@@ -616,7 +619,10 @@ namespace Searcher {
                     {
                         static_eval = tte->eval ();
                         // Never assume anything on values stored in TT
-                        if (VALUE_NONE == static_eval) static_eval = evaluate (pos);
+                        if (VALUE_NONE == static_eval)
+                        {
+                            static_eval = evaluate (pos);
+                        }
                         (ss)->static_eval = static_eval;
 
                         // Can tt_value be used as a better position evaluation?
@@ -650,31 +656,30 @@ namespace Searcher {
                             GainStatistics.update (pos, move, -(ss-1)->static_eval - (ss-0)->static_eval);
                         }
 
-                        if (!PVNode && !MateSearch)
+
+                        // Step 6. Razoring sort of forward pruning where rather than skipping an entire subtree,
+                        // you search it to a reduced depth, typically one less than normal depth.
+                        if (  !PVNode && !MateSearch
+                           && depth < RazorDepth
+                           && static_eval + RazorMargins[depth] <= alpha
+                           && tt_move == MOVE_NONE
+                           && !pos.pawn_on_7thR (pos.active ())
+                           )
                         {
-                            // Step 6. Razoring sort of forward pruning where rather than skipping an entire subtree,
-                            // you search it to a reduced depth, typically one less than normal depth.
-                            if (  depth < RazorDepth
-                               && static_eval + RazorMargins[depth] <= alpha
-                               && tt_move == MOVE_NONE
-                               && !pos.pawn_on_7thR (pos.active ())
+                            if (  depth <= 1*DEPTH_ONE
+                               && static_eval + RazorMargins[3*DEPTH_ONE] <= alpha
                                )
                             {
-                                if (  depth <= 1*DEPTH_ONE
-                                   && static_eval + RazorMargins[3*DEPTH_ONE] <= alpha
-                                   )
-                                {
-                                    return quien_search<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
-                                }
+                                return quien_search<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
+                            }
 
-                                Value reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
+                            Value reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
 
-                                Value value = quien_search<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
+                            Value value = quien_search<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
 
-                                if (value <= reduced_alpha)
-                                {
-                                    return value;
-                                }
+                            if (value <= reduced_alpha)
+                            {
+                                return value;
                             }
                         }
 
@@ -748,46 +753,44 @@ namespace Searcher {
                             }
                         }
                         
-                        if (!PVNode && !MateSearch) // (is omitted in PV nodes)
+                        // Step 9. Prob-Cut
+                        // If have a very good capture (i.e. SEE > see[captured_piece_type])
+                        // and a reduced search returns a value much above beta,
+                        // can (almost) safely prune the previous move.
+                        if (  !PVNode && !MateSearch
+                           && depth > ProbCutDepth
+                           && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
+                           )
                         {
-                            // Step 9. Prob-Cut
-                            // If have a very good capture (i.e. SEE > see[captured_piece_type])
-                            // and a reduced search returns a value much above beta,
-                            // can (almost) safely prune the previous move.
-                            if (  depth > ProbCutDepth
-                               && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
-                               )
+                            Depth reduced_depth = depth - ProbCutDepth; // Shallow Depth
+                            Value extended_beta = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
+
+                            // Initialize a MovePicker object for the current position,
+                            // and prepare to search the moves.
+                            MovePicker mp (pos, HistoryStatistics, tt_move, pos.capture_type ());
+                            if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
+
+                            while ((move = mp.next_move<false> ()) != MOVE_NONE)
                             {
-                                Depth reduced_depth = depth - ProbCutDepth; // Shallow Depth
-                                Value extended_beta = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
+                                // Speculative prefetch as early as possible
+                                prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
 
-                                // Initialize a MovePicker object for the current position,
-                                // and prepare to search the moves.
-                                MovePicker mp (pos, HistoryStatistics, tt_move, pos.capture_type ());
-                                if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
+                                if (!pos.legal (move, ci->pinneds)) continue;
 
-                                while ((move = mp.next_move<false> ()) != MOVE_NONE)
-                                {
-                                    // Speculative prefetch as early as possible
-                                    prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
-
-                                    if (!pos.legal (move, ci->pinneds)) continue;
-
-                                    (ss)->current_move = move;
+                                (ss)->current_move = move;
                                     
-                                    pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
+                                pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
 
-                                    prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
-                                    prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
+                                prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
+                                prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
 
-                                    Value value = -depth_search<NonPV, false, true> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
+                                Value value = -depth_search<NonPV, false, true> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
 
-                                    pos.undo_move ();
+                                pos.undo_move ();
 
-                                    if (value >= extended_beta)
-                                    {
-                                        return value;
-                                    }
+                                if (value >= extended_beta)
+                                {
+                                    return value;
                                 }
                             }
                         }
@@ -966,59 +969,58 @@ namespace Searcher {
                 Depth new_depth = depth - DEPTH_ONE + ext;
 
                 // Step 13. Pruning at shallow depth
-                if (!MateSearch)
+                if (  !RootNode && !MateSearch
+                   && !capture_or_promotion
+                   && !in_check
+                   && best_value > -VALUE_MATE_IN_MAX_DEPTH
+                       // Dangerous
+                   && !(  gives_check
+                       || mtype (move) != NORMAL 
+                       || pos.advanced_pawn_push (move)
+                       )
+                    )
                 {
-                    if (  !capture_or_promotion
-                       && !in_check
-                       && best_value > -VALUE_MATE_IN_MAX_DEPTH
-                           // Dangerous
-                       && !(  gives_check
-                           || mtype (move) != NORMAL 
-                           || pos.advanced_pawn_push (move)
-                           )
+                    // Move count based pruning
+                    if (  depth <  FutilityMoveCountDepth
+                       && legals >= FutilityMoveCounts[improving][depth]
                        )
                     {
-                        // Move count based pruning
-                        if (  depth <  FutilityMoveCountDepth
-                           && legals >= FutilityMoveCounts[improving][depth]
-                           )
+                        if (SPNode) splitpoint->mutex.lock ();
+                        continue;
+                    }
+
+                    // Value based pruning
+                    Depth predicted_depth = new_depth - reduction_depths<PVNode> (improving, depth, legals);
+
+                    // Futility pruning: parent node
+                    if (predicted_depth < FutilityMarginDepth)
+                    {
+                        Value futility_value = (ss)->static_eval + FutilityMargins[predicted_depth]
+                                                + GainStatistics[pos[org_sq (move)]][dst_sq (move)] + VALUE_EG_PAWN/2;
+
+                        if (alpha >= futility_value)
                         {
-                            if (SPNode) splitpoint->mutex.lock ();
-                            continue;
-                        }
+                            best_value = max (futility_value, best_value);
 
-                        // Value based pruning
-                        Depth predicted_depth = new_depth - reduction_depths<PVNode> (improving, depth, legals);
-
-                        // Futility pruning: parent node
-                        if (predicted_depth < FutilityMarginDepth)
-                        {
-                            Value futility_value = (ss)->static_eval + FutilityMargins[predicted_depth]
-                                                 + GainStatistics[pos[org_sq (move)]][dst_sq (move)] + VALUE_EG_PAWN/2;
-
-                            if (alpha >= futility_value)
+                            if (SPNode)
                             {
-                                best_value = max (futility_value, best_value);
-
-                                if (SPNode)
-                                {
-                                    splitpoint->mutex.lock ();
-                                    if (splitpoint->best_value < best_value) splitpoint->best_value = best_value;
-                                }
-                                continue;
+                                splitpoint->mutex.lock ();
+                                if (splitpoint->best_value < best_value) splitpoint->best_value = best_value;
                             }
-                        }
-
-                        // Prune moves with negative SEE at low depths
-                        if (  predicted_depth < RazorDepth
-                           && pos.see_sign (move) < VALUE_ZERO
-                           )
-                        {
-                            if (SPNode) splitpoint->mutex.lock ();
                             continue;
                         }
                     }
+
+                    // Prune moves with negative SEE at low depths
+                    if (  predicted_depth < RazorDepth
+                       && pos.see_sign (move) < VALUE_ZERO
+                       )
+                    {
+                        if (SPNode) splitpoint->mutex.lock ();
+                        continue;
+                    }
                 }
+
                 // Speculative prefetch as early as possible
                 prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
 
@@ -1134,7 +1136,7 @@ namespace Searcher {
                     // - fail high move (search only if value < beta)
                     // otherwise let the parent node fail low with
                     // alpha >= value and to try another better move.
-                    if (legals == 1 || (alpha < value && (RootNode || value < beta)))
+                    if (1 == legals || (alpha < value && (RootNode || value < beta)))
                     {
                         fill (pv, pv + sizeof (pv)/sizeof (*pv), MOVE_NONE);
                         (ss+1)->pv = pv;
@@ -1178,7 +1180,7 @@ namespace Searcher {
                     //rm.nodes += pos.game_nodes () - nodes;
 
                     // 1st legal move or new best move ?
-                    if (legals == 1 || alpha < value)
+                    if (1 == legals || alpha < value)
                     {
                         rm.new_value = value;
                         rm.pv.resize (1);
@@ -1272,13 +1274,12 @@ namespace Searcher {
                 // If all possible moves have been searched and if there are no legal moves,
                 // If in a singular extension search then return a fail low score (alpha).
                 // Otherwise it must be mate or stalemate, so return value accordingly.
-                if (legals == 0)
+                if (0 == legals)
                 {
                     best_value = 
                         exclude_move != MOVE_NONE ?
                             alpha : in_check ?
-                                mated_in ((ss)->ply) :
-                                DrawValue[pos.active ()];
+                                mated_in ((ss)->ply) : DrawValue[pos.active ()];
                 }
                 else
                 // Quiet best move: Update history, killer, counter & followup moves
@@ -1524,7 +1525,8 @@ namespace Searcher {
                 {
                     StateInfo si;
                     pos.do_move (*ms, si, pos.gives_check (*ms, ci) ? &ci : NULL);
-                    inter_nodes = depth <= 2*DEPTH_ONE ? MoveList<LEGAL>(pos).size () : perft<false> (pos, depth-DEPTH_ONE);
+                    inter_nodes = depth <= 2*DEPTH_ONE ?
+                                    MoveList<LEGAL>(pos).size () : perft<false> (pos, depth-DEPTH_ONE);
                     pos.undo_move ();
                 }
 
@@ -1561,7 +1563,7 @@ namespace Searcher {
     //i32                 MultiPV_cp      = 0;
 
     i16                 FixedContempt   = 0
-        ,               ContemptTime    = 22
+        ,               ContemptTime    = 24
         ,               ContemptValue   = 34;
 
     string              HashFile        = "Hash.dat";
@@ -1591,7 +1593,7 @@ namespace Searcher {
             Move m = pv[ply];
             assert (MoveList<LEGAL> (pos).contains (m));
 
-            bool tt_hit  = false;
+            bool  tt_hit = false;
             TTEntry *tte = TT.probe (pos.posi_key (), tt_hit);
             // Don't overwrite correct entries
             if (!tt_hit || tte->move () != m)
@@ -1607,6 +1609,30 @@ namespace Searcher {
             pos.undo_move ();
             --ply;
         }
+    }
+    
+    // RootMove::extract_ponder_from_tt() is called in case we have no ponder move before
+    // exiting the search, for instance in case we stop the search during a fail high at
+    // root. We try hard to have a ponder move to return to the GUI, otherwise in case of
+    // 'ponder on' we have nothing to think on.
+    Move RootMove::extract_ponder_move_from_tt (Position &pos)
+    {
+        assert (pv.size () == 1);
+        assert (pv[0] != MOVE_NONE);
+
+        StateInfo st;
+        pos.do_move (pv[0], st);
+
+        bool  tt_hit = false;
+        TTEntry *tte = TT.probe (pos.posi_key (), tt_hit);
+
+        Move m = tt_hit && tte->move () != MOVE_NONE && MoveList<LEGAL> (pos).contains (tte->move ()) ?
+                    tte->move () : MOVE_NONE;
+
+        pos.undo_move ();
+
+        pv.push_back (m);
+        return m;
     }
 
     string RootMove::info_pv () const
@@ -1803,7 +1829,9 @@ namespace Searcher {
                     << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / max (time, point(1)) << "\n"
                     << "Hash-full  : " << TT.permill_full ()                        << "\n"
                     << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
-                if (RootMoves[0].pv[0] != MOVE_NONE && RootMoves[0].pv.size () > 1)
+                if (   RootMoves[0].pv[0] != MOVE_NONE
+                   && (RootMoves[0].pv.size () > 1 || RootMoves[0].extract_ponder_move_from_tt (RootPos) != MOVE_NONE)
+                   )
                 {
                     StateInfo si;
                     RootPos.do_move (RootMoves[0].pv[0], si);
@@ -1865,7 +1893,9 @@ namespace Searcher {
 
         // Best move could be MOVE_NONE when searching on a stalemate position
         sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], Chess960);
-        if (RootMoves[0].pv[0] != MOVE_NONE && RootMoves[0].pv.size () > 1)
+        if (   RootMoves[0].pv[0] != MOVE_NONE
+           && (RootMoves[0].pv.size () > 1 || RootMoves[0].extract_ponder_move_from_tt (RootPos) != MOVE_NONE)
+           )
         {
             cout << " ponder " << move_to_can (RootMoves[0].pv[1], Chess960);
         }

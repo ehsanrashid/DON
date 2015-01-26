@@ -89,8 +89,8 @@ namespace BitBoard {
 
         inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
         {
-#       ifndef BM2
 
+#       ifndef BM2
             const u32 SEEDS[R_NO] =
 #           ifdef BIT64
                 { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF }; // 64-bit
@@ -100,7 +100,6 @@ namespace BitBoard {
 
             Bitboard occupancy[MAX_LMOVES];
             Bitboard reference[MAX_LMOVES];
-            
 #       endif
 
             attacks_bb[SQ_A1] = table_bb;

@@ -70,8 +70,8 @@ namespace EndGame {
     {
 
     private:
-        const Color _strong_side
-                  , _weak_side;
+        Color _strong_side
+            , _weak_side;
 
     public:
 

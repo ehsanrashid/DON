@@ -1223,10 +1223,10 @@ namespace Evaluator {
         Weights[SPACE_ACTIVITY] = weight_option (1000 , INTERNAL_WEIGHTS[SPACE_ACTIVITY]);
         Weights[KING_SAFETY   ] = weight_option (1000 , INTERNAL_WEIGHTS[KING_SAFETY   ]);
 
-        const float MAX_SLOPE  =    7.5f;
+        const float MAX_SLOPE  = 0007.5f;
         const float PEAK_VALUE = 1280.0f;
 
-        float mg = 0.0f;
+        float mg       = 0.0f;
         KING_DANGER[0] = SCORE_ZERO;
         for (i32 i = 1; i < MAX_ATTACK_UNITS; ++i)
         {

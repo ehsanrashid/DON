@@ -113,7 +113,7 @@ namespace Transposition {
 
     // probe() looks up the entry in the transposition table.
     // Returns a pointer to the entry found or NULL if not found.
-    TTEntry* TranspositionTable::probe (Key key, bool &found) const
+    TTEntry* TranspositionTable::probe (Key key, bool &hit) const
     {
         assert (key != U64(0));
 
@@ -122,13 +122,13 @@ namespace Transposition {
         {
             if (ite->_key == U64(0))
             {
-                found = false;
+                hit = false;
                 return ite;
             }
             if (ite->_key == key)
             {
                 ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
-                found = true;
+                hit = true;
                 return ite;
             }
         }
@@ -150,7 +150,7 @@ namespace Transposition {
             memmove (fte, fte+1, (ClusterEntries - 1)*EntrySize);
             rte = fte + (ClusterEntries - 1);
         }
-        found = false;
+        hit = false;
         return rte;
     }
 

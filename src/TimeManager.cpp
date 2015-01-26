@@ -16,9 +16,9 @@ namespace Time {
         // Data was extracted from CCRL game database with some simple filtering criteria.
         inline float move_importance (i32 game_ply)
         {
-            const float PLY_SCALE =  9.300f;
+            const float PLY_SCALE = 09.300f;
             const float PLY_SHIFT = 59.800f;
-            const float SKEW_RATE =  0.172f;
+            const float SKEW_RATE = 00.172f;
 
             return pow ((1 + exp ((game_ply - PLY_SHIFT) / PLY_SCALE)), -SKEW_RATE) + FLT_MIN; // Ensure non-zero
         }

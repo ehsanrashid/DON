@@ -245,7 +245,6 @@ namespace Memory {
 
     void initialize   ()
     {
-
 #   if defined(_WIN32)
 
         setup_privilege (SE_LOCK_MEMORY_NAME, true);
@@ -253,7 +252,6 @@ namespace Memory {
 #   else    // Linux - Unix
 
 #   endif
-
     }
 
 }

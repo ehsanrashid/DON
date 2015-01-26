@@ -7,6 +7,7 @@
 
 #ifdef BM2
 #   include <immintrin.h> // Header for bmi2 instructions
+#   define PEXT(b, m) _pext_u64 (b, m) // Parallel bits extract
 #endif
 
 namespace BitBoard {
@@ -301,8 +302,7 @@ namespace BitBoard {
             return ((lo ^ hi) >> B_SHIFT[s]);
 #       endif
 #   else
-        // Parallel bits extract (pext)
-        return u16(_pext_u64 (occ, B_MASK_bb[s]));
+        return u16(PEXT (occ, B_MASK_bb[s]));
 #   endif
     }
 
@@ -318,8 +318,7 @@ namespace BitBoard {
             return ((lo ^ hi) >> R_SHIFT[s]);
 #       endif
 #   else
-        // Parallel bits extract (pext)
-        return u16(_pext_u64 (occ, R_MASK_bb[s]));
+        return u16(PEXT (occ, R_MASK_bb[s]));
 #   endif
     }
 

@@ -111,11 +111,11 @@ namespace Searcher {
         {}
         
         // Ascending Sort
-
         friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value >  rm2.new_value); }
         friend bool operator>  (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value <  rm2.new_value); }
         friend bool operator<= (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value >= rm2.new_value); }
         friend bool operator>= (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value <= rm2.new_value); }
+
         friend bool operator== (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value == rm2.new_value); }
         friend bool operator!= (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value != rm2.new_value); }
 
@@ -123,6 +123,7 @@ namespace Searcher {
         friend bool operator!= (const RootMove &rm, Move m) { return (rm.pv[0] != m); }
 
         void insert_pv_into_tt (Position &pos);
+        Move extract_ponder_move_from_tt (Position &pos);
 
         std::string info_pv () const;
     };

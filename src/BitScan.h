@@ -7,6 +7,7 @@ namespace BitBoard {
 
 #ifdef BM2
 #   include <immintrin.h> // Header for bmi2 instructions
+#   define BLSR(b) _blsr_u64 (b)
 #endif
 
 #ifdef BSFQ
@@ -66,7 +67,7 @@ INLINE Square scan_lsq (Bitboard bb)
     return Square(__builtin_ctzll (bb));
 #else
     return Square((bb & 0x00000000FFFFFFFF) ?
-        __builtin_ctz (bb) :
+        __builtin_ctz (bb >> 00) :
         __builtin_ctz (bb >> 32) + 32);
 #endif
 }
@@ -74,11 +75,11 @@ INLINE Square scan_lsq (Bitboard bb)
 INLINE Square scan_msq (Bitboard bb)
 {
 #ifdef BIT64
-    return Square(63 ^ __builtin_clzll (bb));
+    return Square(i32(SQ_H8) - __builtin_clzll (bb));
 #else
-    return Square(63 ^ ((bb & 0xFFFFFFFF00000000) ?
+    return Square(i32(SQ_H8) - ((bb & 0xFFFFFFFF00000000) ?
         __builtin_clz (bb >> 32) :
-        __builtin_clz (bb) + 32));
+        __builtin_clz (bb >> 00) + 32));
 #endif
 }
 
@@ -90,7 +91,7 @@ INLINE Square scan_lsq (Bitboard bb)
     Bitboard sq;
     __asm__ ("bsfq %1, %0": "=r" (sq) : "rm" (bb));
     return Square(sq);
-    //return bb ? Square(__builtin_ctzll (bb)) : SQ_NO;
+    //return Square(__builtin_ctzll (bb));
 }
 
 INLINE Square scan_msq (Bitboard bb)
@@ -98,7 +99,7 @@ INLINE Square scan_msq (Bitboard bb)
     Bitboard sq;
     __asm__ ("bsrq %1, %0": "=r" (sq) : "rm" (bb));
     return Square(sq);
-    //return bb ? Square(63 ^ __builtin_clzll (bb)) : SQ_NO;
+    //return Square(i32(SQ_H8) - __builtin_clzll (bb));
 }
 
 #   endif
@@ -241,7 +242,7 @@ INLINE Square pop_lsq (Bitboard &bb)
 #ifndef BM2
     bb &= (bb - 1);
 #else
-    bb = _blsr_u64 (bb);
+    bb = BLSR (bb);
 #endif
     return s;
 }
