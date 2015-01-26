@@ -191,7 +191,8 @@ namespace Transposition {
         // It increments the "Generation" variable, which is used to distinguish
         // transposition table entries from previous searches from entries from the current search.
         inline void new_gen () { _generation += 4; }
-        u08 generation () const { return _generation; }
+        
+        inline u08 generation () const { return _generation; }
 
         // cluster_entry() returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
@@ -208,19 +209,19 @@ namespace Transposition {
         // hash, are using <x>%. of the state of full.
         inline u32 hash_full () const
         {
-            u32 full_count = 0;
-            for (const Cluster *c = _clusters; c < _clusters + U64(1000)/ClusterEntries; ++c)
+            u32 full_entry_count = 0;
+            for (const Cluster *c = _clusters; c < _clusters + 1000/ClusterEntries; ++c)
             {
                 const TTEntry *fte = c->entries;
                 for (const TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
                 {
                     if (ite->gen () == _generation)
                     {
-                        ++full_count;
+                        ++full_entry_count;
                     }
                 }
             }
-            return full_count;
+            return full_entry_count;
         }
 
         u32 resize (u64 mem_size_mb, bool force = false);
