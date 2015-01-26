@@ -206,23 +206,21 @@ namespace Transposition {
         // It is used to display the "info hashfull ..." information in UCI.
         // "the hash is <x> permill full", the engine should send this info regularly.
         // hash, are using <x>%. of the state of full.
-        inline u16 hash_full () const
+        inline u32 hash_full () const
         {
-            u64 full_cluster = 0;
-            u64 scan_cluster = std::min (U64(10000), _cluster_count);
-            for (const Cluster *c = _clusters; c < _clusters + scan_cluster; ++c)
+            u32 full_count = 0;
+            for (const Cluster *c = _clusters; c < _clusters + U64(1000)/ClusterEntries; ++c)
             {
                 const TTEntry *fte = c->entries;
                 for (const TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
                 {
                     if (ite->gen () == _generation)
                     {
-                        ++full_cluster;
+                        ++full_count;
                     }
                 }
             }
-
-            return u16(full_cluster * 1000 / scan_cluster);
+            return full_count;
         }
 
         u32 resize (u64 mem_size_mb, bool force = false);
