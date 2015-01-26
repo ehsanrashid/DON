@@ -1316,7 +1316,7 @@ namespace Searcher {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
             memset (ss-2, 0x00, 5*sizeof (*ss));
 
-            TT.new_gen ();
+            TT.refresh ();
             GainStatistics.clear ();
             HistoryStatistics.clear ();
             CounterMoveStats.clear ();

@@ -187,10 +187,10 @@ namespace Transposition {
             }
         }
 
-        // new_gen() is called at the beginning of every new search.
+        // refresh() is called at the beginning of every new search.
         // It increments the "Generation" variable, which is used to distinguish
         // transposition table entries from previous searches from entries from the current search.
-        inline void new_gen () { _generation += 4; }
+        inline void refresh () { _generation += 4; }
         
         inline u08 generation () const { return _generation; }
 
