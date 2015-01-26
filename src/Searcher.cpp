@@ -197,7 +197,7 @@ namespace Searcher {
                     << " time "     << time
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * MILLI_SEC / max (time, point(1))
-                    << " hashfull " << 0//TT.permill_full ()
+                    << " hashfull " << 0//TT.hash_full ()
                     << " pv"        << RootMoves[i].info_pv ();
             }
 
@@ -1827,7 +1827,7 @@ namespace Searcher {
                     << "Time (ms)  : " << time                                      << "\n"
                     << "Nodes (N)  : " << RootPos.game_nodes ()                     << "\n"
                     << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / max (time, point(1)) << "\n"
-                    << "Hash-full  : " << TT.permill_full ()                        << "\n"
+                    << "Hash-full  : " << TT.hash_full ()                        << "\n"
                     << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
                 if (   RootMoves[0].pv[0] != MOVE_NONE
                    && (RootMoves[0].pv.size () > 1 || RootMoves[0].extract_ponder_move_from_tt (RootPos) != MOVE_NONE)
@@ -1878,7 +1878,7 @@ namespace Searcher {
             << " time "     << time
             << " nodes "    << RootPos.game_nodes ()
             << " nps "      << RootPos.game_nodes () * MILLI_SEC / max (time, point(1))
-            << " hashfull " << 0//TT.permill_full ()
+            << " hashfull " << 0//TT.hash_full ()
             << sync_endl;
 
         // When reach max depth arrive here even without Signals.force_stop is raised,

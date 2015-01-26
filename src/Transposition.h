@@ -200,13 +200,13 @@ namespace Transposition {
             return _clusters[key & _cluster_mask].entries;
         }
 
-        // permill_full() returns an approximation of the per-mille of the 
+        // hash_full() returns an approximation of the per-mille of the 
         // all transposition entries during a search which have received
         // at least one write during the current search.
         // It is used to display the "info hashfull ..." information in UCI.
         // "the hash is <x> permill full", the engine should send this info regularly.
         // hash, are using <x>%. of the state of full.
-        inline u16 permill_full () const
+        inline u16 hash_full () const
         {
             u64 full_cluster = 0;
             u64 scan_cluster = std::min (U64(10000), _cluster_count);
