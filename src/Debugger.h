@@ -51,7 +51,7 @@ namespace Debug {
 
     public:
 
-        ~DebugLogger ()
+       ~DebugLogger ()
         {
             stop ();
         }

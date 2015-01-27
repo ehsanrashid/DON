@@ -91,9 +91,10 @@ namespace Transposition {
         u64      _cluster_mask;
         u08      _generation;
 
+        // alloc_aligned_memory() alocates the aligned memory
         void alloc_aligned_memory (u64 mem_size, u32 alignment);
 
-        // free_aligned_memory() free the allocated memory
+        // free_aligned_memory() frees the aligned memory
         void free_aligned_memory ()
         {
             if (_clusters != NULL)
@@ -167,7 +168,7 @@ namespace Transposition {
             return (_cluster_count * ClusterEntries);
         }
 
-        // Returns size in MB
+        // size() returns hash size in MB
         inline u32 size () const
         {
             return u32((_cluster_count * ClusterSize) >> 20);
@@ -187,9 +188,9 @@ namespace Transposition {
             }
         }
 
-        // refresh() is called at the beginning of every new search.
-        // It increments the "Generation" variable, which is used to distinguish
-        // transposition table entries from previous searches from entries from the current search.
+        // refresh() increments the "Generation" variable, which is used to
+        // distinguish transposition table entries from different searches.
+        // It is called at the beginning of every new search.
         inline void refresh () { _generation += 4; }
         
         inline u08 generation () const { return _generation; }

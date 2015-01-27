@@ -80,7 +80,7 @@ namespace OpeningBook {
 
         // mode = std::ios_base::in|std::ios_base::out
         PolyglotBook (const std::string &book_fn, openmode mode);
-        ~PolyglotBook ();
+       ~PolyglotBook ();
 
         bool open (const std::string &book_fn, openmode mode);
     
