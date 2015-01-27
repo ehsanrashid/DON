@@ -117,7 +117,7 @@ namespace Memory {
 
 #   else    // Linux - Unix
 
-        i32 shm;
+        i32 shm; // Shared Memory Identifier
 
 #   endif
 
@@ -164,8 +164,8 @@ namespace Memory {
             shm = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
             if (shm != -1)
             {
-                mem_ref = shmat (shm, NULL, 0x0);
-                if (mem_ref != (char*) -1)
+                mem_ref = shmat (shm, NULL, 0x00);
+                if (mem_ref != (void*) -1)
                 {
                     UsePages = true;
                     memset (mem_ref, 0x00, mem_size);
@@ -182,8 +182,8 @@ namespace Memory {
             shm = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W);
             if (shm != -1)
             {
-                mem_ref = shmat (shm, NULL, 0x0);
-                if (mem_ref != (char*) -1)
+                mem_ref = shmat (shm, NULL, 0x00);
+                if (mem_ref != (void*) -1)
                 {
                     UsePages = true;
                     memset (mem_ref, 0x00, mem_size);
