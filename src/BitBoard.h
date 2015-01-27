@@ -70,18 +70,18 @@ namespace BitBoard {
     const Bitboard SQUARE_bb[SQ_NO] =
     {
 #undef S_16
-#undef S_8
-#undef S_4
-#undef S_2
-#define S_2(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
-#define S_4(n)       S_2(2*(n)),       S_2(2*(n)+1)
-#define S_8(n)       S_4(2*(n)),       S_4(2*(n)+1)
-#define S_16(n)      S_8(2*(n)),       S_8(2*(n)+1)
+#undef S_08
+#undef S_04
+#undef S_02
+#define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
+#define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
+#define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
+#define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)
         S_16 (0), S_16 (1), S_16 (2), S_16 (3),
 #undef S_16
-#undef S_8
-#undef S_4
-#undef S_2
+#undef S_08
+#undef S_04
+#undef S_02
     };
     // FILES
     const Bitboard   FILE_bb[F_NO] =

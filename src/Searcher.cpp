@@ -1974,7 +1974,7 @@ namespace Threads {
         if (Limits.use_timemanager ())
         {
             point movetime = now_time - SearchTime;
-            if (  movetime > TimeMgr.maximum_time () - 2 * TimerResolution
+            if (  movetime > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
                   // Still at first move
                || (   Signals.root_1stmove
                   && !Signals.root_failedlow

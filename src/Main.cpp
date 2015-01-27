@@ -23,6 +23,6 @@ i32 main (i32 argc, const char *const *argv)
     string arg = strarg (argc, argv);
     Engine::run (arg);
 
-    //atexit (report_leak);
+    //atexit (report_leak());
     Engine::exit (EXIT_SUCCESS);
 }

@@ -268,7 +268,7 @@ namespace Threads {
 
         check_limits_th             = new_thread<TimerThread> ();
         check_limits_th->task       = check_limits;
-        check_limits_th->resolution = TimerResolution;
+        check_limits_th->resolution = TIMER_RESOLUTION;
 
         auto_save_th                = NULL;
 

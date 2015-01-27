@@ -205,7 +205,7 @@ namespace Threads {
         virtual void idle_loop () = 0;
     };
 
-    const i32 TimerResolution = 5;
+    const i32 TIMER_RESOLUTION = 5; // Timer Resolution
 
     // TimerThread is derived from ThreadBase class
     // It's used for special purpose: the recurring timer.
