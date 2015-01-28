@@ -477,9 +477,9 @@ namespace Searcher {
             return best_value;
         }
 
-        template<NodeT NT, bool SPNode, bool Pruning>
+        template<NodeT NT, bool SPNode, bool EarlyPruning>
         // depth_search<>() is the main depth limited search function
-        // for PV/NonPV nodes also for normal/splitpoint nodes.
+        // for Root/PV/NonPV nodes also for normal/splitpoint nodes.
         // It calls itself recursively with decreasing (remaining) depth
         // until we run out of depth, and then drops into quien_search.
         // When called just after a splitpoint the search is simpler because
@@ -641,7 +641,7 @@ namespace Searcher {
                         tte->save (posi_key, MOVE_NONE, VALUE_NONE, (ss)->static_eval, DEPTH_NONE, BOUND_NONE, TT.generation ());
                     }
 
-                    if (Pruning)
+                    if (EarlyPruning)
                     {
                         move = (ss-1)->current_move;
                         // Updates Gain Statistics
@@ -1032,9 +1032,7 @@ namespace Searcher {
                         continue;
                     }
 
-                    if (  quiets < MAX_QUIETS
-                       && !capture_or_promotion
-                       )
+                    if (quiets < MAX_QUIETS && !capture_or_promotion)
                     {
                         quiet_moves[quiets++] = move;
                     }
@@ -1128,26 +1126,22 @@ namespace Searcher {
                             -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
                 }
 
-                // Principal Variation Search (PV nodes only)
-                if (PVNode)
+                // Do a full PV search on:
+                // - first move
+                // - fail high move (search only if value < beta)
+                // otherwise let the parent node fail low with
+                // alpha >= value and to try another better move.
+                if (PVNode && (1 == legals || (alpha < value && (RootNode || value < beta))))
                 {
-                    // Do a full PV search on:
-                    // - pv first move
-                    // - fail high move (search only if value < beta)
-                    // otherwise let the parent node fail low with
-                    // alpha >= value and to try another better move.
-                    if (1 == legals || (alpha < value && (RootNode || value < beta)))
-                    {
-                        fill (pv, pv + sizeof (pv)/sizeof (*pv), MOVE_NONE);
-                        (ss+1)->pv = pv;
+                    fill (pv, pv + sizeof (pv)/sizeof (*pv), MOVE_NONE);
+                    (ss+1)->pv = pv;
 
-                        value =
-                            new_depth < DEPTH_ONE ?
-                                gives_check ?
-                                    -quien_search<PV, true >   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                                    -quien_search<PV, false>   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                                -depth_search<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
-                    }
+                    value =
+                        new_depth < DEPTH_ONE ?
+                            gives_check ?
+                                -quien_search<PV, true >   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
+                                -quien_search<PV, false>   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
+                            -depth_search<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                 }
                 
                 bool next_legal = PVNode && !RootNode && (ss+1)->pv != NULL && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
@@ -1890,6 +1884,8 @@ namespace Searcher {
             Signals.ponderhit_stop = true;
             RootPos.thread ()->wait_for (Signals.force_stop);
         }
+
+        assert (RootMoves[0].pv.size () != 0);
 
         // Best move could be MOVE_NONE when searching on a stalemate position
         sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], Chess960);
