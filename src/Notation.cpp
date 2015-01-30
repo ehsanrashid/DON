@@ -33,7 +33,6 @@ namespace Notation {
 
             Square org = org_sq (m);
             Square dst = dst_sq (m);
-            Piece p    = pos[org];
 
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
@@ -41,7 +40,7 @@ namespace Notation {
             Bitboard pinneds = pos.pinneds (pos.active ());
 
             Bitboard amb, pcs;
-            amb = pcs = (attacks_bb (p, dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (p))) - org;
+            amb = pcs = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
             while (pcs != U64(0))
             {
                 Square amb_org = pop_lsq (pcs);
@@ -51,15 +50,10 @@ namespace Notation {
                 }
             }
 
-            //if (!(amb)) return AMB_NONE;
-            //if (!(amb & file_bb (org))) return AMB_RANK;
-            //if (!(amb & rank_bb (org))) return AMB_FILE;
-            //return AMB_SQR;
-
-            if (amb)
+            if (amb != U64(0))
             {
-                if (!(amb & file_bb (org))) return AMB_RANK;
-                if (!(amb & rank_bb (org))) return AMB_FILE;
+                if ((amb & file_bb (org)) == U64(0)) return AMB_RANK;
+                if ((amb & rank_bb (org)) == U64(0)) return AMB_FILE;
                 return AMB_SQR;
             }
             return AMB_NONE;
@@ -169,10 +163,9 @@ namespace Notation {
 
         Square org = org_sq (m);
         Square dst = dst_sq (m);
-        MoveT mt   = mtype (m);
-        if (!c960 && (CASTLE == mt)) dst = ((dst > org) ? F_G : F_C) | _rank (org);
+        if (!c960 && CASTLE == mtype (m)) dst = (dst > org ? F_G : F_C) | _rank (org);
         string can = to_string (org) + to_string (dst);
-        if (PROMOTE == mt) can += PIECE_CHAR[(BLACK|promote (m))]; // Lowercase
+        if (PROMOTE == mtype (m)) can += PIECE_CHAR[(BLACK|promote (m))]; // Lowercase
         return can;
     }
 
@@ -188,9 +181,8 @@ namespace Notation {
 
         Square org = org_sq (m);
         Square dst = dst_sq (m);
-        MoveT  mt  = mtype (m);
 
-        if (CASTLE == mt)
+        if (CASTLE == mtype (m))
         {
             san = (dst > org ? "O-O" : "O-O-O");
         }
@@ -224,7 +216,7 @@ namespace Notation {
 
             san += to_string (dst);
 
-            if (PROMOTE == mt && PAWN == pt)
+            if (PROMOTE == mtype (m) && PAWN == pt)
             {
                 san += "=";
                 san += PIECE_CHAR[promote (m)];
@@ -288,11 +280,11 @@ namespace Notation {
             << setw (12) << pretty_time (time);
 
         u64 game_nodes = pos.game_nodes ();
-        if (game_nodes < M)     oss << setw (8) << game_nodes / 1 << "  ";
+        if (game_nodes < 1*M) oss << setw (8) << game_nodes / 1 << "  ";
         else
-        if (game_nodes < K * M) oss << setw (7) << game_nodes / K << "K  ";
+        if (game_nodes < K*M) oss << setw (7) << game_nodes / K << "K  ";
         else
-                                oss << setw (7) << game_nodes / M << "M  ";
+                              oss << setw (7) << game_nodes / M << "M  ";
 
         /*
         string spv = oss.str ();
