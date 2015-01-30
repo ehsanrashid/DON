@@ -254,7 +254,7 @@ namespace Pawns {
 
     #undef S
 
-    } // namespace
+    }
 
     template<Color Own>
     // pawn_shelter_storm() calculates shelter and storm penalties
@@ -351,4 +351,4 @@ namespace Pawns {
         }
     }
 
-} // namespace Pawns
+}

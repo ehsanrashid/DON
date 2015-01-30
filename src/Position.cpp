@@ -119,7 +119,7 @@ namespace {
     };
 #undef S
 
-} // namespace
+}
 
 u08 Position::FiftyMoveDist = 100;
 

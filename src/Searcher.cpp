@@ -1540,7 +1540,7 @@ namespace Searcher {
             return leaf_nodes;
         }
 
-    } // namespace
+    }
 
     bool                Chess960        = false;
 

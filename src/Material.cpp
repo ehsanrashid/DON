@@ -130,7 +130,7 @@ namespace Material {
             return Value(value);
         }
 
-    } // namespace
+    }
 
     // probe() takes a position object as input,
     // looks up a MaterialEntry object, and returns a pointer to it.
@@ -294,4 +294,4 @@ namespace Material {
         return e;
     }
 
-} // namespace Material
+}

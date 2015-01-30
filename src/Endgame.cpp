@@ -99,7 +99,7 @@ namespace EndGame {
         template<class M>
         inline void delete_endgame (const typename M::value_type &p) { delete p.second; }
 
-    } // namespace
+    }
 
     // Endgames members definitions
     Endgames:: Endgames ()
@@ -573,7 +573,7 @@ namespace EndGame {
         // Test for a rook pawn
         if (pos.pieces<PAWN> () & (FA_bb | FH_bb))
         {
-            Square wk_sq = pos.king_sq(_weak_side);
+            Square wk_sq = pos.king_sq (_weak_side);
             Square wb_sq = pos.list<BSHP> (_weak_side)[0];
             Square sp_sq = pos.list<PAWN> (_strong_side)[0];
             Rank   r     = rel_rank (_strong_side, sp_sq);
@@ -585,8 +585,8 @@ namespace EndGame {
             // if the defending king is near the corner but not trapped there.
             if (r == R_5 && !opposite_colors (wb_sq, sp_sq))
             {
-                u08 d = dist (sp_sq + 3 * push, wk_sq);
-                return (d <= 2 && !(d == 0 && wk_sq == pos.king_sq(_strong_side) + 2 * push)) ?
+                i32 d = dist (sp_sq + 3 * push, wk_sq);
+                return d <= 2 && !(d == 0 && wk_sq == pos.king_sq (_strong_side) + 2 * push) ?
                             ScaleFactor (24) : ScaleFactor (48);
             }
 
@@ -759,7 +759,7 @@ namespace EndGame {
             }
             
             Bitboard path = FRONT_SQRS_bb[_strong_side][sp_sq];
-            if (  path & pos.pieces<KING> (_weak_side)
+            if (  (path & pos.pieces<KING> (_weak_side))
                || (path & attacks_bb<BSHP> (wb_sq, pos.pieces ()) && dist (wb_sq, sp_sq) >= 3)
                )
             {
