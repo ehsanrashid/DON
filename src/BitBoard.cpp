@@ -9,40 +9,40 @@ namespace BitBoard {
     using namespace Notation;
 
     // FRONT SQUARES
-    Bitboard FRONT_SQRS_bb[CLR_NO][SQ_NO];
+    Bitboard FRONT_SQRS_bb  [CLR_NO][SQ_NO];
 
     Bitboard BETWEEN_SQRS_bb[SQ_NO][SQ_NO];
-    Bitboard RAY_LINE_bb[SQ_NO][SQ_NO];
+    Bitboard RAY_LINE_bb    [SQ_NO][SQ_NO];
 
-    Bitboard DIST_RINGS_bb[SQ_NO][F_NO];
+    Bitboard DIST_RINGS_bb  [SQ_NO][F_NO];
 
     // Span of the attacks of pawn
     Bitboard PAWN_ATTACK_SPAN[CLR_NO][SQ_NO];
 
     // Path of the passed pawn
-    Bitboard PAWN_PASS_SPAN[CLR_NO][SQ_NO];
+    Bitboard PAWN_PASS_SPAN [CLR_NO][SQ_NO];
 
     // Attacks of the pawns
-    Bitboard PAWN_ATTACKS[CLR_NO][SQ_NO];
+    Bitboard PAWN_ATTACKS   [CLR_NO][SQ_NO];
 
     // Attacks of the pieces
-    Bitboard PIECE_ATTACKS[NONE][SQ_NO];
+    Bitboard PIECE_ATTACKS  [NONE][SQ_NO];
 
     Bitboard*B_ATTACK_bb[SQ_NO];
     Bitboard*R_ATTACK_bb[SQ_NO];
 
-    Bitboard   B_MASK_bb[SQ_NO];
-    Bitboard   R_MASK_bb[SQ_NO];
+    Bitboard  B_MASK_bb [SQ_NO];
+    Bitboard  R_MASK_bb [SQ_NO];
 
 #ifndef BM2
     Bitboard  B_MAGIC_bb[SQ_NO];
     Bitboard  R_MAGIC_bb[SQ_NO];
 
-    u08         B_SHIFT [SQ_NO];
-    u08         R_SHIFT [SQ_NO];
+    u08       B_SHIFT   [SQ_NO];
+    u08       R_SHIFT   [SQ_NO];
 #endif
 
-    u08        SQR_DIST [SQ_NO][SQ_NO];
+    u08       SQR_DIST  [SQ_NO][SQ_NO];
 
     namespace {
 
@@ -297,14 +297,14 @@ namespace BitBoard {
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
                 PieceT pt =  
-                    (PIECE_ATTACKS[BSHP][s1] & s2) ? BSHP :
-                    (PIECE_ATTACKS[ROOK][s1] & s2) ? ROOK :
+                    PIECE_ATTACKS[BSHP][s1] & s2 ? BSHP :
+                    PIECE_ATTACKS[ROOK][s1] & s2 ? ROOK :
                     NONE;
 
                 if (NONE == pt) continue;
 
                 BETWEEN_SQRS_bb[s1][s2] = (attacks_bb (Piece(pt), s1, SQUARE_bb[s2]) & attacks_bb (Piece(pt), s2, SQUARE_bb[s1]));
-                RAY_LINE_bb[s1][s2] = (attacks_bb (Piece(pt), s1,       U64(0)) & attacks_bb (Piece(pt), s2,       U64(0))) + s1 + s2;
+                RAY_LINE_bb[s1][s2]     = (attacks_bb (Piece(pt), s1,        U64(0)) & attacks_bb (Piece(pt), s2,        U64(0))) + s1 + s2;
             }
         }
 

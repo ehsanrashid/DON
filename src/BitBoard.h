@@ -95,7 +95,7 @@ namespace BitBoard {
     };
 
     // ADJACENT FILES used for isolated-pawn
-    const Bitboard ADJ_FILE_bb[F_NO] =
+    const Bitboard ADJ_FILE_bb  [F_NO] =
     {
         FB_bb,
         FA_bb|FC_bb,
@@ -107,7 +107,7 @@ namespace BitBoard {
         FG_bb
     };
     // ADJACENT RANKS
-    const Bitboard ADJ_RANK_bb[R_NO] =
+    const Bitboard ADJ_RANK_bb  [R_NO] =
     {
         R2_bb,
         R1_bb|R3_bb,
@@ -119,7 +119,7 @@ namespace BitBoard {
         R7_bb,
     };
     // FRONT RANK
-    const Bitboard FRONT_RANK_bb[CLR_NO][R_NO] =
+    const Bitboard FRONT_RANK_bb    [CLR_NO][R_NO] =
     {
         {
         R2_bb|R3_bb|R4_bb|R5_bb|R6_bb|R7_bb|R8_bb,
@@ -143,35 +143,35 @@ namespace BitBoard {
         }
     };
 
-    extern Bitboard FRONT_SQRS_bb[CLR_NO][SQ_NO];
+    extern Bitboard FRONT_SQRS_bb   [CLR_NO][SQ_NO];
 
-    extern Bitboard BETWEEN_SQRS_bb[SQ_NO][SQ_NO];
-    extern Bitboard RAY_LINE_bb[SQ_NO][SQ_NO];
+    extern Bitboard BETWEEN_SQRS_bb [SQ_NO][SQ_NO];
+    extern Bitboard RAY_LINE_bb     [SQ_NO][SQ_NO];
 
-    extern Bitboard DIST_RINGS_bb[SQ_NO][F_NO];
+    extern Bitboard DIST_RINGS_bb   [SQ_NO][F_NO];
 
     extern Bitboard PAWN_ATTACK_SPAN[CLR_NO][SQ_NO];
-    extern Bitboard PAWN_PASS_SPAN[CLR_NO][SQ_NO];
+    extern Bitboard PAWN_PASS_SPAN  [CLR_NO][SQ_NO];
 
     // attacks of the pawns & pieces
-    extern Bitboard PAWN_ATTACKS[CLR_NO][SQ_NO];
-    extern Bitboard PIECE_ATTACKS[NONE][SQ_NO];
+    extern Bitboard PAWN_ATTACKS    [CLR_NO][SQ_NO];
+    extern Bitboard PIECE_ATTACKS   [NONE][SQ_NO];
 
     extern Bitboard *B_ATTACK_bb[SQ_NO];
     extern Bitboard *R_ATTACK_bb[SQ_NO];
 
-    extern Bitboard    B_MASK_bb[SQ_NO];
-    extern Bitboard    R_MASK_bb[SQ_NO];
+    extern Bitboard   B_MASK_bb [SQ_NO];
+    extern Bitboard   R_MASK_bb [SQ_NO];
 
 #ifndef BM2
     extern Bitboard   B_MAGIC_bb[SQ_NO];
     extern Bitboard   R_MAGIC_bb[SQ_NO];
 
-    extern u08          B_SHIFT [SQ_NO];
-    extern u08          R_SHIFT [SQ_NO];
+    extern u08        B_SHIFT   [SQ_NO];
+    extern u08        R_SHIFT   [SQ_NO];
 #endif
 
-    extern u08         SQR_DIST [SQ_NO][SQ_NO];
+    extern u08        SQR_DIST  [SQ_NO][SQ_NO];
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  SQUARE_bb[s]; }
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  SQUARE_bb[s]; }
@@ -217,10 +217,10 @@ namespace BitBoard {
     inline Bitboard rel_rank_bb (Color c, Square s) { return RANK_bb[rel_rank (c, s)]; }
 
     // board_edges() returns a bitboard of edges of the board
-    inline Bitboard board_edges (Square s) { return (((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s))); }
+    inline Bitboard board_edges (Square s) { return ((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s)); }
 
     // squares_of_color() returns a bitboard of all squares with the same color of the given square.
-    inline Bitboard squares_of_color (Square s) { return (DARK_bb & s) ? DARK_bb : LIHT_bb; }
+    inline Bitboard squares_of_color (Square s) { return DARK_bb & s ? DARK_bb : LIHT_bb; }
 
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
     inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return RAY_LINE_bb[s1][s2] & s3; }
@@ -228,9 +228,9 @@ namespace BitBoard {
     inline bool more_than_one (Bitboard bb)
     {
 #   ifndef BM2
-        return (bb) & (bb - 1);
+        return bb & (bb - 1);
 #   else
-        return _blsr_u64 (bb);
+        return BLSR (bb);
 #   endif
     }
 
