@@ -111,16 +111,16 @@ namespace Searcher {
         {}
         
         // Ascending Sort
-        friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value >  rm2.new_value); }
-        friend bool operator>  (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value <  rm2.new_value); }
-        friend bool operator<= (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value >= rm2.new_value); }
-        friend bool operator>= (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value <= rm2.new_value); }
+        friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value >  rm2.new_value; }
+        friend bool operator>  (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value <  rm2.new_value; }
+        friend bool operator<= (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value >= rm2.new_value; }
+        friend bool operator>= (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value <= rm2.new_value; }
 
-        friend bool operator== (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value == rm2.new_value); }
-        friend bool operator!= (const RootMove &rm1, const RootMove &rm2) { return (rm1.new_value != rm2.new_value); }
+        friend bool operator== (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value == rm2.new_value; }
+        friend bool operator!= (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value != rm2.new_value; }
 
-        friend bool operator== (const RootMove &rm, Move m) { return (rm.pv[0] == m); }
-        friend bool operator!= (const RootMove &rm, Move m) { return (rm.pv[0] != m); }
+        friend bool operator== (const RootMove &rm, Move m) { return rm.pv[0] == m; }
+        friend bool operator!= (const RootMove &rm, Move m) { return rm.pv[0] != m; }
 
         void insert_pv_into_tt (Position &pos);
         Move extract_ponder_move_from_tt (Position &pos);
@@ -133,7 +133,7 @@ namespace Searcher {
     {
 
     public:
-        float best_move_change;
+        double best_move_change;
 
         void initialize (const Position &pos, const vector<Move> &root_moves);
 

@@ -437,11 +437,11 @@ namespace Evaluator {
                             {
                                 value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
                                          || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
-                                            1.50f : // If attacked by enemy Knights or Bishops
+                                            1.50 : // If attacked by enemy Knights or Bishops
                                             (  (pos.pieces<NIHT> (Opp)) != U64(0)
                                             || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
-                                                1.75f : // If there are enemy Knights or Bishops
-                                                2.50f;  // If there are no enemy Knights or Bishops
+                                                1.75 : // If there are enemy Knights or Bishops
+                                                2.50;  // If there are no enemy Knights or Bishops
                             }
 
                             score += mk_score (value * 2, value / 2);
@@ -468,11 +468,11 @@ namespace Evaluator {
                             {
                                 value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
                                          || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
-                                            1.50f : // If attacked by enemy Knights or Bishops
+                                            1.50 : // If attacked by enemy Knights or Bishops
                                             (  (pos.pieces<NIHT> (Opp)) != U64(0)
                                             || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
-                                                1.75f : // If there are enemy Knights or Bishops
-                                                2.50f;  // If there are no enemy Knights or Bishops
+                                                1.75 : // If there are enemy Knights or Bishops
+                                                2.50;  // If there are no enemy Knights or Bishops
                             }
 
                             score += mk_score (value * 2, value / 2);
@@ -1223,14 +1223,14 @@ namespace Evaluator {
         Weights[SPACE_ACTIVITY] = weight_option (1000 , INTERNAL_WEIGHTS[SPACE_ACTIVITY]);
         Weights[KING_SAFETY   ] = weight_option (1000 , INTERNAL_WEIGHTS[KING_SAFETY   ]);
 
-        const float MAX_SLOPE  = 0008.5f;
-        const float PEAK_VALUE = 1280.0f;
+        const double MAX_SLOPE  = 0008.5;
+        const double PEAK_VALUE = 1280.0;
 
-        float mg       = 0.0f;
+        double mg       = 0.0;
         KING_DANGER[0] = SCORE_ZERO;
         for (i32 i = 1; i < MAX_ATTACK_UNITS; ++i)
         {
-            mg = min (min (0.027f*i*i, mg + MAX_SLOPE), PEAK_VALUE);
+            mg = min (min (0.027*i*i, mg + MAX_SLOPE), PEAK_VALUE);
             KING_DANGER[i] = apply_weight (mk_score (i32(mg), 0), Weights[KING_SAFETY]);
         }
     }

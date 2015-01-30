@@ -188,11 +188,9 @@ namespace EndGame {
         Square wk_sq = normalize (pos, _strong_side, pos.king_sq (_weak_side));
         Square sp_sq = normalize (pos, _strong_side, pos.list<PAWN> (_strong_side)[0]);
 
-        Color c = _strong_side == pos.active () ? WHITE : BLACK;
-
         Value value;
 
-        if (probe (c, sk_sq, sp_sq, wk_sq))
+        if (probe (_strong_side == pos.active () ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
         {
             value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + _rank (sp_sq);
         }
@@ -693,11 +691,9 @@ namespace EndGame {
             return SCALE_FACTOR_NONE;
         }
 
-        Color c = _strong_side == pos.active () ? WHITE : BLACK;
-
         // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
         // it's probably at least a draw even with the pawn.
-        return probe (c, sk_sq, sp_sq, wk_sq) ?
+        return probe (_strong_side == pos.active () ? WHITE : BLACK, sk_sq, sp_sq, wk_sq) ?
                     SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
     }
 
@@ -927,7 +923,7 @@ namespace EndGame {
         // All pawns on same A or H file? (rook file)
         // Then potential draw
         if (  (sp_f == F_A || sp_f == F_H)
-           && !(spawns & ~FILE_bb[sp_f])
+           && (spawns & ~FILE_bb[sp_f]) == U64(0)
            )
         {
             Square sb_sq = pos.list<BSHP> (_strong_side)[0];
@@ -945,7 +941,7 @@ namespace EndGame {
 
                 //// If the defending king has some pawns
                 //Bitboard wpawns = pos.pieces<PAWN> (_weak_side);
-                //if (wpawns && !(wpawns & ~FILE_bb[sp_f]))
+                //if (wpawns && (wpawns & ~FILE_bb[sp_f]) == U64(0))
                 //{
                 //    Square wp_sq = scan_frntmost_sq (_weak_side, wpawns);
                 //    Square sk_sq = pos.king_sq (_strong_side);
@@ -969,7 +965,7 @@ namespace EndGame {
         // All pawns on same B or G file?
         // Then potential draw
         if (  (sp_f == F_B || sp_f == F_G)
-           && !(pos.pieces<PAWN> () & ~FILE_bb[sp_f])
+           && (pos.pieces<PAWN> () & ~FILE_bb[sp_f]) == U64(0)
            && pos.non_pawn_material (_weak_side) == VALUE_ZERO
            )
         {
@@ -1049,9 +1045,9 @@ namespace EndGame {
         if (  rel_rank (_weak_side, wk_sq) <= R_2
            && rel_rank (_weak_side, pos.king_sq (_strong_side)) >= R_4
            && rel_rank (_weak_side, wr_sq) == R_3
-           && ( pos.pieces<PAWN> (_weak_side)
-              & PIECE_ATTACKS[KING][wk_sq]
-              & PAWN_ATTACKS[_strong_side][wr_sq]
+           && (  pos.pieces<PAWN> (_weak_side)
+              &  PIECE_ATTACKS[KING][wk_sq]
+              &  PAWN_ATTACKS[_strong_side][wr_sq]
               )
            )
         {

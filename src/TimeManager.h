@@ -21,15 +21,15 @@ namespace Time {
         u32   _optimum_time;
         u32   _maximum_time;
 
-        float _instability_factor;
+        double _instability_factor;
 
     public:
 
-        inline u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.71f); }
+        inline u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.71); }
     
         inline u32 maximum_time   () const { return _maximum_time; }
 
-        inline void instability (float best_move_change) { _instability_factor = 1.0f + best_move_change; }
+        inline void instability (double best_move_change) { _instability_factor = 1.0 + best_move_change; }
 
         void initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply);
 

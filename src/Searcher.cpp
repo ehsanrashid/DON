@@ -1336,7 +1336,7 @@ namespace Searcher {
             while (++depth < MAX_DEPTH && !Signals.force_stop && (0 == Limits.depth || depth <= Limits.depth))
             {
                 // Age out PV variability metric
-                RootMoves.best_move_change *= 0.5f;
+                RootMoves.best_move_change *= 0.5;
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
@@ -1406,7 +1406,7 @@ namespace Searcher {
                         {
                             bound_b   = (bound_a + bound_b) / 2;
                             bound_a   = max (best_value - window_a, -VALUE_INFINITE);
-                            window_a *= 1.50f;
+                            window_a *= 1.50;
                             Signals.root_failedlow = true;
                             Signals.ponderhit_stop = false;
                         }
@@ -1415,7 +1415,7 @@ namespace Searcher {
                         {
                             bound_a   = (bound_a + bound_b) / 2;
                             bound_b   = min (best_value + window_b, +VALUE_INFINITE);
-                            window_b *= 1.50f;
+                            window_b *= 1.50;
                         }
                         else break;
 
@@ -1643,7 +1643,7 @@ namespace Searcher {
 
     void RootMoveList::initialize (const Position &pos, const vector<Move> &root_moves)
     {
-        best_move_change = 0.0f;
+        best_move_change = 0.0;
         clear ();
         for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
         {
@@ -1775,7 +1775,7 @@ namespace Searcher {
                 timed_contempt = diff_time/ContemptTime;
             }
 
-            Value contempt = cp_to_value (float(FixedContempt + timed_contempt) / 0x64);
+            Value contempt = cp_to_value (double(FixedContempt + timed_contempt) / 0x64);
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 
@@ -1915,11 +1915,11 @@ namespace Searcher {
         }
         for (d = 0; d < FutilityMoveCountDepth; ++d)
         {
-            FutilityMoveCounts[0][d] = u08(2.40f + 0.773f * pow (0.00f + d, 1.80f));
-            FutilityMoveCounts[1][d] = u08(2.90f + 1.045f * pow (0.49f + d, 1.80f));
+            FutilityMoveCounts[0][d] = u08(2.40 + 0.773 * pow (0.00 + d, 1.80));
+            FutilityMoveCounts[1][d] = u08(2.90 + 1.045 * pow (0.49 + d, 1.80));
         }
 
-        float red[2];
+        double red[2];
         ReductionDepths[0][0][0][0] =
         ReductionDepths[0][1][0][0] =
         ReductionDepths[1][0][0][0] =
@@ -1929,10 +1929,10 @@ namespace Searcher {
         {
             for (mc = 1; mc < ReductionMoveCount; ++mc) // move-count
             {
-                red[0] = 0.000f + log (float(d)) * log (float(mc)) / 3.00f;
-                red[1] = 0.333f + log (float(d)) * log (float(mc)) / 2.25f;
-                ReductionDepths[1][1][d][mc] = red[0] >= 1.0f ? Depth (u08(red[0] + 0.5f)) : DEPTH_ZERO;
-                ReductionDepths[0][1][d][mc] = red[1] >= 1.0f ? Depth (u08(red[1] + 0.5f)) : DEPTH_ZERO;
+                red[0] = 0.000 + log (double(d)) * log (double(mc)) / 3.00;
+                red[1] = 0.333 + log (double(d)) * log (double(mc)) / 2.25;
+                ReductionDepths[1][1][d][mc] = red[0] >= 1.0f ? Depth (u08(red[0] + 0.5)) : DEPTH_ZERO;
+                ReductionDepths[0][1][d][mc] = red[1] >= 1.0f ? Depth (u08(red[1] + 0.5)) : DEPTH_ZERO;
 
                 ReductionDepths[1][0][d][mc] = ReductionDepths[1][1][d][mc];
                 ReductionDepths[0][0][d][mc] = ReductionDepths[0][1][d][mc];

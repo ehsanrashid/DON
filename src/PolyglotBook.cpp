@@ -370,7 +370,7 @@ namespace OpeningBook {
         //{
         //    oss << setfill ('0')
         //        << _pbe << " prob: " << right << fixed << width_prec (6, 2)
-        //        << (weight_sum ? 100 * (float) _pbe.weight / weight_sum : 0.0)
+        //        << (weight_sum ? 100.0 * (double) _pbe.weight / weight_sum : 0.0)
         //        << setfill (' ') << endl;
         //});
 
