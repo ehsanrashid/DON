@@ -162,7 +162,7 @@ namespace Evaluator {
             S(+233,+201), // Pawn Structure
             S(+221,+273), // Passed Pawns
             S(+ 46,+  0), // Space Activity
-            S(+321,+  0)  // King Safety
+            S(+324,+  0)  // King Safety
         };
 
         // PIECE_MOBILIZE[PieceT][Attacks] contains bonuses for mobility,
@@ -280,13 +280,13 @@ namespace Evaluator {
         Score KING_DANGER[MAX_ATTACK_UNITS];
 
         // KING_ATTACK[PieceT] contains king attack weights by piece type
-        const i32   KING_ATTACK[NONE] = { + 1, +12, + 4, + 9, +10, + 0 };
+        const i32   KING_ATTACK[NONE] = { + 1, +16, + 8, + 8, + 2, + 0 };
 
         // Bonuses for safe checks
-        const i32    SAFE_CHECK[NONE] = { + 0, +14, + 7, +36, +50, + 0 };
+        const i32    SAFE_CHECK[NONE] = { + 0, +16, + 5, +38, +51, + 0 };
 
         // Bonuses for contact safe checks
-        const i32 CONTACT_CHECK[NONE] = { + 0, + 0, +12, +68, +92, + 0 };
+        const i32 CONTACT_CHECK[NONE] = { + 0, + 0, +12, +72, +89, + 0 };
 
         // weight_option() computes the value of an evaluation weight,
         // by combining UCI-configurable weights with an internal weight.
@@ -638,10 +638,10 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + min ((ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp])/2, 77U) // King-ring attacks
-                    + 10 * (ei.king_zone_attacks_count[Opp]) // King-zone attacks
-                    + 19 * (undefended != U64(0) ? more_than_one (undefended) ? pop_count<MAX15> (undefended) : 1 : 0) // King-zone undefended pieces
-                    +  9 * (ei.pinneds[Own] != U64(0) ? more_than_one (ei.pinneds[Own]) ? pop_count<MAX15> (ei.pinneds[Own]) : 1 : 0) // King pinned piece
+                    + min ((ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp])/2, 74U)   // King-ring attacks
+                    +  9 * (ei.king_zone_attacks_count[Opp])                                                // King-zone attacks
+                    + 25 * (undefended != U64(0) ? pop_count<MAX15> (undefended) : 0)                       // King-zone undefended pieces
+                    + 10 * (ei.pinneds[Own] != U64(0) ? pop_count<MAX15> (ei.pinneds[Own]) : 0)             // King pinned piece
                     - 60 * (pos.count<QUEN>(Opp) == 0)
                     - i32(value) / 8;
 
@@ -1223,14 +1223,14 @@ namespace Evaluator {
         Weights[SPACE_ACTIVITY] = weight_option (1000 , INTERNAL_WEIGHTS[SPACE_ACTIVITY]);
         Weights[KING_SAFETY   ] = weight_option (1000 , INTERNAL_WEIGHTS[KING_SAFETY   ]);
 
-        const float MAX_SLOPE  = 0007.5f;
+        const float MAX_SLOPE  = 0008.5f;
         const float PEAK_VALUE = 1280.0f;
 
         float mg       = 0.0f;
         KING_DANGER[0] = SCORE_ZERO;
         for (i32 i = 1; i < MAX_ATTACK_UNITS; ++i)
         {
-            mg = min (min (0.025f*i*i, mg + MAX_SLOPE), PEAK_VALUE);
+            mg = min (min (0.027f*i*i, mg + MAX_SLOPE), PEAK_VALUE);
             KING_DANGER[i] = apply_weight (mk_score (i32(mg), 0), Weights[KING_SAFETY]);
         }
     }

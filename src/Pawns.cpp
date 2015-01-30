@@ -15,10 +15,10 @@ namespace Pawns {
         // Weakness of our pawn shelter in front of the king indexed by [distance from edge][rank]
         const Value SHELTER_WEAKNESS[F_NO/2][R_NO] =
         {
-            { V(+100), V(+13), V(+24), V(+64), V(+89), V(+ 93), V(+104) },
-            { V(+110), V(+ 1), V(+29), V(+75), V(+96), V(+102), V(+107) },
-            { V(+102), V(+ 0), V(+39), V(+74), V(+88), V(+101), V(+ 98) },
-            { V(+ 88), V(+ 4), V(+33), V(+67), V(+92), V(+ 94), V(+107) }
+            { V(+ 99), V(+23), V(+24), V(+54), V(+85), V(+ 93), V(+107) },
+            { V(+119), V(+ 2), V(+28), V(+72), V(+96), V(+104), V(+114) },
+            { V(+103), V(+ 6), V(+47), V(+74), V(+84), V(+103), V(+ 94) },
+            { V(+ 78), V(+10), V(+41), V(+64), V(+88), V(+ 92), V(+115) }
         };
 
         enum Type { NO_FRIEND_PAWN, UNBLOCKED, BLOCKED_BY_PAWN, BLOCKED_BY_KING , TYPE_NO};
@@ -26,35 +26,35 @@ namespace Pawns {
         const Value STORM_DANGER[TYPE_NO][F_NO/2][R_NO] =
         {
             {
-                { V(  0),  V(+ 63), V(+128), V(+43), V(+27) },
-                { V(  0),  V(+ 62), V(+131), V(+44), V(+26) },
-                { V(  0),  V(+ 59), V(+121), V(+50), V(+28) },
-                { V(  0),  V(+ 62), V(+127), V(+54), V(+28) }
+                { V(  0),  V(+ 65), V(+125), V(+37), V(+30) },
+                { V(  0),  V(+ 57), V(+136), V(+39), V(+24) },
+                { V(  0),  V(+ 50), V(+114), V(+45), V(+29) },
+                { V(  0),  V(+ 58), V(+129), V(+56), V(+34) }
             },
             {
-                { V(+24),  V(+ 40), V(+ 93), V(+42), V(+22) },
-                { V(+24),  V(+ 28), V(+101), V(+38), V(+20) },
-                { V(+24),  V(+ 32), V(+ 95), V(+36), V(+23) },
-                { V(+27),  V(+ 24), V(+ 99), V(+36), V(+24) }
+                { V(+20),  V(+ 45), V(+ 91), V(+47), V(+20) },
+                { V(+25),  V(+ 23), V(+105), V(+38), V(+14) },
+                { V(+21),  V(+ 37), V(+ 99), V(+35), V(+21) },
+                { V(+30),  V(+ 18), V(+105), V(+38), V(+28) }
             },
             {
-                { V(  0),  V(   0), V(+ 81), V(+16), V(+ 6) },
-                { V(  0),  V(   0), V(+165), V(+29), V(+ 9) },
-                { V(  0),  V(   0), V(+163), V(+23), V(+12) },
-                { V(  0),  V(   0), V(+161), V(+28), V(+13) }
+                { V(  0),  V(   0), V(+ 81), V(+13), V(+ 4) },
+                { V(  0),  V(   0), V(+169), V(+30), V(+ 4) },
+                { V(  0),  V(   0), V(+166), V(+24), V(+ 6) },
+                { V(  0),  V(   0), V(+164), V(+24), V(+11) }
             },
             {
-                { V(  0),  V(-296), V(-299), V(+55), V(+25) },
-                { V(  0),  V(+ 67), V(+131), V(+46), V(+21) },
-                { V(  0),  V(+ 65), V(+135), V(+50), V(+31) },
-                { V(  0),  V(+ 62), V(+128), V(+51), V(+24) }
+                { V(  0),  V(-289), V(-297), V(+57), V(+29) },
+                { V(  0),  V(+ 66), V(+136), V(+43), V(+16) },
+                { V(  0),  V(+ 66), V(+141), V(+50), V(+31) },
+                { V(  0),  V(+ 63), V(+126), V(+52), V(+23) }
             } 
         };
 
         // Max bonus for king safety by pawns.
         // Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizon.
-        const Value KING_SAFETY_BY_PAWN = V(+257);
+        const Value KING_SAFETY_BY_PAWN = V(+252);
 
     #undef V
 
@@ -227,16 +227,13 @@ namespace Pawns {
                     score -= DOUBLED[f] / dist<Rank> (s, scan_frntmost_sq (Own, doubled));
                 }
                 else
+                // Only the frontmost passed pawn on each file is considered a true passed pawn.
+                // Passed pawns will be properly scored in evaluation
+                // because complete attack info needed to evaluate passed pawns.
+                if (passed)
                 {
-                    // Only the frontmost passed pawn on each file is considered a true passed pawn.
-                    // Passed pawns will be properly scored in evaluation
-                    // because complete attack info needed to evaluate passed pawns.
-                    if (passed)
-                    {
-                        e->passed_pawns[Own] += s;
-                    }
+                    e->passed_pawns[Own] += s;
                 }
-
 
 #ifndef NDEBUG
                 //cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << endl;
@@ -269,25 +266,26 @@ namespace Pawns {
         Value value = KING_SAFETY_BY_PAWN;
 
         Bitboard front_pawns = pos.pieces<PAWN> () & (FRONT_RANK_bb[Own][_rank (k_sq)] | RANK_bb[_rank (k_sq)]);
-        Bitboard own_pawns = front_pawns & pos.pieces (Own);
-        Bitboard opp_pawns = front_pawns & pos.pieces (Opp);
+        Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
+        Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        i08 kfc = min (max (_file (k_sq), F_B), F_G);
+        i32 kfc = min (max (_file (k_sq), F_B), F_G);
         for (i32 f = kfc - 1; f <= kfc + 1; ++f)
         {
             assert (F_A <= f && f <= F_H);
 
             Bitboard mid_pawns;
             
-            mid_pawns = own_pawns & FILE_bb[f];
+            mid_pawns = own_front_pawns & FILE_bb[f];
             Rank r0 = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
 
-            mid_pawns = opp_pawns & FILE_bb[f];
+            mid_pawns = opp_front_pawns & FILE_bb[f];
             Rank r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
-            value -= SHELTER_WEAKNESS[min (f, i32(F_H) - f)][r0]
+            value -= 
+                  +  SHELTER_WEAKNESS[min (f, i32(F_H) - f)][r0]
                   +  STORM_DANGER
-                        [ f == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
+                        [f  == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
                          r0 == R_1                                            ? NO_FRIEND_PAWN :
                          r1 == r0 + 1                                         ? BLOCKED_BY_PAWN  : UNBLOCKED]
                         [min (f, i32(F_H) - f)][r1];
