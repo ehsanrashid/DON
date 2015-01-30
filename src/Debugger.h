@@ -37,7 +37,7 @@ namespace Debug {
 
     private:
         std::ofstream _fstm;
-        std::tie_buf  _inbuf;
+        std::tie_buf  _innbuf;
         std::tie_buf  _outbuf;
         std::string   _log_fn;
 
@@ -45,7 +45,7 @@ namespace Debug {
 
         // Constructor should be protected !!!
         DebugLogger ()
-            : _inbuf (std::cin .rdbuf (), &_fstm)
+            : _innbuf (std::cin .rdbuf (), &_fstm)
             , _outbuf (std::cout.rdbuf (), &_fstm)
         {}
 
@@ -85,7 +85,7 @@ namespace Debug {
                 _fstm.open (_log_fn.c_str (), std::ios_base::out|std::ios_base::app);
                 _fstm << "[" << Time::to_string (Time::now ()) << "] ->" << std::endl;
 
-                std::cin .rdbuf (&_inbuf);
+                std::cin .rdbuf (&_innbuf);
                 std::cout.rdbuf (&_outbuf);
             }
         }
@@ -95,7 +95,7 @@ namespace Debug {
             if (_fstm.is_open ())
             {
                 std::cout.rdbuf (_outbuf.sbuf ());
-                std::cin .rdbuf (_inbuf.sbuf ());
+                std::cin .rdbuf (_innbuf.sbuf ());
 
                 _fstm << "[" << Time::to_string (Time::now ()) << "] <-" << std::endl;
                 _fstm.close ();

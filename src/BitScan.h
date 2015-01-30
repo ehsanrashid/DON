@@ -24,7 +24,7 @@ INLINE Square scan_lsq (Bitboard bb)
 #ifdef BIT64
     _BitScanForward64 (&index, bb);
 #else
-    if (u32(bb))
+    if (u32(bb) != 0)
     {
         _BitScanForward (&index, bb);
     }
@@ -45,7 +45,7 @@ INLINE Square scan_msq (Bitboard bb)
 #ifdef BIT64
     _BitScanReverse64 (&index, bb);
 #else
-    if (u32(bb >> 32))
+    if (u32(bb >> 32) != 0)
     {
         _BitScanReverse (&index, bb >> 32);
         index += 32;
@@ -166,14 +166,14 @@ INLINE Square  scan_lsq (Bitboard bb)
 
 #ifdef BIT64
 
-    if (!bb) return SQ_NO;
+    if (bb == U64(0)) return SQ_NO;
     u64 x = bb ^ (bb - 1); // set all bits including the LS1B and below
     u08 index = (x * DE_BRUIJN_64) >> 0x3A; // 58
     return Square(BSF_TABLE[index]);
 
 #else
 
-    if (!bb) return SQ_NO;
+    if (bb == U64(0)) return SQ_NO;
     // Use Matt Taylor's folding trick for 32-bit
     u64 x = bb ^ (bb - 1);
     u32 fold = u32(x ^ (x >> 32));
@@ -189,7 +189,7 @@ inline Square  scan_msq (Bitboard bb)
 
 #ifdef BIT64
 
-    if (!bb) return SQ_NO;
+    if (bb == U64(0)) return SQ_NO;
     // set all bits including the MS1B and below
     bb |= bb >> 0x01;
     bb |= bb >> 0x02;
@@ -203,7 +203,7 @@ inline Square  scan_msq (Bitboard bb)
 
 #else
 
-    if (!bb) return SQ_NO;
+    if (bb == U64(0)) return SQ_NO;
     u08 msb = 0;
     if (bb > 0xFFFFFFFF)
     {

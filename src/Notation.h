@@ -111,7 +111,7 @@ namespace Notation {
 //
 //template<class CharT, class Traits>
 //inline std::basic_ostream<CharT, Traits>&
-//operator<< (std::basic_ostream<CharT, Traits> &os, const CRight cr)
+//operator<< (std::basic_ostream<CharT, Traits> &os, CRight cr)
 //{
 //    os << to_string (cr);
 //    return os;
@@ -119,7 +119,7 @@ namespace Notation {
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
-operator<< (std::basic_ostream<CharT, Traits> &os, const Move m)
+operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
 {
     os << Notation::move_to_can (m);
     return os;
