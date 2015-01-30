@@ -16,14 +16,7 @@ namespace Notation {
     namespace {
 
         // Type of the Ambiguity
-        enum AmbiguityT
-        {
-            AMB_NONE = 0,
-            AMB_RANK = 1,
-            AMB_FILE = 2,
-            AMB_SQR  = 3,
-
-        };
+        enum AmbiguityT { AMB_NONE, AMB_RANK, AMB_FILE, AMB_SQR };
 
         // Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
         // NOTE: for pawns it is not needed because 'org' file is explicit.
@@ -43,10 +36,10 @@ namespace Notation {
             amb = pcs = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
             while (pcs != U64(0))
             {
-                Square amb_org = pop_lsq (pcs);
-                if (!pos.legal (mk_move<NORMAL> (amb_org, dst), pinneds))
+                Square sq = pop_lsq (pcs);
+                if (!pos.legal (mk_move<NORMAL> (sq, dst), pinneds))
                 {
-                    amb -= amb_org;
+                    amb -= sq;
                 }
             }
 
