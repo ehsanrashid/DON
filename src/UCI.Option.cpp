@@ -304,7 +304,7 @@ namespace UCI {
         // By default DON will use the hash.dat file in the current folder of the engine.
         Options["Hash File"]                    << Option (HashFile.c_str(), configure_hash);
         // Auto Save Hash Time (min)
-        Options["Auto Save Hash (min)"]         << Option (AutoSaveHashTime, 0, 60, configure_hash);
+        Options["Auto Save Hash (min)"]         << Option (AutoSaveHashTime,    0,  60, configure_hash);
         // Auto Load Saved Hash (bool)
         Options["Auto Load Saved Hash"]         << Option (AutoLoadHash, configure_hash);
 
@@ -373,7 +373,7 @@ namespace UCI {
         // Default 1, Min 1, Max 50.
         //
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["MultiPV"]                      << Option (MultiPV, 1, 50, configure_multipv);
+        Options["MultiPV"]                      << Option (MultiPV  ,   1,  50, configure_multipv);
 
         // TODO::
         // Limit the multi-PV analysis to moves within a range of the best move.

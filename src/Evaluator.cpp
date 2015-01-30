@@ -1225,9 +1225,9 @@ namespace Evaluator {
 
         const double MAX_SLOPE  = 0008.5;
         const double PEAK_VALUE = 1280.0;
-
-        double mg       = 0.0;
+        
         KING_DANGER[0] = SCORE_ZERO;
+        double mg      = 0.0;
         for (i32 i = 1; i < MAX_ATTACK_UNITS; ++i)
         {
             mg = min (min (0.027*i*i, mg + MAX_SLOPE), PEAK_VALUE);
