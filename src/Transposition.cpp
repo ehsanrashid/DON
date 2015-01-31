@@ -16,19 +16,17 @@ namespace Transposition {
 
     void TranspositionTable::alloc_aligned_memory (u64 mem_size, u32 alignment)
     {
-        assert (0 == (alignment & (alignment - 1)));
-        assert (0 == (mem_size  & (alignment - 1)));
+        assert (0 == (alignment & (alignment-1)));
+        assert (0 == (mem_size  & (alignment-1)));
 
     #ifdef LPAGES
-
-        u32 offset = max (alignment-1, u32(sizeof (void *)));
 
         Memory::alloc_memory (_mem, mem_size, alignment);
         if (_mem != NULL)
         {
-            void *ptr = reinterpret_cast<void*> ((u64(_mem) + offset) & ~u64(offset));
+            void *ptr = reinterpret_cast<void*> ((uintptr_t(_mem) + alignment-1) & ~u64(alignment-1));
             _clusters = reinterpret_cast<Cluster*> (ptr);
-            assert (0 == (u64(_clusters) & (alignment - 1)));
+            assert (0 == (uintptr_t(_clusters) & (alignment-1)));
             return;
         }
 
@@ -48,17 +46,17 @@ namespace Transposition {
         // Then checking for error returned by malloc, if it returns NULL then 
         // alloc_aligned_memory will fail and return NULL or exit().
 
-        u32 offset = max (alignment, u32(sizeof (void *)));
+        alignment = max (u32(sizeof (void *)), alignment);
 
-        void *mem = calloc (mem_size + offset, 1);
+        void *mem = calloc (mem_size + alignment, 1);
         if (mem != NULL)
         {
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
 
-            void **ptr = reinterpret_cast<void**> ((u64(mem) + offset) & ~u64(alignment - 1));
+            void **ptr = reinterpret_cast<void**> ((uintptr_t(mem) + alignment-1) & ~u64(alignment-1));
             ptr[-1]    = mem;
             _clusters  = reinterpret_cast<Cluster*> (ptr);
-            assert (0 == (u64(_clusters) & (alignment - 1)));
+            assert (0 == (uintptr_t(_clusters) & (alignment-1)));
             return;
         }
 

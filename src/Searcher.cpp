@@ -88,7 +88,7 @@ namespace Searcher {
         // History statistics
         HistoryStats HistoryStatistics;
         // Move statistics
-        MoveStats    CounterMoveStats    // Counter
+        MoveStats     CounterMoveStats   // Counter
             ,        FollowupMoveStats;  // Followup
 
         // update_stats() updates history, killer, counter & followup moves
@@ -111,7 +111,7 @@ namespace Searcher {
             Move opp_move = (ss-1)->current_move;
             if (_ok (opp_move))
             {
-                CounterMoveStats.update (pos, opp_move, move);
+                 CounterMoveStats.update (pos, opp_move, move);
             }
             Move own_move = (ss-2)->current_move;
             if (_ok (own_move) && opp_move == (ss-1)->tt_move)
@@ -196,9 +196,10 @@ namespace Searcher {
                     << (i == IndexPV ? beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "" : "")
                     << " time "     << time
                     << " nodes "    << pos.game_nodes ()
-                    << " nps "      << pos.game_nodes () * MILLI_SEC / max (time, point(1))
-                    << " hashfull " << TT.hash_full ()
-                    << " pv"        << RootMoves[i].info_pv ();
+                    << " nps "      << pos.game_nodes () * MILLI_SEC / max (time, point(1));
+                if (time > MILLI_SEC) ss  << " hashfull " << TT.hash_full ();
+                ss  << " pv"        << RootMoves[i].info_pv ();
+
             }
 
             return ss.str ();
@@ -266,8 +267,7 @@ namespace Searcher {
             // TT entry depth that are going to use. Note that in quien_search use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
             Depth qs_depth = InCheck || depth >= DEPTH_QS_CHECKS ?
-                                DEPTH_QS_CHECKS :
-                                DEPTH_QS_NO_CHECKS;
+                                DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             CheckInfo cc, *ci = NULL;
 
@@ -587,19 +587,19 @@ namespace Searcher {
 
                 // At non-PV nodes we check for a fail high/low. We don't probe at PV nodes
                 if (  !PVNode
-                    && tt_hit
-                    && tt_value != VALUE_NONE // Only in case of TT access race
-                    && tt_depth >= depth
-                    && (tt_value >= beta ? (tt_bound & BOUND_LOWER) : (tt_bound & BOUND_UPPER))
+                   && tt_hit
+                   && tt_value != VALUE_NONE // Only in case of TT access race
+                   && tt_depth >= depth
+                   && (tt_value >= beta ? (tt_bound & BOUND_LOWER) : (tt_bound & BOUND_UPPER))
                    )
                 {
                     (ss)->current_move = tt_move; // Can be MOVE_NONE
 
                     // If tt_move is quiet, update history, killer moves, countermove and followupmove on TT hit
                     if (  !in_check
-                        && tt_value >= beta
-                        && tt_move != MOVE_NONE
-                        && !pos.capture_or_promotion (tt_move)
+                       && tt_value >= beta
+                       && tt_move != MOVE_NONE
+                       && !pos.capture_or_promotion (tt_move)
                        )
                     {
                         update_stats (pos, ss, tt_move, depth, NULL, 0);
@@ -748,7 +748,7 @@ namespace Searcher {
                                 if (value >= beta)
                                 {
                                     // Don't return unproven unproven mates
-                                    return abs (value) < +VALUE_MATE_IN_MAX_DEPTH ? value : beta;
+                                    return abs (null_value) < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
                                 }
                             }
                         }
@@ -1669,7 +1669,7 @@ namespace Searcher {
 
         _best_move = MOVE_NONE;
 
-        u08 skill_pv = pv_size ();
+        u08   skill_pv   = pv_size ();
         // RootMoves are already sorted by score in descending order
         Value variance   = min (RootMoves[0].new_value - RootMoves[skill_pv - 1].new_value, VALUE_MG_PAWN);
         Value weakness   = Value(MAX_DEPTH - 2 * _level);
@@ -1679,16 +1679,9 @@ namespace Searcher {
         // then choose the move with the resulting highest score.
         for (u08 i = 0; i < skill_pv; ++i)
         {
-            Value v = RootMoves[i].new_value;
-
-            // Don't allow crazy blunders even at very low skills
-            if (i > 0 && RootMoves[i-1].new_value > (v + 2*VALUE_MG_PAWN))
-            {
-                break;
-            }
-
-            v += weakness * i32(RootMoves[0].new_value - v)
-              +  variance * i32(pr.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2);
+            Value v = RootMoves[i].new_value
+                    + weakness * i32(RootMoves[0].new_value - RootMoves[i].new_value)
+                    + variance * i32(pr.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2);
 
             if (best_value < v)
             {
@@ -1732,8 +1725,8 @@ namespace Searcher {
                 << "RootSize : " << u16(RootSize)                    << "\n"
                 << "Infinite : " << Limits.infinite                  << "\n"
                 << "Ponder   : " << Limits.ponder                    << "\n"
-                << "ClockTime: " << Limits.game_clock[RootColor].time << "\n"
-                << "Increment: " << Limits.game_clock[RootColor].inc  << "\n"
+                << "ClockTime: " << Limits.game_clock[RootColor].time<< "\n"
+                << "Increment: " << Limits.game_clock[RootColor].inc << "\n"
                 << "MoveTime : " << Limits.movetime                  << "\n"
                 << "MovesToGo: " << u16(Limits.movestogo)            << "\n"
                 << " Depth Score    Time       Nodes  PV\n"
@@ -1871,9 +1864,9 @@ namespace Searcher {
             << "info"
             << " time "     << time
             << " nodes "    << RootPos.game_nodes ()
-            << " nps "      << RootPos.game_nodes () * MILLI_SEC / max (time, point(1))
-            << " hashfull " << TT.hash_full ()
-            << sync_endl;
+            << " nps "      << RootPos.game_nodes () * MILLI_SEC / max (time, point(1));
+        if (time > MILLI_SEC) cout << " hashfull " << TT.hash_full ();
+        cout<< sync_endl;
 
         // When reach max depth arrive here even without Signals.force_stop is raised,
         // but if are pondering or in infinite search, according to UCI protocol,

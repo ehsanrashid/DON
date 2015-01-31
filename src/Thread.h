@@ -114,11 +114,9 @@ namespace Threads {
 
 #else    // Linux - Unix
 
-        timespec ts
-            ,   *tm = &ts;
+        timespec ts, *tm = &ts;
         u64 ms = Time::now() + msec;
-
-        ts.tv_sec = ms / Time::MILLI_SEC;
+        ts.tv_sec  = ms / Time::MILLI_SEC;
         ts.tv_nsec = (ms % Time::MILLI_SEC) * 1000000LL;
 
 #endif
@@ -184,7 +182,7 @@ namespace Threads {
     {
     protected:
         Condition     sleep_condition;
-        volatile bool  alive;
+        volatile bool alive;
 
         ThreadBase ()
             : alive (true)
@@ -243,7 +241,7 @@ namespace Threads {
 
         Position *active_pos;
 
-        u08     idx;
+        u08       idx;
 
         SplitPoint* volatile active_splitpoint;
         volatile    u08      splitpoint_count;
@@ -292,7 +290,7 @@ namespace Threads {
         TimerThread *auto_save_th;
 
         Depth       split_depth;
-        u08         max_ply;
+        i32         max_ply;
         
         MainThread* main () { return static_cast<MainThread*> (at(0)); }
 
@@ -370,8 +368,8 @@ extern Threads::ThreadPool  Threadpool;
 //#elif __HPUX
 //
 //    pst_dynamic psd;
-//    return (pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1)
-//        ? 1 : psd.psd_proc_cnt;
+//    return pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1 ?
+//        1 : psd.psd_proc_cnt;
 //
 //    //return mpctl (MPC_GETNUMSPUS, NULL, NULL);
 //

@@ -35,6 +35,14 @@ namespace Notation {
     
 }
 
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
+{
+    os << Notation::move_to_can (m);
+    return os;
+}
+
 //template<class CharT, class Traits>
 //inline std::basic_ostream<CharT, Traits>&
 //    operator<< (std::basic_ostream<CharT, Traits> &os, Color c)
@@ -77,7 +85,7 @@ namespace Notation {
 
 //template<class CharT, class Traits>
 //inline std::basic_ostream<CharT, Traits>&
-//    operator<< (std::basic_ostream<CharT, Traits> &os, const Piece p)
+//    operator<< (std::basic_ostream<CharT, Traits> &os, Piece p)
 //{
 //    os << PIECE_CHAR[p];
 //    return os;
@@ -116,13 +124,5 @@ namespace Notation {
 //    os << to_string (cr);
 //    return os;
 //}
-
-template<class CharT, class Traits>
-inline std::basic_ostream<CharT, Traits>&
-operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
-{
-    os << Notation::move_to_can (m);
-    return os;
-}
 
 #endif // _NOTATION_H_INC_

@@ -155,7 +155,7 @@ namespace Searcher {
     {
         SplitPoint *splitpoint;
         Move       *pv;
-        u08         ply;
+        i32         ply;
 
         Move    tt_move
             ,   current_move
