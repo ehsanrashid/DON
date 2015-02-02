@@ -701,13 +701,13 @@ bool Position::pseudo_legal (Move m) const
     {
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
-        if (!(  KING == ptype (_board[org])
-             && R_1 == r_org
-             && R_1 == r_dst
-             && _board[dst] == (_active|ROOK)
-             && _si->checkers == U64(0)
-             && _si->castle_rights & mk_castle_right (_active)
-             )
+        if ( !(  KING == ptype (_board[org])
+              && R_1 == r_org
+              && R_1 == r_dst
+              && _board[dst] == (_active|ROOK)
+              && _si->checkers == U64(0)
+              && _si->castle_rights & mk_castle_right (_active)
+              )
            )
             return false;
 
@@ -732,12 +732,12 @@ bool Position::pseudo_legal (Move m) const
 
     case ENPASSANT:
     {
-        if (!(  PAWN == ptype (_board[org])
-             && _si->en_passant_sq == dst
-             && R_5 == r_org
-             && R_6 == r_dst
-             && empty (dst)
-             )
+        if ( !(  PAWN == ptype (_board[org])
+              && _si->en_passant_sq == dst
+              && R_5 == r_org
+              && R_6 == r_dst
+              && empty (dst)
+              )
            )
             return false;
 
@@ -749,10 +749,10 @@ bool Position::pseudo_legal (Move m) const
 
     case PROMOTE:
     {
-        if (!(  PAWN == ptype (_board[org])
-             && R_7 == r_org
-             && R_8 == r_dst
-             )
+        if ( !(  PAWN == ptype (_board[org])
+              && R_7 == r_org
+              && R_8 == r_dst
+              )
            )
             return false;
 
@@ -789,9 +789,9 @@ bool Position::pseudo_legal (Move m) const
         case DEL_N:
         case DEL_S:
             // Pawn push. The destination square must be empty.
-            if (!( empty (dst)
-                && 0 == dist<File> (dst, org)
-                 )
+            if ( !( empty (dst)
+                  && 0 == dist<File> (dst, org)
+                  )
                )
                 return false;
         break;
@@ -802,10 +802,10 @@ bool Position::pseudo_legal (Move m) const
             // The destination square must be occupied by an enemy piece
             // (en passant captures was handled earlier).
             // File distance b/w cap and org must be one, avoids a7h5
-            if (!( NONE != ct
-                && ~_active == color (_board[cap])
-                && 1 == dist<File> (cap, org)
-                 )
+            if ( !( NONE != ct
+                  && ~_active == color (_board[cap])
+                  && 1 == dist<File> (cap, org)
+                  )
                )
                 return false;
         break;
@@ -814,12 +814,12 @@ bool Position::pseudo_legal (Move m) const
             // Double pawn push. The destination square must be on the fourth
             // rank, and both the destination square and the square between the
             // source and destination squares must be empty.
-            if (!( R_2 == r_org
-                && R_4 == r_dst
-                && empty (dst)
-                && empty (dst - pawn_push (_active))
-                && 0 == dist<File> (dst, org)
-                 )
+            if ( !( R_2 == r_org
+                  && R_4 == r_dst
+                  && empty (dst)
+                  && empty (dst - pawn_push (_active))
+                  && 0 == dist<File> (dst, org)
+                  )
                )
                 return false;
         break;
@@ -841,7 +841,7 @@ bool Position::pseudo_legal (Move m) const
     {
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
-        if (KING == ptype (_board[org])) return !attackers_to (dst, ~_active, _types_bb[NONE] - org); // Remove 'org' but not place 'dst'
+        if (KING == ptype (_board[org])) return attackers_to (dst, ~_active, _types_bb[NONE] - org) == U64(0); // Remove 'org' but not place 'dst'
 
         // Double check? In this case a king move is required
         if (more_than_one (_si->checkers)) return false;
@@ -878,7 +878,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // check whether the destination square is attacked by the opponent.
         if (KING == ptype (_board[org]))
         {
-            return !attackers_to (dst, ~_active, _types_bb[NONE] - org); // Remove 'org' but not place 'dst'
+            return attackers_to (dst, ~_active, _types_bb[NONE] - org) == U64(0); // Remove 'org' but not place 'dst'
         }
     }
     case PROMOTE:
@@ -909,8 +909,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
         Bitboard mocc = _types_bb[NONE] - org - cap + dst;
         // If any attacker then in check & not legal
-        return !(attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
-            && !(attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP])));
+        return (attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
+            && (attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0);
     }
     break;
 
@@ -934,7 +934,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     if (ci.checking_bb[ptype (_board[org])] & dst) return true;
     // Is there a Discovered check ?
     // For discovery check we need to verify also direction
-    if (  ci.discoverers && (ci.discoverers & org)
+    if (   ci.discoverers != U64(0)
+       && (ci.discoverers & org)
        && !sqrs_aligned (org, dst, ci.king_sq)
        )
     {
@@ -954,8 +955,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         dst             = rel_sq (_active, (dst > org) ? SQ_G1 : SQ_C1);
         Square rook_dst = rel_sq (_active, (dst > org) ? SQ_F1 : SQ_D1);
 
-        return PIECE_ATTACKS[ROOK][rook_dst] & ci.king_sq // First x-ray check then full check
-            && attacks_bb<ROOK> (rook_dst, (_types_bb[NONE] - org - rook_org + dst + rook_dst)) & ci.king_sq;
+        return (PIECE_ATTACKS[ROOK][rook_dst] & ci.king_sq) // First x-ray check then full check
+            && (attacks_bb<ROOK> (rook_dst, (_types_bb[NONE] - org - rook_org + dst + rook_dst)) & ci.king_sq);
     }
     break;
     
@@ -967,8 +968,8 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         Square cap = _file (dst) | _rank (org);
         Bitboard mocc = _types_bb[NONE] - org - cap + dst;
         // if any attacker then in check
-        return attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]))
-            || attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]));
+        return (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) != U64(0)
+            || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) != U64(0);
                
     }
     break;
@@ -976,7 +977,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     case PROMOTE:
     {
         // Promotion with check ?
-        return attacks_bb (Piece(promote (m)), dst, _types_bb[NONE] - org + dst) & ci.king_sq;
+        return (attacks_bb (Piece(promote (m)), dst, _types_bb[NONE] - org + dst) & ci.king_sq);
     }
     break;
     
@@ -1260,8 +1261,8 @@ bool Position::can_en_passant (Square ep_sq) const
     for (m = moves; *m != MOVE_NONE; ++m)
     {
         Bitboard mocc = occ - org_sq (*m);
-        if (  !(attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK])))
-           && !(attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP])))
+        if (  (attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
+           && (attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0)
            )
         {
             return true;
