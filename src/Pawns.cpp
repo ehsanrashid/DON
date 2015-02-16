@@ -15,10 +15,10 @@ namespace Pawns {
         // Weakness of our pawn shelter in front of the king indexed by [distance from edge][rank]
         const Value SHELTER_WEAKNESS[F_NO/2][R_NO] =
         {
-            { V(+ 99), V(+23), V(+24), V(+54), V(+85), V(+ 93), V(+107) },
-            { V(+119), V(+ 2), V(+28), V(+72), V(+96), V(+104), V(+114) },
-            { V(+103), V(+ 6), V(+47), V(+74), V(+84), V(+103), V(+ 94) },
-            { V(+ 78), V(+10), V(+41), V(+64), V(+88), V(+ 92), V(+115) }
+            { V(+ 99), V(+ 20), V(+ 26), V(+ 54), V(+ 85), V(+ 92), V(+108) },
+            { V(+117), V(+  1), V(+ 27), V(+ 71), V(+ 94), V(+104), V(+118) },
+            { V(+104), V(+  4), V(+ 51), V(+ 76), V(+ 82), V(+102), V(+ 97) },
+            { V(+ 80), V(+ 12), V(+ 43), V(+ 65), V(+ 88), V(+ 91), V(+115) }
         };
 
         enum Type { NO_FRIEND_PAWN, UNBLOCKED, BLOCKED_BY_PAWN, BLOCKED_BY_KING , TYPE_NO};
@@ -26,41 +26,47 @@ namespace Pawns {
         const Value STORM_DANGER[TYPE_NO][F_NO/2][R_NO] =
         {
             {
-                { V(  0),  V(+ 65), V(+125), V(+37), V(+30) },
-                { V(  0),  V(+ 57), V(+136), V(+39), V(+24) },
-                { V(  0),  V(+ 50), V(+114), V(+45), V(+29) },
-                { V(  0),  V(+ 58), V(+129), V(+56), V(+34) }
+                { V(   0),  V(+ 65), V(+126), V(+ 36), V(+ 30) },
+                { V(   0),  V(+ 55), V(+135), V(+ 36), V(+ 23) },
+                { V(   0),  V(+ 47), V(+116), V(+ 45), V(+ 26) },
+                { V(   0),  V(+ 62), V(+127), V(+ 57), V(+ 34) }
             },
             {
-                { V(+20),  V(+ 45), V(+ 91), V(+47), V(+20) },
-                { V(+25),  V(+ 23), V(+105), V(+38), V(+14) },
-                { V(+21),  V(+ 37), V(+ 99), V(+35), V(+21) },
-                { V(+30),  V(+ 18), V(+105), V(+38), V(+28) }
+                { V(+ 21),  V(+ 45), V(+ 93), V(+ 50), V(+ 19) },
+                { V(+ 23),  V(+ 24), V(+105), V(+ 41), V(+ 13) },
+                { V(+ 23),  V(+ 36), V(+101), V(+ 38), V(+ 20) },
+                { V(+ 30),  V(+ 19), V(+110), V(+ 41), V(+ 27) }
             },
             {
-                { V(  0),  V(   0), V(+ 81), V(+13), V(+ 4) },
-                { V(  0),  V(   0), V(+169), V(+30), V(+ 4) },
-                { V(  0),  V(   0), V(+166), V(+24), V(+ 6) },
-                { V(  0),  V(   0), V(+164), V(+24), V(+11) }
+                { V(   0),  V(   0), V(+ 81), V(+ 14), V(+  4) },
+                { V(   0),  V(   0), V(+169), V(+ 30), V(+  3) },
+                { V(   0),  V(   0), V(+168), V(+ 24), V(+  5) },
+                { V(   0),  V(   0), V(+162), V(+ 26), V(+ 10) }
             },
             {
-                { V(  0),  V(-289), V(-297), V(+57), V(+29) },
-                { V(  0),  V(+ 66), V(+136), V(+43), V(+16) },
-                { V(  0),  V(+ 66), V(+141), V(+50), V(+31) },
-                { V(  0),  V(+ 63), V(+126), V(+52), V(+23) }
+                { V(   0),  V(-283), V(-298), V(+ 57), V(+ 29) },
+                { V(   0),  V(+ 63), V(+137), V(+ 42), V(+ 18) },
+                { V(   0),  V(+ 67), V(+145), V(+ 49), V(+ 33) },
+                { V(   0),  V(+ 62), V(+126), V(+ 53), V(+ 21) }
             } 
         };
 
         // Max bonus for king safety by pawns.
         // Corresponds to start position with all the pawns
         // in front of the king and no enemy pawn on the horizon.
-        const Value KING_SAFETY_BY_PAWN = V(+252);
+        const Value KING_SAFETY_BY_PAWN = V(+258);
 
     #undef V
 
     #define S(mg, eg) mk_score(mg, eg)
 
-        const i16 SEED[R_NO] = { 0, 6, 15, 10, 57, 75, 135, 258 };
+        const i16 SEED[R_NO] = {   0,  6, 15, 10, 57, 75,135,258 };
+
+        const Bitboard EXT_CENTER_bb[CLR_NO] =
+        {
+            (FB_bb | FC_bb | FD_bb | FE_bb | FF_bb | FG_bb) & (R2_bb | R3_bb | R4_bb | R5_bb | R6_bb),
+            (FB_bb | FC_bb | FD_bb | FE_bb | FF_bb | FG_bb) & (R3_bb | R4_bb | R5_bb | R6_bb | R7_bb)
+        };
 
         // Connected pawn bonus by [opposed][phalanx][rank] (by formula)
         Score CONNECTED[2][2][R_NO];
@@ -108,18 +114,29 @@ namespace Pawns {
         const Score UNSTOPPABLE = S(+ 0,+20); // Bonus for unstoppable pawn going to promote
         const Score UNSUPPORTED = S(+20,+10); // Penalty for unsupported pawn
 
+        // Center bind bonus: Two pawns controlling the same central square
+        const Bitboard CENTER_BIND_bb[CLR_NO] =
+        {
+            (FD_bb | FE_bb) & (R5_bb | R6_bb | R7_bb),
+            (FD_bb | FE_bb) & (R4_bb | R3_bb | R2_bb)
+        };
+
+        const Score CENTER_BIND = S(+16,+ 0);
+
         template<Color Own>
         inline Score evaluate (const Position &pos, Entry *e)
         {
-            const Color  Opp = WHITE == Own ? BLACK  : WHITE;
-            const Delta Push = WHITE == Own ? DEL_N  : DEL_S;
+            const Color Opp     = WHITE == Own ? BLACK  : WHITE;
+            const Delta Push    = WHITE == Own ? DEL_N  : DEL_S;
+            //const Delta Pull    = WHITE == Own ? DEL_S  : DEL_N;
+            const Delta Left    = WHITE == Own ? DEL_NW : DEL_SE;
+            const Delta Right   = WHITE == Own ? DEL_NE : DEL_SW;
 
             const Bitboard own_pawns = pos.pieces<PAWN> (Own);
             const Bitboard opp_pawns = pos.pieces<PAWN> (Opp);
 
-            e->pawns_attacks  [Own] = shift_del<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns) |
-                                      shift_del<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns);
-            //e->blocked_pawns  [Own] = own_pawns & shift_del<WHITE == C ? DEL_S : DEL_N> (opp_pawns);
+            e->pawns_attacks  [Own] = shift_del<Left> (own_pawns) | shift_del<Right> (own_pawns);
+            //e->blocked_pawns  [Own] = own_pawns & shift_del<Pull> (opp_pawns);
             e->passed_pawns   [Own] = U64(0);
             e->semiopen_files [Own] = 0xFF;
             e->king_sq        [Own] = SQ_NO;
@@ -129,9 +146,9 @@ namespace Pawns {
             {
                 Bitboard color_pawns;
                 color_pawns = center_pawns & LIHT_bb;
-                e->pawns_on_sqrs[Own][WHITE] = color_pawns != U64(0) ? u08(pop_count<MAX15>(color_pawns)) : 0;
+                e->pawns_on_sqrs[Own][WHITE] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
                 color_pawns = center_pawns & DARK_bb;
-                e->pawns_on_sqrs[Own][BLACK] = color_pawns != U64(0) ? u08(pop_count<MAX15>(color_pawns)) : 0;
+                e->pawns_on_sqrs[Own][BLACK] = color_pawns != U64(0) ? u08(pop_count<MAX15> (color_pawns)) : 0;
             }
             else
             {
@@ -246,8 +263,14 @@ namespace Pawns {
             //cout << "-------------" << endl;
 #endif
 
-            i32 span = e->semiopen_files[Own] ^ 0xFF;
-            e->pawn_span[Own] = span != 0 ? u08(scan_msq (span)) - u08(scan_lsq (span)) : 0;
+            Bitboard b;
+
+            b = e->semiopen_files[Own] ^ 0xFF;
+            e->pawn_span[Own] = b != U64(0) ? u08(scan_msq (b)) - u08(scan_lsq (b)) : U64(0);
+
+            // Center binds: Two pawns controlling the same central square
+            b = shift_del<Left> (own_pawns) & shift_del<Right> (own_pawns) & CENTER_BIND_bb[Own];
+            pawn_score += CENTER_BIND * pop_count<MAX15> (b);
 
             return pawn_score;
         }

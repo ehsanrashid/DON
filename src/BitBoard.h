@@ -43,13 +43,8 @@ namespace BitBoard {
 
     const Bitboard CORNER_bb    = (FA_bb | FH_bb)&(R1_bb | R8_bb);  // 04 CORNER squares.
     const Bitboard FILE_EDGE_bb = (FA_bb | FH_bb);
-    const Bitboard RIM_EDGE_bb  = (FILE_EDGE_bb | R1_bb | R8_bb);
-    const Bitboard END_EDGE_bb  = (FA_bb | FH_bb)&(R2_bb | R3_bb);
-    const Bitboard EXT_CENTER_bb[CLR_NO] =
-    {
-        (FB_bb | FC_bb | FD_bb | FE_bb | FF_bb | FG_bb) & (R2_bb | R3_bb | R4_bb | R5_bb | R6_bb),
-        (FB_bb | FC_bb | FD_bb | FE_bb | FF_bb | FG_bb) & (R3_bb | R4_bb | R5_bb | R6_bb | R7_bb)
-    };
+    //const Bitboard RIM_EDGE_bb  = (FILE_EDGE_bb | R1_bb | R8_bb);
+    //const Bitboard END_EDGE_bb  = (FA_bb | FH_bb)&(R2_bb | R3_bb);
 
     const Delta PAWN_DELTAS[CLR_NO][3] =
     {
@@ -84,12 +79,12 @@ namespace BitBoard {
 #undef S_02
     };
     // FILES
-    const Bitboard   FILE_bb[F_NO] =
+    const Bitboard FILE_bb[F_NO] =
     {
         FA_bb, FB_bb, FC_bb, FD_bb, FE_bb, FF_bb, FG_bb, FH_bb
     };
     // RANKS
-    const Bitboard   RANK_bb[R_NO] =
+    const Bitboard RANK_bb[R_NO] =
     {
         R1_bb, R2_bb, R3_bb, R4_bb, R5_bb, R6_bb, R7_bb, R8_bb
     };

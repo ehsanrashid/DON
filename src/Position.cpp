@@ -965,7 +965,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         // En-passant capture with check ?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
-        Square cap = _file (dst) | _rank (org);
+        Square   cap  = _file (dst) | _rank (org);
         Bitboard mocc = _types_bb[NONE] - org - cap + dst;
         // if any attacker then in check
         return (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) != U64(0)
@@ -993,10 +993,11 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 //{
 //    if (gives_check (m, ci))
 //    {
-//        Position pos = *this;
 //        StateInfo si;
-//        pos.do_move (m, si, &ci);
-//        return MoveList<LEGAL> (pos).size () == 0;
+//        do_move (m, si, true);
+//        bool mate = MoveList<LEGAL> (*this).size () == 0;
+//        undo_move ();
+//        return mate;
 //    }
 //    return false;
 //}

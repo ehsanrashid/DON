@@ -539,14 +539,14 @@ gcc-profile-prepare:
 
 gcc-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-generate'\
-	EXTRALDFLAGS='-lgcov'             \
+	EXTRACXXFLAGS='-fprofile-generate' \
+	EXTRALDFLAGS='-lgcov' \
 	all
 
 gcc-profile-use:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP)      \
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-fprofile-use -fno-peel-loops -fno-tracer' \
-	EXTRALDFLAGS='-lgcov'                  \
+	EXTRALDFLAGS='-lgcov' \
 	all
 
 gcc-profile-clean:
@@ -557,12 +557,12 @@ icc-profile-prepare:
 	@mkdir profdir
 
 icc-profile-make:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP)  \
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-prof-gen=srcpos -prof_dir ./profdir' \
 	all
 
 icc-profile-use:
-	$(MAKE) ARCH=$(ARCH) COMP=$(COMP)  \
+	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
 	EXTRACXXFLAGS='-prof_use -prof_dir ./profdir' \
 	all
 

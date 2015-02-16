@@ -162,7 +162,7 @@ namespace Evaluator {
             S(+233,+201), // Pawn Structure
             S(+221,+273), // Passed Pawns
             S(+ 46,+  0), // Space Activity
-            S(+324,+  0)  // King Safety
+            S(+322,+  0)  // King Safety
         };
 
         // PIECE_MOBILIZE[PieceT][Attacks] contains bonuses for mobility,
@@ -228,7 +228,9 @@ namespace Evaluator {
         const Score ROOK_TRAPPED            = S(+92,+ 0); // Penalty for rook trapped
         
         const Score PIECE_HANGED            = S(+31,+26); // Bonus for each enemy hanged piece       
-        const Score PAWN_ATTACK_THREAT      = S(+20,+20);
+        
+        const Score PAWN_SAFEATTACK         = S(+20,+20);
+        const Score PAWN_SAFEPUSH           = S(+ 5,+ 5);
 
     #undef S
 
@@ -281,13 +283,13 @@ namespace Evaluator {
         Score KING_DANGER[MAX_ATTACK_UNITS];
 
         // KING_ATTACK[PieceT] contains king attack weights by piece type
-        const i32   KING_ATTACK[NONE] = { + 1, +16, + 8, + 8, + 2, + 0 };
+        const i32   KING_ATTACK[NONE] = { + 1, +14, +10, + 8, + 2, + 0 };
 
         // Bonuses for safe checks
-        const i32    SAFE_CHECK[NONE] = { + 0, +16, + 5, +38, +51, + 0 };
+        const i32    SAFE_CHECK[NONE] = { + 0, +14, + 6, +37, +50, + 0 };
 
         // Bonuses for contact safe checks
-        const i32 CONTACT_CHECK[NONE] = { + 0, + 0, +12, +72, +89, + 0 };
+        const i32 CONTACT_CHECK[NONE] = { + 0, + 0, +12, +71, +89, + 0 };
 
         // weight_option() computes the value of an evaluation weight,
         // by combining UCI-configurable weights with an internal weight.
@@ -640,9 +642,9 @@ namespace Evaluator {
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
                     + min ((ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp])/2, 74U)   // King-ring attacks
-                    +  9 * (ei.king_zone_attacks_count[Opp])                                                // King-zone attacks
+                    +  8 * (ei.king_zone_attacks_count[Opp])                                                // King-zone attacks
                     + 25 * (undefended != U64(0) ? pop_count<MAX15> (undefended) : 0)                       // King-zone undefended pieces
-                    + 10 * (ei.pinneds[Own] != U64(0) ? pop_count<MAX15> (ei.pinneds[Own]) : 0)             // King pinned piece
+                    + 11 * (ei.pinneds[Own] != U64(0) ? pop_count<MAX15> (ei.pinneds[Own]) : 0)             // King pinned piece
                     - 60 * (pos.count<QUEN>(Opp) == 0)
                     - i32(value) / 8;
 
@@ -833,19 +835,25 @@ namespace Evaluator {
             threaten_pieces = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
             if (threaten_pieces != U64(0)) score += more_than_one (threaten_pieces) ? PIECE_HANGED * pop_count<MAX15> (threaten_pieces) : PIECE_HANGED;
 
-            // Add bonus for safe pawn pushes which attacks an enemy piece
-            threaten_pieces = pos.pieces<PAWN> (Own) & ~TR7_bb;
-            threaten_pieces = shift_del<Up> (threaten_pieces | (shift_del<Up> (threaten_pieces & TR2_bb) & ~pos.pieces ()));
-            threaten_pieces &= ~pos.pieces ()
-                            &  ~ei.pin_attacked_by[Opp][PAWN]
-                            &  (ei.pin_attacked_by[Own][PAWN] | ~ei.pin_attacked_by[Opp][NONE]);
-            threaten_pieces =  (shift_del<Left> (threaten_pieces) | shift_del<Right> (threaten_pieces))
-                            &   pos.pieces (Opp)
-                            &  ~ei.pin_attacked_by[Own][PAWN];
-
-            if (threaten_pieces != U64(0))
+            // Add bonus for safe pawn pushes
+            Bitboard safepush_pawns;
+            safepush_pawns = pos.pieces<PAWN> (Own) & ~TR7_bb;
+            safepush_pawns = shift_del<Up> (safepush_pawns | (shift_del<Up> (safepush_pawns & TR2_bb) & ~pos.pieces ()));
+            safepush_pawns &= ~pos.pieces ()
+                           &  ~ei.pin_attacked_by[Opp][PAWN]
+                           &  (ei.pin_attacked_by[Own][NONE] | ~ei.pin_attacked_by[Opp][NONE]);
+            if (safepush_pawns != U64(0))
             {
-                score += PAWN_ATTACK_THREAT * pop_count<MAX15> (threaten_pieces);
+                score += PAWN_SAFEPUSH * pop_count<FULL> (safepush_pawns);
+            }
+            
+            // Add another bonus if the pawn push attacks an enemy piece
+            safepush_pawns =  (shift_del<Left> (safepush_pawns) | shift_del<Right> (safepush_pawns))
+                           &   pos.pieces (Opp)
+                           &  ~ei.pin_attacked_by[Own][PAWN];
+            if (safepush_pawns != U64(0))
+            {
+                score += PAWN_SAFEATTACK * pop_count<MAX15> (safepush_pawns);
             }
 
             if (Trace)
@@ -1244,15 +1252,14 @@ namespace Evaluator {
         Weights[SPACE_ACTIVITY] = weight_option (1000 , INTERNAL_WEIGHTS[SPACE_ACTIVITY]);
         Weights[KING_SAFETY   ] = weight_option (1000 , INTERNAL_WEIGHTS[KING_SAFETY   ]);
 
-        const double MAX_SLOPE  = 0008.5;
-        const double PEAK_VALUE = 1280.0;
+        const i32 MAX_SLOPE  = 8700;
+        const i32 PEAK_VALUE = 1280000;
         
-        KING_DANGER[0] = SCORE_ZERO;
-        double mg      = 0.0;
-        for (i32 i = 1; i < MAX_ATTACK_UNITS; ++i)
+        i32 mg = 0;
+        for (i32 i = 0; i < MAX_ATTACK_UNITS; ++i)
         {
-            mg = min (min (0.027*i*i, mg + MAX_SLOPE), PEAK_VALUE);
-            KING_DANGER[i] = apply_weight (mk_score (i32(mg), 0), Weights[KING_SAFETY]);
+            mg = min (min (i*i*27, mg + MAX_SLOPE), PEAK_VALUE);
+            KING_DANGER[i] = apply_weight (mk_score (mg/1000, 0), Weights[KING_SAFETY]);
         }
     }
 

@@ -191,7 +191,7 @@ namespace Searcher {
                 ss  << "info"
                     << " multipv "  << i + 1
                     << " depth "    << d/DEPTH_ONE
-                    << " seldepth " << u16(Threadpool.max_ply)
+                    << " seldepth " << Threadpool.max_ply
                     << " score "    << to_string (v)
                     << (i == IndexPV ? beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "" : "")
                     << " time "     << time
@@ -875,20 +875,13 @@ namespace Searcher {
                 assert (_ok (move));
 
                 if (move == exclude_move) continue;
-
-                bool move_legal;
+                
                 // At root obey the "searchmoves" option and skip moves not listed in
                 // RootMove list, as a consequence any illegal move is also skipped.
                 // In MultiPV mode also skip PV moves which have been already searched.
-                if (RootNode)
-                {
-                    if (count (RootMoves.begin () + IndexPV, RootMoves.end (), move) == 0) continue;
-                    move_legal = true;
-                }
-                else
-                {
-                    move_legal = pos.legal (move, ci->pinneds);
-                }
+                if (RootNode && count (RootMoves.begin () + IndexPV, RootMoves.end (), move) == 0) continue;
+
+                bool move_legal = RootNode || pos.legal (move, ci->pinneds);
 
                 if (SPNode)
                 {
@@ -1518,7 +1511,7 @@ namespace Searcher {
                 else
                 {
                     StateInfo si;
-                    pos.do_move (*ms, si, pos.gives_check (*ms, ci) ? &ci : NULL);
+                    pos.do_move (*ms, si, pos.gives_check (*ms, ci));
                     inter_nodes = depth <= 2*DEPTH_ONE ?
                                     MoveList<LEGAL>(pos).size () : perft<false> (pos, depth-DEPTH_ONE);
                     pos.undo_move ();

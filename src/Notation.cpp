@@ -221,7 +221,7 @@ namespace Notation {
         if (pos.gives_check (m, ci))
         {
             StateInfo si;
-            pos.do_move (m, si, &ci);
+            pos.do_move (m, si, true);
             san += (MoveList<LEGAL> (pos).size () != 0 ? "+" : "#");
             pos.undo_move ();
         }
