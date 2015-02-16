@@ -406,7 +406,7 @@ namespace Searcher {
 
                 (ss)->current_move = move;
                 // Make and search the move
-                pos.do_move (move, si, gives_check ? ci : NULL);
+                pos.do_move (move, si, gives_check);
 
                 prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
                 prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
@@ -779,7 +779,7 @@ namespace Searcher {
 
                                 (ss)->current_move = move;
                                     
-                                pos.do_move (move, si, pos.gives_check (move, *ci) ? ci : NULL);
+                                pos.do_move (move, si, pos.gives_check (move, *ci));
 
                                 prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
                                 prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
@@ -1041,7 +1041,7 @@ namespace Searcher {
                 (ss)->current_move = move;
 
                 // Step 14. Make the move
-                pos.do_move (move, si, gives_check ? ci : NULL);
+                pos.do_move (move, si, gives_check);
 
                 prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
                 prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));

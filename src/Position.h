@@ -291,7 +291,7 @@ public:
     Value compute_non_pawn_material (Color c) const;
 
     // Do/Undo move
-    void   do_move (Move m, StateInfo &si, const CheckInfo *ci);
+    void   do_move (Move m, StateInfo &si, bool is_check);
     void   do_move (Move m, StateInfo &si);
     void   do_move (std::string &can, StateInfo &si);
     void undo_move ();

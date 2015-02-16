@@ -228,6 +228,7 @@ namespace Evaluator {
         const Score ROOK_TRAPPED            = S(+92,+ 0); // Penalty for rook trapped
         
         const Score PIECE_HANGED            = S(+31,+26); // Bonus for each enemy hanged piece       
+        const Score PAWN_ATTACK_THREAT      = S(+20,+20);
 
     #undef S
 
@@ -763,69 +764,89 @@ namespace Evaluator {
         // and the type of attacked one.
         inline Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
-            const Color Opp = WHITE == Own ? BLACK : WHITE;
-            
+            const Color    Opp      = WHITE == Own ? BLACK : WHITE;
+            const Delta    Up       = WHITE == Own ? DEL_N  : DEL_S;
+            const Delta    Left     = WHITE == Own ? DEL_NW : DEL_SE;
+            const Delta    Right    = WHITE == Own ? DEL_NE : DEL_SW;
+            const Bitboard TR2_bb   = WHITE == Own ? R2_bb  : R7_bb;
+            const Bitboard TR7_bb   = WHITE == Own ? R7_bb  : R2_bb;
+
             Score score = SCORE_ZERO;
 
-            Bitboard threaten_enemies;
+            Bitboard threaten_pieces;
 
-            Bitboard enemies = pos.pieces (Opp);
+            Bitboard opp_pieces = pos.pieces (Opp);
 
             // Enemies excluding pawn defended by pawn and attacked by any piece
-            Bitboard defended_enemies = 
-                  (enemies ^ pos.pieces<PAWN> (Opp))
+            Bitboard defended_pieces = 
+                  (opp_pieces ^ pos.pieces<PAWN> (Opp))
                 &  ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
 
             // Protected enemies attacked by minor pieces
-            threaten_enemies = defended_enemies & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
-            while (threaten_enemies != U64(0))
+            threaten_pieces = defended_pieces & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
+            while (threaten_pieces != U64(0))
             {
-                score += PIECE_THREATEN[DFND_MINOR][ptype (pos[pop_lsq (threaten_enemies)])];
+                score += PIECE_THREATEN[DFND_MINOR][ptype (pos[pop_lsq (threaten_pieces)])];
             }
             // Protected enemies attacked by Rook
-            threaten_enemies = defended_enemies & (ei.pin_attacked_by[Own][ROOK]);
-            while (threaten_enemies != U64(0))
+            threaten_pieces = defended_pieces & (ei.pin_attacked_by[Own][ROOK]);
+            while (threaten_pieces != U64(0))
             {
-                score += PIECE_THREATEN[DFND_ROOK][ptype (pos[pop_lsq (threaten_enemies)])];
+                score += PIECE_THREATEN[DFND_ROOK][ptype (pos[pop_lsq (threaten_pieces)])];
             }
             // Protected enemies attacked by Queen
-            threaten_enemies = defended_enemies & (ei.pin_attacked_by[Own][QUEN]);
-            while (threaten_enemies != U64(0))
+            threaten_pieces = defended_pieces & (ei.pin_attacked_by[Own][QUEN]);
+            while (threaten_pieces != U64(0))
             {
-                score += PIECE_THREATEN[DFND_QUEN][ptype (pos[pop_lsq (threaten_enemies)])];
+                score += PIECE_THREATEN[DFND_QUEN][ptype (pos[pop_lsq (threaten_pieces)])];
             }
 
             // Enemies not defended by pawn and attacked by any piece
-            Bitboard weak_enemies = 
-                   enemies
+            Bitboard weak_pieces = 
+                   opp_pieces
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
 
             // Weak enemies attacked by Minor
-            threaten_enemies = weak_enemies & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
-            while (threaten_enemies != U64(0))
+            threaten_pieces = weak_pieces & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
+            while (threaten_pieces != U64(0))
             {
-                score += PIECE_THREATEN[WEAK_MINOR][ptype (pos[pop_lsq (threaten_enemies)])];
+                score += PIECE_THREATEN[WEAK_MINOR][ptype (pos[pop_lsq (threaten_pieces)])];
             }
             // Weak enemies attacked by Rook
-            threaten_enemies = weak_enemies & (ei.pin_attacked_by[Own][ROOK]);
-            while (threaten_enemies != U64(0))
+            threaten_pieces = weak_pieces & (ei.pin_attacked_by[Own][ROOK]);
+            while (threaten_pieces != U64(0))
             {
-                score += PIECE_THREATEN[WEAK_ROOK][ptype (pos[pop_lsq (threaten_enemies)])];
+                score += PIECE_THREATEN[WEAK_ROOK][ptype (pos[pop_lsq (threaten_pieces)])];
             }
             // Weak enemies attacked by Queen
-            threaten_enemies = weak_enemies & (ei.pin_attacked_by[Own][QUEN]);
-            while (threaten_enemies != U64(0))
+            threaten_pieces = weak_pieces & (ei.pin_attacked_by[Own][QUEN]);
+            while (threaten_pieces != U64(0))
             {
-                score += PIECE_THREATEN[WEAK_QUEN][ptype (pos[pop_lsq (threaten_enemies)])];
+                score += PIECE_THREATEN[WEAK_QUEN][ptype (pos[pop_lsq (threaten_pieces)])];
             }
             // Weak enemies attacked by King
-            threaten_enemies = weak_enemies & ei.ful_attacked_by[Own][KING];
-            if (threaten_enemies != U64(0)) score += more_than_one (threaten_enemies) ? PIECE_THREATEN[ROYAL][1] : PIECE_THREATEN[ROYAL][0]; 
+            threaten_pieces = weak_pieces & ei.ful_attacked_by[Own][KING];
+            if (threaten_pieces != U64(0)) score += more_than_one (threaten_pieces) ? PIECE_THREATEN[ROYAL][1] : PIECE_THREATEN[ROYAL][0]; 
             // Hanged enemies
-            threaten_enemies = weak_enemies & ~ei.pin_attacked_by[Opp][NONE];
-            if (threaten_enemies != U64(0)) score += more_than_one (threaten_enemies) ? PIECE_HANGED * pop_count<MAX15> (threaten_enemies) : PIECE_HANGED;
+            threaten_pieces = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
+            if (threaten_pieces != U64(0)) score += more_than_one (threaten_pieces) ? PIECE_HANGED * pop_count<MAX15> (threaten_pieces) : PIECE_HANGED;
+
+            // Add bonus for safe pawn pushes which attacks an enemy piece
+            threaten_pieces = pos.pieces<PAWN> (Own) & ~TR7_bb;
+            threaten_pieces = shift_del<Up> (threaten_pieces | (shift_del<Up> (threaten_pieces & TR2_bb) & ~pos.pieces ()));
+            threaten_pieces &= ~pos.pieces ()
+                            &  ~ei.pin_attacked_by[Opp][PAWN]
+                            &  (ei.pin_attacked_by[Own][PAWN] | ~ei.pin_attacked_by[Opp][NONE]);
+            threaten_pieces =  (shift_del<Left> (threaten_pieces) | shift_del<Right> (threaten_pieces))
+                            &   pos.pieces (Opp)
+                            &  ~ei.pin_attacked_by[Own][PAWN];
+
+            if (threaten_pieces != U64(0))
+            {
+                score += PAWN_ATTACK_THREAT * pop_count<MAX15> (threaten_pieces);
+            }
 
             if (Trace)
             {

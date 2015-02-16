@@ -1249,12 +1249,13 @@ bool Position::can_en_passant (Square ep_sq) const
     if (attacks == U64(0)) return false;
 
     Move moves[3], *m = moves;
+    //fill (moves, moves + sizeof (moves)/sizeof (*moves), MOVE_NONE);
 
-    fill (moves, moves + sizeof (moves)/sizeof (*moves), MOVE_NONE);
     while (attacks != U64(0))
     {
         *(m++) = mk_move<ENPASSANT> (pop_lsq (attacks), ep_sq);
     }
+    *m = MOVE_NONE;
 
     // Check en-passant is legal for the position
     Bitboard occ = _types_bb[NONE] + ep_sq - cap;
@@ -1321,7 +1322,7 @@ Value Position::compute_non_pawn_material (Color c) const
 }
 
 // do_move() do the move with checking info
-void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
+void Position::  do_move (Move m, StateInfo &si, bool is_check)
 {
     assert (_ok (m));
     assert (&si != _si);
@@ -1488,41 +1489,8 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
         }
     }
 
-    _si->checkers = U64(0);
-    if (ci != NULL)
-    {
-        if (mtype (m) == NORMAL)
-        {
-            // Direct check ?
-            if (ci->checking_bb[pt] & dst)
-            {
-                _si->checkers += dst;
-            }
-            // Discovery check ?
-            if (QUEN != pt)
-            {
-                if (ci->discoverers && ci->discoverers & org)
-                {
-                    if (ROOK != pt)
-                    {
-                        _si->checkers |=
-                            attacks_bb<ROOK> (_piece_list[pasive][KING][0], _types_bb[NONE]) &
-                            _color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]);
-                    }
-                    if (BSHP != pt)
-                    {
-                        _si->checkers |=
-                            attacks_bb<BSHP> (_piece_list[pasive][KING][0], _types_bb[NONE]) &
-                            _color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]);
-                    }
-                }
-            }
-        }
-        else
-        {
-            _si->checkers = attackers_to (_piece_list[pasive][KING][0], _active);
-        }
-    }
+    // Calculate checkers bitboard (if move is check)
+    _si->checkers = is_check ? attackers_to (_piece_list[pasive][KING][0], _active) : U64(0);
 
     _active = pasive;
     key ^= Zob._.act_side;
@@ -1558,7 +1526,7 @@ void Position::  do_move (Move m, StateInfo &si, const CheckInfo *ci)
 void Position::  do_move (Move m, StateInfo &si)
 {
     CheckInfo ci (*this);
-    do_move (m, si, gives_check (m, ci) ? &ci : NULL);
+    do_move (m, si, gives_check (m, ci));
 }
 // do_move() do the move from string (CAN)
 void Position::  do_move (string &can, StateInfo &si)

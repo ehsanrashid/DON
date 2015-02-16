@@ -2528,7 +2528,7 @@ namespace TBSyzygy {
                     continue;
                 }
 
-                pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
+                pos.do_move (move, si, pos.gives_check (move, ci));
                 v = -probe_ab (pos, -beta, -alpha, success);
                 pos.undo_move ();
 
@@ -2596,7 +2596,7 @@ namespace TBSyzygy {
                     {
                         continue;
                     }
-                    pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
+                    pos.do_move (move, si, pos.gives_check (move, ci));
                     i32 v = -probe_ab (pos, -2, -wdl + 1, success);
                     pos.undo_move ();
 
@@ -2626,7 +2626,7 @@ namespace TBSyzygy {
                     {
                         continue;
                     }
-                    pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
+                    pos.do_move (move, si, pos.gives_check (move, ci));
                     i32 v = -TBSyzygy::probe_dtz (pos, success);
                     pos.undo_move ();
                     if (!*success) return 0;
@@ -2648,7 +2648,7 @@ namespace TBSyzygy {
                     Move move = cur->move;
                     if (!pos.legal (move, ci.pinneds)) continue;
 
-                    pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
+                    pos.do_move (move, si, pos.gives_check (move, ci));
                     if (si.clock50 == 0)
                     {
                         if (wdl == -2)
@@ -2736,7 +2736,7 @@ namespace TBSyzygy {
             }
 
             StateInfo si;
-            pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
+            pos.do_move (move, si, pos.gives_check (move, ci));
             i32 v0 = -probe_ab (pos, -2, 2, success);
             pos.undo_move ();
             if (!*success) return 0;
@@ -2832,7 +2832,7 @@ namespace TBSyzygy {
             }
 
             StateInfo si;
-            pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
+            pos.do_move (move, si, pos.gives_check (move, ci));
             i32 v0 = -probe_ab (pos, -2, 2, success);
             pos.undo_move ();
             if (!*success) return 0;
@@ -2921,7 +2921,7 @@ namespace TBSyzygy {
         {
             Move move = RootMoves[i].pv[0];
             
-            pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
+            pos.do_move (move, si, pos.gives_check (move, ci));
             
             bool mate = false;
             if (pos.checkers () != U64(0) && dtz > 0)
@@ -3083,7 +3083,7 @@ namespace TBSyzygy {
         for (size_t i = 0; i < RootMoves.size (); ++i)
         {
             Move move = RootMoves[i].pv[0];
-            pos.do_move (move, si, pos.gives_check (move, ci) ? &ci : NULL);
+            pos.do_move (move, si, pos.gives_check (move, ci));
             i32 v = -probe_wdl (pos, &success);
             pos.undo_move ();
             if (!success) return false;
