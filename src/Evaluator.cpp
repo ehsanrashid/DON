@@ -52,11 +52,10 @@ namespace Evaluator {
             // The weights of the individual piece types are given by the KING_ATTACK[PieceT]
             u32 king_ring_attackers_weight[CLR_NO];
 
-            // king_zone_attacks_count[Color] is the sum of attacks of the pieces
-            // of the given color which attack a square directly adjacent to the enemy king.
-            // The weights of the individual piece types are given by the KING_ATTACK[PieceT]
+            // king_zone_attacks_count[Color] is the number of attacks by
+            // the given color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
-            // For instance, if black's king is on g8 and there's a white knight on g5,
+            // e.g, if Black's King is on g8 and there's a White Knight on g5,
             // this knight adds 2 to king_zone_attacks_count[WHITE].
             u08 king_zone_attacks_count[CLR_NO];
 

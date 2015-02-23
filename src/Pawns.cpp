@@ -368,7 +368,8 @@ namespace Pawns {
                 for (i08 r = R_2; r < R_8; ++r)
                 {
                     i32 value = SEED[r] + (phalanx != 0 ? (SEED[r + 1] - SEED[r])/2 : 0);
-                    CONNECTED[opposed][phalanx][r] = mk_score (value/2, value >> opposed);
+                    value >>= opposed;
+                    CONNECTED[opposed][phalanx][r] = mk_score (1.5*value, value);
                 }
             }
         }

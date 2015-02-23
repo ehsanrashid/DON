@@ -242,6 +242,7 @@ namespace Threads {
         Material::Table  matl_table;
         Position *active_pos;
         size_t    index;
+        i32       max_ply;
 
         SplitPoint *volatile active_splitpoint;
         volatile    size_t   splitpoint_count;
@@ -284,13 +285,11 @@ namespace Threads {
     {
 
     public:
-        Mutex       mutex;
-        Condition   sleep_condition;
+        Mutex        mutex;
+        Condition    sleep_condition;
         TimerThread *check_limits_th;
         TimerThread *auto_save_th;
-
-        Depth       split_depth;
-        i32         max_ply;
+        Depth        split_depth;
         
         MainThread* main () { return static_cast<MainThread*> (at(0)); }
 

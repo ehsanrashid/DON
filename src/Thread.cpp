@@ -80,6 +80,7 @@ namespace Threads {
     Thread::Thread () //: splitpoints ()  // Initialization of non POD broken in MSVC
         : active_pos (NULL)
         , index (Threadpool.size ())  // Starts from 0
+        , max_ply (0)
         , active_splitpoint (NULL)
         , splitpoint_count (0)
         , searching (false)
@@ -89,9 +90,7 @@ namespace Threads {
     // current active splitpoint, or in some ancestor of the splitpoint.
     bool Thread::cutoff_occurred () const
     {
-        for (SplitPoint *sp = active_splitpoint;
-             sp != NULL;
-             sp = sp->parent_splitpoint)
+        for (SplitPoint *sp = active_splitpoint; sp != NULL; sp = sp->parent_splitpoint)
         {
             if (sp->cut_off) return true;
         }
@@ -265,8 +264,6 @@ namespace Threads {
     void ThreadPool::initialize ()
     {
         push_back (new_thread<MainThread> ());
-
-        max_ply                     = 0;
 
         check_limits_th             = new_thread<TimerThread> ();
         check_limits_th->task       = check_limits;

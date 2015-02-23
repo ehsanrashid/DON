@@ -13,7 +13,7 @@
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const u08   MAX_DEPTH   = 128; // Maximum Depth (Ply)
+const i32   MAX_DEPTH   = 128; // Maximum Depth (Ply)
 
 // File
 enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
