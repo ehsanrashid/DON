@@ -903,7 +903,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
     {
         // En-passant captures are a tricky special case. Because they are rather uncommon,
         // do it simply by testing whether the king is attacked after the move is made.
-        Square cap = dst + pawn_push (~_active);
+        Square   cap = dst + pawn_push (~_active);
 
         assert (dst == _si->en_passant_sq && empty (dst) && ( _active|PAWN) == _board[org] && (~_active|PAWN) == _board[cap]);
 

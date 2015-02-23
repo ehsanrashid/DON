@@ -79,7 +79,7 @@ namespace Threads {
     // will be started only when c'tor returns.
     Thread::Thread () //: splitpoints ()  // Initialization of non POD broken in MSVC
         : active_pos (NULL)
-        , idx (Threadpool.size ())  // Starts from 0
+        , index (Threadpool.size ())  // Starts from 0
         , active_splitpoint (NULL)
         , splitpoint_count (0)
         , searching (false)
@@ -110,11 +110,11 @@ namespace Threads {
 
         // Make a local copy to be sure doesn't become zero under our feet while
         // testing next condition and so leading to an out of bound access.
-        u08 count = splitpoint_count;
+        size_t count = splitpoint_count;
 
         // No splitpoints means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.
-        return 0 == count || splitpoints[count - 1].slaves_mask.test (master->idx);
+        return 0 == count || splitpoints[count - 1].slaves_mask.test (master->index);
     }
 
     // split<>() does the actual work of distributing the work at a node between several available threads.
@@ -130,14 +130,14 @@ namespace Threads {
         assert (searching);
         assert (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
         assert (Threadpool.split_depth <= depth);
-        assert (splitpoint_count < MAX_SPLITPOINTS);
+        assert (splitpoint_count < MAX_SPLITPOINTS_PER_THREAD);
 
         // Pick the next available splitpoint from the splitpoint stack
         SplitPoint &sp = splitpoints[splitpoint_count];
 
         sp.master       = this;
         sp.parent_splitpoint = active_splitpoint;
-        sp.slaves_mask  = 0, sp.slaves_mask.set (idx);
+        sp.slaves_mask  = 0, sp.slaves_mask.set (index);
         sp.ss           = ss;
         sp.pos          = &pos;
         sp.alpha        = alpha;
@@ -165,9 +165,11 @@ namespace Threads {
         active_pos          = NULL;
 
         Thread *slave;
-        while ((slave = Threadpool.available_slave (this)) != NULL)
+        while (   sp.slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT 
+              && (slave = Threadpool.available_slave (this)) != NULL
+              )
         {
-            sp.slaves_mask.set (slave->idx);
+            sp.slaves_mask.set (slave->index);
             slave->active_splitpoint = &sp;
             slave->searching = true;        // Leaves idle_loop()
             slave->notify_one ();           // Notifies could be sleeping

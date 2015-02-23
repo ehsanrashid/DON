@@ -240,7 +240,7 @@ namespace Searcher {
                 
                 fill (pv, pv + sizeof (pv)/sizeof (*pv), MOVE_NONE);
                 (ss+1)->pv  = pv;
-                (ss)->pv[0] = MOVE_NONE;
+                (ss  )->pv[0] = MOVE_NONE;
             }
 
             Move  tt_move    = MOVE_NONE
@@ -1230,27 +1230,30 @@ namespace Searcher {
                 }
 
                 // Step 19. Check for splitting the search (at non-splitpoint node)
-                if (!SPNode)
+                if (  !SPNode
+                   && Threadpool.split_depth <= depth
+                   && Threadpool.size () > 1
+                   && thread->splitpoint_count < MAX_SPLITPOINTS_PER_THREAD
+                   && (   thread->active_splitpoint == NULL
+                      || !thread->active_splitpoint->slave_searching
+                      || (  Threadpool.size () > MAX_SLAVES_PER_SPLITPOINT
+                         && thread->active_splitpoint->slaves_mask.count () == MAX_SLAVES_PER_SPLITPOINT
+                         )
+                      )
+                   )
                 {
-                    if (  Threadpool.split_depth <= depth
-                       && Threadpool.size () > 1
-                       && thread->splitpoint_count < MAX_SPLITPOINTS
-                       && (thread->active_splitpoint == NULL || !thread->active_splitpoint->slave_searching)
-                       )
-                    {
-                        assert (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
+                    assert (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
 
-                        thread->split (pos, ss, alpha, beta, best_value, best_move, depth, legals, mp, NT, cut_node);
+                    thread->split (pos, ss, alpha, beta, best_value, best_move, depth, legals, mp, NT, cut_node);
                         
-                        if (Signals.force_stop || thread->cutoff_occurred ())
-                        {
-                            return VALUE_ZERO;
-                        }
+                    if (Signals.force_stop || thread->cutoff_occurred ())
+                    {
+                        return VALUE_ZERO;
+                    }
 
-                        if (best_value >= beta)
-                        {
-                            break;
-                        }
+                    if (best_value >= beta)
+                    {
+                        break;
                     }
                 }
             }
@@ -1985,15 +1988,16 @@ namespace Threads {
             
             // Loop across all splitpoints and sum accumulated splitpoint nodes plus
             // all the currently active positions nodes.
-            for (u08 t = 0; t < Threadpool.size (); ++t)
+            for (size_t index = 0; index < Threadpool.size (); ++index)
             {
-                for (u08 s = 0; s < Threadpool[t]->splitpoint_count; ++s)
+                Thread *thread = Threadpool[index];
+                for (size_t count = 0; count < thread->splitpoint_count; ++count)
                 {
-                    SplitPoint &sp = Threadpool[t]->splitpoints[s];
+                    SplitPoint &sp = thread->splitpoints[count];
                     sp.mutex.lock ();
 
                     nodes += sp.nodes;
-                    for (u08 idx = 0; idx < Threadpool.size (); ++idx)
+                    for (size_t idx = 0; idx < Threadpool.size (); ++idx)
                     {
                         if (sp.slaves_mask.test (idx))
                         {
@@ -2030,7 +2034,7 @@ namespace Threads {
     {
         // Pointer 'splitpoint' is not null only if called from split<>(), and not
         // at the thread creation. So it means this is the splitpoint's master.
-        SplitPoint *splitpoint = splitpoint_count != 0 ? active_splitpoint : NULL;
+        SplitPoint *splitpoint = active_splitpoint;
         assert (splitpoint == NULL || (splitpoint->master == this && searching));
 
         do
@@ -2048,88 +2052,107 @@ namespace Threads {
                 Threadpool.mutex.unlock ();
 
                 Stack stack[MAX_DEPTH+4], *ss = stack+2;    // To allow referencing (ss+2) & (ss-2)
-                Position pos (*((sp)->pos), this);
+                Position pos (*(sp->pos), this);
                 
-                memcpy (ss-2, (sp)->ss-2, 5*sizeof (*ss));
+                memcpy (ss-2, sp->ss-2, 5*sizeof (*ss));
 
-                (ss)->splitpoint = sp;
+                ss->splitpoint = sp;
 
                 // Lock splitpoint
-                (sp)->mutex.lock ();
+                sp->mutex.lock ();
 
                 assert (active_pos == NULL);
 
                 active_pos = &pos;
 
-                switch ((sp)->node_type)
+                switch (sp->node_type)
                 {
-                case  Root: depth_search<Root , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                case    PV: depth_search<PV   , true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
-                case NonPV: depth_search<NonPV, true, true> (pos, ss, (sp)->alpha, (sp)->beta, (sp)->depth, (sp)->cut_node); break;
+                case  Root: depth_search<Root , true, true> (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
+                case    PV: depth_search<PV   , true, true> (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
+                case NonPV: depth_search<NonPV, true, true> (pos, ss, sp->alpha, sp->beta, sp->depth, sp->cut_node); break;
                 default   : assert (false);
                 }
 
                 assert (searching);
                 searching  = false;
                 active_pos = NULL;
-                (sp)->slaves_mask.reset (idx);
-                (sp)->slave_searching = false;
-                (sp)->nodes += pos.game_nodes ();
+                sp->slaves_mask.reset (index);
+                sp->slave_searching = false;
+                sp->nodes += pos.game_nodes ();
 
                 // Wake up master thread so to allow it to return from the idle loop
                 // in case the last slave of the splitpoint.
-                if (  this != (sp)->master
-                   && (sp)->slaves_mask.none ()
-                   )
+                if (this != sp->master && sp->slaves_mask.none ())
                 {
-                    assert (!(sp)->master->searching);
-                    (sp)->master->notify_one ();
+                    assert (!sp->master->searching);
+
+                    sp->master->notify_one ();
                 }
 
                 // After releasing the lock, cannot access anymore any splitpoint
                 // related data in a safe way becuase it could have been released under
                 // our feet by the sp master.
-                (sp)->mutex.unlock ();
+                sp->mutex.unlock ();
 
                 // Try to late join to another split point if none of its slaves has already finished.
-                if (Threadpool.size () > 2)
+                SplitPoint *best_sp     = NULL;
+                i32         min_level   = INT_MAX;
+
+                for (size_t idx = 0; idx < Threadpool.size (); ++idx)
                 {
-                    for (u08 t = 0; t < Threadpool.size (); ++t)
+                    Thread *thread = Threadpool[idx];
+                    size_t  count  = thread->splitpoint_count; // Local copy
+
+                    sp = count != 0 ? &thread->splitpoints[count - 1] : NULL;
+
+                    if (  sp != NULL
+                       && sp->slave_searching
+                       && sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
+                       && available_to (thread)
+                       )
                     {
-                        Thread *thread = Threadpool[t];
-                        u08 count = thread->splitpoint_count; // Local copy
+                        assert (Threadpool.size () > 2);
+                        assert (this != thread);
+                        assert (splitpoint == NULL || !splitpoint->slaves_mask.none ());
 
-                        sp = count != 0 ? &thread->splitpoints[count - 1] : NULL;
-
-                        if (  sp != NULL
-                           && (sp)->slave_searching
-                           && available_to (thread)
-                           )
+                        // Prefer to join to SP with few parents to reduce the probability
+                        // that a cut-off occurs above us, and hence we waste our work.
+                        i32 level = 0;
+                        for (SplitPoint *spp = thread->active_splitpoint; spp != NULL; spp = spp->parent_splitpoint)
                         {
-                            // Recheck the conditions under lock protection
-                            Threadpool.mutex.lock ();
-                            (sp)->mutex.lock ();
+                            ++level;
+                        }
 
-                            if (  (sp)->slave_searching
-                               && available_to (thread)
-                               )
-                            {
-                                (sp)->slaves_mask.set (idx);
-                                active_splitpoint = sp;
-                                searching = true;
-                            }
-
-                            (sp)->mutex.unlock ();
-                            Threadpool.mutex.unlock ();
-
-                            //if (searching)
-                            break; // Just a single attempt
+                        if (min_level > level)
+                        {
+                            best_sp   = sp;
+                            min_level = level;
                         }
                     }
                 }
+
+                if (best_sp != NULL)
+                {
+                    // Recheck the conditions under lock protection
+                    Threadpool.mutex.lock ();
+                    best_sp->mutex.lock ();
+
+                    if (   best_sp->slave_searching
+                       && best_sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
+                       && available_to (best_sp->master)
+                       )
+                    {
+                        best_sp->slaves_mask.set (index);
+                        active_splitpoint = best_sp;
+                        searching = true;
+                    }
+
+                    best_sp->mutex.unlock ();
+                    Threadpool.mutex.unlock ();
+                }
             }
 
-            // Grab the lock to avoid races with Thread::notify_one()
+            // Avoid races with notify_one() fired from last slave of the splitpoint
             mutex.lock ();
             // If master and all slaves have finished then exit idle_loop()
             if (splitpoint != NULL && splitpoint->slaves_mask.none ())
