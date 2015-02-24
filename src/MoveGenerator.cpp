@@ -77,8 +77,8 @@ namespace MoveGen {
 
                 assert (ROOK == ptype (pos[rook_org]));
 
-                Square king_dst = rel_sq (Own, ((CR == CR_WK || CR == CR_BK) ? SQ_G1 : SQ_C1));
-                Delta step = (king_dst > king_org ? DEL_E : DEL_W);
+                Square king_dst = rel_sq (Own, CR == CR_WK || CR == CR_BK ? SQ_G1 : SQ_C1);
+                Delta step = king_dst > king_org ? DEL_E : DEL_W;
                 for (i08 s = king_dst; s != king_org; s -= step)
                 {
                     if (pos.attackers_to (Square(s), Opp) != U64(0))
@@ -92,7 +92,7 @@ namespace MoveGen {
                     // Because generate only legal castling moves needed to verify that
                     // when moving the castling rook do not discover some hidden checker.
                     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-                    if (pos.attackers_to (king_dst, Opp, pos.pieces () - rook_org) & pos.pieces (ROOK, QUEN))
+                    if ((pos.attackers_to (king_dst, Opp, pos.pieces () - rook_org) & pos.pieces (ROOK, QUEN)) != U64(0))
                     {
                         return;
                     }
@@ -117,41 +117,35 @@ namespace MoveGen {
             // Generates KING common move
             static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
             {
+                const Color Opp = WHITE == Own ? BLACK : WHITE;
+
                 if (EVASION == GT) return;
 
                 if (CHECK != GT && QUIET_CHECK != GT)
                 {
-                    const Color Opp = WHITE == Own ? BLACK : WHITE;
                     Square king_sq = pos.king_sq (Own);
                     Bitboard attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.king_sq (Opp)] & targets;
                     
                     while (attacks != U64(0)) { (moves++)->move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
                 }
 
-                if (CAPTURE != GT)
+                if (CAPTURE != GT && pos.can_castle (Own) && pos.checkers () == U64(0))
                 {
-                    if (pos.can_castle (Own) && pos.checkers () == U64(0))
+                    CheckInfo cc;
+                    if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
+
+                    if (pos.can_castle (Castling<Own, CS_K>::Right) && !pos.castle_impeded (Castling<Own, CS_K>::Right))
                     {
-                        CheckInfo cc;
-                        if (ci == NULL)
-                        {
-                            cc = CheckInfo (pos);
-                            ci = &cc;
-                        }
+                        pos.chess960 () ?
+                            generate_castling<Castling<Own, CS_K>::Right,  true> (moves, pos, ci) :
+                            generate_castling<Castling<Own, CS_K>::Right, false> (moves, pos, ci);
+                    }
 
-                        if (pos.can_castle (Castling<Own, CS_K>::Right) && !pos.castle_impeded (Castling<Own, CS_K>::Right))
-                        {
-                            pos.chess960 () ?
-                                generate_castling<Castling<Own, CS_K>::Right,  true> (moves, pos, ci) :
-                                generate_castling<Castling<Own, CS_K>::Right, false> (moves, pos, ci);
-                        }
-
-                        if (pos.can_castle (Castling<Own, CS_Q>::Right) && !pos.castle_impeded (Castling<Own, CS_Q>::Right))
-                        {
-                            pos.chess960 () ?
-                                generate_castling<Castling<Own, CS_Q>::Right,  true> (moves, pos, ci) :
-                                generate_castling<Castling<Own, CS_Q>::Right, false> (moves, pos, ci);
-                        }
+                    if (pos.can_castle (Castling<Own, CS_Q>::Right) && !pos.castle_impeded (Castling<Own, CS_Q>::Right))
+                    {
+                        pos.chess960 () ?
+                            generate_castling<Castling<Own, CS_Q>::Right,  true> (moves, pos, ci) :
+                            generate_castling<Castling<Own, CS_Q>::Right, false> (moves, pos, ci);
                     }
                 }
             }
@@ -224,15 +218,9 @@ namespace MoveGen {
                 Bitboard enemies;
                 switch (GT)
                 {
-                case CAPTURE:
-                    enemies = targets;
-                break;
-                case EVASION:
-                    enemies = pos.pieces (Opp) & targets;
-                break;
-                default:
-                    enemies = pos.pieces (Opp);
-                break;
+                case CAPTURE: enemies = targets;                    break;
+                case EVASION: enemies = pos.pieces (Opp) & targets; break;
+                default:      enemies = pos.pieces (Opp);           break;
                 }
 
                 Bitboard empties = U64(0);
@@ -277,8 +265,7 @@ namespace MoveGen {
                         }
                     break;
 
-                    default:
-                    break;
+                    default: break;
                     }
                     
                     while (push_1 != U64(0)) { Square dst = pop_lsq (push_1); (moves++)->move = mk_move<NORMAL> (dst - Push, dst); }
@@ -323,12 +310,9 @@ namespace MoveGen {
                     {
                         switch (GT)
                         {
-                        case CAPTURE:
-                            empties = ~pos.pieces ();
-                        break;
-                        case EVASION:
-                            empties &= targets;
-                        break;
+                        case CAPTURE: empties = ~pos.pieces (); break;
+                        case EVASION: empties &= targets;       break;
+                        default:                                break;
                         }
 
                         // Promoting pawns
@@ -498,10 +482,10 @@ namespace MoveGen {
 
         // Generate evasions for king, capture and non capture moves
         Bitboard attacks =
-            PIECE_ATTACKS[KING][king_sq]
-            & ~( pos.pieces (active)
-               | PIECE_ATTACKS[KING][pos.king_sq (~active)]
-               | slid_attacks
+              PIECE_ATTACKS[KING][king_sq]
+            & ~(  pos.pieces (active)
+               |  PIECE_ATTACKS[KING][pos.king_sq (~active)]
+               |  slid_attacks
                );
 
         while (attacks != U64(0)) { (moves++)->move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }

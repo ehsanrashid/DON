@@ -732,16 +732,16 @@ namespace Evaluator {
                 Bitboard safe_check;
                 // Queens safe-checks
                 safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[Opp][QUEN];
-                if (safe_check != U64(0)) attack_units += SAFE_CHECK[QUEN] * more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1;
+                if (safe_check != U64(0)) attack_units += SAFE_CHECK[QUEN] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
                 // Rooks safe-checks
                 safe_check = rook_check & ei.pin_attacked_by[Opp][ROOK];
-                if (safe_check != U64(0)) attack_units += SAFE_CHECK[ROOK] * more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1;
+                if (safe_check != U64(0)) attack_units += SAFE_CHECK[ROOK] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
                 // Bishops safe-checks
                 safe_check = bshp_check & ei.pin_attacked_by[Opp][BSHP];
-                if (safe_check != U64(0)) attack_units += SAFE_CHECK[BSHP] * more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1;
+                if (safe_check != U64(0)) attack_units += SAFE_CHECK[BSHP] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
                 // Knights safe-checks
                 safe_check = PIECE_ATTACKS[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[Opp][NIHT];
-                if (safe_check != U64(0)) attack_units += SAFE_CHECK[NIHT] * more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1;
+                if (safe_check != U64(0)) attack_units += SAFE_CHECK[NIHT] * (more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1);
 
                 // To index KING_DANGER[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
                 attack_units = min (max (attack_units, 0), MAX_ATTACK_UNITS-1);
@@ -832,21 +832,21 @@ namespace Evaluator {
             if (b != U64(0)) score += PIECE_THREATEN[ROYAL][more_than_one (b) ? 1 : 0]; 
             // Hanged enemies
             b = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
-            if (b != U64(0)) score += PIECE_HANGED * more_than_one (b) ? pop_count<MAX15> (b) : 1;
+            if (b != U64(0)) score += PIECE_HANGED * (more_than_one (b) ? pop_count<MAX15> (b) : 1);
 
-            // Add bonus for safe pawn pushes
             b = pos.pieces<PAWN> (Own) & ~TR7_bb;
             b = shift_del<Up> (b | (shift_del<Up> (b & TR2_bb) & ~pos.pieces ()));
+            // Safe pawn pushes
             b &= ~pos.pieces ()
               &  ~ei.pin_attacked_by[Opp][PAWN]
               &  (ei.pin_attacked_by[Own][NONE] | ~ei.pin_attacked_by[Opp][NONE]);
-            if (b != U64(0)) score += PAWN_SAFEPUSH * more_than_one (b) ? pop_count<FULL> (b) : 1;
+            if (b != U64(0)) score += PAWN_SAFEPUSH * (more_than_one (b) ? pop_count<FULL> (b) : 1);
             
-            // Add another bonus if the pawn push attacks an enemy piece
+            // Safe pawn pushes attacks an enemy piece
             b =  (shift_del<Left> (b) | shift_del<Right> (b))
               &   pos.pieces (Opp)
               &  ~ei.pin_attacked_by[Own][PAWN];
-            if (b != U64(0)) score += PAWN_SAFEATTACK * more_than_one (b) ? pop_count<MAX15> (b) : 1;
+            if (b != U64(0)) score += PAWN_SAFEATTACK * (more_than_one (b) ? pop_count<MAX15> (b) : 1);
 
             if (Trace)
             {
