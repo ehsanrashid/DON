@@ -24,8 +24,6 @@ namespace MovePick {
 
     public:
 
-        inline const Value* operator[] (Piece p) const { return _values[p]; }
-
         inline void clear ()
         {
             std::fill (*_values, *_values + sizeof (_values)/sizeof (**_values), VALUE_ZERO);
@@ -37,6 +35,8 @@ namespace MovePick {
             Piece  p = pos[s];
             _values[p][s] = std::max (g, _values[p][s] - 1);
         }
+
+        inline const Value* operator[] (Piece p) const { return _values[p]; }
     };
 
     // History records how often different moves have been successful or unsuccessful during the
@@ -51,9 +51,7 @@ namespace MovePick {
 
     public:
 
-        static const Value MaxValue;
-        
-        inline const Value* operator[] (Piece p) const { return _values[p]; }
+        static const Value MaxValue = Value(+0x100);
 
         inline void clear ()
         {
@@ -67,6 +65,7 @@ namespace MovePick {
             if (abs (_values[p][s] + v) < MaxValue) _values[p][s] += v;
         }
 
+        inline const Value* operator[] (Piece p) const { return _values[p]; }
     };
 
     // CounterMoveStats & FollowupMoveStats store the move that refute a previous one.
