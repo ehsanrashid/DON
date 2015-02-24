@@ -224,11 +224,11 @@ namespace MoveGen {
                 Bitboard enemies;
                 switch (GT)
                 {
-                case EVASION:
-                    enemies = pos.pieces (Opp) & targets;
-                break;
                 case CAPTURE:
                     enemies = targets;
+                break;
+                case EVASION:
+                    enemies = pos.pieces (Opp) & targets;
                 break;
                 default:
                     enemies = pos.pieces (Opp);
@@ -239,10 +239,10 @@ namespace MoveGen {
                 // Pawn single-push and double-push, no promotions
                 if (CAPTURE != GT)
                 {
-                    empties = (QUIET == GT || QUIET_CHECK == GT) ? targets : ~pos.pieces ();
+                    empties = QUIET == GT || QUIET_CHECK == GT ? targets : ~pos.pieces ();
                     
-                    Bitboard push_1 = shift_del<Push> (Rx_pawns                  ) & empties;
-                    Bitboard push_2 = shift_del<Push> (push_1 & rel_rank_bb (Own, R_3)) & empties;
+                    Bitboard push_1 = empties & shift_del<Push> (Rx_pawns);
+                    Bitboard push_2 = empties & shift_del<Push> (push_1 & rel_rank_bb (Own, R_3));
 
                     switch (GT)
                     {
@@ -268,8 +268,8 @@ namespace MoveGen {
                             // promotion has been already generated among captures.
                             if ((Rx_pawns & ci->discoverers) != U64(0))
                             {
-                                Bitboard push_cd_1 = shift_del<Push> (Rx_pawns & ci->discoverers   ) & empties;
-                                Bitboard push_cd_2 = shift_del<Push> (push_cd_1 & rel_rank_bb (Own, R_3)) & empties;
+                                Bitboard push_cd_1 = empties & shift_del<Push> (Rx_pawns & ci->discoverers);
+                                Bitboard push_cd_2 = empties & shift_del<Push> (push_cd_1 & rel_rank_bb (Own, R_3));
 
                                 push_1 |= push_cd_1;
                                 push_2 |= push_cd_2;
@@ -287,8 +287,8 @@ namespace MoveGen {
                 // Pawn normal and en-passant captures, no promotions
                 if (QUIET != GT && QUIET_CHECK != GT)
                 {
-                    Bitboard l_attacks = shift_del<LCap> (Rx_pawns) & enemies;
-                    Bitboard r_attacks = shift_del<RCap> (Rx_pawns) & enemies;
+                    Bitboard l_attacks = enemies & shift_del<LCap> (Rx_pawns);
+                    Bitboard r_attacks = enemies & shift_del<RCap> (Rx_pawns);
 
                     while (l_attacks != U64(0)) { Square dst = pop_lsq (l_attacks); (moves++)->move = mk_move<NORMAL> (dst - LCap, dst); }
                     while (r_attacks != U64(0)) { Square dst = pop_lsq (r_attacks); (moves++)->move = mk_move<NORMAL> (dst - RCap, dst); }
@@ -321,29 +321,26 @@ namespace MoveGen {
                     // All time except when EVASION then 2nd condition must true
                     if (EVASION != GT || (targets & rel_rank_bb (Own, R_8)) != U64(0))
                     {
-                        if (CAPTURE == GT) empties = ~pos.pieces ();
-                        else
-                        if (EVASION == GT) empties &= targets;
-
-                        Bitboard prom_pawns;
-
-                        prom_pawns = shift_del<Push> (R7_pawns) & empties;
-                        while (prom_pawns != U64(0))
+                        switch (GT)
                         {
-                            generate_promotion<Push>(moves, pop_lsq (prom_pawns), ci);
+                        case CAPTURE:
+                            empties = ~pos.pieces ();
+                        break;
+                        case EVASION:
+                            empties &= targets;
+                        break;
                         }
 
-                        prom_pawns = shift_del<RCap> (R7_pawns) & enemies;
-                        while (prom_pawns != U64(0))
-                        {
-                            generate_promotion<RCap>(moves, pop_lsq (prom_pawns), ci);
-                        }
+                        // Promoting pawns
+                        Bitboard b;
+                        b = empties & shift_del<Push> (R7_pawns);
+                        while (b != U64(0)) generate_promotion<Push>(moves, pop_lsq (b), ci);
 
-                        prom_pawns = shift_del<LCap> (R7_pawns) & enemies;
-                        while (prom_pawns != U64(0))
-                        {
-                            generate_promotion<LCap>(moves, pop_lsq (prom_pawns), ci);
-                        }
+                        b = enemies & shift_del<RCap> (R7_pawns);
+                        while (b != U64(0)) generate_promotion<RCap>(moves, pop_lsq (b), ci);
+
+                        b = enemies & shift_del<LCap> (R7_pawns);
+                        while (b != U64(0)) generate_promotion<LCap>(moves, pop_lsq (b), ci);
                     }
                 }
             }
@@ -373,7 +370,7 @@ namespace MoveGen {
         assert (RELAX == GT || CAPTURE == GT || QUIET == GT);
         assert (pos.checkers () == U64(0));
 
-        Color active = pos.active ();
+        Color  active  = pos.active ();
 
         Bitboard targets = 
             RELAX   == GT ? ~pos.pieces ( active) :
@@ -407,7 +404,7 @@ namespace MoveGen {
     {
         assert (pos.checkers () == U64(0));
 
-        Color active = pos.active ();
+        Color    active =  pos.active ();
         Bitboard empties= ~pos.pieces ();
         CheckInfo ci (pos);
         // Pawns excluded will be generated together with direct checks
@@ -433,7 +430,7 @@ namespace MoveGen {
     // Returns a pointer to the end of the move list.
     ValMove* generate<CHECK      > (ValMove *moves, const Position &pos)
     {
-        Color active = pos.active ();
+        Color    active =  pos.active ();
         Bitboard targets= ~pos.pieces (active);
         CheckInfo ci (pos);
         // Pawns excluded, will be generated together with direct checks
@@ -460,9 +457,9 @@ namespace MoveGen {
     ValMove* generate<EVASION    > (ValMove *moves, const Position &pos)
     {
         Bitboard checkers = pos.checkers ();
-        assert (checkers); // If any checker exists
+        assert (checkers != U64(0)); // If any checker exists
 
-        Color active = pos.active ();
+        Color  active  = pos.active ();
         Square king_sq = pos.king_sq (active);
 
         Square check_sq;
@@ -500,8 +497,12 @@ namespace MoveGen {
         }
 
         // Generate evasions for king, capture and non capture moves
-        Bitboard attacks =  PIECE_ATTACKS[KING][king_sq]
-            & ~(pos.pieces (active) | PIECE_ATTACKS[KING][pos.king_sq (~active)] | slid_attacks);
+        Bitboard attacks =
+            PIECE_ATTACKS[KING][king_sq]
+            & ~( pos.pieces (active)
+               | PIECE_ATTACKS[KING][pos.king_sq (~active)]
+               | slid_attacks
+               );
 
         while (attacks != U64(0)) { (moves++)->move = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
 
@@ -524,20 +525,18 @@ namespace MoveGen {
     // Generates all legal moves.
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
-        ValMove *end = pos.checkers () != U64(0) ?
-                            generate<EVASION> (moves, pos) :
-                            generate<RELAX  > (moves, pos);
+        ValMove *cur = moves;
+        ValMove *end =
+            pos.checkers () != U64(0) ?
+                generate<EVASION> (moves, pos) :
+                generate<RELAX  > (moves, pos);
 
         Square   king_sq = pos.king_sq (pos.active ());
         Bitboard pinneds = pos.pinneds (pos.active ());
-
-        ValMove *cur = moves;
         while (cur != end)
         {
             Move m = cur->move;
-            if (  (ENPASSANT == mtype (m) || pinneds != U64(0) || org_sq (m) == king_sq)
-               && !pos.legal (m, pinneds)
-               )
+            if ((pinneds != U64(0) || king_sq == org_sq (m) || ENPASSANT == mtype (m)) && !pos.legal (m, pinneds))
             {
                 cur->move = (--end)->move;
             }

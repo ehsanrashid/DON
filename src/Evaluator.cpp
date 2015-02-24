@@ -207,12 +207,12 @@ namespace Evaluator {
         const Score PIECE_THREATEN[THREAT_NO][NONE] =
         {
             { S(+ 0,+ 0), S(+87,+118), S(+84,+112), S(+114,+203), S(+121,+217), S(+ 0,+ 0) }, // Pawns
-            { S(+ 0,+ 0), S(+19, +37), S(+24, +37), S(+ 44,+ 97), S(+ 35,+106), S(+ 0,+ 0) }, // Minor on defended
-            { S(+ 0,+ 0), S(+ 9, +14), S(+ 9, +14), S(+  7,+ 14), S(+ 24,+ 48), S(+ 0,+ 0) }, // Rook  on defended
-            { S(+ 0,+ 0), S(+ 3, + 5), S(+ 3, + 5), S(+  4,+  6), S(+ 12,+ 24), S(+ 0,+ 0) }, // Queen on defended
-            { S(+ 0,+32), S(+31, +41), S(+31, +50), S(+ 41,+100), S(+ 41,+104), S(+ 0,+ 0) }, // Minor on weak
-            { S(+ 0,+27), S(+24, +49), S(+24, +49), S(+ 40,+ 50), S(+ 40,+100), S(+ 0,+ 0) }, // Rook  on weak
-            { S(+ 0,+22), S(+18, +38), S(+18, +38), S(+ 20,+ 41), S(+ 23,+ 51), S(+ 0,+ 0) }, // Queen on weak
+            { S(+ 0,+ 0), S(+19,+ 37), S(+24,+ 37), S(+ 44,+ 97), S(+ 35,+106), S(+ 0,+ 0) }, // Minor on defended
+            { S(+ 0,+ 0), S(+ 9,+ 14), S(+ 9,+ 14), S(+  7,+ 14), S(+ 24,+ 48), S(+ 0,+ 0) }, // Rook  on defended
+            { S(+ 0,+ 0), S(+ 3,+  5), S(+ 3,+  5), S(+  4,+  6), S(+ 12,+ 24), S(+ 0,+ 0) }, // Queen on defended
+            { S(+ 0,+32), S(+33,+ 41), S(+31,+ 50), S(+ 41,+100), S(+ 35,+104), S(+ 0,+ 0) }, // Minor on weak
+            { S(+ 0,+27), S(+26,+ 57), S(+26,+ 57), S(+ 15,+ 43), S(+ 23,+ 51), S(+ 0,+ 0) }, // Rook  on weak
+            { S(+ 0,+22), S(+18,+ 58), S(+18,+ 58), S(+ 23,+ 44), S(+ 15,+ 51), S(+ 0,+ 0) }, // Queen on weak
             { S(+ 2,+58), S(+ 6,+125), S(+ 0,+  0), S(+  0,+  0), S(+  0,+  0), S(+ 0,+ 0) }  // Royal
         };
         
@@ -732,16 +732,16 @@ namespace Evaluator {
                 Bitboard safe_check;
                 // Queens safe-checks
                 safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[Opp][QUEN];
-                if (safe_check != U64(0)) attack_units += more_than_one (safe_check) ? SAFE_CHECK[QUEN] * pop_count<MAX15> (safe_check) : SAFE_CHECK[QUEN];
+                if (safe_check != U64(0)) attack_units += SAFE_CHECK[QUEN] * more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1;
                 // Rooks safe-checks
                 safe_check = rook_check & ei.pin_attacked_by[Opp][ROOK];
-                if (safe_check != U64(0)) attack_units += more_than_one (safe_check) ? SAFE_CHECK[ROOK] * pop_count<MAX15> (safe_check) : SAFE_CHECK[ROOK];
+                if (safe_check != U64(0)) attack_units += SAFE_CHECK[ROOK] * more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1;
                 // Bishops safe-checks
                 safe_check = bshp_check & ei.pin_attacked_by[Opp][BSHP];
-                if (safe_check != U64(0)) attack_units += more_than_one (safe_check) ? SAFE_CHECK[BSHP] * pop_count<MAX15> (safe_check) : SAFE_CHECK[BSHP];
+                if (safe_check != U64(0)) attack_units += SAFE_CHECK[BSHP] * more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1;
                 // Knights safe-checks
                 safe_check = PIECE_ATTACKS[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[Opp][NIHT];
-                if (safe_check != U64(0)) attack_units += more_than_one (safe_check) ? SAFE_CHECK[NIHT] * pop_count<MAX15> (safe_check) : SAFE_CHECK[NIHT];
+                if (safe_check != U64(0)) attack_units += SAFE_CHECK[NIHT] * more_than_one (safe_check) ? pop_count<MAX15> (safe_check) : 1;
 
                 // To index KING_DANGER[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
                 attack_units = min (max (attack_units, 0), MAX_ATTACK_UNITS-1);
@@ -774,7 +774,7 @@ namespace Evaluator {
 
             Score score = SCORE_ZERO;
 
-            Bitboard threaten_pieces;
+            Bitboard b;
 
             Bitboard opp_pieces = pos.pieces (Opp);
 
@@ -785,22 +785,22 @@ namespace Evaluator {
                 &  ei.pin_attacked_by[Own][NONE];
 
             // Protected enemies attacked by minor pieces
-            threaten_pieces = defended_pieces & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
-            while (threaten_pieces != U64(0))
+            b = defended_pieces & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
+            while (b != U64(0))
             {
-                score += PIECE_THREATEN[DFND_MINOR][ptype (pos[pop_lsq (threaten_pieces)])];
+                score += PIECE_THREATEN[DFND_MINOR][ptype (pos[pop_lsq (b)])];
             }
             // Protected enemies attacked by Rook
-            threaten_pieces = defended_pieces & (ei.pin_attacked_by[Own][ROOK]);
-            while (threaten_pieces != U64(0))
+            b = defended_pieces & (ei.pin_attacked_by[Own][ROOK]);
+            while (b != U64(0))
             {
-                score += PIECE_THREATEN[DFND_ROOK][ptype (pos[pop_lsq (threaten_pieces)])];
+                score += PIECE_THREATEN[DFND_ROOK][ptype (pos[pop_lsq (b)])];
             }
             // Protected enemies attacked by Queen
-            threaten_pieces = defended_pieces & (ei.pin_attacked_by[Own][QUEN]);
-            while (threaten_pieces != U64(0))
+            b = defended_pieces & (ei.pin_attacked_by[Own][QUEN]);
+            while (b != U64(0))
             {
-                score += PIECE_THREATEN[DFND_QUEN][ptype (pos[pop_lsq (threaten_pieces)])];
+                score += PIECE_THREATEN[DFND_QUEN][ptype (pos[pop_lsq (b)])];
             }
 
             // Enemies not defended by pawn and attacked by any piece
@@ -810,50 +810,43 @@ namespace Evaluator {
                 &  ei.pin_attacked_by[Own][NONE];
 
             // Weak enemies attacked by Minor
-            threaten_pieces = weak_pieces & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
-            while (threaten_pieces != U64(0))
+            b = weak_pieces & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
+            while (b != U64(0))
             {
-                score += PIECE_THREATEN[WEAK_MINOR][ptype (pos[pop_lsq (threaten_pieces)])];
+                score += PIECE_THREATEN[WEAK_MINOR][ptype (pos[pop_lsq (b)])];
             }
             // Weak enemies attacked by Rook
-            threaten_pieces = weak_pieces & (ei.pin_attacked_by[Own][ROOK]);
-            while (threaten_pieces != U64(0))
+            b = weak_pieces & (ei.pin_attacked_by[Own][ROOK]);
+            while (b != U64(0))
             {
-                score += PIECE_THREATEN[WEAK_ROOK][ptype (pos[pop_lsq (threaten_pieces)])];
+                score += PIECE_THREATEN[WEAK_ROOK][ptype (pos[pop_lsq (b)])];
             }
             // Weak enemies attacked by Queen
-            threaten_pieces = weak_pieces & (ei.pin_attacked_by[Own][QUEN]);
-            while (threaten_pieces != U64(0))
+            b = weak_pieces & (ei.pin_attacked_by[Own][QUEN]);
+            while (b != U64(0))
             {
-                score += PIECE_THREATEN[WEAK_QUEN][ptype (pos[pop_lsq (threaten_pieces)])];
+                score += PIECE_THREATEN[WEAK_QUEN][ptype (pos[pop_lsq (b)])];
             }
             // Weak enemies attacked by King
-            threaten_pieces = weak_pieces & ei.ful_attacked_by[Own][KING];
-            if (threaten_pieces != U64(0)) score += more_than_one (threaten_pieces) ? PIECE_THREATEN[ROYAL][1] : PIECE_THREATEN[ROYAL][0]; 
+            b = weak_pieces & ei.ful_attacked_by[Own][KING];
+            if (b != U64(0)) score += PIECE_THREATEN[ROYAL][more_than_one (b) ? 1 : 0]; 
             // Hanged enemies
-            threaten_pieces = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
-            if (threaten_pieces != U64(0)) score += more_than_one (threaten_pieces) ? PIECE_HANGED * pop_count<MAX15> (threaten_pieces) : PIECE_HANGED;
+            b = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
+            if (b != U64(0)) score += PIECE_HANGED * more_than_one (b) ? pop_count<MAX15> (b) : 1;
 
             // Add bonus for safe pawn pushes
-            Bitboard safepush_pawns;
-            safepush_pawns = pos.pieces<PAWN> (Own) & ~TR7_bb;
-            safepush_pawns = shift_del<Up> (safepush_pawns | (shift_del<Up> (safepush_pawns & TR2_bb) & ~pos.pieces ()));
-            safepush_pawns &= ~pos.pieces ()
-                           &  ~ei.pin_attacked_by[Opp][PAWN]
-                           &  (ei.pin_attacked_by[Own][NONE] | ~ei.pin_attacked_by[Opp][NONE]);
-            if (safepush_pawns != U64(0))
-            {
-                score += PAWN_SAFEPUSH * pop_count<FULL> (safepush_pawns);
-            }
+            b = pos.pieces<PAWN> (Own) & ~TR7_bb;
+            b = shift_del<Up> (b | (shift_del<Up> (b & TR2_bb) & ~pos.pieces ()));
+            b &= ~pos.pieces ()
+              &  ~ei.pin_attacked_by[Opp][PAWN]
+              &  (ei.pin_attacked_by[Own][NONE] | ~ei.pin_attacked_by[Opp][NONE]);
+            if (b != U64(0)) score += PAWN_SAFEPUSH * more_than_one (b) ? pop_count<FULL> (b) : 1;
             
             // Add another bonus if the pawn push attacks an enemy piece
-            safepush_pawns =  (shift_del<Left> (safepush_pawns) | shift_del<Right> (safepush_pawns))
-                           &   pos.pieces (Opp)
-                           &  ~ei.pin_attacked_by[Own][PAWN];
-            if (safepush_pawns != U64(0))
-            {
-                score += PAWN_SAFEATTACK * pop_count<MAX15> (safepush_pawns);
-            }
+            b =  (shift_del<Left> (b) | shift_del<Right> (b))
+              &   pos.pieces (Opp)
+              &  ~ei.pin_attacked_by[Own][PAWN];
+            if (b != U64(0)) score += PAWN_SAFEATTACK * more_than_one (b) ? pop_count<MAX15> (b) : 1;
 
             if (Trace)
             {

@@ -521,8 +521,7 @@ namespace Searcher {
 
             // Step 1. Initialize node
             Thread *thread = pos.thread ();
-            bool in_check  = pos.checkers () != U64(0);
-            bool singular_ext_node;
+            bool  in_check = pos.checkers () != U64(0);
 
             SplitPoint *splitpoint = NULL;
             StateInfo si;
@@ -835,14 +834,14 @@ namespace Searcher {
                 || ((ss-0)->static_eval == VALUE_NONE)
                 || ((ss-0)->static_eval >= (ss-2)->static_eval);
 
-            singular_ext_node =
-                       !RootNode && !SPNode
-                    && exclude_move == MOVE_NONE // Recursive singular search is not allowed
-                    &&      tt_move != MOVE_NONE
-                    &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
-                    && tt_depth >= depth-3*DEPTH_ONE
-                    && abs (tt_value) < +VALUE_KNOWN_WIN
-                    && (tt_bound & BOUND_LOWER);
+            bool singular_ext_node =
+                   !RootNode && !SPNode
+                && exclude_move == MOVE_NONE // Recursive singular search is not allowed
+                &&      tt_move != MOVE_NONE
+                &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
+                && tt_depth >= depth-3*DEPTH_ONE
+                && abs (tt_value) < +VALUE_KNOWN_WIN
+                && (tt_bound & BOUND_LOWER);
 
             point time;
 
@@ -1683,7 +1682,7 @@ namespace Searcher {
         {
             Value v = RootMoves[i].new_value
                     + weakness * i32(RootMoves[0].new_value - RootMoves[i].new_value)
-                    + variance * i32(pr.rand<u32> () % weakness) / i32(VALUE_EG_PAWN/2);
+                    + variance * i32(pr.rand<u32> () % weakness) * 2 / i32(VALUE_EG_PAWN);
 
             if (best_value < v)
             {
