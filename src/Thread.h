@@ -2,6 +2,7 @@
 #define _THREAD_H_INC_
 
 #include <bitset>
+#include <atomic>
 
 #include "Position.h"
 #include "Pawns.h"
@@ -23,7 +24,6 @@
 
 #   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
-
 
 // Use critical sections on Windows to support Windows XP and older versions,
 // unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
@@ -89,6 +89,7 @@ namespace Threads {
     template<class T>
     extern void delete_thread (T *th);
 
+    
     struct Mutex
     {
     private:
@@ -144,6 +145,19 @@ namespace Threads {
     };
 
 
+    // Spinlock class wraps low level atomic operations to provide spin lock functionality
+    class Spinlock
+    {
+        std::atomic_flag lock;
+
+    public:
+        Spinlock () { std::atomic_flag_clear (&lock); }
+
+        void acquire () { while (lock.test_and_set (std::memory_order_acquire)) {} }
+        void release () { lock.clear (std::memory_order_release); }
+    };
+
+
     class Thread;
 
     // SplitPoint struct
@@ -154,13 +168,13 @@ namespace Threads {
         // Const data after splitpoint has been setup
         const Position *pos;
 
-        Stack  *ss;
-        Thread *master;
-        Value   beta;
-        Depth   depth;
-        NodeT   node_type;
-        bool    cut_node;
-        Mutex   mutex;
+        Stack      *ss;
+        Thread     *master;
+        Value       beta;
+        Depth       depth;
+        NodeT       node_type;
+        bool        cut_node;
+        Spinlock    spinlock;
 
         // Const pointers to shared data
         MovePicker  *movepicker;
@@ -177,6 +191,7 @@ namespace Threads {
         volatile u64   nodes;
         volatile bool  cut_off;
     };
+
 
     // ThreadBase class is the base of the hierarchy from where
     // derive all the specialized thread classes.
@@ -285,7 +300,7 @@ namespace Threads {
     {
 
     public:
-        Mutex        mutex;
+        Spinlock     spinlock;
         Condition    sleep_condition;
         TimerThread *check_limits_th;
         TimerThread *auto_save_th;

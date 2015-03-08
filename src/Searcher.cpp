@@ -894,7 +894,7 @@ namespace Searcher {
                     if (!move_legal) continue;
 
                     legals = ++splitpoint->legals;
-                    splitpoint->mutex.unlock ();
+                    splitpoint->spinlock.release ();
                 }
                 else
                 {
@@ -983,7 +983,7 @@ namespace Searcher {
                        && legals >= FutilityMoveCounts[improving][depth]
                        )
                     {
-                        if (SPNode) splitpoint->mutex.lock ();
+                        if (SPNode) splitpoint->spinlock.acquire ();
                         continue;
                     }
 
@@ -1002,7 +1002,7 @@ namespace Searcher {
 
                             if (SPNode)
                             {
-                                splitpoint->mutex.lock ();
+                                splitpoint->spinlock.acquire ();
                                 if (splitpoint->best_value < best_value) splitpoint->best_value = best_value;
                             }
                             continue;
@@ -1014,7 +1014,7 @@ namespace Searcher {
                        && pos.see_sign (move) < VALUE_ZERO
                        )
                     {
-                        if (SPNode) splitpoint->mutex.lock ();
+                        if (SPNode) splitpoint->spinlock.acquire ();
                         continue;
                     }
                 }
@@ -1152,7 +1152,7 @@ namespace Searcher {
                 // Step 18. Check for new best move
                 if (SPNode)
                 {
-                    splitpoint->mutex.lock ();
+                    splitpoint->spinlock.acquire ();
                     alpha      = splitpoint->alpha;
                     best_value = splitpoint->best_value;
                 }
@@ -1992,7 +1992,7 @@ namespace Threads {
         {
             u64 nodes = RootPos.game_nodes ();
 
-            Threadpool.mutex.lock ();
+            Threadpool.spinlock.acquire ();
             
             // Loop across all splitpoints and sum accumulated splitpoint nodes plus
             // all the currently active positions nodes.
@@ -2002,7 +2002,7 @@ namespace Threads {
                 for (size_t count = 0; count < thread->splitpoint_count; ++count)
                 {
                     SplitPoint &sp = thread->splitpoints[count];
-                    sp.mutex.lock ();
+                    sp.spinlock.acquire ();
 
                     nodes += sp.nodes;
                     for (size_t idx2 = 0; idx2 < Threadpool.size (); ++idx2)
@@ -2014,11 +2014,11 @@ namespace Threads {
                         }
                     }
 
-                    sp.mutex.unlock ();
+                    sp.spinlock.release ();
                 }
             }
 
-            Threadpool.mutex.unlock ();
+            Threadpool.spinlock.release ();
 
             if (nodes >= Limits.nodes)
             {
@@ -2052,12 +2052,12 @@ namespace Threads {
             {
                 assert (alive);
 
-                Threadpool.mutex.lock ();
+                Threadpool.spinlock.acquire ();
 
                 assert (active_splitpoint != NULL);
                 SplitPoint *sp = active_splitpoint;
 
-                Threadpool.mutex.unlock ();
+                Threadpool.spinlock.release ();
 
                 Stack stack[MAX_DEPTH+4], *ss = stack+2;    // To allow referencing (ss+2) & (ss-2)
                 Position pos (*(sp->pos), this);
@@ -2067,7 +2067,7 @@ namespace Threads {
                 ss->splitpoint = sp;
 
                 // Lock splitpoint
-                sp->mutex.lock ();
+                sp->spinlock.acquire ();
 
                 assert (active_pos == NULL);
 
@@ -2100,7 +2100,7 @@ namespace Threads {
                 // After releasing the lock, cannot access anymore any splitpoint
                 // related data in a safe way becuase it could have been released under
                 // our feet by the sp master.
-                sp->mutex.unlock ();
+                sp->spinlock.release ();
 
                 // Try to late join to another split point if none of its slaves has already finished.
                 SplitPoint *best_sp     = NULL;
@@ -2116,7 +2116,7 @@ namespace Threads {
                     if (  sp != NULL
                        && sp->slave_searching
                        && sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
-                       && available_to (thread)
+                       && available_to (sp->master)
                        )
                     {
                         assert (Threadpool.size () > 2);
@@ -2142,8 +2142,8 @@ namespace Threads {
                 if (best_sp != NULL)
                 {
                     // Recheck the conditions under lock protection
-                    Threadpool.mutex.lock ();
-                    best_sp->mutex.lock ();
+                    Threadpool.spinlock.acquire ();
+                    best_sp->spinlock.acquire ();
 
                     if (  best_sp->slave_searching
                        && best_sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
@@ -2155,8 +2155,8 @@ namespace Threads {
                         searching = true;
                     }
 
-                    best_sp->mutex.unlock ();
-                    Threadpool.mutex.unlock ();
+                    best_sp->spinlock.release ();
+                    Threadpool.spinlock.release ();
                 }
             }
 

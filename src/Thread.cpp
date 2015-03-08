@@ -155,8 +155,8 @@ namespace Threads {
         // searching by setting 'searching' flag.
         // This must be done under lock protection to avoid concurrent
         // allocation of the same slave by another master.
-        Threadpool.mutex.lock ();
-        sp.mutex.lock ();
+        Threadpool.spinlock.acquire ();
+        sp.spinlock.acquire ();
 
         sp.slave_searching  = true;
         ++splitpoint_count;
@@ -178,8 +178,8 @@ namespace Threads {
         // it will instantly launch a search, because its 'searching' flag is set.
         // The thread will return from the idle loop when all slaves have finished
         // their work at this splitpoint.
-        sp.mutex.unlock ();
-        Threadpool.mutex.unlock ();
+        sp.spinlock.release ();
+        Threadpool.spinlock.release ();
 
         Thread::idle_loop (); // Force a call to base class Thread::idle_loop()
 
@@ -191,8 +191,8 @@ namespace Threads {
         // Have returned from the idle loop, which means that all threads are finished.
         // Note that setting 'searching' and decreasing splitpoint_count is
         // done under lock protection to avoid a race with available_to().
-        Threadpool.mutex.lock ();
-        sp.mutex.lock ();
+        Threadpool.spinlock.acquire ();
+        sp.spinlock.acquire ();
 
         searching = true;
 
@@ -205,8 +205,8 @@ namespace Threads {
         best_move  = sp.best_move;
         best_value = sp.best_value;
 
-        sp.mutex.unlock ();
-        Threadpool.mutex.unlock ();
+        sp.spinlock.release ();
+        Threadpool.spinlock.release ();
     }
 
     // ------------------------------------
