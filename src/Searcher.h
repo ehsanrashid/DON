@@ -203,7 +203,7 @@ namespace Searcher {
     extern Position             RootPos;
     extern StateInfoStackPtr    SetupStates;
 
-    extern Time::point          SearchTime;
+    extern TimePoint            SearchTime;
 
     extern u08                  MultiPV;
     //extern i32                MultiPV_cp;

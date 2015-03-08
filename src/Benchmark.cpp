@@ -12,7 +12,6 @@ using namespace std;
 using namespace Searcher;
 using namespace Transposition;
 using namespace MoveGen;
-using namespace Time;
 using namespace Threads;
 using namespace Notation;
 
@@ -131,8 +130,8 @@ void benchmark (istream &is, const Position &pos)
         ifs.close ();
     }
     
-    u64   nodes    = 0;
-    point time     = now ();
+    u64       nodes    = 0;
+    TimePoint time     = now ();
 
     StateInfoStackPtr states;
 
@@ -193,8 +192,8 @@ void auto_tune (istream &is)
         Threadpool.split_depth = (d+4)*DEPTH_ONE;
         cerr << "Split Depth     : " << i32(Threadpool.split_depth);
 
-        u64   nodes    = 0;
-        point time     = now ();
+        u64       nodes    = 0;
+        TimePoint time     = now ();
         for (u16 i = 0; i < total; ++i)
         {
             Position root_pos (fens[i], Threadpool.main (), Chess960, false);
@@ -214,7 +213,7 @@ void auto_tune (istream &is)
     }
 
     Depth opt_split_depth = DEPTH_ZERO;
-    u64 max_nps = 0;
+    u64   max_nps         = 0;
     for (i32 d = 0; d < 4; ++d)
     {
         cerr << "\n---------------------------\n"

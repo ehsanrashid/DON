@@ -342,7 +342,7 @@ namespace Threads {
     {
         wait_for_main ();
 
-        SearchTime = Time::now (); // As early as possible
+        SearchTime = now (); // As early as possible
 
         RootPos = pos;
         RootMoves.initialize (pos, limits.root_moves);

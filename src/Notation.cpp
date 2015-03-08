@@ -11,7 +11,6 @@ namespace Notation {
     using namespace std;
     using namespace BitBoard;
     using namespace MoveGen;
-    using namespace Time;
 
     namespace {
 
@@ -77,7 +76,7 @@ namespace Notation {
         }
 
         // time to string
-        string pretty_time (point time)
+        string pretty_time (TimePoint time)
         {
             u32 hours  = u32(time / HOUR_MILLI_SEC);
             time      %= HOUR_MILLI_SEC;
@@ -264,7 +263,7 @@ namespace Notation {
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv (Position &pos, i32 depth, Value value, point time, const Move *pv)
+    string pretty_pv (Position &pos, i32 depth, Value value, TimePoint time, const Move *pv)
     {
         ostringstream oss;
 

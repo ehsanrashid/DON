@@ -65,7 +65,7 @@ namespace Searcher {
 
         const u08   MAX_QUIETS     = 64;
 
-        const point INFO_INTERVAL  = 3000; // 3 sec
+        const TimePoint INFO_INTERVAL  = 3000; // 3 sec
 
         Color   RootColor;
         i32     RootPly;
@@ -159,7 +159,7 @@ namespace Searcher {
         // info_multipv() formats PV information according to UCI protocol.
         // UCI requires to send all the PV lines also if are still to be searched
         // and so refer to the previous search score.
-        inline string info_multipv (const Position &pos, Depth depth, Value alpha, Value beta, point time)
+        inline string info_multipv (const Position &pos, Depth depth, Value alpha, Value beta, TimePoint time)
         {
             assert (time >= 0);
 
@@ -203,7 +203,7 @@ namespace Searcher {
                     << (i == IndexPV ? beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "" : "")
                     << " time "     << time
                     << " nodes "    << pos.game_nodes ()
-                    << " nps "      << pos.game_nodes () * MILLI_SEC / max (time, point(1));
+                    << " nps "      << pos.game_nodes () * MILLI_SEC / max (time, TimePoint(1));
                 if (time > MILLI_SEC) ss  << " hashfull " << TT.hash_full ();
                 ss  << " pv"        << RootMoves[i].info_pv ();
 
@@ -843,7 +843,7 @@ namespace Searcher {
                 && abs (tt_value) < +VALUE_KNOWN_WIN
                 && (tt_bound & BOUND_LOWER);
 
-            point time;
+            TimePoint time;
 
             if (RootNode)
             {
@@ -1347,7 +1347,7 @@ namespace Searcher {
                 }
 
                 bool aspiration = depth > 4*DEPTH_ONE;
-                point iteration_time;
+                TimePoint iteration_time;
 
                 // MultiPV loop. Perform a full root search for each PV line
                 for (IndexPV = 0; IndexPV < LimitPV; ++IndexPV)
@@ -1552,7 +1552,7 @@ namespace Searcher {
     Position            RootPos (0);
     StateInfoStackPtr   SetupStates;
 
-    point               SearchTime;
+    TimePoint           SearchTime;
 
     u08                 MultiPV         = 1;
     //i32                 MultiPV_cp      = 0;
@@ -1666,7 +1666,7 @@ namespace Searcher {
     // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
     Move Skill::pick_move ()
     {
-        static PRNG pr (Time::now ());
+        static PRNG pr (now ());
 
         _best_move = MOVE_NONE;
 
@@ -1812,12 +1812,12 @@ namespace Searcher {
             {
                 LogFile logfile (SearchLog);
 
-                point time = now () - SearchTime;
+                TimePoint time = now () - SearchTime;
 
                 logfile
                     << "Time (ms)  : " << time                                      << "\n"
                     << "Nodes (N)  : " << RootPos.game_nodes ()                     << "\n"
-                    << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / max (time, point(1)) << "\n"
+                    << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / max (time, TimePoint(1)) << "\n"
                     << "Hash-full  : " << TT.hash_full ()                           << "\n"
                     << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
                 if (   RootMoves[0].pv[0] != MOVE_NONE
@@ -1861,14 +1861,14 @@ namespace Searcher {
 
     finish:
 
-        point time = now () - SearchTime;
+        TimePoint time = now () - SearchTime;
 
         // When search is stopped this info is printed
         sync_cout
             << "info"
             << " time "     << time
             << " nodes "    << RootPos.game_nodes ()
-            << " nps "      << RootPos.game_nodes () * MILLI_SEC / max (time, point(1));
+            << " nps "      << RootPos.game_nodes () * MILLI_SEC / max (time, TimePoint(1));
         if (time > MILLI_SEC) cout << " hashfull " << TT.hash_full ();
         cout<< sync_endl;
 
@@ -1952,9 +1952,9 @@ namespace Threads {
     // and thus stop the search.
     void check_limits ()
     {
-        static point last_time = now ();
+        static TimePoint last_time = now ();
 
-        point now_time = now ();
+        TimePoint now_time = now ();
         if (now_time - last_time >= MILLI_SEC)
         {
             last_time = now_time;
@@ -1966,7 +1966,7 @@ namespace Threads {
 
         if (Limits.use_timemanager ())
         {
-            point movetime = now_time - SearchTime;
+            TimePoint movetime = now_time - SearchTime;
             if (  movetime > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
                   // Still at first move
                || (   Signals.root_1stmove
@@ -1981,7 +1981,7 @@ namespace Threads {
         else
         if (Limits.movetime != 0)
         {
-            point movetime = now_time - SearchTime;
+            TimePoint movetime = now_time - SearchTime;
             if (movetime >= Limits.movetime)
             {
                 Signals.force_stop = true;

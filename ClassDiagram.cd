@@ -560,7 +560,7 @@
       <FileName>src\tiebuffer.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="Time::point" Collapsed="true">
+  <Typedef Name="TimePoint" Collapsed="true">
     <Position X="1.75" Y="8.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>

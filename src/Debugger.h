@@ -83,7 +83,7 @@ namespace Debug {
                 if (white_spaces (_log_fn)) _log_fn = "DebugLog.txt";
             
                 _fstm.open (_log_fn.c_str (), std::ios_base::out|std::ios_base::app);
-                _fstm << "[" << Time::to_string (Time::now ()) << "] ->" << std::endl;
+                _fstm << "[" << time_to_string (now ()) << "] ->" << std::endl;
 
                 std::cin .rdbuf (&_innbuf);
                 std::cout.rdbuf (&_outbuf);
@@ -97,7 +97,7 @@ namespace Debug {
                 std::cout.rdbuf (_outbuf.sbuf ());
                 std::cin .rdbuf (_innbuf.sbuf ());
 
-                _fstm << "[" << Time::to_string (Time::now ()) << "] <-" << std::endl;
+                _fstm << "[" << time_to_string (now ()) << "] <-" << std::endl;
                 _fstm.close ();
             }
         }

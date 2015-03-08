@@ -208,7 +208,7 @@ namespace OpeningBook {
 
     Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     {
-        static PRNG pr (Time::now ());
+        static PRNG pr (now ());
 
         //if (!is_open () || !(_mode & ios_base::in))
         //{

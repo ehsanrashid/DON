@@ -198,7 +198,7 @@ namespace Pawns {
                 else
                 {
                     Bitboard b;
-                    // Now know that there are no friendly pawns beside or behind this pawn on adjacent files.
+                    // Now know there are no friendly pawns beside or behind this pawn on adjacent files.
                     // Now check whether the pawn is backward by looking in the forward direction on the
                     // adjacent files, and picking the closest pawn there.
                     b = PAWN_ATTACK_SPAN[Own][s] & pos.pieces<PAWN> ();
@@ -367,8 +367,7 @@ namespace Pawns {
             {
                 for (i08 r = R_2; r < R_8; ++r)
                 {
-                    i32 value = SEED[r] + (phalanx != 0 ? (SEED[r + 1] - SEED[r])/2 : 0);
-                    value >>= opposed;
+                    i32 value = (SEED[r] + (phalanx != 0 ? (SEED[r + 1] - SEED[r])/2 : 0)) >> opposed;
                     CONNECTED[opposed][phalanx][r] = mk_score (1.5*value, value);
                 }
             }
