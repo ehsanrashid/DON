@@ -324,9 +324,8 @@ namespace OpeningBook {
         if (pt != PAWN) promote (move, pt);
 
         // Add 'special move' flags and verify it is legal
-        for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
+        for (const auto &m : MoveList<LEGAL> (pos))
         {
-            Move m = *ms;
             if ((m & ~PROMOTE) == move)
             {
                 return m;

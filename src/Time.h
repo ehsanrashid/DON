@@ -17,7 +17,7 @@
 
 #   include <sys/timeb.h>
 
-INLINE u64 system_time_msec ()
+inline u64 system_time_msec ()
 {
     _timeb timebuf;
     _ftime (&timebuf);
@@ -28,7 +28,7 @@ INLINE u64 system_time_msec ()
 
 #   include <sys/time.h>
 
-INLINE u64 system_time_msec ()
+inline u64 system_time_msec ()
 {
     timeval timebuf;
     gettimeofday (&timebuf, NULL);
@@ -43,7 +43,7 @@ const TimePoint MILLI_SEC        = 1000;
 const TimePoint MINUTE_MILLI_SEC = MILLI_SEC * 60;
 const TimePoint HOUR_MILLI_SEC   = MINUTE_MILLI_SEC * 60;
 
-INLINE TimePoint now()
+inline TimePoint now()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::steady_clock::now().time_since_epoch ()).count ();
 }

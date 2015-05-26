@@ -543,7 +543,7 @@ public:
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
-    INLINE void prefetch (const char *addr)
+    inline void prefetch (const char *addr)
     {
 #       if defined(__INTEL_COMPILER)
         {
@@ -557,7 +557,7 @@ public:
 
 #   else
 
-    INLINE void prefetch (const char *addr)
+    inline void prefetch (const char *addr)
     {
         __builtin_prefetch (addr);
     }
@@ -566,11 +566,9 @@ public:
 
 #else
 
-    INLINE void prefetch (const char *) {}
+    inline void prefetch (const char *) {}
 
 #endif
-
-inline char toggle_case (unsigned char c) { return char (islower (c) ? toupper (c) : tolower (c)); }
 
 inline bool white_spaces (const std::string &str)
 {

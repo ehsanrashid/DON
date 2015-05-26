@@ -71,14 +71,12 @@ namespace UCI {
     {
         for (u08 idx = 0; idx < optmap.size (); ++idx)
         {
-            for (OptionMap::const_iterator
-                pair  = optmap.begin ();
-                pair != optmap.end (); ++pair)
+            for (auto &pair : optmap)
             {
-                const Option &option = pair->second;
+                const Option &option = pair.second;
                 if (idx == option._idx)
                 {
-                    os << "option name " << pair->first << option << std::endl;
+                    os << "option name " << pair.first << option << std::endl;
                     break;
                 }
             }

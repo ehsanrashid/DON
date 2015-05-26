@@ -316,13 +316,13 @@ public:
 
 // -------------------------------
 
-INLINE Piece         Position::operator[] (Square s)  const { return _board[s]; }
-//INLINE Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
-//INLINE Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
-INLINE const Square* Position::operator[] (Piece  p)  const { return _piece_list[color (p)][ptype (p)]; }
+inline Piece         Position::operator[] (Square s)  const { return _board[s]; }
+//inline Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
+//inline Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
+inline const Square* Position::operator[] (Piece  p)  const { return _piece_list[color (p)][ptype (p)]; }
 
-INLINE bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
-INLINE Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
+inline bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
+inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
 inline Bitboard Position::pieces (Color c)   const { return _color_bb[c];  }
 

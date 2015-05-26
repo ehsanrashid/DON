@@ -98,15 +98,15 @@ namespace Searcher {
     // Value is normally set at -VALUE_INFINITE for all non-pv moves.
     struct RootMove
     {
-        u64   nodes;
         Value new_value;
         Value old_value;
+        u64   nodes;
         std::vector<Move> pv;
 
         explicit RootMove (Move m = MOVE_NONE)
-            : nodes (U64(0))
-            , new_value (-VALUE_INFINITE)
+            : new_value (-VALUE_INFINITE)
             , old_value (-VALUE_INFINITE)
+            , nodes (U64(0))
             , pv (1, m)
         {}
         
@@ -123,7 +123,7 @@ namespace Searcher {
         friend bool operator!= (const RootMove &rm, Move m) { return rm.pv[0] != m; }
 
         void insert_pv_into_tt (Position &pos);
-        Move extract_ponder_move_from_tt (Position &pos);
+        bool ponder_move_from_tt_extracted (Position &pos);
 
         std::string info_pv () const;
     };

@@ -1666,7 +1666,9 @@ void Position::flip ()
     // 3. Castling availability
     ss >> s;
     fen_ += s + " ";
-    transform (fen_.begin (), fen_.end (), fen_.begin (), toggle_case);
+    transform (fen_.begin (), fen_.end (), fen_.begin (),
+        // Toggle case
+        [](unsigned char c) { return char (islower (c) ? toupper (c) : tolower (c)); });
 
     // 4. En-passant square
     ss >> s;

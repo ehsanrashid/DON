@@ -111,11 +111,11 @@ namespace Notation {
             if (isupper (u08(can_copy[4]))) can_copy[4] = u08(tolower (can_copy[4]));
         }
 
-        for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
+        for (const auto &m : MoveList<LEGAL> (pos))
         {
-            if (can_copy == move_to_can (*ms, pos.chess960 ()))
+            if (can_copy == move_to_can (m, pos.chess960 ()))
             {
-                return *ms;
+                return m;
             }
         }
         return MOVE_NONE;
@@ -125,11 +125,11 @@ namespace Notation {
     // to the corresponding legal move, if any.
     Move move_from_san (const string &san, Position &pos)
     {
-        for (MoveList<LEGAL> ms (pos); *ms != MOVE_NONE; ++ms)
+        for (const auto &m : MoveList<LEGAL> (pos))
         {
-            if (san == move_to_san (*ms, pos))
+            if (san == move_to_san (m, pos))
             {
-                return *ms;
+                return m;
             }
         }
         return MOVE_NONE;

@@ -267,57 +267,57 @@ namespace UCI {
             if (RootPos.checkers () != U64(0))
             {
                 cout << "\nEvasion moves: ";
-                for (MoveList<EVASION> ms (RootPos); *ms != MOVE_NONE; ++ms)
+                for (const auto &m : MoveList<EVASION> (RootPos))
                 {
-                    if (RootPos.legal (*ms))
+                    if (RootPos.legal (m))
                     {
-                        cout << move_to_san (*ms, RootPos) << " ";
+                        cout << move_to_san (m, RootPos) << " ";
                     }
                 }
             }
             else
             {
                 cout << "\nQuiet moves: ";
-                for (MoveList<QUIET> ms (RootPos); *ms != MOVE_NONE; ++ms)
+                for (const auto &m : MoveList<QUIET> (RootPos))
                 {
-                    if (RootPos.legal (*ms))
+                    if (RootPos.legal (m))
                     {
-                        cout << move_to_san (*ms, RootPos) << " ";
+                        cout << move_to_san (m, RootPos) << " ";
                     }
                 }
 
                 cout << "\nCheck moves: ";
-                for (MoveList<CHECK> ms (RootPos); *ms != MOVE_NONE; ++ms)
+                for (const auto &m : MoveList<CHECK> (RootPos))
                 {
-                    if (RootPos.legal (*ms))
+                    if (RootPos.legal (m))
                     {
-                        cout << move_to_san (*ms, RootPos) << " ";
+                        cout << move_to_san (m, RootPos) << " ";
                     }
                 }
 
                 cout << "\nQuiet Check moves: ";
-                for (MoveList<QUIET_CHECK> ms (RootPos); *ms != MOVE_NONE; ++ms)
+                for (const auto &m : MoveList<QUIET_CHECK> (RootPos))
                 {
-                    if (RootPos.legal (*ms))
+                    if (RootPos.legal (m))
                     {
-                        cout << move_to_san (*ms, RootPos) << " ";
+                        cout << move_to_san (m, RootPos) << " ";
                     }
                 }
 
                 cout << "\nCapture moves: ";
-                for (MoveList<CAPTURE> ms (RootPos); *ms != MOVE_NONE; ++ms)
+                for (const auto &m : MoveList<CAPTURE> (RootPos))
                 {
-                    if (RootPos.legal (*ms))
+                    if (RootPos.legal (m))
                     {
-                        cout << move_to_san (*ms, RootPos) << " ";
+                        cout << move_to_san (m, RootPos) << " ";
                     }
                 }
             }
 
             cout << "\nLegal moves: ";
-            for (MoveList<LEGAL> ms (RootPos); *ms != MOVE_NONE; ++ms)
+            for (const auto &m : MoveList<LEGAL> (RootPos))
             {
-                cout << move_to_san (*ms, RootPos) << " ";
+                cout << move_to_san (m, RootPos) << " ";
             }
 
             cout << sync_endl;

@@ -22,7 +22,7 @@ namespace MovePick {
             STOP
         };
 
-        // Insertion sort in the range [begin, end], guaranteed to be stable, as is needed
+        // Insertion sort in the range [begin, end], which is guaranteed to be stable, as it should be
         inline void insertion_sort (ValMove *begin, ValMove *end)
         {
             for (ValMove *p = begin+1; p < end; ++p)
@@ -60,9 +60,9 @@ namespace MovePick {
 
         stage = pos.checkers () != U64(0) ? EVASION_S1 : MAIN_S;
 
-        tt_move = ttm != MOVE_NONE
-               && pos.pseudo_legal (ttm) ?
-                    ttm : MOVE_NONE;
+        tt_move =   ttm != MOVE_NONE
+                 && pos.pseudo_legal (ttm) ?
+                        ttm : MOVE_NONE;
 
         end += tt_move != MOVE_NONE;
     }
@@ -100,9 +100,9 @@ namespace MovePick {
             ttm   = MOVE_NONE;
         }
 
-        tt_move = ttm != MOVE_NONE
-               && pos.pseudo_legal (ttm) ?
-                    ttm : MOVE_NONE;
+        tt_move =   ttm != MOVE_NONE
+                 && pos.pseudo_legal (ttm) ?
+                        ttm : MOVE_NONE;
 
         end += tt_move != MOVE_NONE;
     }
@@ -124,11 +124,11 @@ namespace MovePick {
         // In ProbCut generate only captures better than parent's captured piece
         capture_threshold = PIECE_VALUE[MG][pt];
 
-        tt_move = ttm != MOVE_NONE
-               && pos.pseudo_legal (ttm)
-               && pos.capture (ttm)
-               && pos.see (ttm) > capture_threshold ?
-                    ttm : MOVE_NONE;
+        tt_move =   ttm != MOVE_NONE
+                 && pos.pseudo_legal (ttm)
+                 && pos.capture (ttm)
+                 && pos.see (ttm) > capture_threshold ?
+                        ttm : MOVE_NONE;
 
         end += tt_move != MOVE_NONE;
     }
@@ -327,7 +327,8 @@ namespace MovePick {
             if (cur < end)
             {
                 value<QUIET> ();
-                end = partition (cur, end, ValMove ());
+                // Split positive(+ve) value from the list
+                end = partition (cur, end, [](const ValMove &m) { return m.value > VALUE_ZERO; });
                 if (cur < end-1)
                 {
                     insertion_sort (cur, end);
@@ -379,12 +380,6 @@ namespace MovePick {
         }
     }
 
-    template<bool SPNode>
-    Move MovePicker::next_move ()
-    {
-        return MOVE_NONE;
-    }
-
     template<>
     // next_move() is the most important method of the MovePicker class. It returns
     // a new pseudo legal move every time is called, until there are no more moves
@@ -415,7 +410,7 @@ namespace MovePick {
             case CAPTURE_S1:
                 do
                 {
-                    move = pick_best ()->move;
+                    move = pick_best ();
                     if (move != tt_move)
                     {
                         if (pos.see_sign (move) >= VALUE_ZERO)
@@ -482,7 +477,7 @@ namespace MovePick {
             case CAPTURE_S4:
                 do
                 {
-                    move = pick_best ()->move;
+                    move = pick_best ();
                     if (move != tt_move)
                     {
                         return move;
@@ -493,7 +488,7 @@ namespace MovePick {
             case CAPTURE_S5:
                 do
                 {
-                    move = pick_best ()->move;
+                    move = pick_best ();
                     if (move != tt_move && pos.see (move) > capture_threshold)
                     {
                         return move;
@@ -504,7 +499,7 @@ namespace MovePick {
             case CAPTURE_S6:
                 do
                 {
-                    move = pick_best ()->move;
+                    move = pick_best ();
                     if (move != tt_move && recapture_sq == dst_sq (move))
                     {
                         return move;

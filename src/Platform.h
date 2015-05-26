@@ -90,18 +90,4 @@ typedef        uint64_t    u64;
 
 #undef INLINE
 
-#ifdef _MSC_VER
-
-#   define INLINE     __forceinline
-
-#elif __GNUC__
-
-#   define INLINE     inline __attribute__((always_inline))
-
-#else
-
-#   define INLINE     inline
-
-#endif
-
 #endif // _PLATFORM_H_INC_

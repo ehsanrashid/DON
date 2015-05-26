@@ -53,7 +53,7 @@ namespace BitBoard {
 //        i08 MSB_TABLE[UCHAR_MAX + 1];
 //        Square BSF_TABLE[SQ_NO];
 //
-//        INLINE unsigned bsf_index (Bitboard bb)
+//        unsigned bsf_index (Bitboard bb)
 //        {
 //            // Matt Taylor's folding for 32 bit systems, extended to 64 bits by Kim Walisch
 //            bb ^= (bb - 1);

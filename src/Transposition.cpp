@@ -67,7 +67,7 @@ namespace Transposition {
 
     // resize(mb) sets the size of the table, measured in mega-bytes.
     // Transposition table consists of a power of 2 number of clusters and
-    // each cluster consists of ClusterEntries number of entry.
+    // each cluster consists of ClusterEntryCount number of entry.
     u32 TranspositionTable::resize (u64 mem_size_mb, bool force)
     {
         if (mem_size_mb < MinSize) mem_size_mb = MinSize;
@@ -116,23 +116,22 @@ namespace Transposition {
         assert (key != U64(0));
 
         TTEntry *const fte = cluster_entry (key);
-        for (TTEntry *ite = fte  ; ite < fte + ClusterEntries; ++ite)
+        for (TTEntry *ite = fte+0; ite < fte + ClusterEntryCount; ++ite)
         {
             if (ite->_key == U64(0))
             {
-                hit = false;
-                return ite;
+                return hit = false, ite;
             }
             if (ite->_key == key)
             {
                 ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
-                hit = true;
-                return ite;
+                
+                return hit = true, ite;
             }
         }
 
         TTEntry *rte = fte;
-        for (TTEntry *ite = fte+1; ite < fte + ClusterEntries; ++ite)
+        for (TTEntry *ite = fte+1; ite < fte + ClusterEntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
             if ( ((ite->gen () == _generation || ite->bound () == BOUND_EXACT)
@@ -145,11 +144,11 @@ namespace Transposition {
         // By default replace first entry and make place in the last
         if (rte == fte)
         {
-            memmove (fte, fte+1, (ClusterEntries - 1)*EntrySize);
-            rte = fte + (ClusterEntries - 1);
+            memmove (fte, fte+1, (ClusterEntryCount - 1)*EntrySize);
+            rte = fte + (ClusterEntryCount - 1);
         }
-        hit = false;
-        return rte;
+
+        return hit = false, rte;
     }
 
     void TranspositionTable::save (string &hash_fn) const

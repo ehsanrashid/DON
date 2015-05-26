@@ -47,20 +47,33 @@ namespace Transposition {
 
         inline void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
-            if (m != MOVE_NONE || k != _key) // Preserve any existing TT move
-            _move       = u16(m);
-            _key        = u64(k);
-            _value      = u16(v);
-            _eval       = u16(e);
-            _depth      = i08(d);
-            _gen_bnd    = u08(g | b);
+            // Preserve any existing move for the same key
+            if (  m != MOVE_NONE
+               || k != _key
+               )
+            {
+                _move       = u16(m);
+            }
+
+            // Don't overwrite more valuable entries
+            if (  k != _key
+               || d > _depth - 2
+               || g != gen ()
+               || b == BOUND_EXACT
+               )
+            {
+                _key        = u64(k);
+                _value      = u16(v);
+                _eval       = u16(e);
+                _depth      = i08(d);
+                _gen_bnd    = u08(g | b);
+            }
         }
 
     };
 
-
     // A Transposition Table consists of a 2^power number of clusters
-    // and each cluster consists of ClusterEntries number of entry.
+    // and each cluster consists of ClusterEntryCount number of entry.
     // Each non-empty entry contains information of exactly one position.
     // Size of a cluster shall not be bigger than a CACHE_LINE_SIZE.
     // In case it is less, it should be padded to guarantee always aligned accesses.
@@ -69,16 +82,17 @@ namespace Transposition {
 
     private:
 
-        // Number of entries in a cluster
-        static const u08 ClusterEntries = 4;
+        // Cluster entries count
+        static const u08 ClusterEntryCount = 4;
 
         // Cluster is a 64 bytes cluster of TT entries
         //
         // 4 x Entry (4 x 16 bytes)
         struct Cluster
         {
-            TTEntry entries[ClusterEntries];
+            TTEntry entries[ClusterEntryCount];
         };
+
 
     #ifdef LPAGES
         void    *_mem;
@@ -117,9 +131,13 @@ namespace Transposition {
         // Size of Transposition entry (bytes)
         // 16 bytes
         static const u08 EntrySize   = sizeof (TTEntry);
+        static_assert (EntrySize == 16, "TTEntry size incorrect");
+
         // Size of Transposition cluster in (bytes)
         // 64 bytes
         static const u08 ClusterSize = sizeof (Cluster);
+        static_assert (ClusterSize == 64, "Cluster size incorrect");
+
         // Maximum bit of hash for cluster
         static const u08 MaxHashBit  = 36;
         // Minimum size of Transposition table (mega-byte)
@@ -163,7 +181,7 @@ namespace Transposition {
 
         inline u64 entries () const
         {
-            return (_cluster_count * ClusterEntries);
+            return (_cluster_count * ClusterEntryCount);
         }
 
         // size() returns hash size in MB
@@ -209,10 +227,10 @@ namespace Transposition {
         inline u32 hash_full () const
         {
             u32 full_entry_count = 0;
-            for (const Cluster *c = _clusters; c < _clusters + 1000/ClusterEntries; ++c)
+            for (const Cluster *clt = _clusters; clt < _clusters + 1000/ClusterEntryCount; ++clt)
             {
-                const TTEntry *fte = c->entries;
-                for (const TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
+                const TTEntry *fte = clt->entries;
+                for (const TTEntry *ite = fte; ite < fte + ClusterEntryCount; ++ite)
                 {
                     if (ite->gen () == _generation)
                     {
