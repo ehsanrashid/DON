@@ -51,14 +51,14 @@ namespace {
         "8/3p3B/5p2/5P2/p7/PP5b/k7/6K1 w - - 0 1",
         
         // 5-man positions
-        "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 1",     // Kc2 - mate
-        "8/8/8/5N2/8/p7/8/2NK3k w - - 0 1",      // Na2 - mate
-        "8/3k4/8/8/8/4B3/4KB2/2B5 w - - 0 1",    // draw
+        "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 1",     // Kc2 - Mate
+        "8/8/8/5N2/8/p7/8/2NK3k w - - 0 1",      // Na2 - Mate
+        "8/3k4/8/8/8/4B3/4KB2/2B5 w - - 0 1",    // Draw
         
         // 6-man positions
-        "8/8/1P6/5pr1/8/4R3/7k/2K5 w - - 0 1",   // Re5 - mate
-        "8/2p4P/8/kr6/6R1/8/8/1K6 w - - 0 1",    // Ka2 - mate
-        "8/8/3P3k/8/1p6/8/1P6/1K3n2 b - - 0 1",  // Nd2 - draw
+        "8/8/1P6/5pr1/8/4R3/7k/2K5 w - - 0 1",   // Re5 - Mate
+        "8/2p4P/8/kr6/6R1/8/8/1K6 w - - 0 1",    // Ka2 - Mate
+        "8/8/3P3k/8/1p6/8/1P6/1K3n2 b - - 0 1",  // Nd2 - Draw
         
         // 7-man positions
         "8/R7/2q5/8/6k1/8/1P5p/K6R w - - 0 124", // Draw
@@ -67,19 +67,20 @@ namespace {
 
 // benchmark() runs a simple benchmark by letting engine analyze a set of positions for a given limit each.
 // There are five optional parameters:
-//  - transposition table size (default is 16 MB).
-//  - number of search threads that should be used (default is 1 thread).
-//  - limit value spent for each position (default is 13 depth),
-//  - type of the limit value:
-//     * 'depth' (default).
-//     * 'time' in millisecs.
-//     * 'nodes' to search.
-//     * 'mate' in moves
-//  - filename where to look for positions in fen format (defaults are the positions defined above)
-//     * 'default' for builtin position
+//  - Transposition table size (default is 16 MB)
+//  - Number of search threads that should be used (default is 1 Thread)
+//  - Limit value spent for each position (default is 13 Depth)
+//  - Type of the Limit value:
+//     * 'depth' (default)
+//     * 'time' [millisecs]
+//     * 'movetime' [millisecs]
+//     * 'nodes'
+//     * 'mate'
+//  - FEN positions to be used:
+//     * 'default' for builtin positions (default)
 //     * 'current' for current position
-//     * '<filename>' containing fens position
-// example: bench 32 1 10000 depth default
+//     * '<filename>' for file containing FEN positions
+// example: bench 32 1 10000 movetime default
 void benchmark (istream &is, const Position &pos)
 {
     string token;
@@ -89,22 +90,20 @@ void benchmark (istream &is, const Position &pos)
     string limit_val  = (is >> token) && !white_spaces (token) ? token : "13";
     string limit_type = (is >> token) && !white_spaces (token) ? token : "depth";
     string fen_fn     = (is >> token) && !white_spaces (token) ? token : "default";
-    string boolean    = "false";
+    string never_clear_hash = "false";
     
     Options["Hash"]             = hash;
-    Options["Never Clear Hash"] = boolean;
     Options["Threads"]          = threads;
-
-    i32 value = abs (atoi (limit_val.c_str ()));
-    //value = value >= 0 ? +value : -value;
+    Options["Never Clear Hash"] = never_clear_hash;
+    
+    i32 value = abs (stoi (limit_val));
 
     LimitsT limits;
-    if      (limit_type == "time")     limits.game_clock[WHITE].time = limits.game_clock[BLACK].time = value * MILLI_SEC; // movetime is in ms
-    if      (limit_type == "movetime") limits.movetime = value; // movetime is in millisecs
+    if      (limit_type == "time")     limits.game_clock[WHITE].time = limits.game_clock[BLACK].time = value;
+    else if (limit_type == "movetime") limits.movetime = value;
     else if (limit_type == "nodes")    limits.nodes    = value;
     else if (limit_type == "mate")     limits.mate     = u08(value);
-    //else if (limit_type == "depth")
-    else                               limits.depth    = u08(value);
+    else  /*(limit_type == "depth")*/  limits.depth    = u08(value);
 
     vector<string> fens;
     
@@ -127,9 +126,8 @@ void benchmark (istream &is, const Position &pos)
             return;
         }
 
-        //fen_ifs.seekg (0, ios::beg);
         string fen;
-        while (!fen_ifs.eof () && getline (fen_ifs, fen)) // getline (fen_ifs, fen, '\n')
+        while (!fen_ifs.eof () && getline (fen_ifs, fen))
         {
             if (!white_spaces (fen))
             {
@@ -161,7 +159,6 @@ void benchmark (istream &is, const Position &pos)
         }
         else
         {
-            TT.clear ();
             Threadpool.start_main (root_pos, limits, states);
             Threadpool.wait_for_main ();
             nodes += RootPos.game_nodes ();
@@ -191,8 +188,8 @@ void auto_tune (istream &is)
     LimitsT limits;
     limits.depth = 15;
 
-    vector<string> fens;
-    fens = DEFAULT_FEN;
+    vector<string> fens = DEFAULT_FEN;
+    
     StateInfoStackPtr states;
     
     u64 nps[4];
@@ -210,7 +207,6 @@ void auto_tune (istream &is)
             cerr << "\n---------------\n" 
                  << "Position: " << setw (2) << (i + 1) << "/" << fens.size () << "\n";
 
-            TT.clear ();
             Threadpool.start_main (root_pos, limits, states);
             Threadpool.wait_for_main ();
             nodes += RootPos.game_nodes ();
