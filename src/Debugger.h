@@ -20,7 +20,7 @@ namespace Debug {
 
     public:
         explicit LogFile (const std::string &fn = "Log.txt")
-            : std::ofstream (fn.c_str (), out|app)
+            : std::ofstream (fn, out|app)
         {}
 
         ~LogFile ()
@@ -82,7 +82,7 @@ namespace Debug {
                 }
                 if (white_spaces (_log_fn)) _log_fn = "DebugLog.txt";
             
-                _fstm.open (_log_fn.c_str (), std::ios_base::out|std::ios_base::app);
+                _fstm.open (_log_fn, std::ios_base::out|std::ios_base::app);
                 _fstm << "[" << time_to_string (now ()) << "] ->" << std::endl;
 
                 std::cin .rdbuf (&_innbuf);

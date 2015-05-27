@@ -48,17 +48,15 @@ namespace std {
                     return EOF; // Error
                 }
             }
-            last_ch = _filestm->rdbuf ()->sputc (Elem (c));
 
-            return last_ch;
+            return last_ch = _filestm->rdbuf ()->sputc (Elem (c));
         }
 
     protected:
 
         virtual int sync () override
         {
-            _filestm->rdbuf ()->pubsync ();
-            return _strmbuf->pubsync ();
+            return _filestm->rdbuf ()->pubsync (), _strmbuf->pubsync ();
         }
 
         virtual int_type overflow (int_type c) override

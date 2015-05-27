@@ -17,8 +17,9 @@ namespace BitBases {
             WIN     = 4,
             LOSE    = 8
         };
-        inline Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
-        //inline Result& operator&= (Result &r1, Result r2) { return r1 = Result (r1 & r2); }
+        
+        Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
+        //Result& operator&= (Result &r1, Result r2) { return r1 = Result (r1 & r2); }
         
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
         const u32 MAX_INDEX = 2*24*i08(SQ_NO)*i08(SQ_NO); // stm * wp_sq * wk_sq * bk_sq = 196608
@@ -30,19 +31,20 @@ namespace BitBases {
 
         private:
 
-            template<Color Own>
-            Result classify (const vector<KPK_Position> &db);
-
             Color  _active;
-            Square _bk_sq
-                ,  _wk_sq
+            
+            Square _k_sq[CLR_NO]
                 ,  _p_sq;
 
             Result result;
 
+            template<Color Own>
+            Result classify (const vector<KPK_Position> &db);
+            
         public:
 
-            KPK_Position (u32 idx);
+            KPK_Position () {}
+            explicit KPK_Position (u32 idx);
 
             operator Result () const { return result; }
 
@@ -53,20 +55,21 @@ namespace BitBases {
 
         };
 
-        inline KPK_Position::KPK_Position (u32 idx)
+        KPK_Position::KPK_Position (u32 idx)
         {
-            _wk_sq  = Square((idx >> 0) & 0x3F);
-            _bk_sq  = Square((idx >> 6) & 0x3F);
-            _active = Color((idx >> 12) & 0x01);
-            _p_sq   = File((idx >> 13) & 0x03) | Rank(i08(R_7) - ((idx >> 15) & 0x07));
+            _k_sq[WHITE] = Square(            (idx >>  0) & 0x3F);
+            _k_sq[BLACK] = Square(            (idx >>  6) & 0x3F);
+            _active      = Color (            (idx >> 12) & 0x01);
+            _p_sq        = File  (            (idx >> 13) & 0x03)
+                         | Rank  (i08(R_7) - ((idx >> 15) & 0x07));
             
             result  = UNKNOWN;
 
             // Check if two pieces are on the same square or if a king can be captured
-            if (  dist (_wk_sq, _bk_sq) <= 1
-               || _wk_sq == _p_sq
-               || _bk_sq == _p_sq
-               || (WHITE == _active && PAWN_ATTACKS[WHITE][_p_sq] & _bk_sq)
+            if (  dist (_k_sq[WHITE], _k_sq[BLACK]) <= 1
+               || _k_sq[WHITE] == _p_sq
+               || _k_sq[BLACK] == _p_sq
+               || (WHITE == _active && PAWN_ATTACKS[WHITE][_p_sq] & _k_sq[BLACK])
                )
             {
                 result = INVALID;
@@ -77,9 +80,9 @@ namespace BitBases {
                 {
                     // Immediate win if a pawn can be promoted without getting captured
                     if (  _rank (_p_sq) == R_7
-                       && _wk_sq != _p_sq + DEL_N
-                       && (  dist (_bk_sq, _p_sq + DEL_N) > 1
-                          || PIECE_ATTACKS[KING][_wk_sq] & (_p_sq + DEL_N)
+                       && _k_sq[_active] != _p_sq + DEL_N
+                       && (  dist (_k_sq[~_active], _p_sq + DEL_N) > 1
+                          || PIECE_ATTACKS[KING][_k_sq[_active]] & (_p_sq + DEL_N)
                           )
                        )
                     {
@@ -87,10 +90,11 @@ namespace BitBases {
                     }
                 }
                 else
+                if (BLACK == _active)
                 {
                     // Immediate draw if is a stalemate or king captures undefended pawn
-                    if (  !(PIECE_ATTACKS[KING][_bk_sq] & ~(PIECE_ATTACKS[KING][_wk_sq] | PAWN_ATTACKS[WHITE][_p_sq]))
-                        || (PIECE_ATTACKS[KING][_bk_sq] & ~(PIECE_ATTACKS[KING][_wk_sq]) & _p_sq)
+                    if (  !(PIECE_ATTACKS[KING][_k_sq[_active]] & ~(PIECE_ATTACKS[KING][_k_sq[~_active]] | PAWN_ATTACKS[WHITE][_p_sq]))
+                        || (PIECE_ATTACKS[KING][_k_sq[_active]] & ~(PIECE_ATTACKS[KING][_k_sq[~_active]]) & _p_sq)
                        )
                     {
                         result = DRAW;
@@ -108,13 +112,13 @@ namespace BitBases {
         // bit    12: side to move color (WHITE or BLACK)
         // bit 13-14: white pawn file (from F_A to F_D)
         // bit 15-17: white pawn R_7 - rank (from R_7 to R_2)
-        inline u32 index (Color c, Square bk_sq, Square wk_sq, Square wp_sq)
+        u32 index (Color c, Square bk_sq, Square wk_sq, Square wp_sq)
         {
             return wk_sq | (bk_sq << 6) | (c << 12) | (_file (wp_sq) << 13) | ((R_7 - _rank (wp_sq)) << 15);
         }
 
         template<Color Own>
-        inline Result KPK_Position::classify (const vector<KPK_Position>& db)
+        Result KPK_Position::classify (const vector<KPK_Position>& db)
         {
 
             // White to Move:
@@ -127,35 +131,40 @@ namespace BitBases {
             // If all moves lead to positions classified as WIN, the result of the current position is WIN
             // otherwise the current position is classified as UNKNOWN.
 
-            const Color Opp = WHITE == Own ? BLACK : WHITE;
-
+            const Color  Opp  = WHITE == Own ? BLACK : WHITE;
+            const Result Good = WHITE == Own ? WIN   : DRAW;
+            const Result Bad  = WHITE == Own ? DRAW  : WIN;
+            
             Result r = INVALID;
 
-            Bitboard b = PIECE_ATTACKS[KING][WHITE == Own ? _wk_sq : _bk_sq];
+            Bitboard b = PIECE_ATTACKS[KING][_k_sq[Own]];
             while (b != U64(0))
             {
                 r |= WHITE == Own ?
-                    db[index(Opp, _bk_sq, pop_lsq (b), _p_sq)] :
-                    db[index(Opp, pop_lsq (b), _wk_sq, _p_sq)];
+                        db[index (Opp, _k_sq[Opp], pop_lsq (b), _p_sq)] :
+                        db[index (Opp, pop_lsq (b), _k_sq[Opp], _p_sq)];
             }
 
-            if (WHITE == Own && _rank (_p_sq) < R_7)
+            if (WHITE == Own)
             {
-                Square s = _p_sq + DEL_N;
-
-                r |= db[index(BLACK, _bk_sq, _wk_sq, s)];               // Single push
-
-                if (_rank (_p_sq) == R_2 && s != _wk_sq && s != _bk_sq)
+                // Single push
+                if (_rank (_p_sq) < R_7)
                 {
-                    r |= db[index(BLACK, _bk_sq, _wk_sq, s + DEL_N)];   // Double push
+                    r |= db[index (Opp, _k_sq[Opp], _k_sq[Own], _p_sq + DEL_N)];
+                }
+
+                // Double push
+                if (   _rank (_p_sq) == R_2
+                    && _p_sq + DEL_N != _k_sq[Own]
+                    && _p_sq + DEL_N != _k_sq[Opp]
+                   )
+                {
+                    r |= db[index (Opp, _k_sq[Opp], _k_sq[Own], _p_sq + DEL_N + DEL_N)];
                 }
             }
 
-            result = WHITE == Own ?
-                     (r & WIN  ? WIN  : r & UNKNOWN ? UNKNOWN : DRAW) :
-                     (r & DRAW ? DRAW : r & UNKNOWN ? UNKNOWN : WIN);
-
-            return result;
+            return result = r & Good  ? Good  :
+                            r & UNKNOWN ? UNKNOWN : Bad;
         }
 
     }

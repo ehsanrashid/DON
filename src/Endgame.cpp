@@ -63,11 +63,11 @@ namespace EndGame {
 
             if (_file (pos.list<PAWN> (strong_side)[0]) >= F_E)
             {
-                sq = !sq; // MIRROR
+                sq = !sq; // MIRROR- SQ_A1 -> SQ_H1
             }
             if (BLACK == strong_side)
             {
-                sq = ~sq; // FLIP
+                sq = ~sq; // FLIP  - SQ_A1 -> SQ_A8
             }
 
             return sq;
