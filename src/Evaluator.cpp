@@ -69,46 +69,47 @@ namespace Evaluator {
         namespace Tracer {
 
             // Used for tracing
-            enum TermT
+            enum TermT : u08
             {
                 MATERIAL = 6, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, TOTAL, TERM_NO
             };
 
             Score Scores[CLR_NO][TERM_NO];
 
-            inline void set (u08 idx, Color c, Score score)
+            void write (TermT term, Color c, Score score)
             {
-                Scores[c][idx] = score;
+                Scores[c][term] = score;
             }
-            inline void set (u08 idx, Score score_w, Score score_b = SCORE_ZERO)
+            void write (TermT term, Score wscore, Score bscore = SCORE_ZERO)
             {
-                set (idx, WHITE, score_w);
-                set (idx, BLACK, score_b);
+                Scores[WHITE][term] = wscore;
+                Scores[BLACK][term] = bscore;
             }
 
-            inline void write (stringstream &ss, const string &name, u08 idx)
+            std::ostream& operator<< (std::ostream &os, TermT term)
             {
-                Score score_w = Scores[WHITE][idx]
-                    , score_b = Scores[BLACK][idx];
-
-                switch (idx)
+                double cp[CLR_NO][2] =
                 {
-                case MATERIAL: case IMBALANCE: case PAWN: case TOTAL:
-                    ss  << setw (15) << name << " | ----- ----- | ----- ----- | " << showpos
-                        << setw ( 5) << value_to_cp (mg_value (score_w - score_b)) << " "
-                        << setw ( 5) << value_to_cp (eg_value (score_w - score_b)) << "\n";
-                break;
+                    { value_to_cp (mg_value (Scores[WHITE][term])), value_to_cp (eg_value (Scores[WHITE][term])) },
+                    { value_to_cp (mg_value (Scores[BLACK][term])), value_to_cp (eg_value (Scores[BLACK][term])) }
+                };
 
-                default:
-                    ss  << setw (15) << name << " | " << showpos
-                        << setw ( 5) << value_to_cp (mg_value (score_w)) << " "
-                        << setw ( 5) << value_to_cp (eg_value (score_w)) << " | "
-                        << setw ( 5) << value_to_cp (mg_value (score_b)) << " "
-                        << setw ( 5) << value_to_cp (eg_value (score_b)) << " | "
-                        << setw ( 5) << value_to_cp (mg_value (score_w - score_b)) << " "
-                        << setw ( 5) << value_to_cp (eg_value (score_w - score_b)) << "\n";
-                break;
+                os << showpos;
+
+                if (term == MATERIAL || term == IMBALANCE || term == TermT(PAWN) || term == TOTAL)
+                {
+                    os << " | ----- ----- | ----- ----- | ";
                 }
+                else
+                {
+                    os << " | " << std::setw(5) << cp[WHITE][MG] << " " << std::setw(5) << cp[WHITE][EG]
+                       << " | " << std::setw(5) << cp[BLACK][MG] << " " << std::setw(5) << cp[BLACK][EG] << " | ";
+                }
+                os << std::setw(5) << cp[WHITE][MG] - cp[BLACK][MG] << " "
+                   << std::setw(5) << cp[WHITE][EG] - cp[BLACK][EG] << " \n";
+
+                return os;
+
             }
 
             string trace (const Position &pos)
@@ -123,21 +124,21 @@ namespace Evaluator {
                 ss  << showpoint << showpos << setprecision (2) << fixed
                     << "         Entity |    White    |    Black    |     Total    \n"
                     << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
-                    << "----------------+-------------+-------------+--------------\n";
-                write (ss, "Material"  , MATERIAL);
-                write (ss, "Imbalance" , IMBALANCE);
-                write (ss, "Pawn"      , PAWN);
-                write (ss, "Knight"    , NIHT);
-                write (ss, "Bishop"    , BSHP);
-                write (ss, "Rook"      , ROOK);
-                write (ss, "Queen"     , QUEN);
-                write (ss, "King"      , KING);
-                write (ss, "Mobility"  , MOBILITY);
-                write (ss, "Threat"    , THREAT);
-                write (ss, "Passer"    , PASSER);
-                write (ss, "Space"     , SPACE);
-                ss  << "----------------+-------------+-------------+--------------\n";
-                write (ss, "Total"     , TOTAL);
+                    << "----------------+-------------+-------------+--------------\n"
+                    << "       Material" << TermT(MATERIAL)
+                    << "      Imbalance" << TermT(IMBALANCE)
+                    << "          Pawns" << TermT(PAWN)
+                    << "        Knights" << TermT(NIHT)
+                    << "         Bishop" << TermT(BSHP)
+                    << "          Rooks" << TermT(ROOK)
+                    << "         Queens" << TermT(QUEN)
+                    << "       Mobility" << TermT(MOBILITY)
+                    << "    King safety" << TermT(KING)
+                    << "        Threats" << TermT(THREAT)
+                    << "   Passed pawns" << TermT(PASSER)
+                    << "          Space" << TermT(SPACE)
+                    << "----------------+-------------+-------------+--------------\n"
+                    << "          Total" << TermT(TOTAL);
                 ss  << "\n"
                     << "Evaluation: " << value_to_cp (value) << " (white side)\n";
 
@@ -149,6 +150,13 @@ namespace Evaluator {
         enum EvalWeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PASSED_PAWN, SPACE_ACTIVITY, KING_SAFETY, EVAL_NO };
 
         struct Weight { i32 mg, eg; };
+        
+        Score operator* (Score score, const Weight &weight)
+        {
+            return mk_score (
+                mg_value (score) * weight.mg / 0x100,
+                eg_value (score) * weight.eg / 0x100);
+        }
 
         // Evaluation weights, initialized from UCI options
         Weight Weights[EVAL_NO];
@@ -569,7 +577,7 @@ namespace Evaluator {
 
             if (Trace)
             {
-                Tracer::set (PT, Own, score);
+                Tracer::write (Tracer::TermT(PT), Own, score);
             }
 
             return score;
@@ -755,7 +763,7 @@ namespace Evaluator {
 
             if (Trace)
             {
-                Tracer::set (KING, Own, score);
+                Tracer::write (Tracer::TermT(KING), Own, score);
             }
 
             return score;
@@ -833,7 +841,7 @@ namespace Evaluator {
             if (b != U64(0)) score += PIECE_THREATEN[ROYAL][more_than_one (b) ? 1 : 0]; 
             // Hanged enemies
             b = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
-            if (b != U64(0)) score += PIECE_HANGED * (more_than_one (b) ? pop_count<MAX15> (b) : 1);
+            if (b != U64(0)) score += PIECE_HANGED * pop_count<MAX15> (b);
 
             b = pos.pieces<PAWN> (Own) & ~TR7_bb;
             b = shift_del<Up> (b | (shift_del<Up> (b & TR2_bb) & ~pos.pieces ()));
@@ -851,7 +859,7 @@ namespace Evaluator {
 
             if (Trace)
             {
-                Tracer::set (Tracer::THREAT, Own, score);
+                Tracer::write (Tracer::THREAT, Own, score);
             }
 
             return score;
@@ -1143,23 +1151,23 @@ namespace Evaluator {
             // In case of tracing add each evaluation contributions for both white and black
             if (Trace)
             {
-                Tracer::set (PAWN             , ei.pi->pawn_score);
-                Tracer::set (Tracer::MATERIAL , pos.psq_score ());
-                Tracer::set (Tracer::IMBALANCE, ei.mi->imbalance);
+                Tracer::write (Tracer::TermT(PAWN), ei.pi->pawn_score);
+                Tracer::write (Tracer::MATERIAL   , pos.psq_score ());
+                Tracer::write (Tracer::IMBALANCE  , ei.mi->imbalance);
 
-                Tracer::set (Tracer::MOBILITY
+                Tracer::write (Tracer::MOBILITY
                     , apply_weight (mobility_w, Weights[PIECE_MOBILITY])
                     , apply_weight (mobility_b, Weights[PIECE_MOBILITY]));
 
-                Tracer::set (Tracer::PASSER
+                Tracer::write (Tracer::PASSER
                     , apply_weight (passed_pawn_w, Weights[PASSED_PAWN])
                     , apply_weight (passed_pawn_b, Weights[PASSED_PAWN]));
 
-                Tracer::set (Tracer::SPACE
+                Tracer::write (Tracer::SPACE
                     , apply_weight (space_w, Weights[SPACE_ACTIVITY])
                     , apply_weight (space_b, Weights[SPACE_ACTIVITY]));
 
-                Tracer::set (Tracer::TOTAL    , score);
+                Tracer::write (Tracer::TOTAL    , score);
             }
 
             // --------------------------------------------------

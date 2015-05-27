@@ -3,7 +3,9 @@
 #include <cfloat>
 #include <cmath>
 
-namespace Time {
+TimeManagement::TimeManager TimeMgr; // Global TimeManager
+
+namespace TimeManagement {
 
     using namespace std;
     using namespace UCI;
@@ -60,6 +62,23 @@ namespace Time {
 
     void TimeManager::initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply)
     {
+        //i32 npmsec;
+        // If we have to play in 'nodes as time' mode, then convert from time
+        // to nodes, and use resulting values in time management formulas.
+        // WARNING: Given npms (nodes per millisecond) must be much lower then
+        // real engine speed to avoid time losses.
+        //if (npmsec)
+        //{
+        //    if (available_nodes == 0) // Only once at game start
+        //        available_nodes = npmsec * game_clock.time; // Time is in msec
+
+        //    // Convert from millisecs to nodes
+        //    game_clock.time = (int)available_nodes;
+        //    game_clock.inc *= npmsec;
+        //    limits.npmsec = npmsec;
+        //}
+
+
         // Initializes: instability factor and search times to maximum values
         _instability_factor = 1.0;
         _optimum_time =

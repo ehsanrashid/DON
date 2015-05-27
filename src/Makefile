@@ -198,7 +198,7 @@ endif
 
 ### 3.1 Selecting compiler (default = gcc)
 
-CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
+CXXFLAGS += -std=c++11 -Wall -Wcast-qual -fno-exceptions -fno-rtti -Wno-type-limits $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
 LDFLAGS  += $(EXTRALDFLAGS)
 
@@ -211,9 +211,9 @@ ifeq ($(COMP),gcc)
 	comp= gcc
 	CXX = g++
 	CXXFLAGS += -pedantic -Wno-long-long -Wextra -Wshadow
-    ifneq ($(UNAME),Darwin)
-        LDFLAGS  += -Wl,--no-as-needed
-    endif
+	ifneq ($(UNAME),Darwin)
+		LDFLAGS  += -Wl,--no-as-needed
+	endif
 endif
 
 ifeq ($(COMP),mingw)
@@ -235,7 +235,7 @@ ifeq ($(COMP),clang)
 	CXXFLAGS += -pedantic -Wno-long-long -Wextra -Wshadow
 	ifeq ($(UNAME),Darwin)
 		CXXFLAGS += -std=c++0x -stdlib=libc++
-        DEPENDFLAGS += -std=c++0x -stdlib=libc++
+		DEPENDFLAGS += -std=c++0x -stdlib=libc++
 	endif
 endif
 
@@ -347,8 +347,8 @@ endif
 ifeq ($(abm),yes)
 	CXXFLAGS += -DABM
 	ifeq ($(comp),icc)
-        CXXFLAGS += -msse3
-    else
+		CXXFLAGS += -msse3
+	else
 		CXXFLAGS += -msse3 -mpopcnt
 	endif
 endif
@@ -377,8 +377,8 @@ endif
 ifeq ($(comp),gcc)
 	ifeq ($(optimize),yes)
 	ifeq ($(debug),no)
-        CXXFLAGS += -flto
-        LDFLAGS += $(CXXFLAGS)
+		CXXFLAGS += -flto
+		LDFLAGS += $(CXXFLAGS)
 	endif
 	endif
 endif

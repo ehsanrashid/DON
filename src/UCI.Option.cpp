@@ -19,7 +19,7 @@ namespace UCI {
     using namespace Transposition;
     using namespace Threads;
     using namespace Searcher;
-    using namespace Time;
+    using namespace TimeManagement;
 
     Option::Option (OnChange on_change)
         : _type ("button")

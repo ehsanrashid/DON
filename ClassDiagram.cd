@@ -322,7 +322,7 @@
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="MovePick::HistoryStats" Collapsed="true">
+  <Struct Name="MovePick::ValueStats" Collapsed="true">
     <Position X="20.5" Y="5.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AEAAAAAAAAAAAAAAAAAAAAAAAAEAAAAAAAAgAAAEACA=</HashCode>

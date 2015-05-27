@@ -117,9 +117,9 @@ namespace Threads {
 #else    // Linux - Unix
 
         timespec ts, *tm = &ts;
-        u64 ms = Time::now() + msec;
-        ts.tv_sec  = ms / Time::MILLI_SEC;
-        ts.tv_nsec = (ms % Time::MILLI_SEC) * 1000000LL;
+        u64 ms = now () + msec;
+        ts.tv_sec  = ms / MILLI_SEC;
+        ts.tv_nsec = (ms % MILLI_SEC) * 1000000LL;
 
 #endif
 

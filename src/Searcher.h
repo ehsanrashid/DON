@@ -228,6 +228,7 @@ namespace Searcher {
     extern u64  perft (Position &pos, Depth depth);
 
     extern void think ();
+    extern void reset ();
 
     extern void initialize ();
 

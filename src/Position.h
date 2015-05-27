@@ -187,7 +187,7 @@ public:
     template<PieceT PT>
     Bitboard pieces ()          const;
 
-    Bitboard pieces (Color c, PieceT pt)   const;
+    Bitboard pieces (Color c, PieceT pt) const;
     template<PieceT PT>
     Bitboard pieces (Color c)   const;
 
@@ -196,14 +196,14 @@ public:
 
     Bitboard pieces ()          const;
 
-    i32      count  (Color c, PieceT pt)   const;
+    i32      count  (Color c, PieceT pt) const;
     template<PieceT PT>
     i32      count  (Color c)   const;
     template<PieceT PT>
     i32      count  ()          const;
 
     template<PieceT PT>
-    const Square* list (Color c)const;
+    const Square* list (Color c) const;
 
     // Castling rights for both side
     CRight castle_rights () const;
@@ -224,10 +224,10 @@ public:
 
     Value non_pawn_material (Color c) const;    // Incremental piece-square evaluation
 
-    Score psq_score ()      const;
+    Score   psq_score () const;
 
-    CRight can_castle   (CRight cr) const;
-    CRight can_castle   (Color   c) const;
+    CRight   can_castle  (CRight cr) const;
+    CRight   can_castle  (Color   c) const;
 
     Square   castle_rook (CRight cr) const;
     Bitboard castle_path (CRight cr) const;
@@ -241,7 +241,7 @@ public:
     bool    draw      () const;
     bool    repeated  () const;
 
-    u64   game_nodes ()   const;
+    u64   game_nodes ()  const;
     void  game_nodes (u64 nodes);
     Phase game_phase ()  const;
 
@@ -259,16 +259,16 @@ public:
     Bitboard attackers_to (Square s, Bitboard occ) const;
     Bitboard attackers_to (Square s) const;
 
-    Bitboard checkers    (Color c)   const;
-    Bitboard pinneds     (Color c)   const;
-    Bitboard discoverers (Color c)   const;
+    Bitboard checkers    (Color c) const;
+    Bitboard pinneds     (Color c) const;
+    Bitboard discoverers (Color c) const;
 
-    bool pseudo_legal (Move m)  const;
-    bool legal        (Move m, Bitboard pinned) const;
-    bool legal        (Move m)  const;
-    bool capture      (Move m)  const;
+    bool pseudo_legal  (Move m) const;
+    bool legal         (Move m, Bitboard pinned) const;
+    bool legal         (Move m) const;
+    bool capture       (Move m) const;
     bool capture_or_promotion (Move m)  const;
-    bool gives_check  (Move m, const CheckInfo &ci) const;
+    bool gives_check   (Move m, const CheckInfo &ci) const;
     //bool gives_checkmate (Move m, const CheckInfo &ci) const;
     bool advanced_pawn_push (Move m)    const;
     Piece moving_piece (Move m) const;
@@ -339,7 +339,7 @@ inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return 
 
 inline Bitboard Position::pieces ()                   const { return _types_bb[NONE]; }
 
-inline i32 Position::count (Color c, PieceT pt)   const { return _piece_count[c][pt]; }
+inline i32 Position::count (Color c, PieceT pt)       const { return _piece_count[c][pt]; }
 template<PieceT PT>
 // Count specific piece of color
 inline i32 Position::count (Color c) const { return _piece_count[c][PT]; }

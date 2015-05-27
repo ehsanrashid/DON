@@ -33,7 +33,7 @@ namespace UCI {
         StateInfoStackPtr SetupStates;
 
 
-        inline void exe_uci ()
+        void exe_uci ()
         {
             sync_cout
                 << Engine::info () 
@@ -41,13 +41,18 @@ namespace UCI {
                 << "uciok"
                 << sync_endl;
         }
+        void exe_ucinewgame ()
+        {
+            Searcher::reset ();
+            //Time.availableNodes = 0;
+        }
 
-        inline void exe_isready ()
+        void exe_isready ()
         {
             sync_cout << "readyok" << sync_endl;
         }
 
-        inline void exe_setoption (cmdstream &cmds)
+        void exe_setoption (cmdstream &cmds)
         {
             string token;
             if (cmds >> token)
@@ -96,7 +101,7 @@ namespace UCI {
         // Example:
         //   "register later"
         //   "register name Stefan MK code 4359874324"
-        inline void exe_register (cmdstream &cmds)
+        void exe_register (cmdstream &cmds)
         {
             string token;
 
@@ -134,7 +139,7 @@ namespace UCI {
         //  - fen-string position ("fen")
         // and then makes the moves given in the following move list ("moves")
         // also saving the moves on stack.
-        inline void exe_position (cmdstream &cmds)
+        void exe_position (cmdstream &cmds)
         {
             string token;
             string fen = "";
@@ -191,7 +196,7 @@ namespace UCI {
         //  - infinite
         //  - ponder
         // Then starts the search.
-        inline void exe_go (cmdstream &cmds)
+        void exe_go (cmdstream &cmds)
         {
             LimitsT limits;
 
@@ -227,12 +232,12 @@ namespace UCI {
             Threadpool.start_main (RootPos, limits, SetupStates);
         }
 
-        inline void exe_ponderhit ()
+        void exe_ponderhit ()
         {
             Limits.ponder = false;
         }
 
-        inline void exe_debug (cmdstream &cmds)
+        void exe_debug (cmdstream &cmds)
         {
             string token;
             if (cmds >> token)
@@ -243,12 +248,12 @@ namespace UCI {
             }
         }
         // Print the root position
-        inline void exe_show ()
+        void exe_show ()
         {
             sync_cout << RootPos << sync_endl;
         }
 
-        inline void exe_keys ()
+        void exe_keys ()
         {
             sync_cout
                 << hex << uppercase << setfill ('0')
@@ -260,7 +265,7 @@ namespace UCI {
                 << sync_endl;
         }
 
-        inline void exe_moves ()
+        void exe_moves ()
         {
             sync_cout;
 
@@ -323,17 +328,17 @@ namespace UCI {
             cout << sync_endl;
         }
 
-        inline void exe_flip ()
+        void exe_flip ()
         {
             RootPos.flip ();
         }
 
-        inline void exe_eval ()
+        void exe_eval ()
         {
             sync_cout << Evaluator::trace (RootPos) << sync_endl;
         }
 
-        inline void exe_perft (cmdstream &cmds)
+        void exe_perft (cmdstream &cmds)
         {
             stringstream ss;
             i32    depth;
@@ -348,7 +353,7 @@ namespace UCI {
         }
 
         // Stops the search
-        inline void exe_stop ()
+        void exe_stop ()
         {
             Signals.force_stop = true;
             Threadpool.main ()->notify_one (); // Could be sleeping
@@ -379,7 +384,7 @@ namespace UCI {
 
             if      (white_spaces (token)) continue;
             if      (token == "uci")        exe_uci ();
-            else if (token == "ucinewgame") { /*TT.clear ();*/ } // Obsolete command
+            else if (token == "ucinewgame") { TT.clear (); }
             else if (token == "isready")    exe_isready ();
             else if (token == "register")   exe_register (cmds);
             else if (token == "setoption")  exe_setoption (cmds);

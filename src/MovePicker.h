@@ -10,97 +10,50 @@ namespace MovePick {
 
     using namespace MoveGen;
 
-    // The Stats struct stores moves statistics.
-
-    // Gain records the move's best evaluation gain from one ply to the next and is used
-    // for pruning decisions.
-    // Entries are stored according only to moving piece and destination square,
-    // in particular two moves with different origin but same destination and same piece will be considered identical.
-    struct GainStats
+    // The Stats struct stores different statistics.
+    template<typename T>
+    struct Stats
     {
-
     private:
-        Value _values[PIECE_NO][SQ_NO];
+        T _table[PIECE_NO][SQ_NO];
 
     public:
-
-        inline void clear ()
-        {
-            std::fill (*_values, *_values + sizeof (_values)/sizeof (**_values), VALUE_ZERO);
-        }
-
-        inline void update (const Position &pos, Move m, Value g)
-        {
-            Square s = dst_sq (m);
-            Piece  p = pos[s];
-            _values[p][s] = std::max (g, _values[p][s] - 1);
-        }
-
-        inline const Value* operator[] (Piece p) const { return _values[p]; }
-    };
-
-    // History records how often different moves have been successful or unsuccessful during the
-    // current search and is used for reduction and move ordering decisions.
-    // Entries are stored according only to moving piece and destination square,
-    // in particular two moves with different origin but same destination and same piece will be considered identical.
-    struct HistoryStats
-    {
-
-    private:
-        Value _values[PIECE_NO][SQ_NO];
-
-    public:
-
         static const Value MaxValue = Value(+0x100);
 
-        inline void clear ()
-        {
-            std::fill (*_values, *_values + sizeof (_values)/sizeof (**_values), VALUE_ZERO);
-        }
+        const T* operator[] (Piece p) const { return _table[p]; }
+        T*       operator[] (Piece p)       { return _table[p]; }
 
-        inline void update (const Position &pos, Move m, Value v)
+        void clear() { std::memset (_table, 0x0, sizeof (_table)); }
+
+        void update (const Position &pos, Move m, Value v)
         {
             Square s = dst_sq (m);
             Piece  p = pos[org_sq (m)];
-            if (abs (_values[p][s] + v) < MaxValue) _values[p][s] += v;
+            if (abs (_table[p][s] + v) < MaxValue) _table[p][s] += v;
         }
-
-        inline const Value* operator[] (Piece p) const { return _values[p]; }
-    };
-
-    // CounterMoveStats & FollowupMoveStats store the move that refute a previous one.
-    // Entries are stored according only to moving piece and destination square,
-    // in particular two moves with different origin but same destination and same piece will be considered identical.
-    struct MoveStats
-    {
-
-    private:
-        Move _moves[PIECE_NO][SQ_NO][2];
-
-    public:
-
-        inline void clear ()
-        {
-            std::fill (**_moves, **_moves + sizeof (_moves)/sizeof (***_moves), MOVE_NONE);
-        }
-
-        inline void update (const Position &pos, Move m1, Move m2)
+        
+        void update (const Position &pos, Move m1, Move m2)
         {
             Square s = dst_sq (m1);
             Piece  p = pos[s];
-            if (_moves[p][s][0] != m2)
+            if (_table[p][s] != m2)
             {
-                _moves[p][s][1] = _moves[p][s][0];
-                _moves[p][s][0] = m2;
+                _table[p][s] = m2;
             }
-        }
-
-        inline Move* moves (const Position &pos, Square s)
-        {
-            return _moves[pos[s]][s];
         }
     };
 
+    // ValueStats stores the value that records how often different moves have been successful/unsuccessful
+    // during the current search and is used for reduction and move ordering decisions.
+    typedef Stats<Value>        ValueStats;
+
+    typedef Stats<ValueStats>   ValueValueStats;
+
+    // MoveStats store the move that refute a previous move.
+    // Entries are stored according only to moving piece and destination square,
+    // in particular two moves with different origin but same piece & same destination
+    // will be considered identical.
+    typedef Stats<Move>         MoveStats;
 
     // MovePicker class is used to pick one pseudo legal move at a time from the
     // current position. The most important method is next_move(), which returns a
@@ -113,34 +66,29 @@ namespace MovePick {
 
     private:
 
-        ValMove  moves[MAX_MOVES]
-            ,   *cur
-            ,   *end
-            ,   *quiets_end
-            ,   *bad_captures_end;
+        ValMove  _moves_beg[MAX_MOVES]
+            ,   *_moves_cur
+            ,   *_moves_end
+            ,   *_quiets_end
+            ,   *_bad_captures_end;
 
-        const Position &pos;
-        HistoryStats &history;
+        const Position          &_pos;
+        const ValueStats  &_moves_history;
 
-        Searcher::Stack *ss;
+        Searcher::Stack *_ss;
+        
+        Move    _tt_move;
+        Move    _counter_move;
 
-        Move   killers[6]
-            ,  *counter_moves
-            ,  *followup_moves
-            ,  *kcur
-            ,  *kend;
-        Bitboard killers_org
-            ,    killers_dst;
-        u08      killers_size;
+        ValMove _killers[3];
 
-        Move    tt_move;
-        Depth   depth;
+        Depth   _depth;
 
-        Square  recapture_sq;
+        Square  _recapture_sq;
 
-        Value   capture_threshold;
+        Value   _capture_threshold;
 
-        u08     stage;
+        u08     _stage;
 
         MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
 
@@ -153,17 +101,12 @@ namespace MovePick {
 
     public:
 
-        MovePicker (const Position&, HistoryStats&, Move, Depth, Move*, Move*, Searcher::Stack*);
-        MovePicker (const Position&, HistoryStats&, Move, Depth, Square);
-        MovePicker (const Position&, HistoryStats&, Move, PieceT);
+        MovePicker (const Position&, const ValueStats&, Move, Depth, Move, Searcher::Stack*);
+        MovePicker (const Position&, const ValueStats&, Move, Depth, Square);
+        MovePicker (const Position&, const ValueStats&, Move, PieceT);
 
-        // pick_best() finds the best move in the range [cur, end] and moves it to front,
-        // it is faster than sorting all the moves in advance when there are few moves e.g. the possible captures.
-        inline Move pick_best ()
-        {
-            std::swap (*cur, *std::max_element (cur, end));
-            return *cur++;
-        }
+        ValMove* begin () { return _moves_beg; }
+        ValMove* end   () { return _moves_end; }
 
         template<bool SPNode>
         Move next_move ();

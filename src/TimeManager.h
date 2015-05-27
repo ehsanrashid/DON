@@ -4,7 +4,7 @@
 #include "Type.h"
 #include "UCI.h"
 
-namespace Time {
+namespace TimeManagement {
 
     // TimeManager class computes the optimal time to think depending on the
     // maximum available time, the move game number and other parameters.
@@ -25,6 +25,8 @@ namespace Time {
 
     public:
 
+        u64 available_nodes; // When in 'nodes as time' mode
+
         inline u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.71); }
     
         inline u32 maximum_time   () const { return _maximum_time; }
@@ -44,5 +46,7 @@ namespace Time {
     extern bool Ponder              ;
 
 }
+
+extern TimeManagement::TimeManager TimeMgr;
 
 #endif // _TIME_MANAGER_H_INC_

@@ -9,35 +9,7 @@
 
 #include "Platform.h"
 
-#if defined(_WIN32)
-
-#   ifdef _MSC_VER
-#       pragma warning (disable: 4996) // Function _ftime() may be unsafe
-#   endif
-
-#   include <sys/timeb.h>
-
-inline u64 system_time_msec ()
-{
-    _timeb timebuf;
-    _ftime (&timebuf);
-    return ((timebuf.time * 1000LL) + timebuf.millitm);
-}
-
-#else   // LINUX - UNIX
-
-#   include <sys/time.h>
-
-inline u64 system_time_msec ()
-{
-    timeval timebuf;
-    gettimeofday (&timebuf, NULL);
-    return ((timebuf.tv_sec * 1000LL) + (timebuf.tv_usec / 1000));
-}
-
-#endif
-
-typedef std::chrono::milliseconds::rep TimePoint; // A value in milliseconds
+typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
 
 const TimePoint MILLI_SEC        = 1000;
 const TimePoint MINUTE_MILLI_SEC = MILLI_SEC * 60;

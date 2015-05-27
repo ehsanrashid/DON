@@ -381,25 +381,25 @@ inline i32    operator/  (Depth d1, Depth d2) { return i32(d1) / i32(d2); }
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
-inline bool  _ok       (Color c) { return WHITE == c || BLACK == c; }
-inline Color operator~ (Color c) { return Color(c^BLACK); }
+inline bool   _ok       (Color c) { return WHITE == c || BLACK == c; }
+inline Color  operator~ (Color c) { return Color(c^BLACK); }
 
-inline bool _ok       (File f) { return    !(f & ~i08(F_H)); }
-inline File operator~ (File f) { return File(f ^  i08(F_H)); }
-inline File to_file   (char f) { return File(f - 'a'); }
+inline bool   _ok       (File f) { return    !(f & ~i08(F_H)); }
+inline File   operator~ (File f) { return File(f ^  i08(F_H)); }
+inline File   to_file   (char f) { return File(f - 'a'); }
 
-inline bool _ok       (Rank r) { return    !(r & ~i08(R_8)); }
-inline Rank operator~ (Rank r) { return Rank(r ^  i08(R_8)); }
-inline Rank to_rank   (char r) { return Rank(r - '1'); }
+inline bool   _ok       (Rank r) { return    !(r & ~i08(R_8)); }
+inline Rank   operator~ (Rank r) { return Rank(r ^  i08(R_8)); }
+inline Rank   to_rank   (char r) { return Rank(r - '1'); }
 
 inline Square operator| (File f, Rank r) { return Square(( r << 3) | i08(f)); }
 inline Square operator| (Rank r, File f) { return Square((~r << 3) | i08(f)); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
-inline bool  _ok   (Square s) { return    !(s & ~i08(SQ_H8)); }
-inline File  _file (Square s) { return File(s &  i08(F_H)); }
-inline Rank  _rank (Square s) { return Rank(s >> 3); }
-inline Color color (Square s) { return Color(!((s ^ (s >> 3)) & BLACK)); }
+inline bool   _ok   (Square s) { return    !(s & ~i08(SQ_H8)); }
+inline File   _file (Square s) { return File(s &  i08(F_H)); }
+inline Rank   _rank (Square s) { return Rank(s >> 3); }
+inline Color  color (Square s) { return Color(!((s ^ (s >> 3)) & BLACK)); }
 
 // FLIP   => SQ_A1 -> SQ_A8
 inline Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
@@ -410,13 +410,13 @@ inline Rank   rel_rank  (Color c, Rank   r) { return   Rank(r ^ (c * i08(R_8)));
 inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }
 inline Square rel_sq    (Color c, Square s) { return Square(s ^ (c * i08(SQ_A8))); }
 
-inline bool opposite_colors (Square s1, Square s2)
+inline bool   opposite_colors (Square s1, Square s2)
 {
     i08 s = i08(s1) ^ i08(s2);
     return ((s >> 3) ^ s) & BLACK;
 }
 
-inline Delta pawn_push (Color c) { return WHITE == c ? DEL_N : DEL_S; }
+inline Delta  pawn_push (Color c) { return WHITE == c ? DEL_N : DEL_S; }
 
 inline CRight mk_castle_right (Color c)           { return CRight(CR_W << (c << BLACK)); }
 inline CRight mk_castle_right (Color c, CSide cs) { return CRight(CR_WK << ((CS_Q == cs) + (c << BLACK))); }
@@ -433,8 +433,8 @@ struct Castling
 
 inline bool   _ok   (PieceT pt) { return PAWN <= pt && pt <= KING; }
 
-inline Piece operator| (Color c, PieceT pt) { return Piece((c << 3) | pt); }
-//inline Piece mk_piece  (Color c, PieceT pt) { return (c|pt); }
+inline Piece  operator| (Color c, PieceT pt) { return Piece((c << 3) | pt); }
+//inline Piece  mk_piece  (Color c, PieceT pt) { return (c|pt); }
 
 inline bool   _ok   (Piece p) { return (W_PAWN <= p && p <= W_KING) || (B_PAWN <= p && p <= B_KING); }
 inline PieceT ptype (Piece p) { return PieceT(p & TOTL); }
@@ -480,25 +480,22 @@ inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | (pt - N
 //}
 
 template<MoveT MT>
-inline Move mk_move (Square org, Square dst) { return Move(MT | u16(org << 6) | u16(dst)); }
+inline   Move mk_move            (Square org, Square dst) { return Move(MT | u16(org << 6) | u16(dst)); }
 // --------------------------------
 // explicit template instantiations
 template Move mk_move<NORMAL>    (Square org, Square dst);
 template Move mk_move<CASTLE>    (Square org, Square dst);
 template Move mk_move<ENPASSANT> (Square org, Square dst);
 // --------------------------------
-//template<>
-//inline Move mk_move<PROMOTE> (Square org, Square dst) { return mk_move<PROMOTE> (org, dst, QUEN); }
-
 template<MoveT MT>
-inline Move mk_move (Square org, Square dst, PieceT pt) { return MOVE_NONE; }
+inline Move mk_move              (Square org, Square dst, PieceT pt) { return MOVE_NONE; }
 template<>
-inline Move mk_move<PROMOTE> (Square org, Square dst, PieceT pt) { return Move(PROMOTE | ((((pt - NIHT) << 6) | u16(org)) << 6) | u16(dst)); }
+inline Move mk_move<PROMOTE>     (Square org, Square dst, PieceT pt) { return Move(PROMOTE | ((((pt - NIHT) << 6) | u16(org)) << 6) | u16(dst)); }
 
-inline Move mk_move (Square org, Square dst) { return mk_move<NORMAL> (org, dst); }
+inline Move mk_move              (Square org, Square dst) { return mk_move<NORMAL> (org, dst); }
 
-inline double value_to_cp (Value   v) { return (double)     v / i32(VALUE_EG_PAWN); }
-inline Value  cp_to_value (double cp) { return (Value)i32(cp * i32(VALUE_EG_PAWN)); }
+inline double value_to_cp (Value   v) { return double   (v) / i32(VALUE_EG_PAWN); }
+inline Value  cp_to_value (double cp) { return Value(i32(cp * i32(VALUE_EG_PAWN))); }
 
 inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }

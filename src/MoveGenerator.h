@@ -65,10 +65,10 @@ namespace MoveGen {
             *_moves_end = MOVE_NONE;
         }
 
-        inline const ValMove* begin () const { return _moves_beg; }
-        inline const ValMove* end   () const { return _moves_end; }
+        const ValMove* begin () const { return _moves_beg; }
+        const ValMove* end   () const { return _moves_end; }
   
-        inline size_t size    () const { return size_t(_moves_end - _moves_beg); }
+        size_t size    () const { return size_t(_moves_end - _moves_beg); }
         
         bool contains (Move move) const
         {

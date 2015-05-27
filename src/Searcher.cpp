@@ -5,7 +5,6 @@
 #include <sstream>
 #include <iomanip>
 
-#include "TimeManager.h"
 #include "Transposition.h"
 #include "MoveGenerator.h"
 #include "MovePicker.h"
@@ -13,12 +12,13 @@
 #include "Pawns.h"
 #include "PRNG.h"
 #include "Evaluator.h"
+#include "TimeManager.h"
 #include "Thread.h"
 #include "Notation.h"
 #include "Debugger.h"
 
 using namespace std;
-using namespace Time;
+using namespace TimeManagement;
 
 namespace Searcher {
 
@@ -28,6 +28,7 @@ namespace Searcher {
     using namespace Transposition;
     using namespace OpeningBook;
     using namespace Evaluator;
+    using namespace TimeManagement;
     using namespace Notation;
     using namespace Debug;
     using namespace UCI;
@@ -82,16 +83,14 @@ namespace Searcher {
 
         bool    FirstAutoSave;
 
-        TimeManager  TimeMgr;
-        // Gain statistics
-        GainStats    GainStatistics;
-        // History statistics
-        HistoryStats HistoryStatistics;
-        // Move statistics
-        MoveStats     CounterMoveStats   // Counter
-            ,        FollowupMoveStats;  // Followup
+        // History value statistics
+        ValueStats      HistoryValues;
+        // Counter move statistics
+        MoveStats       CounterMoves;
+        // Counter move history value statistics
+        ValueValueStats CounterMovesHistoryValues;
 
-        // update_stats() updates history, killer, counter & followup moves
+        // update_stats() updates movehistory, killers, countermoves
         // after a fail-high of a quiet move.
         inline void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, Move *quiet_moves, u08 quiets)
         {
@@ -103,21 +102,17 @@ namespace Searcher {
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
             Value value = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
-            HistoryStatistics.update (pos, move, value);
+            HistoryValues.update (pos, move, value);
             for (u08 i = 0; i < quiets; ++i)
             {
-                HistoryStatistics.update (pos, quiet_moves[i], -value);
+                HistoryValues.update (pos, quiet_moves[i], -value);
             }
             Move opp_move = (ss-1)->current_move;
             if (_ok (opp_move))
             {
-                 CounterMoveStats.update (pos, opp_move, move);
+                 CounterMoves.update (pos, opp_move, move);
             }
-            Move own_move = (ss-2)->current_move;
-            if (_ok (own_move) && opp_move == (ss-1)->tt_move)
-            {
-                FollowupMoveStats.update (pos, own_move, move);
-            }
+
         }
         
         // update_pv() copies child node pv[] adding current move
@@ -347,7 +342,7 @@ namespace Searcher {
             // to search the moves. Because the depth is <= 0 here, only captures,
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
-            MovePicker mp (pos, HistoryStatistics, tt_move, depth, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO);
+            MovePicker mp (pos, HistoryValues, tt_move, depth, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO);
             StateInfo si;
             if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
 
@@ -600,7 +595,7 @@ namespace Searcher {
                 {
                     ss->current_move = tt_move; // Can be MOVE_NONE
 
-                    // If tt_move is quiet, update history, killer moves, countermove and followupmove on TT hit
+                    // If tt_move is quiet, update movehistory, killers, countermove on TT hit
                     if (  !in_check
                        && tt_value >= beta
                        && tt_move != MOVE_NONE
@@ -648,20 +643,6 @@ namespace Searcher {
 
                     if (EarlyPruning)
                     {
-                        move = (ss-1)->current_move;
-                        // Updates Gain Statistics
-                        if (  move != MOVE_NONE
-                           && move != MOVE_NULL
-                           && mtype (move) == NORMAL
-                           && (ss-0)->static_eval != VALUE_NONE
-                           && (ss-1)->static_eval != VALUE_NONE
-                           && pos.capture_type () == NONE
-                           )
-                        {
-                            GainStatistics.update (pos, move, -(ss-1)->static_eval - (ss-0)->static_eval);
-                        }
-
-
                         // Step 6. Razoring sort of forward pruning where rather than skipping an entire subtree,
                         // you search it to a reduced depth, typically one less than normal depth.
                         if (  !PVNode && !MateSearch
@@ -772,7 +753,7 @@ namespace Searcher {
 
                             // Initialize a MovePicker object for the current position,
                             // and prepare to search the moves.
-                            MovePicker mp (pos, HistoryStatistics, tt_move, pos.capture_type ());
+                            MovePicker mp (pos, HistoryValues, tt_move, pos.capture_type ());
                             if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
 
                             while ((move = mp.next_move<false> ()) != MOVE_NONE)
@@ -861,10 +842,10 @@ namespace Searcher {
                 }
             }
 
-            Move * counter_moves = _ok ((ss-1)->current_move) ?  CounterMoveStats.moves (pos, dst_sq ((ss-1)->current_move)) : NULL
-               , *followup_moves = _ok ((ss-2)->current_move) ? FollowupMoveStats.moves (pos, dst_sq ((ss-2)->current_move)) : NULL;
+            Square opp_move_sq = dst_sq ((ss-1)->current_move);
+            Move counter_move = CounterMoves[pos[opp_move_sq]][opp_move_sq];
 
-            MovePicker mp (pos, HistoryStatistics, tt_move, depth, counter_moves, followup_moves, ss);
+            MovePicker mp (pos, HistoryValues, tt_move, depth, counter_move, ss);
             if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
 
             u08   legals = 0
@@ -993,8 +974,7 @@ namespace Searcher {
                     // Futility pruning: parent node
                     if (predicted_depth < FutilityMarginDepth)
                     {
-                        Value futility_value = ss->static_eval + FutilityMargins[predicted_depth]
-                                             + GainStatistics[pos[org_sq (move)]][dst_sq (move)] + VALUE_EG_PAWN/2;
+                        Value futility_value = ss->static_eval + FutilityMargins[predicted_depth] + VALUE_EG_PAWN;
 
                         if (alpha >= futility_value)
                         {
@@ -1058,15 +1038,14 @@ namespace Searcher {
                     Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legals);
                     // Increase reduction
                     if (  (!PVNode && cut_node)
-                       || HistoryStatistics[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
+                       || HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
                        )
                     {
                         reduction_depth += DEPTH_ONE;
                     }
                     // Decrease reduction for counter moves
                     if (  reduction_depth > DEPTH_ZERO
-                       && counter_moves != NULL
-                       && (move == counter_moves[0] || move == counter_moves[1])
+                       && move == counter_move
                        )
                     {
                         reduction_depth -= DEPTH_ONE;
@@ -1277,7 +1256,7 @@ namespace Searcher {
                                 mated_in (ss->ply) : DrawValue[pos.active ()];
                 }
                 else
-                // Quiet best move: Update history, killer, counter & followup moves
+                // Quiet best move: Update movehistory, killers, countermoves
                 if (  !in_check
                    && best_value >= beta
                    && best_move != MOVE_NONE
@@ -1312,10 +1291,8 @@ namespace Searcher {
             memset (ss-2, 0x00, 5*sizeof (*ss));
 
             TT.refresh ();
-            GainStatistics.clear ();
-            HistoryStatistics.clear ();
-            CounterMoveStats.clear ();
-            FollowupMoveStats.clear ();
+            HistoryValues.clear ();
+            CounterMoves.clear ();
 
             u08 skill_pv = Skills.pv_size ();
             if (skill_pv != 0) Skills.clear ();
@@ -1706,12 +1683,16 @@ namespace Searcher {
 
     // ------------------------------------
 
+    // perft() is utility to verify move generation. All the leaf nodes
+    // up to the given depth are generated and counted and the sum returned.
     u64  perft (Position &pos, Depth depth)
     {
         return perft<true> (pos, depth);
     }
 
-    // Main searching method
+    // think() is the external interface to search, and is called by the
+    // main thread when the program receives the UCI 'go' command.
+    // It searches from RootPos and at the end prints the "bestmove" to output.
     void think ()
     {
         RootColor   = RootPos.active ();
@@ -1899,6 +1880,15 @@ namespace Searcher {
         }
         cout << sync_endl;
 
+    }
+
+    // reset() clears all search memory, to obtain reproducible search results
+    void reset ()
+    {
+        TT.clear();
+        HistoryValues.clear();
+        CounterMoves.clear();
+        //CounterMovesHistoryValues.clear();
     }
 
     // initialize() is called during startup to initialize various lookup tables
