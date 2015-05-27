@@ -158,7 +158,7 @@ ifeq ($(ARCH),x86-64-bm2)
 endif
 
 ifeq ($(ARCH),ppc-32)
-	arch = ppc32
+	arch = ppc
 endif
 
 ifeq ($(ARCH),ppc-64)
@@ -174,7 +174,7 @@ ifeq ($(ARCH),armv7)
 endif
 
 ifeq ($(ARCH),ppc-32-pop)
-	arch = ppc32
+	arch = ppc
 	pop  = yes
 endif
 
@@ -197,10 +197,9 @@ endif
 ### ==========================================================================
 
 ### 3.1 Selecting compiler (default = gcc)
-# -std=c++11 or -std=c++0x or -std=gnu++11 or -std=gnu++0x
-# -Wall -fabi-version=6 -fno-access-control -fno-strict-enums -Wno-pragmas -fexceptions
 
 CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-type-limits -fno-exceptions -fno-rtti $(EXTRACXXFLAGS)
+DEPENDFLAGS += -std=c++11
 LDFLAGS  += $(EXTRALDFLAGS)
 
 # gcc (default)
@@ -211,15 +210,17 @@ endif
 ifeq ($(COMP),gcc)
 	comp= gcc
 	CXX = g++
-	CXXFLAGS += -ansi -pedantic -Wno-long-long -Wextra -Wshadow
-	LDFLAGS  += -Wl,--no-as-needed
+	CXXFLAGS += -pedantic -Wno-long-long -Wextra -Wshadow
+    ifneq ($(UNAME),Darwin)
+        LDFLAGS  += -Wl,--no-as-needed
+    endif
 endif
 
 ifeq ($(COMP),mingw)
 	comp= mingw
 	CXX = g++
 	CXXFLAGS += -Wextra -Wshadow
-	LDFLAGS  += -static-libstdc++ -static-libgcc
+	LDFLAGS  += -static
 endif
 
 ifeq ($(COMP),icc)
@@ -234,6 +235,7 @@ ifeq ($(COMP),clang)
 	CXXFLAGS += -pedantic -Wno-long-long -Wextra -Wshadow
 	ifeq ($(UNAME),Darwin)
 		CXXFLAGS += -std=c++0x -stdlib=libc++
+        DEPENDFLAGS += -std=c++0x -stdlib=libc++
 	endif
 endif
 
@@ -250,8 +252,8 @@ else
 endif
 
 ifeq ($(UNAME),Darwin)
-	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.10
-	LDFLAGS  += -arch $(arch) -mmacosx-version-min=10.10
+	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.9
+	LDFLAGS  += -arch $(arch) -mmacosx-version-min=10.9
 endif
 
 ### On mingw use Windows threads, otherwise POSIX
@@ -343,9 +345,11 @@ endif
 
 ### 3.9 ABM (Adv Bit Manipulation)
 ifeq ($(abm),yes)
-	CXXFLAGS += -DABM -msse3
-	ifneq ($(comp),icc)
-		CXXFLAGS += -mpopcnt
+	CXXFLAGS += -DABM
+	ifeq ($(comp),icc)
+        CXXFLAGS += -msse3
+    else
+		CXXFLAGS += -msse3 -mpopcnt
 	endif
 endif
 
@@ -373,12 +377,8 @@ endif
 ifeq ($(comp),gcc)
 	ifeq ($(optimize),yes)
 	ifeq ($(debug),no)
-		GCC_MAJOR := `$(CXX) -dumpversion | cut -f1 -d.`
-		GCC_MINOR := `$(CXX) -dumpversion | cut -f2 -d.`
-		ifeq (1,$(shell expr \( $(GCC_MAJOR) \> 4 \) \| \( $(GCC_MAJOR) \= 4 \& $(GCC_MINOR) \>= 5 \)))
-			CXXFLAGS += -flto
-			LDFLAGS  += $(CXXFLAGS)
-		endif
+        CXXFLAGS += -flto
+        LDFLAGS += $(CXXFLAGS)
 	endif
 	endif
 endif
@@ -473,7 +473,7 @@ profile-build:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_clean)
 
 strip:
-	strip $(EXE).exe
+	strip $(EXE)
 
 install:
 	-mkdir -p -m 755 $(BINDIR)
