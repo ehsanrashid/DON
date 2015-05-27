@@ -157,7 +157,9 @@ namespace BitBases {
 
             Result classify (const vector<KPK_Position>& db)
             {
-                return WHITE == _active ? classify<WHITE> (db) : classify<BLACK> (db);
+                return WHITE == _active ?
+                            classify<WHITE> (db) :
+                            classify<BLACK> (db);
             }
 
         };
