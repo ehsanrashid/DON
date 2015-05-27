@@ -9,18 +9,6 @@ namespace BitBases {
 
     namespace {
 
-        enum Result
-        {
-            INVALID = 0,
-            UNKNOWN = 1,
-            DRAW    = 2,
-            WIN     = 4,
-            LOSE    = 8
-        };
-        
-        Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
-        //Result& operator&= (Result &r1, Result r2) { return r1 = Result (r1 & r2); }
-        
         // There are 24 possible pawn squares: the first 4 files and ranks from 2 to 7
         const u32 MAX_INDEX = 2*24*i08(SQ_NO)*i08(SQ_NO); // stm * p_sq * wk_sq * bk_sq = 196608
         
@@ -43,7 +31,20 @@ namespace BitBases {
         
         struct KPK_Position
         {
-
+        public:
+            
+            enum Result
+            {
+                INVALID = 0,
+                UNKNOWN = 1,
+                DRAW    = 2,
+                WIN     = 4,
+                LOSE    = 8
+            };
+            
+            friend Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
+            //friend Result& operator&= (Result &r1, Result r2) { return r1 = Result (r1 & r2); }
+            
         private:
 
             Color  _active;
@@ -76,8 +77,8 @@ namespace BitBases {
                 while (b != U64(0))
                 {
                     r |= WHITE == Own ?
-                    db[index (Opp, _k_sq[Opp], pop_lsq (b), _p_sq)] :
-                    db[index (Opp, pop_lsq (b), _k_sq[Opp], _p_sq)];
+                            db[index (Opp, _k_sq[Opp], pop_lsq (b), _p_sq)] :
+                            db[index (Opp, pop_lsq (b), _k_sq[Opp], _p_sq)];
                 }
                 
                 if (WHITE == Own)
@@ -99,7 +100,7 @@ namespace BitBases {
                 }
                 
                 return result = r & Good  ? Good  :
-                r & UNKNOWN ? UNKNOWN : Bad;
+                                r & UNKNOWN ? UNKNOWN : Bad;
             }
             
         public:
@@ -150,7 +151,7 @@ namespace BitBases {
                 {
                     result  = UNKNOWN;
                 }
-           }
+            }
             
             operator Result () const { return result; }
 
@@ -183,14 +184,14 @@ namespace BitBases {
             repeat = false;
             for (idx = 0; idx < MAX_INDEX; ++idx)
             {
-                repeat |= UNKNOWN == db[idx] && UNKNOWN != db[idx].classify (db);
+                repeat |= KPK_Position::UNKNOWN == db[idx] && KPK_Position::UNKNOWN != db[idx].classify (db);
             }
         } while (repeat);
 
         // Map 32 results into one KPK_Bitbase[] entry
         for (idx = 0; idx < MAX_INDEX; ++idx)
         {
-            if (WIN == db[idx])
+            if (KPK_Position::WIN == db[idx])
             {
                 KPK_Bitbase[idx / 32] |= 1 << (idx & 0x1F);
             }
