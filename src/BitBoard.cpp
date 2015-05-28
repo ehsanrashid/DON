@@ -89,6 +89,10 @@ namespace BitBoard {
 
         typedef u16(*Indexer) (Square s, Bitboard occ);
 
+        // initialize_table() computes all rook and bishop attacks at startup.
+        // Magic bitboards are used to look up attacks of sliding pieces.
+        // As a reference see chessprogramming.wikispaces.com/Magic+Bitboards.
+        // In particular, here we use the so called "fancy" approach.
         void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shift[], const Delta deltas[], const Indexer magic_index)
         {
 
@@ -134,7 +138,7 @@ namespace BitBoard {
 #           else
                     32
 #           endif
-                    - u08(pop_count<MAX15> (mask));
+                    - pop_count<MAX15> (mask);
 #       else
                 (void) shift;
 #       endif
@@ -303,17 +307,15 @@ namespace BitBoard {
         // NOTE:: must be after initialize_sliding()
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            for (PieceT pt = BSHP; pt <= ROOK; ++pt)
             {
-                PieceT pt =  
-                    PIECE_ATTACKS[BSHP][s1] & s2 ? BSHP :
-                    PIECE_ATTACKS[ROOK][s1] & s2 ? ROOK :
-                    NONE;
-
-                if (NONE == pt) continue;
-
-                BETWEEN_SQRS_bb[s1][s2] = (attacks_bb (Piece(pt), s1, SQUARE_bb[s2]) & attacks_bb (Piece(pt), s2, SQUARE_bb[s1]));
-                RAY_LINE_bb[s1][s2]     = (attacks_bb (Piece(pt), s1,        U64(0)) & attacks_bb (Piece(pt), s2,        U64(0))) + s1 + s2;
+                for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+                {
+                    if (!(PIECE_ATTACKS[pt][s1] & s2)) continue;
+                    
+                    BETWEEN_SQRS_bb[s1][s2] = (attacks_bb (Piece(pt), s1, SQUARE_bb[s2]) & attacks_bb (Piece(pt), s2, SQUARE_bb[s1]));
+                    RAY_LINE_bb    [s1][s2] = (attacks_bb (Piece(pt), s1,        U64(0)) & attacks_bb (Piece(pt), s2,        U64(0))) + s1 + s2;
+                }
             }
         }
 

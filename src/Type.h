@@ -36,12 +36,17 @@
 /// _WIN32             Building on Windows (any)
 /// _WIN64             Building on Windows 64 bit
 
+
+#undef S32
+#undef U32
+#undef S64
+#undef U64
+
 #ifdef _MSC_VER
 // Disable some silly and noisy warning from MSVC compiler
 #   pragma warning (disable: 4127) // Conditional expression is constant
 #   pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
 #   pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
-
 
 // MSVC does not support <inttypes.h>
 //#   include <stdint.h>
@@ -63,10 +68,10 @@ typedef unsigned __int32    u32;
 typedef   signed __int64    i64;
 typedef unsigned __int64    u64;
 
-#   define  S32(X) (X##i32)
-#   define  U32(X) (X##ui32)
-#   define  S64(X) (X##i64)
-#   define  U64(X) (X##ui64)
+#   define  S32(X) (X ##  i32)
+#   define  U32(X) (X ## ui32)
+#   define  S64(X) (X ##  i64)
+#   define  U64(X) (X ## ui64)
 
 #else
 
@@ -81,10 +86,10 @@ typedef        uint32_t    u32;
 typedef         int64_t    i64;
 typedef        uint64_t    u64;
 
-#   define S32(X) (X##L)
-#   define U32(X) (X##UL)
-#   define S64(X) (X##LL)
-#   define U64(X) (X##ULL)
+#   define S32(X) (X ##   L)
+#   define U32(X) (X ##  UL)
+#   define S64(X) (X ##  LL)
+#   define U64(X) (X ## ULL)
 
 #endif
 
