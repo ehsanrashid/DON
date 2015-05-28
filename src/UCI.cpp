@@ -242,9 +242,9 @@ namespace UCI {
             string token;
             if (cmds >> token)
             {
-                if (token == "on")  Debug::log_debug (true);
+                if (token == "on")  Debugger::log_debug (true);
                 else
-                if (token == "off") Debug::log_debug (false);
+                if (token == "off") Debugger::log_debug (false);
             }
         }
         // Print the root position
@@ -384,7 +384,7 @@ namespace UCI {
 
             if      (white_spaces (token)) continue;
             if      (token == "uci")        exe_uci ();
-            else if (token == "ucinewgame") { TT.clear (); }
+            else if (token == "ucinewgame") exe_ucinewgame ();
             else if (token == "isready")    exe_isready ();
             else if (token == "register")   exe_register (cmds);
             else if (token == "setoption")  exe_setoption (cmds);
@@ -429,7 +429,7 @@ namespace UCI {
         // Close book if open
         Book.close ();
         // Close log file
-        Debug::log_debug (false);
+        Debugger::log_debug (false);
     }
 
 }

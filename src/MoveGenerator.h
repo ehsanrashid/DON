@@ -5,8 +5,6 @@
 
 class Position;
 
-const u08 MAX_MOVES = 0xFF; // 255
-
 namespace MoveGen {
 
     struct ValMove
@@ -28,7 +26,7 @@ namespace MoveGen {
     };
 
     // Types of Generator
-    enum GenT : u08
+    enum GenT
     {
         // PSEUDO-LEGAL MOVES
         RELAX,       // Normal moves.
@@ -46,8 +44,9 @@ namespace MoveGen {
     template<GenT GT>
     extern ValMove* generate (ValMove *moves, const Position &pos);
 
-    // The MoveList struct is a simple wrapper around generate(). It sometimes comes
-    // in handy to use this class instead of the low level generate() function.
+    // The MoveList struct is a simple wrapper around generate().
+    // It sometimes comes in handy to use this class instead of
+    // the low level generate() function.
     template<GenT GT>
     class MoveList
     {

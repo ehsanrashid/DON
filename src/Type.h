@@ -8,12 +8,107 @@
 #include <algorithm>
 #include <cassert>
 #include <iosfwd>
-#include "Platform.h"
+
+/// When compiling with provided Makefile (e.g. for Linux and OSX), configuration
+/// is done automatically. To get started type 'make help'.
+///
+/// When Makefile is not used (e.g. with Microsoft Visual Studio) some switches
+/// need to be set manually:
+///
+/// -DNDEBUG    | Disable debugging mode. Always use this.
+/// -DPREFETCH  | Enable use of prefetch asm-instruction.
+///             | Don't enable it if want the executable to run on some very old machines.
+/// -DBSFQ      | Add runtime support for use of Bitscans asm-instruction.
+/// -DPOP       | Enable use of internal pop count table. Works in both 32-bit & 64-bit mode.
+///             | For compiling requires hardware without ABM support.
+/// -DABM       | Add runtime support for use of ABM asm-instruction. Works only in 64-bit mode.
+///             | For compiling requires hardware with ABM support.
+/// -DBM2       | Add runtime support for use of BM2 asm-instruction. Works only in 64-bit mode.
+///             | For compiling requires hardware with BM2 support.
+/// -DLPAGES    | Add runtime support for large pages.
+
+
+/// Predefined macros hell:
+///
+/// __GNUC__           Compiler is gcc, Clang or Intel on Linux
+/// __INTEL_COMPILER   Compiler is Intel
+/// _MSC_VER           Compiler is MSVC or Intel on Windows
+/// _WIN32             Building on Windows (any)
+/// _WIN64             Building on Windows 64 bit
+
+#ifdef _MSC_VER
+// Disable some silly and noisy warning from MSVC compiler
+#   pragma warning (disable: 4127) // Conditional expression is constant
+#   pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
+#   pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
+
+
+// MSVC does not support <inttypes.h>
+//#   include <stdint.h>
+//typedef         int8_t     i08;
+//typedef        uint8_t     u08;
+//typedef         int16_t    i16;
+//typedef        uint16_t    u16;
+//typedef         int32_t    i32;
+//typedef        uint32_t    u32;
+//typedef         int64_t    i64;
+//typedef        uint64_t    u64;
+
+typedef   signed __int8     i08;
+typedef unsigned __int8     u08;
+typedef   signed __int16    i16;
+typedef unsigned __int16    u16;
+typedef   signed __int32    i32;
+typedef unsigned __int32    u32;
+typedef   signed __int64    i64;
+typedef unsigned __int64    u64;
+
+#   define  S32(X) (X##i32)
+#   define  U32(X) (X##ui32)
+#   define  S64(X) (X##i64)
+#   define  U64(X) (X##ui64)
+
+#else
+
+#   include <inttypes.h>
+
+typedef         int8_t     i08;
+typedef        uint8_t     u08;
+typedef         int16_t    i16;
+typedef        uint16_t    u16;
+typedef         int32_t    i32;
+typedef        uint32_t    u32;
+typedef         int64_t    i64;
+typedef        uint64_t    u64;
+
+#   define S32(X) (X##L)
+#   define U32(X) (X##UL)
+#   define S64(X) (X##LL)
+#   define U64(X) (X##ULL)
+
+#endif
+
+// Windows or MinGW
+#if defined(_WIN32)
+
+// Auto make 64-bit compiles
+#   ifdef _WIN64
+#       ifndef BIT64
+#           define BIT64
+#       endif
+#       ifndef BSFQ
+#           define BSFQ
+#       endif
+#   endif
+
+#endif
+
 
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const i32   MAX_DEPTH   = 128; // Maximum Depth (Ply)
+const i32 MAX_MOVES = 256; // MoveGen & MovePick
+const i32 MAX_DEPTH = 128; // Maximum Depth (Ply)
 
 // File
 enum File : i08 { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H, F_NO };
@@ -25,7 +120,7 @@ enum Color : i08 { WHITE, BLACK, CLR_NO };
 
 // Square
 // File: 3-bit
-// Rank: 3-bit 
+// Rank: 3-bit
 enum Square : i08
 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
@@ -201,21 +296,20 @@ enum Value : i32
     VALUE_MATE      = +VALUE_INFINITE - 1,
     VALUE_KNOWN_WIN = +VALUE_MATE / 3,
 
-    VALUE_MATE_IN_MAX_DEPTH = +VALUE_MATE - MAX_DEPTH,
+    VALUE_MATE_IN_MAX_DEPTH = +VALUE_MATE - 2 * MAX_DEPTH,
 
     VALUE_MG_PAWN =  198,  VALUE_EG_PAWN =  258,
     VALUE_MG_NIHT =  817,  VALUE_EG_NIHT =  846,
     VALUE_MG_BSHP =  836,  VALUE_EG_BSHP =  857,
-    VALUE_MG_ROOK = 1270,  VALUE_EG_ROOK = 1278,
+    VALUE_MG_ROOK = 1270,  VALUE_EG_ROOK = 1281,
     VALUE_MG_QUEN = 2521,  VALUE_EG_QUEN = 2558,
 
     VALUE_MIDGAME = 15581, VALUE_ENDGAME = 3998
 };
 
-// Score enum keeps a midgame and an endgame value in a single integer (enum),
-// first LSB 16 bits are used to store endgame value, while upper bits are used
-// for midgame value. Compiler is free to choose the enum type as long as can
-// keep its data, so ensure Score to be an integer type.
+// Score enum stores a midgame and an endgame value in a single integer (enum),
+// the lower 16 bits are used to store the endgame value and
+// the upper 16 bits are used to store the midgame value.
 enum Score : i32 { SCORE_ZERO = 0 };
 
 enum Bound : u08
@@ -426,9 +520,9 @@ template<Color C, CSide CS>
 struct Castling
 {
     static const CRight
-    Right = (C == WHITE) ?
-            (CS == CS_Q) ? CR_WQ : CR_WK :
-            (CS == CS_Q) ? CR_BQ : CR_BK;
+    Right = C == WHITE ?
+                CS == CS_Q ? CR_WQ : CR_WK :
+                CS == CS_Q ? CR_BQ : CR_BK;
 };
 
 inline bool   _ok   (PieceT pt) { return PAWN <= pt && pt <= KING; }
@@ -464,7 +558,7 @@ inline bool   _ok     (Move m)
     //}
     //return false;
 
-    return org_sq (m) != dst_sq (m);
+    return org_sq (m) != dst_sq (m); // Catch MOVE_NONE & MOVE_NULL
 }
 
 //inline void org_sq  (Move &m, Square org) { m &= 0xF03F; m |= (org << 6); }
@@ -503,9 +597,8 @@ inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 // GameClock stores the available time and time-gain per move
 struct GameClock
 {
-    // unit: milli-seconds
-    u32 time;   // Time left
-    u32 inc;    // Time gain
+    u32 time;   // Time left [milli-seconds]
+    u32 inc;    // Time gain [milli-seconds]
 
     GameClock ()
         : time (0)

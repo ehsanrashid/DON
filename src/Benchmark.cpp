@@ -81,7 +81,7 @@ namespace {
 //     * 'current' for current position
 //     * '<filename>' for file containing FEN positions
 // example: bench 32 1 10000 movetime default
-void benchmark (istream &is, const Position &pos)
+void benchmark (istream &is, const Position &cur_pos)
 {
     string token;
     // Assign default values to missing arguments
@@ -114,7 +114,7 @@ void benchmark (istream &is, const Position &pos)
     else
     if (fen_fn == "current")
     {
-        fens.push_back (pos.fen ());
+        fens.push_back (cur_pos.fen ());
     }
     else
     {
@@ -142,10 +142,11 @@ void benchmark (istream &is, const Position &pos)
     TimePoint time     = now ();
 
     StateInfoStackPtr states;
-
+    Searcher::reset ();
+    
     for (u16 i = 0; i < fens.size (); ++i)
     {
-        Position root_pos (fens[i], Threadpool.main (), Chess960, false);
+        Position pos (fens[i], Threadpool.main (), Chess960, false);
 
         cerr << "\n---------------\n" 
              << "Position: " << setw (2) << (i + 1) << "/" << fens.size () << "\n";
@@ -153,24 +154,22 @@ void benchmark (istream &is, const Position &pos)
         if (limit_type == "perft")
         {
             cerr << "\nDepth " << i32(limits.depth) << "\n";
-            u64 leaf_nodes = perft (root_pos, Depth(limits.depth));
+            u64 leaf_nodes = perft (pos, Depth(limits.depth));
             cout << "\nLeaf nodes: " << leaf_nodes << "\n";
             nodes += leaf_nodes;
         }
         else
         {
-            Threadpool.start_main (root_pos, limits, states);
+            Threadpool.start_main (pos, limits, states);
             Threadpool.wait_for_main ();
             nodes += RootPos.game_nodes ();
         }
     }
 
-    cerr << "\n---------------------------\n";
-
-    Debug::dbg_print (); // Just before to exit
-
     time = max (now () - time, TimePoint (1));
-
+    
+    cerr << "\n---------------------------\n";
+    Debugger::dbg_print (); // Just before to exit
     cerr << "\n===========================\n"
          << "Total time (ms) : " << time  << "\n"
          << "Nodes searched  : " << nodes << "\n"

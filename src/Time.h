@@ -15,9 +15,10 @@ const TimePoint MILLI_SEC        = 1000;
 const TimePoint MINUTE_MILLI_SEC = MILLI_SEC * 60;
 const TimePoint HOUR_MILLI_SEC   = MINUTE_MILLI_SEC * 60;
 
-inline TimePoint now()
+inline TimePoint now ()
 {
-    return std::chrono::duration_cast<std::chrono::milliseconds> (std::chrono::steady_clock::now().time_since_epoch ()).count ();
+    return std::chrono::duration_cast<std::chrono::milliseconds> (
+               std::chrono::steady_clock::now ().time_since_epoch ()).count ();
 }
 
 inline std::string time_to_string (const TimePoint &p)

@@ -8,7 +8,7 @@
 #include "Time.h"
 #include "UCI.h"
 
-namespace Debug {
+namespace Debugger {
 
     extern void dbg_hits_on (bool h, bool c = true);
     extern void dbg_mean_of (u64 v);

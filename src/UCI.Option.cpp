@@ -232,8 +232,8 @@ namespace UCI {
 
         void debug_log (const Option &opt)
         {
-            Debug::log_debug (false);
-            if (!white_spaces (string(opt))) Debug::log_debug (true);
+            Debugger::log_debug (false);
+            if (!white_spaces (string(opt))) Debugger::log_debug (true);
         }
 
         void uci_chess960 (const Option &opt)

@@ -30,7 +30,7 @@ namespace Searcher {
     using namespace Evaluator;
     using namespace TimeManagement;
     using namespace Notation;
-    using namespace Debug;
+    using namespace Debugger;
     using namespace UCI;
 
     namespace {
@@ -1478,8 +1478,8 @@ namespace Searcher {
             if (skill_pv != 0) Skills.play_move ();
         }
 
-        // perft<>() is our utility to verify move generation. All the leaf nodes
-        // up to the given depth are generated and counted and the sum returned.
+        // perft<>() is utility to verify move generation.
+        // All the leaf nodes up to the given depth are generated and the sum returned.
         template<bool RootNode>
         inline u64 perft (Position &pos, Depth depth)
         {
@@ -1887,8 +1887,8 @@ namespace Searcher {
     {
         TT.clear();
         HistoryValues.clear();
-        CounterMoves.clear();
         //CounterMovesHistoryValues.clear();
+        CounterMoves.clear();
     }
 
     // initialize() is called during startup to initialize various lookup tables
