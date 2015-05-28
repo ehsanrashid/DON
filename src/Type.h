@@ -177,8 +177,8 @@ enum Delta : i08
 // Castle Side
 enum CSide : i08
 {
-    CS_K ,    // (KING)-SHORT CASTLE
-    CS_Q ,    // (QUEEN)-LONG CASTLE
+    CS_K ,    // (KING SIDE)-SHORT CASTLE
+    CS_Q ,    // (QUEN SIDE)-LONG  CASTLE
     CS_NO
 };
 
@@ -201,14 +201,14 @@ enum CRight : u08
 // Types of Piece
 enum PieceT : i08
 {
-    PAWN  , // 000 - PAWN
-    NIHT  , // 001 - KNIGHT
-    BSHP  , // 010 - BISHOP
-    ROOK  , // 011 - ROOK
-    QUEN  , // 100 - QUEEN
-    KING  , // 101 - KING
-    NONE  , // 110 - NONE
-    TOTL  , // 111 - TOTL
+    PAWN  , // 000
+    NIHT  , // 001
+    BSHP  , // 010
+    ROOK  , // 011
+    QUEN  , // 100
+    KING  , // 101
+    NONE  , // 110
+    TOTL  , // 111
     NONPAWN
 };
 
