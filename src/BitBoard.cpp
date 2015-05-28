@@ -1,4 +1,4 @@
-﻿#include "BitBoard.h"
+#include "BitBoard.h"
 
 #include "PRNG.h"
 #include "Notation.h"
@@ -66,16 +66,18 @@ namespace BitBoard {
 //#       endif
 //        }
 
-        // max moves for rook from any corner square (LINEAR)
+        // Max Linear Moves (for rook from any corner square)
         // 2 ^ 12 = 4096 = 0x1000
         const u16 MAX_LMOVES =   U32(0x1000);
-
+        
+        // Max Bishop Moves
         // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
         //    2048 +     256 +     1536 +     1408
         //                                    5248 = 0x1480
         const u32 MAX_BMOVES = U32(0x1480);
-
+        
+        // Max Rook Moves
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
         // 4 * 4096 + 24 * 2048 + 36 * 1024
         //    16384 +     49152 +     36864
@@ -87,7 +89,7 @@ namespace BitBoard {
 
         typedef u16(*Indexer) (Square s, Bitboard occ);
 
-        inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
+        void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shift[], const Delta deltas[], const Indexer magic_index)
         {
 
 #       ifndef BM2
@@ -98,10 +100,17 @@ namespace BitBoard {
                 { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C }; // 32-bit
 #           endif
 
-            Bitboard occupancy[MAX_LMOVES];
-            Bitboard reference[MAX_LMOVES];
+            Bitboard occupancy[MAX_LMOVES]
+                   , reference[MAX_LMOVES];
+            
+            i32      age[MAX_LMOVES]
+                   , cur_age = 0;
+            
+            std::memset (age, 0, sizeof (age));
+            
 #       endif
-
+            
+            // attacks_bb[s] is a pointer to the beginning of the attacks table for square 's'
             attacks_bb[SQ_A1] = table_bb;
 
             for (i08 s = SQ_A1; s <= SQ_H8; ++s)
@@ -132,7 +141,7 @@ namespace BitBoard {
 
                 // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
                 // store the corresponding sliding attack bitboard in reference[].
-                u32 size     = 0;
+                u32     size = 0;
                 Bitboard occ = U64(0);
                 do
                 {
@@ -157,10 +166,10 @@ namespace BitBoard {
 #       ifndef BM2
 
                 PRNG rng(SEEDS[_rank (Square(s))]);
+                u32 i;
+                
                 // Find a magic for square 's' picking up an (almost) random number
                 // until found the one that passes the verification test.
-                u32 i;
-
                 do
                 {
                     do
@@ -168,33 +177,33 @@ namespace BitBoard {
                         magics_bb[s] = rng.sparse_rand<Bitboard> ();
                     } while (pop_count<MAX15> ((mask * magics_bb[s]) >> 0x38) < 6);
 
-                    fill (attacks_bb[s], attacks_bb[s] + size, U64(0)); //fill_n (attacks_bb[s], size, U64(0));
-
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct sliding attack in the attacks_bb[s] database.
                     // Note that build up the database for square 's' as a side
                     // effect of verifying the magic.
-                    for (i = 0; i < size; ++i)
+                    for (++cur_age, i = 0; i < size; ++i)
                     {
-                        Bitboard &attacks = attacks_bb[s][m_index (Square(s), occupancy[i])];
-
-                        if (attacks && (attacks != reference[i]))
+                        u16 idx = magic_index (Square(s), occupancy[i]);
+                        
+                        if (age[idx] < cur_age)
                         {
-                            break;
+                            age[idx] = cur_age;
+                            attacks_bb[s][idx] = reference[i];
                         }
-
-                        assert (reference[i]);
-                        attacks = reference[i];
+                        else
+                        {
+                            if (attacks_bb[s][idx] != reference[i]) break;
+                        }
                     }
                 } while (i < size);
 #       else
                 (void) magics_bb; 
-                (void) m_index; 
+                (void) magic_index;
 #       endif
             }
         }
 
-        inline void initialize_sliding ()
+        void initialize_sliding ()
         {
 #       ifndef BM2
             initialize_table (B_TABLE_bb, B_ATTACK_bb, B_MASK_bb, B_MAGIC_bb, B_SHIFT, PIECE_DELTAS[BSHP], magic_index<BSHP>);
