@@ -356,7 +356,6 @@ namespace Evaluator {
             //if (ei.mi->game_phase > PHASE_KINGSAFETY)
             if (pos.non_pawn_material (Own) >= VALUE_MG_QUEN)
             {
-                king_attacks += ek_sq;
                 Rank ekr = rel_rank (Opp, ek_sq);
                 ei.king_ring[Opp] = king_attacks|(DIST_RINGS_bb[ek_sq][1] &
                                                         (ekr < R_5 ? (PAWN_PASS_SPAN[Opp][ek_sq]) :
