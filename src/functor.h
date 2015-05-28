@@ -12,14 +12,14 @@ namespace std {
     template<class T>
     struct unary_nullfunctor : public unary_function<T*, void>
     {
-        void operator() (const T *op) const
+        void operator() (const T *) const
         {}
     };
 
     template<class T>
     struct binary_nullfunctor : public binary_function<T*, T*, void>
     {
-        void operator() (const T *op1, const T *op2) const
+        void operator() (const T *, const T *) const
         {}
     };
 

@@ -582,10 +582,7 @@ template Move mk_move<CASTLE>    (Square org, Square dst);
 template Move mk_move<ENPASSANT> (Square org, Square dst);
 // --------------------------------
 template<MoveT MT>
-inline Move mk_move              (Square org, Square dst, PieceT pt) { return MOVE_NONE; }
-template<>
-inline Move mk_move<PROMOTE>     (Square org, Square dst, PieceT pt) { return Move(PROMOTE | ((((pt - NIHT) << 6) | u16(org)) << 6) | u16(dst)); }
-
+inline Move mk_move              (Square org, Square dst, PieceT pt/*=QUEN*/) { return Move(PROMOTE | ((((pt - NIHT) << 6) | u16(org)) << 6) | u16(dst)); }
 inline Move mk_move              (Square org, Square dst) { return mk_move<NORMAL> (org, dst); }
 
 inline double value_to_cp (Value   v) { return double   (v) / i32(VALUE_EG_PAWN); }

@@ -1,13 +1,11 @@
 #ifndef _TIME_H_INC_
 #define _TIME_H_INC_
 
+#include <chrono>
+#include <string>
 #include <iomanip>
 #include <sstream>
 #include <iostream>
-#include <ctime>
-#include <chrono>
-
-#include "Platform.h"
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
 
@@ -17,9 +15,14 @@ const TimePoint HOUR_MILLI_SEC   = MINUTE_MILLI_SEC * 60;
 
 inline TimePoint now ()
 {
-    return std::chrono::duration_cast<std::chrono::milliseconds> (
-               std::chrono::steady_clock::now ().time_since_epoch ()).count ();
+    return std::chrono::duration_cast<std::chrono::milliseconds>
+               (std::chrono::steady_clock::now ().time_since_epoch ()).count ();
 }
+
+
+#if defined(_WIN32)
+#   include <time.h>
+#endif
 
 inline std::string time_to_string (const TimePoint &p)
 {

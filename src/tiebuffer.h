@@ -5,7 +5,6 @@
 #include <fstream>
 #include <cstring>
 
-#include "Platform.h"
 #include "noncopyable.h"
 
 namespace std {
@@ -42,7 +41,7 @@ namespace std {
             
             if ('\n' == last_ch)
             {
-                u32 length = u32(strlen (prefix));
+                size_t length = strlen (prefix);
                 if (_filestm->rdbuf ()->sputn (prefix, length) != length)
                 {
                     return EOF; // Error
