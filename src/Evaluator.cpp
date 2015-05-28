@@ -177,37 +177,28 @@ namespace Evaluator {
         const Score PIECE_MOBILIZE[NONE][28] =
         {
             {},
-            // Knight
-            {
-                S(-65,-50), S(-42,-30), S(- 9,-10), S(+ 3,  0), S(+15,+10),
-                S(+27,+20), S(+37,+28), S(+42,+31), S(+44,+33)
+            { // Knights
+                S(-68,-49), S(-46,-33), S(-3,-12), S( 5, -4), S( 9, 11), S(15, 16),
+                S( 23, 27), S( 33, 28), S(37, 29)
             },
-            // Bishop
-            {
-                S(-52,-47), S(-28,-23), S(+ 6,+ 1), S(+20,+15), S(+34,+29),
-                S(+48,+43), S(+60,+55), S(+68,+63), S(+74,+68), S(+77,+72),
-                S(+80,+75), S(+82,+77), S(+84,+79), S(+86,+81)
+            { // Bishops
+                S(-49,-44), S(-23,-16), S(16,  1), S(29, 16), S(40, 25), S(51, 34),
+                S( 55, 43), S( 61, 49), S(64, 51), S(68, 52), S(73, 55), S(75, 60),
+                S( 80, 65), S( 86, 66)
             },
-            // Rook
-            {
-                S(-47,- 53), S(-31,- 26), S(- 5,   0), S(+ 1,+ 16), S(+ 7,+ 32),
-                S(+13,+ 48), S(+18,+ 64), S(+22,+ 80), S(+26,+ 96), S(+29,+109),
-                S(+31,+115), S(+33,+119), S(+35,+122), S(+36,+123), S(+37,+124),
+            { // Rooks
+                S(-50,-57), S(-28,-22), S(-11, 7), S(-1, 29), S( 0, 39), S( 1, 46),
+                S( 10, 66), S( 16, 79), S(22, 86), S(23,103), S(30,109), S(33,111),
+                S( 37,115), S( 38,119), S(48,124)
             },
-            // Queen
-            {
-                S(-42,-40), S(-28,-23), S(- 5,- 7), S(  0,  0), S(+ 6,+10),
-                S(+11,+19), S(+13,+29), S(+18,+38), S(+20,+40), S(+21,+41),
-                S(+22,+41), S(+22,+41), S(+22,+41), S(+23,+41), S(+24,+41),
-                S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41),
-                S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41), S(+25,+41),
-                S(+25,+41), S(+25,+41), S(+25,+41)
+            { // Queens
+                S(-43,-30), S(-27,-15), S( 1, -5), S( 2, -3), S(14, 10), S(18, 24),
+                S( 20, 27), S( 33, 37), S(33, 38), S(34, 43), S(40, 46), S(43, 56),
+                S( 46, 61), S( 52, 63), S(52, 63), S(57, 65), S(60, 70), S(61, 74),
+                S( 67, 80), S( 76, 82), S(77, 88), S(82, 94), S(86, 95), S(90, 96),
+                S( 94, 99), S( 96,100), S(99,111), S(99,112)
             },
-            // King
-            {
-                S(  0,-32), S(  0,-16), S(  0,  0), S(  0,+12), S(  0,+21),
-                S(  0,+27), S(  0,+30), S(  0,+31), S(  0,+32)
-            }
+            {}
         };
 
         enum ThreatT { PIADA, DFND_MINOR, DFND_ROOK, DFND_QUEN, WEAK_MINOR, WEAK_ROOK, WEAK_QUEN, ROYAL, THREAT_NO };
@@ -225,8 +216,29 @@ namespace Evaluator {
             { S(+ 2,+58), S(+ 6,+125), S(+ 0,+  0), S(+  0,+  0), S(+  0,+  0), S(+ 0,+ 0) }  // Royal
         };
         
+        // Threat[defended/weak][minor/major attacking][attacked PieceType] contains
+        // bonuses according to which piece type attacks which one.
+        const Score Threat[][2][NONE] =
+        {
+            {
+                { S(0, 0), S( 0, 0), S(19, 37), S(24, 37), S(44, 97), S(35,106) },  // Defended Minor
+                { S(0, 0), S( 0, 0), S( 9, 14), S( 9, 14), S( 7, 14), S(24, 48) }   // Defended Major
+            },
+            {
+                { S(0, 0), S( 0,32), S(33, 41), S(31, 50), S(41,100), S(35,104) },  // Weak Minor
+                { S(0, 0), S( 0,27), S(26, 57), S(26, 57), S(0 , 43), S(23, 51) }   // Weak Major
+            }
+        };
+        
+        // ThreatenedByPawn[PieceType] contains a penalty according to which piece
+        // type is attacked by an enemy pawn.
+        const Score ThreatenedByPawn[NONE] =
+        {
+            S(0, 0), S(0, 0), S(107, 138), S(84, 122), S(114, 203), S(121, 217)
+        };
+        
         const Score BISHOP_PAWNS            = S(+ 8,+12); // Penalty for bishop with more pawns on same color
-        const Score BISHOP_TRAPPED          = S(+50,+40); // Penalty for bishop trapped with pawns
+        const Score BISHOP_TRAPPED          = S(+50,+50); // Penalty for bishop trapped with pawns (Chess960)
 
         const Score MINOR_BEHIND_PAWN       = S(+16,+ 0);
 
@@ -244,29 +256,26 @@ namespace Evaluator {
 
     #define V(v) Value(v)
 
-        // OUTPOSTS[Square] contains bonus of outpost,
+        // OUTPOSTS[Square] contains bonus of outpost for knights and bishops,
         // indexed by square (from white's point of view).
         const Value OUTPOSTS[2][SQ_NO] =
-        {   // A      B      C      D      E      F      G      H
-
-            // Knights
-           {V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-            V( 0), V( 0), V( 4), V( 8), V( 8), V( 4), V( 0), V( 0),
-            V( 0), V( 4), V(17), V(26), V(26), V(17), V( 4), V( 0),
-            V( 0), V( 8), V(26), V(35), V(35), V(26), V( 8), V( 0),
-            V( 0), V( 4), V(17), V(17), V(17), V(17), V( 4), V( 0),
-            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0)},
-            // Bishops
-           {V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-            V( 0), V( 0), V( 5), V( 5), V( 5), V( 5), V( 0), V( 0),
-            V( 0), V( 5), V(10), V(10), V(10), V(10), V( 5), V( 0),
-            V( 0), V(10), V(21), V(21), V(21), V(21), V(10), V( 0),
-            V( 0), V( 5), V( 8), V( 8), V( 8), V( 8), V( 5), V( 0),
-            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0),
-            V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0), V( 0)}
+        {      // A     B     C     D     E     F     G     H
+            { // Knights
+                V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
+                V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
+                V(0), V(0), V(3), V(9), V(9), V(3), V(0), V(0),
+                V(0), V(4),V(18),V(25),V(25),V(18), V(4), V(0),
+                V(4), V(9),V(29),V(38),V(38),V(29), V(9), V(4),
+                V(2), V(9),V(19),V(15),V(15),V(19), V(9), V(2)
+            },
+            { // Bishops
+                V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
+                V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
+                V(2), V(4), V(3), V(8), V(8), V(3), V(4), V(2),
+                V(1), V(9), V(9),V(13),V(13), V(9), V(9), V(1),
+                V(2), V(8),V(21),V(24),V(24),V(21), V(8), V(2),
+                V(0), V(4), V(6), V(6), V(6), V(6), V(4), V(0)
+            }
         };
 
     #undef V
@@ -781,42 +790,70 @@ namespace Evaluator {
             const Bitboard TR2_bb   = WHITE == Own ? R2_bb  : R7_bb;
             const Bitboard TR7_bb   = WHITE == Own ? R7_bb  : R2_bb;
 
+            enum { Defended, Weak };
+            enum { Minor, Major };
+            
             Score score = SCORE_ZERO;
 
             Bitboard b;
 
             Bitboard opp_pieces = pos.pieces (Opp);
 
-            // Enemies excluding pawn defended by pawn and attacked by any piece
+            // Non-pawn enemies attacked by a pawn
+            Bitboard weak_pieces =
+                  (opp_pieces ^ pos.pieces<PAWN> (Opp))
+                &  ei.pin_attacked_by[Own][PAWN];
+            
+            if (weak_pieces != U64(0))
+            {
+                b = pos.pieces<PAWN> (Own) & ( ~ei.pin_attacked_by[Opp][NONE]
+                                              | ei.pin_attacked_by[Own][NONE]);
+                
+                Bitboard safe_threats = (shift_del<Right>(b) | shift_del<Left>(b)) & weak_pieces;
+                
+                //if (weak_pieces ^ safe_threats)
+                //    score += ThreatenedByHangingPawn;
+                
+                while (safe_threats != U64(0))
+                {
+                    score += ThreatenedByPawn[ptype(pos[pop_lsq(safe_threats)])];
+                }
+            }
+            
+            // Non-pawn enemies defended by a pawn and attacked by any piece
             Bitboard defended_pieces = 
                   (opp_pieces ^ pos.pieces<PAWN> (Opp))
                 &  ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
-
-            // Protected enemies attacked by minor pieces
-            b = defended_pieces & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);
-            while (b != U64(0))
+            
+            if (defended_pieces != U64(0))
             {
-                score += PIECE_THREATEN[DFND_MINOR][ptype (pos[pop_lsq (b)])];
+                // Defended enemies attacked by minor pieces
+                b = defended_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
+                while (b != U64(0))
+                {
+                    score += Threat[Defended][Minor][ptype (pos[pop_lsq (b)])];
+                }
+                // Defended enemies attacked by major pieces
+                b = defended_pieces & (ei.pin_attacked_by[Own][ROOK]);
+                while (b != U64(0))
+                {
+                    score += Threat[Defended][Major][ptype (pos[pop_lsq (b)])];
+                }
+                //// Defended enemies attacked by Queen
+                //b = defended_pieces & (ei.pin_attacked_by[Own][QUEN]);
+                //while (b != U64(0))
+                //{
+                //    score += PIECE_THREATEN[DFND_QUEN][ptype (pos[pop_lsq (b)])];
+                //}
             }
-            // Protected enemies attacked by Rook
-            b = defended_pieces & (ei.pin_attacked_by[Own][ROOK]);
-            while (b != U64(0))
-            {
-                score += PIECE_THREATEN[DFND_ROOK][ptype (pos[pop_lsq (b)])];
-            }
-            // Protected enemies attacked by Queen
-            b = defended_pieces & (ei.pin_attacked_by[Own][QUEN]);
-            while (b != U64(0))
-            {
-                score += PIECE_THREATEN[DFND_QUEN][ptype (pos[pop_lsq (b)])];
-            }
+            
 
             // Enemies not defended by pawn and attacked by any piece
-            Bitboard weak_pieces = 
-                   opp_pieces
-                & ~ei.pin_attacked_by[Opp][PAWN]
-                &  ei.pin_attacked_by[Own][NONE];
+            //Bitboard weak_pieces =
+            //       opp_pieces
+            //    & ~ei.pin_attacked_by[Opp][PAWN]
+            //    &  ei.pin_attacked_by[Own][NONE];
 
             // Weak enemies attacked by Minor
             b = weak_pieces & (ei.pin_attacked_by[Own][NIHT]|ei.pin_attacked_by[Own][BSHP]);

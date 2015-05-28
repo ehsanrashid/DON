@@ -34,12 +34,10 @@ namespace Material {
         inline Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
         
         template<Color Own>
-        // Entry::scale_factor() takes a position and a color as input, and
-        // returns a scale factor for the given color. Have to provide the
-        // position in addition to the color, because the scale factor need not
-        // to be a constant: It can also be a function which should be applied to
-        // the position. For instance, in KBP vs K endgames, a scaling function
-        // which checks for draws with rook pawns and wrong-colored bishops.
+        // Entry::scale_factor() takes a position as input, and returns a scale factor for the given color.
+        // Have to provide the position in addition to the color, because the scale factor need not to be a constant.
+        // It can also be a function which should be applied to the position.
+        // For instance, in KBP vs K endgames, a scaling function which checks for draws with rook pawns and wrong-colored bishops.
         inline ScaleFactor scale_factor (const Position &pos) const
         {
             if (scaling_func[Own] != NULL)
