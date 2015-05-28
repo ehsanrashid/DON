@@ -11,8 +11,8 @@ namespace BitBoard {
     // FRONT SQUARES
     Bitboard FRONT_SQRS_bb  [CLR_NO][SQ_NO];
 
-    Bitboard BETWEEN_SQRS_bb[SQ_NO][SQ_NO];
-    Bitboard RAY_LINE_bb    [SQ_NO][SQ_NO];
+    Bitboard BETWEEN_bb     [SQ_NO][SQ_NO];
+    Bitboard RAYLINE_bb     [SQ_NO][SQ_NO];
 
     Bitboard DIST_RINGS_bb  [SQ_NO][F_NO];
 
@@ -313,8 +313,8 @@ namespace BitBoard {
                 {
                     if (!(PIECE_ATTACKS[pt][s1] & s2)) continue;
                     
-                    BETWEEN_SQRS_bb[s1][s2] = (attacks_bb (Piece(pt), s1, SQUARE_bb[s2]) & attacks_bb (Piece(pt), s2, SQUARE_bb[s1]));
-                    RAY_LINE_bb    [s1][s2] = (attacks_bb (Piece(pt), s1,        U64(0)) & attacks_bb (Piece(pt), s2,        U64(0))) + s1 + s2;
+                    BETWEEN_bb[s1][s2] = (attacks_bb (Piece(pt), s1, SQUARE_bb[s2]) & attacks_bb (Piece(pt), s2, SQUARE_bb[s1]));
+                    RAYLINE_bb[s1][s2] = (attacks_bb (Piece(pt), s1,        U64(0)) & attacks_bb (Piece(pt), s2,        U64(0))) + s1 + s2;
                 }
             }
         }

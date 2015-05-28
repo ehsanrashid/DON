@@ -653,7 +653,7 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
     Bitboard chk_blockers = U64(0);
     while (pinners != U64(0))
     {
-        Bitboard blocker = BETWEEN_SQRS_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
+        Bitboard blocker = BETWEEN_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
         if (blocker && !more_than_one (blocker))
         {
             chk_blockers |= (blocker & _color_bb[piece_c]); // Defending piece
@@ -849,9 +849,9 @@ bool Position::pseudo_legal (Move m) const
         return ENPASSANT == mtype (m) && PAWN == ptype (_board[org]) ?
             // Move must be a capture of the checking en-passant pawn
             // or a blocking evasion of the checking piece
-            _si->checkers & cap || BETWEEN_SQRS_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]] & dst :
+            _si->checkers & cap || BETWEEN_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]] & dst :
             // Move must be a capture or a blocking evasion of the checking piece
-            (_si->checkers | BETWEEN_SQRS_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]]) & dst;
+            (_si->checkers | BETWEEN_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]]) & dst;
     }
     return true;
 }

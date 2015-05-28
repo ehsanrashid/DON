@@ -343,7 +343,7 @@ namespace Evaluator {
                 while (pinned_pawns != U64(0))
                 {
                     Square s = pop_lsq (pinned_pawns);
-                    pawns_attacks |= PAWN_ATTACKS[Own][s] & RAY_LINE_bb[fk_sq][s];
+                    pawns_attacks |= PAWN_ATTACKS[Own][s] & RAYLINE_bb[fk_sq][s];
                 }
                 ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PAWN] = pawns_attacks;
             }
@@ -541,7 +541,7 @@ namespace Evaluator {
 
                 if (ei.pinneds[Own] & s)
                 {
-                    attacks &= RAY_LINE_bb[pos.king_sq (Own)][s];
+                    attacks &= RAYLINE_bb[pos.king_sq (Own)][s];
                 }
                 ei.pin_attacked_by[Own][PT] |= attacks;
 
@@ -909,11 +909,11 @@ namespace Evaluator {
                     if (pinned)
                     {
                         // Only one real pinner exist other are fake pinner
-                        Bitboard pawn_pinners = pos.pieces (Opp) & RAY_LINE_bb[fk_sq][s] &
+                        Bitboard pawn_pinners = pos.pieces (Opp) & RAYLINE_bb[fk_sq][s] &
                             ( (attacks_bb<ROOK> (s, pos.pieces ()) & pos.pieces (ROOK, QUEN))
                             | (attacks_bb<BSHP> (s, pos.pieces ()) & pos.pieces (BSHP, QUEN))
                             );
-                        pinned = !(BETWEEN_SQRS_bb[fk_sq][scan_lsq (pawn_pinners)] & block_sq);
+                        pinned = !(BETWEEN_bb[fk_sq][scan_lsq (pawn_pinners)] & block_sq);
                     }
 
                     // If the pawn is free to advance, increase bonus

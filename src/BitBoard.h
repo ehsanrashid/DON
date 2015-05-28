@@ -140,8 +140,8 @@ namespace BitBoard {
 
     extern Bitboard FRONT_SQRS_bb   [CLR_NO][SQ_NO];
 
-    extern Bitboard BETWEEN_SQRS_bb [SQ_NO][SQ_NO];
-    extern Bitboard RAY_LINE_bb     [SQ_NO][SQ_NO];
+    extern Bitboard BETWEEN_bb      [SQ_NO][SQ_NO];
+    extern Bitboard RAYLINE_bb      [SQ_NO][SQ_NO];
 
     extern Bitboard DIST_RINGS_bb   [SQ_NO][F_NO];
 
@@ -218,7 +218,7 @@ namespace BitBoard {
     inline Bitboard squares_of_color (Square s) { return DARK_bb & s ? DARK_bb : LIHT_bb; }
 
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
-    inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return RAY_LINE_bb[s1][s2] & s3; }
+    inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return RAYLINE_bb[s1][s2] & s3; }
 
     inline bool more_than_one (Bitboard bb)
     {

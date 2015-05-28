@@ -468,7 +468,7 @@ namespace MoveGen {
         {
             check_sq = pop_lsq (sliders);
             assert (color (pos[check_sq]) == ~active);
-            slider_attacks |= RAY_LINE_bb[check_sq][king_sq] - check_sq;
+            slider_attacks |= RAYLINE_bb[check_sq][king_sq] - check_sq;
         }
 
         // Generate evasions for king, capture and non capture moves
@@ -486,7 +486,7 @@ namespace MoveGen {
 
         check_sq = SQ_NO == check_sq ? scan_lsq (checkers) : check_sq;
         // Generates blocking evasions or captures of the checking piece
-        Bitboard targets = BETWEEN_SQRS_bb[check_sq][king_sq] + check_sq;
+        Bitboard targets = BETWEEN_bb[check_sq][king_sq] + check_sq;
 
         return WHITE == active ? generate_moves<EVASION, WHITE> (moves, pos, targets) :
                BLACK == active ? generate_moves<EVASION, BLACK> (moves, pos, targets) :
