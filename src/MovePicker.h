@@ -73,8 +73,9 @@ namespace MovePick {
             ,   *_bad_captures_end;
 
         const Position          &_pos;
-        const ValueStats  &_moves_history;
-
+        const ValueStats        &_history_value;
+        const ValueValueStats   &_countermoves_history_value;
+        
         Searcher::Stack *_ss;
         
         Move    _tt_move;
@@ -90,8 +91,6 @@ namespace MovePick {
 
         u08     _stage;
 
-        MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
-
         template<GenT GT>
         // value() assign a numerical move ordering score to each move in a move list.
         // The moves with highest scores will be picked first.
@@ -100,10 +99,12 @@ namespace MovePick {
         void generate_next_stage ();
 
     public:
+        MovePicker (const MovePicker&) = delete;
+        MovePicker& operator= (const MovePicker&) = delete;
 
-        MovePicker (const Position&, const ValueStats&, Move, Depth, Move, Searcher::Stack*);
-        MovePicker (const Position&, const ValueStats&, Move, Depth, Square);
-        MovePicker (const Position&, const ValueStats&, Move, PieceT);
+        MovePicker (const Position&, const ValueStats&, const ValueValueStats&, Move, Depth, Move, Searcher::Stack*);
+        MovePicker (const Position&, const ValueStats&, const ValueValueStats&, Move, Depth, Square);
+        MovePicker (const Position&, const ValueStats&, const ValueValueStats&, Move, PieceT);
 
         ValMove* begin () { return _moves_beg; }
         ValMove* end   () { return _moves_end; }

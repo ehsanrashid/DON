@@ -53,11 +53,12 @@ namespace MovePick {
     // search captures, promotions and some checks) and about how important good
     // move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &mh, Move ttm, Depth d, Move cm, Stack *s)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const ValueValueStats& cmhv, Move ttm, Depth d, Move cm, Stack *s)
         : _moves_cur (_moves_beg)
         , _moves_end (_moves_beg)
         , _pos (p)
-        , _moves_history (mh)
+        , _history_value (hv)
+        , _countermoves_history_value (cmhv)
         , _ss (s)
         , _counter_move (cm)
         , _depth (d)
@@ -75,11 +76,12 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &mh, Move ttm, Depth d, Square dst_sq)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const ValueValueStats& cmhv, Move ttm, Depth d, Square dst_sq)
         : _moves_cur (_moves_beg)
         , _moves_end (_moves_beg)
         , _pos (p)
-        , _moves_history (mh)
+        , _history_value (hv)
+        , _countermoves_history_value (cmhv)
         , _ss (NULL)
         , _counter_move (MOVE_NONE)
         , _depth (d)
@@ -114,11 +116,12 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &mh, Move ttm, PieceT pt)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const ValueValueStats& cmhv, Move ttm, PieceT pt)
         : _moves_cur (_moves_beg)
         , _moves_end (_moves_beg)
         , _pos (p)
-        , _moves_history (mh)
+        , _history_value (hv)
+        , _countermoves_history_value (cmhv)
         , _ss (NULL)
         , _counter_move (MOVE_NONE)
         , _depth (DEPTH_ZERO)
@@ -168,23 +171,26 @@ namespace MovePick {
     template<>
     void MovePicker::value<QUIET>   ()
     {
-        // TODO::
-        for (ValMove *itr = _moves_beg; itr != _moves_end; ++itr)
+        Square opp_move_dst = dst_sq ((_ss-1)->current_move);
+        const ValueStats& cmh = _countermoves_history_value[_pos[opp_move_dst]][opp_move_dst];
+
+        for (auto &m : *this)
         {
-            Move m = itr->move;
-            itr->value = _moves_history[_pos[org_sq (m)]][dst_sq (m)];
+            m.value = _history_value[_pos[org_sq (m)]][dst_sq (m)]
+                    + cmh[_pos[org_sq (m)]][dst_sq (m)] * 3;
         }
     }
 
     template<>
     // Try good captures ordered by MVV/LVA, then non-captures if destination square
-    // is not under attack, ordered by _moves_history value, then bad-captures and quiet
+    // is not under attack, ordered by _history_value value, then bad-captures and quiet
     // moves with a negative SEE. This last group is ordered by the SEE value.
     void MovePicker::value<EVASION> ()
     {
         for (auto &m : *this)
         {
             assert (ptype (_pos[org_sq (m)]) != NONE);
+
             Value gain_value = _pos.see_sign (m);
             if (gain_value < VALUE_ZERO)
             {
@@ -195,22 +201,28 @@ namespace MovePick {
             {
                 if (mtype (m) == NORMAL)
                 {
-                    m.value = PIECE_VALUE[MG][ptype (_pos[dst_sq (m)])] - Value(ptype (_pos[org_sq (m)])) + ValueStats::MaxValue-1;
+                    m.value = PIECE_VALUE[MG][ptype (_pos[dst_sq (m)])]
+                            - Value(ptype (_pos[org_sq (m)]))
+                            + ValueStats::MaxValue-1;
                 }
                 else
                 if (mtype (m) == ENPASSANT)
                 {
-                    m.value = PIECE_VALUE[MG][PAWN] + ValueStats::MaxValue-1;
+                    m.value = PIECE_VALUE[MG][PAWN]
+                            + ValueStats::MaxValue-1;
                 }
                 else
                 if (mtype (m) == PROMOTE)
                 {
-                    m.value = PIECE_VALUE[MG][ptype (_pos[dst_sq (m)])] + PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] + ValueStats::MaxValue-1;
+                    m.value = PIECE_VALUE[MG][ptype (_pos[dst_sq (m)])]
+                            + PIECE_VALUE[MG][promote (m)]
+                            - PIECE_VALUE[MG][PAWN]
+                            + ValueStats::MaxValue-1;
                 }
             }
             else
             {
-                m.value = _moves_history[_pos[org_sq (m)]][dst_sq (m)];
+                m.value = _history_value[_pos[org_sq (m)]][dst_sq (m)];
             }
         }
     }
@@ -234,7 +246,7 @@ namespace MovePick {
             {
                 value<CAPTURE> ();
             }
-        break;
+            break;
 
         case KILLER_S1:
             _moves_cur = _killers;
@@ -245,14 +257,13 @@ namespace MovePick {
             _killers[2] = MOVE_NONE;
 
             // Be sure countermoves are different from _killers
-            if (  _counter_move != _killers[0]
-               && _counter_move != _killers[1]
+            if (   _counter_move != _killers[0]
+                && _counter_move != _killers[1]
                )
             {
                 *_moves_end++ = _counter_move;
             }
-
-        break;
+            break;
 
         case QUIET_1_S1:
             _moves_end = _quiets_end = generate<QUIET> (_moves_beg, _pos);
@@ -266,7 +277,7 @@ namespace MovePick {
                     insertion_sort (_moves_cur, _moves_end);
                 }
             }
-        break;
+            break;
 
         case QUIET_2_S1:
             _moves_cur = _moves_end;
@@ -275,13 +286,13 @@ namespace MovePick {
             {
                 insertion_sort (_moves_cur, _moves_end);
             }
-        break;
+            break;
 
         case BAD_CAPTURE_S1:
             // Just pick them in reverse order to get MVV/LVA ordering
             _moves_cur = _moves_beg+MAX_MOVES-1;
             _moves_end = _bad_captures_end;
-        break;
+            break;
 
         case EVASION_S2:
             _moves_end = generate<EVASION> (_moves_beg, _pos);
@@ -289,11 +300,11 @@ namespace MovePick {
             {
                 value<EVASION> ();
             }
-        break;
+            break;
 
         case QUIET_CHECK_S3:
             _moves_end = generate<QUIET_CHECK> (_moves_beg, _pos);
-        break;
+            break;
 
         case EVASION_S1:
         case QSEARCH_0:
@@ -304,18 +315,18 @@ namespace MovePick {
 
         case STOP:
             _moves_end = _moves_cur+1; // Avoid another generate_next_stage() call
-        break;
+            break;
 
         default:
             assert (false);
-        break;
+            break;
         }
     }
 
     template<>
-    // next_move() is the most important method of the MovePicker class. It returns
-    // a new pseudo legal move every time is called, until there are no more moves
-    // left. It picks the move with the biggest score from a list of generated moves
+    // next_move<false>() is the most important method of the MovePicker class.
+    // It returns a new pseudo legal move every time is called, until there are no more moves
+    // It picks the move with the biggest score from a list of generated moves
     // taking care not to return the tt_move if has already been searched previously.
     Move MovePicker::next_move<false> ()
     {
@@ -337,7 +348,7 @@ namespace MovePick {
             case PROB_CUT:
                 ++_moves_cur;
                 return _tt_move;
-            break;
+                break;
 
             case CAPTURE_S1:
                 do
@@ -353,43 +364,43 @@ namespace MovePick {
                         *_bad_captures_end-- = move;
                     }
                 } while (_moves_cur < _moves_end);
-            break;
+                break;
 
             case KILLER_S1:
                 do
                 {
                     move = *_moves_cur++;
-                    if (  move != MOVE_NONE
-                       && move != _tt_move 
-                       && _pos.pseudo_legal (move)
-                       && !_pos.capture (move)
+                    if (   move != MOVE_NONE
+                        && move != _tt_move 
+                        && _pos.pseudo_legal (move)
+                        && !_pos.capture (move)
                        )
                     {
                         return move;
                     }
                 } while (_moves_cur < _moves_end);
-            break;
+                break;
 
             case QUIET_1_S1:
             case QUIET_2_S1:
                 do
                 {
                     move = *_moves_cur++;
-                    if (  move != _tt_move
-                       && move != _killers[0]
-                       && move != _killers[1]
-                       && move != _killers[2]
+                    if (   move != _tt_move
+                        && move != _killers[0]
+                        && move != _killers[1]
+                        && move != _killers[2]
                        )
                     {
                         return move;
                     }
                     
                 } while (_moves_cur < _moves_end);
-            break;
+                break;
 
             case BAD_CAPTURE_S1:
                 return *_moves_cur--;
-            break;
+                break;
 
             case EVASION_S2:
             case CAPTURE_S3:
@@ -402,7 +413,7 @@ namespace MovePick {
                         return move;
                     }
                 } while (_moves_cur < _moves_end);
-            break;
+                break;
 
             case CAPTURE_S5:
                 do
@@ -413,18 +424,18 @@ namespace MovePick {
                         return move;
                     }
                 } while (_moves_cur < _moves_end);
-            break;
+                break;
 
             case CAPTURE_S6:
                 do
                 {
                     move = pick_best (_moves_cur++, _moves_end);
-                    if (move != _tt_move && _recapture_sq == dst_sq (move))
+                    if (move != _tt_move && dst_sq (move) == _recapture_sq)
                     {
                         return move;
                     }
                 } while (_moves_cur < _moves_end);
-            break;
+                break;
 
             case QUIET_CHECK_S3:
                 do
@@ -435,26 +446,26 @@ namespace MovePick {
                         return move;
                     }
                 } while (_moves_cur < _moves_end);
-            break;
+                break;
 
             case STOP:
                 return MOVE_NONE;
-            break;
+                break;
 
             default:
                 assert (false);
-            break;
+                break;
             }
         } while (true); // (_stage <= STOP)
     }
 
     template<>
-    // Version of next_move() to use at splitpoint nodes where the move is grabbed
+    // next_move<true>() is to use at splitpoint nodes where the move is grabbed
     // from the splitpoint's shared MovePicker object. This function is not thread
     // safe so must be lock protected by the caller.
     Move MovePicker::next_move<true> ()
     {
-        return (_ss)->splitpoint->movepicker->next_move<false> ();
+        return _ss->splitpoint->movepicker->next_move<false> ();
     }
 
 }

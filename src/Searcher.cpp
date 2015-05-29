@@ -50,7 +50,7 @@ namespace Searcher {
         // [improving][depth]
         u08   FutilityMoveCounts[2][FutilityMoveCountDepth];
 
-        const Depth ReductionDepth = Depth(32);
+        const Depth ReductionDepth = Depth(64);
         const u08   ReductionMoveCount = 64;
         // ReductionDepths lookup table (initialized at startup)
         // [pv][improving][depth][move_num]
@@ -102,15 +102,40 @@ namespace Searcher {
 
             // Increase history value of the cut-off move and decrease all the other played quiet moves.
             Value value = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
+
+            Move opp_move = (ss-1)->current_move;
+            bool move_ok = _ok (opp_move);
+
+            Square opp_move_dst = dst_sq (opp_move);
+            ValueStats& cmhv = CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst];
+
             HistoryValues.update (pos, move, value);
+
+            if (move_ok)
+            {
+                 CounterMoves.update (pos, opp_move, move);
+                 cmhv.update (pos, move, value);
+            }
+
+            // Decrease all the other played quiet moves
             for (u08 i = 0; i < quiets; ++i)
             {
                 HistoryValues.update (pos, quiet_moves[i], -value);
+
+                if (move_ok)
+                {
+                    cmhv.update (pos, quiet_moves[i], -value);
+                }
             }
-            Move opp_move = (ss-1)->current_move;
-            if (_ok (opp_move))
+            
+            Move own_move = (ss-2)->current_move;
+
+            // Extra penalty for TT move in previous ply when it gets refuted
+            if (opp_move == (ss-1)->tt_move && _ok (own_move))
             {
-                 CounterMoves.update (pos, opp_move, move);
+                Square own_move_dst = dst_sq (own_move);
+                ValueStats &ttcmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
+                ttcmhv.update (pos, opp_move, -value - 2 * depth / DEPTH_ONE - 1);
             }
 
         }
@@ -342,7 +367,7 @@ namespace Searcher {
             // to search the moves. Because the depth is <= 0 here, only captures,
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
-            MovePicker mp (pos, HistoryValues, tt_move, depth, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO);
+            MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO);
             StateInfo si;
             if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
 
@@ -753,7 +778,7 @@ namespace Searcher {
 
                             // Initialize a MovePicker object for the current position,
                             // and prepare to search the moves.
-                            MovePicker mp (pos, HistoryValues, tt_move, pos.capture_type ());
+                            MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, pos.capture_type ());
                             if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
 
                             while ((move = mp.next_move<false> ()) != MOVE_NONE)
@@ -845,7 +870,7 @@ namespace Searcher {
             Square opp_move_sq = dst_sq ((ss-1)->current_move);
             Move counter_move = CounterMoves[pos[opp_move_sq]][opp_move_sq];
 
-            MovePicker mp (pos, HistoryValues, tt_move, depth, counter_move, ss);
+            MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
             if (ci == NULL) { cc = CheckInfo (pos); ci = &cc; }
 
             u08   legals = 0
@@ -1318,9 +1343,9 @@ namespace Searcher {
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
-                for (u08 i = 0; i < RootSize; ++i)
+                for (RootMove &rm : RootMoves)
                 {
-                    RootMoves[i].old_value = RootMoves[i].new_value;
+                    rm.old_value = rm.new_value;
                 }
 
                 bool aspiration = depth > 4*DEPTH_ONE;
@@ -1403,8 +1428,12 @@ namespace Searcher {
                     // Sort the PV lines searched so far and update the GUI
                     stable_sort (RootMoves.begin (), RootMoves.begin () + IndexPV + 1);
 
-                    if (Signals.force_stop) break;
-
+                    if (Signals.force_stop)
+                    {
+                        //sync_cout << "info nodes " << RootPos.game_nodes ()
+                        //          << " time " << TimeMgr.elapsed() << sync_endl;
+                    }
+                    else
                     if (IndexPV + 1 == LimitPV || iteration_time > INFO_INTERVAL)
                     {
                         sync_cout << info_multipv (RootPos, depth, bound_a, bound_b, iteration_time) << sync_endl;
@@ -1911,30 +1940,32 @@ namespace Searcher {
             FutilityMoveCounts[1][d] = u08(2.90 + 1.045 * pow (0.49 + d, 1.80));
         }
 
-        double red[2];
-        ReductionDepths[0][0][0][0] =
-        ReductionDepths[0][1][0][0] =
-        ReductionDepths[1][0][0][0] =
-        ReductionDepths[1][1][0][0] = DEPTH_ZERO;
-        // Initialize reductions lookup table
-        for (d = 1; d < ReductionDepth; ++d) // depth
-        {
-            for (mc = 1; mc < ReductionMoveCount; ++mc) // move-count
-            {
-                red[0] = 0.000 + log (double(d)) * log (double(mc)) / 3.00;
-                red[1] = 0.333 + log (double(d)) * log (double(mc)) / 2.25;
-                ReductionDepths[1][1][d][mc] = red[0] >= 1.0f ? Depth (u08(red[0] + 0.5)) : DEPTH_ZERO;
-                ReductionDepths[0][1][d][mc] = red[1] >= 1.0f ? Depth (u08(red[1] + 0.5)) : DEPTH_ZERO;
+        const double K[][2] = {{ 0.83, 2.25 }, { 0.50, 3.00 }};
 
-                ReductionDepths[1][0][d][mc] = ReductionDepths[1][1][d][mc];
-                ReductionDepths[0][0][d][mc] = ReductionDepths[0][1][d][mc];
-                // Increase reduction when eval is not improving
-                if (ReductionDepths[0][0][d][mc] >= 2*DEPTH_ONE)
+        for (u08 pv = 0; pv <= 1; ++pv)
+        {
+            for (u08 imp = 0; imp <= 1; ++imp)
+            {
+                for (d = 1; d < ReductionDepth; ++d)
                 {
-                    ReductionDepths[0][0][d][mc] += DEPTH_ONE;
+                    for (mc = 1; mc < ReductionMoveCount; ++mc)
+                    {
+                        double r = K[pv][0] + log (d) * log (mc) / K[pv][1];
+
+                        if (r >= 1.5)
+                        {
+                            ReductionDepths[pv][imp][d][mc] = i32(r) * DEPTH_ONE;
+                        }
+                        // Increase reduction when eval is not improving
+                        if (!pv && !imp && ReductionDepths[pv][imp][d][mc] >= 2 * DEPTH_ONE)
+                        {
+                            ReductionDepths[pv][imp][d][mc] += DEPTH_ONE;
+                        }
+                    }
                 }
             }
         }
+
     }
 
 }

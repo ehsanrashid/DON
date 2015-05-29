@@ -815,8 +815,9 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_DRAW;
             }
+            break;
         }
-        break;
+        
         // Pawns on adjacent files. It's a draw if the defender firmly controls the
         // square in front of the frontmost pawn's path, and the square diagonally
         // behind this square on the file of the other pawn.
@@ -843,8 +844,9 @@ namespace EndGame {
             {
                 return SCALE_FACTOR_DRAW;
             }
+            break;
         }
-        break;
+        
         // The pawns are not on the same file or adjacent files. No scaling.
         default:
             break;
