@@ -324,10 +324,10 @@ namespace Evaluator {
             Bitboard pinneds = ei.pinneds[Own] = pos.pinneds (Own);
             ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PAWN] = ei.pi->pawns_attacks[Own];
             
-            Bitboard pinned_pawns = pinneds & pos.pieces <PAWN> (Own);
+            Bitboard pinned_pawns = pinneds & pos.pieces<PAWN> (Own);
             if (pinned_pawns != U64(0))
             {
-                Bitboard free_pawns    = pos.pieces <PAWN> (Own) & ~pinned_pawns;
+                Bitboard free_pawns    = pos.pieces<PAWN> (Own) & ~pinned_pawns;
                 Bitboard pawns_attacks = shift_del<WHITE == Own ? DEL_NE : DEL_SW> (free_pawns) |
                                          shift_del<WHITE == Own ? DEL_NW : DEL_SE> (free_pawns);
                 while (pinned_pawns != U64(0))
