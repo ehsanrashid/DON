@@ -53,7 +53,7 @@ namespace MovePick {
     // search captures, promotions and some checks) and about how important good
     // move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const ValueValueStats& cmhv, Move ttm, Depth d, Move cm, Stack *s)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, Depth d, Move cm, Stack *s)
         : _moves_cur (_moves_beg)
         , _moves_end (_moves_beg)
         , _pos (p)
@@ -76,13 +76,13 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const ValueValueStats& cmhv, Move ttm, Depth d, Square dst_sq)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, Depth d, Square dst_sq)
         : _moves_cur (_moves_beg)
         , _moves_end (_moves_beg)
         , _pos (p)
         , _history_value (hv)
         , _countermoves_history_value (cmhv)
-        , _ss (NULL)
+        , _ss (nullptr)
         , _counter_move (MOVE_NONE)
         , _depth (d)
     {
@@ -116,13 +116,13 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const ValueValueStats& cmhv, Move ttm, PieceT pt)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, PieceT pt)
         : _moves_cur (_moves_beg)
         , _moves_end (_moves_beg)
         , _pos (p)
         , _history_value (hv)
         , _countermoves_history_value (cmhv)
-        , _ss (NULL)
+        , _ss (nullptr)
         , _counter_move (MOVE_NONE)
         , _depth (DEPTH_ZERO)
     {
@@ -172,12 +172,12 @@ namespace MovePick {
     void MovePicker::value<QUIET>   ()
     {
         Square opp_move_dst = dst_sq ((_ss-1)->current_move);
-        const ValueStats& cmh = _countermoves_history_value[_pos[opp_move_dst]][opp_move_dst];
+        const ValueStats &cmhv = _countermoves_history_value[_pos[opp_move_dst]][opp_move_dst];
 
         for (auto &m : *this)
         {
             m.value = _history_value[_pos[org_sq (m)]][dst_sq (m)]
-                    + cmh[_pos[org_sq (m)]][dst_sq (m)] * 3;
+                    + cmhv[_pos[org_sq (m)]][dst_sq (m)] * 3;
         }
     }
 

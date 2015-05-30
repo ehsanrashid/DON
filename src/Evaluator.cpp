@@ -413,93 +413,93 @@ namespace Evaluator {
                 
                 if (NIHT == PT || BSHP == PT)
                 {
-                if (NIHT == PT)
-                {
-                    // Outpost bonus for Knight
-                    if (!(ei.pin_attacked_by[Opp][PAWN] & s))
+                    if (NIHT == PT)
                     {
-                        // Initial bonus based on square
-                        Value value = OUTPOSTS[0][rel_sq (Own, s)];
-
-                        // Increase bonus if supported by pawn, especially if the opponent has
-                        // no minor piece which can exchange the outpost piece.
-                        if (value != VALUE_ZERO)
+                        // Outpost bonus for Knight
+                        if (!(ei.pin_attacked_by[Opp][PAWN] & s))
                         {
-                            // Supporting pawns
-                            if (ei.pin_attacked_by[Own][PAWN] & s)
+                            // Initial bonus based on square
+                            Value value = OUTPOSTS[0][rel_sq (Own, s)];
+
+                            // Increase bonus if supported by pawn, especially if the opponent has
+                            // no minor piece which can exchange the outpost piece.
+                            if (value != VALUE_ZERO)
                             {
-                                value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
-                                         || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
-                                            1.50 : // If attacked by enemy Knights or Bishops
-                                            (  (pos.pieces<NIHT> (Opp)) != U64(0)
-                                            || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
-                                                1.75 : // If there are enemy Knights or Bishops
-                                                2.50;  // If there are no enemy Knights or Bishops
-                            }
+                                // Supporting pawns
+                                if (ei.pin_attacked_by[Own][PAWN] & s)
+                                {
+                                    value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
+                                             || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
+                                                1.50 : // If attacked by enemy Knights or Bishops
+                                                (  (pos.pieces<NIHT> (Opp)) != U64(0)
+                                                || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
+                                                    1.75 : // If there are enemy Knights or Bishops
+                                                    2.50;  // If there are no enemy Knights or Bishops
+                                }
 
-                            score += mk_score (value * 2, value / 2);
-                        }
-                    }
-                }
-
-                if (BSHP == PT)
-                {
-                    score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor<Own> (s);
-
-                    // Outpost bonus for Bishop
-                    if (!(ei.pin_attacked_by[Opp][PAWN] & s))
-                    {
-                        // Initial bonus based on square
-                        Value value = OUTPOSTS[1][rel_sq (Own, s)];
-
-                        // Increase bonus if supported by pawn, especially if the opponent has
-                        // no minor piece which can exchange the outpost piece.
-                        if (value != VALUE_ZERO)
-                        {
-                            // Supporting pawns
-                            if (ei.pin_attacked_by[Own][PAWN] & s)
-                            {
-                                value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
-                                         || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
-                                            1.50 : // If attacked by enemy Knights or Bishops
-                                            (  (pos.pieces<NIHT> (Opp)) != U64(0)
-                                            || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
-                                                1.75 : // If there are enemy Knights or Bishops
-                                                2.50;  // If there are no enemy Knights or Bishops
-                            }
-
-                            score += mk_score (value * 2, value / 2);
-                        }
-                    }
-
-                    // An important Chess960 pattern: A cornered bishop blocked by a friendly
-                    // pawn diagonally in front of it is a very serious problem, especially
-                    // when that pawn is also blocked.
-                    // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
-                    // a friendly pawn on b2/g2 (b7/g7 for black).
-                    if (pos.chess960 ())
-                    {
-                        if ((FILE_EDGE_bb & R1_bb) & rel_sq (Own, s))
-                        {
-                            Delta del = Push + ((F_A == f) ? DEL_E : DEL_W);
-                            if (pos[s + del] == (Own | PAWN))
-                            {
-                                score -= BISHOP_TRAPPED *
-                                    (  !pos.empty (s + del + Push) ?
-                                       4 : pos[s + del + del] == (Own | PAWN) ?
-                                       2 : 1);
+                                score += mk_score (value * 2, value / 2);
                             }
                         }
                     }
-                }
 
-                // Bishop or knight behind a pawn
-                if (  r < R_5
-                   && pos.pieces<PAWN> () & (s + Push)
-                   )
-                {
-                    score += MINOR_BEHIND_PAWN;
-                }
+                    if (BSHP == PT)
+                    {
+                        score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor<Own> (s);
+
+                        // Outpost bonus for Bishop
+                        if (!(ei.pin_attacked_by[Opp][PAWN] & s))
+                        {
+                            // Initial bonus based on square
+                            Value value = OUTPOSTS[1][rel_sq (Own, s)];
+
+                            // Increase bonus if supported by pawn, especially if the opponent has
+                            // no minor piece which can exchange the outpost piece.
+                            if (value != VALUE_ZERO)
+                            {
+                                // Supporting pawns
+                                if (ei.pin_attacked_by[Own][PAWN] & s)
+                                {
+                                    value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
+                                             || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
+                                                1.50 : // If attacked by enemy Knights or Bishops
+                                                (  (pos.pieces<NIHT> (Opp)) != U64(0)
+                                                || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
+                                                    1.75 : // If there are enemy Knights or Bishops
+                                                    2.50;  // If there are no enemy Knights or Bishops
+                                }
+
+                                score += mk_score (value * 2, value / 2);
+                            }
+                        }
+
+                        // An important Chess960 pattern: A cornered bishop blocked by a friendly
+                        // pawn diagonally in front of it is a very serious problem, especially
+                        // when that pawn is also blocked.
+                        // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
+                        // a friendly pawn on b2/g2 (b7/g7 for black).
+                        if (pos.chess960 ())
+                        {
+                            if ((FILE_EDGE_bb & R1_bb) & rel_sq (Own, s))
+                            {
+                                Delta del = Push + ((F_A == f) ? DEL_E : DEL_W);
+                                if (pos[s + del] == (Own | PAWN))
+                                {
+                                    score -= BISHOP_TRAPPED *
+                                        (  !pos.empty (s + del + Push) ?
+                                           4 : pos[s + del + del] == (Own | PAWN) ?
+                                           2 : 1);
+                                }
+                            }
+                        }
+                    }
+
+                    // Bishop or knight behind a pawn
+                    if (   r < R_5
+                        && pos.pieces<PAWN> () & (s + Push)
+                       )
+                    {
+                        score += MINOR_BEHIND_PAWN;
+                    }
                 }
 
                 if (ROOK == PT)
@@ -526,8 +526,7 @@ namespace Evaluator {
                 }
                 ei.pin_attacked_by[Own][PT] |= attacks;
 
-                Bitboard mobile = attacks & mobility_area;
-                i32 mob = mobile != U64(0) ? pop_count<QUEN == PT ? FULL : MAX15> (mobile) : 0;
+                i32 mob = pop_count<QUEN == PT ? FULL : MAX15> (attacks & mobility_area);
                 mobility += PIECE_MOBILIZE[PT][mob];
 
                 if (ROOK == PT)
@@ -611,18 +610,16 @@ namespace Evaluator {
             {
                 Bitboard occ = pos.pieces ();
 
-                Bitboard king_ex_attacks =
-                    ( ei.pin_attacked_by[Own][PAWN]
-                    | ei.pin_attacked_by[Own][NIHT]
-                    | ei.pin_attacked_by[Own][BSHP]
-                    | ei.pin_attacked_by[Own][ROOK]
-                    | ei.pin_attacked_by[Own][QUEN]);
                 // Attacked squares around the king which has no defenders
                 // apart from the king itself
                 Bitboard undefended =
                       ei.ful_attacked_by[Own][KING] // King-zone
                     & ei.pin_attacked_by[Opp][NONE]
-                    & ~king_ex_attacks;
+                    & ~(  ei.pin_attacked_by[Own][PAWN]
+                        | ei.pin_attacked_by[Own][NIHT]
+                        | ei.pin_attacked_by[Own][BSHP]
+                        | ei.pin_attacked_by[Own][ROOK]
+                        | ei.pin_attacked_by[Own][QUEN]);
 
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KING_DANGER[] array. The initial value is based on the
@@ -645,9 +642,13 @@ namespace Evaluator {
                     if (pos.count<QUEN> (Opp) > 0)
                     {
                         // Analyze enemy's safe queen contact checks.
+                        
                         // Undefended squares around the king attacked by enemy queen...
                         undefended_attacked = undefended & ei.pin_attacked_by[Opp][QUEN];
-                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]|ei.ful_attacked_by[Opp][BSHP]|ei.ful_attacked_by[Opp][ROOK];
+                        
+                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]
+                                        | ei.ful_attacked_by[Opp][BSHP]|ei.ful_attacked_by[Opp][ROOK]
+                                        | ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
@@ -665,11 +666,14 @@ namespace Evaluator {
                     if (pos.count<ROOK> (Opp) > 0)
                     {
                         // Analyze enemy's safe rook contact checks.
+                        
                         // Undefended squares around the king attacked by enemy rooks...
                         undefended_attacked = undefended & ei.pin_attacked_by[Opp][ROOK];
                         // Consider only squares where the enemy rook gives check
                         undefended_attacked &= PIECE_ATTACKS[ROOK][fk_sq];
-                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]|ei.ful_attacked_by[Opp][BSHP];
+                        
+                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]
+                                        | ei.ful_attacked_by[Opp][BSHP]|ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
@@ -686,12 +690,15 @@ namespace Evaluator {
                     }
                     if (pos.count<BSHP> (Opp) > 0)
                     {
-                        // Analyze enemy's safe rook contact checks.
+                        // Analyze enemy's safe bishop contact checks.
+                        
                         // Undefended squares around the king attacked by enemy bishop...
                         undefended_attacked = undefended & ei.pin_attacked_by[Opp][BSHP];
                         // Consider only squares where the enemy bishop gives check
                         undefended_attacked &= PIECE_ATTACKS[BSHP][fk_sq];
-                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]|ei.ful_attacked_by[Opp][ROOK];
+                        
+                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]
+                                        | ei.ful_attacked_by[Opp][ROOK]|ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
@@ -733,13 +740,10 @@ namespace Evaluator {
                 safe_check = PIECE_ATTACKS[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[Opp][NIHT];
                 if (safe_check != U64(0)) attack_units += SAFE_CHECK[NIHT] * pop_count<MAX15> (safe_check);
 
-                // To index KING_DANGER[] attack_units must be in [0, MAX_ATTACK_UNITS-1] range
-                attack_units = min (max (attack_units, 0), MAX_ATTACK_UNITS-1);
-
-                // Finally, extract the king danger score from the KING_DANGER[]
-                // array and subtract the score from evaluation.
-                score -= KING_DANGER[attack_units];
-
+                // Finally, extract the king danger score from the KING_DANGER[] array
+                // attack_units must be in [0, MAX_ATTACK_UNITS-1] range
+                // and subtract the score from evaluation.
+                score -= KING_DANGER[min (max (attack_units, 0), MAX_ATTACK_UNITS-1)];
             }
 
             if (Trace)
@@ -778,16 +782,17 @@ namespace Evaluator {
             
             if (pawn_threats != U64(0))
             {
-                Bitboard   safe_pawns = pos.pieces<PAWN> (Own) & (ei.pin_attacked_by[Own][NONE] | ~ei.pin_attacked_by[Opp][NONE]);
-                Bitboard   safe_pawn_threats = (shift_del<Right>(safe_pawns) | shift_del<Left>(safe_pawns)) & pawn_threats;
-                Bitboard unsafe_pawn_threats = pawn_threats ^ safe_pawn_threats;
-                if (unsafe_pawn_threats != U64(0))
+                // Safe Pawns
+                b = pos.pieces<PAWN> (Own) & (ei.pin_attacked_by[Own][NONE] | ~ei.pin_attacked_by[Opp][NONE]);
+                // Safe Pawn threats
+                b = (shift_del<Right>(b) | shift_del<Left>(b)) & pawn_threats;
+                if ((pawn_threats ^ b) != U64(0))
                 {
                     score += THREATEN_BY_HANG_PAWN;
                 }
-                while (safe_pawn_threats != U64(0))
+                while (b != U64(0))
                 {
-                    score += THREATEN_BY_PAWN[ptype (pos[pop_lsq (safe_pawn_threats)])];
+                    score += THREATEN_BY_PAWN[ptype (pos[pop_lsq (b)])];
                 }
             }
             
@@ -1141,9 +1146,8 @@ namespace Evaluator {
             Phase game_phase = ei.mi->game_phase;
             assert (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
 
-            // Evaluate space for both sides, only in middle-game.
             Score space[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
-
+            // Evaluate space for both sides, only during opening
             if (npm[WHITE] + npm[BLACK] >= 11756)
             {
                 space[WHITE] = evaluate_space_activity<WHITE>(pos, ei);
@@ -1208,8 +1212,8 @@ namespace Evaluator {
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 else
-                if (   abs (eg) <= VALUE_EG_BSHP
-                    && ei.pi->pawn_span[strong_side] <= 1
+                if (    abs (eg) <= VALUE_EG_BSHP
+                    &&  ei.pi->pawn_span[strong_side] <= 1
                     && !pos.passed_pawn (~strong_side, pos.king_sq (~strong_side))
                    )
                 {

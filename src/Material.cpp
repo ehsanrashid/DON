@@ -210,26 +210,26 @@ namespace Material {
                       , npm_b = pos.non_pawn_material (BLACK);
 
             // Only pawns on the board
-            if (  npm_w + npm_b == VALUE_ZERO
-               && pos.pieces<PAWN> () != U64(0)
+            if (   npm_w + npm_b == VALUE_ZERO
+                && pos.pieces<PAWN> () != U64(0)
                )
             {
-                if (  pos.count<PAWN> (BLACK) == 0
-                   && pos.count<PAWN> (WHITE) >  1
+                if (   pos.count<PAWN> (BLACK) == 0
+                    && pos.count<PAWN> (WHITE) >  1
                    )
                 {
                     e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
                 }
                 else
-                if (  pos.count<PAWN> (WHITE) == 0
-                   && pos.count<PAWN> (BLACK) >  1
+                if (   pos.count<PAWN> (WHITE) == 0
+                    && pos.count<PAWN> (BLACK) >  1
                    )
                 {
                     e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
                 }
                 else
-                if (  pos.count<PAWN> (WHITE) == 1
-                   && pos.count<PAWN> (BLACK) == 1
+                if (   pos.count<PAWN> (WHITE) == 1
+                    && pos.count<PAWN> (BLACK) == 1
                    )
                 {
                     // This is a special case because set scaling functions for both colors instead of only one.

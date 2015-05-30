@@ -88,12 +88,12 @@ namespace UCI {
                 if (_value != value)
                 {
                     _value = value;
-                    if (_on_change != NULL) _on_change (*this);
+                    if (_on_change != nullptr) _on_change (*this);
                 }
             }
             else
             {
-                if (_on_change != NULL) _on_change (*this);
+                if (_on_change != nullptr) _on_change (*this);
             }
         }
         return *this;

@@ -22,7 +22,7 @@ namespace Transposition {
     #ifdef LPAGES
 
         Memory::alloc_memory (_mem, mem_size, alignment);
-        if (_mem != NULL)
+        if (_mem != nullptr)
         {
             void *ptr = reinterpret_cast<void*> ((uintptr_t(_mem) + alignment-1) & ~u64(alignment-1));
             _clusters = reinterpret_cast<Cluster*> (ptr);
@@ -49,7 +49,7 @@ namespace Transposition {
         alignment = max (u32(sizeof (void *)), alignment);
 
         void *mem = calloc (mem_size + alignment, 1);
-        if (mem != NULL)
+        if (mem != nullptr)
         {
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
 
@@ -88,7 +88,7 @@ namespace Transposition {
 
             alloc_aligned_memory (mem_size, ClusterSize); // Cache Line Size
 
-            if (_clusters == NULL) return 0;
+            if (_clusters == nullptr) return 0;
 
             _cluster_count = cluster_count;
             _cluster_mask  = cluster_count-1;

@@ -159,7 +159,7 @@ public:
     static void initialize ();
 
     Position () { clear (); } // To define the global object RootPos
-    Position (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true)
+    Position (const std::string &f, Threads::Thread *th = nullptr, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
@@ -247,7 +247,7 @@ public:
 
     Threads::Thread* thread () const;
 
-    bool ok (i08 *step = NULL) const;
+    bool ok (i08 *step = nullptr) const;
 
     // Static Exchange Evaluation (SEE)
     Value see      (Move m) const;
@@ -285,7 +285,7 @@ public:
     void remove_piece (Square s);
     void   move_piece (Square s1, Square s2);
 
-    bool setup (const std::string &f, Threads::Thread *th = NULL, bool c960 = false, bool full = true);
+    bool setup (const std::string &f, Threads::Thread *th = nullptr, bool c960 = false, bool full = true);
 
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;

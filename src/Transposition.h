@@ -109,7 +109,7 @@ namespace Transposition {
         // free_aligned_memory() frees the aligned memory
         void free_aligned_memory ()
         {
-            if (_clusters != NULL)
+            if (_clusters != nullptr)
             {
 
     #   ifdef LPAGES
@@ -119,7 +119,7 @@ namespace Transposition {
                 free (((void **) _clusters)[-1]);
     #   endif
 
-                _clusters       = NULL;
+                _clusters       = nullptr;
                 _cluster_count  = 0;
                 _cluster_mask   = 0;
                 _generation     = 0;
@@ -159,14 +159,14 @@ namespace Transposition {
         static bool ClearHash;
 
         TranspositionTable ()
-            : _clusters (NULL)
+            : _clusters (nullptr)
             , _cluster_count (0)
             , _cluster_mask (0)
             , _generation (0)
         {}
 
         explicit TranspositionTable (u32 mem_size_mb)
-            : _clusters (NULL)
+            : _clusters (nullptr)
             , _cluster_count (0)
             , _cluster_mask (0)
             , _generation (0)
@@ -196,7 +196,7 @@ namespace Transposition {
         // 'ucinewgame' (from the UCI interface).
         inline void clear ()
         {
-            if (ClearHash && _clusters != NULL)
+            if (ClearHash && _clusters != nullptr)
             {
                 memset (_clusters, 0x00, _cluster_count * ClusterSize);
                 _generation = 0;

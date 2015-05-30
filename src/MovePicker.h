@@ -47,7 +47,7 @@ namespace MovePick {
     // during the current search and is used for reduction and move ordering decisions.
     typedef Stats<Value>        ValueStats;
 
-    typedef Stats<ValueStats>   ValueValueStats;
+    typedef Stats<ValueStats>   Value2DStats;
 
     // MoveStats store the move that refute a previous move.
     // Entries are stored according only to moving piece and destination square,
@@ -72,9 +72,9 @@ namespace MovePick {
             ,   *_quiets_end
             ,   *_bad_captures_end;
 
-        const Position          &_pos;
-        const ValueStats        &_history_value;
-        const ValueValueStats   &_countermoves_history_value;
+        const Position      &_pos;
+        const ValueStats    &_history_value;
+        const Value2DStats  &_countermoves_history_value;
         
         Searcher::Stack *_ss;
         
@@ -102,9 +102,9 @@ namespace MovePick {
         MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
 
-        MovePicker (const Position&, const ValueStats&, const ValueValueStats&, Move, Depth, Move, Searcher::Stack*);
-        MovePicker (const Position&, const ValueStats&, const ValueValueStats&, Move, Depth, Square);
-        MovePicker (const Position&, const ValueStats&, const ValueValueStats&, Move, PieceT);
+        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Move, Searcher::Stack*);
+        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Square);
+        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, PieceT);
 
         ValMove* begin () { return _moves_beg; }
         ValMove* end   () { return _moves_end; }

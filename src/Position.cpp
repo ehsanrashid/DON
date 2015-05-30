@@ -33,7 +33,7 @@ const string STARTUP_FEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 
 bool _ok (const string &fen, bool c960, bool full)
 {
     if (white_spaces (fen)) return false;
-    Position pos (fen, NULL, c960, full);
+    Position pos (fen, nullptr, c960, full);
     return pos.ok ();
 }
 
@@ -206,7 +206,7 @@ bool Position::draw () const
 bool Position::repeated () const
 {
     StateInfo *si = _si;
-    while (si != NULL)
+    while (si != nullptr)
     {
         u08 ply = min (si->clock50, si->null_ply);
         if (4 > ply) return false;
@@ -1538,7 +1538,7 @@ void Position::  do_move (string &can, StateInfo &si)
 // undo_move() undo the last move
 void Position::undo_move ()
 {
-    assert (_si->ptr != NULL);
+    assert (_si->ptr != nullptr);
     Move m = _si->last_move;
     assert (_ok (m));
 
@@ -1638,7 +1638,7 @@ void Position::  do_null_move (StateInfo &si)
 // undo_null_move() undo the last null-move
 void Position::undo_null_move ()
 {
-    assert (_si->ptr != NULL);
+    assert (_si->ptr != nullptr);
     assert (_si->checkers == U64(0));
 
     _active = ~_active;
