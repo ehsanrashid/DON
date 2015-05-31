@@ -7,7 +7,7 @@
 #include "BitBoard.h"
 #include "Zobrist.h"
 
-namespace Threads {
+namespace Threading {
     class Thread;
 }
 
@@ -133,11 +133,10 @@ private:
     
     bool     _chess960;
 
-    Threads::Thread *_thread;
+    Threading::Thread   *_thread;
 
     // ------------------------
     
-    Position (const Position &pos); // Disable the default copy constructor
 
     void set_castle (Color c, Square rook_org);
 
@@ -159,11 +158,12 @@ public:
     static void initialize ();
 
     Position () { clear (); } // To define the global object RootPos
-    Position (const std::string &f, Threads::Thread *th = nullptr, bool c960 = false, bool full = true)
+    Position (const Position &pos) = delete;
+    Position (const std::string &f, Threading::Thread *th = nullptr, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    Position (const Position &pos, Threads::Thread *th)
+    Position (const Position &pos, Threading::Thread *th)
     {
         *this = pos;
         _thread = th;
@@ -245,7 +245,7 @@ public:
     void  game_nodes (u64 nodes);
     Phase game_phase ()  const;
 
-    Threads::Thread* thread () const;
+    Threading::Thread* thread () const;
 
     bool ok (i08 *step = nullptr) const;
 
@@ -285,7 +285,7 @@ public:
     void remove_piece (Square s);
     void   move_piece (Square s1, Square s2);
 
-    bool setup (const std::string &f, Threads::Thread *th = nullptr, bool c960 = false, bool full = true);
+    bool setup (const std::string &f, Threading::Thread *th = nullptr, bool c960 = false, bool full = true);
 
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
@@ -449,7 +449,7 @@ inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
 
 inline bool Position::chess960  () const { return _chess960; }
-inline Threads::Thread* Position::thread () const { return _thread; }
+inline Threading::Thread* Position::thread () const { return _thread; }
 
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const

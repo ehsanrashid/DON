@@ -876,8 +876,8 @@ namespace Searcher {
 
             bool singular_ext_node =
                    !RootNode && !SPNode
-                && exclude_move == MOVE_NONE // Recursive singular search is not allowed
-                &&      tt_move != MOVE_NONE
+                && MOVE_NONE == exclude_move // Recursive singular search is not allowed
+                && MOVE_NONE != tt_move 
                 &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
                 && tt_depth >= depth-3*DEPTH_ONE
                 && abs (tt_value) < +VALUE_KNOWN_WIN
@@ -947,7 +947,7 @@ namespace Searcher {
                 {
                     //nodes = pos.game_nodes ();
 
-                    Signals.root_1stmove = (1 == legals);
+                    Signals.firstmove_root = (1 == legals);
 
                     if (Threadpool.main () == thread)
                     {
@@ -1443,7 +1443,7 @@ namespace Searcher {
                             bound_b   = (bound_a + bound_b) / 2;
                             bound_a   = max (best_value - window_a, -VALUE_INFINITE);
                             window_a *= 1.50;
-                            Signals.root_failedlow = true;
+                            Signals.failedlow_root = true;
                             Signals.ponderhit_stop = false;
                         }
                         else
@@ -2003,7 +2003,7 @@ namespace Searcher {
 
 }
 
-namespace Threads {
+namespace Threading {
 
     // check_limits() is called by the timer thread when the timer triggers.
     // It is used to print debug info and, more importantly,
@@ -2028,8 +2028,8 @@ namespace Threads {
             TimePoint movetime = now_time - SearchTime;
             if (   movetime > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
                    // Still at first move
-                || (    Signals.root_1stmove
-                    && !Signals.root_failedlow
+                || (    Signals.firstmove_root
+                    && !Signals.failedlow_root
                     && movetime > TimeMgr.available_time () * 0.75
                    )
                )
@@ -2050,35 +2050,6 @@ namespace Threads {
         if (Limits.nodes != 0)
         {
             u64 nodes = RootPos.game_nodes ();
-            /*
-            sp.spinlock.acquire ();
-            
-            // Loop across all splitpoints and sum accumulated splitpoint nodes plus
-            // all the currently active positions nodes.
-            for (size_t idx1 = 0; idx1 < Threadpool.size (); ++idx1)
-            {
-                Thread *thread = Threadpool[idx1];
-                for (size_t count = 0; count < thread->splitpoint_count; ++count)
-                {
-                    SplitPoint &sp = thread->splitpoints[count];
-                    sp.spinlock.acquire ();
-
-                    nodes += sp.nodes;
-                    for (size_t idx2 = 0; idx2 < Threadpool.size (); ++idx2)
-                    {
-                        if (sp.slaves_mask.test (idx2))
-                        {
-                            Position *pos = Threadpool[idx2]->active_pos;
-                            if (pos != nullptr) nodes += pos->game_nodes ();
-                        }
-                    }
-
-                    sp.spinlock.release ();
-                }
-            }
-
-            sp.spinlock.release ();
-            */
 
             // Loop across all split points and sum accumulated SplitPoint nodes plus
             // all the currently active positions nodes.
@@ -2089,7 +2060,7 @@ namespace Threads {
                 {
                     SplitPoint &sp = thread->splitpoints[i];
 
-                    sp.spinlock.acquire();
+                    sp.spinlock.acquire ();
 
                     nodes += sp.nodes;
 
@@ -2100,7 +2071,7 @@ namespace Threads {
                             nodes += Threadpool[idx]->active_pos->game_nodes ();
                         }
                     }
-                    sp.spinlock.release();
+                    sp.spinlock.release ();
                 }
             }
 
@@ -2134,7 +2105,7 @@ namespace Threads {
             // If this thread has been assigned work, launch a search
             while (searching)
             {
-                spinlock.acquire();
+                spinlock.acquire ();
 
                 assert (active_splitpoint != nullptr);
                 SplitPoint *sp = active_splitpoint;
@@ -2176,8 +2147,8 @@ namespace Threads {
                 sp->spinlock.release ();
 
                 // Try to late join to another split point if none of its slaves has already finished.
-                SplitPoint *best_sp     = nullptr;
-                i32         min_level   = INT_MAX;
+                SplitPoint *best_sp   = nullptr;
+                i32         min_level = INT_MAX;
 
                 for (Thread *th : Threadpool)
                 {
@@ -2220,7 +2191,7 @@ namespace Threads {
                         && best_sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
                        )
                     {
-                        spinlock.acquire();
+                        spinlock.acquire ();
 
                         if (can_join (best_sp))
                         {
@@ -2229,7 +2200,7 @@ namespace Threads {
                             searching = true;
                         }
 
-                        spinlock.release();
+                        spinlock.release ();
                     }
 
                     best_sp->spinlock.release ();
@@ -2241,7 +2212,7 @@ namespace Threads {
             {
                 assert(!splitpoint);
 
-                std::unique_lock<Mutex> lk(mutex);
+                std::unique_lock<Mutex> lk (mutex);
                 while (alive && !Threadpool.main ()->thinking)
                 {
                     sleep_condition.wait(lk);

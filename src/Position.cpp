@@ -14,7 +14,7 @@ using namespace std;
 using namespace BitBoard;
 using namespace Transposition;
 using namespace MoveGen;
-using namespace Threads;
+using namespace Threading;
 using namespace Notation;
 
 const Value PIECE_VALUE[PHASE_NO][TOTL] =

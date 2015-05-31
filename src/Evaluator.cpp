@@ -13,7 +13,7 @@ namespace Evaluator {
     using namespace std;
     using namespace BitBoard;
     using namespace MoveGen;
-    using namespace Threads;
+    using namespace Threading;
     using namespace UCI;
 
     namespace {
@@ -430,11 +430,11 @@ namespace Evaluator {
                                 {
                                     value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
                                              || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
-                                                1.50 : // If attacked by enemy Knights or Bishops
+                                                1.50 : // If attacked by enemy knights or bishops
                                                 (  (pos.pieces<NIHT> (Opp)) != U64(0)
                                                 || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
-                                                    1.75 : // If there are enemy Knights or Bishops
-                                                    2.50;  // If there are no enemy Knights or Bishops
+                                                    1.75 : // If there are enemy knights or bishops
+                                                    2.50;  // If there are no enemy knights or bishops
                                 }
 
                                 score += mk_score (value * 2, value / 2);
@@ -461,11 +461,11 @@ namespace Evaluator {
                                 {
                                     value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
                                              || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
-                                                1.50 : // If attacked by enemy Knights or Bishops
+                                                1.50 : // If attacked by enemy knights or bishops
                                                 (  (pos.pieces<NIHT> (Opp)) != U64(0)
                                                 || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
-                                                    1.75 : // If there are enemy Knights or Bishops
-                                                    2.50;  // If there are no enemy Knights or Bishops
+                                                    1.75 : // If there are enemy knights or bishops
+                                                    2.50;  // If there are no enemy knights or bishops
                                 }
 
                                 score += mk_score (value * 2, value / 2);
@@ -481,13 +481,13 @@ namespace Evaluator {
                         {
                             if ((FILE_EDGE_bb & R1_bb) & rel_sq (Own, s))
                             {
-                                Delta del = Push + ((F_A == f) ? DEL_E : DEL_W);
+                                Delta del = Push + (F_A == f ? DEL_E : DEL_W);
                                 if (pos[s + del] == (Own | PAWN))
                                 {
                                     score -= BISHOP_TRAPPED *
-                                        (  !pos.empty (s + del + Push) ?
-                                           4 : pos[s + del + del] == (Own | PAWN) ?
-                                           2 : 1);
+                                            (  !pos.empty (s + del + Push) ?
+                                                4 : pos[s + del + del] == (Own | PAWN) ?
+                                                2 : 1);
                                 }
                             }
                         }
@@ -608,8 +608,6 @@ namespace Evaluator {
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[Opp] != 0)
             {
-                Bitboard occ = pos.pieces ();
-
                 // Attacked squares around the king which has no defenders
                 // apart from the king itself
                 Bitboard undefended =
@@ -634,6 +632,8 @@ namespace Evaluator {
                     - 60 * (pos.count<QUEN>(Opp) == 0)
                     - i32(value) / 8;
 
+                Bitboard occ = pos.pieces ();
+
                 // Undefended squares around king not occupied by enemy's
                 undefended &= ~pos.pieces (Opp);
                 if (undefended != U64(0))
@@ -646,8 +646,10 @@ namespace Evaluator {
                         // Undefended squares around the king attacked by enemy queen...
                         undefended_attacked = undefended & ei.pin_attacked_by[Opp][QUEN];
                         
-                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]
-                                        | ei.ful_attacked_by[Opp][BSHP]|ei.ful_attacked_by[Opp][ROOK]
+                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]
+                                        | ei.ful_attacked_by[Opp][NIHT]
+                                        | ei.ful_attacked_by[Opp][BSHP]
+                                        | ei.ful_attacked_by[Opp][ROOK]
                                         | ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
@@ -672,8 +674,10 @@ namespace Evaluator {
                         // Consider only squares where the enemy rook gives check
                         undefended_attacked &= PIECE_ATTACKS[ROOK][fk_sq];
                         
-                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]
-                                        | ei.ful_attacked_by[Opp][BSHP]|ei.ful_attacked_by[Opp][KING];
+                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]
+                                        | ei.ful_attacked_by[Opp][NIHT]
+                                        | ei.ful_attacked_by[Opp][BSHP]
+                                        | ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
@@ -697,8 +701,10 @@ namespace Evaluator {
                         // Consider only squares where the enemy bishop gives check
                         undefended_attacked &= PIECE_ATTACKS[BSHP][fk_sq];
                         
-                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]|ei.ful_attacked_by[Opp][NIHT]
-                                        | ei.ful_attacked_by[Opp][ROOK]|ei.ful_attacked_by[Opp][KING];
+                        Bitboard unsafe = ei.ful_attacked_by[Opp][PAWN]
+                                        | ei.ful_attacked_by[Opp][NIHT]
+                                        | ei.ful_attacked_by[Opp][ROOK]
+                                        | ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
@@ -786,14 +792,9 @@ namespace Evaluator {
                 b = pos.pieces<PAWN> (Own) & (ei.pin_attacked_by[Own][NONE] | ~ei.pin_attacked_by[Opp][NONE]);
                 // Safe Pawn threats
                 b = (shift_del<Right>(b) | shift_del<Left>(b)) & pawn_threats;
-                if ((pawn_threats ^ b) != U64(0))
-                {
-                    score += THREATEN_BY_HANG_PAWN;
-                }
-                while (b != U64(0))
-                {
-                    score += THREATEN_BY_PAWN[ptype (pos[pop_lsq (b)])];
-                }
+                if ((pawn_threats ^ b) != U64(0)) score += THREATEN_BY_HANG_PAWN;
+
+                while (b != U64(0)) score += THREATEN_BY_PAWN[ptype (pos[pop_lsq (b)])];
             }
             
             // Non-pawn enemies defended by a pawn and attacked by any piece
@@ -806,16 +807,10 @@ namespace Evaluator {
             {
                 // Defended enemies attacked by minor pieces
                 b = defended_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
-                while (b != U64(0))
-                {
-                    score += THREATEN_BY_PIECE[Defended][Minor][ptype (pos[pop_lsq (b)])];
-                }
+                while (b != U64(0)) score += THREATEN_BY_PIECE[Defended][Minor][ptype (pos[pop_lsq (b)])];
                 // Defended enemies attacked by major pieces
                 b = defended_pieces & (ei.pin_attacked_by[Own][ROOK]);
-                while (b != U64(0))
-                {
-                    score += THREATEN_BY_PIECE[Defended][Major][ptype (pos[pop_lsq (b)])];
-                }
+                while (b != U64(0)) score += THREATEN_BY_PIECE[Defended][Major][ptype (pos[pop_lsq (b)])];
             }
             
             // Enemies not defended by pawn and attacked by any piece
@@ -828,15 +823,11 @@ namespace Evaluator {
             if (weak_pieces != U64(0))
             {
                 b = weak_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
-                while (b != U64(0))
-                {
-                    score += THREATEN_BY_PIECE[Weak][Minor][ptype (pos[pop_lsq (b)])];
-                }
+                while (b != U64(0)) score += THREATEN_BY_PIECE[Weak][Minor][ptype (pos[pop_lsq (b)])];
+
                 b = weak_pieces & (ei.pin_attacked_by[Own][ROOK] | ei.pin_attacked_by[Own][QUEN]);
-                while (b != U64(0))
-                {
-                    score += THREATEN_BY_PIECE[Weak][Major][ptype (pos[pop_lsq (b)])];
-                }
+                while (b != U64(0)) score += THREATEN_BY_PIECE[Weak][Major][ptype (pos[pop_lsq (b)])];
+
                 b = weak_pieces & ei.ful_attacked_by[Own][KING];
                 if (b != U64(0)) score += THREATEN_BY_KING[more_than_one (b) ? 1 : 0]; 
                 

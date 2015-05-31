@@ -853,15 +853,15 @@
     <Alias n="34" Id="(@1 Namespace=&quot;TBSyzygy::`anonymous namespace'&quot;)" />
     <Alias n="35" Id="Namespace=Threads" />
     <Alias n="36" Id="(@1 @35)" />
-    <Alias n="37" Id="(@1 Namespace=&quot;Threads::`anonymous namespace'&quot;)" />
+    <Alias n="37" Id="(@1 Namespace=&quot;Threading::`anonymous namespace'&quot;)" />
     <Alias n="38" Id="(@1 Namespace=Time)" />
     <Alias n="39" Id="(@1 Namespace=&quot;Time::`anonymous namespace'&quot;)" />
     <Alias n="40" Id="(@1 Namespace=Transposition)" />
     <Alias n="41" Id="(@1 Namespace=UCI)" />
     <Alias n="42" Id="(@1 Namespace=&quot;UCI::`anonymous namespace'&quot;)" />
     <Alias n="43" Id="(@1 Namespace=Zobrist)" />
-    <Alias n="44" Id="(@1 @35 Member=(Name=delete_thread&lt;Threads::Thread&gt; OverloadingParameters=[(Type=&quot;Threads::Thread *&quot;)]))" />
-    <Alias n="45" Id="(@1 @35 Member=(Name=delete_thread&lt;Threads::TimerThread&gt; OverloadingParameters=[(Type=&quot;Threads::TimerThread *&quot;)]))" />
+    <Alias n="44" Id="(@1 @35 Member=(Name=delete_thread&lt;Threading::Thread&gt; OverloadingParameters=[(Type=&quot;Threading::Thread *&quot;)]))" />
+    <Alias n="45" Id="(@1 @35 Member=(Name=delete_thread&lt;Threading::TimerThread&gt; OverloadingParameters=[(Type=&quot;Threading::TimerThread *&quot;)]))" />
     <Alias n="46" Id="(Type=Depth)" />
     <Alias n="47" Id="(@1 @30 Member=(Name=perft&lt;0&gt; OverloadingParameters=[(Type=&quot;Position &amp;&quot;),@46]))" />
     <Alias n="48" Id="(@1 @30 Member=(Name=perft&lt;1&gt; OverloadingParameters=[(Type=&quot;Position &amp;&quot;),@46]))" />
@@ -881,9 +881,9 @@
     <Alias n="62" Id="(@1 @30 Member=(Name=&quot;search_depth&lt;2,1,1&gt;&quot; @55))" />
     <Alias n="63" Id="(@1 @35 Member=auto_save_hash)" />
     <Alias n="64" Id="(@1 @35 Member=check_limits)" />
-    <Alias n="65" Id="(@1 @35 Member=new_thread&lt;Threads::MainThread&gt;)" />
-    <Alias n="66" Id="(@1 @35 Member=new_thread&lt;Threads::Thread&gt;)" />
-    <Alias n="67" Id="(@1 @35 Member=new_thread&lt;Threads::TimerThread&gt;)" />
+    <Alias n="65" Id="(@1 @35 Member=new_thread&lt;Threading::MainThread&gt;)" />
+    <Alias n="66" Id="(@1 @35 Member=new_thread&lt;Threading::Thread&gt;)" />
+    <Alias n="67" Id="(@1 @35 Member=new_thread&lt;Threading::TimerThread&gt;)" />
     <Alias n="68" Id="(@1 @35 Type=MainThread)" />
     <Alias n="69" Id="(@1 @35 Type=Mutex)" />
     <Alias n="70" Id="(@1 @35 Type=SplitPoint)" />

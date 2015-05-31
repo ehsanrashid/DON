@@ -6,41 +6,37 @@
 #include "Endgame.h"
 #include "UCI.h"
 
-Threads::ThreadPool Threadpool; // Global ThreadPool
+Threading::ThreadPool Threadpool; // Global ThreadPool
 
-namespace Threads {
+namespace Threading {
 
     using namespace std;
     using namespace MoveGen;
     using namespace Searcher;
     using namespace UCI;
 
-    //namespace {
+    // Helpers to launch a thread after creation and joining before delete. Must be
+    // outside Thread c'tor and d'tor because object must be fully initialized
+    // when start_routine (and hence virtual idle_loop) is called and when joining.
+    template<class T>
+    T* new_thread ()
+    {
+        std::thread *th = new T;
+        *th = std::thread(&T::idle_loop, (T*)th); // Will go to sleep
+        return (T*)th;
+    }
+
+    void delete_thread (ThreadBase *th)
+    {
+        th->mutex.lock ();
+        th->alive = false;   // Search must be already finished
+        th->mutex.unlock ();
+
+        th->notify_one ();
+        th->join ();         // Wait for thread termination
+        delete th;
+    }
     
-        // Helpers to launch a thread after creation and joining before delete. Must be
-        // outside Thread c'tor and d'tor because object must be fully initialized
-        // when start_routine (and hence virtual idle_loop) is called and when joining.
-        template<class T>
-        T* new_thread ()
-        {
-            std::thread* th = new T;
-            *th = std::thread(&T::idle_loop, (T*)th); // Will go to sleep
-            return (T*)th;
-        }
-
-        void delete_thread (ThreadBase *th)
-        {
-           th->mutex.lock();
-           th->alive = false; // Search must be already finished
-           th->mutex.unlock();
-
-           th->notify_one();
-           th->join(); // Wait for thread termination
-           delete th;
-        }
-    
-    //}
-
     // explicit template instantiations
     // --------------------------------
     template TimerThread* new_thread<TimerThread> ();
@@ -49,14 +45,14 @@ namespace Threads {
     // notify_one () wakes up the thread when there is some work to do
     void ThreadBase::notify_one ()
     {
-        std::unique_lock<Mutex> lk(mutex);
-        sleep_condition.notify_one();
+        std::unique_lock<Mutex> lk (mutex);
+        sleep_condition.notify_one ();
     }
 
     // wait_for() set the thread to sleep until condition turns true
     void ThreadBase::wait_for (const volatile bool &condition)
     {
-        std::unique_lock<Mutex> lk(mutex);
+        std::unique_lock<Mutex> lk (mutex);
         sleep_condition.wait(lk, [&]{ return condition; });
     }
 
@@ -91,8 +87,7 @@ namespace Threads {
     // one (the "helpful master" concept in YBWC terminology).
     bool Thread::can_join(const SplitPoint* sp) const
     {
-        if (searching)
-            return false;
+        if (searching) return false;
 
         // Make a local copy to be sure it doesn't become zero under our feet while
         // testing next condition and so leading to an out of bounds access.
@@ -127,8 +122,8 @@ namespace Threads {
         sp.master       = this;
         sp.parent_splitpoint = active_splitpoint;
         sp.slaves_mask  = 0, sp.slaves_mask.set (index);
-        sp.ss           = ss;
         sp.pos          = &pos;
+        sp.ss           = ss;
         sp.alpha        = alpha;
         sp.beta         = beta;
         sp.best_value   = best_value;
@@ -143,21 +138,21 @@ namespace Threads {
         sp.slave_searching = true; // Must be set under lock protection
 
         ++splitpoint_count;
-        active_splitpoint   = &sp;
-        active_pos          = nullptr;
+        active_splitpoint = &sp;
+        active_pos = nullptr;
 
         // Try to allocate available threads
         Thread* slave;
 
-        while (    sp.slaves_mask.count() < MAX_SLAVES_PER_SPLITPOINT
-               && (slave = Threadpool.available_slave(&sp)) != nullptr
+        while (    sp.slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
+               && (slave = Threadpool.available_slave (&sp)) != nullptr
               )
         {
             slave->spinlock.acquire();
 
-            if (slave->can_join(active_splitpoint))
+            if (slave->can_join (active_splitpoint))
             {
-                active_splitpoint->slaves_mask.set(slave->index);
+                active_splitpoint->slaves_mask.set (slave->index);
                 slave->active_splitpoint = active_splitpoint;
                 slave->searching = true;
             }
@@ -205,11 +200,11 @@ namespace Threads {
     {
         do
         {
-            std::unique_lock<Mutex> lk(mutex);
+            std::unique_lock<Mutex> lk (mutex);
 
             if (alive) sleep_condition.wait_for(lk, std::chrono::milliseconds(run ? resolution : INT_MAX));
 
-            lk.unlock();
+            lk.unlock ();
 
             if (run) task ();
 
@@ -224,7 +219,7 @@ namespace Threads {
     {
         do
         {
-            std::unique_lock<Mutex> lk(mutex);
+            std::unique_lock<Mutex> lk (mutex);
 
             thinking = false;
 
@@ -234,7 +229,7 @@ namespace Threads {
                 sleep_condition.wait(lk);
             }
 
-            lk.unlock();
+            lk.unlock ();
 
             if (alive)
             {
@@ -253,7 +248,7 @@ namespace Threads {
     // MainThread::join() waits for main thread to finish the search
     void MainThread::join ()
     {
-        std::unique_lock<Mutex> lk(mutex);
+        std::unique_lock<Mutex> lk (mutex);
         sleep_condition.wait(lk, [&]{ return !thinking; });
     }
 
@@ -284,10 +279,11 @@ namespace Threads {
     {
         delete_thread (auto_save_th);
         delete_thread (check_limits_th); // As first because check_limits() accesses threads data
-        for (iterator itr = begin (); itr != end (); ++itr)
+        for (Thread* th : *this)
         {
-            delete_thread (*itr);
+            delete_thread (th);
         }
+        clear ();
     }
 
     // configure() updates internal threads parameters from the corresponding
@@ -300,13 +296,6 @@ namespace Threads {
         split_depth = i32(Options["Split Depth"])*DEPTH_ONE;
 
         assert (threads > 0);
-
-        // Split depth '0' has a special meaning:
-        // Determines the best optimal minimum split depth automatically
-        if (DEPTH_ZERO == split_depth)
-        {
-            split_depth = min (4 + max (i32(threads)-1, 0)/3, i32(MAX_SPLIT_DEPTH))*DEPTH_ONE;
-        }
 
         while (size () < threads)
         {
@@ -359,8 +348,8 @@ namespace Threads {
 
         Signals.force_stop     = false;
         Signals.ponderhit_stop = false;
-        Signals.root_1stmove   = false;
-        Signals.root_failedlow = false;
+        Signals.firstmove_root = false;
+        Signals.failedlow_root = false;
 
         main ()->thinking = true;
         main ()->notify_one ();     // Starts main thread

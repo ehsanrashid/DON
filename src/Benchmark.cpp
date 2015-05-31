@@ -12,7 +12,7 @@ using namespace std;
 using namespace Searcher;
 using namespace Transposition;
 using namespace MoveGen;
-using namespace Threads;
+using namespace Threading;
 using namespace Notation;
 
 namespace {

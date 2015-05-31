@@ -15,7 +15,7 @@
 #include "MovePicker.h"
 #include "Searcher.h"
 
-namespace Threads {
+namespace Threading {
 
     using namespace Searcher;
     using namespace MovePick;
@@ -33,7 +33,7 @@ namespace Threads {
         std::atomic_int _lock;
 
     public:
-        Spinlock() { _lock = 1; } // Init here to workaround a bug with MSVC 2013
+        Spinlock () { _lock = 1; } // Init here to workaround a bug with MSVC 2013
     
         void acquire ()
         {
@@ -62,12 +62,12 @@ namespace Threads {
         // Const data after splitpoint has been setup
         const Position *pos;
 
-        Stack      *ss;
-        Thread     *master;
-        Value       beta;
-        Depth       depth;
-        NodeT       node_type;
-        bool        cut_node;
+        Stack  *ss;
+        Thread *master;
+        Value   beta;
+        Depth   depth;
+        NodeT   node_type;
+        bool    cut_node;
 
         // Const pointers to shared data
         MovePicker  *movepicker;
@@ -96,6 +96,7 @@ namespace Threads {
         Mutex               mutex;
         Spinlock            spinlock;
         ConditionVariable   sleep_condition;
+
         volatile bool       alive;
 
         ThreadBase ()
@@ -183,14 +184,13 @@ namespace Threads {
     struct ThreadPool
         : public ::std::vector<Thread*>
     {
-        Depth   split_depth;
-        
         TimerThread *check_limits_th;
         TimerThread *auto_save_th;
+        Depth        split_depth;
 
-        MainThread* main () { return static_cast<MainThread*> (at(0)); }
+        MainThread* main () { return static_cast<MainThread*> (at (0)); }
 
-        // No c'tor and d'tor, threads rely on globals that should
+        // No c'tor and d'tor, threadpool rely on globals that should
         // be initialized and valid during the whole thread lifetime.
         void initialize ();
         void exit ();
@@ -233,7 +233,7 @@ inline std::ostream& operator<< (std::ostream &os, SyncT sync)
     return os;
 }
 
-extern Threads::ThreadPool  Threadpool;
+extern Threading::ThreadPool  Threadpool;
 
 //inline u32 cpu_count ()
 //{

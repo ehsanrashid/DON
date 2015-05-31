@@ -17,7 +17,7 @@ namespace UCI {
 
     using namespace Searcher;
     using namespace MoveGen;
-    using namespace Threads;
+    using namespace Threading;
     using namespace Notation;
 
     typedef istringstream cmdstream;

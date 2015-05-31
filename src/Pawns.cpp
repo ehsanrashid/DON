@@ -6,7 +6,7 @@ namespace Pawns {
 
     using namespace std;
     using namespace BitBoard;
-    using namespace Threads;
+    using namespace Threading;
 
     namespace {
 

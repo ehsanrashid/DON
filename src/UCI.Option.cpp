@@ -16,7 +16,7 @@ namespace UCI {
 
     using namespace std;
     using namespace Transposition;
-    using namespace Threads;
+    using namespace Threading;
     using namespace Searcher;
     using namespace TimeManagement;
 
@@ -350,13 +350,13 @@ namespace UCI {
         // as the extra hyper-threads would usually degrade the performance of the engine. 
         Options["Threads"]                      << Option ( 1, 1, MAX_THREADS, configure_threadpool);
 
-        // Minimum depth at which work will be split between cores, when using multiple threads.
-        // Default 0, Min 0, Max 15.
+        // The depth at which work will be split between cores, when using multiple threads.
+        // Default 5, Min 0, Max 12.
         //
         // Default 0 means auto setting which depends on the threads.
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
-        Options["Split Depth"]                  << Option ( 0, 0, MAX_SPLIT_DEPTH, configure_threadpool);
+        Options["Split Depth"]                  << Option ( 5, 0, MAX_SPLIT_DEPTH, configure_threadpool);
 
         // Game Play Options
         // -----------------

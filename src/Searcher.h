@@ -10,7 +10,7 @@
 #include "Position.h"
 #include "PolyglotBook.h"
 
-namespace Threads {
+namespace Threading {
     struct SplitPoint;
 }
 
@@ -18,7 +18,7 @@ typedef std::auto_ptr<StateInfoStack>   StateInfoStackPtr;
 
 namespace Searcher {
 
-    using namespace Threads;
+    using namespace Threading;
 
     const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be < MAX_DEPTH/2
     const u08 MIN_SKILL_MULTIPV =  4;
@@ -71,8 +71,8 @@ namespace Searcher {
     {
         bool  force_stop        // Stop on request
             , ponderhit_stop    // Stop on ponder-hit
-            , root_1stmove      // First move at root
-            , root_failedlow;   // Failed-low move at root
+            , firstmove_root    // First move at root
+            , failedlow_root;   // Failed-low move at root
 
         SignalsT ()
         {
