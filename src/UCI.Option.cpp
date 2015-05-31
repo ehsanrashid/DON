@@ -8,7 +8,6 @@
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Thread.h"
-#include "TimeManager.h"
 #include "Debugger.h"
 
 UCI::OptionMap  Options; // Global string mapping of Options

@@ -12,7 +12,6 @@
 #include "Transposition.h"
 #include "Debugger.h"
 #include "Thread.h"
-#include "TimeManager.h"
 #include "Notation.h"
 
 namespace Engine {
@@ -128,11 +127,11 @@ namespace Engine {
     // Exit from engine with exit code. (in case of some crash)
     void exit (i32 code)
     {
-        UCI      ::stop ();
+        UCI    ::stop ();
 
-        Threadpool.deinitialize ();
-        EndGame  ::deinitialize ();
-        UCI      ::deinitialize ();
+        Threadpool.exit ();
+        EndGame::deinitialize ();
+        UCI    ::deinitialize ();
 
         ::exit (code);
     }

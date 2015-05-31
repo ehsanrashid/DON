@@ -8,6 +8,10 @@
 #include <algorithm>
 #include <cassert>
 #include <iosfwd>
+#include <chrono>
+#include <iomanip>
+#include <sstream>
+#include <iostream>
 
 /// When compiling with provided Makefile (e.g. for Linux and OSX), configuration
 /// is done automatically. To get started type 'make help'.
@@ -596,6 +600,19 @@ inline Value  cp_to_value (double cp) { return Value(i32(cp * i32(VALUE_EG_PAWN)
 inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
+typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
+
+const TimePoint MILLI_SEC        = 1000;
+const TimePoint MINUTE_MILLI_SEC = MILLI_SEC * 60;
+const TimePoint HOUR_MILLI_SEC   = MINUTE_MILLI_SEC * 60;
+
+inline TimePoint now ()
+{
+    return std::chrono::duration_cast<std::chrono::milliseconds>
+               (std::chrono::steady_clock::now ().time_since_epoch ()).count ();
+}
+
+
 // GameClock stores the available time and time-gain per move
 struct GameClock
 {
@@ -625,42 +642,6 @@ public:
 
 };
 
-// prefetch() preloads the given address in L1/L2 cache.
-// This is a non-blocking function that doesn't stall
-// the CPU waiting for data to be loaded from memory,
-// which can be quite slow.
-#ifdef PREFETCH
-
-#   if (defined(_MSC_VER) || defined(__INTEL_COMPILER))
-
-#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
-
-    inline void prefetch (const char *addr)
-    {
-#       if defined(__INTEL_COMPILER)
-        {
-            // This hack prevents prefetches from being optimized away by
-            // Intel compiler. Both MSVC and gcc seem not be affected by this.
-            __asm__ ("");
-        }
-#       endif
-        _mm_prefetch (addr, _MM_HINT_T0);
-    }
-
-#   else
-
-    inline void prefetch (const char *addr)
-    {
-        __builtin_prefetch (addr);
-    }
-
-#   endif
-
-#else
-
-    inline void prefetch (const char *) {}
-
-#endif
 
 inline bool white_spaces (const std::string &str)
 {

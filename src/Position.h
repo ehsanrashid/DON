@@ -292,7 +292,6 @@ public:
 
     // Do/Undo move
     void   do_move (Move m, StateInfo &si, bool is_check);
-    void   do_move (Move m, StateInfo &si);
     void   do_move (std::string &can, StateInfo &si);
     void undo_move ();
     void   do_null_move (StateInfo &si);

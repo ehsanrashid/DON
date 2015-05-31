@@ -151,14 +151,14 @@ Position& Position::operator= (const Position &pos)
     return *this;
 }
 
-// Draw by: Material, 50 Move Rule, Threefold repetition, [Stalemate].
-// It does not detect stalemates, this must be done by the search.
+// Draw by: 50 Move Rule, Threefold repetition.
+// It does not detect draw by Material and Stalemate, this must be done by the search.
 bool Position::draw () const
 {
     // Draw by 50 moves Rule?
     // Not in check or in check have legal moves 
-    if (  _si->clock50 >= FiftyMoveDist
-       && (_si->checkers == U64(0) || MoveList<LEGAL> (*this).size () != 0)
+    if (    _si->clock50 >= FiftyMoveDist
+        && (_si->checkers == U64(0) || MoveList<LEGAL> (*this).size () != 0)
        )
     {
         return true;
@@ -178,8 +178,8 @@ bool Position::draw () const
 
     /*
     // Draw by Material?
-    if (  _types_bb[PAWN] == U64(0)
-       && _si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK] <= VALUE_MG_BSHP
+    if (   _types_bb[PAWN] == U64(0)
+        && _si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK] <= VALUE_MG_BSHP
        )
     {
         return true;
@@ -187,11 +187,11 @@ bool Position::draw () const
     */
     /*
     // Draw by Stalemate?
-    if (  _si->checkers == U64(0)
-       //&& game_phase () < PHASE_MIDGAME - 50
-       && count<NONPAWN> (_active) < count<NONPAWN> (~_active)
-       && (count<NONPAWN> (_active) < 3 || (count<NONPAWN> (_active) < 5 && pinneds (_active)))
-       && MoveList<LEGAL> (*this).size () == 0
+    if (   _si->checkers == U64(0)
+        //&& game_phase () < PHASE_MIDGAME - 50
+        && count<NONPAWN> (_active) < count<NONPAWN> (~_active)
+        && (count<NONPAWN> (_active) < 3 || (count<NONPAWN> (_active) < 5 && pinneds (_active)))
+        && MoveList<LEGAL> (*this).size () == 0
        )
     {
         return true;
@@ -224,257 +224,187 @@ bool Position::repeated () const
 }
 
 // Position consistency test, for debugging
-bool Position::ok (i08 *step) const
+bool Position::ok (i08 *failed_step) const
 {
-    // What features of the position should be verified?
-    const bool test_all = true;
+    const bool Fast = true; // Quick (default) or full check?
 
-    const bool test_king_count    = test_all || false;
-    const bool test_piece_count   = test_all || false;
-    const bool test_bitboards     = test_all || false;
-    const bool test_piece_list    = test_all || false;
-    const bool test_king_capture  = test_all || false;
-    const bool test_castle_rights = test_all || false;
-    const bool test_en_passant    = test_all || false;
-    const bool test_matl_key      = test_all || false;
-    const bool test_pawn_key      = test_all || false;
-    const bool test_posi_key      = test_all || false;
-    const bool test_inc_eval      = test_all || false;
-    const bool test_np_material   = test_all || false;
+    enum { Default, King, Bitboards, State, Lists, Castling };
 
-    if (step) *step = 1;
-    // step 1
-    if (  (WHITE != _active && BLACK != _active)
-       || (W_KING != _board[_piece_list[WHITE][KING][0]])
-       || (B_KING != _board[_piece_list[BLACK][KING][0]])
-       || (_si->clock50 > 100)
-       )
+    for (i08 step = Default; step <= (Fast ? Default : Castling); ++step)
     {
-        return false;
-    }
-    // step 2
-    if (step && ++(*step), test_king_count)
-    {
-        for (i08 c = WHITE; c <= BLACK; ++c)
-        {
-            if (1 != std::count (_board, _board + SQ_NO, Color(c)|KING))
-            {
-                return false;
-            }
-            if (_piece_count[c][KING] != pop_count<FULL> (_color_bb[c]&_types_bb[KING]))
-            {
-                return false;
-            }
-        }
-    }
-    // step 3
-    if (step && ++(*step), test_piece_count)
-    {
-        if (  pop_count<FULL> (_types_bb[NONE]) > 32
-           || count<NONE> () > 32
-           || count<NONE> () != pop_count<FULL> (_types_bb[NONE])
-           )
-        {
-            return false;
-        }
+        if (failed_step != nullptr) *failed_step = step;
 
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        if (step == Default)
         {
-            for (i08 pt = PAWN; pt <= KING; ++pt)
-            {
-                if (_piece_count[c][pt] != pop_count<MAX15> (_color_bb[c]&_types_bb[pt]))
-                {
-                    return false;
-                }
-            }
-        }
-    }
-    // step 4
-    if (step && ++(*step), test_bitboards)
-    {
-        // The intersection of the white and black pieces must be empty
-        if (_color_bb[WHITE]&_color_bb[BLACK])
-        {
-            return false;
-        }
-        // The intersection of separate piece type must be empty
-        for (i08 pt1 = PAWN; pt1 <= KING; ++pt1)
-        {
-            for (i08 pt2 = PAWN; pt2 <= KING; ++pt2)
-            {
-                if (pt1 != pt2 && (_types_bb[pt1]&_types_bb[pt2]))
-                {
-                    return false;
-                }
-            }
-        }
-
-        // The union of the white and black pieces must be equal to occupied squares
-        if (  (_color_bb[WHITE]|_color_bb[BLACK]) != _types_bb[NONE]
-           || (_color_bb[WHITE]^_color_bb[BLACK]) != _types_bb[NONE]
-           )
-        {
-            return false;
-        }
-
-        // The union of separate piece type must be equal to occupied squares
-        if (  (_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]|_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE]
-           || (_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]
-           )
-        {
-            return false;
-        }
-
-        // PAWN rank should not be 1/8
-        if ((R1_bb|R8_bb) & _types_bb[PAWN])
-        {
-            return false;
-        }
-
-        for (i08 c = WHITE; c <= BLACK; ++c)
-        {
-            Bitboard colors = _color_bb[c];
-
-            if (pop_count<FULL> (colors) > 16) // Too many Piece of color
-            {
-                return false;
-            }
-            // check if the number of Pawns plus the number of
-            // extra Queens, Rooks, Bishops, Knights exceeds 8
-            // (which can result only by promotion)
-            if (  (   _piece_count[c][PAWN]
-               + max (_piece_count[c][NIHT] - 2, 0)
-               + max (_piece_count[c][BSHP] - 2, 0)
-               + max (_piece_count[c][ROOK] - 2, 0)
-               + max (_piece_count[c][QUEN] - 1, 0)) > 8
+            if (   (WHITE != _active && BLACK != _active)
+                || (W_KING != _board[_piece_list[WHITE][KING][0]])
+                || (B_KING != _board[_piece_list[BLACK][KING][0]])
+                || count<NONE> () > 32 || count<NONE> () != pop_count<FULL> (_types_bb[NONE])
+                || (SQ_NO != en_passant_sq () && (R_6 != rel_rank (_active, en_passant_sq ()) || !can_en_passant (en_passant_sq ())))
+                || (_si->clock50 > 100)
                )
             {
-                return false; // Too many Promoted Piece of color
+                return false;
             }
+        }
 
-            if (_piece_count[c][BSHP] > 1)
-            {
-                Bitboard bishops = colors & _types_bb[BSHP];
-                u08 bishop_count[CLR_NO] =
-                {
-                    u08(pop_count<MAX15> (LIHT_bb & bishops)),
-                    u08(pop_count<MAX15> (DARK_bb & bishops)),
-                };
-
-                if (  (   _piece_count[c][PAWN]
-                   + max (bishop_count[WHITE] - 1, 0)
-                   + max (bishop_count[BLACK] - 1, 0)) > 8
-                   )
-                {
-                    return false; // Too many Promoted BISHOP of color
-                }
-            }
-
-            // There should be one and only one KING of color
-            Bitboard kings = colors & _types_bb[KING];
-            if (kings == U64(0) || more_than_one (kings))
+        if (step == King)
+        {
+            if (   1 != std::count (_board, _board + SQ_NO, W_KING)
+                || 1 != std::count (_board, _board + SQ_NO, B_KING)
+                || attackers_to (_piece_list[~_active][KING][0], _active)
+                || pop_count<MAX15> (_si->checkers) > 2
+               )
             {
                 return false;
             }
         }
-    }
-    // step 5
-    if (step && ++(*step), test_piece_list)
-    {
-        for (i08 c = WHITE; c <= BLACK; ++c)
+
+        if (step == Bitboards)
         {
-            for (i08 pt = PAWN; pt <= KING; ++pt)
+            if (   (_color_bb[WHITE] & _color_bb[BLACK]) != U64(0)
+                || (_color_bb[WHITE]|_color_bb[BLACK]) != _types_bb[NONE]
+                || (_color_bb[WHITE]^_color_bb[BLACK]) != _types_bb[NONE]
+               )
             {
-                for (i08 i = 0; i < _piece_count[c][pt]; ++i)
+                return false;
+            }
+
+            for (i08 pt1 = PAWN; pt1 <= KING; ++pt1)
+            {
+                for (i08 pt2 = PAWN; pt2 <= KING; ++pt2)
                 {
-                    if (  !_ok  (_piece_list[c][pt][i])
-                       || _board[_piece_list[c][pt][i]] != (Color(c) | PieceT(pt))
-                       || _piece_index[_piece_list[c][pt][i]] != i
+                    if (pt1 != pt2 && (_types_bb[pt1]&_types_bb[pt2]))
+                    {
+                        return false;
+                    }
+                }
+            }
+            if (   (_types_bb[PAWN]|_types_bb[NIHT]|_types_bb[BSHP]|_types_bb[ROOK]|_types_bb[QUEN]|_types_bb[KING]) != _types_bb[NONE]
+                || (_types_bb[PAWN]^_types_bb[NIHT]^_types_bb[BSHP]^_types_bb[ROOK]^_types_bb[QUEN]^_types_bb[KING]) != _types_bb[NONE]
+               )
+            {
+                return false;
+            }
+
+            if ((R1_bb|R8_bb) & _types_bb[PAWN])
+            {
+                return false;
+            }
+
+            for (i08 c = WHITE; c <= BLACK; ++c)
+            {
+                Bitboard colors = _color_bb[c];
+
+                if (pop_count<FULL> (colors) > 16) // Too many Piece of color
+                {
+                    return false;
+                }
+                // check if the number of Pawns plus the number of
+                // extra Queens, Rooks, Bishops, Knights exceeds 8
+                // (which can result only by promotion)
+                if (  (   _piece_count[c][PAWN]
+                + max (_piece_count[c][NIHT] - 2, 0)
+                    + max (_piece_count[c][BSHP] - 2, 0)
+                    + max (_piece_count[c][ROOK] - 2, 0)
+                    + max (_piece_count[c][QUEN] - 1, 0)) > 8
+                    )
+                {
+                    return false; // Too many Promoted Piece of color
+                }
+
+                if (_piece_count[c][BSHP] > 1)
+                {
+                    Bitboard bishops = colors & _types_bb[BSHP];
+                    u08 bishop_count[CLR_NO] =
+                    {
+                        u08(pop_count<MAX15> (LIHT_bb & bishops)),
+                        u08(pop_count<MAX15> (DARK_bb & bishops)),
+                    };
+
+                    if (  (   _piece_count[c][PAWN]
+                    + max (bishop_count[WHITE] - 1, 0)
+                        + max (bishop_count[BLACK] - 1, 0)) > 8
+                        )
+                    {
+                        return false; // Too many Promoted BISHOP of color
+                    }
+                }
+
+                // There should be one and only one KING of color
+                Bitboard kings = colors & _types_bb[KING];
+                if (kings == U64(0) || more_than_one (kings))
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (step == State)
+        {
+            if (   Zob.compute_matl_key (*this) != _si->matl_key
+                || Zob.compute_pawn_key (*this) != _si->pawn_key
+                || Zob.compute_posi_key (*this) != _si->posi_key
+                || compute_psq_score () != _si->psq_score
+                || compute_non_pawn_material (WHITE) != _si->non_pawn_matl[WHITE]
+                || compute_non_pawn_material (BLACK) != _si->non_pawn_matl[BLACK]
+               )
+            {
+                return false;
+            }
+        }
+
+        if (step == Lists)
+        {
+            for (i08 c = WHITE; c <= BLACK; ++c)
+            {
+                for (i08 pt = PAWN; pt <= KING; ++pt)
+                {
+                    if (_piece_count[c][pt] != pop_count<MAX15> (_color_bb[c]&_types_bb[pt]))
+                    {
+                        return false;
+                    }
+
+                    for (i08 i = 0; i < _piece_count[c][pt]; ++i)
+                    {
+                        if (   !_ok  (_piece_list[c][pt][i])
+                            || _board[_piece_list[c][pt][i]] != (Color(c) | PieceT(pt))
+                            || _piece_index[_piece_list[c][pt][i]] != i
+                           )
+                        {
+                            return false;
+                        }
+                    }
+                }
+            }
+            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+            {
+                if (_piece_index[s] >= 16)
+                {
+                    return false;
+                }
+            }
+        }
+
+        if (step == Castling)
+        {
+            for (i08 c = WHITE; c <= BLACK; ++c)
+            {
+                for (i08 cs = CS_K; cs <= CS_Q; ++cs)
+                {
+                    CRight cr = mk_castle_right (Color(c), CSide (cs));
+
+                    if (!can_castle (cr)) continue;
+
+                    if (   _board[_castle_rook[cr]] != (Color(c) | ROOK)
+                        ||  _castle_mask[_castle_rook[cr]] != cr
+                        || (_castle_mask[_piece_list[c][KING][0]] & cr) != cr
                        )
                     {
                         return false;
                     }
                 }
             }
-        }
-        for (i08 s = SQ_A1; s <= SQ_H8; ++s)
-        {
-            if (_piece_index[s] >= 16)
-            {
-                return false;
-            }
-        }
-    }
-    // step 6
-    if (step && ++(*step), test_king_capture)
-    {
-        if (  attackers_to (_piece_list[~_active][KING][0], _active)
-           || pop_count<MAX15> (_si->checkers) > 2
-           )
-        {
-            return false;
-        }
-    }
-    // step 7
-    if (step && ++(*step), test_castle_rights)
-    {
-        for (i08 c = WHITE; c <= BLACK; ++c)
-        {
-            for (i08 cs = CS_K; cs <= CS_Q; ++cs)
-            {
-                CRight cr = mk_castle_right (Color(c), CSide (cs));
-
-                if (!can_castle (cr)) continue;
-
-                if (  (_castle_mask[_piece_list[c][KING][0]] & cr) != cr
-                   || _board[_castle_rook[cr]] != (Color(c) | ROOK)
-                   || _castle_mask[_castle_rook[cr]] != cr
-                   )
-                {
-                    return false;
-                }
-            }
-        }
-    }
-    // step 8
-    if (step && ++(*step), test_en_passant)
-    {
-        Square ep_sq = _si->en_passant_sq;
-        if (SQ_NO != ep_sq)
-        {
-            if (_si->clock50 != 0) return false;
-            if (R_6 != rel_rank (_active, ep_sq)) return false;
-            if (!can_en_passant (ep_sq)) return false;
-        }
-    }
-    // step 9
-    if (step && ++(*step), test_matl_key)
-    {
-        if (Zob.compute_matl_key (*this) != _si->matl_key) return false;
-    }
-    // step 10
-    if (step && ++(*step), test_pawn_key)
-    {
-        if (Zob.compute_pawn_key (*this) != _si->pawn_key) return false;
-    }
-    // step 11
-    if (step && ++(*step), test_posi_key)
-    {
-        if (Zob.compute_posi_key (*this) != _si->posi_key) return false;
-    }
-    // step 12
-    if (step && ++(*step), test_inc_eval)
-    {
-        if (compute_psq_score () != _si->psq_score) return false;
-    }
-    // step 13
-    if (step && ++(*step), test_np_material)
-    {
-        if (  compute_non_pawn_material (WHITE) != _si->non_pawn_matl[WHITE]
-           || compute_non_pawn_material (BLACK) != _si->non_pawn_matl[BLACK]
-           )
-        {
-            return false;
         }
     }
 
@@ -498,16 +428,16 @@ PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bi
         case PAWN:
         case BSHP:
             attackers |= (attacks_bb<BSHP> (dst, occupied) & (_types_bb[BSHP]|_types_bb[QUEN]));
-        break;
+            break;
         case ROOK:
             attackers |= (attacks_bb<ROOK> (dst, occupied) & (_types_bb[ROOK]|_types_bb[QUEN]));
-        break;
+            break;
         case QUEN:
             attackers |= (attacks_bb<BSHP> (dst, occupied) & (_types_bb[BSHP]|_types_bb[QUEN]))
                       |  (attacks_bb<ROOK> (dst, occupied) & (_types_bb[ROOK]|_types_bb[QUEN]));
-        break;
+            break;
         default:
-        break;
+            break;
         }
         attackers &= occupied; // After X-ray that may add already processed pieces
 
@@ -556,7 +486,7 @@ Value Position::see      (Move m) const
         // unless in the rare case the rook ends up under attack.
         return VALUE_ZERO;
     }
-    break;
+        break;
 
     case ENPASSANT:
     {
@@ -565,13 +495,13 @@ Value Position::see      (Move m) const
         //occupied += dst;
         swap_list[0] = PIECE_VALUE[MG][PAWN];
     }
-    break;
+        break;
 
     default:
     {
         swap_list[0] = PIECE_VALUE[MG][ptype (_board[dst])];
     }
-    break;
+        break;
     }
 
     // Find all enemy attackers to the destination square, with the moving piece
@@ -581,6 +511,7 @@ Value Position::see      (Move m) const
     // If the opponent has no attackers are finished
     stm = ~stm;
     Bitboard stm_attackers = attackers & _color_bb[stm];
+
     if (stm_attackers != U64(0))
     {
         // The destination square is defended, which makes things rather more
@@ -589,28 +520,23 @@ Value Position::see      (Move m) const
         // destination square, where the sides alternately capture, and always
         // capture with the least valuable piece. After each capture, look for
         // new X-ray attacks from behind the capturing piece.
+        PieceT captured = ptype (_board[org]);
+
         do
         {
             assert (depth < 32);
 
             // Add the new entry to the swap list
-            swap_list[depth] = PIECE_VALUE[MG][ptype (_board[org])] - swap_list[depth - 1];
+            swap_list[depth] = PIECE_VALUE[MG][captured] - swap_list[depth - 1];
 
             // Locate and remove the next least valuable attacker
-            PieceT captured = least_valuable_attacker<PAWN> (dst, stm_attackers, occupied, attackers);
-
-            // Stop before processing a king capture
-            if (KING == captured)
-            {
-                if (stm_attackers == attackers) ++depth;
-                break;
-            }
+            captured = least_valuable_attacker<PAWN> (dst, stm_attackers, occupied, attackers);
 
             stm = ~stm;
             stm_attackers = attackers & _color_bb[stm];
 
             ++depth;
-        } while (stm_attackers != U64(0));
+        } while (stm_attackers != U64(0) && (captured != KING || (--depth, false)));
 
         // Having built the swap list, negamax through it to find the best
         // achievable score from the point of view of the side to move.
@@ -695,31 +621,33 @@ bool Position::pseudo_legal (Move m) const
         }
         ct = ptype (_board[cap]);
     }
-    break;
+        break;
 
     case CASTLE:
     {
         // Check whether the destination square is attacked by the opponent.
         // Castling moves are checked for legality during move generation.
-        if ( !(  KING == ptype (_board[org])
+        if (!(   KING == ptype (_board[org])
               && R_1 == r_org
               && R_1 == r_dst
               && _board[dst] == (_active|ROOK)
               && _si->checkers == U64(0)
               && _si->castle_rights & mk_castle_right (_active)
-              )
+             )
            )
+        {
             return false;
+        }
 
         if (castle_impeded (mk_castle_right (_active, (dst > org) ? CS_K : CS_Q))) return false;
 
         // Castle is always encoded as "King captures friendly Rook"
         assert (dst == castle_rook (mk_castle_right (_active, (dst > org) ? CS_K : CS_Q)));
         dst = rel_sq (_active, (dst > org) ? SQ_G1 : SQ_C1);
-        Delta step = ((dst > org) ? DEL_E : DEL_W);
+        Delta step = (dst > org) ? DEL_E : DEL_W;
         for (i08 s = dst; s != org; s -= step)
         {
-            if (attackers_to (Square(s), ~_active, _types_bb[NONE]))
+            if (attackers_to (Square(s), ~_active, _types_bb[NONE]) != U64(0))
             {
                 return false;
             }
@@ -728,41 +656,42 @@ bool Position::pseudo_legal (Move m) const
         //ct = NONE;
         return true;
     }
-    break;
+        break;
 
     case ENPASSANT:
     {
-        if ( !(  PAWN == ptype (_board[org])
+        if (!(   PAWN == ptype (_board[org])
               && _si->en_passant_sq == dst
               && R_5 == r_org
               && R_6 == r_dst
               && empty (dst)
-              )
+             )
            )
+        {
             return false;
-
+        }
         cap += pawn_push (~_active);
         if ((~_active|PAWN) != _board[cap]) return false;
         ct = PAWN;
     }
-    break;
+        break;
 
     case PROMOTE:
     {
-        if ( !(  PAWN == ptype (_board[org])
+        if (!(   PAWN == ptype (_board[org])
               && R_7 == r_org
               && R_8 == r_dst
-              )
+             )
            )
             return false;
 
         ct = ptype (_board[cap]);
     }
-    break;
+        break;
 
     default:
         assert (false);
-    break;
+        break;
     }
 
     if (KING == ct) return false;
@@ -775,57 +704,30 @@ bool Position::pseudo_legal (Move m) const
     {
         // Have already handled promotion moves, so destination
         // cannot be on the 8th/1st rank.
-        if (R_1 == r_org || R_8 == r_org) return false;
-        if (R_1 == r_dst || R_2 == r_dst) return false;
+        if (R_1 == r_org || R_8 == r_org || R_1 == r_dst || R_2 == r_dst) return false;
         if (NORMAL == mtype (m) && (R_7 == r_org || R_8 == r_dst)) return false;
         
-        // Move direction must be compatible with pawn color
-        Delta delta = dst - org;
-        if ((_active == WHITE) != (delta > DEL_O)) return false;
-
-        // Proceed according to the delta between the origin and destiny squares.
-        switch (delta)
+        if (   // Not a capture
+               !(   (PAWN_ATTACKS[_active][org] & _color_bb[~_active] & dst)
+                 && 1 == dist<File> (dst, org)
+                )
+               // Not a single push
+            && !(   empty (dst)
+                 && 0 == dist<File> (dst, org)
+                 //&& (org + pawn_push (_active) == dst)
+                 && 1 == dist<Rank> (dst, org)
+                )
+               // Not a double push
+            && !(   (_rank (org) == rel_rank (_active, R_2))
+                 && empty (dst)
+                 && empty (dst - pawn_push (_active))
+                 && 0 == dist<File> (dst, org)
+                 //&& (org + 2 * pawn_push (_active) == dst)
+                 && 2 == dist<Rank> (dst, org)
+                )
+           )
         {
-        case DEL_N:
-        case DEL_S:
-            // Pawn push. The destination square must be empty.
-            if ( !( empty (dst)
-                  && 0 == dist<File> (dst, org)
-                  )
-               )
-                return false;
-        break;
-        case DEL_NE:
-        case DEL_NW:
-        case DEL_SE:
-        case DEL_SW:
-            // The destination square must be occupied by an enemy piece
-            // (en passant captures was handled earlier).
-            // File distance b/w cap and org must be one, avoids a7h5
-            if ( !( NONE != ct
-                  && ~_active == color (_board[cap])
-                  && 1 == dist<File> (cap, org)
-                  )
-               )
-                return false;
-        break;
-        case DEL_NN:
-        case DEL_SS:
-            // Double pawn push. The destination square must be on the fourth
-            // rank, and both the destination square and the square between the
-            // source and destination squares must be empty.
-            if ( !( R_2 == r_org
-                  && R_4 == r_dst
-                  && empty (dst)
-                  && empty (dst - pawn_push (_active))
-                  && 0 == dist<File> (dst, org)
-                  )
-               )
-                return false;
-        break;
-        default:
             return false;
-        break;
         }
 
     }
@@ -890,14 +792,14 @@ bool Position::legal        (Move m, Bitboard pinned) const
             || !(pinned & org)
             || sqrs_aligned (org, dst, _piece_list[_active][KING][0]);
     }
-    break;
+        break;
 
     case CASTLE:
     {
         // Castling moves are checked for legality during move generation.
         return KING == ptype (_board[org]) && ROOK == ptype (_board[dst]);
     }
-    break;
+        break;
 
     case ENPASSANT:
     {
@@ -912,12 +814,12 @@ bool Position::legal        (Move m, Bitboard pinned) const
         return (attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
             && (attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0);
     }
-    break;
+        break;
 
     default:
         assert (false);
         return false;
-    break;
+        break;
     }
 }
 
@@ -946,7 +848,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     {
     case NORMAL:
         return false;
-    break;
+        break;
 
     case CASTLE:
     {
@@ -958,7 +860,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         return (PIECE_ATTACKS[ROOK][rook_dst] & ci.king_sq) // First x-ray check then full check
             && (attacks_bb<ROOK> (rook_dst, (_types_bb[NONE] - org - rook_org + dst + rook_dst)) & ci.king_sq);
     }
-    break;
+        break;
     
     case ENPASSANT:
     {
@@ -970,21 +872,20 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         // if any attacker then in check
         return (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) != U64(0)
             || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) != U64(0);
-               
     }
-    break;
+        break;
 
     case PROMOTE:
     {
         // Promotion with check ?
         return (attacks_bb (Piece(promote (m)), dst, _types_bb[NONE] - org + dst) & ci.king_sq);
     }
-    break;
+        break;
     
     default:
         assert (false);
         return false;
-    break;
+        break;
     }
 }
 
@@ -1140,11 +1041,11 @@ bool Position::setup (const string &f, Thread *th, bool c960, bool full)
             {
             case 'K':
                 rsq = rel_sq (c, SQ_H1);
-                while ((rel_sq (c, SQ_A1) <= rsq) && (ROOK != ptype (_board[rsq]))) --rsq;
+                while (rel_sq (c, SQ_A1) <= rsq && (c|ROOK) != _board[rsq]) --rsq;
                 break;
             case 'Q':
                 rsq = rel_sq (c, SQ_A1);
-                while ((rel_sq (c, SQ_H1) >= rsq) && (ROOK != ptype (_board[rsq]))) ++rsq;
+                while (rel_sq (c, SQ_H1) >= rsq && (c|ROOK) != _board[rsq]) ++rsq;
                 break;
             default:
                 continue;
@@ -1384,7 +1285,7 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
             -PSQT[_active][pt][org]
             +PSQT[_active][pt][dst];
     }
-    break;
+        break;
 
     case CASTLE:
     {
@@ -1407,7 +1308,7 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
 
         _si->clock50++;
     }
-    break;
+        break;
 
     case ENPASSANT:
     {
@@ -1434,7 +1335,7 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
             -PSQT[_active][PAWN][org]
             +PSQT[_active][PAWN][dst];
     }
-    break;
+        break;
 
     case PROMOTE:
     {
@@ -1472,11 +1373,11 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
 
         _si->non_pawn_matl[_active] += PIECE_VALUE[MG][ppt];
     }
-    break;
+        break;
 
     default:
         assert (false);
-    break;
+        break;
     }
 
     u08 cr = _si->castle_rights & (_castle_mask[org]|_castle_mask[dst]);
@@ -1524,17 +1425,14 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
     assert (ok ());
 }
 #undef do_capture
-void Position::  do_move (Move m, StateInfo &si)
-{
-    CheckInfo ci (*this);
-    do_move (m, si, gives_check (m, ci));
-}
+
 // do_move() do the move from string (CAN)
 void Position::  do_move (string &can, StateInfo &si)
 {
     Move m = move_from_can (can, *this);
-    if (MOVE_NONE != m) do_move (m, si);
+    if (MOVE_NONE != m) do_move (m, si, gives_check (m, CheckInfo (*this)));
 }
+
 // undo_move() undo the last move
 void Position::undo_move ()
 {
@@ -1560,7 +1458,7 @@ void Position::undo_move ()
     {
         move_piece (dst, org);
     }
-    break;
+        break;
 
     case CASTLE:
     {
@@ -1568,7 +1466,7 @@ void Position::undo_move ()
         do_castling<false> (org, dst, rook_org, rook_dst);
         //ct  = NONE;
     }
-    break;
+        break;
 
     case ENPASSANT:
     {
@@ -1581,7 +1479,7 @@ void Position::undo_move ()
         assert (empty (cap));
         move_piece (dst, org);
     }
-    break;
+        break;
 
     case PROMOTE:
     {
@@ -1591,11 +1489,11 @@ void Position::undo_move ()
         remove_piece (dst);
         place_piece (org, _active, PAWN);
     }
-    break;
+        break;
 
     default:
         assert (false);
-    break;
+        break;
     }
 
     if (NONE != _si->capture_type)
@@ -1651,33 +1549,33 @@ void Position::undo_null_move ()
 // This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip ()
 {
-    string fen_, s;
+    string flip_fen, token;
     stringstream ss (fen ());
     // 1. Piece placement
     for (i08 rank = R_8; rank >= R_1; --rank)
     {
-        getline (ss, s, rank > R_1 ? '/' : ' ');
-        fen_.insert (0, s + (white_spaces (fen_) ? " " : "/"));
+        getline (ss, token, rank > R_1 ? '/' : ' ');
+        flip_fen.insert (0, token + (white_spaces (flip_fen) ? " " : "/"));
     }
     // 2. Active color
-    ss >> s;
-    fen_ += (s == "w" ? "B" : "W"); // Will be lowercased later
-    fen_ += " ";
+    ss >> token;
+    flip_fen += (token == "w" ? "B" : "W"); // Will be lowercased later
+    flip_fen += " ";
     // 3. Castling availability
-    ss >> s;
-    fen_ += s + " ";
-    transform (fen_.begin (), fen_.end (), fen_.begin (),
+    ss >> token;
+    flip_fen += token + " ";
+    transform (flip_fen.begin (), flip_fen.end (), flip_fen.begin (),
         // Toggle case
-        [](unsigned char c) { return char (islower (c) ? toupper (c) : tolower (c)); });
+        [](char c) { return char (islower (c) ? toupper (c) : tolower (c)); });
 
     // 4. En-passant square
-    ss >> s;
-    fen_ += (s == "-" ? s : s.replace (1, 1, s[1] == '3' ? "6" : s[1] == '6' ? "3" : "-"));
+    ss >> token;
+    flip_fen += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" : token[1] == '6' ? "3" : "-"));
     // 5-6. Half and full moves
-    getline (ss, s);
-    fen_ += s;
+    getline (ss, token);
+    flip_fen += token;
 
-    setup (fen_, _thread, _chess960);
+    setup (flip_fen, _thread, _chess960);
 
     assert (ok ());
 }

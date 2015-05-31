@@ -161,7 +161,7 @@ void benchmark (istream &is, const Position &cur_pos)
         else
         {
             Threadpool.start_main (pos, limits, states);
-            Threadpool.wait_for_main ();
+            Threadpool.main ()->join ();
             nodes += RootPos.game_nodes ();
         }
     }
@@ -207,7 +207,7 @@ void auto_tune (istream &is)
                  << "Position: " << setw (2) << (i + 1) << "/" << fens.size () << "\n";
 
             Threadpool.start_main (root_pos, limits, states);
-            Threadpool.wait_for_main ();
+            Threadpool.main ()->join ();
             nodes += RootPos.game_nodes ();
         }
 

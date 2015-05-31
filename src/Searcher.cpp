@@ -10,10 +10,9 @@
 #include "MovePicker.h"
 #include "Material.h"
 #include "Pawns.h"
-#include "PRNG.h"
 #include "Evaluator.h"
-#include "TimeManager.h"
 #include "Thread.h"
+#include "PRNG.h"
 #include "Notation.h"
 #include "Debugger.h"
 
@@ -34,6 +33,43 @@ namespace Searcher {
     using namespace UCI;
 
     namespace {
+
+// prefetch() preloads the given address in L1/L2 cache.
+// This is a non-blocking function that doesn't stall
+// the CPU waiting for data to be loaded from memory,
+// which can be quite slow.
+#ifdef PREFETCH
+
+#   if (defined(_MSC_VER) || defined(__INTEL_COMPILER))
+
+#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+
+    inline void prefetch (const void *addr)
+    {
+#       if defined(__INTEL_COMPILER)
+        {
+            // This hack prevents prefetches from being optimized away by
+            // Intel compiler. Both MSVC and gcc seem not be affected by this.
+            __asm__ ("");
+        }
+#       endif
+        _mm_prefetch (reinterpret_cast<const char*> (addr), _MM_HINT_T0);
+    }
+
+#   else
+
+    inline void prefetch (const void *addr)
+    {
+        __builtin_prefetch (addr);
+    }
+
+#   endif
+
+#else
+
+    inline void prefetch (const void *) {}
+
+#endif
 
         const Depth FutilityMarginDepth     = Depth(7);
         // Futility margin lookup table (initialized at startup)
@@ -423,7 +459,7 @@ namespace Searcher {
                 }
 
                 // Speculative prefetch as early as possible
-                prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
+                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                 // Check for legality just before making the move
                 if (!pos.legal (move, ci->pinneds)) continue;
@@ -434,8 +470,8 @@ namespace Searcher {
                 // Make and search the move
                 pos.do_move (move, si, gives_check);
 
-                prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
-                prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
+                prefetch (thread->pawn_table[pos.pawn_key ()]);
+                prefetch (thread->matl_table[pos.matl_key ()]);
 
                 Value value;
                 
@@ -728,7 +764,7 @@ namespace Searcher {
                             pos.do_null_move (si);
 
                             // Speculative prefetch as early as possible
-                            prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_key ())));
+                            prefetch (TT.cluster_entry (pos.posi_key ()));
 
                             // Null (zero) window (alpha, beta) = (beta-1, beta):
                             Value null_value =
@@ -782,7 +818,7 @@ namespace Searcher {
                             while ((move = mp.next_move<false> ()) != MOVE_NONE)
                             {
                                 // Speculative prefetch as early as possible
-                                prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
+                                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                                 if (!pos.legal (move, ci->pinneds)) continue;
 
@@ -790,8 +826,8 @@ namespace Searcher {
                                     
                                 pos.do_move (move, si, pos.gives_check (move, *ci));
 
-                                prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
-                                prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
+                                prefetch (thread->pawn_table[pos.pawn_key ()]);
+                                prefetch (thread->matl_table[pos.matl_key ()]);
 
                                 Value value = -depth_search<NonPV, false, true> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
 
@@ -1023,7 +1059,7 @@ namespace Searcher {
                 }
 
                 // Speculative prefetch as early as possible
-                prefetch (reinterpret_cast<char*> (TT.cluster_entry (pos.posi_move_key (move))));
+                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                 if (!SPNode)
                 {
@@ -1044,8 +1080,8 @@ namespace Searcher {
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check);
 
-                prefetch (reinterpret_cast<char*> (thread->pawn_table[pos.pawn_key ()]));
-                prefetch (reinterpret_cast<char*> (thread->matl_table[pos.matl_key ()]));
+                prefetch (thread->pawn_table[pos.pawn_key ()]);
+                prefetch (thread->matl_table[pos.matl_key ()]);
 
                 bool full_depth_search;
 
@@ -1597,7 +1633,7 @@ namespace Searcher {
                 tte->save (pos.posi_key (), m, VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.generation ());
             }
 
-            pos.do_move (m, *si++);
+            pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
         }
 
         for (size_t ply = pv.size(); ply > 0; --ply)
@@ -1617,7 +1653,7 @@ namespace Searcher {
         assert (pv[0] != MOVE_NONE);
 
         StateInfo st;
-        pos.do_move (pv[0], st);
+        pos.do_move (pv[0], st, pos.gives_check (pv[0], CheckInfo (pos)));
 
         bool  tt_hit;
         TTEntry *tte = TT.probe (pos.posi_key (), tt_hit);
@@ -1837,7 +1873,7 @@ namespace Searcher {
                    )
                 {
                     StateInfo si;
-                    RootPos.do_move (RootMoves[0].pv[0], si);
+                    RootPos.do_move (RootMoves[0].pv[0], si, RootPos.gives_check (RootMoves[0].pv[0], CheckInfo (RootPos)));
                     logfile << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos) << "\n";
                     RootPos.undo_move ();
                 }
@@ -1913,7 +1949,7 @@ namespace Searcher {
     {
         TT.clear();
         HistoryValues.clear();
-        //CounterMovesHistoryValues.clear();
+        CounterMovesHistoryValues.clear();
         CounterMoves.clear();
     }
 
@@ -1994,7 +2030,7 @@ namespace Threads {
                    // Still at first move
                 || (    Signals.root_1stmove
                     && !Signals.root_failedlow
-                    && movetime > TimeMgr.available_time () * 0.75f
+                    && movetime > TimeMgr.available_time () * 0.75
                    )
                )
             {
@@ -2014,8 +2050,8 @@ namespace Threads {
         if (Limits.nodes != 0)
         {
             u64 nodes = RootPos.game_nodes ();
-
-            Threadpool.spinlock.acquire ();
+            /*
+            sp.spinlock.acquire ();
             
             // Loop across all splitpoints and sum accumulated splitpoint nodes plus
             // all the currently active positions nodes.
@@ -2041,7 +2077,32 @@ namespace Threads {
                 }
             }
 
-            Threadpool.spinlock.release ();
+            sp.spinlock.release ();
+            */
+
+            // Loop across all split points and sum accumulated SplitPoint nodes plus
+            // all the currently active positions nodes.
+            // FIXME: Racy...
+            for (Thread *thread : Threadpool)
+            {
+                for (size_t i = 0; i < thread->splitpoint_count; ++i)
+                {
+                    SplitPoint &sp = thread->splitpoints[i];
+
+                    sp.spinlock.acquire();
+
+                    nodes += sp.nodes;
+
+                    for (size_t idx = 0; idx < Threadpool.size(); ++idx)
+                    {
+                        if (sp.slaves_mask.test(idx) && Threadpool[idx]->active_pos != nullptr)
+                        {
+                            nodes += Threadpool[idx]->active_pos->game_nodes ();
+                        }
+                    }
+                    sp.spinlock.release();
+                }
+            }
 
             if (nodes >= Limits.nodes)
             {
@@ -2068,19 +2129,17 @@ namespace Threads {
         SplitPoint *splitpoint = active_splitpoint;
         assert (splitpoint == nullptr || (splitpoint->master == this && searching));
 
-        do
+        while (alive && (splitpoint == nullptr || !splitpoint->slaves_mask.none()))
         {
             // If this thread has been assigned work, launch a search
             while (searching)
             {
-                assert (alive);
-
-                Threadpool.spinlock.acquire ();
+                spinlock.acquire();
 
                 assert (active_splitpoint != nullptr);
                 SplitPoint *sp = active_splitpoint;
 
-                Threadpool.spinlock.release ();
+                spinlock.release ();
 
                 Stack stack[MAX_DEPTH+4], *ss = stack+2;    // To allow referencing (ss+2) & (ss-2)
                 Position pos (*(sp->pos), this);
@@ -2111,15 +2170,6 @@ namespace Threads {
                 sp->slave_searching = false;
                 sp->nodes += pos.game_nodes ();
 
-                // Wake up master thread so to allow it to return from the idle loop
-                // in case the last slave of the splitpoint.
-                if (this != sp->master && sp->slaves_mask.none ())
-                {
-                    assert (!sp->master->searching);
-
-                    sp->master->notify_one ();
-                }
-
                 // After releasing the lock, cannot access anymore any splitpoint
                 // related data in a safe way becuase it could have been released under
                 // our feet by the sp master.
@@ -2129,27 +2179,26 @@ namespace Threads {
                 SplitPoint *best_sp     = nullptr;
                 i32         min_level   = INT_MAX;
 
-                for (size_t idx = 0; idx < Threadpool.size (); ++idx)
+                for (Thread *th : Threadpool)
                 {
-                    Thread *thread = Threadpool[idx];
-                    size_t  count  = thread->splitpoint_count; // Local copy
+                    size_t  count = th->splitpoint_count; // Local copy
 
-                    sp = count != 0 ? &thread->splitpoints[count-1] : nullptr;
+                    sp = count != 0 ? &th->splitpoints[count-1] : nullptr;
 
                     if (   sp != nullptr
                         && sp->slave_searching
                         && sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
-                        && available_to (sp->master)
+                        && can_join (sp)
                        )
                     {
-                        assert (Threadpool.size () > 2);
-                        assert (this != thread);
+                        assert (this != th);
                         assert (splitpoint == nullptr || !splitpoint->slaves_mask.none ());
+                        assert (Threadpool.size () > 2);
 
                         // Prefer to join to SP with few parents to reduce the probability
                         // that a cut-off occurs above us, and hence we waste our work.
                         i32 level = 0;
-                        for (SplitPoint *spp = thread->active_splitpoint; spp != nullptr; spp = spp->parent_splitpoint)
+                        for (SplitPoint *spp = th->active_splitpoint; spp != nullptr; spp = spp->parent_splitpoint)
                         {
                             ++level;
                         }
@@ -2165,47 +2214,44 @@ namespace Threads {
                 if (best_sp != nullptr)
                 {
                     // Recheck the conditions under lock protection
-                    Threadpool.spinlock.acquire ();
                     best_sp->spinlock.acquire ();
 
                     if (   best_sp->slave_searching
                         && best_sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
-                        && available_to (best_sp->master)
                        )
                     {
-                        best_sp->slaves_mask.set (index);
-                        active_splitpoint = best_sp;
-                        searching = true;
+                        spinlock.acquire();
+
+                        if (can_join (best_sp))
+                        {
+                            sp->slaves_mask.set (index);
+                            active_splitpoint = best_sp;
+                            searching = true;
+                        }
+
+                        spinlock.release();
                     }
 
                     best_sp->spinlock.release ();
-                    Threadpool.spinlock.release ();
                 }
             }
 
-            // Avoid races with notify_one() fired from last slave of the splitpoint
-            mutex.lock ();
-            // If master and all slaves have finished then exit idle_loop()
-            if (splitpoint != nullptr && splitpoint->slaves_mask.none ())
+            // If search is finished then sleep, otherwise just yield
+            if (!Threadpool.main ()->thinking)
             {
-                assert (!searching);
-                mutex.unlock ();
-                break;
+                assert(!splitpoint);
+
+                std::unique_lock<Mutex> lk(mutex);
+                while (alive && !Threadpool.main ()->thinking)
+                {
+                    sleep_condition.wait(lk);
+                }
+            }
+            else
+            {
+                std::this_thread::yield (); // Wait for a new job or for our slaves to finish
             }
 
-            // If not searching, wait for a condition to be signaled instead of
-            // wasting CPU time polling for work.
-            // Do sleep after retesting sleep conditions under lock protection, in
-            // particular to avoid a deadlock in case a master thread has,
-            // in the meanwhile, allocated us and sent the notify_one() call before
-            // the chance to grab the lock.
-            if (alive && !searching)
-            {
-                sleep_condition.wait (mutex);
-            }
-            // Release the lock
-            mutex.unlock ();
-
-        } while (alive);
+        }
     }
 }

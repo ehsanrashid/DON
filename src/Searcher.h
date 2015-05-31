@@ -6,7 +6,7 @@
 
 #include "UCI.h"
 #include "Type.h"
-#include "Time.h"
+#include "TimeManager.h"
 #include "Position.h"
 #include "PolyglotBook.h"
 

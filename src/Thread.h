@@ -1,75 +1,19 @@
 #ifndef _THREAD_H_INC_
 #define _THREAD_H_INC_
 
-#include <bitset>
 #include <atomic>
+#include <bitset>
+#include <condition_variable>
+#include <mutex>
+#include <thread>
+#include <vector>
 
+#include "thread_win32.h"
 #include "Position.h"
 #include "Pawns.h"
 #include "Material.h"
 #include "MovePicker.h"
 #include "Searcher.h"
-
-// Windows or MinGW
-#if defined(_WIN32)
-
-#   ifndef  NOMINMAX
-#       define NOMINMAX // disable macros min() and max()
-#   endif
-#   ifndef  WIN32_LEAN_AND_MEAN
-#       define WIN32_LEAN_AND_MEAN
-#   endif
-
-#   include <windows.h>
-
-#   undef WIN32_LEAN_AND_MEAN
-#   undef NOMINMAX
-
-// Use critical sections on Windows to support Windows XP and older versions,
-// unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
-// but apart from this they have the same speed performance of SRW locks.
-typedef CRITICAL_SECTION    Lock;
-typedef HANDLE              WaitCondition;
-typedef HANDLE              Handle;
-
-// On Windows 95 and 98 parameter lpThreadId my not be null
-inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
-
-#   define lock_create(x)        InitializeCriticalSection (&(x))
-#   define lock_grab(x)          EnterCriticalSection (&(x))
-#   define lock_release(x)       LeaveCriticalSection (&(x))
-#   define lock_destroy(x)       DeleteCriticalSection (&(x))
-#   define cond_create(h)        h = CreateEvent (NULL, FALSE, FALSE, NULL);
-#   define cond_destroy(h)       CloseHandle (h)
-#   define cond_signal(h)        SetEvent (h)
-#   define cond_wait(c,l)        { lock_release (l); WaitForSingleObject (c, INFINITE); lock_grab (l); }
-#   define cond_timedwait(c,l,t) { lock_release (l); WaitForSingleObject (c, t); lock_grab (l); }
-#   define thread_create(h,f,t)  h = CreateThread (NULL, 0, LPTHREAD_START_ROUTINE (f), t, 0, dwWin9xKludge ())
-#   define thread_join(h)        { WaitForSingleObject (h, INFINITE); CloseHandle (h); }
-
-#else    // Linux - Unix
-
-#   include <pthread.h>
-#   include <unistd.h>  // for sysconf()
-
-typedef pthread_mutex_t     Lock;
-typedef pthread_cond_t      WaitCondition;
-typedef pthread_t           Handle;
-typedef void* (*StartRoutine) (void*);
-
-#   define lock_create(x)        pthread_mutex_init (&(x), NULL)
-#   define lock_grab(x)          pthread_mutex_lock (&(x))
-#   define lock_release(x)       pthread_mutex_unlock (&(x))
-#   define lock_destroy(x)       pthread_mutex_destroy (&(x))
-#   define cond_create(h)        pthread_cond_init (&(h), NULL)
-#   define cond_destroy(h)       pthread_cond_destroy (&(h))
-#   define cond_signal(h)        pthread_cond_signal (&(h))
-#   define cond_wait(c,l)        pthread_cond_wait (&(c), &(l))
-#   define cond_timedwait(c,l,t) pthread_cond_timedwait (&(c), &(l), t)
-#   define thread_create(h,f,t)  pthread_create (&(h), NULL, StartRoutine (f), t)
-#   define thread_join(h)        pthread_join (h, NULL)
-
-#endif
 
 namespace Threads {
 
@@ -81,96 +25,36 @@ namespace Threads {
     const size_t MAX_SLAVES_PER_SPLITPOINT =   4;
     const size_t MAX_SPLIT_DEPTH           =  12; // Maximum SplitDepth
 
-    extern void check_limits ();
-    extern void auto_save ();
+    struct Thread;
 
-    template<class T>
-    extern T* new_thread ();
-    template<class T>
-    extern void delete_thread (T *th);
-
-    
-    struct Mutex
-    {
-    private:
-        Lock _lock;
-
-        friend struct Condition;
-
-    public:
-        Mutex () { lock_create (_lock); }
-       ~Mutex () { lock_destroy (_lock); }
-
-        void   lock () { lock_grab (_lock); }
-        void unlock () { lock_release (_lock); }
-    };
-
-    // cond_timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
-    // conversion from milliseconds to struct timespec, as used by pthreads.
-    inline void cond_timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec)
-    {
-
-#if defined(_WIN32)
-
-        i32 tm = msec;
-
-#else    // Linux - Unix
-
-        timespec ts, *tm = &ts;
-        u64 ms = now () + msec;
-        ts.tv_sec  = ms / MILLI_SEC;
-        ts.tv_nsec = (ms % MILLI_SEC) * 1000000LL;
-
-#endif
-
-        cond_timedwait (sleep_cond, sleep_lock, tm);
-
-    }
-
-    struct Condition
-    {
-    private:
-        WaitCondition _condition;
-
-    public:
-        Condition () { cond_create  (_condition); }
-       ~Condition () { cond_destroy (_condition); }
-
-        void wait (Mutex &mutex) { cond_wait (_condition, mutex._lock); }
-
-        void wait_for (Mutex &mutex, i32 ms) { cond_timed_wait (_condition, mutex._lock, ms); }
-
-        void notify_one () { cond_signal (_condition); }
-
-    };
-
-
-    // Spinlock class wraps low level atomic operations to provide spin lock functionality
     class Spinlock
     {
-        std::atomic_int lock;
+    private:
+        std::atomic_int _lock;
 
     public:
-        Spinlock () { lock = 1; }
-
+        Spinlock() { _lock = 1; } // Init here to workaround a bug with MSVC 2013
+    
         void acquire ()
         {
-            while (lock.fetch_sub (1, std::memory_order_acquire) != 1)
+            while (_lock.fetch_sub(1, std::memory_order_acquire) != 1)
             {
-                while (lock.load (std::memory_order_relaxed) <= 0) {}
+                while (_lock.load(std::memory_order_relaxed) <= 0)
+                {
+                    std::this_thread::yield(); // Be nice to hyperthreading
+                }
             }
         }
-
-        void release ()
+        void release()
         {
-            lock.store (1, std::memory_order_release);
+            _lock.store(1, std::memory_order_release);
         }
     };
 
+   
 
-    class Thread;
-
-    // SplitPoint struct
+    // SplitPoint struct stores information shared by the threads searching in
+    // parallel below the same split point. It is populated at splitting time.
     struct SplitPoint
     {
 
@@ -184,13 +68,13 @@ namespace Threads {
         Depth       depth;
         NodeT       node_type;
         bool        cut_node;
-        Spinlock    spinlock;
 
         // Const pointers to shared data
         MovePicker  *movepicker;
         SplitPoint  *parent_splitpoint;
 
         // Shared data
+        Spinlock    spinlock;
         std::bitset<MAX_THREADS> slaves_mask;
 
         volatile bool  slave_searching;
@@ -206,23 +90,20 @@ namespace Threads {
     // ThreadBase class is the base of the hierarchy from where
     // derive all the specialized thread classes.
     class ThreadBase
+        : public ::std::thread
     {
-    protected:
-        Condition     sleep_condition;
-        volatile bool alive;
+    public:
+        Mutex               mutex;
+        Spinlock            spinlock;
+        ConditionVariable   sleep_condition;
+        volatile bool       alive;
 
         ThreadBase ()
             : alive (true)
-            , native_handle (Handle ())
         {}
 
-        virtual ~ThreadBase () { kill (); }
+        virtual ~ThreadBase() = default;
 
-    public:
-        Mutex   mutex;
-        Handle  native_handle;
-
-        void kill () { alive = false; }
         void notify_one ();
 
         void wait_for (const volatile bool &condition);
@@ -230,108 +111,106 @@ namespace Threads {
         virtual void idle_loop () = 0;
     };
 
-    const i32 TIMER_RESOLUTION = 5; // Timer Resolution
 
-    // TimerThread is derived from ThreadBase class
-    // It's used for special purpose: the recurring timer.
-    class TimerThread
+    // Thread struct keeps together all the thread related stuff like locks, state
+    // and especially split points. We also use per-thread pawn and material hash
+    // tables so that once we get a pointer to an entry its life time is unlimited
+    // and we don't have to care about someone changing the entry under our feet.
+    struct Thread
         : public ThreadBase
     {
-    public:
-        bool run;
-        i32 resolution; // Millisec between two check_time() calls
-        void (*task) ();
+        SplitPoint      splitpoints[MAX_SPLITPOINTS_PER_THREAD];
+        Pawns   ::Table pawn_table;
+        Material::Table matl_table;
+        //Endgames endgames;
+        Position   *active_pos;
+        size_t      index;
+        i32         max_ply;
 
-        TimerThread () : run (false) {}
-
-        void start () { run = true ; }
-        void stop  () { run = false; }
-
-        virtual void idle_loop () override;
-
-    };
-
-    // Thread is derived from ThreadBase class
-    // Thread class keeps together all the thread related stuff like locks, state
-    // and especially splitpoints. Also use per-thread pawn-hash and material-hash tables
-    // so that once get a pointer to a thread entry its life time is unlimited
-    // and don't have to care about someone changing the entry under our feet.
-    class Thread
-        : public ThreadBase
-    {
-
-    public:
-        SplitPoint splitpoints[MAX_SPLITPOINTS_PER_THREAD];
-        
-        Pawns   ::Table  pawn_table;
-        Material::Table  matl_table;
-        Position *active_pos;
-        size_t    index;
-        i32       max_ply;
-
-        SplitPoint *volatile active_splitpoint;
-        volatile    size_t   splitpoint_count;
-        volatile    bool     searching;
+        SplitPoint* volatile active_splitpoint;
+        volatile size_t      splitpoint_count;
+        volatile bool        searching;
 
         Thread ();
-
-        virtual void idle_loop () override;
-
+        
+        virtual void idle_loop ();
+        
         bool cutoff_occurred () const;
-
-        bool available_to (const Thread *master) const;
+        
+        bool can_join (const SplitPoint *sp) const;
 
         void split (Position &pos, Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
             Depth depth, u08 legals, MovePicker &movepicker, NodeT node_type, bool cut_node);
 
     };
 
-    // MainThread is derived from Thread
-    // It's used for special purpose: the main thread.
-    class MainThread
+
+    // MainThread and TimerThread are derived classes used to characterize the two
+    // special threads: the main one and the recurring timer.
+
+    struct MainThread
         : public Thread
     {
+        volatile bool thinking = true; // Avoid a race with start_thinking()
 
-    public:
-        volatile bool thinking;
+        virtual void idle_loop ();
+        void join ();
+    };
 
-        MainThread () : thinking (false) {}
+    const i32 TIMER_RESOLUTION = 5; // Millisec between two check_time() calls
 
-        virtual void idle_loop () override;
+    struct TimerThread
+        : public ThreadBase
+    {
+
+        bool run;
+        i32 resolution; // Millisec between two check_time() calls
+        void (*task) ();
+        
+        TimerThread () { stop (); }
+
+        void start () { run = true ; }
+        void stop  () { run = false; }
+
+        virtual void idle_loop();
 
     };
 
-    // ThreadPool class handles all the threads related stuff like initializing,
-    // starting, parking and, the most important, launching a slave thread
-    // at a splitpoint.
+    // ThreadPool struct handles all the threads related stuff like init, starting,
+    // parking and, most importantly, launching a slave thread at a split point.
     // All the access to shared thread data is done through this class.
-    class ThreadPool
-        : public std::vector<Thread*>
-    {
 
-    public:
-        Spinlock     spinlock;
-        Condition    sleep_condition;
+    struct ThreadPool
+        : public ::std::vector<Thread*>
+    {
+        Depth   split_depth;
+        
         TimerThread *check_limits_th;
         TimerThread *auto_save_th;
-        Depth        split_depth;
-        
+
         MainThread* main () { return static_cast<MainThread*> (at(0)); }
 
         // No c'tor and d'tor, threads rely on globals that should
         // be initialized and valid during the whole thread lifetime.
-        void   initialize ();
-        void deinitialize ();
+        void initialize ();
+        void exit ();
 
-        Thread* available_slave (const Thread *master) const;
+        Thread* available_slave (const SplitPoint *sp) const;
 
         void start_main (const Position &pos, const LimitsT &limit, StateInfoStackPtr &states);
-
-        void wait_for_main ();
 
         void configure ();
 
     };
+
+
+    template<class T>
+    extern T* new_thread ();
+
+    extern void delete_thread (ThreadBase *th);
+
+    extern void check_limits ();
+    extern void auto_save ();
 
 }
 
@@ -344,7 +223,7 @@ enum SyncT { IO_LOCK, IO_UNLOCK };
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream &os, SyncT sync)
 {
-    static Threads::Mutex io_mutex;
+    static Mutex io_mutex;
 
     (sync == IO_LOCK) ?
         io_mutex.lock () :
@@ -403,5 +282,6 @@ extern Threads::ThreadPool  Threadpool;
 //
 //#endif
 //}
+
 
 #endif // _THREAD_H_INC_

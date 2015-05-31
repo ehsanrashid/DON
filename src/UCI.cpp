@@ -179,7 +179,7 @@ namespace UCI {
                     }
                     
                     SetupStates->push (StateInfo ());
-                    RootPos.do_move (m, SetupStates->top ());
+                    RootPos.do_move (m, SetupStates->top (), RootPos.gives_check (m, CheckInfo (RootPos)));
                 }
             }
         }
@@ -417,6 +417,8 @@ namespace UCI {
             }
 
         } while (running && cmd != "quit");
+
+        Threadpool.main()->join(); // Cannot quit whilst the search is running
     }
 
     // stop() stops all the threads and other stuff.
@@ -425,7 +427,7 @@ namespace UCI {
         // Send stop command
         exe_stop ();
         // Cannot quit while search stream active
-        Threadpool.wait_for_main ();
+        Threadpool.main ()->join ();
         // Close book if open
         Book.close ();
         // Close log file
