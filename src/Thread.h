@@ -155,6 +155,7 @@ namespace Threading {
         volatile bool thinking = true; // Avoid a race with start_thinking()
 
         virtual void idle_loop ();
+        
         void join ();
     };
 
@@ -203,7 +204,6 @@ namespace Threading {
 
     };
 
-
     template<class T>
     extern T* new_thread ();
 
@@ -213,7 +213,6 @@ namespace Threading {
     extern void auto_save ();
 
 }
-
 
 enum SyncT { IO_LOCK, IO_UNLOCK };
 

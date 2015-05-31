@@ -836,9 +836,9 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     if (ci.checking_bb[ptype (_board[org])] & dst) return true;
     // Is there a Discovered check ?
     // For discovery check we need to verify also direction
-    if (   ci.discoverers != U64(0)
-       && (ci.discoverers & org)
-       && !sqrs_aligned (org, dst, ci.king_sq)
+    if (    ci.discoverers != U64(0)
+        && (ci.discoverers & org)
+        && !sqrs_aligned (org, dst, ci.king_sq)
        )
     {
         return true;
@@ -1022,7 +1022,7 @@ bool Position::setup (const string &f, Thread *th, bool c960, bool full)
             if ('a' <= sym && sym <= 'h')
             {
                 Square rsq = (to_file (sym) | rel_rank (c, R_1));
-                //if (ROOK != ptype (_board[rsq])) return false;
+                if ((c|ROOK) != _board[rsq]) return false;
                 set_castle (c, rsq);
             }
             else
@@ -1040,30 +1040,31 @@ bool Position::setup (const string &f, Thread *th, bool c960, bool full)
             switch (toupper (ch))
             {
             case 'K':
-                rsq = rel_sq (c, SQ_H1);
-                while (rel_sq (c, SQ_A1) <= rsq && (c|ROOK) != _board[rsq]) --rsq;
+                for (rsq  = rel_sq (c, SQ_H1);
+                     rsq >= rel_sq (c, SQ_A1) && (c|ROOK) != _board[rsq];
+                     --rsq) {}
                 break;
             case 'Q':
-                rsq = rel_sq (c, SQ_A1);
-                while (rel_sq (c, SQ_H1) >= rsq && (c|ROOK) != _board[rsq]) ++rsq;
+                for (rsq  = rel_sq (c, SQ_A1);
+                     rsq <= rel_sq (c, SQ_H1) && (c|ROOK) != _board[rsq];
+                     ++rsq) {}
                 break;
             default:
                 continue;
             }
-
-            //if (ROOK != ptype (_board[rsq])) return false;
+            if ((c|ROOK) != _board[rsq]) return false;
             set_castle (c, Square(rsq));
         }
     }
 
     // 4. En-passant square. Ignore if no pawn capture is possible
     u08 col, row;
-    if (  (iss >> col && (col >= 'a' && col <= 'h'))
-       && (iss >> row && (row == '3' || row == '6'))
+    if (   (iss >> col && (col >= 'a' && col <= 'h'))
+        && (iss >> row && (row == '3' || row == '6'))
        )
     {
-        if (  (WHITE == _active && '6' == row)
-           || (BLACK == _active && '3' == row)
+        if (   (WHITE == _active && '6' == row)
+            || (BLACK == _active && '3' == row)
            )
         {
             Square ep_sq = to_square (col, row);
@@ -1164,8 +1165,8 @@ bool Position::can_en_passant (Square ep_sq) const
     for (m = moves; *m != MOVE_NONE; ++m)
     {
         Bitboard mocc = occ - org_sq (*m);
-        if (  (attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
-           && (attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0)
+        if (   (attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
+            && (attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0)
            )
         {
             return true;
