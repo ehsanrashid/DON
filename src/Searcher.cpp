@@ -284,8 +284,8 @@ namespace Searcher {
             ss->current_move = MOVE_NONE;
             ss->ply = (ss-1)->ply + 1;
 
-            // Check for aborted search, immediate draw or maximum ply reached
-            if (Signals.force_stop || pos.draw () || ss->ply >= MAX_DEPTH)
+            // Check for an immediate draw or maximum ply reached
+            if (pos.draw () || ss->ply >= MAX_DEPTH)
             {
                 return ss->ply >= MAX_DEPTH && !InCheck ? evaluate (pos) : DrawValue[pos.active ()];
             }
@@ -329,7 +329,8 @@ namespace Searcher {
             // TT entry depth that are going to use. Note that in quien_search use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
             Depth qs_depth = InCheck || depth >= DEPTH_QS_CHECKS ?
-                                DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
+                                DEPTH_QS_CHECKS :
+                                DEPTH_QS_NO_CHECKS;
 
             CheckInfo cc, *ci = nullptr;
 
@@ -337,7 +338,8 @@ namespace Searcher {
                 && tt_hit
                 && tt_depth >= qs_depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
-                && (tt_value >= beta ? (tt_bound & BOUND_LOWER) : (tt_bound & BOUND_UPPER))
+                && (tt_value >= beta ? (tt_bound & BOUND_LOWER) :
+                                       (tt_bound & BOUND_UPPER))
                )
             {
                 ss->current_move = tt_move; // Can be MOVE_NONE
@@ -356,10 +358,7 @@ namespace Searcher {
                 {
                     best_value = tte->eval ();
                     // Never assume anything on values stored in TT
-                    if (VALUE_NONE == best_value)
-                    {
-                        best_value = evaluate (pos);
-                    }
+                    if (VALUE_NONE == best_value) best_value = evaluate (pos);
                     ss->static_eval = best_value;
 
                     // Can tt_value be used as a better position evaluation?
@@ -407,7 +406,6 @@ namespace Searcher {
             if (ci == nullptr) { cc = CheckInfo (pos); ci = &cc; }
 
             Move move;
-            u08 legals = 0;
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move<false> ()) != MOVE_NONE)
             {
@@ -448,7 +446,6 @@ namespace Searcher {
                             // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
                             || (   best_value > -VALUE_MATE_IN_MAX_DEPTH
                                 && !pos.capture (move)
-                                && !pos.can_castle (pos.active ())
                                )
                            )
                         && pos.see_sign (move) < VALUE_ZERO
@@ -463,8 +460,6 @@ namespace Searcher {
 
                 // Check for legality just before making the move
                 if (!pos.legal (move, ci->pinneds)) continue;
-
-                ++legals;
 
                 ss->current_move = move;
                 // Make and search the move
@@ -526,7 +521,7 @@ namespace Searcher {
             
             // All legal moves have been searched.
             // A special case: If in check and no legal moves were found, it is checkmate.
-            if (InCheck && 0 == legals)
+            if (InCheck && best_value == -VALUE_INFINITE)
             {
                 // Plies to mate from the root
                 best_value = mated_in (ss->ply);
@@ -650,7 +645,8 @@ namespace Searcher {
                     && tt_hit
                     && tt_value != VALUE_NONE // Only in case of TT access race
                     && tt_depth >= depth
-                    && (tt_value >= beta ? (tt_bound & BOUND_LOWER) : (tt_bound & BOUND_UPPER))
+                    && (tt_value >= beta ? (tt_bound & BOUND_LOWER) :
+                                           (tt_bound & BOUND_UPPER))
                    )
                 {
                     ss->current_move = tt_move; // Can be MOVE_NONE
@@ -733,7 +729,7 @@ namespace Searcher {
                         // the score by more than FutilityMargins[depth] if do a null move.
                         if (   !RootNode && !MateSearch
                             && depth < FutilityMarginDepth
-                            && abs (static_eval) < +VALUE_KNOWN_WIN // Do not return unproven wins
+                            && static_eval < +VALUE_KNOWN_WIN // Do not return unproven wins
                             && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                            )
                         {
@@ -781,7 +777,7 @@ namespace Searcher {
                                 if (depth < 8*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
                                 {
                                     // Don't return unproven unproven mates
-                                    return abs (null_value) < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
+                                    return null_value < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
                                 }
 
                                 // Do verification search at high depths
@@ -793,7 +789,7 @@ namespace Searcher {
                                 if (value >= beta)
                                 {
                                     // Don't return unproven unproven mates
-                                    return abs (null_value) < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
+                                    return null_value < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
                                 }
                             }
                         }
@@ -809,6 +805,10 @@ namespace Searcher {
                         {
                             Depth reduced_depth = depth - ProbCutDepth; // Shallow Depth
                             Value extended_beta = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
+
+                            assert(reduced_depth >= ONE_PLY);
+                            assert((ss-1)->current_move != MOVE_NONE);
+                            assert((ss-1)->current_move != MOVE_NULL);
 
                             // Initialize a MovePicker object for the current position,
                             // and prepare to search the moves.
@@ -842,7 +842,7 @@ namespace Searcher {
 
                         // Step 10. Internal iterative deepening (skipped when in check)
                         if (   tt_move == MOVE_NONE
-                            && depth > (PVNode ? 4*DEPTH_ONE : 7*DEPTH_ONE)          // IID Activation Depth
+                            && depth > (PVNode ? 4*DEPTH_ONE : 7*DEPTH_ONE)        // IID Activation Depth
                             && (PVNode || ss->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                            )
                         {
@@ -1049,8 +1049,8 @@ namespace Searcher {
                     }
 
                     // Prune moves with negative SEE at low depths
-                    if (  predicted_depth < RazorDepth
-                       && pos.see_sign (move) < VALUE_ZERO
+                    if (   predicted_depth < RazorDepth
+                        && pos.see_sign (move) < VALUE_ZERO
                        )
                     {
                         if (SPNode) splitpoint->spinlock.acquire ();
@@ -1061,18 +1061,10 @@ namespace Searcher {
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
-                if (!SPNode)
+                if (!SPNode && !RootNode && !move_legal)
                 {
-                    if (!RootNode && !move_legal)
-                    {
-                        --legals;
-                        continue;
-                    }
-
-                    if (quiets < MAX_QUIETS && !capture_or_promotion)
-                    {
-                        quiet_moves[quiets++] = move;
-                    }
+                    --legals;
+                    continue;
                 }
 
                 ss->current_move = move;
@@ -1097,7 +1089,10 @@ namespace Searcher {
                     Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legals);
                     // Increase reduction
                     if (   (!PVNode && cut_node)
-                        || HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
+                        || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
+                            && CounterMovesHistoryValues[pos[opp_move_sq]][opp_move_sq]
+                                              [pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
+                           )
                        )
                     {
                         reduction_depth += DEPTH_ONE;
@@ -1118,10 +1113,10 @@ namespace Searcher {
                     {
                         reduction_depth -= DEPTH_ONE;
                     }
+                    
+                    if (SPNode) alpha = splitpoint->alpha;
 
                     Depth reduced_depth;
-                        
-                    if (SPNode) alpha = splitpoint->alpha;
                     reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
                     // Search with reduced depth
                     value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
