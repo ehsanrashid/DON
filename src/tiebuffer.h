@@ -41,7 +41,7 @@ namespace std {
             
             if ('\n' == last_ch)
             {
-                size_t length = strlen (prefix);
+                streamsize length = strlen (prefix);
                 if (_filestm->rdbuf ()->sputn (prefix, length) != length)
                 {
                     return EOF; // Error

@@ -8,7 +8,7 @@
 #include "Zobrist.h"
 
 namespace Threading {
-    class Thread;
+    struct Thread;
 }
 
 class Position;

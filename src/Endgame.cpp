@@ -1,6 +1,5 @@
 #include "Endgame.h"
 
-#include <string>
 #include "Position.h"
 #include "BitBases.h"
 #include "MoveGenerator.h"
@@ -49,7 +48,7 @@ namespace EndGame {
         const i32 PUSH_AWAY [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
 #ifndef NDEBUG
-        inline bool verify_material (const Position &pos, Color c, Value npm, i32 num_pawns)
+        bool verify_material (const Position &pos, Color c, Value npm, i32 num_pawns)
         {
             return pos.non_pawn_material (c) == npm && pos.count<PAWN> (c) == num_pawns;
         }
@@ -57,7 +56,7 @@ namespace EndGame {
 
         // Map the square as if strong_side is white and
         // strong_side's only pawn is on the left half of the board.
-        inline Square normalize (const Position &pos, Color strong_side, Square sq)
+        Square normalize (const Position &pos, Color strong_side, Square sq)
         {
             assert (pos.count<PAWN> (strong_side) == 1);
 
@@ -77,7 +76,7 @@ namespace EndGame {
         // Get the material key of a Position out of the given endgame key code
         // like "KBPKN". The trick here is to first forge an ad-hoc fen string
         // and then let a Position object to do the work for us.
-        inline Key key (const string &code)
+        Key key (const string &code)
         {
             assert (0 < code.length () && code.length () <= 8);
             assert (code[0] == 'K');
@@ -97,7 +96,7 @@ namespace EndGame {
         }
 
         template<class M>
-        inline void delete_endgame (const typename M::value_type &p) { delete p.second; }
+        void delete_endgame (const typename M::value_type &p) { delete p.second; }
 
     }
 

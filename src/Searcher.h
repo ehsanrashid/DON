@@ -21,7 +21,7 @@ namespace Searcher {
     using namespace Threading;
 
     const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be < MAX_DEPTH/2
-    const u08 MIN_SKILL_MULTIPV =  4;
+    const u16 MIN_SKILL_MULTIPV =  4;
 
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
@@ -186,7 +186,7 @@ namespace Searcher {
 
         bool can_pick_move (Depth depth) const { return depth/DEPTH_ONE == 1 + _level; }
 
-        u08  pv_size () const;
+        u16  pv_size () const;
 
         Move pick_move ();
 
@@ -205,7 +205,7 @@ namespace Searcher {
 
     extern TimePoint            SearchTime;
 
-    extern u08                  MultiPV;
+    extern u16                  MultiPV;
     //extern i32                MultiPV_cp;
 
     extern i16                  FixedContempt

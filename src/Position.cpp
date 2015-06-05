@@ -966,6 +966,7 @@ void Position::clear ()
 bool Position::setup (const string &f, Thread *th, bool c960, bool full)
 {
     if (white_spaces (f)) return false;
+
     istringstream iss (f);
     iss >> noskipws;
 
@@ -1654,7 +1655,6 @@ Position::operator string () const
     static string EDGE  = " +---+---+---+---+---+---+---+---+\n";
     static string ROW_1 = "| . |   | . |   | . |   | . |   |\n" + EDGE;
     static string ROW_2 = "|   | . |   | . |   | . |   | . |\n" + EDGE;
-    static u16 ROW_LEN  = ROW_1.length () + 1;
 
     string board = EDGE;
 
@@ -1672,7 +1672,7 @@ Position::operator string () const
     while (occ != U64(0))
     {
         Square s = pop_lsq (occ);
-        board[3 + i32(ROW_LEN * (7.5 - _rank (s)) + 4 * _file (s))] = PIECE_CHAR[_board[s]];
+        board[3 + i32((ROW_1.length () + 1) * (7.5 - _rank (s)) + 4 * _file (s))] = PIECE_CHAR[_board[s]];
     }
 
     ostringstream oss;

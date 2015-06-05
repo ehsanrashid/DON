@@ -45,13 +45,11 @@ namespace Threading {
                 }
             }
         }
-        void release()
+        void release ()
         {
             _lock.store(1, std::memory_order_release);
         }
     };
-
-   
 
     // SplitPoint struct stores information shared by the threads searching in
     // parallel below the same split point. It is populated at splitting time.
@@ -78,7 +76,7 @@ namespace Threading {
         std::bitset<MAX_THREADS> slaves_mask;
 
         volatile bool  slave_searching;
-        volatile u08   legals;
+        volatile u08   legal_count;
         volatile Value alpha;
         volatile Value best_value;
         volatile Move  best_move;
@@ -141,7 +139,7 @@ namespace Threading {
         bool can_join (const SplitPoint *sp) const;
 
         void split (Position &pos, Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-            Depth depth, u08 legals, MovePicker &movepicker, NodeT node_type, bool cut_node);
+            Depth depth, u08 legal_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
 
     };
 
@@ -174,7 +172,7 @@ namespace Threading {
         void start () { run = true ; }
         void stop  () { run = false; }
 
-        virtual void idle_loop();
+        virtual void idle_loop ();
 
     };
 

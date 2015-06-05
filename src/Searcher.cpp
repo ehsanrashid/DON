@@ -107,7 +107,7 @@ namespace Searcher {
         Color   RootColor;
         i32     RootPly;
 
-        u08     RootSize   // RootMove Count
+        u16     RootSize   // RootMove Count
             ,   LimitPV
             ,   IndexPV;
 
@@ -128,7 +128,7 @@ namespace Searcher {
 
         // update_stats() updates movehistory, killers, countermoves
         // after a fail-high of a quiet move.
-        void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, Move *quiet_moves, u08 quiets)
+        void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, Move *quiet_moves, u08 quiet_count)
         {
             if (ss->killer_moves[0] != move)
             {
@@ -153,7 +153,7 @@ namespace Searcher {
             }
 
             // Decrease all the other played quiet moves
-            for (u08 i = 0; i < quiets; ++i)
+            for (u08 i = 0; i < quiet_count; ++i)
             {
                 HistoryValues.update (pos, quiet_moves[i], -bonus);
 
@@ -229,7 +229,7 @@ namespace Searcher {
                 }
             }
 
-            for (u08 i = 0; i < LimitPV; ++i)
+            for (i16 i = 0; i < LimitPV; ++i)
             {
                 Depth d;
                 Value v;
@@ -576,7 +576,7 @@ namespace Searcher {
             SplitPoint *splitpoint = nullptr;
             StateInfo si;
             CheckInfo cc, *ci = nullptr;
-
+            
             if (SPNode)
             {
                 splitpoint  = ss->splitpoint;
@@ -584,7 +584,7 @@ namespace Searcher {
                 best_move   = splitpoint->best_move;
 
                 assert (splitpoint->best_value > -VALUE_INFINITE);
-                assert (splitpoint->legals > 0);
+                assert (splitpoint->legal_count > 0);
             }
             else
             {
@@ -806,9 +806,9 @@ namespace Searcher {
                             Depth reduced_depth = depth - ProbCutDepth; // Shallow Depth
                             Value extended_beta = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
 
-                            assert(reduced_depth >= ONE_PLY);
-                            assert((ss-1)->current_move != MOVE_NONE);
-                            assert((ss-1)->current_move != MOVE_NULL);
+                            assert (reduced_depth >= DEPTH_ONE);
+                            assert ((ss-1)->current_move != MOVE_NONE);
+                            assert ((ss-1)->current_move != MOVE_NULL);
 
                             // Initialize a MovePicker object for the current position,
                             // and prepare to search the moves.
@@ -907,8 +907,8 @@ namespace Searcher {
             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
             if (ci == nullptr) { cc = CheckInfo (pos); ci = &cc; }
 
-            u08   legals = 0
-                , quiets = 0;
+            u08   legal_count = 0
+                , quiet_count = 0;
 
             Move  quiet_moves[MAX_QUIETS]
                 , pv[MAX_DEPTH+1];
@@ -933,12 +933,12 @@ namespace Searcher {
                     // Shared counter cannot be decremented later if move turns out to be illegal
                     if (!move_legal) continue;
 
-                    legals = ++splitpoint->legals;
+                    legal_count = ++splitpoint->legal_count;
                     splitpoint->spinlock.release ();
                 }
                 else
                 {
-                    ++legals;
+                    ++legal_count;
                 }
 
                 //u64 nodes = U64(0);
@@ -947,7 +947,7 @@ namespace Searcher {
                 {
                     //nodes = pos.game_nodes ();
 
-                    Signals.firstmove_root = (1 == legals);
+                    Signals.firstmove_root = (1 == legal_count);
 
                     if (Threadpool.main () == thread)
                     {
@@ -957,7 +957,7 @@ namespace Searcher {
                             sync_cout
                                 << "info"
                                 //<< " depth "          << depth/DEPTH_ONE
-                                << " currmovenumber " << setw (2) << u16(legals + IndexPV)
+                                << " currmovenumber " << setw (2) << u16(legal_count + IndexPV)
                                 << " currmove "       << move_to_can (move, Chess960)
                                 << " time "           << time
                                 << sync_endl;
@@ -1020,7 +1020,7 @@ namespace Searcher {
                 {
                     // Move count based pruning
                     if (   depth <  FutilityMoveCountDepth
-                        && legals >= FutilityMoveCounts[improving][depth]
+                        && legal_count >= FutilityMoveCounts[improving][depth]
                        )
                     {
                         if (SPNode) splitpoint->spinlock.acquire ();
@@ -1028,7 +1028,7 @@ namespace Searcher {
                     }
 
                     // Value based pruning
-                    Depth predicted_depth = new_depth - reduction_depths<PVNode> (improving, depth, legals);
+                    Depth predicted_depth = new_depth - reduction_depths<PVNode> (improving, depth, legal_count);
 
                     // Futility pruning: parent node
                     if (predicted_depth < FutilityMarginDepth)
@@ -1063,7 +1063,7 @@ namespace Searcher {
 
                 if (!SPNode && !RootNode && !move_legal)
                 {
-                    --legals;
+                    --legal_count;
                     continue;
                 }
 
@@ -1081,12 +1081,12 @@ namespace Searcher {
                 // If the move fails high will be re-searched at full depth.
                 if (   depth > 2*DEPTH_ONE
                     && !capture_or_promotion
-                    && legals > 1
+                    && legal_count > 1
                     && move != ss->killer_moves[0]
                     && move != ss->killer_moves[1]
                    )
                 {
-                    Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legals);
+                    Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legal_count);
                     // Increase reduction
                     if (   (!PVNode && cut_node)
                         || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
@@ -1141,7 +1141,7 @@ namespace Searcher {
                 }
                 else
                 {
-                    full_depth_search = !PVNode || legals > 1;
+                    full_depth_search = !PVNode || legal_count > 1;
                 }
 
                 // Step 16. Full depth search, when LMR is skipped or fails high
@@ -1162,7 +1162,7 @@ namespace Searcher {
                 // - fail high move (search only if value < beta)
                 // otherwise let the parent node fail low with
                 // alpha >= value and to try another better move.
-                if (PVNode && (1 == legals || (alpha < value && (RootNode || value < beta))))
+                if (PVNode && (1 == legal_count || (alpha < value && (RootNode || value < beta))))
                 {
                     fill (pv, pv + sizeof (pv)/sizeof (*pv), MOVE_NONE);
                     (ss+1)->pv = pv;
@@ -1205,7 +1205,7 @@ namespace Searcher {
                     //rm.nodes += pos.game_nodes () - nodes;
 
                     // 1st legal move or new best move ?
-                    if (1 == legals || alpha < value)
+                    if (1 == legal_count || alpha < value)
                     {
                         rm.new_value = value;
                         rm.pv.resize (1);
@@ -1219,7 +1219,7 @@ namespace Searcher {
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
-                        if (legals > 1)
+                        if (legal_count > 1)
                         {
                             RootMoves.best_move_change++;
                         }
@@ -1282,7 +1282,7 @@ namespace Searcher {
                 {
                     assert (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
 
-                    thread->split (pos, ss, alpha, beta, best_value, best_move, depth, legals, mp, NT, cut_node);
+                    thread->split (pos, ss, alpha, beta, best_value, best_move, depth, legal_count, mp, NT, cut_node);
                         
                     if (Signals.force_stop || thread->cutoff_occurred ())
                     {
@@ -1302,7 +1302,7 @@ namespace Searcher {
                 // If all possible moves have been searched and if there are no legal moves,
                 // If in a singular extension search then return a fail low score (alpha).
                 // Otherwise it must be mate or stalemate, so return value accordingly.
-                if (0 == legals)
+                if (0 == legal_count)
                 {
                     best_value = 
                         exclude_move != MOVE_NONE ?
@@ -1316,7 +1316,7 @@ namespace Searcher {
                     && !pos.capture_or_promotion (best_move)
                    )
                 {
-                    update_stats (pos, ss, best_move, depth, quiet_moves, quiets-1);
+                    update_stats (pos, ss, best_move, depth, quiet_moves, quiet_count-1);
                 }
 
                 tte->save (posi_key, best_move,
@@ -1347,7 +1347,7 @@ namespace Searcher {
             HistoryValues.clear ();
             CounterMoves.clear ();
 
-            u08 skill_pv = Skills.pv_size ();
+            u16 skill_pv = Skills.pv_size ();
             if (skill_pv != 0) Skills.clear ();
 
             // Do have to play with skill handicap?
@@ -1409,7 +1409,7 @@ namespace Searcher {
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
-                        for (i08 i = IndexPV; i >= 0; --i)
+                        for (i16 i = IndexPV; i >= 0; --i)
                         {
                             RootMoves[i].insert_pv_into_tt (RootPos);
                         }
@@ -1588,7 +1588,7 @@ namespace Searcher {
 
     TimePoint           SearchTime;
 
-    u08                 MultiPV         = 1;
+    u16                 MultiPV         = 1;
     //i32                 MultiPV_cp      = 0;
 
     i16                 FixedContempt   = 0
@@ -1696,7 +1696,7 @@ namespace Searcher {
 
     // ------------------------------------
 
-    u08  Skill::pv_size () const
+    u16  Skill::pv_size () const
     {
         return _level < MAX_SKILL_LEVEL ? min (MIN_SKILL_MULTIPV, RootSize) : 0;
     }
@@ -1709,7 +1709,7 @@ namespace Searcher {
 
         _best_move = MOVE_NONE;
 
-        u08   skill_pv   = pv_size ();
+        u16   skill_pv   = pv_size ();
         // RootMoves are already sorted by score in descending order
         Value variance   = min (RootMoves[0].new_value - RootMoves[skill_pv - 1].new_value, VALUE_MG_PAWN);
         Value weakness   = Value(MAX_DEPTH - 2 * _level);
@@ -1766,7 +1766,7 @@ namespace Searcher {
             logfile
                 << "----------->\n" << boolalpha
                 << "RootPos  : " << RootPos.fen ()                   << "\n"
-                << "RootSize : " << u16(RootSize)                    << "\n"
+                << "RootSize : " << RootSize                         << "\n"
                 << "Infinite : " << Limits.infinite                  << "\n"
                 << "Ponder   : " << Limits.ponder                    << "\n"
                 << "ClockTime: " << Limits.game_clock[RootColor].time<< "\n"
@@ -2095,7 +2095,7 @@ namespace Threading {
         SplitPoint *splitpoint = active_splitpoint;
         assert (splitpoint == nullptr || (splitpoint->master == this && searching));
 
-        while (alive && (splitpoint == nullptr || !splitpoint->slaves_mask.none()))
+        while (alive && (splitpoint == nullptr || !splitpoint->slaves_mask.none ()))
         {
             // If this thread has been assigned work, launch a search
             while (searching)
@@ -2205,12 +2205,12 @@ namespace Threading {
             // If search is finished then sleep, otherwise just yield
             if (!Threadpool.main ()->thinking)
             {
-                assert(!splitpoint);
+                assert (splitpoint == nullptr);
 
                 std::unique_lock<Mutex> lk (mutex);
                 while (alive && !Threadpool.main ()->thinking)
                 {
-                    sleep_condition.wait(lk);
+                    sleep_condition.wait (lk);
                 }
             }
             else

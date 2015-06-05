@@ -53,7 +53,7 @@ namespace Threading {
     void ThreadBase::wait_for (const volatile bool &condition)
     {
         std::unique_lock<Mutex> lk (mutex);
-        sleep_condition.wait(lk, [&]{ return condition; });
+        sleep_condition.wait (lk, [&]{ return condition; });
     }
 
     // ------------------------------------
@@ -106,7 +106,7 @@ namespace Threading {
     // leave their idle loops and call search<>().
     // When all threads have returned from search() then split() returns.
     void Thread::split (Position &pos, Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-                        Depth depth, u08 legals, MovePicker &movepicker, NodeT node_type, bool cut_node)
+                        Depth depth, u08 legal_count, MovePicker &movepicker, NodeT node_type, bool cut_node)
     {
         assert (pos.ok ());
         assert (searching);
@@ -117,7 +117,7 @@ namespace Threading {
         // Pick the next available splitpoint from the splitpoint stack
         SplitPoint &sp = splitpoints[splitpoint_count];
 
-        sp.spinlock.acquire(); // No contention here until we don't increment splitPointsSize
+        sp.spinlock.acquire (); // No contention here until we don't increment splitPointsSize
 
         sp.master       = this;
         sp.parent_splitpoint = active_splitpoint;
@@ -129,7 +129,7 @@ namespace Threading {
         sp.best_value   = best_value;
         sp.best_move    = best_move;
         sp.depth        = depth;
-        sp.legals       = legals;
+        sp.legal_count  = legal_count;
         sp.movepicker   = &movepicker;
         sp.node_type    = node_type;
         sp.cut_node     = cut_node;
@@ -148,7 +148,7 @@ namespace Threading {
                && (slave = Threadpool.available_slave (&sp)) != nullptr
               )
         {
-            slave->spinlock.acquire();
+            slave->spinlock.acquire ();
 
             if (slave->can_join (active_splitpoint))
             {
@@ -157,21 +157,21 @@ namespace Threading {
                 slave->searching = true;
             }
 
-            slave->spinlock.release();
+            slave->spinlock.release ();
         }
 
         // Everything is set up. The master thread enters the idle loop, from which
         // it will instantly launch a search, because its 'searching' flag is set.
         // The thread will return from the idle loop when all slaves have finished
         // their work at this split point.
-        sp.spinlock.release();
+        sp.spinlock.release ();
 
         Thread::idle_loop (); // Force a call to base class Thread::idle_loop()
 
         // In helpful master concept a master can help only a sub-tree of its splitpoint,
         // and because here is all finished is not possible master is booked.
         assert (!searching);
-        assert (!active_pos);
+        assert (active_pos == nullptr);
 
         searching = true;
 
@@ -215,7 +215,7 @@ namespace Threading {
 
     // MainThread::idle_loop() is where the main thread is parked waiting to be started
     // when there is a new search. The main thread will launch all the slave threads.
-    void MainThread::idle_loop()
+    void MainThread::idle_loop ()
     {
         do
         {
@@ -226,7 +226,7 @@ namespace Threading {
             while (alive && !thinking)
             {
                 sleep_condition.notify_one(); // Wake up the UI thread if needed
-                sleep_condition.wait(lk);
+                sleep_condition.wait (lk);
             }
 
             lk.unlock ();
@@ -237,7 +237,7 @@ namespace Threading {
 
                 think ();   // Start thinking
 
-                assert(searching);
+                assert (searching);
 
                 searching = false;
                 thinking  = false;
@@ -249,7 +249,7 @@ namespace Threading {
     void MainThread::join ()
     {
         std::unique_lock<Mutex> lk (mutex);
-        sleep_condition.wait(lk, [&]{ return !thinking; });
+        sleep_condition.wait (lk, [&]{ return !thinking; });
     }
 
 
