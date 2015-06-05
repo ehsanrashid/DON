@@ -27,11 +27,11 @@ namespace TimeManagement {
 
         u64 available_nodes; // When in 'nodes as time' mode
 
-        inline u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.71); }
+        u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.71); }
     
-        inline u32 maximum_time   () const { return _maximum_time; }
+        u32 maximum_time   () const { return _maximum_time; }
 
-        inline void instability (double best_move_change) { _instability_factor = 1.0 + best_move_change; }
+        void instability (double best_move_change) { _instability_factor = 1.0 + best_move_change; }
 
         void initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply);
 

@@ -13,13 +13,13 @@ namespace MovePick {
 
         enum StageT : u08
         {
-            MAIN_S    , CAPTURE_S1, KILLER_S1, QUIET_1_S1, QUIET_2_S1, BAD_CAPTURE_S1,
-            EVASION_S1, EVASION_S2,
-            QSEARCH_0 , CAPTURE_S3, QUIET_CHECK_S3,
-            QSEARCH_1 , CAPTURE_S4,
-            PROB_CUT  , CAPTURE_S5,
-            RECAPTURE , CAPTURE_S6,
-            STOP
+            S_MAIN    , S_GOOD_CAPTURE, S_KILLER, S_GOOD_QUIET, S_BAD_QUIET, S_BAD_CAPTURE,
+            S_EVASION , S_ALL_EVASION,
+            S_QSEARCH_WITH_CHECK   , S_QCAPTURE_1, S_QCHECK,
+            S_QSEARCH_WITHOUT_CHECK, S_QCAPTURE_2,
+            S_PROBCUT  , S_PROBCUT_CAPTURE,
+            S_RECAPTURE, S_ALL_RECAPTURE,
+            S_STOP
         };
 
         // Insertion sort in the range [beg, end], which is guaranteed to be stable, as it should be
@@ -67,7 +67,7 @@ namespace MovePick {
 
         _bad_captures_end = _moves_beg+MAX_MOVES-1;
 
-        _stage = _pos.checkers () != U64(0) ? EVASION_S1 : MAIN_S;
+        _stage = _pos.checkers () != U64(0) ? S_EVASION : S_MAIN;
 
         _tt_move =   ttm != MOVE_NONE
                   && _pos.pseudo_legal (ttm) ?
@@ -90,21 +90,21 @@ namespace MovePick {
 
         if (_pos.checkers () != U64(0))
         {
-            _stage = EVASION_S1;
+            _stage = S_EVASION;
         }
         else
         if (d > DEPTH_QS_NO_CHECKS)
         {
-            _stage = QSEARCH_0;
+            _stage = S_QSEARCH_WITH_CHECK;
         }
         else
         if (d > DEPTH_QS_RECAPTURES)
         {
-            _stage = QSEARCH_1;
+            _stage = S_QSEARCH_WITHOUT_CHECK;
         }
         else
         {
-            _stage = RECAPTURE;
+            _stage = S_RECAPTURE;
             _recapture_sq = dst_sq;
             ttm   = MOVE_NONE;
         }
@@ -128,7 +128,7 @@ namespace MovePick {
     {
         assert (_pos.checkers () == U64(0));
 
-        _stage = PROB_CUT;
+        _stage = S_PROBCUT;
 
         // In ProbCut generate only captures better than parent's captured piece
         _capture_threshold = PIECE_VALUE[MG][pt];
@@ -236,11 +236,11 @@ namespace MovePick {
         switch (++_stage)
         {
 
-        case CAPTURE_S1:
-        case CAPTURE_S3:
-        case CAPTURE_S4:
-        case CAPTURE_S5:
-        case CAPTURE_S6:
+        case S_GOOD_CAPTURE:
+        case S_QCAPTURE_1:
+        case S_QCAPTURE_2:
+        case S_PROBCUT_CAPTURE:
+        case S_ALL_RECAPTURE:
             _moves_end = generate<CAPTURE> (_moves_beg, _pos);
             if (_moves_cur < _moves_end-1)
             {
@@ -248,7 +248,7 @@ namespace MovePick {
             }
             break;
 
-        case KILLER_S1:
+        case S_KILLER:
             _moves_cur = _killers;
             _moves_end = _killers + 2;
 
@@ -265,7 +265,7 @@ namespace MovePick {
             }
             break;
 
-        case QUIET_1_S1:
+        case S_GOOD_QUIET:
             _moves_end = _quiets_end = generate<QUIET> (_moves_beg, _pos);
             if (_moves_cur < _moves_end)
             {
@@ -279,7 +279,7 @@ namespace MovePick {
             }
             break;
 
-        case QUIET_2_S1:
+        case S_BAD_QUIET:
             _moves_cur = _moves_end;
             _moves_end = _quiets_end;
             if (_depth >= 3*DEPTH_ONE)
@@ -288,13 +288,13 @@ namespace MovePick {
             }
             break;
 
-        case BAD_CAPTURE_S1:
+        case S_BAD_CAPTURE:
             // Just pick them in reverse order to get MVV/LVA ordering
             _moves_cur = _moves_beg+MAX_MOVES-1;
             _moves_end = _bad_captures_end;
             break;
 
-        case EVASION_S2:
+        case S_ALL_EVASION:
             _moves_end = generate<EVASION> (_moves_beg, _pos);
             if (_moves_cur < _moves_end-1)
             {
@@ -302,18 +302,18 @@ namespace MovePick {
             }
             break;
 
-        case QUIET_CHECK_S3:
+        case S_QCHECK:
             _moves_end = generate<QUIET_CHECK> (_moves_beg, _pos);
             break;
 
-        case EVASION_S1:
-        case QSEARCH_0:
-        case QSEARCH_1:
-        case PROB_CUT:
-        case RECAPTURE:
-            _stage = STOP;
+        case S_EVASION:
+        case S_QSEARCH_WITH_CHECK:
+        case S_QSEARCH_WITHOUT_CHECK:
+        case S_PROBCUT:
+        case S_RECAPTURE:
+            _stage = S_STOP;
 
-        case STOP:
+        case S_STOP:
             _moves_end = _moves_cur+1; // Avoid another generate_next_stage() call
             break;
 
@@ -341,16 +341,16 @@ namespace MovePick {
             switch (_stage)
             {
 
-            case MAIN_S:
-            case EVASION_S1:
-            case QSEARCH_0:
-            case QSEARCH_1:
-            case PROB_CUT:
+            case S_MAIN:
+            case S_EVASION:
+            case S_QSEARCH_WITH_CHECK:
+            case S_QSEARCH_WITHOUT_CHECK:
+            case S_PROBCUT:
                 ++_moves_cur;
                 return _tt_move;
                 break;
 
-            case CAPTURE_S1:
+            case S_GOOD_CAPTURE:
                 do
                 {
                     move = pick_best (_moves_cur++, _moves_end);
@@ -366,7 +366,7 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            case KILLER_S1:
+            case S_KILLER:
                 do
                 {
                     move = *_moves_cur++;
@@ -381,8 +381,8 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            case QUIET_1_S1:
-            case QUIET_2_S1:
+            case S_GOOD_QUIET:
+            case S_BAD_QUIET:
                 do
                 {
                     move = *_moves_cur++;
@@ -398,13 +398,13 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            case BAD_CAPTURE_S1:
+            case S_BAD_CAPTURE:
                 return *_moves_cur--;
                 break;
 
-            case EVASION_S2:
-            case CAPTURE_S3:
-            case CAPTURE_S4:
+            case S_ALL_EVASION:
+            case S_QCAPTURE_1:
+            case S_QCAPTURE_2:
                 do
                 {
                     move = pick_best (_moves_cur++, _moves_end);
@@ -415,7 +415,7 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            case CAPTURE_S5:
+            case S_PROBCUT_CAPTURE:
                 do
                 {
                     move = pick_best (_moves_cur++, _moves_end);
@@ -426,7 +426,7 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            case CAPTURE_S6:
+            case S_ALL_RECAPTURE:
                 do
                 {
                     move = pick_best (_moves_cur++, _moves_end);
@@ -437,7 +437,7 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            case QUIET_CHECK_S3:
+            case S_QCHECK:
                 do
                 {
                     move = *_moves_cur++;
@@ -448,7 +448,7 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            case STOP:
+            case S_STOP:
                 return MOVE_NONE;
                 break;
 
@@ -456,7 +456,7 @@ namespace MovePick {
                 assert (false);
                 break;
             }
-        } while (true); // (_stage <= STOP)
+        } while (true); // (_stage <= S_STOP)
     }
 
     template<>

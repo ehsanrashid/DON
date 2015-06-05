@@ -85,7 +85,7 @@ namespace Threading {
     // two threads, this is not sufficient: If the thread is the master of some split
     // point, it is only available as a slave for the split points below his active
     // one (the "helpful master" concept in YBWC terminology).
-    bool Thread::can_join(const SplitPoint* sp) const
+    bool Thread::can_join (const SplitPoint* sp) const
     {
         if (searching) return false;
 
@@ -316,7 +316,7 @@ namespace Threading {
     // ThreadPool::available_slave() tries to find an idle thread which is available
     // to join SplitPoint 'sp'.
 
-    Thread* ThreadPool::available_slave(const SplitPoint *sp) const
+    Thread* ThreadPool::available_slave (const SplitPoint *sp) const
     {
         for (Thread *th : *this)
         {

@@ -38,14 +38,14 @@ namespace Transposition {
 
     public:
 
-        inline Move  move  () const { return Move (_move);  }
-        inline Value value () const { return Value(_value); }
-        inline Value eval  () const { return Value(_eval);  }
-        inline Depth depth () const { return Depth(_depth); }
-        inline Bound bound () const { return Bound(_gen_bnd & 0x03); }
-        inline u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
+        Move  move  () const { return Move (_move);  }
+        Value value () const { return Value(_value); }
+        Value eval  () const { return Value(_eval);  }
+        Depth depth () const { return Depth(_depth); }
+        Bound bound () const { return Bound(_gen_bnd & 0x03); }
+        u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
 
-        inline void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
+        void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
             // Preserve any existing move for the same key
             if (  m != MOVE_NONE
@@ -179,13 +179,13 @@ namespace Transposition {
             free_aligned_memory ();
         }
 
-        inline u64 entries () const
+        u64 entries () const
         {
             return (_cluster_count * ClusterEntryCount);
         }
 
         // size() returns hash size in MB
-        inline u32 size () const
+        u32 size () const
         {
             return u32((_cluster_count * ClusterSize) >> 20);
         }
@@ -194,7 +194,7 @@ namespace Transposition {
         // It is called whenever the table is resized,
         // or when the user asks the program to clear the table
         // 'ucinewgame' (from the UCI interface).
-        inline void clear ()
+        void clear ()
         {
             if (ClearHash && _clusters != nullptr)
             {
@@ -207,13 +207,13 @@ namespace Transposition {
         // refresh() increments the "Generation" variable, which is used to
         // distinguish transposition table entries from different searches.
         // It is called at the beginning of every new search.
-        inline void refresh () { _generation += 4; }
+        void refresh () { _generation += 4; }
         
-        inline u08 generation () const { return _generation; }
+        u08 generation () const { return _generation; }
 
         // cluster_entry() returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
-        inline TTEntry* cluster_entry (const Key key) const
+        TTEntry* cluster_entry (const Key key) const
         {
             return _clusters[key & _cluster_mask].entries;
         }
@@ -224,7 +224,7 @@ namespace Transposition {
         // It is used to display the "info hashfull ..." information in UCI.
         // "the hash is <x> permill full", the engine should send this info regularly.
         // hash, are using <x>%. of the state of full.
-        inline u32 hash_full () const
+        u32 hash_full () const
         {
             u32 full_entry_count = 0;
             for (const Cluster *clt = _clusters; clt < _clusters + 1000/ClusterEntryCount; ++clt)
@@ -243,7 +243,7 @@ namespace Transposition {
 
         u32 resize (u64 mem_size_mb, bool force = false);
 
-        inline u32 resize () { return resize (size (), true); }
+        u32 resize () { return resize (size (), true); }
 
         u32 auto_size (u64 mem_size_mb, bool force = false);
 

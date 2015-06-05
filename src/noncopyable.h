@@ -7,8 +7,8 @@ namespace std {
     {
     
     protected:
-        noncopyable () {}
-       ~noncopyable () {}
+        noncopyable () = default;
+       ~noncopyable () = default;
 
         // Don't forget to declare these functions.
         // Want to make sure they are unaccessable & non-copyable
@@ -18,12 +18,11 @@ namespace std {
     private:  // emphasize the following members are private
         
         template<class T>
-        noncopyable (const T&);              // = delete;
+        noncopyable (const T&) = delete;
         
         template<class T>
         T& operator= (const T&) { return T (); }
-        //noncopyable& operator= (const noncopyable &); // = delete;
-
+        
     };
 
 }

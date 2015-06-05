@@ -35,24 +35,24 @@ namespace Pawns {
         u08      kp_dist       [CLR_NO];
 
         template<Color Own>
-        inline u08 semiopen_file (File f) const
+        u08 semiopen_file (File f) const
         {
             return semiopen_files[Own] & (1 << f);
         }
 
         template<Color Own>
-        inline u08 semiopen_side (File f, bool left) const
+        u08 semiopen_side (File f, bool left) const
         {
             return semiopen_files[Own] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
         }
 
         template<Color Own>
-        inline i32 pawns_on_squarecolor (Square s) const
+        i32 pawns_on_squarecolor (Square s) const
         {
             return pawns_on_sqrs[Own][!(BitBoard::LIHT_bb & BitBoard::SQUARE_bb[s])];
         }
         template<Color Own>
-        inline i32 pawns_on_center () const
+        i32 pawns_on_center () const
         {
             return pawns_on_sqrs[Own][WHITE] + pawns_on_sqrs[Own][BLACK];
         }
@@ -62,7 +62,7 @@ namespace Pawns {
         Score evaluate_unstoppable_pawns () const;
 
         template<Color Own>
-        inline void evaluate_king_pawn_safety (const Position &pos)
+        void evaluate_king_pawn_safety (const Position &pos)
         {
             Square k_sq = pos.king_sq (Own);
             if (king_sq[Own] != k_sq)

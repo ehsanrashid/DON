@@ -9,7 +9,7 @@
 #include "MoveGenerator.h"
 #include "Notation.h"
 
-namespace OpeningBook {
+namespace OpeningBook  {
 
     using namespace std;
     using namespace MoveGen;
@@ -21,19 +21,19 @@ namespace OpeningBook {
     const streampos PolyglotBook::HeaderSize = 0*EntrySize;
     const streampos PolyglotBook::ErrorIndex = streampos(-1);
 
-    inline bool operator== (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    bool operator== (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return (pe1.key == pe2.key)
             && (pe1.move == pe2.move)
             && (pe1.weight == pe2.weight);
     }
 
-    inline bool operator!= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    bool operator!= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return !(pe1 == pe2);
     }
 
-    inline bool operator>  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    bool operator>  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return (pe1.key != pe2.key) ?
                 (pe1.key > pe2.key) :
@@ -41,7 +41,7 @@ namespace OpeningBook {
                 (pe1.weight > pe2.weight);  // order by weight value
     }
 
-    inline bool operator<  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    bool operator<  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return (pe1.key != pe2.key) ?
                 (pe1.key < pe2.key) :
@@ -49,7 +49,7 @@ namespace OpeningBook {
                 (pe1.weight < pe2.weight);  // order by weight value
     }
 
-    inline bool operator>= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    bool operator>= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return (pe1.key != pe2.key) ?
                 (pe1.key >= pe2.key) :
@@ -57,7 +57,7 @@ namespace OpeningBook {
                 (pe1.weight >= pe2.weight);  // order by weight value
     }
 
-    inline bool operator<= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
+    bool operator<= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
         return (pe1.key != pe2.key) ?
                 (pe1.key <= pe2.key) :

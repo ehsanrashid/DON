@@ -30,12 +30,12 @@ namespace std {
             , _filestm (filestm)
         {}
 
-        inline basic_streambuf<Elem, Traits>* sbuf () const
+        basic_streambuf<Elem, Traits>* sbuf () const
         {
             return _strmbuf;
         }
 
-        inline int_type write (int_type c, const Elem *prefix)
+        int_type write (int_type c, const Elem *prefix)
         {
             static int_type last_ch = '\n';
             

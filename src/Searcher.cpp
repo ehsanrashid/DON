@@ -44,7 +44,7 @@ namespace Searcher {
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
-    inline void prefetch (const void *addr)
+    void prefetch (const void *addr)
     {
 #       if defined(__INTEL_COMPILER)
         {
@@ -58,7 +58,7 @@ namespace Searcher {
 
 #   else
 
-    inline void prefetch (const void *addr)
+    void prefetch (const void *addr)
     {
         __builtin_prefetch (addr);
     }
@@ -67,7 +67,7 @@ namespace Searcher {
 
 #else
 
-    inline void prefetch (const void *) {}
+    void prefetch (const void *) {}
 
 #endif
 

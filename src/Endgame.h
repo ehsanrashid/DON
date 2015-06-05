@@ -80,7 +80,7 @@ namespace EndGame {
             , _weak_side (~c)
         {}
 
-        inline Color strong_side () const override { return _strong_side; }
+        Color strong_side () const override { return _strong_side; }
 
         T operator() (const Position &pos) const override;
     };
@@ -99,8 +99,8 @@ namespace EndGame {
         M1 m1;
         M2 m2;
 
-        inline M1& map (M1::mapped_type) { return m1; }
-        inline M2& map (M2::mapped_type) { return m2; }
+        M1& map (M1::mapped_type) { return m1; }
+        M2& map (M2::mapped_type) { return m2; }
 
         template<EndgameT ET>
         void add (const std::string &code);
@@ -111,7 +111,7 @@ namespace EndGame {
        ~Endgames ();
 
         template<class T>
-        inline T probe (Key matl_key, T &eg)
+        T probe (Key matl_key, T &eg)
         {
             return eg = (map (eg).count (matl_key) ? map (eg)[matl_key] : NULL);
         }

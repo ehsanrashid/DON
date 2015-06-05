@@ -12,11 +12,13 @@ namespace TimeManagement {
 
     namespace {
 
+        enum RemainTimeT { RT_OPTIMUM, RT_MAXIMUM };
+
         // move_importance() is a skew-logistic function based on naive statistical
         // analysis of "how many games are still undecided after 'n' half-moves".
         // Game is considered "undecided" as long as neither side has >275cp advantage.
         // Data was extracted from CCRL game database with some simple filtering criteria.
-        inline double move_importance (i32 game_ply)
+        double move_importance (i32 game_ply)
         {
             const double PLY_SCALE = 09.300;
             const double PLY_SHIFT = 59.800;
@@ -25,17 +27,15 @@ namespace TimeManagement {
             return pow ((1 + exp ((game_ply - PLY_SHIFT) / PLY_SCALE)), -SKEW_RATE) + DBL_MIN; // Ensure non-zero
         }
 
-        enum TimeT { TIME_OPTIMUM, TIME_MAXIMUM };
-
-        template<TimeT TT>
+        template<RemainTimeT TT>
         // remaining_time<>() calculate the time remaining
-        inline u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
+        u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
         {
             const double MAX_STEP_RATIO  = 7.00; // When in trouble, can step over reserved time with this ratio
             const double MAX_STEAL_RATIO = 0.33; // However must not steal time from remaining moves over this ratio
 
-            const double TStepRatio  = TIME_OPTIMUM == TT ? 1.0 : MAX_STEP_RATIO;
-            const double TStealRatio = TIME_MAXIMUM == TT ? 0.0 : MAX_STEAL_RATIO;
+            const double TStepRatio  = RT_OPTIMUM == TT ? 1.0 : MAX_STEP_RATIO;
+            const double TStealRatio = RT_MAXIMUM == TT ? 0.0 : MAX_STEAL_RATIO;
 
             double move_imp_0 = move_importance (game_ply) * MoveSlowness / 100;
             double move_imp_1 = 0.0;
@@ -97,8 +97,8 @@ namespace TimeManagement {
                 - EmergencyClockTime
                 - EmergencyMoveTime * min (hyp_movestogo, EmergencyMoveHorizon), 0U);
 
-            u32 opt_time = MinimumMoveTime + remaining_time<TIME_OPTIMUM> (hyp_time, hyp_movestogo, game_ply);
-            u32 max_time = MinimumMoveTime + remaining_time<TIME_MAXIMUM> (hyp_time, hyp_movestogo, game_ply);
+            u32 opt_time = MinimumMoveTime + remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, game_ply);
+            u32 max_time = MinimumMoveTime + remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, game_ply);
 
             _optimum_time = min (opt_time, _optimum_time);
             _maximum_time = min (max_time, _maximum_time);

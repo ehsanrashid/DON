@@ -62,7 +62,7 @@ namespace Material {
 
         // Helper templates used to detect a given material distribution
         template<Color Own>
-        inline bool is_KXK (const Position &pos)
+        bool is_KXK (const Position &pos)
         {
             const Color Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -72,7 +72,7 @@ namespace Material {
         }
 
         template<Color Own> 
-        inline bool is_KBPsKs (const Position &pos)
+        bool is_KBPsKs (const Position &pos)
         {
             const Color Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -83,7 +83,7 @@ namespace Material {
         }
 
         template<Color Own>
-        inline bool is_KQKRPs (const Position &pos)
+        bool is_KQKRPs (const Position &pos)
         {
             const Color Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -99,7 +99,7 @@ namespace Material {
         // imbalance<>() calculates imbalance comparing
         // piece count of each piece type for both colors.
         // KING == BISHOP_PAIR
-        inline Value imbalance (const i32 count[][NONE])
+        Value imbalance (const i32 count[][NONE])
         {
             const Color Opp = WHITE == Own ? BLACK : WHITE;
 
