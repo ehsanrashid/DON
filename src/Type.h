@@ -13,6 +13,12 @@
 #include <sstream>
 #include <iostream>
 
+#ifdef BM2
+#   include <immintrin.h>               // Header for bmi2 instructions
+#   define PEXT(b, m) _pext_u64 (b, m)  // Parallel bits extract
+#   define BLSR(b)    _blsr_u64 (b)
+#endif
+
 /// When compiling with provided Makefile (e.g. for Linux and OSX), configuration
 /// is done automatically. To get started type 'make help'.
 ///

@@ -3,11 +3,6 @@
 
 #include "Type.h"
 
-#ifdef BM2
-#   include <immintrin.h> // Header for bmi2 instructions
-#   define BLSR(b) _blsr_u64 (b)
-#endif
-
 namespace BitBoard {
 
 #ifdef BSFQ

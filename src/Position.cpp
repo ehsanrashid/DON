@@ -4,8 +4,8 @@
 #include <iomanip>
 #include <sstream>
 
-#include "MoveGenerator.h"
 #include "Transposition.h"
+#include "MoveGenerator.h"
 #include "Thread.h"
 #include "Notation.h"
 #include "UCI.h"
@@ -1022,9 +1022,9 @@ bool Position::setup (const string &f, Thread *th, bool c960, bool full)
             u08 sym = u08(tolower (ch));
             if ('a' <= sym && sym <= 'h')
             {
-                Square rsq = (to_file (sym) | rel_rank (c, R_1));
-                if ((c|ROOK) != _board[rsq]) return false;
-                set_castle (c, rsq);
+                Square r_sq = (to_file (sym) | rel_rank (c, R_1));
+                if ((c|ROOK) != _board[r_sq]) return false;
+                set_castle (c, r_sq);
             }
             else
             {
@@ -1036,25 +1036,25 @@ bool Position::setup (const string &f, Thread *th, bool c960, bool full)
     {
         while ((iss >> ch) && !isspace (ch))
         {
-            i08 rsq; // Rook Square
+            Square r_sq;
             Color c = isupper (ch) ? WHITE : BLACK;
             switch (toupper (ch))
             {
             case 'K':
-                for (rsq  = rel_sq (c, SQ_H1);
-                     rsq >= rel_sq (c, SQ_A1) && (c|ROOK) != _board[rsq];
-                     --rsq) {}
+                for (r_sq  = rel_sq (c, SQ_H1);
+                     r_sq >= rel_sq (c, SQ_A1) && (c|ROOK) != _board[r_sq];
+                     --r_sq) {}
                 break;
             case 'Q':
-                for (rsq  = rel_sq (c, SQ_A1);
-                     rsq <= rel_sq (c, SQ_H1) && (c|ROOK) != _board[rsq];
-                     ++rsq) {}
+                for (r_sq  = rel_sq (c, SQ_A1);
+                     r_sq <= rel_sq (c, SQ_H1) && (c|ROOK) != _board[r_sq];
+                     ++r_sq) {}
                 break;
             default:
                 continue;
             }
-            if ((c|ROOK) != _board[rsq]) return false;
-            set_castle (c, Square(rsq));
+            if ((c|ROOK) != _board[r_sq]) return false;
+            set_castle (c, r_sq);
         }
     }
 
@@ -1680,8 +1680,8 @@ Position::operator string () const
     oss << board << "\n\n";
 
     oss << "Fen: " << fen () << "\n"
-        << "Key: " << hex << uppercase << setfill ('0') << setw (16) 
-        << _si->posi_key << dec << setfill (' ') << "\n";
+        << "Key: " << setfill ('0') << hex << uppercase << setw (16)
+        << _si->posi_key << nouppercase << dec << setfill (' ') << "\n";
 
     oss << "Checkers: ";
     Bitboard chkrs = _si->checkers;

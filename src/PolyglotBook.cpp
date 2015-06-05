@@ -74,13 +74,10 @@ namespace OpeningBook  {
         PieceT pt = PieceT((m >> 12) & TOTL);
         if (pt != PAWN) promote (m, pt);
 
-        oss << setfill ('0')
-            << " key: "    << setw (16) << hex << uppercase << key
-            << setfill (' ')
-            << " move: "   << setw (5) << left << move_to_can (m)
-            << setfill ('0')
-            << " weight: " << setw (4) << right << dec << weight
-            << " learn: "  << setw (2) << learn
+        oss << setfill ('0') << " key: "    << setw (16) << hex << uppercase << key << nouppercase << dec
+            << setfill (' ') << " move: "   << setw ( 5) << hex << uppercase << left << move_to_can (m) << right << nouppercase << dec
+            << setfill ('0') << " weight: " << setw ( 4) << dec << weight
+            << setfill ('0') << " learn: "  << setw ( 2) << dec << learn
             << setfill (' ');
 
         return oss.str ();
@@ -323,7 +320,7 @@ namespace OpeningBook  {
         // Set new type for promotion piece
         if (pt != PAWN) promote (move, pt);
 
-        // Add 'special move' flags and verify it is legal
+        // Add special move flags and verify it is legal
         for (const auto &m : MoveList<LEGAL> (pos))
         {
             if ((m & ~PROMOTE) == move)

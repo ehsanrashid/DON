@@ -628,7 +628,6 @@
     <ClInclude Include="src\Notation.h" />
     <ClInclude Include="src\nullstream.h" />
     <ClInclude Include="src\Pawns.h" />
-    <ClInclude Include="src\Platform.h" />
     <ClInclude Include="src\PolyglotBook.h" />
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\PRNG.h" />

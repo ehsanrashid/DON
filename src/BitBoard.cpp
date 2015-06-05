@@ -328,7 +328,6 @@ namespace BitBoard {
     string pretty (Bitboard bb, char p)
     {
         static string ROW  = "|. . . . . . . .|\n";
-        static u16 ROW_LEN = ROW.length () + 1;
 
         string sbb;
         sbb = " /---------------\\\n";
@@ -346,9 +345,7 @@ namespace BitBoard {
         while (bb != U64(0))
         {
             Square s = pop_lsq (bb);
-            i08 r = _rank (s);
-            i08 f = _file (s);
-            sbb[2 + ROW_LEN * (8 - r) + 2 * f] = p;
+            sbb[2 + (ROW.length () + 1) * (8 - _rank (s)) + 2 * _file (s)] = p;
         }
 
         return sbb;

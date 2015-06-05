@@ -5,11 +5,6 @@
 #include "BitCount.h"
 #include "BitScan.h"
 
-#ifdef BM2
-#   include <immintrin.h> // Header for bmi2 instructions
-#   define PEXT(b, m) _pext_u64 (b, m) // Parallel bits extract
-#endif
-
 namespace BitBoard {
 
     const Bitboard FA_bb = U64(0x0101010101010101);

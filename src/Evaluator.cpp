@@ -56,7 +56,7 @@ namespace Evaluator {
             // king_zone_attacks_count[Color] is the number of attacks by
             // the given color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
-            // e.g, if Black's King is on g8 and there's a White Knight on g5,
+            // e.g, if Black's King is on g8 and there's a White knight on g5,
             // this knight adds 2 to king_zone_attacks_count[WHITE].
             u08 king_zone_attacks_count[CLR_NO];
 
@@ -208,9 +208,13 @@ namespace Evaluator {
             S(0, 0), S(107, 138), S(84, 122), S(114, 203), S(121, 217), S(0, 0)
         };
         
+
+        enum { DEFENDED, WEAK };
+        enum { MINOR, MAJOR };
+
         // THREATEN_BY_PIECE[defended/weak][minor/major attacking][attacked PieceType] contains
         // bonuses according to which piece type attacks which one.
-        const Score THREATEN_BY_PIECE[][2][NONE] =
+        const Score THREATEN_BY_PIECE[2][2][NONE] =
         {
             {
                 { S( 0, 0), S(19, 37), S(24, 37), S(44, 97), S(35,106), S(0, 0) },  // Defended - Minor
@@ -222,7 +226,10 @@ namespace Evaluator {
             }
         };
         
-        const Score THREATEN_BY_KING[] = { S( 2, 58), S( 6,125) };
+        const Score THREATEN_BY_KING[] =
+        {
+            S( 2, 58), S( 6,125)
+        };
 
         const Score THREATEN_BY_HANG_PAWN   = S(40, 60);
 
@@ -301,12 +308,11 @@ namespace Evaluator {
         // by combining UCI-configurable weights with an internal weight.
         Weight weight_option (i32 opt_value, const Score &internal_weight)
         {
-            Weight weight =
+            return
             {
                 opt_value * mg_value (internal_weight) / 1000,
                 opt_value * eg_value (internal_weight) / 1000
             };
-            return weight;
         }
 
         //  --- init evaluation info --->
@@ -415,7 +421,7 @@ namespace Evaluator {
                 {
                     if (NIHT == PT)
                     {
-                        // Outpost bonus for Knight
+                        // Outpost bonus for knight
                         if (!(ei.pin_attacked_by[Opp][PAWN] & s))
                         {
                             // Initial bonus based on square
@@ -446,7 +452,7 @@ namespace Evaluator {
                     {
                         score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor<Own> (s);
 
-                        // Outpost bonus for Bishop
+                        // Outpost bonus for bishop
                         if (!(ei.pin_attacked_by[Opp][PAWN] & s))
                         {
                             // Initial bonus based on square
@@ -493,7 +499,7 @@ namespace Evaluator {
                         }
                     }
 
-                    // Bishop or knight behind a pawn
+                    // Minors (bishop or knight) behind a pawn
                     if (   r < R_5
                         && pos.pieces<PAWN> () & (s + Push)
                        )
@@ -723,7 +729,7 @@ namespace Evaluator {
                         }
                     }
 
-                    // Knight can't give contact check but safe distance check
+                    // knight can't give contact check but safe distance check
                 }
 
                 // Analyse the enemies safe distance checks for sliders and knights
@@ -772,9 +778,6 @@ namespace Evaluator {
             const Bitboard TR2_bb   = WHITE == Own ? R2_bb  : R7_bb;
             const Bitboard TR7_bb   = WHITE == Own ? R7_bb  : R2_bb;
 
-            enum { Defended, Weak };
-            enum { Minor, Major };
-            
             Score score = SCORE_ZERO;
 
             Bitboard b;
@@ -807,10 +810,13 @@ namespace Evaluator {
             {
                 // Defended enemies attacked by minor pieces
                 b = defended_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
-                while (b != U64(0)) score += THREATEN_BY_PIECE[Defended][Minor][ptype (pos[pop_lsq (b)])];
-                // Defended enemies attacked by major pieces
+                while (b != U64(0)) score += THREATEN_BY_PIECE[DEFENDED][MINOR][ptype (pos[pop_lsq (b)])];
+                // Defended enemies attacked by rooks
                 b = defended_pieces & (ei.pin_attacked_by[Own][ROOK]);
-                while (b != U64(0)) score += THREATEN_BY_PIECE[Defended][Major][ptype (pos[pop_lsq (b)])];
+                while (b != U64(0)) score += THREATEN_BY_PIECE[DEFENDED][MAJOR][ptype (pos[pop_lsq (b)])];
+                //// Defended enemies attacked by queens
+                //b = defended_pieces & (ei.pin_attacked_by[Own][QUEN]);
+                //while (b != U64(0)) score += THREATEN_BY_PIECE[DEFENDED][MAJOR][ptype (pos[pop_lsq (b)])]/2;
             }
             
             // Enemies not defended by pawn and attacked by any piece
@@ -822,11 +828,12 @@ namespace Evaluator {
             // Add a bonus according to the kind of attacking pieces
             if (weak_pieces != U64(0))
             {
+                // Weak enemies attacked by minor pieces
                 b = weak_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
-                while (b != U64(0)) score += THREATEN_BY_PIECE[Weak][Minor][ptype (pos[pop_lsq (b)])];
-
+                while (b != U64(0)) score += THREATEN_BY_PIECE[WEAK][MINOR][ptype (pos[pop_lsq (b)])];
+                // Weak enemies attacked by major pieces
                 b = weak_pieces & (ei.pin_attacked_by[Own][ROOK] | ei.pin_attacked_by[Own][QUEN]);
-                while (b != U64(0)) score += THREATEN_BY_PIECE[Weak][Major][ptype (pos[pop_lsq (b)])];
+                while (b != U64(0)) score += THREATEN_BY_PIECE[WEAK][MAJOR][ptype (pos[pop_lsq (b)])];
 
                 b = weak_pieces & ei.ful_attacked_by[Own][KING];
                 if (b != U64(0)) score += THREATEN_BY_KING[more_than_one (b) ? 1 : 0]; 
