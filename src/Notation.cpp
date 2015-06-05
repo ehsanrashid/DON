@@ -104,16 +104,16 @@ namespace Notation {
     // to the corresponding legal move, if any.
     Move move_from_can (const string &can, const Position &pos)
     {
-        string can_copy = can;
-        if (5 == can_copy.length ())
+        string ccan = can;
+        if (5 == ccan.length ())
         {
             // Promotion piece in lowercase
-            if (isupper (u08(can_copy[4]))) can_copy[4] = u08(tolower (can_copy[4]));
+            if (isupper (u08(ccan[4]))) ccan[4] = u08(tolower (ccan[4]));
         }
 
         for (const auto &m : MoveList<LEGAL> (pos))
         {
-            if (can_copy == move_to_can (m, pos.chess960 ()))
+            if (ccan == move_to_can (m, pos.chess960 ()))
             {
                 return m;
             }
@@ -257,14 +257,14 @@ namespace Notation {
         return oss.str ();
     }
 
-    const u64 K = 1000;
-    const u64 M = K*K;
-
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
     string pretty_pv (Position &pos, i32 depth, Value value, TimePoint time, const Move *pv)
     {
+        static const u64 K = 1000;
+        static const u64 M = K*K;
+
         ostringstream oss;
 
         oss << setw ( 4) << depth

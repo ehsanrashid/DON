@@ -29,21 +29,21 @@ namespace TimeManagement {
         u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
         {
             // When in trouble, can step over reserved time with this ratio
-            const double TStepRatio  = RT_OPTIMUM == TT ? 1.0 : 7.00;
+            const double StepRatio  = RT_OPTIMUM == TT ? 1.0 : 7.00;
             // However must not steal time from remaining moves over this ratio
-            const double TStealRatio = RT_MAXIMUM == TT ? 0.0 : 0.33;
+            const double StealRatio = RT_MAXIMUM == TT ? 0.0 : 0.33;
 
-            double move_imp_0 = move_importance (game_ply) * MoveSlowness / 100;
-            double move_imp_1 = 0.0;
+            double this_move_imp = move_importance (game_ply) * MoveSlowness / 100;
+            double that_move_imp = 0.0;
             for (u08 i = 1; i < movestogo; ++i)
             {
-                move_imp_1 += move_importance (game_ply + 2 * i);
+                that_move_imp += move_importance (game_ply + 2 * i);
             }
 
-            double time_ratio1 = (TStepRatio * move_imp_0) / (TStepRatio * move_imp_0 + move_imp_1);
-            double time_ratio2 = (move_imp_0 + TStealRatio * move_imp_1) / (move_imp_0 + move_imp_1);
+            double time_ratio_1 = (0             + this_move_imp * StepRatio ) / (this_move_imp * StepRatio + that_move_imp);
+            double time_ratio_2 = (this_move_imp + that_move_imp * StealRatio) / (this_move_imp * 1         + that_move_imp);
 
-            return u32(time * min (time_ratio1, time_ratio2));
+            return u32(time * min (time_ratio_1, time_ratio_2));
         }
 
     }

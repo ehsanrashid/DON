@@ -15,7 +15,7 @@ namespace MovePick {
         {
             S_MAIN    , S_GOOD_CAPTURE, S_KILLER, S_GOOD_QUIET, S_BAD_QUIET, S_BAD_CAPTURE,
             S_EVASION , S_ALL_EVASION,
-            S_QSEARCH_WITH_CHECK   , S_QCAPTURE_1, S_QCHECK,
+            S_QSEARCH_WITH_CHECK   , S_QCAPTURE_1, S_QUIET_CHECK,
             S_QSEARCH_WITHOUT_CHECK, S_QCAPTURE_2,
             S_PROBCUT  , S_PROBCUT_CAPTURE,
             S_RECAPTURE, S_ALL_RECAPTURE,
@@ -302,7 +302,7 @@ namespace MovePick {
             }
             break;
 
-        case S_QCHECK:
+        case S_QUIET_CHECK:
             _moves_end = generate<QUIET_CHECK> (_moves_beg, _pos);
             break;
 
@@ -437,7 +437,7 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            case S_QCHECK:
+            case S_QUIET_CHECK:
                 do
                 {
                     move = *_moves_cur++;
