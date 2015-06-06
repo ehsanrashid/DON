@@ -107,7 +107,6 @@ namespace Engine {
 
         UCI      ::initialize ();
         BitBoard ::initialize ();
-        //Zobrist  ::initialize ();
         Position ::initialize ();
         BitBases ::initialize ();
         Pawns    ::initialize ();
@@ -120,18 +119,18 @@ namespace Engine {
 
         cout << endl;
 
-        UCI      ::start (arg);
+        UCI::start (arg);
 
     }
 
     // Exit from engine with exit code. (in case of some crash)
     void exit (i32 code)
     {
-        UCI    ::stop ();
+        UCI::stop ();
 
         Threadpool.exit ();
-        EndGame::deinitialize ();
-        UCI    ::deinitialize ();
+        EndGame::exit ();
+        UCI::exit ();
 
         ::exit (code);
     }

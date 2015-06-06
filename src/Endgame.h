@@ -117,8 +117,8 @@ namespace EndGame {
         }
     };
 
-    extern void   initialize ();
-    extern void deinitialize ();
+    extern void initialize ();
+    extern void exit ();
 
 }
 

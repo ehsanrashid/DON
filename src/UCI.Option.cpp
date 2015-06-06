@@ -241,7 +241,7 @@ namespace UCI {
         }
     }
 
-    void   initialize ()
+    void initialize ()
     {
 
         // Hash Memory Options
@@ -453,7 +453,7 @@ namespace UCI {
 
     }
 
-    void deinitialize ()
+    void exit ()
     {
         Options.clear ();
     }

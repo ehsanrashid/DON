@@ -1059,7 +1059,7 @@ namespace EndGame {
     }
 
 
-    void   initialize ()
+    void initialize ()
     {
         if (EndGames == NULL)
         {
@@ -1068,7 +1068,7 @@ namespace EndGame {
         }
     }
 
-    void deinitialize ()
+    void exit ()
     {
         if (EndGames != NULL)
         {

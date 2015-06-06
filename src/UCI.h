@@ -84,8 +84,8 @@ namespace UCI {
         return os;
     }
 
-    extern void   initialize ();
-    extern void deinitialize ();
+    extern void initialize ();
+    extern void exit ();
 
     // ---------------------------------------------
 
