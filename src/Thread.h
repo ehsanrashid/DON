@@ -30,24 +30,25 @@ namespace Threading {
     class Spinlock
     {
     private:
-        std::atomic_int _lock;
+        std::atomic_int _state;
 
     public:
-        Spinlock () { _lock = 1; } // Init here to workaround a bug with MSVC 2013
-    
+        Spinlock () { _state = 1; }
+
         void acquire ()
         {
-            while (_lock.fetch_sub(1, std::memory_order_acquire) != 1)
+            while (_state.fetch_sub (1, std::memory_order_acquire) != 1)
             {
-                while (_lock.load(std::memory_order_relaxed) <= 0)
+                while (_state.load (std::memory_order_relaxed) < 1)
                 {
-                    std::this_thread::yield(); // Be nice to hyperthreading
+                    std::this_thread::yield (); // Be nice to hyperthreading
                 }
             }
         }
+
         void release ()
         {
-            _lock.store(1, std::memory_order_release);
+            _state.store (1, std::memory_order_release);
         }
     };
 

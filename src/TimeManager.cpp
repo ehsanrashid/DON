@@ -81,10 +81,10 @@ namespace TimeManagement {
         _maximum_time =
             max (game_clock.time, MinimumMoveTime);
 
-        movestogo = movestogo != 0 ? min (movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
+        const u08 MaxMovesToGo = movestogo != 0 ? min (movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
         // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
         // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
-        for (u08 hyp_movestogo = 1; hyp_movestogo <= movestogo; ++hyp_movestogo)
+        for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
         {
             // Calculate thinking time for hypothetic "moves to go"-value
             i32 hyp_time = max (
