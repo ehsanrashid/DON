@@ -16,7 +16,7 @@
 #ifdef BM2
 #   include <immintrin.h>               // Header for bmi2 instructions
 #   define PEXT(b, m) _pext_u64 (b, m)  // Parallel bits extract
-#   define BLSR(b)    _blsr_u64 (b)
+#   define BLSR(b)    _blsr_u64 (b)     // Reset lowest set bit
 #endif
 
 /// When compiling with provided Makefile (e.g. for Linux and OSX), configuration
@@ -619,11 +619,11 @@ inline TimePoint now ()
 }
 
 
-// GameClock stores the available time and time-gain per move
+// GameClock struct stores the remain-time and time-inc per move in milli-seconds
 struct GameClock
 {
-    u32 time;   // Time left [milli-seconds]
-    u32 inc;    // Time gain [milli-seconds]
+    u32 time;   // Remaining Time    [milli-seconds]
+    u32 inc;    // Time inc per move [milli-seconds]
 
     GameClock ()
         : time (0)
@@ -673,6 +673,8 @@ inline void convert_path (std::string &path)
 {
     std::replace (path.begin (), path.end (), '\\', '/'); // Replace all '\' to '/'
 }
+
+
 
 extern const Value PIECE_VALUE[PHASE_NO][TOTL];
 

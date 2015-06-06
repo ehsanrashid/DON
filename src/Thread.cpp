@@ -42,14 +42,14 @@ namespace Threading {
     template TimerThread* new_thread<TimerThread> ();
     // ------------------------------------
 
-    // notify_one () wakes up the thread when there is some work to do
+    // ThreadBase::notify_one () wakes up the thread when there is some work to do
     void ThreadBase::notify_one ()
     {
         std::unique_lock<Mutex> lk (mutex);
         sleep_condition.notify_one ();
     }
 
-    // wait_for() set the thread to sleep until condition turns true
+    // ThreadBase::wait_for() set the thread to sleep until condition turns true
     void ThreadBase::wait_for (const volatile bool &condition)
     {
         std::unique_lock<Mutex> lk (mutex);
@@ -58,7 +58,7 @@ namespace Threading {
 
     // ------------------------------------
 
-    // Thread c'tor makes some init but does not launch any execution thread that
+    // Thread::Thread() makes some init but does not launch any execution thread that
     // will be started only when c'tor returns.
     Thread::Thread () //: splitpoints ()  // Initialization of non POD broken in MSVC
         : active_pos (nullptr)
@@ -69,7 +69,7 @@ namespace Threading {
         , searching (false)
     {}
 
-    // cutoff_occurred() checks whether a beta cutoff has occurred in the
+    // Thread::cutoff_occurred() checks whether a beta cutoff has occurred in the
     // current active splitpoint, or in some ancestor of the splitpoint.
     bool Thread::cutoff_occurred () const
     {
@@ -99,7 +99,7 @@ namespace Threading {
     }
 
 
-    // split<>() does the actual work of distributing the work at a node between several available threads.
+    // Thread::split<>() does the actual work of distributing the work at a node between several available threads.
     // Almost always allocate a slave, only in the rare case of a race (< 2%) this is not true.
     // SplitPoint object is initialized with all the data that must be copied to the helper threads
     // and then helper threads are told that they have been assigned work. This causes them to instantly
@@ -255,7 +255,7 @@ namespace Threading {
 
     // ------------------------------------
 
-    // initialize() is called at startup to create and launch requested threads,
+    // ThreadPool::initialize() is called at startup to create and launch requested threads,
     // that will go immediately to sleep.
     // Cannot use a c'tor becuase Threadpool is a static object
     // and need a fully initialized engine.
@@ -272,7 +272,7 @@ namespace Threading {
         configure ();
     }
 
-    // deinitialize() cleanly terminates the threads before the program exits
+    // ThreadPool::exit() cleanly terminates the threads before the program exits
     // Cannot be done in d'tor because have to terminate
     // the threads before to free ThreadPool object.
     void ThreadPool::exit ()
@@ -286,7 +286,7 @@ namespace Threading {
         clear ();
     }
 
-    // configure() updates internal threads parameters from the corresponding
+    // ThreadPool::configure() updates internal threads parameters from the corresponding
     // UCI options and creates/destroys threads to match the requested number.
     // Thread objects are dynamically allocated to avoid creating in advance all possible
     // threads, with included pawns and material tables, if only few are used.
@@ -315,7 +315,6 @@ namespace Threading {
 
     // ThreadPool::available_slave() tries to find an idle thread which is available
     // to join SplitPoint 'sp'.
-
     Thread* ThreadPool::available_slave (const SplitPoint *sp) const
     {
         for (Thread *th : *this)
@@ -329,7 +328,7 @@ namespace Threading {
     }
 
 
-    // start_main() wakes up the main thread sleeping in MainThread::idle_loop()
+    // ThreadPool::start_main() wakes up the main thread sleeping in MainThread::idle_loop()
     // so to start a new search, then returns immediately.
     void ThreadPool::start_main (const Position &pos, const LimitsT &limits, StateInfoStackPtr &states)
     {

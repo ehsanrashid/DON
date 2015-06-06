@@ -410,7 +410,7 @@ namespace UCI {
             else if (token == "perft")      exe_perft (cmds);
             else if (token == "bench")      benchmark (cmds, RootPos);
             else if (token == "autotune")   auto_tune (cmds);
-            else if (token == "cls")        system ("cls");
+            else if (!white_spaces (token)) system (token.c_str ());
             else
             {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;

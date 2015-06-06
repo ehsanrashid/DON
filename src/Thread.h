@@ -144,9 +144,7 @@ namespace Threading {
     };
 
 
-    // MainThread and TimerThread are derived classes used to characterize the two
-    // special threads: the main one and the recurring timer.
-
+    // MainThread struct is derived struct used for the main one
     struct MainThread
         : public Thread
     {
@@ -159,6 +157,7 @@ namespace Threading {
 
     const i32 TIMER_RESOLUTION = 5; // Millisec between two check_time() calls
 
+    // TimerThread struct is derived struct used for the recurring timer.
     struct TimerThread
         : public ThreadBase
     {
@@ -176,10 +175,12 @@ namespace Threading {
 
     };
 
-    // ThreadPool struct handles all the threads related stuff like init, starting,
-    // parking and, most importantly, launching a slave thread at a split point.
-    // All the access to shared thread data is done through this class.
-
+    // ThreadPool struct handles all the threads related stuff like
+    // - initializing
+    // - starting
+    // - parking
+    // - launching a slave thread at a split point (most important).
+    // All the access to shared thread data is done through this.
     struct ThreadPool
         : public ::std::vector<Thread*>
     {

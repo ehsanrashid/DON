@@ -71,8 +71,8 @@ namespace Searcher {
     {
         bool  force_stop        // Stop on request
             , ponderhit_stop    // Stop on ponder-hit
-            , firstmove_root    // First move at root
-            , failedlow_root;   // Failed-low move at root
+            , firstmove_root    // Move is First at root
+            , failedlow_root;   // Move Failed-low at root
 
         SignalsT ()
         {
