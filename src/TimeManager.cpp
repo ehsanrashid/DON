@@ -56,7 +56,7 @@ namespace TimeManagement {
     i32  MoveSlowness        = 110; // Move Slowness, in %age.
     bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
-    void TimeManager::initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply)
+    void TimeManager::initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply, TimePoint now)
     {
         //i32 npmsec;
         // If we have to play in 'nodes as time' mode, then convert from time
@@ -76,7 +76,9 @@ namespace TimeManagement {
 
 
         // Initializes: instability factor and search times to maximum values
+        _start_time = now;
         _instability_factor = 1.0;
+        
         _optimum_time =
         _maximum_time =
             max (game_clock.time, MinimumMoveTime);

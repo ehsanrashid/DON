@@ -6,7 +6,6 @@
 
 #include "UCI.h"
 #include "Type.h"
-#include "TimeManager.h"
 #include "Position.h"
 #include "PolyglotBook.h"
 
@@ -37,6 +36,7 @@ namespace Searcher {
         GameClock game_clock[CLR_NO];
         std::vector<Move> root_moves;   // restrict search to these moves only
 
+        u32  npmsec;
         u32  movetime;  // search <x> time in milli-seconds
         u08  movestogo; // search <x> moves to the next time control
         u08  depth;     // search <x> depth (plies) only
@@ -202,8 +202,6 @@ namespace Searcher {
     extern RootMoveList         RootMoves;
     extern Position             RootPos;
     extern StateInfoStackPtr    SetupStates;
-
-    extern TimePoint            SearchTime;
 
     extern u16                  MultiPV;
     //extern i32                MultiPV_cp;

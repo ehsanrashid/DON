@@ -11,6 +11,7 @@
 #include "Material.h"
 #include "Pawns.h"
 #include "Evaluator.h"
+#include "TimeManager.h"
 #include "Thread.h"
 #include "PRNG.h"
 #include "Notation.h"
@@ -102,7 +103,7 @@ namespace Searcher {
 
         const u08   MAX_QUIETS     = 64;
 
-        const TimePoint INFO_INTERVAL  = 3000; // 3 sec
+        const u32   INFO_INTERVAL  = 3000; // 3 sec
 
         Color   RootColor;
         i32     RootPly;
@@ -214,9 +215,10 @@ namespace Searcher {
         // info_multipv() formats PV information according to UCI protocol.
         // UCI requires to send all the PV lines also if are still to be searched
         // and so refer to the previous search score.
-        string info_multipv (const Position &pos, Depth depth, Value alpha, Value beta, TimePoint time)
+        string info_multipv (const Position &pos, Depth depth, Value alpha, Value beta)
         {
-            assert (time >= 0);
+            u32 elapsed_time = max (TimeMgr.elapsed_time (), 1U);
+            assert (elapsed_time >= 0);
 
             stringstream ss;
 
@@ -256,10 +258,10 @@ namespace Searcher {
                     << " seldepth " << sel_depth
                     << " score "    << to_string (v)
                     << (i == IndexPV ? beta <= v ? " lowerbound" : v <= alpha ? " upperbound" : "" : "")
-                    << " time "     << time
+                    << " time "     << elapsed_time
                     << " nodes "    << pos.game_nodes ()
-                    << " nps "      << pos.game_nodes () * MILLI_SEC / max (time, TimePoint(1));
-                if (time > MILLI_SEC) ss  << " hashfull " << TT.hash_full ();
+                    << " nps "      << pos.game_nodes () * MILLI_SEC / elapsed_time;
+                if (elapsed_time > MILLI_SEC) ss  << " hashfull " << TT.hash_full ();
                 ss  << " pv"        << RootMoves[i].info_pv ();
 
             }
@@ -883,21 +885,15 @@ namespace Searcher {
                 && abs (tt_value) < +VALUE_KNOWN_WIN
                 && (tt_bound & BOUND_LOWER);
 
-            TimePoint time;
-
             if (RootNode)
             {
-                if (Threadpool.main () == thread)
+                if (Threadpool.main () == thread && TimeMgr.elapsed_time () > INFO_INTERVAL)
                 {
-                    time = now () - SearchTime;
-                    if (time > INFO_INTERVAL)
-                    {
-                        sync_cout
-                            << "info"
-                            << " depth " << depth/DEPTH_ONE
-                            << " time "  << time
-                            << sync_endl;
-                    }
+                    sync_cout
+                        << "info"
+                        << " depth " << depth/DEPTH_ONE
+                        << " time "  << TimeMgr.elapsed_time ()
+                        << sync_endl;
                 }
             }
 
@@ -951,15 +947,14 @@ namespace Searcher {
 
                     if (Threadpool.main () == thread)
                     {
-                        time = now () - SearchTime;
-                        if (time > INFO_INTERVAL)
+                        if (TimeMgr.elapsed_time () > INFO_INTERVAL)
                         {
                             sync_cout
                                 << "info"
                                 //<< " depth "          << depth/DEPTH_ONE
                                 << " currmovenumber " << setw (2) << u16(legal_count + IndexPV)
                                 << " currmove "       << move_to_can (move, Chess960)
-                                << " time "           << time
+                                << " time "           << TimeMgr.elapsed_time ()
                                 << sync_endl;
                         }
                     }
@@ -1357,7 +1352,6 @@ namespace Searcher {
                 }
 
                 bool aspiration = depth > 4*DEPTH_ONE;
-                TimePoint iteration_time;
 
                 // MultiPV loop. Perform a full root search for each PV line
                 for (IndexPV = 0; IndexPV < LimitPV; ++IndexPV)
@@ -1394,8 +1388,6 @@ namespace Searcher {
                             RootMoves[i].insert_pv_into_tt (RootPos);
                         }
 
-                        iteration_time = now () - SearchTime;
-
                         // If search has been stopped break immediately.
                         // Sorting and writing PV back to TT is safe becuase
                         // RootMoves is still valid, although refers to previous iteration.
@@ -1404,11 +1396,11 @@ namespace Searcher {
                         // When failing high/low give some update
                         // (without cluttering the UI) before to re-search.
                         if (   MultiPV == 1
-                            && iteration_time > INFO_INTERVAL
+                            && TimeMgr.elapsed_time () > INFO_INTERVAL
                             && (bound_a >= best_value || best_value >= bound_b)
                            )
                         {
-                            sync_cout << info_multipv (RootPos, depth, bound_a, bound_b, iteration_time) << sync_endl;
+                            sync_cout << info_multipv (RootPos, depth, bound_a, bound_b) << sync_endl;
                         }
 
                         // In case of failing low/high increase aspiration window and re-search,
@@ -1442,9 +1434,9 @@ namespace Searcher {
                         //          << " time " << TimeMgr.elapsed() << sync_endl;
                     }
                     else
-                    if (IndexPV + 1 == LimitPV || iteration_time > INFO_INTERVAL)
+                    if (IndexPV + 1 == LimitPV || TimeMgr.elapsed_time () > INFO_INTERVAL)
                     {
-                        sync_cout << info_multipv (RootPos, depth, bound_a, bound_b, iteration_time) << sync_endl;
+                        sync_cout << info_multipv (RootPos, depth, bound_a, bound_b) << sync_endl;
                     }
                 }
 
@@ -1463,43 +1455,45 @@ namespace Searcher {
                     Skills.play_move ();
                 }
 
-                iteration_time = now () - SearchTime;
-
                 if (SearchLogWrite)
                 {
                     LogFile logfile (SearchLog);
-                    logfile << pretty_pv (RootPos, depth, RootMoves[0].new_value, iteration_time, &RootMoves[0].pv[0]) << endl;
+                    logfile << pretty_pv (RootPos, depth, RootMoves[0].new_value, TimeMgr.elapsed_time (), &RootMoves[0].pv[0]) << endl;
                 }
 
                 // Stop the search early:
                 bool stop = false;
-
-                // Do have time for the next iteration? Can stop searching now?
-                if (!Signals.ponderhit_stop && Limits.use_timemanager ())
+                
+                // Have found a "mate in <x>"?
+                if (   MateSearch
+                    && best_value >= +VALUE_MATE_IN_MAX_DEPTH
+                    && i16(VALUE_MATE - best_value) <= 2*Limits.mate
+                    )
                 {
-                    // Time adjustments
-                    if (aspiration && LimitPV == 1)
-                    {
-                        // Take in account some extra time if the best move has changed
-                        TimeMgr.instability (RootMoves.best_move_change);
-                    }
-
-                    // If there is only one legal move available or 
-                    // If all of the available time has been used.
-                    if (RootSize == 1 || iteration_time > TimeMgr.available_time ())
-                    {
-                        stop = true;
-                    }
+                    stop = true;
                 }
-                else
+                
+                // Do have time for the next iteration? Can stop searching now?
+                if (Limits.use_timemanager ())
                 {
-                    // Have found a "mate in <x>"?
-                    if (   MateSearch
-                        && best_value >= +VALUE_MATE_IN_MAX_DEPTH
-                        && i16(VALUE_MATE - best_value) <= 2*Limits.mate
-                       )
+                    if (!Signals.ponderhit_stop)
                     {
-                        stop = true;
+                        // Time adjustments
+
+                        if (aspiration && LimitPV == 1)
+                        {
+                            // Take in account some extra time if the best move has changed
+                            TimeMgr.instability (RootMoves.best_move_change);
+                        }
+
+                        // If there is only one legal move available or 
+                        // If all of the available time has been used.
+                        if (   RootSize == 1
+                            || TimeMgr.elapsed_time () > TimeMgr.available_time ()
+                           )
+                        {
+                            stop = true;
+                        }
                     }
                 }
 
@@ -1566,8 +1560,6 @@ namespace Searcher {
     RootMoveList        RootMoves;
     Position            RootPos (0);
     StateInfoStackPtr   SetupStates;
-
-    TimePoint           SearchTime;
 
     u16                 MultiPV         = 1;
     //i32                 MultiPV_cp      = 0;
@@ -1781,7 +1773,7 @@ namespace Searcher {
                 }
             }
 
-            TimeMgr.initialize (Limits.game_clock[RootColor], Limits.movestogo, RootPly);
+            TimeMgr.initialize (Limits.game_clock[RootColor], Limits.movestogo, RootPly, now ());
 
             i16 timed_contempt = 0;
             i16 diff_time = 0;
@@ -1836,12 +1828,10 @@ namespace Searcher {
             {
                 LogFile logfile (SearchLog);
 
-                TimePoint time = now () - SearchTime;
-
                 logfile
-                    << "Time (ms)  : " << time                                      << "\n"
+                    << "Time (ms)  : " << TimeMgr.elapsed_time ()                   << "\n"
                     << "Nodes (N)  : " << RootPos.game_nodes ()                     << "\n"
-                    << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / max (time, TimePoint(1)) << "\n"
+                    << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / max (TimeMgr.elapsed_time (), 1U) << "\n"
                     << "Hash-full  : " << TT.hash_full ()                           << "\n"
                     << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
                 if (    RootMoves[0].pv[0] != MOVE_NONE
@@ -1885,15 +1875,14 @@ namespace Searcher {
 
     finish:
 
-        TimePoint time = now () - SearchTime;
-
+        u32 elapsed_time = max (TimeMgr.elapsed_time (), 1U);
         // When search is stopped this info is printed
         sync_cout
             << "info"
-            << " time "     << time
+            << " time "     << elapsed_time
             << " nodes "    << RootPos.game_nodes ()
-            << " nps "      << RootPos.game_nodes () * MILLI_SEC / max (time, TimePoint(1));
-        if (time > MILLI_SEC) cout << " hashfull " << TT.hash_full ();
+            << " nps "      << RootPos.game_nodes () * MILLI_SEC / elapsed_time;
+        if (elapsed_time > MILLI_SEC) cout << " hashfull " << TT.hash_full ();
         cout<< sync_endl;
 
         // When reach max depth arrive here even without Signals.force_stop is raised,
@@ -1989,6 +1978,8 @@ namespace Threading {
     {
         static TimePoint last_time = now ();
 
+        u32 elapsed_time = max (TimeMgr.elapsed_time (), 1U);
+
         TimePoint now_time = now ();
         if (now_time - last_time >= MILLI_SEC)
         {
@@ -2001,12 +1992,11 @@ namespace Threading {
 
         if (Limits.use_timemanager ())
         {
-            TimePoint movetime = now_time - SearchTime;
-            if (   movetime > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
+            if (   elapsed_time > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
                    // Still at first move
                 || (    Signals.firstmove_root
                     && !Signals.failedlow_root
-                    && movetime > TimeMgr.available_time () * 0.75
+                    && elapsed_time > TimeMgr.available_time () * 0.75
                    )
                )
             {
@@ -2016,8 +2006,7 @@ namespace Threading {
         else
         if (Limits.movetime != 0)
         {
-            TimePoint movetime = now_time - SearchTime;
-            if (movetime >= Limits.movetime)
+            if (elapsed_time >= Limits.movetime)
             {
                 Signals.force_stop = true;
             }

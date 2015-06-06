@@ -337,8 +337,6 @@ namespace Threading {
     {
         main ()->join ();
 
-        SearchTime = now (); // As early as possible
-
         RootPos = pos;
         RootMoves.initialize (pos, limits.root_moves);
         Limits  = limits;

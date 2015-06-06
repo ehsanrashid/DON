@@ -2,6 +2,7 @@
 #define _TIME_MANAGER_H_INC_
 
 #include "Type.h"
+#include "Searcher.h"
 #include "UCI.h"
 
 namespace TimeManagement {
@@ -18,22 +19,25 @@ namespace TimeManagement {
     {
     private:
 
-        u32   _optimum_time;
-        u32   _maximum_time;
+        TimePoint _start_time;
+        u32       _optimum_time;
+        u32       _maximum_time;
 
-        double _instability_factor;
+        double    _instability_factor;
 
     public:
 
         u64 available_nodes; // When in 'nodes as time' mode
 
-        u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.71); }
+        u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.76); }
     
         u32 maximum_time   () const { return _maximum_time; }
 
+        u32 elapsed_time   () const { return u32(Searcher::Limits.npmsec ? Searcher::RootPos.game_nodes () : now () - _start_time); }
+
         void instability (double best_move_change) { _instability_factor = 1.0 + best_move_change; }
 
-        void initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply);
+        void initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply, TimePoint now);
 
     };
 
