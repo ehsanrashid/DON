@@ -103,8 +103,6 @@ namespace Searcher {
 
         const u08   MAX_QUIETS     = 64;
 
-        const u32   INFO_INTERVAL  = 3000; // 3 sec
-
         Color   RootColor;
         i32     RootPly;
 
@@ -223,11 +221,11 @@ namespace Searcher {
             stringstream ss;
 
             i32 sel_depth = 0;
-            for (size_t idx = 0; idx < Threadpool.size (); ++idx)
+            for (Thread *th : Threadpool)
             {
-                if (sel_depth < Threadpool[idx]->max_ply)
+                if (sel_depth < th->max_ply)
                 {
-                    sel_depth = Threadpool[idx]->max_ply;
+                    sel_depth = th->max_ply;
                 }
             }
 
@@ -887,7 +885,7 @@ namespace Searcher {
 
             if (RootNode)
             {
-                if (Threadpool.main () == thread && TimeMgr.elapsed_time () > INFO_INTERVAL)
+                if (Threadpool.main () == thread && TimeMgr.elapsed_time () > 3*MILLI_SEC)
                 {
                     sync_cout
                         << "info"
@@ -947,7 +945,7 @@ namespace Searcher {
 
                     if (Threadpool.main () == thread)
                     {
-                        if (TimeMgr.elapsed_time () > INFO_INTERVAL)
+                        if (TimeMgr.elapsed_time () > 3*MILLI_SEC)
                         {
                             sync_cout
                                 << "info"
@@ -1242,6 +1240,11 @@ namespace Searcher {
                     }
                 }
 
+                if (!SPNode && !capture_or_promotion && move != best_move && quiet_count < MAX_QUIETS)
+                {
+                    quiet_moves[quiet_count++] = move;
+                }
+
                 // Step 19. Check for splitting the search (at non-splitpoint node)
                 if (   !SPNode
                     && Threadpool.split_depth <= depth
@@ -1397,7 +1400,7 @@ namespace Searcher {
                         // (without cluttering the UI) before to re-search.
                         if (   MultiPV == 1
                             && (bound_a >= best_value || best_value >= bound_b)
-                            && TimeMgr.elapsed_time () > INFO_INTERVAL
+                            && TimeMgr.elapsed_time () > 3*MILLI_SEC
                            )
                         {
                             sync_cout << info_multipv (RootPos, depth, bound_a, bound_b) << sync_endl;
@@ -1437,7 +1440,7 @@ namespace Searcher {
                             << sync_endl;
                     }
                     else
-                    if (IndexPV + 1 == LimitPV || TimeMgr.elapsed_time () > INFO_INTERVAL)
+                    if (IndexPV + 1 == LimitPV || TimeMgr.elapsed_time () > 3*MILLI_SEC)
                     {
                         sync_cout << info_multipv (RootPos, depth, bound_a, bound_b) << sync_endl;
                     }
