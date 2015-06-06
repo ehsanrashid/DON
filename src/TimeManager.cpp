@@ -20,22 +20,18 @@ namespace TimeManagement {
         // Data was extracted from CCRL game database with some simple filtering criteria.
         double move_importance (i32 game_ply)
         {
-            const double PLY_SCALE = 09.300;
-            const double PLY_SHIFT = 59.800;
-            const double SKEW_RATE = 00.172;
-
-            return pow ((1 + exp ((game_ply - PLY_SHIFT) / PLY_SCALE)), -SKEW_RATE) + DBL_MIN; // Ensure non-zero
+            //                               PLY_SHIFT  PLY_SCALE  SKEW_RATE
+            return pow ((1 + exp ((game_ply - 59.800) / 09.300)), -00.172) + DBL_MIN; // Ensure non-zero
         }
 
         template<RemainTimeT TT>
         // remaining_time<>() calculate the time remaining
         u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
         {
-            const double MAX_STEP_RATIO  = 7.00; // When in trouble, can step over reserved time with this ratio
-            const double MAX_STEAL_RATIO = 0.33; // However must not steal time from remaining moves over this ratio
-
-            const double TStepRatio  = RT_OPTIMUM == TT ? 1.0 : MAX_STEP_RATIO;
-            const double TStealRatio = RT_MAXIMUM == TT ? 0.0 : MAX_STEAL_RATIO;
+            // When in trouble, can step over reserved time with this ratio
+            const double TStepRatio  = RT_OPTIMUM == TT ? 1.0 : 7.00;
+            // However must not steal time from remaining moves over this ratio
+            const double TStealRatio = RT_MAXIMUM == TT ? 0.0 : 0.33;
 
             double move_imp_0 = move_importance (game_ply) * MoveSlowness / 100;
             double move_imp_1 = 0.0;
