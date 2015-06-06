@@ -97,16 +97,15 @@ namespace Transposition {
         return u32(mem_size >> 20);
     }
 
-    u32 TranspositionTable::auto_size (u64 mem_size_mb, bool force)
+    void TranspositionTable::auto_size (u64 mem_size_mb, bool force)
     {
         if (mem_size_mb == 0) mem_size_mb = MaxSize;
 
         for (u64 msize_mb = mem_size_mb; msize_mb >= MinSize; msize_mb >>= 1)
         {
-            if (resize (msize_mb, force)) return u32(msize_mb);
+            if (resize (msize_mb, force)) return;
         }
         Engine::exit (EXIT_FAILURE);
-        return 0;
     }
 
     // probe() looks up the entry in the transposition table.

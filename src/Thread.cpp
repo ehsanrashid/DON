@@ -22,7 +22,7 @@ namespace Threading {
     T* new_thread ()
     {
         std::thread *th = new T;
-        *th = std::thread(&T::idle_loop, (T*)th); // Will go to sleep
+        *th = std::thread (&T::idle_loop, (T*)th); // Will go to sleep
         return (T*)th;
     }
 
@@ -202,7 +202,7 @@ namespace Threading {
         {
             std::unique_lock<Mutex> lk (mutex);
 
-            if (alive) sleep_condition.wait_for(lk, std::chrono::milliseconds(run ? resolution : INT_MAX));
+            if (alive) sleep_condition.wait_for (lk, std::chrono::milliseconds(run ? resolution : INT_MAX));
 
             lk.unlock ();
 
@@ -277,13 +277,16 @@ namespace Threading {
     // the threads before to free ThreadPool object.
     void ThreadPool::exit ()
     {
+        // As first because they accesses threads data
         delete_thread (auto_save_th);
-        delete_thread (check_limits_th); // As first because check_limits() accesses threads data
-        for (Thread* th : *this)
+        delete_thread (check_limits_th);
+
+        for (Thread *th : *this)
         {
             delete_thread (th);
         }
-        clear ();
+
+        clear (); // Get rid of stale pointers
     }
 
     // ThreadPool::configure() updates internal threads parameters from the corresponding
@@ -341,7 +344,7 @@ namespace Threading {
         Limits  = limits;
         if (states.get () != nullptr) // If don't set a new position, preserve current state
         {
-            SetupStates = states;  // Ownership transfer here
+            SetupStates = std::move (states); // Ownership transfer here
             assert (states.get () == nullptr);
         }
 

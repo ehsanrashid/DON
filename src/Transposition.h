@@ -245,7 +245,7 @@ namespace Transposition {
 
         u32 resize () { return resize (size (), true); }
 
-        u32 auto_size (u64 mem_size_mb, bool force = false);
+        void auto_size (u64 mem_size_mb, bool force = false);
 
         TTEntry* probe (Key key, bool &hit) const;
 

@@ -163,7 +163,7 @@ namespace Threading {
     {
 
         bool run;
-        i32 resolution; // Millisec between two check_time() calls
+        i32 resolution; // Millisec between two task() calls
         void (*task) ();
         
         TimerThread () { stop (); }
