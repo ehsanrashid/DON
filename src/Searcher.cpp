@@ -475,7 +475,7 @@ namespace Searcher {
                         -quien_search<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
                         -quien_search<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
 
-                bool next_legal = PVNode && (ss+1)->pv != nullptr && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
+                bool nextmove_legal = PVNode && (ss+1)->pv != nullptr && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
 
                 // Undo the move
                 pos.undo_move ();
@@ -493,7 +493,7 @@ namespace Searcher {
 
                         if (PVNode)
                         {
-                            if (next_legal)
+                            if (nextmove_legal)
                             {
                                 update_pv (ss->pv, best_move, (ss+1)->pv);
                             }
@@ -1098,44 +1098,24 @@ namespace Searcher {
                         reduction_depth += DEPTH_ONE;
                     }
                     // Decrease reduction for counter moves
-                    if (   reduction_depth > DEPTH_ZERO
-                        && move == counter_move
-                       )
+                    if (move == counter_move)
                     {
-                        reduction_depth -= DEPTH_ONE;
+                        reduction_depth = max (reduction_depth- DEPTH_ONE, DEPTH_ZERO);
                     }
                     // Decrease reduction for moves that escape a capture
-                    if (   reduction_depth > DEPTH_ZERO
-                        && mtype (move) == NORMAL
+                    if (   mtype (move) == NORMAL
                         && ptype (pos[dst_sq (move)]) != PAWN
                         && pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO // Reverse move
                        )
                     {
-                        reduction_depth -= DEPTH_ONE;
+                        reduction_depth = max (reduction_depth- DEPTH_ONE, DEPTH_ZERO);
                     }
                     
                     if (SPNode) alpha = splitpoint->alpha;
-
-                    Depth reduced_depth;
-                    reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
+                    
                     // Search with reduced depth
+                    Depth reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
                     value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
-
-                    // Re-search at intermediate depth if reduction is very high
-                    if (alpha < value && reduction_depth >= 4*DEPTH_ONE)
-                    {
-                        reduced_depth = max (new_depth - reduction_depth/2, DEPTH_ONE);
-                        // Search with reduced depth
-                        value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
-
-                        // Re-search at intermediate depth if reduction is very high
-                        if (alpha < value && reduction_depth >= 8*DEPTH_ONE)
-                        {
-                            reduced_depth = max (new_depth - reduction_depth/4, DEPTH_ONE);
-                            // Search with reduced depth
-                            value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
-                        }
-                    }
 
                     full_depth_search = alpha < value && reduction_depth != DEPTH_ZERO;
                 }
@@ -1175,7 +1155,7 @@ namespace Searcher {
                             -depth_search<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                 }
                 
-                bool next_legal = PVNode && !RootNode && (ss+1)->pv != nullptr && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
+                bool nextmove_legal = PVNode && !RootNode && (ss+1)->pv != nullptr && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
 
                 // Step 17. Undo move
                 pos.undo_move ();
@@ -1243,7 +1223,7 @@ namespace Searcher {
 
                         if (PVNode && !RootNode)
                         {    
-                            if (next_legal)
+                            if (nextmove_legal)
                             {
                                 update_pv (SPNode ? splitpoint->ss->pv : ss->pv, best_move, (ss+1)->pv);
                             }
