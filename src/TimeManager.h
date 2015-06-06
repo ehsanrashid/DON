@@ -37,7 +37,7 @@ namespace TimeManagement {
 
         void instability (double best_move_change) { _instability_factor = 1.0 + best_move_change; }
 
-        void initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply, TimePoint now);
+        void initialize (Color c, Searcher::LimitsT &limits, i32 game_ply, TimePoint now_time);
 
     };
 
@@ -47,6 +47,7 @@ namespace TimeManagement {
     extern u32  EmergencyMoveTime   ;
     extern u32  MinimumMoveTime     ;
     extern i32  MoveSlowness        ;
+    extern i32  NodesTime           ;
     extern bool Ponder              ;
 
 }

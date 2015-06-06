@@ -227,6 +227,7 @@ namespace UCI {
             //EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
             //MinimumMoveTime      = i32(Options["Minimum Move Time"]);
             MoveSlowness         = i32(Options["Move Slowness"]);
+            NodesTime            = i32(Options["Nodes Time"]);
             Ponder               = bool(Options["Ponder"]);
         }
 
@@ -423,6 +424,7 @@ namespace UCI {
         //Options["Minimum Move Time"]            << Option (MinimumMoveTime     , 0, 5000, configure_time);
         // How slow you want engine to play, 100 is neutral, in %age.
         Options["Move Slowness"]                << Option (MoveSlowness        ,+ 10,+ 1000, configure_time);
+        Options["Nodes Time"]                   << Option (NodesTime           ,   0,+10000, configure_time);
         // Whether or not the engine should analyze when it is the opponent's turn.
         // Default true.
         //

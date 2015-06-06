@@ -8,6 +8,7 @@ TimeManagement::TimeManager TimeMgr; // Global TimeManager
 namespace TimeManagement {
 
     using namespace std;
+    using namespace Searcher;
     using namespace UCI;
 
     namespace {
@@ -54,44 +55,42 @@ namespace TimeManagement {
     u32  EmergencyMoveTime   =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
     u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
     i32  MoveSlowness        = 110; // Move Slowness, in %age.
+    i32  NodesTime           =   0;
     bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
-    void TimeManager::initialize (const GameClock &game_clock, u08 movestogo, i32 game_ply, TimePoint now)
+    void TimeManager::initialize (Color c, LimitsT &limits, i32 game_ply, TimePoint now_time)
     {
-        //i32 npmsec;
         // If we have to play in 'nodes as time' mode, then convert from time
         // to nodes, and use resulting values in time management formulas.
         // WARNING: Given npms (nodes per millisecond) must be much lower then
         // real engine speed to avoid time losses.
-        //if (npmsec)
-        //{
-        //    if (available_nodes == 0) // Only once at game start
-        //        available_nodes = npmsec * game_clock.time; // Time is in msec
+        if (NodesTime != 0)
+        {
+            // Only once at game start
+            if (available_nodes == 0) available_nodes = NodesTime * limits.game_clock[c].time; // Time is in msec
 
-        //    // Convert from millisecs to nodes
-        //    game_clock.time = (int)available_nodes;
-        //    game_clock.inc *= npmsec;
-        //    limits.npmsec = npmsec;
-        //}
+            // Convert from millisecs to nodes
+            limits.game_clock[c].time = i32 (available_nodes);
+            limits.game_clock[c].inc *= NodesTime;
+            limits.npmsec = NodesTime;
+        }
 
-
-        // Initializes: instability factor and search times to maximum values
-        _start_time = now;
+        _start_time = now_time;
         _instability_factor = 1.0;
         
         _optimum_time =
         _maximum_time =
-            max (game_clock.time, MinimumMoveTime);
+            max (limits.game_clock[c].time, MinimumMoveTime);
 
-        const u08 MaxMovesToGo = movestogo != 0 ? min (movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
+        const u08 MaxMovesToGo = limits.movestogo != 0 ? min (limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
         // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
         // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
         for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
         {
             // Calculate thinking time for hypothetic "moves to go"-value
             i32 hyp_time = max (
-                + game_clock.time
-                + game_clock.inc * (hyp_movestogo-1)
+                + limits.game_clock[c].time
+                + limits.game_clock[c].inc * (hyp_movestogo-1)
                 - EmergencyClockTime
                 - EmergencyMoveTime * min (hyp_movestogo, EmergencyMoveHorizon), 0U);
 

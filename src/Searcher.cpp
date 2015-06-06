@@ -300,11 +300,11 @@ namespace Searcher {
             if (PVNode)
             {
                 // To flag EXACT a node with eval above alpha and no available moves
-                pv_alpha    = alpha;
+                pv_alpha = alpha;
                 
                 (ss  )->pv[0] = MOVE_NONE;
                 fill (pv, pv + sizeof (pv)/sizeof (*pv), MOVE_NONE);
-                (ss+1)->pv    = pv;
+                (ss+1)->pv = pv;
             }
 
             Move  tt_move    = MOVE_NONE
@@ -1354,7 +1354,7 @@ namespace Searcher {
                 bool aspiration = depth > 4*DEPTH_ONE;
 
                 // MultiPV loop. Perform a full root search for each PV line
-                for (IndexPV = 0; IndexPV < LimitPV; ++IndexPV)
+                for (IndexPV = 0; IndexPV < LimitPV && !Signals.force_stop; ++IndexPV)
                 {
                     // Reset Aspiration window starting size
                     if (aspiration)
@@ -1396,8 +1396,8 @@ namespace Searcher {
                         // When failing high/low give some update
                         // (without cluttering the UI) before to re-search.
                         if (   MultiPV == 1
-                            && TimeMgr.elapsed_time () > INFO_INTERVAL
                             && (bound_a >= best_value || best_value >= bound_b)
+                            && TimeMgr.elapsed_time () > INFO_INTERVAL
                            )
                         {
                             sync_cout << info_multipv (RootPos, depth, bound_a, bound_b) << sync_endl;
@@ -1430,8 +1430,11 @@ namespace Searcher {
 
                     if (Signals.force_stop)
                     {
-                        //sync_cout << "info nodes " << RootPos.game_nodes ()
-                        //          << " time " << TimeMgr.elapsed() << sync_endl;
+                        sync_cout
+                            << "info"
+                            << " nodes " << RootPos.game_nodes ()
+                            << " time "  << TimeMgr.elapsed_time ()
+                            << sync_endl;
                     }
                     else
                     if (IndexPV + 1 == LimitPV || TimeMgr.elapsed_time () > INFO_INTERVAL)
@@ -1728,6 +1731,8 @@ namespace Searcher {
         RootColor   = RootPos.active ();
         RootPly     = RootPos.game_ply ();
         RootSize    = RootMoves.size ();
+        
+        TimeMgr.initialize (RootColor, Limits, RootPly, now ());
 
         MateSearch  = 0 != Limits.mate;
 
@@ -1773,8 +1778,6 @@ namespace Searcher {
                 }
             }
 
-            TimeMgr.initialize (Limits.game_clock[RootColor], Limits.movestogo, RootPly, now ());
-
             i16 timed_contempt = 0;
             i16 diff_time = 0;
             if (   ContemptTime != 0
@@ -1789,10 +1792,10 @@ namespace Searcher {
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 
-            // Reset the threads, still sleeping: will wake up at split time
-            for (size_t idx = 0; idx < Threadpool.size (); ++idx)
+            for (Thread *th : Threadpool)
             {
-                Threadpool[idx]->max_ply = 0;
+                th->max_ply = 0;
+                th->notify_one (); // Wake up all the threads
             }
 
             if (AutoLoadHash)
@@ -1848,14 +1851,14 @@ namespace Searcher {
         }
         else
         {
+            RootMoves.push_back (RootMove (MOVE_NONE));
+
             sync_cout
                 << "info"
                 << " depth " << 0
                 << " score " << to_string (RootPos.checkers () != U64(0) ? -VALUE_MATE : VALUE_DRAW)
                 << " time "  << 0
                 << sync_endl;
-
-            RootMoves.push_back (RootMove (MOVE_NONE));
 
             if (SearchLogWrite)
             {
@@ -1870,7 +1873,6 @@ namespace Searcher {
                     << "Best move  : " << "(none)" << "\n"
                     << endl;
             }
-
         }
 
     finish:
@@ -1884,6 +1886,13 @@ namespace Searcher {
             << " nps "      << RootPos.game_nodes () * MILLI_SEC / elapsed_time;
         if (elapsed_time > MILLI_SEC) cout << " hashfull " << TT.hash_full ();
         cout<< sync_endl;
+
+        // When playing in 'nodes as time' mode, subtract the searched nodes from
+        // the available ones before to exit.
+        if (Limits.npmsec != 0)
+        {
+            TimeMgr.available_nodes += Limits.game_clock[RootColor].inc - RootPos.game_nodes ();
+        }
 
         // When reach max depth arrive here even without Signals.force_stop is raised,
         // but if are pondering or in infinite search, according to UCI protocol,
@@ -2019,11 +2028,11 @@ namespace Threading {
             // Loop across all split points and sum accumulated SplitPoint nodes plus
             // all the currently active positions nodes.
             // FIXME: Racy...
-            for (Thread *thread : Threadpool)
+            for (Thread *th : Threadpool)
             {
-                for (size_t i = 0; i < thread->splitpoint_count; ++i)
+                for (size_t i = 0; i < th->splitpoint_count; ++i)
                 {
-                    SplitPoint &sp = thread->splitpoints[i];
+                    SplitPoint &sp = th->splitpoints[i];
 
                     sp.spinlock.acquire ();
 
