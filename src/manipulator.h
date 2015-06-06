@@ -104,16 +104,6 @@ namespace std {
         return (manip_infra<char, char> (set_fill, c));
     }
 
-
-    //class eat
-    //{
-    //public:
-    //    eat(char);
-    //    ...
-    //};
-
-    //istream &operator>> (istream &, eat);
-
 }
 
 #endif // _MANIPULATOR_H_INC_

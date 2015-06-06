@@ -67,7 +67,7 @@ namespace MoveGen {
         const ValMove* begin () const { return _moves_beg; }
         const ValMove* end   () const { return _moves_end; }
   
-        size_t size    () const { return size_t(_moves_end - _moves_beg); }
+        size_t size () const { return size_t(_moves_end - _moves_beg); }
         
         bool contains (Move move) const
         {

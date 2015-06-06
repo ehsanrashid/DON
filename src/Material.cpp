@@ -137,7 +137,7 @@ namespace Material {
     // If the material configuration is not already present in the table,
     // it is computed and stored there, so don't have to recompute everything
     // when the same material configuration occurs again.
-    Entry* probe     (const Position &pos)
+    Entry* probe (const Position &pos)
     {
         Key matl_key = pos.matl_key ();
         Entry *e     = pos.thread ()->matl_table[matl_key];
