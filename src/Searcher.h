@@ -75,9 +75,11 @@ namespace Searcher {
             , failedlow_root;   // Move Failed-low at root
 
         SignalsT ()
-        {
-            memset (this, 0x00, sizeof (*this));
-        }
+            : force_stop (false)
+            , ponderhit_stop (false)
+            , firstmove_root (false)
+            , failedlow_root (false)
+        {}
     };
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
@@ -98,16 +100,16 @@ namespace Searcher {
     // Value is normally set at -VALUE_INFINITE for all non-pv moves.
     struct RootMove
     {
-        Value new_value;
-        Value old_value;
-        u64   nodes;
-        std::vector<Move> pv;
+        Value               new_value
+            ,               old_value;
+        std::vector<Move>   pv;
+        u64                 nodes;
 
         explicit RootMove (Move m = MOVE_NONE)
             : new_value (-VALUE_INFINITE)
             , old_value (-VALUE_INFINITE)
-            , nodes (U64(0))
             , pv (1, m)
+            , nodes (U64(0))
         {}
         
         // Ascending Sort
@@ -123,7 +125,7 @@ namespace Searcher {
         friend bool operator!= (const RootMove &rm, Move m) { return rm.pv[0] != m; }
 
         void insert_pv_into_tt (Position &pos);
-        bool ponder_move_from_tt_extracted (Position &pos);
+        bool ponder_move_extracted_from_tt (Position &pos);
 
         std::string info_pv () const;
     };

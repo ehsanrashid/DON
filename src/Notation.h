@@ -16,7 +16,7 @@ namespace Notation {
 
     inline std::string to_string (Square s)
     {
-        return { to_char (_file (s)), to_char (_rank (s)), '\0' };
+        return std::string{ to_char (_file (s)), to_char (_rank (s)) };
     }
 
     extern Move move_from_can (const std::string &can, const Position &pos);

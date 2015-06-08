@@ -1535,7 +1535,7 @@ namespace Searcher {
                     StateInfo si;
                     pos.do_move (m, si, pos.gives_check (m, ci));
                     inter_nodes = depth <= 2*DEPTH_ONE ?
-                                    MoveList<LEGAL>(pos).size () :
+                                    MoveList<LEGAL> (pos).size () :
                                     perft<false> (pos, depth-DEPTH_ONE);
                     pos.undo_move ();
                 }
@@ -1596,6 +1596,7 @@ namespace Searcher {
         StateInfo states[MAX_DEPTH], *si = states;
         bool  tt_hit;
 
+        size_t ply = 0;
         for (Move m : pv)
         {
             assert (MoveList<LEGAL> (pos).contains (m));
@@ -1608,20 +1609,21 @@ namespace Searcher {
             }
 
             pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
+            ++ply;
         }
 
-        for (size_t ply = pv.size(); ply > 0; --ply)
+        while (ply > 0)
         {
             pos.undo_move ();
             --ply;
         }
     }
     
-    // RootMove::extract_ponder_from_tt() is called in case we have no ponder move before
+    // RootMove::ponder_move_extracted_from_tt() is called in case we have no ponder move before
     // exiting the search, for instance in case we stop the search during a fail high at
     // root. We try hard to have a ponder move to return to the GUI, otherwise in case of
     // 'ponder on' we have nothing to think on.
-    bool RootMove::ponder_move_from_tt_extracted (Position &pos)
+    bool RootMove::ponder_move_extracted_from_tt (Position &pos)
     {
         assert (pv.size () == 1);
         assert (pv[0] != MOVE_NONE);
@@ -1638,7 +1640,7 @@ namespace Searcher {
         {
             Move m = tte->move (); // Local copy to be SMP safe
             if (   m != MOVE_NONE
-                && MoveList<LEGAL>(pos).contains (m)
+                && MoveList<LEGAL> (pos).contains (m)
                )
             {
                return pv.push_back (m), true;
@@ -1651,9 +1653,9 @@ namespace Searcher {
     string RootMove::info_pv () const
     {
         stringstream ss;
-        for (size_t i = 0; i < pv.size (); ++i)
+        for (Move m : pv)
         {
-            ss << " " << move_to_can (pv[i], Chess960);
+            ss << " " << move_to_can (m, Chess960);
         }
         return ss.str ();
     }
@@ -1841,7 +1843,7 @@ namespace Searcher {
                     << "Hash-full  : " << TT.hash_full ()                           << "\n"
                     << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
                 if (    RootMoves[0].pv[0] != MOVE_NONE
-                    && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_from_tt_extracted (RootPos))
+                    && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt (RootPos))
                    )
                 {
                     StateInfo si;
@@ -1912,7 +1914,7 @@ namespace Searcher {
         // Best move could be MOVE_NONE when searching on a stalemate position
         sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], Chess960);
         if (    RootMoves[0].pv[0] != MOVE_NONE
-            && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_from_tt_extracted (RootPos))
+            && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt (RootPos))
            )
         {
             cout << " ponder " << move_to_can (RootMoves[0].pv[1], Chess960);
@@ -2043,7 +2045,7 @@ namespace Threading {
 
                     for (size_t idx = 0; idx < Threadpool.size(); ++idx)
                     {
-                        if (sp.slaves_mask.test(idx) && Threadpool[idx]->active_pos != nullptr)
+                        if (sp.slaves_mask.test (idx) && Threadpool[idx]->active_pos != nullptr)
                         {
                             nodes += Threadpool[idx]->active_pos->game_nodes ();
                         }

@@ -177,7 +177,7 @@ namespace Threading {
 
         // Have returned from the idle loop, which means that all threads are finished.
         // Note that setting 'searching' and decreasing splitpoint_count is
-        // done under lock protection to avoid a race with available_to().
+        // done under lock protection to avoid a race with available_slave().
         sp.spinlock.acquire ();
 
         --splitpoint_count;
@@ -225,7 +225,7 @@ namespace Threading {
 
             while (alive && !thinking)
             {
-                sleep_condition.notify_one(); // Wake up the UI thread if needed
+                sleep_condition.notify_one (); // Wake up the UI thread if needed
                 sleep_condition.wait (lk);
             }
 
