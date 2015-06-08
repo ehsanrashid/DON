@@ -147,8 +147,6 @@ namespace Searcher {
     {
 
     public:
-        double best_move_change;
-
         void initialize (const Position &pos, const vector<Move> &root_moves);
 
         //u64 game_nodes () const
@@ -236,7 +234,7 @@ namespace Searcher {
 
     // TimeManager class computes the optimal time to think depending on the
     // maximum available time, the move game number and other parameters.
-    // Support four different kind of time controls:
+    // Support four different kind of time controls, passed in 'limits':
     //
     // moves_to_go = 0, increment = 0 means: x basetime  [sudden death!]
     // moves_to_go = 0, increment > 0 means: x basetime + z increment
@@ -254,15 +252,16 @@ namespace Searcher {
 
     public:
 
-        u64 available_nodes; // When in 'nodes as time' mode
+        u64     available_nodes; // When in 'nodes as time' mode
+        double  best_move_change;
 
         u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.76); }
     
         u32 maximum_time   () const { return _maximum_time; }
 
-        u32 elapsed_time   () const { return u32(Limits.npmsec ? RootPos.game_nodes () : now () - _start_time); }
+        u32 elapsed_time   () const { return u32(Limits.npmsec != 0 ? RootPos.game_nodes () : now () - _start_time); }
 
-        void instability (double best_move_change) { _instability_factor = 1.0 + best_move_change; }
+        void instability   ()       { _instability_factor = 1.0 + best_move_change; }
 
         void initialize (Color c, LimitsT &limits, i32 game_ply, TimePoint now_time);
 

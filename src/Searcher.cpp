@@ -1192,7 +1192,7 @@ namespace Searcher {
                         // When the best move changes frequently, allocate some more time.
                         if (legal_count > 1)
                         {
-                            RootMoves.best_move_change++;
+                            TimeMgr.best_move_change++;
                         }
                     }
                     else
@@ -1341,7 +1341,7 @@ namespace Searcher {
             while (++depth < MAX_DEPTH && !Signals.force_stop && (0 == Limits.depth || depth <= Limits.depth))
             {
                 // Age out PV variability metric
-                RootMoves.best_move_change *= 0.5;
+                TimeMgr.best_move_change *= 0.5;
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
@@ -1484,7 +1484,7 @@ namespace Searcher {
                         // If PV limit = 1 then take some extra time if the best move has changed
                         if (aspiration && LimitPV == 1)
                         {
-                            TimeMgr.instability (RootMoves.best_move_change);
+                            TimeMgr.instability ();
                         }
 
                         // Stop the search
@@ -1709,7 +1709,6 @@ namespace Searcher {
 
     void RootMoveList::initialize (const Position &pos, const vector<Move> &root_moves)
     {
-        best_move_change = 0.0;
         clear ();
         for (const auto &m : MoveList<LEGAL> (pos))
         {
@@ -1722,6 +1721,8 @@ namespace Searcher {
 
     // ------------------------------------
     
+    // TimeManager::initialize() is called at the beginning of the search and
+    // calculates the allowed thinking time out of the time control and current game ply.
     void TimeManager::initialize (Color c, LimitsT &limits, i32 game_ply, TimePoint now_time)
     {
         // If we have to play in 'nodes as time' mode, then convert from time
@@ -1741,7 +1742,8 @@ namespace Searcher {
 
         _start_time = now_time;
         _instability_factor = 1.0;
-        
+        best_move_change    = 0.0;
+
         _optimum_time =
         _maximum_time =
             max (limits.clock[c].time, MinimumMoveTime);
