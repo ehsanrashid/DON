@@ -43,7 +43,7 @@ namespace UCI {
         }
         void exe_ucinewgame ()
         {
-            Searcher::reset ();
+            reset ();
             //Time.availableNodes = 0;
         }
 

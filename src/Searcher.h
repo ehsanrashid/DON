@@ -98,8 +98,10 @@ namespace Searcher {
     //  - Node count.
     //  - PV (really a refutation table in the case of moves which fail low).
     // Value is normally set at -VALUE_INFINITE for all non-pv moves.
-    struct RootMove
+    class RootMove
     {
+    public:
+
         Value               new_value
             ,               old_value;
         std::vector<Move>   pv;

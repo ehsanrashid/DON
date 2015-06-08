@@ -15,40 +15,40 @@ namespace Pawns {
         // Weakness of our pawn shelter in front of the king indexed by [distance from edge][rank]
         const Value SHELTER_WEAKNESS[F_NO/2][R_NO] =
         {
-            { V(+ 99), V(+ 20), V(+ 26), V(+ 54), V(+ 85), V(+ 92), V(+108) },
-            { V(+117), V(+  1), V(+ 27), V(+ 71), V(+ 94), V(+104), V(+118) },
-            { V(+104), V(+  4), V(+ 51), V(+ 76), V(+ 82), V(+102), V(+ 97) },
-            { V(+ 80), V(+ 12), V(+ 43), V(+ 65), V(+ 88), V(+ 91), V(+115) }
+            { V ( 97), V (21), V (26), V (51), V (87), V ( 89), V ( 99) },
+            { V (120), V ( 0), V (28), V (76), V (88), V (103), V (104) },
+            { V (101), V ( 7), V (54), V (78), V (77), V ( 92), V (101) },
+            { V ( 80), V (11), V (44), V (68), V (87), V ( 90), V (119) }
         };
 
-        enum Type { NO_FRIEND_PAWN, UNBLOCKED, BLOCKED_BY_PAWN, BLOCKED_BY_KING , TYPE_NO};
+        enum Type { NO_FRIEND_PAWN, UNBLOCKED, BLOCKED_BY_PAWN, BLOCKED_BY_KING};
         // Danger of enemy pawns moving toward our king indexed by [type][distance from edge][rank]
-        const Value STORM_DANGER[TYPE_NO][F_NO/2][R_NO] =
+        const Value STORM_DANGER[4][F_NO/2][R_NO] =
         {
             {
-                { V(   0),  V(+ 65), V(+126), V(+ 36), V(+ 30) },
-                { V(   0),  V(+ 55), V(+135), V(+ 36), V(+ 23) },
-                { V(   0),  V(+ 47), V(+116), V(+ 45), V(+ 26) },
-                { V(   0),  V(+ 62), V(+127), V(+ 57), V(+ 34) }
+                { V (0), V (67), V (134), V (38), V (32) },
+                { V (0), V (57), V (139), V (37), V (22) },
+                { V (0), V (43), V (115), V (43), V (27) },
+                { V (0), V (68), V (124), V (57), V (32) }
             },
             {
-                { V(+ 21),  V(+ 45), V(+ 93), V(+ 50), V(+ 19) },
-                { V(+ 23),  V(+ 24), V(+105), V(+ 41), V(+ 13) },
-                { V(+ 23),  V(+ 36), V(+101), V(+ 38), V(+ 20) },
-                { V(+ 30),  V(+ 19), V(+110), V(+ 41), V(+ 27) }
+                { V (20), V (43), V (100), V (56), V (20) },
+                { V (23), V (20), V ( 98), V (40), V (15) },
+                { V (23), V (39), V (103), V (36), V (18) },
+                { V (28), V (19), V (108), V (42), V (26) }
             },
             {
-                { V(   0),  V(   0), V(+ 81), V(+ 14), V(+  4) },
-                { V(   0),  V(   0), V(+169), V(+ 30), V(+  3) },
-                { V(   0),  V(   0), V(+168), V(+ 24), V(+  5) },
-                { V(   0),  V(   0), V(+162), V(+ 26), V(+ 10) }
+                { V (0), V (0), V ( 75), V (14), V ( 2) },
+                { V (0), V (0), V (150), V (30), V ( 4) },
+                { V (0), V (0), V (160), V (22), V ( 5) },
+                { V (0), V (0), V (166), V (24), V (13) }
             },
             {
-                { V(   0),  V(-283), V(-298), V(+ 57), V(+ 29) },
-                { V(   0),  V(+ 63), V(+137), V(+ 42), V(+ 18) },
-                { V(   0),  V(+ 67), V(+145), V(+ 49), V(+ 33) },
-                { V(   0),  V(+ 62), V(+126), V(+ 53), V(+ 21) }
-            } 
+                { V (0), V (-283), V (-281), V (57), V (31) },
+                { V (0), V (  58), V ( 141), V (39), V (18) },
+                { V (0), V (  65), V ( 142), V (48), V (32) },
+                { V (0), V (  60), V ( 126), V (51), V (19) }
+            }
         };
 
         // Max bonus for king safety by pawns.
@@ -60,8 +60,6 @@ namespace Pawns {
 
     #define S(mg, eg) mk_score(mg, eg)
 
-        const i16 SEED[R_NO] = {   0,  6, 15, 10, 57, 75,135,258 };
-
         const Bitboard EXT_CENTER_bb[CLR_NO] =
         {
             (FB_bb | FC_bb | FD_bb | FE_bb | FF_bb | FG_bb) & (R2_bb | R3_bb | R4_bb | R5_bb | R6_bb),
@@ -69,50 +67,40 @@ namespace Pawns {
         };
 
         // Connected pawn bonus by [opposed][phalanx][rank] (by formula)
-        Score CONNECTED[2][2][R_NO];
+        Score CONNECTED[2][2][2][R_NO];
 
         // Doubled pawn penalty by [file]
         const Score DOUBLED[F_NO] =
         {
-            S(+13,+43), S(+20,+48), S(+23,+48), S(+23,+48),
-            S(+23,+48), S(+23,+48), S(+20,+48), S(+13,+43)
+            S(13, 43), S(20, 48), S(23, 48), S(23, 48),
+            S(23, 48), S(23, 48), S(20, 48), S(13, 43)
         };
 
         // Isolated pawn penalty by [opposed][file]
         const Score ISOLATED[2][F_NO] =
         {
             {
-                S(+37,+45), S(+54,+52), S(+60,+52), S(+60,+52),
-                S(+60,+52), S(+60,+52), S(+54,+52), S(+37,+45)
+                S(37, 45), S(54, 52), S(60, 52), S(60, 52),
+                S(60, 52), S(60, 52), S(54, 52), S(37, 45)
             },
             {
-                S(+25,+30), S(+36,+35), S(+40,+35), S(+40,+35),
-                S(+40,+35), S(+40,+35), S(+36,+35), S(+25,+30)
+                S(25, 30), S(36, 35), S(40, 35), S(40, 35),
+                S(40, 35), S(40, 35), S(36, 35), S(25, 30)
             }
         };
 
-        // Backward pawn penalty by [opposed][file]
-        const Score BACKWARD[2][F_NO] =
-        {
-            {
-                S(+30,+42), S(+43,+46), S(+49,+46), S(+49,+46),
-                S(+49,+46), S(+49,+46), S(+43,+46), S(+30,+42)
-            },
-            {
-                S(+20,+28), S(+29,+31), S(+33,+31), S(+33,+31),
-                S(+33,+31), S(+33,+31), S(+29,+31), S(+20,+28)
-            }
-        };
+        // Backward pawn penalty by [opposed]
+        const Score BACKWARD[2] = { S(67, 42), S(49, 24) };
 
         // Levers bonus by [rank]
         const Score LEVER[R_NO] = 
         {
-            S(+ 0,+ 0), S(+ 0,+ 0), S(+ 6,+ 6), S(+12,+12),
-            S(+20,+20), S(+40,+40), S(+ 0,+ 0), S(+ 0,+ 0)
+            S( 0, 0), S( 0, 0), S(0, 0), S(0, 0),
+            S(20,20), S(40,40), S(0, 0), S(0, 0)
         };
 
-        const Score UNSTOPPABLE = S(+ 0,+20); // Bonus for unstoppable pawn going to promote
-        const Score UNSUPPORTED = S(+20,+10); // Penalty for unsupported pawn
+        const Score UNSTOPPABLE = S( 0, 20); // Bonus for unstoppable pawn going to promote
+        const Score UNSUPPORTED = S(20, 10); // Penalty for unsupported pawn
 
         // Center bind bonus: Two pawns controlling the same central square
         const Bitboard CENTER_BIND_bb[CLR_NO] =
@@ -121,7 +109,7 @@ namespace Pawns {
             (FD_bb | FE_bb) & (R4_bb | R3_bb | R2_bb)
         };
 
-        const Score CENTER_BIND = S(+16,+ 0);
+        const Score CENTER_BIND = S(16, 0);
 
         template<Color Own>
         inline Score evaluate (const Position &pos, Entry *e)
@@ -172,11 +160,11 @@ namespace Pawns {
                 Bitboard prank_bb  = rank_bb (s - Push);
 
                 Bitboard adjacents = (own_pawns & ADJ_FILE_bb[f]);
+                Bitboard phalanx   = (adjacents & rank_bb (s));
                 Bitboard supported = (adjacents & prank_bb);
-                Bitboard connected = (adjacents & (prank_bb | rank_bb (s)));
                 Bitboard doubled   = (own_pawns & FRONT_SQRS_bb[Own][s]);
 
-                bool phalanx       = (connected & rank_bb (s));
+                bool connected     = (supported | phalanx);
                 bool levered       = (opp_pawns & PAWN_ATTACKS[Own][s]);
                 bool opposed       = (opp_pawns & FRONT_SQRS_bb[Own][s]);
                 bool isolated      = !(adjacents);
@@ -188,9 +176,9 @@ namespace Pawns {
                 // If the rank is greater then Rank 6
                 // If there are friendly pawns behind on adjacent files and they are able to advance and support the pawn.
                 // Then it cannot be backward either.
-                if (  passed || isolated || levered || connected || r >= R_6
+                if (   passed || isolated || levered || connected || r >= R_5
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
-                   || (own_pawns & PAWN_ATTACK_SPAN[Opp][s] && !(opp_pawns & (s-Push)))
+                    || (own_pawns & PAWN_ATTACK_SPAN[Opp][s] && !(opp_pawns & (s-Push)))
                    )
                 {
                     backward = false;
@@ -215,7 +203,7 @@ namespace Pawns {
 
                 if (connected)
                 {
-                    score += CONNECTED[opposed][phalanx][r];
+                    score += CONNECTED[opposed][!!phalanx][more_than_one (supported)][r];
                 }
 
                 if (isolated)
@@ -230,11 +218,11 @@ namespace Pawns {
                     }
                     if (backward)
                     {
-                        score -= BACKWARD[opposed][f];
+                        score -= BACKWARD[opposed];
                     }
                 }
                 
-                if (r > R_4 && levered)
+                if (levered)
                 {
                     score += LEVER[r];
                 }
@@ -266,7 +254,7 @@ namespace Pawns {
             Bitboard b;
 
             b = e->semiopen_files[Own] ^ 0xFF;
-            e->pawn_span[Own] = b != U64(0) ? u08(scan_msq (b)) - u08(scan_lsq (b)) : U64(0);
+            e->pawn_span[Own] = b != U64(0) ? u08(scan_msq (b)) - u08(scan_lsq (b)) : 0;
 
             // Center binds: Two pawns controlling the same central square
             b = shift_del<Left> (own_pawns) & shift_del<Right> (own_pawns) & CENTER_BIND_bb[Own];
@@ -361,14 +349,20 @@ namespace Pawns {
     // and to allow easier tuning and better insight.
     void initialize ()
     {
+        const int SEED[R_NO] = { 0, 6, 15, 10, 57, 75, 135, 258 };
+
         for (i08 opposed = 0; opposed <= 1; ++opposed)
         {
             for (i08 phalanx = 0; phalanx <= 1; ++phalanx)
             {
-                for (i08 r = R_2; r < R_8; ++r)
+                for (i08 apex = 0; apex <= 1; ++apex)
                 {
-                    i32 value = (SEED[r] + (phalanx != 0 ? (SEED[r + 1] - SEED[r])/2 : 0)) >> opposed;
-                    CONNECTED[opposed][phalanx][r] = mk_score (value*3/2, value);
+                    for (i08 r = R_2; r < R_8; ++r)
+                    {
+                        i32 v = (SEED[r] + (phalanx != 0 ? (SEED[r + 1] - SEED[r]) / 2 : 0)) >> opposed;
+                        v += (apex ? v / 2 : 0);
+                        CONNECTED[opposed][phalanx][apex][r] = mk_score (3 * v / 2, v);
+                    }
                 }
             }
         }

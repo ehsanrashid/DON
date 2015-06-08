@@ -166,11 +166,11 @@ namespace Evaluator {
         // Internal evaluation weights
         const Score INTERNAL_WEIGHTS[EVAL_NO] =
         {
-            S(+289,+344), // Piece Mobility
-            S(+233,+201), // Pawn Structure
-            S(+221,+273), // Passed Pawns
-            S(+ 46,+  0), // Space Activity
-            S(+322,+  0)  // King Safety
+            S(289,344), // Piece Mobility
+            S(233,201), // Pawn Structure
+            S(221,273), // Passed Pawns
+            S( 46,  0), // Space Activity
+            S(322,  0)  // King Safety
         };
 
         // MOBILITY_BONUS[PieceT][Attacks] contains bonuses for mobility,
@@ -236,20 +236,20 @@ namespace Evaluator {
 
         const Score THREATEN_BY_HANG_PAWN   = S(40, 60);
 
-        const Score BISHOP_PAWNS            = S(+ 8,+12); // Penalty for bishop with more pawns on same color
-        const Score BISHOP_TRAPPED          = S(+50,+50); // Penalty for bishop trapped with pawns (Chess960)
+        const Score BISHOP_PAWNS            = S( 8,12); // Penalty for bishop with more pawns on same color
+        const Score BISHOP_TRAPPED          = S(50,50); // Penalty for bishop trapped with pawns (Chess960)
 
-        const Score MINOR_BEHIND_PAWN       = S(+16,+ 0);
+        const Score MINOR_BEHIND_PAWN       = S(16, 0);
 
-        const Score ROOK_ON_OPENFILE        = S(+43,+21); // Bonus for rook on open file
-        const Score ROOK_ON_SEMIOPENFILE    = S(+19,+10); // Bonus for rook on semi-open file
-        const Score ROOK_ON_PAWNS           = S(+ 7,+27); // Bonus for rook on pawns
-        const Score ROOK_TRAPPED            = S(+92,+ 0); // Penalty for rook trapped
+        const Score ROOK_ON_OPENFILE        = S(43,21); // Bonus for rook on open file
+        const Score ROOK_ON_SEMIOPENFILE    = S(19,10); // Bonus for rook on semi-open file
+        const Score ROOK_ON_PAWNS           = S( 7,27); // Bonus for rook on pawns
+        const Score ROOK_TRAPPED            = S(92, 0); // Penalty for rook trapped
         
-        const Score PIECE_HANGED            = S(+31,+26); // Bonus for each enemy hanged piece       
+        const Score PIECE_HANGED            = S(31,26); // Bonus for each enemy hanged piece       
         
-        const Score PAWN_SAFEPUSH           = S(+ 5,+ 5);
-        const Score PAWN_SAFEATTACK         = S(+20,+20);
+        const Score PAWN_SAFEPUSH           = S( 5, 5);
+        const Score PAWN_SAFEATTACK         = S(20,20);
 
     #undef S
 
@@ -273,13 +273,13 @@ namespace Evaluator {
         Score KING_DANGER[MAX_ATTACK_UNITS];
 
         // KING_ATTACK[PieceT] contains king attack weights by piece type
-        const i32   KING_ATTACK[NONE] = { + 1, +14, +10, + 8, + 2, + 0 };
+        const i32   KING_ATTACK[NONE] = { 1, 14, 10,  8,  2,  0 };
 
         // Bonuses for safe checks
-        const i32    SAFE_CHECK[NONE] = { + 0, +14, + 6, +37, +50, + 0 };
+        const i32    SAFE_CHECK[NONE] = { 0, 14,  6, 37, 50,  0 };
 
         // Bonuses for contact safe checks
-        const i32 CONTACT_CHECK[NONE] = { + 0, + 0, +12, +71, +89, + 0 };
+        const i32 CONTACT_CHECK[NONE] = { 0,  0, 12, 71, 89,  0 };
 
         // weight_option() computes the value of an evaluation weight,
         // by combining UCI-configurable weights with an internal weight.

@@ -142,7 +142,7 @@ void benchmark (istream &is, const Position &cur_pos)
     TimePoint time     = now ();
 
     StateInfoStackPtr states;
-    Searcher::reset ();
+    reset ();
     
     for (u16 i = 0; i < fens.size (); ++i)
     {

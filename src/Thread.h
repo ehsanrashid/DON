@@ -25,7 +25,7 @@ namespace Threading {
     const size_t MAX_SLAVES_PER_SPLITPOINT =   4;
     const size_t MAX_SPLIT_DEPTH           =  12; // Maximum SplitDepth
 
-    struct Thread;
+    class Thread;
 
     class Spinlock
     {
@@ -116,9 +116,11 @@ namespace Threading {
     // and especially split points. We also use per-thread pawn and material hash
     // tables so that once we get a pointer to an entry its life time is unlimited
     // and we don't have to care about someone changing the entry under our feet.
-    struct Thread
+    class Thread
         : public ThreadBase
     {
+    public:
+
         SplitPoint      splitpoints[MAX_SPLITPOINTS_PER_THREAD];
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
@@ -146,9 +148,11 @@ namespace Threading {
 
 
     // MainThread struct is derived struct used for the main one
-    struct MainThread
+    class MainThread
         : public Thread
     {
+    public:
+
         volatile bool thinking = true; // Avoid a race with start_thinking()
 
         virtual void idle_loop ();
@@ -159,9 +163,10 @@ namespace Threading {
     const i32 TIMER_RESOLUTION = 5; // Millisec between two check_time() calls
 
     // TimerThread struct is derived struct used for the recurring timer.
-    struct TimerThread
+    class TimerThread
         : public ThreadBase
     {
+    public:
 
         bool run;
         i32 resolution; // Millisec between two task() calls
@@ -182,9 +187,11 @@ namespace Threading {
     // - parking
     // - launching a slave thread at a split point (most important).
     // All the access to shared thread data is done through this.
-    struct ThreadPool
+    class ThreadPool
         : public ::std::vector<Thread*>
     {
+    public:
+
         TimerThread *check_limits_th;
         TimerThread *auto_save_th;
         Depth        split_depth;
