@@ -21,7 +21,7 @@ namespace Pawns {
             { V ( 80), V (11), V (44), V (68), V (87), V ( 90), V (119) }
         };
 
-        enum Type { NO_FRIEND_PAWN, UNBLOCKED, BLOCKED_BY_PAWN, BLOCKED_BY_KING};
+        enum { NO_FRIENDLY_PAWN, UNBLOCKED, BLOCKED_BY_PAWN, BLOCKED_BY_KING };
         // Danger of enemy pawns moving toward our king indexed by [type][distance from edge][rank]
         const Value STORM_DANGER[4][F_NO/2][R_NO] =
         {
@@ -297,7 +297,7 @@ namespace Pawns {
                   +  SHELTER_WEAKNESS[min (f, i32(F_H) - f)][r0]
                   +  STORM_DANGER
                         [f  == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
-                         r0 == R_1                                            ? NO_FRIEND_PAWN :
+                         r0 == R_1                                            ? NO_FRIENDLY_PAWN :
                          r1 == r0 + 1                                         ? BLOCKED_BY_PAWN  : UNBLOCKED]
                         [min (f, i32(F_H) - f)][r1];
         }

@@ -84,7 +84,7 @@ namespace Evaluator {
                 Scores[BLACK][term] = bscore;
             }
 
-            std::ostream& operator<< (std::ostream &os, TermT term)
+            ostream& operator<< (ostream &os, TermT term)
             {
                 double cp[CLR_NO][2] =
                 {
@@ -145,7 +145,7 @@ namespace Evaluator {
 
         }
 
-        enum EvalWeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PASSED_PAWN, SPACE_ACTIVITY, KING_SAFETY };
+        enum { PIECE_MOBILITY, PAWN_STRUCTURE, PASSED_PAWN, SPACE_ACTIVITY, KING_SAFETY };
 
         struct Weight { i32 mg, eg; };
         

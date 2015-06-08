@@ -98,7 +98,7 @@ void benchmark (istream &is, const Position &cur_pos)
     i32 value = abs (stoi (limit_val));
 
     LimitsT limits;
-    if      (limit_type == "time")     limits.game_clock[WHITE].time = limits.game_clock[BLACK].time = value;
+    if      (limit_type == "time")     limits.clock[WHITE].time = limits.clock[BLACK].time = value;
     else if (limit_type == "movetime") limits.movetime = value;
     else if (limit_type == "nodes")    limits.nodes    = value;
     else if (limit_type == "mate")     limits.mate     = u08(value);
@@ -136,12 +136,12 @@ void benchmark (istream &is, const Position &cur_pos)
 
         fen_ifs.close ();
     }
-    
-    u64       nodes    = 0;
-    TimePoint time     = now ();
 
     StateInfoStackPtr states;
     reset ();
+
+    u64       nodes = 0;
+    TimePoint time  = now ();
     
     for (u16 i = 0; i < fens.size (); ++i)
     {
@@ -188,16 +188,18 @@ void auto_tune (istream &is)
 
     vector<string> fens = DEFAULT_FEN;
     
-    StateInfoStackPtr states;
-    
     u64 nps[4];
     for (i32 d = 0; d < 4; ++d)
     {
         Threadpool.split_depth = (d+4)*DEPTH_ONE;
         cerr << "Split Depth     : " << i32(Threadpool.split_depth);
+        
+        StateInfoStackPtr states;
+        reset ();
 
-        u64       nodes    = 0;
-        TimePoint time     = now ();
+        u64       nodes = 0;
+        TimePoint time  = now ();
+
         for (u16 i = 0; i < fens.size (); ++i)
         {
             Position root_pos (fens[i], Threadpool.main (), Chess960, false);
@@ -220,7 +222,7 @@ void auto_tune (istream &is)
     for (i32 d = 0; d < 4; ++d)
     {
         cerr << "\n---------------------------\n"
-             << "Split Depth  : " << d+4 << "\n"
+             << "Split Depth  : " << d+4  << "\n"
              << "Nodes/second : " << nps[d]
              << "\n---------------------------" << endl;
 

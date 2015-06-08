@@ -134,14 +134,13 @@ namespace Searcher {
             Value bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
 
             Move opp_move = (ss-1)->current_move;
-            bool move_ok = _ok (opp_move);
 
             Square opp_move_dst = dst_sq (opp_move);
-            ValueStats& cmhv = CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst];
+            ValueStats &cmhv = CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst];
 
             HistoryValues.update (pos, move, bonus);
 
-            if (move_ok)
+            if (_ok (opp_move))
             {
                  CounterMoves.update (pos, opp_move, move);
                  cmhv.update (pos, move, bonus);
@@ -152,7 +151,7 @@ namespace Searcher {
             {
                 HistoryValues.update (pos, quiet_moves[i], -bonus);
 
-                if (move_ok)
+                if (_ok (opp_move))
                 {
                     cmhv.update (pos, quiet_moves[i], -bonus);
                 }
@@ -165,12 +164,12 @@ namespace Searcher {
             {
                 Square own_move_dst = dst_sq (own_move);
                 ValueStats &ttcmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
-                ttcmhv.update (pos, opp_move, -bonus - 2 * depth / DEPTH_ONE - 1);
+                ttcmhv.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
             }
 
         }
         
-        // update_pv() copies child node pv[] adding current move
+        // update_pv() add current move and appends child pv[]
         void update_pv (Move *pv, Move move, const Move *child_pv)
         {
             *pv++ = move;
@@ -237,7 +236,7 @@ namespace Searcher {
                 }
                 else
                 {
-                    if (DEPTH_ONE == depth) return "";
+                    if (DEPTH_ONE == depth) continue;
 
                     d = depth - DEPTH_ONE;
                     v = RootMoves[i].old_value;
@@ -647,7 +646,7 @@ namespace Searcher {
                     ss->current_move = tt_move; // Can be MOVE_NONE
 
                     // If tt_move is quiet, update movehistory, killers, countermove on TT hit
-                    if (  tt_value >= beta
+                    if (   tt_value >= beta
                         && tt_move != MOVE_NONE
                         && !pos.capture_or_promotion (tt_move)
                        )
@@ -1091,7 +1090,7 @@ namespace Searcher {
                     // Decrease reduction for counter moves
                     if (move == counter_move)
                     {
-                        reduction_depth = max (reduction_depth- DEPTH_ONE, DEPTH_ZERO);
+                        reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
                     }
                     // Decrease reduction for moves that escape a capture
                     if (   mtype (move) == NORMAL
@@ -1099,7 +1098,7 @@ namespace Searcher {
                         && pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO // Reverse move
                        )
                     {
-                        reduction_depth = max (reduction_depth- DEPTH_ONE, DEPTH_ZERO);
+                        reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
                     }
                     
                     if (SPNode) alpha = splitpoint->alpha;
@@ -1321,8 +1320,6 @@ namespace Searcher {
             memset (ss-2, 0x00, 5*sizeof (*ss));
 
             TT.refresh ();
-            HistoryValues.clear ();
-            CounterMoves.clear ();
 
             u16 skill_pv = Skills.pv_size ();
             if (skill_pv != 0) Skills.clear ();
@@ -1375,7 +1372,7 @@ namespace Searcher {
                     {
                         best_value = depth_search<Root, false, true> (RootPos, ss, bound_a, bound_b, depth, false);
 
-                        // Bring to front the best move. It is critical that sorting is
+                        // Bring the best move to the front. It is critical that sorting is
                         // done with a stable algorithm because all the values but the first
                         // and eventually the new best one are set to -VALUE_INFINITE and
                         // want to keep the same order for all the moves but the new PV
@@ -1716,7 +1713,7 @@ namespace Searcher {
         clear ();
         for (const auto &m : MoveList<LEGAL> (pos))
         {
-            if (root_moves.empty () || count (root_moves.begin (), root_moves.end (), m))
+            if (root_moves.empty () || count (root_moves.begin (), root_moves.end (), m) != 0)
             {
                 push_back (RootMove (m));
             }
@@ -1734,11 +1731,11 @@ namespace Searcher {
         if (NodesTime != 0)
         {
             // Only once at game start
-            if (available_nodes == 0) available_nodes = NodesTime * limits.game_clock[c].time; // Time is in msec
+            if (available_nodes == 0) available_nodes = NodesTime * limits.clock[c].time; // Time is in msec
 
             // Convert from millisecs to nodes
-            limits.game_clock[c].time = i32 (available_nodes);
-            limits.game_clock[c].inc *= NodesTime;
+            limits.clock[c].time = i32 (available_nodes);
+            limits.clock[c].inc *= NodesTime;
             limits.npmsec = NodesTime;
         }
 
@@ -1747,7 +1744,7 @@ namespace Searcher {
         
         _optimum_time =
         _maximum_time =
-            max (limits.game_clock[c].time, MinimumMoveTime);
+            max (limits.clock[c].time, MinimumMoveTime);
 
         const u08 MaxMovesToGo = limits.movestogo != 0 ? min (limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
         // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
@@ -1756,8 +1753,8 @@ namespace Searcher {
         {
             // Calculate thinking time for hypothetic "moves to go"-value
             i32 hyp_time = max (
-                + limits.game_clock[c].time
-                + limits.game_clock[c].inc * (hyp_movestogo-1)
+                + limits.clock[c].time
+                + limits.clock[c].inc * (hyp_movestogo-1)
                 - EmergencyClockTime
                 - EmergencyMoveTime * min (hyp_movestogo, EmergencyMoveHorizon), 0U);
 
@@ -1847,14 +1844,14 @@ namespace Searcher {
 
             logfile
                 << "----------->\n" << boolalpha
-                << "RootPos  : " << RootPos.fen ()                   << "\n"
-                << "RootSize : " << RootSize                         << "\n"
-                << "Infinite : " << Limits.infinite                  << "\n"
-                << "Ponder   : " << Limits.ponder                    << "\n"
-                << "ClockTime: " << Limits.game_clock[RootColor].time<< "\n"
-                << "Increment: " << Limits.game_clock[RootColor].inc << "\n"
-                << "MoveTime : " << Limits.movetime                  << "\n"
-                << "MovesToGo: " << u16(Limits.movestogo)            << "\n"
+                << "RootPos  : " << RootPos.fen ()                  << "\n"
+                << "RootSize : " << RootSize                        << "\n"
+                << "Infinite : " << Limits.infinite                 << "\n"
+                << "Ponder   : " << Limits.ponder                   << "\n"
+                << "ClockTime: " << Limits.clock[RootColor].time    << "\n"
+                << "Increment: " << Limits.clock[RootColor].inc     << "\n"
+                << "MoveTime : " << Limits.movetime                 << "\n"
+                << "MovesToGo: " << u16(Limits.movestogo)           << "\n"
                 << " Depth Score    Time       Nodes  PV\n"
                 << "-----------------------------------------------------------"
                 << endl;
@@ -1885,7 +1882,7 @@ namespace Searcher {
             i16 timed_contempt = 0;
             i16 diff_time = 0;
             if (   ContemptTime != 0
-                && (diff_time = i16(Limits.game_clock[RootColor].time - Limits.game_clock[~RootColor].time)/MILLI_SEC) != 0
+                && (diff_time = i16(Limits.clock[RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
                 //&& ContemptTime <= abs (diff_time)
                )
             {
@@ -1934,11 +1931,13 @@ namespace Searcher {
             if (SearchLogWrite)
             {
                 LogFile logfile (SearchLog);
+                
+                u32 elapsed_time = max (TimeMgr.elapsed_time (), 1U);
 
                 logfile
-                    << "Time (ms)  : " << TimeMgr.elapsed_time ()                   << "\n"
+                    << "Time (ms)  : " << elapsed_time                              << "\n"
                     << "Nodes (N)  : " << RootPos.game_nodes ()                     << "\n"
-                    << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / max (TimeMgr.elapsed_time (), 1U) << "\n"
+                    << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / elapsed_time << "\n"
                     << "Hash-full  : " << TT.hash_full ()                           << "\n"
                     << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
                 if (    RootMoves[0].pv[0] != MOVE_NONE
@@ -1995,7 +1994,7 @@ namespace Searcher {
         // the available ones before to exit.
         if (Limits.npmsec != 0)
         {
-            TimeMgr.available_nodes += Limits.game_clock[RootColor].inc - RootPos.game_nodes ();
+            TimeMgr.available_nodes += Limits.clock[RootColor].inc - RootPos.game_nodes ();
         }
 
         // When reach max depth arrive here even without Signals.force_stop is raised,

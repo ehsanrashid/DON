@@ -21,6 +21,17 @@ namespace Searcher {
     const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be < MAX_DEPTH/2
     const u16 MIN_SKILL_MULTIPV =  4;
 
+    // Clock struct stores the remain-time and time-inc per move in milli-seconds
+    struct Clock
+    {
+        u32 time;   // Remaining Time    [milli-seconds]
+        u32 inc;    // Time inc per move [milli-seconds]
+
+        Clock ()
+            : time (0)
+            , inc  (0)
+        {}
+    };
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
     //  - Maximum depth.
@@ -32,7 +43,7 @@ namespace Searcher {
     {
     public:
 
-        GameClock game_clock[CLR_NO];
+        Clock clock[CLR_NO];
         std::vector<Move> root_moves;   // restrict search to these moves only
 
         u32  npmsec;

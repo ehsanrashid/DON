@@ -619,18 +619,6 @@ inline TimePoint now ()
 }
 
 
-// GameClock struct stores the remain-time and time-inc per move in milli-seconds
-struct GameClock
-{
-    u32 time;   // Remaining Time    [milli-seconds]
-    u32 inc;    // Time inc per move [milli-seconds]
-
-    GameClock ()
-        : time (0)
-        , inc  (0)
-    {}
-};
-
 template<class Entry, u32 Size>
 struct HashTable
 {
