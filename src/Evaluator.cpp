@@ -173,8 +173,8 @@ namespace Evaluator {
             S(+322,+  0)  // King Safety
         };
 
-        // PIECE_MOBILIZE[PieceT][Attacks] contains bonuses for mobility,
-        const Score PIECE_MOBILIZE[NONE][28] =
+        // MOBILITY_BONUS[PieceT][Attacks] contains bonuses for mobility,
+        const Score MOBILITY_BONUS[NONE][28] =
         {
             {},
             { // Knights
@@ -201,6 +201,9 @@ namespace Evaluator {
             {}
         };
 
+        // OUTPOST[supported by pawn]
+        const Score KNIGHT_OUTPOST[2] = { S(28, 7), S(42,11) };
+        const Score BISHOP_OUTPOST[2] = { S(12, 3), S(18, 5) };
 
         // THREATEN_BY_PAWN[PieceT] contains bonuses according to which piece type is attacked by pawn.
         const Score THREATEN_BY_PAWN[NONE] =
@@ -249,32 +252,6 @@ namespace Evaluator {
         const Score PAWN_SAFEATTACK         = S(+20,+20);
 
     #undef S
-
-    #define V(v) Value(v)
-
-        // OUTPOSTS[Square] contains bonus of outpost for knights and bishops,
-        // indexed by square (from white's point of view).
-        const Value OUTPOSTS[2][SQ_NO] =
-        {      // A     B     C     D     E     F     G     H
-            { // Knights
-                V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
-                V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
-                V(0), V(0), V(3), V(9), V(9), V(3), V(0), V(0),
-                V(0), V(4),V(18),V(25),V(25),V(18), V(4), V(0),
-                V(4), V(9),V(29),V(38),V(38),V(29), V(9), V(4),
-                V(2), V(9),V(19),V(15),V(15),V(19), V(9), V(2)
-            },
-            { // Bishops
-                V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
-                V(0), V(0), V(0), V(0), V(0), V(0), V(0), V(0),
-                V(2), V(4), V(3), V(8), V(8), V(3), V(4), V(2),
-                V(1), V(9), V(9),V(13),V(13), V(9), V(9), V(1),
-                V(2), V(8),V(21),V(24),V(24),V(21), V(8), V(2),
-                V(0), V(4), V(6), V(6), V(6), V(6), V(4), V(0)
-            }
-        };
-
-    #undef V
 
         // The SPACE_MASK[Color] contains the area of the board which is considered
         // by the space evaluation. In the middle game, each side is given a bonus
@@ -401,10 +378,10 @@ namespace Evaluator {
 
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 Bitboard attacks =
-                    (BSHP == PT) ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
-                    (ROOK == PT) ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
-                    (QUEN == PT) ? attacks_bb<BSHP> (s, pos.pieces ()) | attacks_bb<ROOK> (s, pos.pieces ()) :
-                                   PIECE_ATTACKS[PT][s];
+                    BSHP == PT ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
+                    ROOK == PT ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
+                    QUEN == PT ? attacks_bb<BSHP> (s, pos.pieces ()) | attacks_bb<ROOK> (s, pos.pieces ()) :
+                                 PIECE_ATTACKS[PT][s];
 
                 ei.ful_attacked_by[Own][PT] |= attacks;
 
@@ -419,32 +396,20 @@ namespace Evaluator {
                 
                 if (NIHT == PT || BSHP == PT)
                 {
+                    // Minors (bishop or knight) behind a pawn
+                    if (   r < R_5
+                        && pos.pieces<PAWN> () & (s + Push)
+                       )
+                    {
+                        score += MINOR_BEHIND_PAWN;
+                    }
+
                     if (NIHT == PT)
                     {
                         // Outpost bonus for knight
-                        if (!(ei.pin_attacked_by[Opp][PAWN] & s))
+                        if (r >= R_4 && (ei.pin_attacked_by[Opp][PAWN] & s) == U64(0))
                         {
-                            // Initial bonus based on square
-                            Value value = OUTPOSTS[0][rel_sq (Own, s)];
-
-                            // Increase bonus if supported by pawn, especially if the opponent has
-                            // no minor piece which can exchange the outpost piece.
-                            if (value != VALUE_ZERO)
-                            {
-                                // Supporting pawns
-                                if (ei.pin_attacked_by[Own][PAWN] & s)
-                                {
-                                    value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
-                                             || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
-                                                1.50 : // If attacked by enemy knights or bishops
-                                                (  (pos.pieces<NIHT> (Opp)) != U64(0)
-                                                || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
-                                                    1.75 : // If there are enemy knights or bishops
-                                                    2.50;  // If there are no enemy knights or bishops
-                                }
-
-                                score += mk_score (value * 2, value / 2);
-                            }
+                            score += KNIGHT_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
                         }
                     }
 
@@ -453,29 +418,9 @@ namespace Evaluator {
                         score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor<Own> (s);
 
                         // Outpost bonus for bishop
-                        if (!(ei.pin_attacked_by[Opp][PAWN] & s))
+                        if (r >= R_4 && (ei.pin_attacked_by[Opp][PAWN] & s) == U64(0))
                         {
-                            // Initial bonus based on square
-                            Value value = OUTPOSTS[1][rel_sq (Own, s)];
-
-                            // Increase bonus if supported by pawn, especially if the opponent has
-                            // no minor piece which can exchange the outpost piece.
-                            if (value != VALUE_ZERO)
-                            {
-                                // Supporting pawns
-                                if (ei.pin_attacked_by[Own][PAWN] & s)
-                                {
-                                    value *= (  (pos.pieces<NIHT> (Opp) & PIECE_ATTACKS[NIHT][s]) != U64(0)
-                                             || (pos.pieces<BSHP> (Opp) & PIECE_ATTACKS[BSHP][s]) != U64(0)) ?
-                                                1.50 : // If attacked by enemy knights or bishops
-                                                (  (pos.pieces<NIHT> (Opp)) != U64(0)
-                                                || (pos.pieces<BSHP> (Opp) & squares_of_color (s)) != U64(0)) ?
-                                                    1.75 : // If there are enemy knights or bishops
-                                                    2.50;  // If there are no enemy knights or bishops
-                                }
-
-                                score += mk_score (value * 2, value / 2);
-                            }
+                            score += BISHOP_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
                         }
 
                         // An important Chess960 pattern: A cornered bishop blocked by a friendly
@@ -485,28 +430,30 @@ namespace Evaluator {
                         // a friendly pawn on b2/g2 (b7/g7 for black).
                         if (pos.chess960 ())
                         {
-                            if ((FILE_EDGE_bb & R1_bb) & rel_sq (Own, s))
+                            if (s == rel_sq (Own, SQ_A1) || s == rel_sq (Own, SQ_H1))
                             {
                                 Delta del = Push + (F_A == f ? DEL_E : DEL_W);
-                                if (pos[s + del] == (Own | PAWN))
+                                if (pos[s + del] == (Own|PAWN))
                                 {
                                     score -= BISHOP_TRAPPED *
-                                            (  !pos.empty (s + del + Push) ?
-                                                4 : pos[s + del + del] == (Own | PAWN) ?
-                                                2 : 1);
+                                            (  !pos.empty (s + del + Push) ? 4 :
+                                                pos[s + del + del] == (Own|PAWN) ? 2 : 1);
                                 }
                             }
                         }
                     }
-
-                    // Minors (bishop or knight) behind a pawn
-                    if (   r < R_5
-                        && pos.pieces<PAWN> () & (s + Push)
-                       )
-                    {
-                        score += MINOR_BEHIND_PAWN;
-                    }
                 }
+
+
+                if (ei.pinneds[Own] & s)
+                {
+                    attacks &= RAYLINE_bb[pos.king_sq (Own)][s];
+                }
+                ei.pin_attacked_by[Own][PT] |= attacks;
+
+                i32 mob = pop_count<QUEN == PT ? FULL : MAX15> (attacks & mobility_area);
+                mobility += MOBILITY_BONUS[PT][mob];
+
 
                 if (ROOK == PT)
                 {
@@ -520,23 +467,9 @@ namespace Evaluator {
                     // Give a bonus for a rook on a open or semi-open file
                     if (ei.pi->semiopen_file<Own> (f) != 0)
                     {
-                        score += ei.pi->semiopen_file<Opp> (f) != 0 ?
-                                 ROOK_ON_OPENFILE :
-                                 ROOK_ON_SEMIOPENFILE;
+                        score += ei.pi->semiopen_file<Opp> (f) != 0 ? ROOK_ON_OPENFILE : ROOK_ON_SEMIOPENFILE;
                     }
-                }
 
-                if (ei.pinneds[Own] & s)
-                {
-                    attacks &= RAYLINE_bb[pos.king_sq (Own)][s];
-                }
-                ei.pin_attacked_by[Own][PT] |= attacks;
-
-                i32 mob = pop_count<QUEN == PT ? FULL : MAX15> (attacks & mobility_area);
-                mobility += PIECE_MOBILIZE[PT][mob];
-
-                if (ROOK == PT)
-                {
                     if (mob <= 3 && ei.pi->semiopen_file<Own> (f) == 0)
                     {
                         File kf = _file (pos.king_sq (Own));

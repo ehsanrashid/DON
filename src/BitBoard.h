@@ -37,9 +37,6 @@ namespace BitBoard {
     const Bitboard DARK_bb = U64(0xAA55AA55AA55AA55);            // 32 DARK  squares.
 
     const Bitboard CORNER_bb    = (FA_bb | FH_bb)&(R1_bb | R8_bb);  // 04 CORNER squares.
-    const Bitboard FILE_EDGE_bb = (FA_bb | FH_bb);
-    //const Bitboard RIM_EDGE_bb  = (FILE_EDGE_bb | R1_bb | R8_bb);
-    //const Bitboard END_EDGE_bb  = (FA_bb | FH_bb)&(R2_bb | R3_bb);
 
     const Delta PAWN_DELTAS[CLR_NO][3] =
     {
