@@ -13,8 +13,6 @@ namespace Evaluator {
     using namespace std;
     using namespace BitBoard;
     using namespace MoveGen;
-    using namespace Threading;
-    using namespace UCI;
 
     namespace {
 

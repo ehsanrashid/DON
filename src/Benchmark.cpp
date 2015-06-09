@@ -1,8 +1,8 @@
 #include "Benchmark.h"
 
-#include "UCI.h"
 #include "Position.h"
 #include "Searcher.h"
+#include "UCI.h"
 #include "Transposition.h"
 #include "Thread.h"
 #include "Notation.h"
@@ -12,7 +12,6 @@ using namespace std;
 using namespace Searcher;
 using namespace Transposition;
 using namespace MoveGen;
-using namespace Threading;
 using namespace Notation;
 
 namespace {

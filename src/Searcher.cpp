@@ -28,7 +28,6 @@ namespace Searcher {
     using namespace Evaluator;
     using namespace Notation;
     using namespace Debugger;
-    using namespace UCI;
 
     namespace {
 
@@ -1594,17 +1593,6 @@ namespace Searcher {
 
     }
 
-
-    u08  MaximumMoveHorizon  =  50; // Plan time management at most this many moves ahead, in num of moves.
-    u08  EmergencyMoveHorizon=  40; // Be prepared to always play at least this many moves, in num of moves.
-    u32  EmergencyClockTime  =  60; // Always attempt to keep at least this much time at clock, in milliseconds.
-    u32  EmergencyMoveTime   =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
-    u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
-    i32  MoveSlowness        = 110; // Move Slowness, in %age.
-    i32  NodesTime           =   0;
-    bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
-
-
     bool                Chess960        = false;
 
     LimitsT             Limits;
@@ -1630,6 +1618,17 @@ namespace Searcher {
     PolyglotBook        Book;
 
     string              SearchLog       = "";
+
+
+    u08  MaximumMoveHorizon  =  50; // Plan time management at most this many moves ahead, in num of moves.
+    u08  EmergencyMoveHorizon=  40; // Be prepared to always play at least this many moves, in num of moves.
+    u32  EmergencyClockTime  =  60; // Always attempt to keep at least this much time at clock, in milliseconds.
+    u32  EmergencyMoveTime   =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
+    u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
+    i32  MoveSlowness        = 110; // Move Slowness, in %age.
+    i32  NodesTime           =   0;
+    bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
+
 
     TimeManager         TimeMgr;
 

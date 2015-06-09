@@ -4,7 +4,6 @@
 #include <cstring>
 #include <memory>
 
-#include "UCI.h"
 #include "Type.h"
 #include "Position.h"
 #include "PolyglotBook.h"

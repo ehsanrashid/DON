@@ -16,7 +16,6 @@ namespace UCI {
 
     using namespace std;
     using namespace Transposition;
-    using namespace Threading;
     using namespace Searcher;
 
     Option::Option (OnChange on_change)

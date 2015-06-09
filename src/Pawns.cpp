@@ -1,4 +1,5 @@
 #include "Pawns.h"
+
 #include "BitBoard.h"
 #include "Thread.h"
 
@@ -6,7 +7,6 @@ namespace Pawns {
 
     using namespace std;
     using namespace BitBoard;
-    using namespace Threading;
 
     namespace {
 

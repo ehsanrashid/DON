@@ -9,7 +9,6 @@ namespace Material {
 
     using namespace std;
     using namespace BitBoard;
-    using namespace Threading;
     using namespace EndGame;
 
     namespace {

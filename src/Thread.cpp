@@ -13,7 +13,6 @@ namespace Threading {
     using namespace std;
     using namespace MoveGen;
     using namespace Searcher;
-    using namespace UCI;
 
     // Helpers to launch a thread after creation and joining before delete. Must be
     // outside Thread c'tor and d'tor because object must be fully initialized

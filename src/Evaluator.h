@@ -2,7 +2,6 @@
 #define _EVALUATOR_H_INC_
 
 #include "Type.h"
-#include "UCI.h"
 
 class Position;
 

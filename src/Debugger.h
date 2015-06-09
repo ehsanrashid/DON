@@ -5,6 +5,7 @@
 
 #include "noncopyable.h"
 #include "tiebuffer.h"
+#include "Type.h"
 #include "UCI.h"
 
 #if defined(_WIN32)

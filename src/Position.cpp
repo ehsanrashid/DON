@@ -8,7 +8,6 @@
 #include "MoveGenerator.h"
 #include "Thread.h"
 #include "Notation.h"
-#include "UCI.h"
 
 using namespace std;
 using namespace BitBoard;
