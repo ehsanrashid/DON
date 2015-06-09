@@ -145,7 +145,7 @@ namespace Evaluator {
 
         }
 
-        enum EvalWeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PASSED_PAWN, SPACE_ACTIVITY, KING_SAFETY, EVAL_NO };
+        enum EvalWeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PASSED_PAWN, SPACE_ACTIVITY, KING_SAFETY };
 
         struct Weight { i32 mg, eg; };
         
@@ -157,12 +157,12 @@ namespace Evaluator {
         }
 
         // Evaluation weights, initialized from UCI options
-        Weight Weights[EVAL_NO];
+        Weight Weights[5];
 
     #define S(mg, eg) mk_score (mg, eg)
 
         // Internal evaluation weights
-        const Score INTERNAL_WEIGHTS[EVAL_NO] =
+        const Score INTERNAL_WEIGHTS[5] =
         {
             S(289,344), // Piece Mobility
             S(233,201), // Pawn Structure
