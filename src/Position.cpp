@@ -22,8 +22,8 @@ const Value PIECE_VALUE[PHASE_NO][TOTL] =
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
 };
 
-// PSQT[Color][PieceType][Square] contains Color-PieceType-Square scores.
-Score PSQT[CLR_NO][NONE][SQ_NO];
+// PSQ[Color][PieceType][Square] contains Color-PieceType-Square scores.
+Score PSQ[CLR_NO][NONE][SQ_NO];
 
 const string PIECE_CHAR ("PNBRQK  pnbrqk");
 const string COLOR_CHAR ("wb-");
@@ -43,79 +43,75 @@ namespace {
     const u08 STATEINFO_COPY_SIZE = offsetof (StateInfo, last_move);
 
 #define S(mg, eg) mk_score (mg, eg)
-    // SQT[PieceType][Square] contains PieceType-Square scores.
-    // For each piece type on a given square a (midgame, endgame) score pair is assigned.
-    // SQT table is defined for white side +ve,
-    // the table for black side is symmetric -ve.
-    const Score SQT[NONE][SQ_NO] =
+
+    // PSQ_Bonus[PieceType][Square / 2] contains Piece-Square scores.
+    // For each piece type on a given square a (middlegame, endgame) score pair is assigned.
+    // Table is defined for files A..D and white side: it is symmetric for black side and
+    // second half of the files.
+    const Score PSQ_Bonus[NONE][R_NO][F_NO/2] =
     {
-        // Pawn
-        {
-            S(  0, 0), S( 0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0), S(  0, 0),
-            S(-20, 0), S( 0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0), S(-20, 0),
-            S(-20, 0), S( 0, 0), S(+10, 0), S(+20, 0), S(+20, 0), S(+10, 0), S( 0, 0), S(-20, 0),
-            S(-20, 0), S( 0, 0), S(+20, 0), S(+40, 0), S(+40, 0), S(+20, 0), S( 0, 0), S(-20, 0),
-            S(-20, 0), S( 0, 0), S(+10, 0), S(+20, 0), S(+20, 0), S(+10, 0), S( 0, 0), S(-20, 0),
-            S(-20, 0), S( 0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0), S(-20, 0),
-            S(-20, 0), S( 0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0), S(-20, 0),
-            S(  0, 0), S( 0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0), S(  0, 0)
+        { // Pawn
+            { S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0) },
+            { S(-19, 5), S(  1,-4), S(  7, 8), S( 3,-2) },
+            { S(-26,-6), S( -7,-5), S( 19, 5), S(24, 4) },
+            { S(-25, 1), S(-14, 3), S( 16,-8), S(31,-3) },
+            { S(-14, 6), S(  0, 9), S( -1, 7), S(17,-6) },
+            { S(-14, 6), S(-13,-5), S(-10, 2), S(-6, 4) },
+            { S(-12, 1), S( 15,-9), S( -8, 1), S(-4,18) },
+            { S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0) }
         },
-        // Knight
-        {
-            S(-144,-98), S(-109,-83), S(-85,-51), S(-73,-16), S(-73,-16), S(-85,-51), S(-109,-83), S(-144,-98),
-            S(- 88,-68), S(- 43,-53), S(-19,-21), S(- 7,+14), S(- 7,+14), S(-19,-21), S(- 43,-53), S(- 88,-68),
-            S(- 69,-53), S(- 24,-38), S(+ 0,- 6), S(+12,+29), S(+12,+29), S(+ 0,- 6), S(- 24,-38), S(- 69,-53),
-            S(- 28,-42), S(+ 17,-27), S(+41,+ 5), S(+53,+40), S(+53,+40), S(+41,+ 5), S(+ 17,-27), S(- 28,-42),
-            S(- 30,-42), S(+ 15,-27), S(+39,+ 5), S(+51,+40), S(+51,+40), S(+39,+ 5), S(+ 15,-27), S(- 30,-42),
-            S(- 10,-53), S(+ 35,-38), S(+59,- 6), S(+71,+29), S(+71,+29), S(+59,- 6), S(+ 35,-38), S(- 10,-53),
-            S(- 64,-68), S(- 19,-53), S(+ 5,-21), S(+17,+14), S(+17,+14), S(+ 5,-21), S(- 19,-53), S(- 64,-68),
-            S(-200,-98), S(- 65,-83), S(-41,-51), S(-29,-16), S(-29,-16), S(-41,-51), S(- 65,-83), S(-200,-98)
+        { // Knight
+            { S(-143, -97), S(-96,-82), S(-80,-46), S(-73,-14) },
+            { S( -83, -69), S(-43,-55), S(-21,-17), S(-10,  9) },
+            { S( -71, -50), S(-22,-39), S(  0, -8), S(  9, 28) },
+            { S( -25, -41), S( 18,-25), S( 43,  7), S( 47, 38) },
+            { S( -26, -46), S( 16,-25), S( 38,  2), S( 50, 41) },
+            { S( -11, -55), S( 37,-38), S( 56, -8), S( 71, 27) },
+            { S( -62, -64), S(-17,-50), S(  5,-24), S( 14, 13) },
+            { S(-195,-110), S(-66,-90), S(-42,-50), S(-29,-13) }
         },
-        // Bishop
-        {
-            S(-54,-65), S(-27,-42), S(-34,-44), S(-43,-26), S(-43,-26), S(-34,-44), S(-27,-42), S(-54,-65),
-            S(-29,-43), S(+ 8,-20), S(+ 1,-22), S(- 8,- 4), S(- 8,- 4), S(+ 1,-22), S(+ 8,-20), S(-29,-43),
-            S(-20,-33), S(+17,-10), S(+10,-12), S(+ 1,+ 6), S(+ 1,+ 6), S(+10,-12), S(+17,-10), S(-20,-33),
-            S(-19,-35), S(+18,-12), S(+11,-14), S(+ 2,+ 4), S(+ 2,+ 4), S(+11,-14), S(+18,-12), S(-19,-35),
-            S(-22,-35), S(+15,-12), S(+ 8,-14), S(- 1,+ 4), S(- 1,+ 4), S(+ 8,-14), S(+15,-12), S(-22,-35),
-            S(-28,-33), S(+ 9,-10), S(+ 2,-12), S(- 7,+ 6), S(- 7,+ 6), S(+ 2,-12), S(+ 9,-10), S(-28,-33),
-            S(-32,-43), S(+ 5,-20), S(- 2,-22), S(-11,- 4), S(-11,- 4), S(- 2,-22), S(+ 5,-20), S(-32,-43),
-            S(-49,-65), S(-22,-42), S(-29,-44), S(-38,-26), S(-38,-26), S(-29,-44), S(-22,-42), S(-49,-65)
+        { // Bishop
+            { S(-54,-68), S(-23,-40), S(-35,-46), S(-44,-28) },
+            { S(-30,-43), S( 10,-17), S(  2,-23), S( -9, -5) },
+            { S(-19,-32), S( 17, -9), S( 11,-13), S(  1,  8) },
+            { S(-21,-36), S( 18,-13), S( 11,-15), S(  0,  7) },
+            { S(-21,-36), S( 14,-14), S(  6,-17), S( -1,  3) },
+            { S(-27,-35), S(  6,-13), S(  2,-10), S( -8,  1) },
+            { S(-33,-44), S(  7,-21), S( -4,-22), S(-12, -4) },
+            { S(-45,-65), S(-21,-42), S(-29,-46), S(-39,-27) }
         },
-        // Rook
-        {
-            S(-22,+ 3), S(-17,+ 3), S(-12,+ 3), S(- 8,+ 3), S(- 8,+ 3), S(-12,+ 3), S(-17,+ 3), S(-22,+ 3),
-            S(-22,+ 3), S(- 7,+ 3), S(- 2,+ 3), S(+ 2,+ 3), S(+ 2,+ 3), S(- 2,+ 3), S(- 7,+ 3), S(-22,+ 3),
-            S(-22,+ 3), S(- 7,+ 3), S(- 2,+ 3), S(+ 2,+ 3), S(+ 2,+ 3), S(- 2,+ 3), S(- 7,+ 3), S(-22,+ 3),
-            S(-22,+ 3), S(- 7,+ 3), S(- 2,+ 3), S(+ 2,+ 3), S(+ 2,+ 3), S(- 2,+ 3), S(- 7,+ 3), S(-22,+ 3),
-            S(-22,+ 3), S(- 7,+ 3), S(- 2,+ 3), S(+ 2,+ 3), S(+ 2,+ 3), S(- 2,+ 3), S(- 7,+ 3), S(-22,+ 3),
-            S(-22,+ 3), S(- 7,+ 3), S(- 2,+ 3), S(+ 2,+ 3), S(+ 2,+ 3), S(- 2,+ 3), S(- 7,+ 3), S(-22,+ 3),
-            S(-11,+ 3), S(+ 4,+ 3), S(+ 9,+ 3), S(+13,+ 3), S(+13,+ 3), S(+ 9,+ 3), S(+ 4,+ 3), S(-11,+ 3),
-            S(-22,+ 3), S(-17,+ 3), S(-12,+ 3), S(- 8,+ 3), S(- 8,+ 3), S(-12,+ 3), S(-17,+ 3), S(-22,+ 3)
+        { // Rook
+            { S(-25, 0), S(-16, 0), S(-16, 0), S(-9, 0) },
+            { S(-21, 0), S( -8, 0), S( -3, 0), S( 0, 0) },
+            { S(-21, 0), S( -9, 0), S( -4, 0), S( 2, 0) },
+            { S(-22, 0), S( -6, 0), S( -1, 0), S( 2, 0) },
+            { S(-22, 0), S( -7, 0), S(  0, 0), S( 1, 0) },
+            { S(-21, 0), S( -7, 0), S(  0, 0), S( 2, 0) },
+            { S(-12, 0), S(  4, 0), S(  8, 0), S(12, 0) },
+            { S(-23, 0), S(-15, 0), S(-11, 0), S(-5, 0) }
         },
-        // Queen
-        {
-            S(- 2,-80), S(- 2,-54), S(- 2,-42), S(- 2,-30), S(- 2,-30), S(- 2,-42), S(- 2,-54), S(- 2,-80),
-            S(- 2,-54), S(+ 8,-30), S(+ 8,-18), S(+ 8,- 6), S(+ 8,- 6), S(+ 8,-18), S(+ 8,-30), S(- 2,-54),
-            S(- 2,-42), S(+ 8,-18), S(+ 8,- 6), S(+ 8,+ 6), S(+ 8,+ 6), S(+ 8,- 6), S(+ 8,-18), S(- 2,-42),
-            S(- 2,-30), S(+ 8,- 6), S(+ 8,+ 6), S(+ 8,+18), S(+ 8,+18), S(+ 8,+ 6), S(+ 8,- 6), S(- 2,-30),
-            S(- 2,-30), S(+ 8,- 6), S(+ 8,+ 6), S(+ 8,+18), S(+ 8,+18), S(+ 8,+ 6), S(+ 8,- 6), S(- 2,-30),
-            S(- 2,-42), S(+ 8,-18), S(+ 8,- 6), S(+ 8,+ 6), S(+ 8,+ 6), S(+ 8,- 6), S(+ 8,-18), S(- 2,-42),
-            S(- 2,-54), S(+ 8,-30), S(+ 8,-18), S(+ 8,- 6), S(+ 8,- 6), S(+ 8,-18), S(+ 8,-30), S(- 2,-54),
-            S(- 2,-80), S(- 2,-54), S(- 2,-42), S(- 2,-30), S(- 2,-30), S(- 2,-42), S(- 2,-54), S(- 2,-80)
+        { // Queen
+            { S( 0,-70), S(-3,-57), S(-4,-41), S(-1,-29) },
+            { S(-4,-58), S( 6,-30), S( 9,-21), S( 8, -4) },
+            { S(-2,-39), S( 6,-17), S( 9, -7), S( 9,  5) },
+            { S(-1,-29), S( 8, -5), S(10,  9), S( 7, 17) },
+            { S(-3,-27), S( 9, -5), S( 8, 10), S( 7, 23) },
+            { S(-2,-40), S( 6,-16), S( 8,-11), S(10,  3) },
+            { S(-2,-54), S( 7,-30), S( 7,-21), S( 6, -7) },
+            { S(-1,-75), S(-4,-54), S(-1,-44), S( 0,-30) }
         },
-        // King
-        {
-            S(+298,+ 27), S(+332,+ 81), S(+273,+108), S(+225,+116), S(+225,+116), S(+273,+108), S(+332,+ 81), S(+298,+ 27),
-            S(+287,+ 74), S(+321,+128), S(+262,+155), S(+214,+163), S(+214,+163), S(+262,+155), S(+321,+128), S(+287,+ 74),
-            S(+224,+111), S(+258,+165), S(+199,+192), S(+151,+200), S(+151,+200), S(+199,+192), S(+258,+165), S(+224,+111),
-            S(+196,+135), S(+230,+189), S(+171,+216), S(+123,+224), S(+123,+224), S(+171,+216), S(+230,+189), S(+196,+135),
-            S(+173,+135), S(+207,+189), S(+148,+216), S(+100,+224), S(+100,+224), S(+148,+216), S(+207,+189), S(+173,+135),
-            S(+146,+111), S(+180,+165), S(+121,+192), S(+ 73,+200), S(+ 73,+200), S(+121,+192), S(+180,+165), S(+146,+111),
-            S(+119,+ 74), S(+153,+128), S(+ 94,+155), S(+ 46,+163), S(+ 46,+163), S(+ 94,+155), S(+153,+128), S(+119,+ 74),
-            S(+ 98,+ 27), S(+132,+ 81), S(+ 73,+108), S(+ 25,+116), S(+ 25,+116), S(+ 73,+108), S(+132,+ 81), S(+ 98,+ 27)
+        { // King
+            { S(291, 28), S(344, 76), S(294,103), S(219,112) },
+            { S(289, 70), S(329,119), S(263,170), S(205,159) },
+            { S(226,109), S(271,164), S(202,195), S(136,191) },
+            { S(204,131), S(212,194), S(175,194), S(137,204) },
+            { S(177,132), S(205,187), S(143,224), S( 94,227) },
+            { S(147,118), S(188,178), S(113,199), S( 70,197) },
+            { S(116, 72), S(158,121), S( 93,142), S( 48,161) },
+            { S( 94, 30), S(120, 76), S( 78,101), S( 31,111) }
         }
     };
+
 #undef S
 
 }
@@ -128,11 +124,12 @@ void Position::initialize ()
     {
         Score score = mk_score (PIECE_VALUE[MG][pt], PIECE_VALUE[EG][pt]);
 
-        for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+        for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            Score psq_score = score + SQT[pt][s];
-            PSQT[WHITE][pt][ Square(s)] = +psq_score;
-            PSQT[BLACK][pt][~Square(s)] = -psq_score;
+            i32   edge_dist = _file (s) < F_E ? _file (s) : F_H - _file (s);
+            Score psq_score = score + PSQ_Bonus[pt][_rank (s)][edge_dist];
+            PSQ[WHITE][pt][ s] = +psq_score;
+            PSQ[BLACK][pt][~s] = -psq_score;
         }
     }
 }
@@ -1187,7 +1184,7 @@ Score Position::compute_psq_score () const
     while (occ != U64(0))
     {
         Square s = pop_lsq (occ);
-        score += PSQT[color (_board[s])][ptype (_board[s])][s];
+        score += PSQ[color (_board[s])][ptype (_board[s])][s];
     }
     return score;
 }
@@ -1220,7 +1217,7 @@ Value Position::compute_non_pawn_material (Color c) const
     }                                                                             \
     _si->matl_key ^= Zob._.piece_square[~_active][ct][_piece_count[~_active][ct]];\
     key           ^= Zob._.piece_square[~_active][ct][cap];                       \
-    _si->psq_score -= PSQT[~_active][ct][cap];                                    \
+    _si->psq_score -= PSQ[~_active][ct][cap];                                    \
     _si->clock50 = 0;                                                             \
 }
 
@@ -1283,8 +1280,8 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
             ^Zob._.piece_square[_active][pt][dst];
 
         _si->psq_score +=
-            -PSQT[_active][pt][org]
-            +PSQT[_active][pt][dst];
+            -PSQ[_active][pt][org]
+            +PSQ[_active][pt][dst];
     }
         break;
 
@@ -1302,10 +1299,10 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
             ^Zob._.piece_square[_active][ROOK][rook_dst];
 
         _si->psq_score +=
-            -PSQT[_active][KING][     org]
-            +PSQT[_active][KING][     dst]
-            -PSQT[_active][ROOK][rook_org]
-            +PSQT[_active][ROOK][rook_dst];
+            -PSQ[_active][KING][     org]
+            +PSQ[_active][KING][     dst]
+            -PSQ[_active][ROOK][rook_org]
+            +PSQ[_active][ROOK][rook_dst];
 
         _si->clock50++;
     }
@@ -1333,8 +1330,8 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
             ^Zob._.piece_square[_active][PAWN][dst];
 
         _si->psq_score +=
-            -PSQT[_active][PAWN][org]
-            +PSQT[_active][PAWN][dst];
+            -PSQ[_active][PAWN][org]
+            +PSQ[_active][PAWN][dst];
     }
         break;
 
@@ -1369,8 +1366,8 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
             ^Zob._.piece_square[_active][ppt ][dst];
 
         _si->psq_score +=
-            +PSQT[_active][ppt ][dst]
-            -PSQT[_active][PAWN][org];
+            +PSQ[_active][ppt ][dst]
+            -PSQ[_active][PAWN][org];
 
         _si->non_pawn_matl[_active] += PIECE_VALUE[MG][ppt];
     }

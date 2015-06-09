@@ -11,7 +11,7 @@ namespace MovePick {
     using namespace MoveGen;
 
     // The Stats struct stores different statistics.
-    template<typename T>
+    template<class T>
     struct Stats
     {
     private:

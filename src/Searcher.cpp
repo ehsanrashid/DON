@@ -864,16 +864,16 @@ namespace Searcher {
             Value value = -VALUE_INFINITE;
 
             bool improving =
-                   ((ss-2)->static_eval == VALUE_NONE)
-                || ((ss-0)->static_eval == VALUE_NONE)
-                || ((ss-0)->static_eval >= (ss-2)->static_eval);
+                   (ss-0)->static_eval >= (ss-2)->static_eval
+                || (ss-0)->static_eval == VALUE_NONE
+                || (ss-2)->static_eval == VALUE_NONE;
 
             bool singular_ext_node =
                    !RootNode && !SPNode
                 && MOVE_NONE == exclude_move // Recursive singular search is not allowed
                 && MOVE_NONE != tt_move 
                 &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
-                && tt_depth >= depth-3*DEPTH_ONE
+                && tt_depth >= depth - 3*DEPTH_ONE
                 && abs (tt_value) < +VALUE_KNOWN_WIN
                 && (tt_bound & BOUND_LOWER);
 
@@ -1259,7 +1259,7 @@ namespace Searcher {
                     assert (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
 
                     thread->split (pos, ss, alpha, beta, best_value, best_move, depth, legal_count, mp, NT, cut_node);
-                        
+
                     if (Signals.force_stop || thread->cutoff_occurred ())
                     {
                         return VALUE_ZERO;
@@ -1419,7 +1419,8 @@ namespace Searcher {
                             bound_b   = min (best_value + window_b, +VALUE_INFINITE);
                             window_b *= 1.50;
                         }
-                        else break;
+                        else
+                            break;
 
                         assert (-VALUE_INFINITE <= bound_a && bound_a < bound_b && bound_b <= +VALUE_INFINITE);
                     } while (true);
@@ -1465,7 +1466,7 @@ namespace Searcher {
 
                 // Stop the search early:
                 bool stop = false;
-                
+
                 // Stop if have found a "mate in <x>"
                 if (   MateSearch
                     && best_value >= +VALUE_MATE_IN_MAX_DEPTH
@@ -1474,7 +1475,7 @@ namespace Searcher {
                 {
                     stop = true;
                 }
-                
+
                 // Do have time for the next iteration? Can stop searching now?
                 if (Limits.use_timemanager ())
                 {

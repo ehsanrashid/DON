@@ -12,7 +12,7 @@ namespace Threading {
     struct SplitPoint;
 }
 
-typedef std::auto_ptr<StateInfoStack>   StateInfoStackPtr;
+typedef std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
 
 namespace Searcher {
 

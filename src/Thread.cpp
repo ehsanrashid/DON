@@ -341,7 +341,7 @@ namespace Threading {
         Limits  = limits;
         if (states.get () != nullptr) // If don't set a new position, preserve current state
         {
-            SetupStates = std::move (states); // Ownership transfer here
+            SetupStates = move (states); // Ownership transfer here
             assert (states.get () == nullptr);
         }
 

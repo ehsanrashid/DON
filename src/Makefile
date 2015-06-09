@@ -49,8 +49,8 @@ OBJS = Benchmark.o BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Main.o M
 # at the end of the line for flag values.
 
 ### Redirect output to file
-# DON.exe bench <param>  > bench.txt 2>&1 // works fine
-# DON.exe bench <param> 2> bench.txt 1>&2 // merge std::cerr into std::cout
+# DON bench <param>  > bench.txt 2>&1 // works fine
+# DON bench <param> 2> bench.txt 1>&2 // merge std::cerr into std::cout
 
 ### 2.1. General and architecture defaults
 debug   = no

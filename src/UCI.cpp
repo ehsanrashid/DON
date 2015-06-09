@@ -6,7 +6,6 @@
 #include "Benchmark.h"
 #include "Searcher.h"
 #include "Evaluator.h"
-#include "Thread.h"
 #include "Transposition.h"
 #include "Notation.h"
 #include "Debugger.h"
@@ -43,7 +42,7 @@ namespace UCI {
         void exe_ucinewgame ()
         {
             reset ();
-            //Time.availableNodes = 0;
+            TimeMgr.available_nodes = 0;
         }
 
         void exe_isready ()
@@ -164,7 +163,7 @@ namespace UCI {
             
             RootPos.setup (fen, Threadpool.main (), Chess960);
             
-            SetupStates = StateInfoStackPtr (new StateInfoStack ());
+            SetupStates = StateInfoStackPtr (new StateInfoStack);
             
             if (token == "moves")
             {

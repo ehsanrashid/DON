@@ -11,7 +11,7 @@ namespace MovePick {
 
     namespace {
 
-        enum StageT : u08
+        enum // Stages
         {
             S_MAIN    , S_GOOD_CAPTURE, S_KILLER, S_GOOD_QUIET, S_BAD_QUIET, S_BAD_CAPTURE,
             S_EVASION , S_ALL_EVASION,
@@ -106,7 +106,7 @@ namespace MovePick {
         {
             _stage = S_RECAPTURE;
             _recapture_sq = dst_sq;
-            ttm   = MOVE_NONE;
+            ttm = MOVE_NONE;
         }
 
         _tt_move =   ttm != MOVE_NONE
@@ -163,7 +163,7 @@ namespace MovePick {
     {
         for (auto &m : *this)
         {
-            m.value = PIECE_VALUE[MG][_pos[dst_sq (m)]]
+            m.value = PIECE_VALUE[MG][ptype (_pos[dst_sq (m)])]
                     - 200 * rel_rank (_pos.active (), dst_sq (m));
         }
     }
