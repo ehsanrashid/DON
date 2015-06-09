@@ -229,7 +229,7 @@ namespace Searcher {
                 }
             }
 
-            for (i16 i = 0; i < LimitPV; ++i)
+            for (u16 i = 0; i < LimitPV; ++i)
             {
                 Depth d;
                 Value v;
@@ -329,8 +329,7 @@ namespace Searcher {
             // TT entry depth that are going to use. Note that in quien_search use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
             Depth qs_depth = InCheck || depth >= DEPTH_QS_CHECKS ?
-                                DEPTH_QS_CHECKS :
-                                DEPTH_QS_NO_CHECKS;
+                                DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             CheckInfo cc, *ci = nullptr;
 
@@ -950,7 +949,7 @@ namespace Searcher {
                             sync_cout
                                 << "info"
                                 //<< " depth "          << depth/DEPTH_ONE
-                                << " currmovenumber " << setw (2) << u16(legal_count + IndexPV)
+                                << " currmovenumber " << setw (2) << IndexPV + legal_count
                                 << " currmove "       << move_to_can (move, Chess960)
                                 << " time "           << TimeMgr.elapsed_time ()
                                 << sync_endl;
@@ -1035,7 +1034,10 @@ namespace Searcher {
                             if (SPNode)
                             {
                                 splitpoint->spinlock.acquire ();
-                                if (splitpoint->best_value < best_value) splitpoint->best_value = best_value;
+                                if (splitpoint->best_value < best_value)
+                                {
+                                    splitpoint->best_value = best_value;
+                                }
                             }
                             continue;
                         }
@@ -1054,7 +1056,7 @@ namespace Searcher {
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
-                if (!SPNode && !RootNode && !move_legal)
+                if (!RootNode && !SPNode && !move_legal)
                 {
                     --legal_count;
                     continue;
@@ -1184,6 +1186,7 @@ namespace Searcher {
                         rm.pv.resize (1);
 
                         assert ((ss+1)->pv != nullptr);
+
                         for (Move *m = (ss+1)->pv; *m != MOVE_NONE; ++m)
                         {
                             rm.pv.push_back (*m);
@@ -1470,11 +1473,11 @@ namespace Searcher {
                 // Stop the search early:
                 bool stop = false;
                 
-                // Have found a "mate in <x>"?
+                // Stop if have found a "mate in <x>"
                 if (   MateSearch
                     && best_value >= +VALUE_MATE_IN_MAX_DEPTH
                     && i16(VALUE_MATE - best_value) <= 2*Limits.mate
-                    )
+                   )
                 {
                     stop = true;
                 }
@@ -1482,16 +1485,16 @@ namespace Searcher {
                 // Do have time for the next iteration? Can stop searching now?
                 if (Limits.use_timemanager ())
                 {
-                    if (!Signals.ponderhit_stop)
+                    if (!Signals.force_stop && !Signals.ponderhit_stop)
                     {
-                        // Time adjustments
 
+                        // If PV limit = 1 then take some extra time if the best move has changed
                         if (aspiration && LimitPV == 1)
                         {
-                            // Take in account some extra time if the best move has changed
                             TimeMgr.instability (RootMoves.best_move_change);
                         }
 
+                        // Stop the search
                         // If there is only one legal move available or 
                         // If all of the available time has been used.
                         if (   RootSize == 1

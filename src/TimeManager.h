@@ -3,7 +3,6 @@
 
 #include "Type.h"
 #include "Searcher.h"
-#include "UCI.h"
 
 namespace TimeManagement {
 
