@@ -7,7 +7,6 @@
 #include "Transposition.h"
 #include "Thread.h"
 #include "Searcher.h"
-#include "TimeManager.h"
 #include "Evaluator.h"
 #include "Debugger.h"
 
@@ -19,7 +18,6 @@ namespace UCI {
     using namespace Transposition;
     using namespace Threading;
     using namespace Searcher;
-    using namespace TimeManagement;
 
     Option::Option (OnChange on_change)
         : _type ("button")

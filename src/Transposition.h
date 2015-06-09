@@ -7,7 +7,6 @@
 #include "Type.h"
 #include "Thread.h"
 #include "MemoryHandler.h"
-#include "UCI.h"
 
 namespace Transposition {
 
