@@ -255,7 +255,7 @@ namespace Searcher {
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * MILLI_SEC / elapsed_time;
                 if (elapsed_time > MILLI_SEC) ss  << " hashfull " << TT.hash_full ();
-                ss  << " pv"        << string(RootMoves[i]);
+                ss  << " pv"        << RootMoves[i];
 
             }
 

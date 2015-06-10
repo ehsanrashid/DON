@@ -310,7 +310,7 @@ public:
     friend std::basic_ostream<CharT, Traits>&
         operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
     {
-        os << std::string (pos);
+        os << std::string(pos);
         return os;
     }
 

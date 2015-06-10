@@ -144,6 +144,14 @@ namespace Searcher {
 
         operator std::string () const;
         
+        template<class CharT, class Traits>
+        friend std::basic_ostream<CharT, Traits>&
+            operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
+        {
+            os << std::string(rm);
+            return os;
+        }
+
     };
 
     class RootMoveList
