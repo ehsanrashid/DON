@@ -7,10 +7,6 @@
 #include "BitBoard.h"
 #include "Zobrist.h"
 
-namespace Threading {
-    class Thread;
-}
-
 class Position;
 
 // FORSYTH-EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
@@ -83,6 +79,12 @@ public:
     explicit CheckInfo (const Position &pos);
 };
 
+namespace Threading {
+    class Thread;
+}
+
+using namespace Threading;
+
 // The position data structure. A position consists of the following data:
 //
 // Board consits of data about piece placement
@@ -134,7 +136,7 @@ private:
     
     bool     _chess960;
 
-    Threading::Thread   *_thread;
+    Thread  *_thread;
 
     // ------------------------
     
@@ -160,11 +162,11 @@ public:
 
     Position () { clear (); } // To define the global object RootPos
     Position (const Position &pos) = delete;
-    Position (const std::string &f, Threading::Thread *th = nullptr, bool c960 = false, bool full = true)
+    Position (const std::string &f, Thread *th = nullptr, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    Position (const Position &pos, Threading::Thread *th)
+    Position (const Position &pos, Thread *th)
     {
         *this = pos;
         _thread = th;
@@ -246,7 +248,7 @@ public:
     void  game_nodes (u64 nodes);
     Phase game_phase ()  const;
 
-    Threading::Thread* thread () const;
+    Thread* thread   ()  const;
 
     bool ok (i08 *step = nullptr) const;
 
@@ -286,7 +288,7 @@ public:
     void remove_piece (Square s);
     void   move_piece (Square s1, Square s2);
 
-    bool setup (const std::string &f, Threading::Thread *th = nullptr, bool c960 = false, bool full = true);
+    bool setup (const std::string &f, Thread *th = nullptr, bool c960 = false, bool full = true);
 
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
@@ -450,7 +452,7 @@ inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
 
 inline bool Position::chess960  () const { return _chess960; }
-inline Threading::Thread* Position::thread () const { return _thread; }
+inline Thread* Position::thread () const { return _thread; }
 
 // Attackers to the square 's' by color 'c' on occupancy 'occ'
 inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const

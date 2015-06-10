@@ -21,17 +21,7 @@ namespace Searcher {
     const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be < MAX_DEPTH/2
     const u16 MIN_SKILL_MULTIPV =  4;
 
-    // Clock struct stores the remain-time and time-inc per move in milli-seconds
-    struct Clock
-    {
-        u32 time;   // Remaining Time    [milli-seconds]
-        u32 inc;    // Time inc per move [milli-seconds]
-
-        Clock ()
-            : time (0)
-            , inc  (0)
-        {}
-    };
+    
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
     //  - Maximum depth.
@@ -41,6 +31,19 @@ namespace Searcher {
     //  - Ponder while is opponent's side to move.
     struct LimitsT
     {
+    private:
+        // Clock struct stores the remain-time and time-inc per move in milli-seconds
+        struct Clock
+        {
+            u32 time;   // Remaining Time    [milli-seconds]
+            u32 inc;    // Time inc per move [milli-seconds]
+
+            Clock ()
+                : time (0)
+                , inc  (0)
+            {}
+        };
+
     public:
 
         Clock clock[CLR_NO];
@@ -139,7 +142,8 @@ namespace Searcher {
         void insert_pv_into_tt (Position &pos);
         bool ponder_move_extracted_from_tt (Position &pos);
 
-        std::string info_pv () const;
+        operator std::string () const;
+        
     };
 
     class RootMoveList
@@ -147,14 +151,19 @@ namespace Searcher {
     {
 
     public:
-        void initialize (const Position &pos, const vector<Move> &root_moves);
+        void initialize (const Position &pos, const std::vector<Move> &root_moves);
+        void initialize (const Position &pos)
+        {
+            std::vector<Move> root_moves;
+            initialize (pos, root_moves);
+        }
 
         //u64 game_nodes () const
         //{
         //    u64 nodes = U64(0);
-        //    for (const_iterator itr = begin (); itr != end (); ++itr)
+        //    for (const RootMove &rm : *this)
         //    {
-        //        nodes += itr->nodes;
+        //        nodes += rm.nodes;
         //    }
         //    return nodes;
         //}

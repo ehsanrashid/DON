@@ -255,7 +255,7 @@ namespace Searcher {
                     << " nodes "    << pos.game_nodes ()
                     << " nps "      << pos.game_nodes () * MILLI_SEC / elapsed_time;
                 if (elapsed_time > MILLI_SEC) ss  << " hashfull " << TT.hash_full ();
-                ss  << " pv"        << RootMoves[i].info_pv ();
+                ss  << " pv"        << string(RootMoves[i]);
 
             }
 
@@ -1637,16 +1637,16 @@ namespace Searcher {
     // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
     // inserts the PV back into the TT. This makes sure the old PV moves are searched
     // first, even if the old TT entries have been overwritten.
-    void   RootMove::insert_pv_into_tt (Position &pos)
+    void RootMove::insert_pv_into_tt (Position &pos)
     {
         StateInfo states[MAX_DEPTH], *si = states;
-        bool  tt_hit;
 
         size_t ply = 0;
         for (Move m : pv)
         {
             assert (MoveList<LEGAL> (pos).contains (m));
-
+            
+            bool tt_hit;
             TTEntry *tte = TT.probe (pos.posi_key (), tt_hit);
             // Don't overwrite correct entries
             if (!tt_hit || tte->move () != m)
@@ -1696,7 +1696,7 @@ namespace Searcher {
         return false;
     }
 
-    string RootMove::info_pv () const
+    RootMove::operator string () const
     {
         stringstream ss;
         for (Move m : pv)
