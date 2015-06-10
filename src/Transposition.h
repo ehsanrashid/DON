@@ -5,8 +5,8 @@
 #include <cstdlib>
 
 #include "Type.h"
-#include "Thread.h"
 #include "MemoryHandler.h"
+#include "Thread.h"
 
 namespace Transposition {
 
@@ -47,18 +47,18 @@ namespace Transposition {
         void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
             // Preserve any existing move for the same key
-            if (  m != MOVE_NONE
-               || k != _key
+            if (   m != MOVE_NONE
+                || k != _key
                )
             {
                 _move       = u16(m);
             }
 
             // Don't overwrite more valuable entries
-            if (  k != _key
-               || d > _depth - 2
-               || g != gen ()
-               || b == BOUND_EXACT
+            if (   k != _key
+                || d > _depth - 2
+                || g != gen ()
+                || b == BOUND_EXACT
                )
             {
                 _key        = u64(k);
