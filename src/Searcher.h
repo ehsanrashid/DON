@@ -49,12 +49,12 @@ namespace Searcher {
         Clock clock[CLR_NO];
         std::vector<Move> root_moves;   // restrict search to these moves only
 
-        u32  npmsec;
         u32  movetime;  // search <x> time in milli-seconds
         u08  movestogo; // search <x> moves to the next time control
         u08  depth;     // search <x> depth (plies) only
         u64  nodes;     // search <x> nodes only
         u08  mate;      // search mate in <x> moves
+        u32  npmsec;
         bool ponder;    // search on ponder move
         bool infinite;  // search until the "stop" command
 
@@ -64,6 +64,7 @@ namespace Searcher {
             , depth     (0)
             , nodes     (0)
             , mate      (0)
+            , npmsec    (0)
             , ponder    (false)
             , infinite  (false)
         {}

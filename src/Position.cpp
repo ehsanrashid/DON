@@ -162,7 +162,7 @@ bool Position::draw () const
     // Draw by Threefold Repetition?
     const StateInfo *psi = _si;
     //u08 cnt = 1;
-    for (u08 ply = std::min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
+    for (u08 ply = min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
     {
         psi = psi->ptr->ptr;
         if (psi->posi_key == _si->posi_key)
@@ -299,12 +299,12 @@ bool Position::ok (i08 *failed_step) const
                 // check if the number of Pawns plus the number of
                 // extra Queens, Rooks, Bishops, Knights exceeds 8
                 // (which can result only by promotion)
-                if (  (   _piece_count[c][PAWN]
-                + max (_piece_count[c][NIHT] - 2, 0)
+                if (      (_piece_count[c][PAWN]
+                    + max (_piece_count[c][NIHT] - 2, 0)
                     + max (_piece_count[c][BSHP] - 2, 0)
                     + max (_piece_count[c][ROOK] - 2, 0)
                     + max (_piece_count[c][QUEN] - 1, 0)) > 8
-                    )
+                   )
                 {
                     return false; // Too many Promoted Piece of color
                 }
@@ -318,10 +318,10 @@ bool Position::ok (i08 *failed_step) const
                         u08(pop_count<MAX15> (DARK_bb & bishops)),
                     };
 
-                    if (  (   _piece_count[c][PAWN]
-                    + max (bishop_count[WHITE] - 1, 0)
+                    if (      (_piece_count[c][PAWN]
+                        + max (bishop_count[WHITE] - 1, 0)
                         + max (bishop_count[BLACK] - 1, 0)) > 8
-                        )
+                       )
                     {
                         return false; // Too many Promoted BISHOP of color
                     }
@@ -392,7 +392,7 @@ bool Position::ok (i08 *failed_step) const
 
                     if (!can_castle (cr)) continue;
 
-                    if (   _board[_castle_rook[cr]] != (Color(c) | ROOK)
+                    if (    _board[_castle_rook[cr]] != (Color(c) | ROOK)
                         ||  _castle_mask[_castle_rook[cr]] != cr
                         || (_castle_mask[_piece_list[c][KING][0]] & cr) != cr
                        )

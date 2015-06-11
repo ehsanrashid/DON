@@ -1658,7 +1658,7 @@ namespace Searcher {
             ++ply;
         }
 
-        while (ply > 0)
+        while (ply != 0)
         {
             pos.undo_move ();
             --ply;
@@ -2144,7 +2144,7 @@ namespace Threading {
 
                     nodes += sp.nodes;
 
-                    for (size_t idx = 0; idx < Threadpool.size(); ++idx)
+                    for (size_t idx = 0; idx < Threadpool.size (); ++idx)
                     {
                         if (sp.slaves_mask.test (idx) && Threadpool[idx]->active_pos != nullptr)
                         {
@@ -2292,7 +2292,7 @@ namespace Threading {
             {
                 assert (splitpoint == nullptr);
 
-                std::unique_lock<Mutex> lk (mutex);
+                unique_lock<Mutex> lk (mutex);
                 while (alive && !Threadpool.main ()->thinking)
                 {
                     sleep_condition.wait (lk);
@@ -2300,7 +2300,7 @@ namespace Threading {
             }
             else
             {
-                std::this_thread::yield (); // Wait for a new job or for our slaves to finish
+                this_thread::yield (); // Wait for a new job or for our slaves to finish
             }
 
         }

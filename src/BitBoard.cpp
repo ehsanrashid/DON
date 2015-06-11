@@ -110,7 +110,7 @@ namespace BitBoard {
             i32      age[MAX_LMOVES]
                    , cur_age = 0;
             
-            std::memset (age, 0, sizeof (age));
+            memset (age, 0, sizeof (age));
             
 #       endif
             

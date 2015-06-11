@@ -100,11 +100,11 @@ namespace Evaluator {
                 }
                 else
                 {
-                    os << " | " << std::setw(5) << cp[WHITE][MG] << " " << std::setw(5) << cp[WHITE][EG]
-                       << " | " << std::setw(5) << cp[BLACK][MG] << " " << std::setw(5) << cp[BLACK][EG] << " | ";
+                    os << " | " << setw(5) << cp[WHITE][MG] << " " << setw(5) << cp[WHITE][EG]
+                       << " | " << setw(5) << cp[BLACK][MG] << " " << setw(5) << cp[BLACK][EG] << " | ";
                 }
-                os << std::setw(5) << cp[WHITE][MG] - cp[BLACK][MG] << " "
-                   << std::setw(5) << cp[WHITE][EG] - cp[BLACK][EG] << " \n";
+                os << setw(5) << cp[WHITE][MG] - cp[BLACK][MG] << " "
+                   << setw(5) << cp[WHITE][EG] - cp[BLACK][EG] << " \n";
 
                 return os;
 

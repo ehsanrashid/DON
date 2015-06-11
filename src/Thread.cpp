@@ -20,8 +20,8 @@ namespace Threading {
     template<class T>
     T* new_thread ()
     {
-        std::thread *th = new T;
-        *th = std::thread (&T::idle_loop, (T*)th); // Will go to sleep
+        thread *th = new T;
+        *th = thread (&T::idle_loop, (T*)th); // Will go to sleep
         return (T*)th;
     }
 
@@ -44,14 +44,14 @@ namespace Threading {
     // ThreadBase::notify_one () wakes up the thread when there is some work to do
     void ThreadBase::notify_one ()
     {
-        std::unique_lock<Mutex> lk (mutex);
+        unique_lock<Mutex> lk (mutex);
         sleep_condition.notify_one ();
     }
 
     // ThreadBase::wait_for() set the thread to sleep until condition turns true
     void ThreadBase::wait_for (const volatile bool &condition)
     {
-        std::unique_lock<Mutex> lk (mutex);
+        unique_lock<Mutex> lk (mutex);
         sleep_condition.wait (lk, [&]{ return condition; });
     }
 
@@ -199,9 +199,9 @@ namespace Threading {
     {
         do
         {
-            std::unique_lock<Mutex> lk (mutex);
+            unique_lock<Mutex> lk (mutex);
 
-            if (alive) sleep_condition.wait_for (lk, std::chrono::milliseconds(run ? resolution : INT_MAX));
+            if (alive) sleep_condition.wait_for (lk, chrono::milliseconds(run ? resolution : INT_MAX));
 
             lk.unlock ();
 
@@ -218,7 +218,7 @@ namespace Threading {
     {
         do
         {
-            std::unique_lock<Mutex> lk (mutex);
+            unique_lock<Mutex> lk (mutex);
 
             thinking = false;
 
@@ -247,7 +247,7 @@ namespace Threading {
     // MainThread::join() waits for main thread to finish the search
     void MainThread::join ()
     {
-        std::unique_lock<Mutex> lk (mutex);
+        unique_lock<Mutex> lk (mutex);
         sleep_condition.wait (lk, [&]{ return !thinking; });
     }
 

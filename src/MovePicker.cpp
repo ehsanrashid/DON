@@ -41,7 +41,7 @@ namespace MovePick {
         // e.g. the possible captures.
         Move pick_best (ValMove *beg, ValMove *end)
         {
-            std::swap (*beg, *std::max_element (beg, end));
+            swap (*beg, *max_element (beg, end));
             return *beg;
         }
 
