@@ -157,11 +157,9 @@ namespace Pawns {
 
                 e->semiopen_files[Own] &= ~(1 << f);
 
-                Bitboard prank_bb  = rank_bb (s - Push);
-
                 Bitboard adjacents = (own_pawns & ADJ_FILE_bb[f]);
                 Bitboard phalanx   = (adjacents & rank_bb (s));
-                Bitboard supported = (adjacents & prank_bb);
+                Bitboard supported = (adjacents & rank_bb (s-Push));
                 Bitboard doubled   = (own_pawns & FRONT_SQRS_bb[Own][s]);
 
                 bool connected     = (supported | phalanx);
