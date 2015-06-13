@@ -100,8 +100,7 @@ namespace EndGame {
 
     }
 
-    // Endgames members definitions
-    Endgames:: Endgames ()
+    Endgames::Endgames ()
     {
         add<KPK>     ("KPK");
         add<KNNK>    ("KNNK");
@@ -123,17 +122,11 @@ namespace EndGame {
         add<KRPPKRP> ("KRPPKRP");
     }
 
-    Endgames::~Endgames ()
-    {
-        for_each (m1.begin (), m1.end (), delete_endgame<M1>);
-        for_each (m2.begin (), m2.end (), delete_endgame<M2>);
-    }
-
-    template<EndgameT ET>
+    template<EndgameT E, typename T>
     void Endgames::add (const string &code)
     {
-        map (static_cast<Endgame<ET>*>(NULL))[key<WHITE> (code)] = new Endgame<ET> (WHITE);
-        map (static_cast<Endgame<ET>*>(NULL))[key<BLACK> (code)] = new Endgame<ET> (BLACK);
+        map<T>()[key<WHITE> (code)] = unique_ptr<EndgameBase<T>>(new Endgame<E> (WHITE));
+        map<T>()[key<BLACK> (code)] = unique_ptr<EndgameBase<T>>(new Endgame<E> (BLACK));
     }
 
     template<>

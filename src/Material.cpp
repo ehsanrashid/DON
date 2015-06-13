@@ -155,7 +155,7 @@ namespace Material {
             // Let's look if have a specialized evaluation function for this
             // particular material configuration. First look for a fixed
             // configuration one, then a generic one if previous search failed.
-            if (EndGames->probe (matl_key, e->evaluation_func))
+            if ((e->evaluation_func = EndGames->probe<Value> (matl_key)) != nullptr)
             {
                 return e;
             }
@@ -176,10 +176,10 @@ namespace Material {
             //
             // Face problems when there are several conflicting applicable
             // scaling functions and need to decide which one to use.
-            EndgameBase<ScaleFactor> *eg_sf;
-            if (EndGames->probe (matl_key, eg_sf))
+            EndgameBase<ScaleFactor> *scaling_func;
+            if ((scaling_func = EndGames->probe<ScaleFactor> (matl_key)) != nullptr)
             {
-                e->scaling_func[eg_sf->strong_side ()] = eg_sf;
+                e->scaling_func[scaling_func->strong_side ()] = scaling_func;
                 return e;
             }
 
@@ -190,14 +190,15 @@ namespace Material {
             {
                 e->scaling_func[WHITE] = &ScaleKBPsKs[WHITE];
             }
-            if (is_KBPsKs<BLACK> (pos))
-            {
-                e->scaling_func[BLACK] = &ScaleKBPsKs[BLACK];
-            }
-
+            else
             if (is_KQKRPs<WHITE> (pos))
             {
                 e->scaling_func[WHITE] = &ScaleKQKRPs[WHITE];
+            }
+
+            if (is_KBPsKs<BLACK> (pos))
+            {
+                e->scaling_func[BLACK] = &ScaleKBPsKs[BLACK];
             }
             else
             if (is_KQKRPs<BLACK> (pos))
@@ -286,7 +287,7 @@ namespace Material {
                 }
             };
 
-            Value value = Value((imbalance<WHITE> (count) - imbalance<BLACK> (count)) >> 4);
+            Value value = Value((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 0x10);
             e->imbalance = mk_score (value, value);
         }
 

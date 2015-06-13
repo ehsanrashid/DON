@@ -30,7 +30,7 @@ namespace Material {
         EndGame::EndgameBase<Value>         *evaluation_func;
         EndGame::EndgameBase<ScaleFactor>   *scaling_func[CLR_NO];
 
-        bool specialized_eval_exists ()      const { return ( evaluation_func != nullptr); }
+        bool  specialized_eval_exists ()     const { return ( evaluation_func != nullptr); }
         Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
         
         template<Color Own>
@@ -40,12 +40,8 @@ namespace Material {
         // For instance, in KBP vs K endgames, a scaling function which checks for draws with rook pawns and wrong-colored bishops.
         ScaleFactor scale_factor (const Position &pos) const
         {
-            if (scaling_func[Own] != nullptr)
-            {
-                ScaleFactor sf = (*scaling_func[Own]) (pos);
-                if (SCALE_FACTOR_NONE != sf) return sf;
-            }
-            return ScaleFactor (factor[Own]);
+            return scaling_func[Own] == nullptr || (*scaling_func[Own]) (pos) == SCALE_FACTOR_NONE ?
+                    ScaleFactor(factor[Own]) : (*scaling_func[Own]) (pos);
         }
 
     };

@@ -231,6 +231,8 @@ namespace Searcher {
     extern OpeningBook::PolyglotBook Book;
 
     extern std::string          SearchLog;
+    
+    extern Skill                Skills;
 
     // The Stack struct keeps track of the information needed to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
@@ -294,10 +296,8 @@ namespace Searcher {
     extern i32  NodesTime           ;
     extern bool Ponder              ;
 
+    extern TimeManager TimeMgr;
 
-    extern TimeManager          TimeMgr;
-
-    extern Skill                Skills;
 
     extern u64  perft (Position &pos, Depth depth);
 

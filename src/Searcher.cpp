@@ -1539,12 +1539,12 @@ namespace Searcher {
 
                 if (RootNode)
                 {
-                    sync_cout <<  left << setw ( 7)
+                    sync_cout << setw ( 7)
                               //<< move_to_can (m, Chess960)
                               << move_to_san (m, pos)
-                              << right << setw (16)
-                              << setfill ('.') << inter_nodes << setfill (' ')
-                              << left << sync_endl;
+                              << setw (16)
+                              << right << setfill ('.') << inter_nodes << setfill (' ') << left
+                              << sync_endl;
                 }
 
                 leaf_nodes += inter_nodes;
@@ -1617,6 +1617,9 @@ namespace Searcher {
 
     string              SearchLog       = "";
 
+    Skill               Skills;
+
+    // ------------------------------------
 
     u08  MaximumMoveHorizon  =  50; // Plan time management at most this many moves ahead, in num of moves.
     u08  EmergencyMoveHorizon=  40; // Be prepared to always play at least this many moves, in num of moves.
@@ -1627,10 +1630,7 @@ namespace Searcher {
     i32  NodesTime           =   0;
     bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
-
-    TimeManager         TimeMgr;
-
-    Skill               Skills;
+    TimeManager TimeMgr;
 
     // ------------------------------------
 
