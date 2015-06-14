@@ -57,6 +57,7 @@ public:
 
     StateInfo *ptr;
 
+    StateInfo () = default;
 };
 
 typedef std::stack<StateInfo>   StateStack;

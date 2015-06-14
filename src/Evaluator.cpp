@@ -442,7 +442,6 @@ namespace Evaluator {
                     }
                 }
 
-
                 if (ei.pinneds[Own] & s)
                 {
                     attacks &= RAYLINE_bb[pos.king_sq (Own)][s];
@@ -451,7 +450,6 @@ namespace Evaluator {
 
                 i32 mob = pop_count<QUEN == PT ? FULL : MAX15> (attacks & mobility_area);
                 mobility += MOBILITY_BONUS[PT][mob];
-
 
                 if (ROOK == PT)
                 {
@@ -474,9 +472,9 @@ namespace Evaluator {
                         Rank kr = rel_rank (Own, pos.king_sq (Own));
                         // Penalize rooks which are trapped by a king.
                         // Penalize more if the king has lost its castling capability.
-                        if (  (kf < F_E) == (f < kf)
-                           && (kr == R_1 || kr == r)
-                           && (ei.pi->semiopen_side<Own> (kf, f < kf) == 0)
+                        if (   (kf < F_E) == (f < kf)
+                            && (kr == R_1 || kr == r)
+                            && (ei.pi->semiopen_side<Own> (kf, f < kf) == 0)
                            )
                         {
                             score -= (ROOK_TRAPPED - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (Own));
@@ -989,11 +987,6 @@ namespace Evaluator {
             init_evaluation<WHITE> (pos, ei);
             init_evaluation<BLACK> (pos, ei);
 
-            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][KING];
-            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][KING];
-            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][KING];
-            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][KING];
-
             // Evaluate pieces and mobility
             Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO }; 
             // Do not include in mobility squares occupied by friend pawns or king or protected by enemy pawns 
@@ -1019,8 +1012,8 @@ namespace Evaluator {
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][BSHP];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][BSHP];
 
-            mobility_area[WHITE] &= ~(ei.pin_attacked_by[BLACK][NIHT]|ei.pin_attacked_by[BLACK][BSHP]);
-            mobility_area[BLACK] &= ~(ei.pin_attacked_by[WHITE][NIHT]|ei.pin_attacked_by[WHITE][BSHP]);
+            //mobility_area[WHITE] &= ~(ei.pin_attacked_by[BLACK][NONE]);
+            //mobility_area[BLACK] &= ~(ei.pin_attacked_by[WHITE][NONE]);
 
             score += 
                 + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
@@ -1030,8 +1023,8 @@ namespace Evaluator {
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][ROOK];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][ROOK];
 
-            mobility_area[WHITE] &= ~(ei.pin_attacked_by[BLACK][NIHT]|ei.pin_attacked_by[BLACK][BSHP]|ei.pin_attacked_by[BLACK][ROOK]);
-            mobility_area[BLACK] &= ~(ei.pin_attacked_by[WHITE][NIHT]|ei.pin_attacked_by[WHITE][BSHP]|ei.pin_attacked_by[WHITE][ROOK]);
+            mobility_area[WHITE] &= ~(ei.pin_attacked_by[BLACK][NONE]);
+            mobility_area[BLACK] &= ~(ei.pin_attacked_by[WHITE][NONE]);
 
             score += 
                 + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
@@ -1040,6 +1033,12 @@ namespace Evaluator {
             ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][QUEN];
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][QUEN];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][QUEN];
+
+
+            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][KING];
+            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][KING];
+            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][KING];
+            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][KING];
 
             // Weight mobility
             score += (mobility[WHITE] - mobility[BLACK]) * Weights[PIECE_MOBILITY];
