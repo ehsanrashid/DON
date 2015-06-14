@@ -309,7 +309,7 @@ namespace Searcher {
             
             // Transposition table lookup
             Key posi_key = pos.posi_key ();
-            bool  tt_hit = false;
+            bool tt_hit;
             TTEntry *tte = TT.probe (posi_key, tt_hit);
             if (tt_hit)
             {
@@ -325,8 +325,6 @@ namespace Searcher {
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
             Depth qs_depth = InCheck || depth >= DEPTH_QS_CHECKS ?
                                 DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
-
-            CheckInfo cc, *ci = nullptr;
 
             if (   !PVNode
                 && tt_hit
@@ -396,8 +394,9 @@ namespace Searcher {
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO);
+            CheckInfo ci (pos);
+            
             StateInfo si;
-            if (ci == nullptr) { cc = CheckInfo (pos); ci = &cc; }
 
             Move move;
             // Loop through the moves until no moves remain or a beta cutoff occurs
@@ -405,7 +404,7 @@ namespace Searcher {
             {
                 assert (_ok (move));
                 
-                bool gives_check = pos.gives_check (move, *ci);
+                bool gives_check = pos.gives_check (move, ci);
                 
                 if (!MateSearch)
                 {
@@ -453,7 +452,7 @@ namespace Searcher {
                 prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                 // Check for legality just before making the move
-                if (!pos.legal (move, ci->pinneds)) continue;
+                if (!pos.legal (move, ci.pinneds)) continue;
 
                 ss->current_move = move;
                 // Make and search the move
@@ -547,8 +546,8 @@ namespace Searcher {
             assert (PVNode || alpha == beta-1);
             assert (depth > DEPTH_ZERO);
 
-            Key   posi_key;
-            bool  tt_hit = false;
+            Key posi_key;
+            bool tt_hit;
             TTEntry *tte = nullptr;
 
             Move  move
@@ -569,7 +568,6 @@ namespace Searcher {
 
             SplitPoint *splitpoint = nullptr;
             StateInfo si;
-            CheckInfo cc, *ci = nullptr;
             
             if (SPNode)
             {
@@ -807,18 +805,18 @@ namespace Searcher {
                             // Initialize a MovePicker object for the current position,
                             // and prepare to search the moves.
                             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, pos.capture_type ());
-                            if (ci == nullptr) { cc = CheckInfo (pos); ci = &cc; }
+                            CheckInfo ci (pos);
 
                             while ((move = mp.next_move<false> ()) != MOVE_NONE)
                             {
+                                if (!pos.legal (move, ci.pinneds)) continue;
+
                                 // Speculative prefetch as early as possible
                                 prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
-                                if (!pos.legal (move, ci->pinneds)) continue;
-
                                 ss->current_move = move;
-                                    
-                                pos.do_move (move, si, pos.gives_check (move, *ci));
+
+                                pos.do_move (move, si, pos.gives_check (move, ci));
 
                                 prefetch (thread->pawn_table[pos.pawn_key ()]);
                                 prefetch (thread->matl_table[pos.matl_key ()]);
@@ -861,7 +859,7 @@ namespace Searcher {
             // Splitpoint start
             // When in check and at SPNode search starts from here
 
-            Value value = -VALUE_INFINITE;
+            Value value = best_value;
 
             bool improving =
                    (ss-0)->static_eval >= (ss-2)->static_eval
@@ -890,10 +888,10 @@ namespace Searcher {
             }
 
             Square opp_move_sq = dst_sq ((ss-1)->current_move);
-            Move counter_move = CounterMoves[pos[opp_move_sq]][opp_move_sq];
+            Move  counter_move = CounterMoves[pos[opp_move_sq]][opp_move_sq];
 
             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
-            if (ci == nullptr) { cc = CheckInfo (pos); ci = &cc; }
+            CheckInfo ci (pos);
 
             u08   legal_count = 0
                 , quiet_count = 0;
@@ -914,7 +912,7 @@ namespace Searcher {
                 // In MultiPV mode also skip PV moves which have been already searched.
                 if (RootNode && count (RootMoves.begin () + IndexPV, RootMoves.end (), move) == 0) continue;
 
-                bool move_legal = RootNode || pos.legal (move, ci->pinneds);
+                bool move_legal = RootNode || pos.legal (move, ci.pinneds);
 
                 if (SPNode)
                 {
@@ -961,7 +959,7 @@ namespace Searcher {
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
-                bool gives_check = pos.gives_check (move, *ci);
+                bool gives_check = pos.gives_check (move, ci);
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)
@@ -1081,7 +1079,7 @@ namespace Searcher {
                     if (   (!PVNode && cut_node)
                         || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
                             && CounterMovesHistoryValues[pos[opp_move_sq]][opp_move_sq]
-                                              [pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
+                                                        [pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
                            )
                        )
                     {
@@ -1677,7 +1675,7 @@ namespace Searcher {
         StateInfo st;
         pos.do_move (pv[0], st, pos.gives_check (pv[0], CheckInfo (pos)));
 
-        bool  tt_hit;
+        bool tt_hit;
         TTEntry *tte = TT.probe (pos.posi_key (), tt_hit);
         
         pos.undo_move ();
@@ -2024,13 +2022,13 @@ namespace Searcher {
 
     }
 
-    // reset() clears all search memory, to obtain reproducible search results
+    // reset() clears all search memory to obtain reproducible search results
     void reset ()
     {
         TT.clear();
         HistoryValues.clear();
-        CounterMovesHistoryValues.clear();
         CounterMoves.clear();
+        CounterMovesHistoryValues.clear();
     }
 
     // initialize() is called during startup to initialize various lookup tables
