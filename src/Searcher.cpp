@@ -781,7 +781,7 @@ namespace Searcher {
                                 if (value >= beta)
                                 {
                                     // Don't return unproven unproven mates
-                                    return null_value < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
+                                    return value < +VALUE_MATE_IN_MAX_DEPTH ? value : beta;
                                 }
                             }
                         }
@@ -834,7 +834,7 @@ namespace Searcher {
 
                         // Step 10. Internal iterative deepening (skipped when in check)
                         if (   tt_move == MOVE_NONE
-                            && depth > (PVNode ? 4*DEPTH_ONE : 7*DEPTH_ONE)        // IID Activation Depth
+                            && depth > (PVNode ? 4 : 7)*DEPTH_ONE        // IID Activation Depth
                             && (PVNode || ss->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                            )
                         {
@@ -870,7 +870,7 @@ namespace Searcher {
                    !RootNode && !SPNode
                 && MOVE_NONE == exclude_move // Recursive singular search is not allowed
                 && MOVE_NONE != tt_move 
-                &&    depth >= (PVNode ? 6*DEPTH_ONE : 8*DEPTH_ONE)
+                &&    depth >= (PVNode ? 6 : 8)*DEPTH_ONE
                 && tt_depth >= depth - 3*DEPTH_ONE
                 && abs (tt_value) < +VALUE_KNOWN_WIN
                 && (tt_bound & BOUND_LOWER);
