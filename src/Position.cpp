@@ -411,39 +411,20 @@ bool Position::ok (i08 *failed_step) const
 // remove the attacker just found from the bitboards and
 // scan for new X-ray attacks behind it.
 template<PieceT PT>
-PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
+PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &attackers) const
 {
     Bitboard b = stm_attackers & _types_bb[PT];
     if (b != U64(0))
     {
-        occupied ^= b & ~(b - 1);
-
-        switch (PT)
-        {
-        case PAWN:
-        case BSHP:
-            attackers |= (attacks_bb<BSHP> (dst, occupied) & (_types_bb[BSHP]|_types_bb[QUEN]));
-            break;
-        case ROOK:
-            attackers |= (attacks_bb<ROOK> (dst, occupied) & (_types_bb[ROOK]|_types_bb[QUEN]));
-            break;
-        case QUEN:
-            attackers |= (attacks_bb<BSHP> (dst, occupied) & (_types_bb[BSHP]|_types_bb[QUEN]))
-                      |  (attacks_bb<ROOK> (dst, occupied) & (_types_bb[ROOK]|_types_bb[QUEN]));
-            break;
-        default:
-            break;
-        }
-
-        attackers &= occupied; // After X-ray that may add already processed pieces
+        attackers ^= b & ~(b - 1);
 
         return PT;
     }
 
-    return least_valuable_attacker<PieceT(PT+1)> (dst, stm_attackers, occupied, attackers);
+    return least_valuable_attacker<PieceT(PT+1)> (dst, stm_attackers, attackers);
 }
 template<>
-PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
+PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&) const
 {
     return KING; // No need to update bitboards, it is the last cycle
 }
@@ -477,36 +458,31 @@ Value Position::see      (Move m) const
     switch (mtype (m))
     {
     case CASTLE:
-    {
         // Castle moves are implemented as king capturing the rook so cannot be
         // handled correctly. Simply return 0 that is always the correct value
         // unless in the rare case the rook ends up under attack.
         return VALUE_ZERO;
-    }
         break;
 
     case ENPASSANT:
-    {
         // Remove the captured pawn
         occupied -= dst - pawn_push (stm);
         gain_list[0] = PIECE_VALUE[MG][PAWN];
-    }
         break;
 
     default:
-    {
         gain_list[0] = PIECE_VALUE[MG][ptype (_board[dst])];
-    }
         break;
     }
 
     // Find all enemy attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, occupied) & occupied;
+    //Bitboard pins[CLR_NO] = { pinneds (WHITE), pinneds (BLACK) };
 
     // If the opponent has any attackers
     stm = ~stm;
-    Bitboard stm_attackers = attackers & _color_bb[stm];
+    Bitboard stm_attackers = attackers & _color_bb[stm];// & ~pins[stm];
 
     if (stm_attackers != U64(0))
     {
@@ -526,10 +502,10 @@ Value Position::see      (Move m) const
             gain_list[depth] = PIECE_VALUE[MG][captured] - gain_list[depth - 1];
 
             // Locate and remove the next least valuable attacker
-            captured = least_valuable_attacker<PAWN> (dst, stm_attackers, occupied, attackers);
+            captured = least_valuable_attacker<PAWN> (dst, stm_attackers, attackers);
 
             stm = ~stm;
-            stm_attackers = attackers & _color_bb[stm];
+            stm_attackers = attackers & _color_bb[stm];// & ~pins[stm];
 
             ++depth;
         } while (stm_attackers != U64(0) && (captured != KING || (--depth, false)));
