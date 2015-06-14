@@ -483,14 +483,14 @@
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="StateInfoStack" Collapsed="true">
+  <Typedef Name="StateStack" Collapsed="true">
     <Position X="21.25" Y="13.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
   </Typedef>
-  <Typedef Name="StateInfoStackPtr" Collapsed="true">
+  <Typedef Name="StateStackPtr" Collapsed="true">
     <Position X="23" Y="13.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>

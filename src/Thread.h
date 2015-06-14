@@ -205,7 +205,7 @@ namespace Threading {
 
         Thread* available_slave (const SplitPoint *sp) const;
 
-        void start_main (const Position &pos, const LimitsT &limit, StateInfoStackPtr &states);
+        void start_main (const Position &pos, const LimitsT &limit, StateStackPtr &states);
 
         void configure ();
 

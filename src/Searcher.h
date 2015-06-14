@@ -12,7 +12,7 @@ namespace Threading {
     struct SplitPoint;
 }
 
-typedef std::unique_ptr<StateInfoStack>   StateInfoStackPtr;
+typedef std::unique_ptr<StateStack> StateStackPtr;
 
 namespace Searcher {
 
@@ -214,7 +214,7 @@ namespace Searcher {
 
     extern Position             RootPos;
     extern RootMoveVector       RootMoves;
-    extern StateInfoStackPtr    SetupStates;
+    extern StateStackPtr        SetupStates;
 
     extern u16                  MultiPV;
     //extern i32                MultiPV_cp;
@@ -293,8 +293,8 @@ namespace Searcher {
     extern u32  EmergencyClockTime  ;
     extern u32  EmergencyMoveTime   ;
     extern u32  MinimumMoveTime     ;
-    extern i32  MoveSlowness        ;
-    extern i32  NodesTime           ;
+    extern u32  MoveSlowness        ;
+    extern u32  NodesTime           ;
     extern bool Ponder              ;
 
     extern TimeManager TimeMgr;

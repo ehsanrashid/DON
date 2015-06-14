@@ -28,7 +28,7 @@ namespace UCI {
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
-        StateInfoStackPtr SetupStates;
+        StateStackPtr SetupStates;
 
 
         void exe_uci ()
@@ -39,6 +39,7 @@ namespace UCI {
                 << "uciok"
                 << sync_endl;
         }
+        
         void exe_ucinewgame ()
         {
             reset ();
@@ -163,7 +164,7 @@ namespace UCI {
             
             RootPos.setup (fen, Threadpool.main (), Chess960);
             
-            SetupStates = StateInfoStackPtr (new StateInfoStack);
+            SetupStates = StateStackPtr (new StateStack);
             
             if (token == "moves")
             {

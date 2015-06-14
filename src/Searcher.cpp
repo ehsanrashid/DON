@@ -1596,7 +1596,7 @@ namespace Searcher {
     
     Position            RootPos;
     RootMoveVector      RootMoves;
-    StateInfoStackPtr   SetupStates;
+    StateStackPtr       SetupStates;
 
     u16                 MultiPV         = 1;
     //i32                 MultiPV_cp      = 0;
@@ -1624,8 +1624,8 @@ namespace Searcher {
     u32  EmergencyClockTime  =  60; // Always attempt to keep at least this much time at clock, in milliseconds.
     u32  EmergencyMoveTime   =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
     u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
-    i32  MoveSlowness        = 110; // Move Slowness, in %age.
-    i32  NodesTime           =   0;
+    u32  MoveSlowness        = 110; // Move Slowness, in %age.
+    u32  NodesTime           =   0;
     bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
     TimeManager TimeMgr;
@@ -2051,7 +2051,7 @@ namespace Searcher {
             FutilityMoveCounts[1][d] = u08(2.90 + 1.045 * pow (0.49 + d, 1.80));
         }
 
-        const double K[][2] = {{ 0.83, 2.25 }, { 0.50, 3.00 }};
+        const double K[2][2] = {{ 0.83, 2.25 }, { 0.50, 3.00 }};
 
         for (u08 pv = 0; pv <= 1; ++pv)
         {

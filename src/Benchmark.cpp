@@ -137,7 +137,7 @@ void benchmark (istream &is, const Position &cur_pos)
         fen_ifs.close ();
     }
 
-    StateInfoStackPtr states;
+    StateStackPtr states;
     reset ();
 
     u64       nodes = 0;
@@ -194,7 +194,7 @@ void auto_tune (istream &is)
         Threadpool.split_depth = (d+4)*DEPTH_ONE;
         cerr << "Split Depth     : " << i32(Threadpool.split_depth);
         
-        StateInfoStackPtr states;
+        StateStackPtr states;
         reset ();
 
         u64       nodes = 0;

@@ -332,7 +332,7 @@ namespace Threading {
 
     // ThreadPool::start_main() wakes up the main thread sleeping in MainThread::idle_loop()
     // so to start a new search, then returns immediately.
-    void ThreadPool::start_main (const Position &pos, const LimitsT &limits, StateInfoStackPtr &states)
+    void ThreadPool::start_main (const Position &pos, const LimitsT &limits, StateStackPtr &states)
     {
         main ()->join ();
 

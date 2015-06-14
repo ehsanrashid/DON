@@ -59,7 +59,7 @@ public:
 
 };
 
-typedef std::stack<StateInfo>   StateInfoStack;
+typedef std::stack<StateInfo>   StateStack;
 
 // CheckInfo stores critical information used to detect if a move gives check.
 //

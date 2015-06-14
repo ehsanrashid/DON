@@ -282,7 +282,7 @@ namespace Notation {
         string spv = oss.str ();
         string padding = string (spv.length (), ' ');
 
-        StateInfoStack states;
+        StateStack states;
         const Move *m = pv;
         while (*m != MOVE_NONE)
         {
@@ -306,7 +306,7 @@ namespace Notation {
         return spv;
         */
 
-        StateInfoStack states;
+        StateStack states;
         const Move *m = pv;
         while (*m != MOVE_NONE)
         {
