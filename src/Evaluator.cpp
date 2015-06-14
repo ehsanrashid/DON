@@ -503,7 +503,7 @@ namespace Evaluator {
 
         template<Color Own, bool Trace>
         // evaluate_king<>() assigns bonuses and penalties to a king of a given color
-        Score evaluate_king (const Position &pos, EvalInfo &ei)
+        Score evaluate_king (const Position &pos, const EvalInfo &ei)
         {
             const Color Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -988,6 +988,11 @@ namespace Evaluator {
             init_evaluation<WHITE> (pos, ei);
             init_evaluation<BLACK> (pos, ei);
 
+            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][KING];
+            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][KING];
+            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][KING];
+            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][KING];
+
             // Evaluate pieces and mobility
             Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO }; 
             // Do not include in mobility squares occupied by friend pawns or king or protected by enemy pawns 
@@ -1013,6 +1018,9 @@ namespace Evaluator {
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][BSHP];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][BSHP];
 
+            mobility_area[WHITE] &= ~(ei.pin_attacked_by[BLACK][NIHT]|ei.pin_attacked_by[BLACK][BSHP]);
+            mobility_area[BLACK] &= ~(ei.pin_attacked_by[WHITE][NIHT]|ei.pin_attacked_by[WHITE][BSHP]);
+
             score += 
                 + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
                 - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
@@ -1021,8 +1029,8 @@ namespace Evaluator {
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][ROOK];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][ROOK];
 
-            mobility_area[WHITE] &= ~ei.pin_attacked_by[BLACK][NONE];
-            mobility_area[BLACK] &= ~ei.pin_attacked_by[WHITE][NONE];
+            mobility_area[WHITE] &= ~(ei.pin_attacked_by[BLACK][NIHT]|ei.pin_attacked_by[BLACK][BSHP]|ei.pin_attacked_by[BLACK][ROOK]);
+            mobility_area[BLACK] &= ~(ei.pin_attacked_by[WHITE][NIHT]|ei.pin_attacked_by[WHITE][BSHP]|ei.pin_attacked_by[WHITE][ROOK]);
 
             score += 
                 + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
@@ -1031,11 +1039,6 @@ namespace Evaluator {
             ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][QUEN];
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][QUEN];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][QUEN];
-
-            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][KING];
-            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][KING];
-            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][KING];
-            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][KING];
 
             // Weight mobility
             score += (mobility[WHITE] - mobility[BLACK]) * Weights[PIECE_MOBILITY];

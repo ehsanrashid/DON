@@ -63,35 +63,26 @@ namespace Material {
         template<Color Own>
         bool is_KXK (const Position &pos)
         {
-            const Color Opp = WHITE == Own ? BLACK : WHITE;
-
             return pos.non_pawn_material (Own) >= VALUE_MG_ROOK
-                && pos.non_pawn_material (Opp) == VALUE_ZERO
-                && pos.count<PAWN> (Opp) == 0;
+                //&& pos.count<NONPAWN> (~Own) == 0
+                //&& pos.count<PAWN> (~Own) == 0;
+                && !more_than_one (pos.pieces (~Own));
         }
 
         template<Color Own> 
         bool is_KBPsKs (const Position &pos)
         {
-            const Color Opp = WHITE == Own ? BLACK : WHITE;
-
-            return pos.non_pawn_material (Own) == VALUE_MG_BSHP
-                && pos.non_pawn_material (Opp) == VALUE_ZERO
-                //&& pos.count<BSHP> (Own) == 1
+            return pos.count<BSHP> (Own) == 1
                 && pos.count<PAWN> (Own) != 0;
         }
 
         template<Color Own>
         bool is_KQKRPs (const Position &pos)
         {
-            const Color Opp = WHITE == Own ? BLACK : WHITE;
-
-            return pos.non_pawn_material (Own) == VALUE_MG_QUEN
-                && pos.non_pawn_material (Opp) == VALUE_MG_ROOK
-                //&& pos.count<QUEN> (Own) == 1
-                //&& pos.count<ROOK> (Opp) == 1
-                && pos.count<PAWN> (Own) == 0
-                && pos.count<PAWN> (Opp) != 0;
+            return pos.count<QUEN> ( Own) == 1
+                && pos.count<PAWN> ( Own) == 0
+                && pos.count<ROOK> (~Own) == 1
+                && pos.count<PAWN> (~Own) != 0;
         }
 
         template<Color Own>
@@ -148,7 +139,7 @@ namespace Material {
         {
             memset (e, 0x00, sizeof (*e));
             e->matl_key      = matl_key;
-            e->factor[WHITE] =
+            e->factor[WHITE] = SCALE_FACTOR_NORMAL;
             e->factor[BLACK] = SCALE_FACTOR_NORMAL;
             e->game_phase    = pos.game_phase ();
 
