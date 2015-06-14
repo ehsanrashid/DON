@@ -495,7 +495,7 @@ inline Bitboard Position::checkers (Color c) const
 // Pinneds are friend pieces, that save the friend king from enemy pinners.
 inline Bitboard Position::pinneds (Color c) const
 {
-    return check_blockers (c,  c); // blockers for self king
+    return check_blockers (c,  c); // blockers for own king
 }
 // Check discovers are candidate friend anti-sliders w.r.t piece behind it,
 // that give the discover check to enemy king when moved.

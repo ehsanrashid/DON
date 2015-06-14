@@ -56,11 +56,20 @@ namespace EndGame {
     template<typename T>
     class EndgameBase
     {
+    protected:
+        Color _strong_side
+            ,   _weak_side;
+
     public:
+        explicit EndgameBase (Color c)
+            : _strong_side ( c)
+            ,   _weak_side (~c)
+        {}
 
         virtual ~EndgameBase () = default;
 
-        virtual Color strong_side () const = 0;
+        Color strong_side () const { return _strong_side; }
+        Color   weak_side () const { return   _weak_side; }
 
         virtual T operator() (const Position &pos) const = 0;
 
@@ -71,19 +80,11 @@ namespace EndGame {
         : public EndgameBase<T>
     {
 
-    private:
-        Color _strong_side
-            ,   _weak_side;
-
     public:
 
         explicit Endgame (Color c)
-            : _strong_side ( c)
-            ,   _weak_side (~c)
+            : EndgameBase<T> (c)
         {}
-
-        Color strong_side () const { return _strong_side; }
-        Color   weak_side () const { return   _weak_side; }
 
         T operator() (const Position &pos) const;
     };
@@ -94,7 +95,8 @@ namespace EndGame {
     {
 
     private:
-        template<typename T> using Map = std::map<Key, std::unique_ptr<EndgameBase<T>>>;
+        template<typename T>
+        using Map = std::map<Key, std::unique_ptr<EndgameBase<T>>>;
 
         std::pair<Map<Value>, Map<ScaleFactor>> maps;
 
@@ -119,6 +121,7 @@ namespace EndGame {
     };
 
     extern void initialize ();
+
     extern void exit ();
 
 }

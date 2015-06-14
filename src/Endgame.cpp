@@ -4,7 +4,7 @@
 #include "BitBases.h"
 #include "MoveGenerator.h"
 
-EndGame::Endgames *EndGames = NULL; // Global Endgames
+EndGame::Endgames *EndGames = nullptr; // Global Endgames
 
 namespace EndGame {
 
@@ -1054,19 +1054,19 @@ namespace EndGame {
 
     void initialize ()
     {
-        if (EndGames == NULL)
+        if (EndGames == nullptr)
         {
             EndGames = new Endgames ();
-            assert (EndGames != NULL);
+            assert (EndGames != nullptr);
         }
     }
 
     void exit ()
     {
-        if (EndGames != NULL)
+        if (EndGames != nullptr)
         {
             delete EndGames;
-            EndGames = NULL;
+            EndGames = nullptr;
         }
     }
 

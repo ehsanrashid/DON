@@ -31,7 +31,6 @@ const string STARTUP_FEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 
 
 bool _ok (const string &fen, bool c960, bool full)
 {
-    if (white_spaces (fen)) return false;
     Position pos (fen, nullptr, c960, full);
     return pos.ok ();
 }
@@ -414,10 +413,10 @@ bool Position::ok (i08 *failed_step) const
 template<PieceT PT>
 PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &occupied, Bitboard &attackers) const
 {
-    Bitboard bb = stm_attackers & _types_bb[PT];
-    if (bb != U64(0))
+    Bitboard b = stm_attackers & _types_bb[PT];
+    if (b != U64(0))
     {
-        occupied ^= (bb & ~(bb - 1));
+        occupied ^= b & ~(b - 1);
 
         switch (PT)
         {
@@ -435,6 +434,7 @@ PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bi
         default:
             break;
         }
+
         attackers &= occupied; // After X-ray that may add already processed pieces
 
         return PT;
@@ -469,8 +469,9 @@ Value Position::see      (Move m) const
     Color stm = color (_board[org]);
 
     // Gain list
-    Value swap_list[32];
+    Value gain_list[32];
     i08   depth = 1;
+
     Bitboard occupied = _types_bb[NONE] - org;
 
     switch (mtype (m))
@@ -487,15 +488,14 @@ Value Position::see      (Move m) const
     case ENPASSANT:
     {
         // Remove the captured pawn
-        occupied -= (dst - pawn_push (stm));
-        //occupied += dst;
-        swap_list[0] = PIECE_VALUE[MG][PAWN];
+        occupied -= dst - pawn_push (stm);
+        gain_list[0] = PIECE_VALUE[MG][PAWN];
     }
         break;
 
     default:
     {
-        swap_list[0] = PIECE_VALUE[MG][ptype (_board[dst])];
+        gain_list[0] = PIECE_VALUE[MG][ptype (_board[dst])];
     }
         break;
     }
@@ -504,7 +504,7 @@ Value Position::see      (Move m) const
     // removed, but possibly an X-ray attacker added behind it.
     Bitboard attackers = attackers_to (dst, occupied) & occupied;
 
-    // If the opponent has no attackers are finished
+    // If the opponent has any attackers
     stm = ~stm;
     Bitboard stm_attackers = attackers & _color_bb[stm];
 
@@ -523,7 +523,7 @@ Value Position::see      (Move m) const
             assert (depth < 32);
 
             // Add the new entry to the swap list
-            swap_list[depth] = PIECE_VALUE[MG][captured] - swap_list[depth - 1];
+            gain_list[depth] = PIECE_VALUE[MG][captured] - gain_list[depth - 1];
 
             // Locate and remove the next least valuable attacker
             captured = least_valuable_attacker<PAWN> (dst, stm_attackers, occupied, attackers);
@@ -536,13 +536,13 @@ Value Position::see      (Move m) const
 
         // Having built the swap list, negamax through it to find the best
         // achievable score from the point of view of the side to move.
-        while (--depth > 0)
+        while (--depth != 0)
         {
-            swap_list[depth - 1] = min (-swap_list[depth], swap_list[depth - 1]);
+            gain_list[depth - 1] = min (-gain_list[depth], gain_list[depth - 1]);
         }
     }
 
-    return swap_list[0];
+    return gain_list[0];
 }
 
 Value Position::see_sign (Move m) const
@@ -568,17 +568,17 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
     // Pinners are sliders that give check when a pinned piece is removed
     // Only one real pinner exist other are fake pinner
     Bitboard pinners =
-        ( (PIECE_ATTACKS[ROOK][ksq] & (_types_bb[QUEN]|_types_bb[ROOK]))
-        | (PIECE_ATTACKS[BSHP][ksq] & (_types_bb[QUEN]|_types_bb[BSHP]))
+        (  ((_types_bb[ROOK]|_types_bb[QUEN]) & PIECE_ATTACKS[ROOK][ksq])
+         | ((_types_bb[BSHP]|_types_bb[QUEN]) & PIECE_ATTACKS[BSHP][ksq])
         ) &  _color_bb[~king_c];
 
     Bitboard chk_blockers = U64(0);
     while (pinners != U64(0))
     {
         Bitboard blocker = BETWEEN_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
-        if (blocker && !more_than_one (blocker))
+        if (blocker != U64(0) && !more_than_one (blocker))
         {
-            chk_blockers |= (blocker & _color_bb[piece_c]); // Defending piece
+            chk_blockers |= blocker & _color_bb[piece_c];
         }
     }
 

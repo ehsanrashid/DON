@@ -367,7 +367,7 @@ namespace UCI {
     // In addition to the UCI ones, also some additional debug commands are supported.
     void start (const string &arg)
     {
-        RootPos.setup (STARTUP_FEN, Threadpool.main ());
+        RootPos.setup (STARTUP_FEN, Threadpool.main (), Chess960);
 
         bool running = white_spaces (arg);
         string cmd   = arg;
@@ -417,7 +417,7 @@ namespace UCI {
 
         } while (running && cmd != "quit");
 
-        Threadpool.main()->join(); // Cannot quit whilst the search is running
+        Threadpool.main()->join (); // Cannot quit whilst the search is running
     }
 
     // stop() stops all the threads and other stuff.

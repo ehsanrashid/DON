@@ -102,13 +102,13 @@ namespace Pawns {
         const Score UNSTOPPABLE = S( 0, 20); // Bonus for unstoppable pawn going to promote
         const Score UNSUPPORTED = S(20, 10); // Penalty for unsupported pawn
 
-        // Center bind bonus: Two pawns controlling the same central square
-        const Bitboard CENTER_BIND_bb[CLR_NO] =
+        // Center bind mask
+        const Bitboard CENTER_BIND_MASK[CLR_NO] =
         {
             (FD_bb | FE_bb) & (R5_bb | R6_bb | R7_bb),
             (FD_bb | FE_bb) & (R4_bb | R3_bb | R2_bb)
         };
-
+        // Center bind bonus: Two pawns controlling the same central square
         const Score CENTER_BIND = S(16, 0);
 
         template<Color Own>
@@ -146,6 +146,8 @@ namespace Pawns {
 
             Score pawn_score = SCORE_ZERO;
 
+            Bitboard b;
+
             const Square *pl = pos.list<PAWN> (Own);
             Square s;
             while ((s = *pl++) != SQ_NO)
@@ -161,12 +163,11 @@ namespace Pawns {
                 Bitboard phalanx   = (adjacents & rank_bb (s));
                 Bitboard supported = (adjacents & rank_bb (s-Push));
                 Bitboard doubled   = (own_pawns & FRONT_SQRS_bb[Own][s]);
-
-                bool connected     = (supported | phalanx);
-                bool levered       = (opp_pawns & PAWN_ATTACKS[Own][s]);
-                bool opposed       = (opp_pawns & FRONT_SQRS_bb[Own][s]);
-                bool isolated      = !(adjacents);
-                bool passed        = !(opp_pawns & PAWN_PASS_SPAN[Own][s]);
+                bool     opposed   = (opp_pawns & FRONT_SQRS_bb[Own][s]);
+                bool     connected = (supported | phalanx);
+                bool     levered   = (opp_pawns & PAWN_ATTACKS[Own][s]);
+                bool     isolated  = !(adjacents);
+                bool     passed    = !(opp_pawns & PAWN_PASS_SPAN[Own][s]);
 
                 bool backward;
                 // Test for backward pawn.
@@ -183,7 +184,6 @@ namespace Pawns {
                 }
                 else
                 {
-                    Bitboard b;
                     // Now know there are no friendly pawns beside or behind this pawn on adjacent files.
                     // Now check whether the pawn is backward by looking in the forward direction on the
                     // adjacent files, and picking the closest pawn there.
@@ -249,13 +249,12 @@ namespace Pawns {
             //cout << "-------------" << endl;
 #endif
 
-            Bitboard b;
 
             b = e->semiopen_files[Own] ^ 0xFF;
             e->pawn_span[Own] = b != U64(0) ? u08(scan_msq (b)) - u08(scan_lsq (b)) : 0;
 
             // Center binds: Two pawns controlling the same central square
-            b = shift_del<Left> (own_pawns) & shift_del<Right> (own_pawns) & CENTER_BIND_bb[Own];
+            b = shift_del<Left> (own_pawns) & shift_del<Right> (own_pawns) & CENTER_BIND_MASK[Own];
             pawn_score += CENTER_BIND * pop_count<MAX15> (b);
 
             return pawn_score;
@@ -310,8 +309,8 @@ namespace Pawns {
     Score Entry::evaluate_unstoppable_pawns () const
     {
         return passed_pawns[Own] != U64(0) ?
-            UNSTOPPABLE * i32(rel_rank (Own, scan_frntmost_sq (Own, passed_pawns[Own]))) :
-            SCORE_ZERO;
+                    UNSTOPPABLE * i32(rel_rank (Own, scan_frntmost_sq (Own, passed_pawns[Own]))) :
+                    SCORE_ZERO;
     }
 
     // explicit template instantiations
