@@ -46,24 +46,32 @@ namespace Transposition {
 
         void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
+            if (k != _key)
+            {
+                _key        = u64(k);
+            }
             // Preserve any existing move for the same key
-            if (   m != MOVE_NONE
-                || k != _key
+            if (   k != _key
+                || m != MOVE_NONE
                )
             {
                 _move       = u16(m);
             }
-
+            if (   k != _key
+                || e != VALUE_NONE
+               )
+            {
+                _eval       = u16(e);
+            }
             // Don't overwrite more valuable entries
             if (   k != _key
+                || v != VALUE_NONE
                 || d > _depth - 2
                 || g != gen ()
                 || b == BOUND_EXACT
                )
             {
-                _key        = u64(k);
                 _value      = u16(v);
-                _eval       = u16(e);
                 _depth      = i08(d);
                 _gen_bnd    = u08(g | b);
             }

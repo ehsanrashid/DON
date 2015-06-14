@@ -122,7 +122,7 @@ namespace Searcher {
         Value2DStats    CounterMovesHistoryValues;
 
         // update_stats() updates movehistory, killers, countermoves
-        // after a fail-high of a quiet move.
+        // stats for a quiet best move.
         void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, Move *quiet_moves, u08 quiet_count)
         {
             if (ss->killer_moves[0] != move)
@@ -1236,7 +1236,11 @@ namespace Searcher {
                     }
                 }
 
-                if (!SPNode && !capture_or_promotion && move != best_move && quiet_count < MAX_QUIETS)
+                if (   !SPNode
+                    && move != best_move
+                    && !capture_or_promotion
+                    && quiet_count < MAX_QUIETS
+                   )
                 {
                     quiet_moves[quiet_count++] = move;
                 }
@@ -1285,12 +1289,11 @@ namespace Searcher {
                 }
                 else
                 // Quiet best move: Update movehistory, killers, countermoves
-                if (   best_value >= beta
-                    && best_move != MOVE_NONE
+                if (   best_move != MOVE_NONE
                     && !pos.capture_or_promotion (best_move)
                    )
                 {
-                    update_stats (pos, ss, best_move, depth, quiet_moves, quiet_count-1);
+                    update_stats (pos, ss, best_move, depth, quiet_moves, quiet_count);
                 }
 
                 tte->save (posi_key, best_move,

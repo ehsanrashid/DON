@@ -296,6 +296,7 @@ namespace Threading {
     {
         u32 threads = i32(Options["Threads"]);
         split_depth = i32(Options["Split Depth"])*DEPTH_ONE;
+        //if (split_depth == DEPTH_ZERO) split_depth = 5 * DEPTH_ONE;
 
         assert (threads > 0);
 

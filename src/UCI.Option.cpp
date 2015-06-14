@@ -133,7 +133,7 @@ namespace UCI {
 
         void clear_hash  (const Option &)
         {
-            TT.clear ();
+            reset ();
         }
 
         void never_clear_hash (const Option &opt)
