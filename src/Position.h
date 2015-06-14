@@ -459,8 +459,8 @@ inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
     return((BitBoard::PAWN_ATTACKS[~c][s]    & _types_bb[PAWN])
         |  (BitBoard::PIECE_ATTACKS[NIHT][s] & _types_bb[NIHT])
-        |  ((_types_bb[BSHP]|_types_bb[QUEN]) & _color_bb[c] ? (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN])) : U64(0))
-        |  ((_types_bb[ROOK]|_types_bb[QUEN]) & _color_bb[c] ? (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN])) : U64(0))
+        |  ((_types_bb[BSHP]|_types_bb[QUEN]) & _color_bb[c] ? BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0))
+        |  ((_types_bb[ROOK]|_types_bb[QUEN]) & _color_bb[c] ? BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0))
         |  (BitBoard::PIECE_ATTACKS[KING][s] & _types_bb[KING])) & _color_bb[c];
 }
 // Attackers to the square 's' by color 'c'
@@ -475,8 +475,8 @@ inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
     return (BitBoard::PAWN_ATTACKS[WHITE][s] & _types_bb[PAWN]&_color_bb[BLACK])
         |  (BitBoard::PAWN_ATTACKS[BLACK][s] & _types_bb[PAWN]&_color_bb[WHITE])
         |  (BitBoard::PIECE_ATTACKS[NIHT][s] & _types_bb[NIHT])
-        |  ((_types_bb[BSHP]|_types_bb[QUEN]) ? (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN])) : U64(0))
-        |  ((_types_bb[ROOK]|_types_bb[QUEN]) ? (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN])) : U64(0))
+        |  ((_types_bb[BSHP]|_types_bb[QUEN]) ? BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0))
+        |  ((_types_bb[ROOK]|_types_bb[QUEN]) ? BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0))
         |  (BitBoard::PIECE_ATTACKS[KING][s] & _types_bb[KING]);
 }
 // Attackers to the square 's'
@@ -536,13 +536,13 @@ inline bool Position::legal         (Move m) const { return legal (m, pinneds (_
 inline bool Position::capture       (Move m) const
 {
     // Castling is encoded as "king captures the rook"
-    return ((mtype (m) == NORMAL || mtype (m) == PROMOTE) && EMPTY != _board[dst_sq (m)])
+    return ((mtype (m) == NORMAL || mtype (m) == PROMOTE) && !empty (dst_sq (m)))
         ||  (mtype (m) == ENPASSANT);
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
-    return (mtype (m) == NORMAL && EMPTY != _board[dst_sq (m)])
+    return (mtype (m) == NORMAL && !empty (dst_sq (m)))
         || (mtype (m) == ENPASSANT)
         || (mtype (m) == PROMOTE);
 }
@@ -554,7 +554,7 @@ inline Piece Position::moving_piece (Move m) const { return _board[org_sq (m)]; 
 
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {
-    assert (EMPTY == _board[s]);
+    assert (empty (s));
 
     _board[s] = (c | pt);
 
@@ -574,7 +574,7 @@ inline void  Position:: place_piece (Square s, Piece p)
 }
 inline void  Position::remove_piece (Square s)
 {
-    assert (EMPTY != _board[s]);
+    assert (!empty (s));
 
     // WARNING: This is not a reversible operation. If remove a piece in
     // do_move() and then replace it in undo_move() will put it at the end of
@@ -604,8 +604,8 @@ inline void  Position::remove_piece (Square s)
 }
 inline void  Position::  move_piece (Square s1, Square s2)
 {
-    assert (EMPTY != _board[s1]);
-    assert (EMPTY == _board[s2]);
+    assert (!empty (s1));
+    assert ( empty (s2));
     assert (_piece_index[s1] != -1);
 
     Color  c  = color (_board[s1]);
