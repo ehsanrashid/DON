@@ -976,6 +976,7 @@ namespace Evaluator {
             // Initialize score by reading the incrementally updated scores included
             // in the position object (material + piece square tables) and adding Tempo bonus. 
             score  = pos.psq_score ();
+            
             score += ei.mi->imbalance;
 
             // Probe the pawn hash table
@@ -1065,14 +1066,12 @@ namespace Evaluator {
                 pos.non_pawn_material (BLACK)
             };
 
-            // If one side has only a king, score for potential unstoppable pawns
-            if (npm[BLACK] == VALUE_ZERO)
+            // If both sides have only pawns, score for potential unstoppable pawns
+            if (npm[BLACK] == VALUE_ZERO && npm[WHITE] == VALUE_ZERO)
             {
-                score += ei.pi->evaluate_unstoppable_pawns<WHITE> ();
-            }
-            if (npm[WHITE] == VALUE_ZERO)
-            {
-                score -= ei.pi->evaluate_unstoppable_pawns<BLACK> ();
+                score +=
+                    + ei.pi->evaluate_unstoppable_pawns<WHITE> ();
+                    - ei.pi->evaluate_unstoppable_pawns<BLACK> ();
             }
 
             Phase game_phase = ei.mi->game_phase;
