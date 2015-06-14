@@ -411,20 +411,38 @@ bool Position::ok (i08 *failed_step) const
 // remove the attacker just found from the bitboards and
 // scan for new X-ray attacks behind it.
 template<PieceT PT>
-PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &attackers) const
+PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
     Bitboard b = stm_attackers & _types_bb[PT];
     if (b != U64(0))
     {
-        attackers ^= b & ~(b - 1);
+        mocc ^= b & ~(b - 1);
 
+        switch (PT)
+        {
+        case PAWN:
+        case BSHP:
+            attackers |= ((_types_bb[BSHP]|_types_bb[QUEN]) ? attacks_bb<BSHP> (dst, mocc)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0));
+            break;
+        case ROOK:
+            attackers |= ((_types_bb[ROOK]|_types_bb[QUEN]) ? attacks_bb<ROOK> (dst, mocc)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0));
+            break;
+        case QUEN:
+            attackers |= ((_types_bb[BSHP]|_types_bb[QUEN]) ? attacks_bb<BSHP> (dst, mocc)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0))
+                      |  ((_types_bb[ROOK]|_types_bb[QUEN]) ? attacks_bb<ROOK> (dst, mocc)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0));
+            break;
+        default: break;
+        }
+
+        attackers &= mocc; // After X-ray that may add already processed pieces
+        
         return PT;
     }
 
-    return least_valuable_attacker<PieceT(PT+1)> (dst, stm_attackers, attackers);
+    return least_valuable_attacker<PieceT(PT+1)> (dst, stm_attackers, mocc, attackers);
 }
 template<>
-PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&) const
+PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
 {
     return KING; // No need to update bitboards, it is the last cycle
 }
@@ -449,11 +467,12 @@ Value Position::see      (Move m) const
     // Side to move
     Color stm = color (_board[org]);
 
+    const i08 MAX_GAINS = 32;
     // Gain list
-    Value gain_list[32];
+    Value gain_list[MAX_GAINS];
     i08   depth = 1;
 
-    Bitboard occupied = _types_bb[NONE] - org;
+    Bitboard mocc = _types_bb[NONE] - org;
 
     switch (mtype (m))
     {
@@ -466,7 +485,7 @@ Value Position::see      (Move m) const
 
     case ENPASSANT:
         // Remove the captured pawn
-        occupied -= dst - pawn_push (stm);
+        mocc -= dst - pawn_push (stm);
         gain_list[0] = PIECE_VALUE[MG][PAWN];
         break;
 
@@ -475,14 +494,13 @@ Value Position::see      (Move m) const
         break;
     }
 
-    // Find all enemy attackers to the destination square, with the moving piece
+    // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
-    Bitboard attackers = attackers_to (dst, occupied) & occupied;
-    //Bitboard pins[CLR_NO] = { pinneds (WHITE), pinneds (BLACK) };
+    Bitboard attackers = attackers_to (dst, mocc) & mocc;
 
     // If the opponent has any attackers
     stm = ~stm;
-    Bitboard stm_attackers = attackers & _color_bb[stm];// & ~pins[stm];
+    Bitboard stm_attackers = attackers & _color_bb[stm];
 
     if (stm_attackers != U64(0))
     {
@@ -496,16 +514,16 @@ Value Position::see      (Move m) const
 
         do
         {
-            assert (depth < 32);
+            assert (depth < MAX_GAINS);
 
             // Add the new entry to the swap list
             gain_list[depth] = PIECE_VALUE[MG][captured] - gain_list[depth - 1];
 
             // Locate and remove the next least valuable attacker
-            captured = least_valuable_attacker<PAWN> (dst, stm_attackers, attackers);
+            captured = least_valuable_attacker<PAWN> (dst, stm_attackers, mocc, attackers);
 
             stm = ~stm;
-            stm_attackers = attackers & _color_bb[stm];// & ~pins[stm];
+            stm_attackers = attackers & _color_bb[stm];
 
             ++depth;
         } while (stm_attackers != U64(0) && (captured != KING || (--depth, false)));
