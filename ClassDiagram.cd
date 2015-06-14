@@ -119,7 +119,7 @@
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Searcher::RootMoveList" Collapsed="true">
+  <Class Name="Searcher::RootMoveVector" Collapsed="true">
     <Position X="23" Y="1.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAEAAAAAAAgAAAAAAAAAAAAAAAA=</HashCode>

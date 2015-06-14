@@ -21,6 +21,7 @@ namespace Searcher {
     const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be < MAX_DEPTH/2
     const u16 MIN_SKILL_MULTIPV =  4;
 
+    typedef std::vector<Move> MoveVector;
     
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
@@ -47,7 +48,7 @@ namespace Searcher {
     public:
 
         Clock clock[CLR_NO];
-        std::vector<Move> root_moves;   // restrict search to these moves only
+        MoveVector root_moves; // restrict search to these moves only
 
         u32  movetime;  // search <x> time in milli-seconds
         u08  movestogo; // search <x> moves to the next time control
@@ -116,10 +117,10 @@ namespace Searcher {
     {
     public:
 
-        Value               new_value
-            ,               old_value;
-        std::vector<Move>   pv;
-        u64                 nodes;
+        Value      new_value
+            ,      old_value;
+        MoveVector pv;
+        u64        nodes;
 
         explicit RootMove (Move m = MOVE_NONE)
             : new_value (-VALUE_INFINITE)
@@ -155,15 +156,15 @@ namespace Searcher {
 
     };
 
-    class RootMoveList
+    class RootMoveVector
         : public std::vector<RootMove>
     {
 
     public:
-        void initialize (const Position &pos, const std::vector<Move> &root_moves);
+        void initialize (const Position &pos, const MoveVector &root_moves);
         void initialize (const Position &pos)
         {
-            std::vector<Move> root_moves;
+            MoveVector root_moves;
             initialize (pos, root_moves);
         }
 
@@ -211,8 +212,8 @@ namespace Searcher {
     extern LimitsT              Limits;
     extern SignalsT volatile    Signals;
 
-    extern RootMoveList         RootMoves;
     extern Position             RootPos;
+    extern RootMoveVector       RootMoves;
     extern StateInfoStackPtr    SetupStates;
 
     extern u16                  MultiPV;

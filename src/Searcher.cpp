@@ -1593,9 +1593,9 @@ namespace Searcher {
 
     LimitsT             Limits;
     SignalsT volatile   Signals;
-
-    RootMoveList        RootMoves;
-    Position            RootPos (0);
+    
+    Position            RootPos;
+    RootMoveVector      RootMoves;
     StateInfoStackPtr   SetupStates;
 
     u16                 MultiPV         = 1;
@@ -1706,7 +1706,7 @@ namespace Searcher {
 
     // ------------------------------------
 
-    void RootMoveList::initialize (const Position &pos, const vector<Move> &root_moves)
+    void RootMoveVector::initialize (const Position &pos, const MoveVector &root_moves)
     {
         clear ();
         for (const auto &m : MoveList<LEGAL> (pos))

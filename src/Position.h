@@ -160,20 +160,20 @@ public:
 
     static void initialize ();
 
-    Position () { clear (); } // To define the global object RootPos
+    Position () = default; // To define the global object RootPos
     Position (const Position &pos) = delete;
     Position (const std::string &f, Thread *th = nullptr, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
     Position (const Position &pos, Thread *th)
+        : _thread (th)
     {
         *this = pos;
-        _thread = th;
     }
-    explicit Position (i32) {}
 
-    Position& operator= (const Position &pos);
+    Position& operator= (const Position &pos); // To assign RootPos from UCI
+
 
     Piece    operator[] (Square s)      const;
     //Bitboard operator[] (Color  c)      const;

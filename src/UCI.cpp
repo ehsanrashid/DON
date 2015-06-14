@@ -23,7 +23,7 @@ namespace UCI {
     namespace {
 
         // Root position
-        Position RootPos (0);
+        Position RootPos;
 
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
