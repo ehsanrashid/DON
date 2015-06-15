@@ -86,7 +86,7 @@ namespace Threading {
 
         // Make a local copy to be sure it doesn't become zero under our feet while
         // testing next condition and so leading to an out of bounds access.
-        const size_t count = splitpoint_count;
+        const u08 count = splitpoint_count;
 
         // No split points means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.

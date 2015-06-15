@@ -122,7 +122,6 @@ typedef        uint64_t    u64;
 typedef u64     Key;
 typedef u64     Bitboard;
 
-const i32 MAX_MOVES = 256; // Maximum Moves
 const i32 MAX_DEPTH = 128; // Maximum Depth (Ply)
 
 // File

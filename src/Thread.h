@@ -20,10 +20,10 @@ namespace Threading {
     using namespace Searcher;
     using namespace MovePick;
 
-    const size_t MAX_THREADS               = 128; // Maximum Threads
-    const size_t MAX_SPLITPOINTS_PER_THREAD=   8; // Maximum Splitpoints/Thread
-    const size_t MAX_SLAVES_PER_SPLITPOINT =   4;
-    const size_t MAX_SPLIT_DEPTH           =  12; // Maximum SplitDepth
+    const u16 MAX_THREADS               = 128; // Maximum Threads
+    const u08 MAX_SPLITPOINTS_PER_THREAD=   8; // Maximum Splitpoints/Thread
+    const u08 MAX_SLAVES_PER_SPLITPOINT =   4; // Maximum Slaves/Splitpoint
+    const u08 MAX_SPLIT_DEPTH           =  12; // Maximum SplitDepth
 
     class Thread;
 
@@ -126,7 +126,7 @@ namespace Threading {
         size_t      index;
 
         SplitPoint* volatile active_splitpoint  = nullptr;
-        volatile size_t      splitpoint_count   = 0;
+        volatile u08         splitpoint_count   = 0;
         volatile bool        searching          = false;
 
         Thread ();

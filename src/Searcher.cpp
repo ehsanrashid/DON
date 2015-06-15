@@ -1646,7 +1646,7 @@ namespace Searcher {
     {
         StateInfo states[MAX_DEPTH], *si = states;
 
-        size_t ply = 0;
+        u08 ply = 0;
         for (Move m : pv)
         {
             assert (MoveList<LEGAL> (pos).contains (m));
@@ -2140,7 +2140,7 @@ namespace Threading {
             // FIXME: Racy...
             for (Thread *th : Threadpool)
             {
-                for (size_t i = 0; i < th->splitpoint_count; ++i)
+                for (u08 i = 0; i < th->splitpoint_count; ++i)
                 {
                     SplitPoint &sp = th->splitpoints[i];
 
@@ -2236,7 +2236,7 @@ namespace Threading {
 
                 for (Thread *th : Threadpool)
                 {
-                    size_t  count = th->splitpoint_count; // Local copy
+                    u08  count = th->splitpoint_count; // Local copy
 
                     sp = count != 0 ? &th->splitpoints[count-1] : nullptr;
 

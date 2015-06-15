@@ -7,6 +7,8 @@ class Position;
 
 namespace MoveGen {
 
+    const i32 MAX_MOVES = 256; // Maximum Moves
+
     struct ValMove
     {
     public:
