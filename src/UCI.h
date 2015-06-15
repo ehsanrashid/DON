@@ -28,15 +28,14 @@ namespace UCI {
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap);
 
-        u08 _idx;
-        std::string _type;
-
-        std::string _value;
+        u08 _index;
+        std::string _type
+                   , _value;
 
         i32   _minimum
             , _maximum;
 
-        OnChange _on_change;
+        OnChange _on_change = nullptr;
 
     public:
         Option (OnChange on_change = nullptr);
@@ -74,7 +73,7 @@ namespace UCI {
             for (auto &pair : optmap)
             {
                 const Option &option = pair.second;
-                if (idx == option._idx)
+                if (idx == option._index)
                 {
                     os << "option name " << pair.first << option << std::endl;
                     break;

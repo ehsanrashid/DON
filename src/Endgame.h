@@ -88,7 +88,7 @@ namespace EndGame {
             : EndgameBase<T> (c)
         {}
 
-        T operator() (const Position &pos) const;
+        T operator() (const Position &pos) const override;
     };
 
     // The Endgames class stores the pointers to endgame evaluation and scaling base objects in two std::map. 

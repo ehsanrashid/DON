@@ -121,7 +121,7 @@ namespace Searcher {
         // Counter move history value statistics
         Value2DStats    CounterMovesHistoryValues;
 
-        // update_stats() updates movehistory, killers, countermoves
+        // update_stats() updates killers, history, countermoves and countermoves history
         // stats for a quiet best move.
         void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, Move *quiet_moves, u08 quiet_count)
         {
@@ -134,13 +134,12 @@ namespace Searcher {
             Value bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
 
             Move opp_move = (ss-1)->current_move;
-
-            Square opp_move_dst = dst_sq (opp_move);
-            ValueStats &cmhv = CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst];
+            Square opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
+            ValueStats &cmhv = opp_move_dst != SQ_NO ? CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] : CounterMovesHistoryValues[EMPTY][SQ_A1];
 
             HistoryValues.update (pos, move, bonus);
 
-            if (_ok (opp_move))
+            if (opp_move_dst != SQ_NO)
             {
                  CounterMoves.update (pos, opp_move, move);
                  cmhv.update (pos, move, bonus);
@@ -151,21 +150,22 @@ namespace Searcher {
             {
                 HistoryValues.update (pos, quiet_moves[i], -bonus);
 
-                if (_ok (opp_move))
+                if (opp_move_dst != SQ_NO)
                 {
                     cmhv.update (pos, quiet_moves[i], -bonus);
                 }
             }
             
-            Move own_move = (ss-2)->current_move;
-
             // Extra penalty for TT move in previous ply when it gets refuted
-            if (opp_move == (ss-1)->tt_move && _ok (own_move))
+            if (opp_move == (ss-1)->tt_move)
             {
-                Square own_move_dst = dst_sq (own_move);
-                ValueStats &ttcmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
-
-                ttcmhv.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
+                Move own_move = (ss-2)->current_move;
+                Square own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
+                if (own_move_dst != SQ_NO)
+                {
+                    ValueStats &ttcmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
+                    ttcmhv.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
+                }
             }
 
         }
@@ -635,7 +635,7 @@ namespace Searcher {
                     tt_bound = tte->bound ();
                 }
 
-                // At non-PV nodes we check for a fail high/low. We don't probe at PV nodes
+                // Don't prune at PV nodes. At non-PV nodes we check for a fail high/low.
                 if (   !PVNode
                     && tt_hit
                     && tt_value != VALUE_NONE // Only in case of TT access race
@@ -646,7 +646,7 @@ namespace Searcher {
                 {
                     ss->current_move = tt_move; // Can be MOVE_NONE
 
-                    // If tt_move is quiet, update movehistory, killers, countermove on TT hit
+                    // If tt_move is quiet, update killers, history, countermove and countermoves history on TT hit
                     if (   tt_value >= beta
                         && tt_move != MOVE_NONE
                         && !pos.capture_or_promotion (tt_move)
@@ -740,7 +740,7 @@ namespace Searcher {
                         if (   !PVNode && !MateSearch
                             && depth > 1*DEPTH_ONE
                             && static_eval >= beta
-                            && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
+                            && pos.non_pawn_material (pos.active ()) != VALUE_ZERO
                            )
                         {
                             assert ((ss-1)->current_move != MOVE_NONE && (ss-1)->current_move != MOVE_NULL);
@@ -889,8 +889,9 @@ namespace Searcher {
                 }
             }
 
-            Square opp_move_sq = dst_sq ((ss-1)->current_move);
-            Move  counter_move = CounterMoves[pos[opp_move_sq]][opp_move_sq];
+            Move opp_move = (ss-1)->current_move;
+            Square opp_move_sq = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
+            Move  counter_move = opp_move_sq != SQ_NO ? CounterMoves[pos[opp_move_sq]][opp_move_sq] : MOVE_NONE;
 
             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
 
@@ -997,12 +998,12 @@ namespace Searcher {
                     && !capture_or_promotion
                     && !in_check
                     && best_value > -VALUE_MATE_IN_MAX_DEPTH
-                       // Dangerous
+                       // Not dangerous
                     && !(   gives_check
                          || mtype (move) != NORMAL
                          || pos.advanced_pawn_push (move)
                         )
-                    )
+                   )
                 {
                     // Move count based pruning
                     if (   depth <  FutilityMoveCountDepth
@@ -1049,7 +1050,8 @@ namespace Searcher {
 
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.posi_move_key (move)));
-
+                
+                // Check for legality just before making the move
                 if (!RootNode && !SPNode && !move_legal)
                 {
                     --legal_count;
@@ -1069,8 +1071,8 @@ namespace Searcher {
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
                 if (   depth > 2*DEPTH_ONE
-                    && !capture_or_promotion
                     && legal_count > 1
+                    && !capture_or_promotion
                     && move != ss->killer_moves[0]
                     && move != ss->killer_moves[1]
                    )
@@ -1079,6 +1081,7 @@ namespace Searcher {
                     // Increase reduction
                     if (   (!PVNode && cut_node)
                         || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
+                            && opp_move_sq != SQ_NO
                             && CounterMovesHistoryValues[pos[opp_move_sq]][opp_move_sq]
                                                         [pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
                            )
@@ -1086,7 +1089,7 @@ namespace Searcher {
                     {
                         reduction_depth += DEPTH_ONE;
                     }
-                    // Decrease reduction for counter moves
+                    // Decrease reduction for counter move
                     if (move == counter_move)
                     {
                         reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
@@ -1289,7 +1292,7 @@ namespace Searcher {
                                 mated_in (ss->ply) : DrawValue[pos.active ()];
                 }
                 else
-                // Quiet best move: Update movehistory, killers, countermoves
+                // Quiet best move: update killers, history, countermoves and countermoves history
                 if (   best_move != MOVE_NONE
                     && !pos.capture_or_promotion (best_move)
                    )
@@ -1930,7 +1933,6 @@ namespace Searcher {
             {
                 Threadpool.auto_save_th->stop ();
                 delete_thread (Threadpool.auto_save_th);
-                Threadpool.auto_save_th = nullptr;
             }
 
             if (SearchLogWrite)
@@ -2277,7 +2279,7 @@ namespace Threading {
 
                         if (can_join (best_sp))
                         {
-                            sp->slaves_mask.set (index);
+                            best_sp->slaves_mask.set (index);
                             active_splitpoint = best_sp;
                             searching = true;
                         }

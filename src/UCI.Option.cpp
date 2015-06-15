@@ -99,9 +99,9 @@ namespace UCI {
     // operator<<() inits options and assigns idx in the correct printing order
     void Option::operator<< (const Option &opt)
     {
-        static u08 order = 0;
+        static u08 insert_order = 0;
         *this = opt;
-        _idx = order++;
+        _index = insert_order++;
     }
 
     // operator()() is to string method of option

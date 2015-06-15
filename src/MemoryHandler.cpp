@@ -58,14 +58,14 @@ namespace Memory {
 
         //void show_error (const char *api_name, DWORD error_code)
         //{
-        //    LPSTR msg_buffer_lp = NULL;
+        //    LPSTR msg_buffer_lp = nullptr;
         //
         //    FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
         //                     FORMAT_MESSAGE_FROM_SYSTEM |
         //                     FORMAT_MESSAGE_IGNORE_INSERTS,
-        //                     NULL, error_code,
+        //                     nullptr, error_code,
         //                     MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-        //                     msg_buffer_lp, 0, NULL);
+        //                     msg_buffer_lp, 0, nullptr);
         //
         //    //... now display this string
         //    _tprintf (TEXT ("ERROR: API        = %s.\n") , api_name);
@@ -89,7 +89,7 @@ namespace Memory {
             
             TOKEN_PRIVILEGES token_priv;
             // Get the luid
-            if (!LookupPrivilegeValue (NULL, privilege_name, &token_priv.Privileges[0].Luid))
+            if (!LookupPrivilegeValue (nullptr, privilege_name, &token_priv.Privileges[0].Luid))
             {
                 //show_error (TEXT ("LookupPrivilegeValue"), GetLastError ());
             }
@@ -98,7 +98,7 @@ namespace Memory {
             // Enable or Disable privilege
             token_priv.Privileges[0].Attributes = (enable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
             //BOOL status = 
-            AdjustTokenPrivileges (token_handle, FALSE, &token_priv, 0, PTOKEN_PRIVILEGES(NULL), 0);
+            AdjustTokenPrivileges (token_handle, FALSE, &token_priv, 0, PTOKEN_PRIVILEGES(nullptr), 0);
 
             // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
             // So always check for the last error_code value.
@@ -132,12 +132,12 @@ namespace Memory {
 #   if defined(_WIN32)
 
             mem_ref = VirtualAlloc
-                (NULL,                                  // System selects address
+                (nullptr,                               // System selects address
                  mem_size,                              // Size of allocation
                  MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,// Type of Allocation
                  PAGE_READWRITE);                       // Protection of Allocation
 
-            if (mem_ref != NULL)
+            if (mem_ref != nullptr)
             {
                 UsePages = true;
                 sync_cout << "info string LargePage Hash " << (mem_size >> 20) << " MB." << sync_endl;
@@ -145,12 +145,12 @@ namespace Memory {
             }
 
             mem_ref = VirtualAlloc
-                (NULL,                 // System selects address
+                (nullptr,              // System selects address
                 mem_size,              // Size of allocation
                 MEM_COMMIT|MEM_RESERVE,// Type of Allocation
                 PAGE_READWRITE);       // Protection of Allocation
 
-            if (mem_ref != NULL)
+            if (mem_ref != nullptr)
             {
                 UsePages = true;
                 memset (mem_ref, 0x00, mem_size);
@@ -164,7 +164,7 @@ namespace Memory {
             shm = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
             if (shm != -1)
             {
-                mem_ref = shmat (shm, NULL, 0x00);
+                mem_ref = shmat (shm, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
                     UsePages = true;
@@ -173,7 +173,7 @@ namespace Memory {
                     return;
                 }
                 cerr << "ERROR: shmat() shared memory attach failed.";
-                if (shmctl (shm, IPC_RMID, NULL) == -1)
+                if (shmctl (shm, IPC_RMID, nullptr) == -1)
                 {
                     cerr << "ERROR: shmctl(IPC_RMID) failed.";
                 }
@@ -182,7 +182,7 @@ namespace Memory {
             shm = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W);
             if (shm != -1)
             {
-                mem_ref = shmat (shm, NULL, 0x00);
+                mem_ref = shmat (shm, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
                     UsePages = true;
@@ -191,7 +191,7 @@ namespace Memory {
                     return;
                 }
                 cerr << "ERROR: shmat() shared memory attach failed.";
-                if (shmctl (shm, IPC_RMID, NULL) == -1)
+                if (shmctl (shm, IPC_RMID, nullptr) == -1)
                 {
                     cerr << "ERROR: shmctl(IPC_RMID) failed.";
                 }
@@ -203,7 +203,7 @@ namespace Memory {
         }
 
         ALIGN_MALLOC (mem_ref, alignment, mem_size);
-        if (mem_ref != NULL)
+        if (mem_ref != nullptr)
         {
             memset (mem_ref, 0x00, mem_size);
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
@@ -215,7 +215,7 @@ namespace Memory {
 
     void  free_memory (void *mem)
     {
-        if (mem == NULL) return;
+        if (mem == nullptr) return;
 
         if (UsePages)
         {
@@ -231,7 +231,7 @@ namespace Memory {
             {
                 cerr << "ERROR: shmdt() shared memory detach failed." << endl;
             }
-            if (shmctl (shm, IPC_RMID, NULL) == -1)
+            if (shmctl (shm, IPC_RMID, nullptr) == -1)
             {
                 cerr << "ERROR: shmctl(IPC_RMID) failed.";
             }

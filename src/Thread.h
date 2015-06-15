@@ -102,7 +102,7 @@ namespace Threading {
 
         void notify_one ();
 
-        void wait_for (const volatile bool &condition);
+        void wait_for (volatile const bool &condition);
 
         virtual void idle_loop () = 0;
     };
@@ -122,7 +122,7 @@ namespace Threading {
         Material::Table matl_table;
 
         Position   *active_pos  = nullptr;
-        i32         max_ply = 0;
+        i32         max_ply     = 0;
         size_t      index;
 
         SplitPoint* volatile active_splitpoint  = nullptr;
@@ -131,7 +131,7 @@ namespace Threading {
 
         Thread ();
         
-        virtual void idle_loop ();
+        void idle_loop () override;
         
         bool cutoff_occurred () const;
         
@@ -151,7 +151,7 @@ namespace Threading {
 
         volatile bool thinking = true; // Avoid a race with start_thinking()
 
-        virtual void idle_loop ();
+        void idle_loop () override;
         
         void join ();
     };
@@ -171,7 +171,7 @@ namespace Threading {
         void start () { run = true ; }
         void stop  () { run = false; }
 
-        virtual void idle_loop ();
+        void idle_loop () override;
 
     };
 
@@ -251,11 +251,11 @@ extern Threading::ThreadPool  Threadpool;
 //    i32 nm[2];
 //    nm[0] = CTL_HW;
 //    nm[1] = HW_AVAILCPU;
-//    sysctl (nm, 2, &count, &len, NULL, 0);
+//    sysctl (nm, 2, &count, &len, nullptr, 0);
 //    if (count < 1)
 //    {
 //        nm[1] = HW_NCPU;
-//        sysctl (nm, 2, &count, &len, NULL, 0);
+//        sysctl (nm, 2, &count, &len, nullptr, 0);
 //        if (count < 1) count = 1;
 //    }
 //    return count;
@@ -274,7 +274,7 @@ extern Threading::ThreadPool  Threadpool;
 //    return pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1 ?
 //        1 : psd.psd_proc_cnt;
 //
-//    //return mpctl (MPC_GETNUMSPUS, NULL, NULL);
+//    //return mpctl (MPC_GETNUMSPUS, nullptr, nullptr);
 //
 //#else
 //

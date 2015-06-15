@@ -23,7 +23,7 @@ namespace MovePick {
         const T* operator[] (Piece p) const { return _table[p]; }
         T*       operator[] (Piece p)       { return _table[p]; }
 
-        void clear() { std::memset (_table, 0x0, sizeof (_table)); }
+        void clear () { std::memset (_table, 0x0, sizeof (_table)); }
 
         void update (const Position &pos, Move m, Value v)
         {

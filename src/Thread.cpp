@@ -34,6 +34,7 @@ namespace Threading {
         th->notify_one ();
         th->join ();         // Wait for thread termination
         delete th;
+        th = nullptr;
     }
     
     // explicit template instantiations
@@ -49,7 +50,7 @@ namespace Threading {
     }
 
     // ThreadBase::wait_for() set the thread to sleep until condition turns true
-    void ThreadBase::wait_for (const volatile bool &condition)
+    void ThreadBase::wait_for (volatile const bool &condition)
     {
         unique_lock<Mutex> lk (mutex);
         sleep_condition.wait (lk, [&]{ return condition; });
@@ -59,7 +60,7 @@ namespace Threading {
 
     // Thread::Thread() makes some init but does not launch any execution thread that
     // will be started only when c'tor returns.
-    Thread::Thread () //: splitpoints ()  // Initialization of non POD broken in MSVC
+    Thread::Thread ()
         : index (Threadpool.size ())  // Starts from 0
     {}
 
@@ -85,7 +86,7 @@ namespace Threading {
 
         // Make a local copy to be sure it doesn't become zero under our feet while
         // testing next condition and so leading to an out of bounds access.
-        size_t count = splitpoint_count;
+        const size_t count = splitpoint_count;
 
         // No split points means that the thread is available as a slave for any
         // other thread otherwise apply the "helpful master" concept if possible.
@@ -260,8 +261,6 @@ namespace Threading {
         check_limits_th             = new_thread<TimerThread> ();
         check_limits_th->task       = check_limits;
         check_limits_th->resolution = TIMER_RESOLUTION;
-
-        auto_save_th                = nullptr;
 
         configure ();
     }
