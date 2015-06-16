@@ -123,7 +123,7 @@ namespace Notation {
 
     // move_from_san(san, pos) converts a string representing a move in short algebraic notation
     // to the corresponding legal move, if any.
-    Move move_from_san (const string &san, Position &pos)
+    Move move_from_san (const string &san,       Position &pos)
     {
         for (const auto &m : MoveList<LEGAL> (pos))
         {

@@ -29,17 +29,10 @@ namespace OpeningBook {
         //  - Learn     4 bytes
         struct PBEntry
         {
-            u64 key;
-            u16 move;
-            u16 weight;
-            u32 learn;
-
-            PBEntry ()
-                : key (U64(0))
-                , move (MOVE_NONE)
-                , weight (0)
-                , learn (0)
-            {}
+            u64 key     = U64(0);
+            u16 move    = MOVE_NONE;
+            u16 weight  = 0;
+            u32 learn   = 0;
 
             operator std::string () const;
 

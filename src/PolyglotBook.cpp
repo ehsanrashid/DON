@@ -342,7 +342,7 @@ namespace OpeningBook  {
         if (ErrorIndex == index)
         {
             cerr << "ERROR: no such key... "
-                << hex << uppercase << key
+                << hex << uppercase << key << nouppercase << dec
                 << endl;
             return "";
         }

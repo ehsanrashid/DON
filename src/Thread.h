@@ -120,7 +120,6 @@ namespace Threading {
         SplitPoint      splitpoints[MAX_SPLITPOINTS_PER_THREAD];
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
-        //Endgames endgames;
         Position   *active_pos;
         size_t      index;
         i32         max_ply;

@@ -10,8 +10,8 @@ namespace MoveGen {
     struct ValMove
     {
     public:
-        Move    move;
-        Value   value;
+        Move    move    = MOVE_NONE;
+        Value   value   = VALUE_NONE;
 
         operator Move () const  { return move; }
         void operator= (Move m) { move = m; }
@@ -53,16 +53,11 @@ namespace MoveGen {
 
     private:
         ValMove  _moves_beg[MAX_MOVES]
-              , *_moves_end;
+              , *_moves_end = _moves_beg;
 
     public:
 
-        explicit MoveList (const Position &pos)
-            : _moves_end (generate<GT> (_moves_beg, pos))
-        {
-            // Optional Terminator
-            *_moves_end = MOVE_NONE;
-        }
+        explicit MoveList (const Position &pos) : _moves_end (generate<GT> (_moves_beg, pos)) {}
 
         const ValMove* begin () const { return _moves_beg; }
         const ValMove* end   () const { return _moves_end; }

@@ -452,7 +452,7 @@ PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&, Bit
 Phase Position::game_phase () const
 {
     Value npm = max (VALUE_ENDGAME, min (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK], VALUE_MIDGAME));
-    return Phase ((npm - VALUE_ENDGAME) * i32(PHASE_MIDGAME) / i32(VALUE_MIDGAME - VALUE_ENDGAME));
+    return Phase((npm - VALUE_ENDGAME) * i32(PHASE_MIDGAME) / i32(VALUE_MIDGAME - VALUE_ENDGAME));
 }
 
 // see() is a Static Exchange Evaluator (SEE):
@@ -708,7 +708,7 @@ bool Position::pseudo_legal (Move m) const
                  && 1 == dist<Rank> (dst, org)
                 )
                // Not a double push
-            && !(   (_rank (org) == rel_rank (_active, R_2))
+            && !(   _rank (org) == rel_rank (_active, R_2)
                  && empty (dst)
                  && empty (dst - pawn_push (_active))
                  && 0 == dist<File> (dst, org)
@@ -795,7 +795,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
     {
         // En-passant captures are a tricky special case. Because they are rather uncommon,
         // do it simply by testing whether the king is attacked after the move is made.
-        Square   cap = dst + pawn_push (~_active);
+        Square cap = dst + pawn_push (~_active);
 
         assert (dst == _si->en_passant_sq && empty (dst) && ( _active|PAWN) == _board[org] && (~_active|PAWN) == _board[cap]);
 
@@ -1211,7 +1211,7 @@ Value Position::compute_non_pawn_material (Color c) const
     }                                                                             \
     _si->matl_key ^= Zob._.piece_square[~_active][ct][_piece_count[~_active][ct]];\
     key           ^= Zob._.piece_square[~_active][ct][cap];                       \
-    _si->psq_score -= PSQ[~_active][ct][cap];                                    \
+    _si->psq_score -= PSQ[~_active][ct][cap];                                     \
     _si->clock50 = 0;                                                             \
 }
 
@@ -1588,7 +1588,7 @@ string Position::fen (bool c960, bool full) const
                 ++f;
                 ++s;
             }
-            if (empty_count) oss << empty_count;
+            if (empty_count != 0) oss << empty_count;
             if (F_H >= f)  oss << PIECE_CHAR[_board[s]];
         }
 
