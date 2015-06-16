@@ -602,7 +602,6 @@
     <ClCompile Include="src\Position.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
     <ClCompile Include="src\Thread.cpp" />
-    <ClCompile Include="src\TimeManager.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
     <ClCompile Include="src\UCI.cpp" />
     <ClCompile Include="src\UCI.Option.cpp" />
@@ -635,7 +634,6 @@
     <ClInclude Include="src\Thread.h" />
     <ClInclude Include="src\thread_win32.h" />
     <ClInclude Include="src\tiebuffer.h" />
-    <ClInclude Include="src\TimeManager.h" />
     <ClInclude Include="src\Transposition.h" />
     <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\UCI.h" />

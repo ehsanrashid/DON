@@ -623,15 +623,11 @@ struct HashTable
 {
 
 private:
-    std::vector<Entry> _table;
+    std::vector<Entry> _table = std::vector<Entry> (Size);
 
 public:
 
-    HashTable ()
-        : _table (Size, Entry ())
-    {}
-
-    inline Entry* operator[] (Key k) { return &_table[u32(k) & (Size - 1)]; }
+    Entry* operator[] (Key k) { return &_table[u32(k) & (Size - 1)]; }
 
 };
 

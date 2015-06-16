@@ -127,7 +127,7 @@ namespace OpeningBook  {
     {}
 
     PolyglotBook::PolyglotBook (const string &book_fn, openmode mode)
-        : fstream (book_fn.c_str (), mode|binary)
+        : fstream (book_fn, mode|binary)
         , _book_fn (book_fn)
         , _mode (mode)
         , _size (0)
@@ -145,7 +145,7 @@ namespace OpeningBook  {
     bool PolyglotBook::open (const string &book_fn, openmode mode)
     {
         close ();
-        fstream::open (book_fn.c_str (), mode|binary);
+        fstream::open (book_fn, mode|binary);
         clear (); // Reset any error flag to allow retry open()
         _book_fn = book_fn;
         _mode    = mode;

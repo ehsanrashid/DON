@@ -154,7 +154,7 @@ namespace Transposition {
     {
         convert_path (hash_fn);
         if (white_spaces (hash_fn)) return;
-        ofstream ofhash (hash_fn.c_str (), ios_base::out|ios_base::binary);
+        ofstream ofhash (hash_fn, ios_base::out|ios_base::binary);
         if (!ofhash.is_open ()) return;
         ofhash << (*this);
         ofhash.close ();
@@ -165,7 +165,7 @@ namespace Transposition {
     {
         convert_path (hash_fn);
         if (white_spaces (hash_fn)) return;
-        ifstream ifhash (hash_fn.c_str (), ios_base::in|ios_base::binary);
+        ifstream ifhash (hash_fn, ios_base::in|ios_base::binary);
         if (!ifhash.is_open ()) return;
         ifhash >> (*this);
         ifhash.close ();

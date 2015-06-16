@@ -97,11 +97,11 @@ namespace MovePick {
 
     public:
 
-        MovePicker (const MovePicker&) = delete;
+        MovePicker () = delete;
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Move, Searcher::Stack*);
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Square);
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, PieceT);
-
+        MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
 
         ValMove* begin () { return _moves_beg; }

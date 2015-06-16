@@ -58,7 +58,7 @@ namespace UCI {
     Option::operator i32 () const
     {
         assert (_type == "spin");
-        return atoi (_value.c_str ());
+        return stoi (_value);
     }
     Option::operator string () const
     {
@@ -76,7 +76,7 @@ namespace UCI {
 
         if (!( (_type != "button" && value.empty ())
             || (_type == "check"  && value != "true" && value != "false")
-            || (_type == "spin"   && (_minimum > atoi (value.c_str ()) || atoi (value.c_str ()) > _maximum))
+            || (_type == "spin"   && (_minimum > stoi (value) || stoi (value) > _maximum))
              )
            )
         {
@@ -300,7 +300,7 @@ namespace UCI {
         // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
-        Options["Hash File"]                    << Option (HashFile.c_str(), configure_hash);
+        Options["Hash File"]                    << Option (HashFile.c_str (), configure_hash);
         // Auto Save Hash Time (min)
         Options["Auto Save Hash (min)"]         << Option (AutoSaveHashTime,    0,  60, configure_hash);
         // Auto Load Saved Hash (bool)
@@ -328,7 +328,7 @@ namespace UCI {
         // Openings Book Options
         // ---------------------
         // The filename of the Opening Book.
-        Options["Book File"]                    << Option (BookFile.c_str(), configure_book);
+        Options["Book File"]                    << Option (BookFile.c_str (), configure_book);
         // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
         Options["Best Book Move"]               << Option (BestBookMove, configure_book);
@@ -433,7 +433,7 @@ namespace UCI {
         // The filename of the debug log.
         Options["Debug Log"]                    << Option ("", debug_log);
         // The filename of the search log.
-        Options["Search Log"]                   << Option (SearchLog.c_str(), change_search_log);
+        Options["Search Log"]                   << Option (SearchLog.c_str (), change_search_log);
 
         // ---------------------------------------------------------------------------------------
         // Other Options

@@ -217,9 +217,6 @@ namespace Threading {
 
 enum SyncT { IO_LOCK, IO_UNLOCK };
 
-#define sync_cout std::cout << IO_LOCK
-#define sync_endl std::endl << IO_UNLOCK
-
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream &os, SyncT sync)
 {
@@ -232,6 +229,10 @@ inline std::ostream& operator<< (std::ostream &os, SyncT sync)
 
     return os;
 }
+
+#define sync_cout std::cout << IO_LOCK
+#define sync_endl std::endl << IO_UNLOCK
+
 
 extern Threading::ThreadPool  Threadpool;
 
