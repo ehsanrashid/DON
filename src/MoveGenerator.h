@@ -18,12 +18,12 @@ namespace MoveGen {
         operator Move () const  { return move; }
         void operator= (Move m) { move = m; }
 
-        friend bool operator<  (const ValMove &vm1, const ValMove &vm2) { return vm1.value <  vm2.value; }
-        friend bool operator>  (const ValMove &vm1, const ValMove &vm2) { return vm1.value >  vm2.value; }
-        friend bool operator<= (const ValMove &vm1, const ValMove &vm2) { return vm1.value <= vm2.value; }
-        friend bool operator>= (const ValMove &vm1, const ValMove &vm2) { return vm1.value >= vm2.value; }
-        friend bool operator== (const ValMove &vm1, const ValMove &vm2) { return vm1.value == vm2.value; }
-        friend bool operator!= (const ValMove &vm1, const ValMove &vm2) { return vm1.value != vm2.value; }
+        bool operator<  (const ValMove &vm) const { return value <  vm.value; }
+        bool operator>  (const ValMove &vm) const { return value >  vm.value; }
+        bool operator<= (const ValMove &vm) const { return value <= vm.value; }
+        bool operator>= (const ValMove &vm) const { return value >= vm.value; }
+        bool operator== (const ValMove &vm) const { return value == vm.value; }
+        bool operator!= (const ValMove &vm) const { return value != vm.value; }
 
     };
 

@@ -107,7 +107,6 @@ namespace Threading {
         virtual void idle_loop () = 0;
     };
 
-
     // Thread struct keeps together all the thread related stuff like locks, state
     // and especially split points. We also use per-thread pawn and material hash
     // tables so that once we get a pointer to an entry its life time is unlimited
@@ -141,7 +140,6 @@ namespace Threading {
             Depth depth, u08 legal_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
 
     };
-
 
     // MainThread struct is derived struct used for the main one
     class MainThread

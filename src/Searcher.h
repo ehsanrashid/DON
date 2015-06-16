@@ -103,19 +103,19 @@ namespace Searcher {
         //u64        nodes     = U64(0);
         MoveVector pv;
 
+        RootMove () = delete;
         explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
         
         // Ascending Sort
-        friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value >  rm2.new_value; }
-        friend bool operator>  (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value <  rm2.new_value; }
-        friend bool operator<= (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value >= rm2.new_value; }
-        friend bool operator>= (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value <= rm2.new_value; }
+        bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
+        bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
+        bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
+        bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
+        bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
+        bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
 
-        friend bool operator== (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value == rm2.new_value; }
-        friend bool operator!= (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value != rm2.new_value; }
-
-        friend bool operator== (const RootMove &rm, Move m) { return rm.pv[0] == m; }
-        friend bool operator!= (const RootMove &rm, Move m) { return rm.pv[0] != m; }
+        bool operator== (const Move &m) const { return pv[0] == m; }
+        bool operator!= (const Move &m) const { return pv[0] != m; }
 
         void insert_pv_into_tt (Position &pos);
         bool ponder_move_extracted_from_tt (Position &pos);

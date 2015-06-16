@@ -310,7 +310,7 @@ namespace Searcher {
             
             // Transposition table lookup
             Key posi_key = pos.posi_key ();
-            bool tt_hit;
+            bool tt_hit = false;
             TTEntry *tte = TT.probe (posi_key, tt_hit);
             if (tt_hit)
             {
@@ -548,7 +548,7 @@ namespace Searcher {
             assert (depth > DEPTH_ZERO);
 
             Key posi_key;
-            bool tt_hit;
+            bool tt_hit = false;
             TTEntry *tte = nullptr;
 
             Move  move
@@ -2267,26 +2267,28 @@ namespace Threading {
 
                 if (best_sp != nullptr)
                 {
-                    // Recheck the conditions under lock protection
-                    best_sp->spinlock.acquire ();
+                    sp = best_sp;
 
-                    if (   best_sp->slave_searching
-                        && best_sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
+                    // Recheck the conditions under lock protection
+                    sp->spinlock.acquire ();
+
+                    if (   sp->slave_searching
+                        && sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
                        )
                     {
                         spinlock.acquire ();
 
-                        if (can_join (best_sp))
+                        if (can_join (sp))
                         {
-                            best_sp->slaves_mask.set (index);
-                            active_splitpoint = best_sp;
+                            sp->slaves_mask.set (index);
+                            active_splitpoint = sp;
                             searching = true;
                         }
 
                         spinlock.release ();
                     }
 
-                    best_sp->spinlock.release ();
+                    sp->spinlock.release ();
                 }
             }
 

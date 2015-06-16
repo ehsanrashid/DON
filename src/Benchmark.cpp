@@ -1,5 +1,7 @@
 #include "Benchmark.h"
 
+#include <string>
+
 #include "Position.h"
 #include "Searcher.h"
 #include "UCI.h"
@@ -84,7 +86,7 @@ void benchmark (istream &is, const Position &cur_pos)
 {
     string token;
     // Assign default values to missing arguments
-    string hash       = (is >> token) && !white_spaces (token) ? token : to_string (TranspositionTable::DefSize);
+    string hash       = (is >> token) && !white_spaces (token) ? token : std::to_string (TranspositionTable::DefSize);
     string threads    = (is >> token) && !white_spaces (token) ? token : "1";
     string limit_val  = (is >> token) && !white_spaces (token) ? token : "13";
     string limit_type = (is >> token) && !white_spaces (token) ? token : "depth";
