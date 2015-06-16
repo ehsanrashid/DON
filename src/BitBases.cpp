@@ -105,7 +105,7 @@ namespace BitBases {
             
         public:
 
-            KPK_Position () {}
+            KPK_Position () = default;
             
             explicit KPK_Position (u32 idx)
             {
@@ -157,9 +157,7 @@ namespace BitBases {
 
             Result classify (const vector<KPK_Position>& db)
             {
-                return WHITE == _active ?
-                            classify<WHITE> (db) :
-                            classify<BLACK> (db);
+                return WHITE == _active ? classify<WHITE> (db) : classify<BLACK> (db);
             }
 
         };

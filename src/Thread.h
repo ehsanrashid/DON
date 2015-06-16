@@ -120,13 +120,14 @@ namespace Threading {
         SplitPoint      splitpoints[MAX_SPLITPOINTS_PER_THREAD];
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
-        Position   *active_pos;
-        size_t      index;
-        i32         max_ply;
 
-        SplitPoint* volatile active_splitpoint;
-        volatile size_t      splitpoint_count;
-        volatile bool        searching;
+        Position   *active_pos  = nullptr;
+        i32         max_ply = 0;
+        size_t      index;
+
+        SplitPoint* volatile active_splitpoint  = nullptr;
+        volatile size_t      splitpoint_count   = 0;
+        volatile bool        searching          = false;
 
         Thread ();
         

@@ -164,6 +164,7 @@ namespace Searcher {
             {
                 Square own_move_dst = dst_sq (own_move);
                 ValueStats &ttcmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
+
                 ttcmhv.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
             }
 

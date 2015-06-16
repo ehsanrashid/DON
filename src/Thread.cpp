@@ -60,12 +60,7 @@ namespace Threading {
     // Thread::Thread() makes some init but does not launch any execution thread that
     // will be started only when c'tor returns.
     Thread::Thread () //: splitpoints ()  // Initialization of non POD broken in MSVC
-        : active_pos (nullptr)
-        , index (Threadpool.size ())  // Starts from 0
-        , max_ply (0)
-        , active_splitpoint (nullptr)
-        , splitpoint_count (0)
-        , searching (false)
+        : index (Threadpool.size ())  // Starts from 0
     {}
 
     // Thread::cutoff_occurred() checks whether a beta cutoff has occurred in the
