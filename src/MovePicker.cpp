@@ -5,8 +5,8 @@
 namespace MovePick {
 
     using namespace std;
-    using namespace Searcher;
     using namespace MoveGen;
+    using namespace Searcher;
     using namespace BitBoard;
 
     namespace {
