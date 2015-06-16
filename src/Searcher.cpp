@@ -356,7 +356,7 @@ namespace Searcher {
                     ss->static_eval = best_value;
 
                     // Can tt_value be used as a better position evaluation?
-                    if (   VALUE_NONE != tt_value
+                    if (   tt_value != VALUE_NONE
                         && (tt_bound & (best_value < tt_value ? BOUND_LOWER : BOUND_UPPER))
                        )
                     {
@@ -450,11 +450,11 @@ namespace Searcher {
                     }
                 }
 
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
-
                 // Check for legality just before making the move
                 if (!pos.legal (move, ci.pinneds)) continue;
+
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                 ss->current_move = move;
                 // Make and search the move
@@ -669,14 +669,11 @@ namespace Searcher {
                     {
                         static_eval = tte->eval ();
                         // Never assume anything on values stored in TT
-                        if (VALUE_NONE == static_eval)
-                        {
-                            static_eval = evaluate (pos);
-                        }
+                        if (VALUE_NONE == static_eval) static_eval = evaluate (pos);
                         ss->static_eval = static_eval;
 
                         // Can tt_value be used as a better position evaluation?
-                        if (   VALUE_NONE != tt_value
+                        if (   tt_value != VALUE_NONE
                             && (tt_bound & (static_eval < tt_value ? BOUND_LOWER : BOUND_UPPER))
                            )
                         {
@@ -740,7 +737,7 @@ namespace Searcher {
                         if (   !PVNode && !MateSearch
                             && depth > 1*DEPTH_ONE
                             && static_eval >= beta
-                            && pos.non_pawn_material (pos.active ()) != VALUE_ZERO
+                            && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                            )
                         {
                             assert ((ss-1)->current_move != MOVE_NONE && (ss-1)->current_move != MOVE_NULL);
@@ -754,8 +751,8 @@ namespace Searcher {
                             // Do null move
                             pos.do_null_move (si);
 
-                            // Speculative prefetch as early as possible
-                            prefetch (TT.cluster_entry (pos.posi_key ()));
+                            //// Speculative prefetch as early as possible
+                            //prefetch (TT.cluster_entry (pos.posi_key ()));
 
                             // Null (zero) window (alpha, beta) = (beta-1, beta):
                             Value null_value =
@@ -1048,15 +1045,15 @@ namespace Searcher {
                     }
                 }
 
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
-
                 // Check for legality just before making the move
                 if (!RootNode && !SPNode && !move_legal)
                 {
                     --legal_count;
                     continue;
                 }
+
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
                 ss->current_move = move;
 

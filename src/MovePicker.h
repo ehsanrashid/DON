@@ -29,7 +29,10 @@ namespace MovePick {
         {
             Square s = dst_sq (m);
             Piece  p = pos[org_sq (m)];
-            if (abs (_table[p][s] + v) < MaxValue) _table[p][s] += v;
+            if (abs (_table[p][s] + v) < MaxValue)
+            {
+                _table[p][s] += v;
+            }
         }
         
         void update (const Position &pos, Move m1, Move m2)
@@ -72,9 +75,9 @@ namespace MovePick {
             ,   *_quiets_end        = nullptr
             ,   *_bad_captures_end  = nullptr;
 
-        const Position      &_pos;
-        const ValueStats    &_history_value;
-        const Value2DStats  &_countermoves_history_value;
+        const Position      &_Pos;
+        const ValueStats    &_HistoryValue;
+        const Value2DStats  &_CounterMovesHistoryValue;
         
         Searcher::Stack *_ss        = nullptr;
         
