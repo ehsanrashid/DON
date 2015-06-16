@@ -103,8 +103,6 @@ namespace Engine {
         Memory::initialize ();
 #endif
 
-        //cout << "info string Processor(s) found " << cpu_count () << "." << endl;
-
         UCI      ::initialize ();
         BitBoard ::initialize ();
         Position ::initialize ();
@@ -120,7 +118,6 @@ namespace Engine {
         cout << endl;
 
         UCI::start (arg);
-
     }
 
     // Exit from engine with exit code. (in case of some crash)

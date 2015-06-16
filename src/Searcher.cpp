@@ -135,7 +135,8 @@ namespace Searcher {
 
             Move opp_move = (ss-1)->current_move;
             Square opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-            ValueStats &cmhv = opp_move_dst != SQ_NO ? CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] : CounterMovesHistoryValues[EMPTY][SQ_A1];
+            ValueStats &cmhv = opp_move_dst != SQ_NO ? CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] :
+                                                       CounterMovesHistoryValues[EMPTY][SQ_A1];
 
             HistoryValues.update (pos, move, bonus);
 
@@ -517,8 +518,7 @@ namespace Searcher {
             // A special case: If in check and no legal moves were found, it is checkmate.
             if (InCheck && best_value == -VALUE_INFINITE)
             {
-                // Plies to mate from the root
-                best_value = mated_in (ss->ply);
+                return mated_in (ss->ply); // Plies to mate from the root
             }
 
             tte->save (posi_key, best_move, value_to_tt (best_value, ss->ply), ss->static_eval, qs_depth,

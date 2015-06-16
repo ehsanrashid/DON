@@ -165,14 +165,14 @@ namespace Threading {
     {
     public:
 
-        bool run = false;
+        bool running = false;
         i32 resolution; // Millisec between two task() calls
         void (*task) () = nullptr;
         
         TimerThread () : ThreadBase () {}
 
-        void start () { run = true ; }
-        void stop  () { run = false; }
+        void start () { running = true ; }
+        void stop  () { running = false; }
 
         void idle_loop () override;
 
@@ -238,54 +238,5 @@ inline std::ostream& operator<< (std::ostream &os, SyncT sync)
 
 
 extern Threading::ThreadPool  Threadpool;
-
-//inline u32 cpu_count ()
-//{
-//#ifdef WIN32
-//
-//    SYSTEM_INFO sys_info;
-//    GetSystemInfo (&sys_info);
-//    return sys_info.dwNumberOfProcessors;
-//
-//#elif MACOS
-//
-//    u32 count;
-//    u32 len = sizeof (count);
-//
-//    i32 nm[2];
-//    nm[0] = CTL_HW;
-//    nm[1] = HW_AVAILCPU;
-//    sysctl (nm, 2, &count, &len, nullptr, 0);
-//    if (count < 1)
-//    {
-//        nm[1] = HW_NCPU;
-//        sysctl (nm, 2, &count, &len, nullptr, 0);
-//        if (count < 1) count = 1;
-//    }
-//    return count;
-//
-//#elif _SC_NPROCESSORS_ONLN // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
-//
-//    return sysconf (_SC_NPROCESSORS_ONLN);
-//
-//#elif __IRIX
-//
-//    return sysconf (_SC_NPROC_ONLN);
-//
-//#elif __HPUX
-//
-//    pst_dynamic psd;
-//    return pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1 ?
-//        1 : psd.psd_proc_cnt;
-//
-//    //return mpctl (MPC_GETNUMSPUS, nullptr, nullptr);
-//
-//#else
-//
-//    return 1;
-//
-//#endif
-//}
-
 
 #endif // _THREAD_H_INC_

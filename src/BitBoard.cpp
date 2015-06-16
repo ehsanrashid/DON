@@ -153,7 +153,7 @@ namespace BitBoard {
                     occupancy[size] = occ;
                     reference[size] = sliding_attacks (deltas, Square(s), occ);
 #               else
-                    attacks_bb[s][_pext_u64 (occ, mask)] = sliding_attacks (deltas, Square(s), occ);
+                    attacks_bb[s][PEXT (occ, mask)] = sliding_attacks (deltas, Square(s), occ);
 #               endif
 
                     ++size;

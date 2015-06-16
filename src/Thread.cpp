@@ -63,11 +63,11 @@ namespace Threading {
     Thread::Thread ()
         : ThreadBase ()
     {
-        active_pos          = nullptr;
-        max_ply             = 0;
-        active_splitpoint   = nullptr;
-        splitpoint_count    = 0;
-        searching           = false;
+        //active_pos          = nullptr;
+        //max_ply             = 0;
+        //active_splitpoint   = nullptr;
+        //splitpoint_count    = 0;
+        //searching           = false;
         index               = Threadpool.size (); // Starts from 0
     }
 
@@ -204,11 +204,11 @@ namespace Threading {
         {
             unique_lock<Mutex> lk (mutex);
 
-            if (alive) sleep_condition.wait_for (lk, chrono::milliseconds(run ? resolution : INT_MAX));
+            if (alive) sleep_condition.wait_for (lk, chrono::milliseconds(running ? resolution : INT_MAX));
 
             lk.unlock ();
 
-            if (run) task ();
+            if (running) task ();
 
         }
     }
@@ -277,8 +277,8 @@ namespace Threading {
     void ThreadPool::exit ()
     {
         // As first because they accesses threads data
-        delete_thread (auto_save_th);
         delete_thread (check_limits_th);
+        if (auto_save_th != nullptr) delete_thread (auto_save_th);
 
         for (Thread *th : *this)
         {
