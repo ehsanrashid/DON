@@ -9,6 +9,7 @@
 namespace MovePick {
 
     using namespace MoveGen;
+    using namespace Searcher;
 
     // The Stats struct stores different statistics.
     template<class T>
@@ -79,7 +80,7 @@ namespace MovePick {
         const ValueStats    &_HistoryValue;
         const Value2DStats  &_CounterMovesHistoryValue;
         
-        Searcher::Stack *_ss        = nullptr;
+        Stack  *_ss                 = nullptr;
         
         Move    _tt_move            = MOVE_NONE;
         Move    _counter_move       = MOVE_NONE;
@@ -101,7 +102,7 @@ namespace MovePick {
     public:
 
         MovePicker () = delete;
-        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Move, Searcher::Stack*);
+        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Move, Stack*);
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Square);
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, PieceT);
         MovePicker (const MovePicker&) = delete;
