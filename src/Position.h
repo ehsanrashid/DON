@@ -55,7 +55,7 @@ public:
     Key    posi_key;       // Hash key of position.
     Bitboard checkers;     // Checkers bitboard.
 
-    StateInfo *ptr;
+    StateInfo *ptr = nullptr;
 
     StateInfo () = default;
 };

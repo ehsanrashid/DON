@@ -33,16 +33,11 @@ namespace Searcher {
     struct LimitsT
     {
     private:
-        // Clock struct stores the remain-time and time-inc per move in milli-seconds
+        // Clock struct stores the Remaining-time and Increment-time per move in milli-seconds
         struct Clock
         {
-            u32 time;   // Remaining Time    [milli-seconds]
-            u32 inc;    // Time inc per move [milli-seconds]
-
-            Clock ()
-                : time (0)
-                , inc  (0)
-            {}
+            u32 time    = 0; // Remaining Time          [milli-seconds]
+            u32 inc     = 0; // Increment Time per move [milli-seconds]
         };
 
     public:
@@ -50,25 +45,16 @@ namespace Searcher {
         Clock clock[CLR_NO];
         MoveVector root_moves; // restrict search to these moves only
 
-        u32  movetime;  // search <x> time in milli-seconds
-        u08  movestogo; // search <x> moves to the next time control
-        u08  depth;     // search <x> depth (plies) only
-        u64  nodes;     // search <x> nodes only
-        u08  mate;      // search mate in <x> moves
-        u32  npmsec;
-        bool ponder;    // search on ponder move
-        bool infinite;  // search until the "stop" command
+        u32  movetime   = 0; // search <x> time in milli-seconds
+        u08  movestogo  = 0; // search <x> moves to the next time control
+        u08  depth      = 0; // search <x> depth (plies) only
+        u64  nodes      = 0; // search <x> nodes only
+        u08  mate       = 0; // search mate in <x> moves
+        u32  npmsec     = 0;
+        bool ponder     = false; // search on ponder move
+        bool infinite   = false; // search until the "stop" command
 
-        LimitsT ()
-            : movetime  (0)
-            , movestogo (0)
-            , depth     (0)
-            , nodes     (0)
-            , mate      (0)
-            , npmsec    (0)
-            , ponder    (false)
-            , infinite  (false)
-        {}
+        LimitsT () {}
 
         bool use_timemanager () const
         {
@@ -84,17 +70,12 @@ namespace Searcher {
     //  - Falied low at root.
     struct SignalsT
     {
-        bool  force_stop        // Stop on request
-            , ponderhit_stop    // Stop on ponder-hit
-            , firstmove_root    // Move is First at root
-            , failedlow_root;   // Move Failed-low at root
+        bool  force_stop        = false  // Stop on request
+            , ponderhit_stop    = false  // Stop on ponder-hit
+            , firstmove_root    = false  // Move is First at root
+            , failedlow_root    = false; // Move Failed-low at root
 
-        SignalsT ()
-            : force_stop (false)
-            , ponderhit_stop (false)
-            , firstmove_root (false)
-            , failedlow_root (false)
-        {}
+        SignalsT () {}
     };
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
@@ -117,17 +98,12 @@ namespace Searcher {
     {
     public:
 
-        Value      new_value
-            ,      old_value;
+        Value      new_value = -VALUE_INFINITE
+            ,      old_value = -VALUE_INFINITE;
+        //u64        nodes     = U64(0);
         MoveVector pv;
-        u64        nodes;
 
-        explicit RootMove (Move m = MOVE_NONE)
-            : new_value (-VALUE_INFINITE)
-            , old_value (-VALUE_INFINITE)
-            , pv (1, m)
-            , nodes (U64(0))
-        {}
+        explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
         
         // Ascending Sort
         friend bool operator<  (const RootMove &rm1, const RootMove &rm2) { return rm1.new_value >  rm2.new_value; }
@@ -183,15 +159,10 @@ namespace Searcher {
     {
 
     private:
-        u08  _level;
-        Move _best_move;
+        u08  _level     = MAX_SKILL_LEVEL;
+        Move _best_move = MOVE_NONE;
 
     public:
-
-        explicit Skill (u08 level = MAX_SKILL_LEVEL)
-        {
-            change_level (level);
-        }
 
         void change_level (u08 level) { _level = level; }
 
@@ -240,16 +211,16 @@ namespace Searcher {
     // has its own array of Stack objects, indexed by the current ply.
     struct Stack
     {
-        SplitPoint *splitpoint;
-        Move       *pv;
+        SplitPoint *splitpoint  = nullptr;
+        Move       *pv          = nullptr;
         i32         ply;
 
-        Move    tt_move
-            ,   current_move
-            ,   exclude_move
+        Move    tt_move         = MOVE_NONE
+            ,   current_move    = MOVE_NONE
+            ,   exclude_move    = MOVE_NONE
             ,   killer_moves[2];
 
-        Value   static_eval;
+        Value   static_eval     = VALUE_NONE;
 
     };
 

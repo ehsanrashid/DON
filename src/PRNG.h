@@ -12,7 +12,7 @@ class PRNG
 
 private:
 
-    u64 s;
+    u64 s = 0;
 
     u64 rand64 ()
     {

@@ -16,7 +16,7 @@ namespace MoveGen {
 
         private:
 
-            Generator () {}
+            Generator () = delete;
 
         public:
             // Generates piece common move
@@ -61,7 +61,7 @@ namespace MoveGen {
 
         private:
             
-            Generator () {}
+            Generator () = delete;
 
             template<CRight CR, bool Chess960>
             // Generates KING castling move
@@ -150,7 +150,7 @@ namespace MoveGen {
 
         private:
             
-            Generator () {}
+            Generator () = delete;
 
             template<Delta Del>
             // Generates PAWN promotion move

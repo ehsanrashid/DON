@@ -105,10 +105,10 @@ namespace Transposition {
         void    *_mem;
     #endif
 
-        Cluster *_clusters;
-        u64      _cluster_count;
-        u64      _cluster_mask;
-        u08      _generation;
+        Cluster *_clusters      = nullptr;
+        u64      _cluster_count = 0;
+        u64      _cluster_mask  = 0;
+        u08      _generation    = 0;
 
         // alloc_aligned_memory() alocates the aligned memory
         void alloc_aligned_memory (u64 mem_size, u32 alignment);
@@ -165,18 +165,9 @@ namespace Transposition {
 
         static bool ClearHash;
 
-        TranspositionTable ()
-            : _clusters (nullptr)
-            , _cluster_count (0)
-            , _cluster_mask (0)
-            , _generation (0)
-        {}
+        TranspositionTable () {}
 
         explicit TranspositionTable (u32 mem_size_mb)
-            : _clusters (nullptr)
-            , _cluster_count (0)
-            , _cluster_mask (0)
-            , _generation (0)
         {
             resize (mem_size_mb, true);
         }

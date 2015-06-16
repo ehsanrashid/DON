@@ -67,27 +67,24 @@ namespace MovePick {
     private:
 
         ValMove  _moves_beg[MAX_MOVES]
-            ,   *_moves_cur
-            ,   *_moves_end
-            ,   *_quiets_end
-            ,   *_bad_captures_end;
+            ,   *_moves_cur         = _moves_beg
+            ,   *_moves_end         = _moves_beg
+            ,   *_quiets_end        = nullptr
+            ,   *_bad_captures_end  = nullptr;
 
         const Position      &_pos;
         const ValueStats    &_history_value;
         const Value2DStats  &_countermoves_history_value;
         
-        Searcher::Stack *_ss;
+        Searcher::Stack *_ss        = nullptr;
         
-        Move    _tt_move;
-        Move    _counter_move;
+        Move    _tt_move            = MOVE_NONE;
+        Move    _counter_move       = MOVE_NONE;
+        Depth   _depth              = DEPTH_ZERO;
+        Square  _recapture_sq       = SQ_NO;
+        Value   _capture_threshold  = VALUE_NONE;
 
         ValMove _killers[3];
-
-        Depth   _depth;
-
-        Square  _recapture_sq;
-
-        Value   _capture_threshold;
 
         u08     _stage;
 
@@ -97,15 +94,15 @@ namespace MovePick {
         void value ();
 
         void generate_next_stage ();
-        
 
     public:
 
         MovePicker (const MovePicker&) = delete;
-        MovePicker& operator= (const MovePicker&) = delete;
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Move, Searcher::Stack*);
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Square);
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, PieceT);
+
+        MovePicker& operator= (const MovePicker&) = delete;
 
         ValMove* begin () { return _moves_beg; }
         ValMove* end   () { return _moves_end; }

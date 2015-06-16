@@ -567,6 +567,8 @@ namespace Searcher {
             bool  in_check = pos.checkers () != U64(0);
 
             SplitPoint *splitpoint = nullptr;
+            
+            CheckInfo ci (pos);
             StateInfo si;
             
             if (SPNode)
@@ -805,7 +807,6 @@ namespace Searcher {
                             // Initialize a MovePicker object for the current position,
                             // and prepare to search the moves.
                             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, pos.capture_type ());
-                            CheckInfo ci (pos);
 
                             while ((move = mp.next_move<false> ()) != MOVE_NONE)
                             {
@@ -891,7 +892,6 @@ namespace Searcher {
             Move  counter_move = CounterMoves[pos[opp_move_sq]][opp_move_sq];
 
             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
-            CheckInfo ci (pos);
 
             u08   legal_count = 0
                 , quiet_count = 0;

@@ -89,18 +89,14 @@ namespace Threading {
     // ThreadBase class is the base of the hierarchy from where
     // derive all the specialized thread classes.
     class ThreadBase
-        : public ::std::thread
+        : public std::thread
     {
     public:
         Mutex               mutex;
         Spinlock            spinlock;
         ConditionVariable   sleep_condition;
 
-        volatile bool       alive;
-
-        ThreadBase ()
-            : alive (true)
-        {}
+        volatile bool       alive = true;
 
         virtual ~ThreadBase() = default;
 
@@ -168,12 +164,10 @@ namespace Threading {
     {
     public:
 
-        bool run;
+        bool run = false;
         i32 resolution; // Millisec between two task() calls
-        void (*task) ();
+        void (*task) () = nullptr;
         
-        TimerThread () { stop (); }
-
         void start () { run = true ; }
         void stop  () { run = false; }
 
@@ -188,12 +182,12 @@ namespace Threading {
     // - launching a slave thread at a split point (most important).
     // All the access to shared thread data is done through this.
     class ThreadPool
-        : public ::std::vector<Thread*>
+        : public std::vector<Thread*>
     {
     public:
 
-        TimerThread *check_limits_th;
-        TimerThread *auto_save_th;
+        TimerThread *check_limits_th = nullptr;
+        TimerThread *auto_save_th    = nullptr;
         Depth        split_depth;
 
         MainThread* main () { return static_cast<MainThread*> (at (0)); }

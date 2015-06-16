@@ -57,10 +57,12 @@ namespace EndGame {
     class EndgameBase
     {
     protected:
+        
         Color _strong_side
             ,   _weak_side;
 
     public:
+
         explicit EndgameBase (Color c)
             : _strong_side ( c)
             ,   _weak_side (~c)

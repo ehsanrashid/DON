@@ -1173,14 +1173,14 @@ bool Position::can_en_passant (Square ep_sq) const
 // updated by do_move and undo_move when the program is running in debug mode.
 Score Position::compute_psq_score () const
 {
-    Score  score = SCORE_ZERO;
+    Score psq_score = SCORE_ZERO;
     Bitboard occ = _types_bb[NONE];
     while (occ != U64(0))
     {
         Square s = pop_lsq (occ);
-        score += PSQ[color (_board[s])][ptype (_board[s])][s];
+        psq_score += PSQ[color (_board[s])][ptype (_board[s])][s];
     }
-    return score;
+    return psq_score;
 }
 
 // compute_non_pawn_material() computes the total non-pawn middle
@@ -1189,12 +1189,12 @@ Score Position::compute_psq_score () const
 // initializing a new Position object.
 Value Position::compute_non_pawn_material (Color c) const
 {
-    Value value = VALUE_ZERO;
+    Value npm_value = VALUE_ZERO;
     for (i08 pt = NIHT; pt <= QUEN; ++pt)
     {
-        value += PIECE_VALUE[MG][pt] * i32(_piece_count[c][pt]);
+        npm_value += PIECE_VALUE[MG][pt] * i32(_piece_count[c][pt]);
     }
-    return value;
+    return npm_value;
 }
 
 #undef do_capture

@@ -197,9 +197,9 @@ endif
 
 ### 3.1 Selecting compiler (default = gcc)
 
-CXXFLAGS += -std=c++11 -Wall -Wcast-qual -fno-exceptions -fno-rtti -Wno-type-limits $(EXTRACXXFLAGS)
+CXXFLAGS	+= -std=c++11 -Wall -Wcast-qual -fno-exceptions -fno-rtti -Wno-type-limits $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
-LDFLAGS  += $(EXTRALDFLAGS)
+LDFLAGS		+= $(EXTRALDFLAGS)
 
 # gcc (default)
 ifeq ($(COMP),)

@@ -54,9 +54,7 @@ namespace MovePick {
     // move ordering is at the current node.
 
     MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, Depth d, Move cm, Stack *s)
-        : _moves_cur (_moves_beg)
-        , _moves_end (_moves_beg)
-        , _pos (p)
+        : _pos (p)
         , _history_value (hv)
         , _countermoves_history_value (cmhv)
         , _ss (s)
@@ -77,13 +75,9 @@ namespace MovePick {
     }
 
     MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, Depth d, Square dst_sq)
-        : _moves_cur (_moves_beg)
-        , _moves_end (_moves_beg)
-        , _pos (p)
+        : _pos (p)
         , _history_value (hv)
         , _countermoves_history_value (cmhv)
-        , _ss (nullptr)
-        , _counter_move (MOVE_NONE)
         , _depth (d)
     {
         assert (d <= DEPTH_ZERO);
@@ -116,22 +110,17 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, PieceT pt)
-        : _moves_cur (_moves_beg)
-        , _moves_end (_moves_beg)
-        , _pos (p)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, PieceT cpt)
+        : _pos (p)
         , _history_value (hv)
         , _countermoves_history_value (cmhv)
-        , _ss (nullptr)
-        , _counter_move (MOVE_NONE)
-        , _depth (DEPTH_ZERO)
     {
         assert (_pos.checkers () == U64(0));
 
         _stage = S_PROBCUT;
 
         // In ProbCut generate only captures better than parent's captured piece
-        _capture_threshold = PIECE_VALUE[MG][pt];
+        _capture_threshold = PIECE_VALUE[MG][cpt];
 
         _tt_move =   ttm != MOVE_NONE
                   && _pos.pseudo_legal (ttm)
@@ -177,7 +166,7 @@ namespace MovePick {
         for (auto &m : *this)
         {
             m.value = _history_value[_pos[org_sq (m)]][dst_sq (m)]
-                    + cmhv[_pos[org_sq (m)]][dst_sq (m)] * 3;
+                    + 3 * cmhv[_pos[org_sq (m)]][dst_sq (m)];
         }
     }
 
