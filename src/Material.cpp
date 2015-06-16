@@ -73,7 +73,8 @@ namespace Material {
         bool is_KBPsKs (const Position &pos)
         {
             return pos.count<BSHP> (Own) == 1
-                && pos.non_pawn_material (Own) == VALUE_MG_BSHP
+                && pos.non_pawn_material ( Own) == VALUE_MG_BSHP
+                && pos.non_pawn_material (~Own) == VALUE_ZERO
                 && pos.count<PAWN> (Own) != 0;
         }
 
@@ -81,9 +82,10 @@ namespace Material {
         bool is_KQKRPs (const Position &pos)
         {
             return pos.count<QUEN> ( Own) == 1
-                && pos.non_pawn_material (Own) == VALUE_MG_QUEN
+                && pos.non_pawn_material ( Own) == VALUE_MG_QUEN
                 && pos.count<PAWN> ( Own) == 0
                 && pos.count<ROOK> (~Own) == 1
+                && pos.non_pawn_material (~Own) == VALUE_MG_ROOK
                 && pos.count<PAWN> (~Own) != 0;
         }
 

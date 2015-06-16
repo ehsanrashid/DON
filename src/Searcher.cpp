@@ -212,7 +212,7 @@ namespace Searcher {
         string info_multipv (const Position &pos, Depth depth, Value alpha, Value beta)
         {
             u32 elapsed_time = max (TimeMgr.elapsed_time (), 1U);
-            assert (elapsed_time >= 0);
+            assert (elapsed_time > 0);
 
             stringstream ss;
 
@@ -1050,7 +1050,7 @@ namespace Searcher {
 
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.posi_move_key (move)));
-                
+
                 // Check for legality just before making the move
                 if (!RootNode && !SPNode && !move_legal)
                 {
@@ -1253,13 +1253,13 @@ namespace Searcher {
                 if (   !SPNode
                     && Threadpool.split_depth <= depth
                     && Threadpool.size () > 1
-                    && thread->splitpoint_count < MAX_SPLITPOINTS_PER_THREAD
                     && (    thread->active_splitpoint == nullptr
                         || !thread->active_splitpoint->slave_searching
                         || (   Threadpool.size () > MAX_SLAVES_PER_SPLITPOINT
                             && thread->active_splitpoint->slaves_mask.count () == MAX_SLAVES_PER_SPLITPOINT
                            )
                        )
+                    && thread->splitpoint_count < MAX_SPLITPOINTS_PER_THREAD
                    )
                 {
                     assert (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
@@ -1312,6 +1312,7 @@ namespace Searcher {
         }
 
         Stack Stacks[MAX_DEPTH+4]; // To allow referencing (ss+2)
+
         // iter_deepening_search() is the main iterative deepening search function.
         // It calls search() repeatedly with increasing depth until:
         // - the allocated thinking time has been consumed,
@@ -2218,6 +2219,7 @@ namespace Threading {
                 }
 
                 assert (searching);
+
                 searching  = false;
                 active_pos = nullptr;
                 sp->slaves_mask.reset (index);

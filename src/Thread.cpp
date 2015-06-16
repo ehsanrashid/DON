@@ -61,8 +61,15 @@ namespace Threading {
     // Thread::Thread() makes some init but does not launch any execution thread that
     // will be started only when c'tor returns.
     Thread::Thread ()
-        : index (Threadpool.size ())  // Starts from 0
-    {}
+        : ThreadBase ()
+    {
+        active_pos          = nullptr;
+        max_ply             = 0;
+        active_splitpoint   = nullptr;
+        splitpoint_count    = 0;
+        searching           = false;
+        index               = Threadpool.size (); // Starts from 0
+    }
 
     // Thread::cutoff_occurred() checks whether a beta cutoff has occurred in the
     // current active splitpoint, or in some ancestor of the splitpoint.
@@ -193,7 +200,7 @@ namespace Threading {
     // and then calls task(). If msec is 0 thread sleeps until is woken up.
     void TimerThread::idle_loop ()
     {
-        do
+        while (alive)
         {
             unique_lock<Mutex> lk (mutex);
 
@@ -203,7 +210,7 @@ namespace Threading {
 
             if (run) task ();
 
-        } while (alive);
+        }
     }
 
     // ------------------------------------
@@ -212,7 +219,7 @@ namespace Threading {
     // when there is a new search. The main thread will launch all the slave threads.
     void MainThread::idle_loop ()
     {
-        do
+        while (alive)
         {
             unique_lock<Mutex> lk (mutex);
 
@@ -235,9 +242,8 @@ namespace Threading {
                 assert (searching);
 
                 searching = false;
-                thinking  = false;
             }
-        } while (alive);
+        }
     }
 
     // MainThread::join() waits for main thread to finish the search

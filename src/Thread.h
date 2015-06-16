@@ -98,6 +98,7 @@ namespace Threading {
 
         volatile bool       alive = true;
 
+        ThreadBase () : std::thread() {}
         virtual ~ThreadBase() = default;
 
         void notify_one ();
@@ -148,7 +149,9 @@ namespace Threading {
     public:
 
         volatile bool thinking = true; // Avoid a race with start_thinking()
-
+        
+        MainThread () : Thread () {}
+        
         void idle_loop () override;
         
         void join ();
@@ -166,6 +169,8 @@ namespace Threading {
         i32 resolution; // Millisec between two task() calls
         void (*task) () = nullptr;
         
+        TimerThread () : ThreadBase () {}
+
         void start () { run = true ; }
         void stop  () { run = false; }
 

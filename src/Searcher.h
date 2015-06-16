@@ -38,6 +38,8 @@ namespace Searcher {
         {
             u32 time    = 0; // Remaining Time          [milli-seconds]
             u32 inc     = 0; // Increment Time per move [milli-seconds]
+
+            Clock () {}
         };
 
     public:
