@@ -387,7 +387,7 @@ namespace Evaluator {
                 {
                     ++king_ring_attackers_count;
                     Bitboard zone_attacks = ei.ful_attacked_by[Opp][KING] & attacks;
-                    king_zone_attacks_count += zone_attacks != U64(0) ? u08(pop_count<MAX15> (zone_attacks)) : 0;
+                    if (zone_attacks != U64(0)) king_zone_attacks_count += u08(pop_count<MAX15> (zone_attacks));
                 }
 
                 // Special extra evaluation for pieces
@@ -404,8 +404,8 @@ namespace Evaluator {
 
                     if (NIHT == PT)
                     {
-                        // Outpost bonus for knight
-                        if (r >= R_4 && (ei.pin_attacked_by[Opp][PAWN] & s) == U64(0))
+                        // Outpost for knight
+                        if (r >= R_4 && (pos.pieces<PAWN> (Opp) & PAWN_ATTACK_SPAN[Own][s]) == U64(0))
                         {
                             score += KNIGHT_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
                         }
@@ -415,17 +415,15 @@ namespace Evaluator {
                     {
                         score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor<Own> (s);
 
-                        // Outpost bonus for bishop
-                        if (r >= R_4 && (ei.pin_attacked_by[Opp][PAWN] & s) == U64(0))
+                        // Outpost for bishop
+                        if (r >= R_4 && (pos.pieces<PAWN> (Opp) & PAWN_ATTACK_SPAN[Own][s]) == U64(0))
                         {
                             score += BISHOP_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
                         }
 
-                        // An important Chess960 pattern: A cornered bishop blocked by a friendly
-                        // pawn diagonally in front of it is a very serious problem, especially
-                        // when that pawn is also blocked.
-                        // Penalty for a bishop on a1/h1 (a8/h8 for black) which is trapped by
-                        // a friendly pawn on b2/g2 (b7/g7 for black).
+                        // An important Chess960 pattern: A cornered bishop blocked by own pawn diagonally in front
+                        // of it is a very serious problem, especially when that pawn is also blocked.
+                        // Bishop on a1/h1 (a8/h8 for black) which is trapped by own pawn on b2/g2 (b7/g7 for black).
                         if (pos.chess960 ())
                         {
                             if (s == rel_sq (Own, SQ_A1) || s == rel_sq (Own, SQ_H1))
@@ -460,7 +458,7 @@ namespace Evaluator {
                         if (rook_on_pawns != U64(0)) score += ROOK_ON_PAWNS * pop_count<MAX15> (rook_on_pawns);
                     }
 
-                    // Give a bonus for a rook on a open or semi-open file
+                    // Rook on a open or semi-open file
                     if (ei.pi->semiopen_file<Own> (f) != 0)
                     {
                         score += ei.pi->semiopen_file<Opp> (f) != 0 ? ROOK_ON_OPENFILE : ROOK_ON_SEMIOPENFILE;
@@ -470,8 +468,7 @@ namespace Evaluator {
                     {
                         File kf = _file (pos.king_sq (Own));
                         Rank kr = rel_rank (Own, pos.king_sq (Own));
-                        // Penalize rooks which are trapped by a king.
-                        // Penalize more if the king has lost its castling capability.
+                        // Rooks trapped by own king, more if the king has lost its castling capability.
                         if (   (kf < F_E) == (f < kf)
                             && (kr == R_1 || kr == r)
                             && (ei.pi->semiopen_side<Own> (kf, f < kf) == 0)

@@ -2197,10 +2197,9 @@ namespace Threading {
                 spinlock.release ();
 
                 Stack stack[MAX_DEPTH+4], *ss = stack+2;    // To allow referencing (ss+2) & (ss-2)
-                Position pos (*(sp->pos), this);
+                Position pos (*sp->pos, this);
                 
                 memcpy (ss-2, sp->ss-2, 5*sizeof (*ss));
-
                 ss->splitpoint = sp;
 
                 // Lock splitpoint

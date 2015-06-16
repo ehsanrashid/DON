@@ -166,12 +166,6 @@ ifeq ($(ARCH),ppc-64)
 	lpg  = yes
 endif
 
-ifeq ($(ARCH),armv7)
-	arch = armv7
-	pfch = yes
-	bsfq = yes
-endif
-
 ifeq ($(ARCH),ppc-32-pop)
 	arch = ppc
 	pop  = yes
@@ -182,6 +176,12 @@ ifeq ($(ARCH),ppc-64-pop)
 	bits = 64
 	pop  = yes
 	lpg  = yes
+endif
+
+ifeq ($(ARCH),armv7)
+	arch = armv7
+	pfch = yes
+	bsfq = yes
 endif
 
 ifeq ($(ARCH),armv7-pop)
@@ -413,24 +413,24 @@ help:
 	@echo ""
 	@echo "Supported architectures:"
 	@echo "------------------------"
-	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "general-32              > unspecified 32-bit"
+	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
 	@echo "x86-32                  > x86 32-bit with SSE support"
+	@echo "general-32-pop          > unspecified 32-bit with POP"
+	@echo "x86-32-old-pop          > x86 32-bit fall back for old hardware with POP"
+	@echo "x86-32-pop              > x86 32-bit with SSE support with POP"
+	@echo "x86-32-abm              > x86 32-bit with ABM support"
 	@echo "general-64              > unspecified 64-bit"
 	@echo "x86-64                  > x86 64-bit"
-	@echo "x86-32-old-pop          > x86 32-bit fall back for old hardware with POP"
-	@echo "general-32-pop          > unspecified 32-bit with POP"
-	@echo "x86-32-pop              > x86 32-bit with SSE support with POP"
-	@echo "x86-32-abm              > x86 32-bit with SSE support & ABM support"
 	@echo "general-64-pop          > unspecified 64-bit with POP"
 	@echo "x86-64-pop              > x86 64-bit with POP"
 	@echo "x86-64-abm              > x86 64-bit with ABM support"
 	@echo "x86-64-bm2              > x86 64-bit with BM2 support"
 	@echo "ppc-32                  > PPC 32-bit"
 	@echo "ppc-64                  > PPC 64-bit"
-	@echo "armv7                   > ARMv7 32-bit"
 	@echo "ppc-32-pop              > PPC 32-bit with POP"
 	@echo "ppc-64-pop              > PPC 64-bit with POP"
+	@echo "armv7                   > ARMv7 32-bit"
 	@echo "armv7-pop               > ARMv7 32-bit with POP"
 	@echo ""
 	@echo "Supported compilers:"
