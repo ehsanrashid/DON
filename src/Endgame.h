@@ -118,7 +118,7 @@ namespace EndGame {
         template<typename T>
         EndgameBase<T>* probe (Key matl_key)
         {
-            return map<T>().count (matl_key) != 0 ? map<T>()[matl_key].get () : nullptr;
+            return map<T> ().count (matl_key) != 0 ? map<T> ()[matl_key].get () : nullptr;
         }
     };
 

@@ -43,7 +43,7 @@ namespace {
 
 #define S(mg, eg) mk_score (mg, eg)
 
-    // PSQ_Bonus[PieceType][Square / 2] contains Piece-Square scores.
+    // PSQ_Bonus[PieceType][Rank][File/2] contains Piece-Square scores.
     // For each piece type on a given square a (middlegame, endgame) score pair is assigned.
     // Table is defined for files A..D and white side: it is symmetric for black side and
     // second half of the files.

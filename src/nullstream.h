@@ -31,9 +31,11 @@ namespace std {
     public:
         typedef typename basic_streambuf<CharT, Traits>::int_type int_type;
 
-        basic_null_buffer() {}
+        basic_null_buffer ()
+            : basic_streambuf<CharT, Traits> (this)
+        {}
 
-        //virtual int_type overflow (int_type c) override
+        //int_type overflow (int_type c) override
         //{
         //    // just ignore the character
         //    return typename Traits::not_eof (c);
@@ -49,7 +51,7 @@ namespace std {
 
     public:
 
-        basic_null_stream()
+        basic_null_stream ()
             // C++98 standard allows that construction
             // 12.6.2/7
             : basic_ostream<CharT, Traits> (this)

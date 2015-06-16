@@ -30,7 +30,7 @@ namespace UCI {
 
         u08 _index;
         std::string _type
-                   , _value;
+                  , _value;
 
         i32   _minimum
             , _maximum;
@@ -83,7 +83,9 @@ namespace UCI {
         return os;
     }
 
+
     extern void initialize ();
+
     extern void exit ();
 
     // ---------------------------------------------
