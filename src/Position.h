@@ -56,8 +56,6 @@ public:
     Bitboard checkers;     // Checkers bitboard.
 
     StateInfo *ptr = nullptr;
-
-    StateInfo () = default;
 };
 
 typedef std::stack<StateInfo>   StateStack;
@@ -168,9 +166,9 @@ public:
         if (!setup (f, th, c960, full)) clear ();
     }
     Position (const Position &pos, Thread *th)
-        : _thread (th)
     {
         *this = pos;
+        _thread = th;
     }
 
     Position& operator= (const Position &pos); // To assign RootPos from UCI
