@@ -73,14 +73,14 @@ namespace MovePick {
         ValMove  _moves_beg[MAX_MOVES]
             ,   *_moves_cur         = _moves_beg
             ,   *_moves_end         = _moves_beg
-            ,   *_quiets_end        = nullptr
-            ,   *_bad_captures_end  = nullptr;
+            ,   *_quiets_end        = _moves_beg
+            ,   *_bad_captures_end  = _moves_beg+MAX_MOVES-1;
 
         const Position      &_Pos;
-        const ValueStats    &_HistoryValue;
-        const Value2DStats  &_CounterMovesHistoryValue;
+        const ValueStats    &_HistoryValues;
+        const Value2DStats  &_CounterMovesHistoryValues;
         
-        Stack  *_ss                 = nullptr;
+        const Stack  *_ss           = nullptr;
         
         Move    _tt_move            = MOVE_NONE;
         Move    _counter_move       = MOVE_NONE;
@@ -88,7 +88,7 @@ namespace MovePick {
         Square  _recapture_sq       = SQ_NO;
         Value   _capture_threshold  = VALUE_NONE;
 
-        ValMove _killers[3];
+        ValMove _killers[4];
 
         u08     _stage;
 
@@ -102,7 +102,7 @@ namespace MovePick {
     public:
 
         MovePicker () = delete;
-        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Move, Stack*);
+        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Move, const Stack*);
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Square);
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, PieceT);
         MovePicker (const MovePicker&) = delete;

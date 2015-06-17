@@ -220,7 +220,7 @@ namespace Searcher {
         Move    tt_move         = MOVE_NONE
             ,   current_move    = MOVE_NONE
             ,   exclude_move    = MOVE_NONE
-            ,   killer_moves[2];
+            ,   killer_moves[3];
 
         Value   static_eval     = VALUE_NONE;
 

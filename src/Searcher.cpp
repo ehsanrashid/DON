@@ -125,10 +125,17 @@ namespace Searcher {
         // stats for a quiet best move.
         void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, Move *quiet_moves, u08 quiet_count)
         {
-            if (ss->killer_moves[0] != move)
+            if (count (begin (ss->killer_moves), end (ss->killer_moves), move) == 0)
             {
-                ss->killer_moves[1] = ss->killer_moves[0];
+                copy_backward (begin (ss->killer_moves), end (ss->killer_moves)-1, end (ss->killer_moves));
                 ss->killer_moves[0] = move;
+            }
+            else
+            {
+                if (ss->killer_moves[0] != move)
+                {
+                    swap (ss->killer_moves[0], *find (begin (ss->killer_moves), end (ss->killer_moves), move));
+                }
             }
 
             Value bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));

@@ -53,17 +53,15 @@ namespace MovePick {
     // search captures, promotions and some checks) and about how important good
     // move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, Depth d, Move cm, Stack *s)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, Depth d, Move cm, const Stack *s)
         : _Pos (p)
-        , _HistoryValue (hv)
-        , _CounterMovesHistoryValue (cmhv)
+        , _HistoryValues (hv)
+        , _CounterMovesHistoryValues (cmhv)
         , _ss (s)
         , _counter_move (cm)
         , _depth (d)
     {
         assert (_depth > DEPTH_ZERO);
-
-        _bad_captures_end = _moves_beg+MAX_MOVES-1;
 
         _stage = _Pos.checkers () != U64(0) ? S_EVASION : S_MAIN;
 
@@ -76,8 +74,8 @@ namespace MovePick {
 
     MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, Depth d, Square dst_sq)
         : _Pos (p)
-        , _HistoryValue (hv)
-        , _CounterMovesHistoryValue (cmhv)
+        , _HistoryValues (hv)
+        , _CounterMovesHistoryValues (cmhv)
         , _depth (d)
     {
         assert (_depth <= DEPTH_ZERO);
@@ -112,8 +110,8 @@ namespace MovePick {
 
     MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, PieceT cpt)
         : _Pos (p)
-        , _HistoryValue (hv)
-        , _CounterMovesHistoryValue (cmhv)
+        , _HistoryValues (hv)
+        , _CounterMovesHistoryValues (cmhv)
     {
         assert (_Pos.checkers () == U64(0));
 
@@ -162,19 +160,19 @@ namespace MovePick {
     {
         Move opp_move = (_ss-1)->current_move;
         Square opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-        const ValueStats &cmhv = opp_move_dst != SQ_NO ? _CounterMovesHistoryValue[_Pos[opp_move_dst]][opp_move_dst] :
-                                                         _CounterMovesHistoryValue[EMPTY][SQ_A1];
+        const ValueStats &cmhv = opp_move_dst != SQ_NO ? _CounterMovesHistoryValues[_Pos[opp_move_dst]][opp_move_dst] :
+                                                         _CounterMovesHistoryValues[EMPTY][SQ_A1];
 
         for (auto &m : *this)
         {
-            m.value = _HistoryValue[_Pos[org_sq (m)]][dst_sq (m)]
+            m.value = _HistoryValues[_Pos[org_sq (m)]][dst_sq (m)]
                     + 3 * cmhv[_Pos[org_sq (m)]][dst_sq (m)];
         }
     }
 
     template<>
     // Try good captures ordered by MVV/LVA, then non-captures if destination square
-    // is not under attack, ordered by _HistoryValue, then bad-captures and quiet moves
+    // is not under attack, ordered by _HistoryValues, then bad-captures and quiet moves
     // with a negative SEE. This last group is ordered by the SEE value.
     void MovePicker::value<EVASION> ()
     {
@@ -213,7 +211,7 @@ namespace MovePick {
             }
             else
             {
-                m.value = _HistoryValue[_Pos[org_sq (m)]][dst_sq (m)];
+                m.value = _HistoryValues[_Pos[org_sq (m)]][dst_sq (m)];
             }
         }
     }
@@ -241,14 +239,12 @@ namespace MovePick {
 
         case S_KILLER:
             _moves_cur = _killers;
-            _moves_end = _killers + 2;
-
-            _killers[0] = _ss->killer_moves[0];
-            _killers[1] = _ss->killer_moves[1];
-            _killers[2] = MOVE_NONE;
+            _moves_end = _killers + sizeof (_ss->killer_moves)/sizeof (*_ss->killer_moves);
+            copy (::begin (_ss->killer_moves), ::end (_ss->killer_moves), ::begin (_killers));
+            *_moves_end = MOVE_NONE;
 
             // Be sure countermoves are different from _killers
-            if (count (std::begin (_killers), std::end (_killers)-1, _counter_move) == 0)
+            if (count (::begin (_killers), ::end (_killers)-1, _counter_move) == 0)
             {
                 *_moves_end++ = _counter_move;
             }
@@ -376,7 +372,7 @@ namespace MovePick {
                 {
                     move = *_moves_cur++;
                     if (   move != _tt_move
-                        && count (std::begin (_killers), std::end (_killers), move) == 0 // Not killer move
+                        && count (::begin (_killers), ::end (_killers), move) == 0 // Not killer move
                        )
                     {
                         return move;

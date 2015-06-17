@@ -12,6 +12,9 @@
 #include <iomanip>
 #include <sstream>
 #include <iostream>
+#include <locale>
+//#include <iterator>
+//#include <utility>
 
 #ifdef BM2
 #   include <immintrin.h>               // Header for bmi2 instructions
@@ -631,19 +634,43 @@ public:
 
 };
 
+//template <typename It> 
+//inline auto slide (It f, It l, It p) -> std::pair<It, It>
+//{
+//    if (p < f) return { p, std::rotate (p, f, l) };
+//    if (l < p) return { std::rotate (f, l, p), p };
+//    return { f, l };
+//}
 
 inline bool white_spaces (const std::string &str)
 {
     return str.empty () || str.find_first_not_of (" \t\n") == std::string::npos;
 }
 
-inline void trim (std::string &str)
+inline std::string& trim_left (std::string &str)
 {
-    size_t p0 = str.find_first_not_of (" \t\n");
-    size_t p1 = str.find_last_not_of (" \t\n");
-    p0  = p0 == std::string::npos ?  0 : p0;
-    p1  = p1 == std::string::npos ? p0 : p1 - p0 + 1;
-    str = str.substr (p0, p1);
+    str.erase (str.begin(), 
+                std::find_if (str.begin (), str.end (), 
+                    [](char c) { return !std::isspace (c, std::locale ()); }));
+    return str;
+}
+inline std::string& trim_right (std::string &str)
+{
+    str.erase (std::find_if (str.rbegin (), str.rend (), 
+                [](char c) { return !std::isspace (c, std::locale()); }).base(), 
+                    str.end ());
+    return str;
+}
+inline std::string& trim (std::string &str)
+{
+    //size_t p0 = str.find_first_not_of (" \t\n");
+    //size_t p1 = str.find_last_not_of (" \t\n");
+    //p0  = p0 == std::string::npos ?  0 : p0;
+    //p1  = p1 == std::string::npos ? p0 : p1 - p0 + 1;
+    //str = str.substr (p0, p1);
+    //return str;
+
+    return trim_left (trim_right (str));
 }
 
 inline void remove_extension (std::string &filename)
