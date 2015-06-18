@@ -914,7 +914,7 @@ void Position::clear ()
         }
     }
 
-    fill (_castle_rook, _castle_rook + sizeof (_castle_rook)/sizeof (*_castle_rook), SQ_NO);
+    fill (begin (_castle_rook), end (_castle_rook), SQ_NO);
 
     _sb.en_passant_sq = SQ_NO;
     _sb.capture_type  = NONE;
@@ -1143,7 +1143,7 @@ bool Position::can_en_passant (Square ep_sq) const
     if (attacks == U64(0)) return false;
 
     Move moves[3], *m = moves;
-    //fill (moves, moves + sizeof (moves)/sizeof (*moves), MOVE_NONE);
+    //fill (begin (moves), end (moves), MOVE_NONE);
 
     while (attacks != U64(0))
     {

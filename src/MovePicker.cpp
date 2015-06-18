@@ -11,7 +11,7 @@ namespace MovePick {
 
     namespace {
 
-        enum // Stages
+        enum : u08 // Stages
         {
             S_MAIN    , S_GOOD_CAPTURE, S_KILLER, S_GOOD_QUIET, S_BAD_QUIET, S_BAD_CAPTURE,
             S_EVASION , S_ALL_EVASION,
@@ -248,9 +248,7 @@ namespace MovePick {
             _killers[2] = MOVE_NONE;
 
             // Be sure countermoves are different from _killers
-            if (   _counter_move != _killers[0]
-                && _counter_move != _killers[1]
-               )
+            if (count (std::begin (_killers), std::end (_killers)-1, _counter_move) == 0)
             {
                 *_moves_end++ = _counter_move;
             }
@@ -378,9 +376,7 @@ namespace MovePick {
                 {
                     move = *_moves_cur++;
                     if (   move != _tt_move
-                        && move != _killers[0]
-                        && move != _killers[1]
-                        && move != _killers[2]
+                        && count (std::begin (_killers), std::end (_killers), move) == 0 // Not killer move
                        )
                     {
                         return move;

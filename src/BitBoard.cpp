@@ -107,11 +107,11 @@ namespace BitBoard {
             Bitboard occupancy[MAX_LMOVES]
                    , reference[MAX_LMOVES];
             
-            i32      age[MAX_LMOVES]
+            i32      ages     [MAX_LMOVES]
                    , cur_age = 0;
             
-            memset (age, 0, sizeof (age));
-            
+            fill (begin (ages), end (ages), 0);
+
 #       endif
             
             // attacks_bb[s] is a pointer to the beginning of the attacks table for square 's'
@@ -138,7 +138,7 @@ namespace BitBoard {
 #           else
                     32
 #           endif
-                    - pop_count<MAX15> (mask);
+                    - u08(pop_count<MAX15> (mask));
 #       else
                 (void) shift;
 #       endif
@@ -189,9 +189,9 @@ namespace BitBoard {
                     {
                         u16 idx = magic_index (Square(s), occupancy[i]);
                         
-                        if (age[idx] < cur_age)
+                        if (ages[idx] < cur_age)
                         {
-                            age[idx] = cur_age;
+                            ages[idx] = cur_age;
                             attacks_bb[s][idx] = reference[i];
                         }
                         else

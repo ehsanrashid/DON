@@ -112,7 +112,10 @@ namespace Evaluator {
 
             string trace (const Position &pos)
             {
-                fill (*Scores, *Scores + sizeof (Scores)/sizeof (**Scores), SCORE_ZERO);
+                for (i08 c = WHITE; c <= BLACK; ++c)
+                {
+                    fill (begin (Scores[c]), end (Scores[c]), SCORE_ZERO);
+                }
 
                 Value value = evaluate<true> (pos);
                 value = WHITE == pos.active () ? +value : -value; // White's point of view

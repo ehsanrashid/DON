@@ -27,14 +27,17 @@ namespace Threading {
 
     void delete_thread (ThreadBase *th)
     {
-        th->mutex.lock ();
-        th->alive = false;   // Search must be already finished
-        th->mutex.unlock ();
+        if (th != nullptr)
+        {
+            th->mutex.lock ();
+            th->alive = false;   // Search must be already finished
+            th->mutex.unlock ();
 
-        th->notify_one ();
-        th->join ();         // Wait for thread termination
-        delete th;
-        th = nullptr;
+            th->notify_one ();
+            th->join ();         // Wait for thread termination
+            delete th;
+            th = nullptr;
+        }
     }
     
     // explicit template instantiations
@@ -278,7 +281,7 @@ namespace Threading {
     {
         // As first because they accesses threads data
         delete_thread (check_limits_th);
-        if (auto_save_th != nullptr) delete_thread (auto_save_th);
+        delete_thread (auto_save_th);
 
         for (Thread *th : *this)
         {

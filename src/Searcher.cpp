@@ -298,7 +298,7 @@ namespace Searcher {
                 pv_alpha = alpha;
                 
                 (ss  )->pv[0] = MOVE_NONE;
-                fill (pv, pv + sizeof (pv)/sizeof (*pv), MOVE_NONE);
+                fill (begin (pv), end (pv), MOVE_NONE);
                 (ss+1)->pv = pv;
             }
 
@@ -615,7 +615,7 @@ namespace Searcher {
                 assert (0 <= ss->ply && ss->ply < MAX_DEPTH);
                 
                 ss->current_move = (ss+1)->exclude_move = MOVE_NONE;
-                fill ((ss+2)->killer_moves, (ss+2)->killer_moves + sizeof ((ss+2)->killer_moves)/sizeof (*((ss+2)->killer_moves)), MOVE_NONE);
+                fill (begin ((ss+2)->killer_moves), end ((ss+2)->killer_moves), MOVE_NONE);
 
                 // Step 4. Transposition table lookup
                 // Don't want the score of a partial search to overwrite a previous full search
@@ -1070,8 +1070,7 @@ namespace Searcher {
                 if (   depth > 2*DEPTH_ONE
                     && legal_count > 1
                     && !capture_or_promotion
-                    && move != ss->killer_moves[0]
-                    && move != ss->killer_moves[1]
+                    && count (begin (ss->killer_moves), end (ss->killer_moves), move) == 0 // Not killer move
                    )
                 {
                     Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legal_count);
@@ -1133,7 +1132,7 @@ namespace Searcher {
                 // alpha >= value and to try another better move.
                 if (PVNode && (1 == legal_count || (alpha < value && (RootNode || value < beta))))
                 {
-                    fill (pv, pv + sizeof (pv)/sizeof (*pv), MOVE_NONE);
+                    fill (begin (pv), end (pv), MOVE_NONE);
                     (ss+1)->pv = pv;
 
                     value =
@@ -1837,7 +1836,7 @@ namespace Searcher {
     {
         RootColor   = RootPos.active ();
         RootPly     = RootPos.game_ply ();
-        RootSize    = RootMoves.size ();
+        RootSize    = u16(RootMoves.size ());
         
         TimeMgr.initialize (RootColor, Limits, RootPly, now ());
 

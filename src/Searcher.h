@@ -105,10 +105,10 @@ namespace Searcher {
         //u64        nodes     = U64(0);
         MoveVector pv;
 
-        RootMove () = delete;
+        //RootMove () = delete; // Multiple default constructors specified
         explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
         
-        // Ascending Sort
+        // Operators
         bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
         bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
         bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
@@ -116,8 +116,8 @@ namespace Searcher {
         bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
         bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
 
-        bool operator== (const Move &m) const { return pv[0] == m; }
-        bool operator!= (const Move &m) const { return pv[0] != m; }
+        bool operator== (Move m) const { return pv[0] == m; }
+        bool operator!= (Move m) const { return pv[0] != m; }
 
         void insert_pv_into_tt (Position &pos);
         bool ponder_move_extracted_from_tt (Position &pos);

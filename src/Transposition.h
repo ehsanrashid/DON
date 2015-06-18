@@ -57,15 +57,15 @@ namespace Transposition {
             {
                 _move       = u16(m);
             }
+            // Don't overwrite more valuable entries
             if (   k != _key
                 || e != VALUE_NONE
                )
             {
                 _eval       = u16(e);
             }
-            // Don't overwrite more valuable entries
             if (   k != _key
-                || v != VALUE_NONE
+                //|| v != VALUE_NONE
                 || d > _depth - 2
                 || g != gen ()
                 || b == BOUND_EXACT
