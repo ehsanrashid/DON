@@ -343,12 +343,12 @@ namespace BitBoard {
 
 }
 
-template<typename T>
+template<class T>
 inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
 
 template<> inline i32 dist (Square s1, Square s2) { return BitBoard::SQR_DIST[s1][s2]; }
 
-template<typename T1, typename T2>
+template<class T1, class T2>
 inline i32 dist (T2, T2);
 
 template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }

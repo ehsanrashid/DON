@@ -163,7 +163,7 @@ namespace Searcher {
             }
             
             // Extra penalty for TT move in previous ply when it gets refuted
-            if (opp_move == (ss-1)->tt_move)
+            if (opp_move_dst != SQ_NO && opp_move == (ss-1)->tt_move)
             {
                 Move own_move = (ss-2)->current_move;
                 Square own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;

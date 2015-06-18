@@ -53,7 +53,7 @@ namespace EndGame {
     using eg_type = typename std::conditional<E < SCALE_FUNS, Value, ScaleFactor>::type;
 
     // Base and derived templates for endgame evaluation and scaling functions
-    template<typename T>
+    template<class T>
     class EndgameBase
     {
     protected:
@@ -77,7 +77,7 @@ namespace EndGame {
 
     };
 
-    template<EndgameT E, typename T = eg_type<E>>
+    template<EndgameT E, class T = eg_type<E>>
     class Endgame
         : public EndgameBase<T>
     {
@@ -97,25 +97,25 @@ namespace EndGame {
     {
 
     private:
-        template<typename T>
+        template<class T>
         using Map = std::map<Key, std::unique_ptr<EndgameBase<T>>>;
 
         std::pair<Map<Value>, Map<ScaleFactor>> maps;
 
-        template<typename T>
+        template<class T>
         Map<T>& map ()
         {
             return std::get<std::is_same<T, ScaleFactor>::value> (maps);
         }
 
-        template<EndgameT E, typename T = eg_type<E>>
+        template<EndgameT E, class T = eg_type<E>>
         void add (const std::string &code);
 
     public:
 
         Endgames ();
 
-        template<typename T>
+        template<class T>
         EndgameBase<T>* probe (Key matl_key)
         {
             return map<T> ().count (matl_key) != 0 ? map<T> ()[matl_key].get () : nullptr;

@@ -25,7 +25,7 @@ namespace MovePick {
         // Insertion sort in the range [beg, end), which is guaranteed to be stable, as it should be
         void insertion_sort (ValMove *beg, ValMove *end)
         {
-            for (ValMove *p = beg+1; p != end; ++p)
+            for (ValMove *p = beg+1; p < end; ++p)
             {
                 ValMove t = *p, *q;
                 for (q = p; q != beg && *(q-1) < t; --q)
@@ -36,15 +36,15 @@ namespace MovePick {
             }
         }
 
-        //template <typename RandomAccessIterator, typename Predicate>
-        //void insertion_sort (RandomAccessIterator beg, RandomAccessIterator end, Predicate p)
+        // Generic insertion sort
+        //template<class Iterator, class BinaryPredicate = greater<>>
+        //void insertion_sort (Iterator beg, Iterator end, BinaryPredicate pred = BinaryPredicate{})
         //{
-        //    for (auto i = beg; i != end; ++i)
+        //    for (auto it = beg; it != end; ++it)
         //    {
-        //        rotate (upper_bound (beg, i, *i, p), i, next (i));
+        //        rotate (upper_bound (beg, it, *it, pred), it, next (it));
         //    }
         //}
-        //p = std::less<typename std::iterator_traits<ValMove>::value_type>());
 
         // pick_best() finds the best move in the range [beg, end) and moves it to front,
         // it is faster than sorting all the moves in advance when there are few moves

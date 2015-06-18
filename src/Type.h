@@ -635,12 +635,12 @@ public:
 
 };
 
-//template <typename It> 
-//inline auto slide (It f, It l, It p) -> std::pair<It, It>
+//template<class Iterator> 
+//inline auto slide (Iterator beg, Iterator end, Iterator pos) -> std::pair<Iterator, Iterator>
 //{
-//    if (p < f) return { p, std::rotate (p, f, l) };
-//    if (l < p) return { std::rotate (f, l, p), p };
-//    return { f, l };
+//    if (pos < beg) return { pos, std::rotate (pos, beg, end) };
+//    if (end < pos) return { std::rotate (beg, end, pos), pos };
+//    return { beg, end };
 //}
 
 inline bool white_spaces (const std::string &str)

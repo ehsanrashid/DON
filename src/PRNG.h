@@ -38,12 +38,12 @@ public:
     PRNG () = delete;
     PRNG (u64 seed) : s (seed) { assert (seed != 0); }
 
-    template<typename T>
+    template<class T>
     T rand () { return T(rand64 ()); }
 
     // Special generator used to fast initialize magic numbers.
     // Output values only have 1/8th of their bits set on average.
-    template<typename T>
+    template<class T>
     T sparse_rand () { return T(rand64 () & rand64 () & rand64 ()); }
 };
 
