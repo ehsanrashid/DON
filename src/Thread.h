@@ -34,6 +34,8 @@ namespace Threading {
 
     public:
         Spinlock () { _state = 1; }
+        Spinlock (const Spinlock&) = delete; 
+        Spinlock& operator= (const Spinlock&) = delete;
 
         void acquire ()
         {

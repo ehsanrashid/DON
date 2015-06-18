@@ -160,7 +160,7 @@ public:
     static void initialize ();
 
     Position () = default; // To define the global object RootPos
-    Position (const Position &pos) = delete;
+    Position (const Position&) = delete;
     Position (const std::string &f, Thread *th = nullptr, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
