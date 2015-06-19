@@ -63,11 +63,11 @@ namespace MovePick {
     // search captures, promotions and some checks) and about how important good
     // move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, Depth d, Move cm, const Stack *s)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, Depth d, Move cm, const Stack *ss)
         : _Pos (p)
         , _HistoryValues (hv)
         , _CounterMovesHistoryValues (cmhv)
-        , _ss (s)
+        , _ss (ss)
         , _counter_move (cm)
         , _depth (d)
     {
