@@ -99,6 +99,48 @@ namespace Searcher {
 
         const u08   MAX_QUIETS     = 64;
 
+        // MoveManager class is used to detect a so called 'easy move'; when PV is
+        // stable across multiple search iterations we can fast return the best move.
+        class MoveManager
+        {
+            Key expected_posi_key = U64(0);
+            Move pv[3];
+
+        public:
+            i08 stable_count = 0;
+
+            void clear ()
+            {
+                stable_count = 0;
+                expected_posi_key = U64(0);
+                fill (begin (pv), end (pv), MOVE_NONE);
+            }
+
+            Move easy_move (Key posi_key) const { return expected_posi_key == posi_key ? pv[2] : MOVE_NONE; }
+
+            void update (Position &pos, const MoveVector &new_pv)
+            {
+                assert (new_pv.size () >= 3);
+
+                // Keep track of how many times in a row 3rd ply remains stable
+                stable_count = (new_pv[2] == pv[2]) ? stable_count + 1 : 0;
+
+                if (!equal (new_pv.begin (), new_pv.begin () + 3, pv))
+                {
+                    copy (new_pv.begin (), new_pv.begin () + 3, pv);
+
+                    StateInfo si[2];
+                    pos.do_move (new_pv[0], si[0], pos.gives_check (new_pv[0], CheckInfo (pos)));
+                    pos.do_move (new_pv[1], si[1], pos.gives_check (new_pv[1], CheckInfo (pos)));
+                    expected_posi_key = pos.posi_key ();
+                    pos.undo_move ();
+                    pos.undo_move ();
+                }
+            }
+            
+        };
+
+
         Color   RootColor;
         i32     RootPly;
 
@@ -120,6 +162,8 @@ namespace Searcher {
         MoveStats       CounterMoves;
         // Counter move history value statistics
         Value2DStats    CounterMovesHistoryValues;
+
+        MoveManager     MoveMgr;
 
         // update_stats() updates killers, history, countermoves and countermoves history
         // stats for a quiet best move.
@@ -1215,6 +1259,15 @@ namespace Searcher {
 
                     if (alpha < value)
                     {
+                        // If there is an easy move for this position, clear it if unstable
+                        if (    PVNode
+                            &&  MoveMgr.easy_move (pos.posi_key ()) != MOVE_NONE
+                            && (move != MoveMgr.easy_move (pos.posi_key ()) || legal_count > 1)
+                           )
+                        {
+                            MoveMgr.clear();
+                        }
+
                         best_move = SPNode ? splitpoint->best_move = move : move;
 
                         if (PVNode && !RootNode)
@@ -1327,6 +1380,9 @@ namespace Searcher {
         {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
             memset (ss-2, 0x00, 5*sizeof (*ss));
+
+            Move easy_move = MoveMgr.easy_move (RootPos.posi_key());
+            MoveMgr.clear ();
 
             TT.refresh ();
 
@@ -1499,13 +1555,27 @@ namespace Searcher {
 
                         // Stop the search
                         // If there is only one legal move available or 
-                        // If all of the available time has been used.
+                        // If all of the available time has been used or
+                        // If matched an easy move from the previous search and just did a fast verification.
                         if (   RootSize == 1
                             || TimeMgr.elapsed_time () > TimeMgr.available_time ()
+                            || (   RootMoves[0].pv[0] == easy_move
+                                && TimeMgr.best_move_change < 0.03
+                                && TimeMgr.elapsed_time () > TimeMgr.available_time () / 10
+                               )
                            )
                         {
                             stop = true;
                         }
+                    }
+
+                    if (RootMoves[0].pv.size () >= 3)
+                    {
+                        MoveMgr.update (RootPos, RootMoves[0].pv);
+                    }
+                    else
+                    {
+                        MoveMgr.clear ();
                     }
                 }
 
@@ -1516,6 +1586,13 @@ namespace Searcher {
                     Limits.ponder ? Signals.ponderhit_stop = true : Signals.force_stop = true;
                 }
 
+            }
+            
+            // Clear any candidate easy move that wasn't stable for the last search
+            // iterations; the second condition prevents consecutive fast moves.
+            if (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
+            {
+                MoveMgr.clear();
             }
 
             if (skill_pv != 0) Skills.play_move ();
