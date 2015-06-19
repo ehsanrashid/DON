@@ -254,7 +254,7 @@ namespace MovePick {
             *_moves_end = MOVE_NONE;
 
             // Be sure countermoves are different from _killers
-            if (count (::begin (_killers), ::end (_killers)-1, _counter_move) == 0)
+            if (_counter_move != MOVE_NONE && count (::begin (_killers), prev (::end (_killers)), _counter_move) == 0)
             {
                 *_moves_end++ = _counter_move;
             }

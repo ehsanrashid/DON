@@ -13,8 +13,8 @@
 #include <iomanip>
 #include <sstream>
 #include <iostream>
-#include <locale>
-//#include <iterator>
+#include <iterator>
+//#include <locale>
 //#include <utility>
 
 #ifdef BM2
@@ -631,7 +631,7 @@ private:
 
 public:
 
-    Entry* operator[] (Key k) { return &_table[u32(k) & (Size - 1)]; }
+    Entry* operator[] (Key k) { return &_table[u32(k) & (Size-1)]; }
 
 };
 

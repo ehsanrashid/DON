@@ -144,7 +144,7 @@ namespace Transposition {
         if (rte == fte)
         {
             copy (fte+1, fte+ClusterEntryCount, fte);
-            rte = fte + (ClusterEntryCount - 1);
+            rte = fte + (ClusterEntryCount-1);
         }
 
         return hit = false, rte;

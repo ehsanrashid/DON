@@ -127,7 +127,7 @@ namespace Searcher {
         {
             if (count (begin (ss->killer_moves), end (ss->killer_moves), move) == 0)
             {
-                copy_backward (begin (ss->killer_moves), end (ss->killer_moves)-1, end (ss->killer_moves));
+                copy_backward (begin (ss->killer_moves), prev (end (ss->killer_moves)), end (ss->killer_moves));
                 ss->killer_moves[0] = move;
             }
             else
@@ -619,7 +619,8 @@ namespace Searcher {
 
                 assert (0 <= ss->ply && ss->ply < MAX_DEPTH);
                 
-                ss->current_move = (ss+1)->exclude_move = MOVE_NONE;
+                (ss+0)->current_move = MOVE_NONE;
+                (ss+1)->exclude_move = MOVE_NONE;
                 fill (begin ((ss+2)->killer_moves), end ((ss+2)->killer_moves), MOVE_NONE);
 
                 // Step 4. Transposition table lookup
@@ -699,8 +700,8 @@ namespace Searcher {
                         // you search it to a reduced depth, typically one less than normal depth.
                         if (   !PVNode && !MateSearch
                             && depth < RazorDepth
-                            && static_eval + RazorMargins[depth] <= alpha
                             && tt_move == MOVE_NONE
+                            && static_eval + RazorMargins[depth] <= alpha
                             && !pos.pawn_on_7thR (pos.active ())
                            )
                         {
