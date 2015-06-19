@@ -11,6 +11,8 @@ namespace MovePick {
     using namespace MoveGen;
     using namespace Searcher;
 
+    const Value MaxStatsValue = Value(+0x100);
+
     // The Stats struct stores different statistics.
     template<class T>
     struct Stats
@@ -19,7 +21,6 @@ namespace MovePick {
         T _table[PIECE_NO][SQ_NO];
 
     public:
-        static const Value MaxValue = Value(+0x100);
 
         const T* operator[] (Piece p) const { return _table[p]; }
         T*       operator[] (Piece p)       { return _table[p]; }
@@ -30,7 +31,7 @@ namespace MovePick {
         {
             Square s = dst_sq (m);
             Piece  p = pos[org_sq (m)];
-            if (abs (_table[p][s] + v) < MaxValue)
+            if (abs (_table[p][s] + v) < MaxStatsValue)
             {
                 _table[p][s] += v;
             }
@@ -50,7 +51,7 @@ namespace MovePick {
     // ValueStats stores the value that records how often different moves have been successful/unsuccessful
     // during the current search and is used for reduction and move ordering decisions.
     typedef Stats<Value>        ValueStats;
-
+    // Value2DStats
     typedef Stats<ValueStats>   Value2DStats;
 
     // MoveStats store the move that refute a previous move.

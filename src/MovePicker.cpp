@@ -193,7 +193,7 @@ namespace MovePick {
             Value gain_value = _Pos.see_sign (m);
             if (gain_value < VALUE_ZERO)
             {
-                m.value = gain_value - ValueStats::MaxValue; // At the bottom
+                m.value = gain_value - MaxStatsValue; // At the bottom
             }
             else
             if (_Pos.capture (m))
@@ -202,13 +202,13 @@ namespace MovePick {
                 {
                     m.value = PIECE_VALUE[MG][ptype (_Pos[dst_sq (m)])]
                             - Value(ptype (_Pos[org_sq (m)]))
-                            + ValueStats::MaxValue-1;
+                            + MaxStatsValue-1;
                 }
                 else
                 if (mtype (m) == ENPASSANT)
                 {
                     m.value = PIECE_VALUE[MG][PAWN]
-                            + ValueStats::MaxValue-1;
+                            + MaxStatsValue-1;
                 }
                 else
                 if (mtype (m) == PROMOTE)
@@ -216,7 +216,7 @@ namespace MovePick {
                     m.value = PIECE_VALUE[MG][ptype (_Pos[dst_sq (m)])]
                             + PIECE_VALUE[MG][promote (m)]
                             - PIECE_VALUE[MG][PAWN]
-                            + ValueStats::MaxValue-1;
+                            + MaxStatsValue-1;
                 }
             }
             else

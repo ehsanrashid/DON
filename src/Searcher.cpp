@@ -663,7 +663,7 @@ namespace Searcher {
                     return tt_value;
                 }
 
-                // Step 5. Evaluate the position statically and update parent's gain statistics
+                // Step 5. Evaluate the position statically
                 if (in_check)
                 {
                     ss->static_eval = static_eval = VALUE_NONE;
@@ -791,7 +791,7 @@ namespace Searcher {
                             }
                         }
                         
-                        // Step 9. Prob-Cut
+                        // Step 9. ProbCut
                         // If have a very good capture (i.e. SEE > see[captured_piece_type])
                         // and a reduced search returns a value much above beta,
                         // can (almost) safely prune the previous move.
@@ -836,7 +836,7 @@ namespace Searcher {
                             }
                         }
 
-                        // Step 10. Internal iterative deepening (skipped when in check)
+                        // Step 10. Internal iterative deepening
                         if (   tt_move == MOVE_NONE
                             && depth > (PVNode ? 4 : 7)*DEPTH_ONE        // IID Activation Depth
                             && (PVNode || ss->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
@@ -1793,7 +1793,7 @@ namespace Searcher {
     // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
     Move Skill::pick_move ()
     {
-        static PRNG pr (now ());
+        static PRNG prng (now ());
 
         _best_move = MOVE_NONE;
 
@@ -1805,11 +1805,11 @@ namespace Searcher {
         // Choose best move. For each move score add two terms both dependent on
         // weakness, one deterministic and bigger for weaker moves, and one random,
         // then choose the move with the resulting highest score.
-        for (u08 i = 0; i < skill_pv; ++i)
+        for (u16 i = 0; i < skill_pv; ++i)
         {
             Value v = RootMoves[i].new_value
                     + weakness * i32(RootMoves[0].new_value - RootMoves[i].new_value)
-                    + variance * i32(pr.rand<u32> () % weakness) * 2 / i32(VALUE_EG_PAWN);
+                    + variance * i32(prng.rand<u32> () % weakness) * 2 / i32(VALUE_EG_PAWN);
 
             if (best_value < v)
             {

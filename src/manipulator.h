@@ -50,6 +50,7 @@ namespace std {
     private:
 
         basic_ostream<C>& (*_fp_manip) (basic_ostream<C>&, T);
+        
         T _val;
 
     public:
@@ -70,14 +71,6 @@ namespace std {
             return os;
         }
     };
-
-    //template<class T, class C>
-    //inline basic_ostream<C>& operator<< (basic_ostream<C> &os, const manip_infra<T, C> &manip)
-    //{
-    //    manip (os);
-    //    return os;
-    //}
-
 
     // Helper function that is ultimately called by the ManipInfra class
     inline ostream& set_width (ostream &os, int n)

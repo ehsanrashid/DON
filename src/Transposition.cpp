@@ -143,7 +143,7 @@ namespace Transposition {
         // By default replace first entry and make place in the last
         if (rte == fte)
         {
-            memmove (fte, fte+1, (ClusterEntryCount - 1)*EntrySize);
+            copy (fte+1, fte+ClusterEntryCount, fte);
             rte = fte + (ClusterEntryCount - 1);
         }
 
