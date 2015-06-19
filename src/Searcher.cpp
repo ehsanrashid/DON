@@ -131,13 +131,11 @@ namespace Searcher {
                 ss->killer_moves[0] = move;
             }
             else
+            if (ss->killer_moves[0] != move)
             {
-                if (ss->killer_moves[0] != move)
-                {
-                    swap (ss->killer_moves[0], *find (begin (ss->killer_moves), end (ss->killer_moves), move));
-                }
+                swap (ss->killer_moves[0], *find (begin (ss->killer_moves), end (ss->killer_moves), move));
             }
-
+            
             Value bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
 
             Move opp_move = (ss-1)->current_move;
@@ -1093,12 +1091,13 @@ namespace Searcher {
                         reduction_depth += DEPTH_ONE;
                     }
                     // Decrease reduction for counter move
-                    if (move == counter_move)
+                    if (reduction_depth != DEPTH_ZERO && move == counter_move)
                     {
                         reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
                     }
                     // Decrease reduction for moves that escape a capture
-                    if (   mtype (move) == NORMAL
+                    if (   reduction_depth != DEPTH_ZERO
+                        && mtype (move) == NORMAL
                         && ptype (pos[dst_sq (move)]) != PAWN
                         && pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO // Reverse move
                        )

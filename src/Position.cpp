@@ -765,6 +765,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
     {
         if (_color_bb[_active] & dst) return false;
 
+        // Only king moves to non attacked squares, sliding check x-rays the king
         // In case of king moves under check have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.

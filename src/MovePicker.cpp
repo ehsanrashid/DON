@@ -22,7 +22,7 @@ namespace MovePick {
             S_STOP
         };
 
-        // Insertion sort in the range [beg, end], which is guaranteed to be stable, as it should be
+        // Insertion sort in the range [beg, end), which is guaranteed to be stable, as it should be
         void insertion_sort (ValMove *beg, ValMove *end)
         {
             for (ValMove *p = beg+1; p < end; ++p)
@@ -34,9 +34,13 @@ namespace MovePick {
                 }
                 *q = t;
             }
+            //for (auto i = beg; i < end; ++i)
+            //{
+            //    rotate (upper_bound (beg, i, *i, greater<ValMove>()), i, next (i));
+            //}
         }
 
-        // pick_best() finds the best move in the range [beg, end] and moves it to front,
+        // pick_best() finds the best move in the range [beg, end) and moves it to front,
         // it is faster than sorting all the moves in advance when there are few moves
         // e.g. the possible captures.
         Move pick_best (ValMove *beg, ValMove *end)

@@ -6,6 +6,7 @@
 #include <string>
 #include <vector>
 #include <algorithm>
+#include <functional>
 #include <cassert>
 #include <iosfwd>
 #include <chrono>
@@ -649,15 +650,18 @@ inline bool white_spaces (const std::string &str)
 
 inline std::string& trim_left (std::string &str)
 {
-    str.erase (str.begin(), 
+    str.erase (str.begin (), 
                 std::find_if (str.begin (), str.end (), 
-                    [](char c) { return !std::isspace (c, std::locale ()); }));
+                    //[](char c) { return !std::isspace (c, std::locale ()); }
+                    std::not1 (std::ptr_fun<int, int> (std::isspace))
+              ));
     return str;
 }
 inline std::string& trim_right (std::string &str)
 {
     str.erase (std::find_if (str.rbegin (), str.rend (), 
-                [](char c) { return !std::isspace (c, std::locale()); }).base(), 
+                //[](char c) { return !std::isspace (c, std::locale()); }).base (), 
+                std::not1 (std::ptr_fun<int, int> (std::isspace))).base (),
                     str.end ());
     return str;
 }
