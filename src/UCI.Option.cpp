@@ -213,7 +213,7 @@ namespace UCI {
 
         void change_skill_level (const Option &opt)
         {
-            Skills.change_level (u08(i32(opt)));
+            SkillMgr.change_level (u08(i32(opt)));
         }
 
         void configure_time (const Option &)

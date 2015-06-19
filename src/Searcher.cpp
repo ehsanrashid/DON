@@ -1386,13 +1386,10 @@ namespace Searcher {
 
             TT.refresh ();
 
-            u16 skill_pv = Skills.pv_size ();
-            if (skill_pv != 0) Skills.clear ();
-
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            LimitPV = min (max (MultiPV, skill_pv), RootSize);
+            LimitPV = min (max (MultiPV, u16(SkillMgr.enabled () ? 4 : 0)), RootSize);
 
             Value best_value = VALUE_ZERO
                 , bound_a    = -VALUE_INFINITE
@@ -1459,7 +1456,7 @@ namespace Searcher {
 
                         // When failing high/low give some update
                         // (without cluttering the UI) before to re-search.
-                        if (   MultiPV == 1
+                        if (   LimitPV == 1
                             && (bound_a >= best_value || best_value >= bound_b)
                             && TimeMgr.elapsed_time () > 3*MILLI_SEC
                            )
@@ -1518,10 +1515,7 @@ namespace Searcher {
                 }
 
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
-                if (skill_pv != 0 && Skills.can_pick_move (depth))
-                {
-                    Skills.play_move ();
-                }
+                if (SkillMgr.enabled () && SkillMgr.depth_to_pick (depth)) SkillMgr.pick_move ();
 
                 if (SearchLogWrite)
                 {
@@ -1595,7 +1589,7 @@ namespace Searcher {
                 MoveMgr.clear();
             }
 
-            if (skill_pv != 0) Skills.play_move ();
+            if (SkillMgr.enabled ()) SkillMgr.play_move ();
         }
 
         // perft<>() is utility to verify move generation.
@@ -1703,7 +1697,7 @@ namespace Searcher {
 
     string              SearchLog       = "";
 
-    Skill               Skills;
+    SkillManager        SkillMgr;
 
     // ------------------------------------
 
@@ -1862,28 +1856,22 @@ namespace Searcher {
 
     // ------------------------------------
 
-    u16  Skill::pv_size () const
-    {
-        return _level < MAX_SKILL_LEVEL ? min (MIN_SKILL_MULTIPV, RootSize) : 0;
-    }
-
     // When playing with a strength handicap, choose best move among the first 'candidates'
     // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-    Move Skill::pick_move ()
+    Move SkillManager::pick_move ()
     {
         static PRNG prng (now ());
 
         _best_move = MOVE_NONE;
 
-        u16   skill_pv   = pv_size ();
         // RootMoves are already sorted by score in descending order
-        Value variance   = min (RootMoves[0].new_value - RootMoves[skill_pv - 1].new_value, VALUE_MG_PAWN);
+        Value variance   = min (RootMoves[0].new_value - RootMoves[LimitPV - 1].new_value, VALUE_MG_PAWN);
         Value weakness   = Value(MAX_DEPTH - 2 * _level);
         Value best_value = -VALUE_INFINITE;
         // Choose best move. For each move score add two terms both dependent on
         // weakness, one deterministic and bigger for weaker moves, and one random,
         // then choose the move with the resulting highest score.
-        for (u16 i = 0; i < skill_pv; ++i)
+        for (u16 i = 0; i < LimitPV; ++i)
         {
             Value v = RootMoves[i].new_value
                     + weakness * i32(RootMoves[0].new_value - RootMoves[i].new_value)
@@ -1899,7 +1887,7 @@ namespace Searcher {
     }
 
     // Swap best PV line with the sub-optimal one
-    void Skill::play_move ()
+    void SkillManager::play_move ()
     {
         swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), _best_move != MOVE_NONE ? _best_move : pick_move ()));
     }

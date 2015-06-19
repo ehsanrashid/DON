@@ -19,7 +19,6 @@ namespace Searcher {
     using namespace Threading;
 
     const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be < MAX_DEPTH/2
-    const u16 MIN_SKILL_MULTIPV =  4;
 
     typedef std::vector<Move> MoveVector;
     
@@ -157,7 +156,7 @@ namespace Searcher {
         //}
     };
 
-    struct Skill
+    class SkillManager
     {
 
     private:
@@ -169,10 +168,10 @@ namespace Searcher {
         void change_level (u08 level) { _level = level; }
 
         void clear () { _best_move = MOVE_NONE; }
+        
+        bool enabled () const { return _level < MAX_SKILL_LEVEL; }
 
-        bool can_pick_move (Depth depth) const { return depth/DEPTH_ONE == 1 + _level; }
-
-        u16  pv_size () const;
+        bool depth_to_pick (Depth depth) const { return depth/DEPTH_ONE == 1 + _level; }
 
         Move pick_move ();
 
@@ -206,7 +205,7 @@ namespace Searcher {
 
     extern std::string          SearchLog;
     
-    extern Skill                Skills;
+    extern SkillManager         SkillMgr;
 
     // The Stack struct keeps track of the information needed to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread

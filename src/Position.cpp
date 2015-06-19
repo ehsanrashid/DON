@@ -1259,7 +1259,7 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
         }
         else
         {
-            (PAWN == mpt) ? _si->clock50 = 0 : _si->clock50++;
+            _si->clock50 = (PAWN == mpt) ? 0 : _si->clock50 + 1;
         }
 
         move_piece (org, dst);
@@ -1346,6 +1346,7 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
         }
 
         PieceT ppt = promote (m);
+        assert (NIHT <= ppt && ppt <= QUEN);
         // Replace the PAWN with the Promoted piece
         remove_piece (org);
         place_piece (dst, _active, ppt);
@@ -1362,8 +1363,8 @@ void Position::  do_move (Move m, StateInfo &si, bool is_check)
             ^Zob._.piece_square[_active][ppt ][dst];
 
         _si->psq_score +=
-            +PSQ[_active][ppt ][dst]
-            -PSQ[_active][PAWN][org];
+            -PSQ[_active][PAWN][org]
+            +PSQ[_active][ppt ][dst];
 
         _si->non_pawn_matl[_active] += PIECE_VALUE[MG][ppt];
     }
