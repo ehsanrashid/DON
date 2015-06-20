@@ -103,8 +103,9 @@ namespace Searcher {
         // stable across multiple search iterations we can fast return the best move.
         class MoveManager
         {
-            Key expected_posi_key = U64(0);
-            Move pv[3];
+        private:
+            Key _expected_posi_key = U64(0);
+            Move _pv[3];
 
         public:
             i08 stable_count = 0;
@@ -112,29 +113,29 @@ namespace Searcher {
             void clear ()
             {
                 stable_count = 0;
-                expected_posi_key = U64(0);
-                fill (begin (pv), end (pv), MOVE_NONE);
+                _expected_posi_key = U64(0);
+                fill (begin (_pv), end (_pv), MOVE_NONE);
             }
 
-            Move easy_move (Key posi_key) const { return expected_posi_key == posi_key ? pv[2] : MOVE_NONE; }
+            Move easy_move (Key posi_key) const { return _expected_posi_key == posi_key ? _pv[2] : MOVE_NONE; }
 
-            void update (Position &pos, const MoveVector &new_pv)
+            void update (const MoveVector &new_pv)
             {
                 assert (new_pv.size () >= 3);
 
                 // Keep track of how many times in a row 3rd ply remains stable
-                stable_count = (new_pv[2] == pv[2]) ? stable_count + 1 : 0;
+                stable_count = (new_pv[2] == _pv[2]) ? stable_count + 1 : 0;
 
-                if (!equal (new_pv.begin (), new_pv.begin () + 3, pv))
+                if (!equal (new_pv.begin (), new_pv.begin () + 3, _pv))
                 {
-                    copy (new_pv.begin (), new_pv.begin () + 3, pv);
+                    copy (new_pv.begin (), new_pv.begin () + 3, _pv);
 
                     StateInfo si[2];
-                    pos.do_move (new_pv[0], si[0], pos.gives_check (new_pv[0], CheckInfo (pos)));
-                    pos.do_move (new_pv[1], si[1], pos.gives_check (new_pv[1], CheckInfo (pos)));
-                    expected_posi_key = pos.posi_key ();
-                    pos.undo_move ();
-                    pos.undo_move ();
+                    RootPos.do_move (new_pv[0], si[0], RootPos.gives_check (new_pv[0], CheckInfo (RootPos)));
+                    RootPos.do_move (new_pv[1], si[1], RootPos.gives_check (new_pv[1], CheckInfo (RootPos)));
+                    _expected_posi_key = RootPos.posi_key ();
+                    RootPos.undo_move ();
+                    RootPos.undo_move ();
                 }
             }
             
@@ -1381,11 +1382,12 @@ namespace Searcher {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
             memset (ss-2, 0x00, 5*sizeof (*ss));
 
-            Move easy_move = MoveMgr.easy_move (RootPos.posi_key());
+            Move easy_move = MoveMgr.easy_move (RootPos.posi_key ());
             MoveMgr.clear ();
 
-            TT.refresh ();
+            if (SkillMgr.enabled ()) SkillMgr.clear ();
 
+            TT.refresh ();
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
@@ -1565,7 +1567,7 @@ namespace Searcher {
 
                     if (RootMoves[0].pv.size () >= 3)
                     {
-                        MoveMgr.update (RootPos, RootMoves[0].pv);
+                        MoveMgr.update (RootMoves[0].pv);
                     }
                     else
                     {
@@ -1586,7 +1588,7 @@ namespace Searcher {
             // iterations; the second condition prevents consecutive fast moves.
             if (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
             {
-                MoveMgr.clear();
+                MoveMgr.clear ();
             }
 
             if (SkillMgr.enabled ()) SkillMgr.play_move ();
