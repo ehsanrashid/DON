@@ -799,11 +799,14 @@ namespace Searcher {
                             // Null move dynamic reduction based on depth and static evaluation
                             Depth reduced_depth = depth - ((0x337 + 0x43 * depth) / 0x100 + min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
 
+                            // Speculative prefetch as early as possible
+                            prefetch (TT.cluster_entry (pos.posi_key ()));
+                            
                             // Do null move
                             pos.do_null_move (si);
 
-                            //// Speculative prefetch as early as possible
-                            //prefetch (TT.cluster_entry (pos.posi_key ()));
+                            prefetch (thread->pawn_table[pos.pawn_key ()]);
+                            prefetch (thread->matl_table[pos.matl_key ()]);
 
                             // Null (zero) window (alpha, beta) = (beta-1, beta):
                             Value null_value =
@@ -2102,10 +2105,10 @@ namespace Searcher {
     // reset() clears all search memory to obtain reproducible search results
     void reset ()
     {
-        TT.clear();
-        HistoryValues.clear();
-        CounterMoves.clear();
-        CounterMovesHistoryValues.clear();
+        TT.clear ();
+        HistoryValues.clear ();
+        CounterMoves.clear ();
+        CounterMovesHistoryValues.clear ();
     }
 
     // initialize() is called during startup to initialize various lookup tables
