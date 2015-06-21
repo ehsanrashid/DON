@@ -172,10 +172,9 @@ namespace Pawns {
                 bool backward;
                 // Test for backward pawn.
                 // If the pawn is passed, isolated, connected or levered (it can capture an enemy pawn).
-                // If the rank is greater then Rank 6
                 // If there are friendly pawns behind on adjacent files and they are able to advance and support the pawn.
-                // Then it cannot be backward either.
-                if (   passed || isolated || levered || connected || r >= R_5
+                // If it is sufficiently advanced (Rank 6), then it cannot be backward either.
+                if (   passed || isolated || levered || connected || r >= R_6
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
                     || (own_pawns & PAWN_ATTACK_SPAN[Opp][s] && !(opp_pawns & (s-Push)))
                    )

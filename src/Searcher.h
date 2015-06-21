@@ -67,14 +67,14 @@ namespace Searcher {
     // typically in an async fashion.
     //  - Stop search on request.
     //  - Stop search on ponderhit.
-    //  - First root move.
+    //  - First move at root.
     //  - Falied low at root.
     struct SignalsT
     {
         bool  force_stop        = false  // Stop on request
             , ponderhit_stop    = false  // Stop on ponder-hit
-            , firstmove_root    = false  // Move is First at root
-            , failedlow_root    = false; // Move Failed-low at root
+            , firstmove_root    = false  // First move at root
+            , failedlow_root    = false; // Failed-low at root
 
         SignalsT () {}
     };
@@ -214,7 +214,7 @@ namespace Searcher {
     {
         SplitPoint *splitpoint  = nullptr;
         Move       *pv          = nullptr;
-        i32         ply;
+        i32         ply         = 0;
 
         Move    tt_move         = MOVE_NONE
             ,   current_move    = MOVE_NONE
@@ -237,16 +237,18 @@ namespace Searcher {
     {
     private:
 
-        TimePoint _start_time;
-        u32       _optimum_time;
-        u32       _maximum_time;
+        TimePoint _start_time   = 0;
+        u32       _optimum_time = 0;
+        u32       _maximum_time = 0;
 
-        double    _instability_factor;
+        double    _instability_factor = 1.0;
 
     public:
 
-        u64     available_nodes; // When in 'nodes as time' mode
-        double  best_move_change;
+        u64     available_nodes  = 0; // When in 'nodes as time' mode
+        double  best_move_change = 0.0;
+
+        TimeManager () {}
 
         u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.76); }
     

@@ -228,7 +228,7 @@ namespace Transposition {
             for (const Cluster *clt = _clusters; clt < _clusters + 1000/ClusterEntryCount; ++clt)
             {
                 const TTEntry *fte = clt->entries;
-                for (const TTEntry *ite = fte; ite < fte + ClusterEntryCount; ++ite)
+                for (const TTEntry *ite = fte; ite < fte+ClusterEntryCount; ++ite)
                 {
                     if (ite->gen () == _generation)
                     {

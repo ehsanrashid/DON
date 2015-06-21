@@ -1590,7 +1590,7 @@ namespace Searcher {
             {
                 MoveMgr.clear ();
             }
-
+            // If skill level is enabled, swap best PV line with the sub-optimal one
             if (SkillMgr.enabled ()) SkillMgr.play_move ();
         }
 

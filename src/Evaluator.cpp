@@ -203,8 +203,8 @@ namespace Evaluator {
         };
 
         // OUTPOST[supported by pawn]
-        const Score KNIGHT_OUTPOST[2] = { S(28, 7), S(42,11) };
-        const Score BISHOP_OUTPOST[2] = { S(12, 3), S(18, 5) };
+        const Score KNIGHT_OUTPOST[2] = { S(32, 8), S(49,13) };
+        const Score BISHOP_OUTPOST[2] = { S(14, 4), S(22, 6) };
 
         // THREATEN_BY_PAWN[PieceT] contains bonuses according to which piece type is attacked by pawn.
         const Score THREATEN_BY_PAWN[NONE] =
@@ -240,7 +240,7 @@ namespace Evaluator {
         const Score BISHOP_PAWNS            = S( 8,12); // Penalty for bishop with more pawns on same color
         const Score BISHOP_TRAPPED          = S(50,50); // Penalty for bishop trapped with pawns (Chess960)
 
-        const Score MINOR_BEHIND_PAWN       = S(16, 0);
+        const Score MINOR_BEHIND_PAWN       = S(16, 0); // Bonus for minor behind a pawn
 
         const Score ROOK_ON_OPENFILE        = S(43,21); // Bonus for rook on open file
         const Score ROOK_ON_SEMIOPENFILE    = S(19,10); // Bonus for rook on semi-open file
@@ -408,7 +408,7 @@ namespace Evaluator {
                     if (NIHT == PT)
                     {
                         // Outpost for knight
-                        if (r >= R_4 && (pos.pieces<PAWN> (Opp) & PAWN_ATTACK_SPAN[Own][s]) == U64(0))
+                        if (r >= R_4 && r <= R_6 && (pos.pieces<PAWN> (Opp) & PAWN_ATTACK_SPAN[Own][s]) == U64(0))
                         {
                             score += KNIGHT_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
                         }
@@ -419,7 +419,7 @@ namespace Evaluator {
                         score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor<Own> (s);
 
                         // Outpost for bishop
-                        if (r >= R_4 && (pos.pieces<PAWN> (Opp) & PAWN_ATTACK_SPAN[Own][s]) == U64(0))
+                        if (r >= R_4 && r <= R_6 && (pos.pieces<PAWN> (Opp) & PAWN_ATTACK_SPAN[Own][s]) == U64(0))
                         {
                             score += BISHOP_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
                         }

@@ -115,7 +115,7 @@ namespace Transposition {
         assert (key != U64(0));
 
         TTEntry *const fte = cluster_entry (key);
-        for (TTEntry *ite = fte+0; ite < fte + ClusterEntryCount; ++ite)
+        for (TTEntry *ite = fte+0; ite < fte+ClusterEntryCount; ++ite)
         {
             if (ite->_key == U64(0))
             {
@@ -130,7 +130,7 @@ namespace Transposition {
         }
 
         TTEntry *rte = fte;
-        for (TTEntry *ite = fte+1; ite < fte + ClusterEntryCount; ++ite)
+        for (TTEntry *ite = fte+1; ite < fte+ClusterEntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
             if ( ((ite->gen () == _generation || ite->bound () == BOUND_EXACT)
@@ -144,7 +144,7 @@ namespace Transposition {
         if (rte == fte)
         {
             copy (fte+1, fte+ClusterEntryCount, fte);
-            rte = fte + (ClusterEntryCount-1);
+            rte = fte+ClusterEntryCount-1;
         }
 
         return hit = false, rte;
