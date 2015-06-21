@@ -116,7 +116,7 @@ namespace Pawns {
         {
             const Color Opp     = WHITE == Own ? BLACK  : WHITE;
             const Delta Push    = WHITE == Own ? DEL_N  : DEL_S;
-            //const Delta Pull    = WHITE == Own ? DEL_S  : DEL_N;
+            const Delta Pull    = WHITE == Own ? DEL_S  : DEL_N;
             const Delta Left    = WHITE == Own ? DEL_NW : DEL_SE;
             const Delta Right   = WHITE == Own ? DEL_NE : DEL_SW;
 
@@ -124,7 +124,7 @@ namespace Pawns {
             const Bitboard opp_pawns = pos.pieces<PAWN> (Opp);
 
             e->pawns_attacks  [Own] = shift_del<Left> (own_pawns) | shift_del<Right> (own_pawns);
-            //e->blocked_pawns  [Own] = own_pawns & shift_del<Pull> (opp_pawns);
+            e->blocked_pawns  [Own] = own_pawns & shift_del<Pull> (opp_pawns);
             e->passed_pawns   [Own] = U64(0);
             e->semiopen_files [Own] = 0xFF;
             e->king_sq        [Own] = SQ_NO;
@@ -200,7 +200,7 @@ namespace Pawns {
 
                 if (connected)
                 {
-                    score += CONNECTED[opposed][!!phalanx][more_than_one (supported)][r];
+                    score += CONNECTED[opposed][phalanx != 0][more_than_one (supported)][r];
                 }
 
                 if (isolated)

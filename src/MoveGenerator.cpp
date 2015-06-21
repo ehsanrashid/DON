@@ -36,7 +36,7 @@ namespace MoveGen {
                         {
                             continue;
                         }
-                        if (ci->discoverers != U64(0) && (ci->discoverers & s))
+                        if (ci->discoverers != U64(0) && (ci->discoverers & s) != U64(0))
                         {
                             continue;
                         }

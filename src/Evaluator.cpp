@@ -408,7 +408,10 @@ namespace Evaluator {
                     if (NIHT == PT)
                     {
                         // Outpost for knight
-                        if (r >= R_4 && r <= R_6 && (pos.pieces<PAWN> (Opp) & PAWN_ATTACK_SPAN[Own][s]) == U64(0))
+                        if (   r >= R_4
+                            && r <= R_6
+                            && (pos.pieces<PAWN> (Opp) & ~(ei.pi->blocked_pawns[Opp] & FRONT_RANK_bb[Own][_rank (s+Push)]) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
+                           )
                         {
                             score += KNIGHT_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
                         }
@@ -419,7 +422,10 @@ namespace Evaluator {
                         score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor<Own> (s);
 
                         // Outpost for bishop
-                        if (r >= R_4 && r <= R_6 && (pos.pieces<PAWN> (Opp) & PAWN_ATTACK_SPAN[Own][s]) == U64(0))
+                        if (   r >= R_4
+                            && r <= R_6
+                            && (pos.pieces<PAWN> (Opp) & ~(ei.pi->blocked_pawns[Opp] & FRONT_RANK_bb[Own][_rank (s+Push)]) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
+                           )
                         {
                             score += BISHOP_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
                         }
@@ -443,7 +449,7 @@ namespace Evaluator {
                     }
                 }
 
-                if (ei.pinneds[Own] & s)
+                if ((ei.pinneds[Own] & s) != U64(0))
                 {
                     attacks &= RAYLINE_bb[pos.king_sq (Own)][s];
                 }
@@ -834,7 +840,7 @@ namespace Evaluator {
                         eg_value -= (1 * rr * SQR_DIST[fk_sq][block_sq + Push]);
                     }
 
-                    bool pinned = (ei.pinneds[Own] & s);
+                    bool pinned = (ei.pinneds[Own] & s) != U64(0);
                     if (pinned)
                     {
                         // Only one real pinner exist other are fake pinner

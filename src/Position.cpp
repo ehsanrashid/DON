@@ -723,7 +723,7 @@ bool Position::pseudo_legal (Move m) const
     }
     else
     {
-        if (!(attacks_bb (_board[org], org, _types_bb[NONE]) & dst)) return false;
+        if ((attacks_bb (_board[org], org, _types_bb[NONE]) & dst) == U64(0)) return false;
     }
 
     // Evasions generator already takes care to avoid some kind of illegal moves
@@ -763,7 +763,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
     {
     case NORMAL:
     {
-        if (_color_bb[_active] & dst) return false;
+        if ((_color_bb[_active] & dst) != U64(0)) return false;
 
         // Only king moves to non attacked squares, sliding check x-rays the king
         // In case of king moves under check have to remove king so to catch
@@ -824,11 +824,11 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
     assert (ci.discoverers == discoverers (_active));
     
     // Is there a Direct check ?
-    if (ci.checking_bb[ptype (_board[org])] & dst) return true;
+    if ((ci.checking_bb[ptype (_board[org])] & dst) != U64(0)) return true;
     // Is there a Discovered check ?
     // For discovery check we need to verify also direction
     if (    ci.discoverers != U64(0)
-        && (ci.discoverers & org)
+        && (ci.discoverers & org) != U64(0)
         && !sqrs_aligned (org, dst, ci.king_sq)
        )
     {
