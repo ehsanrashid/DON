@@ -12,15 +12,13 @@ namespace std {
     template<class T>
     struct unary_nullfunctor : public unary_function<T*, void>
     {
-        void operator() (const T *) const
-        {}
+        void operator() (const T *) const {}
     };
 
     template<class T>
     struct binary_nullfunctor : public binary_function<T*, T*, void>
     {
-        void operator() (const T *, const T *) const
-        {}
+        void operator() (const T *, const T *) const {}
     };
 
     // Case-insensitive comparator for char

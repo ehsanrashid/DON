@@ -13,12 +13,12 @@
 #endif
 
 
-inline std::string time_to_string (const TimePoint &p)
+inline std::string time_to_string (const TimePoint &/*p*/)
 {
     std::ostringstream oss;
-
+/*
 #   if defined(_WIN32)
-
+    
     time_t time = (p / MILLI_SEC);
     char *str_time = ctime (&time);
 
@@ -45,7 +45,7 @@ inline std::string time_to_string (const TimePoint &p)
 #   else
 
 #   endif
-
+*/
     return oss.str ();
 }
 

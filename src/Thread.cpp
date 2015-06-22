@@ -207,11 +207,11 @@ namespace Threading {
         {
             unique_lock<Mutex> lk (mutex);
 
-            if (alive) sleep_condition.wait_for (lk, chrono::milliseconds(running ? resolution : INT_MAX));
+            if (alive) sleep_condition.wait_for (lk, chrono::milliseconds(_running ? resolution : INT_MAX));
 
             lk.unlock ();
 
-            if (running) task ();
+            if (_running) task ();
 
         }
     }

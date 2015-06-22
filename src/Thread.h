@@ -152,8 +152,6 @@ namespace Threading {
 
         volatile bool thinking = true; // Avoid a race with start_thinking()
         
-        MainThread () : Thread () {}
-        
         void idle_loop () override;
         
         void join ();
@@ -165,16 +163,16 @@ namespace Threading {
     class TimerThread
         : public ThreadBase
     {
-    public:
+    private:
+        bool _running = false;
 
-        bool running = false;
+    public:
+        
         i32 resolution; // Millisec between two task() calls
         void (*task) () = nullptr;
         
-        TimerThread () : ThreadBase () {}
-
-        void start () { running = true ; }
-        void stop  () { running = false; }
+        void start () { _running = true ; }
+        void stop  () { _running = false; }
 
         void idle_loop () override;
 

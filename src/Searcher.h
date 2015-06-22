@@ -37,8 +37,6 @@ namespace Searcher {
         {
             u32 time    = 0; // Remaining Time          [milli-seconds]
             u32 inc     = 0; // Increment Time per move [milli-seconds]
-
-            Clock () {}
         };
 
     public:
@@ -54,8 +52,6 @@ namespace Searcher {
         u32  npmsec     = 0;
         bool ponder     = false; // search on ponder move
         bool infinite   = false; // search until the "stop" command
-
-        LimitsT () {}
 
         bool use_timemanager () const
         {
@@ -75,8 +71,6 @@ namespace Searcher {
             , ponderhit_stop    = false  // Stop on ponder-hit
             , firstmove_root    = false  // First move at root
             , failedlow_root    = false; // Failed-low at root
-
-        SignalsT () {}
     };
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
@@ -104,7 +98,6 @@ namespace Searcher {
         //u64        nodes     = U64(0);
         MoveVector pv;
 
-        //RootMove () = delete; // Multiple default constructors specified
         explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
         
         // Operators
@@ -247,8 +240,6 @@ namespace Searcher {
 
         u64     available_nodes  = 0; // When in 'nodes as time' mode
         double  best_move_change = 0.0;
-
-        TimeManager () {}
 
         u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.76); }
     
