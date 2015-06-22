@@ -392,6 +392,15 @@ namespace Evaluator {
                     Bitboard zone_attacks = ei.ful_attacked_by[Opp][KING] & attacks;
                     if (zone_attacks != U64(0)) king_zone_attacks_count += u08(pop_count<MAX15> (zone_attacks));
                 }
+                
+                if ((ei.pinneds[Own] & s) != U64(0))
+                {
+                    attacks &= RAYLINE_bb[pos.king_sq (Own)][s];
+                }
+                ei.pin_attacked_by[Own][PT] |= attacks;
+
+                i32 mob = pop_count<QUEN == PT ? FULL : MAX15> (attacks & mobility_area);
+                mobility += MOBILITY_BONUS[PT][mob];
 
                 // Special extra evaluation for pieces
                 
@@ -448,15 +457,6 @@ namespace Evaluator {
                         }
                     }
                 }
-
-                if ((ei.pinneds[Own] & s) != U64(0))
-                {
-                    attacks &= RAYLINE_bb[pos.king_sq (Own)][s];
-                }
-                ei.pin_attacked_by[Own][PT] |= attacks;
-
-                i32 mob = pop_count<QUEN == PT ? FULL : MAX15> (attacks & mobility_area);
-                mobility += MOBILITY_BONUS[PT][mob];
 
                 if (ROOK == PT)
                 {
