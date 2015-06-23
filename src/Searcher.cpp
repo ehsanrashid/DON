@@ -921,8 +921,8 @@ namespace Searcher {
 
             bool singular_ext_node =
                    !RootNode && !SPNode
-                && MOVE_NONE == exclude_move // Recursive singular search is not allowed
-                && MOVE_NONE != tt_move 
+                && exclude_move == MOVE_NONE // Recursive singular search is not allowed
+                && tt_move != MOVE_NONE
                 &&    depth >= (PVNode ? 6 : 8)*DEPTH_ONE
                 && tt_depth >= depth - 3*DEPTH_ONE
                 && abs (tt_value) < +VALUE_KNOWN_WIN
@@ -951,7 +951,7 @@ namespace Searcher {
 
             Move  quiet_moves[MAX_QUIETS]
                 , pv[MAX_DEPTH+1];
-            
+
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move<SPNode> ()) != MOVE_NONE)

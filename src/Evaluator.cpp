@@ -171,6 +171,17 @@ namespace Evaluator {
             {322,  0}  // King Safety
         };
 
+        // weight_option() computes the value of an evaluation weight,
+        // by combining UCI-configurable weights with an internal weight.
+        Weight weight_option (i32 opt_value, const Weight &internal_weight)
+        {
+            return
+            {
+                opt_value * internal_weight.mg / 1000,
+                opt_value * internal_weight.eg / 1000
+            };
+        }
+
     #define S(mg, eg) mk_score (mg, eg)
 
         // MOBILITY_BONUS[PieceT][Attacks] contains bonuses for mobility,
@@ -279,18 +290,7 @@ namespace Evaluator {
         const i32    SAFE_CHECK[NONE] = { 0, 14,  6, 37, 50,  0 };
 
         // Bonuses for contact safe checks
-        const i32 CONTACT_CHECK[NONE] = { 0,  0, 12, 71, 89,  0 };
-
-        // weight_option() computes the value of an evaluation weight,
-        // by combining UCI-configurable weights with an internal weight.
-        Weight weight_option (i32 opt_value, const Weight &internal_weight)
-        {
-            return
-            {
-                opt_value * internal_weight.mg / 1000,
-                opt_value * internal_weight.eg / 1000
-            };
-        }
+        const i32 CONTACT_CHECK[NONE] = { 0,  0, 18, 71, 89,  0 };
 
         //  --- init evaluation info --->
         template<Color Own>
@@ -397,6 +397,30 @@ namespace Evaluator {
                     attacks &= RAYLINE_bb[pos.king_sq (Own)][s];
                 }
                 ei.pin_attacked_by[Own][PT] |= attacks;
+                /*
+                if (ROOK == PT)
+                {
+                    attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
+                                  | ei.pin_attacked_by[Opp][BSHP]
+                                 )
+                              |  (  ei.pin_attacked_by[Own][PAWN]
+                                  | ei.pin_attacked_by[Own][NIHT]
+                                  | ei.pin_attacked_by[Own][BSHP]
+                                 );
+                }
+                */
+                if (QUEN == PT)
+                {
+                    attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
+                                  | ei.pin_attacked_by[Opp][BSHP]
+                                  | ei.pin_attacked_by[Opp][ROOK]
+                                 )
+                              |  (  ei.pin_attacked_by[Own][PAWN]
+                                  | ei.pin_attacked_by[Own][NIHT]
+                                  | ei.pin_attacked_by[Own][BSHP]
+                                  | ei.pin_attacked_by[Own][ROOK]
+                                 );
+                }
 
                 i32 mob = pop_count<QUEN == PT ? FULL : MAX15> (attacks & mobility_area);
                 mobility += MOBILITY_BONUS[PT][mob];
@@ -1019,9 +1043,6 @@ namespace Evaluator {
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][BSHP];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][BSHP];
 
-            //mobility_area[WHITE] &= ~(ei.pin_attacked_by[BLACK][NONE]);
-            //mobility_area[BLACK] &= ~(ei.pin_attacked_by[WHITE][NONE]);
-
             score += 
                 + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
                 - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
@@ -1029,9 +1050,6 @@ namespace Evaluator {
             ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][ROOK];
             ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][ROOK];
             ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][ROOK];
-
-            mobility_area[WHITE] &= ~(ei.pin_attacked_by[BLACK][NONE]);
-            mobility_area[BLACK] &= ~(ei.pin_attacked_by[WHITE][NONE]);
 
             score += 
                 + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
