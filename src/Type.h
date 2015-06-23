@@ -457,10 +457,10 @@ INC_DEC_OPERATORS (Value)
 // Additional operators to a Value
 inline Value  operator+  (i32 i, Value v) { return Value(i + i32(v)); }
 inline Value  operator-  (i32 i, Value v) { return Value(i - i32(v)); }
-inline Value  operator/  (Value  v, i32 i) { return Value(i32(v) / i); }
-inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
 inline Value  operator*  (Value  v, double f) { return Value(i32(i32(v) * f)); }
 inline Value& operator*= (Value &v, double f) { v = Value(i32(i32(v) * f)); return v; }
+inline Value  operator/  (Value  v, i32 i) { return Value(i32(v) / i); }
+inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1) / i32(v2); }
 
 // Make score from mid and end values
@@ -476,13 +476,14 @@ inline Value mg_value (Score s) { ValueUnion mg = { u16(u32(s + 0x8000) >> 0x10)
 inline Value eg_value (Score s) { ValueUnion eg = { u16(u32(s         )        ) }; return Value(eg.s); }
 
 ARTHMAT_OPERATORS (Score)
-/// Only declared but not defined. Don't want to multiply two scores due to
-/// a very high risk of overflow. So user should explicitly convert to integer.
+// Only declared but not defined. Don't want to multiply two scores due to
+// a very high risk of overflow. So user should explicitly convert to integer.
 inline Score  operator*  (Score s1, Score s2);
-/// Division of a Score must be handled separately for each term
-inline Score  operator/  (Score  s, i32   i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+// Multiplication & Division of a Score must be handled separately for each term
 inline Score  operator*  (Score  s, double f) { return mk_score (mg_value (s) * f, eg_value (s) * f); }
 inline Score& operator*= (Score &s, double f) { s = mk_score (mg_value (s) * f, eg_value (s) * f); return s; }
+inline Score  operator/  (Score  s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+inline Score& operator/= (Score &s, i32 i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)

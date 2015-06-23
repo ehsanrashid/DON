@@ -817,29 +817,29 @@ namespace Evaluator {
                 Square s = pop_lsq (passed_pawns);
                 assert (pos.passed_pawn (Own, s));
                 
-                i32 r = max (i32(rel_rank (Own, s)) - i32(R_2), 1);
+                i32 r = max (i32(rel_rank (Own, s) - R_2), 1);
                 i32 rr = r * (r - 1);
 
                 // Base bonus depends on rank
-                Value mg_value = Value(17 * (rr + 0*r + 0));
-                Value eg_value = Value( 7 * (rr + 1*r + 1));
-                Square block_sq = s + Push;
+                Value mg_value = Value(17*(rr + 0*r + 0));
+                Value eg_value = Value( 7*(rr + 1*r + 1));
 
                 if (rr != 0)
                 {
+                    Square block_sq = s + Push;
                     Square fk_sq = pos.king_sq (Own);
                     Square ek_sq = pos.king_sq (Opp);
 
                     // Adjust bonus based on kings proximity
                     eg_value += 
-                        + (5 * rr * SQR_DIST[ek_sq][block_sq])
-                        - (2 * rr * SQR_DIST[fk_sq][block_sq]);
+                        + 5*rr*SQR_DIST[ek_sq][block_sq]
+                        - 2*rr*SQR_DIST[fk_sq][block_sq];
                     // If block square is not the queening square then consider also a second push
                     if (rel_rank (Own, block_sq) != R_8)
                     {
-                        eg_value -= (1 * rr * SQR_DIST[fk_sq][block_sq + Push]);
+                        eg_value -= 1*rr*SQR_DIST[fk_sq][block_sq + Push];
                     }
-
+                    /*
                     bool pinned = (ei.pinneds[Own] & s) != U64(0);
                     if (pinned)
                     {
@@ -850,9 +850,9 @@ namespace Evaluator {
                             );
                         pinned = !(BETWEEN_bb[fk_sq][scan_lsq (pawn_pinners)] & block_sq);
                     }
-
+                    */
                     // If the pawn is free to advance, increase bonus
-                    if (!pinned && pos.empty (block_sq))
+                    if (/*!pinned &&*/ pos.empty (block_sq))
                     {
                         // Squares to queen
                         Bitboard front_squares = FRONT_SQRS_bb[Own][s];
@@ -897,7 +897,7 @@ namespace Evaluator {
                         }
                     }
                     else
-                    if (pinned || (pos.pieces (Own) & block_sq))
+                    if (/*pinned ||*/ (pos.pieces (Own) & block_sq))
                     {
                         mg_value += 3*rr + 2*r + 3;
                         eg_value += 1*rr + 2*r + 0;

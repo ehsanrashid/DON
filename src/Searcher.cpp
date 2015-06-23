@@ -1711,7 +1711,7 @@ namespace Searcher {
     u32  EmergencyClockTime  =  60; // Always attempt to keep at least this much time at clock, in milliseconds.
     u32  EmergencyMoveTime   =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
     u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
-    u32  MoveSlowness        = 110; // Move Slowness, in %age.
+    u32  MoveSlowness        = 100; // Move Slowness, in %age.
     u32  NodesTime           =   0;
     bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 
@@ -1964,6 +1964,7 @@ namespace Searcher {
             i16 timed_contempt = 0;
             i16 diff_time = 0;
             if (   ContemptTime != 0
+                && Limits.use_timemanager ()
                 && (diff_time = i16(Limits.clock[RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
                 //&& ContemptTime <= abs (diff_time)
                )
