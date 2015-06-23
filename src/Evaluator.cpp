@@ -839,7 +839,7 @@ namespace Evaluator {
                     {
                         eg_value -= 1*rr*SQR_DIST[fk_sq][block_sq + Push];
                     }
-                    /*
+
                     bool pinned = (ei.pinneds[Own] & s) != U64(0);
                     if (pinned)
                     {
@@ -850,9 +850,9 @@ namespace Evaluator {
                             );
                         pinned = !(BETWEEN_bb[fk_sq][scan_lsq (pawn_pinners)] & block_sq);
                     }
-                    */
+
                     // If the pawn is free to advance, increase bonus
-                    if (/*!pinned &&*/ pos.empty (block_sq))
+                    if (!pinned && pos.empty (block_sq))
                     {
                         // Squares to queen
                         Bitboard front_squares = FRONT_SQRS_bb[Own][s];
