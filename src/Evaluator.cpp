@@ -161,18 +161,17 @@ namespace Evaluator {
 
         // Evaluation weights, initialized from UCI options
         Weight Weights[5];
+        // Internal evaluation weights
+        const Weight INTERNAL_WEIGHTS[5] =
+        {
+            {289,344}, // Piece Mobility
+            {233,201}, // Pawn Structure
+            {221,273}, // Passed Pawns
+            { 46,  0}, // Space Activity
+            {322,  0}  // King Safety
+        };
 
     #define S(mg, eg) mk_score (mg, eg)
-
-        // Internal evaluation weights
-        const Score INTERNAL_WEIGHTS[5] =
-        {
-            S(289,344), // Piece Mobility
-            S(233,201), // Pawn Structure
-            S(221,273), // Passed Pawns
-            S( 46,  0), // Space Activity
-            S(322,  0)  // King Safety
-        };
 
         // MOBILITY_BONUS[PieceT][Attacks] contains bonuses for mobility,
         const Score MOBILITY_BONUS[NONE][28] =
@@ -284,12 +283,12 @@ namespace Evaluator {
 
         // weight_option() computes the value of an evaluation weight,
         // by combining UCI-configurable weights with an internal weight.
-        Weight weight_option (i32 opt_value, const Score &internal_weight)
+        Weight weight_option (i32 opt_value, const Weight &internal_weight)
         {
             return
             {
-                opt_value * mg_value (internal_weight) / 1000,
-                opt_value * eg_value (internal_weight) / 1000
+                opt_value * internal_weight.mg / 1000,
+                opt_value * internal_weight.eg / 1000
             };
         }
 
@@ -1186,11 +1185,11 @@ namespace Evaluator {
     // initialize() init evaluation weights
     void initialize ()
     {
-        Weights[PIECE_MOBILITY] = weight_option (1000 , INTERNAL_WEIGHTS[PIECE_MOBILITY]);
-        Weights[PAWN_STRUCTURE] = weight_option (1000 , INTERNAL_WEIGHTS[PAWN_STRUCTURE]);
-        Weights[PASSED_PAWN   ] = weight_option (1000 , INTERNAL_WEIGHTS[PASSED_PAWN   ]);
-        Weights[SPACE_ACTIVITY] = weight_option (1000 , INTERNAL_WEIGHTS[SPACE_ACTIVITY]);
-        Weights[KING_SAFETY   ] = weight_option (1000 , INTERNAL_WEIGHTS[KING_SAFETY   ]);
+        Weights[PIECE_MOBILITY] = weight_option (1000, INTERNAL_WEIGHTS[PIECE_MOBILITY]);
+        Weights[PAWN_STRUCTURE] = weight_option (1000, INTERNAL_WEIGHTS[PAWN_STRUCTURE]);
+        Weights[PASSED_PAWN   ] = weight_option (1000, INTERNAL_WEIGHTS[PASSED_PAWN   ]);
+        Weights[SPACE_ACTIVITY] = weight_option (1000, INTERNAL_WEIGHTS[SPACE_ACTIVITY]);
+        Weights[KING_SAFETY   ] = weight_option (1000, INTERNAL_WEIGHTS[KING_SAFETY   ]);
 
         const i32 MAX_SLOPE  = 8700;
         const i32 PEAK_VALUE = 1280000;
