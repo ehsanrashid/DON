@@ -835,7 +835,7 @@ namespace Searcher {
                                 if (value >= beta)
                                 {
                                     // Don't return unproven unproven mates
-                                    return value < +VALUE_MATE_IN_MAX_DEPTH ? value : beta;
+                                    return null_value < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
                                 }
                             }
                         }

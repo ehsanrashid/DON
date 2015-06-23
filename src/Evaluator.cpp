@@ -851,7 +851,9 @@ namespace Evaluator {
                     }
 
                     // If the pawn is free to advance, increase bonus
-                    if (!pinned && pos.empty (block_sq))
+                    if (!pinned)
+                    {
+                    if (pos.empty (block_sq))
                     {
                         // Squares to queen
                         Bitboard front_squares = FRONT_SQRS_bb[Own][s];
@@ -896,12 +898,12 @@ namespace Evaluator {
                         }
                     }
                     else
-                    if (/*pinned ||*/ (pos.pieces (Own) & block_sq))
+                    if ((pos.pieces (Own) & block_sq) != U64(0))
                     {
                         mg_value += 3*rr + 2*r + 3;
                         eg_value += 1*rr + 2*r + 0;
                     }
-                
+                    }
                 }
 
                 // Increase the bonus if more non-pawn pieces
