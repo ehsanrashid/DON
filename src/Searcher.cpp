@@ -2322,7 +2322,7 @@ namespace Threading {
                     {
                         assert (this != th);
                         assert (splitpoint == nullptr || !splitpoint->slaves_mask.none ());
-                        assert (Threadpool.size () > 2);
+                        assert (Threadpool.size () > 1);
 
                         // Prefer to join to SP with few parents to reduce the probability
                         // that a cut-off occurs above us, and hence we waste our work.
