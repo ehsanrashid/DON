@@ -636,6 +636,8 @@ public:
 
 };
 
+typedef std::vector<Move> MoveVector;
+
 //template<class Iterator> 
 //inline auto slide (Iterator beg, Iterator end, Iterator pos) -> std::pair<Iterator, Iterator>
 //{

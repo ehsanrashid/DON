@@ -20,8 +20,6 @@ namespace Searcher {
 
     const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be < MAX_DEPTH/2
 
-    typedef std::vector<Move> MoveVector;
-    
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
     //  - Maximum depth.

@@ -1525,7 +1525,7 @@ namespace Searcher {
                 if (SearchLogWrite)
                 {
                     LogFile logfile (SearchLog);
-                    logfile << pretty_pv (RootPos, depth, RootMoves[0].new_value, TimeMgr.elapsed_time (), &RootMoves[0].pv[0]) << endl;
+                    logfile << pretty_pv (RootPos, depth, RootMoves[0].new_value, TimeMgr.elapsed_time (), RootMoves[0].pv) << endl;
                 }
 
                 // Stop the search early:
@@ -2009,30 +2009,6 @@ namespace Searcher {
                 Threadpool.auto_save_th->stop ();
                 delete_thread (Threadpool.auto_save_th);
             }
-
-            if (SearchLogWrite)
-            {
-                LogFile logfile (SearchLog);
-                
-                u32 elapsed_time = max (TimeMgr.elapsed_time (), 1U);
-
-                logfile
-                    << "Time (ms)  : " << elapsed_time                              << "\n"
-                    << "Nodes (N)  : " << RootPos.game_nodes ()                     << "\n"
-                    << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / elapsed_time << "\n"
-                    << "Hash-full  : " << TT.hash_full ()                           << "\n"
-                    << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
-                if (    RootMoves[0].pv[0] != MOVE_NONE
-                    && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt (RootPos))
-                   )
-                {
-                    StateInfo si;
-                    RootPos.do_move (RootMoves[0].pv[0], si, RootPos.gives_check (RootMoves[0].pv[0], CheckInfo (RootPos)));
-                    logfile << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos) << "\n";
-                    RootPos.undo_move ();
-                }
-                logfile << endl;
-            }
         }
         else
         {
@@ -2044,33 +2020,35 @@ namespace Searcher {
                 << " score " << to_string (RootPos.checkers () != U64(0) ? -VALUE_MATE : VALUE_DRAW)
                 << " time "  << 0
                 << sync_endl;
-
-            if (SearchLogWrite)
-            {
-                LogFile logfile (SearchLog);
-
-                logfile
-                    << pretty_pv (RootPos, 0, RootPos.checkers () != U64(0) ? -VALUE_MATE : VALUE_DRAW, 0, &RootMoves[0].pv[0]) << "\n"
-                    << "Time (ms)  : " << 0        << "\n"
-                    << "Nodes (N)  : " << 0        << "\n"
-                    << "Speed (N/s): " << 0        << "\n"
-                    << "Hash-full  : " << 0        << "\n"
-                    << "Best move  : " << "(none)" << "\n"
-                    << endl;
-            }
         }
 
     finish:
 
         u32 elapsed_time = max (TimeMgr.elapsed_time (), 1U);
-        // When search is stopped this info is printed
-        sync_cout
-            << "info"
-            << " time "     << elapsed_time
-            << " nodes "    << RootPos.game_nodes ()
-            << " nps "      << RootPos.game_nodes () * MILLI_SEC / elapsed_time;
-        if (elapsed_time > MILLI_SEC) cout << " hashfull " << TT.hash_full ();
-        cout<< sync_endl;
+
+        assert (RootMoves[0].pv.size () != 0);
+
+        if (SearchLogWrite)
+        {
+            LogFile logfile (SearchLog);
+                
+            logfile
+                << "Time (ms)  : " << elapsed_time                              << "\n"
+                << "Nodes (N)  : " << RootPos.game_nodes ()                     << "\n"
+                << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / elapsed_time << "\n"
+                << "Hash-full  : " << TT.hash_full ()                           << "\n"
+                << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
+            if (    RootMoves[0].pv[0] != MOVE_NONE
+                && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt (RootPos))
+                )
+            {
+                StateInfo si;
+                RootPos.do_move (RootMoves[0].pv[0], si, RootPos.gives_check (RootMoves[0].pv[0], CheckInfo (RootPos)));
+                logfile << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos) << "\n";
+                RootPos.undo_move ();
+            }
+            logfile << endl;
+        }
 
         // When playing in 'nodes as time' mode, subtract the searched nodes from
         // the available ones before to exit.
@@ -2088,8 +2066,6 @@ namespace Searcher {
             Signals.ponderhit_stop = true;
             RootPos.thread ()->wait_for (Signals.force_stop);
         }
-
-        assert (RootMoves[0].pv.size () != 0);
 
         // Best move could be MOVE_NONE when searching on a stalemate position
         sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], Chess960);

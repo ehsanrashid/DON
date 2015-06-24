@@ -180,7 +180,7 @@ namespace Notation {
         }
         else
         {
-            PieceT pt  = ptype (pos[org]);
+            PieceT pt = ptype (pos[org]);
 
             if (PAWN != pt)
             {
@@ -215,9 +215,8 @@ namespace Notation {
             }
         }
 
-        CheckInfo ci (pos);
         // Move marker for check & checkmate
-        if (pos.gives_check (m, ci))
+        if (pos.gives_check (m, CheckInfo (pos)))
         {
             StateInfo si;
             pos.do_move (m, si, true);
@@ -260,7 +259,7 @@ namespace Notation {
     // pretty_pv() returns formated human-readable search information, typically to be
     // appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv (Position &pos, i32 depth, Value value, TimePoint time, const Move *pv)
+    string pretty_pv (Position &pos, i32 depth, Value value, TimePoint time, const MoveVector &pv)
     {
         static const u64 K = 1000;
         static const u64 M = K*K;
@@ -307,22 +306,21 @@ namespace Notation {
         */
 
         StateStack states;
-        const Move *m = pv;
-        while (*m != MOVE_NONE)
+        u08 ply = 0;
+        for (Move m : pv)
         {
-            oss << move_to_san (*m, pos) << " ";
+            oss << move_to_san (m, pos) << " ";
             states.push (StateInfo ());
-            pos.do_move (*m, states.top (), pos.gives_check (*m, CheckInfo (pos)));
+            pos.do_move (m, states.top (), pos.gives_check (m, CheckInfo (pos)));
             //---------------------------------
-            //oss << move_to_can (*m, pos.chess960 ()) << " ";
-
-            ++m;
+            //oss << move_to_can (m, pos.chess960 ()) << " ";
+            ++ply;
         }
 
-        while (m != pv)
+        while (ply != 0)
         {
             pos.undo_move ();
-            --m;
+            --ply;
         }
 
         return oss.str ();
