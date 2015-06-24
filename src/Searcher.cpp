@@ -268,7 +268,7 @@ namespace Searcher {
             stringstream ss;
 
             i32 sel_depth = 0;
-            for (Thread *th : Threadpool)
+            for (auto *th : Threadpool)
             {
                 if (sel_depth < th->max_ply)
                 {
@@ -1976,7 +1976,7 @@ namespace Searcher {
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 
-            for (Thread *th : Threadpool)
+            for (auto *th : Threadpool)
             {
                 th->max_ply = 0;
                 th->notify_one (); // Wake up all the threads
@@ -2213,7 +2213,7 @@ namespace Threading {
             // Loop across all split points and sum accumulated SplitPoint nodes plus
             // all the currently active positions nodes.
             // FIXME: Racy...
-            for (Thread *th : Threadpool)
+            for (auto *th : Threadpool)
             {
                 for (u08 i = 0; i < th->splitpoint_count; ++i)
                 {
@@ -2309,7 +2309,7 @@ namespace Threading {
                 SplitPoint *best_sp   = nullptr;
                 i32         min_level = INT_MAX;
 
-                for (Thread *th : Threadpool)
+                for (auto *th : Threadpool)
                 {
                     u08  count = th->splitpoint_count; // Local copy
 

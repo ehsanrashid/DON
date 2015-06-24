@@ -380,10 +380,10 @@ namespace Evaluator {
                 Bitboard attacks =
                     BSHP == PT ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
                     ROOK == PT ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
-                    QUEN == PT ? attacks_bb<BSHP> (s, pos.pieces ()) | attacks_bb<ROOK> (s, pos.pieces ()) :
+                    QUEN == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ pos.pieces<QUEN> (Own)) | attacks_bb<ROOK> (s, pos.pieces () ^ pos.pieces<QUEN> (Own)) :
                                  PIECE_ATTACKS[PT][s];
 
-                ei.ful_attacked_by[Own][PT] |= attacks;
+                ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= attacks;
 
                 if ((ei.king_ring[Opp] & attacks) != U64(0))
                 {
@@ -396,7 +396,8 @@ namespace Evaluator {
                 {
                     attacks &= RAYLINE_bb[pos.king_sq (Own)][s];
                 }
-                ei.pin_attacked_by[Own][PT] |= attacks;
+                ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PT] |= attacks;
+
                 /*
                 if (ROOK == PT)
                 {
@@ -1012,14 +1013,23 @@ namespace Evaluator {
             ei.pi  = Pawns::probe (pos);
             score += ei.pi->pawn_score * Weights[PAWN_STRUCTURE];
 
-            ei.ful_attacked_by[WHITE][NONE] = ei.pin_attacked_by[WHITE][NONE] = U64(0);
-            ei.ful_attacked_by[BLACK][NONE] = ei.pin_attacked_by[BLACK][NONE] = U64(0);
+            for (i08 c = WHITE; c <= BLACK; ++c)
+            {
+                ei.ful_attacked_by[c][NONE] = ei.pin_attacked_by[c][NONE] = U64(0);
+            }
+
             // Initialize attack and king safety bitboards
             init_evaluation<WHITE> (pos, ei);
             init_evaluation<BLACK> (pos, ei);
 
+            for (i08 c = WHITE; c <= BLACK; ++c)
+            {
+                ei.ful_attacked_by[c][NONE] |= ei.ful_attacked_by[c][KING];
+                ei.pin_attacked_by[c][NONE] |= ei.pin_attacked_by[c][KING];
+            }
+
             // Evaluate pieces and mobility
-            Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO }; 
+            Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
             // Do not include in mobility squares occupied by friend pawns or king or protected by enemy pawns 
             Bitboard mobility_area[CLR_NO] =
             {
@@ -1030,40 +1040,15 @@ namespace Evaluator {
             score += 
                 + evaluate_pieces<WHITE, NIHT, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
                 - evaluate_pieces<BLACK, NIHT, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
-            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][NIHT];
-            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][NIHT];
-            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][NIHT];
-            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][NIHT];
-
             score += 
                 + evaluate_pieces<WHITE, BSHP, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
                 - evaluate_pieces<BLACK, BSHP, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
-            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][BSHP];
-            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][BSHP];
-            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][BSHP];
-            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][BSHP];
-
             score += 
                 + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
                 - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
-            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][ROOK];
-            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][ROOK];
-            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][ROOK];
-            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][ROOK];
-
             score += 
                 + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
                 - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
-            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][QUEN];
-            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][QUEN];
-            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][QUEN];
-            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][QUEN];
-
-
-            ei.ful_attacked_by[WHITE][NONE] |= ei.ful_attacked_by[WHITE][KING];
-            ei.ful_attacked_by[BLACK][NONE] |= ei.ful_attacked_by[BLACK][KING];
-            ei.pin_attacked_by[WHITE][NONE] |= ei.pin_attacked_by[WHITE][KING];
-            ei.pin_attacked_by[BLACK][NONE] |= ei.pin_attacked_by[BLACK][KING];
 
             // Weight mobility
             score += (mobility[WHITE] - mobility[BLACK]) * Weights[PIECE_MOBILITY];
