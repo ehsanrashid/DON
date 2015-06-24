@@ -349,9 +349,8 @@ namespace Searcher {
                 // To flag EXACT a node with eval above alpha and no available moves
                 pv_alpha = alpha;
                 
-                (ss  )->pv[0] = MOVE_NONE;
-                fill (begin (pv), end (pv), MOVE_NONE);
                 (ss+1)->pv = pv;
+                (ss+0)->pv[0] = MOVE_NONE;
             }
 
             Move  tt_move    = MOVE_NONE
@@ -1189,8 +1188,8 @@ namespace Searcher {
                 // alpha >= value and to try another better move.
                 if (PVNode && (1 == legal_count || (alpha < value && (RootNode || value < beta))))
                 {
-                    fill (begin (pv), end (pv), MOVE_NONE);
                     (ss+1)->pv = pv;
+                    (ss+1)->pv[0] = MOVE_NONE;
 
                     value =
                         new_depth < DEPTH_ONE ?
