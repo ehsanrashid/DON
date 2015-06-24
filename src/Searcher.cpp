@@ -199,6 +199,8 @@ namespace Searcher {
             // Decrease all the other played quiet moves
             for (u08 i = 0; i < quiet_count; ++i)
             {
+                assert (quiet_moves[i] != move);
+
                 HistoryValues.update (pos, quiet_moves[i], -bonus);
 
                 if (opp_move_dst != SQ_NO)
@@ -520,7 +522,7 @@ namespace Searcher {
                         -quien_search<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
                         -quien_search<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
 
-                bool nextmove_legal = PVNode && (ss+1)->pv != nullptr && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
+                bool nextmove_legal = PVNode && (ss+1)->pv != nullptr && _ok ((ss+1)->pv[0]) && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
 
                 // Undo the move
                 pos.undo_move ();
@@ -1198,7 +1200,7 @@ namespace Searcher {
                             -depth_search<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                 }
                 
-                bool nextmove_legal = PVNode && !RootNode && (ss+1)->pv != nullptr && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
+                bool nextmove_legal = PVNode && !RootNode && (ss+1)->pv != nullptr && _ok ((ss+1)->pv[0]) && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
 
                 // Step 17. Undo move
                 pos.undo_move ();

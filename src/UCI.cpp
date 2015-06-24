@@ -417,7 +417,7 @@ namespace UCI {
 
         } while (running && cmd != "quit");
 
-        Threadpool.main()->join (); // Cannot quit whilst the search is running
+        Threadpool.main ()->join (); // Cannot quit whilst the search is running
     }
 
     // stop() stops all the threads and other stuff.
