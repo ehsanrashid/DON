@@ -277,34 +277,6 @@ namespace Notation {
         else
                               oss << setw (7) << game_nodes / M << "M  ";
 
-        /*
-        string spv = oss.str ();
-        string padding = string (spv.length (), ' ');
-
-        StateStack states;
-        const Move *m = pv;
-        while (*m != MOVE_NONE)
-        {
-            string san = move_to_san (*m, pos) + " ";
-            if ((spv.length () + san.length ()) % 80 <= san.length ()) // Exceed 80 cols
-            {
-                spv += "\n" + padding;
-            }
-            spv += san;
-            states.push (StateInfo ());
-            pos.do_move (*m, states.top ());
-            ++m;
-        }
-
-        while (m != pv)
-        {
-            pos.undo_move ();
-            --m;
-        }
-
-        return spv;
-        */
-
         StateStack states;
         u08 ply = 0;
         for (Move m : pv)

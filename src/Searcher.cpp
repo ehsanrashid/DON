@@ -1275,7 +1275,7 @@ namespace Searcher {
                         best_move = SPNode ? splitpoint->best_move = move : move;
 
                         if (PVNode && !RootNode)
-                        {    
+                        {
                             if (nextmove_legal)
                             {
                                 update_pv (SPNode ? splitpoint->ss->pv : ss->pv, best_move, (ss+1)->pv);
@@ -1343,7 +1343,7 @@ namespace Searcher {
             {
                 // If all possible moves have been searched and if there are no legal moves,
                 // If in a singular extension search then return a fail low score (alpha).
-                // Otherwise it must be mate or stalemate, so return value accordingly.
+                // Otherwise it must be checkmate or stalemate, so return value accordingly.
                 if (0 == legal_count)
                 {
                     best_value = 

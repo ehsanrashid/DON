@@ -1090,8 +1090,8 @@ namespace Evaluator {
             // Evaluate space for both sides, only during opening
             if (npm[WHITE] + npm[BLACK] >= 11756)
             {
-                space[WHITE] = evaluate_space_activity<WHITE>(pos, ei);
-                space[BLACK] = evaluate_space_activity<BLACK>(pos, ei);
+                space[WHITE] = evaluate_space_activity<WHITE> (pos, ei);
+                space[BLACK] = evaluate_space_activity<BLACK> (pos, ei);
                 score += (space[WHITE] - space[BLACK]) * Weights[SPACE_ACTIVITY];
             }
 
