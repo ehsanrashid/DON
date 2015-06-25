@@ -372,11 +372,11 @@ namespace Searcher {
                 tt_bound = tte->bound ();
             }
 
-            Thread *thread = pos.thread ();
+            auto *thread = pos.thread ();
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in quien_search use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            Depth qs_depth = InCheck || depth >= DEPTH_QS_CHECKS ?
+            auto qs_depth = InCheck || depth >= DEPTH_QS_CHECKS ?
                                 DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             if (   !PVNode
@@ -391,7 +391,7 @@ namespace Searcher {
                 return tt_value;
             }
 
-            Value futility_base = -VALUE_INFINITE;
+            auto futility_base = -VALUE_INFINITE;
             // Evaluate the position statically
             if (InCheck)
             {
@@ -469,7 +469,7 @@ namespace Searcher {
                     {
                         assert (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
 
-                        Value futility_value = futility_base + PIECE_VALUE[EG][ptype (pos[dst_sq (move)])];
+                        auto futility_value = futility_base + PIECE_VALUE[EG][ptype (pos[dst_sq (move)])];
 
                         if (futility_value <= alpha)
                         {
@@ -597,7 +597,7 @@ namespace Searcher {
 
             Key posi_key;
             bool tt_hit = false;
-            TTEntry *tte = nullptr;
+            auto *tte = (TTEntry*) nullptr;
 
             Move  move
                 , tt_move     = MOVE_NONE
@@ -1132,7 +1132,7 @@ namespace Searcher {
                         || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
                             && opp_move_dst != SQ_NO
                             && CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst]
-                                                        [pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
+                                                        [pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
                            )
                        )
                     {
@@ -1392,7 +1392,7 @@ namespace Searcher {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
             memset (ss-2, 0x00, 5*sizeof (*ss));
 
-            Move easy_move = MoveMgr.easy_move (RootPos.posi_key ());
+            auto easy_move = MoveMgr.easy_move (RootPos.posi_key ());
             MoveMgr.clear ();
 
             if (SkillMgr.enabled ()) SkillMgr.clear ();
@@ -1770,13 +1770,13 @@ namespace Searcher {
         pos.do_move (pv[0], st, pos.gives_check (pv[0], CheckInfo (pos)));
 
         bool tt_hit;
-        TTEntry *tte = TT.probe (pos.posi_key (), tt_hit);
+        auto *tte = TT.probe (pos.posi_key (), tt_hit);
         
         pos.undo_move ();
 
         if (tt_hit)
         {
-            Move m = tte->move (); // Local copy to be SMP safe
+            auto m = tte->move (); // Local copy to be SMP safe
             if (   m != MOVE_NONE
                 && MoveList<LEGAL> (pos).contains (m)
                )
@@ -1959,7 +1959,7 @@ namespace Searcher {
                 }
                 if (Book.is_open ())
                 {
-                    Move book_move = Book.probe_move (RootPos, BestBookMove);
+                    auto book_move = Book.probe_move (RootPos, BestBookMove);
                     if (book_move != MOVE_NONE && count (RootMoves.begin (), RootMoves.end (), book_move))
                     {
                         swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
