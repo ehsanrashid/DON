@@ -188,7 +188,6 @@ namespace Searcher {
 
     extern std::string          HashFile;
     extern u16                  AutoSaveHashTime;
-    extern bool                 AutoLoadHash;
 
     extern std::string          BookFile;
     extern bool                 BestBookMove;

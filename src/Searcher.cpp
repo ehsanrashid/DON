@@ -1701,7 +1701,6 @@ namespace Searcher {
 
     string              HashFile        = "Hash.dat";
     u16                 AutoSaveHashTime= 0;
-    bool                AutoLoadHash    = false;
 
     string              BookFile        = "";
     bool                BestBookMove    = true;
@@ -1989,11 +1988,6 @@ namespace Searcher {
                 th->notify_one (); // Wake up all the threads
             }
 
-            if (AutoLoadHash)
-            {
-                TT.load (HashFile);
-                AutoLoadHash = false;
-            }
             if (AutoSaveHashTime != 0 && !white_spaces (HashFile))
             {
                 FirstAutoSave = true;
