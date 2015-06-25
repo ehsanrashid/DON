@@ -30,7 +30,7 @@ namespace Material {
         EndGame::EndgameBase<Value>         *evaluation_func;
         EndGame::EndgameBase<ScaleFactor>   *scaling_func[CLR_NO];
 
-        bool  specialized_eval_exists ()     const { return ( evaluation_func != nullptr); }
+        bool  specialized_eval_exists ()     const { return   evaluation_func != nullptr; }
         Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
         
         template<Color Own>

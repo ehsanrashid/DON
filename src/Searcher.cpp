@@ -1966,7 +1966,7 @@ namespace Searcher {
             i16 diff_time = 0;
             if (   ContemptTime != 0
                 && Limits.use_timemanager ()
-                && (diff_time = i16(Limits.clock[RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
+                && (diff_time = i16(Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
                 //&& ContemptTime <= abs (diff_time)
                )
             {

@@ -380,7 +380,8 @@ namespace Evaluator {
                 Bitboard attacks =
                     BSHP == PT ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
                     ROOK == PT ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
-                    QUEN == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ pos.pieces<QUEN> (Own)) | attacks_bb<ROOK> (s, pos.pieces () ^ pos.pieces<QUEN> (Own)) :
+                    QUEN == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ pos.pieces<QUEN> (Own))
+                               | attacks_bb<ROOK> (s, pos.pieces () ^ pos.pieces<QUEN> (Own)) :
                                  PIECE_ATTACKS[PT][s];
 
                 ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= attacks;
@@ -412,7 +413,7 @@ namespace Evaluator {
                 */
                 if (QUEN == PT)
                 {
-                    attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
+                    attacks &= ~(   ei.pin_attacked_by[Opp][NIHT]
                                   | ei.pin_attacked_by[Opp][BSHP]
                                   | ei.pin_attacked_by[Opp][ROOK]
                                  )
@@ -619,7 +620,7 @@ namespace Evaluator {
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
-                            if (   (unsafe & sq)
+                            if (   (unsafe & sq) != U64(0)
                                 || (  pos.count<QUEN> (Opp) > 1
                                     && more_than_one (pos.pieces<QUEN> (Opp) & (PIECE_ATTACKS[BSHP][sq]|PIECE_ATTACKS[ROOK][sq]))
                                     && more_than_one (pos.pieces<QUEN> (Opp) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces<QUEN> (Opp))|attacks_bb<ROOK> (sq, occ ^ pos.pieces<QUEN> (Opp))))
@@ -646,7 +647,7 @@ namespace Evaluator {
                         while (undefended_attacked != U64(0))
                         {
                             Square sq = pop_lsq (undefended_attacked);
-                            if (   (unsafe & sq)
+                            if (   (unsafe & sq) != U64(0)
                                 || (   pos.count<ROOK> (Opp) > 1
                                     && more_than_one (pos.pieces<ROOK> (Opp) & PIECE_ATTACKS[ROOK][sq])
                                     && more_than_one (pos.pieces<ROOK> (Opp) & attacks_bb<ROOK> (sq, occ ^ pos.pieces<ROOK> (Opp)))
@@ -674,7 +675,7 @@ namespace Evaluator {
                         {
                             Square sq = pop_lsq (undefended_attacked);
                             Bitboard bishops = U64(0);
-                            if (   (unsafe & sq)
+                            if (   (unsafe & sq) != U64(0)
                                 || (   pos.count<BSHP> (Opp) > 1
                                     && (bishops = pos.pieces<BSHP> (Opp) & squares_of_color (sq)) != U64(0)
                                     && more_than_one (bishops)
@@ -833,7 +834,7 @@ namespace Evaluator {
 
             Score score = SCORE_ZERO;
 
-            bool piece_majority = pos.count<NONPAWN>(Own) > pos.count<NONPAWN>(Opp);
+            i32 nonpawn_diff = pos.count<NONPAWN>(Own) - pos.count<NONPAWN>(Opp);
 
             Bitboard passed_pawns = ei.pi->passed_pawns[Own];
             while (passed_pawns != U64(0))
@@ -875,9 +876,9 @@ namespace Evaluator {
                         pinned = !(BETWEEN_bb[fk_sq][scan_lsq (pawn_pinners)] & block_sq);
                     }
 
-                    // If the pawn is free to advance, increase bonus
                     if (!pinned)
                     {
+                    // If the pawn is free to advance
                     if (pos.empty (block_sq))
                     {
                         // Squares to queen
@@ -923,6 +924,7 @@ namespace Evaluator {
                         }
                     }
                     else
+                    // If the pawn is blocked by own pieces
                     if ((pos.pieces (Own) & block_sq) != U64(0))
                     {
                         mg_value += 3*rr + 2*r + 3;
@@ -931,10 +933,10 @@ namespace Evaluator {
                     }
                 }
 
-                // Increase the bonus if more non-pawn pieces
-                if (piece_majority)
+                // If non-pawn pieces difference
+                if (nonpawn_diff != 0)
                 {
-                    eg_value += eg_value / 4;
+                    eg_value += nonpawn_diff * eg_value / 4;
                 }
 
                 score += mk_score (mg_value, eg_value);
@@ -993,8 +995,7 @@ namespace Evaluator {
             // Probe the material hash table
             ei.mi  = Material::probe (pos);
 
-            // If have a specialized evaluation function for the current material
-            // configuration, call it and return.
+            // If have a specialized evaluation function for the current material configuration
             if (ei.mi->specialized_eval_exists ())
             {
                 return ei.mi->evaluate (pos);
@@ -1015,7 +1016,8 @@ namespace Evaluator {
 
             for (i08 c = WHITE; c <= BLACK; ++c)
             {
-                ei.ful_attacked_by[c][NONE] = ei.pin_attacked_by[c][NONE] = U64(0);
+                ei.ful_attacked_by[c][NONE] = U64(0);
+                ei.pin_attacked_by[c][NONE] = U64(0);
             }
 
             // Initialize attack and king safety bitboards
