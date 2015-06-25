@@ -504,10 +504,11 @@ namespace Searcher {
                 // Check for legality just before making the move
                 if (!pos.legal (move, ci.pinneds)) continue;
 
+                ss->current_move = move;
+
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.posi_move_key (move)));
 
-                ss->current_move = move;
                 // Make and search the move
                 pos.do_move (move, si, gives_check);
 
@@ -865,10 +866,10 @@ namespace Searcher {
                             {
                                 if (!pos.legal (move, ci.pinneds)) continue;
 
+                                ss->current_move = move;
+
                                 // Speculative prefetch as early as possible
                                 prefetch (TT.cluster_entry (pos.posi_move_key (move)));
-
-                                ss->current_move = move;
 
                                 pos.do_move (move, si, pos.gives_check (move, ci));
 
@@ -1107,10 +1108,10 @@ namespace Searcher {
                     continue;
                 }
 
+                ss->current_move = move;
+
                 // Speculative prefetch as early as possible
                 prefetch (TT.cluster_entry (pos.posi_move_key (move)));
-
-                ss->current_move = move;
 
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check);
@@ -1279,7 +1280,7 @@ namespace Searcher {
                             && (move != MoveMgr.easy_move (pos.posi_key ()) || legal_count > 1)
                            )
                         {
-                            MoveMgr.clear();
+                            MoveMgr.clear ();
                         }
 
                         best_move = SPNode ? splitpoint->best_move = move : move;
