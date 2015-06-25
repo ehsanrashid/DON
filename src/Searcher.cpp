@@ -1129,6 +1129,7 @@ namespace Searcher {
                    )
                 {
                     Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legal_count);
+
                     // Increase reduction
                     if (   (!PVNode && cut_node)
                         || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
@@ -1140,8 +1141,16 @@ namespace Searcher {
                     {
                         reduction_depth += DEPTH_ONE;
                     }
-                    // Decrease reduction for counter move
-                    if (reduction_depth != DEPTH_ZERO && move == counter_move)
+                    // Decrease reduction for counter move or positive history
+                    if (   reduction_depth != DEPTH_ZERO
+                        && (   (move == counter_move)
+                            || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
+                                && opp_move_sq != SQ_NO
+                                && CounterMovesHistoryValues[pos[opp_move_sq]][opp_move_sq]
+                                                            [pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
+                               )
+                           )
+                       )
                     {
                         reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
                     }
@@ -1154,9 +1163,9 @@ namespace Searcher {
                     {
                         reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
                     }
-                    
+
                     if (SPNode) alpha = splitpoint->alpha;
-                    
+
                     // Search with reduced depth
                     Depth reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
                     value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
@@ -1587,7 +1596,7 @@ namespace Searcher {
                 }
 
             }
-            
+
             // Clear any candidate easy move that wasn't stable for the last search
             // iterations; the second condition prevents consecutive fast moves.
             if (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
