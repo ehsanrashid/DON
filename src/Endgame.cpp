@@ -250,7 +250,7 @@ namespace EndGame {
         auto sr_sq = rel_sq (_strong_side, pos.list<ROOK> (_strong_side)[0]);
         auto wp_sq = rel_sq (_strong_side, pos.list<PAWN> (_weak_side)[0]);
 
-        auto queening_sq = _file (wp_sq) | R_1;
+        auto promote_sq = _file (wp_sq) | R_1;
 
         Value value;
 
@@ -279,7 +279,7 @@ namespace EndGame {
             value = Value(200
                   - 8 * dist (sk_sq, wp_sq+DEL_S)
                   + 8 * dist (wk_sq, wp_sq+DEL_S)
-                  + 8 * dist (wp_sq, queening_sq));
+                  + 8 * dist (wp_sq, promote_sq));
         }
 
         return _strong_side == pos.active () ? +value : -value;
@@ -451,14 +451,14 @@ namespace EndGame {
 
         auto f = _file (sp_sq);
         auto r = _rank (sp_sq);
-        auto queening_sq = f | R_8;
+        auto promote_sq = f | R_8;
         i32 tempo = (pos.active () == _strong_side);
 
         // If the pawn is not too far advanced and the defending king defends the
         // queening square, use the third-rank defence.
         if (   r <= R_5
             && sk_sq <= SQ_H5
-            && dist (wk_sq, queening_sq) <= 1
+            && dist (wk_sq, promote_sq) <= 1
             && (_rank (wr_sq) == R_6 || (r <= R_3 && _rank (sr_sq) != R_6))
            )
         {
@@ -468,7 +468,7 @@ namespace EndGame {
         // The defending side saves a draw by checking from behind in case the pawn
         // has advanced to the 6th rank with the king behind.
         if (   r == R_6
-            && dist (wk_sq, queening_sq) <= 1
+            && dist (wk_sq, promote_sq) <= 1
             && _rank (sk_sq) + tempo <= R_6
             && (_rank (wr_sq) == R_1 || (!tempo && dist (_file (wr_sq), f) >= 3))
            )
@@ -477,7 +477,7 @@ namespace EndGame {
         }
 
         if (   r >= R_6
-            && wk_sq == queening_sq
+            && wk_sq == promote_sq
             && _rank (wr_sq) == R_1
             && (!tempo || dist (sk_sq, sp_sq) >= 2)
            )
@@ -511,28 +511,28 @@ namespace EndGame {
         if (   r == R_7
             && f != F_A
             && f == _file (sr_sq)
-            && sr_sq != queening_sq
-            && dist (sk_sq, queening_sq) < dist (wk_sq, queening_sq) - 2 + tempo
-            && dist (sk_sq, queening_sq) < dist (wk_sq, sr_sq) + tempo
+            && sr_sq != promote_sq
+            && dist (sk_sq, promote_sq) < dist (wk_sq, promote_sq) - 2 + tempo
+            && dist (sk_sq, promote_sq) < dist (wk_sq, sr_sq) + tempo
            )
         {
-            return ScaleFactor (SCALE_FACTOR_MAX - 2 * dist (sk_sq, queening_sq));
+            return ScaleFactor (SCALE_FACTOR_MAX - 2 * dist (sk_sq, promote_sq));
         }
 
         // Similar to the above, but with the pawn further back
         if (   f != F_A
             && f == _file (sr_sq)
             && sr_sq < sp_sq
-            && dist (sk_sq, queening_sq) < dist (wk_sq, queening_sq) - 2 + tempo
+            && dist (sk_sq, promote_sq) < dist (wk_sq, promote_sq) - 2 + tempo
             && dist (sk_sq, sp_sq+DEL_N) < dist (wk_sq, sp_sq+DEL_N) - 2 + tempo
             && (   dist (wk_sq, sr_sq) + tempo >= 3
-                || (   dist (sk_sq, queening_sq) < dist (wk_sq, sr_sq) + tempo
+                || (   dist (sk_sq, promote_sq) < dist (wk_sq, sr_sq) + tempo
                     && dist (sk_sq, sp_sq+DEL_N) < dist (wk_sq, sr_sq) + tempo
                    )
                )
            )
         {
-            return ScaleFactor (SCALE_FACTOR_MAX - 8 * dist (sp_sq, queening_sq) - 2 * dist (sk_sq, queening_sq));
+            return ScaleFactor (SCALE_FACTOR_MAX - 8 * dist (sp_sq, promote_sq) - 2 * dist (sk_sq, promote_sq));
         }
 
         // If the pawn is not far advanced, and the defending king is somewhere in
@@ -643,9 +643,9 @@ namespace EndGame {
         assert (pos.count<PAWN> (_strong_side) >= 2);
         assert (verify_material (pos, _weak_side, VALUE_ZERO, 0));
 
-        auto    wk_sq = pos.king_sq (_weak_side);
-        Bitboard spawns = pos.pieces<PAWN> (_strong_side);
-        auto    sp_sq = scan_frntmost_sq (_strong_side, spawns);
+        auto wk_sq  = pos.king_sq (_weak_side);
+        auto spawns = pos.pieces<PAWN> (_strong_side);
+        auto sp_sq  = scan_frntmost_sq (_strong_side, spawns);
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
@@ -746,7 +746,7 @@ namespace EndGame {
                 return SCALE_FACTOR_DRAW;
             }
             
-            Bitboard path = FRONT_SQRS_bb[_strong_side][sp_sq];
+            auto path = FRONT_SQRS_bb[_strong_side][sp_sq];
             if (   (path & pos.pieces<KING> (_weak_side))
                 || (path & attacks_bb<BSHP> (wb_sq, pos.pieces ()) && dist (wb_sq, sp_sq) >= 3)
                )
@@ -910,7 +910,7 @@ namespace EndGame {
         // No assertions about the material of _weak_side, because we want draws to
         // be detected even when the weaker side has some materials or pawns.
 
-        Bitboard spawns = pos.pieces<PAWN> (_strong_side);
+        auto spawns = pos.pieces<PAWN> (_strong_side);
         auto sp_sq = scan_frntmost_sq (_strong_side, spawns);
         auto sp_f  = _file (sp_sq);
 
@@ -921,20 +921,20 @@ namespace EndGame {
            )
         {
             auto sb_sq = pos.list<BSHP> (_strong_side)[0];
-            auto queening_sq = rel_sq (_strong_side, sp_f | R_8);
+            auto promote_sq = rel_sq (_strong_side, sp_f | R_8);
             auto wk_sq = pos.king_sq (_weak_side);
 
             // The bishop has the wrong color.
-            if (opposite_colors (queening_sq, sb_sq))
+            if (opposite_colors (promote_sq, sb_sq))
             {
                 // If the defending king defends the queening square.
-                if (dist (queening_sq, wk_sq) <= 1)
+                if (dist (promote_sq, wk_sq) <= 1)
                 {
                     return SCALE_FACTOR_DRAW;
                 }
 
                 //// If the defending king has some pawns
-                //Bitboard wpawns = pos.pieces<PAWN> (_weak_side);
+                //auto wpawns = pos.pieces<PAWN> (_weak_side);
                 //if (wpawns && (wpawns & ~FILE_bb[sp_f]) == U64(0))
                 //{
                 //    auto wp_sq = scan_frntmost_sq (_weak_side, wpawns);
@@ -945,11 +945,11 @@ namespace EndGame {
                 //       )
                 //    {
                 //        i32 tempo = (pos.active () == _strong_side);
-                //        if (dist (queening_sq, wk_sq) < dist (wp_sq, sk_sq) + 4 - tempo)
+                //        if (dist (promote_sq, wk_sq) < dist (wp_sq, sk_sq) + 4 - tempo)
                 //        {
                 //            return SCALE_FACTOR_DRAW;
                 //        }
-                //        return ScaleFactor (dist (queening_sq, wk_sq));
+                //        return ScaleFactor (dist (promote_sq, wk_sq));
                 //    }
                 //}
 
@@ -1005,10 +1005,10 @@ namespace EndGame {
                 }
             }
 
-            auto queening_sq = rel_sq (_strong_side, sp_f | R_8);
+            auto promote_sq = rel_sq (_strong_side, sp_f | R_8);
             // If the defending king defends the queening square.
             // and strong pawn block bishop and king cant be driven away
-            if (   dist (queening_sq, wk_sq) <= 1
+            if (   dist (promote_sq, wk_sq) <= 1
                 && dist (sp_sq, sk_sq) > 1
                 && rel_rank (_strong_side, sp_sq) == R_6
                 && rel_rank (_strong_side, sb_sq) == R_7

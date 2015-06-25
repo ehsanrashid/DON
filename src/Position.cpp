@@ -289,7 +289,7 @@ bool Position::ok (i08 *failed_step) const
 
             for (i08 c = WHITE; c <= BLACK; ++c)
             {
-                Bitboard colors = _color_bb[c];
+                auto colors = _color_bb[c];
 
                 if (pop_count<FULL> (colors) > 16) // Too many Piece of color
                 {
@@ -310,7 +310,7 @@ bool Position::ok (i08 *failed_step) const
 
                 if (_piece_count[c][BSHP] > 1)
                 {
-                    Bitboard bishops = colors & _types_bb[BSHP];
+                    auto bishops = colors & _types_bb[BSHP];
                     u08 bishop_count[CLR_NO] =
                     {
                         u08(pop_count<MAX15> (LIHT_bb & bishops)),
@@ -327,7 +327,7 @@ bool Position::ok (i08 *failed_step) const
                 }
 
                 // There should be one and only one KING of color
-                Bitboard kings = colors & _types_bb[KING];
+                auto kings = colors & _types_bb[KING];
                 if (kings == U64(0) || more_than_one (kings))
                 {
                     return false;
@@ -413,7 +413,7 @@ bool Position::ok (i08 *failed_step) const
 template<PieceT PT>
 PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
-    Bitboard b = stm_attackers & _types_bb[PT];
+    auto b = stm_attackers & _types_bb[PT];
     if (b != U64(0))
     {
         mocc ^= b & ~(b - 1);
@@ -451,7 +451,7 @@ PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&, Bit
 // non-pawn material between endgame and midgame limits.
 Phase Position::game_phase () const
 {
-    Value npm = max (VALUE_ENDGAME, min (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK], VALUE_MIDGAME));
+    auto npm = max (VALUE_ENDGAME, min (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK], VALUE_MIDGAME));
     return Phase((npm - VALUE_ENDGAME) * i32(PHASE_MIDGAME) / i32(VALUE_MIDGAME - VALUE_ENDGAME));
 }
 
@@ -472,7 +472,7 @@ Value Position::see      (Move m) const
     Value gain_list[MAX_GAINS];
     i08   depth = 1;
 
-    Bitboard mocc = _types_bb[NONE] - org;
+    auto mocc = _types_bb[NONE] - org;
 
     switch (mtype (m))
     {
@@ -496,11 +496,11 @@ Value Position::see      (Move m) const
 
     // Find all attackers to the destination square, with the moving piece
     // removed, but possibly an X-ray attacker added behind it.
-    Bitboard attackers = attackers_to (dst, mocc) & mocc;
+    auto attackers = attackers_to (dst, mocc) & mocc;
 
     // If the opponent has any attackers
     stm = ~stm;
-    Bitboard stm_attackers = attackers & _color_bb[stm];
+    auto stm_attackers = attackers & _color_bb[stm];
 
     if (stm_attackers != U64(0))
     {
@@ -561,15 +561,15 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
     auto ksq = _piece_list[king_c][KING][0];
     // Pinners are sliders that give check when a pinned piece is removed
     // Only one real pinner exist other are fake pinner
-    Bitboard pinners =
+    auto pinners =
         (  ((_types_bb[ROOK]|_types_bb[QUEN]) & PIECE_ATTACKS[ROOK][ksq])
          | ((_types_bb[BSHP]|_types_bb[QUEN]) & PIECE_ATTACKS[BSHP][ksq])
         ) &  _color_bb[~king_c];
 
-    Bitboard chk_blockers = U64(0);
+    auto chk_blockers = U64(0);
     while (pinners != U64(0))
     {
-        Bitboard blocker = BETWEEN_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
+        auto blocker = BETWEEN_bb[ksq][pop_lsq (pinners)] & _types_bb[NONE];
         if (blocker != U64(0) && !more_than_one (blocker))
         {
             chk_blockers |= blocker & _color_bb[piece_c];
@@ -798,7 +798,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
         assert (dst == _si->en_passant_sq && empty (dst) && ( _active|PAWN) == _board[org] && (~_active|PAWN) == _board[cap]);
 
-        Bitboard mocc = _types_bb[NONE] - org - cap + dst;
+        auto mocc = _types_bb[NONE] - org - cap + dst;
         // If any attacker then in check & not legal
         return (attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
             && (attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0);
@@ -857,7 +857,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
         auto cap = _file (dst)|_rank (org);
-        Bitboard mocc = _types_bb[NONE] - org - cap + dst;
+        auto mocc = _types_bb[NONE] - org - cap + dst;
         // if any attacker then in check
         return (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) != U64(0)
             || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) != U64(0);
@@ -1137,7 +1137,7 @@ bool Position::can_en_passant (Square ep_sq) const
     if ((~_active | PAWN) != _board[cap]) return false;
     
     // En-passant attackes
-    Bitboard attacks = PAWN_ATTACKS[~_active][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
+    auto attacks = PAWN_ATTACKS[~_active][ep_sq] & _color_bb[_active]&_types_bb[PAWN];
     assert (pop_count<FULL> (attacks) <= 2);
     if (attacks == U64(0)) return false;
 
@@ -1149,10 +1149,10 @@ bool Position::can_en_passant (Square ep_sq) const
     *m = MOVE_NONE;
 
     // Check en-passant is legal for the position
-    Bitboard occ = _types_bb[NONE] + ep_sq - cap;
+    auto occ = _types_bb[NONE] + ep_sq - cap;
     for (m = moves; *m != MOVE_NONE; ++m)
     {
-        Bitboard mocc = occ - org_sq (*m);
+        auto mocc = occ - org_sq (*m);
         if (   (attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
             && (attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0)
            )
@@ -1171,7 +1171,7 @@ bool Position::can_en_passant (Square ep_sq) const
 Score Position::compute_psq_score () const
 {
     auto psq_bonus = SCORE_ZERO;
-    Bitboard occ = _types_bb[NONE];
+    auto occ = _types_bb[NONE];
     while (occ != U64(0))
     {
         auto s = pop_lsq (occ);
@@ -1641,9 +1641,9 @@ string Position::fen (bool c960, bool full) const
 // printed to the standard output
 Position::operator string () const
 {
-    static string EDGE  = " +---+---+---+---+---+---+---+---+\n";
-    static auto ROW_1 = "| . |   | . |   | . |   | . |   |\n" + EDGE;
-    static auto ROW_2 = "|   | . |   | . |   | . |   | . |\n" + EDGE;
+    const string EDGE  = " +---+---+---+---+---+---+---+---+\n";
+    const string ROW_1 = "| . |   | . |   | . |   | . |   |\n" + EDGE;
+    const string ROW_2 = "|   | . |   | . |   | . |   | . |\n" + EDGE;
 
     auto board = EDGE;
 
@@ -1657,7 +1657,7 @@ Position::operator string () const
         board += to_char (File(f), false);
     }
 
-    Bitboard occ = _types_bb[NONE];
+    auto occ = _types_bb[NONE];
     while (occ != U64(0))
     {
         auto s = pop_lsq (occ);
@@ -1673,7 +1673,7 @@ Position::operator string () const
         << _si->posi_key << nouppercase << dec << setfill (' ') << "\n";
 
     oss << "Checkers: ";
-    Bitboard chkrs = _si->checkers;
+    auto chkrs = _si->checkers;
     if (chkrs != U64(0))
     {
         while (chkrs != U64(0))

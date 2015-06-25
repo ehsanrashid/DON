@@ -59,9 +59,8 @@ namespace Material {
         Endgame<KPsK>   ScaleKPsK   [CLR_NO] = { Endgame<KPsK>   (WHITE), Endgame<KPsK>   (BLACK) };
         Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
 
-        // Helper templates used to detect a given material distribution
-        template<Color Own>
-        bool is_KXK (const Position &pos)
+        // Helper used to detect a given material distribution
+        bool is_KXK (const Position &pos, Color Own)
         {
             return pos.non_pawn_material (Own) >= VALUE_MG_ROOK
                 //&& pos.count<NONPAWN> (~Own) == 0
@@ -69,8 +68,7 @@ namespace Material {
                 && !more_than_one (pos.pieces (~Own));
         }
 
-        template<Color Own> 
-        bool is_KBPsKs (const Position &pos)
+        bool is_KBPsKs (const Position &pos, Color Own)
         {
             return pos.count<BSHP> (Own) == 1
                 && pos.non_pawn_material ( Own) == VALUE_MG_BSHP
@@ -78,8 +76,7 @@ namespace Material {
                 && pos.count<PAWN> (Own) != 0;
         }
 
-        template<Color Own>
-        bool is_KQKRPs (const Position &pos)
+        bool is_KQKRPs (const Position &pos, Color Own)
         {
             return pos.count<QUEN> ( Own) == 1
                 && pos.non_pawn_material ( Own) == VALUE_MG_QUEN
@@ -154,16 +151,14 @@ namespace Material {
             {
                 return e;
             }
-
-            if (is_KXK<WHITE> (pos))
+            // Generic
+            for (Color c = WHITE; c <= BLACK; ++c)
             {
-                e->evaluation_func = &EvaluateKXK[WHITE];
-                return e;
-            }
-            if (is_KXK<BLACK> (pos))
-            {
-                e->evaluation_func = &EvaluateKXK[BLACK];
-                return e;
+                if (is_KXK (pos, c))
+                {
+                    e->evaluation_func = &EvaluateKXK[c];
+                    return e;
+                }
             }
 
             // OK, didn't find any special evaluation function for the current
@@ -181,24 +176,17 @@ namespace Material {
             // Generic scaling functions that refer to more than one material distribution.
             // Should be probed after the specialized ones.
             // Note that these ones don't return after setting the function.
-            if (is_KBPsKs<WHITE> (pos))
+            for (Color c = WHITE; c <= BLACK; ++c)
             {
-                e->scaling_func[WHITE] = &ScaleKBPsKs[WHITE];
-            }
-            else
-            if (is_KQKRPs<WHITE> (pos))
-            {
-                e->scaling_func[WHITE] = &ScaleKQKRPs[WHITE];
-            }
-
-            if (is_KBPsKs<BLACK> (pos))
-            {
-                e->scaling_func[BLACK] = &ScaleKBPsKs[BLACK];
-            }
-            else
-            if (is_KQKRPs<BLACK> (pos))
-            {
-                e->scaling_func[BLACK] = &ScaleKQKRPs[BLACK];
+                if (is_KBPsKs (pos, c))
+                {
+                    e->scaling_func[c] = &ScaleKBPsKs[c];
+                }
+                else
+                if (is_KQKRPs (pos, c))
+                {
+                    e->scaling_func[c] = &ScaleKQKRPs[c];
+                }
             }
 
             const Value npm_w = pos.non_pawn_material (WHITE)

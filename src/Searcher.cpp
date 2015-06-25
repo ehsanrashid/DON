@@ -181,12 +181,12 @@ namespace Searcher {
                 swap (ss->killer_moves[0], *find (begin (ss->killer_moves), end (ss->killer_moves), move));
             }
 
-            Value bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
+            auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
 
-            Move opp_move = (ss-1)->current_move;
-            Square opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-            ValueStats &cmhv = opp_move_dst != SQ_NO ? CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] :
-                                                       CounterMovesHistoryValues[EMPTY][SQ_A1];
+            auto opp_move = (ss-1)->current_move;
+            auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
+            auto &cmhv = opp_move_dst != SQ_NO ? CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] :
+                                                 CounterMovesHistoryValues[EMPTY][SQ_A1];
 
             HistoryValues.update (pos, move, bonus);
 
@@ -212,11 +212,11 @@ namespace Searcher {
             // Extra penalty for TT move in previous ply when it gets refuted
             if (opp_move_dst != SQ_NO && opp_move == (ss-1)->tt_move)
             {
-                Move own_move = (ss-2)->current_move;
-                Square own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
+                auto own_move = (ss-2)->current_move;
+                auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
                 if (own_move_dst != SQ_NO)
                 {
-                    ValueStats &ttcmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
+                    auto &ttcmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
                     ttcmhv.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
                 }
             }
@@ -513,9 +513,7 @@ namespace Searcher {
                 prefetch (thread->pawn_table[pos.pawn_key ()]);
                 prefetch (thread->matl_table[pos.matl_key ()]);
 
-                Value value;
-
-                value =
+                auto value =
                     gives_check ?
                         -quien_search<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
                         -quien_search<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
@@ -614,8 +612,8 @@ namespace Searcher {
             Bound tt_bound    = BOUND_NONE;
 
             // Step 1. Initialize node
-            Thread *thread = pos.thread ();
-            bool  in_check = pos.checkers () != U64(0);
+            auto *thread  = pos.thread ();
+            bool in_check = pos.checkers () != U64(0);
 
             SplitPoint *splitpoint = nullptr;
             
@@ -757,9 +755,9 @@ namespace Searcher {
                                 return quien_search<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
                             }
 
-                            Value reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
+                            auto reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
 
-                            Value value = quien_search<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
+                            auto value = quien_search<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
 
                             if (value <= reduced_alpha)
                             {
@@ -776,7 +774,7 @@ namespace Searcher {
                             && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                            )
                         {
-                            Value stand_pat = static_eval - FutilityMargins[depth];
+                            auto stand_pat = static_eval - FutilityMargins[depth];
 
                             if (stand_pat >= beta)
                             {
@@ -797,7 +795,7 @@ namespace Searcher {
                             ss->current_move = MOVE_NULL;
                             
                             // Null move dynamic reduction based on depth and static evaluation
-                            Depth reduced_depth = depth - ((0x337 + 0x43 * depth) / 0x100 + min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
+                            auto reduced_depth = depth - ((0x337 + 0x43 * depth) / 0x100 + min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
 
                             // Speculative prefetch as early as possible
                             prefetch (TT.cluster_entry (pos.posi_key ()));
@@ -809,7 +807,7 @@ namespace Searcher {
                             prefetch (thread->matl_table[pos.matl_key ()]);
 
                             // Null (zero) window (alpha, beta) = (beta-1, beta):
-                            Value null_value =
+                            auto null_value =
                                 reduced_depth < DEPTH_ONE ?
                                     -quien_search<NonPV, false>        (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
                                     -depth_search<NonPV, false, false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node);
@@ -827,7 +825,7 @@ namespace Searcher {
                                 }
 
                                 // Do verification search at high depths
-                                Value value =
+                                auto value =
                                     reduced_depth < DEPTH_ONE ?
                                         quien_search<NonPV, false>        (pos, ss, beta-1, beta, DEPTH_ZERO) :
                                         depth_search<NonPV, false, false> (pos, ss, beta-1, beta, reduced_depth, false);
@@ -849,8 +847,8 @@ namespace Searcher {
                             && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
                            )
                         {
-                            Depth reduced_depth = depth - ProbCutDepth; // Shallow Depth
-                            Value extended_beta = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
+                            auto reduced_depth = depth - ProbCutDepth; // Shallow Depth
+                            auto extended_beta = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
 
                             assert (reduced_depth >= DEPTH_ONE);
                             assert ((ss-1)->current_move != MOVE_NONE);
@@ -874,7 +872,7 @@ namespace Searcher {
                                 prefetch (thread->pawn_table[pos.pawn_key ()]);
                                 prefetch (thread->matl_table[pos.matl_key ()]);
 
-                                Value value = -depth_search<NonPV, false, true> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
+                                auto value = -depth_search<NonPV, false, true> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
 
                                 pos.undo_move ();
 
@@ -891,7 +889,7 @@ namespace Searcher {
                             && (PVNode || ss->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                            )
                         {
-                            Depth iid_depth = (2*(depth - 2*DEPTH_ONE) - (PVNode ? DEPTH_ZERO : depth/2))/2; // IID Reduced Depth
+                            auto iid_depth = (2*(depth - 2*DEPTH_ONE) - (PVNode ? DEPTH_ZERO : depth/2))/2; // IID Reduced Depth
 
                             depth_search<PVNode ? PV : NonPV, false, false> (pos, ss, alpha, beta, iid_depth, true);
 
@@ -912,7 +910,7 @@ namespace Searcher {
             // Splitpoint start
             // When in check and at SPNode search starts from here
 
-            Value value = best_value;
+            auto value = best_value;
 
             bool improving =
                    (ss-0)->static_eval >= (ss-2)->static_eval
@@ -940,9 +938,9 @@ namespace Searcher {
                 }
             }
 
-            Move opp_move = (ss-1)->current_move;
-            Square opp_move_sq = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-            Move  counter_move = opp_move_sq != SQ_NO ? CounterMoves[pos[opp_move_sq]][opp_move_sq] : MOVE_NONE;
+            auto opp_move = (ss-1)->current_move;
+            auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
+            auto counter_move = opp_move_dst != SQ_NO ? CounterMoves[pos[opp_move_dst]][opp_move_dst] : MOVE_NONE;
 
             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
 
@@ -1008,7 +1006,7 @@ namespace Searcher {
                     (ss+1)->pv = nullptr;
                 }
 
-                Depth ext = DEPTH_ZERO;
+                auto ext = DEPTH_ZERO;
 
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
@@ -1032,7 +1030,7 @@ namespace Searcher {
                     && ext == DEPTH_ZERO
                    )
                 {
-                    Value bound = tt_value - 2 * depth/DEPTH_ONE;
+                    auto bound = tt_value - 2 * depth/DEPTH_ONE;
 
                     ss->exclude_move = move;
                     value = depth_search<NonPV, false, false> (pos, ss, bound-1, bound, depth/2, cut_node);
@@ -1042,7 +1040,7 @@ namespace Searcher {
                 }
 
                 // Update the current move (this must be done after singular extension search)
-                Depth new_depth = depth - DEPTH_ONE + ext;
+                auto new_depth = depth - DEPTH_ONE + ext;
 
                 // Step 13. Pruning at shallow depth
                 if (   !RootNode && !MateSearch
@@ -1066,12 +1064,12 @@ namespace Searcher {
                     }
 
                     // Value based pruning
-                    Depth predicted_depth = new_depth - reduction_depths<PVNode> (improving, depth, legal_count);
+                    auto predicted_depth = new_depth - reduction_depths<PVNode> (improving, depth, legal_count);
 
                     // Futility pruning: parent node
                     if (predicted_depth < FutilityMarginDepth)
                     {
-                        Value futility_value = ss->static_eval + FutilityMargins[predicted_depth] + VALUE_EG_PAWN;
+                        auto futility_value = ss->static_eval + FutilityMargins[predicted_depth] + VALUE_EG_PAWN;
 
                         if (alpha >= futility_value)
                         {
@@ -1127,13 +1125,13 @@ namespace Searcher {
                     && count (begin (ss->killer_moves), end (ss->killer_moves), move) == 0 // Not killer move
                    )
                 {
-                    Depth reduction_depth = reduction_depths<PVNode> (improving, depth, legal_count);
+                    auto reduction_depth = reduction_depths<PVNode> (improving, depth, legal_count);
 
                     // Increase reduction
                     if (   (!PVNode && cut_node)
                         || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
-                            && opp_move_sq != SQ_NO
-                            && CounterMovesHistoryValues[pos[opp_move_sq]][opp_move_sq]
+                            && opp_move_dst != SQ_NO
+                            && CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst]
                                                         [pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
                            )
                        )
@@ -1144,8 +1142,8 @@ namespace Searcher {
                     if (   reduction_depth != DEPTH_ZERO
                         && (   (move == counter_move)
                             || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
-                                && opp_move_sq != SQ_NO
-                                && CounterMovesHistoryValues[pos[opp_move_sq]][opp_move_sq]
+                                && opp_move_dst != SQ_NO
+                                && CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst]
                                                             [pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
                                )
                            )
@@ -1166,7 +1164,7 @@ namespace Searcher {
                     if (SPNode) alpha = splitpoint->alpha;
 
                     // Search with reduced depth
-                    Depth reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
+                    auto reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
                     value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
 
                     full_depth_search = alpha < value && reduction_depth != DEPTH_ZERO;

@@ -168,10 +168,10 @@ namespace MovePick {
     template<>
     void MovePicker::value<QUIET>   ()
     {
-        Move opp_move = (_ss-1)->current_move;
-        Square opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-        const ValueStats &cmhv = opp_move_dst != SQ_NO ? _CounterMovesHistoryValues[_Pos[opp_move_dst]][opp_move_dst] :
-                                                         _CounterMovesHistoryValues[EMPTY][SQ_A1];
+        auto opp_move = (_ss-1)->current_move;
+        auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
+        const auto &cmhv = opp_move_dst != SQ_NO ? _CounterMovesHistoryValues[_Pos[opp_move_dst]][opp_move_dst] :
+                                                   _CounterMovesHistoryValues[EMPTY][SQ_A1];
 
         for (auto &m : *this)
         {
@@ -190,7 +190,7 @@ namespace MovePick {
         {
             assert (ptype (_Pos[org_sq (m)]) != NONE);
 
-            Value gain_value = _Pos.see_sign (m);
+            auto gain_value = _Pos.see_sign (m);
             if (gain_value < VALUE_ZERO)
             {
                 m.value = gain_value - MaxStatsValue; // At the bottom

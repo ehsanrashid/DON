@@ -265,7 +265,7 @@ namespace BitBoard {
                 k = 0;
                 while ((del = PAWN_DELTAS[c][k++]) != DEL_O)
                 {
-                    Square sq = s + del;
+                    auto sq = s + del;
                     if (_ok (sq) && SQR_DIST[s][sq] == 1)
                     {
                         PAWN_ATTACKS[c][s] += sq;
@@ -279,7 +279,7 @@ namespace BitBoard {
             k = 0;
             while ((del = PIECE_DELTAS[pt][k++]) != DEL_O)
             {
-                Square sq = s + del;
+                auto sq = s + del;
                 if (_ok (sq) && SQR_DIST[s][sq] == 2)
                 {
                     PIECE_ATTACKS[pt][s] += sq;
@@ -290,7 +290,7 @@ namespace BitBoard {
             k = 0;
             while ((del = PIECE_DELTAS[pt][k++]) != DEL_O)
             {
-                Square sq = s + del;
+                auto sq = s + del;
                 if (_ok (sq) && SQR_DIST[s][sq] == 1)
                 {
                     PIECE_ATTACKS[pt][s] += sq;
@@ -327,7 +327,7 @@ namespace BitBoard {
     // Bitboard in an easily readable format. This is sometimes useful for debugging.
     string pretty (Bitboard bb, char p)
     {
-        static string ROW  = "|. . . . . . . .|\n";
+        const string ROW  = "|. . . . . . . .|\n";
 
         string sbb;
         sbb = " /---------------\\\n";

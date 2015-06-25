@@ -261,8 +261,8 @@ namespace Notation {
     // It uses the two helpers to pretty format the value and time respectively.
     string pretty_pv (Position &pos, i32 depth, Value value, TimePoint time, const MoveVector &pv)
     {
-        static const u64 K = 1000;
-        static const u64 M = K*K;
+        const u64 K = 1000;
+        const u64 M = K*K;
 
         ostringstream oss;
 
