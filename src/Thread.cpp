@@ -281,7 +281,7 @@ namespace Threading {
     {
         // As first because they accesses threads data
         delete_thread (check_limits_th);
-        delete_thread (auto_save_th);
+        delete_thread (save_hash_th);
 
         for (Thread *th : *this)
         {

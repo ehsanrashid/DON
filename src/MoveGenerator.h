@@ -13,7 +13,7 @@ namespace MoveGen {
     {
     public:
         Move    move    = MOVE_NONE;
-        Value   value   = VALUE_NONE;
+        Value   value   = VALUE_ZERO;
 
         operator Move () const  { return move; }
         void operator= (Move m) { move = m; }

@@ -251,7 +251,7 @@ namespace UCI {
         {
             sync_cout << RootPos << sync_endl;
         }
-
+        // Print the root fen and keys
         void exe_keys ()
         {
             sync_cout
@@ -260,7 +260,7 @@ namespace UCI {
                 << "Posi key: " << setw (16) << RootPos.posi_key () << "\n"
                 << "Matl key: " << setw (16) << RootPos.matl_key () << "\n"
                 << "Pawn key: " << setw (16) << RootPos.pawn_key ()
-                << dec << nouppercase << setfill (' ')
+                << setfill (' ') << nouppercase << dec
                 << sync_endl;
         }
 
@@ -346,7 +346,7 @@ namespace UCI {
             fen_fn = ((cmds >> fen_fn) ? fen_fn : "");
             ss  << i32(Options["Hash"])    << " "
                 << i32(Options["Threads"]) << " "
-                << depth << " perft " << fen_fn;
+                << depth << " perft depth " << fen_fn;
 
             benchmark (ss, RootPos);
         }

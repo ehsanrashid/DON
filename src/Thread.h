@@ -190,7 +190,7 @@ namespace Threading {
     public:
 
         TimerThread *check_limits_th = nullptr;
-        TimerThread *auto_save_th    = nullptr;
+        TimerThread *save_hash_th    = nullptr;
         Depth        split_depth;
 
         MainThread* main () { return static_cast<MainThread*> (at (0)); }
@@ -214,7 +214,7 @@ namespace Threading {
     extern void delete_thread (ThreadBase *th);
 
     extern void check_limits ();
-    extern void auto_save ();
+    extern void save_hash ();
 
 }
 

@@ -1942,7 +1942,7 @@ namespace Searcher {
 
         if (RootSize != 0)
         {
-            if (!white_spaces (BookFile) && !Limits.infinite && !MateSearch)
+            if (!Limits.infinite && !MateSearch && !white_spaces (BookFile))
             {
                 trim (BookFile);
                 convert_path (BookFile);
@@ -1991,11 +1991,11 @@ namespace Searcher {
             if (AutoSaveHashTime != 0 && !white_spaces (HashFile))
             {
                 FirstAutoSave = true;
-                Threadpool.auto_save_th        = new_thread<TimerThread> ();
-                Threadpool.auto_save_th->task  = auto_save;
-                Threadpool.auto_save_th->resolution = AutoSaveHashTime*MINUTE_MILLI_SEC;
-                Threadpool.auto_save_th->start ();
-                Threadpool.auto_save_th->notify_one ();
+                Threadpool.save_hash_th        = new_thread<TimerThread> ();
+                Threadpool.save_hash_th->task  = save_hash;
+                Threadpool.save_hash_th->resolution = AutoSaveHashTime*MINUTE_MILLI_SEC;
+                Threadpool.save_hash_th->start ();
+                Threadpool.save_hash_th->notify_one ();
             }
 
             Threadpool.check_limits_th->start ();
@@ -2005,10 +2005,10 @@ namespace Searcher {
 
             Threadpool.check_limits_th->stop ();
 
-            if (Threadpool.auto_save_th != nullptr)
+            if (Threadpool.save_hash_th != nullptr)
             {
-                Threadpool.auto_save_th->stop ();
-                delete_thread (Threadpool.auto_save_th);
+                Threadpool.save_hash_th->stop ();
+                delete_thread (Threadpool.save_hash_th);
             }
         }
         else
@@ -2041,7 +2041,7 @@ namespace Searcher {
                 << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
             if (    RootMoves[0].pv[0] != MOVE_NONE
                 && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt (RootPos))
-                )
+               )
             {
                 StateInfo si;
                 RootPos.do_move (RootMoves[0].pv[0], si, RootPos.gives_check (RootMoves[0].pv[0], CheckInfo (RootPos)));
@@ -2218,7 +2218,7 @@ namespace Threading {
         }
     }
 
-    void auto_save ()
+    void save_hash ()
     {
         if (FirstAutoSave)
         {

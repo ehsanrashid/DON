@@ -605,10 +605,7 @@ bool Position::pseudo_legal (Move m) const
     case NORMAL:
     {
         // Is not a promotion, so promotion piece must be empty
-        if (PAWN != promote (m) - NIHT)
-        {
-            return false;
-        }
+        if (PAWN != promote (m) - NIHT) return false;
         cpt = ptype (_board[cap]);
     }
         break;
@@ -700,6 +697,7 @@ bool Position::pseudo_legal (Move m) const
         if (   // Not a capture
                !(   (PAWN_ATTACKS[_active][org] & _color_bb[~_active] & dst)
                  && 1 == dist<File> (dst, org)
+                 && 1 == dist<Rank> (dst, org)
                 )
                // Not a single push
             && !(   empty (dst)
@@ -712,7 +710,7 @@ bool Position::pseudo_legal (Move m) const
                  && empty (dst)
                  && empty (dst - pawn_push (_active))
                  && 0 == dist<File> (dst, org)
-                 //&& (org + 2 * pawn_push (_active) == dst)
+                 //&& (org + 2*pawn_push (_active) == dst)
                  && 2 == dist<Rank> (dst, org)
                 )
            )
@@ -741,9 +739,9 @@ bool Position::pseudo_legal (Move m) const
         return ENPASSANT == mtype (m) && PAWN == ptype (_board[org]) ?
             // Move must be a capture of the checking en-passant pawn
             // or a blocking evasion of the checking piece
-            _si->checkers & cap || BETWEEN_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]] & dst :
+            (_si->checkers & cap || BETWEEN_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]] & dst) != U64(0) :
             // Move must be a capture or a blocking evasion of the checking piece
-            (_si->checkers | BETWEEN_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]]) & dst;
+            ((_si->checkers | BETWEEN_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]]) & dst) != U64(0);
     }
     return true;
 }
@@ -779,8 +777,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // A non-king move is legal if and only if it is not pinned or
         // it is moving along the ray towards or away from the king or
         // it is a blocking evasion or a capture of the checking piece.
-        return   pinned == U64(0)
-            || !(pinned & org)
+        return  pinned == U64(0)
+            || (pinned & org) == U64(0)
             || sqrs_aligned (org, dst, _piece_list[_active][KING][0]);
     }
         break;
@@ -881,17 +879,17 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 }
 
 //// gives_checkmate() tests whether a pseudo-legal move gives a checkmate
-//bool Position::gives_checkmate (Move m, const CheckInfo &ci) const
+//bool Position::gives_checkmate (Move m, const CheckInfo &ci)
 //{
+//    bool checkmate = false;
 //    if (gives_check (m, ci))
 //    {
 //        StateInfo si;
 //        do_move (m, si, true);
-//        bool mate = MoveList<LEGAL> (*this).size () == 0;
+//        checkmate = MoveList<LEGAL> (*this).size () == 0;
 //        undo_move ();
-//        return mate;
 //    }
-//    return false;
+//    return checkmate;
 //}
 
 // clear() clear the position
@@ -1144,8 +1142,6 @@ bool Position::can_en_passant (Square ep_sq) const
     if (attacks == U64(0)) return false;
 
     Move moves[3], *m = moves;
-    //fill (begin (moves), end (moves), MOVE_NONE);
-
     while (attacks != U64(0))
     {
         *(m++) = mk_move<ENPASSANT> (pop_lsq (attacks), ep_sq);

@@ -271,7 +271,7 @@ public:
     bool capture       (Move m) const;
     bool capture_or_promotion (Move m)  const;
     bool gives_check   (Move m, const CheckInfo &ci) const;
-    //bool gives_checkmate (Move m, const CheckInfo &ci) const;
+    //bool gives_checkmate (Move m, const CheckInfo &ci)
     bool advanced_pawn_push (Move m)    const;
     Piece moving_piece (Move m) const;
 
