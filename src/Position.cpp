@@ -917,6 +917,7 @@ void Position::clear ()
 
     _sb.en_passant_sq = SQ_NO;
     _sb.capture_type  = NONE;
+    _sb.last_move     = MOVE_NONE;
     _si = &_sb;
 }
 

@@ -273,7 +273,7 @@ public:
     bool gives_check   (Move m, const CheckInfo &ci) const;
     //bool gives_checkmate (Move m, const CheckInfo &ci)
     bool advanced_pawn_push (Move m)    const;
-    Piece moving_piece (Move m) const;
+    //Piece moving_piece (Move m) const;
 
     bool passed_pawn  (Color c, Square s) const;
     bool pawn_on_7thR (Color c) const;
@@ -548,7 +548,7 @@ inline bool Position::advanced_pawn_push    (Move m) const
 {
     return PAWN == ptype (_board[org_sq (m)]) && R_4 < rel_rank (_active, org_sq (m));
 }
-inline Piece Position::moving_piece (Move m) const { return _board[org_sq (m)]; }
+//inline Piece Position::moving_piece (Move m) const { return _board[org_sq (m)]; }
 
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {

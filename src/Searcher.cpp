@@ -1419,7 +1419,7 @@ namespace Searcher {
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
-                for (RootMove &rm : RootMoves)
+                for (auto &rm : RootMoves)
                 {
                     rm.old_value = rm.new_value;
                 }
@@ -1877,17 +1877,17 @@ namespace Searcher {
         _best_move = MOVE_NONE;
 
         // RootMoves are already sorted by score in descending order
-        Value variance   = min (RootMoves[0].new_value - RootMoves[LimitPV - 1].new_value, VALUE_MG_PAWN);
-        Value weakness   = Value(MAX_DEPTH - 2 * _level);
-        Value best_value = -VALUE_INFINITE;
+        auto variance   = min (RootMoves[0].new_value - RootMoves[LimitPV - 1].new_value, VALUE_MG_PAWN);
+        auto weakness   = Value(MAX_DEPTH - 2 * _level);
+        auto best_value = -VALUE_INFINITE;
         // Choose best move. For each move score add two terms both dependent on
         // weakness, one deterministic and bigger for weaker moves, and one random,
         // then choose the move with the resulting highest score.
         for (u16 i = 0; i < LimitPV; ++i)
         {
-            Value v = RootMoves[i].new_value
-                    + weakness * i32(RootMoves[0].new_value - RootMoves[i].new_value)
-                    + variance * i32(prng.rand<u32> () % weakness) * 2 / i32(VALUE_EG_PAWN);
+            auto v = RootMoves[i].new_value
+                   + weakness * i32(RootMoves[0].new_value - RootMoves[i].new_value)
+                   + variance * i32(prng.rand<u32> () % weakness) * 2 / i32(VALUE_EG_PAWN);
 
             if (best_value < v)
             {
