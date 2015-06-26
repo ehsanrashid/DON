@@ -1964,6 +1964,7 @@ namespace Searcher {
                     if (book_move != MOVE_NONE && count (RootMoves.begin (), RootMoves.end (), book_move))
                     {
                         swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
+                        RootMoves[0].pv.push_back (MOVE_NONE);
                         goto finish;
                     }
                 }
