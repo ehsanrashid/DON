@@ -156,8 +156,8 @@ namespace OpeningBook  {
     {
         if (!is_open ()) return ErrorIndex;
 
-        streampos beg = streampos(0);
-        streampos end = streampos((size () - HeaderSize) / EntrySize - 1);
+        auto beg = streampos(0);
+        auto end = streampos((size () - HeaderSize) / EntrySize - 1);
 
         PBEntry pbe;
 
@@ -172,7 +172,7 @@ namespace OpeningBook  {
         {
             while (beg < end && good ())
             {
-                streampos mid = (beg + end) / 2;
+                auto mid = (beg + end) / 2;
                 assert (mid >= beg && mid < end);
 
                 seekg (STM_POS (mid));
@@ -207,19 +207,14 @@ namespace OpeningBook  {
     {
         static PRNG pr (now ());
 
-        //if (!is_open () || !(_mode & ios_base::in))
-        //{
-        //    if (!open (_book_fn, ios_base::in)) return MOVE_NONE;
-        //}
-
         Key key = Zob.compute_posi_key (pos);
 
-        streampos index = find_index (key);
+        auto index = find_index (key);
         if (ErrorIndex == index) return MOVE_NONE;
 
         seekg (STM_POS (index));
 
-        Move move = MOVE_NONE;
+        auto move = MOVE_NONE;
 
         PBEntry pbe;
 
@@ -338,7 +333,7 @@ namespace OpeningBook  {
 
         Key key = Zob.compute_posi_key (pos);
 
-        streampos index = find_index (key);
+        auto index = find_index (key);
         if (ErrorIndex == index)
         {
             cerr << "ERROR: no such key... "
@@ -372,51 +367,5 @@ namespace OpeningBook  {
 
         return oss.str ();
     }
-
-    void PolyglotBook::insert_entry (const PBEntry &pbe)
-    {
-        if (!is_open () || !(_mode & out)) return;
-
-        streampos index = find_index (pbe.key);
-        if (ErrorIndex == index)
-        {
-
-        }
-        else
-        {
-            // move found
-            if (true)
-            {
-                // do nothing (UPDATE)
-            }
-            else
-            {
-
-            }
-        }
-
-
-    }
-
-    //void PolyglotBook::import_pgn (const string &pgn_fn)
-    //{
-    //    (void) pgn_fn;
-    //}
-    //
-    //void PolyglotBook::merge_book (const string &book_fn)
-    //{
-    //    (void) book_fn;
-    //
-    //}
-
-    //void PolyglotBook::dump ()
-    //{
-    //
-    //}
-    //
-    //void PolyglotBook::info ()
-    //{
-    //
-    //}
 
 }

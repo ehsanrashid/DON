@@ -85,7 +85,7 @@ namespace OpeningBook {
         {
             if (0 >= _size)
             {
-                streampos cur_pos = tellg ();
+                auto cur_pos = tellg ();
                 seekg (0L, end);
                 _size = tellg ();
                 seekg (cur_pos, beg);
@@ -101,15 +101,6 @@ namespace OpeningBook {
         Move probe_move (const Position &pos, bool pick_best = true);
 
         std::string read_entries (const Position &pos);
-
-        void insert_entry (const PBEntry &pbe);
-
-        //void write ();
-
-        //void import_pgn (const std::string &pgn_fn);
-        //void merge_book (const std::string &book_fn);
-        //void dump ();
-        //void info ();
 
     };
 

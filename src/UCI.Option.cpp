@@ -205,7 +205,6 @@ namespace UCI {
 
         void configure_book (const Option &)
         {
-            Book.close ();
             BookFile     = string(Options["Book File"]);
             BestBookMove = bool(Options["Best Book Move"]);
         }

@@ -130,7 +130,7 @@ namespace Debugger {
                     }
                 }
                 if (white_spaces (_log_fn)) _log_fn = "DebugLog.txt";
-            
+
                 _fstm.open (_log_fn, std::ios_base::out|std::ios_base::app);
                 _fstm << "[" << time_to_string (now ()) << "] ->" << std::endl;
 

@@ -147,7 +147,6 @@ namespace Threading {
 
         // Try to allocate available threads
         Thread *slave;
-
         while (    sp.slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
                && (slave = Threadpool.available_slave (&sp)) != nullptr
               )

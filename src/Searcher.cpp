@@ -1765,12 +1765,12 @@ namespace Searcher {
         assert (pv.size () == 1);
         assert (pv[0] != MOVE_NONE);
 
-        StateInfo st;
-        pos.do_move (pv[0], st, pos.gives_check (pv[0], CheckInfo (pos)));
+        StateInfo si;
+        pos.do_move (pv[0], si, pos.gives_check (pv[0], CheckInfo (pos)));
 
         bool tt_hit;
         auto *tte = TT.probe (pos.posi_key (), tt_hit);
-        
+
         pos.undo_move ();
 
         if (tt_hit)
@@ -1951,14 +1951,14 @@ namespace Searcher {
             {
                 trim (BookFile);
                 convert_path (BookFile);
-
-                if (!Book.is_open () && !white_spaces (BookFile))
+                if (!white_spaces (BookFile) && !Book.is_open ())
                 {
                     Book.open (BookFile, ios_base::in|ios_base::binary);
                 }
                 if (Book.is_open ())
                 {
                     auto book_move = Book.probe_move (RootPos, BestBookMove);
+                    Book.close ();
                     if (book_move != MOVE_NONE && count (RootMoves.begin (), RootMoves.end (), book_move))
                     {
                         swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
@@ -2147,11 +2147,11 @@ namespace Threading {
     // and thus stop the search.
     void check_limits ()
     {
-        static TimePoint last_time = now ();
+        static auto last_time = now ();
 
         u32 elapsed_time = max (TimeMgr.elapsed_time (), 1U);
 
-        TimePoint now_time = now ();
+        auto now_time = now ();
         if (now_time - last_time >= MILLI_SEC)
         {
             last_time = now_time;
@@ -2194,7 +2194,7 @@ namespace Threading {
             {
                 for (u08 i = 0; i < th->splitpoint_count; ++i)
                 {
-                    SplitPoint &sp = th->splitpoints[i];
+                    auto &sp = th->splitpoints[i];
 
                     sp.spinlock.acquire ();
 
@@ -2233,7 +2233,7 @@ namespace Threading {
     {
         // Pointer 'splitpoint' is not null only if called from split<>(), and not
         // at the thread creation. So it means this is the splitpoint's master.
-        SplitPoint *splitpoint = active_splitpoint;
+        auto *splitpoint = active_splitpoint;
         assert (splitpoint == nullptr || (splitpoint->master == this && searching));
 
         while (alive && (splitpoint == nullptr || !splitpoint->slaves_mask.none ()))
@@ -2244,7 +2244,7 @@ namespace Threading {
                 spinlock.acquire ();
 
                 assert (active_splitpoint != nullptr);
-                SplitPoint *sp = active_splitpoint;
+                auto *sp = active_splitpoint;
 
                 spinlock.release ();
 
@@ -2283,8 +2283,8 @@ namespace Threading {
                 sp->spinlock.release ();
 
                 // Try to late join to another split point if none of its slaves has already finished.
-                SplitPoint *best_sp   = nullptr;
-                i32         min_level = INT_MAX;
+                auto *best_sp  = (SplitPoint*)nullptr;
+                i32  min_level = INT_MAX;
 
                 for (auto *th : Threadpool)
                 {
@@ -2302,10 +2302,10 @@ namespace Threading {
                         assert (splitpoint == nullptr || !splitpoint->slaves_mask.none ());
                         assert (Threadpool.size () > 1);
 
-                        // Prefer to join to SP with few parents to reduce the probability
+                        // Prefer to join to splitpoint with few parents to reduce the probability
                         // that a cut-off occurs above us, and hence we waste our work.
                         i32 level = 0;
-                        for (SplitPoint *spp = th->active_splitpoint; spp != nullptr; spp = spp->parent_splitpoint)
+                        for (auto *spp = th->active_splitpoint; spp != nullptr; spp = spp->parent_splitpoint)
                         {
                             ++level;
                         }

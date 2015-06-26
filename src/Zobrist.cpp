@@ -87,7 +87,7 @@ namespace Zobrist {
         iss >> noskipws;
 
         size_t idx;
-        Square s = SQ_A8;
+        auto s = SQ_A8;
         while (iss >> ch && !isspace (ch))
         {
             if (isdigit (ch))
@@ -97,7 +97,7 @@ namespace Zobrist {
             else
             if (isalpha (ch) && (idx = PIECE_CHAR.find (ch)) != string::npos)
             {
-                Piece p = Piece(idx);
+                auto p = Piece(idx);
                 if (KING == ptype (p))  kf[color (p)] = _file (s);
                 fen_key ^= _.piece_square[color (p)][ptype (p)][s];
                 ++s;
@@ -120,7 +120,7 @@ namespace Zobrist {
         {
             while ((iss >> ch) && !isspace (ch))
             {
-                Color c = isupper (ch) ? WHITE : BLACK;
+                auto c = isupper (ch) ? WHITE : BLACK;
                 u08 sym = u08(tolower (ch));
                 if ('a' <= sym && sym <= 'h')
                 {
@@ -136,7 +136,7 @@ namespace Zobrist {
         {
             while ((iss >> ch) && !isspace (ch))
             {
-                Color c = isupper (ch) ? WHITE : BLACK;
+                auto c = isupper (ch) ? WHITE : BLACK;
                 switch (toupper (ch))
                 {
                 case 'K': fen_key ^= _.castle_right[c][CS_K]; break;

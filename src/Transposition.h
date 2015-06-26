@@ -179,7 +179,7 @@ namespace Transposition {
 
         u64 entries () const
         {
-            return (_cluster_count * ClusterEntryCount);
+            return _cluster_count * ClusterEntryCount;
         }
 
         // size() returns hash size in MB

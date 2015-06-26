@@ -161,11 +161,11 @@ namespace UCI {
                 }
             }
             else return;
-            
+
             RootPos.setup (fen, Threadpool.main (), Chess960);
-            
+
             SetupStates = StateStackPtr (new StateStack);
-            
+
             if (token == "moves")
             {
                 while (cmds >> token)   // Parse and validate game moves (if any)
@@ -176,7 +176,7 @@ namespace UCI {
                         cerr << "ERROR: Illegal Move '" + token << "'" << endl;
                         break;
                     }
-                    
+
                     SetupStates->push (StateInfo ());
                     RootPos.do_move (m, SetupStates->top (), RootPos.gives_check (m, CheckInfo (RootPos)));
                 }
@@ -427,8 +427,6 @@ namespace UCI {
         exe_stop ();
         // Cannot quit while search stream active
         Threadpool.main ()->join ();
-        // Close book if open
-        Book.close ();
         // Close log file
         Debugger::log_debug (false);
     }
