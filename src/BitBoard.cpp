@@ -9,40 +9,38 @@ namespace BitBoard {
     using namespace Notation;
 
     // FRONT SQUARES
-    Bitboard FRONT_SQRS_bb  [CLR_NO][SQ_NO];
+    Bitboard   FRONT_SQRS_bb[CLR_NO][SQ_NO];
 
-    Bitboard BETWEEN_bb     [SQ_NO][SQ_NO];
-    Bitboard RAYLINE_bb     [SQ_NO][SQ_NO];
+    Bitboard      BETWEEN_bb[SQ_NO][SQ_NO];
+    Bitboard      RAYLINE_bb[SQ_NO][SQ_NO];
 
-    Bitboard DIST_RINGS_bb  [SQ_NO][F_NO];
+    Bitboard   DIST_RINGS_bb[SQ_NO][F_NO];
 
     // Span of the attacks of pawn
     Bitboard PAWN_ATTACK_SPAN[CLR_NO][SQ_NO];
 
     // Path of the passed pawn
-    Bitboard PAWN_PASS_SPAN [CLR_NO][SQ_NO];
+    Bitboard   PAWN_PASS_SPAN[CLR_NO][SQ_NO];
 
-    // Attacks of the pawns
-    Bitboard PAWN_ATTACKS   [CLR_NO][SQ_NO];
+    // Attacks of the pawns & pieces
+    Bitboard     PAWN_ATTACKS[CLR_NO][SQ_NO];
+    Bitboard    PIECE_ATTACKS[NONE][SQ_NO];
 
-    // Attacks of the pieces
-    Bitboard PIECE_ATTACKS  [NONE][SQ_NO];
+    Bitboard *B_ATTACK_bb[SQ_NO];
+    Bitboard *R_ATTACK_bb[SQ_NO];
 
-    Bitboard*B_ATTACK_bb[SQ_NO];
-    Bitboard*R_ATTACK_bb[SQ_NO];
-
-    Bitboard  B_MASK_bb [SQ_NO];
-    Bitboard  R_MASK_bb [SQ_NO];
+    Bitboard    B_MASK_bb[SQ_NO];
+    Bitboard    R_MASK_bb[SQ_NO];
 
 #ifndef BM2
-    Bitboard  B_MAGIC_bb[SQ_NO];
-    Bitboard  R_MAGIC_bb[SQ_NO];
+    Bitboard   B_MAGIC_bb[SQ_NO];
+    Bitboard   R_MAGIC_bb[SQ_NO];
 
-    u08       B_SHIFT   [SQ_NO];
-    u08       R_SHIFT   [SQ_NO];
+    u08           B_SHIFT[SQ_NO];
+    u08           R_SHIFT[SQ_NO];
 #endif
 
-    u08       SQR_DIST  [SQ_NO][SQ_NO];
+    u08          SQR_DIST[SQ_NO][SQ_NO];
 
     namespace {
 

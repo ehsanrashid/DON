@@ -91,11 +91,10 @@ void benchmark (istream &is, const Position &cur_pos)
     string limit_val  = (is >> token) && !white_spaces (token) ? token : "13";
     string limit_type = (is >> token) && !white_spaces (token) ? token : "depth";
     string fen_fn     = (is >> token) && !white_spaces (token) ? token : "default";
-    string never_clear_hash = "false";
     
     Options["Hash"]             = hash;
     Options["Threads"]          = threads;
-    Options["Never Clear Hash"] = never_clear_hash;
+    Options["Never Clear Hash"] = "false";
     
     i32 value = abs (stoi (limit_val));
 
@@ -140,10 +139,11 @@ void benchmark (istream &is, const Position &cur_pos)
     }
 
     StateStackPtr states;
+
     reset ();
 
-    u64       nodes = 0;
-    TimePoint time  = now ();
+    u64  nodes = 0;
+    auto time  = now ();
     
     for (u16 i = 0; i < fens.size (); ++i)
     {
@@ -196,10 +196,11 @@ void auto_tune (istream &is)
         cerr << "Split Depth     : " << i32(Threadpool.split_depth);
         
         StateStackPtr states;
+
         reset ();
 
-        u64       nodes = 0;
-        TimePoint time  = now ();
+        u64  nodes = 0;
+        auto time  = now ();
 
         for (u16 i = 0; i < DEFAULT_FEN.size (); ++i)
         {

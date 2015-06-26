@@ -41,13 +41,15 @@ namespace UCI {
         Option (OnChange on_change = nullptr);
         Option (const bool  val, OnChange on_change = nullptr);
         Option (const char *val, OnChange on_change = nullptr);
-        Option (const i32   val, i32 minimum, i32 maximum, OnChange on_change = nullptr);
+        Option (const std::string &val, OnChange on_change = nullptr);
+        Option (const i32 val, i32 minimum, i32 maximum, OnChange on_change = nullptr);
 
         operator bool () const;
         operator i32  () const;
         operator std::string () const;
 
-        Option& operator=  (const std::string &value);
+        Option& operator= (const char        *value);
+        Option& operator= (const std::string &value);
 
         void    operator<< (const Option &opt);
 

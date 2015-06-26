@@ -34,6 +34,9 @@ namespace UCI {
         _value = (val ? "true" : "false");
     }
     Option::Option (const char *val, OnChange on_change)
+        : Option (string(val), on_change)
+    {}
+    Option::Option (const string &val, OnChange on_change)
         : _type ("string")
         , _minimum (0)
         , _maximum (0)
@@ -41,7 +44,7 @@ namespace UCI {
     {
         _value = val;
     }
-    Option::Option (const i32   val, i32 minimum, i32 maximum, OnChange on_change)
+    Option::Option (const i32 val, i32 minimum, i32 maximum, OnChange on_change)
         : _type ("spin")
         , _minimum (minimum)
         , _maximum (maximum)
@@ -70,6 +73,10 @@ namespace UCI {
     // It's up to the GUI to check for option's limits,
     // but could receive the new value from the user by console window,
     // so let's check the bounds anyway.
+    Option& Option::operator= (const char   *value)
+    {
+        return *this = string(value);
+    }
     Option& Option::operator= (const string &value)
     {
         assert (!_type.empty ());
@@ -298,7 +305,7 @@ namespace UCI {
         // File name for saving or loading the Hash file with the Save Hash to File or Load Hash from File buttons.
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
-        Options["Hash File"]                    << Option (HashFile.c_str (), configure_hash);
+        Options["Hash File"]                    << Option (HashFile, configure_hash);
         // Auto Save Hash Time (min)
         Options["Auto Save Hash (min)"]         << Option (AutoSaveHashTime,    0,  60, configure_hash);
 
@@ -324,7 +331,7 @@ namespace UCI {
         // Openings Book Options
         // ---------------------
         // The filename of the Opening Book.
-        Options["Book File"]                    << Option (BookFile.c_str (), configure_book);
+        Options["Book File"]                    << Option (BookFile, configure_book);
         // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
         Options["Best Book Move"]               << Option (BestBookMove, configure_book);
@@ -369,7 +376,6 @@ namespace UCI {
         // The MultiPV feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["MultiPV"]                      << Option (MultiPV  ,   1,  50, configure_multipv);
 
-        // TODO::
         // Limit the multi-PV analysis to moves within a range of the best move.
         // Default 0, Min 0, Max 999.
         //
@@ -422,14 +428,14 @@ namespace UCI {
         // Default true.
         //
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        Options["Ponder"]                       << Option (Ponder              , configure_time);
+        Options["Ponder"]                       << Option (Ponder, configure_time);
 
         // Debug Options
         // -------------
         // The filename of the debug log.
         Options["Debug Log"]                    << Option ("", debug_log);
         // The filename of the search log.
-        Options["Search Log"]                   << Option (SearchLog.c_str (), change_search_log);
+        Options["Search Log"]                   << Option (SearchLog, change_search_log);
 
         // ---------------------------------------------------------------------------------------
         // Other Options

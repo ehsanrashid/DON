@@ -130,32 +130,32 @@ namespace BitBoard {
         }
     };
 
-    extern Bitboard FRONT_SQRS_bb   [CLR_NO][SQ_NO];
+    extern Bitboard    FRONT_SQRS_bb[CLR_NO][SQ_NO];
 
-    extern Bitboard BETWEEN_bb      [SQ_NO][SQ_NO];
-    extern Bitboard RAYLINE_bb      [SQ_NO][SQ_NO];
+    extern Bitboard       BETWEEN_bb[SQ_NO][SQ_NO];
+    extern Bitboard       RAYLINE_bb[SQ_NO][SQ_NO];
 
-    extern Bitboard DIST_RINGS_bb   [SQ_NO][F_NO];
+    extern Bitboard    DIST_RINGS_bb[SQ_NO][F_NO];
 
     extern Bitboard PAWN_ATTACK_SPAN[CLR_NO][SQ_NO];
-    extern Bitboard PAWN_PASS_SPAN  [CLR_NO][SQ_NO];
+    extern Bitboard   PAWN_PASS_SPAN[CLR_NO][SQ_NO];
 
     // attacks of the pawns & pieces
-    extern Bitboard PAWN_ATTACKS    [CLR_NO][SQ_NO];
-    extern Bitboard PIECE_ATTACKS   [NONE][SQ_NO];
+    extern Bitboard     PAWN_ATTACKS[CLR_NO][SQ_NO];
+    extern Bitboard    PIECE_ATTACKS[NONE][SQ_NO];
 
     extern Bitboard *B_ATTACK_bb[SQ_NO];
     extern Bitboard *R_ATTACK_bb[SQ_NO];
 
-    extern Bitboard   B_MASK_bb [SQ_NO];
-    extern Bitboard   R_MASK_bb [SQ_NO];
+    extern Bitboard    B_MASK_bb[SQ_NO];
+    extern Bitboard    R_MASK_bb[SQ_NO];
 
 #ifndef BM2
     extern Bitboard   B_MAGIC_bb[SQ_NO];
     extern Bitboard   R_MAGIC_bb[SQ_NO];
 
-    extern u08        B_SHIFT   [SQ_NO];
-    extern u08        R_SHIFT   [SQ_NO];
+    extern u08           B_SHIFT[SQ_NO];
+    extern u08           R_SHIFT[SQ_NO];
 #endif
 
     extern u08        SQR_DIST  [SQ_NO][SQ_NO];

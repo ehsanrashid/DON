@@ -1696,8 +1696,8 @@ namespace Searcher {
     //i32                 MultiPV_cp      = 0;
 
     i16                 FixedContempt   = 0
-        ,               ContemptTime    = 24
-        ,               ContemptValue   = 34;
+        ,               ContemptTime    = 30
+        ,               ContemptValue   = 50;
 
     string              HashFile        = "Hash.dat";
     u16                 AutoSaveHashTime= 0;
