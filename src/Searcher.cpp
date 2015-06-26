@@ -1398,6 +1398,7 @@ namespace Searcher {
             if (SkillMgr.enabled ()) SkillMgr.clear ();
 
             TT.refresh ();
+
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
@@ -1456,9 +1457,9 @@ namespace Searcher {
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
-                        for (i16 i = IndexPV; i >= 0; --i)
+                        for (i16 i = 0; i <= IndexPV; ++i)
                         {
-                            RootMoves[i].insert_pv_into_tt (RootPos);
+                            RootMoves[i].insert_pv_into_tt ();
                         }
 
                         // If search has been stopped break immediately.
@@ -1538,21 +1539,11 @@ namespace Searcher {
                 // Stop the search early:
                 bool stop = false;
 
-                // Stop if have found a "mate in <x>"
-                if (   MateSearch
-                    && best_value >= +VALUE_MATE_IN_MAX_DEPTH
-                    && i16(VALUE_MATE - best_value) <= 2*Limits.mate
-                   )
-                {
-                    stop = true;
-                }
-
                 // Do have time for the next iteration? Can stop searching now?
                 if (Limits.use_timemanager ())
                 {
                     if (!Signals.force_stop && !Signals.ponderhit_stop)
                     {
-
                         // If PV limit = 1 then take some extra time if the best move has changed
                         if (aspiration && LimitPV == 1)
                         {
@@ -1583,6 +1574,15 @@ namespace Searcher {
                     {
                         MoveMgr.clear ();
                     }
+                }
+                else
+                // Stop if have found a "mate in <x>"
+                if (   MateSearch
+                    && best_value >= +VALUE_MATE_IN_MAX_DEPTH
+                    && i16(VALUE_MATE - best_value) <= 2*Limits.mate
+                   )
+                {
+                    stop = true;
                 }
 
                 if (stop)
@@ -1728,30 +1728,30 @@ namespace Searcher {
     // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
     // inserts the PV back into the TT. This makes sure the old PV moves are searched
     // first, even if the old TT entries have been overwritten.
-    void RootMove::insert_pv_into_tt (Position &pos)
+    void RootMove::insert_pv_into_tt ()
     {
         StateInfo states[MAX_DEPTH], *si = states;
 
         u08 ply = 0;
         for (auto m : pv)
         {
-            assert (MoveList<LEGAL> (pos).contains (m));
+            assert (MoveList<LEGAL> (RootPos).contains (m));
             
             bool tt_hit;
-            auto *tte = TT.probe (pos.posi_key (), tt_hit);
+            auto *tte = TT.probe (RootPos.posi_key (), tt_hit);
             // Don't overwrite correct entries
             if (!tt_hit || tte->move () != m)
             {
-                tte->save (pos.posi_key (), m, VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.generation ());
+                tte->save (RootPos.posi_key (), m, VALUE_NONE, VALUE_NONE, DEPTH_NONE, BOUND_NONE, TT.generation ());
             }
 
-            pos.do_move (m, *si++, pos.gives_check (m, CheckInfo (pos)));
+            RootPos.do_move (m, *si++, RootPos.gives_check (m, CheckInfo (RootPos)));
             ++ply;
         }
 
         while (ply != 0)
         {
-            pos.undo_move ();
+            RootPos.undo_move ();
             --ply;
         }
     }
@@ -1760,31 +1760,33 @@ namespace Searcher {
     // exiting the search, for instance in case we stop the search during a fail high at
     // root. We try hard to have a ponder move to return to the GUI, otherwise in case of
     // 'ponder on' we have nothing to think on.
-    bool RootMove::ponder_move_extracted_from_tt (Position &pos)
+    bool RootMove::ponder_move_extracted_from_tt ()
     {
         assert (pv.size () == 1);
         assert (pv[0] != MOVE_NONE);
+        
+        bool extracted = false;
 
         StateInfo si;
-        pos.do_move (pv[0], si, pos.gives_check (pv[0], CheckInfo (pos)));
+        RootPos.do_move (pv[0], si, RootPos.gives_check (pv[0], CheckInfo (RootPos)));
 
         bool tt_hit;
-        auto *tte = TT.probe (pos.posi_key (), tt_hit);
-
-        pos.undo_move ();
-
+        auto *tte = TT.probe (RootPos.posi_key (), tt_hit);
         if (tt_hit)
         {
             auto m = tte->move (); // Local copy to be SMP safe
             if (   m != MOVE_NONE
-                && MoveList<LEGAL> (pos).contains (m)
+                && MoveList<LEGAL> (RootPos).contains (m)
                )
             {
-               return pv.push_back (m), true;
+               pv.push_back (m);
+               extracted = true;
             }
         }
 
-        return false;
+        RootPos.undo_move ();
+        
+        return extracted;
     }
 
     RootMove::operator string () const
@@ -2043,7 +2045,7 @@ namespace Searcher {
                 << "Hash-full  : " << TT.hash_full ()                           << "\n"
                 << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
             if (    RootMoves[0].pv[0] != MOVE_NONE
-                && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt (RootPos))
+                && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt ())
                )
             {
                 StateInfo si;
@@ -2074,7 +2076,7 @@ namespace Searcher {
         // Best move could be MOVE_NONE when searching on a stalemate position
         sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], Chess960);
         if (    RootMoves[0].pv[0] != MOVE_NONE
-            && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt (RootPos))
+            && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt ())
            )
         {
             cout << " ponder " << move_to_can (RootMoves[0].pv[1], Chess960);

@@ -108,8 +108,8 @@ namespace Searcher {
         bool operator== (Move m) const { return pv[0] == m; }
         bool operator!= (Move m) const { return pv[0] != m; }
 
-        void insert_pv_into_tt (Position &pos);
-        bool ponder_move_extracted_from_tt (Position &pos);
+        void insert_pv_into_tt ();
+        bool ponder_move_extracted_from_tt ();
 
         operator std::string () const;
         
