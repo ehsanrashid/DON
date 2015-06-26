@@ -204,12 +204,12 @@ void auto_tune (istream &is)
 
         for (u16 i = 0; i < DEFAULT_FEN.size (); ++i)
         {
-            Position root_pos (DEFAULT_FEN[i], Threadpool.main (), Chess960, false);
+            Position pos (DEFAULT_FEN[i], Threadpool.main (), Chess960, false);
 
             cerr << "\n---------------\n" 
                  << "Position: " << setw (2) << (i + 1) << "/" << DEFAULT_FEN.size () << "\n";
 
-            Threadpool.start_main (root_pos, limits, states);
+            Threadpool.start_main (pos, limits, states);
             Threadpool.main ()->join ();
             nodes += RootPos.game_nodes ();
         }

@@ -342,8 +342,8 @@ namespace Searcher {
 
             assert (0 <= ss->ply && ss->ply < MAX_DEPTH);
 
-            Move  pv[MAX_DEPTH+1];
             Value pv_alpha = -VALUE_INFINITE;
+            Move  pv[MAX_DEPTH+1];
 
             if (PVNode)
             {
@@ -539,21 +539,20 @@ namespace Searcher {
                         {
                             if (nextmove_legal)
                             {
-                                update_pv (ss->pv, best_move, (ss+1)->pv);
+                                update_pv (ss->pv, move, (ss+1)->pv);
                             }
                             else
                             {
-                                auto *mm = ss->pv;
-                                *mm++ = best_move; *mm = MOVE_NONE;
+                                auto *mm = ss->pv; *mm++ = move; *mm = MOVE_NONE;
                             }
                         }
                         // Fail high
                         if (value >= beta)
                         {
-                            tte->save (posi_key, best_move, value_to_tt (best_value, ss->ply), ss->static_eval, qs_depth, BOUND_LOWER, TT.generation ());
+                            tte->save (posi_key, move, value_to_tt (value, ss->ply), ss->static_eval, qs_depth, BOUND_LOWER, TT.generation ());
 
-                            assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
-                            return best_value;
+                            assert (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
+                            return value;
                         }
 
                         assert (value < beta);
@@ -1285,12 +1284,11 @@ namespace Searcher {
                         {
                             if (nextmove_legal)
                             {
-                                update_pv (SPNode ? splitpoint->ss->pv : ss->pv, best_move, (ss+1)->pv);
+                                update_pv (SPNode ? splitpoint->ss->pv : ss->pv, move, (ss+1)->pv);
                             }
                             else
                             {
-                                auto *mm = SPNode ? splitpoint->ss->pv : ss->pv;
-                                *mm++ = best_move; *mm = MOVE_NONE;
+                                auto *mm = SPNode ? splitpoint->ss->pv : ss->pv; *mm++ = move; *mm = MOVE_NONE;
                             }
                         }
                         // Fail high
@@ -1736,7 +1734,7 @@ namespace Searcher {
         for (auto m : pv)
         {
             assert (MoveList<LEGAL> (RootPos).contains (m));
-            
+
             bool tt_hit;
             auto *tte = TT.probe (RootPos.posi_key (), tt_hit);
             // Don't overwrite correct entries
