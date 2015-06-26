@@ -180,7 +180,7 @@ namespace Searcher {
             {
                 swap (ss->killer_moves[0], *find (begin (ss->killer_moves), end (ss->killer_moves), move));
             }
-            
+
             Value bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
 
             Move opp_move = (ss-1)->current_move;
@@ -208,7 +208,7 @@ namespace Searcher {
                     cmhv.update (pos, quiet_moves[i], -bonus);
                 }
             }
-            
+
             // Extra penalty for TT move in previous ply when it gets refuted
             if (opp_move_dst != SQ_NO && opp_move == (ss-1)->tt_move)
             {
@@ -222,7 +222,7 @@ namespace Searcher {
             }
 
         }
-        
+
         // update_pv() add current move and appends child pv[]
         void update_pv (Move *pv, Move move, const Move *child_pv)
         {
@@ -343,7 +343,7 @@ namespace Searcher {
 
             Move  pv[MAX_DEPTH+1];
             Value pv_alpha = -VALUE_INFINITE;
-            
+
             if (PVNode)
             {
                 // To flag EXACT a node with eval above alpha and no available moves
@@ -359,11 +359,11 @@ namespace Searcher {
                 , best_value = -VALUE_INFINITE;
             Depth tt_depth   = DEPTH_NONE;
             Bound tt_bound   = BOUND_NONE;
-            
+
             // Transposition table lookup
             Key posi_key = pos.posi_key ();
             bool tt_hit = false;
-            TTEntry *tte = TT.probe (posi_key, tt_hit);
+            auto *tte = TT.probe (posi_key, tt_hit);
             if (tt_hit)
             {
                 tt_move  = tte->move ();
@@ -448,17 +448,15 @@ namespace Searcher {
             // be generated.
             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO);
             CheckInfo ci (pos);
-            
             StateInfo si;
-
             Move move;
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move<false> ()) != MOVE_NONE)
             {
                 assert (_ok (move));
-                
+
                 bool gives_check = pos.gives_check (move, ci);
-                
+
                 if (!MateSearch)
                 {
                     // Futility pruning
@@ -516,7 +514,7 @@ namespace Searcher {
                 prefetch (thread->matl_table[pos.matl_key ()]);
 
                 Value value;
-                
+
                 value =
                     gives_check ?
                         -quien_search<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
@@ -546,7 +544,7 @@ namespace Searcher {
                             }
                             else
                             {
-                                Move *mm = ss->pv;
+                                auto *mm = ss->pv;
                                 *mm++ = best_move; *mm = MOVE_NONE;
                             }
                         }
@@ -623,7 +621,7 @@ namespace Searcher {
             
             CheckInfo ci (pos);
             StateInfo si;
-            
+
             if (SPNode)
             {
                 splitpoint  = ss->splitpoint;
@@ -841,7 +839,7 @@ namespace Searcher {
                                 }
                             }
                         }
-                        
+
                         // Step 9. ProbCut
                         // If have a very good capture (i.e. SEE > see[captured_piece_type])
                         // and a reduced search returns a value much above beta,
@@ -1208,7 +1206,7 @@ namespace Searcher {
                                 -quien_search<PV, false>   (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
                             -depth_search<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                 }
-                
+
                 bool nextmove_legal = PVNode && !RootNode && (ss+1)->pv != nullptr && _ok ((ss+1)->pv[0]) && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
 
                 // Step 17. Undo move
@@ -1234,7 +1232,7 @@ namespace Searcher {
 
                 if (RootNode)
                 {
-                    RootMove &rm = *find (RootMoves.begin (), RootMoves.end (), move);
+                    auto &rm = *find (RootMoves.begin (), RootMoves.end (), move);
                     // Remember searched nodes counts for this rootmove
                     //rm.nodes += pos.game_nodes () - nodes;
 
@@ -1246,7 +1244,7 @@ namespace Searcher {
 
                         assert ((ss+1)->pv != nullptr);
 
-                        for (Move *m = (ss+1)->pv; *m != MOVE_NONE; ++m)
+                        for (auto *m = (ss+1)->pv; *m != MOVE_NONE; ++m)
                         {
                             rm.pv.push_back (*m);
                         }
@@ -1293,7 +1291,7 @@ namespace Searcher {
                             }
                             else
                             {
-                                Move *mm = SPNode ? splitpoint->ss->pv : ss->pv;
+                                auto *mm = SPNode ? splitpoint->ss->pv : ss->pv;
                                 *mm++ = best_move; *mm = MOVE_NONE;
                             }
                         }
@@ -1738,12 +1736,12 @@ namespace Searcher {
         StateInfo states[MAX_DEPTH], *si = states;
 
         u08 ply = 0;
-        for (Move m : pv)
+        for (auto m : pv)
         {
             assert (MoveList<LEGAL> (pos).contains (m));
             
             bool tt_hit;
-            TTEntry *tte = TT.probe (pos.posi_key (), tt_hit);
+            auto *tte = TT.probe (pos.posi_key (), tt_hit);
             // Don't overwrite correct entries
             if (!tt_hit || tte->move () != m)
             {
@@ -1795,7 +1793,7 @@ namespace Searcher {
     RootMove::operator string () const
     {
         stringstream ss;
-        for (Move m : pv)
+        for (auto m : pv)
         {
             ss << " " << move_to_can (m, Chess960);
         }
@@ -1925,7 +1923,7 @@ namespace Searcher {
         RootColor   = RootPos.active ();
         RootPly     = RootPos.game_ply ();
         RootSize    = u16(RootMoves.size ());
-        
+
         TimeMgr.initialize (RootColor, Limits, RootPly, now ());
 
         MateSearch  = 0 != Limits.mate;
@@ -2042,7 +2040,7 @@ namespace Searcher {
         if (SearchLogWrite)
         {
             LogFile logfile (SearchLog);
-                
+
             logfile
                 << "Time (ms)  : " << elapsed_time                              << "\n"
                 << "Nodes (N)  : " << RootPos.game_nodes ()                     << "\n"

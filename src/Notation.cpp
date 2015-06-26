@@ -23,8 +23,8 @@ namespace Notation {
         {
             assert (pos.legal (m));
 
-            Square org = org_sq (m);
-            Square dst = dst_sq (m);
+            auto org = org_sq (m);
+            auto dst = dst_sq (m);
 
             // Disambiguation if have more then one piece with destination 'dst'
             // note that for pawns is not needed because starting file is explicit.
@@ -35,7 +35,7 @@ namespace Notation {
             amb = pcs = (attacks_bb (pos[org], dst, pos.pieces ()) & pos.pieces (pos.active (), ptype (pos[org]))) - org;
             while (pcs != U64(0))
             {
-                Square sq = pop_lsq (pcs);
+                auto sq = pop_lsq (pcs);
                 if (!pos.legal (mk_move<NORMAL> (sq, dst), pinneds))
                 {
                     amb -= sq;
@@ -104,7 +104,7 @@ namespace Notation {
     // to the corresponding legal move, if any.
     Move move_from_can (const string &can, const Position &pos)
     {
-        string ccan = can;
+        auto ccan = can;
         if (5 == ccan.length ())
         {
             // Promotion piece in lowercase
@@ -153,10 +153,10 @@ namespace Notation {
         if (MOVE_NULL == m) return "(null)";
         //if (!_ok (m))       return "(xxxx)";
 
-        Square org = org_sq (m);
-        Square dst = dst_sq (m);
+        auto org = org_sq (m);
+        auto dst = dst_sq (m);
         if (!c960 && CASTLE == mtype (m)) dst = (dst > org ? F_G : F_C) | _rank (org);
-        string can = to_string (org) + to_string (dst);
+        auto can = to_string (org) + to_string (dst);
         if (PROMOTE == mtype (m)) can += PIECE_CHAR[(BLACK|promote (m))]; // Lowercase
         return can;
     }
@@ -171,8 +171,8 @@ namespace Notation {
 
         string san;
 
-        Square org = org_sq (m);
-        Square dst = dst_sq (m);
+        auto org = org_sq (m);
+        auto dst = dst_sq (m);
 
         if (CASTLE == mtype (m))
         {
@@ -180,7 +180,7 @@ namespace Notation {
         }
         else
         {
-            PieceT pt = ptype (pos[org]);
+            auto pt = ptype (pos[org]);
 
             if (PAWN != pt)
             {
@@ -279,7 +279,7 @@ namespace Notation {
 
         StateStack states;
         u08 ply = 0;
-        for (Move m : pv)
+        for (auto m : pv)
         {
             oss << move_to_san (m, pos) << " ";
             states.push (StateInfo ());

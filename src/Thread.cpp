@@ -32,14 +32,13 @@ namespace Threading {
             th->mutex.lock ();
             th->alive = false;   // Search must be already finished
             th->mutex.unlock ();
-
             th->notify_one ();
             th->join ();         // Wait for thread termination
             delete th;
             th = nullptr;
         }
     }
-    
+
     // explicit template instantiations
     // --------------------------------
     template TimerThread* new_thread<TimerThread> ();
@@ -78,7 +77,7 @@ namespace Threading {
     // current active splitpoint, or in some ancestor of the splitpoint.
     bool Thread::cutoff_occurred () const
     {
-        for (SplitPoint *sp = active_splitpoint; sp != nullptr; sp = sp->parent_splitpoint)
+        for (auto *sp = active_splitpoint; sp != nullptr; sp = sp->parent_splitpoint)
         {
             if (sp->cut_off) return true;
         }
@@ -120,7 +119,7 @@ namespace Threading {
         assert (splitpoint_count < MAX_SPLITPOINTS_PER_THREAD);
 
         // Pick the next available splitpoint from the splitpoint stack
-        SplitPoint &sp = splitpoints[splitpoint_count];
+        auto &sp = splitpoints[splitpoint_count];
 
         sp.spinlock.acquire (); // No contention here until we don't increment splitPointsSize
 
@@ -154,14 +153,12 @@ namespace Threading {
               )
         {
             slave->spinlock.acquire ();
-
             if (slave->can_join (active_splitpoint))
             {
                 active_splitpoint->slaves_mask.set (slave->index);
                 slave->active_splitpoint = active_splitpoint;
                 slave->searching = true;
             }
-
             slave->spinlock.release ();
         }
 
@@ -212,7 +209,6 @@ namespace Threading {
             lk.unlock ();
 
             if (_running) task ();
-
         }
     }
 
@@ -283,7 +279,7 @@ namespace Threading {
         delete_thread (check_limits_th);
         delete_thread (save_hash_th);
 
-        for (Thread *th : *this)
+        for (auto *th : *this)
         {
             delete_thread (th);
         }
@@ -323,7 +319,7 @@ namespace Threading {
     // to join SplitPoint 'sp'.
     Thread* ThreadPool::available_slave (const SplitPoint *sp) const
     {
-        for (Thread *th : *this)
+        for (auto *th : *this)
         {
             if (th->can_join (sp))
             {

@@ -95,9 +95,9 @@ namespace Material {
         // KING == BISHOP_PAIR
         Value imbalance (const i32 count[][NONE])
         {
-            const Color Opp = WHITE == Own ? BLACK : WHITE;
+            const auto Opp = WHITE == Own ? BLACK : WHITE;
 
-            i32 value = VALUE_ZERO;
+            auto value = VALUE_ZERO;
 
             // "The Evaluation of Material Imbalances in Chess"
 
@@ -106,7 +106,7 @@ namespace Material {
             {
                 if (count[Own][pt1] != 0)
                 {
-                    i32 v = OwnSideLinearCoefficient[pt1];
+                    auto v = OwnSideLinearCoefficient[pt1];
 
                     for (i08 pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
@@ -121,7 +121,7 @@ namespace Material {
             }
             value += count[Own][KING] * OwnSideLinearCoefficient[KING];
 
-            return Value(value);
+            return value;
         }
 
     }
@@ -282,7 +282,7 @@ namespace Material {
                 }
             };
 
-            Value value = Value((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 0x10);
+            auto value = Value((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 0x10);
             e->imbalance = mk_score (value, value);
         }
 

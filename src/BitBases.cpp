@@ -66,11 +66,11 @@ namespace BitBases {
                 // If one move leads to a position classified as DRAW, the result of the current position is DRAW.
                 // If all moves lead to positions classified as WIN, the result of the current position is WIN
                 // otherwise the current position is classified as UNKNOWN.
-                
-                const Color  Opp  = WHITE == Own ? BLACK : WHITE;
-                const Result Good = WHITE == Own ? WIN   : DRAW;
-                const Result Bad  = WHITE == Own ? DRAW  : WIN;
-                
+
+                const auto Opp  = WHITE == Own ? BLACK : WHITE;
+                const auto Good = WHITE == Own ? WIN   : DRAW;
+                const auto Bad  = WHITE == Own ? DRAW  : WIN;
+
                 Result r = INVALID;
                 
                 Bitboard b = PIECE_ATTACKS[KING][_k_sq[Own]];
@@ -80,7 +80,7 @@ namespace BitBases {
                             db[index (Opp, _k_sq[Opp], pop_lsq (b), _p_sq)] :
                             db[index (Opp, pop_lsq (b), _k_sq[Opp], _p_sq)];
                 }
-                
+
                 if (WHITE == Own)
                 {
                     // Single push
@@ -98,15 +98,15 @@ namespace BitBases {
                         r |= db[index (Opp, _k_sq[Opp], _k_sq[Own], _p_sq + DEL_N + DEL_N)];
                     }
                 }
-                
+
                 return result = r & Good  ? Good  :
                                 r & UNKNOWN ? UNKNOWN : Bad;
             }
-            
+
         public:
 
             KPK_Position () = default;
-            
+
             explicit KPK_Position (u32 idx)
             {
                 _k_sq[WHITE] = Square(         (idx >>  0) & 0x3F);
@@ -114,7 +114,7 @@ namespace BitBases {
                 _active      = Color (         (idx >> 12) & 0x01);
                 _p_sq        = File  (         (idx >> 13) & 0x03)
                              | Rank  (R_7-Rank((idx >> 15) & 0x07));
-                
+
                 // Check if two pieces are on the same square or if a king can be captured
                 if (   dist (_k_sq[WHITE], _k_sq[BLACK]) <= 1
                     || _k_sq[WHITE] == _p_sq
@@ -152,7 +152,7 @@ namespace BitBases {
                     result  = UNKNOWN;
                 }
             }
-            
+
             operator Result () const { return result; }
 
             Result classify (const vector<KPK_Position>& db)

@@ -114,14 +114,14 @@ namespace Pawns {
         template<Color Own>
         inline Score evaluate (const Position &pos, Entry *e)
         {
-            const Color Opp     = WHITE == Own ? BLACK  : WHITE;
-            const Delta Push    = WHITE == Own ? DEL_N  : DEL_S;
-            const Delta Pull    = WHITE == Own ? DEL_S  : DEL_N;
-            const Delta Left    = WHITE == Own ? DEL_NW : DEL_SE;
-            const Delta Right   = WHITE == Own ? DEL_NE : DEL_SW;
+            const auto Opp   = WHITE == Own ? BLACK  : WHITE;
+            const auto Push  = WHITE == Own ? DEL_N  : DEL_S;
+            const auto Pull  = WHITE == Own ? DEL_S  : DEL_N;
+            const auto Left  = WHITE == Own ? DEL_NW : DEL_SE;
+            const auto Right = WHITE == Own ? DEL_NE : DEL_SW;
 
-            const Bitboard own_pawns = pos.pieces<PAWN> (Own);
-            const Bitboard opp_pawns = pos.pieces<PAWN> (Opp);
+            const auto own_pawns = pos.pieces<PAWN> (Own);
+            const auto opp_pawns = pos.pieces<PAWN> (Opp);
 
             e->pawns_attacks  [Own] = shift_del<Left> (own_pawns) | shift_del<Right> (own_pawns);
             e->blocked_pawns  [Own] = own_pawns & shift_del<Pull> (opp_pawns);
@@ -129,7 +129,7 @@ namespace Pawns {
             e->semiopen_files [Own] = 0xFF;
             e->king_sq        [Own] = SQ_NO;
 
-            Bitboard center_pawns = own_pawns & EXT_CENTER_bb[Own];
+            auto center_pawns = own_pawns & EXT_CENTER_bb[Own];
             if (center_pawns != U64(0))
             {
                 Bitboard color_pawns;
@@ -144,30 +144,30 @@ namespace Pawns {
                 e->pawns_on_sqrs[Own][BLACK] = 0;
             }
 
-            Score pawn_score = SCORE_ZERO;
+            auto pawn_score = SCORE_ZERO;
 
             Bitboard b;
 
-            const Square *pl = pos.list<PAWN> (Own);
+            const auto *pl = pos.list<PAWN> (Own);
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
                 assert (pos[s] == (Own | PAWN));
 
-                File f = _file (s);
-                Rank r = rel_rank (Own, s);
+                auto f = _file (s);
+                auto r = rel_rank (Own, s);
 
                 e->semiopen_files[Own] &= ~(1 << f);
 
-                Bitboard adjacents = (own_pawns & ADJ_FILE_bb[f]);
-                Bitboard phalanx   = (adjacents & rank_bb (s));
-                Bitboard supported = (adjacents & rank_bb (s-Push));
-                Bitboard doubled   = (own_pawns & FRONT_SQRS_bb[Own][s]);
-                bool     opposed   = (opp_pawns & FRONT_SQRS_bb[Own][s]);
-                bool     connected = (supported | phalanx);
-                bool     levered   = (opp_pawns & PAWN_ATTACKS[Own][s]);
-                bool     isolated  = !(adjacents);
-                bool     passed    = !(opp_pawns & PAWN_PASS_SPAN[Own][s]);
+                auto adjacents = (own_pawns & ADJ_FILE_bb[f]);
+                auto phalanx   = (adjacents & rank_bb (s));
+                auto supported = (adjacents & rank_bb (s-Push));
+                auto doubled   = (own_pawns & FRONT_SQRS_bb[Own][s]);
+                bool opposed   = (opp_pawns & FRONT_SQRS_bb[Own][s]);
+                bool connected = (supported | phalanx);
+                bool levered   = (opp_pawns & PAWN_ATTACKS[Own][s]);
+                bool isolated  = !(adjacents);
+                bool passed    = !(opp_pawns & PAWN_PASS_SPAN[Own][s]);
 
                 bool backward;
                 // Test for backward pawn.
@@ -196,7 +196,7 @@ namespace Pawns {
 
                 assert (passed ^ (opposed || (opp_pawns & PAWN_ATTACK_SPAN[Own][s])));
 
-                Score score = SCORE_ZERO;
+                auto score = SCORE_ZERO;
 
                 if (connected)
                 {
@@ -268,13 +268,13 @@ namespace Pawns {
     // for the file the king is on, as well as the two adjacent files.
     Value Entry::pawn_shelter_storm (const Position &pos, Square k_sq) const
     {
-        const Color Opp = WHITE == Own ? BLACK : WHITE;
+        const auto Opp = WHITE == Own ? BLACK : WHITE;
 
         Value value = KING_SAFETY_BY_PAWN;
 
-        Bitboard front_pawns = pos.pieces<PAWN> () & (FRONT_RANK_bb[Own][_rank (k_sq)] | RANK_bb[_rank (k_sq)]);
-        Bitboard own_front_pawns = pos.pieces (Own) & front_pawns;
-        Bitboard opp_front_pawns = pos.pieces (Opp) & front_pawns;
+        auto front_pawns = pos.pieces<PAWN> () & (FRONT_RANK_bb[Own][_rank (k_sq)] | RANK_bb[_rank (k_sq)]);
+        auto own_front_pawns = pos.pieces (Own) & front_pawns;
+        auto opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
         i32 kfc = min (max (_file (k_sq), F_B), F_G);
         for (i32 f = kfc - 1; f <= kfc + 1; ++f)
@@ -284,10 +284,10 @@ namespace Pawns {
             Bitboard mid_pawns;
             
             mid_pawns = own_front_pawns & FILE_bb[f];
-            Rank r0 = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
+            auto r0 = mid_pawns != U64(0) ? rel_rank (Own, scan_backmost_sq (Own, mid_pawns)) : R_1;
 
             mid_pawns = opp_front_pawns & FILE_bb[f];
-            Rank r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
+            auto r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
             value -= 
                   +  SHELTER_WEAKNESS[min (f, i32(F_H) - f)][r0]

@@ -414,11 +414,10 @@ inline Key    Position::posi_key      () const { return _si->posi_key; }
 // It doesn't recognize special moves like castling, en-passant and promotions.
 inline Key    Position::posi_move_key (Move m) const
 {
-    Square org = org_sq (m)
-        ,  dst = dst_sq (m);
-
-    PieceT pt = ptype (_board[org])
-        ,  ct = ptype (_board[dst]);
+    auto org = org_sq (m);
+    auto dst = dst_sq (m);
+    auto pt = ptype (_board[org]);
+    auto ct = ptype (_board[dst]);
 
     return _si->posi_key
         ^  Zob._.act_side
@@ -513,7 +512,7 @@ inline bool Position::pawn_on_7thR (Color c) const
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const
 {
-    u08 bishop_count = _piece_count[c][BSHP];
+    auto bishop_count = _piece_count[c][BSHP];
     if (bishop_count > 1)
     {
         for (u08 pc = 0; pc < bishop_count-1; ++pc)
@@ -557,7 +556,7 @@ inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 
     _board[s] = (c | pt);
 
-    Bitboard bb      = BitBoard::SQUARE_bb[s];
+    auto bb = BitBoard::SQUARE_bb[s];
     _color_bb[c]    |= bb;
     _types_bb[pt]   |= bb;
     _types_bb[NONE] |= bb;
@@ -580,11 +579,11 @@ inline void  Position::remove_piece (Square s)
     // the list and not in its original place, it means index[] and pieceList[]
     // are not guaranteed to be invariant to a do_move() + undo_move() sequence.
 
-    Color  c  = color (_board[s]);
-    PieceT pt = ptype (_board[s]);
+    auto c  = color (_board[s]);
+    auto pt = ptype (_board[s]);
     _board[s] = EMPTY;
 
-    Bitboard bb      = ~BitBoard::SQUARE_bb[s];
+    auto bb = ~BitBoard::SQUARE_bb[s];
     _color_bb[c]    &= bb;
     _types_bb[pt]   &= bb;
     _types_bb[NONE] &= bb;
@@ -592,7 +591,7 @@ inline void  Position::remove_piece (Square s)
     _piece_count[c][pt]--;
 
     // Update piece list, remove piece at [s] index and shrink the list.
-    Square last_sq = _piece_list[c][pt][_piece_count[c][pt]];
+    auto last_sq = _piece_list[c][pt][_piece_count[c][pt]];
     if (s != last_sq)
     {
         _piece_index[last_sq] = _piece_index[s];
@@ -607,13 +606,13 @@ inline void  Position::  move_piece (Square s1, Square s2)
     assert ( empty (s2));
     assert (_piece_index[s1] != -1);
 
-    Color  c  = color (_board[s1]);
-    PieceT pt = ptype (_board[s1]);
+    auto c  = color (_board[s1]);
+    auto pt = ptype (_board[s1]);
 
     _board[s2] = _board[s1];
     _board[s1] = EMPTY;
 
-    Bitboard bb = BitBoard::SQUARE_bb[s1] ^ BitBoard::SQUARE_bb[s2];
+    auto bb = BitBoard::SQUARE_bb[s1] ^ BitBoard::SQUARE_bb[s2];
     _color_bb[c]    ^= bb;
     _types_bb[pt]   ^= bb;
     _types_bb[NONE] ^= bb;

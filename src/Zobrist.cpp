@@ -34,7 +34,7 @@ namespace Zobrist {
 
         for (i08 c = WHITE; c <= BLACK; ++c)
         {
-            const Square *pl = pos.list<PAWN> (Color(c));
+            const auto *pl = pos.list<PAWN> (Color(c));
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
@@ -53,7 +53,7 @@ namespace Zobrist {
         {
             for (i08 pt = PAWN; pt <= KING; ++pt)
             {
-                const Square *pl = pos[(Color(c) | PieceT(pt))];
+                const auto *pl = pos[(Color(c) | PieceT(pt))];
                 Square s;
                 while ((s = *pl++) != SQ_NO)
                 {

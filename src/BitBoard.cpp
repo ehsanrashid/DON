@@ -344,7 +344,7 @@ namespace BitBoard {
 
         while (bb != U64(0))
         {
-            Square s = pop_lsq (bb);
+            auto s = pop_lsq (bb);
             sbb[2 + (ROW.length () + 1) * (8 - _rank (s)) + 2 * _file (s)] = p;
         }
 
