@@ -151,7 +151,7 @@ namespace Material {
             {
                 return e;
             }
-            // Generic
+            // Generic evaluation
             for (Color c = WHITE; c <= BLACK; ++c)
             {
                 if (is_KXK (pos, c))
@@ -189,11 +189,14 @@ namespace Material {
                 }
             }
 
-            const Value npm_w = pos.non_pawn_material (WHITE)
-                      , npm_b = pos.non_pawn_material (BLACK);
+            Value npm[CLR_NO] = 
+            {
+                pos.non_pawn_material (WHITE),
+                pos.non_pawn_material (BLACK)
+            };
 
             // Only pawns on the board
-            if (   npm_w + npm_b == VALUE_ZERO
+            if (   npm[WHITE] + npm[BLACK] == VALUE_ZERO
                 && pos.pieces<PAWN> () != U64(0)
                )
             {
@@ -225,13 +228,13 @@ namespace Material {
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale factor for cases such as KRKBP and KmmKm (except for KBBKN).
 
-            if (npm_w - npm_b <= VALUE_MG_BSHP)
+            if (npm[WHITE] - npm[BLACK] <= VALUE_MG_BSHP)
             {
                 if (pos.count<PAWN> (WHITE) == 0)
                 {
                     e->factor[WHITE] = u08(
-                        npm_w <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm_b <= VALUE_MG_BSHP ? 4 : 12);
+                        npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
+                        npm[BLACK] <= VALUE_MG_BSHP ? 4 : 12);
                 }
                 else
                 if (pos.count<PAWN> (WHITE) == 1)
@@ -240,13 +243,13 @@ namespace Material {
                 }
             }
 
-            if (npm_b - npm_w <= VALUE_MG_BSHP)
+            if (npm[BLACK] - npm[WHITE] <= VALUE_MG_BSHP)
             {
                 if (pos.count<PAWN> (BLACK) == 0)
                 {
                     e->factor[BLACK] = u08(
-                        npm_b <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm_w <= VALUE_MG_BSHP ? 4 : 12);
+                        npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
+                        npm[WHITE] <= VALUE_MG_BSHP ? 4 : 12);
                 }
                 else
                 if (pos.count<PAWN> (BLACK) == 1)

@@ -172,7 +172,7 @@ namespace Transposition {
             resize (mem_size_mb, true);
         }
 
-       ~TranspositionTable ()
+        ~TranspositionTable ()
         {
             free_aligned_memory ();
         }
@@ -225,10 +225,10 @@ namespace Transposition {
         u32 hash_full () const
         {
             u32 full_entry_count = 0;
-            for (const Cluster *clt = _clusters; clt < _clusters + 1000/ClusterEntryCount; ++clt)
+            for (const auto *clt = _clusters; clt < _clusters + 1000/ClusterEntryCount; ++clt)
             {
-                const TTEntry *fte = clt->entries;
-                for (const TTEntry *ite = fte; ite < fte+ClusterEntryCount; ++ite)
+                const auto *fte = clt->entries;
+                for (const auto *ite = fte; ite < fte+ClusterEntryCount; ++ite)
                 {
                     if (ite->gen () == _generation)
                     {

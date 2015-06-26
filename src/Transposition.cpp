@@ -103,7 +103,7 @@ namespace Transposition {
 
         for (u64 msize_mb = mem_size_mb; msize_mb >= MinSize; msize_mb >>= 1)
         {
-            if (resize (msize_mb, force)) return;
+            if (resize (msize_mb, force) != 0) return;
         }
         Engine::exit (EXIT_FAILURE);
     }
@@ -114,8 +114,8 @@ namespace Transposition {
     {
         assert (key != U64(0));
 
-        TTEntry *const fte = cluster_entry (key);
-        for (TTEntry *ite = fte+0; ite < fte+ClusterEntryCount; ++ite)
+        auto *const fte = cluster_entry (key);
+        for (auto *ite = fte+0; ite < fte+ClusterEntryCount; ++ite)
         {
             if (ite->_key == U64(0))
             {
@@ -129,8 +129,8 @@ namespace Transposition {
             }
         }
 
-        TTEntry *rte = fte;
-        for (TTEntry *ite = fte+1; ite < fte+ClusterEntryCount; ++ite)
+        auto *rte = fte;
+        for (auto *ite = fte+1; ite < fte+ClusterEntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
             if ( ((ite->gen () == _generation || ite->bound () == BOUND_EXACT)

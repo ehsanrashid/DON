@@ -125,8 +125,8 @@ namespace EndGame {
     template<EndgameT E, class T>
     void Endgames::add (const string &code)
     {
-        map<T>()[key<WHITE> (code)] = unique_ptr<EndgameBase<T>>(new Endgame<E> (WHITE));
-        map<T>()[key<BLACK> (code)] = unique_ptr<EndgameBase<T>>(new Endgame<E> (BLACK));
+        map<T> ()[key<WHITE> (code)] = unique_ptr<EndgameBase<T>> (new Endgame<E> (WHITE));
+        map<T> ()[key<BLACK> (code)] = unique_ptr<EndgameBase<T>> (new Endgame<E> (BLACK));
     }
 
     template<>
@@ -604,20 +604,20 @@ namespace EndGame {
         assert (verify_material (pos, _strong_side, VALUE_MG_ROOK, 2));
         assert (verify_material (pos,   _weak_side, VALUE_MG_ROOK, 1));
 
-        auto sp_sq1 = pos.list<PAWN> (_strong_side)[0];
-        auto sp_sq2 = pos.list<PAWN> (_strong_side)[1];
+        auto sp1_sq = pos.list<PAWN> (_strong_side)[0];
+        auto sp2_sq = pos.list<PAWN> (_strong_side)[1];
         auto wk_sq  = pos.king_sq (_weak_side);
 
         // Does the stronger side have a passed pawn?
-        if (pos.passed_pawn (_strong_side, sp_sq1) || pos.passed_pawn (_strong_side, sp_sq2))
+        if (pos.passed_pawn (_strong_side, sp1_sq) || pos.passed_pawn (_strong_side, sp2_sq))
         {
             return SCALE_FACTOR_NONE;
         }
 
-        auto r = max (rel_rank (_strong_side, sp_sq1), rel_rank (_strong_side, sp_sq2));
+        auto r = max (rel_rank (_strong_side, sp1_sq), rel_rank (_strong_side, sp2_sq));
 
-        if (   dist<File> (wk_sq, sp_sq1) <= 1
-            && dist<File> (wk_sq, sp_sq2) <= 1
+        if (   dist<File> (wk_sq, sp1_sq) <= 1
+            && dist<File> (wk_sq, sp2_sq) <= 1
             && rel_rank (_strong_side, wk_sq) > r
            )
         {
@@ -778,30 +778,31 @@ namespace EndGame {
         }
 
         auto wk_sq = pos.king_sq (_weak_side);
-        auto sp_sq1 = pos.list<PAWN> (_strong_side)[0];
-        auto sp_sq2 = pos.list<PAWN> (_strong_side)[1];
+        auto sp1_sq = pos.list<PAWN> (_strong_side)[0];
+        auto sp2_sq = pos.list<PAWN> (_strong_side)[1];
         
-        Square block_sq1, block_sq2;
+        auto block1_sq = SQ_NO;
+        auto block2_sq = SQ_NO;
 
-        if (rel_rank (_strong_side, sp_sq1) > rel_rank (_strong_side, sp_sq2))
+        if (rel_rank (_strong_side, sp1_sq) > rel_rank (_strong_side, sp2_sq))
         {
-            block_sq1 = sp_sq1 + pawn_push (_strong_side);
-            block_sq2 = _file (sp_sq2) | _rank (sp_sq1);
+            block1_sq = sp1_sq + pawn_push (_strong_side);
+            block2_sq = _file (sp2_sq) | _rank (sp1_sq);
         }
         else
         {
-            block_sq1 = sp_sq2 + pawn_push (_strong_side);
-            block_sq2 = _file (sp_sq1) | _rank (sp_sq2);
+            block1_sq = sp2_sq + pawn_push (_strong_side);
+            block2_sq = _file (sp1_sq) | _rank (sp2_sq);
         }
 
-        switch (dist<File> (sp_sq1, sp_sq2))
+        switch (dist<File> (sp1_sq, sp2_sq))
         {
         // Both pawns are on the same file. It's an easy draw if the defender firmly
         // controls some square in the frontmost pawn's path.
         case 0:
         {
-            if (   _file (wk_sq) == _file (block_sq1)
-                && rel_rank (_strong_side, wk_sq) >= rel_rank (_strong_side, block_sq1)
+            if (   _file (wk_sq) == _file (block1_sq)
+                && rel_rank (_strong_side, wk_sq) >= rel_rank (_strong_side, block1_sq)
                 && opposite_colors (wk_sq, sb_sq)
                )
             {
@@ -816,21 +817,21 @@ namespace EndGame {
         case 1:
         {
            
-            if (   wk_sq == block_sq1
+            if (   wk_sq == block1_sq
                 && opposite_colors (wk_sq, sb_sq)
-                && (   wb_sq == block_sq2
-                    || attacks_bb<BSHP> (block_sq2, pos.pieces ()) & pos.pieces<BSHP> (_weak_side)
-                    || dist<Rank> (sp_sq1, sp_sq2) >= 2
+                && (   wb_sq == block2_sq
+                    || attacks_bb<BSHP> (block2_sq, pos.pieces ()) & pos.pieces<BSHP> (_weak_side)
+                    || dist<Rank> (sp1_sq, sp2_sq) >= 2
                    )
                )
             {
                 return SCALE_FACTOR_DRAW;
             }
 
-            if (   wk_sq == block_sq2
+            if (   wk_sq == block2_sq
                 && opposite_colors (wk_sq, sb_sq)
-                && (   wb_sq == block_sq1
-                    || attacks_bb<BSHP> (block_sq1, pos.pieces ()) & pos.pieces<BSHP> (_weak_side)
+                && (   wb_sq == block1_sq
+                    || attacks_bb<BSHP> (block1_sq, pos.pieces ()) & pos.pieces<BSHP> (_weak_side)
                    )
                )
             {

@@ -181,6 +181,7 @@ void benchmark (istream &is, const Position &cur_pos)
 void auto_tune (istream &is)
 {
     string token;
+    // Assign default values to missing arguments
     string threads = (is >> token) && !white_spaces (token) ? token : "1";
 
     Options["Threads"] = threads;
@@ -188,8 +189,6 @@ void auto_tune (istream &is)
     LimitsT limits;
     limits.depth = 15;
 
-    vector<string> fens = DEFAULT_FEN;
-    
     u64 nps[4];
     for (i32 d = 0; d < 4; ++d)
     {
@@ -202,12 +201,12 @@ void auto_tune (istream &is)
         u64       nodes = 0;
         TimePoint time  = now ();
 
-        for (u16 i = 0; i < fens.size (); ++i)
+        for (u16 i = 0; i < DEFAULT_FEN.size (); ++i)
         {
-            Position root_pos (fens[i], Threadpool.main (), Chess960, false);
+            Position root_pos (DEFAULT_FEN[i], Threadpool.main (), Chess960, false);
 
             cerr << "\n---------------\n" 
-                 << "Position: " << setw (2) << (i + 1) << "/" << fens.size () << "\n";
+                 << "Position: " << setw (2) << (i + 1) << "/" << DEFAULT_FEN.size () << "\n";
 
             Threadpool.start_main (root_pos, limits, states);
             Threadpool.main ()->join ();

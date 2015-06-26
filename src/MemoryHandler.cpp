@@ -27,10 +27,10 @@
 
 #   define SE_PRIVILEGE_DISABLED       (0x00000000L)
 
-#   define ALIGN_MALLOC(mem, alignment, size) mem=_aligned_malloc (size, alignment)
-#   define ALIGN_FREE(mem)                        _aligned_free (mem)
+#   define ALIGN_MALLOC(mem, alignment, size)   mem=_aligned_malloc (size, alignment)
+#   define ALIGN_FREE(mem)                          _aligned_free (mem)
 
-#else    // Linux - Unix
+#else
 
 #   include <sys/ipc.h>
 #   include <sys/shm.h>
@@ -40,8 +40,8 @@
 #       define SHM_HUGETLB     04000
 #   endif
 
-#   define ALIGN_MALLOC(mem, alignment, size) posix_memalign (&mem, alignment, size)
-#   define ALIGN_FREE(mem)                    free (mem)
+#   define ALIGN_MALLOC(mem, alignment, size)   posix_memalign (&mem, alignment, size)
+#   define ALIGN_FREE(mem)                      free (mem)
 
 #endif
 
@@ -69,8 +69,8 @@ namespace Memory {
         //
         //    //... now display this string
         //    _tprintf (TEXT ("ERROR: API        = %s.\n") , api_name);
-        //    _tprintf (TEXT ("       error code = %lu.\n"), error_code);
-        //    _tprintf (TEXT ("       message    = %s.\n") , msg_buffer_lp);
+        //    _tprintf (TEXT ("       Error code = %lu.\n"), error_code);
+        //    _tprintf (TEXT ("       Message    = %s.\n") , msg_buffer_lp);
         //
         //    // Free the buffer allocated by the system
         //    LocalFree (msg_buffer_lp);
@@ -115,7 +115,7 @@ namespace Memory {
             }
         }
 
-#   else    // Linux - Unix
+#   else
 
         i32 shm; // Shared Memory Identifier
 
@@ -159,7 +159,7 @@ namespace Memory {
             }
             cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << endl;
 
-#   else    // Linux - Unix
+#   else
 
             shm = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
             if (shm != -1)
@@ -225,7 +225,7 @@ namespace Memory {
             {
             }
 
-#   else   // Linux - Unix
+#   else
 
             if (shmdt (mem) == -1)
             {
@@ -249,7 +249,7 @@ namespace Memory {
 
         setup_privilege (SE_LOCK_MEMORY_NAME, true);
 
-#   else    // Linux - Unix
+#   else
 
 #   endif
     }

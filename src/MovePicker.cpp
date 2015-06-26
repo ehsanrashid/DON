@@ -25,7 +25,7 @@ namespace MovePick {
         // Insertion sort in the range [beg, end), which is guaranteed to be stable, as it should be
         void insertion_sort (ValMove *beg, ValMove *end)
         {
-            for (ValMove *p = beg+1; p < end; ++p)
+            for (auto *p = beg+1; p < end; ++p)
             {
                 ValMove t = *p, *q;
                 for (q = p; q != beg && *(q-1) < t; --q)
@@ -327,12 +327,12 @@ namespace MovePick {
     {
         do
         {
-            Move move;
             while (_moves_cur == _moves_end)
             {
                 generate_next_stage ();
             }
 
+            Move move;
             switch (_stage)
             {
 

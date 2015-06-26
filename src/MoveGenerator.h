@@ -12,8 +12,8 @@ namespace MoveGen {
     struct ValMove
     {
     public:
-        Move    move    = MOVE_NONE;
-        Value   value   = VALUE_ZERO;
+        Move  move  = MOVE_NONE;
+        Value value = VALUE_ZERO;
 
         operator Move () const  { return move; }
         void operator= (Move m) { move = m; }
@@ -76,9 +76,6 @@ namespace MoveGen {
             return false;
         }
 
-        //template<class CharT, class Traits, GenT GT>
-        //friend std::basic_ostream<CharT, Traits>&
-        //    operator<< (std::basic_ostream<CharT, Traits> &os, MoveList<GT> &movelist);
     };
 
     //template<class CharT, class Traits, GenT GT>

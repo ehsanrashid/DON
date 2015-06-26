@@ -518,7 +518,7 @@ namespace Searcher {
                         -quien_search<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
                         -quien_search<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
 
-                bool nextmove_legal = PVNode && (ss+1)->pv != nullptr && _ok ((ss+1)->pv[0]) && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
+                bool nextmove_legal = PVNode && (ss+1)->pv != nullptr && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
 
                 // Undo the move
                 pos.undo_move ();
@@ -938,17 +938,16 @@ namespace Searcher {
                 }
             }
 
+            Move  quiet_moves[MAX_QUIETS]
+                , pv[MAX_DEPTH + 1];
+            u08   legal_count = 0
+                , quiet_count = 0;
+
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
             auto counter_move = opp_move_dst != SQ_NO ? CounterMoves[pos[opp_move_dst]][opp_move_dst] : MOVE_NONE;
 
             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
-
-            u08   legal_count = 0
-                , quiet_count = 0;
-
-            Move  quiet_moves[MAX_QUIETS]
-                , pv[MAX_DEPTH+1];
 
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -1205,7 +1204,7 @@ namespace Searcher {
                             -depth_search<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                 }
 
-                bool nextmove_legal = PVNode && !RootNode && (ss+1)->pv != nullptr && _ok ((ss+1)->pv[0]) && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
+                bool nextmove_legal = PVNode && !RootNode && (ss+1)->pv != nullptr && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
 
                 // Step 17. Undo move
                 pos.undo_move ();

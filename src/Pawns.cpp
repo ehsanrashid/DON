@@ -270,7 +270,7 @@ namespace Pawns {
     {
         const auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        Value value = KING_SAFETY_BY_PAWN;
+        auto value = KING_SAFETY_BY_PAWN;
 
         auto front_pawns = pos.pieces<PAWN> () & (FRONT_RANK_bb[Own][_rank (k_sq)] | RANK_bb[_rank (k_sq)]);
         auto own_front_pawns = pos.pieces (Own) & front_pawns;

@@ -42,8 +42,8 @@ namespace BitBases {
                 LOSE    = 8
             };
             
-            friend Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1 | r2); }
-            //friend Result& operator&= (Result &r1, Result r2) { return r1 = Result (r1 & r2); }
+            friend Result& operator|= (Result &r1, Result r2) { return r1 = Result (r1|r2); }
+            //friend Result& operator&= (Result &r1, Result r2) { return r1 = Result (r1&r2); }
             
         private:
 
@@ -55,7 +55,7 @@ namespace BitBases {
             Result result;
 
             template<Color Own>
-            Result classify (const vector<KPK_Position> &db)
+            Result classify (const vector<KPK_Position> &kpk_db)
             {
                 // White to Move:
                 // If one move leads to a position classified as WIN, the result of the current position is WIN.
@@ -77,8 +77,8 @@ namespace BitBases {
                 while (b != U64(0))
                 {
                     r |= WHITE == Own ?
-                            db[index (Opp, _k_sq[Opp], pop_lsq (b), _p_sq)] :
-                            db[index (Opp, pop_lsq (b), _k_sq[Opp], _p_sq)];
+                            kpk_db[index (Opp, _k_sq[Opp], pop_lsq (b), _p_sq)] :
+                            kpk_db[index (Opp, pop_lsq (b), _k_sq[Opp], _p_sq)];
                 }
 
                 if (WHITE == Own)
@@ -86,16 +86,15 @@ namespace BitBases {
                     // Single push
                     if (_rank (_p_sq) < R_7)
                     {
-                        r |= db[index (Opp, _k_sq[Opp], _k_sq[Own], _p_sq + DEL_N)];
+                        r |= kpk_db[index (Opp, _k_sq[Opp], _k_sq[Own], _p_sq + DEL_N)];
                     }
-                    
                     // Double push
                     if (   _rank (_p_sq) == R_2
                         && _p_sq + DEL_N != _k_sq[Own] // Front is not own king
                         && _p_sq + DEL_N != _k_sq[Opp] // Front is not opp king
                        )
                     {
-                        r |= db[index (Opp, _k_sq[Opp], _k_sq[Own], _p_sq + DEL_N + DEL_N)];
+                        r |= kpk_db[index (Opp, _k_sq[Opp], _k_sq[Own], _p_sq + DEL_N + DEL_N)];
                     }
                 }
 
@@ -155,9 +154,9 @@ namespace BitBases {
 
             operator Result () const { return result; }
 
-            Result classify (const vector<KPK_Position>& db)
+            Result classify (const vector<KPK_Position>& kpk_db)
             {
-                return WHITE == _active ? classify<WHITE> (db) : classify<BLACK> (db);
+                return WHITE == _active ? classify<WHITE> (kpk_db) : classify<BLACK> (kpk_db);
             }
 
         };
@@ -166,14 +165,14 @@ namespace BitBases {
 
     void initialize ()
     {
-        vector<KPK_Position> db;
-        db.reserve (MAX_INDEX);
+        vector<KPK_Position> kpk_db;
+        kpk_db.reserve (MAX_INDEX);
 
         u32 idx;
         // Initialize db with known win / draw positions
         for (idx = 0; idx < MAX_INDEX; ++idx)
         {
-            db.push_back (KPK_Position (idx));
+            kpk_db.push_back (KPK_Position (idx));
         }
 
         bool repeat;
@@ -184,14 +183,14 @@ namespace BitBases {
             repeat = false;
             for (idx = 0; idx < MAX_INDEX; ++idx)
             {
-                repeat |= KPK_Position::UNKNOWN == db[idx] && KPK_Position::UNKNOWN != db[idx].classify (db);
+                repeat |= KPK_Position::UNKNOWN == kpk_db[idx] && KPK_Position::UNKNOWN != kpk_db[idx].classify (kpk_db);
             }
         } while (repeat);
 
         // Map 32 results into one KPK_Bitbase[] entry
         for (idx = 0; idx < MAX_INDEX; ++idx)
         {
-            if (KPK_Position::WIN == db[idx])
+            if (KPK_Position::WIN == kpk_db[idx])
             {
                 KPK_Bitbase[idx / 32] |= 1 << (idx & 0x1F);
             }
