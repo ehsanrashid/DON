@@ -13,9 +13,7 @@ namespace MoveGen {
         // Move Generator for PIECE
         struct Generator
         {
-
         private:
-
             Generator () = delete;
 
         public:
@@ -42,7 +40,7 @@ namespace MoveGen {
                         }
                     }
 
-                    Bitboard attacks = attacks_bb<PT> (s, pos.pieces ()) & targets;
+                    auto attacks = attacks_bb<PT> (s, pos.pieces ()) & targets;
                     if ((CHECK == GT || QUIET_CHECK == GT) && ci != nullptr)
                     {
                         attacks &= ci->checking_bb[PT];
@@ -58,9 +56,7 @@ namespace MoveGen {
         // Move Generator for KING
         struct Generator<GT, Own, KING>
         {
-
         private:
-
             Generator () = delete;
 
             template<CRight CR, bool Chess960>
@@ -115,8 +111,7 @@ namespace MoveGen {
                 if (CHECK != GT && QUIET_CHECK != GT)
                 {
                     auto king_sq = pos.king_sq (Own);
-                    Bitboard attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.king_sq (Opp)] & targets;
-
+                    auto attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.king_sq (Opp)] & targets;
                     while (attacks != U64(0)) { *moves++ = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
                 }
 
@@ -147,9 +142,7 @@ namespace MoveGen {
         // Move Generator for PAWN
         struct Generator<GT, Own, PAWN>
         {
-
         private:
-
             Generator () = delete;
 
             template<Delta Del>
@@ -202,10 +195,10 @@ namespace MoveGen {
                 const auto Right = WHITE == Own ? DEL_NE : DEL_SW;
                 const auto Left  = WHITE == Own ? DEL_NW : DEL_SE;
 
-                Bitboard pawns = pos.pieces<PAWN> (Own);
+                auto pawns = pos.pieces<PAWN> (Own);
 
-                Bitboard R7_pawns = pawns &  rel_rank_bb (Own, R_7);
-                Bitboard Rx_pawns = pawns & ~R7_pawns;
+                auto R7_pawns = pawns &  rel_rank_bb (Own, R_7);
+                auto Rx_pawns = pawns & ~R7_pawns;
 
                 Bitboard enemies;
                 switch (GT)
@@ -215,14 +208,14 @@ namespace MoveGen {
                 default:      enemies = pos.pieces (Opp);           break;
                 }
 
-                Bitboard empties = U64(0);
+                auto empties = U64(0);
                 // Pawn single-push and double-push, no promotions
                 if (CAPTURE != GT)
                 {
                     empties = QUIET == GT || QUIET_CHECK == GT ? targets : ~pos.pieces ();
                     
-                    Bitboard push_1 = empties & shift_del<Push> (Rx_pawns);
-                    Bitboard push_2 = empties & shift_del<Push> (push_1 & rel_rank_bb (Own, R_3));
+                    auto push_1 = empties & shift_del<Push> (Rx_pawns);
+                    auto push_2 = empties & shift_del<Push> (push_1 & rel_rank_bb (Own, R_3));
 
                     switch (GT)
                     {
@@ -236,7 +229,7 @@ namespace MoveGen {
                     case QUIET_CHECK:
                         if (ci != nullptr)
                         {
-                            Bitboard pawn_attacks = PAWN_ATTACKS[Opp][ci->king_sq];
+                            auto pawn_attacks = PAWN_ATTACKS[Opp][ci->king_sq];
 
                             push_1 &= pawn_attacks;
                             push_2 &= pawn_attacks;
@@ -248,8 +241,8 @@ namespace MoveGen {
                             // promotion has been already generated among captures.
                             if ((Rx_pawns & ci->discoverers) != U64(0))
                             {
-                                Bitboard push_cd_1 = empties & shift_del<Push> (Rx_pawns & ci->discoverers);
-                                Bitboard push_cd_2 = empties & shift_del<Push> (push_cd_1 & rel_rank_bb (Own, R_3));
+                                auto push_cd_1 = empties & shift_del<Push> (Rx_pawns & ci->discoverers);
+                                auto push_cd_2 = empties & shift_del<Push> (push_cd_1 & rel_rank_bb (Own, R_3));
 
                                 push_1 |= push_cd_1;
                                 push_2 |= push_cd_2;
@@ -260,17 +253,17 @@ namespace MoveGen {
                     default: break;
                     }
                     
-                    while (push_1 != U64(0)) { Square dst = pop_lsq (push_1); *moves++ = mk_move<NORMAL> (dst - Push, dst); }
-                    while (push_2 != U64(0)) { Square dst = pop_lsq (push_2); *moves++ = mk_move<NORMAL> (dst - Push-Push, dst); }
+                    while (push_1 != U64(0)) { auto dst = pop_lsq (push_1); *moves++ = mk_move<NORMAL> (dst - Push, dst); }
+                    while (push_2 != U64(0)) { auto dst = pop_lsq (push_2); *moves++ = mk_move<NORMAL> (dst - Push-Push, dst); }
                 }
                 // Pawn normal and en-passant captures, no promotions
                 if (RELAX == GT || CAPTURE == GT || EVASION == GT)
                 {
-                    Bitboard l_attacks = enemies & shift_del<Left > (Rx_pawns);
-                    Bitboard r_attacks = enemies & shift_del<Right> (Rx_pawns);
+                    auto l_attacks = enemies & shift_del<Left > (Rx_pawns);
+                    auto r_attacks = enemies & shift_del<Right> (Rx_pawns);
 
-                    while (l_attacks != U64(0)) { Square dst = pop_lsq (l_attacks); *moves++ = mk_move<NORMAL> (dst - Left , dst); }
-                    while (r_attacks != U64(0)) { Square dst = pop_lsq (r_attacks); *moves++ = mk_move<NORMAL> (dst - Right, dst); }
+                    while (l_attacks != U64(0)) { auto dst = pop_lsq (l_attacks); *moves++ = mk_move<NORMAL> (dst - Left , dst); }
+                    while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); *moves++ = mk_move<NORMAL> (dst - Right, dst); }
 
                     auto ep_sq = pos.en_passant_sq ();
                     if (SQ_NO != ep_sq)
@@ -284,7 +277,7 @@ namespace MoveGen {
                             // All time except when EVASION then 2nd condition must true
                             if (EVASION != GT || (targets & (ep_sq - Push)))
                             {
-                                Bitboard ep_attacks = PAWN_ATTACKS[Opp][ep_sq] & Rx_pawns & rel_rank_bb (Own, R_5);
+                                auto ep_attacks = PAWN_ATTACKS[Opp][ep_sq] & Rx_pawns & rel_rank_bb (Own, R_5);
                                 assert (ep_attacks != U64(0));
                                 assert (pop_count<MAX15> (ep_attacks) <= 2);
 
@@ -348,9 +341,9 @@ namespace MoveGen {
         assert (RELAX == GT || CAPTURE == GT || QUIET == GT);
         assert (pos.checkers () == U64(0));
 
-        Color  active  = pos.active ();
+        auto active  = pos.active ();
 
-        Bitboard targets = 
+        auto targets = 
             RELAX   == GT ? ~pos.pieces ( active) :
             CAPTURE == GT ?  pos.pieces (~active) :
             QUIET   == GT ? ~pos.pieces () :
@@ -382,16 +375,16 @@ namespace MoveGen {
     {
         assert (pos.checkers () == U64(0));
 
-        Color    active =  pos.active ();
-        Bitboard empties= ~pos.pieces ();
+        auto active =  pos.active ();
+        auto empties= ~pos.pieces ();
         CheckInfo ci (pos);
         // Pawns excluded will be generated together with direct checks
-        Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
+        auto discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
         while (discovers != U64(0))
         {
             auto org = pop_lsq (discovers);
             auto pt  = ptype (pos[org]);
-            Bitboard attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & empties;
+            auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & empties;
 
             if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
@@ -408,16 +401,16 @@ namespace MoveGen {
     // Returns a pointer to the end of the move list.
     ValMove* generate<CHECK      > (ValMove *moves, const Position &pos)
     {
-        Color    active =  pos.active ();
-        Bitboard targets= ~pos.pieces (active);
+        auto active =  pos.active ();
+        auto targets= ~pos.pieces (active);
         CheckInfo ci (pos);
         // Pawns excluded, will be generated together with direct checks
-        Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
+        auto discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
         while (discovers != U64(0))
         {
             auto org = pop_lsq (discovers);
             auto pt  = ptype (pos[org]);
-            Bitboard attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
+            auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
 
             if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
@@ -434,13 +427,13 @@ namespace MoveGen {
     // Returns a pointer to the end of the move list.
     ValMove* generate<EVASION    > (ValMove *moves, const Position &pos)
     {
-        Bitboard checkers = pos.checkers ();
+        auto checkers = pos.checkers ();
         assert (checkers != U64(0)); // If any checker exists
 
         auto active  = pos.active ();
         auto king_sq = pos.king_sq (active);
 
-        Square check_sq;
+        auto check_sq = SQ_NO;
 
         //// Generates evasions for king, capture and non-capture moves excluding friends
         //Bitboard attacks = PIECE_ATTACKS[KING][king_sq] & ~pos.pieces (active);
@@ -462,9 +455,8 @@ namespace MoveGen {
         //    }
         //}
 
-        check_sq = SQ_NO;
-        Bitboard slider_attacks = U64(0);
-        Bitboard sliders = checkers & ~pos.pieces (NIHT, PAWN);
+        auto slider_attacks = U64(0);
+        auto sliders = checkers & ~pos.pieces (NIHT, PAWN);
         // Find squares attacked by slider checkers, will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
         while (sliders != U64(0))
@@ -475,7 +467,7 @@ namespace MoveGen {
         }
 
         // Generate evasions for king, capture and non capture moves
-        Bitboard attacks =
+        auto attacks =
               PIECE_ATTACKS[KING][king_sq]
             & ~(  pos.pieces (active)
                 | slider_attacks
@@ -489,7 +481,7 @@ namespace MoveGen {
 
         check_sq = SQ_NO == check_sq ? scan_lsq (checkers) : check_sq;
         // Generates blocking evasions or captures of the checking piece
-        Bitboard targets = BETWEEN_bb[check_sq][king_sq] + check_sq;
+        auto targets = BETWEEN_bb[check_sq][king_sq] + check_sq;
 
         return WHITE == active ? generate_moves<EVASION, WHITE> (moves, pos, targets) :
                BLACK == active ? generate_moves<EVASION, BLACK> (moves, pos, targets) :
@@ -506,8 +498,8 @@ namespace MoveGen {
                 generate<EVASION> (moves, pos) :
                 generate<RELAX  > (moves, pos);
 
-        auto     king_sq = pos.king_sq (pos.active ());
-        Bitboard pinneds = pos.pinneds (pos.active ());
+        auto king_sq = pos.king_sq (pos.active ());
+        auto pinneds = pos.pinneds (pos.active ());
         while (moves_cur != moves_end)
         {
             if (   (   pinneds != U64(0)

@@ -1609,8 +1609,6 @@ namespace Searcher {
         u64 perft (Position &pos, Depth depth)
         {
             u64 leaf_nodes = U64(0);
-
-            CheckInfo ci (pos);
             for (const auto &m : MoveList<LEGAL> (pos))
             {
                 u64 inter_nodes;
@@ -1620,6 +1618,7 @@ namespace Searcher {
                 }
                 else
                 {
+                    CheckInfo ci (pos);
                     StateInfo si;
                     pos.do_move (m, si, pos.gives_check (m, ci));
                     inter_nodes = depth <= 2*DEPTH_ONE ?
@@ -1630,11 +1629,13 @@ namespace Searcher {
 
                 if (RootNode)
                 {
-                    sync_cout << setw ( 7)
+                    sync_cout << left
+                              << setw ( 7)
                               //<< move_to_can (m, Chess960)
                               << move_to_san (m, pos)
-                              << setw (16)
-                              << right << setfill ('.') << inter_nodes << setfill (' ') << left
+                              << right << setfill ('.')
+                              << setw (16) << inter_nodes
+                              << setfill (' ') << left
                               << sync_endl;
                 }
 

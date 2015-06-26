@@ -156,7 +156,7 @@ void benchmark (istream &is, const Position &cur_pos)
         {
             cerr << "\nDepth " << i32(limits.depth) << "\n";
             u64 leaf_nodes = perft (pos, Depth(limits.depth));
-            cout << "\nLeaf nodes: " << leaf_nodes << "\n";
+            cerr << "\nLeaf nodes: " << leaf_nodes << "\n";
             nodes += leaf_nodes;
         }
         else

@@ -206,9 +206,6 @@ namespace BitBoard {
     // board_edges() returns a bitboard of edges of the board
     inline Bitboard board_edges (Square s) { return ((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s)); }
 
-    // squares_of_color() returns a bitboard of all squares with the same color of the given square.
-    inline Bitboard squares_of_color (Square s) { return DARK_bb & s ? DARK_bb : LIHT_bb; }
-
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
     inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return RAYLINE_bb[s1][s2] & s3; }
 

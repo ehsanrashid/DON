@@ -677,7 +677,7 @@ namespace Evaluator {
                             auto bishops = U64(0);
                             if (   (unsafe & sq) != U64(0)
                                 || (   pos.count<BSHP> (Opp) > 1
-                                    && (bishops = pos.pieces<BSHP> (Opp) & squares_of_color (sq)) != U64(0)
+                                    && (bishops = pos.pieces<BSHP> (Opp) & ((DARK_bb & sq) != U64(0) ? DARK_bb : LIHT_bb)) != U64(0)
                                     && more_than_one (bishops)
                                     && more_than_one (bishops & PIECE_ATTACKS[BSHP][sq])
                                     && more_than_one (bishops & attacks_bb<BSHP> (sq, occ ^ pos.pieces<BSHP> (Opp)))

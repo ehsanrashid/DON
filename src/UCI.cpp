@@ -346,7 +346,7 @@ namespace UCI {
             fen_fn = ((cmds >> fen_fn) ? fen_fn : "");
             ss  << i32(Options["Hash"])    << " "
                 << i32(Options["Threads"]) << " "
-                << depth << " perft depth " << fen_fn;
+                << depth << " perft " << fen_fn;
 
             benchmark (ss, RootPos);
         }
