@@ -232,19 +232,19 @@ namespace BitBoard {
     template<> inline Bitboard shift_del<DEL_NW> (Bitboard bb) { return (bb & FA_bb_) << (+DEL_NW); } //(bb << +DEL_NW) & FH_bb_;
     template<> inline Bitboard shift_del<DEL_SW> (Bitboard bb) { return (bb & FA_bb_) >> (-DEL_SW); } //(bb >> -DEL_SW) & FH_bb_;
 
-    // Rotate RIGHT (toward LSB)
-    inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08(SQ_NO) - k)); }
-    // Rotate LEFT  (toward MSB)
-    inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08(SQ_NO) - k)); }
+    //// Rotate RIGHT (toward LSB)
+    //inline Bitboard rotate_R (Bitboard bb, i08 k) { return (bb >> k) | (bb << (i08(SQ_NO) - k)); }
+    //// Rotate LEFT  (toward MSB)
+    //inline Bitboard rotate_L (Bitboard bb, i08 k) { return (bb << k) | (bb >> (i08(SQ_NO) - k)); }
 
     inline Bitboard sliding_attacks (const Delta deltas[], Square s, Bitboard occ = U64(0))
     {
-        Bitboard slid_attacks = U64(0);
+        auto slid_attacks = U64(0);
         u08 i = 0;
         Delta del;
         while ((del = deltas[i++]) != DEL_O)
         {
-            Square sq = s + del;
+            auto sq = s + del;
             while (_ok (sq) && SQR_DIST[sq][sq - del] == 1)
             {
                 slid_attacks += sq;

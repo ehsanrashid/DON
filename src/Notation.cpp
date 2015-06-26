@@ -256,10 +256,10 @@ namespace Notation {
         return oss.str ();
     }
 
-    // pretty_pv() returns formated human-readable search information, typically to be
+    // pretty_pv_info() returns formated human-readable search information, typically to be
     // appended to the search log file.
     // It uses the two helpers to pretty format the value and time respectively.
-    string pretty_pv (Position &pos, i32 depth, Value value, TimePoint time, const MoveVector &pv)
+    string pretty_pv_info (Position &pos, i32 depth, Value value, TimePoint time, const MoveVector &pv)
     {
         const u64 K = 1000;
         const u64 M = K*K;

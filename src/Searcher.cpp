@@ -259,10 +259,10 @@ namespace Searcher {
                    v;
         }
 
-        // info_multipv() formats PV information according to UCI protocol.
+        // multipv_info() formats PV information according to UCI protocol.
         // UCI requires to send all the PV lines also if are still to be searched
         // and so refer to the previous search score.
-        string info_multipv (const Position &pos, Depth depth, Value alpha, Value beta)
+        string multipv_info (const Position &pos, Depth depth, Value alpha, Value beta)
         {
             u32 elapsed_time = max (TimeMgr.elapsed_time (), 1U);
             assert (elapsed_time > 0);
@@ -1472,7 +1472,7 @@ namespace Searcher {
                             && TimeMgr.elapsed_time () > 3*MILLI_SEC
                            )
                         {
-                            sync_cout << info_multipv (RootPos, depth, bound_a, bound_b) << sync_endl;
+                            sync_cout << multipv_info (RootPos, depth, bound_a, bound_b) << sync_endl;
                         }
 
                         // In case of failing low/high increase aspiration window and re-search,
@@ -1512,7 +1512,7 @@ namespace Searcher {
                     else
                     if (IndexPV + 1 == LimitPV || TimeMgr.elapsed_time () > 3*MILLI_SEC)
                     {
-                        sync_cout << info_multipv (RootPos, depth, bound_a, bound_b) << sync_endl;
+                        sync_cout << multipv_info (RootPos, depth, bound_a, bound_b) << sync_endl;
                     }
                 }
 
@@ -1531,7 +1531,7 @@ namespace Searcher {
                 if (SearchLogWrite)
                 {
                     LogFile logfile (SearchLog);
-                    logfile << pretty_pv (RootPos, depth, RootMoves[0].new_value, TimeMgr.elapsed_time (), RootMoves[0].pv) << endl;
+                    logfile << pretty_pv_info (RootPos, depth, RootMoves[0].new_value, TimeMgr.elapsed_time (), RootMoves[0].pv) << endl;
                 }
 
                 // Stop the search early:
