@@ -141,24 +141,23 @@ namespace UCI {
         void exe_position (cmdstream &cmds)
         {
             string token;
-            string fen = "";
-            if (cmds >> token)
+            string fen;
+
+            cmds >> token;  // Consume "startpos" or "fen" token
+            if (token == "startpos")
             {
-                if (token == "startpos")    // Consume "startpos" or "fen" token
+                fen = STARTUP_FEN;
+                cmds >> token;          // Consume "moves" token if any
+            }
+            else
+            if (token == "fen")
+            {
+                while (cmds >> token && token != "moves") // Consume "moves" token if any
                 {
-                    fen = STARTUP_FEN;
-                    cmds >> token;          // Consume "moves" token if any
+                    fen += token + " ";
                 }
-                else
-                {
-                    if (token != "fen") fen += token;
-                    while (cmds >> token && token != "moves") // Consume "moves" token if any
-                    {
-                        fen += string (" ", !white_spaces (fen)) + token;
-                    }
-                    //assert (_ok (fen));
-                    //if (!_ok (fen)) return;
-                }
+                
+                assert (_ok (fen, Chess960, true));
             }
             else return;
 
@@ -170,7 +169,7 @@ namespace UCI {
             {
                 while (cmds >> token)   // Parse and validate game moves (if any)
                 {
-                    Move m = move_from_can (token, RootPos);
+                    auto m = move_from_can (token, RootPos);
                     if (MOVE_NONE == m)
                     {
                         cerr << "ERROR: Illegal Move '" + token << "'" << endl;
@@ -219,7 +218,7 @@ namespace UCI {
                 {
                     while (cmds >> token)
                     {
-                        Move m = move_from_can (token, RootPos);
+                        auto m = move_from_can (token, RootPos);
                         if (MOVE_NONE != m)
                         {
                             limits.root_moves.push_back (m);

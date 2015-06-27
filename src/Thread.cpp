@@ -139,7 +139,7 @@ namespace Threading {
         sp.cut_node     = cut_node;
         sp.nodes        = 0;
         sp.cut_off      = false;
-        sp.slave_searching = true; // Must be set under lock protection
+        sp.slaves_searching = true; // Must be set under lock protection
 
         ++splitpoint_count;
         active_splitpoint = &sp;
@@ -164,7 +164,7 @@ namespace Threading {
         // Everything is set up. The master thread enters the idle loop, from which
         // it will instantly launch a search, because its 'searching' flag is set.
         // The thread will return from the idle loop when all slaves have finished
-        // their work at this split point.
+        // their work at this splitpoint.
         sp.spinlock.release ();
 
         Thread::idle_loop (); // Force a call to base class Thread::idle_loop()

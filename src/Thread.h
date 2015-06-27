@@ -78,7 +78,7 @@ namespace Threading {
         Spinlock    spinlock;
         std::bitset<MAX_THREADS> slaves_mask;
 
-        volatile bool  slave_searching;
+        volatile bool  slaves_searching;
         volatile u08   legal_count;
         volatile Value alpha;
         volatile Value best_value;

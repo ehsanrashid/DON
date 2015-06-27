@@ -1319,7 +1319,7 @@ namespace Searcher {
                     && Threadpool.split_depth <= depth
                     && Threadpool.size () > 1
                     && (    thread->active_splitpoint == nullptr
-                        || !thread->active_splitpoint->slave_searching
+                        || !thread->active_splitpoint->slaves_searching
                         || (   Threadpool.size () > MAX_SLAVES_PER_SPLITPOINT
                             && thread->active_splitpoint->slaves_mask.count () == MAX_SLAVES_PER_SPLITPOINT
                            )
@@ -2277,7 +2277,7 @@ namespace Threading {
                 searching  = false;
                 active_pos = nullptr;
                 sp->slaves_mask.reset (index);
-                sp->slave_searching = false;
+                sp->slaves_searching = false;
                 sp->nodes += pos.game_nodes ();
 
                 // After releasing the lock, cannot access anymore any splitpoint
@@ -2296,14 +2296,14 @@ namespace Threading {
                     sp = count != 0 ? &th->splitpoints[count-1] : nullptr;
 
                     if (   sp != nullptr
-                        && sp->slave_searching
+                        && sp->slaves_searching
                         && sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
                         && can_join (sp)
                        )
                     {
                         assert (this != th);
                         assert (splitpoint == nullptr || !splitpoint->slaves_mask.none ());
-                        assert (Threadpool.size () > 1);
+                        assert (Threadpool.size () > 2);
 
                         // Prefer to join to splitpoint with few parents to reduce the probability
                         // that a cut-off occurs above us, and hence we waste our work.
@@ -2323,28 +2323,26 @@ namespace Threading {
 
                 if (best_sp != nullptr)
                 {
-                    sp = best_sp;
-
                     // Recheck the conditions under lock protection
-                    sp->spinlock.acquire ();
+                    best_sp->spinlock.acquire ();
 
-                    if (   sp->slave_searching
-                        && sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
+                    if (   best_sp->slaves_searching
+                        && best_sp->slaves_mask.count () < MAX_SLAVES_PER_SPLITPOINT
                        )
                     {
                         spinlock.acquire ();
 
-                        if (can_join (sp))
+                        if (can_join (best_sp))
                         {
-                            sp->slaves_mask.set (index);
-                            active_splitpoint = sp;
+                            best_sp->slaves_mask.set (index);
+                            active_splitpoint = best_sp;
                             searching = true;
                         }
 
                         spinlock.release ();
                     }
 
-                    sp->spinlock.release ();
+                    best_sp->spinlock.release ();
                 }
             }
 
