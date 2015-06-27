@@ -146,11 +146,11 @@ namespace Zobrist {
             }
         }
 
-        u08 col, row;
-        if (  (iss >> col && (col >= 'a' && col <= 'h'))
-           && (iss >> row && (row == '3' || row == '6')))
+        u08 file, rank;
+        if (  (iss >> file && (file >= 'a' && file <= 'h'))
+           && (iss >> rank && (rank == '3' || rank == '6')))
         {
-            fen_key ^= _.en_passant[to_file (col)];
+            fen_key ^= _.en_passant[to_file (file)];
         }
 
         return fen_key;

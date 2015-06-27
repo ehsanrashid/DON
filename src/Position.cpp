@@ -701,16 +701,16 @@ bool Position::pseudo_legal (Move m) const
                // Not a single push
             && !(   empty (dst)
                  && 0 == dist<File> (dst, org)
-                 //&& (org + pawn_push (_active) == dst)
                  && 1 == dist<Rank> (dst, org)
+                 && (org + pawn_push (_active) == dst)
                 )
                // Not a double push
             && !(   _rank (org) == rel_rank (_active, R_2)
                  && empty (dst)
                  && empty (dst - pawn_push (_active))
                  && 0 == dist<File> (dst, org)
-                 //&& (org + 2*pawn_push (_active) == dst)
                  && 2 == dist<Rank> (dst, org)
+                 && (org + 2*pawn_push (_active) == dst)
                 )
            )
         {
@@ -1048,16 +1048,16 @@ bool Position::setup (const string &f, Thread *th, bool c960, bool full)
     }
 
     // 4. En-passant square. Ignore if no pawn capture is possible
-    u08 col, row;
-    if (   (iss >> col && (col >= 'a' && col <= 'h'))
-        && (iss >> row && (row == '3' || row == '6'))
+    u08 file, rank;
+    if (   (iss >> file && (file >= 'a' && file <= 'h'))
+        && (iss >> rank && (rank == '3' || rank == '6'))
        )
     {
-        if (   (WHITE == _active && '6' == row)
-            || (BLACK == _active && '3' == row)
+        if (   (WHITE == _active && '6' == rank)
+            || (BLACK == _active && '3' == rank)
            )
         {
-            auto ep_sq = to_square (col, row);
+            auto ep_sq = to_square (file, rank);
             if (can_en_passant (ep_sq))
             {
                 _si->en_passant_sq = ep_sq;
