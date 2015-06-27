@@ -358,7 +358,7 @@ namespace UCI {
         // Default 0 means auto setting which depends on the threads.
         // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
         // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
-        Options["Split Depth"]                  << Option ( 5, 0, MAX_SPLIT_DEPTH, configure_threadpool);
+        Options["Split Depth"]                  << Option ( 5, 0, 12, configure_threadpool);
 
         // Game Play Options
         // -----------------

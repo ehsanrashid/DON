@@ -1316,15 +1316,15 @@ namespace Searcher {
 
                 // Step 19. Check for splitting the search (at non-splitpoint node)
                 if (   !SPNode
-                    && Threadpool.split_depth <= depth
                     && Threadpool.size () > 1
+                    && Threadpool.split_depth <= depth
+                    && thread->splitpoint_count < MAX_SPLITPOINTS_PER_THREAD
                     && (    thread->active_splitpoint == nullptr
                         || !thread->active_splitpoint->slaves_searching
                         || (   Threadpool.size () > MAX_SLAVES_PER_SPLITPOINT
                             && thread->active_splitpoint->slaves_mask.count () == MAX_SLAVES_PER_SPLITPOINT
                            )
                        )
-                    && thread->splitpoint_count < MAX_SPLITPOINTS_PER_THREAD
                    )
                 {
                     assert (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
@@ -1877,10 +1877,10 @@ namespace Searcher {
 
         // RootMoves are already sorted by score in descending order
         auto variance   = min (RootMoves[0].new_value - RootMoves[LimitPV - 1].new_value, VALUE_MG_PAWN);
-        auto weakness   = Value(MAX_DEPTH - 2 * _level);
+        auto weakness   = Value(MAX_DEPTH - 4 * _level);
         auto best_value = -VALUE_INFINITE;
-        // Choose best move. For each move score add two terms both dependent on
-        // weakness, one deterministic and bigger for weaker moves, and one random,
+        // Choose best move. For each move score add two terms both dependent on weakness,
+        // one deterministic and bigger for weaker moves, and one random with variance,
         // then choose the move with the resulting highest score.
         for (u16 i = 0; i < LimitPV; ++i)
         {

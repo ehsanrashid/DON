@@ -62,14 +62,7 @@ namespace Notation {
             }
             else
             {
-                if (v > VALUE_ZERO) //if (v >= +VALUE_MATE_IN_MAX_DEPTH)
-                {
-                    oss << "#" << showpos << +i32(VALUE_MATE - v + 1) / 2;
-                }
-                else                //if (v <= -VALUE_MATE_IN_MAX_DEPTH)
-                {
-                    oss << "#" << showpos << -i32(VALUE_MATE + v + 0) / 2;
-                }
+                oss << "#" << showpos << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
             }
 
             return oss.str ();

@@ -23,7 +23,6 @@ namespace Threading {
     const u16 MAX_THREADS               = 128; // Maximum Threads
     const u08 MAX_SPLITPOINTS_PER_THREAD=   8; // Maximum Splitpoints/Thread
     const u08 MAX_SLAVES_PER_SPLITPOINT =   4; // Maximum Slaves/Splitpoint
-    const u08 MAX_SPLIT_DEPTH           =  12; // Maximum SplitDepth
 
     class Thread;
 
@@ -100,7 +99,6 @@ namespace Threading {
 
         volatile bool       alive = true;
 
-        ThreadBase () : std::thread() {}
         virtual ~ThreadBase() = default;
 
         void notify_one ();
