@@ -115,17 +115,17 @@ namespace BitBoard {
             // attacks_bb[s] is a pointer to the beginning of the attacks table for square 's'
             attacks_bb[SQ_A1] = table_bb;
 
-            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+            for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
                 // Board edges are not considered in the relevant occupancies
-                Bitboard edges = board_edges (Square(s));
+                Bitboard edges = board_edges (s);
 
                 // Given a square 's', the mask is the bitboard of sliding attacks from 's'
                 // computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                Bitboard moves = sliding_attacks (deltas, Square(s));
+                Bitboard moves = sliding_attacks (deltas, s);
 
                 Bitboard mask = masks_bb[s] = moves & ~edges;
 
@@ -149,9 +149,9 @@ namespace BitBoard {
                 {
 #               ifndef BM2
                     occupancy[size] = occ;
-                    reference[size] = sliding_attacks (deltas, Square(s), occ);
+                    reference[size] = sliding_attacks (deltas, s, occ);
 #               else
-                    attacks_bb[s][PEXT (occ, mask)] = sliding_attacks (deltas, Square(s), occ);
+                    attacks_bb[s][PEXT (occ, mask)] = sliding_attacks (deltas, s, occ);
 #               endif
 
                     ++size;
@@ -167,7 +167,7 @@ namespace BitBoard {
 
 #       ifndef BM2
 
-                PRNG rng(SEEDS[_rank (Square(s))]);
+                PRNG rng(SEEDS[_rank (s)]);
                 u32 i;
                 
                 // Find a magic for square 's' picking up an (almost) random number
@@ -185,7 +185,7 @@ namespace BitBoard {
                     // effect of verifying the magic.
                     for (++cur_age, i = 0; i < size; ++i)
                     {
-                        u16 idx = magic_index (Square(s), occupancy[i]);
+                        u16 idx = magic_index (s, occupancy[i]);
                         
                         if (ages[idx] < cur_age)
                         {
@@ -221,7 +221,7 @@ namespace BitBoard {
     void initialize ()
     {
 
-        //for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+        //for (auto s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    BSF_TABLE[bsf_index (SQUARE_bb[s] = 1ULL << s)] = s;
         //    BSF_TABLE[bsf_index (SQUARE_bb[s])] = s;
@@ -231,34 +231,34 @@ namespace BitBoard {
         //    MSB_TABLE[b] = more_than_one (b) ? MSB_TABLE[b - 1] : scan_lsq (b);
         //}
 
-        for (i08 s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            for (i08 s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
                 if (s1 != s2)
                 {
-                    SQR_DIST[s1][s2]  = u08(max (dist<File> (Square(s1), Square(s2)) , dist<Rank> (Square(s1), Square(s2))));
-                    DIST_RINGS_bb[s1][SQR_DIST[s1][s2] - 1] += Square(s2);
+                    SQR_DIST[s1][s2]  = u08(max (dist<File> (s1, s2) , dist<Rank> (s1, s2)));
+                    DIST_RINGS_bb[s1][SQR_DIST[s1][s2] - 1] += s2;
                 }
             }
         }
 
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        for (auto c = WHITE; c <= BLACK; ++c)
         {
-            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+            for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
-                FRONT_SQRS_bb   [c][s] = FRONT_RANK_bb[c][_rank (Square(s))] &     FILE_bb[_file (Square(s))];
-                PAWN_ATTACK_SPAN[c][s] = FRONT_RANK_bb[c][_rank (Square(s))] & ADJ_FILE_bb[_file (Square(s))];
+                FRONT_SQRS_bb   [c][s] = FRONT_RANK_bb[c][_rank (s)] &     FILE_bb[_file (s)];
+                PAWN_ATTACK_SPAN[c][s] = FRONT_RANK_bb[c][_rank (s)] & ADJ_FILE_bb[_file (s)];
                 PAWN_PASS_SPAN  [c][s] = FRONT_SQRS_bb[c][s] | PAWN_ATTACK_SPAN[c][s];
             }
         }
 
-        for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        for (auto s = SQ_A1; s <= SQ_H8; ++s)
         {
             u08 k;
             Delta del;
 
-            for (i08 c = WHITE; c <= BLACK; ++c)
+            for (auto c = WHITE; c <= BLACK; ++c)
             {
                 k = 0;
                 while ((del = PAWN_DELTAS[c][k++]) != DEL_O)
@@ -303,11 +303,11 @@ namespace BitBoard {
         initialize_sliding ();
         
         // NOTE:: must be after initialize_sliding()
-        for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            for (PieceT pt = BSHP; pt <= ROOK; ++pt)
+            for (auto pt = BSHP; pt <= ROOK; ++pt)
             {
-                for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+                for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                 {
                     if (!(PIECE_ATTACKS[pt][s1] & s2)) continue;
                     
@@ -329,14 +329,14 @@ namespace BitBoard {
 
         string sbb;
         sbb = " /---------------\\\n";
-        for (i08 r = R_8; r >= R_1; --r)
+        for (auto r = R_8; r >= R_1; --r)
         {
-            sbb += to_char (Rank(r)) + ROW;
+            sbb += to_char (r) + ROW;
         }
         sbb += " \\---------------/\n ";
-        for (i08 f = F_A; f <= F_H; ++f)
+        for (auto f = F_A; f <= F_H; ++f)
         {
-            sbb += " "; sbb += to_char (File(f));
+            sbb += " "; sbb += to_char (f);
         }
         sbb += "\n";
 

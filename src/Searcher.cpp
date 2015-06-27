@@ -12,6 +12,7 @@
 #include "Pawns.h"
 #include "Evaluator.h"
 #include "Thread.h"
+#include "PolyglotBook.h"
 #include "PRNG.h"
 #include "Notation.h"
 #include "Debugger.h"
@@ -1704,7 +1705,6 @@ namespace Searcher {
 
     string              BookFile        = "";
     bool                BestBookMove    = true;
-    PolyglotBook        Book;
 
     string              SearchLog       = "";
 
@@ -1947,18 +1947,20 @@ namespace Searcher {
 
         if (RootSize != 0)
         {
+            // Check if play with book
             if (!Limits.infinite && !MateSearch && !white_spaces (BookFile))
             {
                 trim (BookFile);
                 convert_path (BookFile);
-                if (!white_spaces (BookFile) && !Book.is_open ())
+                PolyglotBook book;
+                if (!white_spaces (BookFile))
                 {
-                    Book.open (BookFile, ios_base::in|ios_base::binary);
+                    book.open (BookFile, ios_base::in|ios_base::binary);
                 }
-                if (Book.is_open ())
+                if (book.is_open ())
                 {
-                    auto book_move = Book.probe_move (RootPos, BestBookMove);
-                    Book.close ();
+                    auto book_move = book.probe_move (RootPos, BestBookMove);
+                    book.close ();
                     if (book_move != MOVE_NONE && count (RootMoves.begin (), RootMoves.end (), book_move))
                     {
                         swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));

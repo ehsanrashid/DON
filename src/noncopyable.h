@@ -21,7 +21,7 @@ namespace std {
         noncopyable (const T&) = delete;
         
         template<class T>
-        T& operator= (const T&) { return T (); }
+        T& operator= (const T&) = delete;
         
     };
 

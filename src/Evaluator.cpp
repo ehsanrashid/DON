@@ -112,7 +112,7 @@ namespace Evaluator {
 
             string trace (const Position &pos)
             {
-                for (i08 c = WHITE; c <= BLACK; ++c)
+                for (auto c = WHITE; c <= BLACK; ++c)
                 {
                     fill (begin (Scores[c]), end (Scores[c]), SCORE_ZERO);
                 }
@@ -1012,7 +1012,7 @@ namespace Evaluator {
             ei.pi  = Pawns::probe (pos);
             score += ei.pi->pawn_score * Weights[PAWN_STRUCTURE];
 
-            for (i08 c = WHITE; c <= BLACK; ++c)
+            for (auto c = WHITE; c <= BLACK; ++c)
             {
                 ei.ful_attacked_by[c][NONE] = U64(0);
                 ei.pin_attacked_by[c][NONE] = U64(0);
@@ -1022,7 +1022,7 @@ namespace Evaluator {
             init_evaluation<WHITE> (pos, ei);
             init_evaluation<BLACK> (pos, ei);
 
-            for (i08 c = WHITE; c <= BLACK; ++c)
+            for (auto c = WHITE; c <= BLACK; ++c)
             {
                 ei.ful_attacked_by[c][NONE] |= ei.ful_attacked_by[c][KING];
                 ei.pin_attacked_by[c][NONE] |= ei.pin_attacked_by[c][KING];

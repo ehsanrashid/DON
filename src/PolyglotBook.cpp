@@ -15,7 +15,7 @@ namespace OpeningBook  {
     using namespace MoveGen;
     using namespace Notation;
 
-    #define STM_POS(x)  (streampos)(u64(HeaderSize) + (x)*u64(EntrySize))
+    #define STM_POS(x)  (u64(HeaderSize) + (x)*u64(EntrySize))
 
     const streampos PolyglotBook::EntrySize  = sizeof (PBEntry);
     const streampos PolyglotBook::HeaderSize = 0*EntrySize;

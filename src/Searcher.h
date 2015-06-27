@@ -6,7 +6,6 @@
 
 #include "Type.h"
 #include "Position.h"
-#include "PolyglotBook.h"
 
 namespace Threading {
     struct SplitPoint;
@@ -191,7 +190,6 @@ namespace Searcher {
 
     extern std::string          BookFile;
     extern bool                 BestBookMove;
-    extern OpeningBook::PolyglotBook Book;
 
     extern std::string          SearchLog;
     

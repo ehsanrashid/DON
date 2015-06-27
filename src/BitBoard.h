@@ -158,7 +158,7 @@ namespace BitBoard {
     extern u08           R_SHIFT[SQ_NO];
 #endif
 
-    extern u08        SQR_DIST  [SQ_NO][SQ_NO];
+    extern u08          SQR_DIST[SQ_NO][SQ_NO];
 
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  SQUARE_bb[s]; }
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  SQUARE_bb[s]; }

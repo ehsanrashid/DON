@@ -276,8 +276,8 @@ namespace Pawns {
         auto own_front_pawns = pos.pieces (Own) & front_pawns;
         auto opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        i32 kfc = min (max (_file (k_sq), F_B), F_G);
-        for (i32 f = kfc - 1; f <= kfc + 1; ++f)
+        auto kfc = min (max (_file (k_sq), F_B), F_G);
+        for (auto f = kfc - 1; f <= kfc + 1; ++f)
         {
             assert (F_A <= f && f <= F_H);
 
@@ -290,12 +290,12 @@ namespace Pawns {
             auto r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
             value -= 
-                  +  SHELTER_WEAKNESS[min (f, i32(F_H) - f)][r0]
+                  +  SHELTER_WEAKNESS[min (f, F_H - f)][r0]
                   +  STORM_DANGER
                         [f  == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
                          r0 == R_1                                            ? NO_FRIENDLY_PAWN :
                          r1 == r0 + 1                                         ? BLOCKED_BY_PAWN  : UNBLOCKED]
-                        [min (f, i32(F_H) - f)][r1];
+                        [min (f, F_H - f)][r1];
         }
 
         return value;
@@ -345,15 +345,15 @@ namespace Pawns {
     // and to allow easier tuning and better insight.
     void initialize ()
     {
-        const int SEED[R_NO] = { 0, 6, 15, 10, 57, 75, 135, 258 };
+        const i32 SEED[R_NO] = { 0, 6, 15, 10, 57, 75, 135, 258 };
 
-        for (i08 opposed = 0; opposed <= 1; ++opposed)
+        for (u08 opposed = 0; opposed <= 1; ++opposed)
         {
-            for (i08 phalanx = 0; phalanx <= 1; ++phalanx)
+            for (u08 phalanx = 0; phalanx <= 1; ++phalanx)
             {
-                for (i08 apex = 0; apex <= 1; ++apex)
+                for (u08 apex = 0; apex <= 1; ++apex)
                 {
-                    for (i08 r = R_2; r < R_8; ++r)
+                    for (auto r = R_2; r < R_8; ++r)
                     {
                         i32 v = (SEED[r] + (phalanx != 0 ? (SEED[r + 1] - SEED[r]) / 2 : 0)) >> opposed;
                         v += (apex ? v / 2 : 0);

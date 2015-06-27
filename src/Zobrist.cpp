@@ -14,11 +14,11 @@ namespace Zobrist {
     {
         Key matl_key = U64(0);
 
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        for (auto c = WHITE; c <= BLACK; ++c)
         {
-            for (i08 pt = PAWN; pt <= KING; ++pt)
+            for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                for (u08 pc = 0; pc < pos.count (Color(c), PieceT(pt)); ++pc)
+                for (auto pc = 0; pc < pos.count (c, pt); ++pc)
                 {
                     matl_key ^= _.piece_square[c][pt][pc];
                 }
@@ -32,9 +32,9 @@ namespace Zobrist {
     {
         Key pawn_key = U64(0);
 
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        for (auto c = WHITE; c <= BLACK; ++c)
         {
-            const auto *pl = pos.list<PAWN> (Color(c));
+            const auto *pl = pos.list<PAWN> (c);
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
@@ -49,11 +49,11 @@ namespace Zobrist {
     {
         Key posi_key = U64(0);
 
-        for (i08 c = WHITE; c <= BLACK; ++c)
+        for (auto c = WHITE; c <= BLACK; ++c)
         {
-            for (i08 pt = PAWN; pt <= KING; ++pt)
+            for (auto pt = PAWN; pt <= KING; ++pt)
             {
-                const auto *pl = pos[(Color(c) | PieceT(pt))];
+                const auto *pl = pos[c|pt];
                 Square s;
                 while ((s = *pl++) != SQ_NO)
                 {

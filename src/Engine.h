@@ -9,7 +9,7 @@ namespace Engine {
 
     extern void run (const std::string &arg);
 
-    extern void exit (i32 code);
+    extern void exit (int code);
 
 }
 

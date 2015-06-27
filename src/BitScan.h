@@ -233,13 +233,13 @@ inline Square scan_backmost_sq (Color c, Bitboard bb) { return WHITE == c ? scan
 
 inline Square pop_lsq (Bitboard &bb)
 {
-    Square s = scan_lsq (bb);
+    Square sq = scan_lsq (bb);
 #ifndef BM2
     bb &= (bb - 1);
 #else
     bb = BLSR (bb);
 #endif
-    return s;
+    return sq;
 }
 
 }

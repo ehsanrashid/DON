@@ -75,9 +75,9 @@ namespace MoveGen {
 
                 auto king_dst = rel_sq (Own, CR == CR_WK || CR == CR_BK ? SQ_G1 : SQ_C1);
                 auto step = king_dst > king_org ? DEL_E : DEL_W;
-                for (i08 s = king_dst; s != king_org; s -= step)
+                for (auto s = king_dst; s != king_org; s -= step)
                 {
-                    if (pos.attackers_to (Square(s), Opp) != U64(0)) return;
+                    if (pos.attackers_to (s, Opp) != U64(0)) return;
                 }
 
                 if (Chess960)
@@ -342,7 +342,6 @@ namespace MoveGen {
         assert (pos.checkers () == U64(0));
 
         auto active  = pos.active ();
-
         auto targets = 
             RELAX   == GT ? ~pos.pieces ( active) :
             CAPTURE == GT ?  pos.pieces (~active) :
@@ -493,10 +492,9 @@ namespace MoveGen {
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
         auto *moves_cur = moves;
-        auto *moves_end =
-            pos.checkers () != U64(0) ?
-                generate<EVASION> (moves, pos) :
-                generate<RELAX  > (moves, pos);
+        auto *moves_end = pos.checkers () != U64(0) ?
+                            generate<EVASION> (moves, pos) :
+                            generate<RELAX  > (moves, pos);
 
         auto king_sq = pos.king_sq (pos.active ());
         auto pinneds = pos.pinneds (pos.active ());

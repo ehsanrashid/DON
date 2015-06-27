@@ -99,13 +99,13 @@ namespace Material {
             // "The Evaluation of Material Imbalances in Chess"
 
             // Second-degree polynomial material imbalance
-            for (i08 pt1 = PAWN; pt1 < KING; ++pt1)
+            for (auto pt1 = PAWN; pt1 < KING; ++pt1)
             {
                 if (count[Own][pt1] != 0)
                 {
                     auto v = OwnSideLinearCoefficient[pt1];
 
-                    for (i08 pt2 = PAWN; pt2 <= pt1; ++pt2)
+                    for (auto pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
                         v += count[Own][pt2] * OwnSideQuadraticCoefficient[pt1][pt2]
                           +  count[Opp][pt2] * OppSideQuadraticCoefficient[pt1][pt2];
@@ -152,7 +152,7 @@ namespace Material {
                 return e;
             }
             // Generic evaluation
-            for (Color c = WHITE; c <= BLACK; ++c)
+            for (auto c = WHITE; c <= BLACK; ++c)
             {
                 if (is_KXK (pos, c))
                 {
@@ -176,7 +176,7 @@ namespace Material {
             // Generic scaling functions that refer to more than one material distribution.
             // Should be probed after the specialized ones.
             // Note that these ones don't return after setting the function.
-            for (Color c = WHITE; c <= BLACK; ++c)
+            for (auto c = WHITE; c <= BLACK; ++c)
             {
                 if (is_KBPsKs (pos, c))
                 {

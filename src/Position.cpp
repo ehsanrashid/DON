@@ -119,14 +119,13 @@ u08 Position::FiftyMoveDist = 100;
 
 void Position::initialize ()
 {
-    for (i08 pt = PAWN; pt <= KING; ++pt)
+    for (auto pt = PAWN; pt <= KING; ++pt)
     {
-        Score score = mk_score (PIECE_VALUE[MG][pt], PIECE_VALUE[EG][pt]);
+        auto score = mk_score (PIECE_VALUE[MG][pt], PIECE_VALUE[EG][pt]);
 
         for (auto s = SQ_A1; s <= SQ_H8; ++s)
         {
-            i32   edge_dist = _file (s) < F_E ? _file (s) : F_H - _file (s);
-            Score psq_bonus = score + PSQ_Bonus[pt][_rank (s)][edge_dist];
+            auto psq_bonus = score + PSQ_Bonus[pt][_rank (s)][_file (s) < F_E ? _file (s) : F_H - _file (s)];
             PSQ[WHITE][pt][ s] = +psq_bonus;
             PSQ[BLACK][pt][~s] = -psq_bonus;
         }
@@ -265,9 +264,9 @@ bool Position::ok (i08 *failed_step) const
                 return false;
             }
 
-            for (i08 pt1 = PAWN; pt1 <= KING; ++pt1)
+            for (auto pt1 = PAWN; pt1 <= KING; ++pt1)
             {
-                for (i08 pt2 = PAWN; pt2 <= KING; ++pt2)
+                for (auto pt2 = PAWN; pt2 <= KING; ++pt2)
                 {
                     if (pt1 != pt2 && (_types_bb[pt1]&_types_bb[pt2]))
                     {
@@ -287,7 +286,7 @@ bool Position::ok (i08 *failed_step) const
                 return false;
             }
 
-            for (i08 c = WHITE; c <= BLACK; ++c)
+            for (auto c = WHITE; c <= BLACK; ++c)
             {
                 auto colors = _color_bb[c];
 
@@ -351,19 +350,19 @@ bool Position::ok (i08 *failed_step) const
 
         if (step == Lists)
         {
-            for (i08 c = WHITE; c <= BLACK; ++c)
+            for (auto c = WHITE; c <= BLACK; ++c)
             {
-                for (i08 pt = PAWN; pt <= KING; ++pt)
+                for (auto pt = PAWN; pt <= KING; ++pt)
                 {
                     if (_piece_count[c][pt] != pop_count<MAX15> (_color_bb[c]&_types_bb[pt]))
                     {
                         return false;
                     }
 
-                    for (i08 i = 0; i < _piece_count[c][pt]; ++i)
+                    for (auto i = 0; i < _piece_count[c][pt]; ++i)
                     {
                         if (   !_ok  (_piece_list[c][pt][i])
-                            || _board[_piece_list[c][pt][i]] != (Color(c) | PieceT(pt))
+                            || _board[_piece_list[c][pt][i]] != (c|pt)
                             || _piece_index[_piece_list[c][pt][i]] != i
                            )
                         {
@@ -372,7 +371,7 @@ bool Position::ok (i08 *failed_step) const
                     }
                 }
             }
-            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+            for (auto s = SQ_A1; s <= SQ_H8; ++s)
             {
                 if (_piece_index[s] >= 16)
                 {
@@ -383,15 +382,15 @@ bool Position::ok (i08 *failed_step) const
 
         if (step == Castling)
         {
-            for (i08 c = WHITE; c <= BLACK; ++c)
+            for (auto c = WHITE; c <= BLACK; ++c)
             {
-                for (i08 cs = CS_K; cs <= CS_Q; ++cs)
+                for (auto cs = CS_K; cs <= CS_Q; ++cs)
                 {
-                    CRight cr = mk_castle_right (Color(c), CSide (cs));
+                    auto cr = mk_castle_right (c, cs);
 
                     if (!can_castle (cr)) continue;
 
-                    if (    _board[_castle_rook[cr]] != (Color(c) | ROOK)
+                    if (    _board[_castle_rook[cr]] != (c|ROOK)
                         ||  _castle_mask[_castle_rook[cr]] != cr
                         || (_castle_mask[_piece_list[c][KING][0]] & cr) != cr
                        )
@@ -626,15 +625,15 @@ bool Position::pseudo_legal (Move m) const
             return false;
         }
 
-        if (castle_impeded (mk_castle_right (_active, (dst > org) ? CS_K : CS_Q))) return false;
+        if (castle_impeded (mk_castle_right (_active, dst > org ? CS_K : CS_Q))) return false;
 
         // Castle is always encoded as "King captures friendly Rook"
-        assert (dst == castle_rook (mk_castle_right (_active, (dst > org) ? CS_K : CS_Q)));
-        dst = rel_sq (_active, (dst > org) ? SQ_G1 : SQ_C1);
-        Delta step = (dst > org) ? DEL_E : DEL_W;
-        for (i08 s = dst; s != org; s -= step)
+        assert (dst == castle_rook (mk_castle_right (_active, dst > org ? CS_K : CS_Q)));
+        dst = rel_sq (_active, dst > org ? SQ_G1 : SQ_C1);
+        auto step = dst > org ? DEL_E : DEL_W;
+        for (auto s = dst; s != org; s -= step)
         {
-            if (attackers_to (Square(s), ~_active, _types_bb[NONE]) != U64(0))
+            if (attackers_to (s, ~_active, _types_bb[NONE]) != U64(0))
             {
                 return false;
             }
@@ -897,16 +896,16 @@ void Position::clear ()
 {
     memset (this, 0x00, sizeof (*this));
 
-    for (i08 s = SQ_A1; s <= SQ_H8; ++s)
+    for (auto s = SQ_A1; s <= SQ_H8; ++s)
     {
         _board[s] = EMPTY;
         _piece_index[s] = -1;
     }
-    for (i08 c = WHITE; c <= BLACK; ++c)
+    for (auto c = WHITE; c <= BLACK; ++c)
     {
-        for (i08 pt = PAWN; pt <= KING; ++pt)
+        for (auto pt = PAWN; pt <= KING; ++pt)
         {
-            for (i08 i = 0; i < 16; ++i)
+            for (auto i = 0; i < 16; ++i)
             {
                 _piece_list[c][pt][i] = SQ_NO;
             }
@@ -1027,7 +1026,7 @@ bool Position::setup (const string &f, Thread *th, bool c960, bool full)
         while ((iss >> ch) && !isspace (ch))
         {
             Square r_sq;
-            Color c = isupper (ch) ? WHITE : BLACK;
+            auto c = isupper (ch) ? WHITE : BLACK;
             switch (toupper (ch))
             {
             case 'K':
@@ -1111,19 +1110,19 @@ void Position::set_castle (Color c, Square rook_org)
     _castle_mask[rook_org] |= cr;
     _castle_rook[cr] = rook_org;
 
-    for (i08 s = min (rook_org, rook_dst); s <= max (rook_org, rook_dst); ++s)
+    for (auto s = min (rook_org, rook_dst); s <= max (rook_org, rook_dst); ++s)
     {
         if (king_org != s && rook_org != s)
         {
-            _castle_path[cr] += Square(s);
+            _castle_path[cr] += s;
         }
     }
-    for (i08 s = min (king_org, king_dst); s <= max (king_org, king_dst); ++s)
+    for (auto s = min (king_org, king_dst); s <= max (king_org, king_dst); ++s)
     {
         if (king_org != s && rook_org != s)
         {
-            _castle_path[cr] += Square(s);
-              _king_path[cr] += Square(s);
+            _castle_path[cr] += s;
+              _king_path[cr] += s;
         }
     }
 }
@@ -1189,7 +1188,7 @@ Score Position::compute_psq_score () const
 Value Position::compute_non_pawn_material (Color c) const
 {
     auto npm_value = VALUE_ZERO;
-    for (i08 pt = NIHT; pt <= QUEN; ++pt)
+    for (auto pt = NIHT; pt <= QUEN; ++pt)
     {
         npm_value += PIECE_VALUE[MG][pt] * i32(_piece_count[c][pt]);
     }
@@ -1544,7 +1543,7 @@ void Position::flip ()
     string flip_fen, token;
     stringstream ss (fen ());
     // 1. Piece placement
-    for (i08 rank = R_8; rank >= R_1; --rank)
+    for (auto rank = R_8; rank >= R_1; --rank)
     {
         getline (ss, token, rank > R_1 ? '/' : ' ');
         flip_fen.insert (0, token + (white_spaces (flip_fen) ? " " : "/"));
@@ -1576,12 +1575,12 @@ string Position::fen (bool c960, bool full) const
 {
     ostringstream oss;
 
-    for (i08 r = R_8; r >= R_1; --r)
+    for (auto r = R_8; r >= R_1; --r)
     {
-        for (i08 f = F_A; f <= F_H; ++f)
+        for (auto f = F_A; f <= F_H; ++f)
         {
-            auto s = File(f)|Rank(r);
-            i16 empty_count = 0;
+            auto s = f|r;
+            auto empty_count = 0;
             while (F_H >= f && empty (s))
             {
                 ++empty_count;
@@ -1648,14 +1647,14 @@ Position::operator string () const
 
     auto board = EDGE;
 
-    for (i08 r = R_8; r >= R_1; --r)
+    for (auto r = R_8; r >= R_1; --r)
     {
-        board += to_char (Rank(r)) + ((r % 2) ? ROW_1 : ROW_2);
+        board += to_char (r) + ((r % 2) ? ROW_1 : ROW_2);
     }
-    for (i08 f = F_A; f <= F_H; ++f)
+    for (auto f = F_A; f <= F_H; ++f)
     {
         board += "   ";
-        board += to_char (File(f), false);
+        board += to_char (f, false);
     }
 
     auto occ = _types_bb[NONE];

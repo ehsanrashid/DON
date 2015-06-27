@@ -30,9 +30,9 @@ namespace Engine {
         const i08 MAX_MONTH = 12;
         const string MONTHS[MAX_MONTH] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-        i16 find_month (const string &month)
+        int find_month (const string &month)
         {
-            for (i08 m = 0; m < MAX_MONTH; ++m)
+            for (auto m = 0; m < MAX_MONTH; ++m)
             {
                 if (month == MONTHS[m]) return m+1;
             }
@@ -78,19 +78,18 @@ namespace Engine {
 #ifdef BM2
         oss << "-BM2";
 #endif
+
 #ifdef ABM
         oss << "-ABM";
 #elif POP
         oss << "-POP";
 #endif
+
 #ifdef LPAGES
         oss << "-LP";
 #endif
 
-        oss << "\n";
-        if (uci) oss << "id author " << AUTHOR;
-        else     oss << AUTHOR << " (c) 2014";
-        oss << "\n";
+        oss << (uci ? "\nid author " : " by ") << AUTHOR << "\n";
 
         return oss.str ();
     }
@@ -121,7 +120,7 @@ namespace Engine {
     }
 
     // Exit from engine with exit code. (in case of some crash)
-    void exit (i32 code)
+    void exit (int code)
     {
         UCI::stop ();
 
