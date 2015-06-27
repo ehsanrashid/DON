@@ -30,7 +30,7 @@ namespace Engine {
         const i08 MAX_MONTH = 12;
         const string MONTHS[MAX_MONTH] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-        int find_month (const string &month)
+        int month_index (const string &month)
         {
             for (auto m = 0; m < MAX_MONTH; ++m)
             {
@@ -59,7 +59,7 @@ namespace Engine {
             string month, day, year;
             iss >> month >> day >> year;
             oss << setw (2) << (day)
-                << setw (2) << (find_month (month))
+                << setw (2) << (month_index (month))
                 << setw (2) << (year.substr (2));
         }
         else

@@ -48,8 +48,8 @@ namespace std {
     {
         bool operator() (const string &s1, const string &s2) const
         {
-            //string::const_iterator itr1 = s1.begin ();
-            //string::const_iterator itr2 = s2.begin ();
+            //auto itr1 = s1.begin ();
+            //auto itr2 = s2.begin ();
             //while (itr1 != s1.end () && itr2 != s2.end ()
             //    && toupper (*itr1) == toupper (*itr2))
             //{
