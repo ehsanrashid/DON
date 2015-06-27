@@ -9,7 +9,7 @@ namespace {
         string arg;
         for (auto i = 1; i < argc; ++i)
         {
-            arg += string (" ", !white_spaces (arg)) + argv[i];
+            arg += string(argv[i]) + " ";
         }
         return arg;
     }
