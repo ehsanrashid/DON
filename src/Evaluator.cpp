@@ -1085,15 +1085,15 @@ namespace Evaluator {
             };
 
             // Evaluate space for both sides, only during opening
-            if (npm[WHITE] + npm[BLACK] >= 11756)
+            if (npm[WHITE] + npm[BLACK] >= VALUE_SPACE)
             {
                 score += 
                     + evaluate_space_activity<WHITE, Trace> (pos, ei)
                     - evaluate_space_activity<BLACK, Trace> (pos, ei);
             }
-
+            else
             // If both sides have only pawns, score for potential unstoppable pawns
-            if (npm[BLACK] == VALUE_ZERO && npm[WHITE] == VALUE_ZERO)
+            if (npm[WHITE] + npm[BLACK] == VALUE_ZERO)
             {
                 score +=
                     + ei.pi->evaluate_unstoppable_pawns<WHITE> ();
@@ -1106,10 +1106,11 @@ namespace Evaluator {
                 Tracer::write (Tracer::TermT(PAWN), ei.pi->pawn_score);
                 Tracer::write (Tracer::MATERIAL   , pos.psq_score ());
                 Tracer::write (Tracer::IMBALANCE  , ei.mi->imbalance);
-
                 Tracer::write (Tracer::MOBILITY
                     , mobility[WHITE] * Weights[PIECE_MOBILITY]
                     , mobility[BLACK] * Weights[PIECE_MOBILITY]);
+                if (npm[WHITE] + npm[BLACK] < VALUE_SPACE)
+                Tracer::write (Tracer::SPACE      , SCORE_ZERO, SCORE_ZERO);
 
                 Tracer::write (Tracer::TOTAL      , score);
             }
