@@ -159,8 +159,6 @@ namespace Evaluator {
                 eg_value (score) * weight.eg / 0x100);
         }
 
-        // Evaluation weights, initialized from UCI options
-        Weight Weights[5];
         // Internal evaluation weights
         const Weight INTERNAL_WEIGHTS[5] =
         {
@@ -170,6 +168,8 @@ namespace Evaluator {
             { 46,  0}, // Space Activity
             {322,  0}  // King Safety
         };
+        // Evaluation weights, initialized from UCI options
+        Weight Weights[5];
 
         // weight_option() computes the value of an evaluation weight,
         // by combining UCI-configurable weights with an internal weight.
@@ -942,15 +942,17 @@ namespace Evaluator {
                 score += mk_score (mg_value, eg_value);
             }
             
+            score = score * Weights[PASSED_PAWN];
+
             if (Trace)
             {
-                Tracer::write (Tracer::THREAT, Own, score * Weights[PASSED_PAWN]);
+                Tracer::write (Tracer::THREAT, Own, score);
             }
 
-            return score * Weights[PASSED_PAWN];
+            return score;
         }
 
-        template<Color Own>
+        template<Color Own, bool Trace>
         // evaluate_space_activity<>() computes the space evaluation for a given side. The
         // space evaluation is a simple bonus based on the number of safe squares
         // available for minor pieces on the central four files on ranks 2--4. Safe
@@ -982,7 +984,14 @@ namespace Evaluator {
             i32 bonus = pop_count<FULL> ((WHITE == Own ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
             i32 weight = pos.count<NIHT> () + pos.count<BSHP> ();
 
-            return mk_score (bonus * weight * weight, 0);
+            auto score = mk_score (bonus * weight * weight, 0) * Weights[SPACE_ACTIVITY];
+            
+            if (Trace)
+            {
+                Tracer::write (Tracer::SPACE, Own, score);
+            }
+
+            return score;
         }
 
         template<bool Trace>
@@ -1075,24 +1084,20 @@ namespace Evaluator {
                 pos.non_pawn_material (BLACK)
             };
 
+            // Evaluate space for both sides, only during opening
+            if (npm[WHITE] + npm[BLACK] >= 11756)
+            {
+                score += 
+                    + evaluate_space_activity<WHITE, Trace> (pos, ei)
+                    - evaluate_space_activity<BLACK, Trace> (pos, ei);
+            }
+
             // If both sides have only pawns, score for potential unstoppable pawns
             if (npm[BLACK] == VALUE_ZERO && npm[WHITE] == VALUE_ZERO)
             {
                 score +=
                     + ei.pi->evaluate_unstoppable_pawns<WHITE> ();
                     - ei.pi->evaluate_unstoppable_pawns<BLACK> ();
-            }
-
-            auto game_phase = ei.mi->game_phase;
-            assert (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
-
-            Score space[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
-            // Evaluate space for both sides, only during opening
-            if (npm[WHITE] + npm[BLACK] >= 11756)
-            {
-                space[WHITE] = evaluate_space_activity<WHITE> (pos, ei);
-                space[BLACK] = evaluate_space_activity<BLACK> (pos, ei);
-                score += (space[WHITE] - space[BLACK]) * Weights[SPACE_ACTIVITY];
             }
 
             // In case of tracing add each evaluation contributions for both white and black
@@ -1105,10 +1110,6 @@ namespace Evaluator {
                 Tracer::write (Tracer::MOBILITY
                     , mobility[WHITE] * Weights[PIECE_MOBILITY]
                     , mobility[BLACK] * Weights[PIECE_MOBILITY]);
-
-                Tracer::write (Tracer::SPACE
-                    , space[WHITE] * Weights[SPACE_ACTIVITY]
-                    , space[BLACK] * Weights[SPACE_ACTIVITY]);
 
                 Tracer::write (Tracer::TOTAL      , score);
             }
@@ -1125,6 +1126,9 @@ namespace Evaluator {
             auto scale_fac = strong_side == WHITE ?
                 ei.mi->scale_factor<WHITE> (pos) :
                 ei.mi->scale_factor<BLACK> (pos);
+
+            auto game_phase = ei.mi->game_phase;
+            assert (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
 
             // If don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
