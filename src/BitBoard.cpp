@@ -220,15 +220,14 @@ namespace BitBoard {
 
     void initialize ()
     {
-
         //for (auto s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    BSF_TABLE[bsf_index (SQUARE_bb[s] = 1ULL << s)] = s;
         //    BSF_TABLE[bsf_index (SQUARE_bb[s])] = s;
         //}
-        //for (Bitboard b = 1; b <= UCHAR_MAX; ++b)
+        //for (auto b = 2; b <= UCHAR_MAX; ++b)
         //{
-        //    MSB_TABLE[b] = more_than_one (b) ? MSB_TABLE[b - 1] : scan_lsq (b);
+        //    MSB_TABLE[b] =  MSB_TABLE[b - 1] + !more_than_one (Bitboard(b));
         //}
 
         for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)

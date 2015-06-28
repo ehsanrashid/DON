@@ -67,16 +67,6 @@ inline i32 pop_count<CNT_HW> (Bitboard bb)
 
 #   endif
 
-//#elif defined(_WIN32) && defined(BIT64)
-//
-//#   include <intrin.h> // MSVC popcnt and  __popcnt()
-//
-//template<>
-//inline i32 pop_count<CNT_HW> (Bitboard bb)
-//{
-//    return i32(__m64_popcnt (bb));
-//}
-
 #else // GCC or compatible compiler
 
 template<>
