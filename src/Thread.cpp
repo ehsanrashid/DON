@@ -335,7 +335,6 @@ namespace Threading {
         main ()->join ();
 
         RootPos = pos;
-        RootMoves.initialize (pos, limits.root_moves);
         Limits  = limits;
         if (states.get () != nullptr) // If don't set a new position, preserve current state
         {

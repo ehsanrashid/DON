@@ -142,6 +142,7 @@ namespace Searcher {
             
         };
 
+        RootMoveVector RootMoves;
 
         Color   RootColor;
         i32     RootPly;
@@ -1688,7 +1689,6 @@ namespace Searcher {
     SignalsT volatile   Signals;
     
     Position            RootPos;
-    RootMoveVector      RootMoves;
     StateStackPtr       SetupStates;
 
     u16                 MultiPV         = 1;
@@ -1799,10 +1799,11 @@ namespace Searcher {
 
     // ------------------------------------
 
-    void RootMoveVector::initialize (const Position &pos, const MoveVector &root_moves)
+    void RootMoveVector::initialize ()
     {
         clear ();
-        for (const auto &m : MoveList<LEGAL> (pos))
+        const auto &root_moves = Limits.root_moves;
+        for (const auto &m : MoveList<LEGAL> (RootPos))
         {
             if (root_moves.empty () || count (root_moves.begin (), root_moves.end (), m) != 0)
             {
@@ -1812,10 +1813,10 @@ namespace Searcher {
     }
 
     // ------------------------------------
-    
+
     // TimeManager::initialize() is called at the beginning of the search and
     // calculates the allowed thinking time out of the time control and current game ply.
-    void TimeManager::initialize (Color c, LimitsT &limits, i32 game_ply, TimePoint now_time)
+    void TimeManager::initialize (TimePoint now_time)
     {
         // If we have to play in 'nodes as time' mode, then convert from time
         // to nodes, and use resulting values in time management formulas.
@@ -1824,12 +1825,12 @@ namespace Searcher {
         if (NodesTime != 0)
         {
             // Only once at game start
-            if (available_nodes == 0) available_nodes = NodesTime * limits.clock[c].time; // Time is in msec
+            if (available_nodes == 0) available_nodes = NodesTime * Limits.clock[RootColor].time; // Time is in msec
 
             // Convert from millisecs to nodes
-            limits.clock[c].time = i32 (available_nodes);
-            limits.clock[c].inc *= NodesTime;
-            limits.npmsec = NodesTime;
+            Limits.clock[RootColor].time = i32 (available_nodes);
+            Limits.clock[RootColor].inc *= NodesTime;
+            Limits.npmsec = NodesTime;
         }
 
         _start_time = now_time;
@@ -1838,22 +1839,22 @@ namespace Searcher {
 
         _optimum_time =
         _maximum_time =
-            max (limits.clock[c].time, MinimumMoveTime);
+            max (Limits.clock[RootColor].time, MinimumMoveTime);
 
-        const u08 MaxMovesToGo = limits.movestogo != 0 ? min (limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
+        const u08 MaxMovesToGo = Limits.movestogo != 0 ? min (Limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
         // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
         // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
         for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
         {
             // Calculate thinking time for hypothetic "moves to go"-value
             i32 hyp_time = max (
-                + limits.clock[c].time
-                + limits.clock[c].inc * (hyp_movestogo-1)
+                + Limits.clock[RootColor].time
+                + Limits.clock[RootColor].inc * (hyp_movestogo-1)
                 - EmergencyClockTime
                 - EmergencyMoveTime * min (hyp_movestogo, EmergencyMoveHorizon), 0U);
 
-            u32 opt_time = MinimumMoveTime + remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, game_ply);
-            u32 max_time = MinimumMoveTime + remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, game_ply);
+            u32 opt_time = MinimumMoveTime + remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, RootPly);
+            u32 max_time = MinimumMoveTime + remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, RootPly);
 
             _optimum_time = min (opt_time, _optimum_time);
             _maximum_time = min (max_time, _maximum_time);
@@ -1917,11 +1918,12 @@ namespace Searcher {
     // It searches from RootPos and at the end prints the "bestmove" to output.
     void think ()
     {
+        RootMoves.initialize ();
         RootColor   = RootPos.active ();
         RootPly     = RootPos.game_ply ();
         RootSize    = u16(RootMoves.size ());
 
-        TimeMgr.initialize (RootColor, Limits, RootPly, now ());
+        TimeMgr.initialize (now ());
 
         MateSearch  = 0 != Limits.mate;
 

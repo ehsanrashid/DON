@@ -128,17 +128,12 @@ namespace Searcher {
     {
 
     public:
-        void initialize (const Position &pos, const MoveVector &root_moves);
-        void initialize (const Position &pos)
-        {
-            MoveVector root_moves;
-            initialize (pos, root_moves);
-        }
+        void initialize ();
 
         //u64 game_nodes () const
         //{
         //    u64 nodes = U64(0);
-        //    for (const RootMove &rm : *this)
+        //    for (const auto &rm : *this)
         //    {
         //        nodes += rm.nodes;
         //    }
@@ -175,7 +170,6 @@ namespace Searcher {
     extern SignalsT volatile    Signals;
 
     extern Position             RootPos;
-    extern RootMoveVector       RootMoves;
     extern StateStackPtr        SetupStates;
 
     extern u16                  MultiPV;
@@ -237,14 +231,14 @@ namespace Searcher {
         double  best_move_change = 0.0;
 
         u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.76); }
-    
+
         u32 maximum_time   () const { return _maximum_time; }
 
         u32 elapsed_time   () const { return u32(Limits.npmsec != 0 ? RootPos.game_nodes () : now () - _start_time); }
 
         void instability   ()       { _instability_factor = 1.0 + best_move_change; }
 
-        void initialize (Color c, LimitsT &limits, i32 game_ply, TimePoint now_time);
+        void initialize (TimePoint now_time);
 
     };
 

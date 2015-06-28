@@ -144,13 +144,11 @@ namespace Notation {
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
-        //if (!_ok (m))       return "(xxxx)";
-
         auto org = org_sq (m);
         auto dst = dst_sq (m);
         if (!c960 && CASTLE == mtype (m)) dst = (dst > org ? F_G : F_C) | _rank (org);
         auto can = to_string (org) + to_string (dst);
-        if (PROMOTE == mtype (m)) can += PIECE_CHAR[(BLACK|promote (m))]; // Lowercase
+        if (PROMOTE == mtype (m)) can += PIECE_CHAR[BLACK|promote (m)]; // Lowercase
         return can;
     }
 
