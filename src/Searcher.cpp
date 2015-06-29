@@ -140,13 +140,12 @@ namespace Searcher {
             
         };
 
-        RootMoveVector RootMoves;
-
         Color   RootColor;
         i32     RootPly;
+        
+        RootMoveVector RootMoves;
 
-        u16     RootSize   // RootMove Count
-            ,   LimitPV
+        u16     LimitPV
             ,   IndexPV;
 
         Value   DrawValue[CLR_NO]
@@ -1383,7 +1382,7 @@ namespace Searcher {
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            LimitPV = min (max (MultiPV, u16(SkillMgr.enabled () ? 4 : 0)), RootSize);
+            LimitPV = min (max (MultiPV, u16(SkillMgr.enabled () ? 4 : 0)), u16(RootMoves.size ()));
 
             Value best_value = VALUE_ZERO
                 , bound_a    = -VALUE_INFINITE
@@ -1535,7 +1534,7 @@ namespace Searcher {
                         // If there is only one legal move available or 
                         // If all of the available time has been used or
                         // If matched an easy move from the previous search and just did a fast verification.
-                        if (   RootSize == 1
+                        if (   RootMoves.size () == 1
                             || TimeMgr.elapsed_time () > TimeMgr.available_time ()
                             || (   RootMoves[0].pv[0] == easy_move
                                 && TimeMgr.best_move_change < 0.03
@@ -1899,10 +1898,9 @@ namespace Searcher {
     // It searches from RootPos and at the end prints the "bestmove" to output.
     void think ()
     {
-        RootMoves.initialize ();
         RootColor   = RootPos.active ();
         RootPly     = RootPos.game_ply ();
-        RootSize    = u16(RootMoves.size ());
+        RootMoves.initialize ();
 
         TimeMgr.initialize (now ());
 
@@ -1916,7 +1914,7 @@ namespace Searcher {
             logfile
                 << "----------->\n" << boolalpha
                 << "RootPos  : " << RootPos.fen ()                  << "\n"
-                << "RootSize : " << RootSize                        << "\n"
+                << "RootSize : " << RootMoves.size ()               << "\n"
                 << "Infinite : " << Limits.infinite                 << "\n"
                 << "Ponder   : " << Limits.ponder                   << "\n"
                 << "ClockTime: " << Limits.clock[RootColor].time    << "\n"
@@ -1928,7 +1926,7 @@ namespace Searcher {
                 << endl;
         }
 
-        if (RootSize != 0)
+        if (RootMoves.size () != 0)
         {
             // Check if play with book
             if (!Limits.infinite && !MateSearch && !white_spaces (BookFile))

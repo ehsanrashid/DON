@@ -167,7 +167,7 @@ void benchmark (istream &is, const Position &cur_pos)
         }
     }
 
-    time = max (now () - time, TimePoint (1));
+    time = max (now () - time, 1LL);
     
     cerr << "\n---------------------------\n";
     Debugger::dbg_print (); // Just before to exit
@@ -214,7 +214,7 @@ void auto_tune (istream &is)
             nodes += RootPos.game_nodes ();
         }
 
-        time = max (now () - time, TimePoint (1));
+        time = max (now () - time, 1LL);
 
         nps[d] = nodes* MILLI_SEC/time;
     }
