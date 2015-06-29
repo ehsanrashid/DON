@@ -55,34 +55,31 @@ namespace UCI {
         void exe_setoption (cmdstream &cmds)
         {
             string token;
-            if (cmds >> token)
+            cmds >> token; // Consume "name" token
+            if (token == "name")
             {
-                // consume "name" token
-                if (token == "name")
+                string name;
+                // Read option-name (can contain spaces)
+                // Consume "value" token
+                while (cmds >> token && token != "value")
                 {
-                    string name;
-                    // Read option-name (can contain spaces)
-                    // consume "value" token
-                    while (cmds >> token && token != "value")
-                    {
-                        name += string (" ", !white_spaces (name)) + token;
-                    }
+                    name += string (" ", !white_spaces (name)) + token;
+                }
 
-                    string value;
-                    // Read option-value (can contain spaces)
-                    while (cmds >> token)
-                    {
-                        value += string (" ", !white_spaces (value)) + token;
-                    }
+                string value;
+                // Read option-value (can contain spaces)
+                while (cmds >> token)
+                {
+                    value += string (" ", !white_spaces (value)) + token;
+                }
 
-                    if (Options.count (name) > 0)
-                    {
-                        Options[name] = value;
-                    }
-                    else
-                    {
-                        sync_cout << "WHAT??? No such option: \'" << name << "\'" << sync_endl;
-                    }
+                if (Options.count (name) != 0)
+                {
+                    Options[name] = value;
+                }
+                else
+                {
+                    sync_cout << "WHAT??? No such option: \'" << name << "\'" << sync_endl;
                 }
             }
         }
@@ -104,32 +101,29 @@ namespace UCI {
         void exe_register (cmdstream &cmds)
         {
             string token;
-
-            if (cmds >> token)
+            cmds >> token;
+            if (token == "name")
             {
-                if (token == "name")
+                string name;
+                // Read name (can contain spaces)
+                // consume "value" token
+                while (cmds >> token && token != "code")
                 {
-                    string name;
-                    // Read name (can contain spaces)
-                    // consume "value" token
-                    while (cmds >> token && token != "code")
-                    {
-                        name += string (" ", !white_spaces (name)) + token;
-                    }
-
-                    string code;
-                    // Read code (can contain spaces)
-                    while (cmds >> token)
-                    {
-                        code += string (" ", !white_spaces (code)) + token;
-                    }
-                    //cout << name << "\n" << code << endl;
+                    name += string (" ", !white_spaces (name)) + token;
                 }
-                else
-                if (token == "later")
+
+                string code;
+                // Read code (can contain spaces)
+                while (cmds >> token)
                 {
-
+                    code += string (" ", !white_spaces (code)) + token;
                 }
+                //cout << name << "\n" << code << endl;
+            }
+            else
+            if (token == "later")
+            {
+
             }
         }
 
@@ -255,7 +249,7 @@ namespace UCI {
         {
             sync_cout
                 << hex << uppercase << setfill ('0')
-                << "Fen: "                   << RootPos.fen ()      << "\n"
+                << "FEN: "                   << RootPos.fen ()      << "\n"
                 << "Posi key: " << setw (16) << RootPos.posi_key () << "\n"
                 << "Matl key: " << setw (16) << RootPos.matl_key () << "\n"
                 << "Pawn key: " << setw (16) << RootPos.pawn_key ()
