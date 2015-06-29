@@ -183,7 +183,7 @@ namespace Searcher {
     extern u16                  AutoSaveHashTime;
 
     extern std::string          BookFile;
-    extern bool                 BestBookMove;
+    extern bool                 BookMoveBest;
 
     extern std::string          SearchLog;
     

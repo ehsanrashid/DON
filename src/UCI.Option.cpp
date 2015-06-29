@@ -213,7 +213,7 @@ namespace UCI {
         void configure_book (const Option &)
         {
             BookFile     = string(Options["Book File"]);
-            BestBookMove = bool(Options["Best Book Move"]);
+            BookMoveBest = bool(Options["Book Move Best"]);
         }
 
         void change_skill_level (const Option &opt)
@@ -334,7 +334,7 @@ namespace UCI {
         Options["Book File"]                    << Option (BookFile, configure_book);
         // Whether or not to always play the best move from the Opening Book.
         // False will lead to more variety in opening play.
-        Options["Best Book Move"]               << Option (BestBookMove, configure_book);
+        Options["Book Move Best"]               << Option (BookMoveBest, configure_book);
 
 
         // End-Game Table Bases Options

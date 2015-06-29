@@ -98,8 +98,6 @@ namespace Searcher {
 
         const Depth ProbCutDepth   = Depth(4);
 
-        const u08   MAX_QUIETS     = 64;
-
         // MoveManager class is used to detect a so called 'easy move'; when PV is
         // stable across multiple search iterations we can fast return the best move.
         class MoveManager
@@ -155,8 +153,8 @@ namespace Searcher {
             ,   BaseContempt[CLR_NO];
 
         bool    MateSearch;
-        bool    SearchLogWrite;
 
+        bool    SearchLogWrite;
         bool    FirstAutoSave;
 
         // History value statistics
@@ -938,7 +936,8 @@ namespace Searcher {
                         << sync_endl;
                 }
             }
-
+            
+            const u08 MAX_QUIETS = 64;
             Move  quiet_moves[MAX_QUIETS]
                 , pv[MAX_DEPTH + 1];
             u08   legal_count = 0
@@ -1132,7 +1131,7 @@ namespace Searcher {
                         || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
                             && opp_move_dst != SQ_NO
                             && CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst]
-                                                        [pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
+                                                        [pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
                            )
                        )
                     {
@@ -1702,7 +1701,7 @@ namespace Searcher {
     u16                 AutoSaveHashTime= 0;
 
     string              BookFile        = "";
-    bool                BestBookMove    = true;
+    bool                BookMoveBest    = true;
 
     string              SearchLog       = "";
 
@@ -1961,7 +1960,7 @@ namespace Searcher {
                 }
                 if (book.is_open ())
                 {
-                    auto book_move = book.probe_move (RootPos, BestBookMove);
+                    auto book_move = book.probe_move (RootPos, BookMoveBest);
                     book.close ();
                     if (book_move != MOVE_NONE && count (RootMoves.begin (), RootMoves.end (), book_move))
                     {
