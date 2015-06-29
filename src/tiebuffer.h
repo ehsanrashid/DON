@@ -2,7 +2,6 @@
 #define _TIE_BUFFER_H_INC_
 
 #include <streambuf>
-#include <fstream>
 #include <cstring>
 
 #include "noncopyable.h"
@@ -17,7 +16,7 @@ namespace std {
 
     private:
         basic_streambuf<Elem, Traits> *_strmbuf;
-        basic_ofstream <Elem, Traits> *_filestm;
+        basic_streambuf<Elem, Traits> *_logstrmbuf;
 
     public:
 
@@ -25,15 +24,12 @@ namespace std {
 
         basic_tie_buf (
             basic_streambuf<Elem, Traits> *strmbuf,
-            basic_ofstream <Elem, Traits> *filestm)
+            basic_streambuf <Elem, Traits> *logstrmbuf)
             : _strmbuf (strmbuf)
-            , _filestm (filestm)
+            , _logstrmbuf (logstrmbuf)
         {}
 
-        basic_streambuf<Elem, Traits>* sbuf () const
-        {
-            return _strmbuf;
-        }
+        basic_streambuf<Elem, Traits>* streambuf () const { return _strmbuf; }
 
         int_type write (int_type c, const Elem *prefix)
         {
@@ -42,20 +38,20 @@ namespace std {
             if ('\n' == last_ch)
             {
                 streamsize length = strlen (prefix);
-                if (_filestm->rdbuf ()->sputn (prefix, length) != length)
+                if (_logstrmbuf->sputn (prefix, length) != length)
                 {
                     return EOF; // Error
                 }
             }
 
-            return last_ch = _filestm->rdbuf ()->sputc (Elem (c));
+            return last_ch = _logstrmbuf->sputc (Elem (c));
         }
 
     protected:
 
         int sync () override
         {
-            return _filestm->rdbuf ()->pubsync (), _strmbuf->pubsync ();
+            return _logstrmbuf->pubsync (), _strmbuf->pubsync ();
         }
 
         int_type overflow (int_type c) override

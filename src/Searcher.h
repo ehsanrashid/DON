@@ -153,7 +153,7 @@ namespace Searcher {
         void change_level (u08 level) { _level = level; }
 
         void clear () { _best_move = MOVE_NONE; }
-        
+
         bool enabled () const { return _level < MAX_SKILL_LEVEL; }
 
         bool depth_to_pick (Depth depth) const { return depth/DEPTH_ONE == 1 + _level; }
@@ -186,7 +186,7 @@ namespace Searcher {
     extern bool                 BookMoveBest;
 
     extern std::string          SearchLog;
-    
+
     extern SkillManager         SkillMgr;
 
     // The Stack struct keeps track of the information needed to remember from

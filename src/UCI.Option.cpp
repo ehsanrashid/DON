@@ -8,7 +8,6 @@
 #include "Thread.h"
 #include "Searcher.h"
 #include "Evaluator.h"
-#include "Debugger.h"
 
 UCI::OptionMap  Options; // Global string mapping of Options
 
@@ -233,12 +232,6 @@ namespace UCI {
             Ponder               = bool(Options["Ponder"]);
         }
 
-        void debug_log (const Option &opt)
-        {
-            Debugger::log_debug (false);
-            if (!white_spaces (string(opt))) Debugger::log_debug (true);
-        }
-
         void uci_chess960 (const Option &opt)
         {
             Chess960 = bool(opt);
@@ -430,16 +423,12 @@ namespace UCI {
         // The Ponder feature (sometimes called "Permanent Brain") is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         Options["Ponder"]                       << Option (Ponder, configure_time);
 
-        // Debug Options
-        // -------------
-        // The filename of the debug log.
-        Options["Debug Log"]                    << Option ("", debug_log);
-        // The filename of the search log.
-        Options["Search Log"]                   << Option (SearchLog, change_search_log);
-
         // ---------------------------------------------------------------------------------------
         // Other Options
         // -------------
+
+        // The filename of the search log.
+        Options["Search Log"]                   << Option (SearchLog, change_search_log);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.

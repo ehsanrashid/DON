@@ -111,7 +111,7 @@ typedef        uint64_t    u64;
 #if defined(_WIN32)
 
 // Auto make 64-bit compiles
-#   ifdef _WIN64
+#   if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
 #       ifndef BIT64
 #           define BIT64
 #       endif
@@ -663,7 +663,7 @@ inline std::string& trim_left (std::string &str)
 inline std::string& trim_right (std::string &str)
 {
     str.erase (std::find_if (str.rbegin (), str.rend (), 
-                //[](char c) { return !std::isspace (c, std::locale()); }).base (), 
+                //[](char c) { return !std::isspace (c, std::locale ()); }).base (), 
                 std::not1 (std::ptr_fun<int, int> (std::isspace))).base (),
                     str.end ());
     return str;

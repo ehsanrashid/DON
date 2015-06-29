@@ -35,7 +35,7 @@
       <FileName>src\Debugger.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Debugger::DebugLogger" Collapsed="true">
+  <Class Name="Debugger::Logger" Collapsed="true">
     <Position X="20.25" Y="2.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAEAAAABAAEAAAAgAAAAAAAAAYBgAAAAAAAAAAAQAAA=</HashCode>

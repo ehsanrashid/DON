@@ -10,7 +10,6 @@
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Transposition.h"
-#include "Debugger.h"
 #include "Thread.h"
 #include "Notation.h"
 

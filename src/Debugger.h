@@ -3,10 +3,9 @@
 
 #include <fstream>
 
-#include "noncopyable.h"
-#include "tiebuffer.h"
 #include "Type.h"
-#include "UCI.h"
+#include "tiebuffer.h"
+#include "noncopyable.h"
 
 #if defined(_WIN32)
 #   include <time.h>
@@ -59,10 +58,6 @@ inline std::basic_ostream<CharT, Traits>&
 
 namespace Debugger {
 
-    extern void dbg_hits_on (bool h, bool c = true);
-    extern void dbg_mean_of (u64 v);
-    extern void dbg_print ();
-
     class LogFile
         : public std::ofstream
     {
@@ -79,8 +74,8 @@ namespace Debugger {
 
     };
 
-    // Singleton Debug(I/O) Logger class
-    class DebugLogger
+    // Singleton I/O Logger class
+    class Logger
         : public std::noncopyable
     {
 
@@ -88,28 +83,27 @@ namespace Debugger {
         std::ofstream _fstm;
         std::tie_buf  _innbuf;
         std::tie_buf  _outbuf;
-        std::string   _log_fn;
 
     protected:
 
         // Constructor should be protected !!!
-        DebugLogger ()
-            : _innbuf (std::cin .rdbuf (), &_fstm)
-            , _outbuf (std::cout.rdbuf (), &_fstm)
+        Logger ()
+            : _innbuf (std::cin .rdbuf (), _fstm.rdbuf ())
+            , _outbuf (std::cout.rdbuf (), _fstm.rdbuf ())
         {}
 
     public:
 
-       ~DebugLogger ()
+        ~Logger ()
         {
             stop ();
         }
 
-        static DebugLogger& instance ()
+        static Logger& instance ()
         {
             // Guaranteed to be destroyed.
             // Instantiated on first use.
-            static DebugLogger _instance;
+            static Logger _instance;
 
             return _instance;
         }
@@ -118,20 +112,7 @@ namespace Debugger {
         {
             if (!_fstm.is_open ())
             {
-                _log_fn = std::string(Options["Debug Log"]);
-                if (!white_spaces (_log_fn))
-                {
-                    trim (_log_fn);
-                    if (!white_spaces (_log_fn))
-                    {
-                        convert_path (_log_fn);
-                        remove_extension (_log_fn);
-                        if (!white_spaces (_log_fn)) _log_fn += ".txt";
-                    }
-                }
-                if (white_spaces (_log_fn)) _log_fn = "DebugLog.txt";
-
-                _fstm.open (_log_fn, std::ios_base::out|std::ios_base::app);
+                _fstm.open ("io_log.txt", std::ios_base::out|std::ios_base::app);
                 _fstm << "[" << time_to_string (now ()) << "] ->" << std::endl;
 
                 std::cin .rdbuf (&_innbuf);
@@ -143,8 +124,8 @@ namespace Debugger {
         {
             if (_fstm.is_open ())
             {
-                std::cout.rdbuf (_outbuf.sbuf ());
-                std::cin .rdbuf (_innbuf.sbuf ());
+                std::cout.rdbuf (_outbuf.streambuf ());
+                std::cin .rdbuf (_innbuf.streambuf ());
 
                 _fstm << "[" << time_to_string (now ()) << "] <-" << std::endl;
                 _fstm.close ();
@@ -153,11 +134,9 @@ namespace Debugger {
 
     };
 
-    inline void log_debug (bool b)
-    {
-        (b) ? DebugLogger::instance ().start ()
-            : DebugLogger::instance ().stop ();
-    }
+    extern void dbg_hits_on (bool h, bool c = true);
+    extern void dbg_mean_of (u64 v);
+    extern void dbg_print ();
 
 }
 

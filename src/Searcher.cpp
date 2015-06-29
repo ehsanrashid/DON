@@ -38,7 +38,7 @@ namespace Searcher {
 // which can be quite slow.
 #ifdef PREFETCH
 
-#   if (defined(_MSC_VER) || defined(__INTEL_COMPILER))
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
 
@@ -521,8 +521,6 @@ namespace Searcher {
                         -quien_search<NT, true > (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE) :
                         -quien_search<NT, false> (pos, ss+1, -beta, -alpha, depth-DEPTH_ONE);
 
-                bool nextmove_legal = PVNode && (ss+1)->pv != nullptr && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
-
                 // Undo the move
                 pos.undo_move ();
 
@@ -539,14 +537,7 @@ namespace Searcher {
 
                         if (PVNode)
                         {
-                            if (nextmove_legal)
-                            {
-                                update_pv (ss->pv, move, (ss+1)->pv);
-                            }
-                            else
-                            {
-                                auto *mm = ss->pv; *mm++ = move; *mm = MOVE_NONE;
-                            }
+                            update_pv (ss->pv, move, (ss+1)->pv);
                         }
                         // Fail high
                         if (value >= beta)
@@ -949,6 +940,8 @@ namespace Searcher {
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
             auto counter_move = opp_move_dst != SQ_NO ? CounterMoves[pos[opp_move_dst]][opp_move_dst] : MOVE_NONE;
+            auto &cmhv = opp_move_dst != SQ_NO ? CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] :
+                                                 CounterMovesHistoryValues[EMPTY][SQ_A1];
 
             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
 
@@ -1132,9 +1125,7 @@ namespace Searcher {
                     // Increase reduction
                     if (   (!PVNode && cut_node)
                         || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
-                            && opp_move_dst != SQ_NO
-                            && CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst]
-                                                        [pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
+                            && cmhv[pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
                            )
                        )
                     {
@@ -1144,9 +1135,7 @@ namespace Searcher {
                     if (   reduction_depth != DEPTH_ZERO
                         && (   (move == counter_move)
                             || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
-                                && opp_move_dst != SQ_NO
-                                && CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst]
-                                                            [pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
+                                && cmhv[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
                                )
                            )
                        )
@@ -1207,8 +1196,6 @@ namespace Searcher {
                             -depth_search<PV, false, true> (pos, ss+1, -beta, -alpha, new_depth, false);
                 }
 
-                bool nextmove_legal = PVNode && !RootNode && (ss+1)->pv != nullptr && (ss+1)->pv[0] != MOVE_NONE && pos.pseudo_legal ((ss+1)->pv[0]) && pos.legal ((ss+1)->pv[0]);
-
                 // Step 17. Undo move
                 pos.undo_move ();
 
@@ -1221,7 +1208,7 @@ namespace Searcher {
                     alpha      = splitpoint->alpha;
                     best_value = splitpoint->best_value;
                 }
-                
+
                 // Finished searching the move. If a stop or a cutoff occurred,
                 // the return value of the search cannot be trusted,
                 // and return immediately without updating best move, PV and TT.
@@ -1285,14 +1272,7 @@ namespace Searcher {
 
                         if (PVNode && !RootNode)
                         {
-                            if (nextmove_legal)
-                            {
-                                update_pv (SPNode ? splitpoint->ss->pv : ss->pv, move, (ss+1)->pv);
-                            }
-                            else
-                            {
-                                auto *mm = SPNode ? splitpoint->ss->pv : ss->pv; *mm++ = move; *mm = MOVE_NONE;
-                            }
+                            update_pv (SPNode ? splitpoint->ss->pv : ss->pv, move, (ss+1)->pv);
                         }
                         // Fail high
                         if (value >= beta)
@@ -1620,9 +1600,8 @@ namespace Searcher {
                 }
                 else
                 {
-                    CheckInfo ci (pos);
                     StateInfo si;
-                    pos.do_move (m, si, pos.gives_check (m, ci));
+                    pos.do_move (m, si, pos.gives_check (m, CheckInfo (pos)));
                     inter_nodes = depth <= 2*DEPTH_ONE ?
                                     MoveList<LEGAL> (pos).size () :
                                     perft<false> (pos, depth-DEPTH_ONE);

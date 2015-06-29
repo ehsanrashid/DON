@@ -17,6 +17,7 @@ namespace UCI {
     using namespace Searcher;
     using namespace MoveGen;
     using namespace Notation;
+    using namespace Debugger;
 
     typedef istringstream cmdstream;
 
@@ -239,12 +240,10 @@ namespace UCI {
         void exe_debug (cmdstream &cmds)
         {
             string token;
-            if (cmds >> token)
-            {
-                if (token == "on")  Debugger::log_debug (true);
-                else
-                if (token == "off") Debugger::log_debug (false);
-            }
+            cmds >> token;
+            if (token == "on")  Logger::instance ().start ();
+            else
+            if (token == "off") Logger::instance ().stop ();
         }
         // Print the root position
         void exe_show ()
@@ -427,8 +426,6 @@ namespace UCI {
         exe_stop ();
         // Cannot quit while search stream active
         Threadpool.main ()->join ();
-        // Close log file
-        Debugger::log_debug (false);
     }
 
 }
