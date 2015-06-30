@@ -195,19 +195,19 @@ namespace OpeningBook  {
     }
     streampos PolyglotBook::find_index (const Position &pos)
     {
-        return find_index (Zob.compute_posi_key (pos));
+        return find_index (pos.posi_key ());
     }
 
     streampos PolyglotBook::find_index (const string &fen, bool c960)
     {
-        return find_index (Zob.compute_fen_key (fen, c960));
+        return find_index (Position (fen, nullptr, c960).posi_key ());
     }
 
     Move PolyglotBook::probe_move (const Position &pos, bool pick_best)
     {
         static PRNG pr (now ());
 
-        Key key = Zob.compute_posi_key (pos);
+        Key key = pos.posi_key ();
 
         auto index = find_index (key);
         if (ErrorIndex == index) return MOVE_NONE;
@@ -331,7 +331,7 @@ namespace OpeningBook  {
     {
         if (!is_open () || !(_mode & in)) return "";
 
-        Key key = Zob.compute_posi_key (pos);
+        Key key = pos.posi_key ();
 
         auto index = find_index (key);
         if (ErrorIndex == index)
