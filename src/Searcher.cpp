@@ -153,7 +153,8 @@ namespace Searcher {
 
         bool    MateSearch;
 
-        bool    SearchLogWrite;
+        ofstream SearchLog;
+
         bool    FirstAutoSave;
 
         // History value statistics
@@ -1510,10 +1511,9 @@ namespace Searcher {
                 // If skill levels are enabled and time is up, pick a sub-optimal best move
                 if (SkillMgr.enabled () && SkillMgr.depth_to_pick (depth)) SkillMgr.pick_move ();
 
-                if (SearchLogWrite)
+                if (!SearchFile.empty ())
                 {
-                    LogFile logfile (SearchLog);
-                    logfile << pretty_pv_info (RootPos, depth, RootMoves[0].new_value, TimeMgr.elapsed_time (), RootMoves[0].pv) << endl;
+                    SearchLog << pretty_pv_info (RootPos, depth, RootMoves[0].new_value, TimeMgr.elapsed_time (), RootMoves[0].pv) << endl;
                 }
 
                 // Stop the search early:
@@ -1684,7 +1684,7 @@ namespace Searcher {
     string              BookFile        = "";
     bool                BookMoveBest    = true;
 
-    string              SearchLog       = "";
+    string              SearchFile       = "";
 
     SkillManager        SkillMgr;
 
@@ -1906,12 +1906,11 @@ namespace Searcher {
 
         MateSearch  = 0 != Limits.mate;
 
-        SearchLogWrite = !white_spaces (SearchLog);
-        if (SearchLogWrite)
+        if (!SearchFile.empty ())
         {
-            LogFile logfile (SearchLog);
+            SearchLog.open (SearchFile, ios_base::out|ios_base::app);
 
-            logfile
+            SearchLog
                 << "----------->\n" << boolalpha
                 << "RootPos  : " << RootPos.fen ()                  << "\n"
                 << "RootSize : " << RootMoves.size ()               << "\n"
@@ -2013,11 +2012,9 @@ namespace Searcher {
 
         assert (RootMoves[0].pv.size () != 0);
 
-        if (SearchLogWrite)
+        if (!SearchFile.empty ())
         {
-            LogFile logfile (SearchLog);
-
-            logfile
+            SearchLog
                 << "Time (ms)  : " << elapsed_time                              << "\n"
                 << "Nodes (N)  : " << RootPos.game_nodes ()                     << "\n"
                 << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / elapsed_time << "\n"
@@ -2029,10 +2026,11 @@ namespace Searcher {
             {
                 StateInfo si;
                 RootPos.do_move (RootMoves[0].pv[0], si, RootPos.gives_check (RootMoves[0].pv[0], CheckInfo (RootPos)));
-                logfile << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos) << "\n";
+                SearchLog << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos) << "\n";
                 RootPos.undo_move ();
             }
-            logfile << endl;
+            SearchLog << endl;
+            SearchLog.close ();
         }
 
         // When playing in 'nodes as time' mode, subtract the searched nodes from

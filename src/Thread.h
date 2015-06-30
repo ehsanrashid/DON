@@ -202,7 +202,7 @@ namespace Threading {
 
         void start_main (const Position &pos, const LimitsT &limit, StateStackPtr &states);
 
-        void configure ();
+        void configure (i32 threads, i32 sp_depth);
 
     };
 

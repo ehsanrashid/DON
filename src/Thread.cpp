@@ -266,7 +266,7 @@ namespace Threading {
         check_limits_th->task       = check_limits;
         check_limits_th->resolution = TIMER_RESOLUTION;
 
-        configure ();
+        configure (i32(Options["Threads"]), i32(Options["Split Depth"]));
     }
 
     // ThreadPool::exit() cleanly terminates the threads before the program exits
@@ -290,10 +290,9 @@ namespace Threading {
     // UCI options and creates/destroys threads to match the requested number.
     // Thread objects are dynamically allocated to avoid creating in advance all possible
     // threads, with included pawns and material tables, if only few are used.
-    void ThreadPool::configure ()
+    void ThreadPool::configure (i32 threads, i32 sp_depth)
     {
-        u32 threads = i32(Options["Threads"]);
-        split_depth = i32(Options["Split Depth"])*DEPTH_ONE;
+        split_depth = sp_depth*DEPTH_ONE;
         //if (split_depth == DEPTH_ZERO) split_depth = 5 * DEPTH_ONE;
 
         assert (threads > 0);

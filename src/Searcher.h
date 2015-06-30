@@ -185,7 +185,7 @@ namespace Searcher {
     extern std::string          BookFile;
     extern bool                 BookMoveBest;
 
-    extern std::string          SearchLog;
+    extern std::string          SearchFile;
 
     extern SkillManager         SkillMgr;
 

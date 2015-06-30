@@ -5,78 +5,45 @@
 
 #include "Type.h"
 #include "tiebuffer.h"
-#include "noncopyable.h"
 
 #if defined(_WIN32)
-#   include <time.h>
+#   include <ctime>
 #endif
 
 
-inline std::string time_to_string (const TimePoint &/*p*/)
+inline std::string time_to_string (const std::chrono::system_clock::time_point &tp)
 {
-    std::ostringstream oss;
-/*
+
 #   if defined(_WIN32)
-    
-    time_t time = (p / MILLI_SEC);
-    char *str_time = ctime (&time);
 
-    //char str_time[26];
-    //errno_t err = ctime_s (str_time, sizeof (str_time), &time);
-    //if (err)
-
-    if (!str_time[00])
-    {
-        oss << "ERROR: invalid time '" << time << "'";
-        return oss.str ();
-    }
-
-    str_time[10] = '\0';
-    str_time[19] = '\0';
-    str_time[24] = '\0';
-
-    oss << std::setfill ('0')
-        << &str_time[00] << " "
-        << &str_time[20] << " "
-        << &str_time[11] << "."
-        << std::setw (3) << (p % MILLI_SEC);
-
-#   else
+    auto time = std::chrono::system_clock::to_time_t (tp);
+    auto tp_sec = std::chrono::system_clock::from_time_t (time);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds> (tp - tp_sec).count ();
+    auto *ttm = localtime (&time);
+    const char date_time_format[] = "%Y.%m.%d-%H.%M.%S";
+    char time_str[] = "yyyy.mm.dd.HH-MM.SS.fff";
+    strftime (time_str, strlen (time_str), date_time_format, ttm);
+    std::string stime (time_str);
+    stime.append (".");
+    stime.append (std::to_string (ms));
+    return stime;
 
 #   endif
-*/
-    return oss.str ();
+
 }
 
 template<class CharT, class Traits>
 inline std::basic_ostream<CharT, Traits>&
-    operator<< (std::basic_ostream<CharT, Traits> &os, TimePoint p)
+    operator<< (std::basic_ostream<CharT, Traits> &os, const std::chrono::system_clock::time_point &tp)
 {
-    os << time_to_string (p);
+    os << time_to_string (tp);
     return os;
 }
 
 namespace Debugger {
 
-    class LogFile
-        : public std::ofstream
-    {
-
-    public:
-        explicit LogFile (const std::string &fn = "Log.txt")
-            : std::ofstream (fn, out|app)
-        {}
-
-        ~LogFile ()
-        {
-            if (is_open ()) close ();
-        }
-
-    };
-
     // Singleton I/O Logger class
     class Logger
-        : public std::noncopyable
     {
 
     private:
@@ -91,6 +58,9 @@ namespace Debugger {
             : _innbuf (std::cin .rdbuf (), _fstm.rdbuf ())
             , _outbuf (std::cout.rdbuf (), _fstm.rdbuf ())
         {}
+        
+        Logger (const Logger&) = delete;
+        Logger& operator= (const Logger&) = delete;
 
     public:
 
@@ -113,7 +83,7 @@ namespace Debugger {
             if (!_fstm.is_open ())
             {
                 _fstm.open ("io_log.txt", std::ios_base::out|std::ios_base::app);
-                _fstm << "[" << time_to_string (now ()) << "] ->" << std::endl;
+                _fstm << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
 
                 std::cin .rdbuf (&_innbuf);
                 std::cout.rdbuf (&_outbuf);
@@ -127,7 +97,7 @@ namespace Debugger {
                 std::cout.rdbuf (_outbuf.streambuf ());
                 std::cin .rdbuf (_innbuf.streambuf ());
 
-                _fstm << "[" << time_to_string (now ()) << "] <-" << std::endl;
+                _fstm << "[" << std::chrono::system_clock::now () << "] <-" << std::endl;
                 _fstm.close ();
             }
         }

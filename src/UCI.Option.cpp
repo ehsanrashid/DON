@@ -166,10 +166,10 @@ namespace UCI {
 
         void configure_threadpool (const Option &)
         {
-            Threadpool.configure ();
+            Threadpool.configure (i32(Options["Threads"]), i32(Options["Split Depth"]));
         }
 
-        void fifty_move_dist (const Option &opt)
+        void configure_50move_dist (const Option &opt)
         {
             Position::FiftyMoveDist = u08(2 * i32(opt));
         }
@@ -193,19 +193,16 @@ namespace UCI {
             //MultiPV_cp= i32(Options["MultiPV_cp"]);
         }
 
-        void change_search_log (const Option &opt)
+        void configure_searchlog (const Option &opt)
         {
-            SearchLog = string(opt);
-            if (!white_spaces (SearchLog))
+            SearchFile = string(opt);
+            if (!white_spaces (SearchFile))
             {
-                trim (SearchLog);
-                if (!white_spaces (SearchLog))
+                trim (SearchFile);
+                if (!SearchFile.empty ())
                 {
-                    convert_path (SearchLog);
-                    remove_extension (SearchLog);
-                    if (!white_spaces (SearchLog)) SearchLog += ".txt";
+                    convert_path (SearchFile);
                 }
-                if (white_spaces (SearchLog)) SearchLog = "SearchLog.txt";
             }
         }
 
@@ -215,7 +212,7 @@ namespace UCI {
             BookMoveBest = bool(Options["Book Move Best"]);
         }
 
-        void change_skill_level (const Option &opt)
+        void configure_skill (const Option &opt)
         {
             SkillMgr.change_level (u08(i32(opt)));
         }
@@ -360,7 +357,7 @@ namespace UCI {
         // Default MAX_SKILL_LEVEL, Min 0, Max MAX_SKILL_LEVEL.
         //
         // At level 0, engine will make dumb moves. MAX_SKILL_LEVEL is best/strongest play.
-        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, change_skill_level);
+        Options["Skill Level"]                  << Option (MAX_SKILL_LEVEL,  0, MAX_SKILL_LEVEL, configure_skill);
 
         // The number of principal variations (alternate lines of analysis) to display.
         // Specify 1 to just get the best line. Asking for more lines slows down the search.
@@ -402,7 +399,7 @@ namespace UCI {
         //
         // By setting Fifty Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          << Option (Position::FiftyMoveDist/2,+  5,+ 50, fifty_move_dist);
+        Options["Fifty Move Distance"]          << Option (Position::FiftyMoveDist/2,+  5,+ 50, configure_50move_dist);
 
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, configure_time);
@@ -428,7 +425,7 @@ namespace UCI {
         // -------------
 
         // The filename of the search log.
-        Options["Search Log"]                   << Option (SearchLog, change_search_log);
+        Options["Search File"]                  << Option (SearchFile, configure_searchlog);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.
