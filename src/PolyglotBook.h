@@ -4,7 +4,6 @@
 #include <fstream>
 
 #include "Type.h"
-#include "noncopyable.h"
 
 class Position;
 
@@ -17,7 +16,6 @@ namespace OpeningBook {
     // Polyglot book file has *.bin extension
     class PolyglotBook
         : public std::fstream
-        , public std::noncopyable
     {
 
     public:
@@ -61,6 +59,10 @@ namespace OpeningBook {
         PolyglotBook& operator>> (T &t);
         template<class T>
         PolyglotBook& operator<< (T &t);
+
+    protected:
+        PolyglotBook (const PolyglotBook&) = delete;
+        PolyglotBook& operator= (const PolyglotBook&) = delete;
 
     public:
         // find_index() takes a hash-key as input, and search through the book file for the given key.

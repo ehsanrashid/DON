@@ -4,14 +4,11 @@
 #include <streambuf>
 #include <cstring>
 
-#include "noncopyable.h"
-
 namespace std {
 
     template<class Elem, class Traits>
     class basic_tie_buf
         : public basic_streambuf<Elem, Traits>
-        , public noncopyable
     {
 
     private:
@@ -24,7 +21,7 @@ namespace std {
 
         basic_tie_buf (
             basic_streambuf<Elem, Traits> *strmbuf,
-            basic_streambuf <Elem, Traits> *logstrmbuf)
+            basic_streambuf<Elem, Traits> *logstrmbuf)
             : _strmbuf (strmbuf)
             , _logstrmbuf (logstrmbuf)
         {}
@@ -48,6 +45,9 @@ namespace std {
         }
 
     protected:
+
+        basic_tie_buf (const basic_tie_buf&) = delete;
+        basic_tie_buf& operator= (const basic_tie_buf&) = delete;
 
         int sync () override
         {

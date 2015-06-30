@@ -318,7 +318,7 @@ namespace OpeningBook  {
         // Add special move flags and verify it is legal
         for (const auto &m : MoveList<LEGAL> (pos))
         {
-            if ((m & ~PROMOTE) == move)
+            if ((m.move & ~PROMOTE) == move)
             {
                 return m;
             }

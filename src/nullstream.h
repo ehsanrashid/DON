@@ -16,7 +16,6 @@
 
 #include <streambuf>
 #include <ostream>
-#include "noncopyable.h"
 
 namespace std {
 
@@ -24,9 +23,7 @@ namespace std {
     template <class CharT, class Traits = char_traits<CharT> >
     class basic_null_buffer
         : public basic_streambuf<CharT, Traits>
-        , public noncopyable
     {
-    private:
 
     public:
         typedef typename basic_streambuf<CharT, Traits>::int_type int_type;
@@ -40,6 +37,11 @@ namespace std {
         //    // just ignore the character
         //    return typename Traits::not_eof (c);
         //}
+
+    protected:
+        basic_null_buffer (const basic_null_buffer&) = delete;
+        basic_null_buffer& operator= (const basic_null_buffer&) = delete;
+
     };
 
     // generic null output stream class
