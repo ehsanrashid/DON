@@ -1933,20 +1933,26 @@ namespace Searcher {
                 trim (BookFile);
                 convert_path (BookFile);
                 PolyglotBook book;
-                if (!white_spaces (BookFile))
+                if (!BookFile.empty ())
                 {
                     book.open (BookFile, ios_base::in|ios_base::binary);
                 }
                 if (book.is_open ())
                 {
+                    bool found = false;
                     auto book_move = book.probe_move (RootPos, BookMoveBest);
-                    book.close ();
-                    if (book_move != MOVE_NONE && count (RootMoves.begin (), RootMoves.end (), book_move))
+                    if (book_move != MOVE_NONE && count (RootMoves.begin (), RootMoves.end (), book_move) != 0)
                     {
+                        found = true;
                         swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
-                        RootMoves[0].pv.push_back (MOVE_NONE);
-                        goto finish;
+                        StateInfo si;
+                        RootPos.do_move (RootMoves[0].pv[0], si, RootPos.gives_check (RootMoves[0].pv[0], CheckInfo (RootPos)));
+                        book_move = book.probe_move (RootPos, BookMoveBest);
+                        RootMoves[0].pv.push_back (book_move);
+                        RootPos.undo_move ();
                     }
+                    book.close ();
+                    if (found) goto finish;
                 }
             }
 

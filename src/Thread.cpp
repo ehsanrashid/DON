@@ -292,17 +292,17 @@ namespace Threading {
     // threads, with included pawns and material tables, if only few are used.
     void ThreadPool::configure (i32 threads, i32 sp_depth)
     {
+        assert (threads > 0);
+
         split_depth = sp_depth*DEPTH_ONE;
         //if (split_depth == DEPTH_ZERO) split_depth = 5 * DEPTH_ONE;
 
-        assert (threads > 0);
-
-        while (size () < threads)
+        while (i32(size ()) < threads)
         {
             push_back (new_thread<Thread> ());
         }
 
-        while (size () > threads)
+        while (i32(size ()) > threads)
         {
             delete_thread (back ());
             pop_back ();
