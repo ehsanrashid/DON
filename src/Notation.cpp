@@ -192,7 +192,7 @@ namespace Notation {
             {
                 if (PAWN == pt)
                 {
-                    san = to_char (_file (org));
+                    san += to_char (_file (org));
                 }
                 san += "x";
             }

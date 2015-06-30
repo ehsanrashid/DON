@@ -404,7 +404,7 @@ inline Square Position::en_passant_sq () const { return _si->en_passant_sq; }
 inline u08    Position::clock50       () const { return _si->clock50; }
 inline Move   Position::last_move     () const { return _si->last_move; }
 inline PieceT Position::capture_type  () const { return _si->capture_type; }
-//inline Piece  Position::capture_piece () const { return (NONE == _si->capture_type) ? EMPTY : (_active | _si->capture_type); }
+//inline Piece  Position::capture_piece () const { return NONE != _si->capture_type ? (_active|_si->capture_type) : EMPTY; }
 inline Bitboard Position::checkers    () const { return _si->checkers; }
 
 inline Key    Position::matl_key      () const { return _si->matl_key; }

@@ -159,7 +159,8 @@ namespace UCI {
                 
                 assert (_ok (fen, Chess960, true));
             }
-            else return;
+            else
+                return;
 
             RootPos.setup (fen, Threadpool.main (), Chess960);
 
