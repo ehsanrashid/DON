@@ -172,10 +172,10 @@ namespace Memory {
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
-                cerr << "ERROR: shmat() shared memory attach failed.";
+                cerr << "ERROR: shmat() shared memory attach failed." << endl;
                 if (shmctl (shm, IPC_RMID, nullptr) == -1)
                 {
-                    cerr << "ERROR: shmctl(IPC_RMID) failed.";
+                    cerr << "ERROR: shmctl(IPC_RMID) failed." << endl;
                 }
                 return;
             }
@@ -190,10 +190,10 @@ namespace Memory {
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
-                cerr << "ERROR: shmat() shared memory attach failed.";
+                cerr << "ERROR: shmat() shared memory attach failed." << endl;
                 if (shmctl (shm, IPC_RMID, nullptr) == -1)
                 {
-                    cerr << "ERROR: shmctl(IPC_RMID) failed.";
+                    cerr << "ERROR: shmctl(IPC_RMID) failed." << endl;
                 }
                 return;
             }
@@ -233,7 +233,7 @@ namespace Memory {
             }
             if (shmctl (shm, IPC_RMID, nullptr) == -1)
             {
-                cerr << "ERROR: shmctl(IPC_RMID) failed.";
+                cerr << "ERROR: shmctl(IPC_RMID) failed." << endl;
             }
 #   endif
             UsePages = false;
