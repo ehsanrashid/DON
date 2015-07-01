@@ -3,12 +3,11 @@
 
 #include <atomic>
 #include <bitset>
-#include <condition_variable>
-#include <mutex>
 #include <thread>
 #include <vector>
 
 #include "thread_win32.h"
+
 #include "Position.h"
 #include "Pawns.h"
 #include "Material.h"

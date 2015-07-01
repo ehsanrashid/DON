@@ -91,11 +91,11 @@ void benchmark (istream &is, const Position &cur_pos)
     string limit_val  = (is >> token) && !white_spaces (token) ? token : "13";
     string limit_type = (is >> token) && !white_spaces (token) ? token : "depth";
     string fen_fn     = (is >> token) && !white_spaces (token) ? token : "default";
-    
+
     Options["Hash"]             = hash;
     Options["Threads"]          = threads;
     Options["Never Clear Hash"] = "false";
-    
+
     i32 value = abs (stoi (limit_val));
 
     LimitsT limits;
@@ -185,7 +185,7 @@ void auto_tune (istream &is)
     string threads = (is >> token) && !white_spaces (token) ? token : "1";
 
     Options["Threads"] = threads;
-    
+
     LimitsT limits;
     limits.depth = 15;
 

@@ -107,7 +107,7 @@ class Position
 {
 
 private:
-    
+
     Piece    _board   [SQ_NO];  // Board for storing pieces.
 
     Bitboard _color_bb[CLR_NO];
@@ -132,13 +132,12 @@ private:
     // Ply of the game, incremented after every move.
     i32      _game_ply;
     u64      _game_nodes;
-    
+
     bool     _chess960;
 
     Thread  *_thread;
 
     // ------------------------
-    
 
     void set_castle (Color c, Square rook_org);
 
