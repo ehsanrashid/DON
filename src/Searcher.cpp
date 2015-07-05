@@ -1378,7 +1378,9 @@ namespace Searcher {
 
             if (SkillMgr.enabled ()) SkillMgr.clear ();
 
-            TT.refresh ();
+            TT.age ();
+            HistoryValues.age ();
+            CounterMovesHistoryValues.age ();
 
             // Do have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size

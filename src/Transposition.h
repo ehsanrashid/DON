@@ -202,16 +202,16 @@ namespace Transposition {
             }
         }
 
-        // refresh() increments the "Generation" variable, which is used to
+        // age() increments the "Generation" variable, which is used to
         // distinguish transposition table entries from different searches.
         // It is called at the beginning of every new search.
-        void refresh () { _generation += 4; }
+        void age () { _generation += 4; }
         
         u08 generation () const { return _generation; }
 
         // cluster_entry() returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
-        TTEntry* cluster_entry (const Key key) const
+        TTEntry* cluster_entry (Key key) const
         {
             return _clusters[key & _cluster_mask].entries;
         }
