@@ -27,6 +27,7 @@ namespace MovePick {
 
         void clear () { std::memset (_table, 0x0, sizeof (_table)); }
 
+        // ------
         void age ()
         {
             for (int *p= reinterpret_cast<int*> (_table); p < reinterpret_cast<int*> (_table) + sizeof (_table)/sizeof (int); ++p)
@@ -34,24 +35,23 @@ namespace MovePick {
                 *p /= 2;
             }
         }
-
         void update (const Position &pos, Move m, Value v)
         {
-            Square s = dst_sq (m);
-            Piece  p = pos[org_sq (m)];
+            auto s = dst_sq (m);
+            auto p = pos[org_sq (m)];
             if (abs (_table[p][s] + v) < MAX_STATS_VALUE)
             {
                 _table[p][s] += v;
             }
         }
-
+        // ------
         void update (const Position &pos, Move m1, Move m2)
         {
-            Square s = dst_sq (m1);
-            Piece  p = pos[s];
+            auto s = dst_sq (m1);
+            auto p = pos[s];
             _table[p][s] = m2;
         }
-
+        // ------
     };
 
     // ValueStats stores the value that records how often different moves have been successful/unsuccessful

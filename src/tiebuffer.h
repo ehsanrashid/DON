@@ -12,21 +12,20 @@ namespace std {
     {
 
     private:
-        basic_streambuf<Elem, Traits> *_strmbuf;
-        basic_streambuf<Elem, Traits> *_logstrmbuf;
+        basic_streambuf<Elem, Traits> *_strmbuf1;
+        basic_streambuf<Elem, Traits> *_strmbuf2;
 
     public:
 
         typedef typename Traits::int_type   int_type;
 
-        basic_tie_buf (
-            basic_streambuf<Elem, Traits> *strmbuf,
-            basic_streambuf<Elem, Traits> *logstrmbuf)
-            : _strmbuf (strmbuf)
-            , _logstrmbuf (logstrmbuf)
+        basic_tie_buf (basic_streambuf<Elem, Traits> *strmbuf1,
+                       basic_streambuf<Elem, Traits> *strmbuf2)
+            : _strmbuf1 (strmbuf1)
+            , _strmbuf2 (strmbuf2)
         {}
 
-        basic_streambuf<Elem, Traits>* streambuf () const { return _strmbuf; }
+        basic_streambuf<Elem, Traits>* streambuf () const { return _strmbuf1; }
 
         int_type write (int_type c, const Elem *prefix)
         {
@@ -35,13 +34,13 @@ namespace std {
             if ('\n' == last_ch)
             {
                 streamsize length = strlen (prefix);
-                if (_logstrmbuf->sputn (prefix, length) != length)
+                if (_strmbuf2->sputn (prefix, length) != length)
                 {
                     return EOF; // Error
                 }
             }
 
-            return last_ch = _logstrmbuf->sputc (Elem (c));
+            return last_ch = _strmbuf2->sputc (Elem (c));
         }
 
     protected:
@@ -51,22 +50,22 @@ namespace std {
 
         int sync () override
         {
-            return _logstrmbuf->pubsync (), _strmbuf->pubsync ();
+            return _strmbuf2->pubsync (), _strmbuf1->pubsync ();
         }
 
         int_type overflow (int_type c) override
         {
-            return write (_strmbuf->sputc (Elem (c)), "<< ");
+            return write (_strmbuf1->sputc (Elem (c)), "<< ");
         }
 
         int_type underflow () override
         {
-            return _strmbuf->sgetc ();
+            return _strmbuf1->sgetc ();
         }
 
         int_type uflow () override
         {
-            return write (_strmbuf->sbumpc (), ">> ");
+            return write (_strmbuf1->sbumpc (), ">> ");
         }
 
     };

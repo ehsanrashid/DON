@@ -269,13 +269,13 @@ namespace MoveGen {
                     if (SQ_NO != ep_sq)
                     {
                         assert (_rank (ep_sq) == rel_rank (Own, R_6));
-                        if (Rx_pawns & rel_rank_bb (Own, R_5))
+                        if ((Rx_pawns & rel_rank_bb (Own, R_5)) != U64(0))
                         {
                             // An en-passant capture can be an evasion only if the checking piece
                             // is the double pushed pawn and so is in the target. Otherwise this
                             // is a discovery check and are forced to do otherwise.
                             // All time except when EVASION then 2nd condition must true
-                            if (EVASION != GT || (targets & (ep_sq - Push)))
+                            if (EVASION != GT || (targets & (ep_sq - Push)) != U64(0))
                             {
                                 auto ep_attacks = PAWN_ATTACKS[Opp][ep_sq] & Rx_pawns & rel_rank_bb (Own, R_5);
                                 assert (ep_attacks != U64(0));
@@ -375,7 +375,7 @@ namespace MoveGen {
         assert (pos.checkers () == U64(0));
 
         auto active =  pos.active ();
-        auto empties= ~pos.pieces ();
+        auto targets= ~pos.pieces ();
         CheckInfo ci (pos);
         // Pawns excluded will be generated together with direct checks
         auto discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
@@ -383,15 +383,15 @@ namespace MoveGen {
         {
             auto org = pop_lsq (discovers);
             auto pt  = ptype (pos[org]);
-            auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & empties;
+            auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
 
             if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
             while (attacks != U64(0)) { *moves++ = mk_move<NORMAL> (org, pop_lsq (attacks)); }
         }
 
-        return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, empties, &ci) :
-               BLACK == active ? generate_moves<QUIET_CHECK, BLACK> (moves, pos, empties, &ci) :
+        return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets, &ci) :
+               BLACK == active ? generate_moves<QUIET_CHECK, BLACK> (moves, pos, targets, &ci) :
                moves;
     }
 

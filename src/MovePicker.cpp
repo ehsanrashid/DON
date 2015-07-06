@@ -63,7 +63,7 @@ namespace MovePick {
     // search captures, promotions and some checks) and about how important good
     // move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, Depth d, Move cm, const Stack *ss)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, Depth d, Move cm, const Stack *ss)
         : _Pos (p)
         , _HistoryValues (hv)
         , _CounterMovesHistoryValues (cmhv)
@@ -82,7 +82,7 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, Depth d, Square dst_sq)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, Depth d, Square dst_sq)
         : _Pos (p)
         , _HistoryValues (hv)
         , _CounterMovesHistoryValues (cmhv)
@@ -118,7 +118,7 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats& cmhv, Move ttm, PieceT cpt)
+    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, PieceT cpt)
         : _Pos (p)
         , _HistoryValues (hv)
         , _CounterMovesHistoryValues (cmhv)
