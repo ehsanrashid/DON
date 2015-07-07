@@ -69,7 +69,7 @@ namespace Searcher {
 
 #endif
 
-        const Depth FutilityMarginDepth     = Depth(7);
+        const Depth FutilityMarginDepth     = Depth(6);
         // Futility margin lookup table (initialized at startup)
         // [depth]
         Value FutilityMargins[FutilityMarginDepth];

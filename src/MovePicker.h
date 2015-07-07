@@ -30,7 +30,7 @@ namespace MovePick {
         // ------
         void age ()
         {
-            for (int *p= reinterpret_cast<int*> (_table); p < reinterpret_cast<int*> (_table) + sizeof (_table)/sizeof (int); ++p)
+            for (i32 *p = reinterpret_cast<i32*> (_table); p < reinterpret_cast<i32*> (_table) + sizeof (_table)/sizeof (i32); ++p)
             {
                 *p /= 2;
             }

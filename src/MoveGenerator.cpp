@@ -1,7 +1,5 @@
 #include "MoveGenerator.h"
 
-#include "Position.h"
-
 namespace MoveGen {
 
     using namespace std;
@@ -303,13 +301,13 @@ namespace MoveGen {
                         // Promoting pawns
                         Bitboard b;
                         b = shift_del<Push > (R7_pawns) & empties;
-                        while (b != U64(0)) generate_promotion<Push >(moves, pop_lsq (b), ci);
+                        while (b != U64(0)) generate_promotion<Push > (moves, pop_lsq (b), ci);
 
                         b = shift_del<Right> (R7_pawns) & enemies;
-                        while (b != U64(0)) generate_promotion<Right>(moves, pop_lsq (b), ci);
+                        while (b != U64(0)) generate_promotion<Right> (moves, pop_lsq (b), ci);
 
                         b = shift_del<Left > (R7_pawns) & enemies;
-                        while (b != U64(0)) generate_promotion<Left >(moves, pop_lsq (b), ci);
+                        while (b != U64(0)) generate_promotion<Left > (moves, pop_lsq (b), ci);
                     }
                 }
 
@@ -510,7 +508,6 @@ namespace MoveGen {
                 *moves_cur = *(--moves_end);
                 continue;
             }
-            
             ++moves_cur;
         }
 

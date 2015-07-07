@@ -2,8 +2,7 @@
 #define _MOVE_GENERATOR_H_INC_
 
 #include "Type.h"
-
-class Position;
+#include "Position.h"
 
 namespace MoveGen {
 
@@ -49,7 +48,7 @@ namespace MoveGen {
     // The MoveList<T> class is a simple wrapper around generate().
     // It sometimes comes in handy to use this class instead of
     // the low level generate() function.
-    template<GenT GT>
+    template<GenT GT, PieceT PT = NONE>
     class MoveList
     {
 
@@ -60,7 +59,23 @@ namespace MoveGen {
     public:
 
         MoveList () = delete;
-        explicit MoveList (const Position &pos) : _moves_end (generate<GT> (_moves_beg, pos)) {}
+        explicit MoveList (const Position &pos)
+            : _moves_end (generate<GT> (_moves_beg, pos))
+        {
+            if (PT != NONE)
+            {
+                auto *moves_cur = _moves_beg;
+                while (moves_cur != _moves_end)
+                {
+                    if (ptype (pos[org_sq (*moves_cur)]) != PT)
+                    {
+                        *moves_cur = *(--_moves_end);
+                        continue;
+                    }
+                    ++moves_cur;
+                }
+            }
+        }
 
         const ValMove* begin () const { return _moves_beg; }
         const ValMove* end   () const { return _moves_end; }
