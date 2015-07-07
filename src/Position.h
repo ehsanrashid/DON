@@ -275,7 +275,6 @@ public:
     //Piece moving_piece (Move m) const;
 
     bool passed_pawn  (Color c, Square s) const;
-    bool pawn_on_7thR (Color c) const;
     bool bishops_pair (Color c) const;
     bool opposite_bishops ()    const;
 
@@ -503,10 +502,6 @@ inline Bitboard Position::discoverers (Color c) const
 inline bool Position::passed_pawn (Color c, Square s) const
 {
     return ((_types_bb[PAWN]&_color_bb[~c]) & BitBoard::PAWN_PASS_SPAN[c][s]) == U64(0);
-}
-inline bool Position::pawn_on_7thR (Color c) const
-{
-    return ((_types_bb[PAWN]&_color_bb[ c]) & BitBoard::rel_rank_bb (c, R_7)) != U64(0);
 }
 // check the side has pair of opposite color bishops
 inline bool Position::bishops_pair (Color c) const

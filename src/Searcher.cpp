@@ -736,9 +736,8 @@ namespace Searcher {
                         // you search it to a reduced depth, typically one less than normal depth.
                         if (   !PVNode && !MateSearch
                             && depth < RazorDepth
-                            && tt_move == MOVE_NONE
                             && static_eval + RazorMargins[depth] <= alpha
-                            && !pos.pawn_on_7thR (pos.active ())
+                            && tt_move == MOVE_NONE
                            )
                         {
                             if (   depth <= 1*DEPTH_ONE

@@ -387,7 +387,6 @@ namespace MovePick {
                     {
                         return move;
                     }
-                    
                 } while (_moves_cur < _moves_end);
                 break;
 
