@@ -11,7 +11,7 @@ namespace MovePick {
     using namespace MoveGen;
     using namespace Searcher;
 
-    const Value MAX_STATS_VALUE = Value(+0x100);
+    const Value MAX_STATS_VALUE = Value(0x100);
 
     // The Stats struct stores different statistics.
     template<class T>
@@ -39,10 +39,8 @@ namespace MovePick {
         {
             auto s = dst_sq (m);
             auto p = pos[org_sq (m)];
-            if (abs (_table[p][s] + v) < MAX_STATS_VALUE)
-            {
-                _table[p][s] += v;
-            }
+            Value &t = _table[p][s];
+            t = std::min (std::max (t + v, -MAX_STATS_VALUE), +MAX_STATS_VALUE);
         }
         // ------
         void update (const Position &pos, Move m1, Move m2)
