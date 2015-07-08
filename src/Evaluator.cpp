@@ -453,7 +453,7 @@ namespace Evaluator {
 
                     if (BSHP == PT)
                     {
-                        score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor<Own> (s);
+                        score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor (Own, s);
 
                         // Outpost for bishop
                         if (   r >= R_4
@@ -493,19 +493,19 @@ namespace Evaluator {
                     }
 
                     // Rook on a open or semi-open file
-                    if (ei.pi->semiopen_file<Own> (f) != 0)
+                    if (ei.pi->file_semiopen (Own, f))
                     {
-                        score += ei.pi->semiopen_file<Opp> (f) != 0 ? ROOK_ON_OPENFILE : ROOK_ON_SEMIOPENFILE;
+                        score += ei.pi->file_semiopen (Opp, f) ? ROOK_ON_OPENFILE : ROOK_ON_SEMIOPENFILE;
                     }
 
-                    if (mob <= 3 && ei.pi->semiopen_file<Own> (f) == 0)
+                    if (mob <= 3 && !ei.pi->file_semiopen (Own, f))
                     {
                         auto kf = _file (pos.king_sq (Own));
                         auto kr = rel_rank (Own, pos.king_sq (Own));
                         // Rooks trapped by own king, more if the king has lost its castling capability.
                         if (   (kf < F_E) == (f < kf)
                             && (kr == R_1 || kr == r)
-                            && (ei.pi->semiopen_side<Own> (kf, f < kf) == 0)
+                            && !ei.pi->side_semiopen (Own, kf, f < kf)
                            )
                         {
                             score -= (ROOK_TRAPPED - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (Own));
@@ -538,38 +538,38 @@ namespace Evaluator {
 
             auto fk_sq = pos.king_sq (Own);
 
-            // King shelter and enemy pawns storm
-            ei.pi->evaluate_king_pawn_safety<Own> (pos);
+            // King Safety: friend pawn shelter and enemy pawns storm
+            ei.pi->evaluate_king_safety<Own> (pos);
 
             auto value = VALUE_ZERO;
 
             // If can castle use the value after the castle if is bigger
             if (rel_rank (Own, fk_sq) == R_1 && pos.can_castle (Own))
             {
-                value = ei.pi->shelter_storm[Own][CS_NO];
+                value = ei.pi->king_safety[Own][CS_NO];
 
                 if (    pos.can_castle (Castling<Own, CS_K>::Right)
                     && !pos.castle_impeded (Castling<Own, CS_K>::Right)
                     && (pos.king_path (Castling<Own, CS_K>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
                    )
                 {
-                    value = max (value, ei.pi->shelter_storm[Own][CS_K]);
+                    value = max (value, ei.pi->king_safety[Own][CS_K]);
                 }
                 if (    pos.can_castle (Castling<Own, CS_Q>::Right)
                     && !pos.castle_impeded (Castling<Own, CS_Q>::Right)
                     && (pos.king_path (Castling<Own, CS_Q>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
                    )
                 {
-                    value = max (value, ei.pi->shelter_storm[Own][CS_Q]);
+                    value = max (value, ei.pi->king_safety[Own][CS_Q]);
                 }
             }
             else
             if (rel_rank (Own, fk_sq) <= R_4)
             {
-                value = ei.pi->shelter_storm[Own][CS_NO];
+                value = ei.pi->king_safety[Own][CS_NO];
             }
 
-            auto score = mk_score (value, -0x10 * ei.pi->kp_dist[Own]);
+            auto score = mk_score (value, -0x10 * ei.pi->king_pawn_dist[Own]);
 
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[Opp] != 0)

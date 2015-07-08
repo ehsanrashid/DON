@@ -434,7 +434,7 @@ inline Square   Position::castle_rook (CRight cr) const { return _castle_rook[cr
 inline Bitboard Position::castle_path (CRight cr) const { return _castle_path[cr]; }
 inline Bitboard Position::king_path   (CRight cr) const { return _king_path[cr]; }
 
-inline bool  Position::castle_impeded (CRight cr) const { return _castle_path[cr] & _types_bb[NONE]; }
+inline bool  Position::castle_impeded (CRight cr) const { return (_castle_path[cr] & _types_bb[NONE]) != U64(0); }
 // Color of the side on move
 inline Color Position::active   () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.

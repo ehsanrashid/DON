@@ -6,6 +6,8 @@
 
 namespace Pawns {
 
+    using namespace BitBoard;
+
     // Pawns::Entry contains various information about a pawn structure.
     // A lookup to the pawn hash table (performed by calling the probe function)
     // returns a pointer to an Entry object.
@@ -31,55 +33,46 @@ namespace Pawns {
         u08      pawns_on_sqrs [CLR_NO][CLR_NO]; // [color][light/dark squares]
 
         Square   king_sq       [CLR_NO];
-        Value    shelter_storm [CLR_NO][3];
-        u08      kp_dist       [CLR_NO];
+        CRight   castle_rights [CLR_NO];
+        Value    king_safety   [CLR_NO][3];
+        u08      king_pawn_dist[CLR_NO];
 
-        template<Color Own>
-        u08 semiopen_file (File f) const
+        bool file_semiopen (Color c, File f) const
         {
-            return semiopen_files[Own] & (1 << f);
+            return semiopen_files[c] & (1 << f);
+        }
+        bool side_semiopen (Color c, File f, bool left) const
+        {
+            return semiopen_files[c] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
         }
 
-        template<Color Own>
-        u08 semiopen_side (File f, bool left) const
+        i32 pawns_on_squarecolor (Color c, Square s) const
         {
-            return semiopen_files[Own] & (left ? ((1 << f) - 1) : ~((1 << (f+1)) - 1));
+            return pawns_on_sqrs[c][(LIHT_bb & s) == U64(0)];
         }
-
-        template<Color Own>
-        i32 pawns_on_squarecolor (Square s) const
+        i32 pawns_on_center (Color c) const
         {
-            return pawns_on_sqrs[Own][!(BitBoard::LIHT_bb & BitBoard::SQUARE_bb[s])];
+            return pawns_on_sqrs[c][WHITE] + pawns_on_sqrs[c][BLACK];
         }
-        template<Color Own>
-        i32 pawns_on_center () const
-        {
-            return pawns_on_sqrs[Own][WHITE] + pawns_on_sqrs[Own][BLACK];
-        }
-
 
         template<Color Own>
         Score evaluate_unstoppable_pawns () const;
 
         template<Color Own>
-        void evaluate_king_pawn_safety (const Position &pos)
+        void evaluate_king_safety (const Position &pos)
         {
-            Square k_sq = pos.king_sq (Own);
-            if (king_sq[Own] != k_sq)
+            if (king_sq[Own] != pos.king_sq (Own) || castle_rights[Own] != pos.can_castle (Own))
             {
-                king_sq[Own] = k_sq;
+                king_sq       [Own] = pos.king_sq (Own);
+                castle_rights[Own] = pos.can_castle (Own);
 
-                Rank kr = rel_rank (Own, k_sq);
-                shelter_storm[Own][CS_K ] = kr == R_1 ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1)) : VALUE_ZERO;
-                shelter_storm[Own][CS_Q ] = kr == R_1 ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1)) : VALUE_ZERO;
-                shelter_storm[Own][CS_NO] = kr <= R_4 ? pawn_shelter_storm<Own> (pos, k_sq) : VALUE_ZERO;
+                Rank kr = rel_rank (Own, king_sq[Own]);
+                king_safety[Own][CS_K ] = kr == R_1 ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1)) : VALUE_ZERO;
+                king_safety[Own][CS_Q ] = kr == R_1 ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1)) : VALUE_ZERO;
+                king_safety[Own][CS_NO] = kr <= R_4 ? pawn_shelter_storm<Own> (pos, king_sq[Own]) : VALUE_ZERO;
 
-                kp_dist[Own] = 0;
-                Bitboard pawns = pos.pieces<PAWN> (Own);
-                if (pawns != U64(0))
-                {
-                    while ((BitBoard::DIST_RINGS_bb[k_sq][kp_dist[Own]++] & pawns) == U64(0)) {}
-                }
+                king_pawn_dist[Own] = 0;
+                if (pos.pieces<PAWN> (Own) != U64(0)) while ((DIST_RINGS_bb[king_sq[Own]][king_pawn_dist[Own]++] & pos.pieces<PAWN> (Own)) == U64(0)) {}
             }
         }
 

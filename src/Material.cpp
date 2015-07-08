@@ -60,30 +60,30 @@ namespace Material {
         Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
 
         // Helper used to detect a given material distribution
-        bool is_KXK (const Position &pos, Color Own)
+        bool is_KXK (const Position &pos, Color c)
         {
-            return pos.non_pawn_material (Own) >= VALUE_MG_ROOK
-                //&& pos.count<NONPAWN> (~Own) == 0
-                //&& pos.count<PAWN> (~Own) == 0;
-                && !more_than_one (pos.pieces (~Own));
+            return pos.non_pawn_material (c) >= VALUE_MG_ROOK
+                //&& pos.count<NONPAWN> (~c) == 0
+                //&& pos.count<PAWN> (~c) == 0;
+                && !more_than_one (pos.pieces (~c));
         }
 
-        bool is_KBPsKs (const Position &pos, Color Own)
+        bool is_KBPsKs (const Position &pos, Color c)
         {
-            return pos.count<BSHP> (Own) == 1
-                && pos.non_pawn_material ( Own) == VALUE_MG_BSHP
-                && pos.non_pawn_material (~Own) == VALUE_ZERO
-                && pos.count<PAWN> (Own) != 0;
+            return pos.count<BSHP> (c) == 1
+                && pos.non_pawn_material ( c) == VALUE_MG_BSHP
+                && pos.non_pawn_material (~c) == VALUE_ZERO
+                && pos.count<PAWN> (c) != 0;
         }
 
-        bool is_KQKRPs (const Position &pos, Color Own)
+        bool is_KQKRPs (const Position &pos, Color c)
         {
-            return pos.count<QUEN> ( Own) == 1
-                && pos.non_pawn_material ( Own) == VALUE_MG_QUEN
-                && pos.count<PAWN> ( Own) == 0
-                && pos.count<ROOK> (~Own) == 1
-                && pos.non_pawn_material (~Own) == VALUE_MG_ROOK
-                && pos.count<PAWN> (~Own) != 0;
+            return pos.count<QUEN> ( c) == 1
+                && pos.non_pawn_material ( c) == VALUE_MG_QUEN
+                && pos.count<PAWN> ( c) == 0
+                && pos.count<ROOK> (~c) == 1
+                && pos.non_pawn_material (~c) == VALUE_MG_ROOK
+                && pos.count<PAWN> (~c) != 0;
         }
 
         template<Color Own>
