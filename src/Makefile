@@ -480,7 +480,7 @@ install:
 	-strip $(BINDIR)/$(EXE)
 
 clean:
-	$(RM) $(EXE) $(EXE).exe *.o .depend *~ core bench.txt *.gcda
+	$(RM) $(EXE) $(EXE).exe *.o *.gcda .depend *~ core bench.txt
 
 default:
 	help

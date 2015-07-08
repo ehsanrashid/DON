@@ -1124,7 +1124,7 @@ namespace Evaluator {
 
             auto strong_side = eg > VALUE_DRAW ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
-            auto scale_fac = strong_side == WHITE ?
+            auto scale_factor = strong_side == WHITE ?
                 ei.mi->scale_factor<WHITE> (pos) :
                 ei.mi->scale_factor<BLACK> (pos);
 
@@ -1134,7 +1134,7 @@ namespace Evaluator {
             // If don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.
             if (   game_phase < PHASE_MIDGAME
-                && (scale_fac == SCALE_FACTOR_NORMAL || scale_fac == SCALE_FACTOR_ONEPAWN)
+                && (scale_factor == SCALE_FACTOR_NORMAL || scale_factor == SCALE_FACTOR_ONEPAWN)
                )
             {
                 if (pos.opposite_bishops ())
@@ -1146,13 +1146,13 @@ namespace Evaluator {
                        )
                     {
                         i32 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
-                        scale_fac = pawn_diff == 0 ? ScaleFactor (4) : ScaleFactor (8 * pawn_diff);
+                        scale_factor = pawn_diff == 0 ? ScaleFactor(4) : ScaleFactor(8 * pawn_diff);
                     }
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops. 
                     else
                     {
-                        scale_fac = ScaleFactor (50 * i32(scale_fac) / i32(SCALE_FACTOR_NORMAL));
+                        scale_factor = ScaleFactor(i32(scale_factor) * i32(SCALE_FACTOR_BISHOPS)/i32(SCALE_FACTOR_NORMAL));
                     }
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
@@ -1162,12 +1162,12 @@ namespace Evaluator {
                     && !pos.passed_pawn (~strong_side, pos.king_sq (~strong_side))
                    )
                 {
-                    scale_fac = ei.pi->pawn_span[strong_side] != 0 ? ScaleFactor(56) : ScaleFactor(38);
+                    scale_factor = ei.pi->pawn_span[strong_side] != 0 ? ScaleFactor(56) : ScaleFactor(38);
                 }
             }
 
-            // Interpolates between a middle game and a (scaled by 'scale_fac') endgame score, based on game phase.
-            eg = eg * i32(scale_fac) / i32(SCALE_FACTOR_NORMAL);
+            // Interpolates between a middle game and a (scaled by 'scale_factor') endgame score, based on game phase.
+            eg = eg * i32(scale_factor) / i32(SCALE_FACTOR_NORMAL);
 
             auto value = Value((mg * i32(game_phase) + eg * i32(PHASE_MIDGAME - game_phase)) / i32(PHASE_MIDGAME));
 
