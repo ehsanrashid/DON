@@ -20,35 +20,52 @@ namespace MovePick {
     private:
         T _table[PIECE_NO][SQ_NO];
 
+        void _clear (Value &v) { v = VALUE_ZERO; }
+        void _clear (Move  &m) { m = MOVE_NONE; }
+        void _clear (Stats<Value> &vs) { vs.clear (); }
+
+        void _age (Value &v) { v *= 0.75; }
+        void _age (Stats<Value> &vs) { vs.age (); }
+
     public:
 
         const T* operator[] (Piece p) const { return _table[p]; }
         T*       operator[] (Piece p)       { return _table[p]; }
 
-        void clear () { std::memset (_table, 0x0, sizeof (_table)); }
+        void clear ()
+        {
+            for (auto &t : _table)
+                for (auto &e : t)
+                    _clear (e);
+        }
 
         // ------
+
         void age ()
         {
-            for (i32 *p = reinterpret_cast<i32*> (_table); p < reinterpret_cast<i32*> (_table) + sizeof (_table)/sizeof (i32); ++p)
-            {
-                *p /= 2;
-            }
+            for (auto &t : _table)
+                for (auto &e : t)
+                    _age (e);
         }
+
         void update (const Position &pos, Move m, Value v)
         {
             auto s = dst_sq (m);
             auto p = pos[org_sq (m)];
-            Value &t = _table[p][s];
-            t = std::min (std::max (t + v, -MAX_STATS_VALUE), +MAX_STATS_VALUE);
+            auto &e = _table[p][s];
+            e = std::min (std::max (e + v, -MAX_STATS_VALUE), +MAX_STATS_VALUE);
         }
+
         // ------
+
         void update (const Position &pos, Move m1, Move m2)
         {
             auto s = dst_sq (m1);
             auto p = pos[s];
-            _table[p][s] = m2;
+            auto &e = _table[p][s];
+            if (e != m2) e = m2;
         }
+
         // ------
     };
 
@@ -63,6 +80,7 @@ namespace MovePick {
     // in particular two moves with different origin but same piece & same destination
     // will be considered identical.
     typedef Stats<Move>         MoveStats;
+
 
     // MovePicker class is used to pick one pseudo legal move at a time from the
     // current position. The most important method is next_move(), which returns a

@@ -39,16 +39,16 @@ namespace Searcher {
     public:
 
         Clock clock[CLR_NO];
-        MoveVector root_moves; // restrict search to these moves only
+        MoveVector root_moves; // Restrict search to these moves only
 
-        u32  movetime   = 0; // search <x> time in milli-seconds
-        u08  movestogo  = 0; // search <x> moves to the next time control
-        u08  depth      = 0; // search <x> depth (plies) only
-        u64  nodes      = 0; // search <x> nodes only
-        u08  mate       = 0; // search mate in <x> moves
+        u32  movetime   = 0; // Search <x> exact time in milli-seconds
+        u08  movestogo  = 0; // Search <x> moves to the next time control
+        u08  depth      = 0; // Search <x> depth (plies) only
+        u64  nodes      = 0; // Search <x> nodes only
+        u08  mate       = 0; // Search mate in <x> moves
         u32  npmsec     = 0;
-        bool ponder     = false; // search on ponder move
-        bool infinite   = false; // search until the "stop" command
+        bool ponder     = false; // Search on ponder move until the "stop" command
+        bool infinite   = false; // Search until the "stop" command
 
         bool use_timemanager () const
         {
