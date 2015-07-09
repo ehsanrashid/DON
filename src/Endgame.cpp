@@ -561,7 +561,7 @@ namespace EndGame {
         assert (verify_material (pos,   _weak_side, VALUE_MG_BSHP, 0));
 
         // Test for a rook pawn
-        if (pos.pieces<PAWN> () & (FA_bb | FH_bb))
+        if (pos.pieces (PAWN) & (FA_bb | FH_bb))
         {
             auto wk_sq = pos.king_sq (_weak_side);
             auto wb_sq = pos.list<BSHP> (_weak_side)[0];
@@ -644,7 +644,7 @@ namespace EndGame {
         assert (verify_material (pos, _weak_side, VALUE_ZERO, 0));
 
         auto wk_sq  = pos.king_sq (_weak_side);
-        auto spawns = pos.pieces<PAWN> (_strong_side);
+        auto spawns = pos.pieces (_strong_side, PAWN);
         auto sp_sq  = scan_frntmost_sq (_strong_side, spawns);
 
         // If all pawns are ahead of the king, all pawns are on a single
@@ -747,7 +747,7 @@ namespace EndGame {
             }
             
             auto path = FRONT_SQRS_bb[_strong_side][sp_sq];
-            if (   (path & pos.pieces<KING> (_weak_side))
+            if (   (path & pos.pieces (_weak_side, KING))
                 || (path & attacks_bb<BSHP> (wb_sq, pos.pieces ()) && dist (wb_sq, sp_sq) >= 3)
                )
             {
@@ -820,7 +820,7 @@ namespace EndGame {
             if (   wk_sq == block1_sq
                 && opposite_colors (wk_sq, sb_sq)
                 && (   wb_sq == block2_sq
-                    || attacks_bb<BSHP> (block2_sq, pos.pieces ()) & pos.pieces<BSHP> (_weak_side)
+                    || attacks_bb<BSHP> (block2_sq, pos.pieces ()) & pos.pieces (_weak_side, BSHP)
                     || dist<Rank> (sp1_sq, sp2_sq) >= 2
                    )
                )
@@ -831,7 +831,7 @@ namespace EndGame {
             if (   wk_sq == block2_sq
                 && opposite_colors (wk_sq, sb_sq)
                 && (   wb_sq == block1_sq
-                    || attacks_bb<BSHP> (block1_sq, pos.pieces ()) & pos.pieces<BSHP> (_weak_side)
+                    || attacks_bb<BSHP> (block1_sq, pos.pieces ()) & pos.pieces (_weak_side, BSHP)
                    )
                )
             {
@@ -911,7 +911,7 @@ namespace EndGame {
         // No assertions about the material of _weak_side, because we want draws to
         // be detected even when the weaker side has some materials or pawns.
 
-        auto spawns = pos.pieces<PAWN> (_strong_side);
+        auto spawns = pos.pieces (_strong_side, PAWN);
         auto sp_sq = scan_frntmost_sq (_strong_side, spawns);
         auto sp_f  = _file (sp_sq);
 
@@ -935,7 +935,7 @@ namespace EndGame {
                 }
 
                 //// If the defending king has some pawns
-                //auto wpawns = pos.pieces<PAWN> (_weak_side);
+                //auto wpawns = pos.pieces (_weak_side, PAWN);
                 //if (wpawns && (wpawns & ~FILE_bb[sp_f]) == U64(0))
                 //{
                 //    auto wp_sq = scan_frntmost_sq (_weak_side, wpawns);
@@ -960,7 +960,7 @@ namespace EndGame {
         // All pawns on same B or G file?
         // Then potential draw
         if (   (sp_f == F_B || sp_f == F_G)
-            && (pos.pieces<PAWN> () & ~FILE_bb[sp_f]) == U64(0)
+            && (pos.pieces (PAWN) & ~FILE_bb[sp_f]) == U64(0)
             && pos.non_pawn_material (_weak_side) == VALUE_ZERO
            )
         {
@@ -971,7 +971,7 @@ namespace EndGame {
             if (pos.count<PAWN> (_weak_side) != 0)
             {
                 // Get _weak_side pawn that is closest to home rank
-                auto wp_sq = scan_backmost_sq (_weak_side, pos.pieces<PAWN> (_weak_side));
+                auto wp_sq = scan_backmost_sq (_weak_side, pos.pieces (_weak_side, PAWN));
 
                 //// It's a draw if weaker pawn is on rank 7, bishop can't attack the pawn, and
                 //// weaker king can stop opposing opponent's king from penetrating.
@@ -986,7 +986,7 @@ namespace EndGame {
                 // There's potential for a draw if weak pawn is blocked on the 7th rank
                 // and the bishop cannot attack it or they only have one pawn left
                 if (   rel_rank (_strong_side, wp_sq) == R_7
-                    && pos.pieces<PAWN> (_strong_side) & (wp_sq + pawn_push (_weak_side))
+                    && pos.pieces (_strong_side, PAWN) & (wp_sq + pawn_push (_weak_side))
                     && (opposite_colors (sb_sq, wp_sq) || pos.count<PAWN> (_strong_side) == 1)
                    )
                 {
@@ -1040,7 +1040,7 @@ namespace EndGame {
         if (   rel_rank (_weak_side, wk_sq) <= R_2
             && rel_rank (_weak_side, pos.king_sq (_strong_side)) >= R_4
             && rel_rank (_weak_side, wr_sq) == R_3
-            && (   pos.pieces<PAWN> (_weak_side)
+            && (   pos.pieces (_weak_side, PAWN)
                 &  PIECE_ATTACKS[KING][wk_sq]
                 &  PAWN_ATTACKS[_strong_side][wr_sq]
                )

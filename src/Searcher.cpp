@@ -1929,7 +1929,7 @@ namespace Searcher {
         if (RootMoves.size () != 0)
         {
             // Check if play with book
-            if (!Limits.infinite && !MateSearch && !BookFile.empty ())
+            if (RootPly <= 20 && !Limits.infinite && !MateSearch && !BookFile.empty ())
             {
                 PolyglotBook book (BookFile, ios_base::in|ios_base::binary);
                 if (book.is_open ())

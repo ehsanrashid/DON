@@ -120,8 +120,8 @@ namespace Pawns {
             const auto Left  = WHITE == Own ? DEL_NW : DEL_SE;
             const auto Right = WHITE == Own ? DEL_NE : DEL_SW;
 
-            const auto own_pawns = pos.pieces<PAWN> (Own);
-            const auto opp_pawns = pos.pieces<PAWN> (Opp);
+            const auto own_pawns = pos.pieces (Own, PAWN);
+            const auto opp_pawns = pos.pieces (Opp, PAWN);
 
             e->pawns_attacks  [Own] = shift_del<Left> (own_pawns) | shift_del<Right> (own_pawns);
             e->blocked_pawns  [Own] = own_pawns & shift_del<Pull> (opp_pawns);
@@ -186,7 +186,7 @@ namespace Pawns {
                     // Now know there are no friendly pawns beside or behind this pawn on adjacent files.
                     // Now check whether the pawn is backward by looking in the forward direction on the
                     // adjacent files, and picking the closest pawn there.
-                    b = PAWN_ATTACK_SPAN[Own][s] & pos.pieces<PAWN> ();
+                    b = PAWN_ATTACK_SPAN[Own][s] & pos.pieces (PAWN);
                     b = PAWN_ATTACK_SPAN[Own][s] & rank_bb (scan_backmost_sq (Own, b));
 
                     // If have an enemy pawn in the same or next rank, the pawn is
@@ -272,7 +272,7 @@ namespace Pawns {
 
         auto value = KING_SAFETY_BY_PAWN;
 
-        auto front_pawns = pos.pieces<PAWN> () & (FRONT_RANK_bb[Own][_rank (k_sq)] | RANK_bb[_rank (k_sq)]);
+        auto front_pawns = pos.pieces (PAWN) & (FRONT_RANK_bb[Own][_rank (k_sq)] | RANK_bb[_rank (k_sq)]);
         auto own_front_pawns = pos.pieces (Own) & front_pawns;
         auto opp_front_pawns = pos.pieces (Opp) & front_pawns;
 

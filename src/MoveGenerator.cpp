@@ -193,7 +193,7 @@ namespace MoveGen {
                 const auto Right = WHITE == Own ? DEL_NE : DEL_SW;
                 const auto Left  = WHITE == Own ? DEL_NW : DEL_SE;
 
-                auto pawns = pos.pieces<PAWN> (Own);
+                auto pawns = pos.pieces (Own, PAWN);
 
                 auto R7_pawns = pawns &  rel_rank_bb (Own, R_7);
                 auto Rx_pawns = pawns & ~R7_pawns;
@@ -376,7 +376,7 @@ namespace MoveGen {
         auto targets= ~pos.pieces ();
         CheckInfo ci (pos);
         // Pawns excluded will be generated together with direct checks
-        auto discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
+        auto discovers = ci.discoverers & ~pos.pieces (active, PAWN);
         while (discovers != U64(0))
         {
             auto org = pop_lsq (discovers);
@@ -402,7 +402,7 @@ namespace MoveGen {
         auto targets= ~pos.pieces (active);
         CheckInfo ci (pos);
         // Pawns excluded, will be generated together with direct checks
-        auto discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
+        auto discovers = ci.discoverers & ~pos.pieces (active, PAWN);
         while (discovers != U64(0))
         {
             auto org = pop_lsq (discovers);

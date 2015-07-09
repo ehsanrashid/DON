@@ -172,7 +172,6 @@ public:
 
     Position& operator= (const Position &pos); // To assign RootPos from UCI
 
-
     Piece    operator[] (Square s)      const;
     //Bitboard operator[] (Color  c)      const;
     //Bitboard operator[] (PieceT pt)     const;
@@ -182,26 +181,18 @@ public:
 
     Square king_sq (Color c)    const;
 
-    Bitboard pieces (Color c)   const;
-
-    Bitboard pieces (PieceT pt) const;
-    template<PieceT PT>
     Bitboard pieces ()          const;
-
-    Bitboard pieces (Color c, PieceT pt) const;
-    template<PieceT PT>
     Bitboard pieces (Color c)   const;
-
+    Bitboard pieces (PieceT pt) const;
+    Bitboard pieces (Color c, PieceT pt) const;
     Bitboard pieces (PieceT p1, PieceT p2) const;
     Bitboard pieces (Color c, PieceT p1, PieceT p2) const;
 
-    Bitboard pieces ()          const;
-
-    i32      count  (Color c, PieceT pt) const;
-    template<PieceT PT>
-    i32      count  (Color c)   const;
     template<PieceT PT>
     i32      count  ()          const;
+    template<PieceT PT>
+    i32      count  (Color c)   const;
+    i32      count  (Color c, PieceT pt) const;
 
     template<PieceT PT>
     const Square* list (Color c) const;
@@ -291,7 +282,7 @@ public:
     Value compute_non_pawn_material (Color c) const;
 
     // Do/Undo move
-    void   do_move (Move m, StateInfo &si, bool is_check);
+    void   do_move (Move m, StateInfo &si, bool check);
     void   do_move (std::string &can, StateInfo &si);
     void undo_move ();
     void   do_null_move (StateInfo &si);
@@ -323,45 +314,12 @@ inline const Square* Position::operator[] (Piece  p)  const { return _piece_list
 inline bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
 inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
+inline Bitboard Position::pieces ()          const { return _types_bb[NONE]; }
 inline Bitboard Position::pieces (Color c)   const { return _color_bb[c];  }
-
 inline Bitboard Position::pieces (PieceT pt) const { return _types_bb[pt]; }
-template<PieceT PT>
-inline Bitboard Position::pieces ()                   const { return _types_bb[PT]; }
-
-inline Bitboard Position::pieces (Color c, PieceT pt) const { return _color_bb[c]&_types_bb[pt]; }
-template<PieceT PT>
-inline Bitboard Position::pieces (Color c)            const { return _color_bb[c]&_types_bb[PT]; }
-
-inline Bitboard Position::pieces (PieceT p1, PieceT p2)const { return _types_bb[p1]|_types_bb[p2]; }
+inline Bitboard Position::pieces (Color c,   PieceT pt) const { return _color_bb[c]&_types_bb[pt]; }
+inline Bitboard Position::pieces (PieceT p1, PieceT p2) const { return _types_bb[p1]|_types_bb[p2]; }
 inline Bitboard Position::pieces (Color c, PieceT p1, PieceT p2) const { return _color_bb[c]&(_types_bb[p1]|_types_bb[p2]); }
-
-inline Bitboard Position::pieces ()                   const { return _types_bb[NONE]; }
-
-inline i32 Position::count (Color c, PieceT pt)       const { return _piece_count[c][pt]; }
-template<PieceT PT>
-// Count specific piece of color
-inline i32 Position::count (Color c) const { return _piece_count[c][PT]; }
-template<>
-// Count total pieces of color
-inline i32 Position::count<NONE>    (Color c) const
-{
-    return _piece_count[c][PAWN]
-         + _piece_count[c][NIHT]
-         + _piece_count[c][BSHP]
-         + _piece_count[c][ROOK]
-         + _piece_count[c][QUEN]
-         + _piece_count[c][KING];
-}
-template<>
-// Count non-pawn pieces of color
-inline i32 Position::count<NONPAWN> (Color c) const
-{
-    return _piece_count[c][NIHT]
-         + _piece_count[c][BSHP]
-         + _piece_count[c][ROOK]
-         + _piece_count[c][QUEN];
-}
 
 template<PieceT PT>
 // Count specific piece
@@ -389,7 +347,30 @@ inline i32 Position::count<NONPAWN> () const
          + _piece_count[WHITE][ROOK] + _piece_count[BLACK][ROOK]
          + _piece_count[WHITE][QUEN] + _piece_count[BLACK][QUEN];
 }
-
+template<PieceT PT>
+// Count specific piece of color
+inline i32 Position::count (Color c) const { return _piece_count[c][PT]; }
+template<>
+// Count total pieces of color
+inline i32 Position::count<NONE>    (Color c) const
+{
+    return _piece_count[c][PAWN]
+         + _piece_count[c][NIHT]
+         + _piece_count[c][BSHP]
+         + _piece_count[c][ROOK]
+         + _piece_count[c][QUEN]
+         + _piece_count[c][KING];
+}
+template<>
+// Count non-pawn pieces of color
+inline i32 Position::count<NONPAWN> (Color c) const
+{
+    return _piece_count[c][NIHT]
+         + _piece_count[c][BSHP]
+         + _piece_count[c][ROOK]
+         + _piece_count[c][QUEN];
+}
+inline i32 Position::count (Color c, PieceT pt) const { return _piece_count[c][pt]; }
 
 template<PieceT PT>
 inline const Square* Position::list (Color c) const { return _piece_list[c][PT]; }
