@@ -31,16 +31,14 @@ namespace std {
         basic_null_buffer ()
             : basic_streambuf<CharT, Traits> (this)
         {}
+        basic_null_buffer (const basic_null_buffer&) = delete;
+        basic_null_buffer& operator= (const basic_null_buffer&) = delete;
 
         //int_type overflow (int_type c) override
         //{
         //    // just ignore the character
         //    return typename Traits::not_eof (c);
         //}
-
-    protected:
-        basic_null_buffer (const basic_null_buffer&) = delete;
-        basic_null_buffer& operator= (const basic_null_buffer&) = delete;
 
     };
 

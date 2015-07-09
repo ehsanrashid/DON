@@ -1929,15 +1929,9 @@ namespace Searcher {
         if (RootMoves.size () != 0)
         {
             // Check if play with book
-            if (!Limits.infinite && !MateSearch && !white_spaces (BookFile))
+            if (!Limits.infinite && !MateSearch && !BookFile.empty ())
             {
-                trim (BookFile);
-                convert_path (BookFile);
-                PolyglotBook book;
-                if (!BookFile.empty ())
-                {
-                    book.open (BookFile, ios_base::in|ios_base::binary);
-                }
+                PolyglotBook book (BookFile, ios_base::in|ios_base::binary);
                 if (book.is_open ())
                 {
                     bool found = false;
@@ -1978,7 +1972,7 @@ namespace Searcher {
                 th->notify_one (); // Wake up all the threads
             }
 
-            if (AutoSaveHashTime != 0 && !white_spaces (HashFile))
+            if (AutoSaveHashTime != 0 && !HashFile.empty ())
             {
                 FirstAutoSave = true;
                 Threadpool.save_hash_th        = new_thread<TimerThread> ();

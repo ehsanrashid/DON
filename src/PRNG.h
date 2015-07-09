@@ -24,7 +24,7 @@ class PRNG
 
 private:
 
-    u64 s = 0;
+    u64 s = U64(0);
 
     u64 rand64 ()
     {
@@ -35,6 +35,7 @@ private:
     }
 
 public:
+
     PRNG () = delete;
     PRNG (u64 seed) : s (seed) { assert (seed != 0); }
 

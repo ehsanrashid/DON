@@ -60,10 +60,6 @@ namespace OpeningBook {
         template<class T>
         PolyglotBook& operator<< (T &t);
 
-    protected:
-        PolyglotBook (const PolyglotBook&) = delete;
-        PolyglotBook& operator= (const PolyglotBook&) = delete;
-
     public:
         // find_index() takes a hash-key as input, and search through the book file for the given key.
         // Returns the index of the 1st book entry with the same key as the input.
@@ -72,9 +68,10 @@ namespace OpeningBook {
         streampos find_index (const std::string &fen, bool c960 = false);
 
         PolyglotBook ();
-
-        // mode = std::ios_base::in|std::ios_base::out
         PolyglotBook (const std::string &book_fn, openmode mode);
+        PolyglotBook (const PolyglotBook&) = delete;
+        PolyglotBook& operator= (const PolyglotBook&) = delete;
+        
         ~PolyglotBook ();
 
         bool open (const std::string &book_fn, openmode mode);

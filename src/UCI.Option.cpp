@@ -155,12 +155,16 @@ namespace UCI {
         void save_hash   (const Option &)
         {
             string hash_fn = string(Options["Hash File"]);
+            trim (hash_fn);
+            if (!hash_fn.empty ()) convert_path (hash_fn);
             TT.save (hash_fn);
         }
 
         void load_hash   (const Option &)
         {
             string hash_fn = string(Options["Hash File"]);
+            trim (hash_fn);
+            if (!hash_fn.empty ()) convert_path (hash_fn);
             TT.load (hash_fn);
         }
 
@@ -178,6 +182,8 @@ namespace UCI {
         {
             HashFile         = string(Options["Hash File"]);
             AutoSaveHashTime = u16(i32(Options["Auto Save Hash (min)"]));
+            trim (HashFile);
+            if (!HashFile.empty ()) convert_path (HashFile);
         }
 
         void configure_contempt (const Option &)
@@ -196,20 +202,16 @@ namespace UCI {
         void configure_searchlog (const Option &opt)
         {
             SearchFile = string(opt);
-            if (!white_spaces (SearchFile))
-            {
-                trim (SearchFile);
-                if (!SearchFile.empty ())
-                {
-                    convert_path (SearchFile);
-                }
-            }
+            trim (SearchFile);
+            if (!SearchFile.empty ()) convert_path (SearchFile);
         }
 
         void configure_book (const Option &)
         {
             BookFile     = string(Options["Book File"]);
             BookMoveBest = bool(Options["Book Move Best"]);
+            trim (BookFile);
+            if (!BookFile.empty ()) convert_path (BookFile);
         }
 
         void configure_skill (const Option &opt)
