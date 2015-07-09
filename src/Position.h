@@ -395,14 +395,14 @@ inline Key    Position::posi_move_key (Move m) const
 {
     auto org = org_sq (m);
     auto dst = dst_sq (m);
-    auto pt = ptype (_board[org]);
-    auto ct = ptype (_board[dst]);
-
+    auto mpt = ptype (_board[org]);
+    auto ppt = mpt == PAWN && mtype (m) == PROMOTE ? promote (m) : mpt;
+    auto cpt = mpt == PAWN && mtype (m) == ENPASSANT && _si->en_passant_sq == dst_sq (m) ? PAWN : ptype (_board[dst]);
     return _si->posi_key
         ^  Zob._.act_side
-        ^  Zob._.piece_square[_active][pt][org]
-        ^  Zob._.piece_square[_active][pt][dst]
-        ^  (ct != NONE ? Zob._.piece_square[~_active][ct][dst] : U64(0));
+        ^  Zob._.piece_square[_active][mpt][org]
+        ^  Zob._.piece_square[_active][ppt][dst]
+        ^  (cpt != NONE ? Zob._.piece_square[~_active][cpt][dst] : U64(0));
 }
 
 inline Score  Position::psq_score     () const { return _si->psq_score; }
@@ -605,8 +605,8 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
 {
     // Move the piece. The tricky Chess960 castle is handled earlier
     rook_org = king_dst; // castle is always encoded as "King captures friendly Rook"
-    king_dst = rel_sq (_active, (king_dst > king_org) ? SQ_G1 : SQ_C1);
-    rook_dst = rel_sq (_active, (king_dst > king_org) ? SQ_F1 : SQ_D1);
+    king_dst = rel_sq (_active, king_dst > king_org ? SQ_G1 : SQ_C1);
+    rook_dst = rel_sq (_active, king_dst > king_org ? SQ_F1 : SQ_D1);
     // Remove both pieces first since squares could overlap in chess960
     remove_piece (Do ? king_org : king_dst);
     remove_piece (Do ? rook_org : rook_dst);

@@ -882,7 +882,7 @@ namespace Evaluator {
                             ( (attacks_bb<ROOK> (s, pos.pieces ()) & pos.pieces (ROOK, QUEN))
                             | (attacks_bb<BSHP> (s, pos.pieces ()) & pos.pieces (BSHP, QUEN))
                             );
-                        pinned = !(BETWEEN_bb[fk_sq][scan_lsq (pawn_pinners)] & block_sq);
+                        pinned = (BETWEEN_bb[fk_sq][scan_lsq (pawn_pinners)] & block_sq) == U64(0);
                     }
 
                     if (!pinned)
