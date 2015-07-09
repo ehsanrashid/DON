@@ -43,11 +43,11 @@ namespace {
 
 #define S(mg, eg) mk_score (mg, eg)
 
-    // PSQ_Bonus[PieceType][Rank][File/2] contains Piece-Square scores.
+    // PSQ_BONUS[PieceType][Rank][File/2] contains Piece-Square scores.
     // For each piece type on a given square a (middlegame, endgame) score pair is assigned.
     // Table is defined for files A..D and white side: it is symmetric for black side and
     // second half of the files.
-    const Score PSQ_Bonus[NONE][R_NO][F_NO/2] =
+    const Score PSQ_BONUS[NONE][R_NO][F_NO/2] =
     {
         { // Pawn
             { S(  0, 0), S(  0, 0), S(  0, 0), S( 0, 0) },
@@ -125,7 +125,7 @@ void Position::initialize ()
 
         for (auto s = SQ_A1; s <= SQ_H8; ++s)
         {
-            auto psq_bonus = score + PSQ_Bonus[pt][_rank (s)][_file (s) < F_E ? _file (s) : F_H - _file (s)];
+            auto psq_bonus = score + PSQ_BONUS[pt][_rank (s)][_file (s) < F_E ? _file (s) : F_H - _file (s)];
             PSQ[WHITE][pt][ s] = +psq_bonus;
             PSQ[BLACK][pt][~s] = -psq_bonus;
         }

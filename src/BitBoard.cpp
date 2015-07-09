@@ -3,6 +3,8 @@
 #include "PRNG.h"
 #include "Notation.h"
 
+u08 SQUARE_DIST[SQ_NO][SQ_NO];
+
 namespace BitBoard {
 
     using namespace std;
@@ -39,8 +41,6 @@ namespace BitBoard {
     u08           B_SHIFT[SQ_NO];
     u08           R_SHIFT[SQ_NO];
 #endif
-
-    u08          SQR_DIST[SQ_NO][SQ_NO];
 
     namespace {
 
@@ -236,8 +236,9 @@ namespace BitBoard {
             {
                 if (s1 != s2)
                 {
-                    SQR_DIST[s1][s2]  = u08(max (dist<File> (s1, s2) , dist<Rank> (s1, s2)));
-                    DIST_RINGS_bb[s1][SQR_DIST[s1][s2] - 1] += s2;
+                    SQUARE_DIST[s1][s2]  = u08(max (dist<File> (s1, s2) , dist<Rank> (s1, s2)));
+
+                    DIST_RINGS_bb[s1][SQUARE_DIST[s1][s2] - 1] += s2;
                 }
             }
         }
@@ -263,7 +264,7 @@ namespace BitBoard {
                 while ((del = PAWN_DELTAS[c][k++]) != DEL_O)
                 {
                     auto sq = s + del;
-                    if (_ok (sq) && SQR_DIST[s][sq] == 1)
+                    if (_ok (sq) && dist (s, sq) == 1)
                     {
                         PAWN_ATTACKS[c][s] += sq;
                     }
@@ -277,7 +278,7 @@ namespace BitBoard {
             while ((del = PIECE_DELTAS[pt][k++]) != DEL_O)
             {
                 auto sq = s + del;
-                if (_ok (sq) && SQR_DIST[s][sq] == 2)
+                if (_ok (sq) && dist (s, sq) == 2)
                 {
                     PIECE_ATTACKS[pt][s] += sq;
                 }
@@ -288,7 +289,7 @@ namespace BitBoard {
             while ((del = PIECE_DELTAS[pt][k++]) != DEL_O)
             {
                 auto sq = s + del;
-                if (_ok (sq) && SQR_DIST[s][sq] == 1)
+                if (_ok (sq) && dist (s, sq) == 1)
                 {
                     PIECE_ATTACKS[pt][s] += sq;
                 }

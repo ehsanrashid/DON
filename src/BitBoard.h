@@ -5,6 +5,19 @@
 #include "BitCount.h"
 #include "BitScan.h"
 
+extern u08 SQUARE_DIST[SQ_NO][SQ_NO];
+
+template<class T>
+inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
+
+template<> inline i32 dist (Square s1, Square s2) { return SQUARE_DIST[s1][s2]; }
+
+template<class T1, class T2>
+inline i32 dist (T2, T2);
+
+template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
+template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
+
 namespace BitBoard {
 
     const Bitboard FA_bb = U64(0x0101010101010101);
@@ -158,8 +171,6 @@ namespace BitBoard {
     extern u08           R_SHIFT[SQ_NO];
 #endif
 
-    extern u08          SQR_DIST[SQ_NO][SQ_NO];
-
     inline Bitboard  operator&  (Bitboard  bb, Square s) { return bb &  SQUARE_bb[s]; }
     inline Bitboard  operator|  (Bitboard  bb, Square s) { return bb |  SQUARE_bb[s]; }
     inline Bitboard  operator^  (Bitboard  bb, Square s) { return bb ^  SQUARE_bb[s]; }
@@ -245,7 +256,7 @@ namespace BitBoard {
         while ((del = deltas[i++]) != DEL_O)
         {
             auto sq = s + del;
-            while (_ok (sq) && SQR_DIST[sq][sq - del] == 1)
+            while (_ok (sq) && dist (sq, sq - del) == 1)
             {
                 slid_attacks += sq;
                 if (occ & sq) break;
@@ -339,16 +350,5 @@ namespace BitBoard {
 #endif
 
 }
-
-template<class T>
-inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
-
-template<> inline i32 dist (Square s1, Square s2) { return BitBoard::SQR_DIST[s1][s2]; }
-
-template<class T1, class T2>
-inline i32 dist (T2, T2);
-
-template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
-template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
 
 #endif // _BITBOARD_H_INC_

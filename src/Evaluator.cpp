@@ -464,6 +464,15 @@ namespace Evaluator {
                             score += BISHOP_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
                         }
 
+                        if (s == rel_sq (Own, SQ_A8) || s == rel_sq (Own, SQ_H8))
+                        {
+                            auto del = (F_A == f ? DEL_E : DEL_W) - Push;
+                            if (pos[s + del] == (Own|PAWN))
+                            {
+                                score -= BISHOP_TRAPPED;
+                            }
+                        }
+
                         // An important Chess960 pattern: A cornered bishop blocked by own pawn diagonally in front
                         // of it is a very serious problem, especially when that pawn is also blocked.
                         // Bishop on a1/h1 (a8/h8 for black) which is trapped by own pawn on b2/g2 (b7/g7 for black).
@@ -857,12 +866,12 @@ namespace Evaluator {
 
                     // Adjust bonus based on kings proximity
                     eg_value += 
-                        + 5*rr*SQR_DIST[ek_sq][block_sq]
-                        - 2*rr*SQR_DIST[fk_sq][block_sq];
+                        + 5*rr*dist (ek_sq, block_sq)
+                        - 2*rr*dist (fk_sq, block_sq);
                     // If block square is not the queening square then consider also a second push
                     if (rel_rank (Own, block_sq) != R_8)
                     {
-                        eg_value -= 1*rr*SQR_DIST[fk_sq][block_sq + Push];
+                        eg_value -= 1*rr*dist (fk_sq, block_sq + Push);
                     }
 
                     bool pinned = (ei.pinneds[Own] & s) != U64(0);
