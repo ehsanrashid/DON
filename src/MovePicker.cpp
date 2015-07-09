@@ -160,7 +160,7 @@ namespace MovePick {
     {
         for (auto &m : *this)
         {
-            m.value = PIECE_VALUE[MG][mtype (m) == ENPASSANT ? PAWN : ptype (_Pos[dst_sq (m)])]
+            m.value = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _Pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_Pos[dst_sq (m)])]
                     - Value(200 * rel_rank (_Pos.active (), dst_sq (m)));
         }
     }

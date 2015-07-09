@@ -613,9 +613,9 @@ inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
 
-const TimePoint MILLI_SEC        = 1000;
-const TimePoint MINUTE_MILLI_SEC = MILLI_SEC * 60;
-const TimePoint HOUR_MILLI_SEC   = MINUTE_MILLI_SEC * 60;
+const u32 MILLI_SEC        = 1000;
+const u32 MINUTE_MILLI_SEC = MILLI_SEC * 60;
+const u32 HOUR_MILLI_SEC   = MINUTE_MILLI_SEC * 60;
 
 inline TimePoint now ()
 {

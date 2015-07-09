@@ -510,13 +510,13 @@ inline bool Position::capture       (Move m) const
 {
     // Castling is encoded as "king captures the rook"
     return ((mtype (m) == NORMAL || mtype (m) == PROMOTE) && !empty (dst_sq (m)))
-        || ((mtype (m) == ENPASSANT                     ) &&  empty (dst_sq (m)));
+        || ((mtype (m) == ENPASSANT                     ) &&  empty (dst_sq (m)) && _si->en_passant_sq == dst_sq (m));
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
     return (mtype (m) == NORMAL    && !empty (dst_sq (m)))
-        || (mtype (m) == ENPASSANT &&  empty (dst_sq (m)))
+        || (mtype (m) == ENPASSANT &&  empty (dst_sq (m)) && _si->en_passant_sq == dst_sq (m))
         || (mtype (m) == PROMOTE);
 }
 inline bool Position::advanced_pawn_push    (Move m) const
