@@ -1391,9 +1391,9 @@ namespace Searcher {
             LimitPV = min (max (MultiPV, u16(SkillMgr.enabled () ? 4 : 0)), u16(RootMoves.size ()));
 
             Value best_value = VALUE_ZERO
+                , window     = VALUE_ZERO
                 , bound_a    = -VALUE_INFINITE
-                , bound_b    = +VALUE_INFINITE
-                , window   = VALUE_ZERO;
+                , bound_b    = +VALUE_INFINITE;
 
             Depth depth = DEPTH_ZERO;
 
@@ -1464,16 +1464,17 @@ namespace Searcher {
                         // otherwise exit the loop.
                         if (best_value <= bound_a)
                         {
-                            bound_b   = (bound_a + bound_b) / 2;
-                            bound_a   = max (best_value - window, -VALUE_INFINITE);
+                            bound_a = max (best_value - window, -VALUE_INFINITE);
+                            bound_b = (bound_a + bound_b)/2;
+
                             Signals.failedlow_root = true;
                             Signals.ponderhit_stop = false;
                         }
                         else
                         if (best_value >= bound_b)
                         {
-                            bound_a   = (bound_a + bound_b) / 2;
-                            bound_b   = min (best_value + window, +VALUE_INFINITE);
+                            bound_a = (bound_a + bound_b)/2;
+                            bound_b = min (best_value + window, +VALUE_INFINITE);
                         }
                         else
                             break;
@@ -1684,10 +1685,10 @@ namespace Searcher {
     u16                 AutoSaveHashTime= 0;
 
     bool                OwnBook         = false;
-    string              BookFile        = "book.bin";
+    string              BookFile        = "Book.bin";
     bool                BookMoveBest    = true;
 
-    string              SearchFile       = "";
+    string              SearchFile      = "";
 
     SkillManager        SkillMgr;
 

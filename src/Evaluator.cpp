@@ -403,25 +403,25 @@ namespace Evaluator {
                 if (ROOK == PT)
                 {
                     attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
-                                  | ei.pin_attacked_by[Opp][BSHP]
-                                 )
-                              |  (  ei.pin_attacked_by[Own][PAWN]
-                                  | ei.pin_attacked_by[Own][NIHT]
-                                  | ei.pin_attacked_by[Own][BSHP]
-                                 );
+                                 | ei.pin_attacked_by[Opp][BSHP]
+                                )
+                             |  (  ei.pin_attacked_by[Own][PAWN]
+                                 | ei.pin_attacked_by[Own][NIHT]
+                                 | ei.pin_attacked_by[Own][BSHP]
+                                );
                 }
                 */
                 if (QUEN == PT)
                 {
-                    attacks &= ~(   ei.pin_attacked_by[Opp][NIHT]
-                                  | ei.pin_attacked_by[Opp][BSHP]
-                                  | ei.pin_attacked_by[Opp][ROOK]
-                                 )
-                              |  (  ei.pin_attacked_by[Own][PAWN]
-                                  | ei.pin_attacked_by[Own][NIHT]
-                                  | ei.pin_attacked_by[Own][BSHP]
-                                  | ei.pin_attacked_by[Own][ROOK]
-                                 );
+                    attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
+                                 | ei.pin_attacked_by[Opp][BSHP]
+                                 | ei.pin_attacked_by[Opp][ROOK]
+                                )
+                             |  (  ei.pin_attacked_by[Own][PAWN]
+                                 | ei.pin_attacked_by[Own][NIHT]
+                                 | ei.pin_attacked_by[Own][BSHP]
+                                 | ei.pin_attacked_by[Own][ROOK]
+                                );
                 }
 
                 i32 mob = pop_count<QUEN == PT ? FULL : MAX15> (attacks & mobility_area);
@@ -592,7 +592,8 @@ namespace Evaluator {
                         | ei.pin_attacked_by[Own][NIHT]
                         | ei.pin_attacked_by[Own][BSHP]
                         | ei.pin_attacked_by[Own][ROOK]
-                        | ei.pin_attacked_by[Own][QUEN]);
+                        | ei.pin_attacked_by[Own][QUEN]
+                       );
 
                 // Initialize the 'attack_units' variable, which is used later on as an
                 // index to the KING_DANGER[] array. The initial value is based on the

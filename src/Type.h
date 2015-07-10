@@ -530,6 +530,20 @@ inline bool   opposite_colors (Square s1, Square s2)
     return ((s >> 3) ^ s) & BLACK;
 }
 
+extern u08 SQUARE_DIST[SQ_NO][SQ_NO];
+
+template<class T>
+inline i32 dist (T t1, T t2) { return t1 < t2 ? t2 - t1 : t1 - t2; }
+
+template<> inline i32 dist (Square s1, Square s2) { return SQUARE_DIST[s1][s2]; }
+
+template<class T1, class T2>
+inline i32 dist (T2, T2);
+
+template<> inline i32 dist<File> (Square s1, Square s2) { return dist (_file (s1), _file (s2)); }
+template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1), _rank (s2)); }
+
+
 inline Delta  pawn_push (Color c) { return WHITE == c ? DEL_N : DEL_S; }
 
 inline CRight mk_castle_right (Color c)           { return CRight(CR_W << (c << BLACK)); }
@@ -565,8 +579,8 @@ inline bool   _ok     (Move m)
     //Square dst = dst_sq (m);
     //if (org != dst)
     //{
-    //    u08 del_f = dist (_file (org), _file (dst));
-    //    u08 del_r = dist (_rank (org), _rank (dst));
+    //    u08 del_f = dist<File> (org, dst);
+    //    u08 del_r = dist<Rank> (org, dst);
     //    if (  del_f == del_r
     //       || 0 == del_f
     //       || 0 == del_r
