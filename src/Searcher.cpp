@@ -97,6 +97,9 @@ namespace Searcher {
         }
 
         const Depth ProbCutDepth   = Depth(4);
+        
+        const Depth LateMoveReductionDepth = Depth(2);
+        const u08   FullDepthMoveCount = 1;
 
         // MoveManager class is used to detect a so called 'easy move'; when PV is
         // stable across multiple search iterations we can fast return the best move.
@@ -801,8 +804,8 @@ namespace Searcher {
                             // Null (zero) window (alpha, beta) = (beta-1, beta):
                             auto null_value =
                                 reduced_depth < DEPTH_ONE ?
-                                    -quien_search<NonPV, false>        (pos, ss+1, -beta, -beta+1, DEPTH_ZERO) :
-                                    -depth_search<NonPV, false, false> (pos, ss+1, -beta, -beta+1, reduced_depth, !cut_node);
+                                    -quien_search<NonPV, false>        (pos, ss+1, -beta, -(beta-1), DEPTH_ZERO) :
+                                    -depth_search<NonPV, false, false> (pos, ss+1, -beta, -(beta-1), reduced_depth, !cut_node);
 
                             // Undo null move
                             pos.undo_null_move ();
@@ -1113,8 +1116,8 @@ namespace Searcher {
 
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
-                if (   depth > 2*DEPTH_ONE
-                    && legal_count > 1
+                if (   depth > LateMoveReductionDepth
+                    && legal_count > FullDepthMoveCount
                     && !capture_or_promotion
                     && count (begin (ss->killer_moves), end (ss->killer_moves), move) == 0 // Not killer move
                    )
@@ -1155,13 +1158,13 @@ namespace Searcher {
 
                     // Search with reduced depth
                     auto reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
-                    value = -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, reduced_depth, true);
+                    value = -depth_search<NonPV, false, true> (pos, ss+1, -(alpha+1), -alpha, reduced_depth, true);
 
                     full_depth_search = alpha < value && reduction_depth != DEPTH_ZERO;
                 }
                 else
                 {
-                    full_depth_search = !PVNode || legal_count > 1;
+                    full_depth_search = !PVNode || legal_count > FullDepthMoveCount;
                 }
 
                 // Step 16. Full depth search, when LMR is skipped or fails high
@@ -1172,17 +1175,17 @@ namespace Searcher {
                     value =
                         new_depth < DEPTH_ONE ?
                             gives_check ?
-                                -quien_search<NonPV, true >   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                                -quien_search<NonPV, false>   (pos, ss+1, -alpha-1, -alpha, DEPTH_ZERO) :
-                            -depth_search<NonPV, false, true> (pos, ss+1, -alpha-1, -alpha, new_depth, !cut_node);
+                                -quien_search<NonPV, true >   (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO) :
+                                -quien_search<NonPV, false>   (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO) :
+                            -depth_search<NonPV, false, true> (pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
                 }
 
                 // Do a full PV search on:
-                // - first move
-                // - fail high move (search only if value < beta)
+                // - 'full depth move count' move
+                // - 'fail high' move (search only if value < beta)
                 // otherwise let the parent node fail low with
                 // alpha >= value and to try another better move.
-                if (PVNode && (1 == legal_count || (alpha < value && (RootNode || value < beta))))
+                if (PVNode && ((0 < legal_count && legal_count <= FullDepthMoveCount) || (alpha < value && (RootNode || value < beta))))
                 {
                     (ss+1)->pv = pv;
                     (ss+1)->pv[0] = MOVE_NONE;
