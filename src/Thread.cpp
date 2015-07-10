@@ -310,7 +310,7 @@ namespace Threading {
 
         sync_cout
             << "info string Thread(s) "   << u16(threads) << ".\n"
-            << "info string Split Depth " << u16(split_depth) << sync_endl;
+            << "info string Split Depth " << u16(split_depth) << "." << sync_endl;
     }
 
     // ThreadPool::available_slave() tries to find an idle thread which is available

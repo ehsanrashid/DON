@@ -96,6 +96,7 @@ namespace Searcher {
             return ReductionDepths[PVNode][imp][min (d, ReductionDepth-1)][min<u08> (mc, ReductionMoveCount-1)];
         }
 
+        const Depth NullMoveDepth  = Depth(1);
         const Depth ProbCutDepth   = Depth(4);
         
         const Depth LateMoveReductionDepth = Depth(2);
@@ -779,7 +780,7 @@ namespace Searcher {
 
                         // Step 8. Null move search with verification search
                         if (   !PVNode && !MateSearch
-                            && depth > 1*DEPTH_ONE
+                            && depth > NullMoveDepth
                             && static_eval >= beta
                             && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                            )
@@ -1392,8 +1393,7 @@ namespace Searcher {
             Value best_value = VALUE_ZERO
                 , bound_a    = -VALUE_INFINITE
                 , bound_b    = +VALUE_INFINITE
-                , window_a   = VALUE_ZERO
-                , window_b   = VALUE_ZERO;
+                , window   = VALUE_ZERO;
 
             Depth depth = DEPTH_ZERO;
 
@@ -1418,12 +1418,10 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (aspiration)
                     {
-                        window_a =
-                        window_b =
-                            Value(depth <= 32*DEPTH_ONE ? 22 - (u16(depth)-1)/4 : 14); // Decreasing window
+                        window = Value(depth <= 32*DEPTH_ONE ? 22 - (u16(depth)-1)/4 : 14); // Decreasing window
 
-                        bound_a = max (RootMoves[IndexPV].old_value - window_a, -VALUE_INFINITE);
-                        bound_b = min (RootMoves[IndexPV].old_value + window_b, +VALUE_INFINITE);
+                        bound_a = max (RootMoves[IndexPV].old_value - window, -VALUE_INFINITE);
+                        bound_b = min (RootMoves[IndexPV].old_value + window, +VALUE_INFINITE);
                     }
 
                     // Start with a small aspiration window and, in case of fail high/low,
@@ -1467,8 +1465,7 @@ namespace Searcher {
                         if (best_value <= bound_a)
                         {
                             bound_b   = (bound_a + bound_b) / 2;
-                            bound_a   = max (best_value - window_a, -VALUE_INFINITE);
-                            window_a *= 1.50;
+                            bound_a   = max (best_value - window, -VALUE_INFINITE);
                             Signals.failedlow_root = true;
                             Signals.ponderhit_stop = false;
                         }
@@ -1476,11 +1473,12 @@ namespace Searcher {
                         if (best_value >= bound_b)
                         {
                             bound_a   = (bound_a + bound_b) / 2;
-                            bound_b   = min (best_value + window_b, +VALUE_INFINITE);
-                            window_b *= 1.50;
+                            bound_b   = min (best_value + window, +VALUE_INFINITE);
                         }
                         else
                             break;
+
+                        window *= 1.50;
 
                         assert (-VALUE_INFINITE <= bound_a && bound_a < bound_b && bound_b <= +VALUE_INFINITE);
                     } while (true);
@@ -1685,7 +1683,8 @@ namespace Searcher {
     string              HashFile        = "Hash.dat";
     u16                 AutoSaveHashTime= 0;
 
-    string              BookFile        = "";
+    bool                OwnBook         = false;
+    string              BookFile        = "book.bin";
     bool                BookMoveBest    = true;
 
     string              SearchFile       = "";
@@ -1934,7 +1933,7 @@ namespace Searcher {
         if (RootMoves.size () != 0)
         {
             // Check if play with book
-            if (RootPly <= 20 && !Limits.infinite && !MateSearch && !BookFile.empty ())
+            if (OwnBook && RootPly <= 20 && !Limits.infinite && !MateSearch && !BookFile.empty ())
             {
                 book.open (BookFile, ios_base::in|ios_base::binary);
                 if (book.is_open ())

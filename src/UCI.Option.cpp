@@ -208,6 +208,7 @@ namespace UCI {
 
         void configure_book (const Option &)
         {
+            OwnBook      = bool(Options["Own Book"]);
             BookFile     = string(Options["Book File"]);
             BookMoveBest = bool(Options["Book Move Best"]);
             trim (BookFile);
@@ -322,6 +323,7 @@ namespace UCI {
 
         // Openings Book Options
         // ---------------------
+        Options["Own Book"]                     << Option (OwnBook, configure_book);
         // The filename of the Opening Book.
         Options["Book File"]                    << Option (BookFile, configure_book);
         // Whether or not to always play the best move from the Opening Book.
