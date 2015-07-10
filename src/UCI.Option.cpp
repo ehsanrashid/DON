@@ -222,9 +222,9 @@ namespace UCI {
         void configure_time (const Option &)
         {
             //MaximumMoveHorizon   = i32(Options["Maximum Move Horizon"]);
-            //EmergencyMoveHorizon = i32(Options["Emergency Move Horizon"]);
-            //EmergencyClockTime   = i32(Options["Emergency Clock Time"]);
-            //EmergencyMoveTime    = i32(Options["Emergency Move Time"]);
+            //ReadyMoveHorizon     = i32(Options["Ready Move Horizon"]);
+            //OverheadClockTime    = i32(Options["Overhead Clock Time"]);
+            //OverheadMoveTime     = i32(Options["Overhead Move Time"]);
             //MinimumMoveTime      = i32(Options["Minimum Move Time"]);
             MoveSlowness         = i32(Options["Move Slowness"]);
             NodesTime            = i32(Options["Nodes Time"]);
@@ -406,11 +406,11 @@ namespace UCI {
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, configure_time);
         //// Be prepared to always play at least this many moves, in num of moves.
-        //Options["Emergency Move Horizon"]       << Option (EmergencyMoveHorizon, 0, 100, configure_time);
+        //Options["Ready Move Horizon"]           << Option (ReadyMoveHorizon, 0, 100, configure_time);
         //// Always attempt to keep at least this much time at clock, in milliseconds.
-        //Options["Emergency Clock Time"]         << Option (EmergencyClockTime  , 0, 30000, configure_time);
+        //Options["Overhead Clock Time"]          << Option (OverheadClockTime  , 0, 30000, configure_time);
         //// Attempt to keep at least this much time for each remaining move, in milliseconds.
-        //Options["Emergency Move Time"]          << Option (EmergencyMoveTime   , 0, 5000, configure_time);
+        //Options["Overhead Move Time"]           << Option (OverheadMoveTime   , 0, 5000, configure_time);
         //// The minimum amount of time to analyze, in milliseconds.
         //Options["Minimum Move Time"]            << Option (MinimumMoveTime     , 0, 5000, configure_time);
         // How slow you want engine to play, 100 is neutral, in %age.

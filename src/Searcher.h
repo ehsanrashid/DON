@@ -242,14 +242,14 @@ namespace Searcher {
 
     };
 
-    extern u08  MaximumMoveHorizon  ;
-    extern u08  EmergencyMoveHorizon;
-    extern u32  EmergencyClockTime  ;
-    extern u32  EmergencyMoveTime   ;
-    extern u32  MinimumMoveTime     ;
-    extern u32  MoveSlowness        ;
-    extern u32  NodesTime           ;
-    extern bool Ponder              ;
+    extern u08  MaximumMoveHorizon;
+    extern u08  ReadyMoveHorizon  ;
+    extern u32  OverheadClockTime ;
+    extern u32  OverheadMoveTime  ;
+    extern u32  MinimumMoveTime   ;
+    extern u32  MoveSlowness      ;
+    extern u32  NodesTime         ;
+    extern bool Ponder            ;
 
     extern TimeManager TimeMgr;
 

@@ -843,7 +843,7 @@ namespace Evaluator {
 
             auto score = SCORE_ZERO;
 
-            auto nonpawn_diff = pos.count<NONPAWN>(Own) - pos.count<NONPAWN>(Opp);
+            auto nonpawn_diff = pos.count<NONPAWN> (Own) - pos.count<NONPAWN> (Opp);
 
             auto passed_pawns = ei.pi->passed_pawns[Own];
             while (passed_pawns != U64(0))
@@ -911,7 +911,7 @@ namespace Evaluator {
                         // Give a big bonus if there aren't enemy attacks, otherwise
                         // a smaller bonus if block square is not attacked.
                         i32 k = unsafe_squares != U64(0) ?
-                                    unsafe_squares & block_sq ?
+                                    (unsafe_squares & block_sq) != U64(0) ?
                                         0 : 9 : 15;
 
                         if (safe_squares != U64(0))
@@ -919,11 +919,11 @@ namespace Evaluator {
                             // Give a big bonus if the path to queen is fully defended,
                             // a smaller bonus if at least block square is defended.
                             k += safe_squares == front_squares ?
-                                    6 : safe_squares & block_sq ?
+                                    6 : (safe_squares & block_sq) != U64(0) ?
                                         4 : 0;
 
                             // If the block square is defended by a pawn add more small bonus.
-                            if (ei.pin_attacked_by[Own][PAWN] & block_sq) k += 1;
+                            if ((ei.pin_attacked_by[Own][PAWN] & block_sq) != U64(0)) k += 1;
                         }
 
                         if (k != 0)

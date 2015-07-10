@@ -161,6 +161,7 @@ namespace MovePick {
         for (auto &m : *this)
         {
             m.value = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _Pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_Pos[dst_sq (m)])]
+                    + (mtype (m) == PROMOTE ? PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] : VALUE_ZERO)
                     - Value(200 * rel_rank (_Pos.active (), dst_sq (m)));
         }
     }
@@ -198,26 +199,9 @@ namespace MovePick {
             else
             if (_Pos.capture (m))
             {
-                if (mtype (m) == NORMAL)
-                {
-                    m.value = PIECE_VALUE[MG][ptype (_Pos[dst_sq (m)])]
-                            - Value(ptype (_Pos[org_sq (m)]))
-                            + MAX_STATS_VALUE-1;
-                }
-                else
-                if (mtype (m) == ENPASSANT)
-                {
-                    m.value = PIECE_VALUE[MG][PAWN]
-                            + MAX_STATS_VALUE-1;
-                }
-                else
-                if (mtype (m) == PROMOTE)
-                {
-                    m.value = PIECE_VALUE[MG][ptype (_Pos[dst_sq (m)])]
-                            + PIECE_VALUE[MG][promote (m)]
-                            - PIECE_VALUE[MG][PAWN]
-                            + MAX_STATS_VALUE-1;
-                }
+                m.value = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _Pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_Pos[dst_sq (m)])]
+                        + (mtype (m) == PROMOTE ? PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] : VALUE_ZERO)
+                        - Value(ptype (_Pos[org_sq (m)])) + MAX_STATS_VALUE-1;
             }
             else
             {

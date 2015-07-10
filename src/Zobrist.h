@@ -7,9 +7,9 @@ class Position;
 
 namespace Zobrist {
 
-    //const Key PG_MATL_KEY = U64(0xB76D8438E5D28230);
-    //const Key PG_PAWN_KEY = U64(0x37FC40DA841E1692);
-    //const Key PG_POSI_KEY = U64(0x463B96181691FC9C);
+    //const Key START_MATL_KEY = U64(0xB76D8438E5D28230);
+    //const Key START_PAWN_KEY = U64(0x37FC40DA841E1692);
+    //const Key START_POSI_KEY = U64(0x463B96181691FC9C);
 
     const Key EXC_KEY = U64(0xFFFFFFFFFFFFFFFF);
 

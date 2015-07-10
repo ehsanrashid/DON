@@ -1692,9 +1692,9 @@ namespace Searcher {
     // ------------------------------------
 
     u08  MaximumMoveHorizon  =  50; // Plan time management at most this many moves ahead, in num of moves.
-    u08  EmergencyMoveHorizon=  40; // Be prepared to always play at least this many moves, in num of moves.
-    u32  EmergencyClockTime  =  60; // Always attempt to keep at least this much time at clock, in milliseconds.
-    u32  EmergencyMoveTime   =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
+    u08  ReadyMoveHorizon    =  40; // Be prepared to always play at least this many moves, in num of moves.
+    u32  OverheadClockTime   =  60; // Attempt to keep at least this much time at clock, in milliseconds.
+    u32  OverheadMoveTime    =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
     u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
     u32  MoveSlowness        = 100; // Move Slowness, in %age.
     u32  NodesTime           =   0;
@@ -1831,8 +1831,8 @@ namespace Searcher {
             i32 hyp_time = max (
                 + Limits.clock[RootColor].time
                 + Limits.clock[RootColor].inc * (hyp_movestogo-1)
-                - EmergencyClockTime
-                - EmergencyMoveTime * min (hyp_movestogo, EmergencyMoveHorizon), 0U);
+                - OverheadClockTime
+                - OverheadMoveTime * min (hyp_movestogo, ReadyMoveHorizon), 0U);
 
             u32 opt_time = MinimumMoveTime + remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, RootPly);
             u32 max_time = MinimumMoveTime + remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, RootPly);
