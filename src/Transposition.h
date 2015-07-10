@@ -284,7 +284,7 @@ namespace Transposition {
             is.read (reinterpret_cast<CharT*> (&generation)   , sizeof (generation));
             is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
             tt.resize (mem_size_mb);
-            tt._generation = generation != 0 ? generation - 4 : 0;
+            tt._generation = generation - 4;
             u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {

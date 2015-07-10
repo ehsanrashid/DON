@@ -14,11 +14,11 @@ namespace MovePick {
     const Value MAX_STATS_VALUE = Value(0x100);
 
     // The Stats struct stores different statistics.
-    template<class T>
+    template<class T, int N = PIECE_NO>
     struct Stats
     {
     private:
-        T _table[PIECE_NO][SQ_NO];
+        T _table[N][SQ_NO];
 
         void _clear (Value &v) { v = VALUE_ZERO; }
         void _clear (Move  &m) { m = MOVE_NONE; }
@@ -29,8 +29,10 @@ namespace MovePick {
 
     public:
 
-        const T* operator[] (Piece p) const { return _table[p]; }
-        T*       operator[] (Piece p)       { return _table[p]; }
+        const T* operator[] (Piece  pc) const { return _table[pc]; }
+        T*       operator[] (Piece  pc)       { return _table[pc]; }
+        const T* operator[] (PieceT pt) const { return _table[pt]; }
+        T*       operator[] (PieceT pt)       { return _table[pt]; }
 
         void clear ()
         {
@@ -71,15 +73,15 @@ namespace MovePick {
 
     // ValueStats stores the value that records how often different moves have been successful/unsuccessful
     // during the current search and is used for reduction and move ordering decisions.
-    typedef Stats<Value>        ValueStats;
+    typedef Stats<Value>            ValueStats;
     // Value2DStats
-    typedef Stats<ValueStats>   Value2DStats;
+    typedef Stats<ValueStats, TOTL> Value2DStats;
 
     // MoveStats store the move that refute a previous move.
     // Entries are stored according only to moving piece and destination square,
     // in particular two moves with different origin but same piece & same destination
     // will be considered identical.
-    typedef Stats<Move>         MoveStats;
+    typedef Stats<Move>             MoveStats;
 
 
     // MovePicker class is used to pick one pseudo legal move at a time from the

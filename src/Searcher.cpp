@@ -185,8 +185,8 @@ namespace Searcher {
 
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-            auto &cmhv = opp_move_dst != SQ_NO ? CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] :
-                                                 CounterMovesHistoryValues[EMPTY][SQ_A1];
+            auto &cmhv = opp_move_dst != SQ_NO ? CounterMovesHistoryValues[ptype (pos[opp_move_dst])][opp_move_dst] :
+                                                 CounterMovesHistoryValues[NONE][SQ_A1];
 
             HistoryValues.update (pos, move, bonus);
 
@@ -219,7 +219,7 @@ namespace Searcher {
                 auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
                 if (own_move_dst != SQ_NO)
                 {
-                    auto &ttcmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
+                    auto &ttcmhv = CounterMovesHistoryValues[ptype (pos[own_move_dst])][own_move_dst];
                     ttcmhv.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
                 }
             }
@@ -939,8 +939,8 @@ namespace Searcher {
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
             auto counter_move = opp_move_dst != SQ_NO ? CounterMoves[pos[opp_move_dst]][opp_move_dst] : MOVE_NONE;
-            auto &cmhv = opp_move_dst != SQ_NO ? CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] :
-                                                 CounterMovesHistoryValues[EMPTY][SQ_A1];
+            auto &cmhv = opp_move_dst != SQ_NO ? CounterMovesHistoryValues[ptype (pos[opp_move_dst])][opp_move_dst] :
+                                                 CounterMovesHistoryValues[NONE][SQ_A1];
 
             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
 
@@ -1899,6 +1899,8 @@ namespace Searcher {
     // It searches from RootPos and at the end prints the "bestmove" to output.
     void think ()
     {
+        static PolyglotBook book; // Defined static to initialize the PRNG only once
+
         RootColor   = RootPos.active ();
         RootPly     = RootPos.game_ply ();
         RootMoves.initialize ();
@@ -1931,7 +1933,7 @@ namespace Searcher {
             // Check if play with book
             if (RootPly <= 20 && !Limits.infinite && !MateSearch && !BookFile.empty ())
             {
-                PolyglotBook book (BookFile, ios_base::in|ios_base::binary);
+                book.open (BookFile, ios_base::in|ios_base::binary);
                 if (book.is_open ())
                 {
                     bool found = false;
