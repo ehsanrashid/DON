@@ -148,7 +148,8 @@ namespace EndGame {
         auto sk_sq = pos.king_sq (_strong_side);
         auto wk_sq = pos.king_sq (  _weak_side);
 
-        Value value = pos.count<PAWN> (_strong_side) * VALUE_EG_PAWN
+        Value value = pos.non_pawn_material (_strong_side)
+                    + pos.count<PAWN> (_strong_side) * VALUE_EG_PAWN
                     + PUSH_TO_EDGE[wk_sq] + PUSH_CLOSE[dist (sk_sq, wk_sq)];
 
         if (    pos.count<QUEN> (_strong_side) > 0
@@ -158,7 +159,7 @@ namespace EndGame {
             ||  pos.count<NIHT> (_strong_side) > 2
            )
         {
-            value += pos.non_pawn_material (_strong_side) + VALUE_KNOWN_WIN;
+            value += VALUE_KNOWN_WIN;
         }
         else
         {
