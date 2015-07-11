@@ -1214,7 +1214,7 @@ Value Position::compute_non_pawn_material (Color c) const
 }
 
 // do_move() do the move with checking info
-void Position::  do_move (Move m, StateInfo &si, bool check)
+void Position::do_move (Move m, StateInfo &si, bool check)
 {
     assert (_ok (m));
     assert (&si != _si);
@@ -1418,7 +1418,7 @@ void Position::  do_move (Move m, StateInfo &si, bool check)
 #undef do_capture
 
 // do_move() do the move from string (CAN)
-void Position::  do_move (string &can, StateInfo &si)
+void Position::do_move (string &can, StateInfo &si)
 {
     auto m = move_from_can (can, *this);
     if (MOVE_NONE != m) do_move (m, si, gives_check (m, CheckInfo (*this)));
@@ -1499,7 +1499,7 @@ void Position::undo_move ()
 }
 
 // do_null_move() do the null-move
-void Position::  do_null_move (StateInfo &si)
+void Position::do_null_move (StateInfo &si)
 {
     assert (&si != _si);
     assert (_si->checkers == U64(0));

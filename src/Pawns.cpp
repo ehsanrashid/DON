@@ -62,8 +62,8 @@ namespace Pawns {
 
         const Bitboard EXT_CENTER_bb[CLR_NO] =
         {
-            (FB_bb | FC_bb | FD_bb | FE_bb | FF_bb | FG_bb) & (R2_bb | R3_bb | R4_bb | R5_bb | R6_bb),
-            (FB_bb | FC_bb | FD_bb | FE_bb | FF_bb | FG_bb) & (R3_bb | R4_bb | R5_bb | R6_bb | R7_bb)
+            (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R2_bb|R3_bb|R4_bb|R5_bb|R6_bb),
+            (FB_bb|FC_bb|FD_bb|FE_bb|FF_bb|FG_bb) & (R3_bb|R4_bb|R5_bb|R6_bb|R7_bb)
         };
 
         // Connected pawn bonus by [opposed][phalanx][rank] (by formula)
@@ -155,7 +155,6 @@ namespace Pawns {
                 assert (pos[s] == (Own | PAWN));
 
                 auto f = _file (s);
-                auto r = rel_rank (Own, s);
 
                 e->semiopen_files[Own] &= ~(1 << f);
 
@@ -174,7 +173,7 @@ namespace Pawns {
                 // If the pawn is passed, isolated, connected or levered (it can capture an enemy pawn).
                 // If there are friendly pawns behind on adjacent files and they are able to advance and support the pawn.
                 // If it is sufficiently advanced (Rank 6), then it cannot be backward either.
-                if (   passed || isolated || levered || connected || r >= R_6
+                if (   passed || isolated || levered || connected || rel_rank (Own, s) >= R_6
                    // Partially checked the opp behind pawn, But need to check own behind attack span are not backward or rammed 
                     || (own_pawns & PAWN_ATTACK_SPAN[Opp][s] && !(opp_pawns & (s-Push)))
                    )
@@ -191,7 +190,7 @@ namespace Pawns {
 
                     // If have an enemy pawn in the same or next rank, the pawn is
                     // backward because it cannot advance without being captured.
-                    backward = opp_pawns & (b | shift_del<Push> (b));
+                    backward = (opp_pawns & (b | shift_del<Push> (b))) != U64(0);
                 }
 
                 assert (passed ^ (opposed || (opp_pawns & PAWN_ATTACK_SPAN[Own][s])));
@@ -200,7 +199,7 @@ namespace Pawns {
 
                 if (connected)
                 {
-                    score += CONNECTED[opposed][phalanx != 0][more_than_one (supported)][r];
+                    score += CONNECTED[opposed][phalanx != 0][more_than_one (supported)][rel_rank (Own, s)];
                 }
 
                 if (isolated)
@@ -221,7 +220,7 @@ namespace Pawns {
                 
                 if (levered)
                 {
-                    score += LEVER[r];
+                    score += LEVER[rel_rank (Own, s)];
                 }
 
                 if (doubled)
@@ -237,17 +236,11 @@ namespace Pawns {
                     e->passed_pawns[Own] += s;
                 }
 
-#ifndef NDEBUG
+//#ifndef NDEBUG
                 //cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << endl;
-#endif
+//#endif
                 pawn_score += score;
             }
-
-#ifndef NDEBUG
-            //cout << pretty (e->unstopped_pawns[Own]) << endl;
-            //cout << "-------------" << endl;
-#endif
-
 
             b = e->semiopen_files[Own] ^ 0xFF;
             e->pawn_span[Own] = b != U64(0) ? u08(scan_msq (b)) - u08(scan_lsq (b)) : 0;

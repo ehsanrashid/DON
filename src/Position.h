@@ -282,10 +282,10 @@ public:
     Value compute_non_pawn_material (Color c) const;
 
     // Do/Undo move
-    void   do_move (Move m, StateInfo &si, bool check);
-    void   do_move (std::string &can, StateInfo &si);
+    void do_move (Move m, StateInfo &si, bool check);
+    void do_move (std::string &can, StateInfo &si);
     void undo_move ();
-    void   do_null_move (StateInfo &si);
+    void do_null_move (StateInfo &si);
     void undo_null_move ();
 
     void flip ();

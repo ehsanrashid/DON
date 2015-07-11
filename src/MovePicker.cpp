@@ -162,7 +162,7 @@ namespace MovePick {
         {
             m.value = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _Pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_Pos[dst_sq (m)])]
                     + (mtype (m) == PROMOTE ? PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] : VALUE_ZERO)
-                    - Value(200 * rel_rank (_Pos.active (), dst_sq (m)));
+                    - Value(200 * rel_rank (_Pos.active (), dst_sq (m))); //- Value(ptype (_Pos[org_sq (m)]));
         }
     }
 
