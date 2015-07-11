@@ -127,6 +127,13 @@ namespace UCI {
             }
         }
 
+        // Stops the search
+        void exe_stop ()
+        {
+            Signals.force_stop = true;
+            Threadpool.main ()->notify_one (); // Could be sleeping
+        }
+
         // exe_position(cmd) is called when engine receives the "position" UCI command.
         // The function sets up the position:
         //  - starting position ("startpos")
@@ -222,6 +229,8 @@ namespace UCI {
                     }
                 }
             }
+
+            exe_stop ();
 
             Threadpool.start_main (RootPos, limits, SetupStates);
         }
@@ -342,13 +351,6 @@ namespace UCI {
                 << depth << " perft " << fen_fn;
 
             benchmark (ss, RootPos);
-        }
-
-        // Stops the search
-        void exe_stop ()
-        {
-            Signals.force_stop = true;
-            Threadpool.main ()->notify_one (); // Could be sleeping
         }
 
     }

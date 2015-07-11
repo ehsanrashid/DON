@@ -210,9 +210,9 @@ namespace EndGame {
         auto wk_sq = pos.king_sq (_weak_side);
         auto sb_sq = pos.list<BSHP> (_strong_side)[0];
 
-        // kbnk_mate_table() tries to drive toward corners A1 or H8,
+        // kbnk mate table tries to drive toward corners A1 or H8,
         // if have a bishop that cannot reach the above squares
-        // mirror the kings so to drive enemy toward corners A8 or H1.
+        // flip the kings so to drive enemy toward corners A8 or H1.
         if (opposite_colors (sb_sq, SQ_A1))
         {
             sk_sq = ~sk_sq;
