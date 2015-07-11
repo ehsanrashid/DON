@@ -1410,7 +1410,7 @@ namespace Searcher {
                     rm.old_value = rm.new_value;
                 }
 
-                bool aspiration = depth > 4*DEPTH_ONE;
+                const bool aspiration = depth > 4*DEPTH_ONE;
 
                 // MultiPV loop. Perform a full root search for each PV line
                 for (IndexPV = 0; IndexPV < LimitPV && !Signals.force_stop; ++IndexPV)
@@ -1464,8 +1464,8 @@ namespace Searcher {
                         // otherwise exit the loop.
                         if (best_value <= bound_a)
                         {
-                            bound_a = max (best_value - window, -VALUE_INFINITE);
                             bound_b = (bound_a + bound_b)/2;
+                            bound_a = max (best_value - window, -VALUE_INFINITE);
 
                             Signals.failedlow_root = true;
                             Signals.ponderhit_stop = false;
@@ -1933,7 +1933,7 @@ namespace Searcher {
 
         if (RootMoves.size () != 0)
         {
-            // Check if play with book
+            // Check if can play with own book
             if (OwnBook && RootPly <= 20 && !Limits.infinite && !MateSearch && !BookFile.empty ())
             {
                 book.open (BookFile, ios_base::in|ios_base::binary);

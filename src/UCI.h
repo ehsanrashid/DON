@@ -18,7 +18,7 @@ namespace UCI {
     class Option
     {
     private:
-        typedef void (*OnChange) (const Option&);
+        typedef void (*OnChange) ();
 
         template<class CharT, class Traits>
         friend std::basic_ostream<CharT, Traits>&

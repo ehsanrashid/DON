@@ -86,17 +86,17 @@ namespace UCI {
              )
            )
         {
-            if (_type != "button")
+            if (_type == "button")
+            {
+                if (_on_change != nullptr) _on_change ();
+            }
+            else
             {
                 if (_value != value)
                 {
                     _value = value;
-                    if (_on_change != nullptr) _on_change (*this);
+                    if (_on_change != nullptr) _on_change ();
                 }
-            }
-            else
-            {
-                if (_on_change != nullptr) _on_change (*this);
             }
         }
         return *this;
@@ -131,28 +131,28 @@ namespace UCI {
     namespace {
 
 #   ifdef LPAGES
-        void large_pages (const Option &)
+        void large_pages ()
         {
             TT.resize ();
         }
 #   endif
 
-        void clear_hash  (const Option &)
+        void clear_hash  ()
         {
             reset ();
         }
 
-        void never_clear_hash (const Option &opt)
+        void never_clear_hash ()
         {
-            TranspositionTable::ClearHash = !bool(opt);
+            TranspositionTable::ClearHash = !bool(Options["Never Clear Hash"]);
         }
 
-        void change_hash (const Option &opt)
+        void change_hash ()
         {
-            TT.auto_size (i32(opt), false);
+            TT.auto_size (i32(Options["Hash"]), false);
         }
 
-        void save_hash   (const Option &)
+        void save_hash   ()
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
@@ -160,7 +160,7 @@ namespace UCI {
             TT.save (hash_fn);
         }
 
-        void load_hash   (const Option &)
+        void load_hash   ()
         {
             string hash_fn = string(Options["Hash File"]);
             trim (hash_fn);
@@ -168,17 +168,17 @@ namespace UCI {
             TT.load (hash_fn);
         }
 
-        void configure_threadpool (const Option &)
+        void configure_threadpool ()
         {
             Threadpool.configure (i32(Options["Threads"]), i32(Options["Split Depth"]));
         }
 
-        void configure_50move_dist (const Option &opt)
+        void configure_50move_dist ()
         {
-            Position::FiftyMoveDist = u08(2 * i32(opt));
+            Position::FiftyMoveDist = u08(2 * i32(Options["Fifty Move Distance"]));
         }
 
-        void configure_hash (const Option &)
+        void configure_hash ()
         {
             HashFile         = string(Options["Hash File"]);
             AutoSaveHashTime = u16(i32(Options["Auto Save Hash (min)"]));
@@ -186,27 +186,27 @@ namespace UCI {
             if (!HashFile.empty ()) convert_path (HashFile);
         }
 
-        void configure_contempt (const Option &)
+        void configure_contempt ()
         {
             FixedContempt = i16(i32(Options["Fixed Contempt"]));
             ContemptTime  = i16(i32(Options["Timed Contempt (sec)"]));
             ContemptValue = i16(i32(Options["Valued Contempt (cp)"]));
         }
 
-        void configure_multipv (const Option &)
+        void configure_multipv ()
         {
-            MultiPV        = u08(i32(Options["MultiPV"]));
-            //MultiPV_cp= i32(Options["MultiPV_cp"]);
+            MultiPV     = u08(i32(Options["MultiPV"]));
+            //MultiPV_cp  = i32(Options["MultiPV_cp"]);
         }
 
-        void configure_searchlog (const Option &opt)
+        void configure_searchlog ()
         {
-            SearchFile = string(opt);
+            SearchFile = string(Options["Search File"]);
             trim (SearchFile);
             if (!SearchFile.empty ()) convert_path (SearchFile);
         }
 
-        void configure_book (const Option &)
+        void configure_book ()
         {
             OwnBook      = bool(Options["Own Book"]);
             BookFile     = string(Options["Book File"]);
@@ -215,12 +215,12 @@ namespace UCI {
             if (!BookFile.empty ()) convert_path (BookFile);
         }
 
-        void configure_skill (const Option &opt)
+        void configure_skill ()
         {
-            SkillMgr.change_level (u08(i32(opt)));
+            SkillMgr.change_level (u08(i32(Options["Skill Level"])));
         }
 
-        void configure_time (const Option &)
+        void configure_time ()
         {
             //MaximumMoveHorizon   = i32(Options["Maximum Move Horizon"]);
             //ReadyMoveHorizon     = i32(Options["Ready Move Horizon"]);
@@ -232,9 +232,9 @@ namespace UCI {
             Ponder               = bool(Options["Ponder"]);
         }
 
-        void uci_chess960 (const Option &opt)
+        void uci_chess960 ()
         {
-            Chess960 = bool(opt);
+            Chess960 = bool(Options["UCI_Chess960"]);
         }
     }
 
@@ -321,8 +321,9 @@ namespace UCI {
         // Position Learning Options
         // -------------------------
 
-        // Openings Book Options
+        // Opening Book Options
         // ---------------------
+        // Whether or not to always play with the Opening Book.
         Options["Own Book"]                     << Option (OwnBook, configure_book);
         // The filename of the Opening Book.
         Options["Book File"]                    << Option (BookFile, configure_book);
@@ -376,7 +377,7 @@ namespace UCI {
         // Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
         // A value of 0 means that this parameter will not be taken into account.
         // The MultiPV_cp feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, VALUE_NONE+1, Searcher::configure_multipv);
+        //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, VALUE_NONE+1, configure_multipv);
 
         // Changes playing style.
         // ----------------------

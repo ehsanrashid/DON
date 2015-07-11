@@ -160,11 +160,11 @@ public:
 
     Position () = default; // To define the global object RootPos
     Position (const Position&) = delete;
-    Position (const std::string &f, Thread *th = nullptr, bool c960 = false, bool full = true)
+    Position (const std::string &f, Thread *const th = nullptr, bool c960 = false, bool full = true)
     {
         if (!setup (f, th, c960, full)) clear ();
     }
-    Position (const Position &pos, Thread *th)
+    Position (const Position &pos, Thread *const th)
     {
         *this = pos;
         _thread = th;
@@ -276,7 +276,7 @@ public:
     void remove_piece (Square s);
     void   move_piece (Square s1, Square s2);
 
-    bool setup (const std::string &f, Thread *th = nullptr, bool c960 = false, bool full = true);
+    bool setup (const std::string &f, Thread *const th = nullptr, bool c960 = false, bool full = true);
 
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;

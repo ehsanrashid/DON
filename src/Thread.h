@@ -190,7 +190,7 @@ namespace Threading {
         TimerThread *save_hash_th    = nullptr;
         Depth        split_depth;
 
-        MainThread* main () { return static_cast<MainThread*> (at (0)); }
+        MainThread* main () const { return static_cast<MainThread*> (at (0)); }
 
         // No c'tor and d'tor, threadpool rely on globals that should
         // be initialized and valid during the whole thread lifetime.

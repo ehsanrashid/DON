@@ -373,9 +373,6 @@ namespace Evaluator {
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
-                auto f = _file (s);
-                auto r = rel_rank (Own, s);
-
                 // Find attacked squares, including x-ray attacks for bishops and rooks
                 auto attacks =
                     BSHP == PT ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
@@ -432,7 +429,7 @@ namespace Evaluator {
                 if (NIHT == PT || BSHP == PT)
                 {
                     // Minors (bishop or knight) behind a pawn
-                    if (   r < R_5
+                    if (   rel_rank (Own, s) < R_5
                         && pos.pieces (PAWN) & (s + Push)
                        )
                     {
@@ -442,8 +439,8 @@ namespace Evaluator {
                     if (NIHT == PT)
                     {
                         // Outpost for knight
-                        if (   r >= R_4
-                            && r <= R_6
+                        if (   rel_rank (Own, s) >= R_4
+                            && rel_rank (Own, s) <= R_6
                             && (pos.pieces (Opp, PAWN) & ~(ei.pi->blocked_pawns[Opp] & FRONT_RANK_bb[Own][_rank (s+Push)]) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
                            )
                         {
@@ -456,8 +453,8 @@ namespace Evaluator {
                         score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor (Own, s);
 
                         // Outpost for bishop
-                        if (   r >= R_4
-                            && r <= R_6
+                        if (   rel_rank (Own, s) >= R_4
+                            && rel_rank (Own, s) <= R_6
                             && (pos.pieces (Opp, PAWN) & ~(ei.pi->blocked_pawns[Opp] & FRONT_RANK_bb[Own][_rank (s+Push)]) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
                            )
                         {
@@ -466,7 +463,7 @@ namespace Evaluator {
 
                         if (s == rel_sq (Own, SQ_A8) || s == rel_sq (Own, SQ_H8))
                         {
-                            auto del = (F_A == f ? DEL_E : DEL_W) - Push;
+                            auto del = (F_A == _file (s) ? DEL_E : DEL_W) - Push;
                             if (pos[s + del] == (Own|PAWN))
                             {
                                 score -= BISHOP_TRAPPED;
@@ -480,7 +477,7 @@ namespace Evaluator {
                         {
                             if (s == rel_sq (Own, SQ_A1) || s == rel_sq (Own, SQ_H1))
                             {
-                                auto del = Push + (F_A == f ? DEL_E : DEL_W);
+                                auto del = Push + (F_A == _file (s) ? DEL_E : DEL_W);
                                 if (pos[s + del] == (Own|PAWN))
                                 {
                                     score -= BISHOP_TRAPPED *
@@ -494,7 +491,7 @@ namespace Evaluator {
 
                 if (ROOK == PT)
                 {
-                    if (R_4 < r)
+                    if (R_4 < rel_rank (Own, s))
                     {
                         // Rook piece attacking enemy pawns on the same rank/file
                         auto rook_on_pawns = pos.pieces (Opp, PAWN) & PIECE_ATTACKS[ROOK][s];
@@ -502,19 +499,19 @@ namespace Evaluator {
                     }
 
                     // Rook on a open or semi-open file
-                    if (ei.pi->file_semiopen (Own, f))
+                    if (ei.pi->file_semiopen (Own, _file (s)))
                     {
-                        score += ei.pi->file_semiopen (Opp, f) ? ROOK_ON_OPENFILE : ROOK_ON_SEMIOPENFILE;
+                        score += ei.pi->file_semiopen (Opp, _file (s)) ? ROOK_ON_OPENFILE : ROOK_ON_SEMIOPENFILE;
                     }
 
-                    if (mob <= 3 && !ei.pi->file_semiopen (Own, f))
+                    if (mob <= 3 && !ei.pi->file_semiopen (Own, _file (s)))
                     {
                         auto kf = _file (pos.king_sq (Own));
                         auto kr = rel_rank (Own, pos.king_sq (Own));
                         // Rooks trapped by own king, more if the king has lost its castling capability.
-                        if (   (kf < F_E) == (f < kf)
-                            && (kr == R_1 || kr == r)
-                            && !ei.pi->side_semiopen (Own, kf, f < kf)
+                        if (   (kf < F_E) == (_file (s) < kf)
+                            && (kr == R_1 || kr == rel_rank (Own, s))
+                            && !ei.pi->side_semiopen (Own, kf, _file (s) < kf)
                            )
                         {
                             score -= (ROOK_TRAPPED - mk_score (22 * mob, 0)) * (1 + !pos.can_castle (Own));

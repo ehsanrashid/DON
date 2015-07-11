@@ -52,7 +52,7 @@ namespace Memory {
 
     namespace {
 
-        bool UsePages = false;
+        bool LargePages = false;
 
 #   if defined(_WIN32)
 
@@ -125,7 +125,7 @@ namespace Memory {
 
     void alloc_memory (void *&mem_ref, u64 mem_size, u32 alignment)
     {
-        UsePages = false;
+        LargePages = false;
 
         if (bool(Options["Large Pages"]))
         {
@@ -139,7 +139,7 @@ namespace Memory {
 
             if (mem_ref != nullptr)
             {
-                UsePages = true;
+                LargePages = true;
                 sync_cout << "info string LargePage Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
@@ -152,7 +152,7 @@ namespace Memory {
 
             if (mem_ref != nullptr)
             {
-                UsePages = true;
+                LargePages = true;
                 memset (mem_ref, 0x00, mem_size);
                 sync_cout << "info string Page Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
@@ -167,7 +167,7 @@ namespace Memory {
                 mem_ref = shmat (shm, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
-                    UsePages = true;
+                    LargePages = true;
                     memset (mem_ref, 0x00, mem_size);
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
@@ -185,7 +185,7 @@ namespace Memory {
                 mem_ref = shmat (shm, nullptr, 0x00);
                 if (mem_ref != (void*) -1)
                 {
-                    UsePages = true;
+                    LargePages = true;
                     memset (mem_ref, 0x00, mem_size);
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
@@ -217,7 +217,7 @@ namespace Memory {
     {
         if (mem == nullptr) return;
 
-        if (UsePages)
+        if (LargePages)
         {
 #   if defined(_WIN32)
             
@@ -236,7 +236,7 @@ namespace Memory {
                 cerr << "ERROR: shmctl(IPC_RMID) failed." << endl;
             }
 #   endif
-            UsePages = false;
+            LargePages = false;
             return;
         }
 

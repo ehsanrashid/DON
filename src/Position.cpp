@@ -952,7 +952,7 @@ void Position::clear ()
 //
 // 6) Fullmove number. The number of the full move.
 //    It starts at 1, and is incremented after Black's move.
-bool Position::setup (const string &f, Thread *th, bool c960, bool full)
+bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
 {
     if (white_spaces (f)) return false;
 
