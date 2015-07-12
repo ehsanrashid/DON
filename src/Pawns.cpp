@@ -162,11 +162,11 @@ namespace Pawns {
                 auto phalanx   = (adjacents & rank_bb (s));
                 auto supported = (adjacents & rank_bb (s-Push));
                 auto doubled   = (own_pawns & FRONT_SQRS_bb[Own][s]);
-                bool opposed   = (opp_pawns & FRONT_SQRS_bb[Own][s]);
-                bool connected = (supported | phalanx);
-                bool levered   = (opp_pawns & PAWN_ATTACKS[Own][s]);
-                bool isolated  = !(adjacents);
-                bool passed    = !(opp_pawns & PAWN_PASS_SPAN[Own][s]);
+                bool opposed   = (opp_pawns & FRONT_SQRS_bb[Own][s]) != U64(0);
+                bool connected = (supported != U64(0) || phalanx != U64(0));
+                bool levered   = (opp_pawns & PAWN_ATTACKS[Own][s]) != U64(0);
+                bool isolated  = (adjacents) == U64(0);
+                bool passed    = (opp_pawns & PAWN_PASS_SPAN[Own][s]) == U64(0);
 
                 bool backward;
                 // Test for backward pawn.
@@ -199,7 +199,7 @@ namespace Pawns {
 
                 if (connected)
                 {
-                    score += CONNECTED[opposed][phalanx != 0][more_than_one (supported)][rel_rank (Own, s)];
+                    score += CONNECTED[opposed][phalanx != U64(0)][more_than_one (supported)][rel_rank (Own, s)];
                 }
 
                 if (isolated)
@@ -243,7 +243,7 @@ namespace Pawns {
             }
 
             b = e->semiopen_files[Own] ^ 0xFF;
-            e->pawn_span[Own] = b != U64(0) ? u08(scan_msq (b)) - u08(scan_lsq (b)) : 0;
+            e->pawn_span[Own] = b != U64(0) ? u08(scan_msq (b) - scan_lsq (b)) : 0;
 
             // Center binds: Two pawns controlling the same central square
             b = shift_del<Left> (own_pawns) & shift_del<Right> (own_pawns) & CENTER_BIND_MASK[Own];

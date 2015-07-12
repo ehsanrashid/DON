@@ -239,7 +239,7 @@ public:
 
     Thread* thread   ()  const;
 
-    bool ok (i08 *step = nullptr) const;
+    bool ok (i08 *failed_step = nullptr) const;
 
     // Static Exchange Evaluation (SEE)
     Value see      (Move m) const;

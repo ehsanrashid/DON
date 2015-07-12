@@ -2272,11 +2272,11 @@ namespace Threading {
 
                 // Try to late join to another split point if none of its slaves has already finished.
                 auto *best_sp  = (SplitPoint*)nullptr;
-                i32  min_level = INT_MAX;
+                i32   best_metric = INT_MAX;
 
                 for (auto *th : Threadpool)
                 {
-                    u08  count = th->splitpoint_count; // Local copy
+                    const u08 count = th->splitpoint_count; // Local copy
 
                     sp = count != 0 ? &th->splitpoints[count-1] : nullptr;
 
@@ -2292,16 +2292,15 @@ namespace Threading {
 
                         // Prefer to join to splitpoint with few parents to reduce the probability
                         // that a cut-off occurs above us, and hence we waste our work.
-                        i32 level = 0;
-                        for (auto *spp = th->active_splitpoint; spp != nullptr; spp = spp->parent_splitpoint)
-                        {
-                            ++level;
-                        }
+                        i32 parent_splits = 0;
+                        for (auto *spp = th->active_splitpoint; spp != nullptr; spp = spp->parent_splitpoint) ++parent_splits;
+                        
+                        i32 metric = parent_splits;
 
-                        if (min_level > level)
+                        if (best_metric > metric)
                         {
-                            best_sp   = sp;
-                            min_level = level;
+                            best_sp     = sp;
+                            best_metric = metric;
                         }
                     }
                 }

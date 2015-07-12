@@ -37,10 +37,6 @@ bool _ok (const string &fen, bool c960, bool full)
 
 namespace {
 
-    // do_move() copy current state info up to 'posi_key' excluded to the new one.
-    // calculate the bits needed to be copied.
-    const u08 STATEINFO_COPY_SIZE = offsetof (StateInfo, last_move);
-
 #define S(mg, eg) mk_score (mg, eg)
 
     // PSQ_BONUS[PieceType][Rank][File/2] contains Piece-Square scores.
@@ -1219,10 +1215,10 @@ void Position::do_move (Move m, StateInfo &si, bool check)
     assert (_ok (m));
     assert (&si != _si);
 
-    Key key = _si->posi_key;
+    Key key = _si->posi_key ^ Zob._.act_side;
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    memcpy (&si, _si, STATEINFO_COPY_SIZE);
+    memcpy (&si, _si, offsetof (StateInfo, last_move));
 
     // Switch state pointer to point to the new, ready to be updated, state.
     si.ptr = _si;
@@ -1386,7 +1382,6 @@ void Position::do_move (Move m, StateInfo &si, bool check)
     _si->checkers = check ? attackers_to (_piece_list[pasive][KING][0], _active) : U64(0);
 
     _active = pasive;
-    key ^= Zob._.act_side;
 
     if (SQ_NO != _si->en_passant_sq)
     {
@@ -1397,7 +1392,7 @@ void Position::do_move (Move m, StateInfo &si, bool check)
     {
         if (DEL_NN == (u08(dst) ^ u08(org)))
         {
-            auto ep_sq = Square((u08(dst) + u08(org)) / 2);
+            auto ep_sq = org + (dst - org)/2;
             if (can_en_passant (ep_sq))
             {
                 _si->en_passant_sq = ep_sq;
