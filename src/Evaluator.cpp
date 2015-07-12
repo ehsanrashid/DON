@@ -159,8 +159,8 @@ namespace Evaluator {
                 eg_value (score) * weight.eg / 0x100);
         }
 
-        // Internal evaluation weights
-        const Weight INTERNAL_WEIGHTS[5] =
+        // Evaluation weights, indexed by the corresponding evaluation term
+        const Weight WEIGHTS[5]
         {
             {289,344}, // Piece Mobility
             {233,201}, // Pawn Structure
@@ -168,19 +168,6 @@ namespace Evaluator {
             { 46,  0}, // Space Activity
             {322,  0}  // King Safety
         };
-        // Evaluation weights, initialized from UCI options
-        Weight Weights[5];
-
-        // weight_option() computes the value of an evaluation weight,
-        // by combining UCI-configurable weights with an internal weight.
-        Weight weight_option (i32 opt_value, const Weight &internal_weight)
-        {
-            return
-            {
-                opt_value * internal_weight.mg / 1000,
-                opt_value * internal_weight.eg / 1000
-            };
-        }
 
     #define S(mg, eg) mk_score (mg, eg)
 
@@ -412,8 +399,7 @@ namespace Evaluator {
                                  | ei.pin_attacked_by[Opp][BSHP]
                                  | ei.pin_attacked_by[Opp][ROOK]
                                 )
-                             |  (  ei.pin_attacked_by[Own][PAWN]
-                                 | ei.pin_attacked_by[Own][NIHT]
+                             |  (  ei.pin_attacked_by[Own][NIHT]
                                  | ei.pin_attacked_by[Own][BSHP]
                                  | ei.pin_attacked_by[Own][ROOK]
                                 );
@@ -940,7 +926,7 @@ namespace Evaluator {
                 score += mk_score (mg_value, eg_value);
             }
             
-            score = score * Weights[PASSED_PAWN];
+            score = score * WEIGHTS[PASSED_PAWN];
 
             if (Trace)
             {
@@ -982,7 +968,7 @@ namespace Evaluator {
             i32 bonus = pop_count<FULL> ((WHITE == Own ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
             i32 weight = pos.count<NIHT> () + pos.count<BSHP> ();
 
-            auto score = mk_score (bonus * weight * weight, 0) * Weights[SPACE_ACTIVITY];
+            auto score = mk_score (bonus * weight * weight, 0) * WEIGHTS[SPACE_ACTIVITY];
             
             if (Trace)
             {
@@ -1017,7 +1003,7 @@ namespace Evaluator {
 
             // Probe the pawn hash table
             ei.pi  = Pawns::probe (pos);
-            score += ei.pi->pawn_score * Weights[PAWN_STRUCTURE];
+            score += ei.pi->pawn_score * WEIGHTS[PAWN_STRUCTURE];
 
             for (auto c = WHITE; c <= BLACK; ++c)
             {
@@ -1058,7 +1044,7 @@ namespace Evaluator {
                 - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
 
             // Weight mobility
-            score += (mobility[WHITE] - mobility[BLACK]) * Weights[PIECE_MOBILITY];
+            score += (mobility[WHITE] - mobility[BLACK]) * WEIGHTS[PIECE_MOBILITY];
 
             // Evaluate kings after all other pieces because needed complete attack
             // information when computing the king safety evaluation.
@@ -1105,8 +1091,8 @@ namespace Evaluator {
                 Tracer::write (Tracer::MATERIAL   , pos.psq_score ());
                 Tracer::write (Tracer::IMBALANCE  , ei.mi->imbalance);
                 Tracer::write (Tracer::MOBILITY
-                    , mobility[WHITE] * Weights[PIECE_MOBILITY]
-                    , mobility[BLACK] * Weights[PIECE_MOBILITY]);
+                    , mobility[WHITE] * WEIGHTS[PIECE_MOBILITY]
+                    , mobility[BLACK] * WEIGHTS[PIECE_MOBILITY]);
 
                 Tracer::write (Tracer::TOTAL      , score);
             }
@@ -1191,12 +1177,6 @@ namespace Evaluator {
     // initialize() init evaluation weights
     void initialize ()
     {
-        Weights[PIECE_MOBILITY] = weight_option (1000, INTERNAL_WEIGHTS[PIECE_MOBILITY]);
-        Weights[PAWN_STRUCTURE] = weight_option (1000, INTERNAL_WEIGHTS[PAWN_STRUCTURE]);
-        Weights[PASSED_PAWN   ] = weight_option (1000, INTERNAL_WEIGHTS[PASSED_PAWN   ]);
-        Weights[SPACE_ACTIVITY] = weight_option (1000, INTERNAL_WEIGHTS[SPACE_ACTIVITY]);
-        Weights[KING_SAFETY   ] = weight_option (1000, INTERNAL_WEIGHTS[KING_SAFETY   ]);
-
         const i32 MAX_SLOPE  = 8700;
         const i32 PEAK_VALUE = 1280000;
         
@@ -1204,7 +1184,7 @@ namespace Evaluator {
         for (i32 i = 0; i < MAX_ATTACK_UNITS; ++i)
         {
             mg = min (min (i*i*27, mg + MAX_SLOPE), PEAK_VALUE);
-            KING_DANGER[i] = mk_score (mg/1000, 0) * Weights[KING_SAFETY];
+            KING_DANGER[i] = mk_score (mg/1000, 0) * WEIGHTS[KING_SAFETY];
         }
     }
 

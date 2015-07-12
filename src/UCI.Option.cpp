@@ -7,7 +7,7 @@
 #include "Transposition.h"
 #include "Thread.h"
 #include "Searcher.h"
-#include "Evaluator.h"
+#include "Debugger.h"
 
 UCI::OptionMap  Options; // Global string mapping of Options
 
@@ -16,6 +16,7 @@ namespace UCI {
     using namespace std;
     using namespace Transposition;
     using namespace Searcher;
+    using namespace Debugger;
 
     Option::Option (OnChange on_change)
         : _type ("button")
@@ -199,13 +200,6 @@ namespace UCI {
             //MultiPV_cp  = i32(Options["MultiPV_cp"]);
         }
 
-        void configure_searchlog ()
-        {
-            SearchFile = string(Options["Search File"]);
-            trim (SearchFile);
-            if (!SearchFile.empty ()) convert_path (SearchFile);
-        }
-
         void configure_book ()
         {
             OwnBook      = bool(Options["Own Book"]);
@@ -230,6 +224,18 @@ namespace UCI {
             MoveSlowness         = i32(Options["Move Slowness"]);
             NodesTime            = i32(Options["Nodes Time"]);
             Ponder               = bool(Options["Ponder"]);
+        }
+
+        void on_debuglog ()
+        {
+            bool(Options["Write Debug Log"]) ?
+                Logger::instance ().start () : Logger::instance ().stop ();
+        }
+        void on_searchlog ()
+        {
+            SearchFile = string(Options["Search File"]);
+            trim (SearchFile);
+            if (!SearchFile.empty ()) convert_path (SearchFile);
         }
 
         void uci_chess960 ()
@@ -428,9 +434,9 @@ namespace UCI {
         // ---------------------------------------------------------------------------------------
         // Other Options
         // -------------
-
+        Options["Write Debug Log"]              << Option (false, on_debuglog);
         // The filename of the search log.
-        Options["Search File"]                  << Option (SearchFile, configure_searchlog);
+        Options["Search File"]                  << Option (SearchFile, on_searchlog);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.
