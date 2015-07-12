@@ -814,7 +814,7 @@ namespace Searcher {
                             if (null_value >= beta)
                             {
                                 // Don't do verification search at low depths
-                                if (depth < 8*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
+                                if (depth < 12*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
                                 {
                                     // Don't return unproven unproven mates
                                     return null_value < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;

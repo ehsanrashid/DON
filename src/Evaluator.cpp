@@ -213,8 +213,8 @@ namespace Evaluator {
         };
 
         // OUTPOST[supported by pawn]
-        const Score KNIGHT_OUTPOST[2] = { S(32, 8), S(49,13) };
-        const Score BISHOP_OUTPOST[2] = { S(14, 4), S(22, 6) };
+        const Score KNIGHT_OUTPOST[2] = { S(28, 7), S(42,11) };
+        const Score BISHOP_OUTPOST[2] = { S(12, 3), S(18, 5) };
 
         // THREATEN_BY_PAWN[PieceT] contains bonuses according to which piece type is attacked by pawn.
         const Score THREATEN_BY_PAWN[NONE] =
@@ -366,9 +366,6 @@ namespace Evaluator {
             ei.ful_attacked_by[Own][PT] = U64(0);
             ei.pin_attacked_by[Own][PT] = U64(0);
             
-            u08 king_ring_attackers_count = 0;
-            u08 king_zone_attacks_count   = 0;
-
             const auto *pl = pos.list<PT> (Own);
             Square s;
             while ((s = *pl++) != SQ_NO)
@@ -382,19 +379,20 @@ namespace Evaluator {
                                  PIECE_ATTACKS[PT][s];
 
                 ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= attacks;
-
-                if ((ei.king_ring[Opp] & attacks) != U64(0))
-                {
-                    ++king_ring_attackers_count;
-                    auto zone_attacks = ei.ful_attacked_by[Opp][KING] & attacks;
-                    if (zone_attacks != U64(0)) king_zone_attacks_count += u08(pop_count<MAX15> (zone_attacks));
-                }
                 
                 if ((ei.pinneds[Own] & s) != U64(0))
                 {
                     attacks &= RAYLINE_bb[pos.king_sq (Own)][s];
                 }
                 ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PT] |= attacks;
+
+                if ((ei.king_ring[Opp] & attacks) != U64(0))
+                {
+                    ei.king_ring_attackers_count [Own]++;
+                    ei.king_ring_attackers_weight[Own] += KING_ATTACK[PT];
+                    auto zone_attacks = ei.ful_attacked_by[Opp][KING] & attacks;
+                    if (zone_attacks != U64(0)) ei.king_zone_attacks_count[Own] += u08(pop_count<MAX15> (zone_attacks));
+                }
 
                 /*
                 if (ROOK == PT)
@@ -440,7 +438,7 @@ namespace Evaluator {
                     {
                         // Outpost for knight
                         if (   rel_rank (Own, s) >= R_4
-                            && rel_rank (Own, s) <= R_6
+                            //&& rel_rank (Own, s) <= R_6
                             && (pos.pieces (Opp, PAWN) & ~(ei.pi->blocked_pawns[Opp] & FRONT_RANK_bb[Own][_rank (s+Push)]) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
                            )
                         {
@@ -454,7 +452,7 @@ namespace Evaluator {
 
                         // Outpost for bishop
                         if (   rel_rank (Own, s) >= R_4
-                            && rel_rank (Own, s) <= R_6
+                            //&& rel_rank (Own, s) <= R_6
                             && (pos.pieces (Opp, PAWN) & ~(ei.pi->blocked_pawns[Opp] & FRONT_RANK_bb[Own][_rank (s+Push)]) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
                            )
                         {
@@ -518,13 +516,6 @@ namespace Evaluator {
                         }
                     }
                 }
-            }
-
-            if (king_ring_attackers_count != 0)
-            {
-                ei.king_ring_attackers_count [Own] += king_ring_attackers_count;
-                ei.king_ring_attackers_weight[Own] += king_ring_attackers_count*KING_ATTACK[PT];
-                ei.king_zone_attacks_count   [Own] += king_zone_attacks_count;
             }
 
             if (Trace)
@@ -953,7 +944,7 @@ namespace Evaluator {
 
             if (Trace)
             {
-                Tracer::write (Tracer::THREAT, Own, score);
+                Tracer::write (Tracer::PASSER, Own, score);
             }
 
             return score;
@@ -980,7 +971,7 @@ namespace Evaluator {
                 & (ei.pin_attacked_by[Own][NONE]|~ei.pin_attacked_by[Opp][NONE]);
 
             // Since SPACE_MASK[Own] is fully on our half of the board
-            assert (u32(safe_space >> (WHITE == Own ? 32 : 00)) == 0);
+            assert (u32(safe_space >> (WHITE == Own ? 32 : 0)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
             auto behind = pos.pieces (Own, PAWN);
@@ -1116,8 +1107,6 @@ namespace Evaluator {
                 Tracer::write (Tracer::MOBILITY
                     , mobility[WHITE] * Weights[PIECE_MOBILITY]
                     , mobility[BLACK] * Weights[PIECE_MOBILITY]);
-                if (npm[WHITE] + npm[BLACK] < VALUE_SPACE)
-                Tracer::write (Tracer::SPACE      , SCORE_ZERO, SCORE_ZERO);
 
                 Tracer::write (Tracer::TOTAL      , score);
             }
