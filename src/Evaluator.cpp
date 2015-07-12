@@ -836,28 +836,26 @@ namespace Evaluator {
                 if (rr != 0)
                 {
                     auto block_sq = s + Push;
-                    auto fk_sq = pos.king_sq (Own);
-                    auto ek_sq = pos.king_sq (Opp);
 
                     // Adjust bonus based on kings proximity
                     eg_value += 
-                        + 5*rr*dist (ek_sq, block_sq)
-                        - 2*rr*dist (fk_sq, block_sq);
+                        + 5*rr*dist (pos.king_sq (Opp), block_sq)
+                        - 2*rr*dist (pos.king_sq (Own), block_sq);
                     // If block square is not the queening square then consider also a second push
                     if (rel_rank (Own, block_sq) != R_8)
                     {
-                        eg_value -= 1*rr*dist (fk_sq, block_sq + Push);
+                        eg_value -= 1*rr*dist (pos.king_sq (Own), block_sq + Push);
                     }
 
                     bool pinned = (ei.pinneds[Own] & s) != U64(0);
                     if (pinned)
                     {
                         // Only one real pinner exist other are fake pinner
-                        auto pawn_pinners = pos.pieces (Opp) & RAYLINE_bb[fk_sq][s] &
+                        auto pawn_pinners = pos.pieces (Opp) & RAYLINE_bb[pos.king_sq (Own)][s] &
                             ( (attacks_bb<ROOK> (s, pos.pieces ()) & pos.pieces (ROOK, QUEN))
                             | (attacks_bb<BSHP> (s, pos.pieces ()) & pos.pieces (BSHP, QUEN))
                             );
-                        pinned = (BETWEEN_bb[fk_sq][scan_lsq (pawn_pinners)] & block_sq) == U64(0);
+                        pinned = (BETWEEN_bb[pos.king_sq (Own)][scan_lsq (pawn_pinners)] & block_sq) == U64(0);
                     }
 
                     if (!pinned)
@@ -875,12 +873,12 @@ namespace Evaluator {
                         // the squares in the pawn's path attacked or occupied by the enemy.
                         if ((behind_majors & pos.pieces (Opp)) == U64(0))
                         {
-                            unsafe_squares &= (ei.pin_attacked_by[Opp][NONE]|pos.pieces());
+                            unsafe_squares &= ei.pin_attacked_by[Opp][NONE] | pos.pieces (Opp);
                         }
 
                         if ((behind_majors & pos.pieces (Own)) == U64(0))
                         {
-                              safe_squares &= (ei.pin_attacked_by[Own][NONE]);
+                              safe_squares &= ei.pin_attacked_by[Own][NONE];
                         }
 
                         // Give a big bonus if there aren't enemy attacks, otherwise
@@ -901,11 +899,8 @@ namespace Evaluator {
                             if ((ei.pin_attacked_by[Own][PAWN] & block_sq) != U64(0)) k += 1;
                         }
 
-                        if (k != 0)
-                        {
-                            mg_value += k*rr;
-                            eg_value += k*rr;
-                        }
+                        mg_value += k*rr;
+                        eg_value += k*rr;
                     }
                     else
                     // If the pawn is blocked by own pieces
