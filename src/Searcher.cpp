@@ -1418,7 +1418,7 @@ namespace Searcher {
                     // Reset Aspiration window starting size
                     if (aspiration)
                     {
-                        window = Value(depth <= 32*DEPTH_ONE ? 22 - (u16(depth)-1)/4 : 14); // Decreasing window
+                        window = Value(depth <= 32*DEPTH_ONE ? 14 + (u16(depth)-1)/4 : 22); // Increasing window
 
                         bound_a = max (RootMoves[IndexPV].old_value - window, -VALUE_INFINITE);
                         bound_b = min (RootMoves[IndexPV].old_value + window, +VALUE_INFINITE);

@@ -150,7 +150,7 @@ private:
     void do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst);
 
     template<PieceT PT>
-    PieceT least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const;
+    PieceT pick_lva (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const;
 
 public:
 

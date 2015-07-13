@@ -401,12 +401,12 @@ bool Position::ok (i08 *failed_step) const
     return true;
 }
 
-// least_valuable_attacker() is a helper function used by see()
+// pick_lva() is a helper function used by see()
 // to locate the least valuable attacker for the side to move,
 // remove the attacker just found from the bitboards and
 // scan for new X-ray attacks behind it.
 template<PieceT PT>
-PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const
+PieceT Position::pick_lva (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const
 {
     auto b = stm_attackers & _types_bb[PT];
     if (b != U64(0))
@@ -434,10 +434,10 @@ PieceT Position::least_valuable_attacker (Square dst, Bitboard stm_attackers, Bi
         return PT;
     }
 
-    return least_valuable_attacker<PieceT(PT+1)> (dst, stm_attackers, mocc, attackers);
+    return pick_lva<PieceT(PT+1)> (dst, stm_attackers, mocc, attackers);
 }
 template<>
-PieceT Position::least_valuable_attacker<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
+PieceT Position::pick_lva<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
 {
     return KING; // No need to update bitboards, it is the last cycle
 }
@@ -515,7 +515,7 @@ Value Position::see      (Move m) const
             gain_list[depth] = PIECE_VALUE[MG][captured] - gain_list[depth - 1];
 
             // Locate and remove the next least valuable attacker
-            captured = least_valuable_attacker<PAWN> (dst, stm_attackers, mocc, attackers);
+            captured = pick_lva<PAWN> (dst, stm_attackers, mocc, attackers);
 
             stm = ~stm;
             stm_attackers = attackers & _color_bb[stm];
