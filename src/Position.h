@@ -527,7 +527,7 @@ inline bool Position::advanced_pawn_push    (Move m) const
 
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {
-    assert (empty (s));
+    //assert (empty (s));
 
     _board[s] = (c | pt);
 
@@ -547,7 +547,7 @@ inline void  Position:: place_piece (Square s, Piece p)
 }
 inline void  Position::remove_piece (Square s)
 {
-    assert (!empty (s));
+    //assert (!empty (s));
 
     // WARNING: This is not a reversible operation. If remove a piece in
     // do_move() and then replace it in undo_move() will put it at the end of
@@ -556,7 +556,7 @@ inline void  Position::remove_piece (Square s)
 
     auto c  = color (_board[s]);
     auto pt = ptype (_board[s]);
-    _board[s] = EMPTY;
+    //_board[s] = EMPTY; // Not needed, overwritten by the capturing one
 
     auto bb = ~BitBoard::SQUARE_bb[s];
     _color_bb[c]    &= bb;
@@ -567,19 +567,19 @@ inline void  Position::remove_piece (Square s)
 
     // Update piece list, remove piece at [s] index and shrink the list.
     auto last_sq = _piece_list[c][pt][_piece_count[c][pt]];
-    if (s != last_sq)
+    //if (s != last_sq)
     {
         _piece_index[last_sq] = _piece_index[s];
         _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
     }
-    _piece_index[s] = -1;
+    //_piece_index[s] = -1;
     _piece_list[c][pt][_piece_count[c][pt]] = SQ_NO;
 }
 inline void  Position::  move_piece (Square s1, Square s2)
 {
-    assert (!empty (s1));
-    assert ( empty (s2));
-    assert (_piece_index[s1] != -1);
+    //assert (!empty (s1));
+    //assert ( empty (s2));
+    //assert (_piece_index[s1] != -1);
 
     auto c  = color (_board[s1]);
     auto pt = ptype (_board[s1]);
@@ -595,7 +595,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
     // _piece_index[s1] is not updated and becomes stale. This works as long
     // as _piece_index[] is accessed just by known occupied squares.
     _piece_index[s2] = _piece_index[s1];
-    _piece_index[s1] = -1;
+    //_piece_index[s1] = -1;
     _piece_list[c][pt][_piece_index[s2]] = s2;
 }
 // do_castling() is a helper used to do/undo a castling move.
@@ -610,6 +610,7 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     // Remove both pieces first since squares could overlap in chess960
     remove_piece (Do ? king_org : king_dst);
     remove_piece (Do ? rook_org : rook_dst);
+    _board[Do ? king_org : king_dst] = _board[Do ? rook_org : rook_dst] = EMPTY; // Not done by remove_piece()
     place_piece (Do ? king_dst : king_org, _active, KING);
     place_piece (Do ? rook_dst : rook_org, _active, ROOK);
 }

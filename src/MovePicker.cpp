@@ -63,13 +63,13 @@ namespace MovePick {
     // search captures, promotions and some checks) and about how important good
     // move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, Depth d, Move cm, const Stack *ss)
-        : _Pos (p)
+    MovePicker::MovePicker (const Position &pos, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, Depth depth, Move cm, const Stack *ss)
+        : _Pos (pos)
         , _HistoryValues (hv)
         , _CounterMovesHistoryValues (cmhv)
         , _ss (ss)
         , _counter_move (cm)
-        , _depth (d)
+        , _depth (depth)
     {
         assert (_depth > DEPTH_ZERO);
 
@@ -82,11 +82,11 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, Depth d, Square dst_sq)
-        : _Pos (p)
+    MovePicker::MovePicker (const Position &pos, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, Depth depth, Square dst_sq)
+        : _Pos (pos)
         , _HistoryValues (hv)
         , _CounterMovesHistoryValues (cmhv)
-        , _depth (d)
+        , _depth (depth)
     {
         assert (_depth <= DEPTH_ZERO);
 
@@ -118,8 +118,8 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &p, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, PieceT cpt)
-        : _Pos (p)
+    MovePicker::MovePicker (const Position &pos, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, PieceT cpt)
+        : _Pos (pos)
         , _HistoryValues (hv)
         , _CounterMovesHistoryValues (cmhv)
     {

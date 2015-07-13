@@ -612,13 +612,12 @@ bool Position::pseudo_legal (Move m) const
               && _board[dst] == (_active|ROOK)
               && _si->checkers == U64(0)
               && _si->castle_rights & mk_castle_right (_active)
+              && !castle_impeded (mk_castle_right (_active, dst > org ? CS_K : CS_Q))
              )
            )
         {
             return false;
         }
-
-        if (castle_impeded (mk_castle_right (_active, dst > org ? CS_K : CS_Q))) return false;
 
         // Castle is always encoded as "King captures friendly Rook"
         assert (dst == castle_rook (mk_castle_right (_active, dst > org ? CS_K : CS_Q)));
@@ -660,6 +659,7 @@ bool Position::pseudo_legal (Move m) const
         if (!(   PAWN == ptype (mpc)
               && R_7 == rel_rank (_active, org)
               && R_8 == rel_rank (_active, dst)
+              && NIHT <= promote (m) && promote (m) <= QUEN
              )
            )
         {
@@ -1306,7 +1306,8 @@ void Position::do_move (Move m, StateInfo &si, bool check)
 
         cpt = PAWN;
         do_capture ();
-
+        _board[cap] = EMPTY; // Not done by remove_piece()
+        
         move_piece (org, dst);
 
         _si->pawn_key ^=
@@ -1341,6 +1342,7 @@ void Position::do_move (Move m, StateInfo &si, bool check)
         assert (NIHT <= ppt && ppt <= QUEN);
         // Replace the PAWN with the Promoted piece
         remove_piece (org);
+        _board[org] = EMPTY; // Not done by remove_piece()
         place_piece (dst, _active, ppt);
 
         _si->matl_key ^=
@@ -1473,6 +1475,7 @@ void Position::undo_move ()
         assert (R_8 == rel_rank (_active, dst));
         assert (NIHT <= promote (m) && promote (m) <= QUEN);
         remove_piece (dst);
+        _board[dst] = EMPTY; // Not done by remove_piece()
         place_piece (org, _active, PAWN);
     }
         break;
