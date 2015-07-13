@@ -212,7 +212,7 @@ public:
     Key matl_key      () const;
     Key pawn_key      () const;
     Key posi_key      () const;
-    Key posi_move_key (Move m) const;
+    Key move_posi_key (Move m) const;
 
     Value non_pawn_material (Color c) const;    // Incremental piece-square evaluation
 
@@ -389,20 +389,22 @@ inline Bitboard Position::checkers    () const { return _si->checkers; }
 inline Key    Position::matl_key      () const { return _si->matl_key; }
 inline Key    Position::pawn_key      () const { return _si->pawn_key; }
 inline Key    Position::posi_key      () const { return _si->posi_key; }
-// posi_move_key() computes the new hash key after the given moven. Needed for speculative prefetch.
+// move_posi_key() computes the new hash key after the given moven. Needed for speculative prefetch.
 // It doesn't recognize special moves like castling, en-passant and promotions.
-inline Key    Position::posi_move_key (Move m) const
+inline Key    Position::move_posi_key (Move m) const
 {
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     auto mpt = ptype (_board[org]);
     auto ppt = mpt == PAWN && mtype (m) == PROMOTE ? promote (m) : mpt;
     auto cpt = mpt == PAWN && mtype (m) == ENPASSANT && _si->en_passant_sq == dst_sq (m) ? PAWN : ptype (_board[dst]);
-    return _si->posi_key
-        ^  Zob._.act_side
+    
+    Key key = _si->posi_key ^  Zob._.act_side;
+    if (cpt != NONE) key ^= Zob._.piece_square[~_active][cpt][dst];
+
+    return key
         ^  Zob._.piece_square[_active][mpt][org]
-        ^  Zob._.piece_square[_active][ppt][dst]
-        ^  (cpt != NONE ? Zob._.piece_square[~_active][cpt][dst] : U64(0));
+        ^  Zob._.piece_square[_active][ppt][dst];
 }
 
 inline Score  Position::psq_score     () const { return _si->psq_score; }
@@ -436,8 +438,8 @@ inline Bitboard Position::attackers_to (Square s, Color c, Bitboard occ) const
 {
     return((BitBoard::PAWN_ATTACKS[~c][s]    & _types_bb[PAWN])
         |  (BitBoard::PIECE_ATTACKS[NIHT][s] & _types_bb[NIHT])
-        |  ((_types_bb[BSHP]|_types_bb[QUEN]) & _color_bb[c] ? BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0))
-        |  ((_types_bb[ROOK]|_types_bb[QUEN]) & _color_bb[c] ? BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0))
+        |  (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]))
+        |  (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]))
         |  (BitBoard::PIECE_ATTACKS[KING][s] & _types_bb[KING])) & _color_bb[c];
 }
 // Attackers to the square 's' by color 'c'
@@ -452,8 +454,8 @@ inline Bitboard Position::attackers_to (Square s, Bitboard occ) const
     return (BitBoard::PAWN_ATTACKS[WHITE][s] & _types_bb[PAWN]&_color_bb[BLACK])
         |  (BitBoard::PAWN_ATTACKS[BLACK][s] & _types_bb[PAWN]&_color_bb[WHITE])
         |  (BitBoard::PIECE_ATTACKS[NIHT][s] & _types_bb[NIHT])
-        |  ((_types_bb[BSHP]|_types_bb[QUEN]) ? BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0))
-        |  ((_types_bb[ROOK]|_types_bb[QUEN]) ? BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0))
+        |  (BitBoard::attacks_bb<BSHP> (s, occ)&(_types_bb[BSHP]|_types_bb[QUEN]))
+        |  (BitBoard::attacks_bb<ROOK> (s, occ)&(_types_bb[ROOK]|_types_bb[QUEN]))
         |  (BitBoard::PIECE_ATTACKS[KING][s] & _types_bb[KING]);
 }
 // Attackers to the square 's'

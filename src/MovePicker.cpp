@@ -190,8 +190,6 @@ namespace MovePick {
     {
         for (auto &m : *this)
         {
-            assert (ptype (_Pos[org_sq (m)]) != NONE);
-
             auto gain_value = _Pos.see_sign (m);
             if (gain_value < VALUE_ZERO)
             {

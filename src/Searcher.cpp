@@ -216,6 +216,7 @@ namespace Searcher {
             // Extra penalty for TT move in previous ply when it gets refuted
             if (   opp_move_dst != SQ_NO
                 && opp_move == (ss-1)->tt_move
+                && mtype (opp_move) != PROMOTE
                 && pos.capture_type () == NONE
                )
             {
@@ -512,7 +513,7 @@ namespace Searcher {
                 ss->current_move = move;
 
                 // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
+                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                 // Make and search the move
                 pos.do_move (move, si, gives_check);
@@ -861,7 +862,7 @@ namespace Searcher {
                                 ss->current_move = move;
 
                                 // Speculative prefetch as early as possible
-                                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
+                                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                                 pos.do_move (move, si, pos.gives_check (move, ci));
 
@@ -1105,7 +1106,7 @@ namespace Searcher {
                 ss->current_move = move;
 
                 // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.posi_move_key (move)));
+                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check);
