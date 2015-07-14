@@ -212,9 +212,9 @@ namespace Searcher {
     // maximum available time, the move game number and other parameters.
     // Support four different kind of time controls, passed in 'limits':
     //
-    // moves_to_go = 0, increment = 0 means: x basetime  [sudden death!]
+    // moves_to_go = 0, increment = 0 means: x basetime [sudden death!]
     // moves_to_go = 0, increment > 0 means: x basetime + z increment
-    // moves_to_go > 0, increment = 0 means: x moves in y basetime
+    // moves_to_go > 0, increment = 0 means: x moves in y basetime [regular clock]
     // moves_to_go > 0, increment > 0 means: x moves in y basetime + z increment
     class TimeManager
     {
