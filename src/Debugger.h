@@ -82,7 +82,7 @@ namespace Debugger {
         {
             if (!_fstm.is_open ())
             {
-                _fstm.open ("io_log.txt", std::ios_base::out|std::ios_base::app);
+                _fstm.open ("DebugLog.txt", std::ios_base::out|std::ios_base::app);
                 _fstm << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
 
                 std::cin .rdbuf (&_innbuf);

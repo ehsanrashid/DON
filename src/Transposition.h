@@ -202,10 +202,10 @@ namespace Transposition {
             }
         }
 
-        // age() increments the "Generation" variable, which is used to
+        // generation() set the "Generation" variable, which is used to
         // distinguish transposition table entries from different searches.
         // It is called at the beginning of every new search.
-        void age () { _generation += 4; }
+        void generation (i32 ply) { _generation = u08(ply << 2); }
         
         u08 generation () const { return _generation; }
 
@@ -284,7 +284,7 @@ namespace Transposition {
             is.read (reinterpret_cast<CharT*> (&generation)   , sizeof (generation));
             is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
             tt.resize (mem_size_mb);
-            tt._generation = generation - 4;
+            tt._generation = generation;
             u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {

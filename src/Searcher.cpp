@@ -1382,7 +1382,7 @@ namespace Searcher {
 
             if (SkillMgr.enabled ()) SkillMgr.clear ();
 
-            TT.age ();
+            TT.generation (RootPly);
             HistoryValues.age ();
             CounterMovesHistoryValues.age ();
 
@@ -1503,8 +1503,6 @@ namespace Searcher {
                     }
                 }
 
-                if (Signals.force_stop) break;
-
                 if (ContemptValue != 0)
                 {
                     Value valued_contempt = Value(i32(RootMoves[0].new_value)/ContemptValue);
@@ -1520,13 +1518,13 @@ namespace Searcher {
                     SearchLog << pretty_pv_info (RootPos, depth, RootMoves[0].new_value, TimeMgr.elapsed_time (), RootMoves[0].pv) << endl;
                 }
 
-                // Stop the search early:
-                bool stop = false;
-
-                // Do have time for the next iteration? Can stop searching now?
-                if (Limits.use_timemanager ())
+                if (!Signals.force_stop && !Signals.ponderhit_stop)
                 {
-                    if (!Signals.force_stop && !Signals.ponderhit_stop)
+                    // Stop the search early:
+                    bool stop = false;
+
+                    // Do have time for the next iteration? Can stop searching now?
+                    if (Limits.use_timemanager ())
                     {
                         // If PV limit = 1 then take some extra time if the best move has changed
                         if (aspiration && LimitPV == 1)
@@ -1548,38 +1546,38 @@ namespace Searcher {
                         {
                             stop = true;
                         }
-                    }
 
-                    if (RootMoves[0].pv.size () >= 3)
-                    {
-                        MoveMgr.update (RootMoves[0].pv);
+                        if (RootMoves[0].pv.size () >= 3)
+                        {
+                            MoveMgr.update (RootMoves[0].pv);
+                        }
+                        else
+                        {
+                            MoveMgr.clear ();
+                        }
                     }
                     else
+                    // Stop if have found a "mate in <x>"
+                    if (   MateSearch
+                        && best_value >= +VALUE_MATE_IN_MAX_DEPTH
+                        && i16(VALUE_MATE - best_value) <= 2*Limits.mate
+                       )
                     {
-                        MoveMgr.clear ();
+                        stop = true;
                     }
-                }
-                else
-                // Stop if have found a "mate in <x>"
-                if (   MateSearch
-                    && best_value >= +VALUE_MATE_IN_MAX_DEPTH
-                    && i16(VALUE_MATE - best_value) <= 2*Limits.mate
-                   )
-                {
-                    stop = true;
-                }
 
-                if (stop)
-                {
-                    // If allowed to ponder do not stop the search now but
-                    // keep pondering until GUI sends "ponderhit" or "stop".
-                    Limits.ponder ? Signals.ponderhit_stop = true : Signals.force_stop = true;
+                    if (stop)
+                    {
+                        // If allowed to ponder do not stop the search now but
+                        // keep pondering until GUI sends "ponderhit" or "stop".
+                        Limits.ponder ? Signals.ponderhit_stop = true : Signals.force_stop = true;
+                    }
                 }
 
             }
 
-            // Clear any candidate easy move that wasn't stable for the last search
-            // iterations; the second condition prevents consecutive fast moves.
+            // Clear any candidate easy move that wasn't stable for the last search iterations;
+            // the second condition prevents consecutive fast moves.
             if (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
             {
                 MoveMgr.clear ();

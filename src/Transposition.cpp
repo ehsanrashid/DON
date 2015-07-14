@@ -117,37 +117,43 @@ namespace Transposition {
         auto *const fte = cluster_entry (key);
         for (auto *ite = fte+0; ite < fte+ClusterEntryCount; ++ite)
         {
-            if (ite->_key == U64(0))
+            if (ite->_key == U64(0) || ite->_key == key)
             {
-                return hit = false, ite;
-            }
-            if (ite->_key == key)
-            {
-                ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
-                
-                return hit = true, ite;
+                hit = ite->_key == key;
+                if (hit) ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
+                return ite;
             }
         }
 
         auto *rte = fte;
+        i32 ev1 = (fte->gen () == _generation) * 0x100 + (fte->bound () == BOUND_EXACT) * 0x80 + fte->_depth;
         for (auto *ite = fte+1; ite < fte+ClusterEntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
-            if ( ((ite->gen () == _generation || ite->bound () == BOUND_EXACT)
-                - (rte->gen () == _generation)
-                - (ite->_depth < rte->_depth)) < 0)
+
+            //if ( ((ite->gen () == _generation || ite->bound () == BOUND_EXACT)
+            //    - (rte->gen () == _generation)
+            //    - (ite->_depth < rte->_depth)) < 0)
+            //{
+            //    rte = ite;
+            //}
+
+            i32 ev2 = (ite->gen () == _generation) * 0x100 + (ite->bound () == BOUND_EXACT) * 0x80 + ite->_depth;
+            if (ev1 > ev2)
             {
+                ev1 = ev2;
                 rte = ite;
             }
         }
-        // By default replace first entry and make place in the last
-        if (rte == fte)
-        {
-            copy (fte+1, fte+ClusterEntryCount, fte);
-            rte = fte+ClusterEntryCount-1;
-        }
+        //// By default replace first entry and make place in the last
+        //if (rte == fte)
+        //{
+        //    copy (fte+1, fte+ClusterEntryCount, fte);
+        //    rte = fte+ClusterEntryCount-1;
+        //}
 
-        return hit = false, rte;
+        hit = false;
+        return rte;
     }
 
     void TranspositionTable::save (string &hash_fn) const
