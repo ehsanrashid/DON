@@ -110,7 +110,7 @@ namespace Transposition {
 
     // probe() looks up the entry in the transposition table.
     // Returns a pointer to the entry found or NULL if not found.
-    TTEntry* TranspositionTable::probe (Key key, bool &hit) const
+    Entry* TranspositionTable::probe (Key key, bool &hit) const
     {
         assert (key != U64(0));
 
@@ -126,14 +126,14 @@ namespace Transposition {
         }
 
         auto *rte = fte;
-        i16 ev1 = (rte->gen () == _generation) * 0x100 + (rte->bound () == BOUND_EXACT) * 0x10 + rte->_depth;
+        i16 rem = (rte->gen () == _generation) * 0x100 + (rte->bound () == BOUND_EXACT) * 0x04 + rte->_depth;
         for (auto *ite = fte+1; ite < fte+ClusterEntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
-            i16 ev2 = (ite->gen () == _generation) * 0x100 + (ite->bound () == BOUND_EXACT) * 0x10 + ite->_depth;
-            if (ev1 > ev2)
+            i16 iem = (ite->gen () == _generation) * 0x100 + (ite->bound () == BOUND_EXACT) * 0x04 + ite->_depth;
+            if (rem > iem)
             {
-                ev1 = ev2;
+                rem = iem;
                 rte = ite;
             }
         }

@@ -10,7 +10,7 @@
 
 namespace Transposition {
 
-    // TTEntry needs 16 byte to be stored
+    // Transposition Entry needs 16 byte to be stored
     //
     //  Key--------- 64 bits
     //  Move-------- 16 bits
@@ -21,7 +21,7 @@ namespace Transposition {
     //  Bound------- 02 bits
     //  ====================
     //  Total-------128 bits = 16 bytes
-    struct TTEntry
+    struct Entry
     {
 
     private:
@@ -82,7 +82,7 @@ namespace Transposition {
     // A Transposition Table consists of a 2^power number of clusters
     // and each cluster consists of ClusterEntryCount number of entry.
     // Each non-empty entry contains information of exactly one position.
-    // Size of a cluster shall not be bigger than a CACHE_LINE_SIZE.
+    // Size of a cluster shall not be bigger than a cache line size.
     // In case it is less, it should be padded to guarantee always aligned accesses.
     class TranspositionTable
     {
@@ -97,7 +97,7 @@ namespace Transposition {
         // 4 x Entry (4 x 16 bytes)
         struct Cluster
         {
-            TTEntry entries[ClusterEntryCount];
+            Entry entries[ClusterEntryCount];
         };
 
 
@@ -137,8 +137,8 @@ namespace Transposition {
 
         // Size of Transposition entry (bytes)
         // 16 bytes
-        static const u08 EntrySize   = sizeof (TTEntry);
-        static_assert (EntrySize == 16, "TTEntry size incorrect");
+        static const u08 EntrySize   = sizeof (Entry);
+        static_assert (EntrySize == 16, "Entry size incorrect");
 
         // Size of Transposition cluster in (bytes)
         // 64 bytes
@@ -211,7 +211,7 @@ namespace Transposition {
 
         // cluster_entry() returns a pointer to the first entry of a cluster given a position.
         // The lower order bits of the key are used to get the index of the cluster inside the table.
-        TTEntry* cluster_entry (Key key) const
+        Entry* cluster_entry (Key key) const
         {
             return _clusters[key & _cluster_mask].entries;
         }
@@ -245,7 +245,7 @@ namespace Transposition {
 
         void auto_size (u64 mem_size_mb, bool force = false);
 
-        TTEntry* probe (Key key, bool &hit) const;
+        Entry* probe (Key key, bool &hit) const;
 
         void save (std::string &hash_fn) const;
         void load (std::string &hash_fn);

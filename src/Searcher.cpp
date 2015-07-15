@@ -595,7 +595,7 @@ namespace Searcher {
 
             Key posi_key;
             bool tt_hit = false;
-            auto *tte = (TTEntry*) nullptr;
+            auto *tte = (Entry*) nullptr;
 
             Move  move
                 , tt_move     = MOVE_NONE
@@ -983,7 +983,7 @@ namespace Searcher {
                 {
                     //nodes = pos.game_nodes ();
 
-                    Signals.firstmove_root = (1 == legal_count);
+                    Signals.firstmove_root = 1 == legal_count;
 
                     if (Threadpool.main () == thread)
                     {
@@ -1126,7 +1126,7 @@ namespace Searcher {
                 {
                     auto reduction_depth = reduction_depths<PVNode> (improving, depth, legal_count);
 
-                    // Increase reduction
+                    // Increase reduction for cut node or negative history
                     if (   (!PVNode && cut_node)
                         || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
                             && cmhv[pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
@@ -1135,13 +1135,10 @@ namespace Searcher {
                     {
                         reduction_depth += DEPTH_ONE;
                     }
-                    // Decrease reduction for counter move or positive history
+                    // Decrease reduction for positive history
                     if (   reduction_depth != DEPTH_ZERO
-                        && (   (move == counter_move)
-                            || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
-                                && cmhv[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
-                               )
-                           )
+                        && HistoryValues[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
+                        && cmhv[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
                        )
                     {
                         reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);

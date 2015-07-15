@@ -504,7 +504,7 @@
       <Field Name="killer_moves" />
     </ShowAsCollectionAssociation>
   </Struct>
-  <Struct Name="Transposition::TTEntry" Collapsed="true">
+  <Struct Name="Transposition::Entry" Collapsed="true">
     <Position X="51.75" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ABCoAAAAAACAAACAAACIQAAAAAAAACAAAAICIAAAAAA=</HashCode>
