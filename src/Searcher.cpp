@@ -69,7 +69,7 @@ namespace Searcher {
 
 #endif
 
-        const Depth FutilityMarginDepth     = Depth(6);
+        const Depth FutilityMarginDepth     = Depth(7);
         // Futility margin lookup table (initialized at startup)
         // [depth]
         Value FutilityMargins[FutilityMarginDepth];
@@ -101,6 +101,35 @@ namespace Searcher {
         
         const Depth LateMoveReductionDepth = Depth(2);
         const u08   FullDepthMoveCount = 1;
+
+        class RootMoveVector
+            : public vector<RootMove>
+        {
+
+        public:
+            void initialize ()
+            {
+                clear ();
+                const auto &root_moves = Limits.root_moves;
+                for (const auto &m : MoveList<LEGAL> (RootPos))
+                {
+                    if (root_moves.empty () || count (root_moves.begin (), root_moves.end (), m) != 0)
+                    {
+                        push_back (RootMove (m));
+                    }
+                }
+            }
+
+            //u64 game_nodes () const
+            //{
+            //    u64 nodes = U64(0);
+            //    for (const auto &rm : *this)
+            //    {
+            //        nodes += rm.nodes;
+            //    }
+            //    return nodes;
+            //}
+        };
 
         // MoveManager class is used to detect a so called 'easy move'; when PV is
         // stable across multiple search iterations we can fast return the best move.
@@ -1775,21 +1804,6 @@ namespace Searcher {
             ss << " " << move_to_can (m, Chess960);
         }
         return ss.str ();
-    }
-
-    // ------------------------------------
-
-    void RootMoveVector::initialize ()
-    {
-        clear ();
-        const auto &root_moves = Limits.root_moves;
-        for (const auto &m : MoveList<LEGAL> (RootPos))
-        {
-            if (root_moves.empty () || count (root_moves.begin (), root_moves.end (), m) != 0)
-            {
-                push_back (RootMove (m));
-            }
-        }
     }
 
     // ------------------------------------

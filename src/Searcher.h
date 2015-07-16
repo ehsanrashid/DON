@@ -123,24 +123,6 @@ namespace Searcher {
 
     };
 
-    class RootMoveVector
-        : public std::vector<RootMove>
-    {
-
-    public:
-        void initialize ();
-
-        //u64 game_nodes () const
-        //{
-        //    u64 nodes = U64(0);
-        //    for (const auto &rm : *this)
-        //    {
-        //        nodes += rm.nodes;
-        //    }
-        //    return nodes;
-        //}
-    };
-
     class SkillManager
     {
 
