@@ -934,7 +934,7 @@ namespace Searcher {
             }
 
             // Splitpoint start
-            // When in check and at SPNode search starts from here
+            // When in check or at SPNode search starts from here
 
             auto value = best_value;
 

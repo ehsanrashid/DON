@@ -156,7 +156,7 @@ namespace Transposition {
         
         static const u32 BufferSize  = 0x10000;
 
-        static bool ClearHash;
+        static bool RetainHash;
 
         TranspositionTable () {}
 
@@ -187,7 +187,7 @@ namespace Transposition {
         // 'ucinewgame' (from the UCI interface).
         void clear ()
         {
-            if (ClearHash && _clusters != nullptr)
+            if (!RetainHash && _clusters != nullptr)
             {
                 memset (_clusters, 0x00, _cluster_count * ClusterSize);
                 _generation = 0;

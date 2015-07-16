@@ -12,7 +12,7 @@ namespace Transposition {
 
     using namespace std;
 
-    bool TranspositionTable::ClearHash        = true;
+    bool TranspositionTable::RetainHash        = false;
 
     void TranspositionTable::alloc_aligned_memory (u64 mem_size, u32 alignment)
     {

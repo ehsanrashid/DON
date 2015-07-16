@@ -131,6 +131,11 @@ namespace UCI {
     // Option Actions
     namespace {
 
+        void change_hash ()
+        {
+            TT.auto_size (i32(Options["Hash"]), false);
+        }
+
 #   ifdef LPAGES
         void large_pages ()
         {
@@ -143,14 +148,9 @@ namespace UCI {
             reset ();
         }
 
-        void never_clear_hash ()
+        void retain_hash ()
         {
-            TranspositionTable::ClearHash = !bool(Options["Never Clear Hash"]);
-        }
-
-        void change_hash ()
-        {
-            TT.auto_size (i32(Options["Hash"]), false);
+            TranspositionTable::RetainHash = bool(Options["Retain Hash"]);
         }
 
         void save_hash   ()
@@ -228,7 +228,7 @@ namespace UCI {
 
         void on_debuglog ()
         {
-            bool(Options["Write Debug Log"]) ?
+            bool(Options["Debug Log"]) ?
                 Logger::instance ().start () : Logger::instance ().stop ();
         }
         void on_searchlog ()
@@ -278,7 +278,7 @@ namespace UCI {
         //
         // Check this option also if you want to Load the Hash from disk file,
         // otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
-        Options["Never Clear Hash"]             << Option (false, never_clear_hash);
+        Options["Retain Hash"]                  << Option (TranspositionTable::RetainHash, retain_hash);
 
         // Persistent Hash Options
         // -----------------------
@@ -434,7 +434,7 @@ namespace UCI {
         // ---------------------------------------------------------------------------------------
         // Other Options
         // -------------
-        Options["Write Debug Log"]              << Option (false, on_debuglog);
+        Options["Debug Log"]                    << Option (false, on_debuglog);
         // The filename of the search log.
         Options["Search File"]                  << Option (SearchFile, on_searchlog);
 
