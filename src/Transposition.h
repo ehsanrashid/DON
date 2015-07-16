@@ -46,32 +46,25 @@ namespace Transposition {
 
         void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
-            if (k != _key)
-            {
-                _key        = u64(k);
-            }
             // Preserve any existing move for the same key
             if (   k != _key
                 || m != MOVE_NONE
                )
             {
+                _key        = u64(k);
                 _move       = u16(m);
             }
             // Don't overwrite more valuable entries
             if (   k != _key
-                || e != VALUE_NONE
-               )
-            {
-                _eval       = u16(e);
-            }
-            if (   k != _key
                 //|| v != VALUE_NONE
+                //|| e != VALUE_NONE
                 || d > _depth - 2
                 || g != gen ()
                 || b == BOUND_EXACT
                )
             {
-                _value      = u16(v);
+                _value      = i16(v);
+                _eval       = i16(e);
                 _depth      = i08(d);
                 _gen_bnd    = u08(g | b);
             }
@@ -205,7 +198,7 @@ namespace Transposition {
         // generation() set the "Generation" variable, which is used to
         // distinguish transposition table entries from different searches.
         // It is called at the beginning of every new search.
-        void generation (i32 ply) { _generation = u08(ply << 2); }
+        void generation (i32 ply) { _generation = u08((ply << 2)&0xFC); }
         
         u08 generation () const { return _generation; }
 

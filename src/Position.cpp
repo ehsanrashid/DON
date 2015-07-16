@@ -156,7 +156,7 @@ bool Position::draw () const
     // Draw by Threefold Repetition?
     const auto *psi = _si;
     //u08 cnt = 1;
-    for (auto ply = min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
+    for (i16 ply = min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
     {
         psi = psi->ptr->ptr;
         if (psi->posi_key == _si->posi_key)
@@ -198,7 +198,7 @@ bool Position::repeated () const
     auto *si = _si;
     while (si != nullptr)
     {
-        auto ply = min (si->clock50, si->null_ply);
+        i16 ply = min (si->clock50, si->null_ply);
         if (4 > ply) return false;
         auto *psi = si->ptr->ptr;
         do
