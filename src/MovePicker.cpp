@@ -139,7 +139,7 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    // value() assign a numerical move ordering score to each move in a move list.
+    // value() assigns a numerical move ordering score to each move in a move list.
     // The moves with highest scores will be picked first.
 
     template<>
@@ -214,6 +214,8 @@ namespace MovePick {
     // when there are no more moves to try for the current stage.
     void MovePicker::generate_next_stage ()
     {
+        assert(_stage != S_STOP);
+
         _moves_cur = _moves_beg;
 
         switch (++_stage)
@@ -290,10 +292,8 @@ namespace MovePick {
         case S_QSEARCH_WITHOUT_CHECK:
         case S_PROBCUT:
         case S_RECAPTURE:
-            _stage = S_STOP;
-
         case S_STOP:
-            _moves_end = _moves_cur+1; // Avoid another generate_next_stage() call
+            _stage = S_STOP;
             break;
 
         default:
@@ -311,7 +311,7 @@ namespace MovePick {
     {
         do
         {
-            while (_moves_cur == _moves_end)
+            while (_moves_cur == _moves_end && _stage != S_STOP)
             {
                 generate_next_stage ();
             }
@@ -391,6 +391,17 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
+            case S_QUIET_CHECK:
+                do
+                {
+                    move = *_moves_cur++;
+                    if (move != _tt_move)
+                    {
+                        return move;
+                    }
+                } while (_moves_cur < _moves_end);
+                break;
+
             case S_PROBCUT_CAPTURE:
                 do
                 {
@@ -414,17 +425,6 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            case S_QUIET_CHECK:
-                do
-                {
-                    move = *_moves_cur++;
-                    if (move != _tt_move)
-                    {
-                        return move;
-                    }
-                } while (_moves_cur < _moves_end);
-                break;
-
             case S_STOP:
                 return MOVE_NONE;
                 break;
@@ -433,7 +433,7 @@ namespace MovePick {
                 assert (false);
                 break;
             }
-        } while (true); // (_stage <= S_STOP)
+        } while (true);
     }
 
     template<>
