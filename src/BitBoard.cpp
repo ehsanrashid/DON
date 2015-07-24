@@ -66,24 +66,24 @@ namespace BitBoard {
 
         // Max Linear Moves (for rook from any corner square)
         // 2 ^ 12 = 4096 = 0x1000
-        const u16 MAX_LMOVES =   U32(0x1000);
+        const u16 MAX_MOVES  = U32(0x1000);
         
-        // Max Bishop Moves
+        // Max Bishop Table
         // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
         // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
         //    2048 +     256 +     1536 +     1408
         //                                    5248 = 0x1480
-        const u32 MAX_BMOVES = U32(0x1480);
+        const u32 MAX_BTABLE = U32(0x1480);
         
-        // Max Rook Moves
+        // Max Rook Table
         // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
         // 4 * 4096 + 24 * 2048 + 36 * 1024
         //    16384 +     49152 +     36864
         //                           102400 = 0x19000
-        const u32 MAX_RMOVES = U32(0x19000);
+        const u32 MAX_RTABLE = U32(0x19000);
 
-        Bitboard B_TABLE_bb[MAX_BMOVES];
-        Bitboard R_TABLE_bb[MAX_RMOVES];
+        Bitboard B_TABLE_bb[MAX_BTABLE];
+        Bitboard R_TABLE_bb[MAX_RTABLE];
 
         typedef u16(*Indexer) (Square s, Bitboard occ);
 
@@ -102,10 +102,10 @@ namespace BitBoard {
                 { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C }; // 32-bit
 #           endif
 
-            Bitboard occupancy[MAX_LMOVES]
-                   , reference[MAX_LMOVES];
+            Bitboard occupancy[MAX_MOVES]
+                   , reference[MAX_MOVES];
             
-            i32      ages     [MAX_LMOVES]
+            i32      ages     [MAX_MOVES]
                    , cur_age = 0;
             
             fill (begin (ages), end (ages), 0);

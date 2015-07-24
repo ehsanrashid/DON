@@ -196,16 +196,16 @@ namespace BitBoard {
     inline Bitboard rel_rank_bb (Color c, Rank   r) { return RANK_bb[rel_rank (c, r)]; }
     inline Bitboard rel_rank_bb (Color c, Square s) { return RANK_bb[rel_rank (c, s)]; }
 
-    // board_edges() returns a bitboard of edges of the board
-    inline Bitboard board_edges (Square s) { return ((FA_bb | FH_bb) & ~file_bb (s)) | ((R1_bb | R8_bb) & ~rank_bb (s)); }
+    // board_edges() returns a bitboard of edges of the board for given square
+    inline Bitboard board_edges (Square s) { return ((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)); }
 
     // Check the squares s1, s2 and s3 are aligned either on a straight/diagonal line.
-    inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return RAYLINE_bb[s1][s2] & s3; }
+    inline bool sqrs_aligned  (Square s1, Square s2, Square s3) { return (RAYLINE_bb[s1][s2] & s3) != U64(0); }
 
     inline bool more_than_one (Bitboard bb)
     {
 #   ifndef BM2
-        return bb & (bb - 1);
+        return (bb & (bb - 1)) != U64(0);
 #   else
         return BLSR (bb);
 #   endif
@@ -241,7 +241,7 @@ namespace BitBoard {
             while (_ok (sq) && dist (sq, sq - del) == 1)
             {
                 slid_attacks += sq;
-                if (occ & sq) break;
+                if ((occ & sq) != U64(0)) break;
                 sq += del;
             }
         }

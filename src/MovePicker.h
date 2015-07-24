@@ -24,8 +24,8 @@ namespace MovePick {
         void _clear (Move  &m) { m = MOVE_NONE; }
         void _clear (Stats<Value> &vs) { vs.clear (); }
 
-        void _age (Value &v) { v *= 0.75; }
-        void _age (Stats<Value> &vs) { vs.age (); }
+        void _age (Value &v, double factor) { v *= factor; }
+        void _age (Stats<Value> &vs, double factor) { vs.age (factor); }
 
     public:
 
@@ -43,11 +43,11 @@ namespace MovePick {
 
         // ------
 
-        void age ()
+        void age (double factor)
         {
             for (auto &t : _table)
                 for (auto &e : t)
-                    _age (e);
+                    _age (e, factor);
         }
 
         void update (const Position &pos, Move m, Value v)
@@ -55,7 +55,7 @@ namespace MovePick {
             auto s = dst_sq (m);
             auto p = pos[org_sq (m)];
             auto &e = _table[p][s];
-            e = std::min (std::max (e + v, -MAX_STATS_VALUE), +MAX_STATS_VALUE);
+            e = std::min (std::max (e + v, -MAX_STATS_VALUE+1), +MAX_STATS_VALUE-1);
         }
 
         // ------
