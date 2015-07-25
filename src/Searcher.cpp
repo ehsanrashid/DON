@@ -1566,7 +1566,7 @@ namespace Searcher {
                             || TimeMgr.elapsed_time () > TimeMgr.available_time ()
                             || (   RootMoves[0].pv[0] == easy_move
                                 && TimeMgr.best_move_change < 0.03
-                                && TimeMgr.elapsed_time () > TimeMgr.available_time () / 10
+                                && TimeMgr.elapsed_time () > TimeMgr.available_time () * 0.10
                                )
                            )
                         {
@@ -2197,7 +2197,6 @@ namespace Threading {
                     sp.spinlock.acquire ();
 
                     nodes += sp.nodes;
-
                     for (size_t idx = 0; idx < Threadpool.size (); ++idx)
                     {
                         if (sp.slaves_mask.test (idx) && Threadpool[idx]->active_pos != nullptr)
@@ -2205,6 +2204,7 @@ namespace Threading {
                             nodes += Threadpool[idx]->active_pos->game_nodes ();
                         }
                     }
+
                     sp.spinlock.release ();
                 }
             }

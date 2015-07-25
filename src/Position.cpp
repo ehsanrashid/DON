@@ -1647,7 +1647,7 @@ Position::operator string () const
 
     for (auto r = R_8; r >= R_1; --r)
     {
-        board += to_char (r) + ((r % 2) ? ROW_1 : ROW_2);
+        board += to_char (r) + ((r % 2) != 0 ? ROW_1 : ROW_2);
     }
     for (auto f = F_A; f <= F_H; ++f)
     {
