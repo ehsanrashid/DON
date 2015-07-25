@@ -257,8 +257,8 @@ namespace Evaluator {
         // friendly minor pieces.
         const Bitboard SPACE_MASK[CLR_NO] =
         {
-            ((FC_bb | FD_bb | FE_bb | FF_bb) & (R2_bb | R3_bb | R4_bb)),
-            ((FC_bb | FD_bb | FE_bb | FF_bb) & (R7_bb | R6_bb | R5_bb))
+            ((FC_bb|FD_bb|FE_bb|FF_bb) & (R2_bb|R3_bb|R4_bb)),
+            ((FC_bb|FD_bb|FE_bb|FF_bb) & (R7_bb|R6_bb|R5_bb))
         };
 
         // King danger constants and variables. The king danger scores are taken
@@ -361,8 +361,8 @@ namespace Evaluator {
                 auto attacks =
                     BSHP == PT ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, BSHP)) | ei.pinneds[Own]) :
                     ROOK == PT ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
-                    QUEN == PT ? attacks_bb<BSHP> (s, pos.pieces () ^ pos.pieces (Own, QUEN))
-                               | attacks_bb<ROOK> (s, pos.pieces () ^ pos.pieces (Own, QUEN)) :
+                    QUEN == PT ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own])
+                               | attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own]) :
                                  PIECE_ATTACKS[PT][s];
 
                 ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= attacks;
@@ -852,16 +852,14 @@ namespace Evaluator {
                     {
                         // Only one real pinner exist other are fake pinner
                         auto pawn_pinners = pos.pieces (Opp) & RAYLINE_bb[pos.king_sq (Own)][s] &
-                            ( (attacks_bb<ROOK> (s, pos.pieces ()) & pos.pieces (ROOK, QUEN))
-                            | (attacks_bb<BSHP> (s, pos.pieces ()) & pos.pieces (BSHP, QUEN))
+                            (  (attacks_bb<ROOK> (s, pos.pieces ()) & pos.pieces (ROOK, QUEN))
+                             | (attacks_bb<BSHP> (s, pos.pieces ()) & pos.pieces (BSHP, QUEN))
                             );
                         pinned = (BETWEEN_bb[pos.king_sq (Own)][scan_lsq (pawn_pinners)] & block_sq) == U64(0);
                     }
 
-                    if (!pinned)
-                    {
                     // If the pawn is free to advance
-                    if (pos.empty (block_sq))
+                    if (!pinned && pos.empty (block_sq))
                     {
                         // Squares to queen
                         auto front_squares = FRONT_SQRS_bb[Own][s];
@@ -909,7 +907,6 @@ namespace Evaluator {
                         mg_value += 3*rr + 2*r + 3;
                         eg_value += 1*rr + 2*r + 0;
                     }
-                    }
                 }
 
                 // If non-pawn pieces difference
@@ -942,9 +939,10 @@ namespace Evaluator {
         {
             const auto Opp = WHITE == Own ? BLACK : WHITE;
 
-            // Find the safe squares for our pieces inside the area defined by
-            // SPACE_MASK[]. A square is unsafe if it is attacked by an enemy
-            // pawn, or if it is undefended and attacked by an enemy piece.
+            // Find the safe squares for our pieces inside the area defined by SPACE_MASK[].
+            // A square is unsafe:
+            // if it is attacked by an enemy pawn or
+            // if it is undefended and attacked by an enemy piece.
             auto safe_space =
                   SPACE_MASK[Own]
                 & ~pos.pieces (Own, PAWN)
@@ -1021,8 +1019,8 @@ namespace Evaluator {
             // Do not include in mobility squares occupied by friend pawns or king or protected by enemy pawns 
             Bitboard mobility_area[CLR_NO] =
             {
-                ~(ei.pin_attacked_by[BLACK][PAWN] | pos.pieces (WHITE, PAWN, KING)),
-                ~(ei.pin_attacked_by[WHITE][PAWN] | pos.pieces (BLACK, PAWN, KING))
+                ~(ei.pin_attacked_by[BLACK][PAWN] | ei.pi->blocked_pawns[WHITE] | pos.pieces (WHITE, KING)),
+                ~(ei.pin_attacked_by[WHITE][PAWN] | ei.pi->blocked_pawns[BLACK] | pos.pieces (BLACK, KING))
             };
 
             score += 

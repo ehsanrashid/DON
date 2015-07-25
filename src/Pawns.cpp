@@ -105,8 +105,8 @@ namespace Pawns {
         // Center bind mask
         const Bitboard CENTER_BIND_MASK[CLR_NO] =
         {
-            (FD_bb | FE_bb) & (R5_bb | R6_bb | R7_bb),
-            (FD_bb | FE_bb) & (R4_bb | R3_bb | R2_bb)
+            (FD_bb|FE_bb) & (R5_bb|R6_bb|R7_bb),
+            (FD_bb|FE_bb) & (R4_bb|R3_bb|R2_bb)
         };
         // Center bind bonus: Two pawns controlling the same central square
         const Score CENTER_BIND = S(16, 0);
@@ -116,15 +116,17 @@ namespace Pawns {
         {
             const auto Opp   = WHITE == Own ? BLACK  : WHITE;
             const auto Push  = WHITE == Own ? DEL_N  : DEL_S;
-            const auto Pull  = WHITE == Own ? DEL_S  : DEL_N;
-            const auto Left  = WHITE == Own ? DEL_NW : DEL_SE;
-            const auto Right = WHITE == Own ? DEL_NE : DEL_SW;
 
             const auto own_pawns = pos.pieces (Own, PAWN);
             const auto opp_pawns = pos.pieces (Opp, PAWN);
 
-            e->pawns_attacks  [Own] = shift_del<Left> (own_pawns) | shift_del<Right> (own_pawns);
-            e->blocked_pawns  [Own] = own_pawns & shift_del<Pull> (opp_pawns);
+            e->pawns_attacks  [Own] = shift_del<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns)
+                                    | shift_del<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
+            // Find pawns which can't move forward and which can't capture
+            e->blocked_pawns  [Own] = own_pawns & ~(  shift_del<WHITE == Own ? DEL_S  : DEL_N > (~pos.pieces ())
+                                                     | shift_del<WHITE == Own ? DEL_SE : DEL_NW> (pos.pieces (Opp))
+                                                     | shift_del<WHITE == Own ? DEL_SW : DEL_NE> (pos.pieces (Opp))
+                                                    );
             e->passed_pawns   [Own] = U64(0);
             e->semiopen_files [Own] = 0xFF;
             e->king_sq        [Own] = SQ_NO;
@@ -152,7 +154,7 @@ namespace Pawns {
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
-                assert (pos[s] == (Own | PAWN));
+                assert (pos[s] == (Own|PAWN));
 
                 auto f = _file (s);
 
@@ -246,7 +248,9 @@ namespace Pawns {
             e->pawn_span[Own] = b != U64(0) ? u08(scan_msq (b) - scan_lsq (b)) : 0;
 
             // Center binds: Two pawns controlling the same central square
-            b = shift_del<Left> (own_pawns) & shift_del<Right> (own_pawns) & CENTER_BIND_MASK[Own];
+            b = CENTER_BIND_MASK[Own]
+              & shift_del<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns)
+              & shift_del<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
             pawn_score += CENTER_BIND * pop_count<MAX15> (b);
 
             return pawn_score;

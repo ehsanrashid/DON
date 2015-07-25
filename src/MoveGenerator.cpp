@@ -193,18 +193,11 @@ namespace MoveGen {
                 const auto Right = WHITE == Own ? DEL_NE : DEL_SW;
                 const auto Left  = WHITE == Own ? DEL_NW : DEL_SE;
 
-                auto pawns = pos.pieces (Own, PAWN);
+                auto R7_pawns = pos.pieces (Own, PAWN) &  rel_rank_bb (Own, R_7);
+                auto Rx_pawns = pos.pieces (Own, PAWN) & ~rel_rank_bb (Own, R_7);
 
-                auto R7_pawns = pawns &  rel_rank_bb (Own, R_7);
-                auto Rx_pawns = pawns & ~R7_pawns;
-
-                Bitboard enemies;
-                switch (GT)
-                {
-                case CAPTURE: enemies = targets;                    break;
-                case EVASION: enemies = pos.pieces (Opp) & targets; break;
-                default:      enemies = pos.pieces (Opp);           break;
-                }
+                auto enemies = EVASION == GT ? pos.pieces (Opp) & targets :
+                               CAPTURE == GT ? targets : pos.pieces (Opp);
 
                 auto empties = U64(0);
                 // Pawn single-push and double-push, no promotions
@@ -227,10 +220,8 @@ namespace MoveGen {
                     case QUIET_CHECK:
                         if (ci != nullptr)
                         {
-                            auto pawn_attacks = PAWN_ATTACKS[Opp][ci->king_sq];
-
-                            push_1 &= pawn_attacks;
-                            push_2 &= pawn_attacks;
+                            push_1 &= PAWN_ATTACKS[Opp][ci->king_sq];
+                            push_2 &= PAWN_ATTACKS[Opp][ci->king_sq];
 
                             // Pawns which give discovered check
                             // Add pawn pushes which give discovered check. This is possible only
@@ -291,12 +282,8 @@ namespace MoveGen {
                     // All time except when EVASION then 2nd condition must true
                     if (EVASION != GT || (targets & rel_rank_bb (Own, R_8)) != U64(0))
                     {
-                        switch (GT)
-                        {
-                        case CAPTURE: empties = ~pos.pieces (); break;
-                        case EVASION: empties &= targets;       break;
-                        default:                                break;
-                        }
+                        empties = EVASION == GT ? empties & targets :
+                                  CAPTURE == GT ? ~pos.pieces () : empties;
 
                         // Promoting pawns
                         Bitboard b;
