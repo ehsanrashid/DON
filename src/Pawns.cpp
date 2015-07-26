@@ -122,11 +122,11 @@ namespace Pawns {
 
             e->pawns_attacks  [Own] = shift_del<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns)
                                     | shift_del<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
-            // Find pawns which can't move forward and which can't capture
-            e->blocked_pawns  [Own] = own_pawns & ~(  shift_del<WHITE == Own ? DEL_S  : DEL_N > (~pos.pieces ())
-                                                     | shift_del<WHITE == Own ? DEL_SE : DEL_NW> (pos.pieces (Opp))
-                                                     | shift_del<WHITE == Own ? DEL_SW : DEL_NE> (pos.pieces (Opp))
-                                                    );
+            //// Find pawns which can't move forward and which can't capture
+            //e->blocked_pawns  [Own] = own_pawns & ~(  shift_del<WHITE == Own ? DEL_S  : DEL_N > (~pos.pieces (PAWN))
+            //                                        | shift_del<WHITE == Own ? DEL_SE : DEL_NW> (opp_pawns)
+            //                                        | shift_del<WHITE == Own ? DEL_SW : DEL_NE> (opp_pawns)
+            //                                       );
             e->passed_pawns   [Own] = U64(0);
             e->semiopen_files [Own] = 0xFF;
             e->king_sq        [Own] = SQ_NO;

@@ -298,8 +298,8 @@ namespace Evaluator {
             if (pinned_pawns != U64(0))
             {
                 auto free_pawns    = pos.pieces (Own, PAWN) & ~pinned_pawns;
-                auto pawns_attacks = shift_del<WHITE == Own ? DEL_NE : DEL_SW> (free_pawns) |
-                                     shift_del<WHITE == Own ? DEL_NW : DEL_SE> (free_pawns);
+                auto pawns_attacks = shift_del<WHITE == Own ? DEL_NE : DEL_SW> (free_pawns)
+                                   | shift_del<WHITE == Own ? DEL_NW : DEL_SE> (free_pawns);
                 while (pinned_pawns != U64(0))
                 {
                     auto s = pop_lsq (pinned_pawns);
@@ -363,7 +363,7 @@ namespace Evaluator {
                     ROOK == PT ? attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN, ROOK)) | ei.pinneds[Own]) :
                     QUEN == PT ? attacks_bb<BSHP> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own])
                                | attacks_bb<ROOK> (s, (pos.pieces () ^ pos.pieces (Own, QUEN)) | ei.pinneds[Own]) :
-                                 PIECE_ATTACKS[PT][s];
+                    /*NIHT == PT*/PIECE_ATTACKS[PT][s];
 
                 ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PT] |= attacks;
                 
@@ -386,23 +386,24 @@ namespace Evaluator {
                 {
                     attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
                                  | ei.pin_attacked_by[Opp][BSHP]
-                                )
-                             |  (  ei.pin_attacked_by[Own][PAWN]
-                                 | ei.pin_attacked_by[Own][NIHT]
-                                 | ei.pin_attacked_by[Own][BSHP]
                                 );
+                             //|  (  ei.pin_attacked_by[Own][PAWN]
+                             //    | ei.pin_attacked_by[Own][NIHT]
+                             //    | ei.pin_attacked_by[Own][BSHP]
+                             //   );
                 }
+                else
                 */
                 if (QUEN == PT)
                 {
                     attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
                                  | ei.pin_attacked_by[Opp][BSHP]
                                  | ei.pin_attacked_by[Opp][ROOK]
-                                )
-                             |  (  ei.pin_attacked_by[Own][NIHT]
-                                 | ei.pin_attacked_by[Own][BSHP]
-                                 | ei.pin_attacked_by[Own][ROOK]
                                 );
+                             //|  (  ei.pin_attacked_by[Own][NIHT]
+                             //    | ei.pin_attacked_by[Own][BSHP]
+                             //    | ei.pin_attacked_by[Own][ROOK]
+                             //   );
                 }
 
                 i32 mob = pop_count<QUEN == PT ? FULL : MAX15> (attacks & mobility_area);
@@ -414,7 +415,7 @@ namespace Evaluator {
                 {
                     // Minors (bishop or knight) behind a pawn
                     if (   rel_rank (Own, s) < R_5
-                        && pos.pieces (PAWN) & (s + Push)
+                        && pos.pieces (PAWN) & (s+Push)
                        )
                     {
                         score += MINOR_BEHIND_PAWN;
@@ -425,7 +426,7 @@ namespace Evaluator {
                         // Outpost for knight
                         if (   rel_rank (Own, s) >= R_4
                             //&& rel_rank (Own, s) <= R_6
-                            && (pos.pieces (Opp, PAWN) & ~(ei.pi->blocked_pawns[Opp] & FRONT_RANK_bb[Own][_rank (s+Push)]) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
+                            && (pos.pieces (Opp, PAWN) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
                            )
                         {
                             score += KNIGHT_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
@@ -439,7 +440,7 @@ namespace Evaluator {
                         // Outpost for bishop
                         if (   rel_rank (Own, s) >= R_4
                             //&& rel_rank (Own, s) <= R_6
-                            && (pos.pieces (Opp, PAWN) & ~(ei.pi->blocked_pawns[Opp] & FRONT_RANK_bb[Own][_rank (s+Push)]) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
+                            && (pos.pieces (Opp, PAWN) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
                            )
                         {
                             score += BISHOP_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
@@ -447,7 +448,7 @@ namespace Evaluator {
 
                         if (s == rel_sq (Own, SQ_A8) || s == rel_sq (Own, SQ_H8))
                         {
-                            auto del = (F_A == _file (s) ? DEL_E : DEL_W) - Push;
+                            auto del = (F_A == _file (s) ? DEL_E : DEL_W)-Push;
                             if (pos[s + del] == (Own|PAWN))
                             {
                                 score -= BISHOP_TRAPPED;
@@ -461,18 +462,18 @@ namespace Evaluator {
                         {
                             if (s == rel_sq (Own, SQ_A1) || s == rel_sq (Own, SQ_H1))
                             {
-                                auto del = Push + (F_A == _file (s) ? DEL_E : DEL_W);
-                                if (pos[s + del] == (Own|PAWN))
+                                auto del = (F_A == _file (s) ? DEL_E : DEL_W)+Push;
+                                if (pos[s+del] == (Own|PAWN))
                                 {
                                     score -= BISHOP_TRAPPED *
-                                            (  !pos.empty (s + del + Push) ? 4 :
-                                                pos[s + del + del] == (Own|PAWN) ? 2 : 1);
+                                            (  !pos.empty (s+del+Push) ? 4 :
+                                                pos[s+del+del] == (Own|PAWN) ? 2 : 1);
                                 }
                             }
                         }
                     }
                 }
-
+                else
                 if (ROOK == PT)
                 {
                     if (R_4 < rel_rank (Own, s))
@@ -835,7 +836,7 @@ namespace Evaluator {
 
                 if (rr != 0)
                 {
-                    auto block_sq = s + Push;
+                    auto block_sq = s+Push;
 
                     // Adjust bonus based on kings proximity
                     eg_value += 
@@ -844,7 +845,7 @@ namespace Evaluator {
                     // If block square is not the queening square then consider also a second push
                     if (rel_rank (Own, block_sq) != R_8)
                     {
-                        eg_value -= 1*rr*dist (pos.king_sq (Own), block_sq + Push);
+                        eg_value -= 1*rr*dist (pos.king_sq (Own), block_sq+Push);
                     }
 
                     bool pinned = (ei.pinneds[Own] & s) != U64(0);
@@ -1016,11 +1017,17 @@ namespace Evaluator {
 
             // Evaluate pieces and mobility
             Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
-            // Do not include in mobility squares occupied by friend pawns or king or protected by enemy pawns 
+            // Find pawns which can't move forward on rank 4 and above and which can't capture
+            Bitboard blocked_pawns[CLR_NO] =
+            {
+                pos.pieces (WHITE, PAWN) & ~(shift_del<DEL_S> (~pos.pieces ()) | shift_del<DEL_SW> (pos.pieces (BLACK)) | shift_del<DEL_SE> (pos.pieces (BLACK))),
+                pos.pieces (BLACK, PAWN) & ~(shift_del<DEL_N> (~pos.pieces ()) | shift_del<DEL_NW> (pos.pieces (WHITE)) | shift_del<DEL_NE> (pos.pieces (WHITE)))
+            };
+            // Do not include in mobility squares protected by enemy pawns or occupied by friend blocked pawns or king
             Bitboard mobility_area[CLR_NO] =
             {
-                ~(ei.pin_attacked_by[BLACK][PAWN] | ei.pi->blocked_pawns[WHITE] | pos.pieces (WHITE, KING)),
-                ~(ei.pin_attacked_by[WHITE][PAWN] | ei.pi->blocked_pawns[BLACK] | pos.pieces (BLACK, KING))
+                ~(ei.pin_attacked_by[BLACK][PAWN] | blocked_pawns[WHITE] | pos.pieces (WHITE, KING)),
+                ~(ei.pin_attacked_by[WHITE][PAWN] | blocked_pawns[BLACK] | pos.pieces (BLACK, KING))
             };
 
             score += 
@@ -1170,13 +1177,11 @@ namespace Evaluator {
     // initialize() init evaluation weights
     void initialize ()
     {
-        const i32 MAX_SLOPE  = 8700;
-        const i32 PEAK_VALUE = 1280000;
-        
         i32 mg = 0;
         for (i32 i = 0; i < MAX_ATTACK_UNITS; ++i)
         {
-            mg = min (min (i*i*27, mg + MAX_SLOPE), PEAK_VALUE);
+            //                          MAX_SLOPE  PEAK_VALUE
+            mg = min (min (i*i*27, mg + 8700), 1280000);
             KING_DANGER[i] = mk_score (mg/1000, 0) * WEIGHTS[KING_SAFETY];
         }
     }
