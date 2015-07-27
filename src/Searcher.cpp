@@ -1564,7 +1564,7 @@ namespace Searcher {
                         // If matched an easy move from the previous search and just did a fast verification.
                         if (   RootMoves.size () == 1
                             || TimeMgr.elapsed_time () > TimeMgr.available_time ()
-                            || (   RootMoves[0].pv[0] == easy_move
+                            || (   RootMoves[0] == easy_move
                                 && TimeMgr.best_move_change < 0.03
                                 && TimeMgr.elapsed_time () > TimeMgr.available_time () * 0.10
                                )
@@ -2036,7 +2036,7 @@ namespace Searcher {
                 << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / elapsed_time << "\n"
                 << "Hash-full  : " << TT.hash_full ()                           << "\n"
                 << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
-            if (    RootMoves[0].pv[0] != MOVE_NONE
+            if (    RootMoves[0] != MOVE_NONE
                 && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt ())
                )
             {
@@ -2068,7 +2068,7 @@ namespace Searcher {
 
         // Best move could be MOVE_NONE when searching on a stalemate position
         sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], Chess960);
-        if (    RootMoves[0].pv[0] != MOVE_NONE
+        if (    RootMoves[0] != MOVE_NONE
             && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt ())
            )
         {

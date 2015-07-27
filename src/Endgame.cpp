@@ -110,7 +110,7 @@ namespace EndGame {
         add<KRKN>    ("KRKN");
         add<KQKP>    ("KQKP");
         add<KQKR>    ("KQKR");
-        add<KBBKN>   ("KBBKN"); // retired
+        add<KBBKN>   ("KBBKN");
 
         add<KNPK>    ("KNPK");
         add<KNPKB>   ("KNPKB");
@@ -148,8 +148,7 @@ namespace EndGame {
         auto sk_sq = pos.king_sq (_strong_side);
         auto wk_sq = pos.king_sq (  _weak_side);
 
-        Value value = pos.non_pawn_material (_strong_side)
-                    + pos.count<PAWN> (_strong_side) * VALUE_EG_PAWN
+        Value value = pos.count<PAWN> (_strong_side) * VALUE_EG_PAWN
                     + PUSH_TO_EDGE[wk_sq] + PUSH_CLOSE[dist (sk_sq, wk_sq)];
 
         if (    pos.count<QUEN> (_strong_side) > 0
@@ -159,7 +158,7 @@ namespace EndGame {
             ||  pos.count<NIHT> (_strong_side) > 2
            )
         {
-            value += VALUE_KNOWN_WIN;
+            value += pos.non_pawn_material (_strong_side) + VALUE_KNOWN_WIN;
         }
         else
         {
@@ -273,7 +272,7 @@ namespace EndGame {
             && dist (sk_sq, wp_sq) > 2 + (_strong_side == pos.active ())
            )
         {
-            value = Value(80 - dist (sk_sq, wp_sq) * 8);
+            value = Value(80 - 8 * dist (sk_sq, wp_sq));
         }
         else
         {
@@ -325,6 +324,7 @@ namespace EndGame {
 
         auto wk_sq = pos.king_sq (_weak_side);
         auto wn_sq = pos.list<NIHT> (_weak_side)[0];
+
         Value value  = Value(PUSH_TO_EDGE[wk_sq] + PUSH_AWAY[dist (wk_sq, wn_sq)]);
 
         // If weaker king is near the knight, it's a draw.
@@ -410,9 +410,11 @@ namespace EndGame {
                 wn_sq = ~wn_sq;
             }
 
-            value = VALUE_MG_BSHP + PUSH_TO_CORNER[wk_sq]
-                  + PUSH_CLOSE[dist (sk_sq, wk_sq)]
-                  + PUSH_AWAY [dist (wk_sq, wn_sq)];
+            value = VALUE_MG_BSHP
+                  + PUSH_CLOSE[dist (sk_sq, wk_sq)] // Bring attacking king close to defending king
+                  + PUSH_AWAY [dist (wk_sq, wn_sq)] // Driving the defending king and knight apart
+                  + PUSH_TO_CORNER[wk_sq]
+                  - 8 * pop_count<MAX15> (PIECE_ATTACKS[NIHT][wn_sq]); // Restricting the knight's mobility
         }
         else
         {
@@ -610,28 +612,29 @@ namespace EndGame {
         auto wk_sq  = pos.king_sq (_weak_side);
 
         // Does the stronger side have a passed pawn?
-        if (pos.passed_pawn (_strong_side, sp1_sq) || pos.passed_pawn (_strong_side, sp2_sq))
-        {
-            return SCALE_FACTOR_NONE;
-        }
-
-        auto r = max (rel_rank (_strong_side, sp1_sq), rel_rank (_strong_side, sp2_sq));
-
-        if (   dist<File> (wk_sq, sp1_sq) <= 1
-            && dist<File> (wk_sq, sp2_sq) <= 1
-            && rel_rank (_strong_side, wk_sq) > r
+        if (   !pos.passed_pawn (_strong_side, sp1_sq)
+            && !pos.passed_pawn (_strong_side, sp2_sq)
            )
         {
-            switch (r)
+            auto r = max (rel_rank (_strong_side, sp1_sq), rel_rank (_strong_side, sp2_sq));
+
+            if (   dist<File> (wk_sq, sp1_sq) <= 1
+                && dist<File> (wk_sq, sp2_sq) <= 1
+                && rel_rank (_strong_side, wk_sq) > r
+               )
             {
-            case R_2: return ScaleFactor(10);
-            case R_3: return ScaleFactor(10);
-            case R_4: return ScaleFactor(15);
-            case R_5: return ScaleFactor(20);
-            case R_6: return ScaleFactor(40);
-            default: assert (false);
+                switch (r)
+                {
+                case R_2: return ScaleFactor(10);
+                case R_3: return ScaleFactor(10);
+                case R_4: return ScaleFactor(15);
+                case R_5: return ScaleFactor(20);
+                case R_6: return ScaleFactor(40);
+                default: assert (false);
+                }
             }
         }
+
         return SCALE_FACTOR_NONE;
     }
 
@@ -677,17 +680,19 @@ namespace EndGame {
         auto wk_sq = normalize (pos, _strong_side, pos.king_sq (_weak_side));
         auto sp_sq = normalize (pos, _strong_side, pos.list<PAWN> (_strong_side)[0]);
 
-        // If the pawn has advanced to the fifth rank or further, and is not a
-        // rook pawn, it's too dangerous to assume that it's at least a draw.
-        if (_rank (sp_sq) >= R_5 && _file (sp_sq) != F_A)
+        // If the pawn has advanced to the fifth rank or further, and is not a rook pawn,
+        // then it's too dangerous to assume that it's at least a draw.
+        if (_rank (sp_sq) < R_5 || _file (sp_sq) == F_A)
         {
-            return SCALE_FACTOR_NONE;
+            // Probe the KPK bitbase with the weakest side's pawn removed.
+            // If it's a draw, it's probably at least a draw even with the pawn.
+            if (!probe (_strong_side == pos.active () ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+            {
+                return SCALE_FACTOR_DRAW;
+            }
         }
 
-        // Probe the KPK bitbase with the weakest side's pawn removed. If it's a draw,
-        // it's probably at least a draw even with the pawn.
-        return probe (_strong_side == pos.active () ? WHITE : BLACK, sk_sq, sp_sq, wk_sq) ?
-                    SCALE_FACTOR_NONE : SCALE_FACTOR_DRAW;
+        return SCALE_FACTOR_NONE;
     }
 
     template<>
@@ -702,8 +707,12 @@ namespace EndGame {
         auto sp_sq = normalize (pos, _strong_side, pos.list<PAWN> (_strong_side)[0]);
         auto wk_sq = normalize (pos, _strong_side, pos.king_sq (_weak_side));
 
-        return sp_sq == SQ_A7 && dist (SQ_A8, wk_sq) <= 1 ?
-                    SCALE_FACTOR_DRAW : SCALE_FACTOR_NONE;
+        if (sp_sq == SQ_A7 && dist (SQ_A8, wk_sq) <= 1)
+        {
+            return SCALE_FACTOR_DRAW;
+        }
+
+        return SCALE_FACTOR_NONE;
     }
 
     template<>
@@ -773,77 +782,76 @@ namespace EndGame {
         auto sb_sq = pos.list<BSHP> (_strong_side)[0];
         auto wb_sq = pos.list<BSHP> (  _weak_side)[0];
 
-        if (!opposite_colors (sb_sq, wb_sq))
+        if (opposite_colors (sb_sq, wb_sq))
         {
-            return SCALE_FACTOR_NONE;
-        }
 
-        auto wk_sq = pos.king_sq (_weak_side);
-        auto sp1_sq = pos.list<PAWN> (_strong_side)[0];
-        auto sp2_sq = pos.list<PAWN> (_strong_side)[1];
+            auto wk_sq = pos.king_sq (_weak_side);
+            auto sp1_sq = pos.list<PAWN> (_strong_side)[0];
+            auto sp2_sq = pos.list<PAWN> (_strong_side)[1];
         
-        auto block1_sq = SQ_NO;
-        auto block2_sq = SQ_NO;
+            auto block1_sq = SQ_NO;
+            auto block2_sq = SQ_NO;
 
-        if (rel_rank (_strong_side, sp1_sq) > rel_rank (_strong_side, sp2_sq))
-        {
-            block1_sq = sp1_sq + pawn_push (_strong_side);
-            block2_sq = _file (sp2_sq)|_rank (sp1_sq);
-        }
-        else
-        {
-            block1_sq = sp2_sq + pawn_push (_strong_side);
-            block2_sq = _file (sp1_sq)|_rank (sp2_sq);
-        }
-
-        switch (dist<File> (sp1_sq, sp2_sq))
-        {
-        // Both pawns are on the same file. It's an easy draw if the defender firmly
-        // controls some square in the frontmost pawn's path.
-        case 0:
-        {
-            if (   _file (wk_sq) == _file (block1_sq)
-                && rel_rank (_strong_side, wk_sq) >= rel_rank (_strong_side, block1_sq)
-                && opposite_colors (wk_sq, sb_sq)
-               )
+            if (rel_rank (_strong_side, sp1_sq) > rel_rank (_strong_side, sp2_sq))
             {
-                return SCALE_FACTOR_DRAW;
+                block1_sq = sp1_sq + pawn_push (_strong_side);
+                block2_sq = _file (sp2_sq)|_rank (sp1_sq);
             }
-            break;
-        }
+            else
+            {
+                block1_sq = sp2_sq + pawn_push (_strong_side);
+                block2_sq = _file (sp1_sq)|_rank (sp2_sq);
+            }
+
+            switch (dist<File> (sp1_sq, sp2_sq))
+            {
+            // Both pawns are on the same file. It's an easy draw if the defender firmly
+            // controls some square in the frontmost pawn's path.
+            case 0:
+            {
+                if (   _file (wk_sq) == _file (block1_sq)
+                    && rel_rank (_strong_side, wk_sq) >= rel_rank (_strong_side, block1_sq)
+                    && opposite_colors (wk_sq, sb_sq)
+                   )
+                {
+                    return SCALE_FACTOR_DRAW;
+                }
+                break;
+            }
         
-        // Pawns on adjacent files. It's a draw if the defender firmly controls the
-        // square in front of the frontmost pawn's path, and the square diagonally
-        // behind this square on the file of the other pawn.
-        case 1:
-        {
+            // Pawns on adjacent files. It's a draw if the defender firmly controls the
+            // square in front of the frontmost pawn's path, and the square diagonally
+            // behind this square on the file of the other pawn.
+            case 1:
+            {
            
-            if (   wk_sq == block1_sq
-                && opposite_colors (wk_sq, sb_sq)
-                && (   wb_sq == block2_sq
-                    || (attacks_bb<BSHP> (block2_sq, pos.pieces ()) & pos.pieces (_weak_side, BSHP)) != U64(0)
-                    || dist<Rank> (sp1_sq, sp2_sq) >= 2
+                if (   wk_sq == block1_sq
+                    && opposite_colors (wk_sq, sb_sq)
+                    && (   wb_sq == block2_sq
+                        || (attacks_bb<BSHP> (block2_sq, pos.pieces ()) & pos.pieces (_weak_side, BSHP)) != U64(0)
+                        || dist<Rank> (sp1_sq, sp2_sq) >= 2
+                       )
                    )
-               )
-            {
-                return SCALE_FACTOR_DRAW;
-            }
+                {
+                    return SCALE_FACTOR_DRAW;
+                }
 
-            if (   wk_sq == block2_sq
-                && opposite_colors (wk_sq, sb_sq)
-                && (   wb_sq == block1_sq
-                    || (attacks_bb<BSHP> (block1_sq, pos.pieces ()) & pos.pieces (_weak_side, BSHP)) != U64(0)
+                if (   wk_sq == block2_sq
+                    && opposite_colors (wk_sq, sb_sq)
+                    && (   wb_sq == block1_sq
+                        || (attacks_bb<BSHP> (block1_sq, pos.pieces ()) & pos.pieces (_weak_side, BSHP)) != U64(0)
+                       )
                    )
-               )
-            {
-                return SCALE_FACTOR_DRAW;
+                {
+                    return SCALE_FACTOR_DRAW;
+                }
+                break;
             }
-            break;
-        }
         
-        // The pawns are not on the same file or adjacent files. No scaling.
-        default:
-            break;
+            // The pawns are not on the same file or adjacent files. No scaling.
+            default:
+                break;
+            }
         }
 
         return SCALE_FACTOR_NONE;
