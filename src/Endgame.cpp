@@ -140,7 +140,7 @@ namespace EndGame {
         assert (pos.checkers () == U64(0)); // Eval is never called when in check
 
         // Stalemate detection with lone weak king
-        if (_weak_side == pos.active () && MoveList<LEGAL> (pos).size () == 0)
+        if (pos.active () == _weak_side && MoveList<LEGAL> (pos).size () == 0)
         {
             return VALUE_DRAW;
         }
@@ -153,8 +153,8 @@ namespace EndGame {
 
         if (    pos.count<QUEN> (_strong_side) > 0
             ||  pos.count<ROOK> (_strong_side) > 0
+            ||  pos.bishops_pair (_strong_side)
             || (pos.count<BSHP> (_strong_side) > 0 && pos.count<NIHT> (_strong_side) > 0)
-            || (pos.count<BSHP> (_strong_side) > 1 && opposite_colors (pos.list<BSHP>(_strong_side)[0], pos.list<BSHP>(_strong_side)[1]))
             ||  pos.count<NIHT> (_strong_side) > 2
            )
         {
@@ -165,7 +165,7 @@ namespace EndGame {
             value /= 8;
         }
 
-        return _strong_side == pos.active () ? +value : -value;
+        return pos.active () == _strong_side ? +value : -value;
     }
 
     template<>
@@ -182,7 +182,7 @@ namespace EndGame {
 
         Value value;
 
-        if (probe (_strong_side == pos.active () ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+        if (probe (pos.active () == _strong_side ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
         {
             value = VALUE_KNOWN_WIN + VALUE_EG_PAWN + _rank (sp_sq);
         }
@@ -194,7 +194,7 @@ namespace EndGame {
                   + PUSH_AWAY [dist (sp_sq, wk_sq)]) / 10);
         }
 
-        return _strong_side == pos.active () ? +value : -value;
+        return pos.active () == _strong_side ? +value : -value;
     }
 
     template<>
@@ -219,9 +219,10 @@ namespace EndGame {
         }
 
         Value value = VALUE_KNOWN_WIN
-                    + PUSH_CLOSE[dist (sk_sq, wk_sq)] + PUSH_TO_CORNER[wk_sq];
+                    + PUSH_CLOSE[dist (sk_sq, wk_sq)]
+                    + PUSH_TO_CORNER[wk_sq];
 
-        return _strong_side == pos.active () ? +value : -value;
+        return pos.active () == _strong_side ? +value : -value;
     }
 
     template<>
@@ -233,7 +234,7 @@ namespace EndGame {
 
         Value value = Value(PUSH_TO_EDGE[wk_sq] / 8);
 
-        return _strong_side == pos.active () ? +value : -value;
+        return pos.active () == _strong_side ? +value : -value;
     }
 
     template<>
@@ -257,7 +258,7 @@ namespace EndGame {
         // If the stronger side's king is in front of the pawn, it's a win. or
         // If the weaker side's king is too far from the pawn and the rook, it's a win.
         if (   (sk_sq < wp_sq && _file (sk_sq) == _file (wp_sq))
-            || (   dist (wk_sq, wp_sq) >= 3 + (_weak_side == pos.active ())
+            || (   dist (wk_sq, wp_sq) >= 3 + (pos.active () == _weak_side)
                 && dist (wk_sq, sr_sq) >= 3
                )
            )
@@ -269,7 +270,7 @@ namespace EndGame {
         if (   _rank (wk_sq) <= R_3
             && dist (wk_sq, wp_sq) == 1
             && _rank (sk_sq) >= R_4
-            && dist (sk_sq, wp_sq) > 2 + (_strong_side == pos.active ())
+            && dist (sk_sq, wp_sq) > 2 + (pos.active () == _strong_side)
            )
         {
             value = Value(80 - 8 * dist (sk_sq, wp_sq));
@@ -282,7 +283,7 @@ namespace EndGame {
                   + 8 * dist (wp_sq, promote_sq));
         }
 
-        return _strong_side == pos.active () ? +value : -value;
+        return pos.active () == _strong_side ? +value : -value;
     }
 
     template<>
@@ -311,7 +312,7 @@ namespace EndGame {
             value /= 8;
         }
 
-        return _strong_side == pos.active () ? +value : -value;
+        return pos.active () == _strong_side ? +value : -value;
     }
 
     template<>
@@ -328,14 +329,14 @@ namespace EndGame {
         Value value  = Value(PUSH_TO_EDGE[wk_sq] + PUSH_AWAY[dist (wk_sq, wn_sq)]);
 
         // If weaker king is near the knight, it's a draw.
-        if (   _weak_side == pos.active ()
+        if (   pos.active () == _weak_side
             && dist (wk_sq, wn_sq) <= 3
            )
         {
             value /= 8;
         }
 
-        return _strong_side == pos.active () ? +value : -value;
+        return pos.active () == _strong_side ? +value : -value;
     }
 
     template<>
@@ -362,7 +363,7 @@ namespace EndGame {
             value += VALUE_EG_QUEN - VALUE_EG_PAWN;
         }
 
-        return _strong_side == pos.active () ? +value : -value;
+        return pos.active () == _strong_side ? +value : -value;
     }
 
     template<>
@@ -378,10 +379,11 @@ namespace EndGame {
         auto sk_sq = pos.king_sq (_strong_side);
         auto wk_sq = pos.king_sq (_weak_side);
 
-        Value value  = VALUE_EG_QUEN - VALUE_EG_ROOK
-                     + PUSH_TO_EDGE[wk_sq] + PUSH_CLOSE[dist (sk_sq, wk_sq)];
+        Value value = VALUE_EG_QUEN - VALUE_EG_ROOK
+                    + PUSH_TO_EDGE[wk_sq]
+                    + PUSH_CLOSE[dist (sk_sq, wk_sq)];
 
-        return _strong_side == pos.active () ? +value : -value;
+        return pos.active () == _strong_side ? +value : -value;
     }
 
     template<>
@@ -403,7 +405,9 @@ namespace EndGame {
 
         if (pos.bishops_pair (_strong_side))
         {
-            if (min (dist (wk_sq, SQ_A8), dist (wk_sq, SQ_H1)) < min (dist (wk_sq, SQ_A1), dist (wk_sq, SQ_H8)))
+            if (  min (dist (wk_sq, SQ_A8), dist (wk_sq, SQ_H1))
+                < min (dist (wk_sq, SQ_A1), dist (wk_sq, SQ_H8))
+               )
             {
                 sk_sq = ~sk_sq;
                 wk_sq = ~wk_sq;
@@ -414,14 +418,14 @@ namespace EndGame {
                   + PUSH_CLOSE[dist (sk_sq, wk_sq)] // Bring attacking king close to defending king
                   + PUSH_AWAY [dist (wk_sq, wn_sq)] // Driving the defending king and knight apart
                   + PUSH_TO_CORNER[wk_sq]
-                  - 8 * pop_count<MAX15> (PIECE_ATTACKS[NIHT][wn_sq]); // Restricting the knight's mobility
+                  + PUSH_TO_EDGE[wn_sq];            // Restricting the knight's mobility
         }
         else
         {
             value = Value(PUSH_CLOSE[dist (sk_sq, wk_sq)] / 8);
         }
 
-        return _strong_side == pos.active () ? +value : -value;
+        return pos.active () == _strong_side ? +value : -value;
     }
 
 
@@ -686,7 +690,7 @@ namespace EndGame {
         {
             // Probe the KPK bitbase with the weakest side's pawn removed.
             // If it's a draw, it's probably at least a draw even with the pawn.
-            if (!probe (_strong_side == pos.active () ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
+            if (!probe (pos.active () == _strong_side ? WHITE : BLACK, sk_sq, sp_sq, wk_sq))
             {
                 return SCALE_FACTOR_DRAW;
             }
@@ -707,7 +711,7 @@ namespace EndGame {
         auto sp_sq = normalize (pos, _strong_side, pos.list<PAWN> (_strong_side)[0]);
         auto wk_sq = normalize (pos, _strong_side, pos.king_sq (_weak_side));
 
-        if (sp_sq == SQ_A7 && dist (SQ_A8, wk_sq) <= 1)
+        if (sp_sq == SQ_A7 && dist (wk_sq, SQ_A8) <= 1)
         {
             return SCALE_FACTOR_DRAW;
         }
@@ -954,8 +958,7 @@ namespace EndGame {
                 //        && opposite_colors (wp_sq, sb_sq)
                 //       )
                 //    {
-                //        i32 tempo = (pos.active () == _strong_side);
-                //        if (dist (promote_sq, wk_sq) < dist (wp_sq, sk_sq) + 4 - tempo)
+                //        if (dist (promote_sq, wk_sq) < dist (wp_sq, sk_sq) + 4 - (pos.active () == _strong_side))
                 //        {
                 //            return SCALE_FACTOR_DRAW;
                 //        }
