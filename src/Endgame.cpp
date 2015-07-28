@@ -136,7 +136,7 @@ namespace EndGame {
     // of the board, and for keeping the distance between the two kings small.
     Value Endgame<KXK>::operator() (const Position &pos) const
     {
-        assert (verify_material (pos, _weak_side, VALUE_ZERO, 0));
+        assert (verify_material (pos,   _weak_side, VALUE_ZERO, 0));
         assert (pos.checkers () == U64(0)); // Eval is never called when in check
 
         // Stalemate detection with lone weak king
@@ -149,7 +149,8 @@ namespace EndGame {
         auto wk_sq = pos.king_sq (  _weak_side);
 
         Value value = pos.count<PAWN> (_strong_side) * VALUE_EG_PAWN
-                    + PUSH_TO_EDGE[wk_sq] + PUSH_CLOSE[dist (sk_sq, wk_sq)];
+                    + PUSH_TO_EDGE[wk_sq]
+                    + PUSH_CLOSE[dist (sk_sq, wk_sq)];
 
         if (    pos.count<QUEN> (_strong_side) > 0
             ||  pos.count<ROOK> (_strong_side) > 0
@@ -306,7 +307,7 @@ namespace EndGame {
         if (   (CORNER_bb & wk_sq) != U64(0)
             && opposite_colors (wk_sq, wb_sq)
             && dist (wk_sq, wb_sq) == 1
-            && dist (sk_sq, wb_sq) >  1
+            && dist (sk_sq, wb_sq) > 1
            )
         {
             value /= 8;
@@ -323,14 +324,15 @@ namespace EndGame {
         assert (verify_material (pos, _strong_side, VALUE_MG_ROOK, 0));
         assert (verify_material (pos,   _weak_side, VALUE_MG_NIHT, 0));
 
+        auto sk_sq = pos.king_sq (_strong_side);
         auto wk_sq = pos.king_sq (_weak_side);
         auto wn_sq = pos.list<NIHT> (_weak_side)[0];
 
         Value value  = Value(PUSH_TO_EDGE[wk_sq] + PUSH_AWAY[dist (wk_sq, wn_sq)]);
 
         // If weaker king is near the knight, it's a draw.
-        if (   pos.active () == _weak_side
-            && dist (wk_sq, wn_sq) <= 3
+        if (   dist (wk_sq, wn_sq) + (pos.active () == _strong_side) <= 3
+            && dist (sk_sq, wn_sq) > 1
            )
         {
             value /= 8;
@@ -649,7 +651,7 @@ namespace EndGame {
     {
         assert (pos.non_pawn_material (_strong_side) == VALUE_ZERO);
         assert (pos.count<PAWN> (_strong_side) >= 2);
-        assert (verify_material (pos, _weak_side, VALUE_ZERO, 0));
+        assert (verify_material (pos,   _weak_side, VALUE_ZERO, 0));
 
         auto wk_sq  = pos.king_sq (_weak_side);
         auto spawns = pos.pieces (_strong_side, PAWN);

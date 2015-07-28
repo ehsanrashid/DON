@@ -1017,7 +1017,7 @@ namespace Evaluator {
 
             // Evaluate pieces and mobility
             Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
-            // Find pawns which can't move forward on rank 4 and above and which can't capture
+            // Find pawns which can't move forward and which can't capture
             Bitboard blocked_pawns[CLR_NO] =
             {
                 pos.pieces (WHITE, PAWN) & ~(shift_del<DEL_S> (~pos.pieces ()) | shift_del<DEL_SW> (pos.pieces (BLACK)) | shift_del<DEL_SE> (pos.pieces (BLACK))),

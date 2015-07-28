@@ -69,22 +69,22 @@ namespace Searcher {
 
 #endif
 
-        const Depth FutilityMarginDepth     = Depth(7);
+        const Depth FutilityMarginDepth     = Depth(7*i16(DEPTH_ONE));
         // Futility margin lookup table (initialized at startup)
         // [depth]
         Value FutilityMargins[FutilityMarginDepth];
 
-        const Depth RazorDepth     = Depth(4);
+        const Depth RazorDepth     = Depth(4*i16(DEPTH_ONE));
         // Razoring margin lookup table (initialized at startup)
         // [depth]
         Value RazorMargins[RazorDepth];
 
-        const Depth FutilityMoveCountDepth  = Depth(16);
+        const Depth FutilityMoveCountDepth  = Depth(16*i16(DEPTH_ONE));
         // Futility move count lookup table (initialized at startup)
         // [improving][depth]
         u08   FutilityMoveCounts[2][FutilityMoveCountDepth];
 
-        const Depth ReductionDepth = Depth(64);
+        const Depth ReductionDepth = Depth(64*i16(DEPTH_ONE));
         const u08   ReductionMoveCount = 64;
         // ReductionDepths lookup table (initialized at startup)
         // [pv][improving][depth][move_num]
@@ -96,10 +96,9 @@ namespace Searcher {
             return ReductionDepths[PVNode][imp][min (d, ReductionDepth-1)][min<u08> (mc, ReductionMoveCount-1)];
         }
 
-        const Depth NullMoveDepth  = Depth(1);
-        const Depth ProbCutDepth   = Depth(4);
+        const Depth ProbCutDepth   = Depth(4*i16(DEPTH_ONE));
         
-        const Depth LateMoveReductionDepth = Depth(2);
+        const Depth LateMoveReductionDepth = Depth(2*i16(DEPTH_ONE));
         const u08   FullDepthMoveCount = 1;
 
         class RootMoveVector
@@ -810,7 +809,7 @@ namespace Searcher {
 
                         // Step 8. Null move search with verification search
                         if (   !PVNode && !MateSearch
-                            && depth > NullMoveDepth
+                            && depth > 1*DEPTH_ONE
                             && static_eval >= beta
                             && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                            )
