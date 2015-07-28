@@ -69,23 +69,23 @@ namespace Searcher {
 
 #endif
 
-        const Depth FutilityMarginDepth     = Depth(7*i16(DEPTH_ONE));
+        const i16 FutilityMarginDepth   = 7;
         // Futility margin lookup table (initialized at startup)
         // [depth]
         Value FutilityMargins[FutilityMarginDepth];
 
-        const Depth RazorDepth     = Depth(4*i16(DEPTH_ONE));
+        const i16 RazorDepth    = 4;
         // Razoring margin lookup table (initialized at startup)
         // [depth]
         Value RazorMargins[RazorDepth];
 
-        const Depth FutilityMoveCountDepth  = Depth(16*i16(DEPTH_ONE));
+        const i16 FutilityMoveCountDepth  = 16;
         // Futility move count lookup table (initialized at startup)
         // [improving][depth]
         u08   FutilityMoveCounts[2][FutilityMoveCountDepth];
 
-        const Depth ReductionDepth = Depth(64*i16(DEPTH_ONE));
-        const u08   ReductionMoveCount = 64;
+        const i16 ReductionDepth = 64;
+        const u08 ReductionMoveCount = 64;
         // ReductionDepths lookup table (initialized at startup)
         // [pv][improving][depth][move_num]
         Depth ReductionDepths[2][2][ReductionDepth][ReductionMoveCount];
@@ -93,13 +93,13 @@ namespace Searcher {
         template<bool PVNode>
         Depth reduction_depths (bool imp, Depth d, u08 mc)
         {
-            return ReductionDepths[PVNode][imp][min (d, ReductionDepth-1)][min<u08> (mc, ReductionMoveCount-1)];
+            return ReductionDepths[PVNode][imp][min (d/DEPTH_ONE, ReductionDepth-1)][min<u08> (mc, ReductionMoveCount-1)];
         }
 
-        const Depth ProbCutDepth   = Depth(4*i16(DEPTH_ONE));
+        const i16 ProbCutDepth  = 4;
         
-        const Depth LateMoveReductionDepth = Depth(2*i16(DEPTH_ONE));
-        const u08   FullDepthMoveCount = 1;
+        const i16 LateMoveReductionDepth = 2;
+        const u08 FullDepthMoveCount = 1;
 
         class RootMoveVector
             : public vector<RootMove>
@@ -768,19 +768,19 @@ namespace Searcher {
                         // Step 6. Razoring sort of forward pruning where rather than skipping an entire subtree,
                         // you search it to a reduced depth, typically one less than normal depth.
                         if (   !PVNode && !MateSearch
-                            && depth < RazorDepth
-                            && static_eval + RazorMargins[depth] <= alpha
+                            && depth < RazorDepth*DEPTH_ONE
+                            && static_eval + RazorMargins[depth/DEPTH_ONE] <= alpha
                             && tt_move == MOVE_NONE
                            )
                         {
                             if (   depth <= 1*DEPTH_ONE
-                                && static_eval + RazorMargins[3*DEPTH_ONE] <= alpha
+                                && static_eval + RazorMargins[3] <= alpha
                                )
                             {
                                 return quien_search<NonPV, false> (pos, ss, alpha, beta, DEPTH_ZERO);
                             }
 
-                            auto reduced_alpha = max (alpha - RazorMargins[depth], -VALUE_INFINITE);
+                            auto reduced_alpha = max (alpha - RazorMargins[depth/DEPTH_ONE], -VALUE_INFINITE);
 
                             auto value = quien_search<NonPV, false> (pos, ss, reduced_alpha, reduced_alpha+1, DEPTH_ZERO);
 
@@ -794,12 +794,12 @@ namespace Searcher {
                         // Betting that the opponent doesn't have a move that will reduce
                         // the score by more than FutilityMargins[depth] if do a null move.
                         if (   !RootNode && !MateSearch
-                            && depth < FutilityMarginDepth
+                            && depth < FutilityMarginDepth*DEPTH_ONE
                             && static_eval < +VALUE_KNOWN_WIN // Do not return unproven wins
                             && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                            )
                         {
-                            auto stand_pat = static_eval - FutilityMargins[depth];
+                            auto stand_pat = static_eval - FutilityMargins[depth/DEPTH_ONE];
 
                             if (stand_pat >= beta)
                             {
@@ -868,11 +868,11 @@ namespace Searcher {
                         // and a reduced search returns a value much above beta,
                         // can (almost) safely prune the previous move.
                         if (   !PVNode && !MateSearch
-                            && depth > ProbCutDepth
+                            && depth > ProbCutDepth*DEPTH_ONE
                             && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
                            )
                         {
-                            auto reduced_depth = depth - ProbCutDepth; // Shallow Depth
+                            auto reduced_depth = depth - ProbCutDepth*DEPTH_ONE; // Shallow Depth
                             auto extended_beta = min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
 
                             assert (reduced_depth >= DEPTH_ONE);
@@ -1082,8 +1082,8 @@ namespace Searcher {
                    )
                 {
                     // Move count based pruning
-                    if (   depth <  FutilityMoveCountDepth
-                        && legal_count >= FutilityMoveCounts[improving][depth]
+                    if (   depth < FutilityMoveCountDepth*DEPTH_ONE
+                        && legal_count >= FutilityMoveCounts[improving][depth/DEPTH_ONE]
                        )
                     {
                         if (SPNode) splitpoint->spinlock.acquire ();
@@ -1094,9 +1094,9 @@ namespace Searcher {
                     auto predicted_depth = new_depth - reduction_depths<PVNode> (improving, depth, legal_count);
 
                     // Futility pruning: parent node
-                    if (predicted_depth < FutilityMarginDepth)
+                    if (predicted_depth < FutilityMarginDepth*DEPTH_ONE)
                     {
-                        auto futility_value = ss->static_eval + FutilityMargins[predicted_depth] + VALUE_EG_PAWN;
+                        auto futility_value = ss->static_eval + FutilityMargins[predicted_depth/DEPTH_ONE] + VALUE_EG_PAWN;
 
                         if (alpha >= futility_value)
                         {
@@ -1115,7 +1115,7 @@ namespace Searcher {
                     }
 
                     // Prune moves with negative SEE at low depths
-                    if (   predicted_depth < RazorDepth
+                    if (   predicted_depth < RazorDepth*DEPTH_ONE
                         && pos.see_sign (move) < VALUE_ZERO
                        )
                     {
@@ -1146,7 +1146,7 @@ namespace Searcher {
 
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
-                if (   depth > LateMoveReductionDepth
+                if (   depth > LateMoveReductionDepth*DEPTH_ONE
                     && legal_count > FullDepthMoveCount
                     && !capture_or_promotion
                     && count (begin (ss->killer_moves), end (ss->killer_moves), move) == 0 // Not killer move
@@ -2120,12 +2120,12 @@ namespace Searcher {
 
                         if (r >= 1.5)
                         {
-                            ReductionDepths[pv][imp][d][mc] = i32(r) * DEPTH_ONE;
+                            ReductionDepths[pv][imp][d][mc] = i32(r)*DEPTH_ONE;
                         }
                         // Increase reduction when eval is not improving
-                        if (!pv && !imp && ReductionDepths[pv][imp][d][mc] >= 2 * DEPTH_ONE)
+                        if (!pv && !imp && ReductionDepths[pv][imp][d][mc] >= 2*DEPTH_ONE)
                         {
-                            ReductionDepths[pv][imp][d][mc] += DEPTH_ONE;
+                            ReductionDepths[pv][imp][d][mc] += 1*DEPTH_ONE;
                         }
                     }
                 }
