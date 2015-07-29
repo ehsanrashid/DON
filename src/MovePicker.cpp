@@ -172,13 +172,14 @@ namespace MovePick {
     {
         auto opp_move = (_ss-1)->current_move;
         auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-        const auto &cmhv = opp_move_dst != SQ_NO ? _CounterMovesHistoryValues[ptype (_Pos[opp_move_dst])][opp_move_dst] :
-                                                   _CounterMovesHistoryValues[NONE][SQ_A1];
+        const auto &opp_cmhv = opp_move_dst != SQ_NO ?
+            _CounterMovesHistoryValues[ptype (_Pos[opp_move_dst])][opp_move_dst] :
+            _CounterMovesHistoryValues[NONE][SQ_A1];
 
         for (auto &m : *this)
         {
             m.value = _HistoryValues[_Pos[org_sq (m)]][dst_sq (m)]
-                    + 3 * cmhv[_Pos[org_sq (m)]][dst_sq (m)];
+                    + 3 * opp_cmhv[_Pos[org_sq (m)]][dst_sq (m)];
         }
     }
 

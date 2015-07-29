@@ -64,7 +64,7 @@ namespace Material {
         {
             return pos.non_pawn_material (c) >= VALUE_MG_ROOK
                 //&& pos.count<NONPAWN> (~c) == 0
-                //&& pos.count<PAWN> (~c) == 0;
+                && pos.count<PAWN> (~c) == 0
                 && !more_than_one (pos.pieces (~c));
         }
 
@@ -72,7 +72,7 @@ namespace Material {
         {
             return pos.count<BSHP> (c) == 1
                 && pos.non_pawn_material ( c) == VALUE_MG_BSHP
-                && pos.non_pawn_material (~c) == VALUE_ZERO
+                //&& pos.non_pawn_material (~c) == VALUE_ZERO
                 && pos.count<PAWN> (c) != 0;
         }
 
@@ -189,7 +189,7 @@ namespace Material {
                 }
             }
 
-            Value npm[CLR_NO] = 
+            const Value npm[CLR_NO] = 
             {
                 pos.non_pawn_material (WHITE),
                 pos.non_pawn_material (BLACK)
@@ -236,7 +236,6 @@ namespace Material {
                         npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[BLACK] <= VALUE_MG_BSHP ? 4 : 12);
                 }
-                else
                 if (pos.count<PAWN> (WHITE) == 1)
                 {
                     e->factor[WHITE] = u08(SCALE_FACTOR_ONEPAWN);
@@ -251,7 +250,6 @@ namespace Material {
                         npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[WHITE] <= VALUE_MG_BSHP ? 4 : 12);
                 }
-                else
                 if (pos.count<PAWN> (BLACK) == 1)
                 {
                     e->factor[BLACK] = u08(SCALE_FACTOR_ONEPAWN);

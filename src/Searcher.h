@@ -188,6 +188,7 @@ namespace Searcher {
 
         Value   static_eval     = VALUE_NONE;
 
+        bool    firstmove_pv    = false;
     };
 
     // TimeManager class computes the optimal time to think depending on the

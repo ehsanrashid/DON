@@ -33,15 +33,14 @@ namespace Material {
         bool  specialized_eval_exists ()     const { return   evaluation_func != nullptr; }
         Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
         
-        template<Color Own>
-        // Entry::scale_factor() takes a position as input, and returns a scale factor for the given color.
+        // Entry::scale_factor() takes a position and a color as input, and returns a scale factor.
         // Have to provide the position in addition to the color, because the scale factor need not to be a constant.
         // It can also be a function which should be applied to the position.
         // For instance, in KBP vs K endgames, a scaling function which checks for draws with rook pawns and wrong-colored bishops.
-        ScaleFactor scale_factor (const Position &pos) const
+        ScaleFactor scale_factor (const Position &pos, Color c) const
         {
-            return scaling_func[Own] == nullptr || (*scaling_func[Own]) (pos) == SCALE_FACTOR_NONE ?
-                    ScaleFactor(factor[Own]) : (*scaling_func[Own]) (pos);
+            return scaling_func[c] == nullptr || (*scaling_func[c]) (pos) == SCALE_FACTOR_NONE ?
+                    ScaleFactor(factor[c]) : (*scaling_func[c]) (pos);
         }
 
     };

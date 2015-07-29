@@ -29,18 +29,18 @@ namespace EndGame {
             100, 90,  80,  70,  70,  80,  90, 100
         };
 
-        // Table used to drive the king towards a corner square of the
-        // right color in KBN vs K endgames.
+        // Table used to drive the king towards a corner square of the right color
+        // in KBN vs K and KBB vs KN endgames.
         const i32 PUSH_TO_CORNER[SQ_NO] =
         {
-            200, 190, 180, 170, 160, 150, 140, 130,
-            190, 180, 170, 160, 150, 140, 130, 140,
-            180, 170, 155, 140, 140, 125, 140, 150,
-            170, 160, 140, 120, 110, 140, 150, 160,
-            160, 150, 140, 110, 120, 140, 160, 170,
-            150, 140, 125, 140, 140, 155, 170, 180,
-            140, 130, 140, 150, 160, 170, 180, 190,
-            130, 140, 150, 160, 170, 180, 190, 200
+            100, 90, 80, 70, 60, 50, 40,  30,
+            90,  80, 70, 60, 50, 40, 30,  40,
+            80,  70, 55, 40, 40, 25, 40,  50,
+            70,  60, 40, 20, 10, 40, 50,  60,
+            60,  50, 40, 10, 20, 40, 60,  70,
+            50,  40, 25, 40, 40, 55, 70,  80,
+            40,  30, 40, 50, 60, 70, 80,  90,
+            30,  40, 50, 60, 70, 80, 90, 100
         };
 
         // Tables used to drive a piece towards or away from another piece
@@ -231,9 +231,10 @@ namespace EndGame {
     {
         assert (verify_material (pos, _strong_side, 2 * VALUE_MG_NIHT, 0));
 
+        auto sk_sq = pos.king_sq (_strong_side);
         auto wk_sq = pos.king_sq (_weak_side);
 
-        Value value = Value(PUSH_TO_EDGE[wk_sq] / 8);
+        Value value = Value((PUSH_CLOSE[dist (sk_sq, wk_sq)] + PUSH_TO_EDGE[wk_sq]) / 8);
 
         return pos.active () == _strong_side ? +value : -value;
     }
@@ -328,7 +329,7 @@ namespace EndGame {
         auto wk_sq = pos.king_sq (_weak_side);
         auto wn_sq = pos.list<NIHT> (_weak_side)[0];
 
-        Value value  = Value(PUSH_TO_EDGE[wk_sq] + PUSH_AWAY[dist (wk_sq, wn_sq)]);
+        Value value  = Value(PUSH_AWAY[dist (wk_sq, wn_sq)] + PUSH_TO_EDGE[wk_sq]);
 
         // If weaker king is near the knight, it's a draw.
         if (   dist (wk_sq, wn_sq) + (pos.active () == _strong_side) <= 3
@@ -382,8 +383,8 @@ namespace EndGame {
         auto wk_sq = pos.king_sq (_weak_side);
 
         Value value = VALUE_EG_QUEN - VALUE_EG_ROOK
-                    + PUSH_TO_EDGE[wk_sq]
-                    + PUSH_CLOSE[dist (sk_sq, wk_sq)];
+                    + PUSH_CLOSE[dist (sk_sq, wk_sq)]
+                    + PUSH_TO_EDGE[wk_sq];
 
         return pos.active () == _strong_side ? +value : -value;
     }

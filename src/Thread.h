@@ -77,7 +77,7 @@ namespace Threading {
         std::bitset<MAX_THREADS> slaves_mask;
 
         volatile bool  slaves_searching;
-        volatile u08   legal_count;
+        volatile u08   move_count;
         volatile Value alpha;
         volatile Value best_value;
         volatile Move  best_move;
@@ -137,7 +137,7 @@ namespace Threading {
         bool can_join (const SplitPoint *sp) const;
 
         void split (Position &pos, Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-            Depth depth, u08 legal_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
+            Depth depth, u08 move_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
 
     };
 

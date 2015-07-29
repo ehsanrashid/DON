@@ -110,7 +110,7 @@ namespace Threading {
     // leave their idle loops and call search<>().
     // When all threads have returned from search() then split() returns.
     void Thread::split (Position &pos, Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-                        Depth depth, u08 legal_count, MovePicker &movepicker, NodeT node_type, bool cut_node)
+                        Depth depth, u08 move_count, MovePicker &movepicker, NodeT node_type, bool cut_node)
     {
         assert (pos.ok ());
         assert (searching);
@@ -133,7 +133,7 @@ namespace Threading {
         sp.best_value   = best_value;
         sp.best_move    = best_move;
         sp.depth        = depth;
-        sp.legal_count  = legal_count;
+        sp.move_count   = move_count;
         sp.movepicker   = &movepicker;
         sp.node_type    = node_type;
         sp.cut_node     = cut_node;

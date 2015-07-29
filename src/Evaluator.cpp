@@ -1017,17 +1017,17 @@ namespace Evaluator {
 
             // Evaluate pieces and mobility
             Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
-            // Find pawns which can't move forward and which can't capture
-            Bitboard blocked_pawns[CLR_NO] =
+            // Pawns which can't move forward or on Rank 2-3
+            const Bitboard fixed_pawn[CLR_NO] =
             {
-                pos.pieces (WHITE, PAWN) & ~(shift_del<DEL_S> (~pos.pieces ()) | shift_del<DEL_SW> (pos.pieces (BLACK)) | shift_del<DEL_SE> (pos.pieces (BLACK))),
-                pos.pieces (BLACK, PAWN) & ~(shift_del<DEL_N> (~pos.pieces ()) | shift_del<DEL_NW> (pos.pieces (WHITE)) | shift_del<DEL_NE> (pos.pieces (WHITE)))
+                pos.pieces (WHITE, PAWN) & (shift_del<DEL_S> (pos.pieces ()) | R2_bb | R3_bb),
+                pos.pieces (BLACK, PAWN) & (shift_del<DEL_N> (pos.pieces ()) | R7_bb | R6_bb)
             };
-            // Do not include in mobility squares protected by enemy pawns or occupied by friend blocked pawns or king
-            Bitboard mobility_area[CLR_NO] =
+            // Do not include in mobility squares protected by enemy pawns or occupied by friend fixed pawns or king
+            const Bitboard mobility_area[CLR_NO] =
             {
-                ~(ei.pin_attacked_by[BLACK][PAWN] | blocked_pawns[WHITE] | pos.pieces (WHITE, KING)),
-                ~(ei.pin_attacked_by[WHITE][PAWN] | blocked_pawns[BLACK] | pos.pieces (BLACK, KING))
+                ~(ei.pin_attacked_by[BLACK][PAWN] | fixed_pawn[WHITE] | pos.pieces (WHITE, KING)),
+                ~(ei.pin_attacked_by[WHITE][PAWN] | fixed_pawn[BLACK] | pos.pieces (BLACK, KING))
             };
 
             score += 
@@ -1062,7 +1062,7 @@ namespace Evaluator {
                 + evaluate_passed_pawns<WHITE, Trace> (pos, ei)
                 - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
 
-            Value npm[CLR_NO] = 
+            const Value npm[CLR_NO] = 
             {
                 pos.non_pawn_material (WHITE),
                 pos.non_pawn_material (BLACK)
@@ -1104,11 +1104,9 @@ namespace Evaluator {
             assert (-VALUE_INFINITE < mg && mg < +VALUE_INFINITE);
             assert (-VALUE_INFINITE < eg && eg < +VALUE_INFINITE);
 
-            auto strong_side = eg > VALUE_DRAW ? WHITE : BLACK;
+            auto strong_side = eg >= VALUE_DRAW ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
-            auto scale_factor = strong_side == WHITE ?
-                ei.mi->scale_factor<WHITE> (pos) :
-                ei.mi->scale_factor<BLACK> (pos);
+            auto scale_factor = ei.mi->scale_factor (pos, strong_side);
 
             auto game_phase = ei.mi->game_phase;
             assert (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);

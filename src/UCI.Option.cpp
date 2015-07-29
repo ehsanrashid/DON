@@ -131,13 +131,13 @@ namespace UCI {
     // Option Actions
     namespace {
 
-        void change_hash ()
+        void change_hash_size ()
         {
             TT.auto_size (i32(Options["Hash"]), false);
         }
 
 #   ifdef LPAGES
-        void large_pages ()
+        void change_memory ()
         {
             TT.resize ();
         }
@@ -226,12 +226,14 @@ namespace UCI {
             Ponder               = bool(Options["Ponder"]);
         }
 
-        void on_debuglog ()
+        void debug_log ()
         {
             bool(Options["Debug Log"]) ?
-                Logger::instance ().start () : Logger::instance ().stop ();
+                Logger::instance ().start () :
+                Logger::instance ().stop ();
         }
-        void on_searchlog ()
+
+        void search_log ()
         {
             SearchFile = string(Options["Search File"]);
             trim (SearchFile);
@@ -264,9 +266,10 @@ namespace UCI {
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
         Options["Hash"]                         << Option (TranspositionTable::DefSize,
                                                            0,//TranspositionTable::MinSize,
-                                                           TranspositionTable::MaxSize, change_hash);
+                                                           TranspositionTable::MaxSize, change_hash_size);
+
 #ifdef LPAGES
-        Options["Large Pages"]                  << Option (true, large_pages);
+        Options["Large Pages"]                  << Option (true, change_memory);
 #endif
 
         // Button to clear the Hash Memory.
@@ -378,12 +381,12 @@ namespace UCI {
         Options["MultiPV"]                      << Option (MultiPV  ,   1,  50, configure_multipv);
 
         // Limit the multi-PV analysis to moves within a range of the best move.
-        // Default 0, Min 0, Max 999.
+        // Default 0, Min 0, Max 1000.
         //
         // Values are in centipawn. Because of contempt and evaluation corrections in different stages of the game, this value is only approximate.
         // A value of 0 means that this parameter will not be taken into account.
         // The MultiPV_cp feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
-        //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, VALUE_NONE+1, configure_multipv);
+        //Options["MultiPV_cp"]                   << Option (MultiPV_cp, 0, 1000, configure_multipv);
 
         // Changes playing style.
         // ----------------------
@@ -434,9 +437,9 @@ namespace UCI {
         // ---------------------------------------------------------------------------------------
         // Other Options
         // -------------
-        Options["Debug Log"]                    << Option (false, on_debuglog);
+        Options["Debug Log"]                    << Option (false, debug_log);
         // The filename of the search log.
-        Options["Search File"]                  << Option (SearchFile, on_searchlog);
+        Options["Search File"]                  << Option (SearchFile, search_log);
 
         // Whether or not engine should play using Chess960 (Fischer Random Chess) mode.
         // Chess960 is a chess variant where the back ranks are scrambled.
