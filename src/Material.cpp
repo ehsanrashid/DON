@@ -236,6 +236,7 @@ namespace Material {
                         npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[BLACK] <= VALUE_MG_BSHP ? 4 : 12);
                 }
+                else
                 if (pos.count<PAWN> (WHITE) == 1)
                 {
                     e->factor[WHITE] = u08(SCALE_FACTOR_ONEPAWN);
@@ -250,6 +251,7 @@ namespace Material {
                         npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[WHITE] <= VALUE_MG_BSHP ? 4 : 12);
                 }
+                else
                 if (pos.count<PAWN> (BLACK) == 1)
                 {
                     e->factor[BLACK] = u08(SCALE_FACTOR_ONEPAWN);

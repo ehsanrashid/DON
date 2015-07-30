@@ -415,7 +415,7 @@ namespace Evaluator {
                 {
                     // Minors (bishop or knight) behind a pawn
                     if (   rel_rank (Own, s) < R_5
-                        && pos.pieces (PAWN) & (s+Push)
+                        && (pos.pieces (PAWN) & (s+Push)) != U64(0)
                        )
                     {
                         score += MINOR_BEHIND_PAWN;
@@ -432,7 +432,7 @@ namespace Evaluator {
                             score += KNIGHT_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
                         }
                     }
-
+                    else
                     if (BSHP == PT)
                     {
                         score -= BISHOP_PAWNS * ei.pi->pawns_on_squarecolor (Own, s);
@@ -1018,7 +1018,7 @@ namespace Evaluator {
             // Evaluate pieces and mobility
             Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
             // Pawns which can't move forward or on Rank 2-3
-            const Bitboard fixed_pawn[CLR_NO] =
+            const Bitboard fixed_pawns[CLR_NO] =
             {
                 pos.pieces (WHITE, PAWN) & (shift_del<DEL_S> (pos.pieces ()) | R2_bb | R3_bb),
                 pos.pieces (BLACK, PAWN) & (shift_del<DEL_N> (pos.pieces ()) | R7_bb | R6_bb)
@@ -1026,8 +1026,8 @@ namespace Evaluator {
             // Do not include in mobility squares protected by enemy pawns or occupied by friend fixed pawns or king
             const Bitboard mobility_area[CLR_NO] =
             {
-                ~(ei.pin_attacked_by[BLACK][PAWN] | fixed_pawn[WHITE] | pos.pieces (WHITE, KING)),
-                ~(ei.pin_attacked_by[WHITE][PAWN] | fixed_pawn[BLACK] | pos.pieces (BLACK, KING))
+                ~(ei.pin_attacked_by[BLACK][PAWN] | fixed_pawns[WHITE] | pos.pieces (WHITE, KING)),
+                ~(ei.pin_attacked_by[WHITE][PAWN] | fixed_pawns[BLACK] | pos.pieces (BLACK, KING))
             };
 
             score += 
@@ -1147,9 +1147,7 @@ namespace Evaluator {
             }
 
             // Interpolates between a middle game and a (scaled by 'scale_factor') endgame score, based on game phase.
-            eg = eg * i32(scale_factor) / i32(SCALE_FACTOR_NORMAL);
-
-            auto value = Value((mg * i32(game_phase) + eg * i32(PHASE_MIDGAME - game_phase)) / i32(PHASE_MIDGAME));
+            auto value = Value((mg*i32(game_phase) + eg*i32(PHASE_MIDGAME - game_phase)*i32(scale_factor)/i32(SCALE_FACTOR_NORMAL))/i32(PHASE_MIDGAME));
 
             return (WHITE == pos.active () ? +value : -value) + TEMPO;
         }

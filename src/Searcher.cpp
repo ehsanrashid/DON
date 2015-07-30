@@ -249,6 +249,8 @@ namespace Searcher {
                 && pos.capture_type () == NONE
                )
             {
+                //HistoryValues.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
+
                 auto own_move = (ss-2)->current_move;
                 auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
                 if (own_move_dst != SQ_NO)
@@ -269,12 +271,9 @@ namespace Searcher {
         void update_pv (Move *pv, Move move, const Move *child_pv)
         {
             *pv++ = move;
-            if (child_pv != nullptr)
+            while (child_pv != nullptr && *child_pv != MOVE_NONE)
             {
-                while (*child_pv != MOVE_NONE)
-                {
-                    *pv++ = *child_pv++;
-                }
+                *pv++ = *child_pv++;
             }
             *pv = MOVE_NONE;
         }
@@ -1974,10 +1973,10 @@ namespace Searcher {
             }
 
             i16 timed_contempt = 0;
-            i16 diff_time = 0;
+            i32 diff_time = 0;
             if (   ContemptTime != 0
                 && Limits.use_timemanager ()
-                && (diff_time = i16((Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC)) != 0
+                && (diff_time = (Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
                 //&& ContemptTime <= abs (diff_time)
                )
             {

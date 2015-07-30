@@ -24,7 +24,6 @@ namespace Pawns {
 
         Bitboard pawns_attacks [CLR_NO];
 
-        //Bitboard blocked_pawns [CLR_NO];
         Bitboard passed_pawns  [CLR_NO];
 
         u08      semiopen_files[CLR_NO];
