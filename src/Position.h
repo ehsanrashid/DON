@@ -113,9 +113,9 @@ private:
     Bitboard _color_bb[CLR_NO];
     Bitboard _types_bb[TOTL];
 
-    Square   _piece_list [CLR_NO][NONE][16];
-    u08      _piece_count[CLR_NO][NONE];
-    i08      _piece_index[SQ_NO];
+    Square   _piece_square[CLR_NO][NONE][16];
+    u08      _piece_count [CLR_NO][NONE];
+    i08      _piece_index [SQ_NO];
 
     StateInfo  _sb; // Object for base status information
     StateInfo *_si; // Pointer for current status information
@@ -179,8 +179,6 @@ public:
 
     bool   empty   (Square s)   const;
 
-    Square king_sq (Color c)    const;
-
     Bitboard pieces ()          const;
     Bitboard pieces (Color c)   const;
     Bitboard pieces (PieceT pt) const;
@@ -195,7 +193,9 @@ public:
     i32      count  (Color c, PieceT pt) const;
 
     template<PieceT PT>
-    const Square* list (Color c) const;
+    const Square* squares (Color c) const;
+    template<PieceT PT>
+    Square square (Color c, i32 index = 0) const;
 
     // Castling rights for both side
     CRight castle_rights () const;
@@ -309,10 +309,9 @@ public:
 inline Piece         Position::operator[] (Square s)  const { return _board[s]; }
 //inline Bitboard      Position::operator[] (Color  c)  const { return _color_bb[c];  }
 //inline Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
-inline const Square* Position::operator[] (Piece  p)  const { return _piece_list[color (p)][ptype (p)]; }
+inline const Square* Position::operator[] (Piece  p)  const { return _piece_square[color (p)][ptype (p)]; }
 
 inline bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
-inline Square   Position::king_sq (Color c)  const { return _piece_list[c][KING][0]; }
 
 inline Bitboard Position::pieces ()          const { return _types_bb[NONE]; }
 inline Bitboard Position::pieces (Color c)   const { return _color_bb[c];  }
@@ -373,7 +372,14 @@ inline i32 Position::count<NONPAWN> (Color c) const
 inline i32 Position::count (Color c, PieceT pt) const { return _piece_count[c][pt]; }
 
 template<PieceT PT>
-inline const Square* Position::list (Color c) const { return _piece_list[c][PT]; }
+inline const Square* Position::squares (Color c) const { return _piece_square[c][PT]; }
+template<PieceT PT>
+inline Square Position::square (Color c, i32 index) const
+{
+    assert (_piece_count[c][PT] == index+1);
+    return _piece_square[c][PT][index];
+}
+
 // Castling rights for both side
 inline CRight Position::castle_rights () const { return _si->castle_rights; }
 // Target square in algebraic notation. If there's no en passant target square is "-"
@@ -467,7 +473,7 @@ inline Bitboard Position::attackers_to (Square s) const
 // Checkers are enemy pieces that give the direct Check to friend King of color 'c'
 inline Bitboard Position::checkers (Color c) const
 {
-    return attackers_to (_piece_list[c][KING][0], ~c);
+    return attackers_to (_piece_square[c][KING][0], ~c);
 }
 // Pinners => Only bishops, rooks, queens...  kings, knights, and pawns cannot pin.
 // Pinneds => All except king, king must be immediately removed from check under all circumstances.
@@ -494,7 +500,7 @@ inline bool Position::bishops_pair (Color c) const
     {
         for (u08 pc = 0; pc < bishop_count-1; ++pc)
         {
-            if (opposite_colors (_piece_list[c][BSHP][pc], _piece_list[c][BSHP][pc+1])) return true;
+            if (opposite_colors (_piece_square[c][BSHP][pc], _piece_square[c][BSHP][pc+1])) return true;
         }
     }
     return false;
@@ -504,7 +510,7 @@ inline bool Position::opposite_bishops () const
 {
     return _piece_count[WHITE][BSHP] == 1
         && _piece_count[BLACK][BSHP] == 1
-        && opposite_colors (_piece_list[WHITE][BSHP][0], _piece_list[BLACK][BSHP][0]);
+        && opposite_colors (_piece_square[WHITE][BSHP][0], _piece_square[BLACK][BSHP][0]);
 }
 inline bool Position::legal         (Move m) const { return legal (m, pinneds (_active)); }
 // capture(m) tests move is capture
@@ -540,7 +546,7 @@ inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 
     // Update piece list, put piece at [s] index
     _piece_index[s]  = _piece_count[c][pt]++;
-    _piece_list[c][pt][_piece_index[s]] = s;
+    _piece_square[c][pt][_piece_index[s]] = s;
 }
 inline void  Position:: place_piece (Square s, Piece p)
 {
@@ -568,14 +574,14 @@ inline void  Position::remove_piece (Square s)
     _piece_count[c][pt]--;
 
     // Update piece list, remove piece at [s] index and shrink the list.
-    auto last_sq = _piece_list[c][pt][_piece_count[c][pt]];
+    auto last_sq = _piece_square[c][pt][_piece_count[c][pt]];
     //if (s != last_sq)
     {
         _piece_index[last_sq] = _piece_index[s];
-        _piece_list[c][pt][_piece_index[last_sq]] = last_sq;
+        _piece_square[c][pt][_piece_index[last_sq]] = last_sq;
     }
     //_piece_index[s] = -1;
-    _piece_list[c][pt][_piece_count[c][pt]] = SQ_NO;
+    _piece_square[c][pt][_piece_count[c][pt]] = SQ_NO;
 }
 inline void  Position::  move_piece (Square s1, Square s2)
 {
@@ -598,7 +604,7 @@ inline void  Position::  move_piece (Square s1, Square s2)
     // as _piece_index[] is accessed just by known occupied squares.
     _piece_index[s2] = _piece_index[s1];
     //_piece_index[s1] = -1;
-    _piece_list[c][pt][_piece_index[s2]] = s2;
+    _piece_square[c][pt][_piece_index[s2]] = s2;
 }
 // do_castling() is a helper used to do/undo a castling move.
 // This is a bit tricky, especially in Chess960.
@@ -621,7 +627,7 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
 
 inline CheckInfo::CheckInfo (const Position &pos)
 {
-    king_sq = pos.king_sq (~pos.active ());
+    king_sq = pos.square<KING> (~pos.active ());
     pinneds = pos.pinneds ( pos.active ());
     discoverers = pos.discoverers (pos.active ());
 

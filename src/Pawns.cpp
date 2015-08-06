@@ -145,7 +145,7 @@ namespace Pawns {
 
             Bitboard b;
 
-            const auto *pl = pos.list<PAWN> (Own);
+            const auto *pl = pos.squares<PAWN> (Own);
             Square s;
             while ((s = *pl++) != SQ_NO)
             {

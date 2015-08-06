@@ -34,7 +34,7 @@ namespace Zobrist {
 
         for (auto c = WHITE; c <= BLACK; ++c)
         {
-            const auto *pl = pos.list<PAWN> (c);
+            const auto *pl = pos.squares<PAWN> (c);
             Square s;
             while ((s = *pl++) != SQ_NO)
             {

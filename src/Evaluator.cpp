@@ -288,8 +288,8 @@ namespace Evaluator {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
             const auto Push = WHITE == Own ? DEL_N: DEL_S;
 
-            auto fk_sq = pos.king_sq (Own);
-            auto ek_sq = pos.king_sq (Opp);
+            auto fk_sq = pos.square<KING> (Own);
+            auto ek_sq = pos.square<KING> (Opp);
 
             auto pinneds = ei.pinneds[Own] = pos.pinneds (Own);
             ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PAWN] = ei.pi->pawns_attacks[Own];
@@ -353,7 +353,7 @@ namespace Evaluator {
             ei.ful_attacked_by[Own][PT] = U64(0);
             ei.pin_attacked_by[Own][PT] = U64(0);
             
-            const auto *pl = pos.list<PT> (Own);
+            const auto *pl = pos.squares<PT> (Own);
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
@@ -369,7 +369,7 @@ namespace Evaluator {
                 
                 if ((ei.pinneds[Own] & s) != U64(0))
                 {
-                    attacks &= RAYLINE_bb[pos.king_sq (Own)][s];
+                    attacks &= RAYLINE_bb[pos.square<KING> (Own)][s];
                 }
                 ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PT] |= attacks;
 
@@ -491,8 +491,8 @@ namespace Evaluator {
 
                     if (mob <= 3 && !ei.pi->file_semiopen (Own, _file (s)))
                     {
-                        auto kf = _file (pos.king_sq (Own));
-                        auto kr = rel_rank (Own, pos.king_sq (Own));
+                        auto kf = _file (pos.square<KING> (Own));
+                        auto kr = rel_rank (Own, pos.square<KING> (Own));
                         // Rooks trapped by own king, more if the king has lost its castling capability.
                         if (   (kf < F_E) == (_file (s) < kf)
                             && (kr == R_1 || kr == rel_rank (Own, s))
@@ -520,7 +520,7 @@ namespace Evaluator {
         {
             const auto Opp = WHITE == Own ? BLACK : WHITE;
 
-            auto fk_sq = pos.king_sq (Own);
+            auto fk_sq = pos.square<KING> (Own);
 
             // King Safety: friend pawn shelter and enemy pawns storm
             ei.pi->evaluate_king_safety<Own> (pos);
@@ -840,23 +840,23 @@ namespace Evaluator {
 
                     // Adjust bonus based on kings proximity
                     eg_value += 
-                        + 5*rr*dist (pos.king_sq (Opp), block_sq)
-                        - 2*rr*dist (pos.king_sq (Own), block_sq);
+                        + 5*rr*dist (pos.square<KING> (Opp), block_sq)
+                        - 2*rr*dist (pos.square<KING> (Own), block_sq);
                     // If block square is not the queening square then consider also a second push
                     if (rel_rank (Own, block_sq) != R_8)
                     {
-                        eg_value -= 1*rr*dist (pos.king_sq (Own), block_sq+Push);
+                        eg_value -= 1*rr*dist (pos.square<KING> (Own), block_sq+Push);
                     }
 
                     bool pinned = (ei.pinneds[Own] & s) != U64(0);
                     if (pinned)
                     {
                         // Only one real pinner exist other are fake pinner
-                        auto pawn_pinners = pos.pieces (Opp) & RAYLINE_bb[pos.king_sq (Own)][s] &
+                        auto pawn_pinners = pos.pieces (Opp) & RAYLINE_bb[pos.square<KING> (Own)][s] &
                             (  (attacks_bb<ROOK> (s, pos.pieces ()) & pos.pieces (ROOK, QUEN))
                              | (attacks_bb<BSHP> (s, pos.pieces ()) & pos.pieces (BSHP, QUEN))
                             );
-                        pinned = (BETWEEN_bb[pos.king_sq (Own)][scan_lsq (pawn_pinners)] & block_sq) == U64(0);
+                        pinned = (BETWEEN_bb[pos.square<KING> (Own)][scan_lsq (pawn_pinners)] & block_sq) == U64(0);
                     }
 
                     // If the pawn is free to advance
@@ -1139,7 +1139,7 @@ namespace Evaluator {
                 else
                 if (    abs (eg) <= VALUE_EG_BSHP
                     &&  ei.pi->pawn_span[strong_side] <= 1
-                    && !pos.passed_pawn (~strong_side, pos.king_sq (~strong_side))
+                    && !pos.passed_pawn (~strong_side, pos.square<KING> (~strong_side))
                    )
                 {
                     scale_factor = ei.pi->pawn_span[strong_side] != 0 ? ScaleFactor(56) : ScaleFactor(38);

@@ -20,7 +20,7 @@ namespace MoveGen {
             {
                 assert (KING != PT && PAWN != PT);
 
-                const auto *pl = pos.list<PT> (Own);
+                const auto *pl = pos.squares<PT> (Own);
                 Square s;
                 while ((s = *pl++) != SQ_NO)
                 {
@@ -66,7 +66,7 @@ namespace MoveGen {
 
                 const auto Opp = WHITE == Own ? BLACK : WHITE;
 
-                auto king_org = pos.king_sq (Own);
+                auto king_org = pos.square<KING> (Own);
                 auto rook_org = pos.castle_rook (CR);
 
                 assert (ROOK == ptype (pos[rook_org]));
@@ -108,8 +108,8 @@ namespace MoveGen {
 
                 if (CHECK != GT && QUIET_CHECK != GT)
                 {
-                    auto king_sq = pos.king_sq (Own);
-                    auto attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.king_sq (Opp)] & targets;
+                    auto king_sq = pos.square<KING> (Own);
+                    auto attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.square<KING> (Opp)] & targets;
                     while (attacks != U64(0)) { *moves++ = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
                 }
 
@@ -415,7 +415,7 @@ namespace MoveGen {
         assert (checkers != U64(0)); // If any checker exists
 
         auto active  = pos.active ();
-        auto king_sq = pos.king_sq (active);
+        auto king_sq = pos.square<KING> (active);
 
         auto check_sq = SQ_NO;
 
@@ -455,7 +455,7 @@ namespace MoveGen {
               PIECE_ATTACKS[KING][king_sq]
             & ~(  pos.pieces (active)
                 | slider_attacks
-                | PIECE_ATTACKS[KING][pos.king_sq (~active)]
+                | PIECE_ATTACKS[KING][pos.square<KING> (~active)]
                );
 
         while (attacks != U64(0)) { *moves++ = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
@@ -481,7 +481,7 @@ namespace MoveGen {
                             generate<EVASION> (moves, pos) :
                             generate<RELAX  > (moves, pos);
 
-        auto king_sq = pos.king_sq (pos.active ());
+        auto king_sq = pos.square<KING> (pos.active ());
         auto pinneds = pos.pinneds (pos.active ());
         while (moves_cur != moves_end)
         {

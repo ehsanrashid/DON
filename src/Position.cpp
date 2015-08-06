@@ -156,7 +156,7 @@ bool Position::draw () const
     // Draw by Threefold Repetition?
     const auto *psi = _si;
     //u08 cnt = 1;
-    for (i16 ply = min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
+    for (u08 ply = min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
     {
         psi = psi->ptr->ptr;
         if (psi->posi_key == _si->posi_key)
@@ -198,7 +198,7 @@ bool Position::repeated () const
     auto *si = _si;
     while (si != nullptr)
     {
-        i16 ply = min (si->clock50, si->null_ply);
+        u08 ply = min (si->clock50, si->null_ply);
         if (4 > ply) return false;
         auto *psi = si->ptr->ptr;
         do
@@ -218,17 +218,17 @@ bool Position::ok (i08 *failed_step) const
 {
     const bool Fast = true; // Quick (default) or full check?
 
-    enum { Default, King, Bitboards, State, Lists, Castling };
+    enum { Quick, King, Bitboards, State, Lists, Castling };
 
-    for (i08 step = Default; step <= (Fast ? Default : Castling); ++step)
+    for (i08 step = Quick; step <= (Fast ? Quick : Castling); ++step)
     {
         if (failed_step != nullptr) *failed_step = step;
 
-        if (step == Default)
+        if (step == Quick)
         {
             if (   (WHITE != _active && BLACK != _active)
-                || (W_KING != _board[_piece_list[WHITE][KING][0]])
-                || (B_KING != _board[_piece_list[BLACK][KING][0]])
+                || (W_KING != _board[_piece_square[WHITE][KING][0]])
+                || (B_KING != _board[_piece_square[BLACK][KING][0]])
                 || count<NONE> () > 32 || count<NONE> () != pop_count<FULL> (_types_bb[NONE])
                 || (SQ_NO != en_passant_sq () && (R_6 != rel_rank (_active, en_passant_sq ()) || !can_en_passant (en_passant_sq ())))
                 || (_si->clock50 > 100)
@@ -242,7 +242,7 @@ bool Position::ok (i08 *failed_step) const
         {
             if (   1 != std::count (_board, _board + SQ_NO, W_KING)
                 || 1 != std::count (_board, _board + SQ_NO, B_KING)
-                || attackers_to (_piece_list[~_active][KING][0], _active)
+                || attackers_to (_piece_square[~_active][KING][0], _active)
                 || pop_count<MAX15> (_si->checkers) > 2
                )
             {
@@ -357,9 +357,9 @@ bool Position::ok (i08 *failed_step) const
 
                     for (auto i = 0; i < _piece_count[c][pt]; ++i)
                     {
-                        if (   !_ok  (_piece_list[c][pt][i])
-                            || _board[_piece_list[c][pt][i]] != (c|pt)
-                            || _piece_index[_piece_list[c][pt][i]] != i
+                        if (   !_ok  (_piece_square[c][pt][i])
+                            || _board[_piece_square[c][pt][i]] != (c|pt)
+                            || _piece_index[_piece_square[c][pt][i]] != i
                            )
                         {
                             return false;
@@ -388,7 +388,7 @@ bool Position::ok (i08 *failed_step) const
 
                     if (    _board[_castle_rook[cr]] != (c|ROOK)
                         ||  _castle_mask[_castle_rook[cr]] != cr
-                        || (_castle_mask[_piece_list[c][KING][0]] & cr) != cr
+                        || (_castle_mask[_piece_square[c][KING][0]] & cr) != cr
                        )
                     {
                         return false;
@@ -553,7 +553,7 @@ Value Position::see_sign (Move m) const
 
 Bitboard Position::check_blockers (Color piece_c, Color king_c) const
 {
-    auto ksq = _piece_list[king_c][KING][0];
+    auto ksq = _piece_square[king_c][KING][0];
     // Pinners are sliders that give check when a pinned piece is removed
     // Only one real pinner exist other are fake pinner
     auto pinners =
@@ -732,9 +732,9 @@ bool Position::pseudo_legal (Move m) const
         return ENPASSANT == mtype (m) && PAWN == ptype (mpc) ?
             // Move must be a capture of the checking en-passant pawn
             // or a blocking evasion of the checking piece
-            (_si->checkers & cap) != U64(0) || (BETWEEN_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]] & dst) != U64(0) :
+            (_si->checkers & cap) != U64(0) || (BETWEEN_bb[scan_lsq (_si->checkers)][_piece_square[_active][KING][0]] & dst) != U64(0) :
             // Move must be a capture or a blocking evasion of the checking piece
-            ((_si->checkers | BETWEEN_bb[scan_lsq (_si->checkers)][_piece_list[_active][KING][0]]) & dst) != U64(0);
+            ((_si->checkers | BETWEEN_bb[scan_lsq (_si->checkers)][_piece_square[_active][KING][0]]) & dst) != U64(0);
     }
     return true;
 }
@@ -774,7 +774,7 @@ bool Position::legal        (Move m, Bitboard pinned) const
         // it is a blocking evasion or a capture of the checking piece.
         return  pinned == U64(0)
             || (pinned & org) == U64(0)
-            || sqrs_aligned (org, dst, _piece_list[_active][KING][0]);
+            || sqrs_aligned (org, dst, _piece_square[_active][KING][0]);
     }
         break;
 
@@ -795,8 +795,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
         auto mocc = _types_bb[NONE] - org - cap + dst;
         // If any attacker then in check & not legal
-        return (attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
-            && (attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0);
+        return (attacks_bb<ROOK> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
+            && (attacks_bb<BSHP> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0);
     }
         break;
 
@@ -903,7 +903,7 @@ void Position::clear ()
         {
             for (auto i = 0; i < 16; ++i)
             {
-                _piece_list[c][pt][i] = SQ_NO;
+                _piece_square[c][pt][i] = SQ_NO;
             }
         }
     }
@@ -985,8 +985,8 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
         }
     }
 
-    assert (_piece_list[WHITE][KING][0] != SQ_NO);
-    assert (_piece_list[BLACK][KING][0] != SQ_NO);
+    assert (_piece_square[WHITE][KING][0] != SQ_NO);
+    assert (_piece_square[BLACK][KING][0] != SQ_NO);
 
     // 2. Active color
     iss >> ch;
@@ -1093,7 +1093,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
 // set_castle() set the castling for the particular color & rook
 void Position::set_castle (Color c, Square rook_org)
 {
-    auto king_org = _piece_list[c][KING][0];
+    auto king_org = _piece_square[c][KING][0];
     assert (king_org != rook_org);
 
     auto cr = mk_castle_right (c, (rook_org > king_org) ? CS_K : CS_Q);
@@ -1149,8 +1149,8 @@ bool Position::can_en_passant (Square ep_sq) const
     for (m = moves; *m != MOVE_NONE; ++m)
     {
         auto mocc = occ - org_sq (*m);
-        if (   (attacks_bb<ROOK> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
-            && (attacks_bb<BSHP> (_piece_list[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0)
+        if (   (attacks_bb<ROOK> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
+            && (attacks_bb<BSHP> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0)
            )
         {
             return true;
@@ -1381,7 +1381,7 @@ void Position::do_move (Move m, StateInfo &si, bool check)
     }
 
     // Calculate checkers bitboard (if move is check)
-    _si->checkers = check ? attackers_to (_piece_list[pasive][KING][0], _active) : U64(0);
+    _si->checkers = check ? attackers_to (_piece_square[pasive][KING][0], _active) : U64(0);
 
     _active = pasive;
 
