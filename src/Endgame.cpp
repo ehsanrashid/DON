@@ -178,7 +178,7 @@ namespace EndGame {
 
         // Assume _strong_side is white and the pawn is on files A-D
         auto sk_sq = normalize (pos, _strong_side, pos.square<KING> (_strong_side));
-        auto wk_sq = normalize (pos, _strong_side, pos.square<KING> (_weak_side));
+        auto wk_sq = normalize (pos, _strong_side, pos.square<KING> (  _weak_side));
         auto sp_sq = normalize (pos, _strong_side, pos.square<PAWN> (_strong_side));
 
         Value value;
@@ -207,7 +207,7 @@ namespace EndGame {
         assert (verify_material (pos,   _weak_side, VALUE_ZERO, 0));
 
         auto sk_sq = pos.square<KING> (_strong_side);
-        auto wk_sq = pos.square<KING> (_weak_side);
+        auto wk_sq = pos.square<KING> (  _weak_side);
         auto sb_sq = pos.square<BSHP> (_strong_side);
 
         // kbnk mate table tries to drive toward corners A1 or H8,
@@ -232,7 +232,7 @@ namespace EndGame {
         assert (verify_material (pos, _strong_side, 2 * VALUE_MG_NIHT, 0));
 
         auto sk_sq = pos.square<KING> (_strong_side);
-        auto wk_sq = pos.square<KING> (_weak_side);
+        auto wk_sq = pos.square<KING> (  _weak_side);
 
         Value value = Value((PUSH_CLOSE[dist (sk_sq, wk_sq)] + PUSH_TO_EDGE[wk_sq]) / 8);
 
@@ -249,9 +249,9 @@ namespace EndGame {
         assert (verify_material (pos,   _weak_side, VALUE_ZERO   , 1));
 
         auto sk_sq = rel_sq (_strong_side, pos.square<KING> (_strong_side));
-        auto wk_sq = rel_sq (_strong_side, pos.square<KING> (_weak_side));
+        auto wk_sq = rel_sq (_strong_side, pos.square<KING> (  _weak_side));
         auto sr_sq = rel_sq (_strong_side, pos.square<ROOK> (_strong_side));
-        auto wp_sq = rel_sq (_strong_side, pos.square<PAWN> (_weak_side));
+        auto wp_sq = rel_sq (_strong_side, pos.square<PAWN> (  _weak_side));
 
         auto promote_sq = _file (wp_sq)|R_1;
 
@@ -297,8 +297,8 @@ namespace EndGame {
         assert (verify_material (pos,   _weak_side, VALUE_MG_BSHP, 0));
 
         auto sk_sq = pos.square<KING> (_strong_side);
-        auto wk_sq = pos.square<KING> (_weak_side);
-        auto wb_sq = pos.square<BSHP> (_weak_side);
+        auto wk_sq = pos.square<KING> (  _weak_side);
+        auto wb_sq = pos.square<BSHP> (  _weak_side);
 
         // When the weaker side ended up in the same corner as bishop.
         Value value  = Value(PUSH_TO_EDGE[wk_sq] / 4);
@@ -326,8 +326,8 @@ namespace EndGame {
         assert (verify_material (pos,   _weak_side, VALUE_MG_NIHT, 0));
 
         auto sk_sq = pos.square<KING> (_strong_side);
-        auto wk_sq = pos.square<KING> (_weak_side);
-        auto wn_sq = pos.square<NIHT> (_weak_side);
+        auto wk_sq = pos.square<KING> (  _weak_side);
+        auto wn_sq = pos.square<NIHT> (  _weak_side);
 
         Value value  = Value(PUSH_AWAY[dist (wk_sq, wn_sq)] + PUSH_TO_EDGE[wk_sq]);
 
@@ -353,8 +353,8 @@ namespace EndGame {
         assert (verify_material (pos,   _weak_side, VALUE_ZERO   , 1));
 
         auto sk_sq = pos.square<KING> (_strong_side);
-        auto wk_sq = pos.square<KING> (_weak_side);
-        auto wp_sq = pos.square<PAWN> (_weak_side);
+        auto wk_sq = pos.square<KING> (  _weak_side);
+        auto wp_sq = pos.square<PAWN> (  _weak_side);
 
         Value value = Value(PUSH_CLOSE[dist (sk_sq, wk_sq)]);
 
@@ -380,7 +380,7 @@ namespace EndGame {
         assert (verify_material (pos,   _weak_side, VALUE_MG_ROOK, 0));
 
         auto sk_sq = pos.square<KING> (_strong_side);
-        auto wk_sq = pos.square<KING> (_weak_side);
+        auto wk_sq = pos.square<KING> (  _weak_side);
 
         Value value = VALUE_EG_QUEN - VALUE_EG_ROOK
                     + PUSH_CLOSE[dist (sk_sq, wk_sq)]
@@ -401,8 +401,8 @@ namespace EndGame {
         assert (verify_material (pos,   _weak_side,     VALUE_MG_NIHT, 0));
 
         auto sk_sq = pos.square<KING> (_strong_side);
-        auto wk_sq = pos.square<KING> (_weak_side);
-        auto wn_sq = pos.square<NIHT> (_weak_side);
+        auto wk_sq = pos.square<KING> (  _weak_side);
+        auto wn_sq = pos.square<NIHT> (  _weak_side);
 
         Value value;
 
@@ -573,7 +573,7 @@ namespace EndGame {
         // Test for a rook pawn
         if ((pos.pieces (PAWN) & (FA_bb|FH_bb)) != U64(0))
         {
-            auto wk_sq = pos.square<KING> (_weak_side);
+            auto wk_sq = pos.square<KING> (  _weak_side);
             auto wb_sq = pos.square<BSHP> (  _weak_side);
             auto sp_sq = pos.square<PAWN> (_strong_side);
             auto r     = rel_rank (_strong_side, sp_sq);
@@ -616,7 +616,7 @@ namespace EndGame {
 
         auto sp1_sq = pos.square<PAWN> (_strong_side, 0);
         auto sp2_sq = pos.square<PAWN> (_strong_side, 1);
-        auto wk_sq  = pos.square<KING> (_weak_side);
+        auto wk_sq  = pos.square<KING> (  _weak_side);
 
         // Does the stronger side have a passed pawn?
         if (   !pos.passed_pawn (_strong_side, sp1_sq)
@@ -684,7 +684,7 @@ namespace EndGame {
 
         // Assume _strong_side is white and the pawn is on files A-D
         auto sk_sq = normalize (pos, _strong_side, pos.square<KING> (_strong_side));
-        auto wk_sq = normalize (pos, _strong_side, pos.square<KING> (_weak_side));
+        auto wk_sq = normalize (pos, _strong_side, pos.square<KING> (  _weak_side));
         auto sp_sq = normalize (pos, _strong_side, pos.square<PAWN> (_strong_side));
 
         // If the pawn has advanced to the fifth rank or further, and is not a rook pawn,
@@ -712,7 +712,7 @@ namespace EndGame {
 
         // Assume _strong_side is white and the pawn is on files A-D
         auto sp_sq = normalize (pos, _strong_side, pos.square<PAWN> (_strong_side));
-        auto wk_sq = normalize (pos, _strong_side, pos.square<KING> (_weak_side));
+        auto wk_sq = normalize (pos, _strong_side, pos.square<KING> (  _weak_side));
 
         if (sp_sq == SQ_A7 && dist (wk_sq, SQ_A8) <= 1)
         {
@@ -735,7 +735,7 @@ namespace EndGame {
         auto sp_sq = pos.square<PAWN> (_strong_side);
         auto sb_sq = pos.square<BSHP> (_strong_side);
         auto wb_sq = pos.square<BSHP> (  _weak_side);
-        auto wk_sq = pos.square<KING> (_weak_side);
+        auto wk_sq = pos.square<KING> (  _weak_side);
 
         // Case 1: Defending king blocks the pawn, and cannot be driven away
         if (   _file (wk_sq) == _file (sp_sq)
@@ -792,7 +792,7 @@ namespace EndGame {
         if (opposite_colors (sb_sq, wb_sq))
         {
 
-            auto wk_sq = pos.square<KING> (_weak_side);
+            auto wk_sq  = pos.square<KING> (  _weak_side);
             auto sp1_sq = pos.square<PAWN> (_strong_side, 0);
             auto sp2_sq = pos.square<PAWN> (_strong_side, 1);
         
@@ -875,7 +875,7 @@ namespace EndGame {
 
         auto sp_sq = pos.square<PAWN> (_strong_side);
         auto sb_sq = pos.square<BSHP> (_strong_side);
-        auto wk_sq = pos.square<KING> (_weak_side);
+        auto wk_sq = pos.square<KING> (  _weak_side);
 
         if (   _file (wk_sq) == _file (sp_sq)
             && rel_rank (_strong_side, sp_sq) < rel_rank (_strong_side, wk_sq)
@@ -898,7 +898,7 @@ namespace EndGame {
 
         auto sp_sq = pos.square<PAWN> (_strong_side);
         auto sb_sq = pos.square<BSHP> (  _weak_side);
-        auto wk_sq = pos.square<KING> (_weak_side);
+        auto wk_sq = pos.square<KING> (  _weak_side);
         
         // King needs to get close to promoting pawn to prevent knight from blocking.
         // Rules for this are very tricky, so just approximate.
@@ -1050,8 +1050,8 @@ namespace EndGame {
         assert (pos.count<PAWN> (_weak_side) != 0);
         
         auto sk_sq = pos.square<KING> (_strong_side);
-        auto wk_sq = pos.square<KING> (_weak_side);
-        auto wr_sq = pos.square<ROOK> (_weak_side);
+        auto wk_sq = pos.square<KING> (  _weak_side);
+        auto wr_sq = pos.square<ROOK> (  _weak_side);
 
         if (   rel_rank (_weak_side, wk_sq) <= R_2
             && rel_rank (_weak_side, sk_sq) >= R_4

@@ -126,11 +126,11 @@ namespace Transposition {
         }
 
         auto *rte = fte;
-        i16 rem = (rte->gen () == _generation) * 0x10 * DEPTH_ONE + (rte->bound () == BOUND_EXACT) * 0x04 * DEPTH_ONE + rte->_depth;
+        i16 rem = (rte->gen () == _generation)*0x08*DEPTH_ONE + (rte->bound () == BOUND_EXACT)*0x02*DEPTH_ONE + rte->_depth;
         for (auto *ite = fte+1; ite < fte+ClusterEntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
-            i16 iem = (ite->gen () == _generation) * 0x10 * DEPTH_ONE + (ite->bound () == BOUND_EXACT) * 0x04 * DEPTH_ONE + ite->_depth;
+            i16 iem = (ite->gen () == _generation)*0x08*DEPTH_ONE + (ite->bound () == BOUND_EXACT)*0x02*DEPTH_ONE + ite->_depth;
             if (rem > iem)
             {
                 rem = iem;

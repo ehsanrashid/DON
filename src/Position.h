@@ -376,7 +376,7 @@ inline const Square* Position::squares (Color c) const { return _piece_square[c]
 template<PieceT PT>
 inline Square Position::square (Color c, i32 index) const
 {
-    assert (_piece_count[c][PT] == index+1);
+    assert (_piece_count[c][PT] > index);
     return _piece_square[c][PT][index];
 }
 

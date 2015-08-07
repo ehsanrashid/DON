@@ -31,8 +31,7 @@ const string STARTUP_FEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 
 
 bool _ok (const string &fen, bool c960, bool full)
 {
-    Position pos (fen, nullptr, c960, full);
-    return pos.ok ();
+    return Position (fen, nullptr, c960, full).ok ();
 }
 
 namespace {
@@ -156,7 +155,7 @@ bool Position::draw () const
     // Draw by Threefold Repetition?
     const auto *psi = _si;
     //u08 cnt = 1;
-    for (u08 ply = min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
+    for (i08 ply = min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
     {
         psi = psi->ptr->ptr;
         if (psi->posi_key == _si->posi_key)
@@ -198,7 +197,7 @@ bool Position::repeated () const
     auto *si = _si;
     while (si != nullptr)
     {
-        u08 ply = min (si->clock50, si->null_ply);
+        i08 ply = min (si->clock50, si->null_ply);
         if (4 > ply) return false;
         auto *psi = si->ptr->ptr;
         do
@@ -999,48 +998,34 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     // 3-X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
     // tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
     iss >> ch;
-    if (c960)
+    while ((iss >> ch) && !isspace (ch) && ch != '-')
     {
-        while ((iss >> ch) && !isspace (ch))
+        Square r_sq;
+        auto c = isupper (ch) ? WHITE : BLACK;
+
+        if (c960)
         {
-            auto c = isupper (ch) ? WHITE : BLACK;
-            u08 sym = u08(tolower (ch));
-            if ('a' <= sym && sym <= 'h')
-            {
-                auto r_sq = (to_file (sym) | rel_rank (c, R_1));
-                if ((c|ROOK) != _board[r_sq]) return false;
-                set_castle (c, r_sq);
-            }
-            else
-            {
-                continue;
-            }
+            if (!('a' <= tolower (ch) && tolower (ch) <= 'h')) return false;
+            r_sq = to_file (tolower (ch)) | rel_rank (c, R_1);
         }
-    }
-    else
-    {
-        while ((iss >> ch) && !isspace (ch))
+        else
         {
-            Square r_sq;
-            auto c = isupper (ch) ? WHITE : BLACK;
             switch (toupper (ch))
             {
             case 'K':
-                for (r_sq  = rel_sq (c, SQ_H1);
-                     r_sq >= rel_sq (c, SQ_A1) && (c|ROOK) != _board[r_sq];
-                     --r_sq) {}
+                for (r_sq  = rel_sq (c, SQ_H1); r_sq >= rel_sq (c, SQ_A1) && (c|ROOK) != _board[r_sq]; --r_sq) {}
                 break;
             case 'Q':
-                for (r_sq  = rel_sq (c, SQ_A1);
-                     r_sq <= rel_sq (c, SQ_H1) && (c|ROOK) != _board[r_sq];
-                     ++r_sq) {}
+                for (r_sq  = rel_sq (c, SQ_A1); r_sq <= rel_sq (c, SQ_H1) && (c|ROOK) != _board[r_sq]; ++r_sq) {}
                 break;
             default:
-                continue;
+                return false;
+                break;
             }
-            if ((c|ROOK) != _board[r_sq]) return false;
-            set_castle (c, r_sq);
         }
+
+        if ((c|ROOK) != _board[r_sq]) return false;
+        set_castle (c, r_sq);
     }
 
     // 4. En-passant square. Ignore if no pawn capture is possible
@@ -1251,7 +1236,7 @@ void Position::do_move (Move m, StateInfo &si, bool check)
         }
         else
         {
-            _si->clock50 = (PAWN == mpt) ? 0 : _si->clock50 + 1;
+            _si->clock50 = PAWN == mpt ? 0 : _si->clock50 + 1;
         }
 
         move_piece (org, dst);

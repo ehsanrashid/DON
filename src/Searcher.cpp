@@ -487,7 +487,8 @@ namespace Searcher {
             // to search the moves. Because the depth is <= 0 here, only captures,
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
-            MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, _ok ((ss-1)->current_move) ? dst_sq ((ss-1)->current_move) : SQ_NO);
+            auto opp_move = (ss-1)->current_move; 
+            MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, _ok (opp_move) ? dst_sq (opp_move) : SQ_NO);
             CheckInfo ci (pos);
             StateInfo si;
             Move move;
