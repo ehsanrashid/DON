@@ -109,7 +109,7 @@ namespace Searcher {
         bool operator!= (Move m) const { return pv[0] != m; }
 
         void insert_pv_into_tt ();
-        bool ponder_move_extracted_from_tt ();
+        bool extract_ponder_move_from_tt ();
 
         operator std::string () const;
         

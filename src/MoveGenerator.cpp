@@ -205,8 +205,8 @@ namespace MoveGen {
                 {
                     empties = QUIET == GT || QUIET_CHECK == GT ? targets : ~pos.pieces ();
                     
-                    auto push_1 = empties & shift_del<Push> (Rx_pawns);
-                    auto push_2 = empties & shift_del<Push> (push_1 & rel_rank_bb (Own, R_3));
+                    auto push_1 = empties & shift_bb<Push> (Rx_pawns);
+                    auto push_2 = empties & shift_bb<Push> (push_1 & rel_rank_bb (Own, R_3));
 
                     switch (GT)
                     {
@@ -230,8 +230,8 @@ namespace MoveGen {
                             // promotion has been already generated among captures.
                             if ((Rx_pawns & ci->discoverers) != U64(0))
                             {
-                                auto push_cd_1 = empties & shift_del<Push> (Rx_pawns & ci->discoverers);
-                                auto push_cd_2 = empties & shift_del<Push> (push_cd_1 & rel_rank_bb (Own, R_3));
+                                auto push_cd_1 = empties & shift_bb<Push> (Rx_pawns & ci->discoverers);
+                                auto push_cd_2 = empties & shift_bb<Push> (push_cd_1 & rel_rank_bb (Own, R_3));
 
                                 push_1 |= push_cd_1;
                                 push_2 |= push_cd_2;
@@ -248,8 +248,8 @@ namespace MoveGen {
                 // Pawn normal and en-passant captures, no promotions
                 if (RELAX == GT || CAPTURE == GT || EVASION == GT)
                 {
-                    auto l_attacks = enemies & shift_del<Left > (Rx_pawns);
-                    auto r_attacks = enemies & shift_del<Right> (Rx_pawns);
+                    auto l_attacks = enemies & shift_bb<Left > (Rx_pawns);
+                    auto r_attacks = enemies & shift_bb<Right> (Rx_pawns);
 
                     while (l_attacks != U64(0)) { auto dst = pop_lsq (l_attacks); *moves++ = mk_move<NORMAL> (dst - Left , dst); }
                     while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); *moves++ = mk_move<NORMAL> (dst - Right, dst); }
@@ -287,13 +287,13 @@ namespace MoveGen {
 
                         // Promoting pawns
                         Bitboard b;
-                        b = shift_del<Push > (R7_pawns) & empties;
+                        b = shift_bb<Push > (R7_pawns) & empties;
                         while (b != U64(0)) generate_promotion<Push > (moves, pop_lsq (b), ci);
 
-                        b = shift_del<Right> (R7_pawns) & enemies;
+                        b = shift_bb<Right> (R7_pawns) & enemies;
                         while (b != U64(0)) generate_promotion<Right> (moves, pop_lsq (b), ci);
 
-                        b = shift_del<Left > (R7_pawns) & enemies;
+                        b = shift_bb<Left > (R7_pawns) & enemies;
                         while (b != U64(0)) generate_promotion<Left > (moves, pop_lsq (b), ci);
                     }
                 }

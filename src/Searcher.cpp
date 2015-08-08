@@ -1770,11 +1770,11 @@ namespace Searcher {
         }
     }
     
-    // RootMove::ponder_move_extracted_from_tt() is called in case we have no ponder move before
+    // RootMove::extract_ponder_move_from_tt() is called in case we have no ponder move before
     // exiting the search, for instance in case we stop the search during a fail high at
     // root. We try hard to have a ponder move to return to the GUI, otherwise in case of
     // 'ponder on' we have nothing to think on.
-    bool RootMove::ponder_move_extracted_from_tt ()
+    bool RootMove::extract_ponder_move_from_tt ()
     {
         assert (pv.size () == 1);
         assert (pv[0] != MOVE_NONE);
@@ -2044,7 +2044,7 @@ namespace Searcher {
                 << "Hash-full  : " << TT.hash_full ()                           << "\n"
                 << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
             if (    RootMoves[0] != MOVE_NONE
-                && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt ())
+                && (RootMoves[0].pv.size () > 1 || RootMoves[0].extract_ponder_move_from_tt ())
                )
             {
                 StateInfo si;
@@ -2076,7 +2076,7 @@ namespace Searcher {
         // Best move could be MOVE_NONE when searching on a stalemate position
         sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], Chess960);
         if (    RootMoves[0] != MOVE_NONE
-            && (RootMoves[0].pv.size () > 1 || RootMoves[0].ponder_move_extracted_from_tt ())
+            && (RootMoves[0].pv.size () > 1 || RootMoves[0].extract_ponder_move_from_tt ())
            )
         {
             cout << " ponder " << move_to_can (RootMoves[0].pv[1], Chess960);

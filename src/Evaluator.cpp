@@ -210,7 +210,7 @@ namespace Evaluator {
         };
         
 
-        enum { DEFENDED, WEAK };
+        enum { STRONG, WEAK };
         enum { MINOR, MAJOR };
 
         // THREATEN_BY_PIECE[defended/weak][minor/major attacking][attacked PieceType] contains
@@ -218,8 +218,8 @@ namespace Evaluator {
         const Score THREATEN_BY_PIECE[2][2][NONE] =
         {
             {
-                { S( 0, 0), S(19, 37), S(24, 37), S(44, 97), S(35,106), S(0, 0) },  // Defended - Minor
-                { S( 0, 0), S( 9, 14), S( 9, 14), S( 7, 14), S(24, 48), S(0, 0) }   // Defended - Major
+                { S( 0, 0), S(19, 37), S(24, 37), S(44, 97), S(35,106), S(0, 0) },  // Strong - Minor
+                { S( 0, 0), S( 9, 14), S( 9, 14), S( 7, 14), S(24, 48), S(0, 0) }   // Strong - Major
             },
             {
                 { S( 0,32), S(33, 41), S(31, 50), S(41,100), S(35,104), S(0, 0) },  // Weak - Minor
@@ -298,8 +298,8 @@ namespace Evaluator {
             if (pinned_pawns != U64(0))
             {
                 auto free_pawns    = pos.pieces (Own, PAWN) & ~pinned_pawns;
-                auto pawns_attacks = shift_del<WHITE == Own ? DEL_NE : DEL_SW> (free_pawns)
-                                   | shift_del<WHITE == Own ? DEL_NW : DEL_SE> (free_pawns);
+                auto pawns_attacks = shift_bb<WHITE == Own ? DEL_NE : DEL_SW> (free_pawns)
+                                   | shift_bb<WHITE == Own ? DEL_NW : DEL_SE> (free_pawns);
                 while (pinned_pawns != U64(0))
                 {
                     auto s = pop_lsq (pinned_pawns);
@@ -562,7 +562,7 @@ namespace Evaluator {
                 // apart from the king itself
                 auto undefended =
                       ei.ful_attacked_by[Own][KING] // King-zone
-                    & ei.pin_attacked_by[Opp][NONE]
+                    & ei.ful_attacked_by[Opp][NONE]
                     & ~(  ei.pin_attacked_by[Own][PAWN]
                         | ei.pin_attacked_by[Own][NIHT]
                         | ei.pin_attacked_by[Own][BSHP]
@@ -600,8 +600,8 @@ namespace Evaluator {
                         auto unsafe = ei.ful_attacked_by[Opp][PAWN]
                                     | ei.ful_attacked_by[Opp][NIHT]
                                     | ei.ful_attacked_by[Opp][BSHP]
-                                    | ei.ful_attacked_by[Opp][ROOK]
-                                    | ei.ful_attacked_by[Opp][KING];
+                                    | ei.ful_attacked_by[Opp][ROOK];
+
                         while (undefended_attacked != U64(0))
                         {
                             auto sq = pop_lsq (undefended_attacked);
@@ -627,8 +627,8 @@ namespace Evaluator {
                         
                         auto unsafe = ei.ful_attacked_by[Opp][PAWN]
                                     | ei.ful_attacked_by[Opp][NIHT]
-                                    | ei.ful_attacked_by[Opp][BSHP]
-                                    | ei.ful_attacked_by[Opp][KING];
+                                    | ei.ful_attacked_by[Opp][BSHP];
+
                         while (undefended_attacked != U64(0))
                         {
                             auto sq = pop_lsq (undefended_attacked);
@@ -654,8 +654,8 @@ namespace Evaluator {
                         
                         auto unsafe = ei.ful_attacked_by[Opp][PAWN]
                                     | ei.ful_attacked_by[Opp][NIHT]
-                                    | ei.ful_attacked_by[Opp][ROOK]
-                                    | ei.ful_attacked_by[Opp][KING];
+                                    | ei.ful_attacked_by[Opp][ROOK];
+
                         while (undefended_attacked != U64(0))
                         {
                             auto sq = pop_lsq (undefended_attacked);
@@ -716,12 +716,10 @@ namespace Evaluator {
         // and the type of attacked one.
         Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
-            const auto Opp      = WHITE == Own ? BLACK : WHITE;
-            const auto Up       = WHITE == Own ? DEL_N  : DEL_S;
-            const auto Left     = WHITE == Own ? DEL_NW : DEL_SE;
-            const auto Right    = WHITE == Own ? DEL_NE : DEL_SW;
-            const auto TR2_bb   = WHITE == Own ? R2_bb  : R7_bb;
-            const auto TR7_bb   = WHITE == Own ? R7_bb  : R2_bb;
+            const auto Opp  = WHITE == Own ? BLACK : WHITE;
+            const auto Push = WHITE == Own ? DEL_N  : DEL_S;
+            const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
+            const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 
             auto score = SCORE_ZERO;
 
@@ -739,29 +737,29 @@ namespace Evaluator {
                 // Safe Pawns
                 b = pos.pieces (Own, PAWN) & (ei.pin_attacked_by[Own][NONE] | ~ei.pin_attacked_by[Opp][NONE]);
                 // Safe Pawn threats
-                b = (shift_del<Right>(b) | shift_del<Left>(b)) & pawn_threats;
+                b = (shift_bb<RCap>(b) | shift_bb<LCap>(b)) & pawn_threats;
                 if ((pawn_threats ^ b) != U64(0)) score += THREATEN_BY_HANG_PAWN;
 
                 while (b != U64(0)) score += THREATEN_BY_PAWN[ptype (pos[pop_lsq (b)])];
             }
             
             // Non-pawn enemies defended by a pawn and attacked by any piece
-            auto defended_pieces = 
+            auto strong_pieces = 
                   (opp_pieces ^ pos.pieces (Opp, PAWN))
                 &  ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
             
-            if (defended_pieces != U64(0))
+            if (strong_pieces != U64(0))
             {
-                // Defended enemies attacked by minor pieces
-                b = defended_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
-                while (b != U64(0)) score += THREATEN_BY_PIECE[DEFENDED][MINOR][ptype (pos[pop_lsq (b)])];
-                // Defended enemies attacked by rooks
-                b = defended_pieces & (ei.pin_attacked_by[Own][ROOK]);
-                while (b != U64(0)) score += THREATEN_BY_PIECE[DEFENDED][MAJOR][ptype (pos[pop_lsq (b)])];
-                //// Defended enemies attacked by queens
-                //b = defended_pieces & (ei.pin_attacked_by[Own][QUEN]);
-                //while (b != U64(0)) score += THREATEN_BY_PIECE[DEFENDED][MAJOR][ptype (pos[pop_lsq (b)])]/2;
+                // Strong enemies attacked by minor pieces
+                b = strong_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
+                while (b != U64(0)) score += THREATEN_BY_PIECE[STRONG][MINOR][ptype (pos[pop_lsq (b)])];
+                // Strong enemies attacked by rooks
+                b = strong_pieces & (ei.pin_attacked_by[Own][ROOK]);
+                while (b != U64(0)) score += THREATEN_BY_PIECE[STRONG][MAJOR][ptype (pos[pop_lsq (b)])];
+                //// Strong enemies attacked by queens
+                //b = strong_pieces & (ei.pin_attacked_by[Own][QUEN]);
+                //while (b != U64(0)) score += THREATEN_BY_PIECE[STRONG][MAJOR][ptype (pos[pop_lsq (b)])]/2;
             }
             
             // Enemies not defended by pawn and attacked by any piece
@@ -788,8 +786,8 @@ namespace Evaluator {
                 if (b != U64(0)) score += PIECE_HANGED * pop_count<MAX15> (b);
             }
 
-            b = pos.pieces (Own, PAWN) & ~TR7_bb;
-            b = shift_del<Up> (b | (shift_del<Up> (b & TR2_bb) & ~pos.pieces ()));
+            b = pos.pieces (Own, PAWN);// & ~(WHITE == Own ? R7_bb  : R2_bb);
+            b = shift_bb<Push> (b | (shift_bb<Push> (b & (WHITE == Own ? R2_bb  : R7_bb)) & ~pos.pieces ()));
             // Safe pawn pushes
             b &= ~pos.pieces ()
               &  ~ei.pin_attacked_by[Opp][PAWN]
@@ -797,7 +795,7 @@ namespace Evaluator {
             if (b != U64(0)) score += PAWN_SAFEPUSH * pop_count<FULL> (b);
             
             // Safe pawn pushes attacks an enemy piece
-            b =  (shift_del<Left> (b) | shift_del<Right> (b))
+            b =  (shift_bb<LCap> (b) | shift_bb<RCap> (b))
               &   pos.pieces (Opp)
               &  ~ei.pin_attacked_by[Own][PAWN];
             if (b != U64(0)) score += PAWN_SAFEATTACK * pop_count<MAX15> (b);
@@ -955,8 +953,8 @@ namespace Evaluator {
 
             // Find all squares which are at most three squares behind some friendly pawn
             auto behind = pos.pieces (Own, PAWN);
-            behind |= shift_del<WHITE == Own ? DEL_S  : DEL_N > (behind);
-            behind |= shift_del<WHITE == Own ? DEL_SS : DEL_NN> (behind);
+            behind |= shift_bb<WHITE == Own ? DEL_S  : DEL_N > (behind);
+            behind |= shift_bb<WHITE == Own ? DEL_SS : DEL_NN> (behind);
 
             // Count safe_space + (behind & safe_space) with a single pop_count
             i32 bonus = pop_count<FULL> ((WHITE == Own ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
@@ -1020,8 +1018,8 @@ namespace Evaluator {
             // Pawns which can't move forward or on Rank 2-3
             const Bitboard fixed_pawns[CLR_NO] =
             {
-                pos.pieces (WHITE, PAWN) & (shift_del<DEL_S> (pos.pieces ()) | R2_bb | R3_bb),
-                pos.pieces (BLACK, PAWN) & (shift_del<DEL_N> (pos.pieces ()) | R7_bb | R6_bb)
+                pos.pieces (WHITE, PAWN) & (shift_bb<DEL_S> (pos.pieces ()) | R2_bb | R3_bb),
+                pos.pieces (BLACK, PAWN) & (shift_bb<DEL_N> (pos.pieces ()) | R7_bb | R6_bb)
             };
             // Do not include in mobility squares protected by enemy pawns or occupied by friend fixed pawns or king
             const Bitboard mobility_area[CLR_NO] =
@@ -1075,9 +1073,8 @@ namespace Evaluator {
                     + evaluate_space_activity<WHITE, Trace> (pos, ei)
                     - evaluate_space_activity<BLACK, Trace> (pos, ei);
             }
-            else
             // If both sides have only pawns, score for potential unstoppable pawns
-            if (npm[WHITE] + npm[BLACK] == VALUE_ZERO)
+            if (npm[WHITE] == VALUE_ZERO && npm[BLACK] == VALUE_ZERO)
             {
                 score +=
                     + ei.pi->evaluate_unstoppable_pawns<WHITE> ();
