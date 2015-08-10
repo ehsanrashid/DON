@@ -118,18 +118,17 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &pos, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, PieceT cpt)
+    MovePicker::MovePicker (const Position &pos, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, Value cthreshold)
         : _Pos (pos)
         , _HistoryValues (hv)
         , _CounterMovesHistoryValues (cmhv)
+        , _capture_threshold (cthreshold)
     {
         assert (_Pos.checkers () == U64(0));
 
         _stage = S_PROBCUT;
 
-        // In ProbCut generate only captures better than parent's captured piece
-        _capture_threshold = PIECE_VALUE[MG][cpt];
-
+        // In ProbCut generate only captures with SEE higher than the given threshold
         _tt_move =   ttm != MOVE_NONE
                   && _Pos.pseudo_legal (ttm)
                   && _Pos.capture (ttm)
@@ -414,7 +413,7 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            //case S_RECAPTURE:
+            case S_RECAPTURE:
             case S_ALL_RECAPTURE:
                 do
                 {

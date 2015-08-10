@@ -129,7 +129,7 @@ namespace MovePick {
         MovePicker () = delete;
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Move, const Stack*);
         MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Square);
-        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, PieceT);
+        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Value);
         MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
 

@@ -888,7 +888,7 @@ namespace Searcher {
 
                             // Initialize a MovePicker object for the current position,
                             // and prepare to search the moves.
-                            MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, pos.capture_type ());
+                            MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, PIECE_VALUE[MG][pos.capture_type ()]);
 
                             while ((move = mp.next_move<false> ()) != MOVE_NONE)
                             {

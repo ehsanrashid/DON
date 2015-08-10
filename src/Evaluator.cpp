@@ -251,6 +251,15 @@ namespace Evaluator {
 
     #undef S
 
+    #define V(v) Value(v)
+        // PAWN_PASSED[Phase][Rank] contains bonuses for passed pawns according to the rank of the pawn.
+        const Value PAWN_PASSED[PHASE_NO][R_NO] =
+        {
+            { V(0), V( 1), V(34), V(90), V(214), V(328), V(0), V(0) },
+            { V(7), V(14), V(37), V(63), V(134), V(189), V(0), V(0) }
+        };
+    #undef V
+
         // The SPACE_MASK[Color] contains the area of the board which is considered
         // by the space evaluation. In the middle game, each side is given a bonus
         // based on how many squares inside this area are safe and available for
@@ -825,12 +834,12 @@ namespace Evaluator {
                 auto s = pop_lsq (passed_pawns);
                 assert (pos.passed_pawn (Own, s));
                 
-                i32 r = max (i32(rel_rank (Own, s) - R_2), 1);
+                i32  r = rel_rank (Own, s) - R_2;
                 i32 rr = r * (r - 1);
 
                 // Base bonus depends on rank
-                auto mg_value = Value(17*(rr + 0*r + 0));
-                auto eg_value = Value( 7*(rr + 1*r + 1));
+                auto mg_value = PAWN_PASSED[MG][r];
+                auto eg_value = PAWN_PASSED[EG][r];
 
                 if (rr != 0)
                 {
