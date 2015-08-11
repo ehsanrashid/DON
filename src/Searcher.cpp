@@ -69,22 +69,22 @@ namespace Searcher {
 
 #endif
 
-        const i16 FutilityMarginDepth   = 7;
+        const i32 FutilityMarginDepth   = 7;
         // Futility margin lookup table (initialized at startup)
         // [depth]
         Value FutilityMargins[FutilityMarginDepth];
 
-        const i16 RazorDepth    = 4;
+        const i32 RazorDepth    = 4;
         // Razoring margin lookup table (initialized at startup)
         // [depth]
         Value RazorMargins[RazorDepth];
 
-        const i16 FutilityMoveCountDepth  = 16;
+		const i32 FutilityMoveCountDepth = 16;
         // Futility move count lookup table (initialized at startup)
         // [improving][depth]
         u08   FutilityMoveCounts[2][FutilityMoveCountDepth];
 
-        const i16 ReductionDepth = 64;
+		const i32 ReductionDepth = 64;
         const u08 ReductionMoveCount = 64;
         // ReductionDepths lookup table (initialized at startup)
         // [pv][improving][depth][move_num]
@@ -96,9 +96,9 @@ namespace Searcher {
             return ReductionDepths[PVNode][imp][min (d/DEPTH_ONE, ReductionDepth-1)][min<u08> (mc, ReductionMoveCount-1)];
         }
 
-        const i16 ProbCutDepth  = 4;
+		const i32 ProbCutDepth = 4;
         
-        const i16 LateMoveReductionDepth = 2;
+		const i32 LateMoveReductionDepth = 2;
         const u08 FullDepthMoveCount = 1;
 
         class RootMoveVector
@@ -135,7 +135,7 @@ namespace Searcher {
         class MoveManager
         {
         private:
-            Key _expected_posi_key = U64(0);
+            Key  _posi_key = U64(0);
             Move _pv[3];
 
         public:
@@ -144,11 +144,11 @@ namespace Searcher {
             void clear ()
             {
                 stable_count = 0;
-                _expected_posi_key = U64(0);
+                _posi_key = U64(0);
                 fill (begin (_pv), end (_pv), MOVE_NONE);
             }
 
-            Move easy_move (Key posi_key) const { return _expected_posi_key == posi_key ? _pv[2] : MOVE_NONE; }
+            Move easy_move (Key posi_key) const { return _posi_key == posi_key ? _pv[2] : MOVE_NONE; }
 
             void update (const MoveVector &new_pv)
             {
@@ -164,7 +164,7 @@ namespace Searcher {
                     StateInfo si[2];
                     RootPos.do_move (new_pv[0], si[0], RootPos.gives_check (new_pv[0], CheckInfo (RootPos)));
                     RootPos.do_move (new_pv[1], si[1], RootPos.gives_check (new_pv[1], CheckInfo (RootPos)));
-                    _expected_posi_key = RootPos.posi_key ();
+                    _posi_key = RootPos.posi_key ();
                     RootPos.undo_move ();
                     RootPos.undo_move ();
                 }
@@ -249,17 +249,10 @@ namespace Searcher {
                 && pos.capture_type () == NONE
                )
             {
-                //HistoryValues.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
-
                 auto own_move = (ss-2)->current_move;
                 auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
                 if (own_move_dst != SQ_NO)
                 {
-                    //if (CounterMoves[pos[own_move_dst]][own_move_dst] == opp_move)
-                    //{
-                    //    CounterMoves.update (pos, own_move, MOVE_NONE);
-                    //}
-
                     auto &own_cmhv = CounterMovesHistoryValues[ptype (pos[own_move_dst])][own_move_dst];
                     own_cmhv.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
                 }

@@ -37,7 +37,7 @@
   <PropertyGroup Label="Globals">
     <ProjectName>DON</ProjectName>
     <ProjectGuid>{563ABBEF-C72E-4C61-BC8D-F98BA06D115D}</ProjectGuid>
-    <RootNamespace>Cryptic</RootNamespace>
+    <RootNamespace>DON</RootNamespace>
     <SccProjectName>
     </SccProjectName>
     <SccLocalPath>
@@ -81,7 +81,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>NotSet</CharacterSet>
-    <PlatformToolset>v110</PlatformToolset>
+    <PlatformToolset>v120</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Itanium'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>

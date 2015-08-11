@@ -1127,9 +1127,7 @@ namespace Evaluator {
                 {
                     // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
                     // is almost a draw, in case of KBP vs KB is even more a draw.
-                    if (   npm[WHITE] == VALUE_MG_BSHP
-                        && npm[BLACK] == VALUE_MG_BSHP
-                       )
+                    if (npm[WHITE] == VALUE_MG_BSHP && npm[BLACK] == VALUE_MG_BSHP)
                     {
                         i32 pawn_diff = abs (pos.count<PAWN> (WHITE) - pos.count<PAWN> (BLACK));
                         scale_factor = pawn_diff == 0 ? ScaleFactor(4) : ScaleFactor(8 * pawn_diff);
@@ -1182,7 +1180,7 @@ namespace Evaluator {
         i32 mg = 0;
         for (i32 i = 0; i < MAX_ATTACK_UNITS; ++i)
         {
-            //                          MAX_SLOPE  PEAK_VALUE
+            //                       MAX_SLOPE - PEAK_VALUE
             mg = min (min (i*i*27, mg + 8700), 1280000);
             KING_DANGER[i] = mk_score (mg/1000, 0) * WEIGHTS[KING_SAFETY];
         }
