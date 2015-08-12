@@ -111,6 +111,8 @@ namespace Pawns {
         // Center bind bonus: Two pawns controlling the same central square
         const Score CENTER_BIND = S(16, 0);
 
+    #undef S
+
         template<Color Own>
         inline Score evaluate (const Position &pos, Entry *e)
         {
@@ -250,8 +252,6 @@ namespace Pawns {
 
             return pawn_score;
         }
-
-    #undef S
 
     }
 

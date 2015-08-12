@@ -47,7 +47,7 @@ namespace Material {
 
     typedef HashTable<Entry, 0x2000> Table; // 8192
 
-    Entry* probe (const Position &pos);
+    extern Entry* probe (const Position &pos);
 
 }
 

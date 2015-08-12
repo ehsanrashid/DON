@@ -59,15 +59,15 @@ namespace Searcher {
     // Signals stores volatile flags updated during the search sent by the GUI
     // typically in an async fashion.
     //  - Stop search on request.
-    //  - Stop search on ponderhit.
+    //  - Stop search on ponder-hit.
     //  - First move at root.
     //  - Falied low at root.
     struct SignalsT
     {
-        bool  force_stop        = false  // Stop on request
-            , ponderhit_stop    = false  // Stop on ponder-hit
+        bool  force_stop        = false  // Stop search on request
+            , ponderhit_stop    = false  // Stop search on ponder-hit
             , firstmove_root    = false  // First move at root
-            , failedlow_root    = false; // Failed-low at root
+            , failedlow_root    = false; // Failed low at root
     };
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
