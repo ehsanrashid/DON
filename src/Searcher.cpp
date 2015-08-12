@@ -79,12 +79,12 @@ namespace Searcher {
         // [depth]
         Value RazorMargins[RazorDepth];
 
-		const i32 FutilityMoveCountDepth = 16;
+        const i32 FutilityMoveCountDepth = 16;
         // Futility move count lookup table (initialized at startup)
         // [improving][depth]
         u08   FutilityMoveCounts[2][FutilityMoveCountDepth];
 
-		const i32 ReductionDepth = 64;
+        const i32 ReductionDepth = 64;
         const u08 ReductionMoveCount = 64;
         // ReductionDepths lookup table (initialized at startup)
         // [pv][improving][depth][move_num]
@@ -96,10 +96,61 @@ namespace Searcher {
             return ReductionDepths[PVNode][imp][min (d/DEPTH_ONE, ReductionDepth-1)][min<u08> (mc, ReductionMoveCount-1)];
         }
 
-		const i32 ProbCutDepth = 4;
-        
-		const i32 LateMoveReductionDepth = 2;
+        const i32 ProbCutDepth = 4;
+
+        const i32 LateMoveReductionDepth = 2;
         const u08 FullDepthMoveCount = 1;
+
+        // RootMove is used for moves at the root of the tree.
+        // For each root move stores:
+        //  - Value[] { new , old }.
+        //  - Node count.
+        //  - PV (really a refutation table in the case of moves which fail low).
+        // Value is normally set at -VALUE_INFINITE for all non-pv moves.
+        class RootMove
+        {
+        public:
+
+            Value      new_value = -VALUE_INFINITE
+                , old_value = -VALUE_INFINITE;
+            //u64        nodes     = U64(0);
+            MoveVector pv;
+
+            explicit RootMove(Move m = MOVE_NONE) : pv(1, m) {}
+
+            // Operators
+            bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
+            bool operator>  (const RootMove &rm) const { return new_value < rm.new_value; }
+            bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
+            bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
+            bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
+            bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
+
+            bool operator== (Move m) const { return pv[0] == m; }
+            bool operator!= (Move m) const { return pv[0] != m; }
+
+            void insert_pv_into_tt();
+            bool extract_ponder_move_from_tt();
+
+            operator std::string() const
+            {
+                stringstream ss;
+                for (auto m : pv)
+                {
+                    ss << " " << move_to_can(m, Chess960);
+                }
+                return ss.str();
+            }
+
+            template<class CharT, class Traits>
+            friend std::basic_ostream<CharT, Traits>&
+                operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
+            {
+                os << std::string(rm);
+                return os;
+            }
+
+        };
 
         class RootMoveVector
             : public vector<RootMove>
@@ -1794,16 +1845,6 @@ namespace Searcher {
         RootPos.undo_move ();
         
         return extracted;
-    }
-
-    RootMove::operator string () const
-    {
-        stringstream ss;
-        for (auto m : pv)
-        {
-            ss << " " << move_to_can (m, Chess960);
-        }
-        return ss.str ();
     }
 
     // ------------------------------------

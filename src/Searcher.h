@@ -17,7 +17,7 @@ namespace Searcher {
 
     using namespace Threading;
 
-    const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be < MAX_DEPTH/2
+    const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be <= MAX_DEPTH/4
 
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
@@ -80,48 +80,6 @@ namespace Searcher {
     // Node types, used as template parameter
     enum NodeT { Root, PV, NonPV };
 
-    // RootMove is used for moves at the root of the tree.
-    // For each root move stores:
-    //  - Value[] { new , old }.
-    //  - Node count.
-    //  - PV (really a refutation table in the case of moves which fail low).
-    // Value is normally set at -VALUE_INFINITE for all non-pv moves.
-    class RootMove
-    {
-    public:
-
-        Value      new_value = -VALUE_INFINITE
-            ,      old_value = -VALUE_INFINITE;
-        //u64        nodes     = U64(0);
-        MoveVector pv;
-
-        explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
-        
-        // Operators
-        bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
-        bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
-        bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
-        bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
-        bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
-        bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
-
-        bool operator== (Move m) const { return pv[0] == m; }
-        bool operator!= (Move m) const { return pv[0] != m; }
-
-        void insert_pv_into_tt ();
-        bool extract_ponder_move_from_tt ();
-
-        operator std::string () const;
-        
-        template<class CharT, class Traits>
-        friend std::basic_ostream<CharT, Traits>&
-            operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
-        {
-            os << std::string(rm);
-            return os;
-        }
-
-    };
 
     class SkillManager
     {

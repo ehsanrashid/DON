@@ -341,11 +341,11 @@ namespace Evaluator {
                                                          ekr < R_7 ? (PAWN_PASS_SPAN[Opp][ek_sq]|PAWN_PASS_SPAN[Own][ek_sq]) :
                                                                      (PAWN_PASS_SPAN[Own][ek_sq])));
 
-                if (king_attacks & ei.pin_attacked_by[Own][PAWN])
+                if ((king_attacks & ei.pin_attacked_by[Own][PAWN]) != U64(0))
                 {
                     auto attackers = pos.pieces (Own, PAWN) & (king_attacks|(DIST_RINGS_bb[ek_sq][1] & (rank_bb (ek_sq-Push)|rank_bb (ek_sq))));
-                    ei.king_ring_attackers_count [Own] += attackers != U64(0) ? u08(pop_count<MAX15> (attackers)) : 0;
-                    ei.king_ring_attackers_weight[Own] += ei.king_ring_attackers_count [Own]*KING_ATTACK[PAWN];
+                    ei.king_ring_attackers_count [Own] = attackers != U64(0) ? u08(pop_count<MAX15> (attackers)) : 0;
+                    ei.king_ring_attackers_weight[Own] = ei.king_ring_attackers_count [Own]*KING_ATTACK[PAWN];
                 }
             }
         }
