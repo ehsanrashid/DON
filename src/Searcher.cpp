@@ -111,12 +111,12 @@ namespace Searcher {
         {
         public:
 
-            Value      new_value = -VALUE_INFINITE
+            Value new_value = -VALUE_INFINITE
                 , old_value = -VALUE_INFINITE;
             //u64        nodes     = U64(0);
             MoveVector pv;
 
-            explicit RootMove(Move m = MOVE_NONE) : pv(1, m) {}
+            explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
 
             // Operators
             bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
@@ -129,10 +129,10 @@ namespace Searcher {
             bool operator== (Move m) const { return pv[0] == m; }
             bool operator!= (Move m) const { return pv[0] != m; }
 
-            void insert_pv_into_tt();
-            bool extract_ponder_move_from_tt();
+            void insert_pv_into_tt ();
+            bool extract_ponder_move_from_tt ();
 
-            operator std::string() const
+            operator std::string () const
             {
                 stringstream ss;
                 for (auto m : pv)
@@ -191,6 +191,8 @@ namespace Searcher {
 
         public:
             i08 stable_count = 0;
+
+            MoveManager () { clear (); }
 
             void clear ()
             {
