@@ -246,7 +246,6 @@ namespace Evaluator {
         
         const Score PIECE_HANGED            = S(31,26); // Bonus for each enemy hanged piece       
         
-        const Score PAWN_SAFEPUSH           = S( 5, 5);
         const Score PAWN_SAFEATTACK         = S(20,20);
 
     #undef S
@@ -801,8 +800,6 @@ namespace Evaluator {
             b &= ~pos.pieces ()
               &  ~ei.pin_attacked_by[Opp][PAWN]
               &  (ei.pin_attacked_by[Own][NONE] | ~ei.pin_attacked_by[Opp][NONE]);
-            if (b != U64(0)) score += PAWN_SAFEPUSH * pop_count<FULL> (b);
-            
             // Safe pawn pushes attacks an enemy piece
             b =  (shift_bb<LCap> (b) | shift_bb<RCap> (b))
               &   pos.pieces (Opp)
