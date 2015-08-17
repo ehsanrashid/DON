@@ -3,7 +3,7 @@
   <Class Name="Position">
     <Position X="3.5" Y="2" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AkoAAwIPAQQACBmwVYepIAEjgbVKHoRwDBgwJCAgJSA=</HashCode>
+      <HashCode>AkgAAQIPAQQACBmwdYepIAEjgbVOHoRwBBgwJCAgJTA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -97,11 +97,11 @@
   <Class Name="std::basic_tie_buf&lt;Elem, Traits&gt;" Collapsed="true">
     <Position X="34.25" Y="11.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAACAAIAAAAAAAgBAAAAAAAACAAQAAQAAAIgAAAA=</HashCode>
+      <HashCode>AAAAAAAAAIAAAAAAAgBAAAAAAAACAAQAAQAgAIgAAAA=</HashCode>
       <FileName>src\tiebuffer.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="MoveGen::MoveList&lt;GT&gt;">
+  <Class Name="MoveGen::MoveList&lt;GT, PT&gt;">
     <Position X="28.5" Y="13.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>ABAAAAACAAAAAACAAIAAAAAQAAAAAQAAAAAAAAIAAAA=</HashCode>
@@ -119,6 +119,11 @@
     <Compartments>
       <Compartment Name="Fields" Collapsed="true" />
     </Compartments>
+    <AssociationLine Name="_capture_threshold" Type="Value">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.317" Y="0.336" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AAAIAEgCAQgBAACCAAABAAAQAhGAACAAAAAggAIANAQ=</HashCode>
       <FileName>src\MovePicker.h</FileName>
@@ -157,11 +162,11 @@
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Searcher::RootMoveVector">
+  <Class Name="Searcher::`anonymous-namespace'::RootMoveVector">
     <Position X="37.5" Y="24.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
+      <FileName>src\Searcher.cpp</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Transposition::TranspositionTable" Collapsed="true">
@@ -230,11 +235,11 @@
       <Field Name="split_depth" />
     </ShowAsAssociation>
   </Class>
-  <Class Name="Searcher::RootMove">
-    <Position X="39.25" Y="20.25" Width="1.5" />
+  <Class Name="Searcher::`anonymous-namespace'::RootMove">
+    <Position X="38.75" Y="20.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAgAAAAAAAAAAAhgQAIAAAAAAAAgAAgAAAQAAA=</HashCode>
-      <FileName>src\Searcher.h</FileName>
+      <HashCode>AAAIAAAAAAAAAAAAAAAhgQAIAAAAAAAAgAAgAAAQAAA=</HashCode>
+      <FileName>src\Searcher.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
       <Field Name="new_value" />
@@ -262,7 +267,7 @@
   <Class Name="Searcher::`anonymous-namespace'::MoveManager">
     <Position X="25.5" Y="7.75" Width="2" />
     <TypeIdentifier>
-      <HashCode>CEAAAABCAAAAAAAAAAAAACAAAAAAAAAAAAAAAAAEAAA=</HashCode>
+      <HashCode>CEAAAABCAIAAAAAAAAAAAAAEAAAAAAAAAAAAAAAEAAA=</HashCode>
       <FileName>src\Searcher.cpp</FileName>
     </TypeIdentifier>
     <ShowAsCollectionAssociation>
@@ -299,6 +304,11 @@
   </Struct>
   <Struct Name="StateInfo">
     <Position X="17.5" Y="13.25" Width="1.5" />
+    <AssociationLine Name="non_pawn_matl" Type="Value">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.565" Y="0.694" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AgAAAQAEAAAAAAgAAQAAAAAhAAAAAEAQAAgAAAAAIAI=</HashCode>
       <FileName>src\Position.h</FileName>
@@ -429,6 +439,11 @@
   </Struct>
   <Struct Name="MoveGen::ValMove">
     <Position X="25.5" Y="11.75" Width="1.5" />
+    <AssociationLine Name="value" Type="Value">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="-0.166" Y="0.239" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
       <HashCode>AAAQAAAAAAAAAACAAAAAAQAAAAAAACAAAAAgAAAAAAA=</HashCode>
       <FileName>src\MoveGenerator.h</FileName>
@@ -438,17 +453,17 @@
       <Field Name="value" />
     </ShowAsAssociation>
   </Struct>
-  <Struct Name="MovePick::Stats&lt;T&gt;" Collapsed="true">
+  <Struct Name="MovePick::Stats&lt;T, N&gt;" Collapsed="true">
     <Position X="19.75" Y="9.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAAAAAAAAAgAAAAAAAAAAAAEAAAAAAAAAAAAEAAA=</HashCode>
+      <HashCode>AEAAAAAAAAAAQgAAAAAAQAAAAAEAAAgAAAAAAAAEAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="Pawns::Entry">
     <Position X="9.5" Y="4.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AgMAAQAgAAAAIAAAAAQAAAMAAMAAAgAQEAAQAoEAAAA=</HashCode>
+      <HashCode>AgMIAQAgAAAAIAgAAAAAIAEAAIEAAgAAEAEAAIEBAAA=</HashCode>
       <FileName>src\Pawns.h</FileName>
     </TypeIdentifier>
     <ShowAsCollectionAssociation>
@@ -458,7 +473,7 @@
   <Struct Name="Threading::SplitPoint" Collapsed="true">
     <Position X="20.25" Y="13.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>QAiCAAAAAMAQAAAAAAAABIAEEAAgAAAQAAAQIAAAIQE=</HashCode>
+      <HashCode>QAiCAAAAAMAQAAAAAAQABIAEEAAgAAAQAAAQIAAAIQA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -488,8 +503,13 @@
   </Struct>
   <Struct Name="Searcher::Stack">
     <Position X="29.75" Y="11.5" Width="1.5" />
+    <AssociationLine Name="static_eval" Type="Value">
+      <MemberNameLabel ManuallyPlaced="true">
+        <Position X="0.11" Y="0.404" />
+      </MemberNameLabel>
+    </AssociationLine>
     <TypeIdentifier>
-      <HashCode>AAAAAAAQAgAAAAAAAAAAAAAAAwAACAAAAAAAQCAQAAA=</HashCode>
+      <HashCode>AAAAAAAQAgAAAAAAAAAAAAAAAwAACAAAAAAAQCAQQAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -785,7 +805,7 @@
     </TypeIdentifier>
   </Enum>
   <Enum Name="Value" Collapsed="true">
-    <Position X="42.25" Y="21.25" Width="1.5" />
+    <Position X="42.25" Y="21" Width="1.5" />
     <TypeIdentifier>
       <HashCode>gAAQAgAAQARgIAgAAQEAEBAAIMDAQAAAQAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
@@ -822,7 +842,7 @@
   <Enum Name="ScaleFactor" Collapsed="true">
     <Position X="51.75" Y="7.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAACAAAAAAAAABAAAAAAAAAAAAAAAAAAAAAAAACAggA=</HashCode>
+      <HashCode>AAACAAABAAAAABAAAAAAAAAAAAAAAAAAAAAAAACAggA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>

@@ -118,9 +118,8 @@ namespace Searcher {
 
             explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
 
-            // Operators
             bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
-            bool operator>  (const RootMove &rm) const { return new_value < rm.new_value; }
+            bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
             bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
             bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
             bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
@@ -137,9 +136,9 @@ namespace Searcher {
                 stringstream ss;
                 for (auto m : pv)
                 {
-                    ss << " " << move_to_can(m, Chess960);
+                    ss << " " << move_to_can (m, Chess960);
                 }
-                return ss.str();
+                return ss.str ();
             }
 
             template<class CharT, class Traits>
@@ -2017,7 +2016,7 @@ namespace Searcher {
                 //&& ContemptTime <= abs (diff_time)
                )
             {
-                timed_contempt = diff_time/ContemptTime;
+                timed_contempt = i16(diff_time/ContemptTime);
             }
 
             Value contempt = cp_to_value (double(FixedContempt + timed_contempt) / 0x64);
