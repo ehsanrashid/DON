@@ -177,7 +177,7 @@ public:
     //Bitboard operator[] (PieceT pt)     const;
     const Square* operator[] (Piece p)  const;
 
-    bool   empty   (Square s)   const;
+    bool     empty  (Square s)  const;
 
     Bitboard pieces ()          const;
     Bitboard pieces (Color c)   const;
@@ -311,7 +311,7 @@ inline Piece         Position::operator[] (Square s)  const { return _board[s]; 
 //inline Bitboard      Position::operator[] (PieceT pt) const { return _types_bb[pt]; }
 inline const Square* Position::operator[] (Piece  p)  const { return _piece_square[color (p)][ptype (p)]; }
 
-inline bool     Position::empty   (Square s) const { return EMPTY == _board[s]; }
+inline bool     Position::empty  (Square s)  const { return EMPTY == _board[s]; }
 
 inline Bitboard Position::pieces ()          const { return _types_bb[NONE]; }
 inline Bitboard Position::pieces (Color c)   const { return _color_bb[c];  }
@@ -416,8 +416,8 @@ inline Key    Position::move_posi_key (Move m) const
 inline Score  Position::psq_score     () const { return _si->psq_score; }
 inline Value  Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
 
-inline CRight Position::can_castle   (CRight cr) const { return _si->castle_rights & cr; }
-inline CRight Position::can_castle   (Color   c) const { return _si->castle_rights & mk_castle_right (c); }
+inline CRight Position::can_castle    (CRight cr) const { return _si->castle_rights & cr; }
+inline CRight Position::can_castle    (Color   c) const { return _si->castle_rights & mk_castle_right (c); }
 
 inline Square   Position::castle_rook (CRight cr) const { return _castle_rook[cr]; }
 inline Bitboard Position::castle_path (CRight cr) const { return _castle_path[cr]; }
@@ -431,7 +431,7 @@ inline Color Position::active   () const { return _active; }
 inline i32  Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = max ((game_ply - (BLACK == active)) / 2, 0) + 1
-inline i32  Position::game_move () const { return std::max ((_game_ply - (BLACK == _active)) / 2, 0) + 1; }
+inline i32  Position::game_move () const { return std::max ((_game_ply - (BLACK == _active))/2, 0) + 1; }
 // Nodes visited
 inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }

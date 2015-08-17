@@ -1006,11 +1006,11 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
         if (c960)
         {
             if (!('a' <= tolower (ch) && tolower (ch) <= 'h')) return false;
-            r_sq = to_file (tolower (ch)) | rel_rank (c, R_1);
+            r_sq = to_file (char(tolower (ch))) | rel_rank (c, R_1);
         }
         else
         {
-            switch (toupper (ch))
+            switch (char(toupper (ch)))
             {
             case 'K':
                 for (r_sq  = rel_sq (c, SQ_H1); r_sq >= rel_sq (c, SQ_A1) && (c|ROOK) != _board[r_sq]; --r_sq) {}
@@ -1377,7 +1377,7 @@ void Position::do_move (Move m, StateInfo &si, bool check)
     }
     if (PAWN == mpt)
     {
-        if (DEL_NN == (u08(dst) ^ u08(org)))
+        if (16 == (u08(dst) ^ u08(org)))
         {
             auto ep_sq = org + (dst - org)/2;
             if (can_en_passant (ep_sq))

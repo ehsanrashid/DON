@@ -121,7 +121,7 @@ namespace Zobrist {
             while ((iss >> ch) && !isspace (ch))
             {
                 auto c = isupper (ch) ? WHITE : BLACK;
-                u08 sym = u08(tolower (ch));
+                auto sym = char(tolower (ch));
                 if ('a' <= sym && sym <= 'h')
                 {
                     fen_key ^= _.castle_right[c][(kf[c] < to_file (sym)) ? CS_K : CS_Q];
@@ -137,7 +137,7 @@ namespace Zobrist {
             while ((iss >> ch) && !isspace (ch))
             {
                 auto c = isupper (ch) ? WHITE : BLACK;
-                switch (toupper (ch))
+                switch (char(toupper (ch)))
                 {
                 case 'K': fen_key ^= _.castle_right[c][CS_K]; break;
                 case 'Q': fen_key ^= _.castle_right[c][CS_Q]; break;

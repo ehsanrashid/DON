@@ -1519,7 +1519,7 @@ namespace Searcher {
 
                         // Write PV back to transposition table in case the relevant
                         // entries have been overwritten during the search.
-                        for (i16 i = 0; i <= IndexPV; ++i)
+                        for (i16 i = IndexPV; i >= 0; --i)
                         {
                             RootMoves[i].insert_pv_into_tt ();
                         }

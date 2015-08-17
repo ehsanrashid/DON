@@ -1082,6 +1082,7 @@ namespace Evaluator {
                     + evaluate_space_activity<WHITE, Trace> (pos, ei)
                     - evaluate_space_activity<BLACK, Trace> (pos, ei);
             }
+            else
             // If both sides have only pawns, score for potential unstoppable pawns
             if (npm[WHITE] == VALUE_ZERO && npm[BLACK] == VALUE_ZERO)
             {
