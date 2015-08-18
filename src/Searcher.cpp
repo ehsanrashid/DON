@@ -1207,19 +1207,20 @@ namespace Searcher {
                 {
                     auto reduction_depth = reduction_depths<PVNode> (improving, depth, move_count);
 
+                    auto   hv = HistoryValues[pos[dst_sq (move)]][dst_sq (move)];
+                    auto cmhv = opp_cmhv[pos[dst_sq (move)]][dst_sq (move)];
+
                     // Increase reduction for cut node or negative history
                     if (   (!PVNode && cut_node)
-                        || (   HistoryValues[pos[dst_sq (move)]][dst_sq (move)] < VALUE_ZERO
-                            && opp_cmhv[pos[dst_sq (move)]][dst_sq (move)] <= VALUE_ZERO
-                           )
+                        || (hv < VALUE_ZERO && cmhv <= VALUE_ZERO)
                        )
                     {
                         reduction_depth += DEPTH_ONE;
                     }
                     // Decrease reduction for positive history
                     if (   reduction_depth != DEPTH_ZERO
-                        && HistoryValues[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
-                        && opp_cmhv[pos[dst_sq (move)]][dst_sq (move)] > VALUE_ZERO
+                        &&   hv > VALUE_ZERO
+                        && cmhv > VALUE_ZERO
                        )
                     {
                         reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
@@ -1342,8 +1343,9 @@ namespace Searcher {
                     if (alpha < value)
                     {
                         // If there is an easy move for this position, clear it if unstable
-                        if (    PVNode
-                            &&  MoveMgr.easy_move (pos.posi_key ()) != MOVE_NONE
+                        if (   PVNode
+                            && Limits.use_timemanager ()
+                            && MoveMgr.easy_move (pos.posi_key ()) != MOVE_NONE
                             && (move != MoveMgr.easy_move (pos.posi_key ()) || move_count > 1)
                            )
                         {
@@ -1455,10 +1457,14 @@ namespace Searcher {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
             memset (ss-2, 0x00, 5*sizeof (*ss));
 
-            auto easy_move = MoveMgr.easy_move (RootPos.posi_key ());
-            MoveMgr.clear ();
-
             if (SkillMgr.enabled ()) SkillMgr.clear ();
+
+            auto easy_move = MOVE_NONE;
+            if (Limits.use_timemanager ())
+            {
+                easy_move = MoveMgr.easy_move (RootPos.posi_key ());
+                MoveMgr.clear ();
+            }
 
             TT.generation (RootPly);
             //HistoryValues.age (0.75);
@@ -1656,7 +1662,9 @@ namespace Searcher {
 
             // Clear any candidate easy move that wasn't stable for the last search iterations;
             // the second condition prevents consecutive fast moves.
-            if (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
+            if (   Limits.use_timemanager ()
+                && (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
+               )
             {
                 MoveMgr.clear ();
             }
@@ -2351,8 +2359,8 @@ namespace Threading {
 
                         if (best_metric > metric)
                         {
-                            best_sp     = sp;
                             best_metric = metric;
+                            best_sp     = sp;
                         }
                     }
                 }

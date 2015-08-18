@@ -79,7 +79,7 @@ namespace UCI {
                 }
                 else
                 {
-                    sync_cout << "WHAT??? No such option: \'" << name << "\'" << sync_endl;
+                    sync_cout << "No such option: \'" << name << "\'" << sync_endl;
                 }
             }
         }

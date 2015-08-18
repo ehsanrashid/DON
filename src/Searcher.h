@@ -80,7 +80,7 @@ namespace Searcher {
     // Node types, used as template parameter
     enum NodeT { Root, PV, NonPV };
 
-
+    // Skill Manager
     class SkillManager
     {
 
