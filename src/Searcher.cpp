@@ -1126,11 +1126,10 @@ namespace Searcher {
                     && !in_check
                     && !capture_or_promotion
                     && best_value > -VALUE_MATE_IN_MAX_DEPTH
-                       // Not dangerous
-                    && !(   gives_check
-                         || mtype (move) != NORMAL
-                         || pos.advanced_pawn_push (move)
-                        )
+                    // ! Dangerous (below)
+                    && !gives_check
+                    && mtype (move) == NORMAL
+                    && !pos.advanced_pawn_push (move)
                    )
                 {
                     // Move count based pruning
@@ -1322,7 +1321,7 @@ namespace Searcher {
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
-                        if (move_count > 1)
+                        if (Limits.use_timemanager () && move_count > 1)
                         {
                             TimeMgr.best_move_change++;
                         }
@@ -1485,8 +1484,11 @@ namespace Searcher {
             // Iterative deepening loop until target depth reached
             while (++depth < MAX_DEPTH && !Signals.force_stop && (0 == Limits.depth || depth <= Limits.depth))
             {
-                // Age out PV variability metric
-                TimeMgr.best_move_change *= 0.5;
+                if (Limits.use_timemanager ())
+                {
+                    // Age out PV variability metric
+                    TimeMgr.best_move_change *= 0.5;
+                }
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
