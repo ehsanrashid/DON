@@ -128,6 +128,9 @@ namespace Searcher {
             bool operator== (Move m) const { return pv[0] == m; }
             bool operator!= (Move m) const { return pv[0] != m; }
 
+            void operator+= (Move m) { pv.push_back (m); }
+            void operator-= (Move m) { pv.erase (remove (pv.begin (), pv.end (), m), pv.end ()); }
+
             void insert_pv_into_tt ();
             bool extract_ponder_move_from_tt ();
 
@@ -156,6 +159,10 @@ namespace Searcher {
         {
 
         public:
+            
+            void operator+= (const RootMove &rm) { push_back (rm); }
+            void operator-= (const RootMove &rm) { erase (remove (begin (), end (), rm), end ()); }
+
             void initialize ()
             {
                 clear ();
@@ -164,7 +171,7 @@ namespace Searcher {
                 {
                     if (root_moves.empty () || count (root_moves.begin (), root_moves.end (), m) != 0)
                     {
-                        push_back (RootMove (m));
+                        *this += RootMove (m);
                     }
                 }
             }
@@ -1218,8 +1225,7 @@ namespace Searcher {
                     }
                     // Decrease reduction for positive history
                     if (   reduction_depth != DEPTH_ZERO
-                        &&   hv > VALUE_ZERO
-                        && cmhv > VALUE_ZERO
+                        && (hv > VALUE_ZERO && cmhv > VALUE_ZERO)
                        )
                     {
                         reduction_depth = max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
@@ -1315,7 +1321,7 @@ namespace Searcher {
 
                         for (auto *m = (ss+1)->pv; *m != MOVE_NONE; ++m)
                         {
-                            rm.pv.push_back (*m);
+                            rm += *m;
                         }
 
                         // Record how often the best move has been changed in each iteration.
@@ -1848,7 +1854,7 @@ namespace Searcher {
                 && MoveList<LEGAL> (RootPos).contains (m)
                )
             {
-               pv.push_back (m);
+               *this += m;
                extracted = true;
             }
         }
@@ -2010,7 +2016,7 @@ namespace Searcher {
                         StateInfo si;
                         RootPos.do_move (RootMoves[0].pv[0], si, RootPos.gives_check (RootMoves[0].pv[0], CheckInfo (RootPos)));
                         book_move = book.probe_move (RootPos, BookMoveBest);
-                        RootMoves[0].pv.push_back (book_move);
+                        RootMoves[0] += book_move;
                         RootPos.undo_move ();
                     }
                     book.close ();
@@ -2064,7 +2070,7 @@ namespace Searcher {
         }
         else
         {
-            RootMoves.push_back (RootMove (MOVE_NONE));
+            RootMoves += RootMove (MOVE_NONE);
 
             sync_cout
                 << "info"
