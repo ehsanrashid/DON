@@ -131,6 +131,7 @@ namespace Searcher {
             void operator+= (Move m) { pv.push_back (m); }
             void operator-= (Move m) { pv.erase (remove (pv.begin (), pv.end (), m), pv.end ()); }
 
+            void backup () { old_value = new_value; }
             void insert_pv_into_tt ();
             bool extract_ponder_move_from_tt ();
 
@@ -175,6 +176,13 @@ namespace Searcher {
                     }
                 }
             }
+            void backup ()
+            {
+                for (auto &rm : *this)
+                {
+                    rm.backup ();
+                }
+            }
 
             //u64 game_nodes () const
             //{
@@ -185,6 +193,24 @@ namespace Searcher {
             //    }
             //    return nodes;
             //}
+
+            operator std::string () const
+            {
+                stringstream ss;
+                for (auto &rm : *this)
+                {
+                    ss << std::string(rm) << "\n";
+                }
+                return ss.str ();
+            }
+
+            template<class CharT, class Traits>
+            friend std::basic_ostream<CharT, Traits>&
+                operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &rmv)
+            {
+                os << std::string(rmv);
+                return os;
+            }
         };
 
         // MoveManager class is used to detect a so called 'easy move'; when PV is
@@ -1498,10 +1524,7 @@ namespace Searcher {
 
                 // Save last iteration's scores before first PV line is searched and
                 // all the move scores but the (new) PV are set to -VALUE_INFINITE.
-                for (auto &rm : RootMoves)
-                {
-                    rm.old_value = rm.new_value;
-                }
+                RootMoves.backup ();
 
                 const bool aspiration = depth > 4*DEPTH_ONE;
 
