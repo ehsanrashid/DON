@@ -197,9 +197,9 @@ namespace Searcher {
             operator std::string () const
             {
                 stringstream ss;
-                for (auto &rm : *this)
+                for (const auto &rm : *this)
                 {
-                    ss << std::string(rm) << "\n";
+                    ss << rm << "\n";
                 }
                 return ss.str ();
             }
