@@ -28,8 +28,12 @@ inline std::string time_to_string (const std::chrono::system_clock::time_point &
     stime.append (std::to_string (ms));
     return stime;
 
-#   endif
+#   else
+    
+    return "";
 
+#   endif
+    
 }
 
 template<class CharT, class Traits>
