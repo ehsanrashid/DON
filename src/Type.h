@@ -299,8 +299,8 @@ enum Depth : i16
     DEPTH_QS_CHECKS     =  0,
     DEPTH_QS_NO_CHECKS  = -1,
     DEPTH_QS_RECAPTURES = -5,
-
-    DEPTH_NONE          = -6
+    DEPTH_NONE          = -6,
+    DEPTH_MAX           = MAX_DEPTH
 };
 
 enum Value : i32
@@ -626,6 +626,8 @@ inline Value  cp_to_value (double cp) { return Value(i32(cp * i32(VALUE_EG_PAWN)
 inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
+typedef std::vector<Move> MoveVector;
+
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
 
 const u32 MILLI_SEC        = 1000;
@@ -652,15 +654,6 @@ public:
 
 };
 
-typedef std::vector<Move> MoveVector;
-
-//template<class Iterator> 
-//inline auto slide (Iterator beg, Iterator end, Iterator pos) -> std::pair<Iterator, Iterator>
-//{
-//    if (pos < beg) return { pos, std::rotate (pos, beg, end) };
-//    if (end < pos) return { std::rotate (beg, end, pos), pos };
-//    return { beg, end };
-//}
 
 inline bool white_spaces (const std::string &str)
 {
@@ -707,7 +700,13 @@ inline void convert_path (std::string &path)
     std::replace (path.begin (), path.end (), '\\', '/'); // Replace all '\' to '/'
 }
 
-
+//template<class Iterator>
+//inline auto slide (Iterator beg, Iterator end, Iterator pos) -> std::pair<Iterator, Iterator>
+//{
+//    if (pos < beg) return { pos, std::rotate (pos, beg, end) };
+//    if (end < pos) return { std::rotate (beg, end, pos), pos };
+//    return { beg, end };
+//}
 
 extern const Value PIECE_VALUE[PHASE_NO][TOTL];
 

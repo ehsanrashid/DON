@@ -79,7 +79,7 @@ namespace MovePick {
 
     // MoveStats store the move that refute a previous move.
     // Entries are stored according only to moving piece and destination square,
-    // in particular two moves with different origin but same piece & same destination
+    // in particular two moves with different origin but same piece and same destination
     // will be considered identical.
     typedef Stats<Move>             MoveStats;
 

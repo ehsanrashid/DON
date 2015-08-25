@@ -128,8 +128,12 @@ namespace Searcher {
             bool operator== (Move m) const { return pv[0] == m; }
             bool operator!= (Move m) const { return pv[0] != m; }
 
+            Move operator[] (i32 index) const { return pv[index]; }
+
             void operator+= (Move m) { pv.push_back (m); }
             void operator-= (Move m) { pv.erase (remove (pv.begin (), pv.end (), m), pv.end ()); }
+
+            size_t size () const { return pv.size (); }
 
             void backup () { old_value = new_value; }
             void insert_pv_into_tt ();
@@ -786,7 +790,7 @@ namespace Searcher {
                             pos.posi_key () ^ Zobrist::EXC_KEY;
 
                 tte      = TT.probe (posi_key, tt_hit);
-                ss->tt_move = tt_move = RootNode ? RootMoves[IndexPV].pv[0] :
+                ss->tt_move = tt_move = RootNode ? RootMoves[IndexPV][0] :
                                         tt_hit ? tte->move () : MOVE_NONE;
                 if (tt_hit)
                 {
@@ -1161,7 +1165,6 @@ namespace Searcher {
                     && best_value > -VALUE_MATE_IN_MAX_DEPTH
                     // ! Dangerous (below)
                     && !gives_check
-                    && mtype (move) == NORMAL
                     && !pos.advanced_pawn_push (move)
                    )
                 {
@@ -1514,7 +1517,7 @@ namespace Searcher {
             Depth depth = DEPTH_ZERO;
 
             // Iterative deepening loop until target depth reached
-            while (++depth < MAX_DEPTH && !Signals.force_stop && (0 == Limits.depth || depth <= Limits.depth))
+            while (++depth < DEPTH_MAX && !Signals.force_stop && (0 == Limits.depth || depth <= Limits.depth))
             {
                 if (Limits.use_timemanager ())
                 {
@@ -1662,7 +1665,7 @@ namespace Searcher {
                             stop = true;
                         }
 
-                        if (RootMoves[0].pv.size () >= 3)
+                        if (RootMoves[0].size () >= 3)
                         {
                             MoveMgr.update (RootMoves[0].pv);
                         }
@@ -1860,7 +1863,7 @@ namespace Searcher {
     // 'ponder on' we have nothing to think on.
     bool RootMove::extract_ponder_move_from_tt ()
     {
-        assert (pv.size () == 1);
+        assert (size () == 1);
         assert (pv[0] != MOVE_NONE);
         
         bool extracted = false;
@@ -1967,7 +1970,7 @@ namespace Searcher {
             if (best_value < v)
             {
                 best_value = v;
-                _best_move = RootMoves[i].pv[0];
+                _best_move = RootMoves[i][0];
             }
         }
         return _best_move;
@@ -2037,7 +2040,7 @@ namespace Searcher {
                         found = true;
                         swap (RootMoves[0], *find (RootMoves.begin (), RootMoves.end (), book_move));
                         StateInfo si;
-                        RootPos.do_move (RootMoves[0].pv[0], si, RootPos.gives_check (RootMoves[0].pv[0], CheckInfo (RootPos)));
+                        RootPos.do_move (RootMoves[0][0], si, RootPos.gives_check (RootMoves[0][0], CheckInfo (RootPos)));
                         book_move = book.probe_move (RootPos, BookMoveBest);
                         RootMoves[0] += book_move;
                         RootPos.undo_move ();
@@ -2093,7 +2096,7 @@ namespace Searcher {
         }
         else
         {
-            RootMoves += RootMove (MOVE_NONE);
+            RootMoves += RootMove ();
 
             sync_cout
                 << "info"
@@ -2107,7 +2110,7 @@ namespace Searcher {
 
         u32 elapsed_time = max (TimeMgr.elapsed_time (), 1U);
 
-        assert (RootMoves[0].pv.size () != 0);
+        assert (RootMoves[0].size () != 0);
 
         if (!SearchFile.empty ())
         {
@@ -2116,14 +2119,14 @@ namespace Searcher {
                 << "Nodes (N)  : " << RootPos.game_nodes ()                     << "\n"
                 << "Speed (N/s): " << RootPos.game_nodes ()*MILLI_SEC / elapsed_time << "\n"
                 << "Hash-full  : " << TT.hash_full ()                           << "\n"
-                << "Best move  : " << move_to_san (RootMoves[0].pv[0], RootPos) << "\n";
+                << "Best move  : " << move_to_san (RootMoves[0][0], RootPos) << "\n";
             if (    RootMoves[0] != MOVE_NONE
-                && (RootMoves[0].pv.size () > 1 || RootMoves[0].extract_ponder_move_from_tt ())
+                && (RootMoves[0].size () > 1 || RootMoves[0].extract_ponder_move_from_tt ())
                )
             {
                 StateInfo si;
-                RootPos.do_move (RootMoves[0].pv[0], si, RootPos.gives_check (RootMoves[0].pv[0], CheckInfo (RootPos)));
-                SearchLog << "Ponder move: " << move_to_san (RootMoves[0].pv[1], RootPos) << "\n";
+                RootPos.do_move (RootMoves[0][0], si, RootPos.gives_check (RootMoves[0][0], CheckInfo (RootPos)));
+                SearchLog << "Ponder move: " << move_to_san (RootMoves[0][1], RootPos) << "\n";
                 RootPos.undo_move ();
             }
             SearchLog << endl;
@@ -2148,12 +2151,12 @@ namespace Searcher {
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position
-        sync_cout << "bestmove " << move_to_can (RootMoves[0].pv[0], Chess960);
+        sync_cout << "bestmove " << move_to_can (RootMoves[0][0], Chess960);
         if (    RootMoves[0] != MOVE_NONE
-            && (RootMoves[0].pv.size () > 1 || RootMoves[0].extract_ponder_move_from_tt ())
+            && (RootMoves[0].size () > 1 || RootMoves[0].extract_ponder_move_from_tt ())
            )
         {
-            cout << " ponder " << move_to_can (RootMoves[0].pv[1], Chess960);
+            cout << " ponder " << move_to_can (RootMoves[0][1], Chess960);
         }
         cout << sync_endl;
 
