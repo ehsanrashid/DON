@@ -29,7 +29,170 @@ namespace Searcher {
     using namespace Evaluator;
     using namespace Notation;
     using namespace Debugger;
+    
+    
+    // RootMove is used for moves at the root of the tree.
+    // For each root move stores:
+    //  - Value[] { new , old }.
+    //  - Node count.
+    //  - PV (really a refutation table in the case of moves which fail low).
+    // Value is normally set at -VALUE_INFINITE for all non-pv moves.
+    class RootMove
+    {
+        
+    public:
+        
+        Value new_value = -VALUE_INFINITE
+            , old_value = -VALUE_INFINITE;
+        //u64        nodes     = U64(0);
+        MoveVector pv;
+        
+        explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
+        
+        bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
+        bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
+        bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
+        bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
+        bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
+        bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
+        
+        bool operator== (Move m) const { return pv[0] == m; }
+        bool operator!= (Move m) const { return pv[0] != m; }
+        
+        Move operator[] (i32 index) const { return pv[index]; }
+        
+        void operator+= (Move m) { pv.push_back (m); }
+        void operator-= (Move m) { pv.erase (remove (pv.begin (), pv.end (), m), pv.end ()); }
+        
+        size_t size () const { return pv.size (); }
+        
+        void backup () { old_value = new_value; }
+        void insert_pv_into_tt ();
+        bool extract_ponder_move_from_tt ();
+        
+        operator std::string () const
+        {
+            stringstream ss;
+            for (auto m : pv)
+            {
+                ss << " " << move_to_can (m, Chess960);
+            }
+            return ss.str ();
+        }
+        
+        template<class CharT, class Traits>
+        friend std::basic_ostream<CharT, Traits>&
+        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
+        {
+            os << std::string(rm);
+            return os;
+        }
+        
+    };
+    
+    class RootMoveVector
+        : public vector<RootMove>
+    {
+        
+    public:
+        
+        void operator+= (const RootMove &rm) { push_back (rm); }
+        void operator-= (const RootMove &rm) { erase (remove (begin (), end (), rm), end ()); }
+        
+        void initialize ()
+        {
+            clear ();
+            const auto &root_moves = Limits.root_moves;
+            for (const auto &m : MoveList<LEGAL> (RootPos))
+            {
+                if (root_moves.empty () || count (root_moves.begin (), root_moves.end (), m) != 0)
+                {
+                    *this += RootMove (m);
+                }
+            }
+        }
+        void backup ()
+        {
+            for (auto &rm : *this)
+            {
+                rm.backup ();
+            }
+        }
+        
+        //u64 game_nodes () const
+        //{
+        //    u64 nodes = U64(0);
+        //    for (const auto &rm : *this)
+        //    {
+        //        nodes += rm.nodes;
+        //    }
+        //    return nodes;
+        //}
+        
+        operator std::string () const
+        {
+            stringstream ss;
+            for (const auto &rm : *this)
+            {
+                ss << rm << "\n";
+            }
+            return ss.str ();
+        }
+        
+        template<class CharT, class Traits>
+        friend std::basic_ostream<CharT, Traits>&
+        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &rmv)
+        {
+            os << std::string(rmv);
+            return os;
+        }
+    };
+    
+    // MoveManager class is used to detect a so called 'easy move'; when PV is
+    // stable across multiple search iterations we can fast return the best move.
+    class MoveManager
+    {
+    private:
+        Key  _posi_key = U64(0);
+        Move _pv[3];
+        
+    public:
+        i08 stable_count = 0;
+        
+        MoveManager () { clear (); }
+        
+        void clear ()
+        {
+            stable_count = 0;
+            _posi_key = U64(0);
+            fill (begin (_pv), end (_pv), MOVE_NONE);
+        }
+        
+        Move easy_move (Key posi_key) const { return _posi_key == posi_key ? _pv[2] : MOVE_NONE; }
+        
+        void update (const MoveVector &new_pv)
+        {
+            assert (new_pv.size () >= 3);
+            
+            // Keep track of how many times in a row 3rd ply remains stable
+            stable_count = (new_pv[2] == _pv[2]) ? stable_count + 1 : 0;
+            
+            if (!equal (new_pv.begin (), new_pv.begin () + 3, _pv))
+            {
+                copy (new_pv.begin (), new_pv.begin () + 3, _pv);
+                
+                StateInfo si[2];
+                RootPos.do_move (new_pv[0], si[0], RootPos.gives_check (new_pv[0], CheckInfo (RootPos)));
+                RootPos.do_move (new_pv[1], si[1], RootPos.gives_check (new_pv[1], CheckInfo (RootPos)));
+                _posi_key = RootPos.posi_key ();
+                RootPos.undo_move ();
+                RootPos.undo_move ();
+            }
+        }
+        
+    };
 
+    
     namespace {
 
 // prefetch() preloads the given address in L1/L2 cache.
@@ -100,166 +263,6 @@ namespace Searcher {
 
         const i32 LateMoveReductionDepth = 2;
         const u08 FullDepthMoveCount = 1;
-
-        // RootMove is used for moves at the root of the tree.
-        // For each root move stores:
-        //  - Value[] { new , old }.
-        //  - Node count.
-        //  - PV (really a refutation table in the case of moves which fail low).
-        // Value is normally set at -VALUE_INFINITE for all non-pv moves.
-        class RootMove
-        {
-        public:
-
-            Value new_value = -VALUE_INFINITE
-                , old_value = -VALUE_INFINITE;
-            //u64        nodes     = U64(0);
-            MoveVector pv;
-
-            explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
-
-            bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
-            bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
-            bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
-            bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
-            bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
-            bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
-
-            bool operator== (Move m) const { return pv[0] == m; }
-            bool operator!= (Move m) const { return pv[0] != m; }
-
-            Move operator[] (i32 index) const { return pv[index]; }
-
-            void operator+= (Move m) { pv.push_back (m); }
-            void operator-= (Move m) { pv.erase (remove (pv.begin (), pv.end (), m), pv.end ()); }
-
-            size_t size () const { return pv.size (); }
-
-            void backup () { old_value = new_value; }
-            void insert_pv_into_tt ();
-            bool extract_ponder_move_from_tt ();
-
-            operator std::string () const
-            {
-                stringstream ss;
-                for (auto m : pv)
-                {
-                    ss << " " << move_to_can (m, Chess960);
-                }
-                return ss.str ();
-            }
-
-            template<class CharT, class Traits>
-            friend std::basic_ostream<CharT, Traits>&
-                operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
-            {
-                os << std::string(rm);
-                return os;
-            }
-
-        };
-
-        class RootMoveVector
-            : public vector<RootMove>
-        {
-
-        public:
-            
-            void operator+= (const RootMove &rm) { push_back (rm); }
-            void operator-= (const RootMove &rm) { erase (remove (begin (), end (), rm), end ()); }
-
-            void initialize ()
-            {
-                clear ();
-                const auto &root_moves = Limits.root_moves;
-                for (const auto &m : MoveList<LEGAL> (RootPos))
-                {
-                    if (root_moves.empty () || count (root_moves.begin (), root_moves.end (), m) != 0)
-                    {
-                        *this += RootMove (m);
-                    }
-                }
-            }
-            void backup ()
-            {
-                for (auto &rm : *this)
-                {
-                    rm.backup ();
-                }
-            }
-
-            //u64 game_nodes () const
-            //{
-            //    u64 nodes = U64(0);
-            //    for (const auto &rm : *this)
-            //    {
-            //        nodes += rm.nodes;
-            //    }
-            //    return nodes;
-            //}
-
-            operator std::string () const
-            {
-                stringstream ss;
-                for (const auto &rm : *this)
-                {
-                    ss << rm << "\n";
-                }
-                return ss.str ();
-            }
-
-            template<class CharT, class Traits>
-            friend std::basic_ostream<CharT, Traits>&
-                operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &rmv)
-            {
-                os << std::string(rmv);
-                return os;
-            }
-        };
-
-        // MoveManager class is used to detect a so called 'easy move'; when PV is
-        // stable across multiple search iterations we can fast return the best move.
-        class MoveManager
-        {
-        private:
-            Key  _posi_key = U64(0);
-            Move _pv[3];
-
-        public:
-            i08 stable_count = 0;
-
-            MoveManager () { clear (); }
-
-            void clear ()
-            {
-                stable_count = 0;
-                _posi_key = U64(0);
-                fill (begin (_pv), end (_pv), MOVE_NONE);
-            }
-
-            Move easy_move (Key posi_key) const { return _posi_key == posi_key ? _pv[2] : MOVE_NONE; }
-
-            void update (const MoveVector &new_pv)
-            {
-                assert (new_pv.size () >= 3);
-
-                // Keep track of how many times in a row 3rd ply remains stable
-                stable_count = (new_pv[2] == _pv[2]) ? stable_count + 1 : 0;
-
-                if (!equal (new_pv.begin (), new_pv.begin () + 3, _pv))
-                {
-                    copy (new_pv.begin (), new_pv.begin () + 3, _pv);
-
-                    StateInfo si[2];
-                    RootPos.do_move (new_pv[0], si[0], RootPos.gives_check (new_pv[0], CheckInfo (RootPos)));
-                    RootPos.do_move (new_pv[1], si[1], RootPos.gives_check (new_pv[1], CheckInfo (RootPos)));
-                    _posi_key = RootPos.posi_key ();
-                    RootPos.undo_move ();
-                    RootPos.undo_move ();
-                }
-            }
-            
-        };
 
         Color   RootColor;
         i32     RootPly;
@@ -1489,7 +1492,7 @@ namespace Searcher {
         void iter_deepening_search ()
         {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
-            memset (ss-2, 0x00, 5*sizeof (*ss));
+            memset (Stacks, 0x00, 5*sizeof (*Stacks));
 
             if (SkillMgr.enabled ()) SkillMgr.clear ();
 
@@ -2330,10 +2333,10 @@ namespace Threading {
 
                 spinlock.release ();
 
-                Stack stack[MAX_DEPTH+4], *ss = stack+2;    // To allow referencing (ss+2) & (ss-2)
+                Stack stacks[MAX_DEPTH+4], *ss = stacks+2;    // To allow referencing (ss+2) & (ss-2)
                 Position pos (*sp->pos, this);
                 
-                memcpy (ss-2, sp->ss-2, 5*sizeof (*ss));
+                memcpy (stacks, sp->ss-2, 5*sizeof (*stacks));
                 ss->splitpoint = sp;
 
                 // Lock splitpoint
@@ -2387,7 +2390,7 @@ namespace Threading {
                         // Prefer to join to splitpoint with few parents to reduce the probability
                         // that a cut-off occurs above us, and hence we waste our work.
                         i32 parent_splits = 0;
-                        for (auto *spp = th->active_splitpoint; spp != nullptr; spp = spp->parent_splitpoint) ++parent_splits;
+                        for (const auto *spp = th->active_splitpoint; spp != nullptr; spp = spp->parent_splitpoint) ++parent_splits;
                         
                         i32 metric = parent_splits;
 
