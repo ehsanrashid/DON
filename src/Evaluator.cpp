@@ -72,51 +72,49 @@ namespace Evaluator {
                 MATERIAL = 6, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, TOTAL, TERM_NO
             };
 
-            Score Scores[CLR_NO][TERM_NO];
-
+            double cp[TERM_NO][CLR_NO][PHASE_NO];
+            
             void write (TermT term, Color c, Score score)
             {
-                Scores[c][term] = score;
+                cp[term][c][MG] = value_to_cp (mg_value (score));
+                cp[term][c][EG] = value_to_cp (eg_value (score));
             }
             void write (TermT term, Score wscore, Score bscore = SCORE_ZERO)
             {
-                Scores[WHITE][term] = wscore;
-                Scores[BLACK][term] = bscore;
+                write (term, WHITE, wscore);
+                write (term, BLACK, bscore);
             }
 
             ostream& operator<< (ostream &os, TermT term)
             {
-                double cp[CLR_NO][2] =
-                {
-                    { value_to_cp (mg_value (Scores[WHITE][term])), value_to_cp (eg_value (Scores[WHITE][term])) },
-                    { value_to_cp (mg_value (Scores[BLACK][term])), value_to_cp (eg_value (Scores[BLACK][term])) }
-                };
-
                 os << showpos;
 
-                if (term == MATERIAL || term == IMBALANCE || term == TermT(PAWN) || term == TOTAL)
+                if (   term == TermT(PAWN)
+                    || term == MATERIAL
+                    || term == IMBALANCE
+                    || term == TOTAL
+                   )
                 {
                     os << " | ----- ----- | ----- ----- | ";
                 }
                 else
                 {
-                    os << " | " << setw(5) << cp[WHITE][MG] << " " << setw(5) << cp[WHITE][EG]
-                       << " | " << setw(5) << cp[BLACK][MG] << " " << setw(5) << cp[BLACK][EG] << " | ";
+                    os << " | " << setw(5) << cp[term][WHITE][MG] << " " << setw(5) << cp[term][WHITE][EG]
+                       << " | " << setw(5) << cp[term][BLACK][MG] << " " << setw(5) << cp[term][BLACK][EG]
+                       << " | ";
                 }
-                os << setw(5) << cp[WHITE][MG] - cp[BLACK][MG] << " "
-                   << setw(5) << cp[WHITE][EG] - cp[BLACK][EG] << " \n";
-
+                os << setw(5) << cp[term][WHITE][MG] - cp[term][BLACK][MG] << " "
+                   << setw(5) << cp[term][WHITE][EG] - cp[term][BLACK][EG] << " \n";
+                
+                os << noshowpos;
                 return os;
 
             }
 
             string trace (const Position &pos)
             {
-                for (auto c = WHITE; c <= BLACK; ++c)
-                {
-                    fill (begin (Scores[c]), end (Scores[c]), SCORE_ZERO);
-                }
-
+                std::memset (cp, 0x00, sizeof (cp));
+                
                 auto value = evaluate<true> (pos);
                 value = WHITE == pos.active () ? +value : -value; // White's point of view
 
@@ -141,7 +139,8 @@ namespace Evaluator {
                     << "----------------+-------------+-------------+--------------\n"
                     << "          Total" << TermT(TOTAL);
                 ss  << "\n"
-                    << "Evaluation: " << value_to_cp (value) << " (white side)\n";
+                    << "Evaluation: " << value_to_cp (value) << " (white side)\n"
+                    << noshowpos << noshowpoint;
 
                 return ss.str ();
             }

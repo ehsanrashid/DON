@@ -92,9 +92,9 @@ void benchmark (istream &is, const Position &cur_pos)
     string limit_type = (is >> token) && !white_spaces (token) ? token : "depth";
     string fen_fn     = (is >> token) && !white_spaces (token) ? token : "default";
 
-    Options["Hash"]             = hash;
-    Options["Threads"]          = threads;
-    Options["Never Clear Hash"] = "false";
+    Options["Hash"]        = hash;
+    Options["Threads"]     = threads;
+    Options["Retain Hash"] = "false";
 
     i32 value = abs (stoi (limit_val));
 
@@ -138,8 +138,6 @@ void benchmark (istream &is, const Position &cur_pos)
         fen_ifs.close ();
     }
 
-    StateStackPtr states;
-
     reset ();
 
     u64  nodes = 0;
@@ -161,6 +159,7 @@ void benchmark (istream &is, const Position &cur_pos)
         }
         else
         {
+            StateStackPtr states;
             Threadpool.start_main (pos, limits, states);
             Threadpool.main ()->join ();
             nodes += RootPos.game_nodes ();
@@ -194,8 +193,6 @@ void auto_tune (istream &is)
     {
         Threadpool.split_depth = (d+4)*DEPTH_ONE;
         cerr << "Split Depth     : " << i32(Threadpool.split_depth);
-        
-        StateStackPtr states;
 
         reset ();
 
@@ -209,6 +206,7 @@ void auto_tune (istream &is)
             cerr << "\n---------------\n" 
                  << "Position: " << setw (2) << (i + 1) << "/" << DEFAULT_FEN.size () << "\n";
 
+            StateStackPtr states;
             Threadpool.start_main (pos, limits, states);
             Threadpool.main ()->join ();
             nodes += RootPos.game_nodes ();
