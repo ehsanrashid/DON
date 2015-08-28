@@ -23,10 +23,10 @@ namespace MovePick {
         void _clear (Value &v) { v = VALUE_ZERO; }
         void _clear (Move  &m) { m = MOVE_NONE; }
         void _clear (Stats<Value> &vs) { vs.clear (); }
-
+        /*
         void _age (Value &v, double factor) { v *= factor; }
         void _age (Stats<Value> &vs, double factor) { vs.age (factor); }
-
+        */
     public:
 
         const T* operator[] (Piece  pc) const { return _table[pc]; }
@@ -42,14 +42,14 @@ namespace MovePick {
         }
 
         // ------
-
+        /*
         void age (double factor)
         {
             for (auto &t : _table)
                 for (auto &e : t)
                     _age (e, factor);
         }
-
+        */
         void update (const Position &pos, Move m, Value v)
         {
             auto s = dst_sq (m);

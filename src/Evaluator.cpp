@@ -113,10 +113,11 @@ namespace Evaluator {
 
             string trace (const Position &pos)
             {
-                std::memset (cp, 0x00, sizeof (cp));
+                memset (cp, 0x00, sizeof (cp));
                 
-                auto value = evaluate<true> (pos);
-                value = WHITE == pos.active () ? +value : -value; // White's point of view
+                auto value = WHITE == pos.active () ?  // White's point of view
+                                +evaluate<true> (pos) :
+                                -evaluate<true> (pos);
 
                 stringstream ss;
 
@@ -822,7 +823,8 @@ namespace Evaluator {
 
             auto score = SCORE_ZERO;
 
-            auto nonpawn_diff = pos.count<NONPAWN> (Own) - pos.count<NONPAWN> (Opp);
+            auto own_nonpawn = pos.count<NONPAWN> (Own);
+            auto opp_nonpawn = pos.count<NONPAWN> (Opp);
 
             auto passed_pawns = ei.pi->passed_pawns[Own];
             while (passed_pawns != U64(0))
@@ -914,10 +916,7 @@ namespace Evaluator {
                 }
 
                 // If non-pawn pieces difference
-                if (nonpawn_diff != 0)
-                {
-                    eg_value += nonpawn_diff * eg_value / 4;
-                }
+                eg_value += eg_value * (double(own_nonpawn-opp_nonpawn) / max (own_nonpawn+opp_nonpawn, 1))/2;
 
                 score += mk_score (mg_value, eg_value);
             }

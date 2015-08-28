@@ -256,7 +256,7 @@ namespace Searcher {
         template<bool PVNode>
         Depth reduction_depths (bool imp, Depth d, u08 mc)
         {
-            return ReductionDepths[PVNode][imp][min (d/DEPTH_ONE, ReductionDepth-1)][min<u08> (mc, ReductionMoveCount-1)];
+            return ReductionDepths[PVNode][imp][min (d/DEPTH_ONE, ReductionDepth-1)][min (mc/1, ReductionMoveCount-1)];
         }
 
         const i32 ProbCutDepth = 4;
@@ -1114,7 +1114,7 @@ namespace Searcher {
                             sync_cout
                                 << "info"
                                 //<< " depth "          << depth/DEPTH_ONE
-                                << " currmovenumber " << setw (2) << IndexPV + move_count
+                                << " currmovenumber " << setfill ('0') << setw (2) << IndexPV + move_count << setfill (' ')
                                 << " currmove "       << move_to_can (move, Chess960)
                                 << " time "           << TimeMgr.elapsed_time ()
                                 << sync_endl;
