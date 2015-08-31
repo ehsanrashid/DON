@@ -11,7 +11,7 @@ namespace MovePick {
     using namespace MoveGen;
     using namespace Searcher;
 
-    const Value MAX_STATS_VALUE = Value(0x100);
+    const Value MAX_STATS_VALUE = Value(0x1 << 28);
 
     // The Stats struct stores different statistics.
     template<class T, int N = PIECE_NO>
@@ -37,8 +37,12 @@ namespace MovePick {
         void clear ()
         {
             for (auto &t : _table)
+            {
                 for (auto &e : t)
+                {
                     _clear (e);
+                }
+            }
         }
 
         // ------
@@ -46,8 +50,12 @@ namespace MovePick {
         void age (double factor)
         {
             for (auto &t : _table)
+            {
                 for (auto &e : t)
+                {
                     _age (e, factor);
+                }
+            }
         }
         */
         void update (const Position &pos, Move m, Value v)
@@ -55,17 +63,17 @@ namespace MovePick {
             auto s = dst_sq (m);
             auto p = pos[org_sq (m)];
             auto &e = _table[p][s];
-            e = std::min (std::max (e + v, -MAX_STATS_VALUE+1), +MAX_STATS_VALUE-1);
+            e = std::min (std::max (e*(1.0 - (double) std::min (abs (v), 0x400)/0x400) + v*0x40, -MAX_STATS_VALUE+1), +MAX_STATS_VALUE-1);
         }
 
         // ------
 
-        void update (const Position &pos, Move m1, Move m2)
+        void update (const Position &pos, Move mm, Move cm)
         {
-            auto s = dst_sq (m1);
+            auto s = dst_sq (mm);
             auto p = pos[s];
             auto &e = _table[p][s];
-            if (e != m2) e = m2;
+            if (e != cm) e = cm;
         }
 
         // ------
