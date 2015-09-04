@@ -970,6 +970,7 @@ namespace Searcher {
                             assert (reduced_depth >= DEPTH_ONE);
                             assert ((ss-1)->current_move != MOVE_NONE);
                             assert ((ss-1)->current_move != MOVE_NULL);
+                            assert (extended_beta > alpha);
 
                             // Initialize a MovePicker object for the current position,
                             // and prepare to search the moves.

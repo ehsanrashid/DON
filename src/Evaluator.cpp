@@ -950,7 +950,9 @@ namespace Evaluator {
                   SPACE_MASK[Own]
                 & ~pos.pieces (Own, PAWN)
                 & ~ei.pin_attacked_by[Opp][PAWN]
-                & (ei.pin_attacked_by[Own][NONE]|~ei.pin_attacked_by[Opp][NONE]);
+                & (   ei.pin_attacked_by[Own][NONE]
+                   | ~ei.pin_attacked_by[Opp][NONE]
+                  );
 
             // Since SPACE_MASK[Own] is fully on our half of the board
             assert (u32(safe_space >> (WHITE == Own ? 32 : 0)) == 0);
@@ -961,8 +963,8 @@ namespace Evaluator {
             behind |= shift_bb<WHITE == Own ? DEL_SS : DEL_NN> (behind);
 
             // Count safe_space + (behind & safe_space) with a single pop_count
-            i32 bonus = pop_count<FULL> ((WHITE == Own ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
-            i32 weight = pos.count<NIHT> () + pos.count<BSHP> ();
+            auto bonus = pop_count<FULL> ((WHITE == Own ? safe_space << 32 : safe_space >> 32) | (behind & safe_space));
+            auto weight = pos.count<NIHT> () + pos.count<BSHP> ();
 
             auto score = mk_score (bonus * weight * weight, 0) * WEIGHTS[SPACE_ACTIVITY];
             
