@@ -207,7 +207,7 @@ namespace BitBoard {
 #   ifndef BM2
         return (bb & (bb - 1)) != U64(0);
 #   else
-        return BLSR (bb);
+        return BLSR (bb) != U64(0);
 #   endif
     }
 

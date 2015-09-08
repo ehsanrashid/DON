@@ -1149,7 +1149,7 @@ namespace Searcher {
                     && ext == DEPTH_ZERO
                    )
                 {
-                    auto bound = tt_value - 2 * depth/DEPTH_ONE;
+                    auto bound = tt_value - 2*(depth/DEPTH_ONE);
 
                     ss->exclude_move = move;
                     value = depth_search<NonPV, false, false> (pos, ss, bound-1, bound, depth/2, cut_node);
