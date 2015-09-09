@@ -76,9 +76,7 @@ namespace Engine {
 
 #ifdef BM2
         oss << "-BM2";
-#endif
-
-#ifdef ABM
+#elif ABM
         oss << "-ABM";
 #elif POP
         oss << "-POP";
