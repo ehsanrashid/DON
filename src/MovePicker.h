@@ -31,8 +31,6 @@ namespace MovePick {
 
         const T* operator[] (Piece  pc) const { return _table[pc]; }
         T*       operator[] (Piece  pc)       { return _table[pc]; }
-        const T* operator[] (PieceT pt) const { return _table[pt]; }
-        T*       operator[] (PieceT pt)       { return _table[pt]; }
 
         void clear ()
         {
@@ -84,7 +82,7 @@ namespace MovePick {
     // during the current search and is used for reduction and move ordering decisions.
     typedef Stats<Value>            ValueStats;
     // Value2DStats
-    typedef Stats<ValueStats, TOTL> Value2DStats;
+    typedef Stats<ValueStats>       Value2DStats;
 
     // MoveStats store the move that refute a previous move.
     // Entries are stored according only to moving piece and destination square,

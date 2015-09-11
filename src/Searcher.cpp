@@ -310,8 +310,8 @@ namespace Searcher {
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
             auto &opp_cmhv = opp_move_dst != SQ_NO ?
-                CounterMovesHistoryValues[ptype (pos[opp_move_dst])][opp_move_dst] :
-                CounterMovesHistoryValues[NONE][SQ_A1];
+                CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] :
+                CounterMovesHistoryValues[EMPTY][SQ_A1];
 
             HistoryValues.update (pos, move, bonus);
 
@@ -345,7 +345,7 @@ namespace Searcher {
                 auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
                 if (own_move_dst != SQ_NO)
                 {
-                    auto &own_cmhv = CounterMovesHistoryValues[ptype (pos[own_move_dst])][own_move_dst];
+                    auto &own_cmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
                     own_cmhv.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
                 }
             }
@@ -1066,8 +1066,8 @@ namespace Searcher {
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
             auto counter_move = opp_move_dst != SQ_NO ? CounterMoves[pos[opp_move_dst]][opp_move_dst] : MOVE_NONE;
             auto &opp_cmhv = opp_move_dst != SQ_NO ?
-                CounterMovesHistoryValues[ptype (pos[opp_move_dst])][opp_move_dst] :
-                CounterMovesHistoryValues[NONE][SQ_A1];
+                CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] :
+                CounterMovesHistoryValues[EMPTY][SQ_A1];
 
             MovePicker mp (pos, HistoryValues, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
 

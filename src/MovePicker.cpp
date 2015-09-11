@@ -172,8 +172,8 @@ namespace MovePick {
         auto opp_move = (_ss-1)->current_move;
         auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
         const auto &opp_cmhv = opp_move_dst != SQ_NO ?
-            _CounterMovesHistoryValues[ptype (_Pos[opp_move_dst])][opp_move_dst] :
-            _CounterMovesHistoryValues[NONE][SQ_A1];
+            _CounterMovesHistoryValues[_Pos[opp_move_dst]][opp_move_dst] :
+            _CounterMovesHistoryValues[EMPTY][SQ_A1];
 
         for (auto &m : *this)
         {
