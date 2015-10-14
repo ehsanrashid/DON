@@ -640,6 +640,7 @@
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>
+    <None Include=".travis.yml" />
     <None Include="AssemblyDependencies.dgml">
       <SubType>Designer</SubType>
     </None>

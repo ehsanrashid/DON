@@ -632,11 +632,11 @@ namespace EndGame {
             {
                 switch (r)
                 {
-                case R_2: return ScaleFactor(10);
+                case R_2: return ScaleFactor(9);
                 case R_3: return ScaleFactor(10);
-                case R_4: return ScaleFactor(15);
-                case R_5: return ScaleFactor(20);
-                case R_6: return ScaleFactor(40);
+                case R_4: return ScaleFactor(14);
+                case R_5: return ScaleFactor(21);
+                case R_6: return ScaleFactor(44);
                 default: assert (false);
                 }
             }

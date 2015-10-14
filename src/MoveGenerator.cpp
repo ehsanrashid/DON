@@ -92,6 +92,10 @@ namespace MoveGen {
                 {
                     if (ci != nullptr && !pos.gives_check (m, *ci)) return;
                 }
+                else
+                {
+                    (void) ci; // Silence a warning under MSVC
+                }
 
                 *moves++ = m;
             }
@@ -149,18 +153,16 @@ namespace MoveGen {
             {
                 assert ((DEL_NE == Del || DEL_NW == Del || DEL_SE == Del || DEL_SW == Del || DEL_N == Del || DEL_S == Del));
 
-                auto org = dst - Del;
-
                 if (RELAX == GT || EVASION == GT || CAPTURE == GT)
                 {
-                    *moves++ = mk_move<PROMOTE> (org, dst, QUEN);
+                    *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
                 }
 
                 if (RELAX == GT || EVASION == GT || QUIET == GT)
                 {
-                    *moves++ = mk_move<PROMOTE> (org, dst, ROOK);
-                    *moves++ = mk_move<PROMOTE> (org, dst, BSHP);
-                    *moves++ = mk_move<PROMOTE> (org, dst, NIHT);
+                    *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
+                    *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
+                    *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
                 }
 
                 // Knight-promotion is the only one that can give a direct check
@@ -169,19 +171,21 @@ namespace MoveGen {
                 {
                     if (ci != nullptr && (PIECE_ATTACKS[NIHT][dst] & ci->king_sq))
                     {
-                        *moves++ = mk_move<PROMOTE> (org, dst, NIHT);
+                        *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
                     }
                 }
                 //else
                 //if (CHECK == GT && ci != nullptr)
                 //{
-                //    if (PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) *moves++ = mk_move<PROMOTE> (org, dst, NIHT);
-                //    if (attacks_bb<BSHP> (dst, targets) & ci->king_sq) *moves++ = mk_move<PROMOTE> (org, dst, BSHP);
-                //    if (attacks_bb<ROOK> (dst, targets) & ci->king_sq) *moves++ = mk_move<PROMOTE> (org, dst, ROOK);
-                //    if (attacks_bb<QUEN> (dst, targets) & ci->king_sq) *moves++ = mk_move<PROMOTE> (org, dst, QUEN);
+                //    if (PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                //    if (attacks_bb<BSHP> (dst, targets) & ci->king_sq) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
+                //    if (attacks_bb<ROOK> (dst, targets) & ci->king_sq) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
+                //    if (attacks_bb<QUEN> (dst, targets) & ci->king_sq) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
                 //}
-                
-                return (void) ci; // silence a warning under MSVC
+                else
+                {
+                    (void) ci; // Silence a warning under MSVC
+                }
             }
 
         public:
@@ -297,8 +301,6 @@ namespace MoveGen {
                         while (b != U64(0)) generate_promotion<Left > (moves, pop_lsq (b), ci);
                     }
                 }
-
-                return (void) ci; // silence a warning under MSVC
             }
 
         };

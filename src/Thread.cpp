@@ -174,23 +174,22 @@ namespace Threading {
         assert (!searching);
         assert (active_pos == nullptr);
 
+        // We have returned from the idle loop, which means that all threads are
+        // finished. Note that decreasing splitPointsSize must be done under lock
+        // protection to avoid a race with Thread::can_join().
+        spinlock.acquire ();
+
         searching = true;
-
-        // Have returned from the idle loop, which means that all threads are finished.
-        // Note that setting 'searching' and decreasing splitpoint_count is
-        // done under lock protection to avoid a race with available_slave().
-        sp.spinlock.acquire ();
-
         --splitpoint_count;
         active_pos = &pos;
         active_splitpoint = sp.parent_splitpoint;
 
-        pos.game_nodes (pos.game_nodes () + sp.nodes);
+        spinlock.release ();
 
+        // Split point data cannot be changed now, so no need to lock protect
+        pos.game_nodes (pos.game_nodes () + sp.nodes);
         best_move  = sp.best_move;
         best_value = sp.best_value;
-
-        sp.spinlock.release ();
     }
 
     // ------------------------------------

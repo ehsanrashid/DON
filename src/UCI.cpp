@@ -63,14 +63,14 @@ namespace UCI {
                 // Consume "value" token
                 while (cmds >> token && token != "value")
                 {
-                    name += string (" ", !white_spaces (name)) + token;
+                    name += string (" ", white_spaces (name) ? 0 : 1) + token;
                 }
 
                 string value;
                 // Read option-value (can contain spaces)
                 while (cmds >> token)
                 {
-                    value += string (" ", !white_spaces (value)) + token;
+                    value += string (" ", white_spaces (value) ? 0 : 1) + token;
                 }
 
                 if (Options.count (name) != 0)
@@ -109,14 +109,14 @@ namespace UCI {
                 // consume "value" token
                 while (cmds >> token && token != "code")
                 {
-                    name += string (" ", !white_spaces (name)) + token;
+                    name += string (" ", white_spaces (name) ? 0 : 1) + token;
                 }
 
                 string code;
                 // Read code (can contain spaces)
                 while (cmds >> token)
                 {
-                    code += string (" ", !white_spaces (code)) + token;
+                    code += string (" ", white_spaces (code) ? 0 : 1) + token;
                 }
                 //cout << name << "\n" << code << endl;
             }
@@ -384,17 +384,18 @@ namespace UCI {
             else if (token == "setoption")  exe_setoption (cmds);
             else if (token == "position")   exe_position (cmds);
             else if (token == "go")         exe_go (cmds);
-            else if (token == "ponderhit")
+            // GUI sends 'ponderhit' to tell us to ponder on the same move the
+            // opponent has played. In case Signals.ponderhit_stop stream set are
+            // waiting for 'ponderhit' to stop the search (for instance because
+            // already ran out of time), otherwise should continue searching but
+            // switching from pondering to normal search.
+            else if (token == "quit"
+                  || token == "stop"
+                  || token == "ponderhit" && Signals.ponderhit_stop)
             {
-                // GUI sends 'ponderhit' to tell us to ponder on the same move the
-                // opponent has played. In case Signals.ponderhit_stop stream set are
-                // waiting for 'ponderhit' to stop the search (for instance because
-                // already ran out of time), otherwise should continue searching but
-                // switching from pondering to normal search.
-                Signals.ponderhit_stop ? exe_stop () : exe_ponderhit ();
-            }
-            else if (token == "stop"
-                  || token == "quit")       exe_stop ();
+                exe_stop ();
+            }    
+            else if (token == "ponderhit")  exe_ponderhit ();
             else if (token == "debug")      exe_debug (cmds);
             else if (token == "show")       exe_show ();
             else if (token == "keys")       exe_keys ();

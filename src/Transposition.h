@@ -46,23 +46,21 @@ namespace Transposition {
 
         void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
-            // Preserve any existing move for the same key
-            if (   k != _key
-                || m != MOVE_NONE
+            // Preserve any existing move for the position (key)
+            if (   m != MOVE_NONE
+                || k != _key
                )
             {
-                _key        = u64(k);
                 _move       = u16(m);
             }
             // Don't overwrite more valuable entries
             if (   k != _key
-                //|| v != VALUE_NONE
-                //|| e != VALUE_NONE
                 || d > _depth - 2
-                || g != gen ()
+             /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
                 || b == BOUND_EXACT
                )
             {
+                _key        = u64 (k);
                 _value      = i16(v);
                 _eval       = i16(e);
                 _depth      = i08(d);

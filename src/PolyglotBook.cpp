@@ -156,42 +156,42 @@ namespace OpeningBook  {
     {
         if (!is_open ()) return ErrorIndex;
 
-        auto beg = streampos(0);
-        auto end = streampos((size () - HeaderSize) / EntrySize - 1);
+        auto beg_pos = streampos(0);
+        auto end_pos = streampos((size () - HeaderSize) / EntrySize - 1);
 
         PBEntry pbe;
 
-        assert (beg <= end);
+        assert (beg_pos <= end_pos);
 
-        if (beg == end)
+        if (beg_pos == end_pos)
         {
-            seekg (STM_POS (beg));
+            seekg (STM_POS (beg_pos));
             *this >> pbe;
         }
         else
         {
-            while (beg < end && good ())
+            while (beg_pos < end_pos && good ())
             {
-                auto mid = (beg + end) / 2;
-                assert (mid >= beg && mid < end);
+                auto mid_pos = (beg_pos + end_pos) / 2;
+                assert (mid_pos >= beg_pos && mid_pos < end_pos);
 
-                seekg (STM_POS (mid));
+                seekg (STM_POS (mid_pos));
 
                 *this >> pbe;
                 if (key <= pbe.key)
                 {
-                    end = mid;
+                    end_pos = mid_pos;
                 }
                 else
                 {
-                    beg = mid + streampos(1);
+                    beg_pos = mid_pos + streampos(1);
                 }
             }
 
-            assert (beg == end);
+            assert (beg_pos == end_pos);
         }
         
-        return (key == pbe.key) ? beg : ErrorIndex;
+        return (key == pbe.key) ? beg_pos : ErrorIndex;
     }
     streampos PolyglotBook::find_index (const Position &pos)
     {

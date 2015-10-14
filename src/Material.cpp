@@ -17,12 +17,12 @@ namespace Material {
 
         const i32 OwnSideLinearCoefficient[NONE] =
         {
-            - 162, // P
-            -1122, // N
-            - 183, // B 
-            + 249, // R
-            - 154, // Q
-            +1852  // BP
+            - 164, // P
+            -1067, // N
+            - 160, // B 
+            + 234, // R
+            - 137, // Q
+            +1756  // BP
         };
 
         const i32 OwnSideQuadraticCoefficient[NONE][NONE] =
@@ -234,7 +234,7 @@ namespace Material {
                 {
                     e->factor[WHITE] = u08(
                         npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm[BLACK] <= VALUE_MG_BSHP ? 4 : 12);
+                        npm[BLACK] <= VALUE_MG_BSHP ? 4 : 14);
                 }
                 else
                 if (pos.count<PAWN> (WHITE) == 1)
@@ -249,7 +249,7 @@ namespace Material {
                 {
                     e->factor[BLACK] = u08(
                         npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm[WHITE] <= VALUE_MG_BSHP ? 4 : 12);
+                        npm[WHITE] <= VALUE_MG_BSHP ? 4 : 14);
                 }
                 else
                 if (pos.count<PAWN> (BLACK) == 1)

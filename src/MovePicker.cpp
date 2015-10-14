@@ -178,7 +178,7 @@ namespace MovePick {
         for (auto &m : *this)
         {
             m.value = _HistoryValues[_Pos[org_sq (m)]][dst_sq (m)]
-                    + 3 * opp_cmhv[_Pos[org_sq (m)]][dst_sq (m)];
+                    + opp_cmhv[_Pos[org_sq (m)]][dst_sq (m)];
         }
     }
 

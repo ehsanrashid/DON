@@ -120,7 +120,7 @@ namespace Transposition {
             if (ite->_key == U64(0) || ite->_key == key)
             {
                 hit = ite->_key == key;
-                if (hit) ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
+                if (hit && ite->gen () != _generation) ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
                 return ite;
             }
         }

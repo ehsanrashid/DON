@@ -1493,7 +1493,7 @@ namespace Searcher {
         void iter_deepening_search ()
         {
             Stack *ss = Stacks+2; // To allow referencing (ss-2)
-            memset (Stacks, 0x00, 5*sizeof (*Stacks));
+            memset (ss-2, 0x00, 5*sizeof (*Stacks));
 
             if (SkillMgr.enabled ()) SkillMgr.clear ();
 
@@ -2357,8 +2357,13 @@ namespace Threading {
 
                 assert (searching);
 
+                spinlock.acquire ();
+
                 searching  = false;
                 active_pos = nullptr;
+
+                spinlock.release ();
+
                 sp->slaves_mask.reset (index);
                 sp->slaves_searching = false;
                 sp->nodes += pos.game_nodes ();
