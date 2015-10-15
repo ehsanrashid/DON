@@ -149,7 +149,7 @@ namespace Evaluator {
 
         using namespace Tracer;
 
-        enum { PIECE_MOBILITY, PAWN_STRUCTURE, PASSED_PAWN, SPACE_ACTIVITY, KING_SAFETY };
+        enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PASSED_PAWN, SPACE_ACTIVITY, KING_SAFETY };
 
         struct Weight { i32 mg, eg; };
         
@@ -209,25 +209,23 @@ namespace Evaluator {
         {
             S(0, 0), S(107, 138), S(84, 122), S(114, 203), S(121, 217), S(0, 0)
         };
-        
 
-        enum { STRONG, WEAK };
-        enum { MINOR, MAJOR };
-
+        enum EnemyT { DEFENDED, WEAK };
+        enum FriendT { MINOR, MAJOR };
         // THREATEN_BY_PIECE[defended/weak][minor/major attacking][attacked PieceType] contains
         // bonuses according to which piece type attacks which one.
         const Score THREATEN_BY_PIECE[2][2][NONE] =
         {
             {
-                { S( 0, 0), S(19, 37), S(24, 37), S(44, 97), S(35,106), S(0, 0) },  // Minor on Strong
-                { S( 0, 0), S( 9, 14), S( 9, 14), S( 7, 14), S(24, 48), S(0, 0) }   // Major on Strong
+                { S( 0, 0), S(19, 37), S(24, 37), S(44, 97), S(35,106), S(0, 0) },  // Minor on Defended
+                { S( 0, 0), S( 9, 14), S( 9, 14), S( 7, 14), S(24, 48), S(0, 0) }   // Major on Defended
             },
             {
-                { S( 0,32), S(33, 41), S(31, 50), S(41,100), S(35,104), S(0, 0) },  // Weak - Minor
-                { S( 0,27), S(26, 57), S(26, 57), S(0 , 43), S(23, 51), S(0, 0) }   // Weak - Major
+                { S( 0,32), S(33, 41), S(31, 50), S(41,100), S(35,104), S(0, 0) },  // Minor on Weak
+                { S( 0,27), S(26, 57), S(26, 57), S(0 , 43), S(23, 51), S(0, 0) }   // Major on Weak 
             }
         };
-        
+
         const Score THREATEN_BY_KING[] =
         {
             S( 2, 58), S( 6,125)
@@ -757,13 +755,11 @@ namespace Evaluator {
 
             Bitboard b, weak_pieces, strong_pieces;
 
-            auto opp_pieces = pos.pieces (Opp);
-
             // Non-pawn enemies attacked by any friendly pawn
             weak_pieces =
-                  (opp_pieces ^ pos.pieces (Opp, PAWN))
+                  (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
                 &  ei.pin_attacked_by[Own][PAWN];
-            
+
             if (weak_pieces != U64(0))
             {
                 // Safe Pawns
@@ -782,7 +778,7 @@ namespace Evaluator {
 
             // Enemies not defended by pawn and attacked by any friendly piece
             weak_pieces =
-                opp_pieces
+                pos.pieces (Opp)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
 
@@ -817,26 +813,26 @@ namespace Evaluator {
 
             // Non-pawn enemies defended by a pawn and attacked by any friendly piece
             strong_pieces = 
-                  (opp_pieces ^ pos.pieces (Opp, PAWN))
+                  (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
                 &  ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
-            
+
             if (strong_pieces != U64(0))
             {
                 // Strong enemies attacked by minor pieces
                 b = strong_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
                 while (b != U64(0))
                 {
-                    score += THREATEN_BY_PIECE[STRONG][MINOR][ptype (pos[pop_lsq (b)])];
+                    score += THREATEN_BY_PIECE[DEFENDED][MINOR][ptype (pos[pop_lsq (b)])];
                 }
                 // Strong enemies attacked by rooks
                 b = strong_pieces & (ei.pin_attacked_by[Own][ROOK]);
                 while (b != U64(0))
                 {
-                    score += THREATEN_BY_PIECE[STRONG][MAJOR][ptype (pos[pop_lsq (b)])];
+                    score += THREATEN_BY_PIECE[DEFENDED][MAJOR][ptype (pos[pop_lsq (b)])];
                 }
             }
-            
+
             // Bonus if some friendly pawns can safely push and attack an enemy piece
 
             b = pos.pieces (Own, PAWN) & ~(WHITE == Own ? R7_bb  : R2_bb);
@@ -1143,8 +1139,8 @@ namespace Evaluator {
             // In case of tracing add each evaluation contributions for both white and black
             if (Trace)
             {
-                write (PAWN               , ei.pe->pawn_score);
-                write (MATERIAL           , pos.psq_score ());
+                write (PAWN       , ei.pe->pawn_score);
+                write (MATERIAL   , pos.psq_score ());
                 write (IMBALANCE  , me->imbalance);
                 write (MOBILITY
                     , mobility[WHITE] * WEIGHTS[PIECE_MOBILITY]
@@ -1212,6 +1208,10 @@ namespace Evaluator {
 
             return (pos.active () == WHITE ? +value : -value) + TEMPO;
         }
+
+        // Explicit template instantiations
+        template Value evaluate<true > (const Position&);
+        template Value evaluate<false> (const Position&);
 
     }
 

@@ -73,8 +73,8 @@
       <FileName>src\manipulator.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="std::noncopyable" Collapsed="true">
-    <Position X="34.25" Y="10.25" Width="1.5" />
+  <Class Name="std::noncopyable">
+    <Position X="31.75" Y="3.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAABAAAAAAAAAAAAAAAAAAAgQAAAAAA=</HashCode>
       <FileName>src\noncopyable.h</FileName>
@@ -235,10 +235,10 @@
       <Field Name="split_depth" />
     </ShowAsAssociation>
   </Class>
-  <Class Name="Searcher::`anonymous-namespace'::RootMove">
+  <Class Name="Searcher::RootMove">
     <Position X="38.75" Y="20.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAIAAAAAAAAAAAAAAAhgQAIAAAAAAAAgAAgAAAQAAA=</HashCode>
+      <HashCode>AAAIAAIAAAAAAAAAAIAhgQAIAAEAAAAAgAAgAAAQAAA=</HashCode>
       <FileName>src\Searcher.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -264,7 +264,7 @@
       <Field Name="_best_move" />
     </ShowAsAssociation>
   </Class>
-  <Class Name="Searcher::`anonymous-namespace'::MoveManager">
+  <Class Name="Searcher::MoveManager">
     <Position X="25.5" Y="7.75" Width="2" />
     <TypeIdentifier>
       <HashCode>CEAAAABCAIAAAAAAAAAAAAAEAAAAAAAAAAAAAAAEAAA=</HashCode>
@@ -278,7 +278,7 @@
     <Position X="36.25" Y="23.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>IUoEEIEqCLBMUEBAAKMIAgASAgUESAIAxQMwgwAEQgI=</HashCode>
-      <FileName>c:\program files (x86)\microsoft visual studio 12.0\vc\include\vector</FileName>
+      <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\vector</FileName>
     </TypeIdentifier>
   </Class>
   <Struct Name="BitBases::`anonymous-namespace'::KPK_Position">
@@ -352,20 +352,9 @@
     </TypeIdentifier>
   </Struct>
   <Struct Name="Evaluator::`anonymous-namespace'::EvalInfo">
-    <Position X="12.5" Y="5.25" Width="1.5" />
+    <Position X="5.75" Y="1.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAQAAIAABAAAAAAAIAAAAAAAQgCAAQAAAA=</HashCode>
-      <FileName>src\Evaluator.cpp</FileName>
-    </TypeIdentifier>
-    <ShowAsAssociation>
-      <Field Name="mi" />
-      <Field Name="pi" />
-    </ShowAsAssociation>
-  </Struct>
-  <Struct Name="Evaluator::`anonymous-namespace'::Weight" Collapsed="true">
-    <Position X="46.5" Y="4.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAABgAAAAAAIAAAAAAAQgCAAQAAAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Struct>
@@ -456,7 +445,7 @@
   <Struct Name="MovePick::Stats&lt;T, N&gt;" Collapsed="true">
     <Position X="19.75" Y="9.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAAAAAAAAAQgAAAAAAQAAAAAEAAAgAAAAAAAAEAAA=</HashCode>
+      <HashCode>CEAACAAAAAAAAgAAAAAAQAAACAEAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -535,7 +524,14 @@
     <Position X="14.5" Y="18" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAIAgEAAAIAAAAAAAAAAAAgAAAAAAA=</HashCode>
-      <FileName>c:\program files (x86)\microsoft visual studio 12.0\vc\include\utility</FileName>
+      <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\utility</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Evaluator::`anonymous-namespace'::Weight" Collapsed="true">
+    <Position X="38" Y="3.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAABAQAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Struct>
   <Typedef Name="BitBoard::`anonymous-namespace'::Indexer" Collapsed="true">
@@ -543,13 +539,6 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\BitBoard.cpp</FileName>
-    </TypeIdentifier>
-  </Typedef>
-  <Typedef Name="UCI::cmdstream" Collapsed="true">
-    <Position X="44.75" Y="9.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\UCI.cpp</FileName>
     </TypeIdentifier>
   </Typedef>
   <Typedef Name="Material::Table" Collapsed="true">
@@ -821,7 +810,7 @@
   <Enum Name="Depth">
     <Position X="29" Y="17.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAMAAAAAACAAAgAAAAgQAAAAAAAAAAAAAAAAAAAAA=</HashCode>
+      <HashCode>AAAAMAAAAAACAAAgAAAAgQAAAAAgAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Type.h</FileName>
     </TypeIdentifier>
   </Enum>
@@ -844,20 +833,6 @@
     <TypeIdentifier>
       <HashCode>AAACAAABAAAAABAAAAAAAAAAAAAAAAAAAAAAAACAggA=</HashCode>
       <FileName>src\Type.h</FileName>
-    </TypeIdentifier>
-  </Enum>
-  <Enum Name="Evaluator::`anonymous-namespace'::__unnamed_enum_000f_1" Collapsed="true">
-    <Position X="44.75" Y="6" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAgAAAAAAAAAAAAAABAAAABAAAAAAAACAAIAA=</HashCode>
-      <FileName>src\Evaluator.cpp</FileName>
-    </TypeIdentifier>
-  </Enum>
-  <Enum Name="Evaluator::`anonymous-namespace'::Tracer::TermT" Collapsed="true">
-    <Position X="46.5" Y="8.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>IAAAAEAAIQAAAAEAAEAAAABAAAAAAAAAAAAAAABAAAA=</HashCode>
-      <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Enum>
   <Enum Name="Notation::`anonymous-namespace'::AmbiguityT" Collapsed="true">
@@ -900,6 +875,34 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAABAAA=</HashCode>
       <FileName>src\Searcher.cpp</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Evaluator::`anonymous-namespace'::Tracer::TermT">
+    <Position X="39.75" Y="5.75" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>IAAAAEAAIQAAAAEAAEAAAABAAAAAAAAAAAAAAABAAAA=</HashCode>
+      <FileName>src\Evaluator.cpp</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Evaluator::`anonymous-namespace'::WeightT">
+    <Position X="36.75" Y="6.25" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAgAAAAAAAAAAAAAABAAAABAAAAAAAACAAIAA=</HashCode>
+      <FileName>src\Evaluator.cpp</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Evaluator::`anonymous-namespace'::EnemyT" Collapsed="true">
+    <Position X="36.75" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAgAAA=</HashCode>
+      <FileName>src\Evaluator.cpp</FileName>
+    </TypeIdentifier>
+  </Enum>
+  <Enum Name="Evaluator::`anonymous-namespace'::FriendT" Collapsed="true">
+    <Position X="38.5" Y="4.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>AAgAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAA=</HashCode>
+      <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Enum>
   <Font Name="Consolas" Size="8.25" />

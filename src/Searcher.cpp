@@ -1477,10 +1477,10 @@ namespace Searcher {
                 {
                     if (  !in_check
                         && pos.capture_type () == NONE
-                        && _ok ((ss-1)->current_move)
-                        //&& mtype ((ss-1)->current_move) != PROMOTE
-                        && _ok ((ss-2)->current_move)
                         && depth>=3*DEPTH_ONE
+                        && _ok (opp_move)
+                        //&& mtype (opp_move) != PROMOTE
+                        && _ok ((ss-2)->current_move)
                        )
                     {
                         auto bonus = Value((depth / DEPTH_ONE)*(depth / DEPTH_ONE));
@@ -1489,7 +1489,7 @@ namespace Searcher {
                         if (own_move_dst != SQ_NO)
                         {
                             auto &own_cmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
-                            own_cmhv.update_cm_history (pos, (ss-1)->current_move, bonus);
+                            own_cmhv.update_cm_history (pos, opp_move, bonus);
                         }
                     }
                 }

@@ -142,27 +142,19 @@ namespace MovePick {
     // The moves with highest scores will be picked first.
 
     template<>
-    // Winning and equal captures in the main search are ordered by MVV/LVA.
-    // Suprisingly, this appears to perform slightly better than SEE based
-    // move ordering. The reason is probably that in a position with a winning
-    // capture, capturing a more valuable (but sufficiently defended) piece
-    // first usually doesn't hurt. The opponent will have to recapture, and
-    // the hanging piece will still be hanging (except in the unusual cases
-    // where it is possible to recapture with the hanging piece).
-    // Exchanging big pieces before capturing a hanging piece probably
-    // helps to reduce the subtree size.
-    // In main search want to push captures with negative SEE values to
-    // bad_captures[] array, but instead of doing it now delay till when
-    // the move has been picked up in pick_move(), this way save
-    // some SEE calls in case get a cutoff.
+    // Winning and equal captures in the main search are ordered by MVV, preferring
+    // captures near our home rank. Suprisingly, this appears to perform slightly
+    // better than SEE based move ordering: exchanging big pieces before capturing
+    // a hanging piece probably helps to reduce the subtree size.
+    // In main search we want to push captures with negative SEE values to the
+    // badCaptures[] array, but instead of doing it now we delay until the move
+    // has been picked up, saving some SEE calls in case we get a cutoff.
     void MovePicker::value<CAPTURE> ()
     {
         for (auto &m : *this)
         {
             m.value = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _Pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_Pos[dst_sq (m)])]
-                    //+ (mtype (m) == PROMOTE ? PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] : VALUE_ZERO)
-                    - Value(10 * ptype (_Pos[org_sq (m)]))
-                    - Value(rel_rank (_Pos.active (), dst_sq (m)));
+                    - Value (200 * rel_rank (_Pos.active (), dst_sq (m)));
         }
     }
 
@@ -199,9 +191,7 @@ namespace MovePick {
             if (_Pos.capture (m))
             {
                 m.value = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _Pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_Pos[dst_sq (m)])]
-                        //+ (mtype (m) == PROMOTE ? PIECE_VALUE[MG][promote (m)] - PIECE_VALUE[MG][PAWN] : VALUE_ZERO)
-                        - Value(10 * ptype (_Pos[org_sq (m)]))
-                        - Value(rel_rank (_Pos.active (), dst_sq (m))) + MAX_STATS_VALUE;
+                        - Value(ptype (_Pos[org_sq (m)])) + MAX_STATS_VALUE;
             }
             else
             {
