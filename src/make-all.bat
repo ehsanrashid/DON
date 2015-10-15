@@ -1,4 +1,4 @@
-@REM @SET PATH=D:/MinGW/32/bin/;D:/MinGW/msys/bin/;
+@REM @SET PATH=C:/MinGW/32/bin/;C:/MinGW/msys/bin/;
 
 @REM make -f MakeFile build ARCH=general-32     COMP=mingw
 @REM make -f MakeFile build ARCH=x86-32-old     COMP=mingw
@@ -13,7 +13,7 @@
 
 @REM -----------------------------------------------------
 
-@SET PATH=D:/MinGW/64/bin/;D:/MinGW/msys/bin/;
+@SET PATH=C:/MinGW/64/bin/;C:/MinGW/msys/bin/;
 
 @REM make -f MakeFile build ARCH=general-64     COMP=mingw
 @REM make -f MakeFile build ARCH=x86-64         COMP=mingw

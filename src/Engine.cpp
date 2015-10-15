@@ -113,18 +113,15 @@ namespace Engine {
 
         cout << endl;
 
-        UCI::start (arg);
+        UCI::loop (arg);
     }
 
     // Exit from engine with exit code. (in case of some crash)
     void exit (int code)
     {
-        UCI::stop ();
-
         Threadpool.exit ();
         EndGame::exit ();
         UCI::exit ();
-
         ::exit (code);
     }
 

@@ -69,7 +69,7 @@ namespace Zobrist {
         }
 
         posi_key ^= SQ_NO != pos.en_passant_sq () ? _.en_passant[_file (pos.en_passant_sq ())] : U64(0);
-        posi_key ^= WHITE == pos.active () ? _.act_side : U64(0);
+        posi_key ^= pos.active () == WHITE ? _.act_side : U64(0);
 
         return posi_key;
     }

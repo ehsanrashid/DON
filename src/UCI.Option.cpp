@@ -171,7 +171,7 @@ namespace UCI {
 
         void configure_threadpool ()
         {
-            Threadpool.configure (i32(Options["Threads"]), i32(Options["Split Depth"]));
+            Threadpool.configure ();
         }
 
         void configure_50move_dist ()

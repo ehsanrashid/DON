@@ -58,7 +58,7 @@ namespace Notation {
 
             if (abs (v) < +VALUE_MATE_IN_MAX_DEPTH)
             {
-                oss << setprecision (2) << fixed << showpos << value_to_cp (WHITE == pos.active () ? +v : -v);
+                oss << setprecision (2) << fixed << showpos << value_to_cp (pos.active () == WHITE ? +v : -v);
             }
             else
             {

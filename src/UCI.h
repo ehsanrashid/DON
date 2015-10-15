@@ -92,9 +92,8 @@ namespace UCI {
 
     // ---------------------------------------------
 
-    extern void start (const std::string &arg = "");
+    extern void loop (const std::string &arg = "");
 
-    extern void stop ();
 }
 
 extern UCI::OptionMap Options;  // Global string mapping of Options

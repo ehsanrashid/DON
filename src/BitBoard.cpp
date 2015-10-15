@@ -105,11 +105,9 @@ namespace BitBoard {
             Bitboard occupancy[MAX_MOVES]
                    , reference[MAX_MOVES];
             
-            i32      ages     [MAX_MOVES]
+            i32      ages     [MAX_MOVES] = {0}
                    , cur_age = 0;
             
-            fill (begin (ages), end (ages), 0);
-
 #       endif
             
             // attacks_bb[s] is a pointer to the beginning of the attacks table for square 's'

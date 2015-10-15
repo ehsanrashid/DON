@@ -57,17 +57,26 @@ namespace MovePick {
         }
         */
 
-        void update (const Position &pos, Move m, Value v)
+        void update_history (const Position &pos, Move m, Value v)
         {
+            if (abs (i32(v)) >= 0x144) return;
             auto s = dst_sq (m);
             auto p = pos[org_sq (m)];
             auto &e = _table[p][s];
-            e = std::min (std::max (e*(1.0 - (double) std::min (abs (v), 0x400)/0x400) + v*0x20, -MAX_STATS_VALUE), +MAX_STATS_VALUE);
+            e = std::min (std::max (e*(1.0 - abs (v)/0x144) + v*0x20, -MAX_STATS_VALUE), +MAX_STATS_VALUE);
+        }
+        void update_cm_history (const Position &pos, Move m, Value v)
+        {
+            if (abs (i32 (v)) >= 0x200) return;
+            auto s = dst_sq (m);
+            auto p = pos[org_sq (m)];
+            auto &e = _table[p][s];
+            e = std::min (std::max (e*(1.0 - abs (v)/0x200) + v*0x40, -MAX_STATS_VALUE), +MAX_STATS_VALUE);
         }
 
         // ------
 
-        void update (const Position &pos, Move mm, Move cm)
+        void update_move (const Position &pos, Move mm, Move cm)
         {
             auto s = dst_sq (mm);
             auto p = pos[s];

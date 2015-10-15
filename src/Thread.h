@@ -31,7 +31,7 @@ namespace Threading {
         std::atomic_int _state;
 
     public:
-        Spinlock () { _state = 1; }
+        Spinlock () { _state = 1; } // Init here to workaround a bug with MSVC
         Spinlock (const Spinlock&) = delete; 
         Spinlock& operator= (const Spinlock&) = delete;
 
@@ -77,11 +77,11 @@ namespace Threading {
         std::bitset<MAX_THREADS> slaves_mask;
 
         volatile bool  slaves_searching;
-        volatile u08   move_count;
         volatile Value alpha;
         volatile Value best_value;
         volatile Move  best_move;
         volatile u64   nodes;
+        volatile u08   move_count;
         volatile bool  cut_off;
     };
 
@@ -137,7 +137,7 @@ namespace Threading {
         bool can_join (const SplitPoint *sp) const;
 
         void split (Position &pos, Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-            Depth depth, u08 move_count, MovePicker &movepicker, NodeT node_type, bool cut_node);
+            Depth depth, u08 move_count, MovePicker *movepicker, NodeT node_type, bool cut_node);
 
     };
 
@@ -201,7 +201,7 @@ namespace Threading {
 
         void start_main (const Position &pos, const LimitsT &limit, StateStackPtr &states);
 
-        void configure (i32 threads, i32 sp_depth);
+        void configure ();
 
     };
 

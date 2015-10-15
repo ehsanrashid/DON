@@ -65,11 +65,13 @@ namespace Threading {
     Thread::Thread ()
         : ThreadBase ()
     {
-        //active_pos          = nullptr;
-        //max_ply             = 0;
-        //active_splitpoint   = nullptr;
-        //splitpoint_count    = 0;
-        //searching           = false;
+        /*
+        active_pos          = nullptr;
+        max_ply             = 0;
+        active_splitpoint   = nullptr;
+        splitpoint_count    = 0;
+        searching           = false;
+        */
         index               = Threadpool.size (); // Starts from 0
     }
 
@@ -77,9 +79,12 @@ namespace Threading {
     // current active splitpoint, or in some ancestor of the splitpoint.
     bool Thread::cutoff_occurred () const
     {
-        for (auto *sp = active_splitpoint; sp != nullptr; sp = sp->parent_splitpoint)
+        for (auto *sp = active_splitpoint;
+                   sp != nullptr;
+                   sp = sp->parent_splitpoint)
         {
-            if (sp->cut_off) return true;
+            if (sp->cut_off)
+                return true;
         }
         return false;
     }
@@ -110,7 +115,7 @@ namespace Threading {
     // leave their idle loops and call search<>().
     // When all threads have returned from search() then split() returns.
     void Thread::split (Position &pos, Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-                        Depth depth, u08 move_count, MovePicker &movepicker, NodeT node_type, bool cut_node)
+                        Depth depth, u08 move_count, MovePicker *movepicker, NodeT node_type, bool cut_node)
     {
         assert (pos.ok ());
         assert (searching);
@@ -133,8 +138,8 @@ namespace Threading {
         sp.best_value   = best_value;
         sp.best_move    = best_move;
         sp.depth        = depth;
+        sp.movepicker   = movepicker;
         sp.move_count   = move_count;
-        sp.movepicker   = &movepicker;
         sp.node_type    = node_type;
         sp.cut_node     = cut_node;
         sp.nodes        = 0;
@@ -265,7 +270,7 @@ namespace Threading {
         check_limits_th->task       = check_limits;
         check_limits_th->resolution = TIMER_RESOLUTION;
 
-        configure (i32(Options["Threads"]), i32(Options["Split Depth"]));
+        configure ();
     }
 
     // ThreadPool::exit() cleanly terminates the threads before the program exits
@@ -289,11 +294,13 @@ namespace Threading {
     // UCI options and creates/destroys threads to match the requested number.
     // Thread objects are dynamically allocated to avoid creating in advance all possible
     // threads, with included pawns and material tables, if only few are used.
-    void ThreadPool::configure (i32 threads, i32 sp_depth)
+    void ThreadPool::configure ()
     {
+        
+        i32 threads = i32 (Options["Threads"]);
+        split_depth = i32 (Options["Split Depth"])*DEPTH_ONE;
+        
         assert (threads > 0);
-
-        split_depth = sp_depth*DEPTH_ONE;
         //if (split_depth == DEPTH_ZERO) split_depth = 5 * DEPTH_ONE;
 
         while (i32(size ()) < threads)

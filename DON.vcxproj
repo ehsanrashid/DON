@@ -651,12 +651,16 @@
     <None Include="IncludeFileDependencies.dgml">
       <SubType>Designer</SubType>
     </None>
+    <None Include="Readme.md" />
     <None Include="src\make-all-modern.bat" />
     <None Include="src\make-all.bat" />
     <None Include="src\make-clean.bat" />
     <None Include="src\make-strip.bat" />
     <None Include="src\Makefile" />
     <None Include="src\make-help.bat" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Copying.txt" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

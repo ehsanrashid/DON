@@ -105,7 +105,9 @@ namespace Searcher {
             const auto &root_moves = Limits.root_moves;
             for (const auto &m : MoveList<LEGAL> (RootPos))
             {
-                if (root_moves.empty () || count (root_moves.begin (), root_moves.end (), m) != 0)
+                if (   root_moves.empty ()
+                    || count (root_moves.begin (), root_moves.end (), m) != 0
+                   )
                 {
                     *this += RootMove (m);
                 }
@@ -313,12 +315,12 @@ namespace Searcher {
                 CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] :
                 CounterMovesHistoryValues[EMPTY][SQ_A1];
 
-            HistoryValues.update (pos, move, bonus);
+            HistoryValues.update_history (pos, move, bonus);
 
             if (opp_move_dst != SQ_NO)
             {
-                 CounterMoves.update (pos, opp_move, move);
-                 opp_cmhv.update (pos, move, bonus);
+                 CounterMoves.update_move (pos, opp_move, move);
+                 opp_cmhv.update_cm_history (pos, move, bonus);
             }
 
             // Decrease all the other played quiet moves
@@ -326,18 +328,18 @@ namespace Searcher {
             {
                 assert (quiet_moves[i] != move);
 
-                HistoryValues.update (pos, quiet_moves[i], -bonus);
+                HistoryValues.update_history (pos, quiet_moves[i], -bonus);
 
                 if (opp_move_dst != SQ_NO)
                 {
-                    opp_cmhv.update (pos, quiet_moves[i], -bonus);
+                    opp_cmhv.update_cm_history (pos, quiet_moves[i], -bonus);
                 }
             }
 
             // Extra penalty for PV move in previous ply when it gets refuted
             if (   ss->firstmove_pv
                 && opp_move_dst != SQ_NO
-                && mtype (opp_move) != PROMOTE
+                //&& mtype (opp_move) != PROMOTE
                 && pos.capture_type () == NONE
                )
             {
@@ -346,7 +348,7 @@ namespace Searcher {
                 if (own_move_dst != SQ_NO)
                 {
                     auto &own_cmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
-                    own_cmhv.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
+                    own_cmhv.update_cm_history (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
                 }
             }
 
@@ -1434,7 +1436,7 @@ namespace Searcher {
                 {
                     assert (-VALUE_INFINITE <= alpha && alpha >= best_value && alpha < beta && best_value <= beta && beta <= +VALUE_INFINITE);
 
-                    thread->split (pos, ss, alpha, beta, best_value, best_move, depth, move_count, mp, NT, cut_node);
+                    thread->split (pos, ss, alpha, beta, best_value, best_move, depth, move_count, &mp, NT, cut_node);
 
                     if (Signals.force_stop || thread->cutoff_occurred ())
                     {
@@ -1468,6 +1470,28 @@ namespace Searcher {
                    )
                 {
                     update_stats (pos, ss, best_move, depth, quiet_moves, quiet_count);
+                }
+                else
+                // Bonus for prior countermove that caused the fail low
+                if (best_move == MOVE_NONE)
+                {
+                    if (  !in_check
+                        && pos.capture_type () == NONE
+                        && _ok ((ss-1)->current_move)
+                        //&& mtype ((ss-1)->current_move) != PROMOTE
+                        && _ok ((ss-2)->current_move)
+                        && depth>=3*DEPTH_ONE
+                       )
+                    {
+                        auto bonus = Value((depth / DEPTH_ONE)*(depth / DEPTH_ONE));
+                        auto own_move = (ss-2)->current_move;
+                        auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
+                        if (own_move_dst != SQ_NO)
+                        {
+                            auto &own_cmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
+                            own_cmhv.update_cm_history (pos, (ss-1)->current_move, bonus);
+                        }
+                    }
                 }
 
                 tte->save (posi_key, best_move,
