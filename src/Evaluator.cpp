@@ -1019,6 +1019,26 @@ namespace Evaluator {
             return score;
         }
 
+        // evaluate_initiative() computes the initiative correction value for the position, i.e. 
+        // second order bonus/malus based on the known attacking/defending status of the players. 
+        Score evaluate_initiative (const Position &pos, const EvalInfo &ei, const Score positional_score)
+        {
+            i32 pawns           =  pos.count<PAWN> (WHITE) + pos.count<PAWN> (BLACK);
+            i32 king_separation =  dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
+            i32 asymmetry       =  ei.pe->asymmetry;
+
+            // Compute the initiative bonus for the attacking side
+            i32 attacker_bonus =   8 * (pawns + asymmetry + king_separation) - 120;
+
+            // Now apply the bonus: note that we find the attacking side by extracting the sign 
+            // of the endgame value of "positional_score", and that we carefully cap the bonus so
+            // that the endgame score with the correction will never be divided by more than two.
+            i32 eg = eg_value (positional_score);
+            i32 value = ((eg > 0) - (eg < 0)) * std::max (attacker_bonus, -abs (eg / 2));
+
+            return mk_score (0, value);
+        }
+
         template<bool Trace>
         // evaluate<>()
         Value evaluate (const Position &pos)
@@ -1133,6 +1153,9 @@ namespace Evaluator {
                     + ei.pe->evaluate_unstoppable_pawns<WHITE> ();
                     - ei.pe->evaluate_unstoppable_pawns<BLACK> ();
             }
+            
+            // Evaluate initiative
+            score += evaluate_initiative (pos, ei, score);
 
             // In case of tracing add each evaluation contributions for both white and black
             if (Trace)
@@ -1194,10 +1217,6 @@ namespace Evaluator {
                     scale_factor = ei.pe->pawn_span[strong_side] != 0 ? ScaleFactor(51) : ScaleFactor(37);
                 }
             }
-
-            // Scale endgame by number of pawns
-            i32 pawns = pos.count<PAWN> ();
-            scale_factor = ScaleFactor (max (scale_factor / 2, scale_factor - 8 * SCALE_FACTOR_NORMAL * (12 - pawns) / (1 + abs (eg))));
 
             // Interpolates between a middle game and a (scaled by 'scale_factor') endgame score, based on game phase.
             auto value = Value((mg * i32(game_phase)

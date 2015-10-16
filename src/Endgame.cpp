@@ -542,7 +542,9 @@ namespace EndGame {
                )
            )
         {
-            return ScaleFactor(SCALE_FACTOR_MAX - 8 * dist (sp_sq, promote_sq) - 2 * dist (sk_sq, promote_sq));
+            return ScaleFactor(  SCALE_FACTOR_MAX
+                               - 8 * dist (sp_sq, promote_sq)
+                               - 2 * dist (sk_sq, promote_sq));
         }
 
         // If the pawn is not far advanced, and the defending king is somewhere in

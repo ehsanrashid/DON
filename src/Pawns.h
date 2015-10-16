@@ -35,6 +35,7 @@ namespace Pawns {
         CRight   castle_rights [CLR_NO];
         Value    king_safety   [CLR_NO][3];
         u08      king_pawn_dist[CLR_NO];
+        i32      asymmetry;
 
         bool file_semiopen (Color c, File f) const
         {
