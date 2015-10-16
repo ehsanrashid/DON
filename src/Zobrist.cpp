@@ -124,7 +124,7 @@ namespace Zobrist {
                 auto sym = char(tolower (ch));
                 if ('a' <= sym && sym <= 'h')
                 {
-                    fen_key ^= _.castle_right[c][(kf[c] < to_file (sym)) ? CS_K : CS_Q];
+                    fen_key ^= _.castle_right[c][(kf[c] < to_file (sym)) ? CS_KING : CS_QUEN];
                 }
                 else
                 {
@@ -139,8 +139,8 @@ namespace Zobrist {
                 auto c = isupper (ch) ? WHITE : BLACK;
                 switch (char(toupper (ch)))
                 {
-                case 'K': fen_key ^= _.castle_right[c][CS_K]; break;
-                case 'Q': fen_key ^= _.castle_right[c][CS_Q]; break;
+                case 'K': fen_key ^= _.castle_right[c][CS_KING]; break;
+                case 'Q': fen_key ^= _.castle_right[c][CS_QUEN]; break;
                 default : break;
                 }
             }

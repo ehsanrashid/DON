@@ -60,14 +60,16 @@ namespace Pawns {
         template<Color Own>
         void evaluate_king_safety (const Position &pos)
         {
-            if (king_sq[Own] != pos.square<KING> (Own) || castle_rights[Own] != pos.can_castle (Own))
+            if (   king_sq[Own] != pos.square<KING> (Own)
+                || castle_rights[Own] != pos.can_castle (Own)
+               )
             {
                 king_sq      [Own] = pos.square<KING> (Own);
                 castle_rights[Own] = pos.can_castle (Own);
 
                 Rank kr = rel_rank (Own, king_sq[Own]);
-                king_safety[Own][CS_K ] = kr == R_1 ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1)) : VALUE_ZERO;
-                king_safety[Own][CS_Q ] = kr == R_1 ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1)) : VALUE_ZERO;
+                king_safety[Own][CS_KING ] = kr == R_1 ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_G1)) : VALUE_ZERO;
+                king_safety[Own][CS_QUEN ] = kr == R_1 ? pawn_shelter_storm<Own> (pos, rel_sq (Own, SQ_C1)) : VALUE_ZERO;
                 king_safety[Own][CS_NO] = kr <= R_4 ? pawn_shelter_storm<Own> (pos, king_sq[Own]) : VALUE_ZERO;
 
                 king_pawn_dist[Own] = 0;

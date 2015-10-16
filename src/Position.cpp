@@ -379,7 +379,7 @@ bool Position::ok (i08 *failed_step) const
         {
             for (auto c = WHITE; c <= BLACK; ++c)
             {
-                for (auto cs = CS_K; cs <= CS_Q; ++cs)
+                for (auto cs = CS_KING; cs <= CS_QUEN; ++cs)
                 {
                     auto cr = mk_castle_right (c, cs);
 
@@ -611,7 +611,7 @@ bool Position::pseudo_legal (Move m) const
               && _board[dst] == (_active|ROOK)
               && _si->checkers == U64(0)
               && _si->castle_rights & mk_castle_right (_active)
-              && !castle_impeded (mk_castle_right (_active, dst > org ? CS_K : CS_Q))
+              && !castle_impeded (mk_castle_right (_active, dst > org ? CS_KING : CS_QUEN))
              )
            )
         {
@@ -619,7 +619,7 @@ bool Position::pseudo_legal (Move m) const
         }
 
         // Castle is always encoded as "King captures friendly Rook"
-        assert (dst == castle_rook (mk_castle_right (_active, dst > org ? CS_K : CS_Q)));
+        assert (dst == castle_rook (mk_castle_right (_active, dst > org ? CS_KING : CS_QUEN)));
         dst = rel_sq (_active, dst > org ? SQ_G1 : SQ_C1);
         auto step = dst > org ? DEL_E : DEL_W;
         for (auto s = dst; s != org; s -= step)
@@ -1081,7 +1081,7 @@ void Position::set_castle (Color c, Square rook_org)
     auto king_org = _piece_square[c][KING][0];
     assert (king_org != rook_org);
 
-    auto cr = mk_castle_right (c, (rook_org > king_org) ? CS_K : CS_Q);
+    auto cr = mk_castle_right (c, (rook_org > king_org) ? CS_KING : CS_QUEN);
     auto rook_dst = rel_sq (c, (rook_org > king_org) ? SQ_F1 : SQ_D1);
     auto king_dst = rel_sq (c, (rook_org > king_org) ? SQ_G1 : SQ_C1);
 
@@ -1585,13 +1585,13 @@ string Position::fen (bool c960, bool full) const
         {
             if (can_castle (CR_W))
             {
-                if (can_castle (CR_WK)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_K>::Right]), false);
-                if (can_castle (CR_WQ)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_Q>::Right]), false);
+                if (can_castle (CR_WK)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_KING>::Right]), false);
+                if (can_castle (CR_WQ)) oss << to_char (_file (_castle_rook[Castling<WHITE, CS_QUEN>::Right]), false);
             }
             if (can_castle (CR_B))
             {
-                if (can_castle (CR_BK)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_K>::Right]), true);
-                if (can_castle (CR_BQ)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_Q>::Right]), true);
+                if (can_castle (CR_BK)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_KING>::Right]), true);
+                if (can_castle (CR_BQ)) oss << to_char (_file (_castle_rook[Castling<BLACK, CS_QUEN>::Right]), true);
             }
         }
         else

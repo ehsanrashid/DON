@@ -543,19 +543,19 @@ namespace Evaluator {
             {
                 value = ei.pe->king_safety[Own][CS_NO];
 
-                if (    pos.can_castle (Castling<Own, CS_K>::Right)
-                    && !pos.castle_impeded (Castling<Own, CS_K>::Right)
-                    && (pos.king_path (Castling<Own, CS_K>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
+                if (    pos.can_castle (Castling<Own, CS_KING>::Right)
+                    && (pos.king_path (Castling<Own, CS_KING>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
+                    //&& !pos.castle_impeded (Castling<Own, CS_KING>::Right)
                    )
                 {
-                    value = max (value, ei.pe->king_safety[Own][CS_K]);
+                    value = max (value, ei.pe->king_safety[Own][CS_KING]);
                 }
-                if (    pos.can_castle (Castling<Own, CS_Q>::Right)
-                    && !pos.castle_impeded (Castling<Own, CS_Q>::Right)
-                    && (pos.king_path (Castling<Own, CS_Q>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
+                if (    pos.can_castle (Castling<Own, CS_QUEN>::Right)
+                    && (pos.king_path (Castling<Own, CS_QUEN>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
+                    //&& !pos.castle_impeded (Castling<Own, CS_QUEN>::Right)
                    )
                 {
-                    value = max (value, ei.pe->king_safety[Own][CS_Q]);
+                    value = max (value, ei.pe->king_safety[Own][CS_QUEN]);
                 }
             }
             else
@@ -594,8 +594,6 @@ namespace Evaluator {
                     - 64 * (pos.count<QUEN>(Opp) == 0)
                     - i32(value) / 8;
 
-                auto occ = pos.pieces ();
-
                 // Undefended squares around king not occupied by enemy's
                 undefended &= ~pos.pieces (Opp);
                 if (undefended != U64(0))
@@ -619,7 +617,7 @@ namespace Evaluator {
                             if (   (unsafe & sq) != U64(0)
                                 || (  pos.count<QUEN> (Opp) > 1
                                     && more_than_one (pos.pieces (Opp, QUEN) & (PIECE_ATTACKS[BSHP][sq]|PIECE_ATTACKS[ROOK][sq]))
-                                    && more_than_one (pos.pieces (Opp, QUEN) & (attacks_bb<BSHP> (sq, occ ^ pos.pieces (Opp, QUEN))|attacks_bb<ROOK> (sq, occ ^ pos.pieces (Opp, QUEN))))
+                                    && more_than_one (pos.pieces (Opp, QUEN) & (attacks_bb<BSHP> (sq, pos.pieces () ^ pos.pieces (Opp, QUEN))|attacks_bb<ROOK> (sq, pos.pieces () ^ pos.pieces (Opp, QUEN))))
                                    )
                                )
                             {
@@ -648,7 +646,7 @@ namespace Evaluator {
                             if (   (unsafe & sq) != U64(0)
                                 || (   pos.count<ROOK> (Opp) > 1
                                     && more_than_one (pos.pieces (Opp, ROOK) & PIECE_ATTACKS[ROOK][sq])
-                                    && more_than_one (pos.pieces (Opp, ROOK) & attacks_bb<ROOK> (sq, occ ^ pos.pieces (Opp, ROOK)))
+                                    && more_than_one (pos.pieces (Opp, ROOK) & attacks_bb<ROOK> (sq, pos.pieces () ^ pos.pieces (Opp, ROOK)))
                                    )
                                )
                             {
@@ -678,7 +676,7 @@ namespace Evaluator {
                                     && (bishops = pos.pieces (Opp, BSHP) & ((DARK_bb & sq) != U64(0) ? DARK_bb : LIHT_bb)) != U64(0)
                                     && more_than_one (bishops)
                                     && more_than_one (bishops & PIECE_ATTACKS[BSHP][sq])
-                                    && more_than_one (bishops & attacks_bb<BSHP> (sq, occ ^ pos.pieces (Opp, BSHP)))
+                                    && more_than_one (bishops & attacks_bb<BSHP> (sq, pos.pieces () ^ pos.pieces (Opp, BSHP)))
                                    )
                                )
                             {
@@ -693,8 +691,8 @@ namespace Evaluator {
 
                 // Analyse the enemies safe distance checks for sliders and knights
                 auto safe_area = ~(pos.pieces (Opp) | ei.pin_attacked_by[Own][NONE]);
-                auto rook_check = attacks_bb<ROOK> (fk_sq, occ) & safe_area;
-                auto bshp_check = attacks_bb<BSHP> (fk_sq, occ) & safe_area;
+                auto rook_check = attacks_bb<ROOK> (fk_sq, pos.pieces ()) & safe_area;
+                auto bshp_check = attacks_bb<BSHP> (fk_sq, pos.pieces ()) & safe_area;
 
                 // Enemies safe-checks
                 Bitboard safe_check;

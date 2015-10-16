@@ -122,18 +122,18 @@ namespace MoveGen {
                     CheckInfo cc;
                     if (ci == nullptr) { cc = CheckInfo (pos); ci = &cc; }
 
-                    if (pos.can_castle (Castling<Own, CS_K>::Right) && !pos.castle_impeded (Castling<Own, CS_K>::Right))
+                    if (pos.can_castle (Castling<Own, CS_KING>::Right) && !pos.castle_impeded (Castling<Own, CS_KING>::Right))
                     {
                         pos.chess960 () ?
-                            generate_castling<Castling<Own, CS_K>::Right,  true> (moves, pos, ci) :
-                            generate_castling<Castling<Own, CS_K>::Right, false> (moves, pos, ci);
+                            generate_castling<Castling<Own, CS_KING>::Right,  true> (moves, pos, ci) :
+                            generate_castling<Castling<Own, CS_KING>::Right, false> (moves, pos, ci);
                     }
 
-                    if (pos.can_castle (Castling<Own, CS_Q>::Right) && !pos.castle_impeded (Castling<Own, CS_Q>::Right))
+                    if (pos.can_castle (Castling<Own, CS_QUEN>::Right) && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right))
                     {
                         pos.chess960 () ?
-                            generate_castling<Castling<Own, CS_Q>::Right,  true> (moves, pos, ci) :
-                            generate_castling<Castling<Own, CS_Q>::Right, false> (moves, pos, ci);
+                            generate_castling<Castling<Own, CS_QUEN>::Right,  true> (moves, pos, ci) :
+                            generate_castling<Castling<Own, CS_QUEN>::Right, false> (moves, pos, ci);
                     }
                 }
             }

@@ -190,8 +190,8 @@ enum Delta : i08
 // Castle Side
 enum CSide : i08
 {
-    CS_K ,    // (KING SIDE)-SHORT CASTLE
-    CS_Q ,    // (QUEN SIDE)-LONG  CASTLE
+    CS_KING ,    // (KING SIDE)-SHORT CASTLE
+    CS_QUEN ,    // (QUEN SIDE)-LONG  CASTLE
     CS_NO
 };
 
@@ -548,7 +548,7 @@ template<> inline i32 dist<Rank> (Square s1, Square s2) { return dist (_rank (s1
 inline Delta  pawn_push (Color c) { return WHITE == c ? DEL_N : DEL_S; }
 
 inline CRight mk_castle_right (Color c)           { return CRight(CR_W << (c << BLACK)); }
-inline CRight mk_castle_right (Color c, CSide cs) { return CRight(CR_WK << ((CS_Q == cs) + (c << BLACK))); }
+inline CRight mk_castle_right (Color c, CSide cs) { return CRight(CR_WK << ((CS_QUEN == cs) + (c << BLACK))); }
 inline CRight operator~ (CRight cr) { return CRight(((cr >> 2) & 0x3) | ((cr << 2) & 0xC)); }
 
 template<Color C, CSide CS>
@@ -556,8 +556,8 @@ struct Castling
 {
     static const CRight
     Right = C == WHITE ?
-                CS == CS_Q ? CR_WQ : CR_WK :
-                CS == CS_Q ? CR_BQ : CR_BK;
+                CS == CS_QUEN ? CR_WQ : CR_WK :
+                CS == CS_QUEN ? CR_BQ : CR_BK;
 };
 
 inline bool   _ok   (PieceT pt) { return PAWN <= pt && pt <= KING; }

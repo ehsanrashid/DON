@@ -403,7 +403,7 @@ namespace MovePick {
                 } while (_moves_cur < _moves_end);
                 break;
 
-            case S_RECAPTURE:
+            //case S_RECAPTURE:
             case S_ALL_RECAPTURE:
                 do
                 {
