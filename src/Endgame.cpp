@@ -192,7 +192,7 @@ namespace EndGame {
             value = Value((
                     PUSH_CLOSE[dist (sk_sq, wk_sq)]
                   + PUSH_CLOSE[dist (sp_sq, sk_sq)]
-                  + PUSH_AWAY [dist (sp_sq, wk_sq)]) / 10);
+                  + PUSH_AWAY [dist (sp_sq, wk_sq)]) / 20);
         }
 
         return pos.active () == _strong_side ? +value : -value;
