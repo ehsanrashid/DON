@@ -64,16 +64,16 @@ namespace Material {
         {
             return pos.non_pawn_material (c) >= VALUE_MG_ROOK
                 //&& pos.count<NONPAWN> (~c) == 0
-                && pos.count<PAWN> (~c) == 0
+                //&& pos.count<PAWN> (~c) == 0
                 && !more_than_one (pos.pieces (~c));
         }
 
         bool is_KBPsKs (const Position &pos, Color c)
         {
-            return pos.count<BSHP> (c) == 1
-                && pos.non_pawn_material ( c) == VALUE_MG_BSHP
-                //&& pos.non_pawn_material (~c) == VALUE_ZERO
+            return pos.non_pawn_material ( c) == VALUE_MG_BSHP
+                && pos.count<BSHP> (c) == 1
                 && pos.count<PAWN> (c) != 0;
+                //&& pos.non_pawn_material (~c) == VALUE_ZERO
         }
 
         bool is_KQKRPs (const Position &pos, Color c)
