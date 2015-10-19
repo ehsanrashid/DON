@@ -172,20 +172,20 @@ namespace Searcher {
         
         Move easy_move (Key posi_key) const { return _posi_key == posi_key ? _pv[2] : MOVE_NONE; }
         
-        void update (const MoveVector &new_pv)
+        void update (const MoveVector &pv)
         {
-            assert (new_pv.size () >= 3);
+            assert (pv.size () >= 3);
             
             // Keep track of how many times in a row 3rd ply remains stable
-            stable_count = (new_pv[2] == _pv[2]) ? stable_count + 1 : 0;
+            stable_count = (pv[2] == _pv[2]) ? stable_count + 1 : 0;
             
-            if (!equal (new_pv.begin (), new_pv.begin () + 3, _pv))
+            if (!equal (pv.begin (), pv.begin () + 3, _pv))
             {
-                copy (new_pv.begin (), new_pv.begin () + 3, _pv);
+                copy (pv.begin (), pv.begin () + 3, _pv);
                 
                 StateInfo si[2];
-                RootPos.do_move (new_pv[0], si[0], RootPos.gives_check (new_pv[0], CheckInfo (RootPos)));
-                RootPos.do_move (new_pv[1], si[1], RootPos.gives_check (new_pv[1], CheckInfo (RootPos)));
+                RootPos.do_move (pv[0], si[0], RootPos.gives_check (pv[0], CheckInfo (RootPos)));
+                RootPos.do_move (pv[1], si[1], RootPos.gives_check (pv[1], CheckInfo (RootPos)));
                 _posi_key = RootPos.posi_key ();
                 RootPos.undo_move ();
                 RootPos.undo_move ();

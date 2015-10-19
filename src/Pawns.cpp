@@ -304,10 +304,10 @@ namespace Pawns {
                     SCORE_ZERO;
     }
 
-    // explicit template instantiations
+    // Explicit template instantiations
     // --------------------------------
-    template Value Entry::pawn_shelter_storm<WHITE> (const Position &pos, Square k_sq) const;
-    template Value Entry::pawn_shelter_storm<BLACK> (const Position &pos, Square k_sq) const;
+    template Value Entry::pawn_shelter_storm<WHITE> (const Position&, Square) const;
+    template Value Entry::pawn_shelter_storm<BLACK> (const Position&, Square) const;
 
     template Score Entry::evaluate_unstoppable_pawns<WHITE> () const;
     template Score Entry::evaluate_unstoppable_pawns<BLACK> () const;

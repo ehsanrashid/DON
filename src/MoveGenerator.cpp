@@ -341,17 +341,17 @@ namespace MoveGen {
     }
 
     // --------------------------------
-    // explicit template instantiations
+    // Explicit template instantiations
 
     // generate<RELAX> generates all pseudo-legal captures and non-captures.
     // Returns a pointer to the end of the move list.
-    template ValMove* generate<RELAX  > (ValMove *moves, const Position &pos);
+    template ValMove* generate<RELAX  > (ValMove*, const Position&);
     // generate<CAPTURES> generates all pseudo-legal captures and queen promotions.
     // Returns a pointer to the end of the move list.
-    template ValMove* generate<CAPTURE> (ValMove *moves, const Position &pos);
+    template ValMove* generate<CAPTURE> (ValMove*, const Position&);
     // generate<QUIETS> generates all pseudo-legal non-captures and underpromotions.
     // Returns a pointer to the end of the move list.
-    template ValMove* generate<QUIET  > (ValMove *moves, const Position &pos);
+    template ValMove* generate<QUIET  > (ValMove*, const Position&);
     // --------------------------------
 
     template<>

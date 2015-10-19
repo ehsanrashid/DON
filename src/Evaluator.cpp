@@ -545,16 +545,16 @@ namespace Evaluator {
 
                 if (    pos.can_castle (Castling<Own, CS_KING>::Right)
                     && (pos.king_path (Castling<Own, CS_KING>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
+                    && !more_than_one (pos.castle_path (Castling<Own, CS_KING>::Right) & pos.pieces ())
                     //&& !pos.castle_impeded (Castling<Own, CS_KING>::Right)
-                    && pop_count <MAX15> (pos.castle_path (Castling<Own, CS_KING>::Right) & pos.pieces ()) <= 1
                    )
                 {
                     value = max (value, ei.pe->king_safety[Own][CS_KING]);
                 }
                 if (    pos.can_castle (Castling<Own, CS_QUEN>::Right)
                     && (pos.king_path (Castling<Own, CS_QUEN>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
+                    && !more_than_one (pos.castle_path (Castling<Own, CS_QUEN>::Right) & pos.pieces ())
                     //&& !pos.castle_impeded (Castling<Own, CS_QUEN>::Right)
-                    && pop_count <MAX15> (pos.castle_path (Castling<Own, CS_QUEN>::Right) & pos.pieces ()) <= 1
                    )
                 {
                     value = max (value, ei.pe->king_safety[Own][CS_QUEN]);
@@ -1227,7 +1227,7 @@ namespace Evaluator {
 
             return (pos.active () == WHITE ? +value : -value) + TEMPO;
         }
-
+        // --------------------------------
         // Explicit template instantiations
         template Value evaluate<true > (const Position&);
         template Value evaluate<false> (const Position&);

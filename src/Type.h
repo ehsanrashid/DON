@@ -17,12 +17,6 @@
 //#include <locale>
 //#include <utility>
 
-#ifdef BM2
-#   include <immintrin.h>               // Header for bmi2 instructions
-#   define PEXT(b, m) _pext_u64 (b, m)  // Parallel bits extract
-#   define BLSR(b)    (b & (b - 1))     // Reset lowest set bit (_blsr_u64 (b))
-#endif
-
 /// When compiling with provided Makefile (e.g. for Linux and OSX), configuration
 /// is done automatically. To get started type 'make help'.
 ///
@@ -49,6 +43,35 @@
 /// _MSC_VER           Compiler is MSVC or Intel on Windows
 /// _WIN32             Building on Windows (any)
 /// _WIN64             Building on Windows 64 bit
+
+
+// Windows or MinGW
+#if defined(_WIN32)
+
+// Auto make 64-bit compiles
+#   if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
+#       ifndef BIT64
+#           define BIT64
+#       endif
+#       ifndef BSFQ
+#           define BSFQ
+#       endif
+#   endif
+
+#endif
+
+#ifdef BM2
+#   include <immintrin.h>                               // Header for bmi2 instructions
+#   ifdef BIT64
+#       define BEXT(b, m, l)    _bextr_u64 (b, m, l)    // Bit field extract
+#       define PEXT(b, m)       _pext_u64 (b, m)        // Parallel bits extract
+#       define BLSR(b)          _blsr_u64 (b)           // Reset lowest set bit
+#   else
+#       define BEXT(b, m, l)    _pext_u32 (b, ((m&0xFF)|((l&0xff)<<8)))
+#       define PEXT(b, m)       _pext_u32 (b, m)
+#       define BLSR(b)          _blsr_u32 (b)
+#   endif
+#endif
 
 
 #undef S32
@@ -106,22 +129,6 @@ typedef        uint64_t    u64;
 #   define U64(X) (X ## ULL)
 
 #endif
-
-// Windows or MinGW
-#if defined(_WIN32)
-
-// Auto make 64-bit compiles
-#   if defined(_WIN64) && defined(_MSC_VER) // No Makefile used
-#       ifndef BIT64
-#           define BIT64
-#       endif
-#       ifndef BSFQ
-#           define BSFQ
-#       endif
-#   endif
-
-#endif
-
 
 typedef u64     Key;
 typedef u64     Bitboard;
@@ -611,10 +618,10 @@ inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | (pt - N
 template<MoveT MT>
 inline   Move mk_move            (Square org, Square dst) { return Move(MT | u16(org << 6) | u16(dst)); }
 // --------------------------------
-// explicit template instantiations
-template Move mk_move<NORMAL>    (Square org, Square dst);
-template Move mk_move<CASTLE>    (Square org, Square dst);
-template Move mk_move<ENPASSANT> (Square org, Square dst);
+// Explicit template instantiations
+template Move mk_move<NORMAL>    (Square, Square);
+template Move mk_move<CASTLE>    (Square, Square);
+template Move mk_move<ENPASSANT> (Square, Square);
 // --------------------------------
 template<MoveT MT>
 inline Move mk_move              (Square org, Square dst, PieceT pt/*=QUEN*/) { return Move(PROMOTE | ((((pt - NIHT) << 6) | u16(org)) << 6) | u16(dst)); }

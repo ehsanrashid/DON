@@ -39,7 +39,7 @@ namespace Threading {
         }
     }
 
-    // explicit template instantiations
+    // Explicit template instantiations
     // --------------------------------
     template TimerThread* new_thread<TimerThread> ();
     // ------------------------------------
