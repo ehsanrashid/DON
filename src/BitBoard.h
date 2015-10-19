@@ -329,6 +329,8 @@ namespace BitBoard {
 
 #ifndef NDEBUG
     extern std::string pretty (Bitboard bb, char p = 'o');
+
+    extern void test_attacks ();
 #endif
 
 }

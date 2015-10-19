@@ -299,18 +299,23 @@ namespace BitBoard {
         }
 
         initialize_sliding ();
-        
+
+#ifndef NDEBUG
+        //test_attacks ();
+#endif
+
         // NOTE:: must be after initialize_sliding()
-        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (auto pt = BSHP; pt <= ROOK; ++pt)
         {
-            for (auto pt = BSHP; pt <= ROOK; ++pt)
+            for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
             {
                 for (auto s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                 {
-                    if (!(PIECE_ATTACKS[pt][s1] & s2)) continue;
-                    
-                    BETWEEN_bb[s1][s2] = (attacks_bb (Piece(pt), s1, SQUARE_bb[s2]) & attacks_bb (Piece(pt), s2, SQUARE_bb[s1]));
-                    RAYLINE_bb[s1][s2] = (attacks_bb (Piece(pt), s1,        U64(0)) & attacks_bb (Piece(pt), s2,        U64(0))) + s1 + s2;
+                    if ((PIECE_ATTACKS[pt][s1] & s2) != U64(0))
+                    {
+                        BETWEEN_bb[s1][s2] = (attacks_bb (Piece(pt), s1, SQUARE_bb[s2]) & attacks_bb (Piece(pt), s2, SQUARE_bb[s1]));
+                        RAYLINE_bb[s1][s2] = (attacks_bb (Piece(pt), s1,        U64(0)) & attacks_bb (Piece(pt), s2,        U64(0))) + s1 + s2;
+                    }
                 }
             }
         }
@@ -345,6 +350,32 @@ namespace BitBoard {
         }
 
         return sbb;
+    }
+
+    void test_attacks ()
+    {
+        Bitboard occ = U64 (0x1234);
+        cout << "occupancy:\n" << pretty (occ);
+        // Knight
+        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        {
+            cout << pretty (attacks_bb<NIHT> (s1, occ));
+            if (s1 && (s1+1)%8 == 0) system ("PAUSE");
+        }
+        cout << "occupancy:\n" << pretty (occ);
+        // Bishop
+        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        {
+            cout << pretty (attacks_bb<BSHP> (s1, occ));
+            if (s1 && (s1+1)%8 == 0) system("PAUSE");
+        }
+        cout << "occupancy:\n" << pretty (occ);
+        // Rook
+        for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        {
+            cout << pretty (attacks_bb<ROOK> (s1, occ));
+            if (s1 && (s1+1)%8 == 0) system ("PAUSE");
+        }
     }
 
 #endif

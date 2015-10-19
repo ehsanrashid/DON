@@ -222,10 +222,11 @@ inline std::ostream& operator<< (std::ostream &os, SyncT sync)
 {
     static Mutex io_mutex;
 
-    (sync == IO_LOCK) ?
-        io_mutex.lock () :
-    (sync == IO_UNLOCK) ?
-        io_mutex.unlock () : (void) 0;
+    if (sync == IO_LOCK)
+        io_mutex.lock ();
+    else
+    if (sync == IO_UNLOCK)
+        io_mutex.unlock ();
 
     return os;
 }

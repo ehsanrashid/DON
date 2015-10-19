@@ -170,7 +170,7 @@ inline Square  scan_lsq (Bitboard bb)
 
     if (bb == U64(0)) return SQ_NO;
     // Use Matt Taylor's folding trick for 32-bit
-    u64 x = bb ^ (bb - 1);
+    u64 x = bb ^ (bb - 1); // set all bits including the LS1B and below
     u32 fold = u32(x ^ (x >> 32));
     u08 index = (fold * DE_BRUIJN_32) >> 0x1A; // 26
     return Square(BSF_TABLE[index]);
