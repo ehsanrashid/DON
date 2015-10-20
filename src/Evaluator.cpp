@@ -746,20 +746,21 @@ namespace Evaluator {
         // and the type of attacked one.
         Score evaluate_threats (const Position &pos, const EvalInfo &ei)
         {
-            const auto Opp  = WHITE == Own ? BLACK : WHITE;
-            const auto Push = WHITE == Own ? DEL_N  : DEL_S;
-            const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
-            const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
+            const auto Opp      = WHITE == Own ? BLACK : WHITE;
+            const auto Push     = WHITE == Own ? DEL_N  : DEL_S;
+            const auto LCap     = WHITE == Own ? DEL_NW : DEL_SE;
+            const auto RCap     = WHITE == Own ? DEL_NE : DEL_SW;
+            const auto Rank2BB  = WHITE == Own ? R2_bb : R7_bb;
+            const auto Rank7BB  = WHITE == Own ? R7_bb : R2_bb;
 
             auto score = SCORE_ZERO;
 
-            Bitboard b, weak_pieces, strong_pieces;
+            Bitboard b, weak_pieces, defended_pieces;
 
             // Non-pawn enemies attacked by any friendly pawn
             weak_pieces =
                   (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
                 &  ei.pin_attacked_by[Own][PAWN];
-
             if (weak_pieces != U64(0))
             {
                 // Safe Pawns
@@ -781,7 +782,6 @@ namespace Evaluator {
                 pos.pieces (Opp)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
-
             // Add a bonus according to the kind of attacking pieces
             if (weak_pieces != U64 (0))
             {
@@ -812,21 +812,21 @@ namespace Evaluator {
             }
 
             // Non-pawn enemies defended by a pawn and attacked by any friendly piece
-            strong_pieces = 
+            defended_pieces = 
                   (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
                 &  ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
-
-            if (strong_pieces != U64(0))
+            // Add a bonus according to the kind of attacking pieces
+            if (defended_pieces != U64(0))
             {
-                // Strong enemies attacked by minor pieces
-                b = strong_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
+                // Defended enemies attacked by minor pieces
+                b = defended_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
                 while (b != U64(0))
                 {
                     score += THREATEN_BY_PIECE[DEFENDED][MINOR][ptype (pos[pop_lsq (b)])];
                 }
-                // Strong enemies attacked by rooks
-                b = strong_pieces & (ei.pin_attacked_by[Own][ROOK]);
+                // Defended enemies attacked by rooks
+                b = defended_pieces & (ei.pin_attacked_by[Own][ROOK]);
                 while (b != U64(0))
                 {
                     score += THREATEN_BY_PIECE[DEFENDED][MAJOR][ptype (pos[pop_lsq (b)])];
@@ -835,12 +835,14 @@ namespace Evaluator {
 
             // Bonus if some friendly pawns can safely push and attack an enemy piece
 
-            b = pos.pieces (Own, PAWN) & ~(WHITE == Own ? R7_bb  : R2_bb);
-            b = shift_bb<Push> (b | (shift_bb<Push> (b & (WHITE == Own ? R2_bb  : R7_bb)) & ~pos.pieces ()));
+            b = pos.pieces (Own, PAWN) & ~Rank7BB;
+            b = shift_bb<Push> (b | (shift_bb<Push> (b & Rank2BB) & ~pos.pieces ()));
             // Safe pawn pushes
             b &= ~pos.pieces ()
               &  ~ei.pin_attacked_by[Opp][PAWN]
-              &  (ei.pin_attacked_by[Own][NONE] | ~ei.pin_attacked_by[Opp][NONE]);
+              &  ( ~ei.pin_attacked_by[Opp][NONE]
+                  | ei.pin_attacked_by[Own][NONE]
+                 );
             // Safe pawn pushes attacks an enemy piece
             b =  (shift_bb<LCap> (b) | shift_bb<RCap> (b))
               &   pos.pieces (Opp)
