@@ -127,9 +127,9 @@ namespace BitBases {
                 // Immediate win if a pawn can be promoted without getting captured
                 if (   WHITE == _active
                     && _rank (_p_sq) == R_7
-                    && _k_sq[_active] != _p_sq + DEL_N
-                    && (   dist (_k_sq[~_active], _p_sq + DEL_N) > 1
-                        || PIECE_ATTACKS[KING][_k_sq[_active]] & (_p_sq + DEL_N)
+                    && _k_sq[WHITE] != _p_sq + DEL_N
+                    && (   dist (_k_sq[BLACK], _p_sq + DEL_N) > 1
+                        || PIECE_ATTACKS[KING][_k_sq[WHITE]] & (_p_sq + DEL_N)
                        )
                    )
                 {
@@ -138,8 +138,8 @@ namespace BitBases {
                 else
                 // Immediate draw if is a stalemate or king captures undefended pawn
                 if (   BLACK == _active
-                    && (  !(PIECE_ATTACKS[KING][_k_sq[_active]] & ~(PIECE_ATTACKS[KING][_k_sq[~_active]] | PAWN_ATTACKS[WHITE][_p_sq]))
-                        || (PIECE_ATTACKS[KING][_k_sq[_active]] & ~(PIECE_ATTACKS[KING][_k_sq[~_active]]) & _p_sq)
+                    && (  !(PIECE_ATTACKS[KING][_k_sq[BLACK]] & ~(PIECE_ATTACKS[KING][_k_sq[WHITE]] | PAWN_ATTACKS[WHITE][_p_sq]))
+                        || (PIECE_ATTACKS[KING][_k_sq[BLACK]] & ~(PIECE_ATTACKS[KING][_k_sq[WHITE]]) & _p_sq)
                        )
                    )
                 {
