@@ -405,12 +405,10 @@ inline Key    Position::move_posi_key (Move m) const
     auto ppt = mpt == PAWN && mtype (m) == PROMOTE ? promote (m) : mpt;
     auto cpt = mpt == PAWN && mtype (m) == ENPASSANT && _si->en_passant_sq == dst_sq (m) ? PAWN : ptype (_board[dst]);
     
-    Key key = _si->posi_key ^  Zob._.act_side;
-    if (cpt != NONE) key ^= Zob._.piece_square[~_active][cpt][dst];
-
-    return key
+    return _si->posi_key ^  Zob._.act_side
         ^  Zob._.piece_square[_active][mpt][org]
-        ^  Zob._.piece_square[_active][ppt][dst];
+        ^  Zob._.piece_square[_active][ppt][dst]
+        ^ (cpt != NONE ? Zob._.piece_square[~_active][cpt][dst] : U64 (0));
 }
 
 inline Score  Position::psq_score     () const { return _si->psq_score; }

@@ -302,7 +302,7 @@ enum Move : u16
 enum Depth : i16
 {
     DEPTH_ZERO          =  0,
-    DEPTH_ONE           =  1,
+    DEPTH_ONE           =  1, // PLY_ONE
     DEPTH_QS_CHECKS     =  0,
     DEPTH_QS_NO_CHECKS  = -1,
     DEPTH_QS_RECAPTURES = -5,

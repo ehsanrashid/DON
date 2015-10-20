@@ -19,7 +19,7 @@ namespace Notation {
         return std::string{ to_char (_file (s)), to_char (_rank (s)) };
     }
 
-    extern Move move_from_can (const std::string &can, const Position &pos);
+    extern Move move_from_can (      std::string &can, const Position &pos);
     extern Move move_from_san (const std::string &san,       Position &pos);
     //extern Move move_from_lan (const std::string &lan, const Position &pos);
 

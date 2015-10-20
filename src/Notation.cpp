@@ -95,18 +95,16 @@ namespace Notation {
 
     // move_from_can(can, pos) converts a string representing a move in coordinate algebraic notation
     // to the corresponding legal move, if any.
-    Move move_from_can (const string &can, const Position &pos)
+    Move move_from_can (      string &can, const Position &pos)
     {
-        auto ccan = can;
-        if (5 == ccan.length ())
+        if (5 == can.length () && isupper (u08 (can[4])))
         {
-            // Promotion piece in lowercase
-            if (isupper (u08(ccan[4]))) ccan[4] = u08(tolower (ccan[4]));
+            can[4] = u08(tolower (can[4])); // Promotion piece in lowercase
         }
 
         for (const auto &m : MoveList<LEGAL> (pos))
         {
-            if (ccan == move_to_can (m, pos.chess960 ()))
+            if (can == move_to_can (m, pos.chess960 ()))
             {
                 return m;
             }
@@ -144,11 +142,18 @@ namespace Notation {
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
+
         auto org = org_sq (m);
         auto dst = dst_sq (m);
-        if (!c960 && CASTLE == mtype (m)) dst = (dst > org ? F_G : F_C) | _rank (org);
+        if (!c960 && CASTLE == mtype (m))
+        {
+            dst = (dst > org ? F_G : F_C) | _rank (org);
+        }
         auto can = to_string (org) + to_string (dst);
-        if (PROMOTE == mtype (m)) can += PIECE_CHAR[BLACK|promote (m)]; // Lowercase
+        if (PROMOTE == mtype (m))
+        {
+            can += PIECE_CHAR[BLACK|promote (m)]; // Lowercase (Black)
+        }
         return can;
     }
 
@@ -161,7 +166,6 @@ namespace Notation {
         assert (MoveList<LEGAL> (pos).contains (m));
 
         string san;
-
         auto org = org_sq (m);
         auto dst = dst_sq (m);
 
@@ -202,7 +206,7 @@ namespace Notation {
             if (PROMOTE == mtype (m) && PAWN == pt)
             {
                 san += "=";
-                san += PIECE_CHAR[promote (m)];
+                san += PIECE_CHAR[WHITE|promote (m)]; // Uppercase (White)
             }
         }
 

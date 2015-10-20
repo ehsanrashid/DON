@@ -62,19 +62,19 @@ namespace MoveGen {
         explicit MoveList (const Position &pos)
             : _moves_end (generate<GT> (_moves_beg, pos))
         {
-            if (PT != NONE)
-            {
-                auto *moves_cur = _moves_beg;
-                while (moves_cur != _moves_end)
-                {
-                    if (ptype (pos[org_sq (*moves_cur)]) != PT)
-                    {
-                        *moves_cur = *(--_moves_end);
-                        continue;
-                    }
-                    ++moves_cur;
-                }
-            }
+            //if (PT != NONE)
+            //{
+            //    auto *moves_cur = _moves_beg;
+            //    while (moves_cur != _moves_end)
+            //    {
+            //        if (ptype (pos[org_sq (*moves_cur)]) != PT)
+            //        {
+            //            *moves_cur = *(--_moves_end);
+            //            continue;
+            //        }
+            //        ++moves_cur;
+            //    }
+            //}
         }
 
         const ValMove* begin () const { return _moves_beg; }

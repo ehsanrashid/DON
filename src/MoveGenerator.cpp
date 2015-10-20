@@ -169,7 +169,7 @@ namespace MoveGen {
                 // not already included in the queen-promotion (queening).
                 if (QUIET_CHECK == GT)
                 {
-                    if (ci != nullptr && (PIECE_ATTACKS[NIHT][dst] & ci->king_sq))
+                    if (ci != nullptr && (PIECE_ATTACKS[NIHT][dst] & ci->king_sq) != U64(0))
                     {
                         *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
                     }
@@ -177,10 +177,10 @@ namespace MoveGen {
                 //else
                 //if (CHECK == GT && ci != nullptr)
                 //{
-                //    if (PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
-                //    if (attacks_bb<BSHP> (dst, targets) & ci->king_sq) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
-                //    if (attacks_bb<ROOK> (dst, targets) & ci->king_sq) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
-                //    if (attacks_bb<QUEN> (dst, targets) & ci->king_sq) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
+                //    if ((PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                //    if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
+                //    if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
+                //    if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
                 //}
                 else
                 {
@@ -192,13 +192,18 @@ namespace MoveGen {
             // Generates PAWN common move
             static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
-                const auto Opp   = WHITE == Own ? BLACK  : WHITE;
-                const auto Push  = WHITE == Own ? DEL_N  : DEL_S;
-                const auto Right = WHITE == Own ? DEL_NE : DEL_SW;
-                const auto Left  = WHITE == Own ? DEL_NW : DEL_SE;
+                const auto Opp      = WHITE == Own ? BLACK  : WHITE;
+                const auto Push     = WHITE == Own ? DEL_N  : DEL_S;
+                const auto Right    = WHITE == Own ? DEL_NE : DEL_SW;
+                const auto Left     = WHITE == Own ? DEL_NW : DEL_SE;
+                const auto Rank3BB  = WHITE == Own ? R3_bb  : R6_bb;
+                const auto Rank5BB  = WHITE == Own ? R5_bb  : R4_bb;
+                //const auto Rank6BB  = WHITE == Own ? R6_bb  : R3_bb;
+                const auto Rank7BB  = WHITE == Own ? R7_bb  : R2_bb;
+                const auto Rank8BB  = WHITE == Own ? R8_bb  : R1_bb;
 
-                auto R7_pawns = pos.pieces (Own, PAWN) &  rel_rank_bb (Own, R_7);
-                auto Rx_pawns = pos.pieces (Own, PAWN) & ~rel_rank_bb (Own, R_7);
+                auto R7_pawns = pos.pieces (Own, PAWN) &  Rank7BB;
+                auto Rx_pawns = pos.pieces (Own, PAWN) & ~Rank7BB;
 
                 auto enemies = EVASION == GT ? pos.pieces (Opp) & targets :
                                CAPTURE == GT ? targets : pos.pieces (Opp);
@@ -210,7 +215,7 @@ namespace MoveGen {
                     empties = QUIET == GT || QUIET_CHECK == GT ? targets : ~pos.pieces ();
                     
                     auto push_1 = empties & shift_bb<Push> (Rx_pawns);
-                    auto push_2 = empties & shift_bb<Push> (push_1 & rel_rank_bb (Own, R_3));
+                    auto push_2 = empties & shift_bb<Push> (push_1 & Rank3BB);
 
                     switch (GT)
                     {
@@ -228,14 +233,14 @@ namespace MoveGen {
                             push_2 &= PAWN_ATTACKS[Opp][ci->king_sq];
 
                             // Pawns which give discovered check
-                            // Add pawn pushes which give discovered check. This is possible only
-                            // if the pawn is not on the same file as the enemy king, because
-                            // don't generate captures. Note that a possible discovery check
-                            // promotion has been already generated among captures.
+                            // Add pawn pushes which give discovered check.
+                            // This is possible only if the pawn is not on the same file as the enemy king,
+                            // because don't generate captures.
+                            // Note that a possible discovery check promotion has been already generated among captures.
                             if ((Rx_pawns & ci->discoverers) != U64(0))
                             {
-                                auto push_cd_1 = empties & shift_bb<Push> (Rx_pawns & ci->discoverers);
-                                auto push_cd_2 = empties & shift_bb<Push> (push_cd_1 & rel_rank_bb (Own, R_3));
+                                auto push_cd_1 = empties & shift_bb<Push> (Rx_pawns & ci->discoverers) & ~file_bb (ci->king_sq);
+                                auto push_cd_2 = empties & shift_bb<Push> (push_cd_1 & Rank3BB);
 
                                 push_1 |= push_cd_1;
                                 push_2 |= push_cd_2;
@@ -261,8 +266,9 @@ namespace MoveGen {
                     auto ep_sq = pos.en_passant_sq ();
                     if (SQ_NO != ep_sq)
                     {
-                        assert (_rank (ep_sq) == rel_rank (Own, R_6));
-                        if ((Rx_pawns & rel_rank_bb (Own, R_5)) != U64(0))
+                        //assert (_rank (ep_sq) == Rank6BB);
+
+                        if ((Rx_pawns & Rank5BB) != U64(0))
                         {
                             // An en-passant capture can be an evasion only if the checking piece
                             // is the double pushed pawn and so is in the target. Otherwise this
@@ -270,7 +276,7 @@ namespace MoveGen {
                             // All time except when EVASION then 2nd condition must true
                             if (EVASION != GT || (targets & (ep_sq - Push)) != U64(0))
                             {
-                                auto ep_attacks = PAWN_ATTACKS[Opp][ep_sq] & Rx_pawns & rel_rank_bb (Own, R_5);
+                                auto ep_attacks = PAWN_ATTACKS[Opp][ep_sq] & Rx_pawns & Rank5BB;
                                 assert (ep_attacks != U64(0));
                                 assert (pop_count<MAX15> (ep_attacks) <= 2);
 
@@ -284,21 +290,21 @@ namespace MoveGen {
                 if (R7_pawns != U64(0))
                 {
                     // All time except when EVASION then 2nd condition must true
-                    if (EVASION != GT || (targets & rel_rank_bb (Own, R_8)) != U64(0))
+                    if (EVASION != GT || (targets & Rank8BB) != U64(0))
                     {
                         empties = EVASION == GT ? empties & targets :
                                   CAPTURE == GT ? ~pos.pieces () : empties;
 
                         // Promoting pawns
-                        Bitboard b;
-                        b = shift_bb<Push > (R7_pawns) & empties;
-                        while (b != U64(0)) generate_promotion<Push > (moves, pop_lsq (b), ci);
+                        Bitboard proms;
+                        proms = empties & shift_bb<Push > (R7_pawns);
+                        while (proms != U64(0)) generate_promotion<Push > (moves, pop_lsq (proms), ci);
 
-                        b = shift_bb<Right> (R7_pawns) & enemies;
-                        while (b != U64(0)) generate_promotion<Right> (moves, pop_lsq (b), ci);
+                        proms = enemies & shift_bb<Right> (R7_pawns);
+                        while (proms != U64(0)) generate_promotion<Right> (moves, pop_lsq (proms), ci);
 
-                        b = shift_bb<Left > (R7_pawns) & enemies;
-                        while (b != U64(0)) generate_promotion<Left > (moves, pop_lsq (b), ci);
+                        proms = enemies & shift_bb<Left > (R7_pawns);
+                        while (proms != U64(0)) generate_promotion<Left > (moves, pop_lsq (proms), ci);
                     }
                 }
             }

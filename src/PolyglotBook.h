@@ -52,7 +52,6 @@ namespace OpeningBook {
 
         std::string _book_fn;
         openmode    _mode;
-
         streampos   _size;
 
         template<class T>

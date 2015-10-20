@@ -791,7 +791,7 @@ namespace Evaluator {
                 {
                     score += THREATEN_BY_PIECE[WEAK][MINOR][ptype (pos[pop_lsq (b)])];
                 }
-                // Weak enemies attacked by major pieces
+                // Weak enemies attacked by rooks
                 b = weak_pieces & (ei.pin_attacked_by[Own][ROOK]);
                 while (b != U64 (0))
                 {

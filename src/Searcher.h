@@ -50,7 +50,7 @@ namespace Searcher {
         bool ponder     = false; // Search on ponder move until the "stop" command
         bool infinite   = false; // Search until the "stop" command
 
-        bool use_timemanager () const
+        bool use_time_manager () const
         {
             return !(infinite || movetime || depth || nodes || mate);
         }
@@ -142,7 +142,7 @@ namespace Searcher {
         Move    tt_move         = MOVE_NONE
             ,   current_move    = MOVE_NONE
             ,   exclude_move    = MOVE_NONE
-            ,   killer_moves[3];
+            ,   killer_moves[2];
 
         Value   static_eval     = VALUE_NONE;
 

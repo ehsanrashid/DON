@@ -193,8 +193,8 @@ namespace BitBoard {
 
     inline Bitboard rank_bb (Square s) { return RANK_bb[_rank (s)]; }
 
-    inline Bitboard rel_rank_bb (Color c, Rank   r) { return RANK_bb[rel_rank (c, r)]; }
-    inline Bitboard rel_rank_bb (Color c, Square s) { return RANK_bb[rel_rank (c, s)]; }
+    //inline Bitboard rel_rank_bb (Color c, Rank   r) { return RANK_bb[rel_rank (c, r)]; }
+    //inline Bitboard rel_rank_bb (Color c, Square s) { return RANK_bb[rel_rank (c, s)]; }
 
     // board_edges() returns a bitboard of edges of the board for given square
     inline Bitboard board_edges (Square s) { return ((FA_bb|FH_bb) & ~file_bb (s)) | ((R1_bb|R8_bb) & ~rank_bb (s)); }

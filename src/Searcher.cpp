@@ -296,16 +296,22 @@ namespace Searcher {
         // stats for a quiet best move.
         void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, Move *quiet_moves, u08 quiet_count)
         {
-            if (count (begin (ss->killer_moves), end (ss->killer_moves), move) == 0)
-            {
-                copy_backward (begin (ss->killer_moves), prev (end (ss->killer_moves)), end (ss->killer_moves));
-                ss->killer_moves[0] = move;
-            }
-            else
             if (ss->killer_moves[0] != move)
             {
-                swap (ss->killer_moves[0], *find (begin (ss->killer_moves), end (ss->killer_moves), move));
+                ss->killer_moves[1] = ss->killer_moves[0];
+                ss->killer_moves[0] = move;
             }
+            //// If more then 2 killer moves
+            //if (count (begin (ss->killer_moves), end (ss->killer_moves), move) == 0)
+            //{
+            //    copy_backward (begin (ss->killer_moves), prev (end (ss->killer_moves)), end (ss->killer_moves));
+            //    ss->killer_moves[0] = move;
+            //}
+            //else
+            //if (ss->killer_moves[0] != move)
+            //{
+            //    swap (ss->killer_moves[0], *find (begin (ss->killer_moves), end (ss->killer_moves), move));
+            //}
 
             auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
 
@@ -339,7 +345,7 @@ namespace Searcher {
             // Extra penalty for PV move in previous ply when it gets refuted
             if (   ss->firstmove_pv
                 && opp_move_dst != SQ_NO
-                //&& mtype (opp_move) != PROMOTE
+                && mtype (opp_move) != PROMOTE
                 && pos.capture_type () == NONE
                )
             {
@@ -1151,13 +1157,13 @@ namespace Searcher {
                     && ext == DEPTH_ZERO
                    )
                 {
-                    auto bound = tt_value - 2*(depth/DEPTH_ONE);
+                    auto r_beta = tt_value - 2*(depth/DEPTH_ONE);
 
                     ss->exclude_move = move;
-                    value = depth_search<NonPV, false, false> (pos, ss, bound-1, bound, depth/2, cut_node);
+                    value = depth_search<NonPV, false, false> (pos, ss, r_beta-1, r_beta, depth/2, cut_node);
                     ss->exclude_move = MOVE_NONE;
 
-                    if (value < bound) ext = DEPTH_ONE;
+                    if (value < r_beta) ext = DEPTH_ONE;
                 }
 
                 // Update the current move (this must be done after singular extension search)
@@ -1220,8 +1226,7 @@ namespace Searcher {
                 // Check for legality just before making the move
                 if (!RootNode && !SPNode && !move_legal)
                 {
-                    --move_count;
-                    ss->firstmove_pv = 1 == move_count;
+                    ss->firstmove_pv = 1 == --move_count;
                     continue;
                 }
 
@@ -1362,7 +1367,7 @@ namespace Searcher {
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
-                        if (Limits.use_timemanager () && move_count > 1)
+                        if (Limits.use_time_manager () && move_count > 1)
                         {
                             TimeMgr.best_move_change++;
                         }
@@ -1384,7 +1389,7 @@ namespace Searcher {
                     {
                         // If there is an easy move for this position, clear it if unstable
                         if (   PVNode
-                            && Limits.use_timemanager ()
+                            && Limits.use_time_manager ()
                             && MoveMgr.easy_move (pos.posi_key ()) != MOVE_NONE
                             && (move != MoveMgr.easy_move (pos.posi_key ()) || move_count > 1)
                            )
@@ -1476,18 +1481,17 @@ namespace Searcher {
                 if (best_move == MOVE_NONE)
                 {
                     if (  !in_check
+                        && depth >= 3*DEPTH_ONE
                         && pos.capture_type () == NONE
-                        && depth>=3*DEPTH_ONE
-                        && _ok (opp_move)
-                        //&& mtype (opp_move) != PROMOTE
-                        && _ok ((ss-2)->current_move)
+                        && opp_move_dst != SQ_NO
+                        && mtype (opp_move) != PROMOTE
                        )
                     {
-                        auto bonus = Value((depth / DEPTH_ONE)*(depth / DEPTH_ONE));
                         auto own_move = (ss-2)->current_move;
                         auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
                         if (own_move_dst != SQ_NO)
                         {
+                            auto bonus = Value((depth / DEPTH_ONE)*(depth / DEPTH_ONE));
                             auto &own_cmhv = CounterMovesHistoryValues[pos[own_move_dst]][own_move_dst];
                             own_cmhv.update_cm_history (pos, opp_move, bonus);
                         }
@@ -1522,7 +1526,7 @@ namespace Searcher {
             if (SkillMgr.enabled ()) SkillMgr.clear ();
 
             auto easy_move = MOVE_NONE;
-            if (Limits.use_timemanager ())
+            if (Limits.use_time_manager ())
             {
                 easy_move = MoveMgr.easy_move (RootPos.posi_key ());
                 MoveMgr.clear ();
@@ -1547,7 +1551,7 @@ namespace Searcher {
             // Iterative deepening loop until target depth reached
             while (++depth < DEPTH_MAX && !Signals.force_stop && (0 == Limits.depth || depth <= Limits.depth))
             {
-                if (Limits.use_timemanager ())
+                if (Limits.use_time_manager ())
                 {
                     // Age out PV variability metric
                     TimeMgr.best_move_change *= 0.5;
@@ -1670,7 +1674,7 @@ namespace Searcher {
                     bool stop = false;
 
                     // Do have time for the next iteration? Can stop searching now?
-                    if (Limits.use_timemanager ())
+                    if (Limits.use_time_manager ())
                     {
                         // If PV limit = 1 then take some extra time if the best move has changed
                         if (aspiration && LimitPV == 1)
@@ -1716,7 +1720,14 @@ namespace Searcher {
                     {
                         // If allowed to ponder do not stop the search now but
                         // keep pondering until GUI sends "ponderhit" or "stop".
-                        Limits.ponder ? Signals.ponderhit_stop = true : Signals.force_stop = true;
+                        if (Limits.ponder)
+                        {
+                            Signals.ponderhit_stop = true;
+                        }
+                        else
+                        {
+                            Signals.force_stop = true;
+                        }
                     }
                 }
 
@@ -1724,7 +1735,7 @@ namespace Searcher {
 
             // Clear any candidate easy move that wasn't stable for the last search iterations;
             // the second condition prevents consecutive fast moves.
-            if (   Limits.use_timemanager ()
+            if (   Limits.use_time_manager ()
                 && (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
                )
             {
@@ -2081,7 +2092,7 @@ namespace Searcher {
             i16 timed_contempt = 0;
             i32 diff_time = 0;
             if (   ContemptTime != 0
-                && Limits.use_timemanager ()
+                && Limits.use_time_manager ()
                 && (diff_time = (Limits.clock[ RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
                 //&& ContemptTime <= abs (diff_time)
                )
@@ -2271,7 +2282,7 @@ namespace Threading {
         // An engine may not stop pondering until told so by the GUI
         if (Limits.ponder) return;
 
-        if (Limits.use_timemanager ())
+        if (Limits.use_time_manager ())
         {
             if (   elapsed_time > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
                    // Still at first move
