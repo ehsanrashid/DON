@@ -74,7 +74,10 @@ namespace Pawns {
                 king_safety[Own][CS_NO] = kr <= R_4 ? pawn_shelter_storm<Own> (pos, king_sq[Own]) : VALUE_ZERO;
 
                 king_pawn_dist[Own] = 0;
-                if (pos.pieces (Own, PAWN) != U64(0)) while ((DIST_RINGS_bb[king_sq[Own]][king_pawn_dist[Own]++] & pos.pieces (Own, PAWN)) == U64(0)) {}
+                if (pos.pieces (Own, PAWN) != U64(0))
+                {
+                    while ((DIST_RINGS_bb[king_sq[Own]][king_pawn_dist[Own]++] & pos.pieces (Own, PAWN)) == U64(0)) {}
+                }
             }
         }
 

@@ -1942,7 +1942,10 @@ namespace Searcher {
         if (NodesTime != 0)
         {
             // Only once at game start
-            if (available_nodes == 0) available_nodes = NodesTime * Limits.clock[RootColor].time; // Time is in msec
+            if (available_nodes == 0)
+            {
+                available_nodes = NodesTime * Limits.clock[RootColor].time; // Time is in msec
+            }
 
             // Convert from millisecs to nodes
             Limits.clock[RootColor].time = i32 (available_nodes);
