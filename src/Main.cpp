@@ -4,7 +4,7 @@ using namespace std;
 
 namespace {
 
-    string strarg (int argc, const char *const *argv)
+    string strarg (i32 argc, const char *const *argv)
     {
         string arg;
         for (auto i = 1; i < argc; ++i)
@@ -16,7 +16,7 @@ namespace {
 
 }
 
-int main (int argc, const char *const *argv)
+i32 main (i32 argc, const char *const *argv)
 {
     string arg = strarg (argc, argv);
     Engine::run (arg);

@@ -672,7 +672,7 @@ inline std::string& trim_left (std::string &str)
     str.erase (str.begin (), 
                 std::find_if (str.begin (), str.end (), 
                     //[](char c) { return !std::isspace (c, std::locale ()); }
-                    std::not1 (std::ptr_fun<int, int> (std::isspace))
+                    std::not1 (std::ptr_fun<i32, i32> (std::isspace))
               ));
     return str;
 }
@@ -680,7 +680,7 @@ inline std::string& trim_right (std::string &str)
 {
     str.erase (std::find_if (str.rbegin (), str.rend (), 
                 //[](char c) { return !std::isspace (c, std::locale ()); }).base (), 
-                std::not1 (std::ptr_fun<int, int> (std::isspace))).base (),
+                std::not1 (std::ptr_fun<i32, i32> (std::isspace))).base (),
                     str.end ());
     return str;
 }

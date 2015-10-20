@@ -29,7 +29,7 @@ namespace Engine {
         const i08 MAX_MONTH = 12;
         const string MONTHS[MAX_MONTH] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-        int month_index (const string &month)
+        i32 month_index (const string &month)
         {
             for (auto m = 0; m < MAX_MONTH; ++m)
             {
@@ -117,7 +117,7 @@ namespace Engine {
     }
 
     // Exit from engine with exit code. (in case of some crash)
-    void exit (int code)
+    void exit (i32 code)
     {
         Threadpool.exit ();
         EndGame::exit ();
