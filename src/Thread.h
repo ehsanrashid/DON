@@ -72,7 +72,7 @@ namespace Threading {
         Position       root_pos;
         RootMoveVector root_moves;
         Stack       stack[MAX_DEPTH+4];
-        ValueStats  history_value;
+        ValueStats  history_values;
         MoveStats   counter_moves;
         Depth       depth;
 

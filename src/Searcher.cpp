@@ -192,9 +192,9 @@ namespace Searcher {
                 CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] :
                 CounterMovesHistoryValues[EMPTY][SQ_A1];
 
-            Thread* thread = pos.thread ();
+            auto *thread = pos.thread ();
 
-            thread->history_value.update_history (pos, move, bonus);
+            thread->history_values.update_history (pos, move, bonus);
 
             if (opp_move_dst != SQ_NO)
             {
@@ -207,7 +207,7 @@ namespace Searcher {
             {
                 assert (quiet_moves[i] != move);
 
-                thread->history_value.update_history (pos, quiet_moves[i], -bonus);
+                thread->history_values.update_history (pos, quiet_moves[i], -bonus);
 
                 if (opp_move_dst != SQ_NO)
                 {
@@ -448,7 +448,7 @@ namespace Searcher {
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
             auto opp_move = (ss-1)->current_move; 
-            MovePicker mp (pos, thread->history_value, CounterMovesHistoryValues, tt_move, depth, _ok (opp_move) ? dst_sq (opp_move) : SQ_NO);
+            MovePicker mp (pos, thread->history_values, CounterMovesHistoryValues, tt_move, depth, _ok (opp_move) ? dst_sq (opp_move) : SQ_NO);
             CheckInfo ci (pos);
             StateInfo si;
             Move move;
@@ -836,7 +836,7 @@ namespace Searcher {
 
                         // Initialize a MovePicker object for the current position,
                         // and prepare to search the moves.
-                        MovePicker mp (pos, thread->history_value, CounterMovesHistoryValues, tt_move, PIECE_VALUE[MG][pos.capture_type ()]);
+                        MovePicker mp (pos, thread->history_values, CounterMovesHistoryValues, tt_move, PIECE_VALUE[MG][pos.capture_type ()]);
 
                         while ((move = mp.next_move ()) != MOVE_NONE)
                         {
@@ -927,7 +927,7 @@ namespace Searcher {
                 CounterMovesHistoryValues[pos[opp_move_dst]][opp_move_dst] :
                 CounterMovesHistoryValues[EMPTY][SQ_A1];
 
-            MovePicker mp (pos, thread->history_value, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
+            MovePicker mp (pos, thread->history_values, CounterMovesHistoryValues, tt_move, depth, counter_move, ss);
 
             // Step 11. Loop through moves
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
@@ -1063,7 +1063,7 @@ namespace Searcher {
                 prefetch (thread->pawn_table[pos.pawn_key ()]);
                 prefetch (thread->matl_table[pos.matl_key ()]);
 
-                bool full_depth_search;
+                bool search_full_depth;
 
                 // Step 15. Reduced depth search (LMR).
                 // If the move fails high will be re-searched at full depth.
@@ -1075,7 +1075,7 @@ namespace Searcher {
                 {
                     auto reduction_depth = reduction_depths<PVNode> (improving, depth, move_count);
 
-                    auto   hv = thread->history_value[pos[dst_sq (move)]][dst_sq (move)];
+                    auto   hv = thread->history_values[pos[dst_sq (move)]][dst_sq (move)];
                     auto cmhv = opp_cmhv[pos[dst_sq (move)]][dst_sq (move)];
 
                     // Increase reduction for cut node or negative history
@@ -1106,15 +1106,15 @@ namespace Searcher {
                     auto reduced_depth = max (new_depth - reduction_depth, DEPTH_ONE);
                     value = -depth_search<NonPV, true> (pos, ss+1, -(alpha+1), -alpha, reduced_depth, true);
 
-                    full_depth_search = alpha < value && reduction_depth != DEPTH_ZERO;
+                    search_full_depth = alpha < value && reduction_depth != DEPTH_ZERO;
                 }
                 else
                 {
-                    full_depth_search = !PVNode || move_count > FullDepthMoveCount;
+                    search_full_depth = !PVNode || move_count > FullDepthMoveCount;
                 }
 
                 // Step 16. Full depth search, when LMR is skipped or fails high
-                if (full_depth_search)
+                if (search_full_depth)
                 {
                     value =
                         new_depth < DEPTH_ONE ?
@@ -1160,7 +1160,7 @@ namespace Searcher {
                 {
                     auto &rm = *find (thread->root_moves.begin (), thread->root_moves.end (), move);
                     // 1st legal move or new best move ?
-                    if (1 == move_count || alpha < value)
+                    if (ss->firstmove_pv || alpha < value)
                     {
                         rm.new_value = value;
                         rm.pv.resize (1);
@@ -1620,7 +1620,7 @@ namespace Searcher {
         CounterMovesHistoryValues.clear ();
         for (auto *th : Threadpool)
         {
-            th->history_value.clear ();
+            th->history_values.clear ();
             th->counter_moves.clear ();
         }
     }
