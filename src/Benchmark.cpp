@@ -158,9 +158,10 @@ void benchmark (istream &is, const Position &cur_pos)
         else
         {
             StateStackPtr states;
+            limits.start_time = now ();
             Threadpool.start_main (pos, limits, states);
             Threadpool.main ()->join ();
-            nodes += RootPos.game_nodes ();
+            nodes += Threadpool.game_nodes ();
         }
     }
 
@@ -175,6 +176,7 @@ void benchmark (istream &is, const Position &cur_pos)
          << "\n---------------------------\n" << endl;
 }
 
+/*
 void auto_tune (istream &is)
 {
     string token;
@@ -234,3 +236,4 @@ void auto_tune (istream &is)
     Threadpool.split_depth = opt_split_depth;
     sync_cout << "info string Split Depth " << u16(opt_split_depth) << sync_endl;
 }
+*/

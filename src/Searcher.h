@@ -7,10 +7,6 @@
 #include "Type.h"
 #include "Position.h"
 
-namespace Threading {
-    struct SplitPoint;
-}
-
 typedef std::unique_ptr<StateStack> StateStackPtr;
 
 namespace Searcher {
@@ -40,6 +36,7 @@ namespace Searcher {
 
         Clock clock[CLR_NO];
         MoveVector root_moves; // Restrict search to these moves only
+        TimePoint  start_time;
 
         u32  movetime   = 0; // Search <x> exact time in milli-seconds
         u08  movestogo  = 0; // Search <x> moves to the next time control
@@ -49,7 +46,7 @@ namespace Searcher {
         u32  npmsec     = 0;
         bool ponder     = false; // Search on ponder move until the "stop" command
         bool infinite   = false; // Search until the "stop" command
-
+        
         bool use_time_manager () const
         {
             return !(infinite || movetime || depth || nodes || mate);
@@ -108,8 +105,6 @@ namespace Searcher {
 
     extern LimitsT              Limits;
     extern SignalsT volatile    Signals;
-
-    extern Position             RootPos;
     extern StateStackPtr        SetupStates;
 
     extern u16                  MultiPV;
@@ -130,12 +125,93 @@ namespace Searcher {
 
     extern SkillManager         SkillMgr;
 
+    // RootMove is used for moves at the root of the tree.
+    // For each root move stores:
+    //  - Value[] { new , old }.
+    //  - Node count.
+    //  - PV (really a refutation table in the case of moves which fail low).
+    // Value is normally set at -VALUE_INFINITE for all non-pv moves.
+    class RootMove
+    {
+
+    public:
+
+        Value new_value = -VALUE_INFINITE
+            , old_value = -VALUE_INFINITE;
+        //u64        nodes     = U64(0);
+        MoveVector pv;
+
+        explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
+
+        bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
+        bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
+        bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
+        bool operator>= (const RootMove &rm) const { return new_value <= rm.new_value; }
+        bool operator== (const RootMove &rm) const { return new_value == rm.new_value; }
+        bool operator!= (const RootMove &rm) const { return new_value != rm.new_value; }
+
+        bool operator== (Move m) const { return pv[0] == m; }
+        bool operator!= (Move m) const { return pv[0] != m; }
+
+        Move operator[] (i32 index) const { return pv[index]; }
+
+        void operator+= (Move m) { pv.push_back (m); }
+        void operator-= (Move m) { pv.erase (remove (pv.begin (), pv.end (), m), pv.end ()); }
+
+        size_t size () const { return pv.size (); }
+
+        void backup () { old_value = new_value; }
+        void insert_pv_into_tt (Position &pos);
+        bool extract_ponder_move_from_tt (Position &pos);
+
+        operator std::string () const;
+
+        template<class CharT, class Traits>
+        friend std::basic_ostream<CharT, Traits>&
+            operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
+        {
+            os << std::string (rm);
+            return os;
+        }
+
+    };
+
+    class RootMoveVector
+        : public std::vector<RootMove>
+    {
+
+    public:
+
+        void operator+= (const RootMove &rm) { push_back (rm); }
+        void operator-= (const RootMove &rm) { erase (remove (begin (), end (), rm), end ()); }
+
+        void initialize (const Position &pos);
+       
+        void backup ()
+        {
+            for (auto &rm : *this)
+            {
+                rm.backup ();
+            }
+        }
+
+        operator std::string () const;
+
+        template<class CharT, class Traits>
+        friend std::basic_ostream<CharT, Traits>&
+            operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &rmv)
+        {
+            os << std::string (rmv);
+            return os;
+        }
+    };
+
+
     // The Stack struct keeps track of the information needed to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
     // has its own array of Stack objects, indexed by the current ply.
     struct Stack
     {
-        SplitPoint *splitpoint  = nullptr;
         Move       *pv          = nullptr;
         i32         ply         = 0;
 
@@ -176,11 +252,11 @@ namespace Searcher {
 
         u32 maximum_time   () const { return _maximum_time; }
 
-        u32 elapsed_time   () const { return u32(Limits.npmsec != 0 ? RootPos.game_nodes () : now () - _start_time); }
+        u32 elapsed_time   () const;
 
         void instability   ()       { _instability_factor = 1.0 + best_move_change; }
 
-        void initialize (TimePoint now_time);
+        void initialize ();
 
     };
 
@@ -198,7 +274,6 @@ namespace Searcher {
 
     extern u64  perft (Position &pos, Depth depth);
 
-    extern void think ();
     extern void reset ();
 
     extern void initialize ();

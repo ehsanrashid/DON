@@ -292,12 +292,11 @@ namespace MovePick {
         }
     }
 
-    template<>
-    // next_move<false>() is the most important method of the MovePicker class.
-    // It returns a new pseudo legal move every time is called, until there are no more moves
-    // It picks the move with the biggest score from a list of generated moves
-    // taking care not to return the tt_move if has already been searched previously.
-    Move MovePicker::next_move<false> ()
+    /// next_move() is the most important method of the MovePicker class. It returns
+    /// a new pseudo legal move every time it is called, until there are no more moves
+    /// left. It picks the move with the biggest value from a list of generated moves
+    /// taking care not to return the ttMove if it has already been searched.
+    Move MovePicker::next_move ()
     {
         do
         {
@@ -424,15 +423,6 @@ namespace MovePick {
                 break;
             }
         } while (true);
-    }
-
-    template<>
-    // next_move<true>() is to use at splitpoint nodes where the move is grabbed
-    // from the splitpoint's shared MovePicker object. This function is not thread
-    // safe so must be lock protected by the caller.
-    Move MovePicker::next_move<true> ()
-    {
-        return _ss->splitpoint->movepicker->next_move<false> ();
     }
 
 }

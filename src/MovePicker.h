@@ -156,7 +156,6 @@ namespace MovePick {
         ValMove* begin () { return _moves_beg; }
         ValMove* end   () { return _moves_end; }
 
-        template<bool SPNode>
         Move next_move ();
 
     };
