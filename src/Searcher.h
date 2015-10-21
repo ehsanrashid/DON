@@ -211,17 +211,16 @@ namespace Searcher {
     // has its own array of Stack objects, indexed by the current ply.
     struct Stack
     {
-        Move       *pv          = nullptr;
-        i32         ply         = 0;
+        Move *pv = nullptr;
+        i32  ply = 0;
 
-        Move    tt_move         = MOVE_NONE
-            ,   current_move    = MOVE_NONE
-            ,   exclude_move    = MOVE_NONE
-            ,   killer_moves[2];
+        Move tt_move       = MOVE_NONE
+            , current_move = MOVE_NONE
+            , exclude_move = MOVE_NONE
+            , killer_moves[2];
 
-        Value   static_eval     = VALUE_NONE;
-
-        bool    firstmove_pv    = false;
+        Value   static_eval = VALUE_NONE;
+        bool    firstmove_pv = false;
     };
 
     // TimeManager class computes the optimal time to think depending on the

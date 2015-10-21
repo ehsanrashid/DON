@@ -33,9 +33,24 @@ namespace Threading {
 
         virtual ~ThreadBase() = default;
 
-        void notify_one ();
-        void wait_for   (volatile const bool &condition);
-        void wait_while (volatile const bool &condition);
+        // ThreadBase::notify_one () wakes up the thread when there is some work to do
+        void notify_one ()
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.notify_one ();
+        }
+        // ThreadBase::wait_until() set the thread to sleep until 'condition' turns true
+        void wait_until (volatile const bool &condition)
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.wait (lk, [&]{ return condition; });
+        }
+        // ThreadBase::wait_while() set the thread to sleep until 'condition' turns false
+        void wait_while (volatile const bool &condition)
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.wait (lk, [&]{ return !condition; });
+        }
 
         virtual void idle_loop () = 0;
     };
@@ -65,9 +80,9 @@ namespace Threading {
 
         Thread ();
         
-        void idle_loop () override;
         void search (bool is_main_thread = false);
-
+        
+        virtual void idle_loop () override;
     };
 
     // MainThread struct is derived struct used for the main one
@@ -77,9 +92,9 @@ namespace Threading {
     public:
         volatile bool thinking = true; // Avoid a race with start_thinking()
        
-        void idle_loop () override;
         void join ();
         void think ();
+        virtual void idle_loop () override;
     };
 
     const i32 TIMER_RESOLUTION = 5; // Millisec between two check_time() calls
@@ -99,8 +114,7 @@ namespace Threading {
         void start () { _running = true ; }
         void stop  () { _running = false; }
 
-        void idle_loop () override;
-
+        virtual void idle_loop () override;
     };
 
     // ThreadPool struct handles all the threads related stuff like

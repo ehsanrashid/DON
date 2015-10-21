@@ -44,39 +44,14 @@ namespace Threading {
     template TimerThread* new_thread<TimerThread> ();
     // ------------------------------------
 
-    // ThreadBase::notify_one () wakes up the thread when there is some work to do
-    void ThreadBase::notify_one ()
-    {
-        unique_lock<Mutex> lk (mutex);
-        sleep_condition.notify_one ();
-    }
-
-    // ThreadBase::wait_for() set the thread to sleep until condition turns true
-    void ThreadBase::wait_for (volatile const bool &condition)
-    {
-        unique_lock<Mutex> lk (mutex);
-        sleep_condition.wait (lk, [&]{ return condition; });
-    }
-
-    // ThreadBase::wait_while() set the thread to sleep until 'condition' turns false
-    void ThreadBase::wait_while (volatile const bool& condition)
-    {
-        std::unique_lock<Mutex> lk (mutex);
-        sleep_condition.wait (lk, [&] { return !condition; });
-    }
-
-    // ------------------------------------
-
     // Thread::Thread() makes some init but does not launch any execution thread that
     // will be started only when c'tor returns.
     Thread::Thread ()
         : ThreadBase ()
     {
-        /*
-        max_ply             = 0;
-        searching           = false;
-        */
-        index               = Threadpool.size (); // Starts from 0
+        //max_ply     = 0;
+        //searching   = false;
+        index       = Threadpool.size (); // Starts from 0
     }
 
     // Thread::idle_loop() is where the thread is parked when it has no work to do
@@ -102,6 +77,13 @@ namespace Threading {
 
     // ------------------------------------
 
+    // MainThread::join() waits for main thread to finish thinking
+    void MainThread::join ()
+    {
+        unique_lock<Mutex> lk (mutex);
+        sleep_condition.wait (lk, [&]{ return !thinking; });
+    }
+
     // MainThread::idle_loop() is where the main thread is parked waiting to be started
     // when there is a new search. The main thread will launch all the slave threads.
     void MainThread::idle_loop ()
@@ -125,13 +107,6 @@ namespace Threading {
                 think ();   // Start thinking
             }
         }
-    }
-
-    // MainThread::join() waits for main thread to finish the search
-    void MainThread::join ()
-    {
-        unique_lock<Mutex> lk (mutex);
-        sleep_condition.wait (lk, [&]{ return !thinking; });
     }
 
     // ------------------------------------
@@ -195,21 +170,20 @@ namespace Threading {
     // threads, with included pawns and material tables, if only few are used.
     void ThreadPool::configure ()
     {
-        i32 threads = i32 (Options["Threads"]);
+        size_t threads = i32(Options["Threads"]);
         assert (threads > 0);
 
-        while (i32(size ()) < threads)
+        while (size () < threads)
         {
             push_back (new_thread<Thread> ());
         }
-
-        while (i32(size ()) > threads)
+        while (size () > threads)
         {
             delete_thread (back ());
             pop_back ();
         }
 
-        sync_cout << "info string Thread(s) "   << u16(threads) << "." << sync_endl;
+        sync_cout << "info string Thread(s) "   << threads << "." << sync_endl;
     }
 
     u64 ThreadPool::game_nodes ()
@@ -222,8 +196,8 @@ namespace Threading {
         return nodes;
     }
 
-    // ThreadPool::start_main() wakes up the main thread sleeping in MainThread::idle_loop()
-    // so to start a new search, then returns immediately.
+    // ThreadPool::start_main() wakes up the main thread sleeping in
+    // MainThread::idle_loop() and starts a new search, then returns immediately.
     void ThreadPool::start_main (const Position &pos, const LimitsT &limits, StateStackPtr &states)
     {
         main ()->join ();
@@ -239,10 +213,9 @@ namespace Threading {
         Limits  = limits;
         if (states.get () != nullptr) // If don't set a new position, preserve current state
         {
-            SetupStates = move (states); // Ownership transfer here
+            SetupStates = std::move (states); // Ownership transfer here
             assert (states.get () == nullptr);
         }
-
 
         main ()->thinking = true;
         main ()->notify_one (); // Wake up main thread: 'thinking' must be already set
