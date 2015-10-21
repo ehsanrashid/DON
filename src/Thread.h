@@ -29,14 +29,12 @@ namespace Threading {
     public:
         Mutex               mutex;
         ConditionVariable   sleep_condition;
-
         volatile bool       alive = true;
 
         virtual ~ThreadBase() = default;
 
         void notify_one ();
-
-        void wait_for (volatile const bool &condition);
+        void wait_for   (volatile const bool &condition);
         void wait_while (volatile const bool &condition);
 
         virtual void idle_loop () = 0;
@@ -53,14 +51,14 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        size_t  index, PVIndex;
-        i32     max_ply;
+        size_t  index, pv_index;
+        i32     max_ply = 0;
 
         Position       root_pos;
         RootMoveVector root_moves;
         Stack       stack[MAX_DEPTH+4];
-        ValueStats  history;
-        MoveStats   countermoves;
+        ValueStats  history_value;
+        MoveStats   counter_moves;
         Depth       depth;
 
         volatile bool searching = false;

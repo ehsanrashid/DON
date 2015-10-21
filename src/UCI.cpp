@@ -165,6 +165,8 @@ namespace UCI {
             {
                 LimitsT limits;
 
+                limits.start_time = now (); // As early as possible!
+
                 i64 value;
                 while (iss >> token)
                 {
@@ -361,7 +363,7 @@ namespace UCI {
                 benchmark (ss, RootPos);
             }
             else if (token == "bench")      benchmark (iss, RootPos);
-            else if (token == "autotune")   auto_tune (iss);
+            //else if (token == "autotune")   auto_tune (iss);
             //else if (!white_spaces (token)) system (token.c_str ());
             else
             {

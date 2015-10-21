@@ -61,11 +61,9 @@ namespace Threading {
     // ThreadBase::wait_while() set the thread to sleep until 'condition' turns false
     void ThreadBase::wait_while (volatile const bool& condition)
     {
-
         std::unique_lock<Mutex> lk (mutex);
         sleep_condition.wait (lk, [&] { return !condition; });
     }
-
 
     // ------------------------------------
 
@@ -75,10 +73,7 @@ namespace Threading {
         : ThreadBase ()
     {
         /*
-        active_pos          = nullptr;
         max_ply             = 0;
-        active_splitpoint   = nullptr;
-        splitpoint_count    = 0;
         searching           = false;
         */
         index               = Threadpool.size (); // Starts from 0
@@ -95,6 +90,7 @@ namespace Threading {
             {
                 sleep_condition.wait (lk);
             }
+
             lk.unlock ();
 
             if (alive && searching)
@@ -126,13 +122,7 @@ namespace Threading {
 
             if (alive)
             {
-                searching = true;
-
                 think ();   // Start thinking
-
-                assert (searching);
-
-                searching = false;
             }
         }
     }
@@ -154,7 +144,10 @@ namespace Threading {
         {
             unique_lock<Mutex> lk (mutex);
 
-            if (alive) sleep_condition.wait_for (lk, chrono::milliseconds (_running ? resolution : INT_MAX));
+            if (alive)
+            {
+                sleep_condition.wait_for (lk, chrono::milliseconds (_running ? resolution : INT_MAX));
+            }
 
             lk.unlock ();
 
@@ -241,7 +234,8 @@ namespace Threading {
         Signals.failedlow_root = false;
 
         main ()->root_pos = pos;
-        main ()->root_moves.clear ();
+        main ()->root_moves.initialize (pos);
+
         Limits  = limits;
         if (states.get () != nullptr) // If don't set a new position, preserve current state
         {
@@ -249,20 +243,9 @@ namespace Threading {
             assert (states.get () == nullptr);
         }
 
-        for (const auto& m : MoveList<LEGAL> (pos))
-        {
-            if (   limits.root_moves.empty ()
-                || std::count (limits.root_moves.begin (), limits.root_moves.end (), m)
-               )
-            {
-                main ()->root_moves.push_back (RootMove (m));
-            }
-        }
 
         main ()->thinking = true;
         main ()->notify_one (); // Wake up main thread: 'thinking' must be already set
     }
-
-
 
 }

@@ -138,7 +138,6 @@ namespace Searcher {
 
         Value new_value = -VALUE_INFINITE
             , old_value = -VALUE_INFINITE;
-        //u64        nodes     = U64(0);
         MoveVector pv;
 
         explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
