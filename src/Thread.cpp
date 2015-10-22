@@ -126,7 +126,10 @@ namespace Threading {
 
             lk.unlock ();
 
-            if (_running) task ();
+            if (_running)
+            {
+                task ();
+            }
         }
     }
 

@@ -226,11 +226,11 @@ namespace MovePick {
         case S_KILLER:
             _moves_cur = _killers;
             _moves_end = _killers + sizeof (_ss->killer_moves)/sizeof (*_ss->killer_moves);
-            copy (::begin (_ss->killer_moves), ::end (_ss->killer_moves), ::begin (_killers));
+            std::copy (std::begin (_ss->killer_moves), std::end (_ss->killer_moves), std::begin (_killers));
             *_moves_end = MOVE_NONE;
 
             // Be sure countermoves are different from _killers
-            if (_counter_move != MOVE_NONE && count (::begin (_killers), prev (::end (_killers)), _counter_move) == 0)
+            if (_counter_move != MOVE_NONE && std::count (std::begin (_killers), std::prev (std::end (_killers)), _counter_move) == 0)
             {
                 *_moves_end++ = _counter_move;
             }
@@ -242,7 +242,7 @@ namespace MovePick {
             {
                 value<QUIET> ();
                 // Split positive(+ve) value from the list
-                _moves_end = partition (_moves_cur, _moves_end, [](const ValMove &m) { return m.value > VALUE_ZERO; });
+                _moves_end = std::partition (_moves_cur, _moves_end, [](const ValMove &m) { return m.value > VALUE_ZERO; });
                 if (_moves_cur < _moves_end-1)
                 {
                     insertion_sort (_moves_cur, _moves_end);
@@ -355,7 +355,7 @@ namespace MovePick {
                 {
                     move = *_moves_cur++;
                     if (   move != _tt_move
-                        && count (::begin (_killers), ::end (_killers), move) == 0 // Not killer move
+                        && std::count (std::begin (_killers), std::end (_killers), move) == 0 // Not killer move
                        )
                     {
                         return move;

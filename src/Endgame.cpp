@@ -408,8 +408,8 @@ namespace EndGame {
 
         if (pos.bishops_pair (_strong_side))
         {
-            if (  min (dist (wk_sq, SQ_A8), dist (wk_sq, SQ_H1))
-                < min (dist (wk_sq, SQ_A1), dist (wk_sq, SQ_H8))
+            if (  std::min (dist (wk_sq, SQ_A8), dist (wk_sq, SQ_H1))
+                < std::min (dist (wk_sq, SQ_A1), dist (wk_sq, SQ_H8))
                )
             {
                 sk_sq = ~sk_sq;
@@ -625,7 +625,7 @@ namespace EndGame {
             && !pos.passed_pawn (_strong_side, sp2_sq)
            )
         {
-            auto r = max (rel_rank (_strong_side, sp1_sq), rel_rank (_strong_side, sp2_sq));
+            auto r = std::max (rel_rank (_strong_side, sp1_sq), rel_rank (_strong_side, sp2_sq));
 
             if (   dist<File> (wk_sq, sp1_sq) <= 1
                 && dist<File> (wk_sq, sp2_sq) <= 1

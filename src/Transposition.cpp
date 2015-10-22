@@ -140,7 +140,7 @@ namespace Transposition {
         //// By default replace first entry and make place in the last
         //if (rte == fte)
         //{
-        //    copy (fte+1, fte+ClusterEntryCount, fte);
+        //    std::copy (fte+1, fte+ClusterEntryCount, fte);
         //    rte = fte+ClusterEntryCount-1;
         //}
 

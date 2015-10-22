@@ -268,7 +268,7 @@ namespace Pawns {
         auto own_front_pawns = pos.pieces (Own) & front_pawns;
         auto opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        auto kfc = min (max (_file (k_sq), F_B), F_G);
+        auto kfc = std::min (std::max (_file (k_sq), F_B), F_G);
         for (auto f = kfc - 1; f <= kfc + 1; ++f)
         {
             assert (F_A <= f && f <= F_H);
@@ -282,12 +282,12 @@ namespace Pawns {
             auto r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
             value -= 
-                  +  SHELTER_WEAKNESS[min (f, F_H - f)][r0]
+                  +  SHELTER_WEAKNESS[std::min (f, F_H - f)][r0]
                   +  STORM_DANGER
                         [f  == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
                          r0 == R_1                                            ? NO_FRIENDLY_PAWN :
                          r1 == r0 + 1                                         ? BLOCKED_BY_PAWN  : UNBLOCKED]
-                        [min (f, F_H - f)][r1];
+                        [std::min (f, F_H - f)][r1];
         }
 
         return value;

@@ -19,8 +19,8 @@ namespace {
 i32 main (i32 argc, const char *const *argv)
 {
     string arg = strarg (argc, argv);
-    Engine::run (arg);
 
+    Engine::run (arg);
     Engine::exit (EXIT_SUCCESS);
     return EXIT_SUCCESS;
 }

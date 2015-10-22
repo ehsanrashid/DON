@@ -95,9 +95,9 @@ namespace Searcher {
 
         bool depth_to_pick (Depth depth) const { return depth/DEPTH_ONE == 1 + _level; }
 
-        Move pick_move ();
-
-        void play_move ();
+        Move best_move () { return _best_move != MOVE_NONE ? _best_move : pick_best_move (); }
+        
+        Move pick_best_move ();
 
     };
 

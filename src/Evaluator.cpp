@@ -177,25 +177,25 @@ namespace Evaluator {
         {
             {},
             { // Knights
-                S(-68,-49), S(-46,-33), S(-3,-12), S( 5, -4), S( 9, 11), S(15, 16),
-                S( 23, 27), S( 33, 28), S(37, 29)
+                S(-70,-52), S(-52,-37), S( -7,-17), S(  0, -6), S(  8,  5), S( 16,  9),
+                S( 23, 20), S( 31, 21), S( 36, 22)
             },
             { // Bishops
-                S(-49,-44), S(-23,-16), S(16,  1), S(29, 16), S(40, 25), S(51, 34),
-                S( 55, 43), S( 61, 49), S(64, 51), S(68, 52), S(73, 55), S(75, 60),
-                S( 80, 65), S( 86, 66)
+                S(-49,-44), S(-22,-13), S( 16,  0), S( 27, 11), S( 38, 19), S( 52, 34),
+                S( 56, 44), S( 65, 47), S( 67, 51), S( 73, 56), S( 81, 59), S( 83, 69),
+                S( 95, 72), S(100, 75)
             },
             { // Rooks
-                S(-50,-57), S(-28,-22), S(-11, 7), S(-1, 29), S( 0, 39), S( 1, 46),
-                S( 10, 66), S( 16, 79), S(22, 86), S(23,103), S(30,109), S(33,111),
-                S( 37,115), S( 38,119), S(48,124)
+                S(-49,-57), S(-22,-14), S(-10, 18), S( -5, 39), S( -4, 50), S( -2, 58),
+                S(  6, 78), S( 11, 86), S( 17, 92), S( 19,103), S( 26,111), S( 27,115),
+                S( 36,119), S( 41,121), S( 50,122)
             },
             { // Queens
-                S(-43,-30), S(-27,-15), S( 1, -5), S( 2, -3), S(14, 10), S(18, 24),
-                S( 20, 27), S( 33, 37), S(33, 38), S(34, 43), S(40, 46), S(43, 56),
-                S( 46, 61), S( 52, 63), S(52, 63), S(57, 65), S(60, 70), S(61, 74),
-                S( 67, 80), S( 76, 82), S(77, 88), S(82, 94), S(86, 95), S(90, 96),
-                S( 94, 99), S( 96,100), S(99,111), S(99,112)
+                S(-41,-24), S(-26, -8), S(  0,  6), S(  2, 14), S( 12, 27), S( 21, 40), // Queens
+                S( 22, 45), S( 37, 55), S( 40, 57), S( 43, 63), S( 50, 68), S( 52, 74),
+                S( 56, 80), S( 66, 84), S( 68, 85), S( 69, 88), S( 71, 92), S( 72, 94),
+                S( 80, 96), S( 89, 98), S( 94,101), S(102,113), S(106,114), S(107,116),
+                S(112,125), S(113,127), S(117,137), S(122,143)
             },
             {}
         };
@@ -251,8 +251,8 @@ namespace Evaluator {
         // PassedFile[File] contains a bonus according to the file of a passed pawn.
         const Score PAWN_PASSED_FILE[F_NO] =
         {
-            S( 14, 13), S( 2, 5), S(-3,-4), S(-19,-14),
-            S(-19,-14), S(-3,-4), S( 2, 5), S( 14, 13)
+            S( 12,  10), S( 3,  10), S( 1, -8), S(-27, -12),
+            S(-27, -12), S( 1, -8),  S( 3, 10), S( 12,  10)
         };
 
     #undef S
@@ -549,7 +549,7 @@ namespace Evaluator {
                     //&& !pos.castle_impeded (Castling<Own, CS_KING>::Right)
                    )
                 {
-                    value = max (value, ei.pe->king_safety[Own][CS_KING]);
+                    value = std::max (value, ei.pe->king_safety[Own][CS_KING]);
                 }
                 if (    pos.can_castle (Castling<Own, CS_QUEN>::Right)
                     && (pos.king_path (Castling<Own, CS_QUEN>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
@@ -557,7 +557,7 @@ namespace Evaluator {
                     //&& !pos.castle_impeded (Castling<Own, CS_QUEN>::Right)
                    )
                 {
-                    value = max (value, ei.pe->king_safety[Own][CS_QUEN]);
+                    value = std::max (value, ei.pe->king_safety[Own][CS_QUEN]);
                 }
             }
             else
@@ -589,7 +589,7 @@ namespace Evaluator {
                 // attacked and undefended squares around our king, and the quality of
                 // the pawn shelter (current 'mg score' value).
                 i32 attack_units =
-                    + min ((ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp])/2, 72U)  // King-ring attacks
+                    + std::min ((ei.king_ring_attackers_count[Opp]*ei.king_ring_attackers_weight[Opp])/2, 72U)  // King-ring attacks
                     +  9 * (ei.king_zone_attacks_count[Opp])                                               // King-zone attacks
                     + 27 * (undefended != U64(0) ? pop_count<MAX15> (undefended) : 0)                      // King-zone undefended pieces
                     + 11 * (ei.pinneds[Own] != U64(0) ? pop_count<MAX15> (ei.pinneds[Own]) : 0)            // King pinned piece
@@ -730,7 +730,7 @@ namespace Evaluator {
                 // Finally, extract the king danger score from the KING_DANGER[] array
                 // attack_units must be in [0, MAX_ATTACK_UNITS-1] range
                 // and subtract the score from evaluation.
-                score -= KING_DANGER[min (max (attack_units, 0), MAX_ATTACK_UNITS-1)];
+                score -= KING_DANGER[std::min (std::max (attack_units, 0), MAX_ATTACK_UNITS-1)];
             }
 
             if (Trace)
@@ -963,7 +963,7 @@ namespace Evaluator {
                 }
 
                 // If non-pawn pieces difference
-                eg_value += eg_value * (double(own_nonpawn-opp_nonpawn) / max (own_nonpawn+opp_nonpawn, 1))/2;
+                eg_value += eg_value * (double(own_nonpawn-opp_nonpawn) / std::max (own_nonpawn+opp_nonpawn, 1))/2;
 
                 score += mk_score (mg_value, eg_value) + PAWN_PASSED_FILE[_file (s)];
             }
@@ -1259,7 +1259,7 @@ namespace Evaluator {
         for (i32 i = 0; i < MAX_ATTACK_UNITS; ++i)
         {
             //                       MAX_SLOPE - PEAK_VALUE
-            mg = min (min (i*i*27, mg + 8700), 1280000);
+            mg = std::min (std::min (i*i*27, mg + 8700), 1280000);
             KING_DANGER[i] = mk_score (mg/1000, 0) * WEIGHTS[KING_SAFETY];
         }
     }
