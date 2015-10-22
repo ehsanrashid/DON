@@ -234,7 +234,6 @@ namespace Material {
                         npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[BLACK] <= VALUE_MG_BSHP ? 4 : 14);
                 }
-                else
                 if (pos.count<PAWN> (WHITE) == 1)
                 {
                     e->factor[WHITE] = u08(SCALE_FACTOR_ONEPAWN);
@@ -249,7 +248,6 @@ namespace Material {
                         npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[WHITE] <= VALUE_MG_BSHP ? 4 : 14);
                 }
-                else
                 if (pos.count<PAWN> (BLACK) == 1)
                 {
                     e->factor[BLACK] = u08(SCALE_FACTOR_ONEPAWN);
@@ -259,7 +257,7 @@ namespace Material {
             // Evaluate the material imbalance.
             // Use KING as a place holder for the bishop pair "extended piece",
             // this allow us to be more flexible in defining bishop pair bonuses.
-            const i32 count[CLR_NO][NONE] =
+            const i32 piece_count[CLR_NO][NONE] =
             {
                 {
                     pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
@@ -271,7 +269,7 @@ namespace Material {
                 }
             };
 
-            auto value = Value((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 0x10);
+            auto value = Value((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 0x10);
             e->imbalance = mk_score (value, value);
         }
 

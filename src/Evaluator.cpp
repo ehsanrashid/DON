@@ -191,7 +191,7 @@ namespace Evaluator {
                 S( 36,119), S( 41,121), S( 50,122)
             },
             { // Queens
-                S(-41,-24), S(-26, -8), S(  0,  6), S(  2, 14), S( 12, 27), S( 21, 40), // Queens
+                S(-41,-24), S(-26, -8), S(  0,  6), S(  2, 14), S( 12, 27), S( 21, 40),
                 S( 22, 45), S( 37, 55), S( 40, 57), S( 43, 63), S( 50, 68), S( 52, 74),
                 S( 56, 80), S( 66, 84), S( 68, 85), S( 69, 88), S( 71, 92), S( 72, 94),
                 S( 80, 96), S( 89, 98), S( 94,101), S(102,113), S(106,114), S(107,116),
@@ -612,7 +612,7 @@ namespace Evaluator {
                                     | ei.ful_attacked_by[Opp][NIHT]
                                     | ei.ful_attacked_by[Opp][BSHP]
                                     | ei.ful_attacked_by[Opp][ROOK]
-                                    | ei.ful_attacked_by[Opp][KING]; // *
+                                    | ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
                             auto sq = pop_lsq (undefended_attacked);
@@ -641,7 +641,7 @@ namespace Evaluator {
                         auto unsafe = ei.ful_attacked_by[Opp][PAWN]
                                     | ei.ful_attacked_by[Opp][NIHT]
                                     | ei.ful_attacked_by[Opp][BSHP]
-                                    | ei.ful_attacked_by[Opp][KING]; // *
+                                    | ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
                             auto sq = pop_lsq (undefended_attacked);
@@ -668,7 +668,7 @@ namespace Evaluator {
                         auto unsafe = ei.ful_attacked_by[Opp][PAWN]
                                     | ei.ful_attacked_by[Opp][NIHT]
                                     | ei.ful_attacked_by[Opp][ROOK]
-                                    | ei.ful_attacked_by[Opp][KING]; // *
+                                    | ei.ful_attacked_by[Opp][KING];
                         while (undefended_attacked != U64(0))
                         {
                             auto sq = pop_lsq (undefended_attacked);

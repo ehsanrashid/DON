@@ -57,7 +57,7 @@ namespace MovePick {
         }
         */
 
-        void update_history (const Position &pos, Move m, Value v)
+        void update_v1 (const Position &pos, Move m, Value v)
         {
             if (abs (i32 (v)) < 0x144)
             {
@@ -67,7 +67,7 @@ namespace MovePick {
                 e = std::min (std::max (e*(1.0 - abs (v)/0x144) + v*0x20, -MAX_STATS_VALUE), +MAX_STATS_VALUE);
             }
         }
-        void update_cm_history (const Position &pos, Move m, Value v)
+        void update_v2 (const Position &pos, Move m, Value v)
         {
             if (abs (i32 (v)) < 0x200)
             {

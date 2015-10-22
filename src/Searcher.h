@@ -212,7 +212,7 @@ namespace Searcher {
     struct Stack
     {
         Move *pv = nullptr;
-        i32  ply = 0;
+        u16  ply = 0;
 
         Move tt_move       = MOVE_NONE
             , current_move = MOVE_NONE

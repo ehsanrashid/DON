@@ -19,7 +19,7 @@ namespace Threading {
     using namespace Searcher;
     using namespace MovePick;
 
-    const u16 MAX_THREADS               = 128; // Maximum Threads
+    const u16 MAX_THREADS = 128; // Maximum Threads
 
     // ThreadBase class is the base of the hierarchy from where
     // derive all the specialized thread classes.
@@ -66,15 +66,16 @@ namespace Threading {
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        size_t  index, pv_index;
-        i32     max_ply = 0;
+        u16  index      = 0
+           , pv_index   = 0
+           , max_ply    = 0;
 
-        Position       root_pos;
-        RootMoveVector root_moves;
-        Stack       stack[MAX_DEPTH+4];
-        ValueStats  history_values;
-        MoveStats   counter_moves;
-        Depth       depth;
+        Position        RootPos;
+        RootMoveVector  RootMoves;
+        Stack           Stacks[MAX_DEPTH+4];
+        ValueStats      HistoryValues;
+        MoveStats       CounterMoves;
+        Depth           depth;
 
         volatile bool searching = false;
 
@@ -92,7 +93,13 @@ namespace Threading {
     public:
         volatile bool thinking = true; // Avoid a race with start_thinking()
        
-        void join ();
+        // MainThread::join() waits for main thread to finish thinking
+        void join ()
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.wait (lk, [&] { return !thinking; });
+        }
+
         void think ();
         virtual void idle_loop () override;
     };

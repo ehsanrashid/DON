@@ -51,7 +51,7 @@ namespace Threading {
     {
         //max_ply     = 0;
         //searching   = false;
-        index       = Threadpool.size (); // Starts from 0
+        index       = u16(Threadpool.size ()); // Starts from 0
     }
 
     // Thread::idle_loop() is where the thread is parked when it has no work to do
@@ -76,13 +76,6 @@ namespace Threading {
     }
 
     // ------------------------------------
-
-    // MainThread::join() waits for main thread to finish thinking
-    void MainThread::join ()
-    {
-        unique_lock<Mutex> lk (mutex);
-        sleep_condition.wait (lk, [&]{ return !thinking; });
-    }
 
     // MainThread::idle_loop() is where the main thread is parked waiting to be started
     // when there is a new search. The main thread will launch all the slave threads.
@@ -194,7 +187,7 @@ namespace Threading {
         u64 nodes = 0;
         for (auto *th : *this)
         {
-            nodes += th->root_pos.game_nodes ();
+            nodes += th->RootPos.game_nodes ();
         }
         return nodes;
     }
@@ -210,8 +203,8 @@ namespace Threading {
         Signals.firstmove_root = false;
         Signals.failedlow_root = false;
 
-        main ()->root_pos = pos;
-        main ()->root_moves.initialize (pos);
+        main ()->RootPos = pos;
+        main ()->RootMoves.initialize (pos);
 
         Limits  = limits;
         if (states.get () != nullptr) // If don't set a new position, preserve current state
