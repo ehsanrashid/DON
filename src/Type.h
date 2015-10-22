@@ -633,7 +633,8 @@ inline Value  cp_to_value (double cp) { return Value(i32(cp * i32(VALUE_EG_PAWN)
 inline Value mates_in (i32 ply) { return +VALUE_MATE - ply; }
 inline Value mated_in (i32 ply) { return -VALUE_MATE + ply; }
 
-typedef std::vector<Move> MoveVector;
+//typedef std::vector<Square> SquareVector;
+typedef std::vector<Move>   MoveVector;
 
 typedef std::chrono::milliseconds::rep TimePoint; // Time in milliseconds
 

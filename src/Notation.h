@@ -75,9 +75,9 @@ operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
 
 //template<class CharT, class Traits>
 //inline std::basic_ostream<CharT, Traits>&
-//    operator<< (std::basic_ostream<CharT, Traits> &os, const std::vector<Square> &sq_list)
+//    operator<< (std::basic_ostream<CharT, Traits> &os, const SquareVector &squares)
 //{
-//    std::for_each (sq_list.begin (), sq_list.end (), [&os] (Square s) { os << s << std::endl; });
+//    std::for_each (squares.begin (), squares.end (), [&os] (Square s) { os << s << std::endl; });
 //    return os;
 //}
 
@@ -120,6 +120,14 @@ operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
 //operator<< (std::basic_ostream<CharT, Traits> &os, CRight cr)
 //{
 //    os << to_string (cr);
+//    return os;
+//}
+
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//operator<< (std::basic_ostream<CharT, Traits> &os, const MoveVector &moves)
+//{
+//    std::for_each (moves.begin (), moves.end (), [&os](Move m) { os << m << std::endl; });
 //    return os;
 //}
 

@@ -1027,12 +1027,12 @@ namespace Evaluator {
         // second order bonus/malus based on the known attacking/defending status of the players. 
         Score evaluate_initiative (const Position &pos, const EvalInfo &ei, const Score positional_score)
         {
-            i32 pawns           =  pos.count<PAWN> (WHITE) + pos.count<PAWN> (BLACK);
-            i32 king_separation =  dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
-            i32 asymmetry       =  ei.pe->asymmetry;
+            i32 pawns           = pos.count<PAWN> (WHITE) + pos.count<PAWN> (BLACK);
+            i32 king_separation = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
+            i32 asymmetry       = ei.pe->asymmetry;
 
             // Compute the initiative bonus for the attacking side
-            i32 attacker_bonus =   8 * (pawns + asymmetry + king_separation) - 120;
+            i32 attacker_bonus  = 8 * (pawns + asymmetry + king_separation) - 120;
 
             // Now apply the bonus: note that we find the attacking side by extracting the sign 
             // of the endgame value of "positional_score", and that we carefully cap the bonus so
@@ -1052,7 +1052,7 @@ namespace Evaluator {
             EvalInfo ei;
 
             // Probe the material hash table
-            Material::Entry* me = Material::probe (pos);
+            auto *me = Material::probe (pos);
 
             // If have a specialized evaluation function for the current material configuration
             if (me->specialized_eval_exists ())
@@ -1170,7 +1170,6 @@ namespace Evaluator {
                 write (MOBILITY
                     , mobility[WHITE] * WEIGHTS[PIECE_MOBILITY]
                     , mobility[BLACK] * WEIGHTS[PIECE_MOBILITY]);
-
                 write (TOTAL      , score);
             }
 
