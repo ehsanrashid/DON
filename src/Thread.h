@@ -29,7 +29,7 @@ namespace Threading {
     public:
         Mutex               mutex;
         ConditionVariable   sleep_condition;
-        volatile bool       alive = true;
+        std::atomic<bool>   alive { true };
 
         virtual ~ThreadBase() = default;
 
@@ -40,16 +40,16 @@ namespace Threading {
             sleep_condition.notify_one ();
         }
         // ThreadBase::wait_until() set the thread to sleep until 'condition' turns true
-        void wait_until (volatile const bool &condition)
+        void wait_until (const std::atomic<bool> &condition)
         {
             std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&]{ return condition; });
+            sleep_condition.wait (lk, [&]{ return bool(condition); });
         }
         // ThreadBase::wait_while() set the thread to sleep until 'condition' turns false
-        void wait_while (volatile const bool &condition)
+        void wait_while (const std::atomic<bool> &condition)
         {
             std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&]{ return !condition; });
+            sleep_condition.wait (lk, [&]{ return !bool(condition); });
         }
 
         virtual void idle_loop () = 0;
@@ -70,14 +70,14 @@ namespace Threading {
            , pv_index   = 0
            , max_ply    = 0;
 
-        Position        RootPos;
-        RootMoveVector  RootMoves;
-        Stack           Stacks[MAX_DEPTH+4];
-        ValueStats      HistoryValues;
-        MoveStats       CounterMoves;
-        Depth           depth;
+        Position        root_pos;
+        RootMoveVector  root_moves;
+        Stack           stacks[MAX_DEPTH+4];
+        HValueStats     history_values;
+        MoveStats       counter_moves;
+        Depth           root_depth;
 
-        volatile bool searching = false;
+        std::atomic<bool> searching { false };
 
         Thread ();
         
@@ -91,16 +91,17 @@ namespace Threading {
         : public Thread
     {
     public:
-        volatile bool thinking = true; // Avoid a race with start_thinking()
+        std::atomic<bool> thinking { true }; // Avoid a race with start_thinking()
        
         // MainThread::join() waits for main thread to finish thinking
         void join ()
         {
             std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&] { return !thinking; });
+            sleep_condition.wait (lk, [&] { return !bool(thinking); });
         }
 
         void think ();
+
         virtual void idle_loop () override;
     };
 

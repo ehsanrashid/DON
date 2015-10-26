@@ -47,6 +47,9 @@ namespace EndGame {
         const i32 PUSH_CLOSE[8] = {  0,  0, 100,  80,  60,  40,  20,  10 };
         const i32 PUSH_AWAY [8] = {  0,  5,  20,  40,  60,  80,  90, 100 };
 
+        // Pawn Rank based scaling factors used in KRPPKRP endgame
+        const i32 KRPPKRPScaleFactors[R_NO] = { 0, 9, 10, 14, 21, 44, 0, 0 };
+
 #ifndef NDEBUG
         bool verify_material (const Position &pos, Color c, Value npm, i32 num_pawns)
         {
@@ -632,15 +635,8 @@ namespace EndGame {
                 && rel_rank (_strong_side, wk_sq) > r
                )
             {
-                switch (r)
-                {
-                case R_2: return ScaleFactor(9);
-                case R_3: return ScaleFactor(10);
-                case R_4: return ScaleFactor(14);
-                case R_5: return ScaleFactor(21);
-                case R_6: return ScaleFactor(44);
-                default: assert (false);
-                }
+                assert (r > R_1 && r < R_7);
+                return ScaleFactor (KRPPKRPScaleFactors[r]);
             }
         }
 

@@ -63,10 +63,10 @@ namespace MovePick {
     // search captures, promotions and some checks) and about how important good
     // move ordering is at the current node.
 
-    MovePicker::MovePicker (const Position &pos, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, Depth depth, Move cm, const Stack *ss)
+    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, const CMValueStats &cmv, Move ttm, Depth depth, Move cm, const Stack *ss)
         : _Pos (pos)
         , _HistoryValues (hv)
-        , _CounterMovesHistoryValues (cmhv)
+        , _CounterMovesValues (&cmv)
         , _ss (ss)
         , _counter_move (cm)
         , _depth (depth)
@@ -82,10 +82,11 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &pos, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, Depth depth, Square dst_sq)
+
+    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Depth depth, Square dst_sq)
         : _Pos (pos)
         , _HistoryValues (hv)
-        , _CounterMovesHistoryValues (cmhv)
+        , _CounterMovesValues (nullptr)
         , _depth (depth)
     {
         assert (_depth <= DEPTH_ZERO);
@@ -118,10 +119,10 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &pos, const ValueStats &hv, const Value2DStats &cmhv, Move ttm, Value cthreshold)
+    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Value cthreshold)
         : _Pos (pos)
         , _HistoryValues (hv)
-        , _CounterMovesHistoryValues (cmhv)
+        , _CounterMovesValues (nullptr)
         , _capture_threshold (cthreshold)
     {
         assert (_Pos.checkers () == U64(0));
@@ -161,16 +162,10 @@ namespace MovePick {
     template<>
     void MovePicker::value<QUIET>   ()
     {
-        auto opp_move = (_ss-1)->current_move;
-        auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-        const auto &opp_cmhv = opp_move_dst != SQ_NO ?
-            _CounterMovesHistoryValues[_Pos[opp_move_dst]][opp_move_dst] :
-            _CounterMovesHistoryValues[EMPTY][SQ_A1];
-
         for (auto &m : *this)
         {
             m.value = _HistoryValues[_Pos[org_sq (m)]][dst_sq (m)]
-                    + opp_cmhv[_Pos[org_sq (m)]][dst_sq (m)];
+                    + (*_CounterMovesValues)[_Pos[org_sq (m)]][dst_sq (m)];
         }
     }
 

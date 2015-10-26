@@ -1,5 +1,7 @@
 ### Overview
 
+[![Build Status](https://www.donchess.net)](https://www.donchess.net)
+
 DON is a free UCI chess engine. It is not a complete chess program
 and requires some UCI-compatible GUI (e.g. XBoard with PolyGlot,
 eboard, Arena, Sigma Chess, Shredder, Chess Partner or Fritz)

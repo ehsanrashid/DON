@@ -3,6 +3,7 @@
 
 #include <cstring>
 #include <memory>
+#include <atomic>
 
 #include "Type.h"
 #include "Position.h"
@@ -53,7 +54,7 @@ namespace Searcher {
         }
     };
 
-    // Signals stores volatile flags updated during the search sent by the GUI
+    // Signals stores atomic flags updated during the search sent by the GUI
     // typically in an async fashion.
     //  - Stop search on request.
     //  - Stop search on ponder-hit.
@@ -61,10 +62,11 @@ namespace Searcher {
     //  - Falied low at root.
     struct SignalsT
     {
-        bool  force_stop        = false  // Stop search on request
-            , ponderhit_stop    = false  // Stop search on ponder-hit
-            , firstmove_root    = false  // First move at root
-            , failedlow_root    = false; // Failed low at root
+        std::atomic<bool>
+              force_stop        { false }  // Stop search on request
+            , ponderhit_stop    { false }  // Stop search on ponder-hit
+            , firstmove_root    { false }  // First move at root
+            , failedlow_root    { false }; // Failed low at root
     };
 
     // PV, CUT & ALL nodes, respectively. The root of the tree is a PV node. At a PV node
@@ -101,29 +103,29 @@ namespace Searcher {
 
     };
 
-    extern bool                 Chess960;
+    extern bool             Chess960;
 
-    extern LimitsT              Limits;
-    extern SignalsT volatile    Signals;
-    extern StateStackPtr        SetupStates;
+    extern LimitsT          Limits;
+    extern SignalsT         Signals;
+    extern StateStackPtr    SetupStates;
 
-    extern u16                  MultiPV;
-    //extern i32                MultiPV_cp;
+    extern u16              MultiPV;
+    //extern i32              MultiPV_cp;
 
-    extern i16                  FixedContempt
-        ,                       ContemptTime 
-        ,                       ContemptValue;
+    extern i16              FixedContempt
+        ,                   ContemptTime 
+        ,                   ContemptValue;
 
-    extern std::string          HashFile;
-    extern u16                  AutoSaveHashTime;
+    extern std::string      HashFile;
+    extern u16              AutoSaveHashTime;
     
-    extern bool                 OwnBook;
-    extern std::string          BookFile;
-    extern bool                 BookMoveBest;
+    extern bool             OwnBook;
+    extern std::string      BookFile;
+    extern bool             BookMoveBest;
 
-    extern std::string          SearchFile;
+    extern std::string      SearchFile;
 
-    extern SkillManager         SkillMgr;
+    extern SkillManager     SkillMgr;
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:

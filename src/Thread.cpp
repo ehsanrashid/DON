@@ -187,7 +187,7 @@ namespace Threading {
         u64 nodes = 0;
         for (auto *th : *this)
         {
-            nodes += th->RootPos.game_nodes ();
+            nodes += th->root_pos.game_nodes ();
         }
         return nodes;
     }
@@ -203,8 +203,8 @@ namespace Threading {
         Signals.firstmove_root = false;
         Signals.failedlow_root = false;
 
-        main ()->RootPos = pos;
-        main ()->RootMoves.initialize (pos);
+        main ()->root_pos = pos;
+        main ()->root_moves.initialize (pos);
 
         Limits  = limits;
         if (states.get () != nullptr) // If don't set a new position, preserve current state

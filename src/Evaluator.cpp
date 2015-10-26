@@ -210,20 +210,13 @@ namespace Evaluator {
             S(0, 0), S(107, 138), S(84, 122), S(114, 203), S(121, 217), S(0, 0)
         };
 
-        enum EnemyT { DEFENDED, WEAK };
-        enum FriendT { MINOR, MAJOR };
+        enum AttackerT { MINOR, MAJOR };
         // THREATEN_BY_PIECE[defended/weak][minor/major attacking][attacked PieceType] contains
         // bonuses according to which piece type attacks which one.
-        const Score THREATEN_BY_PIECE[2][2][NONE] =
+        const Score THREATEN_BY_PIECE[2][NONE] =
         {
-            {
-                { S( 0, 0), S(19, 37), S(24, 37), S(44, 97), S(35,106), S(0, 0) },  // Minor on Defended
-                { S( 0, 0), S( 9, 14), S( 9, 14), S( 7, 14), S(24, 48), S(0, 0) }   // Major on Defended
-            },
-            {
-                { S( 0,32), S(33, 41), S(31, 50), S(41,100), S(35,104), S(0, 0) },  // Minor on Weak
-                { S( 0,27), S(26, 57), S(26, 57), S(0 , 43), S(23, 51), S(0, 0) }   // Major on Weak 
-            }
+            { S(0, 32), S(25, 39), S(28, 44), S(42, 98), S(35,105), S(0, 0) },  // Minor Attacks
+            { S(0, 27), S(26, 57), S(26, 57), S( 0, 30), S(23, 51), S(0, 0) }   // Major Attacks
         };
 
         const Score THREATEN_BY_KING[] =
@@ -755,19 +748,21 @@ namespace Evaluator {
 
             auto score = SCORE_ZERO;
 
-            Bitboard b, weak_pieces, defended_pieces;
+            Bitboard b, weak_nonpawns;
 
             // Non-pawn enemies attacked by any friendly pawn
-            weak_pieces =
+            weak_nonpawns =
                   (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
                 &  ei.pin_attacked_by[Own][PAWN];
-            if (weak_pieces != U64(0))
+            if (weak_nonpawns != U64(0))
             {
                 // Safe Pawns
-                b = pos.pieces (Own, PAWN) & (ei.pin_attacked_by[Own][NONE] | ~ei.pin_attacked_by[Opp][NONE]);
+                b = pos.pieces (Own, PAWN) & ( ~ei.pin_attacked_by[Opp][NONE]
+                                              | ei.pin_attacked_by[Own][NONE]
+                                             );
                 // Safe Pawn threats
-                b = (shift_bb<RCap>(b) | shift_bb<LCap>(b)) & weak_pieces;
-                if ((weak_pieces ^ b) != U64(0))
+                b = (shift_bb<RCap>(b) | shift_bb<LCap>(b)) & weak_nonpawns;
+                if ((weak_nonpawns ^ b) != U64(0))
                 {
                     score += THREATEN_BY_HANG_PAWN;
                 }
@@ -777,33 +772,43 @@ namespace Evaluator {
                 }
             }
 
+            Bitboard weak_pieces, defended_nonpawns;
+
             // Enemies not defended by pawn and attacked by any friendly piece
             weak_pieces =
                 pos.pieces (Opp)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
+
+            // Non-pawn enemies defended by a pawn and attacked by any friendly piece
+            defended_nonpawns =
+                (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
+                &  ei.pin_attacked_by[Opp][PAWN]
+                &  ei.pin_attacked_by[Own][NONE];
+
             // Add a bonus according to the kind of attacking pieces
-            if (weak_pieces != U64 (0))
+            if ((weak_pieces | defended_nonpawns) != U64 (0))
             {
-                // Weak enemies attacked by minor pieces
-                b = weak_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
+                // Enemies attacked by minor pieces
+                b = (weak_pieces | defended_nonpawns) & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
                 while (b != U64 (0))
                 {
-                    score += THREATEN_BY_PIECE[WEAK][MINOR][ptype (pos[pop_lsq (b)])];
+                    score += THREATEN_BY_PIECE[MINOR][ptype (pos[pop_lsq (b)])];
                 }
-                // Weak enemies attacked by rooks
-                b = weak_pieces & (ei.pin_attacked_by[Own][ROOK]);
+                // Enemies attacked by rooks
+                b = (weak_pieces | pos.pieces (Opp, QUEN)) & (ei.pin_attacked_by[Own][ROOK]);
                 while (b != U64 (0))
                 {
-                    score += THREATEN_BY_PIECE[WEAK][MAJOR][ptype (pos[pop_lsq (b)])];
+                    score += THREATEN_BY_PIECE[MAJOR][ptype (pos[pop_lsq (b)])];
                 }
+
                 // Weak enemies attacked by king
                 b = weak_pieces & ei.ful_attacked_by[Own][KING];
                 if (b != U64 (0))
                 {
                     score += THREATEN_BY_KING[more_than_one (b) ? 1 : 0];
                 }
-                // Weak Hanging enemies
+                // Weak hanging enemies attacked by any
                 b = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
                 if (b != U64 (0))
                 {
@@ -811,30 +816,7 @@ namespace Evaluator {
                 }
             }
 
-            // Non-pawn enemies defended by a pawn and attacked by any friendly piece
-            defended_pieces = 
-                  (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
-                &  ei.pin_attacked_by[Opp][PAWN]
-                &  ei.pin_attacked_by[Own][NONE];
-            // Add a bonus according to the kind of attacking pieces
-            if (defended_pieces != U64(0))
-            {
-                // Defended enemies attacked by minor pieces
-                b = defended_pieces & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
-                while (b != U64(0))
-                {
-                    score += THREATEN_BY_PIECE[DEFENDED][MINOR][ptype (pos[pop_lsq (b)])];
-                }
-                // Defended enemies attacked by rooks
-                b = defended_pieces & (ei.pin_attacked_by[Own][ROOK]);
-                while (b != U64(0))
-                {
-                    score += THREATEN_BY_PIECE[DEFENDED][MAJOR][ptype (pos[pop_lsq (b)])];
-                }
-            }
-
             // Bonus if some friendly pawns can safely push and attack an enemy piece
-
             b = pos.pieces (Own, PAWN) & ~Rank7BB;
             b = shift_bb<Push> (b | (shift_bb<Push> (b & Rank2BB) & ~pos.pieces ()));
             // Safe pawn pushes
@@ -1023,22 +1005,22 @@ namespace Evaluator {
             return score;
         }
 
-        // evaluate_initiative() computes the initiative correction value for the position, i.e. 
-        // second order bonus/malus based on the known attacking/defending status of the players. 
-        Score evaluate_initiative (const Position &pos, const EvalInfo &ei, const Score positional_score)
+        // evaluate_initiative() computes the initiative correction value for the
+        // position, i.e. second order bonus/malus based on the known attacking/defending
+        // status of the players.
+        Score evaluate_initiative (const Position& pos, int asymmetry, Value eg)
         {
-            i32 pawns           = pos.count<PAWN> (WHITE) + pos.count<PAWN> (BLACK);
-            i32 king_separation = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
-            i32 asymmetry       = ei.pe->asymmetry;
+
+            int king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
+            int pawn_count = pos.count<PAWN> (WHITE) + pos.count<PAWN> (BLACK);
 
             // Compute the initiative bonus for the attacking side
-            i32 attacker_bonus  = 8 * (pawns + asymmetry + king_separation) - 120;
+            int initiative = 8 * (pawn_count + asymmetry + king_dist - 15);
 
-            // Now apply the bonus: note that we find the attacking side by extracting the sign 
-            // of the endgame value of "positional_score", and that we carefully cap the bonus so
-            // that the endgame score with the correction will never be divided by more than two.
-            i32 eg = eg_value (positional_score);
-            i32 value = ((eg > 0) - (eg < 0)) * std::max (attacker_bonus, -abs (eg / 2));
+            // Now apply the bonus: note that we find the attacking side by extracting
+            // the sign of the endgame value, and that we carefully cap the bonus so
+            // that the endgame score will never be divided by more than two.
+            int value = ((eg > 0) - (eg < 0)) * std::max (initiative, -abs (eg / 2));
 
             return mk_score (0, value);
         }
@@ -1158,8 +1140,8 @@ namespace Evaluator {
                     - ei.pe->evaluate_unstoppable_pawns<BLACK> ();
             }
             
-            // Evaluate initiative
-            score += evaluate_initiative (pos, ei, score);
+            // Evaluate position potential for the winning side
+            score += evaluate_initiative (pos, ei.pe->asymmetry, eg_value (score));
 
             // In case of tracing add each evaluation contributions for both white and black
             if (Trace)
