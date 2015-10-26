@@ -81,7 +81,7 @@ namespace Threading {
 
         Thread ();
         
-        void search (bool is_main_thread = false);
+        void search (bool thread_main = false);
         
         virtual void idle_loop () override;
     };

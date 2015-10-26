@@ -23,7 +23,7 @@ namespace MovePick {
         //void _clear (Value &v) { std::memset (_table, 0x0, sizeof (_table)); }
         void _clear (Value &v) { v = VALUE_ZERO; }
         void _clear (Stats<Value, false> &vs) { vs.clear (); }
-        void _clear (Stats<Value,  true> &vs) { vs.clear (); }
+        void _clear (Stats<Value, true > &vs) { vs.clear (); }
         void _clear (Move  &m) { m = MOVE_NONE; }
 
     public:
@@ -71,7 +71,7 @@ namespace MovePick {
     // ValueStats stores the value that records how often different moves have been successful/unsuccessful
     // during the current search and is used for reduction and move ordering decisions.
     typedef Stats<Value, false>     HValueStats;
-    typedef Stats<Value,  true>     CMValueStats;
+    typedef Stats<Value, true >     CMValueStats;
 
     // CMValue2DStats
     typedef Stats<CMValueStats>     CMValue2DStats;

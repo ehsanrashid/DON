@@ -125,14 +125,14 @@ namespace MoveGen {
                     if (pos.can_castle (Castling<Own, CS_KING>::Right) && !pos.castle_impeded (Castling<Own, CS_KING>::Right))
                     {
                         pos.chess960 () ?
-                            generate_castling<Castling<Own, CS_KING>::Right,  true> (moves, pos, ci) :
+                            generate_castling<Castling<Own, CS_KING>::Right, true > (moves, pos, ci) :
                             generate_castling<Castling<Own, CS_KING>::Right, false> (moves, pos, ci);
                     }
 
                     if (pos.can_castle (Castling<Own, CS_QUEN>::Right) && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right))
                     {
                         pos.chess960 () ?
-                            generate_castling<Castling<Own, CS_QUEN>::Right,  true> (moves, pos, ci) :
+                            generate_castling<Castling<Own, CS_QUEN>::Right, true > (moves, pos, ci) :
                             generate_castling<Castling<Own, CS_QUEN>::Right, false> (moves, pos, ci);
                     }
                 }

@@ -440,7 +440,7 @@ namespace Searcher {
                     }
 
                     assert (best_value < beta);
-                    // Update alpha here! always alpha < beta
+                    // Update alpha! Always alpha < beta
                     if (PVNode) alpha = best_value;
                 }
 
@@ -496,7 +496,8 @@ namespace Searcher {
                     if (   mtype (move) != PROMOTE
                         && (  !InCheck
                             // Detect non-capture evasions that are candidate to be pruned (evasion_prunable)
-                            || (   best_value > -VALUE_MATE_IN_MAX_DEPTH
+                            || (   //InCheck &&
+                                   best_value > -VALUE_MATE_IN_MAX_DEPTH
                                 && !pos.capture (move)
                                )
                            )
@@ -554,7 +555,7 @@ namespace Searcher {
                         }
 
                         assert (value < beta);
-                        // Update alpha here! always alpha < beta
+                        // Update alpha! Always alpha < beta
                         if (PVNode) alpha = value;
                     }
                 }
@@ -860,7 +861,7 @@ namespace Searcher {
                             prefetch (thread->pawn_table[pos.pawn_key ()]);
                             prefetch (thread->matl_table[pos.matl_key ()]);
 
-                            auto value = -depth_search<NonPV, true> (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
+                            auto value = -depth_search<NonPV, true > (pos, ss+1, -extended_beta, -extended_beta+1, reduced_depth, !cut_node);
 
                             pos.undo_move ();
 
@@ -1117,7 +1118,7 @@ namespace Searcher {
 
                     // Search with reduced depth
                     auto reduced_depth = std::max (new_depth - reduction_depth, DEPTH_ONE);
-                    value = -depth_search<NonPV, true> (pos, ss+1, -(alpha+1), -alpha, reduced_depth, true);
+                    value = -depth_search<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, reduced_depth, true);
 
                     search_full_depth = alpha < value && reduction_depth != DEPTH_ZERO;
                 }
@@ -1134,7 +1135,7 @@ namespace Searcher {
                             gives_check ?
                                 -quien_search<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO) :
                                 -quien_search<NonPV, false> (pos, ss+1, -(alpha+1), -alpha, DEPTH_ZERO) :
-                            -depth_search<NonPV, true> (pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
+                            -depth_search<NonPV, true > (pos, ss+1, -(alpha+1), -alpha, new_depth, !cut_node);
                 }
 
                 // Do a full PV search on:
@@ -1152,7 +1153,7 @@ namespace Searcher {
                             gives_check ?
                                 -quien_search<PV, true > (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
                                 -quien_search<PV, false> (pos, ss+1, -beta, -alpha, DEPTH_ZERO) :
-                            -depth_search<PV, true> (pos, ss+1, -beta, -alpha, new_depth, false);
+                            -depth_search<PV, true > (pos, ss+1, -beta, -alpha, new_depth, false);
                 }
 
                 // Step 17. Undo move
@@ -1231,7 +1232,7 @@ namespace Searcher {
                         }
 
                         assert (value < beta);
-                        // Update alpha here! always alpha < beta
+                        // Update alpha! Always alpha < beta
                         if (PVNode) alpha = value;
                     }
                 }
@@ -1756,13 +1757,13 @@ namespace Threading {
     // Thread::search() is the main iterative deepening loop. It calls search()
     // repeatedly with increasing depth until the allocated thinking time has been
     // consumed, user stops the search, or the maximum search depth is reached.
-    void Thread::search (bool is_main_thread)
+    void Thread::search (bool thread_main)
     {
         Stack *ss = stacks+2; // To allow referencing (ss-2)
         memset (ss-2, 0x00, 5*sizeof (*stacks));
 
         auto easy_move = MOVE_NONE;
-        if (is_main_thread)
+        if (thread_main)
         {
             easy_move = MoveMgr.easy_move (root_pos.posi_key ());
             MoveMgr.clear ();
@@ -1789,12 +1790,12 @@ namespace Threading {
         while (++root_depth < DEPTH_MAX && !Signals.force_stop && (0 == Limits.depth || root_depth <= Limits.depth))
         {
             // Set up the new depth for the helper threads
-            if (is_main_thread)
+            if (thread_main)
             {
                 root_depth = Threadpool.main ()->root_depth + Depth(i32(3 * log (1 + this->index)));
             }
 
-            if (is_main_thread && Limits.use_time_manager ())
+            if (thread_main && Limits.use_time_manager ())
             {
                 // Age out PV variability metric
                 TimeMgr.best_move_change *= 0.5;
@@ -1823,7 +1824,7 @@ namespace Threading {
                 // research with bigger window until not failing high/low anymore.
                 do
                 {
-                    best_value = depth_search<Root, true> (root_pos, ss, bound_a, bound_b, root_depth, false);
+                    best_value = depth_search<Root, true > (root_pos, ss, bound_a, bound_b, root_depth, false);
 
                     // Bring the best move to the front. It is critical that sorting is
                     // done with a stable algorithm because all the values but the first
@@ -1847,7 +1848,7 @@ namespace Threading {
 
                     // When failing high/low give some update
                     // (without cluttering the UI) before to re-search.
-                    if (   is_main_thread
+                    if (   thread_main
                         && PVLimit == 1
                         && (bound_a >= best_value || best_value >= bound_b)
                         && TimeMgr.elapsed_time () > 3*MILLI_SEC
@@ -1863,7 +1864,7 @@ namespace Threading {
                         bound_b = (bound_a + bound_b)/2;
                         bound_a = std::max (best_value - window, -VALUE_INFINITE);
                         
-                        if (is_main_thread)
+                        if (thread_main)
                         {
                             Signals.failedlow_root = true;
                             Signals.ponderhit_stop = false;
@@ -1887,7 +1888,7 @@ namespace Threading {
                 // Sort the PV lines searched so far and update the GUI
                 std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
 
-                if (!is_main_thread) break;
+                if (!thread_main) break;
 
                 if (Signals.force_stop)
                 {
@@ -1904,7 +1905,7 @@ namespace Threading {
                 }
             }
 
-            if (!is_main_thread) continue;
+            if (!thread_main) continue;
 
             if (ContemptValue != 0)
             {
@@ -1992,7 +1993,7 @@ namespace Threading {
         searching = false;
         notify_one (); // Wake up main thread if is sleeping waiting for us
 
-        if (!is_main_thread) return;
+        if (!thread_main) return;
 
         // Clear any candidate easy move that wasn't stable for the last search iterations;
         // the second condition prevents consecutive fast moves.
