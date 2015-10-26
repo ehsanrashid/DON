@@ -20,8 +20,8 @@ namespace Threading {
     template<class T>
     T* new_thread ()
     {
-        thread *th = new T;
-        *th = thread (&T::idle_loop, (T*)th); // Will go to sleep
+        std::thread *th = new T;
+        *th = std::thread (&T::idle_loop, (T*)th); // Will go to sleep
         return (T*)th;
     }
 

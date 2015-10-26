@@ -275,7 +275,7 @@ namespace Searcher {
         {
             u32 elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
             assert (elapsed_time > 0);
-            const RootMoveVector &root_moves = pos.thread ()->root_moves;
+            const auto &root_moves = pos.thread ()->root_moves;
             u16 pv_index = pos.thread ()->pv_index;
             u64 game_nodes = Threadpool.game_nodes ();
 
@@ -377,7 +377,6 @@ namespace Searcher {
                 tt_bound = tte->bound ();
             }
 
-            auto *thread = pos.thread ();
             // Decide whether or not to include checks, this fixes also the type of
             // TT entry depth that are going to use. Note that in quien_search use
             // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
@@ -397,6 +396,7 @@ namespace Searcher {
             }
 
             auto futility_base = -VALUE_INFINITE;
+
             // Evaluate the position statically
             if (InCheck)
             {
@@ -446,6 +446,8 @@ namespace Searcher {
 
                 futility_base = best_value + VALUE_EG_PAWN/2; // QS Futility Margin
             }
+
+            auto *thread = pos.thread ();
 
             // Initialize a MovePicker object for the current position, and prepare
             // to search the moves. Because the depth is <= 0 here, only captures,
@@ -1026,7 +1028,6 @@ namespace Searcher {
                     {
                         continue;
                     }
-
                     // History based pruning
                     if (   depth <= 3*DEPTH_ONE
                         && thread->history_values[pos[org_sq (move)]][dst_sq (move)] < VALUE_ZERO
@@ -1035,10 +1036,8 @@ namespace Searcher {
                     {
                         continue;
                     }
-
                     // Value based pruning
                     auto predicted_depth = new_depth - reduction_depths<PVNode> (improving, depth, move_count);
-
                     // Futility pruning: parent node
                     if (predicted_depth < FutilityMarginDepth*DEPTH_ONE)
                     {
@@ -1050,8 +1049,7 @@ namespace Searcher {
                             continue;
                         }
                     }
-
-                    // Prune moves with negative SEE at low depths
+                    // Negative SEE pruning at low depths
                     if (   predicted_depth < RazorDepth*DEPTH_ONE
                         && pos.see_sign (move) < VALUE_ZERO
                        )
@@ -1290,7 +1288,7 @@ namespace Searcher {
                 auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
                 if (own_move_dst != SQ_NO)
                 {
-                    auto bonus = Value((depth / DEPTH_ONE)*(depth / DEPTH_ONE));
+                    auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
                     auto &own_cmv = CounterMoves2DValues[pos[own_move_dst]][own_move_dst];
                     own_cmv.update (pos, opp_move, bonus);
                 }
@@ -1545,7 +1543,7 @@ namespace Searcher {
             }
 
             // Convert from millisecs to nodes
-            Limits.clock[RootColor].time = i32 (available_nodes);
+            Limits.clock[RootColor].time = i32(available_nodes);
             Limits.clock[RootColor].inc *= NodesTime;
             Limits.npmsec = NodesTime;
         }
@@ -1591,7 +1589,7 @@ namespace Searcher {
         static PRNG prng (now ());
 
         _best_move = MOVE_NONE;
-        const RootMoveVector &root_moves = Threadpool.main ()->root_moves;
+        const auto &root_moves = Threadpool.main ()->root_moves;
         // RootMoves are already sorted by score in descending order
         auto variance   = std::min (root_moves[0].new_value - root_moves[PVLimit - 1].new_value, VALUE_MG_PAWN);
         auto weakness   = Value(MAX_DEPTH - 4 * _level);
@@ -1718,8 +1716,8 @@ namespace Threading {
         {
             if (   elapsed_time > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
                    // Still at first move
-                || (    bool(Signals.firstmove_root)
-                    && !bool(Signals.failedlow_root)
+                || (    Signals.firstmove_root
+                    && !Signals.failedlow_root
                     && elapsed_time > TimeMgr.available_time () * 0.75
                    )
                )
@@ -1780,7 +1778,7 @@ namespace Threading {
         // Do have to play with skill handicap?
         // In this case enable MultiPV search by skill pv size
         // that will use behind the scenes to get a set of possible moves.
-        PVLimit = std::min (std::max (MultiPV, u16 (SkillMgr.enabled () ? 4 : 0)), u16 (root_moves.size ()));
+        PVLimit = std::min (std::max (MultiPV, u16(SkillMgr.enabled () ? 4 : 0)), u16(root_moves.size ()));
 
         Value best_value = VALUE_ZERO
             , window     = VALUE_ZERO
@@ -1793,7 +1791,7 @@ namespace Threading {
             // Set up the new depth for the helper threads
             if (is_main_thread)
             {
-                root_depth = Threadpool.main ()->root_depth + Depth (int (3 * log (1 + this->index)));
+                root_depth = Threadpool.main ()->root_depth + Depth(i32(3 * log (1 + this->index)));
             }
 
             if (is_main_thread && Limits.use_time_manager ())
@@ -1815,7 +1813,7 @@ namespace Threading {
                 if (aspiration)
                 {
                     window = Value(18);
-                        //Value (depth <= 32*DEPTH_ONE ? 14 + (u16 (depth)-1)/4 : 22); // Increasing window
+                        //Value(depth <= 32*DEPTH_ONE ? 14 + (u16 (depth)-1)/4 : 22); // Increasing window
 
                     bound_a = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
                     bound_b = std::min (root_moves[pv_index].old_value + window, +VALUE_INFINITE);
@@ -1915,8 +1913,11 @@ namespace Threading {
                 DrawValue[~RootColor] = BaseContempt[~RootColor] + valued_contempt;
             }
 
-            // If skill levels are enabled and time is up, pick a sub-optimal best move
-            if (SkillMgr.enabled () && SkillMgr.depth_to_pick (root_depth)) SkillMgr.pick_best_move ();
+            // If skill level is enabled and time is up, pick a sub-optimal best move
+            if (SkillMgr.enabled () && SkillMgr.depth_to_pick (root_depth))
+            {
+                SkillMgr.pick_best_move ();
+            }
 
             if (!SearchFile.empty ())
             {

@@ -129,8 +129,8 @@
       <Field Name="_moves_end" />
       <Field Name="_quiets_end" />
       <Field Name="_bad_captures_end" />
-      <Field Name="_Pos" />
-      <Field Name="_HistoryValues" />
+      <Field Name="_pos" />
+      <Field Name="_history_values" />
       <Field Name="_ss" />
       <Field Name="_tt_move" />
       <Field Name="_counter_move" />

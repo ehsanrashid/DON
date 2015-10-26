@@ -20,10 +20,11 @@ namespace MovePick {
     private:
         T _table[PIECE_NO][SQ_NO];
 
+        //void _clear (Value &v) { std::memset (_table, 0x0, sizeof (_table)); }
         void _clear (Value &v) { v = VALUE_ZERO; }
-        void _clear (Move  &m) { m = MOVE_NONE; }
         void _clear (Stats<Value, false> &vs) { vs.clear (); }
         void _clear (Stats<Value,  true> &vs) { vs.clear (); }
+        void _clear (Move  &m) { m = MOVE_NONE; }
 
     public:
 
@@ -42,12 +43,13 @@ namespace MovePick {
         }
 
         // ------
+
         void update (const Position &pos, Move m, Value v)
         {
-            if (abs (i32 (v)) < 0x144)
+            if (abs (i32(v)) < 0x144)
             {
-                auto s = dst_sq (m);
-                auto p = pos[org_sq (m)];
+                auto  s = dst_sq (m);
+                auto  p = pos[org_sq (m)];
                 auto &e = _table[p][s];
                 e = std::min (std::max (e*(1.0 - abs (v)/(CM ? 0x200 : 0x144)) + v*(CM ? 0x40 : 0x20), -MAX_STATS_VALUE), +MAX_STATS_VALUE);
             }
@@ -57,8 +59,8 @@ namespace MovePick {
 
         void update (const Position &pos, Move mm, Move cm)
         {
-            auto s = dst_sq (mm);
-            auto p = pos[s];
+            auto  s = dst_sq (mm);
+            auto  p = pos[s];
             auto &e = _table[p][s];
             if (e != cm) e = cm;
         }
@@ -98,11 +100,10 @@ namespace MovePick {
             ,   *_quiets_end        = _moves_beg
             ,   *_bad_captures_end  = _moves_beg+MAX_MOVES-1;
 
-        const Position      &_Pos;
-        const HValueStats   &_HistoryValues;
-        const CMValueStats  *_CounterMovesValues;
-
-        const Stack  *_ss           = nullptr;
+        const Position      &_pos;
+        const HValueStats   &_history_values;
+        const CMValueStats  *_counter_moves_values = nullptr;
+        const Stack         *_ss    = nullptr;
 
         Move    _tt_move            = MOVE_NONE;
         Move    _counter_move       = MOVE_NONE;

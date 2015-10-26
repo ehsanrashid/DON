@@ -636,7 +636,7 @@ namespace EndGame {
                )
             {
                 assert (r > R_1 && r < R_7);
-                return ScaleFactor (KRPPKRPScaleFactors[r]);
+                return ScaleFactor(KRPPKRPScaleFactors[r]);
             }
         }
 

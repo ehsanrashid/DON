@@ -1010,17 +1010,16 @@ namespace Evaluator {
         // status of the players.
         Score evaluate_initiative (const Position& pos, int asymmetry, Value eg)
         {
-
-            int king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
-            int pawn_count = pos.count<PAWN> (WHITE) + pos.count<PAWN> (BLACK);
+            auto king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
+            auto pawn_count = pos.count<PAWN> (WHITE) + pos.count<PAWN> (BLACK);
 
             // Compute the initiative bonus for the attacking side
-            int initiative = 8 * (pawn_count + asymmetry + king_dist - 15);
+            auto initiative = 8 * (pawn_count + asymmetry + king_dist - 15);
 
             // Now apply the bonus: note that we find the attacking side by extracting
             // the sign of the endgame value, and that we carefully cap the bonus so
             // that the endgame score will never be divided by more than two.
-            int value = ((eg > 0) - (eg < 0)) * std::max (initiative, -abs (eg / 2));
+            auto value = ((eg > 0) - (eg < 0)) * std::max (initiative, -abs (eg / 2));
 
             return mk_score (0, value);
         }
@@ -1183,7 +1182,7 @@ namespace Evaluator {
                         && npm[BLACK] == VALUE_MG_BSHP
                        )
                     {
-                        scale_factor = more_than_one (pos.pieces (PAWN)) ? ScaleFactor (31) : ScaleFactor (9);
+                        scale_factor = more_than_one (pos.pieces (PAWN)) ? ScaleFactor(31) : ScaleFactor(9);
                     }
                     // Endgame with opposite-colored bishops, but also other pieces. Still
                     // a bit drawish, but not as drawish as with only the two bishops. 
