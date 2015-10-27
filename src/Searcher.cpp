@@ -421,8 +421,9 @@ namespace Searcher {
                 }
                 else
                 {
-                    ss->static_eval = best_value =
-                        (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
+                    ss->static_eval = best_value = (ss-1)->current_move != MOVE_NULL ?
+                                                        evaluate (pos) :
+                                                        -(ss-1)->static_eval + 2*TEMPO;
                 }
 
                 if (alpha < best_value)
@@ -720,8 +721,9 @@ namespace Searcher {
                 }
                 else
                 {
-                    ss->static_eval = static_eval =
-                        (ss-1)->current_move != MOVE_NULL ? evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
+                    ss->static_eval = static_eval = (ss-1)->current_move != MOVE_NULL ?
+                                                        evaluate (pos) :
+                                                        -(ss-1)->static_eval + 2*TEMPO;
 
                     tte->save (posi_key, MOVE_NONE, VALUE_NONE, ss->static_eval, DEPTH_NONE, BOUND_NONE, TT.generation ());
                 }
@@ -895,6 +897,18 @@ namespace Searcher {
             }
 
             // When in check search starts from here
+            if (   RootNode
+                && Threadpool.main () == thread
+                && TimeMgr.elapsed_time () > 3*MILLI_SEC
+               )
+            {
+                sync_cout
+                    << "info"
+                    << " depth " << depth/DEPTH_ONE
+                    << " time "  << TimeMgr.elapsed_time ()
+                    << sync_endl;
+            }
+
             auto value = best_value;
 
             bool improving =
@@ -910,18 +924,6 @@ namespace Searcher {
                 && tt_depth >= depth - 3*DEPTH_ONE
                 && abs (tt_value) < +VALUE_KNOWN_WIN
                 && (tt_bound & BOUND_LOWER);
-
-            if (   RootNode
-                && Threadpool.main () == thread
-                && TimeMgr.elapsed_time () > 3*MILLI_SEC
-               )
-            {
-                sync_cout
-                    << "info"
-                    << " depth " << depth/DEPTH_ONE
-                    << " time "  << TimeMgr.elapsed_time ()
-                    << sync_endl;
-            }
             
             const u08 MAX_QUIETS = 64;
             Move  quiet_moves[MAX_QUIETS]

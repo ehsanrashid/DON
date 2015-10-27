@@ -1,10 +1,8 @@
 #ifndef _THREAD_H_INC_
 #define _THREAD_H_INC_
 
-#include <atomic>
 #include <bitset>
 #include <thread>
-#include <vector>
 
 #include "thread_win32.h"
 
@@ -80,9 +78,9 @@ namespace Threading {
         std::atomic<bool> searching { false };
 
         Thread ();
-        
+
         void search (bool thread_main = false);
-        
+
         virtual void idle_loop () override;
     };
 
@@ -92,12 +90,12 @@ namespace Threading {
     {
     public:
         std::atomic<bool> thinking { true }; // Avoid a race with start_thinking()
-       
+
         // MainThread::join() waits for main thread to finish thinking
         void join ()
         {
             std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&] { return !bool(thinking); });
+            sleep_condition.wait (lk, [&]{ return !bool(thinking); });
         }
 
         void think ();

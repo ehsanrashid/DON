@@ -155,10 +155,10 @@ namespace EndGame {
                     + PUSH_TO_EDGE[wk_sq]
                     + PUSH_CLOSE[dist (sk_sq, wk_sq)];
 
-        if (    pos.count<QUEN> (_strong_side) > 0
-            ||  pos.count<ROOK> (_strong_side) > 0
+        if (    pos.count<QUEN> (_strong_side) != 0
+            ||  pos.count<ROOK> (_strong_side) != 0
             ||  pos.bishops_pair (_strong_side)
-            || (pos.count<BSHP> (_strong_side) > 0 && pos.count<NIHT> (_strong_side) > 0)
+            || (pos.count<BSHP> (_strong_side) != 0 && pos.count<NIHT> (_strong_side) != 0)
             ||  pos.count<NIHT> (_strong_side) > 2
            )
         {

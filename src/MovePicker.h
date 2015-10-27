@@ -46,7 +46,7 @@ namespace MovePick {
 
         void update (const Position &pos, Move m, Value v)
         {
-            if (abs (i32(v)) < 0x144)
+            if (abs (v) < 0x144)
             {
                 auto  s = dst_sq (m);
                 auto  p = pos[org_sq (m)];

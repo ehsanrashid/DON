@@ -70,7 +70,7 @@ namespace Threading {
 
             if (alive && searching)
             {
-                search ();
+                search (false);
             }
         }
     }
