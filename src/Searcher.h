@@ -171,7 +171,7 @@ namespace Searcher {
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
         {
-            os << std::string (rm);
+            os << std::string(rm);
             return os;
         }
 
@@ -202,7 +202,7 @@ namespace Searcher {
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &rmv)
         {
-            os << std::string (rmv);
+            os << std::string(rmv);
             return os;
         }
     };
@@ -216,13 +216,13 @@ namespace Searcher {
         Move *pv = nullptr;
         u16  ply = 0;
 
-        Move tt_move       = MOVE_NONE
-            , current_move = MOVE_NONE
-            , exclude_move = MOVE_NONE
-            , killer_moves[2];
+        Move tt_move      = MOVE_NONE
+           , current_move = MOVE_NONE
+           , exclude_move = MOVE_NONE
+           , killer_moves[2];
 
-        Value   static_eval = VALUE_NONE;
-        bool    firstmove_pv = false;
+        Value static_eval = VALUE_NONE;
+        bool firstmove_pv = false;
     };
 
     // TimeManager class computes the optimal time to think depending on the

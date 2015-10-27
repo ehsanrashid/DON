@@ -116,14 +116,15 @@ namespace Pawns {
         template<Color Own>
         inline Score evaluate (const Position &pos, Entry *e)
         {
-            const auto Opp   = WHITE == Own ? BLACK  : WHITE;
-            const auto Push  = WHITE == Own ? DEL_N  : DEL_S;
+            const auto Opp  = WHITE == Own ? BLACK  : WHITE;
+            const auto Push = WHITE == Own ? DEL_N  : DEL_S;
+            const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
+            const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 
             const auto own_pawns = pos.pieces (Own, PAWN);
             const auto opp_pawns = pos.pieces (Opp, PAWN);
 
-            e->pawns_attacks  [Own] = shift_bb<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns)
-                                    | shift_bb<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
+            e->pawns_attacks  [Own] = shift_bb<LCap> (own_pawns) | shift_bb<RCap> (own_pawns);
             e->passed_pawns   [Own] = U64(0);
             e->semiopen_files [Own] = 0xFF;
             e->king_sq        [Own] = SQ_NO;
@@ -246,8 +247,8 @@ namespace Pawns {
 
             // Center binds: Two pawns controlling the same central square
             b = CENTER_BIND_MASK[Own]
-              & shift_bb<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns)
-              & shift_bb<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
+              & shift_bb<LCap> (own_pawns)
+              & shift_bb<RCap> (own_pawns);
             pawn_score += CENTER_BIND * pop_count<MAX15> (b);
 
             return pawn_score;

@@ -295,6 +295,8 @@ namespace Evaluator {
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
             const auto Push = WHITE == Own ? DEL_N: DEL_S;
+            const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
+            const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 
             auto pinneds = ei.pinneds[Own] = pos.pinneds (Own);
             ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PAWN] = ei.pe->pawns_attacks[Own];
@@ -303,8 +305,7 @@ namespace Evaluator {
             if (pinned_pawns != U64(0))
             {
                 auto free_pawns    = pos.pieces (Own, PAWN) & ~pinned_pawns;
-                auto pawns_attacks = shift_bb<WHITE == Own ? DEL_NE : DEL_SW> (free_pawns)
-                                   | shift_bb<WHITE == Own ? DEL_NW : DEL_SE> (free_pawns);
+                auto pawns_attacks = shift_bb<LCap> (free_pawns) | shift_bb<RCap> (free_pawns);
                 while (pinned_pawns != U64(0))
                 {
                     auto s = pop_lsq (pinned_pawns);

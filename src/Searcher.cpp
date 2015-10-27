@@ -1367,21 +1367,21 @@ namespace Searcher {
         u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
         {
             // When in trouble, can step over reserved time with this ratio
-            const double StepRatio  = RT_OPTIMUM == TT ? 1.0 : 7.00;
+            const double  StepRatio = RT_OPTIMUM == TT ? 1.0 : 7.00;
             // However must not steal time from remaining moves over this ratio
             const double StealRatio = RT_MAXIMUM == TT ? 0.0 : 0.33;
 
-            double this_move_imp = move_importance (game_ply) * MoveSlowness / 100;
-            double that_move_imp = 0.0;
+            double move_imp = move_importance (game_ply) * MoveSlowness / 0x64;
+            double remain_move_imp = 0.0;
             for (u08 i = 1; i < movestogo; ++i)
             {
-                that_move_imp += move_importance (game_ply + 2 * i);
+                remain_move_imp += move_importance (game_ply + 2 * i);
             }
 
-            double time_ratio_1 = (0             + this_move_imp * StepRatio ) / (this_move_imp * StepRatio + that_move_imp);
-            double time_ratio_2 = (this_move_imp + that_move_imp * StealRatio) / (this_move_imp * 1         + that_move_imp);
+            double  step_time_ratio = (0        +        move_imp * StepRatio ) / (move_imp * StepRatio + remain_move_imp);
+            double steal_time_ratio = (move_imp + remain_move_imp * StealRatio) / (move_imp * 1         + remain_move_imp);
 
-            return u32(time * std::min (time_ratio_1, time_ratio_2));
+            return u32(time * std::min (step_time_ratio, steal_time_ratio));
         }
 
     }
@@ -1417,7 +1417,7 @@ namespace Searcher {
     u32  OverheadClockTime   =  60; // Attempt to keep at least this much time at clock, in milliseconds.
     u32  OverheadMoveTime    =  30; // Attempt to keep at least this much time for each remaining move, in milliseconds.
     u32  MinimumMoveTime     =  20; // No matter what, use at least this much time before doing the move, in milliseconds.
-    u32  MoveSlowness        = 100; // Move Slowness, in %age.
+    u32  MoveSlowness        =  80; // Move Slowness, in %age.
     u32  NodesTime           =   0;
     bool Ponder              = true; // Whether or not the engine should analyze when it is the opponent's turn.
 

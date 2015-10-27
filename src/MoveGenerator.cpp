@@ -175,12 +175,15 @@ namespace MoveGen {
                     }
                 }
                 //else
-                //if (CHECK == GT && ci != nullptr)
+                //if (CHECK == GT)
                 //{
-                //    if ((PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
-                //    if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
-                //    if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
-                //    if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
+                //    if (ci != nullptr)
+                //    {
+                //        if ((PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                //        if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
+                //        if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
+                //        if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
+                //    }
                 //}
                 else
                 {
@@ -194,16 +197,16 @@ namespace MoveGen {
             {
                 const auto Opp      = WHITE == Own ? BLACK  : WHITE;
                 const auto Push     = WHITE == Own ? DEL_N  : DEL_S;
-                const auto Right    = WHITE == Own ? DEL_NE : DEL_SW;
-                const auto Left     = WHITE == Own ? DEL_NW : DEL_SE;
+                const auto LCap     = WHITE == Own ? DEL_NW : DEL_SE;
+                const auto RCap     = WHITE == Own ? DEL_NE : DEL_SW;
                 const auto Rank3BB  = WHITE == Own ? R3_bb  : R6_bb;
                 const auto Rank5BB  = WHITE == Own ? R5_bb  : R4_bb;
                 //const auto Rank6BB  = WHITE == Own ? R6_bb  : R3_bb;
                 const auto Rank7BB  = WHITE == Own ? R7_bb  : R2_bb;
                 const auto Rank8BB  = WHITE == Own ? R8_bb  : R1_bb;
 
-                auto R7_pawns = pos.pieces (Own, PAWN) &  Rank7BB;
-                auto Rx_pawns = pos.pieces (Own, PAWN) & ~Rank7BB;
+                auto R7_pawns = pos.pieces (Own, PAWN) &  Rank7BB;  // Pawns on 7th Rank
+                auto Rx_pawns = pos.pieces (Own, PAWN) & ~Rank7BB;  // Pawns not on 7th Rank
 
                 auto enemies = EVASION == GT ? pos.pieces (Opp) & targets :
                                CAPTURE == GT ? targets : pos.pieces (Opp);
@@ -257,11 +260,11 @@ namespace MoveGen {
                 // Pawn normal and en-passant captures, no promotions
                 if (RELAX == GT || CAPTURE == GT || EVASION == GT)
                 {
-                    auto l_attacks = enemies & shift_bb<Left > (Rx_pawns);
-                    auto r_attacks = enemies & shift_bb<Right> (Rx_pawns);
+                    auto l_attacks = enemies & shift_bb<LCap> (Rx_pawns);
+                    auto r_attacks = enemies & shift_bb<RCap> (Rx_pawns);
 
-                    while (l_attacks != U64(0)) { auto dst = pop_lsq (l_attacks); *moves++ = mk_move<NORMAL> (dst - Left , dst); }
-                    while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); *moves++ = mk_move<NORMAL> (dst - Right, dst); }
+                    while (l_attacks != U64(0)) { auto dst = pop_lsq (l_attacks); *moves++ = mk_move<NORMAL> (dst - LCap , dst); }
+                    while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); *moves++ = mk_move<NORMAL> (dst - RCap, dst); }
 
                     auto ep_sq = pos.en_passant_sq ();
                     if (SQ_NO != ep_sq)
@@ -297,14 +300,14 @@ namespace MoveGen {
 
                         // Promoting pawns
                         Bitboard proms;
-                        proms = empties & shift_bb<Push > (R7_pawns);
-                        while (proms != U64(0)) generate_promotion<Push > (moves, pop_lsq (proms), ci);
+                        proms = empties & shift_bb<Push> (R7_pawns);
+                        while (proms != U64(0)) generate_promotion<Push> (moves, pop_lsq (proms), ci);
 
-                        proms = enemies & shift_bb<Right> (R7_pawns);
-                        while (proms != U64(0)) generate_promotion<Right> (moves, pop_lsq (proms), ci);
+                        proms = enemies & shift_bb<RCap> (R7_pawns);
+                        while (proms != U64(0)) generate_promotion<RCap> (moves, pop_lsq (proms), ci);
 
-                        proms = enemies & shift_bb<Left > (R7_pawns);
-                        while (proms != U64(0)) generate_promotion<Left > (moves, pop_lsq (proms), ci);
+                        proms = enemies & shift_bb<LCap> (R7_pawns);
+                        while (proms != U64(0)) generate_promotion<LCap> (moves, pop_lsq (proms), ci);
                     }
                 }
             }
