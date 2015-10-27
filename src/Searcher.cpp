@@ -951,7 +951,12 @@ namespace Searcher {
                 // At root obey the "searchmoves" option and skip moves not listed in
                 // RootMove list, as a consequence any illegal move is also skipped.
                 // In MultiPV mode also skip PV moves which have been already searched.
-                if (RootNode && std::count (thread->root_moves.begin () + thread->pv_index, thread->root_moves.end (), move) == 0) continue;
+                if (   RootNode
+                    && std::count (thread->root_moves.begin () + thread->pv_index, thread->root_moves.end (), move) == 0
+                   )
+                {
+                    continue;
+                }
 
                 bool move_legal = RootNode || pos.legal (move, ci.pinneds);
 
@@ -1769,7 +1774,7 @@ namespace Threading {
         {
             easy_move = MoveMgr.easy_move (root_pos.posi_key ());
             MoveMgr.clear ();
-            TT.generation (RootPly);
+            TT.generation (RootPly + 1);
             if (Limits.use_time_manager ())
             {
                 TimeMgr.best_move_change = 0.0;
@@ -1791,16 +1796,16 @@ namespace Threading {
         // Iterative deepening loop until target depth reached
         while (++root_depth < DEPTH_MAX && !Signals.force_stop && (0 == Limits.depth || root_depth <= Limits.depth))
         {
-            // Set up the new depth for the helper threads
             if (thread_main)
             {
+                // Set up the new depth for the helper threads
                 root_depth = Threadpool.main ()->root_depth + Depth(i32(3 * log (1 + this->index)));
-            }
-
-            if (thread_main && Limits.use_time_manager ())
-            {
-                // Age out PV variability metric
-                TimeMgr.best_move_change *= 0.5;
+                
+                if (Limits.use_time_manager ())
+                {
+                    // Age out PV variability metric
+                    TimeMgr.best_move_change *= 0.5;
+                }
             }
 
             // Save last iteration's scores before first PV line is searched and
@@ -2073,7 +2078,7 @@ namespace Threading {
                 && Limits.use_time_manager ()
                 && (diff_time = (Limits.clock[RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
                 //&& ContemptTime <= abs (diff_time)
-                )
+               )
             {
                 timed_contempt = i16 (diff_time/ContemptTime);
             }

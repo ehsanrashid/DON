@@ -95,7 +95,7 @@ namespace Searcher {
 
         bool enabled () const { return _level < MAX_SKILL_LEVEL; }
 
-        bool depth_to_pick (Depth depth) const { return depth/DEPTH_ONE == 1 + _level; }
+        bool depth_to_pick (Depth depth) const { return depth/DEPTH_ONE == (1 + _level); }
 
         Move best_move () { return _best_move != MOVE_NONE ? _best_move : pick_best_move (); }
         
@@ -157,7 +157,7 @@ namespace Searcher {
         Move operator[] (i32 index) const { return pv[index]; }
 
         void operator+= (Move m) { pv.push_back (m); }
-        void operator-= (Move m) { pv.erase (remove (pv.begin (), pv.end (), m), pv.end ()); }
+        void operator-= (Move m) { pv.erase (std::remove (pv.begin (), pv.end (), m), pv.end ()); }
 
         size_t size () const { return pv.size (); }
 
@@ -184,9 +184,7 @@ namespace Searcher {
     public:
 
         void operator+= (const RootMove &rm) { push_back (rm); }
-        void operator-= (const RootMove &rm) { erase (remove (begin (), end (), rm), end ()); }
-
-        void initialize (const Position &pos);
+        void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
        
         void backup ()
         {
@@ -195,6 +193,8 @@ namespace Searcher {
                 rm.backup ();
             }
         }
+
+        void initialize (const Position &pos);
 
         operator std::string () const;
 
