@@ -15,7 +15,7 @@ namespace OpeningBook  {
     using namespace MoveGen;
     using namespace Notation;
 
-    #define STM_POS(x)  (u64(HeaderSize) + (x)*u64(EntrySize))
+    #define OFFSET(x)  (u64(HeaderSize) + (x)*u64(EntrySize))
 
     const streampos PolyglotBook::EntrySize  = sizeof (PBEntry);
     const streampos PolyglotBook::HeaderSize = 0*EntrySize;
@@ -156,42 +156,41 @@ namespace OpeningBook  {
     {
         if (!is_open ()) return ErrorIndex;
 
-        auto beg_pos = streampos(0);
-        auto end_pos = streampos((size () - HeaderSize) / EntrySize - 1);
+        auto beg_index = streampos(0);
+        auto end_index = streampos((size () - HeaderSize) / EntrySize - 1);
 
         PBEntry pbe;
 
-        assert (beg_pos <= end_pos);
+        assert (beg_index <= end_index);
 
-        if (beg_pos == end_pos)
+        if (beg_index != end_index)
         {
-            seekg (STM_POS (beg_pos));
-            *this >> pbe;
-        }
-        else
-        {
-            while (beg_pos < end_pos && good ())
+            while (beg_index < end_index && good ())
             {
-                auto mid_pos = (beg_pos + end_pos) / 2;
-                assert (mid_pos >= beg_pos && mid_pos < end_pos);
+                auto mid_index = (beg_index + end_index) / 2;
+                assert (mid_index >= beg_index && mid_index < end_index);
 
-                seekg (STM_POS (mid_pos));
-
+                seekg (OFFSET (mid_index), ios_base::beg);
                 *this >> pbe;
+
                 if (key <= pbe.key)
                 {
-                    end_pos = mid_pos;
+                    end_index = mid_index;
                 }
                 else
                 {
-                    beg_pos = mid_pos + streampos(1);
+                    beg_index = mid_index + streampos(1);
                 }
             }
-
-            assert (beg_pos == end_pos);
+            assert (beg_index == end_index);
         }
         
-        return (key == pbe.key) ? beg_pos : ErrorIndex;
+        seekg (OFFSET (beg_index), ios_base::beg);
+        *this >> pbe;
+
+        return key == pbe.key ?
+                beg_index :
+                ErrorIndex;
     }
     streampos PolyglotBook::find_index (const Position &pos)
     {
@@ -212,7 +211,7 @@ namespace OpeningBook  {
         auto index = find_index (key);
         if (ErrorIndex == index) return MOVE_NONE;
 
-        seekg (STM_POS (index));
+        seekg (OFFSET (index));
 
         auto move = MOVE_NONE;
 
@@ -342,7 +341,7 @@ namespace OpeningBook  {
             return "";
         }
 
-        seekg (STM_POS (index));
+        seekg (OFFSET (index));
 
         PBEntry pbe;
 
