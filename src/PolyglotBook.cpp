@@ -19,7 +19,6 @@ namespace OpeningBook  {
 
     const streampos PolyglotBook::EntrySize  = sizeof (PBEntry);
     const streampos PolyglotBook::HeaderSize = 0*EntrySize;
-    const streampos PolyglotBook::ErrorIndex = streampos(-1);
 
     bool operator== (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
@@ -74,11 +73,11 @@ namespace OpeningBook  {
         PieceT pt = PieceT((m >> 12) & TOTL);
         if (pt != PAWN) promote (m, pt);
 
-        oss << setfill ('0') << " key: "    << setw (16) << hex << uppercase << key << nouppercase << dec
-            << setfill (' ') << " move: "   << setw ( 5) << hex << uppercase << left << move_to_can (m) << right << nouppercase << dec
-            << setfill ('0') << " weight: " << setw ( 4) << dec << weight
-            << setfill ('0') << " learn: "  << setw ( 2) << dec << learn
-            << setfill (' ');
+        oss << " key: "    << std::setw (16) << std::hex << std::uppercase << std::setfill ('0') << key
+            << " move: "   << std::setw ( 5) << std::hex << std::uppercase << std::setfill (' ') << move_to_can (m)
+            << " weight: " << std::setw ( 4) << std::dec << std::setfill ('0') << weight
+            << " learn: "  << std::setw ( 2) << std::dec << std::setfill ('0') << learn
+            << setfill (' ') << std::nouppercase;
 
         return oss.str ();
     }
@@ -154,7 +153,7 @@ namespace OpeningBook  {
 
     streampos PolyglotBook::find_index (const Key key)
     {
-        if (!is_open ()) return ErrorIndex;
+        if (!is_open ()) return streampos(-1);
 
         auto beg_index = streampos(0);
         auto end_index = streampos((size () - HeaderSize) / EntrySize - 1);
@@ -184,14 +183,10 @@ namespace OpeningBook  {
             }
             assert (beg_index == end_index);
         }
-        
-        seekg (OFFSET (beg_index), ios_base::beg);
-        *this >> pbe;
 
-        return key == pbe.key ?
-                beg_index :
-                ErrorIndex;
+        return beg_index;
     }
+
     streampos PolyglotBook::find_index (const Position &pos)
     {
         return find_index (pos.posi_key ());
@@ -209,7 +204,6 @@ namespace OpeningBook  {
         Key key = pos.posi_key ();
 
         auto index = find_index (key);
-        if (ErrorIndex == index) return MOVE_NONE;
 
         seekg (OFFSET (index));
 
@@ -220,19 +214,19 @@ namespace OpeningBook  {
         u16 max_weight = 0;
         u32 weight_sum = 0;
 
-        //vector<PBEntry> pe_list;
+        //vector<PBEntry> pbes;
         //while ((*this >> pbe), (pbe.key == key))
         //{
-        //    pe_list.push_back (pbe);
+        //    pbes.push_back (pbe);
         //    max_weight = max (max_weight, pbe.weight);
         //    weight_sum += pbe.weight;
         //}
-        //if (!pe_list.size ()) return MOVE_NONE;
+        //if (!pbes.size ()) return MOVE_NONE;
         //
         //if (pick_best)
         //{
-        //    vector<PBEntry>::const_iterator ms = pe_list.begin ();
-        //    while (ms != pe_list.end ())
+        //    vector<PBEntry>::const_iterator ms = pbes.begin ();
+        //    while (ms != pbes.end ())
         //    {
         //        pbe = *ms;
         //        if (pbe.weight == max_weight)
@@ -251,8 +245,8 @@ namespace OpeningBook  {
         //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
         //
         //    u32 rand = (pr.rand<u32> () % weight_sum);
-        //    vector<PBEntry>::const_iterator ms = pe_list.begin ();
-        //    while (ms != pe_list.end ())
+        //    vector<PBEntry>::const_iterator ms = pbes.begin ();
+        //    while (ms != pbes.end ())
         //    {
         //        pbe = *ms;
         //        if (pbe.weight > rand)
@@ -333,37 +327,37 @@ namespace OpeningBook  {
         Key key = pos.posi_key ();
 
         auto index = find_index (key);
-        if (ErrorIndex == index)
-        {
-            cerr << "ERROR: no such key... "
-                << hex << uppercase << key << nouppercase << dec
-                << endl;
-            return "";
-        }
 
         seekg (OFFSET (index));
 
         PBEntry pbe;
 
-        vector<PBEntry> pe_list;
+        vector<PBEntry> pbes;
 
         u32 weight_sum = 0;
         while ((*this >> pbe), (pbe.key == key))
         {
-            pe_list.push_back (pbe);
+            pbes.push_back (pbe);
             weight_sum += pbe.weight;
         }
-
-        //TODO::
+        
         ostringstream oss;
-        //for_each (pe_list.begin (), pe_list.end (), [&oss, &weight_sum] (PBEntry _pbe)
-        //{
-        //    oss << setfill ('0')
-        //        << _pbe << " prob: " << right << fixed << width_prec (6, 2)
-        //        << (weight_sum ? 100.0 * (double) _pbe.weight / weight_sum : 0.0)
-        //        << setfill (' ') << endl;
-        //});
 
+        if (pbes.size () == 0)
+        {
+            cerr << "ERROR: no such key... "
+                << std::hex << std::uppercase << key << std::nouppercase << std::dec
+                << endl;
+        }
+        else
+        {
+            for_each (pbes.begin (), pbes.end (), [&oss, &weight_sum] (PBEntry pbe)
+            {
+                oss << std::setfill ('0') << pbe
+                    << " prob: " << std::right << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * (double) pbe.weight / weight_sum : 0.0)
+                    << std::setfill (' ') << endl;
+            });
+        }
         return oss.str ();
     }
 

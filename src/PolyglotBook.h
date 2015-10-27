@@ -46,7 +46,6 @@ namespace OpeningBook {
 
         static const streampos EntrySize;
         static const streampos HeaderSize;
-        static const streampos ErrorIndex;
 
     private:
 
