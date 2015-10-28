@@ -24,27 +24,34 @@ namespace MoveGen {
                 Square s;
                 while ((s = *pl++) != SQ_NO)
                 {
-                    if ((CHECK == GT || QUIET_CHECK == GT) && ci != nullptr)
+                    if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (    (BSHP == PT || ROOK == PT || QUEN == PT)
-                            && !(PIECE_ATTACKS[PT][s] & targets & ci->checking_bb[PT])
-                           )
+                        if (ci != nullptr)
                         {
-                            continue;
-                        }
-                        if (ci->discoverers != U64(0) && (ci->discoverers & s) != U64(0))
-                        {
-                            continue;
+                            if (   (BSHP == PT || ROOK == PT || QUEN == PT)
+                                && (PIECE_ATTACKS[PT][s] & targets & ci->checking_bb[PT]) == U64(0)
+                               )
+                            {
+                                continue;
+                            }
+                            if (ci->discoverers != U64(0) && (ci->discoverers & s) != U64(0))
+                            {
+                                continue;
+                            }
                         }
                     }
 
                     auto attacks = attacks_bb<PT> (s, pos.pieces ()) & targets;
-                    if ((CHECK == GT || QUIET_CHECK == GT) && ci != nullptr)
+                    
+                    if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        attacks &= ci->checking_bb[PT];
+                        if (ci != nullptr)
+                        {
+                            attacks &= ci->checking_bb[PT];
+                        }
                     }
 
-                    while (attacks != U64(0)) { *moves++ = mk_move<NORMAL> (s, pop_lsq (attacks)); }
+                    while (attacks != U64(0)) { *moves++ = mk_move (s, pop_lsq (attacks)); }
                 }
             }
 
@@ -114,26 +121,29 @@ namespace MoveGen {
                 {
                     auto king_sq = pos.square<KING> (Own);
                     auto attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.square<KING> (Opp)] & targets;
-                    while (attacks != U64(0)) { *moves++ = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
+                    while (attacks != U64(0)) { *moves++ = mk_move (king_sq, pop_lsq (attacks)); }
                 }
 
-                if (CAPTURE != GT && pos.can_castle (Own) && pos.checkers () == U64(0))
+                if (CAPTURE != GT)
                 {
-                    CheckInfo cc;
-                    if (ci == nullptr) { cc = CheckInfo (pos); ci = &cc; }
-
-                    if (pos.can_castle (Castling<Own, CS_KING>::Right) && !pos.castle_impeded (Castling<Own, CS_KING>::Right))
+                    if (pos.can_castle (Own) && pos.checkers () == U64 (0))
                     {
-                        pos.chess960 () ?
-                            generate_castling<Castling<Own, CS_KING>::Right, true > (moves, pos, ci) :
-                            generate_castling<Castling<Own, CS_KING>::Right, false> (moves, pos, ci);
-                    }
+                        CheckInfo cc;
+                        if (ci == nullptr) { cc = CheckInfo (pos); ci = &cc; }
 
-                    if (pos.can_castle (Castling<Own, CS_QUEN>::Right) && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right))
-                    {
-                        pos.chess960 () ?
-                            generate_castling<Castling<Own, CS_QUEN>::Right, true > (moves, pos, ci) :
-                            generate_castling<Castling<Own, CS_QUEN>::Right, false> (moves, pos, ci);
+                        if (pos.can_castle (Castling<Own, CS_KING>::Right) && !pos.castle_impeded (Castling<Own, CS_KING>::Right))
+                        {
+                            pos.chess960 () ?
+                                generate_castling<Castling<Own, CS_KING>::Right, true > (moves, pos, ci) :
+                                generate_castling<Castling<Own, CS_KING>::Right, false> (moves, pos, ci);
+                        }
+
+                        if (pos.can_castle (Castling<Own, CS_QUEN>::Right) && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right))
+                        {
+                            pos.chess960 () ?
+                                generate_castling<Castling<Own, CS_QUEN>::Right, true > (moves, pos, ci) :
+                                generate_castling<Castling<Own, CS_QUEN>::Right, false> (moves, pos, ci);
+                        }
                     }
                 }
             }
@@ -201,7 +211,6 @@ namespace MoveGen {
                 const auto RCap     = WHITE == Own ? DEL_NE : DEL_SW;
                 const auto Rank3BB  = WHITE == Own ? R3_bb  : R6_bb;
                 const auto Rank5BB  = WHITE == Own ? R5_bb  : R4_bb;
-                //const auto Rank6BB  = WHITE == Own ? R6_bb  : R3_bb;
                 const auto Rank7BB  = WHITE == Own ? R7_bb  : R2_bb;
                 const auto Rank8BB  = WHITE == Own ? R8_bb  : R1_bb;
 
@@ -254,8 +263,8 @@ namespace MoveGen {
                     default: break;
                     }
                     
-                    while (push_1 != U64(0)) { auto dst = pop_lsq (push_1); *moves++ = mk_move<NORMAL> (dst - Push, dst); }
-                    while (push_2 != U64(0)) { auto dst = pop_lsq (push_2); *moves++ = mk_move<NORMAL> (dst - Push-Push, dst); }
+                    while (push_1 != U64(0)) { auto dst = pop_lsq (push_1); *moves++ = mk_move (dst - Push, dst); }
+                    while (push_2 != U64(0)) { auto dst = pop_lsq (push_2); *moves++ = mk_move (dst - Push-Push, dst); }
                 }
                 // Pawn normal and en-passant captures, no promotions
                 if (RELAX == GT || CAPTURE == GT || EVASION == GT)
@@ -263,13 +272,13 @@ namespace MoveGen {
                     auto l_attacks = enemies & shift_bb<LCap> (Rx_pawns);
                     auto r_attacks = enemies & shift_bb<RCap> (Rx_pawns);
 
-                    while (l_attacks != U64(0)) { auto dst = pop_lsq (l_attacks); *moves++ = mk_move<NORMAL> (dst - LCap , dst); }
-                    while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); *moves++ = mk_move<NORMAL> (dst - RCap, dst); }
+                    while (l_attacks != U64(0)) { auto dst = pop_lsq (l_attacks); *moves++ = mk_move (dst - LCap, dst); }
+                    while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); *moves++ = mk_move (dst - RCap, dst); }
 
                     auto ep_sq = pos.en_passant_sq ();
                     if (SQ_NO != ep_sq)
                     {
-                        //assert (_rank (ep_sq) == Rank6BB);
+                        assert (_rank (ep_sq) == rel_rank (Own, R_6));
 
                         if ((Rx_pawns & Rank5BB) != U64(0))
                         {
@@ -279,7 +288,7 @@ namespace MoveGen {
                             // All time except when EVASION then 2nd condition must true
                             if (EVASION != GT || (targets & (ep_sq - Push)) != U64(0))
                             {
-                                auto ep_attacks = PAWN_ATTACKS[Opp][ep_sq] & Rx_pawns & Rank5BB;
+                                auto ep_attacks = Rx_pawns & Rank5BB & PAWN_ATTACKS[Opp][ep_sq];
                                 assert (ep_attacks != U64(0));
                                 assert (pop_count<MAX15> (ep_attacks) <= 2);
 
@@ -383,7 +392,7 @@ namespace MoveGen {
 
             if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
-            while (attacks != U64(0)) { *moves++ = mk_move<NORMAL> (org, pop_lsq (attacks)); }
+            while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
         }
 
         return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets, &ci) :
@@ -409,7 +418,7 @@ namespace MoveGen {
 
             if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
-            while (attacks != U64(0)) { *moves++ = mk_move<NORMAL> (org, pop_lsq (attacks)); }
+            while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
         }
 
         return WHITE == active ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
@@ -469,7 +478,7 @@ namespace MoveGen {
                 | PIECE_ATTACKS[KING][pos.square<KING> (~active)]
                );
 
-        while (attacks != U64(0)) { *moves++ = mk_move<NORMAL> (king_sq, pop_lsq (attacks)); }
+        while (attacks != U64(0)) { *moves++ = mk_move (king_sq, pop_lsq (attacks)); }
 
         // If double-check, then only a king move can save the day, triple+ check not possible
         if (more_than_one (checkers) || pos.count<NONE> (active) <= 1) return moves;
@@ -492,8 +501,8 @@ namespace MoveGen {
                             generate<EVASION> (moves, pos) :
                             generate<RELAX  > (moves, pos);
 
-        auto king_sq = pos.square<KING> (pos.active ());
         auto pinneds = pos.pinneds (pos.active ());
+        auto king_sq = pos.square<KING> (pos.active ());
         while (moves_cur != moves_end)
         {
             if (   (   pinneds != U64(0)

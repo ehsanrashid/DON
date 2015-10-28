@@ -169,7 +169,7 @@ namespace Material {
             EndgameBase<ScaleFactor> *scaling_func;
             if ((scaling_func = EndGames->probe<ScaleFactor> (matl_key)) != nullptr)
             {
-                e->scaling_func[scaling_func->strong_side ()] = scaling_func;
+                e->scaling_func[scaling_func->strong_side ()] = scaling_func; // Only strong color assigned
                 return e;
             }
 

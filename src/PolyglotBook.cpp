@@ -334,12 +334,12 @@ namespace OpeningBook  {
             seekg (OFFSET (index));
 
             vector<PBEntry> pbes;
-            PBEntry pbe;
+            PBEntry tmp_pbe;
             u32 weight_sum = 0;
-            while ((*this >> pbe), (pbe.key == key))
+            while ((*this >> tmp_pbe), (tmp_pbe.key == key))
             {
-                pbes.push_back (pbe);
-                weight_sum += pbe.weight;
+                pbes.push_back (tmp_pbe);
+                weight_sum += tmp_pbe.weight;
             }
         
             if (pbes.size () == 0)

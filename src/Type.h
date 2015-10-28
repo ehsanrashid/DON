@@ -506,31 +506,31 @@ inline i32    operator/  (Depth d1, Depth d2) { return i32(d1) / i32(d2); }
 inline bool   _ok       (Color c) { return WHITE == c || BLACK == c; }
 inline Color  operator~ (Color c) { return Color(c^BLACK); }
 
-inline bool   _ok       (File f) { return    !(f & ~i08(F_H)); }
-inline File   operator~ (File f) { return File(f ^  i08(F_H)); }
+inline bool   _ok       (File f) { return    !(f & ~F_H); }
+inline File   operator~ (File f) { return File(f ^  F_H); }
 inline File   to_file   (char f) { return File(f - 'a'); }
 
-inline bool   _ok       (Rank r) { return    !(r & ~i08(R_8)); }
-inline Rank   operator~ (Rank r) { return Rank(r ^  i08(R_8)); }
+inline bool   _ok       (Rank r) { return    !(r & ~R_8); }
+inline Rank   operator~ (Rank r) { return Rank(r ^  R_8); }
 inline Rank   to_rank   (char r) { return Rank(r - '1'); }
 
-inline Square operator| (File f, Rank r) { return Square(( r << 3) | i08(f)); }
-inline Square operator| (Rank r, File f) { return Square((~r << 3) | i08(f)); }
+inline Square operator| (File f, Rank r) { return Square(( r << 3) | f); }
+inline Square operator| (Rank r, File f) { return Square((~r << 3) | f); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
-inline bool   _ok   (Square s) { return    !(s & ~i08(SQ_H8)); }
-inline File   _file (Square s) { return File(s &  i08(F_H)); }
+inline bool   _ok   (Square s) { return    !(s & ~SQ_H8); }
+inline File   _file (Square s) { return File(s &  F_H); }
 inline Rank   _rank (Square s) { return Rank(s >> 3); }
 inline Color  color (Square s) { return Color(!((s ^ (s >> 3)) & BLACK)); }
 
 // FLIP   => SQ_A1 -> SQ_A8
-inline Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
+inline Square operator~ (Square s) { return Square(s ^ SQ_A8); }
 // MIRROR => SQ_A1 -> SQ_H1
-inline Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
+inline Square operator! (Square s) { return Square(s ^ SQ_H1); }
 
-inline Rank   rel_rank  (Color c, Rank   r) { return   Rank(r ^ (c * i08(R_8))); }
+inline Rank   rel_rank  (Color c, Rank   r) { return   Rank(r ^ (c * R_8)); }
 inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }
-inline Square rel_sq    (Color c, Square s) { return Square(s ^ (c * i08(SQ_A8))); }
+inline Square rel_sq    (Color c, Square s) { return Square(s ^ (c * SQ_A8)); }
 
 inline bool   opposite_colors (Square s1, Square s2)
 {
@@ -577,8 +577,8 @@ inline PieceT ptype (Piece p) { return PieceT(p & TOTL); }
 inline Color  color (Piece p) { return Color(p >> 3); }
 inline Piece  operator~ (Piece p) { return Piece(p ^ 8/*(BLACK << 3)*/); }
 
-inline Square org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
-inline Square dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
+inline Square org_sq  (Move m) { return Square((m >> 6) & SQ_H8); }
+inline Square dst_sq  (Move m) { return Square((m >> 0) & SQ_H8); }
 inline PieceT promote (Move m) { return PieceT(((m >> 12) & ROOK) + NIHT); }
 inline MoveT  mtype   (Move m) { return MoveT(PROMOTE & m); }
 inline bool   _ok     (Move m)
@@ -603,9 +603,9 @@ inline bool   _ok     (Move m)
     return org_sq (m) != dst_sq (m); // Catch MOVE_NONE & MOVE_NULL
 }
 
-//inline void org_sq  (Move &m, Square org) { m &= 0xF03F; m |= (org << 6); }
-//inline void dst_sq  (Move &m, Square dst) { m &= 0xFFC0; m |= (dst << 0); }
-inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | (pt - NIHT) << 12); }
+//inline void org_sq  (Move &m, Square org) { m &= 0xF03F; m |= org << 6; }
+//inline void dst_sq  (Move &m, Square dst) { m &= 0xFFC0; m |= dst << 0; }
+inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (pt - NIHT) << 12 | PROMOTE; }
 //inline void mtype   (Move &m, MoveT mt)   { m &= ~PROMOTE; m |= mt; }
 //inline Move operator~ (Move m)
 //{
@@ -616,7 +616,7 @@ inline void promote (Move &m, PieceT pt)  { m &= 0x0FFF; m |= (PROMOTE | (pt - N
 //}
 
 template<MoveT MT>
-inline   Move mk_move            (Square org, Square dst) { return Move(MT | u16(org << 6) | u16(dst)); }
+inline   Move mk_move            (Square org, Square dst) { return Move(dst | org << 6 | MT); }
 // --------------------------------
 // Explicit template instantiations
 template Move mk_move<NORMAL>    (Square, Square);
@@ -624,8 +624,8 @@ template Move mk_move<CASTLE>    (Square, Square);
 template Move mk_move<ENPASSANT> (Square, Square);
 // --------------------------------
 template<MoveT MT>
-inline Move mk_move              (Square org, Square dst, PieceT pt/*=QUEN*/) { return Move(PROMOTE | ((((pt - NIHT) << 6) | u16(org)) << 6) | u16(dst)); }
-inline Move mk_move              (Square org, Square dst) { return mk_move<NORMAL> (org, dst); }
+inline Move mk_move              (Square org, Square dst, PieceT pt/*=QUEN*/) { return Move(dst | (org | ((pt - NIHT) << 6)) << 6 | PROMOTE); }
+inline Move mk_move              (Square org, Square dst) { return Move(dst | org << 6); }
 
 inline double value_to_cp (Value   v) { return double   (v) / i32(VALUE_EG_PAWN); }
 inline Value  cp_to_value (double cp) { return Value(i32(cp * i32(VALUE_EG_PAWN))); }
