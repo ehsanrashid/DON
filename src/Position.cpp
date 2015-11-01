@@ -416,14 +416,14 @@ PieceT Position::pick_lva (Square dst, Bitboard stm_attackers, Bitboard &mocc, B
         {
         case PAWN:
         case BSHP:
-            attackers |= ((_types_bb[BSHP]|_types_bb[QUEN]) ? attacks_bb<BSHP> (dst, mocc)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0));
+            attackers |= ((_types_bb[BSHP]|_types_bb[QUEN]) != U64(0) ? attacks_bb<BSHP> (dst, mocc)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0));
             break;
         case ROOK:
-            attackers |= ((_types_bb[ROOK]|_types_bb[QUEN]) ? attacks_bb<ROOK> (dst, mocc)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0));
+            attackers |= ((_types_bb[ROOK]|_types_bb[QUEN]) != U64(0) ? attacks_bb<ROOK> (dst, mocc)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0));
             break;
         case QUEN:
-            attackers |= ((_types_bb[BSHP]|_types_bb[QUEN]) ? attacks_bb<BSHP> (dst, mocc)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0))
-                      |  ((_types_bb[ROOK]|_types_bb[QUEN]) ? attacks_bb<ROOK> (dst, mocc)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0));
+            attackers |= ((_types_bb[BSHP]|_types_bb[QUEN]) != U64(0) ? attacks_bb<BSHP> (dst, mocc)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0))
+                      |  ((_types_bb[ROOK]|_types_bb[QUEN]) != U64(0) ? attacks_bb<ROOK> (dst, mocc)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0));
             break;
         default: break;
         }

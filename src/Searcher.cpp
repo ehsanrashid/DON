@@ -186,7 +186,7 @@ namespace Searcher {
             //    std::swap (ss->killer_moves[0], *std::find (std::begin (ss->killer_moves), std::end (ss->killer_moves), move));
             //}
 
-            auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
+            auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
 
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
@@ -229,7 +229,7 @@ namespace Searcher {
                 if (own_move_dst != SQ_NO)
                 {
                     auto &own_cmv = CounterMoves2DValues[pos[own_move_dst]][own_move_dst];
-                    own_cmv.update (pos, opp_move, -bonus - 2 * depth/DEPTH_ONE - 1);
+                    own_cmv.update (pos, opp_move, -bonus - 2*(depth + 1)/DEPTH_ONE);
                 }
             }
 
@@ -322,7 +322,7 @@ namespace Searcher {
         template<NodeT NT, bool InCheck>
         // quien_search<>() is the quiescence search function,
         // which is called by the main depth limited search function
-        // when the remaining depth is ZERO or less.
+        // when the remaining depth is less than DEPTH_ONE.
         Value quien_search  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth)
         {
             const bool    PVNode = NT == PV;
@@ -577,15 +577,7 @@ namespace Searcher {
         }
 
         template<NodeT NT, bool EarlyPruning>
-        // depth_search<>() is the main depth limited search function
-        // for Root/PV/NonPV nodes also for normal/splitpoint nodes.
-        // It calls itself recursively with decreasing (remaining) depth
-        // until we run out of depth, and then drops into quien_search.
-        // When called just after a splitpoint the search is simpler because
-        // already probed the hash table, done a null move search, and searched
-        // the first move before splitting, don't have to repeat all this work again.
-        // Also don't need to store anything to the hash table here.
-        // This is taken care of after return from the splitpoint.
+        // depth_search<>() is the main depth limited search function for Root/PV/NonPV nodes
         Value depth_search  (Position &pos, Stack *ss, Value alpha, Value beta, Depth depth, bool cut_node)
         {
             const bool RootNode = NT == Root;
@@ -1296,7 +1288,7 @@ namespace Searcher {
                 auto own_move_dst = _ok (own_move) ? dst_sq (own_move) : SQ_NO;
                 if (own_move_dst != SQ_NO)
                 {
-                    auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE));
+                    auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
                     auto &own_cmv = CounterMoves2DValues[pos[own_move_dst]][own_move_dst];
                     own_cmv.update (pos, opp_move, bonus);
                 }
@@ -1310,47 +1302,6 @@ namespace Searcher {
 
             assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
-        }
-
-        // perft<>() is utility to verify move generation.
-        // All the leaf nodes up to the given depth are generated and the sum returned.
-        template<bool RootNode>
-        u64 perft (Position &pos, Depth depth)
-        {
-            u64 leaf_nodes = U64(0);
-            for (const auto &m : MoveList<LEGAL> (pos))
-            {
-                u64 inter_nodes;
-                if (RootNode && depth <= 1*DEPTH_ONE)
-                {
-                    inter_nodes = 1;
-                }
-                else
-                {
-                    StateInfo si;
-                    pos.do_move (m, si, pos.gives_check (m, CheckInfo (pos)));
-                    inter_nodes = depth <= 2*DEPTH_ONE ?
-                                    MoveList<LEGAL> (pos).size () :
-                                    perft<false> (pos, depth-DEPTH_ONE);
-                    pos.undo_move ();
-                }
-
-                if (RootNode)
-                {
-                    sync_cout << left
-                              << setw ( 7)
-                              //<< move_to_can (m, Chess960)
-                              << move_to_san (m, pos)
-                              << right << setfill ('.')
-                              << setw (16) << inter_nodes
-                              << setfill (' ') << left
-                              << sync_endl;
-                }
-
-                leaf_nodes += inter_nodes;
-            }
-
-            return leaf_nodes;
         }
 
         // ------------------------------------
@@ -1461,10 +1412,10 @@ namespace Searcher {
         }
     }
     
-    // RootMove::extract_ponder_move_from_tt() is called in case we have no ponder move before
-    // exiting the search, for instance in case we stop the search during a fail high at
-    // root. We try hard to have a ponder move to return to the GUI, otherwise in case of
-    // 'ponder on' we have nothing to think on.
+    // RootMove::extract_ponder_move_from_tt() is called in case have no ponder move before
+    // exiting the search, for instance in case stop the search during a fail high at root.
+    // Try hard to have a ponder move which has to return to the GUI,
+    // otherwise in case of 'ponder on' we have nothing to think on.
     bool RootMove::extract_ponder_move_from_tt (Position &pos)
     {
         assert (size () == 1);
@@ -1594,23 +1545,24 @@ namespace Searcher {
     // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
     Move SkillManager::pick_best_move ()
     {
-        static PRNG prng (now ());
+        static PRNG prng (now ()); // PRNG sequence should be non-deterministic
 
         _best_move = MOVE_NONE;
         const auto &root_moves = Threadpool.main ()->root_moves;
-        // RootMoves are already sorted by score in descending order
-        auto variance   = std::min (root_moves[0].new_value - root_moves[PVLimit - 1].new_value, VALUE_MG_PAWN);
+        // RootMoves are already sorted by value in descending order
+        auto top_value  = root_moves[0].new_value;
+        auto difference = std::min (top_value - root_moves[PVLimit - 1].new_value, VALUE_MG_PAWN);
         auto weakness   = Value(MAX_DEPTH - 4 * _level);
         auto best_value = -VALUE_INFINITE;
-        // Choose best move. For each move score add two terms both dependent on weakness,
-        // one deterministic and bigger for weaker moves, and one random with variance,
-        // then choose the move with the resulting highest score.
+        // Choose best move. For each move score add two terms, both dependent on weakness.
+        // One deterministic and bigger for weaker level, and one random with difference,
+        // then choose the move with the resulting highest value.
         for (u16 i = 0; i < PVLimit; ++i)
         {
             auto v = root_moves[i].new_value
                    // push value
-                   + weakness * i32(root_moves[0].new_value - root_moves[i].new_value)
-                   + variance * i32(prng.rand<u32> () % weakness) * 2 / i32(VALUE_EG_PAWN);
+                   + weakness   * i32(top_value - root_moves[i].new_value)
+                   + difference * i32(prng.rand<u32> () % weakness) * 2 / i32(VALUE_EG_PAWN);
 
             if (best_value < v)
             {
@@ -1622,20 +1574,52 @@ namespace Searcher {
     }
 
     // ------------------------------------
-
-    // perft() is utility to verify move generation. All the leaf nodes
-    // up to the given depth are generated and counted and the sum returned.
-    u64  perft (Position &pos, Depth depth)
+    
+    // perft<>() is utility to verify move generation.
+    // All the leaf nodes up to the given depth are generated and the sum returned.
+    template<bool RootNode>
+    u64 perft (Position &pos, Depth depth)
     {
-        return perft<true> (pos, depth);
+        u64 leaf_nodes = U64(0);
+        for (const auto &m : MoveList<LEGAL> (pos))
+        {
+            u64 inter_nodes;
+            if (RootNode && depth <= 1*DEPTH_ONE)
+            {
+                inter_nodes = 1;
+            }
+            else
+            {
+                StateInfo si;
+                pos.do_move (m, si, pos.gives_check (m, CheckInfo (pos)));
+                inter_nodes = depth <= 2*DEPTH_ONE ?
+                    MoveList<LEGAL> (pos).size () :
+                    perft<false> (pos, depth-DEPTH_ONE);
+                pos.undo_move ();
+            }
+
+            if (RootNode)
+            {
+                sync_cout << left
+                    << setw ( 7)
+                    //<< move_to_can (m, Chess960)
+                    << move_to_san (m, pos)
+                    << right << setfill ('.')
+                    << setw (16) << inter_nodes
+                    << setfill (' ') << left
+                    << sync_endl;
+            }
+
+            leaf_nodes += inter_nodes;
+        }
+
+        return leaf_nodes;
     }
 
-    // think() is the external interface to search, and is called by the
-    // main thread when the program receives the UCI 'go' command.
-    // It searches from root position and at the end prints the "bestmove" to output.
+    template u64 perft<true> (Position&, Depth);
 
-    // reset() clears all search memory to obtain reproducible search results
-    void reset ()
+    // clear() resets to zero search state, to obtain reproducible results
+    void clear ()
     {
         TT.clear ();
         CounterMoves2DValues.clear ();
@@ -1766,7 +1750,7 @@ namespace Threading {
     // consumed, user stops the search, or the maximum search depth is reached.
     void Thread::search (bool thread_main)
     {
-        Stack *ss = stacks+2; // To allow referencing (ss-2)
+        Stack stacks[MAX_DEPTH+4], *ss = stacks+2; // To allow referencing (ss-2)
         memset (ss-2, 0x00, 5*sizeof (*stacks));
 
         auto easy_move = MOVE_NONE;
@@ -1799,8 +1783,7 @@ namespace Threading {
             if (thread_main)
             {
                 // Set up the new depth for the helper threads
-                root_depth = Threadpool.main ()->root_depth + Depth(i32(3 * log (1 + this->index)));
-                
+                root_depth = Threadpool.main ()->root_depth + Depth(i32(2.2 * log (1 + this->index)));
                 if (Limits.use_time_manager ())
                 {
                     // Age out PV variability metric

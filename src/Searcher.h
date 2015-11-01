@@ -272,9 +272,10 @@ namespace Searcher {
     extern TimeManager TimeMgr;
 
 
-    extern u64  perft (Position &pos, Depth depth);
+    template<bool RootNode = true>
+    extern u64 perft (Position &pos, Depth depth);
 
-    extern void reset ();
+    extern void clear ();
 
     extern void initialize ();
 

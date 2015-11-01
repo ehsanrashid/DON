@@ -70,7 +70,6 @@ namespace Threading {
 
         Position        root_pos;
         RootMoveVector  root_moves;
-        Stack           stacks[MAX_DEPTH+4];
         HValueStats     history_values;
         MoveStats       counter_moves;
         Depth           root_depth;
@@ -127,7 +126,7 @@ namespace Threading {
     // - initializing
     // - starting
     // - parking
-    // - launching a slave thread at a split point (most important).
+    // - launching a thread.
     // All the access to shared thread data is done through this.
     class ThreadPool
         : public std::vector<Thread*>
@@ -139,8 +138,8 @@ namespace Threading {
         
         MainThread* main () const { return static_cast<MainThread*> (at (0)); }
 
-        // No c'tor and d'tor, threadpool rely on globals that should
-        // be initialized and valid during the whole thread lifetime.
+        // No constructor and destructor, threadpool rely on globals
+        // that should be initialized and valid during the whole thread lifetime.
         void initialize ();
         void exit ();
 

@@ -145,7 +145,7 @@ namespace UCI {
 
         void clear_hash  ()
         {
-            reset ();
+            clear ();
         }
 
         void retain_hash ()

@@ -63,7 +63,7 @@ namespace UCI {
             }
             else if (token == "ucinewgame")
             {
-                reset ();
+                clear ();
                 TimeMgr.available_nodes = 0;
             }
             else if (token == "isready")

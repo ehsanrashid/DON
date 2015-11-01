@@ -136,7 +136,7 @@ void benchmark (istream &is, const Position &cur_pos)
         fen_ifs.close ();
     }
 
-    reset ();
+    clear ();
 
     u64  nodes = 0;
     auto time  = now ();

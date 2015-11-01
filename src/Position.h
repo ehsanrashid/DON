@@ -60,7 +60,8 @@ public:
 
 typedef std::stack<StateInfo>   StateStack;
 
-// CheckInfo stores critical information used to detect if a move gives check.
+// CheckInfo struct is initialized at constructor time
+// and stores critical information used to detect if a move gives check.
 //
 //  - Checking squares from which the enemy king can be checked
 //  - Pinned pieces.
@@ -622,7 +623,7 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
 }
 
 // ----------------------------------------------
-
+// CheckInfo constructor
 inline CheckInfo::CheckInfo (const Position &pos)
 {
     king_sq = pos.square<KING> (~pos.active ());
