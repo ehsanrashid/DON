@@ -1621,19 +1621,6 @@ namespace Searcher {
     // --------------------------------
     template u64 perft<true> (Position&, Depth);
 
-    // clear() resets to zero search state, to obtain reproducible results
-    void clear ()
-    {
-        TT.clear ();
-        CounterMoves2DValues.clear ();
-
-        for (auto *th : Threadpool)
-        {
-            th->history_values.clear ();
-            th->counter_moves.clear ();
-        }
-    }
-
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
     {
@@ -1679,6 +1666,19 @@ namespace Searcher {
                     }
                 }
             }
+        }
+    }
+
+    // clear() resets to zero search state, to obtain reproducible results
+    void clear ()
+    {
+        TT.clear ();
+        CounterMoves2DValues.clear ();
+
+        for (auto *th : Threadpool)
+        {
+            th->history_values.clear ();
+            th->counter_moves.clear ();
         }
     }
 
