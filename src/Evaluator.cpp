@@ -156,8 +156,8 @@ namespace Evaluator {
         Score operator* (Score score, const Weight &weight)
         {
             return mk_score (
-                mg_value (score) * weight.mg / 0x100,
-                eg_value (score) * weight.eg / 0x100);
+                mg_value (score) * weight.mg / 256,
+                eg_value (score) * weight.eg / 256);
         }
 
         // Evaluation weights, indexed by the corresponding evaluation term

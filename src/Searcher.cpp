@@ -134,7 +134,6 @@ namespace Searcher {
         // ReductionDepths lookup table (initialized at startup)
         // [pv][improving][depth][move_num]
         Depth ReductionDepths[2][2][ReductionDepth][ReductionMoveCount];
-
         template<bool PVNode>
         Depth reduction_depths (bool imp, Depth d, u08 mc)
         {
@@ -286,12 +285,12 @@ namespace Searcher {
                 Depth d;
                 Value v;
 
-                if (i <= pv_index) // New updated value?
+                if (i <= pv_index)  // New updated pv?
                 {
                     d = depth;
                     v = root_moves[i].new_value;
                 }
-                else
+                else                // Old expired pv?
                 {
                     if (DEPTH_ONE == depth) continue;
 
@@ -311,7 +310,7 @@ namespace Searcher {
                     << " time "     << elapsed_time
                     << " nodes "    << game_nodes
                     << " nps "      << game_nodes * MILLI_SEC / elapsed_time;
-                if (elapsed_time > MILLI_SEC) ss  << " hashfull " << TT.hash_full ();
+                if (elapsed_time > MILLI_SEC) ss  << " hashfull " << TT.hash_full (); // Earlier makes little sense
                 ss  << " pv"        << root_moves[i];
 
             }
@@ -657,7 +656,7 @@ namespace Searcher {
                         pos.posi_key () ^ Zobrist::EXC_KEY;
 
             tte      = TT.probe (posi_key, tt_hit);
-            ss->tt_move = tt_move = RootNode ? thread->root_moves[thread->pv_index].pv[0] :
+            ss->tt_move = tt_move = RootNode ? thread->root_moves[thread->pv_index][0] :
                                             tt_hit ? tte->move () : MOVE_NONE;
             if (tt_hit)
             {
@@ -666,7 +665,7 @@ namespace Searcher {
                 tt_bound = tte->bound ();
             }
 
-            // Don't prune at PV nodes. At non-PV nodes we check for a fail high/low.
+            // At non-PV nodes we check for an early TT cutoff
             if (   !PVNode
                 && tt_hit
                 && tt_depth >= depth
@@ -868,7 +867,7 @@ namespace Searcher {
 
                     // Step 10. Internal iterative deepening
                     if (   tt_move == MOVE_NONE
-                        && depth > (PVNode ? 4 : 7)*DEPTH_ONE        // IID Activation Depth
+                        && depth >= (PVNode ? 5 : 8)*DEPTH_ONE        // IID Activation Depth
                         && (PVNode || ss->static_eval + VALUE_EG_PAWN >= beta) // IID Margin
                        )
                     {
@@ -925,10 +924,12 @@ namespace Searcher {
 
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
+            auto counter_move = opp_move_dst != SQ_NO ?
+                thread->counter_moves[pos[opp_move_dst]][opp_move_dst] :
+                MOVE_NONE;
             auto &opp_cmv = opp_move_dst != SQ_NO ?
                 CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] :
                 CounterMoves2DValues[EMPTY][SQ_A1];
-            auto counter_move = opp_move_dst != SQ_NO ? thread->counter_moves[pos[opp_move_dst]][opp_move_dst] : MOVE_NONE;
 
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
 
@@ -1327,7 +1328,7 @@ namespace Searcher {
             // However must not steal time from remaining moves over this ratio
             const double StealRatio = RT_MAXIMUM == TT ? 0.0 : 0.33;
 
-            double move_imp = move_importance (game_ply) * MoveSlowness / 0x64;
+            double move_imp = move_importance (game_ply) * MoveSlowness / 100;
             double remain_move_imp = 0.0;
             for (u08 i = 1; i < movestogo; ++i)
             {
@@ -1561,8 +1562,9 @@ namespace Searcher {
         {
             auto v = root_moves[i].new_value
                    // push value
-                   + weakness   * i32(top_value - root_moves[i].new_value)
-                   + difference * i32(prng.rand<u32> () % weakness) * 2 / i32(VALUE_EG_PAWN);
+                   + (  weakness   * i32(top_value - root_moves[i].new_value)
+                      + difference * i32(prng.rand<u32> () % weakness)
+                     ) * 2 / i32(VALUE_EG_PAWN);
 
             if (best_value < v)
             {
@@ -1615,7 +1617,8 @@ namespace Searcher {
 
         return leaf_nodes;
     }
-
+    // Explicit template instantiations
+    // --------------------------------
     template u64 perft<true> (Position&, Depth);
 
     // clear() resets to zero search state, to obtain reproducible results
@@ -1623,6 +1626,7 @@ namespace Searcher {
     {
         TT.clear ();
         CounterMoves2DValues.clear ();
+
         for (auto *th : Threadpool)
         {
             th->history_values.clear ();
@@ -1635,14 +1639,16 @@ namespace Searcher {
     {
         u08 d;  // depth
         u08 mc; // move count
+
         // Initialize lookup tables
+        
         //for (d = 0; d < RazorDepth; ++d)
         //{
-        //    RazorMargins         [d] = Value(i32(0x200 + (0x20 + 0*d)*d));
+        //    RazorMargins         [d] = Value(i32(512 + (32 + 0*d)*d));
         //}
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
-            FutilityMargins      [d] = Value(i32(0x00 + (0xC8 + 0*d)*d));
+            FutilityMargins      [d] = Value(i32(0 + (200 + 0*d)*d));
         }
         for (d = 0; d < FutilityMoveCountDepth; ++d)
         {
@@ -1651,7 +1657,6 @@ namespace Searcher {
         }
 
         const double K[2][2] = {{ 0.799, 2.281 }, { 0.484, 3.023 }};
-
         for (u08 pv = 0; pv <= 1; ++pv)
         {
             for (u08 imp = 0; imp <= 1; ++imp)
@@ -1675,7 +1680,6 @@ namespace Searcher {
                 }
             }
         }
-
     }
 
 }
@@ -1765,12 +1769,15 @@ namespace Threading {
             }
         }
 
-        if (SkillMgr.enabled ()) SkillMgr.clear ();
+        if (SkillMgr.enabled ())
+        {
+            SkillMgr.clear ();
+        }
 
         // Do have to play with skill handicap?
         // In this case enable MultiPV search by skill pv size
         // that will use behind the scenes to get a set of possible moves.
-        PVLimit = std::min (std::max (MultiPV, u16(SkillMgr.enabled () ? 4 : 0)), u16(root_moves.size ()));
+        PVLimit = std::min (std::max (MultiPV, u16(SkillMgr.enabled () ? SkillManager::SkillMultiPV : 0)), u16(root_moves.size ()));
 
         Value best_value = VALUE_ZERO
             , window     = VALUE_ZERO
@@ -1784,6 +1791,7 @@ namespace Threading {
             {
                 // Set up the new depth for the helper threads
                 root_depth = Threadpool.main ()->root_depth + Depth(i32(2.2 * log (1 + this->index)));
+
                 if (Limits.use_time_manager ())
                 {
                     // Age out PV variability metric
@@ -2004,8 +2012,8 @@ namespace Threading {
     {
         static PolyglotBook book; // Defined static to initialize the PRNG only once
 
-        RootColor   = root_pos.active ();
-        RootPly     = root_pos.game_ply ();
+        RootColor = root_pos.active ();
+        RootPly   = root_pos.game_ply ();
 
         TimeMgr.initialize ();
 
@@ -2066,7 +2074,7 @@ namespace Threading {
                 timed_contempt = i16 (diff_time/ContemptTime);
             }
 
-            Value contempt = cp_to_value (double (FixedContempt + timed_contempt) / 0x64);
+            Value contempt = cp_to_value (double (FixedContempt + timed_contempt) / 100);
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 

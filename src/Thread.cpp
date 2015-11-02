@@ -14,8 +14,8 @@ namespace Threading {
     using namespace MoveGen;
     using namespace Searcher;
 
-    // Helpers to launch a thread after creation and joining before delete. Must be
-    // outside Thread c'tor and d'tor because object must be fully initialized
+    // Helpers to launch a thread after creation and joining before delete.
+    // Outside Thread constructor and destructor because the object must be fully initialized
     // when start_routine (and hence virtual idle_loop) is called and when joining.
     template<class T>
     T* new_thread ()
@@ -32,6 +32,7 @@ namespace Threading {
             th->mutex.lock ();
             th->alive = false;   // Search must be already finished
             th->mutex.unlock ();
+
             th->notify_one ();
             th->join ();         // Wait for thread termination
             delete th;
@@ -42,15 +43,19 @@ namespace Threading {
     // Explicit template instantiations
     // --------------------------------
     template TimerThread* new_thread<TimerThread> ();
+
+
     // ------------------------------------
 
-    // Thread::Thread() makes some init but does not launch any execution thread that
-    // will be started only when c'tor returns.
+    // Thread::Thread() makes some initialization but does not launch
+    // any execution thread, which will be started only when constructor returns.
     Thread::Thread ()
         : ThreadBase ()
     {
         //max_ply     = 0;
         //searching   = false;
+        history_values.clear ();
+        counter_moves.clear ();
         index       = u16(Threadpool.size ()); // Starts from 0
     }
 
@@ -59,7 +64,7 @@ namespace Threading {
     {
         while (alive)
         {
-            std::unique_lock<Mutex> lk (mutex);
+            unique_lock<Mutex> lk (mutex);
 
             while (alive && !searching)
             {
@@ -128,10 +133,10 @@ namespace Threading {
 
     // ------------------------------------
 
-    // ThreadPool::initialize() is called at startup to create and launch requested threads,
-    // that will go immediately to sleep.
-    // Cannot use a c'tor becuase Threadpool is a static object
-    // and need a fully initialized engine.
+    // ThreadPool::initialize() is called at startup to create and launch
+    // requested threads, that will go immediately to sleep.
+    // Cannot use a constructor becuase threadpool is a static object
+    // and require a fully initialized engine.
     void ThreadPool::initialize ()
     {
         push_back (new_thread<MainThread> ());
@@ -140,15 +145,16 @@ namespace Threading {
         check_limits_th->task       = check_limits;
         check_limits_th->resolution = TIMER_RESOLUTION;
 
+        save_hash_th                = nullptr;
+
         configure ();
     }
 
     // ThreadPool::exit() cleanly terminates the threads before the program exits
-    // Cannot be done in d'tor because have to terminate
-    // the threads before to free ThreadPool object.
+    // Cannot be done in destructor because threads must be terminated before freeing threadpool.
     void ThreadPool::exit ()
     {
-        // As first because they accesses threads data
+        // First delete timers because they accesses threads data
         delete_thread (check_limits_th);
         delete_thread (save_hash_th);
 
@@ -184,7 +190,7 @@ namespace Threading {
 
     u64 ThreadPool::game_nodes ()
     {
-        u64 nodes = 0;
+        u64 nodes = U64(0);
         for (auto *th : *this)
         {
             nodes += th->root_pos.game_nodes ();
@@ -203,10 +209,9 @@ namespace Threading {
         Signals.firstmove_root = false;
         Signals.failedlow_root = false;
 
+        Limits  = limits;
         main ()->root_pos = pos;
         main ()->root_moves.initialize (pos);
-
-        Limits  = limits;
         if (states.get () != nullptr) // If don't set a new position, preserve current state
         {
             SetupStates = std::move (states); // Ownership transfer here

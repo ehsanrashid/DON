@@ -29,7 +29,10 @@ namespace Threading {
         ConditionVariable   sleep_condition;
         std::atomic<bool>   alive { true };
 
-        virtual ~ThreadBase() = default;
+        ThreadBase ()
+            //: alive (true)
+        {}
+        virtual ~ThreadBase () = default;
 
         // ThreadBase::notify_one () wakes up the thread when there is some work to do
         void notify_one ()
@@ -70,9 +73,9 @@ namespace Threading {
 
         Position        root_pos;
         RootMoveVector  root_moves;
+        Depth           root_depth;
         HValueStats     history_values;
         MoveStats       counter_moves;
-        Depth           root_depth;
 
         std::atomic<bool> searching { false };
 
@@ -89,6 +92,10 @@ namespace Threading {
     {
     public:
         std::atomic<bool> thinking { true }; // Avoid a race with start_thinking()
+
+        MainThread ()
+            //: thinking (true)
+        {}
 
         // MainThread::join() waits for main thread to finish thinking
         void join ()

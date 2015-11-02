@@ -88,6 +88,8 @@ namespace Searcher {
         Move _best_move = MOVE_NONE;
 
     public:
+        
+        static const u16 SkillMultiPV = 4;
 
         void change_level (u08 level) { _level = level; }
 
