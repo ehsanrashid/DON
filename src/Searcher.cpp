@@ -221,6 +221,16 @@ namespace Searcher {
             }
         }
 
+        void save_hash ()
+        {
+            if (FirstAutoSave)
+            {
+                FirstAutoSave = false;
+                return;
+            }
+            TT.save (HashFile);
+        }
+
         // update_stats() updates killers, history, countermoves and countermoves history
         // stats for a quiet best move.
         void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, Move *quiet_moves, u08 quiet_count)
@@ -1485,7 +1495,7 @@ namespace Searcher {
             --ply;
         }
     }
-    
+
     // RootMove::extract_ponder_move_from_tt() is called in case have no ponder move before
     // exiting the search, for instance in case stop the search during a fail high at root.
     // Try hard to have a ponder move which has to return to the GUI,
@@ -1756,16 +1766,6 @@ namespace Searcher {
 namespace Threading {
 
     using namespace Searcher;
-
-    void save_hash ()
-    {
-        if (FirstAutoSave)
-        {
-            FirstAutoSave = false;
-            return;
-        }
-        TT.save (HashFile);
-    }
 
     // Thread::search() is the main iterative deepening loop. It calls search()
     // repeatedly with increasing depth until the allocated thinking time has been
@@ -2233,5 +2233,4 @@ namespace Threading {
         std::cout << sync_endl;
 
     }
-
 }

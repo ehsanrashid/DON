@@ -157,14 +157,10 @@ namespace Threading {
 
     };
 
-
-
     template<class T>
     extern T* new_thread ();
 
     extern void delete_thread (ThreadBase *th);
-
-    extern void save_hash ();
 
 }
 
