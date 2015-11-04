@@ -73,7 +73,8 @@ namespace Threading {
 
         Position        root_pos;
         RootMoveVector  root_moves;
-        Depth           root_depth;
+        Depth           root_depth      = DEPTH_ZERO
+            ,           completed_depth = DEPTH_ZERO;
         HValueStats     history_values;
         MoveStats       counter_moves;
 

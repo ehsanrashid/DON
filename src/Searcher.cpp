@@ -1783,6 +1783,8 @@ namespace Threading {
             , window     = VALUE_ZERO
             , bound_a    = -VALUE_INFINITE
             , bound_b    = +VALUE_INFINITE;
+        
+        completed_depth = DEPTH_ZERO;
 
         // Iterative deepening loop until target depth reached
         while (++root_depth < DEPTH_MAX && !Signals.force_stop && (0 == Limits.depth || root_depth <= Limits.depth))
@@ -1903,6 +1905,10 @@ namespace Threading {
                 }
             }
 
+            if (!Signals.force_stop)
+            {
+                completed_depth = root_depth;
+            }
             if (!thread_main) continue;
 
             if (ContemptValue != 0)
@@ -2181,13 +2187,32 @@ namespace Threading {
             wait_until (Signals.force_stop);
         }
 
+        // Check if there are threads with a better score than main thread.
+        Thread *best_thread = this;
+        for (auto *th : Threadpool)
+        {
+            if (   th->completed_depth > best_thread->completed_depth
+                && th->root_moves[0].new_value > best_thread->root_moves[0].new_value
+               )
+            {
+                best_thread = th;
+            }
+        }
+
+        // Send new PV when needed.
+        // FIXME: Breaks multiPV, and skill levels
+        if (best_thread != this)
+        {
+            sync_cout << multipv_info (best_thread->root_pos, best_thread->completed_depth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
+        }
+
         // Best move could be MOVE_NONE when searching on a stalemate position
-        sync_cout << "bestmove " << move_to_can (root_moves[0][0], Chess960);
-        if (   root_moves[0] != MOVE_NONE
-            && (root_moves[0].size () > 1 || root_moves[0].extract_ponder_move_from_tt (root_pos))
+        sync_cout << "bestmove " << move_to_can (best_thread->root_moves[0][0], Chess960);
+        if (   best_thread->root_moves[0] != MOVE_NONE
+            && (best_thread->root_moves[0].size () > 1 || best_thread->root_moves[0].extract_ponder_move_from_tt (best_thread->root_pos))
            )
         {
-            cout << " ponder " << move_to_can (root_moves[0][1], Chess960);
+            cout << " ponder " << move_to_can (best_thread->root_moves[0][1], Chess960);
         }
         cout << sync_endl;
 
