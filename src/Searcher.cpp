@@ -39,29 +39,27 @@ namespace Searcher {
         
     public:
         i08 stable_count = 0;
-        
+
         MoveManager () { clear (); }
-        
+
         void clear ()
         {
             stable_count = 0;
             _posi_key = U64(0);
             std::fill (std::begin (_pv), std::end (_pv), MOVE_NONE);
         }
-        
+
         Move easy_move (Key posi_key) const { return _posi_key == posi_key ? _pv[2] : MOVE_NONE; }
-        
+
         void update (Position& pos, const MoveVector &pv)
         {
             assert (pv.size () >= 3);
-            
             // Keep track of how many times in a row 3rd ply remains stable
             stable_count = (pv[2] == _pv[2]) ? stable_count + 1 : 0;
             
             if (!equal (pv.begin (), pv.begin () + 3, _pv))
             {
                 std::copy (pv.begin (), pv.begin () + 3, _pv);
-                
                 StateInfo si[2];
                 pos.do_move (pv[0], si[0], pos.gives_check (pv[0], CheckInfo (pos)));
                 pos.do_move (pv[1], si[1], pos.gives_check (pv[1], CheckInfo (pos)));
@@ -113,10 +111,12 @@ namespace Searcher {
 #endif
 
     #define V(v) Value(v)
+
         const i32 RazorDepth    = 4;
         // Razoring margin lookup table (initialized at startup)
         // [depth]
         const Value RazorMargins[RazorDepth] = { V(483), V(570), V(603), V(554) };
+
     #undef V
 
         const i32 FutilityMarginDepth   = 7;
@@ -560,7 +560,7 @@ namespace Searcher {
                     }
                 }
             }
-            
+
             // All legal moves have been searched.
             // A special case: If in check and no legal moves were found, it is checkmate.
             if (InCheck && best_value == -VALUE_INFINITE)
@@ -1544,12 +1544,12 @@ namespace Searcher {
 
     // When playing with a strength handicap, choose best move among the first 'candidates'
     // RootMoves using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-    Move SkillManager::pick_best_move ()
+    Move SkillManager::pick_best_move (const RootMoveVector &root_moves)
     {
         static PRNG prng (now ()); // PRNG sequence should be non-deterministic
 
         _best_move = MOVE_NONE;
-        const auto &root_moves = Threadpool.main ()->root_moves;
+        //const auto &root_moves = Threadpool.main ()->root_moves;
         // RootMoves are already sorted by value in descending order
         auto top_value  = root_moves[0].new_value;
         auto difference = std::min (top_value - root_moves[PVLimit - 1].new_value, VALUE_MG_PAWN);
@@ -1576,7 +1576,7 @@ namespace Searcher {
     }
 
     // ------------------------------------
-    
+
     // perft<>() is utility to verify move generation.
     // All the leaf nodes up to the given depth are generated and the sum returned.
     template<bool RootNode>
@@ -1619,7 +1619,8 @@ namespace Searcher {
     }
     // Explicit template instantiations
     // --------------------------------
-    template u64 perft<true> (Position&, Depth);
+    template u64 perft<false> (Position&, Depth);
+    template u64 perft<true > (Position&, Depth);
 
     // initialize() is called during startup to initialize various lookup tables
     void initialize ()
@@ -1863,7 +1864,7 @@ namespace Threading {
                     {
                         bound_b = (bound_a + bound_b)/2;
                         bound_a = std::max (best_value - window, -VALUE_INFINITE);
-                        
+
                         if (thread_main)
                         {
                             Signals.failedlow_root = true;
@@ -1909,6 +1910,7 @@ namespace Threading {
             {
                 completed_depth = root_depth;
             }
+
             if (!thread_main) continue;
 
             if (ContemptValue != 0)
@@ -1921,12 +1923,12 @@ namespace Threading {
             // If skill level is enabled and time is up, pick a sub-optimal best move
             if (SkillMgr.enabled () && SkillMgr.depth_to_pick (root_depth))
             {
-                SkillMgr.pick_best_move ();
+                SkillMgr.pick_best_move (root_moves);
             }
 
             if (!SearchFile.empty ())
             {
-                SearchLog << pretty_pv_info (root_pos, root_depth, root_moves[0].new_value, TimeMgr.elapsed_time (), root_moves[0].pv) << endl;
+                SearchLog << pretty_pv_info (root_pos, root_depth, root_moves[0].new_value, TimeMgr.elapsed_time (), root_moves[0].pv) << std::endl;
             }
 
             if (!Signals.force_stop && !Signals.ponderhit_stop)
@@ -2010,7 +2012,7 @@ namespace Threading {
         // If skill level is enabled, swap best PV line with the sub-optimal one
         if (SkillMgr.enabled ())
         {
-            std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), SkillMgr.best_move ()));
+            std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), SkillMgr.best_move (root_moves)));
         }
     }
     
@@ -2041,7 +2043,7 @@ namespace Threading {
                 << "MovesToGo: " << u16 (Limits.movestogo)          << "\n"
                 << " Depth Score    Time       Nodes  PV\n"
                 << "-----------------------------------------------------------"
-                << endl;
+                << std::endl;
         }
 
         if (root_moves.size () != 0)
@@ -2166,7 +2168,7 @@ namespace Threading {
                 SearchLog << "Ponder move: " << move_to_san (root_moves[0][1], root_pos) << "\n";
                 root_pos.undo_move ();
             }
-            SearchLog << endl;
+            SearchLog << std::endl;
             SearchLog.close ();
         }
 
@@ -2187,12 +2189,13 @@ namespace Threading {
             wait_until (Signals.force_stop);
         }
 
-        // Check if there are threads with a better score than main thread.
+        // Check if there are threads with a better value than main thread.
         Thread *best_thread = this;
         for (auto *th : Threadpool)
         {
-            if (   th->completed_depth > best_thread->completed_depth
-                && th->root_moves[0].new_value > best_thread->root_moves[0].new_value
+            //if (best_thread == this) continue;
+            if (   best_thread->completed_depth < th->completed_depth
+                && best_thread->root_moves[0] > th->root_moves[0]  // Ascending sort (invert)
                )
             {
                 best_thread = th;
@@ -2208,13 +2211,13 @@ namespace Threading {
 
         // Best move could be MOVE_NONE when searching on a stalemate position
         sync_cout << "bestmove " << move_to_can (best_thread->root_moves[0][0], Chess960);
-        if (   best_thread->root_moves[0] != MOVE_NONE
+        if (    best_thread->root_moves[0] != MOVE_NONE
             && (best_thread->root_moves[0].size () > 1 || best_thread->root_moves[0].extract_ponder_move_from_tt (best_thread->root_pos))
            )
         {
-            cout << " ponder " << move_to_can (best_thread->root_moves[0][1], Chess960);
+            std::cout << " ponder " << move_to_can (best_thread->root_moves[0][1], Chess960);
         }
-        cout << sync_endl;
+        std::cout << sync_endl;
 
     }
 

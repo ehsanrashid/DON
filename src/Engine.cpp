@@ -93,7 +93,7 @@ namespace Engine {
 
     void run (const string &arg)
     {
-        cout << info (false) << endl;
+        std::cout << info (false) << std::endl;
 
 #ifdef LPAGES
         Memory::initialize ();
@@ -111,7 +111,7 @@ namespace Engine {
 
         TT.auto_size (i32(Options["Hash"]), true);
 
-        cout << endl;
+        std::cout << std::endl;
 
         UCI::loop (arg);
     }

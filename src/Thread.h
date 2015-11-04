@@ -25,9 +25,9 @@ namespace Threading {
         : public std::thread
     {
     public:
-        Mutex               mutex;
-        ConditionVariable   sleep_condition;
-        std::atomic<bool>   alive { true };
+        Mutex             mutex;
+        ConditionVariable sleep_condition;
+        std::atomic_bool  alive { true };
 
         ThreadBase ()
             //: alive (true)
@@ -41,13 +41,13 @@ namespace Threading {
             sleep_condition.notify_one ();
         }
         // ThreadBase::wait_until() set the thread to sleep until 'condition' turns true
-        void wait_until (const std::atomic<bool> &condition)
+        void wait_until (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (mutex);
             sleep_condition.wait (lk, [&]{ return bool(condition); });
         }
         // ThreadBase::wait_while() set the thread to sleep until 'condition' turns false
-        void wait_while (const std::atomic<bool> &condition)
+        void wait_while (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (mutex);
             sleep_condition.wait (lk, [&]{ return !bool(condition); });
@@ -78,7 +78,7 @@ namespace Threading {
         HValueStats     history_values;
         MoveStats       counter_moves;
 
-        std::atomic<bool> searching { false };
+        std::atomic_bool searching { false };
 
         Thread ();
 
@@ -92,7 +92,7 @@ namespace Threading {
         : public Thread
     {
     public:
-        std::atomic<bool> thinking { true }; // Avoid a race with start_thinking()
+        std::atomic_bool thinking { true }; // Avoid a race with start_thinking()
 
         MainThread ()
             //: thinking (true)
@@ -176,11 +176,14 @@ inline std::ostream& operator<< (std::ostream &os, SyncT sync)
     static Mutex io_mutex;
 
     if (sync == IO_LOCK)
+    {
         io_mutex.lock ();
+    }
     else
     if (sync == IO_UNLOCK)
+    {
         io_mutex.unlock ();
-
+    }
     return os;
 }
 

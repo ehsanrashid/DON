@@ -157,7 +157,7 @@ namespace Memory {
                 sync_cout << "info string Page Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
-            cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << endl;
+            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << std::endl;
 
 #   else
 
@@ -172,10 +172,10 @@ namespace Memory {
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
-                cerr << "ERROR: shmat() shared memory attach failed." << endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed." << std::endl;
                 if (shmctl (shm, IPC_RMID, nullptr) == -1)
                 {
-                    cerr << "ERROR: shmctl(IPC_RMID) failed." << endl;
+                    std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
                 }
                 return;
             }
@@ -190,14 +190,14 @@ namespace Memory {
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
-                cerr << "ERROR: shmat() shared memory attach failed." << endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed." << std::endl;
                 if (shmctl (shm, IPC_RMID, nullptr) == -1)
                 {
-                    cerr << "ERROR: shmctl(IPC_RMID) failed." << endl;
+                    std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
                 }
                 return;
             }
-            cerr << "ERROR: shmget() shared memory alloc failed." << endl;
+            std::cerr << "ERROR: shmget() shared memory alloc failed." << std::endl;
 
 #   endif
         }
@@ -210,7 +210,7 @@ namespace Memory {
             return;
         }
 
-        cerr << "ERROR: Hash allocate failed " << (mem_size >> 20) << " MB." << endl;
+        std::cerr << "ERROR: Hash allocate failed " << (mem_size >> 20) << " MB." << std::endl;
     }
 
     void  free_memory (void *mem)
@@ -229,11 +229,11 @@ namespace Memory {
 
             if (shmdt (mem) == -1)
             {
-                cerr << "ERROR: shmdt() shared memory detach failed." << endl;
+                std::cerr << "ERROR: shmdt() shared memory detach failed." << std::endl;
             }
             if (shmctl (shm, IPC_RMID, nullptr) == -1)
             {
-                cerr << "ERROR: shmctl(IPC_RMID) failed." << endl;
+                std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
             }
 #   endif
             LargePages = false;

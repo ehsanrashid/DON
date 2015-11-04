@@ -28,17 +28,18 @@ namespace UCI {
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap);
 
-        u08 _index;
-        std::string _type
-                  , _value;
+        u08 _index = 0;
+        std::string _type  = ""
+                  , _value = "";
 
-        i32   _minimum
-            , _maximum;
+        i32   _minimum = 0
+            , _maximum = 0;
 
         OnChange _on_change = nullptr;
 
     public:
-        Option (OnChange on_change = nullptr);
+        //Option () = delete;
+        explicit Option (OnChange on_change = nullptr);
         Option (const bool  val, OnChange on_change = nullptr);
         Option (const char *val, OnChange on_change = nullptr);
         Option (const std::string &val, OnChange on_change = nullptr);

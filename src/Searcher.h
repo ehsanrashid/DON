@@ -14,8 +14,6 @@ namespace Searcher {
 
     using namespace Threading;
 
-    const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be <= MAX_DEPTH/4
-
     // Limits stores information sent by GUI about available time to search the current move.
     //  - Maximum time and increment.
     //  - Maximum depth.
@@ -62,7 +60,7 @@ namespace Searcher {
     //  - Falied low at root.
     struct SignalsT
     {
-        std::atomic<bool>
+        std::atomic_bool
               force_stop        { false }  // Stop search on request
             , ponderhit_stop    { false }  // Stop search on ponder-hit
             , firstmove_root    { false }  // First move at root
@@ -78,56 +76,6 @@ namespace Searcher {
     // NonPV nodes = CUT nodes + ALL nodes
     // Node types, used as template parameter
     enum NodeT { Root, PV, NonPV };
-
-    // Skill Manager
-    class SkillManager
-    {
-
-    private:
-        u08  _level     = MAX_SKILL_LEVEL;
-        Move _best_move = MOVE_NONE;
-
-    public:
-        
-        static const u16 SkillMultiPV = 4;
-
-        void change_level (u08 level) { _level = level; }
-
-        void clear () { _best_move = MOVE_NONE; }
-
-        bool enabled () const { return _level < MAX_SKILL_LEVEL; }
-
-        bool depth_to_pick (Depth depth) const { return depth/DEPTH_ONE == (1 + _level); }
-
-        Move best_move () { return _best_move != MOVE_NONE ? _best_move : pick_best_move (); }
-        
-        Move pick_best_move ();
-
-    };
-
-    extern bool             Chess960;
-
-    extern LimitsT          Limits;
-    extern SignalsT         Signals;
-    extern StateStackPtr    SetupStates;
-
-    extern u16              MultiPV;
-    //extern i32              MultiPV_cp;
-
-    extern i16              FixedContempt
-        ,                   ContemptTime 
-        ,                   ContemptValue;
-
-    extern std::string      HashFile;
-    extern u16              AutoSaveHashTime;
-    
-    extern bool             OwnBook;
-    extern std::string      BookFile;
-    extern bool             BookMoveBest;
-
-    extern std::string      SearchFile;
-
-    extern SkillManager     SkillMgr;
 
     // RootMove is used for moves at the root of the tree.
     // For each root move stores:
@@ -173,7 +121,7 @@ namespace Searcher {
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
         {
-            os << std::string(rm);
+            os << std::string (rm);
             return os;
         }
 
@@ -187,7 +135,7 @@ namespace Searcher {
 
         void operator+= (const RootMove &rm) { push_back (rm); }
         void operator-= (const RootMove &rm) { erase (std::remove (begin (), end (), rm), end ()); }
-       
+
         void backup ()
         {
             for (auto &rm : *this)
@@ -204,11 +152,10 @@ namespace Searcher {
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &rmv)
         {
-            os << std::string(rmv);
+            os << std::string (rmv);
             return os;
         }
     };
-
 
     // The Stack struct keeps track of the information needed to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread
@@ -219,12 +166,39 @@ namespace Searcher {
         u16  ply = 0;
 
         Move tt_move      = MOVE_NONE
-           , current_move = MOVE_NONE
-           , exclude_move = MOVE_NONE
-           , killer_moves[2];
+            , current_move = MOVE_NONE
+            , exclude_move = MOVE_NONE
+            , killer_moves[2];
 
         Value static_eval = VALUE_NONE;
         bool firstmove_pv = false;
+    };
+
+    const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be <= MAX_DEPTH/4
+    // Skill Manager
+    class SkillManager
+    {
+
+    private:
+        u08  _level     = MAX_SKILL_LEVEL;
+        Move _best_move = MOVE_NONE;
+
+    public:
+        
+        static const u16 SkillMultiPV = 4;
+
+        void change_level (u08 level) { _level = level; }
+
+        void clear () { _best_move = MOVE_NONE; }
+
+        bool enabled () const { return _level < MAX_SKILL_LEVEL; }
+
+        bool depth_to_pick (Depth depth) const { return depth/DEPTH_ONE == (1 + _level); }
+
+        Move best_move (const RootMoveVector &root_moves) { return _best_move != MOVE_NONE ? _best_move : pick_best_move (root_moves); }
+        
+        Move pick_best_move (const RootMoveVector &root_moves);
+
     };
 
     // TimeManager class computes the optimal time to think depending on the
@@ -250,17 +224,42 @@ namespace Searcher {
         u64     available_nodes  = 0; // When in 'nodes as time' mode
         double  best_move_change = 0.0;
 
-        u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.76); }
+        u32 available_time () const { return u32 (_optimum_time * _instability_factor * 0.76); }
 
-        u32 maximum_time   () const { return _maximum_time; }
+        u32 maximum_time () const { return _maximum_time; }
 
-        u32 elapsed_time   () const;
+        u32 elapsed_time () const;
 
-        void instability   ()       { _instability_factor = 1.0 + best_move_change; }
+        void instability () { _instability_factor = 1.0 + best_move_change; }
 
         void initialize ();
 
     };
+
+
+    extern bool             Chess960;
+
+    extern LimitsT          Limits;
+    extern SignalsT         Signals;
+    extern StateStackPtr    SetupStates;
+
+    extern u16              MultiPV;
+    //extern i32              MultiPV_cp;
+
+    extern i16              FixedContempt
+        ,                   ContemptTime 
+        ,                   ContemptValue;
+
+    extern std::string      HashFile;
+    extern u16              AutoSaveHashTime;
+    
+    extern bool             OwnBook;
+    extern std::string      BookFile;
+    extern bool             BookMoveBest;
+
+    extern std::string      SearchFile;
+
+    extern SkillManager     SkillMgr;
 
     extern u08  MaximumMoveHorizon;
     extern u08  ReadyMoveHorizon  ;

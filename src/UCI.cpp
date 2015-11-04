@@ -140,7 +140,7 @@ namespace UCI {
                         auto m = move_from_can (token, RootPos);
                         if (MOVE_NONE == m)
                         {
-                            cerr << "ERROR: Illegal Move '" + token << "'" << endl;
+                            std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
                             break;
                         }
 
@@ -247,7 +247,7 @@ namespace UCI {
                     {
                         code += string (" ", white_spaces (code) ? 0 : 1) + token;
                     }
-                    //cout << name << "\n" << code << endl;
+                    //std::cout << name << "\n" << code << std::endl;
                 }
                 else
                 if (token == "later")
@@ -284,61 +284,61 @@ namespace UCI {
 
                 if (RootPos.checkers () != U64 (0))
                 {
-                    cout << "\nEvasion moves: ";
+                    std::cout << "\nEvasion moves: ";
                     for (const auto &m : MoveList<EVASION> (RootPos))
                     {
                         if (RootPos.legal (m))
                         {
-                            cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (m, RootPos) << " ";
                         }
                     }
                 }
                 else
                 {
-                    cout << "\nQuiet moves: ";
+                    std::cout << "\nQuiet moves: ";
                     for (const auto &m : MoveList<QUIET> (RootPos))
                     {
                         if (RootPos.legal (m))
                         {
-                            cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (m, RootPos) << " ";
                         }
                     }
 
-                    cout << "\nCheck moves: ";
+                    std::cout << "\nCheck moves: ";
                     for (const auto &m : MoveList<CHECK> (RootPos))
                     {
                         if (RootPos.legal (m))
                         {
-                            cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (m, RootPos) << " ";
                         }
                     }
 
-                    cout << "\nQuiet Check moves: ";
+                    std::cout << "\nQuiet Check moves: ";
                     for (const auto &m : MoveList<QUIET_CHECK> (RootPos))
                     {
                         if (RootPos.legal (m))
                         {
-                            cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (m, RootPos) << " ";
                         }
                     }
 
-                    cout << "\nCapture moves: ";
+                    std::cout << "\nCapture moves: ";
                     for (const auto &m : MoveList<CAPTURE> (RootPos))
                     {
                         if (RootPos.legal (m))
                         {
-                            cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (m, RootPos) << " ";
                         }
                     }
                 }
 
-                cout << "\nLegal moves: ";
+                std::cout << "\nLegal moves: ";
                 for (const auto &m : MoveList<LEGAL> (RootPos))
                 {
-                    cout << move_to_san (m, RootPos) << " ";
+                    std::cout << move_to_san (m, RootPos) << " ";
                 }
 
-                cout << sync_endl;
+                std::cout << sync_endl;
             }
             else if (token == "flip")
             {

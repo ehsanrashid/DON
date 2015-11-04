@@ -42,30 +42,25 @@ namespace MovePick {
             }
         }
 
-        // ------
-
         void update (const Position &pos, Move m, Value v)
         {
-            if (abs (v) < 0x144)
+            if (abs (i32(v)) < 324)
             {
                 auto  s = dst_sq (m);
                 auto  p = pos[org_sq (m)];
                 auto &e = _table[p][s];
-                e = std::min (std::max (e*(1.0 - abs (v)/(CM ? 0x200 : 0x144)) + v*(CM ? 0x40 : 0x20), -MAX_STATS_VALUE), +MAX_STATS_VALUE);
+                e = std::min (std::max (e*(1.0 - abs (i32(v))/(CM ? 512 : 324)) + i32(v)*(CM ? 0x40 : 0x20), -MAX_STATS_VALUE), +MAX_STATS_VALUE);
             }
         }
-
         // ------
-
-        void update (const Position &pos, Move mm, Move cm)
+        void update (const Position &pos, Move m, Move cm)
         {
-            auto  s = dst_sq (mm);
+            auto  s = dst_sq (m);
             auto  p = pos[s];
             auto &e = _table[p][s];
             if (e != cm) e = cm;
         }
 
-        // ------
     };
 
     // ValueStats stores the value that records how often different moves have been successful/unsuccessful
@@ -125,11 +120,12 @@ namespace MovePick {
     public:
 
         MovePicker () = delete;
+        MovePicker (const MovePicker&) = delete;
+        MovePicker& operator= (const MovePicker&) = delete;
+
         MovePicker (const Position&, const HValueStats&, const CMValueStats&, Move, Depth, Move, const Stack*);
         MovePicker (const Position&, const HValueStats&, Move, Depth, Square);
         MovePicker (const Position&, const HValueStats&, Move, Value);
-        MovePicker (const MovePicker&) = delete;
-        MovePicker& operator= (const MovePicker&) = delete;
 
         ValMove* begin () { return _moves_beg; }
         ValMove* end   () { return _moves_end; }

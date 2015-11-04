@@ -237,7 +237,7 @@ namespace Pawns {
                 }
 
 //#ifndef NDEBUG
-                //cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << endl;
+                //std::cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << std::endl;
 //#endif
                 pawn_score += score;
             }

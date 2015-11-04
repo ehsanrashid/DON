@@ -87,7 +87,6 @@ namespace Evaluator {
             ostream& operator<< (ostream &os, TermT term)
             {
                 os << showpos;
-
                 if (   term == TermT(PAWN)
                     || term == MATERIAL
                     || term == IMBALANCE
@@ -103,8 +102,7 @@ namespace Evaluator {
                        << " | ";
                 }
                 os << setw(5) << cp[term][WHITE][MG] - cp[term][BLACK][MG] << " "
-                   << setw(5) << cp[term][WHITE][EG] - cp[term][BLACK][EG] << " \n";
-                
+                   << setw(5) << cp[term][WHITE][EG] - cp[term][BLACK][EG] << std::endl;
                 os << noshowpos;
                 return os;
 
@@ -152,7 +150,7 @@ namespace Evaluator {
         enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PASSED_PAWN, SPACE_ACTIVITY, KING_SAFETY };
 
         struct Weight { i32 mg, eg; };
-        
+
         Score operator* (Score score, const Weight &weight)
         {
             return mk_score (
@@ -385,29 +383,12 @@ namespace Evaluator {
                     if (zone_attacks != U64(0)) ei.king_zone_attacks_count[Own] += u08(pop_count<MAX15> (zone_attacks));
                 }
 
-                /*
-                if (ROOK == PT)
-                {
-                    attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
-                                 | ei.pin_attacked_by[Opp][BSHP]
-                                );
-                             //|  (  ei.pin_attacked_by[Own][PAWN]
-                             //    | ei.pin_attacked_by[Own][NIHT]
-                             //    | ei.pin_attacked_by[Own][BSHP]
-                             //   );
-                }
-                else
-                */
                 if (QUEN == PT)
                 {
                     attacks &= ~(  ei.pin_attacked_by[Opp][NIHT]
                                  | ei.pin_attacked_by[Opp][BSHP]
                                  | ei.pin_attacked_by[Opp][ROOK]
                                 );
-                             //|  (  ei.pin_attacked_by[Own][NIHT]
-                             //    | ei.pin_attacked_by[Own][BSHP]
-                             //    | ei.pin_attacked_by[Own][ROOK]
-                             //   );
                 }
 
                 i32 mob = pop_count<QUEN == PT ? FULL : MAX15> (attacks & mobility_area);
@@ -540,7 +521,6 @@ namespace Evaluator {
                 if (    pos.can_castle (Castling<Own, CS_KING>::Right)
                     && (pos.king_path (Castling<Own, CS_KING>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
                     && !more_than_one (pos.castle_path (Castling<Own, CS_KING>::Right) & pos.pieces ())
-                    //&& !pos.castle_impeded (Castling<Own, CS_KING>::Right)
                    )
                 {
                     value = std::max (value, ei.pe->king_safety[Own][CS_KING]);
@@ -548,7 +528,6 @@ namespace Evaluator {
                 if (    pos.can_castle (Castling<Own, CS_QUEN>::Right)
                     && (pos.king_path (Castling<Own, CS_QUEN>::Right) & ei.ful_attacked_by[Opp][NONE]) == U64(0)
                     && !more_than_one (pos.castle_path (Castling<Own, CS_QUEN>::Right) & pos.pieces ())
-                    //&& !pos.castle_impeded (Castling<Own, CS_QUEN>::Right)
                    )
                 {
                     value = std::max (value, ei.pe->king_safety[Own][CS_QUEN]);
@@ -621,68 +600,6 @@ namespace Evaluator {
                             }
                         }
                     }
-
-                    /*
-                    if (pos.count<ROOK> (Opp) > 0)
-                    {
-                        // Analyze enemy's safe rook contact checks.
-                        
-                        // Undefended squares around the king attacked by enemy rooks...
-                        undefended_attacked = undefended & ei.pin_attacked_by[Opp][ROOK];
-                        // Consider only squares where the enemy rook gives check
-                        undefended_attacked &= PIECE_ATTACKS[ROOK][fk_sq];
-                        
-                        auto unsafe = ei.ful_attacked_by[Opp][PAWN]
-                                    | ei.ful_attacked_by[Opp][NIHT]
-                                    | ei.ful_attacked_by[Opp][BSHP]
-                                    | ei.ful_attacked_by[Opp][KING];
-                        while (undefended_attacked != U64(0))
-                        {
-                            auto sq = pop_lsq (undefended_attacked);
-                            if (   (unsafe & sq) != U64(0)
-                                || (   pos.count<ROOK> (Opp) > 1
-                                    && more_than_one (pos.pieces (Opp, ROOK) & PIECE_ATTACKS[ROOK][sq])
-                                    && more_than_one (pos.pieces (Opp, ROOK) & attacks_bb<ROOK> (sq, pos.pieces () ^ pos.pieces (Opp, ROOK)))
-                                   )
-                               )
-                            {
-                                attack_units += CONTACT_CHECK[ROOK];
-                            }
-                        }
-                    }
-                    if (pos.count<BSHP> (Opp) > 0)
-                    {
-                        // Analyze enemy's safe bishop contact checks.
-                        
-                        // Undefended squares around the king attacked by enemy bishop...
-                        undefended_attacked = undefended & ei.pin_attacked_by[Opp][BSHP];
-                        // Consider only squares where the enemy bishop gives check
-                        undefended_attacked &= PIECE_ATTACKS[BSHP][fk_sq];
-                        
-                        auto unsafe = ei.ful_attacked_by[Opp][PAWN]
-                                    | ei.ful_attacked_by[Opp][NIHT]
-                                    | ei.ful_attacked_by[Opp][ROOK]
-                                    | ei.ful_attacked_by[Opp][KING];
-                        while (undefended_attacked != U64(0))
-                        {
-                            auto sq = pop_lsq (undefended_attacked);
-                            auto bishops = U64(0);
-                            if (   (unsafe & sq) != U64(0)
-                                || (   pos.count<BSHP> (Opp) > 1
-                                    && (bishops = pos.pieces (Opp, BSHP) & ((DARK_bb & sq) != U64(0) ? DARK_bb : LIHT_bb)) != U64(0)
-                                    && more_than_one (bishops)
-                                    && more_than_one (bishops & PIECE_ATTACKS[BSHP][sq])
-                                    && more_than_one (bishops & attacks_bb<BSHP> (sq, pos.pieces () ^ pos.pieces (Opp, BSHP)))
-                                   )
-                               )
-                            {
-                                attack_units += CONTACT_CHECK[BSHP];
-                            }
-                        }
-                    }
-                    */
-
-                    // knight can't give contact check but safe distance check
                 }
 
                 // Analyse the enemies safe distance checks for sliders and knights
@@ -927,10 +844,6 @@ namespace Evaluator {
                             k += safe_squares == front_squares ?
                                     6 : (safe_squares & block_sq) != U64(0) ?
                                         4 : 0;
-                            /*
-                            // If the block square is defended by a pawn add more small bonus.
-                            if ((ei.pin_attacked_by[Own][PAWN] & block_sq) != U64(0)) k += 1;
-                            */
                         }
 
                         mg_value += k*rr;
@@ -950,7 +863,7 @@ namespace Evaluator {
 
                 score += mk_score (mg_value, eg_value) + PAWN_PASSED_FILE[_file (s)];
             }
-            
+
             score = score * WEIGHTS[PASSED_PAWN];
 
             if (Trace)
@@ -997,7 +910,7 @@ namespace Evaluator {
             auto weight = pos.count<NIHT> () + pos.count<BSHP> ();
 
             auto score = mk_score (bonus * weight * weight, 0) * WEIGHTS[SPACE_ACTIVITY];
-            
+
             if (Trace)
             {
                 write (SPACE, Own, score);
@@ -1046,7 +959,7 @@ namespace Evaluator {
             // in the position object (material + piece square tables).
             // Score is computed from the point of view of white.
             auto score  = pos.psq_score ();
-            
+
             score += me->imbalance;
 
             // Probe the pawn hash table
@@ -1212,8 +1125,8 @@ namespace Evaluator {
         }
         // --------------------------------
         // Explicit template instantiations
-        template Value evaluate<true > (const Position&);
         template Value evaluate<false> (const Position&);
+        template Value evaluate<true > (const Position&);
 
     }
 

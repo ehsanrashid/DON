@@ -344,9 +344,9 @@ namespace OpeningBook  {
         
             if (pbes.size () == 0)
             {
-                cerr << "ERROR: no such key... "
-                    << std::hex << std::uppercase << key << std::nouppercase << std::dec
-                    << endl;
+                std::cerr << "ERROR: no such key... "
+                          << std::hex << std::uppercase << key << std::nouppercase << std::dec
+                          << std::endl;
             }
             else
             {

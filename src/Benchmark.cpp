@@ -104,7 +104,7 @@ void benchmark (istream &is, const Position &cur_pos)
     else  /*(limit_type == "depth")*/  limits.depth    = u08(value);
 
     vector<string> fens;
-    
+
     if (fen_fn == "default")
     {
         fens = DEFAULT_FEN;
@@ -120,7 +120,7 @@ void benchmark (istream &is, const Position &cur_pos)
 
         if (!fen_ifs.is_open ())
         {
-            cerr << "ERROR: unable to open file ... \'" << fen_fn << "\'" << endl;
+            std::cerr << "ERROR: unable to open file ... \'" << fen_fn << "\'" << std::endl;
             return;
         }
 
@@ -145,14 +145,14 @@ void benchmark (istream &is, const Position &cur_pos)
     {
         Position pos (fens[i], Threadpool.main (), Chess960, false);
 
-        cerr << "\n---------------\n" 
-             << "Position: " << setw (2) << (i + 1) << "/" << fens.size () << "\n";
+        std::cerr << "\n---------------\n"
+                  << "Position: " << setw (2) << (i + 1) << "/" << fens.size () << std::endl;
 
         if (limit_type == "perft")
         {
-            cerr << "\nDepth " << i32(limits.depth) << "\n";
+            std::cerr << "\nDepth " << i32(limits.depth) << std::endl;
             u64 leaf_nodes = perft (pos, i32(limits.depth)*DEPTH_ONE);
-            cerr << "\nLeaf nodes: " << leaf_nodes << "\n";
+            std::cerr << "\nLeaf nodes: " << leaf_nodes << std::endl;
             nodes += leaf_nodes;
         }
         else
@@ -166,12 +166,12 @@ void benchmark (istream &is, const Position &cur_pos)
     }
 
     time = max (now () - time, 1LL);
-    
-    cerr << "\n---------------------------\n";
+
+    std::cerr << "\n---------------------------\n";
     Debugger::dbg_print (); // Just before to exit
-    cerr << "\n===========================\n"
-         << "Total time (ms) : " << time  << "\n"
-         << "Nodes searched  : " << nodes << "\n"
-         << "Nodes/second    : " << nodes * MILLI_SEC / time
-         << "\n---------------------------\n" << endl;
+    std::cerr << "\n===========================\n"
+              << "Total time (ms) : " << time  << "\n"
+              << "Nodes searched  : " << nodes << "\n"
+              << "Nodes/second    : " << nodes * MILLI_SEC / time
+              << "\n---------------------------\n" << std::endl;
 }

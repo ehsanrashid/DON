@@ -67,13 +67,14 @@ namespace OpeningBook {
 
         PolyglotBook ();
         PolyglotBook (const std::string &book_fn, openmode mode);
+
         PolyglotBook (const PolyglotBook&) = delete;
         PolyglotBook& operator= (const PolyglotBook&) = delete;
-        
+
         ~PolyglotBook ();
 
         bool open (const std::string &book_fn, openmode mode);
-    
+
         void close () { if (is_open ()) std::fstream::close (); }
 
         std::string filename () const { return _book_fn; }

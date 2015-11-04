@@ -59,6 +59,7 @@ namespace MoveGen {
     public:
 
         MoveList () = delete;
+
         explicit MoveList (const Position &pos)
             : _moves_end (generate<GT> (_moves_beg, pos))
         {
@@ -79,7 +80,7 @@ namespace MoveGen {
 
         const ValMove* begin () const { return _moves_beg; }
         const ValMove* end   () const { return _moves_end; }
-  
+
         size_t size () const { return size_t(_moves_end - _moves_beg); }
         
         bool contains (Move move) const
