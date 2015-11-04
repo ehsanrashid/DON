@@ -208,7 +208,7 @@ namespace Threading {
 
         Limits  = limits;
         main ()->root_pos = pos;
-        main ()->root_moves.initialize (pos);
+        main ()->root_moves.initialize (pos, limits.root_moves);
         if (states.get () != nullptr) // If don't set a new position, preserve current state
         {
             SetupStates = std::move (states); // Ownership transfer here

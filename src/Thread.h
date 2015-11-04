@@ -98,7 +98,8 @@ namespace Threading {
         std::atomic_bool thinking { true }; // Avoid a race with start_thinking()
 
         MainThread ()
-            //: thinking (true)
+            : Thread ()
+            //, thinking (true)
         {}
 
         // MainThread::join() waits for main thread to finish thinking
@@ -121,6 +122,9 @@ namespace Threading {
         bool _running = false;
 
     public:
+        TimerThread ()
+            : ThreadBase ()
+        {}
 
         i32 resolution; // Millisec between two task() calls
         void (*task) () = nullptr;
@@ -141,6 +145,8 @@ namespace Threading {
         : public std::vector<Thread*>
     {
     public:
+        ThreadPool () = default;
+
         TimerThread *save_hash_th    = nullptr;
 
         MainThread* main () const { return static_cast<MainThread*> (at (0)); }

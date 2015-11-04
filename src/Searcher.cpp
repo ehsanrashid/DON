@@ -1541,13 +1541,13 @@ namespace Searcher {
 
     // ------------------------------------
 
-    void RootMoveVector::initialize (const Position &pos)
+    void RootMoveVector::initialize (const Position &pos, const MoveVector &root_moves)
     {
         clear ();
         for (const auto &m : MoveList<LEGAL> (pos))
         {
-            if (   Limits.root_moves.empty ()
-                || std::count (Limits.root_moves.begin (), Limits.root_moves.end (), m) != 0
+            if (   root_moves.empty ()
+                || std::count (root_moves.begin (), root_moves.end (), m) != 0
                )
             {
                 *this += RootMove (m);

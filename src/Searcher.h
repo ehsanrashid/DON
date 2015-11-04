@@ -144,7 +144,7 @@ namespace Searcher {
             }
         }
 
-        void initialize (const Position &pos);
+        void initialize (const Position &pos, const MoveVector &root_moves);
 
         operator std::string () const;
 
