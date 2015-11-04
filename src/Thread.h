@@ -120,7 +120,7 @@ namespace Threading {
         bool _running = false;
 
     public:
-        
+
         i32 resolution; // Millisec between two task() calls
         void (*task) () = nullptr;
         
@@ -143,7 +143,7 @@ namespace Threading {
 
         TimerThread *check_limits_th = nullptr;
         TimerThread *save_hash_th    = nullptr;
-        
+
         MainThread* main () const { return static_cast<MainThread*> (at (0)); }
 
         // No constructor and destructor, threadpool rely on globals
@@ -157,6 +157,8 @@ namespace Threading {
         void configure ();
 
     };
+
+
 
     template<class T>
     extern T* new_thread ();

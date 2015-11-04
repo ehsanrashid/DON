@@ -28,7 +28,7 @@ namespace Searcher {
     using namespace Evaluator;
     using namespace Notation;
     using namespace Debugger;
-    
+
     // MoveManager class is used to detect a so called 'easy move'; when PV is
     // stable across multiple search iterations we can fast return the best move.
     class MoveManager
@@ -36,7 +36,7 @@ namespace Searcher {
     private:
         Key  _posi_key = U64(0);
         Move _pv[3];
-        
+
     public:
         i08 stable_count = 0;
 
@@ -49,7 +49,10 @@ namespace Searcher {
             std::fill (std::begin (_pv), std::end (_pv), MOVE_NONE);
         }
 
-        Move easy_move (Key posi_key) const { return _posi_key == posi_key ? _pv[2] : MOVE_NONE; }
+        Move easy_move (Key posi_key) const
+        {
+            return _posi_key == posi_key ? _pv[2] : MOVE_NONE;
+        }
 
         void update (Position& pos, const MoveVector &pv)
         {
@@ -972,7 +975,7 @@ namespace Searcher {
                             << sync_endl;
                     }
                 }
-                
+
                 if (PVNode)
                 {
                     (ss+1)->pv = nullptr;
@@ -1421,7 +1424,7 @@ namespace Searcher {
     {
         assert (size () == 1);
         assert (pv[0] != MOVE_NONE);
-        
+
         bool extracted = false;
 
         StateInfo si;
@@ -1442,10 +1445,10 @@ namespace Searcher {
         }
 
         pos.undo_move ();
-        
+
         return extracted;
     }
-    
+
     RootMove::operator string () const
     {
         stringstream ss;
@@ -1629,11 +1632,6 @@ namespace Searcher {
         u08 mc; // move count
 
         // Initialize lookup tables
-        
-        //for (d = 0; d < RazorDepth; ++d)
-        //{
-        //    RazorMargins         [d] = Value(i32(512 + (32 + 0*d)*d));
-        //}
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
             FutilityMargins      [d] = Value(i32(0 + (200 + 0*d)*d));
@@ -2015,7 +2013,7 @@ namespace Threading {
             std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), SkillMgr.best_move (root_moves)));
         }
     }
-    
+
     void MainThread::think ()
     {
         static PolyglotBook book; // Defined static to initialize the PRNG only once

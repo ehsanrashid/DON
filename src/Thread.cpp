@@ -51,9 +51,9 @@ namespace Threading {
     // any execution thread, which will be started only when constructor returns.
     Thread::Thread ()
         : ThreadBase ()
+        //, max_ply (0)
+        //, searching (false)
     {
-        //max_ply     = 0;
-        //searching   = false;
         history_values.clear ();
         counter_moves.clear ();
         index       = u16(Threadpool.size ()); // Starts from 0
