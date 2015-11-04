@@ -52,7 +52,9 @@ namespace Threading {
     Thread::Thread ()
         : ThreadBase ()
         //, max_ply (0)
+        //, chk_count (0)
         //, searching (false)
+        //, reset_chk_count (false)
     {
         history_values.clear ();
         counter_moves.clear ();
@@ -141,10 +143,6 @@ namespace Threading {
     {
         push_back (new_thread<MainThread> ());
 
-        check_limits_th             = new_thread<TimerThread> ();
-        check_limits_th->task       = check_limits;
-        check_limits_th->resolution = TIMER_RESOLUTION;
-
         save_hash_th                = nullptr;
 
         configure ();
@@ -155,7 +153,6 @@ namespace Threading {
     void ThreadPool::exit ()
     {
         // First delete timers because they accesses threads data
-        delete_thread (check_limits_th);
         delete_thread (save_hash_th);
 
         for (auto *th : *this)

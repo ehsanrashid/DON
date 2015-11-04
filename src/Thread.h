@@ -69,7 +69,8 @@ namespace Threading {
 
         u16  index      = 0
            , pv_index   = 0
-           , max_ply    = 0;
+           , max_ply    = 0
+           , chk_count  = 0;
 
         Position        root_pos;
         RootMoveVector  root_moves;
@@ -78,7 +79,9 @@ namespace Threading {
         HValueStats     history_values;
         MoveStats       counter_moves;
 
-        std::atomic_bool searching { false };
+        std::atomic_bool
+            searching { false }
+          , reset_chk_count { false };
 
         Thread ();
 
@@ -110,8 +113,6 @@ namespace Threading {
         virtual void idle_loop () override;
     };
 
-    const i32 TIMER_RESOLUTION = 5; // Millisec between two check_time() calls
-
     // TimerThread struct is derived struct used for the recurring timer.
     class TimerThread
         : public ThreadBase
@@ -140,8 +141,6 @@ namespace Threading {
         : public std::vector<Thread*>
     {
     public:
-
-        TimerThread *check_limits_th = nullptr;
         TimerThread *save_hash_th    = nullptr;
 
         MainThread* main () const { return static_cast<MainThread*> (at (0)); }
@@ -165,7 +164,6 @@ namespace Threading {
 
     extern void delete_thread (ThreadBase *th);
 
-    extern void check_limits ();
     extern void save_hash ();
 
 }

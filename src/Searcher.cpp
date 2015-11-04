@@ -167,6 +167,60 @@ namespace Searcher {
 
         MoveManager     MoveMgr;
 
+
+        const i32 TIMER_RESOLUTION = 5; // Millisec between two check_limits() calls
+
+        // check_limits() is called by the timer thread when the timer triggers.
+        // It is used to print debug info and, more importantly,
+        // to detect when out of available time or reached limits
+        // and thus stop the search.
+        void check_limits ()
+        {
+            static auto last_time = now ();
+
+            u32 elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
+
+            auto now_time = now ();
+            if (now_time - last_time >= MILLI_SEC)
+            {
+                last_time = now_time;
+                dbg_print ();
+            }
+
+            // An engine may not stop pondering until told so by the GUI
+            if (Limits.ponder) return;
+
+            if (Limits.use_time_manager ())
+            {
+                if (   elapsed_time > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
+                       // Still at first move
+                    || (    Signals.firstmove_root
+                        && !Signals.failedlow_root
+                        && elapsed_time > TimeMgr.available_time () * 0.75
+                       )
+                   )
+                {
+                   Signals.force_stop = true;
+                }
+            }
+            else
+            if (Limits.movetime != 0)
+            {
+                if (elapsed_time >= Limits.movetime)
+                {
+                    Signals.force_stop = true;
+                }
+            }
+            else
+            if (Limits.nodes != 0)
+            {
+                if (Threadpool.game_nodes () >= Limits.nodes)
+                {
+                    Signals.force_stop = true;
+                }
+            }
+        }
+
         // update_stats() updates killers, history, countermoves and countermoves history
         // stats for a quiet best move.
         void update_stats (const Position &pos, Stack *ss, Move move, Depth depth, Move *quiet_moves, u08 quiet_count)
@@ -613,6 +667,21 @@ namespace Searcher {
             StateInfo si;
 
             ss->ply = (ss-1)->ply + 1;
+
+            // Check for available remaining time
+            if (thread->reset_chk_count.load (std::memory_order_relaxed))
+            {
+                thread->reset_chk_count = false;
+                thread->chk_count = 0;
+            }
+            if (++thread->chk_count > (TIMER_RESOLUTION-1)*1024)
+            {
+                for (auto *th : Threadpool)
+                {
+                    th->reset_chk_count = true;
+                }
+                check_limits ();
+            }
 
             // Used to send 'seldepth' info to GUI
             if (PVNode && thread->max_ply < ss->ply)
@@ -1344,6 +1413,7 @@ namespace Searcher {
             return u32(time * std::min (step_time_ratio, steal_time_ratio));
         }
 
+
     }
 
     bool            Chess960        = false;
@@ -1686,57 +1756,6 @@ namespace Searcher {
 namespace Threading {
 
     using namespace Searcher;
-
-    // check_limits() is called by the timer thread when the timer triggers.
-    // It is used to print debug info and, more importantly,
-    // to detect when out of available time or reached limits
-    // and thus stop the search.
-    void check_limits ()
-    {
-        static auto last_time = now ();
-
-        u32 elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
-
-        auto now_time = now ();
-        if (now_time - last_time >= MILLI_SEC)
-        {
-            last_time = now_time;
-            dbg_print ();
-        }
-
-        // An engine may not stop pondering until told so by the GUI
-        if (Limits.ponder) return;
-
-        if (Limits.use_time_manager ())
-        {
-            if (   elapsed_time > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
-                   // Still at first move
-                || (    Signals.firstmove_root
-                    && !Signals.failedlow_root
-                    && elapsed_time > TimeMgr.available_time () * 0.75
-                   )
-               )
-            {
-               Signals.force_stop = true;
-            }
-        }
-        else
-        if (Limits.movetime != 0)
-        {
-            if (elapsed_time >= Limits.movetime)
-            {
-                Signals.force_stop = true;
-            }
-        }
-        else
-        if (Limits.nodes != 0)
-        {
-            if (Threadpool.game_nodes () >= Limits.nodes)
-            {
-                Signals.force_stop = true;
-            }
-        }
-    }
 
     void save_hash ()
     {
@@ -2107,14 +2126,10 @@ namespace Threading {
                 Threadpool.save_hash_th->notify_one ();
             }
 
-            Threadpool.check_limits_th->start ();
-            Threadpool.check_limits_th->notify_one (); // Wake up the recurring timer
-
             search (true); // Let's start searching !
 
             // Stop the threads and the timer
             Signals.force_stop = true;
-            Threadpool.check_limits_th->stop ();
 
             if (Threadpool.save_hash_th != nullptr)
             {
