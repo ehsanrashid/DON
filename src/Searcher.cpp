@@ -221,7 +221,7 @@ namespace Searcher {
             }
         }
 
-        void save_hash ()
+        void auto_save_hash ()
         {
             if (FirstAutoSave)
             {
@@ -2120,7 +2120,7 @@ namespace Threading {
             {
                 FirstAutoSave = true;
                 Threadpool.save_hash_th        = new_thread<TimerThread> ();
-                Threadpool.save_hash_th->task  = save_hash;
+                Threadpool.save_hash_th->task  = auto_save_hash;
                 Threadpool.save_hash_th->resolution = AutoSaveHashTime*MINUTE_MILLI_SEC;
                 Threadpool.save_hash_th->start ();
                 Threadpool.save_hash_th->notify_one ();
@@ -2162,29 +2162,6 @@ namespace Threading {
 
         u32 elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
 
-        assert (root_moves[0].size () != 0);
-
-        if (!SearchFile.empty ())
-        {
-            SearchLog
-                << "Time (ms)  : " << elapsed_time                              << "\n"
-                << "Nodes (N)  : " << root_pos.game_nodes ()                    << "\n"
-                << "Speed (N/s): " << root_pos.game_nodes ()*MILLI_SEC / elapsed_time << "\n"
-                << "Hash-full  : " << TT.hash_full ()                           << "\n"
-                << "Best move  : " << move_to_san (root_moves[0][0], root_pos)  << "\n";
-            if (   root_moves[0] != MOVE_NONE
-                && (root_moves[0].size () > 1 || root_moves[0].extract_ponder_move_from_tt (root_pos))
-               )
-            {
-                StateInfo si;
-                root_pos.do_move (root_moves[0][0], si, root_pos.gives_check (root_moves[0][0], CheckInfo (root_pos)));
-                SearchLog << "Ponder move: " << move_to_san (root_moves[0][1], root_pos) << "\n";
-                root_pos.undo_move ();
-            }
-            SearchLog << std::endl;
-            SearchLog.close ();
-        }
-
         // When playing in 'nodes as time' mode, subtract the searched nodes from
         // the available ones before to exit.
         if (Limits.npmsec != 0)
@@ -2215,11 +2192,34 @@ namespace Threading {
             }
         }
 
+        assert (best_thread->root_moves[0].size () != 0);
+
         // Send new PV when needed.
         // FIXME: Breaks multiPV, and skill levels
         if (best_thread != this)
         {
             sync_cout << multipv_info (best_thread->root_pos, best_thread->completed_depth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
+        }
+
+        if (!SearchFile.empty ())
+        {
+            SearchLog
+                << "Time (ms)  : " << elapsed_time                                                          << "\n"
+                << "Nodes (N)  : " << best_thread->root_pos.game_nodes ()                                   << "\n"
+                << "Speed (N/s): " << best_thread->root_pos.game_nodes ()*MILLI_SEC / elapsed_time          << "\n"
+                << "Hash-full  : " << TT.hash_full ()                                                       << "\n"
+                << "Best move  : " << move_to_san (best_thread->root_moves[0][0], best_thread->root_pos)    << "\n";
+            if (    best_thread->root_moves[0] != MOVE_NONE
+                && (best_thread->root_moves[0].size () > 1 || best_thread->root_moves[0].extract_ponder_move_from_tt (best_thread->root_pos))
+               )
+            {
+                StateInfo si;
+                best_thread->root_pos.do_move (best_thread->root_moves[0][0], si, best_thread->root_pos.gives_check (root_moves[0][0], CheckInfo (best_thread->root_pos)));
+                SearchLog << "Ponder move: " << move_to_san (best_thread->root_moves[0][1], best_thread->root_pos) << "\n";
+                best_thread->root_pos.undo_move ();
+            }
+            SearchLog << std::endl;
+            SearchLog.close ();
         }
 
         // Best move could be MOVE_NONE when searching on a stalemate position

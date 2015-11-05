@@ -143,7 +143,7 @@ namespace Threading {
     {
         push_back (new_thread<MainThread> ());
 
-        save_hash_th                = nullptr;
+        save_hash_th = nullptr;
 
         configure ();
     }
@@ -154,7 +154,6 @@ namespace Threading {
     {
         // First delete timers because they accesses threads data
         delete_thread (save_hash_th);
-
         for (auto *th : *this)
         {
             delete_thread (th);

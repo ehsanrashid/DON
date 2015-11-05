@@ -224,7 +224,7 @@ namespace Evaluator {
 
         const Score THREATEN_BY_HANG_PAWN   = S(40, 60);
 
-        const Score BISHOP_PAWNS            = S( 8,12); // Penalty for bishop with more pawns on same color
+        const Score BISHOP_PAWNS            = S( 8,12); // Penalty for bishop with pawns on same color
         const Score BISHOP_TRAPPED          = S(50,50); // Penalty for bishop trapped with pawns (Chess960)
 
         const Score MINOR_BEHIND_PAWN       = S(16, 0); // Bonus for minor behind a pawn
@@ -279,11 +279,14 @@ namespace Evaluator {
         // KING_ATTACK[PieceT] contains king attack weights by piece type
         const i32   KING_ATTACK[NONE] = { 1, 14, 10,  8,  2,  0 };
 
-        // Bonuses for safe checks
-        const i32    SAFE_CHECK[NONE] = { 0, 14,  6, 45, 50,  0 };
+        // Penalties for enemy's safe checks
+        const i32 KNIGHT_SAFE_CHECK     = 14;
+        const i32 BISHOP_SAFE_CHECK     =  6;
+        const i32 ROOK_SAFE_CHECK       = 45;
+        const i32 QUEEN_SAFE_CHECK      = 50;
 
-        // Bonuses for contact safe checks
-        const i32 CONTACT_CHECK[NONE] = { 0,  0, 18, 71, 89,  0 };
+        // Penalty for enemy's contact safe check
+        const i32 QUEEN_CONTACT_CHECK   = 89;
 
         //  --- init evaluation info --->
         template<Color Own>
@@ -596,7 +599,7 @@ namespace Evaluator {
                                    )
                                )
                             {
-                                attack_units += CONTACT_CHECK[QUEN];
+                                attack_units += QUEEN_CONTACT_CHECK;
                             }
                         }
                     }
@@ -613,28 +616,28 @@ namespace Evaluator {
                 safe_check = (rook_check | bshp_check) & ei.pin_attacked_by[Opp][QUEN];
                 if (safe_check != U64(0))
                 {
-                    attack_units += SAFE_CHECK[QUEN] * pop_count<MAX15> (safe_check);
+                    attack_units += QUEEN_SAFE_CHECK * pop_count<MAX15> (safe_check);
                     score -= CHECKED;
                 }
                 // Rooks safe-checks
                 safe_check = rook_check & ei.pin_attacked_by[Opp][ROOK];
                 if (safe_check != U64(0))
                 {
-                    attack_units += SAFE_CHECK[ROOK] * pop_count<MAX15> (safe_check);
+                    attack_units += ROOK_SAFE_CHECK * pop_count<MAX15> (safe_check);
                     score -= CHECKED;
                 }
                 // Bishops safe-checks
                 safe_check = bshp_check & ei.pin_attacked_by[Opp][BSHP];
                 if (safe_check != U64(0))
                 {
-                    attack_units += SAFE_CHECK[BSHP] * pop_count<MAX15> (safe_check);
+                    attack_units += BISHOP_SAFE_CHECK * pop_count<MAX15> (safe_check);
                     score -= CHECKED;
                 }
                 // Knights safe-checks
                 safe_check = PIECE_ATTACKS[NIHT][fk_sq] & safe_area & ei.pin_attacked_by[Opp][NIHT];
                 if (safe_check != U64(0))
                 {
-                    attack_units += SAFE_CHECK[NIHT] * pop_count<MAX15> (safe_check);
+                    attack_units += KNIGHT_SAFE_CHECK * pop_count<MAX15> (safe_check);
                     score -= CHECKED;
                 }
 
