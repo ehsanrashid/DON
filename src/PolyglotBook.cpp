@@ -325,7 +325,7 @@ namespace OpeningBook  {
     {
         ostringstream oss;
 
-        if (is_open () && (_mode & in))
+        if (is_open () && (_mode & ios_base::in))
         {
             Key key = pos.posi_key ();
 
