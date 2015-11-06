@@ -246,7 +246,7 @@ namespace OpeningBook  {
         //    //3) go through the items one at a time, subtracting their weight from your random number, until you get the item where the random number is less than that item's weight
         //
         //    u32 rand = (pr.rand<u32> () % weight_sum);
-        //    vector<PBEntry>::const_iterator ms = pbes.begin ();
+        //    auto ms = pbes.begin ();
         //    while (ms != pbes.end ())
         //    {
         //        pbe = *ms;
@@ -334,15 +334,15 @@ namespace OpeningBook  {
             seekg (OFFSET (index));
 
             vector<PBEntry> pbes;
-            PBEntry tmp_pbe;
+            PBEntry pbe;
             u32 weight_sum = 0;
-            while ((*this >> tmp_pbe), (tmp_pbe.key == key))
+            while ((*this >> pbe), (pbe.key == key))
             {
-                pbes.push_back (tmp_pbe);
-                weight_sum += tmp_pbe.weight;
+                pbes.push_back (pbe);
+                weight_sum += pbe.weight;
             }
         
-            if (pbes.size () == 0)
+            if (pbes.empty ())
             {
                 std::cerr << "ERROR: no such key... "
                           << std::hex << std::uppercase << key << std::nouppercase << std::dec
@@ -350,10 +350,9 @@ namespace OpeningBook  {
             }
             else
             {
-                for_each (pbes.begin (), pbes.end (), [&oss, &weight_sum] (PBEntry pbe)
+                for_each (pbes.begin (), pbes.end (), [&oss, &weight_sum] (PBEntry p)
                 {
-                    oss << pbe 
-                        << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * pbe.weight / weight_sum : 0.0) << std::setfill (' ')
+                    oss << p << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * p.weight / weight_sum : 0.0) << std::setfill (' ')
                         << endl;
                 });
             }

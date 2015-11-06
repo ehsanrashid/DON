@@ -708,30 +708,30 @@ namespace Evaluator {
                 &  ei.pin_attacked_by[Own][NONE];
 
             // Add a bonus according to the kind of attacking pieces
-            if ((weak_pieces | defended_nonpawns) != U64 (0))
+            if ((weak_pieces | defended_nonpawns) != U64(0))
             {
                 // Enemies attacked by minor pieces
                 b = (weak_pieces | defended_nonpawns) & (ei.pin_attacked_by[Own][NIHT] | ei.pin_attacked_by[Own][BSHP]);
-                while (b != U64 (0))
+                while (b != U64(0))
                 {
                     score += THREATEN_BY_PIECE[MINOR][ptype (pos[pop_lsq (b)])];
                 }
                 // Enemies attacked by rooks
                 b = (weak_pieces | pos.pieces (Opp, QUEN)) & (ei.pin_attacked_by[Own][ROOK]);
-                while (b != U64 (0))
+                while (b != U64(0))
                 {
                     score += THREATEN_BY_PIECE[MAJOR][ptype (pos[pop_lsq (b)])];
                 }
 
                 // Weak enemies attacked by king
                 b = weak_pieces & ei.ful_attacked_by[Own][KING];
-                if (b != U64 (0))
+                if (b != U64(0))
                 {
                     score += THREATEN_BY_KING[more_than_one (b) ? 1 : 0];
                 }
                 // Weak hanging enemies attacked by any
                 b = weak_pieces & ~ei.pin_attacked_by[Opp][NONE];
-                if (b != U64 (0))
+                if (b != U64(0))
                 {
                     score += PIECE_HANGED * pop_count<MAX15> (b);
                 }

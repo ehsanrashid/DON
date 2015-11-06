@@ -296,7 +296,7 @@ namespace UCI {
             {
                 sync_cout;
 
-                if (RootPos.checkers () != U64 (0))
+                if (RootPos.checkers () != U64(0))
                 {
                     std::cout << "\nEvasion moves: ";
                     for (const auto &m : MoveList<EVASION> (RootPos))

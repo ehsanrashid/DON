@@ -110,6 +110,7 @@ namespace Searcher {
         void operator-= (Move m) { pv.erase (std::remove (pv.begin (), pv.end (), m), pv.end ()); }
 
         size_t size () const { return pv.size (); }
+        bool empty () const { return pv.empty (); }
 
         void backup () { old_value = new_value; }
         void insert_pv_into_tt (Position &pos);
@@ -121,7 +122,7 @@ namespace Searcher {
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
         {
-            os << std::string (rm);
+            os << std::string(rm);
             return os;
         }
 
@@ -152,7 +153,7 @@ namespace Searcher {
         friend std::basic_ostream<CharT, Traits>&
             operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &rmv)
         {
-            os << std::string (rmv);
+            os << std::string(rmv);
             return os;
         }
     };
@@ -166,9 +167,9 @@ namespace Searcher {
         u16  ply = 0;
 
         Move tt_move      = MOVE_NONE
-            , current_move = MOVE_NONE
-            , exclude_move = MOVE_NONE
-            , killer_moves[2];
+           , current_move = MOVE_NONE
+           , exclude_move = MOVE_NONE
+           , killer_moves[2];
 
         Value static_eval = VALUE_NONE;
         bool firstmove_pv = false;
@@ -187,15 +188,20 @@ namespace Searcher {
         
         static const u16 SkillMultiPV = 4;
 
-        void change_level (u08 level) { _level = level; }
+        void change_level (u08 level)
+        { _level = level; }
 
-        void clear () { _best_move = MOVE_NONE; }
+        void clear ()
+        { _best_move = MOVE_NONE; }
 
-        bool enabled () const { return _level < MAX_SKILL_LEVEL; }
+        bool enabled () const
+        { return _level < MAX_SKILL_LEVEL; }
 
-        bool depth_to_pick (Depth depth) const { return depth/DEPTH_ONE == (1 + _level); }
+        bool depth_to_pick (Depth depth) const
+        { return depth/DEPTH_ONE == (1 + _level); }
 
-        Move best_move (const RootMoveVector &root_moves) { return _best_move != MOVE_NONE ? _best_move : pick_best_move (root_moves); }
+        Move best_move (const RootMoveVector &root_moves)
+        { return _best_move != MOVE_NONE ? _best_move : pick_best_move (root_moves); }
         
         Move pick_best_move (const RootMoveVector &root_moves);
 

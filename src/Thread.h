@@ -147,7 +147,7 @@ namespace Threading {
     public:
         ThreadPool () = default;
 
-        TimerThread *save_hash_th    = nullptr;
+        TimerThread *save_hash_th = nullptr;
 
         MainThread* main () const { return static_cast<MainThread*> (at (0)); }
 

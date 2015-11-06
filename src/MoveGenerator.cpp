@@ -126,7 +126,7 @@ namespace MoveGen {
 
                 if (CAPTURE != GT)
                 {
-                    if (pos.can_castle (Own) && pos.checkers () == U64 (0))
+                    if (pos.can_castle (Own) && pos.checkers () == U64(0))
                     {
                         CheckInfo cc;
                         if (ci == nullptr) { cc = CheckInfo (pos); ci = &cc; }
@@ -189,10 +189,10 @@ namespace MoveGen {
                 //{
                 //    if (ci != nullptr)
                 //    {
-                //        if ((PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
-                //        if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
-                //        if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
-                //        if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64 (0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
+                //        if ((PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                //        if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
+                //        if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
+                //        if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
                 //    }
                 //}
                 else

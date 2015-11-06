@@ -1765,8 +1765,6 @@ namespace Searcher {
 
 namespace Threading {
 
-    using namespace Searcher;
-
     // Thread::search() is the main iterative deepening loop. It calls search()
     // repeatedly with increasing depth until the allocated thinking time has been
     // consumed, user stops the search, or the maximum search depth is reached.
@@ -2063,7 +2061,18 @@ namespace Threading {
                 << std::endl;
         }
 
-        if (root_moves.size () != 0)
+        if (root_moves.empty())
+        {
+            root_moves += RootMove ();
+
+            sync_cout
+                << "info"
+                << " depth " << 0
+                << " score " << to_string (root_pos.checkers () != U64(0) ? -VALUE_MATE : VALUE_DRAW)
+                << " time "  << 0
+                << sync_endl;
+        }
+        else
         {
             // Check if can play with own book
             if (OwnBook && RootPly <= 20 && !Limits.infinite && !MateSearch && !BookFile.empty ())
@@ -2146,17 +2155,6 @@ namespace Threading {
                 }
             }
         }
-        else
-        {
-            root_moves += RootMove ();
-
-            sync_cout
-                << "info"
-                << " depth " << 0
-                << " score " << to_string (root_pos.checkers () != U64 (0) ? -VALUE_MATE : VALUE_DRAW)
-                << " time "  << 0
-                << sync_endl;
-        }
 
     finish:
 
@@ -2192,7 +2190,7 @@ namespace Threading {
             }
         }
 
-        assert (best_thread->root_moves[0].size () != 0);
+        assert (!best_thread->root_moves[0].empty ());
 
         // Send new PV when needed.
         // FIXME: Breaks multiPV, and skill levels

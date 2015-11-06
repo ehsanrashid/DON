@@ -181,7 +181,7 @@ namespace Threading {
             pop_back ();
         }
 
-        sync_cout << "info string Thread(s) "   << threads << "." << sync_endl;
+        sync_cout << "info string Thread(s) " << threads << "." << sync_endl;
     }
 
     u64 ThreadPool::game_nodes ()

@@ -354,7 +354,7 @@ namespace BitBoard {
 
     void test_attacks ()
     {
-        Bitboard occ = U64 (0x1234);
+        Bitboard occ = U64(0x1234);
         cout << "occupancy:\n" << pretty (occ);
         // Knight
         for (auto s1 = SQ_A1; s1 <= SQ_H8; ++s1)
