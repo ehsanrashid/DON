@@ -153,7 +153,7 @@ namespace Memory {
             if (mem_ref != nullptr)
             {
                 LargePages = true;
-                memset (mem_ref, 0x00, mem_size);
+                std::memset (mem_ref, 0x00, mem_size);
                 sync_cout << "info string Page Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
@@ -168,7 +168,7 @@ namespace Memory {
                 if (mem_ref != (void*) -1)
                 {
                     LargePages = true;
-                    memset (mem_ref, 0x00, mem_size);
+                    std::memset (mem_ref, 0x00, mem_size);
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
@@ -186,7 +186,7 @@ namespace Memory {
                 if (mem_ref != (void*) -1)
                 {
                     LargePages = true;
-                    memset (mem_ref, 0x00, mem_size);
+                    std::memset (mem_ref, 0x00, mem_size);
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
@@ -205,7 +205,7 @@ namespace Memory {
         ALIGN_MALLOC (mem_ref, alignment, mem_size);
         if (mem_ref != nullptr)
         {
-            memset (mem_ref, 0x00, mem_size);
+            std::memset (mem_ref, 0x00, mem_size);
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
             return;
         }

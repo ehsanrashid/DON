@@ -473,7 +473,7 @@ inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1) / i32(v2); }
 
 // Make score from mid and end values
-inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 0x10) + eg); }
+inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 16) + eg); }
 
 // Extracting the signed lower and upper 16 bits it not so trivial because
 // according to the standard a simple cast to short is implementation defined
@@ -481,8 +481,8 @@ inline Score mk_score (i32 mg, i32 eg) { return Score ((mg << 0x10) + eg); }
 
 union ValueUnion { u16 u; i16 s; };
 
-inline Value mg_value (Score s) { ValueUnion mg = { u16(u32(s + 0x8000) >> 0x10) }; return Value(mg.s); }
-inline Value eg_value (Score s) { ValueUnion eg = { u16(u32(s         )        ) }; return Value(eg.s); }
+inline Value mg_value (Score s) { ValueUnion mg = { u16(u32(s + 0x8000) >> 16) }; return Value(mg.s); }
+inline Value eg_value (Score s) { ValueUnion eg = { u16(u32(s         )      ) }; return Value(eg.s); }
 
 ARTHMAT_OPERATORS (Score)
 // Only declared but not defined. Don't want to multiply two scores due to

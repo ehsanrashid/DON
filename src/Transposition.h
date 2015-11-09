@@ -187,7 +187,7 @@ namespace Transposition {
         {
             if (!RetainHash && _clusters != nullptr)
             {
-                memset (_clusters, 0x00, _cluster_count * ClusterSize);
+                std::memset (_clusters, 0x00, _cluster_count * ClusterSize);
                 _generation = 0;
                 sync_cout << "info string Hash cleared." << sync_endl;
             }

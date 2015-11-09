@@ -138,7 +138,7 @@ namespace Material {
         // return the information found the last time instead of recomputing it.
         if (e->matl_key != matl_key)
         {
-            memset (e, 0x00, sizeof (*e));
+            std::memset (e, 0x00, sizeof (*e));
             e->matl_key      = matl_key;
             e->factor[WHITE] = SCALE_FACTOR_NORMAL;
             e->factor[BLACK] = SCALE_FACTOR_NORMAL;
@@ -269,7 +269,7 @@ namespace Material {
                 }
             };
 
-            auto value = Value((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 0x10);
+            auto value = Value((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
             e->imbalance = mk_score (value, value);
         }
 

@@ -105,12 +105,11 @@ namespace Evaluator {
                    << setw(5) << cp[term][WHITE][EG] - cp[term][BLACK][EG] << std::endl;
                 os << noshowpos;
                 return os;
-
             }
 
             string trace (const Position &pos)
             {
-                memset (cp, 0x00, sizeof (cp));
+                std::memset (cp, 0x00, sizeof (cp));
                 
                 auto value = pos.active () == WHITE ?  // White's point of view
                                 +evaluate<true> (pos) :
@@ -233,9 +232,9 @@ namespace Evaluator {
         const Score ROOK_ON_SEMIOPENFILE    = S(19,10); // Bonus for rook on semi-open file
         const Score ROOK_ON_PAWNS           = S( 7,27); // Bonus for rook on pawns
         const Score ROOK_TRAPPED            = S(92, 0); // Penalty for rook trapped
-        
+
         const Score PIECE_HANGED            = S(31,26); // Bonus for each enemy hanged piece       
-        
+
         const Score PAWN_SAFEATTACK         = S(20,20);
         const Score CHECKED                 = S(20,20);
 
@@ -333,9 +332,9 @@ namespace Evaluator {
             if (pos.non_pawn_material (Own) >= VALUE_MG_QUEN)
             {
                 ei.king_ring[Opp] = king_attacks|(DIST_RINGS_bb[pos.square<KING> (Opp)][1] &
-                                                        (rel_rank (Opp, pos.square<KING> (Opp)) < R_5 ? (PAWN_PASS_SPAN[Opp][pos.square<KING> (Opp)]) :
-                                                         rel_rank (Opp, pos.square<KING> (Opp)) < R_7 ? (PAWN_PASS_SPAN[Opp][pos.square<KING> (Opp)]|PAWN_PASS_SPAN[Own][pos.square<KING> (Opp)]) :
-                                                                                                         (PAWN_PASS_SPAN[Own][pos.square<KING> (Opp)])));
+                                                        (rel_rank (Opp, pos.square<KING> (Opp)) < R_5 ? PAWN_PASS_SPAN[Opp][pos.square<KING> (Opp)] :
+                                                         rel_rank (Opp, pos.square<KING> (Opp)) < R_7 ? PAWN_PASS_SPAN[Opp][pos.square<KING> (Opp)]|PAWN_PASS_SPAN[Own][pos.square<KING> (Opp)] :
+                                                                                                        PAWN_PASS_SPAN[Own][pos.square<KING> (Opp)]));
 
                 if ((king_attacks & ei.pin_attacked_by[Own][PAWN]) != U64(0))
                 {
@@ -542,7 +541,7 @@ namespace Evaluator {
                 value = ei.pe->king_safety[Own][CS_NO];
             }
 
-            auto score = mk_score (value, -0x10 * ei.pe->king_pawn_dist[Own]);
+            auto score = mk_score (value, -16 * ei.pe->king_pawn_dist[Own]);
 
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[Opp] != 0)
@@ -668,9 +667,8 @@ namespace Evaluator {
             const auto Rank7BB  = WHITE == Own ? R7_bb : R2_bb;
 
             auto score = SCORE_ZERO;
-
-            Bitboard b, weak_nonpawns;
-
+            Bitboard b;
+            Bitboard weak_nonpawns;
             // Non-pawn enemies attacked by any friendly pawn
             weak_nonpawns =
                   (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
@@ -693,14 +691,14 @@ namespace Evaluator {
                 }
             }
 
-            Bitboard weak_pieces, defended_nonpawns;
-
+            Bitboard weak_pieces;
             // Enemies not defended by pawn and attacked by any friendly piece
             weak_pieces =
                 pos.pieces (Opp)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 &  ei.pin_attacked_by[Own][NONE];
 
+            Bitboard defended_nonpawns;
             // Non-pawn enemies defended by a pawn and attacked by any friendly piece
             defended_nonpawns =
                 (pos.pieces (Opp) ^ pos.pieces (Opp, PAWN))
@@ -1055,7 +1053,7 @@ namespace Evaluator {
                     + ei.pe->evaluate_unstoppable_pawns<WHITE> ();
                     - ei.pe->evaluate_unstoppable_pawns<BLACK> ();
             }
-            
+
             // Evaluate position potential for the winning side
             score += evaluate_initiative (pos, ei.pe->asymmetry, eg_value (score));
 

@@ -862,7 +862,7 @@ namespace Searcher {
 
                         // Speculative prefetch as early as possible
                         prefetch (TT.cluster_entry (pos.posi_key ()));
-                            
+
                         // Do null move
                         pos.do_null_move (si);
 
@@ -1771,7 +1771,7 @@ namespace Threading {
     void Thread::search (bool thread_main)
     {
         Stack stacks[MAX_DEPTH+4], *ss = stacks+2; // To allow referencing (ss-2)
-        memset (ss-2, 0x00, 5*sizeof (*stacks));
+        std::memset (ss-2, 0x00, 5*sizeof (*stacks));
 
         auto easy_move = MOVE_NONE;
         if (thread_main)
@@ -2229,6 +2229,5 @@ namespace Threading {
             std::cout << " ponder " << move_to_can (best_thread->root_moves[0][1], Chess960);
         }
         std::cout << sync_endl;
-
     }
 }

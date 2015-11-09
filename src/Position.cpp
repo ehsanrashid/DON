@@ -131,7 +131,7 @@ void Position::initialize ()
 // from the source to be self-consistent and not depending on any external data.
 Position& Position::operator= (const Position &pos)
 {
-    memcpy (this, &pos, sizeof (*this));
+    std::memcpy (this, &pos, sizeof (*this));
 
     _sb = *_si;
     _si = &_sb;
@@ -889,7 +889,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 // clear() clear the position
 void Position::clear ()
 {
-    memset (this, 0x00, sizeof (*this));
+    std::memset (this, 0x00, sizeof (*this));
 
     for (auto s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -1204,7 +1204,7 @@ void Position::do_move (Move m, StateInfo &si, bool check)
     Key key = _si->posi_key ^ Zob._.act_side;
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    memcpy (&si, _si, offsetof (StateInfo, last_move));
+    std::memcpy (&si, _si, offsetof (StateInfo, last_move));
 
     // Switch state pointer to point to the new, ready to be updated, state.
     si.ptr = _si;
@@ -1489,7 +1489,7 @@ void Position::do_null_move (StateInfo &si)
     assert (_si->checkers == U64(0));
 
     // Full copy here
-    memcpy (&si, _si, sizeof (si));
+    std::memcpy (&si, _si, sizeof (si));
 
     // Switch our state pointer to point to the new, ready to be updated, state.
     si.ptr = _si;
