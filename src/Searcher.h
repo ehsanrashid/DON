@@ -230,7 +230,7 @@ namespace Searcher {
         u64     available_nodes  = 0; // When in 'nodes as time' mode
         double  best_move_change = 0.0;
 
-        u32 available_time () const { return u32 (_optimum_time * _instability_factor * 0.76); }
+        u32 available_time () const { return u32(_optimum_time * _instability_factor * 0.76); }
 
         u32 maximum_time () const { return _maximum_time; }
 

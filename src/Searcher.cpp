@@ -1643,15 +1643,15 @@ namespace Searcher {
         // then choose the move with the resulting highest value.
         for (u16 i = 0; i < PVLimit; ++i)
         {
-            auto v = root_moves[i].new_value
-                   // push value
-                   + (  weakness   * i32(top_value - root_moves[i].new_value)
-                      + difference * i32(prng.rand<u32> () % weakness)
-                     ) * 2 / i32(VALUE_EG_PAWN);
+            auto value = root_moves[i].new_value;
+            // This is magic formula for push
+            auto push  = (  weakness   * i32(top_value - value)
+                          + difference * i32(prng.rand<u32> () % weakness)
+                         ) / (i32(VALUE_EG_PAWN) / 2);
 
-            if (best_value < v)
+            if (best_value < value + push)
             {
-                best_value = v;
+                best_value = value + push;
                 _best_move = root_moves[i][0];
             }
         }

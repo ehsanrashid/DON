@@ -139,6 +139,7 @@ ClientBin/
 *.[Pp]ublish.xml
 *.pfx
 *.publishsettings
+*.stackdump
 
 # RIA/Silverlight projects
 Generated_Code/
@@ -176,4 +177,4 @@ $RECYCLE.BIN/
 *.oek
 *.etl
 
-src/DON
+
