@@ -38,21 +38,20 @@ namespace OpeningBook {
             friend std::basic_ostream<CharT, Traits>&
                 operator<< (std::basic_ostream<CharT, Traits> &os, const PBEntry &pbe)
             {
-                os << std::string (pbe);
+                os << std::string(pbe);
                 return os;
             }
 
         };
 
-        static const streampos EntrySize;
-        static const streampos HeaderSize;
-        static const streampos ErrorIndex;
+        static const size_t EntrySize;
+        static const size_t HeaderSize;
 
     private:
 
         std::string _book_fn;
         openmode    _mode;
-        streampos   _size;
+        size_t      _size;
 
         template<class T>
         PolyglotBook& operator>> (T &t);
@@ -62,28 +61,29 @@ namespace OpeningBook {
     public:
         // find_index() takes a hash-key as input, and search through the book file for the given key.
         // Returns the index of the 1st book entry with the same key as the input.
-        streampos find_index (const Key key);
-        streampos find_index (const Position &pos);
-        streampos find_index (const std::string &fen, bool c960 = false);
+        size_t find_index (const Key key);
+        size_t find_index (const Position &pos);
+        size_t find_index (const std::string &fen, bool c960 = false);
 
         PolyglotBook ();
         PolyglotBook (const std::string &book_fn, openmode mode);
+
         PolyglotBook (const PolyglotBook&) = delete;
         PolyglotBook& operator= (const PolyglotBook&) = delete;
-        
+
         ~PolyglotBook ();
 
         bool open (const std::string &book_fn, openmode mode);
-    
+
         void close () { if (is_open ()) std::fstream::close (); }
 
         std::string filename () const { return _book_fn; }
 
-        streampos size ()
+        size_t size ()
         {
             if (0 >= _size)
             {
-                auto cur_pos = tellg ();
+                size_t cur_pos = tellg ();
                 seekg (0L, end);
                 _size = tellg ();
                 seekg (cur_pos, beg);

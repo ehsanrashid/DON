@@ -17,23 +17,23 @@ namespace Material {
 
         const i32 OwnSideLinearCoefficient[NONE] =
         {
-            - 164, // P
-            -1067, // N
-            - 160, // B 
-            + 234, // R
-            - 137, // Q
-            +1756  // BP
+            - 168, // P
+            -1027, // N
+            - 166, // B 
+            + 238, // R
+            - 138, // Q
+            +1667  // BP
         };
 
         const i32 OwnSideQuadraticCoefficient[NONE][NONE] =
         {
             //          OWN PIECES
             //  P     N     B     R     Q    BP
-            { +  2,    0,    0,    0,    0, + 39 }, // P
-            { +271, -  4,    0,    0,    0, + 35 }, // N
-            { +105, +  4,    0,    0,    0,    0 }, // B     OWN PIECES
-            { -  2, + 46, +100, -141,    0, - 27 }, // R
-            { + 25, +129, +142, -137,    0, -177 }, // Q
+            { +  2,    0,    0,    0,    0, + 40 }, // P
+            { +255, -  3,    0,    0,    0, + 32 }, // N
+            { +104, +  4,    0,    0,    0,    0 }, // B     OWN PIECES
+            { -  2, + 47, +105, -149,    0, - 26 }, // R
+            { + 24, +122, +137, -134,    0, -185 }, // Q
             {    0,    0,    0,    0,    0,    0 }  // BP
         };
 
@@ -41,11 +41,11 @@ namespace Material {
         {
             //          OPP PIECES
             //  P     N     B     R     Q    BP
-            {    0,    0,    0,    0,    0, + 37 }, // P
-            { + 62,    0,    0,    0,    0, + 10 }, // N
-            { + 64, + 39,    0,    0,    0, + 57 }, // B     OWN PIECES
-            { + 40, + 23, - 22,    0,    0, + 50 }, // R
-            { +105, - 39, +141, +274,    0, + 98 }, // Q
+            {    0,    0,    0,    0,    0, + 36 }, // P
+            { + 63,    0,    0,    0,    0, +  9 }, // N
+            { + 65, + 42,    0,    0,    0, + 59 }, // B     OWN PIECES
+            { + 39, + 24, - 24,    0,    0, + 46 }, // R
+            { +100, - 37, +141, +268,    0, +101 }, // Q
             {    0,    0,    0,    0,    0,    0 }  // BP
         };
 
@@ -138,7 +138,7 @@ namespace Material {
         // return the information found the last time instead of recomputing it.
         if (e->matl_key != matl_key)
         {
-            memset (e, 0x00, sizeof (*e));
+            std::memset (e, 0x00, sizeof (*e));
             e->matl_key      = matl_key;
             e->factor[WHITE] = SCALE_FACTOR_NORMAL;
             e->factor[BLACK] = SCALE_FACTOR_NORMAL;
@@ -169,7 +169,7 @@ namespace Material {
             EndgameBase<ScaleFactor> *scaling_func;
             if ((scaling_func = EndGames->probe<ScaleFactor> (matl_key)) != nullptr)
             {
-                e->scaling_func[scaling_func->strong_side ()] = scaling_func;
+                e->scaling_func[scaling_func->strong_side ()] = scaling_func; // Only strong color assigned
                 return e;
             }
 
@@ -234,7 +234,6 @@ namespace Material {
                         npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[BLACK] <= VALUE_MG_BSHP ? 4 : 14);
                 }
-                else
                 if (pos.count<PAWN> (WHITE) == 1)
                 {
                     e->factor[WHITE] = u08(SCALE_FACTOR_ONEPAWN);
@@ -249,7 +248,6 @@ namespace Material {
                         npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
                         npm[WHITE] <= VALUE_MG_BSHP ? 4 : 14);
                 }
-                else
                 if (pos.count<PAWN> (BLACK) == 1)
                 {
                     e->factor[BLACK] = u08(SCALE_FACTOR_ONEPAWN);
@@ -259,7 +257,7 @@ namespace Material {
             // Evaluate the material imbalance.
             // Use KING as a place holder for the bishop pair "extended piece",
             // this allow us to be more flexible in defining bishop pair bonuses.
-            const i32 count[CLR_NO][NONE] =
+            const i32 piece_count[CLR_NO][NONE] =
             {
                 {
                     pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
@@ -271,7 +269,7 @@ namespace Material {
                 }
             };
 
-            auto value = Value((imbalance<WHITE> (count) - imbalance<BLACK> (count)) / 0x10);
+            auto value = Value((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
             e->imbalance = mk_score (value, value);
         }
 

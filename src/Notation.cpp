@@ -290,6 +290,8 @@ namespace Notation {
             states.pop ();
             --ply;
         }
+        ////---------------------------------
+        //
 
         return oss.str ();
     }

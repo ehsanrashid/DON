@@ -104,7 +104,7 @@ void benchmark (istream &is, const Position &cur_pos)
     else  /*(limit_type == "depth")*/  limits.depth    = u08(value);
 
     vector<string> fens;
-    
+
     if (fen_fn == "default")
     {
         fens = DEFAULT_FEN;
@@ -120,7 +120,7 @@ void benchmark (istream &is, const Position &cur_pos)
 
         if (!fen_ifs.is_open ())
         {
-            cerr << "ERROR: unable to open file ... \'" << fen_fn << "\'" << endl;
+            std::cerr << "ERROR: unable to open file ... \'" << fen_fn << "\'" << std::endl;
             return;
         }
 
@@ -136,7 +136,7 @@ void benchmark (istream &is, const Position &cur_pos)
         fen_ifs.close ();
     }
 
-    reset ();
+    clear ();
 
     u64  nodes = 0;
     auto time  = now ();
@@ -145,92 +145,33 @@ void benchmark (istream &is, const Position &cur_pos)
     {
         Position pos (fens[i], Threadpool.main (), Chess960, false);
 
-        cerr << "\n---------------\n" 
-             << "Position: " << setw (2) << (i + 1) << "/" << fens.size () << "\n";
+        std::cerr << "\n---------------\n"
+                  << "Position: " << setw (2) << (i + 1) << "/" << fens.size () << std::endl;
 
         if (limit_type == "perft")
         {
-            cerr << "\nDepth " << i32(limits.depth) << "\n";
+            std::cerr << "\nDepth " << i32(limits.depth) << std::endl;
             u64 leaf_nodes = perft (pos, i32(limits.depth)*DEPTH_ONE);
-            cerr << "\nLeaf nodes: " << leaf_nodes << "\n";
+            std::cerr << "\nLeaf nodes: " << leaf_nodes << std::endl;
             nodes += leaf_nodes;
         }
         else
         {
             StateStackPtr states;
+            limits.start_time = now ();
             Threadpool.start_main (pos, limits, states);
             Threadpool.main ()->join ();
-            nodes += RootPos.game_nodes ();
+            nodes += Threadpool.game_nodes ();
         }
     }
 
     time = max (now () - time, 1LL);
-    
-    cerr << "\n---------------------------\n";
+
+    std::cerr << "\n---------------------------\n";
     Debugger::dbg_print (); // Just before to exit
-    cerr << "\n===========================\n"
-         << "Total time (ms) : " << time  << "\n"
-         << "Nodes searched  : " << nodes << "\n"
-         << "Nodes/second    : " << nodes * MILLI_SEC / time
-         << "\n---------------------------\n" << endl;
-}
-
-void auto_tune (istream &is)
-{
-    string token;
-    // Assign default values to missing arguments
-    string threads = (is >> token) && !white_spaces (token) ? token : "1";
-
-    Options["Threads"] = threads;
-
-    LimitsT limits;
-    limits.depth = 15;
-
-    u64 nps[4];
-    for (i32 d = 0; d < 4; ++d)
-    {
-        Threadpool.split_depth = (d+4)*DEPTH_ONE;
-        cerr << "Split Depth     : " << i32(Threadpool.split_depth);
-
-        reset ();
-
-        u64  nodes = 0;
-        auto time  = now ();
-
-        for (u16 i = 0; i < DEFAULT_FEN.size (); ++i)
-        {
-            Position pos (DEFAULT_FEN[i], Threadpool.main (), Chess960, false);
-
-            cerr << "\n---------------\n" 
-                 << "Position: " << setw (2) << (i + 1) << "/" << DEFAULT_FEN.size () << "\n";
-
-            StateStackPtr states;
-            Threadpool.start_main (pos, limits, states);
-            Threadpool.main ()->join ();
-            nodes += RootPos.game_nodes ();
-        }
-
-        time = max (now () - time, 1LL);
-
-        nps[d] = nodes* MILLI_SEC/time;
-    }
-
-    Depth opt_split_depth = DEPTH_ZERO;
-    u64   max_nps         = 0;
-    for (i32 d = 0; d < 4; ++d)
-    {
-        cerr << "\n---------------------------\n"
-             << "Split Depth  : " << d+4  << "\n"
-             << "Nodes/second : " << nps[d]
-             << "\n---------------------------" << endl;
-
-        if (max_nps < nps[d])
-        {
-            max_nps = nps[d];
-            opt_split_depth = (d+4)*DEPTH_ONE;
-        }
-    }
-
-    Threadpool.split_depth = opt_split_depth;
-    sync_cout << "info string Split Depth " << u16(opt_split_depth) << sync_endl;
+    std::cerr << "\n===========================\n"
+              << "Total time (ms) : " << time  << "\n"
+              << "Nodes searched  : " << nodes << "\n"
+              << "Nodes/second    : " << nodes * MILLI_SEC / time
+              << "\n---------------------------\n" << std::endl;
 }

@@ -131,7 +131,7 @@ void Position::initialize ()
 // from the source to be self-consistent and not depending on any external data.
 Position& Position::operator= (const Position &pos)
 {
-    memcpy (this, &pos, sizeof (*this));
+    std::memcpy (this, &pos, sizeof (*this));
 
     _sb = *_si;
     _si = &_sb;
@@ -155,7 +155,7 @@ bool Position::draw () const
     // Draw by Threefold Repetition?
     const auto *psi = _si;
     //u08 cnt = 1;
-    for (i08 ply = min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
+    for (i08 ply = std::min (_si->clock50, _si->null_ply); ply >= 2; ply -= 2)
     {
         psi = psi->ptr->ptr;
         if (psi->posi_key == _si->posi_key)
@@ -197,7 +197,7 @@ bool Position::repeated () const
     auto *si = _si;
     while (si != nullptr)
     {
-        i08 ply = min (si->clock50, si->null_ply);
+        i08 ply = std::min (si->clock50, si->null_ply);
         if (4 > ply) return false;
         auto *psi = si->ptr->ptr;
         do
@@ -293,10 +293,10 @@ bool Position::ok (i08 *failed_step) const
                 // extra Queens, Rooks, Bishops, Knights exceeds 8
                 // (which can result only by promotion)
                 if (      (_piece_count[c][PAWN]
-                    + max (_piece_count[c][NIHT] - 2, 0)
-                    + max (_piece_count[c][BSHP] - 2, 0)
-                    + max (_piece_count[c][ROOK] - 2, 0)
-                    + max (_piece_count[c][QUEN] - 1, 0)) > 8
+                    + std::max (_piece_count[c][NIHT] - 2, 0)
+                    + std::max (_piece_count[c][BSHP] - 2, 0)
+                    + std::max (_piece_count[c][ROOK] - 2, 0)
+                    + std::max (_piece_count[c][QUEN] - 1, 0)) > 8
                    )
                 {
                     return false; // Too many Promoted Piece of color
@@ -312,8 +312,8 @@ bool Position::ok (i08 *failed_step) const
                     };
 
                     if (      (_piece_count[c][PAWN]
-                        + max (bishop_count[WHITE] - 1, 0)
-                        + max (bishop_count[BLACK] - 1, 0)) > 8
+                        + std::max (bishop_count[WHITE] - 1, 0)
+                        + std::max (bishop_count[BLACK] - 1, 0)) > 8
                        )
                     {
                         return false; // Too many Promoted BISHOP of color
@@ -416,14 +416,14 @@ PieceT Position::pick_lva (Square dst, Bitboard stm_attackers, Bitboard &mocc, B
         {
         case PAWN:
         case BSHP:
-            attackers |= ((_types_bb[BSHP]|_types_bb[QUEN]) ? attacks_bb<BSHP> (dst, mocc)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0));
+            attackers |= ((_types_bb[BSHP]|_types_bb[QUEN]) != U64(0) ? attacks_bb<BSHP> (dst, mocc)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0));
             break;
         case ROOK:
-            attackers |= ((_types_bb[ROOK]|_types_bb[QUEN]) ? attacks_bb<ROOK> (dst, mocc)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0));
+            attackers |= ((_types_bb[ROOK]|_types_bb[QUEN]) != U64(0) ? attacks_bb<ROOK> (dst, mocc)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0));
             break;
         case QUEN:
-            attackers |= ((_types_bb[BSHP]|_types_bb[QUEN]) ? attacks_bb<BSHP> (dst, mocc)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0))
-                      |  ((_types_bb[ROOK]|_types_bb[QUEN]) ? attacks_bb<ROOK> (dst, mocc)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0));
+            attackers |= ((_types_bb[BSHP]|_types_bb[QUEN]) != U64(0) ? attacks_bb<BSHP> (dst, mocc)&(_types_bb[BSHP]|_types_bb[QUEN]) : U64(0))
+                      |  ((_types_bb[ROOK]|_types_bb[QUEN]) != U64(0) ? attacks_bb<ROOK> (dst, mocc)&(_types_bb[ROOK]|_types_bb[QUEN]) : U64(0));
             break;
         default: break;
         }
@@ -445,7 +445,7 @@ PieceT Position::pick_lva<KING> (Square, Bitboard, Bitboard&, Bitboard&) const
 // non-pawn material between endgame and midgame limits.
 Phase Position::game_phase () const
 {
-    auto npm = max (VALUE_ENDGAME, min (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK], VALUE_MIDGAME));
+    auto npm = std::max (VALUE_ENDGAME, std::min (_si->non_pawn_matl[WHITE] + _si->non_pawn_matl[BLACK], VALUE_MIDGAME));
     return Phase((npm - VALUE_ENDGAME) * i32(PHASE_MIDGAME) / i32(VALUE_MIDGAME - VALUE_ENDGAME));
 }
 
@@ -526,7 +526,7 @@ Value Position::see      (Move m) const
         // achievable score from the point of view of the side to move.
         while (--depth != 0)
         {
-            gain_list[depth - 1] = min (-gain_list[depth], gain_list[depth - 1]);
+            gain_list[depth - 1] = std::min (-gain_list[depth], gain_list[depth - 1]);
         }
     }
 
@@ -889,7 +889,7 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
 // clear() clear the position
 void Position::clear ()
 {
-    memset (this, 0x00, sizeof (*this));
+    std::memset (this, 0x00, sizeof (*this));
 
     for (auto s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -907,7 +907,7 @@ void Position::clear ()
         }
     }
 
-    fill (begin (_castle_rook), end (_castle_rook), SQ_NO);
+    std::fill (std::begin (_castle_rook), std::end (_castle_rook), SQ_NO);
 
     _sb.en_passant_sq = SQ_NO;
     _sb.capture_type  = NONE;
@@ -1050,7 +1050,8 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     i32 clk50 = 0, g_move = 1;
     if (full)
     {
-        iss >> skipws >> clk50 >> g_move;
+        iss >> skipws;
+        iss >> clk50 >> g_move;
         // Rule 50 draw case
         //if (clk50 >100) return false;
         if (g_move <= 0) g_move = 1;
@@ -1059,7 +1060,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
     _si->clock50 = u08(SQ_NO != _si->en_passant_sq ? 0 : clk50);
-    _game_ply = max (2*(g_move - 1), 0) + (BLACK == _active);
+    _game_ply = std::max (2*(g_move - 1), 0) + (BLACK == _active);
 
     _si->matl_key = Zob.compute_matl_key (*this);
     _si->pawn_key = Zob.compute_pawn_key (*this);
@@ -1091,14 +1092,14 @@ void Position::set_castle (Color c, Square rook_org)
     _castle_mask[rook_org] |= cr;
     _castle_rook[cr] = rook_org;
 
-    for (auto s = min (rook_org, rook_dst); s <= max (rook_org, rook_dst); ++s)
+    for (auto s = std::min (rook_org, rook_dst); s <= std::max (rook_org, rook_dst); ++s)
     {
         if (king_org != s && rook_org != s)
         {
             _castle_path[cr] += s;
         }
     }
-    for (auto s = min (king_org, king_dst); s <= max (king_org, king_dst); ++s)
+    for (auto s = std::min (king_org, king_dst); s <= std::max (king_org, king_dst); ++s)
     {
         if (king_org != s && rook_org != s)
         {
@@ -1203,7 +1204,7 @@ void Position::do_move (Move m, StateInfo &si, bool check)
     Key key = _si->posi_key ^ Zob._.act_side;
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    memcpy (&si, _si, offsetof (StateInfo, last_move));
+    std::memcpy (&si, _si, offsetof (StateInfo, last_move));
 
     // Switch state pointer to point to the new, ready to be updated, state.
     si.ptr = _si;
@@ -1488,7 +1489,7 @@ void Position::do_null_move (StateInfo &si)
     assert (_si->checkers == U64(0));
 
     // Full copy here
-    memcpy (&si, _si, sizeof (si));
+    std::memcpy (&si, _si, sizeof (si));
 
     // Switch our state pointer to point to the new, ready to be updated, state.
     si.ptr = _si;

@@ -1,10 +1,8 @@
 #ifndef _THREAD_H_INC_
 #define _THREAD_H_INC_
 
-#include <atomic>
 #include <bitset>
 #include <thread>
-#include <vector>
 
 #include "thread_win32.h"
 
@@ -19,72 +17,7 @@ namespace Threading {
     using namespace Searcher;
     using namespace MovePick;
 
-    const u16 MAX_THREADS               = 128; // Maximum Threads
-    const u08 MAX_SPLITPOINTS_PER_THREAD=   8; // Maximum Splitpoints/Thread
-    const u08 MAX_SLAVES_PER_SPLITPOINT =   4; // Maximum Slaves/Splitpoint
-
-    class Thread;
-
-    class Spinlock
-    {
-    private:
-        std::atomic_int _state;
-
-    public:
-        Spinlock () { _state = 1; } // Init here to workaround a bug with MSVC
-        Spinlock (const Spinlock&) = delete; 
-        Spinlock& operator= (const Spinlock&) = delete;
-
-        void acquire ()
-        {
-            while (_state.fetch_sub (1, std::memory_order_acquire) != 1)
-            {
-                while (_state.load (std::memory_order_relaxed) < 1)
-                {
-                    std::this_thread::yield (); // Be nice to hyperthreading
-                }
-            }
-        }
-
-        void release ()
-        {
-            _state.store (1, std::memory_order_release);
-        }
-    };
-
-    // SplitPoint struct stores information shared by the threads searching in
-    // parallel below the same split point. It is populated at splitting time.
-    struct SplitPoint
-    {
-
-    public:
-        // Const data after splitpoint has been setup
-        const Position *pos;
-
-        Stack  *ss;
-        Thread *master;
-        Value   beta;
-        Depth   depth;
-        NodeT   node_type;
-        bool    cut_node;
-
-        // Const pointers to shared data
-        MovePicker  *movepicker;
-        SplitPoint  *parent_splitpoint;
-
-        // Shared data
-        Spinlock    spinlock;
-        std::bitset<MAX_THREADS> slaves_mask;
-
-        volatile bool  slaves_searching;
-        volatile Value alpha;
-        volatile Value best_value;
-        volatile Move  best_move;
-        volatile u64   nodes;
-        volatile u08   move_count;
-        volatile bool  cut_off;
-    };
-
+    const u16 MAX_THREADS = 128; // Maximum Threads
 
     // ThreadBase class is the base of the hierarchy from where
     // derive all the specialized thread classes.
@@ -92,17 +25,33 @@ namespace Threading {
         : public std::thread
     {
     public:
-        Mutex               mutex;
-        Spinlock            spinlock;
-        ConditionVariable   sleep_condition;
+        Mutex             mutex;
+        ConditionVariable sleep_condition;
+        std::atomic_bool  alive { true };
 
-        volatile bool       alive = true;
+        ThreadBase ()
+            //: alive (true)
+        {}
+        virtual ~ThreadBase () = default;
 
-        virtual ~ThreadBase() = default;
-
-        void notify_one ();
-
-        void wait_for (volatile const bool &condition);
+        // ThreadBase::notify_one () wakes up the thread when there is some work to do
+        void notify_one ()
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.notify_one ();
+        }
+        // ThreadBase::wait_until() set the thread to sleep until 'condition' turns true
+        void wait_until (const std::atomic_bool &condition)
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.wait (lk, [&]{ return bool(condition); });
+        }
+        // ThreadBase::wait_while() set the thread to sleep until 'condition' turns false
+        void wait_while (const std::atomic_bool &condition)
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.wait (lk, [&]{ return !bool(condition); });
+        }
 
         virtual void idle_loop () = 0;
     };
@@ -115,30 +64,30 @@ namespace Threading {
         : public ThreadBase
     {
     public:
-
-        SplitPoint      splitpoints[MAX_SPLITPOINTS_PER_THREAD];
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
-        Position   *active_pos  = nullptr;
-        i32         max_ply     = 0;
-        size_t      index;
+        u16  index      = 0
+           , pv_index   = 0
+           , max_ply    = 0
+           , chk_count  = 0;
 
-        SplitPoint* volatile active_splitpoint  = nullptr;
-        volatile u08         splitpoint_count   = 0;
-        volatile bool        searching          = false;
+        Position        root_pos;
+        RootMoveVector  root_moves;
+        Depth           root_depth      = DEPTH_ZERO
+            ,           completed_depth = DEPTH_ZERO;
+        HValueStats     history_values;
+        MoveStats       counter_moves;
+
+        std::atomic_bool
+            searching { false }
+          , reset_chk_count { false };
 
         Thread ();
-        
-        void idle_loop () override;
-        
-        bool cutoff_occurred () const;
-        
-        bool can_join (const SplitPoint *sp) const;
 
-        void split (Position &pos, Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-            Depth depth, u08 move_count, MovePicker *movepicker, NodeT node_type, bool cut_node);
+        void search (bool thread_main = false);
 
+        virtual void idle_loop () override;
     };
 
     // MainThread struct is derived struct used for the main one
@@ -146,15 +95,24 @@ namespace Threading {
         : public Thread
     {
     public:
+        std::atomic_bool thinking { true }; // Avoid a race with start_thinking()
 
-        volatile bool thinking = true; // Avoid a race with start_thinking()
-        
-        void idle_loop () override;
-        
-        void join ();
+        MainThread ()
+            : Thread ()
+            //, thinking (true)
+        {}
+
+        // MainThread::join() waits for main thread to finish thinking
+        void join ()
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.wait (lk, [&]{ return !bool(thinking); });
+        }
+
+        void think ();
+
+        virtual void idle_loop () override;
     };
-
-    const i32 TIMER_RESOLUTION = 5; // Millisec between two check_time() calls
 
     // TimerThread struct is derived struct used for the recurring timer.
     class TimerThread
@@ -164,42 +122,42 @@ namespace Threading {
         bool _running = false;
 
     public:
-        
+        TimerThread ()
+            : ThreadBase ()
+        {}
+
         i32 resolution; // Millisec between two task() calls
         void (*task) () = nullptr;
         
         void start () { _running = true ; }
         void stop  () { _running = false; }
 
-        void idle_loop () override;
-
+        virtual void idle_loop () override;
     };
 
     // ThreadPool struct handles all the threads related stuff like
     // - initializing
     // - starting
     // - parking
-    // - launching a slave thread at a split point (most important).
+    // - launching a thread.
     // All the access to shared thread data is done through this.
     class ThreadPool
         : public std::vector<Thread*>
     {
     public:
+        ThreadPool () = default;
 
-        TimerThread *check_limits_th = nullptr;
-        TimerThread *save_hash_th    = nullptr;
-        Depth        split_depth;
+        TimerThread *save_hash_th = nullptr;
 
         MainThread* main () const { return static_cast<MainThread*> (at (0)); }
 
-        // No c'tor and d'tor, threadpool rely on globals that should
-        // be initialized and valid during the whole thread lifetime.
+        // No constructor and destructor, threadpool rely on globals
+        // that should be initialized and valid during the whole thread lifetime.
         void initialize ();
         void exit ();
 
-        Thread* available_slave (const SplitPoint *sp) const;
-
         void start_main (const Position &pos, const LimitsT &limit, StateStackPtr &states);
+        u64  game_nodes ();
 
         void configure ();
 
@@ -209,9 +167,6 @@ namespace Threading {
     extern T* new_thread ();
 
     extern void delete_thread (ThreadBase *th);
-
-    extern void check_limits ();
-    extern void save_hash ();
 
 }
 
@@ -223,11 +178,14 @@ inline std::ostream& operator<< (std::ostream &os, SyncT sync)
     static Mutex io_mutex;
 
     if (sync == IO_LOCK)
+    {
         io_mutex.lock ();
+    }
     else
     if (sync == IO_UNLOCK)
+    {
         io_mutex.unlock ();
-
+    }
     return os;
 }
 

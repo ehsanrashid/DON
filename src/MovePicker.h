@@ -11,22 +11,21 @@ namespace MovePick {
     using namespace MoveGen;
     using namespace Searcher;
 
-    const Value MAX_STATS_VALUE = Value(0x1 << 28);
+    const Value MAX_STATS_VALUE = Value(1 << 28);
 
     // The Stats struct stores different statistics.
-    template<class T, int N = PIECE_NO>
+    template<class T, bool CM = false>
     struct Stats
     {
     private:
-        T _table[N][SQ_NO];
+        T _table[PIECE_NO][SQ_NO];
 
+        //void _clear (Value &v) { std::memset (_table, 0x0, sizeof (_table)); }
         void _clear (Value &v) { v = VALUE_ZERO; }
+        void _clear (Stats<Value, false> &vs) { vs.clear (); }
+        void _clear (Stats<Value, true > &vs) { vs.clear (); }
         void _clear (Move  &m) { m = MOVE_NONE; }
-        void _clear (Stats<Value> &vs) { vs.clear (); }
-        /*
-        void _age (Value &v, double factor) { v *= factor; }
-        void _age (Stats<Value> &vs, double factor) { vs.age (factor); }
-        */
+
     public:
 
         const T* operator[] (Piece  pc) const { return _table[pc]; }
@@ -43,59 +42,34 @@ namespace MovePick {
             }
         }
 
-        // ------
-        /*
-        void age (double factor)
+        void update (const Position &pos, Move m, Value v)
         {
-            for (auto &t : _table)
+            if (abs (i32(v)) < 324)
             {
-                for (auto &e : t)
-                {
-                    _age (e, factor);
-                }
-            }
-        }
-        */
-
-        void update_history (const Position &pos, Move m, Value v)
-        {
-            if (abs (i32 (v)) < 0x144)
-            {
-                auto s = dst_sq (m);
-                auto p = pos[org_sq (m)];
+                auto  s = dst_sq (m);
+                auto  p = pos[org_sq (m)];
                 auto &e = _table[p][s];
-                e = std::min (std::max (e*(1.0 - abs (v)/0x144) + v*0x20, -MAX_STATS_VALUE), +MAX_STATS_VALUE);
+                e = std::min (std::max (e*(1.0 - abs (i32(v))/(CM ? 512 : 324)) + i32(v)*(CM ? 64 : 32), -MAX_STATS_VALUE), +MAX_STATS_VALUE);
             }
         }
-        void update_cm_history (const Position &pos, Move m, Value v)
-        {
-            if (abs (i32 (v)) < 0x200)
-            {
-                auto s = dst_sq (m);
-                auto p = pos[org_sq (m)];
-                auto &e = _table[p][s];
-                e = std::min (std::max (e*(1.0 - abs (v)/0x200) + v*0x40, -MAX_STATS_VALUE), +MAX_STATS_VALUE);
-            }
-        }
-
         // ------
-
-        void update_move (const Position &pos, Move mm, Move cm)
+        void update (const Position &pos, Move m, Move cm)
         {
-            auto s = dst_sq (mm);
-            auto p = pos[s];
+            auto  s = dst_sq (m);
+            auto  p = pos[s];
             auto &e = _table[p][s];
             if (e != cm) e = cm;
         }
 
-        // ------
     };
 
     // ValueStats stores the value that records how often different moves have been successful/unsuccessful
     // during the current search and is used for reduction and move ordering decisions.
-    typedef Stats<Value>            ValueStats;
-    // Value2DStats
-    typedef Stats<ValueStats>       Value2DStats;
+    typedef Stats<Value, false>     HValueStats;
+    typedef Stats<Value, true >     CMValueStats;
+
+    // CMValue2DStats
+    typedef Stats<CMValueStats>     CMValue2DStats;
 
     // MoveStats store the move that refute a previous move.
     // Entries are stored according only to moving piece and destination square,
@@ -121,11 +95,10 @@ namespace MovePick {
             ,   *_quiets_end        = _moves_beg
             ,   *_bad_captures_end  = _moves_beg+MAX_MOVES-1;
 
-        const Position      &_Pos;
-        const ValueStats    &_HistoryValues;
-        const Value2DStats  &_CounterMovesHistoryValues;
-
-        const Stack  *_ss           = nullptr;
+        const Position      &_pos;
+        const HValueStats   &_history_values;
+        const CMValueStats  *_counter_moves_values = nullptr;
+        const Stack         *_ss    = nullptr;
 
         Move    _tt_move            = MOVE_NONE;
         Move    _counter_move       = MOVE_NONE;
@@ -147,16 +120,16 @@ namespace MovePick {
     public:
 
         MovePicker () = delete;
-        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Move, const Stack*);
-        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Depth, Square);
-        MovePicker (const Position&, const ValueStats&, const Value2DStats&, Move, Value);
         MovePicker (const MovePicker&) = delete;
         MovePicker& operator= (const MovePicker&) = delete;
+
+        MovePicker (const Position&, const HValueStats&, const CMValueStats&, Move, Depth, Move, const Stack*);
+        MovePicker (const Position&, const HValueStats&, Move, Depth, Square);
+        MovePicker (const Position&, const HValueStats&, Move, Value);
 
         ValMove* begin () { return _moves_beg; }
         ValMove* end   () { return _moves_end; }
 
-        template<bool SPNode>
         Move next_move ();
 
     };

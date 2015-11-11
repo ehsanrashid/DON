@@ -26,22 +26,22 @@ namespace Pawns {
         const Value STORM_DANGER[4][F_NO/2][R_NO] =
         {
             {
-                { V( 0), V(67), V(134), V(38), V(32) },
-                { V( 0), V(57), V(139), V(37), V(22) },
-                { V( 0), V(43), V(115), V(43), V(27) },
-                { V( 0), V(68), V(124), V(57), V(32) }
+                { V( 0), V(  67), V(134), V(38), V(32) },
+                { V( 0), V(  57), V(139), V(37), V(22) },
+                { V( 0), V(  43), V(115), V(43), V(27) },
+                { V( 0), V(  68), V(124), V(57), V(32) }
             },
             {
-                { V(20), V(43), V(100), V(56), V(20) },
-                { V(23), V(20), V( 98), V(40), V(15) },
-                { V(23), V(39), V(103), V(36), V(18) },
-                { V(28), V(19), V(108), V(42), V(26) }
+                { V(20), V(  43), V(100), V(56), V(20) },
+                { V(23), V(  20), V( 98), V(40), V(15) },
+                { V(23), V(  39), V(103), V(36), V(18) },
+                { V(28), V(  19), V(108), V(42), V(26) }
             },
             {
-                { V( 0), V( 0), V( 75), V(14), V( 2) },
-                { V( 0), V( 0), V(150), V(30), V( 4) },
-                { V( 0), V( 0), V(160), V(22), V( 5) },
-                { V( 0), V( 0), V(166), V(24), V(13) }
+                { V( 0), V(   0), V( 75), V(14), V( 2) },
+                { V( 0), V(   0), V(150), V(30), V( 4) },
+                { V( 0), V(   0), V(160), V(22), V( 5) },
+                { V( 0), V(   0), V(166), V(24), V(13) }
             },
             {
                 { V( 0), V(-283), V(-281), V(57), V(31) },
@@ -116,14 +116,15 @@ namespace Pawns {
         template<Color Own>
         inline Score evaluate (const Position &pos, Entry *e)
         {
-            const auto Opp   = WHITE == Own ? BLACK  : WHITE;
-            const auto Push  = WHITE == Own ? DEL_N  : DEL_S;
+            const auto Opp  = WHITE == Own ? BLACK  : WHITE;
+            const auto Push = WHITE == Own ? DEL_N  : DEL_S;
+            const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
+            const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 
             const auto own_pawns = pos.pieces (Own, PAWN);
             const auto opp_pawns = pos.pieces (Opp, PAWN);
 
-            e->pawns_attacks  [Own] = shift_bb<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns)
-                                    | shift_bb<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
+            e->pawns_attacks  [Own] = shift_bb<LCap> (own_pawns) | shift_bb<RCap> (own_pawns);
             e->passed_pawns   [Own] = U64(0);
             e->semiopen_files [Own] = 0xFF;
             e->king_sq        [Own] = SQ_NO;
@@ -236,7 +237,7 @@ namespace Pawns {
                 }
 
 //#ifndef NDEBUG
-                //cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << endl;
+                //std::cout << to_string (s) << " : " << mg_value (score) << ", " << eg_value (score) << std::endl;
 //#endif
                 pawn_score += score;
             }
@@ -246,8 +247,8 @@ namespace Pawns {
 
             // Center binds: Two pawns controlling the same central square
             b = CENTER_BIND_MASK[Own]
-              & shift_bb<WHITE == Own ? DEL_NW : DEL_SE> (own_pawns)
-              & shift_bb<WHITE == Own ? DEL_NE : DEL_SW> (own_pawns);
+              & shift_bb<LCap> (own_pawns)
+              & shift_bb<RCap> (own_pawns);
             pawn_score += CENTER_BIND * pop_count<MAX15> (b);
 
             return pawn_score;
@@ -268,7 +269,7 @@ namespace Pawns {
         auto own_front_pawns = pos.pieces (Own) & front_pawns;
         auto opp_front_pawns = pos.pieces (Opp) & front_pawns;
 
-        auto kfc = min (max (_file (k_sq), F_B), F_G);
+        auto kfc = std::min (std::max (_file (k_sq), F_B), F_G);
         for (auto f = kfc - 1; f <= kfc + 1; ++f)
         {
             assert (F_A <= f && f <= F_H);
@@ -282,12 +283,12 @@ namespace Pawns {
             auto r1 = mid_pawns != U64(0) ? rel_rank (Own, scan_frntmost_sq (Opp, mid_pawns)) : R_1;
 
             value -= 
-                  +  SHELTER_WEAKNESS[min (f, F_H - f)][r0]
+                  +  SHELTER_WEAKNESS[std::min (f, F_H - f)][r0]
                   +  STORM_DANGER
                         [f  == _file (k_sq) && r1 == rel_rank (Own, k_sq) + 1 ? BLOCKED_BY_KING  :
                          r0 == R_1                                            ? NO_FRIENDLY_PAWN :
                          r1 == r0 + 1                                         ? BLOCKED_BY_PAWN  : UNBLOCKED]
-                        [min (f, F_H - f)][r1];
+                        [std::min (f, F_H - f)][r1];
         }
 
         return value;

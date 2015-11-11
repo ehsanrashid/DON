@@ -17,5 +17,5 @@
 @REM make -f MakeFile build ARCH=x86-64-abm         COMP=mingw
 make -f MakeFile build ARCH=x86-64-bm2         COMP=mingw
 @REM make -f MakeFile profile-build ARCH=x86-64-abm COMP=mingw
-
+@REM make -f MakeFile profile-build ARCH=x86-64-bm2 COMP=mingw
 @PAUSE

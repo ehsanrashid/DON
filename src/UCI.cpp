@@ -52,8 +52,9 @@ namespace UCI {
             token.clear (); // getline() could return empty or blank line
             iss >> skipws >> token;
 
-            if      (white_spaces (token)) continue;
-            else if (token == "uci")
+            if (white_spaces (token)) continue;
+            else
+            if (token == "uci")
             {
                 sync_cout
                     << Engine::info ()
@@ -61,16 +62,19 @@ namespace UCI {
                     << "uciok"
                     << sync_endl;
             }
-            else if (token == "ucinewgame")
+            else
+            if (token == "ucinewgame")
             {
-                reset ();
+                clear ();
                 TimeMgr.available_nodes = 0;
             }
-            else if (token == "isready")
+            else
+            if (token == "isready")
             {
                 sync_cout << "readyok" << sync_endl;
             }
-            else if (token == "setoption")
+            else
+            if (token == "setoption")
             {
                 iss >> token; // Consume "name" token
                 if (token == "name")
@@ -104,7 +108,8 @@ namespace UCI {
             //  - fen-string position ("fen")
             // and then makes the moves given in the following move list ("moves")
             // also saving the moves on stack.
-            else if (token == "position")
+            else
+            if (token == "position")
             {
                 string fen;
 
@@ -140,7 +145,7 @@ namespace UCI {
                         auto m = move_from_can (token, RootPos);
                         if (MOVE_NONE == m)
                         {
-                            cerr << "ERROR: Illegal Move '" + token << "'" << endl;
+                            std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
                             break;
                         }
 
@@ -161,9 +166,12 @@ namespace UCI {
             //  - infinite
             //  - ponder
             // Then starts the search.
-            else if (token == "go")
+            else
+            if (token == "go")
             {
                 LimitsT limits;
+
+                limits.start_time = now (); // As early as possible!
 
                 i64 value;
                 while (iss >> token)
@@ -202,14 +210,17 @@ namespace UCI {
             // waiting for 'ponderhit' to stop the search (for instance because
             // already ran out of time), otherwise should continue searching but
             // switching from pondering to normal search.
-            else if ( token == "quit"
-                  ||  token == "stop"
-                  || (token == "ponderhit" && Signals.ponderhit_stop))
+            else
+            if (token == "quit"
+            ||  token == "stop"
+            || (token == "ponderhit" && Signals.ponderhit_stop)
+               )
             {
                 Signals.force_stop = true;
                 Threadpool.main ()->notify_one (); // Could be sleeping
             }
-            else if (token == "ponderhit")
+            else
+            if (token == "ponderhit")
             {
                 Limits.ponder = false;
             }
@@ -226,7 +237,8 @@ namespace UCI {
             // Example:
             //   "register later"
             //   "register name Stefan MK code 4359874324"
-            else if (token == "register")
+            else
+            if (token == "register")
             {
                 iss >> token;
                 if (token == "name")
@@ -245,14 +257,15 @@ namespace UCI {
                     {
                         code += string (" ", white_spaces (code) ? 0 : 1) + token;
                     }
-                    //cout << name << "\n" << code << endl;
+                    //std::cout << name << "\n" << code << std::endl;
                 }
                 else
                 if (token == "later")
                 {
                 }
             }
-            else if (token == "debug")
+            else
+            if (token == "debug")
             {
                 iss >> token;
                 if (token == "on")  Logger::instance ().start ();
@@ -260,12 +273,14 @@ namespace UCI {
                 if (token == "off") Logger::instance ().stop ();
             }
             // Print the root position
-            else if (token == "show")
+            else
+            if (token == "show")
             {
                 sync_cout << RootPos << sync_endl;
             }
             // Print the root fen and keys
-            else if (token == "keys")
+            else
+            if (token == "keys")
             {
                 sync_cout
                     << hex << uppercase << setfill ('0')
@@ -276,93 +291,99 @@ namespace UCI {
                     << setfill (' ') << nouppercase << dec
                     << sync_endl;
             }
-            else if (token == "moves")
+            else
+            if (token == "moves")
             {
                 sync_cout;
 
-                if (RootPos.checkers () != U64 (0))
+                if (RootPos.checkers () != U64(0))
                 {
-                    cout << "\nEvasion moves: ";
+                    std::cout << "\nEvasion moves: ";
                     for (const auto &m : MoveList<EVASION> (RootPos))
                     {
                         if (RootPos.legal (m))
                         {
-                            cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (m, RootPos) << " ";
                         }
                     }
                 }
                 else
                 {
-                    cout << "\nQuiet moves: ";
+                    std::cout << "\nQuiet moves: ";
                     for (const auto &m : MoveList<QUIET> (RootPos))
                     {
                         if (RootPos.legal (m))
                         {
-                            cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (m, RootPos) << " ";
                         }
                     }
 
-                    cout << "\nCheck moves: ";
+                    std::cout << "\nCheck moves: ";
                     for (const auto &m : MoveList<CHECK> (RootPos))
                     {
                         if (RootPos.legal (m))
                         {
-                            cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (m, RootPos) << " ";
                         }
                     }
 
-                    cout << "\nQuiet Check moves: ";
+                    std::cout << "\nQuiet Check moves: ";
                     for (const auto &m : MoveList<QUIET_CHECK> (RootPos))
                     {
                         if (RootPos.legal (m))
                         {
-                            cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (m, RootPos) << " ";
                         }
                     }
 
-                    cout << "\nCapture moves: ";
+                    std::cout << "\nCapture moves: ";
                     for (const auto &m : MoveList<CAPTURE> (RootPos))
                     {
                         if (RootPos.legal (m))
                         {
-                            cout << move_to_san (m, RootPos) << " ";
+                            std::cout << move_to_san (m, RootPos) << " ";
                         }
                     }
                 }
 
-                cout << "\nLegal moves: ";
+                std::cout << "\nLegal moves: ";
                 for (const auto &m : MoveList<LEGAL> (RootPos))
                 {
-                    cout << move_to_san (m, RootPos) << " ";
+                    std::cout << move_to_san (m, RootPos) << " ";
                 }
 
-                cout << sync_endl;
+                std::cout << sync_endl;
             }
-            else if (token == "flip")
+            else
+            if (token == "flip")
             {
                 RootPos.flip ();
             }
-            else if (token == "eval")
+            else
+            if (token == "eval")
             {
                 sync_cout << Evaluator::trace (RootPos) << sync_endl;
             }
-            else if (token == "perft")
+            else
+            if (token == "perft")
             {
                 i32    depth;
                 string fen_fn;
                 depth  = ((iss >> depth) ? depth : 1);
                 fen_fn = ((iss >> fen_fn) ? fen_fn : "");
-                
+
                 stringstream ss;
-                ss  << i32 (Options["Hash"])    << " "
-                    << i32 (Options["Threads"]) << " "
+                ss  << i32(Options["Hash"])    << " "
+                    << i32(Options["Threads"]) << " "
                     << depth << " perft " << fen_fn;
 
                 benchmark (ss, RootPos);
             }
-            else if (token == "bench")      benchmark (iss, RootPos);
-            else if (token == "autotune")   auto_tune (iss);
-            //else if (!white_spaces (token)) system (token.c_str ());
+            else
+            if (token == "bench")
+            {
+                benchmark (iss, RootPos);
+            }
             else
             {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;

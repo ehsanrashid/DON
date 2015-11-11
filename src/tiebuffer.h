@@ -6,12 +6,19 @@
 
 namespace std {
 
+    // Our fancy logging facility. The trick here is to replace cin.rdbuf() and cout.rdbuf()
+    // with two basic_tie_buf objects that tie cin and cout to a file stream.
+    // Can toggle the logging of std::cout and std:cin at runtime whilst preserving
+    // usual I/O functionality, all without changing a single line of code!
+    // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
+
     template<class Elem, class Traits>
     class basic_tie_buf
         : public basic_streambuf<Elem, Traits>
     {
 
     private:
+        // MSVC requires split streambuf for cin and cout
         basic_streambuf<Elem, Traits> *_strmbuf1;
         basic_streambuf<Elem, Traits> *_strmbuf2;
 
