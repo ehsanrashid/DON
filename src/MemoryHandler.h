@@ -12,6 +12,7 @@ namespace Memory {
     extern void  free_memory (void *mem);
 
     extern void initialize   ();
+    extern void deinitialize ();
 
 }
 

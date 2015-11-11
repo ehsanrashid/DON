@@ -20,14 +20,6 @@ namespace UCI {
     private:
         typedef void (*OnChange) ();
 
-        template<class CharT, class Traits>
-        friend std::basic_ostream<CharT, Traits>&
-            operator<< (std::basic_ostream<CharT, Traits> &os, const Option &opt);
-
-        template<class CharT, class Traits>
-        friend std::basic_ostream<CharT, Traits>&
-            operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap);
-
         u08 _index = 0;
         std::string _type  = ""
                   , _value = "";
@@ -45,6 +37,8 @@ namespace UCI {
         Option (const std::string &val, OnChange on_change = nullptr);
         Option (const i32 val, i32 minimum, i32 maximum, OnChange on_change = nullptr);
 
+        u08 index () const { return _index; }
+
         operator bool () const;
         operator i32  () const;
         operator std::string () const;
@@ -55,7 +49,16 @@ namespace UCI {
         void    operator<< (const Option &opt);
 
         std::string operator() ()  const;
+
     };
+
+    extern void initialize ();
+
+    extern void loop (const std::string &arg = "");
+
+    extern void deinitialize ();
+
+    // ---------------------------------------------
 
     template<class CharT, class Traits>
     inline std::basic_ostream<CharT, Traits>&
@@ -76,7 +79,7 @@ namespace UCI {
             for (auto &pair : optmap)
             {
                 const Option &option = pair.second;
-                if (idx == option._index)
+                if (idx == option.index ())
                 {
                     os << "option name " << pair.first << option << std::endl;
                     break;
@@ -85,15 +88,6 @@ namespace UCI {
         }
         return os;
     }
-
-
-    extern void initialize ();
-
-    extern void exit ();
-
-    // ---------------------------------------------
-
-    extern void loop (const std::string &arg = "");
 
 }
 

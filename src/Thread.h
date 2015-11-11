@@ -154,7 +154,7 @@ namespace Threading {
         // No constructor and destructor, threadpool rely on globals
         // that should be initialized and valid during the whole thread lifetime.
         void initialize ();
-        void exit ();
+        void deinitialize ();
 
         void start_main (const Position &pos, const LimitsT &limit, StateStackPtr &states);
         u64  game_nodes ();

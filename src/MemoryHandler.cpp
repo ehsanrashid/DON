@@ -254,6 +254,9 @@ namespace Memory {
 #   endif
     }
 
+    void deinitialize ()
+    {}
+
 }
 
 #endif // LPAGES

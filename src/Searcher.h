@@ -118,15 +118,15 @@ namespace Searcher {
 
         operator std::string () const;
 
-        template<class CharT, class Traits>
-        friend std::basic_ostream<CharT, Traits>&
-            operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
-        {
-            os << std::string(rm);
-            return os;
-        }
-
     };
+
+    template<class CharT, class Traits>
+    inline std::basic_ostream<CharT, Traits>&
+        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
+    {
+        os << std::string(rm);
+        return os;
+    }
 
     class RootMoveVector
         : public std::vector<RootMove>
@@ -149,14 +149,15 @@ namespace Searcher {
 
         operator std::string () const;
 
-        template<class CharT, class Traits>
-        friend std::basic_ostream<CharT, Traits>&
-            operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &rmv)
-        {
-            os << std::string(rmv);
-            return os;
-        }
     };
+
+    template<class CharT, class Traits>
+    inline std::basic_ostream<CharT, Traits>&
+        operator<< (std::basic_ostream<CharT, Traits> &os, const RootMoveVector &rmv)
+    {
+        os << std::string(rmv);
+        return os;
+    }
 
     // The Stack struct keeps track of the information needed to remember from
     // nodes shallower and deeper in the tree during the search. Each search thread

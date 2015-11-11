@@ -1196,7 +1196,7 @@ Value Position::compute_non_pawn_material (Color c) const
 }
 
 // do_move() do the move with checking info
-void Position::do_move (Move m, StateInfo &si, bool check)
+void Position::do_move (Move m, StateInfo &si, bool gives_check)
 {
     assert (_ok (m));
     assert (&si != _si);
@@ -1367,7 +1367,7 @@ void Position::do_move (Move m, StateInfo &si, bool check)
     }
 
     // Calculate checkers bitboard (if move is check)
-    _si->checkers = check ? attackers_to (_piece_square[pasive][KING][0], _active) : U64(0);
+    _si->checkers = gives_check ? attackers_to (_piece_square[pasive][KING][0], _active) : U64(0);
 
     _active = pasive;
 

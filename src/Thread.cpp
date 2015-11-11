@@ -148,9 +148,9 @@ namespace Threading {
         configure ();
     }
 
-    // ThreadPool::exit() cleanly terminates the threads before the program exits
+    // ThreadPool::deinitialize() cleanly terminates the threads before the program exits
     // Cannot be done in destructor because threads must be terminated before freeing threadpool.
-    void ThreadPool::exit ()
+    void ThreadPool::deinitialize ()
     {
         // First delete timers because they accesses threads data
         delete_thread (save_hash_th);

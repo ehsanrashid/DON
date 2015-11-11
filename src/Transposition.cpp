@@ -105,7 +105,7 @@ namespace Transposition {
         {
             if (resize (msize_mb, force) != 0) return;
         }
-        Engine::exit (EXIT_FAILURE);
+        Engine::stop (EXIT_FAILURE);
     }
 
     // probe() looks up the entry in the transposition table.

@@ -246,7 +246,6 @@ public:
     Value see      (Move m) const;
     Value see_sign (Move m) const;
     
-
     Bitboard attackers_to (Square s, Color c, Bitboard occ) const;
     Bitboard attackers_to (Square s, Color c) const;
     Bitboard attackers_to (Square s, Bitboard occ) const;
@@ -282,11 +281,14 @@ public:
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
 
-    // Do/Undo move
-    void do_move (Move m, StateInfo &si, bool check);
+    // Do natural-move
+    void do_move (Move m, StateInfo &si, bool gives_check);
     void do_move (std::string &can, StateInfo &si);
+    // Undo natural-move
     void undo_move ();
+    // Do null-move
     void do_null_move (StateInfo &si);
+    // Undo null-move
     void undo_null_move ();
 
     void flip ();
@@ -294,14 +296,6 @@ public:
     std::string fen (bool c960 = false, bool full = true) const;
     
     operator std::string () const;
-
-    template<class CharT, class Traits>
-    friend std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
-    {
-        os << std::string(pos);
-        return os;
-    }
 
 };
 
@@ -620,6 +614,14 @@ inline void Position::do_castling (Square king_org, Square &king_dst, Square &ro
     _board[Do ? king_org : king_dst] = _board[Do ? rook_org : rook_dst] = EMPTY; // Not done by remove_piece()
     place_piece (Do ? king_dst : king_org, _active, KING);
     place_piece (Do ? rook_dst : rook_org, _active, ROOK);
+}
+
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
+{
+    os << std::string(pos);
+    return os;
 }
 
 // ----------------------------------------------

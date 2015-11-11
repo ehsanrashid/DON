@@ -116,12 +116,14 @@ namespace Engine {
         UCI::loop (arg);
     }
 
-    // Exit from engine with exit code. (in case of some crash)
-    void exit (i32 code)
+    void stop (i32 code)
     {
-        Threadpool.exit ();
-        EndGame::exit ();
-        UCI::exit ();
+        Threadpool.deinitialize ();
+        EndGame  ::deinitialize ();
+        UCI      ::deinitialize ();
+#ifdef LPAGES
+        Memory   ::deinitialize ();
+#endif
         ::exit (code);
     }
 

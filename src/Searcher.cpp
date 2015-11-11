@@ -651,7 +651,7 @@ namespace Searcher {
 
             assert (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
             assert (PVNode || alpha == beta-1);
-            assert (depth > DEPTH_ZERO);
+            assert (DEPTH_ZERO < depth && depth < DEPTH_MAX);
 
             Key posi_key;
             bool tt_hit = false;
@@ -1808,7 +1808,7 @@ namespace Threading {
             if (thread_main)
             {
                 // Set up the new depth for the helper threads
-                root_depth = Threadpool.main ()->root_depth + Depth(i32(2.2 * log (1 + this->index)));
+                root_depth = std::min (Threadpool.main ()->root_depth + Depth(i32(2.2 * log (1 + this->index))), DEPTH_MAX - DEPTH_ONE);
 
                 if (Limits.use_time_manager ())
                 {

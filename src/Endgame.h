@@ -124,7 +124,7 @@ namespace EndGame {
 
     extern void initialize ();
 
-    extern void exit ();
+    extern void deinitialize ();
 
 }
 

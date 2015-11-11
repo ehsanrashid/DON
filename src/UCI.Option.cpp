@@ -455,7 +455,7 @@ namespace UCI {
 
     }
 
-    void exit ()
+    void deinitialize ()
     {
         Options.clear ();
     }

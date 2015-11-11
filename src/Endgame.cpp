@@ -1076,7 +1076,7 @@ namespace EndGame {
         }
     }
 
-    void exit ()
+    void deinitialize ()
     {
         if (EndGames != nullptr)
         {
