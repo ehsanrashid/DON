@@ -243,56 +243,48 @@ namespace Transposition {
 
         template<class CharT, class Traits>
         friend std::basic_ostream<CharT, Traits>&
-            operator<< (std::basic_ostream<CharT, Traits> &os, const TranspositionTable &tt);
+            operator<< (std::basic_ostream<CharT, Traits> &os, const TranspositionTable &tt)
+        {
+            u32 mem_size_mb = tt.size ();
+            u08 dummy = 0;
+            os.write (reinterpret_cast<const CharT*> (&mem_size_mb), sizeof (mem_size_mb));
+            os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+            os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+            os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+            os.write (reinterpret_cast<const CharT*> (&tt._generation), sizeof (tt._generation));
+            os.write (reinterpret_cast<const CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
+            u32 cluster_bulk = u32 (tt._cluster_count / BufferSize);
+            for (u32 i = 0; i < cluster_bulk; ++i)
+            {
+                os.write (reinterpret_cast<const CharT*> (tt._clusters+i*BufferSize), ClusterSize*BufferSize);
+            }
+            return os;
+        }
 
         template<class CharT, class Traits>
         friend std::basic_istream<CharT, Traits>&
-            operator>> (std::basic_istream<CharT, Traits> &is,       TranspositionTable &tt);
+            operator>> (std::basic_istream<CharT, Traits> &is,       TranspositionTable &tt)
+        {
+            u32 mem_size_mb;
+            u08 generation;
+            u08 dummy;
+            is.read (reinterpret_cast<CharT*> (&mem_size_mb), sizeof (mem_size_mb));
+            is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+            is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+            is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+            is.read (reinterpret_cast<CharT*> (&generation), sizeof (generation));
+            is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
+            tt.resize (mem_size_mb);
+            tt._generation = generation;
+            u32 cluster_bulk = u32 (tt._cluster_count / BufferSize);
+            for (u32 i = 0; i < cluster_bulk; ++i)
+            {
+                is.read (reinterpret_cast<CharT*> (tt._clusters+i*BufferSize), ClusterSize*BufferSize);
+            }
+            return is;
+        }
 
     };
-
-    template<class CharT, class Traits>
-    inline std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const TranspositionTable &tt)
-    {
-        u32 mem_size_mb = tt.size ();
-        u08 dummy = 0;
-        os.write (reinterpret_cast<const CharT*> (&mem_size_mb), sizeof (mem_size_mb));
-        os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-        os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-        os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
-        os.write (reinterpret_cast<const CharT*> (&tt._generation), sizeof (tt._generation));
-        os.write (reinterpret_cast<const CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
-        u32 cluster_bulk = u32 (tt._cluster_count / TranspositionTable::BufferSize);
-        for (u32 i = 0; i < cluster_bulk; ++i)
-        {
-            os.write (reinterpret_cast<const CharT*> (tt._clusters+i*TranspositionTable::BufferSize), TranspositionTable::ClusterSize*TranspositionTable::BufferSize);
-        }
-        return os;
-    }
-
-    template<class CharT, class Traits>
-    inline std::basic_istream<CharT, Traits>&
-        operator>> (std::basic_istream<CharT, Traits> &is,       TranspositionTable &tt)
-    {
-        u32 mem_size_mb;
-        u08 generation;
-        u08 dummy;
-        is.read (reinterpret_cast<CharT*> (&mem_size_mb), sizeof (mem_size_mb));
-        is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-        is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-        is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
-        is.read (reinterpret_cast<CharT*> (&generation), sizeof (generation));
-        is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
-        tt.resize (mem_size_mb);
-        tt._generation = generation;
-        u32 cluster_bulk = u32 (tt._cluster_count / TranspositionTable::BufferSize);
-        for (u32 i = 0; i < cluster_bulk; ++i)
-        {
-            is.read (reinterpret_cast<CharT*> (tt._clusters+i*TranspositionTable::BufferSize), TranspositionTable::ClusterSize*TranspositionTable::BufferSize);
-        }
-        return is;
-    }
 
 }
 

@@ -356,14 +356,6 @@ namespace UCI {
         // as the extra hyper-threads would usually degrade the performance of the engine. 
         Options["Threads"]                      << Option ( 1, 1, MAX_THREADS, configure_threadpool);
 
-        // The depth at which work will be split between cores, when using multiple threads.
-        // Default 5, Min 0, Max 12.
-        //
-        // Default 0 means auto setting which depends on the threads.
-        // This parameter can impact the speed of the engine (nodes per second) and can be fine-tuned to get the best performance out of your hardware.
-        // The default value 10 is tuned for Intel quad-core i5/i7 systems, but on other systems it may be advantageous to increase this to 12 or 14.
-        //Options["Split Depth"]                  << Option ( 5, 0, 12, configure_threadpool);
-
         // Game Play Options
         // -----------------
 
@@ -446,12 +438,6 @@ namespace UCI {
         // This feature is controlled by the chess GUI, and usually doesn't appear in the configuration window.
         // Default false.
         Options["UCI_Chess960"]                 << Option (Chess960, uci_chess960);
-        
-        // Weaken engine.
-        //Options["UCI_LimitStrength"]            << Option (false);
-
-        // Ignored if UCI_LimitStrength = false.
-        //Options["UCI_ELO"]                      << Option ( 0, 0, 3000);
 
     }
 

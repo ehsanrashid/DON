@@ -34,14 +34,6 @@ namespace OpeningBook {
 
             operator std::string () const;
 
-            template<class CharT, class Traits>
-            friend std::basic_ostream<CharT, Traits>&
-                operator<< (std::basic_ostream<CharT, Traits> &os, const PBEntry &pbe)
-            {
-                os << std::string(pbe);
-                return os;
-            }
-
         };
 
         static const size_t EntrySize;
@@ -101,6 +93,15 @@ namespace OpeningBook {
         std::string read_entries (const Position &pos);
 
     };
+
+
+    template<class CharT, class Traits>
+    inline std::basic_ostream<CharT, Traits>&
+        operator<< (std::basic_ostream<CharT, Traits> &os, const PolyglotBook::PBEntry &pbe)
+    {
+        os << std::string(pbe);
+        return os;
+    }
 
 }
 

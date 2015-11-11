@@ -1800,7 +1800,7 @@ namespace Threading {
             , bound_a    = -VALUE_INFINITE
             , bound_b    = +VALUE_INFINITE;
         
-        completed_depth = DEPTH_ZERO;
+        leaf_depth = DEPTH_ZERO;
 
         // Iterative deepening loop until target depth reached
         while (++root_depth < DEPTH_MAX && !Signals.force_stop && (0 == Limits.depth || root_depth <= Limits.depth))
@@ -1923,7 +1923,7 @@ namespace Threading {
 
             if (!Signals.force_stop)
             {
-                completed_depth = root_depth;
+                leaf_depth = root_depth;
             }
 
             if (!thread_main) continue;
@@ -2182,7 +2182,7 @@ namespace Threading {
         for (auto *th : Threadpool)
         {
             //if (best_thread == this) continue;
-            if (   best_thread->completed_depth < th->completed_depth
+            if (   best_thread->leaf_depth < th->leaf_depth
                 && best_thread->root_moves[0] > th->root_moves[0]  // Ascending sort (invert)
                )
             {
@@ -2196,7 +2196,7 @@ namespace Threading {
         // FIXME: Breaks multiPV, and skill levels
         if (best_thread != this)
         {
-            sync_cout << multipv_info (best_thread->root_pos, best_thread->completed_depth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
+            sync_cout << multipv_info (best_thread->root_pos, best_thread->leaf_depth, -VALUE_INFINITE, VALUE_INFINITE) << sync_endl;
         }
 
         if (!SearchFile.empty ())
