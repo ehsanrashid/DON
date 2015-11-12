@@ -485,6 +485,7 @@
       <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
       <BrowseInformation>true</BrowseInformation>
       <UndefinePreprocessorDefinitions>POP;VER;</UndefinePreprocessorDefinitions>
+      <ShowIncludes>true</ShowIncludes>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>

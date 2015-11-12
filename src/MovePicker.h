@@ -100,11 +100,11 @@ namespace MovePick {
         const CMValueStats  *_counter_moves_values = nullptr;
         const Stack         *_ss    = nullptr;
 
-        Move    _tt_move            = MOVE_NONE;
-        Move    _counter_move       = MOVE_NONE;
-        Depth   _depth              = DEPTH_ZERO;
-        Square  _recapture_sq       = SQ_NO;
-        Value   _capture_threshold  = VALUE_NONE;
+        Move    _tt_move        = MOVE_NONE;
+        Move    _counter_move   = MOVE_NONE;
+        Depth   _depth          = DEPTH_ZERO;
+        Square  _recapture_sq   = SQ_NO;
+        Value   _threshold      = VALUE_NONE;
 
         ValMove _killers[3];
 

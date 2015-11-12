@@ -120,7 +120,7 @@
       <Compartment Name="Fields" Collapsed="true" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>AAAIAEgCAQgBEACCAAABAAAQAhGAACAAAAAgAAIANAQ=</HashCode>
+      <HashCode>ABAIAAgCAQgBAASCAAABAAAQAhGAACAAAAAgAAIAMAQ=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -145,14 +145,14 @@
   <Class Name="OpeningBook::PolyglotBook" Collapsed="true">
     <Position X="36.5" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAABAAAAIAAAIAqCAAgAAAAAAAABAAIAkEEIAASA=</HashCode>
+      <HashCode>AAAAAABAAAAIAAAIAqCAAgAAAAAAAAAAAIAkEEIAASA=</HashCode>
       <FileName>src\PolyglotBook.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Threading::ThreadBase" Collapsed="true">
     <Position X="2.75" Y="11.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAACAAAAIAAAAgAAAACAAABAAAAAAAAAAIAAAAIgA=</HashCode>
+      <HashCode>AAAAACAAAAIAAAAgAAAACAAAFAAAAAAAAAAIAAAAIgA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -169,14 +169,14 @@
   <Class Name="UCI::Option" Collapsed="true">
     <Position X="34.75" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>ABAAAAAAAAAAAAQEkACgKAAAAAAQAAAAAAAoAAAAAAA=</HashCode>
+      <HashCode>ABAAAAAAAAAAAAQEkACgKAAAAAAQAAAAAAAoAAABAAA=</HashCode>
       <FileName>src\UCI.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Threading::Thread">
     <Position X="3.75" Y="12.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAAEiAAAQAAAAAggEAAAABADAAAAIAAACBAAAABAAA=</HashCode>
+      <HashCode>AGAAEiAAAQAAABAggEAAAABADAAAAAAAACBAAAABAQA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -187,7 +187,7 @@
   <Class Name="Threading::MainThread">
     <Position X="3.75" Y="16.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAACAAAAAAAAAAAAQIAAAAAAAAAAAAAAAAAAAAACA=</HashCode>
+      <HashCode>gAAAACAAAAAAAAAAAAQIAAAAAAAAAAAAAAAAAAAAACA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -201,18 +201,17 @@
   <Class Name="Threading::ThreadPool">
     <Position X="23" Y="8" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAACgAAQAAAAAAAAAUAAAAAQAAAAAAAAAAAACAAAAQ=</HashCode>
+      <HashCode>AAAACgACAAAAAAAAAAUAAAACQAAAAAAAAAAAAAAAAAQ=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="check_limits_th" />
       <Field Name="save_hash_th" />
     </ShowAsAssociation>
   </Class>
   <Class Name="Searcher::RootMove">
     <Position X="27" Y="3.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAIAAIAAAAAAAAAAIAhgQAIAAEAAAAAgAAgAAAQAAA=</HashCode>
+      <HashCode>AAAIAAIAAAAAAAAAAIAhgQAKAAEAAAAAgAAgAAAQAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -231,7 +230,7 @@
   <Class Name="Searcher::SkillManager">
     <Position X="11.75" Y="18.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AECAAAAgAAAAAAAAAQCBAQAAAAAAAAAEAAAAAAAAAAA=</HashCode>
+      <HashCode>AECAAAAgAAAAAAAAAQCBAQAAAAAAAAAEEAAAAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>

@@ -173,7 +173,7 @@ namespace Searcher {
            , killer_moves[2];
 
         Value static_eval = VALUE_NONE;
-        bool firstmove_pv = false;
+        u08   move_count  = 0;
     };
 
     const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be <= MAX_DEPTH/4

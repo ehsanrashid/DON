@@ -118,10 +118,10 @@ namespace MovePick {
         _moves_end += _tt_move != MOVE_NONE;
     }
 
-    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Value cthreshold)
+    MovePicker::MovePicker (const Position &pos, const HValueStats &hv, Move ttm, Value thr)
         : _pos (pos)
         , _history_values (hv)
-        , _capture_threshold (cthreshold)
+        , _threshold (thr)
     {
         assert (_pos.checkers () == U64(0));
 
@@ -131,7 +131,7 @@ namespace MovePick {
         _tt_move =   ttm != MOVE_NONE
                   && _pos.pseudo_legal (ttm)
                   && _pos.capture (ttm)
-                  && _pos.see (ttm) > _capture_threshold ?
+                  && _pos.see (ttm) > _threshold ?
                         ttm : MOVE_NONE;
 
         _moves_end += _tt_move != MOVE_NONE;
@@ -389,7 +389,7 @@ namespace MovePick {
                 {
                     move = pick_best (_moves_cur++, _moves_end);
                     if (   move != _tt_move
-                        && _pos.see (move) > _capture_threshold
+                        && _pos.see (move) > _threshold
                        )
                     {
                         return move;

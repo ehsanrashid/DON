@@ -135,7 +135,7 @@ namespace Searcher {
         const i32 ReductionDepth = 64;
         const u08 ReductionMoveCount = 64;
         // ReductionDepths lookup table (initialized at startup)
-        // [pv][improving][depth][move_num]
+        // [pv][improving][depth][move_count]
         Depth ReductionDepths[2][2][ReductionDepth][ReductionMoveCount];
         template<bool PVNode>
         Depth reduction_depths (bool imp, Depth d, u08 mc)
@@ -284,7 +284,7 @@ namespace Searcher {
             }
 
             // Extra penalty for PV move in previous ply when it gets refuted
-            if (   ss->firstmove_pv
+            if (   (ss-1)->move_count == 1
                 && opp_move_dst != SQ_NO
                 && mtype (opp_move) != PROMOTE
                 && pos.capture_type () == NONE
@@ -305,9 +305,12 @@ namespace Searcher {
         void update_pv (Move *pv, Move move, const Move *child_pv)
         {
             *pv++ = move;
-            while (child_pv != nullptr && *child_pv != MOVE_NONE)
+            if (child_pv != nullptr)
             {
-                *pv++ = *child_pv++;
+                while (*child_pv != MOVE_NONE)
+                {
+                    *pv++ = *child_pv++;
+                }
             }
             *pv = MOVE_NONE;
         }
@@ -415,7 +418,9 @@ namespace Searcher {
             }
 
             // Check for an immediate draw or maximum ply reached
-            if (pos.draw () || ss->ply >= MAX_DEPTH)
+            if (   pos.draw ()
+                || ss->ply >= MAX_DEPTH
+               )
             {
                 return ss->ply >= MAX_DEPTH && !InCheck ?
                         evaluate (pos) :
@@ -694,7 +699,9 @@ namespace Searcher {
             }
 
             // Used to send 'seldepth' info to GUI
-            if (PVNode && thread->max_ply < ss->ply)
+            if (   PVNode
+                && thread->max_ply < ss->ply
+               )
             {
                 thread->max_ply = ss->ply;
             }
@@ -703,7 +710,10 @@ namespace Searcher {
             {
                 // Step 2. Check end condition
                 // Check for aborted search, immediate draw or maximum ply reached
-                if (Signals.force_stop.load (std::memory_order_relaxed) || pos.draw () || ss->ply >= MAX_DEPTH)
+                if (   Signals.force_stop.load (std::memory_order_relaxed)
+                    || pos.draw ()
+                    || ss->ply >= MAX_DEPTH
+                   )
                 {
                     return ss->ply >= MAX_DEPTH && !in_check ?
                             evaluate (pos) :
@@ -723,9 +733,9 @@ namespace Searcher {
             }
 
             assert (0 <= ss->ply && ss->ply < MAX_DEPTH);
-                
-            (ss+0)->firstmove_pv = false;
-            (ss+0)->current_move = MOVE_NONE;
+
+            (ss  )->move_count = 0;
+            (ss  )->current_move = MOVE_NONE;
             (ss+1)->exclude_move = MOVE_NONE;
             std::fill (std::begin ((ss+2)->killer_moves), std::end ((ss+2)->killer_moves), MOVE_NONE);
 
@@ -805,7 +815,8 @@ namespace Searcher {
                 {
                     // Step 6. Razoring sort of forward pruning where rather than skipping an entire subtree,
                     // you search it to a reduced depth, typically one less than normal depth.
-                    if (   !PVNode && !MateSearch
+                    if (   !PVNode
+                        && !MateSearch
                         && depth < RazorDepth*DEPTH_ONE
                         && static_eval + RazorMargins[depth/DEPTH_ONE] <= alpha
                         && tt_move == MOVE_NONE
@@ -831,7 +842,8 @@ namespace Searcher {
                     // Step 7. Futility pruning: child node
                     // Betting that the opponent doesn't have a move that will reduce
                     // the score by more than FutilityMargins[depth] if do a null move.
-                    if (   !RootNode && !MateSearch
+                    if (   !RootNode
+                        && !MateSearch
                         && depth < FutilityMarginDepth*DEPTH_ONE
                         && static_eval < +VALUE_KNOWN_WIN // Do not return unproven wins
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
@@ -846,7 +858,8 @@ namespace Searcher {
                     }
 
                     // Step 8. Null move search with verification search
-                    if (   !PVNode && !MateSearch
+                    if (   !PVNode
+                        && !MateSearch
                         && depth > 1*DEPTH_ONE
                         && static_eval >= beta
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
@@ -858,10 +871,7 @@ namespace Searcher {
                         ss->current_move = MOVE_NULL;
                             
                         // Null move dynamic reduction based on depth and static evaluation
-                        auto reduced_depth = depth - ((0x337 + 0x43 * depth) / 0x100 + std::min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
-
-                        // Speculative prefetch as early as possible
-                        prefetch (TT.cluster_entry (pos.posi_key ()));
+                        auto reduced_depth = depth - ((823 + 67 * depth) / 256 + std::min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
 
                         // Do null move
                         pos.do_null_move (si);
@@ -905,7 +915,8 @@ namespace Searcher {
                     // If have a very good capture (i.e. SEE > see[captured_piece_type])
                     // and a reduced search returns a value much above beta,
                     // can (almost) safely prune the previous move.
-                    if (   !PVNode && !MateSearch
+                    if (   !PVNode
+                        && !MateSearch
                         && depth > ProbCutDepth*DEPTH_ONE
                         && abs (beta) < +VALUE_MATE_IN_MAX_DEPTH
                        )
@@ -1035,13 +1046,13 @@ namespace Searcher {
 
                 bool move_legal = RootNode || pos.legal (move, ci.pinneds);
 
-                ss->firstmove_pv = 1 == ++move_count;
+                ss->move_count = ++move_count;
 
                 if (   RootNode
                     && Threadpool.main () == thread
                    )
                 {
-                    Signals.firstmove_root = ss->firstmove_pv;
+                    Signals.firstmove_root = (1 == move_count);
 
                     if (TimeMgr.elapsed_time () > 3*MILLI_SEC)
                     {
@@ -1095,7 +1106,8 @@ namespace Searcher {
                 bool capture_or_promotion = pos.capture_or_promotion (move);
 
                 // Step 13. Pruning at shallow depth
-                if (   !RootNode && !MateSearch
+                if (   !RootNode
+                    && !MateSearch
                     && !in_check
                     && !capture_or_promotion
                     && best_value > -VALUE_MATE_IN_MAX_DEPTH
@@ -1142,9 +1154,11 @@ namespace Searcher {
                 }
 
                 // Check for legality just before making the move
-                if (!RootNode && !move_legal)
+                if (   !RootNode
+                    && !move_legal
+                   )
                 {
-                    ss->firstmove_pv = 1 == --move_count;
+                    ss->move_count = --move_count;
                     continue;
                 }
 
@@ -1192,7 +1206,7 @@ namespace Searcher {
                     if (   reduction_depth != DEPTH_ZERO
                         && mtype (move) == NORMAL
                         && ptype (pos[dst_sq (move)]) != PAWN
-                        && pos.see (mk_move<NORMAL> (dst_sq (move), org_sq (move))) < VALUE_ZERO // Reverse move
+                        && pos.see (mk_move (dst_sq (move), org_sq (move))) < VALUE_ZERO // Reverse move
                        )
                     {
                         reduction_depth = std::max (reduction_depth-DEPTH_ONE, DEPTH_ZERO);
@@ -1256,7 +1270,7 @@ namespace Searcher {
                 {
                     auto &rm = *std::find (thread->root_moves.begin (), thread->root_moves.end (), move);
                     // 1st legal move or new best move ?
-                    if (ss->firstmove_pv || alpha < value)
+                    if (1 == move_count || alpha < value)
                     {
                         rm.new_value = value;
                         rm.pv.resize (1);
@@ -1271,7 +1285,10 @@ namespace Searcher {
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
-                        if (Limits.use_time_manager () && move_count > 1)
+                        if (   move_count > 1
+                            && Limits.use_time_manager ()
+                            && Threadpool.main () == thread
+                           )
                         {
                             TimeMgr.best_move_change++;
                         }
@@ -1294,6 +1311,7 @@ namespace Searcher {
                         // If there is an easy move for this position, clear it if unstable
                         if (   PVNode
                             && Limits.use_time_manager ()
+                            && Threadpool.main () == thread
                             && MoveMgr.easy_move (pos.posi_key ()) != MOVE_NONE
                             && (move != MoveMgr.easy_move (pos.posi_key ()) || move_count > 1)
                            )
@@ -1632,7 +1650,6 @@ namespace Searcher {
         static PRNG prng (now ()); // PRNG sequence should be non-deterministic
 
         _best_move = MOVE_NONE;
-        //const auto &root_moves = Threadpool.main ()->root_moves;
         // RootMoves are already sorted by value in descending order
         auto top_value  = root_moves[0].new_value;
         auto difference = std::min (top_value - root_moves[PVLimit - 1].new_value, VALUE_MG_PAWN);
@@ -2075,7 +2092,12 @@ namespace Threading {
         else
         {
             // Check if can play with own book
-            if (OwnBook && RootPly <= 20 && !Limits.infinite && !MateSearch && !BookFile.empty ())
+            if (   OwnBook
+                && !MateSearch
+                && RootPly <= 20
+                && !Limits.infinite
+                && !BookFile.empty ()
+               )
             {
                 book.open (BookFile, ios_base::in|ios_base::binary);
                 if (book.is_open ())

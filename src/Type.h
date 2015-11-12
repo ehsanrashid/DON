@@ -626,6 +626,7 @@ template Move mk_move<ENPASSANT> (Square, Square);
 // --------------------------------
 template<MoveT MT>
 inline Move mk_move              (Square org, Square dst, PieceT pt/*=QUEN*/) { return Move(dst | (org | ((pt - NIHT) << 6)) << 6 | PROMOTE); }
+// Make normal moves
 inline Move mk_move              (Square org, Square dst) { return Move(dst | org << 6); }
 
 inline double value_to_cp (Value   v) { return double   (v) / i32(VALUE_EG_PAWN); }
