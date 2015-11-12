@@ -128,9 +128,6 @@ namespace MoveGen {
                 {
                     if (pos.can_castle (Own) && pos.checkers () == U64(0))
                     {
-                        CheckInfo cc;
-                        if (ci == nullptr) { cc = CheckInfo (pos); ci = &cc; }
-
                         if (pos.can_castle (Castling<Own, CS_KING>::Right) && !pos.castle_impeded (Castling<Own, CS_KING>::Right))
                         {
                             pos.chess960 () ?

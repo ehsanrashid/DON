@@ -998,10 +998,12 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     // 3-X-FEN standard that, in case of Chess960, if an inner rook is associated with the castling right, the castling
     // tag is replaced by the file letter of the involved rook, as for the Shredder-FEN.
     iss >> ch;
-    while ((iss >> ch) && !isspace (ch) && ch != '-')
+    while ((iss >> ch) && !isspace (ch))
     {
         Square r_sq;
         auto c = isupper (ch) ? WHITE : BLACK;
+        
+        if (ch == '-') continue;
 
         if (c960)
         {
