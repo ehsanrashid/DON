@@ -39,9 +39,9 @@ namespace UCI {
 
         u08 index () const { return _index; }
 
-        operator bool () const;
-        operator i32  () const;
-        operator std::string () const;
+        explicit operator bool () const;
+        explicit operator i32  () const;
+        explicit operator std::string () const;
 
         Option& operator= (const char        *value);
         Option& operator= (const std::string &value);

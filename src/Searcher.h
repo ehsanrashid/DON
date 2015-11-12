@@ -116,7 +116,7 @@ namespace Searcher {
         void insert_pv_into_tt (Position &pos);
         bool extract_ponder_move_from_tt (Position &pos);
 
-        operator std::string () const;
+        explicit operator std::string () const;
 
     };
 
@@ -147,7 +147,7 @@ namespace Searcher {
 
         void initialize (const Position &pos, const MoveVector &root_moves);
 
-        operator std::string () const;
+        explicit operator std::string () const;
 
     };
 

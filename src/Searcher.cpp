@@ -516,7 +516,7 @@ namespace Searcher {
                     if (PVNode) alpha = best_value;
                 }
 
-                futility_base = best_value + VALUE_EG_PAWN/2; // QS Futility Margin
+                futility_base = best_value + i32(VALUE_EG_PAWN)/2; // QS Futility Margin
             }
 
             auto *thread = pos.thread ();
@@ -2159,23 +2159,12 @@ namespace Threading {
 
             search (true); // Let's start searching !
 
-            // Stop the threads and the timer
-            Signals.force_stop = true;
-
             if (Threadpool.save_hash_th != nullptr)
             {
                 Threadpool.save_hash_th->stop ();
                 delete_thread (Threadpool.save_hash_th);
             }
 
-            // Wait until all threads have finished
-            for (auto *th : Threadpool)
-            {
-                if (th != this)
-                {
-                    th->wait_while (th->searching);
-                }
-            }
         }
 
     finish:
@@ -2197,6 +2186,18 @@ namespace Threading {
         {
             Signals.ponderhit_stop = true;
             wait_until (Signals.force_stop);
+        }
+
+        // Stop the threads if not already stopped
+        Signals.force_stop = true;
+
+        // Wait until all threads have finished
+        for (auto *th : Threadpool)
+        {
+            if (th != this)
+            {
+                th->wait_while (th->searching);
+            }
         }
 
         // Check if there are threads with a better value than main thread.

@@ -32,7 +32,7 @@ namespace OpeningBook {
             u16 weight  = 0;
             u32 learn   = 0;
 
-            operator std::string () const;
+            explicit operator std::string () const;
 
         };
 

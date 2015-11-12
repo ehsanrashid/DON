@@ -295,7 +295,7 @@ public:
 
     std::string fen (bool c960 = false, bool full = true) const;
     
-    operator std::string () const;
+    explicit operator std::string () const;
 
 };
 

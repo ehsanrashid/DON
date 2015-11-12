@@ -506,27 +506,27 @@ inline i32    operator/  (Depth d1, Depth d2) { return i32(d1) / i32(d2); }
 inline bool   _ok       (Color c) { return WHITE == c || BLACK == c; }
 inline Color  operator~ (Color c) { return Color(c^BLACK); }
 
-inline bool   _ok       (File f) { return    !(f & ~F_H); }
-inline File   operator~ (File f) { return File(f ^  F_H); }
+inline bool   _ok       (File f) { return    !(f & ~i08(F_H)); }
+inline File   operator~ (File f) { return File(f ^  i08(F_H)); }
 inline File   to_file   (char f) { return File(f - 'a'); }
 
-inline bool   _ok       (Rank r) { return    !(r & ~R_8); }
-inline Rank   operator~ (Rank r) { return Rank(r ^  R_8); }
+inline bool   _ok       (Rank r) { return    !(r & ~i08(R_8)); }
+inline Rank   operator~ (Rank r) { return Rank(r ^  i08(R_8)); }
 inline Rank   to_rank   (char r) { return Rank(r - '1'); }
 
 inline Square operator| (File f, Rank r) { return Square(( r << 3) | f); }
 inline Square operator| (Rank r, File f) { return Square((~r << 3) | f); }
 inline Square to_square (char f, char r) { return to_file (f) | to_rank (r); }
 
-inline bool   _ok   (Square s) { return    !(s & ~SQ_H8); }
+inline bool   _ok   (Square s) { return    !(s & ~i08(SQ_H8)); }
 inline File   _file (Square s) { return File(s &  F_H); }
 inline Rank   _rank (Square s) { return Rank(s >> 3); }
 inline Color  color (Square s) { return Color(!((s ^ (s >> 3)) & BLACK)); }
 
 // FLIP   => SQ_A1 -> SQ_A8
-inline Square operator~ (Square s) { return Square(s ^ SQ_A8); }
+inline Square operator~ (Square s) { return Square(s ^ i08(SQ_A8)); }
 // MIRROR => SQ_A1 -> SQ_H1
-inline Square operator! (Square s) { return Square(s ^ SQ_H1); }
+inline Square operator! (Square s) { return Square(s ^ i08(SQ_H1)); }
 
 inline Rank   rel_rank  (Color c, Rank   r) { return   Rank(r ^ (c * R_8)); }
 inline Rank   rel_rank  (Color c, Square s) { return rel_rank (c, _rank (s)); }

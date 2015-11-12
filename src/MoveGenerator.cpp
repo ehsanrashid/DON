@@ -26,7 +26,7 @@ namespace MoveGen {
                 {
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (ci != nullptr)
+                        //if (ci != nullptr)
                         {
                             if (   (BSHP == PT || ROOK == PT || QUEN == PT)
                                 && (PIECE_ATTACKS[PT][s] & targets & ci->checking_bb[PT]) == U64(0)
@@ -45,7 +45,7 @@ namespace MoveGen {
                     
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (ci != nullptr)
+                        //if (ci != nullptr)
                         {
                             attacks &= ci->checking_bb[PT];
                         }
@@ -97,7 +97,10 @@ namespace MoveGen {
 
                 if (CHECK == GT || QUIET_CHECK == GT)
                 {
-                    if (ci != nullptr && !pos.gives_check (m, *ci)) return;
+                    //if (ci != nullptr)
+                    {
+                        if (!pos.gives_check (m, *ci)) return;
+                    }
                 }
                 else
                 {
@@ -176,15 +179,18 @@ namespace MoveGen {
                 // not already included in the queen-promotion (queening).
                 if (QUIET_CHECK == GT)
                 {
-                    if (ci != nullptr && (PIECE_ATTACKS[NIHT][dst] & ci->king_sq) != U64(0))
+                    //if (ci != nullptr)
                     {
-                        *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                        if ((PIECE_ATTACKS[NIHT][dst] & ci->king_sq) != U64(0))
+                        {
+                            *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                        }
                     }
                 }
                 //else
                 //if (CHECK == GT)
                 //{
-                //    if (ci != nullptr)
+                //    //if (ci != nullptr)
                 //    {
                 //        if ((PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
                 //        if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
@@ -236,7 +242,7 @@ namespace MoveGen {
 
                     case CHECK:
                     case QUIET_CHECK:
-                        if (ci != nullptr)
+                        //if (ci != nullptr)
                         {
                             push_1 &= PAWN_ATTACKS[Opp][ci->king_sq];
                             push_2 &= PAWN_ATTACKS[Opp][ci->king_sq];

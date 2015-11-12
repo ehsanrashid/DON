@@ -223,7 +223,9 @@ namespace MovePick {
             *_moves_end = MOVE_NONE;
 
             // Be sure countermoves are different from _killers
-            if (_counter_move != MOVE_NONE && std::count (std::begin (_killers), std::prev (std::end (_killers)), _counter_move) == 0)
+            if (   _counter_move != MOVE_NONE
+                && std::count (std::begin (_killers), std::prev (std::end (_killers)), _counter_move) == 0
+               )
             {
                 *_moves_end++ = _counter_move;
             }
