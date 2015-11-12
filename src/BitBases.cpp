@@ -13,7 +13,7 @@ namespace BitBases {
         const u32 MAX_INDEX = 2*24*i08(SQ_NO)*i08(SQ_NO); // stm * p_sq * wk_sq * bk_sq = 196608
         
         // Each u32 entity stores results of 32 positions, one per bit
-        u32 KPK_Bitbase[MAX_INDEX/32];
+        u32 KPK_Bitbase[MAX_INDEX / 32];
 
         // A KPK bitbase index is an integer in [0, MAX_INDEX] range
         //
