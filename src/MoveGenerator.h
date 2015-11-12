@@ -92,6 +92,7 @@ namespace MoveGen {
             return false;
         }
 
+        //explicit operator std::string () const;
     };
 
     //template<class CharT, class Traits, GenT GT>
