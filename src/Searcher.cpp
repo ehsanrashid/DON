@@ -2004,7 +2004,7 @@ namespace Threading {
                 // Stop if have found a "mate in <x>"
                 if (   MateSearch
                     && best_value >= +VALUE_MATE_IN_MAX_DEPTH
-                    && i16 (VALUE_MATE - best_value) <= 2*Limits.mate
+                    && i16(VALUE_MATE - best_value) <= 2*Limits.mate
                    )
                 {
                     stop = true;
@@ -2126,7 +2126,7 @@ namespace Threading {
                 //&& ContemptTime <= abs (diff_time)
                )
             {
-                timed_contempt = i16 (diff_time/ContemptTime);
+                timed_contempt = i16(diff_time/ContemptTime);
             }
 
             Value contempt = cp_to_value (double (FixedContempt + timed_contempt) / 100);

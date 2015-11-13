@@ -118,8 +118,8 @@ private:
     u08      _piece_count [CLR_NO][NONE];
     i08      _piece_index [SQ_NO];
 
-    StateInfo  _sb; // Object for base status information
-    StateInfo *_si; // Pointer for current status information
+    StateInfo  _ssi; // Startup status information object
+    StateInfo *_psi; // Current status information pointer
 
     CRight   _castle_mask[SQ_NO];
     Square   _castle_rook[CR_ALL];
@@ -145,13 +145,13 @@ private:
     bool can_en_passant (Square ep_sq) const;
     bool can_en_passant (File   ep_f ) const { return can_en_passant (ep_f | rel_rank (_active, R_6)); }
 
-    Bitboard check_blockers (Color piece_c, Color king_c) const;
-
     template<bool Do>
     void do_castling (Square king_org, Square &king_dst, Square &rook_org, Square &rook_dst);
 
     template<PieceT PT>
-    PieceT pick_lva (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const;
+    PieceT pick_least_val_att (Square dst, Bitboard stm_attackers, Bitboard &mocc, Bitboard &attackers) const;
+
+    Bitboard check_blockers (Color piece_c, Color king_c) const;
 
 public:
 
@@ -376,20 +376,20 @@ inline Square Position::square (Color c, i32 index) const
 }
 
 // Castling rights for both side
-inline CRight Position::castle_rights () const { return _si->castle_rights; }
+inline CRight Position::castle_rights () const { return _psi->castle_rights; }
 // Target square in algebraic notation. If there's no en passant target square is "-"
-inline Square Position::en_passant_sq () const { return _si->en_passant_sq; }
+inline Square Position::en_passant_sq () const { return _psi->en_passant_sq; }
 // Number of halfmoves clock since the last pawn advance or any capture.
 // used to determine if a draw can be claimed under the 50-move rule.
-inline u08    Position::clock50       () const { return _si->clock50; }
-inline Move   Position::last_move     () const { return _si->last_move; }
-inline PieceT Position::capture_type  () const { return _si->capture_type; }
-//inline Piece  Position::capture_piece () const { return NONE != _si->capture_type ? (_active|_si->capture_type) : EMPTY; }
-inline Bitboard Position::checkers    () const { return _si->checkers; }
+inline u08    Position::clock50       () const { return _psi->clock50; }
+inline Move   Position::last_move     () const { return _psi->last_move; }
+inline PieceT Position::capture_type  () const { return _psi->capture_type; }
+//inline Piece  Position::capture_piece () const { return NONE != _psi->capture_type ? (_active|_psi->capture_type) : EMPTY; }
+inline Bitboard Position::checkers    () const { return _psi->checkers; }
 
-inline Key    Position::matl_key      () const { return _si->matl_key; }
-inline Key    Position::pawn_key      () const { return _si->pawn_key; }
-inline Key    Position::posi_key      () const { return _si->posi_key; }
+inline Key    Position::matl_key      () const { return _psi->matl_key; }
+inline Key    Position::pawn_key      () const { return _psi->pawn_key; }
+inline Key    Position::posi_key      () const { return _psi->posi_key; }
 // move_posi_key() computes the new hash key after the given moven. Needed for speculative prefetch.
 // It doesn't recognize special moves like castling, en-passant and promotions.
 inline Key    Position::move_posi_key (Move m) const
@@ -398,19 +398,19 @@ inline Key    Position::move_posi_key (Move m) const
     auto dst = dst_sq (m);
     auto mpt = ptype (_board[org]);
     auto ppt = mpt == PAWN && mtype (m) == PROMOTE ? promote (m) : mpt;
-    auto cpt = mpt == PAWN && mtype (m) == ENPASSANT && _si->en_passant_sq == dst_sq (m) ? PAWN : ptype (_board[dst]);
+    auto cpt = mpt == PAWN && mtype (m) == ENPASSANT && _psi->en_passant_sq == dst_sq (m) ? PAWN : ptype (_board[dst]);
     
-    return _si->posi_key ^  Zob._.act_side
+    return _psi->posi_key ^  Zob._.act_side
         ^  Zob._.piece_square[_active][mpt][org]
         ^  Zob._.piece_square[_active][ppt][dst]
         ^ (cpt != NONE ? Zob._.piece_square[~_active][cpt][dst] : U64(0));
 }
 
-inline Score  Position::psq_score     () const { return _si->psq_score; }
-inline Value  Position::non_pawn_material (Color c) const { return _si->non_pawn_matl[c]; }
+inline Score  Position::psq_score     () const { return _psi->psq_score; }
+inline Value  Position::non_pawn_material (Color c) const { return _psi->non_pawn_matl[c]; }
 
-inline CRight Position::can_castle    (CRight cr) const { return _si->castle_rights & cr; }
-inline CRight Position::can_castle    (Color   c) const { return _si->castle_rights & mk_castle_right (c); }
+inline CRight Position::can_castle    (CRight cr) const { return _psi->castle_rights & cr; }
+inline CRight Position::can_castle    (Color   c) const { return _psi->castle_rights & mk_castle_right (c); }
 
 inline Square   Position::castle_rook (CRight cr) const { return _castle_rook[cr]; }
 inline Bitboard Position::castle_path (CRight cr) const { return _castle_path[cr]; }
@@ -428,6 +428,13 @@ inline i32  Position::game_move () const { return std::max ((_game_ply - (BLACK 
 // Nodes visited
 inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
+// game_phase() calculates the phase interpolating total
+// non-pawn material between endgame and midgame limits.
+inline Phase Position::game_phase () const
+{
+    auto npm = std::max (VALUE_ENDGAME, std::min (_psi->non_pawn_matl[WHITE] + _psi->non_pawn_matl[BLACK], VALUE_MIDGAME));
+    return Phase(i32(npm - VALUE_ENDGAME) * i32(PHASE_MIDGAME) / i32(VALUE_MIDGAME - VALUE_ENDGAME));
+}
 
 inline bool Position::chess960  () const { return _chess960; }
 inline Thread* Position::thread () const { return _thread; }
@@ -511,13 +518,13 @@ inline bool Position::capture       (Move m) const
 {
     // Castling is encoded as "king captures the rook"
     return ((mtype (m) == NORMAL || mtype (m) == PROMOTE) && !empty (dst_sq (m)))
-        || ((mtype (m) == ENPASSANT                     ) &&  empty (dst_sq (m)) && _si->en_passant_sq == dst_sq (m));
+        || ((mtype (m) == ENPASSANT                     ) &&  empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m));
 }
 // capture_or_promotion(m) tests move is capture or promotion
 inline bool Position::capture_or_promotion  (Move m) const
 {
     return (mtype (m) == NORMAL    && !empty (dst_sq (m)))
-        || (mtype (m) == ENPASSANT &&  empty (dst_sq (m)) && _si->en_passant_sq == dst_sq (m))
+        || (mtype (m) == ENPASSANT &&  empty (dst_sq (m)) && _psi->en_passant_sq == dst_sq (m))
         || (mtype (m) == PROMOTE);
 }
 inline bool Position::advanced_pawn_push    (Move m) const
