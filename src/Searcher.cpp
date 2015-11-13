@@ -286,8 +286,8 @@ namespace Searcher {
             // Extra penalty for PV move in previous ply when it gets refuted
             if (   (ss-1)->move_count == 1
                 && opp_move_dst != SQ_NO
-                && mtype (opp_move) != PROMOTE
                 && pos.capture_type () == NONE
+                && mtype (opp_move) != PROMOTE
                )
             {
                 auto own_move = (ss-2)->current_move;
@@ -1379,10 +1379,10 @@ namespace Searcher {
             else
             // Bonus for prior countermove that caused the fail low
             if (  !in_check
-                && best_move == MOVE_NONE
                 && depth >= 3*DEPTH_ONE
-                && pos.capture_type () == NONE
+                && best_move == MOVE_NONE
                 && opp_move_dst != SQ_NO
+                && pos.capture_type () == NONE
                 && mtype (opp_move) != PROMOTE
                )
             {
@@ -1441,8 +1441,6 @@ namespace Searcher {
 
             return u32(time * std::min (step_time_ratio, steal_time_ratio));
         }
-
-
     }
 
     bool            Chess960        = false;
