@@ -118,8 +118,8 @@ private:
     u08      _piece_count [CLR_NO][NONE];
     i08      _piece_index [SQ_NO];
 
-    StateInfo  _ssi; // Startup status information object
-    StateInfo *_psi; // Current status information pointer
+    StateInfo  _ssi; // Startup state information object
+    StateInfo *_psi; // Current state information pointer
 
     CRight   _castle_mask[SQ_NO];
     Square   _castle_rook[CR_ALL];
@@ -282,12 +282,12 @@ public:
     Value compute_non_pawn_material (Color c) const;
 
     // Do natural-move
-    void do_move (Move m, StateInfo &si, bool gives_check);
-    void do_move (std::string &can, StateInfo &si);
+    void do_move (Move m, StateInfo &nsi, bool gives_check);
+    void do_move (std::string &can, StateInfo &nsi);
     // Undo natural-move
     void undo_move ();
     // Do null-move
-    void do_null_move (StateInfo &si);
+    void do_null_move (StateInfo &nsi);
     // Undo null-move
     void undo_null_move ();
 

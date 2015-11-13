@@ -1145,15 +1145,15 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
 // updated by do_move and undo_move when the program is running in debug mode.
 Score Position::compute_psq_score () const
 {
-    auto psq_bonus = SCORE_ZERO;
+    auto psq_score = SCORE_ZERO;
     auto occ = _types_bb[NONE];
     while (occ != U64(0))
     {
         auto s = pop_lsq (occ);
         auto p = _board[s];
-        psq_bonus += PSQ[color (p)][ptype (p)][s];
+        psq_score += PSQ[color (p)][ptype (p)][s];
     }
-    return psq_bonus;
+    return psq_score;
 }
 
 // compute_non_pawn_material() computes the total non-pawn middle
@@ -1187,21 +1187,20 @@ Value Position::compute_non_pawn_material (Color c) const
     _psi->psq_score -= PSQ[~_active][cpt][cap];                                      \
     _psi->clock50 = 0;                                                               \
 }
-
-// do_move() do the move with checking info
-void Position::do_move (Move m, StateInfo &si, bool gives_check)
+// do_move() do the move
+void Position::do_move (Move m, StateInfo &nsi, bool gives_check)
 {
     assert (_ok (m));
-    assert (&si != _psi);
+    assert (&nsi != _psi);
 
     Key key = _psi->posi_key ^ Zob._.act_side;
     // Copy some fields of old state to new StateInfo object except the ones
     // which are going to be recalculated from scratch anyway, 
-    std::memcpy (&si, _psi, offsetof (StateInfo, last_move));
+    std::memcpy (&nsi, _psi, offsetof (StateInfo, last_move));
 
     // Switch state pointer to point to the new, ready to be updated, state.
-    si.ptr = _psi;
-    _psi    = &si;
+    nsi.ptr = _psi;
+    _psi    = &nsi;
 
     auto pasive = ~_active;
 
@@ -1210,7 +1209,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     auto mpt = ptype (_board[org]);
 
     assert (!empty (org) && _active == color (_board[org]) && NONE != mpt);
-    assert ( empty (dst) || pasive == color (_board[dst]) || CASTLE == mtype (m));
+    assert ( empty (dst) ||  pasive == color (_board[dst]) || CASTLE == mtype (m));
 
     auto cap = dst;
     auto cpt = NONE;
@@ -1381,7 +1380,7 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
             }
         }
     }
-
+    // Update state information
     _psi->posi_key     = key;
     _psi->last_move    = m;
     _psi->capture_type = cpt;
@@ -1392,14 +1391,12 @@ void Position::do_move (Move m, StateInfo &si, bool gives_check)
     assert (ok ());
 }
 #undef do_capture
-
-// do_move() do the move from string (CAN)
-void Position::do_move (string &can, StateInfo &si)
+// do_move() do the move (CAN)
+void Position::do_move (string &can, StateInfo &nsi)
 {
     auto m = move_from_can (can, *this);
-    if (MOVE_NONE != m) do_move (m, si, gives_check (m, CheckInfo (*this)));
+    if (MOVE_NONE != m) do_move (m, nsi, gives_check (m, CheckInfo (*this)));
 }
-
 // undo_move() undo the last move
 void Position::undo_move ()
 {
@@ -1474,19 +1471,18 @@ void Position::undo_move ()
 
     assert (ok ());
 }
-
 // do_null_move() do the null-move
-void Position::do_null_move (StateInfo &si)
+void Position::do_null_move (StateInfo &nsi)
 {
-    assert (&si != _psi);
+    assert (&nsi != _psi);
     assert (_psi->checkers == U64(0));
 
     // Full copy here
-    std::memcpy (&si, _psi, sizeof (si));
+    std::memcpy (&nsi, _psi, sizeof (nsi));
 
     // Switch our state pointer to point to the new, ready to be updated, state.
-    si.ptr = _psi;
-    _psi    = &si;
+    nsi.ptr = _psi;
+    _psi    = &nsi;
 
     if (SQ_NO != _psi->en_passant_sq)
     {
@@ -1508,7 +1504,7 @@ void Position::undo_null_move ()
     assert (_psi->checkers == U64(0));
 
     _active = ~_active;
-    _psi     = _psi->ptr;
+    _psi    = _psi->ptr;
 
     assert (ok ());
 }

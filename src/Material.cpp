@@ -73,16 +73,15 @@ namespace Material {
             return pos.non_pawn_material ( c) == VALUE_MG_BSHP
                 && pos.count<BSHP> (c) == 1
                 && pos.count<PAWN> (c) != 0;
-                //&& pos.non_pawn_material (~c) == VALUE_ZERO
         }
 
         bool is_KQKRPs (const Position &pos, Color c)
         {
-            return pos.count<QUEN> ( c) == 1
-                && pos.non_pawn_material ( c) == VALUE_MG_QUEN
+            return pos.non_pawn_material ( c) == VALUE_MG_QUEN
+                && pos.count<QUEN> (c) == 1
                 && pos.count<PAWN> ( c) == 0
-                && pos.count<ROOK> (~c) == 1
                 && pos.non_pawn_material (~c) == VALUE_MG_ROOK
+                && pos.count<ROOK> (~c) == 1
                 && pos.count<PAWN> (~c) != 0;
         }
 
@@ -140,8 +139,7 @@ namespace Material {
         {
             std::memset (e, 0x00, sizeof (*e));
             e->matl_key      = matl_key;
-            e->factor[WHITE] = SCALE_FACTOR_NORMAL;
-            e->factor[BLACK] = SCALE_FACTOR_NORMAL;
+            e->factor[WHITE] = e->factor[BLACK] = SCALE_FACTOR_NORMAL;
             e->game_phase    = pos.game_phase ();
 
             // Let's look if have a specialized evaluation function for this

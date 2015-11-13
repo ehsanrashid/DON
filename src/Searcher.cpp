@@ -149,8 +149,8 @@ namespace Searcher {
         const u08 FullDepthMoveCount = 1;
 
         Color   RootColor;
-        i32     RootPly;
-        
+        bool    UseTimeManagment;
+
         u16     PVLimit;
 
         Value   DrawValue[CLR_NO]
@@ -190,7 +190,7 @@ namespace Searcher {
             // An engine may not stop pondering until told so by the GUI
             if (Limits.ponder) return;
 
-            if (Limits.use_time_management ())
+            if (UseTimeManagment)
             {
                 if (   elapsed_time > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
                        // Still at first move
@@ -1287,7 +1287,7 @@ namespace Searcher {
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
                         if (   move_count > 1
-                            && Limits.use_time_management ()
+                            && UseTimeManagment
                             && Threadpool.main () == thread
                            )
                         {
@@ -1311,7 +1311,7 @@ namespace Searcher {
                     {
                         // If there is an easy move for this position, clear it if unstable
                         if (   PVNode
-                            && Limits.use_time_management ()
+                            && UseTimeManagment
                             && Threadpool.main () == thread
                             && MoveMgr.easy_move (pos.posi_key ()) != MOVE_NONE
                             && (move != MoveMgr.easy_move (pos.posi_key ()) || move_count > 1)
@@ -1414,26 +1414,26 @@ namespace Searcher {
         // analysis of "how many games are still undecided after 'n' half-moves".
         // Game is considered "undecided" as long as neither side has >275cp advantage.
         // Data was extracted from CCRL game database with some simple filtering criteria.
-        double move_importance (i32 game_ply)
+        double move_importance (i32 ply)
         {
             //                               PLY_SHIFT  PLY_SCALE  SKEW_RATE
-            return pow ((1 + exp ((game_ply - 59.800) / 09.300)), -00.172) + DBL_MIN; // Ensure non-zero
+            return pow ((1 + exp ((ply - 59.800) / 09.300)), -00.172) + DBL_MIN; // Ensure non-zero
         }
 
         template<RemainTimeT TT>
         // remaining_time<>() calculate the time remaining
-        u32 remaining_time (u32 time, u08 movestogo, i32 game_ply)
+        u32 remaining_time (u32 time, u08 movestogo, i32 ply)
         {
             // When in trouble, can step over reserved time with this ratio
             const double  StepRatio = RT_OPTIMUM == TT ? 1.0 : 7.00;
             // However must not steal time from remaining moves over this ratio
             const double StealRatio = RT_MAXIMUM == TT ? 0.0 : 0.33;
 
-            double move_imp = move_importance (game_ply) * MoveSlowness / 100;
+            double move_imp = move_importance (ply) * MoveSlowness / 100;
             double remain_move_imp = 0.0;
             for (u08 i = 1; i < movestogo; ++i)
             {
-                remain_move_imp += move_importance (game_ply + 2 * i);
+                remain_move_imp += move_importance (ply + 2 * i);
             }
 
             double  step_time_ratio = (0        +        move_imp * StepRatio ) / (move_imp * StepRatio + remain_move_imp);
@@ -1584,11 +1584,11 @@ namespace Searcher {
 
     // ------------------------------------
 
-    u32 TimeManager::elapsed_time () const { return u32(Limits.npmsec != 0 ? Threadpool.game_nodes () : now () - _start_time); }
+    u32 TimeManager::elapsed_time () const { return u32(Limits.npmsec != 0 ? Threadpool.game_nodes () : now () - Limits.start_time); }
 
     // TimeManager::initialize() is called at the beginning of the search and
     // calculates the allowed thinking time out of the time control and current game ply.
-    void TimeManager::initialize ()
+    void TimeManager::initialize (LimitsT &limits, Color own, i32 ply)
     {
         // If we have to play in 'nodes as time' mode, then convert from time
         // to nodes, and use resulting values in time management formulas.
@@ -1599,36 +1599,35 @@ namespace Searcher {
             // Only once at game start
             if (available_nodes == 0)
             {
-                available_nodes = NodesTime * Limits.clock[RootColor].time; // Time is in msec
+                available_nodes = NodesTime * limits.clock[own].time; // Time is in msec
             }
 
             // Convert from millisecs to nodes
-            Limits.clock[RootColor].time = i32(available_nodes);
-            Limits.clock[RootColor].inc *= NodesTime;
-            Limits.npmsec = NodesTime;
+            limits.clock[own].time = i32(available_nodes);
+            limits.clock[own].inc *= NodesTime;
+            limits.npmsec = NodesTime;
         }
 
-        _start_time = Limits.start_time;
         _instability_factor = 1.0;
 
         _optimum_time =
         _maximum_time =
-            std::max (Limits.clock[RootColor].time, MinimumMoveTime);
+            std::max (limits.clock[own].time, MinimumMoveTime);
 
-        const u08 MaxMovesToGo = Limits.movestogo != 0 ? std::min (Limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
+        const u08 MaxMovesToGo = limits.movestogo != 0 ? std::min (limits.movestogo, MaximumMoveHorizon) : MaximumMoveHorizon;
         // Calculate optimum time usage for different hypothetic "moves to go"-values and choose the
         // minimum of calculated search time values. Usually the greatest hyp_movestogo gives the minimum values.
         for (u08 hyp_movestogo = 1; hyp_movestogo <= MaxMovesToGo; ++hyp_movestogo)
         {
             // Calculate thinking time for hypothetic "moves to go"-value
             i32 hyp_time = std::max (
-                + Limits.clock[RootColor].time
-                + Limits.clock[RootColor].inc * (hyp_movestogo-1)
+                + limits.clock[own].time
+                + limits.clock[own].inc * (hyp_movestogo-1)
                 - OverheadClockTime
                 - OverheadMoveTime * std::min (hyp_movestogo, ReadyMoveHorizon), 0U);
 
-            u32 opt_time = MinimumMoveTime + remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, RootPly);
-            u32 max_time = MinimumMoveTime + remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, RootPly);
+            u32 opt_time = MinimumMoveTime + remaining_time<RT_OPTIMUM> (hyp_time, hyp_movestogo, ply);
+            u32 max_time = MinimumMoveTime + remaining_time<RT_MAXIMUM> (hyp_time, hyp_movestogo, ply);
 
             _optimum_time = std::min (opt_time, _optimum_time);
             _maximum_time = std::min (max_time, _maximum_time);
@@ -1790,10 +1789,11 @@ namespace Threading {
         std::memset (ss-2, 0x00, 5*sizeof (*stacks));
 
         auto easy_move = MOVE_NONE;
+
         if (thread_main)
         {
-            TT.generation (RootPly + 1);
-            if (Limits.use_time_management ())
+            TT.generation (root_pos.game_ply () + 1);
+            if (UseTimeManagment)
             {
                 TimeMgr.best_move_change = 0.0;
                 easy_move = MoveMgr.easy_move (root_pos.posi_key ());
@@ -1821,12 +1821,15 @@ namespace Threading {
         // Iterative deepening loop until target depth reached
         while (++root_depth < DEPTH_MAX && !Signals.force_stop && (0 == Limits.depth || root_depth <= Limits.depth))
         {
-            if (thread_main)
+            if (!thread_main)
             {
                 // Set up the new depth for the helper threads
                 root_depth = std::min (Threadpool.main ()->root_depth + Depth(i32(2.2 * log (1 + this->index))), DEPTH_MAX - DEPTH_ONE);
+            }
 
-                if (Limits.use_time_management ())
+            if (thread_main)
+            {
+                if (UseTimeManagment)
                 {
                     // Age out PV variability metric
                     TimeMgr.best_move_change *= 0.5;
@@ -1968,7 +1971,7 @@ namespace Threading {
                 bool stop = false;
 
                 // Do have time for the next iteration? Can stop searching now?
-                if (Limits.use_time_management ())
+                if (UseTimeManagment)
                 {
                     // If PV limit = 1 then take some extra time if the best move has changed
                     if (aspiration && PVLimit == 1)
@@ -2024,7 +2027,6 @@ namespace Threading {
                     }
                 }
             }
-
         }
 
         searching = false;
@@ -2034,7 +2036,7 @@ namespace Threading {
 
         // Clear any candidate easy move that wasn't stable for the last search iterations;
         // the second condition prevents consecutive fast moves.
-        if (   Limits.use_time_management ()
+        if (   UseTimeManagment
             && (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
            )
         {
@@ -2052,9 +2054,11 @@ namespace Threading {
         static PolyglotBook book; // Defined static to initialize the PRNG only once
 
         RootColor = root_pos.active ();
-        RootPly   = root_pos.game_ply ();
-
-        TimeMgr.initialize ();
+        UseTimeManagment = Limits.use_time_management ();
+        if (UseTimeManagment)
+        {
+            TimeMgr.initialize (Limits, RootColor, root_pos.game_ply ());
+        }
 
         MateSearch  = 0 != Limits.mate;
 
@@ -2093,7 +2097,7 @@ namespace Threading {
             // Check if can play with own book
             if (   OwnBook
                 && !MateSearch
-                && RootPly <= 20
+                && root_pos.game_ply () <= 20
                 && !Limits.infinite
                 && !BookFile.empty ()
                )
@@ -2121,7 +2125,7 @@ namespace Threading {
             i16 timed_contempt = 0;
             i32 diff_time = 0;
             if (   ContemptTime != 0
-                && Limits.use_time_management ()
+                && UseTimeManagment
                 && (diff_time = (Limits.clock[RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
                 //&& ContemptTime <= abs (diff_time)
                )

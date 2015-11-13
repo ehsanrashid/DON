@@ -224,7 +224,6 @@ namespace Searcher {
     {
     private:
 
-        TimePoint _start_time   = 0;
         u32       _optimum_time = 0;
         u32       _maximum_time = 0;
 
@@ -243,7 +242,7 @@ namespace Searcher {
 
         void instability () { _instability_factor = 1.0 + best_move_change; }
 
-        void initialize ();
+        void initialize (LimitsT &limits, Color own, i32 ply);
 
     };
 

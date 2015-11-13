@@ -41,8 +41,8 @@ namespace Transposition {
         Value value () const { return Value(_value); }
         Value eval  () const { return Value(_eval);  }
         Depth depth () const { return Depth(_depth); }
-        Bound bound () const { return Bound(_gen_bnd & 0x03); }
-        u08   gen   () const { return u08  (_gen_bnd & 0xFC); }
+        Bound bound () const { return Bound(_gen_bnd &  BOUND_EXACT); }
+        u08   gen   () const { return u08  (_gen_bnd & ~BOUND_EXACT); }
 
         void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {

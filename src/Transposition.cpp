@@ -120,30 +120,26 @@ namespace Transposition {
             if (ite->_key == U64(0) || ite->_key == key)
             {
                 hit = ite->_key == key;
-                if (hit && ite->gen () != _generation) ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
+                if (hit && ite->gen () != _generation)
+                {
+                    ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
+                }
                 return ite;
             }
         }
-
+        // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte;
-        auto rem = rte->depth () + ((rte->bound () == BOUND_EXACT) - ((0x100 + _generation - rte->gen ())&0xFC))*2*DEPTH_ONE;
+        auto rem = rte->_depth + ((rte->bound () == BOUND_EXACT) - ((0x100 + _generation - rte->gen ())&0xFC))*2*DEPTH_ONE;
         for (auto *ite = fte+1; ite < fte+ClusterEntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
-            auto iem = ite->depth () + ((ite->bound () == BOUND_EXACT) - ((0x100 + _generation - ite->gen ())&0xFC))*2*DEPTH_ONE;
+            auto iem = ite->_depth + ((ite->bound () == BOUND_EXACT) - ((0x100 + _generation - ite->gen ())&0xFC))*2*DEPTH_ONE;
             if (rem > iem)
             {
                 rem = iem;
                 rte = ite;
             }
         }
-        //// By default replace first entry and make place in the last
-        //if (rte == fte)
-        //{
-        //    std::copy (fte+1, fte+ClusterEntryCount, fte);
-        //    rte = fte+ClusterEntryCount-1;
-        //}
-
         hit = false;
         return rte;
     }
