@@ -102,7 +102,7 @@ namespace Transposition {
         u08      _generation    = 0;
 
         // alloc_aligned_memory() alocates the aligned memory
-        void alloc_aligned_memory (size_t mem_size, size_t alignment);
+        void alloc_aligned_memory (size_t mem_size, u32 alignment);
 
         // free_aligned_memory() frees the aligned memory
         void free_aligned_memory ()

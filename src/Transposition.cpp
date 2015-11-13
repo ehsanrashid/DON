@@ -14,7 +14,7 @@ namespace Transposition {
 
     bool TranspositionTable::RetainHash = false;
 
-    void TranspositionTable::alloc_aligned_memory (size_t mem_size, size_t alignment)
+    void TranspositionTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
         assert (0 == (alignment & (alignment-1)));
         assert (0 == (mem_size  & (alignment-1)));
@@ -46,7 +46,7 @@ namespace Transposition {
         // Then checking for error returned by malloc, if it returns NULL then 
         // alloc_aligned_memory will fail and return NULL or exit().
 
-        alignment = max (size_t(sizeof (void *)), alignment);
+        alignment = max (u32(sizeof (void *)), alignment);
 
         void *mem = calloc (mem_size + alignment-1, 1);
         if (mem != nullptr)
@@ -100,7 +100,7 @@ namespace Transposition {
     {
         if (mem_size_mb == 0) mem_size_mb = MaxSize;
 
-        for (i32 msize_mb = mem_size_mb; msize_mb >= MinSize; msize_mb >>= 1)
+        for (u32 msize_mb = mem_size_mb; msize_mb >= MinSize; msize_mb >>= 1)
         {
             if (resize (msize_mb, force) != 0) return;
         }
@@ -112,7 +112,7 @@ namespace Transposition {
     Entry* TranspositionTable::probe (Key key, bool &hit) const
     {
         //assert (key != U64(0));
-        const u16 key16 = key >> 48;
+        const u16 key16 = key >> 0x30;
         auto *const fte = cluster_entry (key);
         for (auto *ite = fte+0; ite < fte+ClusterEntryCount; ++ite)
         {
