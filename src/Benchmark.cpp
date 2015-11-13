@@ -159,7 +159,7 @@ void benchmark (istream &is, const Position &cur_pos)
         {
             StateStackPtr states;
             limits.start_time = now ();
-            Threadpool.start_main (pos, limits, states);
+            Threadpool.start_thinking (pos, limits, states);
             Threadpool.main ()->join ();
             nodes += Threadpool.game_nodes ();
         }

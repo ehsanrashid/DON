@@ -160,8 +160,6 @@ namespace Searcher {
 
         ofstream SearchLog;
 
-        bool    FirstAutoSave;
-
         // Counter move history value statistics
         CMValue2DStats  CounterMoves2DValues;
 
@@ -219,16 +217,6 @@ namespace Searcher {
                     Signals.force_stop = true;
                 }
             }
-        }
-
-        void auto_save_hash ()
-        {
-            if (FirstAutoSave)
-            {
-                FirstAutoSave = false;
-                return;
-            }
-            TT.save (HashFile);
         }
 
         // update_stats() updates killers, history, countermoves and countermoves history
@@ -681,16 +669,16 @@ namespace Searcher {
             ss->ply = (ss-1)->ply + 1;
 
             // Check for available remaining time
-            if (thread->reset_chk_count.load (std::memory_order_relaxed))
+            if (thread->reset_check.load (std::memory_order_relaxed))
             {
-                thread->reset_chk_count = false;
+                thread->reset_check = false;
                 thread->chk_count = 0;
             }
             if (++thread->chk_count > (TIMER_RESOLUTION-1)*1024)
             {
                 for (auto *th : Threadpool)
                 {
-                    th->reset_chk_count = true;
+                    th->reset_check = true;
                 }
                 check_limits ();
             }
@@ -1783,10 +1771,12 @@ namespace Threading {
     // Thread::search() is the main iterative deepening loop. It calls search()
     // repeatedly with increasing depth until the allocated thinking time has been
     // consumed, user stops the search, or the maximum search depth is reached.
-    void Thread::search (bool thread_main)
+    void Thread::search ()
     {
         Stack stacks[MAX_DEPTH+4], *ss = stacks+2; // To allow referencing (ss-2)
         std::memset (ss-2, 0x00, 5*sizeof (*stacks));
+
+        bool thread_main = Threadpool.main () == this;
 
         auto easy_move = MOVE_NONE;
 
@@ -2029,9 +2019,6 @@ namespace Threading {
             }
         }
 
-        searching = false;
-        notify_one (); // Wake up main thread if is sleeping waiting for us
-
         if (!thread_main) return;
 
         // Clear any candidate easy move that wasn't stable for the last search iterations;
@@ -2049,7 +2036,10 @@ namespace Threading {
         }
     }
 
-    void MainThread::think ()
+    // MainThread::search() is called by the main thread when the program receives
+    // the UCI 'go' command. It searches from root position and at the end prints
+    // the "bestmove" to output.
+    void MainThread::search ()
     {
         static PolyglotBook book; // Defined static to initialize the PRNG only once
 
@@ -2150,24 +2140,7 @@ namespace Threading {
                 }
             }
 
-            if (AutoSaveHashTime != 0 && !HashFile.empty ())
-            {
-                FirstAutoSave = true;
-                Threadpool.save_hash_th        = new_thread<TimerThread> ();
-                Threadpool.save_hash_th->task  = auto_save_hash;
-                Threadpool.save_hash_th->resolution = AutoSaveHashTime*MINUTE_MILLI_SEC;
-                Threadpool.save_hash_th->start ();
-                Threadpool.save_hash_th->notify_one ();
-            }
-
-            search (true); // Let's start searching !
-
-            if (Threadpool.save_hash_th != nullptr)
-            {
-                Threadpool.save_hash_th->stop ();
-                delete_thread (Threadpool.save_hash_th);
-            }
-
+            Thread::search (); // Let's start searching !
         }
 
     finish:
@@ -2199,7 +2172,7 @@ namespace Threading {
         {
             if (th != this)
             {
-                th->wait_while (th->searching);
+                th->join ();
             }
         }
 

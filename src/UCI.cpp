@@ -203,7 +203,7 @@ namespace UCI {
 
                 Signals.force_stop = true;
 
-                Threadpool.start_main (RootPos, limits, SetupStates);
+                Threadpool.start_thinking (RootPos, limits, SetupStates);
             }
             // GUI sends 'ponderhit' to tell us to ponder on the same move the
             // opponent has played. In case Signals.ponderhit_stop stream set are

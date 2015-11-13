@@ -3,12 +3,10 @@
   <Class Name="Position">
     <Position X="9" Y="2" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AkgAAQIPAQQACBmwdYepIAEjgbVOHoRwBBgwJCAgJTA=</HashCode>
+      <HashCode>AkgAAQIPAYQACBmxdYepIAEjgbVOHoRwBBgwJCAgJTA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="_sb" />
-      <Field Name="_si" />
       <Field Name="_active" />
       <Field Name="_thread" />
     </ShowAsAssociation>
@@ -66,13 +64,6 @@
       <FileName>src\manipulator.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="std::manip_infra&lt;T, C&gt;" Collapsed="true">
-    <Position X="31.25" Y="0.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAEAgAAAAAAIAAAAAAAAAAAAAABAA=</HashCode>
-      <FileName>src\manipulator.h</FileName>
-    </TypeIdentifier>
-  </Class>
   <Class Name="std::noncopyable" Collapsed="true">
     <Position X="33" Y="0.5" Width="1.5" />
     <TypeIdentifier>
@@ -120,7 +111,7 @@
       <Compartment Name="Fields" Collapsed="true" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>ABAIAAgCAQgBAASCAAABAAAQAhGAACAAAAAgAAIAMAQ=</HashCode>
+      <HashCode>ABAIAAgCAQgBAASCAAABAAAQAhGAACAAAAggAAIAMAA=</HashCode>
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -136,7 +127,6 @@
       <Field Name="_counter_move" />
       <Field Name="_depth" />
       <Field Name="_recapture_sq" />
-      <Field Name="_capture_threshold" />
     </ShowAsAssociation>
     <ShowAsCollectionAssociation>
       <Field Name="_killers" />
@@ -149,20 +139,13 @@
       <FileName>src\PolyglotBook.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Threading::ThreadBase" Collapsed="true">
-    <Position X="2.75" Y="11.5" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAACAAAAIAAAAgAAAACAAAFAAAAAAAAAAIAAAAIgA=</HashCode>
-      <FileName>src\Thread.h</FileName>
-    </TypeIdentifier>
-  </Class>
   <Class Name="Transposition::TranspositionTable" Collapsed="true">
     <Position X="33" Y="1.5" Width="1.5" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>AgiAAAAEGAAIAAAAAAAAAAAACAAAIAgAAiAAAAAAAAA=</HashCode>
+      <HashCode>AgiAAAAEGAAIAAAAAAAAAAAACAAAoAgAAiAAAAAAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -176,7 +159,7 @@
   <Class Name="Threading::Thread">
     <Position X="3.75" Y="12.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AGAAEiAAAQAAABAggEAAAABADAAAAAAAACBAAAABAQA=</HashCode>
+      <HashCode>AGAAEiCAAQIAABAggEAICABADAAAAAAAACBICAABIgA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -185,28 +168,18 @@
     </ShowAsAssociation>
   </Class>
   <Class Name="Threading::MainThread">
-    <Position X="3.75" Y="16.75" Width="1.5" />
+    <Position X="3.75" Y="18.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gAAAACAAAAAAAAAAAAQIAAAAAAAAAAAAAAAAAAAAACA=</HashCode>
-      <FileName>src\Thread.h</FileName>
-    </TypeIdentifier>
-  </Class>
-  <Class Name="Threading::TimerThread">
-    <Position X="1.5" Y="12.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAACAAAAAAAAAgAAAAACAAAAAgAAAAAAAAAABAAQA=</HashCode>
+      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAACAAAAAAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Threading::ThreadPool">
     <Position X="23" Y="8" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAACgACAAAAAAAAAAUAAAACQAAAAAAAAAAAAAAAAAQ=</HashCode>
+      <HashCode>AAAAAAACAAAAACAAAAUAAAACQAAAAAAAAAAAAAAAAAQ=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
-    <ShowAsAssociation>
-      <Field Name="save_hash_th" />
-    </ShowAsAssociation>
   </Class>
   <Class Name="Searcher::RootMove">
     <Position X="27" Y="3.25" Width="1.5" />
@@ -223,14 +196,14 @@
   <Class Name="Searcher::TimeManager" Collapsed="true">
     <Position X="31.25" Y="1.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>ARAAAAAABAAAAAgIAAEAAAAAAIgAAAACAgAQAAAAAAA=</HashCode>
+      <HashCode>ARAAAAAAAAAAAAgIAAEAAAAAAIgAAAACAgAQAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Searcher::SkillManager">
     <Position X="11.75" Y="18.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AECAAAAgAAAAAAAAAQCBAQAAAAAAAAAEEAAAAAAAAAA=</HashCode>
+      <HashCode>AECAAAAgAAAAAAAAAQCBAQAAgAAAAAAEEAAAAAAAAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -432,7 +405,7 @@
       </Struct>
     </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AgAAAAAAAAAAAACBAAACAAAABAAAAQAAAIACMAAAIAI=</HashCode>
+      <HashCode>AgAAAAAAAAAAAAABAAACAAAABAAAAQAAAIgCMAAAIAI=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -449,7 +422,7 @@
   <Struct Name="Searcher::Stack">
     <Position X="17" Y="14" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAgAAAAAAAAAAAAAAAwAACAAAAAAAQCAQQAA=</HashCode>
+      <HashCode>AIAAAAAAAgAAAAAAAAQAAAAAAwAACAAAAAAAQCAQAAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -466,7 +439,7 @@
   <Struct Name="Transposition::Entry" Collapsed="true">
     <Position X="33" Y="2.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>ABCoAAAAAACAAACAAACIQAAAAAAAACAAAAICIAAAAAA=</HashCode>
+      <HashCode>ABCoAAAAAACAAACAAAAIQAAAAEAAACAAAAICIAAAAAA=</HashCode>
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
   </Struct>

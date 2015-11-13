@@ -182,7 +182,6 @@ namespace UCI {
         void configure_hash ()
         {
             HashFile         = string(Options["Hash File"]);
-            AutoSaveHashTime = u16(i32(Options["Auto Save Hash (min)"]));
             trim (HashFile);
             if (!HashFile.empty ()) convert_path (HashFile);
         }
@@ -308,8 +307,6 @@ namespace UCI {
         // A full file name is required, for example C:\Chess\Hash000.dat.
         // By default DON will use the hash.dat file in the current folder of the engine.
         Options["Hash File"]                    << Option (HashFile, configure_hash);
-        // Auto Save Hash Time (min)
-        Options["Auto Save Hash (min)"]         << Option (AutoSaveHashTime,    0,  60, configure_hash);
 
         // Save the current Hash table to a disk file specified by the Hash File option.
         // Use the Save Hash File button after ending the analysis of the position.

@@ -19,51 +19,23 @@ namespace Threading {
 
     const u16 MAX_THREADS = 128; // Maximum Threads
 
-    // ThreadBase class is the base of the hierarchy from where
-    // derive all the specialized thread classes.
-    class ThreadBase
-        : public std::thread
-    {
-    public:
-        Mutex             mutex;
-        ConditionVariable sleep_condition;
-        std::atomic_bool  alive { true };
-
-        ThreadBase ()
-            //: alive (true)
-        {}
-        virtual ~ThreadBase () = default;
-
-        // ThreadBase::notify_one () wakes up the thread when there is some work to do
-        void notify_one ()
-        {
-            std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.notify_one ();
-        }
-        // ThreadBase::wait_until() set the thread to sleep until 'condition' turns true
-        void wait_until (const std::atomic_bool &condition)
-        {
-            std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&]{ return bool(condition); });
-        }
-        // ThreadBase::wait_while() set the thread to sleep until 'condition' turns false
-        void wait_while (const std::atomic_bool &condition)
-        {
-            std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&]{ return !bool(condition); });
-        }
-
-        virtual void idle_loop () = 0;
-    };
-
     // Thread struct keeps together all the thread related stuff like locks, state
     // and especially split points. We also use per-thread pawn and material hash
     // tables so that once we get a pointer to an entry its life time is unlimited
     // and we don't have to care about someone changing the entry under our feet.
     class Thread
-        : public ThreadBase
+        : public std::thread
     {
     public:
+        std::atomic_bool
+              alive { true }
+            , searching { false }
+            , reset_check { false };
+
+        Mutex mutex;
+
+        ConditionVariable sleep_condition;
+
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
@@ -79,60 +51,44 @@ namespace Threading {
         HValueStats     history_values;
         MoveStats       counter_moves;
 
-        std::atomic_bool
-            searching { false }
-          , reset_chk_count { false };
-
         Thread ();
+        virtual ~Thread ();
 
-        void search (bool thread_main = false);
-
-        virtual void idle_loop () override;
-    };
-
-    // MainThread struct is derived struct used for the main one
-    class MainThread
-        : public Thread
-    {
-    public:
-        std::atomic_bool thinking { true }; // Avoid a race with start_thinking()
-
-        MainThread ()
-            : Thread ()
-            //, thinking (true)
-        {}
-
-        // MainThread::join() waits for main thread to finish thinking
+        // notify_one () wakes up the thread when there is some work to do
+        void notify_one ()
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.notify_one ();
+        }
+        // wait_until() set the thread to sleep until 'condition' turns true
+        void wait_until (const std::atomic_bool &condition)
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.wait (lk, [&] { return bool(condition); });
+        }
+        // wait_while() set the thread to sleep until 'condition' turns false
+        void wait_while (const std::atomic_bool &condition)
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.wait (lk, [&] { return !bool(condition); });
+        }
+        // join() waits for thread to finish searching
         void join ()
         {
             std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&]{ return !bool(thinking); });
+            sleep_condition.wait (lk, [&] { return !bool(searching); });
         }
 
-        void think ();
+        void idle_loop ();
 
-        virtual void idle_loop () override;
+        virtual void search ();
+        
     };
 
-    // TimerThread struct is derived struct used for the recurring timer.
-    class TimerThread
-        : public ThreadBase
+    // MainThread class is derived class used to characterize the the main one
+    class MainThread : public Thread
     {
-    private:
-        bool _running = false;
-
-    public:
-        TimerThread ()
-            : ThreadBase ()
-        {}
-
-        i32 resolution; // Millisec between two task() calls
-        void (*task) () = nullptr;
-        
-        void start () { _running = true ; }
-        void stop  () { _running = false; }
-
-        virtual void idle_loop () override;
+        virtual void search ();
     };
 
     // ThreadPool struct handles all the threads related stuff like
@@ -147,8 +103,6 @@ namespace Threading {
     public:
         ThreadPool () = default;
 
-        TimerThread *save_hash_th = nullptr;
-
         MainThread* main () const { return static_cast<MainThread*> (at (0)); }
 
         // No constructor and destructor, threadpool rely on globals
@@ -156,17 +110,12 @@ namespace Threading {
         void initialize ();
         void deinitialize ();
 
-        void start_main (const Position &pos, const LimitsT &limit, StateStackPtr &states);
+        void start_thinking (const Position &pos, const LimitsT &limit, StateStackPtr &states);
         u64  game_nodes ();
 
         void configure ();
 
     };
-
-    template<class T>
-    extern T* new_thread ();
-
-    extern void delete_thread (ThreadBase *th);
 
 }
 
