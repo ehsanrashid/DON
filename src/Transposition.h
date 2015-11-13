@@ -12,7 +12,7 @@ namespace Transposition {
 
     // Transposition Entry needs 16 byte to be stored
     //
-    //  Key--------- 64 bits
+    //  Key--------- 16 bits
     //  Move-------- 16 bits
     //  Value------- 16 bits
     //  Evaluation-- 16 bits
@@ -20,13 +20,13 @@ namespace Transposition {
     //  Generation-- 06 bits
     //  Bound------- 02 bits
     //  ====================
-    //  Total-------128 bits = 16 bytes
+    //  Total--------80 bits = 10 bytes
     struct Entry
     {
 
     private:
 
-        u64 _key;
+        u16 _key16;
         u16 _move;
         i16 _value;
         i16 _eval;
@@ -48,19 +48,19 @@ namespace Transposition {
         {
             // Preserve any existing move for the position (key)
             if (   m != MOVE_NONE
-                || k != _key
+                || (k >> 0x30) != _key16
                )
             {
                 _move       = u16(m);
             }
             // Don't overwrite more valuable entries
-            if (   k != _key
+            if (   (k >> 0x30) != _key16
                 || d > _depth - 2
              /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
                 || b == BOUND_EXACT
                )
             {
-                _key        = u64 (k);
+                _key16      = u64 (k >> 0x30);
                 _value      = i16(v);
                 _eval       = i16(e);
                 _depth      = i08(d);
@@ -79,16 +79,16 @@ namespace Transposition {
     {
 
     private:
-
+        static const u08 CacheLineSize      = 64;
         // Cluster entries count
-        static const u08 ClusterEntryCount = 4;
+        static const u08 ClusterEntryCount  = 3;
 
-        // Cluster is a 64 bytes cluster of TT entries
-        //
-        // 4 x Entry (4 x 16 bytes)
+        // Cluster is a 32 bytes cluster of TT entries
+        // 3 x 10 + 2
         struct Cluster
         {
             Entry entries[ClusterEntryCount];
+            char padding[2]; // Align to the cache line size
         };
 
 
@@ -97,12 +97,12 @@ namespace Transposition {
     #endif
 
         Cluster *_clusters      = nullptr;
-        u64      _cluster_count = 0;
-        u64      _cluster_mask  = 0;
+        size_t   _cluster_count = 0;
+        size_t   _cluster_mask  = 0;
         u08      _generation    = 0;
 
         // alloc_aligned_memory() alocates the aligned memory
-        void alloc_aligned_memory (u64 mem_size, u32 alignment);
+        void alloc_aligned_memory (size_t mem_size, size_t alignment);
 
         // free_aligned_memory() frees the aligned memory
         void free_aligned_memory ()
@@ -112,7 +112,7 @@ namespace Transposition {
 
     #   ifdef LPAGES
                 Memory::free_memory (_mem);
-                _mem =
+                _mem = nullptr;
     #   else
                 free (((void **) _clusters)[-1]);
     #   endif
@@ -129,12 +129,12 @@ namespace Transposition {
         // Size of Transposition entry (bytes)
         // 16 bytes
         static const u08 EntrySize   = sizeof (Entry);
-        static_assert (EntrySize == 16, "Entry size incorrect");
+        static_assert (EntrySize == 10, "Entry size incorrect");
 
         // Size of Transposition cluster in (bytes)
-        // 64 bytes
+        // 32 bytes
         static const u08 ClusterSize = sizeof (Cluster);
-        static_assert (ClusterSize == 64, "Cluster size incorrect");
+        static_assert (ClusterSize == CacheLineSize / 2, "Cluster size incorrect");
 
         // Maximum bit of hash for cluster
         static const u08 MaxHashBit  = 36;
@@ -142,7 +142,7 @@ namespace Transposition {
         // 4 MB
         static const u32 MinSize     = 4;
         // Maximum size of Transposition table (mega-byte)
-        // 2097152 MB (2048 GB) (2 TB)
+        // 1048576 MB = 1048 GB = 1 TB
         static const u32 MaxSize     =
         #ifdef BIT64
             (U64(1) << (MaxHashBit-1 - 20)) * ClusterSize;
@@ -204,7 +204,7 @@ namespace Transposition {
         // The lower order bits of the key are used to get the index of the cluster inside the table.
         Entry* cluster_entry (Key key) const
         {
-            return _clusters[key & _cluster_mask].entries;
+            return _clusters[size_t(key) & _cluster_mask].entries;
         }
 
         // hash_full() returns an approximation of the per-mille of the 
@@ -230,11 +230,11 @@ namespace Transposition {
             return full_entry_count;
         }
 
-        u32 resize (u64 mem_size_mb, bool force = false);
+        u32 resize (u32 mem_size_mb, bool force = false);
 
         u32 resize () { return resize (size (), true); }
 
-        void auto_size (u64 mem_size_mb, bool force = false);
+        void auto_size (u32 mem_size_mb, bool force = false);
 
         Entry* probe (Key key, bool &hit) const;
 

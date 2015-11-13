@@ -14,7 +14,7 @@ namespace Transposition {
 
     bool TranspositionTable::RetainHash = false;
 
-    void TranspositionTable::alloc_aligned_memory (u64 mem_size, u32 alignment)
+    void TranspositionTable::alloc_aligned_memory (size_t mem_size, size_t alignment)
     {
         assert (0 == (alignment & (alignment-1)));
         assert (0 == (mem_size  & (alignment-1)));
@@ -46,14 +46,14 @@ namespace Transposition {
         // Then checking for error returned by malloc, if it returns NULL then 
         // alloc_aligned_memory will fail and return NULL or exit().
 
-        alignment = max (u32(sizeof (void *)), alignment);
+        alignment = max (size_t(sizeof (void *)), alignment);
 
-        void *mem = calloc (mem_size + alignment, 1);
+        void *mem = calloc (mem_size + alignment-1, 1);
         if (mem != nullptr)
         {
             sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
 
-            void **ptr = reinterpret_cast<void**> ((uintptr_t(mem) + alignment-1) & ~u64(alignment-1));
+            void **ptr = reinterpret_cast<void**> ((uintptr_t(mem) + alignment-1) & ~(alignment-1));
             ptr[-1]    = mem;
             _clusters  = reinterpret_cast<Cluster*> (ptr);
             assert (0 == (uintptr_t(_clusters) & (alignment-1)));
@@ -68,25 +68,24 @@ namespace Transposition {
     // resize(mb) sets the size of the table, measured in mega-bytes.
     // Transposition table consists of a power of 2 number of clusters and
     // each cluster consists of ClusterEntryCount number of entry.
-    u32 TranspositionTable::resize (u64 mem_size_mb, bool force)
+    u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
     {
         if (mem_size_mb < MinSize) mem_size_mb = MinSize;
         if (mem_size_mb > MaxSize) mem_size_mb = MaxSize;
 
-        u64 mem_size = mem_size_mb << 20;
+        size_t mem_size = mem_size_mb << 20; // mem_size_mb * 1024 * 1024
         u08 hash_bit = BitBoard::scan_msq (mem_size / ClusterSize);
-
         assert (hash_bit < MaxHashBit);
 
-        u64 cluster_count = u64(1) << hash_bit;
+        size_t cluster_count = size_t(1) << hash_bit;
 
-        mem_size  = cluster_count * i32(ClusterSize);
+        mem_size  = cluster_count * ClusterSize;
 
         if (force || cluster_count != _cluster_count)
         {
             free_aligned_memory ();
 
-            alloc_aligned_memory (mem_size, ClusterSize); // Cache Line Size
+            alloc_aligned_memory (mem_size, CacheLineSize); // Cache Line Size
 
             if (_clusters == nullptr) return 0;
 
@@ -94,14 +93,14 @@ namespace Transposition {
             _cluster_mask  = cluster_count-1;
         }
 
-        return u32(mem_size >> 20);
+        return u32(mem_size >> 20); // mem_size_mb / 1024 / 1024
     }
 
-    void TranspositionTable::auto_size (u64 mem_size_mb, bool force)
+    void TranspositionTable::auto_size (u32 mem_size_mb, bool force)
     {
         if (mem_size_mb == 0) mem_size_mb = MaxSize;
 
-        for (u64 msize_mb = mem_size_mb; msize_mb >= MinSize; msize_mb >>= 1)
+        for (i32 msize_mb = mem_size_mb; msize_mb >= MinSize; msize_mb >>= 1)
         {
             if (resize (msize_mb, force) != 0) return;
         }
@@ -112,14 +111,14 @@ namespace Transposition {
     // Returns a pointer to the entry found or NULL if not found.
     Entry* TranspositionTable::probe (Key key, bool &hit) const
     {
-        assert (key != U64(0));
-
+        //assert (key != U64(0));
+        const u16 key16 = key >> 48;
         auto *const fte = cluster_entry (key);
         for (auto *ite = fte+0; ite < fte+ClusterEntryCount; ++ite)
         {
-            if (ite->_key == U64(0) || ite->_key == key)
+            if (ite->_key16 == U64(0) || ite->_key16 == key16)
             {
-                hit = ite->_key == key;
+                hit = ite->_key16 == key16;
                 if (hit && ite->gen () != _generation)
                 {
                     ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
