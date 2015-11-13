@@ -46,9 +46,9 @@ namespace Searcher {
         bool ponder     = false; // Search on ponder move until the "stop" command
         bool infinite   = false; // Search until the "stop" command
         
-        bool use_time_manager () const
+        bool use_time_management () const
         {
-            return !(infinite || movetime || depth || nodes || mate);
+            return !(infinite || movetime != 0 || depth != 0 || nodes != 0 || mate != 0);
         }
     };
 

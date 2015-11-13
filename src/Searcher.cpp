@@ -190,7 +190,7 @@ namespace Searcher {
             // An engine may not stop pondering until told so by the GUI
             if (Limits.ponder) return;
 
-            if (Limits.use_time_manager ())
+            if (Limits.use_time_management ())
             {
                 if (   elapsed_time > TimeMgr.maximum_time () - 2 * TIMER_RESOLUTION
                        // Still at first move
@@ -1287,7 +1287,7 @@ namespace Searcher {
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
                         if (   move_count > 1
-                            && Limits.use_time_manager ()
+                            && Limits.use_time_management ()
                             && Threadpool.main () == thread
                            )
                         {
@@ -1311,7 +1311,7 @@ namespace Searcher {
                     {
                         // If there is an easy move for this position, clear it if unstable
                         if (   PVNode
-                            && Limits.use_time_manager ()
+                            && Limits.use_time_management ()
                             && Threadpool.main () == thread
                             && MoveMgr.easy_move (pos.posi_key ()) != MOVE_NONE
                             && (move != MoveMgr.easy_move (pos.posi_key ()) || move_count > 1)
@@ -1792,12 +1792,12 @@ namespace Threading {
         auto easy_move = MOVE_NONE;
         if (thread_main)
         {
-            easy_move = MoveMgr.easy_move (root_pos.posi_key ());
-            MoveMgr.clear ();
             TT.generation (RootPly + 1);
-            if (Limits.use_time_manager ())
+            if (Limits.use_time_management ())
             {
                 TimeMgr.best_move_change = 0.0;
+                easy_move = MoveMgr.easy_move (root_pos.posi_key ());
+                MoveMgr.clear ();
             }
         }
 
@@ -1826,7 +1826,7 @@ namespace Threading {
                 // Set up the new depth for the helper threads
                 root_depth = std::min (Threadpool.main ()->root_depth + Depth(i32(2.2 * log (1 + this->index))), DEPTH_MAX - DEPTH_ONE);
 
-                if (Limits.use_time_manager ())
+                if (Limits.use_time_management ())
                 {
                     // Age out PV variability metric
                     TimeMgr.best_move_change *= 0.5;
@@ -1968,7 +1968,7 @@ namespace Threading {
                 bool stop = false;
 
                 // Do have time for the next iteration? Can stop searching now?
-                if (Limits.use_time_manager ())
+                if (Limits.use_time_management ())
                 {
                     // If PV limit = 1 then take some extra time if the best move has changed
                     if (aspiration && PVLimit == 1)
@@ -2034,7 +2034,7 @@ namespace Threading {
 
         // Clear any candidate easy move that wasn't stable for the last search iterations;
         // the second condition prevents consecutive fast moves.
-        if (   Limits.use_time_manager ()
+        if (   Limits.use_time_management ()
             && (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
            )
         {
@@ -2121,7 +2121,7 @@ namespace Threading {
             i16 timed_contempt = 0;
             i32 diff_time = 0;
             if (   ContemptTime != 0
-                && Limits.use_time_manager ()
+                && Limits.use_time_management ()
                 && (diff_time = (Limits.clock[RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
                 //&& ContemptTime <= abs (diff_time)
                )
