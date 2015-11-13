@@ -174,6 +174,7 @@ namespace Searcher {
 
         Value static_eval = VALUE_NONE;
         u08   move_count  = 0;
+        bool skip_pruning = false;
     };
 
     const u08 MAX_SKILL_LEVEL   = 32; // MAX_SKILL_LEVEL should be <= MAX_DEPTH/4
