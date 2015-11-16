@@ -144,6 +144,7 @@ namespace Searcher {
         }
 
         const i32 ProbCutDepth = 4;
+        const i32 HistoryPruningDepth = 4;
 
         const i32 LateMoveReductionDepth = 2;
         const u08 FullDepthMoveCount = 1;
@@ -402,7 +403,7 @@ namespace Searcher {
                 pv_alpha = alpha;
 
                 (ss+1)->pv = pv;
-                (ss+0)->pv[0] = MOVE_NONE;
+                ss->pv[0] = MOVE_NONE;
             }
 
             // Check for an immediate draw or maximum ply reached
@@ -568,13 +569,13 @@ namespace Searcher {
                     }
                 }
 
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
+
                 // Check for legality just before making the move
                 if (!pos.legal (move, ci.pinneds)) continue;
 
                 ss->current_move = move;
-
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                 // Make and search the move
                 pos.do_move (move, si, gives_check);
@@ -643,10 +644,6 @@ namespace Searcher {
             assert (PVNode || alpha == beta-1);
             assert (DEPTH_ZERO < depth && depth < DEPTH_MAX);
 
-            Key posi_key;
-            bool tt_hit = false;
-            auto *tte = (Entry*) nullptr;
-
             Move  move
                 , tt_move     = MOVE_NONE
                 , exclude_move= MOVE_NONE
@@ -674,7 +671,7 @@ namespace Searcher {
                 thread->reset_check = false;
                 thread->chk_count = 0;
             }
-            if (++thread->chk_count > (TIMER_RESOLUTION-1)*1024)
+            if (++thread->chk_count > TIMER_RESOLUTION*MILLI_SEC)
             {
                 for (auto *th : Threadpool)
                 {
@@ -719,8 +716,8 @@ namespace Searcher {
 
             assert (0 <= ss->ply && ss->ply < MAX_DEPTH);
 
-            (ss  )->move_count = 0;
-            (ss  )->current_move = MOVE_NONE;
+            ss->move_count = 0;
+            ss->current_move =
             (ss+1)->exclude_move = MOVE_NONE;
             (ss+1)->skip_pruning = false;
             std::fill (std::begin ((ss+2)->killer_moves), std::end ((ss+2)->killer_moves), MOVE_NONE);
@@ -729,11 +726,13 @@ namespace Searcher {
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
             exclude_move = ss->exclude_move;
-            posi_key = exclude_move == MOVE_NONE ?
+
+            Key posi_key = exclude_move == MOVE_NONE ?
                         pos.posi_key () :
                         pos.posi_key () ^ Zobrist::EXC_KEY;
 
-            tte      = TT.probe (posi_key, tt_hit);
+            bool tt_hit = false;
+            auto *tte   = TT.probe (posi_key, tt_hit);
             ss->tt_move = tt_move = RootNode ? thread->root_moves[thread->pv_index][0] :
                                             tt_hit ? tte->move () : MOVE_NONE;
             if (tt_hit)
@@ -749,7 +748,7 @@ namespace Searcher {
                 && tt_depth >= depth
                 && tt_value != VALUE_NONE // Only in case of TT access race
                 && (tt_value >= beta ? (tt_bound & BOUND_LOWER) :
-                                        (tt_bound & BOUND_UPPER))
+                                       (tt_bound & BOUND_UPPER))
                )
             {
                 ss->current_move = tt_move; // Can be MOVE_NONE
@@ -862,9 +861,6 @@ namespace Searcher {
                         // Do null move
                         pos.do_null_move (si);
 
-                        prefetch (thread->pawn_table[pos.pawn_key ()]);
-                        prefetch (thread->matl_table[pos.matl_key ()]);
-
                         (ss+1)->skip_pruning = true;
                         // Null (zero) window (alpha, beta) = (beta-1, beta):
                         auto null_value =
@@ -924,12 +920,12 @@ namespace Searcher {
 
                         while ((move = mp.next_move ()) != MOVE_NONE)
                         {
+                            // Speculative prefetch as early as possible
+                            prefetch (TT.cluster_entry (pos.move_posi_key (move)));
+
                             if (!pos.legal (move, ci.pinneds)) continue;
 
                             ss->current_move = move;
-
-                            // Speculative prefetch as early as possible
-                            prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                             pos.do_move (move, si, pos.gives_check (move, ci));
 
@@ -1117,7 +1113,8 @@ namespace Searcher {
                         continue;
                     }
                     // History based pruning
-                    if (   depth <= 3*DEPTH_ONE
+                    if (   depth <= HistoryPruningDepth*DEPTH_ONE
+                        && move != ss->killer_moves[0]
                         && thread->history_values[pos[org_sq (move)]][dst_sq (move)] < VALUE_ZERO
                         && opp_cmv[pos[org_sq (move)]][dst_sq (move)] < VALUE_ZERO
                        )
@@ -1146,6 +1143,9 @@ namespace Searcher {
                     }
                 }
 
+                // Speculative prefetch as early as possible
+                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
+
                 // Check for legality just before making the move
                 if (   !RootNode
                     && !move_legal
@@ -1156,9 +1156,6 @@ namespace Searcher {
                 }
 
                 ss->current_move = move;
-
-                // Speculative prefetch as early as possible
-                prefetch (TT.cluster_entry (pos.move_posi_key (move)));
 
                 // Step 14. Make the move
                 pos.do_move (move, si, gives_check);
