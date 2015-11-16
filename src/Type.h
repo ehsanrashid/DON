@@ -396,34 +396,34 @@ enum ScaleFactor : u08
 #undef ARTHMAT_OPERATORS
 #undef INC_DEC_OPERATORS
 
-#define BASIC_OPERATORS(T)                                                        \
-    inline T  operator+  (T  d, i32 i) { return T (i32(d) + i); }                 \
-    inline T  operator-  (T  d, i32 i) { return T (i32(d) - i); }                 \
-    inline T& operator+= (T &d, i32 i) { d = T (i32(d) + i); return d; }          \
-    inline T& operator-= (T &d, i32 i) { d = T (i32(d) - i); return d; }          \
+#define BASIC_OPERATORS(T)                                                       \
+    inline T  operator+  (T  d, i32 i) { return T(i32(d) + i); }                 \
+    inline T  operator-  (T  d, i32 i) { return T(i32(d) - i); }                 \
+    inline T& operator+= (T &d, i32 i) { d = T(i32(d) + i); return d; }          \
+    inline T& operator-= (T &d, i32 i) { d = T(i32(d) - i); return d; }          \
 
-#define ARTHMAT_OPERATORS(T)                                                      \
-    BASIC_OPERATORS(T)                                                            \
-    inline T  operator+  (T  d1, T d2) { return T (i32(d1) + i32(d2)); }          \
-    inline T  operator-  (T  d1, T d2) { return T (i32(d1) - i32(d2)); }          \
-    inline T  operator*  (T  d, i32 i) { return T (i32(d) * i); }                 \
-    inline T  operator+  (T  d       ) { return T (+i32(d)); }                    \
-    inline T  operator-  (T  d       ) { return T (-i32(d)); }                    \
-    inline T& operator+= (T &d1, T d2) { d1 = T (i32(d1) + i32(d2)); return d1; } \
-    inline T& operator-= (T &d1, T d2) { d1 = T (i32(d1) - i32(d2)); return d1; } \
-    inline T  operator*  (i32 i, T  d) { return T (i * i32(d)); }                 \
-    inline T& operator*= (T &d, i32 i) { d = T (i32(d) * i); return d; }
+#define ARTHMAT_OPERATORS(T)                                                     \
+    BASIC_OPERATORS(T)                                                           \
+    inline T  operator+  (T  d1, T d2) { return T(i32(d1) + i32(d2)); }          \
+    inline T  operator-  (T  d1, T d2) { return T(i32(d1) - i32(d2)); }          \
+    inline T  operator*  (T  d, i32 i) { return T(i32(d) * i); }                 \
+    inline T  operator+  (T  d       ) { return T(+i32(d)); }                    \
+    inline T  operator-  (T  d       ) { return T(-i32(d)); }                    \
+    inline T& operator+= (T &d1, T d2) { d1 = T(i32(d1) + i32(d2)); return d1; } \
+    inline T& operator-= (T &d1, T d2) { d1 = T(i32(d1) - i32(d2)); return d1; } \
+    inline T  operator*  (i32 i, T  d) { return T(i * i32(d)); }                 \
+    inline T& operator*= (T &d, i32 i) { d = T(i32(d) * i); return d; }
 
-//inline T  operator+  (i32 i, T d) { return T (i + i32(d)); }                  
-//inline T  operator-  (i32 i, T d) { return T (i - i32(d)); }                  
-//inline T  operator/  (T  d, i32 i) { return T (i32(d) / i); }                 
-//inline T& operator/= (T &d, i32 i) { d = T (i32(d) / i); return d; }
+//inline T  operator+  (i32 i, T d) { return T(i + i32(d)); }                  
+//inline T  operator-  (i32 i, T d) { return T(i - i32(d)); }                  
+//inline T  operator/  (T  d, i32 i) { return T(i32(d) / i); }                 
+//inline T& operator/= (T &d, i32 i) { d = T(i32(d) / i); return d; }
 
-#define INC_DEC_OPERATORS(T)                                                     \
-    inline T  operator++ (T &d, i32) { T o = d; d = T (i32(d) + 1); return o; }  \
-    inline T  operator-- (T &d, i32) { T o = d; d = T (i32(d) - 1); return o; }  \
-    inline T& operator++ (T &d     ) { d = T (i32(d) + 1); return d; }           \
-    inline T& operator-- (T &d     ) { d = T (i32(d) - 1); return d; }
+#define INC_DEC_OPERATORS(T)                                                    \
+    inline T  operator++ (T &d, i32) { T o = d; d = T(i32(d) + 1); return o; }  \
+    inline T  operator-- (T &d, i32) { T o = d; d = T(i32(d) - 1); return o; }  \
+    inline T& operator++ (T &d     ) { d = T(i32(d) + 1); return d; }           \
+    inline T& operator-- (T &d     ) { d = T(i32(d) - 1); return d; }
 
 BASIC_OPERATORS (File)
 INC_DEC_OPERATORS (File)

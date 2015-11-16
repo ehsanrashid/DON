@@ -145,6 +145,7 @@ namespace Searcher {
 
         const i32 ProbCutDepth = 4;
         const i32 HistoryPruningDepth = 4;
+        const i32 NullVerificationDepth = 12;
 
         const i32 LateMoveReductionDepth = 2;
         const u08 FullDepthMoveCount = 1;
@@ -845,7 +846,7 @@ namespace Searcher {
                     // Step 8. Null move search with verification search
                     if (   !PVNode
                         && !MateSearch
-                        && depth > 1*DEPTH_ONE
+                        && depth >= 2*DEPTH_ONE
                         && static_eval >= beta
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                        )
@@ -854,7 +855,7 @@ namespace Searcher {
                         assert (exclude_move == MOVE_NONE);
 
                         ss->current_move = MOVE_NULL;
-                            
+
                         // Null move dynamic reduction based on depth and static evaluation
                         auto reduced_depth = depth - ((823 + 67 * depth) / 256 + std::min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
 
@@ -874,7 +875,9 @@ namespace Searcher {
                         if (null_value >= beta)
                         {
                             // Don't do verification search at low depths
-                            if (depth < 12*DEPTH_ONE && abs (beta) < +VALUE_KNOWN_WIN)
+                            if (   depth < NullVerificationDepth*DEPTH_ONE
+                                && abs (beta) < +VALUE_KNOWN_WIN
+                               )
                             {
                                 // Don't return unproven unproven mates
                                 return null_value < +VALUE_MATE_IN_MAX_DEPTH ? null_value : beta;
@@ -1467,7 +1470,7 @@ namespace Searcher {
 
     // ------------------------------------
 
-    // RootMove::insert_pv_in_tt() is called at the end of a search iteration, and
+    // RootMove::insert_pv_into_tt() is called at the end of a search iteration, and
     // inserts the PV back into the TT. This makes sure the old PV moves are searched
     // first, even if the old TT entries have been overwritten.
     void RootMove::insert_pv_into_tt (Position &pos)

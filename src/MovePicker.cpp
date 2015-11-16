@@ -152,8 +152,8 @@ namespace MovePick {
     {
         for (auto &m : *this)
         {
-            m.value = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_pos[dst_sq (m)])]
-                    - Value(200 * rel_rank (_pos.active (), dst_sq (m)));
+            m = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_pos[dst_sq (m)])]
+              - Value(200 * rel_rank (_pos.active (), dst_sq (m)));
         }
     }
 
@@ -162,8 +162,8 @@ namespace MovePick {
     {
         for (auto &m : *this)
         {
-            m.value = _history_values[_pos[org_sq (m)]][dst_sq (m)]
-                    + (*_counter_moves_values)[_pos[org_sq (m)]][dst_sq (m)];
+            m = _history_values[_pos[org_sq (m)]][dst_sq (m)]
+              + (*_counter_moves_values)[_pos[org_sq (m)]][dst_sq (m)];
         }
     }
 
@@ -178,17 +178,17 @@ namespace MovePick {
             auto see_value = _pos.see_sign (m);
             if (see_value < VALUE_ZERO)
             {
-                m.value = see_value - MAX_STATS_VALUE; // At the bottom
+                m = see_value - MAX_STATS_VALUE; // At the bottom
             }
             else
             if (_pos.capture (m))
             {
-                m.value = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_pos[dst_sq (m)])]
-                        - Value(ptype (_pos[org_sq (m)])) -1 + MAX_STATS_VALUE;
+                m = PIECE_VALUE[MG][mtype (m) == ENPASSANT && _pos.en_passant_sq () == dst_sq (m) ? PAWN : ptype (_pos[dst_sq (m)])]
+                  - Value(ptype (_pos[org_sq (m)])) -1 + MAX_STATS_VALUE;
             }
             else
             {
-                m.value = _history_values[_pos[org_sq (m)]][dst_sq (m)];
+                m = _history_values[_pos[org_sq (m)]][dst_sq (m)];
             }
         }
     }

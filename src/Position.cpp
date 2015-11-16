@@ -570,8 +570,7 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
 // due to SMP concurrent access or hash position key aliasing.
 bool Position::pseudo_legal (Move m) const
 {
-    if (!_ok (m)) return false;
-
+    assert (_ok (m));
     auto org = org_sq (m);
     auto dst = dst_sq (m);
     auto mpc = _board[org];
