@@ -207,7 +207,7 @@ namespace BitBoard {
 #   ifndef BM2
         return (bb & (bb - 1)) != U64(0);
 #   else
-        return BLSR (bb) != U64(0);
+        return BLSR(bb) != U64(0);
 #   endif
     }
 
@@ -279,7 +279,7 @@ namespace BitBoard {
             return ((lo ^ hi) >> B_SHIFT[s]);
 #       endif
 #   else
-        return u16(PEXT (occ, B_MASK_bb[s]));
+        return u16(PEXT(occ, B_MASK_bb[s]));
 #   endif
     }
 
@@ -295,7 +295,7 @@ namespace BitBoard {
             return ((lo ^ hi) >> R_SHIFT[s]);
 #       endif
 #   else
-        return u16(PEXT (occ, R_MASK_bb[s]));
+        return u16(PEXT(occ, R_MASK_bb[s]));
 #   endif
     }
 

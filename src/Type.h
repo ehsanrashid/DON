@@ -439,11 +439,11 @@ inline Square  operator+  (Square  s, Delta d) { return Square(i32(s) + i32(d));
 inline Square  operator-  (Square  s, Delta d) { return Square(i32(s) - i32(d)); }
 inline Square& operator+= (Square &s, Delta d) { s = Square(i32(s) + i32(d)); return s; }
 inline Square& operator-= (Square &s, Delta d) { s = Square(i32(s) - i32(d)); return s; }
-inline Delta   operator-  (Square s1, Square s2) { return Delta (i32(s1) - i32(s2)); }
+inline Delta   operator-  (Square s1, Square s2) { return Delta(i32(s1) - i32(s2)); }
 
 ARTHMAT_OPERATORS (Delta)
-inline Delta  operator/  (Delta  d, i32 i) { return Delta (i32(d) / i); }
-inline Delta& operator/= (Delta &d, i32 i) { d = Delta (i32(d) / i); return d; }
+inline Delta  operator/  (Delta  d, i32 i) { return Delta(i32(d) / i); }
+inline Delta& operator/= (Delta &d, i32 i) { d = Delta(i32(d) / i); return d; }
 
 INC_DEC_OPERATORS (CSide)
 

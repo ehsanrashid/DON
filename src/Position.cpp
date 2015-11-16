@@ -965,9 +965,9 @@ bool Position::can_en_passant (Square ep_sq) const
     for (m = moves; *m != MOVE_NONE; ++m)
     {
         auto mocc = occ - org_sq (*m);
-        if ((attacks_bb<ROOK> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
+        if (   (attacks_bb<ROOK> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
             && (attacks_bb<BSHP> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0)
-            )
+           )
         {
             return true;
         }
@@ -1024,7 +1024,7 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
     {
         if (isdigit (ch))
         {
-            s += Delta (ch - '0'); // Advance the given number of files
+            s += Delta(ch - '0'); // Advance the given number of files
         }
         else
         if (isalpha (ch) && (idx = PIECE_CHAR.find (ch)) != string::npos)

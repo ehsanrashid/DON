@@ -92,7 +92,7 @@ namespace Zobrist {
         {
             if (isdigit (ch))
             {
-                s += Delta (ch - '0'); // Advance the given number of files
+                s += Delta(ch - '0'); // Advance the given number of files
             }
             else
             if (isalpha (ch) && (idx = PIECE_CHAR.find (ch)) != string::npos)

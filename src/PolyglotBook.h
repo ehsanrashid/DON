@@ -32,6 +32,8 @@ namespace OpeningBook {
             u16 weight  = 0;
             u32 learn   = 0;
 
+            operator Move () const { return Move(move); }
+
             explicit operator std::string () const;
 
         };

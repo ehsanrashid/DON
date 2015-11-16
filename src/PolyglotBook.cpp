@@ -22,9 +22,9 @@ namespace OpeningBook  {
 
     bool operator== (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
-        return (pe1.key == pe2.key)
-            && (pe1.move == pe2.move)
-            && (pe1.weight == pe2.weight);
+        return pe1.key == pe2.key
+            && pe1.move == pe2.move
+            && pe1.weight == pe2.weight;
     }
 
     bool operator!= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
@@ -34,34 +34,34 @@ namespace OpeningBook  {
 
     bool operator>  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
-        return (pe1.key != pe2.key) ?
-                (pe1.key > pe2.key) :
-                //(pe1.move > pe2.move);      // order by move value
-                (pe1.weight > pe2.weight);  // order by weight value
+        return pe1.key != pe2.key ?
+                pe1.key > pe2.key :
+                //pe1.move > pe2.move;      // order by move value
+                pe1.weight > pe2.weight;  // order by weight value
     }
 
     bool operator<  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
-        return (pe1.key != pe2.key) ?
-                (pe1.key < pe2.key) :
-                //(pe1.move < pe2.move);      // order by move value
-                (pe1.weight < pe2.weight);  // order by weight value
+        return pe1.key != pe2.key ?
+                pe1.key < pe2.key :
+                //pe1.move < pe2.move;      // order by move value
+                pe1.weight < pe2.weight;  // order by weight value
     }
 
     bool operator>= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
-        return (pe1.key != pe2.key) ?
-                (pe1.key >= pe2.key) :
-                //(pe1.move >= pe2.move);      // order by move value
-                (pe1.weight >= pe2.weight);  // order by weight value
+        return pe1.key != pe2.key ?
+                pe1.key >= pe2.key :
+                //pe1.move >= pe2.move;      // order by move value
+                pe1.weight >= pe2.weight;  // order by weight value
     }
 
     bool operator<= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
-        return (pe1.key != pe2.key) ?
-                (pe1.key <= pe2.key) :
-                //(pe1.move <= pe2.move);      // order by move value
-                (pe1.weight <= pe2.weight);  // order by weight value
+        return pe1.key != pe2.key ?
+                pe1.key <= pe2.key :
+                //pe1.move <= pe2.move;      // order by move value
+                pe1.weight <= pe2.weight;  // order by weight value
     }
 
     PolyglotBook::PBEntry::operator string () const
@@ -262,14 +262,14 @@ namespace OpeningBook  {
 
         while ((*this >> pbe), (pbe.key == key))
         {
-            if (MOVE_NONE == pbe.move) continue;
+            if (MOVE_NONE == pbe) continue;
 
             max_weight = max (max_weight, pbe.weight);
             weight_sum += pbe.weight;
 
             if (pick_best)
             {
-                if (pbe.weight == max_weight) move = Move(pbe.move);
+                if (pbe.weight == max_weight) move = Move(pbe);
             }
             // Choose book move according to its score.
             // If a move has a very high score it has a higher probability
@@ -278,13 +278,13 @@ namespace OpeningBook  {
             if (weight_sum != 0)
             {
                 u16 rand = pr.rand<u16> () % weight_sum;
-                if (pbe.weight > rand) move = Move(pbe.move);
+                if (pbe.weight > rand) move = Move(pbe);
             }
             // Note that first entry is always chosen if not pick best and sum of weight = 0
             else
             if (MOVE_NONE == move)
             {
-                move = Move(pbe.move);
+                move = Move(pbe);
             }
         }
 

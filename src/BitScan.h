@@ -237,7 +237,7 @@ inline Square pop_lsq (Bitboard &bb)
 #ifndef BM2
     bb &= (bb - 1);
 #else
-    bb = BLSR (bb);
+    bb = BLSR(bb);
 #endif
     return sq;
 }
