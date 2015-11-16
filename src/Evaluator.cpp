@@ -311,7 +311,9 @@ namespace Evaluator {
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
 
             auto pinneds = ei.pinneds[Own] = pos.pinneds (Own);
-            ei.ful_attacked_by[Own][NONE] |= ei.ful_attacked_by[Own][PAWN] = ei.pe->pawns_attacks[Own];
+            
+            ei.ful_attacked_by[Own][NONE] |=
+            ei.ful_attacked_by[Own][PAWN]  = ei.pe->pawns_attacks[Own];
             
             auto pinned_pawns = pinneds & pos.pieces (Own, PAWN);
             if (pinned_pawns != U64(0))
@@ -323,16 +325,18 @@ namespace Evaluator {
                     auto s = pop_lsq (pinned_pawns);
                     pawns_attacks |= PAWN_ATTACKS[Own][s] & RAYLINE_bb[pos.square<KING> (Own)][s];
                 }
-                ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PAWN] = pawns_attacks;
+                ei.pin_attacked_by[Own][NONE] |=
+                ei.pin_attacked_by[Own][PAWN]  = pawns_attacks;
             }
             else
             {
-                ei.pin_attacked_by[Own][NONE] |= ei.pin_attacked_by[Own][PAWN] = ei.pe->pawns_attacks[Own];
+                ei.pin_attacked_by[Own][NONE] |=
+                ei.pin_attacked_by[Own][PAWN]  = ei.pe->pawns_attacks[Own];
             }
 
-            auto king_attacks             = PIECE_ATTACKS[KING][pos.square<KING> (Opp)];
-            ei.ful_attacked_by[Opp][KING] = king_attacks;
-            ei.pin_attacked_by[Opp][KING] = king_attacks;
+            auto king_attacks             =
+            ei.ful_attacked_by[Opp][KING] =
+            ei.pin_attacked_by[Opp][KING] = PIECE_ATTACKS[KING][pos.square<KING> (Opp)];
             
             ei.king_ring_attackers_count [Own] = 0;
             ei.king_ring_attackers_weight[Own] = 0;
