@@ -118,7 +118,7 @@ namespace BitBases {
                 if (   dist (_k_sq[WHITE], _k_sq[BLACK]) <= 1
                     || _k_sq[WHITE] == _p_sq
                     || _k_sq[BLACK] == _p_sq
-                    || (WHITE == _active && (PAWN_ATTACKS[WHITE][_p_sq] & _k_sq[BLACK]) != U64 (0))
+                    || (WHITE == _active && (PAWN_ATTACKS[WHITE][_p_sq] & _k_sq[BLACK]) != U64(0))
                    )
                 {
                     result = INVALID;
@@ -138,8 +138,8 @@ namespace BitBases {
                 else
                 // Immediate draw if is a stalemate or king captures undefended pawn
                 if (   BLACK == _active
-                    && (   (PIECE_ATTACKS[KING][_k_sq[BLACK]] & ~(PIECE_ATTACKS[KING][_k_sq[WHITE]] | PAWN_ATTACKS[WHITE][_p_sq])) == U64 (0)
-                        || ((PIECE_ATTACKS[KING][_k_sq[BLACK]] & ~PIECE_ATTACKS[KING][_k_sq[WHITE]]) & _p_sq) != U64 (0)
+                    && (   (PIECE_ATTACKS[KING][_k_sq[BLACK]] & ~(PIECE_ATTACKS[KING][_k_sq[WHITE]] | PAWN_ATTACKS[WHITE][_p_sq])) == U64(0)
+                        || ((PIECE_ATTACKS[KING][_k_sq[BLACK]] & ~PIECE_ATTACKS[KING][_k_sq[WHITE]]) & _p_sq) != U64(0)
                        )
                    )
                 {

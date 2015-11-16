@@ -197,9 +197,21 @@ namespace Evaluator {
             {}
         };
 
-        // OUTPOST[supported by pawn]
+        // Mask of allowed outpost squares indexed by color
+        const Bitboard OUTPOST_MASK[CLR_NO] =
+        {
+            R4_bb | R5_bb | R6_bb,
+            R5_bb | R4_bb | R3_bb
+        };
+
+        // OUTPOST[supported by pawn] contains bonuses for knights and bishops outposts.
         const Score KNIGHT_OUTPOST[2] = { S(42,11), S(63,17) };
         const Score BISHOP_OUTPOST[2] = { S(18, 5), S(27, 8) };
+
+        // REACHABLE_OUTPOST[supported by pawn] contains bonuses for knights and
+        // bishops which can reach a outpost square in one move.
+        const Score KNIGHT_REACHABLE_OUTPOST[2] = { S(21, 5), S(31, 8) };
+        const Score BISHOP_REACHABLE_OUTPOST[2] = { S( 8, 2), S(13, 4) };
 
         // THREATEN_BY_PAWN[PieceT] contains bonuses according to which piece type is attacked by pawn.
         const Score THREATEN_BY_PAWN[NONE] =
@@ -347,7 +359,7 @@ namespace Evaluator {
 
         template<Color Own, PieceT PT, bool Trace>
         // evaluate_pieces<>() assigns bonuses and penalties to the pieces of a given color except PAWN
-        Score evaluate_pieces (const Position &pos, EvalInfo &ei, Bitboard mobility_area, Score &mobility)
+        Score evaluate_pieces (const Position &pos, EvalInfo &ei, const Bitboard mobility_area, Score &mobility)
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
@@ -411,24 +423,36 @@ namespace Evaluator {
                     if (NIHT == PT)
                     {
                         // Bonus for knight outpost square
-                        if (   rel_rank (Own, s) >= R_4
-                            && rel_rank (Own, s) <= R_6
-                            && (pos.pieces (Opp, PAWN) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
-                           )
+                        auto bb = OUTPOST_MASK[Own] & ~ei.pe->pawn_attack_span[Opp];
+                        if ((bb & s) != U64(0))
                         {
                             score += KNIGHT_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
+                        }
+                        else
+                        {
+                            bb &= attacks & ~pos.pieces (Own);
+                            if (bb != U64(0))
+                            {
+                                score += KNIGHT_REACHABLE_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & bb) != U64(0)];
+                            }
                         }
                     }
                     else
                     if (BSHP == PT)
                     {
                         // Bonus for bishop outpost square
-                        if (   rel_rank (Own, s) >= R_4
-                            && rel_rank (Own, s) <= R_6
-                            && (pos.pieces (Opp, PAWN) & PAWN_ATTACK_SPAN[Own][s]) == U64(0)
-                           )
+                        auto bb = OUTPOST_MASK[Own] & ~ei.pe->pawn_attack_span[Opp];
+                        if ((bb & s) != U64(0))
                         {
                             score += BISHOP_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
+                        }
+                        else
+                        {
+                            bb &= attacks & ~pos.pieces (Own);
+                            if (bb != U64(0))
+                            {
+                                score += BISHOP_REACHABLE_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & bb) != U64(0)];
+                            }
                         }
 
                         // Penalty for pawns on same color square of bishop
@@ -579,7 +603,6 @@ namespace Evaluator {
                     if (pos.count<QUEN> (Opp) > 0)
                     {
                         // Analyze enemy's safe queen contact checks.
-                        
                         // Undefended squares around the king attacked by enemy queen...
                         undefended_attacked = undefended & ei.pin_attacked_by[Opp][QUEN];
                         
@@ -641,8 +664,8 @@ namespace Evaluator {
                 }
 
                 // Finally, extract the king danger score from the KING_DANGER[] array
-                // attack_units must be in [0, MAX_ATTACK_UNITS-1] range
                 // and subtract the score from evaluation.
+                // attack_units must be in range [0, MAX_ATTACK_UNITS-1]
                 score -= KING_DANGER[std::min (std::max (attack_units, 0), MAX_ATTACK_UNITS-1)];
             }
 

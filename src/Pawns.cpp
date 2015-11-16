@@ -124,10 +124,11 @@ namespace Pawns {
             const auto own_pawns = pos.pieces (Own, PAWN);
             const auto opp_pawns = pos.pieces (Opp, PAWN);
 
-            e->pawns_attacks  [Own] = shift_bb<LCap> (own_pawns) | shift_bb<RCap> (own_pawns);
-            e->passed_pawns   [Own] = U64(0);
-            e->semiopen_files [Own] = 0xFF;
-            e->king_sq        [Own] = SQ_NO;
+            e->pawns_attacks    [Own] = shift_bb<LCap> (own_pawns) | shift_bb<RCap> (own_pawns);
+            e->passed_pawns     [Own] = U64(0);
+            e->pawn_attack_span[Own] = U64(0);
+            e->semiopen_files   [Own] = 0xFF;
+            e->king_sq          [Own] = SQ_NO;
 
             auto center_pawns = own_pawns & EXT_CENTER_bb[Own];
             if (center_pawns != U64(0))
@@ -157,6 +158,7 @@ namespace Pawns {
                 auto f = _file (s);
 
                 e->semiopen_files[Own] &= ~(1 << f);
+                e->pawn_attack_span[Own] |= PAWN_ATTACK_SPAN[Own][s];
 
                 auto adjacents = (own_pawns & ADJ_FILE_bb[f]);
                 auto phalanx   = (adjacents & rank_bb (s));

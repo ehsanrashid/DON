@@ -2123,7 +2123,7 @@ namespace Threading {
                 timed_contempt = i16(diff_time/ContemptTime);
             }
 
-            Value contempt = cp_to_value (double (FixedContempt + timed_contempt) / 100);
+            Value contempt = cp_to_value (double(FixedContempt + timed_contempt) / 100);
             DrawValue[ RootColor] = BaseContempt[ RootColor] = VALUE_DRAW - contempt;
             DrawValue[~RootColor] = BaseContempt[~RootColor] = VALUE_DRAW + contempt;
 
@@ -2144,8 +2144,6 @@ namespace Threading {
         }
 
     finish:
-
-        u32 elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
 
         // When playing in 'nodes as time' mode, subtract the searched nodes from
         // the available ones before to exit.
@@ -2200,6 +2198,8 @@ namespace Threading {
 
         if (!SearchFile.empty ())
         {
+            u32 elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
+
             SearchLog
                 << "Time (ms)  : " << elapsed_time                                                          << "\n"
                 << "Nodes (N)  : " << best_thread->root_pos.game_nodes ()                                   << "\n"

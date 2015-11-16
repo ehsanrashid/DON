@@ -88,7 +88,7 @@ namespace Threading {
     // MainThread class is derived class used to characterize the the main one
     class MainThread : public Thread
     {
-        virtual void search ();
+        virtual void search () override;
     };
 
     // ThreadPool struct handles all the threads related stuff like

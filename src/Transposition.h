@@ -168,7 +168,7 @@ namespace Transposition {
             free_aligned_memory ();
         }
 
-        u64 entries () const
+        size_t entries () const
         {
             return _cluster_count * ClusterEntryCount;
         }

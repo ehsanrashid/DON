@@ -583,25 +583,25 @@ inline MoveT  mtype   (Move m) { return MoveT(PROMOTE & m); }
 inline bool   _ok     (Move m)
 {
     // Catch all illegal moves
-    Square org = org_sq (m);
-    Square dst = dst_sq (m);
-    if (org != dst)
-    {
-        i32 del_f = dist<File> (org, dst);
-        i32 del_r = dist<Rank> (org, dst);
-        if (   del_f == del_r
-            || 0 == del_f
-            || 0 == del_r
-            || 5 == del_f*del_f + del_r*del_r
-           )
-        {
-            return true;
-        }
-    }
-    return false;
+    //Square org = org_sq (m);
+    //Square dst = dst_sq (m);
+    //if (org != dst)
+    //{
+    //    i32 del_f = dist<File> (org, dst);
+    //    i32 del_r = dist<Rank> (org, dst);
+    //    if (   del_f == del_r
+    //        || 0 == del_f
+    //        || 0 == del_r
+    //        || 5 == del_f*del_f + del_r*del_r
+    //       )
+    //    {
+    //        return true;
+    //    }
+    //}
+    //return false;
     
     // Catch MOVE_NONE & MOVE_NULL
-    //return org_sq (m) != dst_sq (m);
+    return org_sq (m) != dst_sq (m);
 }
 
 //inline void org_sq  (Move &m, Square org) { m &= 0xF03F; m |= org << 6; }
