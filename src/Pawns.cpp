@@ -124,7 +124,7 @@ namespace Pawns {
             const auto own_pawns = pos.pieces (Own, PAWN);
             const auto opp_pawns = pos.pieces (Opp, PAWN);
 
-            e->pawns_attacks   [Own] = shift_bb<LCap> (own_pawns) | shift_bb<RCap> (own_pawns);
+            e->pawn_attacks    [Own] = shift_bb<LCap> (own_pawns) | shift_bb<RCap> (own_pawns);
             e->passed_pawns    [Own] = U64(0);
             e->pawn_attack_span[Own] = U64(0);
             e->semiopen_files  [Own] = 0xFF;

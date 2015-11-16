@@ -22,7 +22,7 @@ namespace Pawns {
         Key      pawn_key;
         Score    pawn_score;
 
-        Bitboard pawns_attacks [CLR_NO];
+        Bitboard pawn_attacks  [CLR_NO];
         Bitboard passed_pawns  [CLR_NO];
         Bitboard pawn_attack_span[CLR_NO];
 
