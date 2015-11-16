@@ -1811,12 +1811,6 @@ namespace Threading {
         // Iterative deepening loop until target depth reached
         while (++root_depth < DEPTH_MAX && !Signals.force_stop && (0 == Limits.depth || root_depth <= Limits.depth))
         {
-            if (!thread_main)
-            {
-                // Set up the new depth for the helper threads
-                root_depth = std::min (Threadpool.main ()->root_depth + Depth(i32(2.2 * log (1 + this->index))), DEPTH_MAX - DEPTH_ONE);
-            }
-
             if (thread_main)
             {
                 if (UseTimeManagment)
@@ -1824,6 +1818,11 @@ namespace Threading {
                     // Age out PV variability metric
                     TimeMgr.best_move_change *= 0.5;
                 }
+            }
+            else
+            {
+                // Set up the new depth for the helper threads
+                root_depth = std::min (Threadpool.main ()->root_depth + Depth (i32 (2.2 * log (1 + this->index))), DEPTH_MAX - DEPTH_ONE);
             }
 
             // Save last iteration's scores before first PV line is searched and
@@ -1913,20 +1912,21 @@ namespace Threading {
                 // Sort the PV lines searched so far and update the GUI
                 std::stable_sort (root_moves.begin (), root_moves.begin () + pv_index + 1);
 
-                if (!thread_main) break;
-
-                if (Signals.force_stop)
+                if (thread_main)
                 {
-                    sync_cout
-                        << "info"
-                        << " nodes " << root_pos.game_nodes ()
-                        << " time "  << TimeMgr.elapsed_time ()
-                        << sync_endl;
-                }
-                else
-                if (pv_index + 1 == PVLimit || TimeMgr.elapsed_time () > 3*MILLI_SEC)
-                {
-                    sync_cout << multipv_info (root_pos, root_depth, bound_a, bound_b) << sync_endl;
+                    if (Signals.force_stop)
+                    {
+                        sync_cout
+                            << "info"
+                            << " nodes " << root_pos.game_nodes ()
+                            << " time "  << TimeMgr.elapsed_time ()
+                            << sync_endl;
+                    }
+                    else
+                    if (pv_index + 1 == PVLimit || TimeMgr.elapsed_time () > 3*MILLI_SEC)
+                    {
+                        sync_cout << multipv_info (root_pos, root_depth, bound_a, bound_b) << sync_endl;
+                    }
                 }
             }
 
@@ -1935,104 +1935,106 @@ namespace Threading {
                 leaf_depth = root_depth;
             }
 
-            if (!thread_main) continue;
-
-            if (ContemptValue != 0)
+            if (thread_main)
             {
-                Value valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
-                DrawValue[ RootColor] = BaseContempt[ RootColor] - valued_contempt;
-                DrawValue[~RootColor] = BaseContempt[~RootColor] + valued_contempt;
-            }
-
-            // If skill level is enabled and time is up, pick a sub-optimal best move
-            if (SkillMgr.enabled () && SkillMgr.depth_to_pick (root_depth))
-            {
-                SkillMgr.pick_best_move (root_moves);
-            }
-
-            if (!SearchFile.empty ())
-            {
-                SearchLog << pretty_pv_info (root_pos, root_depth, root_moves[0].new_value, TimeMgr.elapsed_time (), root_moves[0].pv) << std::endl;
-            }
-
-            if (!Signals.force_stop && !Signals.ponderhit_stop)
-            {
-                // Stop the search early:
-                bool stop = false;
-
-                // Do have time for the next iteration? Can stop searching now?
-                if (UseTimeManagment)
+                if (ContemptValue != 0)
                 {
-                    // If PV limit = 1 then take some extra time if the best move has changed
-                    if (aspiration && PVLimit == 1)
-                    {
-                        TimeMgr.instability ();
-                    }
+                    Value valued_contempt = Value(i32(root_moves[0].new_value)/ContemptValue);
+                    DrawValue[ RootColor] = BaseContempt[ RootColor] - valued_contempt;
+                    DrawValue[~RootColor] = BaseContempt[~RootColor] + valued_contempt;
+                }
 
-                    // Stop the search
-                    // If there is only one legal move available or 
-                    // If all of the available time has been used or
-                    // If matched an easy move from the previous search and just did a fast verification.
-                    if (   root_moves.size () == 1
-                        || TimeMgr.elapsed_time () > TimeMgr.available_time ()
-                        || (   root_moves[0] == easy_move
-                            && TimeMgr.best_move_change < 0.03
-                            && TimeMgr.elapsed_time () > TimeMgr.available_time () * 0.10
+                // If skill level is enabled and time is up, pick a sub-optimal best move
+                if (SkillMgr.enabled () && SkillMgr.depth_to_pick (root_depth))
+                {
+                    SkillMgr.pick_best_move (root_moves);
+                }
+
+                if (!SearchFile.empty ())
+                {
+                    SearchLog << pretty_pv_info (root_pos, root_depth, root_moves[0].new_value, TimeMgr.elapsed_time (), root_moves[0].pv) << std::endl;
+                }
+
+                if (!Signals.force_stop && !Signals.ponderhit_stop)
+                {
+                    // Stop the search early:
+                    bool stop = false;
+
+                    // Do have time for the next iteration? Can stop searching now?
+                    if (UseTimeManagment)
+                    {
+                        // If PV limit = 1 then take some extra time if the best move has changed
+                        if (aspiration && PVLimit == 1)
+                        {
+                            TimeMgr.instability ();
+                        }
+
+                        // Stop the search
+                        // If there is only one legal move available or 
+                        // If all of the available time has been used or
+                        // If matched an easy move from the previous search and just did a fast verification.
+                        if (   root_moves.size () == 1
+                            || TimeMgr.elapsed_time () > TimeMgr.available_time ()
+                            || (   root_moves[0] == easy_move
+                                && TimeMgr.best_move_change < 0.03
+                                && TimeMgr.elapsed_time () > TimeMgr.available_time () * 0.10
+                               )
                            )
+                        {
+                            stop = true;
+                        }
+
+                        if (root_moves[0].size () >= 3)
+                        {
+                            MoveMgr.update (root_pos, root_moves[0].pv);
+                        }
+                        else
+                        {
+                            MoveMgr.clear ();
+                        }
+                    }
+                    else
+                    // Stop if have found a "mate in <x>"
+                    if (   MateSearch
+                        && best_value >= +VALUE_MATE_IN_MAX_DEPTH
+                        && i16(VALUE_MATE - best_value) <= 2*Limits.mate
                        )
                     {
                         stop = true;
                     }
 
-                    if (root_moves[0].size () >= 3)
+                    if (stop)
                     {
-                        MoveMgr.update (root_pos, root_moves[0].pv);
-                    }
-                    else
-                    {
-                        MoveMgr.clear ();
-                    }
-                }
-                else
-                // Stop if have found a "mate in <x>"
-                if (   MateSearch
-                    && best_value >= +VALUE_MATE_IN_MAX_DEPTH
-                    && i16(VALUE_MATE - best_value) <= 2*Limits.mate
-                   )
-                {
-                    stop = true;
-                }
-
-                if (stop)
-                {
-                    // If allowed to ponder do not stop the search now but
-                    // keep pondering until GUI sends "ponderhit" or "stop".
-                    if (Limits.ponder)
-                    {
-                        Signals.ponderhit_stop = true;
-                    }
-                    else
-                    {
-                        Signals.force_stop = true;
+                        // If allowed to ponder do not stop the search now but
+                        // keep pondering until GUI sends "ponderhit" or "stop".
+                        if (Limits.ponder)
+                        {
+                            Signals.ponderhit_stop = true;
+                        }
+                        else
+                        {
+                            Signals.force_stop = true;
+                        }
                     }
                 }
             }
         }
 
-        if (!thread_main) return;
-
-        // Clear any candidate easy move that wasn't stable for the last search iterations;
-        // the second condition prevents consecutive fast moves.
-        if (   UseTimeManagment
-            && (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
-           )
+        if (thread_main)
         {
-            MoveMgr.clear ();
-        }
-        // If skill level is enabled, swap best PV line with the sub-optimal one
-        if (SkillMgr.enabled ())
-        {
-            std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), SkillMgr.best_move (root_moves)));
+            // Clear any candidate easy move that wasn't stable for the last search iterations;
+            // the second condition prevents consecutive fast moves.
+            if (   UseTimeManagment
+                && (MoveMgr.stable_count < 6 || TimeMgr.elapsed_time () < TimeMgr.available_time ())
+               )
+            {
+                MoveMgr.clear ();
+            }
+            // If skill level is enabled, swap best PV line with the sub-optimal one
+            if (SkillMgr.enabled ())
+            {
+                std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), SkillMgr.best_move (root_moves)));
+            }
         }
     }
 

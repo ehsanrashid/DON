@@ -93,7 +93,7 @@ namespace Transposition {
 
 
     #ifdef LPAGES
-        void    *_mem;
+        void    *_mem           = nullptr;
     #endif
 
         Cluster *_clusters      = nullptr;
@@ -112,7 +112,7 @@ namespace Transposition {
 
     #   ifdef LPAGES
                 Memory::free_memory (_mem);
-                _mem = nullptr;
+                _mem            = nullptr;
     #   else
                 free (((void **) _clusters)[-1]);
     #   endif
