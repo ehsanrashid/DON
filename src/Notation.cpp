@@ -6,9 +6,14 @@
 #include "Position.h"
 #include "MoveGenerator.h"
 
+using namespace std;
+
+const string PIECE_CHAR ("PNBRQK  pnbrqk");
+const string COLOR_CHAR ("wb-");
+const string STARTUP_FEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+
 namespace Notation {
 
-    using namespace std;
     using namespace BitBoard;
     using namespace MoveGen;
 

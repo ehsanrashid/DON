@@ -25,10 +25,6 @@ const Value PIECE_VALUE[PHASE_NO][TOTL] =
 // PSQ[Color][PieceType][Square] contains Color-PieceType-Square scores.
 Score PSQ[CLR_NO][NONE][SQ_NO];
 
-const string PIECE_CHAR ("PNBRQK  pnbrqk");
-const string COLOR_CHAR ("wb-");
-const string STARTUP_FEN ("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-
 bool _ok (const string &fen, bool c960, bool full)
 {
     return Position (fen, nullptr, c960, full).ok ();
@@ -1560,13 +1556,13 @@ string Position::fen (bool c960, bool full) const
                 ++s;
             }
             if (empty_count != 0) oss << empty_count;
-            if (F_H >= f) oss << PIECE_CHAR[_board[s]];
+            if (F_H >= f) oss << _board[s];
         }
 
         if (R_1 < r) oss << "/";
     }
 
-    oss << " " << COLOR_CHAR[_active] << " ";
+    oss << " " << _active << " ";
 
     if (can_castle (CR_A))
     {
@@ -1651,7 +1647,7 @@ Position::operator string () const
         while (chkrs != U64(0))
         {
             auto chk_sq = pop_lsq (chkrs);
-            oss << PIECE_CHAR[ptype (_board[chk_sq])] << to_string (chk_sq) << " ";
+            oss << (WHITE|ptype (_board[chk_sq])) << chk_sq << " ";
         }
     }
     else

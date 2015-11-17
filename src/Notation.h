@@ -41,53 +41,45 @@ operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
     return os;
 }
 
-//template<class CharT, class Traits>
-//inline std::basic_ostream<CharT, Traits>&
-//    operator<< (std::basic_ostream<CharT, Traits> &os, Color c)
-//{
-//    os << COLOR_CHAR[c];
-//    return os;
-//}
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+    operator<< (std::basic_ostream<CharT, Traits> &os, Color c)
+{
+    os << COLOR_CHAR[c];
+    return os;
+}
 
-//template<class CharT, class Traits>
-//inline std::basic_ostream<CharT, Traits>&
-//    operator<< (std::basic_ostream<CharT, Traits> &os, File f)
-//{
-//    os << Notation::to_char (f);
-//    return os;
-//}
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+    operator<< (std::basic_ostream<CharT, Traits> &os, File f)
+{
+    os << Notation::to_char (f);
+    return os;
+}
 
-//template<class CharT, class Traits>
-//inline std::basic_ostream<CharT, Traits>&
-//    operator<< (std::basic_ostream<CharT, Traits> &os, Rank r)
-//{
-//    os << Notation::to_char (r);
-//    return os;
-//}
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+    operator<< (std::basic_ostream<CharT, Traits> &os, Rank r)
+{
+    os << Notation::to_char (r);
+    return os;
+}
 
-//template<class CharT, class Traits>
-//inline std::basic_ostream<CharT, Traits>&
-//    operator<< (std::basic_ostream<CharT, Traits> &os, Square s)
-//{
-//    os << Notation::to_string (s);
-//    return os;
-//}
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+    operator<< (std::basic_ostream<CharT, Traits> &os, Square s)
+{
+    os << Notation::to_string (s);
+    return os;
+}
 
-//template<class CharT, class Traits>
-//inline std::basic_ostream<CharT, Traits>&
-//    operator<< (std::basic_ostream<CharT, Traits> &os, const SquareVector &squares)
-//{
-//    std::for_each (squares.begin (), squares.end (), [&os] (Square s) { os << s << std::endl; });
-//    return os;
-//}
-
-//template<class CharT, class Traits>
-//inline std::basic_ostream<CharT, Traits>&
-//    operator<< (std::basic_ostream<CharT, Traits> &os, Piece p)
-//{
-//    os << PIECE_CHAR[p];
-//    return os;
-//}
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+    operator<< (std::basic_ostream<CharT, Traits> &os, Piece p)
+{
+    os << PIECE_CHAR[p];
+    return os;
+}
 
 //inline std::string to_string (CRight cr)
 //{
@@ -120,6 +112,14 @@ operator<< (std::basic_ostream<CharT, Traits> &os, Move m)
 //operator<< (std::basic_ostream<CharT, Traits> &os, CRight cr)
 //{
 //    os << to_string (cr);
+//    return os;
+//}
+
+//template<class CharT, class Traits>
+//inline std::basic_ostream<CharT, Traits>&
+//    operator<< (std::basic_ostream<CharT, Traits> &os, const SquareVector &squares)
+//{
+//    std::for_each (squares.begin (), squares.end (), [&os] (Square s) { os << s << std::endl; });
 //    return os;
 //}
 

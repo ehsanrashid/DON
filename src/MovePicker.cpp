@@ -127,7 +127,7 @@ namespace MovePick {
 
         _stage = S_PROBCUT;
 
-        // In ProbCut generate only captures with SEE higher than the given threshold
+        // In ProbCut generate captures with SEE higher than the given threshold
         _tt_move =   ttm != MOVE_NONE
                   && _pos.pseudo_legal (ttm)
                   && _pos.capture (ttm)
