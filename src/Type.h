@@ -364,7 +364,7 @@ enum Bound : u08
     // EXACT evaluation, when receive a definite evaluation,
     // that is searched all possible moves and received a new best move
     // (or received an evaluation from quiescent search that was between ALPHA and BETA).
-    // if score for max-player was improved (score > alpha), alpha the max so far,
+    // if score for max-player was improved (score > alfa), alfa the max so far,
     // while the min-player improved his score as well (score < beta), beta the min so far.
     // The current node searched was an expected PV-Node,
     // which was confirmed by the search in finding and collecting a principal variation.

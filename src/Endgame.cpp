@@ -219,10 +219,10 @@ namespace EndGame {
     }
 
     template<>
-    Value Endgame<KNNK> ::operator() (const Position &pos) const
+    Value Endgame<KNNK> ::operator() (const Position &) const
     {
-        assert(verify_material (pos, _strong_side, 2 * VALUE_MG_NIHT, 0));
-        return pos, VALUE_DRAW;
+        //assert(verify_material (pos, _strong_side, 2 * VALUE_MG_NIHT, 0));
+        return VALUE_DRAW;
     }
 
     template<>

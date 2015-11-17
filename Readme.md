@@ -10,7 +10,7 @@ of your choice for information about how to use engine with it.
 
 ### Features
 
-DON uses bitboard representations, and is an alpha-beta searcher.
+DON uses bitboard representations, and is an alfa-beta searcher.
 
 DON supports up to 128 cores. The engine defaults to one search thread,
 so it is therefore recommended to inspect the value of the 'Threads'
