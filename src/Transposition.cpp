@@ -73,7 +73,7 @@ namespace Transposition {
         if (mem_size_mb < MinSize) mem_size_mb = MinSize;
         if (mem_size_mb > MaxSize) mem_size_mb = MaxSize;
 
-        size_t mem_size = mem_size_mb << 20; // mem_size_mb * 1024 * 1024
+        size_t mem_size = size_t(mem_size_mb) << 20; // mem_size_mb * 1024 * 1024
         u08 hash_bit = BitBoard::scan_msq (mem_size / ClusterSize);
         assert(hash_bit < MaxHashBit);
 

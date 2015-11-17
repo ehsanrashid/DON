@@ -20,7 +20,7 @@ namespace Transposition {
     //  Generation-- 06 bits
     //  Bound------- 02 bits
     //  ====================
-    //  Total--------80 bits = 10 bytes
+    //  Total------- 80 bits = 10 bytes
     struct Entry
     {
 
@@ -70,11 +70,13 @@ namespace Transposition {
 
     };
 
-    // A Transposition Table consists of a 2^power number of clusters
+    // A Transposition Table consists of a power of 2 number of clusters
     // and each cluster consists of ClusterEntryCount number of entry.
     // Each non-empty entry contains information of exactly one position.
-    // Size of a cluster shall not be bigger than a cache line size.
+    // Size of a cluster should divide the size of a cache line size,
+    // to ensure that clusters never cross cache lines.
     // In case it is less, it should be padded to guarantee always aligned accesses.
+    // This ensures best cache performance, as the cacheline is prefetched.
     class TranspositionTable
     {
 
@@ -88,7 +90,7 @@ namespace Transposition {
         struct Cluster
         {
             Entry entries[ClusterEntryCount];
-            char padding[2]; // Align to the cache line size
+            char padding[2]; // Align to a divisor of the cache line size
         };
 
 
@@ -127,14 +129,14 @@ namespace Transposition {
     public:
 
         // Size of Transposition entry (bytes)
-        // 16 bytes
+        // 10 bytes
         static const u08 EntrySize   = sizeof (Entry);
         static_assert (EntrySize == 10, "Entry size incorrect");
 
         // Size of Transposition cluster in (bytes)
         // 32 bytes
         static const u08 ClusterSize = sizeof (Cluster);
-        static_assert (ClusterSize == CacheLineSize / 2, "Cluster size incorrect");
+        static_assert (CacheLineSize % ClusterSize == 0, "Cluster size incorrect");
 
         // Maximum bit of hash for cluster
         static const u08 MaxHashBit  = 36;
