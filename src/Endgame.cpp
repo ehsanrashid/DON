@@ -75,11 +75,10 @@ namespace EndGame {
             return sq;
         }
 
-        template<Color Own>
         // Get the material key of a Position out of the given endgame key code
-        // like "KBPKN". The trick here is to first forge an ad-hoc fen string
-        // and then let a Position object to do the work for us.
-        Key key (const string &code)
+        // like "KBPKN". The trick here is to first forge an ad-hoc FEN string
+        // and then let a Position object to do the work.
+        Key key (const string &code, Color c)
         {
             assert(0 < code.length () && code.length () <= 8);
             assert(code[0] == 'K');
@@ -90,7 +89,7 @@ namespace EndGame {
                 code.substr (0, code.find ('K', 1)), // Strong
             };
 
-            transform (sides[Own].begin (), sides[Own].end (), sides[Own].begin (), ::tolower);
+            transform (sides[c].begin (), sides[c].end (), sides[c].begin (), ::tolower);
             
             string fen = sides[0] + char (8 - sides[0].length () + '0') + "/8/8/8/8/8/8/"
                        + sides[1] + char (8 - sides[1].length () + '0') + " w - - 0 1";
@@ -128,8 +127,8 @@ namespace EndGame {
     template<EndgameT E, class T>
     void Endgames::add (const string &code)
     {
-        map<T> ()[key<WHITE> (code)] = unique_ptr<EndgameBase<T>> (new Endgame<E> (WHITE));
-        map<T> ()[key<BLACK> (code)] = unique_ptr<EndgameBase<T>> (new Endgame<E> (BLACK));
+        map<T> ()[key (code, WHITE)] = unique_ptr<EndgameBase<T>> (new Endgame<E> (WHITE));
+        map<T> ()[key (code, BLACK)] = unique_ptr<EndgameBase<T>> (new Endgame<E> (BLACK));
     }
 
     template<>
@@ -300,7 +299,7 @@ namespace EndGame {
         }
 
         // When the weaker side ended up in the same corner as bishop.
-        Value value  = Value (PUSH_TO_EDGE[wk_sq]);
+        Value value = Value(PUSH_TO_EDGE[wk_sq]);
 
         return pos.active () == _strong_side ? +value : -value;
     }
@@ -325,7 +324,7 @@ namespace EndGame {
             return VALUE_DRAW;
         }
 
-        Value value  = Value (PUSH_AWAY[dist (wk_sq, wn_sq)] + PUSH_TO_EDGE[wk_sq]);
+        Value value = Value(PUSH_AWAY[dist (wk_sq, wn_sq)] + PUSH_TO_EDGE[wk_sq]);
 
         return pos.active () == _strong_side ? +value : -value;
     }
