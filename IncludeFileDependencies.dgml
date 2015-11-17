@@ -1,10 +1,10 @@
 ﻿<?xml version="1.0" encoding="utf-8"?>
 <DirectedGraph Layout="ForceDirected" xmlns="http://schemas.microsoft.com/vs/2009/dgml">
   <Nodes>
-    <Node Id="(@1 @116)" Category="CodeSchema_ProjectItem" Bounds="1089.38092901281,40,118.774666743746,25.998000077079" FilePath="$(VsSolution)\src\noncopyable.h" Label="noncopyable.h" />
+    <Node Id="(@1 @116)" Category="CodeSchema_ProjectItem" Bounds="984.54376834267,40,118.774666743746,25.998000077079" FilePath="$(VsSolution)\src\noncopyable.h" Label="noncopyable.h" />
     <Node Id="@101" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\lzexpand.h" Label="lzexpand.h" />
     <Node Id="@103" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\winscard.h" Label="winscard.h" />
-    <Node Id="@105" Category="CodeSchema_ProjectItem" Bounds="504.917237654114,263.992000308316,95.498000077079,25.998000077079" FilePath="$(VsSolution)\src\BitBoard.h" Label="BitBoard.h" />
+    <Node Id="@105" Category="CodeSchema_ProjectItem" Bounds="384.829530346595,1103.9620014645,95.498000077079,25.9980000770793" FilePath="$(VsSolution)\src\BitBoard.h" Label="BitBoard.h" />
     <Node Id="@107" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\winsmcrd.h" Label="winsmcrd.h" />
     <Node Id="@109" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\basetsd.h" Label="basetsd.h" />
     <Node Id="@11" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\atomic" Label="atomic" />
@@ -12,15 +12,15 @@
     <Node Id="@113" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\dde.h" Label="dde.h" />
     <Node Id="@115" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\locale.h" Label="locale.h" />
     <Node Id="@118" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\ole.h" Label="ole.h" />
-    <Node Id="@120" Category="CodeSchema_ProjectItem" Bounds="436.541364359789,655.97800084787,100.101333410412,25.998000077079" FilePath="$(VsSolution)\src\Endgame.h" Label="Endgame.h" />
+    <Node Id="@120" Category="CodeSchema_ProjectItem" Bounds="466.230628934519,725.647878494979,100.101333410412,25.998000077079" FilePath="$(VsSolution)\src\Endgame.h" Label="Endgame.h" />
     <Node Id="@122" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\vcruntime.h" Label="vcruntime.h" />
     <Node Id="@124" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\corecrt_wtime.h" Label="corecrt_wtime.h" />
     <Node Id="@126" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\time.h" Label="time.h" />
-    <Node Id="@128" Category="CodeSchema_ProjectItem" Bounds="644.698800025575,375.988000462474,86.288000077079,25.998000077079" FilePath="$(VsSolution)\src\Engine.h" Label="Engine.h" />
+    <Node Id="@128" Category="CodeSchema_ProjectItem" Bounds="268.541465456084,1103.9620014645,86.288000077079,25.9980000770793" FilePath="$(VsSolution)\src\Engine.h" Label="Engine.h" />
     <Node Id="@13" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\thr\xthread" Label="xthread" />
     <Node Id="@130" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\corecrt_wctype.h" Label="corecrt_wctype.h" />
     <Node Id="@132" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\ctype.h" Label="ctype.h" />
-    <Node Id="@134" Category="CodeSchema_ProjectItem" Bounds="539.547366615163,375.988000462474,75.1513334104125,25.998000077079" FilePath="$(VsSolution)\src\Type.h" Label="Type.h" />
+    <Node Id="@134" Category="CodeSchema_ProjectItem" Bounds="371.324982541618,991.966001310345,75.1513334104125,25.9980000770789" FilePath="$(VsSolution)\src\Type.h" Label="Type.h" />
     <Node Id="@136" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\share.h" Label="share.h" />
     <Node Id="@138" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\corecrt_share.h" Label="corecrt_share.h" />
     <Node Id="@140" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\objbase.h" Label="objbase.h" />
@@ -46,7 +46,7 @@
     <Node Id="@176" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\corecrt_wstring.h" Label="corecrt_wstring.h" />
     <Node Id="@178" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\string.h" Label="string.h" />
     <Node Id="@180" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\vcruntime_string.h" Label="vcruntime_string.h" />
-    <Node Id="@182" Category="CodeSchema_ProjectItem" Bounds="394.650423797484,522.911339942981,81.4946667437457,25.998000077079" FilePath="$(VsSolution)\src\PRNG.h" Label="PRNG.h" />
+    <Node Id="@182" Category="CodeSchema_ProjectItem" Bounds="478.28024365756,791.411165891512,81.4946667437457,25.998000077079" FilePath="$(VsSolution)\src\PRNG.h" Label="PRNG.h" />
     <Node Id="@184" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\stdarg.h" Label="stdarg.h" />
     <Node Id="@186" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\vcruntime_new_debug.h" Label="vcruntime_new_debug.h" />
     <Node Id="@188" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\corecrt_search.h" Label="corecrt_search.h" />
@@ -55,8 +55,8 @@
     <Node Id="@192" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\xtgmath.h" Label="xtgmath.h" />
     <Node Id="@194" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\ymath.h" Label="ymath.h" />
     <Node Id="@196" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\math.h" Label="math.h" />
-    <Node Id="@198" Category="CodeSchema_ProjectItem" Bounds="701.99089784728,692.008053570825,69.2546667437457,25.998000077079" FilePath="$(VsSolution)\src\UCI.h" Label="UCI.h" />
-    <Node Id="@2" Category="CodeSchema_PoundIncludeFile" Bounds="116.9901,0,1111.16549575655,1317.95400177282" FilePath="$(VsSolution)\DON.vcxproj" Group="Expanded" Label="DON.vcxproj" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
+    <Node Id="@198" Category="CodeSchema_ProjectItem" Bounds="215.367762113694,763.575848173508,69.2546667437457,25.998000077079" FilePath="$(VsSolution)\src\UCI.h" Label="UCI.h" />
+    <Node Id="@2" Category="CodeSchema_PoundIncludeFile" Bounds="116.9901,0,1006.32833508642,1373.9520018499" FilePath="$(VsSolution)\DON.vcxproj" Group="Expanded" Label="DON.vcxproj" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@200" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\wingdi.h" Label="wingdi.h" />
     <Node Id="@202" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\jobapi.h" Label="jobapi.h" />
     <Node Id="@204" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\mmiscapi.h" Label="mmiscapi.h" />
@@ -98,10 +98,10 @@
     <Node Id="@27" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\xloctime" Label="xloctime" />
     <Node Id="@270" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\xkeycheck.h" Label="xkeycheck.h" />
     <Node Id="@272" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\winsock.h" Label="winsock.h" />
-    <Node Id="@274" Category="CodeSchema_ProjectItem" Bounds="353.882646177677,410.915339788823,120.381333410412,25.998000077079" FilePath="$(VsSolution)\src\PolyglotBook.h" Label="PolyglotBook.h" />
-    <Node Id="@276" Category="CodeSchema_ProjectItem" Bounds="625.808729111868,935.968001233265,109.248000077079,25.998000077079" FilePath="$(VsSolution)\src\Benchmark.h" Label="Benchmark.h" />
+    <Node Id="@274" Category="CodeSchema_ProjectItem" Bounds="510.327629763541,1103.9620014645,120.381333410412,25.9980000770793" FilePath="$(VsSolution)\src\PolyglotBook.h" Label="PolyglotBook.h" />
+    <Node Id="@276" Category="CodeSchema_ProjectItem" Bounds="215.151117543276,319.990000385396,109.248000077079,25.998000077079" FilePath="$(VsSolution)\src\Benchmark.h" Label="Benchmark.h" />
     <Node Id="@278" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\winnetwk.h" Label="winnetwk.h" />
-    <Node Id="@280" Category="CodeSchema_ProjectItem" Bounds="502.100629034789,935.968001233265,93.7080000770789,25.998000077079" FilePath="$(VsSolution)\src\Material.h" Label="Material.h" />
+    <Node Id="@280" Category="CodeSchema_ProjectItem" Bounds="397.275600695895,431.986000539554,93.7080000770789,25.998000077079" FilePath="$(VsSolution)\src\Material.h" Label="Material.h" />
     <Node Id="@282" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\rpcsal.h" Label="rpcsal.h" />
     <Node Id="@284" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\ConcurrencySal.h" Label="ConcurrencySal.h" />
     <Node Id="@286" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\sal.h" Label="sal.h" />
@@ -114,12 +114,12 @@
     <Node Id="@298" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\msxml.h" Label="msxml.h" />
     <Node Id="@300" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\winspool.h" Label="winspool.h" />
     <Node Id="@302" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\winioctl.h" Label="winioctl.h" />
-    <Node Id="@304" Category="CodeSchema_ProjectItem" Bounds="953.54626226906,40,105.834666743746,25.998000077079" FilePath="$(VsSolution)\src\nullstream.h" Label="nullstream.h" />
+    <Node Id="@304" Category="CodeSchema_ProjectItem" Bounds="848.709101598924,40,105.834666743746,25.998000077079" FilePath="$(VsSolution)\src\nullstream.h" Label="nullstream.h" />
     <Node Id="@306" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\mmsystem.h" Label="mmsystem.h" />
     <Node Id="@308" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\imm.h" Label="imm.h" />
     <Node Id="@31" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\thr\xtime" Label="xtime" />
     <Node Id="@310" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\mmsyscom.h" Label="mmsyscom.h" />
-    <Node Id="@312" Category="CodeSchema_ProjectItem" Bounds="606.779959135317,151.996000154158,89.0546667437457,25.998000077079" FilePath="$(VsSolution)\src\BitScan.h" Label="BitScan.h" />
+    <Node Id="@312" Category="CodeSchema_ProjectItem" Bounds="321.237669305636,1215.95800161866,89.0546667437457,25.9980000770788" FilePath="$(VsSolution)\src\BitScan.h" Label="BitScan.h" />
     <Node Id="@314" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\stralign.h" Label="stralign.h" />
     <Node Id="@316" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\ammintrin.h" Label="ammintrin.h" />
     <Node Id="@318" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\emmintrin.h" Label="emmintrin.h" />
@@ -135,9 +135,9 @@
     <Node Id="@336" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\intrin.h" Label="intrin.h" />
     <Node Id="@338" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\wincon.h" Label="wincon.h" />
     <Node Id="@340" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\arm_neon.h" Label="arm_neon.h" />
-    <Node Id="@342" Category="CodeSchema_ProjectItem" Bounds="407.582725919859,711.976000924949,97.3613334104123,25.998000077079" FilePath="$(VsSolution)\src\Notation.h" Label="Notation.h" />
-    <Node Id="@344" Category="CodeSchema_ProjectItem" Bounds="722.715833641649,636.010053493746,120.671333410412,25.998000077079" FilePath="$(VsSolution)\src\Transposition.h" Label="Transposition.h" />
-    <Node Id="@346" Category="CodeSchema_ProjectItem" Bounds="459.993961960744,767.974001002028,92.4880000770791,25.998000077079" FilePath="$(VsSolution)\src\Position.h" Label="Position.h" />
+    <Node Id="@342" Category="CodeSchema_ProjectItem" Bounds="424.214455072707,543.982000693712,97.3613334104123,25.998000077079" FilePath="$(VsSolution)\src\Notation.h" Label="Notation.h" />
+    <Node Id="@344" Category="CodeSchema_ProjectItem" Bounds="192.260710170069,823.972001079107,120.671333410412,25.998000077079" FilePath="$(VsSolution)\src\Transposition.h" Label="Transposition.h" />
+    <Node Id="@346" Category="CodeSchema_ProjectItem" Bounds="419.873349284488,599.980000770791,92.4880000770791,25.998000077079" FilePath="$(VsSolution)\src\Position.h" Label="Position.h" />
     <Node Id="@348" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\vcruntime_exception.h" Label="vcruntime_exception.h" />
     <Node Id="@35" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\xiosbase" Label="xiosbase" />
     <Node Id="@350" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\urlmon.h" Label="urlmon.h" />
@@ -160,22 +160,22 @@
     <Node Id="@382" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\wchar.h" Label="wchar.h" />
     <Node Id="@384" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\inaddr.h" Label="inaddr.h" />
     <Node Id="@386" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\rpcndr.h" Label="rpcndr.h" />
-    <Node Id="@388" Category="CodeSchema_ProjectItem" Bounds="828.101595525315,756.06655499482,95.4446667437458,25.998000077079" FilePath="$(VsSolution)\src\tiebuffer.h" Label="tiebuffer.h" />
+    <Node Id="@388" Category="CodeSchema_ProjectItem" Bounds="199.98504196022,487.984000616633,95.4446667437458,25.998000077079" FilePath="$(VsSolution)\src\tiebuffer.h" Label="tiebuffer.h" />
     <Node Id="@39" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\cstddef" Label="cstddef" />
-    <Node Id="@390" Category="CodeSchema_ProjectItem" Bounds="694.596828781569,748.006053647904,103.504666743746,25.998000077079" FilePath="$(VsSolution)\src\Debugger.h" Label="Debugger.h" />
-    <Node Id="@392" Category="CodeSchema_ProjectItem" Bounds="546.980651838838,1159.96000154158,96.1013334104123,25.9980000770793" FilePath="$(VsSolution)\src\Searcher.h" Label="Searcher.h" />
-    <Node Id="@394" Category="CodeSchema_ProjectItem" Bounds="493.6625187929,1103.9620014645,111.801333410412,25.9980000770793" FilePath="$(VsSolution)\src\MovePicker.h" Label="MovePicker.h" />
-    <Node Id="@396" Category="CodeSchema_ProjectItem" Bounds="615.078753596888,991.966001310344,136.628000077079,25.9980000770789" FilePath="$(VsSolution)\src\MemoryHandler.h" Label="MemoryHandler.h" />
+    <Node Id="@390" Category="CodeSchema_ProjectItem" Bounds="258.642240265795,375.988000462475,103.504666743746,25.998000077079" FilePath="$(VsSolution)\src\Debugger.h" Label="Debugger.h" />
+    <Node Id="@392" Category="CodeSchema_ProjectItem" Bounds="341.368834182674,207.994000231238,96.1013334104123,25.9980000770793" FilePath="$(VsSolution)\src\Searcher.h" Label="Searcher.h" />
+    <Node Id="@394" Category="CodeSchema_ProjectItem" Bounds="418.907474651314,263.992000308317,111.801333410412,25.9980000770793" FilePath="$(VsSolution)\src\MovePicker.h" Label="MovePicker.h" />
+    <Node Id="@396" Category="CodeSchema_ProjectItem" Bounds="230.647500618816,431.986000539554,136.628000077079,25.9980000770788" FilePath="$(VsSolution)\src\MemoryHandler.h" Label="MemoryHandler.h" />
     <Node Id="@398" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\securityappcontainer.h" Label="securityappcontainer.h" />
     <Node Id="@400" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\WinUser.h" Label="WinUser.h" />
     <Node Id="@402" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\sdkddkver.h" Label="sdkddkver.h" />
     <Node Id="@404" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\winver.h" Label="winver.h" />
     <Node Id="@406" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\winerror.h" Label="winerror.h" />
-    <Node Id="@408" Category="CodeSchema_ProjectItem" Bounds="136.9901,569.124176012175,114.654666743746,25.998000077079" FilePath="$(VsSolution)\src\manipulator.h" Label="manipulator.h" />
+    <Node Id="@408" Category="CodeSchema_ProjectItem" Bounds="704.054434855178,853.838180547816,114.654666743746,25.998000077079" FilePath="$(VsSolution)\src\manipulator.h" Label="manipulator.h" />
     <Node Id="@41" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\xstddef" Label="xstddef" />
-    <Node Id="@410" Category="CodeSchema_ProjectItem" Bounds="427.250418696955,823.972001079107,133.344666743746,25.998000077079" FilePath="$(VsSolution)\src\MoveGenerator.h" Label="MoveGenerator.h" />
-    <Node Id="@412" Category="CodeSchema_ProjectItem" Bounds="481.567231850697,1047.96400138742,99.3846667437458,25.9980000770793" FilePath="$(VsSolution)\src\Evaluator.h" Label="Evaluator.h" />
-    <Node Id="@414" Category="CodeSchema_ProjectItem" Bounds="801.245664591026,692.008092576674,88.538000077079,25.998000077079" FilePath="$(VsSolution)\src\functor.h" Label="functor.h" />
+    <Node Id="@410" Category="CodeSchema_ProjectItem" Bounds="452.47677244422,655.97800084787,133.344666743746,25.998000077079" FilePath="$(VsSolution)\src\MoveGenerator.h" Label="MoveGenerator.h" />
+    <Node Id="@412" Category="CodeSchema_ProjectItem" Bounds="354.399217620355,319.990000385396,99.3846667437458,25.9980000770793" FilePath="$(VsSolution)\src\Evaluator.h" Label="Evaluator.h" />
+    <Node Id="@414" Category="CodeSchema_ProjectItem" Bounds="136.9901,700.769638137089,88.538000077079,25.998000077079" FilePath="$(VsSolution)\src\functor.h" Label="functor.h" />
     <Node Id="@416" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\cderr.h" Label="cderr.h" />
     <Node Id="@418" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\SCardErr.h" Label="SCardErr.h" />
     <Node Id="@420" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\rpcnterr.h" Label="rpcnterr.h" />
@@ -190,7 +190,7 @@
     <Node Id="@436" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\inttypes.h" Label="inttypes.h" />
     <Node Id="@438" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\wtypes.h" Label="wtypes.h" />
     <Node Id="@440" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\sys\types.h" Label="types.h" />
-    <Node Id="@442" Category="CodeSchema_ProjectItem" Bounds="517.661369772162,207.994000231237,93.6913334104124,25.998000077079" FilePath="$(VsSolution)\src\BitBases.h" Label="BitBases.h" />
+    <Node Id="@442" Category="CodeSchema_ProjectItem" Bounds="388.379189580563,1159.95992461805,93.6913334104124,25.998000077079" FilePath="$(VsSolution)\src\BitBases.h" Label="BitBases.h" />
     <Node Id="@444" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\vadefs.h" Label="vadefs.h" />
     <Node Id="@446" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\crtdefs.h" Label="crtdefs.h" />
     <Node Id="@448" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\winefs.h" Label="winefs.h" />
@@ -200,7 +200,7 @@
     <Node Id="@454" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\yvals.h" Label="yvals.h" />
     <Node Id="@456" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\WinNls.h" Label="WinNls.h" />
     <Node Id="@458" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\CodeAnalysis\sourceannotations.h" Label="sourceannotations.h" />
-    <Node Id="@460" Category="CodeSchema_ProjectItem" Bounds="501.717320186476,991.966001310344,83.3613334104123,25.9980000770789" FilePath="$(VsSolution)\src\Pawns.h" Label="Pawns.h" />
+    <Node Id="@460" Category="CodeSchema_ProjectItem" Bounds="392.147007009541,375.988000462476,83.3613334104123,25.9980000770788" FilePath="$(VsSolution)\src\Pawns.h" Label="Pawns.h" />
     <Node Id="@462" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\corecrt_wprocess.h" Label="corecrt_wprocess.h" />
     <Node Id="@464" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\limits.h" Label="limits.h" />
     <Node Id="@466" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\Windows.h" Label="Windows.h" />
@@ -224,7 +224,7 @@
     <Node Id="@498" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\stdint.h" Label="stdint.h" />
     <Node Id="@5" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\xmemory0" Label="xmemory0" />
     <Node Id="@500" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\winnt.h" Label="winnt.h" />
-    <Node Id="@502" Category="CodeSchema_ProjectItem" Bounds="516.263749779536,95.9980000770792,96.348000077079,25.998000077079" FilePath="$(VsSolution)\src\BitCount.h" Label="BitCount.h" />
+    <Node Id="@502" Category="CodeSchema_ProjectItem" Bounds="373.856580372621,1271.95600169574,96.348000077079,25.9980000770788" FilePath="$(VsSolution)\src\BitCount.h" Label="BitCount.h" />
     <Node Id="@504" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\excpt.h" Label="excpt.h" />
     <Node Id="@506" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\bcrypt.h" Label="bcrypt.h" />
     <Node Id="@508" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\wincrypt.h" Label="wincrypt.h" />
@@ -232,7 +232,7 @@
     <Node Id="@510" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\ncrypt.h" Label="ncrypt.h" />
     <Node Id="@512" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\corecrt.h" Label="corecrt.h" />
     <Node Id="@514" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.10150.0\ucrt\assert.h" Label="assert.h" />
-    <Node Id="@516" Category="CodeSchema_ProjectItem" Bounds="371.162987349641,466.913339865902,87.5546667437457,25.998000077079" FilePath="$(VsSolution)\src\Zobrist.h" Label="Zobrist.h" />
+    <Node Id="@516" Category="CodeSchema_ProjectItem" Bounds="515.106239885523,847.409165968591,87.5546667437457,25.998000077079" FilePath="$(VsSolution)\src\Zobrist.h" Label="Zobrist.h" />
     <Node Id="@518" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\tvout.h" Label="tvout.h" />
     <Node Id="@520" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\processenv.h" Label="processenv.h" />
     <Node Id="@522" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\shared\apisetcconv.h" Label="apisetcconv.h" />
@@ -272,35 +272,35 @@
     <Node Id="@584" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\typeinfo" Label="typeinfo" />
     <Node Id="@586" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\cstdio" Label="cstdio" />
     <Node Id="@588" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\ratio" Label="ratio" />
-    <Node Id="@59" Category="CodeSchema_ProjectItem" Bounds="642.292301706397,1215.95800161866,121.158000077079,25.9980000770793" FilePath="$(VsSolution)\src\thread_win32.h" Label="thread_win32.h" />
+    <Node Id="@59" Category="CodeSchema_ProjectItem" Bounds="255.098343702981,40,121.158000077079,25.9980000770793" FilePath="$(VsSolution)\src\thread_win32.h" Label="thread_win32.h" />
     <Node Id="@590" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\chrono" Label="chrono" />
     <Node Id="@592" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\cerrno" Label="cerrno" />
     <Node Id="@594" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\map" Label="map" />
     <Node Id="@596" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\iomanip" Label="iomanip" />
-    <Node Id="@598" Category="CodeSchema_ProjectItem" Bounds="554.066728877837,879.970001156186,99.9480000770791,25.998000077079" FilePath="$(VsSolution)\src\Thread.cpp" Label="Thread.cpp" />
-    <Node Id="@600" Category="CodeSchema_ProjectItem" Bounds="366.559137577035,263.992000308316,108.358000077079,25.998000077079" FilePath="$(VsSolution)\src\BitBoard.cpp" Label="BitBoard.cpp" />
-    <Node Id="@602" Category="CodeSchema_ProjectItem" Bounds="441.032196789525,319.990000385395,112.961333410412,25.998000077079" FilePath="$(VsSolution)\src\Endgame.cpp" Label="Endgame.cpp" />
-    <Node Id="@604" Category="CodeSchema_ProjectItem" Bounds="536.086642473285,543.982000693711,99.1480000770791,25.998000077079" FilePath="$(VsSolution)\src\Engine.cpp" Label="Engine.cpp" />
-    <Node Id="@606" Category="CodeSchema_ProjectItem" Bounds="582.482062037823,767.974001002028,82.1146667437457,25.998000077079" FilePath="$(VsSolution)\src\UCI.cpp" Label="UCI.cpp" />
-    <Node Id="@608" Category="CodeSchema_ProjectItem" Bounds="281.644866743745,578.90934002006,133.241333410413,25.998000077079" FilePath="$(VsSolution)\src\PolyglotBook.cpp" Label="PolyglotBook.cpp" />
+    <Node Id="@598" Category="CodeSchema_ProjectItem" Bounds="334.089458255978,487.984000616633,99.9480000770791,25.998000077079" FilePath="$(VsSolution)\src\Thread.cpp" Label="Thread.cpp" />
+    <Node Id="@600" Category="CodeSchema_ProjectItem" Bounds="469.745040887974,935.968001233265,108.358000077079,25.998000077079" FilePath="$(VsSolution)\src\BitBoard.cpp" Label="BitBoard.cpp" />
+    <Node Id="@602" Category="CodeSchema_ProjectItem" Bounds="442.809723546391,1047.96400138742,112.961333410412,25.9980000770793" FilePath="$(VsSolution)\src\Endgame.cpp" Label="Endgame.cpp" />
+    <Node Id="@604" Category="CodeSchema_ProjectItem" Bounds="340.596940810895,935.968001233266,99.1480000770791,25.998000077079" FilePath="$(VsSolution)\src\Engine.cpp" Label="Engine.cpp" />
+    <Node Id="@606" Category="CodeSchema_ProjectItem" Bounds="274.886016927716,543.982000693712,82.1146667437456,25.998000077079" FilePath="$(VsSolution)\src\UCI.cpp" Label="UCI.cpp" />
+    <Node Id="@608" Category="CodeSchema_ProjectItem" Bounds="589.775010401306,791.411165891512,133.241333410413,25.998000077079" FilePath="$(VsSolution)\src\PolyglotBook.cpp" Label="PolyglotBook.cpp" />
     <Node Id="@61" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\Ole2.h" Label="Ole2.h" />
-    <Node Id="@610" Category="CodeSchema_ProjectItem" Bounds="590.5951854407,823.972001079107,122.108000077079,25.998000077079" FilePath="$(VsSolution)\src\Benchmark.cpp" Label="Benchmark.cpp" />
-    <Node Id="@612" Category="CodeSchema_ProjectItem" Bounds="485.774172767349,1215.95800161866,106.568000077079,25.9980000770793" FilePath="$(VsSolution)\src\Material.cpp" Label="Material.cpp" />
-    <Node Id="@614" Category="CodeSchema_ProjectItem" Bounds="760.986900102654,375.988010503558,89.828000077079,25.998000077079" FilePath="$(VsSolution)\src\Main.cpp" Label="Main.cpp" />
-    <Node Id="@616" Category="CodeSchema_ProjectItem" Bounds="353.123607049087,879.970001156186,110.221333410412,25.998000077079" FilePath="$(VsSolution)\src\Notation.cpp" Label="Notation.cpp" />
-    <Node Id="@618" Category="CodeSchema_ProjectItem" Bounds="652.622928851567,319.990000385395,133.531333410412,25.998000077079" FilePath="$(VsSolution)\src\Transposition.cpp" Label="Transposition.cpp" />
-    <Node Id="@620" Category="CodeSchema_ProjectItem" Bounds="566.642797770201,655.97800084787,105.348000077079,25.998000077079" FilePath="$(VsSolution)\src\Position.cpp" Label="Position.cpp" />
-    <Node Id="@622" Category="CodeSchema_ProjectItem" Bounds="571.10773356457,599.980000770791,121.608000077079,25.998000077079" FilePath="$(VsSolution)\src\UCI.Option.cpp" Label="UCI.Option.cpp" />
-    <Node Id="@624" Category="CodeSchema_ProjectItem" Bounds="728.040098671522,1047.96400138742,116.364666743746,25.9980000770793" FilePath="$(VsSolution)\src\Debugger.cpp" Label="Debugger.cpp" />
-    <Node Id="@626" Category="CodeSchema_ProjectItem" Bounds="508.856206048608,487.984000616632,108.961333410412,25.998000077079" FilePath="$(VsSolution)\src\Searcher.cpp" Label="Searcher.cpp" />
-    <Node Id="@628" Category="CodeSchema_ProjectItem" Bounds="529.126185846155,1271.95600169574,124.661333410412,25.9980000770793" FilePath="$(VsSolution)\src\MovePicker.cpp" Label="MovePicker.cpp" />
+    <Node Id="@610" Category="CodeSchema_ProjectItem" Bounds="265.610302121148,599.980000770791,122.108000077079,25.998000077079" FilePath="$(VsSolution)\src\Benchmark.cpp" Label="Benchmark.cpp" />
+    <Node Id="@612" Category="CodeSchema_ProjectItem" Bounds="399.997614219128,151.996000154159,106.568000077079,25.9980000770793" FilePath="$(VsSolution)\src\Material.cpp" Label="Material.cpp" />
+    <Node Id="@614" Category="CodeSchema_ProjectItem" Bounds="219.198740660176,991.966001310345,89.828000077079,25.9980000770792" FilePath="$(VsSolution)\src\Main.cpp" Label="Main.cpp" />
+    <Node Id="@616" Category="CodeSchema_ProjectItem" Bounds="552.187345042882,592.905319838919,110.221333410412,25.998000077079" FilePath="$(VsSolution)\src\Notation.cpp" Label="Notation.cpp" />
+    <Node Id="@618" Category="CodeSchema_ProjectItem" Bounds="197.507966693478,1159.96000154158,133.531333410412,25.9980000770793" FilePath="$(VsSolution)\src\Transposition.cpp" Label="Transposition.cpp" />
+    <Node Id="@620" Category="CodeSchema_ProjectItem" Bounds="342.932143580481,823.972001079107,105.348000077079,25.998000077079" FilePath="$(VsSolution)\src\Position.cpp" Label="Position.cpp" />
+    <Node Id="@622" Category="CodeSchema_ProjectItem" Bounds="314.62252885744,767.974001002029,121.608000077079,25.998000077079" FilePath="$(VsSolution)\src\UCI.Option.cpp" Label="UCI.Option.cpp" />
+    <Node Id="@624" Category="CodeSchema_ProjectItem" Bounds="155.454687497647,263.992018768902,116.364666743746,25.9980000770793" FilePath="$(VsSolution)\src\Debugger.cpp" Label="Debugger.cpp" />
+    <Node Id="@626" Category="CodeSchema_ProjectItem" Bounds="372.259773596032,879.970001156187,108.961333410412,25.998000077079" FilePath="$(VsSolution)\src\Searcher.cpp" Label="Searcher.cpp" />
+    <Node Id="@628" Category="CodeSchema_ProjectItem" Bounds="378.40154574771,95.9980000770793,124.661333410412,25.9980000770793" FilePath="$(VsSolution)\src\MovePicker.cpp" Label="MovePicker.cpp" />
     <Node Id="@63" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\mmiscapi2.h" Label="mmiscapi2.h" />
-    <Node Id="@630" Category="CodeSchema_ProjectItem" Bounds="613.968608825309,431.986000539553,149.488000077079,25.998000077079" FilePath="$(VsSolution)\src\MemoryHandler.cpp" Label="MemoryHandler.cpp" />
-    <Node Id="@632" Category="CodeSchema_ProjectItem" Bounds="310.629159838771,935.967971340646,146.204666743746,25.998000077079" FilePath="$(VsSolution)\src\MoveGenerator.cpp" Label="MoveGenerator.cpp" />
-    <Node Id="@634" Category="CodeSchema_ProjectItem" Bounds="534.944159330271,711.976000924949,112.244666743746,25.998000077079" FilePath="$(VsSolution)\src\Evaluator.cpp" Label="Evaluator.cpp" />
-    <Node Id="@636" Category="CodeSchema_ProjectItem" Bounds="504.808932326693,40,106.551333410412,25.998000077079" FilePath="$(VsSolution)\src\BitBases.cpp" Label="BitBases.cpp" />
-    <Node Id="@638" Category="CodeSchema_ProjectItem" Bounds="444.886300154158,599.980000770791,96.2213334104124,25.998000077079" FilePath="$(VsSolution)\src\Pawns.cpp" Label="Pawns.cpp" />
-    <Node Id="@640" Category="CodeSchema_ProjectItem" Bounds="306.126597616043,634.907340097139,100.414666743746,25.998000077079" FilePath="$(VsSolution)\src\Zobrist.cpp" Label="Zobrist.cpp" />
+    <Node Id="@630" Category="CodeSchema_ProjectItem" Bounds="226.243291983503,1047.96400138742,149.488000077079,25.9980000770793" FilePath="$(VsSolution)\src\MemoryHandler.cpp" Label="MemoryHandler.cpp" />
+    <Node Id="@632" Category="CodeSchema_ProjectItem" Bounds="566.529103704976,536.907272348791,146.204666743746,25.998000077079" FilePath="$(VsSolution)\src\MoveGenerator.cpp" Label="MoveGenerator.cpp" />
+    <Node Id="@634" Category="CodeSchema_ProjectItem" Bounds="310.232005700474,655.97800084787,112.244666743746,25.998000077079" FilePath="$(VsSolution)\src\Evaluator.cpp" Label="Evaluator.cpp" />
+    <Node Id="@636" Category="CodeSchema_ProjectItem" Bounds="384.220295127231,1327.95400177282,106.551333410412,25.998000077079" FilePath="$(VsSolution)\src\BitBases.cpp" Label="BitBases.cpp" />
+    <Node Id="@638" Category="CodeSchema_ProjectItem" Bounds="340.009195524106,711.97600092495,96.2213334104124,25.998000077079" FilePath="$(VsSolution)\src\Pawns.cpp" Label="Pawns.cpp" />
+    <Node Id="@640" Category="CodeSchema_ProjectItem" Bounds="596.332062344931,735.413160118587,100.414666743746,25.998000077079" FilePath="$(VsSolution)\src\Zobrist.cpp" Label="Zobrist.cpp" />
     <Node Id="@642" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\cwchar" Label="cwchar" />
     <Node Id="@644" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\system_error" Label="system_error" />
     <Node Id="@646" Category="CodeSchema_ProjectItem" FilePath="$(VsInstallDir)\VC\include\iterator" Label="iterator" />
@@ -340,12 +340,12 @@
     <Node Id="@91" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\winresrc.h" Label="winresrc.h" />
     <Node Id="@93" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\verrsrc.h" Label="verrsrc.h" />
     <Node Id="@95" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\winsvc.h" Label="winsvc.h" />
-    <Node Id="@97" Category="CodeSchema_ProjectItem" Bounds="610.951998594443,1047.96400138742,87.088000077079,25.9980000770793" FilePath="$(VsSolution)\src\Thread.h" Label="Thread.h" />
+    <Node Id="@97" Category="CodeSchema_ProjectItem" Bounds="301.819374574235,263.992000308317,87.088000077079,25.9980000770793" FilePath="$(VsSolution)\src\Thread.h" Label="Thread.h" />
     <Node Id="@99" Category="CodeSchema_ProjectItem" FilePath="$(ProgramFiles)\Windows Kits\8.1\Include\um\cguid.h" Label="cguid.h" />
     <Node Id="C/C++ Standard Library Indirectly Included" Category="CodeSchema_PoundIncludeGroup" Group="Collapsed" Label="Indirectly Included" />
     <Node Id="G2" Category="CodeSchema_PoundIncludeGroup" Group="Collapsed" Label="C/C++ Standard Library" />
     <Node Id="G4" Category="CodeSchema_PoundIncludeGroup" Group="Collapsed" Label="Windows SDK" />
-    <Node Id="PoundIncludeGraphExternalsGroup" Category="Externals" Bounds="0,646.477000886409,86.9899999999998,25" Group="Collapsed" Label="Externals" />
+    <Node Id="PoundIncludeGraphExternalsGroup" Category="Externals" Bounds="5.6843418860808E-14,674.476000924949,86.9899999999998,25" Group="Collapsed" Label="Externals" />
     <Node Id="Windows SDK Indirectly Included" Category="CodeSchema_PoundIncludeGroup" Group="Collapsed" Label="Indirectly Included" />
   </Nodes>
   <Links>
@@ -355,9 +355,9 @@
     <Link Source="@103" Target="@418" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@103" Target="@438" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@103" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@105" Target="@134" Category="PoundInclude" Bounds="555.504855918926,289.990000385395,16.8594589060008,77.2052067236369" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@105" Target="@312" Category="PoundInclude" Bounds="579.886840820313,186.415832519531,63.3480834960938,77.576171875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@105" Target="@502" Category="PoundInclude" Bounds="507.527191162109,130.019836425781,46.2286071777344,133.97216796875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@105" Target="@134" Category="PoundInclude" Bounds="413.510466798159,1026.76936484636,16.3198513525597,77.1926366181394" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@105" Target="@312" Category="PoundInclude" Bounds="369.217193603516,1129.9599609375,41.8708190917969,77.10791015625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@105" Target="@502" Category="PoundInclude" Bounds="434.954071044922,1129.9599609375,57.2506103515625,134.369506835938" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@11" Target="@156" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@11" Target="@454" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@11" Target="@464" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -376,7 +376,7 @@
     <Link Source="@118" Target="@268" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@118" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@118" Target="@57" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@120" Target="@134" Category="PoundInclude" Bounds="434.752105712891,408.748718261719,124.963836669922,247.229309082031" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@120" Target="@134" Category="PoundInclude" Bounds="425.81396484375,751.645874023438,75.7896728515625,233.4697265625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@120" Target="@594" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@120" Target="@652" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@120" Target="@678" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -386,7 +386,7 @@
     <Link Source="@124" Target="@512" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@126" Target="@124" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@126" Target="@512" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@128" Target="@134" Category="PoundInclude" Bounds="623.698700025575,388.987000501014,21.0001000000002,0" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@128" Target="@134" Category="PoundInclude" Bounds="347.092041015625,1026.36328125,53.5719604492188,77.5987548828125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@13" Target="@25" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@13" Target="@31" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@13" Target="@352" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -518,7 +518,7 @@
     <Link Source="@178" Target="@512" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@178" Target="@536" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@180" Target="@122" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@182" Target="@134" Category="PoundInclude" Bounds="447.936860055686,408.463515286358,110.398726381348,114.447824656623" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@182" Target="@134" Category="PoundInclude" Bounds="425.81396484375,817.4091796875,89.9930419921875,167.706420898438" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@184" Target="@122" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@186" Target="@526" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@188" Target="@156" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -529,8 +529,8 @@
     <Link Source="@192" Target="@580" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@194" Target="@454" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@196" Target="@512" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@198" Target="@134" Category="PoundInclude" Bounds="584.476501464844,410.483367919922,147.065551757813,281.524688720703" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@198" Target="@414" Category="PoundInclude" Bounds="771.245564591026,705.007066012604,21.0001000000004,7.52207120058301E-06" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@198" Target="@134" Category="PoundInclude" Bounds="275.485626220703,789.573852539063,94.1318969726563,198.815185546875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@198" Target="@414" Category="PoundInclude" Bounds="202.129482053826,732.838553259678,33.6393258250397,30.7372949138303" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@198" Target="@566" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@198" Target="@594" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@2" Target="(@1 @116)" Category="Contains" />
@@ -726,13 +726,13 @@
     <Link Source="@272" Target="@384" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@272" Target="@466" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@272" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@274" Target="@134" Category="PoundInclude" Bounds="472.794975438271,398.921338183972,57.9520380311947,12.4140691044304" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@274" Target="@134" Category="PoundInclude" Bounds="415.395874023438,1026.58337402344,100.6015625,77.378662109375" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@274" Target="@562" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@276" Target="@17" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@278" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@278" Target="@81" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@280" Target="@120" Category="PoundInclude" Bounds="497.293548583984,689.993530273438,70.3219299316406,245.974487304688" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@280" Target="@134" Category="PoundInclude" Bounds="498.722015380859,409.358978271484,68.8934631347656,526.609039306641" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@280" Target="@120" Category="PoundInclude" Bounds="411.654663085938,457.984008789063,81.0084228515625,262.102966308594" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@280" Target="@134" Category="PoundInclude" Bounds="411.5634765625,457.984008789063,74.6827392578125,527.131591796875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@282" Target="@452" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@286" Target="@284" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@286" Target="@458" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -794,7 +794,7 @@
     <Link Source="@310" Target="@268" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@310" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@310" Target="@57" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@312" Target="@134" Category="PoundInclude" Bounds="584.257768291279,177.994000231237,62.7443651624567,189.450376870663" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@312" Target="@134" Category="PoundInclude" Bounds="367.649627685547,1026.36328125,33.0143737792969,189.5947265625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@312" Target="@336" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@314" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@318" Target="@332" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -820,16 +820,16 @@
     <Link Source="@338" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@340" Target="@286" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@340" Target="@498" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@342" Target="@134" Category="PoundInclude" Bounds="425.698425292969,408.748718261719,134.017517089844,303.227294921875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@342" Target="@134" Category="PoundInclude" Bounds="409.739166259766,569.97998046875,76.5070495605469,415.135620117188" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@342" Target="@45" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@342" Target="@566" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@344" Target="@134" Category="PoundInclude" Bounds="584.389404296875,410.513275146484,185.783386230469,225.496795654297" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@344" Target="@396" Category="PoundInclude" Bounds="715.661743164063,662.008056640625,90.4799194335938,325.513427734375" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@344" Target="@134" Category="PoundInclude" Bounds="260.086883544922,849.969970703125,109.488464355469,138.51806640625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@344" Target="@396" Category="PoundInclude" Bounds="259.227996826172,466.959289550781,42.1788940429688,357.0126953125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@344" Target="@45" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@344" Target="@7" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@344" Target="@97" Category="PoundInclude" Bounds="704.802307128906,662.008056640625,99.8193359375,383.553100585938" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@346" Target="@105" Category="PoundInclude" Bounds="506.793334960938,298.906768798828,51.5817260742188,469.067230224609" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@346" Target="@516" Category="PoundInclude" Bounds="440.896423339844,498.070343017578,108.331237792969,269.903656005859" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@344" Target="@97" Category="PoundInclude" Bounds="259.227996826172,298.98974609375,115.841888427734,524.982238769531" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@346" Target="@105" Category="PoundInclude" Bounds="435.352813720703,625.97802734375,47.9749145507813,469.0556640625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@346" Target="@516" Category="PoundInclude" Bounds="446.988861083984,625.97802734375,67.5685729980469,218.29736328125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@346" Target="@548" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@346" Target="@678" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@348" Target="@190" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -907,20 +907,20 @@
     <Link Source="@388" Target="@45" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@39" Target="@156" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@39" Target="@454" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@390" Target="@134" Category="PoundInclude" Bounds="584.476501464844,410.483367919922,140.319274902344,337.522674560547" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@390" Target="@134" Category="PoundInclude" Bounds="189.850860595703,401.985992431641,179.766662597656,586.403045654297" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@390" Target="@29" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@390" Target="@388" Category="PoundInclude" Bounds="798.101495525315,764.226915083388,21.0174902641559,1.30845193116534" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@390" Target="@388" Category="PoundInclude" Bounds="222.220901489258,401.985992431641,52.6230010986328,77.6630249023438" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@390" Target="@562" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@392" Target="@11" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@392" Target="@134" Category="PoundInclude" Bounds="584.476501464844,410.483367919922,138.36083984375,749.476593017578" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@392" Target="@346" Category="PoundInclude" Bounds="543.932556152344,797.494445800781,69.31494140625,362.465515136719" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@392" Target="@134" Category="PoundInclude" Bounds="394.163848876953,233.992004394531,98.266845703125,751.123596191406" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@392" Target="@346" Category="PoundInclude" Bounds="394.163848876953,233.992004394531,129.269256591797,361.956359863281" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@392" Target="@45" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@392" Target="@678" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@394" Target="@134" Category="PoundInclude" Bounds="565.986694335938,410.483367919922,156.850646972656,693.478668212891" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@394" Target="@346" Category="PoundInclude" Bounds="475.466064453125,797.494445800781,91.5855102539063,306.467590332031" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@394" Target="@392" Category="PoundInclude" Bounds="560.117852850563,1129.96000154158,18.6857378724234,23.0131276725845" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@394" Target="@410" Category="PoundInclude" Bounds="475.801971435547,858.932983398438,42.8584289550781,245.029052734375" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@396" Target="@134" Category="PoundInclude" Bounds="584.476501464844,410.483367919922,155.456115722656,581.482635498047" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@394" Target="@134" Category="PoundInclude" Bounds="411.5634765625,289.989990234375,82.266845703125,695.125610351563" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@394" Target="@346" Category="PoundInclude" Bounds="477.194519042969,289.989990234375,48.9690551757813,305.174987792969" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@394" Target="@392" Category="PoundInclude" Bounds="416.767026071603,238.927548810909,38.219569172291,25.0644514974086" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@394" Target="@410" Category="PoundInclude" Bounds="477.687835693359,289.989990234375,49.3086853027344,357.026672363281" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@396" Target="@134" Category="PoundInclude" Bounds="259.375915527344,457.984008789063,110.241607666016,530.405029296875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@398" Target="@144" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@398" Target="@158" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@398" Target="@494" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -941,9 +941,9 @@
     <Link Source="@41" Target="@580" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@41" Target="@670" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@41" Target="@7" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@410" Target="@134" Category="PoundInclude" Bounds="404.149810791016,408.748718261719,155.566131591797,415.223266601563" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@410" Target="@346" Category="PoundInclude" Bounds="496.781522277411,802.761944542434,4.66456477957132,21.2100565366733" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@412" Target="@134" Category="PoundInclude" Bounds="403.188171386719,408.748718261719,156.527770996094,639.215270996094" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@410" Target="@134" Category="PoundInclude" Bounds="425.81396484375,681.976013183594,75.7227478027344,303.139587402344" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@410" Target="@346" Category="PoundInclude" Bounds="484.61631993139,632.512680741059,22.2223497307643,23.4653201068115" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@412" Target="@134" Category="PoundInclude" Bounds="383.289184570313,345.988006591797,102.95703125,639.127593994141" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@414" Target="@33" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@414" Target="@552" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@420" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -960,7 +960,7 @@
     <Link Source="@438" Target="@150" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@438" Target="@386" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@438" Target="@89" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@442" Target="@134" Category="PoundInclude" Bounds="582.499694824219,233.992004394531,21.2374267578125,133.259338378906" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@442" Target="@134" Category="PoundInclude" Bounds="382.103637695313,1026.68884277344,29.1799926757813,133.271118164063" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@446" Target="@122" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@446" Target="@512" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@448" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -978,8 +978,8 @@
     <Link Source="@456" Target="@252" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@456" Target="@482" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@456" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@460" Target="@134" Category="PoundInclude" Bounds="403.188171386719,408.748718261719,156.527770996094,583.21728515625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@460" Target="@346" Category="PoundInclude" Bounds="491.966461181641,797.494445800781,75.0851135253906,194.471557617188" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@460" Target="@134" Category="PoundInclude" Bounds="411.5634765625,401.985992431641,89.5543212890625,583.129608154297" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@460" Target="@346" Category="PoundInclude" Bounds="460.442901611328,401.985992431641,64.3761901855469,193.785247802734" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@462" Target="@512" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@464" Target="@122" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@466" Target="@101" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -1089,7 +1089,7 @@
     <Link Source="@500" Target="@65" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@500" Target="@69" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@500" Target="@71" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@502" Target="@134" Category="PoundInclude" Bounds="571.914306640625,121.996002197266,47.33154296875,245.320465087891" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@502" Target="@134" Category="PoundInclude" Bounds="381.472229003906,1026.60534667969,40.2948608398438,245.350708007813" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@502" Target="@322" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@502" Target="@336" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@504" Target="@122" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -1106,7 +1106,7 @@
     <Link Source="@512" Target="@122" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@512" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@514" Target="@512" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@516" Target="@134" Category="PoundInclude" Bounds="438.126520532866,406.38722654195,107.959885619895,60.5261133239519" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@516" Target="@134" Category="PoundInclude" Bounds="423.728057861328,873.407165527344,119.155426025391,111.295837402344" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@518" Target="@154" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@518" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@520" Target="@158" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -1181,47 +1181,47 @@
     <Link Source="@596" Target="@564" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@596" Target="@578" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@596" Target="@652" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@598" Target="@120" Category="PoundInclude" Bounds="497.293548583984,689.993530273438,102.212982177734,189.976440429688" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@598" Target="@198" Category="PoundInclude" Bounds="580.460998535156,722.900451660156,127.975341796875,157.069519042969" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@598" Target="@346" Category="PoundInclude" Bounds="539.764953613281,798.058410644531,58.8036499023438,81.9115600585938" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@598" Target="@392" Category="PoundInclude" Bounds="604.458984375,905.968017578125,4.32659912109375,245.290649414063" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@598" Target="@410" Category="PoundInclude" Bounds="527.507095617563,854.049557466664,50.9715849521783,25.9204436895216" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@598" Target="@97" Category="PoundInclude" Bounds="604.127685546875,905.968017578125,23.2689819335938,137.021484375" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@600" Target="@105" Category="PoundInclude" Bounds="474.917137654114,276.991000346856,21.0001,0" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@600" Target="@182" Category="PoundInclude" Bounds="422.407104492188,289.989990234375,55.9680786132813,225.191528320313" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@600" Target="@342" Category="PoundInclude" Bounds="422.407104492188,289.989990234375,62.9596252441406,415.136962890625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@602" Target="@120" Category="PoundInclude" Bounds="434.752105712891,345.988006591797,62.1147766113281,305.095001220703" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@602" Target="@346" Category="PoundInclude" Bounds="497.606414794922,345.988006591797,51.7379455566406,413.522613525391" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@602" Target="@410" Category="PoundInclude" Bounds="404.149810791016,345.988006591797,92.7170715332031,471.886505126953" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@602" Target="@442" Category="PoundInclude" Bounds="498.290771484375,238.720993041992,37.49658203125,81.2689971923828" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@604" Target="@128" Category="PoundInclude" Bounds="595.477783203125,405.289245605469,50.765380859375,138.692749023438" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@604" Target="@198" Category="PoundInclude" Bounds="632.012451171875,569.97998046875,96.2557983398438,113.644592285156" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@604" Target="@280" Category="PoundInclude" Bounds="524.809997558594,569.97998046875,56.4034423828125,357.002807617188" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@604" Target="@342" Category="PoundInclude" Bounds="489.690979003906,569.97998046875,91.5224609375,137.895812988281" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@604" Target="@344" Category="PoundInclude" Bounds="618.402526855469,569.97998046875,139.784973144531,60.6873168945313" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@604" Target="@392" Category="PoundInclude" Bounds="524.809997558594,569.97998046875,86.5,581.890014648438" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@604" Target="@412" Category="PoundInclude" Bounds="491.689086914063,569.97998046875,89.5243530273438,472.020141601563" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@604" Target="@442" Category="PoundInclude" Bounds="589.846008300781,239.486907958984,38.105712890625,304.495086669922" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@604" Target="@460" Category="PoundInclude" Bounds="491.966461181641,569.97998046875,89.2469787597656,417.062866210938" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@598" Target="@120" Category="PoundInclude" Bounds="387.663726806641,513.981994628906,104.999359130859,206.10498046875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@598" Target="@198" Category="PoundInclude" Bounds="251.331527709961,513.975708007813,85.5635528564453,240.61669921875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@598" Target="@346" Category="PoundInclude" Bounds="388.994354248047,513.981994628906,48.9313659667969,81.192138671875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@598" Target="@392" Category="PoundInclude" Bounds="349.046325683594,242.935348510742,44.5701293945313,245.04866027832" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@598" Target="@410" Category="PoundInclude" Bounds="386.533386230469,513.981994628906,80.7213439941406,139.406860351563" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@598" Target="@97" Category="PoundInclude" Bounds="345.11376953125,298.98974609375,37.8162536621094,188.994262695313" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@600" Target="@105" Category="PoundInclude" Bounds="432.605499267578,961.966003417969,77.9705505371094,132.996032714844" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@600" Target="@182" Category="PoundInclude" Bounds="508.490905761719,826.192199707031,13.2918090820313,109.775817871094" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@600" Target="@342" Category="PoundInclude" Bounds="411.654663085938,573.370544433594,106.298095703125,362.597473144531" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@602" Target="@120" Category="PoundInclude" Bounds="459.610870361328,757.820739746094,35.4451904296875,290.143249511719" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@602" Target="@346" Category="PoundInclude" Bounds="449.046752929688,633.856079101563,45.6381530761719,414.10791015625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@602" Target="@410" Category="PoundInclude" Bounds="459.610870361328,687.320495605469,35.0740356445313,360.643493652344" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@602" Target="@442" Category="PoundInclude" Bounds="464.807189941406,1073.96203613281,33.0328979492188,81.39599609375" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@604" Target="@128" Category="PoundInclude" Bounds="355.513458251953,961.966003417969,27.9302368164063,138.821105957031" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@604" Target="@198" Category="PoundInclude" Bounds="283.503295898438,793.662475585938,100.21240234375,142.305541992188" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@604" Target="@280" Category="PoundInclude" Bounds="411.654663085938,466.983825683594,73.855224609375,468.984191894531" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@604" Target="@342" Category="PoundInclude" Bounds="411.654663085938,573.370544433594,73.855224609375,362.597473144531" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@604" Target="@344" Category="PoundInclude" Bounds="275.543838123934,855.65195346306,98.6592845896706,80.3160477702058" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@604" Target="@392" Category="PoundInclude" Bounds="259.375915527344,242.935348510742,134.240539550781,693.032669067383" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@604" Target="@412" Category="PoundInclude" Bounds="259.375915527344,354.65283203125,138.632049560547,581.315185546875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@604" Target="@442" Category="PoundInclude" Bounds="361.190795898438,961.966003417969,33.7705688476563,194.386413574219" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@604" Target="@460" Category="PoundInclude" Bounds="259.375915527344,408.607818603516,156.389587402344,527.360198974609" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@604" Target="@570" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@604" Target="@596" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@604" Target="@97" Category="PoundInclude" Bounds="524.809997558594,569.97998046875,102.706481933594,472.833374023438" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@606" Target="@128" Category="PoundInclude" Bounds="632.109375,405.229766845703,141.481384277344,362.744232177734" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@606" Target="@198" Category="PoundInclude" Bounds="642.889009819183,723.024854908834,66.908888557609,44.9491460931938" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@606" Target="@276" Category="PoundInclude" Bounds="662.444885253906,793.849609375,57.3505859375,133.72607421875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@606" Target="@342" Category="PoundInclude" Bounds="503.628200992662,740.83103828185,81.2588788599055,27.2025552315412" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@606" Target="@344" Category="PoundInclude" Bounds="632.109375,665.542724609375,112.2265625,102.431274414063" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@606" Target="@390" Category="PoundInclude" Bounds="664.596728781569,770.863960312603,21.1167555210398,3.43342613306845" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@606" Target="@392" Category="PoundInclude" Bounds="543.932556152344,793.971984863281,68.4773559570313,357.898010253906" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@606" Target="@412" Category="PoundInclude" Bounds="491.689086914063,793.971984863281,120.720825195313,248.028137207031" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@604" Target="@97" Category="PoundInclude" Bounds="259.375915527344,298.98974609375,124.165100097656,636.978271484375" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@606" Target="@128" Category="PoundInclude" Bounds="189.00373840332,569.97998046875,103.023056030273,531.055419921875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@606" Target="@198" Category="PoundInclude" Bounds="250.640716552734,569.97998046875,41.3860778808594,184.599731445313" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@606" Target="@276" Category="PoundInclude" Bounds="226.8955078125,354.253234863281,87.3428039550781,189.728759765625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@606" Target="@342" Category="PoundInclude" Bounds="357.000683671462,556.981000732252,58.213771401247,0" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@606" Target="@344" Category="PoundInclude" Bounds="262.065002441406,569.97998046875,29.9617919921875,247.904846191406" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@606" Target="@390" Category="PoundInclude" Bounds="317.259490966797,405.218505859375,57.8103942871094,138.763488769531" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@606" Target="@392" Category="PoundInclude" Bounds="317.259490966797,242.935348510742,76.3569641113281,301.046646118164" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@606" Target="@412" Category="PoundInclude" Bounds="317.259490966797,354.65283203125,80.7484741210938,189.329162597656" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@606" Target="@51" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@608" Target="@182" Category="PoundInclude" Bounds="368.49182327967,553.775200851782,39.1084223367949,25.1341391682788" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@608" Target="@274" Category="PoundInclude" Bounds="349.493316650391,441.653411865234,35.94873046875,137.255950927734" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@608" Target="@342" Category="PoundInclude" Bounds="375.323669433594,604.907348632813,68.197021484375,99.2631225585938" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@608" Target="@346" Category="PoundInclude" Bounds="375.323669433594,604.907348632813,134.8408203125,154.122314453125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@608" Target="@408" Category="PoundInclude" Bounds="260.626641386939,586.337885263336,21.0182253568059,1.33594881760848" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@608" Target="@410" Category="PoundInclude" Bounds="375.323669433594,604.907348632813,97.866943359375,212.967163085938" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@608" Target="@516" Category="PoundInclude" Bounds="356.004252341882,500.644657180941,46.5934593384588,78.2646828391194" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@608" Target="@182" Category="PoundInclude" Bounds="568.774910401306,804.410165930073,21.0001,2.27373675443232E-13" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@608" Target="@274" Category="PoundInclude" Bounds="576.474435180543,817.409165968612,76.3495987013609,277.874461150913" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@608" Target="@342" Category="PoundInclude" Bounds="495.328247070313,575.751525878906,133.302124023438,215.65966796875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@608" Target="@346" Category="PoundInclude" Bounds="520.629699707031,626.777221679688,108.000671386719,164.633972167969" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@608" Target="@408" Category="PoundInclude" Bounds="678.256632816717,817.409165968612,53.5284490355358,31.8291807686664" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@608" Target="@410" Category="PoundInclude" Bounds="542.125244140625,687.674865722656,86.505126953125,103.736328125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@608" Target="@516" Category="PoundInclude" Bounds="589.324005898507,817.409165968612,44.4358656444506,25.5180588825494" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@608" Target="@596" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@61" Target="@140" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@61" Target="@268" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -1230,91 +1230,91 @@
     <Link Source="@61" Target="@406" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@61" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@61" Target="@71" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@610" Target="@198" Category="PoundInclude" Bounds="655.953369140625,722.804077148438,52.4214477539063,101.167907714844" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@610" Target="@276" Category="PoundInclude" Bounds="654.989994836501,849.970001156186,19.861681900525,77.2812741407253" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@610" Target="@342" Category="PoundInclude" Bounds="506.924957275391,740.640502929688,113.358245849609,83.3314819335938" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@610" Target="@346" Category="PoundInclude" Bounds="548.391491153417,797.206365098244,69.5029084938603,26.7656359808628" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@610" Target="@390" Category="PoundInclude" Bounds="667.853880372994,779.635614476938,55.2702219747364,44.3363866021684" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@610" Target="@392" Category="PoundInclude" Bounds="607.507019042969,849.969970703125,49.7696533203125,302.106079101563" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@610" Target="@198" Category="PoundInclude" Bounds="259.906315128459,625.97800084787,60.6660046469922,129.44840398501" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@610" Target="@276" Category="PoundInclude" Bounds="189.850860595703,354.115112304688,116.800140380859,245.864868164063" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@610" Target="@342" Category="PoundInclude" Bounds="360.60934354039,573.198560882853,69.935924496928,26.7814398879386" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@610" Target="@346" Category="PoundInclude" Bounds="387.718302198227,612.979000809331,23.1550470862627,0" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@610" Target="@390" Category="PoundInclude" Bounds="323.955261230469,405.218505859375,51.1146240234375,194.761474609375" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@610" Target="@392" Category="PoundInclude" Bounds="342.318786621094,242.711212158203,152.573852539063,357.268768310547" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@610" Target="@49" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@610" Target="@97" Category="PoundInclude" Bounds="607.633911132813,849.969970703125,49.6427612304688,192.831176757813" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@612" Target="@280" Category="PoundInclude" Bounds="474.209625244141,967.724792480469,56.7255554199219,248.233215332031" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@612" Target="@346" Category="PoundInclude" Bounds="475.238861083984,797.494445800781,91.8127136230469,418.463562011719" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@610" Target="@97" Category="PoundInclude" Bounds="323.955261230469,298.98974609375,51.1146240234375,300.990234375" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@612" Target="@280" Category="PoundInclude" Bounds="459.759490966797,177.994003295898,81.0835266113281,246.883499145508" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@612" Target="@346" Category="PoundInclude" Bounds="466.090240478516,177.994003295898,72.8237609863281,417.954360961914" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@612" Target="@45" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@612" Target="@97" Category="PoundInclude" Bounds="538.242492675781,1081.99267578125,105.800598144531,133.96533203125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@614" Target="@128" Category="PoundInclude" Bounds="739.986800102654,388.987004935968,21.0001000000004,1.78610156353898E-06" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@616" Target="@342" Category="PoundInclude" Bounds="411.499969482422,746.555480957031,37.9418029785156,133.414489746094" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@616" Target="@346" Category="PoundInclude" Bounds="409.693328857422,797.085876464844,52.8502197265625,82.8840942382813" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@616" Target="@410" Category="PoundInclude" Bounds="428.125422212806,854.893454103085,38.3722839280921,25.0765470531005" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@612" Target="@97" Category="PoundInclude" Bounds="394.370910644531,177.994003295898,57.9780883789063,83.2437896728516" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@614" Target="@128" Category="PoundInclude" Bounds="216.109115600586,1017.96398925781,49.2675628662109,83.055908203125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@616" Target="@342" Category="PoundInclude" Bounds="517.063312510832,573.058441416553,54.523647689108,19.8468784223958" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@616" Target="@346" Category="PoundInclude" Bounds="521.350070667346,608.665961423741,30.8372743755374,1.54528157941184" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@616" Target="@410" Category="PoundInclude" Bounds="544.635515807298,618.903319916028,44.4953970751956,31.8375362282339" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@616" Target="@570" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@616" Target="@596" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@618" Target="@128" Category="PoundInclude" Bounds="699.582970695096,345.988000462474,12.4827955416948,22.1586292179144" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@618" Target="@312" Category="PoundInclude" Bounds="659.955578118117,186.335074924579,54.1650384647216,133.654925460817" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@618" Target="@344" Category="PoundInclude" Bounds="727.075805664063,345.988006591797,54.5613403320313,281.040618896484" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@618" Target="@128" Category="PoundInclude" Bounds="275.279498008029,1136.82872926467,19.5845565171801,23.1312722769164" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@618" Target="@312" Category="PoundInclude" Bounds="287.833158941578,1185.95800161866,46.4922097401638,25.6521395180002" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@618" Target="@344" Category="PoundInclude" Bounds="213.003341674805,858.765380859375,45.6800079345703,301.194580078125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@618" Target="@49" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@618" Target="@562" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@620" Target="@342" Category="PoundInclude" Bounds="502.625523445773,681.976000924949,78.8411508344643,27.0766916246369" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@620" Target="@344" Category="PoundInclude" Bounds="671.99079784728,657.456678019668,41.7912248679839,5.09656758825463" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@620" Target="@346" Category="PoundInclude" Bounds="511.34521484375,681.976013183594,70.5913696289063,77.236083984375" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@620" Target="@410" Category="PoundInclude" Bounds="524.809997558594,681.976013183594,57.1265869140625,138.06884765625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@620" Target="@342" Category="PoundInclude" Bounds="411.5634765625,573.370544433594,31.4365844726563,250.601440429688" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@620" Target="@344" Category="PoundInclude" Bounds="321.932043580482,836.971001117647,21.0001000000001,0" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@620" Target="@346" Category="PoundInclude" Bounds="415.682647705078,633.978759765625,36.9080810546875,189.993225097656" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@620" Target="@410" Category="PoundInclude" Bounds="415.682647705078,687.358093261719,78.6406555175781,136.613891601563" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@620" Target="@45" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@620" Target="@570" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@620" Target="@596" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@620" Target="@97" Category="PoundInclude" Bounds="629.292907714844,681.976013183594,126.435607910156,363.585144042969" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@622" Target="@198" Category="PoundInclude" Bounds="646.701569149275,625.97800084787,68.3667666918875,60.0885385161105" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@622" Target="@344" Category="PoundInclude" Bounds="686.440264239289,625.97800084787,33.3280292911082,7.94503444316388" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@622" Target="@390" Category="PoundInclude" Bounds="651.772521972656,625.97802734375,65.3858032226563,117.266845703125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@622" Target="@392" Category="PoundInclude" Bounds="607.507019042969,625.97802734375,115.330322265625,526.098022460938" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@620" Target="@97" Category="PoundInclude" Bounds="345.11376953125,298.98974609375,99.057861328125,524.982238769531" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@622" Target="@198" Category="PoundInclude" Bounds="293.61690121264,778.104411918905,21.0056276447999,0.736545522353595" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@622" Target="@344" Category="PoundInclude" Bounds="289.298465425905,793.972001079107,57.6150960667176,26.2665974185326" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@622" Target="@390" Category="PoundInclude" Bounds="189.850860595703,405.095367431641,174.556457519531,362.878631591797" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@622" Target="@392" Category="PoundInclude" Bounds="394.829315185547,242.711212158203,97.6013793945313,525.262786865234" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@622" Target="@562" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@622" Target="@570" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@622" Target="@596" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@622" Target="@97" Category="PoundInclude" Bounds="651.772521972656,625.97802734375,103.955993652344,419.583129882813" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@624" Target="@390" Category="PoundInclude" Bounds="749.263046955883,782.925576074043,35.2314340839059,265.03842531338" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@624" Target="@97" Category="PoundInclude" Bounds="707.039998671522,1060.96300142596,21.0001,0" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@626" Target="@182" Category="PoundInclude" Bounds="484.629663200753,513.982000693711,31.0917713178778,8.48804403653935" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@626" Target="@274" Category="PoundInclude" Bounds="447.246210138323,441.042370067738,90.9147091257857,46.9416305488949" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@626" Target="@280" Category="PoundInclude" Bounds="524.809997558594,513.981994628906,42.8054809570313,413.000793457031" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@622" Target="@97" Category="PoundInclude" Bounds="258.452911376953,298.98974609375,116.616973876953,468.984252929688" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@624" Target="@390" Category="PoundInclude" Bounds="209.132553100586,289.990020751953,50.9902496337891,83.3183898925781" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@624" Target="@97" Category="PoundInclude" Bounds="271.819354241394,276.991007710554,21.0000203328419,2.94301526082563E-06" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@626" Target="@182" Category="PoundInclude" Bounds="440.286694498252,823.64060416364,58.7008483855121,56.3293969925465" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@626" Target="@274" Category="PoundInclude" Bounds="432.140106201172,905.968017578125,136.900360107422,189.022827148438" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@626" Target="@280" Category="PoundInclude" Bounds="411.5634765625,466.983825683594,41.7577819824219,412.986145019531" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@626" Target="@332" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@626" Target="@342" Category="PoundInclude" Bounds="429.097839355469,513.981994628906,115.429443359375,190.19482421875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@626" Target="@344" Category="PoundInclude" Bounds="595.782897949219,513.981994628906,162.369445800781,116.691345214844" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@626" Target="@390" Category="PoundInclude" Bounds="586.9951171875,513.981994628906,130.225646972656,229.164184570313" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@626" Target="@392" Category="PoundInclude" Bounds="524.809997558594,513.981994628906,86.5,637.888000488281" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@626" Target="@394" Category="PoundInclude" Bounds="475.238861083984,513.981994628906,91.8127136230469,586.942687988281" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@626" Target="@410" Category="PoundInclude" Bounds="524.809997558594,513.981994628906,37.80615234375,306.062866210938" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@626" Target="@412" Category="PoundInclude" Bounds="491.689086914063,513.981994628906,75.3624877929688,528.018127441406" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@626" Target="@460" Category="PoundInclude" Bounds="491.966461181641,513.981994628906,75.0851135253906,473.060852050781" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@626" Target="@342" Category="PoundInclude" Bounds="411.5634765625,573.370544433594,41.7577819824219,306.599426269531" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@626" Target="@344" Category="PoundInclude" Bounds="301.58893696229,852.725114864369,84.7268688150429,27.2448862918177" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@626" Target="@390" Category="PoundInclude" Bounds="344.961517333984,405.989562988281,108.359741210938,473.980407714844" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@626" Target="@392" Category="PoundInclude" Bounds="394.829315185547,242.711212158203,97.6013793945313,637.258758544922" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@626" Target="@394" Category="PoundInclude" Bounds="411.5634765625,298.905914306641,82.266845703125,581.064056396484" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@626" Target="@410" Category="PoundInclude" Bounds="439.268402099609,687.387451171875,55.076904296875,192.58251953125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@626" Target="@412" Category="PoundInclude" Bounds="386.477355957031,353.762756347656,66.8439025878906,526.207214355469" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@626" Target="@460" Category="PoundInclude" Bounds="411.5634765625,405.779266357422,82.9847412109375,474.190704345703" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@626" Target="@546" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@626" Target="@570" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@626" Target="@596" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@626" Target="@658" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@628" Target="@394" Category="PoundInclude" Bounds="542.956481933594,1138.84594726563,54.0203247070313,133.110107421875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@628" Target="@97" Category="PoundInclude" Bounds="600.491088867188,1082.96154785156,53.7965698242188,188.994506835938" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@628" Target="@394" Category="PoundInclude" Bounds="470.779632568359,121.996002197266,43.0362243652344,133.601043701172" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@628" Target="@97" Category="PoundInclude" Bounds="335.658782958984,121.996002197266,89.0559387207031,133.136108398438" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@63" Target="@310" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@63" Target="@494" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@63" Target="@522" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@630" Target="@128" Category="PoundInclude" Bounds="688.184490474497,410.984915022885,0.326206810265148,21.001085516668" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@630" Target="@198" Category="PoundInclude" Bounds="690.627685546875,457.984008789063,34.1309814453125,225.3369140625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@630" Target="@128" Category="PoundInclude" Bounds="303.470694236247,1073.9620014645,4.04250261443099,21.1598795153861" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@630" Target="@198" Category="PoundInclude" Bounds="283.501312255859,793.666381835938,44.22314453125,254.297607421875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@630" Target="@380" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@630" Target="@396" Category="PoundInclude" Bounds="689.981201171875,457.984008789063,49.951416015625,529.559448242188" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@630" Target="@396" Category="PoundInclude" Bounds="259.375915527344,466.959289550781,68.3485412597656,581.004699707031" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@630" Target="@466" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@630" Target="@586" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@630" Target="@7" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@630" Target="@97" Category="PoundInclude" Bounds="689.981201171875,457.984008789063,65.747314453125,587.5771484375" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@632" Target="@410" Category="PoundInclude" Bounds="419.229339599609,858.683898925781,69.0838623046875,77.2840576171875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@634" Target="@280" Category="PoundInclude" Bounds="546.976623535156,737.973999023438,41.1149291992188,189.0087890625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@634" Target="@410" Category="PoundInclude" Bounds="529.211669921875,737.973999023438,57.1812133789063,82.1138305664063" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@634" Target="@412" Category="PoundInclude" Bounds="491.689086914063,737.973999023438,96.4024658203125,304.026123046875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@634" Target="@460" Category="PoundInclude" Bounds="491.966461181641,737.973999023438,96.1250915527344,249.06884765625" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@630" Target="@97" Category="PoundInclude" Bounds="259.375915527344,298.98974609375,115.693969726563,748.974243164063" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@632" Target="@410" Category="PoundInclude" Bounds="524.913818359375,562.9052734375,76.12255859375,84.37451171875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@634" Target="@280" Category="PoundInclude" Bounds="378.812774658203,466.983825683594,65.2687377929688,188.994201660156" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@634" Target="@410" Category="PoundInclude" Bounds="422.47667244422,668.97700088641,21.0001,0" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@634" Target="@412" Category="PoundInclude" Bounds="378.812774658203,353.762756347656,65.3588562011719,302.215270996094" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@634" Target="@460" Category="PoundInclude" Bounds="378.812774658203,405.779266357422,115.735443115234,250.198760986328" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@634" Target="@570" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@634" Target="@596" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@634" Target="@97" Category="PoundInclude" Bounds="543.932556152344,737.973999023438,83.5839233398438,304.83935546875" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@636" Target="@105" Category="PoundInclude" Bounds="506.512634277344,65.9980010986328,31.022216796875,192.405563354492" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@636" Target="@442" Category="PoundInclude" Bounds="506.129577636719,65.9980010986328,47.4423828125,134.014801025391" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@638" Target="@105" Category="PoundInclude" Bounds="494.627380371094,298.906768798828,63.7476806640625,301.073211669922" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@638" Target="@460" Category="PoundInclude" Bounds="402.339691162109,625.97802734375,113.226287841797,360.997009277344" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@638" Target="@97" Category="PoundInclude" Bounds="514.268493652344,625.97802734375,113.247985839844,416.835327148438" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@640" Target="@346" Category="PoundInclude" Bounds="361.667663574219,660.905334472656,92.9254455566406,104.466003417969" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@640" Target="@516" Category="PoundInclude" Bounds="383.501434326172,500.550659179688,41.5189514160156,134.356689453125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@634" Target="@97" Category="PoundInclude" Bounds="345.11376953125,298.98974609375,99.057861328125,356.98828125" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@636" Target="@105" Category="PoundInclude" Bounds="454.441558837891,1133.61010742188,34.2962341308594,194.343872070313" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@636" Target="@442" Category="PoundInclude" Bounds="443.252655029297,1194.38781738281,33.4531555175781,133.566162109375" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@638" Target="@105" Category="PoundInclude" Bounds="412.128143310547,737.973999023438,70.8747863769531,357.059692382813" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@638" Target="@460" Category="PoundInclude" Bounds="405.717346191406,405.779266357422,88.8308715820313,306.196746826172" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@638" Target="@97" Category="PoundInclude" Bounds="345.11376953125,298.98974609375,99.057861328125,412.986267089844" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@640" Target="@346" Category="PoundInclude" Bounds="520.629699707031,626.777221679688,119.498962402344,108.635925292969" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@640" Target="@516" Category="PoundInclude" Bounds="564.576965332031,761.4111328125,55.5020751953125,77.2925415039063" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@640" Target="@570" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@642" Target="@382" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@642" Target="@454" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
@@ -1409,12 +1409,12 @@
     <Link Source="@93" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@95" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@97" Target="@15" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@97" Target="@280" Category="PoundInclude" Bounds="567.376878945425,968.515907147515,74.8692869695585,79.4480942399081" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@97" Target="@346" Category="PoundInclude" Bounds="543.932556152344,797.494445800781,90.9644165039063,250.469543457031" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@97" Target="@392" Category="PoundInclude" Bounds="606.153743940249,1073.9620014645,41.4403887537374,78.048982661815" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@97" Target="@394" Category="PoundInclude" Bounds="581.861697932008,1073.9620014645,48.2759014705237,25.7627128588713" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@97" Target="@460" Category="PoundInclude" Bounds="577.22434468018,1022.01488690812,51.4821068811394,25.9491144793055" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
-    <Link Source="@97" Target="@59" Category="PoundInclude" Bounds="658.239171401957,1073.9620014645,38.3985282100354,133.347430238671" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@97" Target="@280" Category="PoundInclude" Bounds="345.130004882813,289.989990234375,71.9581604003906,136.984893798828" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@97" Target="@346" Category="PoundInclude" Bounds="345.130004882813,289.989990234375,99.0416259765625,305.108520507813" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@97" Target="@392" Category="PoundInclude" Bounds="355.590268186827,241.0653233749,18.0374401345914,22.9266769334168" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@97" Target="@394" Category="PoundInclude" Bounds="388.907374651315,276.991000346857,21.0001,0" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@97" Target="@460" Category="PoundInclude" Bounds="344.979736328125,289.989990234375,44.9741821289063,82.8976135253906" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
+    <Link Source="@97" Target="@59" Category="PoundInclude" Bounds="318.582568250297,74.9199854302043,25.0580273529231,189.072014878113" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@97" Target="@662" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="@99" Target="@534" Category="PoundInclude" NativeProvider_CodeItemIds="Microsoft.VisualStudio.Progression.SmallList`1[System.Int64]" />
     <Link Source="C/C++ Standard Library Indirectly Included" Target="@122" Category="Contains" />
@@ -1730,7 +1730,7 @@
     <Property Id="FilePath" Label="File Path" Description="File Path" DataType="System.String" />
     <Property Id="Group" Label="Group" Description="Display the node as a group" DataType="Microsoft.VisualStudio.GraphModel.GraphGroupStyle" />
     <Property Id="GroupLabel" DataType="System.String" />
-    <Property Id="Icon" DataType="System.String" />
+    <Property Id="Icon" Label="Icon" Description="Icon" DataType="System.String" />
     <Property Id="IncomingActionLabel" Label="IncomingActionLabel" Description="IncomingActionLabel" DataType="System.String" />
     <Property Id="IsContainment" DataType="System.Boolean" />
     <Property Id="IsEnabled" DataType="System.Boolean" />
@@ -1738,7 +1738,7 @@
     <Property Id="Label" Label="Label" Description="Displayable label of an Annotatable object" DataType="System.String" />
     <Property Id="Language" Label="Language" Description="Language" DataType="System.String" />
     <Property Id="Layout" DataType="System.String" />
-    <Property Id="NativeProvider_CodeItemIds" Label="NodeIds" Description="NodeIds" DataType="Microsoft.VisualStudio.Progression.SmallList`1[[System.Int64, mscorlib, Version=4.0.0.0, Culture=neutral, PublicKeyToken=b77a5c561934e089]]" />
+    <Property Id="NativeProvider_CodeItemIds" Label="NodeIds" Description="NodeIds" DataType="System.String" />
     <Property Id="NavigationActionLabel" Label="NavigationActionLabel" Description="NavigationActionLabel" DataType="System.String" />
     <Property Id="OutgoingActionLabel" Label="OutgoingActionLabel" Description="OutgoingActionLabel" DataType="System.String" />
     <Property Id="TargetType" DataType="System.Type" />

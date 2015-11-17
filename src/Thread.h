@@ -9,8 +9,8 @@
 #include "Position.h"
 #include "Pawns.h"
 #include "Material.h"
-#include "MovePicker.h"
 #include "Searcher.h"
+#include "MovePicker.h"
 
 namespace Threading {
 

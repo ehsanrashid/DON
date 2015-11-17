@@ -5,14 +5,12 @@
 #include <sstream>
 #include <iomanip>
 
-#include "Transposition.h"
+#include "PRNG.h"
 #include "MoveGenerator.h"
 #include "MovePicker.h"
-#include "Material.h"
-#include "Pawns.h"
-#include "Evaluator.h"
+#include "Transposition.h"
 #include "PolyglotBook.h"
-#include "PRNG.h"
+#include "Evaluator.h"
 #include "Notation.h"
 #include "Debugger.h"
 

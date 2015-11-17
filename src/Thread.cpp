@@ -1,9 +1,5 @@
 #include "Thread.h"
 
-#include "Position.h"
-#include "MoveGenerator.h"
-#include "Searcher.h"
-#include "Endgame.h"
 #include "UCI.h"
 
 Threading::ThreadPool Threadpool; // Global ThreadPool
@@ -11,8 +7,6 @@ Threading::ThreadPool Threadpool; // Global ThreadPool
 namespace Threading {
 
     using namespace std;
-    using namespace MoveGen;
-    using namespace Searcher;
 
     // Thread constructor makes some init and launches the thread that will go to
     // sleep in idle_loop().

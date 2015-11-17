@@ -2,11 +2,11 @@
 
 #include <iomanip>
 
-#include "manipulator.h"
 #include "Position.h"
 #include "PRNG.h"
 #include "Zobrist.h"
 #include "MoveGenerator.h"
+#include "manipulator.h"
 #include "Notation.h"
 
 namespace OpeningBook  {
