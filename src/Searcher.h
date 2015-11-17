@@ -218,7 +218,7 @@ namespace Searcher {
         {
             return _best_move != MOVE_NONE ? _best_move : pick_best_move (root_moves);
         }
-        
+
         Move pick_best_move (const RootMoveVector &root_moves);
 
     };

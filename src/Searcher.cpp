@@ -2099,7 +2099,9 @@ namespace Threading {
                 {
                     bool found = false;
                     auto book_move = book.probe_move (root_pos, BookMoveBest);
-                    if (book_move != MOVE_NONE && std::count (root_moves.begin (), root_moves.end (), book_move) != 0)
+                    if (   book_move != MOVE_NONE
+                        && std::count (root_moves.begin (), root_moves.end (), book_move) != 0
+                       )
                     {
                         found = true;
                         std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), book_move));
@@ -2119,7 +2121,7 @@ namespace Threading {
             if (   ContemptTime != 0
                 && UseTimeManagment
                 && (diff_time = (Limits.clock[RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
-                //&& ContemptTime <= abs (diff_time)
+                && ContemptTime <= abs (diff_time)
                )
             {
                 timed_contempt = i16(diff_time/ContemptTime);
@@ -2182,7 +2184,7 @@ namespace Threading {
         {
             //if (best_thread == this) continue;
             if (   best_thread->leaf_depth < th->leaf_depth
-                && best_thread->root_moves[0] > th->root_moves[0]
+                && best_thread->root_moves[0].new_value < th->root_moves[0].new_value
                )
             {
                 best_thread = th;
