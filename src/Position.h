@@ -371,7 +371,7 @@ inline const Square* Position::squares (Color c) const { return _piece_square[c]
 template<PieceT PT>
 inline Square Position::square (Color c, i32 index) const
 {
-    assert (_piece_count[c][PT] > index);
+    assert(_piece_count[c][PT] > index);
     return _piece_square[c][PT][index];
 }
 
@@ -535,7 +535,7 @@ inline bool Position::advanced_pawn_push    (Move m) const
 
 inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 {
-    //assert (empty (s));
+    //assert(empty (s));
 
     _board[s] = (c | pt);
 
@@ -550,12 +550,12 @@ inline void  Position:: place_piece (Square s, Color c, PieceT pt)
 }
 inline void  Position:: place_piece (Square s, Piece p)
 {
-    assert (_ok (p));
+    assert(_ok (p));
     place_piece (s, color (p), ptype (p));
 }
 inline void  Position::remove_piece (Square s)
 {
-    //assert (!empty (s));
+    //assert(!empty (s));
 
     // WARNING: This is not a reversible operation. If remove a piece in
     // do_move() and then replace it in undo_move() will put it at the end of
@@ -585,9 +585,9 @@ inline void  Position::remove_piece (Square s)
 }
 inline void  Position::  move_piece (Square s1, Square s2)
 {
-    //assert (!empty (s1));
-    //assert ( empty (s2));
-    //assert (_piece_index[s1] != -1);
+    //assert(!empty (s1));
+    //assert( empty (s2));
+    //assert(_piece_index[s1] != -1);
 
     auto c  = color (_board[s1]);
     auto pt = ptype (_board[s1]);

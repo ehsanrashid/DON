@@ -37,7 +37,7 @@ private:
 public:
 
     PRNG () = delete;
-    PRNG (u64 seed) : s (seed) { assert (seed != 0); }
+    PRNG (u64 seed) : s (seed) { assert(seed != 0); }
 
     template<class T>
     T rand () { return T(rand64 ()); }

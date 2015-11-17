@@ -153,7 +153,7 @@ namespace Pawns {
             Square s;
             while ((s = *pl++) != SQ_NO)
             {
-                assert (pos[s] == (Own|PAWN));
+                assert(pos[s] == (Own|PAWN));
 
                 auto f = _file (s);
 
@@ -195,7 +195,7 @@ namespace Pawns {
                     backward = (opp_pawns & (b | shift_bb<Push> (b))) != U64(0);
                 }
 
-                assert (passed ^ (opposed || (opp_pawns & PAWN_ATTACK_SPAN[Own][s])));
+                assert(passed ^ (opposed || (opp_pawns & PAWN_ATTACK_SPAN[Own][s])));
 
                 auto score = SCORE_ZERO;
 
@@ -274,7 +274,7 @@ namespace Pawns {
         auto kfc = std::min (std::max (_file (k_sq), F_B), F_G);
         for (auto f = kfc - 1; f <= kfc + 1; ++f)
         {
-            assert (F_A <= f && f <= F_H);
+            assert(F_A <= f && f <= F_H);
 
             Bitboard mid_pawns;
             

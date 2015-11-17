@@ -16,8 +16,8 @@ namespace Transposition {
 
     void TranspositionTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
-        assert (0 == (alignment & (alignment-1)));
-        assert (0 == (mem_size  & (alignment-1)));
+        assert(0 == (alignment & (alignment-1)));
+        assert(0 == (mem_size  & (alignment-1)));
 
     #ifdef LPAGES
 
@@ -26,7 +26,7 @@ namespace Transposition {
         {
             void *ptr = reinterpret_cast<void*> ((uintptr_t(_mem) + alignment-1) & ~u64(alignment-1));
             _clusters = reinterpret_cast<Cluster*> (ptr);
-            assert (0 == (uintptr_t(_clusters) & (alignment-1)));
+            assert(0 == (uintptr_t(_clusters) & (alignment-1)));
             return;
         }
 
@@ -56,7 +56,7 @@ namespace Transposition {
             void **ptr = reinterpret_cast<void**> ((uintptr_t(mem) + alignment-1) & ~(alignment-1));
             ptr[-1]    = mem;
             _clusters  = reinterpret_cast<Cluster*> (ptr);
-            assert (0 == (uintptr_t(_clusters) & (alignment-1)));
+            assert(0 == (uintptr_t(_clusters) & (alignment-1)));
             return;
         }
 
@@ -75,7 +75,7 @@ namespace Transposition {
 
         size_t mem_size = mem_size_mb << 20; // mem_size_mb * 1024 * 1024
         u08 hash_bit = BitBoard::scan_msq (mem_size / ClusterSize);
-        assert (hash_bit < MaxHashBit);
+        assert(hash_bit < MaxHashBit);
 
         size_t cluster_count = size_t(1) << hash_bit;
 
@@ -111,7 +111,7 @@ namespace Transposition {
     // Returns a pointer to the entry found or NULL if not found.
     Entry* TranspositionTable::probe (Key key, bool &hit) const
     {
-        //assert (key != U64(0));
+        //assert(key != U64(0));
         const u16 key16 = key >> 0x30;
         auto *const fte = cluster_entry (key);
         for (auto *ite = fte+0; ite < fte+ClusterEntryCount; ++ite)

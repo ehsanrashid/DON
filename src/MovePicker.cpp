@@ -71,7 +71,7 @@ namespace MovePick {
         , _counter_move (cm)
         , _depth (depth)
     {
-        assert (_depth > DEPTH_ZERO);
+        assert(_depth > DEPTH_ZERO);
 
         _stage = _pos.checkers () != U64(0) ? S_EVASION : S_MAIN;
 
@@ -88,7 +88,7 @@ namespace MovePick {
         , _history_values (hv)
         , _depth (depth)
     {
-        assert (_depth <= DEPTH_ZERO);
+        assert(_depth <= DEPTH_ZERO);
 
         if (_pos.checkers () != U64(0))
         {
@@ -123,7 +123,7 @@ namespace MovePick {
         , _history_values (hv)
         , _threshold (thr)
     {
-        assert (_pos.checkers () == U64(0));
+        assert(_pos.checkers () == U64(0));
 
         _stage = S_PROBCUT;
 
@@ -282,7 +282,7 @@ namespace MovePick {
             break;
 
         default:
-            assert (false);
+            assert(false);
             break;
         }
     }
@@ -418,7 +418,7 @@ namespace MovePick {
                 break;
 
             default:
-                assert (false);
+                assert(false);
                 break;
             }
         } while (true);

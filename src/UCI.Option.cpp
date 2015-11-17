@@ -55,17 +55,17 @@ namespace UCI {
 
     Option::operator bool () const
     {
-        assert (_type == "check");
+        assert(_type == "check");
         return (_value == "true");
     }
     Option::operator i32 () const
     {
-        assert (_type == "spin");
+        assert(_type == "spin");
         return stoi (_value);
     }
     Option::operator string () const
     {
-        assert (_type == "string");
+        assert(_type == "string");
         return _value;
     }
 
@@ -79,7 +79,7 @@ namespace UCI {
     }
     Option& Option::operator= (const string &value)
     {
-        assert (!_type.empty ());
+        assert(!_type.empty ());
 
         if (!( (_type != "button" && value.empty ())
             || (_type == "check"  && value != "true" && value != "false")

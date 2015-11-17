@@ -109,8 +109,8 @@ namespace Zobrist {
             }
         }
 
-        assert (kf[WHITE] != F_NO);
-        assert (kf[BLACK] != F_NO);
+        assert(kf[WHITE] != F_NO);
+        assert(kf[BLACK] != F_NO);
 
         iss >> ch;
         if ('w' == ch) fen_key ^= _.act_side;

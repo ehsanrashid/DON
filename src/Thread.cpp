@@ -96,7 +96,7 @@ namespace Threading {
     void ThreadPool::configure ()
     {
         size_t threads = i32(Options["Threads"]);
-        assert (threads > 0);
+        assert(threads > 0);
 
         while (size () < threads)
         {
@@ -141,7 +141,7 @@ namespace Threading {
         if (states.get () != nullptr) // If don't set a new position, preserve current state
         {
             SetupStates = std::move (states); // Ownership transfer here
-            assert (states.get () == nullptr);
+            assert(states.get () == nullptr);
         }
 
         main ()->searching = true;

@@ -806,7 +806,7 @@ namespace Evaluator {
             while (passed_pawns != U64(0))
             {
                 auto s = pop_lsq (passed_pawns);
-                assert (pos.passed_pawn (Own, s));
+                assert(pos.passed_pawn (Own, s));
                 
                 i32  r = rel_rank (Own, s) - R_2;
                 i32 rr = r * (r - 1);
@@ -917,7 +917,7 @@ namespace Evaluator {
                   );
 
             // Since SPACE_MASK[Own] is fully on our half of the board
-            assert (u32(safe_space >> (WHITE == Own ? 32 : 0)) == 0);
+            assert(u32(safe_space >> (WHITE == Own ? 32 : 0)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
             auto behind = pos.pieces (Own, PAWN);
@@ -961,7 +961,7 @@ namespace Evaluator {
         // evaluate<>()
         Value evaluate (const Position &pos)
         {
-            assert (pos.checkers () == U64(0));
+            assert(pos.checkers () == U64(0));
 
             EvalInfo ei;
 
@@ -1091,15 +1091,15 @@ namespace Evaluator {
 
             auto mg = mg_value (score);
             auto eg = eg_value (score);
-            assert (-VALUE_INFINITE < mg && mg < +VALUE_INFINITE);
-            assert (-VALUE_INFINITE < eg && eg < +VALUE_INFINITE);
+            assert(-VALUE_INFINITE < mg && mg < +VALUE_INFINITE);
+            assert(-VALUE_INFINITE < eg && eg < +VALUE_INFINITE);
 
             auto strong_side = eg >= VALUE_DRAW ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
             auto scale_factor = me->scale_factor (pos, strong_side);
 
             auto game_phase = me->game_phase;
-            assert (PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
+            assert(PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
 
             // If don't already have an unusual scale factor, check for opposite
             // colored bishop endgames, and use a lower scale for those.

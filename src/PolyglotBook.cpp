@@ -165,11 +165,11 @@ namespace OpeningBook  {
 
         PBEntry pbe;
 
-        assert (beg_index <= end_index);
+        assert(beg_index <= end_index);
         while (beg_index < end_index && good ())
         {
             auto mid_index = size_t((beg_index + end_index) / 2);
-            assert (mid_index >= beg_index && mid_index < end_index);
+            assert(mid_index >= beg_index && mid_index < end_index);
 
             seekg (OFFSET (mid_index), ios_base::beg);
             *this >> pbe;
@@ -183,7 +183,7 @@ namespace OpeningBook  {
                 beg_index = mid_index + 1;
             }
         }
-        assert (beg_index == end_index);
+        assert(beg_index == end_index);
 
         return beg_index;
     }

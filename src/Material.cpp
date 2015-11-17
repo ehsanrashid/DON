@@ -200,13 +200,13 @@ namespace Material {
             {
                 if (pos.count<PAWN> (BLACK) == 0)
                 {
-                    assert (pos.count<PAWN> (WHITE) > 1);
+                    assert(pos.count<PAWN> (WHITE) > 1);
                     e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
                 }
                 else
                 if (pos.count<PAWN> (WHITE) == 0)
                 {
-                    assert (pos.count<PAWN> (BLACK) > 1);
+                    assert(pos.count<PAWN> (BLACK) > 1);
                     e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
                 }
                 else

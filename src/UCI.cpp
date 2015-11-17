@@ -127,7 +127,7 @@ namespace UCI {
                         fen += token + " ";
                     }
 
-                    assert (_ok (fen, Chess960, true));
+                    assert(_ok (fen, Chess960, true));
                 }
                 else
                 {

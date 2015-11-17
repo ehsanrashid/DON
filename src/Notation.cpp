@@ -21,7 +21,7 @@ namespace Notation {
         // NOTE: for pawns it is not needed because 'org' file is explicit.
         AmbiguityT ambiguity (Move m, const Position &pos)
         {
-            assert (pos.legal (m));
+            assert(pos.legal (m));
 
             auto org = org_sq (m);
             auto dst = dst_sq (m);
@@ -41,7 +41,6 @@ namespace Notation {
                     amb -= sq;
                 }
             }
-
             if (amb != U64(0))
             {
                 if ((amb & file_bb (org)) == U64(0)) return AMB_RANK;
@@ -101,7 +100,6 @@ namespace Notation {
         {
             can[4] = u08(tolower (can[4])); // Promotion piece in lowercase
         }
-
         for (const auto &m : MoveList<LEGAL> (pos))
         {
             if (can == move_to_can (m, pos.chess960 ()))
@@ -162,8 +160,8 @@ namespace Notation {
     {
         if (MOVE_NONE == m) return "(none)";
         if (MOVE_NULL == m) return "(null)";
-        assert (pos.legal (m));
-        assert (MoveList<LEGAL> (pos).contains (m));
+        assert(pos.legal (m));
+        assert(MoveList<LEGAL> (pos).contains (m));
 
         string san;
         auto org = org_sq (m);
@@ -188,7 +186,7 @@ namespace Notation {
                 case AMB_RANK: san += to_char (_file (org)); break;
                 case AMB_FILE: san += to_char (_rank (org)); break;
                 case AMB_SQR:  san += to_string (org);       break;
-                default:       assert (false);               break;
+                default:       assert(false);               break;
                 }
             }
 

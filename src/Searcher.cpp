@@ -56,7 +56,7 @@ namespace Searcher {
 
         void update (Position& pos, const MoveVector &pv)
         {
-            assert (pv.size () >= 3);
+            assert(pv.size () >= 3);
             // Keep track of how many times in a row 3rd ply remains stable
             stable_count = (pv[2] == _pv[2]) ? stable_count + 1 : 0;
             
@@ -263,7 +263,7 @@ namespace Searcher {
             // Decrease all the other played quiet moves
             for (u08 i = 0; i < quiet_count; ++i)
             {
-                assert (quiet_moves[i] != move);
+                assert(quiet_moves[i] != move);
 
                 thread->history_values.update (pos, quiet_moves[i], -bonus);
 
@@ -310,7 +310,7 @@ namespace Searcher {
         // The function is called before storing a value to the transposition table.
         Value value_to_tt (Value v, i32 ply)
         {
-            assert (v != VALUE_NONE);
+            assert(v != VALUE_NONE);
             return v >= +VALUE_MATE_IN_MAX_DEPTH ? v + ply :
                    v <= -VALUE_MATE_IN_MAX_DEPTH ? v - ply :
                    v;
@@ -333,7 +333,7 @@ namespace Searcher {
         string multipv_info (const Position &pos, Depth depth, Value alpha, Value beta)
         {
             u32 elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
-            assert (elapsed_time > 0);
+            assert(elapsed_time > 0);
             const auto &root_moves = pos.thread ()->root_moves;
             u16 pv_index = pos.thread ()->pv_index;
             u64 game_nodes = Threadpool.game_nodes ();
@@ -386,11 +386,11 @@ namespace Searcher {
         {
             const bool    PVNode = NT == PV;
 
-            assert (NT == PV || NT == NonPV);
-            assert (in_check == (pos.checkers () != U64(0)));
-            assert (alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
-            assert (PVNode || alpha == beta-1);
-            assert (depth <= DEPTH_ZERO);
+            assert(NT == PV || NT == NonPV);
+            assert(in_check == (pos.checkers () != U64(0)));
+            assert(alpha >= -VALUE_INFINITE && alpha < beta && beta <= +VALUE_INFINITE);
+            assert(PVNode || alpha == beta-1);
+            assert(depth <= DEPTH_ZERO);
 
             ss->current_move = MOVE_NONE;
             ss->ply = (ss-1)->ply + 1;
@@ -417,7 +417,7 @@ namespace Searcher {
                         DrawValue[pos.active ()];
             }
 
-            assert (0 <= ss->ply && ss->ply < MAX_DEPTH);
+            assert(0 <= ss->ply && ss->ply < MAX_DEPTH);
 
             Move  tt_move    = MOVE_NONE
                 , best_move  = MOVE_NONE;
@@ -497,11 +497,11 @@ namespace Searcher {
                             tte->save (posi_key, MOVE_NONE, value_to_tt (best_value, ss->ply), ss->static_eval, DEPTH_NONE, BOUND_LOWER, TT.generation ());
                         }
 
-                        assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+                        assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
                         return best_value;
                     }
 
-                    assert (best_value < beta);
+                    assert(best_value < beta);
                     // Update alpha! Always alpha < beta
                     if (PVNode) alpha = best_value;
                 }
@@ -523,7 +523,7 @@ namespace Searcher {
             // Loop through the moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
-                assert (_ok (move));
+                assert(_ok (move));
 
                 bool gives_check = pos.gives_check (move, ci);
 
@@ -537,7 +537,7 @@ namespace Searcher {
                         && !pos.advanced_pawn_push (move)
                        )
                     {
-                        assert (mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
+                        assert(mtype (move) != ENPASSANT); // Due to !pos.advanced_pawn_push()
 
                         auto futility_value = futility_base + PIECE_VALUE[EG][ptype (pos[dst_sq (move)])];
 
@@ -589,7 +589,7 @@ namespace Searcher {
                 // Undo the move
                 pos.undo_move ();
 
-                assert (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
+                assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
                 // Check for new best move
                 if (best_value < value)
@@ -609,11 +609,11 @@ namespace Searcher {
                         {
                             tte->save (posi_key, move, value_to_tt (value, ss->ply), ss->static_eval, qs_depth, BOUND_LOWER, TT.generation ());
 
-                            assert (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
+                            assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
                             return value;
                         }
 
-                        assert (value < beta);
+                        assert(value < beta);
                         // Update alpha! Always alpha < beta
                         if (PVNode) alpha = value;
                     }
@@ -630,7 +630,7 @@ namespace Searcher {
             tte->save (posi_key, best_move, value_to_tt (best_value, ss->ply), ss->static_eval, qs_depth,
                 PVNode && pv_alpha < best_value ? BOUND_EXACT : BOUND_UPPER, TT.generation ());
 
-            assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+            assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
         }
 
@@ -641,9 +641,9 @@ namespace Searcher {
             const bool RootNode = NT == Root;
             const bool   PVNode = NT == Root || NT == PV;
 
-            assert (-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
-            assert (PVNode || alpha == beta-1);
-            assert (DEPTH_ZERO < depth && depth < DEPTH_MAX);
+            assert(-VALUE_INFINITE <= alpha && alpha < beta && beta <= +VALUE_INFINITE);
+            assert(PVNode || alpha == beta-1);
+            assert(DEPTH_ZERO < depth && depth < DEPTH_MAX);
 
             Move  move
                 , tt_move     = MOVE_NONE
@@ -715,7 +715,7 @@ namespace Searcher {
                 if (alpha >= beta) return alpha;
             }
 
-            assert (0 <= ss->ply && ss->ply < MAX_DEPTH);
+            assert(0 <= ss->ply && ss->ply < MAX_DEPTH);
 
             ss->move_count = 0;
             ss->current_move =
@@ -851,8 +851,8 @@ namespace Searcher {
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                        )
                     {
-                        assert ((ss-1)->current_move != MOVE_NONE && (ss-1)->current_move != MOVE_NULL);
-                        assert (exclude_move == MOVE_NONE);
+                        assert((ss-1)->current_move != MOVE_NONE && (ss-1)->current_move != MOVE_NULL);
+                        assert(exclude_move == MOVE_NONE);
 
                         ss->current_move = MOVE_NULL;
 
@@ -912,10 +912,10 @@ namespace Searcher {
                         auto reduced_depth = depth - ProbCutDepth*DEPTH_ONE; // Shallow Depth
                         auto extended_beta = std::min (beta + VALUE_MG_PAWN, +VALUE_INFINITE); // ProbCut Threshold
 
-                        assert (reduced_depth >= DEPTH_ONE);
-                        assert ((ss-1)->current_move != MOVE_NONE);
-                        assert ((ss-1)->current_move != MOVE_NULL);
-                        assert (extended_beta > alpha);
+                        assert(reduced_depth >= DEPTH_ONE);
+                        assert((ss-1)->current_move != MOVE_NONE);
+                        assert((ss-1)->current_move != MOVE_NULL);
+                        assert(extended_beta > alpha);
 
                         // Initialize a MovePicker object for the current position,
                         // and prepare to search the moves.
@@ -1020,7 +1020,7 @@ namespace Searcher {
             // Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs
             while ((move = mp.next_move ()) != MOVE_NONE)
             {
-                assert (_ok (move));
+                assert(_ok (move));
 
                 if (move == exclude_move) continue;
                 
@@ -1244,7 +1244,7 @@ namespace Searcher {
                 // Step 17. Undo move
                 pos.undo_move ();
 
-                assert (-VALUE_INFINITE < value && value < +VALUE_INFINITE);
+                assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
                 // Step 18. Check for new best move
                 // Finished searching the move. If a stop or a cutoff occurred,
@@ -1264,7 +1264,7 @@ namespace Searcher {
                         rm.new_value = value;
                         rm.pv.resize (1);
 
-                        assert ((ss+1)->pv != nullptr);
+                        assert((ss+1)->pv != nullptr);
 
                         for (auto *m = (ss+1)->pv; *m != MOVE_NONE; ++m)
                         {
@@ -1320,7 +1320,7 @@ namespace Searcher {
                             break;
                         }
 
-                        assert (value < beta);
+                        assert(value < beta);
                         // Update alpha! Always alpha < beta
                         if (PVNode) alpha = value;
                     }
@@ -1390,7 +1390,7 @@ namespace Searcher {
                     PVNode && best_move != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
                 TT.generation ());
 
-            assert (-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
+            assert(-VALUE_INFINITE < best_value && best_value < +VALUE_INFINITE);
             return best_value;
         }
 
@@ -1480,7 +1480,7 @@ namespace Searcher {
         u08 ply = 0;
         for (auto m : pv)
         {
-            assert (MoveList<LEGAL> (pos).contains (m));
+            assert(MoveList<LEGAL> (pos).contains (m));
 
             bool tt_hit;
             auto *tte = TT.probe (pos.posi_key (), tt_hit);
@@ -1507,8 +1507,8 @@ namespace Searcher {
     // otherwise in case of 'ponder on' we have nothing to think on.
     bool RootMove::extract_ponder_move_from_tt (Position &pos)
     {
-        assert (size () == 1);
-        assert (pv[0] != MOVE_NONE);
+        assert(size () == 1);
+        assert(pv[0] != MOVE_NONE);
 
         bool extracted = false;
 
@@ -1905,7 +1905,7 @@ namespace Threading {
 
                     window += window / 4 + 5;
 
-                    assert (-VALUE_INFINITE <= bound_a && bound_a < bound_b && bound_b <= +VALUE_INFINITE);
+                    assert(-VALUE_INFINITE <= bound_a && bound_a < bound_b && bound_b <= +VALUE_INFINITE);
                 }
                 while (true);
 
@@ -2182,14 +2182,14 @@ namespace Threading {
         {
             //if (best_thread == this) continue;
             if (   best_thread->leaf_depth < th->leaf_depth
-                && best_thread->root_moves[0] > th->root_moves[0]  // Ascending sort (invert)
+                && best_thread->root_moves[0] > th->root_moves[0]
                )
             {
                 best_thread = th;
             }
         }
 
-        assert (!best_thread->root_moves[0].empty ());
+        assert(!best_thread->root_moves[0].empty ());
 
         // Send new PV when needed.
         // FIXME: Breaks multiPV, and skill levels

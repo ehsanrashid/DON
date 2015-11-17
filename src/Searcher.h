@@ -94,6 +94,7 @@ namespace Searcher {
 
         explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
 
+        // Ascending sort
         bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
         bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
         bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }
@@ -187,26 +188,36 @@ namespace Searcher {
         Move _best_move = MOVE_NONE;
 
     public:
+        static const u16 SkillMultiPV = 4;
+
         explicit SkillManager (u08 level = MAX_SKILL_LEVEL)
             : _level (level)
         {}
 
-        static const u16 SkillMultiPV = 4;
-
         void change_level (u08 level)
-        { _level = level; }
+        {
+            _level = level;
+        }
 
         void clear ()
-        { _best_move = MOVE_NONE; }
+        {
+            _best_move = MOVE_NONE;
+        }
 
         bool enabled () const
-        { return _level < MAX_SKILL_LEVEL; }
+        {
+            return _level < MAX_SKILL_LEVEL;
+        }
 
         bool depth_to_pick (Depth depth) const
-        { return depth/DEPTH_ONE == (1 + _level); }
+        {
+            return depth/DEPTH_ONE == (1 + _level);
+        }
 
         Move best_move (const RootMoveVector &root_moves)
-        { return _best_move != MOVE_NONE ? _best_move : pick_best_move (root_moves); }
+        {
+            return _best_move != MOVE_NONE ? _best_move : pick_best_move (root_moves);
+        }
         
         Move pick_best_move (const RootMoveVector &root_moves);
 
