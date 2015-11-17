@@ -157,7 +157,7 @@ namespace Memory {
                 sync_cout << "info string Page Hash " << (mem_size >> 20) << " MB." << sync_endl;
                 return;
             }
-            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << std::endl;
+            std::cerr << "ERROR: VirtualAlloc() virtual memory alloc failed." << (mem_size >> 20) << " MB." << std::endl;
 
 #   else
 
@@ -172,7 +172,7 @@ namespace Memory {
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed." << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB." << std::endl;
                 if (shmctl (shm, IPC_RMID, nullptr) == -1)
                 {
                     std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
@@ -190,14 +190,14 @@ namespace Memory {
                     sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
                     return;
                 }
-                std::cerr << "ERROR: shmat() shared memory attach failed." << std::endl;
+                std::cerr << "ERROR: shmat() shared memory attach failed." << (mem_size >> 20) << " MB." << std::endl;
                 if (shmctl (shm, IPC_RMID, nullptr) == -1)
                 {
                     std::cerr << "ERROR: shmctl(IPC_RMID) failed." << std::endl;
                 }
                 return;
             }
-            std::cerr << "ERROR: shmget() shared memory alloc failed." << std::endl;
+            std::cerr << "ERROR: shmget() shared memory alloc failed." << (mem_size >> 20) << " MB." << std::endl;
 
 #   endif
         }
@@ -210,7 +210,7 @@ namespace Memory {
             return;
         }
 
-        std::cerr << "ERROR: Hash allocate failed " << (mem_size >> 20) << " MB." << std::endl;
+        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB." << std::endl;
     }
 
     void  free_memory (void *mem)
@@ -220,13 +220,10 @@ namespace Memory {
         if (LargePages)
         {
 #   if defined(_WIN32)
-            
             if (VirtualFree (mem, 0, MEM_RELEASE))
             {
             }
-
 #   else
-
             if (shmdt (mem) == -1)
             {
                 std::cerr << "ERROR: shmdt() shared memory detach failed." << std::endl;

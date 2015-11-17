@@ -13,6 +13,8 @@ namespace MoveGen {
     public:
         Move  move  = MOVE_NONE;
         Value value = VALUE_ZERO;
+        
+        //ValMove& operator= (const ValMove&) = default;
 
         operator Move () const  { return move; }
         void operator= (Move  m) { move  = m; }

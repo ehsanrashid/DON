@@ -60,7 +60,7 @@ namespace Transposition {
             return;
         }
 
-        std::cerr << "ERROR: Hash allocate failed " << (mem_size >> 20) << " MB." << std::endl;
+        std::cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB." << std::endl;
     #endif
 
     }
