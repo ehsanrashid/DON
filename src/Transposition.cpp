@@ -128,11 +128,11 @@ namespace Transposition {
         }
         // Find an entry to be replaced according to the replacement strategy
         auto *rte = fte;
-        auto rem = rte->_depth + ((rte->bound () == BOUND_EXACT) - ((0x100 + _generation - rte->gen ())&0xFC))*2*DEPTH_ONE;
+        auto rem = rte->_depth + ((rte->bound () == BOUND_EXACT) - ((0x103 + _generation - rte->_gen_bnd)&0xFC))*2*DEPTH_ONE;
         for (auto *ite = fte+1; ite < fte+ClusterEntryCount; ++ite)
         {
             // Implementation of replacement strategy when a collision occurs
-            auto iem = ite->_depth + ((ite->bound () == BOUND_EXACT) - ((0x100 + _generation - ite->gen ())&0xFC))*2*DEPTH_ONE;
+            auto iem = ite->_depth + ((ite->bound () == BOUND_EXACT) - ((0x103 + _generation - ite->_gen_bnd)&0xFC))*2*DEPTH_ONE;
             if (rem > iem)
             {
                 rem = iem;

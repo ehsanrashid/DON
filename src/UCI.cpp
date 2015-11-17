@@ -46,10 +46,10 @@ namespace UCI {
         do
         {
             // Block here waiting for input or EOF
-            if (running && !getline (cin, cmd, '\n')) cmd = "quit";
+            if (running && !std::getline (cin, cmd, '\n')) cmd = "quit";
 
             istringstream iss (cmd);
-            token.clear (); // getline() could return empty or blank line
+            token.clear (); // std::getline() could return empty or blank line
             iss >> skipws >> token;
 
             if (white_spaces (token)) continue;

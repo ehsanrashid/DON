@@ -1517,7 +1517,7 @@ void Position::flip ()
     // 1. Piece placement
     for (auto rank = R_8; rank >= R_1; --rank)
     {
-        getline (ss, token, rank > R_1 ? '/' : ' ');
+        std::getline (ss, token, rank > R_1 ? '/' : ' ');
         flip_fen.insert (0, token + (white_spaces (flip_fen) ? " " : "/"));
     }
     // 2. Active color
@@ -1535,7 +1535,7 @@ void Position::flip ()
     ss >> token;
     flip_fen += (token == "-" ? token : token.replace (1, 1, token[1] == '3' ? "6" : token[1] == '6' ? "3" : "-"));
     // 5-6. Half and full moves
-    getline (ss, token);
+    std::getline (ss, token);
     flip_fen += token;
 
     setup (flip_fen, _thread, _chess960);

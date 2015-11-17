@@ -13,6 +13,7 @@ using namespace std;
 using namespace Searcher;
 using namespace MoveGen;
 using namespace Notation;
+using namespace Debugger;
 
 namespace {
 
@@ -125,7 +126,7 @@ void benchmark (istream &is, const Position &cur_pos)
         }
 
         string fen;
-        while (!fen_ifs.eof () && getline (fen_ifs, fen))
+        while (!fen_ifs.eof () && std::getline (fen_ifs, fen))
         {
             if (!white_spaces (fen))
             {
@@ -139,7 +140,7 @@ void benchmark (istream &is, const Position &cur_pos)
     clear ();
 
     u64  nodes = 0;
-    auto time  = now ();
+    auto elapsed_time = now ();
     
     for (u16 i = 0; i < fens.size (); ++i)
     {
@@ -150,7 +151,6 @@ void benchmark (istream &is, const Position &cur_pos)
 
         if (limit_type == "perft")
         {
-            std::cerr << "\nDepth " << i32(limits.depth) << std::endl;
             u64 leaf_nodes = perft (pos, i32(limits.depth)*DEPTH_ONE);
             std::cerr << "\nLeaf nodes: " << leaf_nodes << std::endl;
             nodes += leaf_nodes;
@@ -165,13 +165,13 @@ void benchmark (istream &is, const Position &cur_pos)
         }
     }
 
-    time = max (now () - time, 1LL);
+    elapsed_time = std::max (now () - elapsed_time, 1LL);
 
     std::cerr << "\n---------------------------\n";
-    Debugger::dbg_print (); // Just before to exit
+    dbg_print (); // Just before to exit
     std::cerr << "\n===========================\n"
-              << "Total time (ms) : " << time  << "\n"
-              << "Nodes searched  : " << nodes << "\n"
-              << "Nodes/second    : " << nodes * MILLI_SEC / time
-              << "\n---------------------------\n" << std::endl;
+              << "Total time (ms) : " << elapsed_time << "\n"
+              << "Nodes searched  : " << nodes        << "\n"
+              << "Nodes/second    : " << nodes * MILLI_SEC / elapsed_time
+              << "\n---------------------------\n"    << std::endl;
 }

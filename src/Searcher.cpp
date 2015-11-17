@@ -510,13 +510,15 @@ namespace Searcher {
             }
 
             auto *thread = pos.thread ();
+            
+            auto opp_move = (ss-1)->current_move;
+            auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
 
             // Initialize a MovePicker object for the current position, and prepare
             // to search the moves. Because the depth is <= 0 here, only captures,
             // queen promotions and checks (only if depth >= DEPTH_QS_CHECKS) will
             // be generated.
-            auto opp_move = (ss-1)->current_move; 
-            MovePicker mp (pos, thread->history_values, tt_move, depth, _ok (opp_move) ? dst_sq (opp_move) : SQ_NO);
+            MovePicker mp (pos, thread->history_values, tt_move, depth, opp_move_dst);
             CheckInfo ci (pos);
             StateInfo si;
             Move move;
@@ -917,8 +919,7 @@ namespace Searcher {
                         assert((ss-1)->current_move != MOVE_NULL);
                         assert(extended_beta > alfa);
 
-                        // Initialize a MovePicker object for the current position,
-                        // and prepare to search the moves.
+                        // Initialize a MovePicker object for the current position, and prepare to search the moves.
                         MovePicker mp (pos, thread->history_values, tt_move, PIECE_VALUE[MG][pos.capture_type ()]);
 
                         while ((move = mp.next_move ()) != MOVE_NONE)
@@ -1014,6 +1015,7 @@ namespace Searcher {
                 CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] :
                 CounterMoves2DValues[EMPTY][SQ_A1];
 
+            // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
 
             // Step 11. Loop through moves
@@ -1822,7 +1824,7 @@ namespace Threading {
             else
             {
                 // Set up the new depth for the helper threads
-                root_depth = std::min (Threadpool.main ()->root_depth + Depth (i32 (2.2 * log (1 + this->index))), DEPTH_MAX - DEPTH_ONE);
+                root_depth = std::min (Threadpool.main ()->root_depth + Depth(i32(2.2 * log (1 + this->index))), DEPTH_MAX - DEPTH_ONE);
             }
 
             // Save last iteration's scores before first PV line is searched and
@@ -1856,7 +1858,7 @@ namespace Threading {
                     // want to keep the same order for all the moves but the new PV
                     // that goes to the front. Note that in case of MultiPV search
                     // the already searched PV lines are preserved.
-                    stable_sort (root_moves.begin () + pv_index, root_moves.end ());
+                    std::stable_sort (root_moves.begin () + pv_index, root_moves.end ());
 
                     // Write PV back to transposition table in case the relevant
                     // entries have been overwritten during the search.
@@ -1885,7 +1887,7 @@ namespace Threading {
                     // otherwise exit the loop.
                     if (best_value <= alfa)
                     {
-                        beta = (alfa + beta)/2;
+                        beta = (alfa + beta) / 2;
                         alfa = std::max (best_value - window, -VALUE_INFINITE);
 
                         if (thread_main)
@@ -1897,7 +1899,7 @@ namespace Threading {
                     else
                     if (best_value >= beta)
                     {
-                        alfa = (alfa + beta)/2;
+                        alfa = (alfa + beta) / 2;
                         beta = std::min (best_value + window, +VALUE_INFINITE);
                     }
                     else
@@ -2121,7 +2123,7 @@ namespace Threading {
             if (   ContemptTime != 0
                 && UseTimeManagment
                 && (diff_time = (Limits.clock[RootColor].time - Limits.clock[~RootColor].time)/MILLI_SEC) != 0
-                && ContemptTime <= abs (diff_time)
+                //&& ContemptTime <= abs (diff_time)
                )
             {
                 timed_contempt = i16(diff_time/ContemptTime);
@@ -2184,7 +2186,7 @@ namespace Threading {
         {
             //if (best_thread == this) continue;
             if (   best_thread->leaf_depth < th->leaf_depth
-                && best_thread->root_moves[0].new_value < th->root_moves[0].new_value
+                //&& best_thread->root_moves[0].new_value < th->root_moves[0].new_value
                )
             {
                 best_thread = th;
