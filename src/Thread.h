@@ -125,16 +125,16 @@ enum SyncT { IO_LOCK, IO_UNLOCK };
 // Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 inline std::ostream& operator<< (std::ostream &os, SyncT sync)
 {
-    static Mutex io_mutex;
+    static Mutex mutex;
 
     if (sync == IO_LOCK)
     {
-        io_mutex.lock ();
+        mutex.lock ();
     }
     else
     if (sync == IO_UNLOCK)
     {
-        io_mutex.unlock ();
+        mutex.unlock ();
     }
     return os;
 }

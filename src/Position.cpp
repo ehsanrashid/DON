@@ -1145,15 +1145,15 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
 // updated by do_move and undo_move when the program is running in debug mode.
 Score Position::compute_psq_score () const
 {
-    auto psq_score = SCORE_ZERO;
+    auto psq_bonus = SCORE_ZERO;
     auto occ = _types_bb[NONE];
     while (occ != U64(0))
     {
         auto s = pop_lsq (occ);
         auto p = _board[s];
-        psq_score += PSQ[color (p)][ptype (p)][s];
+        psq_bonus += PSQ[color (p)][ptype (p)][s];
     }
-    return psq_score;
+    return psq_bonus;
 }
 
 // compute_non_pawn_material() computes the total non-pawn middle
@@ -1188,7 +1188,7 @@ Value Position::compute_non_pawn_material (Color c) const
     _psi->clock50 = 0;                                                               \
 }
 // do_move() do the move
-void Position::do_move (Move m, StateInfo &nsi, bool gives_check)
+void Position::do_move (Move m, StateInfo &nsi, bool give_check)
 {
     assert(_ok (m));
     assert(&nsi != _psi);
@@ -1372,7 +1372,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool gives_check)
         }
     }
     // Calculate checkers bitboard (if move is check)
-    _psi->checkers = gives_check ? attackers_to (_piece_square[pasive][KING][0], _active) : U64(0);
+    _psi->checkers = give_check ? attackers_to (_piece_square[pasive][KING][0], _active) : U64(0);
     // Switch sides
     _active = pasive;
     // Reset en-passant square

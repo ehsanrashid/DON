@@ -7,42 +7,59 @@ namespace Debugger {
 
     namespace {
 
-        u64 Hits[2] = { 0, 0 };
-        i64 Mean[2] = { 0, 0 };
+        u64 CondCount = 0;
+        u64 HitCount = 0;
+
+        u64 ItemCount = 0;
+        i64 ItemSum = 0;
     }
 
-    void dbg_hits_on (bool b, bool c)
+    void dbg_hit_on (bool hit)
     {
         static Mutex mutex;
         mutex.lock ();
-        if (c) { ++Hits[0]; if (b) { ++Hits[1]; } }
+        ++CondCount;
+        if (hit)
+        {
+            ++HitCount;
+        }
         mutex.unlock ();
     }
 
-    void dbg_mean_of (i64 v)
+    void dbg_hit_on (bool cond, bool hit)
+    {
+        if (cond)
+        {
+            dbg_hit_on (hit);
+        }
+    }
+
+    void dbg_mean_of (i64 item)
     {
         static Mutex mutex;
         mutex.lock ();
-        ++Mean[0]; Mean[1] += v;
+        ++ItemCount;
+        ItemSum += item;
         mutex.unlock ();
     }
 
     void dbg_print ()
     {
-        if (Hits[0] != 0)
+        if (CondCount != 0)
         {
             std::cerr << right
-                << "Total :" << setw (20) << Hits[0] << "\n"
-                << "Hits  :" << setw (20) << Hits[1] << "\n"
-                << "Rate  :" << setw (20) << setprecision (2) << fixed << 100 * (double) Hits[1] / Hits[0]
+                << "Count :" << setw (20) << CondCount << "\n"
+                << "Hit   :" << setw (20) << HitCount  << "\n"
+                << "Rate  :" << setw (20) << setprecision (2) << fixed << 100 * (double) HitCount / CondCount
                 << left << std::endl;
         }
 
-        if (Mean[0] != 0)
+        if (ItemCount != 0)
         {
             std::cerr << right
-                << "Total :" << setw (20) << Mean[0] << "\n"
-                << "Mean  :" << setw (20) << setprecision (2) << fixed << (double) Mean[1] / Mean[0]
+                << "Count :" << setw (20) << ItemCount << "\n"
+                << "Sum   :" << setw (20) << ItemSum   << "\n"
+                << "Mean  :" << setw (20) << setprecision (2) << fixed << (double) ItemSum / ItemCount
                 << left << std::endl;
         }
     }
