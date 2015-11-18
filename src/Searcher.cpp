@@ -650,7 +650,6 @@ namespace Searcher {
 
             Value tt_value    = VALUE_NONE
                 , tt_eval     = VALUE_NONE
-                , static_eval = VALUE_NONE
                 , best_value  = -VALUE_INFINITE;
 
             Depth tt_depth    = DEPTH_NONE;
@@ -769,28 +768,27 @@ namespace Searcher {
             // Step 5. Evaluate the position statically
             if (in_check)
             {
-                ss->static_eval = static_eval = VALUE_NONE;
+                ss->static_eval = tt_eval = VALUE_NONE;
             }
             else
             {
                 if (tt_hit)
                 {
-                    static_eval = tt_eval;
                     // Never assume anything on values stored in TT
-                    if (VALUE_NONE == static_eval) static_eval = evaluate (pos);
-                    ss->static_eval = static_eval;
+                    if (VALUE_NONE == tt_eval) tt_eval = evaluate (pos);
+                    ss->static_eval = tt_eval;
 
                     // Can tt_value be used as a better position evaluation?
                     if (   tt_value != VALUE_NONE
-                        && (tt_bound & (static_eval < tt_value ? BOUND_LOWER : BOUND_UPPER))
+                        && (tt_bound & (tt_eval < tt_value ? BOUND_LOWER : BOUND_UPPER))
                        )
                     {
-                        static_eval = tt_value;
+                        tt_eval = tt_value;
                     }
                 }
                 else
                 {
-                    ss->static_eval = static_eval = (ss-1)->current_move != MOVE_NULL ?
+                    ss->static_eval = tt_eval = (ss-1)->current_move != MOVE_NULL ?
                                                         evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
 
                     tte->save (posi_key, MOVE_NONE, VALUE_NONE, ss->static_eval, DEPTH_NONE, BOUND_NONE, TT.generation ());
@@ -803,12 +801,12 @@ namespace Searcher {
                     if (   !PVNode
                         && !MateSearch
                         && depth < RazorDepth*DEPTH_ONE
-                        && static_eval + RazorMargins[depth/DEPTH_ONE] <= alfa
+                        && tt_eval + RazorMargins[depth/DEPTH_ONE] <= alfa
                         && tt_move == MOVE_NONE
                        )
                     {
                         if (   depth <= 1*DEPTH_ONE
-                            && static_eval + RazorMargins[3] <= alfa
+                            && tt_eval + RazorMargins[3] <= alfa
                            )
                         {
                             return quien_search<NonPV> (pos, ss, alfa, beta, DEPTH_ZERO, false);
@@ -830,11 +828,11 @@ namespace Searcher {
                     if (   !RootNode
                         && !MateSearch
                         && depth < FutilityMarginDepth*DEPTH_ONE
-                        && static_eval < +VALUE_KNOWN_WIN // Do not return unproven wins
+                        && tt_eval < +VALUE_KNOWN_WIN // Do not return unproven wins
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                        )
                     {
-                        auto stand_pat = static_eval - FutilityMargins[depth/DEPTH_ONE];
+                        auto stand_pat = tt_eval - FutilityMargins[depth/DEPTH_ONE];
 
                         if (stand_pat >= beta)
                         {
@@ -846,7 +844,7 @@ namespace Searcher {
                     if (   !PVNode
                         && !MateSearch
                         && depth >= 2*DEPTH_ONE
-                        && static_eval >= beta
+                        && tt_eval >= beta
                         && pos.non_pawn_material (pos.active ()) > VALUE_ZERO
                        )
                     {
@@ -856,7 +854,7 @@ namespace Searcher {
                         ss->current_move = MOVE_NULL;
 
                         // Null move dynamic reduction based on depth and static evaluation
-                        auto reduced_depth = depth - ((823 + 67 * depth) / 256 + std::min ((static_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
+                        auto reduced_depth = depth - ((823 + 67 * depth) / 256 + std::min ((tt_eval - beta)/VALUE_EG_PAWN, 3))*DEPTH_ONE;
 
                         // Do null move
                         pos.do_null_move (si);
