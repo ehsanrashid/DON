@@ -31,19 +31,19 @@ namespace Debugger {
     {
         if (Hits[0] != 0)
         {
-            std::cerr
-                << "Total: " << setw (4) << Hits[0]
-                << " Hits: " << setw (4) << Hits[1]
-                << " Hit-rate (%): " << setw (4) << setprecision (2) << fixed << 100 * (double) Hits[1] / Hits[0]
-                << std::endl;
+            std::cerr << right
+                << "Total :" << setw (20) << Hits[0] << "\n"
+                << "Hits  :" << setw (20) << Hits[1] << "\n"
+                << "Rate  :" << setw (20) << setprecision (2) << fixed << 100 * (double) Hits[1] / Hits[0]
+                << left << std::endl;
         }
 
         if (Mean[0] != 0)
         {
-            std::cerr
-                << "Total: " << setw (4) << Mean[0]
-                << " Mean: " << setw (4) << setprecision (2) << fixed << (double) Mean[1] / Mean[0]
-                << std::endl;
+            std::cerr << right
+                << "Total :" << setw (20) << Mean[0] << "\n"
+                << "Mean  :" << setw (20) << setprecision (2) << fixed << (double) Mean[1] / Mean[0]
+                << left << std::endl;
         }
     }
 

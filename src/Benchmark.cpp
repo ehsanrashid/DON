@@ -171,14 +171,12 @@ void benchmark (istream &is, const Position &cur_pos)
 
     elapsed_time = std::max (now () - elapsed_time, 1LL);
 
-    std::cerr
-        << "\n---------------------------\n";
     dbg_print (); // Just before to exit
-    std::cerr
+    std::cerr << right
         << "\n===========================\n"
-        << "Total time (ms) : " << elapsed_time << "\n"
-        << "Nodes searched  : " << nodes        << "\n"
-        << "Nodes/second    : " << nodes * MILLI_SEC / elapsed_time
+        << "Total time (ms) :" << setw (10) << elapsed_time << "\n"
+        << "Nodes searched  :" << setw (10) << nodes        << "\n"
+        << "Nodes/second    :" << setw (10) << nodes * MILLI_SEC / elapsed_time
         << "\n---------------------------\n"    
-        << std::endl;
+        << left << std::endl;
 }

@@ -1331,7 +1331,7 @@ namespace Searcher {
                     quiet_moves[quiet_count++] = move;
                 }
             }
-            
+
             // Step 19.
             // Following condition would detect a stop only after move loop has been
             // completed. But in this case bestValue is valid because we have fully
