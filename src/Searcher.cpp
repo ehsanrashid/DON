@@ -248,12 +248,12 @@ namespace Searcher {
 
             auto *thread = pos.thread ();
 
-            thread->history_values.update (pos, move, bonus);
+            thread->history_values.update (pos[org_sq (move)], dst_sq (move), bonus);
 
             if (opp_move_dst != SQ_NO)
             {
-                thread->counter_moves.update (pos, opp_move, move);
-                opp_cmv.update (pos, move, bonus);
+                thread->counter_moves.update (pos[opp_move_dst], opp_move_dst, move);
+                opp_cmv.update (pos[org_sq (move)], dst_sq (move), bonus);
             }
 
             // Decrease all the other played quiet moves
@@ -261,11 +261,11 @@ namespace Searcher {
             {
                 assert(quiet_moves[i] != move);
 
-                thread->history_values.update (pos, quiet_moves[i], -bonus);
+                thread->history_values.update (pos[org_sq (quiet_moves[i])], dst_sq (quiet_moves[i]), -bonus);
 
                 if (opp_move_dst != SQ_NO)
                 {
-                    opp_cmv.update (pos, quiet_moves[i], -bonus);
+                    opp_cmv.update (pos[org_sq (quiet_moves[i])], dst_sq (quiet_moves[i]), -bonus);
                 }
             }
 
@@ -281,7 +281,7 @@ namespace Searcher {
                 if (own_move_dst != SQ_NO)
                 {
                     auto &own_cmv = CounterMoves2DValues[pos[own_move_dst]][own_move_dst];
-                    own_cmv.update (pos, opp_move, -bonus - 2*(depth + 1)/DEPTH_ONE);
+                    own_cmv.update (pos[opp_move_dst], opp_move_dst, -bonus - 2*(depth + 1)/DEPTH_ONE);
                 }
             }
 
@@ -1373,7 +1373,7 @@ namespace Searcher {
                 {
                     auto bonus = Value((depth/DEPTH_ONE)*(depth/DEPTH_ONE) + 1*(depth/DEPTH_ONE) - 1);
                     auto &own_cmv = CounterMoves2DValues[pos[own_move_dst]][own_move_dst];
-                    own_cmv.update (pos, opp_move, bonus);
+                    own_cmv.update (pos[opp_move_dst], opp_move_dst, bonus);
                 }
             }
 

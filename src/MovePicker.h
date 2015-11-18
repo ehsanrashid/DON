@@ -41,24 +41,20 @@ namespace MovePick {
                 }
             }
         }
-
-        void update (const Position &pos, Move m, Value v)
+        // Piece, destiny square, value
+        void update (Piece p, Square s, Value v)
         {
-            if (abs (i32(v)) < 324)
+            if (abs (i32 (v)) < 324)
             {
-                auto  s = dst_sq (m);
-                auto  p = pos[org_sq (m)];
                 auto &e = _table[p][s];
-                e = std::min (std::max (e*(1.0 - (double)abs (i32(v))/(CM ? 512 : 324)) + i32(v)*(CM ? 64 : 32), -MAX_STATS_VALUE), +MAX_STATS_VALUE);
+                e = std::min (std::max (e*(1.0 - (double) abs (i32(v)) / (CM ? 512 : 324)) + i32(v)*(CM ? 64 : 32), -MAX_STATS_VALUE), +MAX_STATS_VALUE);
             }
         }
-        // ------
-        void update (const Position &pos, Move m, Move cm)
+        // Piece, destiny square, move
+        void update (Piece p, Square s, Move m)
         {
-            auto  s = dst_sq (m);
-            auto  p = pos[s];
             auto &e = _table[p][s];
-            if (e != cm) e = cm;
+            if (e != m) e = m;
         }
 
     };
