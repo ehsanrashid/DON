@@ -423,6 +423,7 @@ namespace Searcher {
             Move  tt_move    = MOVE_NONE
                 , best_move  = MOVE_NONE;
             Value tt_value   = VALUE_NONE
+                , tt_eval    = VALUE_NONE
                 , best_value = -VALUE_INFINITE;
             Depth tt_depth   = DEPTH_NONE;
             Bound tt_bound   = BOUND_NONE;
@@ -435,6 +436,7 @@ namespace Searcher {
             {
                 tt_move  = tte->move ();
                 tt_value = value_of_tt (tte->value (), ss->ply);
+                tt_eval  = tte->eval ();
                 tt_depth = tte->depth ();
                 tt_bound = tte->bound ();
             }
@@ -462,7 +464,7 @@ namespace Searcher {
             {
                 if (tt_hit)
                 {
-                    best_value = tte->eval ();
+                    best_value = tt_eval;
                     // Never assume anything on values stored in TT
                     if (VALUE_NONE == best_value) best_value = evaluate (pos);
                     ss->static_eval = best_value;
@@ -647,6 +649,7 @@ namespace Searcher {
                 , best_move   = MOVE_NONE;
 
             Value tt_value    = VALUE_NONE
+                , tt_eval     = VALUE_NONE
                 , static_eval = VALUE_NONE
                 , best_value  = -VALUE_INFINITE;
 
@@ -732,6 +735,7 @@ namespace Searcher {
             if (tt_hit)
             {
                 tt_value = value_of_tt (tte->value (), ss->ply);
+                tt_eval  = tte->eval ();
                 tt_depth = tte->depth ();
                 tt_bound = tte->bound ();
             }
@@ -771,7 +775,7 @@ namespace Searcher {
             {
                 if (tt_hit)
                 {
-                    static_eval = tte->eval ();
+                    static_eval = tt_eval;
                     // Never assume anything on values stored in TT
                     if (VALUE_NONE == static_eval) static_eval = evaluate (pos);
                     ss->static_eval = static_eval;
@@ -957,6 +961,7 @@ namespace Searcher {
                         {
                             tt_move  = tte->move ();
                             tt_value = value_of_tt (tte->value (), ss->ply);
+                            tt_eval  = tte->eval ();
                             tt_depth = tte->depth ();
                             tt_bound = tte->bound ();
                         }
