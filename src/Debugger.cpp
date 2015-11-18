@@ -1,4 +1,5 @@
 #include "Debugger.h"
+#include "Thread.h"
 
 namespace Debugger {
 
@@ -6,18 +7,24 @@ namespace Debugger {
 
     namespace {
 
-        u64 Hits[2];
-        i64 Mean[2];
+        u64 Hits[2] = { 0, 0 };
+        i64 Mean[2] = { 0, 0 };
     }
 
     void dbg_hits_on (bool b, bool c)
     {
-        if (c) { ++Hits[0]; if (b) ++Hits[1]; }
+        static Mutex mutex;
+        mutex.lock ();
+        if (c) { ++Hits[0]; if (b) { ++Hits[1]; } }
+        mutex.unlock ();
     }
 
     void dbg_mean_of (i64 v)
     {
+        static Mutex mutex;
+        mutex.lock ();
         ++Mean[0]; Mean[1] += v;
+        mutex.unlock ();
     }
 
     void dbg_print ()

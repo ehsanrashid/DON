@@ -993,7 +993,7 @@ namespace Searcher {
                 && tt_depth >= depth - 3*DEPTH_ONE
                 && abs (tt_value) < +VALUE_KNOWN_WIN
                 && (tt_bound & BOUND_LOWER);
-            
+
             const u08 MAX_QUIETS = 64;
             Move  quiet_moves[MAX_QUIETS]
                 , pv[MAX_DEPTH + 1];

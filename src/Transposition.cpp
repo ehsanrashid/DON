@@ -118,7 +118,7 @@ namespace Transposition {
         {
             if (ite->_key16 == U64(0) || ite->_key16 == key16)
             {
-                hit = ite->_key16 == key16;
+                hit = (ite->_key16 == key16);
                 if (hit && ite->gen () != _generation)
                 {
                     ite->_gen_bnd = u08(_generation | ite->bound ()); // Refresh
