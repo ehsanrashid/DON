@@ -503,14 +503,14 @@ inline i32    operator/  (Depth d1, Depth d2) { return i32(d1) / i32(d2); }
 #undef ARTHMAT_OPERATORS
 #undef BASIC_OPERATORS
 
-inline bool   _ok       (Color c) { return WHITE == c || BLACK == c; }
+//inline bool   _ok       (Color c) { return WHITE == c || BLACK == c; }
 inline Color  operator~ (Color c) { return Color(c^BLACK); }
 
-inline bool   _ok       (File f) { return    !(f & ~i08(F_H)); }
+//inline bool   _ok       (File f) { return    !(f & ~i08(F_H)); }
 inline File   operator~ (File f) { return File(f ^  i08(F_H)); }
 inline File   to_file   (char f) { return File(f - 'a'); }
 
-inline bool   _ok       (Rank r) { return    !(r & ~i08(R_8)); }
+//inline bool   _ok       (Rank r) { return    !(r & ~i08(R_8)); }
 inline Rank   operator~ (Rank r) { return Rank(r ^  i08(R_8)); }
 inline Rank   to_rank   (char r) { return Rank(r - '1'); }
 
@@ -576,8 +576,8 @@ inline PieceT ptype (Piece p) { return PieceT(p & TOTL); }
 inline Color  color (Piece p) { return Color(p >> 3); }
 inline Piece  operator~ (Piece p) { return Piece(p ^ (BLACK << 3)); }
 
-inline Square org_sq  (Move m) { return Square((m >> 6) & SQ_H8); }
-inline Square dst_sq  (Move m) { return Square((m >> 0) & SQ_H8); }
+inline Square org_sq  (Move m) { return Square((m >> 6) & i08(SQ_H8)); }
+inline Square dst_sq  (Move m) { return Square((m >> 0) & i08(SQ_H8)); }
 inline PieceT promote (Move m) { return PieceT(((m >> 12) & ROOK) + NIHT); }
 inline MoveT  mtype   (Move m) { return MoveT(PROMOTE & m); }
 inline bool   _ok     (Move m)
@@ -650,20 +650,15 @@ inline TimePoint now ()
                (std::chrono::steady_clock::now ().time_since_epoch ()).count ();
 }
 
-
 template<class Entry, u32 Size>
 struct HashTable
 {
-
 private:
     std::vector<Entry> _table = std::vector<Entry> (Size);
 
 public:
-
     Entry* operator[] (Key k) { return &_table[u32(k) & (Size-1)]; }
-
 };
-
 
 inline bool white_spaces (const std::string &str)
 {

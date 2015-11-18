@@ -1,5 +1,4 @@
 #include "Debugger.h"
-#include "Thread.h"
 
 namespace Debugger {
 
@@ -7,36 +6,37 @@ namespace Debugger {
 
     namespace {
 
-        u64 Hits[2],
-            Mean[2];
+        u64 Hits[2];
+        i64 Mean[2];
     }
 
-    void dbg_hits_on (bool h, bool c)
+    void dbg_hits_on (bool b, bool c)
     {
-        if (c) { ++Hits[0]; if (h) ++Hits[1]; }
+        if (c) { ++Hits[0]; if (b) ++Hits[1]; }
     }
-    void dbg_mean_of (u64 v)
+
+    void dbg_mean_of (i64 v)
     {
         ++Mean[0]; Mean[1] += v;
     }
 
     void dbg_print ()
     {
-        if (Hits[0] != U64(0))
+        if (Hits[0] != 0)
         {
-            sync_cout
-                << "Total: "  << setw (4) << Hits[0]
+            std::cerr
+                << "Total: " << setw (4) << Hits[0]
                 << " Hits: " << setw (4) << Hits[1]
-                << " Hit-rate (%): " << setw (4) << setprecision (2) << fixed << 100.0 * Hits[1] / Hits[0]
-                << sync_endl;
+                << " Hit-rate (%): " << setw (4) << setprecision (2) << fixed << 100 * (double) Hits[1] / Hits[0]
+                << std::endl;
         }
 
-        if (Mean[0] != U64(0))
+        if (Mean[0] != 0)
         {
-            sync_cout
-                << "Total: "  << setw (4) << Mean[0]
+            std::cerr
+                << "Total: " << setw (4) << Mean[0]
                 << " Mean: " << setw (4) << setprecision (2) << fixed << (double) Mean[1] / Mean[0]
-                << sync_endl;
+                << std::endl;
         }
     }
 

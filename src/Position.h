@@ -9,10 +9,6 @@
 
 class Position;
 
-// FORSYTH-EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
-// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-extern const std::string STARTUP_FEN;
-
 extern Score PSQ[CLR_NO][NONE][SQ_NO];
 
 // Check the validity of FEN string
@@ -75,7 +71,7 @@ public:
     Bitboard discoverers;       // Check discoverer pieces
     Square   king_sq;           // Enemy king square
 
-    CheckInfo () = default;
+    CheckInfo () = delete;
     explicit CheckInfo (const Position &pos);
 };
 
@@ -635,11 +631,13 @@ operator<< (std::basic_ostream<CharT, Traits> &os, const Position &pos)
 // CheckInfo constructor
 inline CheckInfo::CheckInfo (const Position &pos)
 {
-    king_sq = pos.square<KING> (~pos.active ());
-    pinneds = pos.pinneds ( pos.active ());
-    discoverers = pos.discoverers (pos.active ());
+    Color Own =  pos.active (), Opp = ~Own;
 
-    checking_bb[PAWN] = BitBoard::PAWN_ATTACKS[~pos.active ()][king_sq];
+    king_sq = pos.square<KING> (Opp);
+    pinneds = pos.pinneds (Own);
+    discoverers = pos.discoverers (Own);
+
+    checking_bb[PAWN] = BitBoard::PAWN_ATTACKS[Opp][king_sq];
     checking_bb[NIHT] = BitBoard::PIECE_ATTACKS[NIHT][king_sq];
     checking_bb[BSHP] = BitBoard::attacks_bb<BSHP> (king_sq, pos.pieces ());
     checking_bb[ROOK] = BitBoard::attacks_bb<ROOK> (king_sq, pos.pieces ());

@@ -176,9 +176,9 @@ namespace Searcher {
         {
             static auto last_time = now ();
 
-            u32 elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
+            auto elapsed_time = TimeMgr.elapsed_time ();
 
-            auto now_time = now ();
+            auto now_time = Limits.start_time + elapsed_time;
             if (now_time - last_time >= MILLI_SEC)
             {
                 last_time = now_time;
@@ -244,9 +244,7 @@ namespace Searcher {
 
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-            auto &opp_cmv = opp_move_dst != SQ_NO ?
-                CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] :
-                CounterMoves2DValues[EMPTY][SQ_A1];
+            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] : CounterMoves2DValues[EMPTY][SQ_A1];
 
             auto *thread = pos.thread ();
 
@@ -330,11 +328,11 @@ namespace Searcher {
         // and so refer to the previous search score.
         string multipv_info (const Position &pos, Depth depth, Value alfa, Value beta)
         {
-            u32 elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
+            auto elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
             assert(elapsed_time > 0);
             const auto &root_moves = pos.thread ()->root_moves;
-            u16 pv_index = pos.thread ()->pv_index;
-            u64 game_nodes = Threadpool.game_nodes ();
+            auto pv_index = pos.thread ()->pv_index;
+            auto game_nodes = Threadpool.game_nodes ();
 
             stringstream ss;
 
@@ -390,20 +388,19 @@ namespace Searcher {
             assert(PVNode || alfa == beta-1);
             assert(depth <= DEPTH_ZERO);
 
-            ss->current_move = MOVE_NONE;
-            ss->ply = (ss-1)->ply + 1;
-            
             Value pv_alfa = -VALUE_INFINITE;
             Move  pv[MAX_DEPTH+1];
 
             if (PVNode)
             {
-                // To flag EXACT a node with eval above alfa and no available moves
-                pv_alfa = alfa;
+                pv_alfa = alfa; // To flag BOUND_EXACT when eval above alfa and no available moves
 
                 (ss+1)->pv = pv;
                 ss->pv[0] = MOVE_NONE;
             }
+
+            ss->current_move = MOVE_NONE;
+            ss->ply = (ss-1)->ply + 1;
 
             // Check for an immediate draw or maximum ply reached
             if (   pos.draw ()
@@ -416,6 +413,12 @@ namespace Searcher {
             }
 
             assert(0 <= ss->ply && ss->ply < MAX_DEPTH);
+
+            // Decide whether or not to include checks, this fixes also the type of
+            // TT entry depth that are going to use. Note that in quien_search use
+            // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
+            Depth qs_depth = in_check || depth >= DEPTH_QS_CHECKS ?
+                DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             Move  tt_move    = MOVE_NONE
                 , best_move  = MOVE_NONE;
@@ -435,12 +438,6 @@ namespace Searcher {
                 tt_depth = tte->depth ();
                 tt_bound = tte->bound ();
             }
-
-            // Decide whether or not to include checks, this fixes also the type of
-            // TT entry depth that are going to use. Note that in quien_search use
-            // only two types of depth in TT: DEPTH_QS_CHECKS or DEPTH_QS_NO_CHECKS.
-            auto qs_depth = in_check || depth >= DEPTH_QS_CHECKS ?
-                                DEPTH_QS_CHECKS : DEPTH_QS_NO_CHECKS;
 
             if (   !PVNode
                 && tt_hit
@@ -481,8 +478,7 @@ namespace Searcher {
                 else
                 {
                     ss->static_eval = best_value = (ss-1)->current_move != MOVE_NULL ?
-                                                        evaluate (pos) :
-                                                        -(ss-1)->static_eval + 2*TEMPO;
+                                                        evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
                 }
 
                 if (alfa < best_value)
@@ -658,13 +654,7 @@ namespace Searcher {
             Bound tt_bound    = BOUND_NONE;
 
             // Step 1. Initialize node
-            auto *thread  = pos.thread ();
-            bool in_check = pos.checkers () != U64(0);
-
-            CheckInfo ci (pos);
-            StateInfo si;
-
-            ss->ply = (ss-1)->ply + 1;
+            auto *thread = pos.thread ();
 
             // Check for available remaining time
             if (thread->reset_check.load (std::memory_order_relaxed))
@@ -680,6 +670,9 @@ namespace Searcher {
                 }
                 check_limits ();
             }
+
+            bool in_check = pos.checkers () != U64 (0);
+            ss->ply = (ss-1)->ply + 1;
 
             // Used to send 'seldepth' info to GUI
             if (   PVNode
@@ -766,6 +759,9 @@ namespace Searcher {
                 return tt_value;
             }
 
+            CheckInfo ci (pos);
+            StateInfo si;
+
             // Step 5. Evaluate the position statically
             if (in_check)
             {
@@ -791,8 +787,7 @@ namespace Searcher {
                 else
                 {
                     ss->static_eval = static_eval = (ss-1)->current_move != MOVE_NULL ?
-                                                        evaluate (pos) :
-                                                        -(ss-1)->static_eval + 2*TEMPO;
+                                                        evaluate (pos) : -(ss-1)->static_eval + 2*TEMPO;
 
                     tte->save (posi_key, MOVE_NONE, VALUE_NONE, ss->static_eval, DEPTH_NONE, BOUND_NONE, TT.generation ());
                 }
@@ -915,7 +910,7 @@ namespace Searcher {
                         assert(reduced_depth >= DEPTH_ONE);
                         assert((ss-1)->current_move != MOVE_NONE);
                         assert((ss-1)->current_move != MOVE_NULL);
-                        assert(extended_beta > alfa);
+                        assert(alfa < extended_beta);
 
                         // Initialize a MovePicker object for the current position, and prepare to search the moves.
                         MovePicker mp (pos, thread->history_values, tt_move, PIECE_VALUE[MG][pos.capture_type ()]);
@@ -969,16 +964,17 @@ namespace Searcher {
                 }
             }
 
+            u32 elapsed_time;
             // When in check search starts from here
             if (   RootNode
                 && Threadpool.main () == thread
-                && TimeMgr.elapsed_time () > 3*MILLI_SEC
+                && (elapsed_time = TimeMgr.elapsed_time ()) > 3*MILLI_SEC
                )
             {
                 sync_cout
                     << "info"
                     << " depth " << depth/DEPTH_ONE
-                    << " time "  << TimeMgr.elapsed_time ()
+                    << " time "  << elapsed_time
                     << sync_endl;
             }
 
@@ -1006,12 +1002,8 @@ namespace Searcher {
 
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-            auto counter_move = opp_move_dst != SQ_NO ?
-                thread->counter_moves[pos[opp_move_dst]][opp_move_dst] :
-                MOVE_NONE;
-            auto &opp_cmv = opp_move_dst != SQ_NO ?
-                CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] :
-                CounterMoves2DValues[EMPTY][SQ_A1];
+            auto counter_move = opp_move_dst != SQ_NO ? thread->counter_moves[pos[opp_move_dst]][opp_move_dst] : MOVE_NONE;
+            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] : CounterMoves2DValues[EMPTY][SQ_A1];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
@@ -1044,14 +1036,15 @@ namespace Searcher {
                 {
                     Signals.firstmove_root = (1 == move_count);
 
-                    if (TimeMgr.elapsed_time () > 3*MILLI_SEC)
+                    elapsed_time = TimeMgr.elapsed_time ();
+                    if (elapsed_time > 3*MILLI_SEC)
                     {
                         sync_cout
                             << "info"
                             //<< " depth "          << depth/DEPTH_ONE
                             << " currmovenumber " << setfill ('0') << setw (2) << thread->pv_index + move_count << setfill (' ')
                             << " currmove "       << move_to_can (move, Chess960)
-                            << " time "           << TimeMgr.elapsed_time ()
+                            << " time "           << elapsed_time
                             << sync_endl;
                     }
                 }
@@ -1638,18 +1631,18 @@ namespace Searcher {
         _best_move = MOVE_NONE;
         // RootMoves are already sorted by value in descending order
         auto top_value  = root_moves[0].new_value;
-        auto difference = std::min (top_value - root_moves[PVLimit - 1].new_value, VALUE_MG_PAWN);
+        auto diversity  = std::min (top_value - root_moves[PVLimit - 1].new_value, VALUE_MG_PAWN);
         auto weakness   = Value(MAX_DEPTH - 4 * _level);
         auto best_value = -VALUE_INFINITE;
         // Choose best move. For each move score add two terms, both dependent on weakness.
-        // One deterministic and bigger for weaker level, and one random with difference,
+        // One deterministic and bigger for weaker level, and one random with diversity,
         // then choose the move with the resulting highest value.
         for (u16 i = 0; i < PVLimit; ++i)
         {
             auto value = root_moves[i].new_value;
             // This is magic formula for push
-            auto push  = (  weakness   * i32(top_value - value)
-                          + difference * i32(prng.rand<u32> () % weakness)
+            auto push  = (  weakness  * i32(top_value - value)
+                          + diversity * i32(prng.rand<u32> () % weakness)
                          ) / (i32(VALUE_EG_PAWN) / 2);
 
             if (best_value < value + push)
@@ -1672,7 +1665,9 @@ namespace Searcher {
         for (const auto &m : MoveList<LEGAL> (pos))
         {
             u64 inter_nodes;
-            if (RootNode && depth <= 1*DEPTH_ONE)
+            if (   RootNode
+                && depth <= 1*DEPTH_ONE
+               )
             {
                 inter_nodes = 1;
             }
@@ -1681,8 +1676,7 @@ namespace Searcher {
                 StateInfo si;
                 pos.do_move (m, si, pos.gives_check (m, CheckInfo (pos)));
                 inter_nodes = depth <= 2*DEPTH_ONE ?
-                    MoveList<LEGAL> (pos).size () :
-                    perft<false> (pos, depth-DEPTH_ONE);
+                    MoveList<LEGAL> (pos).size () : perft<false> (pos, depth-DEPTH_ONE);
                 pos.undo_move ();
             }
 
@@ -1717,7 +1711,7 @@ namespace Searcher {
         // Initialize lookup tables
         for (d = 0; d < FutilityMarginDepth; ++d)
         {
-            FutilityMargins      [d] = Value(i32(0 + (200 + 0*d)*d));
+            FutilityMargins      [d] = Value(0 + (200 + 0*d)*d);
         }
         for (d = 0; d < FutilityMoveCountDepth; ++d)
         {
@@ -2202,7 +2196,7 @@ namespace Threading {
 
         if (!SearchFile.empty ())
         {
-            u32 elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
+            auto elapsed_time = std::max (TimeMgr.elapsed_time (), 1U);
 
             SearchLog
                 << "Time (ms)  : " << elapsed_time                                                          << "\n"
