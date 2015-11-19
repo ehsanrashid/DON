@@ -244,7 +244,7 @@ namespace Searcher {
 
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
-            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] : CounterMoves2DValues[EMPTY][SQ_A1];
+            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] : CounterMoves2DValues[EMPTY][dst_sq (opp_move)];
 
             auto *thread = pos.thread ();
 
@@ -524,8 +524,9 @@ namespace Searcher {
             {
                 assert(_ok (move));
 
-                bool gives_check = pos.gives_check (move, ci);
-
+                bool gives_check = mtype (move) == NORMAL && ci.discoverers == U64(0) ?
+                                    (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != U64(0) :
+                                    pos.gives_check (move, ci);
                 if (!MateSearch)
                 {
                     // Futility pruning
@@ -673,7 +674,7 @@ namespace Searcher {
                 check_limits ();
             }
 
-            bool in_check = pos.checkers () != U64 (0);
+            bool in_check = pos.checkers () != U64(0);
             ss->ply = (ss-1)->ply + 1;
 
             // Used to send 'seldepth' info to GUI
@@ -926,7 +927,9 @@ namespace Searcher {
 
                             ss->current_move = move;
 
-                            pos.do_move (move, si, pos.gives_check (move, ci));
+                            pos.do_move (move, si, mtype (move) == NORMAL && ci.discoverers == U64(0) ?
+                                                    (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != U64(0) :
+                                                    pos.gives_check (move, ci));
 
                             prefetch (thread->pawn_table[pos.pawn_key ()]);
                             prefetch (thread->matl_table[pos.matl_key ()]);
@@ -967,20 +970,7 @@ namespace Searcher {
                 }
             }
 
-            u32 elapsed_time;
             // When in check search starts from here
-            if (   RootNode
-                && Threadpool.main () == thread
-                && (elapsed_time = TimeMgr.elapsed_time ()) > 3*MILLI_SEC
-               )
-            {
-                sync_cout
-                    << "info"
-                    << " depth " << depth/DEPTH_ONE
-                    << " time "  << elapsed_time
-                    << sync_endl;
-            }
-
             Value value     = -VALUE_INFINITE
                 , best_value= -VALUE_INFINITE;
 
@@ -1007,7 +997,7 @@ namespace Searcher {
             auto opp_move = (ss-1)->current_move;
             auto opp_move_dst = _ok (opp_move) ? dst_sq (opp_move) : SQ_NO;
             auto counter_move = opp_move_dst != SQ_NO ? thread->counter_moves[pos[opp_move_dst]][opp_move_dst] : MOVE_NONE;
-            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] : CounterMoves2DValues[EMPTY][SQ_A1];
+            auto &opp_cmv = opp_move_dst != SQ_NO ? CounterMoves2DValues[pos[opp_move_dst]][opp_move_dst] : CounterMoves2DValues[EMPTY][dst_sq (opp_move)];
 
             // Initialize a MovePicker object for the current position, and prepare to search the moves.
             MovePicker mp (pos, thread->history_values, opp_cmv, tt_move, depth, counter_move, ss);
@@ -1040,12 +1030,12 @@ namespace Searcher {
                 {
                     Signals.firstmove_root = (1 == move_count);
 
-                    elapsed_time = TimeMgr.elapsed_time ();
+                    auto elapsed_time = TimeMgr.elapsed_time ();
                     if (elapsed_time > 3*MILLI_SEC)
                     {
                         sync_cout
                             << "info"
-                            //<< " depth "          << depth/DEPTH_ONE
+                            << " depth "          << depth/DEPTH_ONE
                             << " currmovenumber " << setfill ('0') << setw (2) << thread->pv_index + move_count << setfill (' ')
                             << " currmove "       << move_to_can (move, Chess960)
                             << " time "           << elapsed_time
@@ -1059,7 +1049,9 @@ namespace Searcher {
                 }
 
                 auto extension = DEPTH_ZERO;
-                bool gives_check = pos.gives_check (move, ci);
+                bool gives_check = mtype (move) == NORMAL && ci.discoverers == U64(0) ?
+                                    (ci.checking_bb[ptype (pos[org_sq (move)])] & dst_sq (move)) != U64(0) :
+                                    pos.gives_check (move, ci);
 
                 // Step 12. Extend the move which seems dangerous like ...checks etc.
                 if (gives_check && pos.see_sign (move) >= VALUE_ZERO)

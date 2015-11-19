@@ -32,24 +32,21 @@ extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 struct StateInfo
 {
 public:
+    // ---Copied when making a move---
     Value  non_pawn_matl[CLR_NO];
     Score  psq_score;
 
-    Key    matl_key;       // Hash key of materials.
-    Key    pawn_key;       // Hash key of pawns.
-    CRight castle_rights;  // Castling-rights information for both side.
-    // "In passing" - Target square in algebraic notation.
-    // If there's no en-passant target square is "-".
-    Square en_passant_sq;
-    // Number of halfmoves clock since the last pawn advance or any capture.
-    // used to determine if a draw can be claimed under the 50-move rule.
-    u08    clock50;
+    Key    matl_key;        // Hash key of materials.
+    Key    pawn_key;        // Hash key of pawns.
+    CRight castle_rights;   // Castling-rights information for both side.
+    Square en_passant_sq;   // En-passant -> "In passing"
+    u08    clock50;         // Number of halfmoves clock since the last pawn advance or any capture. Used to determine if a draw can be claimed under the 50-move rule.
     u08    null_ply;
-    // -------------------------------------
-    Move   last_move;      // Move played on the previous position.
-    PieceT capture_type;   // Piece type captured.
-    Key    posi_key;       // Hash key of position.
-    Bitboard checkers;     // Checkers bitboard.
+    // ---Not copied when making a move---
+    Key    posi_key;        // Hash key of position.
+    Move   last_move;       // Move played on the previous position.
+    PieceT capture_type;    // Piece type captured.
+    Bitboard checkers;      // Checkers bitboard.
 
     StateInfo *ptr = nullptr;
 };

@@ -3,18 +3,21 @@
 #include <cstdarg>
 
 #include "Engine.h"
-#include "Benchmark.h"
 #include "Searcher.h"
 #include "Evaluator.h"
-#include "Transposition.h"
+#include "MoveGenerator.h"
 #include "Notation.h"
 #include "Debugger.h"
+#include "Benchmark.h"
+#include "Thread.h"
 
 using namespace std;
 
 namespace UCI {
 
+    using namespace Engine;
     using namespace Searcher;
+    using namespace Evaluator;
     using namespace MoveGen;
     using namespace Notation;
     using namespace Debugger;
@@ -57,7 +60,7 @@ namespace UCI {
             if (token == "uci")
             {
                 sync_cout
-                    << Engine::info ()
+                    << info (true) << "\n"
                     << Options
                     << "uciok"
                     << sync_endl;
@@ -362,7 +365,7 @@ namespace UCI {
             else
             if (token == "eval")
             {
-                sync_cout << Evaluator::trace (RootPos) << sync_endl;
+                sync_cout << trace (RootPos) << sync_endl;
             }
             else
             if (token == "perft")

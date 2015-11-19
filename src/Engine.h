@@ -5,7 +5,7 @@
 
 namespace Engine {
 
-    extern std::string info (bool uci = true);
+    extern std::string info (bool uci = false);
 
     extern void run (const std::string &arg);
 

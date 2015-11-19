@@ -19,12 +19,8 @@ namespace Engine {
 
     namespace {
 
-        const string NAME      = "DON";
-
-        // Version number.
-        // If Version is left empty, then compile date in the format DD-MM-YY.
+        // Version number. If Version is left empty, then show compile date in the format DD-MM-YY.
         const string VERSION   = "";
-        const string AUTHOR    = "Ehsan Rashid";
 
         const i08 MAX_MONTH = 12;
         const string MONTHS[MAX_MONTH] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
@@ -45,7 +41,7 @@ namespace Engine {
         ostringstream oss;
 
         if (uci) oss << "id name ";
-        oss << NAME << " ";
+        oss << "DON ";
 
         oss << setfill ('0');
 #if defined (VER)
@@ -69,24 +65,24 @@ namespace Engine {
         oss << setfill (' ');
 
 #ifdef BIT64
-        oss << " x64";
+        oss << ".64";
 #else
-        oss << " w32";
+        oss << ".32";
 #endif
 
 #ifdef BM2
-        oss << "-BM2";
+        oss << ".BM2";
 #elif ABM
-        oss << "-ABM";
+        oss << ".ABM";
 #elif POP
-        oss << "-POP";
+        oss << ".POP";
 #endif
 
 #ifdef LPAGES
-        oss << "-LP";
+        oss << ".LP";
 #endif
 
-        oss << (uci ? "\nid author " : " by ") << AUTHOR << "\n";
+        oss << (uci ? "\nid author " : " by ") << "Ehsan Rashid";
 
         return oss.str ();
     }

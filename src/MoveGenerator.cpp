@@ -26,18 +26,15 @@ namespace MoveGen {
                 {
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        //if (ci != nullptr)
+                        if (   (BSHP == PT || ROOK == PT || QUEN == PT)
+                            && (PIECE_ATTACKS[PT][s] & targets & ci->checking_bb[PT]) == U64(0)
+                           )
                         {
-                            if (   (BSHP == PT || ROOK == PT || QUEN == PT)
-                                && (PIECE_ATTACKS[PT][s] & targets & ci->checking_bb[PT]) == U64(0)
-                               )
-                            {
-                                continue;
-                            }
-                            if (ci->discoverers != U64(0) && (ci->discoverers & s) != U64(0))
-                            {
-                                continue;
-                            }
+                            continue;
+                        }
+                        if (ci->discoverers != U64(0) && (ci->discoverers & s) != U64(0))
+                        {
+                            continue;
                         }
                     }
 
@@ -45,10 +42,7 @@ namespace MoveGen {
                     
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        //if (ci != nullptr)
-                        {
-                            attacks &= ci->checking_bb[PT];
-                        }
+                        attacks &= ci->checking_bb[PT];
                     }
 
                     while (attacks != U64(0)) { *moves++ = mk_move (s, pop_lsq (attacks)); }
@@ -97,10 +91,7 @@ namespace MoveGen {
 
                 if (CHECK == GT || QUIET_CHECK == GT)
                 {
-                    //if (ci != nullptr)
-                    {
-                        if (!pos.gives_check (m, *ci)) return;
-                    }
+                    if (!pos.gives_check (m, *ci)) return;
                 }
                 else
                 {
@@ -179,24 +170,18 @@ namespace MoveGen {
                 // not already included in the queen-promotion (queening).
                 if (QUIET_CHECK == GT)
                 {
-                    //if (ci != nullptr)
+                    if ((PIECE_ATTACKS[NIHT][dst] & ci->king_sq) != U64(0))
                     {
-                        if ((PIECE_ATTACKS[NIHT][dst] & ci->king_sq) != U64(0))
-                        {
-                            *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
-                        }
+                        *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
                     }
                 }
                 //else
                 //if (CHECK == GT)
                 //{
-                //    //if (ci != nullptr)
-                //    {
-                //        if ((PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
-                //        if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
-                //        if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
-                //        if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
-                //    }
+                //    if ((PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                //    if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
+                //    if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
+                //    if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
                 //}
                 else
                 {
@@ -242,24 +227,21 @@ namespace MoveGen {
 
                     case CHECK:
                     case QUIET_CHECK:
-                        //if (ci != nullptr)
+                        push_1 &= PAWN_ATTACKS[Opp][ci->king_sq];
+                        push_2 &= PAWN_ATTACKS[Opp][ci->king_sq];
+
+                        // Pawns which give discovered check
+                        // Add pawn pushes which give discovered check.
+                        // This is possible only if the pawn is not on the same file as the enemy king,
+                        // because don't generate captures.
+                        // Note that a possible discovery check promotion has been already generated among captures.
+                        if ((Rx_pawns & ci->discoverers) != U64(0))
                         {
-                            push_1 &= PAWN_ATTACKS[Opp][ci->king_sq];
-                            push_2 &= PAWN_ATTACKS[Opp][ci->king_sq];
+                            auto push_cd_1 = empties & shift_bb<Push> (Rx_pawns & ci->discoverers) & ~file_bb (ci->king_sq);
+                            auto push_cd_2 = empties & shift_bb<Push> (push_cd_1 & Rank3BB);
 
-                            // Pawns which give discovered check
-                            // Add pawn pushes which give discovered check.
-                            // This is possible only if the pawn is not on the same file as the enemy king,
-                            // because don't generate captures.
-                            // Note that a possible discovery check promotion has been already generated among captures.
-                            if ((Rx_pawns & ci->discoverers) != U64(0))
-                            {
-                                auto push_cd_1 = empties & shift_bb<Push> (Rx_pawns & ci->discoverers) & ~file_bb (ci->king_sq);
-                                auto push_cd_2 = empties & shift_bb<Push> (push_cd_1 & Rank3BB);
-
-                                push_1 |= push_cd_1;
-                                push_2 |= push_cd_2;
-                            }
+                            push_1 |= push_cd_1;
+                            push_2 |= push_cd_2;
                         }
                         break;
 
