@@ -8,54 +8,31 @@ namespace Threading {
 
     using namespace std;
 
-    // Thread constructor makes some init and launches the thread that will go to
-    // sleep in idle_loop().
+    // Thread constructor launchs the thread and then wait until it goes to sleep in idle_loop().
     Thread::Thread ()
         : alive (true)
-        , searching (true)          // Avoid a race with start_thinking()
-        , reset_check (false)
+        , searching (true)
         , max_ply (0)
         , chk_count (0)
+        , reset_check (false)
     {
+        index = u16(Threadpool.size ()); // Starts from 0
         history_values.clear ();
         counter_moves.clear ();
-        index       = u16(Threadpool.size ()); // Starts from 0
-        std::thread::operator= (std::thread (&Thread::idle_loop, this));
+
+        std::unique_lock<Mutex> lk (mutex);
+        native_thread = std::thread (&Thread::idle_loop, this);
+        sleep_condition.wait (lk, [&] { return !searching; });
     }
 
-    // Thread destructor waits for thread termination before deleting
+    // Thread destructor waits for thread termination before returning
     Thread::~Thread ()
     {
-        mutex.lock ();
-        alive = false;          // Search must be already finished
-        mutex.unlock ();
-
-        notify_one ();
-        std::thread::join ();   // Wait for thread termination
-    }
-
-    // Thread::idle_loop() is where the thread is parked when it has no work to do
-    void Thread::idle_loop ()
-    {
-        while (alive)
-        {
-            unique_lock<Mutex> lk (mutex);
-
-            searching = false;
-
-            while (alive && !searching)
-            {
-                sleep_condition.notify_one (); // Wake up main thread if needed
-                sleep_condition.wait (lk);
-            }
-
-            lk.unlock ();
-
-            if (alive && searching)
-            {
-                search ();
-            }
-        }
+        alive = false;
+        std::unique_lock<Mutex> lk (mutex);
+        sleep_condition.notify_one ();
+        lk.unlock ();
+        native_thread.join ();
     }
 
     // ------------------------------------
@@ -115,14 +92,11 @@ namespace Threading {
         return nodes;
     }
 
-    // ThreadPool::start_main() wakes up the main thread sleeping in
+    // ThreadPool::start_searching() wakes up the main thread sleeping in
     // Thread::idle_loop() and starts a new search, then returns immediately.
     void ThreadPool::start_thinking (const Position &pos, const LimitsT &limits, StateStackPtr &states)
     {
-        for (auto *th : Threadpool)
-        {
-            th->join ();
-        }
+        main ()->wait_while_searching ();
 
         Signals.force_stop     = false;
         Signals.ponderhit_stop = false;
@@ -138,8 +112,7 @@ namespace Threading {
             assert(states.get () == nullptr);
         }
 
-        main ()->searching = true;
-        main ()->notify_one (); // Wake up main thread: 'thinking' must be already set
+        main ()->start_searching (false);
     }
 
 }

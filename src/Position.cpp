@@ -544,8 +544,8 @@ Bitboard Position::check_blockers (Color piece_c, Color king_c) const
     // Pinners are sliders that give check when a pinned piece is removed
     // Only one real pinner exist other are fake pinner
     auto pinners =
-        (  ((_types_bb[ROOK]|_types_bb[QUEN]) & PIECE_ATTACKS[ROOK][ksq])
-         | ((_types_bb[BSHP]|_types_bb[QUEN]) & PIECE_ATTACKS[BSHP][ksq])
+        (  ((_types_bb[QUEN]|_types_bb[BSHP]) & PIECE_ATTACKS[BSHP][ksq])
+         | ((_types_bb[QUEN]|_types_bb[ROOK]) & PIECE_ATTACKS[ROOK][ksq])
         ) &  _color_bb[~king_c];
 
     auto chk_blockers = U64(0);
@@ -786,8 +786,8 @@ bool Position::legal        (Move m, Bitboard pinned) const
 
         auto mocc = _types_bb[NONE] - org - cap + dst;
         // If any attacker then in check & not legal
-        return (attacks_bb<ROOK> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
-            && (attacks_bb<BSHP> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0);
+        return (attacks_bb<BSHP> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0)
+            && (attacks_bb<ROOK> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0);
     }
         break;
 
@@ -844,9 +844,9 @@ bool Position::gives_check  (Move m, const CheckInfo &ci) const
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
         auto cap = _file (dst)|_rank (org);
         auto mocc = _types_bb[NONE] - org - cap + dst;
-        // if any attacker then in check
-        return (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) != U64(0)
-            || (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) != U64(0);
+        // If any attacker then in check
+        return (attacks_bb<BSHP> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) != U64(0)
+            || (attacks_bb<ROOK> (ci.king_sq, mocc) & (_color_bb[_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) != U64(0);
     }
         break;
 
@@ -966,8 +966,8 @@ bool Position::can_en_passant (Square ep_sq) const
     for (m = moves; *m != MOVE_NONE; ++m)
     {
         auto mocc = occ - org_sq (*m);
-        if (   (attacks_bb<ROOK> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
-            && (attacks_bb<BSHP> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0)
+        if (   (attacks_bb<BSHP> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[BSHP]))) == U64(0)
+            && (attacks_bb<ROOK> (_piece_square[_active][KING][0], mocc) & (_color_bb[~_active]&(_types_bb[QUEN]|_types_bb[ROOK]))) == U64(0)
            )
         {
             return true;

@@ -94,7 +94,7 @@ namespace Searcher {
 
         explicit RootMove (Move m = MOVE_NONE) : pv (1, m) {}
 
-        // Ascending sort
+        // Descending sort
         bool operator<  (const RootMove &rm) const { return new_value >  rm.new_value; }
         bool operator>  (const RootMove &rm) const { return new_value <  rm.new_value; }
         bool operator<= (const RootMove &rm) const { return new_value >= rm.new_value; }

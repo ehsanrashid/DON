@@ -19,7 +19,8 @@ namespace MoveGen {
         operator Move () const  { return move; }
         void operator= (Move  m) { move  = m; }
         void operator= (Value v) { value = v; }
-
+        
+        // Ascending sort
         bool operator<  (const ValMove &vm) const { return value <  vm.value; }
         bool operator>  (const ValMove &vm) const { return value >  vm.value; }
         bool operator<= (const ValMove &vm) const { return value <= vm.value; }

@@ -1828,7 +1828,7 @@ namespace Threading {
                 if (aspiration)
                 {
                     window = Value(18);
-                        //Value(depth <= 32*DEPTH_ONE ? 14 + (u16 (depth)-1)/4 : 22); // Increasing window
+                        //Value(depth <= 32*DEPTH_ONE ? 14 + (u16(depth)-1)/4 : 22); // Increasing window
 
                     alfa = std::max (root_moves[pv_index].old_value - window, -VALUE_INFINITE);
                     beta = std::min (root_moves[pv_index].old_value + window, +VALUE_INFINITE);
@@ -2057,7 +2057,7 @@ namespace Threading {
                 << "ClockTime: " << Limits.clock[RootColor].time    << "\n"
                 << "Increment: " << Limits.clock[RootColor].inc     << "\n"
                 << "MoveTime : " << Limits.movetime                 << "\n"
-                << "MovesToGo: " << u16 (Limits.movestogo)          << "\n"
+                << "MovesToGo: " << u16(Limits.movestogo)           << "\n"
                 << " Depth Score    Time       Nodes  PV\n"
                 << "-----------------------------------------------------------"
                 << noboolalpha << std::endl;
@@ -2125,12 +2125,11 @@ namespace Threading {
             {
                 th->max_ply = 0;
                 th->root_depth = DEPTH_ZERO;
-                th->searching = true;
                 if (th != this)
                 {
                     th->root_pos    = Position (root_pos, th);
                     th->root_moves  = root_moves;
-                    th->notify_one (); // Wake up the thread and start searching
+                    th->start_searching (false);
                 }
             }
 
@@ -2164,7 +2163,7 @@ namespace Threading {
         {
             if (th != this)
             {
-                th->join ();
+                th->wait_while_searching ();
             }
         }
 

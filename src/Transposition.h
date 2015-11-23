@@ -255,7 +255,7 @@ namespace Transposition {
             os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
             os.write (reinterpret_cast<const CharT*> (&tt._generation), sizeof (tt._generation));
             os.write (reinterpret_cast<const CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
-            u32 cluster_bulk = u32 (tt._cluster_count / BufferSize);
+            u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
                 os.write (reinterpret_cast<const CharT*> (tt._clusters+i*BufferSize), ClusterSize*BufferSize);
@@ -278,7 +278,7 @@ namespace Transposition {
             is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
             tt.resize (mem_size_mb);
             tt._generation = generation;
-            u32 cluster_bulk = u32 (tt._cluster_count / BufferSize);
+            u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
                 is.read (reinterpret_cast<CharT*> (tt._clusters+i*BufferSize), ClusterSize*BufferSize);

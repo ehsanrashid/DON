@@ -77,6 +77,7 @@ namespace UCI {
                 sync_cout << "readyok" << sync_endl;
             }
             else
+            // This function updates the UCI option ("name") to the given value ("value").
             if (token == "setoption")
             {
                 iss >> token; // Consume "name" token
@@ -158,7 +159,7 @@ namespace UCI {
                 }
             end_position:;
             }
-            // This sets the thinking time and other parameters:
+            // This sets the following parameters:
             //  - wtime and btime
             //  - winc and binc
             //  - movestogo
@@ -203,9 +204,7 @@ namespace UCI {
                         }
                     }
                 }
-
                 Signals.force_stop = true;
-
                 Threadpool.start_thinking (RootPos, limits, SetupStates);
             }
             // GUI sends 'ponderhit' to tell us to ponder on the same move the
@@ -220,7 +219,7 @@ namespace UCI {
                )
             {
                 Signals.force_stop = true;
-                Threadpool.main ()->notify_one (); // Could be sleeping
+                Threadpool.main ()->start_searching (true); // Could be sleeping
             }
             else
             if (token == "ponderhit")
@@ -394,7 +393,7 @@ namespace UCI {
 
         } while (running && cmd != "quit");
 
-        Threadpool.main ()->join (); // Cannot quit whilst the search is running
+        Threadpool.main ()->wait_while_searching (); // Cannot quit whilst the search is running
     }
 
 }

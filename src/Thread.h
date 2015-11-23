@@ -19,23 +19,21 @@ namespace Threading {
 
     const u16 MAX_THREADS = 128; // Maximum Threads
 
-    // Thread struct keeps together all the thread related stuff like locks, state
-    // and especially split points. We also use per-thread pawn and material hash
-    // tables so that once we get a pointer to an entry its life time is unlimited
-    // and we don't have to care about someone changing the entry under our feet.
+    // Thread struct keeps together all the thread related stuff like.
+    // It also use pawn and material hash tables so that once get a pointer
+    // to an entry its life time is unlimited and don't have to care about
+    // someone changing the entry under its feet.
     class Thread
-        : public std::thread
     {
-    public:
-        std::atomic_bool
-              alive { true }
-            , searching { false }
-            , reset_check { false };
-
+    private:
+        std::thread native_thread;
         Mutex mutex;
-
         ConditionVariable sleep_condition;
 
+        bool  alive     = true
+            , searching = false;
+
+    public:
         Pawns   ::Table pawn_table;
         Material::Table matl_table;
 
@@ -51,38 +49,66 @@ namespace Threading {
         HValueStats     history_values;
         MoveStats       counter_moves;
 
+        std::atomic_bool reset_check { false };
+
         Thread ();
         virtual ~Thread ();
 
-        // notify_one () wakes up the thread when there is some work to do
-        void notify_one ()
+        // Thread::start_searching() wake up the thread that will start the search
+        void start_searching (bool resume = false)
         {
             std::unique_lock<Mutex> lk (mutex);
+            if (!resume)
+            {
+                searching = true;
+            }
             sleep_condition.notify_one ();
         }
-        // wait_until() set the thread to sleep until 'condition' turns true
+        // Thread::wait_while_searching() wait on sleep condition until not searching
+        void wait_while_searching ()
+        {
+            std::unique_lock<Mutex> lk (mutex);
+            sleep_condition.wait (lk, [&] { return !searching; });
+        }
+
+        // Thread::wait_until() set the thread to sleep until 'condition' turns true
         void wait_until (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (mutex);
             sleep_condition.wait (lk, [&] { return bool(condition); });
         }
-        // wait_while() set the thread to sleep until 'condition' turns false
+        // Thread::wait_while() set the thread to sleep until 'condition' turns false
         void wait_while (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (mutex);
             sleep_condition.wait (lk, [&] { return !bool(condition); });
         }
-        // join() waits for thread to finish searching
-        void join ()
+
+        // Thread::idle_loop() is where the thread is parked when it has no work to do
+        void idle_loop ()
         {
-            std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&] { return !bool(searching); });
+            while (alive)
+            {
+                std::unique_lock<Mutex> lk (mutex);
+
+                searching = false;
+
+                while (alive && !searching)
+                {
+                    sleep_condition.notify_one (); // Wake up main thread if needed
+                    sleep_condition.wait (lk);
+                }
+
+                lk.unlock ();
+
+                if (alive)
+                {
+                    search ();
+                }
+            }
         }
 
-        void idle_loop ();
-
         virtual void search ();
-        
     };
 
     // MainThread class is derived class used to characterize the the main one
@@ -115,7 +141,6 @@ namespace Threading {
         u64  game_nodes ();
 
         void configure ();
-
     };
 
 }
