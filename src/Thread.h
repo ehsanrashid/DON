@@ -63,12 +63,14 @@ namespace Threading {
                 searching = true;
             }
             sleep_condition.notify_one ();
+            lk.unlock ();
         }
         // Thread::wait_while_searching() wait on sleep condition until not searching
         void wait_while_searching ()
         {
             std::unique_lock<Mutex> lk (mutex);
             sleep_condition.wait (lk, [&] { return !searching; });
+            lk.unlock ();
         }
 
         // Thread::wait_until() set the thread to sleep until 'condition' turns true
@@ -76,12 +78,14 @@ namespace Threading {
         {
             std::unique_lock<Mutex> lk (mutex);
             sleep_condition.wait (lk, [&] { return bool(condition); });
+            lk.unlock ();
         }
         // Thread::wait_while() set the thread to sleep until 'condition' turns false
         void wait_while (const std::atomic_bool &condition)
         {
             std::unique_lock<Mutex> lk (mutex);
             sleep_condition.wait (lk, [&] { return !bool(condition); });
+            lk.unlock ();
         }
 
         // Thread::idle_loop() is where the thread is parked when it has no work to do

@@ -23,6 +23,7 @@ namespace Threading {
         std::unique_lock<Mutex> lk (mutex);
         native_thread = std::thread (&Thread::idle_loop, this);
         sleep_condition.wait (lk, [&] { return !searching; });
+        lk.unlock ();
     }
 
     // Thread destructor waits for thread termination before returning
