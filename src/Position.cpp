@@ -1412,7 +1412,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
 void Position::do_move (string &can, StateInfo &nsi)
 {
     auto m = move_from_can (can, *this);
-    if (MOVE_NONE != m) do_move (m, nsi, gives_check (m, CheckInfo (*this)));
+    if (m != MOVE_NONE) do_move (m, nsi, gives_check (m, CheckInfo (*this)));
 }
 // undo_move() undo the last move
 void Position::undo_move ()

@@ -147,7 +147,7 @@ namespace UCI {
                     while (iss >> token)   // Parse and validate game moves (if any)
                     {
                         auto m = move_from_can (token, RootPos);
-                        if (MOVE_NONE == m)
+                        if (m == MOVE_NONE)
                         {
                             std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
                             break;
@@ -197,10 +197,12 @@ namespace UCI {
                         while (iss >> token)
                         {
                             auto m = move_from_can (token, RootPos);
-                            if (MOVE_NONE != m)
+                            if (m == MOVE_NONE)
                             {
-                                limits.root_moves.push_back (m);
+                                std::cerr << "ERROR: Illegal Move '" + token << "'" << std::endl;
+                                continue;
                             }
+                            limits.root_moves.push_back (m);
                         }
                     }
                 }

@@ -143,8 +143,8 @@ namespace Notation {
     // Internally castle moves are always coded as "king captures rook".
     string move_to_can (Move m, bool c960)
     {
-        if (MOVE_NONE == m) return "(none)";
-        if (MOVE_NULL == m) return "(null)";
+        if (m == MOVE_NONE) return "(none)";
+        if (m == MOVE_NULL) return "(null)";
 
         auto org = org_sq (m);
         auto dst = dst_sq (m);
@@ -163,8 +163,8 @@ namespace Notation {
     // move_to_san(m, pos) converts a move to a string in short algebraic notation representation.
     string move_to_san (Move m, Position &pos)
     {
-        if (MOVE_NONE == m) return "(none)";
-        if (MOVE_NULL == m) return "(null)";
+        if (m == MOVE_NONE) return "(none)";
+        if (m == MOVE_NULL) return "(null)";
         assert(pos.legal (m));
         assert(MoveList<LEGAL> (pos).contains (m));
 
