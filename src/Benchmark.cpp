@@ -164,7 +164,7 @@ void benchmark (istream &is, const Position &cur_pos)
             StateStackPtr states;
             limits.start_time = now ();
             Threadpool.start_thinking (pos, limits, states);
-            Threadpool.main ()->wait_while_searching ();
+            Threadpool.wait_while_thinking ();
             nodes += Threadpool.game_nodes ();
         }
     }

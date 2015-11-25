@@ -393,7 +393,7 @@ namespace UCI {
 
         } while (running && cmd != "quit");
 
-        Threadpool.main ()->wait_while_searching (); // Cannot quit whilst the search is running
+        Threadpool.wait_while_thinking (); // Cannot quit whilst the search is running
     }
 
 }

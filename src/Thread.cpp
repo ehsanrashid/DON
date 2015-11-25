@@ -10,8 +10,8 @@ namespace Threading {
 
     // Thread constructor launchs the thread and then wait until it goes to sleep in idle_loop().
     Thread::Thread ()
-        : alive (true)
-        , searching (true)
+        : _alive (true)
+        , _searching (true)
         , max_ply (0)
         , chk_count (0)
         , reset_check (false)
@@ -20,20 +20,20 @@ namespace Threading {
         history_values.clear ();
         counter_moves.clear ();
 
-        std::unique_lock<Mutex> lk (mutex);
-        native_thread = std::thread (&Thread::idle_loop, this);
-        sleep_condition.wait (lk, [&] { return !searching; });
+        std::unique_lock<Mutex> lk (_mutex);
+        _native_thread = std::thread (&Thread::idle_loop, this);
+        _sleep_condition.wait (lk, [&] { return !_searching; });
         lk.unlock ();
     }
 
     // Thread destructor waits for thread termination before returning
     Thread::~Thread ()
     {
-        alive = false;
-        std::unique_lock<Mutex> lk (mutex);
-        sleep_condition.notify_one ();
+        _alive = false;
+        std::unique_lock<Mutex> lk (_mutex);
+        _sleep_condition.notify_one ();
         lk.unlock ();
-        native_thread.join ();
+        _native_thread.join ();
     }
 
     // ------------------------------------
@@ -114,6 +114,11 @@ namespace Threading {
         }
 
         main ()->start_searching (false);
+    }
+
+    void ThreadPool::wait_while_thinking ()
+    {
+        Threadpool.main ()->wait_while_searching ();
     }
 
 }

@@ -18,7 +18,7 @@ namespace OpeningBook  {
     #define OFFSET(x)  HeaderSize + (x)*EntrySize
 
     const size_t PolyglotBook::EntrySize  = sizeof (PBEntry);
-    const size_t PolyglotBook::HeaderSize = 0*EntrySize;
+    const size_t PolyglotBook::HeaderSize = 6*EntrySize;
 
     bool operator== (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
     {
@@ -104,7 +104,7 @@ namespace OpeningBook  {
     }
 
     template<class T>
-    PolyglotBook& PolyglotBook::operator<< (T &t)
+    PolyglotBook& PolyglotBook::operator<< (const T &t)
     {
         for (u08 i = 0; i < sizeof (t) && good (); ++i)
         {
@@ -114,7 +114,7 @@ namespace OpeningBook  {
         return *this;
     }
     template<>
-    PolyglotBook& PolyglotBook::operator<< (PBEntry &pbe)
+    PolyglotBook& PolyglotBook::operator<< (const PBEntry &pbe)
     {
         *this << pbe.key
               << pbe.move
@@ -125,14 +125,14 @@ namespace OpeningBook  {
 
     PolyglotBook::PolyglotBook ()
         : fstream ()
-        , _book_fn ("")
+        , _filename ("")
         , _mode (openmode(0))
         , _size (0)
     {}
 
-    PolyglotBook::PolyglotBook (const string &book_fn, openmode mode)
-        : fstream (book_fn, mode|ios_base::binary)
-        , _book_fn (book_fn)
+    PolyglotBook::PolyglotBook (const string &filename, openmode mode)
+        : fstream (filename, mode|ios_base::binary)
+        , _filename (filename)
         , _mode (mode)
         , _size (0)
     {}
@@ -146,13 +146,13 @@ namespace OpeningBook  {
     // mode:
     // Read -> ios_base::in
     // Write-> ios_base::out
-    bool PolyglotBook::open (const string &book_fn, openmode mode)
+    bool PolyglotBook::open (const string &filename, openmode mode)
     {
         close ();
-        fstream::open (book_fn, mode|ios_base::binary);
+        fstream::open (filename, mode|ios_base::binary);
         clear (); // Reset any error flag to allow retry open()
-        _book_fn = book_fn;
-        _mode    = mode;
+        _filename = filename;
+        _mode     = mode;
         return is_open ();
     }
 
@@ -171,7 +171,7 @@ namespace OpeningBook  {
             auto mid_index = size_t((beg_index + end_index) / 2);
             assert(mid_index >= beg_index && mid_index < end_index);
 
-            seekg (OFFSET (mid_index), ios_base::beg);
+            seekg (OFFSET(mid_index), ios_base::beg);
             *this >> pbe;
 
             if (key <= pbe.key)
@@ -206,7 +206,7 @@ namespace OpeningBook  {
 
         auto index = find_index (key);
 
-        seekg (OFFSET (index));
+        seekg (OFFSET(index));
 
         auto move = MOVE_NONE;
 
@@ -304,7 +304,7 @@ namespace OpeningBook  {
         // So in case book move is a promotion have to convert to our representation,
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by PolyGlot.
-        // Polyglot use 3 bits while use 2 bits
+        // Polyglot use 3 bits while engine use 2 bits.
         auto pt = PieceT((move >> 12) & TOTL);
         // Set new type for promotion piece
         if (pt != PAWN) promote (move, pt);
@@ -325,37 +325,36 @@ namespace OpeningBook  {
     {
         ostringstream oss;
 
-        if (is_open () && (_mode & ios_base::in))
+        if (!is_open () || !(_mode & ios_base::in)) return oss.str ();
+
+        Key key = pos.posi_key ();
+
+        auto index = find_index (key);
+
+        seekg (OFFSET(index));
+
+        vector<PBEntry> pbes;
+        PBEntry pbe;
+        u32 weight_sum = 0;
+        while ((*this >> pbe), (pbe.key == key))
         {
-            Key key = pos.posi_key ();
-
-            auto index = find_index (key);
-
-            seekg (OFFSET (index));
-
-            vector<PBEntry> pbes;
-            PBEntry pbe;
-            u32 weight_sum = 0;
-            while ((*this >> pbe), (pbe.key == key))
-            {
-                pbes.push_back (pbe);
-                weight_sum += pbe.weight;
-            }
+            pbes.push_back (pbe);
+            weight_sum += pbe.weight;
+        }
         
-            if (pbes.empty ())
+        if (pbes.empty ())
+        {
+            std::cerr << "ERROR: no such key... "
+                        << std::hex << std::uppercase << key << std::nouppercase << std::dec
+                        << std::endl;
+        }
+        else
+        {
+            for_each (pbes.begin (), pbes.end (), [&oss, &weight_sum] (PBEntry p)
             {
-                std::cerr << "ERROR: no such key... "
-                          << std::hex << std::uppercase << key << std::nouppercase << std::dec
-                          << std::endl;
-            }
-            else
-            {
-                for_each (pbes.begin (), pbes.end (), [&oss, &weight_sum] (PBEntry p)
-                {
-                    oss << p << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * p.weight / weight_sum : 0.0) << std::setfill (' ')
-                        << endl;
-                });
-            }
+                oss << p << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * p.weight / weight_sum : 0.0) << std::setfill (' ')
+                    << endl;
+            });
         }
         return oss.str ();
     }

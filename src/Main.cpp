@@ -4,10 +4,10 @@ using namespace std;
 
 namespace {
 
-    string strarg (i32 argc, const char *const *argv)
+    string strarg (u32 argc, const char *const *argv)
     {
         string arg;
-        for (auto i = 1; i < argc; ++i)
+        for (u32 i = 1U; i < argc; ++i)
         {
             arg += string(argv[i]) + " ";
         }
@@ -16,7 +16,7 @@ namespace {
 
 }
 
-i32 main (i32 argc, const char *const *argv)
+i32 main (u32 argc, const char *const *argv)
 {
     string arg = strarg (argc, argv);
 

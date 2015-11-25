@@ -51,7 +51,7 @@ namespace Debugger {
                 << "---------------------------\n"
                 << "Cond  :" << setw (20) << CondCount << "\n"
                 << "Hit   :" << setw (20) << HitCount  << "\n"
-                << "Rate  :" << setw (20) << setprecision (2) << fixed << 100 * (double) HitCount / CondCount
+                << "Rate  :" << setw (20) << setprecision (2) << fixed << 100.0 * (double)HitCount / CondCount
                 << left << std::endl;
         }
 
@@ -61,7 +61,7 @@ namespace Debugger {
                 << "---------------------------\n"
                 << "Count :" << setw (20) << ItemCount << "\n"
                 << "Sum   :" << setw (20) << ItemSum   << "\n"
-                << "Mean  :" << setw (20) << setprecision (2) << fixed << (double) ItemSum / ItemCount
+                << "Mean  :" << setw (20) << setprecision (2) << fixed << 1.0 * (double)ItemSum / ItemCount
                 << left << std::endl;
         }
     }

@@ -47,7 +47,7 @@ namespace MovePick {
             if (abs (i32(v)) < 324)
             {
                 auto &e = _table[p][s];
-                e = std::min (std::max (e*(1.0 - (double) abs (i32(v)) / (CM ? 512 : 324)) + i32(v)*(CM ? 64 : 32), -MAX_STATS_VALUE), +MAX_STATS_VALUE);
+                e = std::min (std::max (e*(1.0 - (double)abs (i32(v)) / (CM ? 512 : 324)) + i32(v)*(CM ? 64 : 32), -MAX_STATS_VALUE), +MAX_STATS_VALUE);
             }
         }
         // Piece, destiny square, move

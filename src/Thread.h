@@ -26,12 +26,12 @@ namespace Threading {
     class Thread
     {
     private:
-        std::thread native_thread;
-        Mutex mutex;
-        ConditionVariable sleep_condition;
+        std::thread       _native_thread;
+        Mutex             _mutex;
+        ConditionVariable _sleep_condition;
 
-        bool  alive     = true
-            , searching = false;
+        bool  _alive     = true
+            , _searching = false;
 
     public:
         Pawns   ::Table pawn_table;
@@ -57,55 +57,55 @@ namespace Threading {
         // Thread::start_searching() wake up the thread that will start the search
         void start_searching (bool resume = false)
         {
-            std::unique_lock<Mutex> lk (mutex);
+            std::unique_lock<Mutex> lk (_mutex);
             if (!resume)
             {
-                searching = true;
+                _searching = true;
             }
-            sleep_condition.notify_one ();
+            _sleep_condition.notify_one ();
             lk.unlock ();
         }
         // Thread::wait_while_searching() wait on sleep condition until not searching
         void wait_while_searching ()
         {
-            std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&] { return !searching; });
+            std::unique_lock<Mutex> lk (_mutex);
+            _sleep_condition.wait (lk, [&] { return !_searching; });
             lk.unlock ();
         }
 
         // Thread::wait_until() set the thread to sleep until 'condition' turns true
         void wait_until (const std::atomic_bool &condition)
         {
-            std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&] { return bool(condition); });
+            std::unique_lock<Mutex> lk (_mutex);
+            _sleep_condition.wait (lk, [&] { return bool(condition); });
             lk.unlock ();
         }
         // Thread::wait_while() set the thread to sleep until 'condition' turns false
         void wait_while (const std::atomic_bool &condition)
         {
-            std::unique_lock<Mutex> lk (mutex);
-            sleep_condition.wait (lk, [&] { return !bool(condition); });
+            std::unique_lock<Mutex> lk (_mutex);
+            _sleep_condition.wait (lk, [&] { return !bool(condition); });
             lk.unlock ();
         }
 
         // Thread::idle_loop() is where the thread is parked when it has no work to do
         void idle_loop ()
         {
-            while (alive)
+            while (_alive)
             {
-                std::unique_lock<Mutex> lk (mutex);
+                std::unique_lock<Mutex> lk (_mutex);
 
-                searching = false;
+                _searching = false;
 
-                while (alive && !searching)
+                while (_alive && !_searching)
                 {
-                    sleep_condition.notify_one (); // Wake up main thread if needed
-                    sleep_condition.wait (lk);
+                    _sleep_condition.notify_one (); // Wake up main thread if needed
+                    _sleep_condition.wait (lk);
                 }
 
                 lk.unlock ();
 
-                if (alive)
+                if (_alive)
                 {
                     search ();
                 }
@@ -142,6 +142,7 @@ namespace Threading {
         void deinitialize ();
 
         void start_thinking (const Position &pos, const LimitsT &limit, StateStackPtr &states);
+        void wait_while_thinking ();
         u64  game_nodes ();
 
         void configure ();

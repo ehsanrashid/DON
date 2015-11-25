@@ -21,9 +21,9 @@ namespace UCI {
         typedef void (*OnChange) ();
 
         u08 _index = 0;
-        std::string _type  = ""
-                  , _value = "";
-
+        std::string
+              _type  = ""
+            , _value = "";
         i32   _minimum = 0
             , _maximum = 0;
 
