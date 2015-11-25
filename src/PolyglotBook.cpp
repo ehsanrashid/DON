@@ -17,52 +17,7 @@ namespace OpeningBook  {
 
     #define OFFSET(x)  HeaderSize + (x)*EntrySize
 
-    const size_t PolyglotBook::EntrySize  = sizeof (PBEntry);
-    const size_t PolyglotBook::HeaderSize = 6*EntrySize;
-
-    bool operator== (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return pe1.key == pe2.key
-            && pe1.move == pe2.move
-            && pe1.weight == pe2.weight;
-    }
-
-    bool operator!= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return !(pe1 == pe2);
-    }
-
-    bool operator>  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return pe1.key != pe2.key ?
-                pe1.key > pe2.key :
-                //pe1.move > pe2.move;      // order by move value
-                pe1.weight > pe2.weight;  // order by weight value
-    }
-
-    bool operator<  (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return pe1.key != pe2.key ?
-                pe1.key < pe2.key :
-                //pe1.move < pe2.move;      // order by move value
-                pe1.weight < pe2.weight;  // order by weight value
-    }
-
-    bool operator>= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return pe1.key != pe2.key ?
-                pe1.key >= pe2.key :
-                //pe1.move >= pe2.move;      // order by move value
-                pe1.weight >= pe2.weight;  // order by weight value
-    }
-
-    bool operator<= (const PolyglotBook::PBEntry &pe1, const PolyglotBook::PBEntry &pe2)
-    {
-        return pe1.key != pe2.key ?
-                pe1.key <= pe2.key :
-                //pe1.move <= pe2.move;      // order by move value
-                pe1.weight <= pe2.weight;  // order by weight value
-    }
+    const PolyglotBook::PBEntry PolyglotBook::PBEntry::NullEntry = { 0 , 0 , 0 , 0 };
 
     PolyglotBook::PBEntry::operator string () const
     {
@@ -83,7 +38,7 @@ namespace OpeningBook  {
     }
 
     template<class T>
-    PolyglotBook& PolyglotBook::operator>> (T &t)
+    PolyglotBook& PolyglotBook::operator>> (      T &t)
     {
         t = T();
         for (u08 i = 0; i < sizeof (t) && good (); ++i)
@@ -94,7 +49,7 @@ namespace OpeningBook  {
         return *this;
     }
     template<>
-    PolyglotBook& PolyglotBook::operator>> (PBEntry &pbe)
+    PolyglotBook& PolyglotBook::operator>> (      PBEntry &pbe)
     {
         *this >> pbe.key
               >> pbe.move

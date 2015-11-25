@@ -150,7 +150,7 @@ namespace UCI {
 
         void retain_hash ()
         {
-            TranspositionTable::RetainHash = bool(Options["Retain Hash"]);
+            TT.retain_hash = bool(Options["Retain Hash"]);
         }
 
         void save_hash   ()
@@ -280,7 +280,7 @@ namespace UCI {
         //
         // Check this option also if you want to Load the Hash from disk file,
         // otherwise your loaded Hash could be cleared by a subsequent ucinewgame or Clear Hash command.
-        Options["Retain Hash"]                  << Option (TranspositionTable::RetainHash, retain_hash);
+        Options["Retain Hash"]                  << Option (TT.retain_hash, retain_hash);
 
         // Persistent Hash Options
         // -----------------------

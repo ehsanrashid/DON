@@ -27,19 +27,74 @@ namespace OpeningBook {
         //  - Learn     4 bytes
         struct PBEntry
         {
+            static const PBEntry NullEntry;
+
             u64 key     = U64(0);
             u16 move    = MOVE_NONE;
             u16 weight  = 0;
             u32 learn   = 0;
 
+            PBEntry () = default;
+            PBEntry (u64 k, u16 m, u16 w, u32 l)
+                : key (k)
+                , move (m)
+                , weight (w)
+                , learn (l)
+            {}
+
             operator Move () const { return Move(move); }
+
+            bool operator== (const PolyglotBook::PBEntry &pe)
+            {
+                return key == pe.key
+                    && move == pe.move
+                    && weight == pe.weight;
+            }
+            bool operator!= (const PolyglotBook::PBEntry &pe)
+            {
+                //return !(*this == pe);
+                return key != pe.key
+                    || move != pe.move
+                    || weight != pe.weight;
+            }
+            bool operator>  (const PolyglotBook::PBEntry &pe)
+            {
+                return key != pe.key ?
+                        key > pe.key :
+                        //move > pe.move;      // order by move
+                        weight > pe.weight;  // order by weight
+            }
+            bool operator<  (const PolyglotBook::PBEntry &pe)
+            {
+                return key != pe.key ?
+                        key < pe.key :
+                        //move < pe.move;      // order by move
+                        weight < pe.weight;  // order by weight
+            }
+            bool operator>= (const PolyglotBook::PBEntry &pe)
+            {
+                return key != pe.key ?
+                        key >= pe.key :
+                        //move >= pe.move;      // order by move
+                        weight >= pe.weight;  // order by weight
+            }
+            bool operator<= (const PolyglotBook::PBEntry &pe)
+            {
+                return key != pe.key ?
+                        key <= pe.key :
+                        //move <= pe.move;      // order by move
+                        weight <= pe.weight;  // order by weight
+            }
 
             explicit operator std::string () const;
 
         };
 
-        static const size_t EntrySize;
-        static const size_t HeaderSize;
+        static const u08 HeaderSize = 96;
+        static_assert (HeaderSize == 96, "Header size incorrect");
+
+        static const u08 EntrySize  = sizeof (PBEntry);
+        static_assert (EntrySize == 16, "Entry size incorrect");
 
     private:
 
@@ -48,7 +103,7 @@ namespace OpeningBook {
         size_t      _size;
 
         template<class T>
-        PolyglotBook& operator>> (T &t);
+        PolyglotBook& operator>> (      T &t);
         template<class T>
         PolyglotBook& operator<< (const T &t);
 
