@@ -1942,7 +1942,7 @@ namespace Threading {
 
                 if (!SearchFile.empty ())
                 {
-                    SearchLog << pretty_pv_info (root_pos, root_depth, root_moves[0].new_value, TimeMgr.elapsed_time (), root_moves[0].pv) << std::endl;
+                    SearchLog << pretty_pv_info (root_pos, root_depth, root_moves[0].new_value, TimeMgr.elapsed_time (), root_moves[0]) << std::endl;
                 }
 
                 if (!Signals.force_stop && !Signals.ponderhit_stop)
@@ -1976,7 +1976,7 @@ namespace Threading {
 
                         if (root_moves[0].size () >= 3)
                         {
-                            MoveMgr.update (root_pos, root_moves[0].pv);
+                            MoveMgr.update (root_pos, root_moves[0]);
                         }
                         else
                         {

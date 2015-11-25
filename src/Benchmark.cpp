@@ -91,10 +91,6 @@ void benchmark (istream &is, const Position &cur_pos)
     string limit_type = (is >> token) && !white_spaces (token) ? token : "depth";
     string fen_fn     = (is >> token) && !white_spaces (token) ? token : "default";
 
-    Options["Hash"]        = hash;
-    Options["Threads"]     = threads;
-    Options["Retain Hash"] = "false";
-
     i32 value = abs (stoi (limit_val));
 
     LimitsT limits;
@@ -137,7 +133,13 @@ void benchmark (istream &is, const Position &cur_pos)
         ifs.close ();
     }
 
-    clear ();
+    if (limit_type != "perft")
+    {
+        Options["Hash"]        = hash;
+        Options["Threads"]     = threads;
+        Options["Retain Hash"] = "false";
+        clear ();
+    }
 
     u64  nodes = 0;
     auto elapsed_time = now ();

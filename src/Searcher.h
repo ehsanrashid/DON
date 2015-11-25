@@ -105,6 +105,7 @@ namespace Searcher {
         bool operator== (Move m) const { return pv[0] == m; }
         bool operator!= (Move m) const { return pv[0] != m; }
 
+        operator MoveVector () const { return pv; }
         Move operator[] (i32 index) const { return pv[index]; }
 
         void operator+= (Move m) { pv.push_back (m); }
