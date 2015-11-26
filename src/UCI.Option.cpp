@@ -263,9 +263,9 @@ namespace UCI {
         // For 16 Min games 1024 or 2048 MB hash size should be fine.
         //
         // In the FAQ about Hash Size you'll find a formula to compute the optimal hash size for your hardware and time control.
-        Options["Hash"]                         << Option (TranspositionTable::DefSize,
-                                                           0,//TranspositionTable::MinSize,
-                                                           TranspositionTable::MaxSize, change_hash_size);
+        Options["Hash"]                         << Option (Table::DefSize,
+                                                           0,//Table::MinSize,
+                                                           Table::MaxSize, change_hash_size);
 
 #ifdef LPAGES
         Options["Large Pages"]                  << Option (true, change_memory);

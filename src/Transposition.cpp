@@ -6,7 +6,7 @@
 #include "BitScan.h"
 #include "Engine.h"
 
-Transposition::TranspositionTable  TT; // Global Transposition Table
+Transposition::Table  TT; // Global Transposition Table
 
 namespace Transposition {
 
@@ -17,24 +17,24 @@ namespace Transposition {
     // Size of Transposition entry (bytes)
     // 10 bytes
     const u08 Entry::Size = sizeof (Entry);
-    static_assert (Entry::Size == 10, "Incorrect Entry::Size");
+    static_assert (CacheLineSize % (Cluster::EntryCount*Entry::Size + 2) == 0, "Incorrect Entry::Size");
     // Size of Transposition cluster in (bytes)
     // 32 bytes
-    const u08 TranspositionTable::Cluster::Size = sizeof (TranspositionTable::Cluster);
-    static_assert (CacheLineSize % TranspositionTable::Cluster::Size == 0, "Incorrect Cluster::Size");
+    const u08 Cluster::Size = sizeof (Cluster);
+    static_assert (CacheLineSize % Cluster::Size == 0, "Incorrect Cluster::Size");
     // Minimum size of Transposition table (mega-byte)
     // 4 MB
-    const u32 TranspositionTable::MinSize = 4;
+    const u32 Table::MinSize = 4;
     // Maximum size of Transposition table (mega-byte)
     // 1048576 MB = 1048 GB = 1 TB
-    const u32 TranspositionTable::MaxSize =
+    const u32 Table::MaxSize =
     #ifdef BIT64
-        (U64(1) << (MaxHashBit-1 - 20)) * TranspositionTable::Cluster::Size;
+        (U64(1) << (MaxHashBit-1 - 20)) * Cluster::Size;
     #else
         2048;
     #endif
 
-    void TranspositionTable::alloc_aligned_memory (size_t mem_size, u32 alignment)
+    void Table::alloc_aligned_memory (size_t mem_size, u32 alignment)
     {
         assert(0 == (alignment & (alignment-1)));
         assert(0 == (mem_size  & (alignment-1)));
@@ -88,7 +88,7 @@ namespace Transposition {
     // resize(mb) sets the size of the table, measured in mega-bytes.
     // Transposition table consists of a power of 2 number of clusters and
     // each cluster consists of ClusterEntryCount number of entry.
-    u32 TranspositionTable::resize (u32 mem_size_mb, bool force)
+    u32 Table::resize (u32 mem_size_mb, bool force)
     {
         if (mem_size_mb < MinSize) mem_size_mb = MinSize;
         if (mem_size_mb > MaxSize) mem_size_mb = MaxSize;
@@ -116,7 +116,7 @@ namespace Transposition {
         return u32(mem_size >> 20); // mem_size_mb / 1024 / 1024
     }
 
-    void TranspositionTable::auto_size (u32 mem_size_mb, bool force)
+    void Table::auto_size (u32 mem_size_mb, bool force)
     {
         if (mem_size_mb == 0) mem_size_mb = MaxSize;
 
@@ -129,7 +129,7 @@ namespace Transposition {
 
     // probe() looks up the entry in the transposition table.
     // Returns a pointer to the entry found or NULL if not found.
-    Entry* TranspositionTable::probe (Key key, bool &hit) const
+    Entry* Table::probe (Key key, bool &hit) const
     {
         //assert(key != U64(0));
         const u16 key16 = key >> 0x30;
@@ -163,7 +163,7 @@ namespace Transposition {
         return rte;
     }
 
-    void TranspositionTable::save (string &hash_fn) const
+    void Table::save (string &hash_fn) const
     {
         ofstream ofhash (hash_fn, ios_base::out|ios_base::binary);
         if (!ofhash.is_open ()) return;
@@ -172,7 +172,7 @@ namespace Transposition {
         sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
     }
 
-    void TranspositionTable::load (string &hash_fn)
+    void Table::load (string &hash_fn)
     {
         ifstream ifhash (hash_fn, ios_base::in|ios_base::binary);
         if (!ifhash.is_open ()) return;

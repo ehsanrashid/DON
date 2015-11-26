@@ -1919,7 +1919,7 @@
     <Alias n="248" Id="(@3 @247)" />
     <Alias n="249" Uri="File=$(ProgramFilesUri)/windows kits/8.1/include/um/winsock.h" />
     <Alias n="250" Id="(@3 @249)" />
-    <Alias n="251" Uri="File=$(VsSolutionUri)/src/PolyglotBook.h" />
+    <Alias n="251" Uri="File=$(VsSolutionUri)/src/Book.h" />
     <Alias n="252" Id="(@1 @251)" />
     <Alias n="253" Uri="File=$(VsSolutionUri)/src/Benchmark.h" />
     <Alias n="254" Id="(@1 @253)" />
@@ -2237,7 +2237,7 @@
     <Alias n="566" Id="(@1 @565)" />
     <Alias n="567" Uri="File=$(VsSolutionUri)/src/UCI.cpp" />
     <Alias n="568" Id="(@1 @567)" />
-    <Alias n="569" Uri="File=$(VsSolutionUri)/src/PolyglotBook.cpp" />
+    <Alias n="569" Uri="File=$(VsSolutionUri)/src/Book.cpp" />
     <Alias n="570" Id="(@1 @569)" />
     <Alias n="571" Uri="File=$(VsSolutionUri)/src/Benchmark.cpp" />
     <Alias n="572" Id="(@1 @571)" />

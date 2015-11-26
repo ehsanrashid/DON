@@ -143,8 +143,8 @@ namespace Notation {
     // Internally castle moves are always coded as "king captures rook".
     string move_to_can (Move m, bool c960)
     {
-        if (m == MOVE_NONE) return "(none)";
-        if (m == MOVE_NULL) return "(null)";
+        if (MOVE_NONE == m) return "(none)";
+        if (MOVE_NULL == m) return "(null)";
 
         auto org = org_sq (m);
         auto dst = dst_sq (m);
@@ -163,20 +163,15 @@ namespace Notation {
     // move_to_san(m, pos) converts a move to a string in short algebraic notation representation.
     string move_to_san (Move m, Position &pos)
     {
-        if (m == MOVE_NONE) return "(none)";
-        if (m == MOVE_NULL) return "(null)";
-        assert(pos.legal (m));
+        if (MOVE_NONE == m) return "(none)";
+        if (MOVE_NULL == m) return "(null)";
         assert(MoveList<LEGAL> (pos).contains (m));
 
         string san;
         auto org = org_sq (m);
         auto dst = dst_sq (m);
 
-        if (CASTLE == mtype (m))
-        {
-            san = (dst > org ? "O-O" : "O-O-O");
-        }
-        else
+        if (CASTLE != mtype (m))
         {
             auto pt = ptype (pos[org]);
 
@@ -191,7 +186,7 @@ namespace Notation {
                 case AMB_RANK: san += to_char (_file (org)); break;
                 case AMB_FILE: san += to_char (_rank (org)); break;
                 case AMB_SQR:  san += to_string (org);       break;
-                default:       assert(false);               break;
+                default:       assert(false);                break;
                 }
             }
 
@@ -211,6 +206,10 @@ namespace Notation {
                 san += "=";
                 san += PIECE_CHAR[WHITE|promote (m)]; // Uppercase (White)
             }
+        }
+        else
+        {
+            san = (dst > org ? "O-O" : "O-O-O");
         }
 
         // Move marker for check & checkmate

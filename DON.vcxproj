@@ -600,7 +600,7 @@
     <ClCompile Include="src\MovePicker.cpp" />
     <ClCompile Include="src\Notation.cpp" />
     <ClCompile Include="src\Pawns.cpp" />
-    <ClCompile Include="src\PolyglotBook.cpp" />
+    <ClCompile Include="src\Polyglot.cpp" />
     <ClCompile Include="src\Position.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
     <ClCompile Include="src\Thread.cpp" />
@@ -629,7 +629,7 @@
     <ClInclude Include="src\Notation.h" />
     <ClInclude Include="src\nullstream.h" />
     <ClInclude Include="src\Pawns.h" />
-    <ClInclude Include="src\PolyglotBook.h" />
+    <ClInclude Include="src\Polyglot.h" />
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\PRNG.h" />
     <ClInclude Include="src\Searcher.h" />

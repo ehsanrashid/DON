@@ -12,7 +12,7 @@ namespace Transposition {
 
     extern const u08 CacheLineSize;
 
-    // Transposition Entry needs 16 byte to be stored
+    // Transposition::Entry needs 16 byte to be stored
     //
     //  Key--------- 16 bits
     //  Move-------- 16 bits
@@ -34,7 +34,7 @@ namespace Transposition {
         i08 _depth;
         u08 _gen_bnd;
 
-        friend class TranspositionTable;
+        friend class Table;
 
     public:
         static const u08 Size;
@@ -71,27 +71,29 @@ namespace Transposition {
         }
     };
 
-    // A Transposition Table consists of a power of 2 number of clusters
-    // and each cluster consists of ClusterEntryCount number of entry.
+    // Transposition::Cluster needs 32 bytes to be stored
+    // 3 x 10 + 2
+    struct Cluster
+    {
+    public:
+        // Cluster entry count
+        static const u08 EntryCount = 3;
+        static const u08 Size;
+
+        Entry entries[EntryCount];
+        char padding[2]; // Align to a divisor of the cache line size
+    };
+
+    // Transposition::Table consists of a power of 2 number of clusters
+    // and each cluster consists of Cluster::EntryCount number of entry.
     // Each non-empty entry contains information of exactly one position.
     // Size of a cluster should divide the size of a cache line size,
     // to ensure that clusters never cross cache lines.
     // In case it is less, it should be padded to guarantee always aligned accesses.
     // This ensures best cache performance, as the cacheline is prefetched.
-    class TranspositionTable
+    class Table
     {
     public:
-        // Cluster is a 32 bytes cluster of TT entries
-        // 3 x 10 + 2
-        struct Cluster
-        {
-            // Cluster entries count
-            static const u08 EntryCount = 3;
-            static const u08 Size;
-
-            Entry entries[EntryCount];
-            char padding[2]; // Align to a divisor of the cache line size
-        };
 
     private:
 
@@ -141,14 +143,14 @@ namespace Transposition {
 
         bool retain_hash = false;
 
-        TranspositionTable () = default;
+        Table () = default;
 
-        explicit TranspositionTable (u32 mem_size_mb)
+        explicit Table (u32 mem_size_mb)
         {
             resize (mem_size_mb, true);
         }
 
-        ~TranspositionTable ()
+        ~Table ()
         {
             free_aligned_memory ();
         }
@@ -228,7 +230,7 @@ namespace Transposition {
 
         template<class CharT, class Traits>
         friend std::basic_ostream<CharT, Traits>&
-            operator<< (std::basic_ostream<CharT, Traits> &os, const TranspositionTable &tt)
+            operator<< (std::basic_ostream<CharT, Traits> &os, const Table &tt)
         {
             u32 mem_size_mb = tt.size ();
             u08 dummy = 0;
@@ -241,14 +243,14 @@ namespace Transposition {
             u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
-                os.write (reinterpret_cast<const CharT*> (tt._clusters+i*BufferSize), TranspositionTable::Cluster::Size*BufferSize);
+                os.write (reinterpret_cast<const CharT*> (tt._clusters+i*BufferSize), Cluster::Size*BufferSize);
             }
             return os;
         }
 
         template<class CharT, class Traits>
         friend std::basic_istream<CharT, Traits>&
-            operator>> (std::basic_istream<CharT, Traits> &is,       TranspositionTable &tt)
+            operator>> (std::basic_istream<CharT, Traits> &is,       Table &tt)
         {
             u32 mem_size_mb;
             u08 generation;
@@ -264,7 +266,7 @@ namespace Transposition {
             u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
-                is.read (reinterpret_cast<CharT*> (tt._clusters+i*BufferSize), TranspositionTable::Cluster::Size*BufferSize);
+                is.read (reinterpret_cast<CharT*> (tt._clusters+i*BufferSize), Cluster::Size*BufferSize);
             }
             return is;
         }
@@ -272,6 +274,6 @@ namespace Transposition {
 
 }
 
-extern Transposition::TranspositionTable TT; // Global Transposition Table
+extern Transposition::Table TT; // Global Transposition Table
 
 #endif // _TRANSPOSITION_H_INC_
