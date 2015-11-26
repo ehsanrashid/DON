@@ -97,46 +97,7 @@ namespace Notation {
 
     }
 
-    // move_from_can(can, pos) converts a string representing a move in coordinate algebraic notation
-    // to the corresponding legal move, if any.
-    Move move_from_can (      string &can, const Position &pos)
-    {
-        if (5 == can.length () && isupper (u08 (can[4])))
-        {
-            can[4] = u08(tolower (can[4])); // Promotion piece in lowercase
-        }
-        for (const auto &m : MoveList<LEGAL> (pos))
-        {
-            if (can == move_to_can (m, pos.chess960 ()))
-            {
-                return m;
-            }
-        }
-        return MOVE_NONE;
-    }
-
-    // move_from_san(san, pos) converts a string representing a move in short algebraic notation
-    // to the corresponding legal move, if any.
-    Move move_from_san (const string &san,       Position &pos)
-    {
-        for (const auto &m : MoveList<LEGAL> (pos))
-        {
-            if (san == move_to_san (m, pos))
-            {
-                return m;
-            }
-        }
-        return MOVE_NONE;
-    }
-
-    //// move_from_lan(lan, pos) converts a string representing a move in long algebraic notation
-    //// to the corresponding legal move, if any.
-    //Move move_from_lan (const string &lan, const Position &pos)
-    //{
-    //    return MOVE_NONE;
-    //}
-
-    // move_to_can(m, c960) converts a move to a string in coordinate algebraic notation representation.
+    // move_to_can() converts a move to a string in coordinate algebraic notation representation.
     // The only special case is castling moves,
     //  - e1g1 notation in normal chess mode,
     //  - e1h1 notation in chess960 mode.
@@ -159,8 +120,7 @@ namespace Notation {
         }
         return can;
     }
-
-    // move_to_san(m, pos) converts a move to a string in short algebraic notation representation.
+    // move_to_san() converts a move to a string in short algebraic notation representation.
     string move_to_san (Move m, Position &pos)
     {
         if (MOVE_NONE == m) return "(none)";
@@ -223,12 +183,56 @@ namespace Notation {
 
         return san;
     }
-
-    //// move_to_lan(m, pos) converts a move to a string in long algebraic notation representation.
+    //// move_to_lan() converts a move to a string in long algebraic notation representation.
     //string move_to_lan (Move m, Position &pos)
     //{
     //    string lan;
     //    return lan;
+    //}
+
+    // move_from_can() converts a string representing a move in coordinate algebraic notation
+    // to the corresponding legal move, if any.
+    Move move_from_can (const string &can, const Position &pos)
+    {
+        string scan = can;
+        if (scan.length () == 5 && isupper (scan[4]))
+        {
+            scan[4] = char(tolower (scan[4])); // Promotion piece in lowercase
+        }
+        for (const auto &m : MoveList<LEGAL> (pos))
+        {
+            if (scan == move_to_can (m, pos.chess960 ()))
+            {
+                return m;
+            }
+        }
+        return MOVE_NONE;
+    }
+    // move_from_san() converts a string representing a move in short algebraic notation
+    // to the corresponding legal move, if any.
+    Move move_from_san (const string &san,       Position &pos)
+    {
+        for (const auto &m : MoveList<LEGAL> (pos))
+        {
+            if (san == move_to_san (m, pos))
+            {
+                return m;
+            }
+        }
+        return MOVE_NONE;
+    }
+    //// move_from_lan() converts a string representing a move in long algebraic notation
+    //// to the corresponding legal move, if any.
+    //Move move_from_lan (const string &lan,       Position &pos)
+    //{
+    //    for (const auto &m : MoveList<LEGAL> (pos))
+    //    {
+    //        if (lan == move_to_lan (m, pos))
+    //        {
+    //            return m;
+    //        }
+    //    }
+    //    return MOVE_NONE;
     //}
 
     // to_string() converts a value to a string suitable
@@ -240,7 +244,6 @@ namespace Notation {
     string to_string (Value v)
     {
         ostringstream oss;
-
         if (abs (v) < +VALUE_MATE_IN_MAX_DEPTH)
         {
             oss << "cp " << i32(100 * value_to_cp (v));
@@ -249,7 +252,6 @@ namespace Notation {
         {
             oss << "mate " << i32(v > VALUE_ZERO ? +(VALUE_MATE - v + 1) : -(VALUE_MATE + v + 0)) / 2;
         }
-
         return oss.str ();
     }
 

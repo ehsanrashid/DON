@@ -225,8 +225,8 @@ namespace Transposition {
 
         Entry* probe (Key key, bool &hit) const;
 
-        void save (std::string &hash_fn) const;
-        void load (std::string &hash_fn);
+        void save (const std::string &hash_fn) const;
+        void load (const std::string &hash_fn);
 
         template<class CharT, class Traits>
         friend std::basic_ostream<CharT, Traits>&

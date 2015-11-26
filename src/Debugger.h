@@ -51,16 +51,16 @@ namespace Debugger {
     {
 
     private:
-        std::ofstream _fstm;
-        std::tie_buf  _innbuf;
-        std::tie_buf  _outbuf;
+        std::ofstream _ofs;
+        std::tie_buf  _inb; // Input
+        std::tie_buf  _otb; // Output
 
     protected:
 
         // Constructor should be protected !!!
         Logger ()
-            : _innbuf (std::cin .rdbuf (), _fstm.rdbuf ())
-            , _outbuf (std::cout.rdbuf (), _fstm.rdbuf ())
+            : _inb (std::cin .rdbuf (), _ofs.rdbuf ())
+            , _otb (std::cout.rdbuf (), _ofs.rdbuf ())
         {}
         
         Logger (const Logger&) = delete;
@@ -84,25 +84,25 @@ namespace Debugger {
 
         void start ()
         {
-            if (!_fstm.is_open ())
+            if (!_ofs.is_open ())
             {
-                _fstm.open ("DebugLog.txt", std::ios_base::out|std::ios_base::app);
-                _fstm << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
+                _ofs.open ("DebugLog.txt", std::ios_base::out|std::ios_base::app);
+                _ofs << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
 
-                std::cin .rdbuf (&_innbuf);
-                std::cout.rdbuf (&_outbuf);
+                std::cin .rdbuf (&_inb);
+                std::cout.rdbuf (&_otb);
             }
         }
 
         void stop ()
         {
-            if (_fstm.is_open ())
+            if (_ofs.is_open ())
             {
-                std::cout.rdbuf (_outbuf.streambuf ());
-                std::cin .rdbuf (_innbuf.streambuf ());
+                std::cout.rdbuf (_otb.streambuf ());
+                std::cin .rdbuf (_inb.streambuf ());
 
-                _fstm << "[" << std::chrono::system_clock::now () << "] <-" << std::endl;
-                _fstm.close ();
+                _ofs << "[" << std::chrono::system_clock::now () << "] <-" << std::endl;
+                _ofs.close ();
             }
         }
 

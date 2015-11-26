@@ -163,22 +163,26 @@ namespace Transposition {
         return rte;
     }
 
-    void Table::save (string &hash_fn) const
+    void Table::save (const string &hash_fn) const
     {
-        ofstream ofhash (hash_fn, ios_base::out|ios_base::binary);
-        if (!ofhash.is_open ()) return;
-        ofhash << (*this);
-        ofhash.close ();
-        sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
+        ofstream ofs (hash_fn, ios_base::out|ios_base::binary);
+        if (ofs.is_open ())
+        {
+            ofs << (*this);
+            ofs.close ();
+            sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
+        }
     }
 
-    void Table::load (string &hash_fn)
+    void Table::load (const string &hash_fn)
     {
-        ifstream ifhash (hash_fn, ios_base::in|ios_base::binary);
-        if (!ifhash.is_open ()) return;
-        ifhash >> (*this);
-        ifhash.close ();
-        sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
+        ifstream ifs (hash_fn, ios_base::in|ios_base::binary);
+        if (ifs.is_open ())
+        {
+            ifs >> (*this);
+            ifs.close ();
+            sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
+        }
     }
 
 }

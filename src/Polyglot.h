@@ -19,8 +19,8 @@ namespace Polyglot {
         static const u08 Size;
         static const Entry NullEntry;
 
-        u64 key     = U64 (0);
-        u16 move    = MOVE_NONE;
+        u64 key     = U64(0);
+        u16 move    = 0;
         u16 weight  = 0;
         u32 learn   = 0;
 
@@ -31,6 +31,8 @@ namespace Polyglot {
             , weight (w)
             , learn (l)
         {}
+
+        Entry& operator= (const Entry&) = default;
 
         explicit operator Move () const { return Move (move); }
 
@@ -49,96 +51,45 @@ namespace Polyglot {
         }
         bool operator>  (const Entry &pe)
         {
-            return key != pe.key ?
-                key > pe.key :
-            //move > pe.move;      // order by move
-            weight > pe.weight;  // order by weight
+            return
+                key != pe.key ?
+                    key > pe.key :
+                    weight != pe.weight ?
+                        weight > pe.weight :
+                        move > pe.move;
         }
         bool operator<  (const Entry &pe)
         {
-            return key != pe.key ?
-                key < pe.key :
-                //move < pe.move;      // order by move
-                weight < pe.weight;  // order by weight
+            return
+                key != pe.key ?
+                    key < pe.key :
+                    weight != pe.weight ?
+                        weight < pe.weight :
+                        move < pe.move;
         }
         bool operator>= (const Entry &pe)
         {
-            return key != pe.key ?
-                key >= pe.key :
-                //move >= pe.move;      // order by move
-                weight >= pe.weight;  // order by weight
+            return
+                key != pe.key ?
+                    key >= pe.key :
+                    weight != pe.weight ?
+                        weight >= pe.weight :
+                        move >= pe.move;
         }
         bool operator<= (const Entry &pe)
         {
-            return key != pe.key ?
-                key <= pe.key :
-                //move <= pe.move;      // order by move
-                weight <= pe.weight;  // order by weight
+            return
+                key != pe.key ?
+                    key <= pe.key :
+                    weight != pe.weight ?
+                        weight <= pe.weight :
+                        move <= pe.move;
         }
 
         bool operator== (Move m) { return move == m; }
         bool operator!= (Move m) { return move != m; }
 
         explicit operator std::string () const;
-
-    };
-
-    // Polyglot::Book is a file containing series of Polyglot::Entry.
-    // All integers are stored in big-endian format,
-    // with the highest byte first (regardless of size).
-    // The entries are ordered according to the key in ascending order.
-    // Polyglot::Book file has *.bin extension.
-    class Book
-        : public std::fstream
-    {
-    public:
-
-        static const u08 HeaderSize = 96;
-
-    private:
-
-        std::string _filename = "";
-        openmode    _mode     = openmode(0);
-        size_t      _size     = 0UL;
-
-        template<class T>
-        Book& operator>> (      T &t);
-        template<class T>
-        Book& operator<< (const T &t);
-
-    public:
-        Book () = default;
-        Book (const std::string &filename, openmode mode);
-
-        Book (const Book&) = delete;
-        Book& operator= (const Book&) = delete;
-
-        ~Book ();
-
-        std::string filename () const { return _filename; }
-
-        size_t size ()
-        {
-            if (_size != 0) return _size;
-
-            size_t cur_pos = tellg ();
-            seekg (0L, ios_base::end);
-            _size = tellg ();
-            seekg (cur_pos, ios_base::beg);
-            clear ();
-            return _size;
-        }
-
-        bool open (const std::string &filename, openmode mode);
-        void close ();
-
-        size_t find_index (      Key key);
-        size_t find_index (const Position &pos);
-        size_t find_index (const std::string &fen, bool c960 = false);
-
-        Move probe_move (const Position &pos, bool pick_best = true);
-
-        std::string read_entries (const Position &pos);
 
     };
 
@@ -149,6 +100,63 @@ namespace Polyglot {
         os << std::string(pe);
         return os;
     }
+
+    // Polyglot::Book is a file containing series of Polyglot::Entry.
+    // All integers are stored in big-endian format,
+    // with the highest byte first (regardless of size).
+    // The entries are ordered according to the key in ascending order.
+    // Polyglot::Book file has *.bin extension.
+    class Book
+        : public std::fstream
+    {
+    private:
+
+        std::string _book_fn = "";
+        openmode    _mode    = openmode(0);
+        size_t      _size    = 0U;
+
+    public:
+        static const u08 HeaderSize = 96;
+
+        Book () = default;
+        Book (const std::string &book_fn, openmode mode);
+
+        Book (const Book&) = delete;
+        Book& operator= (const Book&) = delete;
+
+        ~Book ();
+
+        std::string book_fn () const { return _book_fn; }
+
+        size_t size ()
+        {
+            if (_size != 0U) return _size;
+
+            size_t cur_pos = tellg ();
+            seekg (0L, ios_base::end);
+            _size = tellg ();
+            seekg (cur_pos, ios_base::beg);
+            clear ();
+            return _size;
+        }
+
+        bool open (const std::string &book_fn, openmode mode);
+        void close ();
+
+        template<class T>
+        Book& operator>> (      T &t);
+        template<class T>
+        Book& operator<< (const T &t);
+
+        size_t find_index (      Key key);
+        size_t find_index (const Position &pos);
+        size_t find_index (const std::string &fen, bool c960 = false);
+
+        Move probe_move (const Position &pos, bool pick_best = true);
+
+        std::string read_entries (const Position &pos);
+
+    };
 
 }
 

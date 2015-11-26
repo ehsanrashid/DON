@@ -202,7 +202,7 @@ enum CSide : i08
     CS_NO
 };
 
-// Castle Right defined as in PolyGlot book hash key
+// Castle Right defined as in Polyglot book hash key
 enum CRight : u08
 {
     CR_NO ,               // 0000

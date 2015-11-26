@@ -1409,10 +1409,13 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
 }
 #undef do_capture
 // do_move() do the move (CAN)
-void Position::do_move (string &can, StateInfo &nsi)
+void Position::do_move (const string &can, StateInfo &nsi)
 {
     auto m = move_from_can (can, *this);
-    if (m != MOVE_NONE) do_move (m, nsi, gives_check (m, CheckInfo (*this)));
+    if (m != MOVE_NONE)
+    {
+        do_move (m, nsi, gives_check (m, CheckInfo (*this)));
+    }
 }
 // undo_move() undo the last move
 void Position::undo_move ()
@@ -1557,7 +1560,7 @@ void Position::flip ()
     std::getline (ss, token);
     flip_fen += token;
 
-    setup (flip_fen, _thread, _chess960);
+    setup (flip_fen, _thread, _chess960, true);
 
     assert(ok ());
 }

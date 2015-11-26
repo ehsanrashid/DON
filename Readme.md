@@ -3,7 +3,7 @@
 [![Build Status](https://www.donchess.net)](https://www.donchess.net)
 
 DON is a free UCI chess engine. It is not a complete chess program
-and requires some UCI-compatible GUI (e.g. XBoard with PolyGlot,
+and requires some UCI-compatible GUI (e.g. XBoard with Polyglot,
 eboard, Arena, Sigma Chess, Shredder, Chess Partner or Fritz)
 in order to be used comfortably. Read the documentation for GUI
 of your choice for information about how to use engine with it.
@@ -24,8 +24,8 @@ other-wise use Default Memory.
 DON has support for 32 or 64-bit CPUs, the hardware ABM/BMI instruction,
 big-endian machines such as Power PC, and other platforms.
 
-DON also support for PolyGlot opening books.
-For information about how to create such books, consult the PolyGlot documentation.
+DON also support for Polyglot opening books.
+For information about how to create such books, consult the Polyglot documentation.
 The book file can be selected by setting the *Book File* UCI parameter.
 
 ### Files

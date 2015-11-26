@@ -276,7 +276,7 @@ public:
 
     // Do natural-move
     void do_move (Move m, StateInfo &nsi, bool gives_check);
-    void do_move (std::string &can, StateInfo &nsi);
+    void do_move (const std::string &can, StateInfo &nsi);
     // Undo natural-move
     void undo_move ();
     // Do null-move

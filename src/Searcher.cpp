@@ -2077,32 +2077,29 @@ namespace Threading {
         {
             // Check if can play with own book
             if (   OwnBook
-                && !MateSearch
-                && root_pos.game_ply () <= 20
-                && !Limits.infinite
                 && !BookFile.empty ()
+                && !MateSearch
+                && !Limits.infinite
+                && root_pos.game_ply () <= 20
                )
             {
-                book.open (BookFile, ios_base::in|ios_base::binary);
-                if (book.is_open ())
+                book.open (BookFile, ios_base::in);
+                bool found = false;
+                auto book_move = book.probe_move (root_pos, BookMoveBest);
+                if (   book_move != MOVE_NONE
+                    && std::count (root_moves.begin (), root_moves.end (), book_move) != 0
+                   )
                 {
-                    bool found = false;
-                    auto book_move = book.probe_move (root_pos, BookMoveBest);
-                    if (   book_move != MOVE_NONE
-                        && std::count (root_moves.begin (), root_moves.end (), book_move) != 0
-                       )
-                    {
-                        found = true;
-                        std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), book_move));
-                        StateInfo si;
-                        root_pos.do_move (root_moves[0][0], si, root_pos.gives_check (root_moves[0][0], CheckInfo (root_pos)));
-                        book_move = book.probe_move (root_pos, BookMoveBest);
-                        root_moves[0] += book_move;
-                        root_pos.undo_move ();
-                    }
-                    book.close ();
-                    if (found) goto finish;
+                    found = true;
+                    std::swap (root_moves[0], *std::find (root_moves.begin (), root_moves.end (), book_move));
+                    StateInfo si;
+                    root_pos.do_move (root_moves[0][0], si, root_pos.gives_check (root_moves[0][0], CheckInfo (root_pos)));
+                    book_move = book.probe_move (root_pos, BookMoveBest);
+                    root_moves[0] += book_move;
+                    root_pos.undo_move ();
                 }
+                book.close ();
+                if (found) goto finish;
             }
 
             i16 timed_contempt = 0;

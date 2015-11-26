@@ -159,7 +159,7 @@ namespace Zobrist {
 }
 
 // Global Zobrist
-// Random numbers from PolyGlot, used to compute book hash keys
+// Random numbers from Polyglot, used to compute book hash keys
 const Zobrist::Zob Zob =
 {
 
