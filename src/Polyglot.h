@@ -116,7 +116,7 @@ namespace Polyglot {
         size_t      _size    = 0U;
 
     public:
-        static const u08 HeaderSize = 96;
+        static const u08 HeaderSize;
 
         Book () = default;
         Book (const std::string &book_fn, openmode mode);
@@ -148,7 +148,7 @@ namespace Polyglot {
         template<class T>
         Book& operator<< (const T &t);
 
-        size_t find_index (      Key key);
+        size_t find_index (const Key key);
         size_t find_index (const Position &pos);
         size_t find_index (const std::string &fen, bool c960 = false);
 

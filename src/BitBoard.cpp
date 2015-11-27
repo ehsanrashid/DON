@@ -8,7 +8,6 @@ u08 SQUARE_DIST[SQ_NO][SQ_NO];
 namespace BitBoard {
 
     using namespace std;
-    using namespace Notation;
 
     // FRONT SQUARES
     Bitboard   FRONT_SQRS_bb[CLR_NO][SQ_NO];
@@ -334,12 +333,12 @@ namespace BitBoard {
         sbb = " /---------------\\\n";
         for (auto r = R_8; r >= R_1; --r)
         {
-            sbb += to_char (r) + ROW;
+            sbb += Notation::to_char (r) + ROW;
         }
         sbb += " \\---------------/\n ";
         for (auto f = F_A; f <= F_H; ++f)
         {
-            sbb += " "; sbb += to_char (f);
+            sbb += " "; sbb += Notation::to_char (f);
         }
         sbb += "\n";
 

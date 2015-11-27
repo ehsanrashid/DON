@@ -6,20 +6,21 @@
 
 namespace MoveGen {
 
-    const i32 MAX_MOVES = 256; // Maximum Moves
+    const u16 MAX_MOVES = 0x100; // Maximum Moves
 
     struct ValMove
     {
     public:
         Move  move  = MOVE_NONE;
         Value value = VALUE_ZERO;
-        
-        //ValMove& operator= (const ValMove&) = default;
+
+        ValMove& operator= (const ValMove&) = default;
 
         operator Move () const  { return move; }
+        operator Value () const { return value; }
         void operator= (Move  m) { move  = m; }
         void operator= (Value v) { value = v; }
-        
+
         // Ascending sort
         bool operator<  (const ValMove &vm) const { return value <  vm.value; }
         bool operator>  (const ValMove &vm) const { return value >  vm.value; }

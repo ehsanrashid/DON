@@ -11,7 +11,6 @@
 #include "Searcher.h"
 #include "Transposition.h"
 #include "Thread.h"
-#include "Notation.h"
 
 namespace Engine {
 

@@ -44,6 +44,9 @@ namespace Polyglot {
 
     // -------------------------
 
+    const u08 Book::HeaderSize = 96;
+    static_assert (Book::HeaderSize == 96, "Incorrect Book::HeaderSize");
+
     Book::Book (const string &book_fn, openmode mode)
         : fstream (book_fn, mode|ios_base::binary)
         , _book_fn (book_fn)
@@ -125,7 +128,7 @@ namespace Polyglot {
 
     // find_index() takes a hash-key as input, and search through the book file for the given key.
     // Returns the index of the 1st book entry with the same key as the input.
-    size_t Book::find_index (      Key key)
+    size_t Book::find_index (const Key key)
     {
         if (!is_open ()) return streampos(-1);
 
@@ -137,7 +140,7 @@ namespace Polyglot {
         while (beg_index < end_index && good ())
         {
             auto mid_index = size_t((beg_index + end_index) / 2);
-            assert(mid_index >= beg_index && mid_index < end_index);
+            assert(beg_index <= mid_index && mid_index < end_index);
 
             seekg (OFFSET(mid_index), ios_base::beg);
             *this >> pe;
@@ -313,7 +316,7 @@ namespace Polyglot {
                 pes.push_back (pe);
                 weight_sum += pe.weight;
             }
-        
+
             if (pes.empty ())
             {
                 std::cerr
@@ -325,8 +328,10 @@ namespace Polyglot {
             {
                 for_each (pes.begin (), pes.end (), [&oss, &weight_sum] (Entry e)
                 {
-                    oss << e << " prob: " << std::setfill ('0') << std::fixed << std::width_prec (6, 2) << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0) << std::setfill (' ')
-                        << endl;
+                    oss << e << " prob: "
+                        << std::setfill ('0') << std::fixed << std::width_prec (6, 2)
+                        << (weight_sum != 0 ? 100.0 * e.weight / weight_sum : 0.0)
+                        << std::defaultfloat << std::setfill (' ') << endl;
                 });
             }
         }

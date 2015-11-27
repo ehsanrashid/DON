@@ -8,10 +8,6 @@
 
 class Position;
 
-// FORSYTH-EDWARDS NOTATION (FEN) is a standard notation for describing a particular board position of a chess game.
-// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-extern const std::string STARTUP_FEN;
-
 namespace Notation {
 
     inline char to_char (File f, bool low_case = true) { return char(i08(f) - i08(F_A)) + (low_case ? 'a' : 'A'); }

@@ -146,7 +146,7 @@ namespace Evaluator {
 
         using namespace Tracer;
 
-        enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PASSED_PAWN, SPACE_ACTIVITY, KING_SAFETY };
+        enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PAWN_PASSING, THREATS, KING_SAFETY, SPACE_ACTIVITY };
 
         struct Weight { i32 mg, eg; };
 
@@ -158,13 +158,14 @@ namespace Evaluator {
         }
 
         // Evaluation weights, indexed by the corresponding evaluation term
-        const Weight WEIGHTS[5]
+        const Weight WEIGHTS[6]
         {
             {289,344}, // Piece Mobility
             {233,201}, // Pawn Structure
-            {221,273}, // Passed Pawns
+            {221,273}, // Pawn Passed
+            {350,256}, // Threats
+            {322,  0}, // King Safety
             { 46,  0}, // Space Activity
-            {322,  0}  // King Safety
         };
 
     #define S(mg, eg) mk_score (mg, eg)
@@ -780,6 +781,8 @@ namespace Evaluator {
                 score += PAWN_SAFEATTACK * pop_count<MAX15> (b);
             }
 
+            score = score * WEIGHTS[THREATS];
+
             if (Trace)
             {
                 write (THREAT, Own, score);
@@ -883,7 +886,7 @@ namespace Evaluator {
                 score += mk_score (mg_value, eg_value) + PAWN_PASSED_FILE[_file (s)];
             }
 
-            score = score * WEIGHTS[PASSED_PAWN];
+            score = score * WEIGHTS[PAWN_PASSING];
 
             if (Trace)
             {

@@ -2,17 +2,14 @@
 
 #include <string>
 
+#include "UCI.h"
 #include "Position.h"
 #include "Searcher.h"
-#include "UCI.h"
 #include "Thread.h"
-#include "Notation.h"
 #include "Debugger.h"
 
 using namespace std;
 using namespace Searcher;
-using namespace MoveGen;
-using namespace Notation;
 using namespace Debugger;
 
 namespace {

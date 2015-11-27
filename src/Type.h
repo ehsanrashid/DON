@@ -717,5 +717,6 @@ extern const Value PIECE_VALUE[PHASE_NO][TOTL];
 
 extern const std::string PIECE_CHAR;
 extern const std::string COLOR_CHAR;
+extern const std::string STARTUP_FEN;
 
 #endif // _TYPE_H_INC_

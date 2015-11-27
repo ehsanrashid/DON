@@ -104,7 +104,7 @@ namespace Threading {
         Signals.firstmove_root = false;
         Signals.failedlow_root = false;
 
-        Limits  = limits;
+        Limits = limits;
         main ()->root_pos = pos;
         main ()->root_moves.initialize (pos, limits.root_moves);
         if (states.get () != nullptr) // If don't set a new position, preserve current state

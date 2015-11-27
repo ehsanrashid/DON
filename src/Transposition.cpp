@@ -12,7 +12,7 @@ namespace Transposition {
 
     using namespace std;
 
-    const u08 CacheLineSize  = 64;
+    const u08 CacheLineSize = 64;
 
     // Size of Transposition entry (bytes)
     // 10 bytes
@@ -168,7 +168,7 @@ namespace Transposition {
         ofstream ofs (hash_fn, ios_base::out|ios_base::binary);
         if (ofs.is_open ())
         {
-            ofs << (*this);
+            ofs << *this;
             ofs.close ();
             sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
         }
@@ -179,7 +179,7 @@ namespace Transposition {
         ifstream ifs (hash_fn, ios_base::in|ios_base::binary);
         if (ifs.is_open ())
         {
-            ifs >> (*this);
+            ifs >> *this;
             ifs.close ();
             sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
         }
