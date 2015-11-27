@@ -9,8 +9,6 @@
 
 class Position;
 
-extern Score PSQ[CLR_NO][NONE][SQ_NO];
-
 // Check the validity of FEN string
 extern bool _ok (const std::string &fen, bool c960 = false, bool full = true);
 
@@ -148,7 +146,8 @@ private:
 
 public:
 
-    static u08  FiftyMoveDist;
+    static u08   FiftyMoveDist;
+    static Score PSQ[CLR_NO][NONE][SQ_NO];
 
     static void initialize ();
 

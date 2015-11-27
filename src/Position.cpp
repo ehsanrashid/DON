@@ -22,9 +22,6 @@ const Value PIECE_VALUE[PHASE_NO][TOTL] =
     { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
 };
 
-// PSQ[Color][PieceType][Square] contains Color-PieceType-Square scores.
-Score PSQ[CLR_NO][NONE][SQ_NO];
-
 bool _ok (const string &fen, bool c960, bool full)
 {
     return Position (fen, nullptr, c960, full).ok ();
@@ -107,9 +104,13 @@ namespace {
 }
 
 u08 Position::FiftyMoveDist = 100;
+// PSQ[Color][PieceType][Square] contains Color-PieceType-Square scores.
+Score Position::PSQ[CLR_NO][NONE][SQ_NO];
 
 void Position::initialize ()
 {
+    FiftyMoveDist = 100;
+
     for (auto pt = PAWN; pt <= KING; ++pt)
     {
         auto score = mk_score (PIECE_VALUE[MG][pt], PIECE_VALUE[EG][pt]);
