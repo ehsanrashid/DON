@@ -16,53 +16,6 @@ namespace Evaluator {
 
     namespace {
 
-        // Struct EvalInfo contains various information computed and collected
-        // by the evaluation functions.
-        struct EvalInfo
-        {
-            // ful_attacked_by[Color][PieceT] contains all squares attacked by a given color and piece type,
-            // ful_attacked_by[Color][NONE] contains all squares attacked by the given color.
-            Bitboard ful_attacked_by[CLR_NO][TOTL];
-            // pin_attacked_by[Color][PieceT] contains all squares attacked by a given color and piece type with pinned removed,
-            // pin_attacked_by[Color][NONE] contains all squares attacked by the given color with pinned removed.
-            Bitboard pin_attacked_by[CLR_NO][TOTL];
-
-            // pinneds[Color] contains all the pinned pieces
-            Bitboard pinneds[CLR_NO];
-
-            // king_ring[Color] is the zone around the king which is considered
-            // by the king safety evaluation. This consists of the squares directly
-            // adjacent to the king, and the three (or two, for a king on an edge file)
-            // squares two ranks in front of the king. For instance, if black's king
-            // is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8,
-            // f7, g7, h7, f6, g6 and h6.
-            Bitboard king_ring[CLR_NO];
-
-            // king_ring_attackers_count[color] is the number of pieces of the given color
-            // which attack a square in the king_ring of the enemy king.
-            u08 king_ring_attackers_count[CLR_NO];
-
-            // king_ring_attackers_weight[Color] is the sum of the "weight" of the pieces
-            // of the given color which attack a square in the king_ring of the enemy king.
-            // The weights of the individual piece types are given by the KING_ATTACK[PieceT]
-            u32 king_ring_attackers_weight[CLR_NO];
-
-            // king_zone_attacks_count[Color] is the number of attacks by
-            // the given color to squares directly adjacent to the enemy king.
-            // Pieces which attack more than one square are counted multiple times.
-            // e.g, if Black's King is on g8 and there's a White knight on g5,
-            // this knight adds 2 to king_zone_attacks_count[WHITE].
-            u08 king_zone_attacks_count[CLR_NO];
-
-            // Pointers to pawn hash table entries
-            Pawns::Entry *pe;
-
-        };
-
-        template<bool Trace>
-        // evaluate<>()
-        Value evaluate (const Position &pos);
-
         namespace Tracer {
 
             // Used for tracing
@@ -107,44 +60,52 @@ namespace Evaluator {
                 return os;
             }
 
-            string trace (const Position &pos)
-            {
-                std::memset (cp, 0x00, sizeof (cp));
-                
-                auto value = pos.active () == WHITE ?  // White's point of view
-                                +evaluate<true> (pos) :
-                                -evaluate<true> (pos);
-
-                stringstream ss;
-
-                ss  << showpoint << showpos << setprecision (2) << fixed
-                    << "         Entity |    White    |    Black    |     Total    \n"
-                    << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
-                    << "----------------+-------------+-------------+--------------\n"
-                    << "       Material" << TermT(MATERIAL)
-                    << "      Imbalance" << TermT(IMBALANCE)
-                    << "          Pawns" << TermT(PAWN)
-                    << "        Knights" << TermT(NIHT)
-                    << "         Bishop" << TermT(BSHP)
-                    << "          Rooks" << TermT(ROOK)
-                    << "         Queens" << TermT(QUEN)
-                    << "       Mobility" << TermT(MOBILITY)
-                    << "    King safety" << TermT(KING)
-                    << "        Threats" << TermT(THREAT)
-                    << "   Passed pawns" << TermT(PASSER)
-                    << "          Space" << TermT(SPACE)
-                    << "----------------+-------------+-------------+--------------\n"
-                    << "          Total" << TermT(TOTAL);
-                ss  << "\n"
-                    << "Evaluation: " << value_to_cp (value) << " (white side)\n"
-                    << noshowpos << noshowpoint;
-
-                return ss.str ();
-            }
-
         }
 
         using namespace Tracer;
+
+        // Struct EvalInfo contains various information computed and collected
+        // by the evaluation functions.
+        struct EvalInfo
+        {
+            // ful_attacked_by[Color][PieceT] contains all squares attacked by a given color and piece type,
+            // ful_attacked_by[Color][NONE] contains all squares attacked by the given color.
+            Bitboard ful_attacked_by[CLR_NO][TOTL];
+            // pin_attacked_by[Color][PieceT] contains all squares attacked by a given color and piece type with pinned removed,
+            // pin_attacked_by[Color][NONE] contains all squares attacked by the given color with pinned removed.
+            Bitboard pin_attacked_by[CLR_NO][TOTL];
+
+            // pinneds[Color] contains all the pinned pieces
+            Bitboard pinneds[CLR_NO];
+
+            // king_ring[Color] is the zone around the king which is considered
+            // by the king safety evaluation. This consists of the squares directly
+            // adjacent to the king, and the three (or two, for a king on an edge file)
+            // squares two ranks in front of the king. For instance, if black's king
+            // is on g8, king_ring[BLACK] is a bitboard containing the squares f8, h8,
+            // f7, g7, h7, f6, g6 and h6.
+            Bitboard king_ring[CLR_NO];
+
+            // king_ring_attackers_count[color] is the number of pieces of the given color
+            // which attack a square in the king_ring of the enemy king.
+            u08 king_ring_attackers_count[CLR_NO];
+
+            // king_ring_attackers_weight[Color] is the sum of the "weight" of the pieces
+            // of the given color which attack a square in the king_ring of the enemy king.
+            // The weights of the individual piece types are given by the KING_ATTACK[PieceT]
+            u32 king_ring_attackers_weight[CLR_NO];
+
+            // king_zone_attacks_count[Color] is the number of attacks by
+            // the given color to squares directly adjacent to the enemy king.
+            // Pieces which attack more than one square are counted multiple times.
+            // e.g, if Black's King is on g8 and there's a White knight on g5,
+            // this knight adds 2 to king_zone_attacks_count[WHITE].
+            u08 king_zone_attacks_count[CLR_NO];
+
+            // Pointers to pawn and material hash table entries
+            Pawns   ::Entry *pe;
+            Material::Entry *me;
+        };
 
         enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PAWN_PASSING, THREATS, KING_SAFETY, SPACE_ACTIVITY };
 
@@ -196,13 +157,6 @@ namespace Evaluator {
                 S(112,125), S(113,127), S(117,137), S(122,143)
             },
             {}
-        };
-
-        // Mask of allowed outpost squares indexed by color
-        const Bitboard OUTPOST_MASK[CLR_NO] =
-        {
-            R4_bb | R5_bb | R6_bb,
-            R5_bb | R4_bb | R3_bb
         };
 
         // OUTPOST[supported by pawn] contains bonuses for knights and bishops outposts.
@@ -269,16 +223,6 @@ namespace Evaluator {
         };
     #undef V
 
-        // The SPACE_MASK[Color] contains the area of the board which is considered
-        // by the space evaluation. In the middle game, each side is given a bonus
-        // based on how many squares inside this area are safe and available for
-        // friendly minor pieces.
-        const Bitboard SPACE_MASK[CLR_NO] =
-        {
-            ((FC_bb|FD_bb|FE_bb|FF_bb) & (R2_bb|R3_bb|R4_bb)),
-            ((FC_bb|FD_bb|FE_bb|FF_bb) & (R7_bb|R6_bb|R5_bb))
-        };
-
         // King danger constants and variables. The king danger scores are taken
         // from the KING_DANGER[]. Various little "meta-bonuses" measuring
         // the strength of the enemy attack are added up into an integer, which
@@ -289,7 +233,7 @@ namespace Evaluator {
         Score KING_DANGER[MAX_ATTACK_UNITS];
 
         // KING_ATTACK[PieceT] contains king attack weights by piece type
-        const i32   KING_ATTACK[NONE] = { 1, 14, 10,  8,  2,  0 };
+        const i32 KING_ATTACK[NONE] = { 1, 14, 10,  8,  2,  0 };
 
         // Penalties for enemy's safe checks
         const i32 KNIGHT_SAFE_CHECK     = 14;
@@ -302,8 +246,8 @@ namespace Evaluator {
 
         //  --- init evaluation info --->
         template<Color Own>
-        // init_evaluation<>() initializes king bitboards for given color adding
-        // pawn attacks. To be done at the beginning of the evaluation.
+        // init_evaluation<>() initializes king ring bitboards for given color
+        // To be done at the beginning of the evaluation.
         void init_evaluation (const Position &pos, EvalInfo &ei)
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
@@ -368,6 +312,9 @@ namespace Evaluator {
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
+            const auto OutpostMask = WHITE == Own ?         // Mask of allowed outpost squares
+                R4_bb | R5_bb | R6_bb :
+                R5_bb | R4_bb | R3_bb;
 
             auto score = SCORE_ZERO;
 
@@ -428,7 +375,7 @@ namespace Evaluator {
                     if (NIHT == PT)
                     {
                         // Bonus for knight outpost square
-                        auto bb = OUTPOST_MASK[Own] & ~ei.pe->pawn_attack_span[Opp];
+                        auto bb = OutpostMask & ~ei.pe->pawn_attack_span[Opp];
                         if ((bb & s) != U64(0))
                         {
                             score += KNIGHT_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
@@ -446,7 +393,7 @@ namespace Evaluator {
                     if (BSHP == PT)
                     {
                         // Bonus for bishop outpost square
-                        auto bb = OUTPOST_MASK[Own] & ~ei.pe->pawn_attack_span[Opp];
+                        auto bb = OutpostMask & ~ei.pe->pawn_attack_span[Opp];
                         if ((bb & s) != U64(0))
                         {
                             score += BISHOP_OUTPOST[(ei.pin_attacked_by[Own][PAWN] & s) != U64(0)];
@@ -575,8 +522,7 @@ namespace Evaluator {
             // Main king safety evaluation
             if (ei.king_ring_attackers_count[Opp] != 0)
             {
-                // Attacked squares around the king which has no defenders
-                // apart from the king itself
+                // Attacked squares around the king which has no defenders apart from the king itself.
                 auto undefended =
                       ei.ful_attacked_by[Own][KING] // King-zone
                     & ei.ful_attacked_by[Opp][NONE]
@@ -906,20 +852,27 @@ namespace Evaluator {
         Score evaluate_space_activity (const Position &pos, const EvalInfo &ei)
         {
             const auto Opp = WHITE == Own ? BLACK : WHITE;
+            // SpaceMask contains the area of the board which is considered by
+            // the space evaluation. In the middle game, each side is given a bonus
+            // based on how many squares inside this area are safe and available for
+            // friendly minor pieces.
+            const auto SpaceMask = WHITE == Own ?
+                (FC_bb|FD_bb|FE_bb|FF_bb) & (R2_bb|R3_bb|R4_bb) :
+                (FC_bb|FD_bb|FE_bb|FF_bb) & (R7_bb|R6_bb|R5_bb);
 
-            // Find the safe squares for our pieces inside the area defined by SPACE_MASK[].
+            // Find the safe squares for our pieces inside the area defined by SpaceMask.
             // A square is unsafe:
             // if it is attacked by an enemy pawn or
             // if it is undefended and attacked by an enemy piece.
             auto safe_space =
-                  SPACE_MASK[Own]
+                   SpaceMask
                 & ~pos.pieces (Own, PAWN)
                 & ~ei.pin_attacked_by[Opp][PAWN]
                 & (   ei.pin_attacked_by[Own][NONE]
                    | ~ei.pin_attacked_by[Opp][NONE]
                   );
 
-            // Since SPACE_MASK[Own] is fully on our half of the board
+            // Since SpaceMask is fully on our half of the board
             assert(u32(safe_space >> (WHITE == Own ? 32 : 0)) == 0);
 
             // Find all squares which are at most three squares behind some friendly pawn
@@ -944,7 +897,7 @@ namespace Evaluator {
         // evaluate_initiative() computes the initiative correction value for the
         // position, i.e. second order bonus/malus based on the known attacking/defending
         // status of the players.
-        Score evaluate_initiative (const Position& pos, int asymmetry, Value eg)
+        Score evaluate_initiative (const Position &pos, i32 asymmetry, Value eg)
         {
             auto king_dist = dist<File> (pos.square<KING> (WHITE), pos.square<KING> (BLACK));
             auto pawn_count = pos.count<PAWN> (WHITE) + pos.count<PAWN> (BLACK);
@@ -960,153 +913,18 @@ namespace Evaluator {
             return mk_score (0, value);
         }
 
-        template<bool Trace>
-        // evaluate<>()
-        Value evaluate (const Position &pos)
+        // evaluate_scale_factor() computes the scale factor for the winning side
+        ScaleFactor evaluate_scale_factor (const Position &pos, const EvalInfo &ei, Score score)
         {
-            assert(pos.checkers () == U64(0));
+            assert (PHASE_ENDGAME <= ei.me->game_phase && ei.me->game_phase <= PHASE_MIDGAME);
 
-            EvalInfo ei;
-
-            // Probe the material hash table
-            auto *me = Material::probe (pos);
-
-            // If have a specialized evaluation function for the current material configuration
-            if (me->specialized_eval_exists ())
-            {
-                return me->evaluate (pos);
-            }
-
-            // Initialize score by reading the incrementally updated scores included
-            // in the position object (material + piece square tables).
-            // Score is computed from the point of view of white.
-            auto score  = pos.psq_score ();
-
-            score += me->imbalance;
-
-            // Probe the pawn hash table
-            ei.pe  = Pawns::probe (pos);
-            score += ei.pe->pawn_score * WEIGHTS[PAWN_STRUCTURE];
-
-            for (auto c = WHITE; c <= BLACK; ++c)
-            {
-                ei.ful_attacked_by[c][NONE] = U64(0);
-                ei.pin_attacked_by[c][NONE] = U64(0);
-            }
-
-            // Initialize attack and king safety bitboards
-            init_evaluation<WHITE> (pos, ei);
-            init_evaluation<BLACK> (pos, ei);
-
-            for (auto c = WHITE; c <= BLACK; ++c)
-            {
-                ei.ful_attacked_by[c][NONE] |= ei.ful_attacked_by[c][KING];
-                ei.pin_attacked_by[c][NONE] |= ei.pin_attacked_by[c][KING];
-            }
-
-            // Evaluate pieces and mobility
-            Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
-            // Pawns which can't move forward or on Rank 2-3
-            const Bitboard fixed_pawns[CLR_NO] =
-            {
-                pos.pieces (WHITE, PAWN) & (shift_bb<DEL_S> (pos.pieces ()) | R2_bb | R3_bb),
-                pos.pieces (BLACK, PAWN) & (shift_bb<DEL_N> (pos.pieces ()) | R7_bb | R6_bb)
-            };
-            // Do not include in mobility squares protected by enemy pawns or occupied by friend fixed pawns or king
-            const Bitboard mobility_area[CLR_NO] =
-            {
-                ~(ei.pin_attacked_by[BLACK][PAWN] | fixed_pawns[WHITE] | pos.square<KING> (WHITE)),
-                ~(ei.pin_attacked_by[WHITE][PAWN] | fixed_pawns[BLACK] | pos.square<KING> (BLACK))
-            };
-
-            // Evaluate pieces and mobility
-
-            score += 
-                + evaluate_pieces<WHITE, NIHT, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-                - evaluate_pieces<BLACK, NIHT, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
-            score += 
-                + evaluate_pieces<WHITE, BSHP, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-                - evaluate_pieces<BLACK, BSHP, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
-            score += 
-                + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-                - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
-            score += 
-                + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
-                - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
-
-            // Weight mobility
-            score += (mobility[WHITE] - mobility[BLACK]) * WEIGHTS[PIECE_MOBILITY];
-
-            // Evaluate kings after all other pieces because needed complete attack
-            // information when computing the king safety evaluation.
-            score +=
-                + evaluate_king<WHITE, Trace> (pos, ei)
-                - evaluate_king<BLACK, Trace> (pos, ei);
-
-            // Evaluate tactical threats, needed full attack information including king
-            score += 
-                + evaluate_threats<WHITE, Trace> (pos, ei)
-                - evaluate_threats<BLACK, Trace> (pos, ei);
-
-            // Evaluate passed pawns, needed full attack information including king
-            score += 
-                + evaluate_passed_pawns<WHITE, Trace> (pos, ei)
-                - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
-
-            const Value npm[CLR_NO] = 
-            {
-                pos.non_pawn_material (WHITE),
-                pos.non_pawn_material (BLACK)
-            };
-
-            // Evaluate space for both sides, only during opening
-            if (npm[WHITE] + npm[BLACK] >= VALUE_SPACE)
-            {
-                score += 
-                    + evaluate_space_activity<WHITE, Trace> (pos, ei)
-                    - evaluate_space_activity<BLACK, Trace> (pos, ei);
-            }
-            else
-            // If both sides have only pawns, score for potential unstoppable pawns
-            if (npm[WHITE] == VALUE_ZERO && npm[BLACK] == VALUE_ZERO)
-            {
-                score +=
-                    + ei.pe->evaluate_unstoppable_pawns<WHITE> ();
-                    - ei.pe->evaluate_unstoppable_pawns<BLACK> ();
-            }
-
-            // Evaluate position potential for the winning side
-            score += evaluate_initiative (pos, ei.pe->asymmetry, eg_value (score));
-
-            // In case of tracing add each evaluation contributions for both white and black
-            if (Trace)
-            {
-                write (PAWN       , ei.pe->pawn_score);
-                write (MATERIAL   , pos.psq_score ());
-                write (IMBALANCE  , me->imbalance);
-                write (MOBILITY
-                    , mobility[WHITE] * WEIGHTS[PIECE_MOBILITY]
-                    , mobility[BLACK] * WEIGHTS[PIECE_MOBILITY]);
-                write (TOTAL      , score);
-            }
-
-            // --------------------------------------------------
-
-            auto mg = mg_value (score);
-            auto eg = eg_value (score);
-            assert(-VALUE_INFINITE < mg && mg < +VALUE_INFINITE);
-            assert(-VALUE_INFINITE < eg && eg < +VALUE_INFINITE);
-
-            auto strong_side = eg >= VALUE_DRAW ? WHITE : BLACK;
+            const auto strong_side = eg_value (score) >= VALUE_DRAW ? WHITE : BLACK;
             // Scale winning side if position is more drawish than it appears
-            auto scale_factor = me->scale_factor (pos, strong_side);
+            auto scale_factor = ei.me->scale_factor (pos, strong_side);
 
-            auto game_phase = me->game_phase;
-            assert(PHASE_ENDGAME <= game_phase && game_phase <= PHASE_MIDGAME);
-
-            // If don't already have an unusual scale factor, check for opposite
-            // colored bishop endgames, and use a lower scale for those.
-            if (   game_phase < PHASE_MIDGAME
+            // If don't already have an unusual scale factor, check for certain
+            // types of endgames, and use a lower scale for those.
+            if (   ei.me->game_phase < PHASE_MIDGAME
                 && (scale_factor == SCALE_FACTOR_NORMAL || scale_factor == SCALE_FACTOR_ONEPAWN)
                )
             {
@@ -1114,8 +932,8 @@ namespace Evaluator {
                 {
                     // Endgame with opposite-colored bishops and no other pieces (ignoring pawns)
                     // is almost a draw, in case of KBP vs KB is even more a draw.
-                    if (   npm[WHITE] == VALUE_MG_BSHP
-                        && npm[BLACK] == VALUE_MG_BSHP
+                    if (   pos.non_pawn_material (WHITE) == VALUE_MG_BSHP
+                        && pos.non_pawn_material (BLACK) == VALUE_MG_BSHP
                        )
                     {
                         scale_factor = more_than_one (pos.pieces (PAWN)) ? ScaleFactor(31) : ScaleFactor(9);
@@ -1124,48 +942,202 @@ namespace Evaluator {
                     // a bit drawish, but not as drawish as with only the two bishops. 
                     else
                     {
-                        scale_factor = ScaleFactor(scale_factor * SCALE_FACTOR_BISHOPS/SCALE_FACTOR_NORMAL);
+                        scale_factor = ScaleFactor (scale_factor * SCALE_FACTOR_BISHOPS/SCALE_FACTOR_NORMAL);
                     }
                 }
                 // Endings where weaker side can place his king in front of the strong side pawns are drawish.
                 else
-                if (    abs (eg) <= VALUE_EG_BSHP
-                    &&  ei.pe->pawn_span[strong_side] <= 1
-                    && !pos.passed_pawn (~strong_side, pos.square<KING> (~strong_side))
-                   )
-                {
-                    scale_factor = ei.pe->pawn_span[strong_side] != 0 ? ScaleFactor(51) : ScaleFactor(37);
-                }
+                    if (    abs (eg_value (score)) <= VALUE_EG_BSHP
+                        &&  ei.pe->pawn_span[strong_side] <= 1
+                        && !pos.passed_pawn (~strong_side, pos.square<KING> (~strong_side))
+                       )
+                    {
+                        scale_factor = ei.pe->pawn_span[strong_side] != 0 ? ScaleFactor(51) : ScaleFactor(37);
+                    }
             }
-
-            // Interpolates between a middle game and a (scaled by 'scale_factor') endgame score, based on game phase.
-            auto value = Value((mg * i32(game_phase)
-                              + eg * i32(PHASE_MIDGAME - game_phase)*i32(scale_factor)/SCALE_FACTOR_NORMAL)
-                               / PHASE_MIDGAME);
-
-            return (pos.active () == WHITE ? +value : -value) + TEMPO;
+            return scale_factor;
         }
-        // --------------------------------
-        // Explicit template instantiations
-        template Value evaluate<false> (const Position&);
-        template Value evaluate<true > (const Position&);
 
     }
 
-    // evaluate() is the main evaluation function.
-    // It always computes two values, an endgame value and a middle game value, in score
-    // and interpolates between them based on the remaining material.
+    template<bool Trace>
+    // evaluate<>() is the main evaluation function.
+    // It returns a static evaluation of the position from the point of view of the side to move.
     Value evaluate (const Position &pos)
     {
-        return evaluate<false> (pos);
-    }
+        assert(pos.checkers () == U64(0));
 
-    // trace() is like evaluate() but instead of a value returns a string suitable
-    // to be print on stdout with the detailed descriptions and values of each
-    // evaluation term. Used mainly for debugging.
+        EvalInfo ei;
+
+        // Probe the material hash table
+        ei.me = Material::probe (pos);
+
+        // If have a specialized evaluation function for the current material configuration
+        if (ei.me->specialized_eval_exists ())
+        {
+            return ei.me->evaluate (pos);
+        }
+
+        // Initialize score by reading the incrementally updated scores included
+        // in the position object (material + piece square tables).
+        // Score is computed internally from the white point of view.
+        auto score  = pos.psq_score ();
+
+        score += ei.me->imbalance;
+
+        // Probe the pawn hash table
+        ei.pe  = Pawns::probe (pos);
+        score += ei.pe->pawn_score * WEIGHTS[PAWN_STRUCTURE];
+
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            ei.ful_attacked_by[c][NONE] = U64(0);
+            ei.pin_attacked_by[c][NONE] = U64(0);
+        }
+
+        // Initialize attack and king safety bitboards
+        init_evaluation<WHITE> (pos, ei);
+        init_evaluation<BLACK> (pos, ei);
+
+        for (auto c = WHITE; c <= BLACK; ++c)
+        {
+            ei.ful_attacked_by[c][NONE] |= ei.ful_attacked_by[c][KING];
+            ei.pin_attacked_by[c][NONE] |= ei.pin_attacked_by[c][KING];
+        }
+
+        // Evaluate pieces and mobility
+        Score mobility[CLR_NO] = { SCORE_ZERO, SCORE_ZERO };
+        // Pawns blocked or on ranks 2-3 will be excluded from the mobility area
+        const Bitboard blocked_pawns[CLR_NO] =
+        {
+            pos.pieces (WHITE, PAWN) & (shift_bb<DEL_S> (pos.pieces ()) | R2_bb | R3_bb),
+            pos.pieces (BLACK, PAWN) & (shift_bb<DEL_N> (pos.pieces ()) | R7_bb | R6_bb)
+        };
+        // Do not include in mobility area squares protected by enemy pawns or occupied by friend blocked pawns or king
+        const Bitboard mobility_area[CLR_NO] =
+        {
+            ~(ei.pin_attacked_by[BLACK][PAWN] | blocked_pawns[WHITE] | pos.square<KING> (WHITE)),
+            ~(ei.pin_attacked_by[WHITE][PAWN] | blocked_pawns[BLACK] | pos.square<KING> (BLACK))
+        };
+
+        // Evaluate all pieces but king and pawns
+        score += 
+            + evaluate_pieces<WHITE, NIHT, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+            - evaluate_pieces<BLACK, NIHT, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+        score += 
+            + evaluate_pieces<WHITE, BSHP, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+            - evaluate_pieces<BLACK, BSHP, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+        score += 
+            + evaluate_pieces<WHITE, ROOK, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+            - evaluate_pieces<BLACK, ROOK, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+        score += 
+            + evaluate_pieces<WHITE, QUEN, Trace> (pos, ei, mobility_area[WHITE], mobility[WHITE])
+            - evaluate_pieces<BLACK, QUEN, Trace> (pos, ei, mobility_area[BLACK], mobility[BLACK]);
+
+        // Weight mobility
+        score += (mobility[WHITE] - mobility[BLACK]) * WEIGHTS[PIECE_MOBILITY];
+
+        // Evaluate kings after all other pieces because needed full attack
+        // information when computing the king safety evaluation.
+        score +=
+            + evaluate_king<WHITE, Trace> (pos, ei)
+            - evaluate_king<BLACK, Trace> (pos, ei);
+
+        // Evaluate tactical threats, needed full attack information including king
+        score += 
+            + evaluate_threats<WHITE, Trace> (pos, ei)
+            - evaluate_threats<BLACK, Trace> (pos, ei);
+
+        // Evaluate passed pawns, needed full attack information including king
+        score += 
+            + evaluate_passed_pawns<WHITE, Trace> (pos, ei)
+            - evaluate_passed_pawns<BLACK, Trace> (pos, ei);
+
+        // Evaluate space for both sides, only during opening
+        if (pos.non_pawn_material (WHITE) + pos.non_pawn_material (BLACK) >= VALUE_SPACE)
+        {
+            score += 
+                + evaluate_space_activity<WHITE, Trace> (pos, ei)
+                - evaluate_space_activity<BLACK, Trace> (pos, ei);
+        }
+        else
+        // If both sides have only pawns, score for potential unstoppable pawns
+        if (pos.non_pawn_material (WHITE) == VALUE_ZERO && pos.non_pawn_material (BLACK) == VALUE_ZERO)
+        {
+            score +=
+                + ei.pe->evaluate_unstoppable_pawns<WHITE> ();
+                - ei.pe->evaluate_unstoppable_pawns<BLACK> ();
+        }
+
+        // Evaluate position potential for the winning side
+        score += evaluate_initiative (pos, ei.pe->asymmetry, eg_value (score));
+
+        assert (-VALUE_INFINITE < mg_value (score) && mg_value (score) < +VALUE_INFINITE);
+        assert (-VALUE_INFINITE < eg_value (score) && eg_value (score) < +VALUE_INFINITE);
+
+        // Evaluate scale factor for the winning side
+        auto scale_factor = evaluate_scale_factor (pos, ei, score);
+
+        // Interpolates between a middle game and a (scaled by 'scale_factor') endgame score, based on game phase.
+        auto value = Value((mg_value (score) * i32(ei.me->game_phase)
+                            + eg_value (score) * i32(PHASE_MIDGAME - ei.me->game_phase)*i32(scale_factor)/SCALE_FACTOR_NORMAL)
+                            / PHASE_MIDGAME);
+
+        // In case of tracing add remaining individual evaluation terms
+        if (Trace)
+        {
+            write (PAWN       , ei.pe->pawn_score);
+            write (MATERIAL   , pos.psq_score ());
+            write (IMBALANCE  , ei.me->imbalance);
+            write (MOBILITY
+                , mobility[WHITE] * WEIGHTS[PIECE_MOBILITY]
+                , mobility[BLACK] * WEIGHTS[PIECE_MOBILITY]);
+            write (TOTAL      , score);
+        }
+
+        return (pos.active () == WHITE ? +value : -value) + TEMPO;
+    }
+    // --------------------------------
+    // Explicit template instantiations
+    template Value evaluate<false> (const Position&);
+    template Value evaluate<true > (const Position&);
+
+    // trace() is like evaluate() but instead of a value returns a string
+    // (suitable to be print on stdout) that contains the detailed descriptions
+    // and values of each evaluation term. Used for debugging.
     string trace   (const Position &pos)
     {
-        return Tracer::trace (pos);
+        std::memset (cp, 0x00, sizeof (cp));
+
+        auto value = pos.active () == WHITE ?  // White's point of view
+            +evaluate<true> (pos) :
+            -evaluate<true> (pos);
+
+        stringstream ss;
+
+        ss  << showpoint << showpos << setprecision (2) << fixed
+            << "         Entity |    White    |    Black    |     Total    \n"
+            << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
+            << "----------------+-------------+-------------+--------------\n"
+            << "       Material" << TermT (MATERIAL)
+            << "      Imbalance" << TermT (IMBALANCE)
+            << "          Pawns" << TermT (PAWN)
+            << "        Knights" << TermT (NIHT)
+            << "         Bishop" << TermT (BSHP)
+            << "          Rooks" << TermT (ROOK)
+            << "         Queens" << TermT (QUEN)
+            << "       Mobility" << TermT (MOBILITY)
+            << "    King safety" << TermT (KING)
+            << "        Threats" << TermT (THREAT)
+            << "   Passed pawns" << TermT (PASSER)
+            << "          Space" << TermT (SPACE)
+            << "----------------+-------------+-------------+--------------\n"
+            << "          Total" << TermT (TOTAL);
+        ss  << "\n"
+            << "Evaluation: " << value_to_cp (value) << " (white side)\n"
+            << noshowpos << noshowpoint;
+
+        return ss.str ();
     }
 
     // initialize() init evaluation weights

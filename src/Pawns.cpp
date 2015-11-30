@@ -102,14 +102,7 @@ namespace Pawns {
         const Score UNSTOPPABLE = S( 0, 20); // Bonus for unstoppable pawn going to promote
         const Score UNSUPPORTED = S(20, 10); // Penalty for unsupported pawn
 
-        // Center bind mask
-        const Bitboard CENTER_BIND_MASK[CLR_NO] =
-        {
-            (FD_bb|FE_bb) & (R5_bb|R6_bb|R7_bb),
-            (FD_bb|FE_bb) & (R4_bb|R3_bb|R2_bb)
-        };
-        // Center bind bonus: Two pawns controlling the same central square
-        const Score CENTER_BIND = S(16, 0);
+        const Score CENTER_BIND = S(16,  0); // Center bind bonus: Two pawns controlling the same central square
 
     #undef S
 
@@ -120,6 +113,9 @@ namespace Pawns {
             const auto Push = WHITE == Own ? DEL_N  : DEL_S;
             const auto LCap = WHITE == Own ? DEL_NW : DEL_SE;
             const auto RCap = WHITE == Own ? DEL_NE : DEL_SW;
+            const auto CenterBindMask = WHITE == Own ?
+                (FD_bb|FE_bb) & (R5_bb|R6_bb|R7_bb) :
+                (FD_bb|FE_bb) & (R4_bb|R3_bb|R2_bb);
 
             const auto own_pawns = pos.pieces (Own, PAWN);
             const auto opp_pawns = pos.pieces (Opp, PAWN);
@@ -248,7 +244,7 @@ namespace Pawns {
             e->pawn_span[Own] = b != U64(0) ? u08(scan_msq (b) - scan_lsq (b)) : 0;
 
             // Center binds: Two pawns controlling the same central square
-            b = CENTER_BIND_MASK[Own]
+            b = CenterBindMask
               & shift_bb<LCap> (own_pawns)
               & shift_bb<RCap> (own_pawns);
             pawn_score += CENTER_BIND * pop_count<MAX15> (b);
