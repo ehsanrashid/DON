@@ -16,7 +16,6 @@
 
 #include <streambuf>
 #include <ostream>
-#include "noncopyable.h"
 
 namespace std {
 
@@ -24,21 +23,23 @@ namespace std {
     template <class CharT, class Traits = char_traits<CharT> >
     class basic_null_buffer
         : public basic_streambuf<CharT, Traits>
-        , public noncopyable
     {
 
     public:
         typedef typename basic_streambuf<CharT, Traits>::int_type int_type;
 
-        basic_null_buffer() {}
+        basic_null_buffer ()
+            : basic_streambuf<CharT, Traits> (this)
+        {}
+        basic_null_buffer (const basic_null_buffer&) = delete;
+        basic_null_buffer& operator= (const basic_null_buffer&) = delete;
 
-    private:
-
-        //virtual int_type overflow (int_type c) override
+        //int_type overflow (int_type c) override
         //{
         //    // just ignore the character
         //    return typename Traits::not_eof (c);
         //}
+
     };
 
     // generic null output stream class
@@ -50,7 +51,7 @@ namespace std {
 
     public:
 
-        basic_null_stream()
+        basic_null_stream ()
             // C++98 standard allows that construction
             // 12.6.2/7
             : basic_ostream<CharT, Traits> (this)
@@ -59,19 +60,16 @@ namespace std {
     };
 
     template<class CharT, class Traits, class T>
-    inline basic_null_stream<CharT, Traits>& operator<< (
-        basic_null_stream<CharT, Traits> &nstream, T const &)
+    inline basic_null_stream<CharT, Traits>& operator<< (basic_null_stream<CharT, Traits> &nstream, T const &)
     {
         return nstream;
     }
 
     template<class CharT, class Traits>
-    inline basic_null_stream<CharT, Traits>& operator<< (
-        basic_null_stream<CharT, Traits> &nstream, basic_ostream<CharT, Traits> &(basic_ostream<CharT, Traits> &))
+    inline basic_null_stream<CharT, Traits>& operator<< (basic_null_stream<CharT, Traits> &nstream, basic_ostream<CharT, Traits> &(basic_ostream<CharT, Traits> &))
     {
         return nstream;
     }
-
 
     // helper declarations for narrow and wide streams
     typedef basic_null_stream<char>     null_stream;

@@ -7,38 +7,62 @@ namespace Debugger {
 
     namespace {
 
-        u64 Hits[2] = { U64 (0), U64 (0) },
-            Mean[2] = { U64 (0), U64 (0) };
+        u64 CondCount   = 0;
+        u64 HitCount    = 0;
+
+        u64 ItemCount   = 0;
+        i64 ItemSum     = 0;
     }
 
-    void dbg_hits_on (bool h, bool c)
+    void dbg_hit_on (bool hit)
     {
-        if (c) { ++Hits[0]; if (h) ++Hits[1]; }
+        static Mutex mutex;
+        mutex.lock ();
+        ++CondCount;
+        if (hit)
+        {
+            ++HitCount;
+        }
+        mutex.unlock ();
     }
-    void dbg_mean_of (u64 v)
+
+    void dbg_hit_on (bool cond, bool hit)
     {
-        ++Mean[0]; Mean[1] += v;
+        if (cond)
+        {
+            dbg_hit_on (hit);
+        }
+    }
+
+    void dbg_mean_of (i64 item)
+    {
+        static Mutex mutex;
+        mutex.lock ();
+        ++ItemCount;
+        ItemSum += item;
+        mutex.unlock ();
     }
 
     void dbg_print ()
     {
-        if (Hits[0])
+        if (CondCount != 0)
         {
-            sync_cout
-                << "Total: "  << setw (4) << (Hits[0])
-                << ", Hits: " << setw (4) << (Hits[1])
-                << ", Hit-rate (%): " << setw (4) << setprecision (2) << fixed
-                << (100 * (float) Hits[1] / Hits[0])
-                << sync_endl;
+            std::cerr << right
+                << "---------------------------\n"
+                << "Cond  :" << setw (20) << CondCount << "\n"
+                << "Hit   :" << setw (20) << HitCount  << "\n"
+                << "Rate  :" << setw (20) << setprecision (2) << fixed << 100.0 * (double)HitCount / CondCount
+                << left << std::endl;
         }
 
-        if (Mean[0])
+        if (ItemCount != 0)
         {
-            sync_cout
-                << "Total: "  << setw (4) << (Mean[0])
-                << ", Mean: " << setw (4) << setprecision (2) << fixed
-                << ((float) Mean[1] / Mean[0])
-                << sync_endl;
+            std::cerr << right
+                << "---------------------------\n"
+                << "Count :" << setw (20) << ItemCount << "\n"
+                << "Sum   :" << setw (20) << ItemSum   << "\n"
+                << "Mean  :" << setw (20) << setprecision (2) << fixed << 1.0 * (double)ItemSum / ItemCount
+                << left << std::endl;
         }
     }
 

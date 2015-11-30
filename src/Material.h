@@ -9,7 +9,7 @@ class Position;
 namespace Material {
 
     // Material::Entry contains various information about a material configuration.
-    // It contains a material balance evaluation, a function pointer to a special
+    // It contains a material imbalance evaluation, a function pointer to a special
     // endgame evaluation function (which in most cases is NULL, meaning that the
     // standard evaluation function will be used), and "scale factors".
     //
@@ -23,40 +23,32 @@ namespace Material {
     public:
 
         Key     matl_key;
-        Score   matl_score;
+        Score   imbalance;
         u08     factor[CLR_NO];
-        Score   space_weight;
         Phase   game_phase;
 
         EndGame::EndgameBase<Value>         *evaluation_func;
         EndGame::EndgameBase<ScaleFactor>   *scaling_func[CLR_NO];
 
-        inline bool specialized_eval_exists ()      const { return ( evaluation_func != NULL); }
-        inline Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
+        bool  specialized_eval_exists ()     const { return   evaluation_func != nullptr; }
+        Value evaluate (const Position &pos) const { return (*evaluation_func) (pos); }
         
-        template<Color C>
-        // Entry::scale_factor() takes a position and a color as input, and
-        // returns a scale factor for the given color. Have to provide the
-        // position in addition to the color, because the scale factor need not
-        // to be a constant: It can also be a function which should be applied to
-        // the position. For instance, in KBP vs K endgames, a scaling function
-        // which checks for draws with rook pawns and wrong-colored bishops.
-        inline ScaleFactor scale_factor (const Position &pos) const
+        // Entry::scale_factor() takes a position and a color as input, and returns a scale factor.
+        // Have to provide the position in addition to the color, because the scale factor need not to be a constant.
+        // It can also be a function which should be applied to the position.
+        // For instance, in KBP vs K endgames, a scaling function which checks for draws with rook pawns and wrong-colored bishops.
+        ScaleFactor scale_factor (const Position &pos, Color c) const
         {
-            if (scaling_func[C] != NULL)
-            {
-                ScaleFactor sf = (*scaling_func[C]) (pos);
-                if (SCALE_FACTOR_NONE != sf) return sf;
-            }
-            return ScaleFactor (factor[C]);
+            return scaling_func[c] == nullptr || (*scaling_func[c]) (pos) == SCALE_FACTOR_NONE ?
+                    ScaleFactor(factor[c]) : (*scaling_func[c]) (pos);
         }
 
     };
 
     typedef HashTable<Entry, 0x2000> Table; // 8192
 
-    Entry* probe     (const Position &pos, Table &table);
-    
+    extern Entry* probe (const Position &pos);
+
 }
 
 #endif // _MATERIAL_H_INC_

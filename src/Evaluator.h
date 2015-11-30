@@ -8,14 +8,14 @@ class Position;
 namespace Evaluator {
 
     // Tempo bonus. Must be visible to search.
-    const Value TempoBonus = Value(17);
+    const Value TEMPO = Value(20);
 
-    extern void initialize ();
-
+    template<bool Trace = false>
     extern Value evaluate    (const Position &pos);
 
     extern std::string trace (const Position &pos);
-            
+
+    extern void initialize ();
 }
 
 #endif // _EVALUATOR_H_INC_

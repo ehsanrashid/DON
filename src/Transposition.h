@@ -6,279 +6,274 @@
 
 #include "Type.h"
 #include "MemoryHandler.h"
-#include "UCI.h"
+#include "Thread.h"
 
-// Transposition Entry needs 10 byte to be stored
-//
-//  Key--------- 16 bits
-//  Move-------- 16 bits
-//  Value------- 16 bits
-//  Evaluation-- 16 bits
-//  Depth------- 08 bits
-//  Generation-- 06 bits
-//  Bound------- 02 bits
-//  ====================
-//  Total------- 80 bits = 10 bytes
-struct TTEntry
-{
+namespace Transposition {
 
-private:
+    extern const u08 CacheLineSize;
 
-    u16 _key;
-    u16 _move;
-    i16 _value;
-    i16 _eval;
-    u08 _depth;
-    u08 _gen_bnd;
-
-    friend class TranspositionTable;
-
-public:
-
-    inline Move  move  () const { return Move(_move); }
-    inline Value value () const { return Value(_value); }
-    inline Value eval  () const { return Value(_eval); }
-    inline Depth depth () const { return Depth(_depth) + DEPTH_NONE; }
-    inline Bound bound () const { return Bound(_gen_bnd & 0x03); }
-    inline u08   gen   () const { return u08(_gen_bnd & 0xFC); }
-
-    inline void save (u16 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
+    // Transposition::Entry needs 16 byte to be stored
+    //
+    //  Key--------- 16 bits
+    //  Move-------- 16 bits
+    //  Value------- 16 bits
+    //  Evaluation-- 16 bits
+    //  Depth------- 08 bits
+    //  Generation-- 06 bits
+    //  Bound------- 02 bits
+    //  ====================
+    //  Total------- 80 bits = 10 bytes
+    struct Entry
     {
-        _key   = u16(k);
-        _move  = u16(m);
-        _value = u16(v);
-        _eval  = u16(e);
-        _depth = u08(d - DEPTH_NONE);
-        _gen_bnd = g | u08(b);
-    }
 
-};
+    private:
+        u16 _key16;
+        u16 _move;
+        i16 _value;
+        i16 _eval;
+        i08 _depth;
+        u08 _gen_bnd;
 
-// Number of entries in a cluster
-const u08 ClusterEntries = 3;
+        friend class Table;
 
-// TTCluster is a 32 bytes cluster of TT entries consisting of:
-//
-// 3 x TTEntry (3 x 10 bytes)
-// padding     (2 bytes)
-struct TTCluster
-{
-    TTEntry entry[ClusterEntries];
-    u08     padding[2];
-};
+    public:
+        static const u08 Size;
 
-// A Transposition Table consists of a 2^power number of clusters
-// and each cluster consists of ClusterEntries number of entry.
-// Each non-empty entry contains information of exactly one position.
-// Size of a cluster shall not be bigger than a CACHE_LINE_SIZE.
-// In case it is less, it should be padded to guarantee always aligned accesses.
-class TranspositionTable
-{
+        Move  move  () const { return Move (_move);  }
+        Value value () const { return Value(_value); }
+        Value eval  () const { return Value(_eval);  }
+        Depth depth () const { return Depth(_depth); }
+        Bound bound () const { return Bound(_gen_bnd &  BOUND_EXACT); }
+        u08   gen   () const { return u08  (_gen_bnd & ~BOUND_EXACT); }
 
-private:
-
-#ifdef LPAGES
-    void    *_mem;
-#endif
-
-    TTCluster *_hash_table;
-    u64        _cluster_count;
-    u64        _cluster_mask;
-    u08        _generation;
-
-    void alloc_aligned_memory (u64 mem_size, u08 alignment);
-
-    // free_aligned_memory() free the allocated memory
-    void free_aligned_memory ()
-    {
-        if (_hash_table != NULL)
+        void save (u64 k, Move m, Value v, Value e, Depth d, Bound b, u08 g)
         {
-
-#   ifdef LPAGES
-            MemoryHandler::free_memory (_mem);
-            _mem =
-#   else
-            free (((void **) _hash_table)[-1]);
-#   endif
-
-            _hash_table     = NULL;
-            _cluster_count  = 0;
-            _cluster_mask   = 0;
-            _generation     = 0;
-        }
-    }
-
-public:
-
-    // Size for Transposition entry in byte
-    static const u08 TTEntrySize;
-    // Size for Transposition Cluster in byte  
-    static const u08 TTClusterSize;
-
-    static const u32 BufferSize;
-
-    // Maximum bit of hash for cluster
-    static const u08 MaxHashBit;
-
-    // Minimum size for Transposition table in mega-byte
-    static const u32 MinTTSize;
-    // Maximum size for Transposition table in mega-byte
-    static const u32 MaxTTSize;
-    
-    static const u32 DefTTSize;
-
-    static bool ClearHash;
-
-    TranspositionTable ()
-        : _hash_table (NULL)
-        , _cluster_count (0)
-        , _cluster_mask (0)
-        , _generation (0)
-    {}
-
-    explicit TranspositionTable (u32 mem_size_mb)
-        : _hash_table (NULL)
-        , _cluster_count (0)
-        , _cluster_mask (0)
-        , _generation (0)
-    {
-        resize (mem_size_mb, true);
-    }
-
-   ~TranspositionTable ()
-    {
-        free_aligned_memory ();
-    }
-
-    //inline u64 entries () const
-    //{
-    //    return (_cluster_count * ClusterEntries);
-    //}
-
-    // Returns size in MB
-    inline u32 size () const
-    {
-        return u32((_cluster_count * TTClusterSize) >> 20);
-    }
-
-    // clear() overwrites the entire transposition table with zeroes.
-    // It is called whenever the table is resized,
-    // or when the user asks the program to clear the table
-    // 'ucinewgame' (from the UCI interface).
-    inline void clear ()
-    {
-        if (ClearHash && _hash_table != NULL)
-        {
-            memset (_hash_table, 0x00, _cluster_count * TTClusterSize);
-            _generation = 0;
-            sync_cout << "info string Hash cleared." << sync_endl;
-        }
-    }
-
-    // new_gen() is called at the beginning of every new search.
-    // It increments the "Generation" variable, which is used to distinguish
-    // transposition table entries from previous searches from entries from the current search.
-    inline void new_gen () { _generation += 4; }
-
-    // cluster_entry() returns a pointer to the first entry of a cluster given a position.
-    // The lower order bits of the key are used to get the index of the cluster inside the table.
-    inline TTEntry* cluster_entry (const Key key) const
-    {
-        return _hash_table[key & _cluster_mask].entry;
-    }
-
-    // permill_full() returns an approximation of the per-mille of the 
-    // all transposition entries during a search which have received
-    // at least one write during the current search.
-    // It is used to display the "info hashfull ..." information in UCI.
-    // "the hash is <x> permill full", the engine should send this info regularly.
-    // hash, are using <x>%. of the state of full.
-    inline u32 permill_full () const
-    {
-        u64 full_cluster = 0;
-        u64 scan_cluster = std::min (10000ULL, _cluster_count);
-        for (const TTCluster *itc = _hash_table; itc < _hash_table + scan_cluster; ++itc)
-        {
-            const TTEntry *tte = itc->entry;
-            if (  (tte+0)->gen () == _generation
-               || (tte+1)->gen () == _generation
-               || (tte+2)->gen () == _generation
+            // Preserve any existing move for the position (key)
+            if (   m != MOVE_NONE
+                || (k >> 0x30) != _key16
                )
             {
-                ++full_cluster;
+                _move       = u16(m);
+            }
+            // Don't overwrite more valuable entries
+            if (   (k >> 0x30) != _key16
+                || d > _depth - 2
+             /* || g != gen () // Matching non-zero keys are already refreshed by probe() */
+                || b == BOUND_EXACT
+               )
+            {
+                _key16      = u64 (k >> 0x30);
+                _value      = i16(v);
+                _eval       = i16(e);
+                _depth      = i08(d);
+                _gen_bnd    = u08(g | b);
+            }
+        }
+    };
+
+    // Transposition::Cluster needs 32 bytes to be stored
+    // 3 x 10 + 2
+    struct Cluster
+    {
+    public:
+        // Cluster entry count
+        static const u08 EntryCount = 3;
+        static const u08 Size;
+
+        Entry entries[EntryCount];
+        char padding[2]; // Align to a divisor of the cache line size
+    };
+
+    // Transposition::Table consists of a power of 2 number of clusters
+    // and each cluster consists of Cluster::EntryCount number of entry.
+    // Each non-empty entry contains information of exactly one position.
+    // Size of a cluster should divide the size of a cache line size,
+    // to ensure that clusters never cross cache lines.
+    // In case it is less, it should be padded to guarantee always aligned accesses.
+    // This ensures best cache performance, as the cacheline is prefetched.
+    class Table
+    {
+    public:
+
+    private:
+
+    #ifdef LPAGES
+        void    *_mem           = nullptr;
+    #endif
+
+        Cluster *_clusters      = nullptr;
+        size_t   _cluster_count = 0;
+        size_t   _cluster_mask  = 0;
+        u08      _generation    = 0;
+
+        // alloc_aligned_memory() alocates the aligned memory
+        void alloc_aligned_memory (size_t mem_size, u32 alignment);
+
+        // free_aligned_memory() frees the aligned memory
+        void free_aligned_memory ()
+        {
+            if (_clusters != nullptr)
+            {
+
+    #   ifdef LPAGES
+                Memory::free_memory (_mem);
+                _mem            = nullptr;
+    #   else
+                free (((void **) _clusters)[-1]);
+    #   endif
+
+                _clusters       = nullptr;
+                _cluster_count  = 0;
+                _cluster_mask   = 0;
+                _generation     = 0;
             }
         }
 
-        return u32(1000 * full_cluster / scan_cluster);
-    }
+    public:
 
-    u32 resize (u64 mem_size_mb, bool force = false);
+        // Maximum bit of hash for cluster
+        static const u08 MaxHashBit  = 36;
+        // Defualt size of Transposition table (mega-byte)
+        static const u32 DefSize     = 16;
 
-    inline u32 resize () { return resize (size (), true); }
+        static const u32 MinSize;
+        static const u32 MaxSize;
 
-    // store() writes a new entry in the transposition table.
-    void store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval);
+        static const u32 BufferSize  = 0x10000;
 
-    // retrieve() looks up the entry in the transposition table.
-    const TTEntry* retrieve (Key key) const;
+        bool retain_hash = false;
 
-    void save (std::string &hash_fn);
-    void load (std::string &hash_fn);
+        Table () = default;
 
-    template<class CharT, class Traits>
-    friend std::basic_ostream<CharT, Traits>&
-        operator<< (std::basic_ostream<CharT, Traits> &os, const TranspositionTable &tt)
-    {
+        explicit Table (u32 mem_size_mb)
+        {
+            resize (mem_size_mb, true);
+        }
+
+        ~Table ()
+        {
+            free_aligned_memory ();
+        }
+
+        size_t entries () const
+        {
+            return _cluster_count * Cluster::EntryCount;
+        }
+
+        // size() returns hash size in MB
+        u32 size () const
+        {
+            return u32((_cluster_count * Cluster::Size) >> 20);
+        }
+
+        // clear() overwrites the entire transposition table with zeroes.
+        // It is called whenever the table is resized,
+        // or when the user asks the program to clear the table
+        // 'ucinewgame' (from the UCI interface).
+        void clear ()
+        {
+            if (!retain_hash && _clusters != nullptr)
+            {
+                std::memset (_clusters, 0x00, _cluster_count * Cluster::Size);
+                _generation = 0;
+                sync_cout << "info string Hash cleared." << sync_endl;
+            }
+        }
+
+        // generation() set the "Generation" variable, which is used to
+        // distinguish transposition table entries from different searches.
+        // It is called at the beginning of every new search.
+        void generation (i32 ply) { _generation = u08((ply << 2)&0xFC); }
+        
+        u08 generation () const { return _generation; }
+
+        // cluster_entry() returns a pointer to the first entry of a cluster given a position.
+        // The lower order bits of the key are used to get the index of the cluster inside the table.
+        Entry* cluster_entry (Key key) const
+        {
+            return _clusters[size_t(key) & _cluster_mask].entries;
+        }
+
+        // hash_full() returns an approximation of the per-mille of the 
+        // all transposition entries during a search which have received
+        // at least one write during the current search.
+        // It is used to display the "info hashfull ..." information in UCI.
+        // "the hash is <x> permill full", the engine should send this info regularly.
+        // hash, are using <x>%. of the state of full.
+        u32 hash_full () const
+        {
+            u32 full_entry_count = 0;
+            for (const auto *clt = _clusters; clt < _clusters + 1000/Cluster::EntryCount; ++clt)
+            {
+                const auto *fte = clt->entries;
+                for (const auto *ite = fte; ite < fte+Cluster::EntryCount; ++ite)
+                {
+                    if (ite->gen () == _generation)
+                    {
+                        ++full_entry_count;
+                    }
+                }
+            }
+            return full_entry_count;
+        }
+
+        u32 resize (u32 mem_size_mb, bool force = false);
+
+        u32 resize () { return resize (size (), true); }
+
+        void auto_size (u32 mem_size_mb, bool force = false);
+
+        Entry* probe (Key key, bool &hit) const;
+
+        void save (const std::string &hash_fn) const;
+        void load (const std::string &hash_fn);
+
+        template<class CharT, class Traits>
+        friend std::basic_ostream<CharT, Traits>&
+            operator<< (std::basic_ostream<CharT, Traits> &os, const Table &tt)
+        {
             u32 mem_size_mb = tt.size ();
             u08 dummy = 0;
-            os.write ((const CharT *) &mem_size_mb   , sizeof (mem_size_mb));
-            os.write ((const CharT *) &dummy, sizeof (dummy));
-            os.write ((const CharT *) &dummy, sizeof (dummy));
-            os.write ((const CharT *) &dummy, sizeof (dummy));
-            os.write ((const CharT *) &dummy, sizeof (dummy));
-            os.write ((const CharT *) &tt._cluster_count , sizeof (tt._cluster_count));
-            os.write ((const CharT *) &dummy, sizeof (dummy));
-            os.write ((const CharT *) &dummy, sizeof (dummy));
-            os.write ((const CharT *) &dummy, sizeof (dummy));
-            os.write ((const CharT *) &tt._generation, sizeof (tt._generation));
+            os.write (reinterpret_cast<const CharT*> (&mem_size_mb), sizeof (mem_size_mb));
+            os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+            os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+            os.write (reinterpret_cast<const CharT*> (&dummy), sizeof (dummy));
+            os.write (reinterpret_cast<const CharT*> (&tt._generation), sizeof (tt._generation));
+            os.write (reinterpret_cast<const CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
             u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
-                os.write ((const CharT *) (tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
+                os.write (reinterpret_cast<const CharT*> (tt._clusters+i*BufferSize), Cluster::Size*BufferSize);
             }
             return os;
-    }
+        }
 
-    template<class CharT, class Traits>
-    friend std::basic_istream<CharT, Traits>&
-        operator>> (std::basic_istream<CharT, Traits> &is, TranspositionTable &tt)
-    {
+        template<class CharT, class Traits>
+        friend std::basic_istream<CharT, Traits>&
+            operator>> (std::basic_istream<CharT, Traits> &is,       Table &tt)
+        {
             u32 mem_size_mb;
             u08 generation;
             u08 dummy;
-            is.read ((CharT *) &mem_size_mb  , sizeof (mem_size_mb));
-            is.read ((CharT *) &dummy, sizeof (dummy));
-            is.read ((CharT *) &dummy, sizeof (dummy));
-            is.read ((CharT *) &dummy, sizeof (dummy));
-            is.read ((CharT *) &dummy, sizeof (dummy));
-            is.read ((CharT *) &tt._cluster_count, sizeof (tt._cluster_count));
-            is.read ((CharT *) &dummy, sizeof (dummy));
-            is.read ((CharT *) &dummy, sizeof (dummy));
-            is.read ((CharT *) &dummy, sizeof (dummy));
-            is.read ((CharT *) &generation   , sizeof (generation));
+            is.read (reinterpret_cast<CharT*> (&mem_size_mb), sizeof (mem_size_mb));
+            is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+            is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+            is.read (reinterpret_cast<CharT*> (&dummy), sizeof (dummy));
+            is.read (reinterpret_cast<CharT*> (&generation), sizeof (generation));
+            is.read (reinterpret_cast<CharT*> (&tt._cluster_count), sizeof (tt._cluster_count));
             tt.resize (mem_size_mb);
-            tt._generation = (generation > 0 ? generation - 4 : 0);
+            tt._generation = generation;
             u32 cluster_bulk = u32(tt._cluster_count / BufferSize);
             for (u32 i = 0; i < cluster_bulk; ++i)
             {
-                is.read ((CharT *) (tt._hash_table+i*BufferSize), TTClusterSize*BufferSize);
+                is.read (reinterpret_cast<CharT*> (tt._clusters+i*BufferSize), Cluster::Size*BufferSize);
             }
             return is;
-    }
+        }
+    };
 
-};
+}
 
-
-extern TranspositionTable TT; // Global Transposition Table
+extern Transposition::Table TT; // Global Transposition Table
 
 #endif // _TRANSPOSITION_H_INC_

@@ -2,34 +2,37 @@
 #define _MOVE_GENERATOR_H_INC_
 
 #include "Type.h"
+#include "Position.h"
 
-class Position;
+namespace MoveGen {
 
-const u08   MaxMoves   = 255;
+    const u16 MAX_MOVES = 0x100; // Maximum Moves
 
-struct ValMove
-{
-public:
-    Move    move;
-    Value   value;
+    struct ValMove
+    {
+    public:
+        Move  move  = MOVE_NONE;
+        Value value = VALUE_ZERO;
 
-    // Unary predicate functor used by std::partition to split positive(+ve) scores from
-    // remaining ones so to sort separately the two sets, and with the second sort delayed.
-    inline bool operator() (const ValMove &vm) { return (vm.value > VALUE_ZERO); }
+        ValMove& operator= (const ValMove&) = default;
 
-    friend bool operator<  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <  vm2.value); }
-    friend bool operator>  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >  vm2.value); }
-    friend bool operator<= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <= vm2.value); }
-    friend bool operator>= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >= vm2.value); }
-    friend bool operator== (const ValMove &vm1, const ValMove &vm2) { return (vm1.value == vm2.value); }
-    friend bool operator!= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value != vm2.value); }
+        operator Move () const  { return move; }
+        operator Value () const { return value; }
+        void operator= (Move  m) { move  = m; }
+        void operator= (Value v) { value = v; }
 
-};
+        // Ascending sort
+        bool operator<  (const ValMove &vm) const { return value <  vm.value; }
+        bool operator>  (const ValMove &vm) const { return value >  vm.value; }
+        bool operator<= (const ValMove &vm) const { return value <= vm.value; }
+        bool operator>= (const ValMove &vm) const { return value >= vm.value; }
+        bool operator== (const ValMove &vm) const { return value == vm.value; }
+        bool operator!= (const ValMove &vm) const { return value != vm.value; }
 
-namespace MoveGenerator {
+    };
 
     // Types of Generator
-    enum GenT : u08
+    enum GenT
     {
         // PSEUDO-LEGAL MOVES
         RELAX,       // Normal moves.
@@ -47,57 +50,64 @@ namespace MoveGenerator {
     template<GenT GT>
     extern ValMove* generate (ValMove *moves, const Position &pos);
 
-    // The MoveList struct is a simple wrapper around generate(). It sometimes comes
-    // in handy to use this class instead of the low level generate() function.
-    template<GenT GT>
+    // The MoveList<T> class is a simple wrapper around generate().
+    // It sometimes comes in handy to use this class instead of
+    // the low level generate() function.
+    template<GenT GT, PieceT PT = NONE>
     class MoveList
     {
 
     private:
-        ValMove  moves[MaxMoves]
-              , *cur
-              , *end;
+        ValMove  _moves_beg[MAX_MOVES]
+              , *_moves_end = _moves_beg;
 
     public:
 
+        MoveList () = delete;
+
         explicit MoveList (const Position &pos)
-            : cur (moves)
-            , end (generate<GT> (moves, pos))
+            : _moves_end (generate<GT> (_moves_beg, pos))
         {
-            end->move = MOVE_NONE;
+            //if (PT != NONE)
+            //{
+            //    auto *moves_cur = _moves_beg;
+            //    while (moves_cur != _moves_end)
+            //    {
+            //        if (ptype (pos[org_sq (*moves_cur)]) != PT)
+            //        {
+            //            *moves_cur = *(--_moves_end);
+            //            continue;
+            //        }
+            //        ++moves_cur;
+            //    }
+            //}
         }
 
-        inline void operator++ () { ++cur; }
-        //inline void operator-- () { --cur; }
+        const ValMove* begin () const { return _moves_beg; }
+        const ValMove* end   () const { return _moves_end; }
 
-        inline Move operator* () const { return cur->move; }
-
-        inline u16 size       () const { return u16(end - cur); }
-
-        bool contains (Move m) const
+        size_t size () const { return size_t(_moves_end - _moves_beg); }
+        
+        bool contains (Move move) const
         {
-            for (const ValMove *itr = moves; itr != end; ++itr)
+            for (const auto &m : *this)
             {
-                if (itr->move == m) return true;
+                if (m == move) return true;
             }
             return false;
         }
 
-        //template<class CharT, class Traits, GenT GT>
-        //friend std::basic_ostream<CharT, Traits>&
-        //    operator<< (std::basic_ostream<CharT, Traits> &os, MoveList<GT> &movelist);
+        //explicit operator std::string () const;
     };
 
     //template<class CharT, class Traits, GenT GT>
     //inline std::basic_ostream<CharT, Traits>&
     //    operator<< (std::basic_ostream<CharT, Traits> &os, MoveList<GT> &movelist)
     //{
-    //    ValMove *cur = movelist.cur;
-    //    for ( ; *movelist; ++movelist)
+    //    for (const auto &m : movelist)
     //    {
-    //        os << *movelist << std::endl;
+    //        os << m << std::endl;
     //    }
-    //    movelist.cur = cur;
     //    return os;
     //}
 }

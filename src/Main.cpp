@@ -1,7 +1,5 @@
 #include "Engine.h"
 
-#include <string>
-#include <iostream>
 using namespace std;
 
 namespace {
@@ -11,7 +9,7 @@ namespace {
         string arg;
         for (i32 i = 1; i < argc; ++i)
         {
-            arg += string (" ", !arg.empty ()) + argv[i];
+            arg += string(argv[i]) + " ";
         }
         return arg;
     }
@@ -21,9 +19,8 @@ namespace {
 i32 main (i32 argc, const char *const *argv)
 {
     string arg = strarg (argc, argv);
-    Engine::run (arg);
 
-    //system ("pause");
-    //atexit (report_leak);
-    Engine::exit (EXIT_SUCCESS);
+    Engine::run (arg);
+    Engine::stop (EXIT_SUCCESS);
+    return EXIT_SUCCESS;
 }

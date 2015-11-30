@@ -1,4 +1,7 @@
-@SET PATH=D:/MinGW/64/bin/;D:/MinGW/msys/bin/;
+@REM @SET PATH=C:/MinGW/32/bin/;C:/MinGW/msys/bin/;
 
-make -f MakeFile strip
+@SET PATH=C:/MinGW/64/bin/;C:/MinGW/msys/bin/;
+
+@REM make -f MakeFile strip
+strip DON.exe
 @PAUSE

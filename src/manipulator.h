@@ -28,15 +28,16 @@ namespace std {
             return os;
         }
 
-        template<class CharT, class Traits>
-        friend basic_ostream<CharT, Traits>&
-            operator<< (basic_ostream<CharT, Traits> &os, const width_prec &wp)
-        {
-            return wp (os);
-        }
-
     };
 
+    template<class CharT, class Traits>
+    inline basic_ostream<CharT, Traits>&
+        operator<< (basic_ostream<CharT, Traits> &os, const width_prec &wp)
+    {
+        return wp (os);
+    }
+
+    /*
     // manip_infra is a small, intermediary class that serves as a utility
     // for custom manipulators with arguments.
     // Call its constructor with a function pointer and a value
@@ -50,7 +51,8 @@ namespace std {
     private:
 
         basic_ostream<C>& (*_fp_manip) (basic_ostream<C>&, T);
-        T       _val;
+        
+        T _val;
 
     public:
         manip_infra (basic_ostream<C>& (*fp_manip) (basic_ostream<C>&, T), T val)
@@ -58,26 +60,20 @@ namespace std {
             , _val (val)
         {}
 
-        void operator() (basic_ostream<C>& os) const
+        void operator() (basic_ostream<C> &os) const
         {
             // Invoke the function pointer with the stream and value
             _fp_manip (os, _val);
         }  
 
-        friend basic_ostream<C>& operator<< (basic_ostream<C> &os, const manip_infra<T, C> &manip)
-        {
-            manip (os);
-            return os;
-        }
     };
 
-    //template<class T, class C>
-    //inline basic_ostream<C>& operator<< (basic_ostream<C> &os, const manip_infra<T, C> &manip)
-    //{
-    //    manip (os);
-    //    return os;
-    //}
-
+    template<class T, class C>
+    inline basic_ostream<C>& operator<< (basic_ostream<C> &os, const manip_infra<T, C> &manip)
+    {
+        manip (os);
+        return os;
+    }
 
     // Helper function that is ultimately called by the ManipInfra class
     inline ostream& set_width (ostream &os, int n)
@@ -99,22 +95,11 @@ namespace std {
         return (os);
     }
 
-    inline manip_infra<char, char> set_fill(char c)
+    inline manip_infra<char, char> set_fill (char c)
     {
         return (manip_infra<char, char> (set_fill, c));
     }
-
-
-    //class eat
-    //{
-    //public:
-    //    eat(char);
-    //    ...
-    //};
-
-    //istream &operator>> (istream &, eat);
-
-
+    */
 }
 
 #endif // _MANIPULATOR_H_INC_

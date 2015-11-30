@@ -1,115 +1,121 @@
 #ifndef _DEBUGGER_H_INC_
 #define _DEBUGGER_H_INC_
 
-#include <iostream>
+#include <fstream>
 
-#include "noncopyable.h"
+#include "Type.h"
 #include "tiebuffer.h"
-#include "Time.h"
-#include "UCI.h"
+
+#if defined(_WIN32)
+#   include <ctime>
+#endif
+
+
+inline std::string time_to_string (const std::chrono::system_clock::time_point &tp)
+{
+
+#   if defined(_WIN32)
+
+    auto time = std::chrono::system_clock::to_time_t (tp);
+    auto tp_sec = std::chrono::system_clock::from_time_t (time);
+    auto ms = std::chrono::duration_cast<std::chrono::milliseconds> (tp - tp_sec).count ();
+    auto *ttm = localtime (&time);
+    const char date_time_format[] = "%Y.%m.%d-%H.%M.%S";
+    char time_str[] = "yyyy.mm.dd.HH-MM.SS.fff";
+    strftime (time_str, strlen (time_str), date_time_format, ttm);
+    std::string stime (time_str);
+    stime.append (".");
+    stime.append (std::to_string (ms));
+    return stime;
+
+#   else
+    
+    return "";
+
+#   endif
+    
+}
+
+template<class CharT, class Traits>
+inline std::basic_ostream<CharT, Traits>&
+    operator<< (std::basic_ostream<CharT, Traits> &os, const std::chrono::system_clock::time_point &tp)
+{
+    os << time_to_string (tp);
+    return os;
+}
 
 namespace Debugger {
 
-    extern void dbg_hits_on (bool h, bool c = true);
-    extern void dbg_mean_of (u64 v);
+    // Singleton I/O Logger class
+    class Logger
+    {
+
+    private:
+        std::ofstream _ofs;
+        std::tie_buf  _inb; // Input
+        std::tie_buf  _otb; // Output
+
+    protected:
+
+        // Constructor should be protected !!!
+        Logger ()
+            : _inb (std::cin .rdbuf (), _ofs.rdbuf ())
+            , _otb (std::cout.rdbuf (), _ofs.rdbuf ())
+        {}
+        
+        Logger (const Logger&) = delete;
+        Logger& operator= (const Logger&) = delete;
+
+    public:
+
+        ~Logger ()
+        {
+            stop ();
+        }
+
+        static Logger& instance ()
+        {
+            // Guaranteed to be destroyed.
+            // Instantiated on first use.
+            static Logger _instance;
+
+            return _instance;
+        }
+
+        void start ()
+        {
+            if (!_ofs.is_open ())
+            {
+                _ofs.open ("DebugLog.txt", std::ios_base::out|std::ios_base::app);
+                _ofs << "[" << std::chrono::system_clock::now () << "] ->" << std::endl;
+
+                std::cin .rdbuf (&_inb);
+                std::cout.rdbuf (&_otb);
+            }
+        }
+
+        void stop ()
+        {
+            if (_ofs.is_open ())
+            {
+                std::cout.rdbuf (_otb.streambuf ());
+                std::cin .rdbuf (_inb.streambuf ());
+
+                _ofs << "[" << std::chrono::system_clock::now () << "] <-" << std::endl;
+                _ofs.close ();
+            }
+        }
+
+    };
+
+    // Debug functions used mainly to collect run-time statistics
+    extern void dbg_hit_on (bool hit);
+    extern void dbg_hit_on (bool cond, bool hit);
+
+    extern void dbg_mean_of (i64 item);
+    
     extern void dbg_print ();
 
-}
-
-class LogFile
-    : public std::ofstream
-{
-
-public:
-    explicit LogFile (const std::string &fn = "Log.txt")
-        : std::ofstream (fn.c_str (), std::ios_base::out|std::ios_base::app)
-    {}
-    
-    ~LogFile ()
-    {
-        if (is_open ()) close ();
-    }
-
-};
-
-// Singleton Debug(I/O) Logger class
-class DebugLogger
-    : public std::noncopyable
-{
-
-private:
-    std::ofstream _fstm;
-    std::tie_buf  _inbuf;
-    std::tie_buf  _outbuf;
-    std::string   _log_fn;
-
-protected:
-
-    // Constructor should be protected !!!
-    DebugLogger ()
-        : _inbuf (std::cin .rdbuf (), &_fstm)
-        , _outbuf (std::cout.rdbuf (), &_fstm)
-    {}
-
-public:
-
-    ~DebugLogger ()
-    {
-        stop ();
-    }
-
-    static DebugLogger& instance ()
-    {
-        // Guaranteed to be destroyed.
-        // Instantiated on first use.
-        static DebugLogger _instance;
-
-        return _instance;
-    }
-
-    void start ()
-    {
-        if (!_fstm.is_open ())
-        {
-            _log_fn = std::string(Options["Debug Log"]);
-            if (!_log_fn.empty ())
-            {
-                trim (_log_fn);
-                if (!_log_fn.empty ())
-                {
-                    convert_path (_log_fn);
-                    remove_extension (_log_fn);
-                    if (!_log_fn.empty ()) _log_fn += ".txt";
-                }
-            }
-            if (_log_fn.empty ()) _log_fn = "DebugLog.txt";
-            
-            _fstm.open (_log_fn.c_str (), std::ios_base::out|std::ios_base::app);
-            _fstm << "[" << Time::to_string (Time::now ()) << "] ->" << std::endl;
-
-            std::cin .rdbuf (&_inbuf);
-            std::cout.rdbuf (&_outbuf);
-        }
-    }
-
-    void stop ()
-    {
-        if (_fstm.is_open ())
-        {
-            std::cout.rdbuf (_outbuf.sbuf ());
-            std::cin .rdbuf (_inbuf.sbuf ());
-
-            _fstm << "[" << Time::to_string (Time::now ()) << "] <-" << std::endl;
-            _fstm.close ();
-        }
-    }
-
-};
-
-inline void log_debug (bool b)
-{
-    (b) ? DebugLogger::instance ().start ()
-        : DebugLogger::instance ().stop ();
 }
 
 #endif // _DEBUGGER_H_INC_

@@ -3,6 +3,7 @@
 #include <cstring>
 
 #include "Position.h"
+#include "Thread.h"
 
 namespace Material {
 
@@ -12,40 +13,40 @@ namespace Material {
 
     namespace {
 
-        // Polynomial material balance parameters:
+        // Polynomial material imbalance parameters:
 
         const i32 OwnSideLinearCoefficient[NONE] =
         {
-            - 162, // P
-            -1122, // N
-            - 183, // B 
-            + 249, // R
-            - 154, // Q
-            +1852  // BP
+            - 168, // P
+            -1027, // N
+            - 166, // B 
+            + 238, // R
+            - 138, // Q
+            +1667  // BP
         };
 
         const i32 OwnSideQuadraticCoefficient[NONE][NONE] =
         {
             //          OWN PIECES
             //  P     N     B     R     Q    BP
-            { +  2, +  0, +  0, +  0, +  0, + 39 }, // P
-            { +271, -  4, +  0, +  0, +  0, + 35 }, // N
-            { +105, +  4, +  0, +  0, +  0, +  0 }, // B     OWN PIECES
-            { -  2, + 46, +100, -141, +  0, - 27 }, // R
-            { + 25, +129, +142, -137, +  0, -177 }, // Q
-            { +  0, +  0, +  0, +  0, +  0, +  0 }  // BP
+            { +  2,    0,    0,    0,    0, + 40 }, // P
+            { +255, -  3,    0,    0,    0, + 32 }, // N
+            { +104, +  4,    0,    0,    0,    0 }, // B     OWN PIECES
+            { -  2, + 47, +105, -149,    0, - 26 }, // R
+            { + 24, +122, +137, -134,    0, -185 }, // Q
+            {    0,    0,    0,    0,    0,    0 }  // BP
         };
 
         const i32 OppSideQuadraticCoefficient[NONE][NONE] =
         {
             //          OPP PIECES
             //  P     N     B     R     Q    BP
-            { +  0, +  0, +  0, +  0, +  0, + 37 }, // P
-            { + 62, +  0, +  0, +  0, +  0, + 10 }, // N
-            { + 64, + 39, +  0, +  0, +  0, + 57 }, // B     OWN PIECES
-            { + 40, + 23, - 22, +  0, +  0, + 50 }, // R
-            { +105, - 39, +141, +274, +  0, + 98 }, // Q
-            { +  0, +  0, +  0, +  0, +  0, +  0 }  // BP
+            {    0,    0,    0,    0,    0, + 36 }, // P
+            { + 63,    0,    0,    0,    0, +  9 }, // N
+            { + 65, + 42,    0,    0,    0, + 59 }, // B     OWN PIECES
+            { + 39, + 24, - 24,    0,    0, + 46 }, // R
+            { +100, - 37, +141, +268,    0, +101 }, // Q
+            {    0,    0,    0,    0,    0,    0 }  // BP
         };
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
@@ -58,94 +59,85 @@ namespace Material {
         Endgame<KPsK>   ScaleKPsK   [CLR_NO] = { Endgame<KPsK>   (WHITE), Endgame<KPsK>   (BLACK) };
         Endgame<KPKP>   ScaleKPKP   [CLR_NO] = { Endgame<KPKP>   (WHITE), Endgame<KPKP>   (BLACK) };
 
-        // Helper templates used to detect a given material distribution
-        template<Color C>
-        inline bool is_KXK (const Position &pos)
+        // Helper used to detect a given material distribution
+        bool is_KXK (const Position &pos, Color c)
         {
-            const Color C_ = WHITE == C ? BLACK : WHITE;
-
-            return pos.non_pawn_material (C ) >= VALUE_MG_ROOK
-                && pos.non_pawn_material (C_) == VALUE_ZERO
-                && pos.count<PAWN> (C_) == 0;
+            return pos.non_pawn_material (c) >= VALUE_MG_ROOK
+                //&& pos.count<NONPAWN> (~c) == 0
+                //&& pos.count<PAWN> (~c) == 0
+                && !more_than_one (pos.pieces (~c));
         }
 
-        template<Color C> 
-        inline bool is_KBPsKs (const Position &pos)
+        bool is_KBPsKs (const Position &pos, Color c)
         {
-            const Color C_ = WHITE == C ? BLACK : WHITE;
-
-            return pos.non_pawn_material (C ) == VALUE_MG_BSHP
-                && pos.non_pawn_material (C_) == VALUE_ZERO
-                //&& pos.count<BSHP> (C ) == 1
-                && pos.count<PAWN> (C ) >= 1;
+            return pos.non_pawn_material ( c) == VALUE_MG_BSHP
+                && pos.count<BSHP> (c) == 1
+                && pos.count<PAWN> (c) != 0;
         }
 
-        template<Color C>
-        inline bool is_KQKRPs (const Position &pos)
+        bool is_KQKRPs (const Position &pos, Color c)
         {
-            const Color C_ = WHITE == C ? BLACK : WHITE;
-
-            return pos.non_pawn_material (C ) == VALUE_MG_QUEN
-                && pos.non_pawn_material (C_) == VALUE_MG_ROOK
-                //&& pos.count<QUEN> (C ) == 1
-                //&& pos.count<ROOK> (C_) == 1
-                && pos.count<PAWN> (C ) == 0
-                && pos.count<PAWN> (C_) >= 1;
+            return pos.non_pawn_material ( c) == VALUE_MG_QUEN
+                && pos.count<QUEN> (c) == 1
+                && pos.count<PAWN> ( c) == 0
+                && pos.non_pawn_material (~c) == VALUE_MG_ROOK
+                && pos.count<ROOK> (~c) == 1
+                && pos.count<PAWN> (~c) != 0;
         }
 
-        template<Color C>
-        // imbalance<>() calculates imbalance comparing
-        // piece count of each piece type for both colors.
-        // KING == BISHOP_PAIR
-        inline Value imbalance (const i32 count[][NONE])
+        template<Color Own>
+        // imbalance<>() calculates the imbalance by comparing
+        // the piece count of each piece type for both colors.
+        // NOTE:: KING == BISHOP_PAIR
+        Value imbalance (const i32 count[][NONE])
         {
-            const Color C_ = WHITE == C ? BLACK : WHITE;
+            const auto Opp = WHITE == Own ? BLACK : WHITE;
 
-            i32 value = VALUE_ZERO;
+            auto value = VALUE_ZERO;
 
             // "The Evaluation of Material Imbalances in Chess"
 
-            // Second-degree polynomial material imbalance
-            for (i08 pt1 = PAWN; pt1 < KING; ++pt1)
+            // Second-degree polynomial material imbalance by Tord Romstad
+            for (auto pt1 = PAWN; pt1 < KING; ++pt1)
             {
-                if (count[C ][pt1] > 0)
+                if (count[Own][pt1] != 0)
                 {
-                    i32 v = OwnSideLinearCoefficient[pt1];
+                    auto v = OwnSideLinearCoefficient[pt1];
 
-                    for (i08 pt2 = PAWN; pt2 <= pt1; ++pt2)
+                    for (auto pt2 = PAWN; pt2 <= pt1; ++pt2)
                     {
-                        v += count[C ][pt2] * OwnSideQuadraticCoefficient[pt1][pt2]
-                          +  count[C_][pt2] * OppSideQuadraticCoefficient[pt1][pt2];
+                        v += count[Own][pt2] * OwnSideQuadraticCoefficient[pt1][pt2]
+                          +  count[Opp][pt2] * OppSideQuadraticCoefficient[pt1][pt2];
                     }
-                    v += count[C ][KING] * OwnSideQuadraticCoefficient[pt1][KING]
-                      +  count[C_][KING] * OppSideQuadraticCoefficient[pt1][KING];
+                    v += count[Own][KING] * OwnSideQuadraticCoefficient[pt1][KING]
+                      +  count[Opp][KING] * OppSideQuadraticCoefficient[pt1][KING];
 
-                    value += count[C ][pt1] * v;
+                    value += count[Own][pt1] * v;
                 }
             }
-            value += count[C ][KING] * OwnSideLinearCoefficient[KING];
+            value += count[Own][KING] * OwnSideLinearCoefficient[KING];
 
-            return Value(value);
+            return value;
         }
 
-    } // namespace
+    }
 
     // probe() takes a position object as input,
     // looks up a MaterialEntry object, and returns a pointer to it.
     // If the material configuration is not already present in the table,
     // it is computed and stored there, so don't have to recompute everything
     // when the same material configuration occurs again.
-    Entry* probe     (const Position &pos, Table &table)
+    Entry* probe (const Position &pos)
     {
         Key matl_key = pos.matl_key ();
-        Entry *e     = table[matl_key];
+        Entry *e     = pos.thread ()->matl_table[matl_key];
 
         // If e->_matl_key matches the position's material hash key, it means that
         // have analysed this material configuration before, and can simply
         // return the information found the last time instead of recomputing it.
         if (e->matl_key != matl_key)
         {
-            memset (e, 0x00, sizeof (*e));
+            std::memset (e, 0x00, sizeof (*e));
             e->matl_key      = matl_key;
             e->factor[WHITE] = e->factor[BLACK] = SCALE_FACTOR_NORMAL;
             e->game_phase    = pos.game_phase ();
@@ -153,20 +145,18 @@ namespace Material {
             // Let's look if have a specialized evaluation function for this
             // particular material configuration. First look for a fixed
             // configuration one, then a generic one if previous search failed.
-            if (EndGames->probe (matl_key, e->evaluation_func))
+            if ((e->evaluation_func = EndGames->probe<Value> (matl_key)) != nullptr)
             {
                 return e;
             }
-
-            if (is_KXK<WHITE> (pos))
+            // Generic evaluation
+            for (auto c = WHITE; c <= BLACK; ++c)
             {
-                e->evaluation_func = &EvaluateKXK[WHITE];
-                return e;
-            }
-            if (is_KXK<BLACK> (pos))
-            {
-                e->evaluation_func = &EvaluateKXK[BLACK];
-                return e;
+                if (is_KXK (pos, c))
+                {
+                    e->evaluation_func = &EvaluateKXK[c];
+                    return e;
+                }
             }
 
             // OK, didn't find any special evaluation function for the current
@@ -174,61 +164,54 @@ namespace Material {
             //
             // Face problems when there are several conflicting applicable
             // scaling functions and need to decide which one to use.
-            EndgameBase<ScaleFactor> *eg_sf;
-            if (EndGames->probe (matl_key, eg_sf))
+            EndgameBase<ScaleFactor> *scaling_func;
+            if ((scaling_func = EndGames->probe<ScaleFactor> (matl_key)) != nullptr)
             {
-                e->scaling_func[eg_sf->color ()] = eg_sf;
+                e->scaling_func[scaling_func->strong_side ()] = scaling_func; // Only strong color assigned
                 return e;
             }
 
-            // Generic scaling functions that refer to more than one material distribution.
-            // Should be probed after the specialized ones.
+            // Didn't find any specialized scaling function, so fall back on
+            // generic scaling functions that refer to more than one material distribution.
             // Note that these ones don't return after setting the function.
-            if (is_KBPsKs<WHITE> (pos))
+            for (auto c = WHITE; c <= BLACK; ++c)
             {
-                e->scaling_func[WHITE] = &ScaleKBPsKs[WHITE];
-            }
-            if (is_KBPsKs<BLACK> (pos))
-            {
-                e->scaling_func[BLACK] = &ScaleKBPsKs[BLACK];
-            }
-
-            if (is_KQKRPs<WHITE> (pos))
-            {
-                e->scaling_func[WHITE] = &ScaleKQKRPs[WHITE];
-            }
-            else
-            if (is_KQKRPs<BLACK> (pos))
-            {
-                e->scaling_func[BLACK] = &ScaleKQKRPs[BLACK];
+                if (is_KBPsKs (pos, c))
+                {
+                    e->scaling_func[c] = &ScaleKBPsKs[c];
+                }
+                else
+                if (is_KQKRPs (pos, c))
+                {
+                    e->scaling_func[c] = &ScaleKQKRPs[c];
+                }
             }
 
             const Value npm[CLR_NO] = 
             {
                 pos.non_pawn_material (WHITE),
-                pos.non_pawn_material (BLACK),
+                pos.non_pawn_material (BLACK)
             };
 
-            if (  npm[WHITE] + npm[BLACK] == VALUE_ZERO
-               && pos.pieces<PAWN> ()
+            // Only pawns on the board
+            if (   npm[WHITE] + npm[BLACK] == VALUE_ZERO
+                && pos.pieces (PAWN) != U64(0)
                )
             {
-                if (  pos.count<PAWN> (BLACK) == 0
-                   && pos.count<PAWN> (WHITE) >  1
-                   )
+                if (pos.count<PAWN> (BLACK) == 0)
                 {
+                    assert(pos.count<PAWN> (WHITE) > 1);
                     e->scaling_func[WHITE] = &ScaleKPsK[WHITE];
                 }
                 else
-                if (  pos.count<PAWN> (WHITE) == 0
-                   && pos.count<PAWN> (BLACK) >  1
-                   )
+                if (pos.count<PAWN> (WHITE) == 0)
                 {
+                    assert(pos.count<PAWN> (BLACK) > 1);
                     e->scaling_func[BLACK] = &ScaleKPsK[BLACK];
                 }
                 else
-                if (  pos.count<PAWN> (WHITE) == 1
-                   && pos.count<PAWN> (BLACK) == 1
+                if (   pos.count<PAWN> (WHITE) == 1
+                    && pos.count<PAWN> (BLACK) == 1
                    )
                 {
                     // This is a special case because set scaling functions for both colors instead of only one.
@@ -247,12 +230,11 @@ namespace Material {
                 {
                     e->factor[WHITE] = u08(
                         npm[WHITE] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm[BLACK] <= VALUE_MG_BSHP ? 4 : 12);
+                        npm[BLACK] <= VALUE_MG_BSHP ? 4 : 14);
                 }
-                else
                 if (pos.count<PAWN> (WHITE) == 1)
                 {
-                    e->factor[WHITE] = u08(SCALE_FACTOR_PAWNS);
+                    e->factor[WHITE] = u08(SCALE_FACTOR_ONEPAWN);
                 }
             }
 
@@ -262,26 +244,18 @@ namespace Material {
                 {
                     e->factor[BLACK] = u08(
                         npm[BLACK] <  VALUE_MG_ROOK ? SCALE_FACTOR_DRAW :
-                        npm[WHITE] <= VALUE_MG_BSHP ? 4 : 12);
+                        npm[WHITE] <= VALUE_MG_BSHP ? 4 : 14);
                 }
-                else
                 if (pos.count<PAWN> (BLACK) == 1)
                 {
-                    e->factor[BLACK] = u08(SCALE_FACTOR_PAWNS);
+                    e->factor[BLACK] = u08(SCALE_FACTOR_ONEPAWN);
                 }
-            }
-
-            // Compute the space weight
-            if (npm[WHITE] + npm[BLACK] >= 2 * VALUE_MG_QUEN + 4 * VALUE_MG_ROOK + 2 * VALUE_MG_NIHT)
-            {
-                i32 minor_count = pos.count<NIHT> () + pos.count<BSHP> ();
-                e->space_weight = mk_score (minor_count * minor_count, 0);
             }
 
             // Evaluate the material imbalance.
             // Use KING as a place holder for the bishop pair "extended piece",
             // this allow us to be more flexible in defining bishop pair bonuses.
-            const i32 count[CLR_NO][NONE] =
+            const i32 piece_count[CLR_NO][NONE] =
             {
                 {
                     pos.count<PAWN> (WHITE), pos.count<NIHT> (WHITE), pos.count<BSHP> (WHITE),
@@ -293,11 +267,11 @@ namespace Material {
                 }
             };
 
-            Value value = Value(i16((imbalance<WHITE> (count) - imbalance<BLACK> (count)) >> 4));
-            e->matl_score = mk_score (value, value);
+            auto value = Value((imbalance<WHITE> (piece_count) - imbalance<BLACK> (piece_count)) / 16);
+            e->imbalance = mk_score (value, value);
         }
 
         return e;
     }
 
-} // namespace Material
+}

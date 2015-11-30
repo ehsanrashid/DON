@@ -2,6 +2,9 @@
 #define _ENDGAME_H_INC_
 
 #include <map>
+#include <memory>
+#include <type_traits>
+#include <utility>
 
 #include "Type.h"
 
@@ -44,80 +47,83 @@ namespace EndGame {
 
     };
 
-    // Endgame functions can be of two types according if return a Value or a ScaleFactor.
-    // Type eg_fun<bool>::type equals to either ScaleFactor or Value depending if the template parameter is true or false.
-    template<bool> struct eg_fun;
-    template<> struct eg_fun<false> { typedef Value         type; };
-    template<> struct eg_fun<true > { typedef ScaleFactor   type; };
+    // Endgame functions can be of two types depending on whether they return a
+    // Value or a ScaleFactor.
+    template<EndgameT E>
+    using eg_type = typename std::conditional<E < SCALE_FUNS, Value, ScaleFactor>::type;
 
     // Base and derived templates for endgame evaluation and scaling functions
-    template<typename T>
+    template<class T>
     class EndgameBase
     {
+    protected:
+        
+        Color _strong_side
+            ,   _weak_side;
+
     public:
 
-        virtual ~EndgameBase () {}
+        explicit EndgameBase (Color c)
+            : _strong_side ( c)
+            ,   _weak_side (~c)
+        {}
 
-        virtual Color color () const = 0;
+        virtual ~EndgameBase () = default;
+
+        Color strong_side () const { return _strong_side; }
+        Color   weak_side () const { return   _weak_side; }
 
         virtual T operator() (const Position &pos) const = 0;
 
     };
 
-    template<EndgameT ET, typename T = typename eg_fun<(ET > SCALE_FUNS)>::type>
+    template<EndgameT E, class T = eg_type<E>>
     class Endgame
         : public EndgameBase<T>
     {
 
-    private:
-        const Color _stong_side
-                  , _weak_side;
-
     public:
 
         explicit Endgame (Color c)
-            : _stong_side (c)
-            , _weak_side (~c)
+            : EndgameBase<T> (c)
         {}
 
-        inline Color color () const { return _stong_side; }
-
-        T operator() (const Position &pos) const;
+        T operator() (const Position &pos) const override;
     };
 
-    // Endgames class stores in two std::map the pointers to endgame evaluation
-    // and scaling base objects. Then use polymorphism to invoke the actual
-    // endgame function calling its operator() that is virtual.
+    // The Endgames class stores the pointers to endgame evaluation and scaling base objects in two std::map. 
+    // Uses polymorphism to invoke the actual endgame function by calling its virtual operator().
     class Endgames
     {
 
     private:
+        template<class T>
+        using Map = std::map<Key, std::unique_ptr<EndgameBase<T>>>;
 
-        typedef std::map<Key, EndgameBase<eg_fun<false>::type>*> M1;
-        typedef std::map<Key, EndgameBase<eg_fun<true >::type>*> M2;
+        std::pair<Map<Value>, Map<ScaleFactor>> maps;
 
-        M1 m1;
-        M2 m2;
+        template<class T>
+        Map<T>& map ()
+        {
+            return std::get<std::is_same<T, ScaleFactor>::value> (maps);
+        }
 
-        inline M1& map (M1::mapped_type) { return m1; }
-        inline M2& map (M2::mapped_type) { return m2; }
-
-        template<EndgameT ET>
+        template<EndgameT E, class T = eg_type<E>>
         void add (const std::string &code);
 
     public:
 
         Endgames ();
-       ~Endgames ();
 
         template<class T>
-        inline T probe (Key matl_key, T &eg)
+        EndgameBase<T>* probe (Key matl_key)
         {
-            return eg = (map (eg).count (matl_key) ? map (eg)[matl_key] : NULL);
+            return map<T> ().count (matl_key) != 0 ? map<T> ()[matl_key].get () : nullptr;
         }
     };
 
-    extern void   initialize ();
+    extern void initialize ();
+
     extern void deinitialize ();
 
 }

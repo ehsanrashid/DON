@@ -10,9 +10,7 @@
 #include "Evaluator.h"
 #include "Searcher.h"
 #include "Transposition.h"
-#include "Debugger.h"
 #include "Thread.h"
-#include "Notation.h"
 
 namespace Engine {
 
@@ -20,21 +18,17 @@ namespace Engine {
 
     namespace {
 
-        const string Name      = "DON";
+        // Version number. If Version is left empty, then show compile date in the format DD-MM-YY.
+        const string VERSION   = "";
 
-        // Version number.
-        // If Version is left empty, then compile date in the format DD-MM-YY.
-        const string Version   = "";
-        const string Author    = "Ehsan Rashid";
+        const i08 MAX_MONTH = 12;
+        const string MONTHS[MAX_MONTH] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-        const i08 MONTHS = 12;
-        const string Months[MONTHS] = { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
-
-        i16 find_month (const string &month)
-        { 
-            for (i08 m = 0; m < MONTHS; ++m)
-            { 
-                if (month == Months[m]) return m+1;
+        i32 month_index (const string &month)
+        {
+            for (auto m = 0; m < MAX_MONTH; ++m)
+            {
+                if (month == MONTHS[m]) return m+1;
             }
             return 0;
         }
@@ -46,105 +40,85 @@ namespace Engine {
         ostringstream oss;
 
         if (uci) oss << "id name ";
-        oss << Name << " ";
+        oss << "DON ";
 
-#if defined (VERSION)
-        oss << VERSION << setfill ('0');
+        oss << setfill ('0');
+#if defined (VER)
+        oss << VER;
 #else
-        if (Version.empty ())
+        if (white_spaces (VERSION))
         {
             // From compiler, format is "Sep 2 2013"
             istringstream iss (__DATE__);
-
-            string month
-                ,  day
-                ,  year;
-
-            iss >> month
-                >> day
-                >> year;
-
-            oss << setfill ('0')
-                << setw (2) << (day) //<< '-'
-                << setw (2) << (find_month (month)) //<< '-'
-                << setw (2) << (year.substr (2))
-                << setfill (' ');
+            string month, day, year;
+            iss >> month >> day >> year;
+            oss << setw (2) << (day)
+                << setw (2) << (month_index (month))
+                << setw (2) << (year.substr (2));
         }
         else
         {
-            oss << Version;
+            oss << VERSION;
         }
 #endif
+        oss << setfill (' ');
 
-#ifdef _64BIT
-        oss << " x64";
+#ifdef BIT64
+        oss << ".64";
 #else
-        oss << " w32";
+        oss << ".32";
 #endif
 
 #ifdef BM2
-        oss << "-BM2";
-#endif
-#ifdef ABM
-        oss << "-ABM";
-#endif
-#ifdef LPAGES
-        oss << "-LP";
+        oss << ".BM2";
+#elif ABM
+        oss << ".ABM";
+#elif POP
+        oss << ".POP";
 #endif
 
-        oss << "\n";
-        if (uci) oss << "id author " << Author;
-        else     oss << Author << " (c) 2014";
-        oss << "\n";
+#ifdef LPAGES
+        oss << ".LP";
+#endif
+
+        oss << (uci ? "\nid author " : " by ") << "Ehsan Rashid";
 
         return oss.str ();
     }
 
-    void run (const std::string &arg)
+    void run (const string &arg)
     {
-        cout << Engine::info (false) << endl;
+        std::cout << info (false) << std::endl;
 
-#ifdef ABM
-        //cout << "info string ABM available." << endl;
-#endif
-#ifdef BM2
-        //cout << "info string BM2 available." << endl;
-#endif
 #ifdef LPAGES
-        //cout << "info string LARGE PAGES available." << endl;
-        MemoryHandler::initialize ();
+        Memory::initialize ();
 #endif
-
-        //cout << "info string Processor(s) found " << cpu_count () << "." << endl;
 
         UCI      ::initialize ();
         BitBoard ::initialize ();
-        Zobrist  ::initialize ();
         Position ::initialize ();
         BitBases ::initialize ();
-        Searcher ::initialize ();
         Pawns    ::initialize ();
         Evaluator::initialize ();
         EndGame  ::initialize ();
         Threadpool.initialize ();
-        
-        TT.resize (i32(Options["Hash"]), true);
+        Searcher ::initialize ();
 
-        cout << endl;
+        TT.auto_size (i32(Options["Hash"]), true);
 
-        UCI      ::start (arg);
+        std::cout << std::endl;
 
+        UCI::loop (arg);
     }
 
-    // Exit from engine with exit code. (in case of some crash)
-    void exit (i32 code)
+    void stop (i32 code)
     {
-        UCI      ::stop ();
-        
         Threadpool.deinitialize ();
         EndGame  ::deinitialize ();
         UCI      ::deinitialize ();
-
+#ifdef LPAGES
+        Memory   ::deinitialize ();
+#endif
         ::exit (code);
     }
 

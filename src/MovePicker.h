@@ -2,197 +2,134 @@
 #define _MOVE_PICKER_H_INC_
 
 #include "Type.h"
+#include "Position.h"
 #include "MoveGenerator.h"
 #include "Searcher.h"
 
-class Position;
+namespace MovePick {
 
-// The Stats struct stores moves statistics.
+    using namespace MoveGen;
+    using namespace Searcher;
 
-// Gain records the move's best evaluation gain from one ply to the next and is used
-// for pruning decisions.
-// Entries are stored according only to moving piece and destination square,
-// in particular two moves with different origin but same destination and same piece will be considered identical.
-struct GainStats
-{
+    const Value MAX_STATS_VALUE = Value(1 << 28);
 
-private:
-    Value _values[TOT_PIECE][SQ_NO];
-
-public:
-
-    inline const Value* operator[] (Piece p) const { return _values[p]; }
-
-    inline void clear ()
+    // The Stats struct stores different statistics.
+    template<class T, bool CM = false>
+    struct Stats
     {
-        std::fill (*_values, *_values + sizeof (_values) / sizeof (**_values), VALUE_ZERO);
-    }
+    private:
+        T _table[PIECE_NO][SQ_NO];
 
-    inline void update (const Position &pos, Move m, Value g)
-    {
-        Square s = dst_sq (m);
-        Piece p  = pos[s];
+        //void _clear (Value &v) { std::memset (_table, 0x0, sizeof (_table)); }
+        void _clear (Value &v) { v = VALUE_ZERO; }
+        void _clear (Stats<Value, false> &vs) { vs.clear (); }
+        void _clear (Stats<Value, true > &vs) { vs.clear (); }
+        void _clear (Move  &m) { m = MOVE_NONE; }
 
-        _values[p][s] = std::max (g, _values[p][s]-1);
-    }
-};
+    public:
 
-// History records how often different moves have been successful or unsuccessful during the
-// current search and is used for reduction and move ordering decisions.
-// Entries are stored according only to moving piece and destination square,
-// in particular two moves with different origin but same destination and same piece will be considered identical.
-struct HistoryStats
-{
+        const T* operator[] (Piece  pc) const { return _table[pc]; }
+        T*       operator[] (Piece  pc)       { return _table[pc]; }
 
-private:
-    i16 _counts[TOT_PIECE][SQ_NO][2];
-    Value _values[TOT_PIECE][SQ_NO];
-
-public:
-    
-    static const Value MinValue = Value(-2001);
-    static const Value MaxValue = Value(+2000);
-    
-    inline void clear ()
-    {
-        memset (_counts, 0x00, sizeof (_counts));
-        std::fill (*_values, *_values + sizeof (_values) / sizeof (**_values), MinValue);
-    }
-
-    inline void success (const Position &pos, Move m, i16 d)
-    {
-        Piece p     = pos[org_sq (m)];
-        Square s    = dst_sq (m);
-
-        i16 cnt = _counts[p][s][0] + d*d;
-        if (cnt > 2000)
+        void clear ()
         {
-            cnt /= 2;
-            _counts[p][s][1] /= 2;
+            for (auto &t : _table)
+            {
+                for (auto &e : t)
+                {
+                    _clear (e);
+                }
+            }
         }
-        _counts[p][s][0] = cnt;
-        _values[p][s] = MinValue;
-    }
-
-    inline void failure (const Position &pos, Move m, i16 d)
-    {
-        Piece p     = pos[org_sq (m)];
-        Square s    = dst_sq (m);
-
-        i16 cnt = _counts[p][s][1] + d*d;
-        if (cnt > 2000)
+        // Piece, destiny square, value
+        void update (Piece p, Square s, Value v)
         {
-            cnt /= 2;
-            _counts[p][s][0] /= 2;
+            if (abs (i32(v)) < 324)
+            {
+                auto &e = _table[p][s];
+                e = std::min (std::max (e*(1.0 - (double)abs (i32(v)) / (CM ? 512 : 324)) + i32(v)*(CM ? 64 : 32), -MAX_STATS_VALUE), +MAX_STATS_VALUE);
+            }
         }
-        _counts[p][s][1] = cnt;
-        _values[p][s] = MinValue;
-    }
-
-    inline Value value (Piece p, Square s)
-    {
-        if (_values[p][s] <= MinValue)
+        // Piece, destiny square, move
+        void update (Piece p, Square s, Move m)
         {
-            i16 succ = _counts[p][s][0];
-            i16 fail = _counts[p][s][1];
-            _values[p][s] = (succ + fail > 0) ? MaxValue * i32(succ-fail) / (succ+fail) : VALUE_ZERO;
+            auto &e = _table[p][s];
+            if (e != m) e = m;
         }
 
-        return _values[p][s];
-    }
+    };
 
-};
+    // ValueStats stores the value that records how often different moves have been successful/unsuccessful
+    // during the current search and is used for reduction and move ordering decisions.
+    typedef Stats<Value, false>     HValueStats;
+    typedef Stats<Value, true >     CMValueStats;
 
-// CounterMoveStats & FollowupMoveStats store the move that refute a previous one.
-// Entries are stored according only to moving piece and destination square,
-// in particular two moves with different origin but same destination and same piece will be considered identical.
-struct MoveStats
-{
+    // CMValue2DStats
+    typedef Stats<CMValueStats>     CMValue2DStats;
 
-private:
-    Move _moves[TOT_PIECE][SQ_NO][2];
+    // MoveStats store the move that refute a previous move.
+    // Entries are stored according only to moving piece and destination square,
+    // in particular two moves with different origin but same piece and same destination
+    // will be considered identical.
+    typedef Stats<Move>             MoveStats;
 
-public:
 
-    inline void clear ()
+    // MovePicker class is used to pick one pseudo legal move at a time from the
+    // current position. The most important method is next_move(), which returns a
+    // new pseudo legal move each time it is called, until there are no moves left,
+    // when MOVE_NONE is returned. In order to improve the efficiency of the
+    // alfa-beta algorithm, MovePicker attempts to return the moves which are most
+    // likely to get a cut-off first.
+    class MovePicker
     {
-        std::fill (**_moves, **_moves + sizeof (_moves) / sizeof (***_moves), MOVE_NONE);
-    }
 
-    inline void update (const Position &pos, Move m1, Move m2)
-    {
-        Square s = dst_sq (m1);
-        Piece p  = pos[s];
-        if (m2 != _moves[p][s][0])
-        {
-            _moves[p][s][1] = _moves[p][s][0];
-            _moves[p][s][0] = m2;
-        }
-    }
+    private:
 
-    inline Move* moves (const Position &pos, Square s)
-    {
-        return _moves[pos[s]][s];
-    }
-};
+        ValMove  _moves_beg[MAX_MOVES]
+            ,   *_moves_cur         = _moves_beg
+            ,   *_moves_end         = _moves_beg
+            ,   *_quiets_end        = _moves_beg
+            ,   *_bad_captures_end  = _moves_beg+MAX_MOVES-1;
 
+        const Position      &_pos;
+        const HValueStats   &_history_values;
+        const CMValueStats  *_counter_moves_values = nullptr;
+        const Stack         *_ss    = nullptr;
 
-// MovePicker class is used to pick one pseudo legal move at a time from the
-// current position. The most important method is next_move(), which returns a
-// new pseudo legal move each time it is called, until there are no moves left,
-// when MOVE_NONE is returned. In order to improve the efficiency of the alpha
-// beta algorithm, MovePicker attempts to return the moves which are most likely
-// to get a cut-off first.
-class MovePicker
-{
+        Move    _tt_move        = MOVE_NONE;
+        Move    _counter_move   = MOVE_NONE;
+        Depth   _depth          = DEPTH_ZERO;
+        Square  _recapture_sq   = SQ_NO;
+        Value   _threshold      = VALUE_NONE;
 
-private:
+        ValMove _killers[3];
 
-    ValMove  moves[MaxMoves]
-        ,   *cur
-        ,   *end
-        ,   *quiets_end
-        ,   *bad_captures_end;
+        u08     _stage;
 
-    const Position &pos;
-    HistoryStats &history;
+        template<GenT GT>
+        // value() assign a numerical move ordering score to each move in a move list.
+        // The moves with highest scores will be picked first.
+        void value ();
 
-    Searcher::Stack *ss;
+        void generate_next_stage ();
 
-    Move   killers[6]
-        ,  *counter_moves
-        ,  *followup_moves
-        ,  *kcur
-        ,  *kend;
+    public:
 
-    Move    tt_move;
-    Depth   depth;
+        MovePicker () = delete;
+        MovePicker (const MovePicker&) = delete;
+        MovePicker& operator= (const MovePicker&) = delete;
 
-    Square  recapture_sq;
+        MovePicker (const Position&, const HValueStats&, const CMValueStats&, Move, Depth, Move, const Stack*);
+        MovePicker (const Position&, const HValueStats&, Move, Depth, Square);
+        MovePicker (const Position&, const HValueStats&, Move, Value);
 
-    Value   capture_threshold;
+        ValMove* begin () { return _moves_beg; }
+        ValMove* end   () { return _moves_end; }
 
-    u08     stage;
+        Move next_move ();
 
-    MovePicker& operator= (const MovePicker &); // Silence a warning under MSVC
+    };
 
-    template<MoveGenerator::GenT>
-    // value() assign a numerical move ordering score to each move in a move list.
-    // The moves with highest scores will be picked first.
-    void value ();
-
-    void generate_next_stage ();
-
-
-public:
-
-    MovePicker (const Position&, HistoryStats&, Move, Depth, Move*, Move*, Searcher::Stack*);
-    MovePicker (const Position&, HistoryStats&, Move, Depth, Square);
-    MovePicker (const Position&, HistoryStats&, Move,        PieceT);
-
-    template<bool SPNode>
-    Move next_move ();
-
-};
+}
 
 #endif // _MOVE_PICKER_H_INC_

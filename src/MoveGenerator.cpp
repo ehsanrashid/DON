@@ -1,110 +1,82 @@
 #include "MoveGenerator.h"
 
-#include "Position.h"
-
-namespace MoveGenerator {
+namespace MoveGen {
 
     using namespace std;
     using namespace BitBoard;
 
-#undef serialize_moves
-#undef serialize_pawnmoves
-
-    // Fill moves in the list for any piece using a very common while loop, no fancy.
-#define serialize_moves(moves, org, attacks)       while (attacks) { (moves++)->move = mk_move<NORMAL> (org, pop_lsq (attacks)); }
-    // Fill moves in the list for pawns, where the 'delta' is the distance b/w 'org' and 'dst' square.
-#define serialize_pawnmoves(moves, delta, attacks) while (attacks) { Square dst = pop_lsq (attacks); (moves++)->move = mk_move<NORMAL> (dst - delta, dst); }
-
     namespace {
 
-        template<GenT GT, Color C, PieceT PT>
+        template<GenT GT, Color Own, PieceT PT>
         // Move Generator for PIECE
         struct Generator
         {
-
         private:
-
-            Generator () {}
+            Generator () = delete;
 
         public:
-            // template<GenT GT, Color C, PieceT PT>
-            // void Generator<GT, C, PT>::generate()
             // Generates piece common move
-            static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
+            static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
-                ASSERT (KING != PT && PAWN != PT);
+                assert(KING != PT && PAWN != PT);
 
-                const Square *pl = pos.list<PT> (C);
+                const auto *pl = pos.squares<PT> (Own);
                 Square s;
                 while ((s = *pl++) != SQ_NO)
                 {
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (ci != NULL)
+                        if (   (BSHP == PT || ROOK == PT || QUEN == PT)
+                            && (PIECE_ATTACKS[PT][s] & targets & ci->checking_bb[PT]) == U64(0)
+                           )
                         {
-                            if (  (BSHP == PT || ROOK == PT || QUEN == PT)
-                               && !(PieceAttacks[PT][s] & targets & ci->checking_bb[PT])
-                               )
-                            {
-                                continue;
-                            }
-                            if (ci->discoverers && (ci->discoverers & s))
-                            {
-                                continue;
-                            }
+                            continue;
+                        }
+                        if (ci->discoverers != U64(0) && (ci->discoverers & s) != U64(0))
+                        {
+                            continue;
                         }
                     }
 
-                    Bitboard attacks = attacks_bb<PT> (s, pos.pieces ()) & targets;
+                    auto attacks = attacks_bb<PT> (s, pos.pieces ()) & targets;
+                    
                     if (CHECK == GT || QUIET_CHECK == GT)
                     {
-                        if (ci != NULL) attacks &= ci->checking_bb[PT];
+                        attacks &= ci->checking_bb[PT];
                     }
 
-                    serialize_moves (moves, s, attacks);
+                    while (attacks != U64(0)) { *moves++ = mk_move (s, pop_lsq (attacks)); }
                 }
             }
 
         };
 
-        template<GenT GT, Color C>
+        template<GenT GT, Color Own>
         // Move Generator for KING
-        struct Generator<GT, C, KING>
+        struct Generator<GT, Own, KING>
         {
-
         private:
-            
-            Generator () {}
+            Generator () = delete;
 
-            // template<GenT GT, Color C>
-            // template<CSide SIDE, bool Chess960>
-            // void Generator<GT, KING>::generate_castling()
             template<CRight CR, bool Chess960>
             // Generates KING castling move
-            static INLINE void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci /*= NULL*/)
+            static void generate_castling (ValMove *&moves, const Position &pos, const CheckInfo *ci)
             {
-                ASSERT (EVASION != GT);
-                ASSERT (!pos.castle_impeded (CR) && pos.can_castle (CR) && !pos.checkers ());
-                
-                //if (EVASION == GT) return;
-                //if (!pos.can_castle (CR) || pos.castle_impeded (CR) || pos.checkers ()) return;
+                assert(EVASION != GT);
+                assert(!pos.castle_impeded (CR) && pos.can_castle (CR) && pos.checkers () == U64(0));
 
-                const Color C_ = WHITE == C ? BLACK : WHITE;
+                const auto Opp = WHITE == Own ? BLACK : WHITE;
 
-                Square king_org = pos.king_sq (C);
-                Square rook_org = pos.castle_rook (CR);
+                auto king_org = pos.square<KING> (Own);
+                auto rook_org = pos.castle_rook (CR);
 
-                ASSERT (ROOK == ptype (pos[rook_org]));
-                //if (ROOK != ptype (pos[rook_org])) return;
+                assert(ROOK == ptype (pos[rook_org]));
 
-                Square king_dst = rel_sq (C, ((CR == CR_WK || CR == CR_BK) ? SQ_G1 : SQ_C1));
-                Delta step = (king_dst > king_org ? DEL_E : DEL_W);
-                for (i08 s = king_dst; s != king_org; s -= step)
+                auto king_dst = rel_sq (Own, CR == CR_WK || CR == CR_BK ? SQ_G1 : SQ_C1);
+                auto step = king_dst > king_org ? DEL_E : DEL_W;
+                for (auto s = king_dst; s != king_org; s -= step)
                 {
-                    if (pos.attackers_to (Square(s)) & pos.pieces (C_))
-                    {
-                        return;
-                    }
+                    if (pos.attackers_to (s, Opp) != U64(0)) return;
                 }
 
                 if (Chess960)
@@ -112,64 +84,56 @@ namespace MoveGenerator {
                     // Because generate only legal castling moves needed to verify that
                     // when moving the castling rook do not discover some hidden checker.
                     // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-                    if (pos.attackers_to (king_dst, pos.pieces () - rook_org) & pos.pieces (C_, ROOK, QUEN))
-                    {
-                        return;
-                    }
+                    if ((attacks_bb<ROOK> (king_dst, pos.pieces () - rook_org) & pos.pieces (Opp, ROOK, QUEN)) != U64(0)) return;
                 }
 
-                Move m = mk_move<CASTLE> (king_org, rook_org);
+                auto m = mk_move<CASTLE> (king_org, rook_org);
 
                 if (CHECK == GT || QUIET_CHECK == GT)
                 {
-                    if (ci != NULL && !pos.gives_check (m, *ci))
-                    {
-                        return;
-                    }
+                    if (!pos.gives_check (m, *ci)) return;
+                }
+                else
+                {
+                    (void) ci; // Silence a warning under MSVC
                 }
 
-                (moves++)->move = m;
+                *moves++ = m;
             }
 
         public:
-            // template<GenT GT, Color C>
-            // void Generator<GT, C, KING>::generate()
+            // template<GenT GT, Color Own>
+            // void Generator<GT, Own, KING>::generate()
             // Generates KING common move
-            static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
+            static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
+                const auto Opp = WHITE == Own ? BLACK : WHITE;
+
                 if (EVASION == GT) return;
 
                 if (CHECK != GT && QUIET_CHECK != GT)
                 {
-                    const Color C_ = WHITE == C ? BLACK : WHITE;
-                    Square king_sq = pos.king_sq (C);
-                    Bitboard attacks = PieceAttacks[KING][king_sq] & ~PieceAttacks[KING][pos.king_sq (C_)] & targets;
-                    serialize_moves (moves, king_sq, attacks);
+                    auto king_sq = pos.square<KING> (Own);
+                    auto attacks = PIECE_ATTACKS[KING][king_sq] & ~PIECE_ATTACKS[KING][pos.square<KING> (Opp)] & targets;
+                    while (attacks != U64(0)) { *moves++ = mk_move (king_sq, pop_lsq (attacks)); }
                 }
 
                 if (CAPTURE != GT)
                 {
-                    if (pos.can_castle (C) && !pos.checkers ())
+                    if (pos.can_castle (Own) && pos.checkers () == U64(0))
                     {
-                        CheckInfo cc;
-                        if (ci == NULL)
-                        {
-                            cc = CheckInfo (pos);
-                            ci = &cc;
-                        }
-
-                        if (pos.can_castle (Castling<C, CS_K>::Right) && !pos.castle_impeded (Castling<C, CS_K>::Right))
+                        if (pos.can_castle (Castling<Own, CS_KING>::Right) && !pos.castle_impeded (Castling<Own, CS_KING>::Right))
                         {
                             pos.chess960 () ?
-                                generate_castling<Castling<C, CS_K>::Right,  true> (moves, pos, ci) :
-                                generate_castling<Castling<C, CS_K>::Right, false> (moves, pos, ci);
+                                generate_castling<Castling<Own, CS_KING>::Right, true > (moves, pos, ci) :
+                                generate_castling<Castling<Own, CS_KING>::Right, false> (moves, pos, ci);
                         }
 
-                        if (pos.can_castle (Castling<C, CS_Q>::Right) && !pos.castle_impeded (Castling<C, CS_Q>::Right))
+                        if (pos.can_castle (Castling<Own, CS_QUEN>::Right) && !pos.castle_impeded (Castling<Own, CS_QUEN>::Right))
                         {
                             pos.chess960 () ?
-                                generate_castling<Castling<C, CS_Q>::Right,  true> (moves, pos, ci) :
-                                generate_castling<Castling<C, CS_Q>::Right, false> (moves, pos, ci);
+                                generate_castling<Castling<Own, CS_QUEN>::Right, true > (moves, pos, ci) :
+                                generate_castling<Castling<Own, CS_QUEN>::Right, false> (moves, pos, ci);
                         }
                     }
                 }
@@ -177,101 +141,81 @@ namespace MoveGenerator {
 
         };
 
-        template<GenT GT, Color C>
+        template<GenT GT, Color Own>
         // Move Generator for PAWN
-        struct Generator<GT, C, PAWN>
+        struct Generator<GT, Own, PAWN>
         {
-
         private:
-            
-            Generator () {}
+            Generator () = delete;
 
-            // template<GenT GT, Color C>
-            // template<Delta D>
-            // void Generator<GT, C, PAWN>::generate_promotion()
-            template<Delta D>
+            template<Delta Del>
             // Generates PAWN promotion move
-            static INLINE void generate_promotion (ValMove *&moves, Bitboard pawns_on_R7, Bitboard targets, const CheckInfo *ci)
+            static void generate_promotion (ValMove *&moves, Square dst, const CheckInfo *ci)
             {
-                ASSERT ((DEL_NE == D || DEL_NW == D || DEL_SE == D || DEL_SW == D || DEL_N == D || DEL_S == D));
+                assert((DEL_NE == Del || DEL_NW == Del || DEL_SE == Del || DEL_SW == Del || DEL_N == Del || DEL_S == Del));
 
-                Bitboard promotes = shift_del<D> (pawns_on_R7) & targets;
-                while (promotes)
+                if (RELAX == GT || EVASION == GT || CAPTURE == GT)
                 {
-                    Square dst = pop_lsq (promotes);
-                    Square org = dst - D;
+                    *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
+                }
 
-                    if (RELAX == GT || EVASION == GT || CAPTURE == GT)
-                    {
-                        (moves++)->move = mk_move<PROMOTE> (org, dst, QUEN);
-                    }
+                if (RELAX == GT || EVASION == GT || QUIET == GT)
+                {
+                    *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
+                    *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
+                    *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                }
 
-                    if (RELAX == GT || EVASION == GT || QUIET == GT)
+                // Knight-promotion is the only one that can give a direct check
+                // not already included in the queen-promotion (queening).
+                if (QUIET_CHECK == GT)
+                {
+                    if ((PIECE_ATTACKS[NIHT][dst] & ci->king_sq) != U64(0))
                     {
-                        (moves++)->move = mk_move<PROMOTE> (org, dst, ROOK);
-                        (moves++)->move = mk_move<PROMOTE> (org, dst, BSHP);
-                        (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
+                        *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
                     }
-
-                    // Knight-promotion is the only one that can give a direct check
-                    // not already included in the queen-promotion (queening).
-                    if (QUIET_CHECK == GT || CHECK == GT)
-                    {
-                        if (ci != NULL)
-                        {
-                            if (PieceAttacks[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
-                        }
-
-                        if (CHECK == GT)
-                        {
-                            if (ci != NULL)
-                            {
-                                //if (PieceAttacks[NIHT][dst] & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, NIHT);
-                                if (attacks_bb<BSHP> (dst, targets) & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, BSHP);
-                                if (attacks_bb<ROOK> (dst, targets) & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, ROOK);
-                                if (attacks_bb<QUEN> (dst, targets) & ci->king_sq) (moves++)->move = mk_move<PROMOTE> (org, dst, QUEN);
-                            }
-                        }
-                    }
-                    else
-                    {
-                        (void) ci; // silence a warning under MSVC
-                    }
+                }
+                //else
+                //if (CHECK == GT)
+                //{
+                //    if ((PIECE_ATTACKS[NIHT][dst]        & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, NIHT);
+                //    if ((attacks_bb<BSHP> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, BSHP);
+                //    if ((attacks_bb<ROOK> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, ROOK);
+                //    if ((attacks_bb<QUEN> (dst, targets) & ci->king_sq) != U64(0)) *moves++ = mk_move<PROMOTE> (dst - Del, dst, QUEN);
+                //}
+                else
+                {
+                    (void) ci; // Silence a warning under MSVC
                 }
             }
 
         public:
-            // template<GenT GT, Color C>
-            // void Generator<GT, C, PAWN>::generate()
             // Generates PAWN common move
-            static INLINE void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
+            static void generate (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
             {
-                const Color C_   = WHITE == C ? BLACK : WHITE;
-                const Delta PUSH = WHITE == C ? DEL_N  : DEL_S;
-                const Delta RCAP = WHITE == C ? DEL_NE : DEL_SW;
-                const Delta LCAP = WHITE == C ? DEL_NW : DEL_SE;
+                const auto Opp      = WHITE == Own ? BLACK  : WHITE;
+                const auto Push     = WHITE == Own ? DEL_N  : DEL_S;
+                const auto LCap     = WHITE == Own ? DEL_NW : DEL_SE;
+                const auto RCap     = WHITE == Own ? DEL_NE : DEL_SW;
+                const auto Rank3BB  = WHITE == Own ? R3_bb  : R6_bb;
+                const auto Rank5BB  = WHITE == Own ? R5_bb  : R4_bb;
+                const auto Rank7BB  = WHITE == Own ? R7_bb  : R2_bb;
+                const auto Rank8BB  = WHITE == Own ? R8_bb  : R1_bb;
 
-                Bitboard pawns = pos.pieces<PAWN> (C);
+                auto R7_pawns = pos.pieces (Own, PAWN) &  Rank7BB;  // Pawns on 7th Rank
+                auto Rx_pawns = pos.pieces (Own, PAWN) & ~Rank7BB;  // Pawns not on 7th Rank
 
-                Bitboard pawns_on_R7 = pawns &  rel_rank_bb (C, R_7);
-                Bitboard pawns_on_Rx = pawns & ~pawns_on_R7;
+                auto enemies = EVASION == GT ? pos.pieces (Opp) & targets :
+                               CAPTURE == GT ? targets : pos.pieces (Opp);
 
-                Bitboard enemies;
-                switch (GT)
-                {
-                case EVASION: enemies = pos.pieces (C_) & targets; break;
-                case CAPTURE: enemies = targets;                   break;
-                default:      enemies = pos.pieces (C_);           break;
-                }
-
-                Bitboard empties = U64 (0);
+                auto empties = U64(0);
                 // Pawn single-push and double-push, no promotions
                 if (CAPTURE != GT)
                 {
-                    empties = (QUIET == GT || QUIET_CHECK == GT) ? targets : ~pos.pieces ();
+                    empties = QUIET == GT || QUIET_CHECK == GT ? targets : ~pos.pieces ();
                     
-                    Bitboard push_1 = shift_del<PUSH> (pawns_on_Rx                  ) & empties;
-                    Bitboard push_2 = shift_del<PUSH> (push_1 & rel_rank_bb (C, R_3)) & empties;
+                    auto push_1 = empties & shift_bb<Push> (Rx_pawns);
+                    auto push_2 = empties & shift_bb<Push> (push_1 & Rank3BB);
 
                     switch (GT)
                     {
@@ -283,127 +227,100 @@ namespace MoveGenerator {
 
                     case CHECK:
                     case QUIET_CHECK:
-                        if (ci != NULL)
+                        push_1 &= PAWN_ATTACKS[Opp][ci->king_sq];
+                        push_2 &= PAWN_ATTACKS[Opp][ci->king_sq];
+
+                        // Pawns which give discovered check
+                        // Add pawn pushes which give discovered check.
+                        // This is possible only if the pawn is not on the same file as the enemy king,
+                        // because don't generate captures.
+                        // Note that a possible discovery check promotion has been already generated among captures.
+                        if ((Rx_pawns & ci->discoverers) != U64(0))
                         {
-                            Bitboard pawn_attacks = PawnAttacks[C_][ci->king_sq];
+                            auto push_cd_1 = empties & shift_bb<Push> (Rx_pawns & ci->discoverers) & ~file_bb (ci->king_sq);
+                            auto push_cd_2 = empties & shift_bb<Push> (push_cd_1 & Rank3BB);
 
-                            push_1 &= pawn_attacks;
-                            push_2 &= pawn_attacks;
-
-                            // Pawns which give discovered check
-                            // Add pawn pushes which give discovered check. This is possible only
-                            // if the pawn is not on the same file as the enemy king, because
-                            // don't generate captures. Note that a possible discovery check
-                            // promotion has been already generated among captures.
-                            if (pawns_on_Rx & ci->discoverers)
-                            {
-                                Bitboard push_cd_1 = shift_del<PUSH> (pawns_on_Rx & ci->discoverers   ) & empties;
-                                Bitboard push_cd_2 = shift_del<PUSH> (push_cd_1 & rel_rank_bb (C, R_3)) & empties;
-
-                                push_1 |= push_cd_1;
-                                push_2 |= push_cd_2;
-                            }
+                            push_1 |= push_cd_1;
+                            push_2 |= push_cd_2;
                         }
                         break;
 
                     default: break;
                     }
-
-                    serialize_pawnmoves (moves, Delta (PUSH << 0), push_1);
-                    serialize_pawnmoves (moves, Delta (PUSH << 1), push_2);
+                    
+                    while (push_1 != U64(0)) { auto dst = pop_lsq (push_1); *moves++ = mk_move (dst - Push, dst); }
+                    while (push_2 != U64(0)) { auto dst = pop_lsq (push_2); *moves++ = mk_move (dst - Push-Push, dst); }
                 }
                 // Pawn normal and en-passant captures, no promotions
-                if (QUIET != GT && QUIET_CHECK != GT)
+                if (RELAX == GT || CAPTURE == GT || EVASION == GT)
                 {
-                    Bitboard l_attacks = shift_del<LCAP> (pawns_on_Rx) & enemies;
-                    Bitboard r_attacks = shift_del<RCAP> (pawns_on_Rx) & enemies;;
+                    auto l_attacks = enemies & shift_bb<LCap> (Rx_pawns);
+                    auto r_attacks = enemies & shift_bb<RCap> (Rx_pawns);
 
-                    serialize_pawnmoves (moves, LCAP, l_attacks);
-                    serialize_pawnmoves (moves, RCAP, r_attacks);
+                    while (l_attacks != U64(0)) { auto dst = pop_lsq (l_attacks); *moves++ = mk_move (dst - LCap, dst); }
+                    while (r_attacks != U64(0)) { auto dst = pop_lsq (r_attacks); *moves++ = mk_move (dst - RCap, dst); }
 
-                    Square ep_sq = pos.en_passant_sq ();
+                    auto ep_sq = pos.en_passant_sq ();
                     if (SQ_NO != ep_sq)
                     {
-                        ASSERT (_rank (ep_sq) == rel_rank (C, R_6));
-                        if (pawns_on_Rx & rel_rank_bb (C, R_5))
+                        assert(_rank (ep_sq) == rel_rank (Own, R_6));
+
+                        if ((Rx_pawns & Rank5BB) != U64(0))
                         {
                             // An en-passant capture can be an evasion only if the checking piece
                             // is the double pushed pawn and so is in the target. Otherwise this
                             // is a discovery check and are forced to do otherwise.
                             // All time except when EVASION then 2nd condition must true
-                            if (EVASION != GT || (targets & (ep_sq - PUSH)))
+                            if (EVASION != GT || (targets & (ep_sq - Push)) != U64(0))
                             {
-                                Bitboard ep_pawns = PawnAttacks[C_][ep_sq] & pawns_on_Rx & rel_rank_bb (C, R_5);
-                                ASSERT (ep_pawns);
-                                ASSERT (pop_count<Max15> (ep_pawns) <= 2);
+                                auto ep_attacks = Rx_pawns & Rank5BB & PAWN_ATTACKS[Opp][ep_sq];
+                                assert(ep_attacks != U64(0));
+                                assert(pop_count<MAX15> (ep_attacks) <= 2);
 
-                                while (ep_pawns)
-                                {
-                                    (moves++)->move = mk_move<ENPASSANT> (pop_lsq (ep_pawns), ep_sq);
-                                }
+                                while (ep_attacks != U64(0)) { *moves++ = mk_move<ENPASSANT> (pop_lsq (ep_attacks), ep_sq); }
                             }
                         }
                     }
                 }
 
                 // Promotions (queening and under-promotions)
-                if (pawns_on_R7)
+                if (R7_pawns != U64(0))
                 {
                     // All time except when EVASION then 2nd condition must true
-                    if (EVASION != GT || (targets & rel_rank_bb (C, R_8)))
+                    if (EVASION != GT || (targets & Rank8BB) != U64(0))
                     {
-                        if      (CAPTURE == GT) empties = ~pos.pieces ();
-                        else if (EVASION == GT) empties &= targets;
+                        empties = EVASION == GT ? empties & targets :
+                                  CAPTURE == GT ? ~pos.pieces () : empties;
 
-                        generate_promotion<LCAP> (moves, pawns_on_R7, enemies, ci);
-                        generate_promotion<RCAP> (moves, pawns_on_R7, enemies, ci);
-                        generate_promotion<PUSH> (moves, pawns_on_R7, empties, ci);
+                        // Promoting pawns
+                        Bitboard proms;
+                        proms = empties & shift_bb<Push> (R7_pawns);
+                        while (proms != U64(0)) generate_promotion<Push> (moves, pop_lsq (proms), ci);
+
+                        proms = enemies & shift_bb<RCap> (R7_pawns);
+                        while (proms != U64(0)) generate_promotion<RCap> (moves, pop_lsq (proms), ci);
+
+                        proms = enemies & shift_bb<LCap> (R7_pawns);
+                        while (proms != U64(0)) generate_promotion<LCap> (moves, pop_lsq (proms), ci);
                     }
                 }
             }
 
         };
 
-        template<GenT GT, Color C>
+        template<GenT GT, Color Own>
         // Generates all pseudo-legal moves of color for targets.
-        INLINE ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = NULL)
+        ValMove* generate_moves (ValMove *&moves, const Position &pos, Bitboard targets, const CheckInfo *ci = nullptr)
         {
-            Generator<GT, C, PAWN>::generate (moves, pos, targets, ci);
-            if (pos.count<NIHT> (C)) Generator<GT, C, NIHT>::generate (moves, pos, targets, ci);
-            if (pos.count<BSHP> (C)) Generator<GT, C, BSHP>::generate (moves, pos, targets, ci);
-            if (pos.count<ROOK> (C)) Generator<GT, C, ROOK>::generate (moves, pos, targets, ci);
-            if (pos.count<QUEN> (C)) Generator<GT, C, QUEN>::generate (moves, pos, targets, ci);
-            Generator<GT, C, KING>::generate (moves, pos, targets, ci);
+            Generator<GT, Own, PAWN>::generate (moves, pos, targets, ci);
+            /*if (pos.count<NIHT> (Own) !=0)*/ Generator<GT, Own, NIHT>::generate (moves, pos, targets, ci);
+            /*if (pos.count<BSHP> (Own) !=0)*/ Generator<GT, Own, BSHP>::generate (moves, pos, targets, ci);
+            /*if (pos.count<ROOK> (Own) !=0)*/ Generator<GT, Own, ROOK>::generate (moves, pos, targets, ci);
+            /*if (pos.count<QUEN> (Own) !=0)*/ Generator<GT, Own, QUEN>::generate (moves, pos, targets, ci);
+            Generator<GT, Own, KING>::generate (moves, pos, targets, ci);
 
             return moves;
         }
-
-        //INLINE void filter_illegal (ValMove *beg, ValMove *&end, const Position &pos)
-        //{
-        //    Square king_sq = pos.king_sq (pos.active ());
-        //    Bitboard pinneds = pos.pinneds (pos.active ());
-        //
-        //    //moves.erase (
-        //    //    remove_if (moves.begin (), moves.end (), [&] (Move m)
-        //    //{
-        //    //    return ((ENPASSANT == mtype (m) || pinneds || (org_sq (m) == king_sq))) && !pos.legal (m, pinneds); 
-        //    //}), moves.end ());
-        //
-        //    while (beg != end)
-        //    {
-        //        Move m = beg->move;
-        //        if (  (ENPASSANT == mtype (m) || pinneds || (org_sq (m) == king_sq))
-        //           && !pos.legal (m, pinneds)
-        //           )
-        //        {
-        //            beg->move = (--end)->move;
-        //        }
-        //        else
-        //        {
-        //            ++beg;
-        //        }
-        //    }
-        //}
 
     }
 
@@ -411,16 +328,15 @@ namespace MoveGenerator {
     // Generates all pseudo-legal moves.
     ValMove* generate (ValMove *moves, const Position &pos)
     {
-        ASSERT (RELAX == GT || CAPTURE == GT || QUIET == GT);
-        ASSERT (!pos.checkers ());
+        assert(RELAX == GT || CAPTURE == GT || QUIET == GT);
+        assert(pos.checkers () == U64(0));
 
-        Color active = pos.active ();
-
-        Bitboard targets = 
+        auto active  = pos.active ();
+        auto targets = 
+            RELAX   == GT ? ~pos.pieces ( active) :
             CAPTURE == GT ?  pos.pieces (~active) :
             QUIET   == GT ? ~pos.pieces () :
-            RELAX   == GT ? ~pos.pieces (active) :
-            U64 (0);
+            U64(0);
 
         return WHITE == active ? generate_moves<GT, WHITE> (moves, pos, targets) :
                BLACK == active ? generate_moves<GT, BLACK> (moves, pos, targets) :
@@ -428,17 +344,17 @@ namespace MoveGenerator {
     }
 
     // --------------------------------
-    // explicit template instantiations
+    // Explicit template instantiations
 
     // generate<RELAX> generates all pseudo-legal captures and non-captures.
     // Returns a pointer to the end of the move list.
-    template ValMove* generate<RELAX  > (ValMove *moves, const Position &pos);
+    template ValMove* generate<RELAX  > (ValMove*, const Position&);
     // generate<CAPTURES> generates all pseudo-legal captures and queen promotions.
     // Returns a pointer to the end of the move list.
-    template ValMove* generate<CAPTURE> (ValMove *moves, const Position &pos);
+    template ValMove* generate<CAPTURE> (ValMove*, const Position&);
     // generate<QUIETS> generates all pseudo-legal non-captures and underpromotions.
     // Returns a pointer to the end of the move list.
-    template ValMove* generate<QUIET  > (ValMove *moves, const Position &pos);
+    template ValMove* generate<QUIET  > (ValMove*, const Position&);
     // --------------------------------
 
     template<>
@@ -446,26 +362,26 @@ namespace MoveGenerator {
     // Returns a pointer to the end of the move list.
     ValMove* generate<QUIET_CHECK> (ValMove *moves, const Position &pos)
     {
-        ASSERT (!pos.checkers ());
+        assert(pos.checkers () == U64(0));
 
-        Color active    = pos.active ();
-        Bitboard empties= ~pos.pieces ();
+        auto active =  pos.active ();
+        auto targets= ~pos.pieces ();
         CheckInfo ci (pos);
         // Pawns excluded will be generated together with direct checks
-        Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
-        while (discovers)
+        auto discovers = ci.discoverers & ~pos.pieces (active, PAWN);
+        while (discovers != U64(0))
         {
-            Square org = pop_lsq (discovers);
-            PieceT pt  = ptype (pos[org]);
-            Bitboard attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & empties;
+            auto org = pop_lsq (discovers);
+            auto pt  = ptype (pos[org]);
+            auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
 
-            if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
+            if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
-            serialize_moves (moves, org, attacks);
+            while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
         }
 
-        return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, empties, &ci) :
-               BLACK == active ? generate_moves<QUIET_CHECK, BLACK> (moves, pos, empties, &ci) :
+        return WHITE == active ? generate_moves<QUIET_CHECK, WHITE> (moves, pos, targets, &ci) :
+               BLACK == active ? generate_moves<QUIET_CHECK, BLACK> (moves, pos, targets, &ci) :
                moves;
     }
 
@@ -474,20 +390,20 @@ namespace MoveGenerator {
     // Returns a pointer to the end of the move list.
     ValMove* generate<CHECK      > (ValMove *moves, const Position &pos)
     {
-        Color active    = pos.active ();
-        Bitboard targets= ~pos.pieces (active);
+        auto active =  pos.active ();
+        auto targets= ~pos.pieces (active);
         CheckInfo ci (pos);
         // Pawns excluded, will be generated together with direct checks
-        Bitboard discovers = ci.discoverers & ~pos.pieces<PAWN> (active);
-        while (discovers)
+        auto discovers = ci.discoverers & ~pos.pieces (active, PAWN);
+        while (discovers != U64(0))
         {
-            Square org = pop_lsq (discovers);
-            PieceT pt  = ptype (pos[org]);
-            Bitboard attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
+            auto org = pop_lsq (discovers);
+            auto pt  = ptype (pos[org]);
+            auto attacks = attacks_bb (Piece(pt), org, pos.pieces ()) & targets;
 
-            if (KING == pt) attacks &= ~PieceAttacks[QUEN][ci.king_sq];
+            if (KING == pt) attacks &= ~PIECE_ATTACKS[QUEN][ci.king_sq];
 
-            serialize_moves (moves, org, attacks);
+            while (attacks != U64(0)) { *moves++ = mk_move (org, pop_lsq (attacks)); }
         }
 
         return WHITE == active ? generate_moves<CHECK, WHITE> (moves, pos, targets, &ci) :
@@ -500,61 +416,61 @@ namespace MoveGenerator {
     // Returns a pointer to the end of the move list.
     ValMove* generate<EVASION    > (ValMove *moves, const Position &pos)
     {
-        Bitboard checkers = pos.checkers ();
-        ASSERT (checkers); // If any checker exists
+        auto checkers = pos.checkers ();
+        assert(checkers != U64(0)); // If any checker exists
 
-        Color active = pos.active ();
+        auto active  = pos.active ();
+        auto king_sq = pos.square<KING> (active);
 
-        Square  king_sq = pos.king_sq (active);
-        Square check_sq;
+        auto check_sq = SQ_NO;
 
         //// Generates evasions for king, capture and non-capture moves excluding friends
-        //Bitboard attacks = PieceAttacks[KING][king_sq] & ~pos.pieces (active);
+        //Bitboard attacks = PIECE_ATTACKS[KING][king_sq] & ~pos.pieces (active);
         //check_sq = pop_lsq (checkers);
         //
         //Bitboard enemies = pos.pieces (~active);
         //Bitboard mocc    = pos.pieces () - king_sq;
         //// Remove squares attacked by enemies, from the king evasions.
         //// so to skip known illegal moves avoiding useless legality check later.
-        //for (u08 k = 0; PieceDeltas[KING][k]; ++k)
+        //for (u08 k = 0; PIECE_DELTAS[KING][k]; ++k)
         //{
-        //    Square sq = king_sq + PieceDeltas[KING][k];
+        //    auto sq = king_sq + PIECE_DELTAS[KING][k];
         //    if (_ok (sq))
         //    {
-        //        if ((attacks & sq) && (pos.attackers_to (sq, mocc) & enemies))
+        //        if ((attacks & sq) && pos.attackers_to (sq, ~active, mocc))
         //        {
         //            attacks -= sq;
         //        }
         //    }
         //}
 
-        check_sq = SQ_NO;
-        Bitboard slid_attacks = U64 (0);
-        Bitboard sliders = checkers & ~(pos.pieces (NIHT, PAWN));
+        auto slider_attacks = U64(0);
+        auto sliders = checkers & ~pos.pieces (NIHT, PAWN);
         // Find squares attacked by slider checkers, will remove them from the king
         // evasions so to skip known illegal moves avoiding useless legality check later.
-        while (sliders)
+        while (sliders != U64(0))
         {
             check_sq = pop_lsq (sliders);
-            ASSERT (color (pos[check_sq]) == ~active);
-            slid_attacks |= LineRay_bb[check_sq][king_sq] - check_sq;
+            assert(color (pos[check_sq]) == ~active);
+            slider_attacks |= RAYLINE_bb[check_sq][king_sq] - check_sq;
         }
 
         // Generate evasions for king, capture and non capture moves
-        Bitboard attacks =  PieceAttacks[KING][king_sq]
-            & ~(pos.pieces (active) | PieceAttacks[KING][pos.king_sq (~active)] | slid_attacks);
+        auto attacks =
+              PIECE_ATTACKS[KING][king_sq]
+            & ~(  pos.pieces (active)
+                | slider_attacks
+                | PIECE_ATTACKS[KING][pos.square<KING> (~active)]
+               );
 
-        serialize_moves (moves, king_sq, attacks);
+        while (attacks != U64(0)) { *moves++ = mk_move (king_sq, pop_lsq (attacks)); }
 
         // If double-check, then only a king move can save the day, triple+ check not possible
-        if (more_than_one (checkers) || pos.count<NONE> (active) <= 1)
-        {
-            return moves;
-        }
+        if (more_than_one (checkers) || pos.count<NONE> (active) <= 1) return moves;
 
-        if (check_sq == SQ_NO) check_sq = scan_lsq (checkers);
+        check_sq = SQ_NO == check_sq ? scan_lsq (checkers) : check_sq;
         // Generates blocking evasions or captures of the checking piece
-        Bitboard targets = Between_bb[check_sq][king_sq] + check_sq;
+        auto targets = BETWEEN_bb[check_sq][king_sq] + check_sq;
 
         return WHITE == active ? generate_moves<EVASION, WHITE> (moves, pos, targets) :
                BLACK == active ? generate_moves<EVASION, BLACK> (moves, pos, targets) :
@@ -565,33 +481,29 @@ namespace MoveGenerator {
     // Generates all legal moves.
     ValMove* generate<LEGAL      > (ValMove *moves, const Position &pos)
     {
-        ValMove *end = pos.checkers () ?
-            generate<EVASION> (moves, pos) :
-            generate<RELAX  > (moves, pos);
+        auto *moves_cur = moves;
+        auto *moves_end = pos.checkers () != U64(0) ?
+                            generate<EVASION> (moves, pos) :
+                            generate<RELAX  > (moves, pos);
 
-        Square   king_sq = pos.king_sq (pos.active ());
-        Bitboard pinneds = pos.pinneds (pos.active ());
-
-        ValMove *cur = moves;
-        while (cur != end)
+        auto pinneds = pos.pinneds (pos.active ());
+        auto king_sq = pos.square<KING> (pos.active ());
+        while (moves_cur != moves_end)
         {
-            Move m = cur->move;
-            if (  (ENPASSANT == mtype (m) || pinneds || (org_sq (m) == king_sq))
-                && !pos.legal (m, pinneds)
+            if (   (   pinneds != U64(0)
+                    || org_sq (*moves_cur) == king_sq
+                    || mtype (*moves_cur) == ENPASSANT
+                   )
+                && !pos.legal (*moves_cur, pinneds)
                )
             {
-                cur->move = (--end)->move;
+                *moves_cur = *(--moves_end);
+                continue;
             }
-            else
-            {
-                ++cur;
-            }
+            ++moves_cur;
         }
 
-        return end;
+        return moves_end;
     }
-
-#undef serialize_moves
-#undef serialize_pawnmoves
 
 }

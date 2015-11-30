@@ -18,44 +18,47 @@ namespace UCI {
     class Option
     {
     private:
-        typedef void (*OnChange) (const Option&);
+        typedef void (*OnChange) ();
 
-        template<class CharT, class Traits>
-        friend std::basic_ostream<CharT, Traits>&
-            operator<< (std::basic_ostream<CharT, Traits> &os, const Option &opt);
-
-        template<class CharT, class Traits>
-        friend std::basic_ostream<CharT, Traits>&
-            operator<< (std::basic_ostream<CharT, Traits> &os, const OptionMap &optmap);
-
-        u08 _idx;
-        std::string _type;
-
+        u08 _index = 0;
         std::string
-              _default
-            , _value;
+              _type  = ""
+            , _value = "";
+        i32   _minimum = 0
+            , _maximum = 0;
 
-        i32   _minimum
-            , _maximum;
-
-        OnChange _on_change;
+        OnChange _on_change = nullptr;
 
     public:
-        Option (OnChange on_change = NULL);
-        Option (const bool  val, OnChange on_change = NULL);
-        Option (const char *val, OnChange on_change = NULL);
-        Option (const i32   val, i32 minimum, i32 maximum, OnChange on_change = NULL);
+        //Option () = delete;
+        explicit Option (OnChange on_change = nullptr);
+        Option (const bool  val, OnChange on_change = nullptr);
+        Option (const char *val, OnChange on_change = nullptr);
+        Option (const std::string &val, OnChange on_change = nullptr);
+        Option (const i32 val, i32 minimum, i32 maximum, OnChange on_change = nullptr);
 
-        operator bool () const;
-        operator i32  () const;
-        operator std::string () const;
+        u08 index () const { return _index; }
 
-        Option& operator=  (const std::string &value);
+        explicit operator bool () const;
+        explicit operator i32  () const;
+        explicit operator std::string () const;
+
+        Option& operator= (const char        *value);
+        Option& operator= (const std::string &value);
 
         void    operator<< (const Option &opt);
 
         std::string operator() ()  const;
+
     };
+
+    extern void initialize ();
+
+    extern void loop (const std::string &arg = "");
+
+    extern void deinitialize ();
+
+    // ---------------------------------------------
 
     template<class CharT, class Traits>
     inline std::basic_ostream<CharT, Traits>&
@@ -73,14 +76,12 @@ namespace UCI {
     {
         for (u08 idx = 0; idx < optmap.size (); ++idx)
         {
-            for (OptionMap::const_iterator
-                pair  = optmap.begin ();
-                pair != optmap.end (); ++pair)
+            for (auto &pair : optmap)
             {
-                const Option &option = pair->second;
-                if (idx == option._idx)
+                const Option &option = pair.second;
+                if (idx == option.index ())
                 {
-                    os << "option name " << pair->first << option << std::endl;
+                    os << "option name " << pair.first << option << std::endl;
                     break;
                 }
             }
@@ -88,14 +89,6 @@ namespace UCI {
         return os;
     }
 
-    extern void   initialize ();
-    extern void deinitialize ();
-
-    // ---------------------------------------------
-
-    extern void start (const std::string &arg = "");
-
-    extern void stop ();
 }
 
 extern UCI::OptionMap Options;  // Global string mapping of Options

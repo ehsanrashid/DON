@@ -5,11 +5,12 @@
 
 namespace Engine {
 
-    extern std::string info (bool uci = true);
+    extern std::string info (bool uci = false);
 
     extern void run (const std::string &arg);
 
-    extern void exit (i32 code);
+    // Exit from engine with exit code. (in case of some crash)
+    extern void stop (i32 code);
 
 }
 

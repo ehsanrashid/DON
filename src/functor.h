@@ -10,17 +10,17 @@ namespace std {
     // Taken from boost/serialization/shared_ptr.hpp
 
     template<class T>
-    struct unary_nullfunctor : public unary_function<T*, void>
+    struct unary_nullfunctor
+        : public unary_function<T*, void>
     {
-        void operator() (const T *op) const
-        {}
+        void operator() (const T *) const {}
     };
 
     template<class T>
-    struct binary_nullfunctor : public binary_function<T*, T*, void>
+    struct binary_nullfunctor
+        : public binary_function<T*, T*, void>
     {
-        void operator() (const T *op1, const T *op2) const
-        {}
+        void operator() (const T *, const T *) const {}
     };
 
     // Case-insensitive comparator for char
@@ -46,12 +46,13 @@ namespace std {
 
     // Case-insensitive comparator for string
     
-    struct no_case_less_comparer : public binary_function<string&, string&, bool>
+    struct no_case_less_comparer
+        : public binary_function<string&, string&, bool>
     {
         bool operator() (const string &s1, const string &s2) const
         {
-            //string::const_iterator itr1 = s1.begin ();
-            //string::const_iterator itr2 = s2.begin ();
+            //auto itr1 = s1.begin ();
+            //auto itr2 = s2.begin ();
             //while (itr1 != s1.end () && itr2 != s2.end ()
             //    && toupper (*itr1) == toupper (*itr2))
             //{
@@ -64,7 +65,8 @@ namespace std {
             return lexicographical_compare (s1.begin (), s1.end (), s2.begin (), s2.end (), no_case_less);
         }
     };
-    struct no_case_more_comparer : public binary_function<string&, string&, bool>
+    struct no_case_more_comparer
+        : public binary_function<string&, string&, bool>
     {
         bool operator() (const string &s1, const string &s2) const
         {
@@ -72,7 +74,8 @@ namespace std {
             return lexicographical_compare (s1.begin (), s1.end (), s2.begin (), s2.end (), no_case_more);
         }
     };
-    struct no_case_equal_comparer : public binary_function<string&, string&, bool>
+    struct no_case_equal_comparer
+        : public binary_function<string&, string&, bool>
     {
         bool operator() (const string &s1, const string &s2) const
         {
