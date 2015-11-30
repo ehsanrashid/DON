@@ -38,7 +38,8 @@ public:
     Key    pawn_key;        // Hash key of pawns.
     CRight castle_rights;   // Castling-rights information for both side.
     Square en_passant_sq;   // En-passant -> "In passing"
-    u08    clock50;         // Number of halfmoves clock since the last pawn advance or any capture. Used to determine if a draw can be claimed under the 50-move rule.
+    u08    clock_ply;       // Number of halfmoves clock since the last pawn advance or any capture.
+                            // Used to determine if a draw can be claimed under the clock-move rule.
     u08    null_ply;
     // ---Not copied when making a move---
     Key    posi_key;        // Hash key of position.
@@ -117,12 +118,8 @@ private:
     Bitboard _castle_path[CR_ALL];
     Bitboard _king_path  [CR_ALL];
 
-    // Side on move
-    // "w" - WHITE
-    // "b" - BLACK
     Color    _active;
-    // Ply of the game, incremented after every move.
-    i32      _game_ply;
+    i16      _game_ply;
     u64      _game_nodes;
 
     bool     _chess960;
@@ -146,7 +143,7 @@ private:
 
 public:
 
-    static u08   FiftyMoveDist;
+    static u08   DrawClockPly;
     static Score PSQ[CLR_NO][NONE][SQ_NO];
 
     static void initialize ();
@@ -190,15 +187,12 @@ public:
     template<PieceT PT>
     Square square (Color c, i32 index = 0) const;
 
-    // Castling rights for both side
     CRight castle_rights () const;
-    // Target square in algebraic notation. If there's no en passant target square is "-"
     Square en_passant_sq () const;
-    // Number of halfmoves clock since the last pawn advance or any capture.
-    // used to determine if a draw can be claimed under the 50-move rule.
-    u08    clock50       () const;
-    Move   last_move     () const;  // Last move played
-    PieceT capture_type  () const;  // Last ptype captured
+    
+    u08    clock_ply     () const;
+    Move   last_move     () const;
+    PieceT capture_type  () const;
     //Piece  capture_piece () const;  // Last piece captured
     Bitboard checkers    () const;
 
@@ -207,7 +201,7 @@ public:
     Key posi_key      () const;
     Key move_posi_key (Move m) const;
 
-    Value non_pawn_material (Color c) const;    // Incremental piece-square evaluation
+    Value non_pawn_material (Color c) const;
 
     Score   psq_score () const;
 
@@ -220,8 +214,8 @@ public:
     bool  castle_impeded (CRight cr) const;
 
     Color   active    () const;
-    i32     game_ply  () const;
-    i32     game_move () const;
+    i16     game_ply  () const;
+    i16     game_move () const;
     bool    chess960  () const;
     bool    draw      () const;
     bool    repeated  () const;
@@ -234,7 +228,6 @@ public:
 
     bool ok (i08 *failed_step = nullptr) const;
 
-    // Static Exchange Evaluation (SEE)
     Value see      (Move m) const;
     Value see_sign (Move m) const;
     
@@ -273,14 +266,10 @@ public:
     Score compute_psq_score () const;
     Value compute_non_pawn_material (Color c) const;
 
-    // Do natural-move
     void do_move (Move m, StateInfo &nsi, bool gives_check);
     void do_move (const std::string &can, StateInfo &nsi);
-    // Undo natural-move
     void undo_move ();
-    // Do null-move
     void do_null_move (StateInfo &nsi);
-    // Undo null-move
     void undo_null_move ();
 
     void flip ();
@@ -372,8 +361,8 @@ inline CRight Position::castle_rights () const { return _psi->castle_rights; }
 // Target square in algebraic notation. If there's no en passant target square is "-"
 inline Square Position::en_passant_sq () const { return _psi->en_passant_sq; }
 // Number of halfmoves clock since the last pawn advance or any capture.
-// used to determine if a draw can be claimed under the 50-move rule.
-inline u08    Position::clock50       () const { return _psi->clock50; }
+// used to determine if a draw can be claimed under the clock-move rule.
+inline u08    Position::clock_ply     () const { return _psi->clock_ply; }
 inline Move   Position::last_move     () const { return _psi->last_move; }
 inline PieceT Position::capture_type  () const { return _psi->capture_type; }
 //inline Piece  Position::capture_piece () const { return NONE != _psi->capture_type ? (_active|_psi->capture_type) : EMPTY; }
@@ -399,6 +388,7 @@ inline Key    Position::move_posi_key (Move m) const
 }
 
 inline Score  Position::psq_score     () const { return _psi->psq_score; }
+// Incremental piece-square evaluation
 inline Value  Position::non_pawn_material (Color c) const { return _psi->non_pawn_matl[c]; }
 
 inline CRight Position::can_castle    (CRight cr) const { return _psi->castle_rights & cr; }
@@ -413,10 +403,10 @@ inline bool  Position::castle_impeded (CRight cr) const { return (_castle_path[c
 inline Color Position::active   () const { return _active; }
 // game_ply starts at 0, and is incremented after every move.
 // game_ply  = max (2 * (game_move - 1), 0) + (BLACK == active)
-inline i32  Position::game_ply  () const { return _game_ply; }
+inline i16  Position::game_ply  () const { return _game_ply; }
 // game_move starts at 1, and is incremented after BLACK's move.
 // game_move = max ((game_ply - (BLACK == active)) / 2, 0) + 1
-inline i32  Position::game_move () const { return std::max ((_game_ply - (BLACK == _active))/2, 0) + 1; }
+inline i16  Position::game_move () const { return i16(std::max ((_game_ply - (BLACK == _active))/2, 0) + 1); }
 // Nodes visited
 inline u64  Position::game_nodes() const { return _game_nodes; }
 inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
@@ -424,8 +414,9 @@ inline void Position::game_nodes(u64 nodes){ _game_nodes = nodes; }
 // non-pawn material between endgame and midgame limits.
 inline Phase Position::game_phase () const
 {
-    auto npm = std::max (VALUE_ENDGAME, std::min (_psi->non_pawn_matl[WHITE] + _psi->non_pawn_matl[BLACK], VALUE_MIDGAME));
-    return Phase(i32(npm - VALUE_ENDGAME) * i32(PHASE_MIDGAME) / i32(VALUE_MIDGAME - VALUE_ENDGAME));
+    return Phase(
+        i32(std::max (VALUE_ENDGAME, std::min (_psi->non_pawn_matl[WHITE] + _psi->non_pawn_matl[BLACK], VALUE_MIDGAME)) - VALUE_ENDGAME) * i32(PHASE_MIDGAME) /
+        i32(VALUE_MIDGAME - VALUE_ENDGAME));
 }
 
 inline bool Position::chess960  () const { return _chess960; }

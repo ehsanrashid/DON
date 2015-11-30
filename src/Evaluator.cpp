@@ -39,7 +39,6 @@ namespace Evaluator {
 
             ostream& operator<< (ostream &os, TermT term)
             {
-                os << showpos;
                 if (   term == TermT(PAWN)
                     || term == MATERIAL
                     || term == IMBALANCE
@@ -50,13 +49,15 @@ namespace Evaluator {
                 }
                 else
                 {
-                    os << " | " << setw(5) << cp[term][WHITE][MG] << " " << setw(5) << cp[term][WHITE][EG]
-                       << " | " << setw(5) << cp[term][BLACK][MG] << " " << setw(5) << cp[term][BLACK][EG]
+                    os << " | " << setw (5) << cp[term][WHITE][MG]
+                       << " "   << setw (5) << cp[term][WHITE][EG]
+                       << " | " << setw (5) << cp[term][BLACK][MG]
+                       << " "   << setw (5) << cp[term][BLACK][EG]
                        << " | ";
                 }
-                os << setw(5) << cp[term][WHITE][MG] - cp[term][BLACK][MG] << " "
-                   << setw(5) << cp[term][WHITE][EG] - cp[term][BLACK][EG] << std::endl;
-                os << noshowpos;
+                os << setw (5) << cp[term][WHITE][MG] - cp[term][BLACK][MG] << " "
+                   << setw (5) << cp[term][WHITE][EG] - cp[term][BLACK][EG]
+                   << std::endl;
                 return os;
             }
 
@@ -110,7 +111,7 @@ namespace Evaluator {
         enum WeightT { PIECE_MOBILITY, PAWN_STRUCTURE, PAWN_PASSING, THREATS, KING_SAFETY, SPACE_ACTIVITY };
 
         struct Weight { i32 mg, eg; };
-
+        // Overload * for score, weight
         Score operator* (Score score, const Weight &weight)
         {
             return mk_score (
@@ -123,7 +124,7 @@ namespace Evaluator {
         {
             {289,344}, // Piece Mobility
             {233,201}, // Pawn Structure
-            {221,273}, // Pawn Passed
+            {221,273}, // Pawn Passing
             {350,256}, // Threats
             {322,  0}, // King Safety
             { 46,  0}, // Space Activity
@@ -195,7 +196,7 @@ namespace Evaluator {
 
         const Score MINOR_BEHIND_PAWN       = S(16, 0); // Bonus for minor behind a pawn
 
-        const Score ROOK_ON_OPENFILE        = S(43,21); // Bonus for rook on open file
+        const Score ROOK_ON_OPENFILE        = S(43,21); // Bonus for rook on full-open file
         const Score ROOK_ON_SEMIOPENFILE    = S(19,10); // Bonus for rook on semi-open file
         const Score ROOK_ON_PAWNS           = S( 7,27); // Bonus for rook on pawns
         const Score ROOK_TRAPPED            = S(92, 0); // Penalty for rook trapped
@@ -203,6 +204,7 @@ namespace Evaluator {
         const Score PIECE_HANGED            = S(31,26); // Bonus for each enemy hanged piece       
 
         const Score PAWN_SAFEATTACK         = S(20,20);
+
         const Score CHECKED                 = S(20,20);
 
         // PassedFile[File] contains a bonus according to the file of a passed pawn.
@@ -743,7 +745,7 @@ namespace Evaluator {
         {
             const auto Opp  = WHITE == Own ? BLACK : WHITE;
             const auto Push = WHITE == Own ? DEL_N : DEL_S;
-            const i32 nonpawn[CLR_NO] =
+            const i32 nonpawn_count[CLR_NO] =
             {
                 pos.count<NONPAWN> (WHITE),
                 pos.count<NONPAWN> (BLACK)
@@ -826,8 +828,8 @@ namespace Evaluator {
                     }
                 }
 
-                // If non-pawn pieces difference
-                eg_value *= 1.0 + (double)(nonpawn[Own]-nonpawn[Opp]) / (nonpawn[Own]+nonpawn[Opp]+2) / 2;
+                // If non-pawn pieces differ
+                eg_value *= 1.0 + (double)(nonpawn_count[Own]-nonpawn_count[Opp]) / (nonpawn_count[Own]+nonpawn_count[Opp]+2) / 2;
 
                 score += mk_score (mg_value, eg_value) + PAWN_PASSED_FILE[_file (s)];
             }
@@ -1079,7 +1081,7 @@ namespace Evaluator {
         auto scale_factor = evaluate_scale_factor (pos, ei, score);
 
         // Interpolates between a middle game and a (scaled by 'scale_factor') endgame score, based on game phase.
-        auto value = Value((mg_value (score) * i32(ei.me->game_phase)
+        auto value = Value((  mg_value (score) * i32(ei.me->game_phase)
                             + eg_value (score) * i32(PHASE_MIDGAME - ei.me->game_phase)*i32(scale_factor)/SCALE_FACTOR_NORMAL)
                             / PHASE_MIDGAME);
 
@@ -1115,7 +1117,7 @@ namespace Evaluator {
 
         stringstream ss;
 
-        ss  << showpoint << showpos << setprecision (2) << fixed
+        ss  << showpos << showpoint << setprecision (2) << fixed
             << "         Entity |    White    |    Black    |     Total    \n"
             << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
             << "----------------+-------------+-------------+--------------\n"
@@ -1132,10 +1134,9 @@ namespace Evaluator {
             << "   Passed pawns" << TermT (PASSER)
             << "          Space" << TermT (SPACE)
             << "----------------+-------------+-------------+--------------\n"
-            << "          Total" << TermT (TOTAL);
-        ss  << "\n"
-            << "Evaluation: " << value_to_cp (value) << " (white side)\n"
-            << noshowpos << noshowpoint;
+            << "          Total" << TermT (TOTAL)
+            << "\nEvaluation: " << value_to_cp (value) << " (white side)\n"
+            << noshowpoint << noshowpos;
 
         return ss.str ();
     }

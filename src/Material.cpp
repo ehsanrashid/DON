@@ -86,9 +86,9 @@ namespace Material {
         }
 
         template<Color Own>
-        // imbalance<>() calculates imbalance comparing
-        // piece count of each piece type for both colors.
-        // KING == BISHOP_PAIR
+        // imbalance<>() calculates the imbalance by comparing
+        // the piece count of each piece type for both colors.
+        // NOTE:: KING == BISHOP_PAIR
         Value imbalance (const i32 count[][NONE])
         {
             const auto Opp = WHITE == Own ? BLACK : WHITE;
@@ -97,7 +97,7 @@ namespace Material {
 
             // "The Evaluation of Material Imbalances in Chess"
 
-            // Second-degree polynomial material imbalance
+            // Second-degree polynomial material imbalance by Tord Romstad
             for (auto pt1 = PAWN; pt1 < KING; ++pt1)
             {
                 if (count[Own][pt1] != 0)

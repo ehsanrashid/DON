@@ -103,14 +103,12 @@ namespace {
 
 }
 
-u08 Position::FiftyMoveDist = 100;
+u08 Position::DrawClockPly = 100;
 // PSQ[Color][PieceType][Square] contains Color-PieceType-Square scores.
 Score Position::PSQ[CLR_NO][NONE][SQ_NO];
 
 void Position::initialize ()
 {
-    FiftyMoveDist = 100;
-
     for (auto pt = PAWN; pt <= KING; ++pt)
     {
         auto score = mk_score (PIECE_VALUE[MG][pt], PIECE_VALUE[EG][pt]);
@@ -141,9 +139,9 @@ Position& Position::operator= (const Position &pos)
 // It does not detect draw by Material and Stalemate, this must be done by the search.
 bool Position::draw () const
 {
-    // Draw by 50 moves Rule?
+    // Draw by Clock Ply Rule?
     // Not in check or in check have legal moves 
-    if (    _psi->clock50 >= FiftyMoveDist
+    if (    _psi->clock_ply >= DrawClockPly
         && (_psi->checkers == U64(0) || MoveList<LEGAL> (*this).size () != 0)
        )
     {
@@ -152,7 +150,7 @@ bool Position::draw () const
     // Draw by Threefold Repetition?
     const auto *psi = _psi;
     //u08 cnt = 1;
-    for (i08 ply = std::min (_psi->clock50, _psi->null_ply); ply >= 2; ply -= 2)
+    for (i08 ply = std::min (_psi->clock_ply, _psi->null_ply); ply >= 2; ply -= 2)
     {
         psi = psi->ptr->ptr;
         if (psi->posi_key == _psi->posi_key)
@@ -194,7 +192,7 @@ bool Position::repeated () const
     auto *si = _psi;
     while (si != nullptr)
     {
-        i08 ply = std::min (si->clock50, si->null_ply);
+        i08 ply = std::min (si->clock_ply, si->null_ply);
         if (4 > ply) return false;
         auto *psi = si->ptr->ptr;
         do
@@ -227,7 +225,7 @@ bool Position::ok (i08 *failed_step) const
                 || (B_KING != _board[_piece_square[BLACK][KING][0]])
                 || count<NONE> () > 32 || count<NONE> () != pop_count<FULL> (_types_bb[NONE])
                 || (SQ_NO != en_passant_sq () && (R_6 != rel_rank (_active, en_passant_sq ()) || !can_en_passant (en_passant_sq ())))
-                || (_psi->clock50 > 100)
+                || (_psi->clock_ply > 100)
                )
             {
                 return false;
@@ -1104,21 +1102,21 @@ bool Position::setup (const string &f, Thread *const th, bool c960, bool full)
         }
     }
 
-    // 5-6. 50-move clock and game-move count
-    i32 clk50 = 0, g_move = 1;
+    // 5-6. clock ply and game-move count
+    i16 clk_ply = 0, g_move = 1;
     if (full)
     {
         iss >> skipws;
-        iss >> clk50 >> g_move;
+        iss >> clk_ply >> g_move;
         // Rule 50 draw case
-        //if (clk50 >100) return false;
+        //if (clk_ply >100) return false;
         if (g_move <= 0) g_move = 1;
     }
 
     // Convert from game_move starting from 1 to game_ply starting from 0,
     // handle also common incorrect FEN with game_move = 0.
-    _psi->clock50 = u08(_psi->en_passant_sq != SQ_NO ? 0 : clk50);
-    _game_ply = std::max (2*(g_move - 1), 0) + (BLACK == _active);
+    _psi->clock_ply = u08(_psi->en_passant_sq != SQ_NO ? 0 : clk_ply);
+    _game_ply = i16(std::max (2*(g_move - 1), 0) + (BLACK == _active));
 
     _psi->matl_key = Zob.compute_matl_key (*this);
     _psi->pawn_key = Zob.compute_pawn_key (*this);
@@ -1180,9 +1178,9 @@ Value Position::compute_non_pawn_material (Color c) const
     _psi->matl_key ^= Zob._.piece_square[~_active][cpt][_piece_count[~_active][cpt]];\
     key            ^= Zob._.piece_square[~_active][cpt][cap];                        \
     _psi->psq_score -= PSQ[~_active][cpt][cap];                                      \
-    _psi->clock50 = 0;                                                               \
+    _psi->clock_ply = 0;                                                             \
 }
-// do_move() do the move
+// do_move() do the natural-move
 void Position::do_move (Move m, StateInfo &nsi, bool give_check)
 {
     assert(_ok (m));
@@ -1229,7 +1227,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
         }
         else
         {
-            _psi->clock50 = PAWN == mpt ? 0 : _psi->clock50 + 1;
+            _psi->clock_ply = PAWN == mpt ? 0 : _psi->clock_ply + 1;
         }
 
         move_piece (org, dst);
@@ -1271,7 +1269,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
             -PSQ[_active][ROOK][rook_org]
             +PSQ[_active][ROOK][rook_dst];
 
-        _psi->clock50++;
+        _psi->clock_ply++;
     }
         break;
 
@@ -1324,7 +1322,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
         }
         else
         {
-            _psi->clock50 = 0;
+            _psi->clock_ply = 0;
         }
 
         auto ppt = promote (m);
@@ -1403,7 +1401,7 @@ void Position::do_move (Move m, StateInfo &nsi, bool give_check)
     assert(ok ());
 }
 #undef do_capture
-// do_move() do the move (CAN)
+// do_move() do the natural-move (CAN)
 void Position::do_move (const string &can, StateInfo &nsi)
 {
     auto m = move_from_can (can, *this);
@@ -1412,7 +1410,7 @@ void Position::do_move (const string &can, StateInfo &nsi)
         do_move (m, nsi, gives_check (m, CheckInfo (*this)));
     }
 }
-// undo_move() undo the last move
+// undo_move() undo the last natural-move
 void Position::undo_move ()
 {
     assert(_psi->ptr != nullptr);
@@ -1506,7 +1504,7 @@ void Position::do_null_move (StateInfo &nsi)
         _psi->en_passant_sq = SQ_NO;
     }
     _psi->posi_key ^= Zob._.act_side;
-    _psi->clock50++;
+    _psi->clock_ply++;
     _psi->null_ply = 0;
 
     _active = ~_active;
@@ -1621,7 +1619,7 @@ string Position::fen (bool c960, bool full) const
 
     oss << " " << ((SQ_NO == _psi->en_passant_sq) ? "-" : to_string (_psi->en_passant_sq)) << " ";
 
-    if (full) oss << i16(_psi->clock50) << " " << game_move ();
+    if (full) oss << i16(_psi->clock_ply) << " " << game_move ();
 
     return oss.str ();
 }

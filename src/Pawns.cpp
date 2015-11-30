@@ -107,7 +107,7 @@ namespace Pawns {
     #undef S
 
         template<Color Own>
-        inline Score evaluate (const Position &pos, Entry *e)
+        Score evaluate (const Position &pos, Entry *e)
         {
             const auto Opp  = WHITE == Own ? BLACK  : WHITE;
             const auto Push = WHITE == Own ? DEL_N  : DEL_S;
@@ -251,7 +251,10 @@ namespace Pawns {
 
             return pawn_score;
         }
-
+        // --------------------------------
+        // Explicit template instantiations
+        template Score evaluate<WHITE> (const Position &, Entry*);
+        template Score evaluate<BLACK> (const Position &, Entry*);
     }
 
     template<Color Own>

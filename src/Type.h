@@ -468,8 +468,8 @@ inline Value  operator+  (i32 i, Value v) { return Value(i + i32(v)); }
 inline Value  operator-  (i32 i, Value v) { return Value(i - i32(v)); }
 inline Value  operator*  (Value  v, double f) { return Value(i32(i32(v) * f)); }
 inline Value& operator*= (Value &v, double f) { v = Value(i32(i32(v) * f)); return v; }
-inline Value  operator/  (Value  v, i32 i) { return Value(i32(v) / i); }
-inline Value& operator/= (Value &v, i32 i) { v = Value(i32(v) / i); return v; }
+inline Value  operator/  (Value  v, i32    i) { return Value(i32(v) / i); }
+inline Value& operator/= (Value &v, i32    i) { v = Value(i32(v) / i); return v; }
 inline i32    operator/  (Value v1, Value v2) { return i32(v1) / i32(v2); }
 
 // Make score from mid and end values
@@ -491,8 +491,8 @@ inline Score  operator*  (Score s1, Score s2);
 // Multiplication & Division of a Score must be handled separately for each term
 inline Score  operator*  (Score  s, double f) { return mk_score (mg_value (s) * f, eg_value (s) * f); }
 inline Score& operator*= (Score &s, double f) { s = mk_score (mg_value (s) * f, eg_value (s) * f); return s; }
-inline Score  operator/  (Score  s, i32 i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
-inline Score& operator/= (Score &s, i32 i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
+inline Score  operator/  (Score  s, i32    i) { return mk_score (mg_value (s) / i, eg_value (s) / i); }
+inline Score& operator/= (Score &s, i32    i) { s = mk_score (mg_value (s) / i, eg_value (s) / i); return s; }
 
 ARTHMAT_OPERATORS (Depth)
 INC_DEC_OPERATORS (Depth)

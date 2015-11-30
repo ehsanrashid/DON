@@ -174,9 +174,9 @@ namespace UCI {
             Threadpool.configure ();
         }
 
-        void configure_50move_dist ()
+        void configure_draw_clock_ply ()
         {
-            Position::FiftyMoveDist = u08(2 * i32(Options["Fifty Move Distance"]));
+            Position::DrawClockPly = u08(2 * i32(Options["Draw Clock Move"]));
         }
 
         void configure_hash ()
@@ -391,18 +391,18 @@ namespace UCI {
         // Default +50, Min 0, Max +1000.
         Options["Valued Contempt (cp)"]         << Option (ContemptValue,   0,+1000, configure_contempt);
 
-        // The number of moves after which the 50-move rule will kick in.
+        // The number of moves after which the clock-move rule will kick in.
         // Default 50, Min 5, Max 50.
         //
-        // This setting defines the number of moves after which the 50-move rule will kick in - the default value is 50,
-        // i.e. the official 50-moves rule.
+        // This setting defines the number of moves after which the clock-move rule will kick in - the default value is 50,
+        // i.e. the official clock-move rule.
         // Setting this option in the range of 10 to 15 moves can be useful to analyse more correctly blockade or fortress positions:
         // - Closed positions in which no progress can be made without some sort of sacrifice (blockade);
         // - End games with a material advantage that is insufficient for winning (fortress).
         //
-        // By setting Fifty Move Distance to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
+        // By setting Draw Clock Move to 15, you're telling the engine that if it cannot make any progress in the next 15 moves, the game is a draw.
         // It's a reasonably generic way to decide whether a material advantage can be converted or not.
-        Options["Fifty Move Distance"]          << Option (Position::FiftyMoveDist/2,+  5,+ 50, configure_50move_dist);
+        Options["Draw Clock Move"]              << Option (Position::DrawClockPly/2,+  5,+ 50, configure_draw_clock_ply);
 
         //// Plan time management at most this many moves ahead, in num of moves.
         //Options["Maximum Move Horizon"]         << Option (MaximumMoveHorizon  , 0, 100, configure_time);
