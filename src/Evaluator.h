@@ -1,21 +1,11 @@
-#ifndef _EVALUATOR_H_INC_
-#define _EVALUATOR_H_INC_
+#pragma once
 
+#include "Position.h"
 #include "Type.h"
 
-class Position;
+// Tempo bonus
+constexpr Value Tempo = Value(28);
 
-namespace Evaluator {
+extern Value evaluate(const Position&);
 
-    // Tempo bonus. Must be visible to search.
-    const Value TempoBonus = Value(17);
-
-    extern void initialize ();
-
-    extern Value evaluate    (const Position &pos);
-
-    extern std::string trace (const Position &pos);
-            
-}
-
-#endif // _EVALUATOR_H_INC_
+extern std::string trace(const Position&);

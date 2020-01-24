@@ -1,127 +1,106 @@
-#ifndef _ENDGAME_H_INC_
-#define _ENDGAME_H_INC_
+#pragma once
 
-#include <map>
+#include <unordered_map>
+#include <memory>
+#include <type_traits>
+#include <utility>
 
+#include "Position.h"
 #include "Type.h"
 
-class Position;
+namespace Endgames {
 
-namespace EndGame {
-
-    // Endgame Type lists all supported endgames
-    enum EndgameT
+    /// EndgameCode lists all supported endgame functions by corresponding codes
+    enum EndgameCode : u08
     {
-        // Evaluation functions
+        EVALUATION_FUNCTIONS,
         KXK,   // Generic "mate lone king" eval
         KPK,   // KP vs K
         KBNK,  // KBN vs K
         KNNK,  // KNN vs K
+        KNNKP, // KNN vs KP
         KRKP,  // KR vs KP
         KRKB,  // KR vs KB
         KRKN,  // KR vs KN
         KQKP,  // KQ vs KP
         KQKR,  // KQ vs KR
-        KBBKN, // KBB vs KN
 
-        // Scaling functions
-        SCALE_FUNS,
-
-        // Generic Scaling functions
-        KBPsKs,  // KBPs vs K+s
-        KQKRPs,  // KQ vs KR+Ps
-
+        SCALING_FUNCTIONS,
         KRPKR,   // KRP vs KR
         KRPKB,   // KRP vs KB
         KRPPKRP, // KRPP vs KRP
-        KPsK,    // KPs vs Ks
-        KPKP,    // KP vs KP
         KNPK,    // KNP vs K
         KBPKB,   // KBP vs KB
         KBPPKB,  // KBPP vs KB
         KBPKN,   // KBP vs KN
-        KNPKB    // KNP vs KB
+        KNPKB,   // KNP vs KB
 
+        // Generic Scale functions
+        KPKP,    // KP vs KP
+        KPsK,    // KPs vs K
+        KBPsKP,  // KBPs vs KP
+        KQKRPs,  // KQ vs KRPs
     };
 
-    // Endgame functions can be of two types according if return a Value or a ScaleFactor.
-    // Type eg_fun<bool>::type equals to either ScaleFactor or Value depending if the template parameter is true or false.
-    template<bool> struct eg_fun;
-    template<> struct eg_fun<false> { typedef Value         type; };
-    template<> struct eg_fun<true > { typedef ScaleFactor   type; };
+    /// Endgame functions can be of two category depending on whether they return Value or Scale.
+    template<EndgameCode C>
+    using EndgameType = typename std::conditional<C < SCALING_FUNCTIONS, Value, Scale>::type;
 
-    // Base and derived templates for endgame evaluation and scaling functions
+    /// Base functors for endgame evaluation and scaling functions
     template<typename T>
     class EndgameBase
     {
     public:
+        const Color strong_color
+            ,         weak_color;
 
-        virtual ~EndgameBase () {}
+        explicit EndgameBase(Color c)
+            : strong_color( c)
+            ,   weak_color(~c)
+        {}
+        virtual ~EndgameBase() = default;
+        EndgameBase& operator=(const EndgameBase&) = delete;
 
-        virtual Color color () const = 0;
-
-        virtual T operator() (const Position &pos) const = 0;
-
+        virtual T operator()(const Position&) const = 0;
     };
 
-    template<EndgameT ET, typename T = typename eg_fun<(ET > SCALE_FUNS)>::type>
+    /// Derived functors for endgame evaluation and scaling functions
+    template<EndgameCode C, typename T = EndgameType<C>>
     class Endgame
         : public EndgameBase<T>
     {
-
-    private:
-        const Color _stong_side
-                  , _weak_side;
-
     public:
-
-        explicit Endgame (Color c)
-            : _stong_side (c)
-            , _weak_side (~c)
+        explicit Endgame(Color c)
+            : EndgameBase<T>(c)
         {}
+        virtual ~Endgame() = default;
+        Endgame& operator=(const Endgame&) = delete;
 
-        inline Color color () const { return _stong_side; }
-
-        T operator() (const Position &pos) const;
+        T operator()(const Position&) const override;
     };
 
-    // Endgames class stores in two std::map the pointers to endgame evaluation
-    // and scaling base objects. Then use polymorphism to invoke the actual
-    // endgame function calling its operator() that is virtual.
-    class Endgames
+
+    template<typename T> using EG_Ptr = std::unique_ptr<EndgameBase<T>>;
+    template<typename T> using EG_Map = std::unordered_map<Key, EG_Ptr<T>>;
+    template<typename T1, typename T2> using EG_MapPair = std::pair<EG_Map<T1>, EG_Map<T2>>;
+
+    // Stores the pointers to endgame evaluation and scaling base objects in two std::map
+    extern EG_MapPair<Value, Scale> EndgameMapPair;
+
+    template<typename T>
+    EG_Map<T>& map()
     {
+        return std::get<std::is_same<T, Scale>::value>(EndgameMapPair);
+    }
 
-    private:
+    template<typename T>
+    const EndgameBase<T>* probe(Key matl_key)
+    {
+        auto itr = map<T>().find(matl_key);
+        return itr != map<T>().end() ?
+                itr->second.get() :
+                nullptr;
+    }
 
-        typedef std::map<Key, EndgameBase<eg_fun<false>::type>*> M1;
-        typedef std::map<Key, EndgameBase<eg_fun<true >::type>*> M2;
-
-        M1 m1;
-        M2 m2;
-
-        inline M1& map (M1::mapped_type) { return m1; }
-        inline M2& map (M2::mapped_type) { return m2; }
-
-        template<EndgameT ET>
-        void add (const std::string &code);
-
-    public:
-
-        Endgames ();
-       ~Endgames ();
-
-        template<class T>
-        inline T probe (Key matl_key, T &eg)
-        {
-            return eg = (map (eg).count (matl_key) ? map (eg)[matl_key] : NULL);
-        }
-    };
-
-    extern void   initialize ();
-    extern void deinitialize ();
-
+    extern void initialize();
 }
-
-extern EndGame::Endgames *EndGames; // Global Endgames
-
-#endif // _ENDGAME_H_INC_

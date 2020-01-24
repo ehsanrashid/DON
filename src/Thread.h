@@ -1,385 +1,255 @@
-#ifndef _THREAD_H_INC_
-#define _THREAD_H_INC_
+#pragma once
 
-#include <bitset>
+#include <atomic>
+#include <mutex>
+#include <condition_variable>
 
-#include "Position.h"
-#include "Pawns.h"
 #include "Material.h"
-#include "MovePicker.h"
+#include "Option.h"
+#include "Pawns.h"
+#include "Position.h"
+#include "PRNG.h"
 #include "Searcher.h"
+#include "thread_win32_osx.h"
 
-// Windows or MinGW
-#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+/// TimeManager class is used to computes the optimal time to think depending on the
+/// maximum available time, the move game number and other parameters.
+class TimeManager
+{
+private:
+    u16 time_nodes;
 
-#   ifndef  NOMINMAX
-#       define NOMINMAX // disable macros min() and max()
-#   endif
-#   ifndef  WIN32_LEAN_AND_MEAN
-#       define WIN32_LEAN_AND_MEAN
-#   endif
+public:
+    TimePoint start_time;
+    TimePoint optimum_time;
+    TimePoint maximum_time;
 
-#   include <windows.h>
+    double time_reduction;
 
-#   undef WIN32_LEAN_AND_MEAN
-#   undef NOMINMAX
+    u64 available_nodes;
 
+    TimeManager()
+        : available_nodes(0)
+    {}
+    TimeManager(const TimeManager&) = delete;
+    TimeManager& operator=(const TimeManager&) = delete;
 
-// Use critical sections on Windows to support Windows XP and older versions,
-// unfortunatly cond_wait() is racy between lock_release() and WaitForSingleObject()
-// but apart from this they have the same speed performance of SRW locks.
-typedef CRITICAL_SECTION    Lock;
-typedef HANDLE              WaitCondition;
-typedef HANDLE              Handle;
+    TimePoint elapsed_time() const;
 
-// On Windows 95 and 98 parameter lpThreadId my not be null
-inline DWORD* dwWin9xKludge () { static DWORD dw; return &dw; }
+    void set(Color, i16);
+    void update(Color);
+};
 
-#   define lock_create(x)        InitializeCriticalSection (&(x))
-#   define lock_grab(x)          EnterCriticalSection (&(x))
-#   define lock_release(x)       LeaveCriticalSection (&(x))
-#   define lock_destroy(x)       DeleteCriticalSection (&(x))
-#   define cond_create(h)        h = CreateEvent (NULL, FALSE, FALSE, NULL);
-#   define cond_destroy(h)       CloseHandle (h)
-#   define cond_signal(h)        SetEvent (h)
-#   define cond_wait(c,l)        { lock_release (l); WaitForSingleObject (c, INFINITE); lock_grab (l); }
-#   define cond_timedwait(c,l,t) { lock_release (l); WaitForSingleObject (c, t); lock_grab (l); }
-#   define thread_create(h,f,t)  h = CreateThread (NULL, 0, LPTHREAD_START_ROUTINE (f), t, 0, dwWin9xKludge ())
-#   define thread_join(h)        { WaitForSingleObject (h, INFINITE); CloseHandle (h); }
+// MaxLevel should be <= MaxDepth/4
+const i16 MaxLevel = 24;
 
-#else    // Linux - Unix
+/// Skill Manager class is used to implement strength limit
+class SkillManager
+{
+private:
 
-#   include <pthread.h>
-#   include <unistd.h>  // for sysconf()
+public:
+    static PRNG prng;
 
-typedef pthread_mutex_t     Lock;
-typedef pthread_cond_t      WaitCondition;
-typedef pthread_t           Handle;
-typedef void* (*StartRoutine) (void*);
+    i16 level;
+    Move best_move;
 
-#   define lock_create(x)        pthread_mutex_init (&(x), NULL)
-#   define lock_grab(x)          pthread_mutex_lock (&(x))
-#   define lock_release(x)       pthread_mutex_unlock (&(x))
-#   define lock_destroy(x)       pthread_mutex_destroy (&(x))
-#   define cond_create(h)        pthread_cond_init (&(h), NULL)
-#   define cond_destroy(h)       pthread_cond_destroy (&(h))
-#   define cond_signal(h)        pthread_cond_signal (&(h))
-#   define cond_wait(c,l)        pthread_cond_wait (&(c), &(l))
-#   define cond_timedwait(c,l,t) pthread_cond_timedwait (&(c), &(l), t)
-#   define thread_create(h,f,t)  pthread_create (&(h), NULL, StartRoutine (f), t)
-#   define thread_join(h)        pthread_join (h, NULL)
+    SkillManager()
+        : level(MaxLevel)
+        , best_move(MOVE_NONE)
+    {}
+    SkillManager(const SkillManager&) = delete;
+    SkillManager& operator=(const SkillManager&) = delete;
 
-#endif
+    bool enabled() const { return level < MaxLevel; }
 
-namespace Threads {
-
-    using namespace Searcher;
-
-    const u08   MaxThreads           = 128; // Maximum threads
-    const u08   MaxSplitPointThreads =   8; // Maximum threads per splitpoint
-    const u08   MaxSplitDepth        =  15; // Maximum split depth
-    
-    extern void check_time ();
-    extern void auto_save_hash ();
-
-    template<class T>
-    extern T* new_thread ();
-    template<class T>
-    extern void delete_thread (T *th);
-
-    struct Mutex
+    void set_level(i16 lvl)
     {
-    private:
-        Lock _lock;
-        
-        friend struct Condition;
-
-    public:
-        Mutex () { lock_create (_lock); }
-       ~Mutex () { lock_destroy (_lock); }
-
-        void   lock () { lock_grab (_lock); }
-        void unlock () { lock_release (_lock); }
-    };
-
-    // cond_timed_wait() waits for msec milliseconds. It is mainly an helper to wrap
-    // conversion from milliseconds to struct timespec, as used by pthreads.
-    inline void cond_timed_wait (WaitCondition &sleep_cond, Lock &sleep_lock, i32 msec)
-    {
-
-#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-
-        i32 tm = msec;
-
-#else    // Linux - Unix
-
-        timespec ts
-            ,   *tm = &ts;
-        u64 ms = Time::now() + msec;
-
-        ts.tv_sec = ms / Time::MilliSec;
-        ts.tv_nsec = (ms % Time::MilliSec) * 1000000LL;
-
-#endif
-
-        cond_timedwait (sleep_cond, sleep_lock, tm);
-
+        level = lvl;
     }
 
-    struct Condition
-    {
-    private:
-        WaitCondition _condition;
+    void pick_best_move();
+};
 
-    public:
-        Condition () { cond_create  (_condition); }
-       ~Condition () { cond_destroy (_condition); }
+/// Thread class keeps together all the thread-related stuff.
+/// It use pawn and material hash tables so that once get a pointer to
+/// an entry its life time is unlimited and we don't have to care about
+/// someone changing the entry under our feet.
+class Thread
+{
+protected:
+    bool dead   // false
+       , busy;  // true
 
-        void wait (Mutex &mutex) { cond_wait (_condition, mutex._lock); }
+    size_t index;
 
-        void wait_for (Mutex &mutex, i32 ms) { cond_timed_wait (_condition, mutex._lock, ms); }
+    std::mutex mtx;
+    std::condition_variable condition_var;
 
-        void notify_one () { cond_signal (_condition); }
+    NativeThread native_thread;
 
-    };
+public:
 
+    Position  root_pos;
+    RootMoves root_moves;
 
-    class Thread;
+    Depth root_depth
+        , finished_depth
+        , sel_depth;
 
-    // SplitPoint struct
-    struct SplitPoint
-    {
+    u64   tt_hit_avg;
 
-    public:
-        // Const data after splitpoint has been setup
-        const Stack    *ss;
-        const Position *pos;
+    i16   nmp_ply;
+    Color nmp_color;
 
-        Thread *master;
-        Value   beta;
-        Depth   depth;
-        NodeT   node_type;
-        bool    cut_node;
-        Mutex   mutex;
+    u32    pv_beg
+        ,  pv_cur
+        ,  pv_end;
 
-        // Const pointers to shared data
-        MovePicker  *movepicker;
-        SplitPoint  *parent_splitpoint;
+    std::atomic<u64> nodes
+        ,            tb_hits;
+    std::atomic<u32> pv_change;
 
-        // Shared data
-        std::bitset<MaxThreads> slaves_mask;
-        volatile bool  slave_searching;
-        volatile u08   legals;
-        volatile Value alpha;
-        volatile Value best_value;
-        volatile Move  best_move;
-        volatile u64   nodes;
-        volatile bool  cut_off;
-    };
+    Score contempt;
 
-    // ThreadBase class is the base of the hierarchy from where
-    // derive all the specialized thread classes.
-    class ThreadBase
-    {
-    protected:
-        Condition     sleep_condition;
-        volatile bool  exit;
+    ButterflyHistory    butterfly_history;
+    CaptureHistory      capture_history;
+    std::array<std::array<ContinuationHistory, 2>, 2> continuation_history;
 
-    public:
-        Mutex   mutex;
-        Handle  native_handle;
+    MoveHistory         move_history;
 
-        ThreadBase ()
-            : exit (false)
-            , native_handle (Handle ())
-        {}
+    Pawns::Table        pawn_table;
+    Material::Table     matl_table;
 
-        virtual ~ThreadBase () {}
+    explicit Thread(size_t);
+    Thread() = delete;
+    Thread(const Thread&) = delete;
+    Thread& operator=(const Thread&) = delete;
 
-        void quit () { exit = true; }
-        void notify_one ();
+    virtual ~Thread();
 
-        void wait_for (const volatile bool &condition);
+    void start();
+    void wait_while_busy();
 
-        virtual void idle_loop () = 0;
-    };
+    void idle_function();
 
-    const i32 TimerResolution = 5;
+    i16 move_best_count(Move) const;
 
-    // TimerThread is derived from ThreadBase class
-    // It's used for special purpose: the recurring timer.
-    class TimerThread
-        : public ThreadBase
-    {
-    private:
+    virtual void clear();
+    virtual void search();
+};
 
-    public:
-        // This is the minimum interval in msec between two check_time() calls
-        bool run;
-        i32 resolution;
-        void (*task) ();
+/// MainThread class is derived from Thread class used specific for main thread.
+class MainThread
+    : public Thread
+{
+private :
 
-        TimerThread () : run (false) {}
+public:
 
-        void start () { run = true ; }
-        void stop  () { run = false; }
+    u64 check_count;
 
-        virtual void idle_loop ();
+    bool stop_on_ponderhit; // Stop search on ponderhit
+    std::atomic<bool> ponder; // Search on ponder move until the "stop"/"ponderhit" command
 
-    };
+    Value best_value;
 
-    // Thread is derived from ThreadBase class
-    // Thread class keeps together all the thread related stuff like locks, state
-    // and especially splitpoints. Also use per-thread pawn-hash and material-hash tables
-    // so that once get a pointer to a thread entry its life time is unlimited
-    // and don't have to care about someone changing the entry under our feet.
-    class Thread
-        : public ThreadBase
-    {
+    TimeManager time_mgr;
+    SkillManager skill_mgr;
 
-    public:
-        SplitPoint splitpoints[MaxSplitPointThreads];
-        
-        Material::Table  material_table;
-        Pawns   ::Table  pawns_table;
+    std::array<Value, 4> iter_value;
+    Move   best_move;
+    i16    best_move_depth;
 
-        Position *active_pos;
+    explicit MainThread(size_t);
+    MainThread() = delete;
+    MainThread(const MainThread&) = delete;
+    MainThread& operator=(const MainThread&) = delete;
 
-        u08     idx;
+    void clear() override;
+    void search() override;
 
-        SplitPoint* volatile active_splitpoint;
-        volatile    u08      splitpoint_threads;
-        volatile    bool     searching;
+    void set_check_count();
+    void tick();
+};
 
-        Thread ();
+namespace WinProcGroup {
 
-        virtual void idle_loop ();
+    extern std::vector<i16> Groups;
 
-        bool cutoff_occurred () const;
-
-        bool available_to (const Thread *master) const;
-
-        void split (Position &pos, const Stack *ss, Value alpha, Value beta, Value &best_value, Move &best_move,
-            Depth depth, u08 legals, MovePicker &movepicker, NodeT node_type, bool cut_node);
-
-    };
-
-    // MainThread is derived from Thread
-    // It's used for special purpose: the main thread.
-    class MainThread
-        : public Thread
-    {
-
-    public:
-        volatile bool thinking;
-
-        MainThread () : thinking (true) {} // Avoid a race with start_thinking()
-
-        virtual void idle_loop ();
-
-    };
-
-    // ThreadPool class handles all the threads related stuff like initializing,
-    // starting, parking and, the most important, launching a slave thread
-    // at a splitpoint.
-    // All the access to shared thread data is done through this class.
-    class ThreadPool
-        : public std::vector<Thread*>
-    {
-
-    public:
-        Mutex       mutex;
-        Condition   sleep_condition;
-        TimerThread *timer;
-        TimerThread *auto_save;
-
-        Depth   split_depth;
-        u08     max_ply;
-        
-        MainThread* main () { return static_cast<MainThread*> ((*this)[0]); }
-
-        // No c'tor and d'tor, threads rely on globals that should
-        // be initialized and valid during the whole thread lifetime.
-        void   initialize ();
-        void deinitialize ();
-
-        void configure ();
-
-        Thread* available_slave (const Thread *master) const;
-
-        void start_thinking (const Position &pos, const LimitsT &limit, StateInfoStackPtr &states);
-
-        void wait_for_think_finished ();
-
-    };
-
+    extern void initialize();
+    extern void bind(size_t);
 }
 
-inline u32 cpu_count ()
+/// ThreadPool class handles all the threads related stuff like,
+/// initializing & deinitializing, starting, parking & launching a thread
+/// All the access to shared thread data is done through this class.
+class ThreadPool
+    : public std::vector<Thread*>
 {
-#ifdef WIN32
+private:
 
-    SYSTEM_INFO sys_info;
-    GetSystemInfo (&sys_info);
-    return sys_info.dwNumberOfProcessors;
+    StateListPtr setup_states;
 
-#elif MACOS
-
-    u32 count;
-    u32 len = sizeof (count);
-
-    i32 nm[2];
-    nm[0] = CTL_HW;
-    nm[1] = HW_AVAILCPU;
-    sysctl (nm, 2, &count, &len, NULL, 0);
-    if (count < 1)
+    template<typename T>
+    T sum(std::atomic<T> Thread::*member) const
     {
-        nm[1] = HW_NCPU;
-        sysctl (nm, 2, &count, &len, NULL, 0);
-        if (count < 1) count = 1;
+        T s = 0;
+        for (const auto *th : *this)
+        {
+            s += (th->*member).load(std::memory_order::memory_order_relaxed);
+        }
+        return s;
     }
-    return count;
 
-#elif _SC_NPROCESSORS_ONLN // LINUX, SOLARIS, & AIX and Mac OS X (for all OS releases >= 10.4)
+public:
 
-    return sysconf (_SC_NPROCESSORS_ONLN);
+    u32 pv_limit;
+    double factor;
 
-#elif __IRIX
+    std::atomic<bool> stop // Stop search forcefully
+        ,             research;
 
-    return sysconf (_SC_NPROC_ONLN);
+    ThreadPool() = default;
+    ThreadPool(const ThreadPool&) = delete;
+    ThreadPool& operator=(const ThreadPool&) = delete;
 
-#elif __HPUX
+    MainThread* main_thread() const { return static_cast<MainThread*>(front()); }
+    u64      nodes() const { return sum(&Thread::nodes); }
+    u64    tb_hits() const { return sum(&Thread::tb_hits); }
+    u32  pv_change() const { return sum(&Thread::pv_change); }
 
-    pst_dynamic psd;
-    return (pstat_getdynamic (&psd, sizeof (psd), 1, 0) == -1)
-        ? 1 : psd.psd_proc_cnt;
+    const Thread* best_thread() const;
 
-    //return mpctl (MPC_GETNUMSPUS, NULL, NULL);
+    void clear();
+    void configure(u32);
 
-#else
+    void start_thinking(Position&, StateListPtr&, const Limit&, const std::vector<Move>&, bool = false);
+};
 
-    return 1;
 
-#endif
-}
-
-// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<< (std::ostream &os, const SyncT &sync)
+enum OutputState : u08
 {
-    static Threads::Mutex mutex;
+    OS_LOCK,
+    OS_UNLOCK,
+};
 
-    if (sync == IO_LOCK)
+extern std::mutex OutputMutex;
+
+/// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
+inline std::ostream& operator<<(std::ostream &os, OutputState state)
+{
+    switch (state)
     {
-        mutex.lock ();
-    }
-    else
-    if (sync == IO_UNLOCK)
-    {
-        mutex.unlock ();
+    case OutputState::OS_LOCK:   OutputMutex.lock();   break;
+    case OutputState::OS_UNLOCK: OutputMutex.unlock(); break;
+    default: break;
     }
     return os;
 }
 
-extern Threads::ThreadPool  Threadpool;
+#define sync_cout std::cout << OS_LOCK
+#define sync_endl std::endl << OS_UNLOCK
 
-#endif // _THREAD_H_INC_
+// Global ThreadPool
+extern ThreadPool Threadpool;

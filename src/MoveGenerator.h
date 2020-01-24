@@ -1,105 +1,110 @@
-#ifndef _MOVE_GENERATOR_H_INC_
-#define _MOVE_GENERATOR_H_INC_
+#pragma once
 
+#include "Position.h"
 #include "Type.h"
 
-class Position;
-
-const u08   MaxMoves   = 255;
-
-struct ValMove
+enum GenType : u08
 {
-public:
-    Move    move;
-    Value   value;
-
-    // Unary predicate functor used by std::partition to split positive(+ve) scores from
-    // remaining ones so to sort separately the two sets, and with the second sort delayed.
-    inline bool operator() (const ValMove &vm) { return (vm.value > VALUE_ZERO); }
-
-    friend bool operator<  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <  vm2.value); }
-    friend bool operator>  (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >  vm2.value); }
-    friend bool operator<= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value <= vm2.value); }
-    friend bool operator>= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value >= vm2.value); }
-    friend bool operator== (const ValMove &vm1, const ValMove &vm2) { return (vm1.value == vm2.value); }
-    friend bool operator!= (const ValMove &vm1, const ValMove &vm2) { return (vm1.value != vm2.value); }
-
+    NATURAL,
+    EVASION,
+    CAPTURE,
+    QUIET,
+    CHECK,
+    QUIET_CHECK,
+    LEGAL,
 };
 
-namespace MoveGenerator {
+template<GenType>
+extern void generate(ValMoves&, const Position&);
 
-    // Types of Generator
-    enum GenT : u08
+extern void filter_illegal(ValMoves&, const Position&);
+
+template<GenType GT, PieceType PT = NONE>
+class MoveList
+    : public ValMoves
+{
+public:
+
+    MoveList() = delete;
+    //MoveList(const MoveList&) = delete;
+
+    explicit MoveList(const Position &pos)
     {
-        // PSEUDO-LEGAL MOVES
-        RELAX,       // Normal moves.
-        EVASION,     // Save the friendly king from check
-        CAPTURE,     // Change material balance where an enemy piece is captured.
-        QUIET,       // Do not capture pieces but under-promotion is allowed.
-        CHECK,       // Checks the enemy King in any way possible.
-        QUIET_CHECK, // Do not change material and only checks the enemy King (no capture or promotion).
+        generate<GT>(*this, pos);
+        //if (NONE != PT)
+        //{
+        //    erase(std::remove_if(begin(), end(),
+        //                        [&pos] (const ValMove &vm)
+        //                        {
+        //                            return PT != ptype(pos[org_sq(vm)]);
+        //                        }),
+        //            end());
+        //}
+    }
 
-        // ------------------------
-        LEGAL        // Legal moves
-
-    };
-
-    template<GenT GT>
-    extern ValMove* generate (ValMove *moves, const Position &pos);
-
-    // The MoveList struct is a simple wrapper around generate(). It sometimes comes
-    // in handy to use this class instead of the low level generate() function.
-    template<GenT GT>
-    class MoveList
+    bool contains(Move move) const
     {
+        return std::find(begin(), end(), move) != end();
+    }
+};
 
-    private:
-        ValMove  moves[MaxMoves]
-              , *cur
-              , *end;
+struct Perft
+{
+    i16 moves;
+    u64 any;
+    u64 capture;
+    u64 enpassant;
+    u64 any_check;
+    u64 dsc_check;
+    u64 dbl_check;
+    u64 castle;
+    u64 promotion;
+    u64 checkmate;
+    //u64 stalemate;
 
-    public:
+    Perft()
+        : moves(0)
+        , any(0)
+        , capture(0)
+        , enpassant(0)
+        , any_check(0)
+        , dsc_check(0)
+        , dbl_check(0)
+        , castle(0)
+        , promotion(0)
+        , checkmate(0)
+        //, stalemate(0)
+    {}
 
-        explicit MoveList (const Position &pos)
-            : cur (moves)
-            , end (generate<GT> (moves, pos))
-        {
-            end->move = MOVE_NONE;
-        }
+    void operator+=(const Perft &p)
+    {
+        any       += p.any;
+        capture   += p.capture;
+        enpassant += p.enpassant;
+        any_check += p.any_check;
+        dsc_check += p.dsc_check;
+        dbl_check += p.dbl_check;
+        castle    += p.castle;
+        promotion += p.promotion;
+        checkmate += p.checkmate;
+        //stalemate += p.stalemate;
+    }
+    void operator-=(const Perft &p)
+    {
+        any       -= p.any;
+        capture   -= p.capture;
+        enpassant -= p.enpassant;
+        any_check -= p.any_check;
+        dsc_check -= p.dsc_check;
+        dbl_check -= p.dbl_check;
+        castle    -= p.castle;
+        promotion -= p.promotion;
+        checkmate -= p.checkmate;
+        //stalemate -= p.stalemate;
+    }
 
-        inline void operator++ () { ++cur; }
-        //inline void operator-- () { --cur; }
+    void classify(Position&, Move);
+};
 
-        inline Move operator* () const { return cur->move; }
-
-        inline u16 size       () const { return u16(end - cur); }
-
-        bool contains (Move m) const
-        {
-            for (const ValMove *itr = moves; itr != end; ++itr)
-            {
-                if (itr->move == m) return true;
-            }
-            return false;
-        }
-
-        //template<class CharT, class Traits, GenT GT>
-        //friend std::basic_ostream<CharT, Traits>&
-        //    operator<< (std::basic_ostream<CharT, Traits> &os, MoveList<GT> &movelist);
-    };
-
-    //template<class CharT, class Traits, GenT GT>
-    //inline std::basic_ostream<CharT, Traits>&
-    //    operator<< (std::basic_ostream<CharT, Traits> &os, MoveList<GT> &movelist)
-    //{
-    //    ValMove *cur = movelist.cur;
-    //    for ( ; *movelist; ++movelist)
-    //    {
-    //        os << *movelist << std::endl;
-    //    }
-    //    movelist.cur = cur;
-    //    return os;
-    //}
-}
-
-#endif // _MOVE_GENERATOR_H_INC_
+template<bool RootNode>
+extern Perft perft(Position&, Depth, bool = false);

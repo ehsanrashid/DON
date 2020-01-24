@@ -1,204 +1,260 @@
 #include "Transposition.h"
 
-#include <string>
+#include <cstring>
 #include <fstream>
-#include "BitScan.h"
+#include <iostream>
 #include "Engine.h"
+#include "MemoryHandler.h"
 
-TranspositionTable  TT; // Global Transposition Table
+TTable TT;
 
 using namespace std;
 
-const u08 TranspositionTable::TTEntrySize   = sizeof (TTEntry);   // 10
+u08 TEntry::Generation;
 
-const u08 TranspositionTable::TTClusterSize = sizeof (TTCluster); // 32
-
-const u32 TranspositionTable::BufferSize = 0x10000;
-
-const u08 TranspositionTable::MaxHashBit  = 36;
-// 4 MB
-const u32 TranspositionTable::MinTTSize   = 4;
-// 1048576 MB (1024 GB) (1 TB)
-const u32 TranspositionTable::MaxTTSize   = (U64 (1) << (MaxHashBit-1 - 20)) * TTClusterSize;
-
-const u32 TranspositionTable::DefTTSize   = 16;
-
-bool TranspositionTable::ClearHash = true;
-
-void TranspositionTable::alloc_aligned_memory (u64 mem_size, u08 alignment)
+/// TCluster::probe()
+/// If the position is found, it returns true and a pointer to the found entry.
+/// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
+const TEntry* TCluster::probe(u16 key16, bool &hit) const
 {
-
-    ASSERT (0 == (alignment & (alignment - 1)));
-    ASSERT (0 == (mem_size  & (alignment - 1)));
-
-#ifdef LPAGES
-
-    u08 offset = max<i08> (alignment-1, sizeof (void *));
-
-    MemoryHandler::create_memory (_mem, mem_size, alignment);
-
-    void *ptr = (void *) ((uintptr_t (_mem) + offset) & ~uintptr_t (offset));
-    _hash_table = (TTCluster *) (ptr);
-
-#else
-
-    // Need to use malloc provided by C.
-    // First need to allocate memory of mem_size + max (alignment, sizeof (void *)).
-    // Need 'bytes' because user requested it.
-    // Need to add 'alignment' because malloc can give us any address and
-    // Need to find multiple of 'alignment', so at maximum multiple
-    // of alignment will be 'alignment' bytes away from any location.
-    // Need 'sizeof(void *)' for implementing 'aligned_free',
-    // since returning modified memory pointer, not given by malloc, to the user,
-    // must free the memory allocated by malloc not anything else.
-    // So storing address given by malloc just above pointer returning to user.
-    // Thats why needed extra space to store that address.
-    // Then checking for error returned by malloc, if it returns NULL then 
-    // alloc_aligned_memory will fail and return NULL or exit().
-
-    u08 offset = max<i08> (alignment, sizeof (void *));
-
-    void *mem = calloc (mem_size + offset, 1);
-    if (mem == NULL)
+    // Find an entry to be replaced according to the replacement strategy.
+    auto *rte = entries; // Default first
+    for (auto *ite = entries; ite < entries + EntryCount; ++ite)
     {
-        cerr << "ERROR: Failed to allocate Hash " << (mem_size >> 20) << " MB." << endl;
-        Engine::exit (EXIT_FAILURE);
-    }
-
-    sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
-
-    void **ptr = (void **) ((uintptr_t (mem) + offset) & ~uintptr_t (alignment - 1));
-    
-    ptr[-1]     = mem;
-    _hash_table = (TTCluster *) (ptr);
-
-#endif
-
-    ASSERT (0 == (uintptr_t (_hash_table) & (alignment - 1)));
-
-}
-
-// resize(mb) sets the size of the table, measured in mega-bytes.
-// Transposition table consists of a power of 2 number of clusters and
-// each cluster consists of ClusterEntries number of entry.
-u32 TranspositionTable::resize (u64 mem_size_mb, bool force)
-{
-    if (mem_size_mb < MinTTSize) mem_size_mb = MinTTSize;
-    if (mem_size_mb > MaxTTSize) mem_size_mb = MaxTTSize;
-
-    u64 mem_size      = mem_size_mb << 20;
-    u08 hash_bit      = scan_msq ((mem_size) / TTClusterSize);
-    
-    ASSERT (hash_bit < MaxHashBit);
-    
-    u64 cluster_count = 1 << hash_bit;
-
-    mem_size  = cluster_count * TTClusterSize;
-
-    if (force || cluster_count != _cluster_count)
-    {
-        free_aligned_memory ();
-
-        alloc_aligned_memory (mem_size, TTClusterSize); // Cache Line Size
-
-        _cluster_count = cluster_count;
-        _cluster_mask  = cluster_count-1;
-    }
-
-    return u32(mem_size >> 20);
-}
-
-// store() writes a new entry in the transposition table.
-// It contains folowing valuable information.
-//  - Key
-//  - Move
-//  - Depth
-//  - Bound
-//  - Nodes
-//  - Value
-//  - Evaluation
-// The lower order bits of position key are used to decide on which cluster the position will be placed.
-// The upper order bits of position key are used to store in entry.
-// When a new entry is written and there are no empty entries available in cluster,
-// it replaces the least valuable of these entries.
-// An entry e1 is considered to be more valuable than a entry e2
-// * if e1 is from the current search and e2 is from a previous search.
-// * if e1 & e2 is from a current search then EXACT bound is valuable.
-// * if the depth of e1 is bigger than the depth of e2.
-void TranspositionTable::store (Key key, Move move, Depth depth, Bound bound, Value value, Value eval)
-{
-    u16 key16    = (key >> (64-16)); // 16 upper-bit of key inside cluster
-    TTEntry *fte = cluster_entry (key);
-    TTEntry *rte = fte;
-    for (TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
-    {
-        if (ite->_key == 0)     // Empty entry? then write
+        if (   ite->empty()
+            || ite->k16 == key16)
         {
-            ite->save (key16, move, value, eval, depth, bound, _generation);
-            return;
+            hit = !ite->empty();
+            return ite;
         }
-        if (ite->_key == key16) // Old entry? then overwrite
-        {
-            // Preserve any existing TT move
-            if (move == MOVE_NONE && ite->_move != MOVE_NONE)
-            {
-                move = Move(ite->_move);
-            }
-            ite->save (key16, move, value, eval, depth, bound, _generation);
-            return;
-        }
-        
-        if (ite == fte) continue;
-
-        // Implementation of replacement strategy when a collision occurs
-        if ( ((ite->gen () == _generation || ite->bound () == BND_EXACT)
-            - (rte->gen () == _generation)
-            - (ite->_depth < rte->_depth)) < 0)
+        // Replacement strategy.
+        if (rte->worth() > ite->worth())
         {
             rte = ite;
         }
     }
-
-    // By default replace first entry
-    rte->save (key16, move, value, eval, depth, bound, _generation);
+    hit = false;
+    return rte;
 }
 
-// retrieve() looks up the entry in the transposition table.
-// Returns a pointer to the entry found or NULL if not found.
-const TTEntry* TranspositionTable::retrieve (Key key) const
+size_t TCluster::fresh_entry_count() const
 {
-    u16 key16    = (key >> (64-16));
-    TTEntry *fte = cluster_entry (key);
-    for (TTEntry *ite = fte; ite < fte + ClusterEntries; ++ite)
+    return (entries[0].generation() == TEntry::Generation)
+         + (entries[1].generation() == TEntry::Generation)
+         + (entries[2].generation() == TEntry::Generation);
+}
+
+void TCluster::clear()
+{
+    std::memset(this, 0, sizeof(*this));
+}
+
+/// TTable::alloc_aligned_memory() allocates the aligned memory
+void TTable::alloc_aligned_memory(size_t mem_size, u32 alignment)
+{
+    assert(0 == (alignment & (alignment-1)));
+
+#if defined(LPAGES)
+
+    Memory::alloc_memory(mem, mem_size, alignment);
+    if (nullptr == mem)
     {
-        if (ite->_key == key16)
-        {
-            ite->_gen_bnd = _generation | ite->bound (); // Refresh
-            return ite;
-        }
-        if (ite->_key == 0) return NULL;
+        return;
     }
-    return NULL;
+
+#else
+
+    // Need to use malloc provided by C.
+    // First need to allocate memory of mem_size + max(alignment, sizeof (void *)).
+    // Need 'bytes' because user requested it.
+    // Need to add 'alignment' because malloc can give us any address and
+    // Need to find multiple of 'alignment', so at maximum multiple
+    // of alignment will be 'alignment' bytes away from any location.
+    // Need 'sizeof (void *)' for implementing 'aligned_free',
+    // since returning modified memory pointer, not given by malloc, to the user,
+    // must free the memory allocated by malloc not anything else.
+    // So storing address given by malloc just above pointer returning to user.
+    // Thats why needed extra space to store that address.
+    // Then checking for error returned by malloc, if it returns NULL then
+    // alloc_aligned_memory will fail and return NULL or exit().
+
+    alignment = std::max(u32(sizeof (void*)), alignment);
+
+    mem = malloc(mem_size + alignment-1);
+    if (nullptr == mem)
+    {
+        cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << endl;
+        return;
+    }
+    sync_cout << "info string Hash " << (mem_size >> 20) << " MB" << sync_endl;
+
+#endif
+
+    clusters = (TCluster*)((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
+    assert(nullptr != clusters
+        && 0 == (uintptr_t(clusters) & (alignment-1)));
+
+}
+/// TTable::free_aligned_memory() frees the aligned memory
+void TTable::free_aligned_memory()
+{
+#if defined(LPAGES)
+    Memory::free_memory(mem);
+#else
+    free(mem);
+#endif
+    mem = nullptr;
+    clusters = nullptr;
 }
 
-void TranspositionTable::save (string &hash_fn)
+/// TTable::resize() sets the size of the table, measured in MB.
+u32 TTable::resize(u32 mem_size)
 {
-    convert_path (hash_fn);
-    if (hash_fn.empty ()) return;
-    ofstream ofhash (hash_fn.c_str (), ios_base::out|ios_base::binary);
-    if (!ofhash.is_open ()) return;
-    ofhash << (*this);
-    ofhash.close ();
-    sync_cout << "info string Hash saved to file \'" << hash_fn << "\'." << sync_endl;
+    Threadpool.main_thread()->wait_while_busy();
+
+    mem_size = clamp(mem_size, MinHashSize, MaxHashSize);
+    size_t msize = size_t(mem_size) << 20;
+
+    free_aligned_memory();
+    alloc_aligned_memory(msize, CacheLineSize);
+
+    if (nullptr == clusters)
+    {
+        return 0;
+    }
+    cluster_count = msize / sizeof (TCluster);
+    clear();
+    return mem_size;
 }
 
-void TranspositionTable::load (string &hash_fn)
+/// TTable::auto_resize()
+void TTable::auto_resize(u32 mem_size)
 {
-    convert_path (hash_fn);
-    if (hash_fn.empty ()) return;
-    ifstream ifhash (hash_fn.c_str (), ios_base::in|ios_base::binary);
-    if (!ifhash.is_open ()) return;
-    ifhash >> (*this);
-    ifhash.close ();
-    sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'." << sync_endl;
+    auto msize = 0 != mem_size ? mem_size : MaxHashSize;
+    while (msize >= MinHashSize)
+    {
+        if (0 != resize(msize))
+        {
+            return;
+        }
+        msize /= 2;
+    }
+    stop(EXIT_FAILURE);
+}
+/// TTable::clear() clear the entire transposition table in a multi-threaded way.
+void TTable::clear()
+{
+    assert(0 != cluster_count);
+    if (bool(Options["Retain Hash"]))
+    {
+        return;
+    }
+
+    vector<thread> threads;
+    auto thread_count = option_threads();
+    for (size_t idx = 0; idx < thread_count; ++idx)
+    {
+        threads.emplace_back([this, idx, thread_count]()
+                             {
+                                 if (8 < thread_count)
+                                 {
+                                     WinProcGroup::bind(idx);
+                                 }
+                                 size_t stride = cluster_count / thread_count;
+                                 auto *pcluster = clusters + idx * stride;
+                                 size_t count = idx != (thread_count - 1) ?
+                                                 stride :
+                                                 cluster_count - idx * stride;
+                                 std::memset(pcluster, 0, count * sizeof (*pcluster));
+                             });
+    }
+    for (auto &th : threads)
+    {
+        th.join();
+    }
+    threads.clear();
+    //sync_cout << "info string Hash cleared" << sync_endl;
+}
+
+/// TTable::probe() looks up the entry in the transposition table.
+TEntry* TTable::probe(Key key, bool &hit) const
+{
+    auto *tte = const_cast<TEntry*>(cluster(key)->probe(u16(key >> 0x30), hit));
+    if (hit) tte->refresh();
+    return tte;
+}
+/// TTable::hash_full() returns an approximation of the per-mille of the
+/// all transposition entries during a search which have received
+/// at least one write during the current search.
+/// It is used to display the "info hashfull ..." information in UCI.
+/// "the hash is <x> per mill full", the engine should send this info regularly.
+/// hash, are using <x>%. of the state of full.
+u32 TTable::hash_full() const
+{
+    size_t fresh_entry_count = 0;
+    const auto cluster_limit = std::min(size_t(1000 / TCluster::EntryCount), cluster_count);
+    for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
+    {
+        fresh_entry_count += itc->fresh_entry_count();
+    }
+    return u32(fresh_entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
+}
+
+/// TTable::extract_next_move() extracts next move after current move.
+Move TTable::extract_next_move(Position &pos, Move cm) const
+{
+    assert(MOVE_NONE != cm
+        && MoveList<GenType::LEGAL>(pos).contains(cm));
+
+    StateInfo si;
+    pos.do_move(cm, si);
+    bool tt_hit;
+    auto *tte = probe(pos.si->posi_key, tt_hit);
+    auto nm = tt_hit ?
+                tte->move() :
+                MOVE_NONE;
+    if (   MOVE_NONE != nm
+        && !(   pos.pseudo_legal(nm)
+             && pos.legal(nm)))
+    {
+        nm = MOVE_NONE;
+    }
+    assert(MOVE_NONE == nm
+        || MoveList<GenType::LEGAL>(pos).contains(nm));
+    pos.undo_move(cm);
+
+    return nm;
+}
+
+/// TTable::save() saves hash to file
+void TTable::save(const string &hash_fn) const
+{
+    if (white_spaces(hash_fn))
+    {
+        return;
+    }
+    ofstream ofs(hash_fn, ios_base::out|ios_base::binary);
+    if (!ofs.is_open())
+    {
+        return;
+    }
+    ofs << *this;
+    ofs.close();
+    sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
+}
+/// TTable::load() loads hash from file
+void TTable::load(const string &hash_fn)
+{
+    if (white_spaces(hash_fn))
+    {
+        return;
+    }
+    ifstream ifs(hash_fn, ios_base::in|ios_base::binary);
+    if (!ifs.is_open())
+    {
+        return;
+    }
+    ifs >> *this;
+    ifs.close();
+    sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'" << sync_endl;
 }

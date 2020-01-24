@@ -1,16 +1,6 @@
-#ifndef _ENGINE_H_INC_
-#define _ENGINE_H_INC_
+#pragma once
 
 #include "Type.h"
 
-namespace Engine {
-
-    extern std::string info (bool uci = true);
-
-    extern void run (const std::string &arg);
-
-    extern void exit (i32 code);
-
-}
-
-#endif // _ENGINE_H_INC_
+extern void run(u32, const char *const*);
+extern void stop(i32);

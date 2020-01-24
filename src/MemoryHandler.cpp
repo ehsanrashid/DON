@@ -1,222 +1,229 @@
-#ifdef LPAGES
+#if defined(LPAGES)
 
 #include "MemoryHandler.h"
 
-#include "UCI.h"
-#include "Engine.h"
+#include <iostream>
 
-#if defined(_WIN32) || defined(_MSC_VER) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#include "Option.h"
+#include "Thread.h"
 
-#   include <tchar.h>
+#if defined(_WIN32)
+
 #   include <cstdio>
-#   include <cstdlib>
+#   include <tchar.h>
 
-// disable macros min() and max()
-#   ifndef  NOMINMAX
-#       define NOMINMAX
+#   if !defined(NOMINMAX)
+#       define NOMINMAX // Disable macros min() and max()
 #   endif
-#   ifndef  WIN32_LEAN_AND_MEAN
+#   if !defined(WIN32_LEAN_AND_MEAN)
 #       define WIN32_LEAN_AND_MEAN
 #   endif
-
 #   include <windows.h>
-
-#   undef NOMINMAX
 #   undef WIN32_LEAN_AND_MEAN
-
-#   define MEMALIGN(mem, align, size)  mem = _aligned_malloc (size, align)
-#   define ALIGNED_FREE(mem)           _aligned_free (mem);
+#   undef NOMINMAX
 
 #   define SE_PRIVILEGE_DISABLED       (0x00000000L)
 
-#else    // Linux - Unix
+#   define ALLOC_ALIGNED(mem, size, alignment) mem=_aligned_malloc(size, alignment)
+#   define FREE_ALIGNED(mem)                       _aligned_free(mem)
+
+#else
 
 #   include <sys/ipc.h>
+#   include <sys/mman.h>
 #   include <sys/shm.h>
+
+#   ifndef SHM_HUGETLB
+#       define SHM_HUGETLB     04000
+#   endif
+
+#   define ALLOC_ALIGNED(mem, size, alignment) posix_memalign(&mem, alignment, size)
+#   define FREE_ALIGNED(mem)                   free(mem)
 
 #endif
 
-namespace MemoryHandler {
+namespace Memory {
 
     using namespace std;
 
     namespace {
 
-        bool UsePages = false;
+        bool PagesUsed = false;
 
-#   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#   if defined(_WIN32)
 
-        //VOID error_exit (const LPSTR lpAPI, DWORD dwError)
-        //{
-        //    LPSTR lpvMessageBuffer = NULL;
-        //
-        //    FormatMessage (FORMAT_MESSAGE_ALLOCATE_BUFFER |
-        //                     FORMAT_MESSAGE_FROM_SYSTEM |
-        //                     FORMAT_MESSAGE_IGNORE_INSERTS,
-        //                     NULL, dwError,
-        //                     MAKELANGID (LANG_NEUTRAL, SUBLANG_DEFAULT),
-        //                     lpvMessageBuffer, 0, NULL);
-        //
-        //    //... now display this string
-        //    _tprintf (TEXT ("ERROR: API        = %s.\n"), lpAPI);
-        //    _tprintf (TEXT ("       error code = %lu.\n"), dwError);
-        //    _tprintf (TEXT ("       message    = %s.\n"), lpvMessageBuffer);
-        //
-        //    // Free the buffer allocated by the system
-        //    LocalFree (lpvMessageBuffer);
-        //
-        //    dwError = GetLastError ();
-        //    Engine::exit (dwError);
-        //}
-
-        VOID setup_privilege (const LPSTR lpPrivilege, BOOL bEnable)
+        bool setup_privilege(const char *privilege_name, bool enable)
         {
-            HANDLE hToken;
-            // Open process token
-            if (!OpenProcessToken (GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &hToken))
+            bool ret = false;
+            HANDLE token_handle;
+            if (OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &token_handle))
             {
-                //error_exit (TEXT (const_cast<LPSTR> ("OpenProcessToken")), GetLastError ());
+                TOKEN_PRIVILEGES token_priv;
+                if (LookupPrivilegeValue(nullptr, privilege_name, &token_priv.Privileges[0].Luid))
+                {
+                    token_priv.PrivilegeCount = 1;
+                    token_priv.Privileges[0].Attributes = enable ?
+                                                            SE_PRIVILEGE_ENABLED :
+                                                            SE_PRIVILEGE_DISABLED;
+                    if (AdjustTokenPrivileges(token_handle, false, &token_priv, 0, nullptr, nullptr))
+                    {
+                        if (GetLastError() != ERROR_NOT_ALL_ASSIGNED)
+                        {
+                            ret = true;
+                        }
+                    }
+                    CloseHandle(token_handle);
+                }
             }
-            
-            TOKEN_PRIVILEGES tp;
-            // Enable or Disable privilege
-            tp.PrivilegeCount = 1;
-            tp.Privileges[0].Attributes = (bEnable ? SE_PRIVILEGE_ENABLED : SE_PRIVILEGE_DISABLED);
-            // Get the luid
-            if (!LookupPrivilegeValue (NULL, lpPrivilege, &tp.Privileges[0].Luid))
-            {
-                //error_exit (TEXT (const_cast<LPSTR> ("LookupPrivilegeValue")), GetLastError ());
-            }
-
-            //BOOL bStatus = 
-            AdjustTokenPrivileges (hToken, FALSE, &tp, 0, (PTOKEN_PRIVILEGES) NULL, 0);
-
-            // It is possible for AdjustTokenPrivileges to return TRUE and still not succeed.
-            // So always check for the last dwError value.
-            //DWORD dwError = GetLastError ();
-            //if (!bStatus || (dwError != ERROR_SUCCESS))
-            //{
-            //    error_exit (TEXT (const_cast<LPSTR> ("AdjustTokenPrivileges")), GetLastError ());
-            //}
-
-            // Close the handle
-            if (!CloseHandle (hToken))
-            {
-                //error_exit (TEXT (const_cast<LPSTR> ("CloseHandle")), GetLastError ());
-            }
+            return ret;
         }
 
-#   else    // Linux - Unix
+#   else
 
-        i32 SharedMemoryKey;
+        i32 SHM; // Shared Memory Identifier
 
 #   endif
 
     }
 
-    void create_memory  (void *&mem_ref, u64 mem_size, u08 align)
+    void alloc_memory(void *&mem_ref, size_t mem_size, u32 alignment)
     {
-        UsePages = false;
+        PagesUsed = false;
 
         if (bool(Options["Large Pages"]))
         {
-#   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
+#       if defined(_WIN32)
 
-            mem_ref = VirtualAlloc
-                (NULL,                      // System selects address
-                 mem_size,                  // Size of allocation
-                 MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE, // Type of Allocation
-                 PAGE_READWRITE);           // Protection of Allocation
-
-            if (mem_ref != NULL)
+            mem_ref = VirtualAlloc(nullptr,                               // System selects address
+                                   mem_size,                              // Size of allocation
+                                   MEM_LARGE_PAGES|MEM_COMMIT|MEM_RESERVE,// Type of Allocation
+                                   PAGE_READWRITE);                       // Protection of Allocation
+            if (nullptr != mem_ref)
             {
-                UsePages = true;
-                sync_cout << "info string LargePage Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                PagesUsed = true;
+                sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                 return;
             }
-
-            mem_ref = VirtualAlloc
-                (NULL,                  // System selects address
-                mem_size,              // Size of allocation
-                MEM_COMMIT|MEM_RESERVE,// Type of Allocation
-                PAGE_READWRITE);       // Protection of Allocation
-
-            if (mem_ref != NULL)
+            mem_ref = VirtualAlloc(nullptr,              // System selects address
+                                   mem_size,              // Size of allocation
+                                   MEM_COMMIT|MEM_RESERVE,// Type of Allocation
+                                   PAGE_READWRITE);       // Protection of Allocation
+            if (nullptr != mem_ref)
             {
-                UsePages = true;
-                sync_cout << "info string Page Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                PagesUsed = true;
+                sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                 return;
             }
+            cerr << "ERROR: VirtualAlloc() virtual memory alloc failed " << (mem_size >> 20) << " MB" << endl;
 
-#   else    // Linux - Unix
+#       else
 
-            SharedMemoryKey = shmget (IPC_PRIVATE, mem_size, IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
-            if (SharedMemoryKey >= 0)
+            SHM = shmget(IPC_PRIVATE,
+                         mem_size,
+                         IPC_CREAT|SHM_R|SHM_W|SHM_HUGETLB);
+            if (SHM != -1)
             {
-                mem_ref = shmat (SharedMemoryKey, NULL, 0x0);
-                if (mem_ref != -1)
+                mem_ref = shmat(SHM, nullptr, 0x00);
+                if (mem_ref != (void*) -1)
                 {
-                    UsePages = true;
-                    memset (mem_ref, 0x00, SHMSZ);
-                    sync_cout << "info string HUGELTB Hash " << (mem_size >> 20) << " MB." << sync_endl;
+                    PagesUsed = true;
+                    sync_cout << "info string Large Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
                     return;
                 }
-                //perror ("shmat: Shared memory attach failure");
-                //shmctl (shmid1, IPC_RMID, NULL);
-                //Engine::exit (EXIT_FAILURE);
+                cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << endl;
+                if (shmctl (SHM, IPC_RMID, nullptr) == -1)
+                {
+                    cerr << "ERROR: shmctl(IPC_RMID) failed" << endl;
+                }
                 return;
             }
-            //perror ("shmget: Shared memory get failure");
-            //Engine::exit (EXIT_FAILURE);
+            SHM = shmget(IPC_PRIVATE,
+                         mem_size,
+                         IPC_CREAT|SHM_R|SHM_W);
+            if (SHM != -1)
+            {
+                mem_ref = shmat(SHM, nullptr, 0x00);
+                if (mem_ref != (void*) -1)
+                {
+                    PagesUsed = true;
+                    sync_cout << "info string Normal Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
+                    return;
+                }
+                cerr << "ERROR: shmat() shared memory attach failed " << (mem_size >> 20) << " MB" << endl;
+                if (shmctl(SHM, IPC_RMID, nullptr) == -1)
+                {
+                    cerr << "ERROR: shmctl(IPC_RMID) failed" << endl;
+                }
+                return;
+            }
+            cerr << "ERROR: shmget() shared memory alloc failed " << (mem_size >> 20) << " MB" << endl;
 
-#   endif
+#       endif
         }
 
-        MEMALIGN (mem_ref, align, mem_size);
-        if (mem_ref != NULL)
+        ALLOC_ALIGNED(mem_ref, mem_size, alignment);
+        if (nullptr != mem_ref)
         {
-            memset (mem_ref, 0x00, mem_size);
-            sync_cout << "info string Hash " << (mem_size >> 20) << " MB." << sync_endl;
+            sync_cout << "info string No Pages Hash " << (mem_size >> 20) << " MB" << sync_endl;
             return;
         }
 
-        cerr << "ERROR: Failed to allocate Hash" << (mem_size >> 20) << " MB." << endl;
-        Engine::exit (EXIT_FAILURE);
+        cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << endl;
     }
 
-    void   free_memory  (void *mem)
+    void free_memory(void *mem)
     {
-        if (mem == NULL) return;
-
-        if (UsePages)
+        if (nullptr == mem)
         {
-#   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
-            
-            if (VirtualFree (mem, 0, MEM_RELEASE))
+            return;
+        }
+
+        if (PagesUsed)
+        {
+#       if defined(_WIN32)
+
+            if (!VirtualFree(mem, 0, MEM_RELEASE))
             {
-                ;
+                cerr << "ERROR: VirtualFree() virtual memory free failed" << endl;
             }
 
-#   else   // Linux - Unix
+#       else
 
-            if (shmdt (mem)) { cerr << "Could not close memory segment." << endl; }
-            shmctl (SharedMemoryKey, IPC_RMID, NULL);
-            
-#   endif
-            UsePages = false;
-            return;
+            if (shmdt(mem) == -1)
+            {
+                cerr << "ERROR: shmdt() shared memory detach failed" << endl;
+            }
+            if (shmctl(SHM, IPC_RMID, nullptr) == -1)
+            {
+                cerr << "ERROR: shmctl(IPC_RMID) failed"<< endl;
+            }
+
+#       endif
         }
-
-        ALIGNED_FREE (mem);
+        else
+        {
+            FREE_ALIGNED(mem);
+        }
     }
-    
-    void initialize     ()
-    {
-#   if defined(_WIN32) || defined(__CYGWIN__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(__BORLANDC__)
 
-        setup_privilege (TEXT (const_cast<LPSTR> ("SeLockMemoryPrivilege")), TRUE);
-        
-#   else    // Linux - Unix
+    void initialize()
+    {
+#   if defined(_WIN32)
+
+        setup_privilege(SE_LOCK_MEMORY_NAME, true);
+
+#   else
+
+#   endif
+    }
+
+    void deinitialize()
+    {
+#   if defined(_WIN32)
+
+        setup_privilege(SE_LOCK_MEMORY_NAME, false);
+
+#   else
 
 #   endif
     }

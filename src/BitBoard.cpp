@@ -1,369 +1,343 @@
-﻿#include "BitBoard.h"
+#include "BitBoard.h"
 
-#include "RKISS.h"
+#include <bitset>
+#include <cmath>
+#include <memory>
+
+#include "PRNG.h"
 #include "Notation.h"
 
 namespace BitBoard {
 
     using namespace std;
-    using namespace Notation;
 
-    // FRONT SQUARES
-    CACHE_ALIGN(64) Bitboard FrontSqrs_bb[CLR_NO][SQ_NO];
+    array<array<Bitboard, SQ_NO>, CLR_NO> PawnAttacks;
+    array<array<Bitboard, SQ_NO>, NONE> PieceAttacks;
 
-    CACHE_ALIGN(64) Bitboard Between_bb[SQ_NO][SQ_NO];
-    CACHE_ALIGN(64) Bitboard LineRay_bb[SQ_NO][SQ_NO];
+    array<array<Bitboard, SQ_NO>, SQ_NO> Line_bb;
 
-    CACHE_ALIGN(64) Bitboard DistanceRings[SQ_NO][F_NO];
+    array<Magic, SQ_NO> BMagics
+        ,               RMagics;
 
-    // Span of the attacks of pawn
-    CACHE_ALIGN(64) Bitboard PawnAttackSpan[CLR_NO][SQ_NO];
+#if !defined(ABM)
 
-    // Path of the passed pawn
-    CACHE_ALIGN(64) Bitboard PawnPassSpan[CLR_NO][SQ_NO];
+    array<u08, 1 << 16> PopCount16;
 
-    // Attacks of the pawns
-    CACHE_ALIGN(64) Bitboard PawnAttacks[CLR_NO][SQ_NO];
-
-    // Attacks of the pieces
-    CACHE_ALIGN(64) Bitboard PieceAttacks[NONE][SQ_NO];
-
-    CACHE_ALIGN(64) Bitboard*BAttack_bb[SQ_NO];
-    CACHE_ALIGN(64) Bitboard*RAttack_bb[SQ_NO];
-
-    CACHE_ALIGN(64) Bitboard   BMask_bb[SQ_NO];
-    CACHE_ALIGN(64) Bitboard   RMask_bb[SQ_NO];
-
-#ifndef BM2
-    CACHE_ALIGN(64) Bitboard  BMagic_bb[SQ_NO];
-    CACHE_ALIGN(64) Bitboard  RMagic_bb[SQ_NO];
-
-    CACHE_ALIGN(64) u08       BShift   [SQ_NO];
-    CACHE_ALIGN(64) u08       RShift   [SQ_NO];
+    /*
+    // Counts the non-zero bits using SWAR-Popcount algorithm
+    u08 pop_count16(u32 u)
+    {
+        u -= (u >> 1) & 0x5555U;
+        u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
+        u = ((u >> 4) + u) & 0x0F0FU;
+        return u08((u * 0x0101U) >> 8);
+    }
+    */
 #endif
-
-    // FILE & RANK distance
-    u08 FileRankDist[F_NO][R_NO];
-    u08   SquareDist[SQ_NO][SQ_NO];
 
     namespace {
 
-//        // De Bruijn sequences. See chessprogramming.wikispaces.com/BitScan
-//        const u64 DeBruijn_64 = 0x3F79D71B4CB0A89ULL;
-//        const u32 DeBruijn_32 = 0x783A9B23;
-//
-//        CACHE_ALIGN (8) i08 MSB_Table[_UI8_MAX + 1];
-//        CACHE_ALIGN (8) Square BSF_Table[SQ_NO];
-//
-//        INLINE unsigned bsf_index (Bitboard bb)
-//        {
-//            // Matt Taylor's folding for 32 bit systems, extended to 64 bits by Kim Walisch
-//            bb ^= (bb - 1);
-//
-//            return
-//#       ifdef _64BIT
-//                (bb * DeBruijn_64) >> 58;
-//#       else
-//                ((u32(bb) ^ u32(bb >> 32)) * DeBruijn_32) >> 26;
-//#       endif
-//        }
-
-        // max moves for rook from any corner square (LINEAR)
-        // 2 ^ 12 = 4096 = 0x1000
-        const u16 MaxLMoves =   U32 (0x1000);
-
-        // 4 * 2^9 + 4 * 2^6 + 12 * 2^7 + 44 * 2^5
-        // 4 * 512 + 4 *  64 + 12 * 128 + 44 *  32
-        //    2048 +     256 +     1536 +     1408
-        //                                    5248 = 0x1480
-        const u32 MaxBMoves = U32 (0x1480);
-
-        // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
-        // 4 * 4096 + 24 * 2048 + 36 * 1024
-        //    16384 +     49152 +     36864
-        //                           102400 = 0x19000
-        const u32 MaxRMoves = U32 (0x19000);
-
-        CACHE_ALIGN(64) Bitboard BTable_bb[MaxBMoves];
-        CACHE_ALIGN(64) Bitboard RTable_bb[MaxRMoves];
-
-        typedef u16(*Indexer) (Square s, Bitboard occ);
-
-        inline void initialize_table (Bitboard table_bb[], Bitboard *attacks_bb[], Bitboard masks_bb[], Bitboard magics_bb[], u08 shift[], const Delta deltas[], const Indexer m_index)
-        {
-#   ifndef BM2
-            const u16 MagicBoosters[R_NO] =
-#       ifdef _64BIT
-            { 0xC1D, 0x228, 0xDE3, 0x39E, 0x342, 0x01A, 0x853, 0x45D }; // 64-bit
-#       else
-            { 0x3C9, 0x7B8, 0xB22, 0x21E, 0x815, 0xB24, 0x6AC, 0x0A4 }; // 32-bit
-#       endif
-            
-            Bitboard occupancy[MaxLMoves];
-            Bitboard reference[MaxLMoves];
-            RKISS rkiss;
+        constexpr array<array<Delta, 8>, NONE> PieceDeltas
+        {{
+            { },
+            { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE },
+            { DEL_SW, DEL_SE, DEL_NW, DEL_NE },
+            { DEL_S , DEL_W , DEL_E , DEL_N  },
+            { DEL_SW, DEL_S , DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
+            { DEL_SW, DEL_S , DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
+        }};
+/*
+        // De Bruijn sequences.
+#   if defined(BIT64)
+        constexpr u64 DeBruijn_64 = U64(0x3F79D71B4CB0A89);
+#   else
+        constexpr u32 DeBruijn_32 = U32(0x783A9B23);
 #   endif
 
-            attacks_bb[SQ_A1] = table_bb;
+        array<Square, SQ_NO> BSF_Table;
+        unsigned bsf_index(Bitboard bb)
+        {
+            assert(0 != bb);
+            bb ^= (bb - 1);
+            return
+#       if defined(BIT64)
+            // Use Kim Walisch extending trick for 64-bit
+            (bb * DeBruijn_64) >> 58;
+#       else
+            // Use Matt Taylor's folding trick for 32-bit
+            (u32 ((bb >> 0) ^ (bb >> 32)) * DeBruijn_32) >> 26;
+#       endif
+        }
 
-            for (Square s = SQ_A1; s <= SQ_H8; ++s)
+        array<u08, (1 << 8)> MSB_Table;
+*/
+
+        // Max Bishop Table Size
+        // 4 * 2^6 + 12 * 2^7 + 44 * 2^5 + 4 * 2^9
+        // 4 *  64 + 12 * 128 + 44 *  32 + 4 * 512
+        //     256 +     1536 +     1408 +    2048 = 5248
+        Bitboard BAttacks[0x1480];
+
+        // Max Rook Table Size
+        // 4 * 2^12 + 24 * 2^11 + 36 * 2^10
+        // 4 * 4096 + 24 * 2048 + 36 * 1024
+        //    16384 +     49152 +     36864 = 102400
+        Bitboard RAttacks[0x19000];
+
+        /// Initialize all bishop and rook attacks at startup.
+        /// Magic bitboards are used to look up attacks of sliding pieces.
+        /// In particular, here we use the so called "fancy" approach.
+        template<PieceType PT>
+        void initialize_magic(Bitboard *attacks, array<Magic, SQ_NO> &magics)
+        {
+            static_assert (BSHP == PT || ROOK == PT, "PT incorrect");
+
+#       if !defined(BM2)
+            //             Max Index
+            array<Bitboard, 0x1000> occupancy
+                ,                   reference;
+
+            constexpr array<u32, R_NO> Seeds
+#           if defined(BIT64)
+                { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
+#           else
+                { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C };
+#           endif
+
+#       endif
+
+            u32 offset = 0;
+            for (const auto s : SQ)
             {
-                // Board edges are not considered in the relevant occupancies
-                Bitboard edges = board_edges (s);
+                auto &magic = magics[s];
 
-                // Given a square 's', the mask is the bitboard of sliding attacks from 's'
+                // Given a square, the mask is the bitboard of sliding attacks from
                 // computed on an empty board. The index must be big enough to contain
                 // all the attacks for each possible subset of the mask and so is 2 power
                 // the number of 1s of the mask. Hence deduce the size of the shift to
                 // apply to the 64 or 32 bits word to get the index.
-                Bitboard moves = sliding_attacks (deltas, s);
+                magic.mask = PieceAttacks[PT][s]
+                            // Board edges are not considered in the relevant occupancies
+                           & ~(((FA_bb|FH_bb) & ~file_bb(s)) | ((R1_bb|R8_bb) & ~rank_bb(s)));
 
-                Bitboard mask = masks_bb[s] = moves & ~edges;
+                auto mask_popcount = pop_count(magic.mask);
+                assert(mask_popcount < 32);
 
-#           ifndef BM2
-                shift[s] =
-#               ifdef _64BIT
-                    64
-#               else
-                    32
-#               endif
-                    - pop_count<Max15> (mask);
-#           else
-                (void) shift;
+                // magics[s].attacks is a pointer to the beginning of the attacks table for square
+                //magic.attacks = new Bitboard[(1U << mask_popcount)];
+                magic.attacks = &attacks[offset];
+
+#           if !defined(BM2)
+                auto bits =
+#                   if defined(BIT64)
+                        64
+#                   else
+                        32
+#                   endif
+                    ;
+                magic.shift = bits - mask_popcount;
+
+                u16 size = 0;
 #           endif
 
-                // Use Carry-Rippler trick to enumerate all subsets of masks_bb[s] and
-                // store the corresponding sliding attack bitboard in reference[].
-                u32 size     = 0;
-                Bitboard occ = U64 (0);
+                // Use Carry-Rippler trick to enumerate all subsets of magics[s].mask
+                // Have individual table sizes for each square with "Fancy Magic Bitboards".
+                Bitboard occ = 0;
                 do
                 {
-#               ifndef BM2
-                    occupancy[size] = occ;
-                    reference[size] = sliding_attacks (deltas, s, occ);
+#               if defined(BM2)
+                    magic.attacks[PEXT(occ, magic.mask)] = slide_attacks<PT>(s, occ);
 #               else
-                    attacks_bb[s][_pext_u64 (occ, mask)] = sliding_attacks (deltas, s, occ);
+                    occupancy[size] = occ;
+                    // Store the corresponding slide attack bitboard in reference[].
+                    reference[size] = slide_attacks<PT>(s, occ);
+                    ++size;
 #               endif
 
-                    ++size;
-                    occ = (occ - mask) & mask;
-                }
-                while (occ);
+                    occ = (occ - magic.mask) & magic.mask;
+                } while (0 != occ);
 
-                // Set the offset for the table_bb of the next square. Have individual
-                // table_bb sizes for each square with "Fancy Magic Bitboards".
-                if (s < SQ_H8)
-                {
-                    attacks_bb[s + 1] = attacks_bb[s] + size;
-                }
+#           if !defined(BM2)
 
-#           ifndef BM2
-                u16 booster = MagicBoosters[_rank (s)];
+                assert(size == (1U << mask_popcount));
 
-                // Find a magic for square 's' picking up an (almost) random number
+                PRNG prng{Seeds[_rank(s)]};
+
+                u16 i;
+                // Find a magic for square picking up an (almost) random number
                 // until found the one that passes the verification test.
-                u32 i;
-
                 do
                 {
-                    u16 index;
                     do
                     {
-                        magics_bb[s] = rkiss.magic_rand<Bitboard> (booster);
-                        index = (mask * magics_bb[s]) >> 0x38;
-                    }
-                    while (pop_count<Max15> (index) < 6);
-
-                    memset (attacks_bb[s], U64 (0), size*sizeof (*attacks_bb[s]));
+                        magic.number = prng.sparse_rand<Bitboard>();
+                    } while (pop_count((magic.mask * magic.number) >> 0x38) < 6);
 
                     // A good magic must map every possible occupancy to an index that
-                    // looks up the correct sliding attack in the attacks_bb[s] database.
-                    // Note that build up the database for square 's' as a side
-                    // effect of verifying the magic.
+                    // looks up the correct slide attack in the magics[s].attacks database.
+                    // Note that build up the database for square as a side effect of verifying the magic.
+                    vector<bool> used(size, false);
                     for (i = 0; i < size; ++i)
                     {
-                        Bitboard &attacks = attacks_bb[s][m_index (s, occupancy[i])];
-
-                        if (attacks && (attacks != reference[i]))
+                        u16 idx = magic.index(occupancy[i]);
+                        assert(idx < size);
+                        if (used[idx])
                         {
-                            break;
+                            if (magic.attacks[idx] != reference[i])
+                            {
+                                break;
+                            }
+                            continue;
                         }
-
-                        ASSERT (reference[i]);
-                        attacks = reference[i];
+                        used[idx] = true;
+                        magic.attacks[idx] = reference[i];
                     }
-                }
-                while (i < size);
-#           else
-                (void) magics_bb; 
-                (void) m_index; 
+                } while (i < size);
 #           endif
+
+                offset += (1U << mask_popcount);
             }
         }
-
-        inline void initialize_sliding ()
-        {
-#       ifndef BM2
-            initialize_table (BTable_bb, BAttack_bb, BMask_bb, BMagic_bb, BShift, PieceDeltas[BSHP], magic_index<BSHP>);
-            initialize_table (RTable_bb, RAttack_bb, RMask_bb, RMagic_bb, RShift, PieceDeltas[ROOK], magic_index<ROOK>);
-#       else
-            initialize_table (BTable_bb, BAttack_bb, BMask_bb, NULL, NULL, PieceDeltas[BSHP], magic_index<BSHP>);
-            initialize_table (RTable_bb, RAttack_bb, RMask_bb, NULL, NULL, PieceDeltas[ROOK], magic_index<ROOK>);
-#       endif
-        }
-
+        /// Explicit template instantiations
+        /// --------------------------------
+        template void initialize_magic<BSHP>(Bitboard*, array<Magic, SQ_NO>&);
+        template void initialize_magic<ROOK>(Bitboard*, array<Magic, SQ_NO>&);
     }
 
-    void initialize ()
+    template<PieceType PT>
+    Bitboard slide_attacks(Square s, Bitboard occ)
     {
+        static_assert (BSHP == PT || ROOK == PT || QUEN == PT, "PT incorrect");
 
-        //for (i08 s = SQ_A1; s <= SQ_H8; ++s)
-        //{
-        //    BSF_Table[bsf_index (Square_bb[s] = 1ULL << s)] = s;
-        //    BSF_Table[bsf_index (Square_bb[s])] = s;
-        //}
-        //for (Bitboard b = 1; b < 256; ++b)
-        //{
-        //    MSB_Table[b] = more_than_one (b) ? MSB_Table[b - 1] : scan_lsq (b);
-        //}
-
-        for (i08 f = F_A; f <= F_H; ++f)
+        Bitboard attacks = 0;
+        for (auto del : PieceDeltas[PT])
         {
-            for (i08 r = R_1; r <= R_8; ++r)
+            for (auto sq = s + del;
+                 _ok(sq) && 1 == dist(sq, sq - del);
+                 sq += del)
             {
-                FileRankDist[f][r] = u08(abs (f - r));
+                attacks |= sq;
+                if (contains(occ, sq))
+                {
+                    break;
+                }
             }
         }
+        return attacks;
+    }
+    /// Explicit template instantiations
+    /// --------------------------------
+    template Bitboard slide_attacks<BSHP>(Square, Bitboard);
+    template Bitboard slide_attacks<ROOK>(Square, Bitboard);
+    template Bitboard slide_attacks<QUEN>(Square, Bitboard);
 
-        for (i08 s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+    void initialize()
+    {
+        //for (const auto s : SQ)
+        //{
+        //    //Square_bb[s] = U64(1) << s;
+        //    BSF_Table[bsf_index(square_bb(s))] = s;
+        //}
+        //for (u32 b = 1; b < MSB_Table.size(); ++b)
+        //{
+        //    MSB_Table[b] =  MSB_Table[b - 1] + !more_than_one(b);
+        //}
+
+#   if !defined(ABM)
+        for (u32 i = 0; i < PopCount16.size(); ++i)
         {
-            for (i08 s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            PopCount16[i] = std::bitset<16>(i).count(); //pop_count16(i);
+        }
+#   endif
+
+        // Pawn and Pieces Attack Table
+        for (const auto s : SQ)
+        {
+            for (const auto c : { WHITE, BLACK })
             {
+                PawnAttacks[c][s] |= pawn_sgl_attacks_bb(c, square_bb(s));
+                assert(2 >= pop_count(PawnAttacks[c][s]));
+            }
+
+            for (auto del : PieceDeltas[NIHT])
+            {
+                auto sq = s + del;
+                if (   _ok(sq)
+                    && 2 == dist(s, sq))
+                {
+                    PieceAttacks[NIHT][s] |= sq;
+                }
+            }
+            for (auto del : PieceDeltas[KING])
+            {
+                auto sq = s + del;
+                if (   _ok(sq)
+                    && 1 == dist(s, sq))
+                {
+                    PieceAttacks[KING][s] |= sq;
+                }
+            }
+            PieceAttacks[BSHP][s] = slide_attacks<BSHP>(s);
+            PieceAttacks[ROOK][s] = slide_attacks<ROOK>(s);
+            PieceAttacks[QUEN][s] = PieceAttacks[BSHP][s]
+                                  | PieceAttacks[ROOK][s];
+        }
+
+        // Initialize Magic Table
+        initialize_magic<BSHP>(BAttacks, BMagics);
+        initialize_magic<ROOK>(RAttacks, RMagics);
+
+        // NOTE:: must be after initialize Bishop & Rook Table
+        for (const auto s1 : SQ)
+        {
+            for (const auto s2 : SQ)
+            {
+                Line_bb[s1][s2] = 0;
                 if (s1 != s2)
                 {
-                    File f1 = _file (Square(s1));
-                    Rank r1 = _rank (Square(s1));
-                    File f2 = _file (Square(s2));
-                    Rank r2 = _rank (Square(s2));
-
-                    u08 dFile = FileRankDist[f1][f2];
-                    u08 dRank = FileRankDist[r1][r2];
-
-                    SquareDist[s1][s2]  = max (dFile , dRank);
-                    DistanceRings[s1][SquareDist[s1][s2] - 1] += Square(s2);
-                }
-            }
-        }
-
-        for (i08 c = WHITE; c <= BLACK; ++c)
-        {
-            for (i08 s = SQ_A1; s <= SQ_H8; ++s)
-            {
-                FrontSqrs_bb  [c][s] = FrontRank_bb[c][_rank (Square(s))] &    File_bb[_file (Square(s))];
-                PawnAttackSpan[c][s] = FrontRank_bb[c][_rank (Square(s))] & AdjFile_bb[_file (Square(s))];
-                PawnPassSpan[c][s]   = FrontSqrs_bb[c][s] | PawnAttackSpan[c][s];
-            }
-        }
-
-        for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        {
-            u08 k;
-            Delta del;
-
-            for (i08 c = WHITE; c <= BLACK; ++c)
-            {
-                k = 0;
-                while ((del = PawnDeltas[c][k++]) != DEL_O)
-                {
-                    Square sq = s + del;
-                    if (_ok (sq) && SquareDist[s][sq] == 1)
+                    for (const auto pt : { BSHP, ROOK })
                     {
-                        PawnAttacks[c][s] += sq;
+                        if (contains(PieceAttacks[pt][s1], s2))
+                        {
+                            Line_bb[s1][s2] = (PieceAttacks[pt][s1] & PieceAttacks[pt][s2]) | s1 | s2;
+                        }
                     }
                 }
-            }
-
-            PieceT pt;
-
-            pt = NIHT;
-            k = 0;
-            while ((del = PieceDeltas[pt][k++]) != DEL_O)
-            {
-                Square sq = s + del;
-                if (_ok (sq) && SquareDist[s][sq] == 2)
-                {
-                    PieceAttacks[pt][s] += sq;
-                }
-            }
-
-            pt = KING;
-            k = 0;
-            while ((del = PieceDeltas[pt][k++]) != DEL_O)
-            {
-                Square sq = s + del;
-                if (_ok (sq) && SquareDist[s][sq] == 1)
-                {
-                    PieceAttacks[pt][s] += sq;
-                }
-            }
-
-            PieceAttacks[BSHP][s] = sliding_attacks (PieceDeltas[BSHP], s);
-            PieceAttacks[ROOK][s] = sliding_attacks (PieceDeltas[ROOK], s);
-            PieceAttacks[QUEN][s] = PieceAttacks[BSHP][s] | PieceAttacks[ROOK][s];
-        }
-
-        initialize_sliding ();
-        
-        // NOTE:: must be after initialize_sliding()
-        for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-        {
-            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-            {
-                PieceT pt =  
-                    (PieceAttacks[BSHP][s1] & s2) ? BSHP :
-                    (PieceAttacks[ROOK][s1] & s2) ? ROOK :
-                    NONE;
-
-                if (NONE == pt) continue;
-
-                Between_bb[s1][s2] = (attacks_bb (Piece(pt), s1, Square_bb[s2]) & attacks_bb (Piece(pt), s2, Square_bb[s1]));
-                LineRay_bb[s1][s2] = (attacks_bb (Piece(pt), s1,       U64 (0)) & attacks_bb (Piece(pt), s2,       U64 (0))) + s1 + s2;
             }
         }
 
     }
 
-#ifndef NDEBUG
+#if !defined(NDEBUG)
 
-    // pretty() returns an ASCII representation of a bitboard to print on console output
-    // Bitboard in an easily readable format. This is sometimes useful for debugging.
-    const string pretty (Bitboard bb, char p)
+    /// Returns an ASCII representation of a bitboard to print on console output
+    /// Bitboard in an easily readable format. This is sometimes useful for debugging.
+    string pretty(Bitboard bb)
     {
-        string sbb;
+        ostringstream oss;
 
-        const string row  = "|. . . . . . . .|\n";
-        const u16 row_len = row.length () + 1;
-        sbb = " /---------------\\\n";
-        for (i08 r = R_8; r >= R_1; --r)
+        oss << " /---------------\\\n";
+        for (const auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
         {
-            sbb += to_char (Rank(r)) + row;
+            oss << to_char(r) << '|';
+            for (const auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+            {
+                oss << (contains(bb, f|r) ? '+' : '-');
+                if (f < F_H)
+                {
+                    oss << ' ';
+                }
+            }
+            oss << "|\n";
         }
-        sbb += " \\---------------/\n ";
-        for (i08 f = F_A; f <= F_H; ++f)
+        oss << " \\---------------/\n ";
+        for (const auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
-            sbb += " "; sbb += to_char (File(f));
+            oss << ' ' << to_char(f, false);
         }
-        sbb += "\n";
+        oss << '\n';
 
-        while (bb)
-        {
-            Square s = pop_lsq (bb);
-            i08 r = _rank (s);
-            i08 f = _file (s);
-            sbb[2 + row_len * (8 - r) + 2 * f] = p;
-        }
-
-        return sbb;
+        return oss.str();
     }
 
 #endif
