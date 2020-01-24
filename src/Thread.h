@@ -4,10 +4,10 @@
 #include <mutex>
 #include <condition_variable>
 
-#include "Material.h"
-#include "Option.h"
 #include "Pawns.h"
+#include "Material.h"
 #include "Position.h"
+#include "Option.h"
 #include "PRNG.h"
 #include "Searcher.h"
 #include "thread_win32_osx.h"
