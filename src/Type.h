@@ -448,6 +448,13 @@ constexpr Square operator~(Square s) { return Square(i08(s) ^ i08(SQ_A8)); }
 // SQ_A1 -> SQ_H1
 constexpr Square operator!(Square s) { return Square(i08(s) ^ i08(SQ_H1)); }
 
+constexpr bool opposite_colors(Square s1, Square s2)
+{
+    //i08 s = i08(s1) ^ i08(s2);
+    //return 0 != (((s >> 3) ^ s) & BLACK);
+    return 0 != ((_file(s1) ^ _rank(s1) ^ _file(s2) ^ _rank(s2)) & BLACK);
+}
+
 constexpr Square rel_sq(Color c, Square s) { return Square(i08(s) ^ (c*SQ_A8)); }
 
 constexpr Rank rel_rank(Color c, Rank r)   { return Rank(r ^ (c*R_8)); }

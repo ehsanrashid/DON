@@ -120,9 +120,9 @@ class Thread;
 class Position
 {
 private:
-    void  place_piece(Square, Piece);
-    void remove_piece(Square, Piece);
-    void   move_piece(Square, Square);
+    void place_piece(Square, Piece);
+    void remove_piece(Square);
+    void move_piece(Square, Square);
 
     void set_castle(Color, Square);
 
@@ -513,8 +513,9 @@ inline void Position::place_piece(Square s, Piece pc)
     psq += PSQ[pc][s];
     piece[s] = pc;
 }
-inline void Position::remove_piece(Square s, Piece pc)
+inline void Position::remove_piece(Square s)
 {
+    auto pc = piece[s];
     assert(_ok(pc)
         && std::count(squares[pc].begin(), squares[pc].end(), s) == 1);
     color_bb[color(pc)] ^= s;

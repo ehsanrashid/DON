@@ -243,12 +243,10 @@ namespace BitBoard {
 //#   endif
     }
 
-    constexpr bool opposite_colors(Square s1, Square s2)
-    {
-        //i08 s = i08(s1) ^ i08(s2);
-        //return 0 != (((s >> 3) ^ s) & 1);
-        return contains(Color_bb[WHITE], s1) == contains(Color_bb[BLACK], s2);
-    }
+    //constexpr bool opposite_colors(Square s1, Square s2)
+    //{
+    //    return contains(Color_bb[WHITE], s1) == contains(Color_bb[BLACK], s2);
+    //}
 
     constexpr Bitboard pawn_sgl_pushes_bb(Color c, Bitboard bb)
     {

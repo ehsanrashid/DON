@@ -645,7 +645,7 @@ bool Position::see_ge(Move m, Value threshold) const
         if (0 != (bb = pieces(PAWN) & mov_attackers))
         {
             swap = VALUE_MG_PAWN - swap;
-            if (swap < 1 * res)
+            if (swap < res)
             {
                 break;
             }
@@ -658,7 +658,7 @@ bool Position::see_ge(Move m, Value threshold) const
         if (0 != (bb = pieces(NIHT) & mov_attackers))
         {
             swap = VALUE_MG_NIHT - swap;
-            if (swap < 1 * res)
+            if (swap < res)
             {
                 break;
             }
@@ -670,7 +670,7 @@ bool Position::see_ge(Move m, Value threshold) const
         if (0 != (bb = pieces(BSHP) & mov_attackers))
         {
             swap = VALUE_MG_BSHP - swap;
-            if (swap < 1 * res)
+            if (swap < res)
             {
                 break;
             }
@@ -683,7 +683,7 @@ bool Position::see_ge(Move m, Value threshold) const
         if (0 != (bb = pieces(ROOK) & mov_attackers))
         {
             swap = VALUE_MG_ROOK - swap;
-            if (swap < 1 * res)
+            if (swap < res)
             {
                 break;
             }
@@ -696,7 +696,7 @@ bool Position::see_ge(Move m, Value threshold) const
         if (0 != (bb = pieces(QUEN) & mov_attackers))
         {
             swap = VALUE_MG_QUEN - swap;
-            if (swap < 1 * res)
+            if (swap < res)
             {
                 break;
             }
@@ -968,8 +968,8 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
         auto rook_dst = rel_sq(active, rook_org > org ? SQ_F1 : SQ_D1);
         /* king */dst = rel_sq(active, rook_org > org ? SQ_G1 : SQ_C1);
         // Remove both pieces first since squares could overlap in chess960
-        remove_piece(org, piece[org]);
-        remove_piece(rook_org, piece[rook_org]);
+        remove_piece(org);
+        remove_piece(rook_org);
         piece[org] = piece[rook_org] = NO_PIECE; // Not done by remove_piece()
         place_piece(dst, active|KING);
         place_piece(rook_dst, active|ROOK);
@@ -979,7 +979,10 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
     }
     else
     {
-        si->capture = ENPASSANT != mtype(m) ? ptype(piece[dst]) : PAWN;
+        si->capture = ENPASSANT == mtype(m) ?
+                        PAWN :
+                        ptype(piece[dst]);
+
         if (NONE != si->capture)
         {
             assert(KING != si->capture);
@@ -998,8 +1001,6 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
                         && dst == si->enpassant_sq
                         && empty(dst) //&& !contains(pieces(), dst)
                         && (pasive|PAWN) == piece[cap]); //&& contains(pieces(pasive, PAWN), cap));
-
-                    piece[cap] = NO_PIECE; // Not done by remove_piece()
                 }
 
                 si->pawn_key ^= RandZob.piece_square[pasive][PAWN][cap];
@@ -1011,7 +1012,11 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
 
             // Reset clock ply counter
             si->clock_ply = 0;
-            remove_piece(cap, pasive|si->capture);
+            remove_piece(cap);
+            if (ENPASSANT == mtype(m))
+            {
+                piece[cap] = NO_PIECE; // Not done by remove_piece()
+            }
             key ^= RandZob.piece_square[pasive][si->capture][cap];
             si->matl_key ^= RandZob.piece_square[pasive][si->capture][count(pasive|si->capture)];
             prefetch(thread->matl_table[si->matl_key]);
@@ -1053,7 +1058,7 @@ void Position::do_move(Move m, StateInfo &nsi, bool is_check)
 
             si->promote = promote(m);
             // Replace the pawn with the promoted piece
-            remove_piece(dst, piece[dst]);
+            remove_piece(dst);
             place_piece(dst, active|si->promote);
             npm[active] += PieceValues[MG][si->promote];
             key ^= RandZob.piece_square[active][PAWN][dst]
@@ -1145,8 +1150,8 @@ void Position::undo_move(Move m)
         auto rook_dst = rel_sq(active, rook_org > org ? SQ_F1 : SQ_D1);
         /* king */dst = rel_sq(active, rook_org > org ? SQ_G1 : SQ_C1);
         // Remove both pieces first since squares could overlap in chess960
-        remove_piece(dst, piece[dst]);
-        remove_piece(rook_dst, piece[rook_dst]);
+        remove_piece(dst);
+        remove_piece(rook_dst);
         piece[dst] = piece[rook_dst] = NO_PIECE; // Not done by remove_piece()
         place_piece(org, active|KING);
         place_piece(rook_org, active|ROOK);
@@ -1159,7 +1164,7 @@ void Position::undo_move(Move m)
                 && R_8 == rel_rank(active, dst)
                 && promote(m) == si->promote);
 
-            remove_piece(dst, piece[dst]);
+            remove_piece(dst);
             place_piece(dst, active|PAWN);
             npm[active] -= PieceValues[MG][si->promote];
         }
