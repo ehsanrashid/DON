@@ -1764,6 +1764,7 @@ namespace TBSyzygy {
     /// Initializes TB
     void initialize(const string &paths)
     {
+        return; // TODO:: remove
         static bool initialized = false;
 
         if (!initialized)

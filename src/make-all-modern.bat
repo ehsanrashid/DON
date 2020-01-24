@@ -5,7 +5,7 @@ REM make -f Makefile build ARCH=x86-32-abm         COMP=mingw debug=no VER=ddmmy
 
 REM -----------------------------------------------------
 
-SET PATH=C:/MinGW/64/bin/;C:/MinGW/msys/bin/;
+REM SET PATH=C:/MinGW/64/bin/;C:/MinGW/msys/bin/;
 
 REM make -f Makefile build         ARCH=x86-64-abm COMP=mingw debug=no
 REM make -f Makefile profile-build ARCH=x86-64-abm COMP=mingw debug=no
