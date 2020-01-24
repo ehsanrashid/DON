@@ -276,17 +276,7 @@ namespace Searcher {
                     }
 
                     // If the countermove is the same as a killers, skip it
-                    if (   MOVE_NONE != refutation_moves[3]
-                        && (   refutation_moves[0] == refutation_moves[3]
-                            || refutation_moves[1] == refutation_moves[3]
-                            || (  pos.thread->butterfly_history[pos.active][move_index(refutation_moves[3])]
-                               + (*pd_histories[0])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] * 2
-                               + (*pd_histories[1])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] * 2
-                               + (*pd_histories[3])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] * 2
-                               + (*pd_histories[5])[pos[org_sq(refutation_moves[3])]][dst_sq(refutation_moves[3])] < 1000 * depth)))
-                    {
-                        refutation_moves[3] = MOVE_NONE;
-                    }
+                    refutation_moves[3] = MOVE_NONE;
                     if (   MOVE_NONE != refutation_moves[2]
                         && (   refutation_moves[0] == refutation_moves[2]
                             || refutation_moves[1] == refutation_moves[2]))
@@ -959,7 +949,7 @@ namespace Searcher {
 
             // thread->tt_hit_avg can be used to approximate the running average of ttHit
             thread->tt_hit_avg = thread->tt_hit_avg * (ttHitAverageWindow - 1) / ttHitAverageWindow
-                               + (tt_hit ? ttHitAverageResolution : 0);
+                               + ttHitAverageResolution * tt_hit;
 
             bool prior_capture_or_promotion = NONE != pos.si->capture
                                            || NONE != pos.si->promote;
@@ -1133,11 +1123,11 @@ namespace Searcher {
                 }
 
                 improving = VALUE_NONE != (ss-2)->static_eval ?
-                                ss->static_eval >= (ss-2)->static_eval :
+                                ss->static_eval > (ss-2)->static_eval :
                                 VALUE_NONE != (ss-4)->static_eval ?
-                                    ss->static_eval >= (ss-4)->static_eval :
+                                    ss->static_eval > (ss-4)->static_eval :
                                     VALUE_NONE != (ss-6)->static_eval ?
-                                        ss->static_eval >= (ss-6)->static_eval :
+                                        ss->static_eval > (ss-6)->static_eval :
                                         true;
 
                 // Step 8. Futility pruning: child node. (~50 ELO)
@@ -1415,6 +1405,10 @@ namespace Searcher {
                     // SEE based pruning: negative SEE (~25 ELO)
                     if (!pos.see_ge(move, Value(-194 * depth)))
                     {
+                        if (capture_or_promotion)
+                        {
+                            capture_moves.push_back(move);
+                        }
                         continue;
                     }
                 }
@@ -1490,13 +1484,16 @@ namespace Searcher {
 
                 bool do_lmr =
                        2 < depth
-                    && (1 + (root_node) + (root_node && alfa > best_value)) < move_count
+                    && (  1
+                        + root_node
+                        + (   root_node
+                           && alfa > best_value)) < move_count
                     && (   !root_node
                         || thread->move_best_count(move) == 0)
                     && (   cut_node
                         || !capture_or_promotion
                         || move_picker.skip_quiets
-                        || ss->static_eval + PieceValues[EG][std::min(pos.si->capture, pos.si->promote)] <= alfa
+                        || ss->static_eval + PieceValues[EG][pos.si->capture] <= alfa
                         || thread->tt_hit_avg < 375 * ttHitAverageResolution * ttHitAverageWindow / 1024);
 
                 bool full_search;
@@ -1700,13 +1697,13 @@ namespace Searcher {
 
                 if (move != best_move)
                 {
-                    if (!capture_or_promotion)
+                    if (capture_or_promotion)
                     {
-                        quiet_moves.push_back(move);
+                        capture_moves.push_back(move);
                     }
                     else
                     {
-                        capture_moves.push_back(move);
+                        quiet_moves.push_back(move);
                     }
                 }
             }

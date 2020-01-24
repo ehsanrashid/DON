@@ -123,7 +123,7 @@ namespace {
     constexpr Score BishopPawns =        S(  3,  7);
     constexpr Score BishopTrapped =      S( 50, 50);
     constexpr Score RookOnQueenFile =    S(  7,  6);
-    constexpr Score RookTrapped =        S( 52, 10);
+    constexpr Score RookTrapped =        S( 52, 30);
     constexpr Score QueenWeaken =        S( 49, 15);
     constexpr Score PawnLessFlank =      S( 17, 95);
     constexpr Score PasserFile =         S( 11,  8);
