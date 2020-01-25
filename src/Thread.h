@@ -141,7 +141,7 @@ typedef Stats<i16, 29952, MAX_PIECE, SQ_NO>                 PieceDestinyHistory;
 typedef Stats<PieceDestinyHistory, 0, MAX_PIECE, SQ_NO>     ContinuationHistory;
 
 /// MoveHistory stores moves, indexed by [piece][square][size=2]
-typedef std::array<std::array<std::array<Move, 2>, SQ_NO>, MAX_PIECE>   MoveHistory;
+typedef std::array<std::array<Move, SQ_NO>, MAX_PIECE>   MoveHistory;
 
 
 /// Thread class keeps together all the thread-related stuff.

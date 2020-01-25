@@ -497,19 +497,12 @@ namespace Searcher {
             }
             assert(1 == std::count(ss->killer_moves.begin(), ss->killer_moves.end(), move));
 
-            auto p_move = (ss-1)->played_move;
-            if (_ok(p_move))
+            if (_ok((ss-1)->played_move))
             {
-                auto p_org = org_sq(p_move);
-                auto p_dst = dst_sq(p_move);
+                auto p_dst = dst_sq((ss-1)->played_move);
                 assert(NO_PIECE != pos[p_dst]
-                    || CASTLE == mtype(p_move));
-
-                if (pos.thread->move_history[pos[p_dst]][p_dst][0] != move)
-                {
-                    pos.thread->move_history[pos[p_dst]][p_dst][1] = pos.thread->move_history[pos[p_dst]][p_dst][0];
-                    pos.thread->move_history[pos[p_dst]][p_dst][0] = move;
-                }
+                    || CASTLE == mtype((ss-1)->played_move));
+                pos.thread->move_history[pos[p_dst]][p_dst] = move;
             }
 
             pos.thread->butterfly_history[pos.active][move_index(move)] << bonus;
@@ -1279,8 +1272,8 @@ namespace Searcher {
             };
 
             auto counter_move = _ok((ss-1)->played_move) ?
-                        thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)][0] :
-                        MOVE_NONE;
+                                pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] :
+                                MOVE_NONE;
 
             // Initialize move picker (1) for the current position
             MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move);

@@ -282,10 +282,7 @@ void Thread::clear()
                      B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
                      NO_PIECE })
     {
-        for (auto s : SQ)
-        {
-            move_history[pc][s].fill(MOVE_NONE);
-        }
+        move_history[pc].fill(MOVE_NONE);
     }
 
     //// No need to clear
