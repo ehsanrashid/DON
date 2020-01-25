@@ -1,6 +1,7 @@
 #include "Logger.h"
 
 #include <atomic>
+#include <iomanip>
 
 Logger Log;
 

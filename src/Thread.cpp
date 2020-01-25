@@ -14,8 +14,6 @@ using namespace std;
 using namespace Searcher;
 using namespace TBSyzygy;
 
-mutex OutputMutex;
-
 ThreadPool Threadpool;
 
 namespace {
@@ -118,18 +116,18 @@ void TimeManager::set(Color c, i16 ply)
         // Only once at after ucinewgame
         if (0 == available_nodes)
         {
-            available_nodes = Limits.clock[c].time * time_nodes;
+            available_nodes = Threadpool.limit.clock[c].time * time_nodes;
         }
         // Convert from milli-seconds to nodes
-        Limits.clock[c].time = TimePoint(available_nodes);
-        Limits.clock[c].inc *= time_nodes;
+        Threadpool.limit.clock[c].time = TimePoint(available_nodes);
+        Threadpool.limit.clock[c].inc *= time_nodes;
     }
 
     optimum_time =
-    maximum_time = std::max(Limits.clock[c].time, minimum_movetime);
+    maximum_time = std::max(Threadpool.limit.clock[c].time, minimum_movetime);
     // Plan time management at most this many moves ahead.
-    auto max_movestogo = 0 != Limits.movestogo ?
-                            std::min(Limits.movestogo, u08(50)) :
+    auto max_movestogo = 0 != Threadpool.limit.movestogo ?
+                            std::min(Threadpool.limit.movestogo, u08(50)) :
                             u08(50);
     TimePoint time;
     // Calculate optimum time usage for different hypothetic "moves to go" and
@@ -137,8 +135,8 @@ void TimeManager::set(Color c, i16 ply)
     for (u08 movestogo = 1; movestogo <= max_movestogo; ++movestogo)
     {
         // Calculate thinking time for hypothetical "moves to go"
-        time = std::max(Limits.clock[c].time
-                      + Limits.clock[c].inc * (movestogo - 1)
+        time = std::max(Threadpool.limit.clock[c].time
+                      + Threadpool.limit.clock[c].inc * (movestogo - 1)
                         // Clock time: Attempt to keep this much time at clock.
                         // Moves time: Attempt to keep at most this many moves time at clock.
                       - overhead_movetime * (2 + std::min(movestogo, u08(40)))
@@ -159,7 +157,7 @@ void TimeManager::update(Color c)
     // When playing in 'Nodes as Time' mode
     if (0 != time_nodes)
     {
-        available_nodes += Limits.clock[c].inc - Threadpool.nodes();
+        available_nodes += Threadpool.limit.clock[c].inc - Threadpool.nodes();
     }
 }
 
@@ -280,10 +278,11 @@ void Thread::clear()
             continuation_history[in_check][cap_type][NO_PIECE][0]->fill(CounterMovePruneThreshold - 1);
         }
     }
-    for (const auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-                           B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
+    for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+                     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
+                     NO_PIECE })
     {
-        for (const auto s : SQ)
+        for (auto s : SQ)
         {
             move_history[pc][s].fill(MOVE_NONE);
         }
@@ -436,24 +435,24 @@ namespace WinProcGroup {
 
 }
 
-const Thread* ThreadPool::best_thread() const
+Thread* ThreadPool::best_thread() const
 {
-    const auto *best_thread = front();
+    Thread *best_thread = front();
 
     auto min_value = (*std::min_element(begin(), end(),
-                                        [](Thread *const &t1, Thread *const &t2)
+                                        [](Thread *const &th1, Thread *const &th2)
                                         {
-                                            return t1->root_moves.front().new_value
-                                                 < t2->root_moves.front().new_value;
+                                            return th1->root_moves.front().new_value
+                                                 < th2->root_moves.front().new_value;
                                         }))->root_moves.front().new_value;
 
     // Vote according to value and depth
     std::map<Move, u64> votes;
-    for (const auto *th : *this)
+    for (auto *th : *this)
     {
         votes[th->root_moves.front().front()] += i32(th->root_moves.front().new_value - min_value + 14) * th->finished_depth;
     }
-    for (const auto *th : *this)
+    for (auto *th : *this)
     {
         if (best_thread->root_moves.front().new_value >= VALUE_MATE_MAX_PLY)
         {
@@ -474,7 +473,7 @@ const Thread* ThreadPool::best_thread() const
     }
     // Select best thread with max depth
     auto best_fm = best_thread->root_moves.front().front();
-    for (const auto *th : *this)
+    for (auto *th : *this)
     {
         if (best_fm == th->root_moves.front().front())
         {
@@ -484,6 +483,7 @@ const Thread* ThreadPool::best_thread() const
             }
         }
     }
+
     return best_thread;
 }
 
@@ -531,14 +531,14 @@ void ThreadPool::configure(u32 thread_count)
 }
 /// ThreadPool::start_thinking() wakes up main thread waiting in idle_function() and returns immediately.
 /// Main thread will wake up other threads and start the search.
-void ThreadPool::start_thinking(Position &pos, StateListPtr &states, const Limit &limit, const vector<Move> &search_moves, bool ponder)
+void ThreadPool::start_thinking(Position &pos, StateListPtr &states, const Limit &lmt, const vector<Move> &search_moves, bool ponder)
 {
     stop = false;
     research = false;
     main_thread()->stop_on_ponderhit = false;
     main_thread()->ponder = ponder;
 
-    Limits = limit;
+    limit = lmt;
 
     RootMoves root_moves;
     root_moves.initialize(pos, search_moves);

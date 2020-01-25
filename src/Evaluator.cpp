@@ -270,7 +270,7 @@ namespace {
         {
             queen_attacks[Own].fill(0);
         }
-        for (const auto s : pos.squares[Own|PT])
+        for (auto s : pos.squares[Own|PT])
         {
             assert((Own|PT) == pos[s]);
             // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
@@ -615,7 +615,7 @@ namespace {
                         // Enemy queen is gone
                      - 873 * (0 == pos.pieces(Opp, QUEN))
                         // Friend knight is near by to defend king
-                     - 100 * (0 != (sgl_attacks[Own][NIHT] & (sgl_attacks[Own][KING] | own_k_sq)))
+                     - 100 * (0 != (sgl_attacks[Own][NIHT] & (own_k_sq | sgl_attacks[Own][KING])))
                      -   4 * king_flank_defense
                      -   3 * mg_value(score) / 4
                      +  37;
@@ -906,6 +906,7 @@ namespace {
         i32 complexity = 11 * pos.count(PAWN)
                        +  9 * pe->passed_count()
                        +  9 * outflanking
+                        // King infiltration
                        + 12 * (   _rank(pos.square(WHITE|KING)) > R_4
                                || _rank(pos.square(BLACK|KING)) < R_5)
                        + 51 * (VALUE_ZERO == pos.non_pawn_material())

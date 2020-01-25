@@ -5,6 +5,7 @@
 
 #include "MoveGenerator.h"
 #include "Notation.h"
+#include "Util.h"
 
 PolyBook Book;
 
@@ -213,7 +214,7 @@ void PolyBook::initialize(const string &bk_fn)
 
     book_fn = bk_fn;
     trim(book_fn);
-    replace(book_fn, '\\', '/');
+    std::replace(book_fn.begin(), book_fn.end(), '\\', '/');
 
     if (white_spaces(book_fn))
     {

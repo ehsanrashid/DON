@@ -1,9 +1,9 @@
 #pragma once
 
 #include <array>
-#include "Type.h"
 
-class Position;
+#include "Position.h"
+#include "Type.h"
 
 /// Zobrist
 class Zobrist

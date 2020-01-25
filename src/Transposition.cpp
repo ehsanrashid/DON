@@ -3,8 +3,11 @@
 #include <cstring>
 #include <fstream>
 #include <iostream>
+
 #include "Engine.h"
 #include "MemoryHandler.h"
+#include "MoveGenerator.h"
+#include "Thread.h"
 
 TTable TT;
 

@@ -24,7 +24,7 @@ PGOBENCH = ./$(EXE) bench
 ### Object files
 OBJS = BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Logger.o Main.o Material.o \
     MemoryHandler.o MoveGenerator.o Notation.o Option.o Pawns.o Polyglot.o Position.o \
-    PSQTable.o Searcher.o TBsyzygy.o Thread.o Transposition.o Zobrist.o
+    PSQTable.o RootMove.o Searcher.o TBsyzygy.o Thread.o Transposition.o Zobrist.o
 
 ### Establish the operating system name
 KERNEL = $(shell uname -s)

@@ -6535,7 +6535,7 @@
     <Alias n="359" Id="(@1 @12 Member=(Name=&quot;operator|=&quot; OverloadingParameters=[(Type=&quot;unsigned __int64 &amp;&quot;),@127]))" />
     <Alias n="360" Id="(@1 @3 Member=(Name=append_path OverloadingParameters=[@151,@151]))" />
     <Alias n="361" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,(Type=&quot;std::chrono::time_point&lt;std::chrono::system_clock,std::chrono::duration&lt;__int64,std::ratio&lt;1,10000000&gt; &gt; &gt; const &amp;&quot;)]))" />
-    <Alias n="362" Id="(@1 @38 Member=(@227 OverloadingParameters=[@208,(Type=&quot;std::map&lt;std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,UCI::Option,std::no_case_less_comparer,std::allocator&lt;std::pair&lt;std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt; const ,UCI::Option&gt; &gt; &gt; const &amp;&quot;)]))" />
+    <Alias n="362" Id="(@1 @38 Member=(@227 OverloadingParameters=[@208,(Type=&quot;std::map&lt;std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,UCI::Option,std::CaseInsensitiveLessComparer,std::allocator&lt;std::pair&lt;std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt; const ,UCI::Option&gt; &gt; &gt; const &amp;&quot;)]))" />
     <Alias n="363" Id="(@1 @36 Member=(@227 OverloadingParameters=[@208,(Type=TBSyzygy::ProbeState)]))" />
     <Alias n="364" Id="(Type=&quot;TBSyzygy::ProbeState &amp;&quot;)" />
     <Alias n="365" Id="(@1 @36 Member=(Name=probe_dtz OverloadingParameters=[@271,@364]))" />

@@ -1,16 +1,19 @@
 #pragma once
 
 #include <atomic>
-#include <mutex>
 #include <condition_variable>
+#include <mutex>
+#include <vector>
 
-#include "Pawns.h"
 #include "Material.h"
-#include "Position.h"
+#include "Pawns.h"
+
 #include "Option.h"
+#include "Position.h"
 #include "PRNG.h"
-#include "Searcher.h"
+#include "RootMove.h"
 #include "thread_win32_osx.h"
+#include "Type.h"
 
 /// TimeManager class is used to computes the optimal time to think depending on the
 /// maximum available time, the move game number and other parameters.
@@ -51,7 +54,7 @@ private:
 public:
     static PRNG prng;
 
-    i16 level;
+    i16  level;
     Move best_move;
 
     SkillManager()
@@ -63,13 +66,83 @@ public:
 
     bool enabled() const { return level < MaxLevel; }
 
-    void set_level(i16 lvl)
-    {
-        level = lvl;
-    }
+    void set_level(i16 lvl) { level = lvl; }
 
     void pick_best_move();
 };
+
+// Threshold for counter moves based pruning
+constexpr i32 CounterMovePruneThreshold = 0;
+
+/// StatsEntry stores the stats table value. It is usually a number but could
+/// be a move or even a nested history. We use a class instead of naked value
+/// to directly call history update operator<<() on the entry so to use stats
+/// tables at caller sites as simple multi-dim arrays.
+template<typename T, i32 D>
+class StatsEntry
+{
+private:
+    T entry;
+
+public:
+
+    void operator=(const T &v) { entry = v; }
+
+    T* operator&()             { return &entry; }
+    T* operator->()            { return &entry; }
+
+    operator const T&() const  { return entry; }
+
+    void operator<<(i32 bonus)
+    {
+        static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
+        assert(abs(bonus) <= D); // Ensure range is [-D, +D]
+
+        entry += T(bonus - entry * abs(bonus) / D);
+
+        assert(abs(entry) <= D);
+    }
+};
+
+/// Stats is a generic N-dimensional array used to store various statistics.
+/// The first template T parameter is the base type of the array,
+/// the D parameter limits the range of updates (range is [-D, +D]), and
+/// the last parameters (Size and Sizes) encode the dimensions of the array.
+template <typename T, i32 D, i32 Size, i32... Sizes>
+struct Stats
+    : public std::array<Stats<T, D, Sizes...>, Size>
+{
+    typedef Stats<T, D, Size, Sizes...> stats;
+
+    void fill(const T &v)
+    {
+        // For standard-layout 'this' points to first struct member
+        assert(std::is_standard_layout<stats>::value);
+
+        typedef StatsEntry<T, D> Entry;
+        auto *p = reinterpret_cast<Entry*>(this);
+        std::fill(p, p + sizeof (*this) / sizeof (Entry), v);
+    }
+};
+template <typename T, i32 D, i32 Size>
+struct Stats<T, D, Size>
+    : public std::array<StatsEntry<T, D>, Size>
+{};
+
+/// ButterflyHistory records how often quiet moves have been successful or unsuccessful
+/// during the current search, and is used for reduction and move ordering decisions, indexed by [color][move].
+typedef Stats<i16, 10692, CLR_NO, SQ_NO*SQ_NO>              ButterflyHistory;
+/// CaptureHistory stores capture history, indexed by [piece][square][captured type]
+typedef Stats<i16, 10692, MAX_PIECE, SQ_NO, PT_NO>          CaptureHistory;
+/// PieceDestinyHistory is like ButterflyHistory, indexed by [piece][square]
+typedef Stats<i16, 29952, MAX_PIECE, SQ_NO>                 PieceDestinyHistory;
+/// ContinuationHistory is the combined history of a given pair of moves, usually the current one given a previous one.
+/// The nested history table is based on PieceDestinyHistory, indexed by [piece][square]
+typedef Stats<PieceDestinyHistory, 0, MAX_PIECE, SQ_NO>     ContinuationHistory;
+
+/// MoveHistory stores moves, indexed by [piece][square][size=2]
+typedef std::array<std::array<std::array<Move, 2>, SQ_NO>, MAX_PIECE>   MoveHistory;
+
 
 /// Thread class keeps together all the thread-related stuff.
 /// It use pawn and material hash tables so that once get a pointer to
@@ -102,9 +175,9 @@ public:
     i16   nmp_ply;
     Color nmp_color;
 
-    u32    pv_beg
-        ,  pv_cur
-        ,  pv_end;
+    u32   pv_beg
+        , pv_cur
+        , pv_end;
 
     std::atomic<u64> nodes
         ,            tb_hits;
@@ -158,8 +231,8 @@ public:
     SkillManager skill_mgr;
 
     std::array<Value, 4> iter_value;
-    Move   best_move;
-    i16    best_move_depth;
+    Move best_move;
+    i16  best_move_depth;
 
     explicit MainThread(size_t);
     MainThread() = delete;
@@ -180,6 +253,62 @@ namespace WinProcGroup {
     extern void initialize();
     extern void bind(size_t);
 }
+
+/// Limit stores information sent by GUI about available time to search the current move.
+///  - Time and Increment
+///  - Moves to go
+///  - Depth
+///  - Nodes
+///  - Mate
+///  - Infinite analysis mode
+struct Limit
+{
+public:
+    // Clock struct stores the time and inc per move in milli-seconds.
+    struct Clock
+    {
+        TimePoint time;
+        TimePoint inc;
+
+        Clock()
+            : time(0)
+            , inc(0)
+        {}
+    };
+    std::array<Clock, CLR_NO> clock; // Search with Clock
+
+    u08       movestogo;    // Search <x> moves to the next time control
+
+    TimePoint movetime;    // Search <x> exact time in milli-seconds
+    Depth     depth;       // Search <x> depth(plies) only
+    u64       nodes;       // Search <x> nodes only
+    u08       mate;        // Search mate in <x> moves
+    bool      infinite;    // Search until the "stop" command
+
+    Limit()
+        : clock()
+        , movestogo(0)
+        , movetime(0)
+        , depth(DEP_ZERO)
+        , nodes(0)
+        , mate(0)
+        , infinite(false)
+    {}
+
+    bool time_mgr_used() const
+    {
+        return !infinite
+            && 0 == movetime
+            && DEP_ZERO == depth
+            && 0 == nodes
+            && 0 == mate;
+    }
+
+    bool mate_on() const
+    {
+        return 0 != mate;
+    }
+};
 
 /// ThreadPool class handles all the threads related stuff like,
 /// initializing & deinitializing, starting, parking & launching a thread
@@ -204,7 +333,9 @@ private:
 
 public:
 
-    u32 pv_limit;
+    Limit limit;
+    u32   pv_limit;
+
     double factor;
 
     std::atomic<bool> stop // Stop search forcefully
@@ -219,37 +350,13 @@ public:
     u64    tb_hits() const { return sum(&Thread::tb_hits); }
     u32  pv_change() const { return sum(&Thread::pv_change); }
 
-    const Thread* best_thread() const;
+    Thread* best_thread() const;
 
     void clear();
     void configure(u32);
 
     void start_thinking(Position&, StateListPtr&, const Limit&, const std::vector<Move>&, bool = false);
 };
-
-
-enum OutputState : u08
-{
-    OS_LOCK,
-    OS_UNLOCK,
-};
-
-extern std::mutex OutputMutex;
-
-/// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<<(std::ostream &os, OutputState state)
-{
-    switch (state)
-    {
-    case OutputState::OS_LOCK:   OutputMutex.lock();   break;
-    case OutputState::OS_UNLOCK: OutputMutex.unlock(); break;
-    default: break;
-    }
-    return os;
-}
-
-#define sync_cout std::cout << OS_LOCK
-#define sync_endl std::endl << OS_UNLOCK
 
 // Global ThreadPool
 extern ThreadPool Threadpool;

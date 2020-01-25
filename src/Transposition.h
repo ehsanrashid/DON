@@ -1,7 +1,8 @@
 #pragma once
 
+#include "Position.h"
 #include "Type.h"
-#include "Thread.h"
+#include "Util.h"
 
 /// Transposition::Entry needs 16 byte to be stored
 ///

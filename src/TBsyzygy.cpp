@@ -17,6 +17,7 @@
 #include "Option.h"
 #include "Position.h"
 #include "Thread.h"
+
 using namespace std;
 
 #if defined(_WIN32)
@@ -65,7 +66,6 @@ string GetLastErrorString()
 namespace TBSyzygy {
 
     using namespace BitBoard;
-    using namespace Searcher;
 
     string PathString = "";
     i32    MaxLimitPiece = 0;
@@ -465,8 +465,8 @@ namespace TBSyzygy {
             piece_count = pos.count();
             has_pawns = 0 != pos.count(PAWN);
             has_unique_pieces = false;
-            for (const auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN,
-                                   B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN })
+            for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN,
+                             B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN })
             {
                 if (1 == pos.count(pc))
                 {
@@ -1400,13 +1400,15 @@ namespace TBSyzygy {
 
             // Pieces strings in decreasing order for each color, like ("KPP","KR")
             string w, b;
-            for (const auto pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
+            for (auto pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
             {
                 w += string(pos.count(WHITE|pt), PieceChar[pt]);
                 b += string(pos.count(BLACK|pt), PieceChar[pt]);
             }
 
-            string code = e.key1 == pos.si->matl_key ? w + b : b + w;
+            string code = e.key1 == pos.si->matl_key ?
+                            w + b :
+                            b + w;
             TBFile file (code, WDL == Type ? ".rtbw" : ".rtbz");
             u08 *data = file.map(&e.base_address, &e.mapping, Type);
             if (nullptr != data)
@@ -1457,7 +1459,7 @@ namespace TBSyzygy {
             StateInfo si;
             auto move_list = MoveList<GenType::LEGAL>(pos);
             size_t move_count = 0;
-            for (const auto &move : move_list)
+            for (auto &move : move_list)
             {
                 if (   !pos.capture(move)
                     && (   !check_zeroing
@@ -1603,7 +1605,7 @@ namespace TBSyzygy {
         StateInfo si;
         i32 min_dtz = 0xFFFF;
 
-        for (const auto &vm : MoveList<GenType::LEGAL>(pos))
+        for (auto &vm : MoveList<GenType::LEGAL>(pos))
         {
             bool zeroing = pos.capture(vm)
                         || PAWN == ptype(pos[org_sq(vm)]);
@@ -1771,7 +1773,7 @@ namespace TBSyzygy {
         {
             // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27
             i32 code = 0;
-            for (const auto s : SQ)
+            for (auto s : SQ)
             {
                 if (off_A1H8(s) < 0)
                 {
@@ -1781,10 +1783,10 @@ namespace TBSyzygy {
             // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
             code = 0;
             vector<Square> diagonal;
-            for (const auto s : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
-                                  SQ_A2, SQ_B2, SQ_C2, SQ_D2,
-                                  SQ_A3, SQ_B3, SQ_C3, SQ_D3,
-                                  SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
+            for (auto s : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
+                            SQ_A2, SQ_B2, SQ_C2, SQ_D2,
+                            SQ_A3, SQ_B3, SQ_C3, SQ_D3,
+                            SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
             {
                 if (off_A1H8(s) < 0)
                 {
@@ -1797,7 +1799,7 @@ namespace TBSyzygy {
                 }
             }
             // Diagonal squares are encoded as last ones
-            for (const auto s : diagonal)
+            for (auto s : diagonal)
             {
                 MapA1D1D4[s] = code++;
             }
@@ -1807,15 +1809,15 @@ namespace TBSyzygy {
             code = 0;
             for (i32 idx = 0; idx < 10; ++idx)
             {
-                for (const auto s1 : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
-                                       SQ_A2, SQ_B2, SQ_C2, SQ_D2,
-                                       SQ_A3, SQ_B3, SQ_C3, SQ_D3,
-                                       SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
+                for (auto s1 : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
+                                 SQ_A2, SQ_B2, SQ_C2, SQ_D2,
+                                 SQ_A3, SQ_B3, SQ_C3, SQ_D3,
+                                 SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
                 {
                     if (   MapA1D1D4[s1] == idx
                         && (0 != idx || SQ_B1 == s1)) // SQ_B1 is mapped to 0
                     {
-                        for (const auto s2 : SQ)
+                        for (auto s2 : SQ)
                         {
                             if (contains(PieceAttacks[KING][s1] | s1, s2))
                             {
@@ -1869,7 +1871,7 @@ namespace TBSyzygy {
             // with 6-men TB can have up to 4 leading pawns (KPPPPK).
             for (i32 lead_pawn_count = 1; lead_pawn_count <= 4; ++lead_pawn_count)
             {
-                for (const auto f : { F_A, F_B, F_C, F_D })
+                for (auto f : { F_A, F_B, F_C, F_D })
                 {
                     // Restart the index at every file because TB table is splitted
                     // by file, so we can reuse the same index for different files.
@@ -1877,7 +1879,7 @@ namespace TBSyzygy {
 
                     // Sum all possible combinations for a given file, starting with
                     // the leading pawn on rank 2 and increasing the rank.
-                    for (const auto r : { R_2, R_3, R_4, R_5, R_6, R_7 })
+                    for (auto r : { R_2, R_3, R_4, R_5, R_6, R_7 })
                     {
                         auto sq = f|r;
 
@@ -1930,7 +1932,7 @@ namespace TBSyzygy {
             if (!white_spaces(path))
             {
                 trim(path);
-                replace(path, '\\', '/');
+                std::replace(path.begin(), path.end(), '\\', '/');
                 TBFile::Paths.push_back(path);
             }
         }

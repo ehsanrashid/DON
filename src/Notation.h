@@ -1,7 +1,9 @@
 #pragma once
 
+#include <iomanip>
+#include <sstream>
+
 #include "Position.h"
-#include "Thread.h"
 #include "Type.h"
 
 const std::string PieceChar("PNBRQK  pnbrqk");

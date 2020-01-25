@@ -14,6 +14,7 @@
 #include "Logger.h"
 #include "Material.h"
 #include "MemoryHandler.h"
+#include "MoveGenerator.h"
 #include "Notation.h"
 #include "Option.h"
 #include "Pawns.h"
@@ -116,7 +117,7 @@ namespace {
         // return 0;
         auto itr = std::find(Months.begin(), Months.end(), month);
         return itr != Months.end() ?
-                std::distance(Months.begin(), itr) + 1 :
+                i32(std::distance(Months.begin(), itr)) + 1 :
                 0;
     }
 
@@ -498,9 +499,10 @@ namespace {
     /// then it is run one by one printing a summary at the end.
     void bench(istringstream &iss, Position &pos, StateListPtr &states)
     {
-        auto uci_cmds = setup_bench(iss, pos);
-        u16 total = u16(std::count_if(uci_cmds.begin(), uci_cmds.end(),
-                                      [](const string &s) { return s.find("go ") == 0|| s.find("eval") == 0; }));
+        const auto uci_cmds = setup_bench(iss, pos);
+        const auto total = u16(std::count_if(uci_cmds.begin(), uci_cmds.end(),
+                                      [](const string &s) { return 0 == s.find("go ")
+                                                                || 0 == s.find("eval"); }));
         u16 count = 0;
 
         debug_init();

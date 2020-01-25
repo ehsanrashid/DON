@@ -2,8 +2,9 @@
 
 #include <array>
 
-#include "Type.h"
 #include "Position.h"
+#include "Type.h"
+#include "Util.h"
 
 namespace Pawns {
 

@@ -78,7 +78,7 @@ namespace Material {
             i32 value = 0;
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
-            for (auto &pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN })
+            for (auto pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN })
             {
                 if (0 != count[Own][pt1])
                 {
@@ -124,7 +124,7 @@ namespace Material {
             return;
         }
         // Generic evaluation
-        for (const auto c : { WHITE, BLACK })
+        for (auto c : { WHITE, BLACK })
         {
             if (   pos.non_pawn_material( c) >= VALUE_MG_ROOK
                 && pos.count(~c) == 1)
@@ -148,7 +148,7 @@ namespace Material {
 
         // Didn't find any specialized scaling function, so fall back on
         // generic scaling functions that refer to more than one material distribution.
-        for (const auto c : { WHITE, BLACK })
+        for (auto c : { WHITE, BLACK })
         {
             if (   pos.non_pawn_material( c) == VALUE_MG_BSHP
                 //&& pos.count( c|BSHP) == 1

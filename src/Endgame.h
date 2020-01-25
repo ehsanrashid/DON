@@ -2,8 +2,6 @@
 
 #include <unordered_map>
 #include <memory>
-#include <type_traits>
-#include <utility>
 
 #include "Position.h"
 #include "Type.h"

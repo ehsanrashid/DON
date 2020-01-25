@@ -6,10 +6,10 @@
 #include <memory> // For std::unique_ptr
 #include <string>
 
-#include "Type.h"
 #include "BitBoard.h"
 #include "PSQTable.h"
-#include "Zobrist.h"
+#include "Type.h"
+#include "Util.h"
 
 /// Pre-loads the given address in L1/L2 cache.
 /// This is a non-blocking function that doesn't stall the CPU
@@ -120,6 +120,7 @@ class Thread;
 class Position
 {
 private:
+
     void place_piece(Square, Piece);
     void remove_piece(Square);
     void move_piece(Square, Square);
@@ -129,13 +130,14 @@ private:
     bool can_enpassant(Color, Square, bool = true) const;
 
 public:
-    std::array<Piece, SQ_NO>        piece;
-    std::array<Bitboard, CLR_NO>    color_bb;
-    std::array<Bitboard, PT_NO>     type_bb;
 
-    std::array<Value, CLR_NO>       npm;
+    std::array<Piece, SQ_NO>     piece;
+    std::array<Bitboard, CLR_NO> color_bb;
+    std::array<Bitboard, PT_NO>  type_bb;
 
-    std::array<CastleRight, SQ_NO>  castle_right;
+    std::array<Value, CLR_NO> npm;
+
+    std::array<CastleRight, SQ_NO> castle_right;
 
     std::array<std::list<Square>, MAX_PIECE> squares;
 
@@ -143,12 +145,12 @@ public:
     std::array<std::array<Bitboard, CS_NO>, CLR_NO> castle_king_path_bb;
     std::array<std::array<Bitboard, CS_NO>, CLR_NO> castle_rook_path_bb;
 
-    Score       psq;
-    i16         ply;
-    Color       active;
-    Thread      *thread;
+    Score   psq;
+    i16     ply;
+    Color   active;
+    Thread  *thread;
 
-    StateInfo   *si; // Current state information pointer
+    StateInfo *si; // Current state information pointer
 
     static void initialize();
 
@@ -334,51 +336,6 @@ inline Value Position::non_pawn_material(Color c) const
     return npm[c];
 }
 
-inline Key Position::pg_key() const
-{
-    return PolyZob.compute_posi_key(*this);
-}
-/// Position::move_posi_key() computes the new hash key after the given moven.
-/// Needed for speculative prefetch.
-inline Key Position::posi_move_key(Move m) const
-{
-    auto org = org_sq(m);
-    auto dst = dst_sq(m);
-    auto key = si->posi_key;
-    if (CASTLE == mtype(m))
-    {
-        key ^= RandZob.piece_square[active][ROOK][dst]
-             ^ RandZob.piece_square[active][ROOK][rel_sq(active, dst > org ? SQ_F1 : SQ_D1)];
-    }
-    else
-    {
-        auto cpt = ENPASSANT != mtype(m) ? ptype(piece[dst]) : PAWN;
-        if (NONE != cpt)
-        {
-            key ^= RandZob.piece_square[~active][cpt][ENPASSANT != mtype(m) ? dst : dst - pawn_push(active)];
-        }
-        else
-        if (   PAWN == ptype(piece[org])
-            && dst == org + pawn_push(active) * 2)
-        {
-            auto ep_sq = org + pawn_push(active);
-            if (can_enpassant(~active, ep_sq, false))
-            {
-                key ^= RandZob.enpassant[_file(ep_sq)];
-            }
-        }
-    }
-    if (SQ_NO != si->enpassant_sq)
-    {
-        key ^= RandZob.enpassant[_file(si->enpassant_sq)];
-    }
-    return key
-         ^ RandZob.color
-         ^ RandZob.piece_square[active][ptype(piece[org])][org]
-         ^ RandZob.piece_square[active][PROMOTE != mtype(m) ? ptype(piece[org]) : promote(m)][CASTLE != mtype(m) ? dst : rel_sq(active, dst > org ? SQ_G1 : SQ_C1)]
-         ^ RandZob.castle_right[si->castle_rights & (castle_right[org] | castle_right[dst])];
-}
-
 inline bool Position::expeded_castle(Color c, CastleSide cs) const
 {
     return 0 == (castle_rook_path_bb[c][cs] & pieces());
@@ -535,7 +492,7 @@ inline void Position::move_piece(Square s1, Square s2)
     color_bb[color(pc)] ^= bb;
     type_bb[ptype(pc)] ^= bb;
     type_bb[NONE] ^= bb;
-    replace(squares[pc], s1, s2);
+    std::replace(squares[pc].begin(), squares[pc].end(), s1, s2);
     psq += PSQ[pc][s2] - PSQ[pc][s1];
     piece[s2] = pc;
     piece[s1] = NO_PIECE;

@@ -11,6 +11,7 @@
 #include "TBsyzygy.h"
 #include "Thread.h"
 #include "Transposition.h"
+#include "Zobrist.h"
 
 using namespace std;
 using namespace BitBoard;
@@ -24,7 +25,7 @@ namespace {
     Value compute_npm (const Position &pos)
     {
         auto npm = VALUE_ZERO;
-        for (const auto pt : { NIHT, BSHP, ROOK, QUEN })
+        for (auto pt : { NIHT, BSHP, ROOK, QUEN })
         {
             npm += PieceValues[MG][pt] * pos.count(Own|pt);
         }
@@ -94,11 +95,11 @@ void Position::initialize()
     // Prepare the Cuckoo tables
     Cuckoos.fill({0, MOVE_NONE});
     u16 count = 0;
-    for (const auto c : { WHITE, BLACK })
+    for (auto c : { WHITE, BLACK })
     {
-        for (const auto pt : { NIHT, BSHP, ROOK, QUEN, KING })
+        for (auto pt : { NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (const auto &org : SQ)
+            for (auto org : SQ)
             {
                 for (auto dst = org + DEL_E; dst <= SQ_H8; ++dst)
                 {
@@ -131,6 +132,56 @@ void Position::initialize()
         }
     }
     assert(3668 == count);
+}
+
+
+Key Position::pg_key() const
+{
+    return PolyZob.compute_posi_key(*this);
+}
+/// Position::move_posi_key() computes the new hash key after the given moven.
+/// Needed for speculative prefetch.
+Key Position::posi_move_key(Move m) const
+{
+    assert(_ok(m)
+        && pseudo_legal(m)
+        && legal(m));
+
+    auto org = org_sq(m);
+    auto dst = dst_sq(m);
+    auto key = si->posi_key;
+    if (CASTLE == mtype(m))
+    {
+        key ^= RandZob.piece_square[active][ROOK][dst]
+             ^ RandZob.piece_square[active][ROOK][rel_sq(active, dst > org ? SQ_F1 : SQ_D1)];
+    }
+    else
+    {
+        auto cpt = ENPASSANT != mtype(m) ? ptype(piece[dst]) : PAWN;
+        if (NONE != cpt)
+        {
+            key ^= RandZob.piece_square[~active][cpt][ENPASSANT != mtype(m) ? dst : dst - pawn_push(active)];
+        }
+        else
+        if (   PAWN == ptype(piece[org])
+            && dst == org + pawn_push(active) * 2)
+        {
+            auto ep_sq = org + pawn_push(active);
+            if (can_enpassant(~active, ep_sq, false))
+            {
+                key ^= RandZob.enpassant[_file(ep_sq)];
+            }
+        }
+    }
+    if (SQ_NO != si->enpassant_sq)
+    {
+        key ^= RandZob.enpassant[_file(si->enpassant_sq)];
+    }
+    return key
+         ^ RandZob.color
+         ^ RandZob.piece_square[active][ptype(piece[org])][org]
+         ^ RandZob.piece_square[active][PROMOTE != mtype(m) ? ptype(piece[org]) : promote(m)][CASTLE != mtype(m) ? dst : rel_sq(active, dst > org ? SQ_G1 : SQ_C1)]
+         ^ RandZob.castle_right[si->castle_rights & (castle_right[org] | castle_right[dst])];
 }
 
 /// Position::draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
@@ -727,8 +778,11 @@ void Position::clear()
 
     castle_right.fill(CR_NONE);
 
-    for (auto &sq : squares) { sq.clear(); }
-
+    for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+                     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
+    {
+        squares[pc].clear();
+    }
     for (auto &crs : castle_rook_sq) { crs.fill(SQ_NO); }
     for (auto &ckp : castle_king_path_bb) { ckp.fill(0); }
     for (auto &crp : castle_rook_path_bb) { crp.fill(0); }
@@ -1255,7 +1309,7 @@ void Position::flip()
     istringstream iss{fen()};
     string ff, token;
     // 1. Piece placement
-    for (const auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         std::getline(iss, token, r > R_1 ? '/' : ' ');
         toggle(token);
@@ -1295,7 +1349,7 @@ void Position::mirror()
     istringstream iss{fen()};
     string ff, token;
     // 1. Piece placement
-    for (const auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         std::getline(iss, token, r > R_1 ? '/' : ' ');
         std::reverse(token.begin(), token.end());
@@ -1354,7 +1408,7 @@ string Position::fen(bool full) const
 {
     ostringstream oss;
 
-    for (const auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         for (auto f = F_A; f <= F_H; ++f)
         {
@@ -1407,16 +1461,16 @@ Position::operator std::string() const
     ostringstream oss;
 
     oss << " +---+---+---+---+---+---+---+---+\n";
-    for (const auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
     {
         oss << to_char(r) << "| ";
-        for (const auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+        for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
             oss << piece[f|r] << " | ";
         }
         oss << "\n +---+---+---+---+---+---+---+---+\n";
     }
-    for (const auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+    for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
     {
         oss << "   " << to_char(f, false);
     }
@@ -1467,7 +1521,7 @@ bool Position::ok() const
         assert(false && "Position OK: BASIC");
         return false;
     }
-    for (const auto c : { WHITE, BLACK })
+    for (auto c : { WHITE, BLACK })
     {
         if (   count(c) > 16
             || count(c) != pop_count(pieces(c))
@@ -1498,9 +1552,9 @@ bool Position::ok() const
         assert(false && "Position OK: BITBOARD");
         return false;
     }
-    for (const auto pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+    for (auto pt1 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
-        for (const auto pt2 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+        for (auto pt2 : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
             if (   pt1 != pt2
                 && 0 != (pieces(pt1) & pieces(pt2)))
@@ -1510,7 +1564,7 @@ bool Position::ok() const
             }
         }
     }
-    for (const auto c : { WHITE, BLACK })
+    for (auto c : { WHITE, BLACK })
     {
         if (   1 != pop_count(pieces(c, KING))
             || (          (pop_count(pieces(c, PAWN))
@@ -1542,8 +1596,8 @@ bool Position::ok() const
     }
 
     // SQUARE_LIST
-    for (const auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-                           B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
+    for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+                     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
     {
         if (count(pc) != pop_count(pieces(pc)))
         {
@@ -1562,9 +1616,9 @@ bool Position::ok() const
     }
 
     // CASTLING
-    for (const auto c : { WHITE, BLACK })
+    for (auto c : { WHITE, BLACK })
     {
-        for (const auto cs : { CS_KING, CS_QUEN })
+        for (auto cs : { CS_KING, CS_QUEN })
         {
             auto cr = c|cs;
             if (   si->can_castle(cr)

@@ -5,6 +5,7 @@
 #include "Endgame.h"
 #include "Position.h"
 #include "Type.h"
+#include "Util.h"
 
 namespace Material {
 

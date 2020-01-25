@@ -602,6 +602,7 @@
     <ClCompile Include="src\PSQTable.cpp" />
     <ClCompile Include="src\Polyglot.cpp" />
     <ClCompile Include="src\Position.cpp" />
+    <ClCompile Include="src\RootMove.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
     <ClCompile Include="src\TBsyzygy.cpp" />
     <ClCompile Include="src\Thread.cpp" />
@@ -616,7 +617,6 @@
     <ClInclude Include="src\Endgame.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
-    <ClInclude Include="src\functor.h" />
     <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\MemoryHandler.h" />
     <ClInclude Include="src\MoveGenerator.h" />
@@ -626,6 +626,7 @@
     <ClInclude Include="src\Polyglot.h" />
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\PRNG.h" />
+    <ClInclude Include="src\RootMove.h" />
     <ClInclude Include="src\Searcher.h" />
     <ClInclude Include="src\TBsyzygy.h" />
     <ClInclude Include="src\Thread.h" />
@@ -634,6 +635,7 @@
     <ClInclude Include="src\Transposition.h" />
     <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\Option.h" />
+    <ClInclude Include="src\Util.h" />
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>

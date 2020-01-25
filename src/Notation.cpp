@@ -5,6 +5,7 @@
 #include "MoveGenerator.h"
 #include "Searcher.h"
 #include "Transposition.h"
+#include "Thread.h"
 
 using namespace std;
 using namespace BitBoard;

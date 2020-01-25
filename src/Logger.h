@@ -2,14 +2,15 @@
 
 #include <fstream>
 #include <iostream>
+#if defined(_WIN32)
+#   include <ctime>
+#endif
 
 #include "Engine.h"
 #include "tiebuffer.h"
 #include "Type.h"
+#include "Util.h"
 
-#if defined(_WIN32)
-#   include <ctime>
-#endif
 
 inline std::string time_to_string(const std::chrono::system_clock::time_point &tp)
 {

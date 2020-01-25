@@ -1,7 +1,5 @@
 #include "Option.h"
 
-#include <fstream>
-
 #include "Polyglot.h"
 #include "Logger.h"
 #include "Thread.h"
@@ -9,7 +7,7 @@
 #include "Searcher.h"
 #include "TBsyzygy.h"
 
-UCI::NoCaseLessMap Options;
+UCI::StringOptionMap Options;
 
 using namespace std;
 
@@ -75,13 +73,13 @@ namespace UCI {
     Option::operator i32() const
     {
         assert(type == "spin");
-        return stoi(current_value);
+        return std::stoi(current_value);
     }
     bool Option::operator==(const char *val) const
     {
         assert(type == "combo");
-        return !no_case_less_comparer()(current_value, val)
-            && !no_case_less_comparer()(val, current_value);
+        return !CaseInsensitiveLessComparer()(current_value, val)
+            && !CaseInsensitiveLessComparer()(val, current_value);
     }
 
     /// Option::operator=() updates value and triggers on_change() action.
@@ -110,7 +108,7 @@ namespace UCI {
             else
             if (type == "spin")
             {
-                val = std::to_string(::clamp(stoi(val), minimum, maximum));
+                val = std::to_string(::clamp(std::stoi(val), minimum, maximum));
             }
             else
             if (type == "string")
@@ -123,7 +121,7 @@ namespace UCI {
             else
             if (type == "combo")
             {
-                NoCaseLessMap comboMap; // To have case insensitive compare
+                StringOptionMap combo_map; // To have case insensitive compare
                 istringstream iss{default_value};
                 string token;
                 while (iss >> token)
@@ -132,13 +130,14 @@ namespace UCI {
                     {
                         continue;
                     }
-                    comboMap[token] << Option();
+                    combo_map[token] << Option();
                 }
-                if (comboMap.find(val) == comboMap.end())
+                if (combo_map.find(val) == combo_map.end())
                 {
                     return *this;
                 }
             }
+
             current_value = val;
         }
 
@@ -173,7 +172,7 @@ namespace UCI {
             else
             if (type == "spin")
             {
-                oss << " default " << default_value
+                oss << " default " << i32(std::stoi(default_value))
                     << " min " << minimum
                     << " max " << maximum;
             }

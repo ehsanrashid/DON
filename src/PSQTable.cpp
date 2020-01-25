@@ -88,10 +88,10 @@ namespace {
 Score compute_psq(const Position &pos)
 {
     auto psq = SCORE_ZERO;
-    for (const auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-                           B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
+    for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+                     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
     {
-        for (const auto s : pos.squares[pc])
+        for (auto s : pos.squares[pc])
         {
             psq += PSQ[pc][s];
         }
@@ -102,10 +102,10 @@ Score compute_psq(const Position &pos)
 /// psq_initialize() initializes psq lookup tables.
 void psq_initialize()
 {
-    for (const auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
+    for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
         Score score = make_score(PieceValues[MG][pt], PieceValues[EG][pt]);
-        for (const auto s : SQ)
+        for (auto s : SQ)
         {
             Score psq = score
                       + (PAWN == pt ?

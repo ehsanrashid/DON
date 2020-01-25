@@ -1,15 +1,17 @@
 #include "Searcher.h"
 
 #include <cmath>
-#include <cstdlib>
 #include <ctime>
-#include <iterator>
+#include <iostream>
+#include <sstream>
 
 #include "Evaluator.h"
 #include "Logger.h"
+#include "MoveGenerator.h"
 #include "Notation.h"
 #include "Option.h"
 #include "Polyglot.h"
+#include "Position.h"
 #include "TBsyzygy.h"
 #include "Thread.h"
 #include "Transposition.h"
@@ -18,28 +20,7 @@ using namespace std;
 using namespace BitBoard;
 using namespace TBSyzygy;
 
-/// RootMove::operator string()
-RootMove::operator string() const
-{
-    ostringstream oss;
-    for (auto move : *this)
-    {
-        assert(MOVE_NONE != move);
-        oss << " " << move;
-    }
-    return oss.str();
-}
-/// RootMoves::operator string()
-RootMoves::operator string() const
-{
-    ostringstream oss;
-    std::copy(begin(), end(), ostream_iterator<RootMove>(oss, "\n"));
-    return oss.str();
-}
-
 namespace Searcher {
-
-    Limit Limits;
 
     Depth TBProbeDepth = 1;
     i32   TBLimitPiece = 6;
@@ -168,13 +149,13 @@ namespace Searcher {
 
             /// MovePicker constructor for the main search
             MovePicker(const Position &p, Move ttm, Depth d, const array<const PieceDestinyHistory*, 6> &pdhs,
-                       const array<Move, 2> &km, const array<Move, 2> &cm)
+                       const array<Move, 2> &km, Move cm)
                 : pos(p)
                 , tt_move(ttm)
                 , depth(d)
                 , pd_histories(pdhs)
                 , threshold(Value(-3000 * d))
-                , refutation_moves({ km[0], km[1], cm[0], cm[1] })
+                , refutation_moves({ km[0], km[1], cm })
                 , skip_quiets(false)
             {
                 assert(MOVE_NONE == tt_move
@@ -276,7 +257,6 @@ namespace Searcher {
                     }
 
                     // If the countermove is the same as a killers, skip it
-                    refutation_moves[3] = MOVE_NONE;
                     if (   MOVE_NONE != refutation_moves[2]
                         && (   refutation_moves[0] == refutation_moves[2]
                             || refutation_moves[1] == refutation_moves[2]))
@@ -444,7 +424,7 @@ namespace Searcher {
             {
                 if (nullptr != breadcrumb) // Free the marked one.
                 {
-                    breadcrumb->store(nullptr, 0);
+                    breadcrumb->store(nullptr, Key(0));
                 }
             }
         };
@@ -455,26 +435,25 @@ namespace Searcher {
         // Razor margin
         constexpr Value RazorMargin = Value(531);
         // Futility margin
-        constexpr Value futility_margin(bool imp, Depth d)
+        constexpr Value futility_margin(Depth d, bool imp)
         {
-            return Value(217 * (d - (imp)));
+            return Value(217 * (d - imp));
         }
         // Futility move count threshold
-        constexpr i16 futility_move_count(bool imp, Depth d)
+        constexpr i16 futility_move_count(Depth d, bool imp)
         {
-            return (5 + d * d) * (1 + (imp)) / 2 - 1;
+            return (5 + d * d) * (1 + imp) / 2 - 1;
         }
 
-        Depth reduction(bool imp, Depth d, u08 mc)
+        Depth reduction(Depth d, u08 mc, bool imp)
         {
-            if (0 == d
-             || 0 == mc)
-            {
-                return DEP_ZERO;
-            }
-
-            auto r = Threadpool.factor * std::log(d) * std::log(mc);
-            return Depth((r + 511) / 1024 + (!imp && r > 1007));
+            assert(0 <= d);
+            auto r = 0 != d
+                  && 0 != mc ?
+                    Threadpool.factor * std::log(d) * std::log(mc) :
+                    0;
+            return Depth( (r + 511) / 1024
+                        + (r > 1007) * !imp);
         }
 
         i32 BasicContempt = 0;
@@ -486,7 +465,9 @@ namespace Searcher {
         /// stat_bonus() is the bonus, based on depth
         constexpr i32 stat_bonus(Depth depth)
         {
-            return 15 >= depth ? (19 * depth + 155) * depth - 132 : -8;
+            return 15 >= depth ?
+                    (19 * depth + 155) * depth - 132 :
+                    -8;
         }
 
         // Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
@@ -516,13 +497,18 @@ namespace Searcher {
             }
             assert(1 == std::count(ss->killer_moves.begin(), ss->killer_moves.end(), move));
 
-            if (_ok((ss-1)->played_move))
+            auto p_move = (ss-1)->played_move;
+            if (_ok(p_move))
             {
-                assert(NO_PIECE != pos[dst_sq((ss-1)->played_move)]);
-                if (pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)][0] != move)
+                auto p_org = org_sq(p_move);
+                auto p_dst = dst_sq(p_move);
+                assert(NO_PIECE != pos[p_dst]
+                    || CASTLE == mtype(p_move));
+
+                if (pos.thread->move_history[pos[p_dst]][p_dst][0] != move)
                 {
-                    pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)][1] = pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)][0];
-                    pos.thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)][0] = move;
+                    pos.thread->move_history[pos[p_dst]][p_dst][1] = pos.thread->move_history[pos[p_dst]][p_dst][0];
+                    pos.thread->move_history[pos[p_dst]][p_dst][0] = move;
                 }
             }
 
@@ -531,6 +517,7 @@ namespace Searcher {
             {
                 pos.thread->butterfly_history[pos.active][move_index(reverse_move(move))] << -bonus;
             }
+
             update_continuation_histories(ss, pos[org_sq(move)], dst_sq(move), bonus);
         }
 
@@ -721,7 +708,7 @@ namespace Searcher {
                 // Futility pruning
                 if (   !in_check
                     && !gives_check
-                    && !Limits.mate_on()
+                    && !Threadpool.limit.mate_on()
                     && -VALUE_KNOWN_WIN < futility_base
                     && !pos.pawn_advance_at(pos.active, org))
                 {
@@ -750,7 +737,7 @@ namespace Searcher {
                         || (   (DEP_ZERO != depth || 2 < move_count)
                             && -VALUE_MATE_MAX_PLY < best_value
                             && !pos.capture(move)))
-                    && !Limits.mate_on()
+                    && !Threadpool.limit.mate_on()
                     && !pos.see_ge(move))
                 {
                     continue;
@@ -1135,9 +1122,9 @@ namespace Searcher {
                 // the score by more than futility margins if do a null move.
                 if (   !root_node
                     && 6 > depth
-                    && !Limits.mate_on()
+                    && !Threadpool.limit.mate_on()
                     && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
-                    && eval - futility_margin(improving, depth) >= beta)
+                    && eval - futility_margin(depth, improving) >= beta)
                 {
                     return eval;
                 }
@@ -1146,12 +1133,12 @@ namespace Searcher {
                 if (   !PVNode
                     && MOVE_NULL != (ss-1)->played_move
                     && MOVE_NONE == ss->excluded_move
-                    && !Limits.mate_on()
+                    && !Threadpool.limit.mate_on()
                     && VALUE_ZERO != pos.non_pawn_material(pos.active)
                     && 23397 > (ss-1)->stats
                     && eval >= beta
                     && eval >= ss->static_eval
-                    && ss->static_eval >= beta - 32 * depth + 292 - 30 * (improving)
+                    && ss->static_eval >= beta - 32 * depth + 292 - 30 * improving
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != pos.active))
                 {
@@ -1198,15 +1185,15 @@ namespace Searcher {
                 // then can (almost) safely prune the previous move.
                 if (   !PVNode
                     && 4 < depth
-                    && !Limits.mate_on()
+                    && !Threadpool.limit.mate_on()
                     && abs(beta) < +VALUE_MATE_MAX_PLY)
                 {
-                    auto raised_beta = std::min(beta + 189 - 45 * (improving), +VALUE_INFINITE);
-                    u08 pc_movecount = 0;
+                    auto raised_beta = std::min(beta + 189 - 45 * improving, +VALUE_INFINITE);
+                    u08 pc_move_count = 0;
                     // Initialize move picker (3) for the current position
                     MovePicker move_picker(pos, tt_move, raised_beta - ss->static_eval);
                     // Loop through all legal moves until no moves remain or a beta cutoff occurs
-                    while (   pc_movecount < 2 + 2 * (cut_node)
+                    while (   pc_move_count < 2 + 2 * cut_node
                            && MOVE_NONE != (move = move_picker.next_move()))
                     {
                         assert(pos.pseudo_legal(move)
@@ -1218,7 +1205,7 @@ namespace Searcher {
                             continue;
                         }
 
-                        ++pc_movecount;
+                        ++pc_move_count;
 
                         // Speculative prefetch as early as possible
                         prefetch(TT.cluster(pos.posi_move_key(move))->entries);
@@ -1291,12 +1278,12 @@ namespace Searcher {
                 nullptr           , (ss-6)->pd_history
             };
 
-            array<Move, 2> countermove = _ok((ss-1)->played_move) ?
-                        thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)] :
-                        array<Move, 2>{ MOVE_NONE, MOVE_NONE };
+            auto counter_move = _ok((ss-1)->played_move) ?
+                        thread->move_history[pos[dst_sq((ss-1)->played_move)]][dst_sq((ss-1)->played_move)][0] :
+                        MOVE_NONE;
 
             // Initialize move picker (1) for the current position
-            MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, countermove);
+            MovePicker move_picker(pos, tt_move, depth, pd_histories, ss->killer_moves, counter_move);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
             while (MOVE_NONE != (move = move_picker.next_move()))
             {
@@ -1365,20 +1352,21 @@ namespace Searcher {
                 // Step 13. Pruning at shallow depth. (~200 ELO)
                 if (   !root_node
                     && -VALUE_MATE_MAX_PLY < best_value
-                    && !Limits.mate_on()
+                    && !Threadpool.limit.mate_on()
                     && VALUE_ZERO < pos.non_pawn_material(pos.active))
                 {
                     // Skip quiet moves if move count exceeds our futility_move_count() threshold
-                    move_picker.skip_quiets = futility_move_count(improving, depth) <= move_count;
+                    move_picker.skip_quiets = futility_move_count(depth, improving) <= move_count;
 
                     if (   !capture_or_promotion
                         && !gives_check)
                     {
                         // Reduced depth of the next LMR search.
-                        auto lmr_depth = std::max(new_depth - reduction(improving, depth, move_count), 0);
+                        auto lmr_depth = std::max(new_depth - reduction(depth, move_count, improving), 0);
                         // Counter moves based pruning: (~20 ELO)
-                        if (   (4 + (   0 < (ss-1)->stats
-                                     || 1 == (ss-1)->move_count)) > lmr_depth
+                        if (   (  4
+                                + (   0 < (ss-1)->stats
+                                   || 1 == (ss-1)->move_count)) > lmr_depth
                             && (*pd_histories[0])[mpc][dst] < CounterMovePruneThreshold
                             && (*pd_histories[1])[mpc][dst] < CounterMovePruneThreshold)
                         {
@@ -1452,10 +1440,8 @@ namespace Searcher {
                     }
                 }
                 else
-                if (// Castle extension
-                       CASTLE == mtype (move)
-                    // Last captures extension
-                    || (   PieceValues[EG][pos.si->capture] > VALUE_EG_PAWN
+                if (// Last captures extension
+                       (   PieceValues[EG][pos.si->capture] > VALUE_EG_PAWN
                         && pos.non_pawn_material() <= 2 * VALUE_MG_ROOK)
                     // Check extension (~2 ELO)
                     || (   gives_check
@@ -1465,6 +1451,13 @@ namespace Searcher {
                     || (   ss->killer_moves[0] == move
                         && pos.pawn_advance_at(pos.active, org)
                         && pos.pawn_passed_at(pos.active, dst)))
+                {
+                    extension = 1;
+                }
+
+                // Castle extension
+                if (   0 == extension
+                    && CASTLE == mtype(move))
                 {
                     extension = 1;
                 }
@@ -1489,6 +1482,7 @@ namespace Searcher {
                         + (   root_node
                            && alfa > best_value)) < move_count
                     && (   !root_node
+                        // At root if zero best counter
                         || thread->move_best_count(move) == 0)
                     && (   cut_node
                         || !capture_or_promotion
@@ -1501,7 +1495,7 @@ namespace Searcher {
                 // If the move fails high will be re-searched at full depth.
                 if (do_lmr)
                 {
-                    auto reduct_depth = reduction(improving, depth, move_count);
+                    auto reduct_depth = reduction(depth, move_count, improving);
                     reduct_depth +=
                         // If other threads are searching this position.
                         +1 * thread_marker.marked
@@ -1560,7 +1554,7 @@ namespace Searcher {
                         }
 
                         // If move with +/-ve stats (~30 ELO)
-                        reduct_depth -= ss->stats / 0x4000;
+                        reduct_depth -= Depth(ss->stats / 0x4000);
                     }
                     else
                     // Increase reduction for captures/promotions if late move and at low depth
@@ -1649,7 +1643,7 @@ namespace Searcher {
                         // This information is used for time management:
                         // When the best move changes frequently, allocate some more time.
                         if (   1 < move_count
-                            && Limits.time_mgr_used())
+                            && Threadpool.limit.time_mgr_used())
                         {
                             ++thread->pv_change;
                         }
@@ -1729,29 +1723,31 @@ namespace Searcher {
             // Quiet best move: update move sorting heuristics.
             if (MOVE_NONE != best_move)
             {
-                auto cbonus = stat_bonus(depth + 1);
+                auto bonus1 = stat_bonus(depth + 1);
 
                 if (!pos.capture_or_promotion(best_move))
                 {
-                    auto qbonus = stat_bonus(depth + (best_value > beta + VALUE_MG_PAWN));
+                    auto bonus2 = best_value - VALUE_MG_PAWN > beta ?
+                                    bonus1 :
+                                    stat_bonus(depth);
 
-                    update_quiet_stats(ss, pos, best_move, qbonus);
+                    update_quiet_stats(ss, pos, best_move, bonus2);
                     // Decrease all the other played quiet moves.
-                    for (auto &qm : quiet_moves)
+                    for (auto qm : quiet_moves)
                     {
-                        thread->butterfly_history[pos.active][move_index(qm)] << -qbonus;
-                        update_continuation_histories(ss, pos[org_sq(qm)], dst_sq(qm), -qbonus);
+                        thread->butterfly_history[pos.active][move_index(qm)] << -bonus2;
+                        update_continuation_histories(ss, pos[org_sq(qm)], dst_sq(qm), -bonus2);
                     }
                 }
                 else
                 {
-                    thread->capture_history[pos[org_sq(best_move)]][dst_sq(best_move)][pos.cap_type(best_move)] << cbonus;
+                    thread->capture_history[pos[org_sq(best_move)]][dst_sq(best_move)][pos.cap_type(best_move)] << bonus1;
                 }
 
                 // Decrease all the other played capture moves.
-                for (auto &cm : capture_moves)
+                for (auto cm : capture_moves)
                 {
-                    thread->capture_history[pos[org_sq(cm)]][dst_sq(cm)][pos.cap_type(cm)] << -cbonus;
+                    thread->capture_history[pos[org_sq(cm)]][dst_sq(cm)][pos.cap_type(cm)] << -bonus1;
                 }
 
                 // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
@@ -1759,7 +1755,7 @@ namespace Searcher {
                         || (ss-1)->killer_moves[0] == (ss-1)->played_move)
                     && !prior_capture_or_promotion)
                 {
-                    update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), -stat_bonus(depth + 1));
+                    update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), -bonus1);
                 }
             }
             else
@@ -1874,11 +1870,11 @@ void Thread::search()
     while (   ++root_depth < DEP_MAX
            && !Threadpool.stop
            && (   nullptr == main_thread
-               || DEP_ZERO == Limits.depth
-               || root_depth <= Limits.depth))
+               || DEP_ZERO == Threadpool.limit.depth
+               || root_depth <= Threadpool.limit.depth))
     {
         if (   nullptr != main_thread
-            && Limits.time_mgr_used())
+            && Threadpool.limit.time_mgr_used())
         {
             // Age out PV variability metric
             total_pv_changes *= 0.5;
@@ -2027,9 +2023,9 @@ void Thread::search()
         }
 
         // Has any of the threads found a "mate in <x>"?
-        if (    Limits.mate_on()
-            && !Limits.time_mgr_used()
-            && best_value >= +VALUE_MATE - 2 * Limits.mate)
+        if (    Threadpool.limit.mate_on()
+            && !Threadpool.limit.time_mgr_used()
+            && best_value >= +VALUE_MATE - 2 * Threadpool.limit.mate)
         {
             Threadpool.stop = true;
         }
@@ -2044,7 +2040,7 @@ void Thread::search()
                 main_thread->skill_mgr.pick_best_move();
             }
 
-            if (   Limits.time_mgr_used()
+            if (   Threadpool.limit.time_mgr_used()
                 && !Threadpool.stop
                 && !main_thread->stop_on_ponderhit)
             {
@@ -2139,12 +2135,12 @@ void MainThread::search()
             OutputStream << boolalpha
                          << "RootPos  : " << root_pos.fen() << "\n"
                          << "MaxMoves : " << root_moves.size() << "\n"
-                         << "ClockTime: " << Limits.clock[root_pos.active].time << " ms\n"
-                         << "ClockInc : " << Limits.clock[root_pos.active].inc << " ms\n"
-                         << "MovesToGo: " << Limits.movestogo+0 << "\n"
-                         << "MoveTime : " << Limits.movetime << " ms\n"
-                         << "Depth    : " << Limits.depth << "\n"
-                         << "Infinite : " << Limits.infinite << "\n"
+                         << "ClockTime: " << Threadpool.limit.clock[root_pos.active].time << " ms\n"
+                         << "ClockInc : " << Threadpool.limit.clock[root_pos.active].inc << " ms\n"
+                         << "MovesToGo: " << Threadpool.limit.movestogo+0 << "\n"
+                         << "MoveTime : " << Threadpool.limit.movetime << " ms\n"
+                         << "Depth    : " << Threadpool.limit.depth << "\n"
+                         << "Infinite : " << Threadpool.limit.infinite << "\n"
                          << "Ponder   : " << ponder << "\n"
                          << " Depth Score    Time       Nodes PV\n"
                          << "-----------------------------------------------------------"
@@ -2152,7 +2148,7 @@ void MainThread::search()
         }
     }
 
-    if (Limits.time_mgr_used())
+    if (Threadpool.limit.time_mgr_used())
     {
         // Set the time manager before searching.
         time_mgr.set(root_pos.active, root_pos.ply);
@@ -2176,8 +2172,8 @@ void MainThread::search()
     }
     else
     {
-        if (   !Limits.infinite
-            && !Limits.mate_on()
+        if (   !Threadpool.limit.infinite
+            && !Threadpool.limit.mate_on()
             && bool(Options["Use Book"]))
         {
             auto book_bm = Book.probe(root_pos, i16(i32(Options["Book Move Num"])), bool(Options["Book Pick Best"]));
@@ -2207,16 +2203,16 @@ void MainThread::search()
             i64 diff_time;
             auto contempt_time = i32(Options["Contempt Time"]);
             if (   0 != contempt_time
-                && Limits.time_mgr_used()
-                && 0 != (diff_time = (i64(Limits.clock[ root_pos.active].time)
-                                    - i64(Limits.clock[~root_pos.active].time)) / 1000))
+                && Threadpool.limit.time_mgr_used()
+                && 0 != (diff_time = (i64(Threadpool.limit.clock[ root_pos.active].time)
+                                    - i64(Threadpool.limit.clock[~root_pos.active].time)) / 1000))
             {
                 timed_contempt = i16(diff_time/contempt_time);
             }
 
             BasicContempt = i32(cp_to_value(i16(i32(Options["Fixed Contempt"])) + timed_contempt));
             // In analysis mode, adjust contempt in accordance with user preference
-            if (   Limits.infinite
+            if (   Threadpool.limit.infinite
                 || bool(Options["UCI_AnalyseMode"]))
             {
                 BasicContempt = Options["Analysis Contempt"] == "Off"                               ? 0 :
@@ -2225,7 +2221,7 @@ void MainThread::search()
                                 /*Options["Analysis Contempt"] == "Both"                            ? +BasicContempt :*/ +BasicContempt;
             }
 
-            if (Limits.time_mgr_used())
+            if (Threadpool.limit.time_mgr_used())
             {
                 best_move = MOVE_NONE;
                 best_move_depth = DEP_ZERO;
@@ -2267,11 +2263,11 @@ void MainThread::search()
     // receives one of those commands (which also raises Threads.stop).
     // Busy wait for a "stop"/"ponderhit" command.
     while (   (   ponder
-               || Limits.infinite)
+               || Threadpool.limit.infinite)
            && !Threadpool.stop)
     {} // Busy wait for a stop or a ponder reset
 
-    const Thread *best_thread = this;
+    Thread *best_thread = this;
     if (think)
     {
         // Stop the threads if not already stopped (Also raise the stop if "ponderhit" just reset Threads.ponder).
@@ -2286,7 +2282,7 @@ void MainThread::search()
         }
         // Check if there is better thread than main thread.
         if (   1 == Threadpool.pv_limit
-            && DEP_ZERO == Limits.depth // Depth limit search don't use deeper thread
+            && DEP_ZERO == Threadpool.limit.depth // Depth limit search don't use deeper thread
             && !skill_mgr.enabled()
             && !bool(Options["UCI_LimitStrength"]))
         {
@@ -2307,7 +2303,7 @@ void MainThread::search()
 
     auto &rm = best_thread->root_moves.front();
 
-    if (Limits.time_mgr_used())
+    if (Threadpool.limit.time_mgr_used())
     {
         // Update the time manager after searching.
         time_mgr.update(root_pos.active);
@@ -2330,7 +2326,7 @@ void MainThread::search()
         auto total_nodes = Threadpool.nodes();
         auto elapsed_time = std::max(time_mgr.elapsed_time(), TimePoint(1));
 
-        string pm_str = "(none)";
+        auto pm_str = move_to_san(MOVE_NONE, root_pos);
         if (   MOVE_NONE != bm
             && MOVE_NONE != pm)
         {
@@ -2353,16 +2349,16 @@ void MainThread::search()
     sync_cout << "bestmove " << bm;
     if (MOVE_NONE != pm)
     {
-        std::cout << " ponder " << pm;
+        cout << " ponder " << pm;
     }
-    std::cout << sync_endl;
+    cout << sync_endl;
 }
 /// MainThread::set_check_count()
 void MainThread::set_check_count()
 {
     // At low node count increase the checking rate otherwise use a default value.
-    check_count = 0 != Limits.nodes ?
-                    ::clamp(Limits.nodes / 1024, u64(1), u64(1024)) :
+    check_count = 0 != Threadpool.limit.nodes ?
+                    ::clamp(Threadpool.limit.nodes / 1024, u64(1), u64(1024)) :
                     u64(1024);
     assert(0 != check_count);
 }
@@ -2391,13 +2387,13 @@ void MainThread::tick()
         return;
     }
 
-    if (   (   Limits.time_mgr_used()
+    if (   (   Threadpool.limit.time_mgr_used()
             && (   stop_on_ponderhit
                 || time_mgr.maximum_time < elapsed_time + 10))
-        || (   0 != Limits.movetime
-            && Limits.movetime <= elapsed_time)
-        || (   0 != Limits.nodes
-            && Limits.nodes <= Threadpool.nodes()))
+        || (   0 != Threadpool.limit.movetime
+            && Threadpool.limit.movetime <= elapsed_time)
+        || (   0 != Threadpool.limit.nodes
+            && Threadpool.limit.nodes <= Threadpool.nodes()))
     {
         Threadpool.stop = true;
     }

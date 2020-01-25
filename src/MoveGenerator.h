@@ -1,5 +1,7 @@
 #pragma once
 
+#include <vector>
+
 #include "Position.h"
 #include "Type.h"
 
@@ -13,6 +15,44 @@ enum GenType : u08
     QUIET_CHECK,
     LEGAL,
 };
+
+struct ValMove
+{
+public:
+    Move move;
+    i32  value;
+
+    ValMove(Move m, i32 v)
+        : move(m)
+        , value(v)
+    {}
+    explicit ValMove(Move m = MOVE_NONE)
+        : ValMove(m, 0)
+    {}
+
+    operator Move() const { return move; }
+    void operator=(Move m) { move = m; }
+
+    // Inhibit unwanted implicit conversions to Move
+    // with an ambiguity that yields to a compile error.
+    operator float() const = delete;
+    operator double() const = delete;
+
+    bool operator<(const ValMove &vm) const { return value < vm.value; }
+    bool operator>(const ValMove &vm) const { return value > vm.value; }
+    //bool operator<=(const ValMove &vm) const { return value <= vm.value; }
+    //bool operator>=(const ValMove &vm) const { return value >= vm.value; }
+};
+
+class ValMoves
+    : public std::vector<ValMove>
+{
+public:
+
+    void operator+=(Move move) { emplace_back(move); }
+    void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
+};
+
 
 template<GenType>
 extern void generate(ValMoves&, const Position&);

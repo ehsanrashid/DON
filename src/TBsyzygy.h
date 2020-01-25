@@ -1,7 +1,7 @@
 #pragma once
 
+#include "RootMove.h"
 #include "Type.h"
-#include "Searcher.h"
 
 namespace TBSyzygy {
 
