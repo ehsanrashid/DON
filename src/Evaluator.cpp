@@ -709,11 +709,12 @@ namespace {
             }
         }
 
-        // Bonus for restricting their piece moves
-        Bitboard restricted = ~defended_area
-                            &  sgl_attacks[Opp][NONE]
-                            &  sgl_attacks[Own][NONE];
-        score += PieceRestricted * pop_count(restricted);
+        // Bonus for restricting their piece moves + more when landing square is occupied
+        b = ~defended_area
+          &  sgl_attacks[Opp][NONE]
+          &  sgl_attacks[Own][NONE];
+        score += PieceRestricted * (  pop_count(b)
+                                    + pop_count(b & pos.pieces()));
 
         Bitboard safe_area;
 
