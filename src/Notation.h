@@ -58,7 +58,7 @@ extern Move move_from_san(const std::string&, Position&);
 
 extern std::string multipv_info(const Thread *const&, i16, Value, Value);
 
-extern std::string pretty_pv_info(Thread *const&);
+//extern std::string pretty_pv_info(Thread *const&);
 
 
 template<typename CharT, typename Traits>

@@ -2,7 +2,7 @@
 
 #include <atomic>
 #include <condition_variable>
-#include <fstream>
+//#include <fstream>
 #include <mutex>
 #include <vector>
 
@@ -345,7 +345,7 @@ public:
     std::atomic<bool> stop // Stop search forcefully
         ,             research;
 
-    std::ofstream output_stream;
+    //std::ofstream output_stream;
 
     ThreadPool() = default;
     ThreadPool(const ThreadPool&) = delete;

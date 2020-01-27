@@ -2093,11 +2093,12 @@ void Thread::search()
                 main_thread->iter_value[iter_idx] = best_value;
                 iter_idx = (iter_idx + 1) % 4;
             }
-
+            /*
             if (Threadpool.output_stream.is_open())
             {
                 Threadpool.output_stream << pretty_pv_info(main_thread) << endl;
             }
+            */
         }
     }
 }
@@ -2111,6 +2112,7 @@ void MainThread::search()
 
     time_mgr.start_time = now();
     debug_time = 0;
+    /*
     if (!white_spaces(string(Options["Output File"])))
     {
         Threadpool.output_stream.open(string(Options["Output File"]), ios_base::out|ios_base::app);
@@ -2132,6 +2134,7 @@ void MainThread::search()
                 << noboolalpha << endl;
         }
     }
+    */
 
     if (Threadpool.limit.time_mgr_used())
     {
@@ -2306,7 +2309,7 @@ void MainThread::search()
             TT.extract_next_move(root_pos, bm);
         assert(bm != pm);
     }
-
+    /*
     if (Threadpool.output_stream.is_open())
     {
         auto total_nodes = Threadpool.nodes();
@@ -2331,7 +2334,7 @@ void MainThread::search()
             << "Ponder Move: " << pm_str << "\n" << endl;
         Threadpool.output_stream.close();
     }
-
+    */
     // Best move could be MOVE_NONE when searching on a stalemate position.
     sync_cout << "bestmove " << bm;
     if (MOVE_NONE != pm)

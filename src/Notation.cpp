@@ -58,7 +58,7 @@ namespace {
         return Ambiguity::AMB_SQUARE;
     }
 
-    // Value to string
+    /*
     string pretty_value(Value v)
     {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
@@ -79,7 +79,6 @@ namespace {
         }
         return oss.str();
     }
-    // Time to string
     string pretty_time(u64 time)
     {
         constexpr u32 SecondMilliSec = 1000;
@@ -103,6 +102,7 @@ namespace {
             << setfill(' ');
         return oss.str();
     }
+    */
 }
 
 /// Converts a move to a string in coordinate algebraic notation.
@@ -311,7 +311,7 @@ string multipv_info(const Thread *const &th, Depth depth, Value alfa, Value beta
     }
     return oss.str();
 }
-
+/*
 /// Returns formated human-readable search information.
 string pretty_pv_info(Thread *const &th)
 {
@@ -355,3 +355,4 @@ string pretty_pv_info(Thread *const &th)
 
     return oss.str();
 }
+*/

@@ -283,7 +283,7 @@ namespace UCI {
         Options["SyzygyUseRule50"]    << Option(TBUseRule50);
 
         Options["Debug File"]         << Option("<empty>", on_debug_fn);
-        Options["Output File"]        << Option("<empty>");
+        //Options["Output File"]        << Option("<empty>");
 
         Options["UCI_Chess960"]       << Option(false);
         Options["UCI_AnalyseMode"]    << Option(false);
