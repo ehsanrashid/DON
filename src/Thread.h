@@ -2,6 +2,7 @@
 
 #include <atomic>
 #include <condition_variable>
+#include <fstream>
 #include <mutex>
 #include <vector>
 
@@ -227,12 +228,14 @@ public:
 
     Value best_value;
 
-    TimeManager time_mgr;
+    TimeManager  time_mgr;
     SkillManager skill_mgr;
 
     std::array<Value, 4> iter_value;
     Move best_move;
     i16  best_move_depth;
+
+    TimePoint debug_time;
 
     explicit MainThread(size_t);
     MainThread() = delete;
@@ -333,13 +336,16 @@ private:
 
 public:
 
+    double factor;
+
     Limit limit;
     u32   pv_limit;
-
-    double factor;
+    i32   basic_contempt;
 
     std::atomic<bool> stop // Stop search forcefully
         ,             research;
+
+    std::ofstream output_stream;
 
     ThreadPool() = default;
     ThreadPool(const ThreadPool&) = delete;

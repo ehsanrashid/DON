@@ -2,8 +2,6 @@
 
 #include <cmath>
 #include <ctime>
-#include <iostream>
-#include <sstream>
 
 #include "Evaluator.h"
 #include "Logger.h"
@@ -429,8 +427,8 @@ namespace Searcher {
             }
         };
 
-        constexpr u64 ttHitAverageWindow = 4096;
-        constexpr u64 ttHitAverageResolution = 1024;
+        constexpr u64 TTHitAverageWindow = 4096;
+        constexpr u64 TTHitAverageResolution = 1024;
 
         // Razor margin
         constexpr Value RazorMargin = Value(531);
@@ -453,14 +451,8 @@ namespace Searcher {
                     Threadpool.factor * std::log(d) * std::log(mc) :
                     0;
             return Depth( (r + 511) / 1024
-                        + (r > 1007) * !imp);
+                        + (!imp && (r > 1007)));
         }
-
-        i32 BasicContempt = 0;
-
-        TimePoint DebugTime;
-        bool      Output;
-        ofstream  OutputStream;
 
         /// stat_bonus() is the bonus, based on depth
         constexpr i32 stat_bonus(Depth depth)
@@ -928,8 +920,8 @@ namespace Searcher {
             }
 
             // thread->tt_hit_avg can be used to approximate the running average of ttHit
-            thread->tt_hit_avg = thread->tt_hit_avg * (ttHitAverageWindow - 1) / ttHitAverageWindow
-                               + ttHitAverageResolution * tt_hit;
+            thread->tt_hit_avg = (thread->tt_hit_avg * (TTHitAverageWindow - 1)) / TTHitAverageWindow
+                               + TTHitAverageResolution * tt_hit;
 
             bool prior_capture_or_promotion = NONE != pos.si->capture
                                            || NONE != pos.si->promote;
@@ -956,7 +948,8 @@ namespace Searcher {
                         if (   !prior_capture_or_promotion
                             && 2 >= (ss-1)->move_count)
                         {
-                            update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), -stat_bonus(depth + 1));
+                            auto bonus = stat_bonus(depth + 1);
+                            update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), -bonus);
                         }
                     }
                     else
@@ -1449,8 +1442,7 @@ namespace Searcher {
                 }
 
                 // Castle extension
-                if (   0 == extension
-                    && CASTLE == mtype(move))
+                if (CASTLE == mtype(move))
                 {
                     extension = 1;
                 }
@@ -1481,7 +1473,8 @@ namespace Searcher {
                         || !capture_or_promotion
                         || move_picker.skip_quiets
                         || ss->static_eval + PieceValues[EG][pos.si->capture] <= alfa
-                        || thread->tt_hit_avg < 375 * ttHitAverageResolution * ttHitAverageWindow / 1024);
+                        // If ttHit running average is small
+                        || thread->tt_hit_avg < 375 * TTHitAverageWindow);
 
                 bool full_search;
                 // Step 16. Reduced depth search (LMR, ~200 ELO).
@@ -1493,7 +1486,7 @@ namespace Searcher {
                         // If other threads are searching this position.
                         +1 * thread_marker.marked
                         // If the ttHit running average is large
-                        -1 * (thread->tt_hit_avg > 500 * ttHitAverageResolution * ttHitAverageWindow / 1024)
+                        -1 * (thread->tt_hit_avg > 500 * TTHitAverageWindow)
                         // If opponent's move count is high (~5 ELO)
                         -1 * ((ss-1)->move_count >= 15)
                         // If position is or has been on the PV (~10 ELO)
@@ -1744,20 +1737,21 @@ namespace Searcher {
                 }
 
                 // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
-                if (   (   1 == (ss-1)->move_count
-                        || (ss-1)->killer_moves[0] == (ss-1)->played_move)
-                    && !prior_capture_or_promotion)
+                if (   !prior_capture_or_promotion
+                    && (   1 == (ss-1)->move_count
+                        || (ss-1)->killer_moves[0] == (ss-1)->played_move))
                 {
                     update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), -bonus1);
                 }
             }
             else
-            // Bonus for prior countermove that caused the fail low.
-            if (   (   PVNode
-                    || 2 < depth)
-                && !prior_capture_or_promotion)
+            // Bonus for prior quiet move that caused the fail low.
+            if (   !prior_capture_or_promotion
+                && (   PVNode
+                    || 2 < depth))
             {
-                update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), stat_bonus(depth));
+                auto bonus = stat_bonus(depth);
+                update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), bonus);
             }
 
             if (PVNode)
@@ -1790,10 +1784,10 @@ namespace Searcher {
 
     }
 
-    /// initialize() initializes some lookup tables.
+    /// initialize() initializes.
     void initialize()
     {
-        srand((unsigned int)(time(NULL)));
+        srand((u32)(time(NULL)));
     }
     /// clear() resets search state to its initial value.
     void clear()
@@ -1841,11 +1835,11 @@ void Thread::search()
     pv_change = 0;
     double total_pv_changes = 0.0;
 
-    tt_hit_avg = ttHitAverageWindow * ttHitAverageResolution / 2;
+    tt_hit_avg = (TTHitAverageResolution / 2) * TTHitAverageWindow;
 
     contempt = WHITE == root_pos.active ?
-                +make_score(BasicContempt, BasicContempt / 2) :
-                -make_score(BasicContempt, BasicContempt / 2);
+                +make_score(Threadpool.basic_contempt, Threadpool.basic_contempt / 2) :
+                -make_score(Threadpool.basic_contempt, Threadpool.basic_contempt / 2);
 
     if (nullptr != main_thread)
     {
@@ -1908,7 +1902,7 @@ void Thread::search()
                 alfa = std::max(old_value - window, -VALUE_INFINITE);
                 beta = std::min(old_value + window, +VALUE_INFINITE);
 
-                i32 dynamic_contempt = BasicContempt;
+                i32 dynamic_contempt = Threadpool.basic_contempt;
                 // Dynamic contempt
                 auto contempt_value = i32(Options["Contempt Value"]);
                 if (0 != contempt_value)
@@ -2100,9 +2094,9 @@ void Thread::search()
                 iter_idx = (iter_idx + 1) % 4;
             }
 
-            if (Output)
+            if (Threadpool.output_stream.is_open())
             {
-                OutputStream << pretty_pv_info(main_thread) << endl;
+                Threadpool.output_stream << pretty_pv_info(main_thread) << endl;
             }
         }
     }
@@ -2116,28 +2110,26 @@ void MainThread::search()
         && 0 == index);
 
     time_mgr.start_time = now();
-    DebugTime = 0;
-    Output = false;
-    auto output_fn = string(Options["Output File"]);
-    if (!white_spaces(output_fn))
+    debug_time = 0;
+    if (!white_spaces(string(Options["Output File"])))
     {
-        OutputStream.open(output_fn, ios_base::out|ios_base::app);
-        Output = OutputStream.is_open();
-        if (Output)
+        Threadpool.output_stream.open(string(Options["Output File"]), ios_base::out|ios_base::app);
+        if (Threadpool.output_stream.is_open())
         {
-            OutputStream << boolalpha
-                         << "RootPos  : " << root_pos.fen() << "\n"
-                         << "MaxMoves : " << root_moves.size() << "\n"
-                         << "ClockTime: " << Threadpool.limit.clock[root_pos.active].time << " ms\n"
-                         << "ClockInc : " << Threadpool.limit.clock[root_pos.active].inc << " ms\n"
-                         << "MovesToGo: " << Threadpool.limit.movestogo+0 << "\n"
-                         << "MoveTime : " << Threadpool.limit.movetime << " ms\n"
-                         << "Depth    : " << Threadpool.limit.depth << "\n"
-                         << "Infinite : " << Threadpool.limit.infinite << "\n"
-                         << "Ponder   : " << ponder << "\n"
-                         << " Depth Score    Time       Nodes PV\n"
-                         << "-----------------------------------------------------------"
-                         << noboolalpha << endl;
+            Threadpool.output_stream
+                << boolalpha
+                << "RootPos  : " << root_pos.fen() << "\n"
+                << "MaxMoves : " << root_moves.size() << "\n"
+                << "ClockTime: " << Threadpool.limit.clock[root_pos.active].time << " ms\n"
+                << "ClockInc : " << Threadpool.limit.clock[root_pos.active].inc << " ms\n"
+                << "MovesToGo: " << Threadpool.limit.movestogo+0 << "\n"
+                << "MoveTime : " << Threadpool.limit.movetime << " ms\n"
+                << "Depth    : " << Threadpool.limit.depth << "\n"
+                << "Infinite : " << Threadpool.limit.infinite << "\n"
+                << "Ponder   : " << ponder << "\n"
+                << " Depth Score    Time       Nodes PV\n"
+                << "-----------------------------------------------------------"
+                << noboolalpha << endl;
         }
     }
 
@@ -2203,16 +2195,17 @@ void MainThread::search()
                 timed_contempt = i16(diff_time/contempt_time);
             }
 
-            BasicContempt = i32(cp_to_value(i16(i32(Options["Fixed Contempt"])) + timed_contempt));
+            auto bc = i32(cp_to_value(i16(i32(Options["Fixed Contempt"])) + timed_contempt));
             // In analysis mode, adjust contempt in accordance with user preference
             if (   Threadpool.limit.infinite
                 || bool(Options["UCI_AnalyseMode"]))
             {
-                BasicContempt = Options["Analysis Contempt"] == "Off"                               ? 0 :
-                                Options["Analysis Contempt"] == "White" && BLACK == root_pos.active ? -BasicContempt :
-                                Options["Analysis Contempt"] == "Black" && WHITE == root_pos.active ? -BasicContempt :
-                                /*Options["Analysis Contempt"] == "Both"                            ? +BasicContempt :*/ +BasicContempt;
+                bc = Options["Analysis Contempt"] == "Off"                               ? 0 :
+                     Options["Analysis Contempt"] == "White" && BLACK == root_pos.active ? -bc :
+                     Options["Analysis Contempt"] == "Black" && WHITE == root_pos.active ? -bc :
+                   /*Options["Analysis Contempt"] == "Both"                      ? +bc :*/ +bc;
             }
+            Threadpool.basic_contempt = bc;
 
             if (Threadpool.limit.time_mgr_used())
             {
@@ -2314,7 +2307,7 @@ void MainThread::search()
         assert(bm != pm);
     }
 
-    if (Output)
+    if (Threadpool.output_stream.is_open())
     {
         auto total_nodes = Threadpool.nodes();
         auto elapsed_time = std::max(time_mgr.elapsed_time(), TimePoint(1));
@@ -2329,13 +2322,14 @@ void MainThread::search()
             root_pos.undo_move(bm);
         }
 
-        OutputStream << "Nodes      : " << total_nodes << " N\n"
-                     << "Time       : " << elapsed_time << " ms\n"
-                     << "Speed      : " << total_nodes * 1000 / elapsed_time << " N/s\n"
-                     << "Hash-full  : " << TT.hash_full() << "\n"
-                     << "Best Move  : " << move_to_san(bm, root_pos) << "\n"
-                     << "Ponder Move: " << pm_str << "\n" << endl;
-        OutputStream.close();
+        Threadpool.output_stream
+            << "Nodes      : " << total_nodes << " N\n"
+            << "Time       : " << elapsed_time << " ms\n"
+            << "Speed      : " << total_nodes * 1000 / elapsed_time << " N/s\n"
+            << "Hash-full  : " << TT.hash_full() << "\n"
+            << "Best Move  : " << move_to_san(bm, root_pos) << "\n"
+            << "Ponder Move: " << pm_str << "\n" << endl;
+        Threadpool.output_stream.close();
     }
 
     // Best move could be MOVE_NONE when searching on a stalemate position.
@@ -2367,9 +2361,9 @@ void MainThread::tick()
 
     auto elapsed_time = time_mgr.elapsed_time();
 
-    if (DebugTime + 1000 <= elapsed_time)
+    if (debug_time + 1000 <= elapsed_time)
     {
-        DebugTime = elapsed_time;
+        debug_time = elapsed_time;
 
         debug_print();
     }
