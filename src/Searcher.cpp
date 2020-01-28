@@ -20,10 +20,10 @@ using namespace TBSyzygy;
 
 namespace Searcher {
 
-    Depth TBProbeDepth = 1;
-    i32   TBLimitPiece = 6;
-    bool  TBUseRule50 = true;
-    bool  TBHasRoot = false;
+    Depth TBProbeDepth  = 1;
+    i32   TBLimitPiece  = 6;
+    bool  TBUseRule50   = true;
+    bool  TBHasRoot     = false;
 
     namespace {
 
@@ -920,7 +920,7 @@ namespace Searcher {
             }
 
             // thread->tt_hit_avg can be used to approximate the running average of ttHit
-            thread->tt_hit_avg = (thread->tt_hit_avg * (TTHitAverageWindow - 1)) / TTHitAverageWindow
+            thread->tt_hit_avg = (thread->tt_hit_avg / TTHitAverageWindow) * (TTHitAverageWindow - 1)
                                + TTHitAverageResolution * tt_hit;
 
             bool prior_capture_or_promotion = NONE != pos.si->capture
@@ -1297,14 +1297,16 @@ namespace Searcher {
                     auto elapsed_time = Threadpool.main_thread()->time_mgr.elapsed_time();
                     if (elapsed_time > 3000)
                     {
-                        sync_cout << "info"
-                                  << " currmove " << move
-                                  << " currmovenumber " << thread->pv_cur + move_count
-                                  << " maxmoves " << thread->root_moves.size()
-                                  << " depth " << depth
-                                  << " seldepth " << (*std::find(thread->root_moves.begin() + thread->pv_cur,
-                                                                 thread->root_moves.begin() + thread->pv_end, move)).sel_depth
-                                  << " time " << elapsed_time << sync_endl;
+                        sync_cout << setfill('0')
+                                  << "info"
+                                  << " currmove "       << move
+                                  << " currmovenumber " << setw(2) << thread->pv_cur + move_count
+                                  //<< " maxmoves "       << thread->root_moves.size()
+                                  << " depth "          << depth
+                                  //<< " seldepth "       << (*std::find(thread->root_moves.begin() + thread->pv_cur,
+                                  //                                     thread->root_moves.begin() + thread->pv_end, move)).sel_depth
+                                  << " time "           << elapsed_time
+                                  << setfill('0') << sync_endl;
                     }
                 }
 
@@ -1829,8 +1831,8 @@ void Thread::search()
     }
 
     auto *main_thread = Threadpool.main_thread() == this ?
-                            Threadpool.main_thread() :
-                            nullptr;
+                        Threadpool.main_thread() :
+                        nullptr;
     i16 iter_idx = 0;
     pv_change = 0;
     double total_pv_changes = 0.0;
@@ -2335,6 +2337,7 @@ void MainThread::search()
         Threadpool.output_stream.close();
     }
     */
+
     // Best move could be MOVE_NONE when searching on a stalemate position.
     sync_cout << "bestmove " << bm;
     if (MOVE_NONE != pm)

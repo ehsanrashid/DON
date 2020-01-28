@@ -279,31 +279,29 @@ string multipv_info(const Thread *const &th, Depth depth, Value alfa, Value beta
                     rms[i].new_value :
                     rms[i].old_value;
         bool tb = TBHasRoot
-                && abs(v) < +VALUE_MATE - i32(DEP_MAX);
+                && abs(v) < +VALUE_MATE - 1*DEP_MAX;
         if (tb)
         {
             v = rms[i].tb_value;
         }
 
         oss << "info"
-            << " multipv " << i + 1
-            << " depth " << d
+            << " multipv "  << i + 1
+            << " depth "    << d
             << " seldepth " << rms[i].sel_depth
-            << " score " << to_string(v);
-        if (   !tb
-            && i == pv_cur)
-        {
-            oss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
-        }
-        oss << " nodes " << total_nodes
-            << " time " << elapsed_time
-            << " nps " << total_nodes * 1000 / elapsed_time
-            << " tbhits " << tb_hits;
+            << " score "    << to_string(v);
+        if (!tb && i == pv_cur)
+        oss << (beta <= v ? " lowerbound" :
+                v <= alfa ? " upperbound" : "");
+        oss << " nodes "    << total_nodes
+            << " time "     << elapsed_time
+            << " nps "      << total_nodes * 1000 / elapsed_time
+            << " tbhits "   << tb_hits;
+        // Hashfull after 1 sec
         if (elapsed_time > 1000)
-        {
-            oss << " hashfull " << TT.hash_full();
-        }
-        oss << " pv" << rms[i];
+        oss << " hashfull " << TT.hash_full();
+
+        oss << " pv"        << rms[i];
         if (i < Threadpool.pv_limit - 1)
         {
             oss << "\n";

@@ -409,9 +409,9 @@ inline Bitboard Position::xattacks_from<QUEN>(Square s, Color c) const
 
 inline bool Position::capture(Move m) const
 {
-    return ENPASSANT == mtype(m)
-        || (   CASTLE != mtype(m)
-            && !empty(dst_sq(m)));
+    return (   !empty(dst_sq(m))
+            && CASTLE != mtype(m))
+        || ENPASSANT == mtype(m);
 }
 
 inline bool Position::capture_or_promotion(Move m) const

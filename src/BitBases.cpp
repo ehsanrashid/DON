@@ -14,7 +14,7 @@ namespace BitBases {
 
         // There are 24 possible pawn squares: files A to D and ranks from 2 to 7
         // Positions with the pawn on files E to H will be mirrored before probing.
-        constexpr u32 MAX_INDEX = 2*24*SQ_NO*SQ_NO; // active*p_sq*wk_sq*bk_sq = 2*24*64*64 = 196608
+        constexpr u32 MAX_INDEX = 24*2*SQ_NO*SQ_NO; // p_sq*active*wk_sq*bk_sq = 2*24*64*64 = 196608
 
         std::bitset<MAX_INDEX> KPK_Bitbase;
 
@@ -26,14 +26,17 @@ namespace BitBases {
         // bit 06-11: black king square (from SQ_A1 to SQ_H8)
         // bit    12: active (WHITE or BLACK)
         // bit 13-14: white pawn file (from F_A to F_D)
-        // bit 15-17: white pawn R_7 - rank (from R_7 to R_2)
+        // bit 15-17: white pawn R_7 - rank (from R_2 to R_7)
         u32 index(Color active, Square wk_sq, Square bk_sq, Square wp_sq)
         {
-            return (wk_sq  << 0)
-                 | (bk_sq  << 6)
+            assert(F_A <= _file(wp_sq) && _file(wp_sq) <= F_D);
+            assert(R_2 <= _rank(wp_sq) && _rank(wp_sq) <= R_7);
+
+            return (wk_sq << 0)
+                 | (bk_sq << 6)
                  | (active << 12)
-                 | (     _file(wp_sq)  << 13)
-                 | ((R_7-_rank(wp_sq)) << 15);
+                 | ((_file(wp_sq)-F_A) << 13)
+                 | ((_rank(wp_sq)-R_2) << 15);
         }
 
         enum Result : u08
@@ -51,9 +54,10 @@ namespace BitBases {
         struct KPK_Position
         {
         private:
-            Color                 active;
+            Color  active;
+            Square p_sq;
             array<Square, CLR_NO> k_sq;
-            Square                p_sq;
+
             Result result;
 
         public:
@@ -62,11 +66,11 @@ namespace BitBases {
 
             explicit KPK_Position(u32 idx)
             {
-                k_sq[WHITE] = Square(   (idx >>  0) & SQ_H8);
-                k_sq[BLACK] = Square(   (idx >>  6) & SQ_H8);
-                active      = Color(    (idx >> 12) & BLACK);
-                p_sq        = File(     (idx >> 13) & 3)
-                            | Rank(R_7-((idx >> 15) & R_8));
+                k_sq[WHITE] = Square((idx >>  0) & SQ_H8);
+                k_sq[BLACK] = Square((idx >>  6) & SQ_H8);
+                active      =  Color((idx >> 12) & BLACK);
+                p_sq        =  (File((idx >> 13) & F_D)+F_A)
+                             | (Rank((idx >> 15) & R_8)+R_2);
 
                 // Check if two pieces are on the same square or if a king can be captured
                 if (   1 >= dist(k_sq[WHITE], k_sq[BLACK])
@@ -193,8 +197,6 @@ namespace BitBases {
 
     bool probe(Color active, Square wk_sq, Square wp_sq, Square bk_sq)
     {
-        assert(F_D >= _file(wp_sq));
-
         return KPK_Bitbase[index(active, wk_sq, bk_sq, wp_sq)];
     }
 
