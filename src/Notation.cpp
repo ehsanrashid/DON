@@ -251,20 +251,17 @@ Move move_from_san(const string &san, Position &pos)
 string multipv_info(const Thread *const &th, Depth depth, Value alfa, Value beta)
 {
     auto elapsed_time = std::max(Threadpool.main_thread()->time_mgr.elapsed_time(), TimePoint(1));
-    auto &rms = th->root_moves;
-    auto pv_cur = th->pv_cur;
-
-    auto total_nodes = Threadpool.nodes();
-    auto tb_hits = Threadpool.tb_hits();
+    auto nodes = Threadpool.sum(&Thread::nodes);
+    auto tb_hits = Threadpool.sum(&Thread::tb_hits);
     if (TBHasRoot)
     {
-        tb_hits += rms.size();
+        tb_hits += th->root_moves.size();
     }
 
     ostringstream oss;
-    for (u32 i = 0; i < Threadpool.pv_limit; ++i)
+    for (u32 i = 0; i < Threadpool.pv_count; ++i)
     {
-        bool updated = -VALUE_INFINITE != rms[i].new_value;
+        bool updated = -VALUE_INFINITE != th->root_moves[i].new_value;
 
         if (   !updated
             && 1 == depth)
@@ -276,33 +273,33 @@ string multipv_info(const Thread *const &th, Depth depth, Value alfa, Value beta
                     depth :
                     depth - 1;
         auto v = updated ?
-                    rms[i].new_value :
-                    rms[i].old_value;
+                    th->root_moves[i].new_value :
+                    th->root_moves[i].old_value;
         bool tb = TBHasRoot
-                && abs(v) < +VALUE_MATE - 1*DEP_MAX;
+               && abs(v) < +VALUE_MATE - 1*DEP_MAX;
         if (tb)
         {
-            v = rms[i].tb_value;
+            v = th->root_moves[i].tb_value;
         }
 
         oss << "info"
             << " multipv "  << i + 1
             << " depth "    << d
-            << " seldepth " << rms[i].sel_depth
+            << " seldepth " << th->root_moves[i].sel_depth
             << " score "    << to_string(v);
-        if (!tb && i == pv_cur)
+        if (!tb && i == th->pv_cur)
         oss << (beta <= v ? " lowerbound" :
                 v <= alfa ? " upperbound" : "");
-        oss << " nodes "    << total_nodes
+        oss << " nodes "    << nodes
             << " time "     << elapsed_time
-            << " nps "      << total_nodes * 1000 / elapsed_time
+            << " nps "      << nodes * 1000 / elapsed_time
             << " tbhits "   << tb_hits;
         // Hashfull after 1 sec
         if (elapsed_time > 1000)
         oss << " hashfull " << TT.hash_full();
 
-        oss << " pv"        << rms[i];
-        if (i < Threadpool.pv_limit - 1)
+        oss << " pv"        << th->root_moves[i];
+        if (i < Threadpool.pv_count - 1)
         {
             oss << "\n";
         }
@@ -313,7 +310,7 @@ string multipv_info(const Thread *const &th, Depth depth, Value alfa, Value beta
 /// Returns formated human-readable search information.
 string pretty_pv_info(Thread *const &th)
 {
-    u64 nodes = Threadpool.nodes();
+    u64 nodes = Threadpool.sum(&Thread::nodes);
 
     ostringstream oss;
     oss << setw( 4) << th->finished_depth

@@ -44,8 +44,8 @@ public:
     void update(Color);
 };
 
-// MaxLevel should be <= MaxDepth/4
-const i16 MaxLevel = 24;
+// MaxLevel should be <= MaxDepth/9
+const i16 MaxLevel = 25;
 
 /// Skill Manager class is used to implement strength limit
 class SkillManager
@@ -142,7 +142,7 @@ typedef Stats<i16, 29952, MAX_PIECE, SQ_NO>                 PieceDestinyHistory;
 typedef Stats<PieceDestinyHistory, 0, MAX_PIECE, SQ_NO>     ContinuationHistory;
 
 /// MoveHistory stores moves, indexed by [piece][square][size=2]
-typedef std::array<std::array<Move, SQ_NO>, MAX_PIECE>   MoveHistory;
+typedef std::array<std::array<Move, SQ_NO>, MAX_PIECE>      MoveHistory;
 
 
 /// Thread class keeps together all the thread-related stuff.
@@ -171,7 +171,9 @@ public:
         , finished_depth
         , sel_depth;
 
-    u64   tt_hit_avg;
+    std::atomic<u64> nodes
+        ,            tb_hits;
+    std::atomic<u32> pv_change;
 
     i16   nmp_ply;
     Color nmp_color;
@@ -180,17 +182,14 @@ public:
         , pv_cur
         , pv_end;
 
-    std::atomic<u64> nodes
-        ,            tb_hits;
-    std::atomic<u32> pv_change;
+    u64   tt_hit_avg;
 
     Score contempt;
 
     ButterflyHistory    butterfly_history;
     CaptureHistory      capture_history;
-    std::array<std::array<ContinuationHistory, 2>, 2> continuation_history;
-
     MoveHistory         move_history;
+    std::array<std::array<ContinuationHistory, 2>, 2> continuation_history;
 
     Pawns::Table        pawn_table;
     Material::Table     matl_table;
@@ -323,24 +322,12 @@ private:
 
     StateListPtr setup_states;
 
-    template<typename T>
-    T sum(std::atomic<T> Thread::*member) const
-    {
-        T s = 0;
-        for (const auto *th : *this)
-        {
-            s += (th->*member).load(std::memory_order::memory_order_relaxed);
-        }
-        return s;
-    }
-
 public:
 
     double factor;
 
     Limit limit;
-    u32   pv_limit;
-    i32   basic_contempt;
+    u32   pv_count;
 
     std::atomic<bool> stop // Stop search forcefully
         ,             research;
@@ -352,9 +339,25 @@ public:
     ThreadPool& operator=(const ThreadPool&) = delete;
 
     MainThread* main_thread() const { return static_cast<MainThread*>(front()); }
-    u64      nodes() const { return sum(&Thread::nodes); }
-    u64    tb_hits() const { return sum(&Thread::tb_hits); }
-    u32  pv_change() const { return sum(&Thread::pv_change); }
+
+    template<typename T>
+    T sum(std::atomic<T> Thread::*member) const
+    {
+        T s = {};
+        for (auto *th : *this)
+        {
+            s += (th->*member).load(std::memory_order::memory_order_relaxed);
+        }
+        return s;
+    }
+    template<typename T>
+    void reset(std::atomic<T> Thread::*member)
+    {
+        for (auto *th : *this)
+        {
+            th->*member = {};
+        }
+    }
 
     Thread* best_thread() const;
 

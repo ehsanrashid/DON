@@ -262,19 +262,19 @@ namespace UCI {
 
         Options["Skill Level"]        << Option(MaxLevel,  0, MaxLevel);
 
-        Options["MultiPV"]            << Option(1, 1, 500);
+        Options["MultiPV"]            << Option( 1, 1, 500);
 
-        Options["Fixed Contempt"]     << Option(0, -100, 100);
-        Options["Contempt Time"]      << Option(60, 0, 1000);
+        Options["Fixed Contempt"]     << Option(  0, -100, 100);
+        Options["Contempt Time"]      << Option( 40, 0, 1000);
         Options["Contempt Value"]     << Option(100, 0, 1000);
         Options["Analysis Contempt"]  << Option("Both var Off var White var Black var Both", "Both");
 
         Options["Draw MoveCount"]     << Option(50, 5, 50);
 
-        Options["Overhead Move Time"] << Option(30, 0, 5000);
-        Options["Minimum Move Time"]  << Option(20, 0, 5000);
+        Options["Overhead Move Time"] << Option(30,  0, 5000);
+        Options["Minimum Move Time"]  << Option(20,  0, 5000);
         Options["Move Slowness"]      << Option(84, 10, 1000);
-        Options["Time Nodes"]         << Option(0, 0, 10000);
+        Options["Time Nodes"]         << Option( 0,  0, 10000);
         Options["Ponder"]             << Option(true);
 
         Options["SyzygyPath"]         << Option("<empty>", on_syzygy_path);

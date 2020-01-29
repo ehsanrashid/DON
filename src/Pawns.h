@@ -10,7 +10,7 @@ namespace Pawns {
 
     using namespace BitBoard;
 
-    constexpr u08 MaxCache = 4;
+    constexpr u08 MaxCache = 3;
     /// Pawns::Entry contains various information about a pawn structure.
     struct Entry
     {
@@ -35,45 +35,44 @@ namespace Pawns {
         u08 king_safety_on(const Position &pos, Square own_k_sq)
         {
             auto idx = std::distance(king_square[Own].begin(),
-                                     std::find(king_square[Own].begin(), king_square[Own].begin() + index[Own] + 1, own_k_sq));
-            assert(0 <= idx);
-            if (idx <= index[Own])
+                                     std::find(          king_square[Own].begin(),
+                                               std::next(king_square[Own].begin(), index[Own] + 1), own_k_sq));
+            assert(0 <= idx && idx <= MaxCache);
+            if (idx > index[Own])
             {
-                return u08(idx);
-            }
-
-            idx = index[Own];
-            if (idx < MaxCache - 1)
-            {
-                ++index[Own];
-            }
-
-            // In endgame, king near to closest pawn
-            Bitboard pawns = pos.pieces(Own, PAWN);
-            u08 kp_dist;
-            if (0 != pawns)
-            {
-                if (0 != (pawns & PieceAttacks[KING][own_k_sq]))
+                idx = index[Own];
+                if (index[Own] < MaxCache - 1)
                 {
-                    kp_dist = 1;
+                    ++index[Own];
+                }
+
+                // In endgame, king near to closest pawn
+                Bitboard pawns = pos.pieces(Own, PAWN);
+                u08 kp_dist;
+                if (0 != pawns)
+                {
+                    if (0 != (pawns & PieceAttacks[KING][own_k_sq]))
+                    {
+                        kp_dist = 1;
+                    }
+                    else
+                    {
+                        kp_dist = 8;
+                        while (0 != pawns)
+                        {
+                            kp_dist = std::min(u08(dist(own_k_sq, pop_lsq(pawns))), kp_dist);
+                        }
+                    }
                 }
                 else
                 {
-                    kp_dist = 8;
-                    while (0 != pawns)
-                    {
-                        kp_dist = std::min(u08(dist(own_k_sq, pop_lsq(pawns))), kp_dist);
-                    }
+                    kp_dist = 0;
                 }
-            }
-            else
-            {
-                kp_dist = 0;
-            }
 
-            king_square[Own][idx] = own_k_sq;
-            king_pawn_dist[Own][idx] = kp_dist;
-            king_safety[Own][idx] = evaluate_safety<Own>(pos, own_k_sq);
+                king_square[Own][idx] = own_k_sq;
+                king_pawn_dist[Own][idx] = kp_dist;
+                king_safety[Own][idx] = evaluate_safety<Own>(pos, own_k_sq);
+            }
             return u08(idx);
         }
 

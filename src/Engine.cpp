@@ -508,7 +508,7 @@ namespace {
         debug_init();
 
         auto elapsed_time = now();
-        u64 total_nodes = 0;
+        u64 nodes = 0;
         for (const auto &cmd : uci_cmds)
         {
             istringstream is{cmd};
@@ -538,7 +538,7 @@ namespace {
                 {
                     go(is, pos, states);
                     Threadpool.main_thread()->wait_while_busy();
-                    total_nodes += Threadpool.nodes();
+                    nodes += Threadpool.sum(&Thread::nodes);
                 }
                 else
                 {
@@ -569,8 +569,8 @@ namespace {
         cerr << right
              << "\n=================================\n"
              << "Total time (ms) :" << setw(16) << elapsed_time << "\n"
-             << "Nodes searched  :" << setw(16) << total_nodes  << "\n"
-             << "Nodes/second    :" << setw(16) << total_nodes * 1000 / elapsed_time
+             << "Nodes searched  :" << setw(16) << nodes        << "\n"
+             << "Nodes/second    :" << setw(16) << nodes * 1000 / elapsed_time
              << "\n---------------------------------\n"
              << left << endl;
     }

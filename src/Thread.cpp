@@ -86,7 +86,7 @@ namespace {
 TimePoint TimeManager::elapsed_time() const
 {
     return 0 != time_nodes ?
-            TimePoint(Threadpool.nodes()) :
+            TimePoint(Threadpool.sum(&Thread::nodes)) :
             now() - start_time;
 }
 
@@ -157,7 +157,7 @@ void TimeManager::update(Color c)
     // When playing in 'Nodes as Time' mode
     if (0 != time_nodes)
     {
-        available_nodes += Threadpool.limit.clock[c].inc - Threadpool.nodes();
+        available_nodes += Threadpool.limit.clock[c].inc - Threadpool.sum(&Thread::nodes);
     }
 }
 
@@ -172,16 +172,16 @@ void SkillManager::pick_best_move()
     if (MOVE_NONE == best_move)
     {
         // RootMoves are already sorted by value in descending order
-        i32  weakness = DEP_MAX - 4 * level;
-        i32  deviance = std::min(root_moves[0].new_value - root_moves[Threadpool.pv_limit - 1].new_value, VALUE_MG_PAWN);
+        i32  weakness = DEP_MAX - 8 * level;
+        i32  deviance = std::min(root_moves[0].new_value - root_moves[Threadpool.pv_count - 1].new_value, VALUE_MG_PAWN);
         auto best_value = -VALUE_INFINITE;
-        for (u32 i = 0; i < Threadpool.pv_limit; ++i)
+        for (u32 i = 0; i < Threadpool.pv_count; ++i)
         {
             // First for each move score add two terms, both dependent on weakness.
             // One is deterministic with weakness, and one is random with weakness.
             auto value = root_moves[i].new_value
                        + (  weakness * i32(root_moves[0].new_value - root_moves[i].new_value)
-                          + deviance * i32(prng.rand<u32>() % weakness)) / DEP_MAX;
+                          + deviance * i32(prng.rand<u32>() % weakness)) / VALUE_MG_PAWN;
             // Then choose the move with the highest value.
             if (best_value <= value)
             {
@@ -264,6 +264,14 @@ void Thread::clear()
 {
     butterfly_history.fill(0);
     capture_history.fill(0);
+    
+    for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+                     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
+                     NO_PIECE })
+    {
+        move_history[pc].fill(MOVE_NONE);
+    }
+    
     for (auto in_check : {0, 1})
     {
         for (auto cap_type : {0, 1})
@@ -277,12 +285,6 @@ void Thread::clear()
             }
             continuation_history[in_check][cap_type][NO_PIECE][0]->fill(CounterMovePruneThreshold - 1);
         }
-    }
-    for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-                     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
-                     NO_PIECE })
-    {
-        move_history[pc].fill(MOVE_NONE);
     }
 
     //// No need to clear
@@ -616,15 +618,15 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, const Limit
     auto back_si = setup_states->back();
     for (auto *th : *this)
     {
+        th->root_pos.setup(fen, setup_states->back(), th);
+        th->root_moves = root_moves;
         th->root_depth = DEP_ZERO;
         th->finished_depth = DEP_ZERO;
         th->nodes = 0;
         th->tb_hits = 0;
+        th->pv_change = 0;
         th->nmp_ply = 0;
         th->nmp_color = CLR_NO;
-
-        th->root_pos.setup(fen, setup_states->back(), th);
-        th->root_moves = root_moves;
     }
     setup_states->back() = back_si;
 
