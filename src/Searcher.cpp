@@ -1131,7 +1131,7 @@ namespace Searcher {
                     && 23397 > (ss-1)->stats
                     && eval >= beta
                     && eval >= ss->static_eval
-                    && ss->static_eval >= beta - 32 * depth + 292 - 30 * improving
+                    && ss->static_eval >= beta - 32 * depth - 30 * improving + 120 * tt_pv + 292
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != pos.active))
                 {
