@@ -36,9 +36,9 @@ namespace TBSyzygy {
 
     extern void initialize(const std::string&);
 
-    template<typename CharT, typename Traits>
-    inline std::basic_ostream<CharT, Traits>&
-        operator<<(std::basic_ostream<CharT, Traits> &os, WDLScore wdl)
+    template<typename Elem, typename Traits>
+    inline std::basic_ostream<Elem, Traits>&
+        operator<<(std::basic_ostream<Elem, Traits> &os, WDLScore wdl)
     {
         switch (wdl)
         {
@@ -52,9 +52,9 @@ namespace TBSyzygy {
         return os;
     }
 
-    template<typename CharT, typename Traits>
-    inline std::basic_ostream<CharT, Traits>&
-        operator<<(std::basic_ostream<CharT, Traits> &os, ProbeState ps)
+    template<typename Elem, typename Traits>
+    inline std::basic_ostream<Elem, Traits>&
+        operator<<(std::basic_ostream<Elem, Traits> &os, ProbeState ps)
     {
         switch (ps)
         {

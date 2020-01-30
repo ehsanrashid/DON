@@ -37,9 +37,9 @@ inline std::string time_to_string(const std::chrono::system_clock::time_point &t
     return stime;
 }
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, const std::chrono::system_clock::time_point &tp)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+    operator<<(std::basic_ostream<Elem, Traits> &os, const std::chrono::system_clock::time_point &tp)
 {
     os << time_to_string(tp);
     return os;

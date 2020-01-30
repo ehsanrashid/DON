@@ -498,9 +498,9 @@ inline void Position::move_piece(Square s1, Square s2)
     piece[s1] = NO_PIECE;
 }
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-operator<<(std::basic_ostream<CharT, Traits> &os, const Position &pos)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+operator<<(std::basic_ostream<Elem, Traits> &os, const Position &pos)
 {
     os << std::string(pos);
     return os;

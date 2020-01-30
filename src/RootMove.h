@@ -60,9 +60,9 @@ public:
     explicit operator std::string() const;
 };
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, const RootMove &rm)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+    operator<<(std::basic_ostream<Elem, Traits> &os, const RootMove &rm)
 {
     os << std::string(rm);
     return os;
@@ -90,9 +90,9 @@ public:
     explicit operator std::string() const;
 };
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, const RootMoves &rms)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+    operator<<(std::basic_ostream<Elem, Traits> &os, const RootMoves &rms)
 {
     os << std::string(rms);
     return os;

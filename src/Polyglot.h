@@ -85,9 +85,9 @@ struct PolyEntry
 
 static_assert (sizeof (PolyEntry) == 16, "Entry size incorrect");
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, const PolyEntry &entry)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+    operator<<(std::basic_ostream<Elem, Traits> &os, const PolyEntry &entry)
 {
     os << std::string(entry);
     return os;

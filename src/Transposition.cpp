@@ -15,7 +15,7 @@ using namespace std;
 
 u08 TEntry::Generation;
 
-size_t TCluster::fresh_entry_count() const
+u32 TCluster::fresh_entry_count() const
 {
     return (entries[0].generation() == TEntry::Generation)
          + (entries[1].generation() == TEntry::Generation)
@@ -127,6 +127,7 @@ u32 TTable::resize(u32 mem_size)
         return 0;
     }
     cluster_count = msize / sizeof (TCluster);
+    hashfull_count = u16(std::min(size_t(1000), cluster_count));
     clear();
     return mem_size;
 }
@@ -193,13 +194,12 @@ TEntry* TTable::probe(Key key, bool &hit) const
 /// hash, are using <x>%. of the state of full.
 u32 TTable::hash_full() const
 {
-    auto use_count = std::min(size_t(1000), cluster_count);
-    auto entry_count = size_t(0);
-    for (auto *itc = clusters; itc < clusters + use_count; ++itc)
+    u32 entry_count = 0;
+    for (auto *itc = clusters; itc < clusters + hashfull_count; ++itc)
     {
         entry_count += itc->fresh_entry_count();
     }
-    return u32((entry_count * size_t(1000)) / (TCluster::EntryCount * use_count));
+    return u32((entry_count * 1000) / (TCluster::EntryCount * hashfull_count));
 }
 
 /// TTable::extract_next_move() extracts next move after current move.

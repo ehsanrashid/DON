@@ -61,57 +61,57 @@ extern std::string multipv_info(const Thread *const&, i16, Value, Value);
 //extern std::string pretty_pv_info(Thread *const&);
 
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, File f)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+    operator<<(std::basic_ostream<Elem, Traits> &os, File f)
 {
     os << to_char(f);
     return os;
 }
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, Rank r)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+    operator<<(std::basic_ostream<Elem, Traits> &os, Rank r)
 {
     os << to_char(r);
     return os;
 }
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, Square s)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+    operator<<(std::basic_ostream<Elem, Traits> &os, Square s)
 {
     os << to_string(s);
     return os;
 }
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, Move m)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+    operator<<(std::basic_ostream<Elem, Traits> &os, Move m)
 {
     os << move_to_can(m);
     return os;
 }
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, Color c)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+    operator<<(std::basic_ostream<Elem, Traits> &os, Color c)
 {
     os << ColorChar[c];
     return os;
 }
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, Piece p)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+    operator<<(std::basic_ostream<Elem, Traits> &os, Piece p)
 {
     os << PieceChar[p];
     return os;
 }
 
-template<typename CharT, typename Traits>
-inline std::basic_ostream<CharT, Traits>&
-    operator<<(std::basic_ostream<CharT, Traits> &os, Score score)
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+    operator<<(std::basic_ostream<Elem, Traits> &os, Score score)
 {
     os << std::showpos << std::showpoint
        << std::setw(5) << value_to_cp(mg_value(score)) / 100.0 << " "

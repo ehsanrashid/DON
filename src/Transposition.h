@@ -85,7 +85,7 @@ public:
 
     TCluster() = default;
 
-    size_t fresh_entry_count() const;
+    u32 fresh_entry_count() const;
 
     TEntry* probe(u16, bool&);
 };
@@ -123,11 +123,13 @@ public:
     void     *mem;
     TCluster *clusters;
     size_t    cluster_count;
+    u16       hashfull_count;
 
     TTable()
         : mem(nullptr)
         , clusters(nullptr)
         , cluster_count(0)
+        , hashfull_count(0)
     {}
     TTable(const TTable&) = delete;
     TTable& operator=(const TTable&) = delete;
@@ -164,41 +166,39 @@ public:
     void save(const std::string&) const;
     void load(const std::string&);
 
-    template<typename CharT, typename Traits>
-    friend std::basic_ostream<CharT, Traits>&
-        operator<<(std::basic_ostream<CharT, Traits> &os, const TTable &tt)
+    template<typename Elem, typename Traits>
+    friend std::basic_ostream<Elem, Traits>&
+        operator<<(std::basic_ostream<Elem, Traits> &os, const TTable &tt)
     {
         u32 mem_size = tt.size();
         u08 dummy = 0;
-        os.write((const CharT*)(&mem_size), sizeof (mem_size));
-        os.write((const CharT*)(&dummy), sizeof (dummy));
-        os.write((const CharT*)(&dummy), sizeof (dummy));
-        os.write((const CharT*)(&dummy), sizeof (dummy));
-        os.write((const CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
-        os.write((const CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
-        for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
+        os.write((const Elem*)(&mem_size), sizeof (mem_size));
+        os.write((const Elem*)(&dummy), sizeof (dummy));
+        os.write((const Elem*)(&dummy), sizeof (dummy));
+        os.write((const Elem*)(&dummy), sizeof (dummy));
+        os.write((const Elem*)(&TEntry::Generation), sizeof (TEntry::Generation));
+        for (size_t i = 0; i < tt.cluster_count / BufferSize; ++i)
         {
-            os.write((const CharT*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
+            os.write((const Elem*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
         }
         return os;
     }
 
-    template<typename CharT, typename Traits>
-    friend std::basic_istream<CharT, Traits>&
-        operator>>(std::basic_istream<CharT, Traits> &is, TTable &tt)
+    template<typename Elem, typename Traits>
+    friend std::basic_istream<Elem, Traits>&
+        operator>>(std::basic_istream<Elem, Traits> &is, TTable &tt)
     {
         u32 mem_size;
         u08 dummy;
-        is.read((CharT*)(&mem_size), sizeof (mem_size));
-        is.read((CharT*)(&dummy), sizeof (dummy));
-        is.read((CharT*)(&dummy), sizeof (dummy));
-        is.read((CharT*)(&dummy), sizeof (dummy));
-        is.read((CharT*)(&TEntry::Generation), sizeof (TEntry::Generation));
-        is.read((CharT*)(&tt.cluster_count), sizeof (tt.cluster_count));
+        is.read((Elem*)(&mem_size), sizeof (mem_size));
+        is.read((Elem*)(&dummy), sizeof (dummy));
+        is.read((Elem*)(&dummy), sizeof (dummy));
+        is.read((Elem*)(&dummy), sizeof (dummy));
+        is.read((Elem*)(&TEntry::Generation), sizeof (TEntry::Generation));
         tt.resize(mem_size);
-        for (u32 i = 0; i < tt.cluster_count / BufferSize; ++i)
+        for (size_t i = 0; i < tt.cluster_count / BufferSize; ++i)
         {
-            is.read((CharT*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
+            is.read((Elem*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
         }
         return is;
     }
