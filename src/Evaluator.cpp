@@ -927,6 +927,8 @@ namespace {
             complexity -= 43;
         }
 
+        // Give less importance to psq score
+        s -= pos.psq / 2;
         auto mg = mg_value(s);
         auto eg = eg_value(s);
         // Now apply the bonus: note that we find the attacking side by extracting the
