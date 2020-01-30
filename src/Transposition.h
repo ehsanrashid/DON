@@ -50,7 +50,6 @@ public:
         {
             m16 = u16(m);
         }
-        u08 pb = u08(g08 & 0x07);
         if (   k16 != (k >> 0x30)
             || d08 < d - DEP_OFFSET + 4
             || BOUND_EXACT == b)
@@ -61,9 +60,12 @@ public:
             v16 = i16(v);
             e16 = i16(e);
             d08 = u08(d - DEP_OFFSET);
-            pb  = u08(u08(pv) << 2 | b);
+            g08 = u08(Generation | u08(pv) << 2 | b);
         }
-        g08 = u08(Generation | pb);
+        else
+        {
+            g08 = u08(Generation | (g08 & 0x07));
+        }
     }
 };
 

@@ -947,7 +947,7 @@ namespace Searcher {
                         // Bonus for a quiet tt_move that fails high.
                         if (!pos.capture_or_promotion(tt_move))
                         {
-                            auto bonus = stat_bonus(depth);
+                            auto bonus = stat_bonus(depth + (!PVNode && tt_pv));
                             update_quiet_stats(ss, pos, tt_move, bonus);
                         }
 
@@ -963,7 +963,7 @@ namespace Searcher {
                     // Penalty for a quiet tt_move that fails low.
                     if (!pos.capture_or_promotion(tt_move))
                     {
-                        auto bonus = stat_bonus(depth);
+                        auto bonus = stat_bonus(depth + (!PVNode && tt_pv));
                         thread->butterfly_history[pos.active][move_index(tt_move)] << -bonus;
                         update_continuation_histories(ss, pos[org_sq(tt_move)], dst_sq(tt_move), -bonus);
                     }
@@ -1722,7 +1722,8 @@ namespace Searcher {
 
                 if (!pos.capture_or_promotion(best_move))
                 {
-                    auto bonus2 = best_value - VALUE_MG_PAWN > beta ?
+                    auto bonus2 = (!PVNode && tt_pv)
+                                || best_value - VALUE_MG_PAWN > beta ?
                                     bonus1 :
                                     stat_bonus(depth);
 
