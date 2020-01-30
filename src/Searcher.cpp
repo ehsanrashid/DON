@@ -2170,9 +2170,8 @@ void MainThread::search()
         // Set the time manager before searching.
         time_mgr.set(root_pos.active, root_pos.ply);
     }
-
+    assert(0 <= root_pos.ply);
     TEntry::Generation = u08((root_pos.ply + 1) << 3);
-    assert(0 == (TEntry::Generation & 0x07));
 
     bool think = true;
 

@@ -15,31 +15,6 @@ using namespace std;
 
 u08 TEntry::Generation;
 
-/// TCluster::probe()
-/// If the position is found, it returns true and a pointer to the found entry.
-/// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
-const TEntry* TCluster::probe(u16 key16, bool &hit) const
-{
-    // Find an entry to be replaced according to the replacement strategy.
-    auto *rte = entries; // Default first
-    for (auto *ite = entries; ite < entries + EntryCount; ++ite)
-    {
-        if (   ite->empty()
-            || ite->k16 == key16)
-        {
-            hit = !ite->empty();
-            return ite;
-        }
-        // Replacement strategy.
-        if (rte->worth() > ite->worth())
-        {
-            rte = ite;
-        }
-    }
-    hit = false;
-    return rte;
-}
-
 size_t TCluster::fresh_entry_count() const
 {
     return (entries[0].generation() == TEntry::Generation)
@@ -47,9 +22,35 @@ size_t TCluster::fresh_entry_count() const
          + (entries[2].generation() == TEntry::Generation);
 }
 
-void TCluster::clear()
+/// TCluster::probe()
+/// If the position is found, it returns true and a pointer to the found entry.
+/// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
+TEntry* TCluster::probe(u16 key16, bool &hit)
 {
-    std::memset(this, 0, sizeof(*this));
+    // Find an entry to be replaced according to the replacement strategy.
+    auto *rte = entries; // Default first
+    for (auto *ite = entries; ite < entries + EntryCount; ++ite)
+    {
+        if (   ite->d08 == 0
+            || ite->k16 == key16)
+        {
+            // Refresh entry
+            ite->g08 = u08(TEntry::Generation | (ite->g08 & 0x07));
+            hit = ite->d08 != 0;
+            return ite;
+        }
+        // Replacement strategy.
+        // Due to packed storage format for generation and its cyclic nature
+        // add 0x107 (0x100 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
+        // to calculate the entry age correctly even after generation overflows into the next cycle.
+        if (  (rte->d08 - ((0x107 + TEntry::Generation - rte->g08) & 0xF8))
+            > (ite->d08 - ((0x107 + TEntry::Generation - ite->g08) & 0xF8)))
+        {
+            rte = ite;
+        }
+    }
+    hit = false;
+    return rte;
 }
 
 /// TTable::alloc_aligned_memory() allocates the aligned memory
@@ -182,9 +183,7 @@ void TTable::clear()
 /// TTable::probe() looks up the entry in the transposition table.
 TEntry* TTable::probe(Key key, bool &hit) const
 {
-    auto *tte = const_cast<TEntry*>(cluster(key)->probe(u16(key >> 0x30), hit));
-    if (hit) tte->refresh();
-    return tte;
+    return cluster(key)->probe(u16(key >> 0x30), hit);
 }
 /// TTable::hash_full() returns an approximation of the per-mille of the
 /// all transposition entries during a search which have received
@@ -194,13 +193,13 @@ TEntry* TTable::probe(Key key, bool &hit) const
 /// hash, are using <x>%. of the state of full.
 u32 TTable::hash_full() const
 {
-    size_t fresh_entry_count = 0;
-    const auto cluster_limit = std::min(size_t(1000 / TCluster::EntryCount), cluster_count);
-    for (const auto *itc = clusters; itc < clusters + cluster_limit; ++itc)
+    auto use_count = std::min(size_t(1000), cluster_count);
+    auto entry_count = size_t(0);
+    for (auto *itc = clusters; itc < clusters + use_count; ++itc)
     {
-        fresh_entry_count += itc->fresh_entry_count();
+        entry_count += itc->fresh_entry_count();
     }
-    return u32(fresh_entry_count * 1000 / (cluster_limit * TCluster::EntryCount));
+    return u32((entry_count * size_t(1000)) / (TCluster::EntryCount * use_count));
 }
 
 /// TTable::extract_next_move() extracts next move after current move.

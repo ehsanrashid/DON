@@ -41,13 +41,6 @@ public:
     u08  generation() const { return u08  (g08 & 0xF8); }
     bool      is_pv() const { return 0 != (g08 & 0x04); }
     Bound     bound() const { return Bound(g08 & 0x03); }
-    bool      empty() const { return 0 == d08; }
-    // Due to packed storage format for generation and its cyclic nature
-    // add 0x107 (0x100 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
-    // to calculate the entry age correctly even after generation overflows into the next cycle.
-    i16       worth() const { return d08 - ((Generation - g08 + 0x107) & 0xF8); }
-    // Refresh entry.
-    void refresh() { g08 = u08(Generation | (g08 & 0x07)); }
 
     void save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv)
     {
@@ -57,6 +50,7 @@ public:
         {
             m16 = u16(m);
         }
+        u08 pb = u08(g08 & 0x07);
         if (   k16 != (k >> 0x30)
             || d08 < d - DEP_OFFSET + 4
             || BOUND_EXACT == b)
@@ -67,9 +61,9 @@ public:
             v16 = i16(v);
             e16 = i16(e);
             d08 = u08(d - DEP_OFFSET);
-            g08 = u08(Generation | u08(pv) << 2 | b);
+            pb  = u08(u08(pv) << 2 | b);
         }
-        assert(!empty());
+        g08 = u08(Generation | pb);
     }
 };
 
@@ -91,11 +85,9 @@ public:
 
     TCluster() = default;
 
-    const TEntry* probe(u16, bool&) const;
-
     size_t fresh_entry_count() const;
 
-    void clear();
+    TEntry* probe(u16, bool&);
 };
 
 /// Size of Transposition cluster(32 bytes)
@@ -128,9 +120,9 @@ public:
 
     static constexpr u32 BufferSize = 0x10000;
 
-    void *mem;
+    void     *mem;
     TCluster *clusters;
-    size_t cluster_count;
+    size_t    cluster_count;
 
     TTable()
         : mem(nullptr)
@@ -152,7 +144,7 @@ public:
 
     /// cluster() returns a pointer to the cluster of given a key.
     /// Lower 32 bits of the key are used to get the index of the cluster.
-    const TCluster* cluster(Key key) const
+    TCluster* cluster(Key key) const
     {
         return &clusters[(u32(key) * u64(cluster_count)) >> 32];
     }

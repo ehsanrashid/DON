@@ -264,14 +264,14 @@ void Thread::clear()
 {
     butterfly_history.fill(0);
     capture_history.fill(0);
-    
+
     for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
                      B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
                      NO_PIECE })
     {
         move_history[pc].fill(MOVE_NONE);
     }
-    
+
     for (auto in_check : {0, 1})
     {
         for (auto cap_type : {0, 1})
