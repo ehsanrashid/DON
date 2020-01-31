@@ -464,29 +464,10 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        auto own_k_sq = pos.square(Own|KING);
+        auto k_sq = pos.square(Own|KING);
 
-        // King Safety: friend pawns shelter and enemy pawns storm
-        u08 index = pe->king_safety_on<Own>(pos, own_k_sq);
-        auto score = pe->king_safety[Own][index];
-        if (   0 != index
-            && pos.si->can_castle(Own|CS_KING)
-            && pos.expeded_castle(Own, CS_KING)
-            && 0 == (pos.castle_king_path_bb[Own][CS_KING] & ful_attacks[Opp])
-            && mg_value(score) < mg_value(pe->king_safety[Own][0]))
-        {
-            score = pe->king_safety[Own][0];
-        }
-        if (   1 != index
-            && pos.si->can_castle(Own|CS_QUEN)
-            && pos.expeded_castle(Own, CS_QUEN)
-            && 0 == (pos.castle_king_path_bb[Own][CS_QUEN] & ful_attacks[Opp])
-            && mg_value(score) < mg_value(pe->king_safety[Own][1]))
-        {
-            score = pe->king_safety[Own][1];
-        }
-
-        score += make_score(0, -16 * pe->king_pawn_dist[Own][index]);
+        // King Safety:
+        auto score = pe->evaluate_king_safety<Own>(pos, ful_attacks[Opp]);
 
         // Main king safety evaluation
         i32 king_danger = 0;
@@ -508,7 +489,7 @@ namespace {
 
         /*
         // Enemy pawn checks
-        Bitboard pawn_check = PawnAttacks[Own][own_k_sq]
+        Bitboard pawn_check = PawnAttacks[Own][k_sq]
                             & sgl_attacks[Opp][PAWN];
         // Enemy pawn safe checks
         Bitboard pawn_safe_check = pawn_check
@@ -524,7 +505,7 @@ namespace {
         */
 
         // Enemy knight all checks
-        Bitboard knight_check = PieceAttacks[NIHT][own_k_sq]
+        Bitboard knight_check = PieceAttacks[NIHT][k_sq]
                               & sgl_attacks[Opp][NIHT];
         Bitboard knight_safe_check = knight_check
                                    & safe_area;
@@ -537,8 +518,8 @@ namespace {
             unsafe_check |= knight_check;
         }
 
-        Bitboard bshp_pins = attacks_bb<BSHP>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
-        Bitboard rook_pins = attacks_bb<ROOK>(own_k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
+        Bitboard bshp_pins = attacks_bb<BSHP>(k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
+        Bitboard rook_pins = attacks_bb<ROOK>(k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
 
         Bitboard quen_safe_check = (bshp_pins | rook_pins)
                                  &  sgl_attacks[Opp][QUEN]
@@ -587,7 +568,7 @@ namespace {
             king_danger += 200;
         }
 
-        Bitboard king_flank_camp = KingFlank_bb[_file(own_k_sq)]
+        Bitboard king_flank_camp = KingFlank_bb[_file(k_sq)]
                                  & Camp_bb[Own];
 
         Bitboard b;
@@ -615,7 +596,7 @@ namespace {
                         // Enemy queen is gone
                      - 873 * (0 == pos.pieces(Opp, QUEN))
                         // Friend knight is near by to defend king
-                     - 100 * (0 != (sgl_attacks[Own][NIHT] & (own_k_sq | sgl_attacks[Own][KING])))
+                     - 100 * (0 != (sgl_attacks[Own][NIHT] & (k_sq | sgl_attacks[Own][KING])))
                      -   4 * king_flank_defense
                      -   3 * mg_value(score) / 4
                      +  37;
@@ -627,7 +608,7 @@ namespace {
         }
 
         // Penalty for king on a pawn less flank
-        score -= PawnLessFlank * (0 == (pos.pieces(PAWN) & KingFlank_bb[_file(own_k_sq)]));
+        score -= PawnLessFlank * (0 == (pos.pieces(PAWN) & KingFlank_bb[_file(k_sq)]));
 
         // King tropism: Penalty for slow motion attacks moving towards friend king zone
         score -= KingFlankAttacks * king_flank_attack;
@@ -659,8 +640,8 @@ namespace {
                                   & ~dbl_attacks[Own]);
         // Enemy not defended and under attacked by any friend piece
         Bitboard attacked_undefended_enemies =  pos.pieces(Opp)
-                                       & ~defended_area
-                                       &  sgl_attacks[Own][NONE];
+                                             & ~defended_area
+                                             &  sgl_attacks[Own][NONE];
         // Non-pawn enemies, defended by enemies
         Bitboard defended_nonpawns_enemies = nonpawns_enemies
                                            & defended_area;
@@ -1030,10 +1011,8 @@ namespace {
         assert((sgl_attacks[WHITE][NONE] & dbl_attacks[WHITE]) == dbl_attacks[WHITE]);
         assert((sgl_attacks[BLACK][NONE] & dbl_attacks[BLACK]) == dbl_attacks[BLACK]);
 
-        score += mobility[WHITE] - mobility[BLACK];
-
-        // Rest should be evaluated after (full attack information needed including king)
-        score += king   <WHITE>() - king   <BLACK>()
+        score += mobility[WHITE] - mobility[BLACK]
+               + king   <WHITE>() - king   <BLACK>()
                + threats<WHITE>() - threats<BLACK>()
                + passers<WHITE>() - passers<BLACK>()
                + space  <WHITE>() - space  <BLACK>();

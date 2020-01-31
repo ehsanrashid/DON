@@ -10,7 +10,6 @@ namespace Pawns {
 
     using namespace BitBoard;
 
-    constexpr u08 MaxCache = 3;
     /// Pawns::Entry contains various information about a pawn structure.
     struct Entry
     {
@@ -21,63 +20,15 @@ namespace Pawns {
         std::array<Bitboard, CLR_NO> attack_span;
         std::array<Bitboard, CLR_NO> passers;
 
-        std::array<u08, CLR_NO>                          index;
-        std::array<std::array<Square, MaxCache>, CLR_NO> king_square;
-        std::array<std::array<u08,    MaxCache>, CLR_NO> king_pawn_dist;
-        std::array<std::array<Score,  MaxCache>, CLR_NO> king_safety;
+        std::array<Square     , CLR_NO> king_sq;
+        std::array<CastleRight, CLR_NO> castling_rights;
+        std::array<Bitboard   , CLR_NO> king_path_attacks;
+        std::array<Score      , CLR_NO> king_safety;
 
-        i32 passed_count() const
-        {
-            return pop_count(passers[WHITE] | passers[BLACK]);
-        }
+        i32 passed_count() const { return pop_count(passers[WHITE] | passers[BLACK]); }
 
         template<Color Own>
-        u08 king_safety_on(const Position &pos, Square own_k_sq)
-        {
-            auto idx = std::distance(king_square[Own].begin(),
-                                     std::find(          king_square[Own].begin(),
-                                               std::next(king_square[Own].begin(), index[Own] + 1), own_k_sq));
-            assert(0 <= idx && idx <= MaxCache);
-            if (idx > index[Own])
-            {
-                idx = index[Own];
-                if (index[Own] < MaxCache - 1)
-                {
-                    ++index[Own];
-                }
-
-                // In endgame, king near to closest pawn
-                Bitboard pawns = pos.pieces(Own, PAWN);
-                u08 kp_dist;
-                if (0 != pawns)
-                {
-                    if (0 != (pawns & PieceAttacks[KING][own_k_sq]))
-                    {
-                        kp_dist = 1;
-                    }
-                    else
-                    {
-                        kp_dist = 8;
-                        while (0 != pawns)
-                        {
-                            kp_dist = std::min(u08(dist(own_k_sq, pop_lsq(pawns))), kp_dist);
-                        }
-                    }
-                }
-                else
-                {
-                    kp_dist = 0;
-                }
-
-                king_square[Own][idx] = own_k_sq;
-                king_pawn_dist[Own][idx] = kp_dist;
-                king_safety[Own][idx] = evaluate_safety<Own>(pos, own_k_sq);
-            }
-            return u08(idx);
-        }
-
-        template<Color>
-        Score evaluate_safety(const Position&, Square) const;
+        Score evaluate_king_safety(const Position&, Bitboard);
 
         template<Color>
         void evaluate(const Position&);

@@ -955,17 +955,17 @@ namespace Searcher {
                         if (   !prior_capture_or_promotion
                             && 2 >= (ss-1)->move_count)
                         {
-                            auto bonus = stat_bonus(depth + 1);
-                            update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), -bonus);
+                            auto bonus = -stat_bonus(depth + 1);
+                            update_continuation_histories(ss-1, pos[dst_sq((ss-1)->played_move)], dst_sq((ss-1)->played_move), bonus);
                         }
                     }
                     else
                     // Penalty for a quiet tt_move that fails low.
                     if (!pos.capture_or_promotion(tt_move))
                     {
-                        auto bonus = stat_bonus(depth + (!PVNode && tt_pv));
-                        thread->butterfly_history[pos.active][move_index(tt_move)] << -bonus;
-                        update_continuation_histories(ss, pos[org_sq(tt_move)], dst_sq(tt_move), -bonus);
+                        auto bonus = -stat_bonus(depth + (!PVNode && tt_pv));
+                        thread->butterfly_history[pos.active][move_index(tt_move)] << bonus;
+                        update_continuation_histories(ss, pos[org_sq(tt_move)], dst_sq(tt_move), bonus);
                     }
                 }
 

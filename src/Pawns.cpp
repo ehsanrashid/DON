@@ -49,57 +49,120 @@ namespace Pawns {
 
 #   undef S
 
+        /// evaluate_safety_on() calculates shelter & storm for king,
+        /// looking at the king file and the two closest files.
+        template<Color Own>
+        Score evaluate_safety_on(const Position &pos, Square k_sq)
+        {
+            constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+
+            Bitboard front_pawns = ~front_rank_bb(Opp, k_sq) & pos.pieces(PAWN);
+            Bitboard own_front_pawns = pos.pieces(Own) & front_pawns;
+            Bitboard opp_front_pawns = pos.pieces(Opp) & front_pawns;
+
+            Score safety = Initial;
+
+            auto kf = ::clamp(_file(k_sq), F_B, F_G);
+            for (auto f : { kf - File(1), kf, kf + File(1) })
+            {
+                assert(F_A <= f && f <= F_H);
+                Bitboard own_front_f_pawns = own_front_pawns & file_bb(f);
+                auto own_r = 0 != own_front_f_pawns ?
+                            rel_rank(Own, scan_frontmost_sq(Opp, own_front_f_pawns)) : R_1;
+                Bitboard opp_front_f_pawns = opp_front_pawns & file_bb(f);
+                auto opp_r = 0 != opp_front_f_pawns ?
+                            rel_rank(Own, scan_frontmost_sq(Opp, opp_front_f_pawns)) : R_1;
+                assert((own_r != opp_r)
+                    || (R_1 == own_r
+                     && R_1 == opp_r));
+
+                auto ff = map_file(f);
+                assert(F_E > ff);
+
+                safety += Shelter[ff][own_r];
+                if (   R_1 != own_r
+                    && (own_r + 1) == opp_r)
+                {
+                    safety -= BlockedStorm * (R_3 == opp_r);
+                }
+                else
+                {
+                    safety -= Storm[ff][opp_r];
+                }
+            }
+
+            return safety;
+        }
+        // Explicit template instantiations
+        template Score evaluate_safety_on<WHITE>(const Position&, Square);
+        template Score evaluate_safety_on<BLACK>(const Position&, Square);
 
     }
 
-    /// Entry::evaluate_safety() calculates shelter & storm for a king,
-    /// looking at the king file and the two closest files.
+    /// Entry::evaluate_king_safety()
     template<Color Own>
-    Score Entry::evaluate_safety(const Position &pos, Square own_k_sq) const
+    Score Entry::evaluate_king_safety(const Position &pos, Bitboard attacks)
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        auto k_sq       = pos.square(Own|KING);
+        auto cr         = pos.si->castle_right(Own);
+        auto kp_attacks = attacks
+                        & ((pos.castle_king_path_bb[Own][CS_KING] * pos.si->can_castle(Own|CS_KING))
+                         | (pos.castle_king_path_bb[Own][CS_QUEN] * pos.si->can_castle(Own|CS_QUEN)));
 
-        Bitboard front_pawns = ~front_rank_bb(Opp, own_k_sq) & pos.pieces(PAWN);
-        Bitboard own_front_pawns = pos.pieces(Own) & front_pawns;
-        Bitboard opp_front_pawns = pos.pieces(Opp) & front_pawns;
-
-        Score safety = Initial;
-
-        auto kf = ::clamp(_file(own_k_sq), F_B, F_G);
-        for (auto f : { kf - File(1), kf, kf + File(1) })
+        if (   king_sq[Own] == k_sq
+            && castling_rights[Own] == cr
+            && king_path_attacks[Own] == kp_attacks)
         {
-            assert(F_A <= f && f <= F_H);
-            Bitboard own_front_f_pawns = own_front_pawns & file_bb(f);
-            auto own_r = 0 != own_front_f_pawns ?
-                        rel_rank(Own, scan_frontmost_sq(Opp, own_front_f_pawns)) : R_1;
-            Bitboard opp_front_f_pawns = opp_front_pawns & file_bb(f);
-            auto opp_r = 0 != opp_front_f_pawns ?
-                        rel_rank(Own, scan_frontmost_sq(Opp, opp_front_f_pawns)) : R_1;
-            assert((own_r != opp_r)
-                || (R_1 == own_r
-                 && R_1 == opp_r));
+            return king_safety[Own];
+        }
 
-            auto ff = map_file(f);
-            assert(F_E > ff);
+        king_sq[Own] = k_sq;
+        castling_rights[Own] = cr;
+        king_path_attacks[Own] = kp_attacks;
 
-            safety += Shelter[ff][own_r];
-            if (   R_1 != own_r
-                && (own_r + 1) == opp_r)
+        auto safety = evaluate_safety_on<Own>(pos, k_sq);
+
+        if (   pos.si->can_castle(Own|CS_KING)
+            //&& pos.expeded_castle(Own, CS_KING)
+            && 0 == (pos.castle_king_path_bb[Own][CS_KING] & kp_attacks))
+        {
+            safety = std::max(evaluate_safety_on<Own>(pos, rel_sq(Own, SQ_G1)), safety,
+                              [](Score s1, Score s2) { return mg_value(s1) < mg_value(s2); });
+        }
+        if (   pos.si->can_castle(Own|CS_QUEN)
+            //&& pos.expeded_castle(Own, CS_QUEN)
+            && 0 == (pos.castle_king_path_bb[Own][CS_QUEN] & kp_attacks))
+        {
+            safety = std::max(evaluate_safety_on<Own>(pos, rel_sq(Own, SQ_C1)), safety,
+                              [](Score s1, Score s2) { return mg_value(s1) < mg_value(s2); });
+        }
+
+        // In endgame, king near to closest pawn
+        i32 kp_dist = 0;
+        Bitboard pawns = pos.pieces(Own, PAWN);
+        if (0 != pawns)
+        {
+            if (0 != (pawns & PieceAttacks[KING][k_sq]))
             {
-                safety -= BlockedStorm * (R_3 == opp_r);
+                kp_dist = 1;
             }
             else
             {
-                safety -= Storm[ff][opp_r];
+                kp_dist = 8;
+                while (0 != pawns)
+                {
+                    kp_dist = std::min(dist(k_sq, pop_lsq(pawns)), kp_dist);
+                }
             }
         }
 
-        return safety;
+        return (king_safety[Own] = safety - make_score(0, 16 * kp_dist));
     }
     // Explicit template instantiations
-    template Score Entry::evaluate_safety<WHITE>(const Position&, Square) const;
-    template Score Entry::evaluate_safety<BLACK>(const Position&, Square) const;
+    template Score Entry::evaluate_king_safety<WHITE>(const Position&, Bitboard);
+    template Score Entry::evaluate_king_safety<BLACK>(const Position&, Bitboard);
 
+    /// Entry::evaluate()
     template<Color Own>
     void Entry::evaluate(const Position &pos)
     {
@@ -116,13 +179,7 @@ namespace Pawns {
         attack_span[Own] = pawn_sgl_attacks_bb(Own, own_pawns);
         passers[Own] = 0;
 
-        index[Own] = 0;
-        king_square[Own].fill(SQ_NO);
-        king_pawn_dist[Own].fill(0);
-        king_safety[Own].fill(SCORE_ZERO);
-
-        king_safety_on<Own>(pos, rel_sq(Own, SQ_G1));
-        king_safety_on<Own>(pos, rel_sq(Own, SQ_C1));
+        king_sq[Own] = SQ_NO;
 
         // Unsupported enemy pawns attacked twice by friend pawns
         Score score = SCORE_ZERO;
