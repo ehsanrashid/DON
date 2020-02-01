@@ -18,9 +18,9 @@ namespace Pawns {
         std::array<Bitboard, CLR_NO> attack_span;
         std::array<Bitboard, CLR_NO> passers;
 
-        std::array<Square     , CLR_NO> king_sq;
-        std::array<Bitboard   , CLR_NO> king_path;
-        std::array<Score      , CLR_NO> king_safety;
+        std::array<Square  , CLR_NO> king_sq;
+        std::array<Bitboard, CLR_NO> king_path;
+        std::array<Score   , CLR_NO> king_safety;
 
         i32 passed_count() const { return BitBoard::pop_count(passers[WHITE] | passers[BLACK]); }
 

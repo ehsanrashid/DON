@@ -144,7 +144,7 @@ namespace {
 
     constexpr array<i32, NONE> SafeCheckWeight
     {
-        0, 790, 635, 880, 980, 0
+        0, 790, 635, 1080, 780, 0
     };
 
     constexpr array<i32, NONE> KingAttackerWeight
@@ -496,49 +496,14 @@ namespace {
 
         Bitboard unsafe_check = 0;
 
-        // Enemy knight all checks
-        Bitboard niht_safe_check = PieceAttacks[NIHT][k_sq]
-                                 & sgl_attacks[Opp][NIHT]
-                                 & safe_area;
-        if (niht_safe_check != 0)
-        {
-            king_danger += SafeCheckWeight[NIHT];
-        }
-        else
-        {
-            unsafe_check |= PieceAttacks[NIHT][k_sq]
-                          & sgl_attacks[Opp][NIHT];
-        }
-
         Bitboard bshp_pins = attacks_bb<BSHP>(k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
         Bitboard rook_pins = attacks_bb<ROOK>(k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
 
-        Bitboard quen_safe_check = (bshp_pins | rook_pins)
-                                 &  sgl_attacks[Opp][QUEN]
-                                 &  safe_area
-                                 & ~sgl_attacks[Own][QUEN];
-
-        // Enemy bishop all checks
-        Bitboard bshp_safe_check = bshp_pins
-                                 & sgl_attacks[Opp][BSHP]
-                                 & safe_area;
-        if ((   bshp_safe_check
-             & ~quen_safe_check) != 0)
-        {
-            king_danger += SafeCheckWeight[BSHP];
-        }
-        else
-        {
-            unsafe_check |= bshp_pins
-                          & sgl_attacks[Opp][BSHP];
-        }
-
-        // Enemy rook all checks
-        Bitboard rook_safe_check = rook_pins
-                                 & sgl_attacks[Opp][ROOK]
-                                 & safe_area;
-        if ((   rook_safe_check
-             & ~quen_safe_check) != 0)
+        // Enemy rooks checks
+        Bitboard rook_safe_check =  rook_pins
+                                 &  sgl_attacks[Opp][ROOK]
+                                 &  safe_area;
+        if (0 != rook_safe_check)
         {
             king_danger += SafeCheckWeight[ROOK];
         }
@@ -548,17 +513,50 @@ namespace {
                           & sgl_attacks[Opp][ROOK];
         }
 
-        // Enemy queen all checks
-        if (quen_safe_check != 0)
+        // Enemy bishops checks:
+        Bitboard bshp_safe_check =  bshp_pins
+                                 &  sgl_attacks[Opp][BSHP]
+                                 &  safe_area;
+        if (0!= bshp_safe_check)
+        {
+            king_danger += SafeCheckWeight[BSHP];
+        }
+        else
+        {
+            unsafe_check |= bshp_pins
+                          & sgl_attacks[Opp][BSHP];
+        }
+
+        // Enemy queens checks: after rook and bishop
+        Bitboard quen_safe_check = (bshp_pins | rook_pins)
+                                 &  sgl_attacks[Opp][QUEN]
+                                 &  safe_area
+                                 & ~sgl_attacks[Own][QUEN];
+        if (0 != (   quen_safe_check
+                  & ~(  rook_safe_check
+                      | bshp_safe_check))
         {
             king_danger += SafeCheckWeight[QUEN];
         }
 
-        if ((  quen_safe_check
-             & (  bshp_safe_check
-                | rook_safe_check)) != 0)
+        if (0 != (  quen_safe_check
+                  & (  rook_safe_check
+                     | bshp_safe_check)))
+        else
         {
             king_danger += 200;
+        }
+
+        // Enemy knights checks
+        Bitboard niht_checks = PieceAttacks[NIHT][k_sq]
+                             & sgl_attacks[Opp][NIHT];
+        if (0 != (niht_checks & safe_area))
+        {
+            king_danger += SafeCheckWeight[NIHT];
+        }
+        else
+        {
+            unsafe_check |= niht_checks;
         }
 
         Bitboard b;
