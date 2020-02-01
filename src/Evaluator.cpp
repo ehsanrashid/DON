@@ -123,7 +123,7 @@ namespace {
     constexpr Score BishopPawns =        S(  3,  7);
     constexpr Score BishopTrapped =      S( 50, 50);
     constexpr Score RookOnQueenFile =    S(  7,  6);
-    constexpr Score RookTrapped =        S( 52, 30);
+    constexpr Score RookTrapped =        S( 52, 10);
     constexpr Score QueenWeaken =        S( 49, 15);
     constexpr Score PawnLessFlank =      S( 17, 95);
     constexpr Score PasserFile =         S( 11,  8);
@@ -262,7 +262,7 @@ namespace {
         // King safety tables
         auto sq = clamp(_file(k_sq), F_B, F_G)
                 | clamp(_rank(k_sq), R_2, R_7);
-        king_ring[Own] = sq | PieceAttacks[KING][sq];
+        king_ring[Own] = PieceAttacks[KING][sq] | sq;
 
         king_attackers_count [Opp] = pop_count(  king_ring[Own]
                                                & sgl_attacks[Opp][PAWN]);
@@ -587,7 +587,8 @@ namespace {
                         // Enemy queen is gone
                      - 873 * (0 == pos.pieces(Opp, QUEN))
                         // Friend knight is near by to defend king
-                     - 100 * (0 != (sgl_attacks[Own][NIHT] & (k_sq | sgl_attacks[Own][KING])))
+                     - 100 * (0 != (   sgl_attacks[Own][NIHT]
+                                    & (sgl_attacks[Own][KING] | k_sq)))
                         // Mobility
                      -   1 * mg_value(mobility[Own] - mobility[Opp])
                      -   4 * kf_defense
@@ -684,12 +685,11 @@ namespace {
             }
         }
 
-        // Bonus for restricting their piece moves + more when landing square is occupied
+        // Bonus for restricting their piece moves
         b = ~defended_area
           &  sgl_attacks[Opp][NONE]
           &  sgl_attacks[Own][NONE];
-        score += PieceRestricted * (  pop_count(b)
-                                    + pop_count(b & pos.pieces()));
+        score += PieceRestricted * pop_count(b);
 
         Bitboard safe_area;
 
@@ -902,8 +902,6 @@ namespace {
             complexity -= 43;
         }
 
-        // Give less importance to psq score
-        s -= pos.psq / 2;
         auto mg = mg_value(s);
         auto eg = eg_value(s);
         // Now apply the bonus: note that we find the attacking side by extracting the

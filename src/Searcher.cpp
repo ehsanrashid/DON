@@ -926,7 +926,7 @@ namespace Searcher {
                 tt_move = MOVE_NONE;
             }
 
-            // thread->tt_hit_avg can be used to approximate the running average of ttHit
+            // tt_hit_avg can be used to approximate the running average of ttHit
             thread->tt_hit_avg = (TTHitAverageWindow - 1) * thread->tt_hit_avg / TTHitAverageWindow
                                + TTHitAverageResolution * tt_hit;
 
@@ -947,7 +947,7 @@ namespace Searcher {
                         // Bonus for a quiet tt_move that fails high.
                         if (!pos.capture_or_promotion(tt_move))
                         {
-                            auto bonus = stat_bonus(depth + (!PVNode && tt_pv));
+                            auto bonus = stat_bonus(depth);
                             update_quiet_stats(ss, pos, tt_move, bonus);
                         }
 
@@ -963,7 +963,7 @@ namespace Searcher {
                     // Penalty for a quiet tt_move that fails low.
                     if (!pos.capture_or_promotion(tt_move))
                     {
-                        auto bonus = -stat_bonus(depth + (!PVNode && tt_pv));
+                        auto bonus = -stat_bonus(depth);
                         thread->butterfly_history[pos.active][move_index(tt_move)] << bonus;
                         update_continuation_histories(ss, pos[org_sq(tt_move)], dst_sq(tt_move), bonus);
                     }
@@ -1117,7 +1117,8 @@ namespace Searcher {
                     && 6 > depth
                     && !Threadpool.limit.mate_on()
                     && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
-                    && eval - futility_margin(depth, improving) >= beta)
+                    && (  eval
+                        - futility_margin(depth, improving)) >= beta)
                 {
                     return eval;
                 }
@@ -1131,7 +1132,11 @@ namespace Searcher {
                     && 23397 > (ss-1)->stats
                     && eval >= beta
                     && eval >= ss->static_eval
-                    && ss->static_eval >= beta - 32 * depth - 30 * improving + 120 * tt_pv + 292
+                    && (  ss->static_eval
+                        + 32 * depth
+                        + 30 * improving
+                        - 120 * tt_pv
+                        - 292) >= beta
                     && (   thread->nmp_ply <= ss->ply
                         || thread->nmp_color != pos.active))
                 {
@@ -1370,7 +1375,9 @@ namespace Searcher {
                         // Futility pruning: parent node. (~5 ELO)
                         if (   !in_check
                             && 6 > lmr_depth
-                            && ss->static_eval + 172 * lmr_depth + 235 <= alfa
+                            && (  ss->static_eval
+                                + 172 * lmr_depth
+                                + 235) <= alfa
                             && (  thread->butterfly_history[pos.active][move_index(move)]
                                 + (*pd_histories[0])[mpc][dst]
                                 + (*pd_histories[1])[mpc][dst]
@@ -1388,10 +1395,6 @@ namespace Searcher {
                     // SEE based pruning: negative SEE (~25 ELO)
                     if (!pos.see_ge(move, Value(-194 * depth)))
                     {
-                        if (capture_or_promotion)
-                        {
-                            capture_moves.push_back(move);
-                        }
                         continue;
                     }
                 }
@@ -1471,17 +1474,15 @@ namespace Searcher {
 
                 bool do_lmr =
                        2 < depth
-                    && (  1
-                        + root_node
-                        + (   root_node
-                           && alfa > best_value)) < move_count
+                    && (2 * root_node + 1) < move_count
                     && (   !root_node
                         // At root if zero best counter
                         || thread->move_best_count(move) == 0)
                     && (   cut_node
                         || !capture_or_promotion
                         || move_picker.skip_quiets
-                        || ss->static_eval + PieceValues[EG][pos.si->capture] <= alfa
+                        || (  ss->static_eval
+                            + PieceValues[EG][pos.si->capture]) <= alfa
                         // If ttHit running average is small
                         || thread->tt_hit_avg < 375 * TTHitAverageWindow);
 
@@ -1722,8 +1723,7 @@ namespace Searcher {
 
                 if (!pos.capture_or_promotion(best_move))
                 {
-                    auto bonus2 = (!PVNode && tt_pv)
-                                || best_value - VALUE_MG_PAWN > beta ?
+                    auto bonus2 = best_value - VALUE_MG_PAWN > beta ?
                                     bonus1 :
                                     stat_bonus(depth);
 

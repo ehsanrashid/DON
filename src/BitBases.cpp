@@ -27,7 +27,7 @@ namespace BitBases {
         // bit    12: active (WHITE or BLACK)
         // bit 13-14: white pawn file (from F_A to F_D)
         // bit 15-17: white pawn R_7 - rank (from R_2 to R_7)
-        u32 index(Color active, Square wk_sq, Square bk_sq, Square wp_sq) noexcept
+        u32 index(Color active, Square wk_sq, Square bk_sq, Square wp_sq)
         {
             assert(F_A <= _file(wp_sq) && _file(wp_sq) <= F_D);
             assert(R_2 <= _rank(wp_sq) && _rank(wp_sq) <= R_7);
