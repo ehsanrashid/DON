@@ -1097,7 +1097,8 @@ namespace Searcher {
                 // Step 7. Razoring. (~1 ELO)
                 if (   !root_node // The required RootNode PV handling is not available in qsearch
                     && 2 > depth
-                    && eval + RazorMargin <= alfa)
+                    && (  eval
+                        + RazorMargin) <= alfa)
                 {
                     return quien_search<PVNode>(pos, ss, alfa, beta);
                 }
@@ -1484,7 +1485,7 @@ namespace Searcher {
                         || (  ss->static_eval
                             + PieceValues[EG][pos.si->capture]) <= alfa
                         // If ttHit running average is small
-                        || thread->tt_hit_avg < 375 * TTHitAverageWindow);
+                        || thread->tt_hit_avg < (375 * TTHitAverageWindow));
 
                 bool full_search;
                 // Step 16. Reduced depth search (LMR, ~200 ELO).
@@ -1496,7 +1497,7 @@ namespace Searcher {
                         // If other threads are searching this position.
                         +1 * thread_marker.marked
                         // If the ttHit running average is large
-                        -1 * (thread->tt_hit_avg > 500 * TTHitAverageWindow)
+                        -1 * (thread->tt_hit_avg > (500 * TTHitAverageWindow))
                         // If opponent's move count is high (~5 ELO)
                         -1 * ((ss-1)->move_count >= 15)
                         // If position is or has been on the PV (~10 ELO)

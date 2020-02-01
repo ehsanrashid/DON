@@ -86,14 +86,8 @@ public:
 
     StateInfo  *ptr;            // Previous StateInfo pointer.
 
-    bool can_castle(CastleRight cr) const
-    {
-        return CR_NONE != (castle_rights & cr);
-    }
-    CastleRight castle_right(Color c) const
-    {
-        return castle_rights & (WHITE == c ? CR_WHITE : CR_BLACK);
-    }
+    bool can_castle(CastleRight cr) const { return CR_NONE != (castle_rights & cr); }
+    CastleRight castle_right(Color c) const { return castle_rights & CastleRight(CR_WHITE << (2 * c)); }
 
     void set_check_info(const Position&);
 };

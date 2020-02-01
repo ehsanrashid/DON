@@ -103,35 +103,43 @@ namespace Pawns {
     template<Color Own>
     Score Entry::evaluate_king_safety(const Position &pos, Bitboard attacks)
     {
-        auto k_sq       = pos.square(Own|KING);
-        auto cr         = pos.si->castle_right(Own);
-        auto kp_attacks = attacks
-                        & ((pos.castle_king_path_bb[Own][CS_KING] * pos.si->can_castle(Own|CS_KING))
-                         | (pos.castle_king_path_bb[Own][CS_QUEN] * pos.si->can_castle(Own|CS_QUEN)));
+        auto k_sq = pos.square(Own|KING);
 
-        if (   king_sq[Own] == k_sq
-            && castling_rights[Own] == cr
-            && king_path_attacks[Own] == kp_attacks)
+        // Find King path
+        array<Bitboard, CS_NO> k_paths
+        {
+            pos.castle_king_path_bb[Own][CS_KING] * (pos.si->can_castle(Own|CS_KING) && pos.expeded_castle(Own, CS_KING)),
+            pos.castle_king_path_bb[Own][CS_QUEN] * (pos.si->can_castle(Own|CS_QUEN) && pos.expeded_castle(Own, CS_QUEN))
+        };
+        if (0 != (k_paths[CS_KING] & attacks))
+        {
+            k_paths[CS_KING] = 0;
+        }
+        if (0 != (k_paths[CS_QUEN] & attacks))
+        {
+            k_paths[CS_QUEN] = 0;
+        }
+        
+        auto k_path = k_paths[CS_KING]
+                    | k_paths[CS_QUEN];
+
+        if (   king_sq[Own]   == k_sq
+            && king_path[Own] == k_path)
         {
             return king_safety[Own];
         }
 
-        king_sq[Own] = k_sq;
-        castling_rights[Own] = cr;
-        king_path_attacks[Own] = kp_attacks;
+        king_sq  [Own] = k_sq;
+        king_path[Own] = k_path;
 
         auto safety = evaluate_safety_on<Own>(pos, k_sq);
 
-        if (   pos.si->can_castle(Own|CS_KING)
-            //&& pos.expeded_castle(Own, CS_KING)
-            && 0 == (pos.castle_king_path_bb[Own][CS_KING] & kp_attacks))
+        if (0 != k_paths[CS_KING])
         {
             safety = std::max(evaluate_safety_on<Own>(pos, rel_sq(Own, SQ_G1)), safety,
                               [](Score s1, Score s2) { return mg_value(s1) < mg_value(s2); });
         }
-        if (   pos.si->can_castle(Own|CS_QUEN)
-            //&& pos.expeded_castle(Own, CS_QUEN)
-            && 0 == (pos.castle_king_path_bb[Own][CS_QUEN] & kp_attacks))
+        if (0 != k_paths[CS_QUEN])
         {
             safety = std::max(evaluate_safety_on<Own>(pos, rel_sq(Own, SQ_C1)), safety,
                               [](Score s1, Score s2) { return mg_value(s1) < mg_value(s2); });
