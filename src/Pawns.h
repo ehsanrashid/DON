@@ -8,8 +8,6 @@
 
 namespace Pawns {
 
-    using namespace BitBoard;
-
     /// Pawns::Entry contains various information about a pawn structure.
     struct Entry
     {
@@ -24,7 +22,7 @@ namespace Pawns {
         std::array<Bitboard   , CLR_NO> king_path;
         std::array<Score      , CLR_NO> king_safety;
 
-        i32 passed_count() const { return pop_count(passers[WHITE] | passers[BLACK]); }
+        i32 passed_count() const { return BitBoard::pop_count(passers[WHITE] | passers[BLACK]); }
 
         template<Color Own>
         Score evaluate_king_safety(const Position&, Bitboard);
