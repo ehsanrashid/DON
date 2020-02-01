@@ -144,7 +144,7 @@ namespace {
 
     constexpr array<i32, NONE> SafeCheckWeight
     {
-        30, 790, 635, 880, 980, 0
+        0, 790, 635, 880, 980, 0
     };
 
     constexpr array<i32, NONE> KingAttackerWeight
@@ -163,31 +163,37 @@ namespace {
         Pawns::Entry *pe;
         Material::Entry *me;
 
-        array<Bitboard, CLR_NO> mob_area;
-        array<Score, CLR_NO> mobility;
-
         // Contains all squares attacked by the color and piece type.
-        array<Bitboard, CLR_NO> ful_attacks;
+        array<Bitboard              , CLR_NO> ful_attacks;
+        
         // Contains all squares attacked by the color and piece type with pinned removed.
         array<array<Bitboard, PT_NO>, CLR_NO> sgl_attacks;
+        
         // Contains all squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
-        array<Bitboard, CLR_NO> dbl_attacks;
+        array<Bitboard              , CLR_NO> pawn_dbl_attacks;
+        array<Bitboard              , CLR_NO> dbl_attacks;
 
-        array<array<Bitboard, 3>, CLR_NO> queen_attacks;
+        // Contains all squares from which queen can be attacked
+        array<array<Bitboard, 3>    , CLR_NO> queen_attacked;
+
+
+        array<Bitboard              , CLR_NO> mob_area;
+        array<Score                 , CLR_NO> mobility;
 
         // The squares adjacent to the king plus some other very near squares, depending on king position.
-        array<Bitboard, CLR_NO> king_ring;
+        array<Bitboard              , CLR_NO> king_ring;
         // Number of pieces of the color, which attack a square in the king_ring of the enemy king.
-        array<u08, CLR_NO> king_attackers_count;
+        array<i32                   , CLR_NO> king_attackers_count;
         // Sum of the "weight" of the pieces of the color which attack a square in the king_ring of the enemy king.
         // The weights of the individual piece types are given by the KingAttackerWeight[piece-type]
-        array<i32, CLR_NO> king_attackers_weight;
+        array<i32                   , CLR_NO> king_attackers_weight;
         // Number of attacks by the color to squares directly adjacent to the enemy king.
         // Pieces which attack more than one square are counted multiple times.
         // For instance, if there is a white knight on g5 and black's king is on g8, this white knight adds 2 to king_attacks_count[WHITE]
-        array<u08, CLR_NO> king_attacks_count;
+        array<i32                   , CLR_NO> king_attacks_count;
 
-        template<Color> void initialize();
+        template<Color> void init_attacks();
+        template<Color> void init_mobility();
         template<Color, PieceType> Score pieces();
         template<Color> Score king() const;
         template<Color> Score threats() const;
@@ -209,50 +215,62 @@ namespace {
         Value value();
     };
 
-    /// initialize() computes king and pawn attacks, and the king ring bitboard of the color.
+    /// init_attacks() computes pawn and king attacks.
     template<bool Trace> template<Color Own>
-    void Evaluator<Trace>::initialize()
+    void Evaluator<Trace>::init_attacks()
+    {
+        Bitboard pawns = pos.pieces(Own, PAWN);
+     
+        sgl_attacks[Own].fill(0);
+        sgl_attacks[Own][PAWN] =  pawn_sgl_attacks_bb(Own, pawns & ~pos.si->king_blockers[Own])
+                               | (pawn_sgl_attacks_bb(Own, pawns &  pos.si->king_blockers[Own]) & PieceAttacks[BSHP][k_sq]);
+        sgl_attacks[Own][KING] = PieceAttacks[KING][pos.square(Own|KING)];
+        sgl_attacks[Own][NONE] = sgl_attacks[Own][PAWN]
+                               | sgl_attacks[Own][KING];
+        //
+        ful_attacks[Own] = pawn_sgl_attacks_bb(Own, pawns)
+                         | sgl_attacks[Own][KING];
+        //
+        pawn_dbl_attacks[Own] = pawn_dbl_attacks_bb(Own, pawns)
+                              & sgl_attacks[Own][PAWN];
+        dbl_attacks[Own] = pawn_dbl_attacks[Own]
+                         | (  sgl_attacks[Own][PAWN]
+                            & sgl_attacks[Own][KING]);
+        //
+        queen_attacked[Own].fill(0);
+    }
+    /// init_mobility() computes mobility and king-ring.
+    template<bool Trace> template<Color Own>
+    void Evaluator<Trace>::init_mobility()
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        auto own_k_sq = pos.square(Own|KING);
+        // Mobility area: Exclude followings
+        mob_area[Own] = ~(  // Squares protected by enemy pawns
+                            sgl_attacks[Opp][PAWN]
+                            // Squares occupied by friend Queen and King
+                          | pos.pieces(Own, QUEN, KING)
+                            // Squares occupied by friend King blockers
+                          | pos.si->king_blockers[Own]
+                            // Squares occupied by block pawns (pawns on ranks 2-3/blocked)
+                          | (  pos.pieces(Own, PAWN)
+                             & (  LowRanks_bb[Own]
+                                | pawn_sgl_pushes_bb(Opp, pos.pieces()))));
+        mobility[Own] = SCORE_ZERO;
 
-        Bitboard own_pawns = pos.pieces(Own, PAWN);
-        sgl_attacks[Own][PAWN] =  pawn_sgl_attacks_bb(Own, own_pawns & ~pos.si->king_blockers[Own])
-                               | (pawn_sgl_attacks_bb(Own, own_pawns &  pos.si->king_blockers[Own]) & PieceAttacks[BSHP][own_k_sq]);
-        sgl_attacks[Own][KING] = PieceAttacks[KING][own_k_sq];
+        auto k_sq = pos.square(Own|KING);
+        // King safety tables
+        auto sq = clamp(_file(k_sq), F_B, F_G)
+                | clamp(_rank(k_sq), R_2, R_7);
+        king_ring[Own] = sq | PieceAttacks[KING][sq];
 
-        ful_attacks[Own] = sgl_attacks[Own][KING]
-                         | pawn_sgl_attacks_bb(Own, own_pawns);
-        sgl_attacks[Own][NONE] = sgl_attacks[Own][KING]
-                               | sgl_attacks[Own][PAWN];
-        dbl_attacks[Own] = sgl_attacks[Own][PAWN]
-                         & (  pawn_dbl_attacks_bb(Own, own_pawns)
-                            | sgl_attacks[Own][KING]);
+        king_attackers_count [Opp] = pop_count(  king_ring[Own]
+                                               & sgl_attacks[Opp][PAWN]);
+        king_attackers_weight[Opp] = 0;
+        king_attacks_count   [Opp] = 0;
 
-        // Do not include in mobility area
-        // - squares protected by enemy pawns
-        // - square occupied by friend Queen and King
-        // - squares occupied by block pawns (pawns blocked or on ranks 2-3)
-        mob_area[Opp] = ~(  sgl_attacks[Own][PAWN]
-                          | pos.pieces(Opp, QUEN, KING)
-                          | (pos.si->king_blockers[Opp] & pos.pieces(Opp))
-                          | (  pos.pieces(Opp, PAWN)
-                             & (  LowRanks_bb[Opp]
-                                | pawn_sgl_pushes_bb(Own, pos.pieces()))));
-        mobility[Opp] = SCORE_ZERO;
-
-        auto opp_k_sq = pos.square(Opp|KING);
-        // Init our king safety tables
-        auto opp_sq = clamp(_file(opp_k_sq), F_B, F_G)
-                    | clamp(_rank(opp_k_sq), R_2, R_7);
-        king_ring[Opp] = opp_sq | PieceAttacks[KING][opp_sq];
-
-        king_attackers_count[Own] = u08(pop_count(king_ring[Opp] & sgl_attacks[Own][PAWN]));
-        king_attackers_weight[Own] = 0;
-        king_attacks_count[Own] = 0;
-        // Remove from king_ring[] the squares defended by two pawns
-        king_ring[Opp] &= ~pawn_dbl_attacks_bb(Opp, pos.pieces(Opp, PAWN));
+        // Remove from king_ring the squares defended by two pawns
+        king_ring[Own] &= ~pawn_dbl_attacks[Own];
     }
 
     /// pieces() evaluates the pieces of the color and type.
@@ -265,11 +283,6 @@ namespace {
 
         auto score = SCORE_ZERO;
 
-        sgl_attacks[Own][PT] = 0;
-        if (QUEN == PT)
-        {
-            queen_attacks[Own].fill(0);
-        }
         for (auto s : pos.squares[Own|PT])
         {
             assert((Own|PT) == pos[s]);
@@ -277,13 +290,6 @@ namespace {
             Bitboard attacks = pos.xattacks_from<PT>(s, Own);
 
             ful_attacks[Own] |= attacks;
-
-            if (QUEN == PT)
-            {
-                queen_attacks[Own][0] |= PieceAttacks[NIHT][s];
-                queen_attacks[Own][1] |= PieceAttacks[BSHP][s] & attacks;
-                queen_attacks[Own][2] |= PieceAttacks[ROOK][s] & attacks;
-            }
 
             if (contains(pos.si->king_blockers[Own], s))
             {
@@ -319,14 +325,16 @@ namespace {
             sgl_attacks[Own][PT]   |= attacks;
             sgl_attacks[Own][NONE] |= attacks;
 
-            if (0 != (king_ring[Opp] & attacks))
+            if ((  attacks
+                 & king_ring[Opp]) != 0)
             {
-                ++king_attackers_count[Own];
+                king_attackers_count [Own]++;
                 king_attackers_weight[Own] += KingAttackerWeight[PT];
-                king_attacks_count[Own] += u08(pop_count(sgl_attacks[Opp][KING] & attacks));
+                king_attacks_count   [Own] += pop_count(  attacks
+                                                        & sgl_attacks[Opp][KING]);
             }
 
-            auto mob = pop_count(mob_area[Own] & attacks);
+            auto mob = pop_count(attacks & mob_area[Own]);
             assert(0 <= mob && mob <= 27);
 
             // Bonus for piece mobility
@@ -433,6 +441,10 @@ namespace {
                 break;
             case QUEN:
             {
+                queen_attacked[Own][0] |= pos.attacks_from(NIHT, s);
+                queen_attacked[Own][1] |= pos.attacks_from(BSHP, s);
+                queen_attacked[Own][2] |= pos.attacks_from(ROOK, s);
+
                 // Penalty for pin or discover attack on the queen
                 b = 0; // Queen attackers
                 if ((  pos.slider_blockers(s, Opp, pos.pieces(Opp, QUEN), b, b)
@@ -466,9 +478,6 @@ namespace {
 
         auto k_sq = pos.square(Own|KING);
 
-        // King Safety:
-        auto score = pe->evaluate_king_safety<Own>(pos, ful_attacks[Opp]);
-
         // Main king safety evaluation
         i32 king_danger = 0;
 
@@ -487,35 +496,18 @@ namespace {
 
         Bitboard unsafe_check = 0;
 
-        /*
-        // Enemy pawn checks
-        Bitboard pawn_check = PawnAttacks[Own][k_sq]
-                            & sgl_attacks[Opp][PAWN];
-        // Enemy pawn safe checks
-        Bitboard pawn_safe_check = pawn_check
-                                 & safe_area;
-        if (0 != pawn_safe_check)
-        {
-            king_danger += SafeCheckWeight[PAWN];
-        }
-        else
-        {
-            unsafe_check |= pawn_check;
-        }
-        */
-
         // Enemy knight all checks
-        Bitboard knight_check = PieceAttacks[NIHT][k_sq]
-                              & sgl_attacks[Opp][NIHT];
-        Bitboard knight_safe_check = knight_check
-                                   & safe_area;
-        if (0 != knight_safe_check)
+        Bitboard niht_safe_check = PieceAttacks[NIHT][k_sq]
+                                 & sgl_attacks[Opp][NIHT]
+                                 & safe_area;
+        if (niht_safe_check != 0)
         {
             king_danger += SafeCheckWeight[NIHT];
         }
         else
         {
-            unsafe_check |= knight_check;
+            unsafe_check |= PieceAttacks[NIHT][k_sq]
+                          & sgl_attacks[Opp][NIHT];
         }
 
         Bitboard bshp_pins = attacks_bb<BSHP>(k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
@@ -523,15 +515,15 @@ namespace {
 
         Bitboard quen_safe_check = (bshp_pins | rook_pins)
                                  &  sgl_attacks[Opp][QUEN]
-                                 & safe_area
+                                 &  safe_area
                                  & ~sgl_attacks[Own][QUEN];
 
         // Enemy bishop all checks
         Bitboard bshp_safe_check = bshp_pins
                                  & sgl_attacks[Opp][BSHP]
                                  & safe_area;
-        if (0 != (   bshp_safe_check
-                  & ~quen_safe_check))
+        if ((   bshp_safe_check
+             & ~quen_safe_check) != 0)
         {
             king_danger += SafeCheckWeight[BSHP];
         }
@@ -545,8 +537,8 @@ namespace {
         Bitboard rook_safe_check = rook_pins
                                  & sgl_attacks[Opp][ROOK]
                                  & safe_area;
-        if (0 != (   rook_safe_check
-                  & ~quen_safe_check))
+        if ((   rook_safe_check
+             & ~quen_safe_check) != 0)
         {
             king_danger += SafeCheckWeight[ROOK];
         }
@@ -557,47 +549,49 @@ namespace {
         }
 
         // Enemy queen all checks
-        if (0 != quen_safe_check)
+        if (quen_safe_check != 0)
         {
             king_danger += SafeCheckWeight[QUEN];
         }
 
-        if (0 != (  quen_safe_check
-                  & (bshp_safe_check | rook_safe_check)))
+        if ((  quen_safe_check
+             & (  bshp_safe_check
+                | rook_safe_check)) != 0)
         {
             king_danger += 200;
         }
 
-        Bitboard king_flank_camp = KingFlank_bb[_file(k_sq)]
-                                 & Camp_bb[Own];
-
         Bitboard b;
-        b = king_flank_camp
+
+        b = KingFlank_bb[_file(k_sq)]
+          & Camp_bb[Own]
           & sgl_attacks[Opp][NONE];
         // Friend king flank attack count
-        i32 king_flank_attack = pop_count(b)                    // Squares attacked by enemy in friend king flank
-                              + pop_count(b & dbl_attacks[Opp]);// Squares attacked by enemy twice in friend king flank.
+        i32 kf_attacks = pop_count(b)                    // Squares attacked by enemy in friend king flank
+                       + pop_count(b & dbl_attacks[Opp]);// Squares attacked by enemy twice in friend king flank.
         // Friend king flank defense count
-        b = king_flank_camp
+        b = KingFlank_bb[_file(k_sq)]
+          & Camp_bb[Own]
           & sgl_attacks[Own][NONE];
-        i32 king_flank_defense = pop_count(b);
+        i32 kf_defense = pop_count(b);
 
-        // Initialize the king danger, which will be transformed later into a score.
-        // - number and types of the enemy's attacking pieces,
-        // - number of attacked and undefended squares around friend king,
-        // - quality of the pawn shelter ('mg score' safety).
+        // King Safety:
+        auto score = pe->evaluate_king_safety<Own>(pos, ful_attacks[Opp]);
+
         king_danger +=   1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
                      +  69 * king_attacks_count[Opp]
                      + 185 * pop_count(king_ring[Own] & weak_area)
                      + 148 * pop_count(unsafe_check)
                      +  98 * pop_count(pos.si->king_blockers[Own])
-                     +   1 * mg_value(mobility[Opp] - mobility[Own])
-                     +   3 * i32(std::pow(king_flank_attack, 2)) / 8
+                     +   3 * kf_attacks * kf_attacks / 8
                         // Enemy queen is gone
                      - 873 * (0 == pos.pieces(Opp, QUEN))
                         // Friend knight is near by to defend king
                      - 100 * (0 != (sgl_attacks[Own][NIHT] & (k_sq | sgl_attacks[Own][KING])))
-                     -   4 * king_flank_defense
+                        // Mobility
+                     -   1 * mg_value(mobility[Own] - mobility[Opp])
+                     -   4 * kf_defense
+                        // Pawn Safety quality
                      -   3 * mg_value(score) / 4
                      +  37;
 
@@ -611,7 +605,7 @@ namespace {
         score -= PawnLessFlank * (0 == (pos.pieces(PAWN) & KingFlank_bb[_file(k_sq)]));
 
         // King tropism: Penalty for slow motion attacks moving towards friend king zone
-        score -= KingFlankAttacks * king_flank_attack;
+        score -= KingFlankAttacks * kf_attacks;
 
         if (Trace)
         {
@@ -733,12 +727,12 @@ namespace {
             safe_area =  mob_area[Own]
                       & ~defended_area;
             b = safe_area
-              & (sgl_attacks[Own][NIHT] & queen_attacks[Opp][0]);
+              & (sgl_attacks[Own][NIHT] & queen_attacked[Opp][0]);
             score += KnightOnQueen * pop_count(b);
 
             b = safe_area
-              & (  (sgl_attacks[Own][BSHP] & queen_attacks[Opp][1])
-                 | (sgl_attacks[Own][ROOK] & queen_attacks[Opp][2]))
+              & (  (sgl_attacks[Own][BSHP] & queen_attacked[Opp][1])
+                 | (sgl_attacks[Own][ROOK] & queen_attacked[Opp][2]))
               & dbl_attacks[Own];
             score += SliderOnQueen * pop_count(b);
         }
@@ -999,8 +993,8 @@ namespace {
             clear();
         }
 
-        initialize<WHITE>();
-        initialize<BLACK>();
+        init_attacks <WHITE>(), init_attacks <BLACK>();
+        init_mobility<WHITE>(), init_mobility<BLACK>();
 
         // Pieces should be evaluated first (populate attack information)
         score += pieces<WHITE, NIHT>() - pieces<BLACK, NIHT>();

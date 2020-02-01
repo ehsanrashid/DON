@@ -11,7 +11,7 @@ namespace BitBoard {
     using namespace std;
 
     array<array<Bitboard, SQ_NO>, CLR_NO> PawnAttacks;
-    array<array<Bitboard, SQ_NO>, NONE> PieceAttacks;
+    array<array<Bitboard, SQ_NO>, NONE  > PieceAttacks;
 
     array<array<Bitboard, SQ_NO>, SQ_NO> Line_bb;
 

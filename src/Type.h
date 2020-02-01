@@ -343,8 +343,8 @@ ARTHMAT_OPERATORS(Delta)
 inline Square operator+(Square s, Delta d) { return Square(i32(s) + i32(d)); }
 inline Square operator-(Square s, Delta d) { return Square(i32(s) - i32(d)); }
 
-inline Square& operator+=(Square &s, Delta d) { s = s + d; return s; }
-inline Square& operator-=(Square &s, Delta d) { s = s - d; return s; }
+inline Square& operator+=(Square &s, Delta d) { return s = s + d; }
+inline Square& operator-=(Square &s, Delta d) { return s = s - d; }
 
 inline Delta operator-(Square s1, Square s2) { return Delta(i32(s1) - i32(s2)); }
 
@@ -396,8 +396,8 @@ inline Score operator*(Score s, i32 i)
     return score;
 }
 
-inline Score& operator/=(Score &s, i32 i) { s = s / i; return s; }
-inline Score& operator*=(Score &s, i32 i) { s = s * i; return s; }
+inline Score& operator/=(Score &s, i32 i) { return s = s / i; }
+inline Score& operator*=(Score &s, i32 i) { return s = s * i; }
 
 /// Multiplication of a Score by a boolean
 inline Score operator*(Score s, bool b) { return s * i32(b); }
@@ -437,9 +437,9 @@ constexpr Rank  _rank(Square s) { return Rank((s >> 3) & R_8); }
 constexpr Color color(Square s) { return Color(0 == ((_file(s) ^ _rank(s)) & BLACK)); }
 
 // SQ_A1 -> SQ_A8
-constexpr Square operator~(Square s) { return Square(i08(s) ^ i08(SQ_A8)); }
+constexpr Square operator~(Square s) { return Square(i32(s) ^ i32(SQ_A8)); }
 // SQ_A1 -> SQ_H1
-constexpr Square operator!(Square s) { return Square(i08(s) ^ i08(SQ_H1)); }
+constexpr Square operator!(Square s) { return Square(i32(s) ^ i32(SQ_H1)); }
 
 constexpr bool opposite_colors(Square s1, Square s2)
 {
@@ -448,7 +448,7 @@ constexpr bool opposite_colors(Square s1, Square s2)
     return 0 != ((_file(s1) ^ _rank(s1) ^ _file(s2) ^ _rank(s2)) & BLACK);
 }
 
-constexpr Square rel_sq(Color c, Square s) { return Square(i08(s) ^ (c*SQ_A8)); }
+constexpr Square rel_sq(Color c, Square s) { return Square(i32(s) ^ (c*SQ_A8)); }
 
 constexpr Rank rel_rank(Color c, Rank r)   { return Rank(r ^ (c*R_8)); }
 constexpr Rank rel_rank(Color c, Square s) { return rel_rank(c, _rank(s)); }

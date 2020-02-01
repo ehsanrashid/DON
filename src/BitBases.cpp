@@ -27,7 +27,7 @@ namespace BitBases {
         // bit    12: active (WHITE or BLACK)
         // bit 13-14: white pawn file (from F_A to F_D)
         // bit 15-17: white pawn R_7 - rank (from R_2 to R_7)
-        u32 index(Color active, Square wk_sq, Square bk_sq, Square wp_sq)
+        u32 index(Color active, Square wk_sq, Square bk_sq, Square wp_sq) noexcept
         {
             assert(F_A <= _file(wp_sq) && _file(wp_sq) <= F_D);
             assert(R_2 <= _rank(wp_sq) && _rank(wp_sq) <= R_7);
@@ -48,17 +48,21 @@ namespace BitBases {
             LOSE    = 1 << 3,
         };
 
-        Result& operator|=(Result &r1, Result r2) { return r1 = Result(r1|r2); }
-        //Result& operator&=(Result &r1, Result r2) { return r1 = Result(r1&r2); }
+        constexpr Result operator|(Result r1, Result r2) { return Result(i32(r1) | i32(r2)); }
+        //constexpr Result operator&(Result r1, Result r2) { return Result(i32(r1) & i32(r2)); }
 
+        Result& operator|=(Result &r1, Result r2) { return r1 = r1 | r2; }
+        //Result& operator&=(Result &r1, Result r2) { return r1 = r1 & r2; }
+
+        /// KPK_Position
         struct KPK_Position
         {
         private:
-            Color  active;
-            Square p_sq;
+            Color                 active;
+            Square                p_sq;
             array<Square, CLR_NO> k_sq;
 
-            Result result;
+            Result                result;
 
         public:
 
@@ -165,6 +169,7 @@ namespace BitBases {
         };
     }
 
+    /// BitBases::initialize()
     void initialize()
     {
         vector<KPK_Position> kpk_db(MAX_INDEX);
@@ -195,6 +200,7 @@ namespace BitBases {
         }
     }
 
+    /// BitBases::probe()
     bool probe(Color active, Square wk_sq, Square wp_sq, Square bk_sq)
     {
         return KPK_Bitbase[index(active, wk_sq, bk_sq, wp_sq)];

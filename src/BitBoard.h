@@ -105,7 +105,7 @@ namespace BitBoard {
 #   undef S_02
 
     extern std::array<std::array<Bitboard, SQ_NO>, CLR_NO> PawnAttacks;
-    extern std::array<std::array<Bitboard, SQ_NO>, NONE> PieceAttacks;
+    extern std::array<std::array<Bitboard, SQ_NO>, NONE  > PieceAttacks;
 
     extern std::array<std::array<Bitboard, SQ_NO>, SQ_NO> Line_bb;
 
