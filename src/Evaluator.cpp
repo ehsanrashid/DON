@@ -500,10 +500,10 @@ namespace {
         Bitboard rook_pins = attacks_bb<ROOK>(k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
 
         // Enemy rooks checks
-        Bitboard rook_safe_check =  rook_pins
-                                 &  sgl_attacks[Opp][ROOK]
-                                 &  safe_area;
-        if (0 != rook_safe_check)
+        Bitboard rook_safe_checks =  rook_pins
+                                  &  sgl_attacks[Opp][ROOK]
+                                  &  safe_area;
+        if (0 != rook_safe_checks)
         {
             king_danger += SafeCheckWeight[ROOK];
         }
@@ -513,11 +513,23 @@ namespace {
                           & sgl_attacks[Opp][ROOK];
         }
 
-        // Enemy bishops checks:
-        Bitboard bshp_safe_check =  bshp_pins
-                                 &  sgl_attacks[Opp][BSHP]
-                                 &  safe_area;
-        if (0!= bshp_safe_check)
+        // Enemy queens checks
+        Bitboard quen_safe_checks = (bshp_pins | rook_pins)
+                                  &  sgl_attacks[Opp][QUEN]
+                                  &  safe_area
+                                  & ~sgl_attacks[Own][QUEN]
+                                  & ~rook_safe_checks;
+        if (0 != quen_safe_checks)
+        {
+            king_danger += SafeCheckWeight[QUEN];
+        }
+
+        // Enemy bishops checks
+        Bitboard bshp_safe_checks =  bshp_pins
+                                  &  sgl_attacks[Opp][BSHP]
+                                  &  safe_area
+                                  & ~quen_safe_checks;
+        if (0!= bshp_safe_checks)
         {
             king_danger += SafeCheckWeight[BSHP];
         }
@@ -525,26 +537,6 @@ namespace {
         {
             unsafe_check |= bshp_pins
                           & sgl_attacks[Opp][BSHP];
-        }
-
-        // Enemy queens checks: after rook and bishop
-        Bitboard quen_safe_check = (bshp_pins | rook_pins)
-                                 &  sgl_attacks[Opp][QUEN]
-                                 &  safe_area
-                                 & ~sgl_attacks[Own][QUEN];
-        if (0 != (   quen_safe_check
-                  & ~(  rook_safe_check
-                      | bshp_safe_check))
-        {
-            king_danger += SafeCheckWeight[QUEN];
-        }
-
-        if (0 != (  quen_safe_check
-                  & (  rook_safe_check
-                     | bshp_safe_check)))
-        else
-        {
-            king_danger += 200;
         }
 
         // Enemy knights checks

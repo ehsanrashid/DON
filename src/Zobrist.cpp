@@ -15,9 +15,9 @@ Key Zobrist::compute_matl_key(const Position &pos) const
     {
         for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (u08 pc = 0; pc < pos.count(c|pt); ++pc)
+            for (i32 cnt = 0; cnt < pos.count(c|pt); ++cnt)
             {
-                matl_key ^= piece_square[c][pt][pc];
+                matl_key ^= piece_square[c][pt][cnt];
             }
         }
     }

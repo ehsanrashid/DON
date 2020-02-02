@@ -10,10 +10,13 @@ class Zobrist
 {
 public:
     // 2*6*64 + 16 + 8 + 1 = 793
-    std::array<std::array<std::array<Key, SQ_NO>, NONE>, CLR_NO> piece_square;
-    std::array<Key, CR_NO> castle_right;
-    std::array<Key, F_NO> enpassant;
-    Key color;
+    std::array<
+        std::array<
+            std::array<
+                Key, SQ_NO>, NONE>, CLR_NO> piece_square;
+    std::array<Key, CR_NO>                  castle_right;
+    std::array<Key, F_NO >                  enpassant;
+    Key                                     color;
 
     Zobrist() = default;
     Zobrist(const Zobrist&) = delete;
