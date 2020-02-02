@@ -872,11 +872,8 @@ namespace {
         i32 complexity = 11 * pos.count(PAWN)
                        +  9 * pe->passed_count()
                        +  9 * outflanking
-                        // King infiltration
-                       + 12 * (   _rank(pos.square(WHITE|KING)) > R_4
-                               || _rank(pos.square(BLACK|KING)) < R_5)
                        + 51 * (VALUE_ZERO == pos.non_pawn_material())
-                       - 100;
+                       - 95;
 
         // Pawn on both flanks
         if (   0 != (pos.pieces(PAWN) & Side_bb[CS_KING])

@@ -349,30 +349,32 @@ bool Position::pseudo_legal(Move m) const
 
         if (    // Single push
                (   (   (   NORMAL != mtype(m)
-                        || R_1 == org_rank
-                        || R_6 <  org_rank
-                        || R_1 == dst_rank
-                        || R_2 == dst_rank
-                        || R_7 <  dst_rank
+                        || R_2 > org_rank || org_rank > R_6
+                        || R_3 > dst_rank || dst_rank > R_7
                         || NIHT != promote(m))
                     && (   PROMOTE != mtype(m)
                         || R_7 != org_rank
                         || R_8 != dst_rank))
-                || dst != org + pawn_push(active)
+                || dst != org + 1*pawn_push(active)
                 || !empty(dst))
                 // Normal capture
             && (   (   (   NORMAL != mtype(m)
-                        || R_1 == org_rank
-                        || R_6 <  org_rank
-                        || R_1 == dst_rank
-                        || R_2 == dst_rank
-                        || R_7 <  dst_rank
+                        || R_2 > org_rank || org_rank > R_6
+                        || R_3 > dst_rank || dst_rank > R_7
                         || NIHT != promote(m))
                     && (   PROMOTE != mtype(m)
                         || R_7 != org_rank
                         || R_8 != dst_rank))
                 || !contains(PawnAttacks[active][org], dst)
                 || empty(dst))
+                // Double push
+            && (   NORMAL != mtype(m)
+                || R_2 != org_rank
+                || R_4 != dst_rank
+                || NIHT != promote(m)
+                || dst != org + 2*pawn_push(active)
+                || !empty(dst)
+                || !empty(dst - 1*pawn_push(active)))
                 // Enpassant capture
             && (   ENPASSANT != mtype(m)
                 || R_5 != org_rank
@@ -381,16 +383,8 @@ bool Position::pseudo_legal(Move m) const
                 || dst != si->enpassant_sq
                 || !contains(PawnAttacks[active][org], dst)
                 || !empty(dst)
-                || empty(dst - pawn_push(active))
-                || 0 != si->clock_ply)
-                // Double push
-            && (   NORMAL != mtype(m)
-                || R_2 != org_rank
-                || R_4 != dst_rank
-                || NIHT != promote(m)
-                || dst != org + 2*pawn_push(active)
-                || !empty(dst)
-                || !empty(dst - pawn_push(active))))
+                || empty(dst - 1*pawn_push(active))
+                || 0 != si->clock_ply))
         {
             return false;
         }
