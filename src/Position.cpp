@@ -321,17 +321,21 @@ bool Position::pseudo_legal(Move m) const
     {
         return false;
     }
+    
     if (CASTLE == mtype(m))
     {
+        auto cs = dst > org ? CS_KING : CS_QUEN;
+
         return (active|KING) == piece[org] //&& contains(pieces(active, KING), org)
             && (active|ROOK) == piece[dst] //&& contains(pieces(active, ROOK), dst)
-            && castle_rook_sq[active][dst > org ? CS_KING : CS_QUEN] == dst
-            && expeded_castle(active, dst > org ? CS_KING : CS_QUEN)
+            && castle_rook_sq[active][cs] == dst
+            && expeded_castle(active, cs)
             //&& R_1 == rel_rank(active, org)
             //&& R_1 == rel_rank(active, dst)
-            && si->can_castle(active|(dst > org ? CS_KING : CS_QUEN))
+            && si->can_castle(active|cs)
             && 0 == si->checkers;
     }
+
     // The captured square cannot be occupied by a friendly piece
     if (contains(pieces(active), dst))
     {
@@ -340,30 +344,39 @@ bool Position::pseudo_legal(Move m) const
     // Handle the special case of a piece move
     if (PAWN == ptype(piece[org]))
     {
+        auto org_rank = rel_rank(active, org);
+        auto dst_rank = rel_rank(active, dst);
+
         if (    // Single push
                (   (   (   NORMAL != mtype(m)
-                        || R_6 < rel_rank(active, org)
-                        || R_7 < rel_rank(active, dst)
+                        || R_1 == org_rank
+                        || R_6 <  org_rank
+                        || R_1 == dst_rank
+                        || R_2 == dst_rank
+                        || R_7 <  dst_rank
                         || NIHT != promote(m))
                     && (   PROMOTE != mtype(m)
-                        || R_7 != rel_rank(active, org)
-                        || R_8 != rel_rank(active, dst)))
+                        || R_7 != org_rank
+                        || R_8 != dst_rank))
                 || dst != org + pawn_push(active)
                 || !empty(dst))
                 // Normal capture
             && (   (   (   NORMAL != mtype(m)
-                        || R_6 < rel_rank(active, org)
-                        || R_7 < rel_rank(active, dst)
+                        || R_1 == org_rank
+                        || R_6 <  org_rank
+                        || R_1 == dst_rank
+                        || R_2 == dst_rank
+                        || R_7 <  dst_rank
                         || NIHT != promote(m))
                     && (   PROMOTE != mtype(m)
-                        || R_7 != rel_rank(active, org)
-                        || R_8 != rel_rank(active, dst)))
+                        || R_7 != org_rank
+                        || R_8 != dst_rank))
                 || !contains(PawnAttacks[active][org], dst)
                 || empty(dst))
                 // Enpassant capture
             && (   ENPASSANT != mtype(m)
-                || R_5 != rel_rank(active, org)
-                || R_6 != rel_rank(active, dst)
+                || R_5 != org_rank
+                || R_6 != dst_rank
                 || NIHT != promote(m)
                 || dst != si->enpassant_sq
                 || !contains(PawnAttacks[active][org], dst)
@@ -372,8 +385,8 @@ bool Position::pseudo_legal(Move m) const
                 || 0 != si->clock_ply)
                 // Double push
             && (   NORMAL != mtype(m)
-                || R_2 != rel_rank(active, org)
-                || R_4 != rel_rank(active, dst)
+                || R_2 != org_rank
+                || R_4 != dst_rank
                 || NIHT != promote(m)
                 || dst != org + 2*pawn_push(active)
                 || !empty(dst)
