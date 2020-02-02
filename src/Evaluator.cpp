@@ -281,7 +281,7 @@ namespace {
 
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        auto score = SCORE_ZERO;
+        Score score = SCORE_ZERO;
 
         for (auto s : pos.squares[Own|PT])
         {
@@ -300,20 +300,26 @@ namespace {
             {
             case BSHP:
             {
-                Bitboard att = attacks & pos.pieces(Own) & ~pos.si->king_blockers[Own];
+                Bitboard att =  attacks
+                             &  pos.pieces(Own)
+                             & ~pos.si->king_blockers[Own];
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (pawn_sgl_attacks_bb(Own, att & front_rank_bb(Own, s) & pos.pieces(PAWN)) & PieceAttacks[BSHP][s]));
+                                     | (  pawn_sgl_attacks_bb(Own, att & pos.pieces(PAWN) & front_rank_bb(Own, s))
+                                        & PieceAttacks[BSHP][s]));
             }
                 break;
             case QUEN:
             {
-                Bitboard att = attacks & pos.pieces(Own) & ~pos.si->king_blockers[Own];
+                Bitboard att =  attacks
+                             &  pos.pieces(Own)
+                             & ~pos.si->king_blockers[Own];
                 dbl_attacks[Own] |= sgl_attacks[Own][NONE]
                                   & (  attacks
-                                     | (pawn_sgl_attacks_bb(Own, att & front_rank_bb(Own, s) & pos.pieces(PAWN)) & PieceAttacks[BSHP][s])
-                                     | attacks_bb<BSHP>(s, pos.pieces() ^ (att & PieceAttacks[BSHP][s] & pos.pieces(BSHP)))
-                                     | attacks_bb<ROOK>(s, pos.pieces() ^ (att & PieceAttacks[ROOK][s] & pos.pieces(ROOK))));
+                                     | (  pawn_sgl_attacks_bb(Own, att & pos.pieces(PAWN) & front_rank_bb(Own, s))
+                                        & PieceAttacks[BSHP][s])
+                                     | attacks_bb<BSHP>(s, pos.pieces() ^ (att & pos.pieces(BSHP) & PieceAttacks[BSHP][s]))
+                                     | attacks_bb<ROOK>(s, pos.pieces() ^ (att & pos.pieces(ROOK) & PieceAttacks[ROOK][s])));
             }
                 break;
             default:
@@ -338,7 +344,7 @@ namespace {
             assert(0 <= mob && mob <= 27);
 
             // Bonus for piece mobility
-            mobility[Own] += Mobility[PT - 1][mob];
+            mobility[Own] += Mobility[PT - NIHT][mob];
 
             Bitboard b;
             // Special extra evaluation for pieces
@@ -566,7 +572,7 @@ namespace {
         i32 kf_defense = pop_count(b);
 
         // King Safety:
-        auto score = pe->evaluate_king_safety<Own>(pos, ful_attacks[Opp]);
+        Score score = pe->evaluate_king_safety<Own>(pos, ful_attacks[Opp]);
 
         king_danger +=   1 * king_attackers_count[Opp]*king_attackers_weight[Opp]
                      +  69 * king_attacks_count[Opp]
@@ -580,10 +586,10 @@ namespace {
                      - 100 * (0 != (   sgl_attacks[Own][NIHT]
                                     & (sgl_attacks[Own][KING] | k_sq)))
                         // Mobility
-                     -   1 * mg_value(mobility[Own] - mobility[Opp])
+                     -   1 * i32(mg_value(mobility[Own] - mobility[Opp]))
                      -   4 * kf_defense
                         // Pawn Safety quality
-                     -   3 * mg_value(score) / 4
+                     -   3 * i32(mg_value(score)) / 4
                      +  37;
 
         // Transform the king danger into a score
@@ -612,7 +618,7 @@ namespace {
     {
         constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-        auto score = SCORE_ZERO;
+        Score score = SCORE_ZERO;
 
         // Enemy non-pawns
         Bitboard nonpawns_enemies =  pos.pieces(Opp)
@@ -743,7 +749,7 @@ namespace {
 
         auto king_proximity = [&](Color c, Square s) { return std::min(dist(pos.square(c|KING), s), 5); };
 
-        auto score = SCORE_ZERO;
+        Score score = SCORE_ZERO;
 
         Bitboard psr = pe->passers[Own];
         while (0 != psr)
@@ -851,7 +857,7 @@ namespace {
                               & safe_space
                               & ~sgl_attacks[Opp][NONE]);
         i32 weight = pos.count(Own) - 1;
-        auto score = make_score(bonus * weight * weight / 16, 0);
+        Score score = make_score(bonus * weight * weight / 16, 0);
 
         if (Trace)
         {
@@ -894,8 +900,8 @@ namespace {
         // Now apply the bonus: note that we find the attacking side by extracting the
         // sign of the midgame or endgame values, and that we carefully cap the bonus
         // so that the midgame and endgame scores do not change sign after the bonus.
-        auto score = make_score(sign(mg) * ::clamp(complexity + 50, -abs(mg), 0),
-                                sign(eg) * std::max(complexity    , -abs(eg)));
+        Score score = make_score(sign(mg) * ::clamp(complexity + 50, -abs(mg), 0),
+                                 sign(eg) * std::max(complexity    , -abs(eg)));
 
         if (Trace)
         {
@@ -960,10 +966,10 @@ namespace {
         // - incrementally updated scores (material + piece square tables).
         // - material imbalance.
         // - pawn score
-        auto score = pos.psq
-                   + me->imbalance
-                   + (pe->scores[WHITE] - pe->scores[BLACK])
-                   + pos.thread->contempt;
+        Score score = pos.psq
+                    + me->imbalance
+                    + (pe->scores[WHITE] - pe->scores[BLACK])
+                    + pos.thread->contempt;
 
         // Lazy Threshold
         // Early exit if score is high
@@ -990,7 +996,7 @@ namespace {
         assert((sgl_attacks[WHITE][NONE] & dbl_attacks[WHITE]) == dbl_attacks[WHITE]);
         assert((sgl_attacks[BLACK][NONE] & dbl_attacks[BLACK]) == dbl_attacks[BLACK]);
 
-        score += mobility[WHITE] - mobility[BLACK]
+        score += mobility[WHITE]  - mobility[BLACK]
                + king   <WHITE>() - king   <BLACK>()
                + threats<WHITE>() - threats<BLACK>()
                + passers<WHITE>() - passers<BLACK>()
