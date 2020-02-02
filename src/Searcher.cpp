@@ -126,11 +126,10 @@ namespace Searcher {
                 while (vm_itr != vm_end)
                 {
                     std::swap(*vm_itr, *std::max_element(vm_itr, vm_end));
-                    bool ok =  tt_move != vm_itr->move
-                            && (   (   ENPASSANT != mtype(vm_itr->move)
-                                    && !contains(pos.si->king_blockers[pos.active] | pos.square(pos.active|KING), org_sq(vm_itr->move)))
-                                || pos.legal(vm_itr->move))
-                            && filter();
+                    assert(tt_move != vm_itr->move
+                        && pos.pseudo_to_legal(vm_itr->move));
+
+                    bool ok = filter();
 
                     ++vm_itr;
                     if (ok) return true;
@@ -240,6 +239,10 @@ namespace Searcher {
                 case Stage::PC_INIT:
                 case Stage::QS_INIT:
                     generate<GenType::CAPTURE>(vmoves, pos);
+                    vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
+                                                [&](const ValMove &vm) { return tt_move == vm.move
+                                                                             || !pos.pseudo_to_legal(vm.move); }),
+                                 vmoves.end());
                     value<GenType::CAPTURE>();
                     vm_itr = vmoves.begin();
                     vm_end = vmoves.end();
@@ -287,9 +290,7 @@ namespace Searcher {
                         vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
                                                     [&](const ValMove &vm) { return tt_move == vm.move
                                                                                  || std::find(m_itr, m_end, vm.move) != m_end
-                                                                                 || !(   (   ENPASSANT != mtype(vm.move)
-                                                                                          && !contains(pos.si->king_blockers[pos.active] | pos.square(pos.active|KING), org_sq(vm.move)))
-                                                                                      || pos.legal(vm.move)); }),
+                                                                                 || !pos.pseudo_to_legal(vm.move); }),
                                      vmoves.end());
                         value<GenType::QUIET>();
                         std::sort(vmoves.begin(), vmoves.end(), greater<ValMove>());
@@ -317,6 +318,10 @@ namespace Searcher {
 
                 case Stage::EV_INIT:
                     generate<GenType::EVASION>(vmoves, pos);
+                    vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
+                                                [&](const ValMove &vm) { return tt_move == vm.move
+                                                                             || !pos.pseudo_to_legal(vm.move); }),
+                                 vmoves.end());
                     value<GenType::EVASION>();
                     vm_itr = vmoves.begin();
                     vm_end = vmoves.end();
@@ -349,9 +354,7 @@ namespace Searcher {
                     generate<GenType::QUIET_CHECK>(vmoves, pos);
                     vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
                                                 [&](const ValMove &vm) { return tt_move == vm.move
-                                                                             || !(   (   ENPASSANT != mtype(vm.move)
-                                                                                      && !contains(pos.si->king_blockers[pos.active] | pos.square(pos.active|KING), org_sq(vm.move)))
-                                                                                  || pos.legal(vm.move)); }),
+                                                                             || !pos.pseudo_to_legal(vm.move); }),
                                  vmoves.end());
                     vm_itr = vmoves.begin();
                     vm_end = vmoves.end();

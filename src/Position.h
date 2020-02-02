@@ -199,6 +199,7 @@ public:
 
     bool pseudo_legal(Move) const;
     bool legal(Move) const;
+    bool pseudo_to_legal(Move) const;
     bool capture(Move) const;
     bool capture_or_promotion(Move) const;
     bool gives_check(Move) const;

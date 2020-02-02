@@ -494,6 +494,13 @@ bool Position::legal(Move m) const
     default: assert(false); return false;
     }
 }
+
+bool Position::pseudo_to_legal(Move m) const
+{
+    return (   ENPASSANT != mtype(m)
+            && !contains(si->king_blockers[active] | square(active|KING), org_sq(m)))
+        || legal(m);
+}
 /// Position::gives_check() tests whether a pseudo-legal move gives a check.
 bool Position::gives_check(Move m) const
 {
