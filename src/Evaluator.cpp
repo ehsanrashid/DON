@@ -165,10 +165,10 @@ namespace {
 
         // Contains all squares attacked by the color and piece type.
         array<Bitboard              , CLR_NO> ful_attacks;
-        
+
         // Contains all squares attacked by the color and piece type with pinned removed.
         array<array<Bitboard, PT_NO>, CLR_NO> sgl_attacks;
-        
+
         // Contains all squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
         array<Bitboard              , CLR_NO> pawn_dbl_attacks;
         array<Bitboard              , CLR_NO> dbl_attacks;
@@ -220,11 +220,13 @@ namespace {
     void Evaluator<Trace>::init_attacks()
     {
         Bitboard pawns = pos.pieces(Own, PAWN);
-     
+
+        auto k_sq = pos.square(Own|KING);
+
         sgl_attacks[Own].fill(0);
         sgl_attacks[Own][PAWN] =  pawn_sgl_attacks_bb(Own, pawns & ~pos.si->king_blockers[Own])
                                | (pawn_sgl_attacks_bb(Own, pawns &  pos.si->king_blockers[Own]) & PieceAttacks[BSHP][k_sq]);
-        sgl_attacks[Own][KING] = PieceAttacks[KING][pos.square(Own|KING)];
+        sgl_attacks[Own][KING] = PieceAttacks[KING][k_sq];
         sgl_attacks[Own][NONE] = sgl_attacks[Own][PAWN]
                                | sgl_attacks[Own][KING];
         //
@@ -502,8 +504,8 @@ namespace {
 
         Bitboard unsafe_check = 0;
 
-        Bitboard bshp_pins = attacks_bb<BSHP>(k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
         Bitboard rook_pins = attacks_bb<ROOK>(k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
+        Bitboard bshp_pins = attacks_bb<BSHP>(k_sq, pos.pieces() ^ pos.pieces(Own, QUEN));
 
         // Enemy rooks checks
         Bitboard rook_safe_checks =  rook_pins
@@ -520,7 +522,7 @@ namespace {
         }
 
         // Enemy queens checks
-        Bitboard quen_safe_checks = (bshp_pins | rook_pins)
+        Bitboard quen_safe_checks = (rook_pins | bshp_pins)
                                   &  sgl_attacks[Opp][QUEN]
                                   &  safe_area
                                   & ~sgl_attacks[Own][QUEN]
@@ -546,8 +548,8 @@ namespace {
         }
 
         // Enemy knights checks
-        Bitboard niht_checks = PieceAttacks[NIHT][k_sq]
-                             & sgl_attacks[Opp][NIHT];
+        Bitboard niht_checks =  PieceAttacks[NIHT][k_sq]
+                             &  sgl_attacks[Opp][NIHT];
         if (0 != (niht_checks & safe_area))
         {
             king_danger += SafeCheckWeight[NIHT];
@@ -595,7 +597,7 @@ namespace {
         // Transform the king danger into a score
         if (100 < king_danger)
         {
-            score -= make_score(king_danger*king_danger / 0x1000, king_danger / 0x10);
+            score -= make_score(king_danger * king_danger / 0x1000, king_danger / 0x10);
         }
 
         // Penalty for king on a pawn less flank

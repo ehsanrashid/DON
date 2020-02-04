@@ -2,10 +2,8 @@
 
 #include <cstring>
 #include <fstream>
-#include <iostream>
 
 #include "Engine.h"
-#include "MemoryHandler.h"
 #include "MoveGenerator.h"
 #include "Thread.h"
 
@@ -53,86 +51,76 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
     return rte;
 }
 
-/// TTable::alloc_aligned_memory() allocates the aligned memory
-void TTable::alloc_aligned_memory(size_t mem_size, u32 alignment)
-{
-    assert(0 == (alignment & (alignment-1)));
+namespace {
 
-#if defined(LPAGES)
-
-    Memory::alloc_memory(mem, mem_size, alignment);
-    if (nullptr == mem)
-    {
-        return;
-    }
-
-#else
-
-    // Need to use malloc provided by C.
-    // First need to allocate memory of mem_size + max(alignment, sizeof (void *)).
-    // Need 'bytes' because user requested it.
-    // Need to add 'alignment' because malloc can give us any address and
-    // Need to find multiple of 'alignment', so at maximum multiple
-    // of alignment will be 'alignment' bytes away from any location.
-    // Need 'sizeof (void *)' for implementing 'aligned_free',
-    // since returning modified memory pointer, not given by malloc, to the user,
-    // must free the memory allocated by malloc not anything else.
-    // So storing address given by malloc just above pointer returning to user.
-    // Thats why needed extra space to store that address.
-    // Then checking for error returned by malloc, if it returns NULL then
-    // alloc_aligned_memory will fail and return NULL or exit().
-
-    alignment = std::max(u32(sizeof (void*)), alignment);
-
-    mem = malloc(mem_size + alignment-1);
-    if (nullptr == mem)
-    {
-        cerr << "ERROR: Hash memory allocate failed " << (mem_size >> 20) << " MB" << endl;
-        return;
-    }
-    sync_cout << "info string Hash " << (mem_size >> 20) << " MB" << sync_endl;
-
+#if defined(__linux__) && !defined(__ANDROID__)
+#   include <stdlib.h>
+#   include <sys/mman.h>
 #endif
 
-    clusters = (TCluster*)((uintptr_t(mem) + alignment-1) & ~uintptr_t(alignment-1));
-    assert(nullptr != clusters
-        && 0 == (uintptr_t(clusters) & (alignment-1)));
+    /// alloc_aligned_memory will return suitably aligned memory, and if possible use large pages.
+    /// The returned pointer is the aligned one, while the mem argument is the one that needs to be passed to free.
+    /// With c++17 some of this functionality can be simplified.
+
+    void* alloc_aligned_memory(size_t msize, void *&mem)
+    {
+
+#   if defined(__linux__) && !defined(__ANDROID__)
+
+        constexpr size_t alignment = 2 * 1024 * 1024; // assumed 2MB page sizes
+        size_t size = ((msize + alignment - 1) / alignment) * alignment; // multiple of alignment
+        mem = aligned_alloc(alignment, size);
+        madvise(mem, msize, MADV_HUGEPAGE);
+        return mem;
+
+#   else
+
+        constexpr size_t alignment = 64;        // assumed cache line size
+        size_t size = msize + alignment - 1;    // allocate some extra space
+        mem = malloc(size);
+        return reinterpret_cast<void*>((uintptr_t(mem) + alignment - 1) & ~uintptr_t(alignment - 1));
+
+#   endif
+
+        //assert(nullptr != new_mem
+        //    && 0 == (uintptr_t(new_mem) & (alignment-1)));
+    }
 
 }
-/// TTable::free_aligned_memory() frees the aligned memory
-void TTable::free_aligned_memory()
+
+
+TTable::~TTable()
 {
-#if defined(LPAGES)
-    Memory::free_memory(mem);
-#else
     free(mem);
-#endif
     mem = nullptr;
-    clusters = nullptr;
 }
 
-/// TTable::resize() sets the size of the table, measured in MB.
+/// TTable::resize() sets the size of the transposition table, measured in MB.
+/// Transposition table consists of a power of 2 number of clusters and
+/// each cluster consists of EntryCount number of TTEntry.
 u32 TTable::resize(u32 mem_size)
 {
-    Threadpool.main_thread()->wait_while_busy();
-
     mem_size = clamp(mem_size, MinHashSize, MaxHashSize);
     size_t msize = size_t(mem_size) << 20;
 
-    free_aligned_memory();
-    alloc_aligned_memory(msize, CacheLineSize);
+    Threadpool.main_thread()->wait_while_busy();
 
-    if (nullptr == clusters)
+    free(mem);
+    clusters = static_cast<TCluster*>(alloc_aligned_memory(msize, mem));
+    if (nullptr == mem)
     {
+        cerr << "ERROR: Hash memory allocation failed for TT " << mem_size << " MB" << endl;
         return 0;
     }
+
     cluster_count = msize / sizeof (TCluster);
     hashfull_count = u16(std::min(size_t(1000), cluster_count));
     clear();
+    sync_cout << "info string Hash memory " << mem_size << " MB" << sync_endl;
     return mem_size;
 }
 
-/// TTable::auto_resize()
+/// TTable::auto_resize() set size automatically
 void TTable::auto_resize(u32 mem_size)
 {
     auto msize = 0 != mem_size ? mem_size : MaxHashSize;
@@ -199,7 +187,7 @@ u32 TTable::hash_full() const
     {
         entry_count += itc->fresh_entry_count();
     }
-    return u32((entry_count * 1000) / (TCluster::EntryCount * hashfull_count));
+    return u32((entry_count / TCluster::EntryCount) * 1000 / hashfull_count);
 }
 
 /// TTable::extract_next_move() extracts next move after current move.

@@ -69,10 +69,8 @@ public:
     }
 };
 
-/// Size of Transposition entry (10 bytes)
+/// Size of TEntry (10 bytes)
 static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
-
-constexpr u32 CacheLineSize = 64;
 
 /// Transposition::Cluster needs 32 bytes to be stored
 /// 10 x 3 + 2 = 32
@@ -83,7 +81,7 @@ public:
     static constexpr u08 EntryCount = 3;
 
     TEntry entries[EntryCount];
-    char padding[2]; // Align to a divisor of the cache line size
+    char padding[2]; // Pad to 32 bytes
 
     TCluster() = default;
 
@@ -92,21 +90,17 @@ public:
     TEntry* probe(u16, bool&);
 };
 
-/// Size of Transposition cluster(32 bytes)
-static_assert (CacheLineSize % sizeof (TCluster) == 0, "Cluster size incorrect");
+/// Size of TCluster (32 bytes)
+static_assert (sizeof (TCluster) == 32, "Cluster size incorrect");
 
-/// Transposition::Table consists of a power of 2 number of clusters
-/// and each cluster consists of Cluster::EntryCount number of entry.
-/// Each non-empty entry contains information of exactly one position.
-/// Size of a cluster should divide the size of a cache line size,
-/// to ensure that clusters never cross cache lines.
-/// In case it is less, it should be padded to guarantee always aligned accesses.
-/// This ensures best cache performance, as the cache line is pre-fetched.
+/// Transposition::Table is an array of Cluster, of size cluster_count.
+/// Each cluster consists of EntryCount number of TTEntry.
+/// Each TTEntry contains information on exactly one position.
+/// The size of a Cluster should divide the size of a cache line for best performance,
+/// as the cacheline is prefetched when possible.
 class TTable
 {
 private:
-    void alloc_aligned_memory(size_t, u32);
-    void free_aligned_memory();
 
 public:
     // Minimum size of Table (MB)
@@ -135,10 +129,7 @@ public:
     {}
     TTable(const TTable&) = delete;
     TTable& operator=(const TTable&) = delete;
-    virtual ~TTable()
-    {
-        free_aligned_memory();
-    }
+    virtual ~TTable();
 
     /// size() returns hash size in MB
     u32 size() const

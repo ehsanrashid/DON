@@ -190,13 +190,6 @@ namespace UCI {
             TT.auto_resize(i32(Options["Hash"]));
         }
 
-#   if defined(LPAGES)
-        void on_large_pages()
-        {
-            TT.auto_resize(i32(Options["Hash"]));
-        }
-#   endif
-
         void on_clear_hash()
         {
             clear();
@@ -241,10 +234,6 @@ namespace UCI {
     {
 
         Options["Hash"]               << Option(16, 0, TTable::MaxHashSize, on_hash);
-
-#if defined(LPAGES)
-        Options["Large Pages"]        << Option(true, on_large_pages);
-#endif
 
         Options["Clear Hash"]         << Option(on_clear_hash);
         Options["Retain Hash"]        << Option(false);

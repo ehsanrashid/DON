@@ -63,7 +63,7 @@ namespace Pawns {
             Score safety = Initial;
 
             auto kf = ::clamp(_file(k_sq), F_B, F_G);
-            for (auto f : { kf - File(1), kf, kf + File(1) })
+            for (auto f : { kf - F_B, kf, kf + F_B })
             {
                 assert(F_A <= f && f <= F_H);
                 Bitboard own_front_f_pawns = own_front_pawns & file_bb(f);
@@ -119,7 +119,7 @@ namespace Pawns {
         {
             k_paths[CS_QUEN] = 0;
         }
-        
+
         auto k_path = k_paths[CS_KING]
                     | k_paths[CS_QUEN];
 

@@ -5,6 +5,7 @@
 #include <functional>
 #include <mutex>
 #include <string>
+#include <iostream>
 //#include <vector>
 
 #include "Type.h"

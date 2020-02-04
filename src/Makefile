@@ -23,8 +23,8 @@ PGOBENCH = ./$(EXE) bench
 
 ### Object files
 OBJS = BitBases.o BitBoard.o Endgame.o Engine.o Evaluator.o Logger.o Main.o Material.o \
-    MemoryHandler.o MoveGenerator.o Notation.o Option.o Pawns.o Polyglot.o Position.o \
-    PSQTable.o RootMove.o Searcher.o TBsyzygy.o Thread.o Transposition.o Zobrist.o
+    MoveGenerator.o Notation.o Option.o Pawns.o Polyglot.o Position.o PSQTable.o \
+    RootMove.o Searcher.o TBsyzygy.o Thread.o Transposition.o Zobrist.o
 
 ### Establish the operating system name
 KERNEL = $(shell uname -s)
@@ -50,7 +50,6 @@ endif
 # sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
 # abm     = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions
 # bm2     = yes/no    --- -DBM2            --- Use BM2 (Bit Manipulation 2) x86_64 asm-instructions
-# lpg     = yes/no    --- -DLPAGES         --- Use Large Pages
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -66,7 +65,6 @@ pfch = no
 sse  = no
 abm  = no
 bm2  = no
-lpg  = no
 
 ### 2.2 Architecture specific
 
@@ -109,7 +107,6 @@ ifeq ($(ARCH), x86-64-abm)
 	pfch = yes
 	sse  = yes
 	abm  = yes
-	lpg  = yes
 endif
 
 ifeq ($(ARCH), x86-64-bm2)
@@ -119,7 +116,6 @@ ifeq ($(ARCH), x86-64-bm2)
 	sse  = yes
 	abm  = yes
 	bm2  = yes
-	lpg  = yes
 endif
 
 ifeq ($(ARCH), ppc-32)
@@ -131,7 +127,6 @@ ifeq ($(ARCH), ppc-64)
 	bits = 64
     pfch = yes
     abm  = yes
-	lpg  = yes
 endif
 
 ifeq ($(ARCH), armv7)
@@ -326,11 +321,6 @@ ifeq ($(bm2), yes)
 	endif
 endif
 
-### 3.8 Large Pages
-ifeq ($(lpg), yes)
-	CXXFLAGS += -DLPAGES
-endif
-
 ### 3.9 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
@@ -485,7 +475,6 @@ config-sanity:
 	@echo "sse     : '$(sse)'"
 	@echo "abm     : '$(abm)'"
 	@echo "bm2     : '$(bm2)'"
-	@echo "lpg     : '$(lpg)'"
 	@echo ""
 	@echo "Flags:"
 	@echo "---------"
@@ -505,7 +494,6 @@ config-sanity:
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
 	@test "$(abm)" = "yes" || test "$(abm)" = "no"
 	@test "$(bm2)" = "yes" || test "$(bm2)" = "no"
-	@test "$(lpg)" = "yes" || test "$(lpg)" = "no"
 
 # Generating obj files
 $(EXE): $(OBJS)

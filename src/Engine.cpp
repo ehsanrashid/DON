@@ -13,7 +13,6 @@
 #include "Evaluator.h"
 #include "Logger.h"
 #include "Material.h"
-#include "MemoryHandler.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
 #include "Option.h"
@@ -160,14 +159,6 @@ namespace {
             ".BM2"
 #       elif defined(ABM)
             ".ABM"
-#       else
-            ""
-#       endif
-        ;
-
-        oss <<
-#       if defined(LPAGES)
-            ".LP"
 #       else
             ""
 #       endif
@@ -803,10 +794,6 @@ void run(u32 argc, const char *const *argv)
     cout << Name << " " << engine_info() << " by " << Author << endl;
     cout << "info string Processor(s) detected " << thread::hardware_concurrency() << endl;
 
-#if defined(LPAGES)
-    Memory::initialize();
-#endif
-
     BitBoard::initialize();
     BitBases::initialize();
     psq_initialize();
@@ -829,8 +816,5 @@ void stop(i32 code)
     Threadpool.stop = true;
     Threadpool.configure(0);
     UCI::deinitialize();
-#if defined(LPAGES)
-    Memory::deinitialize();
-#endif
     std::exit(code);
 }
