@@ -102,8 +102,8 @@ public:
 extern Logger Log;
 
 // Debug functions used mainly to collect run-time statistics
-extern void debug_init();
-extern void debug_hit(bool);
-extern void debug_hit_on(bool, bool);
-extern void debug_mean_of(i64);
-extern void debug_print();
+extern void initializeDebug();
+extern void debugHit(bool);
+extern void debugHitOn(bool, bool);
+extern void debugMeanOf(i64);
+extern void debugPrint();

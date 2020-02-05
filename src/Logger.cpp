@@ -16,7 +16,7 @@ namespace {
     atomic<i64> ItemSum;
 }
 
-void debug_init()
+void initializeDebug()
 {
     CondCount = 0;
     HitCount = 0;
@@ -25,7 +25,7 @@ void debug_init()
     ItemSum = 0;
 }
 
-void debug_hit(bool hit)
+void debugHit(bool hit)
 {
     ++CondCount;
     if (hit)
@@ -34,21 +34,21 @@ void debug_hit(bool hit)
     }
 }
 
-void debug_hit_on(bool cond, bool hit)
+void debugHitOn(bool cond, bool hit)
 {
     if (cond)
     {
-        debug_hit(hit);
+        debugHit(hit);
     }
 }
 
-void debug_mean_of(i64 item)
+void debugMeanOf(i64 item)
 {
     ++ItemCount;
     ItemSum += item;
 }
 
-void debug_print()
+void debugPrint()
 {
     if (0 != CondCount)
     {

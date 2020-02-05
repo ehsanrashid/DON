@@ -49,12 +49,12 @@ namespace Endgames {
     class EndgameBase
     {
     public:
-        const Color strong_color
-            ,         weak_color;
+        const Color stngColor
+            ,       weakColor;
 
         explicit EndgameBase(Color c)
-            : strong_color( c)
-            ,   weak_color(~c)
+            : stngColor( c)
+            , weakColor(~c)
         {}
         virtual ~EndgameBase() = default;
         EndgameBase& operator=(const EndgameBase&) = delete;
@@ -92,9 +92,9 @@ namespace Endgames {
     }
 
     template<typename T>
-    const EndgameBase<T>* probe(Key matl_key)
+    const EndgameBase<T>* probe(Key matlKey)
     {
-        auto itr = map<T>().find(matl_key);
+        auto itr = map<T>().find(matlKey);
         return itr != map<T>().end() ?
                 itr->second.get() :
                 nullptr;

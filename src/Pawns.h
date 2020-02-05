@@ -14,19 +14,20 @@ namespace Pawns {
     public:
         Key key;
 
-        std::array<Score   , CLR_NO> scores;
-        std::array<Bitboard, CLR_NO> attack_span;
+        std::array<Score   , CLR_NO> score;
+
+        std::array<Bitboard, CLR_NO> attackSpan;
         std::array<Bitboard, CLR_NO> passers;
 
-        std::array<Square  , CLR_NO> king_sq;
-        std::array<Bitboard, CLR_NO> king_path;
-        std::array<Score   , CLR_NO> king_safety;
-        std::array<Score   , CLR_NO> king_pawn;
+        std::array<Square  , CLR_NO> kingSq;
+        std::array<Bitboard, CLR_NO> kingPath;
+        std::array<Score   , CLR_NO> kingSafety;
+        std::array<Score   , CLR_NO> kingDist;
 
-        i32 passed_count() const { return BitBoard::pop_count(passers[WHITE] | passers[BLACK]); }
+        i32 passedCount() const { return BitBoard::popCount(passers[WHITE] | passers[BLACK]); }
 
         template<Color Own>
-        Score evaluate_king_safety(const Position&, Bitboard);
+        Score evaluateKingSafety(const Position&, Bitboard);
 
         template<Color>
         void evaluate(const Position&);

@@ -20,74 +20,74 @@ namespace UCI {
 
     Option::Option(OnChange on_cng)
         : type("button")
-        , default_value("")
-        , current_value("")
+        , defaultValue("")
+        , currentValue("")
         , minimum(0)
         , maximum(0)
-        , on_change(on_cng)
+        , onChange(on_cng)
     {}
     Option::Option(const char *val, OnChange on_cng)
         : type("string")
         , minimum(0)
         , maximum(0)
-        , on_change(on_cng)
+        , onChange(on_cng)
     {
-        default_value = current_value = val;
+        defaultValue = currentValue = val;
     }
     Option::Option(const bool val, OnChange on_cng)
         : type("check")
         , minimum(0)
         , maximum(0)
-        , on_change(on_cng)
+        , onChange(on_cng)
     {
-        default_value = current_value = (val ? "true" : "false");
+        defaultValue = currentValue = (val ? "true" : "false");
     }
     Option::Option(const i32 val, i32 min, i32 max, OnChange on_cng)
         : type("spin")
         , minimum(min)
         , maximum(max)
-        , on_change(on_cng)
+        , onChange(on_cng)
     {
-        default_value = current_value = std::to_string(val);
+        defaultValue = currentValue = std::to_string(val);
     }
     Option::Option(const char* v, const char* cur, OnChange on_cng)
         : type("combo")
         , minimum(0)
         , maximum(0)
-        , on_change(on_cng)
+        , onChange(on_cng)
     {
-        default_value = v;
-        current_value = cur;
+        defaultValue = v;
+        currentValue = cur;
     }
 
     Option::operator string() const
     {
         assert(type == "string");
-        return current_value;
+        return currentValue;
     }
     Option::operator bool() const
     {
         assert(type == "check");
-        return current_value == "true";
+        return currentValue == "true";
     }
     Option::operator i32() const
     {
         assert(type == "spin");
-        return std::stoi(current_value);
+        return std::stoi(currentValue);
     }
     bool Option::operator==(const char *val) const
     {
         assert(type == "combo");
-        return !CaseInsensitiveLessComparer()(current_value, val)
-            && !CaseInsensitiveLessComparer()(val, current_value);
+        return !CaseInsensitiveLessComparer()(currentValue, val)
+            && !CaseInsensitiveLessComparer()(val, currentValue);
     }
 
-    /// Option::operator=() updates value and triggers on_change() action.
+    /// Option::operator=() updates value and triggers onChange() action.
     Option& Option::operator=(const char *value)
     {
         return *this = string(value);
     }
-    /// Option::operator=() updates value and triggers on_change() action.
+    /// Option::operator=() updates value and triggers onChange() action.
     Option& Option::operator=(const string &value)
     {
         assert(!type.empty());
@@ -98,7 +98,7 @@ namespace UCI {
 
             if (type == "check")
             {
-                to_lower(val);
+                toLower(val);
                 if (   val != "true"
                     && val != "false")
                 {
@@ -108,7 +108,7 @@ namespace UCI {
             else
             if (type == "spin")
             {
-                val = std::to_string(::clamp(std::stoi(val), minimum, maximum));
+                val = std::to_string(clamp(std::stoi(val), minimum, maximum));
             }
             else
             if (type == "string")
@@ -121,8 +121,8 @@ namespace UCI {
             else
             if (type == "combo")
             {
-                StringOptionMap combo_map; // To have case insensitive compare
-                istringstream iss{default_value};
+                StringOptionMap comboMap; // To have case insensitive compare
+                istringstream iss{ defaultValue };
                 string token;
                 while (iss >> token)
                 {
@@ -130,20 +130,20 @@ namespace UCI {
                     {
                         continue;
                     }
-                    combo_map[token] << Option();
+                    comboMap[token] << Option();
                 }
-                if (combo_map.find(val) == combo_map.end())
+                if (comboMap.find(val) == comboMap.end())
                 {
                     return *this;
                 }
             }
 
-            current_value = val;
+            currentValue = val;
         }
 
-        if (nullptr != on_change)
+        if (nullptr != onChange)
         {
-            on_change ();
+            onChange ();
         }
 
         return *this;
@@ -167,16 +167,16 @@ namespace UCI {
                 || type == "check"
                 || type == "combo")
             {
-                oss << " default " << default_value;
+                oss << " default " << defaultValue;
             }
             else
             if (type == "spin")
             {
-                oss << " default " << i32(std::stoi(default_value))
+                oss << " default " << i32(std::stoi(defaultValue))
                     << " min " << minimum
                     << " max " << maximum;
             }
-            //oss << " current " << current_value;
+            //oss << " current " << currentValue;
         }
         return oss.str();
     }
@@ -185,45 +185,45 @@ namespace UCI {
 
     namespace {
 
-        void on_hash()
+        void onHash()
         {
-            TT.auto_resize(i32(Options["Hash"]));
+            TT.autoResize(i32(Options["Hash"]));
         }
 
-        void on_clear_hash()
+        void onClearHash()
         {
             clear();
         }
 
-        void on_save_hash()
+        void onSaveHash()
         {
             TT.save(string(Options["Hash File"]));
         }
-        void on_load_hash()
+        void onLoadHash()
         {
             TT.load(string(Options["Hash File"]));
         }
 
-        void on_threads()
+        void onThreads()
         {
-            auto threads = option_threads();
-            if (threads != Threadpool.size())
+            auto threadCount = optionThreads();
+            if (threadCount != Threadpool.size())
             {
-                Threadpool.configure(threads);
+                Threadpool.configure(threadCount);
             }
         }
 
-        void on_book_fn()
+        void onBookFile()
         {
             Book.initialize(string(Options["Book.bin"]));
         }
 
-        void on_debug_fn()
+        void onDebugFile()
         {
             Log.set(string(Options["Debug File"]));
         }
 
-        void on_syzygy_path()
+        void onSyzygyPath()
         {
             TBSyzygy::initialize(string(Options["SyzygyPath"]));
         }
@@ -233,21 +233,21 @@ namespace UCI {
     void initialize()
     {
 
-        Options["Hash"]               << Option(16, 0, TTable::MaxHashSize, on_hash);
+        Options["Hash"]               << Option(16, 0, TTable::MaxHashSize, onHash);
 
-        Options["Clear Hash"]         << Option(on_clear_hash);
+        Options["Clear Hash"]         << Option(onClearHash);
         Options["Retain Hash"]        << Option(false);
 
         Options["Hash File"]          << Option("Hash.dat");
-        Options["Save Hash"]          << Option(on_save_hash);
-        Options["Load Hash"]          << Option(on_load_hash);
+        Options["Save Hash"]          << Option(onSaveHash);
+        Options["Load Hash"]          << Option(onLoadHash);
 
         Options["Use Book"]           << Option(false);
-        Options["Book File"]          << Option("Book.bin", on_book_fn);
+        Options["Book File"]          << Option("Book.bin", onBookFile);
         Options["Book Pick Best"]     << Option(true);
         Options["Book Move Num"]      << Option(20, 0, 100);
 
-        Options["Threads"]            << Option(1, 0, 512, on_threads);
+        Options["Threads"]            << Option(1, 0, 512, onThreads);
 
         Options["Skill Level"]        << Option(MaxLevel,  0, MaxLevel);
 
@@ -260,18 +260,18 @@ namespace UCI {
 
         Options["Draw MoveCount"]     << Option(50, 5, 50);
 
-        Options["Overhead Move Time"] << Option(30,  0, 5000);
-        Options["Minimum Move Time"]  << Option(20,  0, 5000);
+        Options["Overhead MoveTime"]  << Option(30,  0, 5000);
+        Options["Minimum MoveTime"]   << Option(20,  0, 5000);
         Options["Move Slowness"]      << Option(84, 10, 1000);
         Options["Time Nodes"]         << Option( 0,  0, 10000);
         Options["Ponder"]             << Option(true);
 
-        Options["SyzygyPath"]         << Option("<empty>", on_syzygy_path);
+        Options["SyzygyPath"]         << Option("<empty>", onSyzygyPath);
         Options["SyzygyProbeDepth"]   << Option(TBProbeDepth, 1, 100);
         Options["SyzygyLimitPiece"]   << Option(TBLimitPiece, 0, 6);
         Options["SyzygyUseRule50"]    << Option(TBUseRule50);
 
-        Options["Debug File"]         << Option("<empty>", on_debug_fn);
+        Options["Debug File"]         << Option("<empty>", onDebugFile);
         //Options["Output File"]        << Option("<empty>");
 
         Options["UCI_Chess960"]       << Option(false);
@@ -281,19 +281,14 @@ namespace UCI {
 
     }
 
-    void deinitialize()
-    {
-        Options.clear();
-    }
-
 }
 
-u32 option_threads()
+u32 optionThreads()
 {
-    auto threads = i32(Options["Threads"]);
-    if (0 == threads)
+    auto threadCount = i32(Options["Threads"]);
+    if (0 == threadCount)
     {
-        threads = thread::hardware_concurrency();
+        threadCount = thread::hardware_concurrency();
     }
-    return threads;
+    return threadCount;
 }

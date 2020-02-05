@@ -20,8 +20,8 @@ namespace Material {
         Score imbalance;
         std::array<Scale, CLR_NO> scale;
 
-        const Endgames::EndgameBase<Value> *value_func;
-        std::array<const Endgames::EndgameBase<Scale> *, CLR_NO> scale_func;
+        const Endgames::EndgameBase<Value> *evaluationFunc;
+        std::array<const Endgames::EndgameBase<Scale>*, CLR_NO> scalingFunc;
 
         void evaluate(const Position&);
     };

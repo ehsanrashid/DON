@@ -21,25 +21,25 @@
 class TimeManager
 {
 private:
-    u16 time_nodes;
+    u16 timeNodes;
 
 public:
-    TimePoint start_time;
-    TimePoint optimum_time;
-    TimePoint maximum_time;
+    TimePoint startTime;
+    TimePoint optimumTime;
+    TimePoint maximumTime;
 
-    double time_reduction;
-
-    u64 available_nodes;
+    u64 availableNodes;
 
     TimeManager()
-        : available_nodes(0)
-    {}
+    {
+        reset();
+    }
     TimeManager(const TimeManager&) = delete;
     TimeManager& operator=(const TimeManager&) = delete;
 
-    TimePoint elapsed_time() const;
+    TimePoint elapsedTime() const;
 
+    void reset() { availableNodes = 0; }
     void set(Color, i16);
     void update(Color);
 };
@@ -56,20 +56,18 @@ public:
     static PRNG prng;
 
     i16  level;
-    Move best_move;
+    Move bestMove;
 
     SkillManager()
         : level(MaxLevel)
-        , best_move(MOVE_NONE)
+        , bestMove(MOVE_NONE)
     {}
     SkillManager(const SkillManager&) = delete;
     SkillManager& operator=(const SkillManager&) = delete;
 
     bool enabled() const { return level < MaxLevel; }
 
-    void set_level(i16 lvl) { level = lvl; }
-
-    void pick_best_move();
+    void pickBestMove();
 };
 
 // Threshold for counter moves based pruning
@@ -158,41 +156,41 @@ protected:
     size_t index;
 
     std::mutex mtx;
-    std::condition_variable condition_var;
+    std::condition_variable conditionVar;
 
-    NativeThread native_thread;
+    NativeThread nativeThread;
 
 public:
 
-    Position  root_pos;
-    RootMoves root_moves;
+    Position  rootPos;
+    RootMoves rootMoves;
 
-    Depth root_depth
-        , finished_depth
-        , sel_depth;
+    Depth rootDepth
+        , finishedDepth
+        , selDepth;
 
     std::atomic<u64> nodes
-        ,            tb_hits;
-    std::atomic<u32> pv_change;
+        ,            tbHits;
+    std::atomic<u32> pvChange;
 
-    i16   nmp_ply;
-    Color nmp_color;
+    i16   nmpPly;
+    Color nmpColor;
 
-    u32   pv_beg
-        , pv_cur
-        , pv_end;
+    u32   pvBeg
+        , pvCur
+        , pvEnd;
 
-    u64   tt_hit_avg;
+    u64   ttHitAvg;
 
     Score contempt;
 
-    ButterflyHistory    butterfly_history;
-    CaptureHistory      capture_history;
-    MoveHistory         move_history;
-    std::array<std::array<ContinuationHistory, 2>, 2> continuation_history;
+    ButterflyHistory    butterflyHistory;
+    CaptureHistory      captureHistory;
+    MoveHistory         moveHistory;
+    std::array<std::array<ContinuationHistory, 2>, 2> continuationHistory;
 
-    Pawns::Table        pawn_table;
-    Material::Table     matl_table;
+    Pawns::Table        pawnTable;
+    Material::Table     matlTable;
 
     explicit Thread(size_t);
     Thread() = delete;
@@ -202,11 +200,11 @@ public:
     virtual ~Thread();
 
     void start();
-    void wait_while_busy();
+    void waitIdle();
 
-    void idle_function();
+    void idleFunction();
 
-    i16 move_best_count(Move) const;
+    i16 moveBestCount(Move) const;
 
     virtual void clear();
     virtual void search();
@@ -219,22 +217,21 @@ class MainThread
 private :
 
 public:
+    bool stopOnPonderhit;       // Stop search on ponderhit
+    std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
 
-    u64 check_count;
+    TimeManager  timeMgr;
+    SkillManager skillMgr;
 
-    bool stop_on_ponderhit; // Stop search on ponderhit
-    std::atomic<bool> ponder; // Search on ponder move until the "stop"/"ponderhit" command
+    Value  prevBestValue;
+    double prevTimeReduction;
 
-    Value best_value;
+    std::array<Value, 4> iterValues;
+    Move bestMove;
+    i16  bestMoveDepth;
 
-    TimeManager  time_mgr;
-    SkillManager skill_mgr;
-
-    std::array<Value, 4> iter_value;
-    Move best_move;
-    i16  best_move_depth;
-
-    TimePoint debug_time;
+    u64  tickCount;
+    TimePoint debugTime;
 
     explicit MainThread(size_t);
     MainThread() = delete;
@@ -244,7 +241,7 @@ public:
     void clear() override;
     void search() override;
 
-    void set_check_count();
+    void setTickCount();
     void tick();
 };
 
@@ -279,9 +276,9 @@ public:
     };
     std::array<Clock, CLR_NO> clock; // Search with Clock
 
-    u08       movestogo;    // Search <x> moves to the next time control
+    u08       movestogo;   // Search <x> moves to the next time control
 
-    TimePoint movetime;    // Search <x> exact time in milli-seconds
+    TimePoint moveTime;    // Search <x> exact time in milli-seconds
     Depth     depth;       // Search <x> depth(plies) only
     u64       nodes;       // Search <x> nodes only
     u08       mate;        // Search mate in <x> moves
@@ -290,23 +287,23 @@ public:
     Limit()
         : clock()
         , movestogo(0)
-        , movetime(0)
+        , moveTime(0)
         , depth(DEP_ZERO)
         , nodes(0)
         , mate(0)
         , infinite(false)
     {}
 
-    bool time_mgr_used() const
+    bool useTimeMgr() const
     {
         return !infinite
-            && 0 == movetime
+            && 0 == moveTime
             && DEP_ZERO == depth
             && 0 == nodes
             && 0 == mate;
     }
 
-    bool mate_on() const
+    bool mateOn() const
     {
         return 0 != mate;
     }
@@ -327,18 +324,18 @@ public:
     double factor;
 
     Limit limit;
-    u32   pv_count;
+    u32   pvCount;
 
     std::atomic<bool> stop // Stop search forcefully
         ,             research;
 
-    //std::ofstream output_stream;
+    //std::ofstream outputStream;
 
     ThreadPool() = default;
     ThreadPool(const ThreadPool&) = delete;
     ThreadPool& operator=(const ThreadPool&) = delete;
 
-    MainThread* main_thread() const { return static_cast<MainThread*>(front()); }
+    MainThread* mainThread() const { return static_cast<MainThread*>(front()); }
 
     template<typename T>
     T sum(std::atomic<T> Thread::*member) const
@@ -351,7 +348,7 @@ public:
         return s;
     }
     template<typename T>
-    void reset(std::atomic<T> Thread::*member)
+    void reset(std::atomic<T> Thread::*member) const
     {
         for (auto *th : *this)
         {
@@ -359,12 +356,12 @@ public:
         }
     }
 
-    Thread* best_thread() const;
+    Thread* bestThread() const;
 
     void clear();
     void configure(u32);
 
-    void start_thinking(Position&, StateListPtr&, const Limit&, const std::vector<Move>&, bool = false);
+    void startThinking(Position&, StateListPtr&, const Limit&, const std::vector<Move>&, bool = false);
 };
 
 // Global ThreadPool

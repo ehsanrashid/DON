@@ -15,12 +15,13 @@ namespace UCI {
         typedef void (*OnChange)();
 
         std::string type
-            ,       default_value
-            ,       current_value;
+            ,       defaultValue
+            ,       currentValue;
+
         i32         minimum
             ,       maximum;
 
-        OnChange on_change = nullptr;
+        OnChange onChange = nullptr;
 
     public:
         static size_t InsertOrder;
@@ -52,7 +53,6 @@ namespace UCI {
     typedef std::map<std::string, Option, CaseInsensitiveLessComparer> StringOptionMap;
 
     extern void initialize();
-    extern void deinitialize();
 
     template<typename Elem, typename Traits>
     inline std::basic_ostream<Elem, Traits>&
@@ -88,4 +88,4 @@ namespace UCI {
 // Global nocase mapping of Options
 extern UCI::StringOptionMap Options;
 
-extern u32 option_threads();
+extern u32 optionThreads();

@@ -57,7 +57,7 @@ public:
 template<GenType>
 extern void generate(ValMoves&, const Position&);
 
-extern void filter_illegal(ValMoves&, const Position&);
+extern void filterIllegal(ValMoves&, const Position&);
 
 template<GenType GT, PieceType PT = NONE>
 class MoveList
@@ -76,7 +76,7 @@ public:
         //    erase(std::remove_if(begin(), end(),
         //                        [&pos] (const ValMove &vm)
         //                        {
-        //                            return PT != ptype(pos[org_sq(vm)]);
+        //                            return PT != typeOf(pos[orgOf(vm)]);
         //                        }),
         //            end());
         //}
@@ -94,9 +94,9 @@ struct Perft
     u64 any;
     u64 capture;
     u64 enpassant;
-    u64 any_check;
-    u64 dsc_check;
-    u64 dbl_check;
+    u64 anyCheck;
+    u64 dscCheck;
+    u64 dblCheck;
     u64 castle;
     u64 promotion;
     u64 checkmate;
@@ -107,9 +107,9 @@ struct Perft
         , any(0)
         , capture(0)
         , enpassant(0)
-        , any_check(0)
-        , dsc_check(0)
-        , dbl_check(0)
+        , anyCheck(0)
+        , dscCheck(0)
+        , dblCheck(0)
         , castle(0)
         , promotion(0)
         , checkmate(0)
@@ -121,9 +121,9 @@ struct Perft
         any       += p.any;
         capture   += p.capture;
         enpassant += p.enpassant;
-        any_check += p.any_check;
-        dsc_check += p.dsc_check;
-        dbl_check += p.dbl_check;
+        anyCheck += p.anyCheck;
+        dscCheck += p.dscCheck;
+        dblCheck += p.dblCheck;
         castle    += p.castle;
         promotion += p.promotion;
         checkmate += p.checkmate;
@@ -134,9 +134,9 @@ struct Perft
         any       -= p.any;
         capture   -= p.capture;
         enpassant -= p.enpassant;
-        any_check -= p.any_check;
-        dsc_check -= p.dsc_check;
-        dbl_check -= p.dbl_check;
+        anyCheck -= p.anyCheck;
+        dscCheck -= p.dscCheck;
+        dblCheck -= p.dblCheck;
         castle    -= p.castle;
         promotion -= p.promotion;
         checkmate -= p.checkmate;

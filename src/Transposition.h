@@ -39,7 +39,7 @@ public:
     Value      eval() const { return Value(e16); }
     Depth     depth() const { return Depth(d08 + DEP_OFFSET); }
     u08  generation() const { return u08  (g08 & 0xF8); }
-    bool      is_pv() const { return 0 != (g08 & 0x04); }
+    bool         pv() const { return 0 != (g08 & 0x04); }
     Bound     bound() const { return Bound(g08 & 0x03); }
 
     void save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv)
@@ -81,7 +81,7 @@ public:
 
     TCluster() = default;
 
-    u32 fresh_entry_count() const;
+    u32 freshEntryCount() const;
 
     TEntry* probe(u16, bool&);
 };
@@ -89,7 +89,7 @@ public:
 /// Size of TCluster (32 bytes)
 static_assert (sizeof (TCluster) == 32, "Cluster size incorrect");
 
-/// Transposition::Table is an array of Cluster, of size cluster_count.
+/// Transposition::Table is an array of Cluster, of size clusterCount.
 /// Each cluster consists of EntryCount number of TTEntry.
 /// Each TTEntry contains information on exactly one position.
 /// The size of a Cluster should divide the size of a cache line for best performance,
@@ -112,14 +112,12 @@ public:
 
     void     *mem;
     TCluster *clusters;
-    size_t    cluster_count;
-    u16       hashfull_count;
+    size_t    clusterCount;
 
     TTable()
         : mem(nullptr)
         , clusters(nullptr)
-        , cluster_count(0)
-        , hashfull_count(0)
+        , clusterCount(0)
     {}
     TTable(const TTable&) = delete;
     TTable& operator=(const TTable&) = delete;
@@ -128,27 +126,27 @@ public:
     /// size() returns hash size in MB
     u32 size() const
     {
-        return u32((cluster_count * sizeof (TCluster)) >> 20);
+        return u32((clusterCount * sizeof (TCluster)) >> 20);
     }
 
     /// cluster() returns a pointer to the cluster of given a key.
     /// Lower 32 bits of the key are used to get the index of the cluster.
     TCluster* cluster(Key key) const
     {
-        return &clusters[(u32(key) * u64(cluster_count)) >> 32];
+        return &clusters[(u32(key) * u64(clusterCount)) >> 32];
     }
 
     u32 resize(u32);
 
-    void auto_resize(u32);
+    void autoResize(u32);
 
     void clear();
 
     TEntry* probe(Key, bool&) const;
 
-    u32 hash_full() const;
+    u32 hashFull() const;
 
-    Move extract_next_move(Position&, Move) const;
+    Move extractNextMove(Position&, Move) const;
 
     void save(const std::string&) const;
     void load(const std::string&);
@@ -165,7 +163,7 @@ public:
         os.write((const Elem*)(&dummy), sizeof (dummy));
         os.write((const Elem*)(&TEntry::Generation), sizeof (TEntry::Generation));
         constexpr u32 BufferSize = 0x1000;
-        for (size_t i = 0; i < tt.cluster_count / BufferSize; ++i)
+        for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i)
         {
             os.write((const Elem*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
         }
@@ -185,7 +183,7 @@ public:
         is.read((Elem*)(&TEntry::Generation), sizeof (TEntry::Generation));
         tt.resize(mem_size);
         constexpr u32 BufferSize = 0x1000;
-        for (size_t i = 0; i < tt.cluster_count / BufferSize; ++i)
+        for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i)
         {
             is.read((Elem*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
         }

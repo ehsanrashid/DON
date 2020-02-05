@@ -45,7 +45,7 @@ public:
     /// Special generator used to fast initialize magic numbers.
     /// Output values only have 1/8th of their bits set on average.
     template<typename T>
-    T sparse_rand() { return T(rand64() & rand64() & rand64()); }
+    T sparseRand() { return T(rand64() & rand64() & rand64()); }
 
 #endif
 

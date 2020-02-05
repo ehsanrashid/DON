@@ -10,8 +10,6 @@
 
 #include "Type.h"
 
-
-
 enum OutputState : u08
 {
     OS_LOCK,
@@ -73,21 +71,21 @@ constexpr std::array<std::array<Value, PT_NO>, 2> PieceValues
 
 // Case-insensitive comparator for char
 
-inline bool case_insensitive_less(const unsigned char c1, const unsigned char c2)
+inline bool caseInsensitiveLess(const unsigned char c1, const unsigned char c2)
 {
     return
         //toupper(c1) < toupper(c2);
         tolower(c1) < tolower(c2);
 }
 
-inline bool case_insensitive_more(const unsigned char c1, const unsigned char c2)
+inline bool caseInsensitiveMore(const unsigned char c1, const unsigned char c2)
 {
     return
         //toupper(c1) > toupper(c2);
         tolower(c1) > tolower(c2);
 }
 
-inline bool case_insensitive_equal(const unsigned char c1, const unsigned char c2)
+inline bool caseInsensitiveEqual(const unsigned char c1, const unsigned char c2)
 {
     return
         //toupper(c1) == toupper(c2);
@@ -102,7 +100,7 @@ struct CaseInsensitiveLessComparer
     bool operator()(const std::string &s1, const std::string &s2) const
     {
         //return stricmp(s1.c_str(), s2.c_str()) < 0;
-        return lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), case_insensitive_less);
+        return lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), caseInsensitiveLess);
     }
 };
 
@@ -112,7 +110,7 @@ struct CaseInsensitiveMoreComparer
     bool operator()(const std::string &s1, const std::string &s2) const
     {
         //return stricmp(s1.c_str(), s2.c_str()) > 0;
-        return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), case_insensitive_more);
+        return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), caseInsensitiveMore);
     }
 };
 
@@ -122,29 +120,9 @@ struct CaseInsensitiveEqualComparer
     bool operator()(const std::string &s1, const std::string &s2) const
     {
         //return stricmp(s1.c_str(), s2.c_str()) == 0;
-        return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), case_insensitive_equal);
+        return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end(), caseInsensitiveEqual);
     }
 };
-
-/*
-// Nullfunction is a function that does nothing, allows usage of shared_ptr with stack allocated or static objects.
-
-template<typename T>
-struct NullUnaryFunction
-    : public std::unary_function<T*, void>
-{
-    void operator()(const T*) const
-    {}
-};
-
-template<typename T>
-struct NullBinaryFunction
-    : public std::binary_function<T*, T*, void>
-{
-    void operator()(const T*, const T*) const
-    {}
-};
-*/
 
 // Return the sign of a number (-1, 0, 1)
 template<class T>
@@ -167,17 +145,17 @@ inline bool white_spaces(const std::string &str)
         || str == "<empty>";
 }
 
-inline std::string& to_lower(std::string &str)
+inline std::string& toLower(std::string &str)
 {
     std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     return str;
 }
-inline std::string& to_upper(std::string &str)
+inline std::string& toUpper(std::string &str)
 {
     std::transform(str.begin(), str.end(), str.begin(), ::toupper);
     return str;
 }
-inline std::string& toggle(std::string &str)
+inline std::string& toggleCase(std::string &str)
 {
     std::transform(str.begin(), str.end(), str.begin(),
                    [](int c) -> int
@@ -185,52 +163,52 @@ inline std::string& toggle(std::string &str)
     return str;
 }
 
-inline std::string& ltrim(std::string &str)
+inline std::string& leftTrim(std::string &str)
 {
     str.erase(str.begin(),
               std::find_if(str.begin(), str.end(),
                            std::not1(std::function<bool(const std::string::value_type&)>(::isspace))));
     return str;
 }
-inline std::string& rtrim(std::string &str)
+inline std::string& rihtTrim(std::string &str)
 {
     str.erase(std::find_if(str.rbegin(), str.rend(),
                            std::not1(std::function<bool(const std::string::value_type&)>(::isspace))).base(),
               str.end());
     return str;
 }
-inline std::string& trim(std::string &str)
+inline std::string& fullTrim(std::string &str)
 {
-    return ltrim(rtrim(str));
+    return leftTrim(rihtTrim(str));
 }
-inline std::string append_path(const std::string &base_path, const std::string &file_path)
+inline std::string appendPath(const std::string &basePath, const std::string &filePath)
 {
-    return base_path[base_path.length() - 1] != '/' ?
-            base_path + '/' + file_path :
-            base_path + file_path;
+    return basePath[basePath.length() - 1] != '/' ?
+            basePath + '/' + filePath :
+            basePath + filePath;
 }
 
 //template<class T>
 //inline void replace(T &container,
-//                    const typename T::value_type &old_value,
-//                    const typename T::value_type &new_value)
+//                    const typename T::value_type &oldValue,
+//                    const typename T::value_type &newValue)
 //{
-//    std::replace(container.begin(), container.end(), old_value, new_value);
+//    std::replace(container.begin(), container.end(), oldValue, newValue);
 //}
 
-//inline std::vector<std::string> split(const std::string str, char delimiter = ' ', bool keep_empty = true, bool do_trim = false)
+//inline std::vector<std::string> split(const std::string str, char delimiter = ' ', bool keepEmpty = true, bool doTrim = false)
 //{
 //    std::vector<std::string> tokens;
-//    std::istringstream iss{str};
+//    std::istringstream iss{ str };
 //    while (iss.good())
 //    {
 //        std::string token;
 //        const bool fail = !std::getline(iss, token, delimiter);
-//        if (do_trim)
+//        if (doTrim)
 //        {
-//            token = trim(token);
+//            token = fullTrim(token);
 //        }
-//        if (   keep_empty
+//        if (   keepEmpty
 //            || !token.empty())
 //        {
 //            tokens.push_back(token);
@@ -244,7 +222,7 @@ inline std::string append_path(const std::string &base_path, const std::string &
 //    return tokens;
 //}
 
-//inline void erase_substring(std::string &str, const std::string &sub)
+//inline void eraseSubstring(std::string &str, const std::string &sub)
 //{
 //    std::string::size_type pos;
 //    while ((pos = str.find(sub)) != std::string::npos)
@@ -253,12 +231,12 @@ inline std::string append_path(const std::string &base_path, const std::string &
 //    }
 //}
 //
-//inline void erase_substrings(std::string &str, const std::vector<std::string> &sub_list)
+//inline void eraseSubstrings(std::string &str, const std::vector<std::string> &sub_list)
 //{
-//    std::for_each(sub_list.begin(), sub_list.end(), std::bind(erase_substring, std::ref(str), std::placeholders::_1));
+//    std::for_each(sub_list.begin(), sub_list.end(), std::bind(eraseSubstring, std::ref(str), std::placeholders::_1));
 //}
 //
-//inline void erase_extension(std::string &filename)
+//inline void eraseExtension(std::string &filename)
 //{
 //    std::string::size_type pos = filename.find_last_of('.');
 //    if (pos != std::string::npos)
@@ -267,3 +245,24 @@ inline std::string append_path(const std::string &base_path, const std::string &
 //        filename.erase(pos, std::string::npos);
 //    }
 //}
+
+/*
+// Nullfunction is a function that does nothing, allows usage of shared_ptr with stack allocated or static objects.
+
+template<typename T>
+struct NullUnaryFunction
+    : public std::unary_function<T*, void>
+{
+    void operator()(const T*) const
+    {}
+};
+
+template<typename T>
+struct NullBinaryFunction
+    : public std::binary_function<T*, T*, void>
+{
+    void operator()(const T*, const T*) const
+    {}
+};
+*/
+

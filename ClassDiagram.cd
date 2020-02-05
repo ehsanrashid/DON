@@ -85,8 +85,8 @@
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="pawn_table" />
-      <Field Name="matl_table" />
+      <Field Name="pawnTable" />
+      <Field Name="matlTable" />
     </ShowAsAssociation>
   </Class>
   <Class Name="MainThread">
@@ -96,8 +96,8 @@
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="time_mgr" />
-      <Field Name="skill_mgr" />
+      <Field Name="timeMgr" />
+      <Field Name="skillMgr" />
     </ShowAsAssociation>
   </Class>
   <Class Name="ThreadPool">
@@ -114,8 +114,8 @@
       <FileName>src\RootMove.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="old_value" />
-      <Field Name="new_value" />
+      <Field Name="oldValue" />
+      <Field Name="newValue" />
     </ShowAsAssociation>
   </Class>
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
@@ -160,7 +160,7 @@
       <FileName>src\Searcher.cpp</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="tt_move" />
+      <Field Name="ttMove" />
       <Field Name="threshold" />
       <Field Name="refutation_moves" />
       <Field Name="bad_capture_moves" />
@@ -224,7 +224,7 @@
   </Struct>
   <Struct Name="StateInfo">
     <Position X="11.25" Y="15.5" Width="1.5" />
-    <AssociationLine Name="castle_rights" Type="CastleRight" FixedFromPoint="true">
+    <AssociationLine Name="castleRights" Type="CastleRight" FixedFromPoint="true">
       <Path>
         <Point X="11.25" Y="16.812" />
         <Point X="9.75" Y="16.812" />
@@ -235,11 +235,11 @@
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
-      <Field Name="matl_key" />
-      <Field Name="pawn_key" />
-      <Field Name="castle_rights" />
-      <Field Name="enpassant_sq" />
-      <Field Name="posi_key" />
+      <Field Name="matlKey" />
+      <Field Name="pawnKey" />
+      <Field Name="castleRights" />
+      <Field Name="enpassantSq" />
+      <Field Name="posiKey" />
       <Field Name="capture" />
     </ShowAsAssociation>
   </Struct>

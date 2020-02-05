@@ -56,38 +56,38 @@ namespace {
     // "how many games are still undecided after n half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
     // Data was extracted from the CCRL game database with some simple filtering criteria.
-    double move_importance(Depth ply)
+    double moveImportance(Depth ply)
     {
         //                                             Shift    Scale   Skew
         return std::max(std::pow(1.00 + std::exp((ply - 64.50) / 6.85), -0.171), DBL_MIN); // Ensure non-zero
     }
 
     template<bool Optimum>
-    TimePoint remaining_time(TimePoint time, u08 movestogo, Depth ply, double move_slowness)
+    TimePoint remainingTime(TimePoint time, u08 movestogo, Depth ply, double moveSlowness)
     {
         constexpr auto  StepRatio = 7.30 - 6.30 * Optimum; // When in trouble, can step over reserved time with this ratio
         constexpr auto StealRatio = 0.34 - 0.34 * Optimum; // However must not steal time from remaining moves over this ratio
 
-        auto move_imp1 = move_importance(ply) * move_slowness;
-        auto move_imp2 = 0.0;
+        auto moveImp1 = moveImportance(ply) * moveSlowness;
+        auto moveImp2 = 0.0;
         for (u08 i = 1; i < movestogo; ++i)
         {
-            move_imp2 += move_importance(ply + 2 * i);
+            moveImp2 += moveImportance(ply + 2 * i);
         }
 
-        auto time_ratio1 = (1.0) / (1.0 + move_imp2 / (move_imp1 * StepRatio));
-        auto time_ratio2 = (1.0 + (move_imp2 * StealRatio) / move_imp1) / (1.0 + move_imp2 / move_imp1);
+        auto timeRatio1 = (1.0                                     ) / (1.0 + moveImp2 / (moveImp1 * StepRatio));
+        auto timeRatio2 = (1.0 + (moveImp2 * StealRatio) / moveImp1) / (1.0 + moveImp2 /  moveImp1             );
 
-        return TimePoint(time * std::min(time_ratio1, time_ratio2));
+        return TimePoint(time * std::min(timeRatio1, timeRatio2));
     }
 }
 
-/// TimeManager::elapsed_time()
-TimePoint TimeManager::elapsed_time() const
+/// TimeManager::elapsedTime()
+TimePoint TimeManager::elapsedTime() const
 {
-    return 0 != time_nodes ?
+    return 0 != timeNodes ?
             TimePoint(Threadpool.sum(&Thread::nodes)) :
-            now() - start_time;
+            now() - startTime;
 }
 
 /// TimeManager::set() calculates the allowed thinking time out of the time control and current game ply.
@@ -98,142 +98,142 @@ TimePoint TimeManager::elapsed_time() const
 /// increment == 0, moves to go != 0 => x moves in y basetime                  ['standard']
 /// increment != 0, moves to go != 0 => x moves in y basetime + z increment
 ///
-/// Minimum movetime = No matter what, use at least this much time before doing the move, in milli-seconds.
-/// Overhead movetime = Attempt to keep at least this much time for each remaining move, in milli-seconds.
+/// Minimum MoveTime = No matter what, use at least this much time before doing the move, in milli-seconds.
+/// Overhead MoveTime = Attempt to keep at least this much time for each remaining move, in milli-seconds.
 /// Move Slowness = Move Slowness, in %age.
 void TimeManager::set(Color c, i16 ply)
 {
-    auto minimum_movetime  = TimePoint(i32(Options["Minimum Move Time"]));
-    auto overhead_movetime = TimePoint(i32(Options["Overhead Move Time"]));
-    auto move_slowness     = i32(Options["Move Slowness"]) / 100.0;
+    auto minimumMoveTime  = TimePoint(i32(Options["Minimum MoveTime"]));
+    auto overheadMoveTime = TimePoint(i32(Options["Overhead MoveTime"]));
+    auto moveSlowness     = i32(Options["Move Slowness"]) / 100.0;
 
-    time_nodes             = u16(i32(Options["Time Nodes"]));
+    timeNodes             = u16(i32(Options["Time Nodes"]));
 
     // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
-    if (0 != time_nodes)
+    if (0 != timeNodes)
     {
         // Only once at after ucinewgame
-        if (0 == available_nodes)
+        if (0 == availableNodes)
         {
-            available_nodes = Threadpool.limit.clock[c].time * time_nodes;
+            availableNodes = Threadpool.limit.clock[c].time * timeNodes;
         }
         // Convert from milli-seconds to nodes
-        Threadpool.limit.clock[c].time = TimePoint(available_nodes);
-        Threadpool.limit.clock[c].inc *= time_nodes;
+        Threadpool.limit.clock[c].time = TimePoint(availableNodes);
+        Threadpool.limit.clock[c].inc *= timeNodes;
     }
 
-    optimum_time =
-    maximum_time = std::max(Threadpool.limit.clock[c].time, minimum_movetime);
+    optimumTime =
+    maximumTime = std::max(Threadpool.limit.clock[c].time, minimumMoveTime);
     // Plan time management at most this many moves ahead.
-    auto max_movestogo = 0 != Threadpool.limit.movestogo ?
+    auto maxMovestogo = 0 != Threadpool.limit.movestogo ?
                             std::min(Threadpool.limit.movestogo, u08(50)) :
                             u08(50);
     TimePoint time;
     // Calculate optimum time usage for different hypothetic "moves to go" and
     // choose the minimum of calculated search time values.
-    for (u08 movestogo = 1; movestogo <= max_movestogo; ++movestogo)
+    for (u08 movestogo = 1; movestogo <= maxMovestogo; ++movestogo)
     {
         // Calculate thinking time for hypothetical "moves to go"
         time = std::max(Threadpool.limit.clock[c].time
                       + Threadpool.limit.clock[c].inc * (movestogo - 1)
                         // Clock time: Attempt to keep this much time at clock.
                         // Moves time: Attempt to keep at most this many moves time at clock.
-                      - overhead_movetime * (2 + std::min(movestogo, u08(40)))
+                      - overheadMoveTime * (2 + std::min(movestogo, u08(40)))
                       , TimePoint(0));
 
-        optimum_time = std::min(optimum_time, minimum_movetime + remaining_time<true >(time, movestogo, ply, move_slowness));
-        maximum_time = std::min(maximum_time, minimum_movetime + remaining_time<false>(time, movestogo, ply, move_slowness));
+        optimumTime = std::min(optimumTime, minimumMoveTime + remainingTime<true >(time, movestogo, ply, moveSlowness));
+        maximumTime = std::min(maximumTime, minimumMoveTime + remainingTime<false>(time, movestogo, ply, moveSlowness));
     }
 
     if (bool(Options["Ponder"]))
     {
-        optimum_time += optimum_time / 4;
+        optimumTime += optimumTime / 4;
     }
 }
 
 void TimeManager::update(Color c)
 {
     // When playing in 'Nodes as Time' mode
-    if (0 != time_nodes)
+    if (0 != timeNodes)
     {
-        available_nodes += Threadpool.limit.clock[c].inc - Threadpool.sum(&Thread::nodes);
+        availableNodes += Threadpool.limit.clock[c].inc - Threadpool.sum(&Thread::nodes);
     }
 }
 
 PRNG SkillManager::prng{u64(now())}; // PRNG sequence should be non-deterministic.
 
-/// SkillManager::pick_best_move() chooses best move among a set of RootMoves when playing with a strength handicap,
+/// SkillManager::pickBestMove() chooses best move among a set of RootMoves when playing with a strength handicap,
 /// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-void SkillManager::pick_best_move()
+void SkillManager::pickBestMove()
 {
-    const auto &root_moves = Threadpool.main_thread()->root_moves;
-    assert(!root_moves.empty());
-    if (MOVE_NONE == best_move)
+    const auto &rootMoves = Threadpool.mainThread()->rootMoves;
+    assert(!rootMoves.empty());
+    if (MOVE_NONE == bestMove)
     {
         // RootMoves are already sorted by value in descending order
         i32  weakness = DEP_MAX - 8 * level;
-        i32  deviance = std::min(root_moves[0].new_value - root_moves[Threadpool.pv_count - 1].new_value, VALUE_MG_PAWN);
-        auto best_value = -VALUE_INFINITE;
-        for (u32 i = 0; i < Threadpool.pv_count; ++i)
+        i32  deviance = std::min(rootMoves[0].newValue - rootMoves[Threadpool.pvCount - 1].newValue, VALUE_MG_PAWN);
+        auto bestValue = -VALUE_INFINITE;
+        for (u32 i = 0; i < Threadpool.pvCount; ++i)
         {
             // First for each move score add two terms, both dependent on weakness.
             // One is deterministic with weakness, and one is random with weakness.
-            auto value = root_moves[i].new_value
-                       + (  weakness * i32(root_moves[0].new_value - root_moves[i].new_value)
+            auto value = rootMoves[i].newValue
+                       + (  weakness * i32(rootMoves[0].newValue - rootMoves[i].newValue)
                           + deviance * i32(prng.rand<u32>() % weakness)) / VALUE_MG_PAWN;
             // Then choose the move with the highest value.
-            if (best_value <= value)
+            if (bestValue <= value)
             {
-                best_value = value;
-                best_move = root_moves[i].front();
+                bestValue = value;
+                bestMove = rootMoves[i].front();
             }
         }
     }
 }
 
-/// Thread constructor launches the thread and waits until it goes to sleep in idle_function().
+/// Thread constructor launches the thread and waits until it goes to sleep in idleFunction().
 /// Note that 'busy' and 'dead' should be already set.
 Thread::Thread(size_t idx)
     : dead(false)
     , busy(true)
     , index(idx)
-    , native_thread(&Thread::idle_function, this)
+    , nativeThread(&Thread::idleFunction, this)
 {
-    wait_while_busy();
+    waitIdle();
 }
-/// Thread destructor wakes up the thread in idle_function() and waits for its termination.
+/// Thread destructor wakes up the thread in idleFunction() and waits for its termination.
 /// Thread should be already waiting.
 Thread::~Thread()
 {
     assert(!busy);
     dead = true;
     start();
-    native_thread.join();
+    nativeThread.join();
 }
 /// Thread::start() wakes up the thread that will start the search.
 void Thread::start()
 {
     lock_guard<mutex> guard(mtx);
     busy = true;
-    condition_var.notify_one(); // Wake up the thread in idle_function()
+    conditionVar.notify_one(); // Wake up the thread in idleFunction()
 }
-/// Thread::wait_while_busy() blocks on the condition variable while the thread is busy.
-void Thread::wait_while_busy()
+/// Thread::waitIdle() blocks on the condition variable while the thread is busy.
+void Thread::waitIdle()
 {
     unique_lock<mutex> lock(mtx);
-    condition_var.wait(lock, [&]{ return !busy; });
+    conditionVar.wait(lock, [&]{ return !busy; });
 }
-/// Thread::idle_function() is where the thread is parked.
+/// Thread::idleFunction() is where the thread is parked.
 /// Blocked on the condition variable, when it has no work to do.
-void Thread::idle_function()
+void Thread::idleFunction()
 {
     // If OS already scheduled us on a different group than 0 then don't overwrite
     // the choice, eventually we are one of many one-threaded processes running on
     // some Windows NUMA hardware, for instance in fishtest. To make it simple,
     // just check if running threads are below a threshold, in this case all this
     // NUMA machinery is not needed.
-    if (8 < option_threads())
+    if (8 < optionThreads())
     {
         WinProcGroup::bind(index);
     }
@@ -242,8 +242,8 @@ void Thread::idle_function()
     {
         unique_lock<mutex> lock(mtx);
         busy = false;
-        condition_var.notify_one(); // Wake up anyone waiting for search finished
-        condition_var.wait(lock, [&]{ return busy; });
+        conditionVar.notify_one(); // Wake up anyone waiting for search finished
+        conditionVar.wait(lock, [&]{ return busy; });
         if (dead)
         {
             return;
@@ -254,42 +254,42 @@ void Thread::idle_function()
     }
 }
 
-i16 Thread::move_best_count(Move move) const
+i16 Thread::moveBestCount(Move move) const
 {
-    return root_moves.move_best_count(pv_cur, pv_end, move);
+    return rootMoves.moveBestCount(pvCur, pvEnd, move);
 }
 
 /// Thread::clear() clears all the thread related stuff.
 void Thread::clear()
 {
-    butterfly_history.fill(0);
-    capture_history.fill(0);
+    butterflyHistory.fill(0);
+    captureHistory.fill(0);
 
     for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
                      B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
                      NO_PIECE })
     {
-        move_history[pc].fill(MOVE_NONE);
+        moveHistory[pc].fill(MOVE_NONE);
     }
 
-    for (auto in_check : {0, 1})
+    for (auto inCheck : {0, 1})
     {
-        for (auto cap_type : {0, 1})
+        for (auto captureType : {0, 1})
         {
-            for (auto &pdhs : continuation_history[in_check][cap_type])
+            for (auto &pdhs : continuationHistory[inCheck][captureType])
             {
                 for (auto &pdh : pdhs)
                 {
                     pdh->fill(0);
                 }
             }
-            continuation_history[in_check][cap_type][NO_PIECE][0]->fill(CounterMovePruneThreshold - 1);
+            continuationHistory[inCheck][captureType][NO_PIECE][0]->fill(CounterMovePruneThreshold - 1);
         }
     }
 
     //// No need to clear
-    //pawn_table.clear();
-    //matl_table.clear();
+    //pawnTable.clear();
+    //matlTable.clear();
 }
 
 /// MainThread constructor
@@ -301,11 +301,12 @@ void MainThread::clear()
 {
     Thread::clear();
 
-    check_count = 0;
-    best_value = +VALUE_INFINITE;
+    tickCount = 0;
 
-    time_mgr.time_reduction = 1.00;
-    time_mgr.available_nodes = 0;
+    prevBestValue = +VALUE_INFINITE;
+    prevTimeReduction = 1.00;
+
+    timeMgr.reset();
 }
 
 namespace WinProcGroup {
@@ -350,9 +351,9 @@ namespace WinProcGroup {
             return;
         }
 
-        u16 nodes = 0;
-        u16 cores = 0;
-        u16 threads = 0;
+        u16 nodeCount = 0;
+        u16 coreCount = 0;
+        u16 threadCount = 0;
 
         DWORD offset = 0;
         auto *ptrSysLogicalProcInfoCurr = ptrSysLogicalProcInfoBase;
@@ -361,11 +362,11 @@ namespace WinProcGroup {
             switch (ptrSysLogicalProcInfoCurr->Relationship)
             {
             case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
-                ++cores;
-                threads += 1 + 1 * (ptrSysLogicalProcInfoCurr->Processor.Flags == LTP_PC_SMT);
+                ++coreCount;
+                threadCount += 1 + 1 * (ptrSysLogicalProcInfoCurr->Processor.Flags == LTP_PC_SMT);
                 break;
             case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
-                ++nodes;
+                ++nodeCount;
                 break;
             default:
                 break;
@@ -378,9 +379,9 @@ namespace WinProcGroup {
 
         // Run as many threads as possible on the same node until core limit is
         // reached, then move on filling the next node.
-        for (u16 n = 0; n < nodes; ++n)
+        for (u16 n = 0; n < nodeCount; ++n)
         {
-            for (u16 i = 0; i < cores / nodes; ++i)
+            for (u16 i = 0; i < coreCount / nodeCount; ++i)
             {
                 Groups.push_back(n);
             }
@@ -388,9 +389,9 @@ namespace WinProcGroup {
 
         // In case a core has more than one logical processor (we assume 2) and
         // have still threads to allocate, then spread them evenly across available nodes.
-        for (u16 t = 0; t < threads - cores; ++t)
+        for (u16 t = 0; t < threadCount - coreCount; ++t)
         {
-            Groups.push_back(t % nodes);
+            Groups.push_back(t % nodeCount);
         }
 
 #   endif
@@ -434,56 +435,56 @@ namespace WinProcGroup {
 
 }
 
-Thread* ThreadPool::best_thread() const
+Thread* ThreadPool::bestThread() const
 {
-    Thread *best_thread = front();
+    Thread *bestThread = front();
 
-    auto min_value = (*std::min_element(begin(), end(),
+    auto minValue = (*std::min_element(begin(), end(),
                                         [](Thread *const &th1, Thread *const &th2)
                                         {
-                                            return th1->root_moves.front().new_value
-                                                 < th2->root_moves.front().new_value;
-                                        }))->root_moves.front().new_value;
+                                            return th1->rootMoves.front().newValue
+                                                 < th2->rootMoves.front().newValue;
+                                        }))->rootMoves.front().newValue;
 
     // Vote according to value and depth
     std::map<Move, u64> votes;
     for (auto *th : *this)
     {
-        votes[th->root_moves.front().front()] += i32(th->root_moves.front().new_value - min_value + 14) * th->finished_depth;
+        votes[th->rootMoves.front().front()] += i32(th->rootMoves.front().newValue - minValue + 14) * th->finishedDepth;
     }
     for (auto *th : *this)
     {
-        if (best_thread->root_moves.front().new_value >= VALUE_MATE_MAX_PLY)
+        if (bestThread->rootMoves.front().newValue >= VALUE_MATE_MAX_PLY)
         {
             // Make sure we pick the shortest mate
-            if (best_thread->root_moves.front().new_value < th->root_moves.front().new_value)
+            if (bestThread->rootMoves.front().newValue < th->rootMoves.front().newValue)
             {
-                best_thread = th;
+                bestThread = th;
             }
         }
         else
         {
-            if (   th->root_moves.front().new_value >= VALUE_MATE_MAX_PLY
-                || votes[best_thread->root_moves.front().front()] < votes[th->root_moves.front().front()])
+            if (   th->rootMoves.front().newValue >= VALUE_MATE_MAX_PLY
+                || votes[bestThread->rootMoves.front().front()] < votes[th->rootMoves.front().front()])
             {
-                best_thread = th;
+                bestThread = th;
             }
         }
     }
     // Select best thread with max depth
-    auto best_fm = best_thread->root_moves.front().front();
+    auto best_fm = bestThread->rootMoves.front().front();
     for (auto *th : *this)
     {
-        if (best_fm == th->root_moves.front().front())
+        if (best_fm == th->rootMoves.front().front())
         {
-            if (best_thread->finished_depth < th->finished_depth)
+            if (bestThread->finishedDepth < th->finishedDepth)
             {
-                best_thread = th;
+                bestThread = th;
             }
         }
     }
 
-    return best_thread;
+    return bestThread;
 }
 
 /// ThreadPool::clear() clears the threadpool
@@ -495,14 +496,14 @@ void ThreadPool::clear()
     }
 }
 /// ThreadPool::configure() creates/destroys threads to match the requested number.
-/// Created and launched threads will immediately go to sleep in idle_function.
+/// Created and launched threads will immediately go to sleep in idleFunction.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::configure(u32 thread_count)
+void ThreadPool::configure(u32 threadCount)
 {
     // Destroy any existing thread(s)
     if (0 < size())
     {
-        main_thread()->wait_while_busy();
+        mainThread()->waitIdle();
         while (0 < size())
         {
             delete back();
@@ -510,39 +511,39 @@ void ThreadPool::configure(u32 thread_count)
         }
     }
     // Create new thread(s)
-    if (0 != thread_count)
+    if (0 != threadCount)
     {
         push_back(new MainThread(size()));
-        while (size() < thread_count)
+        while (size() < threadCount)
         {
             push_back(new Thread(size()));
         }
 
         factor = std::pow(24.8 + std::log(size()) / 2, 2);
 
-        sync_cout << "info string Thread(s) used " << thread_count << sync_endl;
+        sync_cout << "info string Thread(s) used " << threadCount << sync_endl;
 
         clear();
 
         // Reallocate the hash with the new threadpool size
-        TT.auto_resize(i32(Options["Hash"]));
+        TT.autoResize(i32(Options["Hash"]));
     }
 }
-/// ThreadPool::start_thinking() wakes up main thread waiting in idle_function() and returns immediately.
+/// ThreadPool::startThinking() wakes up main thread waiting in idleFunction() and returns immediately.
 /// Main thread will wake up other threads and start the search.
-void ThreadPool::start_thinking(Position &pos, StateListPtr &states, const Limit &lmt, const vector<Move> &search_moves, bool ponder)
+void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit &lmt, const vector<Move> &search_moves, bool ponder)
 {
     stop = false;
     research = false;
-    main_thread()->stop_on_ponderhit = false;
-    main_thread()->ponder = ponder;
+    mainThread()->stopOnPonderhit = false;
+    mainThread()->ponder = ponder;
 
     limit = lmt;
 
-    RootMoves root_moves;
-    root_moves.initialize(pos, search_moves);
+    RootMoves rootMoves;
+    rootMoves.initialize(pos, search_moves);
 
-    if (!root_moves.empty())
+    if (!rootMoves.empty())
     {
         TBProbeDepth = Depth(i32(Options["SyzygyProbeDepth"]));
         TBLimitPiece = i32(Options["SyzygyLimitPiece"]);
@@ -561,42 +562,42 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, const Limit
         // Rank moves using DTZ tables
         if (   0 != TBLimitPiece
             && TBLimitPiece >= pos.count()
-            && !pos.si->can_castle(CR_ANY))
+            && !pos.si->canCastle(CR_ANY))
         {
             // If the current root position is in the table-bases,
             // then RootMoves contains only moves that preserve the draw or the win.
-            TBHasRoot = root_probe_dtz(pos, root_moves);
+            TBHasRoot = rootProbeDTZ(pos, rootMoves);
             if (!TBHasRoot)
             {
                 // DTZ tables are missing; try to rank moves using WDL tables
                 dtz_available = false;
-                TBHasRoot = root_probe_wdl(pos, root_moves);
+                TBHasRoot = rootProbeWDL(pos, rootMoves);
             }
         }
 
         if (TBHasRoot)
         {
             // Sort moves according to TB rank
-            sort(root_moves.begin(), root_moves.end(),
-                [](const decltype(root_moves)::value_type &rm1,
-                   const decltype(root_moves)::value_type &rm2)
+            sort(rootMoves.begin(), rootMoves.end(),
+                [](const decltype(rootMoves)::value_type &rm1,
+                   const decltype(rootMoves)::value_type &rm2)
                 {
-                    return rm1.tb_rank > rm2.tb_rank;
+                    return rm1.tbRank > rm2.tbRank;
                 });
 
             // Probe during search only if DTZ is not available and we are winning
             if (   dtz_available
-                || root_moves.front().tb_value <= VALUE_DRAW)
+                || rootMoves.front().tbValue <= VALUE_DRAW)
             {
                 TBLimitPiece = 0;
             }
         }
         else
         {
-            // Clean up if root_probe_dtz() and root_probe_wdl() have failed
-            for (auto &rm : root_moves)
+            // Clean up if rootProbeDTZ() and rootProbeWDL() have failed
+            for (auto &rm : rootMoves)
             {
-                rm.tb_rank = 0;
+                rm.tbRank = 0;
             }
         }
     }
@@ -618,17 +619,17 @@ void ThreadPool::start_thinking(Position &pos, StateListPtr &states, const Limit
     auto back_si = setup_states->back();
     for (auto *th : *this)
     {
-        th->root_pos.setup(fen, setup_states->back(), th);
-        th->root_moves = root_moves;
-        th->root_depth = DEP_ZERO;
-        th->finished_depth = DEP_ZERO;
+        th->rootPos.setup(fen, setup_states->back(), th);
+        th->rootMoves = rootMoves;
+        th->rootDepth = DEP_ZERO;
+        th->finishedDepth = DEP_ZERO;
         th->nodes = 0;
-        th->tb_hits = 0;
-        th->pv_change = 0;
-        th->nmp_ply = 0;
-        th->nmp_color = CLR_NO;
+        th->tbHits = 0;
+        th->pvChange = 0;
+        th->nmpPly = 0;
+        th->nmpColor = CLR_NO;
     }
     setup_states->back() = back_si;
 
-    main_thread()->start();
+    mainThread()->start();
 }

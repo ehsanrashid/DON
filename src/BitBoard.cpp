@@ -10,10 +10,10 @@ namespace BitBoard {
 
     using namespace std;
 
-    array<array<Bitboard, SQ_NO>, CLR_NO> PawnAttacks;
-    array<array<Bitboard, SQ_NO>, NONE  > PieceAttacks;
+    array<array<Bitboard, SQ_NO>, CLR_NO>   PawnAttacks;
+    array<array<Bitboard, SQ_NO>, NONE>     PieceAttacks;
 
-    array<array<Bitboard, SQ_NO>, SQ_NO> Line_bb;
+    array<array<Bitboard, SQ_NO>, SQ_NO> Lines;
 
     array<Magic, SQ_NO> BMagics
         ,               RMagics;
@@ -53,8 +53,8 @@ namespace BitBoard {
         constexpr u32 DeBruijn_32 = U32(0x783A9B23);
 #   endif
 
-        array<Square, SQ_NO> BSF_Table;
-        unsigned bsf_index(Bitboard bb)
+        array<Square, SQ_NO> BSFTable;
+        unsigned bsfIndex(Bitboard bb)
         {
             assert(0 != bb);
             bb ^= (bb - 1);
@@ -68,7 +68,7 @@ namespace BitBoard {
 #       endif
         }
 
-        array<u08, (1 << 8)> MSB_Table;
+        array<u08, (1 << 8)> MSBTable;
 */
 
         // Max Bishop Table Size
@@ -87,7 +87,7 @@ namespace BitBoard {
         /// Magic bitboards are used to look up attacks of sliding pieces.
         /// In particular, here we use the so called "fancy" approach.
         template<PieceType PT>
-        void initialize_magic(Bitboard *attacks, array<Magic, SQ_NO> &magics)
+        void initializeMagic(Bitboard *attacks, array<Magic, SQ_NO> &magics)
         {
             static_assert (BSHP == PT || ROOK == PT, "PT incorrect");
 
@@ -117,13 +117,13 @@ namespace BitBoard {
                 // apply to the 64 or 32 bits word to get the index.
                 magic.mask = PieceAttacks[PT][s]
                             // Board edges are not considered in the relevant occupancies
-                           & ~(((FA_bb|FH_bb) & ~file_bb(s)) | ((R1_bb|R8_bb) & ~rank_bb(s)));
+                           & ~(((FABB|FHBB) & ~fileBB(s)) | ((R1BB|R8BB) & ~rankBB(s)));
 
-                auto mask_popcount = pop_count(magic.mask);
-                assert(mask_popcount < 32);
+                auto maskPopCount = popCount(magic.mask);
+                assert(maskPopCount < 32);
 
                 // magics[s].attacks is a pointer to the beginning of the attacks table for square
-                //magic.attacks = new Bitboard[(1U << mask_popcount)];
+                //magic.attacks = new Bitboard[(1U << maskPopCount)];
                 magic.attacks = &attacks[offset];
 
 #           if !defined(BM2)
@@ -134,7 +134,7 @@ namespace BitBoard {
                         32
 #                   endif
                     ;
-                magic.shift = bits - mask_popcount;
+                magic.shift = bits - maskPopCount;
 
                 u16 size = 0;
 #           endif
@@ -145,11 +145,11 @@ namespace BitBoard {
                 do
                 {
 #               if defined(BM2)
-                    magic.attacks[PEXT(occ, magic.mask)] = slide_attacks<PT>(s, occ);
+                    magic.attacks[PEXT(occ, magic.mask)] = slideAttacks<PT>(s, occ);
 #               else
                     occupancy[size] = occ;
                     // Store the corresponding slide attack bitboard in reference[].
-                    reference[size] = slide_attacks<PT>(s, occ);
+                    reference[size] = slideAttacks<PT>(s, occ);
                     ++size;
 #               endif
 
@@ -158,9 +158,9 @@ namespace BitBoard {
 
 #           if !defined(BM2)
 
-                assert(size == (1U << mask_popcount));
+                assert(size == (1U << maskPopCount));
 
-                PRNG prng{Seeds[_rank(s)]};
+                PRNG prng{Seeds[rankOf(s)]};
 
                 u16 i;
                 // Find a magic for square picking up an (almost) random number
@@ -169,8 +169,8 @@ namespace BitBoard {
                 {
                     do
                     {
-                        magic.number = prng.sparse_rand<Bitboard>();
-                    } while (pop_count((magic.mask * magic.number) >> 0x38) < 6);
+                        magic.number = prng.sparseRand<Bitboard>();
+                    } while (popCount((magic.mask * magic.number) >> 0x38) < 6);
 
                     // A good magic must map every possible occupancy to an index that
                     // looks up the correct slide attack in the magics[s].attacks database.
@@ -194,17 +194,17 @@ namespace BitBoard {
                 } while (i < size);
 #           endif
 
-                offset += (1U << mask_popcount);
+                offset += (1U << maskPopCount);
             }
         }
         /// Explicit template instantiations
         /// --------------------------------
-        template void initialize_magic<BSHP>(Bitboard*, array<Magic, SQ_NO>&);
-        template void initialize_magic<ROOK>(Bitboard*, array<Magic, SQ_NO>&);
+        template void initializeMagic<BSHP>(Bitboard*, array<Magic, SQ_NO>&);
+        template void initializeMagic<ROOK>(Bitboard*, array<Magic, SQ_NO>&);
     }
 
     template<PieceType PT>
-    Bitboard slide_attacks(Square s, Bitboard occ)
+    Bitboard slideAttacks(Square s, Bitboard occ)
     {
         static_assert (BSHP == PT || ROOK == PT || QUEN == PT, "PT incorrect");
 
@@ -212,7 +212,7 @@ namespace BitBoard {
         for (auto del : PieceDeltas[PT])
         {
             for (auto sq = s + del;
-                 _ok(sq) && 1 == dist(sq, sq - del);
+                 isOk(sq) && 1 == dist(sq, sq - del);
                  sq += del)
             {
                 attacks |= sq;
@@ -226,20 +226,20 @@ namespace BitBoard {
     }
     /// Explicit template instantiations
     /// --------------------------------
-    template Bitboard slide_attacks<BSHP>(Square, Bitboard);
-    template Bitboard slide_attacks<ROOK>(Square, Bitboard);
-    template Bitboard slide_attacks<QUEN>(Square, Bitboard);
+    template Bitboard slideAttacks<BSHP>(Square, Bitboard);
+    template Bitboard slideAttacks<ROOK>(Square, Bitboard);
+    template Bitboard slideAttacks<QUEN>(Square, Bitboard);
 
     void initialize()
     {
         //for (auto s : SQ)
         //{
-        //    //Square_bb[s] = U64(1) << s;
-        //    BSF_Table[bsf_index(square_bb(s))] = s;
+        //    //Squares[s] = U64(1) << s;
+        //    BSFTable[bsfIndex(squareBB(s))] = s;
         //}
-        //for (u32 b = 1; b < MSB_Table.size(); ++b)
+        //for (u32 b = 1; b < MSBTable.size(); ++b)
         //{
-        //    MSB_Table[b] =  MSB_Table[b - 1] + !more_than_one(b);
+        //    MSBTable[b] =  MSBTable[b - 1] + !moreThanOne(b);
         //}
 
 #   if !defined(ABM)
@@ -254,14 +254,14 @@ namespace BitBoard {
         {
             for (auto c : { WHITE, BLACK })
             {
-                PawnAttacks[c][s] |= pawn_sgl_attacks_bb(c, square_bb(s));
-                assert(2 >= pop_count(PawnAttacks[c][s]));
+                PawnAttacks[c][s] |= pawnSglAttacks(c, squareBB(s));
+                assert(2 >= popCount(PawnAttacks[c][s]));
             }
 
             for (auto del : PieceDeltas[NIHT])
             {
                 auto sq = s + del;
-                if (   _ok(sq)
+                if (   isOk(sq)
                     && 2 == dist(s, sq))
                 {
                     PieceAttacks[NIHT][s] |= sq;
@@ -270,35 +270,35 @@ namespace BitBoard {
             for (auto del : PieceDeltas[KING])
             {
                 auto sq = s + del;
-                if (   _ok(sq)
+                if (   isOk(sq)
                     && 1 == dist(s, sq))
                 {
                     PieceAttacks[KING][s] |= sq;
                 }
             }
-            PieceAttacks[BSHP][s] = slide_attacks<BSHP>(s);
-            PieceAttacks[ROOK][s] = slide_attacks<ROOK>(s);
+            PieceAttacks[BSHP][s] = slideAttacks<BSHP>(s);
+            PieceAttacks[ROOK][s] = slideAttacks<ROOK>(s);
             PieceAttacks[QUEN][s] = PieceAttacks[BSHP][s]
                                   | PieceAttacks[ROOK][s];
         }
 
         // Initialize Magic Table
-        initialize_magic<BSHP>(BAttacks, BMagics);
-        initialize_magic<ROOK>(RAttacks, RMagics);
+        initializeMagic<BSHP>(BAttacks, BMagics);
+        initializeMagic<ROOK>(RAttacks, RMagics);
 
         // NOTE:: must be after initialize Bishop & Rook Table
         for (auto s1 : SQ)
         {
             for (auto s2 : SQ)
             {
-                Line_bb[s1][s2] = 0;
+                Lines[s1][s2] = 0;
                 if (s1 != s2)
                 {
                     for (auto pt : { BSHP, ROOK })
                     {
                         if (contains(PieceAttacks[pt][s1], s2))
                         {
-                            Line_bb[s1][s2] = (PieceAttacks[pt][s1] & PieceAttacks[pt][s2]) | s1 | s2;
+                            Lines[s1][s2] = (PieceAttacks[pt][s1] & PieceAttacks[pt][s2]) | s1 | s2;
                         }
                     }
                 }
@@ -318,7 +318,7 @@ namespace BitBoard {
         oss << " /---------------\\\n";
         for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
         {
-            oss << to_char(r) << '|';
+            oss << toChar(r) << '|';
             for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
             {
                 oss << (contains(bb, f|r) ? '+' : '-');
@@ -332,7 +332,7 @@ namespace BitBoard {
         oss << " \\---------------/\n ";
         for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
         {
-            oss << ' ' << to_char(f, false);
+            oss << ' ' << toChar(f, false);
         }
         oss << '\n';
 

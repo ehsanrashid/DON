@@ -45,14 +45,14 @@ cat << EOF > tsan.supp
  race:TEntry::eval
  race:TEntry::depth
  race:TEntry::generation
- race:TEntry::is_pv
+ race:TEntry::pv
  race:TEntry::bound
  race:TEntry::empty
  race:TEntry::save
 
  race:TTable::probe
- race:TTable::hash_full
- race:TTable::extract_next_move
+ race:TTable::hashFull
+ race:TTable::extractNextMove
 
 EOF
 

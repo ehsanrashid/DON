@@ -133,7 +133,7 @@ namespace TBSyzygy {
         }
         i32 off_A1H8(Square sq)
         {
-            return i32(_rank(sq)) - i32(_file(sq));
+            return i32(rankOf(sq)) - i32(fileOf(sq));
         }
 
         template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
@@ -248,7 +248,7 @@ namespace TBSyzygy {
                 file += ext;
                 for (const auto &path : Paths)
                 {
-                    const auto fname = append_path(path, file);
+                    const auto fname = appendPath(path, file);
                     ifstream::open(fname);
                     if (ifstream::is_open())
                     {
@@ -461,7 +461,7 @@ namespace TBSyzygy {
         {
             StateInfo si;
             Position pos;
-            key1 = pos.setup(code, WHITE, si).si->matl_key;
+            key1 = pos.setup(code, WHITE, si).si->matlKey;
             piece_count = pos.count();
             has_pawns = 0 != pos.count(PAWN);
             has_unique_pieces = false;
@@ -484,7 +484,7 @@ namespace TBSyzygy {
             pawn_count[0] = u08(pos.count( lead_color|PAWN));
             pawn_count[1] = u08(pos.count(~lead_color|PAWN));
 
-            key2 = pos.setup(code, BLACK, si).si->matl_key;
+            key2 = pos.setup(code, BLACK, si).si->matlKey;
         }
 
         template<>
@@ -826,7 +826,7 @@ namespace TBSyzygy {
                 // KRvK, not KvKR. A position where stronger side is white will have its
                 // material key == entry->key1, otherwise we have to switch the color and
                 // flip the squares before to lookup.
-                     || (pos.si->matl_key != entry->key1);
+                     || (pos.si->matlKey != entry->key1);
 
             auto stm = flip ? ~pos.active : pos.active;
 
@@ -841,7 +841,7 @@ namespace TBSyzygy {
                             ~Piece(entry->get(0, 0)->pieces[0]) :
                              Piece(entry->get(0, 0)->pieces[0]);
 
-                assert(PAWN == ptype(pc));
+                assert(PAWN == typeOf(pc));
 
                 lead_pawns = pos.pieces(pc);
 
@@ -849,16 +849,16 @@ namespace TBSyzygy {
                 do
                 {
                     squares[size++] = flip ?
-                                     ~pop_lsq(b) :
-                                      pop_lsq(b);
+                                     ~popLSq(b) :
+                                      popLSq(b);
                 } while (0 != b);
 
                 std::swap(squares[0], *std::max_element(squares, squares + size, pawns_comp));
 
-                tb_file = _file(squares[0]);
+                tb_file = fileOf(squares[0]);
                 if (tb_file > F_D)
                 {
-                    tb_file = _file(!squares[0]); // Horizontal flip: SQ_H1 -> SQ_A1
+                    tb_file = fileOf(!squares[0]); // Horizontal flip: SQ_H1 -> SQ_A1
                 }
             }
             else
@@ -883,7 +883,7 @@ namespace TBSyzygy {
             b = pos.pieces() ^ lead_pawns;
             do
             {
-                auto s = pop_lsq(b);
+                auto s = popLSq(b);
                 squares[size] = flip ?
                                  ~s :
                                   s;
@@ -914,7 +914,7 @@ namespace TBSyzygy {
 
             // Now we map again the squares so that the square of the lead piece is in
             // the triangle A1-D1-D4.
-            if (_file(squares[0]) > F_D)
+            if (fileOf(squares[0]) > F_D)
             {
                 for (i32 i = 0; i < size; ++i)
                 {
@@ -940,7 +940,7 @@ namespace TBSyzygy {
             else
             {
                 // Flip the squares to ensure leading piece is below R_5.
-                if (_rank(squares[0]) > R_4)
+                if (rankOf(squares[0]) > R_4)
                 {
                     for (i32 i = 0; i < size; ++i)
                     {
@@ -960,7 +960,7 @@ namespace TBSyzygy {
                     {
                         for (i32 j = i; j < size; ++j)
                         {
-                            squares[j] = File(_rank(squares[j])) | Rank(_file(squares[j]));
+                            squares[j] = File(rankOf(squares[j])) | Rank(fileOf(squares[j]));
                         }
                     }
                     break;
@@ -1013,7 +1013,7 @@ namespace TBSyzygy {
                     if (off_A1H8(squares[1]))
                     {
                         idx = (  6 * 63
-                               + _rank(squares[0]) * 28
+                               + rankOf(squares[0]) * 28
                                + MapB1H1H7[squares[1]]) * 62
                             + (squares[2] - adjust2);
                     }
@@ -1023,8 +1023,8 @@ namespace TBSyzygy {
                     {
                         idx = 6 * 63 * 62
                             + 4 * 28 * 62
-                            +  _rank(squares[0]) * 7 * 28
-                            + (_rank(squares[1]) - adjust1) * 28
+                            +  rankOf(squares[0]) * 7 * 28
+                            + (rankOf(squares[1]) - adjust1) * 28
                             +  MapB1H1H7[squares[2]];
                     }
                     // All 3 pieces on the diagonal a1-h8
@@ -1033,9 +1033,9 @@ namespace TBSyzygy {
                         idx = 6 * 63 * 62
                             + 4 * 28 * 62
                             + 4 *  7 * 28
-                            +  _rank(squares[0]) * 7 * 6
-                            + (_rank(squares[1]) - adjust1) * 6
-                            + (_rank(squares[2]) - adjust2);
+                            +  rankOf(squares[0]) * 7 * 6
+                            + (rankOf(squares[1]) - adjust1) * 6
+                            + (rankOf(squares[2]) - adjust2);
                     }
                 }
                 else
@@ -1406,7 +1406,7 @@ namespace TBSyzygy {
                 b += string(pos.count(BLACK|pt), PieceChar[pt]);
             }
 
-            string code = e.key1 == pos.si->matl_key ?
+            string code = e.key1 == pos.si->matlKey ?
                             w + b :
                             b + w;
             TBFile file (code, WDL == Type ? ".rtbw" : ".rtbz");
@@ -1427,7 +1427,7 @@ namespace TBSyzygy {
                 return Ret(WDLScore::DRAW); // KvK
             }
 
-            auto *entry = TB_Tables.get<Type>(pos.si->matl_key);
+            auto *entry = TB_Tables.get<Type>(pos.si->matlKey);
 
             if (   nullptr == entry
                 || nullptr == mapped(*entry, pos))
@@ -1463,16 +1463,16 @@ namespace TBSyzygy {
             {
                 if (   !pos.capture(move)
                     && (   !check_zeroing
-                        || PAWN != ptype(pos[org_sq(move)])))
+                        || PAWN != typeOf(pos[orgOf(move)])))
                 {
                     continue;
                 }
 
                 ++move_count;
 
-                pos.do_move(move, si);
+                pos.doMove(move, si);
                 auto wdl = -search(pos, state, false);
-                pos.undo_move(move);
+                pos.undoMove(move);
 
                 if (ProbeState::FAILURE == state)
                 {
@@ -1539,7 +1539,7 @@ namespace TBSyzygy {
     ///  0 : draw
     ///  1 : win, but draw under 50-move rule
     ///  2 : win
-    WDLScore probe_wdl(Position &pos, ProbeState &state)
+    WDLScore probeWDL(Position &pos, ProbeState &state)
     {
         return search(pos, state, false);
     }
@@ -1569,7 +1569,7 @@ namespace TBSyzygy {
     ///
     /// In short, if a move is available resulting in dtz + 50-move-counter <= 99,
     /// then do not accept moves leading to dtz + 50-move-counter == 100.
-    i32      probe_dtz(Position &pos, ProbeState &state)
+    i32      probeDTZ(Position &pos, ProbeState &state)
     {
         state = ProbeState::SUCCESS;
         auto wdl = search(pos, state, true);
@@ -1608,9 +1608,9 @@ namespace TBSyzygy {
         for (auto &vm : MoveList<GenType::LEGAL>(pos))
         {
             bool zeroing = pos.capture(vm)
-                        || PAWN == ptype(pos[org_sq(vm)]);
+                        || PAWN == typeOf(pos[orgOf(vm)]);
 
-            pos.do_move(vm, si);
+            pos.doMove(vm, si);
 
             // For zeroing moves we want the dtz of the move _before_ doing it,
             // otherwise we will get the dtz of the next move sequence. Search the
@@ -1618,7 +1618,7 @@ namespace TBSyzygy {
             // winning position we could make a losing capture or going for a draw).
             dtz = zeroing ?
                     -dtz_before_zeroing(search(pos, state, false)) :
-                    -probe_dtz(pos, state);
+                    -probeDTZ(pos, state);
 
             // If the move mates, force minDTZ to 1
             if (   1 == dtz
@@ -1641,7 +1641,7 @@ namespace TBSyzygy {
                 min_dtz = std::min(dtz, min_dtz);
             }
 
-            pos.undo_move(vm);
+            pos.undoMove(vm);
 
             if (ProbeState::FAILURE == state)
             {
@@ -1658,35 +1658,35 @@ namespace TBSyzygy {
     ///
     /// A return value false indicates that not all probes were successful and that
     /// no moves were filtered out.
-    bool root_probe_wdl(Position &root_pos, RootMoves &root_moves)
+    bool rootProbeWDL(Position &rootPos, RootMoves &rootMoves)
     {
         bool rule50 = bool(Options["SyzygyUseRule50"]);
 
         StateInfo si;
         ProbeState state;
         // Probe and rank each move
-        for (auto &rm : root_moves)
+        for (auto &rm : rootMoves)
         {
             auto move = rm.front();
-            root_pos.do_move(move, si);
+            rootPos.doMove(move, si);
 
-            WDLScore wdl = -probe_wdl(root_pos, state);
+            WDLScore wdl = -probeWDL(rootPos, state);
 
-            root_pos.undo_move(move);
+            rootPos.undoMove(move);
 
             if (ProbeState::FAILURE == state)
             {
                 return false;
             }
 
-            rm.tb_rank = WDL_To_Rank[wdl + 2];
+            rm.tbRank = WDL_To_Rank[wdl + 2];
 
             if (!rule50)
             {
                 wdl =  wdl > WDLScore::DRAW ? WDLScore::WIN :
                        wdl < WDLScore::DRAW ? WDLScore::LOSS : WDLScore::DRAW;
             }
-            rm.tb_value = WDL_To_Value[wdl + 2];
+            rm.tbValue = WDL_To_Value[wdl + 2];
         }
         return true;
     }
@@ -1694,14 +1694,14 @@ namespace TBSyzygy {
     // Use the DTZ tables to rank root moves.
     //
     // A return value false indicates that not all probes were successful.
-    bool root_probe_dtz(Position &root_pos, RootMoves &root_moves)
+    bool rootProbeDTZ(Position &rootPos, RootMoves &rootMoves)
     {
-        assert(0 != root_moves.size());
+        assert(0 != rootMoves.size());
 
         // Obtain 50-move counter for the root position
-        auto clock_ply = root_pos.si->clock_ply;
+        auto clockPly = rootPos.si->clockPly;
         // Check whether a position was repeated since the last zeroing move.
-        bool rep = root_pos.repeated();
+        bool rep = rootPos.repeated();
 
         i16 bound = bool(Options["SyzygyUseRule50"]) ? 900 : 1;
         i32 dtz;
@@ -1709,35 +1709,35 @@ namespace TBSyzygy {
         StateInfo si;
         ProbeState state;
         // Probe and rank each move
-        for (auto &rm : root_moves)
+        for (auto &rm : rootMoves)
         {
             auto move = rm.front();
-            root_pos.do_move(move, si);
+            rootPos.doMove(move, si);
 
             // Calculate dtz for the current move counting from the root position
-            if (0 == root_pos.si->clock_ply)
+            if (0 == rootPos.si->clockPly)
             {
                 // In case of a zeroing move, dtz is one of -101/-1/0/+1/+101
-                WDLScore wdl = -probe_wdl(root_pos, state);
+                WDLScore wdl = -probeWDL(rootPos, state);
                 dtz = dtz_before_zeroing(wdl);
             }
             else
             {
                 // Otherwise, take dtz for the new position and correct by 1 ply
-                dtz = -probe_dtz(root_pos, state);
+                dtz = -probeDTZ(rootPos, state);
                 dtz = dtz > 0 ? dtz + 1 :
                       dtz < 0 ? dtz - 1 :
                       dtz;
             }
             // Make sure that a mating move is assigned a dtz value of 1
-            if (   0 != root_pos.si->checkers
+            if (   0 != rootPos.si->checkers
                 && 2 == dtz
-                && 0 == MoveList<LEGAL>(root_pos).size())
+                && 0 == MoveList<LEGAL>(rootPos).size())
             {
                 dtz = 1;
             }
 
-            root_pos.undo_move(move);
+            rootPos.undoMove(move);
 
             if (ProbeState::FAILURE == state)
             {
@@ -1746,15 +1746,15 @@ namespace TBSyzygy {
 
             // Better moves are ranked higher. Certain wins are ranked equally.
             // Losing moves are ranked equally unless a 50-move draw is in sight.
-            i16 r = dtz > 0 ? (+dtz + clock_ply <= 99 && !rep ? +1000 : +1000 - (+dtz + clock_ply)) :
-                    dtz < 0 ? (-dtz * 2 + clock_ply < 100     ? -1000 : -1000 + (-dtz + clock_ply)) :
+            i16 r = dtz > 0 ? (+dtz + clockPly <= 99 && !rep ? +1000 : +1000 - (+dtz + clockPly)) :
+                    dtz < 0 ? (-dtz * 2 + clockPly < 100     ? -1000 : -1000 + (-dtz + clockPly)) :
                     0;
-            rm.tb_rank = r;
+            rm.tbRank = r;
 
             // Determine the score to be displayed for this move. Assign at least
             // 1 cp to cursed wins and let it grow to 49 cp as the positions gets
             // closer to a real win.
-            rm.tb_value = r >= bound ? +VALUE_MATE - (DEP_MAX + 1) :
+            rm.tbValue = r >= bound ? +VALUE_MATE - (DEP_MAX + 1) :
                           r >  0     ? (VALUE_EG_PAWN * std::max(+3, r - 800)) / 200 :
                           r == 0     ? VALUE_DRAW :
                           r > -bound ? (VALUE_EG_PAWN * std::min(-3, r + 800)) / 200 :
@@ -1931,7 +1931,7 @@ namespace TBSyzygy {
         {
             if (!white_spaces(path))
             {
-                trim(path);
+                fullTrim(path);
                 std::replace(path.begin(), path.end(), '\\', '/');
                 TBFile::Paths.push_back(path);
             }

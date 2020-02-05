@@ -1,18 +1,18 @@
 #include "PSQTable.h"
 
 #include "Position.h"
+
 using namespace std;
 
 array<array<Score, SQ_NO>, MAX_PIECE> PSQ;
 
 namespace {
 
-#   define S(mg, eg) make_score(mg, eg)
-    // PieceHalfSQ[piece-type][rank][file/2] table contains half Piece-Square scores (symmetric distribution).
+#   define S(mg, eg) makeScore(mg, eg)
+    // PieceScores[piece-type][rank][file/2] contains half Piece-Square scores (symmetric distribution).
     // It is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
-    // For each piece type on a given square a (midgame, endgame) score pair is assigned.
-    constexpr array<array<array<Score, (F_NO/2)>, R_NO>, NONE> PieceHalfSQ
+    constexpr array<array<array<Score, F_NO/2>, R_NO>, NONE> PieceScores
     {{
         {{ }},
         {{ // Knight
@@ -67,8 +67,8 @@ namespace {
         }}
     }};
 
-    // PawnFullSQ table contains full Pawn-Square score (asymmetric distribution)
-    constexpr array<array<Score, F_NO>, R_NO> PawnFullSQ
+    // PawnScores contains full Pawn-Square score (asymmetric distribution)
+    constexpr array<array<Score, F_NO>, R_NO> PawnScores
     {{
         { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) },
         { S(  3,-10), S(  3, -6), S( 10, 10), S( 19,  0), S( 16, 14), S( 19,  7), S(  7, -5), S( -5,-19) },
@@ -85,9 +85,9 @@ namespace {
 /// Computes the scores for the middle game and the endgame.
 /// These functions are used to initialize the scores when a new position is set up,
 /// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
-Score compute_psq(const Position &pos)
+Score computePSQ(const Position &pos)
 {
-    auto psq = SCORE_ZERO;
+    Score psq = SCORE_ZERO;
     for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
                      B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
     {
@@ -99,18 +99,18 @@ Score compute_psq(const Position &pos)
     return psq;
 }
 
-/// psq_initialize() initializes psq lookup tables.
-void psq_initialize()
+/// initializePSQ() initializes psq lookup tables.
+void initializePSQ()
 {
     for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
-        Score score = make_score(PieceValues[MG][pt], PieceValues[EG][pt]);
+        Score score = makeScore(PieceValues[MG][pt], PieceValues[EG][pt]);
         for (auto s : SQ)
         {
             Score psq = score
                       + (PAWN == pt ?
-                            PawnFullSQ[_rank(s)][_file(s)] :
-                            PieceHalfSQ[pt][_rank(s)][map_file(_file(s))]);
+                            PawnScores[rankOf(s)][fileOf(s)] :
+                            PieceScores[pt][rankOf(s)][mapFile(fileOf(s))]);
             PSQ[WHITE|pt][ s] = +psq;
             PSQ[BLACK|pt][~s] = -psq;
         }

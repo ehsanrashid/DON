@@ -6,29 +6,29 @@
 #include "Position.h"
 #include "Type.h"
 
-const std::string PieceChar("PNBRQK  pnbrqk");
-const std::string ColorChar("wb-");
+const std::string PieceChar{ "PNBRQK  pnbrqk" };
+const std::string ColorChar{ "wb-" };
 
-inline char to_char(File f, bool lower = true)
+inline char toChar(File f, bool lower = true)
 {
-    return char((lower ? 'a' : 'A') + i08(f));
+    return char('A' + i08(f) + 0x20 * lower);
 }
 
-inline char to_char(Rank r)
+inline char toChar(Rank r)
 {
     return char('1' + i08(r));
 }
 
-inline std::string to_string(Square s)
+inline std::string toString(Square s)
 {
-    return std::string{ to_char(_file(s)), to_char(_rank(s)) };
+    return std::string{ toChar(fileOf(s)), toChar(rankOf(s)) };
 }
 /// Converts a value to a string suitable for use with the UCI protocol specifications:
 ///
 /// cp   <x>   The score x from the engine's point of view in centipawns.
 /// mate <y>   Mate in y moves, not plies.
 ///            If the engine is getting mated use negative values for y.
-inline std::string to_string(Value v)
+inline std::string toString(Value v)
 {
     assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
 
@@ -36,7 +36,7 @@ inline std::string to_string(Value v)
 
     if (abs(v) < +VALUE_MATE - i32(DEP_MAX))
     {
-        oss << "cp " << value_to_cp(v);
+        oss << "cp " << valueCP(v);
     }
     else
     {
@@ -47,16 +47,16 @@ inline std::string to_string(Value v)
     return oss.str();
 }
 
-extern std::string move_to_can(Move);
-extern Move move_from_can(const std::string&, const Position&);
+extern std::string moveCAN(Move);
+extern Move moveCAN(const std::string&, const Position&);
 
-extern std::string move_to_san(Move, Position&);
-extern Move move_from_san(const std::string&, Position&);
+extern std::string moveSAN(Move, Position&);
+extern Move moveSAN(const std::string&, Position&);
 
-//extern std::string move_to_lan(Move, Position&);
-//extern Move move_from_lan(const std::string&, Position&);
+//extern std::string moveLAN(Move, Position&);
+//extern Move moveLAN(const std::string&, Position&);
 
-extern std::string multipv_info(const Thread *const&, i16, Value, Value);
+extern std::string multipvInfo(const Thread *const&, i16, Value, Value);
 
 //extern std::string pretty_pv_info(Thread *const&);
 
@@ -65,7 +65,7 @@ template<typename Elem, typename Traits>
 inline std::basic_ostream<Elem, Traits>&
     operator<<(std::basic_ostream<Elem, Traits> &os, File f)
 {
-    os << to_char(f);
+    os << toChar(f);
     return os;
 }
 
@@ -73,7 +73,7 @@ template<typename Elem, typename Traits>
 inline std::basic_ostream<Elem, Traits>&
     operator<<(std::basic_ostream<Elem, Traits> &os, Rank r)
 {
-    os << to_char(r);
+    os << toChar(r);
     return os;
 }
 
@@ -81,7 +81,7 @@ template<typename Elem, typename Traits>
 inline std::basic_ostream<Elem, Traits>&
     operator<<(std::basic_ostream<Elem, Traits> &os, Square s)
 {
-    os << to_string(s);
+    os << toString(s);
     return os;
 }
 
@@ -89,7 +89,7 @@ template<typename Elem, typename Traits>
 inline std::basic_ostream<Elem, Traits>&
     operator<<(std::basic_ostream<Elem, Traits> &os, Move m)
 {
-    os << move_to_can(m);
+    os << moveCAN(m);
     return os;
 }
 
@@ -114,8 +114,8 @@ inline std::basic_ostream<Elem, Traits>&
     operator<<(std::basic_ostream<Elem, Traits> &os, Score score)
 {
     os << std::showpos << std::showpoint
-       << std::setw(5) << value_to_cp(mg_value(score)) / 100.0 << " "
-       << std::setw(5) << value_to_cp(eg_value(score)) / 100.0
+       << std::setw(5) << valueCP(mgValue(score)) / 100.0 << " "
+       << std::setw(5) << valueCP(egValue(score)) / 100.0
        << std::noshowpoint << std::noshowpos;
     return os;
 }

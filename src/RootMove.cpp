@@ -30,18 +30,17 @@ void RootMoves::initialize(const Position &pos, const vector<Move> &search_moves
             || std::find(search_moves.begin(), search_moves.end(), vm) != search_moves.end())
         {
             *this += vm;
-            assert(back().tb_rank == 0
-                && back().tb_value == VALUE_ZERO);
+            assert(back().tbRank == 0
+                && back().tbValue == VALUE_ZERO);
         }
     }
 }
 
-i16 RootMoves::move_best_count(u32 s_idx, u32 e_idx, Move move) const
+i16 RootMoves::moveBestCount(u32 sIdx, u32 eIdx, Move move) const
 {
-    auto rm_itr = std::find(begin() + s_idx, begin() + e_idx, move);
-    return rm_itr != begin() + e_idx ?
-            rm_itr->best_count :
-            0;
+    auto rmItr = std::find(std::next(begin(), sIdx), std::next(begin(), eIdx), move);
+    return rmItr != std::next(begin(), eIdx) ?
+            rmItr->bestCount : 0;
 }
 
 /// RootMoves::operator string()

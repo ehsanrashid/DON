@@ -25,29 +25,28 @@ class RootMove
     : public std::list<Move>
 {
 public:
-    Value old_value
-        , new_value;
-
-    i16   best_count;
-    Depth sel_depth;
-    i16   tb_rank;
-    Value tb_value;
+    Value oldValue
+        , newValue;
+    Depth selDepth;
+    i16   tbRank;
+    Value tbValue;
+    i16   bestCount;
 
     explicit RootMove(Move m = MOVE_NONE)
         : std::list<Move>(1, m)
-        , old_value(-VALUE_INFINITE)
-        , new_value(-VALUE_INFINITE)
-        , best_count(0)
-        , sel_depth(0)
-        , tb_rank(0)
-        , tb_value(VALUE_ZERO)
+        , oldValue(-VALUE_INFINITE)
+        , newValue(-VALUE_INFINITE)
+        , selDepth(0)
+        , tbRank(0)
+        , tbValue(VALUE_ZERO)
+        , bestCount(0)
     {}
     RootMove& operator=(const RootMove&) = default;
 
-    bool operator< (const RootMove &rm) const { return new_value != rm.new_value ? new_value > rm.new_value : old_value > rm.old_value; }
-    bool operator> (const RootMove &rm) const { return new_value != rm.new_value ? new_value < rm.new_value : old_value < rm.old_value; }
-    //bool operator<=(const RootMove &rm) const { return new_value != rm.new_value ? new_value >= rm.new_value : old_value >= rm.old_value; }
-    //bool operator>=(const RootMove &rm) const { return new_value != rm.new_value ? new_value <= rm.new_value : old_value <= rm.old_value; }
+    bool operator< (const RootMove &rm) const { return newValue != rm.newValue ? newValue > rm.newValue : oldValue > rm.oldValue; }
+    bool operator> (const RootMove &rm) const { return newValue != rm.newValue ? newValue < rm.newValue : oldValue < rm.oldValue; }
+    //bool operator<=(const RootMove &rm) const { return newValue != rm.newValue ? newValue >= rm.newValue : oldValue >= rm.oldValue; }
+    //bool operator>=(const RootMove &rm) const { return newValue != rm.newValue ? newValue <= rm.newValue : oldValue <= rm.oldValue; }
     //bool operator==(const RootMove &rm) const { return front() == rm.front(); }
     //bool operator!=(const RootMove &rm) const { return front() != rm.front(); }
 
@@ -85,7 +84,7 @@ public:
 
     void initialize(const Position&, const std::vector<Move>&);
 
-    i16 move_best_count(u32, u32, Move) const;
+    i16 moveBestCount(u32, u32, Move) const;
 
     explicit operator std::string() const;
 };

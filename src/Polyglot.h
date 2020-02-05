@@ -99,27 +99,27 @@ private:
     static PRNG prng;
 
     PolyEntry   *entries;
-    size_t      entry_count;
+    size_t      entryCount;
 
-    u08         fail_counter;
-    bool        do_probe;
-    Bitboard    last_pieces;
-    i32         last_piece_count;
+    u08         failCount;
+    bool        doProbe;
+    Bitboard    prevPieces;
+    i32         prevPieceCount;
 
     void clear();
 
-    i64 find_index(Key) const;
-    //i64 find_index(const Position&) const;
-    //i64 find_index(const std::string&, bool = false) const;
+    i64 findIndex(Key) const;
+    //i64 findIndex(const Position&) const;
+    //i64 findIndex(const std::string&, bool = false) const;
 
-    bool can_probe(const Position&);
+    bool canProbe(const Position&);
 
 public:
 
     size_t const HeaderSize = 0;
 
     bool enabled;
-    std::string book_fn;
+    std::string bookFn;
 
     PolyBook();
     virtual ~PolyBook();

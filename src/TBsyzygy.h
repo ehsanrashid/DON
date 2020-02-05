@@ -14,7 +14,8 @@ namespace TBSyzygy {
         CURSED_WIN   = +1, // Win, but draw under 50-move rule
         WIN          = +2, // Win
     };
-    inline WDLScore operator-(WDLScore d) { return WDLScore(-i32(d)); }
+
+    inline WDLScore operator-(WDLScore wdl) { return WDLScore(-i32(wdl)); }
 
     /// Possible states after a probing operation
     enum ProbeState
@@ -28,11 +29,11 @@ namespace TBSyzygy {
     extern std::string PathString;
     extern i32         MaxLimitPiece;
 
-    extern i32      probe_dtz(Position&, ProbeState&);
-    extern WDLScore probe_wdl(Position&, ProbeState&);
+    extern i32      probeDTZ(Position&, ProbeState&);
+    extern WDLScore probeWDL(Position&, ProbeState&);
 
-    extern bool root_probe_dtz(Position&, RootMoves&);
-    extern bool root_probe_wdl(Position&, RootMoves&);
+    extern bool rootProbeDTZ(Position&, RootMoves&);
+    extern bool rootProbeWDL(Position&, RootMoves&);
 
     extern void initialize(const std::string&);
 

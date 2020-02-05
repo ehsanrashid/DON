@@ -13,7 +13,7 @@ using namespace std;
 
 u08 TEntry::Generation;
 
-u32 TCluster::fresh_entry_count() const
+u32 TCluster::freshEntryCount() const
 {
     return (entries[0].generation() == TEntry::Generation)
          + (entries[1].generation() == TEntry::Generation)
@@ -57,11 +57,11 @@ namespace {
 #   include <sys/mman.h>
 #endif
 
-    /// alloc_aligned_memory will return suitably aligned memory, and if possible use large pages.
+    /// allocAlignedMemory will return suitably aligned memory, and if possible use large pages.
     /// The returned pointer is the aligned one, while the mem argument is the one that needs to be passed to free.
     /// With c++17 some of this functionality can be simplified.
 
-    void* alloc_aligned_memory(size_t msize, void *&mem)
+    void* allocAlignedMemory(size_t msize, void *&mem)
     {
 
 #   if defined(__linux__) && !defined(__ANDROID__)
@@ -98,26 +98,25 @@ u32 TTable::resize(u32 mem_size)
 {
     mem_size = clamp(mem_size, MinHashSize, MaxHashSize);
 
-    Threadpool.main_thread()->wait_while_busy();
+    Threadpool.mainThread()->waitIdle();
     
     free(mem);
 
-    cluster_count = (size_t(mem_size) << 20) / sizeof(TCluster);
-    clusters = static_cast<TCluster*>(alloc_aligned_memory(cluster_count * sizeof(TCluster), mem));
+    clusterCount = (size_t(mem_size) << 20) / sizeof(TCluster);
+    clusters = static_cast<TCluster*>(allocAlignedMemory(clusterCount * sizeof(TCluster), mem));
     if (nullptr == mem)
     {
         cerr << "ERROR: Hash memory allocation failed for TT " << mem_size << " MB" << endl;
         return 0;
     }
     
-    hashfull_count = u16(std::min(size_t(1000), cluster_count));
     clear();
     sync_cout << "info string Hash memory " << mem_size << " MB" << sync_endl;
     return mem_size;
 }
 
-/// TTable::auto_resize() set size automatically
-void TTable::auto_resize(u32 mem_size)
+/// TTable::autoResize() set size automatically
+void TTable::autoResize(u32 mem_size)
 {
     auto msize = 0 != mem_size ? mem_size : MaxHashSize;
     while (msize >= MinHashSize)
@@ -133,27 +132,27 @@ void TTable::auto_resize(u32 mem_size)
 /// TTable::clear() clear the entire transposition table in a multi-threaded way.
 void TTable::clear()
 {
-    assert(0 != cluster_count);
+    assert(0 != clusterCount);
     if (bool(Options["Retain Hash"]))
     {
         return;
     }
 
     vector<thread> threads;
-    auto thread_count = option_threads();
-    for (size_t idx = 0; idx < thread_count; ++idx)
+    auto threadCount = optionThreads();
+    for (size_t idx = 0; idx < threadCount; ++idx)
     {
-        threads.emplace_back([this, idx, thread_count]()
+        threads.emplace_back([this, idx, threadCount]()
                              {
-                                 if (8 < thread_count)
+                                 if (8 < threadCount)
                                  {
                                      WinProcGroup::bind(idx);
                                  }
-                                 size_t stride = cluster_count / thread_count;
+                                 size_t stride = clusterCount / threadCount;
                                  auto *pcluster = clusters + idx * stride;
-                                 size_t count = idx != (thread_count - 1) ?
+                                 size_t count = idx != (threadCount - 1) ?
                                                  stride :
-                                                 cluster_count - idx * stride;
+                                                 clusterCount - idx * stride;
                                  std::memset(pcluster, 0, count * sizeof (*pcluster));
                              });
     }
@@ -170,44 +169,44 @@ TEntry* TTable::probe(Key key, bool &hit) const
 {
     return cluster(key)->probe(u16(key >> 0x30), hit);
 }
-/// TTable::hash_full() returns an approximation of the per-mille of the
+/// TTable::hashFull() returns an approximation of the per-mille of the
 /// all transposition entries during a search which have received
 /// at least one write during the current search.
 /// It is used to display the "info hashfull ..." information in UCI.
 /// "the hash is <x> per mill full", the engine should send this info regularly.
 /// hash, are using <x>%. of the state of full.
-u32 TTable::hash_full() const
+u32 TTable::hashFull() const
 {
-    u32 entry_count = 0;
-    for (auto *itc = clusters; itc < clusters + hashfull_count; ++itc)
+    u32 freshEntryCount = 0;
+    for (auto *itc = clusters; itc < clusters + 1000; ++itc)
     {
-        entry_count += itc->fresh_entry_count();
+        freshEntryCount += itc->freshEntryCount();
     }
-    return u32((entry_count / TCluster::EntryCount) * 1000 / hashfull_count);
+    return freshEntryCount / TCluster::EntryCount;
 }
 
-/// TTable::extract_next_move() extracts next move after current move.
-Move TTable::extract_next_move(Position &pos, Move cm) const
+/// TTable::extractNextMove() extracts next move after current move.
+Move TTable::extractNextMove(Position &pos, Move cm) const
 {
     assert(MOVE_NONE != cm
         && MoveList<GenType::LEGAL>(pos).contains(cm));
 
     StateInfo si;
-    pos.do_move(cm, si);
-    bool tt_hit;
-    auto *tte = probe(pos.si->posi_key, tt_hit);
-    auto nm = tt_hit ?
+    pos.doMove(cm, si);
+    bool ttHit;
+    auto *tte = probe(pos.si->posiKey, ttHit);
+    auto nm = ttHit ?
                 tte->move() :
                 MOVE_NONE;
     if (   MOVE_NONE != nm
-        && !(   pos.pseudo_legal(nm)
+        && !(   pos.pseudoLegal(nm)
              && pos.legal(nm)))
     {
         nm = MOVE_NONE;
     }
     assert(MOVE_NONE == nm
         || MoveList<GenType::LEGAL>(pos).contains(nm));
-    pos.undo_move(cm);
+    pos.undoMove(cm);
 
     return nm;
 }

@@ -51,7 +51,7 @@ namespace {
     //}
 
 
-    Move convert_move(const Position &pos, Move m)
+    Move convertMove(const Position &pos, Move m)
     {
         // Polyglot book move is encoded as follows:
         //
@@ -86,12 +86,12 @@ namespace {
         return MOVE_NONE;
     }
 
-    bool move_draw(Position &pos, Move m)
+    bool moveIsDraw(Position &pos, Move m)
     {
         StateInfo si;
-        pos.do_move(m, si);
+        pos.doMove(m, si);
         bool dr = pos.draw(64);
-        pos.undo_move(m);
+        pos.undoMove(m);
         return dr;
     }
 
@@ -112,13 +112,13 @@ PRNG PolyBook::prng{u64(now())};
 
 PolyBook::PolyBook()
     : entries(nullptr)
-    , entry_count(0)
-    , fail_counter(0)
-    , do_probe(true)
-    , last_pieces(0)
-    , last_piece_count(0)
+    , entryCount(0)
+    , failCount(0)
+    , doProbe(true)
+    , prevPieces(0)
+    , prevPieceCount(0)
     , enabled(false)
-    , book_fn("")
+    , bookFn("")
 {
 }
 
@@ -137,10 +137,10 @@ void PolyBook::clear()
     }
 }
 
-i64 PolyBook::find_index(Key key) const
+i64 PolyBook::findIndex(Key key) const
 {
     i64 beg = i64(0);
-    i64 end = i64(entry_count);
+    i64 end = i64(entryCount);
 
     while (beg + 8 < end)
     {
@@ -158,7 +158,7 @@ i64 PolyBook::find_index(Key key) const
         else // key == entries[mid].key
         {
             beg = std::max(mid - 4, i64(0));
-            end = std::min(mid + 4, i64(entry_count));
+            end = std::min(mid + 4, i64(entryCount));
         }
     }
 
@@ -178,50 +178,50 @@ i64 PolyBook::find_index(Key key) const
 
     return -1;
 }
-//i64 PolyBook::find_index(const Position &pos) const
+//i64 PolyBook::findIndex(const Position &pos) const
 //{
-//    return find_index(pos.pg_key());
+//    return findIndex(pos.pgKey());
 //}
-//i64 PolyBook::find_index(const string &fen, bool c960) const
+//i64 PolyBook::findIndex(const string &fen, bool c960) const
 //{
 //    StateInfo si;
-//    return find_index(Position().setup(fen, si, nullptr, c960).pg_key());
+//    return findIndex(Position().setup(fen, si, nullptr, c960).pgKey());
 //}
 
-bool PolyBook::can_probe(const Position &pos)
+bool PolyBook::canProbe(const Position &pos)
 {
     Bitboard pieces = pos.pieces();
-    i32 piece_count = pos.count();
+    i32 pieceCount = pos.count();
 
-    if (   pieces != last_pieces
-        //|| pop_count(pieces ^ last_pieces) > 6
-        || piece_count > last_piece_count
-        || piece_count < last_piece_count - 2
-        || U64(0x463B96181691FC9C) == pos.pg_key())
+    if (   pieces != prevPieces
+        //|| popCount(pieces ^ prevPieces) > 6
+        || pieceCount > prevPieceCount
+        || pieceCount < prevPieceCount - 2
+        || U64(0x463B96181691FC9C) == pos.pgKey())
     {
-        do_probe = true;
+        doProbe = true;
     }
 
-    last_pieces = pieces;
-    last_piece_count = piece_count;
+    prevPieces = pieces;
+    prevPieceCount = pieceCount;
 
-    return do_probe;
+    return doProbe;
 }
 
-void PolyBook::initialize(const string &bk_fn)
+void PolyBook::initialize(const string &bkFn)
 {
     clear();
 
-    book_fn = bk_fn;
-    trim(book_fn);
-    std::replace(book_fn.begin(), book_fn.end(), '\\', '/');
+    bookFn = bkFn;
+    fullTrim(bookFn);
+    std::replace(bookFn.begin(), bookFn.end(), '\\', '/');
 
-    if (white_spaces(book_fn))
+    if (white_spaces(bookFn))
     {
         return;
     }
 
-    ifstream ifs(book_fn, ios_base::in|ios_base::binary);
+    ifstream ifs(bookFn, ios_base::in|ios_base::binary);
     if (!ifs.is_open())
     {
         return;
@@ -231,8 +231,8 @@ void PolyBook::initialize(const string &bk_fn)
     size_t filesize = ifs.tellg();
     ifs.seekg(size_t(0), ios_base::beg);
 
-    entry_count = (filesize - HeaderSize) / sizeof (PolyEntry);
-    entries = new PolyEntry[entry_count];
+    entryCount = (filesize - HeaderSize) / sizeof (PolyEntry);
+    entries = new PolyEntry[entryCount];
 
     if (0 != HeaderSize)
     {
@@ -242,65 +242,65 @@ void PolyBook::initialize(const string &bk_fn)
             ifs >> dummy;
         }
     }
-    for (size_t i = 0; i < entry_count; ++i)
+    for (size_t i = 0; i < entryCount; ++i)
     {
         ifs >> entries[i];
     }
     ifs.close();
 
-    sync_cout << "info string Book entries found " << entry_count << " from file \'" << book_fn << "\'" << sync_endl;
+    sync_cout << "info string Book entries found " << entryCount << " from file \'" << bookFn << "\'" << sync_endl;
     enabled = true;
 }
 
 /// PolyBook::probe() tries to find a book move for the given position.
 /// If no move is found returns MOVE_NONE.
-/// If pick_best is true returns always the highest rated move,
+/// If pickBest is true returns always the highest rated move,
 /// otherwise randomly chooses one, based on the move score.
-Move PolyBook::probe(Position &pos, i16 move_num, bool pick_best)
+Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest)
 {
     if (   !enabled
         || nullptr == entries
-        || (0 != move_num && move_num < pos.move_num())
-        || !can_probe(pos))
+        || (0 != moveCount && moveCount < pos.moveCount())
+        || !canProbe(pos))
     {
         return MOVE_NONE;
     }
 
-    auto key = pos.pg_key();
+    auto key = pos.pgKey();
 
-    auto index = find_index(key);
+    auto index = findIndex(key);
     if (0 > index)
     {
-        if (4 < ++fail_counter)
+        if (4 < ++failCount)
         {
-            // Stop probe after 4 times not in the book till position changes according to can_probe()
-            do_probe = false;
-            fail_counter = 0;
+            // Stop probe after 4 times not in the book till position changes according to canProbe()
+            doProbe = false;
+            failCount = 0;
         }
 
         return MOVE_NONE;
     }
 
     u08 count = 0;
-    u16 max_weight = 0;
-    u32 sum_weight = 0;
+    u16 maxWeight = 0;
+    u32 sumWeight = 0;
 
     size_t pick1_index = index;
     size_t i = index;
-    while (   i < entry_count
+    while (   i < entryCount
            && key == entries[i].key)
     {
         if (MOVE_NONE == entries[i].move) continue;
 
         ++count;
-        max_weight = std::max(entries[i].weight, max_weight);
-        sum_weight += entries[i].weight;
+        maxWeight = std::max(entries[i].weight, maxWeight);
+        sumWeight += entries[i].weight;
 
         // Choose the move
 
-        if (pick_best)
+        if (pickBest)
         {
-            if (max_weight == entries[i].weight)
+            if (maxWeight == entries[i].weight)
             {
                 pick1_index = i;
             }
@@ -308,8 +308,8 @@ Move PolyBook::probe(Position &pos, i16 move_num, bool pick_best)
         else
         {
             // Move with a very high score, has a higher probability of being choosen.
-            if (   0 != sum_weight
-                && (prng.rand<u32>() % sum_weight) < entries[i].weight)
+            if (   0 != sumWeight
+                && (prng.rand<u32>() % sumWeight) < entries[i].weight)
             {
                 pick1_index = i;
             }
@@ -324,7 +324,7 @@ Move PolyBook::probe(Position &pos, i16 move_num, bool pick_best)
         return MOVE_NONE;
     }
 
-    move = convert_move(pos, move);
+    move = convertMove(pos, move);
 
     if (   !pos.draw(64)
         || 1 >= count)
@@ -332,7 +332,7 @@ Move PolyBook::probe(Position &pos, i16 move_num, bool pick_best)
         return move;
     }
 
-    if (!move_draw(pos, move))
+    if (!moveIsDraw(pos, move))
     {
         return move;
     }
@@ -352,9 +352,9 @@ Move PolyBook::probe(Position &pos, i16 move_num, bool pick_best)
         return MOVE_NONE;
     }
 
-    move = convert_move(pos, move);
+    move = convertMove(pos, move);
 
-    if (!move_draw(pos, move))
+    if (!moveIsDraw(pos, move))
     {
         return move;
     }
@@ -370,9 +370,9 @@ string PolyBook::show(const Position &pos) const
         return "Book entries empty.";
     }
 
-    auto key = pos.pg_key();
+    auto key = pos.pgKey();
 
-    auto index = find_index(key);
+    auto index = findIndex(key);
     if (0 > index)
     {
         return "Book entries not found.";
@@ -380,12 +380,12 @@ string PolyBook::show(const Position &pos) const
 
     ostringstream oss;
     list<PolyEntry> list_entries;
-    u32 sum_weight = 0;
-    while (   size_t(index) < entry_count
+    u32 sumWeight = 0;
+    while (   size_t(index) < entryCount
            && key == entries[index].key)
     {
         list_entries.push_back(entries[index]);
-        sum_weight += entries[index].weight;
+        sumWeight += entries[index].weight;
         ++index;
     }
     if (!list_entries.empty())
@@ -395,13 +395,13 @@ string PolyBook::show(const Position &pos) const
         oss << "\nBook entries: " << list_entries.size();
         for (auto entry : list_entries)
         {
-            entry.move = convert_move(pos, Move(entry.move));
+            entry.move = convertMove(pos, Move(entry.move));
             oss << "\n"
                 << entry
                 << " prob: "
                 << setw(7)
                 << setfill('0')
-                << fixed << setprecision(4) << (0 != sum_weight ? 100.0 * entry.weight / sum_weight : 0.0)
+                << fixed << setprecision(4) << (0 != sumWeight ? 100.0 * entry.weight / sumWeight : 0.0)
                 << setfill(' ');
         }
     }
