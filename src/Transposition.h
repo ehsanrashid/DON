@@ -62,10 +62,6 @@ public:
             d08 = u08(d - DEP_OFFSET);
             g08 = u08(Generation | u08(pv) << 2 | b);
         }
-        else
-        {
-            g08 = u08(Generation | (g08 & 0x07));
-        }
     }
 };
 
@@ -114,8 +110,6 @@ public:
 #       endif
         ;
 
-    static constexpr u32 BufferSize = 0x10000;
-
     void     *mem;
     TCluster *clusters;
     size_t    cluster_count;
@@ -134,7 +128,7 @@ public:
     /// size() returns hash size in MB
     u32 size() const
     {
-        return u32((u64(cluster_count) * sizeof (TCluster)) >> 20);
+        return u32((cluster_count * sizeof (TCluster)) >> 20);
     }
 
     /// cluster() returns a pointer to the cluster of given a key.
@@ -170,6 +164,7 @@ public:
         os.write((const Elem*)(&dummy), sizeof (dummy));
         os.write((const Elem*)(&dummy), sizeof (dummy));
         os.write((const Elem*)(&TEntry::Generation), sizeof (TEntry::Generation));
+        constexpr u32 BufferSize = 0x1000;
         for (size_t i = 0; i < tt.cluster_count / BufferSize; ++i)
         {
             os.write((const Elem*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
@@ -189,6 +184,7 @@ public:
         is.read((Elem*)(&dummy), sizeof (dummy));
         is.read((Elem*)(&TEntry::Generation), sizeof (TEntry::Generation));
         tt.resize(mem_size);
+        constexpr u32 BufferSize = 0x1000;
         for (size_t i = 0; i < tt.cluster_count / BufferSize; ++i)
         {
             is.read((Elem*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);

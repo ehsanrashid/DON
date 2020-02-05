@@ -34,8 +34,8 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
         {
             // Refresh entry
             ite->g08 = u08(TEntry::Generation | (ite->g08 & 0x07));
-            hit = ite->d08 != 0;
-            return ite;
+
+            return hit = ite->d08 != 0, ite;
         }
         // Replacement strategy.
         // Due to packed storage format for generation and its cyclic nature
@@ -47,8 +47,7 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
             rte = ite;
         }
     }
-    hit = false;
-    return rte;
+    return hit = false, rte;
 }
 
 namespace {
@@ -81,18 +80,15 @@ namespace {
         return reinterpret_cast<void*>((uintptr_t(mem) + alignment - 1) & ~uintptr_t(alignment - 1));
 
 #   endif
-
         //assert(nullptr != new_mem
         //    && 0 == (uintptr_t(new_mem) & (alignment-1)));
     }
 
 }
 
-
 TTable::~TTable()
 {
     free(mem);
-    mem = nullptr;
 }
 
 /// TTable::resize() sets the size of the transposition table, measured in MB.
@@ -101,19 +97,19 @@ TTable::~TTable()
 u32 TTable::resize(u32 mem_size)
 {
     mem_size = clamp(mem_size, MinHashSize, MaxHashSize);
-    size_t msize = size_t(mem_size) << 20;
 
     Threadpool.main_thread()->wait_while_busy();
-
+    
     free(mem);
-    clusters = static_cast<TCluster*>(alloc_aligned_memory(msize, mem));
+
+    cluster_count = (size_t(mem_size) << 20) / sizeof(TCluster);
+    clusters = static_cast<TCluster*>(alloc_aligned_memory(cluster_count * sizeof(TCluster), mem));
     if (nullptr == mem)
     {
         cerr << "ERROR: Hash memory allocation failed for TT " << mem_size << " MB" << endl;
         return 0;
     }
-
-    cluster_count = msize / sizeof (TCluster);
+    
     hashfull_count = u16(std::min(size_t(1000), cluster_count));
     clear();
     sync_cout << "info string Hash memory " << mem_size << " MB" << sync_endl;

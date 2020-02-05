@@ -1878,12 +1878,12 @@ void Thread::search()
     for (auto ss = stacks; ss < stacks + DEP_MAX + 10; ++ss)
     {
         ss->ply = i16(ss - (stacks+7));
-        ss->played_move = MOVE_NONE;
-        ss->excluded_move = MOVE_NONE;
-        ss->move_count = 0;
-        ss->static_eval = VALUE_ZERO;
-        ss->stats = 0;
-        ss->pd_history = &continuation_history[0][0][NO_PIECE][0];
+        ss->played_move     = MOVE_NONE;
+        ss->excluded_move   = MOVE_NONE;
+        ss->move_count      = 0;
+        ss->static_eval     = VALUE_ZERO;
+        ss->stats           = 0;
+        ss->pd_history      = &continuation_history[0][0][NO_PIECE][0];
         ss->killer_moves.fill(MOVE_NONE);
         ss->pv.clear();
     }

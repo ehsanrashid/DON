@@ -123,48 +123,52 @@ namespace Pawns {
         auto k_path = k_paths[CS_KING]
                     | k_paths[CS_QUEN];
 
-        if (   king_sq[Own]   == k_sq
-            && king_path[Own] == k_path)
+        if (   king_sq[Own]   != k_sq
+            || king_path[Own] != k_path)
         {
-            return king_safety[Own];
-        }
+            auto safety = evaluate_safety_on<Own>(pos, k_sq);
 
-        king_sq  [Own] = k_sq;
-        king_path[Own] = k_path;
-
-        auto safety = evaluate_safety_on<Own>(pos, k_sq);
-
-        if (0 != k_paths[CS_KING])
-        {
-            safety = std::max(evaluate_safety_on<Own>(pos, rel_sq(Own, SQ_G1)), safety,
-                              [](Score s1, Score s2) { return mg_value(s1) < mg_value(s2); });
-        }
-        if (0 != k_paths[CS_QUEN])
-        {
-            safety = std::max(evaluate_safety_on<Own>(pos, rel_sq(Own, SQ_C1)), safety,
-                              [](Score s1, Score s2) { return mg_value(s1) < mg_value(s2); });
-        }
-
-        // In endgame, king near to closest pawn
-        i32 kp_dist = 0;
-        Bitboard pawns = pos.pieces(Own, PAWN);
-        if (0 != pawns)
-        {
-            if (0 != (pawns & PieceAttacks[KING][k_sq]))
+            if (0 != k_paths[CS_KING])
             {
-                kp_dist = 1;
+                safety = std::max(evaluate_safety_on<Own>(pos, rel_sq(Own, SQ_G1)), safety,
+                                  [](Score s1, Score s2) { return mg_value(s1) < mg_value(s2); });
             }
-            else
+            if (0 != k_paths[CS_QUEN])
             {
-                kp_dist = 8;
-                while (0 != pawns)
+                safety = std::max(evaluate_safety_on<Own>(pos, rel_sq(Own, SQ_C1)), safety,
+                                  [](Score s1, Score s2) { return mg_value(s1) < mg_value(s2); });
+            }
+
+            king_safety[Own] = safety;
+
+            if (king_sq[Own] != k_sq)
+            {
+                // In endgame, king near to closest pawn
+                i32 kp_dist = 0;
+                Bitboard pawns = pos.pieces(Own, PAWN);
+                if (0 != pawns)
                 {
-                    kp_dist = std::min(dist(k_sq, pop_lsq(pawns)), kp_dist);
+                    if (0 != (pawns & PieceAttacks[KING][k_sq]))
+                    {
+                        kp_dist = 1;
+                    }
+                    else
+                    {
+                        kp_dist = 8;
+                        while (0 != pawns)
+                        {
+                            kp_dist = std::min(dist(k_sq, pop_lsq(pawns)), kp_dist);
+                        }
+                    }
                 }
+                king_pawn[Own] = make_score(0, 16 * kp_dist);
             }
+
+            king_sq[Own] = k_sq;
+            king_path[Own] = k_path;
         }
 
-        return (king_safety[Own] = safety - make_score(0, 16 * kp_dist));
+        return (king_safety[Own] - king_pawn[Own]);
     }
     // Explicit template instantiations
     template Score Entry::evaluate_king_safety<WHITE>(const Position&, Bitboard);
