@@ -25,7 +25,7 @@ namespace BitBoard {
     //    return U64(0x00000000000000FF) << (r * 8) | makeBitboard(ranks...);
     //}
 
-    constexpr Bitboard All_bb = U64(0xFFFFFFFFFFFFFFFF);
+    constexpr Bitboard FullBB = U64(0xFFFFFFFFFFFFFFFF);
 
     constexpr Bitboard FABB = U64(0x0101010101010101);
     constexpr Bitboard FBBB = FABB << 1;
@@ -164,14 +164,14 @@ namespace BitBoard {
     template<> constexpr Bitboard shift<DEL_SW>(Bitboard bb) { return (bb & ~FABB) >>  9; }
 
     ///// Rotate Right (toward LSB)
-    //constexpr Bitboard rotate_R(Bitboard bb, i08 k) { return (bb >> k) | (bb << (SQ_NO - k)); }
+    //constexpr Bitboard rotateR(Bitboard bb, i08 k) { return (bb >> k) | (bb << (SQ_NO - k)); }
     ///// Rotate Left  (toward MSB)
-    //constexpr Bitboard rotate_L(Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQ_NO - k)); }
+    //constexpr Bitboard rotateL(Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQ_NO - k)); }
 
     constexpr Bitboard squareBB(Square s) { return Squares[s]; }
 
     constexpr bool contains(Bitboard bb, Square s) { return 0 != (bb & squareBB(s)); }
-    
+
     constexpr Bitboard operator&(Bitboard bb, Square s) { return bb & squareBB(s); }
     constexpr Bitboard operator|(Bitboard bb, Square s) { return bb | squareBB(s); }
     constexpr Bitboard operator^(Bitboard bb, Square s) { return bb ^ squareBB(s); }
@@ -186,10 +186,10 @@ namespace BitBoard {
     constexpr Bitboard operator|(Square s1, Square s2) { return squareBB(s1) | squareBB(s2); }
 
     constexpr Bitboard fileBB(File f)   { return FABB << f; }
-    constexpr Bitboard fileBB(Square s) { return fileBB(fileOf(s)); }
+    constexpr Bitboard fileBB(Square s) { return fileBB(sFile(s)); }
 
     constexpr Bitboard rankBB(Rank r)   { return R1BB << (8 * r); }
-    constexpr Bitboard rankBB(Square s) { return rankBB(rankOf(s)); }
+    constexpr Bitboard rankBB(Square s) { return rankBB(sRank(s)); }
 
     // frontRanks() returns ranks in front of the given rank
     constexpr Bitboard frontRanks(Color c, Rank r)
@@ -199,7 +199,7 @@ namespace BitBoard {
                 ~R8BB >> (8 * (R_8 - r));
     }
     // frontRanks() returns ranks in front of the given square
-    constexpr Bitboard frontRanks(Color c, Square s) { return frontRanks(c, rankOf(s)); }
+    constexpr Bitboard frontRanks(Color c, Square s) { return frontRanks(c, sRank(s)); }
 
     constexpr Bitboard adjacentFiles(Square s)
     {
@@ -221,16 +221,16 @@ namespace BitBoard {
     /// number of steps for a king in s1 to reach s2.
 
     template<typename T = Square> inline i32 dist(Square, Square);
-    template<> inline i32 dist<  File>(Square s1, Square s2) { return std::abs(fileOf(s1) - fileOf(s2)); }
-    template<> inline i32 dist<  Rank>(Square s1, Square s2) { return std::abs(rankOf(s1) - rankOf(s2)); }
+    template<> inline i32 dist<  File>(Square s1, Square s2) { return std::abs(sFile(s1) - sFile(s2)); }
+    template<> inline i32 dist<  Rank>(Square s1, Square s2) { return std::abs(sRank(s1) - sRank(s2)); }
     template<> inline i32 dist<Square>(Square s1, Square s2) { return std::max(dist<File>(s1, s2), dist<Rank>(s1, s2)); }
 
     inline Bitboard    lines(Square s1, Square s2) { return Lines[s1][s2]; }
     inline Bitboard betweens(Square s1, Square s2)
     {
         return lines(s1, s2)
-             & (  (All_bb << (s1 + (s1 < s2)))
-                ^ (All_bb << (s2 + (s2 < s1))));
+             & (  (FullBB << (s1 +  (s1 < s2)))
+                ^ (FullBB << (s2 + !(s1 < s2))));
     }
     /// Check the squares s1, s2 and s3 are aligned on a straight line.
     inline bool squaresAligned(Square s1, Square s2, Square s3) { return contains(lines(s1, s2), s3); }
@@ -314,11 +314,11 @@ namespace BitBoard {
         }
     }
     /// Position::attacksFrom() finds attacks from the square on occupancy.
-    inline Bitboard attacksFrom(Piece pc, Square s, Bitboard occ)
+    inline Bitboard attacksFrom(Piece p, Square s, Bitboard occ)
     {
-        switch (typeOf(pc))
+        switch (pType(p))
         {
-        case PAWN: return PawnAttacks[colorOf(pc)][s];
+        case PAWN: return PawnAttacks[pColor(p)][s];
         case NIHT: return PieceAttacks[NIHT][s];
         case BSHP: return attacksBB<BSHP>(s, occ);
         case ROOK: return attacksBB<ROOK>(s, occ);
@@ -334,8 +334,9 @@ namespace BitBoard {
     {
         //Bitboard x = bb;
         //x -= (x >> 1) & 0x5555555555555555;
-        //x = (x & 0x3333333333333333) + ((x >> 2) & 0x3333333333333333);
-        //x = (x + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
+        //x = ((x >> 0) & 0x3333333333333333)
+        //  + ((x >> 2) & 0x3333333333333333);
+        //x = ((x >> 0) + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
         //return (x * 0x0101010101010101) >> 56;
 
         union
@@ -450,9 +451,9 @@ namespace BitBoard {
         assert(0 != bb);
         return
 #   if defined(BIT64)
-        Square(__builtin_clzll(bb) ^ i08(SQ_H8));
+        Square(__builtin_clzll(bb) ^ i32(SQ_H8));
 #   else
-        Square(0 != ((u32(bb >> 0x20) ^ i08(SQ_H8)) ?
+        Square(0 != ((u32(bb >> 0x20) ^ i32(SQ_H8)) ?
                 __builtin_clz(bb >> 0x20) :
                 __builtin_clz(bb >> 0x00) + 0x20));
 #   endif

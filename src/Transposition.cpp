@@ -99,7 +99,7 @@ u32 TTable::resize(u32 mem_size)
     mem_size = clamp(mem_size, MinHashSize, MaxHashSize);
 
     Threadpool.mainThread()->waitIdle();
-    
+
     free(mem);
 
     clusterCount = (size_t(mem_size) << 20) / sizeof(TCluster);
@@ -109,7 +109,7 @@ u32 TTable::resize(u32 mem_size)
         cerr << "ERROR: Hash memory allocation failed for TT " << mem_size << " MB" << endl;
         return 0;
     }
-    
+
     clear();
     sync_cout << "info string Hash memory " << mem_size << " MB" << sync_endl;
     return mem_size;
@@ -214,7 +214,7 @@ Move TTable::extractNextMove(Position &pos, Move cm) const
 /// TTable::save() saves hash to file
 void TTable::save(const string &hash_fn) const
 {
-    if (white_spaces(hash_fn))
+    if (whiteSpaces(hash_fn))
     {
         return;
     }
@@ -230,7 +230,7 @@ void TTable::save(const string &hash_fn) const
 /// TTable::load() loads hash from file
 void TTable::load(const string &hash_fn)
 {
-    if (white_spaces(hash_fn))
+    if (whiteSpaces(hash_fn))
     {
         return;
     }

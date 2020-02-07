@@ -28,9 +28,9 @@ namespace {
                         continue;
                     }
                 }
-                
+
                 Bitboard attacks = pos.attacksFrom(pt, s) & targets;
-                
+
                 if (   GenType::CHECK == GT
                     || GenType::QUIET_CHECK == GT)
                 {
@@ -69,18 +69,17 @@ namespace {
             case GenType::CHECK:
             {
                 Bitboard mocc = pos.pieces() ^ org;
-                if (   contains(PieceAttacks[QUEN][dst], ekSq)
-                    && contains(attacksBB<QUEN>(dst, mocc), ekSq))
+                Bitboard rookAttacks = attacksBB<ROOK>(dst, mocc);
+                Bitboard bshpAttacks = attacksBB<BSHP>(dst, mocc);
+                if (contains(rookAttacks | bshpAttacks, ekSq))
                 {
                     moves += makePromoteMove(org, dst, QUEN);
                 }
-                if (   contains(PieceAttacks[ROOK][dst], ekSq)
-                    && contains(attacksBB<ROOK>(dst, mocc), ekSq))
+                if (contains(rookAttacks, ekSq))
                 {
                     moves += makePromoteMove(org, dst, ROOK);
                 }
-                if (   contains(PieceAttacks[BSHP][dst], ekSq)
-                    && contains(attacksBB<BSHP>(dst, mocc), ekSq))
+                if (contains(bshpAttacks, ekSq))
                 {
                     moves += makePromoteMove(org, dst, BSHP);
                 }
@@ -108,9 +107,9 @@ namespace {
         Bitboard pawns = pos.pieces(pos.active, PAWN);
         Bitboard Rank7 = rankBB(relRank(pos.active, R_7));
         // Pawns not on 7th Rank
-        Bitboard Rx_pawns = pawns & ~Rank7;
+        Bitboard rxPawns = pawns & ~Rank7;
         // Pawns only on 7th Rank
-        Bitboard R7_pawns = pawns &  Rank7;
+        Bitboard r7Pawns = pawns &  Rank7;
         switch (GT)
         {
         case GenType::NATURAL:
@@ -119,15 +118,15 @@ namespace {
         case GenType::CHECK:
         {
             // Pawn normal and en-passant captures, no promotions
-            Bitboard l_attacks = enemies & pawnLAttacks(pos.active, Rx_pawns);
-            Bitboard r_attacks = enemies & pawnRAttacks(pos.active, Rx_pawns);
+            Bitboard l_attacks = enemies & pawnLAttacks(pos.active, rxPawns);
+            Bitboard r_attacks = enemies & pawnRAttacks(pos.active, rxPawns);
             if (GenType::CHECK == GT)
             {
                 l_attacks &= pos.si->checks[PAWN];
                 r_attacks &= pos.si->checks[PAWN];
                 // Pawns which give discovered check
                 // Add pawn captures which give discovered check.
-                Bitboard dsc_pawns = Rx_pawns
+                Bitboard dsc_pawns = rxPawns
                                    & pos.si->kingBlockers[~pos.active];
                 if (0 != dsc_pawns)
                 {
@@ -141,7 +140,7 @@ namespace {
             if (SQ_NO != pos.si->enpassantSq)
             {
                 assert(R_6 == relRank(pos.active, pos.si->enpassantSq));
-                Bitboard ep_captures = Rx_pawns
+                Bitboard ep_captures = rxPawns
                                      & PawnAttacks[~pos.active][pos.si->enpassantSq];
                 switch (GT)
                 {
@@ -172,15 +171,15 @@ namespace {
         case GenType::QUIET_CHECK:
         {
             // Promotions (queening and under-promotions)
-            if (0 != R7_pawns)
+            if (0 != r7Pawns)
             {
                 Bitboard b;
 
-                b = enemies & pawnLAttacks(pos.active, R7_pawns);
+                b = enemies & pawnLAttacks(pos.active, r7Pawns);
                 generatePromotionMoves<GT>(moves, pos, b, pawnLAtt(pos.active));
-                b = enemies & pawnRAttacks(pos.active, R7_pawns);
+                b = enemies & pawnRAttacks(pos.active, r7Pawns);
                 generatePromotionMoves<GT>(moves, pos, b, pawnRAtt(pos.active));
-                b = empties & pawnSglPushes(pos.active, R7_pawns);
+                b = empties & pawnSglPushes(pos.active, r7Pawns);
                 if (GenType::EVASION == GT)
                 {
                     b &= targets;
@@ -194,7 +193,7 @@ namespace {
             }
 
             // Pawn single-push and double-push, no promotions
-            Bitboard pushs_1 = empties & pawnSglPushes(pos.active, Rx_pawns);
+            Bitboard pushs_1 = empties & pawnSglPushes(pos.active, rxPawns);
             Bitboard pushs_2 = empties & pawnSglPushes(pos.active, pushs_1 & rankBB(relRank(pos.active, R_3)));
             switch (GT)
             {
@@ -211,7 +210,7 @@ namespace {
                 // Add pawn pushes which give discovered check.
                 // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
                 // Note that a possible discovery check promotion has been already generated among captures.
-                Bitboard dsc_pawns = Rx_pawns
+                Bitboard dsc_pawns = rxPawns
                                    & pos.si->kingBlockers[~pos.active]
                                    & ~fileBB(pos.square(~pos.active|KING));
                 if (0 != dsc_pawns)
@@ -225,8 +224,8 @@ namespace {
                 break;
             default: break;
             }
-            while (0 != pushs_1) { auto dst = popLSq(pushs_1); moves += makeMove<NORMAL>(dst - Push  , dst); }
-            while (0 != pushs_2) { auto dst = popLSq(pushs_2); moves += makeMove<NORMAL>(dst - Push*2, dst); }
+            while (0 != pushs_1) { auto dst = popLSq(pushs_1); moves += makeMove<NORMAL>(dst - 1 * Push, dst); }
+            while (0 != pushs_2) { auto dst = popLSq(pushs_2); moves += makeMove<NORMAL>(dst - 2 * Push, dst); }
         }
             break;
         default: assert(false); break;
@@ -248,7 +247,7 @@ namespace {
             {
                 for (auto cs : { CS_KING, CS_QUEN })
                 {
-                    if (   pos.si->canCastle(pos.active|cs)
+                    if (   pos.si->canCastle(makeCastleRight(pos.active, cs))
                         && pos.castleExpeded(pos.active, cs))
                     {
                         moves += makeMove<CASTLE>(fkSq, pos.castleRookSq[pos.active][cs]);
@@ -347,7 +346,7 @@ template<> void generate<GenType::CHECK      >(ValMoves &moves, const Position &
     {
         auto org = popLSq(ex_dsc_blockers);
         Bitboard attacks = pos.attacksFrom(org) & targets;
-        if (KING == typeOf(pos[org]))
+        if (KING == pType(pos[org]))
         {
             attacks &= ~PieceAttacks[QUEN][pos.square(~pos.active|KING)];
         }
@@ -371,7 +370,7 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, const Position &
     {
         auto org = popLSq(ex_dsc_blockers);
         Bitboard attacks = pos.attacksFrom(org) & targets;
-        if (KING == typeOf(pos[org]))
+        if (KING == pType(pos[org]))
         {
             attacks &= ~PieceAttacks[QUEN][pos.square(~pos.active|KING)];
         }
@@ -396,37 +395,38 @@ void filterIllegal(ValMoves &moves, const Position &pos)
     moves.erase(std::remove_if(moves.begin(), moves.end(),
                               [&pos] (const ValMove &vm)
                               {
-                                  return !pos.fullLegal(vm.move);
+                                  return !pos.fullLegal(vm);
                               }),
                  moves.end());
 }
 
 void Perft::classify(Position &pos, Move m)
 {
-    if (   ENPASSANT == typeOf(m)
-        || contains(pos.pieces(~pos.active), dstOf(m)))
+    if (   ENPASSANT == mType(m)
+        || contains(pos.pieces(~pos.active), dstSq(m)))
     {
         ++capture;
-        if (ENPASSANT == typeOf(m))
+        if (ENPASSANT == mType(m))
         {
             ++enpassant;
         }
     }
-    if (pos.givesCheck(m))
+    if (pos.giveCheck(m))
     {
         ++anyCheck;
-        if (!contains(pos.si->checks[PROMOTE != typeOf(m) ? typeOf(pos[orgOf(m)]) : promote(m)], dstOf(m)))
+        if (!contains(pos.si->checks[PROMOTE != mType(m) ? pType(pos[orgSq(m)]) : promoteType(m)], dstSq(m)))
         {
             auto ekSq = pos.square(~pos.active|KING);
-            if (   contains(pos.si->kingBlockers[~pos.active], orgOf(m))
-                && !squaresAligned(orgOf(m), dstOf(m), ekSq))
+            if (   contains(pos.si->kingBlockers[~pos.active], orgSq(m))
+                && !squaresAligned(orgSq(m), dstSq(m), ekSq))
             {
                 ++dscCheck;
             }
             else
-            if (ENPASSANT == typeOf(m))
+            if (ENPASSANT == mType(m))
             {
-                Bitboard mocc = (pos.pieces() ^ orgOf(m) ^ (fileOf(dstOf(m)) | rankOf(orgOf(m)))) | dstOf(m);
+                auto epSq = makeSquare(sFile(dstSq(m)), sRank(orgSq(m)));
+                Bitboard mocc = (pos.pieces() ^ orgSq(m) ^ epSq) | dstSq(m);
                 if (   0 != (pos.pieces(pos.active, BSHP, QUEN) & attacksBB<BSHP>(ekSq, mocc))
                     || 0 != (pos.pieces(pos.active, ROOK, QUEN) & attacksBB<ROOK>(ekSq, mocc)))
                 {
@@ -458,11 +458,11 @@ void Perft::classify(Position &pos, Move m)
     //    }
     //    pos.undoMove(m);
     //}
-    if (CASTLE == typeOf(m))
+    if (CASTLE == mType(m))
     {
         ++castle;
     }
-    if (PROMOTE == typeOf(m))
+    if (PROMOTE == mType(m))
     {
         ++promotion;
     }
@@ -476,33 +476,21 @@ Perft perft(Position &pos, Depth depth, bool detail)
     Perft sumLeaf;
     if (RootNode)
     {
-        sync_cout << left
-                  << setw(3)
-                  << "N"
-                  << setw(10)
-                  << "Move"
-                  << setw(19)
-                  << "Any";
+        sync_cout << left << setfill(' ')
+                  << setw( 3) << "N"
+                  << setw(10) << "Move"
+                  << setw(19) << "Any";
         if (detail)
         {
-            cout << setw(17)
-                 << "Capture"
-                 << setw(15)
-                 << "Enpassant"
-                 << setw(17)
-                 << "AnyCheck"
-                 << setw(15)
-                 << "DscCheck"
-                 << setw(15)
-                 << "DblCheck"
-                 << setw(15)
-                 << "Castle"
-                 << setw(15)
-                 << "Promote"
-                 << setw(15)
-                 << "Checkmate"
-                 //<< setw(15)
-                 //<< "Stalemate"
+            cout << setw(17) << "Capture"
+                 << setw(15) << "Enpassant"
+                 << setw(17) << "AnyCheck"
+                 << setw(15) << "DscCheck"
+                 << setw(15) << "DblCheck"
+                 << setw(15) << "Castle"
+                 << setw(15) << "Promote"
+                 << setw(15) << "Checkmate"
+                 //<< setw(15) << "Stalemate"
                  ;
         }
         cout << sync_endl;
@@ -542,50 +530,24 @@ Perft perft(Position &pos, Depth depth, bool detail)
         {
             ++sumLeaf.moves;
 
-            sync_cout << right
-                      << setfill('0')
-                      << setw(2)
-                      << sumLeaf.moves
+            sync_cout << right << setfill('0') << setw( 2) << sumLeaf.moves
                       << " "
-                      << left
-                      << setfill(' ')
-                      << setw(7)
-                      <<
-                         //moveCAN(vm)
-                         moveSAN(vm, pos)
-                      << right
-                      << setfill('.')
-                      << setw(16)
-                      << leaf.any;
+                      << left  << setfill(' ') << setw( 7)
+                                                           <<
+                                                              //canMove(vm)
+                                                              sanMove(vm, pos)
+                      << right << setfill('.') << setw(16) << leaf.any;
             if (detail)
             {
-                cout << "   "
-                     << setw(14)
-                     << leaf.capture
-                     << "   "
-                     << setw(12)
-                     << leaf.enpassant
-                     << "   "
-                     << setw(14)
-                     << leaf.anyCheck
-                     << "   "
-                     << setw(12)
-                     << leaf.dscCheck
-                     << "   "
-                     << setw(12)
-                     << leaf.dblCheck
-                     << "   "
-                     << setw(12)
-                     << leaf.castle
-                     << "   "
-                     << setw(12)
-                     << leaf.promotion
-                     << "   "
-                     << setw(12)
-                     << leaf.checkmate
-                     //<< "   "
-                     //<< setw(12)
-                     //<< leaf.stalemate
+                cout << "   " << setw(14) << leaf.capture
+                     << "   " << setw(12) << leaf.enpassant
+                     << "   " << setw(14) << leaf.anyCheck
+                     << "   " << setw(12) << leaf.dscCheck
+                     << "   " << setw(12) << leaf.dblCheck
+                     << "   " << setw(12) << leaf.castle
+                     << "   " << setw(12) << leaf.promotion
+                     << "   " << setw(12) << leaf.checkmate
+                     //<< "   " << setw(12) << leaf.stalemate
                      ;
             }
             cout << setfill(' ')
@@ -595,40 +557,18 @@ Perft perft(Position &pos, Depth depth, bool detail)
     if (RootNode)
     {
         sync_cout << endl
-                  << "Total:  "
-                  << right
-                  << setfill('.')
-                  << setw(18)
-                  << sumLeaf.any;
+                  << "Total:  " << right << setfill('.') << setw(18) << sumLeaf.any;
         if (detail)
         {
-            cout << " "
-                 << setw(16)
-                 << sumLeaf.capture
-                 << " "
-                 << setw(14)
-                 << sumLeaf.enpassant
-                 << " "
-                 << setw(16)
-                 << sumLeaf.anyCheck
-                 << " "
-                 << setw(14)
-                 << sumLeaf.dscCheck
-                 << " "
-                 << setw(14)
-                 << sumLeaf.dblCheck
-                 << " "
-                 << setw(14)
-                 << sumLeaf.castle
-                 << " "
-                 << setw(14)
-                 << sumLeaf.promotion
-                 << " "
-                 << setw(14)
-                 << sumLeaf.checkmate
-                 //<< " "
-                 //<< setw(14)
-                 //<< sumLeaf.stalemate
+            cout << " " << setw(16) << sumLeaf.capture
+                 << " " << setw(14) << sumLeaf.enpassant
+                 << " " << setw(16) << sumLeaf.anyCheck
+                 << " " << setw(14) << sumLeaf.dscCheck
+                 << " " << setw(14) << sumLeaf.dblCheck
+                 << " " << setw(14) << sumLeaf.castle
+                 << " " << setw(14) << sumLeaf.promotion
+                 << " " << setw(14) << sumLeaf.checkmate
+                 //<< " " << setw(14) << sumLeaf.stalemate
                  ;
         }
         cout << setfill(' ')

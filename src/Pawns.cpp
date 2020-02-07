@@ -62,7 +62,7 @@ namespace Pawns {
 
             Score safety = Initial;
 
-            auto kF = clamp(fileOf(kSq), F_B, F_G);
+            auto kF = clamp(sFile(kSq), F_B, F_G);
             for (auto f : { kF - F_B, kF, kF + F_B })
             {
                 assert(F_A <= f && f <= F_H);
@@ -108,8 +108,8 @@ namespace Pawns {
         // Find King path
         array<Bitboard, CS_NO> kPaths
         {
-            pos.castleKingPath[Own][CS_KING] * (pos.si->canCastle(Own|CS_KING) && pos.castleExpeded(Own, CS_KING)),
-            pos.castleKingPath[Own][CS_QUEN] * (pos.si->canCastle(Own|CS_QUEN) && pos.castleExpeded(Own, CS_QUEN))
+            pos.castleKingPath[Own][CS_KING] * (pos.si->canCastle(makeCastleRight(Own, CS_KING)) && pos.castleExpeded(Own, CS_KING)),
+            pos.castleKingPath[Own][CS_QUEN] * (pos.si->canCastle(makeCastleRight(Own, CS_QUEN)) && pos.castleExpeded(Own, CS_QUEN))
         };
         if (0 != (kPaths[CS_KING] & attacks))
         {
@@ -186,8 +186,6 @@ namespace Pawns {
         Bitboard ownPawns = pos.pieces(Own) & pawns;
         Bitboard oppPawns = pos.pieces(Opp) & pawns;
 
-        Bitboard oppPawnDblAtt = pawnDblAttacks(Opp, oppPawns);
-
         attackSpan[Own] = pawnSglAttacks(Own, ownPawns);
         passers[Own] = 0;
 
@@ -211,11 +209,11 @@ namespace Pawns {
             Bitboard opposers   = oppPawns & frontSquares(Own, s);
             Bitboard blockers   = oppPawns & (s + Push);
 
-            bool doubled    = contains(ownPawns, s - Push);
+            bool doubled  = contains(ownPawns, s - Push);
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
-            bool backward   = 0 == (neighbours & frontRanks(Opp, s + Push))
-                           && 0 != (escapes | blockers);
+            bool backward = 0 == (neighbours & frontRanks(Opp, s + Push))
+                         && 0 != (escapes | blockers);
 
             // Compute additional span if pawn is not backward nor blocked
             if (   !backward
@@ -229,13 +227,13 @@ namespace Pawns {
             // - there is no stoppers except the escapes, but we outnumber them
             // - there is only one front stopper which can be levered.
             // Passed pawns will be properly scored later in evaluation when we have full attack info.
-            if (   (stoppers == levers)
+            if (   (stoppers == levers) // Also handles 0 == stoppers
                 || (   stoppers == (levers | escapes)
                     && popCount(phalanxes) >= popCount(escapes))
-                || (   R_4 < r
-                    && stoppers == blockers
+                || (   stoppers == blockers
+                    && R_4 < r
                     && (  pawnSglPushes(Own, supporters)
-                        & ~(oppPawns | oppPawnDblAtt)) != 0))
+                        & ~(oppPawns | pawnDblAttacks(Opp, oppPawns))) != 0))
             {
                 passers[Own] |= s;
             }

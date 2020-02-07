@@ -160,7 +160,7 @@ namespace BitBoard {
 
                 assert(size == (1U << maskPopCount));
 
-                PRNG prng{Seeds[rankOf(s)]};
+                PRNG prng{Seeds[sRank(s)]};
 
                 u16 i;
                 // Find a magic for square picking up an (almost) random number
@@ -321,7 +321,7 @@ namespace BitBoard {
             oss << toChar(r) << '|';
             for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
             {
-                oss << (contains(bb, f|r) ? '+' : '-');
+                oss << (contains(bb, makeSquare(f, r)) ? '+' : '-');
                 if (f < F_H)
                 {
                     oss << ' ';

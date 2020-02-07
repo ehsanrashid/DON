@@ -56,14 +56,14 @@ namespace {
     // "how many games are still undecided after n half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
     // Data was extracted from the CCRL game database with some simple filtering criteria.
-    double moveImportance(Depth ply)
+    double moveImportance(i16 ply)
     {
         //                                             Shift    Scale   Skew
         return std::max(std::pow(1.00 + std::exp((ply - 64.50) / 6.85), -0.171), DBL_MIN); // Ensure non-zero
     }
 
     template<bool Optimum>
-    TimePoint remainingTime(TimePoint time, u08 movestogo, Depth ply, double moveSlowness)
+    TimePoint remainingTime(TimePoint time, u08 movestogo, i16 ply, double moveSlowness)
     {
         constexpr auto  StepRatio = 7.30 - 6.30 * Optimum; // When in trouble, can step over reserved time with this ratio
         constexpr auto StealRatio = 0.34 - 0.34 * Optimum; // However must not steal time from remaining moves over this ratio
@@ -125,21 +125,24 @@ void TimeManager::set(Color c, i16 ply)
 
     optimumTime =
     maximumTime = std::max(Threadpool.limit.clock[c].time, minimumMoveTime);
+    // Move Horizon:
     // Plan time management at most this many moves ahead.
-    auto maxMovestogo = 0 != Threadpool.limit.movestogo ?
-                            std::min(Threadpool.limit.movestogo, u08(50)) :
-                            u08(50);
-    TimePoint time;
+    u08 maxMovestogo = 50;
+    if (0 != Threadpool.limit.movestogo)
+    {
+        maxMovestogo = std::min(Threadpool.limit.movestogo, maxMovestogo);
+    }
     // Calculate optimum time usage for different hypothetic "moves to go" and
     // choose the minimum of calculated search time values.
     for (u08 movestogo = 1; movestogo <= maxMovestogo; ++movestogo)
     {
         // Calculate thinking time for hypothetical "moves to go"
-        time = std::max(Threadpool.limit.clock[c].time
+        auto time = std::max(
+                        Threadpool.limit.clock[c].time
                       + Threadpool.limit.clock[c].inc * (movestogo - 1)
-                        // Clock time: Attempt to keep this much time at clock.
-                        // Moves time: Attempt to keep at most this many moves time at clock.
-                      - overheadMoveTime * (2 + std::min(movestogo, u08(40)))
+                        // ClockTime: Attempt to keep this much time at clock.
+                        // MovesTime: Attempt to keep at most this many moves time at clock.
+                      - overheadMoveTime * (2 + std::min(movestogo, u08(40))) // (ClockTime + MovesTime)
                       , TimePoint(0));
 
         optimumTime = std::min(optimumTime, minimumMoveTime + remainingTime<true >(time, movestogo, ply, moveSlowness));
@@ -265,13 +268,10 @@ void Thread::clear()
     butterflyHistory.fill(0);
     captureHistory.fill(0);
 
-    for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-                     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
-                     NO_PIECE })
+    for (auto &mh : moveHistory)
     {
-        moveHistory[pc].fill(MOVE_NONE);
+        mh.fill(MOVE_NONE);
     }
-
     for (auto inCheck : {0, 1})
     {
         for (auto captureType : {0, 1})
@@ -519,7 +519,7 @@ void ThreadPool::configure(u32 threadCount)
             push_back(new Thread(size()));
         }
 
-        factor = std::pow(24.8 + std::log(size()) / 2, 2);
+        reductionFactor = std::pow(24.8 + std::log(size()) / 2, 2);
 
         sync_cout << "info string Thread(s) used " << threadCount << sync_endl;
 
@@ -605,21 +605,21 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
     // After ownership transfer 'states' becomes empty, so if we stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.
     assert(nullptr != states.get()
-        || nullptr != setup_states.get());
+        || nullptr != setupStates.get());
 
     if (nullptr != states.get())
     {
-        setup_states = std::move(states); // Ownership transfer, states is now empty
+        setupStates = std::move(states); // Ownership transfer, states is now empty
     }
 
     // We use setup() to set root position across threads.
     // So we need to save and later to restore last stateinfo, cleared by setup().
     // Note that states is shared by threads but is accessed in read-only mode.
     auto fen = pos.fen();
-    auto back_si = setup_states->back();
+    auto back_si = setupStates->back();
     for (auto *th : *this)
     {
-        th->rootPos.setup(fen, setup_states->back(), th);
+        th->rootPos.setup(fen, setupStates->back(), th);
         th->rootMoves = rootMoves;
         th->rootDepth = DEP_ZERO;
         th->finishedDepth = DEP_ZERO;
@@ -629,7 +629,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
         th->nmpPly = 0;
         th->nmpColor = CLR_NO;
     }
-    setup_states->back() = back_si;
+    setupStates->back() = back_si;
 
     mainThread()->start();
 }

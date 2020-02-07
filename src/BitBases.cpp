@@ -1,5 +1,6 @@
 #include "BitBases.h"
 
+#include <cassert>
 #include <bitset>
 #include <vector>
 
@@ -29,14 +30,14 @@ namespace BitBases {
         // bit 15-17: white pawn R_7 - rank (from R_2 to R_7)
         u32 index(Color active, Square wkSq, Square bkSq, Square wpSq)
         {
-            assert(F_A <= fileOf(wpSq) && fileOf(wpSq) <= F_D);
-            assert(R_2 <= rankOf(wpSq) && rankOf(wpSq) <= R_7);
+            assert(F_A <= sFile(wpSq) && sFile(wpSq) <= F_D);
+            assert(R_2 <= sRank(wpSq) && sRank(wpSq) <= R_7);
 
             return (wkSq << 0)
                  | (bkSq << 6)
                  | (active << 12)
-                 | ((fileOf(wpSq)-F_A) << 13)
-                 | ((rankOf(wpSq)-R_2) << 15);
+                 | ((sFile(wpSq)-F_A) << 13)
+                 | ((sRank(wpSq)-R_2) << 15);
         }
 
         enum Result : u08
@@ -70,11 +71,11 @@ namespace BitBases {
 
             explicit KPKPosition(u32 idx)
             {
-                kSq[WHITE] = Square((idx >>  0) & 0x3F);
-                kSq[BLACK] = Square((idx >>  6) & 0x3F);
-                active     =  Color((idx >> 12) & 0x01);
-                pSq        =  (File((idx >> 13) & 0x03)+F_A)
-                            | (Rank((idx >> 15) & 0x07)+R_2);
+                kSq[WHITE] = Square((idx >>  0) & i32(SQ_H8));
+                kSq[BLACK] = Square((idx >>  6) & i32(SQ_H8));
+                active     =  Color((idx >> 12) & i32(BLACK));
+                pSq        = makeSquare(File((idx >> 13) & 0x03)+F_A,
+                                        Rank((idx >> 15) & 0x07)+R_2);
 
                 // Check if two pieces are on the same square or if a king can be captured
                 if (   1 >= dist(kSq[WHITE], kSq[BLACK])
@@ -88,7 +89,7 @@ namespace BitBases {
                 else
                 // Immediate win if a pawn can be promoted without getting captured
                 if (   WHITE == active
-                    && R_7 == rankOf(pSq)
+                    && R_7 == sRank(pSq)
                     && kSq[WHITE] != pSq + DEL_N
                     && (   1 < dist(kSq[BLACK], pSq + DEL_N)
                         || contains(PieceAttacks[KING][kSq[WHITE]], pSq + DEL_N)))
@@ -142,28 +143,29 @@ namespace BitBases {
                 if (WHITE == active)
                 {
                     // Single push
-                    if (R_7 > rankOf(pSq))
+                    if (R_7 > sRank(pSq))
                     {
-                        auto push_sq = pSq + DEL_N;
-                        r |= kpkDB[index(BLACK, kSq[WHITE], kSq[BLACK], push_sq)];
+                        auto pushSq = pSq + DEL_N;
+                        r |= kpkDB[index(BLACK, kSq[WHITE], kSq[BLACK], pushSq)];
 
                         // Double push
-                        if (   R_2 == rankOf(pSq)
+                        if (   R_2 == sRank(pSq)
                             // Front is not own king
-                            && kSq[WHITE] != push_sq
+                            && kSq[WHITE] != pushSq
                             // Front is not opp king
-                            && kSq[BLACK] != push_sq)
+                            && kSq[BLACK] != pushSq)
                         {
-                            r |= kpkDB[index(BLACK, kSq[WHITE], kSq[BLACK], push_sq + DEL_N)];
+                            r |= kpkDB[index(BLACK, kSq[WHITE], kSq[BLACK], pushSq + DEL_N)];
                         }
                     }
                 }
 
-                return result = r & Good  ?
-                                    Good  :
-                                    r & UNKNOWN ?
-                                        UNKNOWN :
-                                        Bad;
+                result = r & Good ?
+                             Good :
+                             r & UNKNOWN ?
+                                 UNKNOWN :
+                                 Bad;
+                return result;
             }
 
         };

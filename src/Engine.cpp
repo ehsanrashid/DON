@@ -129,7 +129,7 @@ namespace {
 #    if defined(VER)
         oss << VER;
 #    else
-        if (white_spaces(Version))
+        if (whiteSpaces(Version))
         {
             // From compiler, format is "Sep 2 1982"
             istringstream iss{ __DATE__ };
@@ -297,7 +297,7 @@ namespace {
         while (iss >> token)
         {
             ++count;
-            auto m = moveCAN(token, pos);
+            auto m = canMove(token, pos);
             if (MOVE_NONE == m)
             {
                 cerr << "ERROR: Illegal Move '" << token << "' at " << count << endl;
@@ -348,7 +348,7 @@ namespace {
             {
                 while (iss >> token)
                 {
-                    auto m = moveCAN(token, pos);
+                    auto m = canMove(token, pos);
                     if (MOVE_NONE == m)
                     {
                         cerr << "ERROR: Illegal Rootmove '" << token << "'" << endl;
@@ -366,7 +366,7 @@ namespace {
                 }
                 while (iss >> token)
                 {
-                    auto m = moveCAN(token, pos);
+                    auto m = canMove(token, pos);
                     if (MOVE_NONE == m)
                     {
                         cerr << "ERROR: Illegal Rootmove '" << token << "'" << endl;
@@ -420,11 +420,11 @@ namespace {
         string token;
 
         // Assign default values to missing arguments
-        string    hash = (iss >> token) && !white_spaces(token) ? token : "16";
-        string threads = (iss >> token) && !white_spaces(token) ? token : "1";
-        string   value = (iss >> token) && !white_spaces(token) ? token : "13";
-        string    mode = (iss >> token) && !white_spaces(token) ? token : "depth";
-        string     fen = (iss >> token) && !white_spaces(token) ? token : "default";
+        string    hash = (iss >> token) && !whiteSpaces(token) ? token : "16";
+        string threads = (iss >> token) && !whiteSpaces(token) ? token : "1";
+        string   value = (iss >> token) && !whiteSpaces(token) ? token : "13";
+        string    mode = (iss >> token) && !whiteSpaces(token) ? token : "depth";
+        string     fen = (iss >> token) && !whiteSpaces(token) ? token : "default";
 
         vector<string> cmds;
         vector<string> uciCmds;
@@ -713,7 +713,7 @@ namespace {
                         {
                             if (pos.legal(vm))
                             {
-                                cout << moveSAN(vm, pos) << " ";
+                                cout << sanMove(vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -727,7 +727,7 @@ namespace {
                         {
                             if (pos.legal(vm))
                             {
-                                cout << moveSAN(vm, pos) << " ";
+                                cout << sanMove(vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -739,7 +739,7 @@ namespace {
                         {
                             if (pos.legal(vm))
                             {
-                                cout << moveSAN(vm, pos) << " ";
+                                cout << sanMove(vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -751,7 +751,7 @@ namespace {
                         {
                             if (pos.legal(vm))
                             {
-                                cout << moveSAN(vm, pos) << " ";
+                                cout << sanMove(vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -763,7 +763,7 @@ namespace {
                         {
                             if (pos.legal(vm))
                             {
-                                cout << moveSAN(vm, pos) << " ";
+                                cout << sanMove(vm, pos) << " ";
                                 ++count;
                             }
                         }
@@ -774,7 +774,7 @@ namespace {
                     count = 0;
                     for (const auto &vm : MoveList<GenType::LEGAL>(pos))
                     {
-                        cout << moveSAN(vm, pos) << " ";
+                        cout << sanMove(vm, pos) << " ";
                         ++count;
                     }
                     cout << "(" << count << ")" << sync_endl;

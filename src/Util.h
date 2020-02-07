@@ -138,7 +138,7 @@ const T& clamp(const T &v, const T &minimum, const T &maximum)
            (v > maximum) ? maximum : v;
 }
 
-inline bool white_spaces(const std::string &str)
+inline bool whiteSpaces(const std::string &str)
 {
     return str.empty()
         || str.find_first_not_of(" \t\n") == std::string::npos

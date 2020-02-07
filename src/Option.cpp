@@ -113,7 +113,7 @@ namespace UCI {
             else
             if (type == "string")
             {
-                if (white_spaces(val))
+                if (whiteSpaces(val))
                 {
                     val = "<empty>";
                 }

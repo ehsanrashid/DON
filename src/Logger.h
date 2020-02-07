@@ -81,7 +81,7 @@ public:
             _ofs.close();
         }
         filename = fn;
-        if (!white_spaces(filename))
+        if (!whiteSpaces(filename))
         {
             _ofs.open(filename, std::ios_base::out|std::ios_base::app);
             if (!_ofs.is_open())

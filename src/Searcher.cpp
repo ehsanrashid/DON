@@ -92,28 +92,28 @@ namespace Searcher {
                 {
                     if (GenType::CAPTURE == GT)
                     {
-                        assert(pos.captureOrPromotion(vm.move));
-                        vm.value = 6 * i32(PieceValues[MG][pos.captureType(vm.move)])
-                                 + thread->captureHistory[pos[orgOf(vm.move)]][dstOf(vm.move)][pos.captureType(vm.move)];
+                        assert(pos.captureOrPromotion(vm));
+                        vm.value = 6 * i32(PieceValues[MG][pos.captureType(vm)])
+                                 + thread->captureHistory[pos[orgSq(vm)]][dstSq(vm)][pos.captureType(vm)];
                     }
                     else
                     if (GenType::QUIET == GT)
                     {
-                        vm.value = thread->butterflyHistory[pos.active][moveIndex(vm.move)]
-                                 + 2 * (*pdHistories[0])[pos[orgOf(vm.move)]][dstOf(vm.move)]
-                                 + 2 * (*pdHistories[1])[pos[orgOf(vm.move)]][dstOf(vm.move)]
-                                 + 2 * (*pdHistories[3])[pos[orgOf(vm.move)]][dstOf(vm.move)]
-                                 + 1 * (*pdHistories[5])[pos[orgOf(vm.move)]][dstOf(vm.move)];
+                        vm.value = thread->butterflyHistory[pos.active][mIndex(vm)]
+                                 + 2 * (*pdHistories[0])[pos[orgSq(vm)]][dstSq(vm)]
+                                 + 2 * (*pdHistories[1])[pos[orgSq(vm)]][dstSq(vm)]
+                                 + 2 * (*pdHistories[3])[pos[orgSq(vm)]][dstSq(vm)]
+                                 + 1 * (*pdHistories[5])[pos[orgSq(vm)]][dstSq(vm)];
                         if (vm.value < threshold)
                             vm.value = threshold - 1;
                     }
                     else // GenType::EVASION == GT
                     {
-                        vm.value = pos.capture(vm.move) ?
-                                       i32(PieceValues[MG][pos.captureType(vm.move)])
-                                     - typeOf(pos[orgOf(vm.move)]) :
-                                       thread->butterflyHistory[pos.active][moveIndex(vm.move)]
-                                     + (*pdHistories[0])[pos[orgOf(vm.move)]][dstOf(vm.move)]
+                        vm.value = pos.capture(vm) ?
+                                       i32(PieceValues[MG][pos.captureType(vm)])
+                                     - pType(pos[orgSq(vm)]) :
+                                       thread->butterflyHistory[pos.active][mIndex(vm)]
+                                     + (*pdHistories[0])[pos[orgSq(vm)]][dstSq(vm)]
                                      - (0x10000000);
                     }
                 }
@@ -126,8 +126,8 @@ namespace Searcher {
                 while (vmItr != vmEnd)
                 {
                     std::swap(*vmItr, *std::max_element(vmItr, vmEnd));
-                    assert(ttMove != vmItr->move
-                        && pos.fullLegal(vmItr->move));
+                    assert(ttMove != *vmItr
+                        && pos.fullLegal(*vmItr));
 
                     bool ok = filter();
 
@@ -185,7 +185,7 @@ namespace Searcher {
 
                 if (   MOVE_NONE != ttMove
                     && !(   DEP_QS_RECAP < depth
-                         || dstOf(ttMove) == recapSq))
+                         || dstSq(ttMove) == recapSq))
                 {
                     ttMove = MOVE_NONE;
                 }
@@ -251,12 +251,12 @@ namespace Searcher {
                     goto reStage;
 
                 case Stage::NT_GOOD_CAPTURES:
-                    if (pick([&]() { return pos.see(vmItr->move, Value(-(vmItr->value) * 55 / 1024)) ?
+                    if (pick([&]() { return pos.see(*vmItr, Value(-(vmItr->value) * 55 / 1024)) ?
                                              true :
                                              // Put losing capture to badCaptureMoves to be tried later
-                                             (badCaptureMoves.push_back(vmItr->move), false); }))
+                                             (badCaptureMoves.push_back(*vmItr), false); }))
                     {
-                        return std::prev(vmItr)->move;
+                        return *std::prev(vmItr);
                     }
 
                     // If the countermove is the same as a killers, skip it
@@ -303,7 +303,7 @@ namespace Searcher {
                     if (   !skipQuiets
                         && vmItr != vmEnd)
                     {
-                        return (vmItr++)->move;
+                        return *vmItr++;
                     }
 
                     mItr = badCaptureMoves.begin();
@@ -329,21 +329,21 @@ namespace Searcher {
                     /* fall through */
                 case Stage::EV_MOVES:
                     return pick([]() { return true; }) ?
-                            std::prev(vmItr)->move :
+                            *std::prev(vmItr) :
                             MOVE_NONE;
                     /* end */
 
                 case Stage::PC_CAPTURES:
-                    return pick([&]() { return pos.see(vmItr->move, threshold); }) ?
-                            std::prev(vmItr)->move :
+                    return pick([&]() { return pos.see(*vmItr, threshold); }) ?
+                            *std::prev(vmItr) :
                             MOVE_NONE;
                     /* end */
 
                 case Stage::QS_CAPTURES:
                     if (pick([&]() { return DEP_QS_RECAP < depth
-                                         || dstOf(vmItr->move) == recapSq; }))
+                                         || dstSq(*vmItr) == recapSq; }))
                     {
-                        return std::prev(vmItr)->move;
+                        return *std::prev(vmItr);
                     }
                     // If did not find any move then do not try checks, finished.
                     if (DEP_QS_CHECK > depth)
@@ -362,7 +362,7 @@ namespace Searcher {
                     /* fall through */
                 case Stage::QS_CHECKS:
                     return vmItr != vmEnd ?
-                            (vmItr++)->move :
+                            *vmItr++ :
                             MOVE_NONE;
                     /* end */
 
@@ -458,7 +458,7 @@ namespace Searcher {
             assert(0 <= d);
             auto r = 0 != d
                   && 0 != mc ?
-                        Threadpool.factor * std::log(d) * std::log(mc) : 0;
+                        Threadpool.reductionFactor * std::log(d) * std::log(mc) : 0;
             return Depth(  (r + 511) / 1024
                          + (!imp && (r > 1007)));
         }
@@ -478,13 +478,13 @@ namespace Searcher {
         }
 
         /// updateContinuationHistories() updates tables of the move pairs with current move.
-        void updateContinuationHistories(Stack *const &ss, Piece pc, Square dst, i32 bonus)
+        void updateContinuationHistories(Stack *const &ss, Piece p, Square dst, i32 bonus)
         {
             for (const auto *const &s : { ss-1, ss-2, ss-4, ss-6 })
             {
                 if (isOk(s->playedMove))
                 {
-                    (*s->pdHistory)[pc][dst] << bonus;
+                    (*s->pdHistory)[p][dst] << bonus;
                 }
             }
         }
@@ -500,19 +500,19 @@ namespace Searcher {
 
             if (isOk((ss-1)->playedMove))
             {
-                auto pmDst = dstOf((ss-1)->playedMove);
+                auto pmDst = dstSq((ss-1)->playedMove);
                 assert(NO_PIECE != pos[pmDst]
-                    || CASTLE == typeOf((ss-1)->playedMove));
+                    || CASTLE == mType((ss-1)->playedMove));
                 pos.thread->moveHistory[pos[pmDst]][pmDst] = move;
             }
 
-            pos.thread->butterflyHistory[pos.active][moveIndex(move)] << bonus;
-            if (PAWN != typeOf(pos[orgOf(move)]))
+            pos.thread->butterflyHistory[pos.active][mIndex(move)] << bonus;
+            if (PAWN != pType(pos[orgSq(move)]))
             {
-                pos.thread->butterflyHistory[pos.active][moveIndex(reverseMove(move))] << -bonus;
+                pos.thread->butterflyHistory[pos.active][mIndex(reverseMove(move))] << -bonus;
             }
 
-            updateContinuationHistories(ss, pos[orgOf(move)], dstOf(move), bonus);
+            updateContinuationHistories(ss, pos[orgSq(move)], dstSq(move), bonus);
         }
 
         /// updatePV() appends the move and child pv
@@ -679,7 +679,7 @@ namespace Searcher {
             };
 
             auto recapSq = isOk((ss-1)->playedMove) ?
-                                dstOf((ss-1)->playedMove) :
+                                dstSq((ss-1)->playedMove) :
                                 SQ_NO;
 
             // Initialize move picker (2) for the current position
@@ -692,24 +692,23 @@ namespace Searcher {
 
                 ++moveCount;
 
-                auto org = orgOf(move);
-                auto dst = dstOf(move);
-
+                auto org = orgSq(move);
+                auto dst = dstSq(move);
                 auto mpc = pos[org];
-                bool givesCheck = pos.givesCheck(move);
+                bool giveCheck = pos.giveCheck(move);
                 bool captureOrPromotion = pos.captureOrPromotion(move);
 
                 // Futility pruning
                 if (   !inCheck
-                    && !givesCheck
+                    && !giveCheck
                     && !Threadpool.limit.mateOn()
                     && -VALUE_KNOWN_WIN < futilityBase
                     && !pos.pawnAdvanceAt(pos.active, org))
                 {
-                    assert(ENPASSANT != typeOf(move)); // Due to !pos.pawnAdvanceAt
+                    assert(ENPASSANT != mType(move)); // Due to !pos.pawnAdvanceAt
 
                     // Futility pruning parent node
-                    auto futilityValue = futilityBase + PieceValues[EG][CASTLE != typeOf(move) ? typeOf(pos[dst]) : NONE];
+                    auto futilityValue = futilityBase + PieceValues[EG][CASTLE != mType(move) ? pType(pos[dst]) : NONE];
                     if (futilityValue <= alfa)
                     {
                         bestValue = std::max(futilityValue, bestValue);
@@ -745,7 +744,7 @@ namespace Searcher {
                 ss->pdHistory = &thread->continuationHistory[inCheck][captureOrPromotion][mpc][dst];
 
                 // Make the move.
-                pos.doMove(move, si, givesCheck);
+                pos.doMove(move, si, giveCheck);
 
                 auto value = -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth - 1);
 
@@ -958,7 +957,7 @@ namespace Searcher {
                             && 2 >= (ss-1)->moveCount)
                         {
                             auto bonus = -statBonus(depth + 1);
-                            updateContinuationHistories(ss-1, pos[dstOf((ss-1)->playedMove)], dstOf((ss-1)->playedMove), bonus);
+                            updateContinuationHistories(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), bonus);
                         }
                     }
                     else
@@ -966,8 +965,8 @@ namespace Searcher {
                     if (!pos.captureOrPromotion(ttMove))
                     {
                         auto bonus = -statBonus(depth);
-                        thread->butterflyHistory[pos.active][moveIndex(ttMove)] << bonus;
-                        updateContinuationHistories(ss, pos[orgOf(ttMove)], dstOf(ttMove), bonus);
+                        thread->butterflyHistory[pos.active][mIndex(ttMove)] << bonus;
+                        updateContinuationHistories(ss, pos[orgSq(ttMove)], dstSq(ttMove), bonus);
                     }
                 }
 
@@ -1131,7 +1130,7 @@ namespace Searcher {
                     && MOVE_NULL != (ss-1)->playedMove
                     && MOVE_NONE == ss->excludedMove
                     && !Threadpool.limit.mateOn()
-                    && VALUE_ZERO != pos.nonpawnMaterial(pos.active)
+                    && VALUE_ZERO != pos.nonPawnMaterial(pos.active)
                     && 23397 > (ss-1)->stats
                     && eval >= beta
                     && eval >= ss->staticEval
@@ -1212,7 +1211,7 @@ namespace Searcher {
                         prefetch(TT.cluster(pos.movePosiKey(move))->entries);
 
                         ss->playedMove = move;
-                        ss->pdHistory = &thread->continuationHistory[0][1][pos[orgOf(move)]][dstOf(move)];
+                        ss->pdHistory = &thread->continuationHistory[0][1][pos[orgSq(move)]][dstSq(move)];
 
                         pos.doMove(move, si);
 
@@ -1281,7 +1280,7 @@ namespace Searcher {
             };
 
             auto counterMove = isOk((ss-1)->playedMove) ?
-                                pos.thread->moveHistory[pos[dstOf((ss-1)->playedMove)]][dstOf((ss-1)->playedMove)] :
+                                pos.thread->moveHistory[pos[dstSq((ss-1)->playedMove)]][dstSq((ss-1)->playedMove)] :
                                 MOVE_NONE;
 
             // Initialize move picker (1) for the current position
@@ -1343,11 +1342,10 @@ namespace Searcher {
                     (ss+1)->pv.clear();
                 }
 
-                auto org = orgOf(move);
-                auto dst = dstOf(move);
-
+                auto org = orgSq(move);
+                auto dst = dstSq(move);
                 auto mpc = pos[org];
-                bool givesCheck = pos.givesCheck(move);
+                bool giveCheck = pos.giveCheck(move);
                 bool captureOrPromotion = pos.captureOrPromotion(move);
 
                 // Calculate new depth for this move
@@ -1357,13 +1355,13 @@ namespace Searcher {
                 if (   !rootNode
                     && -VALUE_MATE_MAX_PLY < bestValue
                     && !Threadpool.limit.mateOn()
-                    && VALUE_ZERO < pos.nonpawnMaterial(pos.active))
+                    && VALUE_ZERO < pos.nonPawnMaterial(pos.active))
                 {
                     // Skip quiet moves if move count exceeds our futilityMoveCount() threshold
                     mp.skipQuiets = futilityMoveCount(depth, improving) <= moveCount;
 
                     if (   !captureOrPromotion
-                        && !givesCheck)
+                        && !giveCheck)
                     {
                         // Reduced depth of the next LMR search.
                         auto lmrDepth = std::max(newDepth - reduction(depth, moveCount, improving), 0);
@@ -1382,7 +1380,7 @@ namespace Searcher {
                             && (  ss->staticEval
                                 + 172 * lmrDepth
                                 + 235) <= alfa
-                            && (  thread->butterflyHistory[pos.active][moveIndex(move)]
+                            && (  thread->butterflyHistory[pos.active][mIndex(move)]
                                 + (*pdHistories[0])[mpc][dst]
                                 + (*pdHistories[1])[mpc][dst]
                                 + (*pdHistories[3])[mpc][dst]) < 25000)
@@ -1444,9 +1442,9 @@ namespace Searcher {
                 else
                 if (// Last captures extension
                        (   PieceValues[EG][pos.si->capture] > VALUE_EG_PAWN
-                        && pos.nonpawnMaterial() <= 2 * VALUE_MG_ROOK)
+                        && pos.nonPawnMaterial() <= 2 * VALUE_MG_ROOK)
                     // Check extension (~2 ELO)
-                    || (   givesCheck
+                    || (   giveCheck
                         && (   contains(pos.si->kingBlockers[~pos.active], org)
                             || pos.see(move)))
                     // Passed pawn extension
@@ -1458,7 +1456,7 @@ namespace Searcher {
                 }
 
                 // Castle extension
-                if (CASTLE == typeOf(move))
+                if (CASTLE == mType(move))
                 {
                     extension = 1;
                 }
@@ -1474,7 +1472,7 @@ namespace Searcher {
                 ss->pdHistory = &thread->continuationHistory[inCheck][captureOrPromotion][mpc][dst];
 
                 // Step 15. Make the move.
-                pos.doMove(move, si, givesCheck);
+                pos.doMove(move, si, giveCheck);
 
                 bool doLMR =
                        2 < depth
@@ -1520,22 +1518,22 @@ namespace Searcher {
                         }
                         else
                         // If move escapes a capture in no-cut nodes (~2 ELO)
-                        if (   NORMAL == typeOf(move)
+                        if (   NORMAL == mType(move)
                             && !pos.see(reverseMove(move)))
                         {
                             reduct_depth -= 2 + ttPV;
                         }
 
-                        ss->stats = thread->butterflyHistory[~pos.active][moveIndex(move)]
+                        ss->stats = thread->butterflyHistory[~pos.active][mIndex(move)]
                                   + (*pdHistories[0])[mpc][dst]
                                   + (*pdHistories[1])[mpc][dst]
                                   + (*pdHistories[3])[mpc][dst]
                                   - 4926;
                         // Reset stats to zero if negative and most stats shows >= 0
                         if (   0 >  ss->stats
+                            && 0 <= thread->butterflyHistory[~pos.active][mIndex(move)]
                             && 0 <= (*pdHistories[0])[mpc][dst]
-                            && 0 <= (*pdHistories[1])[mpc][dst]
-                            && 0 <= thread->butterflyHistory[~pos.active][moveIndex(move)])
+                            && 0 <= (*pdHistories[1])[mpc][dst])
                         {
                             ss->stats = 0;
                         }
@@ -1733,19 +1731,19 @@ namespace Searcher {
                     // Decrease all the other played quiet moves.
                     for (auto qm : quietMoves)
                     {
-                        thread->butterflyHistory[pos.active][moveIndex(qm)] << -bonus2;
-                        updateContinuationHistories(ss, pos[orgOf(qm)], dstOf(qm), -bonus2);
+                        thread->butterflyHistory[pos.active][mIndex(qm)] << -bonus2;
+                        updateContinuationHistories(ss, pos[orgSq(qm)], dstSq(qm), -bonus2);
                     }
                 }
                 else
                 {
-                    thread->captureHistory[pos[orgOf(bestMove)]][dstOf(bestMove)][pos.captureType(bestMove)] << bonus1;
+                    thread->captureHistory[pos[orgSq(bestMove)]][dstSq(bestMove)][pos.captureType(bestMove)] << bonus1;
                 }
 
                 // Decrease all the other played capture moves.
                 for (auto cm : captureMoves)
                 {
-                    thread->captureHistory[pos[orgOf(cm)]][dstOf(cm)][pos.captureType(cm)] << -bonus1;
+                    thread->captureHistory[pos[orgSq(cm)]][dstSq(cm)][pos.captureType(cm)] << -bonus1;
                 }
 
                 // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
@@ -1753,7 +1751,7 @@ namespace Searcher {
                     && (   1 == (ss-1)->moveCount
                         || (ss-1)->killerMoves[0] == (ss-1)->playedMove))
                 {
-                    updateContinuationHistories(ss-1, pos[dstOf((ss-1)->playedMove)], dstOf((ss-1)->playedMove), -bonus1);
+                    updateContinuationHistories(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), -bonus1);
                 }
             }
             else
@@ -1763,7 +1761,7 @@ namespace Searcher {
                     || 2 < depth))
             {
                 auto bonus = statBonus(depth);
-                updateContinuationHistories(ss-1, pos[dstOf((ss-1)->playedMove)], dstOf((ss-1)->playedMove), bonus);
+                updateContinuationHistories(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), bonus);
             }
 
             if (PVNode)
@@ -1861,7 +1859,7 @@ void Thread::search()
     i16 iterIdx = 0;
     double pvChangeSum = 0.0;
 
-    i16 research_count = 0;
+    i16 researchCount = 0;
 
     auto bestValue = -VALUE_INFINITE;
     auto window = +VALUE_ZERO;
@@ -1876,12 +1874,12 @@ void Thread::search()
     for (auto ss = stacks; ss < stacks + DEP_MAX + 10; ++ss)
     {
         ss->ply = i16(ss - (stacks+7));
-        ss->playedMove     = MOVE_NONE;
-        ss->excludedMove   = MOVE_NONE;
-        ss->moveCount      = 0;
-        ss->staticEval     = VALUE_ZERO;
+        ss->playedMove      = MOVE_NONE;
+        ss->excludedMove    = MOVE_NONE;
+        ss->moveCount       = 0;
+        ss->staticEval      = VALUE_ZERO;
         ss->stats           = 0;
-        ss->pdHistory      = &continuationHistory[0][0][NO_PIECE][0];
+        ss->pdHistory       = &continuationHistory[0][0][NO_PIECE][0];
         ss->killerMoves.fill(MOVE_NONE);
         ss->pv.clear();
     }
@@ -1950,16 +1948,16 @@ void Thread::search()
 
             if (Threadpool.research)
             {
-                ++research_count;
+                ++researchCount;
             }
 
-            i16 fail_high_count = 0;
+            i16 failHighCount = 0;
 
             // Start with a small aspiration window and, in case of fail high/low,
             // research with bigger window until not failing high/low anymore.
             do
             {
-                auto adjusted_depth = Depth(std::max(rootDepth - fail_high_count - research_count, 1));
+                auto adjusted_depth = Depth(std::max(rootDepth - failHighCount - researchCount, 1));
                 bestValue = depthSearch<true>(rootPos, stacks+7, alfa, beta, adjusted_depth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
@@ -1993,7 +1991,7 @@ void Thread::search()
                     beta = (alfa + beta) / 2;
                     alfa = std::max(bestValue - window, -VALUE_INFINITE);
 
-                    fail_high_count = 0;
+                    failHighCount = 0;
                     if (nullptr != mainThread)
                     {
                         mainThread->stopOnPonderhit = false;
@@ -2006,15 +2004,15 @@ void Thread::search()
                     // NOTE:: Don't change alfa = (alfa + beta) / 2
                     beta = std::min(bestValue + window, +VALUE_INFINITE);
 
-                    ++fail_high_count;
+                    ++failHighCount;
                 }
                 // Otherwise exit the loop.
                 else
                 {
                     //// Research if fail count is not zero
-                    //if (0 != fail_high_count)
+                    //if (0 != failHighCount)
                     //{
-                    //    fail_high_count = 0;
+                    //    failHighCount = 0;
                     //    continue;
                     //}
 
@@ -2145,7 +2143,7 @@ void MainThread::search()
     timeMgr.startTime = now();
     debugTime = 0;
     /*
-    if (!white_spaces(string(Options["Output File"])))
+    if (!whiteSpaces(string(Options["Output File"])))
     {
         Threadpool.outputStream.open(string(Options["Output File"]), ios_base::out|ios_base::app);
         if (Threadpool.outputStream.is_open())
@@ -2323,13 +2321,13 @@ void MainThread::search()
         auto nodes = Threadpool.sum(&Thread::nodes);
         auto elapsedTime = std::max(timeMgr.elapsedTime(), TimePoint(1));
 
-        auto pm_str = moveSAN(MOVE_NONE, rootPos);
+        auto pm_str = sanMove(MOVE_NONE, rootPos);
         if (   MOVE_NONE != bm
             && MOVE_NONE != pm)
         {
             StateInfo si;
             rootPos.doMove(bm, si);
-            pm_str = moveSAN(pm, rootPos);
+            pm_str = sanMove(pm, rootPos);
             rootPos.undoMove(bm);
         }
 
@@ -2338,7 +2336,7 @@ void MainThread::search()
             << "Time       : " << elapsedTime << " ms\n"
             << "Speed      : " << nodes * 1000 / elapsedTime << " N/s\n"
             << "Hash-full  : " << TT.hashFull() << "\n"
-            << "Best Move  : " << moveSAN(bm, rootPos) << "\n"
+            << "Best Move  : " << sanMove(bm, rootPos) << "\n"
             << "Ponder Move: " << pm_str << "\n" << endl;
         Threadpool.outputStream.close();
     }

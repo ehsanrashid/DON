@@ -86,7 +86,7 @@ public:
     StateInfo *ptr;             // Previous StateInfo pointer.
 
     bool canCastle(CastleRight cr) const { return CR_NONE != (castleRights & cr); }
-    CastleRight castleRight(Color c) const { return castleRights & CastleRight(CR_WHITE << (2 * c)); }
+    CastleRight castleRight(Color c) const { return castleRights & makeCastleRight(c); }
 };
 
 /// A list to keep track of the position states along the setup moves
@@ -117,7 +117,7 @@ private:
     void movePiece(Square, Square);
 
     void setCastle(Color, Square);
-    void setCheckInfo(StateInfo*);
+    void setCheckInfo();
 
     bool canEnpassant(Color, Square, bool = true) const;
 
@@ -162,8 +162,6 @@ public:
     template<typename ...PieceTypes>
     Bitboard pieces(Color, PieceTypes...) const;
 
-    Bitboard colorPawns(Color, Color) const;
-
     i32 count() const;
     i32 count(Piece) const;
     i32 count(Color) const;
@@ -171,8 +169,8 @@ public:
 
     Square square(Piece, u08 = 0) const;
 
-    Value nonpawnMaterial() const;
-    Value nonpawnMaterial(Color) const;
+    Value nonPawnMaterial() const;
+    Value nonPawnMaterial(Color) const;
 
     Key pgKey() const;
     Key movePosiKey(Move) const;
@@ -200,7 +198,7 @@ public:
     bool fullLegal(Move) const;
     bool capture(Move) const;
     bool captureOrPromotion(Move) const;
-    bool givesCheck(Move) const;
+    bool giveCheck(Move) const;
 
     PieceType captureType(Move) const;
 
@@ -209,7 +207,7 @@ public:
     bool pawnAdvanceAt(Color, Square) const;
     bool pawnPassedAt(Color, Square) const;
 
-    bool bishopPaired(Color) const;
+    bool pairedBishop(Color) const;
     bool semiopenFileOn(Color, Square) const;
 
     void clear();
@@ -251,9 +249,9 @@ inline Bitboard Position::pieces() const
 {
     return types[NONE];
 }
-inline Bitboard Position::pieces(Piece pc) const
+inline Bitboard Position::pieces(Piece p) const
 {
-    return colors[colorOf(pc)] & types[typeOf(pc)];
+    return colors[pColor(p)] & types[pType(p)];
 }
 inline Bitboard Position::pieces(Color c) const
 {
@@ -285,9 +283,9 @@ inline i32 Position::count() const
              + squares[W_QUEN].size() + squares[B_QUEN].size()
              + squares[W_KING].size() + squares[B_KING].size());
 }
-inline i32 Position::count(Piece pc) const
+inline i32 Position::count(Piece p) const
 {
-    return i32(squares[pc].size());
+    return i32(squares[p].size());
 }
 /// Position::count() counts specific color
 inline i32 Position::count(Color c) const
@@ -306,24 +304,19 @@ inline i32 Position::count(PieceType pt) const
     return i32(squares[WHITE|pt].size() + squares[BLACK|pt].size());
 }
 
-inline Bitboard Position::colorPawns(Color c, Color s) const
+inline Square Position::square(Piece p, u08 index) const
 {
-    return pieces(c, PAWN) & Colors[s];
+    assert(isOk(p));
+    assert(squares[p].size() > index);
+    return *std::next(squares[p].begin(), index);
 }
 
-inline Square Position::square(Piece pc, u08 index) const
-{
-    assert(isOk(pc));
-    assert(squares[pc].size() > index);
-    return *std::next(squares[pc].begin(), index);
-}
-
-inline Value Position::nonpawnMaterial() const
+inline Value Position::nonPawnMaterial() const
 {
     return npm[WHITE]
          + npm[BLACK];
 }
-inline Value Position::nonpawnMaterial(Color c) const
+inline Value Position::nonPawnMaterial(Color c) const
 {
     return npm[c];
 }
@@ -335,7 +328,7 @@ inline bool Position::castleExpeded(Color c, CastleSide cs) const
 /// Position::moveCount() starts at 1, and is incremented after BLACK's move.
 inline i16 Position::moveCount() const
 {
-    return i16(std::max((ply - (BLACK == active)) / 2, 0) + 1);
+    return i16(std::max((ply - active) / 2, 0) + 1);
 }
 
 /// Position::attackersTo() finds attackers to the square on occupancy.
@@ -401,22 +394,22 @@ inline Bitboard Position::xattacksFrom<QUEN>(Square s, Color c) const
 
 inline bool Position::capture(Move m) const
 {
-    return (   !empty(dstOf(m))
-            && CASTLE != typeOf(m))
-        || ENPASSANT == typeOf(m);
+    return (   !empty(dstSq(m))
+            && CASTLE != mType(m))
+        || ENPASSANT == mType(m);
 }
 
 inline bool Position::captureOrPromotion(Move m) const
 {
-    return NORMAL != typeOf(m) ?
-            CASTLE != typeOf(m) :
-            !empty(dstOf(m));
+    return NORMAL != mType(m) ?
+            CASTLE != mType(m) :
+            !empty(dstSq(m));
 }
 
 inline PieceType Position::captureType(Move m) const
 {
-    return ENPASSANT != typeOf(m) ?
-            typeOf(piece[dstOf(m)]) :
+    return ENPASSANT != mType(m) ?
+            pType(piece[dstSq(m)]) :
             PAWN;
 }
 
@@ -430,8 +423,8 @@ inline bool Position::pawnPassedAt(Color c, Square s) const
     return 0 == (pawnPassSpan(c, s) & pieces(~c, PAWN));
 }
 
-/// Position::bishopPaired() check the side has pair of opposite color bishops.
-inline bool Position::bishopPaired(Color c) const
+/// Position::pairedBishop() check the side has pair of opposite color bishops.
+inline bool Position::pairedBishop(Color c) const
 {
     return 2 <= count(c|BSHP)
         && 0 != (pieces(c, BSHP) & Colors[WHITE])
@@ -444,7 +437,7 @@ inline bool Position::semiopenFileOn(Color c, Square s) const
 
 inline void Position::doMove(Move m, StateInfo &nsi)
 {
-    doMove(m, nsi, givesCheck(m));
+    doMove(m, nsi, giveCheck(m));
 }
 
 template<typename Elem, typename Traits>
@@ -455,32 +448,13 @@ operator<<(std::basic_ostream<Elem, Traits> &os, const Position &pos)
     return os;
 }
 
-/// StateInfo::setCheckInfo() sets check info used for fast check detection.
-inline void Position::setCheckInfo(StateInfo *si)
-{
-    si->kingCheckers[WHITE] = 0;
-    si->kingCheckers[BLACK] = 0;
-    si->kingBlockers[WHITE] = sliderBlockersAt(square(WHITE|KING), BLACK, 0, si->kingCheckers[WHITE], si->kingCheckers[BLACK]);
-    si->kingBlockers[BLACK] = sliderBlockersAt(square(BLACK|KING), WHITE, 0, si->kingCheckers[BLACK], si->kingCheckers[WHITE]);
-    assert(/*0 == (si->kingBlockers[WHITE] & pieces(BLACK, QUEN)) &&*/ (attacksBB<QUEN>(square(WHITE|KING), pieces()) & si->kingBlockers[WHITE]) == si->kingBlockers[WHITE]);
-    assert(/*0 == (si->kingBlockers[BLACK] & pieces(WHITE, QUEN)) &&*/ (attacksBB<QUEN>(square(BLACK|KING), pieces()) & si->kingBlockers[BLACK]) == si->kingBlockers[BLACK]);
-
-    si->checks[PAWN] = PawnAttacks[~active][square(~active|KING)];
-    si->checks[NIHT] = PieceAttacks[NIHT][square(~active|KING)];
-    si->checks[BSHP] = attacksBB<BSHP>(square(~active|KING), pieces());
-    si->checks[ROOK] = attacksBB<ROOK>(square(~active|KING), pieces());
-    si->checks[QUEN] = si->checks[BSHP]
-                     | si->checks[ROOK];
-    si->checks[KING] = 0;
-}
-
 #if !defined(NDEBUG)
 /// isOk() Check the validity of FEN string.
 inline bool isOk(const std::string &fen)
 {
     Position pos;
     StateInfo si;
-    return !white_spaces(fen)
+    return !whiteSpaces(fen)
         && pos.setup(fen, si, nullptr).ok();
 }
 #endif

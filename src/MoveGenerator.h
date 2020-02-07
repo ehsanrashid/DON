@@ -76,7 +76,7 @@ public:
         //    erase(std::remove_if(begin(), end(),
         //                        [&pos] (const ValMove &vm)
         //                        {
-        //                            return PT != typeOf(pos[orgOf(vm)]);
+        //                            return PT != pType(pos[orgSq(vm)]);
         //                        }),
         //            end());
         //}

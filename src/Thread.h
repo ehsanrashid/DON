@@ -317,11 +317,11 @@ class ThreadPool
 {
 private:
 
-    StateListPtr setup_states;
+    StateListPtr setupStates;
 
 public:
 
-    double factor;
+    double reductionFactor;
 
     Limit limit;
     u32   pvCount;

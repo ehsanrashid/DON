@@ -33,25 +33,25 @@ namespace {
     //    return ofs;
     //}
 
-    ifstream& operator>>(ifstream &ifs, PolyEntry &entry)
+    ifstream& operator>>(ifstream &ifs, PolyEntry &pe)
     {
-        ifs >> entry.key
-            >> entry.move
-            >> entry.weight
-            >> entry.learn;
+        ifs >> pe.key
+            >> pe.move
+            >> pe.weight
+            >> pe.learn;
         return ifs;
     }
-    //ofstream& operator<<(ofstream &ofs, const PolyEntry &entry)
+    //ofstream& operator<<(ofstream &ofs, const PolyEntry &pe)
     //{
-    //    ofs << entry.key
-    //        << entry.move
-    //        << entry.weight
-    //        << entry.learn;
+    //    ofs << pe.key
+    //        << pe.move
+    //        << pe.weight
+    //        << pe.learn;
     //    return ofs;
     //}
 
-
-    Move convertMove(const Position &pos, Move m)
+    // Converts polyglot move to engine move
+    Move polyMove(Move m, const Position &pos)
     {
         // Polyglot book move is encoded as follows:
         //
@@ -67,12 +67,12 @@ namespace {
         // So in case book move is a promotion have to convert to our representation,
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
-        u08 pt = (m >> 12) & PT_NO;
+        u08 pt = (m >> 12) & i32(PT_NO);
         if (PAWN != pt)
         {
             assert(NIHT <= pt && pt <= QUEN);
             // Set new type for promotion piece
-            m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + (m & 0x0FFF));
+            m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + mIndex(m));
         }
         // Add special move flags and verify it is legal
         for (const auto &vm : MoveList<GenType::LEGAL>(pos))
@@ -113,10 +113,10 @@ PRNG PolyBook::prng{u64(now())};
 PolyBook::PolyBook()
     : entries(nullptr)
     , entryCount(0)
-    , failCount(0)
     , doProbe(true)
     , prevPieces(0)
     , prevPieceCount(0)
+    , failCount(0)
     , enabled(false)
     , bookFn("")
 {
@@ -194,7 +194,7 @@ bool PolyBook::canProbe(const Position &pos)
     i32 pieceCount = pos.count();
 
     if (   pieces != prevPieces
-        //|| popCount(pieces ^ prevPieces) > 6
+        || popCount(pieces ^ prevPieces) > 6
         || pieceCount > prevPieceCount
         || pieceCount < prevPieceCount - 2
         || U64(0x463B96181691FC9C) == pos.pgKey())
@@ -216,7 +216,7 @@ void PolyBook::initialize(const string &bkFn)
     fullTrim(bookFn);
     std::replace(bookFn.begin(), bookFn.end(), '\\', '/');
 
-    if (white_spaces(bookFn))
+    if (whiteSpaces(bookFn))
     {
         return;
     }
@@ -285,7 +285,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest)
     u16 maxWeight = 0;
     u32 sumWeight = 0;
 
-    size_t pick1_index = index;
+    size_t pick1Index = index;
     size_t i = index;
     while (   i < entryCount
            && key == entries[i].key)
@@ -302,7 +302,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest)
         {
             if (maxWeight == entries[i].weight)
             {
-                pick1_index = i;
+                pick1Index = i;
             }
         }
         else
@@ -311,20 +311,20 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest)
             if (   0 != sumWeight
                 && (prng.rand<u32>() % sumWeight) < entries[i].weight)
             {
-                pick1_index = i;
+                pick1Index = i;
             }
         }
         ++i;
     }
 
     Move move;
-    move = Move(entries[pick1_index].move);
+    move = Move(entries[pick1Index].move);
     if (MOVE_NONE == move)
     {
         return MOVE_NONE;
     }
 
-    move = convertMove(pos, move);
+    move = polyMove(move, pos);
 
     if (   !pos.draw(64)
         || 1 >= count)
@@ -339,20 +339,20 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest)
 
     // Special case draw position and more than one moves available
 
-    size_t pick2_index = index;
-    if (pick2_index == pick1_index)
+    size_t pick2Index = index;
+    if (pick2Index == pick1Index)
     {
-        ++pick2_index;
-        assert(pick2_index < i);
+        ++pick2Index;
+        assert(pick2Index < i);
     }
 
-    move = Move(entries[pick2_index].move);
+    move = Move(entries[pick2Index].move);
     if (MOVE_NONE == move)
     {
         return MOVE_NONE;
     }
 
-    move = convertMove(pos, move);
+    move = polyMove(move, pos);
 
     if (!moveIsDraw(pos, move))
     {
@@ -379,29 +379,29 @@ string PolyBook::show(const Position &pos) const
     }
 
     ostringstream oss;
-    list<PolyEntry> list_entries;
+    list<PolyEntry> peList;
     u32 sumWeight = 0;
     while (   size_t(index) < entryCount
            && key == entries[index].key)
     {
-        list_entries.push_back(entries[index]);
+        peList.push_back(entries[index]);
         sumWeight += entries[index].weight;
         ++index;
     }
-    if (!list_entries.empty())
+    if (!peList.empty())
     {
-        list_entries.sort();
-        list_entries.reverse();
-        oss << "\nBook entries: " << list_entries.size();
-        for (auto entry : list_entries)
+        peList.sort();
+        peList.reverse();
+        oss << "\nBook entries: " << peList.size();
+        for (auto pe : peList)
         {
-            entry.move = convertMove(pos, Move(entry.move));
+            pe.move = polyMove(Move(pe.move), pos);
             oss << "\n"
-                << entry
+                << pe
                 << " prob: "
                 << setw(7)
                 << setfill('0')
-                << fixed << setprecision(4) << (0 != sumWeight ? 100.0 * entry.weight / sumWeight : 0.0)
+                << fixed << setprecision(4) << (0 != sumWeight ? 100.0 * pe.weight / sumWeight : 0.0)
                 << setfill(' ');
         }
     }

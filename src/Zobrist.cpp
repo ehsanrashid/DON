@@ -58,7 +58,7 @@ Key Zobrist::computePosiKey(const Position &pos) const
     posiKey ^= castleRightKey[pos.si->castleRights];
     if (SQ_NO != pos.si->enpassantSq)
     {
-        posiKey ^= enpassantKey[fileOf(pos.si->enpassantSq)];
+        posiKey ^= enpassantKey[sFile(pos.si->enpassantSq)];
     }
     return posiKey;
 }
@@ -73,7 +73,7 @@ Key Zobrist::computeFenKey(const string &fen) const
     iss >> noskipws;
     u08 token;
 
-    array<File, CLR_NO> kFile { F_NO, F_NO };
+    array<File, CLR_NO> kF { F_NO, F_NO };
     size_t idx;
     Square sq = SQ_A8;
     while (   (iss >> token)
@@ -92,11 +92,11 @@ Key Zobrist::computeFenKey(const string &fen) const
         if ((idx = PieceChar.find(token)) != string::npos)
         {
             auto p = Piece(idx);
-            if (KING == typeOf(p))
+            if (KING == pType(p))
             {
-                kFile[colorOf(p)] = fileOf(sq);
+                kF[pColor(p)] = sFile(sq);
             }
-            fenKey ^= pieceSquareKey[colorOf(p)][typeOf(p)][sq];
+            fenKey ^= pieceSquareKey[pColor(p)][pType(p)][sq];
             ++sq;
         }
         else
@@ -104,8 +104,8 @@ Key Zobrist::computeFenKey(const string &fen) const
             assert(false);
         }
     }
-    assert(F_NO != kFile[WHITE]
-        && F_NO != kFile[BLACK]);
+    assert(F_NO != kF[WHITE]
+        && F_NO != kF[BLACK]);
 
     iss >> token;
     if (WHITE == Color(ColorChar.find(token)))
@@ -126,18 +126,18 @@ Key Zobrist::computeFenKey(const string &fen) const
         token = char(tolower(token));
         if ('k' == token)
         {
-            fenKey ^= castleRightKey[c|CS_KING];
+            fenKey ^= castleRightKey[makeCastleRight(c, CS_KING)];
         }
         else
         if ('q' == token)
         {
-            fenKey ^= castleRightKey[c|CS_QUEN];
+            fenKey ^= castleRightKey[makeCastleRight(c, CS_QUEN)];
         }
         else
         // Chess960
         if ('a' <= token && token <= 'h')
         {
-            fenKey ^= castleRightKey[c|(kFile[c] < toFile(token) ? CS_KING : CS_QUEN)];
+            fenKey ^= castleRightKey[makeCastleRight(c, kF[c] < toFile(token) ? CS_KING : CS_QUEN)];
         }
         else
         {

@@ -29,9 +29,9 @@ namespace {
         assert(pos.pseudoLegal(m)
             && pos.legal(m));
 
-        auto org = orgOf(m);
-        auto dst = dstOf(m);
-        auto pt = typeOf(pos[org]);
+        auto org = orgSq(m);
+        auto dst = dstSq(m);
+        auto pt = pType(pos[org]);
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
         Bitboard piece = pos.attacksFrom(pt, dst) & pos.pieces(pos.active, pt);
@@ -110,30 +110,31 @@ namespace {
 ///  - e1g1 notation in normal chess mode,
 ///  - e1h1 notation in chess960 mode.
 /// Internally castle moves are always coded as "king captures rook".
-string moveCAN(Move m)
+string canMove(Move m)
 {
     if (MOVE_NONE == m) return {"(none)"};
     if (MOVE_NULL == m) return {"(null)"};
     ostringstream oss;
-    auto org = orgOf(m);
-    auto dst = dstOf(m);
-    if (   CASTLE == typeOf(m)
+    auto org = orgSq(m);
+    auto dst = dstSq(m);
+    if (   CASTLE == mType(m)
         && !bool(Options["UCI_Chess960"]))
     {
-        dst = (dst > org ? F_G : F_C) | rankOf(org);
+        assert(sRank(org) == sRank(dst));
+        dst = makeSquare(dst > org ? F_G : F_C, sRank(org));
     }
 
     oss << toString(org)
         << toString(dst);
-    if (PROMOTE == typeOf(m))
+    if (PROMOTE == mType(m))
     {
-        oss << (BLACK|promote(m));
+        oss << (BLACK|promoteType(m));
     }
     return oss.str();
 }
 /// Converts a string representing a move in coordinate algebraic notation
 /// to the corresponding legal move, if any.
-Move moveCAN(const string &can, const Position &pos)
+Move canMove(const string &can, const Position &pos)
 {
     //// If promotion piece in uppercase, convert to lowercase
     //if (   5 == can.size()
@@ -145,7 +146,7 @@ Move moveCAN(const string &can, const Position &pos)
         || islower(can[4]));
     for (const auto &vm : MoveList<GenType::LEGAL>(pos))
     {
-        if (can == moveCAN(vm))
+        if (can == canMove(vm))
         {
             return vm;
         }
@@ -154,19 +155,19 @@ Move moveCAN(const string &can, const Position &pos)
 }
 
 /// Converts a move to a string in short algebraic notation.
-string moveSAN(Move m, Position &pos)
+string sanMove(Move m, Position &pos)
 {
     if (MOVE_NONE == m) return {"(none)"};
     if (MOVE_NULL == m) return {"(null)"};
     assert(MoveList<GenType::LEGAL>(pos).contains(m));
 
     ostringstream oss;
-    auto org = orgOf(m);
-    auto dst = dstOf(m);
+    auto org = orgSq(m);
+    auto dst = dstSq(m);
 
-    if (CASTLE != typeOf(m))
+    if (CASTLE != mType(m))
     {
-        auto pt = typeOf(pos[org]);
+        auto pt = pType(pos[org]);
         if (PAWN != pt)
         {
             oss << (WHITE|pt);
@@ -175,8 +176,8 @@ string moveSAN(Move m, Position &pos)
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'dst' with a legal move.
                 switch (ambiguity(m, pos))
                 {
-                case Ambiguity::AMB_RANK: oss << toChar(fileOf(org)); break;
-                case Ambiguity::AMB_FILE: oss << toChar(rankOf(org)); break;
+                case Ambiguity::AMB_RANK: oss << toChar(sFile(org)); break;
+                case Ambiguity::AMB_FILE: oss << toChar(sRank(org)); break;
                 case Ambiguity::AMB_SQUARE: oss << toString(org);    break;
                 case Ambiguity::AMB_NONE:
                 default: break;
@@ -188,7 +189,7 @@ string moveSAN(Move m, Position &pos)
         {
             if (PAWN == pt)
             {
-                oss << toChar(fileOf(org));
+                oss << toChar(sFile(org));
             }
             oss << "x";
         }
@@ -196,9 +197,9 @@ string moveSAN(Move m, Position &pos)
         oss << toString(dst);
 
         if (   PAWN == pt
-            && PROMOTE == typeOf(m))
+            && PROMOTE == mType(m))
         {
-            oss << "=" << (WHITE|promote(m));
+            oss << "=" << (WHITE|promoteType(m));
         }
     }
     else
@@ -207,7 +208,7 @@ string moveSAN(Move m, Position &pos)
     }
 
     // Move marker for check & checkmate
-    if (pos.givesCheck(m))
+    if (pos.giveCheck(m))
     {
         StateInfo si;
         pos.doMove(m, si, true);
@@ -219,11 +220,11 @@ string moveSAN(Move m, Position &pos)
 }
 /// Converts a string representing a move in short algebraic notation
 /// to the corresponding legal move, if any.
-Move moveSAN(const string &san, Position &pos)
+Move sanMove(const string &san, Position &pos)
 {
     for (const auto &vm : MoveList<GenType::LEGAL>(pos))
     {
-        if (san == moveSAN(vm, pos))
+        if (san == sanMove(vm, pos))
         {
             return vm;
         }
@@ -232,7 +233,7 @@ Move moveSAN(const string &san, Position &pos)
 }
 
 ///// Converts a move to a string in long algebraic notation.
-//string moveLAN(Move m, Position &pos)
+//string lanMove(Move m, Position &pos)
 //{
 //    if (MOVE_NONE == m) return "(none)";
 //    if (MOVE_NULL == m) return "(null)";
@@ -242,11 +243,11 @@ Move moveSAN(const string &san, Position &pos)
 //}
 ///// Converts a string representing a move in long algebraic notation
 ///// to the corresponding legal move, if any.
-//Move moveLAN(const string &lan, Position &pos)
+//Move lanMove(const string &lan, Position &pos)
 //{
 //    for (const auto &vm : MoveList<GenType::LEGAL>(pos))
 //    {
-//        if (lan == moveLAN(vm, pos))
+//        if (lan == lanMove(vm, pos))
 //        {
 //            return vm;
 //        }
@@ -343,7 +344,7 @@ string pretty_pv_info(Thread *const &th)
                   [&](Move m)
                   {
                       assert(MOVE_NONE != m);
-                      oss << moveSAN(m, th->rootPos) << " ";
+                      oss << sanMove(m, th->rootPos) << " ";
                       states->emplace_back();
                       th->rootPos.doMove(m, states->back());
                   });

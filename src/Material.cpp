@@ -108,7 +108,7 @@ namespace Material {
     void Entry::evaluate(const Position &pos)
     {
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        phase = (i32(clamp(pos.nonpawnMaterial(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME)
+        phase = (i32(clamp(pos.nonPawnMaterial(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME)
                  * PhaseResolution)
               / i32(VALUE_MIDGAME - VALUE_ENDGAME);
         imbalance = SCORE_ZERO;
@@ -126,7 +126,7 @@ namespace Material {
         // Generic evaluation
         for (auto c : { WHITE, BLACK })
         {
-            if (   pos.nonpawnMaterial( c) >= VALUE_MG_ROOK
+            if (   pos.nonPawnMaterial( c) >= VALUE_MG_ROOK
                 && pos.count(~c) == 1)
             {
                 evaluationFunc = &ValueKXK[c];
@@ -150,17 +150,17 @@ namespace Material {
         // generic scaling functions that refer to more than one material distribution.
         for (auto c : { WHITE, BLACK })
         {
-            if (   pos.nonpawnMaterial( c) == VALUE_MG_BSHP
+            if (   pos.nonPawnMaterial( c) == VALUE_MG_BSHP
                 //&& pos.count( c|BSHP) == 1
                 && pos.count( c|PAWN) != 0)
             {
                 scalingFunc[c] = &ScaleKBPsKP[c];
             }
             else
-            if (   pos.nonpawnMaterial( c) == VALUE_MG_QUEN
+            if (   pos.nonPawnMaterial( c) == VALUE_MG_QUEN
                 //&& pos.count( c|QUEN) == 1
                 && pos.count( c|PAWN) == 0
-                && pos.nonpawnMaterial(~c) == VALUE_MG_ROOK
+                && pos.nonPawnMaterial(~c) == VALUE_MG_ROOK
                 //&& pos.count(~c|ROOK) == 1
                 && pos.count(~c|PAWN) != 0)
             {
@@ -171,17 +171,17 @@ namespace Material {
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
             if (   pos.count( c|PAWN) == 0
-                && abs(  pos.nonpawnMaterial( c)
-                       - pos.nonpawnMaterial(~c)) <= VALUE_MG_BSHP)
+                && abs(  pos.nonPawnMaterial( c)
+                       - pos.nonPawnMaterial(~c)) <= VALUE_MG_BSHP)
             {
-                scale[c] = pos.nonpawnMaterial( c) <  VALUE_MG_ROOK ?
+                scale[c] = pos.nonPawnMaterial( c) <  VALUE_MG_ROOK ?
                                 SCALE_DRAW :
-                                Scale(14 - 10 * (pos.nonpawnMaterial(~c) <= VALUE_MG_BSHP));
+                                Scale(14 - 10 * (pos.nonPawnMaterial(~c) <= VALUE_MG_BSHP));
             }
         }
 
         // Only pawns left
-        if (   pos.nonpawnMaterial() == VALUE_ZERO
+        if (   pos.nonPawnMaterial() == VALUE_ZERO
             && pos.pieces(PAWN) != 0)
         {
             if (pos.pieces(BLACK, PAWN) == 0)
@@ -215,7 +215,7 @@ namespace Material {
                 pos.count(WHITE|BSHP),
                 pos.count(WHITE|ROOK),
                 pos.count(WHITE|QUEN),
-                pos.bishopPaired(WHITE)
+                pos.pairedBishop(WHITE)
             },
             {
                 pos.count(BLACK|PAWN),
@@ -223,7 +223,7 @@ namespace Material {
                 pos.count(BLACK|BSHP),
                 pos.count(BLACK|ROOK),
                 pos.count(BLACK|QUEN),
-                pos.bishopPaired(BLACK)
+                pos.pairedBishop(BLACK)
             }
         }};
 

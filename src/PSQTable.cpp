@@ -88,12 +88,12 @@ namespace {
 Score computePSQ(const Position &pos)
 {
     Score psq = SCORE_ZERO;
-    for (auto pc : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-                     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
+    for (auto p : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+                    B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
     {
-        for (auto s : pos.squares[pc])
+        for (auto s : pos.squares[p])
         {
-            psq += PSQ[pc][s];
+            psq += PSQ[p][s];
         }
     }
     return psq;
@@ -109,8 +109,8 @@ void initializePSQ()
         {
             Score psq = score
                       + (PAWN == pt ?
-                            PawnScores[rankOf(s)][fileOf(s)] :
-                            PieceScores[pt][rankOf(s)][mapFile(fileOf(s))]);
+                            PawnScores[sRank(s)][sFile(s)] :
+                            PieceScores[pt][sRank(s)][mapFile(sFile(s))]);
             PSQ[WHITE|pt][ s] = +psq;
             PSQ[BLACK|pt][~s] = -psq;
         }

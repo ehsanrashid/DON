@@ -21,7 +21,7 @@ inline char toChar(Rank r)
 
 inline std::string toString(Square s)
 {
-    return std::string{ toChar(fileOf(s)), toChar(rankOf(s)) };
+    return std::string{ toChar(sFile(s)), toChar(sRank(s)) };
 }
 /// Converts a value to a string suitable for use with the UCI protocol specifications:
 ///
@@ -47,14 +47,14 @@ inline std::string toString(Value v)
     return oss.str();
 }
 
-extern std::string moveCAN(Move);
-extern Move moveCAN(const std::string&, const Position&);
+extern std::string canMove(Move);
+extern Move canMove(const std::string&, const Position&);
 
-extern std::string moveSAN(Move, Position&);
-extern Move moveSAN(const std::string&, Position&);
+extern std::string sanMove(Move, Position&);
+extern Move sanMove(const std::string&, Position&);
 
-//extern std::string moveLAN(Move, Position&);
-//extern Move moveLAN(const std::string&, Position&);
+//extern std::string lanMove(Move, Position&);
+//extern Move lanMove(const std::string&, Position&);
 
 extern std::string multipvInfo(const Thread *const&, i16, Value, Value);
 
@@ -89,7 +89,7 @@ template<typename Elem, typename Traits>
 inline std::basic_ostream<Elem, Traits>&
     operator<<(std::basic_ostream<Elem, Traits> &os, Move m)
 {
-    os << moveCAN(m);
+    os << canMove(m);
     return os;
 }
 
