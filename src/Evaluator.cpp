@@ -253,7 +253,7 @@ namespace {
                             // Squares occupied by friend Queen and King
                          | pos.pieces(Own, QUEN, KING)
                             // Squares occupied by friend King blockers
-                         | pos.si->kingBlockers[Own]
+                         | (pos.si->kingBlockers[Own] /*& pos.pieces(Own)*/)
                             // Squares occupied by block pawns (pawns on ranks 2-3/blocked)
                          | (  pos.pieces(Own, PAWN)
                             & (  LowRanks[Own]
@@ -756,8 +756,10 @@ namespace {
         while (0 != psr)
         {
             auto s = popLSq(psr);
-            assert((  pawnSglPushes(Own, frontSquares(Own, s))
-                    & pos.pieces(Opp, PAWN)) == 0);
+            assert(0 == (  (  pawnSglPushes(Own, frontSquares(Own, s))
+                            | (   pawnPassSpan(Own, s + pawnPush(Own))
+                               & ~PawnAttacks[Own][s + pawnPush(Own)]))
+                         & pos.pieces(Opp, PAWN)));
 
             i32 r = relRank(Own, s);
             // Base bonus depending on rank.

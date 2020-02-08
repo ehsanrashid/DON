@@ -1189,7 +1189,7 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
                  ^ RandZob.pieceSquareKey[active][si->promote][dst];
             si->pawnKey ^= RandZob.pieceSquareKey[active][PAWN][dst];
             si->matlKey ^= RandZob.pieceSquareKey[active][PAWN][count(active|PAWN)]
-                          ^ RandZob.pieceSquareKey[active][si->promote][count(active|si->promote) - 1];
+                         ^ RandZob.pieceSquareKey[active][si->promote][count(active|si->promote) - 1];
             prefetch(thread->matlTable[si->matlKey]);
         }
         else
@@ -1208,7 +1208,7 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
         // Reset clock ply counter
         si->clockPly = 0;
         si->pawnKey ^= RandZob.pieceSquareKey[active][PAWN][org]
-                      ^ RandZob.pieceSquareKey[active][PAWN][dst];
+                     ^ RandZob.pieceSquareKey[active][PAWN][dst];
         //prefetch(thread->pawnTable[si->pawnKey]);
     }
 
@@ -1670,7 +1670,7 @@ bool Position::ok() const
     for (auto p : { W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
                     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING })
     {
-        if (count(p) != popCount(pieces(p)))
+        if (count(p) != popCount(pieces(pColor(p), pType(p))))
         {
             assert(false && "Position OK: SQUARE_LIST");
             return false;

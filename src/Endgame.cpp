@@ -104,10 +104,10 @@ namespace Endgames {
 
 #if !defined(NDEBUG)
 
-        bool verifyMaterial(const Position &pos, Color c, Value npm, i32 pawn_count)
+        bool verifyMaterial(const Position &pos, Color c, Value npm, i32 pawnCount)
         {
             return pos.nonPawnMaterial(c) == npm
-                && pos.count(c|PAWN) == pawn_count;
+                && pos.count(c|PAWN) == pawnCount;
         }
 
 #endif
@@ -492,12 +492,12 @@ namespace Endgames {
             && verifyMaterial(pos, weakColor, VALUE_MG_BSHP, 0));
 
         // If rook pawns
-        if (0 != ((FABB|FHBB) & pos.pieces(PAWN)))
+        if (0 != (pos.pieces(PAWN) & (FABB|FHBB)))
         {
-            auto spSq = pos.square(stngColor|PAWN);
-            auto spR  = relRank(stngColor, spSq);
             auto wkSq = pos.square(weakColor|KING);
             auto wbSq = pos.square(weakColor|BSHP);
+            auto spSq = pos.square(stngColor|PAWN);
+            auto spR = relRank(stngColor, spSq);
 
             // If the pawn is on the 5th rank and the pawn (currently) is on the
             // same color square as the bishop then there is a chance of a fortress.
@@ -534,9 +534,9 @@ namespace Endgames {
         assert(verifyMaterial(pos, stngColor, VALUE_MG_ROOK, 2)
             && verifyMaterial(pos, weakColor, VALUE_MG_ROOK, 1));
 
-        auto wkSq  = pos.square(weakColor|KING);
         auto sp1Sq = pos.square(stngColor|PAWN, 0);
         auto sp2Sq = pos.square(stngColor|PAWN, 1);
+        auto wkSq = pos.square(weakColor|KING);
 
         // Does the stronger side have a passed pawn?
         if (   pos.pawnPassedAt(stngColor, sp1Sq)
@@ -544,7 +544,8 @@ namespace Endgames {
         {
             return SCALE_NONE;
         }
-        auto spR = std::max(relRank(stngColor, sp1Sq), relRank(stngColor, sp2Sq));
+        auto spR = std::max(relRank(stngColor, sp1Sq),
+                            relRank(stngColor, sp2Sq));
         if (   1 >= dist<File>(wkSq, sp1Sq)
             && 1 >= dist<File>(wkSq, sp2Sq)
             && spR < relRank(stngColor, wkSq))
@@ -763,15 +764,15 @@ namespace Endgames {
             && pos.count(stngColor|PAWN) >= 2
             && verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
 
-        auto wkSq  = pos.square(weakColor|KING);
-        auto spawns = pos.pieces(stngColor, PAWN);
+        auto wkSq = pos.square(weakColor|KING);
+        auto sPawns = pos.pieces(stngColor, PAWN);
 
         // If all pawns are ahead of the king, all pawns are on a single
         // rook file and the king is within one file of the pawns then draw.
-        if (   0 == (spawns & ~frontRanks(weakColor, wkSq))
-            && (   0 == (spawns & ~FABB)
-                || 0 == (spawns & ~FHBB))
-            && 1 >= dist<File>(wkSq, scanLSq(spawns)))
+        if (   (   0 == (sPawns & ~FABB)
+                || 0 == (sPawns & ~FHBB))
+            && 0 == (sPawns & ~frontRanks(weakColor, wkSq))
+            && 1 >= dist<File>(wkSq, scanLSq(sPawns)))
         {
             return SCALE_DRAW;
         }
@@ -779,30 +780,28 @@ namespace Endgames {
         return SCALE_NONE;
     }
 
-    /// KB and one or more pawns vs K and zero or more pawns.
+    /// KB and one or more pawns vs K.
     /// It checks for draws with rook pawns and a bishop of the wrong color.
     /// If such a draw is detected, SCALE_DRAW is returned.
     /// If not, the return value is SCALE_NONE, i.e. no scaling will be used.
-    template<> Scale Endgame<KBPsKP>::operator()(const Position &pos) const
+    template<> Scale Endgame<KBPsK>::operator()(const Position &pos) const
     {
         assert(pos.nonPawnMaterial(stngColor) == VALUE_MG_BSHP
-            && pos.count(stngColor|PAWN) != 0
-            && pos.count(weakColor|PAWN) >= 0);
+            && pos.count(stngColor|PAWN) != 0);
         // No assertions about the material of weak side, because we want draws to
         // be detected even when the weak side has some materials or pawns.
 
-        auto spawns = pos.pieces(stngColor, PAWN);
-        auto spSq = scanLSq(spawns);
-        auto spF = sFile(spSq);
+        auto skSq = pos.square(stngColor|KING);
+        auto sbSq = pos.square(stngColor|BSHP);
+        auto wkSq = pos.square(weakColor|KING);
 
         // All pawns of strong side on same A or H file? (rook file)
         // Then potential draw
-        if (   contains(FABB | FHBB, spSq)
-            && 0 == (spawns & ~fileBB(spF)))
+        Bitboard sPawns = pos.pieces(stngColor, PAWN);
+        if (   0 == (sPawns & ~FABB)
+            || 0 == (sPawns & ~FHBB))
         {
-            auto sbSq = pos.square(stngColor|BSHP);
-            auto promoteSq = relSq(stngColor, makeSquare(spF, R_8));
-            auto wkSq = pos.square(weakColor|KING);
+            auto promoteSq = relSq(stngColor, makeSquare(sFile(scanLSq(sPawns)), R_8));
 
             // The bishop has the wrong color and the defending king defends the queening square.
             if (   oppositeColor(promoteSq, sbSq)
@@ -814,42 +813,37 @@ namespace Endgames {
 
         // All pawns on same B or G file?
         // Then potential draw
-        if (   contains(FBBB | FGBB, spSq)
-            && 0 == (pos.pieces(PAWN) & ~fileBB(spF))
-            && VALUE_ZERO == pos.nonPawnMaterial(weakColor))
+        Bitboard pawns = pos.pieces(PAWN);
+        Bitboard wPawns = pos.pieces(weakColor, PAWN);
+        if (   (   0 == (pawns & ~FBBB)
+                || 0 == (pawns & ~FGBB))
+            && VALUE_ZERO == pos.nonPawnMaterial(weakColor)
+            && 0 != wPawns)
         {
-            auto skSq = pos.square(stngColor|KING);
-            auto sbSq = pos.square(stngColor|BSHP);
-            auto wkSq = pos.square(weakColor|KING);
+            // Get weak side pawn that is closest to home rank
+            auto wpSq = scanFrontMostSq(stngColor, wPawns);
 
-            Bitboard wpawns = pos.pieces(weakColor, PAWN);
-
-            if (0 != wpawns)
+            // There's potential for a draw if weak pawn is blocked on the 7th rank
+            // and the bishop cannot attack it or only one strong pawn left
+            if (   R_7 == relRank(stngColor, wpSq)
+                && contains(sPawns, wpSq + pawnPush(weakColor))
+                && (   oppositeColor(sbSq, wpSq)
+                    || 1 == pos.count(stngColor|PAWN)))
             {
-                // Get weak side pawn that is closest to home rank
-                auto wpSq = scanFrontMostSq(stngColor, wpawns);
-
-                // There's potential for a draw if weak pawn is blocked on the 7th rank
-                // and the bishop cannot attack it or they only have one pawn left
-                if (   R_7 == relRank(stngColor, wpSq)
-                    && contains(spawns, wpSq + pawnPush(weakColor))
-                    && (   oppositeColor(sbSq, wpSq)
-                        || 1 == pos.count(stngColor|PAWN)))
+                // It's a draw if the weak king is on its back two ranks, within 2
+                // squares of the blocking pawn and the strong king is not closer.
+                // This rule only fails in practically unreachable
+                // positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w and
+                // where Q-search will immediately correct the problem
+                // positions such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w
+                if (   R_7 <= relRank(stngColor, wkSq)
+                    && 2 >= dist(wkSq, wpSq)
+                    && dist(wkSq, wpSq) <= dist(skSq, wpSq))
                 {
-                    // It's a draw if the weak king is on its back two ranks, within 2
-                    // squares of the blocking pawn and the strong king is not closer.
-                    // This rule only fails in practically unreachable
-                    // positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w and
-                    // where Q-search will immediately correct the problem
-                    // positions such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w
-                    if (   R_7 <= relRank(stngColor, wkSq)
-                        && 2 >= dist(wkSq, wpSq)
-                        && dist(wkSq, wpSq) <= dist(skSq, wpSq))
-                    {
-                        return SCALE_DRAW;
-                    }
+                    return SCALE_DRAW;
                 }
             }
+
         }
 
         return SCALE_NONE;

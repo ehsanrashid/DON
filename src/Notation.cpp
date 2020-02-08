@@ -317,7 +317,7 @@ string multipvInfo(const Thread *const &th, Depth depth, Value alfa, Value beta)
 }
 /*
 /// Returns formated human-readable search information.
-string pretty_pv_info(Thread *const &th)
+string prettyInfo(Thread *const &th)
 {
     u64 nodes = Threadpool.sum(&Thread::nodes);
 

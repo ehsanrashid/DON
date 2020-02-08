@@ -58,7 +58,7 @@ extern Move sanMove(const std::string&, Position&);
 
 extern std::string multipvInfo(const Thread *const&, i16, Value, Value);
 
-//extern std::string pretty_pv_info(Thread *const&);
+//extern std::string prettyInfo(Thread *const&);
 
 
 template<typename Elem, typename Traits>

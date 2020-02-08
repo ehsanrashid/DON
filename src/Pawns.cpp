@@ -182,42 +182,41 @@ namespace Pawns {
         constexpr auto Push = pawnPush(Own);
         const auto Attack = PawnAttacks[Own];
 
-        Bitboard pawns    = pos.pieces(PAWN);
+        Bitboard pawns = pos.pieces(PAWN);
         Bitboard ownPawns = pos.pieces(Own) & pawns;
         Bitboard oppPawns = pos.pieces(Opp) & pawns;
 
+        kingSq    [Own] = SQ_NO;
+        //kingPath  [Own] = 0;
+        //kingSafety[Own] = SCORE_ZERO;
+        //kingDist  [Own] = SCORE_ZERO;
         attackSpan[Own] = pawnSglAttacks(Own, ownPawns);
-        passers[Own] = 0;
-
-        kingSq[Own] = SQ_NO;
-
-        // Unsupported enemy pawns attacked twice by friend pawns
-        Score scr = SCORE_ZERO;
-
+        passers   [Own] = 0;
+        score     [Own] = SCORE_ZERO;
         for (auto s : pos.squares[Own|PAWN])
         {
             assert((Own|PAWN) == pos[s]);
 
             auto r = relRank(Own, s);
+            assert(R_2 <= r && r <= R_7);
 
             Bitboard neighbours = ownPawns & adjacentFiles(s);
             Bitboard supporters = neighbours & rankBB(s - Push);
             Bitboard phalanxes  = neighbours & rankBB(s);
             Bitboard stoppers   = oppPawns & pawnPassSpan(Own, s);
-            Bitboard levers     = oppPawns & Attack[s];
-            Bitboard escapes    = oppPawns & Attack[s + Push]; // Push levers
-            Bitboard opposers   = oppPawns & frontSquares(Own, s);
-            Bitboard blockers   = oppPawns & (s + Push);
+            Bitboard blockers   = stoppers & (s + Push);
+            Bitboard levers     = stoppers & Attack[s];
+            Bitboard escapes    = stoppers & Attack[s + Push]; // Push levers
 
-            bool doubled  = contains(ownPawns, s - Push);
+            bool opposed  = 0 != (stoppers & frontSquares(Own, s));
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
             bool backward = 0 == (neighbours & frontRanks(Opp, s + Push))
-                         && 0 != (escapes | blockers);
+                         && 0 != (blockers | escapes);
 
-            // Compute additional span if pawn is not backward nor blocked
-            if (   !backward
-                && 0 == blockers)
+            // Compute additional span if pawn is not blocked nor backward
+            if (   0 == blockers
+                && !backward)
             {
                 attackSpan[Own] |= pawnAttackSpan(Own, s);
             }
@@ -232,41 +231,43 @@ namespace Pawns {
                     && popCount(phalanxes) >= popCount(escapes))
                 || (   stoppers == blockers
                     && R_4 < r
-                    && (  pawnSglPushes(Own, supporters)
-                        & ~(oppPawns | pawnDblAttacks(Opp, oppPawns))) != 0))
+                    && 0 != (   pawnSglPushes(Own, supporters)
+                             & ~(oppPawns | pawnDblAttacks(Opp, oppPawns)))))
             {
                 passers[Own] |= s;
             }
 
+            Score sp = SCORE_ZERO;
+
             if (   0 != supporters
                 || 0 != phalanxes)
             {
-                i32 v = Connected[r] * (2 + (0 != phalanxes) - (0 != opposers))
+                i32 v = Connected[r] * (2 + (0 != phalanxes) - opposed)
                       + 21 * popCount(supporters);
-                scr += makeScore(v, v * (r - R_3) / 4);
+                sp += makeScore(v, v * (r - R_3) / 4);
             }
             else
             if (0 == neighbours)
             {
-                scr -= Isolated
-                     + Unopposed * (0 == opposers);
+                sp -= Isolated
+                    + Unopposed * !opposed;
             }
             else
             if (backward)
             {
-                scr -= Backward
-                     + Unopposed * (0 == opposers);
+                sp -= Backward
+                    + Unopposed * !opposed;
             }
 
             if (0 == supporters)
             {
-                scr -= WeakDoubled * doubled
+                sp -= WeakDoubled * contains(ownPawns, s - Push)
                         // Attacked twice by enemy pawns
-                     + WeakTwiceLever * moreThanOne(levers);
+                    + WeakTwiceLever * moreThanOne(levers);
             }
-        }
 
-        score[Own] = scr;
+            score[Own] += sp;
+        }
     }
     // Explicit template instantiations
     template void Entry::evaluate<WHITE>(const Position&);

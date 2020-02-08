@@ -22,11 +22,12 @@ public:
     Move move;
     i32  value;
 
+    ValMove() = default;
     ValMove(Move m, i32 v)
         : move(m)
         , value(v)
     {}
-    explicit ValMove(Move m = MOVE_NONE)
+    explicit ValMove(Move m)
         : ValMove(m, 0)
     {}
 
@@ -59,7 +60,7 @@ extern void generate(ValMoves&, const Position&);
 
 extern void filterIllegal(ValMoves&, const Position&);
 
-template<GenType GT, PieceType PT = NONE>
+template<GenType GT>//, PieceType PT>
 class MoveList
     : public ValMoves
 {
@@ -74,10 +75,7 @@ public:
         //if (NONE != PT)
         //{
         //    erase(std::remove_if(begin(), end(),
-        //                        [&pos] (const ValMove &vm)
-        //                        {
-        //                            return PT != pType(pos[orgSq(vm)]);
-        //                        }),
+        //                         [&pos](const ValMove &vm) { return PT != pType(pos[orgSq(vm)]); }),
         //            end());
         //}
     }
@@ -121,9 +119,9 @@ struct Perft
         any       += p.any;
         capture   += p.capture;
         enpassant += p.enpassant;
-        anyCheck += p.anyCheck;
-        dscCheck += p.dscCheck;
-        dblCheck += p.dblCheck;
+        anyCheck  += p.anyCheck;
+        dscCheck  += p.dscCheck;
+        dblCheck  += p.dblCheck;
         castle    += p.castle;
         promotion += p.promotion;
         checkmate += p.checkmate;
@@ -134,9 +132,9 @@ struct Perft
         any       -= p.any;
         capture   -= p.capture;
         enpassant -= p.enpassant;
-        anyCheck -= p.anyCheck;
-        dscCheck -= p.dscCheck;
-        dblCheck -= p.dblCheck;
+        anyCheck  -= p.anyCheck;
+        dscCheck  -= p.dscCheck;
+        dblCheck  -= p.dblCheck;
         castle    -= p.castle;
         promotion -= p.promotion;
         checkmate -= p.checkmate;

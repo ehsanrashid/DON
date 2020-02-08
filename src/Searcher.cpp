@@ -267,11 +267,11 @@ namespace Searcher {
                         refutationMoves[2] = MOVE_NONE;
                     }
                     refutationMoves.erase(std::remove_if(refutationMoves.begin(), refutationMoves.end(),
-                                                        [&](Move m) { return MOVE_NONE == m
-                                                                          || ttMove == m
-                                                                          || pos.capture(m)
-                                                                          || !pos.pseudoLegal(m)
-                                                                          || !pos.legal(m); }),
+                                                         [&](Move m) { return MOVE_NONE == m
+                                                                           || ttMove == m
+                                                                           || pos.capture(m)
+                                                                           || !pos.pseudoLegal(m)
+                                                                           || !pos.legal(m); }),
                                           refutationMoves.end());
                     mItr = refutationMoves.begin();
                     mEnd = refutationMoves.end();
@@ -1493,8 +1493,8 @@ namespace Searcher {
                 // If the move fails high will be re-searched at full depth.
                 if (doLMR)
                 {
-                    auto reduct_depth = reduction(depth, moveCount, improving);
-                    reduct_depth +=
+                    auto reductDepth = reduction(depth, moveCount, improving);
+                    reductDepth +=
                         // If other threads are searching this position.
                         +1 * threadMarker.marked
                         // If the ttHit running average is large
@@ -1509,19 +1509,19 @@ namespace Searcher {
                     if (!captureOrPromotion)
                     {
                         // If TT move is a capture (~5 ELO)
-                        reduct_depth += 1 * ttmCapture;
+                        reductDepth += 1 * ttmCapture;
 
                         // If cut nodes (~10 ELO)
                         if (cutNode)
                         {
-                            reduct_depth += 2;
+                            reductDepth += 2;
                         }
                         else
                         // If move escapes a capture in no-cut nodes (~2 ELO)
                         if (   NORMAL == mType(move)
                             && !pos.see(reverseMove(move)))
                         {
-                            reduct_depth -= 2 + ttPV;
+                            reductDepth -= 2 + ttPV;
                         }
 
                         ss->stats = thread->butterflyHistory[~pos.active][mIndex(move)]
@@ -1542,28 +1542,28 @@ namespace Searcher {
                         if (   (ss-1)->stats >= -116
                             && ss->stats < -154)
                         {
-                            reduct_depth += 1;
+                            reductDepth += 1;
                         }
                         else
                         if (   ss->stats >= -102
                             && (ss-1)->stats < -114)
                         {
-                            reduct_depth -= 1;
+                            reductDepth -= 1;
                         }
 
                         // If move with +/-ve stats (~30 ELO)
-                        reduct_depth -= Depth(ss->stats / 0x4000);
+                        reductDepth -= Depth(ss->stats / 0x4000);
                     }
                     else
                     // Increase reduction for captures/promotions if late move and at low depth
                     if (   8 > depth
                         && 2 < moveCount)
                     {
-                        reduct_depth += 1;
+                        reductDepth += 1;
                     }
 
-                    reduct_depth = std::max(reduct_depth, DEP_ZERO);
-                    auto d = Depth(std::max(newDepth - reduct_depth, 1));
+                    reductDepth = std::max(reductDepth, DEP_ZERO);
+                    auto d = Depth(std::max(newDepth - reductDepth, 1));
                     assert(d <= newDepth);
 
                     value = -depthSearch<false>(pos, ss+1, -alfa-1, -alfa, d, true);
@@ -1633,7 +1633,7 @@ namespace Searcher {
                         rm.newValue = value;
                         rm.selDepth = thread->selDepth;
                         rm.resize(1);
-                        rm.insert (rm.end(), (ss+1)->pv.begin(), (ss+1)->pv.end());
+                        rm.insert(rm.end(), (ss+1)->pv.begin(), (ss+1)->pv.end());
 
                         // Record how often the best move has been changed in each iteration.
                         // This information is used for time management:
@@ -2126,7 +2126,7 @@ void Thread::search()
             /*
             if (Threadpool.outputStream.is_open())
             {
-                Threadpool.outputStream << pretty_pv_info(mainThread) << endl;
+                Threadpool.outputStream << prettyInfo(mainThread) << endl;
             }
             */
         }

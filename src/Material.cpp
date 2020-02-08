@@ -57,10 +57,10 @@ namespace Material {
             Endgame<KPsK>(WHITE),
             Endgame<KPsK>(BLACK)
         };
-        array<Endgame<KBPsKP>, CLR_NO> ScaleKBPsKP
+        array<Endgame<KBPsK>, CLR_NO> ScaleKBPsK
         {
-            Endgame<KBPsKP>(WHITE),
-            Endgame<KBPsKP>(BLACK)
+            Endgame<KBPsK>(WHITE),
+            Endgame<KBPsK>(BLACK)
         };
         array<Endgame<KQKRPs>, CLR_NO> ScaleKQKRPs
         {
@@ -154,7 +154,7 @@ namespace Material {
                 //&& pos.count( c|BSHP) == 1
                 && pos.count( c|PAWN) != 0)
             {
-                scalingFunc[c] = &ScaleKBPsKP[c];
+                scalingFunc[c] = &ScaleKBPsK[c];
             }
             else
             if (   pos.nonPawnMaterial( c) == VALUE_MG_QUEN

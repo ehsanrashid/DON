@@ -393,10 +393,7 @@ template<> void generate<GenType::LEGAL      >(ValMoves &moves, const Position &
 void filterIllegal(ValMoves &moves, const Position &pos)
 {
     moves.erase(std::remove_if(moves.begin(), moves.end(),
-                              [&pos] (const ValMove &vm)
-                              {
-                                  return !pos.fullLegal(vm);
-                              }),
+                               [&pos](const ValMove &vm) { return !pos.fullLegal(vm); }),
                  moves.end());
 }
 

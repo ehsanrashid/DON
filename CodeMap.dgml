@@ -178,7 +178,7 @@
     <Node Id="@16" Category="CodeSchema_Namespace" Bounds="25519.0870057415,23954.8520582888,108.459999999999,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="5" Group="Collapsed" Label="Debugger" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@160" Category="CodeSchema_Method" Bounds="25724.062372972,24018.0938385723,136.756666666668,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="dtz_before_zeroing" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@161" Category="CodeSchema_Method" Bounds="25593.0154556745,24904.4437726224,84.3033333333333,24.4033333333333" DelayedCrossGroupLinksState="Fetched" Label="operator-" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@162" Category="CodeSchema_Method" Bounds="25449.1736311319,24692.8117794633,110.686666666668,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="pretty_pv_info" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@162" Category="CodeSchema_Method" Bounds="25449.1736311319,24692.8117794633,110.686666666668,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="prettyInfo" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@165" Category="CodeSchema_Method" Bounds="26069.4365466462,25205.371027412,117.990000000005,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="moreThanOne" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@166" Category="CodeSchema_Method" Bounds="26069.8178812231,25093.4504659526,92.003333333334,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="popCount" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@167" Category="CodeSchema_Method" Bounds="25828.4618070628,24757.689386787,66.5566666666709,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="pretty" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -6314,7 +6314,7 @@
     <Alias n="159" Id="(Type=TBSyzygy::WDLScore)" />
     <Alias n="160" Id="(@1 @5 Member=(Name=dtz_before_zeroing OverloadingParameters=[@159]))" />
     <Alias n="161" Id="(@1 @36 Member=(@62 OverloadingParameters=[@159]))" />
-    <Alias n="162" Id="(@1 @3 Member=(Name=pretty_pv_info OverloadingParameters=[(Type=&quot;Thread * const &amp;&quot;)]))" />
+    <Alias n="162" Id="(@1 @3 Member=(Name=prettyInfo OverloadingParameters=[(Type=&quot;Thread * const &amp;&quot;)]))" />
     <Alias n="163" Id="(Type=&quot;unsigned __int64&quot;)" />
     <Alias n="164" Id="OverloadingParameters=[@163]" />
     <Alias n="165" Id="(@1 @12 Member=(Name=moreThanOne @164))" />

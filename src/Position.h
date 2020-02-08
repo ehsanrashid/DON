@@ -154,7 +154,7 @@ public:
     bool empty(Square)  const;
 
     Bitboard pieces() const;
-    Bitboard pieces(Piece) const;
+    //Bitboard pieces(Piece) const;
     Bitboard pieces(Color) const;
     Bitboard pieces(PieceType) const;
     template<typename ...PieceTypes>
@@ -249,10 +249,10 @@ inline Bitboard Position::pieces() const
 {
     return types[NONE];
 }
-inline Bitboard Position::pieces(Piece p) const
-{
-    return colors[pColor(p)] & types[pType(p)];
-}
+//inline Bitboard Position::pieces(Piece p) const
+//{
+//    return colors[pColor(p)] & types[pType(p)];
+//}
 inline Bitboard Position::pieces(Color c) const
 {
     return colors[c];
