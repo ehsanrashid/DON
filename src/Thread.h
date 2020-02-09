@@ -303,10 +303,6 @@ public:
             && 0 == mate;
     }
 
-    bool mateOn() const
-    {
-        return 0 != mate;
-    }
 };
 
 /// ThreadPool class handles all the threads related stuff like,

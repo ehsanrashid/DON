@@ -155,9 +155,9 @@ public:
     friend std::basic_ostream<Elem, Traits>&
         operator<<(std::basic_ostream<Elem, Traits> &os, const TTable &tt)
     {
-        u32 mem_size = tt.size();
+        u32 memSize = tt.size();
         u08 dummy = 0;
-        os.write((const Elem*)(&mem_size), sizeof (mem_size));
+        os.write((const Elem*)(&memSize), sizeof (memSize));
         os.write((const Elem*)(&dummy), sizeof (dummy));
         os.write((const Elem*)(&dummy), sizeof (dummy));
         os.write((const Elem*)(&dummy), sizeof (dummy));
@@ -174,14 +174,14 @@ public:
     friend std::basic_istream<Elem, Traits>&
         operator>>(std::basic_istream<Elem, Traits> &is, TTable &tt)
     {
-        u32 mem_size;
+        u32 memSize;
         u08 dummy;
-        is.read((Elem*)(&mem_size), sizeof (mem_size));
+        is.read((Elem*)(&memSize), sizeof (memSize));
         is.read((Elem*)(&dummy), sizeof (dummy));
         is.read((Elem*)(&dummy), sizeof (dummy));
         is.read((Elem*)(&dummy), sizeof (dummy));
         is.read((Elem*)(&TEntry::Generation), sizeof (TEntry::Generation));
-        tt.resize(mem_size);
+        tt.resize(memSize);
         constexpr u32 BufferSize = 0x1000;
         for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i)
         {

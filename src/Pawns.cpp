@@ -108,8 +108,8 @@ namespace Pawns {
         // Find King path
         array<Bitboard, CS_NO> kPaths
         {
-            pos.castleKingPath[Own][CS_KING] * (pos.si->canCastle(makeCastleRight(Own, CS_KING)) && pos.castleExpeded(Own, CS_KING)),
-            pos.castleKingPath[Own][CS_QUEN] * (pos.si->canCastle(makeCastleRight(Own, CS_QUEN)) && pos.castleExpeded(Own, CS_QUEN))
+            pos.castleKingPath[Own][CS_KING] * (pos.canCastle(makeCastleRight(Own, CS_KING)) && pos.castleExpeded(Own, CS_KING)),
+            pos.castleKingPath[Own][CS_QUEN] * (pos.canCastle(makeCastleRight(Own, CS_QUEN)) && pos.castleExpeded(Own, CS_QUEN))
         };
         if (0 != (kPaths[CS_KING] & attacks))
         {

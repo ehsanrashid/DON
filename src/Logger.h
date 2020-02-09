@@ -12,7 +12,7 @@
 #include "Util.h"
 
 
-inline std::string time_to_string(const std::chrono::system_clock::time_point &tp)
+inline std::string toString(const std::chrono::system_clock::time_point &tp)
 {
     std::string stime;
 
@@ -41,7 +41,7 @@ template<typename Elem, typename Traits>
 inline std::basic_ostream<Elem, Traits>&
     operator<<(std::basic_ostream<Elem, Traits> &os, const std::chrono::system_clock::time_point &tp)
 {
-    os << time_to_string(tp);
+    os << toString(tp);
     return os;
 }
 

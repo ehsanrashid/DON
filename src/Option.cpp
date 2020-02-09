@@ -22,38 +22,38 @@ namespace UCI {
         : type("button")
         , defaultValue("")
         , currentValue("")
-        , minimum(0)
-        , maximum(0)
+        , minimumValue(0)
+        , maximumValue(0)
         , onChange(on_cng)
     {}
     Option::Option(const char *val, OnChange on_cng)
         : type("string")
-        , minimum(0)
-        , maximum(0)
+        , minimumValue(0)
+        , maximumValue(0)
         , onChange(on_cng)
     {
         defaultValue = currentValue = val;
     }
     Option::Option(const bool val, OnChange on_cng)
         : type("check")
-        , minimum(0)
-        , maximum(0)
+        , minimumValue(0)
+        , maximumValue(0)
         , onChange(on_cng)
     {
         defaultValue = currentValue = (val ? "true" : "false");
     }
     Option::Option(const i32 val, i32 min, i32 max, OnChange on_cng)
         : type("spin")
-        , minimum(min)
-        , maximum(max)
+        , minimumValue(min)
+        , maximumValue(max)
         , onChange(on_cng)
     {
         defaultValue = currentValue = std::to_string(val);
     }
     Option::Option(const char* v, const char* cur, OnChange on_cng)
         : type("combo")
-        , minimum(0)
-        , maximum(0)
+        , minimumValue(0)
+        , maximumValue(0)
         , onChange(on_cng)
     {
         defaultValue = v;
@@ -108,7 +108,7 @@ namespace UCI {
             else
             if (type == "spin")
             {
-                val = std::to_string(clamp(std::stoi(val), minimum, maximum));
+                val = std::to_string(clamp(std::stoi(val), minimumValue, maximumValue));
             }
             else
             if (type == "string")
@@ -173,8 +173,8 @@ namespace UCI {
             if (type == "spin")
             {
                 oss << " default " << i32(std::stoi(defaultValue))
-                    << " min " << minimum
-                    << " max " << maximum;
+                    << " min " << minimumValue
+                    << " max " << maximumValue;
             }
             //oss << " current " << currentValue;
         }

@@ -18,8 +18,8 @@ namespace UCI {
             ,       defaultValue
             ,       currentValue;
 
-        i32         minimum
-            ,       maximum;
+        i32         minimumValue
+            ,       maximumValue;
 
         OnChange onChange = nullptr;
 

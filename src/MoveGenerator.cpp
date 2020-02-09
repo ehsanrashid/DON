@@ -243,11 +243,11 @@ namespace {
         if (   GenType::NATURAL == GT
             || GenType::QUIET == GT)
         {
-            if (CR_NONE != pos.si->castleRight(pos.active))
+            if (CR_NONE != pos.castleRight(pos.active))
             {
                 for (auto cs : { CS_KING, CS_QUEN })
                 {
-                    if (   pos.si->canCastle(makeCastleRight(pos.active, cs))
+                    if (   pos.canCastle(makeCastleRight(pos.active, cs))
                         && pos.castleExpeded(pos.active, cs))
                     {
                         moves += makeMove<CASTLE>(fkSq, pos.castleRookSq[pos.active][cs]);

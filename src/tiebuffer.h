@@ -24,7 +24,7 @@ namespace std {
         basic_streambuf<Elem, Traits> *_strmbuf1;
         basic_streambuf<Elem, Traits> *_strmbuf2;
 
-        int_type last_ch = '\n';
+        int_type lastCh = '\n';
 
     public:
 
@@ -38,7 +38,7 @@ namespace std {
 
         int_type write(int_type c, const Elem *prefix)
         {
-            if ('\n' == last_ch)
+            if ('\n' == lastCh)
             {
                 streamsize length = strlen(prefix);
                 if (_strmbuf2->sputn(prefix, length) != length)
@@ -47,7 +47,7 @@ namespace std {
                 }
             }
 
-            return last_ch = _strmbuf2->sputc(Elem(c));
+            return lastCh = _strmbuf2->sputc(Elem(c));
         }
 
     protected:

@@ -115,9 +115,7 @@ namespace {
         // }
         // return 0;
         auto itr = std::find(Months.begin(), Months.end(), mmm);
-        return itr != Months.end() ?
-                i32(std::distance(Months.begin(), itr)) + 1 :
-                0;
+        return itr != Months.end() ? std::distance(Months.begin(), itr) + 1 : 0;
     }
 
     /// engineInfo() returns a string trying to describe the engine
@@ -315,7 +313,7 @@ namespace {
         Threadpool.mainThread()->waitIdle();
 
         Limit limit;
-        vector<Move> search_moves; // Restrict search to these root moves only
+        vector<Move> searchMoves; // Restrict search to these root moves only
         bool ponder = false;
 
         string token;
@@ -354,7 +352,7 @@ namespace {
                         cerr << "ERROR: Illegal Rootmove '" << token << "'" << endl;
                         continue;
                     }
-                    search_moves.push_back(m);
+                    searchMoves.push_back(m);
                 }
             }
             else
@@ -362,7 +360,7 @@ namespace {
             {
                 for (const auto &vm : MoveList<GenType::LEGAL>(pos))
                 {
-                    search_moves.push_back(vm);
+                    searchMoves.push_back(vm);
                 }
                 while (iss >> token)
                 {
@@ -372,7 +370,7 @@ namespace {
                         cerr << "ERROR: Illegal Rootmove '" << token << "'" << endl;
                         continue;
                     }
-                    search_moves.erase(std::remove(search_moves.begin(), search_moves.end(), m), search_moves.end());
+                    searchMoves.erase(std::remove(searchMoves.begin(), searchMoves.end(), m), searchMoves.end());
                 }
             }
             else
@@ -391,7 +389,7 @@ namespace {
                 return;
             }
         }
-        Threadpool.startThinking(pos, states, limit, search_moves, ponder);
+        Threadpool.startThinking(pos, states, limit, searchMoves, ponder);
     }
 
     /// setupBench() builds a list of UCI commands to be run by bench.

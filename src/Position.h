@@ -62,8 +62,6 @@ using namespace BitBoard;
 struct StateInfo
 {
 public:
-    static const StateInfo Empty;
-
     // ---Copied when making a move---
     Key         matlKey;        // Hash key of materials
     Key         pawnKey;        // Hash key of pawns
@@ -71,22 +69,21 @@ public:
     Square      enpassantSq;    // Enpassant -> "In passing"
     u08         clockPly;       // Number of half moves clock since the last pawn advance or any capture
     u08         nullPly;
+    Value       npm[CLR_NO];
 
     // ---Not copied when making a move---
     Key         posiKey;        // Hash key of position
     PieceType   capture;        // Piece type captured
-    PieceType   promote;        // Piece type promoted
+    //PieceType   promote;      // Piece type promoted
     Bitboard    checkers;       // Checkers
     i16         repetition;
     // Check info
-    std::array<Bitboard, CLR_NO> kingBlockers; // Absolute and Discover Blockers
-    std::array<Bitboard, CLR_NO> kingCheckers; // Absolute and Discover Checkers
-    std::array<Bitboard, NONE>   checks;
+    Bitboard    kingBlockers[CLR_NO]; // Absolute and Discover Blockers
+    Bitboard    kingCheckers[CLR_NO]; // Absolute and Discover Checkers
+    Bitboard    checks[NONE];
 
     StateInfo *ptr;             // Previous StateInfo pointer.
 
-    bool canCastle(CastleRight cr) const { return CR_NONE != (castleRights & cr); }
-    CastleRight castleRight(Color c) const { return castleRights & makeCastleRight(c); }
 };
 
 /// A list to keep track of the position states along the setup moves
@@ -126,8 +123,6 @@ public:
     std::array<Piece   , SQ_NO>  piece;
     std::array<Bitboard, CLR_NO> colors;
     std::array<Bitboard, PT_NO>  types;
-
-    std::array<Value   , CLR_NO> npm;
 
     std::array<CastleRight, SQ_NO> castleRights;
 
@@ -171,11 +166,12 @@ public:
 
     Value nonPawnMaterial() const;
     Value nonPawnMaterial(Color) const;
+    bool canCastle(CastleRight cr) const;
+    CastleRight castleRight(Color c) const;
+    bool castleExpeded(Color, CastleSide) const;
 
     Key pgKey() const;
     Key movePosiKey(Move) const;
-
-    bool castleExpeded(Color, CastleSide) const;
 
     i16  moveCount() const;
     bool draw(i16) const;
@@ -191,7 +187,7 @@ public:
     template<PieceType>
     Bitboard xattacksFrom(Square, Color) const;
 
-    Bitboard sliderBlockersAt(Square, Color, Bitboard, Bitboard&, Bitboard&) const;
+    Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const;
 
     bool pseudoLegal(Move) const;
     bool legal(Move) const;
@@ -313,12 +309,20 @@ inline Square Position::square(Piece p, u08 index) const
 
 inline Value Position::nonPawnMaterial() const
 {
-    return npm[WHITE]
-         + npm[BLACK];
+    return si->npm[WHITE]
+         + si->npm[BLACK];
 }
 inline Value Position::nonPawnMaterial(Color c) const
 {
-    return npm[c];
+    return si->npm[c];
+}
+inline bool Position::canCastle(CastleRight cr) const
+{
+    return CR_NONE != (si->castleRights & cr);
+}
+inline CastleRight Position::castleRight(Color c) const
+{
+    return si->castleRights & makeCastleRight(c);
 }
 
 inline bool Position::castleExpeded(Color c, CastleSide cs) const

@@ -11,7 +11,7 @@ TTable TT;
 
 using namespace std;
 
-u08 TEntry::Generation;
+u08 TEntry::Generation = 0;
 
 u32 TCluster::freshEntryCount() const
 {
@@ -61,21 +61,21 @@ namespace {
     /// The returned pointer is the aligned one, while the mem argument is the one that needs to be passed to free.
     /// With c++17 some of this functionality can be simplified.
 
-    void* allocAlignedMemory(size_t msize, void *&mem)
+    void* allocAlignedMemory(size_t mSize, void *&mem)
     {
 
 #   if defined(__linux__) && !defined(__ANDROID__)
 
         constexpr size_t alignment = 2 * 1024 * 1024; // assumed 2MB page sizes
-        size_t size = ((msize + alignment - 1) / alignment) * alignment; // multiple of alignment
+        size_t size = ((mSize + alignment - 1) / alignment) * alignment; // multiple of alignment
         mem = aligned_alloc(alignment, size);
-        madvise(mem, msize, MADV_HUGEPAGE);
+        madvise(mem, mSize, MADV_HUGEPAGE);
         return mem;
 
 #   else
 
         constexpr size_t alignment = 64;        // assumed cache line size
-        size_t size = msize + alignment - 1;    // allocate some extra space
+        size_t size = mSize + alignment - 1;    // allocate some extra space
         mem = malloc(size);
         return reinterpret_cast<void*>((uintptr_t(mem) + alignment - 1) & ~uintptr_t(alignment - 1));
 
@@ -94,38 +94,38 @@ TTable::~TTable()
 /// TTable::resize() sets the size of the transposition table, measured in MB.
 /// Transposition table consists of a power of 2 number of clusters and
 /// each cluster consists of EntryCount number of TTEntry.
-u32 TTable::resize(u32 mem_size)
+u32 TTable::resize(u32 memSize)
 {
-    mem_size = clamp(mem_size, MinHashSize, MaxHashSize);
+    memSize = clamp(memSize, MinHashSize, MaxHashSize);
 
     Threadpool.mainThread()->waitIdle();
 
     free(mem);
 
-    clusterCount = (size_t(mem_size) << 20) / sizeof(TCluster);
-    clusters = static_cast<TCluster*>(allocAlignedMemory(clusterCount * sizeof(TCluster), mem));
+    clusterCount = (size_t(memSize) << 20) / sizeof (TCluster);
+    clusters = static_cast<TCluster*>(allocAlignedMemory(clusterCount * sizeof (TCluster), mem));
     if (nullptr == mem)
     {
-        cerr << "ERROR: Hash memory allocation failed for TT " << mem_size << " MB" << endl;
+        cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << endl;
         return 0;
     }
 
     clear();
-    sync_cout << "info string Hash memory " << mem_size << " MB" << sync_endl;
-    return mem_size;
+    sync_cout << "info string Hash memory " << memSize << " MB" << sync_endl;
+    return memSize;
 }
 
 /// TTable::autoResize() set size automatically
-void TTable::autoResize(u32 mem_size)
+void TTable::autoResize(u32 memSize)
 {
-    auto msize = 0 != mem_size ? mem_size : MaxHashSize;
-    while (msize >= MinHashSize)
+    auto mSize = 0 != memSize ? memSize : MaxHashSize;
+    while (mSize >= MinHashSize)
     {
-        if (0 != resize(msize))
+        if (0 != resize(mSize))
         {
             return;
         }
-        msize /= 2;
+        mSize >>= 1;
     }
     stop(EXIT_FAILURE);
 }

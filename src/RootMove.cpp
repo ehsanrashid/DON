@@ -21,13 +21,13 @@ RootMove::operator string() const
 }
 
 
-void RootMoves::initialize(const Position &pos, const vector<Move> &search_moves)
+void RootMoves::initialize(const Position &pos, const vector<Move> &searchMoves)
 {
     assert(empty());
     for (const auto &vm : MoveList<GenType::LEGAL>(pos))
     {
-        if (   search_moves.empty()
-            || std::find(search_moves.begin(), search_moves.end(), vm) != search_moves.end())
+        if (   searchMoves.empty()
+            || std::find(searchMoves.begin(), searchMoves.end(), vm) != searchMoves.end())
         {
             *this += vm;
             assert(back().tbRank == 0

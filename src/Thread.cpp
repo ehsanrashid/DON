@@ -531,7 +531,7 @@ void ThreadPool::configure(u32 threadCount)
 }
 /// ThreadPool::startThinking() wakes up main thread waiting in idleFunction() and returns immediately.
 /// Main thread will wake up other threads and start the search.
-void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit &lmt, const vector<Move> &search_moves, bool ponder)
+void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit &lmt, const vector<Move> &searchMoves, bool ponder)
 {
     stop = false;
     research = false;
@@ -541,7 +541,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
     limit = lmt;
 
     RootMoves rootMoves;
-    rootMoves.initialize(pos, search_moves);
+    rootMoves.initialize(pos, searchMoves);
 
     if (!rootMoves.empty())
     {
@@ -550,7 +550,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
         TBUseRule50 = bool(Options["SyzygyUseRule50"]);
         TBHasRoot = false;
 
-        bool dtz_available = true;
+        bool dtzAvailable = true;
 
         // Tables with fewer pieces than SyzygyProbeLimit are searched with ProbeDepth == DEPTH_ZERO
         if (TBLimitPiece > MaxLimitPiece)
@@ -562,7 +562,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
         // Rank moves using DTZ tables
         if (   0 != TBLimitPiece
             && TBLimitPiece >= pos.count()
-            && !pos.si->canCastle(CR_ANY))
+            && !pos.canCastle(CR_ANY))
         {
             // If the current root position is in the table-bases,
             // then RootMoves contains only moves that preserve the draw or the win.
@@ -570,7 +570,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
             if (!TBHasRoot)
             {
                 // DTZ tables are missing; try to rank moves using WDL tables
-                dtz_available = false;
+                dtzAvailable = false;
                 TBHasRoot = rootProbeWDL(pos, rootMoves);
             }
         }
@@ -579,14 +579,10 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
         {
             // Sort moves according to TB rank
             sort(rootMoves.begin(), rootMoves.end(),
-                [](const decltype(rootMoves)::value_type &rm1,
-                   const decltype(rootMoves)::value_type &rm2)
-                {
-                    return rm1.tbRank > rm2.tbRank;
-                });
+                 [](const RootMove &rm1, const RootMove &rm2) { return rm1.tbRank > rm2.tbRank; });
 
-            // Probe during search only if DTZ is not available and we are winning
-            if (   dtz_available
+            // Probe during search only if DTZ is not available and winning
+            if (   dtzAvailable
                 || rootMoves.front().tbValue <= VALUE_DRAW)
             {
                 TBLimitPiece = 0;
@@ -620,14 +616,14 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
     for (auto *th : *this)
     {
         th->rootPos.setup(fen, setupStates->back(), th);
-        th->rootMoves = rootMoves;
-        th->rootDepth = DEP_ZERO;
-        th->finishedDepth = DEP_ZERO;
-        th->nodes = 0;
-        th->tbHits = 0;
-        th->pvChange = 0;
-        th->nmpPly = 0;
-        th->nmpColor = CLR_NO;
+        th->rootMoves       = rootMoves;
+        th->rootDepth       = DEP_ZERO;
+        th->finishedDepth   = DEP_ZERO;
+        th->nodes           = 0;
+        th->tbHits          = 0;
+        th->pvChange        = 0;
+        th->nmpPly          = 0;
+        th->nmpColor        = CLR_NO;
     }
     setupStates->back() = back_si;
 

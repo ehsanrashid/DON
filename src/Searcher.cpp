@@ -701,7 +701,7 @@ namespace Searcher {
                 // Futility pruning
                 if (   !inCheck
                     && !giveCheck
-                    && !Threadpool.limit.mateOn()
+                    && 0 == Threadpool.limit.mate
                     && -VALUE_KNOWN_WIN < futilityBase
                     && !pos.pawnAdvanceAt(pos.active, org))
                 {
@@ -730,7 +730,7 @@ namespace Searcher {
                         || (   (DEP_ZERO != depth || 2 < moveCount)
                             && -VALUE_MATE_MAX_PLY < bestValue
                             && !pos.capture(move)))
-                    && !Threadpool.limit.mateOn()
+                    && 0 == Threadpool.limit.mate
                     && !pos.see(move))
                 {
                     continue;
@@ -932,7 +932,9 @@ namespace Searcher {
                              + TTHitAverageResolution * ttHit;
 
             bool priorCaptureOrPromotion = NONE != pos.si->capture
-                                        || NONE != pos.si->promote;
+                                        //|| NONE != pos.si->promote
+                                        || ((ss-1)->playedMove
+                                         && PROMOTE == mType((ss-1)->playedMove));
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
@@ -986,7 +988,7 @@ namespace Searcher {
                         || (   pieceCount == TBLimitPiece
                             && depth >= TBProbeDepth))
                     && 0 == pos.si->clockPly
-                    && !pos.si->canCastle(CR_ANY))
+                    && !pos.canCastle(CR_ANY))
                 {
                     ProbeState probeState;
                     auto wdl = probeWDL(pos, probeState);
@@ -1117,7 +1119,7 @@ namespace Searcher {
                 // the score by more than futility margins if do a null move.
                 if (   !rootNode
                     && 6 > depth
-                    && !Threadpool.limit.mateOn()
+                    && 0 == Threadpool.limit.mate
                     && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
                     && (  eval
                         - futilityMargin(depth, improving)) >= beta)
@@ -1129,7 +1131,7 @@ namespace Searcher {
                 if (   !PVNode
                     && MOVE_NULL != (ss-1)->playedMove
                     && MOVE_NONE == ss->excludedMove
-                    && !Threadpool.limit.mateOn()
+                    && 0 == Threadpool.limit.mate
                     && VALUE_ZERO != pos.nonPawnMaterial(pos.active)
                     && 23397 > (ss-1)->stats
                     && eval >= beta
@@ -1185,7 +1187,7 @@ namespace Searcher {
                 // then can (almost) safely prune the previous move.
                 if (   !PVNode
                     && 4 < depth
-                    && !Threadpool.limit.mateOn()
+                    && 0 == Threadpool.limit.mate
                     && abs(beta) < +VALUE_MATE_MAX_PLY)
                 {
                     auto raisedBeta = std::min(beta + 189 - 45 * improving, +VALUE_INFINITE);
@@ -1354,7 +1356,7 @@ namespace Searcher {
                 // Step 13. Pruning at shallow depth. (~200 ELO)
                 if (   !rootNode
                     && -VALUE_MATE_MAX_PLY < bestValue
-                    && !Threadpool.limit.mateOn()
+                    && 0 == Threadpool.limit.mate
                     && VALUE_ZERO < pos.nonPawnMaterial(pos.active))
                 {
                     // Skip quiet moves if move count exceeds our futilityMoveCount() threshold
@@ -1858,7 +1860,6 @@ void Thread::search()
 
     i16 iterIdx = 0;
     double pvChangeSum = 0.0;
-
     i16 researchCount = 0;
 
     auto bestValue = -VALUE_INFINITE;
@@ -1873,7 +1874,7 @@ void Thread::search()
     Stack stacks[DEP_MAX + 10];
     for (auto ss = stacks; ss < stacks + DEP_MAX + 10; ++ss)
     {
-        ss->ply = i16(ss - (stacks+7));
+        ss->ply             = i16(ss - (stacks+7));
         ss->playedMove      = MOVE_NONE;
         ss->excludedMove    = MOVE_NONE;
         ss->moveCount       = 0;
@@ -1936,10 +1937,10 @@ void Thread::search()
 
                 // Dynamic contempt
                 auto dc = bc;
-                auto contempt_value = i32(Options["Contempt Value"]);
-                if (0 != contempt_value)
+                auto contemptValue = i32(Options["Contempt Value"]);
+                if (0 != contemptValue)
                 {
-                    dc += ((102 - bc / 2) * oldValue * 100) / ((abs(oldValue) + 157) * contempt_value);
+                    dc += ((102 - bc / 2) * oldValue * 100) / ((abs(oldValue) + 157) * contemptValue);
                 }
                 contempt = WHITE == rootPos.active ?
                             +makeScore(dc, dc / 2) :
@@ -1957,8 +1958,8 @@ void Thread::search()
             // research with bigger window until not failing high/low anymore.
             do
             {
-                auto adjusted_depth = Depth(std::max(rootDepth - failHighCount - researchCount, 1));
-                bestValue = depthSearch<true>(rootPos, stacks+7, alfa, beta, adjusted_depth, false);
+                auto adjustedDepth = Depth(std::max(rootDepth - failHighCount - researchCount, 1));
+                bestValue = depthSearch<true>(rootPos, stacks+7, alfa, beta, adjustedDepth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
                 // done with a stable algorithm because all the values but the first
@@ -2044,7 +2045,7 @@ void Thread::search()
         }
 
         // Has any of the threads found a "mate in <x>"?
-        if (    Threadpool.limit.mateOn()
+        if (   0 != Threadpool.limit.mate
             && !Threadpool.limit.useTimeMgr()
             && bestValue >= +VALUE_MATE - 2 * Threadpool.limit.mate)
         {
@@ -2172,7 +2173,7 @@ void MainThread::search()
         timeMgr.set(rootPos.active, rootPos.ply);
     }
     assert(0 <= rootPos.ply);
-    TEntry::Generation = u08((rootPos.ply + 1) << 3);
+    TEntry::Generation += 8; //u08((rootPos.ply + 1) << 3);
 
     bool think = true;
 
@@ -2190,7 +2191,7 @@ void MainThread::search()
     else
     {
         if (   !Threadpool.limit.infinite
-            && !Threadpool.limit.mateOn()
+            && 0 == Threadpool.limit.mate
             && bool(Options["Use Book"]))
         {
             auto bm = Book.probe(rootPos, i16(i32(Options["Book Move Num"])), bool(Options["Book Pick Best"]));

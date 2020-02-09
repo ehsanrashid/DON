@@ -441,7 +441,7 @@ namespace {
                     auto kF = sFile(pos.square(Own|KING));
                     if ((kF < F_E) == (sFile(s) < kF))
                     {
-                        score -= RookTrapped * (1 + (CR_NONE == pos.si->castleRight(Own)));
+                        score -= RookTrapped * (1 + (CR_NONE == pos.castleRight(Own)));
                     }
                 }
             }
@@ -454,17 +454,15 @@ namespace {
 
                 // Penalty for pin or discover attack on the queen
                 b = 0; // Queen attackers
-                if ((  pos.sliderBlockersAt(s, Opp, pos.pieces(Opp, QUEN), b, b)
+                if ((   pos.sliderBlockersAt(s, pos.pieces(Opp, BSHP, ROOK), b, b)
                      & ~pos.si->kingBlockers[Opp]
-                     & ~(  pos.pieces(Opp, PAWN)
-                         & fileBB(s)
+                     & ~(   pos.pieces(Opp, PAWN)
+                         &  fileBB(s)
                          & ~pawnSglAttacks(Own, pos.pieces(Own)))) != 0)
                 {
                     score -= QueenWeaken;
                 }
             }
-                break;
-            default: assert(false);
                 break;
             }
         }
