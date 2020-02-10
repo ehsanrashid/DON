@@ -692,9 +692,9 @@ namespace {
                 {
                     sync_cout << hex << uppercase << setfill('0')
                               << "FEN: "                  << pos.fen()        << "\n"
-                              << "Posi key: " << setw(16) << pos.si->posiKey << "\n"
-                              << "Matl key: " << setw(16) << pos.si->matlKey << "\n"
-                              << "Pawn key: " << setw(16) << pos.si->pawnKey << "\n"
+                              << "Posi key: " << setw(16) << pos.posiKey() << "\n"
+                              << "Matl key: " << setw(16) << pos.matlKey() << "\n"
+                              << "Pawn key: " << setw(16) << pos.pawnKey() << "\n"
                               << "PG key: "   << setw(16) << pos.pgKey()
                               << setfill(' ') << nouppercase << dec << sync_endl;
                 }
@@ -703,7 +703,7 @@ namespace {
                 {
                     sync_cout;
                     i32 count;
-                    if (0 != pos.si->checkers)
+                    if (0 != pos.checkers())
                     {
                         cout << "\nEvasion moves: ";
                         count = 0;

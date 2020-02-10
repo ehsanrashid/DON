@@ -461,7 +461,7 @@ namespace TBSyzygy {
         {
             StateInfo si;
             Position pos;
-            key1 = pos.setup(code, WHITE, si).si->matlKey;
+            key1 = pos.setup(code, WHITE, si).matlKey();
             pieceCount = pos.count();
             hasPawns = 0 != pos.count(PAWN);
             hasUniquePieces = false;
@@ -484,7 +484,7 @@ namespace TBSyzygy {
             pawnCount[0] = u08(pos.count( leadColor|PAWN));
             pawnCount[1] = u08(pos.count(~leadColor|PAWN));
 
-            key2 = pos.setup(code, BLACK, si).si->matlKey;
+            key2 = pos.setup(code, BLACK, si).matlKey();
         }
 
         template<>
@@ -826,7 +826,7 @@ namespace TBSyzygy {
                 // KRvK, not KvKR. A position where stronger side is white will have its
                 // material key == entry->key1, otherwise we have to switch the color and
                 // flip the squares before to lookup.
-                     || (pos.si->matlKey != entry->key1);
+                     || (pos.matlKey() != entry->key1);
 
             auto stm = flip ? ~pos.active : pos.active;
 
@@ -1406,7 +1406,7 @@ namespace TBSyzygy {
                 b += string(pos.count(BLACK|pt), PieceChar[pt]);
             }
 
-            string code = e.key1 == pos.si->matlKey ?
+            string code = e.key1 == pos.matlKey() ?
                             w + b :
                             b + w;
             TBFile file (code, WDL == Type ? ".rtbw" : ".rtbz");
@@ -1427,7 +1427,7 @@ namespace TBSyzygy {
                 return Ret(WDLScore::DRAW); // KvK
             }
 
-            auto *entry = TB_Tables.get<Type>(pos.si->matlKey);
+            auto *entry = TB_Tables.get<Type>(pos.matlKey());
 
             if (   nullptr == entry
                 || nullptr == mapped(*entry, pos))
@@ -1622,7 +1622,7 @@ namespace TBSyzygy {
 
             // If the move mates, force minDTZ to 1
             if (   1 == dtz
-                && 0 != pos.si->checkers
+                && 0 != pos.checkers()
                 && 0 == MoveList<LEGAL>(pos).size())
             {
                 minDTZ = 1;
@@ -1699,7 +1699,7 @@ namespace TBSyzygy {
         assert(0 != rootMoves.size());
 
         // Obtain 50-move counter for the root position
-        auto clockPly = rootPos.si->clockPly;
+        auto clockPly = rootPos.clockPly();
         // Check whether a position was repeated since the last zeroing move.
         bool repeated = rootPos.repeated();
 
@@ -1715,7 +1715,7 @@ namespace TBSyzygy {
             rootPos.doMove(move, si);
 
             // Calculate dtz for the current move counting from the root position
-            if (0 == rootPos.si->clockPly)
+            if (0 == rootPos.clockPly())
             {
                 // In case of a zeroing move, dtz is one of -101/-1/0/+1/+101
                 WDLScore wdl = -probeWDL(rootPos, state);
@@ -1730,7 +1730,7 @@ namespace TBSyzygy {
                       dtz;
             }
             // Make sure that a mating move is assigned a dtz value of 1
-            if (   0 != rootPos.si->checkers
+            if (   0 != rootPos.checkers()
                 && 2 == dtz
                 && 0 == MoveList<LEGAL>(rootPos).size())
             {

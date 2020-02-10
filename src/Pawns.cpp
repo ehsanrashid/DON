@@ -108,8 +108,8 @@ namespace Pawns {
         // Find King path
         array<Bitboard, CS_NO> kPaths
         {
-            pos.castleKingPath[Own][CS_KING] * (pos.canCastle(makeCastleRight(Own, CS_KING)) && pos.castleExpeded(Own, CS_KING)),
-            pos.castleKingPath[Own][CS_QUEN] * (pos.canCastle(makeCastleRight(Own, CS_QUEN)) && pos.castleExpeded(Own, CS_QUEN))
+            pos.castleKingPath[Own][CS_KING] * (pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING)),
+            pos.castleKingPath[Own][CS_QUEN] * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN))
         };
         if (0 != (kPaths[CS_KING] & attacks))
         {
@@ -277,14 +277,14 @@ namespace Pawns {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(const Position &pos)
     {
-        auto *e = pos.thread->pawnTable[pos.si->pawnKey];
+        auto *e = pos.thread->pawnTable[pos.pawnKey()];
 
-        if (e->key == pos.si->pawnKey)
+        if (e->key == pos.pawnKey())
         {
             return e;
         }
 
-        e->key = pos.si->pawnKey;
+        e->key = pos.pawnKey();
         e->evaluate<WHITE>(pos),
         e->evaluate<BLACK>(pos);
 

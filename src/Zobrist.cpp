@@ -56,9 +56,9 @@ Key Zobrist::computePosiKey(const Position &pos) const
         posiKey ^= colorKey;
     }
     posiKey ^= castleRightKey[pos.si->castleRights];
-    if (SQ_NO != pos.si->enpassantSq)
+    if (SQ_NO != pos.epSquare())
     {
-        posiKey ^= enpassantKey[sFile(pos.si->enpassantSq)];
+        posiKey ^= enpassantKey[sFile(pos.epSquare())];
     }
     return posiKey;
 }
@@ -156,17 +156,13 @@ Key Zobrist::computeFenKey(const string &fen) const
 }
 */
 
-namespace {
-
-    PRNG prng{0x105524};
-
-}
-
 void initializeZobrist()
 {
     assert(PolyZob.pieceSquareKey[WHITE][PAWN][SQ_A1] == U64(0x5355F900C2A82DC7));
     assert(PolyZob.pieceSquareKey[BLACK][KING][SQ_H8] == U64(0xFF577222C14F0A3A));
     assert(PolyZob.colorKey == U64(0xF8D626AAAF278509));
+
+    PRNG prng(0x105524);
 
     // Initialize Random Zobrist
     for (auto c : { WHITE, BLACK })

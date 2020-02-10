@@ -345,7 +345,7 @@ namespace {
             assert(0 <= mob && mob <= 27);
 
             // Bonus for piece mobility
-            mobility[Own] += Mobility[PT - NIHT][mob];
+            mobility[Own] += Mobility[PT - 1][mob];
 
             Bitboard b;
             // Special extra evaluation for pieces
@@ -441,7 +441,7 @@ namespace {
                     auto kF = sFile(pos.square(Own|KING));
                     if ((kF < F_E) == (sFile(s) < kF))
                     {
-                        score -= RookTrapped * (1 + (CR_NONE == pos.castleRight(Own)));
+                        score -= RookTrapped * (1 + !pos.canCastle(Own));
                     }
                 }
             }
@@ -943,7 +943,7 @@ namespace {
                     std::min(Scale(36 + (7 - 5 * oppositeBishop) * pos.count(stngColor|PAWN)), SCALE_NORMAL);
 
             // Scale down endgame factor when shuffling
-            scl = std::max(Scale(scl - std::max(pos.si->clockPly / 4 - 3, 0)), SCALE_DRAW);
+            scl = std::max(Scale(scl - std::max(pos.clockPly() / 4 - 3, 0)), SCALE_DRAW);
         }
         return scl;
     }
@@ -953,7 +953,7 @@ namespace {
     template<bool Trace>
     Value Evaluator<Trace>::value()
     {
-        assert(0 == pos.si->checkers);
+        assert(0 == pos.checkers());
 
         // Probe the material hash table
         me = Material::probe(pos);
@@ -1042,7 +1042,7 @@ Value evaluate(const Position &pos)
 /// the detailed descriptions and values of each evaluation term.
 string trace(const Position &pos)
 {
-    if (0 != pos.si->checkers)
+    if (0 != pos.checkers())
     {
         return "Total evaluation: none (in check)";
     }

@@ -18,8 +18,8 @@ namespace Endgames {
     void add(const string &code)
     {
         StateInfo si;
-        map<T>()[Position().setup(code, WHITE, si).si->matlKey] = EG_Ptr<T>(new Endgame<C>(WHITE));
-        map<T>()[Position().setup(code, BLACK, si).si->matlKey] = EG_Ptr<T>(new Endgame<C>(BLACK));
+        map<T>()[Position().setup(code, WHITE, si).matlKey()] = EG_Ptr<T>(new Endgame<C>(WHITE));
+        map<T>()[Position().setup(code, BLACK, si).matlKey()] = EG_Ptr<T>(new Endgame<C>(BLACK));
     }
 
     void initialize()
@@ -120,7 +120,7 @@ namespace Endgames {
     template<> Value Endgame<KXK>::operator()(const Position &pos) const
     {
         assert(verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
-        assert(0 == pos.si->checkers); // Eval is never called when in check
+        assert(0 == pos.checkers()); // Eval is never called when in check
         // Stalemate detection with lone weak king
         if (   weakColor == pos.active
             && 0 == MoveList<GenType::LEGAL>(pos).size())

@@ -37,6 +37,9 @@ public:
         : s(seed)
     { assert(0 != s); }
 
+    PRNG(const PRNG&) = delete;
+    PRNG& operator=(const PRNG&) = delete;
+
     template<typename T>
     T rand() { return T(rand64()); }
 

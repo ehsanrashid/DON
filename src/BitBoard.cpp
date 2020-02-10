@@ -2,6 +2,9 @@
 
 #include <bitset>
 #include <memory>
+#if !defined(BM2)
+#   include <vector>
+#endif
 
 #include "PRNG.h"
 #include "Notation.h"

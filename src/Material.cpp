@@ -118,7 +118,7 @@ namespace Material {
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
         // configuration one, then a generic one if previous search failed.
-        evaluationFunc = Endgames::probe<Value>(pos.si->matlKey);
+        evaluationFunc = Endgames::probe<Value>(pos.matlKey());
         if (nullptr != evaluationFunc)
         {
             return;
@@ -139,7 +139,7 @@ namespace Material {
         //
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
-        const auto *scalingFn = Endgames::probe<Scale>(pos.si->matlKey);
+        const auto *scalingFn = Endgames::probe<Scale>(pos.matlKey());
         if (nullptr != scalingFn)
         {
             scalingFunc[scalingFn->stngColor] = scalingFn;
@@ -236,14 +236,14 @@ namespace Material {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(const Position &pos)
     {
-        auto *e = pos.thread->matlTable[pos.si->matlKey];
+        auto *e = pos.thread->matlTable[pos.matlKey()];
 
-        if (e->key == pos.si->matlKey)
+        if (e->key == pos.matlKey())
         {
             return e;
         }
 
-        e->key = pos.si->matlKey;
+        e->key = pos.matlKey();
         e->evaluate(pos);
 
         return e;

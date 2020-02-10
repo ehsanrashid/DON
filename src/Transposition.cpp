@@ -194,7 +194,7 @@ Move TTable::extractNextMove(Position &pos, Move cm) const
     StateInfo si;
     pos.doMove(cm, si);
     bool ttHit;
-    auto *tte = probe(pos.si->posiKey, ttHit);
+    auto *tte = probe(pos.posiKey(), ttHit);
     auto nm = ttHit ?
                 tte->move() :
                 MOVE_NONE;

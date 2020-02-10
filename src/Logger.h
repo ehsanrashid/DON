@@ -2,104 +2,92 @@
 
 #include <fstream>
 #include <iostream>
-#if defined(_WIN32)
-#   include <ctime>
-#endif
+#include <streambuf>
+#include <cstring>
+#include <string>
 
-#include "Engine.h"
-#include "tiebuffer.h"
 #include "Type.h"
-#include "Util.h"
 
-
-inline std::string toString(const std::chrono::system_clock::time_point &tp)
-{
-    std::string stime;
-
-#   if defined(_WIN32)
-
-    auto time = std::chrono::system_clock::to_time_t(tp);
-    const auto *local_tm = localtime(&time);
-    const char *format = "%Y.%m.%d-%H.%M.%S";
-    char buffer[32];
-    strftime(buffer, sizeof (buffer), format, local_tm);
-    stime.append(buffer);
-    auto ms = std::chrono::duration_cast<std::chrono::milliseconds>(tp - std::chrono::system_clock::from_time_t(time)).count();
-    stime.append(".");
-    stime.append(std::to_string(ms));
-
-#   else
-
-    (void)tp;
-
-#   endif
-
-    return stime;
-}
-
+// Our fancy logging facility.
+// The trick here is to replace cin.rdbuf() and cout.rdbuf() with
+// two BasicTieStreamBuf objects that tie cin and cout to a file stream.
+// Can toggle the logging of std::cout and std:cin at runtime whilst preserving
+// usual I/O functionality, all without changing a single line of code!
+// Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 template<typename Elem, typename Traits>
-inline std::basic_ostream<Elem, Traits>&
-    operator<<(std::basic_ostream<Elem, Traits> &os, const std::chrono::system_clock::time_point &tp)
+class BasicTieStreamBuf
+    : public std::basic_streambuf<Elem, Traits>
 {
-    os << toString(tp);
-    return os;
-}
-
-// Singleton I/O Logger class
-class Logger
-{
-private:
-    std::ofstream _ofs;
-    std::tie_buf  _inb; // Input
-    std::tie_buf  _otb; // Output
-
 public:
 
-    std::string filename;
+    typedef typename Traits::int_type   int_type;
 
-    Logger()
-        : _inb(std::cin.rdbuf(), _ofs.rdbuf())
-        , _otb(std::cout.rdbuf(), _ofs.rdbuf())
-        , filename("<empty>")
+    std::basic_streambuf<Elem, Traits> *rStreamBuf;
+    std::basic_streambuf<Elem, Traits> *wStreamBuf;
+
+    BasicTieStreamBuf(std::basic_streambuf<Elem, Traits> *rsb,
+                      std::basic_streambuf<Elem, Traits> *wsb)
+        : rStreamBuf(rsb)
+        , wStreamBuf(wsb)
     {}
-    Logger(const Logger&) = delete;
-    Logger& operator=(const Logger&) = delete;
 
-    virtual ~Logger()
+protected:
+
+    BasicTieStreamBuf(const BasicTieStreamBuf&) = delete;
+    BasicTieStreamBuf& operator=(const BasicTieStreamBuf&) = delete;
+
+    int                     sync() override { return wStreamBuf->pubsync(), rStreamBuf->pubsync(); }
+    int_type overflow(int_type ch) override { return write(rStreamBuf->sputc(Elem(ch)), "<< "); }
+    int_type           underflow() override { return rStreamBuf->sgetc(); }
+    int_type               uflow() override { return write(rStreamBuf->sbumpc(), ">> "); }
+
+private:
+
+    int_type write(int_type ch, const Elem *prefix)
     {
-        set("<empty>");
-    }
+        // Last character
+        static int_type _ch = '\n';
 
-    void set(const std::string &fn)
-    {
-        if (_ofs.is_open())
+        if ('\n' == _ch)
         {
-            std::cout.rdbuf(_otb.streambuf());
-            std::cin.rdbuf(_inb.streambuf());
-
-            _ofs << "[" << std::chrono::system_clock::now() << "] <-" << std::endl;
-            _ofs.close();
+            wStreamBuf->sputn(prefix, strlen(prefix));
         }
-        filename = fn;
-        if (!whiteSpaces(filename))
-        {
-            _ofs.open(filename, std::ios_base::out|std::ios_base::app);
-            if (!_ofs.is_open())
-            {
-                std::cerr << "Unable to open debug log file " << filename << std::endl;
-                stop(EXIT_FAILURE);
-            }
-            _ofs << "[" << std::chrono::system_clock::now() << "] ->" << std::endl;
-
-            std::cin.rdbuf(&_inb);
-            std::cout.rdbuf(&_otb);
-        }
+        return _ch = wStreamBuf->sputc(Elem(ch));
     }
 
 };
 
-// Global Logger
-extern Logger Log;
+typedef BasicTieStreamBuf<char   , std::char_traits<char   >>  TieStreamBuf;
+//typedef BasicTieStreamBuf<wchar_t, std::char_traits<wchar_t>> wTieStreamBuf;
+
+// I/O Logger
+class Logger
+{
+private:
+    std::ofstream _ofStream;
+    TieStreamBuf  _iTieStreamBuf;
+    TieStreamBuf  _oTieStreamBuf;
+
+public:
+
+    Logger();
+    Logger(const Logger&) = delete;
+    Logger& operator=(const Logger&) = delete;
+
+    virtual ~Logger();
+
+    void set(const std::string&);
+};
+
+extern std::string toString(const std::chrono::system_clock::time_point&);
+
+template<typename Elem, typename Traits>
+inline std::basic_ostream<Elem, Traits>&
+operator<<(std::basic_ostream<Elem, Traits> &os, const std::chrono::system_clock::time_point &tp)
+{
+    os << toString(tp);
+    return os;
+}
 
 // Debug functions used mainly to collect run-time statistics
 extern void initializeDebug();
@@ -107,3 +95,6 @@ extern void debugHit(bool);
 extern void debugHitOn(bool, bool);
 extern void debugMeanOf(i64);
 extern void debugPrint();
+
+// Global Logger
+extern Logger Log;

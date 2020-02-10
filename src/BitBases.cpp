@@ -61,7 +61,7 @@ namespace BitBases {
         private:
             Color                 active;
             Square                pSq;
-            array<Square, CLR_NO> kSq;
+            Array<Square, CLR_NO>::type kSq;
 
             Result                result;
 

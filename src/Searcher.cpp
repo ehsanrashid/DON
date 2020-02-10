@@ -161,7 +161,7 @@ namespace Searcher {
                     && pos.legal(ttMove)));
                 assert(DEP_ZERO < depth);
 
-                stage = 0 != pos.si->checkers ?
+                stage = 0 != pos.checkers() ?
                         Stage::EV_TT :
                         Stage::NT_TT;
                 stage += (MOVE_NONE == ttMove);
@@ -189,7 +189,7 @@ namespace Searcher {
                 {
                     ttMove = MOVE_NONE;
                 }
-                stage = 0 != pos.si->checkers ?
+                stage = 0 != pos.checkers() ?
                         Stage::EV_TT :
                         Stage::QS_TT;
                 stage += (MOVE_NONE == ttMove);
@@ -203,7 +203,7 @@ namespace Searcher {
                 , threshold(thr)
                 //, skipQuiets(false)
             {
-                assert(0 == pos.si->checkers);
+                assert(0 == pos.checkers());
                 assert(MOVE_NONE == ttMove
                     || (pos.pseudoLegal(ttMove)
                      && pos.legal(ttMove)));
@@ -240,8 +240,8 @@ namespace Searcher {
                 case Stage::QS_INIT:
                     generate<GenType::CAPTURE>(vmoves, pos);
                     vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
-                                                [&](const ValMove &vm) { return ttMove == vm.move
-                                                                             || !pos.fullLegal(vm.move); }),
+                                                [&](const ValMove &vm) { return ttMove == vm
+                                                                             || !pos.fullLegal(vm); }),
                                  vmoves.end());
                     value<GenType::CAPTURE>();
                     vmItr = vmoves.begin();
@@ -261,8 +261,8 @@ namespace Searcher {
 
                     // If the countermove is the same as a killers, skip it
                     if (   MOVE_NONE != refutationMoves[2]
-                        && (   refutationMoves[0] == refutationMoves[2]
-                            || refutationMoves[1] == refutationMoves[2]))
+                        && (   refutationMoves[2] == refutationMoves[0]
+                            || refutationMoves[2] == refutationMoves[1]))
                     {
                         refutationMoves[2] = MOVE_NONE;
                     }
@@ -288,9 +288,9 @@ namespace Searcher {
                     {
                         generate<GenType::QUIET>(vmoves, pos);
                         vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
-                                                    [&](const ValMove &vm) { return ttMove == vm.move
+                                                    [&](const ValMove &vm) { return ttMove == vm
                                                                                  || std::find(mItr, mEnd, vm.move) != mEnd
-                                                                                 || !pos.fullLegal(vm.move); }),
+                                                                                 || !pos.fullLegal(vm); }),
                                      vmoves.end());
                         value<GenType::QUIET>();
                         std::sort(vmoves.begin(), vmoves.end(), greater<ValMove>());
@@ -319,8 +319,8 @@ namespace Searcher {
                 case Stage::EV_INIT:
                     generate<GenType::EVASION>(vmoves, pos);
                     vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
-                                                [&](const ValMove &vm) { return ttMove == vm.move
-                                                                             || !pos.fullLegal(vm.move); }),
+                                                [&](const ValMove &vm) { return ttMove == vm
+                                                                             || !pos.fullLegal(vm); }),
                                  vmoves.end());
                     value<GenType::EVASION>();
                     vmItr = vmoves.begin();
@@ -353,8 +353,8 @@ namespace Searcher {
 
                     generate<GenType::QUIET_CHECK>(vmoves, pos);
                     vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
-                                                [&](const ValMove &vm) { return ttMove == vm.move
-                                                                             || !pos.fullLegal(vm.move); }),
+                                                [&](const ValMove &vm) { return ttMove == vm
+                                                                             || !pos.fullLegal(vm); }),
                                  vmoves.end());
                     vmItr = vmoves.begin();
                     vmEnd = vmoves.end();
@@ -365,11 +365,8 @@ namespace Searcher {
                             *vmItr++ :
                             MOVE_NONE;
                     /* end */
-
-                default:
-                    assert(false);
-                    break;
                 }
+                assert(false);
                 return MOVE_NONE;
             }
         };
@@ -500,9 +497,10 @@ namespace Searcher {
 
             if (isOk((ss-1)->playedMove))
             {
-                auto pmDst = dstSq((ss-1)->playedMove);
-                assert(NO_PIECE != pos[pmDst]
-                    || CASTLE == mType((ss-1)->playedMove));
+                auto pmDst = CASTLE != mType((ss-1)->playedMove) ?
+                                dstSq((ss-1)->playedMove) :
+                                relSq(~pos.active, dstSq((ss-1)->playedMove) > orgSq((ss-1)->playedMove) ? SQ_G1 : SQ_C1);
+                assert(NO_PIECE != pos[pmDst]);
                 pos.thread->moveHistory[pos[pmDst]][pmDst] = move;
             }
 
@@ -541,7 +539,7 @@ namespace Searcher {
                 ss->pv.clear();
             }
 
-            bool inCheck = 0 != pos.si->checkers;
+            bool inCheck = 0 != pos.checkers();
 
             // Check for maximum ply reached or immediate draw.
             if (   ss->ply >= DEP_MAX
@@ -558,14 +556,14 @@ namespace Searcher {
                 && ss->ply < DEP_MAX);
 
             // Transposition table lookup.
-            Key key = pos.si->posiKey;
+            Key key = pos.posiKey();
             bool ttHit;
             auto *tte = TT.probe(key, ttHit);
             auto ttMove = ttHit ?
                             tte->move() :
                             MOVE_NONE;
             auto ttValue = ttHit ?
-                            valueOfTT(tte->value(), ss->ply, pos.si->clockPly) :
+                            valueOfTT(tte->value(), ss->ply, pos.clockPly()) :
                             VALUE_NONE;
             auto ttPV = ttHit
                      && tte->pv();
@@ -818,7 +816,7 @@ namespace Searcher {
             // or an alternative earlier move to this position.
             if (   !rootNode
                 && alfa < VALUE_DRAW
-                && pos.si->clockPly >= 3
+                && pos.clockPly() >= 3
                 && pos.cycled(ss->ply))
             {
                 alfa = drawValue();
@@ -841,7 +839,7 @@ namespace Searcher {
 
             // Step 1. Initialize node.
             auto *thread = pos.thread;
-            bool inCheck = 0 != pos.si->checkers;
+            bool inCheck = 0 != pos.checkers();
             ss->moveCount = 0;
 
             // Check for the available remaining limit.
@@ -905,7 +903,7 @@ namespace Searcher {
             // Step 4. Transposition table lookup.
             // Don't want the score of a partial search to overwrite a previous full search
             // TT value, so use a different position key in case of an excluded move.
-            Key key = pos.si->posiKey ^ (Key(ss->excludedMove) << 0x10);
+            Key key = pos.posiKey() ^ (Key(ss->excludedMove) << 0x10);
             bool ttHit;
             auto *tte = TT.probe(key, ttHit);
             auto ttMove = rootNode ?
@@ -914,7 +912,7 @@ namespace Searcher {
                                 tte->move() :
                                 MOVE_NONE;
             auto ttValue = ttHit ?
-                            valueOfTT(tte->value(), ss->ply, pos.si->clockPly) :
+                            valueOfTT(tte->value(), ss->ply, pos.clockPly()) :
                             VALUE_NONE;
             auto ttPV = PVNode
                      || (   ttHit
@@ -931,10 +929,9 @@ namespace Searcher {
             thread->ttHitAvg = (TTHitAverageWindow - 1) * thread->ttHitAvg / TTHitAverageWindow
                              + TTHitAverageResolution * ttHit;
 
-            bool priorCaptureOrPromotion = NONE != pos.si->capture
-                                        //|| NONE != pos.si->promote
-                                        || ((ss-1)->playedMove
-                                         && PROMOTE == mType((ss-1)->playedMove));
+            bool pmCaptureOrPromotion = isOk((ss-1)->playedMove)
+                                     && (   NONE != pos.captured()
+                                         || PROMOTE == mType((ss-1)->playedMove));
 
             // At non-PV nodes we check for an early TT cutoff.
             if (   !PVNode
@@ -955,7 +952,7 @@ namespace Searcher {
                         }
 
                         // Extra penalty for early quiet moves in previous ply when it gets refuted.
-                        if (   !priorCaptureOrPromotion
+                        if (   !pmCaptureOrPromotion
                             && 2 >= (ss-1)->moveCount)
                         {
                             auto bonus = -statBonus(depth + 1);
@@ -972,7 +969,7 @@ namespace Searcher {
                     }
                 }
 
-                if (90 > pos.si->clockPly)
+                if (90 > pos.clockPly())
                 {
                     return ttValue;
                 }
@@ -987,8 +984,8 @@ namespace Searcher {
                 if (   (   pieceCount < TBLimitPiece
                         || (   pieceCount == TBLimitPiece
                             && depth >= TBProbeDepth))
-                    && 0 == pos.si->clockPly
-                    && !pos.canCastle(CR_ANY))
+                    && 0 == pos.clockPly()
+                    && CR_NONE == pos.castleRights())
                 {
                     ProbeState probeState;
                     auto wdl = probeWDL(pos, probeState);
@@ -1148,7 +1145,7 @@ namespace Searcher {
                     auto R = Depth((68 * depth + 854) / 258 + std::min(i32(eval - beta) / 192, 3));
 
                     ss->playedMove = MOVE_NULL;
-                    ss->pdHistory = &thread->continuationHistory[0][0][NO_PIECE][0];
+                    ss->pdHistory = &thread->continuationHistory[0][0][NO_PIECE][SQ_NONE];
 
                     pos.doNullMove(si);
 
@@ -1247,7 +1244,7 @@ namespace Searcher {
                             tte->move() :
                             MOVE_NONE;
                 ttValue = ttHit ?
-                            valueOfTT(tte->value(), ss->ply, pos.si->clockPly) :
+                            valueOfTT(tte->value(), ss->ply, pos.clockPly()) :
                             VALUE_NONE;
 
                 if (   MOVE_NONE != ttMove
@@ -1263,7 +1260,7 @@ namespace Searcher {
             u08 moveCount = 0;
 
             // Mark this node as being searched.
-            ThreadMarker threadMarker(thread, pos.si->posiKey, ss->ply);
+            ThreadMarker threadMarker(thread, pos.posiKey(), ss->ply);
 
             vector<Move> quietMoves
                 ,        captureMoves;
@@ -1281,9 +1278,15 @@ namespace Searcher {
                 nullptr          , (ss-6)->pdHistory
             };
 
-            auto counterMove = isOk((ss-1)->playedMove) ?
-                                pos.thread->moveHistory[pos[dstSq((ss-1)->playedMove)]][dstSq((ss-1)->playedMove)] :
-                                MOVE_NONE;
+            auto counterMove = MOVE_NONE;
+            if (isOk((ss-1)->playedMove))
+            {
+                auto pmDst = CASTLE != mType((ss-1)->playedMove) ?
+                                dstSq((ss-1)->playedMove) :
+                                relSq(~pos.active, dstSq((ss-1)->playedMove) > orgSq((ss-1)->playedMove) ? SQ_G1 : SQ_C1);
+                assert(NO_PIECE != pos[pmDst]);
+                counterMove = pos.thread->moveHistory[pos[pmDst]][pmDst];
+            }
 
             // Initialize move picker (1) for the current position
             MovePicker mp(pos, ttMove, depth, pdHistories, ss->killerMoves, counterMove);
@@ -1443,7 +1446,7 @@ namespace Searcher {
                 }
                 else
                 if (// Last captures extension
-                       (   PieceValues[EG][pos.si->capture] > VALUE_EG_PAWN
+                       (   PieceValues[EG][pos.captured()] > VALUE_EG_PAWN
                         && pos.nonPawnMaterial() <= 2 * VALUE_MG_ROOK)
                     // Check extension (~2 ELO)
                     || (   giveCheck
@@ -1486,7 +1489,7 @@ namespace Searcher {
                         || !captureOrPromotion
                         || mp.skipQuiets
                         || (  ss->staticEval
-                            + PieceValues[EG][pos.si->capture]) <= alfa
+                            + PieceValues[EG][pos.captured()]) <= alfa
                         // If ttHit running average is small
                         || thread->ttHitAvg < (375 * TTHitAverageWindow));
 
@@ -1749,7 +1752,7 @@ namespace Searcher {
                 }
 
                 // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
-                if (   !priorCaptureOrPromotion
+                if (   !pmCaptureOrPromotion
                     && (   1 == (ss-1)->moveCount
                         || (ss-1)->killerMoves[0] == (ss-1)->playedMove))
                 {
@@ -1758,7 +1761,7 @@ namespace Searcher {
             }
             else
             // Bonus for prior quiet move that caused the fail low.
-            if (   !priorCaptureOrPromotion
+            if (   !pmCaptureOrPromotion
                 && (   PVNode
                     || 2 < depth))
             {
@@ -1880,7 +1883,7 @@ void Thread::search()
         ss->moveCount       = 0;
         ss->staticEval      = VALUE_ZERO;
         ss->stats           = 0;
-        ss->pdHistory       = &continuationHistory[0][0][NO_PIECE][0];
+        ss->pdHistory       = &continuationHistory[0][0][NO_PIECE][SQ_NONE];
         ss->killerMoves.fill(MOVE_NONE);
         ss->pv.clear();
     }
@@ -2185,7 +2188,7 @@ void MainThread::search()
 
         sync_cout << "info"
                   << " depth " << 0
-                  << " score " << toString(0 != rootPos.si->checkers ? -VALUE_MATE : VALUE_DRAW)
+                  << " score " << toString(0 != rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW)
                   << " time "  << 0 << sync_endl;
     }
     else

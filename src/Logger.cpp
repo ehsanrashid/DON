@@ -3,9 +3,75 @@
 #include <atomic>
 #include <iomanip>
 
+#if defined(_WIN32)
+#   include <ctime>
+#endif
+
+#include "Engine.h"
+#include "Util.h"
+
 Logger Log;
 
 using namespace std;
+
+string toString(const chrono::system_clock::time_point &tp)
+{
+    string stime;
+
+#   if defined(_WIN32)
+
+    auto time = chrono::system_clock::to_time_t(tp);
+    const auto *ltm = localtime(&time);
+    const char *format = "%Y.%m.%d-%H.%M.%S";
+    char buffer[32];
+    strftime(buffer, sizeof (buffer), format, ltm);
+    stime.append(buffer);
+    auto ms = chrono::duration_cast<chrono::milliseconds>(tp - chrono::system_clock::from_time_t(time)).count();
+    stime.append(".");
+    stime.append(to_string(ms));
+
+#   else
+
+    (void)tp;
+
+#   endif
+
+    return stime;
+}
+
+Logger::Logger()
+    : _iTieStreamBuf( cin.rdbuf(), _ofStream.rdbuf())
+    , _oTieStreamBuf(cout.rdbuf(), _ofStream.rdbuf())
+{}
+Logger::~Logger()
+{
+    set("<empty>");
+}
+
+void Logger::set(const string &fn)
+{
+    if (_ofStream.is_open())
+    {
+        cout.rdbuf(_oTieStreamBuf.rStreamBuf);
+         cin.rdbuf(_iTieStreamBuf.rStreamBuf);
+
+        _ofStream << "[" << chrono::system_clock::now() << "] <-" << endl;
+        _ofStream.close();
+    }
+    if (!whiteSpaces(fn))
+    {
+        _ofStream.open(fn, ios_base::out|ios_base::app);
+        if (!_ofStream.is_open())
+        {
+            cerr << "Unable to open debug log file " << fn << endl;
+            stop(EXIT_FAILURE);
+        }
+        _ofStream << "[" << chrono::system_clock::now() << "] ->" << endl;
+
+         cin.rdbuf(&_iTieStreamBuf);
+        cout.rdbuf(&_oTieStreamBuf);
+    }
+}
 
 namespace {
 

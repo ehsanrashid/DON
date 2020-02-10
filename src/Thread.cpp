@@ -268,22 +268,22 @@ void Thread::clear()
     butterflyHistory.fill(0);
     captureHistory.fill(0);
 
-    for (auto &mh : moveHistory)
+    for (auto &mH : moveHistory)
     {
-        mh.fill(MOVE_NONE);
+        mH.fill(MOVE_NONE);
     }
-    for (auto inCheck : {0, 1})
+    for (auto &inCheckHs : continuationHistory)
     {
-        for (auto captureType : {0, 1})
+        for (auto &captureHs : inCheckHs)
         {
-            for (auto &pdhs : continuationHistory[inCheck][captureType])
+            for (auto &pieceHs : captureHs)
             {
-                for (auto &pdh : pdhs)
+                for (auto &squareH : pieceHs)
                 {
-                    pdh->fill(0);
+                    squareH.fill(0);
                 }
             }
-            continuationHistory[inCheck][captureType][NO_PIECE][0]->fill(CounterMovePruneThreshold - 1);
+            captureHs[NO_PIECE][SQ_NONE].fill(CounterMovePruneThreshold - 1);
         }
     }
 
@@ -562,7 +562,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
         // Rank moves using DTZ tables
         if (   0 != TBLimitPiece
             && TBLimitPiece >= pos.count()
-            && !pos.canCastle(CR_ANY))
+            && CR_NONE == pos.castleRights())
         {
             // If the current root position is in the table-bases,
             // then RootMoves contains only moves that preserve the draw or the win.

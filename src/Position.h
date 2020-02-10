@@ -66,15 +66,13 @@ public:
     Key         matlKey;        // Hash key of materials
     Key         pawnKey;        // Hash key of pawns
     CastleRight castleRights;   // Castling-rights information
-    Square      enpassantSq;    // Enpassant -> "In passing"
+    Square      epSquare;       // Enpassant -> "In passing"
     u08         clockPly;       // Number of half moves clock since the last pawn advance or any capture
     u08         nullPly;
-    Value       npm[CLR_NO];
 
     // ---Not copied when making a move---
     Key         posiKey;        // Hash key of position
-    PieceType   capture;        // Piece type captured
-    //PieceType   promote;      // Piece type promoted
+    PieceType   captured;       // Piece type captured
     Bitboard    checkers;       // Checkers
     i16         repetition;
     // Check info
@@ -109,6 +107,13 @@ class Position
 {
 private:
 
+    std::array<Piece   , SQ_NO>  piece;
+    std::array<Bitboard, CLR_NO> colors;
+    std::array<Bitboard, PT_NO>  types;
+
+    std::array<CastleRight, SQ_NO> sqCastleRight;
+    std::array<Value      , SQ_NO> npMaterial;
+
     void placePiece(Square, Piece);
     void removePiece(Square);
     void movePiece(Square, Square);
@@ -120,24 +125,19 @@ private:
 
 public:
 
-    std::array<Piece   , SQ_NO>  piece;
-    std::array<Bitboard, CLR_NO> colors;
-    std::array<Bitboard, PT_NO>  types;
-
-    std::array<CastleRight, SQ_NO> castleRights;
-
     std::array<std::list<Square>, MAX_PIECE> squares;
 
-    std::array<std::array<Square, CS_NO>  , CLR_NO> castleRookSq;
+    std::array<std::array<Square  , CS_NO>, CLR_NO> castleRookSq;
     std::array<std::array<Bitboard, CS_NO>, CLR_NO> castleKingPath;
     std::array<std::array<Bitboard, CS_NO>, CLR_NO> castleRookPath;
 
-    Score   psq;
-    i16     ply;
-    Color   active;
-    Thread  *thread;
+    Score psq;
+    i16   ply;
+    Color active;
 
-    StateInfo *si; // Current state information pointer
+    StateInfo *si;
+
+    Thread    *thread;
 
     static void initialize();
 
@@ -162,12 +162,24 @@ public:
     i32 count(Color) const;
     i32 count(PieceType) const;
 
+    //CastleRight castleRight(Square) const;
+    Value nonPawnMaterial(Color) const;
+    Value nonPawnMaterial() const;
     Square square(Piece, u08 = 0) const;
 
-    Value nonPawnMaterial() const;
-    Value nonPawnMaterial(Color) const;
-    bool canCastle(CastleRight cr) const;
-    CastleRight castleRight(Color c) const;
+
+    CastleRight castleRights() const;
+    bool   canCastle(Color c) const;
+    bool   canCastle(Color c, CastleSide cs) const;
+    Square epSquare() const;
+    u08    clockPly() const;
+    u08    nullPly() const;
+    Key    matlKey() const;
+    Key    pawnKey() const;
+    Key    posiKey() const;
+    PieceType captured() const;
+    Bitboard  checkers() const;
+
     bool castleExpeded(Color, CastleSide) const;
 
     Key pgKey() const;
@@ -300,6 +312,12 @@ inline i32 Position::count(PieceType pt) const
     return i32(squares[WHITE|pt].size() + squares[BLACK|pt].size());
 }
 
+//inline CastleRight Position::castleRight(Square s) const { return sqCastleRight[s]; }
+
+inline Value Position::nonPawnMaterial(Color c) const { return npMaterial[c]; }
+inline Value Position::nonPawnMaterial() const { return nonPawnMaterial(WHITE)
+                                                      + nonPawnMaterial(BLACK); }
+
 inline Square Position::square(Piece p, u08 index) const
 {
     assert(isOk(p));
@@ -307,23 +325,20 @@ inline Square Position::square(Piece p, u08 index) const
     return *std::next(squares[p].begin(), index);
 }
 
-inline Value Position::nonPawnMaterial() const
-{
-    return si->npm[WHITE]
-         + si->npm[BLACK];
-}
-inline Value Position::nonPawnMaterial(Color c) const
-{
-    return si->npm[c];
-}
-inline bool Position::canCastle(CastleRight cr) const
-{
-    return CR_NONE != (si->castleRights & cr);
-}
-inline CastleRight Position::castleRight(Color c) const
-{
-    return si->castleRights & makeCastleRight(c);
-}
+
+
+inline CastleRight Position::castleRights() const { return si->castleRights; }
+inline bool Position::canCastle(Color c)                const { return CR_NONE != (castleRights() & makeCastleRight(c)); }
+inline bool Position::canCastle(Color c, CastleSide cs) const { return CR_NONE != (castleRights() & makeCastleRight(c, cs)); }
+inline Square Position::epSquare() const { return si->epSquare; }
+inline u08    Position::clockPly() const { return si->clockPly; }
+inline u08    Position::nullPly() const { return si->nullPly; }
+inline Key    Position::matlKey() const { return si->matlKey; }
+inline Key    Position::pawnKey() const { return si->pawnKey; }
+inline Key    Position::posiKey() const { return si->posiKey; }
+inline PieceType Position::captured() const { return si->captured; }
+inline Bitboard  Position::checkers() const { return si->checkers; }
+
 
 inline bool Position::castleExpeded(Color c, CastleSide cs) const
 {

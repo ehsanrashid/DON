@@ -1,6 +1,7 @@
 #pragma once
 
 #include <algorithm>
+#include <array>
 #include <cassert>
 #include <cctype>
 #include <chrono>
@@ -113,7 +114,7 @@ enum Square : i08
     SQ_A6, SQ_B6, SQ_C6, SQ_D6, SQ_E6, SQ_F6, SQ_G6, SQ_H6,
     SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
-    SQ_NO,
+    SQ_NO, SQ_NONE = 0,
 };
 
 enum Delta : i08
@@ -529,3 +530,111 @@ inline TimePoint now()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>(std::chrono::steady_clock::now().time_since_epoch()).count();
 }
+
+
+template<class T, u32 Size>
+struct HashTable
+{
+private:
+    std::array<T, Size> table;
+
+public:
+
+    //void clear()
+    //{
+    //    table.fill(T());
+    //}
+
+    T* operator[](Key key)
+    {
+        return &table[u32(key) & (Size - 1)];
+    }
+};
+
+/// Multi-dimensional Array
+template<class T, size_t Size, size_t... Sizes>
+struct Array
+{
+    typedef typename Array<T, Sizes...>::type NestedArray;
+    typedef std::array<NestedArray, Size> type;
+};
+
+template<class T, size_t Size>
+struct Array<T, Size>
+{
+    typedef std::array<T, Size> type;
+};
+
+/// StatsEntry stores the stats table value. It is usually a number but could
+/// be a move or even a nested history. We use a class instead of naked value
+/// to directly call history update operator<<() on the entry so to use stats
+/// tables at caller sites as simple multi-dim arrays.
+template<typename T, i32 D>
+class StatsEntry
+{
+private:
+    T entry;
+
+public:
+
+    void operator=(const T &v) { entry = v; }
+
+    T* operator&()             { return &entry; }
+    T* operator->()            { return &entry; }
+
+    operator const T&() const  { return entry; }
+
+    void operator<<(i32 bonus)
+    {
+        static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
+        assert(abs(bonus) <= D); // Ensure range is [-D, +D]
+
+        entry += T(bonus - entry * abs(bonus) / D);
+
+        assert(abs(entry) <= D);
+    }
+};
+
+/// Stats is a generic N-dimensional array used to store various statistics.
+/// The first template T parameter is the base type of the array,
+/// the D parameter limits the range of updates (range is [-D, +D]), and
+/// the last parameters (Size and Sizes) encode the dimensions of the array.
+template <typename T, i32 D, size_t Size, size_t... Sizes>
+struct Stats
+    : public std::array<Stats<T, D, Sizes...>, Size>
+{
+    typedef Stats<T, D, Size, Sizes...> NestedStats;
+
+    void fill(const T &v)
+    {
+        // For standard-layout 'this' points to first struct member
+        assert(std::is_standard_layout<NestedStats>::value);
+
+        typedef StatsEntry<T, D> Entry;
+        auto *p = reinterpret_cast<Entry*>(this);
+        std::fill(p, p + sizeof (*this) / sizeof (Entry), v);
+    }
+};
+template <typename T, i32 D, size_t Size>
+struct Stats<T, D, Size>
+    : public std::array<StatsEntry<T, D>, Size>
+{};
+
+
+constexpr Array<Square, SQ_NO>::type SQ
+{
+    SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
+    SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
+    SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3,
+    SQ_A4, SQ_B4, SQ_C4, SQ_D4, SQ_E4, SQ_F4, SQ_G4, SQ_H4,
+    SQ_A5, SQ_B5, SQ_C5, SQ_D5, SQ_E5, SQ_F5, SQ_G5, SQ_H5,
+    SQ_A6, SQ_B6, SQ_C6, SQ_D6, SQ_E6, SQ_F6, SQ_G6, SQ_H6,
+    SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
+    SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
+};
+constexpr std::array<std::array<Value, PT_NO>, 2> PieceValues
+{{
+    { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
+    { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
+}};
+
