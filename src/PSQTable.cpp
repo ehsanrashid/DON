@@ -4,7 +4,7 @@
 
 using namespace std;
 
-array<array<Score, SQ_NO>, MAX_PIECE> PSQ;
+Table<Score, MAX_PIECE, SQUARES> PSQ;
 
 namespace {
 
@@ -12,7 +12,7 @@ namespace {
     // PieceScores[piece-type][rank][file/2] contains half Piece-Square scores (symmetric distribution).
     // It is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
-    constexpr array<array<array<Score, F_NO/2>, R_NO>, NONE> PieceScores
+    constexpr Table<Score, NONE, RANKS, FILES/2> PieceScores
     {{
         {{ }},
         {{ // Knight
@@ -68,7 +68,7 @@ namespace {
     }};
 
     // PawnScores contains full Pawn-Square score (asymmetric distribution)
-    constexpr array<array<Score, F_NO>, R_NO> PawnScores
+    constexpr Table<Score, RANKS, FILES> PawnScores
     {{
         { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) },
         { S(  3,-10), S(  3, -6), S( 10, 10), S( 19,  0), S( 16, 14), S( 19,  7), S(  7, -5), S( -5,-19) },
@@ -105,7 +105,7 @@ void initializePSQ()
     for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
     {
         Score score = makeScore(PieceValues[MG][pt], PieceValues[EG][pt]);
-        for (auto s : SQ)
+        for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
             Score psq = score
                       + (PAWN == pt ?

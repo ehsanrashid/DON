@@ -15,7 +15,7 @@ namespace Material {
 
         // Polynomial material imbalance parameters
 
-        constexpr array<array<i32, NONE>, NONE> OwnQuadratic
+        constexpr Table<i32, NONE, NONE> OwnQuadratic
         {{
             //          Own Pieces
             //  P    N    B     R   Q    BP
@@ -27,7 +27,7 @@ namespace Material {
             {   0,   0,   0,    0,  0, 1438 }  // BP
         }};
 
-        constexpr array<array<i32, NONE>, NONE> OppQuadratic
+        constexpr Table<i32, NONE, NONE> OppQuadratic
         {{
             //          Opp Pieces
             //  P    N    B     R   Q    BP
@@ -41,28 +41,28 @@ namespace Material {
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
-        array<Endgame<KXK>, CLR_NO>    ValueKXK
+        Table<Endgame<KXK>, COLORS>    ValueKXK
         {
             Endgame<KXK>(WHITE),
             Endgame<KXK>(BLACK)
         };
         // Endgame generic scale functions
-        array<Endgame<KPKP>, CLR_NO>   ScaleKPKP
+        Table<Endgame<KPKP>, COLORS>   ScaleKPKP
         {
             Endgame<KPKP>(WHITE),
             Endgame<KPKP>(BLACK)
         };
-        array<Endgame<KPsK>, CLR_NO>   ScaleKPsK
+        Table<Endgame<KPsK>, COLORS>   ScaleKPsK
         {
             Endgame<KPsK>(WHITE),
             Endgame<KPsK>(BLACK)
         };
-        array<Endgame<KBPsK>, CLR_NO> ScaleKBPsK
+        Table<Endgame<KBPsK>, COLORS> ScaleKBPsK
         {
             Endgame<KBPsK>(WHITE),
             Endgame<KBPsK>(BLACK)
         };
-        array<Endgame<KQKRPs>, CLR_NO> ScaleKQKRPs
+        Table<Endgame<KQKRPs>, COLORS> ScaleKQKRPs
         {
             Endgame<KQKRPs>(WHITE),
             Endgame<KQKRPs>(BLACK)
@@ -71,7 +71,7 @@ namespace Material {
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
-        i32 computeImbalance(const array<array<i32, NONE>, CLR_NO> &count)
+        i32 computeImbalance(const Table<i32, COLORS, NONE> &count)
         {
             constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
@@ -124,7 +124,7 @@ namespace Material {
             return;
         }
         // Generic evaluation
-        for (auto c : { WHITE, BLACK })
+        for (Color c : { WHITE, BLACK })
         {
             if (   pos.nonPawnMaterial( c) >= VALUE_MG_ROOK
                 && pos.count(~c) == 1)
@@ -148,7 +148,7 @@ namespace Material {
 
         // Didn't find any specialized scaling function, so fall back on
         // generic scaling functions that refer to more than one material distribution.
-        for (auto c : { WHITE, BLACK })
+        for (Color c : { WHITE, BLACK })
         {
             if (   pos.nonPawnMaterial( c) == VALUE_MG_BSHP
                 //&& pos.count( c|BSHP) == 1
@@ -207,7 +207,7 @@ namespace Material {
         // Evaluate the material imbalance.
         // Use KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.
-        array<array<i32, NONE>, CLR_NO> piece_count
+        Table<i32, COLORS, NONE> pieceCount
         {{
             {
                 pos.count(WHITE|PAWN),
@@ -227,8 +227,8 @@ namespace Material {
             }
         }};
 
-        auto value = (computeImbalance<WHITE>(piece_count)
-                    - computeImbalance<BLACK>(piece_count)) / 16; // Imbalance Resolution
+        auto value = (computeImbalance<WHITE>(pieceCount)
+                    - computeImbalance<BLACK>(pieceCount)) / 16; // Imbalance Resolution
         imbalance = makeScore(value, value);
     }
 
@@ -236,7 +236,7 @@ namespace Material {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(const Position &pos)
     {
-        auto *e = pos.thread->matlTable[pos.matlKey()];
+        auto *e = pos.thread->matlHash[pos.matlKey()];
 
         if (e->key == pos.matlKey())
         {

@@ -4,25 +4,32 @@
 #include <sstream>
 
 #include "Position.h"
-#include "Type.h"
+#include "Types.h"
 
-const std::string PieceChar{ "PNBRQK  pnbrqk" };
-const std::string ColorChar{ "wb-" };
+extern const std::string PieceChar;
+extern const std::string ColorChar;
 
-inline char toChar(File f, bool lower = true)
-{
-    return char('A' + i08(f) + 0x20 * lower);
-}
+extern Color toColor(char);
+extern char toChar(Color);
 
-inline char toChar(Rank r)
-{
-    return char('1' + i08(r));
-}
+extern File toFile(char);
+extern char toChar(File, bool = true);
 
-inline std::string toString(Square s)
-{
-    return std::string{ toChar(sFile(s)), toChar(sRank(s)) };
-}
+extern Rank toRank(char);
+extern char toChar(Rank);
+
+extern std::string toString(Square);
+
+extern char toChar(Piece);
+
+/// Overloading output operators
+extern std::ostream& operator<<(std::ostream&, Color);
+extern std::ostream& operator<<(std::ostream&, File);
+extern std::ostream& operator<<(std::ostream&, Rank);
+extern std::ostream& operator<<(std::ostream&, Square);
+extern std::ostream& operator<<(std::ostream&, Piece);
+
+
 /// Converts a value to a string suitable for use with the UCI protocol specifications:
 ///
 /// cp   <x>   The score x from the engine's point of view in centipawns.
@@ -34,9 +41,9 @@ inline std::string toString(Value v)
 
     std::ostringstream oss;
 
-    if (abs(v) < +VALUE_MATE - i32(DEP_MAX))
+    if (abs(v) < +VALUE_MATE - i32(MaxDepth))
     {
-        oss << "cp " << valueCP(v);
+        oss << "cp " << toCP(v);
     }
     else
     {
@@ -63,49 +70,19 @@ extern std::string multipvInfo(const Thread *const&, i16, Value, Value);
 
 template<typename Elem, typename Traits>
 inline std::basic_ostream<Elem, Traits>&
-    operator<<(std::basic_ostream<Elem, Traits> &os, File f)
-{
-    os << toChar(f);
-    return os;
-}
-
-template<typename Elem, typename Traits>
-inline std::basic_ostream<Elem, Traits>&
-    operator<<(std::basic_ostream<Elem, Traits> &os, Rank r)
-{
-    os << toChar(r);
-    return os;
-}
-
-template<typename Elem, typename Traits>
-inline std::basic_ostream<Elem, Traits>&
-    operator<<(std::basic_ostream<Elem, Traits> &os, Square s)
-{
-    os << toString(s);
-    return os;
-}
-
-template<typename Elem, typename Traits>
-inline std::basic_ostream<Elem, Traits>&
     operator<<(std::basic_ostream<Elem, Traits> &os, Move m)
 {
     os << canMove(m);
     return os;
 }
 
-template<typename Elem, typename Traits>
-inline std::basic_ostream<Elem, Traits>&
-    operator<<(std::basic_ostream<Elem, Traits> &os, Color c)
-{
-    os << ColorChar[c];
-    return os;
-}
+
 
 template<typename Elem, typename Traits>
 inline std::basic_ostream<Elem, Traits>&
     operator<<(std::basic_ostream<Elem, Traits> &os, Piece p)
 {
-    os << PieceChar[p];
+    os << toChar(p);
     return os;
 }
 
@@ -114,8 +91,8 @@ inline std::basic_ostream<Elem, Traits>&
     operator<<(std::basic_ostream<Elem, Traits> &os, Score score)
 {
     os << std::showpos << std::showpoint
-       << std::setw(5) << valueCP(mgValue(score)) / 100.0 << " "
-       << std::setw(5) << valueCP(egValue(score)) / 100.0
+       << std::setw(5) << toCP(mgValue(score)) / 100.0 << " "
+       << std::setw(5) << toCP(egValue(score)) / 100.0
        << std::noshowpoint << std::noshowpos;
     return os;
 }

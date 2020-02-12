@@ -5,7 +5,6 @@
 
 #include "MoveGenerator.h"
 #include "Notation.h"
-#include "Util.h"
 
 PolyBook Book;
 
@@ -67,8 +66,8 @@ namespace {
         // So in case book move is a promotion have to convert to our representation,
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
-        u08 pt = (m >> 12) & i32(PT_NO);
-        if (PAWN != pt)
+        u08 pt = (m >> 12) & PIECE_TYPES;
+        if (PAWN < pt)
         {
             assert(NIHT <= pt && pt <= QUEN);
             // Set new type for promotion piece
@@ -108,7 +107,7 @@ PolyEntry::operator string() const
     return oss.str();
 }
 
-PRNG PolyBook::prng{u64(now())};
+
 
 PolyBook::PolyBook()
     : entries(nullptr)
@@ -221,15 +220,15 @@ void PolyBook::initialize(const string &bkFn)
         return;
     }
 
-    ifstream ifs(bookFn, ios_base::in|ios_base::binary);
+    ifstream ifs(bookFn, ios::in|ios::binary);
     if (!ifs.is_open())
     {
         return;
     }
 
-    ifs.seekg(size_t(0), ios_base::end);
+    ifs.seekg(size_t(0), ios::end);
     size_t filesize = ifs.tellg();
-    ifs.seekg(size_t(0), ios_base::beg);
+    ifs.seekg(size_t(0), ios::beg);
 
     entryCount = (filesize - HeaderSize) / sizeof (PolyEntry);
     entries = new PolyEntry[entryCount];
@@ -258,6 +257,8 @@ void PolyBook::initialize(const string &bkFn)
 /// otherwise randomly chooses one, based on the move score.
 Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest)
 {
+    static PRNG prng{ u64(now()) };
+
     if (   !enabled
         || nullptr == entries
         || (0 != moveCount && moveCount < pos.moveCount())

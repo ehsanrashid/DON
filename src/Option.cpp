@@ -156,7 +156,7 @@ namespace UCI {
         index = InsertOrder++;
     }
     /// Option::operator()() is to string method of option
-    string Option::operator()()  const
+    string Option::operator()() const
     {
         ostringstream oss;
         oss << " type " << type;
@@ -179,6 +179,32 @@ namespace UCI {
             //oss << " current " << currentValue;
         }
         return oss.str();
+    }
+
+    ostream& operator<<(ostream &os, const Option &opt)
+    {
+        os << opt();
+        return os;
+    }
+
+    /// This is used to print all the options default values in chronological
+    /// insertion order and in the format defined by the UCI protocol.
+    ostream& operator<<(ostream &os, const StringOptionMap &strOptMap)
+    {
+        for (size_t idx = 0; idx < strOptMap.size(); ++idx)
+        {
+            for (auto &strOptPair : strOptMap)
+            {
+                if (strOptPair.second.index == idx)
+                {
+                    os  << "option name "
+                        << strOptPair.first
+                        << strOptPair.second
+                        << std::endl;
+                }
+            }
+        }
+        return os;
     }
 
     /// 'On change' actions, triggered by an option's value change
@@ -220,7 +246,7 @@ namespace UCI {
 
         void onDebugFile()
         {
-            Log.set(string(Options["Debug File"]));
+            Logger::instance().set(string(Options["Debug File"]));
         }
 
         void onSyzygyPath()

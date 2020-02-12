@@ -3,8 +3,7 @@
 #include <array>
 
 #include "Position.h"
-#include "Type.h"
-#include "Util.h"
+#include "Types.h"
 
 namespace Pawns {
 
@@ -14,15 +13,15 @@ namespace Pawns {
     public:
         Key key;
 
-        std::array<Score   , CLR_NO> score;
+        Table<Score   , COLORS> score;
 
-        std::array<Bitboard, CLR_NO> attackSpan;
-        std::array<Bitboard, CLR_NO> passers;
+        Table<Bitboard, COLORS> attackSpan;
+        Table<Bitboard, COLORS> passers;
 
-        std::array<Square  , CLR_NO> kingSq;
-        std::array<Bitboard, CLR_NO> kingPath;
-        std::array<Score   , CLR_NO> kingSafety;
-        std::array<Score   , CLR_NO> kingDist;
+        Table<Square  , COLORS> kingSq;
+        Table<Bitboard, COLORS> kingPath;
+        Table<Score   , COLORS> kingSafety;
+        Table<Score   , COLORS> kingDist;
 
         i32 passedCount() const { return BitBoard::popCount(passers[WHITE] | passers[BLACK]); }
 
@@ -34,7 +33,7 @@ namespace Pawns {
 
     };
 
-    typedef HashTable<Entry, 0x20000> Table;
-
     extern Entry* probe(const Position&);
 }
+
+using PawnHashTable = HashTable<Pawns::Entry, 0x20000>;

@@ -1,6 +1,5 @@
 #include "Thread.h"
 
-#include <cfloat>
 #include <cmath>
 #include <map>
 #include <iostream>
@@ -45,155 +44,16 @@ namespace {
     /// try to load them at runtime. To do this first define the corresponding function pointers.
     extern "C"
     {
-        typedef bool (*GLPIE) (LOGICAL_PROCESSOR_RELATIONSHIP LogicalProcRelationship, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX PtrSysLogicalProcInfo, PDWORD PtrLength);
-        typedef bool (*GNNPME)(USHORT Node, PGROUP_AFFINITY PtrGroupAffinity);
-        typedef bool (*STGA)  (HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
+        using GLPIE  = bool (*)(LOGICAL_PROCESSOR_RELATIONSHIP LogicalProcRelationship, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX PtrSysLogicalProcInfo, PDWORD PtrLength);
+        using GNNPME = bool (*)(USHORT Node, PGROUP_AFFINITY PtrGroupAffinity);
+        using STGA   = bool (*)(HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
     }
 
 #endif
 
-    // Skew-logistic function based on naive statistical analysis of
-    // "how many games are still undecided after n half-moves".
-    // Game is considered "undecided" as long as neither side has >275cp advantage.
-    // Data was extracted from the CCRL game database with some simple filtering criteria.
-    double moveImportance(i16 ply)
-    {
-        //                                             Shift    Scale   Skew
-        return std::max(std::pow(1.00 + std::exp((ply - 64.50) / 6.85), -0.171), DBL_MIN); // Ensure non-zero
-    }
-
-    template<bool Optimum>
-    TimePoint remainingTime(TimePoint time, u08 movestogo, i16 ply, double moveSlowness)
-    {
-        constexpr auto  StepRatio = 7.30 - 6.30 * Optimum; // When in trouble, can step over reserved time with this ratio
-        constexpr auto StealRatio = 0.34 - 0.34 * Optimum; // However must not steal time from remaining moves over this ratio
-
-        auto moveImp1 = moveImportance(ply) * moveSlowness;
-        auto moveImp2 = 0.0;
-        for (u08 i = 1; i < movestogo; ++i)
-        {
-            moveImp2 += moveImportance(ply + 2 * i);
-        }
-
-        auto timeRatio1 = (1.0                                     ) / (1.0 + moveImp2 / (moveImp1 * StepRatio));
-        auto timeRatio2 = (1.0 + (moveImp2 * StealRatio) / moveImp1) / (1.0 + moveImp2 /  moveImp1             );
-
-        return TimePoint(time * std::min(timeRatio1, timeRatio2));
-    }
 }
 
-/// TimeManager::elapsedTime()
-TimePoint TimeManager::elapsedTime() const
-{
-    return 0 != timeNodes ?
-            TimePoint(Threadpool.sum(&Thread::nodes)) :
-            now() - startTime;
-}
 
-/// TimeManager::set() calculates the allowed thinking time out of the time control and current game ply.
-/// Support four different kind of time controls, passed in 'limit':
-///
-/// increment == 0, moves to go == 0 => y basetime                             ['sudden death']
-/// increment != 0, moves to go == 0 => y basetime + z increment
-/// increment == 0, moves to go != 0 => x moves in y basetime                  ['standard']
-/// increment != 0, moves to go != 0 => x moves in y basetime + z increment
-///
-/// Minimum MoveTime = No matter what, use at least this much time before doing the move, in milli-seconds.
-/// Overhead MoveTime = Attempt to keep at least this much time for each remaining move, in milli-seconds.
-/// Move Slowness = Move Slowness, in %age.
-void TimeManager::set(Color c, i16 ply)
-{
-    auto minimumMoveTime  = TimePoint(i32(Options["Minimum MoveTime"]));
-    auto overheadMoveTime = TimePoint(i32(Options["Overhead MoveTime"]));
-    auto moveSlowness     = i32(Options["Move Slowness"]) / 100.0;
-
-    timeNodes             = u16(i32(Options["Time Nodes"]));
-
-    // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
-    // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
-    if (0 != timeNodes)
-    {
-        // Only once at after ucinewgame
-        if (0 == availableNodes)
-        {
-            availableNodes = Threadpool.limit.clock[c].time * timeNodes;
-        }
-        // Convert from milli-seconds to nodes
-        Threadpool.limit.clock[c].time = TimePoint(availableNodes);
-        Threadpool.limit.clock[c].inc *= timeNodes;
-    }
-
-    optimumTime =
-    maximumTime = std::max(Threadpool.limit.clock[c].time, minimumMoveTime);
-    // Move Horizon:
-    // Plan time management at most this many moves ahead.
-    u08 maxMovestogo = 50;
-    if (0 != Threadpool.limit.movestogo)
-    {
-        maxMovestogo = std::min(Threadpool.limit.movestogo, maxMovestogo);
-    }
-    // Calculate optimum time usage for different hypothetic "moves to go" and
-    // choose the minimum of calculated search time values.
-    for (u08 movestogo = 1; movestogo <= maxMovestogo; ++movestogo)
-    {
-        // Calculate thinking time for hypothetical "moves to go"
-        auto time = std::max(
-                        Threadpool.limit.clock[c].time
-                      + Threadpool.limit.clock[c].inc * (movestogo - 1)
-                        // ClockTime: Attempt to keep this much time at clock.
-                        // MovesTime: Attempt to keep at most this many moves time at clock.
-                      - overheadMoveTime * (2 + std::min(movestogo, u08(40))) // (ClockTime + MovesTime)
-                      , TimePoint(0));
-
-        optimumTime = std::min(optimumTime, minimumMoveTime + remainingTime<true >(time, movestogo, ply, moveSlowness));
-        maximumTime = std::min(maximumTime, minimumMoveTime + remainingTime<false>(time, movestogo, ply, moveSlowness));
-    }
-
-    if (bool(Options["Ponder"]))
-    {
-        optimumTime += optimumTime / 4;
-    }
-}
-
-void TimeManager::update(Color c)
-{
-    // When playing in 'Nodes as Time' mode
-    if (0 != timeNodes)
-    {
-        availableNodes += Threadpool.limit.clock[c].inc - Threadpool.sum(&Thread::nodes);
-    }
-}
-
-PRNG SkillManager::prng{u64(now())}; // PRNG sequence should be non-deterministic.
-
-/// SkillManager::pickBestMove() chooses best move among a set of RootMoves when playing with a strength handicap,
-/// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
-void SkillManager::pickBestMove()
-{
-    const auto &rootMoves = Threadpool.mainThread()->rootMoves;
-    assert(!rootMoves.empty());
-    if (MOVE_NONE == bestMove)
-    {
-        // RootMoves are already sorted by value in descending order
-        i32  weakness = DEP_MAX - 8 * level;
-        i32  deviance = std::min(rootMoves[0].newValue - rootMoves[Threadpool.pvCount - 1].newValue, VALUE_MG_PAWN);
-        auto bestValue = -VALUE_INFINITE;
-        for (u32 i = 0; i < Threadpool.pvCount; ++i)
-        {
-            // First for each move score add two terms, both dependent on weakness.
-            // One is deterministic with weakness, and one is random with weakness.
-            auto value = rootMoves[i].newValue
-                       + (  weakness * i32(rootMoves[0].newValue - rootMoves[i].newValue)
-                          + deviance * i32(prng.rand<u32>() % weakness)) / VALUE_MG_PAWN;
-            // Then choose the move with the highest value.
-            if (bestValue <= value)
-            {
-                bestValue = value;
-                bestMove = rootMoves[i].front();
-            }
-        }
-    }
-}
 
 /// Thread constructor launches the thread and waits until it goes to sleep in idleFunction().
 /// Note that 'busy' and 'dead' should be already set.
@@ -265,31 +125,31 @@ i16 Thread::moveBestCount(Move move) const
 /// Thread::clear() clears all the thread related stuff.
 void Thread::clear()
 {
-    butterflyHistory.fill(0);
-    captureHistory.fill(0);
+    quietStats.fill(0);
+    captureStats.fill(0);
 
-    for (auto &mH : moveHistory)
+    for (auto &qcm : quietCounterMoves)
     {
-        mH.fill(MOVE_NONE);
+        qcm.fill(MOVE_NONE);
     }
-    for (auto &inCheckHs : continuationHistory)
+
+    for (bool inCheck : { false, true })
     {
-        for (auto &captureHs : inCheckHs)
+        for (bool capture : { false, true })
         {
-            for (auto &pieceHs : captureHs)
+            auto &contStats = continuationStats[inCheck][capture];
+
+            for (auto &c1 : contStats)
             {
-                for (auto &squareH : pieceHs)
+                for (auto &c2 : c1)
                 {
-                    squareH.fill(0);
+                    c2.fill(0);
                 }
             }
-            captureHs[NO_PIECE][SQ_NONE].fill(CounterMovePruneThreshold - 1);
+
+            contStats[NO_PIECE][0].fill(CounterMovePruneThreshold - 1);
         }
     }
-
-    //// No need to clear
-    //pawnTable.clear();
-    //matlTable.clear();
 }
 
 /// MainThread constructor
@@ -556,7 +416,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
         if (TBLimitPiece > MaxLimitPiece)
         {
             TBLimitPiece = MaxLimitPiece;
-            TBProbeDepth = DEP_ZERO;
+            TBProbeDepth = DEPTH_ZERO;
         }
 
         // Rank moves using DTZ tables
@@ -617,13 +477,13 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
     {
         th->rootPos.setup(fen, setupStates->back(), th);
         th->rootMoves       = rootMoves;
-        th->rootDepth       = DEP_ZERO;
-        th->finishedDepth   = DEP_ZERO;
+        th->rootDepth       = DEPTH_ZERO;
+        th->finishedDepth   = DEPTH_ZERO;
         th->nodes           = 0;
         th->tbHits          = 0;
         th->pvChange        = 0;
         th->nmpPly          = 0;
-        th->nmpColor        = CLR_NO;
+        th->nmpColor        = COLORS;
     }
     setupStates->back() = back_si;
 

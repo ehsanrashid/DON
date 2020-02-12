@@ -119,7 +119,7 @@
     <Node Id="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=MoveList&lt;4,6&gt;)" Category="CodeSchema_Class" Bounds="25544.778191408,23135.3717794633,140.506666666668,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="MoveList‎&lt;4‎,6‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=MoveList&lt;5,6&gt;)" Category="CodeSchema_Class" Bounds="25561.9057877629,23468.2517794633,140.506666666668,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="MoveList‎&lt;5‎,6‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=MoveList&lt;6,6&gt;)" Category="CodeSchema_Class" Bounds="25520.3739755104,23803.0517794633,140.506666666668,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="MoveList‎&lt;6‎,6‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyHistory&gt;)" Category="CodeSchema_Struct" Bounds="25237.2372526526,25303.6117794632,254.686666666668,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="Table2D‎&lt;14‎,64‎,PieceDestinyHistory‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyStats&gt;)" Category="CodeSchema_Struct" Bounds="25237.2372526526,25303.6117794632,254.686666666668,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="Table2D‎&lt;14‎,64‎,PieceDestinyStats‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,short&gt;)" Category="CodeSchema_Struct" Bounds="25292.1096667102,25469.5717794632,177.166666666668,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="Table2D‎&lt;14‎,64‎,short‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;2,4096,short&gt;)" Category="CodeSchema_Struct" Bounds="25380.9933796878,25358.6117794632,183.636666666665,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="Table2D‎&lt;2‎,4096‎,short‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table3D&lt;14,4096,7,short&gt;)" Category="CodeSchema_Struct" Bounds="25268.6970772183,25580.5317794632,199.176666666666,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="Table3D‎&lt;14‎,4096‎,7‎,short‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -142,7 +142,7 @@
     <Node Id="@119" Category="CodeSchema_Method" Bounds="25319.9439947944,22074.0517794633,98.3300000000017,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator++" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@121" Category="CodeSchema_Method" Bounds="25252.3833732324,24749.6517794632,86.7099999999991,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator-" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@122" Category="CodeSchema_Method" Bounds="25238.3234311319,24637.7317794633,90.119999999999,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator+" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@124" Category="CodeSchema_Method" Bounds="25196.4782179042,24525.8117794633,97.4799999999996,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="cpValue" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@124" Category="CodeSchema_Method" Bounds="25196.4782179042,24525.8117794633,97.4799999999996,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="toValue" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@125" Category="CodeSchema_Method" Bounds="26853.8789878051,23554.1213131037,130.653333333335,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="move_importance" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@126" Category="CodeSchema_Method" Bounds="27583.4491886602,21066.7717794633,93.0699999999997,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="stat_bonus" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@129" Category="CodeSchema_Method" Bounds="25521.5769307131,22185.0117794633,56.8266666666677,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="_file" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -209,7 +209,7 @@
     <Node Id="@193" Category="CodeSchema_Method" Bounds="25237.3569712915,23524.2117794633,90.119999999999,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator+" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@194" Category="CodeSchema_Method" Bounds="25453.8157063054,24018.0938385723,100.25,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="pretty_value" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@195" Category="CodeSchema_Method" Bounds="25293.5305951255,23748.0917794633,82.1733333333323,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="to_string" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@196" Category="CodeSchema_Method" Bounds="25220.16241544,24469.8517794633,97.4799999999996,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="valueCP" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@196" Category="CodeSchema_Method" Bounds="25220.16241544,24469.8517794633,97.4799999999996,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="toCP" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@198" Category="CodeSchema_Method" Bounds="25211.9207707766,24204.1762894277,91.5099999999984,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator--" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@199" Category="CodeSchema_Method" Bounds="25205.1007707766,24260.1362894277,98.3300000000017,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator++" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@2" Category="CodeSchema_Assembly" Bounds="25290.1750535997,23327.1316515824,751.793113909345,1057.7204067064" DelayedChildNodesState="Incomplete" DelayedCrossGroupLinksState="NotFetched" FetchedChildrenCount="24" FilePath="$(563abbef-c72e-4c61-bc8d-f98ba06d115d.OutputPath)" Group="Expanded" Label="DON_x64.exe" />
@@ -633,17 +633,17 @@
     <Node Id="@622" Category="CodeSchema_Struct" Bounds="24654.6927890476,22160.7612715668,96.6233333333512,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Atomic" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@623" Category="CodeSchema_TypeDef" Bounds="25542.4461848842,23858.0517794633,86.2833333333328,26" DelayedCrossGroupLinksState="NotFetched" Label="Bitboard" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@624" Category="CodeSchema_Enum" Bounds="25508.1291188157,25748.4117794632,71.5566666666673,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="Bound" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@625" Category="CodeSchema_Struct" Bounds="25427.3408012727,24192.8917794633,141.32,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="ButterflyHistory" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@625" Category="CodeSchema_Struct" Bounds="25427.3408012727,24192.8917794633,141.32,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="ColorIndexStatsTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@626" Category="CodeSchema_TypeDef" Bounds="25369.9682088093,25972.2917794632,134.966666666667,26" DelayedCrossGroupLinksState="NotFetched" Label="ButterflyStatTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@627" Category="CodeSchema_Struct" Bounds="25469.7492821067,24469.8517794633,205.57,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="CaptureHistory" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@627" Category="CodeSchema_Struct" Bounds="25469.7492821067,24469.8517794633,205.57,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="PieceSquareTypeStatsTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@628" Category="CodeSchema_TypeDef" Bounds="25146.3166799567,26083.3317794632,199.216666666667,26" DelayedCrossGroupLinksState="NotFetched" Label="CapturePieceDestinyStatTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@629" Category="CodeSchema_Enum" Bounds="25298.3589210962,23412.2917794633,96.8866666666654,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="CastleRight" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@630" Category="CodeSchema_Enum" Bounds="25282.8103703972,22969.4117794633,91.503333333334,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="CastleSide" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@631" Category="CodeSchema_Enum" Bounds="25479.8007900539,22688.6517794633,65.5699999999997,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="Color" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@632" Category="CodeSchema_TypeDef" Bounds="25103.7798463545,25358.6117794632,136,26" DelayedCrossGroupLinksState="NotFetched" Label="ConditionVariable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@633" Category="CodeSchema_TypeDef" Bounds="25226.412252149,25747.4517794632,147.299999999999,26" DelayedCrossGroupLinksState="NotFetched" Label="ContinuationHistory" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@633" Category="CodeSchema_TypeDef" Bounds="25226.412252149,25747.4517794632,147.299999999999,26" DelayedCrossGroupLinksState="NotFetched" Label="ContinuationPieceSquareStatsTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@634" Category="CodeSchema_TypeDef" Bounds="25181.0214421426,25971.3317794632,158.946666666667,26" DelayedCrossGroupLinksState="NotFetched" Label="ContinuationStatTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@635" Category="CodeSchema_Enum" Bounds="25246.5668485865,23132.4917794633,64.7700000000004,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="Delta" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@635" Category="CodeSchema_Enum" Bounds="25246.5668485865,23132.4917794633,64.7700000000004,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="Direction" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@636" Category="CodeSchema_Struct" Bounds="24601.436831176,22716.5212767791,107.450000000012,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="DTZEntry" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@637" Category="CodeSchema_Struct" Bounds="24446.9698873353,22994.4012767791,115.740000000005,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="DTZEntryPawn" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@638" Category="CodeSchema_Struct" Bounds="24528.040987542,23386.201276779,115.173333333325,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="DTZEntryPiece" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -699,9 +699,9 @@
     <Node Id="@686" Category="CodeSchema_Enum" Bounds="25581.556666366,25916.2917794632,101.703333333335,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="OutputState" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@687" Category="CodeSchema_Struct" Bounds="24637.4359999496,22883.4412767791,108.693333333329,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="PairsData" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@688" Category="CodeSchema_Enum" Bounds="25516.8305046248,23579.2117794633,64.7233333333315,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="Piece" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@689" Category="CodeSchema_Struct" Bounds="25340.8490045255,24302.8917794633,163.673333333332,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="PieceDestinyHistory" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@689" Category="CodeSchema_Struct" Bounds="25340.8490045255,24302.8917794633,163.673333333332,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="PieceDestinyStats" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@69" Category="CodeSchema_Method" Bounds="26429.5109086254,25037.490168037,92.3666666666686,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="adjacentFiles" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@690" Category="CodeSchema_Struct" Bounds="25373.6010409525,24025.9717794633,193.503333333334,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="MoveHistory" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@690" Category="CodeSchema_Struct" Bounds="25373.6010409525,24025.9717794633,193.503333333334,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="PieceSquareMoveTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@691" Category="CodeSchema_TypeDef" Bounds="25534.934975476,25972.2517794632,166.536666666667,26" DelayedCrossGroupLinksState="NotFetched" Label="PieceDestinyMoveTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@692" Category="CodeSchema_TypeDef" Bounds="25182.6481088093,26027.3317794632,157.32,26" DelayedCrossGroupLinksState="NotFetched" Label="PieceDestinyStatTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@693" Category="CodeSchema_Enum" Bounds="25589.0425958489,24524.8517794633,90.1466666666674,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="PieceType" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -854,9 +854,9 @@
     </Link>
     <Link Source="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=MoveList&lt;6,6&gt;)" Target="@92" Category="CodeSchema_Calls" Bounds="25603.822265625,22496.689453125,183.580078125,1306.36328125" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=MoveList&lt;6,6&gt;)" Target="@98" Category="CodeSchema_Calls" Bounds="25603.4765625,23828.052734375,90.111328125,193.869140625" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
-    <Link Source="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyHistory&gt;)" Target="@670" Category="References" Bounds="25272.85546875,24388.048828125,222.82421875,915.5625" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
-    <Link Source="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyHistory&gt;)" Target="@671" Category="References" Bounds="25193.041015625,23671.09765625,186.279296875,1632.513671875" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
-    <Link Source="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyHistory&gt;)" Target="@689" Category="References" Bounds="25272.85546875,24333.091796875,215.349609375,970.51953125" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="3" />
+    <Link Source="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyStats&gt;)" Target="@670" Category="References" Bounds="25272.85546875,24388.048828125,222.82421875,915.5625" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
+    <Link Source="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyStats&gt;)" Target="@671" Category="References" Bounds="25193.041015625,23671.09765625,186.279296875,1632.513671875" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
+    <Link Source="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyStats&gt;)" Target="@689" Category="References" Bounds="25272.85546875,24333.091796875,215.349609375,970.51953125" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="3" />
     <Link Source="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,short&gt;)" Target="@670" Category="References" Bounds="25235.689453125,24388.048828125,259.990234375,1081.5234375" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,short&gt;)" Target="@671" Category="References" Bounds="25115.103515625,23671.09765625,264.216796875,1798.474609375" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;2,4096,short&gt;)" Target="@670" Category="References" Bounds="25293.255859375,24388.048828125,208.802734375,970.5625" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
@@ -2228,7 +2228,7 @@
     <Link Source="@4" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=MoveList&lt;4,6&gt;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=MoveList&lt;5,6&gt;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=MoveList&lt;6,6&gt;)" Category="Contains" FetchingParent="@4" />
-    <Link Source="@4" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyHistory&gt;)" Category="Contains" FetchingParent="@4" />
+    <Link Source="@4" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyStats&gt;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,short&gt;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;2,4096,short&gt;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table3D&lt;14,4096,7,short&gt;)" Category="Contains" FetchingParent="@4" />
@@ -5165,8 +5165,8 @@
     <Link Source="@627" Target="@89" Category="CodeSchema_Calls" Bounds="25353.625,24494.8515625,189.5703125,468.115234375" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="@628" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table3D&lt;14,4096,7,short&gt;)" Category="References" Bounds="25287.1328125,25614.41015625,114.376953125,468.921875" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="@629" Target="@726" Category="References" Bounds="25347.931640625,23438.251953125,161.8515625,1133.798828125" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
-    <Link Source="@633" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyHistory&gt;)" Category="References" Bounds="25262.00390625,25337.595703125,101.498046875,409.85546875" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
-    <Link Source="@634" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyHistory&gt;)" Category="References" Bounds="25212.75,25337.595703125,150.751953125,633.736328125" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
+    <Link Source="@633" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyStats&gt;)" Category="References" Bounds="25262.00390625,25337.595703125,101.498046875,409.85546875" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
+    <Link Source="@634" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyStats&gt;)" Category="References" Bounds="25212.75,25337.595703125,150.751953125,633.736328125" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="@635" Target="@669" Category="References" Bounds="25276.29296875,22387.2265625,238.51171875,745.265625" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="@636" Target="@637" Category="References" Bounds="24571.609375,22741.521484375,184.654296875,255.787109375" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="@636" Target="@638" Category="References" Bounds="24287.373046875,22741.521484375,346.626953125,642.75390625" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
@@ -5933,7 +5933,7 @@
     <Link Source="@720" Target="@732" Category="References" Bounds="25282.529296875,23671.091796875,189.931640625,576.80078125" IsSourceVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="4" />
     <Link Source="@722" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=HashTable&lt;Material::Entry,8192&gt;)" Category="CodeSchema_Calls" Bounds="25194.138671875,24272.892578125,206.94140625,638.18359375" IsSourceVirtualized="True" IsTargetVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="@722" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=HashTable&lt;Pawns::Entry,16384&gt;)" Category="CodeSchema_Calls" Bounds="25194.138671875,24272.892578125,197.736328125,749.404296875" IsSourceVirtualized="True" IsTargetVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
-    <Link Source="@722" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyHistory&gt;)" Category="CodeSchema_Calls" Bounds="25194.138671875,24272.892578125,174.533203125,1025.349609375" IsSourceVirtualized="True" IsTargetVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
+    <Link Source="@722" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,PieceDestinyStats&gt;)" Category="CodeSchema_Calls" Bounds="25194.138671875,24272.892578125,174.533203125,1025.349609375" IsSourceVirtualized="True" IsTargetVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="@722" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;14,64,short&gt;)" Category="CodeSchema_Calls" Bounds="25115.103515625,24272.892578125,253.568359375,1190.984375" IsSourceVirtualized="True" IsTargetVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="@722" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table2D&lt;2,4096,short&gt;)" Category="CodeSchema_Calls" Bounds="25194.138671875,24272.892578125,301.375,1077.896484375" IsSourceVirtualized="True" IsTargetVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
     <Link Source="@722" Target="(Assembly=&quot;file:///E:/GitHub/DON/x64/Debug/DON_x64.exe&quot; Namespace=:: Type=Table3D&lt;14,4096,7,short&gt;)" Category="CodeSchema_Calls" Bounds="25115.103515625,24272.892578125,253.568359375,1301.18359375" IsSourceVirtualized="True" IsTargetVirtualized="True" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" Weight="1" />
@@ -6215,7 +6215,7 @@
     <Alias n="60" Id="(@1 @3 Member=(@49 OverloadingParameters=[(Type=&quot;Color &amp;&quot;)]))" />
     <Alias n="61" Id="(@1 @3 Member=(@51 OverloadingParameters=[(Type=&quot;Color &amp;&quot;)]))" />
     <Alias n="62" Id="Name=operator-" />
-    <Alias n="63" Id="(Type=Delta)" />
+    <Alias n="63" Id="(Type=Direction)" />
     <Alias n="64" Id="(@1 @3 Member=(@62 OverloadingParameters=[@63]))" />
     <Alias n="65" Id="Name=operator+" />
     <Alias n="66" Id="(@1 @3 Member=(@65 OverloadingParameters=[@63]))" />
@@ -6276,7 +6276,7 @@
     <Alias n="121" Id="(@1 @3 Member=(@62 OverloadingParameters=[@120]))" />
     <Alias n="122" Id="(@1 @3 Member=(@65 OverloadingParameters=[@120]))" />
     <Alias n="123" Id="(Type=short)" />
-    <Alias n="124" Id="(@1 @3 Member=(Name=cpValue OverloadingParameters=[@123]))" />
+    <Alias n="124" Id="(@1 @3 Member=(Name=toValue OverloadingParameters=[@123]))" />
     <Alias n="125" Id="(@1 @5 Member=(Name=move_importance OverloadingParameters=[@123]))" />
     <Alias n="126" Id="(@1 @3 Member=(Name=stat_bonus OverloadingParameters=[@123]))" />
     <Alias n="127" Id="(Type=Square)" />
@@ -6348,7 +6348,7 @@
     <Alias n="193" Id="(@1 @3 Member=(@65 @191))" />
     <Alias n="194" Id="(@1 @5 Member=(Name=pretty_value @191))" />
     <Alias n="195" Id="(@1 @3 Member=(Name=to_string @191))" />
-    <Alias n="196" Id="(@1 @3 Member=(Name=valueCP @191))" />
+    <Alias n="196" Id="(@1 @3 Member=(Name=toCP @191))" />
     <Alias n="197" Id="(Type=&quot;Value &amp;&quot;)" />
     <Alias n="198" Id="(@1 @3 Member=(@49 OverloadingParameters=[@197]))" />
     <Alias n="199" Id="(@1 @3 Member=(@51 OverloadingParameters=[@197]))" />
@@ -6383,9 +6383,9 @@
     <Alias n="229" Id="(@1 @3 Member=(@62 OverloadingParameters=[@63,@63]))" />
     <Alias n="230" Id="(@1 @3 Member=(@65 OverloadingParameters=[@63,@63]))" />
     <Alias n="231" Id="Name=&quot;operator+=&quot;" />
-    <Alias n="232" Id="(@1 @3 Member=(@231 OverloadingParameters=[(Type=&quot;Delta &amp;&quot;),@63]))" />
+    <Alias n="232" Id="(@1 @3 Member=(@231 OverloadingParameters=[(Type=&quot;Direction &amp;&quot;),@63]))" />
     <Alias n="233" Id="Name=&quot;operator-=&quot;" />
-    <Alias n="234" Id="(@1 @3 Member=(@233 OverloadingParameters=[(Type=&quot;Delta &amp;&quot;),@63]))" />
+    <Alias n="234" Id="(@1 @3 Member=(@233 OverloadingParameters=[(Type=&quot;Direction &amp;&quot;),@63]))" />
     <Alias n="235" Id="(@1 @3 Member=(@62 OverloadingParameters=[@127,@63]))" />
     <Alias n="236" Id="(@1 @3 Member=(@65 OverloadingParameters=[@127,@63]))" />
     <Alias n="237" Id="(@1 @3 Member=(@231 OverloadingParameters=[(Type=&quot;Square &amp;&quot;),@63]))" />
@@ -6400,7 +6400,7 @@
     <Alias n="246" Id="(@1 @3 Member=(Name=operator* @244))" />
     <Alias n="247" Id="(@1 @3 Member=(Name=operator/ @244))" />
     <Alias n="248" Id="(@1 @3 Member=(@65 @244))" />
-    <Alias n="249" Id="OverloadingParameters=[(Type=&quot;Delta &amp;&quot;),@76]" />
+    <Alias n="249" Id="OverloadingParameters=[(Type=&quot;Direction &amp;&quot;),@76]" />
     <Alias n="250" Id="(@1 @3 Member=(Name=&quot;operator*=&quot; @249))" />
     <Alias n="251" Id="(@1 @3 Member=(Name=&quot;operator/=&quot; @249))" />
     <Alias n="252" Id="(@1 @3 Member=(@231 @249))" />
@@ -6540,7 +6540,7 @@
     <Alias n="387" Id="(@1 @3 Member=(@231 OverloadingParameters=[@197,@190]))" />
     <Alias n="388" Id="(@1 @3 Member=(@233 OverloadingParameters=[@197,@190]))" />
     <Alias n="389" Id="(@1 @3 Member=(Name=search OverloadingParameters=[@271,@364,@44]))" />
-    <Alias n="390" Id="(@1 Namespace=&quot;BitBoard::`anonymous namespace'&quot; Member=(Name=initialize_table OverloadingParameters=[(Type=&quot;unsigned __int64 * const&quot;),(Type=&quot;BitBoard::Magic * const&quot;),(Type=&quot;Delta const * const&quot;)]))" />
+    <Alias n="390" Id="(@1 Namespace=&quot;BitBoard::`anonymous namespace'&quot; Member=(Name=initialize_table OverloadingParameters=[(Type=&quot;unsigned __int64 * const&quot;),(Type=&quot;BitBoard::Magic * const&quot;),(Type=&quot;Direction const * const&quot;)]))" />
     <Alias n="391" Id="(@1 @3 Member=(Name=check_dtz_stm OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::DTZEntry *&quot;),@76,@67]))" />
     <Alias n="392" Id="(@1 @3 Member=(Name=check_dtz_stm OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::WDLEntry *&quot;),@76,@67]))" />
     <Alias n="393" Id="Name=item" />
@@ -6683,7 +6683,7 @@
     <Alias n="530" Id="(@1 @5 Member=(Name=&quot;generate_piece_moves&lt;5,1,2&gt;&quot; @448))" />
     <Alias n="531" Id="(@1 @5 Member=(Name=&quot;generate_piece_moves&lt;5,1,3&gt;&quot; @448))" />
     <Alias n="532" Id="(@1 @5 Member=(Name=&quot;generate_piece_moves&lt;5,1,4&gt;&quot; @448))" />
-    <Alias n="533" Id="(@1 @12 Member=(Name=slideAttacks OverloadingParameters=[(Type=&quot;Delta const *&quot;),@127,@163]))" />
+    <Alias n="533" Id="(@1 @12 Member=(Name=slideAttacks OverloadingParameters=[(Type=&quot;Direction const *&quot;),@127,@163]))" />
     <Alias n="534" Id="(@1 @5 Member=(Name=&quot;do_init&lt;TBSyzygy::`anonymous namespace'::DTZEntry,TBSyzygy::A0xa3222161::DTZEntryPawn&gt;&quot; OverloadingParameters=[@289,(Type=&quot;TBSyzygy::A0xa3222161::DTZEntryPawn &amp;&quot;),@381]))" />
     <Alias n="535" Id="(@1 @5 Member=(Name=&quot;do_init&lt;TBSyzygy::`anonymous namespace'::DTZEntry,TBSyzygy::A0xa3222161::DTZEntryPiece&gt;&quot; OverloadingParameters=[@289,(Type=&quot;TBSyzygy::A0xa3222161::DTZEntryPiece &amp;&quot;),@381]))" />
     <Alias n="536" Id="(@1 @5 Member=(Name=&quot;do_init&lt;TBSyzygy::`anonymous namespace'::WDLEntry,TBSyzygy::A0xa3222161::WDLEntryPawn&gt;&quot; OverloadingParameters=[@291,(Type=&quot;TBSyzygy::A0xa3222161::WDLEntryPawn &amp;&quot;),@381]))" />
@@ -6771,17 +6771,17 @@
     <Alias n="622" Id="(@1 @5 Type=Atomic)" />
     <Alias n="623" Id="(@1 @3 Type=Bitboard)" />
     <Alias n="624" Id="(@1 @3 Type=Bound)" />
-    <Alias n="625" Id="(@1 @3 Type=ButterflyHistory)" />
+    <Alias n="625" Id="(@1 @3 Type=ColorIndexStatsTable)" />
     <Alias n="626" Id="(@1 @3 Type=ButterflyStatTable)" />
-    <Alias n="627" Id="(@1 @3 Type=CaptureHistory)" />
+    <Alias n="627" Id="(@1 @3 Type=PieceSquareTypeStatsTable)" />
     <Alias n="628" Id="(@1 @3 Type=CapturePieceDestinyStatTable)" />
     <Alias n="629" Id="(@1 @3 Type=CastleRight)" />
     <Alias n="630" Id="(@1 @3 Type=CastleSide)" />
     <Alias n="631" Id="(@1 @3 Type=Color)" />
     <Alias n="632" Id="(@1 @3 Type=ConditionVariable)" />
-    <Alias n="633" Id="(@1 @3 Type=ContinuationHistory)" />
+    <Alias n="633" Id="(@1 @3 Type=ContinuationPieceSquareStatsTable)" />
     <Alias n="634" Id="(@1 @3 Type=ContinuationStatTable)" />
-    <Alias n="635" Id="(@1 @3 Type=Delta)" />
+    <Alias n="635" Id="(@1 @3 Type=Direction)" />
     <Alias n="636" Id="(@1 @5 Type=DTZEntry)" />
     <Alias n="637" Id="(@1 @5 Type=DTZEntryPawn)" />
     <Alias n="638" Id="(@1 @5 Type=DTZEntryPiece)" />
@@ -6835,8 +6835,8 @@
     <Alias n="686" Id="(@1 @3 Type=OutputState)" />
     <Alias n="687" Id="(@1 @5 Type=PairsData)" />
     <Alias n="688" Id="(@1 @3 Type=Piece)" />
-    <Alias n="689" Id="(@1 @3 Type=PieceDestinyHistory)" />
-    <Alias n="690" Id="(@1 @3 Type=MoveHistory)" />
+    <Alias n="689" Id="(@1 @3 Type=PieceDestinyStats)" />
+    <Alias n="690" Id="(@1 @3 Type=PieceSquareMoveTable)" />
     <Alias n="691" Id="(@1 @3 Type=PieceDestinyMoveTable)" />
     <Alias n="692" Id="(@1 @3 Type=PieceDestinyStatTable)" />
     <Alias n="693" Id="(@1 @3 Type=PieceType)" />

@@ -20,7 +20,7 @@ namespace {
     enum Term : u08
     {
         // The first 6 entries are for PieceType
-        MATERIAL = NONE,
+        MATERIAL = 8,
         IMBALANCE,
         MOBILITY,
         THREAT,
@@ -28,29 +28,30 @@ namespace {
         SPACE,
         INITIATIVE,
         TOTAL,
+        TERM_NO
     };
 
-    array<array<Score, CLR_NO>, TOTAL + 1> Scores;
+    Table<Score, TERM_NO, COLORS> Scores;
 
     void clear()
     {
-        for (auto &s : Scores) { s.fill(SCORE_ZERO); }
+        Scores.fill({ SCORE_ZERO, SCORE_ZERO });
     }
 
-    void write(Term term, Color c, Score score)
+    void write(Term t, Color c, Score s)
     {
-        Scores[term][c] = score;
+        Scores[t][c] = s;
     }
-    void write(Term term, Score wScore, Score bScore = SCORE_ZERO)
+    void write(Term t, Score wS, Score bS = SCORE_ZERO)
     {
-        write(term, WHITE, wScore);
-        write(term, BLACK, bScore);
+        write(t, WHITE, wS);
+        write(t, BLACK, bS);
     }
 
-    ostream& operator<<(ostream &os, Term term)
+    ostream& operator<<(ostream &os, Term t)
     {
-        const auto &score = Scores[term];
-        switch (term)
+        const auto &score = Scores[t];
+        switch (t)
         {
         case Term::MATERIAL:
         case Term::IMBALANCE:
@@ -71,7 +72,7 @@ namespace {
 
 #define S(mg, eg) makeScore(mg, eg)
 
-    constexpr array<array<Score, 28>, 4> Mobility
+    constexpr Table<Score, 4, 28> Mobility
     {{
         { // Knight
             S(-62,-81), S(-53,-56), S(-12,-30), S( -4,-14), S(  3,  8), S( 13, 15),
@@ -96,21 +97,21 @@ namespace {
         }
     }};
 
-    constexpr array<Score, 2> RookOnFile
+    constexpr Table<Score, 2> RookOnFile
     {
         S(21, 4), S(47,25)
     };
 
-    constexpr array<Score, NONE> MinorThreat
+    constexpr Table<Score, NONE> MinorThreat
     {
         S( 6,32), S(59,41), S(79,56), S(90,119), S(79,161), S( 0, 0)
     };
-    constexpr array<Score, NONE> MajorThreat
+    constexpr Table<Score, NONE> MajorThreat
     {
         S( 3,44), S(38,71), S(38,61), S( 0, 38), S(51, 38), S( 0, 0)
     };
 
-    constexpr array<Score, R_NO> PasserRank
+    constexpr Table<Score, RANKS> PasserRank
     {
         S( 0, 0), S(10,28), S(17,33), S(15,41), S(62,72), S(168,177), S(276,260), S( 0, 0)
     };
@@ -142,12 +143,12 @@ namespace {
     constexpr Value LazyThreshold = Value(1400);
     constexpr Value SpaceThreshold = Value(12222);
 
-    constexpr array<i32, NONE> SafeCheckWeight
+    constexpr Table<i32, NONE> SafeCheckWeight
     {
         0, 790, 635, 1080, 780, 0
     };
 
-    constexpr array<i32, NONE> KingAttackerWeight
+    constexpr Table<i32, NONE> KingAttackerWeight
     {
         0, 81, 52, 44, 10, 0
     };
@@ -164,33 +165,33 @@ namespace {
         Material::Entry *me;
 
         // Contains all squares attacked by the color and piece type.
-        array<Bitboard              , CLR_NO> fulAttacks;
+        Table<Bitboard, COLORS>         fulAttacks;
 
         // Contains all squares attacked by the color and piece type with pinned removed.
-        array<array<Bitboard, PT_NO>, CLR_NO> sqlAttacks;
+        Table<Bitboard, COLORS, PIECE_TYPES>  sqlAttacks;
 
         // Contains all squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
-        array<Bitboard              , CLR_NO> pawnsDblAttacks;
-        array<Bitboard              , CLR_NO> dblAttacks;
+        Table<Bitboard, COLORS>         pawnsDblAttacks;
+        Table<Bitboard, COLORS>         dblAttacks;
 
         // Contains all squares from which queen can be attacked
-        array<array<Bitboard, 3>    , CLR_NO> queenAttacked;
+        Table<Bitboard, COLORS, 3>      queenAttacked;
 
 
-        array<Bitboard              , CLR_NO> mobArea;
-        array<Score                 , CLR_NO> mobility;
+        Table<Bitboard, COLORS> mobArea;
+        Table<Score   , COLORS> mobility;
 
         // The squares adjacent to the king plus some other very near squares, depending on king position.
-        array<Bitboard              , CLR_NO> kingRing;
+        Table<Bitboard, COLORS> kingRing;
         // Number of pieces of the color, which attack a square in the kingRing of the enemy king.
-        array<i32                   , CLR_NO> kingAttackersCount;
+        Table<i32     , COLORS> kingAttackersCount;
         // Sum of the "weight" of the pieces of the color which attack a square in the kingRing of the enemy king.
         // The weights of the individual piece types are given by the KingAttackerWeight[piece-type]
-        array<i32                   , CLR_NO> kingAttackersWeight;
+        Table<i32     , COLORS> kingAttackersWeight;
         // Number of attacks by the color to squares directly adjacent to the enemy king.
         // Pieces which attack more than one square are counted multiple times.
         // For instance, if there is a white knight on g5 and black's king is on g8, this white knight adds 2 to kingAttacksCount[WHITE]
-        array<i32                   , CLR_NO> kingAttacksCount;
+        Table<i32     , COLORS> kingAttacksCount;
 
         template<Color> void initAttacks();
         template<Color> void initMobility();
@@ -262,8 +263,8 @@ namespace {
 
         auto kSq = pos.square(Own|KING);
         // King safety tables
-        auto sq = makeSquare(clamp(sFile(kSq), F_B, F_G),
-                             clamp(sRank(kSq), R_2, R_7));
+        auto sq = makeSquare(clamp(sFile(kSq), FILE_B, FILE_G),
+                             clamp(sRank(kSq), RANK_2, RANK_7));
         kingRing[Own] = PieceAttacks[KING][sq] | sq;
 
         kingAttackersCount [Opp] = popCount(  kingRing[Own]
@@ -388,9 +389,9 @@ namespace {
 
                     // Penalty for pawns on the same color square as the bishop,
                     // more when the center files are blocked with pawns.
-                    b = pos.pieces(Own, PAWN)
-                      & Sides[CS_NO]
-                      & pawnSglPushes(Opp, pos.pieces());
+                    b =  pos.pieces(Own, PAWN)
+                      &  Sides[CS_NONE]
+                      &  pawnSglPushes(Opp, pos.pieces());
                     score -= BishopPawns
                            * (1 + popCount(b))
                            * popCount(pos.pieces(Own, PAWN) & Colors[sColor(s)]);
@@ -405,9 +406,9 @@ namespace {
                         // Bishop (white or black) on a1/h1 or a8/h8 which is trapped by own pawn on b2/g2 or b7/g7.
                         if (   1 >= mob
                             && contains(FABB|FHBB, s)
-                            && R_1 == relRank(Own, s))
+                            && RANK_1 == relRank(Own, s))
                         {
-                            auto del = pawnPush(Own) + (DEL_W + DEL_EE * i32(F_A == sFile(s)));
+                            auto del = pawnPush(Own) + (WEST + EAST_2 * i32(FILE_A == sFile(s)));
                             if (contains(pos.pieces(Own, PAWN), s + del))
                             {
                                 score -= BishopTrapped
@@ -436,10 +437,10 @@ namespace {
                 else
                 // Penalty for rook when trapped by the king, even more if the king can't castle
                 if (   3 >= mob
-                    && R_5 > relRank(Own, s))
+                    && RANK_5 > relRank(Own, s))
                 {
                     auto kF = sFile(pos.square(Own|KING));
-                    if ((kF < F_E) == (sFile(s) < kF))
+                    if ((kF < FILE_E) == (sFile(s) < kF))
                     {
                         score -= RookTrapped * (1 + !pos.canCastle(Own));
                     }
@@ -706,7 +707,7 @@ namespace {
         // Friend pawns push (squares where friend pawns can push on the next move)
         b =  pawnSglPushes(Own, b)
           & ~pos.pieces();
-        b |= pawnSglPushes(Own, b & rankBB(relRank(Own, R_3)))
+        b |= pawnSglPushes(Own, b & rankBB(relRank(Own, RANK_3)))
           & ~pos.pieces();
         // Friend pawns push safe (only the squares which are relatively safe)
         b &= safeArea
@@ -765,7 +766,7 @@ namespace {
 
             auto pushSq = s + pawnPush(Own);
 
-            if (R_3 < r)
+            if (RANK_3 < r)
             {
                 i32 w = 5*r - 13;
 
@@ -773,7 +774,7 @@ namespace {
                 bonus += makeScore(0, i32(+4.75*w*kingProximity(Opp, pushSq)
                                           -2.00*w*kingProximity(Own, pushSq)));
                 // If block square is not the queening square then consider also a second push.
-                if (R_7 != r)
+                if (RANK_7 != r)
                 {
                     bonus += makeScore(0, -1*w*kingProximity(Own, pushSq + pawnPush(Own)));
                 }
@@ -848,8 +849,8 @@ namespace {
         behind |= pawnDblPushes(Opp, behind);
 
         // Safe squares for friend pieces inside the area defined by SpaceMask.
-        Bitboard safeSpace = Regions[Own]
-                           & Sides[CS_NO]
+        Bitboard safeSpace =  Regions[Own]
+                           &  Sides[CS_NONE]
                            & ~pos.pieces(Own, PAWN)
                            & ~sqlAttacks[Opp][PAWN];
 
@@ -880,8 +881,8 @@ namespace {
                        +  9 * pe->passedCount()
                        +  9 * outflanking
                         // King infiltration
-                       + 24 * (   sRank(pos.square(WHITE|KING)) > R_4
-                               || sRank(pos.square(BLACK|KING)) < R_5)
+                       + 24 * (   sRank(pos.square(WHITE|KING)) > RANK_4
+                               || sRank(pos.square(BLACK|KING)) < RANK_5)
                        + 51 * (VALUE_ZERO == pos.nonPawnMaterial())
                        - 110;
 
@@ -1075,7 +1076,7 @@ string trace(const Position &pos)
         << "          Total" << Term::TOTAL
         << endl
         << showpos << showpoint
-        << "Evaluation: " << valueCP(value) / 100.0 << " (white side)\n"
+        << "Evaluation: " << toCP(value) / 100.0 << " (white side)\n"
         << noshowpoint << noshowpos;
 
     return oss.str();

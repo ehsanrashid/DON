@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Type.h"
+#include "Types.h"
 
 namespace Searcher {
 

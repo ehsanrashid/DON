@@ -3,15 +3,18 @@
 #include <cmath>
 #include <ctime>
 
+#include "Debugger.h"
 #include "Evaluator.h"
 #include "Logger.h"
 #include "MoveGenerator.h"
+#include "MovePicker.h"
 #include "Notation.h"
 #include "Option.h"
 #include "Polyglot.h"
 #include "Position.h"
 #include "TBsyzygy.h"
 #include "Thread.h"
+#include "TimeManager.h"
 #include "Transposition.h"
 
 using namespace std;
@@ -37,338 +40,10 @@ namespace Searcher {
             u08   moveCount;
             Value staticEval;
             i32   stats;
-            PieceDestinyHistory *pdHistory;
+            PieceSquareStatsTable *pieceStats;
 
-            array<Move, 2> killerMoves;
+            Table<Move, 2> killerMoves;
             list<Move> pv;
-        };
-
-        /// MovePicker class is used to pick one legal moves from the current position.
-        class MovePicker
-        {
-        private:
-            enum Stage : u08
-            {
-                NT_TT, NT_INIT, NT_GOOD_CAPTURES, NT_REFUTATIONS, NT_QUIETS, NT_BAD_CAPTURES,
-                EV_TT, EV_INIT, EV_MOVES,
-                PC_TT, PC_INIT, PC_CAPTURES,
-                QS_TT, QS_INIT, QS_CAPTURES, QS_CHECKS,
-            };
-
-            const Position &pos;
-
-            Move    ttMove;
-            Depth   depth;
-
-            array<const PieceDestinyHistory*, 6> pdHistories;
-
-            Value   threshold;
-            Square  recapSq;
-
-            ValMoves vmoves;
-            ValMoves::iterator vmItr
-                ,              vmEnd;
-
-            std::vector<Move> refutationMoves
-                ,             badCaptureMoves;
-            std::vector<Move>::iterator mItr
-                ,                       mEnd;
-
-            u08 stage;
-
-            /// value() assigns a numerical value to each move in a list, used for sorting.
-            /// Captures are ordered by Most Valuable Victim (MVV) with using the histories.
-            /// Quiets are ordered using the histories.
-            template<GenType GT>
-            void value()
-            {
-                static_assert (GenType::CAPTURE == GT
-                            || GenType::QUIET == GT
-                            || GenType::EVASION == GT, "GT incorrect");
-
-                auto *thread = pos.thread;
-
-                for (auto &vm : vmoves)
-                {
-                    if (GenType::CAPTURE == GT)
-                    {
-                        assert(pos.captureOrPromotion(vm));
-                        vm.value = 6 * i32(PieceValues[MG][pos.captureType(vm)])
-                                 + thread->captureHistory[pos[orgSq(vm)]][dstSq(vm)][pos.captureType(vm)];
-                    }
-                    else
-                    if (GenType::QUIET == GT)
-                    {
-                        vm.value = thread->butterflyHistory[pos.active][mIndex(vm)]
-                                 + 2 * (*pdHistories[0])[pos[orgSq(vm)]][dstSq(vm)]
-                                 + 2 * (*pdHistories[1])[pos[orgSq(vm)]][dstSq(vm)]
-                                 + 2 * (*pdHistories[3])[pos[orgSq(vm)]][dstSq(vm)]
-                                 + 1 * (*pdHistories[5])[pos[orgSq(vm)]][dstSq(vm)];
-                        if (vm.value < threshold)
-                            vm.value = threshold - 1;
-                    }
-                    else // GenType::EVASION == GT
-                    {
-                        vm.value = pos.capture(vm) ?
-                                       i32(PieceValues[MG][pos.captureType(vm)])
-                                     - pType(pos[orgSq(vm)]) :
-                                       thread->butterflyHistory[pos.active][mIndex(vm)]
-                                     + (*pdHistories[0])[pos[orgSq(vm)]][dstSq(vm)]
-                                     - (0x10000000);
-                    }
-                }
-            }
-
-            /// pick() returns the next move satisfying a predicate function
-            template<typename Pred>
-            bool pick(Pred filter)
-            {
-                while (vmItr != vmEnd)
-                {
-                    std::swap(*vmItr, *std::max_element(vmItr, vmEnd));
-                    assert(ttMove != *vmItr
-                        && pos.fullLegal(*vmItr));
-
-                    bool ok = filter();
-
-                    ++vmItr;
-                    if (ok) return true;
-                }
-                return false;
-            }
-
-        public:
-
-            bool skipQuiets;
-
-            MovePicker() = delete;
-            MovePicker(const MovePicker&) = delete;
-            MovePicker& operator=(const MovePicker&) = delete;
-
-            /// MovePicker constructor for the main search
-            MovePicker(const Position &p, Move ttm, Depth d, const array<const PieceDestinyHistory*, 6> &pdhs,
-                       const array<Move, 2> &km, Move cm)
-                : pos(p)
-                , ttMove(ttm)
-                , depth(d)
-                , pdHistories(pdhs)
-                , threshold(Value(-3000 * d))
-                , refutationMoves({ km[0], km[1], cm })
-                , skipQuiets(false)
-            {
-                assert(MOVE_NONE == ttMove
-                   || (pos.pseudoLegal(ttMove)
-                    && pos.legal(ttMove)));
-                assert(DEP_ZERO < depth);
-
-                stage = 0 != pos.checkers() ?
-                        Stage::EV_TT :
-                        Stage::NT_TT;
-                stage += (MOVE_NONE == ttMove);
-            }
-
-            /// MovePicker constructor for quiescence search
-            /// Because the depth <= DEP_ZERO here, only captures, queen promotions
-            /// and quiet checks (only if depth >= DEP_QS_CHECK) will be generated.
-            MovePicker(const Position &p, Move ttm, Depth d, const array<const PieceDestinyHistory*, 6> &pdhs, Square rs)
-                : pos(p)
-                , ttMove(ttm)
-                , depth(d)
-                , pdHistories(pdhs)
-                , recapSq(rs)
-                //, skipQuiets(false)
-            {
-                assert(MOVE_NONE == ttMove
-                    || (pos.pseudoLegal(ttMove)
-                     && pos.legal(ttMove)));
-                assert(DEP_ZERO >= depth);
-
-                if (   MOVE_NONE != ttMove
-                    && !(   DEP_QS_RECAP < depth
-                         || dstSq(ttMove) == recapSq))
-                {
-                    ttMove = MOVE_NONE;
-                }
-                stage = 0 != pos.checkers() ?
-                        Stage::EV_TT :
-                        Stage::QS_TT;
-                stage += (MOVE_NONE == ttMove);
-            }
-
-            /// MovePicker constructor for ProbCut search.
-            /// Generate captures with SEE greater than or equal to the given threshold.
-            MovePicker(const Position &p, Move ttm, Value thr)
-                : pos(p)
-                , ttMove(ttm)
-                , threshold(thr)
-                //, skipQuiets(false)
-            {
-                assert(0 == pos.checkers());
-                assert(MOVE_NONE == ttMove
-                    || (pos.pseudoLegal(ttMove)
-                     && pos.legal(ttMove)));
-
-                if (   MOVE_NONE != ttMove
-                    && !(   pos.capture(ttMove)
-                         && pos.see(ttMove, threshold)))
-                {
-                    ttMove = MOVE_NONE;
-                }
-                stage = Stage::PC_TT;
-                stage += (MOVE_NONE == ttMove);
-            }
-
-            /// next_move() is the most important method of the MovePicker class.
-            /// It returns a new legal move every time it is called, until there are no more moves left.
-            /// It picks the move with the biggest value from a list of generated moves
-            /// taking care not to return the ttMove if it has already been searched.
-            Move next_move()
-            {
-                reStage:
-                switch (stage)
-                {
-
-                case Stage::NT_TT:
-                case Stage::EV_TT:
-                case Stage::PC_TT:
-                case Stage::QS_TT:
-                    ++stage;
-                    return ttMove;
-
-                case Stage::NT_INIT:
-                case Stage::PC_INIT:
-                case Stage::QS_INIT:
-                    generate<GenType::CAPTURE>(vmoves, pos);
-                    vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
-                                                [&](const ValMove &vm) { return ttMove == vm
-                                                                             || !pos.fullLegal(vm); }),
-                                 vmoves.end());
-                    value<GenType::CAPTURE>();
-                    vmItr = vmoves.begin();
-                    vmEnd = vmoves.end();
-                    ++stage;
-                    // Re-branch at the top of the switch
-                    goto reStage;
-
-                case Stage::NT_GOOD_CAPTURES:
-                    if (pick([&]() { return pos.see(*vmItr, Value(-(vmItr->value) * 55 / 1024)) ?
-                                             true :
-                                             // Put losing capture to badCaptureMoves to be tried later
-                                             (badCaptureMoves.push_back(*vmItr), false); }))
-                    {
-                        return *std::prev(vmItr);
-                    }
-
-                    // If the countermove is the same as a killers, skip it
-                    if (   MOVE_NONE != refutationMoves[2]
-                        && (   refutationMoves[2] == refutationMoves[0]
-                            || refutationMoves[2] == refutationMoves[1]))
-                    {
-                        refutationMoves[2] = MOVE_NONE;
-                    }
-                    refutationMoves.erase(std::remove_if(refutationMoves.begin(), refutationMoves.end(),
-                                                         [&](Move m) { return MOVE_NONE == m
-                                                                           || ttMove == m
-                                                                           || pos.capture(m)
-                                                                           || !pos.pseudoLegal(m)
-                                                                           || !pos.legal(m); }),
-                                          refutationMoves.end());
-                    mItr = refutationMoves.begin();
-                    mEnd = refutationMoves.end();
-                    ++stage;
-                    /* fall through */
-                case NT_REFUTATIONS:
-                    // Refutation moves: Killers, Counter moves
-                    if (mItr != mEnd)
-                    {
-                        return *mItr++;
-                    }
-                    mItr = refutationMoves.begin();
-                    if (!skipQuiets)
-                    {
-                        generate<GenType::QUIET>(vmoves, pos);
-                        vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
-                                                    [&](const ValMove &vm) { return ttMove == vm
-                                                                                 || std::find(mItr, mEnd, vm.move) != mEnd
-                                                                                 || !pos.fullLegal(vm); }),
-                                     vmoves.end());
-                        value<GenType::QUIET>();
-                        std::sort(vmoves.begin(), vmoves.end(), greater<ValMove>());
-                        vmItr = vmoves.begin();
-                        vmEnd = vmoves.end();
-                    }
-                    ++stage;
-                    /* fall through */
-                case Stage::NT_QUIETS:
-                    if (   !skipQuiets
-                        && vmItr != vmEnd)
-                    {
-                        return *vmItr++;
-                    }
-
-                    mItr = badCaptureMoves.begin();
-                    mEnd = badCaptureMoves.end();
-                    ++stage;
-                    /* fall through */
-                case Stage::NT_BAD_CAPTURES:
-                    return mItr != mEnd ?
-                            *mItr++ :
-                            MOVE_NONE;
-                    /* end */
-
-                case Stage::EV_INIT:
-                    generate<GenType::EVASION>(vmoves, pos);
-                    vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
-                                                [&](const ValMove &vm) { return ttMove == vm
-                                                                             || !pos.fullLegal(vm); }),
-                                 vmoves.end());
-                    value<GenType::EVASION>();
-                    vmItr = vmoves.begin();
-                    vmEnd = vmoves.end();
-                    ++stage;
-                    /* fall through */
-                case Stage::EV_MOVES:
-                    return pick([]() { return true; }) ?
-                            *std::prev(vmItr) :
-                            MOVE_NONE;
-                    /* end */
-
-                case Stage::PC_CAPTURES:
-                    return pick([&]() { return pos.see(*vmItr, threshold); }) ?
-                            *std::prev(vmItr) :
-                            MOVE_NONE;
-                    /* end */
-
-                case Stage::QS_CAPTURES:
-                    if (pick([&]() { return DEP_QS_RECAP < depth
-                                         || dstSq(*vmItr) == recapSq; }))
-                    {
-                        return *std::prev(vmItr);
-                    }
-                    // If did not find any move then do not try checks, finished.
-                    if (DEP_QS_CHECK > depth)
-                    {
-                        return MOVE_NONE;
-                    }
-
-                    generate<GenType::QUIET_CHECK>(vmoves, pos);
-                    vmoves.erase(std::remove_if(vmoves.begin(), vmoves.end(),
-                                                [&](const ValMove &vm) { return ttMove == vm
-                                                                             || !pos.fullLegal(vm); }),
-                                 vmoves.end());
-                    vmItr = vmoves.begin();
-                    vmEnd = vmoves.end();
-                    ++stage;
-                    /* fall through */
-                case Stage::QS_CHECKS:
-                    return vmItr != vmEnd ?
-                            *vmItr++ :
-                            MOVE_NONE;
-                    /* end */
-                }
-                assert(false);
-                return MOVE_NONE;
-            }
         };
 
         /// Breadcrumbs are used to pair thread and position key
@@ -384,7 +59,7 @@ namespace Searcher {
             }
         };
 
-        array<Breadcrumb, 1024> Breadcrumbs;
+        Table<Breadcrumb, 1024> Breadcrumbs;
 
         /// ThreadMarker structure keeps track of which thread left breadcrumbs at the given
         /// node for potential reductions. A free node will be marked upon entering the moves
@@ -460,28 +135,26 @@ namespace Searcher {
                          + (!imp && (r > 1007)));
         }
 
-        /// statBonus() is the bonus, based on depth
-        constexpr i32 statBonus(Depth depth)
-        {
-            return 15 >= depth ?
-                    (19 * depth + 155) * depth - 132 :
-                    -8;
-        }
-
         // Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
         Value drawValue()
         {
             return VALUE_DRAW + rand() % 3 - 1;
         }
 
-        /// updateContinuationHistories() updates tables of the move pairs with current move.
-        void updateContinuationHistories(Stack *const &ss, Piece p, Square dst, i32 bonus)
+        /// statBonus() is the bonus, based on depth
+        constexpr i32 statBonus(Depth depth)
         {
-            for (const auto *const &s : { ss-1, ss-2, ss-4, ss-6 })
+            return 15 >= depth ? (19 * depth + 155) * depth - 132 : -8;
+        }
+
+        /// updateContinuationStats() updates tables of the move pairs with current move.
+        void updateContinuationStats(Stack *const &ss, Piece p, Square dst, i32 bonus)
+        {
+            for (auto &s : { ss-1, ss-2, ss-4, ss-6 })
             {
                 if (isOk(s->playedMove))
                 {
-                    (*s->pdHistory)[p][dst] << bonus;
+                    (*s->pieceStats)[p][dst] << bonus;
                 }
             }
         }
@@ -501,16 +174,16 @@ namespace Searcher {
                                 dstSq((ss-1)->playedMove) :
                                 relSq(~pos.active, dstSq((ss-1)->playedMove) > orgSq((ss-1)->playedMove) ? SQ_G1 : SQ_C1);
                 assert(NO_PIECE != pos[pmDst]);
-                pos.thread->moveHistory[pos[pmDst]][pmDst] = move;
+                pos.thread->quietCounterMoves[pos[pmDst]][pmDst] = move;
             }
 
-            pos.thread->butterflyHistory[pos.active][mIndex(move)] << bonus;
+            pos.thread->quietStats[pos.active][mIndex(move)] << bonus;
             if (PAWN != pType(pos[orgSq(move)]))
             {
-                pos.thread->butterflyHistory[pos.active][mIndex(reverseMove(move))] << -bonus;
+                pos.thread->quietStats[pos.active][mIndex(reverseMove(move))] << -bonus;
             }
 
-            updateContinuationHistories(ss, pos[orgSq(move)], dstSq(move), bonus);
+            updateContinuationStats(ss, pos[orgSq(move)], dstSq(move), bonus);
         }
 
         /// updatePV() appends the move and child pv
@@ -525,11 +198,11 @@ namespace Searcher {
 
         /// quienSearch() is quiescence search function, which is called by the main depth limited search function when the remaining depth <= 0.
         template<bool PVNode>
-        Value quienSearch(Position &pos, Stack *const &ss, Value alfa, Value beta, Depth depth = DEP_ZERO)
+        Value quienSearch(Position &pos, Stack *const &ss, Value alfa, Value beta, Depth depth = DEPTH_ZERO)
         {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
-            assert(DEP_ZERO >= depth);
+            assert(DEPTH_ZERO >= depth);
 
             Value actualAlfa;
 
@@ -542,10 +215,10 @@ namespace Searcher {
             bool inCheck = 0 != pos.checkers();
 
             // Check for maximum ply reached or immediate draw.
-            if (   ss->ply >= DEP_MAX
+            if (   ss->ply >= MaxDepth
                 || pos.draw(ss->ply))
             {
-                return ss->ply >= DEP_MAX
+                return ss->ply >= MaxDepth
                     && !inCheck ?
                            evaluate(pos) :
                            VALUE_DRAW;
@@ -553,7 +226,7 @@ namespace Searcher {
 
             assert(ss->ply >= 1
                 && ss->ply == (ss-1)->ply + 1
-                && ss->ply < DEP_MAX);
+                && ss->ply < MaxDepth);
 
             // Transposition table lookup.
             Key key = pos.posiKey();
@@ -570,11 +243,11 @@ namespace Searcher {
 
             // Decide whether or not to include checks.
             // Fixes also the type of TT entry depth that are going to use.
-            // Note that in quienSearch use only 2 types of depth: DEP_QS_CHECK or DEP_QS_NO_CHECK.
+            // Note that in quienSearch use only 2 types of depth: DEPTH_QS_CHECK or DEPTH_QS_NO_CHECK.
             Depth qsDepth = inCheck
-                         || DEP_QS_CHECK <= depth ?
-                                DEP_QS_CHECK :
-                                DEP_QS_NO_CHECK;
+                         || DEPTH_QS_CHECK <= depth ?
+                                DEPTH_QS_CHECK :
+                                DEPTH_QS_NO_CHECK;
 
             if (   !PVNode
                 && VALUE_NONE != ttValue // Handle ttHit
@@ -639,7 +312,7 @@ namespace Searcher {
                                       MOVE_NONE,
                                       valueToTT(bestValue, ss->ply),
                                       ss->staticEval,
-                                      DEP_NONE,
+                                      DEPTH_NONE,
                                       BOUND_LOWER,
                                       ttPV);
                         }
@@ -669,21 +342,21 @@ namespace Searcher {
             Move move;
             u08 moveCount = 0;
 
-            const array<const PieceDestinyHistory*, 6> pdHistories
+            const Table<const PieceSquareStatsTable*, 6> pieceStats
             {
-                (ss-1)->pdHistory, (ss-2)->pdHistory,
-                nullptr          , (ss-4)->pdHistory,
-                nullptr          , (ss-6)->pdHistory
+                (ss-1)->pieceStats, (ss-2)->pieceStats,
+                nullptr          , (ss-4)->pieceStats,
+                nullptr          , (ss-6)->pieceStats
             };
 
             auto recapSq = isOk((ss-1)->playedMove) ?
                                 dstSq((ss-1)->playedMove) :
-                                SQ_NO;
+                                SQ_NONE;
 
             // Initialize move picker (2) for the current position
-            MovePicker mp(pos, ttMove, depth, pdHistories, recapSq);
+            MovePicker mp(pos, ttMove, depth, pieceStats, recapSq);
             // Loop through the moves until no moves remain or a beta cutoff occurs
-            while (MOVE_NONE != (move = mp.next_move()))
+            while (MOVE_NONE != (move = mp.nextMove()))
             {
                 assert(pos.pseudoLegal(move)
                     && pos.legal(move));
@@ -725,7 +398,7 @@ namespace Searcher {
                 // Pruning: Don't search moves with negative SEE
                 if (   (   !inCheck
                         // Evasion pruning: Detect non-capture evasions for pruning
-                        || (   (DEP_ZERO != depth || 2 < moveCount)
+                        || (   (DEPTH_ZERO != depth || 2 < moveCount)
                             && -VALUE_MATE_MAX_PLY < bestValue
                             && !pos.capture(move)))
                     && 0 == Threadpool.limit.mate
@@ -739,7 +412,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->playedMove = move;
-                ss->pdHistory = &thread->continuationHistory[inCheck][captureOrPromotion][mpc][dst];
+                ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mpc][dst];
 
                 // Make the move.
                 pos.doMove(move, si, giveCheck);
@@ -827,7 +500,7 @@ namespace Searcher {
             }
 
             // Dive into quiescence search when the depth reaches zero
-            if (DEP_ZERO >= depth)
+            if (DEPTH_ZERO >= depth)
             {
                 return quienSearch<PVNode>(pos, ss, alfa, beta);
             }
@@ -835,7 +508,7 @@ namespace Searcher {
             assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
             assert(PVNode || (alfa == beta-1));
             assert(!(PVNode && cutNode));
-            assert(DEP_ZERO < depth && depth < DEP_MAX);
+            assert(DEPTH_ZERO < depth && depth < MaxDepth);
 
             // Step 1. Initialize node.
             auto *thread = pos.thread;
@@ -864,10 +537,10 @@ namespace Searcher {
             {
                 // Step 2. Check for aborted search, maximum ply reached or immediate draw.
                 if (   Threadpool.stop.load(std::memory_order::memory_order_relaxed)
-                    || ss->ply >= DEP_MAX
+                    || ss->ply >= MaxDepth
                     || pos.draw(ss->ply))
                 {
-                    return ss->ply >= DEP_MAX
+                    return ss->ply >= MaxDepth
                         && !inCheck ?
                                evaluate(pos) :
                                drawValue();
@@ -889,7 +562,7 @@ namespace Searcher {
 
             assert(ss->ply >= 0
                 && ss->ply == (ss-1)->ply + 1
-                && ss->ply < DEP_MAX);
+                && ss->ply < MaxDepth);
 
             assert(MOVE_NONE == (ss+1)->excludedMove);
             (ss+2)->killerMoves.fill(MOVE_NONE);
@@ -956,7 +629,7 @@ namespace Searcher {
                             && 2 >= (ss-1)->moveCount)
                         {
                             auto bonus = -statBonus(depth + 1);
-                            updateContinuationHistories(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), bonus);
+                            updateContinuationStats(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), bonus);
                         }
                     }
                     else
@@ -964,8 +637,8 @@ namespace Searcher {
                     if (!pos.captureOrPromotion(ttMove))
                     {
                         auto bonus = -statBonus(depth);
-                        thread->butterflyHistory[pos.active][mIndex(ttMove)] << bonus;
-                        updateContinuationHistories(ss, pos[orgSq(ttMove)], dstSq(ttMove), bonus);
+                        thread->quietStats[pos.active][mIndex(ttMove)] << bonus;
+                        updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), bonus);
                     }
                 }
 
@@ -996,14 +669,14 @@ namespace Searcher {
                         Threadpool.mainThread()->tickCount = 1;
                     }
 
-                    if (ProbeState::FAILURE != probeState)
+                    if (FAILURE != probeState)
                     {
                         thread->tbHits.fetch_add(1, std::memory_order::memory_order_relaxed);
 
                         i16 draw = TBUseRule50;
 
-                        value = wdl < -draw ? -VALUE_MATE + (DEP_MAX + ss->ply + 1) :
-                                wdl > +draw ? +VALUE_MATE - (DEP_MAX + ss->ply + 1) :
+                        value = wdl < -draw ? -VALUE_MATE + (MaxDepth + ss->ply + 1) :
+                                wdl > +draw ? +VALUE_MATE - (MaxDepth + ss->ply + 1) :
                                                VALUE_ZERO + 2 * wdl * draw;
 
                         auto bound = wdl < -draw ? BOUND_UPPER :
@@ -1017,7 +690,7 @@ namespace Searcher {
                                       MOVE_NONE,
                                       valueToTT(value, ss->ply),
                                       VALUE_NONE,
-                                      Depth(std::min(depth + 6, DEP_MAX - 1)),
+                                      Depth(std::min(depth + 6, MaxDepth - 1)),
                                       bound,
                                       ttPV);
 
@@ -1089,7 +762,7 @@ namespace Searcher {
                               MOVE_NONE,
                               VALUE_NONE,
                               eval,
-                              DEP_NONE,
+                              DEPTH_NONE,
                               BOUND_NONE,
                               ttPV);
                 }
@@ -1145,7 +818,7 @@ namespace Searcher {
                     auto R = Depth((68 * depth + 854) / 258 + std::min(i32(eval - beta) / 192, 3));
 
                     ss->playedMove = MOVE_NULL;
-                    ss->pdHistory = &thread->continuationHistory[0][0][NO_PIECE][SQ_NONE];
+                    ss->pieceStats = &thread->continuationStats[0][0][NO_PIECE][0];
 
                     pos.doNullMove(si);
 
@@ -1193,7 +866,7 @@ namespace Searcher {
                     MovePicker mp(pos, ttMove, raisedBeta - ss->staticEval);
                     // Loop through all legal moves until no moves remain or a beta cutoff occurs
                     while (   moveCount < 2 + 2 * cutNode
-                           && MOVE_NONE != (move = mp.next_move()))
+                           && MOVE_NONE != (move = mp.nextMove()))
                     {
                         assert(pos.pseudoLegal(move)
                             && pos.legal(move)
@@ -1210,7 +883,7 @@ namespace Searcher {
                         prefetch(TT.cluster(pos.movePosiKey(move))->entries);
 
                         ss->playedMove = move;
-                        ss->pdHistory = &thread->continuationHistory[0][1][pos[orgSq(move)]][dstSq(move)];
+                        ss->pieceStats = &thread->continuationStats[0][1][pos[orgSq(move)]][dstSq(move)];
 
                         pos.doMove(move, si);
 
@@ -1271,11 +944,11 @@ namespace Searcher {
             bool ttmCapture = MOVE_NONE != ttMove
                            && pos.captureOrPromotion(ttMove);
 
-            const array<const PieceDestinyHistory*, 6> pdHistories
+            const Table<const PieceSquareStatsTable*, 6> pieceStats
             {
-                (ss-1)->pdHistory, (ss-2)->pdHistory,
-                nullptr          , (ss-4)->pdHistory,
-                nullptr          , (ss-6)->pdHistory
+                (ss-1)->pieceStats, (ss-2)->pieceStats,
+                nullptr           , (ss-4)->pieceStats,
+                nullptr           , (ss-6)->pieceStats
             };
 
             auto counterMove = MOVE_NONE;
@@ -1285,13 +958,13 @@ namespace Searcher {
                                 dstSq((ss-1)->playedMove) :
                                 relSq(~pos.active, dstSq((ss-1)->playedMove) > orgSq((ss-1)->playedMove) ? SQ_G1 : SQ_C1);
                 assert(NO_PIECE != pos[pmDst]);
-                counterMove = pos.thread->moveHistory[pos[pmDst]][pmDst];
+                counterMove = pos.thread->quietCounterMoves[pos[pmDst]][pmDst];
             }
 
             // Initialize move picker (1) for the current position
-            MovePicker mp(pos, ttMove, depth, pdHistories, ss->killerMoves, counterMove);
+            MovePicker mp(pos, ttMove, depth, pieceStats, ss->killerMoves, counterMove);
             // Step 12. Loop through all legal moves until no moves remain or a beta cutoff occurs.
-            while (MOVE_NONE != (move = mp.next_move()))
+            while (MOVE_NONE != (move = mp.nextMove()))
             {
                 assert(pos.pseudoLegal(move)
                     && pos.legal(move));
@@ -1374,8 +1047,8 @@ namespace Searcher {
                         if (   (  4
                                 + (   0 < (ss-1)->stats
                                    || 1 == (ss-1)->moveCount)) > lmrDepth
-                            && (*pdHistories[0])[mpc][dst] < CounterMovePruneThreshold
-                            && (*pdHistories[1])[mpc][dst] < CounterMovePruneThreshold)
+                            && (*pieceStats[0])[mpc][dst] < CounterMovePruneThreshold
+                            && (*pieceStats[1])[mpc][dst] < CounterMovePruneThreshold)
                         {
                             continue;
                         }
@@ -1385,10 +1058,10 @@ namespace Searcher {
                             && (  ss->staticEval
                                 + 172 * lmrDepth
                                 + 235) <= alfa
-                            && (  thread->butterflyHistory[pos.active][mIndex(move)]
-                                + (*pdHistories[0])[mpc][dst]
-                                + (*pdHistories[1])[mpc][dst]
-                                + (*pdHistories[3])[mpc][dst]) < 25000)
+                            && (  thread->quietStats[pos.active][mIndex(move)]
+                                + (*pieceStats[0])[mpc][dst]
+                                + (*pieceStats[1])[mpc][dst]
+                                + (*pieceStats[3])[mpc][dst]) < 25000)
                         {
                             continue;
                         }
@@ -1407,7 +1080,7 @@ namespace Searcher {
                 }
 
                 // Step 14. Extensions. (~75 ELO)
-                auto extension = DEP_ZERO;
+                auto extension = DEPTH_ZERO;
 
                 // Singular extension (SE) (~70 ELO)
                 // Extend the TT move if its value is much better than its siblings.
@@ -1474,7 +1147,7 @@ namespace Searcher {
 
                 // Update the current move.
                 ss->playedMove = move;
-                ss->pdHistory = &thread->continuationHistory[inCheck][captureOrPromotion][mpc][dst];
+                ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mpc][dst];
 
                 // Step 15. Make the move.
                 pos.doMove(move, si, giveCheck);
@@ -1529,16 +1202,16 @@ namespace Searcher {
                             reductDepth -= 2 + ttPV;
                         }
 
-                        ss->stats = thread->butterflyHistory[~pos.active][mIndex(move)]
-                                  + (*pdHistories[0])[mpc][dst]
-                                  + (*pdHistories[1])[mpc][dst]
-                                  + (*pdHistories[3])[mpc][dst]
+                        ss->stats = thread->quietStats[~pos.active][mIndex(move)]
+                                  + (*pieceStats[0])[mpc][dst]
+                                  + (*pieceStats[1])[mpc][dst]
+                                  + (*pieceStats[3])[mpc][dst]
                                   - 4926;
                         // Reset stats to zero if negative and most stats shows >= 0
                         if (   0 >  ss->stats
-                            && 0 <= thread->butterflyHistory[~pos.active][mIndex(move)]
-                            && 0 <= (*pdHistories[0])[mpc][dst]
-                            && 0 <= (*pdHistories[1])[mpc][dst])
+                            && 0 <= thread->quietStats[~pos.active][mIndex(move)]
+                            && 0 <= (*pieceStats[0])[mpc][dst]
+                            && 0 <= (*pieceStats[1])[mpc][dst])
                         {
                             ss->stats = 0;
                         }
@@ -1567,7 +1240,7 @@ namespace Searcher {
                         reductDepth += 1;
                     }
 
-                    reductDepth = std::max(reductDepth, DEP_ZERO);
+                    reductDepth = std::max(reductDepth, DEPTH_ZERO);
                     auto d = Depth(std::max(newDepth - reductDepth, 1));
                     assert(d <= newDepth);
 
@@ -1597,7 +1270,7 @@ namespace Searcher {
                         {
                             bonus += bonus / 4;
                         }
-                        updateContinuationHistories(ss, mpc, dst, bonus);
+                        updateContinuationStats(ss, mpc, dst, bonus);
                     }
                 }
 
@@ -1736,19 +1409,19 @@ namespace Searcher {
                     // Decrease all the other played quiet moves.
                     for (auto qm : quietMoves)
                     {
-                        thread->butterflyHistory[pos.active][mIndex(qm)] << -bonus2;
-                        updateContinuationHistories(ss, pos[orgSq(qm)], dstSq(qm), -bonus2);
+                        thread->quietStats[pos.active][mIndex(qm)] << -bonus2;
+                        updateContinuationStats(ss, pos[orgSq(qm)], dstSq(qm), -bonus2);
                     }
                 }
                 else
                 {
-                    thread->captureHistory[pos[orgSq(bestMove)]][dstSq(bestMove)][pos.captureType(bestMove)] << bonus1;
+                    thread->captureStats[pos[orgSq(bestMove)]][dstSq(bestMove)][pos.captureType(bestMove)] << bonus1;
                 }
 
                 // Decrease all the other played capture moves.
                 for (auto cm : captureMoves)
                 {
-                    thread->captureHistory[pos[orgSq(cm)]][dstSq(cm)][pos.captureType(cm)] << -bonus1;
+                    thread->captureStats[pos[orgSq(cm)]][dstSq(cm)][pos.captureType(cm)] << -bonus1;
                 }
 
                 // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
@@ -1756,7 +1429,7 @@ namespace Searcher {
                     && (   1 == (ss-1)->moveCount
                         || (ss-1)->killerMoves[0] == (ss-1)->playedMove))
                 {
-                    updateContinuationHistories(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), -bonus1);
+                    updateContinuationStats(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), -bonus1);
                 }
             }
             else
@@ -1766,7 +1439,7 @@ namespace Searcher {
                     || 2 < depth))
             {
                 auto bonus = statBonus(depth);
-                updateContinuationHistories(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), bonus);
+                updateContinuationStats(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), bonus);
             }
 
             if (PVNode)
@@ -1838,7 +1511,7 @@ void Thread::search()
         timedContempt = i16(diffTime / contemptTime);
     }
     // Basic Contempt
-    auto bc = i32(cpValue(i16(i32(Options["Fixed Contempt"])) + timedContempt));
+    auto bc = i32(toValue(i16(i32(Options["Fixed Contempt"])) + timedContempt));
     // In analysis mode, adjust contempt in accordance with user preference
     if (   Threadpool.limit.infinite
         || bool(Options["UCI_AnalyseMode"]))
@@ -1871,11 +1544,11 @@ void Thread::search()
         , beta = +VALUE_INFINITE;
 
     // To allow access to (ss-7) up to (ss+2), the stack must be over-sized.
-    // The former is needed to allow updateContinuationHistories(ss-1, ...),
+    // The former is needed to allow updateContinuationStats(ss-1, ...),
     // which accesses its argument at ss-4, also near the root.
     // The latter is needed for stats and killer initialization.
-    Stack stacks[DEP_MAX + 10];
-    for (auto ss = stacks; ss < stacks + DEP_MAX + 10; ++ss)
+    Stack stacks[MaxDepth + 10];
+    for (auto ss = stacks; ss < stacks + MaxDepth + 10; ++ss)
     {
         ss->ply             = i16(ss - (stacks+7));
         ss->playedMove      = MOVE_NONE;
@@ -1883,16 +1556,16 @@ void Thread::search()
         ss->moveCount       = 0;
         ss->staticEval      = VALUE_ZERO;
         ss->stats           = 0;
-        ss->pdHistory       = &continuationHistory[0][0][NO_PIECE][SQ_NONE];
+        ss->pieceStats       = &continuationStats[0][0][NO_PIECE][0];
         ss->killerMoves.fill(MOVE_NONE);
         ss->pv.clear();
     }
 
     // Iterative deepening loop until requested to stop or the target depth is reached.
-    while (   ++rootDepth < DEP_MAX
+    while (   ++rootDepth < MaxDepth
            && !Threadpool.stop
            && (   nullptr == mainThread
-               || DEP_ZERO == Threadpool.limit.depth
+               || DEPTH_ZERO == Threadpool.limit.depth
                || rootDepth <= Threadpool.limit.depth))
     {
         if (   nullptr != mainThread
@@ -1928,7 +1601,7 @@ void Thread::search()
             }
 
             // Reset UCI info selDepth for each depth and each PV line
-            selDepth = DEP_ZERO;
+            selDepth = DEPTH_ZERO;
 
             // Reset aspiration window starting size.
             if (4 <= rootDepth)
@@ -2149,7 +1822,7 @@ void MainThread::search()
     /*
     if (!whiteSpaces(string(Options["Output File"])))
     {
-        Threadpool.outputStream.open(string(Options["Output File"]), ios_base::out|ios_base::app);
+        Threadpool.outputStream.open(string(Options["Output File"]), ios::out|ios::app);
         if (Threadpool.outputStream.is_open())
         {
             Threadpool.outputStream
@@ -2223,7 +1896,7 @@ void MainThread::search()
             if (Threadpool.limit.useTimeMgr())
             {
                 bestMove = MOVE_NONE;
-                bestMoveDepth = DEP_ZERO;
+                bestMoveDepth = DEPTH_ZERO;
             }
 
             skillMgr.level = bool(Options["UCI_LimitStrength"]) ?
@@ -2281,7 +1954,7 @@ void MainThread::search()
         }
         // Check if there is better thread than main thread.
         if (   1 == Threadpool.pvCount
-            && DEP_ZERO == Threadpool.limit.depth // Depth limit search don't use deeper thread
+            && DEPTH_ZERO == Threadpool.limit.depth // Depth limit search don't use deeper thread
             && !skillMgr.enabled()
             && !bool(Options["UCI_LimitStrength"]))
         {
@@ -2379,7 +2052,7 @@ void MainThread::tick()
     {
         debugTime = elapsedTime;
 
-        debugPrint();
+        Debugger::print();
     }
 
     // Do not stop until told so by the GUI.

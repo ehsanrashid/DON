@@ -1,55 +1,58 @@
 #pragma once
 
-#include <array>
 #include <deque>
 #include <list>
 #include <memory> // For std::unique_ptr
 #include <string>
 
 #include "BitBoard.h"
-#include "Type.h"
-#include "Util.h"
+#include "Types.h"
 
 /// Pre-loads the given address in L1/L2 cache.
 /// This is a non-blocking function that doesn't stall the CPU
 /// waiting for data to be loaded from memory, which can be quite slow.
 #if defined(PREFETCH)
-#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+#endif
 
 inline void prefetch(const void *addr)
 {
-#   if defined(__INTEL_COMPILER)
-    // This hack prevents prefetches from being optimized away by
-    // Intel compiler. Both MSVC and gcc seem not be affected by this.
-    __asm__ ("");
-#   endif
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
+#       if defined(__INTEL_COMPILER)
+
+        // This hack prevents prefetches from being optimized away by
+        // Intel compiler. Both MSVC and gcc seem not be affected by this.
+        __asm__ ("");
+
+#       endif
+
     _mm_prefetch((const char*)(addr), _MM_HINT_T0);
-}
 
 #   else
 
-inline void prefetch(const void *addr)
-{
     __builtin_prefetch(addr);
-}
 
 #   endif
+}
 
 #else
 
-inline void prefetch(const void*)
-{}
+inline void prefetch(const void*) {}
 
 #endif
 
 using namespace BitBoard;
 
+extern const Table<Piece, 12> Pieces;
+extern const Table<Value, 2, PIECE_TYPES> PieceValues;
+
 /// StateInfo stores information needed to restore a Position object to its previous state when we retract a move.
 ///
 ///  - Castling-rights information.
-///  - Enpassant square(SQ_NO if no Enpassant capture is possible).
+///  - Enpassant square(SQ_NONE if no Enpassant capture is possible).
 ///  - Counter (clock) for detecting 50 move rule draws.
 ///  - Hash key of the material situation.
 ///  - Hash key of the pawn structure.
@@ -76,8 +79,8 @@ public:
     Bitboard    checkers;       // Checkers
     i16         repetition;
     // Check info
-    Bitboard    kingBlockers[CLR_NO]; // Absolute and Discover Blockers
-    Bitboard    kingCheckers[CLR_NO]; // Absolute and Discover Checkers
+    Bitboard    kingBlockers[COLORS]; // Absolute and Discover Blockers
+    Bitboard    kingCheckers[COLORS]; // Absolute and Discover Checkers
     Bitboard    checks[NONE];
 
     StateInfo *ptr;             // Previous StateInfo pointer.
@@ -88,7 +91,7 @@ public:
 /// (from the start position to the position just before the search starts).
 /// Needed by 'draw by repetition' detection.
 /// Use a std::deque because pointers to elements are not invalidated upon list resizing.
-typedef std::unique_ptr<std::deque<StateInfo>> StateListPtr;
+using StateListPtr = std::unique_ptr<std::deque<StateInfo>>;
 
 class Thread;
 
@@ -107,12 +110,12 @@ class Position
 {
 private:
 
-    std::array<Piece   , SQ_NO>  piece;
-    std::array<Bitboard, CLR_NO> colors;
-    std::array<Bitboard, PT_NO>  types;
+    Table<Piece   , SQUARES>        piece;
+    Table<Bitboard, COLORS>         colors;
+    Table<Bitboard, PIECE_TYPES>    types;
 
-    std::array<CastleRight, SQ_NO> sqCastleRight;
-    std::array<Value      , SQ_NO> npMaterial;
+    Table<CastleRight, SQUARES> sqCastleRight;
+    Table<Value      , SQUARES> npMaterial;
 
     void placePiece(Square, Piece);
     void removePiece(Square);
@@ -125,11 +128,11 @@ private:
 
 public:
 
-    std::array<std::list<Square>, MAX_PIECE> squares;
+    Table<std::list<Square>, MAX_PIECE> squares;
 
-    std::array<std::array<Square  , CS_NO>, CLR_NO> castleRookSq;
-    std::array<std::array<Bitboard, CS_NO>, CLR_NO> castleKingPath;
-    std::array<std::array<Bitboard, CS_NO>, CLR_NO> castleRookPath;
+    Table<Square  , COLORS, CASTLE_SIDES> castleRookSq;
+    Table<Bitboard, COLORS, CASTLE_SIDES> castleKingPath;
+    Table<Bitboard, COLORS, CASTLE_SIDES> castleRookPath;
 
     Score psq;
     i16   ply;
@@ -167,18 +170,17 @@ public:
     Value nonPawnMaterial() const;
     Square square(Piece, u08 = 0) const;
 
-
     CastleRight castleRights() const;
-    bool   canCastle(Color c) const;
-    bool   canCastle(Color c, CastleSide cs) const;
+    bool canCastle(Color c) const;
+    bool canCastle(Color c, CastleSide cs) const;
     Square epSquare() const;
-    u08    clockPly() const;
-    u08    nullPly() const;
-    Key    matlKey() const;
-    Key    pawnKey() const;
-    Key    posiKey() const;
+    u08 clockPly() const;
+    u08 nullPly() const;
+    Key matlKey() const;
+    Key pawnKey() const;
+    Key posiKey() const;
     PieceType captured() const;
-    Bitboard  checkers() const;
+    Bitboard checkers() const;
 
     bool castleExpeded(Color, CastleSide) const;
 
@@ -242,6 +244,9 @@ public:
 
 };
 
+extern std::ostream& operator<<(std::ostream&, const Position&);
+
+
 inline Piece Position::operator[](Square s) const
 {
     assert(isOk(s));
@@ -291,10 +296,7 @@ inline i32 Position::count() const
              + squares[W_QUEN].size() + squares[B_QUEN].size()
              + squares[W_KING].size() + squares[B_KING].size());
 }
-inline i32 Position::count(Piece p) const
-{
-    return i32(squares[p].size());
-}
+inline i32 Position::count(Piece p) const { return i32(squares[p].size()); }
 /// Position::count() counts specific color
 inline i32 Position::count(Color c) const
 {
@@ -325,19 +327,18 @@ inline Square Position::square(Piece p, u08 index) const
     return *std::next(squares[p].begin(), index);
 }
 
-
-
 inline CastleRight Position::castleRights() const { return si->castleRights; }
 inline bool Position::canCastle(Color c)                const { return CR_NONE != (castleRights() & makeCastleRight(c)); }
 inline bool Position::canCastle(Color c, CastleSide cs) const { return CR_NONE != (castleRights() & makeCastleRight(c, cs)); }
 inline Square Position::epSquare() const { return si->epSquare; }
-inline u08    Position::clockPly() const { return si->clockPly; }
-inline u08    Position::nullPly() const { return si->nullPly; }
-inline Key    Position::matlKey() const { return si->matlKey; }
-inline Key    Position::pawnKey() const { return si->pawnKey; }
-inline Key    Position::posiKey() const { return si->posiKey; }
+inline u08 Position::clockPly() const { return si->clockPly; }
+inline u08 Position::nullPly() const { return si->nullPly; }
+inline Key Position::matlKey() const { return si->matlKey; }
+inline Key Position::pawnKey() const { return si->pawnKey; }
+inline Key Position::posiKey() const { return si->posiKey; }
 inline PieceType Position::captured() const { return si->captured; }
-inline Bitboard  Position::checkers() const { return si->checkers; }
+
+inline Bitboard Position::checkers() const { return si->checkers; }
 
 
 inline bool Position::castleExpeded(Color c, CastleSide cs) const
@@ -457,14 +458,6 @@ inline bool Position::semiopenFileOn(Color c, Square s) const
 inline void Position::doMove(Move m, StateInfo &nsi)
 {
     doMove(m, nsi, giveCheck(m));
-}
-
-template<typename Elem, typename Traits>
-inline std::basic_ostream<Elem, Traits>&
-operator<<(std::basic_ostream<Elem, Traits> &os, const Position &pos)
-{
-    os << std::string(pos);
-    return os;
 }
 
 #if !defined(NDEBUG)

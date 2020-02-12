@@ -1,7 +1,7 @@
 #pragma once
 
 #include "Position.h"
-#include "Type.h"
+#include "Types.h"
 
 // Tempo bonus
 constexpr Value Tempo = Value(28);

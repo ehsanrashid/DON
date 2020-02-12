@@ -4,7 +4,7 @@
 #include <vector>
 
 #include "Position.h"
-#include "Type.h"
+#include "Types.h"
 
 /// The root of the tree is a PV node.
 /// At a PV node all the children have to be investigated.

@@ -18,6 +18,19 @@ using namespace std;
 using namespace BitBoard;
 using namespace TBSyzygy;
 
+const Table<Piece, 12> Pieces
+{
+    W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+    B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING
+};
+
+const Table<Value, 2, PIECE_TYPES> PieceValues
+{{
+    { VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO, VALUE_ZERO },
+    { VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO, VALUE_ZERO }
+}};
+
+
 namespace {
 
     /// Computes the non-pawn middle game material value for the given side.
@@ -60,7 +73,7 @@ namespace {
     };
 
     // Cuckoo table
-    array<Cuckoo, 0x2000> Cuckoos;
+    Table<Cuckoo, 0x2000> Cuckoos;
 
     // Hash functions for indexing the cuckoo tables
 
@@ -74,13 +87,13 @@ void Position::initialize()
     // Prepare the Cuckoo tables
     Cuckoos.fill({0, MOVE_NONE});
     u16 count = 0;
-    for (auto c : { WHITE, BLACK })
+    for (Color c : { WHITE, BLACK })
     {
         for (auto pt : { NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (auto org : SQ)
+            for (Square org = SQ_A1; org <= SQ_H8; ++org)
             {
-                for (auto dst = Square(org + 1); dst <= SQ_H8; ++dst)
+                for (Square dst = Square(org + 1); dst <= SQ_H8; ++dst)
                 {
                     if (contains(PieceAttacks[pt][org], dst))
                     {
@@ -151,7 +164,7 @@ Key Position::movePosiKey(Move m) const
             }
         }
     }
-    if (SQ_NO != epSquare())
+    if (SQ_NONE != epSquare())
     {
         pKey ^= RandZob.enpassantKey[sFile(epSquare())];
     }
@@ -309,8 +322,8 @@ bool Position::pseudoLegal(Move m) const
             && (active|ROOK) == piece[dst] //&& contains(pieces(active, ROOK), dst)
             && castleRookSq[active][cs] == dst
             && castleExpeded(active, cs)
-            //&& R_1 == relRank(active, org)
-            //&& R_1 == relRank(active, dst)
+            //&& RANK_1 == relRank(active, org)
+            //&& RANK_1 == relRank(active, dst)
             && canCastle(active, cs)
             && 0 == checkers();
     }
@@ -329,33 +342,33 @@ bool Position::pseudoLegal(Move m) const
 
         if (    // Single push
                (   (   (   NORMAL != mType(m)
-                        || R_2 > orgR || orgR > R_6
-                        || R_3 > dstR || dstR > R_7)
+                        || RANK_2 > orgR || orgR > RANK_6
+                        || RANK_3 > dstR || dstR > RANK_7)
                     && (   PROMOTE != mType(m)
-                        || R_7 != orgR
-                        || R_8 != dstR))
+                        || RANK_7 != orgR
+                        || RANK_8 != dstR))
                 || dst != org + 1 * pawnPush(active)
                 || !empty(dst))
                 // Normal capture
             && (   (   (   NORMAL != mType(m)
-                        || R_2 > orgR || orgR > R_6
-                        || R_3 > dstR || dstR > R_7)
+                        || RANK_2 > orgR || orgR > RANK_6
+                        || RANK_3 > dstR || dstR > RANK_7)
                     && (   PROMOTE != mType(m)
-                        || R_7 != orgR
-                        || R_8 != dstR))
+                        || RANK_7 != orgR
+                        || RANK_8 != dstR))
                 || !contains(PawnAttacks[active][org], dst)
                 || empty(dst))
                 // Double push
             && (   NORMAL != mType(m)
-                || R_2 != orgR
-                || R_4 != dstR
+                || RANK_2 != orgR
+                || RANK_4 != dstR
                 || dst != org + 2 * pawnPush(active)
                 || !empty(dst)
                 || !empty(dst - 1 * pawnPush(active)))
                 // Enpassant capture
             && (   ENPASSANT != mType(m)
-                || R_5 != orgR
-                || R_6 != dstR
+                || RANK_5 != orgR
+                || RANK_6 != dstR
                 || dst != epSquare()
                 || !contains(PawnAttacks[active][org], dst)
                 || !empty(dst)
@@ -421,8 +434,8 @@ bool Position::legal(Move m) const
     case PROMOTE:
         assert(NORMAL == mType(m)
             || (   (active|PAWN) == piece[org] //&& contains(pieces(active, PAWN), org)
-                && R_7 == relRank(active, org)
-                && R_8 == relRank(active, dst)));
+                && RANK_7 == relRank(active, org)
+                && RANK_8 == relRank(active, dst)));
 
         // A non-king move is legal if and only if
         // - not pinned
@@ -436,8 +449,8 @@ bool Position::legal(Move m) const
             && (active|ROOK) == piece[dst] //&& contains(pieces(active, ROOK), dst)
             && castleRookSq[active][dst > org ? CS_KING : CS_QUEN] == dst
             && castleExpeded(active, dst > org ? CS_KING : CS_QUEN)
-            //&& R_1 == relRank(active, org)
-            //&& R_1 == relRank(active, dst)
+            //&& RANK_1 == relRank(active, org)
+            //&& RANK_1 == relRank(active, dst)
             && canCastle(active, dst > org ? CS_KING : CS_QUEN)
             && 0 == checkers());
         // Castle is always encoded as "King captures friendly Rook".
@@ -454,7 +467,7 @@ bool Position::legal(Move m) const
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
         return !bool(Options["UCI_Chess960"])
             || 0 == (  pieces(~active, ROOK, QUEN)
-                     & rankBB(relRank(active, R_1))
+                     & rankBB(relRank(active, RANK_1))
                      & attacksBB<ROOK>(relSq(active, dst > org ? SQ_G1 : SQ_C1), pieces() ^ dst));
     }
     case ENPASSANT:
@@ -462,8 +475,8 @@ bool Position::legal(Move m) const
         // Enpassant captures are a tricky special case. Because they are rather uncommon,
         // do it simply by testing whether the king is attacked after the move is made.
         assert((active|PAWN) == piece[org] //&& contains(pieces(active, PAWN), org)
-            && R_5 == relRank(active, org)
-            && R_6 == relRank(active, dst)
+            && RANK_5 == relRank(active, org)
+            && RANK_6 == relRank(active, dst)
             && 0 == clockPly()
             && dst == epSquare()
             && empty(dst) //&& !contains(pieces(), dst)
@@ -535,11 +548,11 @@ bool Position::giveCheck(Move m) const
 void Position::setCastle(Color c, Square rookOrg)
 {
     assert(isOk(rookOrg)
-        && R_1 == relRank(c, rookOrg)
+        && RANK_1 == relRank(c, rookOrg)
         && (c|ROOK) == piece[rookOrg]); //&& contains(pieces(c, ROOK), rookOrg)
 
     auto kingOrg = square(c|KING);
-    assert(R_1 == relRank(c, kingOrg));
+    assert(RANK_1 == relRank(c, kingOrg));
     auto cs = rookOrg > kingOrg ? CS_KING : CS_QUEN;
     castleRookSq[c][cs] = rookOrg;
 
@@ -576,7 +589,7 @@ void Position::setCheckInfo()
 bool Position::canEnpassant(Color c, Square epSq, bool moveDone) const
 {
     assert(isOk(epSq)
-        && R_6 == relRank(c, epSq));
+        && RANK_6 == relRank(c, epSq));
     auto cap = moveDone ?
                 epSq - pawnPush(c) :
                 epSq + pawnPush(c);
@@ -786,13 +799,13 @@ void Position::clear()
 
     for (auto &sqs : squares) { sqs.clear(); }
 
-    for (auto &crs : castleRookSq) { crs.fill(SQ_NO); }
+    for (auto &crs : castleRookSq) { crs.fill(SQ_NONE); }
     for (auto &ckp : castleKingPath) { ckp.fill(0); }
     for (auto &crp : castleRookPath) { crp.fill(0); }
 
     psq = SCORE_ZERO;
     ply = 0;
-    active = CLR_NO;
+    active = COLORS;
     thread = nullptr;
 }
 
@@ -890,12 +903,12 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th)
         if (isdigit(token)
         && ('1' <= token && token <= '8'))
         {
-            sq += Delta(token - '0');
+            sq += Direction(token - '0');
         }
         else
         if (token == '/')
         {
-            sq += 2 * DEL_S;
+            sq += 2 * SOUTH;
         }
         else
         if ((idx = PieceChar.find(token)) != string::npos)
@@ -913,7 +926,7 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th)
 
     // 2. Active color
     iss >> token;
-    active = Color(ColorChar.find(token));
+    active = toColor(token);
 
     // 3. Castling availability
     iss >> token;
@@ -926,9 +939,9 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th)
         }
 
         Color c = isupper(token) ? WHITE : BLACK;
-        assert(R_1 == relRank(c, square(c|KING)));
+        assert(RANK_1 == relRank(c, square(c|KING)));
         Piece rook = (c|ROOK);
-        auto rookOrg = SQ_NO;
+        auto rookOrg = SQ_NONE;
         token = char(tolower(token));
         switch (token)
         {
@@ -951,7 +964,7 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th)
         // Chess960
         case 'a': case 'b': case 'c': case 'd':
         case 'e': case 'f': case 'g': case 'h':
-            rookOrg = makeSquare(toFile(token), relRank(c, R_1));
+            rookOrg = makeSquare(toFile(token), relRank(c, RANK_1));
             break;
         default:
             assert(false);
@@ -973,7 +986,7 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th)
     }
     else
     {
-        si->epSquare = SQ_NO;
+        si->epSquare = SQ_NONE;
     }
 
     // 5-6. Half move clock and Full move number.
@@ -981,7 +994,7 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th)
         >> si->clockPly
         >> ply;
 
-    if (SQ_NO != epSquare())
+    if (SQ_NONE != epSquare())
     {
         si->clockPly = 0;
     }
@@ -1007,21 +1020,20 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th)
 /// It is mainly an helper to get the material key out of an endgame code.
 Position& Position::setup(const string &code, Color c, StateInfo &nsi)
 {
-    assert(0 < code.size() && code.size() <= 8
-        && code[0] == 'K'
+    assert(code[0] == 'K'
         && code.find('K', 1) != string::npos);
 
-    array<string, CLR_NO> sides
+    Table<string, COLORS> codes
     {
-        code.substr(   code.find('K', 1)), // Weak
-        code.substr(0, code.find('K', 1))  // Strong
+        code.substr(code.find('K', 1)),
+        code.substr(0, std::min(code.find('v'), code.find('K', 1)))
     };
-    assert(8 >= sides[WHITE].size()
-        && 8 >= sides[BLACK].size());
+    assert(0 < codes[WHITE].length() && codes[WHITE].length() < 8);
+    assert(0 < codes[BLACK].length() && codes[BLACK].length() < 8);
 
-    toLower(sides[c]);
-    string fen = "8/" + sides[WHITE] + char('0' + 8 - sides[WHITE].size()) + "/8/8/8/8/"
-                      + sides[BLACK] + char('0' + 8 - sides[BLACK].size()) + "/8 w - -";
+    toLower(codes[c]);
+    auto fen = "8/" + codes[WHITE] + char('0' + 8 - codes[WHITE].length()) + "/8/8/8/8/"
+                    + codes[BLACK] + char('0' + 8 - codes[BLACK].length()) + "/8 w - - 0 1";
 
     return setup(fen, nsi, nullptr);
 }
@@ -1061,8 +1073,8 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
             && (active|ROOK) == piece[dst] //&& contains(pieces(active, ROOK), dst)
             && castleRookSq[active][dst > org ? CS_KING : CS_QUEN] == dst
             && castleExpeded(active, dst > org ? CS_KING : CS_QUEN)
-            //&& R_1 == relRank(active, org)
-            //&& R_1 == relRank(active, dst)
+            //&& RANK_1 == relRank(active, org)
+            //&& RANK_1 == relRank(active, dst)
             && canCastle(active, dst > org ? CS_KING : CS_QUEN)
             && 0 == si->ptr->checkers); //&& (attackersTo(org) & pieces(pasive))
 
@@ -1094,8 +1106,8 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
                     cap -= pawnPush(active);
 
                     assert(PAWN == mpt
-                        && R_5 == relRank(active, org)
-                        && R_6 == relRank(active, dst)
+                        && RANK_5 == relRank(active, org)
+                        && RANK_6 == relRank(active, dst)
                         && 1 == clockPly()
                         && dst == epSquare()
                         && empty(dst) //&& !contains(pieces(), dst)
@@ -1118,7 +1130,7 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
             }
             pKey ^= RandZob.pieceSquareKey[pasive][captured][cap];
             si->matlKey ^= RandZob.pieceSquareKey[pasive][captured][count(pasive|captured)];
-            prefetch(thread->matlTable[matlKey()]);
+            prefetch(thread->matlHash[matlKey()]);
         }
         // Set capture piece
         si->captured = captured;
@@ -1129,11 +1141,11 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
           ^ RandZob.pieceSquareKey[active][mpt][dst];
 
     // Reset enpassant square
-    if (SQ_NO != epSquare())
+    if (SQ_NONE != epSquare())
     {
         assert(1 >= clockPly());
         pKey ^= RandZob.enpassantKey[sFile(epSquare())];
-        si->epSquare = SQ_NO;
+        si->epSquare = SQ_NONE;
     }
 
     // Update castling rights
@@ -1150,8 +1162,8 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
         if (PROMOTE == mType(m))
         {
             assert(PAWN == mpt
-                && R_7 == relRank(active, org)
-                && R_8 == relRank(active, dst));
+                && RANK_7 == relRank(active, org)
+                && RANK_8 == relRank(active, dst));
 
             auto promoted = promoteType(m);
             // Replace the pawn with the promoted piece
@@ -1163,7 +1175,7 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
             si->pawnKey ^= RandZob.pieceSquareKey[active][PAWN][dst];
             si->matlKey ^= RandZob.pieceSquareKey[active][PAWN][count(active|PAWN)]
                          ^ RandZob.pieceSquareKey[active][promoted][count(active|promoted) - 1];
-            prefetch(thread->matlTable[matlKey()]);
+            prefetch(thread->matlHash[matlKey()]);
         }
         else
         // Double push pawn
@@ -1182,7 +1194,7 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
         si->clockPly = 0;
         si->pawnKey ^= RandZob.pieceSquareKey[active][PAWN][org]
                      ^ RandZob.pieceSquareKey[active][PAWN][dst];
-        //prefetch(thread->pawnTable[pawnKey()]);
+        //prefetch(thread->pawnHash[pawnKey()]);
     }
 
     assert(0 == (attackersTo(square(active|KING)) & pieces(pasive)));
@@ -1238,8 +1250,8 @@ void Position::undoMove(Move m)
 
     if (CASTLE == mType(m))
     {
-        assert(R_1 == relRank(active, org)
-            && R_1 == relRank(active, dst)
+        assert(RANK_1 == relRank(active, org)
+            && RANK_1 == relRank(active, dst)
             && NONE == captured());
 
         auto rookOrg = dst; // Castling is encoded as "King captures friendly Rook"
@@ -1256,8 +1268,8 @@ void Position::undoMove(Move m)
     {
         if (PROMOTE == mType(m))
         {
-            assert(R_7 == relRank(active, org)
-                && R_8 == relRank(active, dst));
+            assert(RANK_7 == relRank(active, org)
+                && RANK_8 == relRank(active, dst));
 
             removePiece(dst);
             placePiece(dst, active|PAWN);
@@ -1275,8 +1287,8 @@ void Position::undoMove(Move m)
                 cap -= pawnPush(active);
 
                 assert((active|PAWN) == piece[org] //&& contains(pieces(active, PAWN), org)
-                    && R_5 == relRank(active, org)
-                    && R_6 == relRank(active, dst)
+                    && RANK_5 == relRank(active, org)
+                    && RANK_6 == relRank(active, dst)
                     && dst == si->ptr->epSquare
                     && PAWN == captured());
             }
@@ -1311,10 +1323,10 @@ void Position::doNullMove(StateInfo &nsi)
     si->nullPly = 0;
     si->captured = NONE;
     // Reset enpassant square.
-    if (SQ_NO != epSquare())
+    if (SQ_NONE != epSquare())
     {
         si->posiKey ^= RandZob.enpassantKey[sFile(epSquare())];
-        si->epSquare = SQ_NO;
+        si->epSquare = SQ_NONE;
     }
 
     active = ~active;
@@ -1348,11 +1360,11 @@ void Position::flip()
     istringstream iss{ fen() };
     string ff, token;
     // 1. Piece placement
-    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (Rank r = RANK_8; r >= RANK_1; --r)
     {
-        std::getline(iss, token, r > R_1 ? '/' : ' ');
+        std::getline(iss, token, r > RANK_1 ? '/' : ' ');
         toggleCase(token);
-        token += r < R_8 ? "/" : " ";
+        token += r < RANK_8 ? "/" : " ";
         ff = token + ff;
     }
     // 2. Active color
@@ -1388,11 +1400,11 @@ void Position::mirror()
     istringstream iss{ fen() };
     string ff, token;
     // 1. Piece placement
-    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (Rank r = RANK_8; r >= RANK_1; --r)
     {
-        std::getline(iss, token, r > R_1 ? '/' : ' ');
+        std::getline(iss, token, r > RANK_1 ? '/' : ' ');
         std::reverse(token.begin(), token.end());
-        token += r > R_1 ? '/' : ' ';
+        token += r > RANK_1 ? '/' : ' ';
         ff = ff + token;
     }
     // 2. Active color
@@ -1447,12 +1459,12 @@ string Position::fen(bool full) const
 {
     ostringstream oss;
 
-    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (Rank r = RANK_8; r >= RANK_1; --r)
     {
-        for (auto f = F_A; f <= F_H; ++f)
+        for (File f = FILE_A; f <= FILE_H; ++f)
         {
             i16 emptyCount;
-            for (emptyCount = 0; f <= F_H && empty(makeSquare(f, r)); ++f)
+            for (emptyCount = 0; f <= FILE_H && empty(makeSquare(f, r)); ++f)
             {
                 ++emptyCount;
             }
@@ -1460,12 +1472,12 @@ string Position::fen(bool full) const
             {
                 oss << emptyCount;
             }
-            if (f <= F_H)
+            if (f <= FILE_H)
             {
                 oss << piece[makeSquare(f, r)];
             }
         }
-        if (r > R_1)
+        if (r > RANK_1)
         {
             oss << '/';
         }
@@ -1485,7 +1497,7 @@ string Position::fen(bool full) const
         oss << '-';
     }
 
-    oss << ' ' << (SQ_NO != epSquare() ? toString(epSquare()) : "-");
+    oss << ' ' << (SQ_NONE != epSquare() ? toString(epSquare()) : "-");
 
     if (full)
     {
@@ -1495,21 +1507,21 @@ string Position::fen(bool full) const
     return oss.str();
 }
 /// Position::operator string() returns an ASCII representation of the position.
-Position::operator std::string() const
+Position::operator string() const
 {
     ostringstream oss;
 
     oss << " +---+---+---+---+---+---+---+---+\n";
-    for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+    for (Rank r = RANK_8; r >= RANK_1; --r)
     {
         oss << toChar(r) << "| ";
-        for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+        for (File f = FILE_A; f <= FILE_H; ++f)
         {
             oss << piece[makeSquare(f, r)] << " | ";
         }
         oss << "\n +---+---+---+---+---+---+---+---+\n";
     }
-    for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+    for (File f = FILE_A; f <= FILE_H; ++f)
     {
         oss << "   " << toChar(f, false);
     }
@@ -1545,6 +1557,12 @@ Position::operator std::string() const
     return oss.str();
 }
 
+ostream& operator<<(ostream &os, const Position &pos)
+{
+    os << string(pos);
+    return os;
+}
+
 #if !defined(NDEBUG)
 /// Position::ok() performs some consistency checks for the position,
 /// and raises an assert if something wrong is detected.
@@ -1560,7 +1578,7 @@ bool Position::ok() const
         assert(false && "Position OK: BASIC");
         return false;
     }
-    for (auto c : { WHITE, BLACK })
+    for (Color c : { WHITE, BLACK })
     {
         if (   count(c) > 16
             || count(c) != popCount(pieces(c))
@@ -1603,7 +1621,7 @@ bool Position::ok() const
             }
         }
     }
-    for (auto c : { WHITE, BLACK })
+    for (Color c : { WHITE, BLACK })
     {
         if (   1 != popCount(pieces(c, KING))
             || (          (popCount(pieces(c, PAWN))
@@ -1655,7 +1673,7 @@ bool Position::ok() const
     }
 
     // CASTLING
-    for (auto c : { WHITE, BLACK })
+    for (Color c : { WHITE, BLACK })
     {
         for (auto cs : { CS_KING, CS_QUEN })
         {
@@ -1679,9 +1697,9 @@ bool Position::ok() const
         || clockPly() > 2 * i32(Options["Draw MoveCount"])
         || (   NONE != captured()
             && 0 != clockPly())
-        || (   SQ_NO != epSquare()
+        || (   SQ_NONE != epSquare()
             && (   0 != clockPly()
-                || R_6 != relRank(active, epSquare())
+                || RANK_6 != relRank(active, epSquare())
                 || !canEnpassant(active, epSquare()))))
     {
         assert(false && "Position OK: STATE_INFO");

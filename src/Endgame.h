@@ -4,7 +4,7 @@
 #include <unordered_map>
 
 #include "Position.h"
-#include "Type.h"
+#include "Types.h"
 
 namespace Endgames {
 

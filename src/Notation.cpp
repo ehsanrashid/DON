@@ -11,6 +11,9 @@ using namespace std;
 using namespace BitBoard;
 using namespace Searcher;
 
+const string PieceChar{ "PNBRQK  pnbrqk" };
+const string ColorChar{ "wb-" };
+
 namespace {
 
     /// Ambiguity
@@ -63,10 +66,10 @@ namespace {
     {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
         ostringstream oss;
-        if (abs(v) < +VALUE_MATE - i32(DEP_MAX))
+        if (abs(v) < +VALUE_MATE - i32(MaxDepth))
         {
             oss << showpos << setprecision(2) << fixed
-                << valueCP(v) / 100.0
+                << toCP(v) / 100.0
                 << noshowpos;
         }
         else
@@ -105,6 +108,52 @@ namespace {
     */
 }
 
+Color toColor(char c)
+{
+    //ColorChar.find(c) != string::npos;
+    return Color(ColorChar.find(c));
+}
+char toChar(Color c) { return ColorChar[c]; }
+
+File toFile(char f) { return File(f - 'a'); }
+char toChar(File f, bool lower) { return char(f + 'A' + 0x20 * lower); }
+
+Rank toRank(char r) { return Rank(r - '1'); }
+char toChar(Rank r) { return char(r + '1'); }
+
+string toString(Square s) { return{ toChar(sFile(s)), toChar(sRank(s)) }; }
+
+char toChar(Piece p) { return PieceChar[p]; }
+
+
+ostream& operator<<(ostream &os, Color c)
+{
+    os << toChar(c);
+    return os;
+}
+ostream& operator<<(ostream &os, File f)
+{
+    os << toChar(f);
+    return os;
+}
+ostream& operator<<(ostream &os, Rank r)
+{
+    os << toChar(r);
+    return os;
+}
+ostream& operator<<(ostream &os, Square s)
+{
+    os << toString(s);
+    return os;
+}
+ostream& operator<<(ostream &os, Piece p)
+{
+    os << toChar(p);
+    return os;
+}
+
+
+
 /// Converts a move to a string in coordinate algebraic notation.
 /// The only special case is castling moves,
 ///  - e1g1 notation in normal chess mode,
@@ -121,7 +170,7 @@ string canMove(Move m)
         && !bool(Options["UCI_Chess960"]))
     {
         assert(sRank(org) == sRank(dst));
-        dst = makeSquare(dst > org ? F_G : F_C, sRank(org));
+        dst = makeSquare(dst > org ? FILE_G : FILE_C, sRank(org));
     }
 
     oss << toString(org)
@@ -285,7 +334,7 @@ string multipvInfo(const Thread *const &th, Depth depth, Value alfa, Value beta)
                     th->rootMoves[i].newValue :
                     th->rootMoves[i].oldValue;
         bool tb = TBHasRoot
-               && abs(v) < +VALUE_MATE - 1*DEP_MAX;
+               && abs(v) < +VALUE_MATE - i32(MaxDepth);
         if (tb)
         {
             v = th->rootMoves[i].tbValue;
@@ -315,6 +364,7 @@ string multipvInfo(const Thread *const &th, Depth depth, Value alfa, Value beta)
     }
     return oss.str();
 }
+
 /*
 /// Returns formated human-readable search information.
 string prettyInfo(Thread *const &th)

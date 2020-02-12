@@ -4,6 +4,7 @@
 #include <cassert>
 
 #include "BitBoard.h"
+#include "Tables.h"
 #include "Thread.h"
 
 namespace Pawns {
@@ -14,12 +15,12 @@ namespace Pawns {
     namespace {
 
         // Connected pawn bonus
-        constexpr array<i32, R_NO> Connected { 0, 7, 8, 12, 29, 48, 86, 0 };
+        constexpr Table<i32, RANKS> Connected { 0, 7, 8, 12, 29, 48, 86, 0 };
 
 #   define S(mg, eg) makeScore(mg, eg)
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
         // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
-        constexpr array<array<Score, R_NO>, F_NO/2> Shelter
+        constexpr Table<Score, FILES/2, RANKS> Shelter
         {{
             { S( -6, 0), S( 81, 0), S( 93, 0), S( 58, 0), S( 39, 0), S( 18, 0), S(  25, 0), S(0, 0) },
             { S(-43, 0), S( 61, 0), S( 35, 0), S(-49, 0), S(-29, 0), S(-11, 0), S( -63, 0), S(0, 0) },
@@ -30,7 +31,7 @@ namespace Pawns {
         // Danger of unblocked enemy pawns storm toward our king by [distance from edge][rank].
         // RANK_1 is used for files where the enemy has no pawn, or their pawn is behind our king.
         // [0][1 - 2] accommodate opponent pawn on edge (likely blocked by king)
-        constexpr array<array<Score, R_NO>, F_NO/2> Storm
+        constexpr Table<Score, FILES/2, RANKS> Storm
         {{
             { S( 85, 0), S(-289, 0), S(-166, 0), S( 97, 0), S( 50, 0), S( 45, 0), S( 50, 0), S(0, 0) },
             { S( 46, 0), S( -25, 0), S( 122, 0), S( 45, 0), S( 37, 0), S(-10, 0), S( 20, 0), S(0, 0) },
@@ -62,28 +63,28 @@ namespace Pawns {
 
             Score safety = Initial;
 
-            auto kF = clamp(sFile(kSq), F_B, F_G);
-            for (auto f : { kF - F_B, kF, kF + F_B })
+            auto kF = clamp(sFile(kSq), FILE_B, FILE_G);
+            for (File f = File(kF - 1); f <= File(kF + 1); ++f)
             {
-                assert(F_A <= f && f <= F_H);
+                assert(FILE_A <= f && f <= FILE_H);
                 Bitboard ownFrontFilePawns = ownFrontPawns & fileBB(f);
                 auto ownR = 0 != ownFrontFilePawns ?
-                            relRank(Own, scanFrontMostSq(Opp, ownFrontFilePawns)) : R_1;
+                            relRank(Own, scanFrontMostSq(Opp, ownFrontFilePawns)) : RANK_1;
                 Bitboard oppFrontFilePawns = oppFrontPawns & fileBB(f);
                 auto oppR = 0 != oppFrontFilePawns ?
-                            relRank(Own, scanFrontMostSq(Opp, oppFrontFilePawns)) : R_1;
+                            relRank(Own, scanFrontMostSq(Opp, oppFrontFilePawns)) : RANK_1;
                 assert((ownR != oppR)
-                    || (R_1 == ownR
-                     && R_1 == oppR));
+                    || (RANK_1 == ownR
+                     && RANK_1 == oppR));
 
                 auto ff = mapFile(f);
-                assert(F_E > ff);
+                assert(FILE_E > ff);
 
                 safety += Shelter[ff][ownR];
-                if (   R_1 != ownR
+                if (   RANK_1 != ownR
                     && (ownR + 1) == oppR)
                 {
-                    safety -= BlockedStorm * (R_3 == oppR);
+                    safety -= BlockedStorm * (RANK_3 == oppR);
                 }
                 else
                 {
@@ -106,7 +107,7 @@ namespace Pawns {
         auto kSq = pos.square(Own|KING);
 
         // Find King path
-        array<Bitboard, CS_NO> kPaths
+        Table<Bitboard, CASTLE_SIDES> kPaths
         {
             pos.castleKingPath[Own][CS_KING] * (pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING)),
             pos.castleKingPath[Own][CS_QUEN] * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN))
@@ -186,19 +187,19 @@ namespace Pawns {
         Bitboard ownPawns = pos.pieces(Own) & pawns;
         Bitboard oppPawns = pos.pieces(Opp) & pawns;
 
-        kingSq    [Own] = SQ_NO;
+        kingSq    [Own] = SQ_NONE;
         //kingPath  [Own] = 0;
         //kingSafety[Own] = SCORE_ZERO;
         //kingDist  [Own] = SCORE_ZERO;
         attackSpan[Own] = pawnSglAttacks(Own, ownPawns);
         passers   [Own] = 0;
         score     [Own] = SCORE_ZERO;
-        for (auto s : pos.squares[Own|PAWN])
+        for (Square s : pos.squares[Own|PAWN])
         {
             assert((Own|PAWN) == pos[s]);
 
             auto r = relRank(Own, s);
-            assert(R_2 <= r && r <= R_7);
+            assert(RANK_2 <= r && r <= RANK_7);
 
             Bitboard neighbours = ownPawns & adjacentFiles(s);
             Bitboard supporters = neighbours & rankBB(s - Push);
@@ -230,7 +231,7 @@ namespace Pawns {
                 || (   stoppers == (levers | escapes)
                     && popCount(phalanxes) >= popCount(escapes))
                 || (   stoppers == blockers
-                    && R_4 < r
+                    && RANK_4 < r
                     && 0 != (   pawnSglPushes(Own, supporters)
                              & ~(oppPawns | pawnDblAttacks(Opp, oppPawns)))))
             {
@@ -244,7 +245,7 @@ namespace Pawns {
             {
                 i32 v = Connected[r] * (2 + (0 != phalanxes) - opposed)
                       + 21 * popCount(supporters);
-                sp += makeScore(v, v * (r - R_3) / 4);
+                sp += makeScore(v, v * (r - RANK_3) / 4);
             }
             else
             if (0 == neighbours)
@@ -277,7 +278,7 @@ namespace Pawns {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(const Position &pos)
     {
-        auto *e = pos.thread->pawnTable[pos.pawnKey()];
+        auto *e = pos.thread->pawnHash[pos.pawnKey()];
 
         if (e->key == pos.pawnKey())
         {

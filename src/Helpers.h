@@ -1,29 +1,20 @@
 #pragma once
 
-#include <algorithm>
 #include <functional>
 #include <mutex>
-#include <string>
-#include <iostream>
-//#include <vector>
 
-#include "Type.h"
 
-enum OutputState : u08
-{
-    OS_LOCK,
-    OS_UNLOCK,
-};
+enum OutputState : u08 { OS_LOCK, OS_UNLOCK };
 
 /// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-inline std::ostream& operator<<(std::ostream &os, OutputState state)
+inline std::ostream& operator<<(std::ostream &os, OutputState outputState)
 {
     static std::mutex mtx;
 
-    switch (state)
+    switch (outputState)
     {
-    case OutputState::OS_LOCK:   mtx.lock();   break;
-    case OutputState::OS_UNLOCK: mtx.unlock(); break;
+    case OS_LOCK:   mtx.lock();   break;
+    case OS_UNLOCK: mtx.unlock(); break;
     default: break;
     }
     return os;
@@ -31,6 +22,7 @@ inline std::ostream& operator<<(std::ostream &os, OutputState state)
 
 #define sync_cout std::cout << OS_LOCK
 #define sync_endl std::endl << OS_UNLOCK
+
 
 // Case-insensitive comparator for char
 
@@ -88,13 +80,13 @@ struct CaseInsensitiveEqualComparer
 };
 
 // Return the sign of a number (-1, 0, 1)
-template<class T>
+template<typename T>
 constexpr i32 sign(const T val)
 {
     return (T(0) < val) - (val < T(0));
 }
 
-template<class T>
+template<typename T>
 const T& clamp(const T &v, const T &minimum, const T &maximum)
 {
     return (minimum > v) ? minimum :
@@ -151,7 +143,7 @@ inline std::string appendPath(const std::string &basePath, const std::string &fi
             basePath + filePath;
 }
 
-//template<class T>
+//template<typename T>
 //inline void replace(T &container,
 //                    const typename T::value_type &oldValue,
 //                    const typename T::value_type &newValue)
@@ -159,7 +151,7 @@ inline std::string appendPath(const std::string &basePath, const std::string &fi
 //    std::replace(container.begin(), container.end(), oldValue, newValue);
 //}
 
-//inline std::vector<std::string> split(const std::string str, char delimiter = ' ', bool keepEmpty = true, bool doTrim = false)
+//inline std::vector<std::string> splitString(const std::string &str, char delimiter = ' ', bool keepEmpty = true, bool doTrim = false)
 //{
 //    std::vector<std::string> tokens;
 //    std::istringstream iss{ str };
@@ -228,4 +220,3 @@ struct NullBinaryFunction
     {}
 };
 */
-

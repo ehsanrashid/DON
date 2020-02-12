@@ -3,7 +3,7 @@
 #include <vector>
 
 #include "Position.h"
-#include "Type.h"
+#include "Types.h"
 
 enum GenType : u08
 {
@@ -15,6 +15,8 @@ enum GenType : u08
     QUIET_CHECK,
     LEGAL,
 };
+
+using Moves = std::vector<Move>;
 
 struct ValMove
 {

@@ -1,8 +1,26 @@
 #pragma once
 
-#include <array>
+#include "Tables.h"
+#include "Types.h"
 
-#include "Type.h"
+#if defined(BM2)
+#   include <immintrin.h>   // Header for BMI2 instructions
+// BEXTR = Bit field extract (with register)
+// PDEP  = Parallel bits deposit
+// PEXT  = Parallel bits extract
+// BLSR  = Reset lowest set bit
+#   if defined(BIT64)
+#       define BEXTR(b, m, l)   _bextr_u64(b, m, l)
+#       define PDEP(b, m)       _pdep_u64(b, m)
+#       define PEXT(b, m)       _pext_u64(b, m)
+#       define BLSR(b)          _blsr_u64(b)
+#   else
+//#       define BEXTR(b, m, l)   _bextr_u32(b, m, l)
+//#       define PDEP(b, m)       _pdep_u32(b, m)
+//#       define PEXT(b, m)       _pext_u32(b, m)
+//#       define BLSR(b)          _blsr_u32(b)
+#   endif
+#endif
 
 namespace BitBoard {
 
@@ -48,44 +66,44 @@ namespace BitBoard {
     //constexpr Bitboard DiagonalsBB = U64(0x8142241818244281); // A1..H8 | H1..A8
     constexpr Bitboard CenterBB = (FDBB|FEBB) & (R4BB|R5BB);
 
-    constexpr std::array<Bitboard, CLR_NO> Colors
+    constexpr Table<Bitboard, COLORS> Colors
     {
         U64(0x55AA55AA55AA55AA),
         U64(0xAA55AA55AA55AA55)
     };
-    constexpr std::array<Bitboard, 3> Sides
+    constexpr Table<Bitboard, 3> Sides
     {
         FEBB|FFBB|FGBB|FHBB,
         FABB|FBBB|FCBB|FDBB,
         FCBB|FDBB|FEBB|FFBB
     };
-    constexpr std::array<Bitboard, F_NO> KingFlanks
+    constexpr Table<Bitboard, FILES> KingFlanks
     {
         Sides[CS_QUEN] ^ FDBB,
         Sides[CS_QUEN],
         Sides[CS_QUEN],
-        Sides[CS_NO],
-        Sides[CS_NO],
+        Sides[CS_NONE],
+        Sides[CS_NONE],
         Sides[CS_KING],
         Sides[CS_KING],
         Sides[CS_KING] ^ FEBB
     };
-    constexpr std::array<Bitboard, CLR_NO> Outposts
+    constexpr Table<Bitboard, COLORS> Outposts
     {
         R4BB|R5BB|R6BB,
         R5BB|R4BB|R3BB
     };
-    constexpr std::array<Bitboard, CLR_NO> Camps
+    constexpr Table<Bitboard, COLORS> Camps
     {
         R1BB|R2BB|R3BB|R4BB|R5BB,
         R8BB|R7BB|R6BB|R5BB|R4BB
     };
-    constexpr std::array<Bitboard, CLR_NO> LowRanks
+    constexpr Table<Bitboard, COLORS> LowRanks
     {
         R2BB|R3BB,
         R7BB|R6BB
     };
-    constexpr std::array<Bitboard, CLR_NO> Regions
+    constexpr Table<Bitboard, COLORS> Regions
     {
         R2BB|R3BB|R4BB,
         R7BB|R6BB|R5BB
@@ -95,7 +113,7 @@ namespace BitBoard {
 #   define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
 #   define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
 #   define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)
-    constexpr std::array<Bitboard, SQ_NO> Squares
+    constexpr Table<Bitboard, SQUARES> Squares
     {
         S_16(0), S_16(1), S_16(2), S_16(3),
     };
@@ -104,10 +122,10 @@ namespace BitBoard {
 #   undef S_04
 #   undef S_02
 
-    extern std::array<std::array<Bitboard, SQ_NO>, CLR_NO>  PawnAttacks;
-    extern std::array<std::array<Bitboard, SQ_NO>, NONE>    PieceAttacks;
+    extern Table<Bitboard, COLORS, SQUARES>  PawnAttacks;
+    extern Table<Bitboard, NONE, SQUARES>    PieceAttacks;
 
-    extern std::array<std::array<Bitboard, SQ_NO>, SQ_NO>   Lines;
+    extern Table<Bitboard, SQUARES, SQUARES>   Lines;
 
     // Magic holds all magic relevant data for a single square
     struct Magic
@@ -140,33 +158,33 @@ namespace BitBoard {
         }
     };
 
-    extern std::array<Magic, SQ_NO> BMagics
-        ,                           RMagics;
+    extern Table<Magic, SQUARES> BMagics
+        ,                      RMagics;
 
 #if !defined(ABM)
-    extern std::array<u08, 1 << 16> PopCount16;
+    extern Table<u08, 1 << 16> PopCount16;
 #endif
 
     /// Shift the bitboard using delta
-    template<Delta DEL>
+    template<Direction Dir>
     constexpr Bitboard shift(Bitboard bb) { return 0; }
 
-    template<> constexpr Bitboard shift<DEL_N >(Bitboard bb) { return (bb         ) <<  8; }
-    template<> constexpr Bitboard shift<DEL_S >(Bitboard bb) { return (bb         ) >>  8; }
-    template<> constexpr Bitboard shift<DEL_NN>(Bitboard bb) { return (bb         ) << 16; }
-    template<> constexpr Bitboard shift<DEL_SS>(Bitboard bb) { return (bb         ) >> 16; }
+    template<> constexpr Bitboard shift<NORTH  >(Bitboard bb) { return (bb) <<  8; }
+    template<> constexpr Bitboard shift<SOUTH  >(Bitboard bb) { return (bb) >>  8; }
+    template<> constexpr Bitboard shift<NORTH_2>(Bitboard bb) { return (bb) << 16; }
+    template<> constexpr Bitboard shift<SOUTH_2>(Bitboard bb) { return (bb) >> 16; }
     // If (shifting & 7) != 0 then  bound clipping is done (~FABB or ~FHBB)
-    template<> constexpr Bitboard shift<DEL_E >(Bitboard bb) { return (bb & ~FHBB) <<  1; }
-    template<> constexpr Bitboard shift<DEL_W >(Bitboard bb) { return (bb & ~FABB) >>  1; }
-    template<> constexpr Bitboard shift<DEL_NE>(Bitboard bb) { return (bb & ~FHBB) <<  9; }
-    template<> constexpr Bitboard shift<DEL_SE>(Bitboard bb) { return (bb & ~FHBB) >>  7; }
-    template<> constexpr Bitboard shift<DEL_NW>(Bitboard bb) { return (bb & ~FABB) <<  7; }
-    template<> constexpr Bitboard shift<DEL_SW>(Bitboard bb) { return (bb & ~FABB) >>  9; }
+    template<> constexpr Bitboard shift<EAST      >(Bitboard bb) { return (bb & ~FHBB) << 1; }
+    template<> constexpr Bitboard shift<WEST      >(Bitboard bb) { return (bb & ~FABB) >> 1; }
+    template<> constexpr Bitboard shift<NORTH_EAST>(Bitboard bb) { return (bb & ~FHBB) << 9; }
+    template<> constexpr Bitboard shift<SOUTH_EAST>(Bitboard bb) { return (bb & ~FHBB) >> 7; }
+    template<> constexpr Bitboard shift<NORTH_WEST>(Bitboard bb) { return (bb & ~FABB) << 7; }
+    template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) { return (bb & ~FABB) >> 9; }
 
     ///// Rotate Right (toward LSB)
-    //constexpr Bitboard rotateR(Bitboard bb, i08 k) { return (bb >> k) | (bb << (SQ_NO - k)); }
+    //constexpr Bitboard rotateR(Bitboard bb, i08 k) { return (bb >> k) | (bb << (SQUARES - k)); }
     ///// Rotate Left  (toward MSB)
-    //constexpr Bitboard rotateL(Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQ_NO - k)); }
+    //constexpr Bitboard rotateL(Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQUARES - k)); }
 
     constexpr Bitboard squareBB(Square s) { return Squares[s]; }
 
@@ -195,21 +213,21 @@ namespace BitBoard {
     constexpr Bitboard frontRanks(Color c, Rank r)
     {
         return WHITE == c ?
-                ~R1BB << (8 * (r - R_1)) :
-                ~R8BB >> (8 * (R_8 - r));
+                ~R1BB << (8 * (r - RANK_1)) :
+                ~R8BB >> (8 * (RANK_8 - r));
     }
     // frontRanks() returns ranks in front of the given square
     constexpr Bitboard frontRanks(Color c, Square s) { return frontRanks(c, sRank(s)); }
 
     constexpr Bitboard adjacentFiles(Square s)
     {
-        return shift<DEL_E>(fileBB(s))
-             | shift<DEL_W>(fileBB(s));
+        return shift<EAST>(fileBB(s))
+             | shift<WEST>(fileBB(s));
     }
     //constexpr Bitboard adjacentRanks(Square s)
     //{
-    //    return shift<DEL_N>(rankBB(s))
-    //         | shift<DEL_S>(rankBB(s));
+    //    return shift<NORTH>(rankBB(s))
+    //         | shift<SOUTH>(rankBB(s));
     //}
 
     constexpr Bitboard frontSquares(Color c, Square s) { return frontRanks(c, s) & fileBB(s); }
@@ -253,26 +271,26 @@ namespace BitBoard {
     constexpr Bitboard pawnSglPushes(Color c, Bitboard bb)
     {
         return WHITE == c ?
-                shift<DEL_N>(bb) :
-                shift<DEL_S>(bb);
+                shift<NORTH>(bb) :
+                shift<SOUTH>(bb);
     }
     constexpr Bitboard pawnDblPushes(Color c, Bitboard bb)
     {
         return WHITE == c ?
-                shift<DEL_NN>(bb) :
-                shift<DEL_SS>(bb);
+                shift<NORTH_2>(bb) :
+                shift<SOUTH_2>(bb);
     }
     constexpr Bitboard pawnLAttacks(Color c, Bitboard bb)
     {
         return WHITE == c ?
-                shift<DEL_NW>(bb) :
-                shift<DEL_SE>(bb);
+                shift<NORTH_WEST>(bb) :
+                shift<SOUTH_EAST>(bb);
     }
     constexpr Bitboard pawnRAttacks(Color c, Bitboard bb)
     {
         return WHITE == c ?
-                shift<DEL_NE>(bb) :
-                shift<DEL_SW>(bb);
+                shift<NORTH_EAST>(bb) :
+                shift<SOUTH_WEST>(bb);
     }
 
     /// pawnSglAttacks() returns the single attackes by pawns of the given color
@@ -484,7 +502,7 @@ namespace BitBoard {
 
     // * @author Kim Walisch (2012)
     constexpr u64 DeBruijn_64 = U64(0x03F79D71B4CB0A89);
-    constexpr std::array<u08, SQ_NO> BSFTable
+    constexpr Table<u08, SQUARES> BSFTable
     {
          0, 47,  1, 56, 48, 27,  2, 60,
         57, 49, 41, 37, 28, 16,  3, 61,
@@ -499,7 +517,7 @@ namespace BitBoard {
 #   else
 
     constexpr u32 DeBruijn_32 = U32(0x783A9B23);
-    constexpr std::array<u08, SQ_NO> BSFTable
+    constexpr Table<u08, SQUARES> BSFTable
     {
         63, 30,  3, 32, 25, 41, 22, 33,
         15, 50, 42, 13, 11, 53, 19, 34,
@@ -511,7 +529,7 @@ namespace BitBoard {
         38, 28, 58, 20, 37, 17, 36,  8
     };
 
-    constexpr std::array<u08, (1 << 8)> MSBTable
+    constexpr Table<u08, 1 << 8> MSBTable
     {
         0, 0, 1, 1, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3,
         4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4, 4,

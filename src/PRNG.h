@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Type.h"
+#include "Types.h"
 
 /// XOR Shift64*(Star) Pseudo-Random Number Generator
 /// Based on the original code design/written and dedicated

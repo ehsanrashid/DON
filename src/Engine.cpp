@@ -9,6 +9,7 @@
 
 #include "BitBoard.h"
 #include "BitBases.h"
+#include "Debugger.h"
 #include "Endgame.h"
 #include "Evaluator.h"
 #include "Logger.h"
@@ -102,7 +103,7 @@ namespace {
         "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
     };
 
-    const array<string, 12> Months { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+    const Table<string, 12> Months { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
     i32 month(const string &mmm)
     {
@@ -438,7 +439,7 @@ namespace {
         }
         else
         {
-            ifstream ifs(fen, ios_base::in);
+            ifstream ifs(fen, ios::in);
             if (!ifs.is_open())
             {
                 cerr << "ERROR: unable to open file ... \'" << fen << "\'" << endl;
@@ -494,7 +495,7 @@ namespace {
                                                                       || 0 == s.find("eval"); }));
         u16 i = 0;
 
-        initializeDebug();
+        Debugger::initialize();
 
         auto elapsedTime = now();
         u64 nodes = 0;
@@ -553,7 +554,7 @@ namespace {
 
         elapsedTime = std::max(now() - elapsedTime, TimePoint(1));
 
-        debugPrint(); // Just before exiting
+        Debugger::print(); // Just before exiting
 
         cerr << right
              << "\n=================================\n"
@@ -577,7 +578,7 @@ namespace {
             cmd += string(argv[i]) + " ";
         }
 
-        initializeDebug();
+        Debugger::initialize();
 
         Position pos;
         // Stack to keep track of the position states along the setup moves

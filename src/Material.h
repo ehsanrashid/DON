@@ -4,8 +4,7 @@
 
 #include "Endgame.h"
 #include "Position.h"
-#include "Type.h"
-#include "Util.h"
+#include "Types.h"
 
 namespace Material {
 
@@ -18,15 +17,15 @@ namespace Material {
         Key   key;
         i32   phase;
         Score imbalance;
-        std::array<Scale, CLR_NO> scale;
+        Table<Scale, COLORS> scale;
 
         const Endgames::EndgameBase<Value> *evaluationFunc;
-        std::array<const Endgames::EndgameBase<Scale>*, CLR_NO> scalingFunc;
+        Table<const Endgames::EndgameBase<Scale>*, COLORS> scalingFunc;
 
         void evaluate(const Position&);
     };
 
-    typedef HashTable<Entry, 0x2000> Table;
-
     extern Entry* probe(const Position&);
 }
+
+using MatlHashTable = HashTable<Material::Entry, 0x2000>;

@@ -2,7 +2,7 @@
 
 #include "Position.h"
 #include "PRNG.h"
-#include "Type.h"
+#include "Types.h"
 
 /// Polyglot::Entry needs 16 bytes to be stored.
 ///  - Key       8 bytes
@@ -95,7 +95,6 @@ inline std::basic_ostream<Elem, Traits>&
 class PolyBook
 {
 private:
-    static PRNG prng;
 
     PolyEntry   *entries;
     size_t      entryCount;

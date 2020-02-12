@@ -1,7 +1,9 @@
 #pragma once
 
+#include <iostream>
+
 #include "RootMove.h"
-#include "Type.h"
+#include "Types.h"
 
 namespace TBSyzygy {
 
@@ -17,14 +19,39 @@ namespace TBSyzygy {
 
     inline WDLScore operator-(WDLScore wdl) { return WDLScore(-i32(wdl)); }
 
+    inline std::ostream& operator<<(std::ostream &os, WDLScore wdlScore)
+    {
+        switch (wdlScore)
+        {
+        case LOSS:         os << "Loss";         break;
+        case BLESSED_LOSS: os << "Blessed Loss"; break;
+        case DRAW:         os << "Draw";         break;
+        case CURSED_WIN:   os << "Cursed win";   break;
+        case WIN:          os << "Win";          break;
+        }
+        return os;
+    }
+
     /// Possible states after a probing operation
     enum ProbeState
     {
-        CHANGE_STM        = -1, // DTZ should check the other side
-        FAILURE           =  0, // Probe failure (missing file table)
-        SUCCESS           = +1, // Probe success
-        ZEROING_BEST_MOVE = +2  // Best move zeroes DTZ (capture or pawn move)
+        OPP_SIDE    = -1, // DTZ should check the other side
+        FAILURE     =  0, // Probe failure (missing file table)
+        SUCCESS     = +1, // Probe success
+        ZEROING     = +2  // Best move zeroes DTZ (capture or pawn move)
     };
+
+    inline std::ostream& operator<<(std::ostream &os, ProbeState pState)
+    {
+        switch (pState)
+        {
+        case OPP_SIDE:  os << "Opponent side";        break;
+        case FAILURE:   os << "Failure";              break;
+        case SUCCESS:   os << "Success";              break;
+        case ZEROING:   os << "Best move zeroes DTZ"; break;
+        }
+        return os;
+    }
 
     extern std::string PathString;
     extern i32         MaxLimitPiece;
@@ -37,34 +64,7 @@ namespace TBSyzygy {
 
     extern void initialize(const std::string&);
 
-    template<typename Elem, typename Traits>
-    inline std::basic_ostream<Elem, Traits>&
-        operator<<(std::basic_ostream<Elem, Traits> &os, WDLScore wdl)
-    {
-        switch (wdl)
-        {
-        case WDLScore::LOSS:         os << "Loss";         break;
-        case WDLScore::BLESSED_LOSS: os << "Blessed Loss"; break;
-        case WDLScore::DRAW:         os << "Draw";         break;
-        case WDLScore::CURSED_WIN:   os << "Cursed win";   break;
-        case WDLScore::WIN:          os << "Win";          break;
-        default:                     os << "None";         break;
-        }
-        return os;
-    }
 
-    template<typename Elem, typename Traits>
-    inline std::basic_ostream<Elem, Traits>&
-        operator<<(std::basic_ostream<Elem, Traits> &os, ProbeState ps)
-    {
-        switch (ps)
-        {
-        case ProbeState::CHANGE_STM:        os << "Probed opponent side"; break;
-        case ProbeState::FAILURE:           os << "Failure";              break;
-        case ProbeState::SUCCESS:           os << "Success";              break;
-        case ProbeState::ZEROING_BEST_MOVE: os << "Best move zeroes DTZ"; break;
-        default:                            os << "None";                 break;
-        }
-        return os;
-    }
+
+
 }

@@ -1,7 +1,9 @@
 #include "Transposition.h"
 
+#include <cstdlib>
 #include <cstring>
 #include <fstream>
+#include <iostream>
 
 #include "Engine.h"
 #include "MoveGenerator.h"
@@ -53,8 +55,10 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
 namespace {
 
 #if defined(__linux__) && !defined(__ANDROID__)
+
 #   include <stdlib.h>
 #   include <sys/mman.h>
+
 #endif
 
     /// allocAlignedMemory will return suitably aligned memory, and if possible use large pages.
@@ -212,34 +216,34 @@ Move TTable::extractNextMove(Position &pos, Move cm) const
 }
 
 /// TTable::save() saves hash to file
-void TTable::save(const string &hash_fn) const
+void TTable::save(const string &hashFn) const
 {
-    if (whiteSpaces(hash_fn))
+    if (whiteSpaces(hashFn))
     {
         return;
     }
-    ofstream ofs(hash_fn, ios_base::out|ios_base::binary);
+    ofstream ofs(hashFn, ios::out|ios::binary);
     if (!ofs.is_open())
     {
         return;
     }
     ofs << *this;
     ofs.close();
-    sync_cout << "info string Hash saved to file \'" << hash_fn << "\'" << sync_endl;
+    sync_cout << "info string Hash saved to file \'" << hashFn << "\'" << sync_endl;
 }
 /// TTable::load() loads hash from file
-void TTable::load(const string &hash_fn)
+void TTable::load(const string &hashFn)
 {
-    if (whiteSpaces(hash_fn))
+    if (whiteSpaces(hashFn))
     {
         return;
     }
-    ifstream ifs(hash_fn, ios_base::in|ios_base::binary);
+    ifstream ifs(hashFn, ios::in|ios::binary);
     if (!ifs.is_open())
     {
         return;
     }
     ifs >> *this;
     ifs.close();
-    sync_cout << "info string Hash loaded from file \'" << hash_fn << "\'" << sync_endl;
+    sync_cout << "info string Hash loaded from file \'" << hashFn << "\'" << sync_endl;
 }

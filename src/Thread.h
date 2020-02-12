@@ -6,86 +6,20 @@
 #include <mutex>
 #include <vector>
 
-#include "Material.h"
-#include "Pawns.h"
+#include "thread_win32_osx.h"
 
 #include "Option.h"
 #include "Position.h"
-#include "PRNG.h"
 #include "RootMove.h"
-#include "thread_win32_osx.h"
-#include "Type.h"
-
-/// TimeManager class is used to computes the optimal time to think depending on the
-/// maximum available time, the move game number and other parameters.
-class TimeManager
-{
-private:
-    u16 timeNodes;
-
-public:
-    TimePoint startTime;
-    TimePoint optimumTime;
-    TimePoint maximumTime;
-
-    u64 availableNodes;
-
-    TimeManager()
-    {
-        reset();
-    }
-    TimeManager(const TimeManager&) = delete;
-    TimeManager& operator=(const TimeManager&) = delete;
-
-    TimePoint elapsedTime() const;
-
-    void reset() { availableNodes = 0; }
-    void set(Color, i16);
-    void update(Color);
-};
-
-// MaxLevel should be <= MaxDepth/9
-const i16 MaxLevel = 25;
-
-/// Skill Manager class is used to implement strength limit
-class SkillManager
-{
-private:
-
-public:
-    static PRNG prng;
-
-    i16  level;
-    Move bestMove;
-
-    SkillManager()
-        : level(MaxLevel)
-        , bestMove(MOVE_NONE)
-    {}
-    SkillManager(const SkillManager&) = delete;
-    SkillManager& operator=(const SkillManager&) = delete;
-
-    bool enabled() const { return level < MaxLevel; }
-
-    void pickBestMove();
-};
+#include "SkillManager.h"
+#include "TimeManager.h"
+#include "Tables.h"
+#include "Material.h"
+#include "Pawns.h"
+#include "Types.h"
 
 // Threshold for counter moves based pruning
 constexpr i32 CounterMovePruneThreshold = 0;
-
-/// ButterflyHistory records how often quiet moves have been successful or unsuccessful
-/// during the current search, and is used for reduction and move ordering decisions, indexed by [color][moveIndex].
-typedef Stats<i16, 10692, CLR_NO, SQ_NO*SQ_NO>      ButterflyHistory;
-/// CaptureHistory stores capture history, indexed by [piece][square][captureType]
-typedef Stats<i16, 10692, MAX_PIECE, SQ_NO, PT_NO>  CaptureHistory;
-/// PieceDestinyHistory is like ButterflyHistory, indexed by [piece][square]
-typedef Stats<i16, 29952, MAX_PIECE, SQ_NO>         PieceDestinyHistory;
-
-/// ContinuationHistory is the combined history of a given pair of moves, usually the current one given a previous one.
-/// The nested history table is based on PieceDestinyHistory, indexed by [inCheck][captureType][piece][square]
-typedef Array<PieceDestinyHistory, 2, 2, MAX_PIECE, SQ_NO>::type ContinuationHistory;
-/// MoveHistory stores moves, indexed by [piece][square]
-typedef Array<Move, MAX_PIECE, SQ_NO>::type         MoveHistory;
 
 /// Thread class keeps together all the thread-related stuff.
 /// It use pawn and material hash tables so that once get a pointer to
@@ -128,13 +62,16 @@ public:
 
     Score contempt;
 
-    ButterflyHistory    butterflyHistory;
-    CaptureHistory      captureHistory;
-    MoveHistory         moveHistory;
-    ContinuationHistory continuationHistory;
+    ColorIndexStatsTable quietStats;
 
-    Pawns::Table        pawnTable;
-    Material::Table     matlTable;
+    PieceSquareTypeStatsTable captureStats;
+
+    Table<ContinuationStatsTable, 2, 2> continuationStats;
+
+    PieceSquareMoveTable quietCounterMoves;
+
+    PawnHashTable pawnHash;
+    MatlHashTable matlHash;
 
     explicit Thread(size_t);
     Thread() = delete;
@@ -170,7 +107,7 @@ public:
     Value  prevBestValue;
     double prevTimeReduction;
 
-    std::array<Value, 4> iterValues;
+    Table<Value, 4> iterValues;
     Move bestMove;
     i16  bestMoveDepth;
 
@@ -218,7 +155,7 @@ public:
             , inc(0)
         {}
     };
-    std::array<Clock, CLR_NO> clock; // Search with Clock
+    Table<Clock, COLORS> clock; // Search with Clock
 
     u08       movestogo;   // Search <x> moves to the next time control
 
@@ -232,7 +169,7 @@ public:
         : clock()
         , movestogo(0)
         , moveTime(0)
-        , depth(DEP_ZERO)
+        , depth(DEPTH_ZERO)
         , nodes(0)
         , mate(0)
         , infinite(false)
@@ -242,7 +179,7 @@ public:
     {
         return !infinite
             && 0 == moveTime
-            && DEP_ZERO == depth
+            && DEPTH_ZERO == depth
             && 0 == nodes
             && 0 == mate;
     }

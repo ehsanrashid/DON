@@ -11,7 +11,7 @@ using namespace BitBoard;
 Key Zobrist::computeMatlKey(const Position &pos) const
 {
     Key matlKey = 0;
-    for (auto c : { WHITE, BLACK })
+    for (Color c : { WHITE, BLACK })
     {
         for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
@@ -27,7 +27,7 @@ Key Zobrist::computeMatlKey(const Position &pos) const
 Key Zobrist::computePawnKey(const Position &pos) const
 {
     Key pawnKey = 0;
-    for (auto c : { WHITE, BLACK })
+    for (Color c : { WHITE, BLACK })
     {
         pawnKey ^= pieceSquareKey[c][KING][0]; // Include King Key for zero pawns
         for (auto s : pos.squares[c|PAWN])
@@ -41,7 +41,7 @@ Key Zobrist::computePawnKey(const Position &pos) const
 Key Zobrist::computePosiKey(const Position &pos) const
 {
     Key posiKey = 0;
-    for (auto c : { WHITE, BLACK })
+    for (Color c : { WHITE, BLACK })
     {
         for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
@@ -56,7 +56,7 @@ Key Zobrist::computePosiKey(const Position &pos) const
         posiKey ^= colorKey;
     }
     posiKey ^= castleRightKey[pos.si->castleRights];
-    if (SQ_NO != pos.epSquare())
+    if (SQ_NONE != pos.epSquare())
     {
         posiKey ^= enpassantKey[sFile(pos.epSquare())];
     }
@@ -73,7 +73,7 @@ Key Zobrist::computeFenKey(const string &fen) const
     iss >> noskipws;
     u08 token;
 
-    array<File, CLR_NO> kF { F_NO, F_NO };
+    Table<File, COLORS> kF { FILES, FILES };
     size_t idx;
     Square sq = SQ_A8;
     while (   (iss >> token)
@@ -81,12 +81,12 @@ Key Zobrist::computeFenKey(const string &fen) const
     {
         if (isdigit(token))
         {
-            sq += Delta(token - '0');
+            sq += Direction(token - '0');
         }
         else
         if (token == '/')
         {
-            sq += DEL_S * 2;
+            sq += SOUTH * 2;
         }
         else
         if ((idx = PieceChar.find(token)) != string::npos)
@@ -104,11 +104,11 @@ Key Zobrist::computeFenKey(const string &fen) const
             assert(false);
         }
     }
-    assert(F_NO != kF[WHITE]
-        && F_NO != kF[BLACK]);
+    assert(FILES != kF[WHITE]
+        && FILES != kF[BLACK]);
 
     iss >> token;
-    if (WHITE == Color(ColorChar.find(token)))
+    if (WHITE == toColor(token))
     {
         fenKey ^= colorKey;
     }
@@ -165,11 +165,11 @@ void initializeZobrist()
     PRNG prng(0x105524);
 
     // Initialize Random Zobrist
-    for (auto c : { WHITE, BLACK })
+    for (Color c : { WHITE, BLACK })
     {
         for (auto pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING })
         {
-            for (auto s : SQ)
+            for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
                 RandZob.pieceSquareKey[c][pt][s] = prng.rand<Key>();
             }
@@ -185,7 +185,7 @@ void initializeZobrist()
             RandZob.castleRightKey[cr] ^= 0 != k ? k : prng.rand<Key>();
         }
     }
-    for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+    for (File f = FILE_A; f <= FILE_H; ++f)
     {
         RandZob.enpassantKey[f] = prng.rand<Key>();
     }

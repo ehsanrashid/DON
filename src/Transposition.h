@@ -1,8 +1,7 @@
 #pragma once
 
 #include "Position.h"
-#include "Type.h"
-#include "Util.h"
+#include "Types.h"
 
 /// Transposition::Entry needs 16 byte to be stored
 ///
@@ -37,7 +36,7 @@ public:
     Move       move() const { return Move (m16); }
     Value     value() const { return Value(v16); }
     Value      eval() const { return Value(e16); }
-    Depth     depth() const { return Depth(d08 + DEP_OFFSET); }
+    Depth     depth() const { return Depth(d08 + DEPTH_OFFSET); }
     u08  generation() const { return u08  (g08 & 0xF8); }
     bool         pv() const { return 0 != (g08 & 0x04); }
     Bound     bound() const { return Bound(g08 & 0x03); }
@@ -51,15 +50,15 @@ public:
             m16 = u16(m);
         }
         if (   k16 != (k >> 0x30)
-            || d08 < d - DEP_OFFSET + 4
+            || d08 < d - DEPTH_OFFSET + 4
             || BOUND_EXACT == b)
         {
-            assert(d > DEP_OFFSET);
+            assert(d > DEPTH_OFFSET);
 
             k16 = u16(k >> 0x30);
             v16 = i16(v);
             e16 = i16(e);
-            d08 = u08(d - DEP_OFFSET);
+            d08 = u08(d - DEPTH_OFFSET);
             g08 = u08(Generation | u08(pv) << 2 | b);
         }
     }

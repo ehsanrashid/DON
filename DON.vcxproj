@@ -58,7 +58,7 @@
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
     <CharacterSet>NotSet</CharacterSet>
-    <PlatformToolset>v141</PlatformToolset>
+    <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
@@ -263,12 +263,12 @@
       <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>ABM;LPAGES;PREFETCH;WIN32;_CONSOLE;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ABM;PREFETCH;WIN32;_CONSOLE;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
+      <WarningLevel>Level4</WarningLevel>
       <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
       <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
@@ -306,10 +306,10 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <Optimization>Full</Optimization>
+      <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>BM2;ABM;LPAGES;PREFETCH;WIN64;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BM2;ABM;PREFETCH;WIN64;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>true</MinimalRebuild>
       <BasicRuntimeChecks>Default</BasicRuntimeChecks>
       <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
@@ -324,8 +324,8 @@
       <BrowseInformation>true</BrowseInformation>
       <AdditionalOptions>
       </AdditionalOptions>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
+      <IntrinsicFunctions>false</IntrinsicFunctions>
       <UndefinePreprocessorDefinitions>VER;</UndefinePreprocessorDefinitions>
       <ShowIncludes>true</ShowIncludes>
     </ClCompile>
@@ -427,7 +427,7 @@
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>ABM;LPAGES;PREFETCH;WIN32;_CONSOLE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>ABM;PREFETCH;WIN32;_CONSOLE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <PrecompiledHeader>NotUsing</PrecompiledHeader>
@@ -464,12 +464,12 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <Optimization>MaxSpeed</Optimization>
+      <Optimization>Disabled</Optimization>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <WholeProgramOptimization>true</WholeProgramOptimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>BM2;ABM;LPAGES;PREFETCH;WIN64;_CONSOLE;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>BM2;ABM;PREFETCH;WIN64;_CONSOLE;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <MinimalRebuild>false</MinimalRebuild>
       <SmallerTypeCheck>false</SmallerTypeCheck>
       <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
@@ -482,11 +482,12 @@
       <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
       <AdditionalOptions>
       </AdditionalOptions>
-      <InlineFunctionExpansion>AnySuitable</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Speed</FavorSizeOrSpeed>
+      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
+      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
       <BrowseInformation>true</BrowseInformation>
       <UndefinePreprocessorDefinitions>VER;</UndefinePreprocessorDefinitions>
       <ShowIncludes>true</ShowIncludes>
+      <OmitFramePointers>false</OmitFramePointers>
     </ClCompile>
     <Link>
       <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
@@ -589,14 +590,15 @@
   <ItemGroup>
     <ClCompile Include="src\BitBases.cpp" />
     <ClCompile Include="src\BitBoard.cpp" />
-    <ClCompile Include="src\Logger.cpp" />
+    <ClCompile Include="src\Debugger.cpp" />
     <ClCompile Include="src\Endgame.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Evaluator.cpp" />
+    <ClCompile Include="src\Logger.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Material.cpp" />
-    <ClCompile Include="src\MemoryHandler.cpp" />
     <ClCompile Include="src\MoveGenerator.cpp" />
+    <ClCompile Include="src\MovePicker.cpp" />
     <ClCompile Include="src\Notation.cpp" />
     <ClCompile Include="src\Pawns.cpp" />
     <ClCompile Include="src\PSQTable.cpp" />
@@ -604,8 +606,10 @@
     <ClCompile Include="src\Position.cpp" />
     <ClCompile Include="src\RootMove.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
+    <ClCompile Include="src\SkillManager.cpp" />
     <ClCompile Include="src\TBsyzygy.cpp" />
     <ClCompile Include="src\Thread.cpp" />
+    <ClCompile Include="src\TimeManager.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
     <ClCompile Include="src\Option.cpp" />
     <ClCompile Include="src\Zobrist.cpp" />
@@ -613,13 +617,15 @@
   <ItemGroup>
     <ClInclude Include="src\BitBases.h" />
     <ClInclude Include="src\BitBoard.h" />
-    <ClInclude Include="src\Logger.h" />
+    <ClInclude Include="src\Debugger.h" />
     <ClInclude Include="src\Endgame.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
+    <ClInclude Include="src\Helpers.h" />
+    <ClInclude Include="src\Logger.h" />
     <ClInclude Include="src\Material.h" />
-    <ClInclude Include="src\MemoryHandler.h" />
     <ClInclude Include="src\MoveGenerator.h" />
+    <ClInclude Include="src\MovePicker.h" />
     <ClInclude Include="src\Notation.h" />
     <ClInclude Include="src\Pawns.h" />
     <ClInclude Include="src\PSQTable.h" />
@@ -628,14 +634,16 @@
     <ClInclude Include="src\PRNG.h" />
     <ClInclude Include="src\RootMove.h" />
     <ClInclude Include="src\Searcher.h" />
+    <ClInclude Include="src\SkillManager.h" />
+    <ClInclude Include="src\Tables.h" />
     <ClInclude Include="src\TBsyzygy.h" />
     <ClInclude Include="src\Thread.h" />
     <ClInclude Include="src\thread_win32_osx.h" />
-    <ClInclude Include="src\tiebuffer.h" />
+    <ClInclude Include="src\TieStreamBuf.h" />
+    <ClInclude Include="src\TimeManager.h" />
     <ClInclude Include="src\Transposition.h" />
-    <ClInclude Include="src\Type.h" />
+    <ClInclude Include="src\Types.h" />
     <ClInclude Include="src\Option.h" />
-    <ClInclude Include="src\Util.h" />
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>

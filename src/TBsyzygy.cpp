@@ -110,21 +110,21 @@ namespace TBSyzygy {
         };
         constexpr Value WDL_To_Value[] =
         {
-            -VALUE_MATE + (DEP_MAX + 1),
+            -VALUE_MATE + (MaxDepth + 1),
             VALUE_DRAW - 2,
             VALUE_DRAW,
             VALUE_DRAW + 2,
-            +VALUE_MATE - (DEP_MAX + 1)
+            +VALUE_MATE - (MaxDepth + 1)
         };
 
-        i32 MapPawns[SQ_NO];
-        i32 MapB1H1H7[SQ_NO];
-        i32 MapA1D1D4[SQ_NO];
-        i32 MapKK[10][SQ_NO]; // [MapA1D1D4][SQ_NO]
+        i32 MapPawns[SQUARES];
+        i32 MapB1H1H7[SQUARES];
+        i32 MapA1D1D4[SQUARES];
+        i32 MapKK[10][SQUARES]; // [MapA1D1D4][SQUARES]
 
-        i32 Binomial[6][SQ_NO];    // [k][n] k elements from a set of n elements
-        i32 LeadPawnIdx[5][SQ_NO]; // [leadPawnCount][SQ_NO]
-        i32 LeadPawnsSize[5][4];   // [leadPawnCount][F_A..F_D]
+        i32 Binomial[6][SQUARES];    // [k][n] k elements from a set of n elements
+        i32 LeadPawnIdx[5][SQUARES]; // [leadPawnCount][SQUARES]
+        i32 LeadPawnsSize[5][4];   // [leadPawnCount][FILE_A..FILE_D]
 
         /// Comparison function to sort leading pawns in ascending MapPawns[] order
         bool mapPawnsCompare(Square s1, Square s2)
@@ -185,11 +185,11 @@ namespace TBSyzygy {
         {
             switch (wdl)
             {
-            case WDLScore::LOSS:         return -1;
-            case WDLScore::BLESSED_LOSS: return -101;
-            case WDLScore::CURSED_WIN:   return +101;
-            case WDLScore::WIN:          return +1;
-            case WDLScore::DRAW:
+            case LOSS:         return -1;
+            case BLESSED_LOSS: return -101;
+            case CURSED_WIN:   return +101;
+            case WIN:          return +1;
+            case DRAW:
             default:                     return 0;
             }
         }
@@ -428,7 +428,7 @@ namespace TBSyzygy {
             i32 pieceCount;
             bool hasPawns;
             bool hasUniquePieces;
-            u08 pawnCount[CLR_NO]; // [Lead color / other color]
+            u08 pawnCount[COLORS]; // [Lead color / other color]
             PairsData items[Sides][4]; // [wtm / btm][FILE_A..FILE_D or 0]
 
             PairsData* get(i32 stm, i32 f)
@@ -578,7 +578,7 @@ namespace TBSyzygy {
                 string code;
                 for (auto pt : pieces)
                 {
-                    code += PieceChar[pt];
+                    code += toChar(WHITE|pt);
                 }
 
                 TBFile file(code, ".rtbw");
@@ -785,10 +785,10 @@ namespace TBSyzygy {
 
             // DTZ tables store distance to zero in number of moves or plies. We
             // want to return plies, so we have convert to plies when needed.
-            if (   (WDLScore::WIN  == wdl && 0 == (flags & TBFlag::WIN_PLIES))
-                || (WDLScore::LOSS == wdl && 0 == (flags & TBFlag::LOSS_PLIES))
-                ||  WDLScore::CURSED_WIN == wdl
-                ||  WDLScore::BLESSED_LOSS == wdl)
+            if (   (WIN  == wdl && 0 == (flags & TBFlag::WIN_PLIES))
+                || (LOSS == wdl && 0 == (flags & TBFlag::LOSS_PLIES))
+                ||  CURSED_WIN == wdl
+                ||  BLESSED_LOSS == wdl)
             {
                 value *= 2;
             }
@@ -856,7 +856,7 @@ namespace TBSyzygy {
                 std::swap(squares[0], *std::max_element(squares, squares + size, mapPawnsCompare));
 
                 tbF = sFile(squares[0]);
-                if (tbF > F_D)
+                if (tbF > FILE_D)
                 {
                     tbF = sFile(!squares[0]); // Horizontal flip: SQ_H1 -> SQ_A1
                 }
@@ -864,7 +864,7 @@ namespace TBSyzygy {
             else
             {
                 leadPawns = 0;
-                tbF = F_A;
+                tbF = FILE_A;
             }
 
             i32 leadPawnCount = size;
@@ -874,7 +874,7 @@ namespace TBSyzygy {
             // early exit otherwise.
             if (!checkDTZStm(entry, stm, tbF))
             {
-                state = ProbeState::CHANGE_STM;
+                state = OPP_SIDE;
                 return Ret();
             }
 
@@ -914,7 +914,7 @@ namespace TBSyzygy {
 
             // Now we map again the squares so that the square of the lead piece is in
             // the triangle A1-D1-D4.
-            if (sFile(squares[0]) > F_D)
+            if (sFile(squares[0]) > FILE_D)
             {
                 for (i32 i = 0; i < size; ++i)
                 {
@@ -939,8 +939,8 @@ namespace TBSyzygy {
             // In positions without pawns:
             else
             {
-                // Flip the squares to ensure leading piece is below R_5.
-                if (sRank(squares[0]) > R_4)
+                // Flip the squares to ensure leading piece is below RANK_5.
+                if (sRank(squares[0]) > RANK_4)
                 {
                     for (i32 i = 0; i < size; ++i)
                     {
@@ -1266,7 +1266,7 @@ namespace TBSyzygy {
         u08* setDTZMap(TBTable<DTZ> &e, u08 *data, File max_file)
         {
             e.map = data;
-            for (auto f = F_A; f <= max_file; ++f)
+            for (File f = FILE_A; f <= max_file; ++f)
             {
                 auto flags = e.get(0, f)->flags;
 
@@ -1303,14 +1303,14 @@ namespace TBSyzygy {
             data++; // First byte stores flags
 
             const i32  Sides = 2 == T::Sides && (e.key1 != e.key2) ? 2 : 1;
-            const File MaxFile = e.hasPawns ? F_D : F_A;
+            const File MaxFile = e.hasPawns ? FILE_D : FILE_A;
 
             bool pp = e.hasPawns
                    && 0 != e.pawnCount[1]; // Pawns on both sides
 
             assert(!pp || 0 != e.pawnCount[0]);
 
-            for (auto f = F_A; f <= MaxFile; ++f)
+            for (File f = FILE_A; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
@@ -1341,7 +1341,7 @@ namespace TBSyzygy {
 
             data += (uintptr_t)data & 1; // Word alignment
 
-            for (auto f = F_A; f <= MaxFile; ++f)
+            for (File f = FILE_A; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
@@ -1352,7 +1352,7 @@ namespace TBSyzygy {
             data = setDTZMap(e, data, MaxFile);
 
             PairsData *d;
-            for (auto f = F_A; f <= MaxFile; ++f)
+            for (File f = FILE_A; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
@@ -1360,7 +1360,7 @@ namespace TBSyzygy {
                     data += d->sparseIndexSize * sizeof (SparseEntry);
                 }
             }
-            for (auto f = F_A; f <= MaxFile; ++f)
+            for (File f = FILE_A; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
@@ -1368,7 +1368,7 @@ namespace TBSyzygy {
                     data += d->blockLengthSize * sizeof (u16);
                 }
             }
-            for (auto f = F_A; f <= MaxFile; ++f)
+            for (File f = FILE_A; f <= MaxFile; ++f)
             {
                 for (i32 i = 0; i < Sides; ++i)
                 {
@@ -1402,8 +1402,8 @@ namespace TBSyzygy {
             string w, b;
             for (auto pt : { KING, QUEN, ROOK, BSHP, NIHT, PAWN })
             {
-                w += string(pos.count(WHITE|pt), PieceChar[pt]);
-                b += string(pos.count(BLACK|pt), PieceChar[pt]);
+                w += string(pos.count(WHITE|pt), toChar(WHITE|pt));
+                b += string(pos.count(BLACK|pt), toChar(WHITE|pt));
             }
 
             string code = e.key1 == pos.matlKey() ?
@@ -1420,11 +1420,11 @@ namespace TBSyzygy {
         }
 
         template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
-        Ret probeTable(const Position &pos, ProbeState &state, WDLScore wdl = WDLScore::DRAW)
+        Ret probeTable(const Position &pos, ProbeState &state, WDLScore wdl = DRAW)
         {
             if (0 == (pos.pieces() ^ pos.pieces(KING)))
             {
-                return Ret(WDLScore::DRAW); // KvK
+                return Ret(DRAW); // KvK
             }
 
             auto *entry = TB_Tables.get<Type>(pos.matlKey());
@@ -1432,7 +1432,7 @@ namespace TBSyzygy {
             if (   nullptr == entry
                 || nullptr == mapped(*entry, pos))
             {
-                state = ProbeState::FAILURE;
+                state = FAILURE;
                 return Ret();
             }
 
@@ -1451,10 +1451,10 @@ namespace TBSyzygy {
         /// DTZ table don't store values when a following move is a zeroing winning move
         /// (winning capture or winning pawn move). Also DTZ store wrong values for positions
         /// where the best move is an ep-move(even if losing). So in all these cases set
-        /// the state to ZEROING_BEST_MOVE.
+        /// the state to ZEROING.
         WDLScore search(Position &pos, ProbeState &state, bool checkZeroing)
         {
-            auto bestWDL = WDLScore::LOSS;
+            auto bestWDL = LOSS;
 
             StateInfo si;
             auto moveList = MoveList<GenType::LEGAL>(pos);
@@ -1474,18 +1474,18 @@ namespace TBSyzygy {
                 auto wdl = -search(pos, state, false);
                 pos.undoMove(move);
 
-                if (ProbeState::FAILURE == state)
+                if (FAILURE == state)
                 {
-                    return WDLScore::DRAW;
+                    return DRAW;
                 }
 
                 if (bestWDL < wdl)
                 {
                     bestWDL = wdl;
 
-                    if (wdl >= WDLScore::WIN)
+                    if (wdl >= WIN)
                     {
-                        state = ProbeState::ZEROING_BEST_MOVE; // Winning DTZ-zeroing move
+                        state = ZEROING; // Winning DTZ-zeroing move
                         return wdl;
                     }
                 }
@@ -1496,7 +1496,7 @@ namespace TBSyzygy {
             // do not contain information on position with Enpassant rights, so in this case
             // the state of probe_wdl_table is wrong. Also in case of only capture
             // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, we have to
-            // return with ZEROING_BEST_MOVE set.
+            // return with ZEROING set.
             bool completed = (   0 != moveCount
                               && moveCount == moveList.size());
 
@@ -1508,23 +1508,23 @@ namespace TBSyzygy {
             else
             {
                 wdl = probeTable<WDL>(pos, state);
-                if (ProbeState::FAILURE == state)
+                if (FAILURE == state)
                 {
-                    return WDLScore::DRAW;
+                    return DRAW;
                 }
             }
 
             // DTZ stores a "don't care" wdl if bestWDL is a win
             if (bestWDL >= wdl)
             {
-                state = bestWDL > WDLScore::DRAW
+                state = bestWDL > DRAW
                      || completed ?
-                            ProbeState::ZEROING_BEST_MOVE :
-                            ProbeState::SUCCESS;
+                            ZEROING :
+                            SUCCESS;
                 return bestWDL;
             }
 
-            state = ProbeState::SUCCESS;
+            state = SUCCESS;
             return wdl;
         }
 
@@ -1571,33 +1571,33 @@ namespace TBSyzygy {
     /// then do not accept moves leading to dtz + 50-move-counter == 100.
     i32      probeDTZ(Position &pos, ProbeState &state)
     {
-        state = ProbeState::SUCCESS;
+        state = SUCCESS;
         auto wdl = search(pos, state, true);
 
-        if (   ProbeState::FAILURE == state
-            || WDLScore::DRAW == wdl) // DTZ tables don't store draws
+        if (   FAILURE == state
+            || DRAW == wdl) // DTZ tables don't store draws
         {
             return 0;
         }
 
         // DTZ stores a 'don't care' value in this case, or even a plain wrong
         // one as in case the best move is a losing Enpassant, so it cannot be probed.
-        if (ProbeState::ZEROING_BEST_MOVE == state)
+        if (ZEROING == state)
         {
             return beforeZeroingDTZ(wdl);
         }
 
         i32 dtz = probeTable<DTZ>(pos, state, wdl);
 
-        if (ProbeState::FAILURE == state)
+        if (FAILURE == state)
         {
             return 0;
         }
 
-        if (ProbeState::CHANGE_STM != state)
+        if (OPP_SIDE != state)
         {
-            return (dtz + 100 * (   WDLScore::BLESSED_LOSS == wdl
-                                 || WDLScore::CURSED_WIN   == wdl)) * sign(wdl);
+            return (dtz + 100 * (   BLESSED_LOSS == wdl
+                                 || CURSED_WIN   == wdl)) * sign(wdl);
         }
 
         // DTZ stores results for the other side, so we need to do a 1-ply search and
@@ -1643,7 +1643,7 @@ namespace TBSyzygy {
 
             pos.undoMove(vm);
 
-            if (ProbeState::FAILURE == state)
+            if (FAILURE == state)
             {
                 return 0;
             }
@@ -1674,7 +1674,7 @@ namespace TBSyzygy {
 
             rootPos.undoMove(move);
 
-            if (ProbeState::FAILURE == state)
+            if (FAILURE == state)
             {
                 return false;
             }
@@ -1683,8 +1683,8 @@ namespace TBSyzygy {
 
             if (!rule50)
             {
-                wdl =  wdl > WDLScore::DRAW ? WDLScore::WIN :
-                       wdl < WDLScore::DRAW ? WDLScore::LOSS : WDLScore::DRAW;
+                wdl =  wdl > DRAW ? WIN :
+                       wdl < DRAW ? LOSS : DRAW;
             }
             rm.tbValue = WDL_To_Value[wdl + 2];
         }
@@ -1739,7 +1739,7 @@ namespace TBSyzygy {
 
             rootPos.undoMove(move);
 
-            if (ProbeState::FAILURE == state)
+            if (FAILURE == state)
             {
                 return false;
             }
@@ -1754,11 +1754,11 @@ namespace TBSyzygy {
             // Determine the score to be displayed for this move. Assign at least
             // 1 cp to cursed wins and let it grow to 49 cp as the positions gets
             // closer to a real win.
-            rm.tbValue = r >= bound ? +VALUE_MATE - (DEP_MAX + 1) :
+            rm.tbValue =  r >= bound ? +VALUE_MATE - (MaxDepth + 1) :
                           r >  0     ? (VALUE_EG_PAWN * std::max(+3, r - 800)) / 200 :
                           r == 0     ? VALUE_DRAW :
                           r > -bound ? (VALUE_EG_PAWN * std::min(-3, r + 800)) / 200 :
-                                       -VALUE_MATE + (DEP_MAX + 1);
+                                       -VALUE_MATE + (MaxDepth + 1);
         }
         return true;
     }
@@ -1773,7 +1773,7 @@ namespace TBSyzygy {
         {
             // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27
             i32 code = 0;
-            for (auto s : SQ)
+            for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
                 if (offA1H8(s) < 0)
                 {
@@ -1809,15 +1809,12 @@ namespace TBSyzygy {
             code = 0;
             for (i32 idx = 0; idx < 10; ++idx)
             {
-                for (auto s1 : { SQ_A1, SQ_B1, SQ_C1, SQ_D1,
-                                 SQ_A2, SQ_B2, SQ_C2, SQ_D2,
-                                 SQ_A3, SQ_B3, SQ_C3, SQ_D3,
-                                 SQ_A4, SQ_B4, SQ_C4, SQ_D4 })
+                for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1)
                 {
                     if (   MapA1D1D4[s1] == idx
                         && (0 != idx || SQ_B1 == s1)) // SQ_B1 is mapped to 0
                     {
-                        for (auto s2 : SQ)
+                        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
                         {
                             if (contains(PieceAttacks[KING][s1] | s1, s2))
                             {
@@ -1871,7 +1868,7 @@ namespace TBSyzygy {
             // with 6-men TB can have up to 4 leading pawns (KPPPPK).
             for (i32 leadPawnCount = 1; leadPawnCount <= 4; ++leadPawnCount)
             {
-                for (auto f : { F_A, F_B, F_C, F_D })
+                for (File f = FILE_A; f <= FILE_D; ++f)
                 {
                     // Restart the index at every file because TB table is splitted
                     // by file, so we can reuse the same index for different files.
@@ -1879,7 +1876,7 @@ namespace TBSyzygy {
 
                     // Sum all possible combinations for a given file, starting with
                     // the leading pawn on rank 2 and increasing the rank.
-                    for (auto r : { R_2, R_3, R_4, R_5, R_6, R_7 })
+                    for (Rank r = RANK_2; r <= RANK_7; ++r)
                     {
                         auto sq = makeSquare(f, r);
 
@@ -1888,7 +1885,7 @@ namespace TBSyzygy {
                         // below or more toward the edge of sq. There are 47 available
                         // squares when sq = a2 and reduced by 2 for any rank increase
                         // due to mirroring: sq == a3 -> no a2, h2, so MapPawns[a3] = 45
-                        if (leadPawnCount == 1)
+                        if (1 == leadPawnCount)
                         {
                             MapPawns[ sq] = availableSq--;
                             MapPawns[!sq] = availableSq--; // Horizontal flip

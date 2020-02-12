@@ -13,17 +13,17 @@ namespace BitBoard {
 
     using namespace std;
 
-    array<array<Bitboard, SQ_NO>, CLR_NO>   PawnAttacks;
-    array<array<Bitboard, SQ_NO>, NONE>     PieceAttacks;
+    Table<Bitboard, COLORS, SQUARES>   PawnAttacks;
+    Table<Bitboard, NONE, SQUARES>     PieceAttacks;
 
-    array<array<Bitboard, SQ_NO>, SQ_NO> Lines;
+    Table<Bitboard, SQUARES, SQUARES>    Lines;
 
-    array<Magic, SQ_NO> BMagics
+    Table<Magic, SQUARES> BMagics
         ,               RMagics;
 
 #if !defined(ABM)
 
-    array<u08, 1 << 16> PopCount16;
+    Table<u08, 1 << 16> PopCount16;
 
     /*
     // Counts the non-zero bits using SWAR-Popcount algorithm
@@ -39,14 +39,14 @@ namespace BitBoard {
 
     namespace {
 
-        constexpr array<array<Delta, 8>, NONE> PieceDeltas
+        constexpr Table<Direction, NONE, 8> PieceDeltas
         {{
             { },
-            { DEL_SSW, DEL_SSE, DEL_WWS, DEL_EES, DEL_WWN, DEL_EEN, DEL_NNW, DEL_NNE },
-            { DEL_SW, DEL_SE, DEL_NW, DEL_NE },
-            { DEL_S , DEL_W , DEL_E , DEL_N  },
-            { DEL_SW, DEL_S , DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
-            { DEL_SW, DEL_S , DEL_SE, DEL_W, DEL_E, DEL_NW, DEL_N, DEL_NE },
+            { SOUTH_2_WEST, SOUTH_2_EAST, WEST_2_SOUTH, EAST_2_SOUTH, WEST_2_NORTH, EAST_2_NORTH, NORTH_2_WEST, NORTH_2_EAST },
+            { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST },
+            { SOUTH , WEST , EAST , NORTH  },
+            { SOUTH_WEST, SOUTH , SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST },
+            { SOUTH_WEST, SOUTH , SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST },
         }};
 /*
         // De Bruijn sequences.
@@ -56,7 +56,7 @@ namespace BitBoard {
         constexpr u32 DeBruijn_32 = U32(0x783A9B23);
 #   endif
 
-        array<Square, SQ_NO> BSFTable;
+        Table<Square, SQUARES> BSFTable;
         unsigned bsfIndex(Bitboard bb)
         {
             assert(0 != bb);
@@ -71,7 +71,7 @@ namespace BitBoard {
 #       endif
         }
 
-        array<u08, (1 << 8)> MSBTable;
+        Table<u08, 1 << 8> MSBTable;
 */
 
         // Max Bishop Table Size
@@ -90,16 +90,16 @@ namespace BitBoard {
         /// Magic bitboards are used to look up attacks of sliding pieces.
         /// In particular, here we use the so called "fancy" approach.
         template<PieceType PT>
-        void initializeMagic(Bitboard *attacks, array<Magic, SQ_NO> &magics)
+        void initializeMagic(Bitboard *attacks, Table<Magic, SQUARES> &magics)
         {
             static_assert (BSHP == PT || ROOK == PT, "PT incorrect");
 
 #       if !defined(BM2)
             //             Max Index
-            array<Bitboard, 0x1000> occupancy
+            Table<Bitboard, 0x1000> occupancy
                 ,                   reference;
 
-            constexpr array<u32, R_NO> Seeds
+            constexpr Table<u32, RANKS> Seeds
 #           if defined(BIT64)
                 { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
 #           else
@@ -109,7 +109,7 @@ namespace BitBoard {
 #       endif
 
             u32 offset = 0;
-            for (auto s : SQ)
+            for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
                 auto &magic = magics[s];
 
@@ -202,8 +202,8 @@ namespace BitBoard {
         }
         /// Explicit template instantiations
         /// --------------------------------
-        template void initializeMagic<BSHP>(Bitboard*, array<Magic, SQ_NO>&);
-        template void initializeMagic<ROOK>(Bitboard*, array<Magic, SQ_NO>&);
+        template void initializeMagic<BSHP>(Bitboard*, Table<Magic, SQUARES>&);
+        template void initializeMagic<ROOK>(Bitboard*, Table<Magic, SQUARES>&);
     }
 
     template<PieceType PT>
@@ -235,7 +235,7 @@ namespace BitBoard {
 
     void initialize()
     {
-        //for (auto s : SQ)
+        //for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //{
         //    //Squares[s] = U64(1) << s;
         //    BSFTable[bsfIndex(squareBB(s))] = s;
@@ -253,9 +253,9 @@ namespace BitBoard {
 #   endif
 
         // Pawn and Pieces Attack Table
-        for (auto s : SQ)
+        for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            for (auto c : { WHITE, BLACK })
+            for (Color c : { WHITE, BLACK })
             {
                 PawnAttacks[c][s] |= pawnSglAttacks(c, squareBB(s));
                 assert(2 >= popCount(PawnAttacks[c][s]));
@@ -290,9 +290,9 @@ namespace BitBoard {
         initializeMagic<ROOK>(RAttacks, RMagics);
 
         // NOTE:: must be after initialize Bishop & Rook Table
-        for (auto s1 : SQ)
+        for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         {
-            for (auto s2 : SQ)
+            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
                 Lines[s1][s2] = 0;
                 if (s1 != s2)
@@ -319,13 +319,13 @@ namespace BitBoard {
         ostringstream oss;
 
         oss << " /---------------\\\n";
-        for (auto r : { R_8, R_7, R_6, R_5, R_4, R_3, R_2, R_1 })
+        for (Rank r = RANK_8; r >= RANK_1; --r)
         {
             oss << toChar(r) << '|';
-            for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+            for (File f = FILE_A; f <= FILE_H; ++f)
             {
                 oss << (contains(bb, makeSquare(f, r)) ? '+' : '-');
-                if (f < F_H)
+                if (f < FILE_H)
                 {
                     oss << ' ';
                 }
@@ -333,7 +333,7 @@ namespace BitBoard {
             oss << "|\n";
         }
         oss << " \\---------------/\n ";
-        for (auto f : { F_A, F_B, F_C, F_D, F_E, F_F, F_G, F_H })
+        for (File f = FILE_A; f <= FILE_H; ++f)
         {
             oss << ' ' << toChar(f, false);
         }
