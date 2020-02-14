@@ -131,7 +131,7 @@
     <Node Id="@107" Category="CodeSchema_Method" Bounds="25643.2280490139,23402.6336369483,66.6100000000006,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="probe" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@108" Category="CodeSchema_Method" Bounds="25406.1624547981,24438.8589574906,66.6100000000006,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="probe" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@109" Category="CodeSchema_Method" Bounds="25306.5670529713,23692.1317794633,62.1666666666679,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="trace" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@11" Category="CodeSchema_Namespace" Bounds="25448.6436453404,23844.8520582888,243.089999999997,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="4" Group="Collapsed" Label="BitBases‎::`anonymous namespace'" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
+    <Node Id="@11" Category="CodeSchema_Namespace" Bounds="25448.6436453404,23844.8520582888,243.089999999997,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="4" Group="Collapsed" Label="Bitbases‎::`anonymous namespace'" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@112" Category="CodeSchema_Method" Bounds="26443.2578812231,25093.4502659526,99.5099999999948,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="adjacentRanks" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@113" Category="CodeSchema_Method" Bounds="25363.0906900539,22689.6117794633,86.7099999999991,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator-" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@114" Category="CodeSchema_Method" Bounds="25383.7680029413,21514.4517794633,90.119999999999,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator~" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -287,12 +287,12 @@
     <Node Id="@279" Category="CodeSchema_Method" Bounds="25713.8911707766,24272.0123155288,81.9666666666672,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="promote" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@281" Category="CodeSchema_Method" Bounds="26654.8066866447,23666.0413131037,98.3300000000017,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="operator‎&gt;‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@282" Category="CodeSchema_Method" Bounds="25589.8603977985,24692.7317794633,257.716666666667,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@283" Category="CodeSchema_Method" Bounds="25496.9192775108,22744.6117794633,104.436666666668,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="sanMove" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@284" Category="CodeSchema_Method" Bounds="25668.0543233872,22687.6917794633,118.636666666665,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="sanMove" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@283" Category="CodeSchema_Method" Bounds="25496.9192775108,22744.6117794633,104.436666666668,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="moveOfSAN" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@284" Category="CodeSchema_Method" Bounds="25668.0543233872,22687.6917794633,118.636666666665,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="moveOfSAN" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@285" Category="CodeSchema_Method" Bounds="26098.4090396387,24018.0938385723,89.0399999999936,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="ambiguity" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@286" Category="CodeSchema_Method" Bounds="25505.4185179042,24636.7717794633,102.713333333333,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="setupBench" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@287" Category="CodeSchema_Method" Bounds="25491.7258028793,22911.5317794633,257.716666666667,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@288" Category="CodeSchema_Method" Bounds="25585.5152845709,24580.8117794633,119.086666666666,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="canMove" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@288" Category="CodeSchema_Method" Bounds="25585.5152845709,24580.8117794633,119.086666666666,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="moveOfCAN" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@29" Category="CodeSchema_Namespace" Bounds="25581.1122337596,23899.8520582888,92.8566666666666,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="4" Group="Collapsed" Label="Pawns" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@290" Category="CodeSchema_Method" Bounds="24524.9248205224,22549.6012767791,308.013333333336,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="init‎&lt;TBSyzygy‎::`anonymous namespace'‎::DTZEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@292" Category="CodeSchema_Method" Bounds="24751.2726599242,22826.5212767791,311.743333333332,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="init‎&lt;TBSyzygy‎::`anonymous namespace'‎::WDLEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -766,8 +766,8 @@
     <Node Id="@87" Category="CodeSchema_Method" Bounds="25539.3128335361,23523.2517794633,53.9733333333315,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="_ok" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@88" Category="CodeSchema_Method" Bounds="25631.3560441775,22743.6517794633,69.366666666665,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="dst_sq" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@89" Category="CodeSchema_Method" Bounds="25487.8731223589,24971.6517794632,84.4766666666656,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="move_pp" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@9" Category="CodeSchema_Namespace" Bounds="25533.0353728286,24229.8520582888,104.029999999999,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="2" Group="Collapsed" Label="BitBases" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
-    <Node Id="@90" Category="CodeSchema_Method" Bounds="25555.4978744809,23023.4517794633,104.886666666665,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="canMove" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@9" Category="CodeSchema_Namespace" Bounds="25533.0353728286,24229.8520582888,104.029999999999,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="2" Group="Collapsed" Label="Bitbases" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
+    <Node Id="@90" Category="CodeSchema_Method" Bounds="25555.4978744809,23023.4517794633,104.886666666665,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="moveOfCAN" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@91" Category="CodeSchema_Method" Bounds="25536.710998961,22631.7317794633,69.5400000000009,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="mtype" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@92" Category="CodeSchema_Method" Bounds="25638.9908468419,22463.8517794633,71.4099999999999,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="org_sq" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@93" Category="CodeSchema_Method" Bounds="25664.1942284588,23747.0917794633,81.9666666666672,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="promote" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -6164,8 +6164,8 @@
     <Alias n="6" Id="(@1 @5)" />
     <Alias n="7" Id="Namespace=&quot;`anonymous namespace'::Tracer&quot;" />
     <Alias n="8" Id="(@1 @7)" />
-    <Alias n="9" Id="(@1 Namespace=BitBases)" />
-    <Alias n="10" Id="Namespace=&quot;BitBases::`anonymous namespace'&quot;" />
+    <Alias n="9" Id="(@1 Namespace=Bitbases)" />
+    <Alias n="10" Id="Namespace=&quot;Bitbases::`anonymous namespace'&quot;" />
     <Alias n="11" Id="(@1 @10)" />
     <Alias n="12" Id="Namespace=BitBoard" />
     <Alias n="13" Id="(@1 @12)" />
@@ -6242,7 +6242,7 @@
     <Alias n="87" Id="(@1 @3 Member=(@84 @86))" />
     <Alias n="88" Id="(@1 @3 Member=(Name=dst_sq @86))" />
     <Alias n="89" Id="(@1 @3 Member=(Name=move_pp @86))" />
-    <Alias n="90" Id="(@1 @3 Member=(Name=canMove @86))" />
+    <Alias n="90" Id="(@1 @3 Member=(Name=moveOfCAN @86))" />
     <Alias n="91" Id="(@1 @3 Member=(Name=mtype @86))" />
     <Alias n="92" Id="(@1 @3 Member=(Name=org_sq @86))" />
     <Alias n="93" Id="(@1 @3 Member=(Name=promote @86))" />
@@ -6361,7 +6361,7 @@
     <Alias n="207" Id="(@1 @3 Member=(Name=prefetch OverloadingParameters=[(Type=&quot;void const *&quot;)]))" />
     <Alias n="208" Id="(Type=&quot;std::basic_ostream&lt;char,std::char_traits&lt;char&gt; &gt; &amp;&quot;)" />
     <Alias n="209" Id="(@1 @7 Member=(Name=operator&lt;&lt; OverloadingParameters=[@208,(Type=A0x2c028878::Tracer::Term)]))" />
-    <Alias n="210" Id="(@1 @10 Member=(Name=&quot;operator|=&quot; OverloadingParameters=[(Type=&quot;BitBases::A0xb97661df::Result &amp;&quot;),(Type=BitBases::A0xb97661df::Result)]))" />
+    <Alias n="210" Id="(@1 @10 Member=(Name=&quot;operator|=&quot; OverloadingParameters=[(Type=&quot;Bitbases::A0xb97661df::Result &amp;&quot;),(Type=Bitbases::A0xb97661df::Result)]))" />
     <Alias n="211" Id="(@1 @15 Member=(Name=debugHitOn OverloadingParameters=[@44,@44]))" />
     <Alias n="212" Id="(@1 Namespace=&quot;Memory::`anonymous namespace'&quot; Member=(Name=setup_privilege OverloadingParameters=[(Type=&quot;const char *&quot;),@44]))" />
     <Alias n="213" Id="(@1 @3 Member=(Name=toChar OverloadingParameters=[@67,@44]))" />
@@ -6434,12 +6434,12 @@
     <Alias n="280" Id="(Type=&quot;std::basic_ifstream&lt;char,std::char_traits&lt;char&gt; &gt; &amp;&quot;)" />
     <Alias n="281" Id="(@1 @5 Member=(Name=operator&gt;&gt; OverloadingParameters=[@280,(Type=&quot;PolyEntry &amp;&quot;)]))" />
     <Alias n="282" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,(Type=&quot;const PolyEntry &amp;&quot;)]))" />
-    <Alias n="283" Id="(@1 @3 Member=(Name=sanMove OverloadingParameters=[@85,@271]))" />
-    <Alias n="284" Id="(@1 @3 Member=(Name=sanMove OverloadingParameters=[@151,@271]))" />
+    <Alias n="283" Id="(@1 @3 Member=(Name=moveOfSAN OverloadingParameters=[@85,@271]))" />
+    <Alias n="284" Id="(@1 @3 Member=(Name=moveOfSAN OverloadingParameters=[@151,@271]))" />
     <Alias n="285" Id="(@1 @5 Member=(Name=ambiguity OverloadingParameters=[@85,@101]))" />
     <Alias n="286" Id="(@1 @3 Member=(Name=setupBench OverloadingParameters=[(Type=&quot;std::basic_istringstream&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt; &amp;&quot;),@101]))" />
     <Alias n="287" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,@101]))" />
-    <Alias n="288" Id="(@1 @3 Member=(Name=canMove OverloadingParameters=[@151,@101]))" />
+    <Alias n="288" Id="(@1 @3 Member=(Name=moveOfCAN OverloadingParameters=[@151,@101]))" />
     <Alias n="289" Id="(Type=&quot;TBSyzygy::A0xa3222161::DTZEntry &amp;&quot;)" />
     <Alias n="290" Id="(@1 @5 Member=(Name=&quot;init&lt;TBSyzygy::`anonymous namespace'::DTZEntry&gt;&quot; OverloadingParameters=[@289,@101]))" />
     <Alias n="291" Id="(Type=&quot;TBSyzygy::A0xa3222161::WDLEntry &amp;&quot;)" />
@@ -6701,7 +6701,7 @@
     <Alias n="549" Id="(@1 @3 Member=(Name=update_stacks_continuation OverloadingParameters=[@398,(Type=Piece),@127,@76]))" />
     <Alias n="550" Id="(@1 Namespace=&quot;EndGame::`anonymous namespace'&quot; Member=(Name=verify_material OverloadingParameters=[@101,@56,@190,@76]))" />
     <Alias n="551" Id="(@1 @10 Member=(Name=index OverloadingParameters=[@56,@127,@127,@127]))" />
-    <Alias n="552" Id="(@1 Namespace=BitBases Member=(Name=probe OverloadingParameters=[@56,@127,@127,@127]))" />
+    <Alias n="552" Id="(@1 Namespace=Bitbases Member=(Name=probe OverloadingParameters=[@56,@127,@127,@127]))" />
     <Alias n="553" Id="(@1 @5 Member=(Name=&quot;do_probe_table&lt;TBSyzygy::`anonymous namespace'::DTZEntry,int&gt;&quot; OverloadingParameters=[@101,(Type=&quot;TBSyzygy::A0xa3222161::DTZEntry *&quot;),@159,@364]))" />
     <Alias n="554" Id="(@1 @3 Member=(Name=map_score OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::DTZEntry *&quot;),@67,@76,@159]))" />
     <Alias n="555" Id="(@1 @3 Member=(Name=map_score OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::WDLEntry *&quot;),@67,@76,@159]))" />
@@ -6737,7 +6737,7 @@
     <Alias n="586" Id="(@1 @3 Member=HashTable)" />
     <Alias n="587" Id="(@1 @20 Member=info)" />
     <Alias n="588" Id="Member=initialize" />
-    <Alias n="589" Id="(@1 Namespace=BitBases @588)" />
+    <Alias n="589" Id="(@1 Namespace=Bitbases @588)" />
     <Alias n="590" Id="(@1 @12 @588)" />
     <Alias n="591" Id="(@1 @17 @588)" />
     <Alias n="593" Id="(@1 @28 @588)" />

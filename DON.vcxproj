@@ -588,8 +588,8 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
-    <ClCompile Include="src\BitBases.cpp" />
-    <ClCompile Include="src\BitBoard.cpp" />
+    <ClCompile Include="src\Bitbase.cpp" />
+    <ClCompile Include="src\Bitboard.cpp" />
     <ClCompile Include="src\Debugger.cpp" />
     <ClCompile Include="src\Endgame.cpp" />
     <ClCompile Include="src\Engine.cpp" />
@@ -615,8 +615,8 @@
     <ClCompile Include="src\Zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="src\BitBases.h" />
-    <ClInclude Include="src\BitBoard.h" />
+    <ClInclude Include="src\Bitbase.h" />
+    <ClInclude Include="src\Bitboard.h" />
     <ClInclude Include="src\Debugger.h" />
     <ClInclude Include="src\Endgame.h" />
     <ClInclude Include="src\Engine.h" />
@@ -635,14 +635,14 @@
     <ClInclude Include="src\RootMove.h" />
     <ClInclude Include="src\Searcher.h" />
     <ClInclude Include="src\SkillManager.h" />
-    <ClInclude Include="src\Tables.h" />
+    <ClInclude Include="src\Table.h" />
     <ClInclude Include="src\TBsyzygy.h" />
     <ClInclude Include="src\Thread.h" />
     <ClInclude Include="src\thread_win32_osx.h" />
     <ClInclude Include="src\TieStreamBuf.h" />
     <ClInclude Include="src\TimeManager.h" />
     <ClInclude Include="src\Transposition.h" />
-    <ClInclude Include="src\Types.h" />
+    <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\Option.h" />
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
