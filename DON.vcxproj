@@ -588,6 +588,25 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <None Include=".travis.yml" />
+    <None Include="appveyor.yml" />
+    <None Include="ClassDiagram.cd" />
+    <None Include="CodeMap.dgml" />
+    <None Include="IncludeFileDependencies.dgml" />
+    <None Include="Readme.md" />
+    <None Include="src\make-all-modern.bat" />
+    <None Include="src\make-all-modern.sh" />
+    <None Include="src\make-all.bat" />
+    <None Include="src\make-all.sh" />
+    <None Include="src\make-clean.bat" />
+    <None Include="src\make-clean.sh" />
+    <None Include="src\make-help.bat" />
+    <None Include="src\make-help.sh" />
+    <None Include="src\make-strip.bat" />
+    <None Include="src\make-strip.sh" />
+    <None Include="src\Makefile" />
+  </ItemGroup>
+  <ItemGroup>
     <ClCompile Include="src\Bitbase.cpp" />
     <ClCompile Include="src\Bitboard.cpp" />
     <ClCompile Include="src\Debugger.cpp" />
@@ -600,10 +619,11 @@
     <ClCompile Include="src\MoveGenerator.cpp" />
     <ClCompile Include="src\MovePicker.cpp" />
     <ClCompile Include="src\Notation.cpp" />
+    <ClCompile Include="src\Option.cpp" />
     <ClCompile Include="src\Pawns.cpp" />
-    <ClCompile Include="src\PSQTable.cpp" />
     <ClCompile Include="src\Polyglot.cpp" />
     <ClCompile Include="src\Position.cpp" />
+    <ClCompile Include="src\PSQTable.cpp" />
     <ClCompile Include="src\RootMove.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
     <ClCompile Include="src\SkillManager.cpp" />
@@ -611,7 +631,6 @@
     <ClCompile Include="src\Thread.cpp" />
     <ClCompile Include="src\TimeManager.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
-    <ClCompile Include="src\Option.cpp" />
     <ClCompile Include="src\Zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -627,44 +646,24 @@
     <ClInclude Include="src\MoveGenerator.h" />
     <ClInclude Include="src\MovePicker.h" />
     <ClInclude Include="src\Notation.h" />
+    <ClInclude Include="src\Option.h" />
     <ClInclude Include="src\Pawns.h" />
-    <ClInclude Include="src\PSQTable.h" />
     <ClInclude Include="src\Polyglot.h" />
     <ClInclude Include="src\Position.h" />
     <ClInclude Include="src\PRNG.h" />
+    <ClInclude Include="src\PSQTable.h" />
     <ClInclude Include="src\RootMove.h" />
     <ClInclude Include="src\Searcher.h" />
     <ClInclude Include="src\SkillManager.h" />
     <ClInclude Include="src\Table.h" />
     <ClInclude Include="src\TBsyzygy.h" />
     <ClInclude Include="src\Thread.h" />
-    <ClInclude Include="src\thread_win32_osx.h" />
+    <ClInclude Include="src\ThreadWin32OSX.h" />
     <ClInclude Include="src\TieStreamBuf.h" />
     <ClInclude Include="src\TimeManager.h" />
     <ClInclude Include="src\Transposition.h" />
     <ClInclude Include="src\Type.h" />
-    <ClInclude Include="src\Option.h" />
     <ClInclude Include="src\Zobrist.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <None Include=".travis.yml" />
-    <None Include="appveyor.yml" />
-    <None Include="ClassDiagram.cd" />
-    <None Include="CodeMap.dgml" />
-    <None Include="IncludeFileDependencies.dgml">
-      <SubType>Designer</SubType>
-    </None>
-    <None Include="Readme.md" />
-    <None Include="src\make-all-modern.bat" />
-    <None Include="src\make-all.bat" />
-    <None Include="src\make-clean.bat" />
-    <None Include="src\make-strip.bat" />
-    <None Include="src\Makefile" />
-    <None Include="src\make-help.bat" />
-    <None Include="tests\instrumented.sh" />
-    <None Include="tests\perft.sh" />
-    <None Include="tests\reprosearch.sh" />
-    <None Include="tests\signature.sh" />
   </ItemGroup>
   <ItemGroup>
     <Text Include="Copying.txt" />
