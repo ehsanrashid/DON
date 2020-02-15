@@ -1,18 +1,18 @@
 #include "Material.h"
 
-#include <array>
 #include <cassert>
 #include <cstring>
 
+#include "Helper.h"
 #include "Thread.h"
 
-namespace Material {
+namespace Material
+{
 
     using namespace std;
-    using namespace Endgames;
 
-    namespace {
-
+    namespace
+    {
         // Polynomial material imbalance parameters
 
         constexpr Array<i32, PIECE_TYPES, PIECE_TYPES> OwnQuadratic
@@ -116,8 +116,8 @@ namespace Material {
         // Generic evaluation
         for (Color c : { WHITE, BLACK })
         {
-            if (   pos.nonPawnMaterial( c) >= VALUE_MG_ROOK
-                && pos.count(~c) == 1)
+            if (pos.nonPawnMaterial( c) >= VALUE_MG_ROOK
+             && pos.count(~c) == 1)
             {
                 evaluationFunc = &ValueKXK[c];
                 return;
@@ -140,19 +140,19 @@ namespace Material {
         // generic scaling functions that refer to more than one material distribution.
         for (Color c : { WHITE, BLACK })
         {
-            if (   pos.nonPawnMaterial( c) == VALUE_MG_BSHP
-                //&& pos.count( c|BSHP) == 1
-                && pos.count( c|PAWN) != 0)
+            if (pos.nonPawnMaterial( c) == VALUE_MG_BSHP
+             //&& pos.count( c|BSHP) == 1
+             && pos.count( c|PAWN) != 0)
             {
                 scalingFunc[c] = &ScaleKBPsK[c];
             }
             else
-            if (   pos.nonPawnMaterial( c) == VALUE_MG_QUEN
-                //&& pos.count( c|QUEN) == 1
-                && pos.count( c|PAWN) == 0
-                && pos.nonPawnMaterial(~c) == VALUE_MG_ROOK
-                //&& pos.count(~c|ROOK) == 1
-                && pos.count(~c|PAWN) != 0)
+            if (pos.nonPawnMaterial( c) == VALUE_MG_QUEN
+             //&& pos.count( c|QUEN) == 1
+             && pos.count( c|PAWN) == 0
+             && pos.nonPawnMaterial(~c) == VALUE_MG_ROOK
+             //&& pos.count(~c|ROOK) == 1
+             && pos.count(~c|PAWN) != 0)
             {
                 scalingFunc[c] = &ScaleKQKRPs[c];
             }
@@ -160,9 +160,9 @@ namespace Material {
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
-            if (   pos.count( c|PAWN) == 0
-                && abs(  pos.nonPawnMaterial( c)
-                       - pos.nonPawnMaterial(~c)) <= VALUE_MG_BSHP)
+            if (pos.count( c|PAWN) == 0
+             && abs(pos.nonPawnMaterial( c)
+                  - pos.nonPawnMaterial(~c)) <= VALUE_MG_BSHP)
             {
                 scale[c] = pos.nonPawnMaterial( c) <  VALUE_MG_ROOK ?
                                 SCALE_DRAW :
@@ -171,8 +171,8 @@ namespace Material {
         }
 
         // Only pawns left
-        if (   pos.nonPawnMaterial() == VALUE_ZERO
-            && pos.pieces(PAWN) != 0)
+        if (pos.nonPawnMaterial() == VALUE_ZERO
+         && pos.pieces(PAWN) != 0)
         {
             if (pos.pieces(BLACK, PAWN) == 0)
             {
@@ -186,8 +186,8 @@ namespace Material {
                 scalingFunc[BLACK] = &ScaleKPsK[BLACK];
             }
             else
-            if (   pos.count(WHITE|PAWN) == 1
-                && pos.count(BLACK|PAWN) == 1)
+            if (pos.count(WHITE|PAWN) == 1
+             && pos.count(BLACK|PAWN) == 1)
             {
                 scalingFunc[WHITE] = &ScaleKPKP[WHITE];
                 scalingFunc[BLACK] = &ScaleKPKP[BLACK];
@@ -222,14 +222,15 @@ namespace Material {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(const Position &pos)
     {
-        auto *e = pos.thread->matlHash[pos.matlKey()];
+        Key matlKey = pos.matlKey();
+        auto *e = pos.thread->matlHash[matlKey];
 
-        if (e->key == pos.matlKey())
+        if (e->key == matlKey)
         {
             return e;
         }
 
-        e->key = pos.matlKey();
+        e->key = matlKey;
         e->evaluate(pos);
 
         return e;

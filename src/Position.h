@@ -13,35 +13,26 @@
 /// waiting for data to be loaded from memory, which can be quite slow.
 #if defined(PREFETCH)
 
-#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-#   include <xmmintrin.h> // Intel and Microsoft header for _mm_prefetch()
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#   include <xmmintrin.h> // Microsoft and Intel Header for _mm_prefetch()
 #endif
 
 inline void prefetch(const void *addr)
 {
-#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
-#       if defined(__INTEL_COMPILER)
-
-        // This hack prevents prefetches from being optimized away by
-        // Intel compiler. Both MSVC and gcc seem not be affected by this.
-        __asm__ ("");
-
-#       endif
-
-    _mm_prefetch((const char*)(addr), _MM_HINT_T0);
-
-#   else
-
-    __builtin_prefetch(addr);
-
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#   if defined(__INTEL_COMPILER)
+    // This hack prevents prefetches from being optimized away by
+    // Intel compiler. Both MSVC and gcc seem not be affected by this.
+    __asm__ ("");
 #   endif
+    _mm_prefetch((const char*)(addr), _MM_HINT_T0);
+#else
+    __builtin_prefetch(addr);
+#endif
 }
 
 #else
-
 inline void prefetch(const void*) {}
-
 #endif
 
 extern const Array<Piece, 12> Pieces;
@@ -82,7 +73,6 @@ public:
     Bitboard    checks[PIECE_TYPES];
 
     StateInfo *ptr;             // Previous StateInfo pointer.
-
 };
 
 /// A list to keep track of the position states along the setup moves
@@ -108,12 +98,14 @@ class Position
 {
 private:
 
-    Array<Piece   , SQUARES>        piece;
-    Array<Bitboard, COLORS>         colors;
-    Array<Bitboard, PIECE_TYPES>    types;
+    Array<Piece   , SQUARES>     piece;
+    Array<Bitboard, COLORS>      colors;
+    Array<Bitboard, PIECE_TYPES> types;
 
     Array<CastleRight, SQUARES> sqCastleRight;
     Array<Value      , SQUARES> npMaterial;
+
+    StateInfo *si;
 
     void placePiece(Square, Piece);
     void removePiece(Square);
@@ -136,9 +128,7 @@ public:
     i16   ply;
     Color active;
 
-    StateInfo *si;
-
-    Thread    *thread;
+    Thread *thread;
 
     static void initialize();
 
@@ -183,8 +173,9 @@ public:
     Bitboard checkers() const;
     i16 repetition() const;
 
+    Bitboard kingBlockers(Color) const;
+    Bitboard kingCheckers(Color) const;
     Bitboard checks(PieceType) const;
-
 
     bool castleExpeded(Color, CastleSide) const;
 
@@ -344,6 +335,8 @@ inline PieceType Position::captured() const { return si->captured; }
 inline Bitboard Position::checkers() const { return si->checkers; }
 inline i16 Position::repetition() const { return si->repetition; }
 
+inline Bitboard Position::kingBlockers(Color c) const { return si->kingBlockers[c]; }
+inline Bitboard Position::kingCheckers(Color c) const { return si->kingCheckers[c]; }
 inline Bitboard Position::checks(PieceType pt) const { return si->checks[pt]; }
 
 
@@ -394,17 +387,17 @@ inline Bitboard Position::xattacksFrom<NIHT>(Square s, Color) const
 template<>
 inline Bitboard Position::xattacksFrom<BSHP>(Square s, Color c) const
 {
-    return attacksBB<BSHP>(s, pieces() ^ ((pieces(c, QUEN, BSHP) & ~si->kingBlockers[c]) | pieces(~c, QUEN)));
+    return attacksBB<BSHP>(s, pieces() ^ ((pieces(c, QUEN, BSHP) & ~kingBlockers(c)) | pieces(~c, QUEN)));
 }
 template<>
 inline Bitboard Position::xattacksFrom<ROOK>(Square s, Color c) const
 {
-    return attacksBB<ROOK>(s, pieces() ^ ((pieces(c, QUEN, ROOK) & ~si->kingBlockers[c]) | pieces(~c, QUEN)));
+    return attacksBB<ROOK>(s, pieces() ^ ((pieces(c, QUEN, ROOK) & ~kingBlockers(c)) | pieces(~c, QUEN)));
 }
 template<>
 inline Bitboard Position::xattacksFrom<QUEN>(Square s, Color c) const
 {
-    return attacksBB<QUEN>(s, pieces() ^ ((pieces(c, QUEN)       & ~si->kingBlockers[c])));
+    return attacksBB<QUEN>(s, pieces() ^ ((pieces(c, QUEN)       & ~kingBlockers(c))));
 }
 
 inline bool Position::capture(Move m) const
@@ -455,13 +448,10 @@ inline void Position::doMove(Move m, StateInfo &nsi)
     doMove(m, nsi, giveCheck(m));
 }
 
+
 #if !defined(NDEBUG)
+
 /// isOk() Check the validity of FEN string.
-inline bool isOk(const std::string &fen)
-{
-    Position pos;
-    StateInfo si;
-    return !whiteSpaces(fen)
-        && pos.setup(fen, si, nullptr).ok();
-}
+extern bool isOk(const std::string &fen);
+
 #endif

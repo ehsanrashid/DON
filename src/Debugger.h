@@ -1,18 +1,26 @@
 #pragma once
 
+#include <atomic>
+
 #include "Type.h"
 
-// Debug functions used mainly to collect run-time statistics
-namespace Debugger
+// Debug class mainly collects run-time statistics and print them
+class Debugger
 {
+    static std::atomic<u64> Hit1Count;
+    static std::atomic<u64> Hit2Count;
 
-    extern void initialize();
+    static std::atomic<u64> ItemCount;
+    static std::atomic<i64> ItemSum;
 
-    extern void hitOn(bool);
-    extern void hitOn(bool, bool);
+public:
+    static void reset();
 
-    extern void meanOf(i64);
+    static void hitOn(bool);
+    static void hitOn(bool, bool);
 
-    extern void print();
+    static void meanOf(i64);
 
-}
+    static void print();
+
+};

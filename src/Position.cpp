@@ -4,18 +4,19 @@
 #include <cassert>
 #include <cstring>
 
+#include "Cuckoo.h"
+#include "Helper.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
 #include "Option.h"
 #include "Polyglot.h"
 #include "PSQTable.h"
-#include "TBsyzygy.h"
+#include "SyzygyTB.h"
 #include "Thread.h"
 #include "Transposition.h"
 #include "Zobrist.h"
 
 using namespace std;
-using namespace TBSyzygy;
 
 const Array<Piece, 12> Pieces
 {
@@ -30,7 +31,8 @@ const Array<Value, 2, PIECE_TYPES> PieceValues
 }};
 
 
-namespace {
+namespace
+{
 
     /// Computes the non-pawn middle game material value for the given side.
     /// Material values are updated incrementally during the search.
@@ -49,79 +51,11 @@ namespace {
     template Value computeNPM<WHITE>(const Position&);
     template Value computeNPM<BLACK>(const Position&);
 
-    // Marcel van Kervink's cuckoo algorithm for fast detection of "upcoming repetition".
-    // Description of the algorithm in the following paper:
-    // https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
-
-    struct Cuckoo
-    {
-        Key  key;   // Zobrist key
-        Move move;  // Valid reversible move
-
-        Cuckoo() = default;
-        Cuckoo(Key k, Move m)
-            : key(k)
-            , move(m)
-        {}
-
-        bool empty() const
-        {
-            return 0 == key
-                || MOVE_NONE == move;
-        }
-    };
-
-    // Cuckoo table
-    Array<Cuckoo, 0x2000> Cuckoos;
-
-    // Hash functions for indexing the cuckoo tables
-
-    inline u16 H1(Key key) { return u16((key >> 0x00) & (Cuckoos.size() - 1)); }
-    inline u16 H2(Key key) { return u16((key >> 0x10) & (Cuckoos.size() - 1)); }
-
 }
 
+// Static init()
 void Position::initialize()
 {
-    // Prepare the Cuckoo tables
-    Cuckoos.fill({0, MOVE_NONE});
-    u16 count = 0;
-    for (Color c : { WHITE, BLACK })
-    {
-        for (PieceType pt = NIHT; pt <= KING; ++pt)
-        {
-            for (Square org = SQ_A1; org <= SQ_H8; ++org)
-            {
-                for (Square dst = Square(org + 1); dst <= SQ_H8; ++dst)
-                {
-                    if (contains(PieceAttacks[pt][org], dst))
-                    {
-                        Cuckoo cuckoo( RandZob.pieceSquareKey[c][pt][org]
-                                     ^ RandZob.pieceSquareKey[c][pt][dst]
-                                     ^ RandZob.colorKey,
-                                       makeMove<NORMAL>(org, dst));
-
-                        u16 i = H1(cuckoo.key);
-                        while (true)
-                        {
-                            std::swap(Cuckoos[i], cuckoo);
-                            // Arrived at empty slot ?
-                            if (cuckoo.empty())
-                            {
-                                break;
-                            }
-                            // Push victim to alternative slot
-                            i = i == H1(cuckoo.key) ?
-                                    H2(cuckoo.key) :
-                                    H1(cuckoo.key);
-                        }
-                        ++count;
-                    }
-                }
-            }
-        }
-    }
-    assert(3668 == count);
 }
 
 
@@ -137,8 +71,8 @@ Key Position::movePosiKey(Move m) const
         && pseudoLegal(m)
         && legal(m));
 
-    auto org = orgSq(m);
-    auto dst = dstSq(m);
+    auto org{orgSq(m)};
+    auto dst{dstSq(m)};
     auto pKey = posiKey();
     if (CASTLE == mType(m))
     {
@@ -230,8 +164,8 @@ bool Position::cycled(i16 pp) const
             || (j = H2(moveKey), moveKey == Cuckoos[j].key))
         {
             auto move = Cuckoos[j].move;
-            auto org = orgSq(move);
-            auto dst = dstSq(move);
+            auto org{orgSq(move)};
+            auto dst{dstSq(move)};
             if (0 == (betweens(org, dst) & pieces()))
             {
                 if (p < pp)
@@ -304,8 +238,8 @@ bool Position::pseudoLegal(Move m) const
 {
     assert(isOk(m));
 
-    auto org = orgSq(m);
-    auto dst = dstSq(m);
+    auto org{orgSq(m)};
+    auto dst{dstSq(m)};
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
     if (!contains(pieces(active), org))
@@ -414,8 +348,8 @@ bool Position::legal(Move m) const
 {
     assert(isOk(m));
 
-    auto org = orgSq(m);
-    auto dst = dstSq(m);
+    auto org{orgSq(m)};
+    auto dst{dstSq(m)};
     assert(contains(pieces(active), org));
 
     switch (mType(m))
@@ -439,8 +373,8 @@ bool Position::legal(Move m) const
         // A non-king move is legal if and only if
         // - not pinned
         // - moving along the ray from the king
-        return !contains(si->kingBlockers[active], org)
-            || squaresAligned(org, dst, square(active|KING));
+        return !contains(kingBlockers(active), org)
+            || aligned(org, dst, square(active|KING));
         break;
     case CASTLE:
     {
@@ -492,7 +426,7 @@ bool Position::legal(Move m) const
 bool Position::fullLegal(Move m) const
 {
     return (   ENPASSANT != mType(m)
-            && !contains(si->kingBlockers[active] | square(active|KING), orgSq(m)))
+            && !contains(kingBlockers(active) | square(active|KING), orgSq(m)))
         || legal(m);
 }
 /// Position::giveCheck() tests whether a pseudo-legal move gives a check.
@@ -500,15 +434,15 @@ bool Position::giveCheck(Move m) const
 {
     assert(isOk(m));
 
-    auto org = orgSq(m);
-    auto dst = dstSq(m);
+    auto org{orgSq(m)};
+    auto dst{dstSq(m)};
     assert(contains(pieces(active), org));
 
     if (    // Direct check ?
            contains(checks(PROMOTE != mType(m) ? pType(piece[org]) : promoteType(m)), dst)
             // Discovered check ?
-        || (   contains(si->kingBlockers[~active], org)
-            && !squaresAligned(org, dst, square(~active|KING))))
+        || (   contains(kingBlockers(~active), org)
+            && !aligned(org, dst, square(~active|KING))))
     {
         return true;
     }
@@ -638,8 +572,8 @@ bool Position::see(Move m, Value threshold) const
         return VALUE_ZERO >= threshold;
     }
 
-    auto org = orgSq(m);
-    auto dst = dstSq(m);
+    auto org{orgSq(m)};
+    auto dst{dstSq(m)};
 
     i32 swap;
     swap = PieceValues[MG][pType(piece[dst])] - threshold;
@@ -675,8 +609,8 @@ bool Position::see(Move m, Value threshold) const
 
         // Only allow king for defensive capture to evade the discovered check,
         // as long any discoverers are on their original square.
-        if (   contains(si->kingBlockers[mov] & pieces(~mov), org)
-            && (  si->kingCheckers[~mov]
+        if (   contains(kingBlockers(mov) & pieces(~mov), org)
+            && (  kingCheckers(~mov)
                 & pieces(~mov)
                 & mocc
                 & attacksBB<QUEN>(square(mov|KING), mocc)) != 0)
@@ -687,11 +621,11 @@ bool Position::see(Move m, Value threshold) const
         // as long respective pinners are on their original square.
         else
         {
-            Bitboard movPinnedAttackers = si->kingBlockers[mov] & movAttackers;
+            Bitboard movPinnedAttackers = kingBlockers(mov) & movAttackers;
             while (0 != movPinnedAttackers)
             {
                 auto sq = popLSq(movPinnedAttackers);
-                if ((  si->kingCheckers[mov]
+                if ((  kingCheckers(mov)
                      & pieces(~mov)
                      & mocc
                      & attacksBB<QUEN>(square(mov|KING), mocc ^ sq)) != 0)
@@ -890,7 +824,7 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th)
     std::memset(&nsi, 0, sizeof (StateInfo));
     si = &nsi;
 
-    istringstream iss{ ff };
+    istringstream iss{ff};
     iss >> noskipws;
 
     u08 token;
@@ -1052,8 +986,8 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
     ++si->clockPly;
     ++si->nullPly;
 
-    auto org = orgSq(m);
-    auto dst = dstSq(m);
+    auto org{orgSq(m)};
+    auto dst{dstSq(m)};
     assert(contains(pieces(active), org)
         && (!contains(pieces(active), dst)
          || CASTLE == mType(m)));
@@ -1236,8 +1170,8 @@ void Position::undoMove(Move m)
         && nullptr != si->ptr
         && KING != captured());
 
-    auto org = orgSq(m);
-    auto dst = dstSq(m);
+    auto org{orgSq(m)};
+    auto dst{dstSq(m)};
     assert(empty(org)
         || CASTLE == mType(m));
 
@@ -1352,7 +1286,7 @@ void Position::undoNullMove()
 /// This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip()
 {
-    istringstream iss{ fen() };
+    istringstream iss{fen()};
     string ff, token;
     // 1. Piece placement
     for (Rank r = RANK_8; r >= RANK_1; --r)
@@ -1392,7 +1326,7 @@ void Position::flip()
 /// Position::mirror() mirrors position mean King and Queen sides swaped.
 void Position::mirror()
 {
-    istringstream iss{ fen() };
+    istringstream iss{fen()};
     string ff, token;
     // 1. Piece placement
     for (Rank r = RANK_8; r >= RANK_1; --r)
@@ -1559,6 +1493,7 @@ ostream& operator<<(ostream &os, const Position &pos)
 }
 
 #if !defined(NDEBUG)
+
 /// Position::ok() performs some consistency checks for the position,
 /// and raises an assert if something wrong is detected.
 bool Position::ok() const
@@ -1655,7 +1590,7 @@ bool Position::ok() const
             assert(false && "Position OK: SQUARE_LIST");
             return false;
         }
-        for (auto s : squares[p])
+        for (Square s : squares[p])
         {
             if (   !isOk(s)
                 || piece[s] != p)
@@ -1702,4 +1637,14 @@ bool Position::ok() const
 
     return true;
 }
+
+/// isOk() Check the validity of FEN string.
+bool isOk(const string &fen)
+{
+    Position pos;
+    StateInfo si;
+    return !whiteSpaces(fen)
+        && pos.setup(fen, si, nullptr).ok();
+}
+
 #endif

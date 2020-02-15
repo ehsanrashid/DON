@@ -29,7 +29,7 @@ Key Zobrist::computePawnKey(const Position &pos) const
     for (Color c : { WHITE, BLACK })
     {
         pawnKey ^= pieceSquareKey[c][KING][0]; // Include King Key for zero pawns
-        for (auto s : pos.squares[c|PAWN])
+        for (Square s : pos.squares[c|PAWN])
         {
             pawnKey ^= pieceSquareKey[c][PAWN][s];
         }
@@ -54,107 +54,16 @@ Key Zobrist::computePosiKey(const Position &pos) const
     {
         posiKey ^= colorKey;
     }
-    posiKey ^= castleRightKey[pos.si->castleRights];
+    posiKey ^= castleRightKey[pos.castleRights()];
     if (SQ_NONE != pos.epSquare())
     {
         posiKey ^= enpassantKey[sFile(pos.epSquare())];
     }
     return posiKey;
 }
-/*
-/// Zobrist::computeFenKey() computes Hash key of the FEN.
-Key Zobrist::computeFenKey(const string &fen) const
+
+namespace Zobrists
 {
-    assert(!fen.empty());
-
-    Key fenKey = 0;
-    istringstream iss{ fen };
-    iss >> noskipws;
-    u08 token;
-    Array<File, COLORS> kF { FILES, FILES };
-    Square sq = SQ_A8;
-    while (   (iss >> token)
-           && !isspace(token))
-    {
-        Piece p;
-        if (isdigit(token))
-        {
-            sq += Direction(token - '0');
-        }
-        else
-        if (token == '/')
-        {
-            sq += SOUTH * 2;
-        }
-        else
-        if ((p = toPiece(token)) != NO_PIECE)
-        {
-            if (KING == pType(p))
-            {
-                kF[pColor(p)] = sFile(sq);
-            }
-            fenKey ^= pieceSquareKey[pColor(p)][pType(p)][sq];
-            ++sq;
-        }
-        else
-        {
-            assert(false);
-        }
-    }
-    assert(FILES != kF[WHITE]
-        && FILES != kF[BLACK]);
-
-    iss >> token;
-    if (WHITE == toColor(token))
-    {
-        fenKey ^= colorKey;
-    }
-
-    iss >> token;
-    while (   (iss >> token)
-           && !isspace(token))
-    {
-        if (token == '-')
-        {
-            continue;
-        }
-
-        auto c = isupper(token) ? WHITE : BLACK;
-        token = char(tolower(token));
-        if ('k' == token)
-        {
-            fenKey ^= castleRightKey[makeCastleRight(c, CS_KING)];
-        }
-        else
-        if ('q' == token)
-        {
-            fenKey ^= castleRightKey[makeCastleRight(c, CS_QUEN)];
-        }
-        else
-        // Chess960
-        if ('a' <= token && token <= 'h')
-        {
-            fenKey ^= castleRightKey[makeCastleRight(c, kF[c] < toFile(token) ? CS_KING : CS_QUEN)];
-        }
-        else
-        {
-            assert(false);
-        }
-    }
-
-    u08 file, rank;
-    if (   (iss >> file && ('a' <= file && file <= 'h'))
-        && (iss >> rank && ('3' == rank || rank == '6')))
-    {
-        fenKey ^= enpassant[toFile(file)];
-    }
-
-    return fenKey;
-}
-*/
-
-namespace Zob {
-
     /// initialize() initializes Zobrist lookup tables.
     void initialize()
     {
@@ -162,7 +71,7 @@ namespace Zob {
         assert(PolyZob.pieceSquareKey[BLACK][KING][SQ_H8] == U64(0xFF577222C14F0A3A));
         assert(PolyZob.colorKey == U64(0xF8D626AAAF278509));
 
-        PRNG prng{ 0x105524 };
+        PRNG prng{0x105524};
 
         for (Color c : { WHITE, BLACK })
         {

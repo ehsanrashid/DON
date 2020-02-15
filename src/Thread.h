@@ -8,6 +8,7 @@
 
 #include "ThreadWin32OSX.h"
 
+#include "Limit.h"
 #include "Option.h"
 #include "Position.h"
 #include "RootMove.h"
@@ -18,8 +19,6 @@
 #include "Pawns.h"
 #include "Type.h"
 
-// Threshold for counter moves based pruning
-constexpr i32 CounterMovePruneThreshold = 0;
 
 /// Thread class keeps together all the thread-related stuff.
 /// It use pawn and material hash tables so that once get a pointer to
@@ -27,15 +26,16 @@ constexpr i32 CounterMovePruneThreshold = 0;
 /// someone changing the entry under our feet.
 class Thread
 {
-protected:
-    bool dead   // false
-       , busy;  // true
-
-    size_t index;
+private:
+    bool  dead{false}
+        , busy{true};
 
     std::mutex mtx;
     std::condition_variable conditionVar;
 
+protected:
+
+    size_t index;
     NativeThread nativeThread;
 
 public:
@@ -68,8 +68,8 @@ public:
 
     PieceSquareMoveTable quietCounterMoves;
 
-    PawnHashTable pawnHash;
-    MatlHashTable matlHash;
+    Pawns   ::Table pawnHash;
+    Material::Table matlHash;
 
     explicit Thread(size_t);
     Thread() = delete;
@@ -78,7 +78,7 @@ public:
 
     virtual ~Thread();
 
-    void start();
+    void startSearch();
     void waitIdle();
 
     void idleFunction();
@@ -93,8 +93,6 @@ public:
 class MainThread
     : public Thread
 {
-private :
-
 public:
     bool stopOnPonderhit;       // Stop search on ponderhit
     std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
@@ -124,65 +122,13 @@ public:
     void tick();
 };
 
-namespace WinProcGroup {
-
-    extern std::vector<i16> Groups;
-
+namespace WinProcGroup
+{
     extern void initialize();
+
     extern void bind(size_t);
 }
 
-/// Limit stores information sent by GUI about available time to search the current move.
-///  - Time and Increment
-///  - Moves to go
-///  - Depth
-///  - Nodes
-///  - Mate
-///  - Infinite analysis mode
-struct Limit
-{
-public:
-    // Clock struct stores the time and inc per move in milli-seconds.
-    struct Clock
-    {
-        TimePoint time;
-        TimePoint inc;
-
-        Clock()
-            : time(0)
-            , inc(0)
-        {}
-    };
-    Array<Clock, COLORS> clock; // Search with Clock
-
-    u08       movestogo;   // Search <x> moves to the next time control
-
-    TimePoint moveTime;    // Search <x> exact time in milli-seconds
-    Depth     depth;       // Search <x> depth(plies) only
-    u64       nodes;       // Search <x> nodes only
-    u08       mate;        // Search mate in <x> moves
-    bool      infinite;    // Search until the "stop" command
-
-    Limit()
-        : clock()
-        , movestogo(0)
-        , moveTime(0)
-        , depth(DEPTH_ZERO)
-        , nodes(0)
-        , mate(0)
-        , infinite(false)
-    {}
-
-    bool useTimeMgr() const
-    {
-        return !infinite
-            && 0 == moveTime
-            && DEPTH_ZERO == depth
-            && 0 == nodes
-            && 0 == mate;
-    }
-
-};
 
 /// ThreadPool class handles all the threads related stuff like,
 /// initializing & deinitializing, starting, parking & launching a thread
@@ -210,12 +156,10 @@ public:
     ThreadPool(const ThreadPool&) = delete;
     ThreadPool& operator=(const ThreadPool&) = delete;
 
-    MainThread* mainThread() const { return static_cast<MainThread*>(front()); }
-
     template<typename T>
     T sum(std::atomic<T> Thread::*member) const
     {
-        T s = {};
+        T s{};
         for (auto *th : *this)
         {
             s += (th->*member).load(std::memory_order::memory_order_relaxed);
@@ -230,6 +174,8 @@ public:
             th->*member = {};
         }
     }
+
+    MainThread* mainThread() const { return static_cast<MainThread*>(front()); }
 
     Thread* bestThread() const;
 

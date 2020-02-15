@@ -4,17 +4,18 @@
 #include <cassert>
 
 #include "BitBoard.h"
+#include "Helper.h"
 #include "Table.h"
 #include "Thread.h"
 
-namespace Pawns {
-
+namespace Pawns
+{
     using namespace std;
 
-    namespace {
-
+    namespace
+    {
         // Connected pawn bonus
-        constexpr Array<i32, RANKS> Connected { 0, 7, 8, 12, 29, 48, 86, 0 };
+        constexpr Array<i32, RANKS> Connected{ 0, 7, 8, 12, 29, 48, 86, 0 };
 
 #   define S(mg, eg) makeScore(mg, eg)
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
@@ -38,14 +39,14 @@ namespace Pawns {
             { S(-15, 0), S( -11, 0), S( 101, 0), S(  4, 0), S( 11, 0), S(-15, 0), S(-29, 0), S(0, 0) }
         }};
 
-        constexpr Score BlockedStorm =   S(82, 82);
+        constexpr Score BlockedStorm  {S(82,82)};
 
-        constexpr Score Initial =        S( 5, 5);
-        constexpr Score Backward =       S( 9,24);
-        constexpr Score Isolated =       S( 5,15);
-        constexpr Score Unopposed =      S(13,27);
-        constexpr Score WeakDoubled =    S(11,56);
-        constexpr Score WeakTwiceLever = S( 0,56);
+        constexpr Score Initial       {S( 5, 5)};
+        constexpr Score Backward      {S( 9,24)};
+        constexpr Score Isolated      {S( 5,15)};
+        constexpr Score Unopposed     {S(13,27)};
+        constexpr Score WeakDoubled   {S(11,56)};
+        constexpr Score WeakTwiceLever{S( 0,56)};
 
 #   undef S
 
@@ -56,7 +57,7 @@ namespace Pawns {
         {
             constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
-            Bitboard frontPawns = ~frontRanks(Opp, kSq) & pos.pieces(PAWN);
+            Bitboard frontPawns = ~frontRanksBB(Opp, kSq) & pos.pieces(PAWN);
             Bitboard ownFrontPawns = pos.pieces(Own) & frontPawns;
             Bitboard oppFrontPawns = pos.pieces(Opp) & frontPawns;
 
@@ -80,8 +81,8 @@ namespace Pawns {
                 assert(FILE_E > ff);
 
                 safety += Shelter[ff][ownR];
-                if (   RANK_1 != ownR
-                    && (ownR + 1) == oppR)
+                if (RANK_1 != ownR
+                 && (ownR + 1) == oppR)
                 {
                     safety -= BlockedStorm * (RANK_3 == oppR);
                 }
@@ -123,8 +124,8 @@ namespace Pawns {
         Bitboard kPath = kPaths[CS_KING]
                        | kPaths[CS_QUEN];
 
-        if (   kingSq[Own]   != kSq
-            || kingPath[Own] != kPath)
+        if (kingSq[Own]   != kSq
+         || kingPath[Own] != kPath)
         {
             auto safety = evaluateSafetyOn<Own>(pos, kSq);
 
@@ -190,14 +191,14 @@ namespace Pawns {
         //kingPath  [Own] = 0;
         //kingSafety[Own] = SCORE_ZERO;
         //kingDist  [Own] = SCORE_ZERO;
-        attackSpan[Own] = pawnSglAttacks(Own, ownPawns);
+        attackSpan[Own] = pawnSglAttacks<Own>(ownPawns);
         passers   [Own] = 0;
         score     [Own] = SCORE_ZERO;
         for (Square s : pos.squares[Own|PAWN])
         {
             assert((Own|PAWN) == pos[s]);
 
-            auto r = relRank(Own, s);
+            auto r{relRank(Own, s)};
             assert(RANK_2 <= r && r <= RANK_7);
 
             Bitboard neighbours = ownPawns & adjacentFiles(s);
@@ -211,12 +212,12 @@ namespace Pawns {
             bool opposed  = 0 != (stoppers & frontSquares(Own, s));
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
-            bool backward = 0 == (neighbours & frontRanks(Opp, s + Push))
+            bool backward = 0 == (neighbours & frontRanksBB(Opp, s + Push))
                          && 0 != (blockers | escapes);
 
             // Compute additional span if pawn is not blocked nor backward
-            if (   0 == blockers
-                && !backward)
+            if (0 == blockers
+             && !backward)
             {
                 attackSpan[Own] |= pawnAttackSpan(Own, s);
             }
@@ -226,24 +227,24 @@ namespace Pawns {
             // - there is no stoppers except the escapes, but we outnumber them
             // - there is only one front stopper which can be levered.
             // Passed pawns will be properly scored later in evaluation when we have full attack info.
-            if (   (stoppers == levers) // Also handles 0 == stoppers
-                || (   stoppers == (levers | escapes)
-                    && popCount(phalanxes) >= popCount(escapes))
-                || (   stoppers == blockers
-                    && RANK_4 < r
-                    && 0 != (   pawnSglPushes(Own, supporters)
-                             & ~(oppPawns | pawnDblAttacks(Opp, oppPawns)))))
+            if ((stoppers == levers) // Also handles 0 == stoppers
+             || (stoppers == (levers | escapes)
+              && popCount(phalanxes) >= popCount(escapes))
+             || (stoppers == blockers
+              && RANK_4 < r
+              && 0 != ( pawnSglPushes(Own, supporters)
+                     & ~(oppPawns | pawnDblAttacks<Opp>(oppPawns)))))
             {
                 passers[Own] |= s;
             }
 
-            Score sp = SCORE_ZERO;
+            Score sp{SCORE_ZERO};
 
-            if (   0 != supporters
-                || 0 != phalanxes)
+            if (0 != supporters
+             || 0 != phalanxes)
             {
-                i32 v = Connected[r] * (2 + (0 != phalanxes) - opposed)
-                      + 21 * popCount(supporters);
+                i32 v{Connected[r] * (2 + (0 != phalanxes) - opposed)
+                    + 21 * popCount(supporters)};
                 sp += makeScore(v, v * (r - RANK_3) / 4);
             }
             else
@@ -277,14 +278,15 @@ namespace Pawns {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(const Position &pos)
     {
-        auto *e = pos.thread->pawnHash[pos.pawnKey()];
+        Key pawnKey = pos.pawnKey();
+        auto *e = pos.thread->pawnHash[pawnKey];
 
-        if (e->key == pos.pawnKey())
+        if (e->key == pawnKey)
         {
             return e;
         }
 
-        e->key = pos.pawnKey();
+        e->key = pawnKey;
         e->evaluate<WHITE>(pos),
         e->evaluate<BLACK>(pos);
 

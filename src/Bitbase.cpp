@@ -2,14 +2,14 @@
 
 #include <cassert>
 #include <bitset>
-#include <vector>
 
 #include "BitBoard.h"
 #include "Table.h"
 
 using namespace std;
 
-namespace {
+namespace
+{
 
     // There are 24 possible pawn squares: files A to D and ranks from 2 to 7
     // Positions with the pawn on files E to H will be mirrored before probing.
@@ -32,10 +32,10 @@ namespace {
         assert(RANK_2 <= sRank(wpSq) && sRank(wpSq) <= RANK_7);
 
         return (wkSq << 0)
-                | (bkSq << 6)
-                | (active << 12)
-                | ((sFile(wpSq) - FILE_A) << 13)
-                | ((sRank(wpSq) - RANK_2) << 15);
+             | (bkSq << 6)
+             | (active << 12)
+             | ((sFile(wpSq) - FILE_A) << 13)
+             | ((sRank(wpSq) - RANK_2) << 15);
     }
 
     enum Result : u08
@@ -54,11 +54,11 @@ namespace {
     struct KPKPosition
     {
     private:
-        Color                 active;
-        Square                pSq;
+        Color  active;
+        Square pSq;
         Array<Square, COLORS> kSq;
 
-        Result                result;
+        Result result;
 
     public:
 
@@ -85,31 +85,32 @@ namespace {
             && index(active, kSq[WHITE], kSq[BLACK], pSq) == idx);
 
         // Check if two pieces are on the same square or if a king can be captured
-        if (   1 >= dist(kSq[WHITE], kSq[BLACK])
-            || kSq[WHITE] == pSq
-            || kSq[BLACK] == pSq
-            || (   WHITE == active
-                && contains(PawnAttacks[WHITE][pSq], kSq[BLACK])))
+        if (1 >= dist(kSq[WHITE], kSq[BLACK])
+         || kSq[WHITE] == pSq
+         || kSq[BLACK] == pSq
+         || (WHITE == active
+          && contains(PawnAttacks[WHITE][pSq], kSq[BLACK])))
         {
             result = INVALID;
         }
         else
         // Immediate win if a pawn can be promoted without getting captured
-        if (   WHITE == active
-            && RANK_7 == sRank(pSq)
-            && kSq[WHITE] != pSq + NORTH
-            && (   1 < dist(kSq[BLACK], pSq + NORTH)
-                || contains(PieceAttacks[KING][kSq[WHITE]], pSq + NORTH)))
+        if (WHITE == active
+         && RANK_7 == sRank(pSq)
+         && kSq[WHITE] != pSq + NORTH
+         && (1 < dist(kSq[BLACK], pSq + NORTH)
+          || contains(PieceAttacks[KING][kSq[WHITE]], pSq + NORTH)))
         {
             result = WIN;
         }
         else
         // Immediate draw if is a stalemate or king captures undefended pawn
-        if (   BLACK == active
-            && (   0 == (    PieceAttacks[KING][kSq[BLACK]]
-                         & ~(PieceAttacks[KING][kSq[WHITE]] | PawnAttacks[WHITE][pSq]))
-                || contains(   PieceAttacks[KING][kSq[BLACK]]
-                            & ~PieceAttacks[KING][kSq[WHITE]], pSq)))
+        if (BLACK == active
+         && (0 == (  PieceAttacks[KING][kSq[BLACK]]
+                 & ~(PieceAttacks[KING][kSq[WHITE]]
+                   | PawnAttacks[WHITE][pSq]))
+          || contains( PieceAttacks[KING][kSq[BLACK]]
+                    & ~PieceAttacks[KING][kSq[WHITE]], pSq)))
         {
             result = DRAW;
         }
@@ -154,11 +155,11 @@ namespace {
                 r |= kpkDB[index(BLACK, kSq[WHITE], kSq[BLACK], pushSq)];
 
                 // Double push
-                if (   RANK_2 == sRank(pSq)
+                if (RANK_2 == sRank(pSq)
                     // Front is not own king
-                    && kSq[WHITE] != pushSq
+                 && kSq[WHITE] != pushSq
                     // Front is not opp king
-                    && kSq[BLACK] != pushSq)
+                 && kSq[BLACK] != pushSq)
                 {
                     r |= kpkDB[index(BLACK, kSq[WHITE], kSq[BLACK], pushSq + NORTH)];
                 }
@@ -174,9 +175,8 @@ namespace {
     }
 }
 
-namespace Bitbases {
-
-    /// Bitbases::initialize()
+namespace BitBase
+{
     void initialize()
     {
         Array<KPKPosition, MaxIndex> kpkDB;
@@ -207,7 +207,9 @@ namespace Bitbases {
         }
     }
 
-    /// Bitbases::probe()
+    // wkSq = White King
+    // wpSq = White Pawn
+    // bkSq = Black King
     bool probe(Color active, Square wkSq, Square wpSq, Square bkSq)
     {
         return KPKBitbase[index(active, wkSq, bkSq, wpSq)];

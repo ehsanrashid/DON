@@ -8,18 +8,16 @@
 #include "Thread.h"
 
 using namespace std;
-using namespace Searcher;
 
 const string PieceChar{ " PNBRQK  pnbrqk" };
 const string ColorChar{ "wb-" };
 
-
 Color toColor(char c)
 {
-    //ColorChar.find(c) != string::npos;
-    return Color(ColorChar.find(c));
+    auto pos = ColorChar.find(c);
+    return pos != string::npos ? Color(pos) : COLOR_NONE;
 }
-char toChar(Color c) { return ColorChar[c]; }
+char toChar(Color c) { return isOk(c) ? ColorChar[c] : '-'; }
 
 File toFile(char f) { return File(f - 'a'); }
 char toChar(File f, bool lower) { return char(f + 'A' + 0x20 * lower); }
@@ -32,9 +30,9 @@ string toString(Square s) { return{ toChar(sFile(s)), toChar(sRank(s)) }; }
 Piece toPiece(char p)
 {
     auto pos = PieceChar.find(p);
-    return pos != std::string::npos ? Piece(pos) : NO_PIECE;
+    return pos != string::npos ? Piece(pos) : NO_PIECE;
 }
-char toChar(Piece p) { return PieceChar[p]; }
+char toChar(Piece p) { return isOk(p) ? PieceChar[p] : '-'; }
 
 /// Converts a value to a string suitable for use with the UCI protocol specifications:
 ///
@@ -81,10 +79,10 @@ string moveToCAN(Move m)
     if (MOVE_NULL == m) return {"(null)"};
 
     ostringstream oss;
-    auto org = orgSq(m);
-    auto dst = dstSq(m);
-    if (   CASTLE == mType(m)
-        && !bool(Options["UCI_Chess960"]))
+    auto org{orgSq(m)};
+    auto dst{dstSq(m)};
+    if (CASTLE == mType(m)
+     && !bool(Options["UCI_Chess960"]))
     {
         assert(sRank(org) == sRank(dst));
         dst = makeSquare(dst > org ? FILE_G : FILE_C, sRank(org));
@@ -103,8 +101,8 @@ string moveToCAN(Move m)
 Move moveOfCAN(const string &can, const Position &pos)
 {
     //// If promotion piece in uppercase, convert to lowercase
-    //if (   5 == can.size()
-    //    && isupper(can[4]))
+    //if (5 == can.size()
+    // && isupper(can[4]))
     //{
     //    can[4] = char(tolower(can[4]));
     //}
@@ -168,43 +166,39 @@ ostream& operator<<(ostream &os, Move m)
 /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
 string multipvInfo(const Thread *const &th, Depth depth, Value alfa, Value beta)
 {
-    auto elapsedTime = std::max(Threadpool.mainThread()->timeMgr.elapsedTime(), TimePoint(1));
-    auto nodes = Threadpool.sum(&Thread::nodes);
-    auto tbHits = Threadpool.sum(&Thread::tbHits);
-    if (TBHasRoot)
-    {
-        tbHits += th->rootMoves.size();
-    }
+    auto elapsedTime{Threadpool.mainThread()->timeMgr.elapsedTime() + 1};
+    auto nodes{Threadpool.sum(&Thread::nodes)};
+    auto tbHits{Threadpool.sum(&Thread::tbHits)
+              + th->rootMoves.size() * TBHasRoot};
 
     ostringstream oss;
     for (u32 i = 0; i < Threadpool.pvCount; ++i)
     {
-        bool updated = -VALUE_INFINITE != th->rootMoves[i].newValue;
-
-        if (   !updated
-            && 1 == depth)
+        bool updated{-VALUE_INFINITE != th->rootMoves[i].newValue};
+        if (1 == depth
+         && !updated)
         {
             continue;
         }
 
-        Depth d = updated ?
+        auto d{updated ?
                     depth :
-                    depth - 1;
-        auto v = updated ?
+                    Depth(depth - 1)};
+        auto v{updated ?
                     th->rootMoves[i].newValue :
-                    th->rootMoves[i].oldValue;
-        bool tb = TBHasRoot
-               && abs(v) < +VALUE_MATE - MaxDepth;
-        if (tb)
-        {
-            v = th->rootMoves[i].tbValue;
-        }
+                    th->rootMoves[i].oldValue};
 
+        bool tb{TBHasRoot
+             && abs(v) < +VALUE_MATE - MaxDepth};
+        v = tb ? th->rootMoves[i].tbValue : v;
+
+        //if (oss.rdbuf()->in_avail()) // Not at first line
+        //    oss << "\n";
         oss << "info"
-            << " multipv "  << i + 1
             << " depth "    << d
             << " seldepth " << th->rootMoves[i].selDepth
-            << " score "    << toString(v);
+            << " multipv "  << i + 1
+            << " score "    << v;
         if (!tb && i == th->pvCur)
         oss << (beta <= v ? " lowerbound" :
                 v <= alfa ? " upperbound" : "");
@@ -226,7 +220,8 @@ string multipvInfo(const Thread *const &th, Depth depth, Value alfa, Value beta)
 }
 
 
-namespace {
+namespace
+{
 
     /// Ambiguity
     enum Ambiguity : u08
@@ -244,8 +239,8 @@ namespace {
         assert(pos.pseudoLegal(m)
             && pos.legal(m));
 
-        auto org = orgSq(m);
-        auto dst = dstSq(m);
+        auto org{orgSq(m)};
+        auto dst{dstSq(m)};
         auto pt = pType(pos[org]);
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
@@ -259,7 +254,7 @@ namespace {
 
         Bitboard pcs = amb;
                     // If pinned piece is considered as ambiguous
-                    // & ~(pos.si->kingBlockers[pos.active] & pos.pieces(pos.active));
+                    // & ~pos.kingBlockers(pos.active);
         while (0 != pcs)
         {
             auto sq = popLSq(pcs);
@@ -328,8 +323,8 @@ string moveToSAN(Move m, Position &pos)
     assert(MoveList<GenType::LEGAL>(pos).contains(m));
 
     ostringstream oss;
-    auto org = orgSq(m);
-    auto dst = dstSq(m);
+    auto org{orgSq(m)};
+    auto dst{dstSq(m)};
 
     if (CASTLE != mType(m))
     {
@@ -362,8 +357,8 @@ string moveToSAN(Move m, Position &pos)
 
         oss << toString(dst);
 
-        if (   PAWN == pt
-            && PROMOTE == mType(m))
+        if (PAWN == pt
+         && PROMOTE == mType(m))
         {
             oss << "=" << (WHITE|promoteType(m));
         }

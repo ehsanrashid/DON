@@ -41,27 +41,7 @@ public:
     bool         pv() const { return 0 != (g08 & 0x04); }
     Bound     bound() const { return Bound(g08 & 0x03); }
 
-    void save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv)
-    {
-        // Preserve more valuable entries
-        if (   MOVE_NONE != m
-            || k16 != (k >> 0x30))
-        {
-            m16 = u16(m);
-        }
-        if (   k16 != (k >> 0x30)
-            || d08 < d - DEPTH_OFFSET + 4
-            || BOUND_EXACT == b)
-        {
-            assert(d > DEPTH_OFFSET);
-
-            k16 = u16(k >> 0x30);
-            v16 = i16(v);
-            e16 = i16(e);
-            d08 = u08(d - DEPTH_OFFSET);
-            g08 = u08(Generation | u08(pv) << 2 | b);
-        }
-    }
+    void save(u64, Move, Value, Value, Depth, Bound, bool);
 };
 
 /// Size of TEntry (10 bytes)
@@ -113,20 +93,13 @@ public:
     TCluster *clusters;
     size_t    clusterCount;
 
-    TTable()
-        : mem(nullptr)
-        , clusters(nullptr)
-        , clusterCount(0)
-    {}
+    TTable();
     TTable(const TTable&) = delete;
     TTable& operator=(const TTable&) = delete;
     virtual ~TTable();
 
     /// size() returns hash size in MB
-    u32 size() const
-    {
-        return u32((clusterCount * sizeof (TCluster)) >> 20);
-    }
+    u32 size() const { return u32((clusterCount * sizeof (TCluster)) >> 20); }
 
     /// cluster() returns a pointer to the cluster of given a key.
     /// Lower 32 bits of the key are used to get the index of the cluster.

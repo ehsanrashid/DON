@@ -23,7 +23,7 @@ public:
 
     TimePoint elapsedTime() const;
 
-    void reset() { availableNodes = 0; }
+    void reset();
     void set(Color, i16);
     void update(Color);
 };

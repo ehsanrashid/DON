@@ -15,15 +15,14 @@ MovePicker::MovePicker(const Position &p
                      , const PieceSquareTypeStatsTable *cStats
                      , const PieceSquareStatsTable **pStats
                      , Move ttm, Depth d, const Array<Move, 2> &km, Move cm)
-    : pos(p)
-    , quietStats(qStats)
-    , captureStats(cStats)
-    , pieceStats(pStats)
-    , ttMove(ttm)
-    , depth(d)
-    , threshold(Value(-3000 * d))
-    , refutationMoves({ km[0], km[1], cm })
-    , skipQuiets(false)
+    : pos{p}
+    , quietStats{qStats}
+    , captureStats{cStats}
+    , pieceStats{pStats}
+    , ttMove{ttm}
+    , depth{d}
+    , threshold{Value(-3000 * d)}
+    , refutationMoves{ km[0], km[1], cm }
 {
     assert(MOVE_NONE == ttMove
         || (pos.pseudoLegal(ttMove)
@@ -31,10 +30,8 @@ MovePicker::MovePicker(const Position &p
     assert(DEPTH_ZERO < depth);
     assert(!skipQuiets);
 
-    pickStage = 0 != pos.checkers() ?
-            EVASION_TT :
-            NATURAL_TT;
-    pickStage += (MOVE_NONE == ttMove);
+    pickStage = (0 != pos.checkers() ? EVASION_TT : NATURAL_TT)
+              + (MOVE_NONE == ttMove);
 }
 
 /// MovePicker constructor for quiescence search
@@ -45,29 +42,28 @@ MovePicker::MovePicker(const Position &p
                      , const PieceSquareTypeStatsTable *cStats
                      , const PieceSquareStatsTable **pStats
                      , Move ttm, Depth d, Square rs)
-    : pos(p)
-    , quietStats(qStats)
-    , captureStats(cStats)
-    , pieceStats(pStats)
-    , ttMove(ttm)
-    , depth(d)
-    , recapSq(rs)
+    : pos{p}
+    , quietStats{qStats}
+    , captureStats{cStats}
+    , pieceStats{pStats}
+    , ttMove{ttm}
+    , depth{d}
+    , recapSq{rs}
 {
     assert(MOVE_NONE == ttMove
         || (pos.pseudoLegal(ttMove)
             && pos.legal(ttMove)));
     assert(DEPTH_ZERO >= depth);
+    assert(!skipQuiets);
 
-    if (   MOVE_NONE != ttMove
-        && !(   DEPTH_QS_RECAP < depth
-             || dstSq(ttMove) == recapSq))
+    if (MOVE_NONE != ttMove
+     && !(DEPTH_QS_RECAP < depth
+       || dstSq(ttMove) == recapSq))
     {
         ttMove = MOVE_NONE;
     }
-    pickStage = 0 != pos.checkers() ?
-            EVASION_TT :
-            QUIESCENCE_TT;
-    pickStage += (MOVE_NONE == ttMove);
+    pickStage = (0 != pos.checkers() ? EVASION_TT : QUIESCENCE_TT)
+              + (MOVE_NONE == ttMove);
 }
 
 
@@ -76,26 +72,27 @@ MovePicker::MovePicker(const Position &p
 MovePicker::MovePicker(const Position &p
                      , const PieceSquareTypeStatsTable *cStats
                      , Move ttm, Value thr)
-    : pos(p)
-    , quietStats(nullptr)
-    , captureStats(cStats)
-    , pieceStats(nullptr)
-    , ttMove(ttm)
-    , threshold(thr)
+    : pos{p}
+    , quietStats{nullptr}
+    , captureStats{cStats}
+    , pieceStats{nullptr}
+    , ttMove{ttm}
+    , threshold{thr}
 {
     assert(0 == pos.checkers());
     assert(MOVE_NONE == ttMove
         || (pos.pseudoLegal(ttMove)
             && pos.legal(ttMove)));
+    assert(!skipQuiets);
 
-    if (   MOVE_NONE != ttMove
-        && !(   pos.capture(ttMove)
-                && pos.see(ttMove, threshold)))
+    if (MOVE_NONE != ttMove
+     && !(pos.capture(ttMove)
+       && pos.see(ttMove, threshold)))
     {
         ttMove = MOVE_NONE;
     }
-    pickStage = PROBCUT_TT;
-    pickStage += (MOVE_NONE == ttMove);
+    pickStage = PROBCUT_TT
+              + (MOVE_NONE == ttMove);
 }
 
 
@@ -115,6 +112,7 @@ void MovePicker::value()
         {
             assert(pos.captureOrPromotion(vm));
             vm.value = 6 * i32(PieceValues[MG][pos.captureType(vm)])
+                     - 6 * pType(pos[orgSq(vm)])
                      +     (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][pos.captureType(vm)];
         }
         else
@@ -156,7 +154,7 @@ bool MovePicker::pick(Pred filter)
         assert(ttMove != *vmItr
             && pos.fullLegal(*vmItr));
 
-        bool ok = filter();
+        bool ok{filter()};
 
         ++vmItr;
         if (ok) return true;
@@ -207,9 +205,9 @@ Move MovePicker::nextMove()
         }
 
         // If the countermove is the same as a killers, skip it
-        if (   MOVE_NONE != refutationMoves[2]
-            && (   refutationMoves[2] == refutationMoves[0]
-                || refutationMoves[2] == refutationMoves[1]))
+        if (MOVE_NONE != refutationMoves[2]
+         && (refutationMoves[2] == refutationMoves[0]
+          || refutationMoves[2] == refutationMoves[1]))
         {
             refutationMoves[2] = MOVE_NONE;
         }
@@ -249,8 +247,8 @@ Move MovePicker::nextMove()
         ++pickStage;
         /* fall through */
     case NATURAL_QUIETS:
-        if (   !skipQuiets
-            && vmItr != vmEnd)
+        if (!skipQuiets
+         && vmItr != vmEnd)
         {
             return *vmItr++;
         }

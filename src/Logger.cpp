@@ -1,5 +1,7 @@
 #include "Logger.h"
 
+#include <chrono>
+
 #include "Engine.h"
 
 #if defined(_WIN32)
@@ -8,10 +10,50 @@
 
 using namespace std;
 
+namespace
+{
+
+    using SystemClockTimePoint = std::chrono::system_clock::time_point;
+
+    string toString(const SystemClockTimePoint &tp)
+    {
+        string str = "";
+
+#   if defined(_WIN32)
+
+        auto time = chrono::system_clock::to_time_t(tp);
+
+        const auto *ltm = localtime(&time);
+        const char *format = "%Y.%m.%d-%H.%M.%S";
+        char buffer[32];
+        strftime(buffer, sizeof (buffer), format, ltm);
+        str.append(buffer);
+
+        auto ms = chrono::duration_cast<chrono::milliseconds>(tp - chrono::system_clock::from_time_t(time)).count();
+        str.append(".");
+        str.append(to_string(ms));
+
+#   else
+
+        (void)tp;
+
+#   endif
+
+        return str;
+    }
+
+    ostream& operator<<(ostream &os, const SystemClockTimePoint &tp)
+    {
+        os << toString(tp);
+        return os;
+    }
+
+}
+
 Logger::Logger()
-    : ofs()
-    , iTSB( cin.rdbuf(), ofs.rdbuf())
-    , oTSB(cout.rdbuf(), ofs.rdbuf())
+    : ofs{}
+    , iTSB{ cin.rdbuf(), ofs.rdbuf()}
+    , oTSB{cout.rdbuf(), ofs.rdbuf()}
 {}
 
 Logger::~Logger()
@@ -52,38 +94,4 @@ void Logger::set(const string &logFn)
          cin.rdbuf(&iTSB);
         cout.rdbuf(&oTSB);
     }
-}
-
-
-string toString(const SystemClockTimePoint &tp)
-{
-    string str = "";
-
-#   if defined(_WIN32)
-
-    auto time = chrono::system_clock::to_time_t(tp);
-    
-    const auto *ltm = localtime(&time);
-    const char *format = "%Y.%m.%d-%H.%M.%S";
-    char buffer[32];
-    strftime(buffer, sizeof (buffer), format, ltm);
-    str.append(buffer);
-    
-    auto ms = chrono::duration_cast<chrono::milliseconds>(tp - chrono::system_clock::from_time_t(time)).count();
-    str.append(".");
-    str.append(to_string(ms));
-
-#   else
-
-    (void)tp;
-
-#   endif
-
-    return str;
-}
-
-ostream& operator<<(ostream &os, const SystemClockTimePoint &tp)
-{
-    os << toString(tp);
-    return os;
 }

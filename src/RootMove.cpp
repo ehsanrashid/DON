@@ -2,11 +2,22 @@
 
 #include <iterator>
 #include <sstream>
+#include <iostream>
 
 #include "MoveGenerator.h"
 #include "Notation.h"
 
 using namespace std;
+
+RootMove::RootMove(Move m)
+    : std::list<Move>{1, m}
+    , oldValue{-VALUE_INFINITE}
+    , newValue{-VALUE_INFINITE}
+    , selDepth{0}
+    , tbRank{0}
+    , tbValue{VALUE_ZERO}
+    , bestCount{0}
+{}
 
 /// RootMove::operator string()
 RootMove::operator string() const
@@ -20,14 +31,20 @@ RootMove::operator string() const
     return oss.str();
 }
 
+ostream& operator<<(ostream &os, const RootMove &rm)
+{
+    os << string(rm);
+    return os;
+}
+
 
 void RootMoves::initialize(const Position &pos, const vector<Move> &searchMoves)
 {
     assert(empty());
     for (const auto &vm : MoveList<GenType::LEGAL>(pos))
     {
-        if (   searchMoves.empty()
-            || std::find(searchMoves.begin(), searchMoves.end(), vm) != searchMoves.end())
+        if (searchMoves.empty()
+         || std::find(searchMoves.begin(), searchMoves.end(), vm) != searchMoves.end())
         {
             *this += vm;
             assert(back().tbRank == 0
@@ -50,3 +67,10 @@ RootMoves::operator string() const
     std::copy(begin(), end(), ostream_iterator<RootMove>(oss, "\n"));
     return oss.str();
 }
+
+ostream& operator<<(ostream &os, const RootMoves &rms)
+{
+    os << string(rms);
+    return os;
+}
+

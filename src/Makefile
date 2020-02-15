@@ -1,7 +1,7 @@
 # DON, UCI chess playing engine
 # Ehsan Rashid Copyright (C) 2008+
 #
-# DON is housed in https://github.com/erashid/DON
+# DON is housed in https://github.com/ehsanrashid/DON
 
 ### ==========================================================================
 ### Section 1. General Configuration
@@ -22,11 +22,12 @@ BINDIR = $(PREFIX)/bin
 PGOBENCH = ./$(EXE) bench
 
 ### Object files
-OBJS = Bitbase.o Bitboard.o Debugger.o Endgame.o Engine.o \
-       Evaluator.o Logger.o Main.o Material.o MoveGenerator.o \
-       MovePicker.o Notation.o Option.o Pawns.o Polyglot.o \
-       Position.o PSQTable.o RootMove.o Searcher.o SkillManager.o \
-       TBsyzygy.o Thread.o TimeManager.o Transposition.o Zobrist.o
+OBJS = Bitbase.o Bitboard.o Cuckoo.o Debugger.o Endgame.o \
+       Engine.o Evaluator.o Helper.o Logger.o Main.o Material.o \
+       MoveGenerator.o MovePicker.o Notation.o Option.o Pawns.o \
+       Polyglot.o Position.o PSQTable.o RootMove.o Searcher.o \
+       SkillManager.o SyzygyTB.o Thread.o TimeManager.o \
+       Transposition.o Zobrist.o
 
 
 ### Establish the operating system name
@@ -42,54 +43,89 @@ endif
 # Flag                --- Comp switch      --- Description
 # ----------------------------------------------------------------------------
 #
-# sanitize =no            (-fsanitize)
-#           undefined --- (undefined)      --- Enable undefined behavior checks
-#           thread    --- (thread)         --- Enable threading error checks
-# debug   = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode
-# optimize= yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
-# arch    = (name)    --- (-arch)          --- Target architecture
-# bits    = 64/32     --- -DBIT64          --- 64/32-bit operating system
-# pfch    = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
-# sse     = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
-# abm     = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions
-# bm2     = yes/no    --- -DBM2            --- Use BM2 (Bit Manipulation 2) x86_64 asm-instructions
+# debug    = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode
+# sanitize =undefined/thread/no (-fsanitize )
+#                      --- (undefined)      --- Enable undefined behavior checks
+#                      --- (thread)         --- Enable threading error checks
+# optimize = yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
+# arch     = (name)    --- (-arch)          --- Target architecture
+# bits     = 64/32     --- -DBIT64          --- 64/32-bit operating system
+# prefetch = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
+# sse      = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
+# abm      = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions (POPCNT, LZCNT)
+# bm2      = yes/no    --- -DBM2            --- Use BM2 (Bit Manipulation 2) x86_64 asm-instructions (PEXT, PDEP)
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
 # at the end of the line for flag values.
 
 ### 2.1 General and architecture defaults
-debug   = no
-sanitize= no
-optimize= yes
+debug = no
+sanitize = no
+optimize = yes
 
+arch = any
 bits = 32
-pfch = no
-sse  = no
-abm  = no
-bm2  = no
+
+prefetch = no
+sse = no
+abm = no
+bm2 = no
 
 ### 2.2 Architecture specific
 
-ifeq ($(ARCH), general-32)
-	arch = any
+ifeq ($(ARCH), x86-64-bm2)
+	arch = x86_64
+	bits = 64
+	prefetch = yes
+	sse  = yes
+	abm  = yes
+	bm2  = yes
 endif
 
-ifeq ($(ARCH), x86-32-old)
-	arch = i386
+ifeq ($(ARCH), x86-64-abm)
+	arch = x86_64
+	bits = 64
+	prefetch = yes
+	sse  = yes
+	abm  = yes
+endif
+
+ifeq ($(ARCH), x86-64)
+	arch = x86_64
+	bits = 64
+	prefetch = yes
+	sse  = yes
 endif
 
 ifeq ($(ARCH), x86-32)
 	arch = i386
-	pfch = yes
+	bits = 32
+	prefetch = yes
 	sse  = yes
 endif
 
-ifeq ($(ARCH), x86-32-abm)
+ifeq ($(ARCH), x86-32-old)
 	arch = i386
-	pfch = yes
-	sse  = yes
+	bits = 32
+endif
+
+ifeq ($(ARCH), ppc-64)
+	arch = ppc64
+	bits = 64
+	prefetch = yes
 	abm  = yes
+endif
+
+ifeq ($(ARCH), ppc-32)
+	arch = ppc32
+	bits = 32
+endif
+
+ifeq ($(ARCH), armv7)
+	arch = armv7
+	bits = 32
+	prefetch = yes
 endif
 
 ifeq ($(ARCH), general-64)
@@ -97,44 +133,9 @@ ifeq ($(ARCH), general-64)
 	bits = 64
 endif
 
-ifeq ($(ARCH), x86-64)
-	arch = x86_64
-	bits = 64
-	pfch = yes
-	sse  = yes
-endif
-
-ifeq ($(ARCH), x86-64-abm)
-	arch = x86_64
-	bits = 64
-	pfch = yes
-	sse  = yes
-	abm  = yes
-endif
-
-ifeq ($(ARCH), x86-64-bm2)
-	arch = x86_64
-	bits = 64
-	pfch = yes
-	sse  = yes
-	abm  = yes
-	bm2  = yes
-endif
-
-ifeq ($(ARCH), ppc-32)
-	arch = ppc32
-endif
-
-ifeq ($(ARCH), ppc-64)
-	arch = ppc64
-	bits = 64
-    pfch = yes
-    abm  = yes
-endif
-
-ifeq ($(ARCH), armv7)
-	arch = armv7
-	pfch = yes
+ifeq ($(ARCH), general-32)
+	arch = any
+	bits = 32
 endif
 
 ### ==========================================================================
@@ -143,7 +144,7 @@ endif
 
 ### 3.1 Compiler Selection (Default = gcc)
 
-CXXFLAGS += -std=c++11 -Wall -Wcast-qual -Wno-type-limits -fno-exceptions $(EXTRACXXFLAGS)
+CXXFLAGS += -Wall -Wcast-qual -Wno-type-limits -fno-exceptions $(EXTRACXXFLAGS)
 DEPENDFLAGS += -std=c++11
 LDFLAGS += $(EXTRALDFLAGS)
 
@@ -156,6 +157,7 @@ ifeq ($(COMP), gcc)
 	comp = gcc
 	CXX = g++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
+
 	ifeq ($(ARCH), armv7)
 		ifeq ($(OS), Android)
 			CXXFLAGS += -m$(bits)
@@ -168,9 +170,11 @@ ifeq ($(COMP), gcc)
 	ifneq ($(KERNEL), Darwin)
 		LDFLAGS += -Wl,--no-as-needed
 	endif
-else
+endif
+
 ifeq ($(COMP), mingw)
 	comp = mingw
+
 	ifeq ($(KERNEL), Linux)
 		ifeq ($(bits), 64)
 			ifeq ($(shell which x86_64-w64-mingw32-c++-posix), )
@@ -191,12 +195,14 @@ ifeq ($(COMP), mingw)
 
 	CXXFLAGS += -Wextra -Wshadow
 	LDFLAGS += -static
-else
+endif
+
 ifeq ($(COMP), icc)
 	comp = icc
 	CXX = icpc
 	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
-else
+endif
+
 ifeq ($(COMP), clang)
 	comp = clang
 	CXX = clang++
@@ -217,9 +223,6 @@ ifeq ($(COMP), clang)
 		CXXFLAGS += -m$(bits)
 		LDFLAGS += -m$(bits)
 	endif
-endif
-endif
-endif
 endif
 
 ifeq ($(comp), icc)
@@ -297,7 +300,7 @@ ifeq ($(bits), 64)
 endif
 
 ### 3.5 Prefetch
-ifeq ($(pfch), yes)
+ifeq ($(prefetch), yes)
 	CXXFLAGS += -DPREFETCH
 	ifeq ($(sse), yes)
 		CXXFLAGS += -msse
@@ -324,7 +327,7 @@ ifeq ($(bm2), yes)
 	endif
 endif
 
-### 3.9 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
+### 3.8 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
@@ -343,14 +346,14 @@ ifeq ($(optimize), yes)
 	endif
 endif
 
-### 3.10 Android 5 can only run position independent executables.
+### 3.9 Android 5 can only run position independent executables.
 ### Note that this breaks Android 4.0 and earlier.
 ifeq ($(OS), Android)
 	CXXFLAGS += -fPIE
 	LDFLAGS += -fPIE -pie
 endif
 
-### 3.11 Custom Version.
+### 3.10 Custom Version
 ifneq ($(VER), )
 	CXXFLAGS += -DVER=$(VER)
 endif
@@ -375,24 +378,23 @@ help:
 	@echo ""
 	@echo "Supported architectures:"
 	@echo "------------------------"
-	@echo "general-32 > unspecified 32-bit"
-	@echo "x86-32-old > x86 32-bit fall back for old hardware"
-	@echo "x86-32     > x86 32-bit (also SSE support)"
-	@echo "x86-32-abm > x86 32-bit with ABM support (also SSE support)"
-	@echo "general-64 > unspecified 64-bit"
-	@echo "x86-64     > x86 64-bit generic"
-	@echo "x86-64-abm > x86 64-bit with ABM support (also SSE3 support)"
-	@echo "x86-64-bm2 > x86 64-bit with BM2 support (also SSE4 support)"
-	@echo "ppc-32     > PPC 32-bit"
-	@echo "ppc-64     > PPC 64-bit"
-	@echo "armv7      > ARMv7 32-bit"
+	@echo "x86-64-bm2   > x86 64-bit with BM2 support (also SSE4 support)"
+	@echo "x86-64-abm   > x86 64-bit with ABM support (also SSE3 support)"
+	@echo "x86-64       > x86 64-bit generic"
+	@echo "x86-32       > x86 32-bit (also SSE support)"
+	@echo "x86-32-old   > x86 32-bit fall back for old hardware"
+	@echo "ppc-64       > PPC 64-bit"
+	@echo "ppc-32       > PPC 32-bit"
+	@echo "armv7        > ARMv7 32-bit"
+	@echo "general-64   > unspecified 64-bit"
+	@echo "general-32   > unspecified 32-bit"
 	@echo ""
 	@echo "Supported compilers:"
 	@echo "--------------------"
-	@echo "gcc   > GNU compiler (default)"
-	@echo "mingw > GNU compiler with MinGW under Windows"
-	@echo "clang > LLVM Clang compiler"
-	@echo "icc   > Intel compiler"
+	@echo "gcc          > GNU compiler (default)"
+	@echo "mingw        > GNU compiler with MinGW under Windows"
+	@echo "clang        > LLVM Clang compiler"
+	@echo "icc          > Intel compiler"
 	@echo ""
 	@echo "Simple examples, for inexperienced users: "
 	@echo "----------------------------------------------------------------"
@@ -402,7 +404,7 @@ help:
 	@echo "Advanced examples, for experienced users: "
 	@echo ""
 	@echo "make build ARCH=x86-64 COMP=clang"
-	@echo "make profile-build ARCH=x86-64-modern COMP=gcc COMPCXX=g++-4.8"
+	@echo "make profile-build ARCH=x86-64-bm2 COMP=gcc COMPCXX=g++-4.8"
 	@echo ""
 
 .PHONY: help build profile-build strip install clean objclean profileclean config-sanity \
@@ -474,7 +476,7 @@ config-sanity:
 	@echo "bits    : '$(bits)'"
 	@echo "KERNEL  : '$(KERNEL)'"
 	@echo "OS      : '$(OS)'"
-	@echo "pfch    : '$(pfch)'"
+	@echo "prefetch: '$(prefetch)'"
 	@echo "sse     : '$(sse)'"
 	@echo "abm     : '$(abm)'"
 	@echo "bm2     : '$(bm2)'"
@@ -490,10 +492,11 @@ config-sanity:
 	@test "$(debug)" = "yes" || test "$(debug)" = "no"
 	@test "$(sanitize)" = "undefined" || test "$(sanitize)" = "thread" || test "$(sanitize)" = "address" || test "$(sanitize)" = "no"
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
-	@test "$(arch)" = "any" || test "$(arch)" = "i386" || test "$(arch)" = "x86_64" || test "$(arch)" = "ppc32" || test "$(arch)" = "ppc64" || test "$(arch)" = "armv7"
+	@test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || test "$(arch)" = "any" || \
+	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc32" || test "$(arch)" = "armv7"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
-	@test "$(bits)" = "32" || test "$(bits)" = "64"
-	@test "$(pfch)" = "yes" || test "$(pfch)" = "no"
+	@test "$(bits)" = "64" || test "$(bits)" = "32"
+	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
 	@test "$(abm)" = "yes" || test "$(abm)" = "no"
 	@test "$(bm2)" = "yes" || test "$(bm2)" = "no"

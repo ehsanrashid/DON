@@ -2,9 +2,7 @@
 
 #include <bitset>
 #include <memory>
-#if !defined(BM2)
-#   include <vector>
-#endif
+#include <vector>
 
 #include "PRNG.h"
 #include "Notation.h"
@@ -12,10 +10,8 @@
 using namespace std;
 
 Array<Bitboard, COLORS, SQUARES> PawnAttacks;
-
 Array<Bitboard, PIECE_TYPES, SQUARES> PieceAttacks;
-
-Array<Bitboard, SQUARES, SQUARES>    Lines;
+Array<Bitboard, SQUARES, SQUARES> Lines;
 
 Array<Magic, SQUARES> BMagics
     ,                 RMagics;
@@ -26,7 +22,7 @@ Array<u08, 1 << 16> PopCount16;
 
 /*
 // Counts the non-zero bits using SWAR-Popcount algorithm
-u08 pop_count16(u32 u)
+u08 popCount16(u32 u)
 {
     u -= (u >> 1) & 0x5555U;
     u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
@@ -36,8 +32,11 @@ u08 pop_count16(u32 u)
 */
 #endif
 
-namespace {
+Array<Bitboard, SQUARES, SQUARES> SquareDistance;
 
+
+namespace
+{
     constexpr Array<Direction, PIECE_TYPES, 8> PieceDirections
     {{
         {}, {},
@@ -47,31 +46,33 @@ namespace {
         { SOUTH_WEST, SOUTH , SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST },
         { SOUTH_WEST, SOUTH , SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST },
     }};
-/*
-    // De Bruijn sequences.
-#   if defined(BIT64)
-    constexpr u64 DeBruijn_64 = U64(0x3F79D71B4CB0A89);
-#   else
-    constexpr u32 DeBruijn_32 = U32(0x783A9B23);
-#   endif
 
-    Array<Square, SQUARES> BSFTable;
-    unsigned bsfIndex(Bitboard bb)
+    template<PieceType PT>
+    Bitboard slideAttacks(Square s, Bitboard occ = 0)
     {
-        assert(0 != bb);
-        bb ^= (bb - 1);
-        return
-#       if defined(BIT64)
-        // Use Kim Walisch extending trick for 64-bit
-        (bb * DeBruijn_64) >> 58;
-#       else
-        // Use Matt Taylor's folding trick for 32-bit
-        (u32 ((bb >> 0) ^ (bb >> 32)) * DeBruijn_32) >> 26;
-#       endif
-    }
+        static_assert (BSHP == PT || ROOK == PT || QUEN == PT, "PT incorrect");
 
-    Array<u08, 1 << 8> MSBTable;
-*/
+        Bitboard attacks = 0;
+        for (auto dir : PieceDirections[PT])
+        {
+            for (auto sq = s + dir;
+                 isOk(sq) && 1 == dist(sq, sq - dir);
+                 sq += dir)
+            {
+                attacks |= sq;
+                if (contains(occ, sq))
+                {
+                    break;
+                }
+            }
+        }
+        return attacks;
+    }
+    /// Explicit template instantiations
+    /// --------------------------------
+    template Bitboard slideAttacks<BSHP>(Square, Bitboard);
+    template Bitboard slideAttacks<ROOK>(Square, Bitboard);
+    //template Bitboard slideAttacks<QUEN>(Square, Bitboard);
 
     // Max Bishop Table Size
     // 4 * 2^6 + 12 * 2^7 + 44 * 2^5 + 4 * 2^9
@@ -93,21 +94,21 @@ namespace {
     {
         static_assert (BSHP == PT || ROOK == PT, "PT incorrect");
 
-#       if !defined(BM2)
-        //             Max Index
-        Array<Bitboard, 0x1000> occupancy
+#   if !defined(BM2)
+        constexpr u16 MaxIndex{ 0x1000 };
+        Array<Bitboard, MaxIndex> occupancy
             ,                   reference;
 
         constexpr Array<u32, RANKS> Seeds
-#           if defined(BIT64)
+#       if defined(BIT64)
             { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
-#           else
+#       else
             { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C };
-#           endif
-
 #       endif
 
-        u32 offset = 0;
+#   endif
+
+        u32 offset{0};
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
             auto &magic = magics[s];
@@ -128,37 +129,35 @@ namespace {
             //magic.attacks = new Bitboard[(1U << maskPopCount)];
             magic.attacks = &attacks[offset];
 
-#           if !defined(BM2)
-            auto bits =
-#                   if defined(BIT64)
-                    64
-#                   else
-                    32
-#                   endif
-                ;
+#       if !defined(BM2)
+#           if defined(BIT64)
+            auto bits = 64;
+#           else
+            auto bits = 32;
+#           endif
             magic.shift = bits - maskPopCount;
 
             u16 size = 0;
-#           endif
+#       endif
 
             // Use Carry-Rippler trick to enumerate all subsets of magics[s].mask
             // Have individual table sizes for each square with "Fancy Magic Bitboards".
             Bitboard occ = 0;
             do
             {
-#               if defined(BM2)
+#           if defined(BM2)
                 magic.attacks[PEXT(occ, magic.mask)] = slideAttacks<PT>(s, occ);
-#               else
+#           else
                 occupancy[size] = occ;
                 // Store the corresponding slide attack bitboard in reference[].
                 reference[size] = slideAttacks<PT>(s, occ);
                 ++size;
-#               endif
+#           endif
 
                 occ = (occ - magic.mask) & magic.mask;
             } while (0 != occ);
 
-#           if !defined(BM2)
+#       if !defined(BM2)
 
             assert(size == (1U << maskPopCount));
 
@@ -194,7 +193,7 @@ namespace {
                     magic.attacks[idx] = reference[i];
                 }
             } while (i < size);
-#           endif
+#       endif
 
             offset += (1U << maskPopCount);
         }
@@ -203,70 +202,47 @@ namespace {
     /// --------------------------------
     template void initializeMagic<BSHP>(Bitboard*, Array<Magic, SQUARES>&);
     template void initializeMagic<ROOK>(Bitboard*, Array<Magic, SQUARES>&);
+
 }
 
-template<PieceType PT>
-Bitboard slideAttacks(Square s, Bitboard occ)
+namespace BitBoard
 {
-    static_assert (BSHP == PT || ROOK == PT || QUEN == PT, "PT incorrect");
-
-    Bitboard attacks = 0;
-    for (auto dir : PieceDirections[PT])
-    {
-        for (auto sq = s + dir;
-                isOk(sq) && 1 == dist(sq, sq - dir);
-                sq += dir)
-        {
-            attacks |= sq;
-            if (contains(occ, sq))
-            {
-                break;
-            }
-        }
-    }
-    return attacks;
-}
-/// Explicit template instantiations
-/// --------------------------------
-template Bitboard slideAttacks<BSHP>(Square, Bitboard);
-template Bitboard slideAttacks<ROOK>(Square, Bitboard);
-template Bitboard slideAttacks<QUEN>(Square, Bitboard);
-
-namespace BitBoard {
-
     void initialize()
     {
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
         //{
-        //    //Squares[s] = U64(1) << s;
-        //    BSFTable[bsfIndex(squareBB(s))] = s;
+        //    Squares[s] = U64(1) << s;
         //}
-        //for (u32 b = 1; b < MSBTable.size(); ++b)
-        //{
-        //    MSBTable[b] =  MSBTable[b - 1] + !moreThanOne(b);
-        //}
-
 #   if !defined(ABM)
+
         for (u32 i = 0; i < PopCount16.size(); ++i)
         {
             PopCount16[i] = std::bitset<16>(i).count(); //pop_count16(i);
         }
-#   endif
 
+#   endif
+        for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        {
+            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+            {
+                SquareDistance[s1][s2] = std::max(dist<File>(s1, s2), dist<Rank>(s1, s2));
+                assert(0 <= SquareDistance[s1][s2]
+                    && 7 >= SquareDistance[s1][s2]);
+            }
+        }
         // Pawn and Pieces Attack Table
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
-            for (Color c : { WHITE, BLACK })
-            {
-                PawnAttacks[c][s] |= pawnSglAttacks(c, squareBB(s));
-                assert(2 >= popCount(PawnAttacks[c][s]));
-            }
+            PawnAttacks[WHITE][s] = pawnSglAttacks<WHITE>(squareBB(s));
+            PawnAttacks[BLACK][s] = pawnSglAttacks<BLACK>(squareBB(s));
+            assert(2 >= popCount(PawnAttacks[WHITE][s])
+                && 2 >= popCount(PawnAttacks[BLACK][s]));
 
             for (auto dir : PieceDirections[NIHT])
             {
                 auto sq = s + dir;
-                if (   isOk(sq)
-                    && 2 == dist(s, sq))
+                if (isOk(sq)
+                 && 2 == dist(s, sq))
                 {
                     PieceAttacks[NIHT][s] |= sq;
                 }
@@ -274,8 +250,8 @@ namespace BitBoard {
             for (auto dir : PieceDirections[KING])
             {
                 auto sq = s + dir;
-                if (   isOk(sq)
-                    && 1 == dist(s, sq))
+                if (isOk(sq)
+                 && 1 == dist(s, sq))
                 {
                     PieceAttacks[KING][s] |= sq;
                 }
@@ -312,10 +288,9 @@ namespace BitBoard {
     }
 
 #if !defined(NDEBUG)
-
     /// Returns an ASCII representation of a bitboard to print on console output
     /// Bitboard in an easily readable format. This is sometimes useful for debugging.
-    string pretty(Bitboard bb)
+    string toString(Bitboard bb)
     {
         ostringstream oss;
 
@@ -342,7 +317,6 @@ namespace BitBoard {
 
         return oss.str();
     }
-
 #endif
 
 }

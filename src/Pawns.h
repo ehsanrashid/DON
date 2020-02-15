@@ -5,7 +5,8 @@
 #include "Position.h"
 #include "Type.h"
 
-namespace Pawns {
+namespace Pawns
+{
 
     /// Pawns::Entry contains various information about a pawn structure.
     struct Entry
@@ -33,7 +34,9 @@ namespace Pawns {
 
     };
 
+    using Table = HashTable<Entry, 0x20000>;
+
     extern Entry* probe(const Position&);
 }
 
-using PawnHashTable = HashTable<Pawns::Entry, 0x20000>;
+

@@ -6,6 +6,7 @@
 #include <iostream>
 
 #include "Engine.h"
+#include "Helper.h"
 #include "MoveGenerator.h"
 #include "Thread.h"
 
@@ -14,6 +15,29 @@ TTable TT;
 using namespace std;
 
 u08 TEntry::Generation = 0;
+
+void TEntry::save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv)
+{
+    // Preserve more valuable entries
+    if (   MOVE_NONE != m
+        || k16 != (k >> 0x30))
+    {
+        m16 = u16(m);
+    }
+    if (   k16 != (k >> 0x30)
+        || d08 < d - DEPTH_OFFSET + 4
+        || BOUND_EXACT == b)
+    {
+        assert(d > DEPTH_OFFSET);
+
+        k16 = u16(k >> 0x30);
+        v16 = i16(v);
+        e16 = i16(e);
+        d08 = u08(d - DEPTH_OFFSET);
+        g08 = u08(Generation | u08(pv) << 2 | b);
+    }
+}
+
 
 u32 TCluster::freshEntryCount() const
 {
@@ -52,7 +76,8 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
     return hit = false, rte;
 }
 
-namespace {
+namespace
+{
 
 #if defined(__linux__) && !defined(__ANDROID__)
 
@@ -90,9 +115,17 @@ namespace {
 
 }
 
+
+TTable::TTable()
+    : mem{nullptr}
+    , clusters{nullptr}
+    , clusterCount{0}
+{}
+
 TTable::~TTable()
 {
     free(mem);
+    mem = nullptr;
 }
 
 /// TTable::resize() sets the size of the transposition table, measured in MB.

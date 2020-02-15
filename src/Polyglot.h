@@ -16,81 +16,31 @@ struct PolyEntry
     u16 weight;
     u32 learn;
 
-    PolyEntry(u64 k, u16 m, u16 w, u32 l)
-        : key(k)
-        , move(m)
-        , weight(w)
-        , learn(l)
-    {}
-    PolyEntry()
-        : PolyEntry(0, 0, 0, 0)
-    {}
+    PolyEntry() = default;
+    PolyEntry(u64, u16, u16, u32);
 
     PolyEntry& operator=(const PolyEntry&) = default;
 
     explicit operator Move() const { return Move(move); }
 
-    bool operator==(const PolyEntry &pe) const
-    {
-        return key == pe.key
-            && move == pe.move
-            && weight == pe.weight;
-    }
-    bool operator!=(const PolyEntry &pe) const
-    {
-        return key != pe.key
-            || move != pe.move
-            || weight != pe.weight;
-    }
-    bool operator>(const PolyEntry &pe) const
-    {
-        return key != pe.key ?
-                    key > pe.key :
-                    weight != pe.weight ?
-                        weight > pe.weight :
-                        move > pe.move;
-    }
-    bool operator<(const PolyEntry &pe) const
-    {
-        return key != pe.key ?
-                    key < pe.key :
-                    weight != pe.weight ?
-                        weight < pe.weight :
-                        move < pe.move;
-    }
-    bool operator>=(const PolyEntry &pe) const
-    {
-        return key != pe.key ?
-                    key >= pe.key :
-                    weight != pe.weight ?
-                        weight >= pe.weight :
-                        move >= pe.move;
-    }
-    bool operator<=(const PolyEntry &pe) const
-    {
-        return key != pe.key ?
-                    key <= pe.key :
-                    weight != pe.weight ?
-                        weight <= pe.weight :
-                        move <= pe.move;
-    }
+    bool operator==(const PolyEntry&) const;
+    bool operator!=(const PolyEntry&) const;
 
-    bool operator==(Move m) const { return move == m; }
-    bool operator!=(Move m) const { return move != m; }
+    bool operator>(const PolyEntry&) const;
+    bool operator<(const PolyEntry&) const;
+    
+    bool operator>=(const PolyEntry&) const;
+    bool operator<=(const PolyEntry&) const;
+
+    bool operator==(Move m) const;
+    bool operator!=(Move m) const;
 
     explicit operator std::string() const;
-
 };
 
 static_assert (sizeof (PolyEntry) == 16, "Entry size incorrect");
 
-template<typename Elem, typename Traits>
-inline std::basic_ostream<Elem, Traits>&
-    operator<<(std::basic_ostream<Elem, Traits> &os, const PolyEntry &pe)
-{
-    os << std::string(pe);
-    return os;
-}
+extern std::ostream& operator<<(std::ostream&, const PolyEntry&);
 
 class PolyBook
 {
@@ -98,7 +48,6 @@ private:
 
     PolyEntry   *entries;
     size_t      entryCount;
-
 
     bool        doProbe;
     Bitboard    prevPieces;

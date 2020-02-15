@@ -10,10 +10,12 @@ class Zobrist
 {
 public:
     // 2*6*64 + 16 + 8 + 1 = 793
-    Array<Key, COLORS, PIECE_TYPES, SQUARES> pieceSquareKey;
-    Array<Key, CASTLE_RIGHTS>                castleRightKey;
-    Array<Key, FILES>                        enpassantKey;
-    Key                                      colorKey;
+    Array<Key, COLORS
+             , PIECE_TYPES
+             , SQUARES>       pieceSquareKey;
+    Array<Key, CASTLE_RIGHTS> castleRightKey;
+    Array<Key, FILES>         enpassantKey;
+    Key                       colorKey;
 
     Zobrist() = default;
     Zobrist(const Zobrist&) = delete;
@@ -22,13 +24,11 @@ public:
     Key computeMatlKey(const Position&) const;
     Key computePawnKey(const Position&) const;
     Key computePosiKey(const Position&) const;
-    //Key computeFenKey(const std::string&) const;
 };
 
-namespace Zob {
-
+namespace Zobrists
+{
     extern void initialize();
-
 }
 
 extern Zobrist RandZob;

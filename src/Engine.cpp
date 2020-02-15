@@ -9,9 +9,11 @@
 
 #include "Bitboard.h"
 #include "Bitbase.h"
+#include "Cuckoo.h"
 #include "Debugger.h"
 #include "Endgame.h"
 #include "Evaluator.h"
+#include "Helper.h"
 #include "Logger.h"
 #include "Material.h"
 #include "MoveGenerator.h"
@@ -21,28 +23,25 @@
 #include "Polyglot.h"
 #include "PSQTable.h"
 #include "Searcher.h"
-#include "TBsyzygy.h"
+#include "SyzygyTB.h"
 #include "Thread.h"
 #include "Transposition.h"
 #include "Zobrist.h"
 
 using namespace std;
 
-namespace {
-
-    using namespace Searcher;
-    using namespace TBSyzygy;
-
+namespace
+{
     // Engine Name
-    const string Name{ "DON" };
+    const string Name{"DON"};
     // Version number. If version is left empty, then show compile date in the format YY-MM-DD.
-    const string Version{ "" };
+    const string Version{""};
     // Author Name
-    const string Author{ "Ehsan Rashid" };
+    const string Author{"Ehsan Rashid"};
 
     /// Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
     /// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-    const string StartFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
+    const string StartFEN{"rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1"};
 
     const vector<string> DefaultCmds
     {
@@ -125,13 +124,13 @@ namespace {
         ostringstream oss;
 
         oss << setfill('0');
-#    if defined(VER)
+#   if defined(VER)
         oss << VER;
-#    else
+#   else
         if (whiteSpaces(Version))
         {
             // From compiler, format is "Sep 2 1982"
-            istringstream iss{ __DATE__ };
+            istringstream iss{__DATE__};
             string mmm, dd, yyyy;
             iss >> mmm >> dd >> yyyy;
             oss << setw(2) << yyyy.substr(2)
@@ -142,26 +141,20 @@ namespace {
         {
             oss << Version;
         }
-#    endif
+#   endif
         oss << setfill(' ');
 
-        oss <<
-#       if defined(BIT64)
-            ".64"
-#       else
-            ".32"
-#       endif
-        ;
+#   if defined(BIT64)
+        oss << ".64";
+#   else
+        oss << ".32";
+#   endif
 
-        oss <<
-#       if defined(BM2)
-            ".BM2"
-#       elif defined(ABM)
-            ".ABM"
-#       else
-            ""
-#       endif
-        ;
+#   if defined(BM2)
+        oss << ".BM2";
+#   elif defined(ABM)
+        oss << ".ABM";
+#   endif
 
         return oss.str();
     }
@@ -233,8 +226,8 @@ namespace {
         //if (token != "name") return;
         string name;
         // Read option-name (can contain spaces)
-        while (   (iss >> token)
-               && token != "value") // Consume "value" token if any
+        while ((iss >> token)
+            && token != "value") // Consume "value" token if any
         {
             name += (name.empty() ? "" : " ") + token;
         }
@@ -288,7 +281,7 @@ namespace {
         // Drop old and create a new one
         states = StateListPtr{new std::deque<StateInfo>(1)};
         pos.setup(fen, states->back(), pos.thread);
-        //assert(pos.fen() == fullTrim(fen));
+        //assert(pos.fen() == trim(fen));
 
         u16 count = 0;
         // Parse and validate moves (if any)
@@ -494,7 +487,7 @@ namespace {
                                                                       || 0 == s.find("eval"); }));
         u16 i = 0;
 
-        Debugger::initialize();
+        Debugger::reset();
 
         auto elapsedTime = now();
         u64 nodes = 0;
@@ -542,7 +535,7 @@ namespace {
             else
             if (token == "ucinewgame")
             {
-                clear();
+                Searcher::clear();
                 elapsedTime = now();
             }
             else
@@ -577,25 +570,25 @@ namespace {
             cmd += string(argv[i]) + " ";
         }
 
-        Debugger::initialize();
+        Debugger::reset();
 
         Position pos;
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
         StateListPtr states{new std::deque<StateInfo>(1)};
-        auto uiThread = std::make_shared<Thread>(0);
+        auto uiThread{std::make_shared<Thread>(0)};
         pos.setup(StartFEN, states->back(), uiThread.get());
 
         do
         {
-            if (   1 == argc
-                && !std::getline(cin, cmd, '\n')) // Block here waiting for input or EOF
+            if (1 == argc
+             && !std::getline(cin, cmd, '\n')) // Block here waiting for input or EOF
             {
                 cmd = "quit";
             }
 
-            istringstream iss{ cmd };
+            istringstream iss{cmd};
             string token;
             token.clear(); // Avoid a stale if getline() returns empty or blank line
             iss >> skipws >> token;
@@ -634,7 +627,7 @@ namespace {
             else
             if (token == "ucinewgame")
             {
-                clear();
+                Searcher::clear();
             }
             else
             if (token == "position")
@@ -791,16 +784,16 @@ void run(u32 argc, const char *const *argv)
     cout << "info string Processor(s) detected " << thread::hardware_concurrency() << endl;
 
     BitBoard::initialize();
-    Bitbases::initialize();
+    BitBase::initialize();
     PSQT::initialize();
-    Zob::initialize();
-    Position::initialize();
+    Zobrists::initialize();
+    Cuckooo::initialize();
     UCI::initialize();
     Endgames::initialize();
+    Book.initialize(string(Options["Book File"]));
     WinProcGroup::initialize();
     Threadpool.configure(optionThreads());
-    Book.initialize(string(Options["Book File"]));
-    Searcher::initialize();
+    srand(u32(time(nullptr)));
     Searcher::clear();
 
     processInput(argc, argv);

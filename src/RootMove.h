@@ -32,15 +32,7 @@ public:
     Value tbValue;
     i16   bestCount;
 
-    explicit RootMove(Move m = MOVE_NONE)
-        : std::list<Move>(1, m)
-        , oldValue(-VALUE_INFINITE)
-        , newValue(-VALUE_INFINITE)
-        , selDepth(0)
-        , tbRank(0)
-        , tbValue(VALUE_ZERO)
-        , bestCount(0)
-    {}
+    explicit RootMove(Move = MOVE_NONE);
     RootMove& operator=(const RootMove&) = default;
 
     bool operator< (const RootMove &rm) const { return newValue != rm.newValue ? newValue > rm.newValue : oldValue > rm.oldValue; }
@@ -59,13 +51,7 @@ public:
     explicit operator std::string() const;
 };
 
-template<typename Elem, typename Traits>
-inline std::basic_ostream<Elem, Traits>&
-    operator<<(std::basic_ostream<Elem, Traits> &os, const RootMove &rm)
-{
-    os << std::string(rm);
-    return os;
-}
+extern std::ostream& operator<<(std::ostream&, const RootMove&);
 
 
 class RootMoves
@@ -89,10 +75,4 @@ public:
     explicit operator std::string() const;
 };
 
-template<typename Elem, typename Traits>
-inline std::basic_ostream<Elem, Traits>&
-    operator<<(std::basic_ostream<Elem, Traits> &os, const RootMoves &rms)
-{
-    os << std::string(rms);
-    return os;
-}
+extern std::ostream& operator<<(std::ostream&, const RootMoves&);

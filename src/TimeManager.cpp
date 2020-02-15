@@ -5,22 +5,8 @@
 
 #include "Thread.h"
 
-TimeManager::TimeManager()
+namespace
 {
-    reset();
-}
-
-/// TimeManager::elapsedTime()
-TimePoint TimeManager::elapsedTime() const
-{
-    return 0 != timeNodes ?
-            TimePoint(Threadpool.sum(&Thread::nodes)) :
-            now() - startTime;
-}
-
-
-namespace {
-
     // Skew-logistic function based on naive statistical analysis of
     // "how many games are still undecided after n half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
@@ -37,20 +23,35 @@ namespace {
         constexpr auto  StepRatio = 7.30 - 6.30 * Optimum; // When in trouble, can step over reserved time with this ratio
         constexpr auto StealRatio = 0.34 - 0.34 * Optimum; // However must not steal time from remaining moves over this ratio
 
-        auto moveImp1 = moveImportance(ply) * moveSlowness;
-        auto moveImp2 = 0.0;
+        auto moveImp1{moveImportance(ply) * moveSlowness};
+        auto moveImp2{0.0};
         for (u08 i = 1; i < movestogo; ++i)
         {
             moveImp2 += moveImportance(ply + 2 * i);
         }
 
-        auto timeRatio1 = (1.0) / (1.0 + moveImp2 / (moveImp1 * StepRatio));
-        auto timeRatio2 = (1.0 + (moveImp2 * StealRatio) / moveImp1) / (1.0 + moveImp2 / moveImp1);
+        auto timeRatio1{(1.0) / (1.0 + moveImp2 / (moveImp1 * StepRatio))};
+        auto timeRatio2{(1.0 + (moveImp2 * StealRatio) / moveImp1) / (1.0 + moveImp2 / moveImp1)};
 
         return TimePoint(time * std::min(timeRatio1, timeRatio2));
     }
 
 }
+
+TimeManager::TimeManager()
+{
+    reset();
+}
+
+/// TimeManager::elapsedTime()
+TimePoint TimeManager::elapsedTime() const
+{
+    return 0 != timeNodes ?
+            TimePoint(Threadpool.sum(&Thread::nodes)) :
+            now() - startTime;
+}
+
+void TimeManager::reset() { availableNodes = 0; }
 
 /// TimeManager::set() calculates the allowed thinking time out of the time control and current game ply.
 /// Support four different kind of time controls, passed in 'limit':
@@ -65,11 +66,11 @@ namespace {
 /// Move Slowness = Move Slowness, in %age.
 void TimeManager::set(Color c, i16 ply)
 {
-    auto minimumMoveTime  = TimePoint(i32(Options["Minimum MoveTime"]));
+    auto minimumMoveTime = TimePoint(i32(Options["Minimum MoveTime"]));
     auto overheadMoveTime = TimePoint(i32(Options["Overhead MoveTime"]));
-    auto moveSlowness     = i32(Options["Move Slowness"]) / 100.0;
+    auto moveSlowness = i32(Options["Move Slowness"]) / 100.0;
 
-    timeNodes             = u16(i32(Options["Time Nodes"]));
+    timeNodes = u16(i32(Options["Time Nodes"]));
 
     // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
@@ -89,7 +90,7 @@ void TimeManager::set(Color c, i16 ply)
     maximumTime = std::max(Threadpool.limit.clock[c].time, minimumMoveTime);
     // Move Horizon:
     // Plan time management at most this many moves ahead.
-    u08 maxMovestogo = 50;
+    u08 maxMovestogo{50};
     if (0 != Threadpool.limit.movestogo)
     {
         maxMovestogo = std::min(Threadpool.limit.movestogo, maxMovestogo);
@@ -104,8 +105,8 @@ void TimeManager::set(Color c, i16 ply)
                       + Threadpool.limit.clock[c].inc * (movestogo - 1)
                         // ClockTime: Attempt to keep this much time at clock.
                         // MovesTime: Attempt to keep at most this many moves time at clock.
-                      - overheadMoveTime * (2 + std::min(movestogo, u08(40))) // (ClockTime + MovesTime)
-                      , TimePoint(0));
+                      - overheadMoveTime * (2 + std::min(movestogo, {40})) // (ClockTime + MovesTime)
+                      , {0});
 
         optimumTime = std::min(optimumTime, minimumMoveTime + remainingTime<true >(time, movestogo, ply, moveSlowness));
         maximumTime = std::min(maximumTime, minimumMoveTime + remainingTime<false>(time, movestogo, ply, moveSlowness));

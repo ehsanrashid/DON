@@ -2,10 +2,9 @@
 
 #include "Type.h"
 
-namespace Bitbases {
-
+namespace BitBase
+{
     extern void initialize();
 
     extern bool probe(Color, Square, Square, Square);
-
 }

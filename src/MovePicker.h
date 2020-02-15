@@ -28,9 +28,13 @@ enum PickStage : u08
     QUIESCENCE_CHECKS,
 };
 
-inline PickStage& operator+=(PickStage &ps, i32 i) { return ps = PickStage(ps + i); }
+constexpr PickStage operator+(PickStage ps, i32 i) { return PickStage(i32(ps) + i); }
+//constexpr PickStage operator-(PickStage ps, i32 i) { return PickStage(i32(ps) - i); }
+constexpr PickStage operator+(PickStage ps, bool b) { return ps + i32(b); }
+//constexpr PickStage operator-(PickStage ps, bool b) { return ps - i32(b); }
+inline PickStage& operator+=(PickStage &ps, i32 i) { return ps = ps + i; }
 //inline PickStage& operator-=(PickStage &ps, i32 i) { return ps = PickStage(ps - i); }
-inline PickStage& operator++(PickStage &ps) { return ps = PickStage(ps + 1); }
+inline PickStage& operator++(PickStage &ps) { return ps = ps + 1; }
 //inline PickStage& operator--(PickStage &ps) { return ps = PickStage(ps - 1); }
 
 /// MovePicker class is used to pick one legal moves from the current position.
@@ -64,11 +68,11 @@ private:
     void value();
 
     template<typename Pred>
-    bool pick(Pred filter);
+    bool pick(Pred);
 
 public:
 
-    bool skipQuiets;
+    bool skipQuiets{false};
 
     MovePicker() = delete;
     MovePicker(const MovePicker&) = delete;

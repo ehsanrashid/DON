@@ -6,12 +6,11 @@
 #include "Table.h"
 #include "Type.h"
 
-namespace PSQT {
-
-    extern Score computePSQ(const Position&);
-
+namespace PSQT
+{
     extern void initialize();
-
+    
+    extern Score computePSQ(const Position&);
 }
 
 extern Array<Score, PIECES, SQUARES> PSQ;

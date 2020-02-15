@@ -10,17 +10,19 @@ class SkillManager
 {
 private:
 
+    i16  level;
+    Move bestMove{MOVE_NONE};
+
 public:
 
-    i16  level;
-    Move bestMove;
-
     SkillManager();
-
     SkillManager(const SkillManager&) = delete;
     SkillManager& operator=(const SkillManager&) = delete;
 
-    bool enabled() const { return level < MaxLevel; }
+    bool enabled() const;
+    bool canPick(Depth) const;
 
-    void pickBestMove();
+    void setLevel(i16);
+    void clearBestMove();
+    Move pickBestMove();
 };

@@ -6,7 +6,8 @@ using namespace std;
 
 Array<Score, PIECES, SQUARES> PSQ;
 
-namespace {
+namespace
+{
 
 #   define S(mg, eg) makeScore(mg, eg)
     // PieceScores[piece-type][rank][file/2] contains half Piece-Square scores (symmetric distribution).
@@ -95,36 +96,21 @@ namespace {
         { S( -8,  6), S(-23, -2), S(  6, -8), S( 20, -4), S( 40,-13), S( 17,-12), S(  4,-10), S(-12, -9) },
         { S( 13,  9), S(  0,  4), S(-13,  3), S(  1,-12), S( 11,-12), S( -2, -6), S(-13, 13), S(  5,  8) },
         { S( -5, 28), S(-12, 20), S( -7, 21), S( 22, 28), S( -8, 30), S( -5,  7), S(-15,  6), S(-18, 13) },
-        { S( -7,  0), S(  7,-11), S( -3, 12), S(-13, 21), S(  5, 25), S(-16, 19), S( 10,  4), S( -8,  7) }
+        { S( -7,  0), S(  7,-11), S( -3, 12), S(-13, 21), S(  5, 25), S(-16, 19), S( 10,  4), S( -8,  7) },
+        { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) }
     }};
 
 #   undef S
 }
 
-namespace PSQT {
-
-    /// Computes the scores for the middle game and the endgame.
-    /// These functions are used to initialize the scores when a new position is set up,
-    /// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
-    Score computePSQ(const Position &pos)
-    {
-        Score psq = SCORE_ZERO;
-        for (Piece p : Pieces)
-        {
-            for (auto s : pos.squares[p])
-            {
-                psq += PSQ[p][s];
-            }
-        }
-        return psq;
-    }
-
+namespace PSQT
+{
     /// initialize() initializes PSQ lookup tables.
     void initialize()
     {
         for (PieceType pt = PAWN; pt <= KING; ++pt)
         {
-            Score score = makeScore(PieceValues[MG][pt], PieceValues[EG][pt]);
+            Score score{makeScore(PieceValues[MG][pt], PieceValues[EG][pt])};
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
                 Score psq = score
@@ -135,6 +121,22 @@ namespace PSQT {
                 PSQ[BLACK|pt][~s] = -psq;
             }
         }
+    }
+
+    /// Computes the scores for the middle game and the endgame.
+    /// These functions are used to initialize the scores when a new position is set up,
+    /// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
+    Score computePSQ(const Position &pos)
+    {
+        Score psq{SCORE_ZERO};
+        for (Piece p : Pieces)
+        {
+            for (Square s : pos.squares[p])
+            {
+                psq += PSQ[p][s];
+            }
+        }
+        return psq;
     }
 
 }

@@ -26,8 +26,18 @@
 #include <climits>
 #include <cstdint>
 #include <cstdlib>
-#include <chrono>
 #include <algorithm>
+#include <chrono>
+
+
+using i08 =  int8_t;
+using u08 = uint8_t;
+using i16 =  int16_t;
+using u16 = uint16_t;
+using i32 =  int32_t;
+using u32 = uint32_t;
+using i64 =  int64_t;
+using u64 = uint64_t;
 
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
@@ -41,32 +51,12 @@
 #       endif
 #   endif
 
-using i08 =   signed __int8;
-using u08 = unsigned __int8;
-using i16 =   signed __int16;
-using u16 = unsigned __int16;
-using i32 =   signed __int32;
-using u32 = unsigned __int32;
-using i64 =   signed __int64;
-using u64 = unsigned __int64;
-
 #   define S32(X) (X ##  i32)
 #   define U32(X) (X ## ui32)
 #   define S64(X) (X ##  i64)
 #   define U64(X) (X ## ui64)
 
 #else
-
-#   include <inttypes.h>
-
-using i08 =  int8_t;
-using u08 = uint8_t;
-using i16 =  int16_t;
-using u16 = uint16_t;
-using i32 =  int32_t;
-using u32 = uint32_t;
-using i64 =  int64_t;
-using u64 = uint64_t;
 
 #   define S32(X) (X ##   L)
 #   define U32(X) (X ##  UL)
@@ -78,7 +68,7 @@ using u64 = uint64_t;
 using Key       = u64;
 using Bitboard  = u64;
 
-enum Color : i08 { WHITE, BLACK, COLORS = 2 };
+enum Color : i08 { WHITE, BLACK, COLOR_NONE, COLORS = 2 };
 
 enum File : i08 { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILES = 8 };
 
@@ -135,8 +125,8 @@ constexpr Depth DEPTH_QS_NO_CHECK = -1;
 constexpr Depth DEPTH_QS_RECAP    = -5;
 constexpr Depth DEPTH_NONE        = -6;
 constexpr Depth DEPTH_OFFSET      = -7;
-// Maximum Plies = 256 + DEPTH_OFFSET - 4
-constexpr i32 MaxDepth            = 245;
+// Maximum Plies
+constexpr i32 MaxDepth            = 256 + DEPTH_OFFSET - 4;
 
 enum CastleSide : i08 { CS_KING, CS_QUEN, CS_NONE, CASTLE_SIDES = 2 };
 
@@ -336,7 +326,7 @@ inline Score operator/(Score s, i32 i) { return makeScore(mgValue(s) / i, egValu
 /// Multiplication of a Score by an integer. We check for overflow in debug mode.
 inline Score operator*(Score s, i32 i)
 {
-    Score score = Score(i32(s) * i);
+    Score score{Score(i32(s) * i)};
 
     assert(egValue(score) == (egValue(s) * i));
     assert(mgValue(score) == (mgValue(s) * i));
@@ -382,9 +372,10 @@ constexpr Square operator!(Square s) { return Square(s ^ SQ_H1); }
 
 constexpr bool oppositeColor(Square s1, Square s2)
 {
-    //i08 s = i08(s1) ^ i08(s2);
-    //return 0 != (((s >> 3) ^ s) & BLACK);
-    return 0 != ((sFile(s1) ^ sRank(s1) ^ sFile(s2) ^ sRank(s2)) & BLACK);
+    //return 0 != ((sFile(s1) ^ sRank(s1)
+    //            ^ sFile(s2) ^ sRank(s2)) & BLACK);
+    return 0 != ((s1 + sRank(s1)
+                + s2 + sRank(s2)) & BLACK);
 }
 
 constexpr Square relSq(Color c, Square s) { return Square(s ^ (c * SQ_A8)); }
@@ -467,13 +458,11 @@ constexpr Value matedIn(i32 ply) { return -VALUE_MATE + ply; }
 
 
 using TimePoint = std::chrono::milliseconds::rep; // Time in milli-seconds
-
 static_assert (sizeof(TimePoint) == sizeof(i64), "TimePoint should be 64 bits");
 
 inline TimePoint now()
 {
     return std::chrono::duration_cast<std::chrono::milliseconds>
-        (std::chrono::steady_clock::now().time_since_epoch()).count();
+          (std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
-#include "Helpers.h"

@@ -7,7 +7,8 @@
 
 using namespace std;
 
-namespace {
+namespace
+{
 
     /// Generates piece normal move
     template<GenType GT>
@@ -17,11 +18,11 @@ namespace {
         {
             for (Square s : pos.squares[pos.active|pt])
             {
-                if (   GenType::CHECK == GT
-                    || GenType::QUIET_CHECK == GT)
+                if (GenType::CHECK == GT
+                 || GenType::QUIET_CHECK == GT)
                 {
-                    if (   contains(pos.si->kingBlockers[~pos.active], s)
-                        || 0 == (PieceAttacks[pt][s] & targets & pos.checks(pt)))
+                    if (contains(pos.kingBlockers(~pos.active), s)
+                     || 0 == (PieceAttacks[pt][s] & targets & pos.checks(pt)))
                     {
                         continue;
                     }
@@ -29,8 +30,8 @@ namespace {
 
                 Bitboard attacks = pos.attacksFrom(pt, s) & targets;
 
-                if (   GenType::CHECK == GT
-                    || GenType::QUIET_CHECK == GT)
+                if (GenType::CHECK == GT
+                 || GenType::QUIET_CHECK == GT)
                 {
                     attacks &= pos.checks(pt);
                 }
@@ -124,7 +125,7 @@ namespace {
                 // Pawns which give discovered check
                 // Add pawn captures which give discovered check.
                 Bitboard dscPawns = rxPawns
-                                  & pos.si->kingBlockers[~pos.active];
+                                  & pos.kingBlockers(~pos.active);
                 if (0 != dscPawns)
                 {
                     lAttacks |= enemies & pawnLAttacks(pos.active, dscPawns);
@@ -154,7 +155,7 @@ namespace {
                         !contains(pos.checks(PAWN), pos.epSquare()))
                     {
                         // En-passant pawns which give discovered check
-                        epPawns &= pos.si->kingBlockers[~pos.active];
+                        epPawns &= pos.kingBlockers(~pos.active);
                     }
                 default:
                     break;
@@ -208,7 +209,7 @@ namespace {
                 // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
                 // Note that a possible discovery check promotion has been already generated among captures.
                 Bitboard dscPawns = rxPawns
-                                  & pos.si->kingBlockers[~pos.active]
+                                  & pos.kingBlockers(~pos.active)
                                   & ~fileBB(pos.square(~pos.active|KING));
                 if (0 != dscPawns)
                 {
@@ -236,15 +237,15 @@ namespace {
         Bitboard attacks = PieceAttacks[KING][fkSq] & targets;
         while (0 != attacks) { moves += makeMove<NORMAL>(fkSq, popLSq(attacks)); }
 
-        if (   GenType::NATURAL == GT
-            || GenType::QUIET == GT)
+        if (GenType::NATURAL == GT
+         || GenType::QUIET == GT)
         {
             if (pos.canCastle(pos.active))
             {
                 for (auto cs : { CS_KING, CS_QUEN })
                 {
-                    if (   pos.canCastle(pos.active, cs)
-                        && pos.castleExpeded(pos.active, cs))
+                    if (pos.canCastle(pos.active, cs)
+                     && pos.castleExpeded(pos.active, cs))
                     {
                         moves += makeMove<CASTLE>(fkSq, pos.castleRookSq[pos.active][cs]);
                     }
@@ -290,10 +291,10 @@ template void generate<GenType::NATURAL>(ValMoves&, const Position&);
 /// generate<CAPTURE>     Generates all pseudo-legal captures and queen promotions.
 template void generate<GenType::CAPTURE>(ValMoves&, const Position&);
 /// generate<QUIET>       Generates all pseudo-legal non-captures and underpromotions.
-template void generate<GenType::QUIET  >(ValMoves&, const Position&);
+template void generate<GenType::QUIET>(ValMoves&, const Position&);
 
 /// generate<EVASION>     Generates all pseudo-legal check evasions moves.
-template<> void generate<GenType::EVASION    >(ValMoves &moves, const Position &pos)
+template<> void generate<GenType::EVASION>(ValMoves &moves, const Position &pos)
 {
     assert(0 != pos.checkers()
         && 2 >= popCount(pos.checkers()));
@@ -329,13 +330,13 @@ template<> void generate<GenType::EVASION    >(ValMoves &moves, const Position &
     generateMoves<GenType::EVASION>(moves, pos, targets);
 }
 /// generate<CHECK>       Generates all pseudo-legal check giving moves.
-template<> void generate<GenType::CHECK      >(ValMoves &moves, const Position &pos)
+template<> void generate<GenType::CHECK>(ValMoves &moves, const Position &pos)
 {
     assert(0 == pos.checkers());
     moves.clear();
     Bitboard targets = ~pos.pieces(pos.active);
     // Pawns is excluded, will be generated together with direct checks
-    Bitboard dscBlockersEx =  pos.si->kingBlockers[~pos.active]
+    Bitboard dscBlockersEx =  pos.kingBlockers(~pos.active)
                            &  pos.pieces(pos.active)
                            & ~pos.pieces(PAWN);
     assert(0 == (dscBlockersEx & pos.pieces(QUEN)));
@@ -359,7 +360,7 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, const Position &
     moves.clear();
     Bitboard targets = ~pos.pieces();
     // Pawns is excluded, will be generated together with direct checks
-    Bitboard dscBlockersEx =  pos.si->kingBlockers[~pos.active]
+    Bitboard dscBlockersEx =  pos.kingBlockers(~pos.active)
                            &  pos.pieces(pos.active)
                            & ~pos.pieces(PAWN);
     assert(0 == (dscBlockersEx & pos.pieces(QUEN)));
@@ -394,10 +395,53 @@ void filterIllegal(ValMoves &moves, const Position &pos)
                 moves.end());
 }
 
+
+
+Perft::Perft()
+    : moves{0}
+    , any{0}
+    , capture{0}
+    , enpassant{0}
+    , anyCheck{0}
+    , dscCheck{0}
+    , dblCheck{0}
+    , castle{0}
+    , promotion{0}
+    , checkmate{0}
+    //, stalemate{0}
+{}
+
+void Perft::operator+=(const Perft &p)
+{
+    any       += p.any;
+    capture   += p.capture;
+    enpassant += p.enpassant;
+    anyCheck  += p.anyCheck;
+    dscCheck  += p.dscCheck;
+    dblCheck  += p.dblCheck;
+    castle    += p.castle;
+    promotion += p.promotion;
+    checkmate += p.checkmate;
+    //stalemate += p.stalemate;
+}
+void Perft::operator-=(const Perft &p)
+{
+    any       -= p.any;
+    capture   -= p.capture;
+    enpassant -= p.enpassant;
+    anyCheck  -= p.anyCheck;
+    dscCheck  -= p.dscCheck;
+    dblCheck  -= p.dblCheck;
+    castle    -= p.castle;
+    promotion -= p.promotion;
+    checkmate -= p.checkmate;
+    //stalemate -= p.stalemate;
+}
+
 void Perft::classify(Position &pos, Move m)
 {
-    if (   ENPASSANT == mType(m)
-        || contains(pos.pieces(~pos.active), dstSq(m)))
+    if (ENPASSANT == mType(m)
+     || contains(pos.pieces(~pos.active), dstSq(m)))
     {
         ++capture;
         if (ENPASSANT == mType(m))
@@ -411,8 +455,8 @@ void Perft::classify(Position &pos, Move m)
         if (!contains(pos.checks(PROMOTE != mType(m) ? pType(pos[orgSq(m)]) : promoteType(m)), dstSq(m)))
         {
             auto ekSq = pos.square(~pos.active|KING);
-            if (   contains(pos.si->kingBlockers[~pos.active], orgSq(m))
-                && !squaresAligned(orgSq(m), dstSq(m), ekSq))
+            if (contains(pos.kingBlockers(~pos.active), orgSq(m))
+             && !aligned(orgSq(m), dstSq(m), ekSq))
             {
                 ++dscCheck;
             }
@@ -421,8 +465,8 @@ void Perft::classify(Position &pos, Move m)
             {
                 auto epSq = makeSquare(sFile(dstSq(m)), sRank(orgSq(m)));
                 Bitboard mocc = (pos.pieces() ^ orgSq(m) ^ epSq) | dstSq(m);
-                if (   0 != (pos.pieces(pos.active, BSHP, QUEN) & attacksBB<BSHP>(ekSq, mocc))
-                    || 0 != (pos.pieces(pos.active, ROOK, QUEN) & attacksBB<ROOK>(ekSq, mocc)))
+                if (0 != (pos.pieces(pos.active, BSHP, QUEN) & attacksBB<BSHP>(ekSq, mocc))
+                 || 0 != (pos.pieces(pos.active, ROOK, QUEN) & attacksBB<ROOK>(ekSq, mocc)))
                 {
                     ++dscCheck;
                 }
@@ -470,10 +514,10 @@ Perft perft(Position &pos, Depth depth, bool detail)
     Perft sumLeaf;
     if (RootNode)
     {
-        sync_cout << left << setfill(' ')
-                  << setw( 3) << "N"
-                  << setw(10) << "Move"
-                  << setw(19) << "Any";
+        cout << left << setfill(' ')
+             << setw( 3) << "N"
+             << setw(10) << "Move"
+             << setw(19) << "Any";
         if (detail)
         {
             cout << setw(17) << "Capture"
@@ -487,13 +531,13 @@ Perft perft(Position &pos, Depth depth, bool detail)
                  //<< setw(15) << "Stalemate"
                  ;
         }
-        cout << sync_endl;
+        cout << endl;
     }
     for (const auto &vm : MoveList<GenType::LEGAL>(pos))
     {
         Perft leaf;
-        if (   RootNode
-            && 1 >= depth)
+        if (RootNode
+         && 1 >= depth)
         {
             ++leaf.any;
             if (detail) leaf.classify(pos, vm);
@@ -524,13 +568,13 @@ Perft perft(Position &pos, Depth depth, bool detail)
         {
             ++sumLeaf.moves;
 
-            sync_cout << right << setfill('0') << setw( 2) << sumLeaf.moves
-                      << " "
-                      << left  << setfill(' ') << setw( 7)
-                                                           <<
-                                                              //moveToCAN(vm)
-                                                              moveToSAN(vm, pos)
-                      << right << setfill('.') << setw(16) << leaf.any;
+            cout << right << setfill('0') << setw( 2) << sumLeaf.moves
+                 << " "
+                 << left  << setfill(' ') << setw( 7)
+                                                      <<
+                                                         //moveToCAN(vm)
+                                                         moveToSAN(vm, pos)
+                 << right << setfill('.') << setw(16) << leaf.any;
             if (detail)
             {
                 cout << "   " << setw(14) << leaf.capture
@@ -545,13 +589,12 @@ Perft perft(Position &pos, Depth depth, bool detail)
                      ;
             }
             cout << setfill(' ')
-                 << left << sync_endl;
+                 << left << endl;
         }
     }
     if (RootNode)
     {
-        sync_cout << endl
-                  << "Total:  " << right << setfill('.') << setw(18) << sumLeaf.any;
+        cout << "\nTotal:  " << right << setfill('.') << setw(18) << sumLeaf.any;
         if (detail)
         {
             cout << " " << setw(16) << sumLeaf.capture
@@ -567,8 +610,7 @@ Perft perft(Position &pos, Depth depth, bool detail)
         }
         cout << setfill(' ')
              << left
-             << endl
-             << sync_endl;
+             << endl;
     }
     return sumLeaf;
 }

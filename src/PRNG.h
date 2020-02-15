@@ -34,7 +34,7 @@ public:
 
     PRNG() = delete;
     PRNG(u64 seed)
-        : s(seed)
+        : s{seed}
     { assert(0 != s); }
 
     PRNG(const PRNG&) = delete;

@@ -6,7 +6,8 @@
 #include "Position.h"
 #include "Type.h"
 
-namespace Material {
+namespace Material
+{
 
     const i32 PhaseResolution = 128;
 
@@ -19,13 +20,14 @@ namespace Material {
         Score imbalance;
         Array<Scale, COLORS> scale;
 
-        const Endgames::EndgameBase<Value> *evaluationFunc;
-        Array<const Endgames::EndgameBase<Scale>*, COLORS> scalingFunc;
+        const EndgameBase<Value> *evaluationFunc;
+        Array<const EndgameBase<Scale>*, COLORS> scalingFunc;
 
         void evaluate(const Position&);
     };
 
+    using Table = HashTable<Entry, 0x2000>;
+
+
     extern Entry* probe(const Position&);
 }
-
-using MatlHashTable = HashTable<Material::Entry, 0x2000>;

@@ -609,10 +609,12 @@
   <ItemGroup>
     <ClCompile Include="src\Bitbase.cpp" />
     <ClCompile Include="src\Bitboard.cpp" />
+    <ClCompile Include="src\Cuckoo.cpp" />
     <ClCompile Include="src\Debugger.cpp" />
     <ClCompile Include="src\Endgame.cpp" />
     <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Evaluator.cpp" />
+    <ClCompile Include="src\Helper.cpp" />
     <ClCompile Include="src\Logger.cpp" />
     <ClCompile Include="src\Main.cpp" />
     <ClCompile Include="src\Material.cpp" />
@@ -627,7 +629,7 @@
     <ClCompile Include="src\RootMove.cpp" />
     <ClCompile Include="src\Searcher.cpp" />
     <ClCompile Include="src\SkillManager.cpp" />
-    <ClCompile Include="src\TBsyzygy.cpp" />
+    <ClCompile Include="src\SyzygyTB.cpp" />
     <ClCompile Include="src\Thread.cpp" />
     <ClCompile Include="src\TimeManager.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
@@ -636,11 +638,14 @@
   <ItemGroup>
     <ClInclude Include="src\Bitbase.h" />
     <ClInclude Include="src\Bitboard.h" />
+    <ClInclude Include="src\Comparer.h" />
+    <ClInclude Include="src\Cuckoo.h" />
     <ClInclude Include="src\Debugger.h" />
     <ClInclude Include="src\Endgame.h" />
     <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
-    <ClInclude Include="src\Helpers.h" />
+    <ClInclude Include="src\Helper.h" />
+    <ClInclude Include="src\Limit.h" />
     <ClInclude Include="src\Logger.h" />
     <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\MoveGenerator.h" />
@@ -656,7 +661,7 @@
     <ClInclude Include="src\Searcher.h" />
     <ClInclude Include="src\SkillManager.h" />
     <ClInclude Include="src\Table.h" />
-    <ClInclude Include="src\TBsyzygy.h" />
+    <ClInclude Include="src\SyzygyTB.h" />
     <ClInclude Include="src\Thread.h" />
     <ClInclude Include="src\ThreadWin32OSX.h" />
     <ClInclude Include="src\TieStreamBuf.h" />

@@ -34,9 +34,3 @@ public:
 
     void set(const std::string&);
 };
-
-
-using SystemClockTimePoint = std::chrono::system_clock::time_point;
-
-extern std::string toString(const SystemClockTimePoint&);
-extern std::ostream& operator<<(std::ostream&, const SystemClockTimePoint&);

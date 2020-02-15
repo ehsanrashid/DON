@@ -24,11 +24,11 @@ public:
 
     ValMove() = default;
     ValMove(Move m, i32 v)
-        : move(m)
-        , value(v)
+        : move{m}
+        , value{v}
     {}
     explicit ValMove(Move m)
-        : ValMove(m, 0)
+        : ValMove{m, 0}
     {}
 
     operator Move() const { return move; }
@@ -80,10 +80,7 @@ public:
         //}
     }
 
-    bool contains(Move move) const
-    {
-        return std::find(begin(), end(), move) != end();
-    }
+    bool contains(Move move) const { return std::find(begin(), end(), move) != end(); }
 };
 
 struct Perft
@@ -100,46 +97,10 @@ struct Perft
     u64 checkmate;
     //u64 stalemate;
 
-    Perft()
-        : moves(0)
-        , any(0)
-        , capture(0)
-        , enpassant(0)
-        , anyCheck(0)
-        , dscCheck(0)
-        , dblCheck(0)
-        , castle(0)
-        , promotion(0)
-        , checkmate(0)
-        //, stalemate(0)
-    {}
+    Perft();
 
-    void operator+=(const Perft &p)
-    {
-        any       += p.any;
-        capture   += p.capture;
-        enpassant += p.enpassant;
-        anyCheck  += p.anyCheck;
-        dscCheck  += p.dscCheck;
-        dblCheck  += p.dblCheck;
-        castle    += p.castle;
-        promotion += p.promotion;
-        checkmate += p.checkmate;
-        //stalemate += p.stalemate;
-    }
-    void operator-=(const Perft &p)
-    {
-        any       -= p.any;
-        capture   -= p.capture;
-        enpassant -= p.enpassant;
-        anyCheck  -= p.anyCheck;
-        dscCheck  -= p.dscCheck;
-        dblCheck  -= p.dblCheck;
-        castle    -= p.castle;
-        promotion -= p.promotion;
-        checkmate -= p.checkmate;
-        //stalemate -= p.stalemate;
-    }
+    void operator+=(const Perft&);
+    void operator-=(const Perft&);
 
     void classify(Position&, Move);
 };

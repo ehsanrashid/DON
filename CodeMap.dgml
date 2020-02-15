@@ -34,7 +34,7 @@
     <Node Id="(@1 @3 Member=&quot;`dynamic atexit destructor for 'ScaleKPsK''&quot;)" Category="CodeSchema_Method" Bounds="27253.9091886602,21181.6397144925,256.310000000001,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic atexit destructor for 'ScaleKPsK''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic atexit destructor for 'ScaleKQKRPs''&quot;)" Category="CodeSchema_Method" Bounds="29891.2991886602,21181.6397144925,272.533333333333,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic atexit destructor for 'ScaleKQKRPs''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic atexit destructor for 'StartFEN''&quot;)" Category="CodeSchema_Method" Bounds="26405.3525219935,21181.6397144925,249.063333333332,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic atexit destructor for 'StartFEN''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="(@1 @3 Member=&quot;`dynamic atexit destructor for 'TBSyzygy::`anonymous namespace'::TBFile::Paths''&quot;)" Category="CodeSchema_Method" Bounds="27101.2558553268,21293.5597144925,458.936666666668,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic atexit destructor for 'TBSyzygy‎::`anonymous namespace'‎::TBFile‎::Paths''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="(@1 @3 Member=&quot;`dynamic atexit destructor for 'SyzygyTB::`anonymous namespace'::TBFile::Paths''&quot;)" Category="CodeSchema_Method" Bounds="27101.2558553268,21293.5597144925,458.936666666668,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic atexit destructor for 'SyzygyTB‎::`anonymous namespace'‎::TBFile‎::Paths''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic atexit destructor for 'ThreadPool::Groups''&quot;)" Category="CodeSchema_Method" Bounds="30807.3525219935,21181.6397144925,307.330000000002,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic atexit destructor for 'ThreadPool‎::Groups''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic atexit destructor for 'ValueKXK''&quot;)" Category="CodeSchema_Method" Bounds="26684.4158553268,21181.6397144925,253.900000000001,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic atexit destructor for 'ValueKXK''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic atexit destructor for 'Version''&quot;)" Category="CodeSchema_Method" Bounds="31637.5825219935,21122.7317794633,243.093333333334,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic atexit destructor for 'Version''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -63,7 +63,7 @@
     <Node Id="(@1 @3 Member=&quot;`dynamic initializer for 'ScaleKPsK''&quot;)" Category="CodeSchema_Method" Bounds="27201.0091886602,21122.7317794633,217.186666666668,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for 'ScaleKPsK''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic initializer for 'ScaleKQKRPs''&quot;)" Category="CodeSchema_Method" Bounds="28965.9191886602,21122.7317794633,233.41,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for 'ScaleKQKRPs''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic initializer for 'StartFEN''&quot;)" Category="CodeSchema_Method" Bounds="31327.0725219935,21066.7717794633,209.939999999999,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for 'StartFEN''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="(@1 @3 Member=&quot;`dynamic initializer for 'TBSyzygy::`anonymous namespace'::TBFile::Paths''&quot;)" Category="CodeSchema_Method" Bounds="31144.6825219935,21181.6397144925,419.813333333332,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for 'TBSyzygy‎::`anonymous namespace'‎::TBFile‎::Paths''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="(@1 @3 Member=&quot;`dynamic initializer for 'SyzygyTB::`anonymous namespace'::TBFile::Paths''&quot;)" Category="CodeSchema_Method" Bounds="31144.6825219935,21181.6397144925,419.813333333332,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for 'SyzygyTB‎::`anonymous namespace'‎::TBFile‎::Paths''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic initializer for 'ThreadPool::Groups''&quot;)" Category="CodeSchema_Method" Bounds="28692.1591886602,21181.6397144925,268.206666666665,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for 'ThreadPool‎::Groups''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic initializer for 'ValueKXK''&quot;)" Category="CodeSchema_Method" Bounds="31811.7725219935,21066.7717794633,214.776666666668,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for 'ValueKXK''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic initializer for 'Version''&quot;)" Category="CodeSchema_Method" Bounds="29908.5858553268,21066.7717794633,203.970000000001,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for 'Version''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -86,7 +86,7 @@
     <Node Id="(@1 @3 Member=&quot;`dynamic initializer for '`anonymous namespace'::Evaluator&lt;1&gt;::PieceCloseness''&quot;)" Category="CodeSchema_Method" Bounds="26127.5225219935,21293.5597144925,456.866666666665,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for '`anonymous namespace'‎::Evaluator‎&lt;1‎&gt;‎::PieceCloseness''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic initializer for '`anonymous namespace'::Evaluator&lt;1&gt;::PieceMobility''&quot;)" Category="CodeSchema_Method" Bounds="28481.1925219935,21237.5997144925,448.330000000002,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for '`anonymous namespace'‎::Evaluator‎&lt;1‎&gt;‎::PieceMobility''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=&quot;`dynamic initializer for '`anonymous namespace'::Evaluator&lt;1&gt;::RookOnFile''&quot;)" Category="CodeSchema_Method" Bounds="26592.0991886602,21237.5997144925,438.139999999999,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for '`anonymous namespace'‎::Evaluator‎&lt;1‎&gt;‎::RookOnFile''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="(@1 @3 Member=&quot;sign&lt;enum TBSyzygy::WDLScore&gt;&quot;)" Category="CodeSchema_Method" Bounds="26953.9291886602,21122.7317794633,217.080000000002,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="sign‎&lt;enum TBSyzygy‎::WDLScore‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="(@1 @3 Member=&quot;sign&lt;enum SyzygyTB::WDLScore&gt;&quot;)" Category="CodeSchema_Method" Bounds="26953.9291886602,21122.7317794633,217.080000000002,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="sign‎&lt;enum SyzygyTB‎::WDLScore‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=(Name=&quot;`scalar deleting destructor'&quot; @184))" Category="CodeSchema_Method" Bounds="28578.7358553268,21066.7717794633,176.116666666665,25.9599999999991" CodeSchemaProperty_IsExternal="True" DelayedCrossGroupLinksState="NotFetched" Label="`scalar deleting destructor'" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=(Name=&quot;`vector deleting destructor'&quot; @184))" Category="CodeSchema_Method" Bounds="28784.8525219935,21066.7717794633,179.023333333334,25.9599999999991" CodeSchemaProperty_IsExternal="True" DelayedCrossGroupLinksState="NotFetched" Label="`vector deleting destructor'" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="(@1 @3 Member=(Name=__empty_global_delete @200))" Category="CodeSchema_Method" Bounds="28207.9358553268,21066.7717794633,155.400000000001,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="__empty_global_delete" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -294,8 +294,8 @@
     <Node Id="@287" Category="CodeSchema_Method" Bounds="25491.7258028793,22911.5317794633,257.716666666667,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@288" Category="CodeSchema_Method" Bounds="25585.5152845709,24580.8117794633,119.086666666666,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="moveOfCAN" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@29" Category="CodeSchema_Namespace" Bounds="25581.1122337596,23899.8520582888,92.8566666666666,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="4" Group="Collapsed" Label="Pawns" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
-    <Node Id="@290" Category="CodeSchema_Method" Bounds="24524.9248205224,22549.6012767791,308.013333333336,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="init‎&lt;TBSyzygy‎::`anonymous namespace'‎::DTZEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@292" Category="CodeSchema_Method" Bounds="24751.2726599242,22826.5212767791,311.743333333332,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="init‎&lt;TBSyzygy‎::`anonymous namespace'‎::WDLEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@290" Category="CodeSchema_Method" Bounds="24524.9248205224,22549.6012767791,308.013333333336,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="init‎&lt;SyzygyTB‎::`anonymous namespace'‎::DTZEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@292" Category="CodeSchema_Method" Bounds="24751.2726599242,22826.5212767791,311.743333333332,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="init‎&lt;SyzygyTB‎::`anonymous namespace'‎::WDLEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@294" Category="CodeSchema_Method" Bounds="25667.7843345056,22855.5717794633,96.1433333333334,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="filterIllegal" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@295" Category="CodeSchema_Method" Bounds="26240.9832170295,22508.6975281815,208.986666666664,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="generate_castling_moves‎&lt;0‎,0‎,0‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@296" Category="CodeSchema_Method" Bounds="26132.8410776098,22568.7938617938,208.986666666664,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="generate_castling_moves‎&lt;0‎,0‎,1‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -344,7 +344,7 @@
     <Node Id="@337" Category="CodeSchema_Method" Bounds="25428.024439502,23987.1097547982,80.4333333333343,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="perft‎&lt;1‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@339" Category="CodeSchema_Method" Bounds="26378.3132263337,24757.689386787,128.43,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="frontSquares" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@34" Category="CodeSchema_Namespace" Bounds="25636.8255337369,23403.5180975017,104.259999999995,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="4" Group="Collapsed" Label="Searcher" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
-    <Node Id="@340" Category="CodeSchema_Method" Bounds="26336.571403417,25149.410089912,108.843333333338,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="frontRanks" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@340" Category="CodeSchema_Method" Bounds="26336.571403417,25149.410089912,108.843333333338,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="frontRanksBB" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@341" Category="CodeSchema_Method" Bounds="26374.8496195629,25205.371027412,135.046666666662,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="pawnAttackSpan" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@342" Category="CodeSchema_Method" Bounds="26217.4445478898,25205.3706659526,127.423333333332,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="pawnPassSpan" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@343" Category="CodeSchema_Method" Bounds="25503.8881029413,21514.4517794633,77.369999999999,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="rel_rank" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -373,7 +373,7 @@
     <Node Id="@367" Category="CodeSchema_Method" Bounds="25412.0221559154,24680.6033726224,249.083333333333,24.4033333333333" DelayedCrossGroupLinksState="Fetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@368" Category="CodeSchema_Method" Bounds="25380.9933796878,25413.6117794632,257.716666666667,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator‎&gt;‎&gt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@369" Category="CodeSchema_Method" Bounds="25331.6470983468,25524.5717794632,257.716666666667,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@37" Category="CodeSchema_Namespace" Bounds="25508.4605186109,24064.8520582888,108.383333333331,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="10" Group="Collapsed" Label="TBSyzygy" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
+    <Node Id="@37" Category="CodeSchema_Namespace" Bounds="25508.4605186109,24064.8520582888,108.383333333331,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="10" Group="Collapsed" Label="SyzygyTB" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@370" Category="CodeSchema_Method" Bounds="25659.3532932755,24732.5677871511,249.083333333328,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="operator‎&lt;‎&lt;‎&lt;char‎,std‎::char_traits‎&lt;char‎&gt; ‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@371" Bounds="26290.0261039379,24757.689386787,50.986666666664,24.4033333333355" Label="@371" UseManualLocation="True" />
     <Node Id="@372" Category="CodeSchema_Method" Bounds="26210.871813706,24813.6499659526,138.406666666662,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="scan_frontmost_sq" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -449,7 +449,7 @@
     <Node Id="@444" Category="CodeSchema_Method" Bounds="25466.3074738195,24860.6917794633,78.876666666667,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="position" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@445" Category="CodeSchema_Method" Bounds="25252.8644777904,25915.3717794632,93.626666666667,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="set_symlen" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@446" Category="CodeSchema_Method" Bounds="25875.1245414788,23774.7977427924,91.1399999999994,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="update_pv" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@447" Category="CodeSchema_Method" Bounds="24499.9841668387,22325.7612767791,370.683333333334,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="probe_table‎&lt;TBSyzygy‎::`anonymous namespace'‎::DTZEntry‎,int‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@447" Category="CodeSchema_Method" Bounds="24499.9841668387,22325.7612767791,370.683333333334,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="probe_table‎&lt;SyzygyTB‎::`anonymous namespace'‎::DTZEntry‎,int‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@449" Category="CodeSchema_Method" Bounds="26153.373508665,22452.7375281815,182.16333333333,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="generate_king_moves‎&lt;0‎,0‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@45" Category="CodeSchema_Method" Bounds="25721.7639322493,23962.4075151148,106.940000000002,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="debugHitOn" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@450" Category="CodeSchema_Method" Bounds="25255.8309277801,23846.0798183571,182.163333333345,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="generate_king_moves‎&lt;0‎,1‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -539,27 +539,27 @@
     <Node Id="@531" Category="CodeSchema_Method" Bounds="25721.7503799033,23666.0412591315,196.563333333339,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="generate_piece_moves‎&lt;5‎,1‎,3‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@532" Category="CodeSchema_Method" Bounds="25832.2700943137,23554.1213131037,196.563333333339,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="generate_piece_moves‎&lt;5‎,1‎,4‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@533" Category="CodeSchema_Method" Bounds="25907.7766768545,25037.490168037,105.993333333332,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="slideAttacks" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@534" Category="CodeSchema_Method" Bounds="24373.6602713421,23050.4012767791,537.396666666667,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_init‎&lt;TBSyzygy‎::`anonymous namespace'‎::DTZEntry‎,TBSyzygy‎::A0xa3222161‎::DTZEntryPawn‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@535" Category="CodeSchema_Method" Bounds="24393.6174955422,23218.3212767791,536.830000000002,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_init‎&lt;TBSyzygy‎::`anonymous namespace'‎::DTZEntry‎,TBSyzygy‎::A0xa3222161‎::DTZEntryPiece‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@536" Category="CodeSchema_Method" Bounds="24487.4335439608,23162.3612767791,544.856666666659,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_init‎&lt;TBSyzygy‎::`anonymous namespace'‎::WDLEntry‎,TBSyzygy‎::A0xa3222161‎::WDLEntryPawn‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@537" Category="CodeSchema_Method" Bounds="24454.3658097627,23330.241276779,561.286666666667,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_init‎&lt;TBSyzygy‎::`anonymous namespace'‎::WDLEntry‎,TBSyzygy‎::A0xa3222161‎::WDLEntryPiece [2]‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@534" Category="CodeSchema_Method" Bounds="24373.6602713421,23050.4012767791,537.396666666667,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_init‎&lt;SyzygyTB‎::`anonymous namespace'‎::DTZEntry‎,SyzygyTB‎::A0xa3222161‎::DTZEntryPawn‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@535" Category="CodeSchema_Method" Bounds="24393.6174955422,23218.3212767791,536.830000000002,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_init‎&lt;SyzygyTB‎::`anonymous namespace'‎::DTZEntry‎,SyzygyTB‎::A0xa3222161‎::DTZEntryPiece‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@536" Category="CodeSchema_Method" Bounds="24487.4335439608,23162.3612767791,544.856666666659,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_init‎&lt;SyzygyTB‎::`anonymous namespace'‎::WDLEntry‎,SyzygyTB‎::A0xa3222161‎::WDLEntryPawn‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@537" Category="CodeSchema_Method" Bounds="24454.3658097627,23330.241276779,561.286666666667,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_init‎&lt;SyzygyTB‎::`anonymous namespace'‎::WDLEntry‎,SyzygyTB‎::A0xa3222161‎::WDLEntryPiece [2]‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@539" Category="CodeSchema_Method" Bounds="25621.0663465274,24792.5235726224,115.62,24.4033333333333" DelayedCrossGroupLinksState="Fetched" Label="rootProbeDTZ" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@54" Category="CodeSchema_Method" Bounds="25502.425127105,21458.4917794633,67.9233333333323,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="to_file" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@540" Category="CodeSchema_Method" Bounds="25642.7719429919,24848.4836726224,117.683333333333,24.4033333333333" DelayedCrossGroupLinksState="Fetched" Label="rootProbeWDL" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@541" Category="CodeSchema_Method" Bounds="25338.0802770341,26196.2117794632,58.0266666666685,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="split" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@542" Category="CodeSchema_Method" Bounds="26917.2430746395,23612.7884603915,117.919999999998,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="remaining_time" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@543" Category="CodeSchema_Method" Bounds="24493.7085196184,22437.6812767791,348.96666666666,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_groups‎&lt;TBSyzygy‎::`anonymous namespace'‎::DTZEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@544" Category="CodeSchema_Method" Bounds="24555.8959236532,22381.7212767791,352.69666666667,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_groups‎&lt;TBSyzygy‎::`anonymous namespace'‎::WDLEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@545" Category="CodeSchema_Method" Bounds="24337.3127605776,22660.5612767791,385.08666666667,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_dtz_map‎&lt;TBSyzygy‎::`anonymous namespace'‎::DTZEntryPawn‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@546" Category="CodeSchema_Method" Bounds="24327.9254399795,22938.4412767791,384.520000000004,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_dtz_map‎&lt;TBSyzygy‎::`anonymous namespace'‎::DTZEntryPiece‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@547" Category="CodeSchema_Method" Bounds="24752.3995272443,22715.5612767791,388.816666666666,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_dtz_map‎&lt;TBSyzygy‎::`anonymous namespace'‎::WDLEntryPawn‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@548" Category="CodeSchema_Method" Bounds="24742.4455399795,22938.4812767791,405.246666666659,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_dtz_map‎&lt;TBSyzygy‎::`anonymous namespace'‎::WDLEntryPiece [2]‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@543" Category="CodeSchema_Method" Bounds="24493.7085196184,22437.6812767791,348.96666666666,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_groups‎&lt;SyzygyTB‎::`anonymous namespace'‎::DTZEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@544" Category="CodeSchema_Method" Bounds="24555.8959236532,22381.7212767791,352.69666666667,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_groups‎&lt;SyzygyTB‎::`anonymous namespace'‎::WDLEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@545" Category="CodeSchema_Method" Bounds="24337.3127605776,22660.5612767791,385.08666666667,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_dtz_map‎&lt;SyzygyTB‎::`anonymous namespace'‎::DTZEntryPawn‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@546" Category="CodeSchema_Method" Bounds="24327.9254399795,22938.4412767791,384.520000000004,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_dtz_map‎&lt;SyzygyTB‎::`anonymous namespace'‎::DTZEntryPiece‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@547" Category="CodeSchema_Method" Bounds="24752.3995272443,22715.5612767791,388.816666666666,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_dtz_map‎&lt;SyzygyTB‎::`anonymous namespace'‎::WDLEntryPawn‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@548" Category="CodeSchema_Method" Bounds="24742.4455399795,22938.4812767791,405.246666666659,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="set_dtz_map‎&lt;SyzygyTB‎::`anonymous namespace'‎::WDLEntryPiece [2]‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@549" Category="CodeSchema_Method" Bounds="25505.4527346223,23970.0117794633,182.003333333334,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="update_stacks_continuation" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@55" Category="CodeSchema_Method" Bounds="25496.7237063247,21402.5317794633,75.1100000000006,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="to_rank" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@550" Category="CodeSchema_Method" Bounds="25668.3970185192,24265.5748529447,114.056666666671,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="verify_material" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@551" Category="CodeSchema_Method" Bounds="25764.8624368437,23139.8095255129,64.6033333333326,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="index" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@552" Category="CodeSchema_Method" Bounds="25833.2503374529,24366.1894083707,66.6100000000006,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="probe" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@553" Category="CodeSchema_Method" Bounds="24464.2570342488,23274.281276779,389.759999999995,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_probe_table‎&lt;TBSyzygy‎::`anonymous namespace'‎::DTZEntry‎,int‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@553" Category="CodeSchema_Method" Bounds="24464.2570342488,23274.281276779,389.759999999995,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_probe_table‎&lt;SyzygyTB‎::`anonymous namespace'‎::DTZEntry‎,int‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@554" Category="CodeSchema_Method" Bounds="25383.028305723,23580.1717794633,92.5933333333342,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="map_score" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@555" Category="CodeSchema_Method" Bounds="25406.565416102,21122.7317794633,92.5933333333342,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="map_score" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@556" Category="CodeSchema_Method" Bounds="26389.5618692834,23699.0613278151,122.876666666678,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="reduction_depth" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -592,7 +592,7 @@
     <Node Id="@582" Category="CodeSchema_Method" Bounds="25835.8812145565,25093.4504646947,200.683333333334,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="dist‎&lt;enum Rank‎,enum Square‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@583" Category="CodeSchema_Method" Bounds="25876.3169526782,25261.3307646947,127.856666666667,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="dist‎&lt;enum Rank‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@584" Category="CodeSchema_Method" Bounds="25836.8269720798,24869.6100659526,138.626666666663,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="dist‎&lt;enum Square‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@585" Category="CodeSchema_Method" Bounds="24524.8544073176,23442.161276779,522.529999999999,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_probe_table‎&lt;TBSyzygy‎::`anonymous namespace'‎::WDLEntry‎,enum TBSyzygy‎::WDLScore‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@585" Category="CodeSchema_Method" Bounds="24524.8544073176,23442.161276779,522.529999999999,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="do_probe_table‎&lt;SyzygyTB‎::`anonymous namespace'‎::WDLEntry‎,enum SyzygyTB‎::WDLScore‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@586" Category="CodeSchema_Method" Bounds="26150.3742478637,21066.7717794633,91.1399999999994,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="HashTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@587" Category="CodeSchema_Method" Bounds="25801.0797537331,23555.4521307709,56.5433333333349,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="info" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@589" Category="CodeSchema_Method" Bounds="25833.2459754738,24422.1493693082,79.8433333333378,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="initialize" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -627,7 +627,7 @@
     <Node Id="@616" Category="CodeSchema_Method" Bounds="25876.7144999776,22590.1057944919,101.493333333332,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="on_time_opt" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@617" Category="CodeSchema_Method" Bounds="25800.8096432068,22757.9925132419,127.93,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="on_uci_chess960" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@618" Category="CodeSchema_Method" Bounds="25504.6982499776,22590.1057944919,92.2133333333331,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="on_uci_elo" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@619" Category="CodeSchema_Method" Bounds="24562.9174803876,22493.6412767791,503.453333333324,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="probe_table‎&lt;TBSyzygy‎::`anonymous namespace'‎::WDLEntry‎,enum TBSyzygy‎::WDLScore‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@619" Category="CodeSchema_Method" Bounds="24562.9174803876,22493.6412767791,503.453333333324,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="probe_table‎&lt;SyzygyTB‎::`anonymous namespace'‎::WDLEntry‎,enum SyzygyTB‎::WDLScore‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@620" Category="CodeSchema_Method" Bounds="25064.6393067604,23020.5717794633,137.290000000001,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="sign‎&lt;enum Value‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@621" Category="CodeSchema_Enum" Bounds="26217.4491396387,24018.0938385723,91.673333333325,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="Ambiguity" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@622" Category="CodeSchema_Struct" Bounds="24654.6927890476,22160.7612715668,96.6233333333512,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Atomic" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -713,8 +713,8 @@
     <Node Id="@699" Category="CodeSchema_Enum" Bounds="25441.0415804838,22241.9317794633,63.0366666666669,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="Rank" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@70" Category="CodeSchema_Method" Bounds="26170.7512145565,24869.6100659526,70.7933333333349,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="file" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@700" Category="CodeSchema_Enum" Bounds="25660.3044696562,23250.7694864504,70.3833333333314,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="Result" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@701" Category="CodeSchema_Struct" Bounds="24484.8819458764,22605.5612767791,331.863333333342,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Ret‎&lt;TBSyzygy‎::`anonymous namespace'‎::DTZEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@702" Category="CodeSchema_Struct" Bounds="24621.959533924,22215.7612767791,335.593333333323,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Ret‎&lt;TBSyzygy‎::`anonymous namespace'‎::WDLEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@701" Category="CodeSchema_Struct" Bounds="24484.8819458764,22605.5612767791,331.863333333342,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Ret‎&lt;SyzygyTB‎::`anonymous namespace'‎::DTZEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@702" Category="CodeSchema_Struct" Bounds="24621.959533924,22215.7612767791,335.593333333323,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Ret‎&lt;SyzygyTB‎::`anonymous namespace'‎::WDLEntry‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@703" Category="CodeSchema_Class" Bounds="25425.2456877629,23359.2117794633,116.133333333335,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="RootMove" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@704" Category="CodeSchema_Class" Bounds="25437.8158291822,24524.8517794633,121.226666666666,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="RootMoves" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@705" Category="CodeSchema_Enum" Bounds="27046.0691886602,21066.7717794633,64.2066666666651,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="Scale" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -2155,7 +2155,7 @@
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic atexit destructor for 'ScaleKPsK''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic atexit destructor for 'ScaleKQKRPs''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic atexit destructor for 'StartFEN''&quot;)" Category="Contains" FetchingParent="@4" />
-    <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic atexit destructor for 'TBSyzygy::`anonymous namespace'::TBFile::Paths''&quot;)" Category="Contains" FetchingParent="@4" />
+    <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic atexit destructor for 'SyzygyTB::`anonymous namespace'::TBFile::Paths''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic atexit destructor for 'ThreadPool::Groups''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic atexit destructor for 'ValueKXK''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic atexit destructor for 'Version''&quot;)" Category="Contains" FetchingParent="@4" />
@@ -2184,7 +2184,7 @@
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic initializer for 'ScaleKPsK''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic initializer for 'ScaleKQKRPs''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic initializer for 'StartFEN''&quot;)" Category="Contains" FetchingParent="@4" />
-    <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic initializer for 'TBSyzygy::`anonymous namespace'::TBFile::Paths''&quot;)" Category="Contains" FetchingParent="@4" />
+    <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic initializer for 'SyzygyTB::`anonymous namespace'::TBFile::Paths''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic initializer for 'ThreadPool::Groups''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic initializer for 'ValueKXK''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic initializer for 'Version''&quot;)" Category="Contains" FetchingParent="@4" />
@@ -2207,7 +2207,7 @@
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic initializer for '`anonymous namespace'::Evaluator&lt;1&gt;::PieceCloseness''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic initializer for '`anonymous namespace'::Evaluator&lt;1&gt;::PieceMobility''&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=&quot;`dynamic initializer for '`anonymous namespace'::Evaluator&lt;1&gt;::RookOnFile''&quot;)" Category="Contains" FetchingParent="@4" />
-    <Link Source="@4" Target="(@1 @3 Member=&quot;sign&lt;enum TBSyzygy::WDLScore&gt;&quot;)" Category="Contains" FetchingParent="@4" />
+    <Link Source="@4" Target="(@1 @3 Member=&quot;sign&lt;enum SyzygyTB::WDLScore&gt;&quot;)" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=(Name=&quot;`scalar deleting destructor'&quot; @184))" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=(Name=&quot;`vector deleting destructor'&quot; @184))" Category="Contains" FetchingParent="@4" />
     <Link Source="@4" Target="(@1 @3 Member=(Name=__empty_global_delete @200))" Category="Contains" FetchingParent="@4" />
@@ -6189,7 +6189,7 @@
     <Alias n="33" Id="Namespace=Searcher" />
     <Alias n="34" Id="(@1 @33)" />
     <Alias n="35" Id="(@1 Namespace=std)" />
-    <Alias n="36" Id="Namespace=TBSyzygy" />
+    <Alias n="36" Id="Namespace=SyzygyTB" />
     <Alias n="37" Id="(@1 @36)" />
     <Alias n="38" Id="Namespace=UCI" />
     <Alias n="39" Id="(@1 @38)" />
@@ -6307,11 +6307,11 @@
     <Alias n="152" Id="(@1 @3 Member=(Name=month_index OverloadingParameters=[@151]))" />
     <Alias n="153" Id="(@1 @3 Member=(Name=whiteSpaces OverloadingParameters=[@151]))" />
     <Alias n="154" Id="(@1 @3 Member=(Name=time_to_string OverloadingParameters=[(Type=&quot;std::chrono::time_point&lt;std::chrono::system_clock,std::chrono::duration&lt;__int64,std::ratio&lt;1,10000000&gt; &gt; &gt; const &amp;&quot;)]))" />
-    <Alias n="155" Id="(@1 @3 Member=(Name=HashTable OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::HashTable &amp;&amp;&quot;)]))" />
-    <Alias n="156" Id="(@1 @3 Member=(Name=&quot;operator=&quot; OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::HashTable &amp;&amp;&quot;)]))" />
-    <Alias n="157" Id="(@1 @3 Member=(Name=HashTable OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::HashTable const &amp;&quot;)]))" />
-    <Alias n="158" Id="(@1 @3 Member=(Name=&quot;operator=&quot; OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::HashTable const &amp;&quot;)]))" />
-    <Alias n="159" Id="(Type=TBSyzygy::WDLScore)" />
+    <Alias n="155" Id="(@1 @3 Member=(Name=HashTable OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::HashTable &amp;&amp;&quot;)]))" />
+    <Alias n="156" Id="(@1 @3 Member=(Name=&quot;operator=&quot; OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::HashTable &amp;&amp;&quot;)]))" />
+    <Alias n="157" Id="(@1 @3 Member=(Name=HashTable OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::HashTable const &amp;&quot;)]))" />
+    <Alias n="158" Id="(@1 @3 Member=(Name=&quot;operator=&quot; OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::HashTable const &amp;&quot;)]))" />
+    <Alias n="159" Id="(Type=SyzygyTB::WDLScore)" />
     <Alias n="160" Id="(@1 @5 Member=(Name=dtz_before_zeroing OverloadingParameters=[@159]))" />
     <Alias n="161" Id="(@1 @36 Member=(@62 OverloadingParameters=[@159]))" />
     <Alias n="162" Id="(@1 @3 Member=(Name=prettyInfo OverloadingParameters=[(Type=&quot;Thread * const &amp;&quot;)]))" />
@@ -6440,10 +6440,10 @@
     <Alias n="286" Id="(@1 @3 Member=(Name=setupBench OverloadingParameters=[(Type=&quot;std::basic_istringstream&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt; &amp;&quot;),@101]))" />
     <Alias n="287" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,@101]))" />
     <Alias n="288" Id="(@1 @3 Member=(Name=moveOfCAN OverloadingParameters=[@151,@101]))" />
-    <Alias n="289" Id="(Type=&quot;TBSyzygy::A0xa3222161::DTZEntry &amp;&quot;)" />
-    <Alias n="290" Id="(@1 @5 Member=(Name=&quot;init&lt;TBSyzygy::`anonymous namespace'::DTZEntry&gt;&quot; OverloadingParameters=[@289,@101]))" />
-    <Alias n="291" Id="(Type=&quot;TBSyzygy::A0xa3222161::WDLEntry &amp;&quot;)" />
-    <Alias n="292" Id="(@1 @5 Member=(Name=&quot;init&lt;TBSyzygy::`anonymous namespace'::WDLEntry&gt;&quot; OverloadingParameters=[@291,@101]))" />
+    <Alias n="289" Id="(Type=&quot;SyzygyTB::A0xa3222161::DTZEntry &amp;&quot;)" />
+    <Alias n="290" Id="(@1 @5 Member=(Name=&quot;init&lt;SyzygyTB::`anonymous namespace'::DTZEntry&gt;&quot; OverloadingParameters=[@289,@101]))" />
+    <Alias n="291" Id="(Type=&quot;SyzygyTB::A0xa3222161::WDLEntry &amp;&quot;)" />
+    <Alias n="292" Id="(@1 @5 Member=(Name=&quot;init&lt;SyzygyTB::`anonymous namespace'::WDLEntry&gt;&quot; OverloadingParameters=[@291,@101]))" />
     <Alias n="293" Id="OverloadingParameters=[(Type=&quot;ValMoves &amp;&quot;),@101]" />
     <Alias n="294" Id="(@1 @3 Member=(Name=filterIllegal @293))" />
     <Alias n="295" Id="(@1 @5 Member=(Name=&quot;generate_castling_moves&lt;0,0,0&gt;&quot; @293))" />
@@ -6491,7 +6491,7 @@
     <Alias n="337" Id="(@1 @33 Member=(Name=perft&lt;1&gt; OverloadingParameters=[@271,@123]))" />
     <Alias n="338" Id="OverloadingParameters=[@56,@127]" />
     <Alias n="339" Id="(@1 @12 Member=(Name=frontSquares @338))" />
-    <Alias n="340" Id="(@1 @12 Member=(Name=frontRanks @338))" />
+    <Alias n="340" Id="(@1 @12 Member=(Name=frontRanksBB @338))" />
     <Alias n="341" Id="(@1 @12 Member=(Name=pawnAttackSpan @338))" />
     <Alias n="342" Id="(@1 @12 Member=(Name=pawnPassSpan @338))" />
     <Alias n="343" Id="(@1 @3 Member=(Name=rel_rank @338))" />
@@ -6514,8 +6514,8 @@
     <Alias n="360" Id="(@1 @3 Member=(Name=appendPath OverloadingParameters=[@151,@151]))" />
     <Alias n="361" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,(Type=&quot;std::chrono::time_point&lt;std::chrono::system_clock,std::chrono::duration&lt;__int64,std::ratio&lt;1,10000000&gt; &gt; &gt; const &amp;&quot;)]))" />
     <Alias n="362" Id="(@1 @38 Member=(@227 OverloadingParameters=[@208,(Type=&quot;std::map&lt;std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;,UCI::Option,std::CaseInsensitiveLessComparer,std::allocator&lt;std::pair&lt;std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt; const ,UCI::Option&gt; &gt; &gt; const &amp;&quot;)]))" />
-    <Alias n="363" Id="(@1 @36 Member=(@227 OverloadingParameters=[@208,(Type=TBSyzygy::ProbeState)]))" />
-    <Alias n="364" Id="(Type=&quot;TBSyzygy::ProbeState &amp;&quot;)" />
+    <Alias n="363" Id="(@1 @36 Member=(@227 OverloadingParameters=[@208,(Type=SyzygyTB::ProbeState)]))" />
+    <Alias n="364" Id="(Type=&quot;SyzygyTB::ProbeState &amp;&quot;)" />
     <Alias n="365" Id="(@1 @36 Member=(Name=probeDTZ OverloadingParameters=[@271,@364]))" />
     <Alias n="366" Id="(@1 @36 Member=(Name=probeWDL OverloadingParameters=[@271,@364]))" />
     <Alias n="367" Id="(@1 @36 Member=(@227 OverloadingParameters=[@208,@159]))" />
@@ -6526,7 +6526,7 @@
     <Alias n="373" Id="(@1 @12 Member=(Name=attacksBB&lt;2&gt; OverloadingParameters=[@127,@163]))" />
     <Alias n="374" Id="(@1 @12 Member=(Name=attacksBB&lt;3&gt; OverloadingParameters=[@127,@163]))" />
     <Alias n="375" Id="(@1 @12 Member=(Name=attacksBB&lt;4&gt; OverloadingParameters=[@127,@163]))" />
-    <Alias n="376" Id="(Type=&quot;TBSyzygy::A0xa3222161::PairsData *&quot;)" />
+    <Alias n="376" Id="(Type=&quot;SyzygyTB::A0xa3222161::PairsData *&quot;)" />
     <Alias n="377" Id="(@1 @3 Member=(Name=decompress_pairs OverloadingParameters=[@376,@163]))" />
     <Alias n="378" Id="(@1 @5 Member=(Name=&quot;operator&gt;&gt;&lt;unsigned __int64&gt;&quot; OverloadingParameters=[@280,(Type=&quot;unsigned __int64 &amp;&quot;)]))" />
     <Alias n="379" Id="(Type=&quot;unsigned char&quot;)" />
@@ -6541,13 +6541,13 @@
     <Alias n="388" Id="(@1 @3 Member=(@233 OverloadingParameters=[@197,@190]))" />
     <Alias n="389" Id="(@1 @3 Member=(Name=search OverloadingParameters=[@271,@364,@44]))" />
     <Alias n="390" Id="(@1 Namespace=&quot;BitBoard::`anonymous namespace'&quot; Member=(Name=initialize_table OverloadingParameters=[(Type=&quot;unsigned __int64 * const&quot;),(Type=&quot;BitBoard::Magic * const&quot;),(Type=&quot;Direction const * const&quot;)]))" />
-    <Alias n="391" Id="(@1 @3 Member=(Name=check_dtz_stm OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::DTZEntry *&quot;),@76,@67]))" />
-    <Alias n="392" Id="(@1 @3 Member=(Name=check_dtz_stm OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::WDLEntry *&quot;),@76,@67]))" />
+    <Alias n="391" Id="(@1 @3 Member=(Name=check_dtz_stm OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::DTZEntry *&quot;),@76,@67]))" />
+    <Alias n="392" Id="(@1 @3 Member=(Name=check_dtz_stm OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::WDLEntry *&quot;),@76,@67]))" />
     <Alias n="393" Id="Name=item" />
-    <Alias n="394" Id="(@1 @5 Member=(@393 OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::DTZEntryPawn &amp;&quot;),@76,@76]))" />
-    <Alias n="395" Id="(@1 @5 Member=(@393 OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::DTZEntryPiece &amp;&quot;),@76,@76]))" />
-    <Alias n="396" Id="(@1 @5 Member=(@393 OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::WDLEntryPawn &amp;&quot;),@76,@76]))" />
-    <Alias n="397" Id="(@1 @5 Member=(@393 OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::WDLEntryPiece (&amp;)[2]&quot;),@76,@76]))" />
+    <Alias n="394" Id="(@1 @5 Member=(@393 OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::DTZEntryPawn &amp;&quot;),@76,@76]))" />
+    <Alias n="395" Id="(@1 @5 Member=(@393 OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::DTZEntryPiece &amp;&quot;),@76,@76]))" />
+    <Alias n="396" Id="(@1 @5 Member=(@393 OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::WDLEntryPawn &amp;&quot;),@76,@76]))" />
+    <Alias n="397" Id="(@1 @5 Member=(@393 OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::WDLEntryPiece (&amp;)[2]&quot;),@76,@76]))" />
     <Alias n="398" Id="(Type=&quot;Stack * const &amp;&quot;)" />
     <Alias n="399" Id="(@1 @3 Member=(Name=update_killers OverloadingParameters=[@398,@101,@85]))" />
     <Alias n="400" Id="(@1 @3 Member=(Name=mk_move OverloadingParameters=[@127,@127,(Type=PieceType)]))" />
@@ -6597,7 +6597,7 @@
     <Alias n="444" Id="(@1 @3 Member=(Name=position OverloadingParameters=[(Type=&quot;std::basic_istringstream&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt; &amp;&quot;),@271,(Type=&quot;std::unique_ptr&lt;std::deque&lt;StateInfo,std::allocator&lt;StateInfo&gt; &gt;,std::default_delete&lt;std::deque&lt;StateInfo,std::allocator&lt;StateInfo&gt; &gt; &gt; &gt; &amp;&quot;)]))" />
     <Alias n="445" Id="(@1 @3 Member=(Name=set_symlen OverloadingParameters=[@376,(Type=&quot;unsigned short&quot;),(Type=&quot;std::vector&lt;bool,std::allocator&lt;bool&gt; &gt; &amp;&quot;)]))" />
     <Alias n="446" Id="(@1 @3 Member=(Name=update_pv OverloadingParameters=[(Type=&quot;std::vector&lt;Move,std::allocator&lt;Move&gt; &gt; &amp;&quot;),@85,(Type=&quot;std::vector&lt;Move,std::allocator&lt;Move&gt; &gt; const &amp;&quot;)]))" />
-    <Alias n="447" Id="(@1 @5 Member=(Name=&quot;probe_table&lt;TBSyzygy::`anonymous namespace'::DTZEntry,int&gt;&quot; OverloadingParameters=[@101,@364,@159]))" />
+    <Alias n="447" Id="(@1 @5 Member=(Name=&quot;probe_table&lt;SyzygyTB::`anonymous namespace'::DTZEntry,int&gt;&quot; OverloadingParameters=[@101,@364,@159]))" />
     <Alias n="448" Id="OverloadingParameters=[(Type=&quot;ValMoves &amp;&quot;),@101,@163]" />
     <Alias n="449" Id="(@1 @5 Member=(Name=&quot;generate_king_moves&lt;0,0&gt;&quot; @448))" />
     <Alias n="450" Id="(@1 @5 Member=(Name=&quot;generate_king_moves&lt;0,1&gt;&quot; @448))" />
@@ -6684,27 +6684,27 @@
     <Alias n="531" Id="(@1 @5 Member=(Name=&quot;generate_piece_moves&lt;5,1,3&gt;&quot; @448))" />
     <Alias n="532" Id="(@1 @5 Member=(Name=&quot;generate_piece_moves&lt;5,1,4&gt;&quot; @448))" />
     <Alias n="533" Id="(@1 @12 Member=(Name=slideAttacks OverloadingParameters=[(Type=&quot;Direction const *&quot;),@127,@163]))" />
-    <Alias n="534" Id="(@1 @5 Member=(Name=&quot;do_init&lt;TBSyzygy::`anonymous namespace'::DTZEntry,TBSyzygy::A0xa3222161::DTZEntryPawn&gt;&quot; OverloadingParameters=[@289,(Type=&quot;TBSyzygy::A0xa3222161::DTZEntryPawn &amp;&quot;),@381]))" />
-    <Alias n="535" Id="(@1 @5 Member=(Name=&quot;do_init&lt;TBSyzygy::`anonymous namespace'::DTZEntry,TBSyzygy::A0xa3222161::DTZEntryPiece&gt;&quot; OverloadingParameters=[@289,(Type=&quot;TBSyzygy::A0xa3222161::DTZEntryPiece &amp;&quot;),@381]))" />
-    <Alias n="536" Id="(@1 @5 Member=(Name=&quot;do_init&lt;TBSyzygy::`anonymous namespace'::WDLEntry,TBSyzygy::A0xa3222161::WDLEntryPawn&gt;&quot; OverloadingParameters=[@291,(Type=&quot;TBSyzygy::A0xa3222161::WDLEntryPawn &amp;&quot;),@381]))" />
-    <Alias n="537" Id="(@1 @5 Member=(Name=&quot;do_init&lt;TBSyzygy::`anonymous namespace'::WDLEntry,TBSyzygy::A0xa3222161::WDLEntryPiece [2]&gt;&quot; OverloadingParameters=[@291,(Type=&quot;TBSyzygy::A0xa3222161::WDLEntryPiece (&amp;)[2]&quot;),@381]))" />
+    <Alias n="534" Id="(@1 @5 Member=(Name=&quot;do_init&lt;SyzygyTB::`anonymous namespace'::DTZEntry,SyzygyTB::A0xa3222161::DTZEntryPawn&gt;&quot; OverloadingParameters=[@289,(Type=&quot;SyzygyTB::A0xa3222161::DTZEntryPawn &amp;&quot;),@381]))" />
+    <Alias n="535" Id="(@1 @5 Member=(Name=&quot;do_init&lt;SyzygyTB::`anonymous namespace'::DTZEntry,SyzygyTB::A0xa3222161::DTZEntryPiece&gt;&quot; OverloadingParameters=[@289,(Type=&quot;SyzygyTB::A0xa3222161::DTZEntryPiece &amp;&quot;),@381]))" />
+    <Alias n="536" Id="(@1 @5 Member=(Name=&quot;do_init&lt;SyzygyTB::`anonymous namespace'::WDLEntry,SyzygyTB::A0xa3222161::WDLEntryPawn&gt;&quot; OverloadingParameters=[@291,(Type=&quot;SyzygyTB::A0xa3222161::WDLEntryPawn &amp;&quot;),@381]))" />
+    <Alias n="537" Id="(@1 @5 Member=(Name=&quot;do_init&lt;SyzygyTB::`anonymous namespace'::WDLEntry,SyzygyTB::A0xa3222161::WDLEntryPiece [2]&gt;&quot; OverloadingParameters=[@291,(Type=&quot;SyzygyTB::A0xa3222161::WDLEntryPiece (&amp;)[2]&quot;),@381]))" />
     <Alias n="539" Id="(@1 @36 Member=(Name=rootProbeDTZ OverloadingParameters=[@271,(Type=&quot;RootMoves &amp;&quot;),@197]))" />
     <Alias n="540" Id="(@1 @36 Member=(Name=rootProbeWDL OverloadingParameters=[@271,(Type=&quot;RootMoves &amp;&quot;),@197]))" />
     <Alias n="541" Id="(@1 @3 Member=(Name=split OverloadingParameters=[(Type=&quot;std::basic_string&lt;char,std::char_traits&lt;char&gt;,std::allocator&lt;char&gt; &gt;&quot;),@53,@44,@44]))" />
     <Alias n="542" Id="(@1 @5 Member=(Name=remaining_time OverloadingParameters=[@163,@379,@123,@44]))" />
-    <Alias n="543" Id="(@1 @5 Member=(Name=&quot;set_groups&lt;TBSyzygy::`anonymous namespace'::DTZEntry&gt;&quot; OverloadingParameters=[@289,@376,(Type=&quot;int *&quot;),@67]))" />
-    <Alias n="544" Id="(@1 @5 Member=(Name=&quot;set_groups&lt;TBSyzygy::`anonymous namespace'::WDLEntry&gt;&quot; OverloadingParameters=[@291,@376,(Type=&quot;int *&quot;),@67]))" />
-    <Alias n="545" Id="(@1 @5 Member=(Name=&quot;set_dtz_map&lt;TBSyzygy::`anonymous namespace'::DTZEntryPawn&gt;&quot; OverloadingParameters=[@289,(Type=&quot;TBSyzygy::A0xa3222161::DTZEntryPawn &amp;&quot;),@381,@67]))" />
-    <Alias n="546" Id="(@1 @5 Member=(Name=&quot;set_dtz_map&lt;TBSyzygy::`anonymous namespace'::DTZEntryPiece&gt;&quot; OverloadingParameters=[@289,(Type=&quot;TBSyzygy::A0xa3222161::DTZEntryPiece &amp;&quot;),@381,@67]))" />
-    <Alias n="547" Id="(@1 @5 Member=(Name=&quot;set_dtz_map&lt;TBSyzygy::`anonymous namespace'::WDLEntryPawn&gt;&quot; OverloadingParameters=[@291,(Type=&quot;TBSyzygy::A0xa3222161::WDLEntryPawn &amp;&quot;),@381,@67]))" />
-    <Alias n="548" Id="(@1 @5 Member=(Name=&quot;set_dtz_map&lt;TBSyzygy::`anonymous namespace'::WDLEntryPiece [2]&gt;&quot; OverloadingParameters=[@291,(Type=&quot;TBSyzygy::A0xa3222161::WDLEntryPiece (&amp;)[2]&quot;),@381,@67]))" />
+    <Alias n="543" Id="(@1 @5 Member=(Name=&quot;set_groups&lt;SyzygyTB::`anonymous namespace'::DTZEntry&gt;&quot; OverloadingParameters=[@289,@376,(Type=&quot;int *&quot;),@67]))" />
+    <Alias n="544" Id="(@1 @5 Member=(Name=&quot;set_groups&lt;SyzygyTB::`anonymous namespace'::WDLEntry&gt;&quot; OverloadingParameters=[@291,@376,(Type=&quot;int *&quot;),@67]))" />
+    <Alias n="545" Id="(@1 @5 Member=(Name=&quot;set_dtz_map&lt;SyzygyTB::`anonymous namespace'::DTZEntryPawn&gt;&quot; OverloadingParameters=[@289,(Type=&quot;SyzygyTB::A0xa3222161::DTZEntryPawn &amp;&quot;),@381,@67]))" />
+    <Alias n="546" Id="(@1 @5 Member=(Name=&quot;set_dtz_map&lt;SyzygyTB::`anonymous namespace'::DTZEntryPiece&gt;&quot; OverloadingParameters=[@289,(Type=&quot;SyzygyTB::A0xa3222161::DTZEntryPiece &amp;&quot;),@381,@67]))" />
+    <Alias n="547" Id="(@1 @5 Member=(Name=&quot;set_dtz_map&lt;SyzygyTB::`anonymous namespace'::WDLEntryPawn&gt;&quot; OverloadingParameters=[@291,(Type=&quot;SyzygyTB::A0xa3222161::WDLEntryPawn &amp;&quot;),@381,@67]))" />
+    <Alias n="548" Id="(@1 @5 Member=(Name=&quot;set_dtz_map&lt;SyzygyTB::`anonymous namespace'::WDLEntryPiece [2]&gt;&quot; OverloadingParameters=[@291,(Type=&quot;SyzygyTB::A0xa3222161::WDLEntryPiece (&amp;)[2]&quot;),@381,@67]))" />
     <Alias n="549" Id="(@1 @3 Member=(Name=update_stacks_continuation OverloadingParameters=[@398,(Type=Piece),@127,@76]))" />
     <Alias n="550" Id="(@1 Namespace=&quot;EndGame::`anonymous namespace'&quot; Member=(Name=verify_material OverloadingParameters=[@101,@56,@190,@76]))" />
     <Alias n="551" Id="(@1 @10 Member=(Name=index OverloadingParameters=[@56,@127,@127,@127]))" />
     <Alias n="552" Id="(@1 Namespace=Bitbases Member=(Name=probe OverloadingParameters=[@56,@127,@127,@127]))" />
-    <Alias n="553" Id="(@1 @5 Member=(Name=&quot;do_probe_table&lt;TBSyzygy::`anonymous namespace'::DTZEntry,int&gt;&quot; OverloadingParameters=[@101,(Type=&quot;TBSyzygy::A0xa3222161::DTZEntry *&quot;),@159,@364]))" />
-    <Alias n="554" Id="(@1 @3 Member=(Name=map_score OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::DTZEntry *&quot;),@67,@76,@159]))" />
-    <Alias n="555" Id="(@1 @3 Member=(Name=map_score OverloadingParameters=[(Type=&quot;TBSyzygy::A0xa3222161::WDLEntry *&quot;),@67,@76,@159]))" />
+    <Alias n="553" Id="(@1 @5 Member=(Name=&quot;do_probe_table&lt;SyzygyTB::`anonymous namespace'::DTZEntry,int&gt;&quot; OverloadingParameters=[@101,(Type=&quot;SyzygyTB::A0xa3222161::DTZEntry *&quot;),@159,@364]))" />
+    <Alias n="554" Id="(@1 @3 Member=(Name=map_score OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::DTZEntry *&quot;),@67,@76,@159]))" />
+    <Alias n="555" Id="(@1 @3 Member=(Name=map_score OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::WDLEntry *&quot;),@67,@76,@159]))" />
     <Alias n="556" Id="(@1 @5 Member=(Name=reduction_depth OverloadingParameters=[@44,@44,@123,@379]))" />
     <Alias n="557" Id="(@1 @3 Member=(Name=multipvInfo OverloadingParameters=[(Type=&quot;Thread * const &amp;&quot;),@123,@190,@190]))" />
     <Alias n="558" Id="(@1 @5 Member=(Name=quien_search&lt;0&gt; OverloadingParameters=[@271,@398,@190,@190,@123]))" />
@@ -6733,7 +6733,7 @@
     <Alias n="582" Id="(@1 @12 Member=&quot;dist&lt;enum Rank,enum Square&gt;&quot;)" />
     <Alias n="583" Id="(@1 @12 Member=&quot;dist&lt;enum Rank&gt;&quot;)" />
     <Alias n="584" Id="(@1 @12 Member=&quot;dist&lt;enum Square&gt;&quot;)" />
-    <Alias n="585" Id="(@1 @5 Member=&quot;do_probe_table&lt;TBSyzygy::`anonymous namespace'::WDLEntry,enum TBSyzygy::WDLScore&gt;&quot;)" />
+    <Alias n="585" Id="(@1 @5 Member=&quot;do_probe_table&lt;SyzygyTB::`anonymous namespace'::WDLEntry,enum SyzygyTB::WDLScore&gt;&quot;)" />
     <Alias n="586" Id="(@1 @3 Member=HashTable)" />
     <Alias n="587" Id="(@1 @20 Member=info)" />
     <Alias n="588" Id="Member=initialize" />
@@ -6765,7 +6765,7 @@
     <Alias n="616" Id="(@1 @40 Member=on_time_opt)" />
     <Alias n="617" Id="(@1 @40 Member=on_uci_chess960)" />
     <Alias n="618" Id="(@1 @40 Member=on_uci_elo)" />
-    <Alias n="619" Id="(@1 @5 Member=&quot;probe_table&lt;TBSyzygy::`anonymous namespace'::WDLEntry,enum TBSyzygy::WDLScore&gt;&quot;)" />
+    <Alias n="619" Id="(@1 @5 Member=&quot;probe_table&lt;SyzygyTB::`anonymous namespace'::WDLEntry,enum SyzygyTB::WDLScore&gt;&quot;)" />
     <Alias n="620" Id="(@1 @3 Member=&quot;sign&lt;enum Value&gt;&quot;)" />
     <Alias n="621" Id="(@1 @5 Type=Ambiguity)" />
     <Alias n="622" Id="(@1 @5 Type=Atomic)" />
@@ -6847,8 +6847,8 @@
     <Alias n="698" Id="(@1 @36 Type=ProbeState)" />
     <Alias n="699" Id="(@1 @3 Type=Rank)" />
     <Alias n="700" Id="(@1 @10 Type=Result)" />
-    <Alias n="701" Id="(@1 @5 Type=&quot;Ret&lt;TBSyzygy::`anonymous namespace'::DTZEntry&gt;&quot;)" />
-    <Alias n="702" Id="(@1 @5 Type=&quot;Ret&lt;TBSyzygy::`anonymous namespace'::WDLEntry&gt;&quot;)" />
+    <Alias n="701" Id="(@1 @5 Type=&quot;Ret&lt;SyzygyTB::`anonymous namespace'::DTZEntry&gt;&quot;)" />
+    <Alias n="702" Id="(@1 @5 Type=&quot;Ret&lt;SyzygyTB::`anonymous namespace'::WDLEntry&gt;&quot;)" />
     <Alias n="703" Id="(@1 @3 Type=RootMove)" />
     <Alias n="704" Id="(@1 @3 Type=RootMoves)" />
     <Alias n="705" Id="(@1 @3 Type=Scale)" />

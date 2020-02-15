@@ -6,16 +6,8 @@
 
 #include "Option.h"
 #include "Searcher.h"
-#include "TBsyzygy.h"
+#include "SyzygyTB.h"
 #include "Transposition.h"
-
-using namespace std;
-using namespace Searcher;
-using namespace TBSyzygy;
-
-ThreadPool Threadpool;
-
-namespace {
 
 #if defined(_WIN32)
 
@@ -34,13 +26,6 @@ namespace {
 
 #   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
-
-    /// Win Processors Group
-    /// Under Windows it is not possible for a process to run on more than one logical processor group.
-    /// This usually means to be limited to use max 64 cores.
-    /// To overcome this, some special platform specific API should be called to set group affinity for each thread.
-    /// Original code from Texel by Peter Osterlund.
-
     /// The needed Windows API for processor groups could be missed from old Windows versions,
     /// so instead of calling them directly (forcing the linker to resolve the calls at compile time),
     /// try to load them at runtime. To do this first define the corresponding function pointers.
@@ -53,14 +38,14 @@ namespace {
 
 #endif
 
-}
+using namespace std;
+
+ThreadPool Threadpool;
 
 /// Thread constructor launches the thread and waits until it goes to sleep in idleFunction().
 /// Note that 'busy' and 'dead' should be already set.
 Thread::Thread(size_t idx)
-    : dead(false)
-    , busy(true)
-    , index(idx)
+    : index(idx)
     , nativeThread(&Thread::idleFunction, this)
 {
     waitIdle();
@@ -71,11 +56,11 @@ Thread::~Thread()
 {
     assert(!busy);
     dead = true;
-    start();
+    startSearch();
     nativeThread.join();
 }
-/// Thread::start() wakes up the thread that will start the search.
-void Thread::start()
+/// Thread::startSearch() wakes up the thread that will start the search.
+void Thread::startSearch()
 {
     lock_guard<mutex> guard(mtx);
     busy = true;
@@ -154,7 +139,7 @@ void Thread::clear()
 
 /// MainThread constructor
 MainThread::MainThread(size_t idx)
-    : Thread(idx)
+    : Thread{idx}
 {}
 /// MainThread::clear()
 void MainThread::clear()
@@ -169,9 +154,17 @@ void MainThread::clear()
     timeMgr.reset();
 }
 
-namespace WinProcGroup {
-
-    vector<i16> Groups;
+/// Win Processors Group
+/// Under Windows it is not possible for a process to run on more than one logical processor group.
+/// This usually means to be limited to use max 64 cores.
+/// To overcome this, some special platform specific API should be called to set group affinity for each thread.
+/// Original code from Texel by Peter Osterlund.
+namespace WinProcGroup
+{
+    namespace
+    {
+        vector<i16> Groups;
+    }
 
     /// initialize() retrieves logical processor information using specific API
     void initialize()
@@ -256,6 +249,7 @@ namespace WinProcGroup {
 
 #   endif
     }
+
     /// bind() set the group affinity for the thread index.
     void bind(size_t index)
     {
@@ -381,7 +375,7 @@ void ThreadPool::configure(u32 threadCount)
 
         reductionFactor = std::pow(24.8 + std::log(size()) / 2, 2);
 
-        sync_cout << "info string Thread(s) used " << threadCount << sync_endl;
+        cout << "info string Thread(s) used " << threadCount << endl;
 
         clear();
 
@@ -483,9 +477,9 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
         th->tbHits          = 0;
         th->pvChange        = 0;
         th->nmpPly          = 0;
-        th->nmpColor        = COLORS;
+        th->nmpColor        = COLOR_NONE;
     }
     setupStates->back() = back_si;
 
-    mainThread()->start();
+    mainThread()->startSearch();
 }
