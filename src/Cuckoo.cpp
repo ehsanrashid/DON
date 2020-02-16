@@ -36,10 +36,10 @@ namespace Cuckooo
                     {
                         if (contains(PieceAttacks[pt][org], dst))
                         {
-                            Cuckoo cuckoo( RandZob.pieceSquareKey[c][pt][org]
-                                         ^ RandZob.pieceSquareKey[c][pt][dst]
-                                         ^ RandZob.colorKey,
-                                           makeMove<NORMAL>(org, dst));
+                            Cuckoo cuckoo{RandZob.pieceSquareKey[c][pt][org]
+                                        ^ RandZob.pieceSquareKey[c][pt][dst]
+                                        ^ RandZob.colorKey,
+                                          makeMove<NORMAL>(org, dst)};
 
                             u16 i = H1(cuckoo.key);
                             while (true)

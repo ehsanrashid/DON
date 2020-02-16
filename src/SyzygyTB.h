@@ -29,7 +29,6 @@ enum ProbeState
 
 extern std::ostream& operator<<(std::ostream&, ProbeState);
 
-
 extern std::string PathString;
 extern i32         MaxLimitPiece;
 
@@ -38,7 +37,6 @@ extern WDLScore probeWDL(Position&, ProbeState&);
 
 extern bool rootProbeDTZ(Position&, RootMoves&);
 extern bool rootProbeWDL(Position&, RootMoves&);
-
 
 namespace SyzygyTB
 {

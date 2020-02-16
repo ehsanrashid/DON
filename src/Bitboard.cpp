@@ -32,7 +32,7 @@ u08 popCount16(u32 u)
 */
 #endif
 
-Array<Bitboard, SQUARES, SQUARES> SquareDistance;
+Array<u08, SQUARES, SQUARES> SquareDistance;
 
 
 namespace
@@ -55,7 +55,7 @@ namespace
         Bitboard attacks = 0;
         for (auto dir : PieceDirections[PT])
         {
-            for (auto sq = s + dir;
+            for (Square sq = s + dir;
                  isOk(sq) && 1 == dist(sq, sq - dir);
                  sq += dir)
             {
@@ -97,7 +97,7 @@ namespace
 #   if !defined(BM2)
         constexpr u16 MaxIndex{ 0x1000 };
         Array<Bitboard, MaxIndex> occupancy
-            ,                   reference;
+            ,                     reference;
 
         constexpr Array<u32, RANKS> Seeds
 #       if defined(BIT64)
@@ -122,7 +122,7 @@ namespace
                         // Board edges are not considered in the relevant occupancies
                         & ~(((FABB|FHBB) & ~fileBB(s)) | ((R1BB|R8BB) & ~rankBB(s)));
 
-            auto maskPopCount = popCount(magic.mask);
+            u08 maskPopCount = u08(popCount(magic.mask));
             assert(maskPopCount < 32);
 
             // magics[s].attacks is a pointer to the beginning of the attacks table for square
@@ -131,18 +131,18 @@ namespace
 
 #       if !defined(BM2)
 #           if defined(BIT64)
-            auto bits = 64;
+            u08 bits = 64;
 #           else
-            auto bits = 32;
+            u08 bits = 32;
 #           endif
             magic.shift = bits - maskPopCount;
 
-            u16 size = 0;
+            u16 size{0};
 #       endif
 
             // Use Carry-Rippler trick to enumerate all subsets of magics[s].mask
             // Have individual table sizes for each square with "Fancy Magic Bitboards".
-            Bitboard occ = 0;
+            Bitboard occ{0};
             do
             {
 #           if defined(BM2)
@@ -225,7 +225,7 @@ namespace BitBoard
         {
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
             {
-                SquareDistance[s1][s2] = std::max(dist<File>(s1, s2), dist<Rank>(s1, s2));
+                SquareDistance[s1][s2] = u08(std::max(dist<File>(s1, s2), dist<Rank>(s1, s2)));
                 assert(0 <= SquareDistance[s1][s2]
                     && 7 >= SquareDistance[s1][s2]);
             }
@@ -240,7 +240,7 @@ namespace BitBoard
 
             for (auto dir : PieceDirections[NIHT])
             {
-                auto sq = s + dir;
+                Square sq = s + dir;
                 if (isOk(sq)
                  && 2 == dist(s, sq))
                 {
@@ -249,7 +249,7 @@ namespace BitBoard
             }
             for (auto dir : PieceDirections[KING])
             {
-                auto sq = s + dir;
+                Square sq = s + dir;
                 if (isOk(sq)
                  && 1 == dist(s, sq))
                 {

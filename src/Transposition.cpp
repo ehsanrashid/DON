@@ -5,10 +5,10 @@
 #include <fstream>
 #include <iostream>
 
-#include "Engine.h"
 #include "Helper.h"
 #include "MoveGenerator.h"
 #include "Thread.h"
+#include "UCI.h"
 
 TTable TT;
 
@@ -19,14 +19,14 @@ u08 TEntry::Generation = 0;
 void TEntry::save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv)
 {
     // Preserve more valuable entries
-    if (   MOVE_NONE != m
-        || k16 != (k >> 0x30))
+    if (MOVE_NONE != m
+     || k16 != (k >> 0x30))
     {
         m16 = u16(m);
     }
-    if (   k16 != (k >> 0x30)
-        || d08 < d - DEPTH_OFFSET + 4
-        || BOUND_EXACT == b)
+    if (k16 != (k >> 0x30)
+     || d08 < d - DEPTH_OFFSET + 4
+     || BOUND_EXACT == b)
     {
         assert(d > DEPTH_OFFSET);
 
@@ -55,20 +55,19 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
     auto *rte = entries; // Default first
     for (auto *ite = entries; ite < entries + EntryCount; ++ite)
     {
-        if (   ite->d08 == 0
-            || ite->k16 == key16)
+        if (ite->d08 == 0
+         || ite->k16 == key16)
         {
             // Refresh entry
             ite->g08 = u08(TEntry::Generation | (ite->g08 & 0x07));
-
             return hit = ite->d08 != 0, ite;
         }
         // Replacement strategy.
         // Due to packed storage format for generation and its cyclic nature
         // add 0x107 (0x100 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
         // to calculate the entry age correctly even after generation overflows into the next cycle.
-        if (  (rte->d08 - ((0x107 + TEntry::Generation - rte->g08) & 0xF8))
-            > (ite->d08 - ((0x107 + TEntry::Generation - ite->g08) & 0xF8)))
+        if ((rte->d08 - ((0x107 + TEntry::Generation - rte->g08) & 0xF8))
+          > (ite->d08 - ((0x107 + TEntry::Generation - ite->g08) & 0xF8)))
         {
             rte = ite;
         }
@@ -155,7 +154,7 @@ u32 TTable::resize(u32 memSize)
 /// TTable::autoResize() set size automatically
 void TTable::autoResize(u32 memSize)
 {
-    auto mSize = 0 != memSize ? memSize : MaxHashSize;
+    auto mSize{0 != memSize ? memSize : MaxHashSize};
     while (mSize >= MinHashSize)
     {
         if (0 != resize(mSize))
@@ -164,19 +163,19 @@ void TTable::autoResize(u32 memSize)
         }
         mSize >>= 1;
     }
-    stop(EXIT_FAILURE);
+    exit(EXIT_FAILURE);
 }
 /// TTable::clear() clear the entire transposition table in a multi-threaded way.
 void TTable::clear()
 {
     assert(0 != clusterCount);
-    if (bool(Options["Retain Hash"]))
+    if (Options["Retain Hash"])
     {
         return;
     }
 
     vector<thread> threads;
-    auto threadCount = optionThreads();
+    auto threadCount{optionThreads()};
     for (size_t idx = 0; idx < threadCount; ++idx)
     {
         threads.emplace_back([this, idx, threadCount]()
@@ -185,12 +184,12 @@ void TTable::clear()
                                  {
                                      WinProcGroup::bind(idx);
                                  }
-                                 size_t stride = clusterCount / threadCount;
-                                 auto *pcluster = clusters + idx * stride;
-                                 size_t count = idx != (threadCount - 1) ?
-                                                 stride :
-                                                 clusterCount - idx * stride;
-                                 std::memset(pcluster, 0, count * sizeof (*pcluster));
+                                 const auto stride{clusterCount / threadCount};
+                                 const auto start{stride * idx};
+                                 const auto count{idx != (threadCount - 1) ?
+                                                    stride :
+                                                    clusterCount - start};
+                                 std::memset(clusters + start, 0, count * sizeof (TCluster));
                              });
     }
     for (auto &th : threads)
@@ -231,13 +230,13 @@ Move TTable::extractNextMove(Position &pos, Move cm) const
     StateInfo si;
     pos.doMove(cm, si);
     bool ttHit;
-    auto *tte = probe(pos.posiKey(), ttHit);
-    auto nm = ttHit ?
+    auto *tte{probe(pos.posiKey(), ttHit)};
+    auto nm{ttHit ?
                 tte->move() :
-                MOVE_NONE;
-    if (   MOVE_NONE != nm
-        && !(   pos.pseudoLegal(nm)
-             && pos.legal(nm)))
+                MOVE_NONE};
+    if (MOVE_NONE != nm
+     && !(pos.pseudoLegal(nm)
+       && pos.legal(nm)))
     {
         nm = MOVE_NONE;
     }

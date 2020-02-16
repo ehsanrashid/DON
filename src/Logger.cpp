@@ -1,8 +1,7 @@
 #include "Logger.h"
 
 #include <chrono>
-
-#include "Engine.h"
+#include <cstdlib>
 
 #if defined(_WIN32)
 #   include <ctime>
@@ -87,7 +86,7 @@ void Logger::set(const string &logFn)
         if (!ofs.is_open())
         {
             cerr << "Unable to open Log File " << logFn << endl;
-            stop(EXIT_FAILURE);
+            exit(EXIT_FAILURE);
         }
         ofs << "[" << chrono::system_clock::now() << "] ->" << endl;
 

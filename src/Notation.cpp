@@ -6,11 +6,12 @@
 #include "Searcher.h"
 #include "Transposition.h"
 #include "Thread.h"
+#include "UCI.h"
 
 using namespace std;
 
-const string PieceChar{ " PNBRQK  pnbrqk" };
-const string ColorChar{ "wb-" };
+const string PieceChar{" PNBRQK  pnbrqk"};
+const string ColorChar{"wb-"};
 
 Color toColor(char c)
 {
@@ -82,7 +83,7 @@ string moveToCAN(Move m)
     auto org{orgSq(m)};
     auto dst{dstSq(m)};
     if (CASTLE == mType(m)
-     && !bool(Options["UCI_Chess960"]))
+     && !Options["UCI_Chess960"])
     {
         assert(sRank(org) == sRank(dst));
         dst = makeSquare(dst > org ? FILE_G : FILE_C, sRank(org));

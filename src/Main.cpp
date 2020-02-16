@@ -1,12 +1,50 @@
 #include <cstdlib>
 
-#include "Engine.h"
+#include <iostream>
+#include <thread>
+#include <cstdlib>
+
+#include "Bitbase.h"
+#include "Bitboard.h"
+#include "Cuckoo.h"
+#include "Endgame.h"
+#include "Polyglot.h"
+#include "PSQTable.h"
+#include "Searcher.h"
+#include "Thread.h"
+#include "UCI.h"
+#include "Zobrist.h"
+
+using namespace std;
+
+/// clear() clears the stuffs in case of some crash.
+void clear()
+{
+    Threadpool.stop = true;
+    Threadpool.configure(0);
+}
 
 int main(int argc, const char *const *argv)
 {
-    // Run the engine
-    run(argc, argv);
-    // Stop the engine
-    stop(EXIT_SUCCESS);
+    cout << Name << " " << engineInfo() << " by " << Author << endl;
+    cout << "info string Processor(s) detected " << thread::hardware_concurrency() << endl;
+
+    BitBoard::initialize();
+    BitBase::initialize();
+    PSQT::initialize();
+    Zobrists::initialize();
+    Cuckooo::initialize();
+    UCI::initialize();
+    Endgames::initialize();
+    Book.initialize(Options["Book File"]);
+    WinProcGroup::initialize();
+    Threadpool.configure(optionThreads());
+    srand(u32(time(nullptr)));
+    UCI::reset();
+
+    std::atexit(clear);
+
+    UCI::handleCommands(argc, argv);
+
     return EXIT_SUCCESS;
 }

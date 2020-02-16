@@ -1,8 +1,9 @@
 #include "SyzygyTB.h"
 
-#include <algorithm>
 #include <cstdint>
+#include <cstdlib>
 #include <cstring>   // For std::memset and std::memcpy
+#include <algorithm>
 #include <deque>
 #include <fstream>
 #include <sstream>
@@ -11,13 +12,12 @@
 #include <vector>
 
 #include "BitBoard.h"
-#include "Engine.h"
 #include "Helper.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
-#include "Option.h"
 #include "Position.h"
 #include "Thread.h"
+#include "UCI.h"
 
 using namespace std;
 
@@ -284,7 +284,7 @@ namespace
             if (16 != loSize % 64)
             {
                 cerr << "Corrupt tablebase file " << filename << endl;
-                stop(EXIT_FAILURE);
+                exit(EXIT_FAILURE);
             }
 
             HANDLE mmap = CreateFileMapping (
@@ -299,8 +299,7 @@ namespace
             {
                 cerr << "CreateFileMapping() failed, name = " << filename
                         << ", error = " << getLastErrorString() << endl;
-                stop(EXIT_FAILURE);
-                return nullptr;
+                exit(EXIT_FAILURE);
             }
 
             *mapping = u64(mmap);
@@ -308,8 +307,7 @@ namespace
             if (nullptr == *baseAddress)
             {
                 cerr << "MapViewOfFile() failed, name = " << filename << ", error = " << getLastErrorString() << endl;
-                stop(EXIT_FAILURE);
-                return nullptr;
+                exit(EXIT_FAILURE);
             }
 #           else
             i32 fd = ::open(
@@ -327,15 +325,13 @@ namespace
             {
                 cerr << "fstat() failed, name = " << filename << endl;
                 ::close(fd);
-                stop(EXIT_FAILURE);
-                return nullptr;
+                exit(EXIT_FAILURE);
             }
             if (16 != statbuf.st_size % 64)
             {
                 cerr << "Corrupt tablebase file " << filename << endl;
                 ::close(fd);
-                stop(EXIT_FAILURE);
-                return nullptr;
+                exit(EXIT_FAILURE);
             }
 
             *mapping = statbuf.st_size;
@@ -350,7 +346,7 @@ namespace
             if (MAP_FAILED == *baseAddress)
             {
                 cerr << "Could not mmap() " << filename << endl;
-                stop(EXIT_FAILURE);
+                exit(EXIT_FAILURE);
             }
 #           endif
 
@@ -536,7 +532,7 @@ namespace
             }
 
             cerr << "HSHMAX too low!" << endl;
-            stop(EXIT_FAILURE);
+            exit(EXIT_FAILURE);
         }
 
     public:
@@ -1656,7 +1652,7 @@ i32      probeDTZ(Position &pos, ProbeState &state)
 /// no moves were filtered out.
 bool rootProbeWDL(Position &rootPos, RootMoves &rootMoves)
 {
-    bool rule50 = bool(Options["SyzygyUseRule50"]);
+    bool rule50 = Options["SyzygyUseRule50"];
 
     StateInfo si;
     ProbeState state;
@@ -1699,7 +1695,7 @@ bool rootProbeDTZ(Position &rootPos, RootMoves &rootMoves)
     // Check whether a position was repeated since the last zeroing move.
     bool repeated = rootPos.repeated();
 
-    i16 bound = bool(Options["SyzygyUseRule50"]) ? 900 : 1;
+    i16 bound = Options["SyzygyUseRule50"] ? 900 : 1;
     i32 dtz;
 
     StateInfo si;

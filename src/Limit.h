@@ -6,13 +6,8 @@
 // Clock struct stores the time and inc per move in milli-seconds.
 struct Clock
 {
-    TimePoint time;
-    TimePoint inc;
-
-    Clock()
-        : time{0}
-        , inc{0}
-    {}
+    TimePoint time{};
+    TimePoint inc{};
 };
 
 /// Limit stores information sent by GUI about available time to search the current move.
@@ -24,27 +19,16 @@ struct Clock
 ///  - Infinite analysis mode
 struct Limit
 {
-public:
-    Array<Clock, COLORS> clock; // Search with Clock
+    Array<Clock, COLORS> clock{};           // Search with Clock
 
-    u08       movestogo;   // Search <x> moves to the next time control
-    TimePoint moveTime;    // Search <x> exact time in milli-seconds
-    Depth     depth;       // Search <x> depth(plies) only
-    u64       nodes;       // Search <x> nodes only
-    u08       mate;        // Search mate in <x> moves
-    bool      infinite;    // Search until the "stop" command
+    u08       movestogo       {0};          // Search <x> moves to the next time control
+    TimePoint moveTime        {0};          // Search <x> exact time in milli-seconds
+    Depth     depth           {DEPTH_ZERO}; // Search <x> depth(plies) only
+    u64       nodes           {0};          // Search <x> nodes only
+    u08       mate            {0};          // Search mate in <x> moves
+    bool      infinite        {false};      // Search until the "stop" command
 
-    Limit()
-        : clock{}
-        , movestogo{0}
-        , moveTime{0}
-        , depth{DEPTH_ZERO}
-        , nodes{0}
-        , mate{0}
-        , infinite{false}
-    {}
-
-    bool useTimeMgr() const
+    bool useTimeMgmt() const
     {
         return !infinite
             && 0 == moveTime

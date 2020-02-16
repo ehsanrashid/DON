@@ -35,11 +35,11 @@ Move SkillManager::pickBestMove()
 {
     static PRNG prng{u64(now())}; // PRNG sequence should be non-deterministic.
 
-    const auto &rootMoves{Threadpool.mainThread()->rootMoves};
-    assert(!rootMoves.empty());
-
     if (MOVE_NONE == bestMove)
     {
+        const auto &rootMoves{ Threadpool.mainThread()->rootMoves };
+        assert(!rootMoves.empty());
+
         // RootMoves are already sorted by value in descending order
         i32  weakness{MaxDepth - 8 * level};
         i32  deviance{std::min(rootMoves[0].newValue - rootMoves[Threadpool.pvCount - 1].newValue, VALUE_MG_PAWN)};

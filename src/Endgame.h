@@ -78,23 +78,24 @@ public:
 
 namespace Endgames
 {
-    template<typename T> using EG_Ptr = std::unique_ptr<EndgameBase<T>>;
-    template<typename T> using EG_Map = std::unordered_map<Key, EG_Ptr<T>>;
-    template<typename T1, typename T2> using EG_MapPair = std::pair<EG_Map<T1>, EG_Map<T2>>;
+    template<typename T>    using EGPtr = std::unique_ptr<EndgameBase<T>>;
+    template<typename T>    using EGMap = std::unordered_map<Key, EGPtr<T>>;
+    template<typename T1
+           , typename T2>   using EGMapPair = std::pair<EGMap<T1>, EGMap<T2>>;
 
-    extern EG_MapPair<Value, Scale> EndgameMapPair;
+    extern EGMapPair<Value, Scale> EndGames;
 
     template<typename T>
-    EG_Map<T>& map()
+    EGMap<T>& mapEG()
     {
-        return std::get<std::is_same<T, Scale>::value>(EndgameMapPair);
+        return std::get<std::is_same<T, Scale>::value>(EndGames);
     }
 
     template<typename T>
     const EndgameBase<T>* probe(Key matlKey)
     {
-        auto itr = map<T>().find(matlKey);
-        return itr != map<T>().end() ?
+        auto itr{mapEG<T>().find(matlKey)};
+        return itr != mapEG<T>().end() ?
                 itr->second.get() :
                 nullptr;
     }

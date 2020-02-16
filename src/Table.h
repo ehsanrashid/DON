@@ -8,12 +8,12 @@
 #include "Type.h"
 
 /// Hash table
-template<typename Entry, size_t Size>
+template<typename T, size_t Size>
 struct HashTable
 {
 private:
     // Allocate on the heap
-    std::vector<Entry> table;
+    std::vector<T> table;
 
 public:
 
@@ -21,7 +21,7 @@ public:
         : table(Size)
     {}
 
-    Entry* operator[](Key key) { return &table[u32(key) & (Size - 1)]; }
+    T* operator[](Key key) { return &table[u32(key) & (Size - 1)]; }
 };
 
 
@@ -100,8 +100,7 @@ public:
         static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
         assert(std::abs(bonus) <= D); // Ensure range is [-D, +D]
 
-        entry += bonus
-               - entry * std::abs(bonus) / D;
+        entry += T(bonus - entry * std::abs(bonus) / D);
 
         assert(std::abs(entry) <= D);
     }

@@ -342,7 +342,7 @@
     <Node Id="@335" Category="CodeSchema_Method" Bounds="25211.1045525518,23188.4517794633,94.9199999999983,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator-=" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@336" Category="CodeSchema_Method" Bounds="25542.241236377,23987.1097547982,80.4333333333343,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="perft‎&lt;0‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@337" Category="CodeSchema_Method" Bounds="25428.024439502,23987.1097547982,80.4333333333343,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="perft‎&lt;1‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@339" Category="CodeSchema_Method" Bounds="26378.3132263337,24757.689386787,128.43,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="frontSquares" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@339" Category="CodeSchema_Method" Bounds="26378.3132263337,24757.689386787,128.43,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="frontSquaresBB" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@34" Category="CodeSchema_Namespace" Bounds="25636.8255337369,23403.5180975017,104.259999999995,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="4" Group="Collapsed" Label="Searcher" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@340" Category="CodeSchema_Method" Bounds="26336.571403417,25149.410089912,108.843333333338,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="frontRanksBB" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@341" Category="CodeSchema_Method" Bounds="26374.8496195629,25205.371027412,135.046666666662,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="pawnAttackSpan" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -700,7 +700,7 @@
     <Node Id="@687" Category="CodeSchema_Struct" Bounds="24637.4359999496,22883.4412767791,108.693333333329,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="PairsData" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@688" Category="CodeSchema_Enum" Bounds="25516.8305046248,23579.2117794633,64.7233333333315,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="Piece" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@689" Category="CodeSchema_Struct" Bounds="25340.8490045255,24302.8917794633,163.673333333332,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="PieceDestinyStats" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@69" Category="CodeSchema_Method" Bounds="26429.5109086254,25037.490168037,92.3666666666686,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="adjacentFiles" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@69" Category="CodeSchema_Method" Bounds="26429.5109086254,25037.490168037,92.3666666666686,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="adjacentFilesBB" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@690" Category="CodeSchema_Struct" Bounds="25373.6010409525,24025.9717794633,193.503333333334,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="PieceSquareMoveTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@691" Category="CodeSchema_TypeDef" Bounds="25534.934975476,25972.2517794632,166.536666666667,26" DelayedCrossGroupLinksState="NotFetched" Label="PieceDestinyMoveTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@692" Category="CodeSchema_TypeDef" Bounds="25182.6481088093,26027.3317794632,157.32,26" DelayedCrossGroupLinksState="NotFetched" Label="PieceDestinyStatTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -6221,7 +6221,7 @@
     <Alias n="66" Id="(@1 @3 Member=(@65 OverloadingParameters=[@63]))" />
     <Alias n="67" Id="(Type=File)" />
     <Alias n="68" Id="OverloadingParameters=[@67]" />
-    <Alias n="69" Id="(@1 @12 Member=(Name=adjacentFiles @68))" />
+    <Alias n="69" Id="(@1 @12 Member=(Name=adjacentFilesBB @68))" />
     <Alias n="70" Id="(@1 @12 Member=(Name=file @68))" />
     <Alias n="71" Id="(@1 @3 Member=(@62 @68))" />
     <Alias n="72" Id="(@1 @3 Member=(@46 @68))" />
@@ -6490,7 +6490,7 @@
     <Alias n="336" Id="(@1 @33 Member=(Name=perft&lt;0&gt; OverloadingParameters=[@271,@123]))" />
     <Alias n="337" Id="(@1 @33 Member=(Name=perft&lt;1&gt; OverloadingParameters=[@271,@123]))" />
     <Alias n="338" Id="OverloadingParameters=[@56,@127]" />
-    <Alias n="339" Id="(@1 @12 Member=(Name=frontSquares @338))" />
+    <Alias n="339" Id="(@1 @12 Member=(Name=frontSquaresBB @338))" />
     <Alias n="340" Id="(@1 @12 Member=(Name=frontRanksBB @338))" />
     <Alias n="341" Id="(@1 @12 Member=(Name=pawnAttackSpan @338))" />
     <Alias n="342" Id="(@1 @12 Member=(Name=pawnPassSpan @338))" />

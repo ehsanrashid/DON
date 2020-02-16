@@ -9,7 +9,6 @@
 #include "ThreadWin32OSX.h"
 
 #include "Limit.h"
-#include "Option.h"
 #include "Position.h"
 #include "RootMove.h"
 #include "SkillManager.h"

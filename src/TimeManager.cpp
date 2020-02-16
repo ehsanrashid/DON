@@ -4,6 +4,7 @@
 #include <cmath>
 
 #include "Thread.h"
+#include "UCI.h"
 
 namespace
 {
@@ -66,11 +67,12 @@ void TimeManager::reset() { availableNodes = 0; }
 /// Move Slowness = Move Slowness, in %age.
 void TimeManager::set(Color c, i16 ply)
 {
-    auto minimumMoveTime = TimePoint(i32(Options["Minimum MoveTime"]));
-    auto overheadMoveTime = TimePoint(i32(Options["Overhead MoveTime"]));
-    auto moveSlowness = i32(Options["Move Slowness"]) / 100.0;
+    TimePoint minimumMoveTime {Options["Minimum MoveTime"]};
+    TimePoint overheadMoveTime{Options["Overhead MoveTime"]};
+    double moveSlowness       {Options["Move Slowness"]};
+    moveSlowness /= 100.0;
 
-    timeNodes = u16(i32(Options["Time Nodes"]));
+    timeNodes = Options["Time Nodes"];
 
     // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
@@ -112,7 +114,7 @@ void TimeManager::set(Color c, i16 ply)
         maximumTime = std::min(maximumTime, minimumMoveTime + remainingTime<false>(time, movestogo, ply, moveSlowness));
     }
 
-    if (bool(Options["Ponder"]))
+    if (Options["Ponder"])
     {
         optimumTime += optimumTime / 4;
     }

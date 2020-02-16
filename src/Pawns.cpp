@@ -201,7 +201,7 @@ namespace Pawns
             auto r{relRank(Own, s)};
             assert(RANK_2 <= r && r <= RANK_7);
 
-            Bitboard neighbours = ownPawns & adjacentFiles(s);
+            Bitboard neighbours = ownPawns & adjacentFilesBB(s);
             Bitboard supporters = neighbours & rankBB(s - Push);
             Bitboard phalanxes  = neighbours & rankBB(s);
             Bitboard stoppers   = oppPawns & pawnPassSpan(Own, s);
@@ -209,7 +209,7 @@ namespace Pawns
             Bitboard levers     = stoppers & Attack[s];
             Bitboard escapes    = stoppers & Attack[s + Push]; // Push levers
 
-            bool opposed  = 0 != (stoppers & frontSquares(Own, s));
+            bool opposed  = 0 != (stoppers & frontSquaresBB(Own, s));
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
             bool backward = 0 == (neighbours & frontRanksBB(Opp, s + Push))

@@ -9,9 +9,9 @@
 #include "Helper.h"
 #include "Material.h"
 #include "Notation.h"
-#include "Option.h"
 #include "Pawns.h"
 #include "Thread.h"
+#include "UCI.h"
 
 using namespace std;
 
@@ -29,7 +29,7 @@ namespace
         SPACE,
         INITIATIVE,
         TOTAL,
-        TERM_NO
+        TERM_NO = 16
     };
 
     Array<Score, TERM_NO, COLORS> Scores;
@@ -195,7 +195,7 @@ namespace
         Scale scale(Value) const;
 
     public:
-    
+
         Evaluator() = delete;
         Evaluator(const Evaluator&) = delete;
         Evaluator& operator=(const Evaluator&) = delete;
@@ -211,9 +211,9 @@ namespace
     template<bool Trace> template<Color Own>
     void Evaluator<Trace>::initAttacks()
     {
-        Bitboard pawns = pos.pieces(Own, PAWN);
+        Bitboard pawns{pos.pieces(Own, PAWN)};
 
-        auto kSq = pos.square(Own|KING);
+        auto kSq{pos.square(Own|KING)};
 
         sqlAttacks[Own].fill(0);
         sqlAttacks[Own][PAWN] =  pawnSglAttacks<Own>(pawns & ~pos.kingBlockers(Own))
@@ -237,7 +237,7 @@ namespace
     template<bool Trace> template<Color Own>
     void Evaluator<Trace>::initMobility()
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
 
         // Mobility area: Exclude followings
         mobArea[Own] = ~(// Squares protected by enemy pawns
@@ -252,10 +252,10 @@ namespace
                          | pawnSglPushes(Opp, pos.pieces()))));
         mobility[Own] = SCORE_ZERO;
 
-        auto kSq = pos.square(Own|KING);
+        auto kSq{pos.square(Own|KING)};
         // King safety tables
-        auto sq = makeSquare(clamp(sFile(kSq), FILE_B, FILE_G),
-                             clamp(sRank(kSq), RANK_2, RANK_7));
+        auto sq{makeSquare(clamp(sFile(kSq), FILE_B, FILE_G),
+                           clamp(sRank(kSq), RANK_2, RANK_7))};
         kingRing[Own] = PieceAttacks[KING][sq] | sq;
 
         kingAttackersCount [Opp] = popCount(kingRing[Own] & sqlAttacks[Opp][PAWN]);
@@ -272,7 +272,7 @@ namespace
     {
         static_assert (NIHT <= PT && PT <= QUEN, "PT incorrect");
 
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
 
         Score score{SCORE_ZERO};
 
@@ -387,7 +387,7 @@ namespace
                     // Bonus for bishop on a long diagonal which can "see" both center squares
                     score += BishopOnDiagonal * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB);
 
-                    if (bool(Options["UCI_Chess960"]))
+                    if (Options["UCI_Chess960"])
                     {
                         // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
                         // It is a very serious problem, especially when that pawn is also blocked.
@@ -468,12 +468,12 @@ namespace
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::king() const
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
 
-        auto kSq = pos.square(Own|KING);
+        auto kSq{pos.square(Own|KING)};
 
         // Main king safety evaluation
-        i32 kingDanger = 0;
+        i32 kingDanger{0};
 
         // Attacked squares defended at most once by friend queen or king
         Bitboard weakArea =  sqlAttacks[Opp][NONE]
@@ -604,7 +604,7 @@ namespace
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::threats() const
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
 
         Score score{SCORE_ZERO};
 
@@ -733,7 +733,7 @@ namespace
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::passers() const
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
 
         auto kingProximity = [&](Color c, Square s) { return std::min(dist(pos.square(c|KING), s), 5); };
 
@@ -743,7 +743,7 @@ namespace
         while (0 != psr)
         {
             auto s = popLSq(psr);
-            assert(0 == ((pawnSglPushes(Own, frontSquares(Own, s))
+            assert(0 == ((pawnSglPushes(Own, frontSquaresBB(Own, s))
                         | ( pawnPassSpan(Own, s + pawnPush(Own))
                          & ~PawnAttacks[Own][s + pawnPush(Own)]))
                        & pos.pieces(Opp, PAWN)));
@@ -772,7 +772,7 @@ namespace
                 {
                     Bitboard attackedSquares = pawnPassSpan(Own, s);
 
-                    Bitboard behindMajors = frontSquares(Opp, s)
+                    Bitboard behindMajors = frontSquaresBB(Opp, s)
                                           & pos.pieces(ROOK, QUEN);
                     if (0 == (pos.pieces(Opp) & behindMajors))
                     {
@@ -780,9 +780,10 @@ namespace
                     }
 
                     // Bonus according to attacked squares.
-                    i32 k = 0 == attackedSquares                          ? 35 :
-                            0 == (attackedSquares & frontSquares(Own, s)) ? 20 :
-                            !contains(attackedSquares, pushSq)            ?  9 : 0;
+                    i32 k = 0 == attackedSquares                ? 35 :
+                            0 == (attackedSquares
+                                & frontSquaresBB(Own, s))       ? 20 :
+                            !contains(attackedSquares, pushSq)  ?  9 : 0;
 
                     // Bonus according to defended squares.
                     if (0 != (pos.pieces(Own) & behindMajors)
@@ -824,7 +825,7 @@ namespace
     template<bool Trace> template<Color Own>
     Score Evaluator<Trace>::space() const
     {
-        constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+        constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
         // Space Threshold
         if (pos.nonPawnMaterial() < SpaceThreshold)
         {
@@ -1039,7 +1040,7 @@ string trace(const Position &pos)
     }
 
     pos.thread->contempt = SCORE_ZERO; // Reset any dynamic contempt
-    
+
     auto value{Evaluator<true>(pos).value()};
     // Trace scores are from White's point of view
     value = WHITE == pos.active ? +value : -value;

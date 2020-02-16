@@ -148,7 +148,7 @@ extern Array<Magic, SQUARES> BMagics
 extern Array<u08, 1 << 16> PopCount16;
 #endif
 
-extern Array<Bitboard, SQUARES, SQUARES> SquareDistance;
+extern Array<u08, SQUARES, SQUARES> SquareDistance;
 
 constexpr Bitboard squareBB(Square s) { return Squares[s]; }
 
@@ -209,20 +209,20 @@ constexpr Bitboard frontRanksBB(Color c, Rank r)
 /// frontRanksBB() returns ranks in front of the given square
 constexpr Bitboard frontRanksBB(Color c, Square s) { return frontRanksBB(c, sRank(s)); }
 
-constexpr Bitboard adjacentFiles(Square s)
+constexpr Bitboard adjacentFilesBB(Square s)
 {
     return shift<EAST>(fileBB(s))
          | shift<WEST>(fileBB(s));
 }
-//constexpr Bitboard adjacentRanks(Square s)
+//constexpr Bitboard adjacentRanksBB(Square s)
 //{
 //    return shift<NORTH>(rankBB(s))
 //         | shift<SOUTH>(rankBB(s));
 //}
 
-constexpr Bitboard frontSquares  (Color c, Square s) { return frontRanksBB(c, s) & fileBB(s); }
-constexpr Bitboard pawnAttackSpan(Color c, Square s) { return frontRanksBB(c, s) & adjacentFiles(s); }
-constexpr Bitboard pawnPassSpan  (Color c, Square s) { return frontRanksBB(c, s) & (fileBB(s) | adjacentFiles(s)); }
+constexpr Bitboard frontSquaresBB(Color c, Square s) { return frontRanksBB(c, s) & fileBB(s); }
+constexpr Bitboard pawnAttackSpan(Color c, Square s) { return frontRanksBB(c, s) & adjacentFilesBB(s); }
+constexpr Bitboard pawnPassSpan  (Color c, Square s) { return frontRanksBB(c, s) & (fileBB(s) | adjacentFilesBB(s)); }
 
 /// dist() functions return the distance between s1 and s2, defined as the
 /// number of steps for a king in s1 to reach s2.
@@ -322,7 +322,7 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ)
 /// Position::attacksBB() finds attacks of the piece from the square on occupancy.
 inline Bitboard attacksBB(Piece p, Square s, Bitboard occ)
 {
-    auto pt = pType(p);
+    auto pt{pType(p)};
     switch (pt)
     {
     case PAWN: return PawnAttacks[pColor(p)][s];

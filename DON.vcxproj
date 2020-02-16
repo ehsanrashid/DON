@@ -612,7 +612,6 @@
     <ClCompile Include="src\Cuckoo.cpp" />
     <ClCompile Include="src\Debugger.cpp" />
     <ClCompile Include="src\Endgame.cpp" />
-    <ClCompile Include="src\Engine.cpp" />
     <ClCompile Include="src\Evaluator.cpp" />
     <ClCompile Include="src\Helper.cpp" />
     <ClCompile Include="src\Logger.cpp" />
@@ -621,7 +620,6 @@
     <ClCompile Include="src\MoveGenerator.cpp" />
     <ClCompile Include="src\MovePicker.cpp" />
     <ClCompile Include="src\Notation.cpp" />
-    <ClCompile Include="src\Option.cpp" />
     <ClCompile Include="src\Pawns.cpp" />
     <ClCompile Include="src\Polyglot.cpp" />
     <ClCompile Include="src\Position.cpp" />
@@ -633,6 +631,7 @@
     <ClCompile Include="src\Thread.cpp" />
     <ClCompile Include="src\TimeManager.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
+    <ClCompile Include="src\UCI.cpp" />
     <ClCompile Include="src\Zobrist.cpp" />
   </ItemGroup>
   <ItemGroup>
@@ -642,7 +641,6 @@
     <ClInclude Include="src\Cuckoo.h" />
     <ClInclude Include="src\Debugger.h" />
     <ClInclude Include="src\Endgame.h" />
-    <ClInclude Include="src\Engine.h" />
     <ClInclude Include="src\Evaluator.h" />
     <ClInclude Include="src\Helper.h" />
     <ClInclude Include="src\Limit.h" />
@@ -651,7 +649,6 @@
     <ClInclude Include="src\MoveGenerator.h" />
     <ClInclude Include="src\MovePicker.h" />
     <ClInclude Include="src\Notation.h" />
-    <ClInclude Include="src\Option.h" />
     <ClInclude Include="src\Pawns.h" />
     <ClInclude Include="src\Polyglot.h" />
     <ClInclude Include="src\Position.h" />
@@ -668,6 +665,7 @@
     <ClInclude Include="src\TimeManager.h" />
     <ClInclude Include="src\Transposition.h" />
     <ClInclude Include="src\Type.h" />
+    <ClInclude Include="src\UCI.h" />
     <ClInclude Include="src\Zobrist.h" />
   </ItemGroup>
   <ItemGroup>

@@ -445,7 +445,7 @@ constexpr Value valueToTT(Value v, i32 ply)
 /// It adjusts a mate score from "plies to mate from the current position" to "plies to mate from the root".
 /// Non-mate scores are unchanged.
 /// The function is called after retrieving a value of the transposition table.
-constexpr Value valueOfTT(Value v, i32 ply, u08 clockPly)
+constexpr Value valueOfTT(Value v, i32 ply, i32 clockPly)
 {
     return v ==  VALUE_NONE         ? VALUE_NONE :
            v >= +VALUE_MATE_MAX_PLY ? VALUE_MATE - v > 99 - clockPly ? +VALUE_MATE_MAX_PLY : v - ply :

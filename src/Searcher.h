@@ -13,6 +13,4 @@ extern bool  TBHasRoot;
 namespace Searcher
 {
     extern void initialize();
-
-    extern void clear();
 }

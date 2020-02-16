@@ -4,10 +4,10 @@
 #include <map>
 #include <iostream>
 
-#include "Option.h"
 #include "Searcher.h"
 #include "SyzygyTB.h"
 #include "Transposition.h"
+#include "UCI.h"
 
 #if defined(_WIN32)
 
@@ -372,15 +372,13 @@ void ThreadPool::configure(u32 threadCount)
         {
             push_back(new Thread(size()));
         }
-
-        reductionFactor = std::pow(24.8 + std::log(size()) / 2, 2);
+        clear();
 
         cout << "info string Thread(s) used " << threadCount << endl;
 
-        clear();
-
+        reductionFactor = std::pow(24.8 + std::log(size()) / 2, 2);
         // Reallocate the hash with the new threadpool size
-        TT.autoResize(i32(Options["Hash"]));
+        TT.autoResize(Options["Hash"]);
     }
 }
 /// ThreadPool::startThinking() wakes up main thread waiting in idleFunction() and returns immediately.
@@ -399,9 +397,9 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
 
     if (!rootMoves.empty())
     {
-        TBProbeDepth = Depth(i32(Options["SyzygyProbeDepth"]));
-        TBLimitPiece = i32(Options["SyzygyLimitPiece"]);
-        TBUseRule50 = bool(Options["SyzygyUseRule50"]);
+        TBProbeDepth = Options["SyzygyProbeDepth"];
+        TBLimitPiece = Options["SyzygyLimitPiece"];
+        TBUseRule50 = Options["SyzygyUseRule50"];
         TBHasRoot = false;
 
         bool dtzAvailable = true;

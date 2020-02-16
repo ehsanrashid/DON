@@ -11,6 +11,7 @@ class SkillManager
 private:
 
     i16  level;
+
     Move bestMove{MOVE_NONE};
 
 public:
@@ -23,6 +24,8 @@ public:
     bool canPick(Depth) const;
 
     void setLevel(i16);
+
     void clearBestMove();
+
     Move pickBestMove();
 };

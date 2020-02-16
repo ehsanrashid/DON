@@ -9,7 +9,7 @@ using namespace std;
 /// Zobrist::computeMatlKey() computes hash key of the material situation.
 Key Zobrist::computeMatlKey(const Position &pos) const
 {
-    Key matlKey = 0;
+    Key matlKey{0};
     for (Color c : { WHITE, BLACK })
     {
         for (PieceType pt = PAWN; pt <= KING; ++pt)
@@ -25,7 +25,7 @@ Key Zobrist::computeMatlKey(const Position &pos) const
 /// Zobrist::computePawnKey() computes hash key of the pawn structure.
 Key Zobrist::computePawnKey(const Position &pos) const
 {
-    Key pawnKey = 0;
+    Key pawnKey{0};
     for (Color c : { WHITE, BLACK })
     {
         pawnKey ^= pieceSquareKey[c][KING][0]; // Include King Key for zero pawns
@@ -39,7 +39,7 @@ Key Zobrist::computePawnKey(const Position &pos) const
 /// Zobrist::computePosiKey() computes hash key of the complete position.
 Key Zobrist::computePosiKey(const Position &pos) const
 {
-    Key posiKey = 0;
+    Key posiKey{0};
     for (Color c : { WHITE, BLACK })
     {
         for (PieceType pt = PAWN; pt <= KING; ++pt)

@@ -120,9 +120,9 @@ public:
 
     Array<std::list<Square>, PIECES> squares;
 
-    Array<Square  , COLORS, CASTLE_SIDES> castleRookSq;
-    Array<Bitboard, COLORS, CASTLE_SIDES> castleKingPath;
-    Array<Bitboard, COLORS, CASTLE_SIDES> castleRookPath;
+    Table<Square  , COLORS, CASTLE_SIDES> castleRookSq;
+    Table<Bitboard, COLORS, CASTLE_SIDES> castleKingPath;
+    Table<Bitboard, COLORS, CASTLE_SIDES> castleRookPath;
 
     Score psq;
     i16   ply;
@@ -159,8 +159,8 @@ public:
     Square square(Piece, u08 = 0) const;
 
     CastleRight castleRights() const;
-    bool canCastle(Color c) const;
-    bool canCastle(Color c, CastleSide cs) const;
+    bool canCastle(Color) const;
+    bool canCastle(Color, CastleSide) const;
     Square epSquare() const;
 
     i16 clockPly() const;
