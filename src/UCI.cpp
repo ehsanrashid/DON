@@ -233,62 +233,46 @@ namespace UCI
             && !CaseInsensitiveLessComparer()(v, currentVal);
     }
 
-    /// Option::operator=() updates currentValue and triggers onChange() action.
-    Option& Option::operator=(const char *value) { return *this = string(value); }
-    /// Option::operator=() updates currentValue and triggers onChange() action.
-    Option& Option::operator=(const string &val)
+    /// Option::operator=() updates currentValue and triggers onChange() action
+    Option& Option::operator=(string &v)
     {
         assert(!type.empty());
-
-        auto v = val;
 
         if (type == "check")
         {
             toLower(v);
-            if (v != "true"
-                && v != "false")
+            if (v != "true" && v != "false") v = "false";
+        }
+        else
+        if (type == "spin")
+        {
+            auto d = std::stod(v);
+            if (minVal > d || d > maxVal) v = std::to_string(i32(clamp(d, minVal, maxVal)));
+        }
+        else
+        if (type == "string")
+        {
+            if (whiteSpaces(v)) v.clear();
+        }
+        else
+        if (type == "combo")
+        {
+            StringOptionMap comboMap; // To have case insensitive compare
+            istringstream iss{defaultVal};
+            string token;
+            while (iss >> token)
+            {
+                comboMap[token] << Option();
+            }
+            if (comboMap.find(v) == comboMap.end()
+             || v == "var")
             {
                 return *this;
             }
         }
-        else
-            if (type == "spin")
-            {
-                v = std::to_string(clamp(std::stod(v), minVal, maxVal));
-            }
-            else
-                if (type == "string")
-                {
-                    if (whiteSpaces(v))
-                    {
-                        v.clear();
-                    }
-                }
-                else
-                    if (type == "combo")
-                    {
-                        StringOptionMap comboMap; // To have case insensitive compare
-                        istringstream iss{ defaultVal };
-                        string token;
-                        while (iss >> token)
-                        {
-                            comboMap[token] << Option();
-                        }
-                        if (0 == comboMap.count(v) || v == "var")
-                        {
-                            return *this;
-                        }
-                    }
 
-        if (type != "button")
-        {
-            currentVal = v;
-        }
-
-        if (nullptr != onChange)
-        {
-            onChange();
-        }
+        if (type != "button") currentVal = v;
+        if (nullptr != onChange) onChange();
 
         return *this;
     }
@@ -309,20 +293,20 @@ namespace UCI
         oss << " type " << type;
 
         if (type == "string"
-            || type == "check"
-            || type == "combo")
+         || type == "check"
+         || type == "combo")
         {
             oss << " default " << defaultVal;
-            //<< " current " << currentVal;
+                //<< " current " << currentVal;
         }
         else
-            if (type == "spin")
-            {
-                oss << " default " << i32(std::stod(defaultVal))
-                    << " min " << minVal
-                    << " max " << maxVal;
+        if (type == "spin")
+        {
+            oss << " default " << i32(std::stod(defaultVal))
+                << " min " << minVal
+                << " max " << maxVal;
                 //<< " current " << std::stod(currentVal);
-            }
+        }
 
         return oss.str();
     }
@@ -343,7 +327,7 @@ namespace UCI
             {
                 if (strOptPair.second.index == idx)
                 {
-                    os << "option name "
+                    os  << "option name "
                         << strOptPair.first
                         << strOptPair.second
                         << std::endl;
@@ -396,7 +380,7 @@ namespace UCI
 
         void onDebugFile()
         {
-            Logger::instance().set(Options["Debug File"]);
+            Logger::instance().setFile(Options["Debug File"]);
         }
 
         void onSyzygyPath()
@@ -448,7 +432,6 @@ namespace UCI
         Options["SyzygyUseRule50"]    << Option(TBUseRule50);
 
         Options["Debug File"]         << Option("", onDebugFile);
-        //Options["Output File"]        << Option("");
 
         Options["UCI_Chess960"]       << Option(false);
         Options["UCI_AnalyseMode"]    << Option(false);
@@ -550,6 +533,7 @@ namespace UCI
             if (Options.find(name) != Options.end())
             {
                 Options[name] = value;
+                sync_cout << "info string option " << name << " = " << value << sync_endl;
             }
             else
             {
@@ -741,7 +725,7 @@ namespace UCI
             }
             else
             {
-                ifstream ifs(fen, ios::in);
+                ifstream ifs{fen, ios::in};
                 if (!ifs.is_open())
                 {
                     cerr << "ERROR: unable to open file ... \'" << fen << "\'" << endl;
@@ -808,7 +792,7 @@ namespace UCI
                 token.clear();
                 is >> skipws >> token;
 
-                if (token.empty())
+                if (whiteSpaces(token))
                 {
                     continue;
                 }
@@ -834,7 +818,7 @@ namespace UCI
                     }
                     else
                     {
-                        sync_cout << trace(pos) << sync_endl;
+                        sync_cout << Evaluator::trace(pos) << sync_endl;
                     }
                 }
                 else
@@ -910,23 +894,14 @@ namespace UCI
             }
 
             if (token == "quit"
-             || token == "stop")
-            {
-                Threadpool.stop = true;
-            }
+             || token == "stop")            Threadpool.stop = true;
             else
             // GUI sends 'ponderhit' to tell that the opponent has played the expected move.
             // So 'ponderhit' will be sent if told to ponder on the same move the opponent has played.
             // Now should continue searching but switch from pondering to normal search.
-            if (token == "ponderhit")
-            {
-                Threadpool.mainThread()->ponder = false; // Switch to normal search
-            }
+            if (token == "ponderhit")       Threadpool.mainThread()->ponder = false; // Switch to normal search
             else
-            if (token == "isready")
-            {
-                sync_cout << "readyok" << sync_endl;
-            }
+            if (token == "isready")         sync_cout << "readyok" << sync_endl;
             else
             if (token == "uci")
             {
@@ -936,58 +911,28 @@ namespace UCI
                           << "uciok" << sync_endl;
             }
             else
-            if (token == "ucinewgame")
-            {
-                UCI::reset();
-            }
+            if (token == "ucinewgame")      UCI::reset();
             else
-            if (token == "position")
-            {
-                position(iss, pos, states);
-            }
+            if (token == "position")        position(iss, pos, states);
             else
-            if (token == "go")
-            {
-                go(iss, pos, states);
-            }
+            if (token == "go")              go(iss, pos, states);
             else
-            if (token == "setoption")
-            {
-                setOption(iss);
-            }
+            if (token == "setoption")       setOption(iss);
             // Additional custom non-UCI commands, useful for debugging
             else
             {
-                if (token == "bench")
-                {
-                    bench(iss, pos, states);
-                }
+                if (token == "bench")       bench(iss, pos, states);
                 else
-                if (token == "flip")
-                {
-                    pos.flip();
-                }
+                if (token == "flip")        pos.flip();
                 else
-                if (token == "mirror")
-                {
-                    pos.mirror();
-                }
+                if (token == "mirror")      pos.mirror();
                 else
-                if (token == "compiler")
-                {
-                    sync_cout << compilerInfo() << sync_endl;
-                }
+                if (token == "compiler")    sync_cout << compilerInfo() << sync_endl;
                 // Print the root position
                 else
-                if (token == "show")
-                {
-                    sync_cout << pos << sync_endl;
-                }
+                if (token == "show")        sync_cout << pos << sync_endl;
                 else
-                if (token == "eval")
-                {
-                    sync_cout << trace(pos) << sync_endl;
-                }
+                if (token == "eval")        sync_cout << Evaluator::trace(pos) << sync_endl;
                 // Print the root fen and keys
                 else
                 if (token == "keys")

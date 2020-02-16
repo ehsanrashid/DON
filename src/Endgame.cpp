@@ -189,10 +189,10 @@ template<> Value Endgame<KRKP>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_ROOK, 0)
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 1));
 
-    auto skSq{relSq(stngColor, pos.square(stngColor|KING))};
-    auto srSq{relSq(stngColor, pos.square(stngColor|ROOK))};
-    auto wkSq{relSq(stngColor, pos.square(weakColor|KING))};
-    auto wpSq{relSq(stngColor, pos.square(weakColor|PAWN))};
+    auto skSq{relativeSq(stngColor, pos.square(stngColor|KING))};
+    auto srSq{relativeSq(stngColor, pos.square(stngColor|ROOK))};
+    auto wkSq{relativeSq(stngColor, pos.square(weakColor|KING))};
+    auto wpSq{relativeSq(stngColor, pos.square(weakColor|PAWN))};
 
     auto promoteSq{makeSquare(sFile(wpSq), RANK_1)};
 
@@ -293,7 +293,7 @@ template<> Value Endgame<KQKP>::operator()(const Position &pos) const
 
     auto value{Value(PushClose[dist(skSq, wkSq)])};
 
-    if (RANK_7 != relRank(weakColor, wpSq)
+    if (RANK_7 != relativeRank(weakColor, wpSq)
      || 1 != dist(wkSq, wpSq)
      || !contains(FABB|FCBB|FFBB|FHBB, wpSq))
     {
@@ -460,7 +460,7 @@ template<> Scale Endgame<KRPKB>::operator()(const Position &pos) const
         auto wkSq{pos.square(weakColor|KING)};
         auto wbSq{pos.square(weakColor|BSHP)};
         auto spSq{pos.square(stngColor|PAWN)};
-        auto spR{relRank(stngColor, spSq)};
+        auto spR{relativeRank(stngColor, spSq)};
 
         // If the pawn is on the 5th rank and the pawn (currently) is on the
         // same color square as the bishop then there is a chance of a fortress.
@@ -508,10 +508,10 @@ template<> Scale Endgame<KRPPKRP>::operator()(const Position &pos) const
         return SCALE_NONE;
     }
 
-    auto spR{std::max(relRank(stngColor, sp1Sq), relRank(stngColor, sp2Sq))};
+    auto spR{std::max(relativeRank(stngColor, sp1Sq), relativeRank(stngColor, sp2Sq))};
     if (1 >= dist<File>(wkSq, sp1Sq)
      && 1 >= dist<File>(wkSq, sp2Sq)
-     && spR < relRank(stngColor, wkSq))
+     && spR < relativeRank(stngColor, wkSq))
     {
         assert(RANK_1 < spR && spR < RANK_7);
         return RankScale[spR];
@@ -558,9 +558,9 @@ template<> Scale Endgame<KBPKB>::operator()(const Position &pos) const
         oppositeColor(sbSq, wbSq)
         // Defending king blocks the pawn, and cannot be driven away
      || (sFile(wkSq) == sFile(spSq)
-      && relRank(stngColor, spSq) < relRank(stngColor, wkSq)
+      && relativeRank(stngColor, spSq) < relativeRank(stngColor, wkSq)
       && (oppositeColor(wkSq, sbSq)
-       || RANK_6 >= relRank(stngColor, wkSq))))
+       || RANK_6 >= relativeRank(stngColor, wkSq))))
     {
         return SCALE_DRAW;
     }
@@ -586,7 +586,7 @@ template<> Scale Endgame<KBPPKB>::operator()(const Position &pos) const
         Square block1Sq
             ,  block2Sq;
 
-        if (relRank(stngColor, sp1Sq) > relRank(stngColor, sp2Sq))
+        if (relativeRank(stngColor, sp1Sq) > relativeRank(stngColor, sp2Sq))
         {
             block1Sq = sp1Sq + pawnPush(stngColor);
             block2Sq = makeSquare(sFile(sp2Sq), sRank(sp1Sq));
@@ -603,7 +603,7 @@ template<> Scale Endgame<KBPPKB>::operator()(const Position &pos) const
         // controls some square in the front most pawn's path.
         case 0:
             if (sFile(wkSq) == sFile(block1Sq)
-             && relRank(stngColor, wkSq) >= relRank(stngColor, block1Sq)
+             && relativeRank(stngColor, wkSq) >= relativeRank(stngColor, block1Sq)
              && oppositeColor(wkSq, sbSq))
             {
                 return SCALE_DRAW;
@@ -654,9 +654,9 @@ template<> Scale Endgame<KBPKN>::operator()(const Position &pos) const
     auto wkSq{pos.square(weakColor|KING)};
 
     if (sFile(wkSq) == sFile(spSq)
-     && relRank(stngColor, spSq) < relRank(stngColor, wkSq)
+     && relativeRank(stngColor, spSq) < relativeRank(stngColor, wkSq)
      && (oppositeColor(wkSq, sbSq)
-      || RANK_6 >= relRank(stngColor, wkSq)))
+      || RANK_6 >= relativeRank(stngColor, wkSq)))
     {
         return SCALE_DRAW;
     }
@@ -764,7 +764,7 @@ template<> Scale Endgame<KBPsK>::operator()(const Position &pos) const
     if (0 == (sPawns & ~FABB)
      || 0 == (sPawns & ~FHBB))
     {
-        auto promoteSq{relSq(stngColor, makeSquare(sFile(scanLSq(sPawns)), RANK_8))};
+        auto promoteSq{relativeSq(stngColor, makeSquare(sFile(scanLSq(sPawns)), RANK_8))};
 
         // The bishop has the wrong color and the defending king defends the queening square.
         if (oppositeColor(promoteSq, sbSq)
@@ -788,7 +788,7 @@ template<> Scale Endgame<KBPsK>::operator()(const Position &pos) const
 
         // There's potential for a draw if weak pawn is blocked on the 7th rank
         // and the bishop cannot attack it or only one strong pawn left
-        if (RANK_7 == relRank(stngColor, wpSq)
+        if (RANK_7 == relativeRank(stngColor, wpSq)
          && contains(sPawns, wpSq + pawnPush(weakColor))
          && (oppositeColor(sbSq, wpSq)
           || 1 == pos.count(stngColor|PAWN)))
@@ -799,7 +799,7 @@ template<> Scale Endgame<KBPsK>::operator()(const Position &pos) const
             // positions such as 5k1K/6p1/6P1/8/8/3B4/8/8 w and
             // where Q-search will immediately correct the problem
             // positions such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w
-            if (RANK_7 <= relRank(stngColor, wkSq)
+            if (RANK_7 <= relativeRank(stngColor, wkSq)
              && 2 >= dist(wkSq, wpSq)
              && dist(wkSq, wpSq) <= dist(skSq, wpSq))
             {
@@ -824,9 +824,9 @@ template<> Scale Endgame<KQKRPs>::operator()(const Position &pos) const
     auto wkSq{pos.square(weakColor|KING)};
     auto wrSq{pos.square(weakColor|ROOK)};
 
-    if (RANK_2 >= relRank(weakColor, wkSq)
-     && RANK_4 <= relRank(weakColor, skSq)
-     && RANK_3 == relRank(weakColor, wrSq)
+    if (RANK_2 >= relativeRank(weakColor, wkSq)
+     && RANK_4 <= relativeRank(weakColor, skSq)
+     && RANK_3 == relativeRank(weakColor, wrSq)
      && 0 != (pos.pieces(weakColor, PAWN)
             & PieceAttacks[KING][wkSq]
             & PawnAttacks[stngColor][wrSq]))

@@ -69,10 +69,10 @@ namespace Pawns
                 assert(FILE_A <= f && f <= FILE_H);
                 Bitboard ownFrontFilePawns = ownFrontPawns & fileBB(f);
                 auto ownR = 0 != ownFrontFilePawns ?
-                            relRank(Own, scanFrontMostSq(Opp, ownFrontFilePawns)) : RANK_1;
+                            relativeRank(Own, scanFrontMostSq(Opp, ownFrontFilePawns)) : RANK_1;
                 Bitboard oppFrontFilePawns = oppFrontPawns & fileBB(f);
                 auto oppR = 0 != oppFrontFilePawns ?
-                            relRank(Own, scanFrontMostSq(Opp, oppFrontFilePawns)) : RANK_1;
+                            relativeRank(Own, scanFrontMostSq(Opp, oppFrontFilePawns)) : RANK_1;
                 assert((ownR != oppR)
                     || (RANK_1 == ownR
                      && RANK_1 == oppR));
@@ -131,12 +131,12 @@ namespace Pawns
 
             if (0 != kPaths[CS_KING])
             {
-                safety = std::max(evaluateSafetyOn<Own>(pos, relSq(Own, SQ_G1)), safety,
+                safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_G1)), safety,
                                   [](Score s1, Score s2) { return mgValue(s1) < mgValue(s2); });
             }
             if (0 != kPaths[CS_QUEN])
             {
-                safety = std::max(evaluateSafetyOn<Own>(pos, relSq(Own, SQ_C1)), safety,
+                safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_C1)), safety,
                                   [](Score s1, Score s2) { return mgValue(s1) < mgValue(s2); });
             }
 
@@ -198,7 +198,7 @@ namespace Pawns
         {
             assert((Own|PAWN) == pos[s]);
 
-            auto r{relRank(Own, s)};
+            auto r{relativeRank(Own, s)};
             assert(RANK_2 <= r && r <= RANK_7);
 
             Bitboard neighbours = ownPawns & adjacentFilesBB(s);

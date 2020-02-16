@@ -55,7 +55,7 @@ void RootMoves::initialize(const Position &pos, const vector<Move> &searchMoves)
 
 i16 RootMoves::moveBestCount(u32 sIdx, u32 eIdx, Move move) const
 {
-    auto rmItr = std::find(std::next(begin(), sIdx), std::next(begin(), eIdx), move);
+    auto rmItr{std::find(std::next(begin(), sIdx), std::next(begin(), eIdx), move)};
     return rmItr != std::next(begin(), eIdx) ?
             rmItr->bestCount : 0;
 }
@@ -73,4 +73,3 @@ ostream& operator<<(ostream &os, const RootMoves &rms)
     os << string(rms);
     return os;
 }
-

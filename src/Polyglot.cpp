@@ -286,7 +286,7 @@ void PolyBook::initialize(const string &bkFn)
         return;
     }
 
-    ifstream ifs(bookFn, ios::in|ios::binary);
+    ifstream ifs{bookFn, ios::in|ios::binary};
     if (!ifs.is_open())
     {
         return;

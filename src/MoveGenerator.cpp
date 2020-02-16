@@ -104,7 +104,7 @@ namespace
 
         Bitboard pawns = pos.pieces(pos.active, PAWN);
         // Pawns on 7th Rank only
-        Bitboard r7Pawns = pawns & rankBB(relRank(pos.active, RANK_7));
+        Bitboard r7Pawns = pawns & rankBB(relativeRank(pos.active, RANK_7));
         // Pawns not on 7th Rank
         Bitboard rxPawns = pawns & ~r7Pawns;
 
@@ -137,7 +137,7 @@ namespace
 
             if (SQ_NONE != pos.epSquare())
             {
-                assert(RANK_6 == relRank(pos.active, pos.epSquare()));
+                assert(RANK_6 == relativeRank(pos.active, pos.epSquare()));
                 Bitboard epPawns = rxPawns
                                  & PawnAttacks[~pos.active][pos.epSquare()];
                 switch (GT)
@@ -192,7 +192,7 @@ namespace
 
             // Pawn single-push and double-push, no promotions
             Bitboard pushs1 = empties & pawnSglPushes(pos.active, rxPawns);
-            Bitboard pushs2 = empties & pawnSglPushes(pos.active, pushs1 & rankBB(relRank(pos.active, RANK_3)));
+            Bitboard pushs2 = empties & pawnSglPushes(pos.active, pushs1 & rankBB(relativeRank(pos.active, RANK_3)));
             switch (GT)
             {
             case GenType::EVASION:
@@ -214,7 +214,7 @@ namespace
                 if (0 != dscPawns)
                 {
                     Bitboard dscPushs1 = empties & pawnSglPushes(pos.active, dscPawns);
-                    Bitboard dscPushs2 = empties & pawnSglPushes(pos.active, dscPushs1 & rankBB(relRank(pos.active, RANK_3)));
+                    Bitboard dscPushs2 = empties & pawnSglPushes(pos.active, dscPushs1 & rankBB(relativeRank(pos.active, RANK_3)));
                     pushs1 |= dscPushs1;
                     pushs2 |= dscPushs2;
                 }

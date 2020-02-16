@@ -254,7 +254,7 @@ void TTable::save(const string &hashFn) const
     {
         return;
     }
-    ofstream ofs(hashFn, ios::out|ios::binary);
+    ofstream ofs{hashFn, ios::out|ios::binary};
     if (!ofs.is_open())
     {
         return;
@@ -270,7 +270,7 @@ void TTable::load(const string &hashFn)
     {
         return;
     }
-    ifstream ifs(hashFn, ios::in|ios::binary);
+    ifstream ifs{hashFn, ios::in|ios::binary};
     if (!ifs.is_open())
     {
         return;

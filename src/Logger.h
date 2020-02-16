@@ -32,5 +32,5 @@ public:
     Logger& operator=(const Logger&) = delete;  // Copy assign
     Logger& operator=(Logger&&) = delete;      // Move assign
 
-    void set(const std::string&);
+    void setFile(const std::string&);
 };

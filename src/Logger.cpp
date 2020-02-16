@@ -57,7 +57,7 @@ Logger::Logger()
 
 Logger::~Logger()
 {
-    set("");
+    setFile("");
 }
 
 Logger& Logger::instance()
@@ -70,7 +70,7 @@ Logger& Logger::instance()
     return _instance;
 }
 
-void Logger::set(const string &logFn)
+void Logger::setFile(const string &logFn)
 {
     if (ofs.is_open())
     {

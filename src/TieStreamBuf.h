@@ -29,6 +29,16 @@ private:
 
 protected:
 
+public:
+
+    std::streambuf *readSB
+        ,          *writSB;
+
+    TieStreamBuf(std::streambuf *rSB
+               , std::streambuf *wSB)
+        : readSB{rSB}
+        , writSB{wSB}
+    {}
     TieStreamBuf(const TieStreamBuf&) = delete;
     TieStreamBuf& operator=(const TieStreamBuf&) = delete;
 
@@ -36,17 +46,6 @@ protected:
     int_type overflow(int_type ch) override { return write(readSB->sputc(char(ch)), "<< "); }
     int_type underflow() override { return readSB->sgetc(); }
     int_type uflow() override { return write(readSB->sbumpc(), ">> "); }
-
-public:
-
-    std::streambuf *readSB
-        ,          *writSB;
-
-    TieStreamBuf(std::streambuf *rSB,
-                 std::streambuf *wSB)
-        : readSB(rSB)
-        , writSB(wSB)
-    {}
 
 };
 

@@ -149,8 +149,6 @@ public:
     std::atomic<bool> stop // Stop search forcefully
         ,             research;
 
-    //std::ofstream outputStream;
-
     ThreadPool() = default;
     ThreadPool(const ThreadPool&) = delete;
     ThreadPool& operator=(const ThreadPool&) = delete;

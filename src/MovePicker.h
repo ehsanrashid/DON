@@ -14,15 +14,15 @@ enum PickStage : u08
     NATURAL_QUIETS,
     NATURAL_BAD_CAPTURES,
 
-    EVASION_TT = 6,
+    EVASION_TT = 8,
     EVASION_INIT,
     EVASION_MOVES,
 
-    PROBCUT_TT = 9,
+    PROBCUT_TT = 12,
     PROBCUT_INIT,
     PROBCUT_CAPTURE,
 
-    QUIESCENCE_TT = 12,
+    QUIESCENCE_TT = 16,
     QUIESCENCE_INIT,
     QUIESCENCE_CAPTURES,
     QUIESCENCE_CHECKS,
@@ -90,7 +90,7 @@ public:
              , Move, Depth, Square);
     MovePicker(const Position&
              , const PieceSquareTypeStatsTable*
-             , Move ttm, Value thr);
+             , Move, Value);
 
     Move nextMove();
 

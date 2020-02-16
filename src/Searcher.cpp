@@ -121,7 +121,7 @@ namespace
     // Futility move count threshold
     constexpr i16 futilityMoveCount(Depth d, bool imp)
     {
-        return (5 + d * d) * (1 + imp) / 2 - 1;
+        return (4 + d * d) / (2 - imp);
     }
 
     Depth reduction(Depth d, u08 mc, bool imp)
@@ -172,7 +172,7 @@ namespace
         {
             auto pmDst{CASTLE != mType((ss-1)->playedMove) ?
                         dstSq((ss-1)->playedMove) :
-                        relSq(~pos.active, dstSq((ss-1)->playedMove) > orgSq((ss-1)->playedMove) ? SQ_G1 : SQ_C1)};
+                        kingRelativeSq(~pos.active, dstSq((ss-1)->playedMove) > orgSq((ss-1)->playedMove))};
             assert(NO_PIECE != pos[pmDst]);
             pos.thread->quietCounterMoves[pos[pmDst]][pmDst] = move;
         }
@@ -220,7 +220,7 @@ namespace
         {
             return ss->ply >= MaxDepth
                 && !inCheck ?
-                        evaluate(pos) :
+                        Evaluator::evaluate(pos) :
                         VALUE_DRAW;
         }
 
@@ -244,16 +244,16 @@ namespace
         // Decide whether or not to include checks.
         // Fixes also the type of TT entry depth that are going to use.
         // Note that in quienSearch use only 2 types of depth: DEPTH_QS_CHECK or DEPTH_QS_NO_CHECK.
-        Depth qsDepth = inCheck
-                     || DEPTH_QS_CHECK <= depth ?
-                            DEPTH_QS_CHECK :
-                            DEPTH_QS_NO_CHECK;
+        Depth qsDepth{inCheck
+                   || DEPTH_QS_CHECK <= depth ?
+                        DEPTH_QS_CHECK :
+                        DEPTH_QS_NO_CHECK};
 
         if (!PVNode
-            && VALUE_NONE != ttValue // Handle ttHit
-            && qsDepth <= tte->depth()
-            && BOUND_NONE != (tte->bound()
-                        & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER)))
+         && VALUE_NONE != ttValue // Handle ttHit
+         && qsDepth <= tte->depth()
+         && BOUND_NONE != (tte->bound()
+                         & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER)))
         {
             return ttValue;
         }
@@ -280,13 +280,13 @@ namespace
                 // Never assume anything on values stored in TT.
                 if (VALUE_NONE == bestValue)
                 {
-                    ss->staticEval = bestValue = evaluate(pos);
+                    ss->staticEval = bestValue = Evaluator::evaluate(pos);
                 }
 
                 // Can ttValue be used as a better position evaluation?
                 if (VALUE_NONE != ttValue
-                    && BOUND_NONE != (tte->bound()
-                                & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER)))
+                 && BOUND_NONE != (tte->bound()
+                                 & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER)))
                 {
                     bestValue = ttValue;
                 }
@@ -295,11 +295,11 @@ namespace
             {
                 if (MOVE_NULL != (ss-1)->playedMove)
                 {
-                    ss->staticEval = bestValue = evaluate(pos);
+                    ss->staticEval = bestValue = Evaluator::evaluate(pos);
                 }
                 else
                 {
-                    ss->staticEval = bestValue = -(ss-1)->staticEval + 2*Tempo;
+                    ss->staticEval = bestValue = -(ss-1)->staticEval + 2 * Evaluator::Tempo;
                 }
             }
 
@@ -378,13 +378,12 @@ namespace
 
             // Futility pruning
             if (!inCheck
-                && !giveCheck
-                && 0 == Threadpool.limit.mate
-                && -VALUE_KNOWN_WIN < futilityBase
-                && !pos.pawnAdvanceAt(pos.active, org))
+             && !giveCheck
+             && -VALUE_KNOWN_WIN < futilityBase
+             && !pos.pawnAdvanceAt(pos.active, org)
+             && 0 == Threadpool.limit.mate)
             {
                 assert(ENPASSANT != mType(move)); // Due to !pos.pawnAdvanceAt
-
                 // Futility pruning parent node
                 auto futilityValue = futilityBase + PieceValues[EG][CASTLE != mType(move) ? pType(pos[dst]) : NONE];
                 if (futilityValue <= alfa)
@@ -392,23 +391,24 @@ namespace
                     bestValue = std::max(futilityValue, bestValue);
                     continue;
                 }
-
                 // Prune moves with negative or zero SEE
                 if (futilityBase <= alfa
-                    && !pos.see(move, Value(1)))
+                 && !pos.see(move, Value(1)))
                 {
                     bestValue = std::max(futilityBase, bestValue);
                     continue;
                 }
             }
 
+            // Detect non-capture evasions that are candidates to be pruned
+            bool evasionPrunable{inCheck
+                              && (DEPTH_ZERO != depth
+                               || 2 < moveCount)
+                              && -VALUE_MATE_MAX_PLY < bestValue
+                              && !pos.capture(move)};
             // Pruning: Don't search moves with negative SEE
             if ((!inCheck
-                // Evasion pruning: Detect non-capture evasions for pruning
-              || ((DEPTH_ZERO != depth
-                || 2 < moveCount)
-               && -VALUE_MATE_MAX_PLY < bestValue
-               && !pos.capture(move)))
+              || evasionPrunable)
              && 0 == Threadpool.limit.mate
              && !pos.see(move))
             {
@@ -420,14 +420,14 @@ namespace
 
             // Update the current move.
             ss->playedMove = move;
-            ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mpc][dst];
-
-            // Make the move.
+            ss->pieceStats = &thread->continuationStats[inCheck]
+                                                       [captureOrPromotion]
+                                                       [mpc]
+                                                       [dst];
+            // Do the move
             pos.doMove(move, si, giveCheck);
-
             auto value = -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth - 1);
-
-            // Undo the move.
+            // Undo the move
             pos.undoMove(move);
 
             assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
@@ -441,23 +441,21 @@ namespace
                 {
                     bestMove = move;
 
-                    // Update pv even in fail-high case
-                    if (PVNode)
+                    if (PVNode) // Update pv even in fail-high case
                     {
                         updatePV(ss->pv, move, (ss+1)->pv);
                     }
 
-                    // Update alfa! Always alfa < beta
-                    if (PVNode
-                        && value < beta)
+                    if (value >= beta) // Fail high
+                    {
+                        break;
+                    }
+                    else
+                    if (PVNode) // Update alfa! Always alfa < beta
                     {
                         alfa = value;
                     }
-                    else
-                    {
-                        assert(value >= beta); // Fail high
-                        break;
-                    }
+
                 }
             }
         }
@@ -465,7 +463,7 @@ namespace
         // All legal moves have been searched. A special case: If we're in check
         // and no legal moves were found, it is checkmate.
         if (inCheck
-            && -VALUE_INFINITE == bestValue)
+         && -VALUE_INFINITE == bestValue)
         {
             return matedIn(ss->ply); // Plies to mate from the root
         }
@@ -478,7 +476,7 @@ namespace
                     bestValue >= beta ?
                         BOUND_LOWER :
                             PVNode
-                        && bestValue > actualAlfa ?
+                         && bestValue > actualAlfa ?
                             BOUND_EXACT :
                             BOUND_UPPER,
                     ttPV);
@@ -491,14 +489,14 @@ namespace
     Value depthSearch(Position &pos, Stack *const &ss, Value alfa, Value beta, Depth depth, bool cutNode)
     {
         bool rootNode = PVNode
-                        && 0 == ss->ply;
+                     && 0 == ss->ply;
 
         // Check if there exists a move which draws by repetition,
         // or an alternative earlier move to this position.
         if (!rootNode
-            && alfa < VALUE_DRAW
-            && pos.clockPly() >= 3
-            && pos.cycled(ss->ply))
+         && alfa < VALUE_DRAW
+         && pos.clockPly() >= 3
+         && pos.cycled(ss->ply))
         {
             alfa = drawValue();
             if (alfa >= beta)
@@ -550,7 +548,7 @@ namespace
             {
                 return ss->ply >= MaxDepth
                     && !inCheck ?
-                            evaluate(pos) :
+                            Evaluator::evaluate(pos) :
                             drawValue();
             }
 
@@ -660,7 +658,7 @@ namespace
 
         // Step 5. Tablebases probe.
         if (!rootNode
-            && 0 != TBLimitPiece)
+         && 0 != TBLimitPiece)
         {
             auto pieceCount = pos.count();
 
@@ -743,7 +741,7 @@ namespace
                 // Never assume anything on values stored in TT.
                 if (VALUE_NONE == eval)
                 {
-                    ss->staticEval = eval = evaluate(pos);
+                    ss->staticEval = eval = Evaluator::evaluate(pos);
                 }
 
                 if (VALUE_DRAW == eval)
@@ -762,11 +760,11 @@ namespace
             {
                 if (MOVE_NULL != (ss-1)->playedMove)
                 {
-                    ss->staticEval = eval = evaluate(pos) - (ss-1)->stats / 512;
+                    ss->staticEval = eval = Evaluator::evaluate(pos) + (-(ss-1)->stats / 512);
                 }
                 else
                 {
-                    ss->staticEval = eval = -(ss-1)->staticEval + 2*Tempo;
+                    ss->staticEval = eval = -(ss-1)->staticEval + 2 * Evaluator::Tempo;
                 }
 
                 tte->save(key,
@@ -799,9 +797,9 @@ namespace
             // the score by more than futility margins if do a null move.
             if (!rootNode
              && 6 > depth
-             && 0 == Threadpool.limit.mate
              && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
-             && eval - futilityMargin(depth, improving) >= beta)
+             && eval - futilityMargin(depth, improving) >= beta
+             && 0 == Threadpool.limit.mate)
             {
                 return eval;
             }
@@ -809,15 +807,15 @@ namespace
             // Step 9. Null move search with verification search. (~40 ELO)
             if (!PVNode
              && MOVE_NULL != (ss-1)->playedMove
-             && MOVE_NONE == ss->excludedMove
-             && 0 == Threadpool.limit.mate
-             && VALUE_ZERO != pos.nonPawnMaterial(pos.active)
-             && 23397 > (ss-1)->stats
+             && 23397      > (ss-1)->stats
              && eval >= beta
              && eval >= ss->staticEval
              && ss->staticEval - 292 + 32 * depth + 30 * improving - 120 * ttPV >= beta
+             && MOVE_NONE == ss->excludedMove
+             && VALUE_ZERO != pos.nonPawnMaterial(pos.active)
              && (thread->nmpPly <= ss->ply
-              || thread->nmpColor != pos.active))
+              || thread->nmpColor != pos.active)
+             && 0 == Threadpool.limit.mate)
             {
                 // Null move dynamic reduction based on depth and static evaluation.
                 auto R = Depth((854 + 68 * depth) / 258 + std::min(i32(eval - beta) / 192, 3));
@@ -862,8 +860,8 @@ namespace
             // then can (almost) safely prune the previous move.
             if (!PVNode
              && 4 < depth
-             && 0 == Threadpool.limit.mate
-             && abs(beta) < +VALUE_MATE_MAX_PLY)
+             && abs(beta) < +VALUE_MATE_MAX_PLY
+             && 0 == Threadpool.limit.mate)
             {
                 auto raisedBeta{std::min(beta + 189 - 45 * improving, +VALUE_INFINITE)};
 
@@ -964,7 +962,7 @@ namespace
         {
             auto pmDst{CASTLE != mType((ss-1)->playedMove) ?
                         dstSq((ss-1)->playedMove) :
-                        relSq(~pos.active, dstSq((ss-1)->playedMove) > orgSq((ss-1)->playedMove) ? SQ_G1 : SQ_C1)};
+                        kingRelativeSq(~pos.active, dstSq((ss-1)->playedMove) > orgSq((ss-1)->playedMove))};
             assert(NO_PIECE != pos[pmDst]);
             counterMove = pos.thread->quietCounterMoves[pos[pmDst]][pmDst];
         }
@@ -1044,8 +1042,8 @@ namespace
             // Step 13. Pruning at shallow depth. (~200 ELO)
             if (!rootNode
              && -VALUE_MATE_MAX_PLY < bestValue
-             && 0 == Threadpool.limit.mate
-             && VALUE_ZERO < pos.nonPawnMaterial(pos.active))
+             && VALUE_ZERO < pos.nonPawnMaterial(pos.active)
+             && 0 == Threadpool.limit.mate)
             {
                 // Skip quiet moves if move count exceeds our futilityMoveCount() threshold
                 mp.skipQuiets = futilityMoveCount(depth, improving) <= moveCount;
@@ -1157,7 +1155,7 @@ namespace
             ss->playedMove = move;
             ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mpc][dst];
 
-            // Step 15. Make the move.
+            // Step 15. Do the move
             pos.doMove(move, si, giveCheck);
 
             bool doLMR =
@@ -1290,7 +1288,7 @@ namespace
                 value = -depthSearch<true>(pos, ss+1, -beta, -alfa, newDepth, false);
             }
 
-            // Step 18. Undo move.
+            // Step 18. Undo the move
             pos.undoMove(move);
 
             assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
@@ -1351,17 +1349,15 @@ namespace
                         updatePV(ss->pv, move, (ss+1)->pv);
                     }
 
-                    // Update alfa! Always alfa < beta
-                    if (PVNode
-                     && value < beta)
+                    if (value >= beta) // Fail high
                     {
-                        alfa = value;
-                    }
-                    else
-                    {
-                        assert(value >= beta); // Fail high
                         ss->stats = 0;
                         break;
+                    }
+                    else
+                    if (PVNode) // Update alfa! Always alfa < beta
+                    {
+                        alfa = value;
                     }
 
                 }
@@ -1754,14 +1750,13 @@ void Thread::search()
                 // Reset pv change
                 Threadpool.reset(&Thread::pvChange);
 
-                double pvInstability = 1.00 + pvChangeSum / Threadpool.size();
+                double pvInstability{1.00 + pvChangeSum / Threadpool.size()};
 
-
-                auto availableTime = TimePoint( mainThread->timeMgr.optimumTime
-                                              * reduction
-                                              * evalFalling
-                                              * pvInstability);
-                auto elapsedTime = mainThread->timeMgr.elapsedTime();
+                auto availableTime{TimePoint(mainThread->timeMgr.optimumTime
+                                           * reduction
+                                           * evalFalling
+                                           * pvInstability)};
+                auto elapsedTime{mainThread->timeMgr.elapsedTime()};
 
                 // Stop the search
                 // - If all of the available time has been used
@@ -1793,12 +1788,6 @@ void Thread::search()
                 mainThread->iterValues[iterIdx] = bestValue;
                 iterIdx = (iterIdx + 1) % 4;
             }
-            /*
-            if (Threadpool.outputStream.is_open())
-            {
-                Threadpool.outputStream << prettyInfo(mainThread) << endl;
-            }
-            */
         }
     }
 }
@@ -1812,29 +1801,6 @@ void MainThread::search()
 
     timeMgr.startTime = now();
     debugTime = 0;
-    /*
-    if (!whiteSpaces(Options["Output File"]))
-    {
-        Threadpool.outputStream.open(Options["Output File"], ios::out|ios::app);
-        if (Threadpool.outputStream.is_open())
-        {
-            Threadpool.outputStream
-                << boolalpha
-                << "RootPos  : " << rootPos.fen() << "\n"
-                << "MaxMoves : " << rootMoves.size() << "\n"
-                << "ClockTime: " << Threadpool.limit.clock[rootPos.active].time << " ms\n"
-                << "ClockInc : " << Threadpool.limit.clock[rootPos.active].inc << " ms\n"
-                << "MovesToGo: " << Threadpool.limit.movestogo+0 << "\n"
-                << "MoveTime : " << Threadpool.limit.moveTime << " ms\n"
-                << "Depth    : " << Threadpool.limit.depth << "\n"
-                << "Infinite : " << Threadpool.limit.infinite << "\n"
-                << "Ponder   : " << ponder << "\n"
-                << " Depth Score    Time       Nodes PV\n"
-                << "-----------------------------------------------------------"
-                << noboolalpha << endl;
-        }
-    }
-    */
 
     if (Threadpool.limit.useTimeMgmt())
     {
@@ -1983,32 +1949,6 @@ void MainThread::search()
             TT.extractNextMove(rootPos, bm);
         assert(bm != pm);
     }
-    /*
-    if (Threadpool.outputStream.is_open())
-    {
-        auto nodes = Threadpool.sum(&Thread::nodes);
-        auto elapsedTime = std::max(timeMgr.elapsedTime(), TimePoint(1));
-
-        auto pmSAN = moveToSAN(MOVE_NONE, rootPos);
-        if (MOVE_NONE != bm
-         && MOVE_NONE != pm)
-        {
-            StateInfo si;
-            rootPos.doMove(bm, si);
-            pmSAN = moveToSAN(pm, rootPos);
-            rootPos.undoMove(bm);
-        }
-
-        Threadpool.outputStream
-            << "Nodes      : " << nodes << " N\n"
-            << "Time       : " << elapsedTime << " ms\n"
-            << "Speed      : " << nodes * 1000 / elapsedTime << " N/s\n"
-            << "Hash-full  : " << TT.hashFull() << "\n"
-            << "Best Move  : " << moveToSAN(bm, rootPos) << "\n"
-            << "Ponder Move: " << pmSAN << "\n" << endl;
-        Threadpool.outputStream.close();
-    }
-    */
 
     // Best move could be MOVE_NONE when searching on a stalemate position.
     sync_cout << "bestmove " << bm;

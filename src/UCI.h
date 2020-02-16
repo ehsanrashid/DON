@@ -53,8 +53,7 @@ namespace UCI
         operator double() const;
         bool operator==(const char*) const;
 
-        Option& operator=(const char*);
-        Option& operator=(const std::string&);
+        Option& operator=(std::string&);
 
         void operator<<(const Option&);
 

@@ -239,8 +239,9 @@ namespace
         static vector<string> Paths;
 
         TBFile(const string &code, const string &ext)
+            : ifstream{}
         {
-            auto file = code;
+            auto file{code};
             file.insert(file.find('K', 1), "v");
             file += ext;
             for (const auto &path : Paths)

@@ -11,7 +11,7 @@
 
 #include <pthread.h>
 
-static const size_t TH_STACK_SIZE = 8 * 1024 * 1024;
+static constexpr size_t TH_STACK_SIZE = 8 * 1024 * 1024;
 
 template<typename T, class P = std::pair<T*, void(T::*)()>>
 void* startRoutine(void *arg)
@@ -32,11 +32,11 @@ public:
     template<typename T, class P = std::pair<T*, void (T::*)()>>
     explicit NativeThread(void(T::*fun)(), T *obj)
     {
-        pthread_attr_t attribute
-            ,         *pAttr = &attribute;
-        pthread_attr_init(pAttr);
-        pthread_attr_setstacksize(pAttr, TH_STACK_SIZE);
-        pthread_create(&thread, pAttr, startRoutine<T>, new P(obj, fun));
+        pthread_attr_t thread_attr;
+        pthread_attr_init(&thread_attr);
+        pthread_attr_setstacksize(&thread_attr, TH_STACK_SIZE);
+        
+        pthread_create(&thread, &thread_attr, startRoutine<T>, new P(obj, fun));
     }
 
     void join()
@@ -47,6 +47,6 @@ public:
 
 #else // Default case: use STL classes
 
-typedef std::thread NativeThread;
+using NativeThread = std::thread;
 
 #endif
