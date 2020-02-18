@@ -3,7 +3,7 @@
   <Class Name="Position" Collapsed="true">
     <Position X="21.5" Y="1.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>4kCAQAQAQACNBQ8hxRfgtAACgZsEUACgAqjpYAIgIxA=</HashCode>
+      <HashCode>4kCAQAQAQACNBQ8hxRbAtAACgZsEUACgAqjpYAIgIxA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -17,7 +17,7 @@
   <Class Name="Logger" Collapsed="true">
     <Position X="21.5" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAQAAAAAAKAAAAAAAQAAAAAAABIAAAAAAAgIAAAAAA=</HashCode>
+      <HashCode>AAAQAAAAAAKAAAAAAAAAAAAAAEBIAAAAAAAgIAAAAAA=</HashCode>
       <FileName>src\Logger.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -80,14 +80,14 @@
   <Class Name="ThreadPool">
     <Position X="5.25" Y="7.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAABAAGEAAAAAAASAAAAAAAQAEgAAASAAAgAIQAAAA=</HashCode>
+      <HashCode>AEAABAAGEAAAAAAASAAAAAAAQAAgAAASAAAgAIQAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="RootMove">
     <Position X="15.5" Y="2.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAEIgEAAAAAAAAAAAggQAAAAAAAAAAAAAgAIAAEAA=</HashCode>
+      <HashCode>AAAAEIgEAAAAAAAAAAAAhQAAAAAAAAAAAAAgAIAAEAA=</HashCode>
       <FileName>src\RootMove.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -105,7 +105,7 @@
   <Class Name="RootMoves">
     <Position X="0.75" Y="7.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAEAAAAAAAAAAAAAAEggQAAAAAAAAAAAAAgAAAAAAA=</HashCode>
+      <HashCode>AAAEAAAAAAAAAAAAAAEAhQAAAAAAAAAAAAAgAAAAAAA=</HashCode>
       <FileName>src\RootMove.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -123,10 +123,10 @@
       <FileName>src\SkillManager.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="`anonymous-namespace'::Evaluator&lt;Trace&gt;" Collapsed="true">
+  <Class Name="Evaluator::`anonymous-namespace'::Evaluation&lt;Trace&gt;" Collapsed="true">
     <Position X="19.75" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gAAAAAoAARBgAAAAIQggAYQCABACMCAgAAAgRCEAAAA=</HashCode>
+      <HashCode>gAAAgAoAARBgAAAAIQggAYQCABACMCAgAAAgRAEAAAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Class>
@@ -210,7 +210,7 @@
   <Struct Name="StateInfo">
     <Position X="15.5" Y="9.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gAAAQAQAAAAJAQMAAQBAEAAAAAAAAEAAAgAAAAAgAAA=</HashCode>
+      <HashCode>gEAAQAQAAAAJAQMAAQBAEAAAAAAAAEAAAgAAAAAgAAA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -252,13 +252,6 @@
       <FileName>src\Pawns.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="`anonymous-namespace'::Stack" Collapsed="true">
-    <Position X="18" Y="5.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>ICACAAAQAAEAAAAAACAAAAAAAACAAAAAAAAAQAAQAAA=</HashCode>
-      <FileName>src\Searcher.cpp</FileName>
-    </TypeIdentifier>
-  </Struct>
   <Struct Name="Material::Entry" Collapsed="true">
     <Position X="18" Y="4.75" Width="1.5" />
     <TypeIdentifier>
@@ -266,14 +259,21 @@
       <FileName>src\Material.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Limit" Collapsed="true">
+  <Struct Name="Searcher::Limit">
     <Position X="23.25" Y="4.75" Width="1.5" />
     <Compartments>
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
+    <NestedTypes>
+      <Struct Name="Searcher::Limit::Clock" Collapsed="true">
+        <TypeIdentifier>
+          <NewMemberFileName>src\Searcher.h</NewMemberFileName>
+        </TypeIdentifier>
+      </Struct>
+    </NestedTypes>
     <TypeIdentifier>
-      <HashCode>AgAAAAAAAAAAAAABAAAAAAAAQACAAAAAAIACIAAAIAA=</HashCode>
-      <FileName>src\Limit.h</FileName>
+      <HashCode>AkAAAAAAAAAAAAABAAAgAAAAQACAAAAAAIACMIAAIAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="std::unary_function&lt;_Arg, _Result&gt;" Collapsed="true">
@@ -321,25 +321,18 @@
       <FileName>src\Table.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="`anonymous-namespace'::KPKPosition" Collapsed="true">
+  <Struct Name="BitBase::`anonymous-namespace'::KPKPosition" Collapsed="true">
     <Position X="21.5" Y="4.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAABAAAAAAAAAAgAABBAAAAMAgAAAA=</HashCode>
       <FileName>src\Bitbase.cpp</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Cuckoo" Collapsed="true">
+  <Struct Name="Cuckooo::Cuckoo" Collapsed="true">
     <Position X="23.25" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAABAAAAAACAAAAEAAACAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Cuckoo.h</FileName>
-    </TypeIdentifier>
-  </Struct>
-  <Struct Name="Clock" Collapsed="true">
-    <Position X="21.5" Y="3.75" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAABIAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Limit.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="Array_&lt;T, Size, ...Sizes&gt;" Collapsed="true">
@@ -368,6 +361,13 @@
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
       <FileName>src\Table.h</FileName>
+    </TypeIdentifier>
+  </Struct>
+  <Struct Name="Searcher::Stack" Collapsed="true">
+    <Position X="15.5" Y="6.5" Width="1.5" />
+    <TypeIdentifier>
+      <HashCode>ICACAAAQAAEAAAAAACAAAAAAAACAAAAAAAAAQAAQAAA=</HashCode>
+      <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Typedef Name="std::ofstream" Collapsed="true">
@@ -517,7 +517,7 @@
       <FileName>src\Notation.cpp</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="`anonymous-namespace'::Term" Collapsed="true">
+  <Enum Name="Evaluator::`anonymous-namespace'::Term" Collapsed="true">
     <Position X="25" Y="9.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>IQAAAEAAIQAAAAEAAEAAAABAAAAAAAAAAAAAAABAAAA=</HashCode>
@@ -531,7 +531,7 @@
       <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="`anonymous-namespace'::Result" Collapsed="true">
+  <Enum Name="BitBase::`anonymous-namespace'::Result" Collapsed="true">
     <Position X="18" Y="9.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAgBAAAAAAAAAAAAAAAEAAABAAAAAAAAAABAA=</HashCode>

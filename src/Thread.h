@@ -62,9 +62,10 @@ public:
 
     ColorIndexStatsTable quietStats;
     PieceSquareTypeStatsTable captureStats;
-    Array<ContinuationStatsTable, 2, 2> continuationStats;
 
     PieceSquareMoveTable quietCounterMoves;
+
+    Array<ContinuationStatsTable, 2, 2> continuationStats;
 
     Pawns   ::Table pawnHash;
     Material::Table matlHash;

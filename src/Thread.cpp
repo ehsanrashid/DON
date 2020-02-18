@@ -113,28 +113,19 @@ void Thread::clear()
     quietStats.fill(0);
     captureStats.fill(0);
 
-    for (auto &qcm : quietCounterMoves)
-    {
-        qcm.fill(MOVE_NONE);
-    }
+    quietCounterMoves.fill(MOVE_NONE);
 
     for (bool inCheck : { false, true })
     {
         for (bool capture : { false, true })
         {
-            auto &contStats = continuationStats[inCheck][capture];
-
-            for (auto &c1 : contStats)
-            {
-                for (auto &c2 : c1)
-                {
-                    c2.fill(0);
-                }
-            }
-
-            contStats[NO_PIECE][0].fill(CounterMovePruneThreshold - 1);
+            continuationStats[inCheck][capture].fill(PieceSquareStatsTable());
+            continuationStats[inCheck][capture][NO_PIECE][0].fill(CounterMovePruneThreshold - 1);
         }
     }
+
+    pawnHash.clear();
+    matlHash.clear();
 }
 
 /// MainThread constructor
@@ -463,7 +454,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states)
     // So we need to save and later to restore last stateinfo, cleared by setup().
     // Note that states is shared by threads but is accessed in read-only mode.
     auto fen{ pos.fen() };
-    auto back{ setupStates->back() };
+    auto ssBack{ setupStates->back() };
     for (auto *th : *this)
     {
         th->rootDepth       = DEPTH_ZERO;
@@ -476,7 +467,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states)
         th->rootMoves       = rootMoves;
         th->rootPos.setup(fen, setupStates->back(), th);
     }
-    setupStates->back() = back;
+    setupStates->back() = ssBack;
 
     mainThread()->startSearch();
 }

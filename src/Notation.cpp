@@ -70,12 +70,12 @@ string toString(Value v) {
 }
 string toString(Score s) {
     ostringstream oss;
-    oss << showpos << showpoint
-        //<< setw(5) << mgValue(s) << " "
-        //<< setw(5) << egValue(s)
-        << setw(5) << toCP(mgValue(s)) / 100.0 << " "
-        << setw(5) << toCP(egValue(s)) / 100.0
-        << noshowpoint << noshowpos;
+    oss << std::showpos << std::showpoint
+        //<< std::setw(5) << mgValue(s) << " "
+        //<< std::setw(5) << egValue(s)
+        << std::fixed << std::setprecision(2)
+        << std::setw(5) << toCP(mgValue(s)) / 100.0 << " "
+        << std::setw(5) << toCP(egValue(s)) / 100.0;
     return oss.str();
 }
 
@@ -98,8 +98,7 @@ string moveToCAN(Move m) {
         dst = makeSquare(dst > org ? FILE_G : FILE_C, sRank(org));
     }
 
-    oss << toString(org)
-        << toString(dst);
+    oss << org << dst;
     if (PROMOTE == mType(m))
     {
         oss << (BLACK|promoteType(m));
@@ -160,7 +159,6 @@ ostream& operator<<(ostream &os, Move m) {
     os << moveToCAN(m);
     return os;
 }
-
 
 
 /// multipvInfo() formats PV information according to UCI protocol.
@@ -275,17 +273,15 @@ namespace {
         ostringstream oss;
         if (abs(v) < +VALUE_MATE - MaxDepth)
         {
-            oss << showpos << setprecision(2) << fixed
+            oss << std::showpos << std::fixed << std::setprecision(2)
                 << toCP(v) / 100.0
-                << noshowpos;
         }
         else
         {
-            oss << showpos << "#"
+            oss << std::showpos << "#"
                 << i32(v > VALUE_ZERO ?
                         +(VALUE_MATE - v + 1) :
                         -(VALUE_MATE + v + 0)) / 2
-                << noshowpos;
         }
         return oss.str();
     }
@@ -304,12 +300,12 @@ namespace {
         time      /= 10;
 
         ostringstream oss;
-        oss << setfill('0')
-            << setw(2) << hours   << ":"
-            << setw(2) << minutes << ":"
-            << setw(2) << seconds << "."
-            << setw(2) << time
-            << setfill(' ');
+        oss << std::setfill('0')
+            << std::setw(2) << hours   << ":"
+            << std::setw(2) << minutes << ":"
+            << std::setw(2) << seconds << "."
+            << std::setw(2) << time
+            << std::setfill(' ');
         return oss.str();
     }
     */
@@ -400,27 +396,26 @@ string prettyInfo(Thread *const &th)
     u64 nodes{ Threadpool.sum(&Thread::nodes) };
 
     ostringstream oss;
-    oss << setw( 4) << th->finishedDepth
-        << setw( 8) << pretty_value(th->rootMoves.front().newValue)
-        << setw(12) << pretty_time(Threadpool.mainThread()->timeMgr.elapsedTime());
+    oss << std::setw( 4) << th->finishedDepth
+        << std::setw( 8) << pretty_value(th->rootMoves.front().newValue)
+        << std::setw(12) << pretty_time(Threadpool.mainThread()->timeMgr.elapsedTime());
 
     if (nodes < 10ULL*1000)
-        oss << setw(8) << u16(nodes);
+        oss << std::setw(8) << u16(nodes);
     else
     if (nodes < 10ULL*1000*1000)
-        oss << setw(7) << u16(std::round(nodes / 1000.0)) << "K";
+        oss << std::setw(7) << u16(std::round(nodes / 1000.0)) << "K";
     else
     if (nodes < 10ULL*1000*1000*1000)
-        oss << setw(7) << u16(std::round(nodes / 1000.0*1000.0)) << "M";
+        oss << std::setw(7) << u16(std::round(nodes / 1000.0*1000.0)) << "M";
     else
-        oss << setw(7) << u16(std::round(nodes / 1000.0*1000.0*1000.0)) << "G";
+        oss << std::setw(7) << u16(std::round(nodes / 1000.0*1000.0*1000.0)) << "G";
     oss << " ";
 
     StateListPtr states{ new deque<StateInfo>(0) };
     std::for_each(th->rootMoves.front().begin(),
                   th->rootMoves.front().end(),
-                  [&](Move m)
-                  {
+                  [&](Move m) {
                       assert(MOVE_NONE != m);
                       oss << moveToSAN(m, th->rootPos) << " ";
                       states->emplace_back();
@@ -428,8 +423,7 @@ string prettyInfo(Thread *const &th)
                   });
     std::for_each(th->rootMoves.front().rbegin(),
                   th->rootMoves.front().rend(),
-                  [&](Move m)
-                  {
+                  [&](Move m) {
                       assert(MOVE_NONE != m);
                       th->rootPos.undoMove(m);
                       states->pop_back();

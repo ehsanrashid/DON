@@ -2,12 +2,12 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <cstring>   // For std::memset and std::memcpy
+#include <cstring> // For std::memset and std::memcpy
 #include <algorithm>
 #include <deque>
 #include <fstream>
-#include <sstream>
 #include <iostream>
+#include <sstream>
 #include <list>
 #include <vector>
 
@@ -568,12 +568,12 @@ namespace {
 
         void add(const vector<PieceType> &pieces)
         {
-            string code;
+            ostringstream oss;
             for (auto pt : pieces)
             {
-                code += toChar(WHITE|pt);
+                oss << (WHITE|pt);
             }
-
+            auto code = oss.str();
             TBFile file(code, ".rtbw");
             if (!file.is_open()) // Only WDL file is checked
             {
@@ -1268,7 +1268,7 @@ namespace {
                 if (0 != (flags & TBFlag::WIDE))
                 {
                     data += (uintptr_t)data & 1;  // Word alignment, we may have a mixed table
-                    for (int i = 0; i < 4; ++i)
+                    for (i32 i = 0; i < 4; ++i)
                     {   // Sequence like 3,x,x,x,1,x,0,2,x,x
                         e.get(0, f)->mapIdx[i] = u16((u16*)data - (u16*)e.map + 1);
                         data += 2 * number<uint16_t, Endian::LITTLE>(data) + 2;

@@ -19,33 +19,19 @@ namespace Evaluator {
 
     namespace {
 
-        enum Term : u08
-        {
-            // The first 6 entries are for PieceType
-            MATERIAL = 8,
-            IMBALANCE,
-            MOBILITY,
-            THREAT,
-            PASSER,
-            SPACE,
-            INITIATIVE,
-            TOTAL,
-            TERM_NO = 16
-        };
+        // PAWN, NIHT, BSHP, ROOK, QUEN, KING,
+        enum Term : u08 { MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, INITIATIVE, TOTAL, TERM_NO = 16 };
 
-        Array<Score, TERM_NO, COLORS> Scores;
+        Table<Score, TERM_NO, COLORS> Scores;
 
-        void clear()
-        {
-            Scores.fill({ SCORE_ZERO, SCORE_ZERO });
+        void clear() {
+            Scores.fill(SCORE_ZERO);
         }
 
-        void write(Term t, Color c, Score s)
-        {
+        void write(Term t, Color c, Score s) {
             Scores[t][c] = s;
         }
-        void write(Term t, Score wS, Score bS = SCORE_ZERO)
-        {
+        void write(Term t, Score wS, Score bS = SCORE_ZERO) {
             write(t, WHITE, wS);
             write(t, BLACK, bS);
         }
@@ -54,16 +40,16 @@ namespace Evaluator {
             const auto &score = Scores[t];
             switch (t)
             {
-            case Term::MATERIAL:
-            case Term::IMBALANCE:
-            case Term::INITIATIVE:
-            case Term::TOTAL:
+            case MATERIAL:
+            case IMBALANCE:
+            case INITIATIVE:
+            case TOTAL:
                 os << " | ----- -----"
-                << " | ----- -----";
+                   << " | ----- -----";
                 break;
             default:
                 os << " | " << score[WHITE]
-                << " | " << score[BLACK];
+                   << " | " << score[BLACK];
                 break;
             }
             os << " | " << score[WHITE] - score[BLACK] << endl;
@@ -142,7 +128,7 @@ namespace Evaluator {
     #undef S
 
         // Threshold for lazy and space evaluation
-        constexpr Value LazyThreshold   { Value(1400) };
+        constexpr Value LazyThreshold   { Value( 1400) };
         constexpr Value SpaceThreshold  { Value(12222) };
 
         constexpr Array<i32, PIECE_TYPES> SafeCheckWeight   { 0, 0, 790, 635, 1080, 780, 0 };
@@ -155,8 +141,8 @@ namespace Evaluator {
         private:
             const Position &pos;
 
-            Pawns   ::Entry *pe;
-            Material::Entry *me;
+            Pawns   ::Entry *pawnEntry{ nullptr };
+            Material::Entry *matlEntry{ nullptr };
 
             // Contains all squares attacked by the color and piece type.
             Array<Bitboard, COLORS> fulAttacks;
@@ -250,6 +236,7 @@ namespace Evaluator {
                            | (pos.pieces(Own, PAWN)
                             & (LowRanks[Own]
                              | pawnSglPushes(Opp, pos.pieces()))));
+
             mobility[Own] = SCORE_ZERO;
 
             auto kSq{ pos.square(Own|KING) };
@@ -276,7 +263,7 @@ namespace Evaluator {
 
             Score score{ SCORE_ZERO };
 
-            for (Square s : pos.squares[Own|PT])
+            for (Square s : pos.squares(Own|PT))
             {
                 assert((Own|PT) == pos[s]);
 
@@ -348,7 +335,7 @@ namespace Evaluator {
                     score -= MinorKingProtect * dist(s, pos.square(Own|KING));
 
                     b = Outposts[Own]
-                      & ~pe->attackSpan[Opp]
+                      & ~pawnEntry->attackSpan[Opp]
                       & sqlAttacks[Own][PAWN];
 
                     if (NIHT == PT)
@@ -385,23 +372,21 @@ namespace Evaluator {
                         // Bonus for bishop on a long diagonal which can "see" both center squares
                         score += BishopOnDiagonal * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB);
 
-                        if (Options["UCI_Chess960"])
+                        // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
+                        // It is a very serious problem, especially when that pawn is also blocked.
+                        // Bishop (white or black) on a1/h1 or a8/h8 which is trapped by own pawn on b2/g2 or b7/g7.
+                        if (1 >= mob
+                         && contains(FABB|FHBB, s)
+                         && RANK_1 == relativeRank(Own, s)
+                         && Options["UCI_Chess960"])
                         {
-                            // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
-                            // It is a very serious problem, especially when that pawn is also blocked.
-                            // Bishop (white or black) on a1/h1 or a8/h8 which is trapped by own pawn on b2/g2 or b7/g7.
-                            if (1 >= mob
-                             && contains(FABB|FHBB, s)
-                             && RANK_1 == relativeRank(Own, s))
+                            auto del{ pawnPush(Own) + (WEST + (FILE_A == sFile(s)) * 2 * EAST) };
+                            if (contains(pos.pieces(Own, PAWN), s + del))
                             {
-                                auto del = pawnPush(Own) + (WEST + EAST_2 * i32(FILE_A == sFile(s)));
-                                if (contains(pos.pieces(Own, PAWN), s + del))
-                                {
-                                    score -= BishopTrapped
-                                        * (!contains(pos.pieces(), s + del + pawnPush(Own)) ?
-                                                !contains(pos.pieces(Own, PAWN), s + del + del) ?
-                                                    1 : 2 : 4);
-                                }
+                                score -= BishopTrapped
+                                       * (!contains(pos.pieces(), s + del + pawnPush(Own)) ?
+                                              !contains(pos.pieces(Own, PAWN), s + del + del) ?
+                                                  1 : 2 : 4);
                             }
                         }
                     }
@@ -414,7 +399,6 @@ namespace Evaluator {
                     {
                         score += RookOnQueenFile;
                     }
-
                     // Bonus for rook when on an open or semi-open file
                     if (pos.semiopenFileOn(Own, s))
                     {
@@ -426,7 +410,8 @@ namespace Evaluator {
                      && RANK_5 > relativeRank(Own, s))
                     {
                         auto kF = sFile(pos.square(Own|KING));
-                        if ((kF < FILE_E) == (sFile(s) < kF))
+                        if (((kF < FILE_E) && (sFile(s) < kF))
+                         || ((kF > FILE_D) && (sFile(s) > kF)))
                         {
                             score -= RookTrapped * (1 + !pos.canCastle(Own));
                         }
@@ -456,7 +441,7 @@ namespace Evaluator {
 
             if (Trace)
             {
-                write(Term (PT), Own, score);
+                write(Term(PT), Own, score);
             }
 
             return score;
@@ -549,8 +534,8 @@ namespace Evaluator {
               &  Camps[Own]
               &  sqlAttacks[Opp][NONE];
             // Friend king flank attack count
-            i32 kfAttacks = popCount(b)                    // Squares attacked by enemy in friend king flank
-                        + popCount(b & dblAttacks[Opp]);// Squares attacked by enemy twice in friend king flank.
+            i32 kfAttacks = popCount(b)                     // Squares attacked by enemy in friend king flank
+                          + popCount(b & dblAttacks[Opp]);  // Squares attacked by enemy twice in friend king flank.
             // Friend king flank defense count
             b =  KingFlanks[sFile(kSq)]
               &  Camps[Own]
@@ -558,7 +543,7 @@ namespace Evaluator {
             i32 kfDefense = popCount(b);
 
             // King Safety:
-            Score score{ pe->evaluateKingSafety<Own>(pos, fulAttacks[Opp]) };
+            Score score{ pawnEntry->evaluateKingSafety<Own>(pos, fulAttacks[Opp]) };
 
             kingDanger +=   1 * (kingAttackersCount[Opp] * kingAttackersWeight[Opp])
                         +  69 * kingAttacksCount[Opp]
@@ -572,10 +557,10 @@ namespace Evaluator {
                         - 100 * (0 != ( sqlAttacks[Own][NIHT]
                                      & (sqlAttacks[Own][KING] | kSq)))
                         // Mobility
-                        -   1 * i32(mgValue(mobility[Own] - mobility[Opp]))
+                        -   1 * (mgValue(mobility[Own] - mobility[Opp]))
                         -   4 * kfDefense
                         // Pawn Safety quality
-                        -   3 * i32(mgValue(score)) / 4
+                        -   3 * mgValue(score) / 4
                         +  37;
 
             // Transform the king danger into a score
@@ -592,7 +577,7 @@ namespace Evaluator {
 
             if (Trace)
             {
-                write(Term (KING), Own, score);
+                write(Term(KING), Own, score);
             }
 
             return score;
@@ -721,7 +706,7 @@ namespace Evaluator {
 
             if (Trace)
             {
-                write(Term::THREAT, Own, score);
+                write(THREAT, Own, score);
             }
 
             return score;
@@ -739,24 +724,24 @@ namespace Evaluator {
 
             Score score{ SCORE_ZERO };
 
-            Bitboard psr = pe->passers[Own];
+            Bitboard psr{ pawnEntry->passers[Own] };
             while (0 != psr)
             {
-                auto s = popLSq(psr);
+                auto s{ popLSq(psr) };
                 assert(0 == ((pawnSglPushes(Own, frontSquaresBB(Own, s))
                             | ( pawnPassSpan(Own, s + pawnPush(Own))
                              & ~PawnAttacks[Own][s + pawnPush(Own)]))
                            & pos.pieces(Opp, PAWN)));
 
-                i32 r = relativeRank(Own, s);
+                i32 r{ relativeRank(Own, s) };
                 // Base bonus depending on rank.
-                Score bonus = PasserRank[r];
+                Score bonus{ PasserRank[r] };
 
-                auto pushSq = s + pawnPush(Own);
+                auto pushSq{ s + pawnPush(Own) };
 
                 if (RANK_3 < r)
                 {
-                    i32 w = 5*r - 13;
+                    i32 w{ 5 * r - 13 };
 
                     // Adjust bonus based on the king's proximity
                     bonus += makeScore(0, i32(+4.75*w*kingProximity(Opp, pushSq)
@@ -770,20 +755,20 @@ namespace Evaluator {
                     // If the pawn is free to advance.
                     if (pos.empty(pushSq))
                     {
-                        Bitboard attackedSquares = pawnPassSpan(Own, s);
+                        Bitboard attackedSquares{ pawnPassSpan(Own, s) };
 
-                        Bitboard behindMajors = frontSquaresBB(Opp, s)
-                                              & pos.pieces(ROOK, QUEN);
+                        Bitboard behindMajors{ frontSquaresBB(Opp, s)
+                                             & pos.pieces(ROOK, QUEN) };
                         if (0 == (pos.pieces(Opp) & behindMajors))
                         {
                             attackedSquares &= sqlAttacks[Opp][NONE];
                         }
 
                         // Bonus according to attacked squares.
-                        i32 k = 0 == attackedSquares                ? 35 :
-                                0 == (attackedSquares
-                                    & frontSquaresBB(Own, s))       ? 20 :
-                                !contains(attackedSquares, pushSq)  ?  9 : 0;
+                        i32 k{ 0 == attackedSquares               ? 35 :
+                               0 == (attackedSquares
+                                   & frontSquaresBB(Own, s))      ? 20 :
+                               !contains(attackedSquares, pushSq) ?  9 : 0 };
 
                         // Bonus according to defended squares.
                         if (0 != (pos.pieces(Own) & behindMajors)
@@ -811,7 +796,7 @@ namespace Evaluator {
 
             if (Trace)
             {
-                write(Term::PASSER, Own, score);
+                write(PASSER, Own, score);
             }
 
             return score;
@@ -833,26 +818,26 @@ namespace Evaluator {
             }
 
             // Find all squares which are at most three squares behind some friend pawn
-            Bitboard behind = pos.pieces(Own, PAWN);
+            Bitboard behind{ pos.pieces(Own, PAWN) };
             behind |= pawnSglPushes(Opp, behind);
             behind |= pawnDblPushes(Opp, behind);
 
             // Safe squares for friend pieces inside the area defined by SpaceMask.
-            Bitboard safeSpace =  Regions[Own]
-                               &  Sides[CS_NONE]
-                               & ~pos.pieces(Own, PAWN)
-                               & ~sqlAttacks[Opp][PAWN];
+            Bitboard safeSpace{  Regions[Own]
+                              &  Sides[CS_NONE]
+                              & ~pos.pieces(Own, PAWN)
+                              & ~sqlAttacks[Opp][PAWN] };
 
             i32 bonus{ popCount(safeSpace)
-                     + popCount(behind
-                             &  safeSpace
-                             & ~sqlAttacks[Opp][NONE]) };
+                     + popCount( behind
+                              &  safeSpace
+                              & ~sqlAttacks[Opp][NONE]) };
             i32 weight{ pos.count(Own) - 1 };
             Score score{ makeScore(bonus * weight * weight / 16, 0) };
 
             if (Trace)
             {
-                write(Term::SPACE, Own, score);
+                write(SPACE, Own, score);
             }
 
             return score;
@@ -867,7 +852,7 @@ namespace Evaluator {
                             - dist<Rank>(pos.square(WHITE|KING), pos.square(BLACK|KING));
             // Compute the initiative bonus for the attacking side
             i32 complexity = 11 * pos.count(PAWN)
-                           +  9 * pe->passedCount()
+                           +  9 * pawnEntry->passedCount()
                            +  9 * outflanking
                             // King infiltration
                            + 24 * (sRank(pos.square(WHITE|KING)) > RANK_4
@@ -884,7 +869,7 @@ namespace Evaluator {
             else
             // Almost Unwinnable
             if (0 > outflanking
-             && 0 == pe->passedCount())
+             && 0 == pawnEntry->passedCount())
             {
                 complexity -= 43;
             }
@@ -899,7 +884,7 @@ namespace Evaluator {
 
             if (Trace)
             {
-                write(Term::INITIATIVE, score);
+                write(INITIATIVE, score);
             }
 
             return score;
@@ -911,12 +896,12 @@ namespace Evaluator {
         {
             auto stngColor = eg >= VALUE_ZERO ? WHITE : BLACK;
 
-            auto scl{nullptr != me->scalingFunc[stngColor] ?
-                        (*me->scalingFunc[stngColor])(pos) :
+            auto scl{nullptr != matlEntry->scalingFunc[stngColor] ?
+                        (*matlEntry->scalingFunc[stngColor])(pos) :
                         SCALE_NONE};
             if (SCALE_NONE == scl)
             {
-                scl = me->scale[stngColor];
+                scl = matlEntry->scale[stngColor];
             }
             assert(SCALE_NONE != scl);
 
@@ -946,27 +931,28 @@ namespace Evaluator {
             assert(0 == pos.checkers());
 
             // Probe the material hash table
-            me = Material::probe(pos);
+            matlEntry = Material::probe(pos);
             // If have a specialized evaluation function for the material configuration
-            if (nullptr != me->evaluationFunc)
+            if (nullptr != matlEntry->evaluationFunc)
             {
-                return (*me->evaluationFunc)(pos);
+                return (*matlEntry->evaluationFunc)(pos);
             }
 
             // Probe the pawn hash table
-            pe = Pawns::probe(pos);
+            pawnEntry = Pawns::probe(pos);
 
-            // Score is computed internally from the white point of view, initialize by
-            // - incrementally updated scores (material + piece square tables).
-            // - material imbalance.
+            // Score is computed internally from the white point of view.
+            // Initialize by
+            // - incrementally updated scores (material + piece square tables)
+            // - material imbalance
             // - pawn score
-            Score score{ pos.psq
-                       + me->imbalance
-                       + (pe->score[WHITE]
-                        - pe->score[BLACK])
+            // - dynamic contempt
+            Score score{ pos.psqScore()
+                       + matlEntry->imbalance
+                       + (pawnEntry->score[WHITE]
+                        - pawnEntry->score[BLACK])
                        + pos.thread->contempt };
 
-            // Lazy Threshold
             // Early exit if score is high
             Value v{ (mgValue(score) + egValue(score)) / 2 };
             if (abs(v) > LazyThreshold + pos.nonPawnMaterial() / 64)
@@ -979,54 +965,43 @@ namespace Evaluator {
                 clear();
             }
 
-            initAttacks <WHITE>(),
-            initAttacks <BLACK>();
-            initMobility<WHITE>(),
-            initMobility<BLACK>();
+            initAttacks <WHITE>(), initAttacks <BLACK>();
+            initMobility<WHITE>(), initMobility<BLACK>();
 
             // Pieces should be evaluated first (populate attack information)
-            score += pieces<WHITE, NIHT>()
-                   - pieces<BLACK, NIHT>();
-            score += pieces<WHITE, BSHP>()
-                   - pieces<BLACK, BSHP>();
-            score += pieces<WHITE, ROOK>()
-                   - pieces<BLACK, ROOK>();
-            score += pieces<WHITE, QUEN>()
-                   - pieces<BLACK, QUEN>();
+            score += pieces<WHITE, NIHT>() - pieces<BLACK, NIHT>();
+            score += pieces<WHITE, BSHP>() - pieces<BLACK, BSHP>();
+            score += pieces<WHITE, ROOK>() - pieces<BLACK, ROOK>();
+            score += pieces<WHITE, QUEN>() - pieces<BLACK, QUEN>();
 
             assert((sqlAttacks[WHITE][NONE] & dblAttacks[WHITE]) == dblAttacks[WHITE]);
             assert((sqlAttacks[BLACK][NONE] & dblAttacks[BLACK]) == dblAttacks[BLACK]);
 
-            score += mobility[WHITE]
-                   - mobility[BLACK]
-                   + king   <WHITE>()
-                   - king   <BLACK>()
-                   + threats<WHITE>()
-                   - threats<BLACK>()
-                   + passers<WHITE>()
-                   - passers<BLACK>()
-                   + space  <WHITE>()
-                   - space  <BLACK>();
+            score += mobility[WHITE]  - mobility[BLACK]
+                   + king   <WHITE>() - king   <BLACK>()
+                   + threats<WHITE>() - threats<BLACK>()
+                   + passers<WHITE>() - passers<BLACK>()
+                   + space  <WHITE>() - space  <BLACK>();
 
             score += initiative(score);
 
             assert(-VALUE_INFINITE < mgValue(score) && mgValue(score) < +VALUE_INFINITE);
             assert(-VALUE_INFINITE < egValue(score) && egValue(score) < +VALUE_INFINITE);
-            assert(0 <= me->phase && me->phase <= Material::PhaseResolution);
+            assert(0 <= matlEntry->phase && matlEntry->phase <= Material::PhaseResolution);
 
-            // Interpolates between midgame and scaled endgame values.
-            v = mgValue(score) * (me->phase)
-              + egValue(score) * (Material::PhaseResolution - me->phase) * scale(egValue(score)) / SCALE_NORMAL;
+            // Interpolates between midgame and scaled endgame values (scaled by 'scale(egValue(score))').
+            v = mgValue(score) * (matlEntry->phase)
+              + egValue(score) * (Material::PhaseResolution - matlEntry->phase) * scale(egValue(score)) / SCALE_NORMAL;
             v /= Material::PhaseResolution;
 
             if (Trace)
             {
                 // Write remaining evaluation terms
-                write(Term (PAWN)    , pe->score[WHITE], pe->score[BLACK]);
-                write(Term::MATERIAL , pos.psq);
-                write(Term::IMBALANCE, me->imbalance);
-                write(Term::MOBILITY , mobility[WHITE], mobility[BLACK]);
-                write(Term::TOTAL    , score);
+                write(Term(PAWN), pawnEntry->score[WHITE], pawnEntry->score[BLACK]);
+                write(MATERIAL  , pos.psqScore());
+                write(IMBALANCE , matlEntry->imbalance);
+                write(MOBILITY  , mobility[WHITE], mobility[BLACK]);
+                write(TOTAL     , score);
             }
 
             // Active side's point of view
@@ -1040,46 +1015,45 @@ namespace Evaluator {
         return Evaluation<false>(pos).value();
     }
 
-    /// trace() returns a string(suitable for outputting to stdout) that contains
-    /// the detailed descriptions and values of each evaluation term.
+    /// trace() returns a string (suitable for outputting to stdout for debugging)
+    /// that contains the detailed descriptions and values of each evaluation term.
     string trace(const Position &pos)
     {
         if (0 != pos.checkers())
         {
-            return "Total evaluation: none (in check)";
+            return "Evaluation: none (in check)\n";
         }
-
-        pos.thread->contempt = SCORE_ZERO; // Reset any dynamic contempt
-
+        // Reset any dynamic contempt
+        auto contempt = pos.thread->contempt;
+        pos.thread->contempt = SCORE_ZERO;
         auto value{ Evaluation<true>(pos).value() };
+        pos.thread->contempt = contempt;
+
         // Trace scores are from White's point of view
         value = WHITE == pos.active ? +value : -value;
 
         ostringstream oss;
 
-        oss << setprecision(2) << fixed
-            << "      Eval Term |    White    |    Black    |    Total     \n"
+        oss << "      Eval Term |    White    |    Black    |    Total     \n"
             << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
             << "----------------+-------------+-------------+--------------\n"
-            << "       Material" << Term::MATERIAL
-            << "      Imbalance" << Term::IMBALANCE
-            << "           Pawn" << Term (PAWN)
-            << "         Knight" << Term (NIHT)
-            << "         Bishop" << Term (BSHP)
-            << "           Rook" << Term (ROOK)
-            << "          Queen" << Term (QUEN)
-            << "       Mobility" << Term::MOBILITY
-            << "           King" << Term (KING)
-            << "         Threat" << Term::THREAT
-            << "         Passer" << Term::PASSER
-            << "          Space" << Term::SPACE
-            << "     Initiative" << Term::INITIATIVE
+            << "       Material" << Term(MATERIAL)
+            << "      Imbalance" << Term(IMBALANCE)
+            << "           Pawn" << Term(PAWN)
+            << "         Knight" << Term(NIHT)
+            << "         Bishop" << Term(BSHP)
+            << "           Rook" << Term(ROOK)
+            << "          Queen" << Term(QUEN)
+            << "       Mobility" << Term(MOBILITY)
+            << "           King" << Term(KING)
+            << "         Threat" << Term(THREAT)
+            << "         Passer" << Term(PASSER)
+            << "          Space" << Term(SPACE)
+            << "     Initiative" << Term(INITIATIVE)
             << "----------------+-------------+-------------+--------------\n"
-            << "          Total" << Term::TOTAL
-            << endl
-            << showpos << showpoint
-            << "Evaluation: " << toCP(value) / 100.0 << " (white side)\n"
-            << noshowpoint << noshowpos;
+            << "          Total" << Term(TOTAL)
+            << std::showpos << std::showpoint << std::fixed << std::setprecision(2)
+            << "\nEvaluation: " << toCP(value) / 100.0 << " (white side)\n";
 
         return oss.str();
     }

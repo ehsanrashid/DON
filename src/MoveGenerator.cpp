@@ -1,6 +1,7 @@
 #include "MoveGenerator.h"
 
 #include <iostream>
+#include <sstream>
 
 #include "BitBoard.h"
 #include "Notation.h"
@@ -15,7 +16,7 @@ namespace {
     {
         for (PieceType pt = NIHT; pt <= QUEN; ++pt)
         {
-            for (Square s : pos.squares[pos.active|pt])
+            for (Square s : pos.squares(pos.active|pt))
             {
                 if (GenType::CHECK == GT
                  || GenType::QUIET_CHECK == GT)
@@ -241,12 +242,12 @@ namespace {
         {
             if (pos.canCastle(pos.active))
             {
-                for (auto cs : { CS_KING, CS_QUEN })
+                for (CastleSide cs : { CS_KING, CS_QUEN })
                 {
                     if (pos.canCastle(pos.active, cs)
                      && pos.castleExpeded(pos.active, cs))
                     {
-                        moves += makeMove<CASTLE>(fkSq, pos.castleRookSq[pos.active][cs]);
+                        moves += makeMove<CASTLE>(fkSq, pos.castleRookSq(pos.active, cs));
                     }
                 }
             }
@@ -513,24 +514,25 @@ Perft perft(Position &pos, Depth depth, bool detail)
     Perft sumLeaf;
     if (RootNode)
     {
-        cout << left << setfill(' ')
-             << setw( 3) << "N"
-             << setw(10) << "Move"
-             << setw(19) << "Any";
+        ostringstream oss;
+        oss << std::left
+            << std::setw(3) << "N"
+            << std::setw(10) << "Move"
+            << std::setw(19) << "Any";
         if (detail)
         {
-            cout << setw(17) << "Capture"
-                 << setw(15) << "Enpassant"
-                 << setw(17) << "AnyCheck"
-                 << setw(15) << "DscCheck"
-                 << setw(15) << "DblCheck"
-                 << setw(15) << "Castle"
-                 << setw(15) << "Promote"
-                 << setw(15) << "Checkmate"
-                 //<< setw(15) << "Stalemate"
-                 ;
+            oss << std::setw(17) << "Capture"
+                << std::setw(15) << "Enpassant"
+                << std::setw(17) << "AnyCheck"
+                << std::setw(15) << "DscCheck"
+                << std::setw(15) << "DblCheck"
+                << std::setw(15) << "Castle"
+                << std::setw(15) << "Promote"
+                << std::setw(15) << "Checkmate"
+                //<< std::setw(15) << "Stalemate"
+                ;
         }
-        cout << endl;
+        cout << oss.str() << endl;
     }
     for (const auto &vm : MoveList<GenType::LEGAL>(pos))
     {
@@ -567,49 +569,47 @@ Perft perft(Position &pos, Depth depth, bool detail)
         {
             ++sumLeaf.moves;
 
-            cout << right << setfill('0') << setw( 2) << sumLeaf.moves
-                 << " "
-                 << left  << setfill(' ') << setw( 7)
-                                                      <<
-                                                         //moveToCAN(vm)
-                                                         moveToSAN(vm, pos)
-                 << right << setfill('.') << setw(16) << leaf.any;
+            ostringstream oss;
+            oss << std::right << std::setfill('0') << std::setw(2) << sumLeaf.moves << " "
+                << std::left  << std::setfill(' ') << std::setw(7)
+                << //moveToCAN(vm)
+                   moveToSAN(vm, pos)
+                << std::right << std::setfill('.') << std::setw(16) << leaf.any;
             if (detail)
             {
-                cout << "   " << setw(14) << leaf.capture
-                     << "   " << setw(12) << leaf.enpassant
-                     << "   " << setw(14) << leaf.anyCheck
-                     << "   " << setw(12) << leaf.dscCheck
-                     << "   " << setw(12) << leaf.dblCheck
-                     << "   " << setw(12) << leaf.castle
-                     << "   " << setw(12) << leaf.promotion
-                     << "   " << setw(12) << leaf.checkmate
-                     //<< "   " << setw(12) << leaf.stalemate
-                     ;
+                oss << "   " << std::setw(14) << leaf.capture
+                    << "   " << std::setw(12) << leaf.enpassant
+                    << "   " << std::setw(14) << leaf.anyCheck
+                    << "   " << std::setw(12) << leaf.dscCheck
+                    << "   " << std::setw(12) << leaf.dblCheck
+                    << "   " << std::setw(12) << leaf.castle
+                    << "   " << std::setw(12) << leaf.promotion
+                    << "   " << std::setw(12) << leaf.checkmate
+                    //<< "   " << std::setw(12) << leaf.stalemate
+                    ;
             }
-            cout << setfill(' ')
-                 << left << endl;
+            cout << oss.str() << endl;
         }
     }
     if (RootNode)
     {
-        cout << "\nTotal:  " << right << setfill('.') << setw(18) << sumLeaf.any;
+        ostringstream oss;
+        oss << "\nTotal:  " << std::right << std::setfill('.')
+            << std::setw(18) << sumLeaf.any;
         if (detail)
         {
-            cout << " " << setw(16) << sumLeaf.capture
-                 << " " << setw(14) << sumLeaf.enpassant
-                 << " " << setw(16) << sumLeaf.anyCheck
-                 << " " << setw(14) << sumLeaf.dscCheck
-                 << " " << setw(14) << sumLeaf.dblCheck
-                 << " " << setw(14) << sumLeaf.castle
-                 << " " << setw(14) << sumLeaf.promotion
-                 << " " << setw(14) << sumLeaf.checkmate
-                 //<< " " << setw(14) << sumLeaf.stalemate
-                 ;
+            oss << " " << std::setw(16) << sumLeaf.capture
+                << " " << std::setw(14) << sumLeaf.enpassant
+                << " " << std::setw(16) << sumLeaf.anyCheck
+                << " " << std::setw(14) << sumLeaf.dscCheck
+                << " " << std::setw(14) << sumLeaf.dblCheck
+                << " " << std::setw(14) << sumLeaf.castle
+                << " " << std::setw(14) << sumLeaf.promotion
+                << " " << std::setw(14) << sumLeaf.checkmate
+                //<< " " << std::setw(14) << sumLeaf.stalemate
+                ;
         }
-        cout << setfill(' ')
-             << left
-             << endl;
+        cout << oss.str() << endl;
     }
     return sumLeaf;
 }

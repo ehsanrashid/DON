@@ -152,11 +152,13 @@ bool PolyEntry::operator!=(Move m) const { return move != m; }
 string PolyEntry::toString() const
 {
     ostringstream oss;
-    oss << " key: "    << setw(16) << setfill('0') << hex << uppercase << key << nouppercase << dec
-        << " move: "   << setw( 5) << setfill(' ') << left << Move(move) << right
-        << " weight: " << setw( 5) << setfill('0') << weight
-        << " learn: "  << setw( 2) << setfill('0') << learn
-        << setfill(' ');
+    oss << std::right
+        << " key: "     << std::setw(16) << std::setfill('0') << std::hex << std::uppercase << key << std::nouppercase << std::dec
+        << std::left
+        << " move: "    << std::setw( 5) << std::setfill(' ') << Move(move)
+        << std::right
+        << " weight: "  << std::setw( 5) << std::setfill('0') << weight
+        << " learn: "   << std::setw( 2) << std::setfill('0') << learn;
     return oss.str();
 }
 
@@ -452,17 +454,15 @@ string PolyBook::show(const Position &pos) const
     {
         peList.sort();
         peList.reverse();
-        oss << "\nBook entries: " << peList.size();
+        oss << "\nBook entries: " << peList.size() << endl;
         for (auto &pe : peList)
         {
             pe.move = polyMove(Move(pe.move), pos);
-            oss << "\n"
-                << pe
+            oss << pe
                 << " prob: "
-                << setw(7)
-                << setfill('0')
-                << fixed << setprecision(4) << (0 != sumWeight ? 100.0 * pe.weight / sumWeight : 0.0)
-                << setfill(' ');
+                << std::setfill('0')
+                << std::setw(7) << std::fixed << std::setprecision(4) << (0 != sumWeight ? 100.0 * pe.weight / sumWeight : 0.0)
+                << std::setfill(' ');
         }
     }
     return oss.str();

@@ -62,7 +62,7 @@ namespace UCI {
 
     extern std::ostream& operator<<(std::ostream&, const Option&);
 
-    /// Options container is actually a std::map of Option
+    /// Options container is std::map of string & Option
     using StringOptionMap = std::map<std::string, Option, CaseInsensitiveLessComparer>;
 
     extern std::ostream& operator<<(std::ostream&, const StringOptionMap&);
@@ -72,7 +72,7 @@ namespace UCI {
 
     extern void handleCommands(u32, const char *const*);
 
-    extern void reset();
+    extern void clear();
 }
 
 // Global nocase mapping of Options

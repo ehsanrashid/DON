@@ -17,8 +17,8 @@
 
 using namespace std;
 
-/// clear() clears the stuffs in case of some crash.
-void clear()
+/// clean() cleans the stuffs in case of some crash.
+void clean()
 {
     Threadpool.stop = true;
     Threadpool.configure(0);
@@ -40,9 +40,9 @@ int main(int argc, const char *const *argv)
     WinProcGroup::initialize();
     Threadpool.configure(optionThreads());
     srand(u32(time(nullptr)));
-    UCI::reset();
+    UCI::clear();
 
-    std::atexit(clear);
+    std::atexit(clean);
 
     UCI::handleCommands(argc, argv);
 

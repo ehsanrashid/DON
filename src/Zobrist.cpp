@@ -29,7 +29,7 @@ Key Zobrist::computePawnKey(const Position &pos) const
     for (Color c : { WHITE, BLACK })
     {
         pawnKey ^= pieceSquareKey[c][KING][0]; // Include King Key for zero pawns
-        for (Square s : pos.squares[c|PAWN])
+        for (Square s : pos.squares(c|PAWN))
         {
             pawnKey ^= pieceSquareKey[c][PAWN][s];
         }
@@ -44,7 +44,7 @@ Key Zobrist::computePosiKey(const Position &pos) const
     {
         for (PieceType pt = PAWN; pt <= KING; ++pt)
         {
-            for (Square s : pos.squares[c|pt])
+            for (Square s : pos.squares(c|pt))
             {
                 posiKey ^= pieceSquareKey[c][pt][s];
             }

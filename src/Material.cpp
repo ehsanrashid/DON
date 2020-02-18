@@ -39,18 +39,18 @@ namespace Material {
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
-        Array<Endgame<KXK>, COLORS>    ValueKXK
+        Array<Endgame<KXK>, COLORS> ValueKXK
         {
             Endgame<KXK>(WHITE),
             Endgame<KXK>(BLACK)
         };
         // Endgame generic scale functions
-        Array<Endgame<KPKP>, COLORS>   ScaleKPKP
+        Array<Endgame<KPKP>, COLORS> ScaleKPKP
         {
             Endgame<KPKP>(WHITE),
             Endgame<KPKP>(BLACK)
         };
-        Array<Endgame<KPsK>, COLORS>   ScaleKPsK
+        Array<Endgame<KPsK>, COLORS> ScaleKPsK
         {
             Endgame<KPsK>(WHITE),
             Endgame<KPsK>(BLACK)
@@ -71,16 +71,16 @@ namespace Material {
         template<Color Own>
         i32 computeImbalance(const Array<i32, COLORS, PIECE_TYPES> &count)
         {
-            constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+            constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
 
-            i32 value = 0;
+            i32 value{ 0 };
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
             for (PieceType pt1 = NONE; pt1 <= QUEN; ++pt1)
             {
                 if (0 != count[Own][pt1])
                 {
-                    i32 v = 0;
+                    i32 v{ 0 };
                     for (PieceType pt2 = NONE; pt2 <= pt1; ++pt2)
                     {
                         v += count[Own][pt2] * OwnQuadratic[pt1][pt2]
@@ -127,7 +127,7 @@ namespace Material {
         //
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
-        const auto *scalingFn = Endgames::probe<Scale>(pos.matlKey());
+        const auto *scalingFn{ Endgames::probe<Scale>(pos.matlKey()) };
         if (nullptr != scalingFn)
         {
             scalingFunc[scalingFn->stngColor] = scalingFn;
@@ -211,8 +211,8 @@ namespace Material {
             }
         }};
 
-        auto value = (computeImbalance<WHITE>(pieceCount)
-                    - computeImbalance<BLACK>(pieceCount)) / 16; // Imbalance Resolution
+        auto value{ (computeImbalance<WHITE>(pieceCount)
+                   - computeImbalance<BLACK>(pieceCount)) / 16 }; // Imbalance Resolution
         imbalance = makeScore(value, value);
     }
 
@@ -220,8 +220,8 @@ namespace Material {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(const Position &pos)
     {
-        Key matlKey = pos.matlKey();
-        auto *e = pos.thread->matlHash[matlKey];
+        Key matlKey{ pos.matlKey() };
+        auto *e{ pos.thread->matlHash[matlKey] };
 
         if (e->key == matlKey)
         {

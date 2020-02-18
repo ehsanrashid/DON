@@ -2,7 +2,7 @@
 
 #include <cassert>
 #include <functional>
-#include <ostream>
+#include <sstream>
 #include <string>
 #include <vector>
 

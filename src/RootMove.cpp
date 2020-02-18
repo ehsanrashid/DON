@@ -10,16 +10,16 @@
 using namespace std;
 
 RootMove::RootMove(Move m)
-    : std::list<Move>{1, m}
-    , oldValue{-VALUE_INFINITE}
-    , newValue{-VALUE_INFINITE}
-    , selDepth{0}
-    , tbRank{0}
-    , tbValue{VALUE_ZERO}
-    , bestCount{0}
+    : std::list<Move>{ 1, m }
+    , oldValue{ -VALUE_INFINITE }
+    , newValue{ -VALUE_INFINITE }
+    , selDepth{ 0 }
+    , tbRank{ 0 }
+    , tbValue{ VALUE_ZERO }
+    , bestCount{ 0 }
 {}
 
-/// RootMove::operator string()
+/// RootMove::toString()
 string RootMove::toString() const
 {
     ostringstream oss;
@@ -37,17 +37,34 @@ ostream& operator<<(ostream &os, const RootMove &rm) {
 }
 
 
-void RootMoves::initialize(const Position &pos, const vector<Move> &searchMoves)
+void RootMoves::initialize(const Position &pos)
 {
     assert(empty());
     for (const auto &vm : MoveList<GenType::LEGAL>(pos))
     {
-        if (searchMoves.empty()
-         || std::find(searchMoves.begin(), searchMoves.end(), vm) != searchMoves.end())
+        *this += vm;
+        assert(back().tbRank == 0
+            && back().tbValue == VALUE_ZERO);
+    }
+}
+
+void RootMoves::initialize(const Position &pos, const vector<Move> &filterMoves)
+{
+    assert(empty());
+    if (filterMoves.empty())
+    {
+        initialize(pos);
+    }
+    else
+    {
+        for (const auto &vm : MoveList<GenType::LEGAL>(pos))
         {
-            *this += vm;
-            assert(back().tbRank == 0
-                && back().tbValue == VALUE_ZERO);
+            if (std::find(filterMoves.begin(), filterMoves.end(), vm) != filterMoves.end())
+            {
+                *this += vm;
+                assert(back().tbRank == 0
+                    && back().tbValue == VALUE_ZERO);
+            }
         }
     }
 }
@@ -59,7 +76,7 @@ i16 RootMoves::moveBestCount(u32 sIdx, u32 eIdx, Move move) const
             rmItr->bestCount : 0;
 }
 
-/// RootMoves::operator string()
+/// RootMoves::toString()
 string RootMoves::toString() const
 {
     ostringstream oss;

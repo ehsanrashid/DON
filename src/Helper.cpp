@@ -19,74 +19,65 @@ ostream& operator<<(ostream &os, OutputState outputState) {
     return os;
 }
 
-bool whiteSpaces(const string &str)
-{
+bool whiteSpaces(const string &str) {
     return str.empty()
         || std::all_of(str.begin(), str.end(), ::isspace);
 }
 
-string& toLower(string &str)
-{
+string& toLower(string &str) {
     std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     return str;
 }
-string& toUpper(string &str)
-{
+string& toUpper(string &str) {
     std::transform(str.begin(), str.end(), str.begin(), ::toupper);
     return str;
 }
-string& toggleCase(string &str)
-{
+string& toggleCase(string &str) {
     std::transform(str.begin(), str.end(), str.begin(),
-                   [](int c) -> int
-                   { return ::islower(c) ? ::toupper(c) : ::tolower(c); });
+                   [](int c) -> int {
+                        return ::islower(c) ? ::toupper(c) : ::tolower(c);
+                   });
     return str;
 }
 
-string trim(string &str)
-{
-    auto beg = str.find_first_not_of(' ');
+string trim(string &str) {
+    auto beg{ str.find_first_not_of(' ') };
     if (beg != string::npos)
     {
-        auto end = str.find_last_not_of(' ');
+        auto end{ str.find_last_not_of(' ') };
         str = str.substr(beg, (end - beg + 1));
     }
     return str;
 }
 
-string appendPath(const string &basePath, const string &filePath)
-{
+string appendPath(const string &basePath, const string &filePath) {
     return basePath[basePath.length() - 1] != '/' ?
             basePath + '/' + filePath :
             basePath + filePath;
 }
-void removeExtension(string &filename)
-{
-   auto pos = filename.find_last_of('.');
-   if (pos != string::npos)
-   {
-       //filename = filename.substr(0, pos);
-       filename.erase(pos);
-   }
+void removeExtension(string &filename) {
+    auto pos{ filename.find_last_of('.') };
+    if (pos != string::npos)
+    {
+        //filename = filename.substr(0, pos);
+        filename.erase(pos);
+    }
 }
 
 
-// void eraseSubstring(string &str, const string &sub)
-// {
-//     auto pos = str.find(sub);
-//     while (pos != string::npos)
-//     {
-//         str.erase(pos, sub.length());
-//         pos = str.find(sub);
-//     }
-// }
-// void eraseSubstring(string &str, const vector<string> &subList)
-// {
-//     std::for_each(subList.begin(), subList.end(), std::bind(eraseSubstring, std::ref(str), std::placeholders::_1));
-// }
+//void eraseSubstring(string &str, const string &sub) {
+//    auto pos{ str.find(sub) };
+//    while (pos != string::npos)
+//    {
+//        str.erase(pos, sub.length());
+//        pos = str.find(sub);
+//    }
+//}
+//void eraseSubstring(string &str, const vector<string> &subList) {
+//    std::for_each(subList.begin(), subList.end(), std::bind(eraseSubstring, std::ref(str), std::placeholders::_1));
+//}
 
-// vector<string> splitString(const string &str, char delimiter = ' ', bool keepEmpty = true, bool doTrim = false)
-// {
+//vector<string> splitString(const string &str, char delimiter = ' ', bool keepEmpty = true, bool doTrim = false) {
 //    vector<string> tokens;
 //    istringstream iss{ str };
 //    while (iss.good())
@@ -108,4 +99,4 @@ void removeExtension(string &filename)
 //        }
 //    }
 //    return tokens;
-// }
+//}

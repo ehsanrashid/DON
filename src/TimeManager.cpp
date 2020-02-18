@@ -8,7 +8,7 @@
 #include "UCI.h"
 
 namespace {
-    
+
     // Skew-logistic function based on naive statistical analysis of
     // "how many games are still undecided after n half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.

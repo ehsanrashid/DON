@@ -58,7 +58,7 @@ const string engineInfo()
 {
     ostringstream oss;
 
-    oss << setfill('0');
+    oss << std::setfill('0');
 #if defined(VER)
     oss << VER;
 #else
@@ -68,16 +68,16 @@ const string engineInfo()
         istringstream iss{ __DATE__ };
         string mmm, dd, yyyy;
         iss >> mmm >> dd >> yyyy;
-        oss << setw(2) << yyyy.substr(2)
-            << setw(2) << month(mmm)
-            << setw(2) << dd;
+        oss << std::setw(2) << yyyy.substr(2)
+            << std::setw(2) << month(mmm)
+            << std::setw(2) << dd;
     }
     else
     {
         oss << Version;
     }
 #endif
-    oss << setfill(' ');
+    oss << std::setfill(' ');
 
 #if defined(BIT64)
     oss << ".64";
@@ -96,8 +96,6 @@ const string engineInfo()
 /// compilerInfo() returns a string trying to describe the compiler used
 const string compilerInfo()
 {
-
-
     ostringstream oss;
     oss << "\nCompiled by ";
 
@@ -167,7 +165,7 @@ namespace UCI {
     }
     Option::Option(const char *v, OnChange pFn)
         : type{"string"}
-        , onChange{pFn}
+        , onChange{ pFn }
     {
         defaultVal = currentVal = v;
     }
@@ -342,7 +340,7 @@ namespace UCI {
 
         void onClearHash()
         {
-            UCI::reset();
+            UCI::clear();
         }
 
         void onSaveHash()
@@ -763,9 +761,9 @@ namespace UCI {
                       || token == "go")
                 {
                     cerr << "\n---------------\n"
-                         << "Position: " << right
-                         << setw(2) << ++i << '/' << count << " "
-                         << left << pos.fen() << endl;
+                         << "Position: "
+                         << std::right << std::setw(2) << ++i << '/' << count << " "
+                         << std::left  << pos.fen() << endl;
 
                     /**/ if (token == "eval")   sync_cout << Evaluator::trace(pos) << sync_endl;
                     else if (token == "perft")
@@ -782,7 +780,7 @@ namespace UCI {
                 }
                 else if (token == "ucinewgame")
                 {
-                    UCI::reset();
+                    UCI::clear();
                     elapsedTime = now();
                 }
                 else cerr << "Unknown command: \'" << token << "\'" << endl;
@@ -792,13 +790,14 @@ namespace UCI {
 
             Debugger::print(); // Just before exiting
 
-            cerr << right
-                 << "\n=================================\n"
-                 << "Total time (ms) :" << setw(16) << elapsedTime << "\n"
-                 << "Nodes searched  :" << setw(16) << nodes        << "\n"
-                 << "Nodes/second    :" << setw(16) << nodes * 1000 / elapsedTime
-                 << "\n---------------------------------\n"
-                 << left << endl;
+            ostringstream oss;
+            oss << std::right
+                << "\n=================================\n"
+                << "Total time (ms) :" << std::setw(16) << elapsedTime << "\n"
+                << "Nodes searched  :" << std::setw(16) << nodes << "\n"
+                << "Nodes/second    :" << std::setw(16) << nodes * 1000 / elapsedTime
+                << "\n---------------------------------\n";
+            cerr << oss.str() << endl;
         }
     }
 
@@ -849,10 +848,9 @@ namespace UCI {
                 sync_cout << "id name "     << Name << " " << engineInfo() << "\n"
                           << "id author "   << Author << "\n"
                           << Options
-                          << "uciok"
-                          << sync_endl;
+                          << "uciok" << sync_endl;
             }
-            else if (token == "ucinewgame") UCI::reset();
+            else if (token == "ucinewgame") UCI::clear();
             else if (token == "position")   position(iss, pos, states);
             else if (token == "go")         go(iss, pos, states);
             else if (token == "setoption")  setOption(iss);
@@ -872,14 +870,14 @@ namespace UCI {
             }
             else if (token == "keys")
             {
-                sync_cout << "FEN: "      << pos.fen()                 << "\n"
-                          << hex << uppercase << setfill('0')
-                          << "Posi key: " << setw(16) << pos.posiKey() << "\n"
-                          << "Matl key: " << setw(16) << pos.matlKey() << "\n"
-                          << "Pawn key: " << setw(16) << pos.pawnKey() << "\n"
-                          << "PG key: "   << setw(16) << pos.pgKey()
-                          << setfill(' ') << nouppercase << dec
-                          << sync_endl;
+                ostringstream oss;
+                oss << "FEN: " << pos.fen() << "\n"
+                    << std::hex << std::uppercase << std::setfill('0')
+                    << "Posi key: " << std::setw(16) << pos.posiKey() << "\n"
+                    << "Matl key: " << std::setw(16) << pos.matlKey() << "\n"
+                    << "Pawn key: " << std::setw(16) << pos.pawnKey() << "\n"
+                    << "PG key: "   << std::setw(16) << pos.pgKey();
+                sync_cout << oss.str() << sync_endl;
             }
             else if (token == "moves")
             {
@@ -965,8 +963,8 @@ namespace UCI {
               && cmd != "quit");
     }
 
-    /// reset() resets all stuff
-    void reset()
+    /// clear() clear all stuff
+    void clear()
     {
         Threadpool.stop = true;
         Threadpool.mainThread()->waitIdle();

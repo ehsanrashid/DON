@@ -206,7 +206,7 @@ namespace {
 }
 
 namespace BitBoard {
-    
+
     void initialize()
     {
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -297,7 +297,7 @@ namespace BitBoard {
         oss << " /---------------\\\n";
         for (Rank r = RANK_8; r >= RANK_1; --r)
         {
-            oss << toChar(r) << '|';
+            oss << r << '|';
             for (File f = FILE_A; f <= FILE_H; ++f)
             {
                 oss << (contains(bb, makeSquare(f, r)) ? '+' : '-');

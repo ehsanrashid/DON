@@ -17,15 +17,14 @@
 #   include <xmmintrin.h> // Microsoft and Intel Header for _mm_prefetch()
 #endif
 
-inline void prefetch(const void *addr)
-{
+inline void prefetch(const void *addr) {
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #   if defined(__INTEL_COMPILER)
     // This hack prevents prefetches from being optimized away by
     // Intel compiler. Both MSVC and gcc seem not be affected by this.
-    __asm__ ("");
+    __asm__("");
 #   endif
-    _mm_prefetch((const char*)(addr), _MM_HINT_T0);
+    _mm_prefetch((const char*) (addr), _MM_HINT_T0);
 #else
     __builtin_prefetch(addr);
 #endif
@@ -109,12 +108,19 @@ class Position
 {
 private:
 
-    Array<Piece   , SQUARES>     piece;
-    Array<Bitboard, COLORS>      colors;
+    Array<Piece   , SQUARES> board;
+    Array<Bitboard, COLORS> colors;
     Array<Bitboard, PIECE_TYPES> types;
-    Array<Value   , COLORS>      npMaterial;
+    Array<std::list<Square>, PIECES> pieceList;
 
+    Array<Value   , COLORS> npMaterial;
+
+    Table<Square,   COLORS, CASTLE_SIDES> cslRookSq;
+    Table<Bitboard, COLORS, CASTLE_SIDES> cslKingPath;
+    Table<Bitboard, COLORS, CASTLE_SIDES> cslRookPath;
     Array<CastleRight, SQUARES> sqCastleRight;
+
+    Score psq;
 
     StateInfo *si;
 
@@ -129,13 +135,7 @@ private:
 
 public:
 
-    Array<std::list<Square>, PIECES> squares;
 
-    Table<Square  , COLORS, CASTLE_SIDES> castleRookSq;
-    Table<Bitboard, COLORS, CASTLE_SIDES> castleKingPath;
-    Table<Bitboard, COLORS, CASTLE_SIDES> castleRookPath;
-
-    Score psq;
     i16   ply;
     Color active;
 
@@ -163,11 +163,16 @@ public:
     i32 count(Piece) const;
     i32 count(Color) const;
     i32 count(PieceType) const;
+    const std::list<Square>& squares(Piece) const;
+    Square square(Piece, u08 = 0) const;
 
-    //CastleRight castleRight(Square) const;
     Value nonPawnMaterial(Color) const;
     Value nonPawnMaterial() const;
-    Square square(Piece, u08 = 0) const;
+
+    Square   castleRookSq(Color, CastleSide) const;
+    Bitboard castleKingPath(Color, CastleSide) const;
+    Bitboard castleRookPath(Color, CastleSide) const;
+    //CastleRight castleRight(Square) const;
 
     CastleRight castleRights() const;
     bool canCastle(Color) const;
@@ -188,6 +193,7 @@ public:
     Bitboard kingCheckers(Color) const;
     Bitboard checks(PieceType) const;
 
+    Score psqScore() const;
     bool castleExpeded(Color, CastleSide) const;
 
     Key pgKey() const;
@@ -252,10 +258,10 @@ extern std::ostream& operator<<(std::ostream&, const Position&);
 
 
 inline Piece Position::operator[](Square s) const {
-    return piece[s];
+    return board[s];
 }
 inline bool Position::empty(Square s) const {
-    return NO_PIECE == piece[s];
+    return NO_PIECE == board[s];
 }
 
 inline Bitboard Position::pieces() const {
@@ -278,29 +284,33 @@ inline Bitboard Position::pieces(Color c, PieceTypes... pts) const {
 }
 /// Position::count() counts all
 inline i32 Position::count() const {
-    return i32(squares[W_PAWN].size() + squares[B_PAWN].size()
-        + squares[W_NIHT].size() + squares[B_NIHT].size()
-        + squares[W_BSHP].size() + squares[B_BSHP].size()
-        + squares[W_ROOK].size() + squares[B_ROOK].size()
-        + squares[W_QUEN].size() + squares[B_QUEN].size()
-        + squares[W_KING].size() + squares[B_KING].size());
+    return i32(pieceList[W_PAWN].size() + pieceList[B_PAWN].size()
+             + pieceList[W_NIHT].size() + pieceList[B_NIHT].size()
+             + pieceList[W_BSHP].size() + pieceList[B_BSHP].size()
+             + pieceList[W_ROOK].size() + pieceList[B_ROOK].size()
+             + pieceList[W_QUEN].size() + pieceList[B_QUEN].size()
+             + pieceList[W_KING].size() + pieceList[B_KING].size());
 }
 inline i32 Position::count(Piece p) const {
-    return i32(squares[p].size());
+    return i32(pieceList[p].size());
 }
 /// Position::count() counts specific color
 inline i32 Position::count(Color c) const {
-    return i32(squares[c | PAWN].size()
-             + squares[c | NIHT].size()
-             + squares[c | BSHP].size()
-             + squares[c | ROOK].size()
-             + squares[c | QUEN].size()
-             + squares[c | KING].size());
+    return i32(pieceList[c|PAWN].size()
+             + pieceList[c|NIHT].size()
+             + pieceList[c|BSHP].size()
+             + pieceList[c|ROOK].size()
+             + pieceList[c|QUEN].size()
+             + pieceList[c|KING].size());
 }
 /// Position::count() counts specific type
 inline i32 Position::count(PieceType pt) const {
-    return i32(squares[WHITE | pt].size()
-             + squares[BLACK | pt].size());
+    return i32(pieceList[WHITE|pt].size()
+             + pieceList[BLACK|pt].size());
+}
+
+inline const std::list<Square>& Position::squares(Piece p) const {
+    return pieceList[p];
 }
 
 //inline CastleRight Position::castleRight(Square s) const { return sqCastleRight[s]; }
@@ -312,10 +322,20 @@ inline Value Position::nonPawnMaterial() const {
     return nonPawnMaterial(WHITE) + nonPawnMaterial(BLACK);
 }
 
+inline Square Position::castleRookSq(Color c, CastleSide cs) const {
+    return cslRookSq[c][cs];
+}
+inline Bitboard Position::castleKingPath(Color c, CastleSide cs) const {
+    return cslKingPath[c][cs];
+}
+inline Bitboard Position::castleRookPath(Color c, CastleSide cs) const {
+    return cslRookPath[c][cs];
+}
+
 inline Square Position::square(Piece p, u08 index) const {
     assert(isOk(p));
-    assert(squares[p].size() > index);
-    return *std::next(squares[p].begin(), index);
+    assert(pieceList[p].size() > index);
+    return *std::next(pieceList[p].begin(), index);
 }
 
 inline CastleRight Position::castleRights() const {
@@ -367,8 +387,12 @@ inline Bitboard Position::checks(PieceType pt) const {
     return si->checks[pt];
 }
 
+inline Score Position::psqScore() const {
+    return psq;
+}
+
 inline bool Position::castleExpeded(Color c, CastleSide cs) const {
-    return 0 == (castleRookPath[c][cs] & pieces());
+    return 0 == (cslRookPath[c][cs] & pieces());
 }
 /// Position::moveCount() starts at 1, and is incremented after BLACK's move.
 inline i16 Position::moveCount() const {
@@ -395,7 +419,7 @@ inline Bitboard Position::attacksFrom(PieceType pt, Square s) const {
 }
 /// Position::attacksFrom() finds attacks from the square
 inline Bitboard Position::attacksFrom(Square s) const {
-    return attacksBB(piece[s], s, pieces());
+    return attacksBB(board[s], s, pieces());
 }
 
 /// Position::xattacksFrom() finds xattacks of the piecetype of the color from the square.
@@ -429,20 +453,20 @@ inline bool Position::captureOrPromotion(Move m) const {
         || PROMOTE == mType(m);
 }
 inline PieceType Position::captureType(Move m) const {
-    return ENPASSANT != mType(m) ? pType(piece[dstSq(m)]) : PAWN;
+    return ENPASSANT != mType(m) ? pType(board[dstSq(m)]) : PAWN;
 }
-
+/// Position::pawnAdvanceAt() check if pawn is advanced at the given square
 inline bool Position::pawnAdvanceAt(Color c, Square s) const {
     return contains(pieces(c, PAWN) & Regions[~c], s);
 }
-/// Position::pawnPassedAt() check if pawn passed at the given square.
+/// Position::pawnPassedAt() check if pawn passed at the given square
 inline bool Position::pawnPassedAt(Color c, Square s) const {
     return 0 == (pawnPassSpan(c, s) & pieces(~c, PAWN));
 }
 
-/// Position::pairedBishop() check the side has pair of opposite color bishops.
+/// Position::pairedBishop() check the side has pair of opposite color bishops
 inline bool Position::pairedBishop(Color c) const {
-    return 2 <= count(c | BSHP)
+    return 2 <= count(c|BSHP)
         && 0 != (pieces(c, BSHP) & Colors[WHITE])
         && 0 != (pieces(c, BSHP) & Colors[BLACK]);
 }
@@ -457,7 +481,6 @@ inline void Position::doMove(Move m, StateInfo &nsi) {
 
 #if !defined(NDEBUG)
 
-/// isOk() Check the validity of FEN string.
 extern bool isOk(const std::string &fen);
 
 #endif

@@ -68,6 +68,7 @@ public:
     void operator+=(const RootMove &rm) { push_back(rm); }
     //void operator-=(const RootMove &rm) { erase(std::remove(begin(), end(), rm), end()); }
 
+    void initialize(const Position&);
     void initialize(const Position&, const std::vector<Move>&);
 
     i16 moveBestCount(u32, u32, Move) const;

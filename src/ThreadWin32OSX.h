@@ -35,7 +35,7 @@ public:
         pthread_attr_t thread_attr;
         pthread_attr_init(&thread_attr);
         pthread_attr_setstacksize(&thread_attr, TH_STACK_SIZE);
-        
+
         pthread_create(&thread, &thread_attr, startRoutine<T>, new P(obj, fun));
     }
 

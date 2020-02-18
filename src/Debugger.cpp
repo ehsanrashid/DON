@@ -2,6 +2,7 @@
 
 #include <iomanip>
 #include <iostream>
+#include <sstream>
 
 using namespace std;
 
@@ -47,22 +48,23 @@ void Debugger::print()
 {
     if (0 != Hit1Count)
     {
-        cerr
-            << right
+        ostringstream oss;
+        oss << std::right
             << "---------------------------\n"
-            << "Hit1  :" << setw(20) << Hit1Count << "\n"
-            << "Hit2  :" << setw(20) << Hit2Count << "\n"
-            << "Rate  :" << setw(20) << fixed << setprecision(2) << 100.0 * Hit2Count / Hit1Count
-            << left << endl;
+            << "Hit1  :" << std::setw(20) << Hit1Count  << "\n"
+            << "Hit2  :" << std::setw(20) << Hit2Count  << "\n"
+            << "Rate  :" << std::setw(20) << std::fixed << std::setprecision(2) << 100.0 * Hit2Count / Hit1Count;
+        std::cerr << oss.str() << std::endl;
     }
     if (0 != ItemCount)
     {
-        cerr
-            << right
+        ostringstream oss;
+        oss << std::right
             << "---------------------------\n"
-            << "Count :" << setw(20) << ItemCount << "\n"
-            << "Sum   :" << setw(20) << ItemSum << "\n"
-            << "Mean  :" << setw(20) << fixed << setprecision(2) << 1.0 * ItemSum / ItemCount
-            << left << endl;
+            << "Count :" << std::setw(20) << ItemCount  << "\n"
+            << "Sum   :" << std::setw(20) << ItemSum    << "\n"
+            << "Mean  :" << std::setw(20) << std::fixed << std::setprecision(2) << 1.0 * ItemSum / ItemCount;
+        std::cerr << oss.str() << std::endl;
+
     }
 }

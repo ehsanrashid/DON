@@ -8,7 +8,7 @@ Array<Score, PIECES, SQUARES> PSQ;
 
 namespace {
 
-#   define S(mg, eg) makeScore(mg, eg)
+#define S(mg, eg) makeScore(mg, eg)
     // PieceScores[piece-type][rank][file/2] contains half Piece-Square scores (symmetric distribution).
     // It is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
@@ -99,7 +99,7 @@ namespace {
         { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) }
     }};
 
-#   undef S
+#undef S
 }
 
 namespace PSQT {
@@ -129,7 +129,7 @@ namespace PSQT {
         Score psq{ SCORE_ZERO };
         for (Piece p : Pieces)
         {
-            for (Square s : pos.squares[p])
+            for (Square s : pos.squares(p))
             {
                 psq += PSQ[p][s];
             }

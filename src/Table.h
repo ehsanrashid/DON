@@ -21,7 +21,13 @@ public:
         : table(Size)
     {}
 
-    T* operator[](Key key) { return &table[u32(key) & (Size - 1)]; }
+    void clear() {
+        table.assign(table.size(), T());
+    }
+
+    T* operator[](Key key) {
+        return &table[u32(key) & (Size - 1)];
+    }
 };
 
 
@@ -29,7 +35,7 @@ public:
 template<typename T, size_t Size, size_t... Sizes>
 struct Array_
 {
-    static_assert(Size != 0, "Size incorrect");
+    static_assert (Size != 0, "Size incorrect");
 private:
     using NestedArray_ = typename Array_<T, Sizes...>::type;
 
@@ -40,7 +46,7 @@ public:
 template<typename T, size_t Size>
 struct Array_<T, Size>
 {
-    static_assert(Size != 0, "Size incorrect");
+    static_assert (Size != 0, "Size incorrect");
 public:
     using type = std::array<T, Size>;
 };
@@ -53,14 +59,13 @@ template<typename T, size_t Size, size_t... Sizes>
 struct Table
     : public std::array<Table<T, Sizes...>, Size>
 {
-    static_assert(Size != 0, "Size incorrect");
+    static_assert (Size != 0, "Size incorrect");
 private:
     using NestedTable = Table<T, Size, Sizes...>;
 
 public:
 
-    void fill(const T &value)
-    {
+    void fill(const T &value) {
         assert(std::is_standard_layout<NestedTable>::value);
 
         auto *p = reinterpret_cast<T*>(this);
@@ -72,7 +77,7 @@ template<typename T, size_t Size>
 struct Table<T, Size>
     : public std::array<T, Size>
 {
-    static_assert(Size != 0, "Size incorrect");
+    static_assert (Size != 0, "Size incorrect");
 };
 
 
@@ -88,15 +93,22 @@ private:
 
 public:
 
-    void operator=(const T &e) { entry = e; }
+    void operator=(const T &e) {
+        entry = e;
+    }
 
-    T* operator&() { return &entry; }
-    T* operator->() { return &entry; }
+    T* operator&() {
+        return &entry;
+    }
+    T* operator->() {
+        return &entry;
+    }
 
-    operator const T&() const { return entry; }
+    operator const T&() const {
+        return entry;
+    }
 
-    void operator<<(i32 bonus)
-    {
+    void operator<<(i32 bonus) {
         static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
         assert(std::abs(bonus) <= D); // Ensure range is [-D, +D]
 
@@ -114,14 +126,13 @@ template<typename T, i32 D, size_t Size, size_t... Sizes>
 struct StatsTable
     : public std::array<StatsTable<T, D, Sizes...>, Size>
 {
-    static_assert(Size != 0, "Size incorrect");
+    static_assert (Size != 0, "Size incorrect");
 private:
     using NestedStatsTable = StatsTable<T, D, Size, Sizes...>;
 
 public:
 
-    void fill(const T &value)
-    {
+    void fill(const T &value) {
         // For standard-layout 'this' points to first struct member
         assert(std::is_standard_layout<NestedStatsTable>::value);
 
@@ -134,7 +145,7 @@ template<typename T, i32 D, size_t Size>
 struct StatsTable<T, D, Size>
     : public std::array<Stats<T, D>, Size>
 {
-    static_assert(Size != 0, "Size incorrect");
+    static_assert (Size != 0, "Size incorrect");
 };
 
 
@@ -151,7 +162,7 @@ using PieceSquareTypeStatsTable = StatsTable<i16, 10692, PIECES, SQUARES, PIECE_
 using PieceSquareStatsTable     = StatsTable<i16, 29952, PIECES, SQUARES>;
 /// ContinuationStatsTable is the combined history of a given pair of moves, usually the current one given a previous one.
 /// The nested history table is based on PieceSquareStatsTable, indexed by [piece][square]
-using ContinuationStatsTable    = Array<PieceSquareStatsTable, PIECES, SQUARES>;
+using ContinuationStatsTable    = Table<PieceSquareStatsTable, PIECES, SQUARES>;
 
 /// PieceSquareMoveTable stores moves, indexed by [piece][square]
-using PieceSquareMoveTable      = Array<Move, PIECES, SQUARES>;
+using PieceSquareMoveTable      = Table<Move, PIECES, SQUARES>;
