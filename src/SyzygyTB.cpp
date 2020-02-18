@@ -54,7 +54,7 @@ string getLastErrorString()
             return message;
         }
     }
-    return {""};
+    return { "" };
 }
 
 #else
@@ -69,8 +69,8 @@ string getLastErrorString()
 string PathString = "";
 i32    MaxLimitPiece = 0;
 
-namespace
-{
+namespace {
+
     constexpr i32 TBPIECES = 6;
 
     // Type of table
@@ -241,7 +241,7 @@ namespace
         TBFile(const string &code, const string &ext)
             : ifstream{}
         {
-            auto file{code};
+            auto file{ code };
             file.insert(file.find('K', 1), "v");
             file += ext;
             for (const auto &path : Paths)
@@ -1756,8 +1756,7 @@ bool rootProbeDTZ(Position &rootPos, RootMoves &rootMoves)
     return true;
 }
 
-ostream& operator<<(ostream &os, WDLScore wdlScore)
-{
+ostream& operator<<(ostream &os, WDLScore wdlScore) {
     switch (wdlScore)
     {
     case LOSS:         os << "Loss";         break;
@@ -1769,9 +1768,8 @@ ostream& operator<<(ostream &os, WDLScore wdlScore)
     return os;
 }
 
-ostream& operator<<(ostream &os, ProbeState pState)
-{
-    switch (pState)
+ostream& operator<<(ostream &os, ProbeState probeState) {
+    switch (probeState)
     {
     case OPP_SIDE:  os << "Opponent side";        break;
     case FAILURE:   os << "Failure";              break;
@@ -1781,8 +1779,8 @@ ostream& operator<<(ostream &os, ProbeState pState)
     return os;
 }
 
-namespace SyzygyTB
-{
+namespace SyzygyTB {
+
     void initialize(const string &paths)
     {
         static bool initialized = false;

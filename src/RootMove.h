@@ -48,7 +48,7 @@ public:
     void operator+=(Move m) { push_back(m); }
     //void operator-=(Move m) { erase(std::remove(begin(), end(), m), end()); }
 
-    explicit operator std::string() const;
+    std::string toString() const;
 };
 
 extern std::ostream& operator<<(std::ostream&, const RootMove&);
@@ -72,7 +72,7 @@ public:
 
     i16 moveBestCount(u32, u32, Move) const;
 
-    explicit operator std::string() const;
+    std::string toString() const;
 };
 
 extern std::ostream& operator<<(std::ostream&, const RootMoves&);

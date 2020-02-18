@@ -98,15 +98,9 @@ public:
     TTable& operator=(const TTable&) = delete;
     virtual ~TTable();
 
-    /// size() returns hash size in MB
-    u32 size() const { return u32((clusterCount * sizeof (TCluster)) >> 20); }
+    u32 size() const;
 
-    /// cluster() returns a pointer to the cluster of given a key.
-    /// Lower 32 bits of the key are used to get the index of the cluster.
-    TCluster* cluster(Key key) const
-    {
-        return &clusters[(u32(key) * u64(clusterCount)) >> 32];
-    }
+    TCluster* cluster(Key key) const;
 
     u32 resize(u32);
 
@@ -123,44 +117,8 @@ public:
     void save(const std::string&) const;
     void load(const std::string&);
 
-    template<typename Elem, typename Traits>
-    friend std::basic_ostream<Elem, Traits>&
-        operator<<(std::basic_ostream<Elem, Traits> &os, const TTable &tt)
-    {
-        u32 memSize = tt.size();
-        u08 dummy = 0;
-        os.write((const Elem*)(&memSize), sizeof (memSize));
-        os.write((const Elem*)(&dummy), sizeof (dummy));
-        os.write((const Elem*)(&dummy), sizeof (dummy));
-        os.write((const Elem*)(&dummy), sizeof (dummy));
-        os.write((const Elem*)(&TEntry::Generation), sizeof (TEntry::Generation));
-        constexpr u32 BufferSize = 0x1000;
-        for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i)
-        {
-            os.write((const Elem*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
-        }
-        return os;
-    }
-
-    template<typename Elem, typename Traits>
-    friend std::basic_istream<Elem, Traits>&
-        operator>>(std::basic_istream<Elem, Traits> &is, TTable &tt)
-    {
-        u32 memSize;
-        u08 dummy;
-        is.read((Elem*)(&memSize), sizeof (memSize));
-        is.read((Elem*)(&dummy), sizeof (dummy));
-        is.read((Elem*)(&dummy), sizeof (dummy));
-        is.read((Elem*)(&dummy), sizeof (dummy));
-        is.read((Elem*)(&TEntry::Generation), sizeof (TEntry::Generation));
-        tt.resize(memSize);
-        constexpr u32 BufferSize = 0x1000;
-        for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i)
-        {
-            is.read((Elem*)(tt.clusters+i*BufferSize), sizeof (TCluster)*BufferSize);
-        }
-        return is;
-    }
+    friend std::ostream& operator<<(std::ostream&, const TTable&);
+    friend std::istream& operator>>(std::istream&,       TTable&);
 };
 
 // Global Transposition Table

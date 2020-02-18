@@ -65,8 +65,8 @@ using u64 = uint64_t;
 
 #endif
 
-using Key       = u64;
-using Bitboard  = u64;
+using Key = u64;
+using Bitboard = u64;
 
 enum Color : i08 { WHITE, BLACK, COLOR_NONE, COLORS = 2 };
 
@@ -119,14 +119,14 @@ enum Direction : i08
 
 using Depth = i16;
 
-constexpr Depth DEPTH_ZERO       { 0};
-constexpr Depth DEPTH_QS_CHECK   { 0};
-constexpr Depth DEPTH_QS_NO_CHECK{-1};
-constexpr Depth DEPTH_QS_RECAP   {-5};
-constexpr Depth DEPTH_NONE       {-6};
-constexpr Depth DEPTH_OFFSET     {-7};
+constexpr Depth DEPTH_ZERO       {  0 };
+constexpr Depth DEPTH_QS_CHECK   {  0 };
+constexpr Depth DEPTH_QS_NO_CHECK{ -1 };
+constexpr Depth DEPTH_QS_RECAP   { -5 };
+constexpr Depth DEPTH_NONE       { -6 };
+constexpr Depth DEPTH_OFFSET     { -7 };
 // Maximum Plies
-constexpr i32 MaxDepth{256 + DEPTH_OFFSET - 4};
+constexpr i32 MaxDepth{ 256 + DEPTH_OFFSET - 4 };
 
 enum CastleSide : i08 { CS_KING, CS_QUEN, CS_NONE, CASTLE_SIDES = 2 };
 
@@ -296,200 +296,255 @@ BITWISE_OPERATORS(Bound)
 #undef BITWISE_OPERATORS
 
 
-constexpr Square operator+(Square s, Direction d)
-{ return Square(i32(s) + i32(d)); }
-constexpr Square operator-(Square s, Direction d)
-{ return Square(i32(s) - i32(d)); }
-inline Square& operator+=(Square &s, Direction d)
-{ return s = s + d; }
-inline Square& operator-=(Square &s, Direction d)
-{ return s = s - d; }
+constexpr Square operator+(Square s, Direction d) {
+    return Square(i32(s) + i32(d));
+}
+constexpr Square operator-(Square s, Direction d) {
+    return Square(i32(s) - i32(d));
+}
+inline Square& operator+=(Square &s, Direction d) {
+    return s = s + d;
+}
+inline Square& operator-=(Square &s, Direction d) {
+    return s = s - d;
+}
 
-constexpr Direction operator-(Square s1, Square s2)
-{ return Direction(i32(s1) - i32(s2)); }
+constexpr Direction operator-(Square s1, Square s2) {
+    return Direction(i32(s1) - i32(s2));
+}
 
-constexpr Score makeScore(i32 mg, i32 eg)
-{ return Score(i32(u32(eg) << 0x10) + mg); }
+constexpr Score makeScore(i32 mg, i32 eg) {
+    return Score(i32(u32(eg) << 0x10) + mg);
+}
 /// Extracting the signed lower and upper 16 bits is not so trivial
 /// because according to the standard a simple cast to short is implementation
 /// defined and so is a right shift of a signed integer.
 union Union16 { u16 u; i16 s; };
-constexpr Value mgValue(u32 s)
-{ return Value(Union16{ u16(u32(s + 0x0000) >> 0x00) }.s); }
-constexpr Value egValue(u32 s)
-{ return Value(Union16{ u16(u32(s + 0x8000) >> 0x10) }.s); }
+constexpr Value mgValue(u32 s) {
+    return Value(Union16{ u16(u32(s + 0x0000) >> 0x00) }.s);
+}
+constexpr Value egValue(u32 s) {
+    return Value(Union16{ u16(u32(s + 0x8000) >> 0x10) }.s);
+}
 
 /// Division of a Score must be handled separately for each term
-constexpr Score operator/(Score s, i32 i)
-{ return makeScore(mgValue(s) / i, egValue(s) / i); }
+constexpr Score operator/(Score s, i32 i) {
+    return makeScore(mgValue(s) / i, egValue(s) / i);
+}
 /// Multiplication of a Score by an integer. We check for overflow in debug mode.
 //inline Score operator*(Score s, i32 i)
 //{
-//    Score score{Score(i32(s) * i)};
+//    Score score{ Score(i32(s) * i) };
 //    assert(egValue(score) == (egValue(s) * i));
 //    assert(mgValue(score) == (mgValue(s) * i));
 //    assert((0 == i) || (score / i) == s);
 //    return score;
 //}
-constexpr Score operator*(Score s, i32 i)
-{ return Score(i32(s) * i); }
+constexpr Score operator*(Score s, i32 i) {
+    return Score(i32(s) * i);
+}
 
-inline Score& operator/=(Score &s, i32 i)
-{ return s = s / i; }
-inline Score& operator*=(Score &s, i32 i)
-{ return s = s * i; }
+inline Score& operator/=(Score &s, i32 i) {
+    return s = s / i;
+}
+inline Score& operator*=(Score &s, i32 i) {
+    return s = s * i;
+}
 /// Multiplication of a Score by a boolean
-constexpr Score operator*(Score s, bool b)
-{ return s * i32(b); }
+constexpr Score operator*(Score s, bool b) {
+    return s * i32(b);
+}
 /// Don't want to multiply two scores due to a very high risk of overflow.
 /// So user should explicitly convert to integer.
 Score operator*(Score, Score) = delete;
 Score operator/(Score, Score) = delete;
 
-constexpr bool isOk(Color c)
-{ return WHITE == c || BLACK == c; }
-constexpr Color operator~(Color c)
-{ return Color(c ^ BLACK); }
+constexpr bool isOk(Color c) {
+    return WHITE == c || BLACK == c;
+}
+constexpr Color operator~(Color c) {
+    return Color(c ^ BLACK);
+}
 
-constexpr bool isOk(File f)
-{ return FILE_A <= f && f <= FILE_H; }
-constexpr File operator~(File f)
-{ return File(f ^ FILE_H); }
+constexpr bool isOk(File f) {
+    return FILE_A <= f && f <= FILE_H;
+}
+constexpr File operator~(File f) {
+    return File(f ^ FILE_H);
+}
 // Map file [ABCDEFGH] to file [ABCDDCBA]
-inline File mapFile(File f)
-{ return std::min(f, ~f); }
+inline File mapFile(File f) {
+    return std::min(f, ~f);
+}
 
-constexpr bool isOk(Rank r)
-{ return RANK_1 <= r && r <= RANK_8; }
-constexpr Rank operator~(Rank r)
-{ return Rank(r ^ RANK_8); }
+constexpr bool isOk(Rank r) {
+    return RANK_1 <= r && r <= RANK_8;
+}
+constexpr Rank operator~(Rank r) {
+    return Rank(r ^ RANK_8);
+}
 
-constexpr Square makeSquare(File f, Rank r)
-{ return Square((r << 3) + f); }
+constexpr Square makeSquare(File f, Rank r) {
+    return Square((r << 3) + f);
+}
 
-constexpr bool isOk(Square s)
-{ return SQ_A1 <= s && s <= SQ_H8; }
-constexpr File sFile(Square s)
-{ return File((s >> 0) & FILE_H); }
-constexpr Rank sRank(Square s)
-{ return Rank((s >> 3) & RANK_8); }
-constexpr Color sColor(Square s)
-{ return Color(0 == ((sFile(s) ^ sRank(s)) & BLACK)); }
+constexpr bool isOk(Square s) {
+    return SQ_A1 <= s && s <= SQ_H8;
+}
+constexpr File sFile(Square s) {
+    return File((s >> 0) & FILE_H);
+}
+constexpr Rank sRank(Square s) {
+    return Rank((s >> 3) & RANK_8);
+}
+constexpr Color sColor(Square s) {
+    return Color(0 == ((s ^ (s >> 3)) & BLACK));
+}
 
 // SQ_A1 -> SQ_A8
-constexpr Square operator~(Square s)
-{ return Square(s ^ SQ_A8); }
+constexpr Square operator~(Square s) {
+    return Square(s ^ SQ_A8);
+}
 // SQ_A1 -> SQ_H1
-constexpr Square operator!(Square s)
-{ return Square(s ^ SQ_H1); }
+constexpr Square operator!(Square s) {
+    return Square(s ^ SQ_H1);
+}
 
-constexpr bool oppositeColor(Square s1, Square s2)
-{ return 0 != ((s1 ^ sRank(s1) ^ s2 ^ sRank(s2)) & BLACK); }
+constexpr bool oppositeColor(Square s1, Square s2) {
+    return 0 != ((s1 ^ (s1 >> 3) ^ s2 ^ (s2 >> 3)) & BLACK);
+}
 
-constexpr Square relativeSq(Color c, Square s)
-{ return Square(s ^ (c * SQ_A8)); }
+constexpr Square relativeSq(Color c, Square s) {
+    return Square(s ^ (c * SQ_A8));
+}
 
-constexpr Rank relativeRank(Color c, Rank   r)
-{ return Rank(r ^ (c * RANK_8)); }
-constexpr Rank relativeRank(Color c, Square s)
-{ return relativeRank(c, sRank(s)); }
+constexpr Rank relativeRank(Color c, Rank   r) {
+    return Rank(r ^ (c * RANK_8));
+}
+constexpr Rank relativeRank(Color c, Square s) {
+    return relativeRank(c, sRank(s));
+}
 
-constexpr Square kingRelativeSq(Color c, bool kingSide)
-{ return relativeSq(c, SQ_C1 + i32(kingSide) * 4 * EAST); }
-constexpr Square rookRelativeSq(Color c, bool kingSide)
-{ return relativeSq(c, SQ_D1 + i32(kingSide) * 2 * EAST); }
+constexpr Square kingRelativeSq(Color c, bool kingSide) {
+    return relativeSq(c, SQ_C1 + kingSide * 4 * EAST);
+}
+constexpr Square rookRelativeSq(Color c, bool kingSide) {
+    return relativeSq(c, SQ_D1 + kingSide * 2 * EAST);
+}
 
-constexpr Direction pawnPush(Color c)
-{ return NORTH + SOUTH * (c << 1); }
-constexpr Direction pawnLAtt(Color c)
-{ return NORTH_WEST + SOUTH_EAST * (c << 1); }
-constexpr Direction pawnRAtt(Color c)
-{ return NORTH_EAST + SOUTH_WEST * (c << 1); }
+constexpr Direction pawnPush(Color c) {
+    return NORTH + SOUTH * (c << 1);
+}
+constexpr Direction pawnLAtt(Color c) {
+    return NORTH_WEST + SOUTH_EAST * (c << 1);
+}
+constexpr Direction pawnRAtt(Color c) {
+    return NORTH_EAST + SOUTH_WEST * (c << 1);
+}
 
-constexpr CastleRight makeCastleRight(Color c)
-{ return CastleRight(CR_WHITE <<  (c << 1)); }
-constexpr CastleRight makeCastleRight(Color c, CastleSide cs)
-{ return CastleRight(CR_WKING << ((c << 1) + cs)); }
+constexpr CastleRight makeCastleRight(Color c) {
+    return CastleRight(CR_WHITE <<  (c << 1));
+}
+constexpr CastleRight makeCastleRight(Color c, CastleSide cs) {
+    return CastleRight(CR_WKING << ((c << 1) + cs));
+}
 
-constexpr bool isOk(PieceType pt)
-{ return PAWN <= pt && pt <= KING; }
+constexpr bool isOk(PieceType pt) {
+    return PAWN <= pt && pt <= KING;
+}
 
-constexpr bool isOk(Piece p)
-{ return (W_PAWN <= p && p <= W_KING)
-      || (B_PAWN <= p && p <= B_KING); }
-constexpr PieceType pType(Piece p)
-{ return PieceType(p & PIECE_TYPES); }
-constexpr Color pColor(Piece p)
-{ return Color((p >> 3) & BLACK); }
-constexpr Piece operator~(Piece p)
-{ return Piece(p ^ (BLACK << 3)); }
-constexpr Piece operator|(Color c, PieceType pt)
-{ return Piece((c << 3) + pt); }
+constexpr bool isOk(Piece p) {
+    return (W_PAWN <= p && p <= W_KING)
+        || (B_PAWN <= p && p <= B_KING);
+}
+constexpr PieceType pType(Piece p) {
+    return PieceType(p & PIECE_TYPES);
+}
+constexpr Color pColor(Piece p) {
+    return Color((p >> 3) & BLACK);
+}
+constexpr Piece operator~(Piece p) {
+    return Piece(p ^ (BLACK << 3));
+}
+constexpr Piece operator|(Color c, PieceType pt) {
+    return Piece((c << 3) + pt);
+}
 
-constexpr Square orgSq(Move m)
-{ return Square((m >> 6) & SQ_H8); }
-constexpr Square dstSq(Move m)
-{ return Square((m >> 0) & SQ_H8); }
-constexpr bool isOk(Move m)
-{ return orgSq(m) != dstSq(m); }
-constexpr PieceType promoteType(Move m)
-{ return PieceType(((m >> 12) & 0x03) + NIHT); }
-constexpr MoveType mType(Move m)
-{ return MoveType(m & PROMOTE); }
-constexpr u16 mIndex(Move m)
-{ return u16(m & 0x0FFF); }
+constexpr Square orgSq(Move m) {
+    return Square((m >> 6) & SQ_H8);
+}
+constexpr Square dstSq(Move m) {
+    return Square((m >> 0) & SQ_H8);
+}
+constexpr bool isOk(Move m) {
+    return orgSq(m) != dstSq(m);
+}
+constexpr PieceType promoteType(Move m) {
+    return PieceType(((m >> 12) & 0x03) + NIHT);
+}
+constexpr MoveType mType(Move m) {
+    return MoveType(m & PROMOTE);
+}
+constexpr u16 mIndex(Move m) {
+    return u16(m & 0x0FFF);
+}
 
-constexpr Move makePromoteMove(Square org, Square dst, PieceType pt = QUEN)
-{ return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst); }
+constexpr Move makePromoteMove(Square org, Square dst, PieceType pt = QUEN) {
+    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst);
+}
 
 template<MoveType MT>
-constexpr Move makeMove(Square org, Square dst)
-{ return Move(MT + (org << 6) + dst); }
+constexpr Move makeMove(Square org, Square dst) {
+    return Move(MT + (org << 6) + dst);
+}
 template<>
-constexpr Move makeMove<PROMOTE>(Square org, Square dst)
-{ return makePromoteMove(org, dst); }
+constexpr Move makeMove<PROMOTE>(Square org, Square dst) {
+    return makePromoteMove(org, dst);
+}
 
-constexpr Move reverseMove(Move m)
-{ return makeMove<NORMAL>(dstSq(m), orgSq(m)); }
+constexpr Move reverseMove(Move m) {
+    return makeMove<NORMAL>(dstSq(m), orgSq(m));
+}
 
 /// Convert Value to Centipawn
-constexpr i16   toCP(Value   v)
-{ return i16(double(v) * 100 / VALUE_EG_PAWN); }
+constexpr i16   toCP(Value   v) {
+    return i16(double(v) * 100 / VALUE_EG_PAWN);
+}
 /// Convert Centipawn to Value
-constexpr Value toValue(i16 cp)
-{ return Value(i32(cp) * VALUE_EG_PAWN / 100); }
+constexpr Value toValue(i16 cp) {
+    return Value(i32(cp) * VALUE_EG_PAWN / 100);
+}
 
 /// It adjusts a mate score from "plies to mate from the root" to "plies to mate from the current position".
 /// Non-mate scores are unchanged.
 /// The function is called before storing a value to the transposition table.
-constexpr Value valueToTT(Value v, i32 ply)
-{
-    //assert(VALUE_NONE != v);
+constexpr Value valueToTT(Value v, i32 ply) {
     return v >= +VALUE_MATE_MAX_PLY ? v + ply :
            v <= -VALUE_MATE_MAX_PLY ? v - ply :
                                       v;
 }
+
 /// It adjusts a mate score from "plies to mate from the current position" to "plies to mate from the root".
 /// Non-mate scores are unchanged.
 /// The function is called after retrieving a value of the transposition table.
-constexpr Value valueOfTT(Value v, i32 ply, i32 clockPly)
-{
+constexpr Value valueOfTT(Value v, i32 ply, i32 clockPly) {
     return v ==  VALUE_NONE         ? VALUE_NONE :
            v >= +VALUE_MATE_MAX_PLY ? VALUE_MATE - v > 99 - clockPly ? +VALUE_MATE_MAX_PLY : v - ply :
            v <= -VALUE_MATE_MAX_PLY ? VALUE_MATE + v > 99 - clockPly ? -VALUE_MATE_MAX_PLY : v + ply :
                                       v;
 }
 
-constexpr Value matesIn(i32 ply)
-{ return +VALUE_MATE - ply; }
-constexpr Value matedIn(i32 ply)
-{ return -VALUE_MATE + ply; }
+constexpr Value matesIn(i32 ply) {
+    return +VALUE_MATE - ply;
+}
+constexpr Value matedIn(i32 ply) {
+    return -VALUE_MATE + ply;
+}
 
 using TimePoint = std::chrono::milliseconds::rep; // Time in milli-seconds
 static_assert (sizeof(TimePoint) == sizeof(i64), "TimePoint should be 64 bits");
 
-inline TimePoint now()
-{
+inline TimePoint now() {
     return std::chrono::duration_cast<std::chrono::milliseconds>
           (std::chrono::steady_clock::now().time_since_epoch()).count();
 }

@@ -159,10 +159,10 @@ void MainThread::clear()
 /// This usually means to be limited to use max 64 cores.
 /// To overcome this, some special platform specific API should be called to set group affinity for each thread.
 /// Original code from Texel by Peter Osterlund.
-namespace WinProcGroup
-{
-    namespace
-    {
+namespace WinProcGroup {
+
+    namespace {
+
         vector<i16> Groups;
     }
 
@@ -318,8 +318,8 @@ Thread* ThreadPool::bestThread() const
         }
         else
         {
-            if (   th->rootMoves.front().newValue >= VALUE_MATE_MAX_PLY
-                || votes[bestThread->rootMoves.front().front()] < votes[th->rootMoves.front().front()])
+            if (th->rootMoves.front().newValue >= VALUE_MATE_MAX_PLY
+             || votes[bestThread->rootMoves.front().front()] < votes[th->rootMoves.front().front()])
             {
                 bestThread = th;
             }
@@ -383,26 +383,25 @@ void ThreadPool::configure(u32 threadCount)
 }
 /// ThreadPool::startThinking() wakes up main thread waiting in idleFunction() and returns immediately.
 /// Main thread will wake up other threads and start the search.
-void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit &lmt, const vector<Move> &searchMoves, bool ponder)
+void ThreadPool::startThinking(Position &pos, StateListPtr &states)
 {
     stop = false;
     research = false;
-    mainThread()->stopOnPonderhit = false;
-    mainThread()->ponder = ponder;
 
-    limit = lmt;
+    mainThread()->stopOnPonderhit = false;
+    mainThread()->ponder = Searcher::Limits.ponder;
 
     RootMoves rootMoves;
-    rootMoves.initialize(pos, searchMoves);
+    rootMoves.initialize(pos, Searcher::Limits.searchMoves);
 
     if (!rootMoves.empty())
     {
-        TBProbeDepth = Options["SyzygyProbeDepth"];
-        TBLimitPiece = Options["SyzygyLimitPiece"];
-        TBUseRule50 = Options["SyzygyUseRule50"];
-        TBHasRoot = false;
+        TBProbeDepth    = Options["SyzygyProbeDepth"];
+        TBLimitPiece    = Options["SyzygyLimitPiece"];
+        TBUseRule50     = Options["SyzygyUseRule50"];
+        TBHasRoot       = false;
 
-        bool dtzAvailable = true;
+        bool dtzAvailable{ true };
 
         // Tables with fewer pieces than SyzygyProbeLimit are searched with ProbeDepth == DEPTH_ZERO
         if (TBLimitPiece > MaxLimitPiece)
@@ -412,9 +411,9 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
         }
 
         // Rank moves using DTZ tables
-        if (   0 != TBLimitPiece
-            && TBLimitPiece >= pos.count()
-            && CR_NONE == pos.castleRights())
+        if (0 != TBLimitPiece
+         && TBLimitPiece >= pos.count()
+         && CR_NONE == pos.castleRights())
         {
             // If the current root position is in the table-bases,
             // then RootMoves contains only moves that preserve the draw or the win.
@@ -434,8 +433,8 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
                  [](const RootMove &rm1, const RootMove &rm2) { return rm1.tbRank > rm2.tbRank; });
 
             // Probe during search only if DTZ is not available and winning
-            if (   dtzAvailable
-                || rootMoves.front().tbValue <= VALUE_DRAW)
+            if (dtzAvailable
+             || rootMoves.front().tbValue <= VALUE_DRAW)
             {
                 TBLimitPiece = 0;
             }
@@ -463,12 +462,10 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
     // We use setup() to set root position across threads.
     // So we need to save and later to restore last stateinfo, cleared by setup().
     // Note that states is shared by threads but is accessed in read-only mode.
-    auto fen = pos.fen();
-    auto back_si = setupStates->back();
+    auto fen{ pos.fen() };
+    auto back{ setupStates->back() };
     for (auto *th : *this)
     {
-        th->rootPos.setup(fen, setupStates->back(), th);
-        th->rootMoves       = rootMoves;
         th->rootDepth       = DEPTH_ZERO;
         th->finishedDepth   = DEPTH_ZERO;
         th->nodes           = 0;
@@ -476,8 +473,10 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states, const Limit 
         th->pvChange        = 0;
         th->nmpPly          = 0;
         th->nmpColor        = COLOR_NONE;
+        th->rootMoves       = rootMoves;
+        th->rootPos.setup(fen, setupStates->back(), th);
     }
-    setupStates->back() = back_si;
+    setupStates->back() = back;
 
     mainThread()->startSearch();
 }

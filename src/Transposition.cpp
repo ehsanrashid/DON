@@ -75,8 +75,7 @@ TEntry* TCluster::probe(u16 key16, bool &hit)
     return hit = false, rte;
 }
 
-namespace
-{
+namespace {
 
 #if defined(__linux__) && !defined(__ANDROID__)
 
@@ -127,6 +126,16 @@ TTable::~TTable()
     mem = nullptr;
 }
 
+/// size() returns hash size in MB
+u32 TTable::size() const {
+    return u32((clusterCount * sizeof (TCluster)) >> 20);
+}
+/// cluster() returns a pointer to the cluster of given a key.
+/// Lower 32 bits of the key are used to get the index of the cluster.
+TCluster* TTable::cluster(Key key) const {
+    return &clusters[(u32(key) * u64(clusterCount)) >> 32];
+}
+
 /// TTable::resize() sets the size of the transposition table, measured in MB.
 /// Transposition table consists of a power of 2 number of clusters and
 /// each cluster consists of EntryCount number of TTEntry.
@@ -154,7 +163,7 @@ u32 TTable::resize(u32 memSize)
 /// TTable::autoResize() set size automatically
 void TTable::autoResize(u32 memSize)
 {
-    auto mSize{0 != memSize ? memSize : MaxHashSize};
+    auto mSize{ 0 != memSize ? memSize : MaxHashSize };
     while (mSize >= MinHashSize)
     {
         if (0 != resize(mSize))
@@ -175,22 +184,21 @@ void TTable::clear()
     }
 
     vector<thread> threads;
-    auto threadCount{optionThreads()};
+    auto threadCount{ optionThreads() };
     for (size_t idx = 0; idx < threadCount; ++idx)
     {
-        threads.emplace_back([this, idx, threadCount]()
-                             {
-                                 if (8 < threadCount)
-                                 {
-                                     WinProcGroup::bind(idx);
-                                 }
-                                 const auto stride{clusterCount / threadCount};
-                                 const auto start{stride * idx};
-                                 const auto count{idx != (threadCount - 1) ?
-                                                    stride :
-                                                    clusterCount - start};
-                                 std::memset(clusters + start, 0, count * sizeof (TCluster));
-                             });
+        threads.emplace_back([this, idx, threadCount]() {
+                                if (8 < threadCount)
+                                {
+                                    WinProcGroup::bind(idx);
+                                }
+                                const auto stride{ clusterCount / threadCount };
+                                const auto start{ stride * idx };
+                                const auto count{ idx != threadCount - 1 ?
+                                                stride :
+                                                clusterCount - start };
+                                std::memset(clusters + start, 0, count * sizeof (TCluster));
+                            });
     }
     for (auto &th : threads)
     {
@@ -230,10 +238,10 @@ Move TTable::extractNextMove(Position &pos, Move cm) const
     StateInfo si;
     pos.doMove(cm, si);
     bool ttHit;
-    auto *tte{probe(pos.posiKey(), ttHit)};
-    auto nm{ttHit ?
+    auto *tte{ probe(pos.posiKey(), ttHit) };
+    auto nm{ ttHit ?
                 tte->move() :
-                MOVE_NONE};
+                MOVE_NONE };
     if (MOVE_NONE != nm
      && !(pos.pseudoLegal(nm)
        && pos.legal(nm)))
@@ -254,7 +262,7 @@ void TTable::save(const string &hashFn) const
     {
         return;
     }
-    ofstream ofs{hashFn, ios::out|ios::binary};
+    ofstream ofs{ hashFn, ios::out|ios::binary };
     if (!ofs.is_open())
     {
         return;
@@ -270,7 +278,7 @@ void TTable::load(const string &hashFn)
     {
         return;
     }
-    ifstream ifs{hashFn, ios::in|ios::binary};
+    ifstream ifs{ hashFn, ios::in|ios::binary };
     if (!ifs.is_open())
     {
         return;
@@ -278,4 +286,41 @@ void TTable::load(const string &hashFn)
     ifs >> *this;
     ifs.close();
     sync_cout << "info string Hash loaded from file \'" << hashFn << "\'" << sync_endl;
+}
+
+namespace {
+
+    constexpr u32 BufferSize = 0x1000;
+
+}
+
+ostream& operator<<(ostream &os, const TTable &tt) {
+    u32 memSize = tt.size();
+    u08 dummy = 0;
+    os.write((const char*) (&memSize), sizeof(memSize));
+    os.write((const char*) (&dummy), sizeof(dummy));
+    os.write((const char*) (&dummy), sizeof(dummy));
+    os.write((const char*) (&dummy), sizeof(dummy));
+    os.write((const char*) (&TEntry::Generation), sizeof(TEntry::Generation));
+    for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i)
+    {
+        os.write((const char*) (tt.clusters + i*BufferSize), sizeof(TCluster)*BufferSize);
+    }
+    return os;
+}
+
+istream& operator>>(istream &is,       TTable &tt) {
+    u32 memSize;
+    u08 dummy;
+    is.read((char*) (&memSize), sizeof(memSize));
+    is.read((char*) (&dummy), sizeof(dummy));
+    is.read((char*) (&dummy), sizeof(dummy));
+    is.read((char*) (&dummy), sizeof(dummy));
+    is.read((char*) (&TEntry::Generation), sizeof(TEntry::Generation));
+    tt.resize(memSize);
+    for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i)
+    {
+        is.read((char*) (tt.clusters + i*BufferSize), sizeof(TCluster)*BufferSize);
+    }
+    return is;
 }

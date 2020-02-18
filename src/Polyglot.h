@@ -28,14 +28,14 @@ struct PolyEntry
 
     bool operator>(const PolyEntry&) const;
     bool operator<(const PolyEntry&) const;
-    
+
     bool operator>=(const PolyEntry&) const;
     bool operator<=(const PolyEntry&) const;
 
     bool operator==(Move m) const;
     bool operator!=(Move m) const;
 
-    explicit operator std::string() const;
+    std::string toString() const;
 };
 
 static_assert (sizeof (PolyEntry) == 16, "Entry size incorrect");

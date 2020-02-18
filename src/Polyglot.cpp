@@ -12,8 +12,7 @@ PolyBook Book;
 
 using namespace std;
 
-namespace
-{
+namespace {
 
     template<typename T>
     ifstream& operator>>(ifstream &ifs, T &t)
@@ -106,29 +105,25 @@ PolyEntry::PolyEntry(u64 k, u16 m, u16 w, u32 l)
     , learn{l}
 {}
 
-bool PolyEntry::operator==(const PolyEntry &pe) const
-{
+bool PolyEntry::operator==(const PolyEntry &pe) const {
     return key == pe.key
         && move == pe.move
         && weight == pe.weight;
 }
-bool PolyEntry::operator!=(const PolyEntry &pe) const
-{
+bool PolyEntry::operator!=(const PolyEntry &pe) const {
     return key != pe.key
         || move != pe.move
         || weight != pe.weight;
 }
 
-bool PolyEntry::operator>(const PolyEntry &pe) const
-{
+bool PolyEntry::operator>(const PolyEntry &pe) const {
     return key != pe.key ?
                 key > pe.key :
                 weight != pe.weight ?
                     weight > pe.weight :
                     move > pe.move;
 }
-bool PolyEntry::operator<(const PolyEntry &pe) const
-{
+bool PolyEntry::operator<(const PolyEntry &pe) const {
     return key != pe.key ?
                 key < pe.key :
                 weight != pe.weight ?
@@ -136,16 +131,14 @@ bool PolyEntry::operator<(const PolyEntry &pe) const
                     move < pe.move;
 }
 
-bool PolyEntry::operator>=(const PolyEntry &pe) const
-{
+bool PolyEntry::operator>=(const PolyEntry &pe) const {
     return key != pe.key ?
                 key >= pe.key :
                 weight != pe.weight ?
                     weight >= pe.weight :
                     move >= pe.move;
 }
-bool PolyEntry::operator<=(const PolyEntry &pe) const
-{
+bool PolyEntry::operator<=(const PolyEntry &pe) const {
     return key != pe.key ?
                 key <= pe.key :
                 weight != pe.weight ?
@@ -156,7 +149,7 @@ bool PolyEntry::operator<=(const PolyEntry &pe) const
 bool PolyEntry::operator==(Move m) const { return move == m; }
 bool PolyEntry::operator!=(Move m) const { return move != m; }
 
-PolyEntry::operator string() const
+string PolyEntry::toString() const
 {
     ostringstream oss;
     oss << " key: "    << setw(16) << setfill('0') << hex << uppercase << key << nouppercase << dec
@@ -167,9 +160,8 @@ PolyEntry::operator string() const
     return oss.str();
 }
 
-ostream& operator<<(ostream &os, const PolyEntry &pe)
-{
-    os << string(pe);
+ostream& operator<<(ostream &os, const PolyEntry &pe) {
+    os << pe.toString();
     return os;
 }
 
@@ -204,12 +196,12 @@ void PolyBook::clear()
 
 i64 PolyBook::findIndex(Key key) const
 {
-    i64 beg{0};
-    i64 end{i64(entryCount)};
+    i64 beg{ 0 };
+    i64 end{ i64(entryCount) };
 
     while (beg + 8 < end)
     {
-        i64 mid{(beg + end) / 2};
+        i64 mid{ (beg + end) / 2 };
 
         if (key > entries[mid].key)
         {
@@ -255,8 +247,8 @@ i64 PolyBook::findIndex(Key key) const
 
 bool PolyBook::canProbe(const Position &pos)
 {
-    Bitboard pieces{pos.pieces()};
-    i32 pieceCount{pos.count()};
+    Bitboard pieces{ pos.pieces() };
+    i32 pieceCount{ pos.count() };
 
     if (pieces != prevPieces
      || popCount(pieces ^ prevPieces) > 6
@@ -286,7 +278,7 @@ void PolyBook::initialize(const string &bkFn)
         return;
     }
 
-    ifstream ifs{bookFn, ios::in|ios::binary};
+    ifstream ifs{ bookFn, ios::in|ios::binary };
     if (!ifs.is_open())
     {
         return;
@@ -323,7 +315,7 @@ void PolyBook::initialize(const string &bkFn)
 /// otherwise randomly chooses one, based on the move score.
 Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest)
 {
-    static PRNG prng{u64(now())};
+    static PRNG prng{ u64(now()) };
 
     if (!enabled
      || nullptr == entries
@@ -333,8 +325,8 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest)
         return MOVE_NONE;
     }
 
-    auto key{pos.pgKey()};
-    auto index{findIndex(key)};
+    auto key{ pos.pgKey() };
+    auto index{ findIndex(key) };
     if (0 > index)
     {
         if (4 < ++failCount)
@@ -437,8 +429,8 @@ string PolyBook::show(const Position &pos) const
         return "Book entries empty.";
     }
 
-    auto key{pos.pgKey()};
-    auto index{findIndex(key)};
+    auto key{ pos.pgKey() };
+    auto index{ findIndex(key) };
     if (0 > index)
     {
         return "Book entries not found.";
@@ -446,7 +438,7 @@ string PolyBook::show(const Position &pos) const
 
     ostringstream oss;
 
-    list<PolyEntry> peList{};
+    list<PolyEntry> peList;
     u32 sumWeight{0};
     while (size_t(index) < entryCount
         && key == entries[index].key)
@@ -455,13 +447,13 @@ string PolyBook::show(const Position &pos) const
         sumWeight += entries[index].weight;
         ++index;
     }
-    
+
     if (!peList.empty())
     {
         peList.sort();
         peList.reverse();
         oss << "\nBook entries: " << peList.size();
-        for (auto pe : peList)
+        for (auto &pe : peList)
         {
             pe.move = polyMove(Move(pe.move), pos);
             oss << "\n"

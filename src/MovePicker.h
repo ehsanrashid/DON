@@ -46,9 +46,9 @@ class MovePicker
 private:
 
     const Position &pos;
-    const ColorIndexStatsTable *quietStats;
-    const PieceSquareTypeStatsTable *captureStats;
-    const PieceSquareStatsTable **pieceStats;
+    const ColorIndexStatsTable *quietStats{ nullptr };
+    const PieceSquareTypeStatsTable *captureStats{ nullptr };
+    const PieceSquareStatsTable **pieceStats{ nullptr };
 
     Move    ttMove;
     Depth   depth;
@@ -72,7 +72,7 @@ private:
 
 public:
 
-    bool skipQuiets{false};
+    bool skipQuiets{ false };
 
     MovePicker() = delete;
     MovePicker(const MovePicker&) = delete;

@@ -9,7 +9,7 @@ using namespace std;
 /// Zobrist::computeMatlKey() computes hash key of the material situation.
 Key Zobrist::computeMatlKey(const Position &pos) const
 {
-    Key matlKey{0};
+    Key matlKey{ 0 };
     for (Color c : { WHITE, BLACK })
     {
         for (PieceType pt = PAWN; pt <= KING; ++pt)
@@ -25,7 +25,7 @@ Key Zobrist::computeMatlKey(const Position &pos) const
 /// Zobrist::computePawnKey() computes hash key of the pawn structure.
 Key Zobrist::computePawnKey(const Position &pos) const
 {
-    Key pawnKey{0};
+    Key pawnKey{ 0 };
     for (Color c : { WHITE, BLACK })
     {
         pawnKey ^= pieceSquareKey[c][KING][0]; // Include King Key for zero pawns
@@ -39,7 +39,7 @@ Key Zobrist::computePawnKey(const Position &pos) const
 /// Zobrist::computePosiKey() computes hash key of the complete position.
 Key Zobrist::computePosiKey(const Position &pos) const
 {
-    Key posiKey{0};
+    Key posiKey{ 0 };
     for (Color c : { WHITE, BLACK })
     {
         for (PieceType pt = PAWN; pt <= KING; ++pt)
@@ -62,8 +62,8 @@ Key Zobrist::computePosiKey(const Position &pos) const
     return posiKey;
 }
 
-namespace Zobrists
-{
+namespace Zobrists {
+
     /// initialize() initializes Zobrist lookup tables.
     void initialize()
     {
@@ -71,7 +71,7 @@ namespace Zobrists
         assert(PolyZob.pieceSquareKey[BLACK][KING][SQ_H8] == U64(0xFF577222C14F0A3A));
         assert(PolyZob.colorKey == U64(0xF8D626AAAF278509));
 
-        PRNG prng{0x105524};
+        PRNG prng{ 0x105524 };
 
         for (Color c : { WHITE, BLACK })
         {

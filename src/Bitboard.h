@@ -29,28 +29,28 @@
 #   endif
 #endif
 
-constexpr Bitboard FullBB{U64(0xFFFFFFFFFFFFFFFF)};
+constexpr Bitboard FullBB{ U64(0xFFFFFFFFFFFFFFFF) };
 
-constexpr Bitboard FABB{U64(0x0101010101010101)};
-constexpr Bitboard FBBB{FABB << 1};
-constexpr Bitboard FCBB{FABB << 2};
-constexpr Bitboard FDBB{FABB << 3};
-constexpr Bitboard FEBB{FABB << 4};
-constexpr Bitboard FFBB{FABB << 5};
-constexpr Bitboard FGBB{FABB << 6};
-constexpr Bitboard FHBB{FABB << 7};
+constexpr Bitboard FABB{ U64(0x0101010101010101) };
+constexpr Bitboard FBBB{ FABB << 1 };
+constexpr Bitboard FCBB{ FABB << 2 };
+constexpr Bitboard FDBB{ FABB << 3 };
+constexpr Bitboard FEBB{ FABB << 4 };
+constexpr Bitboard FFBB{ FABB << 5 };
+constexpr Bitboard FGBB{ FABB << 6 };
+constexpr Bitboard FHBB{ FABB << 7 };
 
-constexpr Bitboard R1BB{U64(0x00000000000000FF)};
-constexpr Bitboard R2BB{R1BB << 1 * 8};
-constexpr Bitboard R3BB{R1BB << 2 * 8};
-constexpr Bitboard R4BB{R1BB << 3 * 8};
-constexpr Bitboard R5BB{R1BB << 4 * 8};
-constexpr Bitboard R6BB{R1BB << 5 * 8};
-constexpr Bitboard R7BB{R1BB << 6 * 8};
-constexpr Bitboard R8BB{R1BB << 7 * 8};
+constexpr Bitboard R1BB{ U64(0x00000000000000FF) };
+constexpr Bitboard R2BB{ R1BB << 1 * 8 };
+constexpr Bitboard R3BB{ R1BB << 2 * 8 };
+constexpr Bitboard R4BB{ R1BB << 3 * 8 };
+constexpr Bitboard R5BB{ R1BB << 4 * 8 };
+constexpr Bitboard R6BB{ R1BB << 5 * 8 };
+constexpr Bitboard R7BB{ R1BB << 6 * 8 };
+constexpr Bitboard R8BB{ R1BB << 7 * 8 };
 
-//constexpr Bitboard DiagonalsBB = U64(0x8142241818244281); // A1..H8 | H1..A8
-constexpr Bitboard CenterBB{(FDBB|FEBB) & (R4BB|R5BB)};
+//constexpr Bitboard DiagonalsBB{ U64(0x8142241818244281) }; // A1..H8 | H1..A8
+constexpr Bitboard CenterBB{ (FDBB|FEBB) & (R4BB|R5BB) };
 
 constexpr Array<Bitboard, COLORS> Colors
 {
@@ -152,23 +152,42 @@ extern Array<u08, SQUARES, SQUARES> SquareDistance;
 
 constexpr Bitboard squareBB(Square s) { return Squares[s]; }
 
-constexpr bool contains(Bitboard bb, Square s) { return 0 != (bb & squareBB(s)); }
+constexpr bool contains(Bitboard bb, Square s) {
+    return 0 != (bb & squareBB(s));
+}
 
-constexpr Bitboard operator&(Bitboard bb, Square s) { return bb & squareBB(s); }
-constexpr Bitboard operator|(Bitboard bb, Square s) { return bb | squareBB(s); }
-constexpr Bitboard operator^(Bitboard bb, Square s) { return bb ^ squareBB(s); }
+constexpr Bitboard operator&(Bitboard bb, Square s) {
+    return bb & squareBB(s);
+}
+constexpr Bitboard operator|(Bitboard bb, Square s) {
+    return bb | squareBB(s);
+}
+constexpr Bitboard operator^(Bitboard bb, Square s) {
+    return bb ^ squareBB(s);
+}
 
-constexpr Bitboard operator&(Square s, Bitboard bb) { return bb & squareBB(s); }
-constexpr Bitboard operator|(Square s, Bitboard bb) { return bb | squareBB(s); }
-constexpr Bitboard operator^(Square s, Bitboard bb) { return bb ^ squareBB(s); }
+constexpr Bitboard operator&(Square s, Bitboard bb) {
+    return bb & squareBB(s);
+}
+constexpr Bitboard operator|(Square s, Bitboard bb) {
+    return bb | squareBB(s);
+}
+constexpr Bitboard operator^(Square s, Bitboard bb) {
+    return bb ^ squareBB(s);
+}
 
-inline Bitboard& operator|=(Bitboard &bb, Square s) { return bb |= squareBB(s); }
-inline Bitboard& operator^=(Bitboard &bb, Square s) { return bb ^= squareBB(s); }
+inline Bitboard& operator|=(Bitboard &bb, Square s) {
+    return bb |= squareBB(s);
+}
+inline Bitboard& operator^=(Bitboard &bb, Square s) {
+    return bb ^= squareBB(s);
+}
 
-constexpr Bitboard operator|(Square s1, Square s2) { return squareBB(s1) | squareBB(s2); }
+constexpr Bitboard operator|(Square s1, Square s2) {
+    return squareBB(s1) | squareBB(s2);
+}
 
-inline bool moreThanOne(Bitboard bb)
-{
+inline bool moreThanOne(Bitboard bb) {
 #if defined(BM2)
     return 0 != BLSR(bb);
 #else
@@ -176,105 +195,141 @@ inline bool moreThanOne(Bitboard bb)
 #endif
 }
 
-constexpr Bitboard fileBB(File f) { return FABB << f; }
-constexpr Bitboard fileBB(Square s) { return fileBB(sFile(s)); }
+constexpr Bitboard fileBB(File f) {
+    return FABB << f;
+}
+constexpr Bitboard fileBB(Square s) {
+    return fileBB(sFile(s));
+}
 
-constexpr Bitboard rankBB(Rank r) { return R1BB << r * 8; }
-constexpr Bitboard rankBB(Square s) { return rankBB(sRank(s)); }
+constexpr Bitboard rankBB(Rank r) {
+    return R1BB << r * 8;
+}
+constexpr Bitboard rankBB(Square s) {
+    return rankBB(sRank(s));
+}
 
 /// Shift the bitboard using delta
 template<Direction D>
-constexpr Bitboard shift(Bitboard) { return 0; }
+constexpr Bitboard shift(Bitboard) {
+    return 0;
+}
 
-template<> constexpr Bitboard shift<NORTH  >(Bitboard bb) { return (bb) <<  8; }
-template<> constexpr Bitboard shift<SOUTH  >(Bitboard bb) { return (bb) >>  8; }
-template<> constexpr Bitboard shift<NORTH_2>(Bitboard bb) { return (bb) << 16; }
-template<> constexpr Bitboard shift<SOUTH_2>(Bitboard bb) { return (bb) >> 16; }
+template<> constexpr Bitboard shift<NORTH>(Bitboard bb) {
+    return (bb) <<  8;
+}
+template<> constexpr Bitboard shift<SOUTH>(Bitboard bb) {
+    return (bb) >>  8;
+}
+template<> constexpr Bitboard shift<NORTH_2>(Bitboard bb) {
+    return (bb) << 16;
+}
+template<> constexpr Bitboard shift<SOUTH_2>(Bitboard bb) {
+    return (bb) >> 16;
+}
 // If (shifting & 7) != 0 then  bound clipping is done (~FABB or ~FHBB)
-template<> constexpr Bitboard shift<EAST      >(Bitboard bb) { return (bb & ~FHBB) << 1; }
-template<> constexpr Bitboard shift<WEST      >(Bitboard bb) { return (bb & ~FABB) >> 1; }
-template<> constexpr Bitboard shift<NORTH_EAST>(Bitboard bb) { return (bb & ~FHBB) << 9; }
-template<> constexpr Bitboard shift<NORTH_WEST>(Bitboard bb) { return (bb & ~FABB) << 7; }
-template<> constexpr Bitboard shift<SOUTH_EAST>(Bitboard bb) { return (bb & ~FHBB) >> 7; }
-template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) { return (bb & ~FABB) >> 9; }
+template<> constexpr Bitboard shift<EAST>(Bitboard bb) {
+    return (bb & ~FHBB) << 1;
+}
+template<> constexpr Bitboard shift<WEST>(Bitboard bb) {
+    return (bb & ~FABB) >> 1;
+}
+template<> constexpr Bitboard shift<NORTH_EAST>(Bitboard bb) {
+    return (bb & ~FHBB) << 9;
+}
+template<> constexpr Bitboard shift<NORTH_WEST>(Bitboard bb) {
+    return (bb & ~FABB) << 7;
+}
+template<> constexpr Bitboard shift<SOUTH_EAST>(Bitboard bb) {
+    return (bb & ~FHBB) >> 7;
+}
+template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) {
+    return (bb & ~FABB) >> 9;
+}
 
 
 /// frontRanksBB() returns ranks in front of the given rank
-constexpr Bitboard frontRanksBB(Color c, Rank r)
-{
+constexpr Bitboard frontRanksBB(Color c, Rank r) {
     return WHITE == c ?
             ~R1BB << (r - RANK_1) * 8 :
             ~R8BB >> (RANK_8 - r) * 8;
 }
 /// frontRanksBB() returns ranks in front of the given square
-constexpr Bitboard frontRanksBB(Color c, Square s) { return frontRanksBB(c, sRank(s)); }
+constexpr Bitboard frontRanksBB(Color c, Square s) {
+    return frontRanksBB(c, sRank(s));
+}
 
-constexpr Bitboard adjacentFilesBB(Square s)
-{
+constexpr Bitboard adjacentFilesBB(Square s) {
     return shift<EAST>(fileBB(s))
          | shift<WEST>(fileBB(s));
 }
-//constexpr Bitboard adjacentRanksBB(Square s)
-//{
+//constexpr Bitboard adjacentRanksBB(Square s) {
 //    return shift<NORTH>(rankBB(s))
 //         | shift<SOUTH>(rankBB(s));
 //}
 
-constexpr Bitboard frontSquaresBB(Color c, Square s) { return frontRanksBB(c, s) & fileBB(s); }
-constexpr Bitboard pawnAttackSpan(Color c, Square s) { return frontRanksBB(c, s) & adjacentFilesBB(s); }
-constexpr Bitboard pawnPassSpan  (Color c, Square s) { return frontRanksBB(c, s) & (fileBB(s) | adjacentFilesBB(s)); }
+constexpr Bitboard frontSquaresBB(Color c, Square s) {
+    return frontRanksBB(c, s) & fileBB(s);
+}
+constexpr Bitboard pawnAttackSpan(Color c, Square s) {
+    return frontRanksBB(c, s) & adjacentFilesBB(s);
+}
+constexpr Bitboard pawnPassSpan  (Color c, Square s) {
+    return frontRanksBB(c, s) & (fileBB(s) | adjacentFilesBB(s));
+}
 
 /// dist() functions return the distance between s1 and s2, defined as the
 /// number of steps for a king in s1 to reach s2.
 
 template<typename T = Square> inline i32 dist(Square, Square);
-template<> inline i32 dist<  File>(Square s1, Square s2) { return std::abs(sFile(s1) - sFile(s2)); }
-template<> inline i32 dist<  Rank>(Square s1, Square s2) { return std::abs(sRank(s1) - sRank(s2)); }
-template<> inline i32 dist<Square>(Square s1, Square s2)
-{
+template<> inline i32 dist<  File>(Square s1, Square s2) {
+    return std::abs(sFile(s1) - sFile(s2));
+}
+template<> inline i32 dist<  Rank>(Square s1, Square s2) {
+    return std::abs(sRank(s1) - sRank(s2));
+}
+template<> inline i32 dist<Square>(Square s1, Square s2) {
     //return std::max(dist<File>(s1, s2), dist<Rank>(s1, s2));
     return SquareDistance[s1][s2];
 }
 
 /// lines() returns squares that are linearly
-inline Bitboard lines(Square s1, Square s2) { return Lines[s1][s2]; }
+inline Bitboard lines(Square s1, Square s2) {
+    return Lines[s1][s2];
+}
 /// between_bb() returns squares that are linearly between the given squares
 /// If the given squares are not on a same file/rank/diagonal, return 0.
-inline Bitboard betweens(Square s1, Square s2)
-{
+inline Bitboard betweens(Square s1, Square s2) {
     return lines(s1, s2)
             & ((FullBB << (s1 +  (s1 < s2)))
              ^ (FullBB << (s2 + !(s1 < s2))));
 }
 /// aligned() Check the squares s1, s2 and s3 are aligned on a straight line.
-inline bool aligned(Square s1, Square s2, Square s3) { return contains(lines(s1, s2), s3); }
+inline bool aligned(Square s1, Square s2, Square s3) {
+    return contains(lines(s1, s2), s3);
+}
 
-//constexpr bool oppositeColor(Square s1, Square s2)
-//{
+//constexpr bool oppositeColor(Square s1, Square s2) {
 //    return contains(Colors[WHITE], s1) == contains(Colors[BLACK], s2);
 //}
 
-constexpr Bitboard pawnSglPushes(Color c, Bitboard bb)
-{
+constexpr Bitboard pawnSglPushes(Color c, Bitboard bb) {
     return WHITE == c ?
             shift<NORTH>(bb) :
             shift<SOUTH>(bb);
 }
-constexpr Bitboard pawnDblPushes(Color c, Bitboard bb)
-{
+constexpr Bitboard pawnDblPushes(Color c, Bitboard bb) {
     return WHITE == c ?
             shift<NORTH_2>(bb) :
             shift<SOUTH_2>(bb);
 }
 
-constexpr Bitboard pawnLAttacks(Color c, Bitboard bb)
-{
+constexpr Bitboard pawnLAttacks(Color c, Bitboard bb) {
     return WHITE == c ?
             shift<NORTH_WEST>(bb) :
             shift<SOUTH_EAST>(bb);
 }
-constexpr Bitboard pawnRAttacks(Color c, Bitboard bb)
-{
+constexpr Bitboard pawnRAttacks(Color c, Bitboard bb) {
     return WHITE == c ?
             shift<NORTH_EAST>(bb) :
             shift<SOUTH_WEST>(bb);
@@ -282,33 +337,35 @@ constexpr Bitboard pawnRAttacks(Color c, Bitboard bb)
 
 /// pawnSglAttacks() returns the single attackes by pawns of the given color
 template<Color C>
-constexpr Bitboard pawnSglAttacks(Bitboard bb)
-{
+constexpr Bitboard pawnSglAttacks(Bitboard bb) {
     return pawnLAttacks(C, bb) | pawnRAttacks(C, bb);
 }
 /// pawnDblAttacks() returns the double attackes by pawns of the given color
 template<Color C>
-constexpr Bitboard pawnDblAttacks(Bitboard bb)
-{
+constexpr Bitboard pawnDblAttacks(Bitboard bb) {
     return pawnLAttacks(C, bb) & pawnRAttacks(C, bb);
 }
 
 /// attacksBB(s, occ) takes a square and a bitboard of occupied squares,
 /// and returns a bitboard representing all squares attacked by PT (Bishop or Rook or Queen) on the given square.
 template<PieceType PT> Bitboard attacksBB(Square, Bitboard);
-//template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard    ) { return PieceAttacks[NIHT][s]; }
-//template<> inline Bitboard attacksBB<KING>(Square s, Bitboard    ) { return PieceAttacks[KING][s]; }
+//template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) { return PieceAttacks[NIHT][s]; }
+//template<> inline Bitboard attacksBB<KING>(Square s, Bitboard) { return PieceAttacks[KING][s]; }
 /// Attacks of the Bishop with occupancy
-template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) { return BMagics[s].attacksBB(occ); }
+template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) {
+    return BMagics[s].attacksBB(occ);
+}
 /// Attacks of the Rook with occupancy
-template<> inline Bitboard attacksBB<ROOK>(Square s, Bitboard occ) { return RMagics[s].attacksBB(occ); }
+template<> inline Bitboard attacksBB<ROOK>(Square s, Bitboard occ) {
+    return RMagics[s].attacksBB(occ); }
 /// Attacks of the Queen with occupancy
-template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) { return BMagics[s].attacksBB(occ)
-                                                                          | RMagics[s].attacksBB(occ); }
+template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) {
+    return BMagics[s].attacksBB(occ)
+         | RMagics[s].attacksBB(occ);
+}
 
 /// Position::attacksBB() finds attacks of the piecetype from the square on occupancy.
-inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ)
-{
+inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
     assert(PAWN != pt);
     switch (pt)
     {
@@ -320,9 +377,8 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ)
     }
 }
 /// Position::attacksBB() finds attacks of the piece from the square on occupancy.
-inline Bitboard attacksBB(Piece p, Square s, Bitboard occ)
-{
-    auto pt{pType(p)};
+inline Bitboard attacksBB(Piece p, Square s, Bitboard occ) {
+    auto pt{ pType(p) };
     switch (pt)
     {
     case PAWN: return PawnAttacks[pColor(p)][s];
@@ -335,8 +391,7 @@ inline Bitboard attacksBB(Piece p, Square s, Bitboard occ)
 }
 
 /// popCount() counts the number of non-zero bits in a bitboard
-inline i32 popCount(Bitboard bb)
-{
+inline i32 popCount(Bitboard bb) {
 
 #if !defined(ABM) // PopCount Table
 
@@ -347,7 +402,7 @@ inline i32 popCount(Bitboard bb)
     //x = ((x >> 0) + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
     //return (x * 0x0101010101010101) >> 56;
 
-    union { Bitboard b; u16 u[4]; } v{bb};
+    union { Bitboard b; u16 u[4]; } v{ bb };
     return PopCount16[v.u[0]]
          + PopCount16[v.u[1]]
          + PopCount16[v.u[2]]
@@ -366,8 +421,7 @@ inline i32 popCount(Bitboard bb)
 }
 
 /// scanLSq() return the least significant bit in a non-zero bitboard
-inline Square scanLSq(Bitboard bb)
-{
+inline Square scanLSq(Bitboard bb) {
     assert(0 != bb);
 
 #if defined(__GNUC__)   // GCC, Clang, ICC
@@ -403,8 +457,7 @@ inline Square scanLSq(Bitboard bb)
 
 }
 /// scanLSq() return the most significant bit in a non-zero bitboard
-inline Square scanMSq(Bitboard bb)
-{
+inline Square scanMSq(Bitboard bb) {
     assert(0 != bb);
 
 #if defined(__GNUC__)   // GCC, Clang, ICC
@@ -441,15 +494,13 @@ inline Square scanMSq(Bitboard bb)
 }
 
 // Find the most advanced square in the given bitboard relative to the given color.
-inline Square scanFrontMostSq(Color c, Bitboard bb)
-{
+inline Square scanFrontMostSq(Color c, Bitboard bb) {
     return WHITE == c ?
             scanMSq(bb) :
             scanLSq(bb);
 }
 
-inline Square popLSq(Bitboard &bb)
-{
+inline Square popLSq(Bitboard &bb) {
     Square sq = scanLSq(bb);
 #if defined(BM2)
     bb = BLSR(bb);
@@ -459,24 +510,18 @@ inline Square popLSq(Bitboard &bb)
     return sq;
 }
 
-//template<PieceType PT>
-//extern Bitboard slideAttacks(Square, Bitboard = 0);
-
 ///// makeBitboard() returns a bitboard compile-time constructed from a list of squares, files, ranks
 //constexpr Bitboard makeBitboard() { return 0; }
 //template<typename ...Squares>
-//constexpr Bitboard makeBitboard(Square s, Squares... squares)
-//{
+//constexpr Bitboard makeBitboard(Square s, Squares... squares) {
 //    return U64(0x0000000000000001) << s | makeBitboard(squares...);
 //}
 //template<typename ...Files>
-//constexpr Bitboard makeBitboard(File f, Files... files)
-//{
+//constexpr Bitboard makeBitboard(File f, Files... files) {
 //    return U64(0x0101010101010101) << f | makeBitboard(files...);
 //}
 //template<typename ...Ranks>
-//constexpr Bitboard makeBitboard(Rank r, Ranks... ranks)
-//{
+//constexpr Bitboard makeBitboard(Rank r, Ranks... ranks) {
 //    return U64(0x00000000000000FF) << (r * 8) | makeBitboard(ranks...);
 //}
 
@@ -485,8 +530,8 @@ inline Square popLSq(Bitboard &bb)
 ///// Rotate Left  (toward MSB)
 //constexpr Bitboard rotateL(Bitboard bb, i08 k) { return (bb << k) | (bb >> (SQUARES - k)); }
 
-namespace BitBoard
-{
+namespace BitBoard {
+
     extern void initialize();
 
 #if !defined(NDEBUG)

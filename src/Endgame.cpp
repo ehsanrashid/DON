@@ -7,8 +7,10 @@
 #include "Bitbase.h"
 #include "MoveGenerator.h"
 
-namespace
-{
+using namespace std;
+
+namespace {
+
     // Table used to drive the weak king towards the edge of the board.
     constexpr Array<i32, SQUARES> PushToEdge
     {
@@ -89,14 +91,14 @@ template<> Value Endgame<KXK>::operator()(const Position &pos) const
         return VALUE_DRAW;
     }
 
-    auto skSq{pos.square(stngColor|KING)};
-    auto wkSq{pos.square(weakColor|KING)};
+    auto skSq{ pos.square(stngColor|KING) };
+    auto wkSq{ pos.square(weakColor|KING) };
 
-    auto value{std::min(pos.count(stngColor|PAWN)*VALUE_EG_PAWN
-                      + pos.nonPawnMaterial(stngColor)
-                      + PushToEdge[wkSq]
-                      + PushClose[dist(skSq, wkSq)],
-                        +VALUE_KNOWN_WIN - 1)};
+    auto value{ std::min(pos.count(stngColor|PAWN)*VALUE_EG_PAWN
+                       + pos.nonPawnMaterial(stngColor)
+                       + PushToEdge[wkSq]
+                       + PushClose[dist(skSq, wkSq)],
+                         +VALUE_KNOWN_WIN - 1) };
 
     if (0 < pos.count(stngColor|QUEN)
      || 0 < pos.count(stngColor|ROOK)
@@ -118,18 +120,18 @@ template<> Value Endgame<KPK>::operator()(const Position &pos) const
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
 
     // Assume stngColor is white and the pawn is on files A-D
-    auto skSq{normalize(pos, stngColor, pos.square(stngColor|KING))};
-    auto spSq{normalize(pos, stngColor, pos.square(stngColor|PAWN))};
-    auto wkSq{normalize(pos, stngColor, pos.square(weakColor|KING))};
+    auto skSq{ normalize(pos, stngColor, pos.square(stngColor|KING)) };
+    auto spSq{ normalize(pos, stngColor, pos.square(stngColor|PAWN)) };
+    auto wkSq{ normalize(pos, stngColor, pos.square(weakColor|KING)) };
 
     if (!BitBase::probe(stngColor == pos.active ? WHITE : BLACK, skSq, spSq, wkSq))
     {
         return VALUE_DRAW;
     }
 
-    auto value{VALUE_KNOWN_WIN
-             + VALUE_EG_PAWN
-             + sRank(spSq)};
+    auto value{ VALUE_KNOWN_WIN
+              + VALUE_EG_PAWN
+              + sRank(spSq) };
 
     return stngColor == pos.active ? +value : -value;
 }
@@ -141,14 +143,14 @@ template<> Value Endgame<KBNK>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_NIHT + VALUE_MG_BSHP, 0)
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
 
-    auto skSq{pos.square(stngColor|KING)};
-    auto sbSq{pos.square(stngColor|BSHP)};
-    auto wkSq{pos.square(weakColor|KING)};
+    auto skSq{ pos.square(stngColor|KING) };
+    auto sbSq{ pos.square(stngColor|BSHP) };
+    auto wkSq{ pos.square(weakColor|KING) };
 
     // If Bishop does not attack A1/H8, flip the enemy king square to drive to opposite corners (A8/H1).
-    auto value{VALUE_KNOWN_WIN
-             + PushClose[dist(skSq, wkSq)]
-             + 32*PushToCorner[oppositeColor(sbSq, SQ_A1) ? ~wkSq : wkSq]};
+    auto value{ VALUE_KNOWN_WIN
+              + PushClose[dist(skSq, wkSq)]
+              + 32 * PushToCorner[oppositeColor(sbSq, SQ_A1) ? ~wkSq : wkSq] };
     assert(abs(value) < +VALUE_MATE_MAX_PLY);
     return stngColor == pos.active ? +value : -value;
 }
@@ -159,7 +161,7 @@ template<> Value Endgame<KNNK>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, 2*VALUE_MG_NIHT, 0)
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
 
-    auto value{Value(pos.count(stngColor|NIHT) / 2)};
+    auto value{ Value(pos.count(stngColor|NIHT) / 2) };
 
     return stngColor == pos.active ? +value : -value;
 }
@@ -170,13 +172,13 @@ template<> Value Endgame<KNNKP>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, 2*VALUE_MG_NIHT, 0)
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 1));
 
-    auto skSq{pos.square(stngColor|KING)};
-    auto wkSq{pos.square(weakColor|KING)};
+    auto skSq{ pos.square(stngColor|KING) };
+    auto wkSq{ pos.square(weakColor|KING) };
 
-    auto value{2*VALUE_MG_NIHT
-             - VALUE_EG_PAWN
-             + PushClose[dist(skSq, wkSq)]
-             + PushToEdge[wkSq]};
+    auto value{ 2 * VALUE_MG_NIHT
+              - VALUE_EG_PAWN
+              + PushClose[dist(skSq, wkSq)]
+              + PushToEdge[wkSq] };
 
     return stngColor == pos.active ? +value : -value;
 }
@@ -189,12 +191,12 @@ template<> Value Endgame<KRKP>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_ROOK, 0)
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 1));
 
-    auto skSq{relativeSq(stngColor, pos.square(stngColor|KING))};
-    auto srSq{relativeSq(stngColor, pos.square(stngColor|ROOK))};
-    auto wkSq{relativeSq(stngColor, pos.square(weakColor|KING))};
-    auto wpSq{relativeSq(stngColor, pos.square(weakColor|PAWN))};
+    auto skSq{ relativeSq(stngColor, pos.square(stngColor|KING)) };
+    auto srSq{ relativeSq(stngColor, pos.square(stngColor|ROOK)) };
+    auto wkSq{ relativeSq(stngColor, pos.square(weakColor|KING)) };
+    auto wpSq{ relativeSq(stngColor, pos.square(weakColor|PAWN)) };
 
-    auto promoteSq{makeSquare(sFile(wpSq), RANK_1)};
+    auto promoteSq{ makeSquare(sFile(wpSq), RANK_1) };
 
     Value value;
 
@@ -235,9 +237,9 @@ template<> Value Endgame<KRKB>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_ROOK, 0)
         && verifyMaterial(pos, weakColor, VALUE_MG_BSHP, 0));
 
-    //auto skSq{pos.square(stngColor|KING)};
-    auto wkSq{pos.square(weakColor|KING)};
-    //auto wbSq{pos.square(weakColor|BSHP)};
+    //auto skSq{ pos.square(stngColor|KING) };
+    auto wkSq{ pos.square(weakColor|KING) };
+    //auto wbSq{ pos.square(weakColor|BSHP) };
 
     //// To draw, the weak side's king should run towards the corner.
     //// And not just any corner! Only a corner that's not the same color as the bishop will do.
@@ -249,7 +251,7 @@ template<> Value Endgame<KRKB>::operator()(const Position &pos) const
     //    return VALUE_DRAW;
     //}
 
-    auto value{Value(PushToEdge[wkSq])};
+    auto value{ Value(PushToEdge[wkSq]) };
 
     return stngColor == pos.active ? +value : -value;
 }
@@ -261,9 +263,9 @@ template<> Value Endgame<KRKN>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_ROOK, 0)
         && verifyMaterial(pos, weakColor, VALUE_MG_NIHT, 0));
 
-    //auto skSq{pos.square(stngColor|KING)};
-    auto wkSq{pos.square(weakColor|KING)};
-    auto wnSq{pos.square(weakColor|NIHT)};
+    //auto skSq{ pos.square(stngColor|KING) };
+    auto wkSq{ pos.square(weakColor|KING) };
+    auto wnSq{ pos.square(weakColor|NIHT) };
 
     //// If weak king is near the knight, it's a draw.
     //if (dist(wkSq, wnSq) <= 3 - (stngColor == pos.active)
@@ -272,8 +274,8 @@ template<> Value Endgame<KRKN>::operator()(const Position &pos) const
     //    return VALUE_DRAW;
     //}
 
-    auto value{Value(PushToEdge[wkSq]
-                   + PushAway[dist(wkSq, wnSq)])};
+    auto value{ Value(PushToEdge[wkSq]
+                    + PushAway[dist(wkSq, wnSq)]) };
 
     return stngColor == pos.active ? +value : -value;
 }
@@ -287,11 +289,11 @@ template<> Value Endgame<KQKP>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_QUEN, 0)
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 1));
 
-    auto skSq{pos.square(stngColor|KING)};
-    auto wkSq{pos.square(weakColor|KING)};
-    auto wpSq{pos.square(weakColor|PAWN)};
+    auto skSq{ pos.square(stngColor|KING) };
+    auto wkSq{ pos.square(weakColor|KING) };
+    auto wpSq{ pos.square(weakColor|PAWN) };
 
-    auto value{Value(PushClose[dist(skSq, wkSq)])};
+    auto value{ Value(PushClose[dist(skSq, wkSq)]) };
 
     if (RANK_7 != relativeRank(weakColor, wpSq)
      || 1 != dist(wkSq, wpSq)
@@ -313,13 +315,13 @@ template<> Value Endgame<KQKR>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_QUEN, 0)
         && verifyMaterial(pos, weakColor, VALUE_MG_ROOK, 0));
 
-    auto skSq{pos.square(stngColor|KING)};
-    auto wkSq{pos.square(weakColor|KING)};
+    auto skSq{ pos.square(stngColor|KING) };
+    auto wkSq{ pos.square(weakColor|KING) };
 
-    auto value{VALUE_EG_QUEN
-             - VALUE_EG_ROOK
-             + PushToEdge[wkSq]
-             + PushClose[dist(skSq, wkSq)]};
+    auto value{ VALUE_EG_QUEN
+              - VALUE_EG_ROOK
+              + PushToEdge[wkSq]
+              + PushClose[dist(skSq, wkSq)] };
 
     return stngColor == pos.active ? +value : -value;
 }
@@ -338,16 +340,16 @@ template<> Scale Endgame<KRPKR>::operator()(const Position &pos) const
         && verifyMaterial(pos, weakColor, VALUE_MG_ROOK, 0));
 
     // Assume stngColor is white and the pawn is on files A-D
-    auto skSq{normalize(pos, stngColor, pos.square(stngColor|KING))};
-    auto srSq{normalize(pos, stngColor, pos.square(stngColor|ROOK))};
-    auto spSq{normalize(pos, stngColor, pos.square(stngColor|PAWN))};
-    auto wkSq{normalize(pos, stngColor, pos.square(weakColor|KING))};
-    auto wrSq{normalize(pos, stngColor, pos.square(weakColor|ROOK))};
+    auto skSq{ normalize(pos, stngColor, pos.square(stngColor|KING)) };
+    auto srSq{ normalize(pos, stngColor, pos.square(stngColor|ROOK)) };
+    auto spSq{ normalize(pos, stngColor, pos.square(stngColor|PAWN)) };
+    auto wkSq{ normalize(pos, stngColor, pos.square(weakColor|KING)) };
+    auto wrSq{ normalize(pos, stngColor, pos.square(weakColor|ROOK)) };
 
-    auto spF{sFile(spSq)};
-    auto spR{sRank(spSq)};
-    auto promoteSq{makeSquare(spF, RANK_8)};
-    i32 tempo{stngColor == pos.active};
+    auto spF{ sFile(spSq) };
+    auto spR{ sRank(spSq) };
+    auto promoteSq{ makeSquare(spF, RANK_8) };
+    i32 tempo{ stngColor == pos.active };
 
     // If the pawn is not too far advanced and the defending king defends the
     // queening square, use the third-rank defense.
@@ -457,10 +459,10 @@ template<> Scale Endgame<KRPKB>::operator()(const Position &pos) const
     // If rook pawns
     if (0 != (pos.pieces(PAWN) & (FABB|FHBB)))
     {
-        auto wkSq{pos.square(weakColor|KING)};
-        auto wbSq{pos.square(weakColor|BSHP)};
-        auto spSq{pos.square(stngColor|PAWN)};
-        auto spR{relativeRank(stngColor, spSq)};
+        auto wkSq{ pos.square(weakColor|KING) };
+        auto wbSq{ pos.square(weakColor|BSHP) };
+        auto spSq{ pos.square(stngColor|PAWN) };
+        auto spR{ relativeRank(stngColor, spSq) };
 
         // If the pawn is on the 5th rank and the pawn (currently) is on the
         // same color square as the bishop then there is a chance of a fortress.
@@ -469,7 +471,7 @@ template<> Scale Endgame<KRPKB>::operator()(const Position &pos) const
         if (RANK_5 == spR
          && !oppositeColor(wbSq, spSq))
         {
-            auto d{dist(spSq + 3 * pawnPush(stngColor), wkSq)};
+            auto d{ dist(spSq + 3 * pawnPush(stngColor), wkSq) };
             return d <= 2
                 && (0 != d
                  || wkSq != pos.square(stngColor|KING) + 2 * pawnPush(stngColor)) ?
@@ -497,9 +499,9 @@ template<> Scale Endgame<KRPPKRP>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_ROOK, 2)
         && verifyMaterial(pos, weakColor, VALUE_MG_ROOK, 1));
 
-    auto sp1Sq{pos.square(stngColor|PAWN, 0)};
-    auto sp2Sq{pos.square(stngColor|PAWN, 1)};
-    auto wkSq{pos.square(weakColor|KING)};
+    auto sp1Sq{ pos.square(stngColor|PAWN, 0) };
+    auto sp2Sq{ pos.square(stngColor|PAWN, 1) };
+    auto wkSq{ pos.square(weakColor|KING) };
 
     // Does the stronger side have a passed pawn?
     if (pos.pawnPassedAt(stngColor, sp1Sq)
@@ -508,7 +510,7 @@ template<> Scale Endgame<KRPPKRP>::operator()(const Position &pos) const
         return SCALE_NONE;
     }
 
-    auto spR{std::max(relativeRank(stngColor, sp1Sq), relativeRank(stngColor, sp2Sq))};
+    auto spR{ std::max(relativeRank(stngColor, sp1Sq), relativeRank(stngColor, sp2Sq)) };
     if (1 >= dist<File>(wkSq, sp1Sq)
      && 1 >= dist<File>(wkSq, sp2Sq)
      && spR < relativeRank(stngColor, wkSq))
@@ -528,8 +530,8 @@ template<> Scale Endgame<KNPK>::operator()(const Position &pos) const
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
 
     // Assume stngColor is white and the pawn is on files A-D
-    auto spSq{normalize(pos, stngColor, pos.square(stngColor|PAWN))};
-    auto wkSq{normalize(pos, stngColor, pos.square(weakColor|KING))};
+    auto spSq{ normalize(pos, stngColor, pos.square(stngColor|PAWN)) };
+    auto wkSq{ normalize(pos, stngColor, pos.square(weakColor|KING)) };
 
     if (SQ_A7 == spSq
      && 1 >= dist(wkSq, SQ_A8))
@@ -549,10 +551,10 @@ template<> Scale Endgame<KBPKB>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_BSHP, 1)
         && verifyMaterial(pos, weakColor, VALUE_MG_BSHP, 0));
 
-    auto spSq{pos.square(stngColor|PAWN)};
-    auto sbSq{pos.square(stngColor|BSHP)};
-    auto wbSq{pos.square(weakColor|BSHP)};
-    auto wkSq{pos.square(weakColor|KING)};
+    auto spSq{ pos.square(stngColor|PAWN) };
+    auto sbSq{ pos.square(stngColor|BSHP) };
+    auto wbSq{ pos.square(weakColor|BSHP) };
+    auto wkSq{ pos.square(weakColor|KING) };
 
     if (// Opposite colored bishops
         oppositeColor(sbSq, wbSq)
@@ -574,14 +576,14 @@ template<> Scale Endgame<KBPPKB>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_BSHP, 2)
         && verifyMaterial(pos, weakColor, VALUE_MG_BSHP, 0));
 
-    auto sbSq{pos.square(stngColor|BSHP)};
-    auto wbSq{pos.square(weakColor|BSHP)};
+    auto sbSq{ pos.square(stngColor|BSHP) };
+    auto wbSq{ pos.square(weakColor|BSHP) };
 
     if (oppositeColor(sbSq, wbSq))
     {
-        auto sp1Sq{pos.square(stngColor|PAWN, 0)};
-        auto sp2Sq{pos.square(stngColor|PAWN, 1)};
-        auto wkSq{pos.square(weakColor|KING)};
+        auto sp1Sq{ pos.square(stngColor|PAWN, 0) };
+        auto sp2Sq{ pos.square(stngColor|PAWN, 1) };
+        auto wkSq{ pos.square(weakColor|KING) };
 
         Square block1Sq
             ,  block2Sq;
@@ -649,9 +651,9 @@ template<> Scale Endgame<KBPKN>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_BSHP, 1)
         && verifyMaterial(pos, weakColor, VALUE_MG_NIHT, 0));
 
-    auto spSq{pos.square(stngColor|PAWN)};
-    auto sbSq{pos.square(stngColor|BSHP)};
-    auto wkSq{pos.square(weakColor|KING)};
+    auto spSq{ pos.square(stngColor|PAWN) };
+    auto sbSq{ pos.square(stngColor|BSHP) };
+    auto wkSq{ pos.square(weakColor|KING) };
 
     if (sFile(wkSq) == sFile(spSq)
      && relativeRank(stngColor, spSq) < relativeRank(stngColor, wkSq)
@@ -671,9 +673,9 @@ template<> Scale Endgame<KNPKB>::operator()(const Position &pos) const
     assert(verifyMaterial(pos, stngColor, VALUE_MG_NIHT, 1)
         && verifyMaterial(pos, weakColor, VALUE_MG_BSHP, 0));
 
-    auto spSq{pos.square(stngColor|PAWN)};
-    auto sbSq{pos.square(weakColor|BSHP)};
-    auto wkSq{pos.square(weakColor|KING)};
+    auto spSq{ pos.square(stngColor|PAWN) };
+    auto sbSq{ pos.square(weakColor|BSHP) };
+    auto wkSq{ pos.square(weakColor|KING) };
 
     // King needs to get close to promoting pawn to prevent knight from blocking.
     // Rules for this are very tricky, so just approximate.
@@ -699,9 +701,9 @@ template<> Scale Endgame<KPKP>::operator()(const Position &pos) const
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 1));
 
     // Assume stngColor is white and the pawn is on files A-D
-    auto skSq{normalize(pos, stngColor, pos.square(stngColor|KING))};
-    auto spSq{normalize(pos, stngColor, pos.square(stngColor|PAWN))};
-    auto wkSq{normalize(pos, stngColor, pos.square(weakColor|KING))};
+    auto skSq{ normalize(pos, stngColor, pos.square(stngColor|KING)) };
+    auto spSq{ normalize(pos, stngColor, pos.square(stngColor|PAWN)) };
+    auto wkSq{ normalize(pos, stngColor, pos.square(weakColor|KING)) };
 
     // If the pawn has advanced to the fifth rank or further, and is not a rook pawn,
     // then it's too dangerous to assume that it's at least a draw.
@@ -727,8 +729,8 @@ template<> Scale Endgame<KPsK>::operator()(const Position &pos) const
         && pos.count(stngColor|PAWN) >= 2
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
 
-    auto wkSq{pos.square(weakColor|KING)};
-    auto sPawns{pos.pieces(stngColor, PAWN)};
+    auto wkSq{ pos.square(weakColor|KING) };
+    auto sPawns{ pos.pieces(stngColor, PAWN) };
 
     // If all pawns are ahead of the king, all pawns are on a single
     // rook file and the king is within one file of the pawns then draw.
@@ -754,17 +756,17 @@ template<> Scale Endgame<KBPsK>::operator()(const Position &pos) const
     // No assertions about the material of weak side, because we want draws to
     // be detected even when the weak side has some materials or pawns.
 
-    auto skSq{pos.square(stngColor|KING)};
-    auto sbSq{pos.square(stngColor|BSHP)};
-    auto wkSq{pos.square(weakColor|KING)};
+    auto skSq{ pos.square(stngColor|KING) };
+    auto sbSq{ pos.square(stngColor|BSHP) };
+    auto wkSq{ pos.square(weakColor|KING) };
 
     // All pawns of strong side on same A or H file? (rook file)
     // Then potential draw
-    Bitboard sPawns{pos.pieces(stngColor, PAWN)};
+    Bitboard sPawns{ pos.pieces(stngColor, PAWN) };
     if (0 == (sPawns & ~FABB)
      || 0 == (sPawns & ~FHBB))
     {
-        auto promoteSq{relativeSq(stngColor, makeSquare(sFile(scanLSq(sPawns)), RANK_8))};
+        auto promoteSq{ relativeSq(stngColor, makeSquare(sFile(scanLSq(sPawns)), RANK_8)) };
 
         // The bishop has the wrong color and the defending king defends the queening square.
         if (oppositeColor(promoteSq, sbSq)
@@ -776,15 +778,15 @@ template<> Scale Endgame<KBPsK>::operator()(const Position &pos) const
 
     // All pawns on same B or G file?
     // Then potential draw
-    Bitboard pawns{pos.pieces(PAWN)};
-    Bitboard wPawns{pos.pieces(weakColor, PAWN)};
+    Bitboard pawns{ pos.pieces(PAWN) };
+    Bitboard wPawns{ pos.pieces(weakColor, PAWN) };
     if ((0 == (pawns & ~FBBB)
       || 0 == (pawns & ~FGBB))
      && VALUE_ZERO == pos.nonPawnMaterial(weakColor)
      && 0 != wPawns)
     {
         // Get weak side pawn that is closest to home rank
-        auto wpSq{scanFrontMostSq(stngColor, wPawns)};
+        auto wpSq{ scanFrontMostSq(stngColor, wPawns) };
 
         // There's potential for a draw if weak pawn is blocked on the 7th rank
         // and the bishop cannot attack it or only one strong pawn left
@@ -820,9 +822,9 @@ template<> Scale Endgame<KQKRPs>::operator()(const Position &pos) const
         && pos.nonPawnMaterial(weakColor) == VALUE_MG_ROOK
         && pos.count(weakColor|PAWN) != 0);
 
-    auto skSq{pos.square(stngColor|KING)};
-    auto wkSq{pos.square(weakColor|KING)};
-    auto wrSq{pos.square(weakColor|ROOK)};
+    auto skSq{ pos.square(stngColor|KING) };
+    auto wkSq{ pos.square(weakColor|KING) };
+    auto wrSq{ pos.square(weakColor|ROOK) };
 
     if (RANK_2 >= relativeRank(weakColor, wkSq)
      && RANK_4 <= relativeRank(weakColor, skSq)
@@ -838,14 +840,11 @@ template<> Scale Endgame<KQKRPs>::operator()(const Position &pos) const
 }
 
 
-namespace Endgames
-{
-    using namespace std;
+namespace Endgames {
 
     EGMapPair<Value, Scale> EndGames;
 
-    namespace
-    {
+    namespace {
 
         template<EndgameCode C, typename T = EndgameType<C>>
         void addEG(const string &code)

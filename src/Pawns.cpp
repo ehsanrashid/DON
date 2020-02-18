@@ -8,12 +8,11 @@
 #include "Table.h"
 #include "Thread.h"
 
-namespace Pawns
-{
-    using namespace std;
+using namespace std;
 
-    namespace
-    {
+namespace Pawns {
+
+    namespace {
         // Connected pawn bonus
         constexpr Array<i32, RANKS> Connected{ 0, 7, 8, 12, 29, 48, 86, 0 };
 
@@ -39,14 +38,14 @@ namespace Pawns
             { S(-15, 0), S( -11, 0), S( 101, 0), S(  4, 0), S( 11, 0), S(-15, 0), S(-29, 0), S(0, 0) }
         }};
 
-        constexpr Score BlockedStorm  {S(82,82)};
+        constexpr Score BlockedStorm  { S(82,82) };
 
-        constexpr Score Initial       {S( 5, 5)};
-        constexpr Score Backward      {S( 9,24)};
-        constexpr Score Isolated      {S( 5,15)};
-        constexpr Score Unopposed     {S(13,27)};
-        constexpr Score WeakDoubled   {S(11,56)};
-        constexpr Score WeakTwiceLever{S( 0,56)};
+        constexpr Score Initial       { S( 5, 5) };
+        constexpr Score Backward      { S( 9,24) };
+        constexpr Score Isolated      { S( 5,15) };
+        constexpr Score Unopposed     { S(13,27) };
+        constexpr Score WeakDoubled   { S(11,56) };
+        constexpr Score WeakTwiceLever{ S( 0,56) };
 
 #   undef S
 
@@ -198,7 +197,7 @@ namespace Pawns
         {
             assert((Own|PAWN) == pos[s]);
 
-            auto r{relativeRank(Own, s)};
+            auto r{ relativeRank(Own, s) };
             assert(RANK_2 <= r && r <= RANK_7);
 
             Bitboard neighbours = ownPawns & adjacentFilesBB(s);
@@ -243,8 +242,8 @@ namespace Pawns
             if (0 != supporters
              || 0 != phalanxes)
             {
-                i32 v{Connected[r] * (2 + (0 != phalanxes) - opposed)
-                    + 21 * popCount(supporters)};
+                i32 v{ Connected[r] * (2 + (0 != phalanxes) - opposed)
+                     + 21 * popCount(supporters) };
                 sp += makeScore(v, v * (r - RANK_3) / 4);
             }
             else

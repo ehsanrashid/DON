@@ -15,13 +15,13 @@ MovePicker::MovePicker(const Position &p
                      , const PieceSquareTypeStatsTable *cStats
                      , const PieceSquareStatsTable **pStats
                      , Move ttm, Depth d, const Array<Move, 2> &km, Move cm)
-    : pos{p}
-    , quietStats{qStats}
-    , captureStats{cStats}
-    , pieceStats{pStats}
-    , ttMove{ttm}
-    , depth{d}
-    , threshold{Value(-3000 * d)}
+    : pos{ p }
+    , quietStats{ qStats }
+    , captureStats{ cStats }
+    , pieceStats{ pStats }
+    , ttMove{ ttm }
+    , depth{ d }
+    , threshold{ Value(-3000 * d) }
     , refutationMoves{ km[0], km[1], cm }
 {
     assert(MOVE_NONE == ttMove
@@ -42,13 +42,13 @@ MovePicker::MovePicker(const Position &p
                      , const PieceSquareTypeStatsTable *cStats
                      , const PieceSquareStatsTable **pStats
                      , Move ttm, Depth d, Square rs)
-    : pos{p}
-    , quietStats{qStats}
-    , captureStats{cStats}
-    , pieceStats{pStats}
-    , ttMove{ttm}
-    , depth{d}
-    , recapSq{rs}
+    : pos{ p }
+    , quietStats{ qStats }
+    , captureStats{ cStats }
+    , pieceStats{ pStats }
+    , ttMove{ ttm }
+    , depth{ d }
+    , recapSq{ rs }
 {
     assert(MOVE_NONE == ttMove
         || (pos.pseudoLegal(ttMove)
@@ -66,18 +66,15 @@ MovePicker::MovePicker(const Position &p
               + (MOVE_NONE == ttMove);
 }
 
-
 /// MovePicker constructor for ProbCut search.
 /// Generate captures with SEE greater than or equal to the given threshold.
 MovePicker::MovePicker(const Position &p
                      , const PieceSquareTypeStatsTable *cStats
                      , Move ttm, Value thr)
-    : pos{p}
-    , quietStats{nullptr}
-    , captureStats{cStats}
-    , pieceStats{nullptr}
-    , ttMove{ttm}
-    , threshold{thr}
+    : pos{ p }
+    , captureStats{ cStats }
+    , ttMove{ ttm }
+    , threshold{ thr }
 {
     assert(0 == pos.checkers());
     assert(MOVE_NONE == ttMove
@@ -154,7 +151,7 @@ bool MovePicker::pick(Pred filter)
         assert(ttMove != *vmItr
             && pos.fullLegal(*vmItr));
 
-        bool ok{filter()};
+        bool ok{ filter() };
 
         ++vmItr;
         if (ok) return true;
@@ -196,10 +193,12 @@ Move MovePicker::nextMove()
         goto reStage;
 
     case NATURAL_GOOD_CAPTURES:
-        if (pick([&]() { return pos.see(*vmItr, Value(-(vmItr->value) * 55 / 1024)) ?
-                                    true :
-                                    // Put losing capture to badCaptureMoves to be tried later
-                                    (badCaptureMoves.push_back(*vmItr), false); }))
+        if (pick([&]() {
+                return pos.see(*vmItr, Value(-(vmItr->value) * 55 / 1024)) ?
+                        true :
+                        // Put losing capture to badCaptureMoves to be tried later
+                        (badCaptureMoves.push_back(*vmItr), false);
+            }))
         {
             return *std::prev(vmItr);
         }
@@ -276,20 +275,24 @@ Move MovePicker::nextMove()
         ++pickStage;
         /* fall through */
     case EVASION_MOVES:
-        return pick([]() { return true; }) ?
+        return pick([]() {
+                    return true; }) ?
                 *std::prev(vmItr) :
                 MOVE_NONE;
         /* end */
 
     case PROBCUT_CAPTURE:
-        return pick([&]() { return pos.see(*vmItr, threshold); }) ?
+        return pick([&]() {
+                    return pos.see(*vmItr, threshold); }) ?
                 *std::prev(vmItr) :
                 MOVE_NONE;
         /* end */
 
     case QUIESCENCE_CAPTURES:
-        if (pick([&]() { return DEPTH_QS_RECAP < depth
-                             || dstSq(*vmItr) == recapSq; }))
+        if (pick([&]() {
+                return DEPTH_QS_RECAP < depth
+                    || dstSq(*vmItr) == recapSq;
+            }))
         {
             return *std::prev(vmItr);
         }
@@ -318,5 +321,3 @@ Move MovePicker::nextMove()
     assert(false);
     return MOVE_NONE;
 }
-
-

@@ -14,8 +14,8 @@ extern const std::string engineInfo();
 
 extern const std::string compilerInfo();
 
-namespace UCI
-{
+namespace UCI {
+
     /// Option class implements an option as defined by UCI protocol
     class Option
     {
@@ -23,13 +23,13 @@ namespace UCI
         using OnChange = void(*)();
 
         std::string type
-            , defaultVal{}
-            , currentVal{};
+            , defaultVal
+            , currentVal;
 
-        double minVal{}
-            ,  maxVal{};
+        double minVal
+            ,  maxVal;
 
-        OnChange onChange{nullptr};
+        OnChange onChange{ nullptr };
 
     public:
 

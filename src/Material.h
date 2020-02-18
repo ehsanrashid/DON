@@ -6,8 +6,8 @@
 #include "Position.h"
 #include "Type.h"
 
-namespace Material
-{
+namespace Material {
+
     constexpr i32 PhaseResolution = 128;
 
     /// Material::Entry contains various information about a material configuration.

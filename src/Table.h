@@ -114,6 +114,7 @@ template<typename T, i32 D, size_t Size, size_t... Sizes>
 struct StatsTable
     : public std::array<StatsTable<T, D, Sizes...>, Size>
 {
+    static_assert(Size != 0, "Size incorrect");
 private:
     using NestedStatsTable = StatsTable<T, D, Size, Sizes...>;
 
@@ -132,7 +133,9 @@ public:
 template<typename T, i32 D, size_t Size>
 struct StatsTable<T, D, Size>
     : public std::array<Stats<T, D>, Size>
-{};
+{
+    static_assert(Size != 0, "Size incorrect");
+};
 
 
 /// ColorIndexStatsTable stores moves history according to color.
@@ -147,7 +150,7 @@ using PieceSquareTypeStatsTable = StatsTable<i16, 10692, PIECES, SQUARES, PIECE_
 /// indexed by [piece][square]
 using PieceSquareStatsTable     = StatsTable<i16, 29952, PIECES, SQUARES>;
 /// ContinuationStatsTable is the combined history of a given pair of moves, usually the current one given a previous one.
-/// The nested history table is based on PieceSquareStatsTable, indexed by [inCheck][captureType][piece][square]
+/// The nested history table is based on PieceSquareStatsTable, indexed by [piece][square]
 using ContinuationStatsTable    = Array<PieceSquareStatsTable, PIECES, SQUARES>;
 
 /// PieceSquareMoveTable stores moves, indexed by [piece][square]

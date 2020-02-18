@@ -6,13 +6,11 @@
 #include "Helper.h"
 #include "Thread.h"
 
-namespace Material
-{
+using namespace std;
 
-    using namespace std;
+namespace Material {
 
-    namespace
-    {
+    namespace {
         // Polynomial material imbalance parameters
 
         constexpr Array<i32, PIECE_TYPES, PIECE_TYPES> OwnQuadratic

@@ -38,7 +38,7 @@ extern WDLScore probeWDL(Position&, ProbeState&);
 extern bool rootProbeDTZ(Position&, RootMoves&);
 extern bool rootProbeWDL(Position&, RootMoves&);
 
-namespace SyzygyTB
-{
+namespace SyzygyTB {
+    
     extern void initialize(const std::string&);
 }

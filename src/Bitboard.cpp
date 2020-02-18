@@ -35,8 +35,8 @@ u08 popCount16(u32 u)
 Array<u08, SQUARES, SQUARES> SquareDistance;
 
 
-namespace
-{
+namespace {
+
     constexpr Array<Direction, PIECE_TYPES, 8> PieceDirections
     {{
         {}, {},
@@ -52,7 +52,7 @@ namespace
     {
         static_assert (BSHP == PT || ROOK == PT || QUEN == PT, "PT incorrect");
 
-        Bitboard attacks = 0;
+        Bitboard attacks{ 0 };
         for (auto dir : PieceDirections[PT])
         {
             for (Square sq = s + dir;
@@ -108,7 +108,7 @@ namespace
 
 #   endif
 
-        u32 offset{0};
+        u32 offset{ 0 };
         for (Square s = SQ_A1; s <= SQ_H8; ++s)
         {
             auto &magic = magics[s];
@@ -131,18 +131,18 @@ namespace
 
 #       if !defined(BM2)
 #           if defined(BIT64)
-            u08 bits = 64;
+            u08 bits{ 64 };
 #           else
-            u08 bits = 32;
+            u08 bits{ 32 };
 #           endif
             magic.shift = bits - maskPopCount;
 
-            u16 size{0};
+            u16 size{ 0 };
 #       endif
 
             // Use Carry-Rippler trick to enumerate all subsets of magics[s].mask
             // Have individual table sizes for each square with "Fancy Magic Bitboards".
-            Bitboard occ{0};
+            Bitboard occ{ 0 };
             do
             {
 #           if defined(BM2)
@@ -161,7 +161,7 @@ namespace
 
             assert(size == (1U << maskPopCount));
 
-            PRNG prng{Seeds[sRank(s)]};
+            PRNG prng{ Seeds[sRank(s)] };
 
             u16 i;
             // Find a magic for square picking up an (almost) random number
@@ -179,7 +179,7 @@ namespace
                 vector<bool> used(size, false);
                 for (i = 0; i < size; ++i)
                 {
-                    u16 idx = magic.index(occupancy[i]);
+                    u16 idx{ magic.index(occupancy[i]) };
                     assert(idx < size);
                     if (used[idx])
                     {
@@ -205,8 +205,8 @@ namespace
 
 }
 
-namespace BitBoard
-{
+namespace BitBoard {
+    
     void initialize()
     {
         //for (Square s = SQ_A1; s <= SQ_H8; ++s)
@@ -240,7 +240,7 @@ namespace BitBoard
 
             for (auto dir : PieceDirections[NIHT])
             {
-                Square sq = s + dir;
+                Square sq{ s + dir };
                 if (isOk(sq)
                  && 2 == dist(s, sq))
                 {
@@ -249,7 +249,7 @@ namespace BitBoard
             }
             for (auto dir : PieceDirections[KING])
             {
-                Square sq = s + dir;
+                Square sq{ s + dir };
                 if (isOk(sq)
                  && 1 == dist(s, sq))
                 {

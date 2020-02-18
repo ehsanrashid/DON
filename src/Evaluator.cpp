@@ -15,10 +15,9 @@
 
 using namespace std;
 
-namespace Evaluator
-{
-    namespace
-    {
+namespace Evaluator {
+
+    namespace {
 
         enum Term : u08
         {
@@ -51,8 +50,7 @@ namespace Evaluator
             write(t, BLACK, bS);
         }
 
-        ostream& operator<<(ostream &os, Term t)
-        {
+        ostream& operator<<(ostream &os, Term t) {
             const auto &score = Scores[t];
             switch (t)
             {
@@ -120,32 +118,32 @@ namespace Evaluator
             S( 0, 0), S(10,28), S(17,33), S(15,41), S(62,72), S(168,177), S(276,260), S( 0, 0)
         };
 
-        constexpr Score MinorBehindPawn    {S( 18,  3)};
-        constexpr Score MinorOutpost       {S( 30, 21)};
-        constexpr Score KnightReachablepost{S( 32, 10)};
-        constexpr Score MinorKingProtect   {S(  7,  8)};
-        constexpr Score BishopOnDiagonal   {S( 45,  0)};
-        constexpr Score BishopPawns        {S(  3,  7)};
-        constexpr Score BishopTrapped      {S( 50, 50)};
-        constexpr Score RookOnQueenFile    {S(  7,  6)};
-        constexpr Score RookTrapped        {S( 52, 10)};
-        constexpr Score QueenWeaken        {S( 49, 15)};
-        constexpr Score PawnLessFlank      {S( 17, 95)};
-        constexpr Score PasserFile         {S( 11,  8)};
-        constexpr Score KingFlankAttacks   {S(  8,  0)};
-        constexpr Score PieceRestricted    {S(  7,  7)};
-        constexpr Score PieceHanged        {S( 69, 36)};
-        constexpr Score PawnThreat         {S(173, 94)};
-        constexpr Score PawnPushThreat     {S( 48, 39)};
-        constexpr Score KingThreat         {S( 24, 89)};
-        constexpr Score KnightOnQueen      {S( 16, 12)};
-        constexpr Score SliderOnQueen      {S( 59, 18)};
+        constexpr Score MinorBehindPawn    { S( 18,  3) };
+        constexpr Score MinorOutpost       { S( 30, 21) };
+        constexpr Score KnightReachablepost{ S( 32, 10) };
+        constexpr Score MinorKingProtect   { S(  7,  8) };
+        constexpr Score BishopOnDiagonal   { S( 45,  0) };
+        constexpr Score BishopPawns        { S(  3,  7) };
+        constexpr Score BishopTrapped      { S( 50, 50) };
+        constexpr Score RookOnQueenFile    { S(  7,  6) };
+        constexpr Score RookTrapped        { S( 52, 10) };
+        constexpr Score QueenWeaken        { S( 49, 15) };
+        constexpr Score PawnLessFlank      { S( 17, 95) };
+        constexpr Score PasserFile         { S( 11,  8) };
+        constexpr Score KingFlankAttacks   { S(  8,  0) };
+        constexpr Score PieceRestricted    { S(  7,  7) };
+        constexpr Score PieceHanged        { S( 69, 36) };
+        constexpr Score PawnThreat         { S(173, 94) };
+        constexpr Score PawnPushThreat     { S( 48, 39) };
+        constexpr Score KingThreat         { S( 24, 89) };
+        constexpr Score KnightOnQueen      { S( 16, 12) };
+        constexpr Score SliderOnQueen      { S( 59, 18) };
 
     #undef S
 
         // Threshold for lazy and space evaluation
-        constexpr Value LazyThreshold   {Value(1400)};
-        constexpr Value SpaceThreshold  {Value(12222)};
+        constexpr Value LazyThreshold   { Value(1400) };
+        constexpr Value SpaceThreshold  { Value(12222) };
 
         constexpr Array<i32, PIECE_TYPES> SafeCheckWeight   { 0, 0, 790, 635, 1080, 780, 0 };
         constexpr Array<i32, PIECE_TYPES> KingAttackerWeight{ 0, 0,  81,  52,   44,  10, 0 };
@@ -213,9 +211,9 @@ namespace Evaluator
         template<bool Trace> template<Color Own>
         void Evaluation<Trace>::initAttacks()
         {
-            Bitboard pawns{pos.pieces(Own, PAWN)};
+            Bitboard pawns{ pos.pieces(Own, PAWN) };
 
-            auto kSq{pos.square(Own|KING)};
+            auto kSq{ pos.square(Own|KING) };
 
             sqlAttacks[Own].fill(0);
             sqlAttacks[Own][PAWN] =  pawnSglAttacks<Own>(pawns & ~pos.kingBlockers(Own))
@@ -239,7 +237,7 @@ namespace Evaluator
         template<bool Trace> template<Color Own>
         void Evaluation<Trace>::initMobility()
         {
-            constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
+            constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
 
             // Mobility area: Exclude followings
             mobArea[Own] = ~(// Squares protected by enemy pawns
@@ -254,10 +252,10 @@ namespace Evaluator
                              | pawnSglPushes(Opp, pos.pieces()))));
             mobility[Own] = SCORE_ZERO;
 
-            auto kSq{pos.square(Own|KING)};
+            auto kSq{ pos.square(Own|KING) };
             // King safety tables
-            auto sq{makeSquare(clamp(sFile(kSq), FILE_B, FILE_G),
-                            clamp(sRank(kSq), RANK_2, RANK_7))};
+            auto sq{ makeSquare(clamp(sFile(kSq), FILE_B, FILE_G),
+                                clamp(sRank(kSq), RANK_2, RANK_7)) };
             kingRing[Own] = PieceAttacks[KING][sq] | sq;
 
             kingAttackersCount [Opp] = popCount(kingRing[Own] & sqlAttacks[Opp][PAWN]);
@@ -274,9 +272,9 @@ namespace Evaluator
         {
             static_assert (NIHT <= PT && PT <= QUEN, "PT incorrect");
 
-            constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
+            constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
 
-            Score score{SCORE_ZERO};
+            Score score{ SCORE_ZERO };
 
             for (Square s : pos.squares[Own|PT])
             {
@@ -468,19 +466,19 @@ namespace Evaluator
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::king() const
         {
-            constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
+            constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
 
-            auto kSq{pos.square(Own|KING)};
+            auto kSq{ pos.square(Own|KING) };
 
             // Main king safety evaluation
-            i32 kingDanger{0};
+            i32 kingDanger{ 0 };
 
             // Attacked squares defended at most once by friend queen or king
-            Bitboard weakArea =  sqlAttacks[Opp][NONE]
-                              & ~dblAttacks[Own]
-                              & (~sqlAttacks[Own][NONE]
-                               |  sqlAttacks[Own][QUEN]
-                               |  sqlAttacks[Own][KING]);
+            Bitboard weakArea{ sqlAttacks[Opp][NONE]
+                             & ~dblAttacks[Own]
+                             & (~sqlAttacks[Own][NONE]
+                              |  sqlAttacks[Own][QUEN]
+                              |  sqlAttacks[Own][KING]) };
 
             // Safe squares where enemy's safe checks are possible on next move
             Bitboard safeArea = ~pos.pieces(Opp)
@@ -560,7 +558,7 @@ namespace Evaluator
             i32 kfDefense = popCount(b);
 
             // King Safety:
-            Score score{pe->evaluateKingSafety<Own>(pos, fulAttacks[Opp])};
+            Score score{ pe->evaluateKingSafety<Own>(pos, fulAttacks[Opp]) };
 
             kingDanger +=   1 * (kingAttackersCount[Opp] * kingAttackersWeight[Opp])
                         +  69 * kingAttacksCount[Opp]
@@ -604,9 +602,9 @@ namespace Evaluator
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::threats() const
         {
-            constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
+            constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
 
-            Score score{SCORE_ZERO};
+            Score score{ SCORE_ZERO };
 
             // Squares defended by the opponent,
             // - attack the square with a pawn
@@ -733,11 +731,13 @@ namespace Evaluator
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::passers() const
         {
-            constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
+            constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
 
-            auto kingProximity = [&](Color c, Square s) { return std::min(dist(pos.square(c|KING), s), 5); };
+            auto kingProximity = [&](Color c, Square s) {
+                return std::min(dist(pos.square(c|KING), s), 5);
+            };
 
-            Score score{SCORE_ZERO};
+            Score score{ SCORE_ZERO };
 
             Bitboard psr = pe->passers[Own];
             while (0 != psr)
@@ -825,7 +825,7 @@ namespace Evaluator
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::space() const
         {
-            constexpr auto Opp{WHITE == Own ? BLACK : WHITE};
+            constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
             // Space Threshold
             if (pos.nonPawnMaterial() < SpaceThreshold)
             {
@@ -843,12 +843,12 @@ namespace Evaluator
                                & ~pos.pieces(Own, PAWN)
                                & ~sqlAttacks[Opp][PAWN];
 
-            i32 bonus = popCount(safeSpace)
-                      + popCount( behind
-                               &  safeSpace
-                               & ~sqlAttacks[Opp][NONE]);
-            i32 weight = pos.count(Own) - 1;
-            Score score{makeScore(bonus * weight * weight / 16, 0)};
+            i32 bonus{ popCount(safeSpace)
+                     + popCount(behind
+                             &  safeSpace
+                             & ~sqlAttacks[Opp][NONE]) };
+            i32 weight{ pos.count(Own) - 1 };
+            Score score{ makeScore(bonus * weight * weight / 16, 0) };
 
             if (Trace)
             {
@@ -889,13 +889,13 @@ namespace Evaluator
                 complexity -= 43;
             }
 
-            auto mg{mgValue(s)};
-            auto eg{egValue(s)};
+            auto mg{ mgValue(s) };
+            auto eg{ egValue(s) };
             // Now apply the bonus: note that we find the attacking side by extracting the
             // sign of the midgame or endgame values, and that we carefully cap the bonus
             // so that the midgame and endgame scores do not change sign after the bonus.
-            Score score{makeScore(sign(mg) * clamp(complexity + 50, -abs(mg), 0),
-                                sign(eg) * std::max(complexity  , -abs(eg)))};
+            Score score{ makeScore(sign(mg) * clamp(complexity + 50, -abs(mg), 0),
+                                   sign(eg) * std::max(complexity  , -abs(eg))) };
 
             if (Trace)
             {
@@ -923,9 +923,9 @@ namespace Evaluator
             // If don't already have an unusual scale, check for certain types of endgames.
             if (SCALE_NORMAL == scl)
             {
-                bool oppositeBishop{1 == pos.count(WHITE|BSHP)
-                                 && 1 == pos.count(BLACK|BSHP)
-                                 && oppositeColor(pos.square(WHITE|BSHP), pos.square(BLACK|BSHP))};
+                bool oppositeBishop{ 1 == pos.count(WHITE|BSHP)
+                                  && 1 == pos.count(BLACK|BSHP)
+                                  && oppositeColor(pos.square(WHITE|BSHP), pos.square(BLACK|BSHP)) };
                 scl = oppositeBishop
                    && 2 * VALUE_MG_BSHP == pos.nonPawnMaterial() ?
                         // Endings with opposite-colored bishops and no other pieces is almost a draw
@@ -960,14 +960,15 @@ namespace Evaluator
             // - incrementally updated scores (material + piece square tables).
             // - material imbalance.
             // - pawn score
-            Score score{pos.psq
-                    + me->imbalance
-                    + (pe->score[WHITE] - pe->score[BLACK])
-                    + pos.thread->contempt};
+            Score score{ pos.psq
+                       + me->imbalance
+                       + (pe->score[WHITE]
+                        - pe->score[BLACK])
+                       + pos.thread->contempt };
 
             // Lazy Threshold
             // Early exit if score is high
-            Value v = (mgValue(score) + egValue(score)) / 2;
+            Value v{ (mgValue(score) + egValue(score)) / 2 };
             if (abs(v) > LazyThreshold + pos.nonPawnMaterial() / 64)
             {
                 return WHITE == pos.active ? +v : -v;
@@ -978,23 +979,34 @@ namespace Evaluator
                 clear();
             }
 
-            initAttacks <WHITE>(), initAttacks <BLACK>();
-            initMobility<WHITE>(), initMobility<BLACK>();
+            initAttacks <WHITE>(),
+            initAttacks <BLACK>();
+            initMobility<WHITE>(),
+            initMobility<BLACK>();
 
             // Pieces should be evaluated first (populate attack information)
-            score += pieces<WHITE, NIHT>() - pieces<BLACK, NIHT>();
-            score += pieces<WHITE, BSHP>() - pieces<BLACK, BSHP>();
-            score += pieces<WHITE, ROOK>() - pieces<BLACK, ROOK>();
-            score += pieces<WHITE, QUEN>() - pieces<BLACK, QUEN>();
+            score += pieces<WHITE, NIHT>()
+                   - pieces<BLACK, NIHT>();
+            score += pieces<WHITE, BSHP>()
+                   - pieces<BLACK, BSHP>();
+            score += pieces<WHITE, ROOK>()
+                   - pieces<BLACK, ROOK>();
+            score += pieces<WHITE, QUEN>()
+                   - pieces<BLACK, QUEN>();
 
             assert((sqlAttacks[WHITE][NONE] & dblAttacks[WHITE]) == dblAttacks[WHITE]);
             assert((sqlAttacks[BLACK][NONE] & dblAttacks[BLACK]) == dblAttacks[BLACK]);
 
-            score += mobility[WHITE]  - mobility[BLACK]
-                + king   <WHITE>() - king   <BLACK>()
-                + threats<WHITE>() - threats<BLACK>()
-                + passers<WHITE>() - passers<BLACK>()
-                + space  <WHITE>() - space  <BLACK>();
+            score += mobility[WHITE]
+                   - mobility[BLACK]
+                   + king   <WHITE>()
+                   - king   <BLACK>()
+                   + threats<WHITE>()
+                   - threats<BLACK>()
+                   + passers<WHITE>()
+                   - passers<BLACK>()
+                   + space  <WHITE>()
+                   - space  <BLACK>();
 
             score += initiative(score);
 
@@ -1004,7 +1016,7 @@ namespace Evaluator
 
             // Interpolates between midgame and scaled endgame values.
             v = mgValue(score) * (me->phase)
-            + egValue(score) * (Material::PhaseResolution - me->phase) * scale(egValue(score)) / SCALE_NORMAL;
+              + egValue(score) * (Material::PhaseResolution - me->phase) * scale(egValue(score)) / SCALE_NORMAL;
             v /= Material::PhaseResolution;
 
             if (Trace)
@@ -1039,7 +1051,7 @@ namespace Evaluator
 
         pos.thread->contempt = SCORE_ZERO; // Reset any dynamic contempt
 
-        auto value{Evaluation<true>(pos).value()};
+        auto value{ Evaluation<true>(pos).value() };
         // Trace scores are from White's point of view
         value = WHITE == pos.active ? +value : -value;
 

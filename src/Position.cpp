@@ -18,8 +18,7 @@
 
 using namespace std;
 
-namespace
-{
+namespace {
 
     /// Computes the non-pawn middle game material value for the given side.
     /// Material values are updated incrementally during the search.
@@ -75,9 +74,9 @@ Key Position::movePosiKey(Move m) const
         && pseudoLegal(m)
         && legal(m));
 
-    auto org{orgSq(m)};
-    auto dst{dstSq(m)};
-    auto pKey{posiKey()};
+    auto org{ orgSq(m) };
+    auto dst{ dstSq(m) };
+    auto pKey{ posiKey() };
     if (CASTLE == mType(m))
     {
         pKey ^= RandZob.pieceSquareKey[active][ROOK][dst]
@@ -85,7 +84,7 @@ Key Position::movePosiKey(Move m) const
     }
     else
     {
-        auto cpt{ENPASSANT != mType(m) ? pType(piece[dst]) : PAWN};
+        auto cpt{ ENPASSANT != mType(m) ? pType(piece[dst]) : PAWN };
         if (NONE != cpt)
         {
             pKey ^= RandZob.pieceSquareKey[~active][cpt][ENPASSANT != mType(m) ? dst : dst - pawnPush(active)];
@@ -131,8 +130,8 @@ bool Position::draw(i16 pp) const
 /// Position::repeated() tests whether there has been at least one repetition of positions since the last capture or pawn move.
 bool Position::repeated() const
 {
-    auto end{std::min(clockPly(), nullPly())};
-    const auto *csi = si;
+    auto end{ std::min(clockPly(), nullPly()) };
+    const auto *csi{ si };
     while (end-- >= 4)
     {
         if (0 != csi->repetition)
@@ -154,22 +153,22 @@ bool Position::cycled(i16 pp) const
         return false;
     }
 
-    Key pKey{posiKey()};
+    Key pKey{ posiKey() };
     const auto *psi = si->ptr;
 
     for (i16 p = 3; p <= end; p += 2)
     {
         psi = psi->ptr->ptr;
 
-        Key moveKey{pKey
-                  ^ psi->posiKey};
+        Key moveKey{ pKey
+                   ^ psi->posiKey };
         u16 j;
         if ((j = H1(moveKey), moveKey == Cuckoos[j].key)
          || (j = H2(moveKey), moveKey == Cuckoos[j].key))
         {
-            auto move{Cuckoos[j].move};
-            auto org{orgSq(move)};
-            auto dst{dstSq(move)};
+            auto move{ Cuckoos[j].move };
+            auto org{ orgSq(move) };
+            auto dst{ dstSq(move) };
             if (0 == (betweens(org, dst) & pieces()))
             {
                 if (p < pp)
@@ -204,19 +203,19 @@ bool Position::cycled(i16 pp) const
 /// King-attack piece can be either pinner or hidden piece.
 Bitboard Position::sliderBlockersAt(Square s, Bitboard attackers, Bitboard &pinners, Bitboard &hidders) const
 {
-    Bitboard blockers{0};
+    Bitboard blockers{ 0 };
 
-    Bitboard defenders{pieces(pColor(piece[s]))};
+    Bitboard defenders{ pieces(pColor(piece[s])) };
     // Snipers are X-ray slider attackers at 's'
     // No need to remove direct attackers at 's' as in check no evaluation
-    Bitboard snipers{attackers
-                   & ((pieces(BSHP, QUEN) & PieceAttacks[BSHP][s])
-                    | (pieces(ROOK, QUEN) & PieceAttacks[ROOK][s]))};
+    Bitboard snipers{ attackers
+                    & ((pieces(BSHP, QUEN) & PieceAttacks[BSHP][s])
+                     | (pieces(ROOK, QUEN) & PieceAttacks[ROOK][s])) };
     Bitboard mocc{pieces() ^ snipers};
     while (0 != snipers)
     {
-        auto sniperSq{popLSq(snipers)};
-        Bitboard b = betweens(s, sniperSq) & mocc;
+        auto sniperSq{ popLSq(snipers) };
+        Bitboard b{ betweens(s, sniperSq) & mocc };
         if (0 != b
          && !moreThanOne(b))
         {
@@ -242,8 +241,8 @@ bool Position::pseudoLegal(Move m) const
 {
     assert(isOk(m));
 
-    auto org{orgSq(m)};
-    auto dst{dstSq(m)};
+    auto org{ orgSq(m) };
+    auto dst{ dstSq(m) };
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
     if (!contains(pieces(active), org))
@@ -253,7 +252,7 @@ bool Position::pseudoLegal(Move m) const
 
     if (CASTLE == mType(m))
     {
-        auto cs{dst > org ? CS_KING : CS_QUEN};
+        auto cs{ dst > org ? CS_KING : CS_QUEN };
 
         return (active|KING) == piece[org] //&& contains(pieces(active, KING), org)
             && (active|ROOK) == piece[dst] //&& contains(pieces(active, ROOK), dst)
@@ -270,12 +269,12 @@ bool Position::pseudoLegal(Move m) const
     {
         return false;
     }
-    auto mpt{pType(piece[org])};
+    auto mpt{ pType(piece[org]) };
     // Handle the special case of a piece move
     if (PAWN == mpt)
     {
-        auto orgR{relativeRank(active, org)};
-        auto dstR{relativeRank(active, dst)};
+        auto orgR{ relativeRank(active, org) };
+        auto dstR{ relativeRank(active, dst) };
 
         if (// Single push
             (((NORMAL != mType(m)
@@ -351,8 +350,8 @@ bool Position::legal(Move m) const
 {
     assert(isOk(m));
 
-    auto org{orgSq(m)};
-    auto dst{dstSq(m)};
+    auto org{ orgSq(m) };
+    auto dst{ dstSq(m) };
     assert(contains(pieces(active), org));
 
     switch (mType(m))
@@ -437,8 +436,8 @@ bool Position::giveCheck(Move m) const
 {
     assert(isOk(m));
 
-    auto org{orgSq(m)};
-    auto dst{dstSq(m)};
+    auto org{ orgSq(m) };
+    auto dst{ dstSq(m) };
     assert(contains(pieces(active), org));
 
     if (// Direct check ?
@@ -457,9 +456,9 @@ bool Position::giveCheck(Move m) const
     case CASTLE:
     {
         // Castling with check?
-        auto kingDst{kingRelativeSq(active, dst > org)};
-        auto rookDst{rookRelativeSq(active, dst > org)};
-        Bitboard mocc{(pieces() ^ org ^ dst) | kingDst | rookDst};
+        auto kingDst{ kingRelativeSq(active, dst > org) };
+        auto rookDst{ rookRelativeSq(active, dst > org) };
+        Bitboard mocc{ (pieces() ^ org ^ dst) | kingDst | rookDst };
         return contains(attacksBB<ROOK>(rookDst, mocc), square(~active|KING));
     }
     case ENPASSANT:
@@ -467,15 +466,15 @@ bool Position::giveCheck(Move m) const
         // Enpassant capture with check?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
-        auto epSq{makeSquare(sFile(dst), sRank(org))};
-        Bitboard mocc{(pieces() ^ org ^ epSq) | dst};
+        auto epSq{ makeSquare(sFile(dst), sRank(org)) };
+        Bitboard mocc{ (pieces() ^ org ^ epSq) | dst };
         return 0 != (pieces(active, BSHP, QUEN) & attacksBB<BSHP>(square(~active|KING), mocc))
             || 0 != (pieces(active, ROOK, QUEN) & attacksBB<ROOK>(square(~active|KING), mocc));
     }
     case PROMOTE:
     {
         // Promotion with check?
-        Bitboard mocc{pieces() ^ org};
+        Bitboard mocc{ pieces() ^ org };
         return contains(attacksBB(promoteType(m), dst, mocc), square(~active|KING));
     }
     default: assert(false); return false;
@@ -492,9 +491,9 @@ void Position::setCastle(Color c, Square rookOrg)
         && (c|ROOK) == piece[rookOrg]); //&& contains(pieces(c, ROOK), rookOrg)
 
     auto cs{rookOrg > kingOrg ? CS_KING : CS_QUEN};
-    auto kingDst{kingRelativeSq(c, rookOrg > kingOrg)};
-    auto rookDst{rookRelativeSq(c, rookOrg > kingOrg)};
-    auto cr{makeCastleRight(c, cs)};
+    auto kingDst{ kingRelativeSq(c, rookOrg > kingOrg) };
+    auto rookDst{ rookRelativeSq(c, rookOrg > kingOrg) };
+    auto cr{ makeCastleRight(c, cs) };
     castleRookSq[c][cs] = rookOrg;
     si->castleRights       |= cr;
     sqCastleRight[kingOrg] |= cr;
@@ -527,24 +526,24 @@ bool Position::canEnpassant(Color c, Square epSq, bool moveDone) const
 {
     assert(isOk(epSq)
         && RANK_6 == relativeRank(c, epSq));
-    auto cap{moveDone ?
+    auto cap{ moveDone ?
                 epSq - pawnPush(c) :
-                epSq + pawnPush(c)};
+                epSq + pawnPush(c) };
     assert((~c|PAWN) == piece[cap]); //contains(pieces(~c, PAWN), cap));
     // Enpassant attackers
-    Bitboard attackers = pieces(c, PAWN) & PawnAttacks[~c][epSq];
+    Bitboard attackers{ pieces(c, PAWN) & PawnAttacks[~c][epSq] };
     if (0 == attackers)
     {
        return false;
     }
     assert(2 >= popCount(attackers));
-    auto kSq{square(c|KING)};
-    Bitboard bq{pieces(~c, BSHP, QUEN) & PieceAttacks[BSHP][kSq]};
-    Bitboard rq{pieces(~c, ROOK, QUEN) & PieceAttacks[ROOK][kSq]};
+    auto kSq{ square(c|KING) };
+    Bitboard bq{ pieces(~c, BSHP, QUEN) & PieceAttacks[BSHP][kSq] };
+    Bitboard rq{ pieces(~c, ROOK, QUEN) & PieceAttacks[ROOK][kSq] };
     Bitboard mocc{(pieces() ^ cap) | epSq};
     while (0 != attackers)
     {
-        auto org{popLSq(attackers)};
+        auto org{ popLSq(attackers) };
         assert(contains(mocc, org));
         // Check enpassant is legal for the position
         if ((0 == bq || 0 == (bq & attacksBB<BSHP>(kSq, mocc ^ org)))
@@ -569,8 +568,8 @@ bool Position::see(Move m, Value threshold) const
         return VALUE_ZERO >= threshold;
     }
 
-    auto org{orgSq(m)};
-    auto dst{dstSq(m)};
+    auto org{ orgSq(m) };
+    auto dst{ dstSq(m) };
 
     i32 swap;
     swap = PieceValues[MG][pType(piece[dst])] - threshold;
@@ -596,7 +595,7 @@ bool Position::see(Move m, Value threshold) const
         mov = ~mov;
         attackers &= mocc;
 
-        Bitboard movAttackers = attackers & pieces(mov);
+        Bitboard movAttackers{ attackers & pieces(mov) };
 
         // If mov has no more attackers then give up: mov loses
         if (0 == movAttackers)
@@ -619,10 +618,10 @@ bool Position::see(Move m, Value threshold) const
         else
         {
             // Pinned Attackers
-            Bitboard pinned{kingBlockers(mov) & movAttackers};
+            Bitboard pinned{ kingBlockers(mov) & movAttackers };
             while (0 != pinned)
             {
-                auto sq{popLSq(pinned)};
+                auto sq{ popLSq(pinned) };
                 if (0 != (kingCheckers(mov)
                         & pieces(~mov)
                         & mocc
@@ -821,12 +820,12 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th)
     nsi.clear();
     si = &nsi;
 
-    istringstream iss{ff};
+    istringstream iss{ ff };
     iss >> noskipws;
 
     u08 token;
     // 1. Piece placement on Board
-    Square sq = SQ_A8;
+    Square sq{ SQ_A8 };
     while ((iss >> token)
         && !isspace(token))
     {
@@ -979,8 +978,8 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
     ++si->clockPly;
     ++si->nullPly;
 
-    auto org{orgSq(m)};
-    auto dst{dstSq(m)};
+    auto org{ orgSq(m) };
+    auto dst{ dstSq(m) };
     assert(contains(pieces(active), org)
         && (!contains(pieces(active), dst)
          || CASTLE == mType(m)));
@@ -1001,9 +1000,9 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck)
             && 0 == si->ptr->checkers); //&& (attackersTo(org) & pieces(pasive))
 
         si->captured = NONE;
-        auto rookOrg{dst}; // Castling is encoded as "King captures friendly Rook"
-        auto rookDst{rookRelativeSq(active, rookOrg > org)};
-        /* king*/dst=kingRelativeSq(active, rookOrg > org);
+        auto rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
+        auto rookDst{ rookRelativeSq(active, rookOrg > org) };
+        /* king*/dst = kingRelativeSq(active, rookOrg > org);
         // Remove both pieces first since squares could overlap in chess960
         removePiece(org);
         removePiece(rookOrg);
@@ -1163,8 +1162,8 @@ void Position::undoMove(Move m)
         && nullptr != si->ptr
         && KING != captured());
 
-    auto org{orgSq(m)};
-    auto dst{dstSq(m)};
+    auto org{ orgSq(m) };
+    auto dst{ dstSq(m) };
     assert(empty(org)
         || CASTLE == mType(m));
 
@@ -1176,9 +1175,9 @@ void Position::undoMove(Move m)
             && RANK_1 == relativeRank(active, dst)
             && NONE == captured());
 
-        auto rookOrg{dst}; // Castling is encoded as "King captures friendly Rook"
-        auto rookDst{rookRelativeSq(active, rookOrg > org)};
-        /* king*/dst=kingRelativeSq(active, rookOrg > org);
+        auto rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
+        auto rookDst{ rookRelativeSq(active, rookOrg > org) };
+        /* king*/dst = kingRelativeSq(active, rookOrg > org);
         // Remove both pieces first since squares could overlap in chess960
         removePiece(dst);
         removePiece(rookDst);
@@ -1202,7 +1201,7 @@ void Position::undoMove(Move m)
 
         if (NONE != captured())
         {
-            auto cap{dst};
+            auto cap{ dst };
 
             if (ENPASSANT == mType(m))
             {
@@ -1279,7 +1278,7 @@ void Position::undoNullMove()
 /// This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip()
 {
-    istringstream iss{fen()};
+    istringstream iss{ fen() };
     string ff, token;
     // 1. Piece placement
     for (Rank r = RANK_8; r >= RANK_1; --r)
@@ -1319,7 +1318,7 @@ void Position::flip()
 /// Position::mirror() mirrors position mean King and Queen sides swaped.
 void Position::mirror()
 {
-    istringstream iss{fen()};
+    istringstream iss{ fen() };
     string ff, token;
     // 1. Piece placement
     for (Rank r = RANK_8; r >= RANK_1; --r)
@@ -1420,7 +1419,7 @@ string Position::fen(bool full) const
         oss << '-';
     }
 
-    oss << ' ' << (SQ_NONE != epSquare() ? toString(epSquare()) : "-");
+    oss << ' ' << (SQ_NONE != epSquare() ? ::toString(epSquare()) : "-");
 
     if (full)
     {
@@ -1429,8 +1428,8 @@ string Position::fen(bool full) const
 
     return oss.str();
 }
-/// Position::operator string() returns an ASCII representation of the position.
-Position::operator string() const
+/// Position::toString() returns an ASCII representation of the position.
+string Position::toString() const
 {
     ostringstream oss;
 
@@ -1480,9 +1479,8 @@ Position::operator string() const
     return oss.str();
 }
 
-ostream& operator<<(ostream &os, const Position &pos)
-{
-    os << string(pos);
+ostream& operator<<(ostream &os, const Position &pos) {
+    os << pos.toString();
     return os;
 }
 
@@ -1600,7 +1598,7 @@ bool Position::ok() const
     {
         for (CastleSide cs : { CS_KING, CS_QUEN })
         {
-            auto cr{makeCastleRight(c, cs)};
+            auto cr{ makeCastleRight(c, cs) };
             if (canCastle(c, cs)
              && (piece[castleRookSq[c][cs]] != (c|ROOK)
               ||  sqCastleRight[castleRookSq[c][cs]] != cr

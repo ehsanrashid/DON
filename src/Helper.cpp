@@ -7,8 +7,7 @@
 using namespace std;
 
 /// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-ostream& operator<<(ostream &os, OutputState outputState)
-{
+ostream& operator<<(ostream &os, OutputState outputState) {
     static mutex mtx;
 
     switch (outputState)
@@ -89,7 +88,7 @@ void removeExtension(string &filename)
 // vector<string> splitString(const string &str, char delimiter = ' ', bool keepEmpty = true, bool doTrim = false)
 // {
 //    vector<string> tokens;
-//    istringstream iss{str};
+//    istringstream iss{ str };
 //    while (iss.good())
 //    {
 //        string token;

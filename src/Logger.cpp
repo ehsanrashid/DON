@@ -9,8 +9,7 @@
 
 using namespace std;
 
-namespace
-{
+namespace {
 
     using SystemClockTimePoint = std::chrono::system_clock::time_point;
 
@@ -41,8 +40,7 @@ namespace
         return str;
     }
 
-    ostream& operator<<(ostream &os, const SystemClockTimePoint &tp)
-    {
+    ostream& operator<<(ostream &os, const SystemClockTimePoint &tp) {
         os << toString(tp);
         return os;
     }
@@ -51,8 +49,8 @@ namespace
 
 Logger::Logger()
     : ofs{}
-    , iTSB{ cin.rdbuf(), ofs.rdbuf()}
-    , oTSB{cout.rdbuf(), ofs.rdbuf()}
+    , iTSB{  cin.rdbuf(), ofs.rdbuf() }
+    , oTSB{ cout.rdbuf(), ofs.rdbuf() }
 {}
 
 Logger::~Logger()

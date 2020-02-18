@@ -10,38 +10,49 @@
 
 using namespace std;
 
-const string PieceChar{" PNBRQK  pnbrqk"};
-const string ColorChar{"wb-"};
+const string PieceChar{ " PNBRQK  pnbrqk" };
+const string ColorChar{ "wb" };
 
-Color toColor(char c)
-{
+Color toColor(char c) {
     auto pos = ColorChar.find(c);
     return pos != string::npos ? Color(pos) : COLOR_NONE;
 }
-char toChar(Color c) { return isOk(c) ? ColorChar[c] : '-'; }
+char toChar(Color c) {
+    return isOk(c) ? ColorChar[c] : '-';
+}
 
-File toFile(char f) { return File(f - 'a'); }
-char toChar(File f, bool lower) { return char(f + 'A' + 0x20 * lower); }
+File toFile(char f) {
+    return File(f - 'a');
+}
+char toChar(File f, bool lower) {
+    return char(f + 'A' + 0x20 * lower);
+}
 
-Rank toRank(char r) { return Rank(r - '1'); }
-char toChar(Rank r) { return char(r + '1'); }
+Rank toRank(char r) {
+    return Rank(r - '1');
+}
+char toChar(Rank r) {
+    return char(r + '1');
+}
 
-string toString(Square s) { return{ toChar(sFile(s)), toChar(sRank(s)) }; }
+string toString(Square s) {
+    return{ toChar(sFile(s)), toChar(sRank(s)) };
+}
 
-Piece toPiece(char p)
-{
+Piece toPiece(char p) {
     auto pos = PieceChar.find(p);
     return pos != string::npos ? Piece(pos) : NO_PIECE;
 }
-char toChar(Piece p) { return isOk(p) ? PieceChar[p] : '-'; }
+char toChar(Piece p) {
+    return isOk(p) ? PieceChar[p] : '-';
+}
 
 /// Converts a value to a string suitable for use with the UCI protocol specifications:
 ///
 /// cp   <x>   The score x from the engine's point of view in centipawns.
 /// mate <y>   Mate in y moves, not plies.
 ///            If the engine is getting mated use negative values for y.
-string toString(Value v)
-{
+string toString(Value v) {
     assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
 
     ostringstream oss;
@@ -57,8 +68,7 @@ string toString(Value v)
     }
     return oss.str();
 }
-string toString(Score s)
-{
+string toString(Score s) {
     ostringstream oss;
     oss << showpos << showpoint
         //<< setw(5) << mgValue(s) << " "
@@ -74,14 +84,13 @@ string toString(Score s)
 ///  - e1g1 notation in normal chess mode,
 ///  - e1h1 notation in chess960 mode.
 /// Internally castle moves are always coded as "king captures rook".
-string moveToCAN(Move m)
-{
-    if (MOVE_NONE == m) return {"(none)"};
-    if (MOVE_NULL == m) return {"(null)"};
+string moveToCAN(Move m) {
+    if (MOVE_NONE == m) return { "(none)" };
+    if (MOVE_NULL == m) return { "(null)" };
 
     ostringstream oss;
-    auto org{orgSq(m)};
-    auto dst{dstSq(m)};
+    auto org{ orgSq(m) };
+    auto dst{ dstSq(m) };
     if (CASTLE == mType(m)
      && !Options["UCI_Chess960"])
     {
@@ -99,8 +108,7 @@ string moveToCAN(Move m)
 }
 /// Converts a string representing a move in coordinate algebraic notation
 /// to the corresponding legal move, if any.
-Move moveOfCAN(const string &can, const Position &pos)
-{
+Move moveOfCAN(const string &can, const Position &pos) {
     //// If promotion piece in uppercase, convert to lowercase
     //if (5 == can.size()
     // && isupper(can[4]))
@@ -120,43 +128,35 @@ Move moveOfCAN(const string &can, const Position &pos)
 }
 
 
-ostream& operator<<(ostream &os, Color c)
-{
+ostream& operator<<(ostream &os, Color c) {
     os << toChar(c);
     return os;
 }
-ostream& operator<<(ostream &os, File f)
-{
+ostream& operator<<(ostream &os, File f) {
     os << toChar(f);
     return os;
 }
-ostream& operator<<(ostream &os, Rank r)
-{
+ostream& operator<<(ostream &os, Rank r) {
     os << toChar(r);
     return os;
 }
-ostream& operator<<(ostream &os, Square s)
-{
+ostream& operator<<(ostream &os, Square s) {
     os << toString(s);
     return os;
 }
-ostream& operator<<(ostream &os, Piece p)
-{
+ostream& operator<<(ostream &os, Piece p) {
     os << toChar(p);
     return os;
 }
-ostream& operator<<(ostream &os, Value v)
-{
+ostream& operator<<(ostream &os, Value v) {
     os << toString(v);
     return os;
 }
-ostream& operator<<(ostream &os, Score s)
-{
+ostream& operator<<(ostream &os, Score s) {
     os << toString(s);
     return os;
 }
-ostream& operator<<(ostream &os, Move m)
-{
+ostream& operator<<(ostream &os, Move m) {
     os << moveToCAN(m);
     return os;
 }
@@ -167,30 +167,30 @@ ostream& operator<<(ostream &os, Move m)
 /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
 string multipvInfo(const Thread *const &th, Depth depth, Value alfa, Value beta)
 {
-    auto elapsedTime{Threadpool.mainThread()->timeMgr.elapsedTime() + 1};
-    auto nodes{Threadpool.sum(&Thread::nodes)};
-    auto tbHits{Threadpool.sum(&Thread::tbHits)
-              + th->rootMoves.size() * TBHasRoot};
+    auto elapsedTime{ Threadpool.mainThread()->timeMgr.elapsedTime() + 1 };
+    auto nodes{ Threadpool.sum(&Thread::nodes) };
+    auto tbHits{ Threadpool.sum(&Thread::tbHits)
+               + th->rootMoves.size() * TBHasRoot };
 
     ostringstream oss;
     for (u32 i = 0; i < Threadpool.pvCount; ++i)
     {
-        bool updated{-VALUE_INFINITE != th->rootMoves[i].newValue};
+        bool updated{ -VALUE_INFINITE != th->rootMoves[i].newValue };
         if (1 == depth
          && !updated)
         {
             continue;
         }
 
-        auto d{updated ?
+        auto d{ updated ?
                     depth :
-                    Depth(depth - 1)};
-        auto v{updated ?
+                    Depth(depth - 1) };
+        auto v{ updated ?
                     th->rootMoves[i].newValue :
-                    th->rootMoves[i].oldValue};
+                    th->rootMoves[i].oldValue };
 
-        bool tb{TBHasRoot
-             && abs(v) < +VALUE_MATE - MaxDepth};
+        bool tb{ TBHasRoot
+              && abs(v) < +VALUE_MATE - MaxDepth };
         v = tb ? th->rootMoves[i].tbValue : v;
 
         //if (oss.rdbuf()->in_avail()) // Not at first line
@@ -221,8 +221,7 @@ string multipvInfo(const Thread *const &th, Depth depth, Value alfa, Value beta)
 }
 
 
-namespace
-{
+namespace {
 
     /// Ambiguity
     enum Ambiguity : u08
@@ -240,8 +239,8 @@ namespace
         assert(pos.pseudoLegal(m)
             && pos.legal(m));
 
-        auto org{orgSq(m)};
-        auto dst{dstSq(m)};
+        auto org{ orgSq(m) };
+        auto dst{ dstSq(m) };
         auto pt = pType(pos[org]);
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
@@ -319,13 +318,13 @@ namespace
 /// Converts a move to a string in short algebraic notation.
 string moveToSAN(Move m, Position &pos)
 {
-    if (MOVE_NONE == m) return {"(none)"};
-    if (MOVE_NULL == m) return {"(null)"};
+    if (MOVE_NONE == m) return { "(none)" };
+    if (MOVE_NULL == m) return { "(null)" };
     assert(MoveList<GenType::LEGAL>(pos).contains(m));
 
     ostringstream oss;
-    auto org{orgSq(m)};
-    auto dst{dstSq(m)};
+    auto org{ orgSq(m) };
+    auto dst{ dstSq(m) };
 
     if (CASTLE != mType(m))
     {
@@ -398,7 +397,7 @@ Move moveOfSAN(const string &san, Position &pos)
 /// Returns formated human-readable search information.
 string prettyInfo(Thread *const &th)
 {
-    u64 nodes = Threadpool.sum(&Thread::nodes);
+    u64 nodes{ Threadpool.sum(&Thread::nodes) };
 
     ostringstream oss;
     oss << setw( 4) << th->finishedDepth
@@ -417,7 +416,7 @@ string prettyInfo(Thread *const &th)
         oss << setw(7) << u16(std::round(nodes / 1000.0*1000.0*1000.0)) << "G";
     oss << " ";
 
-    StateListPtr states{new deque<StateInfo>(0)};
+    StateListPtr states{ new deque<StateInfo>(0) };
     std::for_each(th->rootMoves.front().begin(),
                   th->rootMoves.front().end(),
                   [&](Move m)

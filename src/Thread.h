@@ -1,14 +1,13 @@
+
 #pragma once
 
 #include <atomic>
 #include <condition_variable>
-//#include <fstream>
 #include <mutex>
 #include <vector>
 
 #include "ThreadWin32OSX.h"
 
-#include "Limit.h"
 #include "Position.h"
 #include "RootMove.h"
 #include "SkillManager.h"
@@ -26,8 +25,8 @@
 class Thread
 {
 private:
-    bool  dead{false}
-        , busy{true};
+    bool  dead{ false }
+        , busy{ true };
 
     std::mutex mtx;
     std::condition_variable conditionVar;
@@ -121,8 +120,8 @@ public:
     void tick();
 };
 
-namespace WinProcGroup
-{
+namespace WinProcGroup {
+
     extern void initialize();
 
     extern void bind(size_t);
@@ -143,8 +142,7 @@ public:
 
     double reductionFactor;
 
-    Limit limit;
-    u32   pvCount;
+    u32 pvCount;
 
     std::atomic<bool> stop // Stop search forcefully
         ,             research;
@@ -179,7 +177,7 @@ public:
     void clear();
     void configure(u32);
 
-    void startThinking(Position&, StateListPtr&, const Limit&, const std::vector<Move>&, bool = false);
+    void startThinking(Position&, StateListPtr&);
 };
 
 // Global ThreadPool

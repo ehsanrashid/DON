@@ -4,22 +4,20 @@
 #include "Zobrist.h"
 
 
-Array<Cuckoo, CuckooSize> Cuckoos;
+Array<Cuckooo::Cuckoo, CuckooSize> Cuckoos;
 
+namespace Cuckooo {
 
-Cuckoo::Cuckoo(Key k, Move m)
-    : key{k}
-    , move{m}
-{}
+    Cuckoo::Cuckoo(Key k, Move m)
+        : key{ k }
+        , move{ m }
+    {}
 
-bool Cuckoo::empty() const
-{
-    return 0 == key
-        || MOVE_NONE == move;
-}
-
-namespace Cuckooo
-{
+    bool Cuckoo::empty() const
+    {
+        return 0 == key
+            || MOVE_NONE == move;
+    }
 
     void initialize()
     {
@@ -36,10 +34,10 @@ namespace Cuckooo
                     {
                         if (contains(PieceAttacks[pt][org], dst))
                         {
-                            Cuckoo cuckoo{RandZob.pieceSquareKey[c][pt][org]
-                                        ^ RandZob.pieceSquareKey[c][pt][dst]
-                                        ^ RandZob.colorKey,
-                                          makeMove<NORMAL>(org, dst)};
+                            Cuckoo cuckoo{ RandZob.pieceSquareKey[c][pt][org]
+                                         ^ RandZob.pieceSquareKey[c][pt][dst]
+                                         ^ RandZob.colorKey,
+                                           makeMove<NORMAL>(org, dst) };
 
                             u16 i = H1(cuckoo.key);
                             while (true)

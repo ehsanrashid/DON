@@ -5,8 +5,7 @@
 #include "Position.h"
 #include "Type.h"
 
-namespace Pawns
-{
+namespace Pawns {
 
     /// Pawns::Entry contains various information about a pawn structure.
     struct Entry

@@ -3,11 +3,12 @@
 #include <cfloat>
 #include <cmath>
 
+#include "Searcher.h"
 #include "Thread.h"
 #include "UCI.h"
 
-namespace
-{
+namespace {
+    
     // Skew-logistic function based on naive statistical analysis of
     // "how many games are still undecided after n half-moves".
     // Game is considered "undecided" as long as neither side has >275cp advantage.
@@ -15,7 +16,7 @@ namespace
     double moveImportance(i16 ply)
     {
         //                                             Shift    Scale   Skew
-        return std::max(std::pow(1.00 + std::exp((ply - 64.50) / 6.85), -0.171), DBL_MIN); // Ensure non-zero
+        return{ std::max(std::pow(1.00 + std::exp((ply - 64.50) / 6.85), -0.171), DBL_MIN) }; // Ensure non-zero
     }
 
     template<bool Optimum>
@@ -24,17 +25,17 @@ namespace
         constexpr auto  StepRatio = 7.30 - 6.30 * Optimum; // When in trouble, can step over reserved time with this ratio
         constexpr auto StealRatio = 0.34 - 0.34 * Optimum; // However must not steal time from remaining moves over this ratio
 
-        auto moveImp1{moveImportance(ply) * moveSlowness};
-        auto moveImp2{0.0};
+        auto moveImp1{ moveImportance(ply) * moveSlowness };
+        auto moveImp2{ 0.0 };
         for (u08 i = 1; i < movestogo; ++i)
         {
             moveImp2 += moveImportance(ply + 2 * i);
         }
 
-        auto timeRatio1{(1.0) / (1.0 + moveImp2 / (moveImp1 * StepRatio))};
-        auto timeRatio2{(1.0 + (moveImp2 * StealRatio) / moveImp1) / (1.0 + moveImp2 / moveImp1)};
+        auto timeRatio1{ (1.0) / (1.0 + moveImp2 / (moveImp1 * StepRatio)) };
+        auto timeRatio2{ (1.0 + (moveImp2 * StealRatio) / moveImp1) / (1.0 + moveImp2 / moveImp1) };
 
-        return TimePoint(time * std::min(timeRatio1, timeRatio2));
+        return{ TimePoint(time * std::min(timeRatio1, timeRatio2)) };
     }
 
 }
@@ -47,9 +48,9 @@ TimeManager::TimeManager()
 /// TimeManager::elapsedTime()
 TimePoint TimeManager::elapsedTime() const
 {
-    return 0 != timeNodes ?
+    return{ 0 != timeNodes ?
             TimePoint(Threadpool.sum(&Thread::nodes)) :
-            now() - startTime;
+            now() - startTime };
 }
 
 void TimeManager::reset() { availableNodes = 0; }
@@ -67,9 +68,10 @@ void TimeManager::reset() { availableNodes = 0; }
 /// Move Slowness = Move Slowness, in %age.
 void TimeManager::set(Color c, i16 ply)
 {
-    TimePoint minimumMoveTime {Options["Minimum MoveTime"]};
-    TimePoint overheadMoveTime{Options["Overhead MoveTime"]};
-    double moveSlowness       {Options["Move Slowness"]};
+    TimePoint minimumMoveTime { Options["Minimum MoveTime"] };
+    TimePoint overheadMoveTime{ Options["Overhead MoveTime"] };
+    double moveSlowness       { Options["Move Slowness"] };
+
     moveSlowness /= 100.0;
 
     timeNodes = Options["Time Nodes"];
@@ -81,21 +83,21 @@ void TimeManager::set(Color c, i16 ply)
         // Only once at after ucinewgame
         if (0 == availableNodes)
         {
-            availableNodes = Threadpool.limit.clock[c].time * timeNodes;
+            availableNodes = Searcher::Limits.clock[c].time * timeNodes;
         }
         // Convert from milli-seconds to nodes
-        Threadpool.limit.clock[c].time = TimePoint(availableNodes);
-        Threadpool.limit.clock[c].inc *= timeNodes;
+        Searcher::Limits.clock[c].time = TimePoint(availableNodes);
+        Searcher::Limits.clock[c].inc *= timeNodes;
     }
 
     optimumTime =
-    maximumTime = std::max(Threadpool.limit.clock[c].time, minimumMoveTime);
+    maximumTime = std::max(Searcher::Limits.clock[c].time, minimumMoveTime);
     // Move Horizon:
     // Plan time management at most this many moves ahead.
-    u08 maxMovestogo{50};
-    if (0 != Threadpool.limit.movestogo)
+    u08 maxMovestogo{ 50 };
+    if (0 != Searcher::Limits.movestogo)
     {
-        maxMovestogo = std::min(Threadpool.limit.movestogo, maxMovestogo);
+        maxMovestogo = std::min(Searcher::Limits.movestogo, maxMovestogo);
     }
     // Calculate optimum time usage for different hypothetic "moves to go" and
     // choose the minimum of calculated search time values.
@@ -103,12 +105,12 @@ void TimeManager::set(Color c, i16 ply)
     {
         // Calculate thinking time for hypothetical "moves to go"
         auto time = std::max(
-                        Threadpool.limit.clock[c].time
-                      + Threadpool.limit.clock[c].inc * (movestogo - 1)
+                        Searcher::Limits.clock[c].time
+                      + Searcher::Limits.clock[c].inc * (movestogo - 1)
                         // ClockTime: Attempt to keep this much time at clock.
                         // MovesTime: Attempt to keep at most this many moves time at clock.
-                      - overheadMoveTime * (2 + std::min(movestogo, {40})) // (ClockTime + MovesTime)
-                      , {0});
+                      - overheadMoveTime * (2 + std::min(movestogo, { 40 })) // (ClockTime + MovesTime)
+                      , { 0 });
 
         optimumTime = std::min(optimumTime, minimumMoveTime + remainingTime<true >(time, movestogo, ply, moveSlowness));
         maximumTime = std::min(maximumTime, minimumMoveTime + remainingTime<false>(time, movestogo, ply, moveSlowness));
@@ -125,7 +127,8 @@ void TimeManager::update(Color c)
     // When playing in 'Nodes as Time' mode
     if (0 != timeNodes)
     {
-        availableNodes += Threadpool.limit.clock[c].inc - Threadpool.sum(&Thread::nodes);
+        availableNodes += Searcher::Limits.clock[c].inc
+                        - Threadpool.sum(&Thread::nodes);
     }
 }
 

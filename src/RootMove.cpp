@@ -20,7 +20,7 @@ RootMove::RootMove(Move m)
 {}
 
 /// RootMove::operator string()
-RootMove::operator string() const
+string RootMove::toString() const
 {
     ostringstream oss;
     for (auto move : *this)
@@ -31,9 +31,8 @@ RootMove::operator string() const
     return oss.str();
 }
 
-ostream& operator<<(ostream &os, const RootMove &rm)
-{
-    os << string(rm);
+ostream& operator<<(ostream &os, const RootMove &rm) {
+    os << rm.toString();
     return os;
 }
 
@@ -55,21 +54,20 @@ void RootMoves::initialize(const Position &pos, const vector<Move> &searchMoves)
 
 i16 RootMoves::moveBestCount(u32 sIdx, u32 eIdx, Move move) const
 {
-    auto rmItr{std::find(std::next(begin(), sIdx), std::next(begin(), eIdx), move)};
+    auto rmItr{ std::find(std::next(begin(), sIdx), std::next(begin(), eIdx), move) };
     return rmItr != std::next(begin(), eIdx) ?
             rmItr->bestCount : 0;
 }
 
 /// RootMoves::operator string()
-RootMoves::operator string() const
+string RootMoves::toString() const
 {
     ostringstream oss;
     std::copy(begin(), end(), ostream_iterator<RootMove>(oss, "\n"));
     return oss.str();
 }
 
-ostream& operator<<(ostream &os, const RootMoves &rms)
-{
-    os << string(rms);
+ostream& operator<<(ostream &os, const RootMoves &rms) {
+    os << rms.toString();
     return os;
 }

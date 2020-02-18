@@ -643,7 +643,6 @@
     <ClInclude Include="src\Endgame.h" />
     <ClInclude Include="src\Evaluator.h" />
     <ClInclude Include="src\Helper.h" />
-    <ClInclude Include="src\Limit.h" />
     <ClInclude Include="src\Logger.h" />
     <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\MoveGenerator.h" />

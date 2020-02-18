@@ -6,8 +6,7 @@ using namespace std;
 
 Array<Score, PIECES, SQUARES> PSQ;
 
-namespace
-{
+namespace {
 
 #   define S(mg, eg) makeScore(mg, eg)
     // PieceScores[piece-type][rank][file/2] contains half Piece-Square scores (symmetric distribution).
@@ -103,20 +102,19 @@ namespace
 #   undef S
 }
 
-namespace PSQT
-{
+namespace PSQT {
     /// initialize() initializes PSQ lookup tables.
     void initialize()
     {
         for (PieceType pt = PAWN; pt <= KING; ++pt)
         {
-            Score score{makeScore(PieceValues[MG][pt], PieceValues[EG][pt])};
+            Score score{ makeScore(PieceValues[MG][pt], PieceValues[EG][pt]) };
             for (Square s = SQ_A1; s <= SQ_H8; ++s)
             {
-                Score psq = score
-                          + (PAWN == pt ?
+                Score psq{ score
+                         + (PAWN == pt ?
                                 PawnScores[sRank(s)][sFile(s)] :
-                                PieceScores[pt][sRank(s)][mapFile(sFile(s))]);
+                                PieceScores[pt][sRank(s)][mapFile(sFile(s))]) };
                 PSQ[WHITE|pt][ s] = +psq;
                 PSQ[BLACK|pt][~s] = -psq;
             }
@@ -128,7 +126,7 @@ namespace PSQT
     /// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
     Score computePSQ(const Position &pos)
     {
-        Score psq{SCORE_ZERO};
+        Score psq{ SCORE_ZERO };
         for (Piece p : Pieces)
         {
             for (Square s : pos.squares[p])

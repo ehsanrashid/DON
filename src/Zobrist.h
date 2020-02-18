@@ -26,8 +26,8 @@ public:
     Key computePosiKey(const Position&) const;
 };
 
-namespace Zobrists
-{
+namespace Zobrists {
+
     extern void initialize();
 }
 
