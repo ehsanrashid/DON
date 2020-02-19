@@ -10,8 +10,6 @@
 
 #include "Position.h"
 #include "RootMove.h"
-#include "SkillManager.h"
-#include "TimeManager.h"
 #include "Table.h"
 #include "Material.h"
 #include "Pawns.h"
@@ -96,9 +94,6 @@ public:
     bool stopOnPonderhit;       // Stop search on ponderhit
     std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
 
-    TimeManager  timeMgr;
-    SkillManager skillMgr;
-
     Value  prevBestValue;
     double prevTimeReduction;
 
@@ -107,7 +102,6 @@ public:
     i16  bestMoveDepth;
 
     u64  tickCount;
-    TimePoint debugTime;
 
     explicit MainThread(size_t);
     MainThread() = delete;
@@ -142,8 +136,6 @@ private:
 public:
 
     double reductionFactor;
-
-    u32 pvCount;
 
     std::atomic<bool> stop // Stop search forcefully
         ,             research;

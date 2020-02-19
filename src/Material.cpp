@@ -11,8 +11,8 @@ using namespace std;
 namespace Material {
 
     namespace {
+    
         // Polynomial material imbalance parameters
-
         constexpr Array<i32, PIECE_TYPES, PIECE_TYPES> OwnQuadratic
         {{
             // BP    P    N    B    R    Q
@@ -24,7 +24,6 @@ namespace Material {
             {-189,  24, 117, 133,-134,  -6 }, // Q
             {  0,    0,   0,   0,   0,   0 }  // K
         }};
-
         constexpr Array<i32, PIECE_TYPES, PIECE_TYPES> OppQuadratic
         {{
             // BP    P    N    B    R    Q
@@ -69,20 +68,16 @@ namespace Material {
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
-        i32 computeImbalance(const Array<i32, COLORS, PIECE_TYPES> &count)
-        {
+        i32 computeImbalance(const Array<i32, COLORS, PIECE_TYPES> &count) {
             constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
 
             i32 value{ 0 };
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
-            for (PieceType pt1 = NONE; pt1 <= QUEN; ++pt1)
-            {
-                if (0 != count[Own][pt1])
-                {
+            for (PieceType pt1 = NONE; pt1 <= QUEN; ++pt1) {
+                if (0 != count[Own][pt1]) {
                     i32 v{ 0 };
-                    for (PieceType pt2 = NONE; pt2 <= pt1; ++pt2)
-                    {
+                    for (PieceType pt2 = NONE; pt2 <= pt1; ++pt2) {
                         v += count[Own][pt2] * OwnQuadratic[pt1][pt2]
                            + count[Opp][pt2] * OppQuadratic[pt1][pt2];
                     }
@@ -93,8 +88,7 @@ namespace Material {
         }
     }
 
-    void Entry::evaluate(const Position &pos)
-    {
+    void Entry::evaluate(const Position &pos) {
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
         phase = (i32(clamp(pos.nonPawnMaterial(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME)
                  * PhaseResolution)
@@ -107,16 +101,13 @@ namespace Material {
         // particular material configuration. First look for a fixed
         // configuration one, then a generic one if previous search failed.
         evaluationFunc = Endgames::probe<Value>(pos.matlKey());
-        if (nullptr != evaluationFunc)
-        {
+        if (nullptr != evaluationFunc) {
             return;
         }
         // Generic evaluation
-        for (Color c : { WHITE, BLACK })
-        {
+        for (Color c : { WHITE, BLACK }) {
             if (pos.nonPawnMaterial( c) >= VALUE_MG_ROOK
-             && pos.count(~c) == 1)
-            {
+             && pos.count(~c) == 1) {
                 evaluationFunc = &ValueKXK[c];
                 return;
             }
@@ -128,20 +119,17 @@ namespace Material {
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
         const auto *scalingFn{ Endgames::probe<Scale>(pos.matlKey()) };
-        if (nullptr != scalingFn)
-        {
+        if (nullptr != scalingFn) {
             scalingFunc[scalingFn->stngColor] = scalingFn;
             return;
         }
 
         // Didn't find any specialized scaling function, so fall back on
         // generic scaling functions that refer to more than one material distribution.
-        for (Color c : { WHITE, BLACK })
-        {
+        for (Color c : { WHITE, BLACK }) {
             if (pos.nonPawnMaterial( c) == VALUE_MG_BSHP
              //&& pos.count( c|BSHP) == 1
-             && pos.count( c|PAWN) != 0)
-            {
+             && pos.count( c|PAWN) != 0) {
                 scalingFunc[c] = &ScaleKBPsK[c];
             }
             else
@@ -150,8 +138,7 @@ namespace Material {
              && pos.count( c|PAWN) == 0
              && pos.nonPawnMaterial(~c) == VALUE_MG_ROOK
              //&& pos.count(~c|ROOK) == 1
-             && pos.count(~c|PAWN) != 0)
-            {
+             && pos.count(~c|PAWN) != 0) {
                 scalingFunc[c] = &ScaleKQKRPs[c];
             }
 
@@ -159,9 +146,8 @@ namespace Material {
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
             if (pos.count( c|PAWN) == 0
-             && abs(pos.nonPawnMaterial( c)
-                  - pos.nonPawnMaterial(~c)) <= VALUE_MG_BSHP)
-            {
+             && pos.nonPawnMaterial( c)
+              - pos.nonPawnMaterial(~c) <= VALUE_MG_BSHP) {
                 scale[c] = pos.nonPawnMaterial( c) <  VALUE_MG_ROOK ?
                                 SCALE_DRAW :
                                 Scale(14 - 10 * (pos.nonPawnMaterial(~c) <= VALUE_MG_BSHP));
@@ -170,23 +156,19 @@ namespace Material {
 
         // Only pawns left
         if (pos.nonPawnMaterial() == VALUE_ZERO
-         && pos.pieces(PAWN) != 0)
-        {
-            if (pos.pieces(BLACK, PAWN) == 0)
-            {
+         && pos.pieces(PAWN) != 0) {
+            if (pos.pieces(BLACK, PAWN) == 0) {
                 assert(2 <= pos.count(WHITE|PAWN));
                 scalingFunc[WHITE] = &ScaleKPsK[WHITE];
             }
             else
-            if (pos.pieces(WHITE, PAWN) == 0)
-            {
+            if (pos.pieces(WHITE, PAWN) == 0) {
                 assert(2 <= pos.count(BLACK|PAWN));
                 scalingFunc[BLACK] = &ScaleKPsK[BLACK];
             }
             else
             if (pos.count(WHITE|PAWN) == 1
-             && pos.count(BLACK|PAWN) == 1)
-            {
+             && pos.count(BLACK|PAWN) == 1) {
                 scalingFunc[WHITE] = &ScaleKPKP[WHITE];
                 scalingFunc[BLACK] = &ScaleKPKP[BLACK];
             }
@@ -218,13 +200,11 @@ namespace Material {
 
     /// Material::probe() looks up a current position's material configuration in the material hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
-    Entry* probe(const Position &pos)
-    {
+    Entry* probe(const Position &pos) {
         Key matlKey{ pos.matlKey() };
         auto *e{ pos.thread->matlHash[matlKey] };
 
-        if (e->key == matlKey)
-        {
+        if (e->key == matlKey) {
             return e;
         }
 

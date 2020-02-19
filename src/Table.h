@@ -9,8 +9,7 @@
 
 /// Hash table
 template<typename T, size_t Size>
-struct HashTable
-{
+struct HashTable {
 private:
     // Allocate on the heap
     std::vector<T> table;
@@ -18,11 +17,10 @@ private:
 public:
 
     HashTable()
-        : table(Size)
-    {}
+        : table(Size) {}
 
     void clear() {
-        table.assign(table.size(), T());
+        table.assign(Size, T());
     }
 
     T* operator[](Key key) {
@@ -33,8 +31,7 @@ public:
 
 /// Multi-dimensional Array
 template<typename T, size_t Size, size_t... Sizes>
-struct Array_
-{
+struct Array_ {
     static_assert (Size != 0, "Size incorrect");
 private:
     using NestedArray_ = typename Array_<T, Sizes...>::type;
@@ -44,8 +41,7 @@ public:
 };
 
 template<typename T, size_t Size>
-struct Array_<T, Size>
-{
+struct Array_<T, Size> {
     static_assert (Size != 0, "Size incorrect");
 public:
     using type = std::array<T, Size>;
@@ -69,7 +65,7 @@ public:
         assert(std::is_standard_layout<NestedTable>::value);
 
         auto *p = reinterpret_cast<T*>(this);
-        std::fill(p, p + sizeof(*this) / sizeof(T), value);
+        std::fill(p, p + sizeof (*this) / sizeof (T), value);
     }
 
 };
@@ -86,8 +82,7 @@ struct Table<T, Size>
 /// history update operator<<() on the entry so to use stats
 /// tables at caller sites as simple multi-dim arrays.
 template<typename T, i32 D>
-class Stats
-{
+class Stats {
 private:
     T entry;
 

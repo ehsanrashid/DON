@@ -18,14 +18,13 @@
 using namespace std;
 
 /// clean() cleans the stuffs in case of some crash.
-void clean()
-{
+void clean() {
     Threadpool.stop = true;
     Threadpool.configure(0);
 }
 
-int main(int argc, const char *const *argv)
-{
+int main(int argc, const char *const *argv) {
+
     cout << Name << " " << engineInfo() << " by " << Author << endl;
     cout << "info string Processor(s) detected " << thread::hardware_concurrency() << endl;
 
@@ -33,7 +32,7 @@ int main(int argc, const char *const *argv)
     BitBase::initialize();
     PSQT::initialize();
     Zobrists::initialize();
-    Cuckooo::initialize();
+    CucKoo::initialize();
     UCI::initialize();
     Endgames::initialize();
     Book.initialize(Options["Book File"]);

@@ -13,9 +13,8 @@ namespace {
 
     using SystemClockTimePoint = std::chrono::system_clock::time_point;
 
-    string toString(const SystemClockTimePoint &tp)
-    {
-        string str = "";
+    string toString(const SystemClockTimePoint &tp) {
+        string str;
 
 #   if defined(_WIN32)
 
@@ -27,7 +26,7 @@ namespace {
         strftime(buffer, sizeof (buffer), format, ltm);
         str.append(buffer);
 
-        auto ms = chrono::duration_cast<chrono::milliseconds>(tp - chrono::system_clock::from_time_t(time)).count();
+        auto ms{ chrono::duration_cast<chrono::milliseconds>(tp - chrono::system_clock::from_time_t(time)).count() };
         str.append(".");
         str.append(to_string(ms));
 

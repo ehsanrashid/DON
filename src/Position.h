@@ -67,8 +67,8 @@ public:
     Key         pawnKey;        // Hash key of pawns
     CastleRight castleRights;   // Castling-rights information
     Square      epSquare;       // Enpassant -> "In passing"
-    u08         clockPly;       // Number of half moves clock since the last pawn advance or any capture
-    u08         nullPly;
+    i16         clockPly;       // Number of half moves clock since the last pawn advance or any capture
+    i16         nullPly;
 
     // ---Not copied when making a move---
     Key         posiKey;        // Hash key of position
@@ -352,10 +352,10 @@ inline Square Position::epSquare() const {
 }
 
 inline i16 Position::clockPly() const {
-    return i16(si->clockPly);
+    return si->clockPly;
 }
 inline i16 Position::nullPly() const {
-    return i16(si->nullPly);
+    return si->nullPly;
 }
 
 inline Key Position::matlKey() const {
@@ -392,7 +392,7 @@ inline Score Position::psqScore() const {
 }
 
 inline bool Position::castleExpeded(Color c, CastleSide cs) const {
-    return 0 == (cslRookPath[c][cs] & pieces());
+    return 0 == (castleRookPath(c, cs) & pieces());
 }
 /// Position::moveCount() starts at 1, and is incremented after BLACK's move.
 inline i16 Position::moveCount() const {
@@ -481,6 +481,6 @@ inline void Position::doMove(Move m, StateInfo &nsi) {
 
 #if !defined(NDEBUG)
 
-extern bool isOk(const std::string &fen);
+extern bool isOk(const std::string&);
 
 #endif

@@ -7,15 +7,11 @@
 using namespace std;
 
 /// Zobrist::computeMatlKey() computes hash key of the material situation.
-Key Zobrist::computeMatlKey(const Position &pos) const
-{
+Key Zobrist::computeMatlKey(const Position &pos) const {
     Key matlKey{ 0 };
-    for (Color c : { WHITE, BLACK })
-    {
-        for (PieceType pt = PAWN; pt <= KING; ++pt)
-        {
-            for (i32 cnt = 0; cnt < pos.count(c|pt); ++cnt)
-            {
+    for (Color c : { WHITE, BLACK }) {
+        for (PieceType pt = PAWN; pt <= KING; ++pt) {
+            for (i32 cnt = 0; cnt < pos.count(c|pt); ++cnt) {
                 matlKey ^= pieceSquareKey[c][pt][cnt];
             }
         }
@@ -23,40 +19,31 @@ Key Zobrist::computeMatlKey(const Position &pos) const
     return matlKey;
 }
 /// Zobrist::computePawnKey() computes hash key of the pawn structure.
-Key Zobrist::computePawnKey(const Position &pos) const
-{
+Key Zobrist::computePawnKey(const Position &pos) const {
     Key pawnKey{ 0 };
-    for (Color c : { WHITE, BLACK })
-    {
+    for (Color c : { WHITE, BLACK }) {
         pawnKey ^= pieceSquareKey[c][KING][0]; // Include King Key for zero pawns
-        for (Square s : pos.squares(c|PAWN))
-        {
+        for (Square s : pos.squares(c|PAWN)) {
             pawnKey ^= pieceSquareKey[c][PAWN][s];
         }
     }
     return pawnKey;
 }
 /// Zobrist::computePosiKey() computes hash key of the complete position.
-Key Zobrist::computePosiKey(const Position &pos) const
-{
+Key Zobrist::computePosiKey(const Position &pos) const {
     Key posiKey{ 0 };
-    for (Color c : { WHITE, BLACK })
-    {
-        for (PieceType pt = PAWN; pt <= KING; ++pt)
-        {
-            for (Square s : pos.squares(c|pt))
-            {
+    for (Color c : { WHITE, BLACK }) {
+        for (PieceType pt = PAWN; pt <= KING; ++pt) {
+            for (Square s : pos.squares(c|pt)) {
                 posiKey ^= pieceSquareKey[c][pt][s];
             }
         }
     }
-    if (WHITE == pos.active)
-    {
+    if (WHITE == pos.active) {
         posiKey ^= colorKey;
     }
     posiKey ^= castleRightKey[pos.castleRights()];
-    if (SQ_NONE != pos.epSquare())
-    {
+    if (SQ_NONE != pos.epSquare()) {
         posiKey ^= enpassantKey[sFile(pos.epSquare())];
     }
     return posiKey;
@@ -65,35 +52,28 @@ Key Zobrist::computePosiKey(const Position &pos) const
 namespace Zobrists {
 
     /// initialize() initializes Zobrist lookup tables.
-    void initialize()
-    {
+    void initialize() {
         assert(PolyZob.pieceSquareKey[WHITE][PAWN][SQ_A1] == U64(0x5355F900C2A82DC7));
         assert(PolyZob.pieceSquareKey[BLACK][KING][SQ_H8] == U64(0xFF577222C14F0A3A));
         assert(PolyZob.colorKey == U64(0xF8D626AAAF278509));
 
         PRNG prng{ 0x105524 };
 
-        for (Color c : { WHITE, BLACK })
-        {
-            for (PieceType pt = PAWN; pt <= KING; ++pt)
-            {
-                for (Square s = SQ_A1; s <= SQ_H8; ++s)
-                {
+        for (Color c : { WHITE, BLACK }) {
+            for (PieceType pt = PAWN; pt <= KING; ++pt) {
+                for (Square s = SQ_A1; s <= SQ_H8; ++s) {
                     RandZob.pieceSquareKey[c][pt][s] = prng.rand<Key>();
                 }
             }
         }
-        for (File f = FILE_A; f <= FILE_H; ++f)
-        {
+        for (File f = FILE_A; f <= FILE_H; ++f) {
             RandZob.enpassantKey[f] = prng.rand<Key>();
         }
-        for (i16 cr = CR_NONE; cr <= CR_ANY; ++cr)
-        {
+        for (i16 cr = CR_NONE; cr <= CR_ANY; ++cr) {
             RandZob.castleRightKey[cr] = 0;
             Bitboard b = cr;
-            while (0 != b)
-            {
-                Key k = RandZob.castleRightKey[1ULL << popLSq(b)];
+            while (0 != b) {
+                Key k = RandZob.castleRightKey[U64(1) << popLSq(b)];
                 RandZob.castleRightKey[cr] ^= 0 != k ? k : prng.rand<Key>();
             }
         }

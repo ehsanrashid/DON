@@ -3,14 +3,13 @@
 #include "Table.h"
 #include "Type.h"
 
-namespace Cuckooo {
+namespace CucKoo {
 
     /// Cuckoo consists Zobrist hashes and corresponding valid reversible moves
     /// Marcel van Kervink's cuckoo algorithm for fast detection of "upcoming repetition".
     /// Description of the algorithm in the following paper:
     /// https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
-    struct Cuckoo
-    {
+    struct Cuckoo {
         Key  key;
         Move move;
 
@@ -35,4 +34,4 @@ inline u16 H2(Key key) {
 
 // Global Cuckoo table
 // Cuckoo tables with Zobrist hashes of valid reversible moves, and the moves themselves
-extern Array<Cuckooo::Cuckoo, CuckooSize> Cuckoos;
+extern Array<CucKoo::Cuckoo, CuckooSize> Cuckoos;

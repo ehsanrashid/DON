@@ -4,54 +4,45 @@
 #include "Zobrist.h"
 
 
-Array<Cuckooo::Cuckoo, CuckooSize> Cuckoos;
+Array<CucKoo::Cuckoo, CuckooSize> Cuckoos;
 
-namespace Cuckooo {
+namespace CucKoo {
 
     Cuckoo::Cuckoo(Key k, Move m)
         : key{ k }
         , move{ m }
     {}
 
-    bool Cuckoo::empty() const
-    {
+    bool Cuckoo::empty() const {
         return 0 == key
             || MOVE_NONE == move;
     }
 
-    void initialize()
-    {
+    void initialize() {
         // Prepare the Cuckoo tables
-        Cuckoos.fill({0, MOVE_NONE});
+        Cuckoos.fill({ 0, MOVE_NONE });
         u16 count = 0;
-        for (Color c : { WHITE, BLACK })
-        {
-            for (PieceType pt = NIHT; pt <= KING; ++pt)
-            {
-                for (Square org = SQ_A1; org <= SQ_H8; ++org)
-                {
-                    for (Square dst = Square(org + 1); dst <= SQ_H8; ++dst)
-                    {
-                        if (contains(PieceAttacks[pt][org], dst))
-                        {
+        for (Color c : { WHITE, BLACK }) {
+            for (PieceType pt = NIHT; pt <= KING; ++pt) {
+                for (Square org = SQ_A1; org <= SQ_H8; ++org) {
+                    for (Square dst = Square(org + 1); dst <= SQ_H8; ++dst) {
+                        if (contains(PieceAttacks[pt][org], dst)) {
                             Cuckoo cuckoo{ RandZob.pieceSquareKey[c][pt][org]
                                          ^ RandZob.pieceSquareKey[c][pt][dst]
                                          ^ RandZob.colorKey,
                                            makeMove<NORMAL>(org, dst) };
 
                             u16 i = H1(cuckoo.key);
-                            while (true)
-                            {
+                            while (true) {
                                 std::swap(Cuckoos[i], cuckoo);
                                 // Arrived at empty slot ?
-                                if (cuckoo.empty())
-                                {
+                                if (cuckoo.empty()) {
                                     break;
                                 }
                                 // Push victim to alternative slot
                                 i = i == H1(cuckoo.key) ?
-                                        H2(cuckoo.key) :
-                                        H1(cuckoo.key);
+                                    H2(cuckoo.key) :
+                                    H1(cuckoo.key);
                             }
                             ++count;
                         }
@@ -61,5 +52,4 @@ namespace Cuckooo {
         }
         assert(3668 == count);
     }
-
 }

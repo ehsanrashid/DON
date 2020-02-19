@@ -5,8 +5,7 @@
 #include "Table.h"
 #include "Type.h"
 
-enum PickStage : u08
-{
+enum PickStage : u08 {
     NATURAL_TT = 0,
     NATURAL_INIT,
     NATURAL_GOOD_CAPTURES,
@@ -41,8 +40,7 @@ inline PickStage& operator++(PickStage &ps) { return ps = ps + 1; }
 /// nextMove() is the most important method, which returns a new legal move every time until there are no more moves
 /// In order to improve the efficiency of the alpha-beta algorithm,
 /// MovePicker attempts to return the moves which are most likely to get a cut-off first.
-class MovePicker
-{
+class MovePicker {
 private:
 
     const Position &pos;
@@ -61,7 +59,7 @@ private:
     ValMoves::iterator vmItr, vmEnd;
 
     std::vector<Move> refutationMoves
-        ,             badCaptureMoves;
+        , badCaptureMoves;
     std::vector<Move>::iterator mItr, mEnd;
 
     template<GenType GT>
@@ -78,19 +76,22 @@ public:
     MovePicker(const MovePicker&) = delete;
     MovePicker& operator=(const MovePicker&) = delete;
 
-    MovePicker(const Position&
-             , const ColorIndexStatsTable*
-             , const PieceSquareTypeStatsTable*
-             , const PieceSquareStatsTable**
-             , Move, Depth, const Array<Move, 2>&, Move);
-    MovePicker(const Position&
-             , const ColorIndexStatsTable*
-             , const PieceSquareTypeStatsTable*
-             , const PieceSquareStatsTable**
-             , Move, Depth, Square);
-    MovePicker(const Position&
-             , const PieceSquareTypeStatsTable*
-             , Move, Value);
+    MovePicker(
+          const Position&
+        , const ColorIndexStatsTable*
+        , const PieceSquareTypeStatsTable*
+        , const PieceSquareStatsTable**
+        , Move, Depth, const Array<Move, 2>&, Move);
+    MovePicker(
+          const Position&
+        , const ColorIndexStatsTable*
+        , const PieceSquareTypeStatsTable*
+        , const PieceSquareStatsTable**
+        , Move, Depth, Square);
+    MovePicker(
+          const Position&
+        , const PieceSquareTypeStatsTable*
+        , Move, Value);
 
     Move nextMove();
 

@@ -103,14 +103,13 @@ namespace {
 }
 
 namespace PSQT {
-    /// initialize() initializes PSQ lookup tables.
-    void initialize()
-    {
-        for (PieceType pt = PAWN; pt <= KING; ++pt)
-        {
+    /// initialize() initializes piece-square tables
+    void initialize() {
+
+        for (PieceType pt = PAWN; pt <= KING; ++pt) {
             Score score{ makeScore(PieceValues[MG][pt], PieceValues[EG][pt]) };
-            for (Square s = SQ_A1; s <= SQ_H8; ++s)
-            {
+
+            for (Square s = SQ_A1; s <= SQ_H8; ++s) {
                 Score psq{ score
                          + (PAWN == pt ?
                                 PawnScores[sRank(s)][sFile(s)] :
@@ -124,13 +123,10 @@ namespace PSQT {
     /// Computes the scores for the middle game and the endgame.
     /// These functions are used to initialize the scores when a new position is set up,
     /// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
-    Score computePSQ(const Position &pos)
-    {
+    Score computePSQ(const Position &pos) {
         Score psq{ SCORE_ZERO };
-        for (Piece p : Pieces)
-        {
-            for (Square s : pos.squares(p))
-            {
+        for (Piece p : Pieces) {
+            for (Square s : pos.squares(p)) {
                 psq += PSQ[p][s];
             }
         }

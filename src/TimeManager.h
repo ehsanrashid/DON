@@ -2,30 +2,32 @@
 
 #include "Type.h"
 
-/// TimeManager class is used to computes the optimal time to think depending on the
-/// maximum available time, the move game number and other parameters.
-class TimeManager
-{
+/// The TimeManagement class computes the optimal time to think depending on
+/// the maximum available time, the game move number and other parameters.
+class TimeManager {
+
 private:
-    u16 timeNodes;
+    TimePoint optimumTime{ 0 };
+    TimePoint maximumTime{ 0 };
 
 public:
-    TimePoint startTime;
-    TimePoint optimumTime;
-    TimePoint maximumTime;
+    TimePoint startTime{ 0 };
+    u16 timeNodes{ 0 };
+    u64 availableNodes{ 0 };
 
-    u64 availableNodes;
-
-    TimeManager();
+    TimeManager() = default;
 
     TimeManager(const TimeManager&) = delete;
     TimeManager& operator=(const TimeManager&) = delete;
 
-    TimePoint elapsedTime() const;
+    TimePoint optimum() const { return optimumTime; }
+    TimePoint maximum() const { return maximumTime; }
+    TimePoint elapsed() const;
 
-    void reset();
-    void set(Color, i16);
-    void update(Color);
+
+    void initialize(Color, i16);
+
 };
 
-
+// Global Time Manager
+extern TimeManager TimeMgr;

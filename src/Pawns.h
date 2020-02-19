@@ -8,22 +8,21 @@
 namespace Pawns {
 
     /// Pawns::Entry contains various information about a pawn structure.
-    struct Entry
-    {
+    struct Entry {
     public:
         Key key;
 
-        Array<Score   , COLORS> score;
+        Array<Score, COLORS> score;
 
         Array<Bitboard, COLORS> attackSpan;
         Array<Bitboard, COLORS> passers;
 
-        Array<Square  , COLORS> kingSq{ SQ_NONE, SQ_NONE };
+        Array<Square, COLORS> kingSq{ SQ_NONE, SQ_NONE };
         Array<Bitboard, COLORS> kingPath;
-        Array<Score   , COLORS> kingSafety;
-        Array<Score   , COLORS> kingDist;
+        Array<Score, COLORS> kingSafety;
+        Array<Score, COLORS> kingDist;
 
-        i32 passedCount() const { return popCount(passers[WHITE] | passers[BLACK]); }
+        i32 passedCount() const;
 
         template<Color Own>
         Score evaluateKingSafety(const Position&, Bitboard);

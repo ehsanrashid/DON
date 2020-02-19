@@ -52,8 +52,7 @@ namespace Pawns {
         /// evaluateSafetyOn() calculates shelter & storm for king,
         /// looking at the king file and the two closest files.
         template<Color Own>
-        Score evaluateSafetyOn(const Position &pos, Square kSq)
-        {
+        Score evaluateSafetyOn(const Position &pos, Square kSq) {
             constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
 
             Bitboard frontPawns{ ~frontRanksBB(Opp, kSq) & pos.pieces(PAWN) };
@@ -63,8 +62,7 @@ namespace Pawns {
             Score safety{ Initial };
 
             auto kF{ clamp(sFile(kSq), FILE_B, FILE_G) };
-            for (File f = File(kF - 1); f <= File(kF + 1); ++f)
-            {
+            for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
                 assert(FILE_A <= f && f <= FILE_H);
                 Bitboard ownFrontFilePawns = ownFrontPawns & fileBB(f);
                 auto ownR{ 0 != ownFrontFilePawns ?
@@ -81,12 +79,10 @@ namespace Pawns {
 
                 safety += Shelter[ff][ownR];
                 if (RANK_1 != ownR
-                 && (ownR + 1) == oppR)
-                {
+                 && (ownR + 1) == oppR) {
                     safety -= BlockedStorm * (RANK_3 == oppR);
                 }
-                else
-                {
+                else {
                     safety -= Storm[ff][oppR];
                 }
             }
@@ -99,10 +95,13 @@ namespace Pawns {
 
     }
 
+    i32 Entry::passedCount() const {
+        return popCount(passers[WHITE] | passers[BLACK]);
+    }
+
     /// Entry::evaluateKingSafety()
     template<Color Own>
-    Score Entry::evaluateKingSafety(const Position &pos, Bitboard attacks)
-    {
+    Score Entry::evaluateKingSafety(const Position &pos, Bitboard attacks) {
         auto kSq{ pos.square(Own|KING) };
 
         // Find King path
@@ -111,12 +110,10 @@ namespace Pawns {
             pos.castleKingPath(Own, CS_KING) * (pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING)),
             pos.castleKingPath(Own, CS_QUEN) * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN))
         };
-        if (0 != (kPaths[CS_KING] & attacks))
-        {
+        if (0 != (kPaths[CS_KING] & attacks)) {
             kPaths[CS_KING] = 0;
         }
-        if (0 != (kPaths[CS_QUEN] & attacks))
-        {
+        if (0 != (kPaths[CS_QUEN] & attacks)) {
             kPaths[CS_QUEN] = 0;
         }
 
@@ -124,39 +121,35 @@ namespace Pawns {
                       | kPaths[CS_QUEN] };
 
         if (kingSq[Own]   != kSq
-         || kingPath[Own] != kPath)
-        {
-            auto safety = evaluateSafetyOn<Own>(pos, kSq);
+         || kingPath[Own] != kPath) {
 
-            if (0 != kPaths[CS_KING])
-            {
+            auto safety{ evaluateSafetyOn<Own>(pos, kSq) };
+            if (0 != kPaths[CS_KING]) {
                 safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_G1)), safety,
-                                  [](Score s1, Score s2) { return mgValue(s1) < mgValue(s2); });
+                                  [](Score s1, Score s2) {
+                                    return mgValue(s1) < mgValue(s2);
+                                  });
             }
-            if (0 != kPaths[CS_QUEN])
-            {
+            if (0 != kPaths[CS_QUEN]) {
                 safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_C1)), safety,
-                                  [](Score s1, Score s2) { return mgValue(s1) < mgValue(s2); });
+                                  [](Score s1, Score s2) {
+                                    return mgValue(s1) < mgValue(s2);
+                                  });
             }
 
             kingSafety[Own] = safety;
 
-            if (kingSq[Own] != kSq)
-            {
+            if (kingSq[Own] != kSq) {
                 // In endgame, king near to closest pawn
                 i32 kDist{ 0 };
                 Bitboard pawns{ pos.pieces(Own, PAWN) };
-                if (0 != pawns)
-                {
-                    if (0 != (pawns & PieceAttacks[KING][kSq]))
-                    {
+                if (0 != pawns) {
+                    if (0 != (pawns & PieceAttacks[KING][kSq])) {
                         kDist = 1;
                     }
-                    else
-                    {
+                    else {
                         kDist = 8;
-                        while (0 != pawns)
-                        {
+                        while (0 != pawns) {
                             kDist = std::min(dist(kSq, popLSq(pawns)), kDist);
                         }
                     }
@@ -176,8 +169,7 @@ namespace Pawns {
 
     /// Entry::evaluate()
     template<Color Own>
-    void Entry::evaluate(const Position &pos)
-    {
+    void Entry::evaluate(const Position &pos) {
         constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
         constexpr auto Push{ pawnPush(Own) };
         const auto Attack{ PawnAttacks[Own] };
@@ -193,8 +185,7 @@ namespace Pawns {
         attackSpan[Own] = pawnSglAttacks<Own>(ownPawns);
         passers   [Own] = 0;
         score     [Own] = SCORE_ZERO;
-        for (Square s : pos.squares(Own|PAWN))
-        {
+        for (Square s : pos.squares(Own|PAWN)) {
             assert((Own|PAWN) == pos[s]);
 
             auto r{ relativeRank(Own, s) };
@@ -216,8 +207,7 @@ namespace Pawns {
 
             // Compute additional span if pawn is not blocked nor backward
             if (0 == blockers
-             && !backward)
-            {
+             && !backward) {
                 attackSpan[Own] |= pawnAttackSpan(Own, s);
             }
 
@@ -232,35 +222,30 @@ namespace Pawns {
              || (stoppers == blockers
               && RANK_4 < r
               && 0 != ( pawnSglPushes(Own, supporters)
-                     & ~(oppPawns | pawnDblAttacks<Opp>(oppPawns)))))
-            {
+                     & ~(oppPawns | pawnDblAttacks<Opp>(oppPawns))))) {
                 passers[Own] |= s;
             }
 
             Score sp{ SCORE_ZERO };
 
             if (0 != supporters
-             || 0 != phalanxes)
-            {
+             || 0 != phalanxes) {
                 i32 v{ Connected[r] * (2 + (0 != phalanxes) - opposed)
                      + 21 * popCount(supporters) };
                 sp += makeScore(v, v * (r - RANK_3) / 4);
             }
             else
-            if (0 == neighbours)
-            {
+            if (0 == neighbours) {
                 sp -= Isolated
                     + Unopposed * !opposed;
             }
             else
-            if (backward)
-            {
+            if (backward) {
                 sp -= Backward
                     + Unopposed * !opposed;
             }
 
-            if (0 == supporters)
-            {
+            if (0 == supporters) {
                 sp -= WeakDoubled * contains(ownPawns, s - Push)
                         // Attacked twice by enemy pawns
                     + WeakTwiceLever * moreThanOne(levers);
@@ -275,13 +260,11 @@ namespace Pawns {
 
     /// Pawns::probe() looks up a current position's pawn configuration in the pawn hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
-    Entry* probe(const Position &pos)
-    {
+    Entry* probe(const Position &pos) {
         Key pawnKey{ pos.pawnKey() };
         auto *e{ pos.thread->pawnHash[pawnKey] };
 
-        if (e->key == pawnKey)
-        {
+        if (e->key == pawnKey) {
             return e;
         }
 
@@ -291,4 +274,5 @@ namespace Pawns {
 
         return e;
     }
+
 }

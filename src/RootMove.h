@@ -22,8 +22,7 @@
 ///  - PV (really a refutation table in the case of moves which fail low)
 /// Value is normally set at -VALUE_INFINITE for all non-pv moves.
 class RootMove
-    : public std::list<Move>
-{
+    : public std::list<Move> {
 public:
     Value oldValue
         , newValue;
@@ -55,8 +54,7 @@ extern std::ostream& operator<<(std::ostream&, const RootMove&);
 
 
 class RootMoves
-    : public std::vector<RootMove>
-{
+    : public std::vector<RootMove> {
 public:
     RootMoves() = default;
     RootMoves(const RootMoves&) = default;

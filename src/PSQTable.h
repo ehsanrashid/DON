@@ -7,7 +7,7 @@
 #include "Type.h"
 
 namespace PSQT {
-    
+
     extern void initialize();
 
     extern Score computePSQ(const Position&);

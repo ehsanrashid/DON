@@ -5,8 +5,8 @@
 #include "Type.h"
 
 // Debug class mainly collects run-time statistics and print them
-class Debugger
-{
+class Debugger {
+
     static std::atomic<u64> Hit1Count;
     static std::atomic<u64> Hit2Count;
 
@@ -14,6 +14,9 @@ class Debugger
     static std::atomic<i64> ItemSum;
 
 public:
+
+    static TimePoint Time;
+
     static void reset();
 
     static void hitOn(bool);

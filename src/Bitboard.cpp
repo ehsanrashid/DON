@@ -22,8 +22,7 @@ Array<u08, 1 << 16> PopCount16;
 
 /*
 // Counts the non-zero bits using SWAR-Popcount algorithm
-u08 popCount16(u32 u)
-{
+u08 popCount16(u32 u) {
     u -= (u >> 1) & 0x5555U;
     u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
     u = ((u >> 4) + u) & 0x0F0FU;
@@ -48,20 +47,16 @@ namespace {
     }};
 
     template<PieceType PT>
-    Bitboard slideAttacks(Square s, Bitboard occ = 0)
-    {
+    Bitboard slideAttacks(Square s, Bitboard occ = 0) {
         static_assert (BSHP == PT || ROOK == PT || QUEN == PT, "PT incorrect");
 
         Bitboard attacks{ 0 };
-        for (auto dir : PieceDirections[PT])
-        {
+        for (auto dir : PieceDirections[PT]) {
             for (Square sq = s + dir;
-                 isOk(sq) && 1 == dist(sq, sq - dir);
-                 sq += dir)
-            {
+                isOk(sq) && 1 == dist(sq, sq - dir);
+                sq += dir) {
                 attacks |= sq;
-                if (contains(occ, sq))
-                {
+                if (contains(occ, sq)) {
                     break;
                 }
             }
@@ -90,8 +85,7 @@ namespace {
     /// Magic bitboards are used to look up attacks of sliding pieces.
     /// In particular, here we use the so called "fancy" approach.
     template<PieceType PT>
-    void initializeMagic(Bitboard *attacks, Array<Magic, SQUARES> &magics)
-    {
+    void initializeMagic(Bitboard *attacks, Array<Magic, SQUARES> &magics) {
         static_assert (BSHP == PT || ROOK == PT, "PT incorrect");
 
 #   if !defined(BM2)
@@ -101,16 +95,15 @@ namespace {
 
         constexpr Array<u32, RANKS> Seeds
 #       if defined(BIT64)
-            { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
+        { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
 #       else
-            { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C };
+        { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C };
 #       endif
 
 #   endif
 
         u32 offset{ 0 };
-        for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        {
+        for (Square s = SQ_A1; s <= SQ_H8; ++s) {
             auto &magic = magics[s];
 
             // Given a square, the mask is the bitboard of sliding attacks from
@@ -120,7 +113,7 @@ namespace {
             // apply to the 64 or 32 bits word to get the index.
             magic.mask = PieceAttacks[PT][s]
                         // Board edges are not considered in the relevant occupancies
-                        & ~(((FABB|FHBB) & ~fileBB(s)) | ((R1BB|R8BB) & ~rankBB(s)));
+                       & ~(((FABB|FHBB) & ~fileBB(s)) | ((R1BB|R8BB) & ~rankBB(s)));
 
             u08 maskPopCount = u08(popCount(magic.mask));
             assert(maskPopCount < 32);
@@ -143,8 +136,7 @@ namespace {
             // Use Carry-Rippler trick to enumerate all subsets of magics[s].mask
             // Have individual table sizes for each square with "Fancy Magic Bitboards".
             Bitboard occ{ 0 };
-            do
-            {
+            do {
 #           if defined(BM2)
                 magic.attacks[PEXT(occ, magic.mask)] = slideAttacks<PT>(s, occ);
 #           else
@@ -166,10 +158,8 @@ namespace {
             u16 i;
             // Find a magic for square picking up an (almost) random number
             // until found the one that passes the verification test.
-            do
-            {
-                do
-                {
+            do {
+                do {
                     magic.number = prng.sparseRand<Bitboard>();
                 } while (popCount((magic.mask * magic.number) >> 0x38) < 6);
 
@@ -177,14 +167,11 @@ namespace {
                 // looks up the correct slide attack in the magics[s].attacks database.
                 // Note that build up the database for square as a side effect of verifying the magic.
                 vector<bool> used(size, false);
-                for (i = 0; i < size; ++i)
-                {
+                for (i = 0; i < size; ++i) {
                     u16 idx{ magic.index(occupancy[i]) };
                     assert(idx < size);
-                    if (used[idx])
-                    {
-                        if (magic.attacks[idx] != reference[i])
-                        {
+                    if (used[idx]) {
+                        if (magic.attacks[idx] != reference[i]) {
                             break;
                         }
                         continue;
@@ -207,52 +194,42 @@ namespace {
 
 namespace BitBoard {
 
-    void initialize()
-    {
-        //for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        //{
+    void initialize() {
+
+        //for (Square s = SQ_A1; s <= SQ_H8; ++s) {
         //    Squares[s] = U64(1) << s;
         //}
 #   if !defined(ABM)
-
-        for (u32 i = 0; i < PopCount16.size(); ++i)
-        {
+        for (u32 i = 0; i < PopCount16.size(); ++i) {
             PopCount16[i] = std::bitset<16>(i).count(); //pop_count16(i);
         }
-
 #   endif
-        for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-        {
-            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-            {
+
+        for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
+            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
                 SquareDistance[s1][s2] = u08(std::max(dist<File>(s1, s2), dist<Rank>(s1, s2)));
                 assert(0 <= SquareDistance[s1][s2]
                     && 7 >= SquareDistance[s1][s2]);
             }
         }
         // Pawn and Pieces Attack Table
-        for (Square s = SQ_A1; s <= SQ_H8; ++s)
-        {
+        for (Square s = SQ_A1; s <= SQ_H8; ++s) {
             PawnAttacks[WHITE][s] = pawnSglAttacks<WHITE>(squareBB(s));
             PawnAttacks[BLACK][s] = pawnSglAttacks<BLACK>(squareBB(s));
             assert(2 >= popCount(PawnAttacks[WHITE][s])
                 && 2 >= popCount(PawnAttacks[BLACK][s]));
 
-            for (auto dir : PieceDirections[NIHT])
-            {
+            for (auto dir : PieceDirections[NIHT]) {
                 Square sq{ s + dir };
                 if (isOk(sq)
-                 && 2 == dist(s, sq))
-                {
+                 && 2 == dist(s, sq)) {
                     PieceAttacks[NIHT][s] |= sq;
                 }
             }
-            for (auto dir : PieceDirections[KING])
-            {
+            for (auto dir : PieceDirections[KING]) {
                 Square sq{ s + dir };
                 if (isOk(sq)
-                 && 1 == dist(s, sq))
-                {
+                 && 1 == dist(s, sq)) {
                     PieceAttacks[KING][s] |= sq;
                 }
             }
@@ -267,17 +244,12 @@ namespace BitBoard {
         initializeMagic<ROOK>(RAttacks, RMagics);
 
         // NOTE:: must be after initialize Bishop & Rook Table
-        for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
-        {
-            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
-            {
+        for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
+            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
                 Lines[s1][s2] = 0;
-                if (s1 != s2)
-                {
-                    for (PieceType pt : { BSHP, ROOK })
-                    {
-                        if (contains(PieceAttacks[pt][s1], s2))
-                        {
+                if (s1 != s2) {
+                    for (PieceType pt : { BSHP, ROOK }) {
+                        if (contains(PieceAttacks[pt][s1], s2)) {
                             Lines[s1][s2] = (PieceAttacks[pt][s1] & PieceAttacks[pt][s2]) | s1 | s2;
                         }
                     }
@@ -290,27 +262,22 @@ namespace BitBoard {
 #if !defined(NDEBUG)
     /// Returns an ASCII representation of a bitboard to print on console output
     /// Bitboard in an easily readable format. This is sometimes useful for debugging.
-    string toString(Bitboard bb)
-    {
+    string toString(Bitboard bb) {
         ostringstream oss;
 
         oss << " /---------------\\\n";
-        for (Rank r = RANK_8; r >= RANK_1; --r)
-        {
+        for (Rank r = RANK_8; r >= RANK_1; --r) {
             oss << r << '|';
-            for (File f = FILE_A; f <= FILE_H; ++f)
-            {
+            for (File f = FILE_A; f <= FILE_H; ++f) {
                 oss << (contains(bb, makeSquare(f, r)) ? '+' : '-');
-                if (f < FILE_H)
-                {
+                if (f < FILE_H) {
                     oss << ' ';
                 }
             }
             oss << "|\n";
         }
         oss << " \\---------------/\n ";
-        for (File f = FILE_A; f <= FILE_H; ++f)
-        {
+        for (File f = FILE_A; f <= FILE_H; ++f) {
             oss << ' ' << toChar(f, false);
         }
         oss << '\n';

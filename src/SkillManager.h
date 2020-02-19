@@ -10,13 +10,12 @@ class SkillManager
 {
 private:
 
-    i16  level;
-
-    Move bestMove{MOVE_NONE};
+    i16  level{ MaxLevel };
+    Move bestMove{ MOVE_NONE };
 
 public:
 
-    SkillManager();
+    SkillManager() = default;
     SkillManager(const SkillManager&) = delete;
     SkillManager& operator=(const SkillManager&) = delete;
 
@@ -29,3 +28,6 @@ public:
 
     Move pickBestMove();
 };
+
+// Global Skill Manager
+extern SkillManager SkillMgr;

@@ -17,13 +17,11 @@
 ///
 /// For further analysis see
 ///   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
-class PRNG
-{
+class PRNG {
 private:
     u64 s;
 
-    u64 rand64()
-    {
+    u64 rand64() {
         s ^= s >> 12;
         s ^= s << 25;
         s ^= s >> 27;
@@ -34,21 +32,26 @@ public:
 
     PRNG() = delete;
     PRNG(u64 seed)
-        : s{seed}
-    { assert(0 != s); }
+        : s{ seed } {
+        assert(0 != s);
+    }
 
     PRNG(const PRNG&) = delete;
     PRNG& operator=(const PRNG&) = delete;
 
     template<typename T>
-    T rand() { return T(rand64()); }
+    T rand() {
+        return T(rand64());
+    }
 
 #if !defined(BM2)
 
     /// Special generator used to fast initialize magic numbers.
     /// Output values only have 1/8th of their bits set on average.
     template<typename T>
-    T sparseRand() { return T(rand64() & rand64() & rand64()); }
+    T sparseRand() {
+        return T(rand64() & rand64() & rand64());
+    }
 
 #endif
 

@@ -7,8 +7,8 @@
 #include "Type.h"
 
 /// EndgameCode lists all supported endgame functions by corresponding codes
-enum EndgameCode : u08
-{
+enum EndgameCode : u08 {
+
     EVALUATION_FUNCTIONS,
     KXK,   // Generic "mate lone king" eval
     KPK,   // KP vs K
@@ -44,15 +44,14 @@ using EndgameType = typename std::conditional<C < SCALING_FUNCTIONS, Value, Scal
 
 /// Base functors for endgame evaluation and scaling functions
 template<typename T>
-class EndgameBase
-{
+class EndgameBase {
 public:
     const Color stngColor
-        ,       weakColor;
+              , weakColor;
 
     explicit EndgameBase(Color c)
-        : stngColor{ c}
-        , weakColor{~c}
+        : stngColor{  c }
+        , weakColor{ ~c }
     {}
     virtual ~EndgameBase() = default;
     EndgameBase& operator=(const EndgameBase&) = delete;
@@ -63,11 +62,10 @@ public:
 /// Derived functors for endgame evaluation and scaling functions
 template<EndgameCode C, typename T = EndgameType<C>>
 class Endgame
-    : public EndgameBase<T>
-{
+    : public EndgameBase<T> {
 public:
     explicit Endgame(Color c)
-        : EndgameBase<T>{c}
+        : EndgameBase<T>{ c }
     {}
     virtual ~Endgame() = default;
     Endgame& operator=(const Endgame&) = delete;
@@ -76,7 +74,7 @@ public:
 };
 
 
-namespace Endgames{
+namespace Endgames {
 
     template<typename T>  using EGPtr = std::unique_ptr<EndgameBase<T>>;
     template<typename T>  using EGMap = std::unordered_map<Key, EGPtr<T>>;
@@ -86,18 +84,15 @@ namespace Endgames{
     extern EGMapPair<Value, Scale> EndGames;
 
     template<typename T>
-    EGMap<T>& mapEG()
-    {
+    EGMap<T>& mapEG() {
         return std::get<std::is_same<T, Scale>::value>(EndGames);
     }
 
     template<typename T>
-    const EndgameBase<T>* probe(Key matlKey)
-    {
+    const EndgameBase<T>* probe(Key matlKey) {
         auto itr{ mapEG<T>().find(matlKey) };
         return itr != mapEG<T>().end() ?
-                itr->second.get() :
-                nullptr;
+                itr->second.get() : nullptr;
     }
 
     extern void initialize();

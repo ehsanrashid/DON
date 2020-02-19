@@ -10,14 +10,12 @@
 
 // Return the sign of a number (-1, 0, 1)
 template<typename T>
-constexpr i32 sign(const T val)
-{
+constexpr i32 sign(const T val) {
     return (T(0) < val) - (val < T(0));
 }
 
 template<typename T>
-const T& clamp(const T &v, const T &minimum, const T &maximum)
-{
+const T& clamp(const T &v, const T &minimum, const T &maximum) {
     return (minimum > v) ? minimum :
            (v > maximum) ? maximum : v;
 }

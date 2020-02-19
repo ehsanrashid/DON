@@ -9,54 +9,49 @@
 // Threshold for counter moves based pruning
 constexpr i32 CounterMovePruneThreshold = 0;
 
-extern Depth TBProbeDepth;
-extern i32   TBLimitPiece;
-extern bool  TBUseRule50;
-extern bool  TBHasRoot;
+
+
+/// Limit stores information sent by GUI after Go command about limit to search
+///  - Available Time and Increment
+///  - Moves to go
+///  - Maximum Move Time
+///  - Maximum Depth
+///  - Maximum Nodes
+///  - Minimum Mate
+///  - Infinite analysis mode
+///
+///  - Start Time
+struct Limit {
+    // Clock struct stores the time and inc per move in milli-seconds.
+    struct Clock {
+        TimePoint time{ 0 };
+        TimePoint inc{ 0 };
+    };
+
+
+    Array<Clock, COLORS> clock;     // Search with Clock
+
+    u08       movestogo{ 0 };       // Search <x> moves to the next time control
+    TimePoint moveTime{ 0 };        // Search <x> exact time in milli-seconds
+    Depth     depth{ DEPTH_ZERO };  // Search <x> depth(plies) only
+    u64       nodes{ 0 };           // Search <x> nodes only
+    u08       mate{ 0 };            // Search mate in <x> moves
+    bool      infinite{ false };    // Search until the "stop" command
+    bool      ponder{ false };      // Search in ponder mode.
+    std::vector<Move> searchMoves;  // Restrict search to these root moves only
+
+    TimePoint startTime;
+
+    bool useTimeMgmt() const;
+
+    void clear();
+};
 
 namespace Searcher {
 
-    /// Limit stores information sent by GUI after Go command about limit to search
-    ///  - Available Time and Increment
-    ///  - Moves to go
-    ///  - Maximum Move Time
-    ///  - Maximum Depth
-    ///  - Maximum Nodes
-    ///  - Minimum Mate
-    ///  - Infinite analysis mode
-    ///
-    ///  - Start Time
-    struct Limit
-    {
-        // Clock struct stores the time and inc per move in milli-seconds.
-        struct Clock
-        {
-            TimePoint time{ 0 };
-            TimePoint inc{ 0 };
-        };
-
-
-        Array<Clock, COLORS> clock;     // Search with Clock
-
-        u08       movestogo{ 0 };       // Search <x> moves to the next time control
-        TimePoint moveTime{ 0 };        // Search <x> exact time in milli-seconds
-        Depth     depth{ DEPTH_ZERO };  // Search <x> depth(plies) only
-        u64       nodes{ 0 };           // Search <x> nodes only
-        u08       mate{ 0 };            // Search mate in <x> moves
-        bool      infinite{ false };    // Search until the "stop" command
-        bool      ponder{ false };      // Search in ponder mode.
-        std::vector<Move> searchMoves;  // Restrict search to these root moves only
-
-        TimePoint startTime;
-
-        bool useTimeMgmt() const;
-
-        void clear();
-    };
 
     /// Stack keeps the information of the nodes in the tree during the search.
-    struct Stack
-    {
+    struct Stack {
     public:
         i16   ply;
         Move  playedMove;
@@ -70,7 +65,14 @@ namespace Searcher {
         std::list<Move> pv;
     };
 
-    extern Limit Limits;
-
     extern void initialize();
 }
+
+extern Limit Limits;
+
+extern u32 PVCount;
+
+extern Depth TBProbeDepth;
+extern i32   TBLimitPiece;
+extern bool  TBUseRule50;
+extern bool  TBHasRoot;

@@ -58,7 +58,7 @@ private:
 
     i64 findIndex(Key) const;
     //i64 findIndex(const Position&) const;
-    //i64 findIndex(const std::string&, bool = false) const;
+    //i64 findIndex(const std::string&) const;
 
     bool canProbe(const Position&);
 

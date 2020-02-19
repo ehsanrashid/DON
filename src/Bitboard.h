@@ -114,8 +114,7 @@ extern Array<Bitboard, PIECE_TYPES, SQUARES> PieceAttacks;
 extern Array<Bitboard, SQUARES, SQUARES> Lines;
 
 // Magic holds all magic relevant data for a single square
-struct Magic
-{
+struct Magic {
     Bitboard *attacks;
     Bitboard  mask;
 
@@ -129,8 +128,7 @@ struct Magic
     Bitboard attacksBB(Bitboard occ) const { return attacks[index(occ)]; }
 };
 
-inline u16 Magic::index(Bitboard occ) const
-{
+inline u16 Magic::index(Bitboard occ) const {
 #if defined(BM2)
     return u16(PEXT(occ, mask));
 #elif defined(BIT64)
