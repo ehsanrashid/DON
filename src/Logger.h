@@ -20,7 +20,7 @@ private:
 protected:
 
     Logger();
-    virtual ~Logger();
+    ~Logger();
 
 public:
 

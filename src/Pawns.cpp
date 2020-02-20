@@ -53,7 +53,7 @@ namespace Pawns {
         /// looking at the king file and the two closest files.
         template<Color Own>
         Score evaluateSafetyOn(const Position &pos, Square kSq) {
-            constexpr auto Opp = WHITE == Own ? BLACK : WHITE;
+            constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
 
             Bitboard frontPawns{ ~frontRanksBB(Opp, kSq) & pos.pieces(PAWN) };
             Bitboard ownFrontPawns{ pos.pieces(Own) & frontPawns };

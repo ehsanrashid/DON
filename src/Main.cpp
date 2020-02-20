@@ -12,6 +12,7 @@
 #include "PSQTable.h"
 #include "Searcher.h"
 #include "Thread.h"
+#include "TimeManager.h"
 #include "UCI.h"
 #include "Zobrist.h"
 
@@ -38,6 +39,7 @@ int main(int argc, const char *const *argv) {
     Book.initialize(Options["Book File"]);
     WinProcGroup::initialize();
     Threadpool.configure(optionThreads());
+    TimeMgr.reset();
     srand(u32(time(nullptr)));
     UCI::clear();
 

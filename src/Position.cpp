@@ -151,21 +151,17 @@ bool Position::cycled(i16 pp) const {
         if ((j = H1(moveKey), moveKey == Cuckoos[j].key)
          || (j = H2(moveKey), moveKey == Cuckoos[j].key)) {
             auto move{ Cuckoos[j].move };
-            auto org{ orgSq(move) };
-            auto dst{ dstSq(move) };
-            if (0 == (betweens(org, dst) & pieces())) {
+            auto s1{ orgSq(move) };
+            auto s2{ dstSq(move) };
+            if (0 == (betweens(s1, s2) & pieces())) {
                 if (p < pp) {
                     return true;
                 }
                 // For nodes before or at the root, check that the move is a repetition one
                 // rather than a move to the current position
                 // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
-                // Select the legal one by swaping if necessary.
-                //if (empty(org)) {
-                //    std::swap(org, dst);
-                //}
-                //assert(!empty(org));
-                if (pColor(board[empty(org) ? dst : org]) != active) {
+                // So select which square to check.
+                if (pColor(board[empty(s1) ? s2 : s1]) != active) {
                     continue;
                 }
                 // For repetitions before or at the root, require one more
@@ -855,7 +851,7 @@ Position& Position::setup(const string &code, Color c, StateInfo &nsi) {
 
 /// Position::doMove() makes a move, and saves all information necessary to a StateInfo object.
 /// The move is assumed to be legal.
-void Position::doMove(Move m, StateInfo &nsi, bool giveCheck) {
+void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
     assert(isOk(m)
         && &nsi != si);
 
@@ -1000,8 +996,8 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck) {
     assert(0 == (attackersTo(square(active|KING)) & pieces(pasive)));
 
     // Calculate checkers
-    si->checkers = giveCheck ? attackersTo(square(pasive|KING)) & pieces(active) : 0;
-    assert(!giveCheck
+    si->checkers = isCheck ? attackersTo(square(pasive|KING)) & pieces(active) : 0;
+    assert(!isCheck
         || (0 != checkers()
          && 2 >= popCount(checkers())));
 
@@ -1016,7 +1012,7 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck) {
     si->repetition = 0;
     auto end = std::min(clockPly(), nullPly());
     if (end >= 4) {
-        const auto* psi = si->ptr->ptr;
+        const auto* psi{ si->ptr->ptr };
         for (i16 i = 4; i <= end; i += 2) {
             psi = psi->ptr->ptr;
             if (psi->posiKey == posiKey()) {
@@ -1035,13 +1031,13 @@ void Position::doMove(Move m, StateInfo &nsi, bool giveCheck) {
 void Position::undoMove(Move m)
 {
     assert(isOk(m)
-        && nullptr != si->ptr
-        && KING != captured());
+        && nullptr != si->ptr);
 
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
     assert(empty(org)
         || CASTLE == mType(m));
+    assert(KING != captured());
 
     active = ~active;
 
@@ -1150,7 +1146,7 @@ void Position::flip()
     // 1. Piece placement
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
-        toggleCase(token);
+        toggle(token);
         ff.insert(0, token + (r < RANK_8 ? "/" : " "));
     }
     // 2. Active color
@@ -1160,7 +1156,7 @@ void Position::flip()
     // 3. Castling availability
     iss >> token;
     if (token != "-") {
-        toggleCase(token);
+        toggle(token);
     }
     ff += token;
     ff += " ";
@@ -1186,7 +1182,7 @@ void Position::mirror()
     // 1. Piece placement
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
-        std::reverse(token.begin(), token.end());
+        reverse(token);
         ff += token + (r > RANK_1 ? "/" : " ");
     }
     // 2. Active color

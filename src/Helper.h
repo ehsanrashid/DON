@@ -26,7 +26,8 @@ extern bool whiteSpaces(const std::string&);
 
 extern std::string& toLower(std::string&);
 extern std::string& toUpper(std::string&);
-extern std::string& toggleCase(std::string&);
+extern std::string& toggle(std::string&);
+extern std::string& reverse(std::string &str);
 
 extern std::string trim(std::string&);
 

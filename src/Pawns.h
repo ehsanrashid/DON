@@ -36,5 +36,3 @@ namespace Pawns {
 
     extern Entry* probe(const Position&);
 }
-
-

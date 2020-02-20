@@ -57,11 +57,11 @@ string toString(Value v) {
     assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
 
     ostringstream oss;
-    if (abs(v) < +VALUE_MATE - MaxDepth) {
+    if (abs(v) < +VALUE_MATE_1_MAX_PLY) {
         oss << "cp " << toCP(v);
     }
     else {
-        oss << "mate " << (v > 0 ?
+        oss << "mate " << i16(v > 0 ?
                             +VALUE_MATE - v + 1 :
                             -VALUE_MATE - v + 0) / 2;
     }
@@ -180,7 +180,7 @@ string multipvInfo(const Thread *const &th, Depth depth, Value alfa, Value beta)
                     th->rootMoves[i].oldValue };
 
         bool tb{ TBHasRoot
-              && abs(v) < +VALUE_MATE - MaxDepth };
+              && abs(v) < +VALUE_MATE_1_MAX_PLY };
         v = tb ? th->rootMoves[i].tbValue : v;
 
         //if (oss.rdbuf()->in_avail()) // Not at first line
@@ -232,7 +232,8 @@ namespace {
         auto pt{ pType(pos[org]) };
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
-        Bitboard piece{ pos.attacksFrom(pt, dst) & pos.pieces(pos.active, pt) };
+        Bitboard piece{ pos.attacksFrom(pt, dst)
+                      & pos.pieces(pos.active, pt) };
 
         Bitboard amb{ piece ^ org };
         if (0 == amb) {
@@ -244,7 +245,9 @@ namespace {
                     //& ~pos.kingBlockers(pos.active) };
         while (0 != pcs) {
             auto sq{ popLSq(pcs) };
-            if (!pos.legal(makeMove<NORMAL>(sq, dst))) {
+            auto move{ makeMove<NORMAL>(sq, dst) };
+            if (!(pos.pseudoLegal(move)
+               && pos.legal(move))) {
                 amb ^= sq;
             }
         }
@@ -257,15 +260,15 @@ namespace {
     string pretty_value(Value v) {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
         ostringstream oss;
-        if (abs(v) < +VALUE_MATE - MaxDepth) {
+        if (abs(v) < +VALUE_MATE_1_MAX_PLY) {
             oss << std::showpos << std::fixed << std::setprecision(2)
                 << toCP(v) / 100.0;
         }
         else {
             oss << std::showpos
-                << "#" << i32(v > VALUE_ZERO ?
-                            +(VALUE_MATE - v + 1) :
-                            -(VALUE_MATE + v + 0)) / 2;
+                << "#" << i16(v > VALUE_ZERO ?
+                            +VALUE_MATE - v + 1 :
+                            -VALUE_MATE - v + 0) / 2;
         }
         return oss.str();
     }

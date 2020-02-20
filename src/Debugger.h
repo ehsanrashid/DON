@@ -15,8 +15,6 @@ class Debugger {
 
 public:
 
-    static TimePoint Time;
-
     static void reset();
 
     static void hitOn(bool);

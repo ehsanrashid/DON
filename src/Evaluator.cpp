@@ -833,11 +833,10 @@ namespace Evaluator {
         /// scale() evaluates the scale for the position
         template<bool Trace>
         Scale Evaluation<Trace>::scale(Value eg) const {
-            auto stngColor = eg >= VALUE_ZERO ? WHITE : BLACK;
+            auto stngColor{ eg >= VALUE_ZERO ? WHITE : BLACK };
 
-            auto scl{nullptr != matlEntry->scalingFunc[stngColor] ?
-                        (*matlEntry->scalingFunc[stngColor])(pos) :
-                        SCALE_NONE};
+            auto scl{ nullptr != matlEntry->scalingFunc[stngColor] ?
+                        (*matlEntry->scalingFunc[stngColor])(pos) : SCALE_NONE };
             if (SCALE_NONE == scl) {
                 scl = matlEntry->scale[stngColor];
             }

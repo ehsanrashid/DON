@@ -73,7 +73,7 @@ namespace Zobrists {
             RandZob.castleRightKey[cr] = 0;
             Bitboard b = cr;
             while (0 != b) {
-                Key k = RandZob.castleRightKey[U64(1) << popLSq(b)];
+                Key k{ RandZob.castleRightKey[U32(1) << popLSq(b)] };
                 RandZob.castleRightKey[cr] ^= 0 != k ? k : prng.rand<Key>();
             }
         }

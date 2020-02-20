@@ -17,23 +17,20 @@ namespace {
     template<typename T>
     ifstream& operator>>(ifstream &ifs, T &t) {
         t = T();
-        for (u08 idx = 0; idx < sizeof (T) && ifs.good(); ++idx)
-        {
+        for (u08 idx = 0; idx < sizeof (T) && ifs.good(); ++idx) {
             t = T((t << 8) + u08(ifs.get()));
         }
         return ifs;
     }
     // template<typename T>
     // ofstream& operator<<(ofstream &ofs, const T &t) {
-    //    for (u08 idx = 0; idx < sizeof (T) && ofs.good(); ++idx)
-    //    {
+    //    for (u08 idx = 0; idx < sizeof (T) && ofs.good(); ++idx) {
     //        ofs.put(u08(t >> (8*(sizeof (T) - 1 - idx))));
     //    }
     //    return ofs;
     // }
 
-    ifstream& operator>>(ifstream &ifs, PolyEntry &pe)
-    {
+    ifstream& operator>>(ifstream &ifs, PolyEntry &pe) {
         ifs >> pe.key
             >> pe.move
             >> pe.weight
@@ -161,13 +158,13 @@ ostream& operator<<(ostream &os, const PolyEntry &pe) {
 /// ----------------
 
 PolyBook::PolyBook()
-    : entries{nullptr}
-    , entryCount{0}
-    , doProbe{true}
-    , prevPieces{0}
-    , prevPieceCount{0}
-    , failCount{0}
-    , enabled{false}
+    : entries{ nullptr }
+    , entryCount{ 0 }
+    , doProbe{ true }
+    , prevPieces{ 0 }
+    , prevPieceCount{ 0 }
+    , failCount{ 0 }
+    , enabled{ false }
     , bookFn{}
 {}
 

@@ -11,7 +11,7 @@ private:
     TimePoint maximumTime{ 0 };
 
 public:
-    TimePoint startTime{ 0 };
+
     u16 timeNodes{ 0 };
     u64 availableNodes{ 0 };
 
@@ -24,8 +24,8 @@ public:
     TimePoint maximum() const { return maximumTime; }
     TimePoint elapsed() const;
 
-
-    void initialize(Color, i16);
+    void setup(Color, i16);
+    void reset();
 
 };
 

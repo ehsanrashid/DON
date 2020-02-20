@@ -156,11 +156,8 @@ namespace BitBase {
                 }
             }
 
-            result = r & Good ?
-                            Good :
-                            r & UNKNOWN ?
-                                UNKNOWN :
-                                Bad;
+            result = r & Good ? Good :
+                        r & UNKNOWN ? UNKNOWN : Bad;
             return result;
         }
     }

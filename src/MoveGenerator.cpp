@@ -257,34 +257,36 @@ template void generate<GenType::QUIET>(ValMoves&, const Position&);
 
 /// generate<EVASION>     Generates all pseudo-legal check evasions moves.
 template<> void generate<GenType::EVASION>(ValMoves &moves, const Position &pos) {
-    assert(0 != pos.checkers()
-        && 2 >= popCount(pos.checkers()));
+    Bitboard checkers{ pos.checkers() };
+    assert(0 != checkers
+        && 2 >= popCount(checkers));
 
     moves.clear();
     auto fkSq{ pos.square(pos.active|KING) };
-    Bitboard checks = PieceAttacks[KING][pos.square(~pos.active|KING)];
-    Bitboard checkersEx =  pos.checkers()
-                        & ~pos.pieces(NIHT, PAWN);
+
+    Bitboard checks{ PieceAttacks[KING][pos.square(~pos.active|KING)] };
+    Bitboard slideCheckers{  checkers
+                          & ~pos.pieces(NIHT, PAWN) };
     // Squares attacked by slide checkers will remove them from the king evasions
     // so to skip known illegal moves avoiding useless legality check later.
-    while (0 != checkersEx) {
-        auto checkSq = popLSq(checkersEx);
+    while (0 != slideCheckers) {
+        auto checkSq{ popLSq(slideCheckers) };
         checks |= lines(checkSq, fkSq) ^ checkSq;
     }
     // Generate evasions for king, capture and non-capture moves
-    Bitboard attacks = PieceAttacks[KING][fkSq]
-                     & ~checks
-                     & ~pos.pieces(pos.active);
+    Bitboard attacks{  PieceAttacks[KING][fkSq]
+                    & ~checks
+                    & ~pos.pieces(pos.active) };
     while (0 != attacks) { moves += makeMove<NORMAL>(fkSq, popLSq(attacks)); }
 
     // Double-check, only king move can save the day
-    if (moreThanOne(pos.checkers())) {
+    if (moreThanOne(checkers)) {
         return;
     }
 
     // Generates blocking or captures of the checking piece
-    auto checkSq{ scanLSq(pos.checkers()) };
-    Bitboard targets = betweens(checkSq, fkSq) | checkSq;
+    auto checkSq{ scanLSq(checkers) };
+    Bitboard targets{ betweens(checkSq, fkSq) | checkSq };
 
     generateMoves<GenType::EVASION>(moves, pos, targets);
 }
@@ -292,15 +294,15 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, const Position &pos)
 template<> void generate<GenType::CHECK>(ValMoves &moves, const Position &pos) {
     assert(0 == pos.checkers());
     moves.clear();
-    Bitboard targets = ~pos.pieces(pos.active);
+    Bitboard targets{ ~pos.pieces(pos.active) };
     // Pawns is excluded, will be generated together with direct checks
-    Bitboard dscBlockersEx =  pos.kingBlockers(~pos.active)
-                           &  pos.pieces(pos.active)
-                           & ~pos.pieces(PAWN);
+    Bitboard dscBlockersEx{  pos.kingBlockers(~pos.active)
+                          &  pos.pieces(pos.active)
+                          & ~pos.pieces(PAWN) };
     assert(0 == (dscBlockersEx & pos.pieces(QUEN)));
     while (0 != dscBlockersEx) {
         auto org{ popLSq(dscBlockersEx) };
-        Bitboard attacks = pos.attacksFrom(org) & targets;
+        Bitboard attacks{ pos.attacksFrom(org) & targets };
         if (KING == pType(pos[org])) {
             attacks &= ~PieceAttacks[QUEN][pos.square(~pos.active|KING)];
         }
@@ -313,15 +315,15 @@ template<> void generate<GenType::CHECK>(ValMoves &moves, const Position &pos) {
 template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, const Position &pos) {
     assert(0 == pos.checkers());
     moves.clear();
-    Bitboard targets = ~pos.pieces();
+    Bitboard targets{ ~pos.pieces() };
     // Pawns is excluded, will be generated together with direct checks
-    Bitboard dscBlockersEx =  pos.kingBlockers(~pos.active)
-                           &  pos.pieces(pos.active)
-                           & ~pos.pieces(PAWN);
+    Bitboard dscBlockersEx{  pos.kingBlockers(~pos.active)
+                          &  pos.pieces(pos.active)
+                          & ~pos.pieces(PAWN) };
     assert(0 == (dscBlockersEx & pos.pieces(QUEN)));
     while (0 != dscBlockersEx) {
         auto org{ popLSq(dscBlockersEx) };
-        Bitboard attacks = pos.attacksFrom(org) & targets;
+        Bitboard attacks{ pos.attacksFrom(org) & targets };
         if (KING == pType(pos[org])) {
             attacks &= ~PieceAttacks[QUEN][pos.square(~pos.active|KING)];
         }
@@ -336,17 +338,23 @@ template<> void generate<GenType::LEGAL>(ValMoves &moves, const Position &pos) {
     0 == pos.checkers() ?
         generate<GenType::NATURAL>(moves, pos) :
         generate<GenType::EVASION>(moves, pos);
-    filterIllegal(moves, pos);
+
+    Bitboard candidate{ (// Pinneds
+                         pos.kingBlockers(pos.active)
+                         // King
+                       | pos.pieces(KING))
+                      & pos.pieces(pos.active) };
+    // Filter illegal moves
+    moves.erase(
+        std::remove_if(
+            moves.begin(), moves.end(),
+            [&](const ValMove &vm) {
+                return (contains(candidate, orgSq(vm))
+                     || ENPASSANT == mType(vm))
+                    && !pos.legal(vm);
+            }),
+        moves.end());
 }
-
-/// Filter illegal moves
-void filterIllegal(ValMoves &moves, const Position &pos) {
-    moves.erase(std::remove_if(moves.begin(), moves.end(),
-                               [&pos](const ValMove &vm) { return !pos.fullLegal(vm); }),
-                moves.end());
-}
-
-
 
 Perft::Perft()
     : moves{0}

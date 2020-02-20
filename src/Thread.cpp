@@ -11,15 +11,16 @@
 
 #if defined(_WIN32)
 
+#   if _WIN32_WINNT < 0x0601
+#       undef  _WIN32_WINNT
+#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
+#   endif
+
 #   if !defined(NOMINMAX)
 #       define NOMINMAX // Disable macros min() and max()
 #   endif
 #   if !defined(WIN32_LEAN_AND_MEAN)
-#       define WIN32_LEAN_AND_MEAN
-#   endif
-#   if _WIN32_WINNT < 0x0601
-#       undef  _WIN32_WINNT
-#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
+#       define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
 #   endif
 
 #   include <windows.h>
@@ -53,11 +54,11 @@ Thread::Thread(size_t idx)
 Thread::~Thread() {
     assert(!busy);
     dead = true;
-    startSearch();
+    wakeUp();
     nativeThread.join();
 }
-/// Thread::startSearch() wakes up the thread that will start the search.
-void Thread::startSearch() {
+/// Thread::wakeUp() wakes up the thread that will start the search.
+void Thread::wakeUp() {
     lock_guard<mutex> guard(mtx);
     busy = true;
     conditionVar.notify_one(); // Wake up the thread in idleFunction()
@@ -93,8 +94,7 @@ void Thread::idleFunction() {
     }
 }
 
-i16 Thread::moveBestCount(Move move) const
-{
+i16 Thread::moveBestCount(Move move) const {
     return rootMoves.moveBestCount(pvCur, pvEnd, move);
 }
 
@@ -116,15 +116,20 @@ void Thread::clear() {
     matlHash.clear();
 }
 
-/// MainThread constructor
-MainThread::MainThread(size_t idx)
-    : Thread{idx}
-{}
+// /// MainThread constructor
+// MainThread::MainThread(size_t idx)
+//     : Thread{ idx }
+// {}
+
+void MainThread::setTicks(i16 tc) {
+    ticks = tc;
+    assert(0 != ticks);
+}
 /// MainThread::clear()
 void MainThread::clear() {
     Thread::clear();
 
-    tickCount = 0;
+    setTicks(1);
 
     prevBestValue = +VALUE_INFINITE;
     prevTimeReduction = 1.00;
@@ -264,14 +269,14 @@ Thread* ThreadPool::bestThread() const
         votes[th->rootMoves.front().front()] += i32(th->rootMoves.front().newValue - minValue + 14) * th->finishedDepth;
     }
     for (auto *th : *this) {
-        if (bestThread->rootMoves.front().newValue >= VALUE_MATE_MAX_PLY) {
+        if (bestThread->rootMoves.front().newValue >= +VALUE_MATE_2_MAX_PLY) {
             // Make sure we pick the shortest mate
             if (bestThread->rootMoves.front().newValue < th->rootMoves.front().newValue) {
                 bestThread = th;
             }
         }
         else {
-            if (th->rootMoves.front().newValue >= VALUE_MATE_MAX_PLY
+            if (th->rootMoves.front().newValue >= +VALUE_MATE_2_MAX_PLY
              || votes[bestThread->rootMoves.front().front()] < votes[th->rootMoves.front().front()]) {
                 bestThread = th;
             }
@@ -336,10 +341,10 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     rootMoves.initialize(pos, Limits.searchMoves);
 
     if (!rootMoves.empty()) {
-        TBProbeDepth    = Options["SyzygyProbeDepth"];
-        TBLimitPiece    = Options["SyzygyLimitPiece"];
-        TBUseRule50     = Options["SyzygyUseRule50"];
-        TBHasRoot       = false;
+        TBProbeDepth = Options["SyzygyProbeDepth"];
+        TBLimitPiece = Options["SyzygyLimitPiece"];
+        TBUseRule50  = Options["SyzygyUseRule50"];
+        TBHasRoot    = false;
 
         bool dtzAvailable{ true };
 
@@ -397,7 +402,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     // So we need to save and later to restore last stateinfo, cleared by setup().
     // Note that states is shared by threads but is accessed in read-only mode.
     auto fen{ pos.fen() };
-    auto ssBack = setupStates->back();
+    auto ssBack{ setupStates->back() };
     for (auto *th : *this) {
         th->rootDepth       = DEPTH_ZERO;
         th->finishedDepth   = DEPTH_ZERO;
@@ -411,5 +416,5 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     }
     setupStates->back() = ssBack;
 
-    mainThread()->startSearch();
+    mainThread()->wakeUp();
 }

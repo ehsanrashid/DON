@@ -96,7 +96,7 @@ public:
     TTable();
     TTable(const TTable&) = delete;
     TTable& operator=(const TTable&) = delete;
-    virtual ~TTable();
+    ~TTable();
 
     u32 size() const;
 

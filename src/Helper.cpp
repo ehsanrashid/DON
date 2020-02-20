@@ -32,11 +32,15 @@ string& toUpper(string &str) {
     std::transform(str.begin(), str.end(), str.begin(), ::toupper);
     return str;
 }
-string& toggleCase(string &str) {
+string& toggle(string &str) {
     std::transform(str.begin(), str.end(), str.begin(),
                    [](int c) -> int {
                         return ::islower(c) ? ::toupper(c) : ::tolower(c);
                    });
+    return str;
+}
+string& reverse(string &str) {
+    std::reverse(str.begin(), str.end());
     return str;
 }
 

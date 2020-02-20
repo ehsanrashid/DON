@@ -70,7 +70,7 @@ public:
     std::string bookFn;
 
     PolyBook();
-    virtual ~PolyBook();
+    ~PolyBook();
 
     void initialize(const std::string&);
 

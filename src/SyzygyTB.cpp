@@ -26,9 +26,11 @@ using namespace std;
 #       define NOMINMAX // Disable macros min() and max()
 #   endif
 #   if !defined(WIN32_LEAN_AND_MEAN)
-#       define WIN32_LEAN_AND_MEAN
+#       define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
 #   endif
+
 #   include <windows.h>
+
 #   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
 
@@ -95,11 +97,11 @@ namespace {
     };
     constexpr Value WDL_To_Value[]
     {
-        -VALUE_MATE + (MaxDepth + 1),
+        -VALUE_MATE_1_MAX_PLY + 1,
         VALUE_DRAW - 2,
         VALUE_DRAW,
         VALUE_DRAW + 2,
-        +VALUE_MATE - (MaxDepth + 1)
+        +VALUE_MATE_1_MAX_PLY - 1
     };
 
     i32 MapPawns[SQUARES];
@@ -397,7 +399,7 @@ namespace {
 
     template<>
     TBTable<WDL>::TBTable(const string &code)
-        : TBTable() {
+        : TBTable{} {
         StateInfo si;
         Position pos;
         key1 = pos.setup(code, WHITE, si).matlKey();
@@ -425,7 +427,7 @@ namespace {
 
     template<>
     TBTable<DTZ>::TBTable(const TBTable<WDL> &wdl)
-        : TBTable() {
+        : TBTable{} {
         key1 = wdl.key1;
         key2 = wdl.key2;
         pieceCount = wdl.pieceCount;
@@ -1274,7 +1276,7 @@ namespace {
         auto bestWDL = LOSS;
 
         StateInfo si;
-        auto moveList = MoveList<GenType::LEGAL>(pos);
+        auto moveList{ MoveList<GenType::LEGAL>(pos) };
         size_t moveCount = 0;
         for (auto &move : moveList) {
             if (!pos.capture(move)
@@ -1541,11 +1543,11 @@ bool rootProbeDTZ(Position &rootPos, RootMoves &rootMoves) {
         // Determine the score to be displayed for this move. Assign at least
         // 1 cp to cursed wins and let it grow to 49 cp as the positions gets
         // closer to a real win.
-        rm.tbValue = r >= bound ? +VALUE_MATE - (MaxDepth + 1) :
-            r > 0 ? (VALUE_EG_PAWN * std::max(+3, r - 800)) / 200 :
-            r == 0 ? VALUE_DRAW :
-            r > -bound ? (VALUE_EG_PAWN * std::min(-3, r + 800)) / 200 :
-            -VALUE_MATE + (MaxDepth + 1);
+        rm.tbValue = r >= bound ? +VALUE_MATE_1_MAX_PLY - 1 :
+                     r > 0 ? (VALUE_EG_PAWN * std::max(+3, r - 800)) / 200 :
+                     r == 0 ? VALUE_DRAW :
+                     r > -bound ? (VALUE_EG_PAWN * std::min(-3, r + 800)) / 200 :
+                                  -VALUE_MATE_1_MAX_PLY + 1;
     }
     return true;
 }

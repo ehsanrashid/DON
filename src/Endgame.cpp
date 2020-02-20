@@ -141,7 +141,7 @@ template<> Value Endgame<KBNK>::operator()(const Position &pos) const {
     auto value{ VALUE_KNOWN_WIN
               + PushClose[dist(skSq, wkSq)]
               + 32 * PushToCorner[oppositeColor(sbSq, SQ_A1) ? ~wkSq : wkSq] };
-    assert(abs(value) < +VALUE_MATE_MAX_PLY);
+    assert(abs(value) < +VALUE_MATE_2_MAX_PLY);
     return stngColor == pos.active ? +value : -value;
 }
 

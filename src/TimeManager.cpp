@@ -41,9 +41,9 @@ namespace {
 
 /// TimeManager::elapsed()
 TimePoint TimeManager::elapsed() const {
-    return{ 0 != timeNodes ?
-            TimePoint(Threadpool.sum(&Thread::nodes)) :
-            now() - startTime };
+    return{ 0 == timeNodes ?
+            now() - Limits.startTime :
+            TimePoint(Threadpool.sum(&Thread::nodes)) };
 }
 
 /// TimeManager::set() calculates the allowed thinking time out of the time control and current game ply.
@@ -57,14 +57,11 @@ TimePoint TimeManager::elapsed() const {
 /// Minimum MoveTime = No matter what, use at least this much time before doing the move, in milli-seconds.
 /// Overhead MoveTime = Attempt to keep at least this much time for each remaining move, in milli-seconds.
 /// Move Slowness = Move Slowness, in %age.
-void TimeManager::initialize(Color c, i16 ply) {
+void TimeManager::setup(Color c, i16 ply) {
 
     TimePoint minimumMoveTime{ Options["Minimum MoveTime"] };
     TimePoint overheadMoveTime{ Options["Overhead MoveTime"] };
-
     u32 moveSlowness{ Options["Move Slowness"] };
-
-    timeNodes = Options["Time Nodes"];
 
     // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
@@ -103,4 +100,9 @@ void TimeManager::initialize(Color c, i16 ply) {
     if (Options["Ponder"]) {
         optimumTime += optimumTime / 4;
     }
+}
+
+void TimeManager::reset() {
+    timeNodes = Options["Time Nodes"];
+    availableNodes = 0;
 }

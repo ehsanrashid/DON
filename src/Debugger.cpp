@@ -6,8 +6,6 @@
 
 using namespace std;
 
-TimePoint Debugger::Time;
-
 atomic<u64> Debugger::Hit1Count;
 atomic<u64> Debugger::Hit2Count;
 

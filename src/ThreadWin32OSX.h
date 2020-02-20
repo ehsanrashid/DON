@@ -14,24 +14,21 @@
 static constexpr size_t TH_STACK_SIZE = 8 * 1024 * 1024;
 
 template<typename T, class P = std::pair<T*, void(T::*)()>>
-void* startRoutine(void *arg)
-{
+void* startRoutine(void *arg) {
     P *p = reinterpret_cast<P*>(arg);
     (p->first->*(p->second))(); // Call member function pointer
     delete p;
     return NULL;
 }
 
-class NativeThread
-{
+class NativeThread {
 private:
     pthread_t thread;
 
 public:
 
     template<typename T, class P = std::pair<T*, void (T::*)()>>
-    explicit NativeThread(void(T::*fun)(), T *obj)
-    {
+    explicit NativeThread(void(T::*fun)(), T *obj) {
         pthread_attr_t thread_attr;
         pthread_attr_init(&thread_attr);
         pthread_attr_setstacksize(&thread_attr, TH_STACK_SIZE);
@@ -39,8 +36,7 @@ public:
         pthread_create(&thread, &thread_attr, startRoutine<T>, new P(obj, fun));
     }
 
-    void join()
-    {
+    void join() {
         pthread_join(thread, NULL);
     }
 };

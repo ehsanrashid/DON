@@ -67,7 +67,7 @@ public:
     explicit Endgame(Color c)
         : EndgameBase<T>{ c }
     {}
-    virtual ~Endgame() = default;
+
     Endgame& operator=(const Endgame&) = delete;
 
     T operator()(const Position&) const override;

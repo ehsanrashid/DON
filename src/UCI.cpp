@@ -331,6 +331,10 @@ namespace UCI {
             TT.load(Options["Hash File"]);
         }
 
+        void onBookFile() {
+            Book.initialize(Options["Book.bin"]);
+        }
+
         void onThreads() {
             auto threadCount{ optionThreads() };
             if (threadCount != Threadpool.size()) {
@@ -338,8 +342,8 @@ namespace UCI {
             }
         }
 
-        void onBookFile() {
-            Book.initialize(Options["Book.bin"]);
+        void onTimeNodes() {
+            TimeMgr.reset();
         }
 
         void onDebugFile() {
@@ -384,8 +388,8 @@ namespace UCI {
         Options["Overhead MoveTime"]  << Option(30,  0, 5000);
         Options["Minimum MoveTime"]   << Option(20,  0, 5000);
         Options["Move Slowness"]      << Option(84, 10, 1000);
-        Options["Time Nodes"]         << Option( 0,  0, 10000);
         Options["Ponder"]             << Option(true);
+        Options["Time Nodes"]         << Option( 0,  0, 10000, onTimeNodes);
 
         Options["SyzygyPath"]         << Option("", onSyzygyPath);
         Options["SyzygyProbeDepth"]   << Option(TBProbeDepth, 1, 100);

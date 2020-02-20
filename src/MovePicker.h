@@ -28,13 +28,9 @@ enum PickStage : u08 {
 };
 
 constexpr PickStage operator+(PickStage ps, i32 i) { return PickStage(i32(ps) + i); }
-//constexpr PickStage operator-(PickStage ps, i32 i) { return PickStage(i32(ps) - i); }
 constexpr PickStage operator+(PickStage ps, bool b) { return ps + i32(b); }
-//constexpr PickStage operator-(PickStage ps, bool b) { return ps - i32(b); }
 inline PickStage& operator+=(PickStage &ps, i32 i) { return ps = ps + i; }
-//inline PickStage& operator-=(PickStage &ps, i32 i) { return ps = PickStage(ps - i); }
 inline PickStage& operator++(PickStage &ps) { return ps = ps + 1; }
-//inline PickStage& operator--(PickStage &ps) { return ps = PickStage(ps - 1); }
 
 /// MovePicker class is used to pick one legal moves from the current position.
 /// nextMove() is the most important method, which returns a new legal move every time until there are no more moves
@@ -50,8 +46,8 @@ private:
 
     Move    ttMove;
     Depth   depth;
-    Value   threshold;
-    Square  recapSq;
+    Value   threshold{ VALUE_ZERO };
+    Square  recapSq{ SQ_NONE };
 
     PickStage pickStage;
 
@@ -59,7 +55,7 @@ private:
     ValMoves::iterator vmItr, vmEnd;
 
     std::vector<Move> refutationMoves
-        , badCaptureMoves;
+        ,             badCaptureMoves;
     std::vector<Move>::iterator mItr, mEnd;
 
     template<GenType GT>
