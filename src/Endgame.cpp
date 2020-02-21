@@ -155,18 +155,20 @@ template<> Value Endgame<KNNK>::operator()(const Position &pos) const {
     return stngColor == pos.active ? +value : -value;
 }
 
-/// KNN vs KP. Simply push the opposing king to any corner.
+/// KNN vs KP. Very drawish, but there are some mate opportunities if we can
+/// press the weakSide King to a corner before the pawn advances too much.
 template<> Value Endgame<KNNKP>::operator()(const Position &pos) const {
     assert(verifyMaterial(pos, stngColor, 2*VALUE_MG_NIHT, 0)
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 1));
 
     auto skSq{ pos.square(stngColor|KING) };
     auto wkSq{ pos.square(weakColor|KING) };
+    auto wpSq{ pos.square(weakColor|PAWN) };
 
-    auto value{ 2 * VALUE_MG_NIHT
-              - VALUE_EG_PAWN
+    auto value{ VALUE_EG_PAWN
+              + 2 * PushToEdge[wkSq]
               + PushClose[dist(skSq, wkSq)]
-              + PushToEdge[wkSq] };
+              - 20 * relativeRank(weakColor, wpSq) };
 
     return stngColor == pos.active ? +value : -value;
 }
