@@ -123,15 +123,23 @@ namespace {
         return 15 >= depth ? (19 * depth + 155) * depth - 132 : -8;
     }
 
+    constexpr Square prevDst(Color c, Move pm) {
+        return CASTLE != mType(pm) ?
+                dstSq(pm) :
+                kingRelativeSq(~c, dstSq(pm) > orgSq(pm));
+    }
+
     /// updateContinuationStats() updates Stats of the move pairs formed
     /// by moves at ply -1, -2, -4 and -6 with current move.
     void updateContinuationStats(Stack *const &ss, Piece p, Square dst, i32 bonus) {
+        assert(NO_PIECE != p);
         for (auto i : { 1, 2, 4, 6 }) {
             if (isOk((ss-i)->playedMove)) {
                 (*(ss-i)->pieceStats)[p][dst] << bonus;
             }
         }
     }
+
     /// updateQuietStats() updates move sorting heuristics when a new quiet best move is found
     void updateQuietStats(Stack *const &ss, const Position &pos, Move move, i32 bonus) {
         if (ss->killerMoves[0] != move) {
@@ -141,9 +149,7 @@ namespace {
         assert(1 == std::count(ss->killerMoves.begin(), ss->killerMoves.end(), move));
 
         if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ CASTLE != mType((ss-1)->playedMove) ?
-                            dstSq((ss-1)->playedMove) :
-                            kingRelativeSq(~pos.active, dstSq((ss-1)->playedMove) > orgSq((ss-1)->playedMove)) };
+            auto pmDst{ prevDst(pos.active, (ss-1)->playedMove) };
             assert(NO_PIECE != pos[pmDst]);
             pos.thread->quietCounterMoves[pos[pmDst]][pmDst] = move;
         }
@@ -245,11 +251,12 @@ namespace {
             else {
                 ss->staticEval = bestValue =
                     MOVE_NULL != (ss-1)->playedMove ?
-                        Evaluator::evaluate(pos) : -(ss-1)->staticEval + 2 * Evaluator::Tempo;
+                        Evaluator::evaluate(pos) :
+                        -(ss-1)->staticEval + 2 * VALUE_TEMPO;
             }
 
             if (alfa < bestValue) {
-                // Stand pat. Return immediately if static value is at least beta.
+                // Stand pat. Return immediately if static value is at least beta
                 if (bestValue >= beta) {
                     if (!ttHit) {
                         tte->save(key,
@@ -533,7 +540,7 @@ namespace {
          && BOUND_NONE != (tte->bound()
                          & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))) {
             // Update move sorting heuristics on ttMove
-            if (isOk(ttMove)
+            if (MOVE_NONE != ttMove
              && pos.pseudoLegal(ttMove)
              && pos.legal(ttMove)) {
                 if (ttValue >= beta) {
@@ -555,8 +562,10 @@ namespace {
             if (ttValue >= beta) {
                 // Extra penalty for early quiet moves in previous ply when it gets refuted
                 if (!pmCaptureOrPromotion
-                 && 2 >= (ss-1)->moveCount) {
-                    updateContinuationStats(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), -statBonus(depth + 1));
+                 && 2 >= (ss-1)->moveCount
+                 && isOk((ss-1)->playedMove)) {
+                    auto pmDst{ prevDst(pos.active, (ss-1)->playedMove) };
+                    updateContinuationStats(ss-1, pos[pmDst], pmDst, -statBonus(depth + 1));
                 }
             }
 
@@ -657,7 +666,7 @@ namespace {
                 ss->staticEval = eval =
                     MOVE_NULL != (ss-1)->playedMove ?
                         Evaluator::evaluate(pos) + (-(ss-1)->stats / 512) :
-                        -(ss-1)->staticEval + 2 * Evaluator::Tempo;
+                        -(ss-1)->staticEval + 2 * VALUE_TEMPO;
 
                 tte->save(key,
                           MOVE_NONE,
@@ -758,8 +767,9 @@ namespace {
                 // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
                 while (2 + 2 * cutNode > pcMoveCount
                     && MOVE_NONE != (move = mp.nextMove())) {
-                    assert(pos.captureOrPromotion(move)
-                        && pos.pseudoLegal(move));
+                    assert(isOk(move)
+                        && pos.pseudoLegal(move)
+                        && pos.captureOrPromotion(move));
 
                     if (move == ss->excludedMove
                      || !pos.legal(move)) {
@@ -820,7 +830,8 @@ namespace {
 
         bool singularLMR{ false };
         bool ttmCapture{ MOVE_NONE != ttMove
-                      && pos.captureOrPromotion(ttMove) };
+                      && pos.captureOrPromotion(ttMove)
+                      && pos.pseudoLegal(ttMove) };
 
         const PieceSquareStatsTable* pieceStats[]
         {
@@ -831,9 +842,7 @@ namespace {
 
         auto counterMove{ MOVE_NONE };
         if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ CASTLE != mType((ss-1)->playedMove) ?
-                            dstSq((ss-1)->playedMove) :
-                            kingRelativeSq(~pos.active, dstSq((ss-1)->playedMove) > orgSq((ss-1)->playedMove)) };
+            auto pmDst{ prevDst(pos.active, (ss-1)->playedMove) };
             assert(NO_PIECE != pos[pmDst]);
             counterMove = pos.thread->quietCounterMoves[pos[pmDst]][pmDst];
         }
@@ -938,9 +947,6 @@ namespace {
                 }
             }
 
-            auto legality = rootNode
-                         || pos.legal(move);
-
             // Step 14. Extensions. (~75 ELO)
             auto extension{ DEPTH_ZERO };
 
@@ -953,11 +959,12 @@ namespace {
             if (!rootNode
              && 5 < depth
              && move == ttMove
-             && legality
-             && MOVE_NONE == ss->excludedMove // Avoid recursive singular search.
+             && MOVE_NONE == ss->excludedMove // Avoid recursive singular search
+             // && VALUE_NONE != ttValue  Already implicit in the next condition
              && +VALUE_KNOWN_WIN > abs(ttValue) // Handle ttHit
              && depth < tte->depth() + 4
-             && BOUND_NONE != (tte->bound() & BOUND_LOWER)) {
+             && BOUND_NONE != (tte->bound() & BOUND_LOWER)
+             && pos.legal(ttMove)) {
                 auto singularBeta{ ttValue - ((4 + (ttPV && !PVNode)) * depth) / 2 };
 
                 ss->excludedMove = move;
@@ -978,7 +985,7 @@ namespace {
                 }
             }
             else
-            if (// Last captures extension
+            if (// Previous capture extension
                 (PieceValues[EG][pos.captured()] > VALUE_EG_PAWN
               && pos.nonPawnMaterial() <= 2 * VALUE_MG_ROOK)
                 // Check extension (~2 ELO)
@@ -999,9 +1006,11 @@ namespace {
             }
 
             // Check for legality just before making the move
-            if (!legality) {
+            if (!rootNode
+             && !pos.legal(move)) {
                 ss->moveCount = --moveCount;
-                if (move == ttMove) {
+                if (ttmCapture
+                 && move == ttMove) {
                     ttmCapture = false;
                 }
                 continue;
@@ -1257,16 +1266,20 @@ namespace {
             // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
             if (!pmCaptureOrPromotion
              && (1 == (ss-1)->moveCount
-              || (ss-1)->killerMoves[0] == (ss-1)->playedMove)) {
-                updateContinuationStats(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), -bonus1);
+              || (ss-1)->killerMoves[0] == (ss-1)->playedMove)
+             && isOk((ss-1)->playedMove)) {
+                auto pmDst{ prevDst(pos.active, (ss-1)->playedMove) };
+                updateContinuationStats(ss-1, pos[pmDst], pmDst, -bonus1);
             }
         }
         else
         // Bonus for prior quiet move that caused the fail low.
         if (!pmCaptureOrPromotion
          && (PVNode
-          || 2 < depth)) {
-            updateContinuationStats(ss-1, pos[dstSq((ss-1)->playedMove)], dstSq((ss-1)->playedMove), statBonus(depth));
+          || 2 < depth)
+         && isOk((ss-1)->playedMove)) {
+            auto pmDst{ prevDst(pos.active, (ss-1)->playedMove) };
+            updateContinuationStats(ss-1, pos[pmDst], pmDst, statBonus(depth));
         }
 
         if (PVNode)

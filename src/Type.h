@@ -156,7 +156,7 @@ enum PieceType : i08 { NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING, PIECE_TYPES = 7
 /// bit   3: Color of piece { White = 0..., Black = 1... }
 enum Piece : u08
 {
-    NO_PIECE = 0,
+    NO_PIECE,
     W_PAWN = 1, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
     B_PAWN = 9, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
     PIECES = 15
@@ -208,6 +208,10 @@ enum Value : i32
 
     VALUE_MIDGAME = 15258,
     VALUE_ENDGAME =  3915,
+
+    VALUE_LAZY_THRESHOLD    = 1400,
+    VALUE_SPACE_THRESHOLD   = 12222,
+    VALUE_TEMPO = 28,
 
     //VALUE_MG_FULL = VALUE_MG_NIHT * 4 + VALUE_MG_BSHP * 4 + VALUE_MG_ROOK * 4 + VALUE_MG_QUEN * 2,
     //VALUE_EG_FULL = VALUE_EG_NIHT * 4 + VALUE_EG_BSHP * 4 + VALUE_EG_ROOK * 4 + VALUE_EG_QUEN * 2,

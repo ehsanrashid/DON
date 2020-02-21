@@ -6,6 +6,7 @@
 #include <string>
 
 #include "Bitboard.h"
+#include "Table.h"
 #include "Type.h"
 
 /// Pre-loads the given address in L1/L2 cache.
@@ -32,7 +33,7 @@ inline void prefetch(const void *addr) {
 
 #else
 inline void prefetch(const void*) {}
-#endif
+#endif // (PREFETCH)
 
 constexpr Array<Piece, 12> Pieces
 {
@@ -115,7 +116,7 @@ private:
 
     Array<Value   , COLORS> npMaterial;
 
-    Table<Square,   COLORS, CASTLE_SIDES> cslRookSq;
+    Table<Square  , COLORS, CASTLE_SIDES> cslRookSq;
     Table<Bitboard, COLORS, CASTLE_SIDES> cslKingPath;
     Table<Bitboard, COLORS, CASTLE_SIDES> cslRookPath;
     Array<CastleRight, SQUARES> sqCastleRight;
@@ -134,7 +135,6 @@ private:
     bool canEnpassant(Color, Square, bool = true) const;
 
 public:
-
 
     i16   ply;
     Color active;
@@ -215,7 +215,7 @@ public:
 
     bool pseudoLegal(Move) const;
     bool legal(Move) const;
-    bool fullLegal(Move) const;
+
     bool capture(Move) const;
     bool captureOrPromotion(Move) const;
     bool giveCheck(Move) const;

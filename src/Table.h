@@ -8,7 +8,7 @@
 #include "Type.h"
 
 /// Hash table
-template<typename T, size_t Size>
+template<typename T, u32 Size>
 struct HashTable {
 private:
     // Allocate on the heap

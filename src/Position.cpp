@@ -300,7 +300,8 @@ bool Position::pseudoLegal(Move m) const
                 // Move must be a capture of the checking piece or a blocking evasion of the checking piece
                 contains(checkers() | betweens(scanLSq(checkers()), square(active|KING)), dst) :
                 // Move must be a capture of the checking enpassant pawn or a blocking evasion of the checking piece
-                (contains(checkers() & pieces(~active, PAWN), dst - pawnPush(active))
+                //(contains(checkers() & pieces(~active, PAWN), dst - pawnPush(active))
+                (contains(checkers() & pieces(PAWN), dst - pawnPush(active))
               || contains(betweens(scanLSq(checkers()), square(active|KING)), dst));
     }
     return true;
@@ -378,11 +379,6 @@ bool Position::legal(Move m) const {
     }
 }
 
-bool Position::fullLegal(Move m) const {
-    return (ENPASSANT != mType(m)
-         && !contains(kingBlockers(active) | square(active|KING), orgSq(m)))
-        || legal(m);
-}
 /// Position::giveCheck() tests whether a pseudo-legal move gives a check.
 bool Position::giveCheck(Move m) const {
     assert(isOk(m));
@@ -853,6 +849,8 @@ Position& Position::setup(const string &code, Color c, StateInfo &nsi) {
 /// The move is assumed to be legal.
 void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
     assert(isOk(m)
+        && pseudoLegal(m)
+        && legal(m)
         && &nsi != si);
 
     thread->nodes.fetch_add(1, std::memory_order::memory_order_relaxed);

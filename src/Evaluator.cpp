@@ -127,10 +127,6 @@ namespace Evaluator {
 
     #undef S
 
-        // Threshold for lazy and space evaluation
-        constexpr Value LazyThreshold   { Value( 1400) };
-        constexpr Value SpaceThreshold  { Value(12222) };
-
         constexpr Array<i32, PIECE_TYPES> SafeCheckWeight   { 0, 0, 790, 635, 1080, 780, 0 };
         constexpr Array<i32, PIECE_TYPES> KingAttackerWeight{ 0, 0,  81,  52,   44,  10, 0 };
 
@@ -757,10 +753,6 @@ namespace Evaluator {
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::space() const {
             constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
-            // Space Threshold
-            if (pos.nonPawnMaterial() < SpaceThreshold) {
-                return SCORE_ZERO;
-            }
 
             // Find all squares which are at most three squares behind some friend pawn
             Bitboard behind{ pos.pieces(Own, PAWN) };
@@ -889,7 +881,8 @@ namespace Evaluator {
 
             // Early exit if score is high
             Value v{ (mgValue(score) + egValue(score)) / 2 };
-            if (abs(v) > LazyThreshold + pos.nonPawnMaterial() / 64) {
+            if (abs(v) > VALUE_LAZY_THRESHOLD
+                       + pos.nonPawnMaterial() / 64) {
                 return WHITE == pos.active ? +v : -v;
             }
 
@@ -912,8 +905,10 @@ namespace Evaluator {
             score += mobility[WHITE]  - mobility[BLACK]
                    + king   <WHITE>() - king   <BLACK>()
                    + threats<WHITE>() - threats<BLACK>()
-                   + passers<WHITE>() - passers<BLACK>()
-                   + space  <WHITE>() - space  <BLACK>();
+                   + passers<WHITE>() - passers<BLACK>();
+            if (pos.nonPawnMaterial() >= VALUE_SPACE_THRESHOLD) {
+            score += space  <WHITE>() - space  <BLACK>();
+            }
 
             score += initiative(score);
 
@@ -936,7 +931,7 @@ namespace Evaluator {
             }
 
             // Active side's point of view
-            return (WHITE == pos.active ? +v : -v) + Tempo;
+            return (WHITE == pos.active ? +v : -v) + VALUE_TEMPO;
         }
     }
 
