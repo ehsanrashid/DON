@@ -1,17 +1,14 @@
 #include "Material.h"
 
 #include <cassert>
-#include <cstring>
 
 #include "Helper.h"
 #include "Thread.h"
 
-using namespace std;
-
 namespace Material {
 
     namespace {
-    
+
         // Polynomial material imbalance parameters
         constexpr Array<i32, PIECE_TYPES, PIECE_TYPES> OwnQuadratic
         {{
@@ -68,7 +65,7 @@ namespace Material {
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
-        i32 computeImbalance(const Array<i32, COLORS, PIECE_TYPES> &count) {
+        i32 computeImbalance(Array<i32, COLORS, PIECE_TYPES> const &count) {
             constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
 
             i32 value{ 0 };
@@ -88,10 +85,16 @@ namespace Material {
         }
     }
 
-    void Entry::evaluate(const Position &pos) {
+    void Entry::evaluate(Position const &pos) {
+
+        Array<Value, COLORS> npm
+        {
+            pos.nonPawnMaterial(WHITE),
+            pos.nonPawnMaterial(BLACK)
+        };
+
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        phase = (i32(clamp(pos.nonPawnMaterial(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME)
-                 * PhaseResolution)
+        phase = (i32(clamp(npm[WHITE] + npm[BLACK], VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME) * PhaseResolution)
               / i32(VALUE_MIDGAME - VALUE_ENDGAME);
         imbalance = SCORE_ZERO;
         scale.fill(SCALE_NORMAL);
@@ -106,7 +109,7 @@ namespace Material {
         }
         // Generic evaluation
         for (Color c : { WHITE, BLACK }) {
-            if (pos.nonPawnMaterial( c) >= VALUE_MG_ROOK
+            if (npm[ c] >= VALUE_MG_ROOK
              && pos.count(~c) == 1) {
                 evaluationFunc = &ValueKXK[c];
                 return;
@@ -118,7 +121,7 @@ namespace Material {
         //
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
-        const auto *scalingFn{ Endgames::probe<Scale>(pos.matlKey()) };
+        auto const *scalingFn{ Endgames::probe<Scale>(pos.matlKey()) };
         if (nullptr != scalingFn) {
             scalingFunc[scalingFn->stngColor] = scalingFn;
             return;
@@ -127,16 +130,17 @@ namespace Material {
         // Didn't find any specialized scaling function, so fall back on
         // generic scaling functions that refer to more than one material distribution.
         for (Color c : { WHITE, BLACK }) {
-            if (pos.nonPawnMaterial( c) == VALUE_MG_BSHP
+
+            if (npm[ c] == VALUE_MG_BSHP
              //&& pos.count( c|BSHP) == 1
              && pos.count( c|PAWN) != 0) {
                 scalingFunc[c] = &ScaleKBPsK[c];
             }
             else
-            if (pos.nonPawnMaterial( c) == VALUE_MG_QUEN
+            if (npm[ c] == VALUE_MG_QUEN
              //&& pos.count( c|QUEN) == 1
              && pos.count( c|PAWN) == 0
-             && pos.nonPawnMaterial(~c) == VALUE_MG_ROOK
+             && npm[~c] == VALUE_MG_ROOK
              //&& pos.count(~c|ROOK) == 1
              && pos.count(~c|PAWN) != 0) {
                 scalingFunc[c] = &ScaleKQKRPs[c];
@@ -146,16 +150,16 @@ namespace Material {
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
             if (pos.count( c|PAWN) == 0
-             && pos.nonPawnMaterial( c)
-              - pos.nonPawnMaterial(~c) <= VALUE_MG_BSHP) {
-                scale[c] = pos.nonPawnMaterial( c) <  VALUE_MG_ROOK ?
-                                SCALE_DRAW :
-                                Scale(14 - 10 * (pos.nonPawnMaterial(~c) <= VALUE_MG_BSHP));
+             && npm[ c] - npm[~c] <= VALUE_MG_BSHP) {
+                scale[c] =
+                    npm[ c] < VALUE_MG_ROOK ?
+                        SCALE_DRAW :
+                        Scale(14 - 10 * (npm[~c] <= VALUE_MG_BSHP));
             }
         }
 
         // Only pawns left
-        if (pos.nonPawnMaterial() == VALUE_ZERO
+        if (npm[WHITE] + npm[BLACK] == VALUE_ZERO
          && pos.pieces(PAWN) != 0) {
             if (pos.pieces(BLACK, PAWN) == 0) {
                 assert(2 <= pos.count(WHITE|PAWN));
@@ -200,7 +204,7 @@ namespace Material {
 
     /// Material::probe() looks up a current position's material configuration in the material hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
-    Entry* probe(const Position &pos) {
+    Entry* probe(Position const &pos) {
         Key matlKey{ pos.matlKey() };
         auto *e{ pos.thread->matlHash[matlKey] };
 

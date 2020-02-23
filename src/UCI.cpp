@@ -21,22 +21,25 @@
 #include "SkillManager.h"
 #include "SyzygyTB.h"
 
-using namespace std;
+using std::istringstream;
+using std::ostringstream;
+using std::string;
+using std::vector;
 
 // Engine Name
-const string Name{ "DON" };
+string const Name{ "DON" };
 // Version number. If version is left empty, then show compile date in the format YY-MM-DD.
-const string Version{ "" };
+string const Version{ "" };
 // Author Name
-const string Author{ "Ehsan Rashid" };
+string const Author{ "Ehsan Rashid" };
 
 UCI::StringOptionMap Options;
 
 namespace {
 
-    const Array<string, 12> Months{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+    Array<string, 12> const Months{ "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-    i32 month(const string &mmm) {
+    i32 month(string const &mmm) {
         // for (u32 m = 0; m < Months.size(); ++m) {
         //     if (mmm == Months[m]) {
         //         return m+1;
@@ -54,7 +57,7 @@ namespace {
 #define VER_STRING(major, minor, patch) STRING(major) "." STRING(minor) "." STRING(patch)
 
 /// engineInfo() returns a string trying to describe the engine
-const string engineInfo() {
+string const engineInfo() {
     ostringstream oss;
 
     oss << std::setfill('0');
@@ -91,7 +94,7 @@ const string engineInfo() {
     return oss.str();
 }
 /// compilerInfo() returns a string trying to describe the compiler used
-const string compilerInfo() {
+string const compilerInfo() {
     ostringstream oss;
     oss << "\nCompiled by ";
 
@@ -151,15 +154,16 @@ namespace UCI {
 
     Option::Option(OnChange pFn)
         : type{ "button" }
-        , onChange{ pFn }
-    {}
+        , onChange{ pFn } {}
     Option::Option(bool v, OnChange pFn)
         : type{ "check" }
         , onChange{ pFn } {
         defaultVal = currentVal = (v ? "true" : "false");
     }
-    Option::Option(const char *v, OnChange pFn)
-        : type{"string"}
+    Option::Option(char const *v, OnChange pFn)
+        : Option{ std::string{ v }, pFn } {}
+    Option::Option(std::string const &v, OnChange pFn)
+        : type{ "string" }
         , onChange{ pFn } {
         defaultVal = currentVal = v;
     }
@@ -170,7 +174,10 @@ namespace UCI {
         , onChange{ pFn } {
         defaultVal = currentVal = std::to_string(v);
     }
-    Option::Option(const char* v, const char* cur, OnChange pFn)
+    Option::Option(char const* v, char const* cur, OnChange pFn)
+        : Option{ std::string{ v }, std::string{ cur }, pFn }
+    {}
+    Option::Option(std::string const& v, std::string const& cur, OnChange pFn)
         : type{ "combo" }
         , onChange{ pFn } {
         defaultVal = v; currentVal = cur;
@@ -212,12 +219,20 @@ namespace UCI {
         assert(type == "spin");
         return std::stod(currentVal);
     }
-    bool Option::operator==(const char *v) const {
+
+    bool Option::operator==(char const *v) const {
+        return *this == std::string{ v };
+    }
+    bool Option::operator==(std::string const &v) const {
         assert(type == "combo");
         return !CaseInsensitiveLessComparer()(currentVal, v)
             && !CaseInsensitiveLessComparer()(v, currentVal);
     }
 
+    Option& Option::operator=(char const *v) {
+        *this = std::string{ v };
+        return *this;
+    }
     /// Option::operator=() updates currentValue and triggers onChange() action
     Option& Option::operator=(string &v) {
         assert(!type.empty());
@@ -259,7 +274,7 @@ namespace UCI {
     }
 
     /// Option::operator<<() inits options and assigns idx in the correct printing order
-    void Option::operator<<(const Option &opt) {
+    void Option::operator<<(Option const &opt) {
         static u32 insertOrder = 0;
 
         *this = opt;
@@ -288,14 +303,14 @@ namespace UCI {
         return oss.str();
     }
 
-    ostream& operator<<(ostream &os, const Option &opt) {
+    std::ostream& operator<<(std::ostream &os, Option const &opt) {
         os << opt.toString();
         return os;
     }
 
     /// This is used to print all the options default values in chronological
     /// insertion order and in the format defined by the UCI protocol.
-    ostream& operator<<(ostream &os, const StringOptionMap &strOptMap) {
+    std::ostream& operator<<(std::ostream &os, StringOptionMap const &strOptMap) {
         for (size_t idx = 0; idx < strOptMap.size(); ++idx) {
             for (auto &strOptPair : strOptMap) {
                 if (strOptPair.second.index == idx) {
@@ -410,9 +425,9 @@ namespace UCI {
 
         /// Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
         /// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-        const string StartFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
+        string const StartFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
 
-        const vector<string> DefaultCmds
+        vector<string> const DefaultCmds
         {
             // ---Chess Normal---
             "setoption name UCI_Chess960 value false",
@@ -531,10 +546,10 @@ namespace UCI {
             while (iss >> token) {
                 ++count;
                 auto m = moveOfCAN(token, pos);
-                if (MOVE_NONE == m) {
-                    cerr << "ERROR: Illegal Move '" << token << "' at " << count << endl;
-                    return;
-                }
+                //if (MOVE_NONE == m) {
+                //    std::cerr << "ERROR: Illegal Move '" << token << "' at " << count << std::endl;
+                //    return;
+                //}
 
                 states->emplace_back();
                 pos.doMove(m, states->back());
@@ -567,30 +582,32 @@ namespace UCI {
                     // Parse and Validate search-moves (if any)
                     while (iss >> token) {
                         auto m = moveOfCAN(token, pos);
-                        if (MOVE_NONE == m) {
-                            cerr << "ERROR: Illegal Rootmove '" << token << "'" << endl;
-                            continue;
-                        }
+                        //if (MOVE_NONE == m) {
+                        //    std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
+                        //    continue;
+                        //}
                         Limits.searchMoves.push_back(m);
                     }
                 }
                 else if (token == "ignoremoves") {
                     // Parse and Validate ignore-moves (if any)
-                    for (const auto &vm : MoveList<GenType::LEGAL>(pos)) {
+                    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
                         Limits.searchMoves.push_back(vm);
                     }
                     while (iss >> token) {
                         auto m = moveOfCAN(token, pos);
-                        if (MOVE_NONE == m) {
-                            cerr << "ERROR: Illegal Rootmove '" << token << "'" << endl;
-                            continue;
-                        }
+                        //if (MOVE_NONE == m) {
+                        //    std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
+                        //    continue;
+                        //}
                         Limits.searchMoves.erase(std::remove(Limits.searchMoves.begin()
                                                            , Limits.searchMoves.end(), m)
                                                , Limits.searchMoves.end());
                     }
                 }
-                else { cerr << "Unknown token : " << token << endl; }
+                else {
+                    std::cerr << "Unknown token : " << token << std::endl;
+                }
             }
             Threadpool.startThinking(pos, states);
         }
@@ -616,7 +633,7 @@ namespace UCI {
         /// bench 64 4 5000 movetime current -> search current position with 4 threads for 5 sec (TT = 64MB)
         /// bench 64 1 100000 nodes -> search default positions for 100K nodes (TT = 64MB)
         /// bench 16 1 5 perft -> run perft 5 on default positions
-        vector<string> setupBench(istringstream &iss, const Position &pos) {
+        vector<string> setupBench(istringstream &iss, Position const &pos) {
             string token;
 
             // Assign default values to missing arguments
@@ -633,9 +650,9 @@ namespace UCI {
             else if (fen == "current") { cmds.push_back(pos.fen()); }
             else if (fen == "default") { cmds = DefaultCmds; }
             else {
-                ifstream ifs{ fen, ios::in };
+                std::ifstream ifs{ fen, std::ios::in };
                 if (!ifs.is_open()) {
-                    cerr << "ERROR: unable to open file ... \'" << fen << "\'" << endl;
+                    std::cerr << "ERROR: unable to open file ... \'" << fen << "\'" << std::endl;
                     return uciCmds;
                 }
                 string cmd;
@@ -653,7 +670,7 @@ namespace UCI {
             uciCmds.push_back("setoption name Hash value " + hash);
             uciCmds.push_back("ucinewgame");
 
-            for (const auto &cmd : cmds) {
+            for (auto const &cmd : cmds) {
                 if (cmd.find("setoption") != string::npos) {
                     uciCmds.push_back(cmd);
                 }
@@ -666,7 +683,7 @@ namespace UCI {
             }
 
             if (fen != "current") {
-                uciCmds.push_back("setoption name UCI_Chess960 value " + string(chess960 ? "true" : "false"));
+                uciCmds.push_back("setoption name UCI_Chess960 value " + string{ chess960 ? "true" : "false" });
                 uciCmds.push_back("position fen " + pos.fen());
             }
             return uciCmds;
@@ -675,9 +692,9 @@ namespace UCI {
         /// bench() setup list of UCI commands is setup according to bench parameters,
         /// then it is run one by one printing a summary at the end.
         void bench(istringstream &iss, Position &pos, StateListPtr &states) {
-            const auto uciCmds = setupBench(iss, pos);
-            const auto count = u16(std::count_if(uciCmds.begin(), uciCmds.end(),
-                                                [](const string &s) {
+            auto const uciCmds = setupBench(iss, pos);
+            auto const count = u16(std::count_if(uciCmds.begin(), uciCmds.end(),
+                                                [](string const &s) {
                                                     return 0 == s.find("eval")
                                                         || 0 == s.find("perft ")
                                                         || 0 == s.find("go ");
@@ -687,10 +704,10 @@ namespace UCI {
             auto elapsed{ now() };
             u16 i{ 0 };
             u64 nodes{ 0 };
-            for (const auto &cmd : uciCmds) {
+            for (auto const &cmd : uciCmds) {
                 istringstream is{ cmd };
                 string token;
-                is >> skipws >> token;
+                is >> std::skipws >> token;
 
                 if (whiteSpaces(token))         { continue; }
                 else if (token == "setoption")  { setOption(is); }
@@ -698,10 +715,13 @@ namespace UCI {
                 else if (token == "eval"
                       || token == "perft"
                       || token == "go")         {
-                    cerr << "\n---------------\n"
-                         << "Position: "
-                         << std::right << std::setw(2) << ++i << '/' << count << " "
-                         << std::left  << pos.fen() << endl;
+                    std::cerr
+                        << "\n---------------\n"
+                        << "Position: "
+                        << std::right
+                        << std::setw(2) << ++i << '/' << count << " "
+                        << std::left
+                        << pos.fen() << std::endl;
 
                     /**/ if (token == "eval")   { sync_cout << Evaluator::trace(pos) << sync_endl; }
                     else if (token == "perft")  {
@@ -718,7 +738,9 @@ namespace UCI {
                     UCI::clear();
                     elapsed = now();
                 }
-                else { cerr << "Unknown command: \'" << token << "\'" << endl; }
+                else {
+                    std::cerr << "Unknown command: \'" << token << "\'" << std::endl;
+                }
             }
 
             elapsed = now() - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
@@ -732,7 +754,7 @@ namespace UCI {
                 << "Nodes searched  :" << std::setw(16) << nodes << "\n"
                 << "Nodes/second    :" << std::setw(16) << nodes * 1000 / elapsed
                 << "\n---------------------------------\n";
-            cerr << oss.str() << endl;
+            std::cerr << oss.str() << std::endl;
         }
     }
 
@@ -740,11 +762,11 @@ namespace UCI {
     /// Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
     /// In addition to the UCI ones, also some additional commands are supported.
-    void handleCommands(u32 argc, const char *const *argv) {
+    void handleCommands(u32 argc, char const *const *argv) {
         // Join arguments
         string cmd;
         for (u32 i = 1; i < argc; ++i) {
-            cmd += string(argv[i]) + " ";
+            cmd += string{ argv[i] } + " ";
         }
 
         Debugger::reset();
@@ -758,13 +780,13 @@ namespace UCI {
 
         do {
             if (1 == argc
-             && !std::getline(cin, cmd, '\n')) {// Block here waiting for input or EOF
+             && !std::getline(std::cin, cmd, '\n')) {// Block here waiting for input or EOF
                 cmd = "quit";
             }
 
             istringstream iss{ cmd };
             string token;
-            iss >> skipws >> token;
+            iss >> std::skipws >> token;
 
             if (whiteSpaces(token))         { continue; }
             else if (token == "quit"
@@ -794,7 +816,7 @@ namespace UCI {
             else if (token == "eval")       { sync_cout << Evaluator::trace(pos) << sync_endl; }
             else if (token == "perft")      {
                 Depth depth{ 1 };     iss >> depth; depth = std::max(Depth(1), depth);
-                bool detail{ false }; iss >> boolalpha >> detail;
+                bool detail{ false }; iss >> std::boolalpha >> detail;
                 perft<true>(pos, depth, detail);
             }
             else if (token == "keys")       {
@@ -808,12 +830,14 @@ namespace UCI {
                 sync_cout << oss.str() << sync_endl;
             }
             else if (token == "moves")      {
+                // TODO::
+                /*
                 sync_cout;
                 i32 count;
                 if (0 != pos.checkers()) {
                     cout << "\nEvasion moves: ";
                     count = 0;
-                    for (const auto &vm : MoveList<GenType::EVASION>(pos)) {
+                    for (auto const &vm : MoveList<GenType::EVASION>(pos)) {
                         if (pos.legal(vm)) {
                             cout << moveToSAN(vm, pos) << " ";
                             ++count;
@@ -824,7 +848,7 @@ namespace UCI {
                 else {
                     cout << "\nQuiet moves: ";
                     count = 0;
-                    for (const auto &vm : MoveList<GenType::QUIET>(pos)) {
+                    for (auto const &vm : MoveList<GenType::QUIET>(pos)) {
                         if (pos.legal(vm)) {
                             cout << moveToSAN(vm, pos) << " ";
                             ++count;
@@ -834,7 +858,7 @@ namespace UCI {
 
                     cout << "\nCheck moves: ";
                     count = 0;
-                    for (const auto &vm : MoveList<GenType::CHECK>(pos)) {
+                    for (auto const &vm : MoveList<GenType::CHECK>(pos)) {
                         if (pos.legal(vm)) {
                             cout << moveToSAN(vm, pos) << " ";
                             ++count;
@@ -844,7 +868,7 @@ namespace UCI {
 
                     cout << "\nQuiet Check moves: ";
                     count = 0;
-                    for (const auto &vm : MoveList<GenType::QUIET_CHECK>(pos)) {
+                    for (auto const &vm : MoveList<GenType::QUIET_CHECK>(pos)) {
                         if (pos.legal(vm)) {
                             cout << moveToSAN(vm, pos) << " ";
                             ++count;
@@ -854,7 +878,7 @@ namespace UCI {
 
                     cout << "\nCapture moves: ";
                     count = 0;
-                    for (const auto &vm : MoveList<GenType::CAPTURE>(pos)) {
+                    for (auto const &vm : MoveList<GenType::CAPTURE>(pos)) {
                         if (pos.legal(vm)) {
                             cout << moveToSAN(vm, pos) << " ";
                             ++count;
@@ -865,11 +889,12 @@ namespace UCI {
 
                 cout << "\nLegal moves: ";
                 count = 0;
-                for (const auto &vm : MoveList<GenType::LEGAL>(pos)) {
+                for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
                     cout << moveToSAN(vm, pos) << " ";
                     ++count;
                 }
                 cout << "(" << count << ")" << sync_endl;
+                */
             }
             else { sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl; }
 
@@ -894,7 +919,7 @@ namespace UCI {
 u32 optionThreads() {
     u32 threadCount{ Options["Threads"] };
     if (0 == threadCount) {
-        threadCount = thread::hardware_concurrency();
+        threadCount = std::thread::hardware_concurrency();
     }
     return threadCount;
 }

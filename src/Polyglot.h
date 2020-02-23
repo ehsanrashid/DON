@@ -9,45 +9,38 @@
 ///  - Move      2 bytes
 ///  - Weight    2 bytes
 ///  - Learn     4 bytes
-struct PolyEntry
-{
+struct PolyEntry {
     u64 key;
     u16 move;
     u16 weight;
     u32 learn;
 
-    PolyEntry() = default;
-    PolyEntry(u64, u16, u16, u32);
-
-    PolyEntry& operator=(const PolyEntry&) = default;
-
     explicit operator Move() const { return Move(move); }
 
-    bool operator==(const PolyEntry&) const;
-    bool operator!=(const PolyEntry&) const;
+    bool operator==(PolyEntry const&) const;
+    bool operator!=(PolyEntry const&) const;
 
-    bool operator>(const PolyEntry&) const;
-    bool operator<(const PolyEntry&) const;
+    bool operator>(PolyEntry const&) const;
+    bool operator<(PolyEntry const&) const;
 
-    bool operator>=(const PolyEntry&) const;
-    bool operator<=(const PolyEntry&) const;
+    bool operator>=(PolyEntry const&) const;
+    bool operator<=(PolyEntry const&) const;
 
-    bool operator==(Move m) const;
-    bool operator!=(Move m) const;
+    bool operator==(Move) const;
+    bool operator!=(Move) const;
 
     std::string toString() const;
 };
 
 static_assert (sizeof (PolyEntry) == 16, "Entry size incorrect");
 
-extern std::ostream& operator<<(std::ostream&, const PolyEntry&);
+extern std::ostream& operator<<(std::ostream&, PolyEntry const&);
 
-class PolyBook
-{
+class PolyBook {
 private:
 
-    PolyEntry   *entries;
-    size_t      entryCount;
+    PolyEntry  *entryTable;
+    u64         entryCount;
 
     bool        doProbe;
     Bitboard    prevPieces;
@@ -57,14 +50,14 @@ private:
     void clear();
 
     i64 findIndex(Key) const;
-    //i64 findIndex(const Position&) const;
-    //i64 findIndex(const std::string&) const;
+    //i64 findIndex(Position const&) const;
+    //i64 findIndex(std::string const&) const;
 
-    bool canProbe(const Position&);
+    bool canProbe(Position const&);
 
 public:
 
-    size_t const HeaderSize = 0;
+    u64 const HeaderSize = 0;
 
     bool enabled;
     std::string bookFn;
@@ -72,11 +65,11 @@ public:
     PolyBook();
     ~PolyBook();
 
-    void initialize(const std::string&);
+    void initialize(std::string const&);
 
     Move probe(Position&, i16, bool);
 
-    std::string show(const Position&) const;
+    std::string show(Position const&) const;
 };
 
 // Global Polyglot Book

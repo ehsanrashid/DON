@@ -2,12 +2,11 @@
 
 #include <bitset>
 #include <memory>
+#include <sstream>
 #include <vector>
 
 #include "PRNG.h"
 #include "Notation.h"
-
-using namespace std;
 
 Array<Bitboard, COLORS, SQUARES> PawnAttacks;
 Array<Bitboard, PIECE_TYPES, SQUARES> PieceAttacks;
@@ -260,10 +259,11 @@ namespace BitBoard {
     }
 
 #if !defined(NDEBUG)
+
     /// Returns an ASCII representation of a bitboard to print on console output
     /// Bitboard in an easily readable format. This is sometimes useful for debugging.
-    string toString(Bitboard bb) {
-        ostringstream oss;
+    std::string toString(Bitboard bb) {
+        std::ostringstream oss;
 
         oss << " /---------------\\\n";
         for (Rank r = RANK_8; r >= RANK_1; --r) {
@@ -284,6 +284,7 @@ namespace BitBoard {
 
         return oss.str();
     }
+
 #endif
 
 }

@@ -9,17 +9,14 @@
 // usual I/O functionality, all without changing a single line of code!
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
 class TieStreamBuf
-    : public std::streambuf
-{
+    : public std::streambuf {
 private:
 
-    int_type write(int_type ch, const std::string &prefix)
-    {
+    int_type write(int_type ch, std::string const &prefix) {
         // Previous character
         static int_type pch = '\n';
 
-        if ('\n' == pch)
-        {
+        if ('\n' == pch) {
             //if (
             writSB->sputn(prefix.c_str(), prefix.length());
             //    != prefix.length()) return EOF;
@@ -31,21 +28,33 @@ protected:
 
 public:
 
-    std::streambuf *readSB
-        ,          *writSB;
+    std::streambuf
+          *readSB
+        , *writSB;
 
-    TieStreamBuf(std::streambuf *rSB
-               , std::streambuf *wSB)
-        : readSB{rSB}
-        , writSB{wSB}
+    TieStreamBuf(
+          std::streambuf *rSB
+        , std::streambuf *wSB)
+        : readSB{ rSB }
+        , writSB{ wSB }
     {}
-    TieStreamBuf(const TieStreamBuf&) = delete;
-    TieStreamBuf& operator=(const TieStreamBuf&) = delete;
+    TieStreamBuf(TieStreamBuf const&) = delete;
+    TieStreamBuf& operator=(TieStreamBuf const&) = delete;
 
-    int      sync() override { return writSB->pubsync(), readSB->pubsync(); }
-    int_type overflow(int_type ch) override { return write(readSB->sputc(char(ch)), "<< "); }
-    int_type underflow() override { return readSB->sgetc(); }
-    int_type uflow() override { return write(readSB->sbumpc(), ">> "); }
+    int sync() override {
+        return writSB->pubsync(), readSB->pubsync();
+    }
+
+    int_type overflow(int_type ch) override {
+        return write(readSB->sputc(char(ch)), "<< ");
+    }
+
+    int_type underflow() override {
+        return readSB->sgetc();
+    }
+
+    int_type uflow() override {
+        return write(readSB->sbumpc(), ">> ");
+    }
 
 };
-

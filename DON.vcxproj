@@ -629,6 +629,7 @@
     <ClCompile Include="src\SkillManager.cpp" />
     <ClCompile Include="src\SyzygyTB.cpp" />
     <ClCompile Include="src\Thread.cpp" />
+    <ClCompile Include="src\ThreadMarker.cpp" />
     <ClCompile Include="src\TimeManager.cpp" />
     <ClCompile Include="src\Transposition.cpp" />
     <ClCompile Include="src\UCI.cpp" />
@@ -659,6 +660,7 @@
     <ClInclude Include="src\Table.h" />
     <ClInclude Include="src\SyzygyTB.h" />
     <ClInclude Include="src\Thread.h" />
+    <ClInclude Include="src\ThreadMarker.h" />
     <ClInclude Include="src\ThreadWin32OSX.h" />
     <ClInclude Include="src\TieStreamBuf.h" />
     <ClInclude Include="src\TimeManager.h" />

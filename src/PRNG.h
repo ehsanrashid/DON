@@ -36,8 +36,8 @@ public:
         assert(0 != s);
     }
 
-    PRNG(const PRNG&) = delete;
-    PRNG& operator=(const PRNG&) = delete;
+    PRNG(PRNG const&) = delete;
+    PRNG& operator=(PRNG const&) = delete;
 
     template<typename T>
     T rand() {

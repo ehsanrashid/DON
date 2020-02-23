@@ -55,7 +55,7 @@ public:
     // Cluster entry count
     static constexpr u08 EntryCount = 3;
 
-    TEntry entries[EntryCount];
+    TEntry entryTable[EntryCount];
     char padding[2]; // Pad to 32 bytes
 
     TCluster() = default;
@@ -90,17 +90,17 @@ public:
         ;
 
     void     *mem;
-    TCluster *clusters;
-    size_t    clusterCount;
+    TCluster *clusterTable;
+    u64       clusterCount;
 
     TTable();
-    TTable(const TTable&) = delete;
-    TTable& operator=(const TTable&) = delete;
+    TTable(TTable const&) = delete;
+    TTable& operator=(TTable const&) = delete;
     ~TTable();
 
     u32 size() const;
 
-    TCluster* cluster(Key key) const;
+    TCluster* cluster(Key) const;
 
     u32 resize(u32);
 
@@ -114,11 +114,11 @@ public:
 
     Move extractNextMove(Position&, Move) const;
 
-    void save(const std::string&) const;
-    void load(const std::string&);
+    void save(std::string const&) const;
+    void load(std::string const&);
 
-    friend std::ostream& operator<<(std::ostream&, const TTable&);
-    friend std::istream& operator>>(std::istream&,       TTable&);
+    friend std::ostream& operator<<(std::ostream&, TTable const&);
+    friend std::istream& operator>>(std::istream&, TTable      &);
 };
 
 // Global Transposition Table

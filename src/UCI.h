@@ -6,13 +6,13 @@
 #include "Comparer.h"
 #include "Type.h"
 
-extern const std::string Name;
-extern const std::string Version;
-extern const std::string Author;
+extern std::string const Name;
+extern std::string const Version;
+extern std::string const Author;
 
-extern const std::string engineInfo();
+extern std::string const engineInfo();
 
-extern const std::string compilerInfo();
+extern std::string const compilerInfo();
 
 namespace UCI {
 
@@ -37,10 +37,12 @@ namespace UCI {
 
         Option(OnChange = nullptr);
         Option(bool, OnChange = nullptr);
-        Option(const char*, OnChange = nullptr);
+        Option(char const*, OnChange = nullptr);
+        Option(std::string const&, OnChange = nullptr);
         Option(double, double, double, OnChange = nullptr);
-        Option(const char*, const char*, OnChange = nullptr);
-        Option(const Option&) = delete;
+        Option(char const*, char const*, OnChange = nullptr);
+        Option(std::string const&, std::string const&, OnChange = nullptr);
+        Option(Option const&) = delete;
 
         operator std::string() const;
         operator bool() const;
@@ -51,26 +53,29 @@ namespace UCI {
         operator i64() const;
         operator u64() const;
         operator double() const;
-        bool operator==(const char*) const;
 
+        bool operator==(char const*) const;
+        bool operator==(std::string const&) const;
+
+        Option& operator=(char const*);
         Option& operator=(std::string&);
 
-        void operator<<(const Option&);
+        void operator<<(Option const&);
 
         std::string toString() const;
     };
 
-    extern std::ostream& operator<<(std::ostream&, const Option&);
+    extern std::ostream& operator<<(std::ostream&, Option const&);
 
     /// Options container is std::map of string & Option
     using StringOptionMap = std::map<std::string, Option, CaseInsensitiveLessComparer>;
 
-    extern std::ostream& operator<<(std::ostream&, const StringOptionMap&);
+    extern std::ostream& operator<<(std::ostream&, StringOptionMap const&);
 
 
     extern void initialize();
 
-    extern void handleCommands(u32, const char *const*);
+    extern void handleCommands(u32, char const *const*);
 
     extern void clear();
 }

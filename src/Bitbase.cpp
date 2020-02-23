@@ -6,11 +6,12 @@
 #include "BitBoard.h"
 #include "Table.h"
 
-using namespace std;
 
 namespace BitBase {
 
     namespace {
+
+        using std::bitset;
 
         // There are 24 possible pawn squares: files A to D and ranks from 2 to 7
         // Positions with the pawn on files E to H will be mirrored before probing.
@@ -50,7 +51,7 @@ namespace BitBase {
         //Result& operator&=(Result &r1, Result r2) { return r1 = Result(r1 & r2); }
 
         /// KPKPosition
-        struct KPKPosition {
+        class KPKPosition {
         private:
             Color  active;
             Square pSq;
@@ -67,7 +68,7 @@ namespace BitBase {
                 return result;
             }
 
-            Result classify(const Array<KPKPosition, MaxIndex>&);
+            Result classify(Array<KPKPosition, MaxIndex> const&);
         };
 
         KPKPosition::KPKPosition(u32 idx) {
@@ -116,7 +117,7 @@ namespace BitBase {
             }
         }
 
-        Result KPKPosition::classify(const Array<KPKPosition, MaxIndex> &kpkDB) {
+        Result KPKPosition::classify(Array<KPKPosition, MaxIndex> const &kpkDB) {
             // White to Move:
             // If one move leads to a position classified as WIN, the result of the current position is WIN.
             // If all moves lead to positions classified as DRAW, the result of the current position is DRAW
@@ -127,8 +128,8 @@ namespace BitBase {
             // If all moves lead to positions classified as WIN, the result of the current position is WIN
             // otherwise the current position is classified as UNKNOWN.
 
-            const auto Good{ WHITE == active ? WIN : DRAW };
-            const auto  Bad{ WHITE == active ? DRAW : WIN };
+            auto const Good{ WHITE == active ? WIN : DRAW };
+            auto const  Bad{ WHITE == active ? DRAW : WIN };
 
             auto r{ INVALID };
             Bitboard b{ PieceAttacks[KING][kSq[active]] };
@@ -165,7 +166,7 @@ namespace BitBase {
     void initialize() {
         Array<KPKPosition, MaxIndex> kpkDB;
         // Initialize kpkDB with known win / draw positions
-        for (u32 idx = 0; idx < kpkDB.size(); ++idx) {
+        for (u32 idx = 0; idx < MaxIndex; ++idx) {
             kpkDB[idx] = KPKPosition(idx);
         }
         // Iterate through the positions until none of the unknown positions can be
@@ -173,13 +174,13 @@ namespace BitBase {
         bool repeat{ true };
         while (repeat) {
             repeat = false;
-            for (u32 idx = 0; idx < kpkDB.size(); ++idx) {
+            for (u32 idx = 0; idx < MaxIndex; ++idx) {
                 repeat |= UNKNOWN == kpkDB[idx]
                        && UNKNOWN != kpkDB[idx].classify(kpkDB);
             }
         }
         // Fill the bitbase with the decisive results
-        for (u32 idx = 0; idx < kpkDB.size(); ++idx) {
+        for (u32 idx = 0; idx < MaxIndex; ++idx) {
             if (WIN == kpkDB[idx]) {
                 KPKBitbase.set(idx);
             }

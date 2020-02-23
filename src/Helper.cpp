@@ -4,22 +4,9 @@
 #include <mutex>
 #include <algorithm>
 
-using namespace std;
+using std::string;
 
-/// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-ostream& operator<<(ostream &os, OutputState outputState) {
-    static mutex mtx;
-
-    switch (outputState)
-    {
-    case OS_LOCK:   mtx.lock();   break;
-    case OS_UNLOCK: mtx.unlock(); break;
-    default: break;
-    }
-    return os;
-}
-
-bool whiteSpaces(const string &str) {
+bool whiteSpaces(string const &str) {
     return str.empty()
         || std::all_of(str.begin(), str.end(), ::isspace);
 }
@@ -54,7 +41,7 @@ string trim(string &str) {
     return str;
 }
 
-string appendPath(const string &basePath, const string &filePath) {
+string appendPath(string const &basePath, string const &filePath) {
     return basePath[basePath.length() - 1] != '/' ?
             basePath + '/' + filePath :
             basePath + filePath;
@@ -68,8 +55,7 @@ void removeExtension(string &filename) {
     }
 }
 
-
-//void eraseSubstring(string &str, const string &sub) {
+//void eraseSubstring(string &str, string const &sub) {
 //    auto pos{ str.find(sub) };
 //    while (pos != string::npos)
 //    {
@@ -77,12 +63,12 @@ void removeExtension(string &filename) {
 //        pos = str.find(sub);
 //    }
 //}
-//void eraseSubstring(string &str, const vector<string> &subList) {
+//void eraseSubstring(string &str, const std::vector<string> &subList) {
 //    std::for_each(subList.begin(), subList.end(), std::bind(eraseSubstring, std::ref(str), std::placeholders::_1));
 //}
 
-//vector<string> splitString(const string &str, char delimiter = ' ', bool keepEmpty = true, bool doTrim = false) {
-//    vector<string> tokens;
+//std::vector<string> splitString(string const &str, char delimiter = ' ', bool keepEmpty = true, bool doTrim = false) {
+//    std::vector<string> tokens;
 //    istringstream iss{ str };
 //    while (iss.good())
 //    {
@@ -104,3 +90,13 @@ void removeExtension(string &filename) {
 //    }
 //    return tokens;
 //}
+
+
+/// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
+std::ostream& operator<<(std::ostream &os, OutputState outputState) {
+    static std::mutex mutex;
+    if (outputState == OS_LOCK)     mutex.lock();
+    else
+    if (outputState == OS_UNLOCK)   mutex.unlock();
+    return os;
+}

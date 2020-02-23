@@ -9,8 +9,6 @@
 // Threshold for counter moves based pruning
 constexpr i32 CounterMovePruneThreshold = 0;
 
-
-
 /// Limit stores information sent by GUI after Go command about limit to search
 ///  - Available Time and Increment
 ///  - Moves to go
@@ -28,7 +26,6 @@ struct Limit {
         TimePoint inc{ 0 };
     };
 
-
     Array<Clock, COLORS> clock;     // Search with Clock
 
     u08       movestogo{ 0 };       // Search <x> moves to the next time control
@@ -38,7 +35,7 @@ struct Limit {
     u08       mate{ 0 };            // Search mate in <x> moves
     bool      infinite{ false };    // Search until the "stop" command
     bool      ponder{ false };      // Search in ponder mode.
-    std::vector<Move> searchMoves;  // Restrict search to these root moves only
+    Moves     searchMoves;          // Restrict search to these root moves only
 
     TimePoint startTime;
 

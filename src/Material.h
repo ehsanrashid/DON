@@ -18,13 +18,13 @@ namespace Material {
         Score imbalance;
         Array<Scale, COLORS> scale;
 
-        const EndgameBase<Value> *evaluationFunc;
-        Array<const EndgameBase<Scale>*, COLORS> scalingFunc;
+        EndgameBase<Value> const *evaluationFunc;
+        Array<EndgameBase<Scale> const*, COLORS> scalingFunc;
 
-        void evaluate(const Position&);
+        void evaluate(Position const&);
     };
 
     using Table = HashTable<Entry, 0x2000>;
 
-    extern Entry* probe(const Position&);
+    extern Entry* probe(Position const&);
 }

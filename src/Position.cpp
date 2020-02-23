@@ -1,7 +1,7 @@
 #include "Position.h"
 
 #include <cassert>
-#include <cstring>
+#include <cstring> // For std::memset and std::memcpy
 #include <algorithm>
 
 #include "Cuckoo.h"
@@ -16,14 +16,12 @@
 #include "Zobrist.h"
 #include "UCI.h"
 
-using namespace std;
-
 namespace {
 
     /// Computes the non-pawn middle game material value for the given side.
     /// Material values are updated incrementally during the search.
     template<Color Own>
-    Value computeNPM(const Position &pos) {
+    Value computeNPM(Position const &pos) {
         auto npm{ VALUE_ZERO };
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
             npm += PieceValues[MG][pt] * pos.count(Own|pt);
@@ -32,8 +30,8 @@ namespace {
     }
     /// Explicit template instantiations
     /// --------------------------------
-    template Value computeNPM<WHITE>(const Position&);
-    template Value computeNPM<BLACK>(const Position&);
+    template Value computeNPM<WHITE>(Position const&);
+    template Value computeNPM<BLACK>(Position const&);
 
 }
 
@@ -65,7 +63,7 @@ void StateInfo::clear() {
 Key Position::pgKey() const {
     return PolyZob.computePosiKey(*this);
 }
-/// Position::move_posi_key() computes the new hash key after the given moven.
+/// Position::movePosiKey() computes the new hash key after the given moven.
 /// Needed for speculative prefetch.
 Key Position::movePosiKey(Move m) const {
     assert(isOk(m)
@@ -121,7 +119,7 @@ bool Position::draw(i16 pp) const {
 /// Position::repeated() tests whether there has been at least one repetition of positions since the last capture or pawn move.
 bool Position::repeated() const {
     auto end{ std::min(clockPly(), nullPly()) };
-    const auto *csi{ si };
+    auto const *csi{ si };
     while (end-- >= 4) {
         if (0 != csi->repetition) {
             return true;
@@ -140,7 +138,7 @@ bool Position::cycled(i16 pp) const {
     }
 
     Key pKey{ posiKey() };
-    const auto *psi = si->ptr;
+    auto const *psi = si->ptr;
 
     for (i16 p = 3; p <= end; p += 2) {
         psi = psi->ptr->ptr;
@@ -148,8 +146,8 @@ bool Position::cycled(i16 pp) const {
         Key moveKey{ pKey
                    ^ psi->posiKey };
         u16 j;
-        if ((j = H1(moveKey), moveKey == Cuckoos[j].key)
-         || (j = H2(moveKey), moveKey == Cuckoos[j].key)) {
+        if ((j = hash1(moveKey), moveKey == Cuckoos[j].key)
+         || (j = hash2(moveKey), moveKey == Cuckoos[j].key)) {
             auto move{ Cuckoos[j].move };
             auto s1{ orgSq(move) };
             auto s2{ dstSq(move) };
@@ -686,7 +684,7 @@ void Position::movePiece(Square s1, Square s2) {
 /// Position::setup() initializes the position object with the given FEN string.
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
-Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th) {
+Position& Position::setup(std::string const &ff, StateInfo &nsi, Thread *const th) {
     // A FEN string defines a particular position using only the ASCII character set.
     // A FEN string contains six fields separated by a space.
     // 1) Piece placement (from White's perspective).
@@ -722,8 +720,8 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th) {
     nsi.clear();
     si = &nsi;
 
-    istringstream iss{ ff };
-    iss >> noskipws;
+    std::istringstream iss{ ff };
+    iss >> std::noskipws;
 
     u08 token;
     // 1. Piece placement on Board
@@ -799,7 +797,7 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th) {
     }
 
     // 5-6. Half move clock and Full move number.
-    iss >> skipws
+    iss >> std::skipws
         >> si->clockPly
         >> ply;
 
@@ -826,11 +824,11 @@ Position& Position::setup(const string &ff, StateInfo &nsi, Thread *const th) {
 }
 /// Position::setup() initializes the position object with the given endgame code string like "KBPKN".
 /// It is mainly an helper to get the material key out of an endgame code.
-Position& Position::setup(const string &code, Color c, StateInfo &nsi) {
+Position& Position::setup(std::string const &code, Color c, StateInfo &nsi) {
     assert(code[0] == 'K'
-        && code.find('K', 1) != string::npos);
+        && code.find('K', 1) != std::string::npos);
 
-    Array<string, COLORS> codes
+    Array<std::string, COLORS> codes
     {
         code.substr(code.find('K', 1)),
         code.substr(0, std::min(code.find('v'), code.find('K', 1)))
@@ -1010,7 +1008,7 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
     si->repetition = 0;
     auto end = std::min(clockPly(), nullPly());
     if (end >= 4) {
-        const auto* psi{ si->ptr->ptr };
+        auto const* psi{ si->ptr->ptr };
         for (i16 i = 4; i <= end; i += 2) {
             psi = psi->ptr->ptr;
             if (psi->posiKey == posiKey()) {
@@ -1114,7 +1112,7 @@ void Position::doNullMove(StateInfo &nsi)
     active = ~active;
     si->posiKey ^= RandZob.colorKey;
 
-    prefetch(TT.cluster(posiKey())->entries);
+    prefetch(TT.cluster(posiKey())->entryTable);
 
     si->repetition = 0;
     setCheckInfo();
@@ -1139,8 +1137,8 @@ void Position::undoNullMove()
 /// This is only useful for debugging especially for finding evaluation symmetry bugs.
 void Position::flip()
 {
-    istringstream iss{ fen() };
-    string ff, token;
+    std::istringstream iss{ fen() };
+    std::string ff, token;
     // 1. Piece placement
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
@@ -1175,8 +1173,8 @@ void Position::flip()
 /// Position::mirror() mirrors position mean King and Queen sides swaped.
 void Position::mirror()
 {
-    istringstream iss{ fen() };
-    string ff, token;
+    std::istringstream iss{ fen() };
+    std::string ff, token;
     // 1. Piece placement
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
@@ -1225,9 +1223,9 @@ void Position::mirror()
 
 /// Position::fen() returns a FEN representation of the position.
 /// In case of Chess960 the Shredder-FEN notation is used.
-string Position::fen(bool full) const
+std::string Position::fen(bool full) const
 {
-    ostringstream oss;
+    std::ostringstream oss;
 
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         for (File f = FILE_A; f <= FILE_H; ++f) {
@@ -1269,8 +1267,8 @@ string Position::fen(bool full) const
     return oss.str();
 }
 /// Position::toString() returns an ASCII representation of the position.
-string Position::toString() const {
-    ostringstream oss;
+std::string Position::toString() const {
+    std::ostringstream oss;
     oss << " +---+---+---+---+---+---+---+---+\n";
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         oss << r << "| ";
@@ -1293,19 +1291,21 @@ string Position::toString() const {
     if (Book.enabled) {
         oss << '\n' << Book.show(*this);
     }
-    if (MaxLimitPiece >= count()
+    if (SyzygyTB::MaxPieceLimit >= count()
      && CR_NONE == castleRights()) {
-        ProbeState wdlState; auto wdl = probeWDL(*const_cast<Position*>(this), wdlState);
-        ProbeState dtzState; auto dtz = probeDTZ(*const_cast<Position*>(this), dtzState);
-        oss << "\nTablebases WDL: " << std::setw(4) << wdl << " (" << wdlState << ")"
-            << "\nTablebases DTZ: " << std::setw(4) << dtz << " (" << dtzState << ")";
+        SyzygyTB::ProbeState wdlState;
+        auto wdlScore = SyzygyTB::probeWDL(*const_cast<Position*>(this), wdlState);
+        SyzygyTB::ProbeState dtzState;
+        auto dtzScore = SyzygyTB::probeDTZ(*const_cast<Position*>(this), dtzState);
+        oss << "\nTablebases WDL: " << std::setw(4) << wdlScore << " (" << wdlState << ")"
+            << "\nTablebases DTZ: " << std::setw(4) << dtzScore << " (" << dtzState << ")";
     }
     oss << '\n';
 
     return oss.str();
 }
 
-ostream& operator<<(ostream &os, const Position &pos) {
+std::ostream& operator<<(std::ostream &os, Position const &pos) {
     os << pos.toString();
     return os;
 }
@@ -1332,10 +1332,10 @@ bool Position::ok() const {
          || !isOk(square(c|KING))
          || board[square(c|KING)] != (c|KING)
          || (        (count(c|PAWN)
-           + std::max(count(c|NIHT)-2, 0)
-           + std::max(count(c|BSHP)-2, 0)
-           + std::max(count(c|ROOK)-2, 0)
-           + std::max(count(c|QUEN)-1, 0)) > 8)) {
+           + std::max(count(c|NIHT) - 2, 0)
+           + std::max(count(c|BSHP) - 2, 0)
+           + std::max(count(c|ROOK) - 2, 0)
+           + std::max(count(c|QUEN) - 1, 0)) > 8)) {
             assert(false && "Position OK: BASIC");
             return false;
         }
@@ -1364,13 +1364,13 @@ bool Position::ok() const {
     for (Color c : { WHITE, BLACK }) {
         if (1 != popCount(pieces(c, KING))
          || (        (popCount(pieces(c, PAWN))
-           + std::max(popCount(pieces(c, NIHT))-2, 0)
-           + std::max(popCount(pieces(c, BSHP))-2, 0)
-           + std::max(popCount(pieces(c, ROOK))-2, 0)
-           + std::max(popCount(pieces(c, QUEN))-1, 0)) > 8)
+           + std::max(popCount(pieces(c, NIHT)) - 2, 0)
+           + std::max(popCount(pieces(c, BSHP)) - 2, 0)
+           + std::max(popCount(pieces(c, ROOK)) - 2, 0)
+           + std::max(popCount(pieces(c, QUEN)) - 1, 0)) > 8)
          || (        (popCount(pieces(c, PAWN))
-           + std::max(popCount(pieces(c, BSHP) & Colors[WHITE])-1, 0)
-           + std::max(popCount(pieces(c, BSHP) & Colors[BLACK])-1, 0)) > 8)) {
+           + std::max(popCount(pieces(c, BSHP) & Colors[WHITE]) - 1, 0)
+           + std::max(popCount(pieces(c, BSHP) & Colors[BLACK]) - 1, 0)) > 8)) {
             assert(false && "Position OK: BITBOARD");
             return false;
         }
@@ -1437,7 +1437,7 @@ bool Position::ok() const {
 }
 
 /// isOk() Check the validity of FEN string
-bool isOk(const string &fen) {
+bool isOk(std::string const &fen) {
     Position pos;
     StateInfo si;
     return !whiteSpaces(fen)

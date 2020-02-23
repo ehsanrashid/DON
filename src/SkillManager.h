@@ -6,8 +6,7 @@
 constexpr i16 MaxLevel = 25;
 
 /// Skill Manager class is used to implement strength limit
-class SkillManager
-{
+class SkillManager {
 private:
 
     i16  level{ MaxLevel };
@@ -16,8 +15,8 @@ private:
 public:
 
     SkillManager() = default;
-    SkillManager(const SkillManager&) = delete;
-    SkillManager& operator=(const SkillManager&) = delete;
+    SkillManager(SkillManager const&) = delete;
+    SkillManager& operator=(SkillManager const&) = delete;
 
     bool enabled() const;
     bool canPick(Depth) const;

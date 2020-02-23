@@ -27,10 +27,10 @@ public:
     static Logger& instance();
 
     // Delete copy and move constructors and assign operators
-    Logger(const Logger&) = delete;             // Copy construct
+    Logger(Logger const&) = delete;             // Copy construct
     Logger(Logger&&) = delete;                  // Move construct
-    Logger& operator=(const Logger&) = delete;  // Copy assign
+    Logger& operator=(Logger const&) = delete;  // Copy assign
     Logger& operator=(Logger&&) = delete;      // Move assign
 
-    void setFile(const std::string&);
+    void setFile(std::string const&);
 };

@@ -16,18 +16,17 @@
 #include "UCI.h"
 #include "Zobrist.h"
 
-using namespace std;
-
 /// clean() cleans the stuffs in case of some crash.
 void clean() {
     Threadpool.stop = true;
     Threadpool.configure(0);
 }
 
-int main(int argc, const char *const *argv) {
+int main(int argc, char const *const *argv) {
 
-    cout << Name << " " << engineInfo() << " by " << Author << endl;
-    cout << "info string Processor(s) detected " << thread::hardware_concurrency() << endl;
+    std::cout
+        << Name << " " << engineInfo() << " by " << Author << "\n"
+        << "info string Processor(s) detected " << std::thread::hardware_concurrency() << std::endl;
 
     BitBoard::initialize();
     BitBase::initialize();
@@ -40,7 +39,7 @@ int main(int argc, const char *const *argv) {
     WinProcGroup::initialize();
     Threadpool.configure(optionThreads());
     TimeMgr.reset();
-    srand(u32(time(nullptr)));
+    std::srand(u32(time(nullptr)));
     UCI::clear();
 
     std::atexit(clean);

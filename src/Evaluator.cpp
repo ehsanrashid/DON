@@ -13,8 +13,6 @@
 #include "Thread.h"
 #include "UCI.h"
 
-using namespace std;
-
 namespace Evaluator {
 
     namespace {
@@ -36,8 +34,8 @@ namespace Evaluator {
             write(t, BLACK, bS);
         }
 
-        ostream& operator<<(ostream &os, Term t) {
-            const auto &score = Scores[t];
+        std::ostream& operator<<(std::ostream &os, Term t) {
+            auto const &score = Scores[t];
             switch (t)
             {
             case MATERIAL:
@@ -52,7 +50,7 @@ namespace Evaluator {
                    << " | " << score[BLACK];
                 break;
             }
-            os << " | " << score[WHITE] - score[BLACK] << endl;
+            os << " | " << score[WHITE] - score[BLACK] << " |\n";
             return os;
         }
 
@@ -134,7 +132,7 @@ namespace Evaluator {
         template<bool Trace>
         class Evaluation {
         private:
-            const Position &pos;
+            Position const &pos;
 
             Pawns   ::Entry *pawnEntry{ nullptr };
             Material::Entry *matlEntry{ nullptr };
@@ -178,10 +176,10 @@ namespace Evaluator {
         public:
 
             Evaluation() = delete;
-            Evaluation(const Evaluation&) = delete;
-            Evaluation& operator=(const Evaluation&) = delete;
+            Evaluation(Evaluation const&) = delete;
+            Evaluation& operator=(Evaluation const&) = delete;
 
-            Evaluation(const Position &p)
+            Evaluation(Position const &p)
                 : pos{ p }
             {}
 
@@ -936,13 +934,13 @@ namespace Evaluator {
     }
 
     /// evaluate() returns a static evaluation of the position from the point of view of the side to move.
-    Value evaluate(const Position &pos) {
+    Value evaluate(Position const &pos) {
         return Evaluation<false>(pos).value();
     }
 
     /// trace() returns a string (suitable for outputting to stdout for debugging)
     /// that contains the detailed descriptions and values of each evaluation term.
-    string trace(const Position &pos)
+    std::string trace(Position const &pos)
     {
         if (0 != pos.checkers()) {
             return "Evaluation: none (in check)\n";
@@ -956,7 +954,7 @@ namespace Evaluator {
         // Trace scores are from White's point of view
         value = WHITE == pos.active ? +value : -value;
 
-        ostringstream oss;
+        std::ostringstream oss;
 
         oss << "      Eval Term |    White    |    Black    |    Total     \n"
             << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"

@@ -10,7 +10,7 @@ namespace PSQT {
 
     extern void initialize();
 
-    extern Score computePSQ(const Position&);
+    extern Score computePSQ(Position const&);
 }
 
 extern Array<Score, PIECES, SQUARES> PSQ;

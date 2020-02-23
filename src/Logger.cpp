@@ -7,28 +7,27 @@
 #   include <ctime>
 #endif
 
-using namespace std;
-
 namespace {
 
     using SystemClockTimePoint = std::chrono::system_clock::time_point;
 
-    string toString(const SystemClockTimePoint &tp) {
-        string str;
+    std::string toString(SystemClockTimePoint const &tp) {
+        std::string str;
 
 #   if defined(_WIN32)
 
-        auto time = chrono::system_clock::to_time_t(tp);
+        auto time = std::chrono::system_clock::to_time_t(tp);
 
-        const auto *ltm = localtime(&time);
-        const char *format = "%Y.%m.%d-%H.%M.%S";
+        auto const *ltm = localtime(&time);
+        char const *format = "%Y.%m.%d-%H.%M.%S";
         char buffer[32];
         strftime(buffer, sizeof (buffer), format, ltm);
         str.append(buffer);
 
-        auto ms{ chrono::duration_cast<chrono::milliseconds>(tp - chrono::system_clock::from_time_t(time)).count() };
+        auto ms{ std::chrono::duration_cast<std::chrono::milliseconds>
+                    (tp - std::chrono::system_clock::from_time_t(time)).count() };
         str.append(".");
-        str.append(to_string(ms));
+        str.append(std::to_string(ms));
 
 #   else
 
@@ -39,7 +38,7 @@ namespace {
         return str;
     }
 
-    ostream& operator<<(ostream &os, const SystemClockTimePoint &tp) {
+    std::ostream& operator<<(std::ostream &os, const SystemClockTimePoint &tp) {
         os << toString(tp);
         return os;
     }
@@ -48,8 +47,8 @@ namespace {
 
 Logger::Logger()
     : ofs{}
-    , iTSB{  cin.rdbuf(), ofs.rdbuf() }
-    , oTSB{ cout.rdbuf(), ofs.rdbuf() }
+    , iTSB{ std:: cin.rdbuf(), ofs.rdbuf() }
+    , oTSB{ std::cout.rdbuf(), ofs.rdbuf() }
 {}
 
 Logger::~Logger()
@@ -67,27 +66,27 @@ Logger& Logger::instance()
     return _instance;
 }
 
-void Logger::setFile(const string &logFn)
+void Logger::setFile(std::string const &logFn)
 {
     if (ofs.is_open())
     {
-        cout.rdbuf(oTSB.readSB);
-         cin.rdbuf(iTSB.readSB);
+        std::cout.rdbuf(oTSB.readSB);
+        std:: cin.rdbuf(iTSB.readSB);
 
-        ofs << "[" << chrono::system_clock::now() << "] <-" << endl;
+        ofs << "[" << std::chrono::system_clock::now() << "] <-\n";
         ofs.close();
     }
     if (!logFn.empty())
     {
-        ofs.open(logFn, ios::out|ios::app);
+        ofs.open(logFn, std::ios::out|std::ios::app);
         if (!ofs.is_open())
         {
-            cerr << "Unable to open Log File " << logFn << endl;
+            std::cerr << "Unable to open Log File " << logFn << std::endl;
             exit(EXIT_FAILURE);
         }
-        ofs << "[" << chrono::system_clock::now() << "] ->" << endl;
+        ofs << "[" << std::chrono::system_clock::now() << "] ->\n";
 
-         cin.rdbuf(&iTSB);
-        cout.rdbuf(&oTSB);
+        std:: cin.rdbuf(&iTSB);
+        std::cout.rdbuf(&oTSB);
     }
 }

@@ -7,21 +7,19 @@
 #include "MoveGenerator.h"
 #include "Notation.h"
 
-using namespace std;
-
 RootMove::RootMove(Move m)
     : std::list<Move>{ 1, m }
     , oldValue{ -VALUE_INFINITE }
     , newValue{ -VALUE_INFINITE }
-    , selDepth{ 0 }
+    , selDepth{ DEPTH_ZERO }
     , tbRank{ 0 }
     , tbValue{ VALUE_ZERO }
     , bestCount{ 0 }
 {}
 
 /// RootMove::toString()
-string RootMove::toString() const {
-    ostringstream oss;
+std::string RootMove::toString() const {
+    std::ostringstream oss;
     for (auto move : *this) {
         assert(MOVE_NONE != move);
         oss << " " << move;
@@ -29,33 +27,35 @@ string RootMove::toString() const {
     return oss.str();
 }
 
-ostream& operator<<(ostream &os, const RootMove &rm) {
+std::ostream& operator<<(std::ostream &os, RootMove const &rm) {
     os << rm.toString();
     return os;
 }
 
 
-void RootMoves::initialize(const Position &pos) {
+void RootMoves::initialize(Position const &pos) {
     assert(empty());
-    for (const auto &vm : MoveList<GenType::LEGAL>(pos)) {
+    //clear();
+    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
         *this += vm;
         assert(back().tbRank == 0
             && back().tbValue == VALUE_ZERO);
     }
 }
 
-void RootMoves::initialize(const Position &pos, const vector<Move> &filterMoves) {
-    assert(empty());
+void RootMoves::initialize(Position const &pos, Moves const &filterMoves) {
     if (filterMoves.empty()) {
         initialize(pos);
+        return;
     }
-    else {
-        for (const auto &vm : MoveList<GenType::LEGAL>(pos)) {
-            if (std::find(filterMoves.begin(), filterMoves.end(), vm) != filterMoves.end()) {
-                *this += vm;
-                assert(back().tbRank == 0
-                    && back().tbValue == VALUE_ZERO);
-            }
+
+    assert(empty());
+    //clear();
+    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+        if (std::find(filterMoves.begin(), filterMoves.end(), vm) != filterMoves.end()) {
+            *this += vm;
+            assert(back().tbRank == 0
+                && back().tbValue == VALUE_ZERO);
         }
     }
 }
@@ -67,13 +67,13 @@ i16 RootMoves::moveBestCount(u32 sIdx, u32 eIdx, Move move) const {
 }
 
 /// RootMoves::toString()
-string RootMoves::toString() const {
-    ostringstream oss;
-    std::copy(begin(), end(), ostream_iterator<RootMove>(oss, "\n"));
+std::string RootMoves::toString() const {
+    std::ostringstream oss;
+    std::copy(begin(), end(), std::ostream_iterator<RootMove>(oss, "\n"));
     return oss.str();
 }
 
-ostream& operator<<(ostream &os, const RootMoves &rms) {
+std::ostream& operator<<(std::ostream &os, RootMoves const &rms) {
     os << rms.toString();
     return os;
 }

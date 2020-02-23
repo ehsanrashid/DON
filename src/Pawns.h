@@ -25,14 +25,14 @@ namespace Pawns {
         i32 passedCount() const;
 
         template<Color Own>
-        Score evaluateKingSafety(const Position&, Bitboard);
+        Score evaluateKingSafety(Position const&, Bitboard);
 
         template<Color>
-        void evaluate(const Position&);
+        void evaluate(Position const&);
 
     };
 
     using Table = HashTable<Entry, 0x20000>;
 
-    extern Entry* probe(const Position&);
+    extern Entry* probe(Position const&);
 }

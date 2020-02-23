@@ -10,16 +10,17 @@
 enum EndgameCode : u08 {
 
     EVALUATION_FUNCTIONS,
+
     KXK,   // Generic "mate lone king" eval
     KPK,   // KP vs K
-    KBNK,  // KBN vs K
     KNNK,  // KNN vs K
-    KNNKP, // KNN vs KP
+    KBNK,  // KBN vs K
     KRKP,  // KR vs KP
     KRKB,  // KR vs KB
     KRKN,  // KR vs KN
     KQKP,  // KQ vs KP
     KQKR,  // KQ vs KR
+    KNNKP, // KNN vs KP
 
     SCALING_FUNCTIONS,
     KRPKR,   // KRP vs KR
@@ -46,7 +47,7 @@ using EndgameType = typename std::conditional<C < SCALING_FUNCTIONS, Value, Scal
 template<typename T>
 class EndgameBase {
 public:
-    const Color stngColor
+    Color const stngColor
               , weakColor;
 
     explicit EndgameBase(Color c)
@@ -54,9 +55,9 @@ public:
         , weakColor{ ~c }
     {}
     virtual ~EndgameBase() = default;
-    EndgameBase& operator=(const EndgameBase&) = delete;
+    EndgameBase& operator=(EndgameBase const&) = delete;
 
-    virtual T operator()(const Position&) const = 0;
+    virtual T operator()(Position const&) const = 0;
 };
 
 /// Derived functors for endgame evaluation and scaling functions
@@ -68,9 +69,9 @@ public:
         : EndgameBase<T>{ c }
     {}
 
-    Endgame& operator=(const Endgame&) = delete;
+    Endgame& operator=(Endgame const&) = delete;
 
-    T operator()(const Position&) const override;
+    T operator()(Position const&) const override;
 };
 
 
@@ -89,7 +90,7 @@ namespace Endgames {
     }
 
     template<typename T>
-    const EndgameBase<T>* probe(Key matlKey) {
+    EndgameBase<T> const* probe(Key matlKey) {
         auto itr{ mapEG<T>().find(matlKey) };
         return itr != mapEG<T>().end() ?
                 itr->second.get() : nullptr;

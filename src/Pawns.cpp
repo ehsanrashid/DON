@@ -8,8 +8,6 @@
 #include "Table.h"
 #include "Thread.h"
 
-using namespace std;
-
 namespace Pawns {
 
     namespace {
@@ -52,7 +50,7 @@ namespace Pawns {
         /// evaluateSafetyOn() calculates shelter & storm for king,
         /// looking at the king file and the two closest files.
         template<Color Own>
-        Score evaluateSafetyOn(const Position &pos, Square kSq) {
+        Score evaluateSafetyOn(Position const &pos, Square kSq) {
             constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
 
             Bitboard frontPawns{ ~frontRanksBB(Opp, kSq) & pos.pieces(PAWN) };
@@ -90,8 +88,8 @@ namespace Pawns {
             return safety;
         }
         // Explicit template instantiations
-        template Score evaluateSafetyOn<WHITE>(const Position&, Square);
-        template Score evaluateSafetyOn<BLACK>(const Position&, Square);
+        template Score evaluateSafetyOn<WHITE>(Position const&, Square);
+        template Score evaluateSafetyOn<BLACK>(Position const&, Square);
 
     }
 
@@ -101,7 +99,7 @@ namespace Pawns {
 
     /// Entry::evaluateKingSafety()
     template<Color Own>
-    Score Entry::evaluateKingSafety(const Position &pos, Bitboard attacks) {
+    Score Entry::evaluateKingSafety(Position const &pos, Bitboard attacks) {
         auto kSq{ pos.square(Own|KING) };
 
         // Find King path
@@ -164,15 +162,15 @@ namespace Pawns {
         return (kingSafety[Own] - kingDist[Own]);
     }
     // Explicit template instantiations
-    template Score Entry::evaluateKingSafety<WHITE>(const Position&, Bitboard);
-    template Score Entry::evaluateKingSafety<BLACK>(const Position&, Bitboard);
+    template Score Entry::evaluateKingSafety<WHITE>(Position const&, Bitboard);
+    template Score Entry::evaluateKingSafety<BLACK>(Position const&, Bitboard);
 
     /// Entry::evaluate()
     template<Color Own>
-    void Entry::evaluate(const Position &pos) {
+    void Entry::evaluate(Position const &pos) {
         constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
         constexpr auto Push{ pawnPush(Own) };
-        const auto Attack{ PawnAttacks[Own] };
+        auto const Attack{ PawnAttacks[Own] };
 
         Bitboard pawns{ pos.pieces(PAWN) };
         Bitboard ownPawns{ pos.pieces(Own) & pawns };
@@ -255,12 +253,12 @@ namespace Pawns {
         }
     }
     // Explicit template instantiations
-    template void Entry::evaluate<WHITE>(const Position&);
-    template void Entry::evaluate<BLACK>(const Position&);
+    template void Entry::evaluate<WHITE>(Position const&);
+    template void Entry::evaluate<BLACK>(Position const&);
 
     /// Pawns::probe() looks up a current position's pawn configuration in the pawn hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
-    Entry* probe(const Position &pos) {
+    Entry* probe(Position const &pos) {
         Key pawnKey{ pos.pawnKey() };
         auto *e{ pos.thread->pawnHash[pawnKey] };
 

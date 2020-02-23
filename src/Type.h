@@ -38,6 +38,7 @@ using i32 =  int32_t;
 using u32 = uint32_t;
 using i64 =  int64_t;
 using u64 = uint64_t;
+using uPtr = uintptr_t;
 
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
@@ -191,7 +192,7 @@ enum Value : i32
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
 
-    VALUE_NONE      = 32767, //SHRT_MAX,
+    VALUE_NONE      = 32002,//SHRT_MAX, //32002,
     VALUE_INFINITE  = VALUE_NONE - 1,
     VALUE_MATE      = VALUE_INFINITE - 1,
 
@@ -209,7 +210,7 @@ enum Value : i32
     VALUE_MIDGAME = 15258,
     VALUE_ENDGAME =  3915,
 
-    VALUE_LAZY_THRESHOLD    = 1400,
+    VALUE_LAZY_THRESHOLD    =  1400,
     VALUE_SPACE_THRESHOLD   = 12222,
     VALUE_TEMPO = 28,
 
@@ -406,11 +407,11 @@ constexpr Color sColor(Square s) {
     return Color(0 == ((s ^ (s >> 3)) & BLACK));
 }
 
-// SQ_A1 -> SQ_A8
+// SQ_A8 -> SQ_A1
 constexpr Square operator~(Square s) {
     return Square(s ^ SQ_A8);
 }
-// SQ_A1 -> SQ_H1
+// SQ_H1 -> SQ_A1
 constexpr Square operator!(Square s) {
     return Square(s ^ SQ_H1);
 }

@@ -1,13 +1,13 @@
 #pragma once
 
 #include <iomanip>
-#include <sstream>
+#include <ostream>
 
 #include "Position.h"
 #include "Type.h"
 
-extern const std::string PieceChar;
-extern const std::string ColorChar;
+extern std::string const PieceChar;
+extern std::string const ColorChar;
 
 extern Color toColor(char);
 extern char toChar(Color);
@@ -27,7 +27,7 @@ extern std::string toString(Value);
 extern std::string toString(Score);
 
 extern std::string moveToCAN(Move);
-extern Move moveOfCAN(const std::string&, const Position&);
+extern Move moveOfCAN(std::string const&, Position const&);
 
 /// Overloading output operators
 extern std::ostream& operator<<(std::ostream&, Color);
@@ -40,9 +40,9 @@ extern std::ostream& operator<<(std::ostream&, Score);
 extern std::ostream& operator<<(std::ostream&, Move);
 
 
-extern std::string multipvInfo(const Thread *const&, i16, Value, Value);
+extern std::string multipvInfo(Thread const *const&, i16, Value, Value);
 
 extern std::string moveToSAN(Move, Position&);
-extern Move moveOfSAN(const std::string&, Position&);
+extern Move moveOfSAN(std::string const&, Position&);
 
 //extern std::string prettyInfo(Thread *const&);

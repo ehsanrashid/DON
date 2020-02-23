@@ -1,6 +1,7 @@
 #include "Notation.h"
 
 #include <cmath>
+#include <sstream>
 
 #include "MoveGenerator.h"
 #include "Searcher.h"
@@ -9,10 +10,11 @@
 #include "Thread.h"
 #include "UCI.h"
 
-using namespace std;
+using std::string;
+using std::ostream;
 
-const string PieceChar{ " PNBRQK  pnbrqk" };
-const string ColorChar{ "wb" };
+string const PieceChar{ " PNBRQK  pnbrqk" };
+string const ColorChar{ "wb" };
 
 Color toColor(char c) {
     auto pos{ ColorChar.find(c) };
@@ -56,7 +58,7 @@ char toChar(Piece p) {
 string toString(Value v) {
     assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
 
-    ostringstream oss;
+    std::ostringstream oss;
     if (abs(v) < +VALUE_MATE_1_MAX_PLY) {
         oss << "cp " << toCP(v);
     }
@@ -68,7 +70,7 @@ string toString(Value v) {
     return oss.str();
 }
 string toString(Score s) {
-    ostringstream oss;
+    std::ostringstream oss;
     oss << std::showpos << std::showpoint
         //<< std::setw(5) << mgValue(s) << " "
         //<< std::setw(5) << egValue(s)
@@ -87,7 +89,7 @@ string moveToCAN(Move m) {
     if (MOVE_NONE == m) return { "(none)" };
     if (MOVE_NULL == m) return { "(null)" };
 
-    ostringstream oss;
+    std::ostringstream oss;
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
     if (CASTLE == mType(m)
@@ -104,7 +106,7 @@ string moveToCAN(Move m) {
 }
 /// Converts a string representing a move in coordinate algebraic notation
 /// to the corresponding legal move, if any.
-Move moveOfCAN(const string &can, const Position &pos) {
+Move moveOfCAN(string const &can, Position const &pos) {
     //// If promotion piece in uppercase, convert to lowercase
     //if (5 == can.size()
     // && isupper(can[4])) {
@@ -112,7 +114,7 @@ Move moveOfCAN(const string &can, const Position &pos) {
     //}
     assert(5 > can.size()
         || islower(can[4]));
-    for (const auto &vm : MoveList<GenType::LEGAL>(pos)) {
+    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
         if (can == moveToCAN(vm)) {
             return vm;
         }
@@ -157,13 +159,13 @@ ostream& operator<<(ostream &os, Move m) {
 
 /// multipvInfo() formats PV information according to UCI protocol.
 /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
-string multipvInfo(const Thread *const &th, Depth depth, Value alfa, Value beta) {
+string multipvInfo(Thread const *const &th, Depth depth, Value alfa, Value beta) {
     auto elapsed{ TimeMgr.elapsed() + 1 };
     auto nodes{ Threadpool.sum(&Thread::nodes) };
     auto tbHits{ Threadpool.sum(&Thread::tbHits)
                + th->rootMoves.size() * TBHasRoot };
 
-    ostringstream oss;
+    std::ostringstream oss;
     for (u32 i = 0; i < PVCount; ++i)
     {
         bool updated{ -VALUE_INFINITE != th->rootMoves[i].newValue };
@@ -223,7 +225,7 @@ namespace {
 
     /// Ambiguity if more then one piece of same type can reach 'dst' with a legal move.
     /// NOTE: for pawns it is not needed because 'org' file is explicit.
-    Ambiguity ambiguity(Move m, const Position &pos) {
+    Ambiguity ambiguity(Move m, Position const &pos) {
         assert(pos.pseudoLegal(m)
             && pos.legal(m));
 
@@ -259,7 +261,7 @@ namespace {
     /*
     string pretty_value(Value v) {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
-        ostringstream oss;
+        std::ostringstream oss;
         if (abs(v) < +VALUE_MATE_1_MAX_PLY) {
             oss << std::showpos << std::fixed << std::setprecision(2)
                 << toCP(v) / 100.0;
@@ -285,7 +287,7 @@ namespace {
         time      %= SecondMilliSec;
         time      /= 10;
 
-        ostringstream oss;
+        std::ostringstream oss;
         oss << std::setfill('0')
             << std::setw(2) << hours   << ":"
             << std::setw(2) << minutes << ":"
@@ -303,7 +305,7 @@ string moveToSAN(Move m, Position &pos) {
     if (MOVE_NULL == m) return { "(null)" };
     assert(MoveList<GenType::LEGAL>(pos).contains(m));
 
-    ostringstream oss;
+    std::ostringstream oss;
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
 
@@ -352,8 +354,8 @@ string moveToSAN(Move m, Position &pos) {
 }
 /// Converts a string representing a move in short algebraic notation
 /// to the corresponding legal move, if any.
-Move moveOfSAN(const string &san, Position &pos) {
-    for (const auto &vm : MoveList<GenType::LEGAL>(pos)) {
+Move moveOfSAN(string const &san, Position &pos) {
+    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
         if (san == moveToSAN(vm, pos)) {
             return vm;
         }
@@ -366,7 +368,7 @@ Move moveOfSAN(const string &san, Position &pos) {
 string prettyInfo(Thread *const &th) {
     u64 nodes{ Threadpool.sum(&Thread::nodes) };
 
-    ostringstream oss;
+    std::ostringstream oss;
     oss << std::setw( 4) << th->finishedDepth
         << std::setw( 8) << pretty_value(th->rootMoves.front().newValue)
         << std::setw(12) << pretty_time(TimeMgr.elapsed());

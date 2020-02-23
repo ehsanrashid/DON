@@ -2,8 +2,6 @@
 
 #include "Position.h"
 
-using namespace std;
-
 Array<Score, PIECES, SQUARES> PSQ;
 
 namespace {
@@ -123,7 +121,7 @@ namespace PSQT {
     /// Computes the scores for the middle game and the endgame.
     /// These functions are used to initialize the scores when a new position is set up,
     /// and to verify that the scores are correctly updated by do_move and undo_move when the program is running in debug mode.
-    Score computePSQ(const Position &pos) {
+    Score computePSQ(Position const &pos) {
         Score psq{ SCORE_ZERO };
         for (Piece p : Pieces) {
             for (Square s : pos.squares(p)) {

@@ -5,7 +5,7 @@
 
 namespace Evaluator {
 
-    extern Value evaluate(const Position&);
+    extern Value evaluate(Position const&);
 
-    extern std::string trace(const Position&);
+    extern std::string trace(Position const&);
 }

@@ -7,6 +7,8 @@
 
 #include "Type.h"
 
+using Moves = std::vector<Move>;
+
 /// Hash table
 template<typename T, u32 Size>
 struct HashTable {
@@ -61,7 +63,7 @@ private:
 
 public:
 
-    void fill(const T &value) {
+    void fill(T const &value) {
         assert(std::is_standard_layout<NestedTable>::value);
 
         auto *p = reinterpret_cast<T*>(this);
@@ -88,7 +90,7 @@ private:
 
 public:
 
-    void operator=(const T &e) {
+    void operator=(T const &e) {
         entry = e;
     }
 
@@ -99,7 +101,7 @@ public:
         return &entry;
     }
 
-    operator const T&() const {
+    operator T const&() const {
         return entry;
     }
 
@@ -127,7 +129,7 @@ private:
 
 public:
 
-    void fill(const T &value) {
+    void fill(T const &value) {
         // For standard-layout 'this' points to first struct member
         assert(std::is_standard_layout<NestedStatsTable>::value);
 

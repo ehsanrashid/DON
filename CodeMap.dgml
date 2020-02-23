@@ -6253,7 +6253,7 @@
     <Alias n="98" Id="(@1 @3 Member=(Name=ptype @94))" />
     <Alias n="99" Id="(@1 @3 Member=(@49 OverloadingParameters=[(Type=&quot;PieceType &amp;&quot;)]))" />
     <Alias n="100" Id="(@1 @3 Member=(@51 OverloadingParameters=[(Type=&quot;PieceType &amp;&quot;)]))" />
-    <Alias n="101" Id="(Type=&quot;const Position &amp;&quot;)" />
+    <Alias n="101" Id="(Type=&quot;Position const &amp;&quot;)" />
     <Alias n="102" Id="OverloadingParameters=[@101]" />
     <Alias n="103" Id="(@1 @31 Member=(Name=compute_npm&lt;0&gt; @102))" />
     <Alias n="104" Id="(@1 @31 Member=(Name=compute_npm&lt;1&gt; @102))" />
@@ -6363,7 +6363,7 @@
     <Alias n="209" Id="(@1 @7 Member=(Name=operator&lt;&lt; OverloadingParameters=[@208,(Type=A0x2c028878::Tracer::Term)]))" />
     <Alias n="210" Id="(@1 @10 Member=(Name=&quot;operator|=&quot; OverloadingParameters=[(Type=&quot;Bitbases::A0xb97661df::Result &amp;&quot;),(Type=Bitbases::A0xb97661df::Result)]))" />
     <Alias n="211" Id="(@1 @15 Member=(Name=debugHitOn OverloadingParameters=[@44,@44]))" />
-    <Alias n="212" Id="(@1 Namespace=&quot;Memory::`anonymous namespace'&quot; Member=(Name=setup_privilege OverloadingParameters=[(Type=&quot;const char *&quot;),@44]))" />
+    <Alias n="212" Id="(@1 Namespace=&quot;Memory::`anonymous namespace'&quot; Member=(Name=setup_privilege OverloadingParameters=[(Type=&quot;char const *&quot;),@44]))" />
     <Alias n="213" Id="(@1 @3 Member=(Name=toChar OverloadingParameters=[@67,@44]))" />
     <Alias n="214" Id="(@1 @3 Member=(Name=fix_dst_sq OverloadingParameters=[@85,@44]))" />
     <Alias n="215" Id="(@1 @3 Member=(@84 OverloadingParameters=[@151,@44]))" />
@@ -6376,8 +6376,8 @@
     <Alias n="222" Id="(@1 @3 Member=(Name=&quot;operator|=&quot; OverloadingParameters=[(Type=&quot;CastleRight &amp;&quot;),@47]))" />
     <Alias n="223" Id="(@1 @3 Member=(Name=castleRight OverloadingParameters=[@56,(Type=CastleSide)]))" />
     <Alias n="224" Id="(@1 @3 Member=(Name=toSquare OverloadingParameters=[@53,@53]))" />
-    <Alias n="225" Id="(@1 @3 Member=(Name=loop OverloadingParameters=[@76,(Type=&quot;const char * const *&quot;)]))" />
-    <Alias n="226" Id="(@1 @20 Member=(Name=run OverloadingParameters=[@76,(Type=&quot;const char * const *&quot;)]))" />
+    <Alias n="225" Id="(@1 @3 Member=(Name=loop OverloadingParameters=[@76,(Type=&quot;char const * const *&quot;)]))" />
+    <Alias n="226" Id="(@1 @20 Member=(Name=run OverloadingParameters=[@76,(Type=&quot;char const * const *&quot;)]))" />
     <Alias n="227" Id="Name=&quot;operator&lt;&lt;&lt;char,std::char_traits&lt;char&gt; &gt;&quot;" />
     <Alias n="228" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,@56]))" />
     <Alias n="229" Id="(@1 @3 Member=(@62 OverloadingParameters=[@63,@63]))" />
@@ -6433,7 +6433,7 @@
     <Alias n="279" Id="(@1 @3 Member=(Name=promote OverloadingParameters=[(Type=&quot;Move &amp;&quot;),(Type=PieceType)]))" />
     <Alias n="280" Id="(Type=&quot;std::basic_ifstream&lt;char,std::char_traits&lt;char&gt; &gt; &amp;&quot;)" />
     <Alias n="281" Id="(@1 @5 Member=(Name=operator&gt;&gt; OverloadingParameters=[@280,(Type=&quot;PolyEntry &amp;&quot;)]))" />
-    <Alias n="282" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,(Type=&quot;const PolyEntry &amp;&quot;)]))" />
+    <Alias n="282" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,(Type=&quot;PolyEntry const &amp;&quot;)]))" />
     <Alias n="283" Id="(@1 @3 Member=(Name=moveOfSAN OverloadingParameters=[@85,@271]))" />
     <Alias n="284" Id="(@1 @3 Member=(Name=moveOfSAN OverloadingParameters=[@151,@271]))" />
     <Alias n="285" Id="(@1 @5 Member=(Name=ambiguity OverloadingParameters=[@85,@101]))" />
@@ -6482,7 +6482,7 @@
     <Alias n="328" Id="(@1 @3 Member=(@65 OverloadingParameters=[@110,@110]))" />
     <Alias n="329" Id="(@1 @3 Member=(@231 OverloadingParameters=[(Type=&quot;Rank &amp;&quot;),@110]))" />
     <Alias n="330" Id="(@1 @3 Member=(@233 OverloadingParameters=[(Type=&quot;Rank &amp;&quot;),@110]))" />
-    <Alias n="331" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,(Type=&quot;const RootMove &amp;&quot;)]))" />
+    <Alias n="331" Id="(@1 @3 Member=(@227 OverloadingParameters=[@208,(Type=&quot;RootMove const &amp;&quot;)]))" />
     <Alias n="332" Id="(@1 @3 Member=(@62 OverloadingParameters=[@120,@120]))" />
     <Alias n="333" Id="(@1 @3 Member=(@65 OverloadingParameters=[@120,@120]))" />
     <Alias n="334" Id="(@1 @3 Member=(@231 OverloadingParameters=[(Type=&quot;Score &amp;&quot;),@120]))" />

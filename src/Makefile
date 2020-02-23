@@ -25,8 +25,8 @@ PGOBENCH = ./$(EXE) bench
 OBJS = Bitbase.o Bitboard.o Cuckoo.o Debugger.o Endgame.o Evaluator.o \
        Helper.o Logger.o Main.o Material.o MoveGenerator.o MovePicker.o \
        Notation.o Pawns.o Polyglot.o Position.o PSQTable.o RootMove.o \
-       Searcher.o SkillManager.o SyzygyTB.o Thread.o TimeManager.o \
-       Transposition.o UCI.o Zobrist.o
+       Searcher.o SkillManager.o SyzygyTB.o Thread.o ThreadMarker.o \
+       TimeManager.o Transposition.o UCI.o Zobrist.o
 
 
 

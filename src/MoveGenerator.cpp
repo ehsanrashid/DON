@@ -6,13 +6,11 @@
 #include "BitBoard.h"
 #include "Notation.h"
 
-using namespace std;
-
 namespace {
 
     /// Generates piece normal move
     template<GenType GT>
-    void generatePieceMoves(ValMoves &moves, const Position &pos, Bitboard targets) {
+    void generatePieceMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
             for (Square s : pos.squares(pos.active|pt)) {
                 if (GenType::CHECK == GT
@@ -37,7 +35,7 @@ namespace {
 
     /// Generates pawn promotion move
     template<GenType GT>
-    void generatePromotionMoves(ValMoves &moves, const Position &pos, Bitboard promotion, Direction dir) {
+    void generatePromotionMoves(ValMoves &moves, Position const &pos, Bitboard promotion, Direction dir) {
         auto ekSq{ pos.square(~pos.active|KING) };
         while (0 != promotion) {
             auto dst{ popLSq(promotion) };
@@ -81,8 +79,8 @@ namespace {
     }
     /// Generates pawn normal move
     template<GenType GT>
-    void generatePawnMoves(ValMoves &moves, const Position &pos, Bitboard targets) {
-        const auto Push{ pawnPush(pos.active) };
+    void generatePawnMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
+        auto const Push{ pawnPush(pos.active) };
 
         Bitboard empties{ ~pos.pieces() };
         Bitboard enemies{ pos.pieces(~pos.active) & targets };
@@ -201,7 +199,7 @@ namespace {
 
     /// Generates king normal move
     template<GenType GT>
-    void generateKingMoves(ValMoves &moves, const Position &pos, Bitboard targets) {
+    void generateKingMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
         auto fkSq{ pos.square(pos.active|KING) };
         Bitboard attacks{ PieceAttacks[KING][fkSq] & targets };
         while (0 != attacks) { moves += makeMove<NORMAL>(fkSq, popLSq(attacks)); }
@@ -222,14 +220,14 @@ namespace {
 
     /// Generates all pseudo-legal moves of color for targets.
     template<GenType GT>
-    void generateMoves(ValMoves &moves, const Position &pos, Bitboard targets) {
+    void generateMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
         generatePawnMoves<GT>(moves, pos, targets);
         generatePieceMoves<GT>(moves, pos, targets);
     }
 }
 
 template<GenType GT>
-void generate(ValMoves &moves, const Position &pos) {
+void generate(ValMoves &moves, Position const &pos) {
     assert(0 == pos.checkers());
     static_assert (GenType::NATURAL == GT
                 || GenType::CAPTURE == GT
@@ -249,14 +247,14 @@ void generate(ValMoves &moves, const Position &pos) {
 /// Explicit template instantiations
 /// --------------------------------
 /// generate<NATURAL>     Generates all pseudo-legal captures and non-captures.
-template void generate<GenType::NATURAL>(ValMoves&, const Position&);
+template void generate<GenType::NATURAL>(ValMoves&, Position const&);
 /// generate<CAPTURE>     Generates all pseudo-legal captures and queen promotions.
-template void generate<GenType::CAPTURE>(ValMoves&, const Position&);
+template void generate<GenType::CAPTURE>(ValMoves&, Position const&);
 /// generate<QUIET>       Generates all pseudo-legal non-captures and underpromotions.
-template void generate<GenType::QUIET>(ValMoves&, const Position&);
+template void generate<GenType::QUIET>(ValMoves&, Position const&);
 
 /// generate<EVASION>     Generates all pseudo-legal check evasions moves.
-template<> void generate<GenType::EVASION>(ValMoves &moves, const Position &pos) {
+template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos) {
     Bitboard checkers{ pos.checkers() };
     assert(0 != checkers
         && 2 >= popCount(checkers));
@@ -292,7 +290,7 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, const Position &pos)
     generateMoves<GenType::EVASION>(moves, pos, targets);
 }
 /// generate<CHECK>       Generates all pseudo-legal check giving moves.
-template<> void generate<GenType::CHECK>(ValMoves &moves, const Position &pos) {
+template<> void generate<GenType::CHECK>(ValMoves &moves, Position const &pos) {
     assert(0 == pos.checkers());
     moves.clear();
     Bitboard targets{ ~pos.pieces(pos.active) };
@@ -313,7 +311,7 @@ template<> void generate<GenType::CHECK>(ValMoves &moves, const Position &pos) {
     generateMoves<GenType::CHECK>(moves, pos, targets);
 }
 /// generate<QUIET_CHECK> Generates all pseudo-legal non-captures and knight under promotions check giving moves.
-template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, const Position &pos) {
+template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &pos) {
     assert(0 == pos.checkers());
     moves.clear();
     Bitboard targets{ ~pos.pieces() };
@@ -335,7 +333,7 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, const Position &
 }
 
 /// generate<LEGAL>       Generates all legal moves.
-template<> void generate<GenType::LEGAL>(ValMoves &moves, const Position &pos) {
+template<> void generate<GenType::LEGAL>(ValMoves &moves, Position const &pos) {
     0 == pos.checkers() ?
         generate<GenType::NATURAL>(moves, pos) :
         generate<GenType::EVASION>(moves, pos);
@@ -349,7 +347,7 @@ template<> void generate<GenType::LEGAL>(ValMoves &moves, const Position &pos) {
     moves.erase(
         std::remove_if(
             moves.begin(), moves.end(),
-            [&](const ValMove &vm) {
+            [&](ValMove const &vm) {
                 return (contains(candidate, orgSq(vm))
                      || ENPASSANT == mType(vm))
                     && !pos.legal(vm);
@@ -358,42 +356,42 @@ template<> void generate<GenType::LEGAL>(ValMoves &moves, const Position &pos) {
 }
 
 Perft::Perft()
-    : moves{0}
-    , any{0}
-    , capture{0}
-    , enpassant{0}
-    , anyCheck{0}
-    , dscCheck{0}
-    , dblCheck{0}
-    , castle{0}
-    , promotion{0}
-    , checkmate{0}
-    //, stalemate{0}
+    : moves{ 0 }
+    , any{ 0 }
+    , capture{ 0 }
+    , enpassant{ 0 }
+    , anyCheck{ 0 }
+    , dscCheck{ 0 }
+    , dblCheck{ 0 }
+    , castle{ 0 }
+    , promotion{ 0 }
+    , checkmate{ 0 }
+    //, stalemate{ 0 }
 {}
 
-void Perft::operator+=(const Perft &p) {
-    any       += p.any;
-    capture   += p.capture;
-    enpassant += p.enpassant;
-    anyCheck  += p.anyCheck;
-    dscCheck  += p.dscCheck;
-    dblCheck  += p.dblCheck;
-    castle    += p.castle;
-    promotion += p.promotion;
-    checkmate += p.checkmate;
-    //stalemate += p.stalemate;
+void Perft::operator+=(Perft const &perft) {
+    any       += perft.any;
+    capture   += perft.capture;
+    enpassant += perft.enpassant;
+    anyCheck  += perft.anyCheck;
+    dscCheck  += perft.dscCheck;
+    dblCheck  += perft.dblCheck;
+    castle    += perft.castle;
+    promotion += perft.promotion;
+    checkmate += perft.checkmate;
+    //stalemate += perft.stalemate;
 }
-void Perft::operator-=(const Perft &p) {
-    any       -= p.any;
-    capture   -= p.capture;
-    enpassant -= p.enpassant;
-    anyCheck  -= p.anyCheck;
-    dscCheck  -= p.dscCheck;
-    dblCheck  -= p.dblCheck;
-    castle    -= p.castle;
-    promotion -= p.promotion;
-    checkmate -= p.checkmate;
-    //stalemate -= p.stalemate;
+void Perft::operator-=(Perft const &perft) {
+    any       -= perft.any;
+    capture   -= perft.capture;
+    enpassant -= perft.enpassant;
+    anyCheck  -= perft.anyCheck;
+    dscCheck  -= perft.dscCheck;
+    dblCheck  -= perft.dblCheck;
+    castle    -= perft.castle;
+    promotion -= perft.promotion;
+    checkmate -= perft.checkmate;
+    //stalemate -= perft.stalemate;
 }
 
 void Perft::classify(Position &pos, Move m) {
@@ -456,9 +454,9 @@ template<bool RootNode>
 Perft perft(Position &pos, Depth depth, bool detail) {
     Perft sumLeaf;
     if (RootNode) {
-        ostringstream oss;
+        std::ostringstream oss;
         oss << std::left
-            << std::setw(3) << "N"
+            << std::setw( 3) << "N"
             << std::setw(10) << "Move"
             << std::setw(19) << "Any";
         if (detail) {
@@ -473,9 +471,9 @@ Perft perft(Position &pos, Depth depth, bool detail) {
                 //<< std::setw(15) << "Stalemate"
                 ;
         }
-        cout << oss.str() << endl;
+        std::cout << oss.str() << std::endl;
     }
-    for (const auto &vm : MoveList<GenType::LEGAL>(pos)) {
+    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
         Perft leaf;
         if (RootNode
          && 1 >= depth) {
@@ -487,7 +485,7 @@ Perft perft(Position &pos, Depth depth, bool detail) {
             pos.doMove(vm, si);
 
             if (2 >= depth) {
-                for (const auto &ivm : MoveList<GenType::LEGAL>(pos)) {
+                for (auto &ivm : MoveList<GenType::LEGAL>(pos)) {
                     ++leaf.any;
                     if (detail) {
                         leaf.classify(pos, ivm);
@@ -505,11 +503,10 @@ Perft perft(Position &pos, Depth depth, bool detail) {
         if (RootNode) {
             ++sumLeaf.moves;
 
-            ostringstream oss;
-            oss << std::right << std::setfill('0') << std::setw(2) << sumLeaf.moves << " "
-                << std::left  << std::setfill(' ') << std::setw(7)
-                << //moveToCAN(vm)
-                   moveToSAN(vm, pos)
+            std::ostringstream oss;
+            oss << std::right << std::setfill('0') << std::setw( 2) << sumLeaf.moves << " "
+                << std::left  << std::setfill(' ') << std::setw( 7) << //moveToCAN(vm)
+                                                                       moveToSAN(vm, pos)
                 << std::right << std::setfill('.') << std::setw(16) << leaf.any;
             if (detail) {
                 oss << "   " << std::setw(14) << leaf.capture
@@ -523,11 +520,11 @@ Perft perft(Position &pos, Depth depth, bool detail) {
                     //<< "   " << std::setw(12) << leaf.stalemate
                     ;
             }
-            cout << oss.str() << endl;
+            std::cout << oss.str() << std::endl;
         }
     }
     if (RootNode) {
-        ostringstream oss;
+        std::ostringstream oss;
         oss << "\nTotal:  " << std::right << std::setfill('.')
             << std::setw(18) << sumLeaf.any;
         if (detail) {
@@ -542,7 +539,7 @@ Perft perft(Position &pos, Depth depth, bool detail) {
                 //<< " " << std::setw(14) << sumLeaf.stalemate
                 ;
         }
-        cout << oss.str() << endl;
+        std::cout << oss.str() << std::endl;
     }
     return sumLeaf;
 }

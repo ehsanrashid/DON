@@ -4,10 +4,8 @@
 #include "Bitboard.h"
 #include "PRNG.h"
 
-using namespace std;
-
 /// Zobrist::computeMatlKey() computes hash key of the material situation.
-Key Zobrist::computeMatlKey(const Position &pos) const {
+Key Zobrist::computeMatlKey(Position const &pos) const {
     Key matlKey{ 0 };
     for (Color c : { WHITE, BLACK }) {
         for (PieceType pt = PAWN; pt <= KING; ++pt) {
@@ -19,7 +17,7 @@ Key Zobrist::computeMatlKey(const Position &pos) const {
     return matlKey;
 }
 /// Zobrist::computePawnKey() computes hash key of the pawn structure.
-Key Zobrist::computePawnKey(const Position &pos) const {
+Key Zobrist::computePawnKey(Position const &pos) const {
     Key pawnKey{ 0 };
     for (Color c : { WHITE, BLACK }) {
         pawnKey ^= pieceSquareKey[c][KING][0]; // Include King Key for zero pawns
@@ -30,7 +28,7 @@ Key Zobrist::computePawnKey(const Position &pos) const {
     return pawnKey;
 }
 /// Zobrist::computePosiKey() computes hash key of the complete position.
-Key Zobrist::computePosiKey(const Position &pos) const {
+Key Zobrist::computePosiKey(Position const &pos) const {
     Key posiKey{ 0 };
     for (Color c : { WHITE, BLACK }) {
         for (PieceType pt = PAWN; pt <= KING; ++pt) {
@@ -73,7 +71,7 @@ namespace Zobrists {
             RandZob.castleRightKey[cr] = 0;
             Bitboard b = cr;
             while (0 != b) {
-                Key k{ RandZob.castleRightKey[U32(1) << popLSq(b)] };
+                Key k{ RandZob.castleRightKey[u16(1) << popLSq(b)] };
                 RandZob.castleRightKey[cr] ^= 0 != k ? k : prng.rand<Key>();
             }
         }

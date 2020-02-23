@@ -3,6 +3,7 @@
 #include <cmath>
 #include <ctime>
 #include <cstdlib>
+#include <vector>
 
 #include "Debugger.h"
 #include "Evaluator.h"
@@ -15,12 +16,17 @@
 #include "Position.h"
 #include "SyzygyTB.h"
 #include "Thread.h"
+#include "ThreadMarker.h"
 #include "TimeManager.h"
 #include "Transposition.h"
 #include "SkillManager.h"
 #include "UCI.h"
 
-using namespace std;
+using std::vector;
+
+using namespace Searcher;
+using namespace SyzygyTB;
+using Evaluator::evaluate;
 
 Limit Limits;
 
@@ -31,64 +37,7 @@ i32   TBLimitPiece  = 6;
 bool  TBUseRule50   = true;
 bool  TBHasRoot     = false;
 
-
-using namespace Searcher;
-
 namespace {
-
-    /// Breadcrumbs are used to pair thread and position key
-    struct Breadcrumb {
-        std::atomic<const Thread*> thread;
-        std::atomic<Key>           posiKey;
-
-        void store(const Thread *th, Key key) {
-            thread.store(th, std::memory_order::memory_order_relaxed);
-            posiKey.store(key, std::memory_order::memory_order_relaxed);
-        }
-    };
-
-    constexpr size_t BreadcrumbSize{ 1024 };
-    Array<Breadcrumb, BreadcrumbSize> Breadcrumbs;
-
-    /// ThreadMarker structure keeps track of which thread left breadcrumbs at the given
-    /// node for potential reductions. A free node will be marked upon entering the moves
-    /// loop by the constructor, and unmarked upon leaving that loop by the destructor.
-    class ThreadMarker {
-    private:
-        Breadcrumb *breadcrumb;
-
-    public:
-
-        bool marked;
-
-        ThreadMarker() = delete;
-        ThreadMarker(const Thread *thread, Key posiKey, i16 ply)
-            : breadcrumb(nullptr)
-            , marked(false) {
-            auto *bc{ 8 > ply ?
-                        &Breadcrumbs[posiKey & (BreadcrumbSize - 1)] :
-                        nullptr };
-            if (nullptr != bc) {
-                // Check if another already marked it, if not, mark it
-                auto *th{ bc->thread.load(std::memory_order::memory_order_relaxed) };
-                if (nullptr == th) {
-                    bc->store(thread, posiKey);
-                    breadcrumb = bc;
-                }
-                else
-                if (th != thread
-                 && bc->posiKey.load(std::memory_order::memory_order_relaxed) == posiKey) {
-                        marked = true;
-                }
-            }
-        }
-
-        ~ThreadMarker() {
-            if (nullptr != breadcrumb) { // Free the marked location
-                breadcrumb->store(nullptr, 0);
-            }
-        }
-    };
 
     constexpr u64 TTHitAverageWindow = 4096;
     constexpr u64 TTHitAverageResolution = 1024;
@@ -141,7 +90,7 @@ namespace {
     }
 
     /// updateQuietStats() updates move sorting heuristics when a new quiet best move is found
-    void updateQuietStats(Stack *const &ss, const Position &pos, Move move, i32 bonus) {
+    void updateQuietStats(Stack *const &ss, Position const &pos, Move move, i32 bonus) {
         if (ss->killerMoves[0] != move) {
             ss->killerMoves[1] = ss->killerMoves[0];
             ss->killerMoves[0] = move;
@@ -163,7 +112,7 @@ namespace {
     }
 
     /// updatePV() appends the move and child pv
-    void updatePV(list<Move> &pv, Move move, const list<Move> &childPV) {
+    void updatePV(std::list<Move> &pv, Move move, std::list<Move> const &childPV) {
         pv.assign(childPV.begin(), childPV.end());
         pv.push_front(move);
         assert(pv.front() == move
@@ -192,7 +141,7 @@ namespace {
          || ss->ply >= MaxDepth) {
             return ss->ply >= MaxDepth
                 && !inCheck ?
-                        Evaluator::evaluate(pos) : VALUE_DRAW;
+                        evaluate(pos) : VALUE_DRAW;
         }
 
         assert(ss->ply >= 1
@@ -238,7 +187,7 @@ namespace {
             if (ttHit) {
                 // Never assume anything on values stored in TT.
                 if (VALUE_NONE == (ss->staticEval = bestValue = tte->eval())) {
-                    ss->staticEval = bestValue = Evaluator::evaluate(pos);
+                    ss->staticEval = bestValue = evaluate(pos);
                 }
 
                 // Can ttValue be used as a better position evaluation?
@@ -251,7 +200,7 @@ namespace {
             else {
                 ss->staticEval = bestValue =
                     MOVE_NULL != (ss-1)->playedMove ?
-                        Evaluator::evaluate(pos) :
+                        evaluate(pos) :
                         -(ss-1)->staticEval + 2 * VALUE_TEMPO;
             }
 
@@ -291,7 +240,7 @@ namespace {
 
         u08 moveCount{ 0 };
 
-        const PieceSquareStatsTable* pieceStats[]
+        PieceSquareStatsTable const *pieceStats[]
         {
             (ss-1)->pieceStats, (ss-2)->pieceStats,
             nullptr           , (ss-4)->pieceStats,
@@ -361,11 +310,12 @@ namespace {
             }
 
             // Speculative prefetch as early as possible
-            prefetch(TT.cluster(pos.movePosiKey(move))->entries);
+            prefetch(TT.cluster(pos.movePosiKey(move))->entryTable);
 
             // Update the current move
             ss->playedMove = move;
-            ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mpc][dst];
+            ss->pieceStats = &thread->continuationStats
+                                [inCheck][captureOrPromotion][mpc][dst];
             // Do the move
             pos.doMove(move, si, giveCheck);
             auto value{ -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth - 1) };
@@ -474,7 +424,7 @@ namespace {
              || ss->ply >= MaxDepth) {
                 return ss->ply >= MaxDepth
                     && !inCheck ?
-                            Evaluator::evaluate(pos) : drawValue();
+                            evaluate(pos) : drawValue();
             }
 
             // Step 3. Mate distance pruning.
@@ -593,7 +543,7 @@ namespace {
                     Threadpool.mainThread()->setTicks(1);
                 }
 
-                if (FAILURE != probeState) {
+                if (PS_FAILURE != probeState) {
                     thread->tbHits.fetch_add(1, std::memory_order::memory_order_relaxed);
 
                     i16 draw{ TBUseRule50 };
@@ -649,7 +599,7 @@ namespace {
             if (ttHit) {
                 // Never assume anything on values stored in TT.
                 if (VALUE_NONE == (ss->staticEval = eval = tte->eval())) {
-                    ss->staticEval = eval = Evaluator::evaluate(pos);
+                    ss->staticEval = eval = evaluate(pos);
                 }
 
                 if (eval == VALUE_DRAW) {
@@ -665,7 +615,7 @@ namespace {
             else {
                 ss->staticEval = eval =
                     MOVE_NULL != (ss-1)->playedMove ?
-                        Evaluator::evaluate(pos) + (-(ss-1)->stats / 512) :
+                        evaluate(pos) + (-(ss-1)->stats / 512) :
                         -(ss-1)->staticEval + 2 * VALUE_TEMPO;
 
                 tte->save(key,
@@ -678,8 +628,8 @@ namespace {
             }
 
             // Step 7. Razoring. (~1 ELO)
-            if (!rootNode // The required RootNode PV handling is not available in qsearch
-             && 2 > depth
+            if (!rootNode // The RootNode PV handling is not available in qsearch
+             && 1 == depth
              && eval + RazorMargin <= alfa) {
                 return quienSearch<PVNode>(pos, ss, alfa, beta);
             }
@@ -759,13 +709,13 @@ namespace {
              && 0 == Limits.mate) {
                 auto raisedBeta{ std::min(beta + 189 - 45 * improving, +VALUE_INFINITE) };
 
-                u08 pcMoveCount{ 0 };
+                u08 probCutCount{ 0 };
                 // Initialize move-picker(3) for the current position
                 MovePicker mp{ pos
                              , &thread->captureStats
                              , ttMove, raisedBeta - ss->staticEval };
                 // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
-                while (2 + 2 * cutNode > pcMoveCount
+                while (2 + 2 * cutNode > probCutCount
                     && MOVE_NONE != (move = mp.nextMove())) {
                     assert(isOk(move)
                         && pos.pseudoLegal(move)
@@ -776,13 +726,16 @@ namespace {
                         continue;
                     }
 
-                    ++pcMoveCount;
+                    bool captureOrPromotion{ true };
+
+                    ++probCutCount;
 
                     // Speculative prefetch as early as possible
-                    prefetch(TT.cluster(pos.movePosiKey(move))->entries);
+                    prefetch(TT.cluster(pos.movePosiKey(move))->entryTable);
 
                     ss->playedMove = move;
-                    ss->pieceStats = &thread->continuationStats[0][1][pos[orgSq(move)]][dstSq(move)];
+                    ss->pieceStats = &thread->continuationStats
+                                        [inCheck][captureOrPromotion][pos[orgSq(move)]][dstSq(move)];
 
                     pos.doMove(move, si);
 
@@ -805,11 +758,12 @@ namespace {
             // Step 11. Internal iterative deepening (IID). (~1 ELO)
             if (6 < depth
              && (MOVE_NONE == ttMove
-              || !pos.pseudoLegal(ttMove))) {
+              || !pos.pseudoLegal(ttMove)
+              /*|| !pos.legal(ttMove)*/)) {
                 depthSearch<PVNode>(pos, ss, alfa, beta, depth - 7, cutNode);
 
                 tte = TT.probe(key, ttHit);
-                ttMove = ttHit ?
+                ttMove  = ttHit ?
                             tte->move() : MOVE_NONE;
                 ttValue = ttHit ?
                             valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE;
@@ -833,7 +787,7 @@ namespace {
                       && pos.captureOrPromotion(ttMove)
                       && pos.pseudoLegal(ttMove) };
 
-        const PieceSquareStatsTable* pieceStats[]
+        PieceSquareStatsTable const *pieceStats[]
         {
             (ss-1)->pieceStats, (ss-2)->pieceStats,
             nullptr           , (ss-4)->pieceStats,
@@ -1020,11 +974,12 @@ namespace {
             newDepth += extension;
 
             // Speculative prefetch as early as possible
-            prefetch(TT.cluster(pos.movePosiKey(move))->entries);
+            prefetch(TT.cluster(pos.movePosiKey(move))->entryTable);
 
             // Update the current move.
             ss->playedMove = move;
-            ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mpc][dst];
+            ss->pieceStats = &thread->continuationStats
+                                [inCheck][captureOrPromotion][mpc][dst];
 
             // Step 15. Do the move
             pos.doMove(move, si, giveCheck);
@@ -1222,6 +1177,14 @@ namespace {
             }
         }
 
+        // The following condition would detect a stop only after move loop has been
+        // completed. But in this case bestValue is valid because we have fully
+        // searched our subtree, and we can anyhow save the result in TT.
+        /*
+        if (Threadpool.stop)
+            return VALUE_DRAW;
+        */
+
         assert(0 != moveCount
             || !inCheck
             || MOVE_NONE != ss->excludedMove
@@ -1393,18 +1356,20 @@ void Thread::search() {
     // The former is needed to allow updateContinuationStats(ss-1, ...),
     // which accesses its argument at ss-4, also near the root.
     // The latter is needed for stats and killer initialization.
-    Stack stacks[MaxDepth + 10];
-    for (auto ss{ stacks }; ss < stacks + MaxDepth + 10; ++ss) {
-        ss->ply             = i16(ss - (stacks+7));
+    Stack stack[MaxDepth + 10], *ss;
+    for (ss = stack; ss < stack + MaxDepth + 10; ++ss) {
+        ss->ply             = i16(ss - (stack+7));
         ss->playedMove      = MOVE_NONE;
         ss->excludedMove    = MOVE_NONE;
         ss->moveCount       = 0;
         ss->staticEval      = VALUE_ZERO;
         ss->stats           = 0;
-        ss->pieceStats      = &continuationStats[0][0][NO_PIECE][0];
+        ss->pieceStats      = ss < stack + 7 ?
+                                &continuationStats[0][0][NO_PIECE][0] : nullptr;
         ss->killerMoves.fill(MOVE_NONE);
         ss->pv.clear();
     }
+    ss = stack + 7;
 
     // Iterative deepening loop until requested to stop or the target depth is reached.
     while (++rootDepth < MaxDepth
@@ -1469,7 +1434,7 @@ void Thread::search() {
             // research with bigger window until not failing high/low anymore.
             do {
                 auto adjustedDepth{ Depth(std::max(rootDepth - failHighCount - researchCount, 1)) };
-                bestValue = depthSearch<true>(rootPos, stacks+7, alfa, beta, adjustedDepth, false);
+                bestValue = depthSearch<true>(rootPos, ss, alfa, beta, adjustedDepth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
                 // done with a stable algorithm because all the values but the first
@@ -1765,9 +1730,9 @@ void MainThread::search() {
     // Best move could be MOVE_NONE when searching on a stalemate position.
     sync_cout << "bestmove " << bm;
     if (MOVE_NONE != pm) {
-        cout << " ponder " << pm;
+        std::cout << " ponder " << pm;
     }
-    cout << sync_endl;
+    std::cout << sync_endl;
 }
 
 /// MainThread::doTick() is used as timer function.
@@ -1779,7 +1744,7 @@ void MainThread::doTick() {
         return;
     }
     // When using nodes, ensure checking rate is in range [1, 1024]
-    setTicks(0 != Limits.nodes ? clamp(i32(Limits.nodes / 1024), 1, 1024) : 1024);
+    setTicks(i16(0 != Limits.nodes ? clamp(i32(Limits.nodes / 1024), 1, 1024) : 1024));
 
     auto elapsed{ TimeMgr.elapsed() };
     TimePoint time = Limits.startTime + elapsed;
@@ -1804,4 +1769,58 @@ void MainThread::doTick() {
       && Limits.nodes <= Threadpool.sum(&Thread::nodes))) {
         Threadpool.stop = true;
     }
+}
+
+namespace SyzygyTB {
+
+    void rankRootMoves(Position &pos, RootMoves &rootMoves) {
+
+        TBProbeDepth = Options["SyzygyProbeDepth"];
+        TBLimitPiece = Options["SyzygyLimitPiece"];
+        TBUseRule50  = Options["SyzygyUseRule50"];
+        TBHasRoot    = false;
+
+        bool dtzAvailable{ true };
+
+        // Tables with fewer pieces than SyzygyProbeLimit are searched with ProbeDepth == DEPTH_ZERO
+        if (TBLimitPiece > MaxPieceLimit) {
+            TBLimitPiece = MaxPieceLimit;
+            TBProbeDepth = DEPTH_ZERO;
+        }
+
+        // Rank moves using DTZ tables
+        if (0 != TBLimitPiece
+         && TBLimitPiece >= pos.count()
+         && CR_NONE == pos.castleRights()) {
+            // If the current root position is in the table-bases,
+            // then RootMoves contains only moves that preserve the draw or the win.
+            TBHasRoot = rootProbeDTZ(pos, rootMoves);
+            if (!TBHasRoot) {
+                // DTZ tables are missing; try to rank moves using WDL tables
+                dtzAvailable = false;
+                TBHasRoot = rootProbeWDL(pos, rootMoves);
+            }
+        }
+
+        if (TBHasRoot) {
+            // Sort moves according to TB rank
+            sort(rootMoves.begin(), rootMoves.end(),
+                 [](RootMove const &rm1, RootMove const &rm2) {
+                     return rm1.tbRank > rm2.tbRank;
+                 });
+
+            // Probe during search only if DTZ is not available and winning
+            if (dtzAvailable
+             || rootMoves.front().tbValue <= VALUE_DRAW) {
+                TBLimitPiece = 0;
+            }
+        }
+        else {
+            // Clean up if rootProbeDTZ() and rootProbeWDL() have failed
+            for (auto &rm : rootMoves) {
+                rm.tbRank = 0;
+            }
+        }
+    }
+
 }

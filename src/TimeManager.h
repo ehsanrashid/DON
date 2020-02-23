@@ -16,9 +16,8 @@ public:
     u64 availableNodes{ 0 };
 
     TimeManager() = default;
-
-    TimeManager(const TimeManager&) = delete;
-    TimeManager& operator=(const TimeManager&) = delete;
+    TimeManager(TimeManager const&) = delete;
+    TimeManager& operator=(TimeManager const&) = delete;
 
     TimePoint optimum() const { return optimumTime; }
     TimePoint maximum() const { return maximumTime; }

@@ -3,6 +3,7 @@
 #include <cmath>
 #include <map>
 #include <iostream>
+#include <type_traits>
 
 #include "Searcher.h"
 #include "SyzygyTB.h"
@@ -31,20 +32,23 @@
     /// so instead of calling them directly (forcing the linker to resolve the calls at compile time),
     /// try to load them at runtime. To do this first define the corresponding function pointers.
     extern "C" {
-        using GLPIE  = bool (*)(LOGICAL_PROCESSOR_RELATIONSHIP LogicalProcRelationship, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX PtrSysLogicalProcInfo, PDWORD PtrLength);
-        using GNNPME = bool (*)(USHORT Node, PGROUP_AFFINITY PtrGroupAffinity);
-        using STGA   = bool (*)(HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
+
+        //using GLPIE  = bool (*)(LOGICAL_PROCESSOR_RELATIONSHIP LogicalProcRelationship, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX PtrSysLogicalProcInfo, PDWORD PtrLength);
+        using GLPIE  = std::add_pointer<bool(LOGICAL_PROCESSOR_RELATIONSHIP, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD)>::type;
+        //using GNNPME = bool (*)(USHORT Node, PGROUP_AFFINITY PtrGroupAffinity);
+        using GNNPME = std::add_pointer<bool(USHORT, PGROUP_AFFINITY)>::type;
+        //using STGA   = bool (*)(HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
+        using STGA   = std::add_pointer<bool(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY)>::type;
     }
 
 #endif
 
-using namespace std;
 
 ThreadPool Threadpool;
 
 /// Thread constructor launches the thread and waits until it goes to sleep in idleFunction().
 /// Note that 'busy' and 'dead' should be already set.
-Thread::Thread(size_t idx)
+Thread::Thread(u32 idx)
     : index(idx)
     , nativeThread(&Thread::idleFunction, this) {
     waitIdle();
@@ -59,13 +63,13 @@ Thread::~Thread() {
 }
 /// Thread::wakeUp() wakes up the thread that will start the search.
 void Thread::wakeUp() {
-    lock_guard<mutex> guard(mtx);
+    std::lock_guard<std::mutex> guard(mutex);
     busy = true;
     conditionVar.notify_one(); // Wake up the thread in idleFunction()
 }
 /// Thread::waitIdle() blocks on the condition variable while the thread is busy.
 void Thread::waitIdle() {
-    unique_lock<mutex> lock(mtx);
+    std::unique_lock<std::mutex> lock(mutex);
     conditionVar.wait(lock, [&]{ return !busy; });
 }
 /// Thread::idleFunction() is where the thread is parked.
@@ -81,7 +85,7 @@ void Thread::idleFunction() {
     }
 
     while (true) {
-        unique_lock<mutex> lock(mtx);
+        std::unique_lock<std::mutex> lock(mutex);
         busy = false;
         conditionVar.notify_one(); // Wake up anyone waiting for search finished
         conditionVar.wait(lock, [&]{ return busy; });
@@ -144,7 +148,7 @@ namespace WinProcGroup {
 
     namespace {
 
-        vector<i16> Groups;
+        std::vector<i16> Groups;
     }
 
     /// initialize() retrieves logical processor information using specific API
@@ -253,6 +257,10 @@ namespace WinProcGroup {
 
 }
 
+u32 ThreadPool::size() const {
+    return u32(std::vector<Thread*>::size());
+}
+
 Thread* ThreadPool::bestThread() const
 {
     Thread *bestThread = front();
@@ -321,7 +329,7 @@ void ThreadPool::configure(u32 threadCount) {
         }
         clear();
 
-        cout << "info string Thread(s) used " << threadCount << endl;
+        std::cout << "info string Thread(s) used " << threadCount << std::endl;
 
         reductionFactor = std::pow(24.8 + std::log(size()) / 2, 2);
         // Reallocate the hash with the new threadpool size
@@ -341,52 +349,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     rootMoves.initialize(pos, Limits.searchMoves);
 
     if (!rootMoves.empty()) {
-        TBProbeDepth = Options["SyzygyProbeDepth"];
-        TBLimitPiece = Options["SyzygyLimitPiece"];
-        TBUseRule50  = Options["SyzygyUseRule50"];
-        TBHasRoot    = false;
-
-        bool dtzAvailable{ true };
-
-        // Tables with fewer pieces than SyzygyProbeLimit are searched with ProbeDepth == DEPTH_ZERO
-        if (TBLimitPiece > MaxLimitPiece) {
-            TBLimitPiece = MaxLimitPiece;
-            TBProbeDepth = DEPTH_ZERO;
-        }
-
-        // Rank moves using DTZ tables
-        if (0 != TBLimitPiece
-         && TBLimitPiece >= pos.count()
-         && CR_NONE == pos.castleRights()) {
-            // If the current root position is in the table-bases,
-            // then RootMoves contains only moves that preserve the draw or the win.
-            TBHasRoot = rootProbeDTZ(pos, rootMoves);
-            if (!TBHasRoot) {
-                // DTZ tables are missing; try to rank moves using WDL tables
-                dtzAvailable = false;
-                TBHasRoot = rootProbeWDL(pos, rootMoves);
-            }
-        }
-
-        if (TBHasRoot) {
-            // Sort moves according to TB rank
-            sort(rootMoves.begin(), rootMoves.end(),
-                 [](const RootMove &rm1, const RootMove &rm2) {
-                     return rm1.tbRank > rm2.tbRank;
-                 });
-
-            // Probe during search only if DTZ is not available and winning
-            if (dtzAvailable
-             || rootMoves.front().tbValue <= VALUE_DRAW) {
-                TBLimitPiece = 0;
-            }
-        }
-        else {
-            // Clean up if rootProbeDTZ() and rootProbeWDL() have failed
-            for (auto &rm : rootMoves) {
-                rm.tbRank = 0;
-            }
-        }
+        SyzygyTB::rankRootMoves(pos, rootMoves);
     }
 
     // After ownership transfer 'states' becomes empty, so if we stop the search
@@ -402,7 +365,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     // So we need to save and later to restore last stateinfo, cleared by setup().
     // Note that states is shared by threads but is accessed in read-only mode.
     auto fen{ pos.fen() };
-    auto ssBack{ setupStates->back() };
+    auto ssBack = setupStates->back();
     for (auto *th : *this) {
         th->rootDepth       = DEPTH_ZERO;
         th->finishedDepth   = DEPTH_ZERO;

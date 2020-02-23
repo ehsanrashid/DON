@@ -16,7 +16,7 @@ enum GenType : u08 {
 };
 
 struct ValMove {
-public:
+
     Move move{ MOVE_NONE };
     i32  value{ 0 };
 
@@ -33,10 +33,10 @@ public:
     operator float() const = delete;
     operator double() const = delete;
 
-    bool operator<(const ValMove &vm) const { return value < vm.value; }
-    bool operator>(const ValMove &vm) const { return value > vm.value; }
-    //bool operator<=(const ValMove &vm) const { return value <= vm.value; }
-    //bool operator>=(const ValMove &vm) const { return value >= vm.value; }
+    bool operator<(ValMove const &vm) const { return value < vm.value; }
+    bool operator>(ValMove const &vm) const { return value > vm.value; }
+    //bool operator<=(ValMove const &vm) const { return value <= vm.value; }
+    //bool operator>=(ValMove const &vm) const { return value >= vm.value; }
 };
 
 class ValMoves
@@ -49,7 +49,7 @@ public:
 
 
 template<GenType>
-extern void generate(ValMoves&, const Position&);
+extern void generate(ValMoves&, Position const&);
 
 template<GenType GT>//, PieceType PT>
 class MoveList
@@ -57,15 +57,15 @@ class MoveList
 public:
 
     MoveList() = delete;
-    //MoveList(const MoveList&) = delete;
-    MoveList& operator=(const MoveList&) = delete;
+    //MoveList(MoveList const&) = delete;
+    MoveList& operator=(MoveList const&) = delete;
 
-    explicit MoveList(const Position &pos) {
+    explicit MoveList(Position const &pos) {
         generate<GT>(*this, pos);
         //if (NONE != PT)
         //{
         //    erase(std::remove_if(begin(), end(),
-        //                         [&pos](const ValMove &vm) { return PT != pType(pos[orgSq(vm)]); }),
+        //                         [&pos](ValMove const &vm) { return PT != pType(pos[orgSq(vm)]); }),
         //            end());
         //}
     }
@@ -88,8 +88,8 @@ struct Perft {
 
     Perft();
 
-    void operator+=(const Perft&);
-    void operator-=(const Perft&);
+    void operator+=(Perft const&);
+    void operator-=(Perft const&);
 
     void classify(Position&, Move);
 };

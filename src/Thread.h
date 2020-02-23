@@ -24,9 +24,9 @@ private:
     bool  dead{ false }
         , busy{ true };
 
-    std::mutex mtx;
+    std::mutex mutex;
     std::condition_variable conditionVar;
-    size_t index;
+    u32 index;
     NativeThread nativeThread;
 
 protected:
@@ -65,10 +65,10 @@ public:
     Pawns   ::Table pawnHash;
     Material::Table matlHash;
 
-    explicit Thread(size_t);
+    explicit Thread(u32);
     Thread() = delete;
-    Thread(const Thread&) = delete;
-    Thread& operator=(const Thread&) = delete;
+    Thread(Thread const&) = delete;
+    Thread& operator=(Thread const&) = delete;
 
     virtual ~Thread();
 
@@ -134,8 +134,8 @@ public:
         ,             research;
 
     ThreadPool() = default;
-    ThreadPool(const ThreadPool&) = delete;
-    ThreadPool& operator=(const ThreadPool&) = delete;
+    ThreadPool(ThreadPool const&) = delete;
+    ThreadPool& operator=(ThreadPool const&) = delete;
 
     template<typename T>
     T sum(std::atomic<T> Thread::*member) const {
@@ -151,6 +151,8 @@ public:
             th->*member = {};
         }
     }
+
+    u32 size() const;
 
     MainThread* mainThread() const { return static_cast<MainThread*>(front()); }
 

@@ -2,7 +2,7 @@
 
 #include <deque>
 #include <list>
-#include <memory>
+#include <memory> // For std::unique_ptr
 #include <string>
 
 #include "Bitboard.h"
@@ -18,21 +18,21 @@
 #   include <xmmintrin.h> // Microsoft and Intel Header for _mm_prefetch()
 #endif
 
-inline void prefetch(const void *addr) {
+inline void prefetch(void const *addr) {
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 #   if defined(__INTEL_COMPILER)
     // This hack prevents prefetches from being optimized away by
     // Intel compiler. Both MSVC and gcc seem not be affected by this.
     __asm__("");
 #   endif
-    _mm_prefetch((const char*) (addr), _MM_HINT_T0);
+    _mm_prefetch((char const*) (addr), _MM_HINT_T0);
 #else
     __builtin_prefetch(addr);
 #endif
 }
 
 #else
-inline void prefetch(const void*) {}
+inline void prefetch(void const*) {}
 #endif // (PREFETCH)
 
 constexpr Array<Piece, 12> Pieces
@@ -144,8 +144,8 @@ public:
     //static void initialize();
 
     Position() = default;
-    Position(const Position&) = delete;
-    Position& operator=(const Position&) = delete;
+    Position(Position const&) = delete;
+    Position& operator=(Position const&) = delete;
 
     Piece operator[](Square) const;
     bool empty(Square) const;
@@ -163,7 +163,7 @@ public:
     i32 count(Piece) const;
     i32 count(Color) const;
     i32 count(PieceType) const;
-    const std::list<Square>& squares(Piece) const;
+    std::list<Square> const& squares(Piece) const;
     Square square(Piece, u08 = 0) const;
 
     Value nonPawnMaterial(Color) const;
@@ -232,8 +232,8 @@ public:
 
     void clear();
 
-    Position& setup(const std::string&, StateInfo&, Thread *const = nullptr);
-    Position& setup(const std::string&, Color, StateInfo&);
+    Position& setup(std::string const&, StateInfo&, Thread *const = nullptr);
+    Position& setup(std::string const&, Color, StateInfo&);
 
     void doMove(Move, StateInfo&, bool);
     void doMove(Move, StateInfo&);
@@ -254,7 +254,7 @@ public:
 
 };
 
-extern std::ostream& operator<<(std::ostream&, const Position&);
+extern std::ostream& operator<<(std::ostream&, Position const&);
 
 
 inline Piece Position::operator[](Square s) const {
@@ -481,6 +481,6 @@ inline void Position::doMove(Move m, StateInfo &nsi) {
 
 #if !defined(NDEBUG)
 
-extern bool isOk(const std::string&);
+extern bool isOk(std::string const&);
 
 #endif

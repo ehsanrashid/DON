@@ -39,10 +39,10 @@ inline PickStage& operator++(PickStage &ps) { return ps = ps + 1; }
 class MovePicker {
 private:
 
-    const Position &pos;
-    const ColorIndexStatsTable *quietStats{ nullptr };
-    const PieceSquareTypeStatsTable *captureStats{ nullptr };
-    const PieceSquareStatsTable **pieceStats{ nullptr };
+    Position const &pos;
+    ColorIndexStatsTable const *quietStats{ nullptr };
+    PieceSquareTypeStatsTable const *captureStats{ nullptr };
+    PieceSquareStatsTable const **pieceStats{ nullptr };
 
     Move    ttMove;
     Depth   depth;
@@ -52,11 +52,11 @@ private:
     PickStage pickStage;
 
     ValMoves vmoves;
-    ValMoves::iterator vmItr, vmEnd;
+    ValMoves::iterator vmBeg, vmEnd;
 
-    std::vector<Move> refutationMoves
-        ,             badCaptureMoves;
-    std::vector<Move>::iterator mItr, mEnd;
+    Moves refutationMoves
+        , badCaptureMoves;
+    Moves::iterator mBeg, mEnd;
 
     template<GenType GT>
     void value();
@@ -69,23 +69,23 @@ public:
     bool skipQuiets{ false };
 
     MovePicker() = delete;
-    MovePicker(const MovePicker&) = delete;
-    MovePicker& operator=(const MovePicker&) = delete;
+    MovePicker(MovePicker const&) = delete;
+    MovePicker& operator=(MovePicker const&) = delete;
 
     MovePicker(
-          const Position&
+          Position const&
         , const ColorIndexStatsTable*
         , const PieceSquareTypeStatsTable*
         , const PieceSquareStatsTable**
-        , Move, Depth, const Array<Move, 2>&, Move);
+        , Move, Depth, Array<Move, 2> const&, Move);
     MovePicker(
-          const Position&
+          Position const&
         , const ColorIndexStatsTable*
         , const PieceSquareTypeStatsTable*
         , const PieceSquareStatsTable**
         , Move, Depth, Square);
     MovePicker(
-          const Position&
+          Position const&
         , const PieceSquareTypeStatsTable*
         , Move, Value);
 

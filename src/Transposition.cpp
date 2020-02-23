@@ -12,17 +12,15 @@
 
 TTable TT;
 
-using namespace std;
-
 u08 TEntry::Generation = 0;
 
 void TEntry::save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv) {
     // Preserve more valuable entries
     if (MOVE_NONE != m
-     || k16 != (k >> 0x30)) {
+     || k16 != u16(k >> 0x30)) {
         m16 = u16(m);
     }
-    if (k16 != (k >> 0x30)
+    if (k16 != u16(k >> 0x30)
      || d08 < d - DEPTH_OFFSET + 4
      || BOUND_EXACT == b) {
         assert(d > DEPTH_OFFSET);
@@ -31,15 +29,15 @@ void TEntry::save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv) {
         v16 = i16(v);
         e16 = i16(e);
         d08 = u08(d - DEPTH_OFFSET);
-        g08 = u08(Generation | u08(pv) << 2 | b);
+        g08 = u08(Generation | (u08(pv) << 2) | b);
     }
 }
 
 
 u32 TCluster::freshEntryCount() const {
-    return (entries[0].generation() == TEntry::Generation)
-         + (entries[1].generation() == TEntry::Generation)
-         + (entries[2].generation() == TEntry::Generation);
+    return (entryTable[0].generation() == TEntry::Generation)
+         + (entryTable[1].generation() == TEntry::Generation)
+         + (entryTable[2].generation() == TEntry::Generation);
 }
 
 /// TCluster::probe()
@@ -47,8 +45,8 @@ u32 TCluster::freshEntryCount() const {
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
 TEntry* TCluster::probe(u16 key16, bool &hit) {
     // Find an entry to be replaced according to the replacement strategy.
-    auto *rte = entries; // Default first
-    for (auto *ite = entries; ite < entries + EntryCount; ++ite) {
+    auto *rte = entryTable; // Default first
+    for (auto *ite = entryTable; ite < entryTable + EntryCount; ++ite) {
         if (ite->d08 == 0
          || ite->k16 == key16) {
             // Refresh entry
@@ -80,7 +78,7 @@ namespace {
     /// The returned pointer is the aligned one, while the mem argument is the one that needs to be passed to free.
     /// With c++17 some of this functionality can be simplified.
 
-    void* allocAlignedMemory(size_t mSize, void *&mem) {
+    void* allocAlignedMemory(void *&mem, size_t mSize) {
 
 #   if defined(__linux__) && !defined(__ANDROID__)
 
@@ -95,11 +93,11 @@ namespace {
         constexpr size_t alignment = 64;        // assumed cache line size
         size_t size = mSize + alignment - 1;    // allocate some extra space
         mem = malloc(size);
-        return reinterpret_cast<void*>((uintptr_t(mem) + alignment - 1) & ~uintptr_t(alignment - 1));
+        return reinterpret_cast<void*>((uPtr(mem) + alignment - 1) & ~uPtr(alignment - 1));
 
 #   endif
         //assert(nullptr != new_mem
-        //    && 0 == (uintptr_t(new_mem) & (alignment-1)));
+        //    && 0 == (uPtr(new_mem) & (alignment - 1)));
     }
 
 }
@@ -107,7 +105,7 @@ namespace {
 
 TTable::TTable()
     : mem{ nullptr }
-    , clusters{ nullptr }
+    , clusterTable{ nullptr }
     , clusterCount{ 0 }
 {}
 
@@ -122,8 +120,8 @@ u32 TTable::size() const {
 }
 /// cluster() returns a pointer to the cluster of given a key.
 /// Lower 32 bits of the key are used to get the index of the cluster.
-TCluster* TTable::cluster(Key key) const {
-    return &clusters[(u32(key) * u64(clusterCount)) >> 32];
+TCluster* TTable::cluster(Key posiKey) const {
+    return &clusterTable[(u32(posiKey) * clusterCount) >> 0x20];
 }
 
 /// TTable::resize() sets the size of the transposition table, measured in MB.
@@ -137,9 +135,9 @@ u32 TTable::resize(u32 memSize) {
     free(mem);
 
     clusterCount = (size_t(memSize) << 20) / sizeof (TCluster);
-    clusters = static_cast<TCluster*>(allocAlignedMemory(clusterCount * sizeof (TCluster), mem));
+    clusterTable = static_cast<TCluster*>(allocAlignedMemory(mem, size_t(clusterCount * sizeof (TCluster))));
     if (nullptr == mem) {
-        cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << endl;
+        std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << std::endl;
         return 0;
     }
 
@@ -166,7 +164,7 @@ void TTable::clear() {
         return;
     }
 
-    vector<thread> threads;
+    std::vector<std::thread> threads;
     auto threadCount{ optionThreads() };
     for (size_t idx = 0; idx < threadCount; ++idx) {
         threads.emplace_back(
@@ -174,12 +172,12 @@ void TTable::clear() {
                 if (8 < threadCount) {
                     WinProcGroup::bind(idx);
                 }
-                const auto stride{ clusterCount / threadCount };
-                const auto start{ stride * idx };
-                const auto count{ idx != threadCount - 1 ?
+                auto const stride{ clusterCount / threadCount };
+                auto const start{ stride * idx };
+                auto const count{ idx != threadCount - 1 ?
                                 stride :
                                 clusterCount - start };
-                std::memset(clusters + start, 0, count * sizeof (TCluster));
+                std::memset(clusterTable + start, 0, count * sizeof (TCluster));
             });
     }
     for (auto &th : threads) {
@@ -190,8 +188,8 @@ void TTable::clear() {
 }
 
 /// TTable::probe() looks up the entry in the transposition table.
-TEntry* TTable::probe(Key key, bool &hit) const {
-    return cluster(key)->probe(u16(key >> 0x30), hit);
+TEntry* TTable::probe(Key posiKey, bool &hit) const {
+    return cluster(posiKey)->probe(u16(posiKey >> 0x30), hit);
 }
 /// TTable::hashFull() returns an approximation of the per-mille of the
 /// all transposition entries during a search which have received
@@ -201,24 +199,23 @@ TEntry* TTable::probe(Key key, bool &hit) const {
 /// hash, are using <x>%. of the state of full.
 u32 TTable::hashFull() const {
     u32 freshEntryCount{ 0 };
-    for (auto *itc = clusters; itc < clusters + 1000; ++itc) {
+    for (auto *itc = clusterTable; itc < clusterTable + 1000; ++itc) {
         freshEntryCount += itc->freshEntryCount();
     }
     return freshEntryCount / TCluster::EntryCount;
 }
 
-/// TTable::extractNextMove() extracts next move after current move.
-Move TTable::extractNextMove(Position &pos, Move cm) const {
-    assert(MOVE_NONE != cm
-        && MoveList<GenType::LEGAL>(pos).contains(cm));
+/// TTable::extractNextMove() extracts next move after this move.
+Move TTable::extractNextMove(Position &pos, Move m) const {
+    assert(MOVE_NONE != m
+        && MoveList<GenType::LEGAL>(pos).contains(m));
 
     StateInfo si;
-    pos.doMove(cm, si);
+    pos.doMove(m, si);
     bool ttHit;
     auto *tte{ probe(pos.posiKey(), ttHit) };
     auto nm{ ttHit ?
-                tte->move() :
-                MOVE_NONE };
+                tte->move() : MOVE_NONE };
     if (MOVE_NONE != nm
      && !(pos.pseudoLegal(nm)
        && pos.legal(nm))) {
@@ -226,17 +223,17 @@ Move TTable::extractNextMove(Position &pos, Move cm) const {
     }
     assert(MOVE_NONE == nm
         || MoveList<GenType::LEGAL>(pos).contains(nm));
-    pos.undoMove(cm);
+    pos.undoMove(m);
 
     return nm;
 }
 
 /// TTable::save() saves hash to file
-void TTable::save(const string &hashFn) const {
+void TTable::save(std::string const &hashFn) const {
     if (whiteSpaces(hashFn)) {
         return;
     }
-    ofstream ofs{ hashFn, ios::out|ios::binary };
+    std::ofstream ofs{ hashFn, std::ios::out|std::ios::binary };
     if (!ofs.is_open()) {
         return;
     }
@@ -245,11 +242,11 @@ void TTable::save(const string &hashFn) const {
     sync_cout << "info string Hash saved to file \'" << hashFn << "\'" << sync_endl;
 }
 /// TTable::load() loads hash from file
-void TTable::load(const string &hashFn) {
+void TTable::load(std::string const &hashFn) {
     if (whiteSpaces(hashFn)) {
         return;
     }
-    ifstream ifs{ hashFn, ios::in|ios::binary };
+    std::ifstream ifs{ hashFn, std::ios::in|std::ios::binary };
     if (!ifs.is_open()) {
         return;
     }
@@ -264,31 +261,31 @@ namespace {
 
 }
 
-ostream& operator<<(ostream &os, const TTable &tt) {
+std::ostream& operator<<(std::ostream &os, TTable const &tt) {
     u32 memSize = tt.size();
     u08 dummy = 0;
-    os.write((const char*) (&memSize), sizeof (memSize));
-    os.write((const char*) (&dummy), sizeof (dummy));
-    os.write((const char*) (&dummy), sizeof (dummy));
-    os.write((const char*) (&dummy), sizeof (dummy));
-    os.write((const char*) (&TEntry::Generation), sizeof (TEntry::Generation));
+    os.write((char const*)(&memSize), sizeof (memSize));
+    os.write((char const*)(&dummy), sizeof (dummy));
+    os.write((char const*)(&dummy), sizeof (dummy));
+    os.write((char const*)(&dummy), sizeof (dummy));
+    os.write((char const*)(&TEntry::Generation), sizeof (TEntry::Generation));
     for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
-        os.write((const char*) (tt.clusters + i*BufferSize), sizeof (TCluster)*BufferSize);
+        os.write((char const*)(tt.clusterTable + i*BufferSize), sizeof (TCluster)*BufferSize);
     }
     return os;
 }
 
-istream& operator>>(istream &is,       TTable &tt) {
+std::istream& operator>>(std::istream &is, TTable       &tt) {
     u32 memSize;
     u08 dummy;
-    is.read((char*) (&memSize), sizeof (memSize));
-    is.read((char*) (&dummy), sizeof (dummy));
-    is.read((char*) (&dummy), sizeof (dummy));
-    is.read((char*) (&dummy), sizeof (dummy));
-    is.read((char*) (&TEntry::Generation), sizeof (TEntry::Generation));
+    is.read((char*)(&memSize), sizeof (memSize));
+    is.read((char*)(&dummy), sizeof (dummy));
+    is.read((char*)(&dummy), sizeof (dummy));
+    is.read((char*)(&dummy), sizeof (dummy));
+    is.read((char*)(&TEntry::Generation), sizeof (TEntry::Generation));
     tt.resize(memSize);
     for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
-        is.read((char*) (tt.clusters + i*BufferSize), sizeof (TCluster)*BufferSize);
+        is.read((char*)(tt.clusterTable + i*BufferSize), sizeof (TCluster)*BufferSize);
     }
     return is;
 }
