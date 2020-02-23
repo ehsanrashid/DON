@@ -105,26 +105,28 @@ void MovePicker::value() {
         }
         else
         if (GenType::QUIET == GT) {
-            vm.value =     (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
-                     + 2 * (*pieceStats[0])[pos[orgSq(vm)]][dstSq(vm)]
-                     + 2 * (*pieceStats[1])[pos[orgSq(vm)]][dstSq(vm)]
-                     + 2 * (*pieceStats[3])[pos[orgSq(vm)]][dstSq(vm)]
-                     + 1 * (*pieceStats[5])[pos[orgSq(vm)]][dstSq(vm)]
-                     + (ply < MAX_LOWPLY ?
-                       4 * (*lowPlyStats)[ply][mIndex(vm)] : 0);
+            vm.value =      (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
+                      + 2 * (*pieceStats[0])[pos[orgSq(vm)]][dstSq(vm)]
+                      + 2 * (*pieceStats[1])[pos[orgSq(vm)]][dstSq(vm)]
+                      + 2 * (*pieceStats[3])[pos[orgSq(vm)]][dstSq(vm)]
+                      + 1 * (*pieceStats[5])[pos[orgSq(vm)]][dstSq(vm)];
+            if (ply < MAX_LOWPLY) {
+            vm.value += 4 * (*lowPlyStats)[ply][mIndex(vm)];
+            }
+            // Reset Low values
             if (vm.value < threshold) {
                 vm.value = threshold - 1;
             }
         }
         else { // GenType::EVASION == GT
             if (pos.capture(vm)) {
-                vm.value = i32(PieceValues[MG][pos.captureType(vm)])
-                         - pType(pos[orgSq(vm)]);
+                vm.value =  i32(PieceValues[MG][pos.captureType(vm)])
+                          - pType(pos[orgSq(vm)]);
             }
             else {
-                vm.value =     (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
-                         + 1 * (*pieceStats[0])[pos[orgSq(vm)]][dstSq(vm)]
-                         - (0x10000000); // 1 << 28
+                vm.value =      (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
+                          + 1 * (*pieceStats[0])[pos[orgSq(vm)]][dstSq(vm)]
+                          - (0x10000000); // 1 << 28
             }
         }
     }
@@ -167,7 +169,7 @@ Move MovePicker::nextMove() {
     case QUIESCENCE_INIT:
         generate<GenType::CAPTURE>(vmoves, pos);
         vmBeg = vmoves.begin();
-        vmEnd = std::remove(vmoves.begin(), vmoves.end(), ttMove);
+        vmEnd = std::remove(vmBeg, vmoves.end(), ttMove);
         value<GenType::CAPTURE>();
 
         ++pickStage;
@@ -190,7 +192,7 @@ Move MovePicker::nextMove() {
             refutationMoves[2] = MOVE_NONE;
         }
         mBeg = refutationMoves.begin();
-        mEnd = std::remove_if(refutationMoves.begin(), refutationMoves.end(),
+        mEnd = std::remove_if(mBeg, refutationMoves.end(),
                 [&](Move m) {
                     return MOVE_NONE == m
                         || ttMove == m
@@ -210,7 +212,7 @@ Move MovePicker::nextMove() {
         if (!skipQuiets) {
             generate<GenType::QUIET>(vmoves, pos);
             vmBeg = vmoves.begin();
-            vmEnd = std::remove_if(vmoves.begin(), vmoves.end(),
+            vmEnd = std::remove_if(vmBeg, vmoves.end(),
                     [&](ValMove const &vm) {
                         return ttMove == vm
                             || std::find(mBeg, mEnd, vm.move) != mEnd;
@@ -238,7 +240,7 @@ Move MovePicker::nextMove() {
     case EVASION_INIT:
         generate<GenType::EVASION>(vmoves, pos);
         vmBeg = vmoves.begin();
-        vmEnd = std::remove_if(vmoves.begin(), vmoves.end(),
+        vmEnd = std::remove_if(vmBeg, vmoves.end(),
                 [&](ValMove const &vm) {
                     return ttMove == vm
                         || (KING == pType(pos[orgSq(vm)])
@@ -275,7 +277,7 @@ Move MovePicker::nextMove() {
 
         generate<GenType::QUIET_CHECK>(vmoves, pos);
         vmBeg = vmoves.begin();
-        vmEnd = std::remove(vmoves.begin(), vmoves.end(), ttMove);
+        vmEnd = std::remove(vmBeg, vmoves.end(), ttMove);
 
         ++pickStage;
         /* fall through */

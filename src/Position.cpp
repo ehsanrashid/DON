@@ -75,7 +75,7 @@ Key Position::movePosiKey(Move m) const {
     auto pKey{ posiKey() };
     if (CASTLE == mType(m)) {
         pKey ^= RandZob.pieceSquareKey[active][ROOK][dst]
-              ^ RandZob.pieceSquareKey[active][ROOK][rookRelativeSq(active, dst > org)];
+              ^ RandZob.pieceSquareKey[active][ROOK][rookCastleSq(org, dst)];
     }
     else {
         auto cpt{ ENPASSANT != mType(m) ? pType(board[dst]) : PAWN };
@@ -97,7 +97,7 @@ Key Position::movePosiKey(Move m) const {
     return pKey
          ^ RandZob.colorKey
          ^ RandZob.pieceSquareKey[active][pType(board[org])][org]
-         ^ RandZob.pieceSquareKey[active][PROMOTE != mType(m) ? pType(board[org]) : promoteType(m)][CASTLE != mType(m) ? dst : kingRelativeSq(active, dst > org)]
+         ^ RandZob.pieceSquareKey[active][PROMOTE != mType(m) ? pType(board[org]) : promoteType(m)][CASTLE != mType(m) ? dst : kingCastleSq(org, dst)]
          ^ RandZob.castleRightKey[si->castleRights & (sqCastleRight[org]|sqCastleRight[dst])];
 }
 
@@ -356,7 +356,7 @@ bool Position::legal(Move m) const {
         return !Options["UCI_Chess960"]
             || 0 == (pieces(~active, ROOK, QUEN)
                    & rankBB(relativeRank(active, RANK_1))
-                   & attacksBB<ROOK>(kingRelativeSq(active, dst > org), pieces() ^ dst));
+                   & attacksBB<ROOK>(kingCastleSq(org, dst), pieces() ^ dst));
     }
     case ENPASSANT: {
         // Enpassant captures are a tricky special case. Because they are rather uncommon,
@@ -399,8 +399,8 @@ bool Position::giveCheck(Move m) const {
         return false;
     case CASTLE: {
         // Castling with check?
-        auto kingDst{ kingRelativeSq(active, dst > org) };
-        auto rookDst{ rookRelativeSq(active, dst > org) };
+        auto kingDst{ kingCastleSq(org, dst) };
+        auto rookDst{ rookCastleSq(org, dst) };
         Bitboard mocc{ (pieces() ^ org ^ dst) | kingDst | rookDst };
         return contains(attacksBB<ROOK>(rookDst, mocc), square(~active|KING));
     }
@@ -431,8 +431,8 @@ void Position::setCastle(Color c, Square rookOrg) {
         && (c|ROOK) == board[rookOrg]); //&& contains(pieces(c, ROOK), rookOrg)
 
     auto cs{rookOrg > kingOrg ? CS_KING : CS_QUEN};
-    auto kingDst{ kingRelativeSq(c, rookOrg > kingOrg) };
-    auto rookDst{ rookRelativeSq(c, rookOrg > kingOrg) };
+    auto kingDst{ kingCastleSq(kingOrg, rookOrg) };
+    auto rookDst{ rookCastleSq(kingOrg, rookOrg) };
     auto cr{ makeCastleRight(c, cs) };
     cslRookSq[c][cs] = rookOrg;
     si->castleRights       |= cr;
@@ -886,8 +886,8 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
 
         si->captured = NONE;
         auto rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
-        auto rookDst{ rookRelativeSq(active, rookOrg > org) };
-        /* king*/dst = kingRelativeSq(active, rookOrg > org);
+        auto rookDst{ rookCastleSq(org, rookOrg) };
+        /* king*/dst = kingCastleSq(org, rookOrg);
         // Remove both pieces first since squares could overlap in chess960
         removePiece(org);
         removePiece(rookOrg);
@@ -1044,8 +1044,8 @@ void Position::undoMove(Move m)
             && NONE == captured());
 
         auto rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
-        auto rookDst{ rookRelativeSq(active, rookOrg > org) };
-        /* king*/dst = kingRelativeSq(active, rookOrg > org);
+        auto rookDst{ rookCastleSq(org, rookOrg) };
+        /* king*/dst = kingCastleSq(org, rookOrg);
         // Remove both pieces first since squares could overlap in chess960
         removePiece(dst);
         removePiece(rookDst);

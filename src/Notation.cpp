@@ -91,15 +91,10 @@ string moveToCAN(Move m) {
     if (MOVE_NULL == m) return { "(null)" };
 
     std::ostringstream oss;
-    auto org{ orgSq(m) };
-    auto dst{ dstSq(m) };
-    if (CASTLE == mType(m)
-     && !Options["UCI_Chess960"]) {
-        assert(sRank(org) == sRank(dst));
-        dst = makeSquare(dst > org ? FILE_G : FILE_C, sRank(org));
-    }
-
-    oss << org << dst;
+    oss << orgSq(m)
+        << ((CASTLE != mType(m)
+          || Options["UCI_Chess960"]) ?
+            dstSq(m) : kingCastleSq(orgSq(m), dstSq(m)));
     if (PROMOTE == mType(m)) {
         oss << (BLACK|promoteType(m));
     }

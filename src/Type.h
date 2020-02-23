@@ -301,7 +301,6 @@ BITWISE_OPERATORS(CastleRight)
 BITWISE_OPERATORS(Bound)
 #undef BITWISE_OPERATORS
 
-
 constexpr Square operator+(Square s, Direction d) {
     return Square(i32(s) + i32(d));
 }
@@ -431,11 +430,11 @@ constexpr Rank relativeRank(Color c, Square s) {
     return relativeRank(c, sRank(s));
 }
 
-constexpr Square kingRelativeSq(Color c, bool kingSide) {
-    return relativeSq(c, SQ_C1 + kingSide * 4 * EAST);
+constexpr Square kingCastleSq(Square org, Square dst) {
+    return makeSquare(File(i32(FILE_C) + (dst > org) * 4), sRank(org));
 }
-constexpr Square rookRelativeSq(Color c, bool kingSide) {
-    return relativeSq(c, SQ_D1 + kingSide * 2 * EAST);
+constexpr Square rookCastleSq(Square org, Square dst) {
+    return makeSquare(File(i32(FILE_D) + (dst > org) * 2), sRank(org));
 }
 
 constexpr Direction pawnPush(Color c) {
@@ -493,6 +492,11 @@ constexpr MoveType mType(Move m) {
 }
 constexpr u16 mIndex(Move m) {
     return u16(m & 0x0FFF);
+}
+constexpr Square fixDst(Move m) {
+    return CASTLE != mType(m) ?
+            dstSq(m) :
+            kingCastleSq(orgSq(m), dstSq(m));
 }
 
 constexpr Move makePromoteMove(Square org, Square dst, PieceType pt = QUEN) {

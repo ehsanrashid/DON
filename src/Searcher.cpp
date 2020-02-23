@@ -67,12 +67,6 @@ namespace {
         return 15 >= depth ? (19 * depth + 155) * depth - 132 : -8;
     }
 
-    constexpr Square prevDst(Color c, Move pm) {
-        return CASTLE != mType(pm) ?
-                dstSq(pm) :
-                kingRelativeSq(~c, dstSq(pm) > orgSq(pm));
-    }
-
     /// updateContinuationStats() updates Stats of the move pairs formed
     /// by moves at ply -1, -2, -4 and -6 with current move.
     void updateContinuationStats(Stack *const &ss, Piece p, Square dst, i32 bonus) {
@@ -93,7 +87,7 @@ namespace {
         assert(1 == std::count(ss->killerMoves.begin(), ss->killerMoves.end(), move));
 
         if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ prevDst(pos.activeSide(), (ss-1)->playedMove) };
+            auto pmDst{ fixDst((ss-1)->playedMove) };
             assert(NO_PIECE != pos[pmDst]);
             pos.thread->counterMoves[pos[pmDst]][pmDst] = move;
         }
@@ -510,9 +504,9 @@ namespace {
                 // Penalty for a quiet ttMove that fails low
                 else {
                     if (!pos.captureOrPromotion(ttMove)) {
-                        auto bonus{ -statBonus(depth) };
-                        thread->butterFlyStats[pos.activeSide()][mIndex(ttMove)] << bonus;
-                        updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), bonus);
+                        auto bonus{ statBonus(depth) };
+                        thread->butterFlyStats[pos.activeSide()][mIndex(ttMove)] << -bonus;
+                        updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), -bonus);
                     }
                 }
             }
@@ -522,7 +516,7 @@ namespace {
                 if (!pmCaptureOrPromotion
                  && 2 >= (ss-1)->moveCount
                  && isOk((ss-1)->playedMove)) {
-                    auto pmDst{ prevDst(pos.activeSide(), (ss-1)->playedMove) };
+                    auto pmDst{ fixDst((ss-1)->playedMove) };
                     updateContinuationStats(ss-1, pos[pmDst], pmDst, -statBonus(depth + 1));
                 }
             }
@@ -805,7 +799,7 @@ namespace {
 
         auto counterMove{ MOVE_NONE };
         if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ prevDst(pos.activeSide(), (ss-1)->playedMove) };
+            auto pmDst{ fixDst((ss-1)->playedMove) };
             assert(NO_PIECE != pos[pmDst]);
             counterMove = pos.thread->counterMoves[pos[pmDst]][pmDst];
         }
@@ -852,7 +846,7 @@ namespace {
                                   //<< " seldepth "       << (*std::find(std::next(thread->rootMoves.begin(), thread->pvCur),
                                   //                                     std::next(thread->rootMoves.begin(), thread->pvEnd), move)).selDepth
                                   << " time "           << elapsed
-                                  << std::setfill('0') << sync_endl;
+                                  << std::setfill('0')  << sync_endl;
                     }
                 }
             }
@@ -1224,7 +1218,7 @@ namespace {
                                 statBonus(depth) };
 
                 updateQuietStats(ss, pos, bestMove, depth, bonus2);
-                // Decrease all the other played quiet moves.
+                // Decrease all the other played quiet moves
                 for (auto qm : quietMoves) {
                     thread->butterFlyStats[pos.activeSide()][mIndex(qm)] << -bonus2;
                     updateContinuationStats(ss, pos[orgSq(qm)], dstSq(qm), -bonus2);
@@ -1234,7 +1228,7 @@ namespace {
                 thread->captureStats[pos[orgSq(bestMove)]][dstSq(bestMove)][pos.captureType(bestMove)] << bonus1;
             }
 
-            // Decrease all the other played capture moves.
+            // Decrease all the other played capture moves
             for (auto cm : captureMoves) {
                 thread->captureStats[pos[orgSq(cm)]][dstSq(cm)][pos.captureType(cm)] << -bonus1;
             }
@@ -1243,7 +1237,7 @@ namespace {
              && (1 == (ss-1)->moveCount
               || (ss-1)->killerMoves[0] == (ss-1)->playedMove)
              && isOk((ss-1)->playedMove)) {
-                auto pmDst{ prevDst(pos.activeSide(), (ss-1)->playedMove) };
+                auto pmDst{ fixDst((ss-1)->playedMove) };
                 updateContinuationStats(ss-1, pos[pmDst], pmDst, -bonus1);
             }
         }
@@ -1253,7 +1247,7 @@ namespace {
          && (PVNode
           || 2 < depth)
          && isOk((ss-1)->playedMove)) {
-            auto pmDst{ prevDst(pos.activeSide(), (ss-1)->playedMove) };
+            auto pmDst{ fixDst((ss-1)->playedMove) };
             updateContinuationStats(ss-1, pos[pmDst], pmDst, statBonus(depth));
         }
 
@@ -1760,7 +1754,7 @@ void MainThread::doTick() {
     setTicks(i16(0 != Limits.nodes ? clamp(i32(Limits.nodes / 1024), 1, 1024) : 1024));
 
     auto elapsed{ TimeMgr.elapsed() };
-    TimePoint time = Limits.startTime + elapsed;
+    auto time = Limits.startTime + elapsed;
 
     if (InfoTime + 1000 <= time) {
         InfoTime = time;
@@ -1817,7 +1811,7 @@ namespace SyzygyTB {
 
         if (HasRoot) {
             // Sort moves according to TB rank
-            sort(rootMoves.begin(), rootMoves.end(),
+            std::sort(rootMoves.begin(), rootMoves.end(),
                  [](RootMove const &rm1, RootMove const &rm2) {
                      return rm1.tbRank > rm2.tbRank;
                  });
