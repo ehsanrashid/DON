@@ -11,7 +11,7 @@ using Moves = std::vector<Move>;
 
 /// Hash table
 template<typename T, u32 Size>
-struct HashTable {
+class HashTable {
 private:
     // Allocate on the heap
     std::vector<T> table;
@@ -33,7 +33,7 @@ public:
 
 /// Multi-dimensional Array
 template<typename T, size_t Size, size_t... Sizes>
-struct Array_ {
+class Array_ {
     static_assert (Size != 0, "Size incorrect");
 private:
     using NestedArray_ = typename Array_<T, Sizes...>::type;
@@ -43,7 +43,7 @@ public:
 };
 
 template<typename T, size_t Size>
-struct Array_<T, Size> {
+class Array_<T, Size> {
     static_assert (Size != 0, "Size incorrect");
 public:
     using type = std::array<T, Size>;
@@ -54,7 +54,7 @@ using Array = typename Array_<T, Sizes...>::type;
 
 /// Table
 template<typename T, size_t Size, size_t... Sizes>
-struct Table
+class Table
     : public std::array<Table<T, Sizes...>, Size>
 {
     static_assert (Size != 0, "Size incorrect");
@@ -72,7 +72,7 @@ public:
 
 };
 template<typename T, size_t Size>
-struct Table<T, Size>
+class Table<T, Size>
     : public std::array<T, Size>
 {
     static_assert (Size != 0, "Size incorrect");
@@ -120,7 +120,7 @@ public:
 /// the D parameter limits the range of updates (range is [-D, +D]), and
 /// the last parameters (Size and Sizes) encode the dimensions of the array.
 template<typename T, i32 D, size_t Size, size_t... Sizes>
-struct StatsTable
+class StatsTable
     : public std::array<StatsTable<T, D, Sizes...>, Size>
 {
     static_assert (Size != 0, "Size incorrect");
@@ -139,7 +139,7 @@ public:
     }
 };
 template<typename T, i32 D, size_t Size>
-struct StatsTable<T, D, Size>
+class StatsTable<T, D, Size>
     : public std::array<Stats<T, D>, Size>
 {
     static_assert (Size != 0, "Size incorrect");
@@ -150,6 +150,11 @@ struct StatsTable<T, D, Size>
 /// Used for reduction and move ordering decisions.
 /// indexed by [color][moveIndex]
 using ColorIndexStatsTable      = StatsTable<i16, 10692, COLORS, SQUARES*SQUARES>;
+
+/// PlyIndexStatsTable stores moves history according to ply from 0 to MAX_LOWPLY-1
+constexpr i16 MAX_LOWPLY = 4;
+using PlyIndexStatsTable        = StatsTable<i16, 10692, MAX_LOWPLY, SQUARES*SQUARES>;
+
 /// PieceSquareTypeStatsTable stores move history according to piece.
 /// indexed by [piece][square][captureType]
 using PieceSquareTypeStatsTable = StatsTable<i16, 10692, PIECES, SQUARES, PIECE_TYPES>;

@@ -40,12 +40,14 @@ class MovePicker {
 private:
 
     Position const &pos;
-    ColorIndexStatsTable const *quietStats{ nullptr };
+    ColorIndexStatsTable const *butterFlyStats{ nullptr };
+    PlyIndexStatsTable const *lowPlyStats{ nullptr };
     PieceSquareTypeStatsTable const *captureStats{ nullptr };
     PieceSquareStatsTable const **pieceStats{ nullptr };
 
     Move    ttMove;
     Depth   depth;
+    i16     ply;
     Value   threshold{ VALUE_ZERO };
     Square  recapSq{ SQ_NONE };
 
@@ -74,19 +76,21 @@ public:
 
     MovePicker(
           Position const&
-        , const ColorIndexStatsTable*
-        , const PieceSquareTypeStatsTable*
-        , const PieceSquareStatsTable**
-        , Move, Depth, Array<Move, 2> const&, Move);
+        , ColorIndexStatsTable const*
+        , PlyIndexStatsTable const*
+        , PieceSquareTypeStatsTable const*
+        , PieceSquareStatsTable const**
+        , Move, Depth, i16
+        , Array<Move, 2> const&, Move);
     MovePicker(
           Position const&
-        , const ColorIndexStatsTable*
-        , const PieceSquareTypeStatsTable*
-        , const PieceSquareStatsTable**
+        , ColorIndexStatsTable const*
+        , PieceSquareTypeStatsTable const*
+        , PieceSquareStatsTable const**
         , Move, Depth, Square);
     MovePicker(
           Position const&
-        , const PieceSquareTypeStatsTable*
+        , PieceSquareTypeStatsTable const*
         , Move, Value);
 
     Move nextMove();

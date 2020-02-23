@@ -2,14 +2,14 @@
 
 #include "Type.h"
 
-// MaxLevel should be <= MaxDepth/9
-constexpr i16 MaxLevel = 25;
+// MaxLevel should be <= MAX_PLY/9
+constexpr u16 MaxLevel = 25;
 
 /// Skill Manager class is used to implement strength limit
 class SkillManager {
 private:
 
-    i16  level{ MaxLevel };
+    u16  level{ MaxLevel };
     Move bestMove{ MOVE_NONE };
 
 public:
@@ -21,7 +21,7 @@ public:
     bool enabled() const;
     bool canPick(Depth) const;
 
-    void setLevel(i16);
+    void setLevel(u16);
 
     void clearBestMove();
 

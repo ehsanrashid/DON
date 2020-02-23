@@ -60,9 +60,7 @@ constexpr Array<Value, 2, PIECE_TYPES> PieceValues
 ///  - Bitboard of all checking pieces.
 ///  - Pointer to previous StateInfo.
 ///  - Hash keys for all previous positions in the game for detecting repetition draws.
-struct StateInfo
-{
-public:
+struct StateInfo {
     // ---Copied when making a move---
     Key         matlKey;        // Hash key of materials
     Key         pawnKey;        // Hash key of pawns
@@ -73,8 +71,8 @@ public:
 
     // ---Not copied when making a move---
     Key         posiKey;        // Hash key of position
-    PieceType   captured;       // Piece type captured
     Bitboard    checkers;       // Checkers
+    PieceType   captured;       // Piece type captured
     i16         repetition;
     // Check info
     Array<Bitboard, COLORS> kingBlockers; // Absolute and Discover Blockers
@@ -121,7 +119,9 @@ private:
     Table<Bitboard, COLORS, CASTLE_SIDES> cslRookPath;
     Array<CastleRight, SQUARES> sqCastleRight;
 
+    Color active;
     Score psq;
+    i16   ply;
 
     StateInfo *si;
 
@@ -135,9 +135,6 @@ private:
     bool canEnpassant(Color, Square, bool = true) const;
 
 public:
-
-    i16   ply;
-    Color active;
 
     Thread *thread;
 
@@ -185,15 +182,18 @@ public:
     Key matlKey() const;
     Key pawnKey() const;
     Key posiKey() const;
-    PieceType captured() const;
     Bitboard checkers() const;
+    PieceType captured() const;
     i16 repetition() const;
 
     Bitboard kingBlockers(Color) const;
     Bitboard kingCheckers(Color) const;
     Bitboard checks(PieceType) const;
 
+    Color activeSide() const;
     Score psqScore() const;
+    i16 gamePly() const;
+
     bool castleExpeded(Color, CastleSide) const;
 
     Key pgKey() const;
@@ -319,7 +319,8 @@ inline Value Position::nonPawnMaterial(Color c) const {
     return npMaterial[c];
 }
 inline Value Position::nonPawnMaterial() const {
-    return nonPawnMaterial(WHITE) + nonPawnMaterial(BLACK);
+    return nonPawnMaterial(WHITE)
+         + nonPawnMaterial(BLACK);
 }
 
 inline Square Position::castleRookSq(Color c, CastleSide cs) const {
@@ -367,11 +368,11 @@ inline Key Position::pawnKey() const {
 inline Key Position::posiKey() const {
     return si->posiKey;
 }
-inline PieceType Position::captured() const {
-    return si->captured;
-}
 inline Bitboard Position::checkers() const {
     return si->checkers;
+}
+inline PieceType Position::captured() const {
+    return si->captured;
 }
 inline i16 Position::repetition() const {
     return si->repetition;
@@ -387,8 +388,14 @@ inline Bitboard Position::checks(PieceType pt) const {
     return si->checks[pt];
 }
 
+inline Color Position::activeSide() const {
+    return active;
+}
 inline Score Position::psqScore() const {
     return psq;
+}
+inline i16 Position::gamePly() const {
+    return ply;
 }
 
 inline bool Position::castleExpeded(Color c, CastleSide cs) const {

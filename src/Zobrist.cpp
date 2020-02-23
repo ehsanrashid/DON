@@ -37,7 +37,7 @@ Key Zobrist::computePosiKey(Position const &pos) const {
             }
         }
     }
-    if (WHITE == pos.active) {
+    if (WHITE == pos.activeSide()) {
         posiKey ^= colorKey;
     }
     posiKey ^= castleRightKey[pos.castleRights()];
@@ -71,7 +71,7 @@ namespace Zobrists {
             RandZob.castleRightKey[cr] = 0;
             Bitboard b = cr;
             while (0 != b) {
-                Key k{ RandZob.castleRightKey[u16(1) << popLSq(b)] };
+                Key k{ RandZob.castleRightKey[u64(1) << popLSq(b)] };
                 RandZob.castleRightKey[cr] ^= 0 != k ? k : prng.rand<Key>();
             }
         }

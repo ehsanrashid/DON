@@ -10,15 +10,19 @@
 /// MovePicker constructor for the main search
 MovePicker::MovePicker(
       Position const &p
-    , const ColorIndexStatsTable *qStats
-    , const PieceSquareTypeStatsTable *cStats
-    , const PieceSquareStatsTable **pStats
-    , Move ttm, Depth d, Array<Move, 2> const &km, Move cm)
+    , ColorIndexStatsTable const *bfStats
+    , PlyIndexStatsTable const *lpStats
+    , PieceSquareTypeStatsTable const *cStats
+    , PieceSquareStatsTable const **pStats
+    , Move ttm, Depth d, i16 sp
+    , Array<Move, 2> const &km, Move cm)
     : pos{ p }
-    , quietStats{ qStats }
+    , butterFlyStats{ bfStats }
+    , lowPlyStats{ lpStats }
     , captureStats{ cStats }
     , pieceStats{ pStats }
     , depth{ d }
+    , ply { sp }
     , threshold{ Value(-3000 * d) }
     , refutationMoves{ km[0], km[1], cm } {
     assert(DEPTH_ZERO < depth);
@@ -36,12 +40,12 @@ MovePicker::MovePicker(
 /// and quiet checks (only if depth >= DEPTH_QS_CHECK) will be generated.
 MovePicker::MovePicker(
       Position const &p
-    , const ColorIndexStatsTable *qStats
-    , const PieceSquareTypeStatsTable *cStats
-    , const PieceSquareStatsTable **pStats
+    , ColorIndexStatsTable const *bfStats
+    , PieceSquareTypeStatsTable const *cStats
+    , PieceSquareStatsTable const **pStats
     , Move ttm, Depth d, Square rs)
     : pos{ p }
-    , quietStats{ qStats }
+    , butterFlyStats{ bfStats }
     , captureStats{ cStats }
     , pieceStats{ pStats }
     , depth{ d }
@@ -62,7 +66,7 @@ MovePicker::MovePicker(
 /// Generate captures with SEE greater than or equal to the given threshold.
 MovePicker::MovePicker(
       Position const &p
-    , const PieceSquareTypeStatsTable *cStats
+    , PieceSquareTypeStatsTable const *cStats
     , Move ttm, Value thr)
     : pos{ p }
     , captureStats{ cStats }
@@ -101,11 +105,13 @@ void MovePicker::value() {
         }
         else
         if (GenType::QUIET == GT) {
-            vm.value =     (*quietStats)[pos.active][mIndex(vm)]
+            vm.value =     (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
                      + 2 * (*pieceStats[0])[pos[orgSq(vm)]][dstSq(vm)]
                      + 2 * (*pieceStats[1])[pos[orgSq(vm)]][dstSq(vm)]
                      + 2 * (*pieceStats[3])[pos[orgSq(vm)]][dstSq(vm)]
-                     + 1 * (*pieceStats[5])[pos[orgSq(vm)]][dstSq(vm)];
+                     + 1 * (*pieceStats[5])[pos[orgSq(vm)]][dstSq(vm)]
+                     + (ply < MAX_LOWPLY ?
+                       4 * (*lowPlyStats)[ply][mIndex(vm)] : 0);
             if (vm.value < threshold) {
                 vm.value = threshold - 1;
             }
@@ -116,7 +122,7 @@ void MovePicker::value() {
                          - pType(pos[orgSq(vm)]);
             }
             else {
-                vm.value =     (*quietStats)[pos.active][mIndex(vm)]
+                vm.value =     (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
                          + 1 * (*pieceStats[0])[pos[orgSq(vm)]][dstSq(vm)]
                          - (0x10000000); // 1 << 28
             }

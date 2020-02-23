@@ -161,8 +161,8 @@ namespace UCI {
         defaultVal = currentVal = (v ? "true" : "false");
     }
     Option::Option(char const *v, OnChange pFn)
-        : Option{ std::string{ v }, pFn } {}
-    Option::Option(std::string const &v, OnChange pFn)
+        : Option{ string{ v }, pFn } {}
+    Option::Option(string const &v, OnChange pFn)
         : type{ "string" }
         , onChange{ pFn } {
         defaultVal = currentVal = v;
@@ -175,15 +175,15 @@ namespace UCI {
         defaultVal = currentVal = std::to_string(v);
     }
     Option::Option(char const* v, char const* cur, OnChange pFn)
-        : Option{ std::string{ v }, std::string{ cur }, pFn }
+        : Option{ string{ v }, string{ cur }, pFn }
     {}
-    Option::Option(std::string const& v, std::string const& cur, OnChange pFn)
+    Option::Option(string const& v, string const& cur, OnChange pFn)
         : type{ "combo" }
         , onChange{ pFn } {
         defaultVal = v; currentVal = cur;
     }
 
-    Option::operator string() const {
+    Option::operator std::string() const {
         assert(type == "string");
         return currentVal;
     }
@@ -221,16 +221,16 @@ namespace UCI {
     }
 
     bool Option::operator==(char const *v) const {
-        return *this == std::string{ v };
+        return *this == string{ v };
     }
-    bool Option::operator==(std::string const &v) const {
+    bool Option::operator==(string const &v) const {
         assert(type == "combo");
         return !CaseInsensitiveLessComparer()(currentVal, v)
             && !CaseInsensitiveLessComparer()(v, currentVal);
     }
 
     Option& Option::operator=(char const *v) {
-        *this = std::string{ v };
+        *this = string{ v };
         return *this;
     }
     /// Option::operator=() updates currentValue and triggers onChange() action
@@ -407,9 +407,9 @@ namespace UCI {
         Options["Time Nodes"]         << Option( 0,  0, 10000, onTimeNodes);
 
         Options["SyzygyPath"]         << Option("", onSyzygyPath);
-        Options["SyzygyProbeDepth"]   << Option(TBProbeDepth, 1, 100);
-        Options["SyzygyLimitPiece"]   << Option(TBLimitPiece, 0, 6);
-        Options["SyzygyUseRule50"]    << Option(TBUseRule50);
+        Options["SyzygyDepthLimit"]   << Option(1, 1, 100);
+        Options["SyzygyPieceLimit"]   << Option(7, 0, 7);
+        Options["SyzygyMove50Rule"]   << Option(true);
 
         Options["Debug File"]         << Option("", onDebugFile);
 
@@ -762,12 +762,7 @@ namespace UCI {
     /// Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
     /// In addition to the UCI ones, also some additional commands are supported.
-    void handleCommands(u32 argc, char const *const *argv) {
-        // Join arguments
-        string cmd;
-        for (u32 i = 1; i < argc; ++i) {
-            cmd += string{ argv[i] } + " ";
-        }
+    void handleCommands(string const &cmdLine) {
 
         Debugger::reset();
 
@@ -778,10 +773,16 @@ namespace UCI {
         StateListPtr states{ new std::deque<StateInfo>(1) };
         pos.setup(StartFEN, states->back(), Threadpool.mainThread());
 
+        string cmd;
         do {
-            if (1 == argc
-             && !std::getline(std::cin, cmd, '\n')) {// Block here waiting for input or EOF
-                cmd = "quit";
+            if (cmdLine.empty()) {
+                // Block here waiting for input or EOF
+                if (!std::getline(std::cin, cmd, '\n')) {
+                    cmd = "quit";
+                }
+            }
+            else {
+                cmd = cmdLine;
             }
 
             istringstream iss{ cmd };
@@ -830,75 +831,81 @@ namespace UCI {
                 sync_cout << oss.str() << sync_endl;
             }
             else if (token == "moves")      {
-                // TODO::
-                /*
-                sync_cout;
                 i32 count;
-                if (0 != pos.checkers()) {
-                    cout << "\nEvasion moves: ";
-                    count = 0;
-                    for (auto const &vm : MoveList<GenType::EVASION>(pos)) {
-                        if (pos.legal(vm)) {
-                            cout << moveToSAN(vm, pos) << " ";
-                            ++count;
-                        }
-                    }
-                    cout << "(" << count << ")";
-                }
-                else {
-                    cout << "\nQuiet moves: ";
+
+                if (0 == pos.checkers()) {
+
+                    std::cout << "\nQuiet moves: ";
                     count = 0;
                     for (auto const &vm : MoveList<GenType::QUIET>(pos)) {
-                        if (pos.legal(vm)) {
-                            cout << moveToSAN(vm, pos) << " ";
+                        if (pos.pseudoLegal(vm)
+                         && pos.legal(vm)) {
+                            std::cout << moveToSAN(vm, pos) << " ";
                             ++count;
                         }
                     }
-                    cout << "(" << count << ")";
+                    std::cout << "(" << count << ")";
 
-                    cout << "\nCheck moves: ";
+                    std::cout << "\nCheck moves: ";
                     count = 0;
                     for (auto const &vm : MoveList<GenType::CHECK>(pos)) {
-                        if (pos.legal(vm)) {
-                            cout << moveToSAN(vm, pos) << " ";
+                        if (pos.pseudoLegal(vm)
+                         && pos.legal(vm)) {
+                            std::cout << moveToSAN(vm, pos) << " ";
                             ++count;
                         }
                     }
-                    cout << "(" << count << ")";
+                    std::cout << "(" << count << ")";
 
-                    cout << "\nQuiet Check moves: ";
+                    std::cout << "\nQuiet Check moves: ";
                     count = 0;
                     for (auto const &vm : MoveList<GenType::QUIET_CHECK>(pos)) {
-                        if (pos.legal(vm)) {
-                            cout << moveToSAN(vm, pos) << " ";
+                        if (pos.pseudoLegal(vm)
+                         && pos.legal(vm)) {
+                            std::cout << moveToSAN(vm, pos) << " ";
                             ++count;
                         }
                     }
-                    cout << "(" << count << ")";
+                    std::cout << "(" << count << ")";
 
-                    cout << "\nCapture moves: ";
+                    std::cout << "\nCapture moves: ";
                     count = 0;
                     for (auto const &vm : MoveList<GenType::CAPTURE>(pos)) {
-                        if (pos.legal(vm)) {
-                            cout << moveToSAN(vm, pos) << " ";
+                        if (pos.pseudoLegal(vm)
+                         && pos.legal(vm)) {
+                            std::cout << moveToSAN(vm, pos) << " ";
                             ++count;
                         }
                     }
-                    cout << "(" << count << ")";
-                }
+                    std::cout << "(" << count << ")";
 
-                cout << "\nLegal moves: ";
-                count = 0;
-                for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
-                    cout << moveToSAN(vm, pos) << " ";
-                    ++count;
+                    std::cout << "\nNatural moves: ";
+                    count = 0;
+                    for (auto const &vm : MoveList<GenType::NATURAL>(pos)) {
+                        if (pos.pseudoLegal(vm)
+                         && pos.legal(vm)) {
+                            std::cout << moveToSAN(vm, pos) << " ";
+                            ++count;
+                        }
+                    }
+                    std::cout << "(" << count << ")" << std::endl;
                 }
-                cout << "(" << count << ")" << sync_endl;
-                */
+                else {
+                    std::cout << "\nEvasion moves: ";
+                    count = 0;
+                    for (auto const &vm : MoveList<GenType::EVASION>(pos)) {
+                        if (pos.pseudoLegal(vm)
+                         && pos.legal(vm)) {
+                            std::cout << moveToSAN(vm, pos) << " ";
+                            ++count;
+                        }
+                    }
+                    std::cout << "(" << count << ")" << std::endl;
+                }
             }
             else { sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl; }
 
-        } while (1 == argc
+        } while (cmdLine.empty()
               && cmd != "quit");
     }
 
@@ -916,10 +923,10 @@ namespace UCI {
 
 }
 
-u32 optionThreads() {
-    u32 threadCount{ Options["Threads"] };
+u16 optionThreads() {
+    u16 threadCount{ Options["Threads"] };
     if (0 == threadCount) {
-        threadCount = std::thread::hardware_concurrency();
+        threadCount = u16(std::thread::hardware_concurrency());
     }
     return threadCount;
 }

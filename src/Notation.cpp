@@ -5,6 +5,7 @@
 
 #include "MoveGenerator.h"
 #include "Searcher.h"
+#include "SyzygyTB.h"
 #include "TimeManager.h"
 #include "Transposition.h"
 #include "Thread.h"
@@ -163,10 +164,10 @@ string multipvInfo(Thread const *const &th, Depth depth, Value alfa, Value beta)
     auto elapsed{ TimeMgr.elapsed() + 1 };
     auto nodes{ Threadpool.sum(&Thread::nodes) };
     auto tbHits{ Threadpool.sum(&Thread::tbHits)
-               + th->rootMoves.size() * TBHasRoot };
+               + th->rootMoves.size() * SyzygyTB::HasRoot };
 
     std::ostringstream oss;
-    for (u32 i = 0; i < PVCount; ++i)
+    for (u16 i = 0; i < PVCount; ++i)
     {
         bool updated{ -VALUE_INFINITE != th->rootMoves[i].newValue };
         if (1 == depth
@@ -181,7 +182,7 @@ string multipvInfo(Thread const *const &th, Depth depth, Value alfa, Value beta)
                     th->rootMoves[i].newValue :
                     th->rootMoves[i].oldValue };
 
-        bool tb{ TBHasRoot
+        bool tb{ SyzygyTB::HasRoot
               && abs(v) < +VALUE_MATE_1_MAX_PLY };
         v = tb ? th->rootMoves[i].tbValue : v;
 
@@ -235,7 +236,7 @@ namespace {
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
         Bitboard piece{ pos.attacksFrom(pt, dst)
-                      & pos.pieces(pos.active, pt) };
+                      & pos.pieces(pos.activeSide(), pt) };
 
         Bitboard amb{ piece ^ org };
         if (0 == amb) {
@@ -244,7 +245,7 @@ namespace {
 
         Bitboard pcs{ amb };
                     // If pinned piece is considered as ambiguous
-                    //& ~pos.kingBlockers(pos.active) };
+                    //& ~pos.kingBlockers(pos.activeSide()) };
         while (0 != pcs) {
             auto sq{ popLSq(pcs) };
             auto move{ makeMove<NORMAL>(sq, dst) };

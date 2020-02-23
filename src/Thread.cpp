@@ -48,7 +48,7 @@ ThreadPool Threadpool;
 
 /// Thread constructor launches the thread and waits until it goes to sleep in idleFunction().
 /// Note that 'busy' and 'dead' should be already set.
-Thread::Thread(u32 idx)
+Thread::Thread(u16 idx)
     : index(idx)
     , nativeThread(&Thread::idleFunction, this) {
     waitIdle();
@@ -63,14 +63,14 @@ Thread::~Thread() {
 }
 /// Thread::wakeUp() wakes up the thread that will start the search.
 void Thread::wakeUp() {
-    std::lock_guard<std::mutex> guard(mutex);
+    std::lock_guard<std::mutex> lockGuard(mutex);
     busy = true;
     conditionVar.notify_one(); // Wake up the thread in idleFunction()
 }
 /// Thread::waitIdle() blocks on the condition variable while the thread is busy.
 void Thread::waitIdle() {
-    std::unique_lock<std::mutex> lock(mutex);
-    conditionVar.wait(lock, [&]{ return !busy; });
+    std::unique_lock<std::mutex> uniqueLock(mutex);
+    conditionVar.wait(uniqueLock, [&]{ return !busy; });
 }
 /// Thread::idleFunction() is where the thread is parked.
 /// Blocked on the condition variable, when it has no work to do.
@@ -85,14 +85,14 @@ void Thread::idleFunction() {
     }
 
     while (true) {
-        std::unique_lock<std::mutex> lock(mutex);
+        std::unique_lock<std::mutex> uniqueLock(mutex);
         busy = false;
         conditionVar.notify_one(); // Wake up anyone waiting for search finished
-        conditionVar.wait(lock, [&]{ return busy; });
+        conditionVar.wait(uniqueLock, [&]{ return busy; });
         if (dead) {
             return;
         }
-        lock.unlock();
+        uniqueLock.unlock();
 
         search();
     }
@@ -104,10 +104,12 @@ i16 Thread::moveBestCount(Move move) const {
 
 /// Thread::clear() clears all the thread related stuff.
 void Thread::clear() {
-    quietStats.fill(0);
+    butterFlyStats.fill(0);
+    lowPlyStats.fill(0);
+
     captureStats.fill(0);
 
-    quietCounterMoves.fill(MOVE_NONE);
+    counterMoves.fill(MOVE_NONE);
 
     for (bool inCheck : { false, true }) {
         for (bool capture : { false, true }) {
@@ -225,7 +227,7 @@ namespace WinProcGroup {
     }
 
     /// bind() set the group affinity for the thread index.
-    void bind(size_t index) {
+    void bind(u16 index) {
         // If we still have more threads than the total number of logical processors then let the OS to decide what to do.
         if (index >= Groups.size()) {
             return;
@@ -257,8 +259,12 @@ namespace WinProcGroup {
 
 }
 
-u32 ThreadPool::size() const {
-    return u32(std::vector<Thread*>::size());
+u16 ThreadPool::size() const {
+    return u16(std::vector<Thread*>::size());
+}
+
+MainThread * ThreadPool::mainThread() const {
+    return static_cast<MainThread*>(front());
 }
 
 Thread* ThreadPool::bestThread() const
@@ -266,15 +272,16 @@ Thread* ThreadPool::bestThread() const
     Thread *bestThread = front();
 
     auto minValue = (*std::min_element(begin(), end(),
-                                       [](Thread *const &th1, Thread *const &th2) {
-                                           return th1->rootMoves.front().newValue
-                                                < th2->rootMoves.front().newValue;
-                                       }))->rootMoves.front().newValue;
+                    [](Thread *const &th1, Thread *const &th2) {
+                        return th1->rootMoves.front().newValue
+                             < th2->rootMoves.front().newValue;
+                    }))->rootMoves.front().newValue;
 
     // Vote according to value and depth
     std::map<Move, u64> votes;
     for (auto *th : *this) {
-        votes[th->rootMoves.front().front()] += i32(th->rootMoves.front().newValue - minValue + 14) * th->finishedDepth;
+        votes[th->rootMoves.front().front()] +=
+            i32(th->rootMoves.front().newValue - minValue + 14) * th->finishedDepth;
     }
     for (auto *th : *this) {
         if (bestThread->rootMoves.front().newValue >= +VALUE_MATE_2_MAX_PLY) {
@@ -291,9 +298,9 @@ Thread* ThreadPool::bestThread() const
         }
     }
     // Select best thread with max depth
-    auto best_fm = bestThread->rootMoves.front().front();
+    auto bestMove = bestThread->rootMoves.front().front();
     for (auto *th : *this) {
-        if (best_fm == th->rootMoves.front().front()) {
+        if (bestMove == th->rootMoves.front().front()) {
             if (bestThread->finishedDepth < th->finishedDepth) {
                 bestThread = th;
             }
@@ -312,7 +319,7 @@ void ThreadPool::clear() {
 /// ThreadPool::configure() creates/destroys threads to match the requested number.
 /// Created and launched threads will immediately go to sleep in idleFunction.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::configure(u32 threadCount) {
+void ThreadPool::configure(u16 threadCount) {
     // Destroy any existing thread(s)
     if (0 < size()) {
         mainThread()->waitIdle();
@@ -374,6 +381,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
         th->pvChange        = 0;
         th->nmpPly          = 0;
         th->nmpColor        = COLOR_NONE;
+        th->lowPlyStats.fill(0);
         th->rootMoves       = rootMoves;
         th->rootPos.setup(fen, setupStates->back(), th);
     }

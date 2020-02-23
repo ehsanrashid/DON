@@ -51,15 +51,13 @@ namespace BitBase {
         //Result& operator&=(Result &r1, Result r2) { return r1 = Result(r1 & r2); }
 
         /// KPKPosition
-        class KPKPosition {
-        private:
+        struct KPKPosition {
+
             Color  active;
             Square pSq;
             Array<Square, COLORS> kSq;
 
             Result result;
-
-        public:
 
             KPKPosition() = default;
             explicit KPKPosition(u32);

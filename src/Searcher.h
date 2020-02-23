@@ -46,7 +46,6 @@ struct Limit {
 
 namespace Searcher {
 
-
     /// Stack keeps the information of the nodes in the tree during the search.
     struct Stack {
     public:
@@ -67,9 +66,4 @@ namespace Searcher {
 
 extern Limit Limits;
 
-extern u32 PVCount;
-
-extern Depth TBProbeDepth;
-extern i32   TBLimitPiece;
-extern bool  TBUseRule50;
-extern bool  TBHasRoot;
+extern u16 PVCount;

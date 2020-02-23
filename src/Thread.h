@@ -26,7 +26,7 @@ private:
 
     std::mutex mutex;
     std::condition_variable conditionVar;
-    u32 index;
+    u16 index;
     NativeThread nativeThread;
 
 protected:
@@ -47,7 +47,7 @@ public:
     i16   nmpPly;
     Color nmpColor;
 
-    u32   pvBeg
+    u16   pvBeg
         , pvCur
         , pvEnd;
 
@@ -55,18 +55,30 @@ public:
 
     Score contempt;
 
-    ColorIndexStatsTable quietStats;
+    // butterFlyStats records how often quiet moves have been successful/unsuccessful
+    // during the current search, and is used for reduction and move ordering decisions.
+    ColorIndexStatsTable butterFlyStats;
+    // lowPlyStats records how often quiet moves have been successful/unsuccessful
+    // at higher depths on plies 0 to 3 and in the PV (ttPv)
+    // It get cleared with each new search and get filled during iterative deepening
+    PlyIndexStatsTable lowPlyStats;
+
+    // captureStats records how often capture moves have been successful/unsuccessful
+    // during the current search, and is used for reduction and move ordering decisions.
     PieceSquareTypeStatsTable captureStats;
 
-    PieceSquareMoveTable quietCounterMoves;
+    // counterMoves stores counter moves
+    PieceSquareMoveTable counterMoves;
 
+    // continuationStats is the combined stats of a given pair of moves,
+    // usually the current one given a previous one.
     Array<ContinuationStatsTable, 2, 2> continuationStats;
 
     Pawns   ::Table pawnHash;
     Material::Table matlHash;
 
-    explicit Thread(u32);
     Thread() = delete;
+    explicit Thread(u16);
     Thread(Thread const&) = delete;
     Thread& operator=(Thread const&) = delete;
 
@@ -113,7 +125,7 @@ namespace WinProcGroup {
 
     extern void initialize();
 
-    extern void bind(size_t);
+    extern void bind(u16);
 }
 
 
@@ -152,14 +164,14 @@ public:
         }
     }
 
-    u32 size() const;
+    u16 size() const;
 
-    MainThread* mainThread() const { return static_cast<MainThread*>(front()); }
+    MainThread* mainThread() const;
 
     Thread* bestThread() const;
 
     void clear();
-    void configure(u32);
+    void configure(u16);
 
     void startThinking(Position&, StateListPtr&);
 };

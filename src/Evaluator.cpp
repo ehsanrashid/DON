@@ -881,7 +881,7 @@ namespace Evaluator {
             Value v{ (mgValue(score) + egValue(score)) / 2 };
             if (abs(v) > VALUE_LAZY_THRESHOLD
                        + pos.nonPawnMaterial() / 64) {
-                return WHITE == pos.active ? +v : -v;
+                return WHITE == pos.activeSide() ? +v : -v;
             }
 
             if (Trace) {
@@ -929,7 +929,7 @@ namespace Evaluator {
             }
 
             // Active side's point of view
-            return (WHITE == pos.active ? +v : -v) + VALUE_TEMPO;
+            return (WHITE == pos.activeSide() ? +v : -v) + VALUE_TEMPO;
         }
     }
 
@@ -952,7 +952,7 @@ namespace Evaluator {
         pos.thread->contempt = contempt;
 
         // Trace scores are from White's point of view
-        value = WHITE == pos.active ? +value : -value;
+        value = WHITE == pos.activeSide() ? +value : -value;
 
         std::ostringstream oss;
 

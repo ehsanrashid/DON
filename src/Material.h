@@ -12,7 +12,6 @@ namespace Material {
 
     /// Material::Entry contains various information about a material configuration.
     struct Entry {
-    public:
         Key   key;
         i32   phase;
         Score imbalance;

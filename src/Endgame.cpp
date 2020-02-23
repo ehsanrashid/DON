@@ -78,7 +78,7 @@ template<> Value Endgame<KXK>::operator()(Position const &pos) const {
     assert(verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
     assert(0 == pos.checkers()); // Eval is never called when in check
     // Stalemate detection with lone weak king
-    if (weakColor == pos.active
+    if (weakColor == pos.activeSide()
      && 0 == MoveList<GenType::LEGAL>(pos).size()) {
         return VALUE_DRAW;
     }
@@ -101,7 +101,7 @@ template<> Value Endgame<KXK>::operator()(Position const &pos) const {
         value += +VALUE_KNOWN_WIN;
     }
 
-    return stngColor == pos.active ? +value : -value;
+    return stngColor == pos.activeSide() ? +value : -value;
 }
 
 /// KP vs K. This endgame is evaluated with the help of a bitbase.
@@ -114,7 +114,7 @@ template<> Value Endgame<KPK>::operator()(Position const &pos) const {
     auto spSq{ normalize(pos, stngColor, pos.square(stngColor|PAWN)) };
     auto wkSq{ normalize(pos, stngColor, pos.square(weakColor|KING)) };
 
-    if (!BitBase::probe(stngColor == pos.active ? WHITE : BLACK, skSq, spSq, wkSq)) {
+    if (!BitBase::probe(stngColor == pos.activeSide() ? WHITE : BLACK, skSq, spSq, wkSq)) {
         return VALUE_DRAW;
     }
 
@@ -122,7 +122,7 @@ template<> Value Endgame<KPK>::operator()(Position const &pos) const {
               + VALUE_EG_PAWN
               + sRank(spSq) };
 
-    return stngColor == pos.active ? +value : -value;
+    return stngColor == pos.activeSide() ? +value : -value;
 }
 
 /// Mate with KBN vs K. This is similar to KX vs K, but have to drive the
@@ -140,7 +140,7 @@ template<> Value Endgame<KBNK>::operator()(Position const &pos) const {
               + PushClose[dist(skSq, wkSq)]
               + 32 * PushToCorner[oppositeColor(sbSq, SQ_A1) ? ~wkSq : wkSq] };
     assert(abs(value) < +VALUE_MATE_2_MAX_PLY);
-    return stngColor == pos.active ? +value : -value;
+    return stngColor == pos.activeSide() ? +value : -value;
 }
 
 /// Draw with KNN vs K
@@ -150,7 +150,7 @@ template<> Value Endgame<KNNK>::operator()(Position const &pos) const {
 
     auto value{ Value(pos.count(stngColor|NIHT) / 2) };
 
-    return stngColor == pos.active ? +value : -value;
+    return stngColor == pos.activeSide() ? +value : -value;
 }
 
 /// KR vs KP. This is a somewhat tricky endgame to evaluate precisely without a bitbase.
@@ -166,8 +166,8 @@ template<> Value Endgame<KRKP>::operator()(Position const &pos) const {
     auto wpSq{ relativeSq(stngColor, pos.square(weakColor|PAWN)) };
 
     auto promoteSq{ makeSquare(sFile(wpSq), RANK_1) };
-    i32 sTempo{ stngColor == pos.active };
-    i32 wTempo{ weakColor == pos.active };
+    i32 sTempo{ stngColor == pos.activeSide() };
+    i32 wTempo{ weakColor == pos.activeSide() };
 
     Value value;
 
@@ -195,7 +195,7 @@ template<> Value Endgame<KRKP>::operator()(Position const &pos) const {
                    - dist(wpSq, promoteSq));
     }
 
-    return stngColor == pos.active ? +value : -value;
+    return stngColor == pos.activeSide() ? +value : -value;
 }
 
 /// KR vs KB. This is very simple, and always returns drawish scores.
@@ -219,7 +219,7 @@ template<> Value Endgame<KRKB>::operator()(Position const &pos) const {
 
     auto value{ Value(PushToEdge[wkSq]) };
 
-    return stngColor == pos.active ? +value : -value;
+    return stngColor == pos.activeSide() ? +value : -value;
 }
 
 /// KR vs KN. The attacking side has slightly better winning chances than
@@ -231,7 +231,7 @@ template<> Value Endgame<KRKN>::operator()(Position const &pos) const {
     //auto skSq{ pos.square(stngColor|KING) };
     auto wkSq{ pos.square(weakColor|KING) };
     auto wnSq{ pos.square(weakColor|NIHT) };
-    //i32 sTempo{ stngColor == pos.active };
+    //i32 sTempo{ stngColor == pos.activeSide() };
 
     //// If weak king is near the knight, it's a draw.
     //if (3 >= dist(wkSq, wnSq) + sTempo
@@ -242,7 +242,7 @@ template<> Value Endgame<KRKN>::operator()(Position const &pos) const {
     auto value{ Value(PushToEdge[wkSq]
                     + PushAway[dist(wkSq, wnSq)]) };
 
-    return stngColor == pos.active ? +value : -value;
+    return stngColor == pos.activeSide() ? +value : -value;
 }
 
 /// KQ vs KP. In general, this is a win for the strong side, but there are a
@@ -266,7 +266,7 @@ template<> Value Endgame<KQKP>::operator()(Position const &pos) const {
                - VALUE_EG_PAWN;
     }
 
-    return stngColor == pos.active ? +value : -value;
+    return stngColor == pos.activeSide() ? +value : -value;
 }
 
 /// KQ vs KR. This is almost identical to KX vs K: give the attacking
@@ -285,7 +285,7 @@ template<> Value Endgame<KQKR>::operator()(Position const &pos) const {
               + PushToEdge[wkSq]
               + PushClose[dist(skSq, wkSq)] };
 
-    return stngColor == pos.active ? +value : -value;
+    return stngColor == pos.activeSide() ? +value : -value;
 }
 
 /// KNN vs KP. Very drawish, but there are some mate opportunities if we can
@@ -303,7 +303,7 @@ template<> Value Endgame<KNNKP>::operator()(Position const &pos) const {
               //+ PushClose[dist(skSq, wkSq)]
               - 10 * relativeRank(weakColor, wpSq) };
 
-    return stngColor == pos.active ? +value : -value;
+    return stngColor == pos.activeSide() ? +value : -value;
 }
 
 /// Special Scaling functions
@@ -328,7 +328,7 @@ template<> Scale Endgame<KRPKR>::operator()(Position const &pos) const {
     auto spF{ sFile(spSq) };
     auto spR{ sRank(spSq) };
     auto promoteSq{ makeSquare(spF, RANK_8) };
-    i32 sTempo{ stngColor == pos.active };
+    i32 sTempo{ stngColor == pos.activeSide() };
 
     // If the pawn is not too far advanced and the defending king defends the
     // queening square, use the third-rank defense.
@@ -655,7 +655,7 @@ template<> Scale Endgame<KPKP>::operator()(Position const &pos) const {
      || FILE_A == sFile(spSq)) {
         // Probe the KPK bitbase with the weakest side's pawn removed.
         // If it's a draw, it's probably at least a draw even with the pawn.
-        if (!BitBase::probe(stngColor == pos.active ? WHITE : BLACK, skSq, spSq, wkSq)) {
+        if (!BitBase::probe(stngColor == pos.activeSide() ? WHITE : BLACK, skSq, spSq, wkSq)) {
             return SCALE_DRAW;
         }
     }

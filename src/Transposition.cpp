@@ -166,7 +166,7 @@ void TTable::clear() {
 
     std::vector<std::thread> threads;
     auto threadCount{ optionThreads() };
-    for (size_t idx = 0; idx < threadCount; ++idx) {
+    for (u16 idx = 0; idx < threadCount; ++idx) {
         threads.emplace_back(
             [this, idx, threadCount]() {
                 if (8 < threadCount) {
@@ -175,8 +175,8 @@ void TTable::clear() {
                 auto const stride{ clusterCount / threadCount };
                 auto const start{ stride * idx };
                 auto const count{ idx != threadCount - 1 ?
-                                stride :
-                                clusterCount - start };
+                                    stride :
+                                    clusterCount - start };
                 std::memset(clusterTable + start, 0, count * sizeof (TCluster));
             });
     }

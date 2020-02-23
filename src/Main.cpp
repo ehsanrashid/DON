@@ -44,7 +44,13 @@ int main(int argc, char const *const *argv) {
 
     std::atexit(clean);
 
-    UCI::handleCommands(argc, argv);
+    // Join arguments
+    std::string cmdLine;
+    for (int i = 1; i < argc; ++i) {
+        cmdLine += std::string{ argv[i] } + " ";
+    }
+
+    UCI::handleCommands(cmdLine);
 
     return EXIT_SUCCESS;
 }

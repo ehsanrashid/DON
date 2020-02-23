@@ -30,12 +30,7 @@ using Evaluator::evaluate;
 
 Limit Limits;
 
-u32  PVCount;
-
-Depth TBProbeDepth  = 1;
-i32   TBLimitPiece  = 6;
-bool  TBUseRule50   = true;
-bool  TBHasRoot     = false;
+u16  PVCount;
 
 namespace {
 
@@ -90,7 +85,7 @@ namespace {
     }
 
     /// updateQuietStats() updates move sorting heuristics when a new quiet best move is found
-    void updateQuietStats(Stack *const &ss, Position const &pos, Move move, i32 bonus) {
+    void updateQuietStats(Stack *const &ss, Position const &pos, Move move, Depth depth, i32 bonus) {
         if (ss->killerMoves[0] != move) {
             ss->killerMoves[1] = ss->killerMoves[0];
             ss->killerMoves[0] = move;
@@ -98,14 +93,19 @@ namespace {
         assert(1 == std::count(ss->killerMoves.begin(), ss->killerMoves.end(), move));
 
         if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ prevDst(pos.active, (ss-1)->playedMove) };
+            auto pmDst{ prevDst(pos.activeSide(), (ss-1)->playedMove) };
             assert(NO_PIECE != pos[pmDst]);
-            pos.thread->quietCounterMoves[pos[pmDst]][pmDst] = move;
+            pos.thread->counterMoves[pos[pmDst]][pmDst] = move;
         }
 
-        pos.thread->quietStats[pos.active][mIndex(move)] << bonus;
+        pos.thread->butterFlyStats[pos.activeSide()][mIndex(move)] << bonus;
         if (PAWN != pType(pos[orgSq(move)])) {
-            pos.thread->quietStats[pos.active][mIndex(reverseMove(move))] << -bonus;
+            pos.thread->butterFlyStats[pos.activeSide()][mIndex(reverseMove(move))] << -bonus;
+        }
+
+        if (12 < depth
+         && ss->ply < MAX_LOWPLY) {
+            pos.thread->lowPlyStats[ss->ply][mIndex(move)] << statBonus(depth - 7);
         }
 
         updateContinuationStats(ss, pos[orgSq(move)], dstSq(move), bonus);
@@ -138,15 +138,15 @@ namespace {
 
         // Check for maximum ply reached or immediate draw.
         if (pos.draw(ss->ply)
-         || ss->ply >= MaxDepth) {
-            return ss->ply >= MaxDepth
+         || ss->ply >= MAX_PLY) {
+            return ss->ply >= MAX_PLY
                 && !inCheck ?
                         evaluate(pos) : VALUE_DRAW;
         }
 
         assert(ss->ply >= 1
             && ss->ply == (ss-1)->ply + 1
-            && ss->ply < MaxDepth);
+            && ss->ply < MAX_PLY);
 
         // Transposition table lookup.
         Key key{ pos.posiKey() };
@@ -253,7 +253,7 @@ namespace {
 
         // Initialize move-picker(2) for the current position
         MovePicker mp{ pos
-                     , &thread->quietStats
+                     , &thread->butterFlyStats
                      , &thread->captureStats
                      , pieceStats
                      , ttMove, depth, recapSq };
@@ -274,7 +274,7 @@ namespace {
             if (!inCheck
              && !giveCheck
              && -VALUE_KNOWN_WIN < futilityBase
-             && !pos.pawnAdvanceAt(pos.active, org)
+             && !pos.pawnAdvanceAt(pos.activeSide(), org)
              && 0 == Limits.mate) {
                 assert(ENPASSANT != mType(move)); // Due to !pos.pawnAdvanceAt
                 // Futility pruning parent node
@@ -395,7 +395,7 @@ namespace {
         assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
         assert(PVNode || (alfa == beta-1));
         assert(!(PVNode && cutNode));
-        assert(DEPTH_ZERO < depth && depth < MaxDepth);
+        assert(DEPTH_ZERO < depth && depth < MAX_PLY);
 
         // Step 1. Initialize node
         ss->moveCount = 0;
@@ -421,8 +421,8 @@ namespace {
             // Step 2. Check for aborted search, maximum ply reached or immediate draw.
             if (Threadpool.stop.load(std::memory_order::memory_order_relaxed)
              || pos.draw(ss->ply)
-             || ss->ply >= MaxDepth) {
-                return ss->ply >= MaxDepth
+             || ss->ply >= MAX_PLY) {
+                return ss->ply >= MAX_PLY
                     && !inCheck ?
                             evaluate(pos) : drawValue();
             }
@@ -448,7 +448,7 @@ namespace {
 
         assert(ss->ply >= 0
             && ss->ply == (ss-1)->ply + 1
-            && ss->ply < MaxDepth);
+            && ss->ply < MAX_PLY);
 
         assert(MOVE_NONE == (ss+1)->excludedMove);
         (ss+2)->killerMoves.fill(MOVE_NONE);
@@ -475,6 +475,14 @@ namespace {
         auto ttPV   { PVNode
                    || (ttHit && tte->pv()) };
 
+        if (12 < depth
+         && ttPV
+         && NONE == pos.captured()
+         && (ss-1)->ply < MAX_LOWPLY
+         && isOk((ss-1)->playedMove)) {
+            thread->lowPlyStats[(ss-1)->ply][mIndex((ss-1)->playedMove)] << statBonus(depth - 5);
+        }
+
         // ttHitAvg can be used to approximate the running average of ttHit
         thread->ttHitAvg = (TTHitAverageWindow - 1) * thread->ttHitAvg / TTHitAverageWindow
                          + TTHitAverageResolution * ttHit;
@@ -496,14 +504,14 @@ namespace {
                 if (ttValue >= beta) {
                     // Bonus for a quiet ttMove that fails high
                     if (!pos.captureOrPromotion(ttMove)) {
-                        updateQuietStats(ss, pos, ttMove, statBonus(depth));
+                        updateQuietStats(ss, pos, ttMove, depth, statBonus(depth));
                     }
                 }
                 // Penalty for a quiet ttMove that fails low
                 else {
                     if (!pos.captureOrPromotion(ttMove)) {
                         auto bonus{ -statBonus(depth) };
-                        thread->quietStats[pos.active][mIndex(ttMove)] << bonus;
+                        thread->butterFlyStats[pos.activeSide()][mIndex(ttMove)] << bonus;
                         updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), bonus);
                     }
                 }
@@ -514,7 +522,7 @@ namespace {
                 if (!pmCaptureOrPromotion
                  && 2 >= (ss-1)->moveCount
                  && isOk((ss-1)->playedMove)) {
-                    auto pmDst{ prevDst(pos.active, (ss-1)->playedMove) };
+                    auto pmDst{ prevDst(pos.activeSide(), (ss-1)->playedMove) };
                     updateContinuationStats(ss-1, pos[pmDst], pmDst, -statBonus(depth + 1));
                 }
             }
@@ -526,15 +534,16 @@ namespace {
 
         // Step 5. Tablebases probe.
         if (!rootNode
-         && 0 != TBLimitPiece)
+         && 0 != PieceLimit)
         {
             auto pieceCount{ pos.count() };
 
-            if (( pieceCount < TBLimitPiece
-              || (pieceCount == TBLimitPiece
-               && depth >= TBProbeDepth))
+            if (( pieceCount < PieceLimit
+              || (pieceCount == PieceLimit
+               && depth >= DepthLimit))
              && 0 == pos.clockPly()
              && CR_NONE == pos.castleRights()) {
+
                 ProbeState probeState;
                 auto wdlScore{ probeWDL(pos, probeState) };
 
@@ -546,7 +555,7 @@ namespace {
                 if (PS_FAILURE != probeState) {
                     thread->tbHits.fetch_add(1, std::memory_order::memory_order_relaxed);
 
-                    i16 draw{ TBUseRule50 };
+                    i16 draw{ Move50Rule };
 
                     value = wdlScore < -draw ? -VALUE_MATE_1_MAX_PLY + (ss->ply + 1) :
                             wdlScore > +draw ? +VALUE_MATE_1_MAX_PLY - (ss->ply + 1) :
@@ -562,7 +571,7 @@ namespace {
                                   MOVE_NONE,
                                   valueToTT(value, ss->ply),
                                   VALUE_NONE,
-                                  Depth(std::min(depth + 6, MaxDepth - 1)),
+                                  Depth(std::min(depth + 6, MAX_PLY - 1)),
                                   bound,
                                   ttPV);
 
@@ -661,9 +670,9 @@ namespace {
              && eval >= ss->staticEval
              && ss->staticEval - 292 + 32 * depth + 30 * improving - 120 * ttPV >= beta
              && MOVE_NONE == ss->excludedMove
-             && VALUE_ZERO != pos.nonPawnMaterial(pos.active)
+             && VALUE_ZERO != pos.nonPawnMaterial(pos.activeSide())
              && (thread->nmpPly <= ss->ply
-              || thread->nmpColor != pos.active)
+              || thread->nmpColor != pos.activeSide())
              && 0 == Limits.mate) {
                 // Null move dynamic reduction based on depth and static evaluation.
                 auto R = Depth((854 + 68 * depth) / 258 + std::min(i32(eval - beta) / 192, 3));
@@ -688,7 +697,7 @@ namespace {
 
                     // Do verification search at high depths,
                     // with null move pruning disabled for nmpColor until ply exceeds nmpPly
-                    thread->nmpColor = pos.active;
+                    thread->nmpColor = pos.activeSide();
                     thread->nmpPly = ss->ply + 3 * (depth-R) / 4;
                     value = depthSearch<false>(pos, ss, beta-1, beta, depth-R, false);
                     thread->nmpPly = 0;
@@ -796,17 +805,20 @@ namespace {
 
         auto counterMove{ MOVE_NONE };
         if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ prevDst(pos.active, (ss-1)->playedMove) };
+            auto pmDst{ prevDst(pos.activeSide(), (ss-1)->playedMove) };
             assert(NO_PIECE != pos[pmDst]);
-            counterMove = pos.thread->quietCounterMoves[pos[pmDst]][pmDst];
+            counterMove = pos.thread->counterMoves[pos[pmDst]][pmDst];
         }
 
         // Initialize move-picker(1) for the current position
         MovePicker mp{ pos
-                     , &thread->quietStats
+                     , &thread->butterFlyStats
+                     , &thread->lowPlyStats
                      , &thread->captureStats
                      , pieceStats
-                     , ttMove, depth, ss->killerMoves, counterMove };
+                     , ttMove, depth
+                     , 12 < depth && ttPV ? ss->ply : i16(MAX_PLY)
+                     , ss->killerMoves, counterMove };
         // Step 12. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
         while (MOVE_NONE != (move = mp.nextMove())) {
             assert(isOk(move)
@@ -863,7 +875,7 @@ namespace {
             // Step 13. Pruning at shallow depth. (~200 ELO)
             if (!rootNode
              && -VALUE_MATE_2_MAX_PLY < bestValue
-             && VALUE_ZERO < pos.nonPawnMaterial(pos.active)
+             && VALUE_ZERO < pos.nonPawnMaterial(pos.activeSide())
              && 0 == Limits.mate) {
                 // Skip quiet moves if move count exceeds our futilityMoveCount() threshold
                 mp.skipQuiets = futilityMoveCount(depth, improving) <= moveCount;
@@ -882,7 +894,7 @@ namespace {
                     if (!inCheck
                      && 6 > lmrDepth
                      && ss->staticEval + 235 + 172 * lmrDepth <= alfa
-                     && thread->quietStats[pos.active][mIndex(move)]
+                     && thread->butterFlyStats[pos.activeSide()][mIndex(move)]
                       + (*pieceStats[0])[mpc][dst]
                       + (*pieceStats[1])[mpc][dst]
                       + (*pieceStats[3])[mpc][dst] < 25000) {
@@ -944,12 +956,12 @@ namespace {
               && pos.nonPawnMaterial() <= 2 * VALUE_MG_ROOK)
                 // Check extension (~2 ELO)
              || (giveCheck
-              && (contains(pos.kingBlockers(~pos.active), org)
+              && (contains(pos.kingBlockers(~pos.activeSide()), org)
                || pos.see(move)))
                 // Passed pawn extension
              || (ss->killerMoves[0] == move
-              && pos.pawnAdvanceAt(pos.active, org)
-              && pos.pawnPassedAt(pos.active, dst))) {
+              && pos.pawnAdvanceAt(pos.activeSide(), org)
+              && pos.pawnPassedAt(pos.activeSide(), dst))) {
                 extension = 1;
             }
 
@@ -1029,14 +1041,14 @@ namespace {
                         reductDepth -= 2 + ttPV;
                     }
 
-                    ss->stats = thread->quietStats[~pos.active][mIndex(move)]
+                    ss->stats = thread->butterFlyStats[~pos.activeSide()][mIndex(move)]
                                 + (*pieceStats[0])[mpc][dst]
                                 + (*pieceStats[1])[mpc][dst]
                                 + (*pieceStats[3])[mpc][dst]
                                 - 4926;
                     // Reset stats to zero if negative and most stats shows >= 0
                     if (0 >  ss->stats
-                     && 0 <= thread->quietStats[~pos.active][mIndex(move)]
+                     && 0 <= thread->butterFlyStats[~pos.activeSide()][mIndex(move)]
                      && 0 <= (*pieceStats[0])[mpc][dst]
                      && 0 <= (*pieceStats[1])[mpc][dst]) {
                         ss->stats = 0;
@@ -1211,10 +1223,10 @@ namespace {
                                 bonus1 :
                                 statBonus(depth) };
 
-                updateQuietStats(ss, pos, bestMove, bonus2);
+                updateQuietStats(ss, pos, bestMove, depth, bonus2);
                 // Decrease all the other played quiet moves.
                 for (auto qm : quietMoves) {
-                    thread->quietStats[pos.active][mIndex(qm)] << -bonus2;
+                    thread->butterFlyStats[pos.activeSide()][mIndex(qm)] << -bonus2;
                     updateContinuationStats(ss, pos[orgSq(qm)], dstSq(qm), -bonus2);
                 }
             }
@@ -1231,7 +1243,7 @@ namespace {
              && (1 == (ss-1)->moveCount
               || (ss-1)->killerMoves[0] == (ss-1)->playedMove)
              && isOk((ss-1)->playedMove)) {
-                auto pmDst{ prevDst(pos.active, (ss-1)->playedMove) };
+                auto pmDst{ prevDst(pos.activeSide(), (ss-1)->playedMove) };
                 updateContinuationStats(ss-1, pos[pmDst], pmDst, -bonus1);
             }
         }
@@ -1241,7 +1253,7 @@ namespace {
          && (PVNode
           || 2 < depth)
          && isOk((ss-1)->playedMove)) {
-            auto pmDst{ prevDst(pos.active, (ss-1)->playedMove) };
+            auto pmDst{ prevDst(pos.activeSide(), (ss-1)->playedMove) };
             updateContinuationStats(ss-1, pos[pmDst], pmDst, statBonus(depth));
         }
 
@@ -1317,8 +1329,8 @@ void Thread::search() {
     i32 contemptTime{ Options["Contempt Time"] };
     if (0 != contemptTime
      && Limits.useTimeMgmt()) {
-        i64 diffTime{ (i64(Limits.clock[rootPos.active].time)
-                     - i64(Limits.clock[~rootPos.active].time)) / 1000 };
+        i64 diffTime{ (i64(Limits.clock[ rootPos.activeSide()].time)
+                     - i64(Limits.clock[~rootPos.activeSide()].time)) / 1000 };
         timedContempt = i16(diffTime / contemptTime);
     }
     // Basic Contempt
@@ -1327,12 +1339,12 @@ void Thread::search() {
     if (Limits.infinite
      || Options["UCI_AnalyseMode"]) {
         bc = Options["Analysis Contempt"] == "Off"                              ? 0 :
-             Options["Analysis Contempt"] == "White" && BLACK == rootPos.active ? -bc :
-             Options["Analysis Contempt"] == "Black" && WHITE == rootPos.active ? -bc :
+             Options["Analysis Contempt"] == "White" && BLACK == rootPos.activeSide() ? -bc :
+             Options["Analysis Contempt"] == "Black" && WHITE == rootPos.activeSide() ? -bc :
              /*Options["Analysis Contempt"] == "Both"                           ? +bc :*/ +bc;
     }
 
-    contempt = WHITE == rootPos.active ?
+    contempt = WHITE == rootPos.activeSide() ?
                 +makeScore(bc, bc / 2) :
                 -makeScore(bc, bc / 2);
 
@@ -1356,8 +1368,8 @@ void Thread::search() {
     // The former is needed to allow updateContinuationStats(ss-1, ...),
     // which accesses its argument at ss-4, also near the root.
     // The latter is needed for stats and killer initialization.
-    Stack stack[MaxDepth + 10], *ss;
-    for (ss = stack; ss < stack + MaxDepth + 10; ++ss) {
+    Stack stack[MAX_PLY + 10], *ss;
+    for (ss = stack; ss < stack + MAX_PLY + 10; ++ss) {
         ss->ply             = i16(ss - (stack+7));
         ss->playedMove      = MOVE_NONE;
         ss->excludedMove    = MOVE_NONE;
@@ -1372,7 +1384,7 @@ void Thread::search() {
     ss = stack + 7;
 
     // Iterative deepening loop until requested to stop or the target depth is reached.
-    while (++rootDepth < MaxDepth
+    while (++rootDepth < MAX_PLY
         && !Threadpool.stop
         && (nullptr == mainThread
          || DEPTH_ZERO == Limits.depth
@@ -1419,7 +1431,7 @@ void Thread::search() {
                 if (0 != contemptValue) {
                     dc += ((102 - bc / 2) * oldValue * 100) / ((abs(oldValue) + 157) * contemptValue);
                 }
-                contempt = WHITE == rootPos.active ?
+                contempt = WHITE == rootPos.activeSide() ?
                             +makeScore(dc, dc / 2) :
                             -makeScore(dc, dc / 2);
             }
@@ -1594,9 +1606,9 @@ void MainThread::search() {
 
     if (Limits.useTimeMgmt()) {
         // Initialize the time manager before searching.
-        TimeMgr.setup(rootPos.active, rootPos.ply);
+        TimeMgr.setup(rootPos.activeSide(), rootPos.gamePly());
     }
-    assert(0 <= rootPos.ply);
+
     TEntry::Generation += 8;
 
     bool think{ true };
@@ -1640,16 +1652,17 @@ void MainThread::search() {
                 bestMoveDepth = DEPTH_ZERO;
             }
 
-            SkillMgr.setLevel(Options["UCI_LimitStrength"] ?
-                                clamp(i16(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), {0}, MaxLevel) :
-                                i16(Options["Skill Level"]));
+            auto level = Options["UCI_LimitStrength"] ?
+                            clamp(u16(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), {0}, MaxLevel) :
+                            u16(Options["Skill Level"]);
+            SkillMgr.setLevel(level);
 
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            PVCount = clamp(u32(Options["MultiPV"]),
-                                       u32(1 + 3 * SkillMgr.enabled()),
-                                       u32(rootMoves.size()));
+            PVCount = clamp(u16(Options["MultiPV"]),
+                            u16(1 + 3 * SkillMgr.enabled()),
+                            u16(rootMoves.size()));
 
             for (auto *th : Threadpool) {
                 if (th != this) {
@@ -1711,7 +1724,7 @@ void MainThread::search() {
         // When playing in 'nodes as time' mode, subtract the searched nodes from
         // the available ones before exiting.
         if (0 != TimeMgr.timeNodes) {
-            TimeMgr.availableNodes += Limits.clock[rootPos.active].inc
+            TimeMgr.availableNodes += Limits.clock[rootPos.activeSide()].inc
                                     - Threadpool.sum(&Thread::nodes);
         }
 
@@ -1775,34 +1788,34 @@ namespace SyzygyTB {
 
     void rankRootMoves(Position &pos, RootMoves &rootMoves) {
 
-        TBProbeDepth = Options["SyzygyProbeDepth"];
-        TBLimitPiece = Options["SyzygyLimitPiece"];
-        TBUseRule50  = Options["SyzygyUseRule50"];
-        TBHasRoot    = false;
+        DepthLimit = Depth(Options["SyzygyDepthLimit"]);
+        PieceLimit = Options["SyzygyPieceLimit"];
+        Move50Rule = Options["SyzygyMove50Rule"];
+        HasRoot    = false;
 
         bool dtzAvailable{ true };
 
-        // Tables with fewer pieces than SyzygyProbeLimit are searched with ProbeDepth == DEPTH_ZERO
-        if (TBLimitPiece > MaxPieceLimit) {
-            TBLimitPiece = MaxPieceLimit;
-            TBProbeDepth = DEPTH_ZERO;
+        // Tables with fewer pieces than SyzygyProbeLimit are searched with DepthLimit == DEPTH_ZERO
+        if (PieceLimit > MaxPieceLimit) {
+            PieceLimit = MaxPieceLimit;
+            DepthLimit = DEPTH_ZERO;
         }
 
         // Rank moves using DTZ tables
-        if (0 != TBLimitPiece
-         && TBLimitPiece >= pos.count()
+        if (0 != PieceLimit
+         && PieceLimit >= pos.count()
          && CR_NONE == pos.castleRights()) {
             // If the current root position is in the table-bases,
             // then RootMoves contains only moves that preserve the draw or the win.
-            TBHasRoot = rootProbeDTZ(pos, rootMoves);
-            if (!TBHasRoot) {
+            HasRoot = rootProbeDTZ(pos, rootMoves);
+            if (!HasRoot) {
                 // DTZ tables are missing; try to rank moves using WDL tables
                 dtzAvailable = false;
-                TBHasRoot = rootProbeWDL(pos, rootMoves);
+                HasRoot = rootProbeWDL(pos, rootMoves);
             }
         }
 
-        if (TBHasRoot) {
+        if (HasRoot) {
             // Sort moves according to TB rank
             sort(rootMoves.begin(), rootMoves.end(),
                  [](RootMove const &rm1, RootMove const &rm2) {
@@ -1812,7 +1825,7 @@ namespace SyzygyTB {
             // Probe during search only if DTZ is not available and winning
             if (dtzAvailable
              || rootMoves.front().tbValue <= VALUE_DRAW) {
-                TBLimitPiece = 0;
+                PieceLimit = 0;
             }
         }
         else {

@@ -126,8 +126,8 @@ constexpr Depth DEPTH_QS_NO_CHECK{ -1 };
 constexpr Depth DEPTH_QS_RECAP   { -5 };
 constexpr Depth DEPTH_NONE       { -6 };
 constexpr Depth DEPTH_OFFSET     { -7 };
-// Maximum Plies
-constexpr i32 MaxDepth{ 256 + DEPTH_OFFSET - 4 };
+// Maximum Depth
+constexpr i32 MAX_PLY{ 256 + DEPTH_OFFSET - 4 };
 
 enum CastleSide : i08 { CS_KING, CS_QUEN, CS_NONE, CASTLE_SIDES = 2 };
 
@@ -196,8 +196,8 @@ enum Value : i32
     VALUE_INFINITE  = VALUE_NONE - 1,
     VALUE_MATE      = VALUE_INFINITE - 1,
 
-    VALUE_MATE_1_MAX_PLY = VALUE_MATE - 1 * MaxDepth,
-    VALUE_MATE_2_MAX_PLY = VALUE_MATE - 2 * MaxDepth,
+    VALUE_MATE_1_MAX_PLY = VALUE_MATE - 1 * MAX_PLY,
+    VALUE_MATE_2_MAX_PLY = VALUE_MATE - 2 * MAX_PLY,
 
     VALUE_KNOWN_WIN = 10000,
 

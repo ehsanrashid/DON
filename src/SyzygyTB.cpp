@@ -145,7 +145,7 @@ namespace {
         return v;
     }
 
-    // DTZ tables don't store valid scores for moves that reset the rule50 counter
+    // DTZ tables don't store valid scores for moves that reset the move50Rule counter
     // like captures and pawn moves but we can easily recover the correct dtz of the
     // previous move if we know the position's WDL score.
     i32 beforeZeroingDTZ(WDLScore wdlScore) {
@@ -768,7 +768,7 @@ namespace {
             // If both sides have the same pieces keys are equal. In this case TB tables
             // only store the 'white to move' case, so if the position to lookup has black
             // to move, we need to switch the color and flip the squares before to lookup.
-            (pos.active == BLACK
+            (pos.activeSide() == BLACK
           && entry->matlKey1 == entry->matlKey2)
             // Black Stronger
             // TB files are calculated for white as stronger side. For instance we have
@@ -778,7 +778,7 @@ namespace {
          || (pos.matlKey() != entry->matlKey1);
 
         Color stm{
-            flip ? ~pos.active : pos.active };
+            flip ? ~pos.activeSide() : pos.activeSide() };
 
         Bitboard pawns;
         i16 pawnCount;
@@ -1455,7 +1455,12 @@ namespace {
 
 namespace SyzygyTB {
 
-    i32 MaxPieceLimit = 0;
+    i32     MaxPieceLimit = 0;
+
+    Depth   DepthLimit  = 1;
+    i32     PieceLimit  = 6;
+    bool    Move50Rule  = true;
+    bool    HasRoot     = false;
 
     WDLScore operator-(WDLScore wdl) { return WDLScore(-i32(wdl)); }
 
@@ -1621,7 +1626,7 @@ namespace SyzygyTB {
     /// no moves were filtered out.
     bool rootProbeWDL(Position &rootPos, RootMoves &rootMoves) {
 
-        bool rule50 = Options["SyzygyUseRule50"];
+        bool move50Rule = Options["SyzygyMove50Rule"];
 
         StateInfo si;
         ProbeState state;
@@ -1640,7 +1645,7 @@ namespace SyzygyTB {
 
             rm.tbRank = wdlToRank[wdl + 2];
 
-            if (!rule50) {
+            if (!move50Rule) {
                 wdl =
                     wdl > WDL_DRAW ? WDL_WIN :
                     wdl < WDL_DRAW ? WDL_LOSS : WDL_DRAW;
@@ -1661,7 +1666,7 @@ namespace SyzygyTB {
         // Check whether a position was repeated since the last zeroing move.
         bool repeated = rootPos.repeated();
 
-        i16 bound = Options["SyzygyUseRule50"] ? 900 : 1;
+        i16 bound = Options["SyzygyMove50Rule"] ? 900 : 1;
         i32 dtz;
 
         StateInfo si;

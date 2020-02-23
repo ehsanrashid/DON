@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <type_traits>
 
 #include "Comparer.h"
 #include "Type.h"
@@ -20,7 +21,7 @@ namespace UCI {
     class Option
     {
     private:
-        using OnChange = void(*)();
+        using OnChange = void(*)(); // std::add_pointer<void()>;
 
         std::string type
             , defaultVal
@@ -75,7 +76,7 @@ namespace UCI {
 
     extern void initialize();
 
-    extern void handleCommands(u32, char const *const*);
+    extern void handleCommands(std::string const&);
 
     extern void clear();
 }
@@ -83,4 +84,4 @@ namespace UCI {
 // Global nocase mapping of Options
 extern UCI::StringOptionMap Options;
 
-extern u32 optionThreads();
+extern u16 optionThreads();

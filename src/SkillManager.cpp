@@ -16,7 +16,7 @@ bool SkillManager::canPick(Depth depth) const {
 }
 
 
-void SkillManager::setLevel(i16 lvl) {
+void SkillManager::setLevel(u16 lvl) {
     level = lvl;
 }
 
@@ -35,10 +35,10 @@ Move SkillManager::pickBestMove() {
         assert(!rootMoves.empty());
 
         // RootMoves are already sorted by value in descending order
-        i32  weakness{ MaxDepth - 8 * level };
+        i32  weakness{ MAX_PLY - 8 * level };
         i32  deviance{ std::min(rootMoves[0].newValue - rootMoves[PVCount - 1].newValue, VALUE_MG_PAWN) };
         auto bestValue{ -VALUE_INFINITE };
-        for (u32 i = 0; i < PVCount; ++i) {
+        for (u16 i = 0; i < PVCount; ++i) {
             // First for each move score add two terms, both dependent on weakness.
             // One is deterministic with weakness, and one is random with weakness.
             auto value{ rootMoves[i].newValue

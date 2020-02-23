@@ -808,6 +808,7 @@ Position& Position::setup(std::string const &ff, StateInfo &nsi, Thread *const t
     assert(100 >= clockPly());
     // Convert from moves starting from 1 to ply starting from 0.
     ply = i16(std::max(2 * (ply - 1), 0) + active);
+    assert(0 <= gamePly());
 
     npMaterial[WHITE] = computeNPM<WHITE>(*this);
     npMaterial[BLACK] = computeNPM<BLACK>(*this);

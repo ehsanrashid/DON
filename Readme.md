@@ -113,18 +113,18 @@ Currently, DON has the following UCI options:
     of the downloaded tablebase files (`md5sum -c checksum.md5`) as corruption will
     lead to engine crashes.
 
-  * #### SyzygyProbeDepth
+  * #### SyzygyDepthLimit
     Minimum remaining search depth for which a position is probed. Set this option
     to a higher value to probe less agressively if you experience too much slowdown
     (in terms of nps) due to TB probing.
 
-  * #### SyzygyUseRule50
+  * #### SyzygyMove50Rule
     Count drawn by the 50-move rule as win or loss / draw
     'true' -> draw
     'false' -> win or lose.
     This is useful for ICCF correspondence games.
 
-  * #### SyzygyLimitPiece
+  * #### SyzygyPieceLimit
     Limit Syzygy tablebase probing to positions with at most this many pieces left
     (including kings and pawns).
 

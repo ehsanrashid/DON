@@ -9,7 +9,6 @@ namespace Pawns {
 
     /// Pawns::Entry contains various information about a pawn structure.
     struct Entry {
-    public:
         Key key;
 
         Array<Score, COLORS> score;
