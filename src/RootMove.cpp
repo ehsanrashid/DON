@@ -1,5 +1,6 @@
 #include "RootMove.h"
 
+#include <algorithm>
 #include <iterator>
 #include <sstream>
 #include <iostream>
@@ -33,6 +34,12 @@ std::ostream& operator<<(std::ostream &os, RootMove const &rm) {
 }
 
 
+i16 RootMoves::moveBestCount(u32 sIdx, u32 eIdx, Move move) const {
+    auto rmItr{ std::find(std::next(begin(), sIdx), std::next(begin(), eIdx), move) };
+    return rmItr != std::next(begin(), eIdx) ?
+            rmItr->bestCount : 0;
+}
+
 void RootMoves::initialize(Position const &pos) {
     assert(empty());
     //clear();
@@ -44,6 +51,7 @@ void RootMoves::initialize(Position const &pos) {
 }
 
 void RootMoves::initialize(Position const &pos, Moves const &filterMoves) {
+
     if (filterMoves.empty()) {
         initialize(pos);
         return;
@@ -60,10 +68,16 @@ void RootMoves::initialize(Position const &pos, Moves const &filterMoves) {
     }
 }
 
-i16 RootMoves::moveBestCount(u32 sIdx, u32 eIdx, Move move) const {
-    auto rmItr{ std::find(std::next(begin(), sIdx), std::next(begin(), eIdx), move) };
-    return rmItr != std::next(begin(), eIdx) ?
-            rmItr->bestCount : 0;
+void RootMoves::saveValues() {
+
+    for (auto &rm : *this) {
+        rm.oldValue = rm.newValue;
+    }
+}
+
+void RootMoves::stableSort(i16 pvBeg, i16 pvEnd) {
+    std::stable_sort(std::next(begin(), pvBeg),
+                     std::next(begin(), pvEnd));
 }
 
 /// RootMoves::toString()

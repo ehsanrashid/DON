@@ -32,6 +32,14 @@ Limit Limits;
 
 u16  PVCount;
 
+namespace SyzygyTB {
+
+    Depth   DepthLimit;
+    i16     PieceLimit;
+    bool    Move50Rule;
+    bool    HasRoot;
+}
+
 namespace {
 
     constexpr u64 TTHitAverageWindow = 4096;
@@ -89,17 +97,17 @@ namespace {
         if (isOk((ss-1)->playedMove)) {
             auto pmDst{ fixDst((ss-1)->playedMove) };
             assert(NO_PIECE != pos[pmDst]);
-            pos.thread->counterMoves[pos[pmDst]][pmDst] = move;
+            pos.thread()->counterMoves[pos[pmDst]][pmDst] = move;
         }
 
-        pos.thread->butterFlyStats[pos.activeSide()][mIndex(move)] << bonus;
+        pos.thread()->butterFlyStats[pos.activeSide()][mIndex(move)] << bonus;
         if (PAWN != pType(pos[orgSq(move)])) {
-            pos.thread->butterFlyStats[pos.activeSide()][mIndex(reverseMove(move))] << -bonus;
+            pos.thread()->butterFlyStats[pos.activeSide()][mIndex(reverseMove(move))] << -bonus;
         }
 
         if (12 < depth
          && ss->ply < MAX_LOWPLY) {
-            pos.thread->lowPlyStats[ss->ply][mIndex(move)] << statBonus(depth - 7);
+            pos.thread()->lowPlyStats[ss->ply][mIndex(move)] << statBonus(depth - 7);
         }
 
         updateContinuationStats(ss, pos[orgSq(move)], dstSq(move), bonus);
@@ -227,7 +235,7 @@ namespace {
 
         Move move;
 
-        auto *thread{ pos.thread };
+        auto *thread{ pos.thread() };
 
         auto bestMove{ MOVE_NONE };
         StateInfo si;
@@ -394,7 +402,7 @@ namespace {
         // Step 1. Initialize node
         ss->moveCount = 0;
 
-        auto *thread{ pos.thread };
+        auto *thread{ pos.thread() };
 
         // Check for the available remaining limit
         if (Threadpool.mainThread() == thread) {
@@ -801,7 +809,7 @@ namespace {
         if (isOk((ss-1)->playedMove)) {
             auto pmDst{ fixDst((ss-1)->playedMove) };
             assert(NO_PIECE != pos[pmDst]);
-            counterMove = pos.thread->counterMoves[pos[pmDst]][pmDst];
+            counterMove = pos.thread()->counterMoves[pos[pmDst]][pmDst];
         }
 
         // Initialize move-picker(1) for the current position
@@ -1303,9 +1311,7 @@ void Limit::clear() {
     startTime   = 0;
 }
 
-
 namespace Searcher {
-
 
     void initialize()
     {}
@@ -1345,6 +1351,7 @@ void Thread::search() {
     auto *mainThread{ Threadpool.mainThread() == this ?
                         Threadpool.mainThread() :
                         nullptr };
+
     if (nullptr != mainThread) {
         mainThread->iterValues.fill(mainThread->prevBestValue);
     }
@@ -1383,6 +1390,7 @@ void Thread::search() {
         && (nullptr == mainThread
          || DEPTH_ZERO == Limits.depth
          || rootDepth <= Limits.depth)) {
+
         if (nullptr != mainThread
          && Limits.useTimeMgmt()) {
             // Age out PV variability metric
@@ -1391,9 +1399,7 @@ void Thread::search() {
 
         // Save the last iteration's values before first PV line is searched and
         // all the move scores except the (new) PV are set to -VALUE_INFINITE.
-        for (auto &rm : rootMoves) {
-            rm.oldValue = rm.newValue;
-        }
+        rootMoves.saveValues();
 
         pvBeg = 0;
         pvEnd = 0;
@@ -1502,8 +1508,7 @@ void Thread::search() {
             } while (true);
 
             // Sort the PV lines searched so far and update the GUI.
-            std::stable_sort(std::next(rootMoves.begin(), pvBeg),
-                             std::next(rootMoves.begin(), pvCur + 1));
+            rootMoves.stableSort(pvBeg, pvCur + 1);
 
             if (nullptr != mainThread
              && (Threadpool.stop
@@ -1831,3 +1836,4 @@ namespace SyzygyTB {
     }
 
 }
+

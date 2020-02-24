@@ -62,10 +62,13 @@ public:
     void operator+=(RootMove const &rm) { push_back(rm); }
     //void operator-=(RootMove const &rm) { erase(std::remove(begin(), end(), rm), end()); }
 
+    i16 moveBestCount(u32, u32, Move) const;
+
     void initialize(Position const&);
     void initialize(Position const&, Moves const&);
 
-    i16 moveBestCount(u32, u32, Move) const;
+    void saveValues();
+    void stableSort(i16, i16);
 
     std::string toString() const;
 };

@@ -875,7 +875,7 @@ namespace Evaluator {
                        + matlEntry->imbalance
                        + (pawnEntry->score[WHITE]
                         - pawnEntry->score[BLACK])
-                       + pos.thread->contempt };
+                       + pos.thread()->contempt };
 
             // Early exit if score is high
             Value v{ (mgValue(score) + egValue(score)) / 2 };
@@ -946,10 +946,10 @@ namespace Evaluator {
             return "Evaluation: none (in check)\n";
         }
         // Reset any dynamic contempt
-        auto contempt = pos.thread->contempt;
-        pos.thread->contempt = SCORE_ZERO;
+        auto contempt = pos.thread()->contempt;
+        pos.thread()->contempt = SCORE_ZERO;
         auto value{ Evaluation<true>(pos).value() };
-        pos.thread->contempt = contempt;
+        pos.thread()->contempt = contempt;
 
         // Trace scores are from White's point of view
         value = WHITE == pos.activeSide() ? +value : -value;

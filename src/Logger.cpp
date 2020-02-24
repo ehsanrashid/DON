@@ -3,6 +3,8 @@
 #include <chrono>
 #include <cstdlib>
 
+#include "Helper.h"
+
 #if defined(_WIN32)
 #   include <ctime>
 #endif
@@ -38,7 +40,7 @@ namespace {
         return str;
     }
 
-    std::ostream& operator<<(std::ostream &os, const SystemClockTimePoint &tp) {
+    std::ostream& operator<<(std::ostream &os, SystemClockTimePoint const &tp) {
         os << toString(tp);
         return os;
     }
@@ -51,13 +53,11 @@ Logger::Logger()
     , oTSB{ std::cout.rdbuf(), ofs.rdbuf() }
 {}
 
-Logger::~Logger()
-{
+Logger::~Logger() {
     setFile("");
 }
 
-Logger& Logger::instance()
-{
+Logger& Logger::instance() {
     // Since it's a static variable, if the class has already been created,
     // it won't be created again.
     // And it is thread-safe in C++11.
@@ -66,27 +66,30 @@ Logger& Logger::instance()
     return _instance;
 }
 
-void Logger::setFile(std::string const &logFn)
-{
-    if (ofs.is_open())
-    {
+void Logger::setFile(std::string const &lFn) {
+    if (ofs.is_open()) {
         std::cout.rdbuf(oTSB.readSB);
-        std:: cin.rdbuf(iTSB.readSB);
+        std::cin.rdbuf(iTSB.readSB);
 
         ofs << "[" << std::chrono::system_clock::now() << "] <-\n";
         ofs.close();
     }
-    if (!logFn.empty())
-    {
-        ofs.open(logFn, std::ios::out|std::ios::app);
-        if (!ofs.is_open())
-        {
-            std::cerr << "Unable to open Log File " << logFn << std::endl;
-            exit(EXIT_FAILURE);
-        }
-        ofs << "[" << std::chrono::system_clock::now() << "] ->\n";
 
-        std:: cin.rdbuf(&iTSB);
-        std::cout.rdbuf(&oTSB);
+    logFn = lFn;
+    replace(logFn, '\\', '/');
+    trim(logFn);
+    if (logFn.empty()) {
+        return;
     }
+
+    ofs.open(logFn, std::ios::out | std::ios::app);
+    if (!ofs.is_open()) {
+        std::cerr << "Unable to open Log File " << logFn << std::endl;
+        exit(EXIT_FAILURE);
+    }
+    ofs << "[" << std::chrono::system_clock::now() << "] ->\n";
+
+    std::cin.rdbuf(&iTSB);
+    std::cout.rdbuf(&oTSB);
+
 }

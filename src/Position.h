@@ -122,6 +122,7 @@ private:
     Color active;
     Score psq;
     i16   ply;
+    Thread *th;
 
     StateInfo *si;
 
@@ -135,8 +136,6 @@ private:
     bool canEnpassant(Color, Square, bool = true) const;
 
 public:
-
-    Thread *thread;
 
     //static void initialize();
 
@@ -193,6 +192,7 @@ public:
     Color activeSide() const;
     Score psqScore() const;
     i16 gamePly() const;
+    Thread* thread() const;
 
     bool castleExpeded(Color, CastleSide) const;
 
@@ -396,6 +396,10 @@ inline Score Position::psqScore() const {
 }
 inline i16 Position::gamePly() const {
     return ply;
+}
+
+inline Thread* Position::thread() const {
+    return th;
 }
 
 inline bool Position::castleExpeded(Color c, CastleSide cs) const {

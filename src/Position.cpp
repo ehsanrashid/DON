@@ -640,7 +640,7 @@ void Position::clear() {
     psq = SCORE_ZERO;
     ply = 0;
     active = COLORS;
-    thread = nullptr;
+    th = nullptr;
 }
 
 void Position::placePiece(Square s, Piece p) {
@@ -684,7 +684,7 @@ void Position::movePiece(Square s1, Square s2) {
 /// Position::setup() initializes the position object with the given FEN string.
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
-Position& Position::setup(std::string const &ff, StateInfo &nsi, Thread *const th) {
+Position& Position::setup(std::string const &ff, StateInfo &nsi, Thread *const nth) {
     // A FEN string defines a particular position using only the ASCII character set.
     // A FEN string contains six fields separated by a space.
     // 1) Piece placement (from White's perspective).
@@ -818,7 +818,7 @@ Position& Position::setup(std::string const &ff, StateInfo &nsi, Thread *const t
     si->posiKey = RandZob.computePosiKey(*this);
     si->checkers = attackersTo(square(active|KING)) & pieces(~active);
     setCheckInfo();
-    thread = th;
+    th = nth;
 
     assert(ok());
     return *this;
@@ -852,7 +852,7 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
         && legal(m)
         && &nsi != si);
 
-    thread->nodes.fetch_add(1, std::memory_order::memory_order_relaxed);
+    th->nodes.fetch_add(1, std::memory_order::memory_order_relaxed);
     Key pKey = posiKey() ^ RandZob.colorKey;
 
     // Copy some fields of old state info to new state info object
@@ -929,7 +929,7 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
             }
             pKey ^= RandZob.pieceSquareKey[pasive][captured][cap];
             si->matlKey ^= RandZob.pieceSquareKey[pasive][captured][count(pasive|captured)];
-            prefetch(thread->matlHash[matlKey()]);
+            prefetch(th->matlHash[matlKey()]);
         }
         // Set capture piece
         si->captured = captured;
@@ -970,7 +970,7 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
             si->pawnKey ^= RandZob.pieceSquareKey[active][PAWN][dst];
             si->matlKey ^= RandZob.pieceSquareKey[active][PAWN][count(active|PAWN)]
                          ^ RandZob.pieceSquareKey[active][promoted][count(active|promoted) - 1];
-            prefetch(thread->matlHash[matlKey()]);
+            prefetch(th->matlHash[matlKey()]);
         }
         else
         // Double push pawn
@@ -987,7 +987,7 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
         si->clockPly = 0;
         si->pawnKey ^= RandZob.pieceSquareKey[active][PAWN][org]
                      ^ RandZob.pieceSquareKey[active][PAWN][dst];
-        //prefetch(thread->pawnHash[pawnKey()]);
+        //prefetch(th->pawnHash[pawnKey()]);
     }
 
     assert(0 == (attackersTo(square(active|KING)) & pieces(pasive)));
@@ -1167,7 +1167,7 @@ void Position::flip()
     std::getline(iss, token, '\n');
     ff += token;
 
-    setup(ff, *si, thread);
+    setup(ff, *si, th);
 
     assert(ok());
 }
@@ -1217,7 +1217,7 @@ void Position::mirror()
     std::getline(iss, token, '\n');
     ff += token;
 
-    setup(ff, *si, thread);
+    setup(ff, *si, th);
 
     assert(ok());
 }

@@ -260,7 +260,7 @@ namespace Pawns {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(Position const &pos) {
         Key pawnKey{ pos.pawnKey() };
-        auto *e{ pos.thread->pawnHash[pawnKey] };
+        auto *e{ pos.thread()->pawnHash[pawnKey] };
 
         if (e->key == pawnKey) {
             return e;

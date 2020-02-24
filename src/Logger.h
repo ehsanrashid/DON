@@ -8,14 +8,14 @@
 #include "Type.h"
 
 // Singleton Logger
-class Logger
-{
+class Logger {
 private:
 
+    std::string logFn;
     std::ofstream ofs;
 
     TieStreamBuf iTSB
-        ,        oTSB;
+        , oTSB;
 
 protected:
 

@@ -241,10 +241,9 @@ void PolyBook::initialize(string const &bkFn) {
     clear();
 
     bookFn = bkFn;
-    std::replace(bookFn.begin(), bookFn.end(), '\\', '/');
+    replace(bookFn, '\\', '/');
     trim(bookFn);
-
-    if (whiteSpaces(bookFn)) {
+    if (bookFn.empty()) {
         return;
     }
 

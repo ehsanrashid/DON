@@ -7,6 +7,8 @@
 
 namespace SyzygyTB {
 
+    constexpr i16 TBPIECES = 7;
+
     /// WDL Score
     enum WDLScore
     {
@@ -41,10 +43,6 @@ namespace SyzygyTB {
 
     extern void initialize(std::string const&);
 
-    extern i32      MaxPieceLimit;
+    extern i16 MaxPieceLimit;
 
-    extern Depth    DepthLimit;
-    extern i32      PieceLimit;
-    extern bool     Move50Rule;
-    extern bool     HasRoot;
 }

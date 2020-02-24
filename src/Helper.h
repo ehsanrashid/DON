@@ -27,15 +27,15 @@ extern bool whiteSpaces(std::string const&);
 extern std::string& toLower(std::string&);
 extern std::string& toUpper(std::string&);
 extern std::string& toggle(std::string&);
-extern std::string& reverse(std::string &str);
-
-extern std::string trim(std::string&);
+extern std::string& reverse(std::string&);
+extern std::string& replace(std::string&, char, char);
+extern std::string& trim(std::string&);
 
 extern std::string appendPath(std::string const&, std::string const&);
 extern void removeExtension(std::string&);
 
 //extern void eraseSubstring(std::string&, std::string const&);
-//extern void eraseSubstrings(std::string&, const std::vector<std::string>&);
+//extern void eraseSubstrings(std::string&, std::vector<std::string> const&);
 
 //extern std::vector<std::string> splitString(std::string const&, char = ' ', bool = true, bool = false);
 

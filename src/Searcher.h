@@ -48,7 +48,7 @@ namespace Searcher {
 
     /// Stack keeps the information of the nodes in the tree during the search.
     struct Stack {
-    public:
+
         i16   ply;
         Move  playedMove;
         Move  excludedMove;
@@ -67,3 +67,11 @@ namespace Searcher {
 extern Limit Limits;
 
 extern u16 PVCount;
+
+namespace SyzygyTB {
+
+    extern Depth   DepthLimit;
+    extern i16     PieceLimit;
+    extern bool    Move50Rule;
+    extern bool    HasRoot;
+}

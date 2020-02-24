@@ -85,15 +85,15 @@ void Thread::idleFunction() {
     }
 
     while (true) {
+        {
         std::unique_lock<std::mutex> uniqueLock(mutex);
         busy = false;
         conditionVar.notify_one(); // Wake up anyone waiting for search finished
         conditionVar.wait(uniqueLock, [&]{ return busy; });
+        } // uniqueLock.unlock();
         if (dead) {
             return;
         }
-        uniqueLock.unlock();
-
         search();
     }
 }
@@ -260,7 +260,7 @@ namespace WinProcGroup {
 }
 
 u16 ThreadPool::size() const {
-    return u16(std::vector<Thread*>::size());
+    return u16(Base::size());
 }
 
 MainThread * ThreadPool::mainThread() const {

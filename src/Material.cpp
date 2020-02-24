@@ -206,7 +206,7 @@ namespace Material {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(Position const &pos) {
         Key matlKey{ pos.matlKey() };
-        auto *e{ pos.thread->matlHash[matlKey] };
+        auto *e{ pos.thread()->matlHash[matlKey] };
 
         if (e->key == matlKey) {
             return e;

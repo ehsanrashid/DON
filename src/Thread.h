@@ -14,7 +14,6 @@
 #include "Pawns.h"
 #include "Type.h"
 
-
 /// Thread class keeps together all the thread-related stuff.
 /// It use pawn and material hash tables so that once get a pointer to
 /// an entry its life time is unlimited and we don't have to care about
@@ -137,6 +136,9 @@ class ThreadPool
 private:
 
     StateListPtr setupStates;
+
+protected:
+    using Base = std::vector<Thread*>;
 
 public:
 

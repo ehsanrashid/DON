@@ -30,8 +30,11 @@ string& reverse(string &str) {
     std::reverse(str.begin(), str.end());
     return str;
 }
-
-string trim(string &str) {
+string& replace(string &str, char oldCh, char newCh) {
+    std::replace(str.begin(), str.end(), oldCh, newCh);
+    return str;
+}
+string& trim(string &str) {
     auto beg{ str.find_first_not_of(' ') };
     if (beg != string::npos)
     {

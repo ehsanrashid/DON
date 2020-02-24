@@ -71,8 +71,6 @@ string getLastErrorStr() {
 
 namespace {
 
-    constexpr i16 TBPIECES = 7;
-
     // Type of table
     enum TBType : u08 { KEY, WDL, DTZ };
 
@@ -560,7 +558,7 @@ namespace {
                 return;
             }
 
-            MaxPieceLimit = std::max(i32(pieces.size()), MaxPieceLimit);
+            MaxPieceLimit = std::max(i16(pieces.size()), MaxPieceLimit);
 
             wdlTable.emplace_back(code);
             dtzTable.emplace_back(wdlTable.back());
@@ -1455,12 +1453,7 @@ namespace {
 
 namespace SyzygyTB {
 
-    i32     MaxPieceLimit = 0;
-
-    Depth   DepthLimit  = 1;
-    i32     PieceLimit  = 6;
-    bool    Move50Rule  = true;
-    bool    HasRoot     = false;
+    i16 MaxPieceLimit;
 
     WDLScore operator-(WDLScore wdl) { return WDLScore(-i32(wdl)); }
 
@@ -1858,11 +1851,11 @@ namespace SyzygyTB {
         std::stringstream ss{ paths };
         string path;
         while (std::getline(ss, path, Delimiter)) {
-            if (whiteSpaces(path)) {
+            replace(path, '\\', '/');
+            trim(path);
+            if (path.empty()) {
                 continue;
             }
-            trim(path);
-            std::replace(path.begin(), path.end(), '\\', '/');
             TBFile::Paths.push_back(path);
         }
 

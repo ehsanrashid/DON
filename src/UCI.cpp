@@ -408,7 +408,7 @@ namespace UCI {
 
         Options["SyzygyPath"]         << Option("", onSyzygyPath);
         Options["SyzygyDepthLimit"]   << Option(1, 1, 100);
-        Options["SyzygyPieceLimit"]   << Option(7, 0, 7);
+        Options["SyzygyPieceLimit"]   << Option(7, 0, SyzygyTB::TBPIECES);
         Options["SyzygyMove50Rule"]   << Option(true);
 
         Options["Debug File"]         << Option("", onDebugFile);
