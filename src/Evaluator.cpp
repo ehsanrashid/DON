@@ -102,26 +102,25 @@ namespace Evaluator {
             S( 0, 0), S(10,28), S(17,33), S(15,41), S(62,72), S(168,177), S(276,260), S( 0, 0)
         };
 
-        constexpr Score MinorBehindPawn    { S( 18,  3) };
-        constexpr Score MinorOutpost       { S( 30, 21) };
-        constexpr Score KnightReachablepost{ S( 32, 10) };
-        constexpr Score MinorKingProtect   { S(  7,  8) };
-        constexpr Score BishopOnDiagonal   { S( 45,  0) };
-        constexpr Score BishopPawns        { S(  3,  7) };
-        constexpr Score BishopTrapped      { S( 50, 50) };
-        constexpr Score RookOnQueenFile    { S(  7,  6) };
-        constexpr Score RookTrapped        { S( 52, 10) };
-        constexpr Score QueenWeaken        { S( 49, 15) };
-        constexpr Score PawnLessFlank      { S( 17, 95) };
-        constexpr Score PasserFile         { S( 11,  8) };
-        constexpr Score KingFlankAttacks   { S(  8,  0) };
-        constexpr Score PieceRestricted    { S(  7,  7) };
-        constexpr Score PieceHanged        { S( 69, 36) };
-        constexpr Score PawnThreat         { S(173, 94) };
-        constexpr Score PawnPushThreat     { S( 48, 39) };
-        constexpr Score KingThreat         { S( 24, 89) };
-        constexpr Score KnightOnQueen      { S( 16, 12) };
-        constexpr Score SliderOnQueen      { S( 59, 18) };
+        constexpr Score MinorBehindPawn { S( 18,  3) };
+        constexpr Score MinorOutpost    { S( 30, 21) };
+        constexpr Score MinorKingProtect{ S(  7,  8) };
+        constexpr Score BishopOnDiagonal{ S( 45,  0) };
+        constexpr Score BishopPawns     { S(  3,  7) };
+        constexpr Score BishopTrapped   { S( 50, 50) };
+        constexpr Score RookOnQueenFile { S(  7,  6) };
+        constexpr Score RookTrapped     { S( 52, 10) };
+        constexpr Score QueenWeaken     { S( 49, 15) };
+        constexpr Score PawnLessFlank   { S( 17, 95) };
+        constexpr Score PasserFile      { S( 11,  8) };
+        constexpr Score KingFlankAttacks{ S(  8,  0) };
+        constexpr Score PieceRestricted { S(  7,  7) };
+        constexpr Score PieceHanged     { S( 69, 36) };
+        constexpr Score PawnThreat      { S(173, 94) };
+        constexpr Score PawnPushThreat  { S( 48, 39) };
+        constexpr Score KingThreat      { S( 24, 89) };
+        constexpr Score KnightOnQueen   { S( 16, 12) };
+        constexpr Score SliderOnQueen   { S( 59, 18) };
 
     #undef S
 
@@ -256,9 +255,15 @@ namespace Evaluator {
             for (Square s : pos.squares(Own|PT)) {
                 assert((Own|PT) == pos[s]);
 
-                fulAttacks[Own] |= pos.attacksFrom(PT, s);
                 // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
-                Bitboard attacks = pos.xattacksFrom<PT>(s, Own);
+                Bitboard attacks;
+                switch (PT) {
+                case BSHP: attacks = attacksBB<BSHP>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, BSHP) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))); break;
+                case ROOK: attacks = attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))); break;
+                case QUEN: attacks = attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~pos.kingBlockers(Own))));                         break;
+                case NIHT: default: attacks = PieceAttacks[NIHT][s];                                                                                      break;
+                }
+
                 if (contains(pos.kingBlockers(Own), s)) {
                     attacks &= lines(pos.square(Own|KING), s);
                 }
@@ -292,6 +297,7 @@ namespace Evaluator {
 
                 sqlAttacks[Own][PT]   |= attacks;
                 sqlAttacks[Own][NONE] |= attacks;
+                fulAttacks[Own]       |= pos.attacksFrom(PT, s);
 
                 if ((attacks & kingRing[Opp]) != 0) {
                     kingAttackersCount [Own]++;
@@ -320,18 +326,20 @@ namespace Evaluator {
                       & ~pawnEntry->attackSpan[Opp]
                       & sqlAttacks[Own][PAWN];
 
-                    if (NIHT == PT) {
+                    switch (PT) {
+                    case NIHT: {
                         // Bonus for knight outpost squares
                         if (contains(b, s)) {
                             score += MinorOutpost * 2;
                         }
                         else
-                        if (0 != (b & attacks & ~pos.pieces(Own))) {
-                            score += KnightReachablepost;
-                        }
+                            if (0 != (b & attacks & ~pos.pieces(Own))) {
+                                score += MinorOutpost * 1;
+                            }
                     }
-                    else
-                    if (BSHP == PT) {
+                        break;
+                    case BSHP:
+                    default: {
                         // Bonus for bishop outpost squares
                         if (contains(b, s)) {
                             score += MinorOutpost * 1;
@@ -339,12 +347,12 @@ namespace Evaluator {
 
                         // Penalty for pawns on the same color square as the bishop,
                         // more when the center files are blocked with pawns.
-                        b =  pos.pieces(Own, PAWN)
-                          &  Sides[CS_NONE]
-                          &  pawnSglPushes(Opp, pos.pieces());
+                        b = pos.pieces(Own, PAWN)
+                            &  Sides[CS_NONE]
+                            & pawnSglPushes(Opp, pos.pieces());
                         score -= BishopPawns
-                               * (1 + popCount(b))
-                               * popCount(pos.pieces(Own, PAWN) & Colors[sColor(s)]);
+                            * (1 + popCount(b))
+                            * popCount(pos.pieces(Own, PAWN) & Colors[sColor(s)]);
 
                         // Bonus for bishop on a long diagonal which can "see" both center squares
                         score += BishopOnDiagonal * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB);
@@ -353,17 +361,19 @@ namespace Evaluator {
                         // It is a very serious problem, especially when that pawn is also blocked.
                         // Bishop (white or black) on a1/h1 or a8/h8 which is trapped by own pawn on b2/g2 or b7/g7.
                         if (1 >= mob
-                         && contains(FABB|FHBB, s)
-                         && RANK_1 == relativeRank(Own, s)
-                         && Options["UCI_Chess960"]) {
+                            && contains(FABB | FHBB, s)
+                            && RANK_1 == relativeRank(Own, s)
+                            && Options["UCI_Chess960"]) {
                             auto del{ pawnPush(Own) + (WEST + (FILE_A == sFile(s)) * 2 * EAST) };
                             if (contains(pos.pieces(Own, PAWN), s + del)) {
                                 score -= BishopTrapped
-                                       * (!contains(pos.pieces(), s + del + pawnPush(Own)) ?
-                                              !contains(pos.pieces(Own, PAWN), s + del + del) ?
-                                                  1 : 2 : 4);
+                                    * (!contains(pos.pieces(), s + del + pawnPush(Own)) ?
+                                        !contains(pos.pieces(Own, PAWN), s + del + del) ?
+                                        1 : 2 : 4);
                             }
                         }
+                    }
+                        break;
                     }
                 }
                     break;

@@ -832,13 +832,11 @@ namespace {
             }
 
             if (rootNode) {
-                // At root obey the "searchmoves" option and skip moves not listed in Root
-                // Move List. As a consequence any illegal move is also skipped. In MultiPV
-                // mode we also skip PV moves which have been already searched and those
-                // of lower "TB rank" if we are in a TB root position.
-                if (std::find(std::next(thread->rootMoves.begin(), thread->pvCur),
-                              std::next(thread->rootMoves.begin(), thread->pvEnd), move)
-                           == std::next(thread->rootMoves.begin(), thread->pvEnd)) {
+                // At root obey the "searchmoves" option and skip moves not listed in
+                // RootMove List. As a consequence any illegal move is also skipped.
+                // In MultiPV mode we also skip PV moves which have been already searched
+                // and those of lower "TB rank" if we are in a TB root position.
+                if (!thread->rootMoves.contains(thread->pvCur, thread->pvEnd, move)) {
                     continue;
                 }
 
@@ -851,8 +849,7 @@ namespace {
                                   << " currmovenumber " << std::setw(2) << thread->pvCur + moveCount + 1
                                   //<< " maxmoves "       << thread->rootMoves.size()
                                   << " depth "          << depth
-                                  //<< " seldepth "       << (*std::find(std::next(thread->rootMoves.begin(), thread->pvCur),
-                                  //                                     std::next(thread->rootMoves.begin(), thread->pvEnd), move)).selDepth
+                                  << " seldepth "       << thread->rootMoves.find(thread->pvCur, thread->pvEnd, move)->selDepth
                                   << " time "           << elapsed
                                   << std::setfill('0')  << sync_endl;
                     }
@@ -1266,7 +1263,9 @@ namespace {
             }
         }
 
-        if (MOVE_NONE == ss->excludedMove) {
+        if (MOVE_NONE == ss->excludedMove
+         && (!rootNode
+          || 0 == thread->pvCur)) {
             tte->save(key,
                       bestMove,
                       valueToTT(bestValue, ss->ply),
@@ -1454,8 +1453,7 @@ void Thread::search() {
                 // want to keep the same order for all the moves but the new PV
                 // that goes to the front. Note that in case of MultiPV search
                 // the already searched PV lines are preserved.
-                std::stable_sort(std::next(rootMoves.begin(), pvCur),
-                                 std::next(rootMoves.begin(), pvEnd));
+                rootMoves.stableSort(pvCur, pvEnd);
 
                 // If search has been stopped, break immediately.
                 // Sorting is safe because RootMoves is still valid, although it refers to the previous iteration.
@@ -1518,9 +1516,11 @@ void Thread::search() {
             }
         }
 
-        if (!Threadpool.stop) {
-            finishedDepth = rootDepth;
+        if (Threadpool.stop) {
+            break;
         }
+
+        finishedDepth = rootDepth;
 
         // Has any of the threads found a "mate in <x>"?
         if (0 != Limits.mate

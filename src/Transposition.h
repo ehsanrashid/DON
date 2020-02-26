@@ -30,8 +30,6 @@ public:
     // "Generation" variable distinguish transposition table entries from different searches.
     static u08 Generation;
 
-    TEntry() = default;
-
     Move       move() const { return Move (m16); }
     Value     value() const { return Value(v16); }
     Value      eval() const { return Value(e16); }
@@ -55,8 +53,6 @@ struct TCluster {
     TEntry entryTable[EntryCount];
     char padding[2]; // Pad to 32 bytes
 
-    TCluster() = default;
-
     u32 freshEntryCount() const;
 
     TEntry* probe(u16, bool&);
@@ -72,26 +68,24 @@ static_assert (sizeof (TCluster) == 32, "Cluster size incorrect");
 /// as the cacheline is prefetched when possible.
 class TTable {
 private:
-    void     *mem;
-    TCluster *clusterTable;
-    u64       clusterCount;
+    void     *mem{ nullptr };
+    TCluster *clusterTable{ nullptr };
+    u64       clusterCount{ 0 };
 
 public:
     // Minimum size of Table (MB)
     static constexpr u32 MinHashSize = 4;
     // Maximum size of Table (MB)
-    static constexpr u32 MaxHashSize =
-#       if defined(BIT64)
-            128 * 1024
-#       else
-            2 * 1024
-#       endif
-        ;
+#if defined(BIT64)
+    static constexpr u32 MaxHashSize = 128 * 1024;
+#else
+    static constexpr u32 MaxHashSize =   2 * 1024;
+#endif
 
-    TTable();
+    TTable() = default;
     TTable(TTable const&) = delete;
     TTable& operator=(TTable const&) = delete;
-    ~TTable();
+    ~TTable() { free(mem); }
 
     u32 size() const;
 

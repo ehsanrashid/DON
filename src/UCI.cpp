@@ -773,8 +773,9 @@ namespace UCI {
         StateListPtr states{ new std::deque<StateInfo>(1) };
         pos.setup(StartFEN, states->back(), Threadpool.mainThread());
 
-        string cmd;
         do {
+            string cmd;
+
             if (cmdLine.empty()) {
                 // Block here waiting for input or EOF
                 if (!std::getline(std::cin, cmd, '\n')) {
@@ -788,6 +789,7 @@ namespace UCI {
             istringstream iss{ cmd };
             string token;
             iss >> std::skipws >> token;
+            toLower(token);
 
             if (whiteSpaces(token))         { continue; }
             else if (token == "quit"
@@ -818,7 +820,7 @@ namespace UCI {
             else if (token == "perft")      {
                 Depth depth{ 1 };     iss >> depth; depth = std::max(Depth(1), depth);
                 bool detail{ false }; iss >> std::boolalpha >> detail;
-                perft<true>(pos, depth, detail);
+                std::cout << "Nodes: " << perft<true>(pos, depth, detail).any << std::endl;
             }
             else if (token == "keys")       {
                 ostringstream oss;
@@ -905,8 +907,12 @@ namespace UCI {
             }
             else { sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl; }
 
-        } while (cmdLine.empty()
-              && cmd != "quit");
+            if (!cmdLine.empty()
+             || token == "quit") {
+                Threadpool.mainThread()->waitIdle();
+                break;
+            }
+        } while (true);
     }
 
     /// clear() clear all stuff

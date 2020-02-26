@@ -52,5 +52,6 @@ int main(int argc, char const *const *argv) {
 
     UCI::handleCommands(cmdLine);
 
+    std::exit(EXIT_SUCCESS);
     return EXIT_SUCCESS;
 }

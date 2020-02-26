@@ -28,7 +28,7 @@
 #include <cstdlib>
 #include <algorithm>
 #include <chrono>
-
+#include <vector>
 
 using i08 =  int8_t;
 using u08 = uint8_t;
@@ -403,24 +403,25 @@ constexpr Rank sRank(Square s) {
     return Rank((s >> 3) & RANK_8);
 }
 constexpr Color sColor(Square s) {
-    return Color(0 == ((s ^ (s >> 3)) & BLACK));
+    return Color(0 == ((i32(s) ^ (s >> 3)) & BLACK));
 }
 
 // SQ_A8 -> SQ_A1
 constexpr Square operator~(Square s) {
-    return Square(s ^ SQ_A8);
+    return Square(i32(s) ^ i32(SQ_A8));
 }
 // SQ_H1 -> SQ_A1
 constexpr Square operator!(Square s) {
-    return Square(s ^ SQ_H1);
+    return Square(i32(s) ^ i32(SQ_H1));
 }
 
 constexpr bool oppositeColor(Square s1, Square s2) {
-    return 0 != ((s1 ^ (s1 >> 3) ^ s2 ^ (s2 >> 3)) & BLACK);
+    return 0 != ((i32(s1) ^ (s1 >> 3)
+                ^ i32(s2) ^ (s2 >> 3)) & BLACK);
 }
 
 constexpr Square relativeSq(Color c, Square s) {
-    return Square(s ^ (c * SQ_A8));
+    return Square(i32(s) ^ (c * SQ_A8));
 }
 
 constexpr Rank relativeRank(Color c, Rank   r) {
@@ -567,6 +568,56 @@ constexpr Value matesIn(i32 ply) {
 constexpr Value matedIn(i32 ply) {
     return -VALUE_MATE + ply;
 }
+
+class Moves
+    : public std::vector<Move> {
+public:
+    using std::vector<Move>::vector;
+
+    bool contains(Move const move) const {
+        return std::find(begin(), end(), move) != end();
+    }
+};
+
+struct ValMove {
+
+    Move move{ MOVE_NONE };
+    i32  value{ 0 };
+
+    ValMove() = default;
+    explicit ValMove(Move m)
+        : move{ m }
+    {}
+
+    operator Move() const { return move; }
+    void operator=(Move m) { move = m; }
+
+    // Inhibit unwanted implicit conversions to Move
+    // with an ambiguity that yields to a compile error.
+    operator float() const = delete;
+    operator double() const = delete;
+
+    bool operator<(ValMove const &vm) const { return value < vm.value; }
+    bool operator>(ValMove const &vm) const { return value > vm.value; }
+    //bool operator<=(ValMove const &vm) const { return value <= vm.value; }
+    //bool operator>=(ValMove const &vm) const { return value >= vm.value; }
+};
+
+class ValMoves
+    : public std::vector<ValMove> {
+public:
+    using std::vector<ValMove>::vector;
+
+    void operator+=(Move move) { emplace_back(move); }
+    //void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
+
+    bool contains(Move const move) const {
+        return std::find(begin(), end(), move) != end();
+    }
+    //bool contains(ValMove const &vm) const {
+    //    return std::find(begin(), end(), vm) != end();
+    //}
+};
 
 using TimePoint = std::chrono::milliseconds::rep; // Time in milli-seconds
 static_assert (sizeof (TimePoint) == sizeof (i64), "TimePoint should be 64 bits");

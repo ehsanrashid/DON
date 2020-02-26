@@ -478,7 +478,9 @@ Perft perft(Position &pos, Depth depth, bool detail) {
         if (RootNode
          && 1 >= depth) {
             ++leaf.any;
-            if (detail) leaf.classify(pos, vm);
+            if (detail) {
+                leaf.classify(pos, vm);
+            }
         }
         else {
             StateInfo si;

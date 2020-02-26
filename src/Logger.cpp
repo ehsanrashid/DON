@@ -85,7 +85,7 @@ void Logger::setFile(std::string const &lFn) {
     ofs.open(logFn, std::ios::out | std::ios::app);
     if (!ofs.is_open()) {
         std::cerr << "Unable to open Log File " << logFn << std::endl;
-        exit(EXIT_FAILURE);
+        std::exit(EXIT_FAILURE);
     }
     ofs << "[" << std::chrono::system_clock::now() << "] ->\n";
 

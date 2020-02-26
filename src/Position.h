@@ -208,8 +208,8 @@ public:
     Bitboard attackersTo(Square) const;
     Bitboard attacksFrom(PieceType, Square) const;
     Bitboard attacksFrom(Square) const;
-    template<PieceType>
-    Bitboard xattacksFrom(Square, Color) const;
+    //template<PieceType>
+    //Bitboard xattacksFrom(Square, Color) const;
 
     Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const;
 
@@ -432,7 +432,7 @@ inline Bitboard Position::attacksFrom(PieceType pt, Square s) const {
 inline Bitboard Position::attacksFrom(Square s) const {
     return attacksBB(board[s], s, pieces());
 }
-
+/*
 /// Position::xattacksFrom() finds xattacks of the piecetype of the color from the square.
 template<>
 inline Bitboard Position::xattacksFrom<NIHT>(Square s, Color) const {
@@ -454,6 +454,7 @@ inline Bitboard Position::xattacksFrom<QUEN>(Square s, Color c) const {
 // inline Bitboard Position::xattacksFrom<KING>(Square s, Color) const {
 //    return PieceAttacks[KING][s];
 //}
+*/
 inline bool Position::capture(Move m) const {
     return ((NORMAL == mType(m) || PROMOTE == mType(m)) && !empty(dstSq(m)))
         || (ENPASSANT == mType(m) && dstSq(m) == epSquare());

@@ -7,8 +7,6 @@
 
 #include "Type.h"
 
-using Moves = std::vector<Move>;
-
 /// Hash table
 template<typename T, u32 Size>
 class HashTable {

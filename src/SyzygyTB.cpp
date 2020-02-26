@@ -256,7 +256,7 @@ namespace {
 
             if (16 != loSize % 64) {
                 std::cerr << "Corrupt tablebase, file = " << filename << std::endl;
-                exit(EXIT_FAILURE);
+                std::exit(EXIT_FAILURE);
             }
 
             HANDLE hfMap =
@@ -274,7 +274,7 @@ namespace {
                 std::cerr
                     << "CreateFileMapping() failed, file = " << filename
                     << ", error = " << getLastErrorStr() << std::endl;
-                exit(EXIT_FAILURE);
+                std::exit(EXIT_FAILURE);
             }
 
             *mapping = u64(hfMap);
@@ -289,7 +289,7 @@ namespace {
                 std::cerr
                     << "MapViewOfFile() failed, file = " << filename
                     << ", error = " << getLastErrorStr() << std::endl;
-                exit(EXIT_FAILURE);
+                std::exit(EXIT_FAILURE);
             }
 
 #       else
@@ -310,13 +310,13 @@ namespace {
             if (0 == statbuf.st_size) {
                 std::cerr << "fstat() failed, file = " << filename << std::endl;
                 ::close(fHandle);
-                exit(EXIT_FAILURE);
+                std::exit(EXIT_FAILURE);
             }
 
             if (16 != statbuf.st_size % 64) {
                 std::cerr << "Corrupt tablebase, file = " << filename << std::endl;
                 ::close(fHandle);
-                exit(EXIT_FAILURE);
+                std::exit(EXIT_FAILURE);
             }
 
             *mapping = statbuf.st_size;
@@ -332,7 +332,7 @@ namespace {
 
             if (MAP_FAILED == *baseAddress) {
                 std::cerr << "mmap() failed, file = " << filename << std::endl;
-                exit(EXIT_FAILURE);
+                std::exit(EXIT_FAILURE);
             }
 
 #       endif
@@ -515,7 +515,7 @@ namespace {
             }
 
             std::cerr << "HSHMAX too low!" << std::endl;
-            exit(EXIT_FAILURE);
+            std::exit(EXIT_FAILURE);
         }
 
     public:

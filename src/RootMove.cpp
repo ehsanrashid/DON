@@ -34,11 +34,7 @@ std::ostream& operator<<(std::ostream &os, RootMove const &rm) {
 }
 
 
-i16 RootMoves::moveBestCount(u32 sIdx, u32 eIdx, Move move) const {
-    auto rmItr{ std::find(std::next(begin(), sIdx), std::next(begin(), eIdx), move) };
-    return rmItr != std::next(begin(), eIdx) ?
-            rmItr->bestCount : 0;
-}
+
 
 void RootMoves::initialize(Position const &pos) {
     assert(empty());
@@ -60,12 +56,29 @@ void RootMoves::initialize(Position const &pos, Moves const &filterMoves) {
     assert(empty());
     //clear();
     for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
-        if (std::find(filterMoves.begin(), filterMoves.end(), vm) != filterMoves.end()) {
+        if (filterMoves.contains(vm)) {
             *this += vm;
             assert(back().tbRank == 0
                 && back().tbValue == VALUE_ZERO);
         }
     }
+}
+
+RootMoves::const_iterator RootMoves::find(u16 sIdx, u16 eIdx, Move m) const {
+    return std::find(std::next(begin(), sIdx),
+                     std::next(begin(), eIdx), m);
+}
+
+bool RootMoves::contains(u16 sIdx, u16 eIdx, Move m) const {
+    return std::find(std::next(begin(), sIdx),
+                     std::next(begin(), eIdx), m)
+        != std::next(begin(), eIdx);
+}
+
+i16 RootMoves::moveBestCount(u16 sIdx, u16 eIdx, Move m) const {
+    auto rmItr{ find(sIdx, eIdx, m) };
+    return rmItr != std::next(begin(), eIdx) ?
+        rmItr->bestCount : 0;
 }
 
 void RootMoves::saveValues() {

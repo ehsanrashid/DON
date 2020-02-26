@@ -103,17 +103,6 @@ namespace {
 }
 
 
-TTable::TTable()
-    : mem{ nullptr }
-    , clusterTable{ nullptr }
-    , clusterCount{ 0 }
-{}
-
-TTable::~TTable() {
-    free(mem);
-    mem = nullptr;
-}
-
 /// size() returns hash size in MB
 u32 TTable::size() const {
     return u32((clusterCount * sizeof (TCluster)) >> 20);

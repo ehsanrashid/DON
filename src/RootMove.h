@@ -4,7 +4,6 @@
 #include <vector>
 
 #include "Position.h"
-#include "Table.h"
 #include "Type.h"
 
 /// The root of the tree is a PV node.
@@ -62,10 +61,13 @@ public:
     void operator+=(RootMove const &rm) { push_back(rm); }
     //void operator-=(RootMove const &rm) { erase(std::remove(begin(), end(), rm), end()); }
 
-    i16 moveBestCount(u32, u32, Move) const;
-
     void initialize(Position const&);
     void initialize(Position const&, Moves const&);
+
+    RootMoves::const_iterator find(u16, u16, Move) const;
+    bool contains(u16, u16, Move) const;
+
+    i16 moveBestCount(u16, u16, Move) const;
 
     void saveValues();
     void stableSort(i16, i16);

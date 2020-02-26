@@ -15,37 +15,8 @@ enum GenType : u08 {
     LEGAL,
 };
 
-struct ValMove {
 
-    Move move{ MOVE_NONE };
-    i32  value{ 0 };
 
-    ValMove() = default;
-    explicit ValMove(Move m)
-        : move{ m }
-    {}
-
-    operator Move() const { return move; }
-    void operator=(Move m) { move = m; }
-
-    // Inhibit unwanted implicit conversions to Move
-    // with an ambiguity that yields to a compile error.
-    operator float() const = delete;
-    operator double() const = delete;
-
-    bool operator<(ValMove const &vm) const { return value < vm.value; }
-    bool operator>(ValMove const &vm) const { return value > vm.value; }
-    //bool operator<=(ValMove const &vm) const { return value <= vm.value; }
-    //bool operator>=(ValMove const &vm) const { return value >= vm.value; }
-};
-
-class ValMoves
-    : public std::vector<ValMove> {
-public:
-
-    void operator+=(Move move) { emplace_back(move); }
-    //void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
-};
 
 
 template<GenType>
@@ -62,15 +33,17 @@ public:
 
     explicit MoveList(Position const &pos) {
         generate<GT>(*this, pos);
-        //if (NONE != PT)
-        //{
-        //    erase(std::remove_if(begin(), end(),
-        //                         [&pos](ValMove const &vm) { return PT != pType(pos[orgSq(vm)]); }),
-        //            end());
+        //if (NONE != PT) {
+        //    erase(
+        //        std::remove_if(
+        //            begin(), end(),
+        //            [&](ValMove const &vm) {
+        //                return PT != pType(pos[orgSq(vm)]);
+        //            }),
+        //        end());
         //}
     }
 
-    bool contains(Move move) const { return std::find(begin(), end(), move) != end(); }
 };
 
 struct Perft {
