@@ -849,7 +849,7 @@ namespace {
                                   << " currmovenumber " << std::setw(2) << thread->pvCur + moveCount + 1
                                   //<< " maxmoves "       << thread->rootMoves.size()
                                   << " depth "          << depth
-                                  << " seldepth "       << thread->rootMoves.find(thread->pvCur, thread->pvEnd, move)->selDepth
+                                  << " seldepth "       << std::setw(2) << thread->rootMoves.find(thread->pvCur, thread->pvEnd, move)->selDepth
                                   << " time "           << elapsed
                                   << std::setfill('0')  << sync_endl;
                     }
@@ -1720,11 +1720,8 @@ void MainThread::search() {
     auto &rm{ bestThread->rootMoves.front() };
 
     if (Limits.useTimeMgmt()) {
-        // When playing in 'nodes as time' mode, subtract the searched nodes from
-        // the available ones before exiting.
-        if (0 != TimeMgr.timeNodes) {
-            TimeMgr.availableNodes += Limits.clock[rootPos.activeSide()].inc
-                                    - Threadpool.sum(&Thread::nodes);
+        if (0 != TimeMgr.timeNodes()) {
+            TimeMgr.updateNodes(rootPos.activeSide());
         }
 
         prevBestValue = rm.newValue;

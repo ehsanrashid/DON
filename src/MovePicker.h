@@ -6,7 +6,9 @@
 #include "Type.h"
 
 enum PickStage : u08 {
-    NATURAL_TT = 0,
+    PICK_STAGE_NONE = 0,
+
+    NATURAL_TT = 1,
     NATURAL_INIT,
     NATURAL_GOOD_CAPTURES,
     NATURAL_REFUTATIONS,
@@ -37,6 +39,7 @@ inline PickStage& operator++(PickStage &ps) { return ps = ps + 1; }
 /// In order to improve the efficiency of the alpha-beta algorithm,
 /// MovePicker attempts to return the moves which are most likely to get a cut-off first.
 class MovePicker {
+
 private:
 
     Position const &pos;
@@ -45,13 +48,13 @@ private:
     PieceSquareTypeStatsTable const *captureStats{ nullptr };
     PieceSquareStatsTable const **pieceStats{ nullptr };
 
-    Move    ttMove;
-    Depth   depth;
-    i16     ply;
+    Move    ttMove{ MOVE_NONE };
+    Depth   depth{ DEPTH_ZERO };
+    i16     ply{ 0 };
     Value   threshold{ VALUE_ZERO };
     Square  recapSq{ SQ_NONE };
 
-    PickStage pickStage;
+    PickStage pickStage{ PICK_STAGE_NONE };
 
     ValMoves vmoves;
     ValMoves::iterator vmBeg, vmEnd;
@@ -82,16 +85,19 @@ public:
         , PieceSquareStatsTable const**
         , Move, Depth, i16
         , Array<Move, 2> const&, Move);
+
     MovePicker(
           Position const&
         , ColorIndexStatsTable const*
         , PieceSquareTypeStatsTable const*
         , PieceSquareStatsTable const**
         , Move, Depth, Square);
+
     MovePicker(
           Position const&
         , PieceSquareTypeStatsTable const*
         , Move, Value);
+
 
     Move nextMove();
 

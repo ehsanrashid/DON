@@ -203,6 +203,7 @@ namespace {
     // time only existence of the file is checked.
     class TBFile
         : public std::ifstream {
+
     public:
 
         // Look for and open the file among the Paths directories where the .rtbw and .rtbz files can be found.
@@ -349,6 +350,7 @@ namespace {
         }
 
         static void unmap(void *baseAddress, u64 mapping) {
+
 #       if defined(_WIN32)
 
             UnmapViewOfFile(baseAddress);
@@ -359,6 +361,7 @@ namespace {
             munmap(baseAddress, mapping);
 
 #       endif
+
         }
     };
 
@@ -481,6 +484,7 @@ namespace {
     /// one for each TB file found. It supports a fast, hash based, table lookup.
     /// Populated at init time, accessed at probe time.
     class TBTableDB {
+
     private:
         using Entry = std::tuple<Key, TBTable<WDL>*, TBTable<DTZ>*>;
 

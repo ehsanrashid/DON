@@ -41,7 +41,7 @@ namespace {
 
 /// TimeManager::elapsed()
 TimePoint TimeManager::elapsed() const {
-    return{ 0 == timeNodes ?
+    return{ 0 == timeNodes() ?
             now() - Limits.startTime :
             TimePoint(Threadpool.sum(&Thread::nodes)) };
 }
@@ -65,14 +65,14 @@ void TimeManager::setup(Color c, i16 ply) {
 
     // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
-    if (0 != timeNodes) {
+    if (0 != timeNodes()) {
         // Only once at after ucinewgame
-        if (0 == availableNodes) {
-            availableNodes = Limits.clock[c].time * timeNodes;
+        if (0 == nodes) {
+            nodes = Limits.clock[c].time * timeNodes();
         }
         // Convert from milli-seconds to nodes
-        Limits.clock[c].time = availableNodes;
-        Limits.clock[c].inc *= timeNodes;
+        Limits.clock[c].time = nodes;
+        Limits.clock[c].inc *= timeNodes();
     }
 
     optimumTime = maximumTime = std::max(Limits.clock[c].time, minimumMoveTime);
@@ -103,6 +103,12 @@ void TimeManager::setup(Color c, i16 ply) {
 }
 
 void TimeManager::reset() {
-    timeNodes = Options["Time Nodes"];
-    availableNodes = 0;
+    npmSec = Options["Time Nodes"];
+    nodes = 0;
+}
+
+void TimeManager::updateNodes(Color c) {
+    // In 'Nodes as Time' mode, subtract the searched nodes from the available ones.
+    nodes += Limits.clock[c].inc
+           - Threadpool.sum(&Thread::nodes);
 }

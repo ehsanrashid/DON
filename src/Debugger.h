@@ -7,6 +7,7 @@
 // Debug class mainly collects run-time statistics and print them
 class Debugger {
 
+private:
     static std::atomic<u64> Hit1Count;
     static std::atomic<u64> Hit2Count;
 

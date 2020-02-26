@@ -18,6 +18,7 @@
 /// For further analysis see
 ///   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class PRNG {
+
 private:
     u64 s;
 
@@ -32,9 +33,8 @@ public:
 
     PRNG() = delete;
     PRNG(u64 seed)
-        : s{ seed } {
-        assert(0 != s);
-    }
+        : s{ seed }
+    { assert(0 != s); }
 
     PRNG(PRNG const&) = delete;
     PRNG& operator=(PRNG const&) = delete;

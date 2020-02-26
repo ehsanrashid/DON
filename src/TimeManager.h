@@ -10,10 +10,10 @@ private:
     TimePoint optimumTime{ 0 };
     TimePoint maximumTime{ 0 };
 
-public:
+    u16 npmSec{ 0 };
+    u64 nodes{ 0 }; // Available Nodes to play
 
-    u16 timeNodes{ 0 };
-    u64 availableNodes{ 0 };
+public:
 
     TimeManager() = default;
     TimeManager(TimeManager const&) = delete;
@@ -22,9 +22,13 @@ public:
     TimePoint optimum() const { return optimumTime; }
     TimePoint maximum() const { return maximumTime; }
     TimePoint elapsed() const;
+    u16  timeNodes() const { return npmSec; }
+
+    void reset();
 
     void setup(Color, i16);
-    void reset();
+
+    void updateNodes(Color c);
 
 };
 

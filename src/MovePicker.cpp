@@ -218,7 +218,7 @@ Move MovePicker::nextMove() {
                             || std::find(mBeg, mEnd, vm.move) != mEnd;
                     });
             value<GenType::QUIET>();
-            std::sort(vmBeg, vmEnd, std::greater<ValMove>());
+            std::stable_sort(vmBeg, vmEnd, std::greater<ValMove>());
         }
         ++pickStage;
         /* fall through */
@@ -285,6 +285,9 @@ Move MovePicker::nextMove() {
         return vmBeg != vmEnd ?
                 *vmBeg++ : MOVE_NONE;
         /* end */
+    case PICK_STAGE_NONE:
+    default:
+        return MOVE_NONE;
     }
     assert(false);
     return MOVE_NONE;

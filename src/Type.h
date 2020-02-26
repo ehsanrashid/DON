@@ -403,7 +403,7 @@ constexpr Rank sRank(Square s) {
     return Rank((s >> 3) & RANK_8);
 }
 constexpr Color sColor(Square s) {
-    return Color(0 == ((i32(s) ^ (s >> 3)) & BLACK));
+    return Color(((i32(s) ^ (s >> 3)) & BLACK) ^ BLACK);
 }
 
 // SQ_A8 -> SQ_A1
@@ -477,10 +477,10 @@ constexpr Piece operator|(Color c, PieceType pt) {
 }
 
 constexpr Square orgSq(Move m) {
-    return Square((m >> 6) & SQ_H8);
+    return Square((m >> 6) & i32(SQ_H8));
 }
 constexpr Square dstSq(Move m) {
-    return Square((m >> 0) & SQ_H8);
+    return Square((m >> 0) & i32(SQ_H8));
 }
 constexpr bool isOk(Move m) {
     return orgSq(m) != dstSq(m);
@@ -597,10 +597,18 @@ struct ValMove {
     operator float() const = delete;
     operator double() const = delete;
 
-    bool operator<(ValMove const &vm) const { return value < vm.value; }
-    bool operator>(ValMove const &vm) const { return value > vm.value; }
-    //bool operator<=(ValMove const &vm) const { return value <= vm.value; }
-    //bool operator>=(ValMove const &vm) const { return value >= vm.value; }
+    bool operator<(ValMove const &vm) const {
+        return value < vm.value;
+    }
+    bool operator>(ValMove const &vm) const {
+        return value > vm.value;
+    }
+    bool operator<=(ValMove const &vm) const {
+        return value <= vm.value;
+    }
+    bool operator>=(ValMove const &vm) const {
+        return value >= vm.value;
+    }
 };
 
 class ValMoves

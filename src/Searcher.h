@@ -20,6 +20,7 @@ constexpr i32 CounterMovePruneThreshold = 0;
 ///
 ///  - Start Time
 struct Limit {
+
     // Clock struct stores the time and inc per move in milli-seconds.
     struct Clock {
         TimePoint time{ 0 };
@@ -50,11 +51,11 @@ namespace Searcher {
     struct Stack {
 
         i16   ply;
-        Move  playedMove;
-        Move  excludedMove;
-        u08   moveCount;
-        Value staticEval;
-        i32   stats;
+        Move  playedMove{ MOVE_NONE };
+        Move  excludedMove{ MOVE_NONE };
+        u08   moveCount{ 0 };
+        Value staticEval{ VALUE_ZERO };
+        i32   stats{ 0 };
         PieceSquareStatsTable *pieceStats;
 
         Array<Move, 2> killerMoves;

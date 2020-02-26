@@ -16,6 +16,7 @@
 ///  ------------------
 ///  Total      80 bits = 10 bytes
 struct TEntry {
+
 private:
     u16 k16;
     u16 m16;
@@ -47,6 +48,7 @@ static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
 /// Transposition::Cluster needs 32 bytes to be stored
 /// 10 x 3 + 2 = 32
 struct TCluster {
+
     // Cluster entry count
     static constexpr u08 EntryCount = 3;
 
@@ -67,6 +69,7 @@ static_assert (sizeof (TCluster) == 32, "Cluster size incorrect");
 /// The size of a Cluster should divide the size of a cache line for best performance,
 /// as the cacheline is prefetched when possible.
 class TTable {
+
 private:
     void     *mem{ nullptr };
     TCluster *clusterTable{ nullptr };
@@ -77,9 +80,9 @@ public:
     static constexpr u32 MinHashSize = 4;
     // Maximum size of Table (MB)
 #if defined(BIT64)
-    static constexpr u32 MaxHashSize = 128 * 1024;
+    static constexpr u32 MaxHashSize = 128 << 10;
 #else
-    static constexpr u32 MaxHashSize =   2 * 1024;
+    static constexpr u32 MaxHashSize =   2 << 10;
 #endif
 
     TTable() = default;

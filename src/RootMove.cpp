@@ -10,13 +10,36 @@
 
 RootMove::RootMove(Move m)
     : std::list<Move>{ 1, m }
-    , oldValue{ -VALUE_INFINITE }
-    , newValue{ -VALUE_INFINITE }
-    , selDepth{ DEPTH_ZERO }
-    , tbRank{ 0 }
-    , tbValue{ VALUE_ZERO }
-    , bestCount{ 0 }
 {}
+
+bool RootMove::operator<(RootMove const &rm) const {
+    return rm.newValue != newValue  ?
+            rm.newValue < newValue : rm.oldValue < oldValue;
+}
+
+bool RootMove::operator>(RootMove const &rm) const {
+    return rm.newValue != newValue ?
+            rm.newValue > newValue : rm.oldValue > oldValue;
+}
+/*
+bool RootMove::operator<=(RootMove const &rm) const {
+    return rm.newValue != newValue  ?
+            rm.newValue <= newValue : rm.oldValue <= oldValue;
+}
+
+bool RootMove::operator>=(RootMove const &rm) const {
+    return rm.newValue != newValue ?
+            rm.newValue >= newValue : rm.oldValue >= oldValue;
+}
+
+bool RootMove::operator==(RootMove const &rm) const {
+    return front() == rm.front();
+}
+
+bool RootMove::operator!=(RootMove const &rm) const {
+    return front() != rm.front();
+}
+*/
 
 /// RootMove::toString()
 std::string RootMove::toString() const {

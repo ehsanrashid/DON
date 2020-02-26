@@ -122,11 +122,6 @@ void Thread::clear() {
     matlHash.clear();
 }
 
-// /// MainThread constructor
-// MainThread::MainThread(size_t idx)
-//     : Thread{ idx }
-// {}
-
 void MainThread::setTicks(i16 tc) {
     ticks = tc;
     assert(0 != ticks);

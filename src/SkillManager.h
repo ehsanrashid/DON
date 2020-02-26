@@ -7,6 +7,7 @@ constexpr u16 MaxLevel = 25;
 
 /// Skill Manager class is used to implement strength limit
 class SkillManager {
+
 private:
 
     u16  level{ MaxLevel };

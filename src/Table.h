@@ -10,6 +10,7 @@
 /// Hash table
 template<typename T, u32 Size>
 class HashTable {
+
 private:
     // Allocate on the heap
     std::vector<T> table;
@@ -31,24 +32,24 @@ public:
 
 /// Multi-dimensional Array
 template<typename T, size_t Size, size_t... Sizes>
-class Array_ {
+class ArrayType {
     static_assert (Size != 0, "Size incorrect");
 private:
-    using NestedArray_ = typename Array_<T, Sizes...>::type;
+    using NestedArrayType = typename ArrayType<T, Sizes...>::type;
 
 public:
-    using type = std::array<NestedArray_, Size>;
+    using type = std::array<NestedArrayType, Size>;
 };
 
 template<typename T, size_t Size>
-class Array_<T, Size> {
+class ArrayType<T, Size> {
     static_assert (Size != 0, "Size incorrect");
 public:
     using type = std::array<T, Size>;
 };
 
 template<typename T, size_t... Sizes>
-using Array = typename Array_<T, Sizes...>::type;
+using Array = typename ArrayType<T, Sizes...>::type;
 
 /// Table
 template<typename T, size_t Size, size_t... Sizes>

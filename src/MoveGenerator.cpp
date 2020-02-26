@@ -100,8 +100,8 @@ namespace {
             Bitboard lAttacks{ enemies & pawnLAttacks(pos.activeSide(), rxPawns) };
             Bitboard rAttacks{ enemies & pawnRAttacks(pos.activeSide(), rxPawns) };
             if (GenType::CHECK == GT) {
-                lAttacks &= pos.checks(PAWN);
-                rAttacks &= pos.checks(PAWN);
+                lAttacks &= pos.checks(PAWN); //& PawnAttacks[~pos.activeSide()][pos.square(~pos.activeSide()|KING)]
+                rAttacks &= pos.checks(PAWN); //& PawnAttacks[~pos.activeSide()][pos.square(~pos.activeSide()|KING)]
                 // Pawns which give discovered check
                 // Add pawn captures which give discovered check.
                 Bitboard dscPawns{ rxPawns
@@ -127,6 +127,7 @@ namespace {
                     }
                     break;
                 case GenType::CHECK:
+                    // If en-passant square is not the direct check
                     if (//!contains(PawnAttacks[pos.activeSide()][pos.epSquare()], pos.square(~pos.activeSide()|KING))
                         !contains(pos.checks(PAWN), pos.epSquare())) {
                         // En-passant pawns which give discovered check
@@ -150,6 +151,7 @@ namespace {
                 generatePromotionMoves<GT>(moves, pos, b, pawnLAtt(pos.activeSide()));
                 b = enemies & pawnRAttacks(pos.activeSide(), r7Pawns);
                 generatePromotionMoves<GT>(moves, pos, b, pawnRAtt(pos.activeSide()));
+
                 b = empties & pawnSglPushes(pos.activeSide(), r7Pawns);
                 if (GenType::EVASION == GT) {
                     b &= targets;
@@ -235,10 +237,10 @@ void generate(ValMoves &moves, Position const &pos) {
     moves.clear();
     Bitboard targets;
     switch (GT) {
-    case GenType::NATURAL: targets = ~pos.pieces(pos.activeSide());   break;
-    case GenType::CAPTURE: targets =  pos.pieces(~pos.activeSide());  break;
-    case GenType::QUIET:   targets = ~pos.pieces();             break;
-    default:               targets = 0;                         break;
+    case GenType::NATURAL: targets = ~pos.pieces( pos.activeSide()); break;
+    case GenType::CAPTURE: targets =  pos.pieces(~pos.activeSide()); break;
+    case GenType::QUIET:   targets = ~pos.pieces();                  break;
+    default:               targets = 0;                              break;
     }
     generateMoves<GT>(moves, pos, targets);
     generateKingMoves<GT>(moves, pos, targets);
@@ -354,20 +356,6 @@ template<> void generate<GenType::LEGAL>(ValMoves &moves, Position const &pos) {
             }),
         moves.end());
 }
-
-Perft::Perft()
-    : moves{ 0 }
-    , any{ 0 }
-    , capture{ 0 }
-    , enpassant{ 0 }
-    , anyCheck{ 0 }
-    , dscCheck{ 0 }
-    , dblCheck{ 0 }
-    , castle{ 0 }
-    , promotion{ 0 }
-    , checkmate{ 0 }
-    //, stalemate{ 0 }
-{}
 
 void Perft::operator+=(Perft const &perft) {
     any       += perft.any;

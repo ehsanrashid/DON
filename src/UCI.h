@@ -18,8 +18,8 @@ extern std::string const compilerInfo();
 namespace UCI {
 
     /// Option class implements an option as defined by UCI protocol
-    class Option
-    {
+    class Option {
+
     private:
         using OnChange = void(*)(); // std::add_pointer<void()>;
 

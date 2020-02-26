@@ -103,18 +103,18 @@ class Thread;
 ///  - Color of side on move.
 ///  - Ply of the game.
 ///  - StateInfo pointer for the current status.
-class Position
-{
+class Position {
+
 private:
 
-    Array<Piece   , SQUARES> board;
+    Array<Piece, SQUARES> board;
     Array<Bitboard, COLORS> colors;
     Array<Bitboard, PIECE_TYPES> types;
     Array<std::list<Square>, PIECES> pieceList;
 
-    Array<Value   , COLORS> npMaterial;
+    Array<Value, COLORS> npMaterial;
 
-    Table<Square  , COLORS, CASTLE_SIDES> cslRookSq;
+    Table<Square, COLORS, CASTLE_SIDES> cslRookSq;
     Table<Bitboard, COLORS, CASTLE_SIDES> cslKingPath;
     Table<Bitboard, COLORS, CASTLE_SIDES> cslRookPath;
     Array<CastleRight, SQUARES> sqCastleRight;
@@ -450,10 +450,10 @@ template<>
 inline Bitboard Position::xattacksFrom<QUEN>(Square s, Color c) const {
     return attacksBB<QUEN>(s, pieces() ^ ((pieces(c, QUEN)       & ~kingBlockers(c))));
 }
-// template<>
-// inline Bitboard Position::xattacksFrom<KING>(Square s, Color) const {
-//    return PieceAttacks[KING][s];
-//}
+template<>
+inline Bitboard Position::xattacksFrom<KING>(Square s, Color) const {
+    return PieceAttacks[KING][s];
+}
 */
 inline bool Position::capture(Move m) const {
     return ((NORMAL == mType(m) || PROMOTE == mType(m)) && !empty(dstSq(m)))
@@ -465,7 +465,8 @@ inline bool Position::captureOrPromotion(Move m) const {
         || PROMOTE == mType(m);
 }
 inline PieceType Position::captureType(Move m) const {
-    return ENPASSANT != mType(m) ? pType(board[dstSq(m)]) : PAWN;
+    return ENPASSANT != mType(m) ?
+            pType(board[dstSq(m)]) : PAWN;
 }
 /// Position::pawnAdvanceAt() check if pawn is advanced at the given square
 inline bool Position::pawnAdvanceAt(Color c, Square s) const {

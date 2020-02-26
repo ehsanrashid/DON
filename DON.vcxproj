@@ -50,50 +50,50 @@
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>NotSet</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>false</WholeProgramOptimization>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
-    <CharacterSet>NotSet</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>NotSet</CharacterSet>
-    <WholeProgramOptimization>false</WholeProgramOptimization>
     <PlatformToolset>v140</PlatformToolset>
+    <CharacterSet>MultiByte</CharacterSet>
+    <WholeProgramOptimization>true</WholeProgramOptimization>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Itanium'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|ARM'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
-    <CharacterSet>NotSet</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <WholeProgramOptimization>true</WholeProgramOptimization>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
-    <CharacterSet>NotSet</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v140</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Itanium'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
-    <CharacterSet>Unicode</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'" Label="Configuration">
     <ConfigurationType>Application</ConfigurationType>
     <UseOfMfc>false</UseOfMfc>
-    <CharacterSet>NotSet</CharacterSet>
+    <CharacterSet>MultiByte</CharacterSet>
     <PlatformToolset>v141</PlatformToolset>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.props" />
@@ -130,26 +130,20 @@
     <_ProjectFileVersion>10.0.30319.1</_ProjectFileVersion>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">$(Platform)\$(Configuration)\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">true</LinkIncremental>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|Itanium'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">$(Platform)\$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|Itanium'">$(Platform)\$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">$(Platform)\$(Configuration)\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">true</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|Itanium'">true</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Debug|ARM'">true</LinkIncremental>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">$(Platform)\$(Configuration)\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">false</LinkIncremental>
-    <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|Itanium'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
     <OutDir Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">$(SolutionDir)$(Platform)\$(Configuration)\</OutDir>
-    <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(Platform)\$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|Itanium'">$(Platform)\$(Configuration)\</IntDir>
     <IntDir Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">$(Platform)\$(Configuration)\</IntDir>
-    <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|x64'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|Itanium'">false</LinkIncremental>
     <LinkIncremental Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">false</LinkIncremental>
     <CodeAnalysisRuleSet Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">AllRules.ruleset</CodeAnalysisRuleSet>
@@ -209,7 +203,6 @@
     <ExecutablePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ExecutablePath)</ExecutablePath>
     <ExecutablePath Condition="'$(Configuration)|$(Platform)'=='Release|Itanium'">$(ExecutablePath)</ExecutablePath>
     <ExecutablePath Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">$(ExecutablePath)</ExecutablePath>
-    <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(IncludePath)</IncludePath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|Itanium'">$(IncludePath)</IncludePath>
     <IncludePath Condition="'$(Configuration)|$(Platform)'=='Release|ARM'">$(IncludePath)</IncludePath>
     <ReferencePath Condition="'$(Configuration)|$(Platform)'=='Release|x64'">$(ReferencePath)</ReferencePath>
@@ -232,10 +225,12 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
     <TargetName>$(ProjectName)_x86</TargetName>
+    <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|x64'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
     <TargetName>$(ProjectName)_x64</TargetName>
+    <LinkIncremental>true</LinkIncremental>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Itanium'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
@@ -248,7 +243,7 @@
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
     <TargetName>$(ProjectName)_x64</TargetName>
-    <GenerateManifest>false</GenerateManifest>
+    <IncludePath>$(IncludePath)</IncludePath>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Itanium'">
     <EnableManagedIncrementalBuild>true</EnableManagedIncrementalBuild>
@@ -260,42 +255,38 @@
   </PropertyGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <ClCompile>
-      <Optimization>Disabled</Optimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>ABM;PREFETCH;WIN32;_CONSOLE;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
-      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
-      <MultiProcessorCompilation>
-      </MultiProcessorCompilation>
-      <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
-      <ExceptionHandling>SyncCThrow</ExceptionHandling>
-      <BrowseInformation>true</BrowseInformation>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
+      <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <AdditionalOptions>
       </AdditionalOptions>
-      <CompileAs>CompileAsCpp</CompileAs>
       <UndefinePreprocessorDefinitions>VER;</UndefinePreprocessorDefinitions>
+      <Optimization>Disabled</Optimization>
+      <SDLCheck>true</SDLCheck>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <CompileAs>CompileAsCpp</CompileAs>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
-      <TargetMachine>MachineX86</TargetMachine>
+      <AdditionalDependencies>advapi32.lib;%(AdditionalDependencies)</AdditionalDependencies>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <ImageHasSafeExceptionHandlers>false</ImageHasSafeExceptionHandlers>
-      <LargeAddressAware>false</LargeAddressAware>
-      <StackReserveSize>2097152</StackReserveSize>
-      <StackCommitSize>32768</StackCommitSize>
-      <HeapReserveSize>4194304</HeapReserveSize>
-      <HeapCommitSize>16384</HeapCommitSize>
+      <StackReserveSize>
+      </StackReserveSize>
+      <StackCommitSize>
+      </StackCommitSize>
+      <HeapReserveSize>
+      </HeapReserveSize>
+      <HeapCommitSize>
+      </HeapCommitSize>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
+      <GenerateDebugInformation>DebugFastLink</GenerateDebugInformation>
+      <ImageHasSafeExceptionHandlers />
     </Link>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>
@@ -310,37 +301,35 @@
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BM2;ABM;PREFETCH;WIN64;_CONSOLE;_CRT_SECURE_NO_WARNINGS;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>true</MinimalRebuild>
-      <BasicRuntimeChecks>Default</BasicRuntimeChecks>
-      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
       <WarningLevel>Level4</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
-      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <DebugInformationFormat>EditAndContinue</DebugInformationFormat>
+      <DisableSpecificWarnings>
+      </DisableSpecificWarnings>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
       <MultiProcessorCompilation>
       </MultiProcessorCompilation>
-      <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
-      <BrowseInformation>true</BrowseInformation>
       <AdditionalOptions>
       </AdditionalOptions>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <IntrinsicFunctions>false</IntrinsicFunctions>
       <UndefinePreprocessorDefinitions>VER;</UndefinePreprocessorDefinitions>
-      <ShowIncludes>true</ShowIncludes>
+      <SDLCheck>true</SDLCheck>
+      <MinimalRebuild>false</MinimalRebuild>
+      <RuntimeLibrary>MultiThreadedDebugDLL</RuntimeLibrary>
+      <BasicRuntimeChecks>EnableFastChecks</BasicRuntimeChecks>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
-      <DelayLoadDLLs>%(DelayLoadDLLs)</DelayLoadDLLs>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
-      <TargetMachine>MachineX64</TargetMachine>
-      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <LargeAddressAware>false</LargeAddressAware>
-      <StackReserveSize>2097152</StackReserveSize>
-      <StackCommitSize>32768</StackCommitSize>
-      <HeapReserveSize>4194304</HeapReserveSize>
-      <HeapCommitSize>16384</HeapCommitSize>
+      <AdditionalDependencies>
+      </AdditionalDependencies>
+      <LargeAddressAware>
+      </LargeAddressAware>
+      <StackReserveSize>
+      </StackReserveSize>
+      <StackCommitSize>
+      </StackCommitSize>
+      <HeapReserveSize>
+      </HeapReserveSize>
+      <HeapCommitSize>
+      </HeapCommitSize>
       <LinkTimeCodeGeneration>
       </LinkTimeCodeGeneration>
       <AdditionalLibraryDirectories>
@@ -423,38 +412,39 @@
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <ClCompile>
-      <Optimization>Full</Optimization>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <Optimization>MaxSpeed</Optimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>ABM;PREFETCH;WIN32;_CONSOLE;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <FunctionLevelLinking>true</FunctionLevelLinking>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <WarningLevel>Level3</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <PrecompiledHeaderFile>stdafx.h</PrecompiledHeaderFile>
+      <WarningLevel>Level4</WarningLevel>
+      <PrecompiledHeaderFile>
+      </PrecompiledHeaderFile>
       <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
       <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
       <AdditionalOptions>
       </AdditionalOptions>
-      <MinimalRebuild>false</MinimalRebuild>
       <UndefinePreprocessorDefinitions>VER;</UndefinePreprocessorDefinitions>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <SDLCheck>true</SDLCheck>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
+      <WholeProgramOptimization>true</WholeProgramOptimization>
     </ClCompile>
     <Link>
       <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
       <OptimizeReferences>true</OptimizeReferences>
       <EnableCOMDATFolding>true</EnableCOMDATFolding>
-      <TargetMachine>MachineX86</TargetMachine>
-      <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
-      <LargeAddressAware>false</LargeAddressAware>
-      <StackReserveSize>2097152</StackReserveSize>
-      <StackCommitSize>32768</StackCommitSize>
-      <HeapReserveSize>4194304</HeapReserveSize>
-      <HeapCommitSize>16384</HeapCommitSize>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <LargeAddressAware>
+      </LargeAddressAware>
+      <StackReserveSize>
+      </StackReserveSize>
+      <StackCommitSize>
+      </StackCommitSize>
+      <HeapReserveSize>
+      </HeapReserveSize>
+      <HeapCommitSize>
+      </HeapCommitSize>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
     </Link>
@@ -464,49 +454,29 @@
       <TargetEnvironment>X64</TargetEnvironment>
     </Midl>
     <ClCompile>
-      <Optimization>Disabled</Optimization>
-      <IntrinsicFunctions>true</IntrinsicFunctions>
-      <WholeProgramOptimization>true</WholeProgramOptimization>
+      <Optimization>MaxSpeed</Optimization>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
       <PreprocessorDefinitions>BM2;ABM;PREFETCH;WIN64;_CONSOLE;_CRT_SECURE_NO_WARNINGS;NDEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <MinimalRebuild>false</MinimalRebuild>
-      <SmallerTypeCheck>false</SmallerTypeCheck>
-      <RuntimeLibrary>MultiThreadedDLL</RuntimeLibrary>
-      <FunctionLevelLinking>false</FunctionLevelLinking>
-      <PrecompiledHeader>NotUsing</PrecompiledHeader>
-      <WarningLevel>Level2</WarningLevel>
-      <DebugInformationFormat>ProgramDatabase</DebugInformationFormat>
-      <DisableSpecificWarnings>%(DisableSpecificWarnings)</DisableSpecificWarnings>
+      <FunctionLevelLinking>true</FunctionLevelLinking>
+      <WarningLevel>Level4</WarningLevel>
       <MultiProcessorCompilation>true</MultiProcessorCompilation>
-      <UseUnicodeForAssemblerListing>true</UseUnicodeForAssemblerListing>
       <AdditionalOptions>
       </AdditionalOptions>
-      <InlineFunctionExpansion>Default</InlineFunctionExpansion>
-      <FavorSizeOrSpeed>Neither</FavorSizeOrSpeed>
-      <BrowseInformation>true</BrowseInformation>
       <UndefinePreprocessorDefinitions>VER;</UndefinePreprocessorDefinitions>
-      <ShowIncludes>true</ShowIncludes>
-      <OmitFramePointers>false</OmitFramePointers>
+      <SDLCheck>true</SDLCheck>
+      <IntrinsicFunctions>true</IntrinsicFunctions>
     </ClCompile>
     <Link>
-      <AdditionalDependencies>advapi32.lib;</AdditionalDependencies>
-      <OutputFile>$(OutDir)$(TargetName)$(TargetExt)</OutputFile>
-      <GenerateDebugInformation>true</GenerateDebugInformation>
-      <SubSystem>Console</SubSystem>
-      <OptimizeReferences>
-      </OptimizeReferences>
-      <EnableCOMDATFolding>
-      </EnableCOMDATFolding>
-      <TargetMachine>MachineX64</TargetMachine>
-      <LinkTimeCodeGeneration>UseLinkTimeCodeGeneration</LinkTimeCodeGeneration>
-      <LargeAddressAware>false</LargeAddressAware>
-      <HeapReserveSize>2097152</HeapReserveSize>
-      <HeapCommitSize>8192</HeapCommitSize>
-      <StackReserveSize>2097152</StackReserveSize>
-      <StackCommitSize>32768</StackCommitSize>
+      <AdditionalDependencies>%(AdditionalDependencies)</AdditionalDependencies>
+      <EnableCOMDATFolding>true</EnableCOMDATFolding>
+      <StackReserveSize>
+      </StackReserveSize>
+      <StackCommitSize>
+      </StackCommitSize>
       <AdditionalLibraryDirectories>
       </AdditionalLibraryDirectories>
+      <OptimizeReferences>true</OptimizeReferences>
     </Link>
     <Bscmake>
       <PreserveSbr>true</PreserveSbr>

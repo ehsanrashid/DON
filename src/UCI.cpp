@@ -770,10 +770,10 @@ namespace UCI {
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
-        StateListPtr states{ new std::deque<StateInfo>(1) };
+        StateListPtr states{ new std::deque<StateInfo>{ 1 } };
         pos.setup(StartFEN, states->back(), Threadpool.mainThread());
 
-        do {
+        while (true) {
             string cmd;
 
             if (cmdLine.empty()) {
@@ -912,7 +912,7 @@ namespace UCI {
                 Threadpool.mainThread()->waitIdle();
                 break;
             }
-        } while (true);
+        }
     }
 
     /// clear() clear all stuff
@@ -922,7 +922,7 @@ namespace UCI {
 
         Threadpool.clear();
         TT.clear();
-        TimeMgr.availableNodes = 0;
+        TimeMgr.reset();
 
         SyzygyTB::initialize(Options["SyzygyPath"]); // Free up mapped files
     }

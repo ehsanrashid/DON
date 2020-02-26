@@ -23,22 +23,26 @@
 /// Value is normally set at -VALUE_INFINITE for all non-pv moves.
 class RootMove
     : public std::list<Move> {
+
 public:
-    Value oldValue
-        , newValue;
-    Depth selDepth;
-    i16   tbRank;
-    Value tbValue;
-    i16   bestCount;
+
+    Value oldValue{ -VALUE_INFINITE }
+        , newValue{ -VALUE_INFINITE };
+    Depth selDepth{ DEPTH_ZERO };
+    i16   tbRank{ 0 };
+    Value tbValue{ VALUE_ZERO };
+    i16   bestCount{ 0 };
+
+    using std::list<Move>::list;
 
     explicit RootMove(Move = MOVE_NONE);
 
-    bool operator< (RootMove const &rm) const { return newValue != rm.newValue ? newValue > rm.newValue : oldValue > rm.oldValue; }
-    bool operator> (RootMove const &rm) const { return newValue != rm.newValue ? newValue < rm.newValue : oldValue < rm.oldValue; }
-    //bool operator<=(RootMove const &rm) const { return newValue != rm.newValue ? newValue >= rm.newValue : oldValue >= rm.oldValue; }
-    //bool operator>=(RootMove const &rm) const { return newValue != rm.newValue ? newValue <= rm.newValue : oldValue <= rm.oldValue; }
-    //bool operator==(RootMove const &rm) const { return front() == rm.front(); }
-    //bool operator!=(RootMove const &rm) const { return front() != rm.front(); }
+    bool operator< (RootMove const&) const;
+    bool operator> (RootMove const&) const;
+    //bool operator<=(RootMove const&) const;
+    //bool operator>=(RootMove const&) const;
+    //bool operator==(RootMove const&) const;
+    //bool operator!=(RootMove const&) const;
 
     bool operator==(Move m) const { return front() == m; }
     bool operator!=(Move m) const { return front() != m; }
@@ -53,7 +57,10 @@ extern std::ostream& operator<<(std::ostream&, RootMove const&);
 
 class RootMoves
     : public std::vector<RootMove> {
+
 public:
+
+    using std::vector<RootMove>::vector;
 
     void operator+=(Move m) { emplace_back(m); }
     //void operator-=(Move m) { erase(std::remove(begin(), end(), m), end()); }

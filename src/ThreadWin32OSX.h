@@ -22,6 +22,7 @@ void* startRoutine(void *arg) {
 }
 
 class NativeThread {
+
 private:
     pthread_t thread;
 

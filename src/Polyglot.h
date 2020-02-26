@@ -37,6 +37,7 @@ static_assert (sizeof (PolyEntry) == 16, "Entry size incorrect");
 extern std::ostream& operator<<(std::ostream&, PolyEntry const&);
 
 class PolyBook {
+
 private:
 
     PolyEntry  *entryTable;
