@@ -244,7 +244,7 @@ Move MovePicker::nextMove() {
                 [&](ValMove const &vm) {
                     return ttMove == vm
                         || (KING == pType(pos[orgSq(vm)])
-                         && !pos.pseudoLegal(vm));
+                         && 0 != (pos.attackersTo(dstSq(vm), pos.pieces() ^ orgSq(vm)) & pos.pieces(~pos.activeSide())));
                 });
         value<GenType::EVASION>();
         ++pickStage;

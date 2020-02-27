@@ -98,10 +98,6 @@ void Thread::idleFunction() {
     }
 }
 
-i16 Thread::moveBestCount(Move move) const {
-    return rootMoves.moveBestCount(pvCur, pvEnd, move);
-}
-
 /// Thread::clear() clears all the thread related stuff.
 void Thread::clear() {
     butterFlyStats.fill(0);
@@ -132,8 +128,8 @@ void MainThread::clear() {
 
     setTicks(1);
 
-    prevBestValue = +VALUE_INFINITE;
-    prevTimeReduction = 1.00;
+    bestValue = +VALUE_INFINITE;
+    timeReduction = 1.00;
 }
 
 /// Win Processors Group

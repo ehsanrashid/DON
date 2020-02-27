@@ -1755,23 +1755,23 @@ namespace SyzygyTB {
             for (i32 idx = 0; idx < 10; ++idx) {
                 for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1) {
                     if (MapA1D1D4[s1] == idx
-                        && (0 != idx || SQ_B1 == s1)) // SQ_B1 is mapped to 0
-                    {
+                     && (0 != idx || SQ_B1 == s1)) { // SQ_B1 is mapped to 0
+
                         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
                             if (contains(PieceAttacks[KING][s1] | s1, s2)) {
                                 continue; // Illegal position
                             }
                             else
-                                if (offA1H8(s1) == 0 && offA1H8(s2) > 0) {
-                                    continue; // First on diagonal, second above
-                                }
-                                else
-                                    if (offA1H8(s1) == 0 && offA1H8(s2) == 0) {
-                                        bothOnDiagonal.emplace_back(std::make_pair(idx, s2));
-                                    }
-                                    else {
-                                        MapKK[idx][s2] = code++;
-                                    }
+                            if (offA1H8(s1) == 0 && offA1H8(s2) > 0) {
+                                continue; // First on diagonal, second above
+                            }
+                            else
+                            if (offA1H8(s1) == 0 && offA1H8(s2) == 0) {
+                                bothOnDiagonal.emplace_back(std::make_pair(idx, s2));
+                            }
+                            else {
+                                MapKK[idx][s2] = code++;
+                            }
                         }
                     }
                 }
@@ -1820,7 +1820,7 @@ namespace SyzygyTB {
                         // squares when sq = a2 and reduced by 2 for any rank increase
                         // due to mirroring: sq == a3 -> no a2, h2, so MapPawns[a3] = 45
                         if (1 == leadPawnCount) {
-                            MapPawns[sq] = availableSq--;
+                            MapPawns[ sq] = availableSq--;
                             MapPawns[!sq] = availableSq--; // Horizontal flip
                         }
                         LeadPawnIdx[leadPawnCount][sq] = idx;
@@ -1857,7 +1857,7 @@ namespace SyzygyTB {
         while (std::getline(ss, path, Delimiter)) {
             replace(path, '\\', '/');
             trim(path);
-            if (path.empty()) {
+            if (whiteSpaces(path)) {
                 continue;
             }
             TBFile::Paths.push_back(path);

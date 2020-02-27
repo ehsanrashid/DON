@@ -31,7 +31,7 @@ public:
     Depth selDepth{ DEPTH_ZERO };
     i16   tbRank{ 0 };
     Value tbValue{ VALUE_ZERO };
-    i16   bestCount{ 0 };
+    u16   bestCount{ 0 };
 
     using std::list<Move>::list;
 
@@ -39,16 +39,14 @@ public:
 
     bool operator< (RootMove const&) const;
     bool operator> (RootMove const&) const;
-    //bool operator<=(RootMove const&) const;
-    //bool operator>=(RootMove const&) const;
     //bool operator==(RootMove const&) const;
     //bool operator!=(RootMove const&) const;
 
-    bool operator==(Move m) const { return front() == m; }
-    bool operator!=(Move m) const { return front() != m; }
+    bool operator==(Move) const;
+    bool operator!=(Move) const;
 
-    void operator+=(Move m) { push_back(m); }
-    //void operator-=(Move m) { erase(std::remove(begin(), end(), m), end()); }
+    void operator+=(Move);
+    //void operator-=(Move);
 
     std::string toString() const;
 };
@@ -71,13 +69,20 @@ public:
     void initialize(Position const&);
     void initialize(Position const&, Moves const&);
 
+    RootMoves::const_iterator find(Move) const;
     RootMoves::const_iterator find(u16, u16, Move) const;
+
+    bool contains(Move) const;
     bool contains(u16, u16, Move) const;
 
-    i16 moveBestCount(u16, u16, Move) const;
+    u16 bestCount(Move) const;
+    u16 bestCount(u16, u16, Move) const;
+
+    void stableSort();
+    void stableSort(u16, u16);
 
     void saveValues();
-    void stableSort(i16, i16);
+    void bringToFront(Move);
 
     std::string toString() const;
 };

@@ -95,7 +95,7 @@ namespace {
         assert(1 == std::count(ss->killerMoves.begin(), ss->killerMoves.end(), move));
 
         if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ fixDst((ss-1)->playedMove) };
+            auto pmDst{ fdstSq((ss-1)->playedMove) };
             assert(NO_PIECE != pos[pmDst]);
             pos.thread()->counterMoves[pos[pmDst]][pmDst] = move;
         }
@@ -538,9 +538,13 @@ namespace {
         auto ttPV   { PVNode
                    || (ttHit && tte->pv()) };
 
+        bool pmCaptureOrPromotion{ isOk((ss-1)->playedMove)
+                                && (NONE != pos.captured()
+                                 || PROMOTE == mType((ss-1)->playedMove)) };
+
         if (12 < depth
          && ttPV
-         && NONE == pos.captured()
+         && !pmCaptureOrPromotion
          && (ss-1)->ply < MAX_LOWPLY
          && isOk((ss-1)->playedMove)) {
             thread->lowPlyStats[(ss-1)->ply][mIndex((ss-1)->playedMove)] << statBonus(depth - 5);
@@ -549,10 +553,6 @@ namespace {
         // ttHitAvg can be used to approximate the running average of ttHit
         thread->ttHitAvg = (TTHitAverageWindow - 1) * thread->ttHitAvg / TTHitAverageWindow
                          + TTHitAverageResolution * ttHit;
-
-        bool pmCaptureOrPromotion{ isOk((ss-1)->playedMove)
-                                && (NONE != pos.captured()
-                                 || PROMOTE == mType((ss-1)->playedMove)) };
 
         // At non-PV nodes we check for an early TT cutoff
         if (!PVNode
@@ -585,7 +585,7 @@ namespace {
                 if (!pmCaptureOrPromotion
                  && 2 >= (ss-1)->moveCount
                  && isOk((ss-1)->playedMove)) {
-                    auto pmDst{ fixDst((ss-1)->playedMove) };
+                    auto pmDst{ fdstSq((ss-1)->playedMove) };
                     updateContinuationStats(ss-1, pos[pmDst], pmDst, -statBonus(depth + 1));
                 }
             }
@@ -868,7 +868,7 @@ namespace {
 
         auto counterMove{ MOVE_NONE };
         if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ fixDst((ss-1)->playedMove) };
+            auto pmDst{ fdstSq((ss-1)->playedMove) };
             assert(NO_PIECE != pos[pmDst]);
             counterMove = pos.thread()->counterMoves[pos[pmDst]][pmDst];
         }
@@ -880,7 +880,7 @@ namespace {
                      , &thread->captureStats
                      , pieceStats
                      , ttMove, depth
-                     , 12 < depth && ttPV ? ss->ply : i16(MAX_PLY)
+                     , 12 < depth ? ss->ply : i16(MAX_PLY)
                      , ss->killerMoves, counterMove };
         // Step 12. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
         while (MOVE_NONE != (move = mp.nextMove())) {
@@ -1064,13 +1064,13 @@ namespace {
              && 1 + 2 * rootNode + 1 < moveCount
              && (!rootNode
                 // At root if zero best counter
-              || 0 == thread->moveBestCount(move))
+              || 0 == thread->rootMoves.bestCount(thread->pvCur, thread->pvEnd, move))
              && (cutNode
               || !captureOrPromotion
               || mp.skipQuiets
-              || ss->staticEval + PieceValues[EG][pos.captured()] <= alfa
                 // If ttHit running average is small
-              || thread->ttHitAvg < 375 * TTHitAverageWindow) };
+              || thread->ttHitAvg < 375 * TTHitAverageWindow
+              || ss->staticEval + PieceValues[EG][std::max(pos.captured(), PROMOTE == mType(move) ? promoteType(move) : NONE)] <= alfa) };
 
             bool doFullSearch;
             // Step 16. Reduced depth search (LMR, ~200 ELO).
@@ -1308,7 +1308,7 @@ namespace {
              && (1 == (ss-1)->moveCount
               || (ss-1)->killerMoves[0] == (ss-1)->playedMove)
              && isOk((ss-1)->playedMove)) {
-                auto pmDst{ fixDst((ss-1)->playedMove) };
+                auto pmDst{ fdstSq((ss-1)->playedMove) };
                 updateContinuationStats(ss-1, pos[pmDst], pmDst, -bonus1);
             }
         }
@@ -1318,7 +1318,7 @@ namespace {
          && (PVNode
           || 2 < depth)
          && isOk((ss-1)->playedMove)) {
-            auto pmDst{ fixDst((ss-1)->playedMove) };
+            auto pmDst{ fdstSq((ss-1)->playedMove) };
             updateContinuationStats(ss-1, pos[pmDst], pmDst, statBonus(depth));
         }
 
@@ -1418,7 +1418,7 @@ void Thread::search() {
                         nullptr };
 
     if (nullptr != mainThread) {
-        mainThread->iterValues.fill(mainThread->prevBestValue);
+        mainThread->iterValues.fill(mainThread->bestValue);
     }
 
     i16 iterIdx{ 0 };
@@ -1533,6 +1533,7 @@ void Thread::search() {
                  && (bestValue <= alfa
                   || beta <= bestValue)
                  && 3000 < TimeMgr.elapsed()) {
+
                     sync_cout << multipvInfo(mainThread, rootDepth, alfa, beta) << sync_endl;
                 }
 
@@ -1607,19 +1608,20 @@ void Thread::search() {
             if (Limits.useTimeMgmt()
              && !Threadpool.stop
              && !mainThread->stopOnPonderhit) {
+
                 if (mainThread->bestMove != rootMoves.front().front()) {
                     mainThread->bestMove = rootMoves.front().front();
-                    mainThread->bestMoveDepth = rootDepth;
+                    mainThread->bestDepth = rootDepth;
                 }
 
                 // Reduce time if the bestMove is stable over 10 iterations
                 // Time Reduction factor
-                double timeReduction{ 0.91 + 1.03 * (9 < finishedDepth - mainThread->bestMoveDepth) };
+                double timeReduction{ 0.91 + 1.03 * (9 < finishedDepth - mainThread->bestDepth) };
                 // Reduction factor - Use part of the gained time from a previous stable move for the current move
-                double reduction{ (1.41 + mainThread->prevTimeReduction) / (2.27 * timeReduction) };
+                double reduction{ (1.41 + mainThread->timeReduction) / (2.27 * timeReduction) };
                 // Eval Falling factor
                 double evalFalling{ clamp((332
-                                         + 6 * (mainThread->prevBestValue * i32(+VALUE_INFINITE != mainThread->prevBestValue) - bestValue)
+                                         + 6 * (mainThread->bestValue * i32(+VALUE_INFINITE != mainThread->bestValue) - bestValue)
                                          + 6 * (mainThread->iterValues[iterIdx] * i32(+VALUE_INFINITE != mainThread->iterValues[iterIdx]) - bestValue)) / 704.0,
                                           0.50, 1.50) };
 
@@ -1655,7 +1657,7 @@ void Thread::search() {
                     }
                 }
 
-                mainThread->prevTimeReduction = timeReduction;
+                mainThread->timeReduction = timeReduction;
 
                 mainThread->iterValues[iterIdx] = bestValue;
                 iterIdx = (iterIdx + 1) % 4;
@@ -1692,20 +1694,20 @@ void MainThread::search() {
         if (!Limits.infinite
          && 0 == Limits.mate
          && Options["Use Book"]) {
-            auto bm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
-            if (MOVE_NONE != bm) {
-                auto rmItr{ std::find(rootMoves.begin(), rootMoves.end(), bm) };
-                if (rmItr != rootMoves.end()) {
+            auto bbm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
+            if (MOVE_NONE != bbm) {
+                if (rootMoves.contains(bbm)) {
                     think = false;
-                    std::swap(rootMoves.front(), *rmItr);
+
+                    rootMoves.bringToFront(bbm);
                     rootMoves.front().newValue = VALUE_NONE;
                     StateInfo si;
-                    rootPos.doMove(bm, si);
-                    auto pm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
-                    if (MOVE_NONE != pm) {
-                        rootMoves.front() += pm;
+                    rootPos.doMove(bbm, si);
+                    auto bpm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
+                    if (MOVE_NONE != bpm) {
+                        rootMoves.front() += bpm;
                     }
-                    rootPos.undoMove(bm);
+                    rootPos.undoMove(bbm);
                 }
             }
         }
@@ -1714,7 +1716,7 @@ void MainThread::search() {
 
             if (Limits.useTimeMgmt()) {
                 bestMove = MOVE_NONE;
-                bestMoveDepth = DEPTH_ZERO;
+                bestDepth = DEPTH_ZERO;
             }
 
             auto level = Options["UCI_LimitStrength"] ?
@@ -1740,7 +1742,7 @@ void MainThread::search() {
 
             // Swap best PV line with the sub-optimal one if skill level is enabled
             if (SkillMgr.enabled()) {
-                std::swap(rootMoves.front(), *std::find(rootMoves.begin(), rootMoves.end(), SkillMgr.pickBestMove()));
+                rootMoves.bringToFront(SkillMgr.pickBestMove());
             }
         }
     }
@@ -1790,7 +1792,7 @@ void MainThread::search() {
             TimeMgr.updateNodes(rootPos.activeSide());
         }
 
-        prevBestValue = rm.newValue;
+        bestValue = rm.newValue;
     }
 
     auto bm{ rm.front() };
@@ -1880,10 +1882,9 @@ namespace SyzygyTB {
         if (HasRoot) {
             // Sort moves according to TB rank
             std::sort(rootMoves.begin(), rootMoves.end(),
-                 [](RootMove const &rm1, RootMove const &rm2) {
-                     return rm1.tbRank > rm2.tbRank;
-                 });
-
+                [](RootMove const &rm1, RootMove const &rm2) -> bool {
+                    return rm1.tbRank > rm2.tbRank;
+                });
             // Probe during search only if DTZ is not available and winning
             if (dtzAvailable
              || rootMoves.front().tbValue <= VALUE_DRAW) {

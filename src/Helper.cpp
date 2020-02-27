@@ -86,8 +86,7 @@ string& trim(string &str) {
 
 string appendPath(string const &basePath, string const &filePath) {
     return basePath[basePath.length() - 1] != '/' ?
-            basePath + '/' + filePath :
-            basePath + filePath;
+            basePath + '/' + filePath : basePath + filePath;
 }
 void removeExtension(string &filename) {
     auto pos{ filename.find_last_of('.') };

@@ -88,8 +88,6 @@ public:
 
     void idleFunction();
 
-    i16 moveBestCount(Move) const;
-
     virtual void clear();
     virtual void search();
 };
@@ -107,12 +105,12 @@ public:
     bool stopOnPonderhit;       // Stop search on ponderhit
     std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
 
-    Value  prevBestValue;
-    double prevTimeReduction;
-
+    Value  bestValue;
+    double timeReduction;
     Array<Value, 4> iterValues;
+
     Move bestMove;
-    i16  bestMoveDepth;
+    i16  bestDepth;
 
     void setTicks(i16);
     void doTick();

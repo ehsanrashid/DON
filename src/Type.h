@@ -494,7 +494,7 @@ constexpr MoveType mType(Move m) {
 constexpr u16 mIndex(Move m) {
     return u16(m & 0x0FFF);
 }
-constexpr Square fixDst(Move m) {
+constexpr Square fdstSq(Move m) {
     return CASTLE != mType(m) ?
             dstSq(m) :
             kingCastleSq(orgSq(m), dstSq(m));
@@ -603,12 +603,12 @@ struct ValMove {
     bool operator>(ValMove const &vm) const {
         return value > vm.value;
     }
-    bool operator<=(ValMove const &vm) const {
-        return value <= vm.value;
-    }
-    bool operator>=(ValMove const &vm) const {
-        return value >= vm.value;
-    }
+    //bool operator<=(ValMove const &vm) const {
+    //    return value <= vm.value;
+    //}
+    //bool operator>=(ValMove const &vm) const {
+    //    return value >= vm.value;
+    //}
 };
 
 class ValMoves

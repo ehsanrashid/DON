@@ -13,33 +13,39 @@ RootMove::RootMove(Move m)
 {}
 
 bool RootMove::operator<(RootMove const &rm) const {
-    return rm.newValue != newValue  ?
-            rm.newValue < newValue : rm.oldValue < oldValue;
+    return (rm.newValue < newValue)
+        || (rm.newValue == newValue && rm.oldValue < oldValue);
 }
 
 bool RootMove::operator>(RootMove const &rm) const {
-    return rm.newValue != newValue ?
-            rm.newValue > newValue : rm.oldValue > oldValue;
-}
-/*
-bool RootMove::operator<=(RootMove const &rm) const {
-    return rm.newValue != newValue  ?
-            rm.newValue <= newValue : rm.oldValue <= oldValue;
+    return (rm.newValue > newValue)
+        || (rm.newValue == newValue && rm.oldValue > oldValue);
 }
 
-bool RootMove::operator>=(RootMove const &rm) const {
-    return rm.newValue != newValue ?
-            rm.newValue >= newValue : rm.oldValue >= oldValue;
+
+//bool RootMove::operator==(RootMove const &rm) const {
+//    return front() == rm.front();
+//}
+//bool RootMove::operator!=(RootMove const &rm) const {
+//    return front() != rm.front();
+//}
+
+
+bool RootMove::operator==(Move m) const {
+    return front() == m;
 }
 
-bool RootMove::operator==(RootMove const &rm) const {
-    return front() == rm.front();
+bool RootMove::operator!=(Move m) const {
+    return front() != m;
 }
 
-bool RootMove::operator!=(RootMove const &rm) const {
-    return front() != rm.front();
+void RootMove::operator+=(Move m) {
+    push_back(m);
 }
-*/
+
+//void RootMove::operator-=(Move m) {
+//    erase(std::remove(begin(), end(), m), end());
+//}
 
 /// RootMove::toString()
 std::string RootMove::toString() const {
@@ -87,21 +93,35 @@ void RootMoves::initialize(Position const &pos, Moves const &filterMoves) {
     }
 }
 
-RootMoves::const_iterator RootMoves::find(u16 sIdx, u16 eIdx, Move m) const {
-    return std::find(std::next(begin(), sIdx),
-                     std::next(begin(), eIdx), m);
+RootMoves::const_iterator RootMoves::find(Move m) const {
+    return std::find(begin(), end(), m);
+}
+RootMoves::const_iterator RootMoves::find(u16 iBeg, u16 iEnd, Move m) const {
+    return std::find(std::next(begin(), iBeg),
+                     std::next(begin(), iEnd), m);
 }
 
-bool RootMoves::contains(u16 sIdx, u16 eIdx, Move m) const {
-    return std::find(std::next(begin(), sIdx),
-                     std::next(begin(), eIdx), m)
-        != std::next(begin(), eIdx);
+bool RootMoves::contains(Move m) const {
+    return find(m) != end();
+}
+bool RootMoves::contains(u16 iBeg, u16 iEnd, Move m) const {
+    return find(iBeg, iEnd, m) != std::next(begin(), iEnd);
 }
 
-i16 RootMoves::moveBestCount(u16 sIdx, u16 eIdx, Move m) const {
-    auto rmItr{ find(sIdx, eIdx, m) };
-    return rmItr != std::next(begin(), eIdx) ?
-        rmItr->bestCount : 0;
+u16 RootMoves::bestCount(Move m) const {
+    return contains(m) ?
+            find(m)->bestCount : 0;
+}
+u16 RootMoves::bestCount(u16 iBeg, u16 iEnd, Move m) const {
+    return contains(iBeg, iEnd, m) ?
+            find(iBeg, iEnd, m)->bestCount : 0;
+}
+
+void RootMoves::stableSort() {
+    std::stable_sort(begin(), end());
+}
+void RootMoves::stableSort(u16 iBeg, u16 iEnd) {
+    std::stable_sort(std::next(begin(), iBeg), std::next(begin(), iEnd));
 }
 
 void RootMoves::saveValues() {
@@ -111,9 +131,8 @@ void RootMoves::saveValues() {
     }
 }
 
-void RootMoves::stableSort(i16 pvBeg, i16 pvEnd) {
-    std::stable_sort(std::next(begin(), pvBeg),
-                     std::next(begin(), pvEnd));
+void RootMoves::bringToFront(Move m) {
+    std::swap(front(), *std::find(begin(), end(), m));
 }
 
 /// RootMoves::toString()

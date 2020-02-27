@@ -820,7 +820,7 @@ namespace UCI {
             else if (token == "perft")      {
                 Depth depth{ 1 };     iss >> depth; depth = std::max(Depth(1), depth);
                 bool detail{ false }; iss >> std::boolalpha >> detail;
-                std::cout << "Nodes: " << perft<true>(pos, depth, detail).any << std::endl;
+                perft<true>(pos, depth, detail);
             }
             else if (token == "keys")       {
                 ostringstream oss;
