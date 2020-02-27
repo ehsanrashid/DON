@@ -29,9 +29,9 @@ namespace Evaluator {
         void write(Term t, Color c, Score s) {
             Scores[t][c] = s;
         }
-        void write(Term t, Score wS, Score bS = SCORE_ZERO) {
-            write(t, WHITE, wS);
-            write(t, BLACK, bS);
+        void write(Term t, Score sW, Score sB = SCORE_ZERO) {
+            write(t, WHITE, sW);
+            write(t, BLACK, sB);
         }
 
         std::ostream& operator<<(std::ostream &os, Term t) {
@@ -42,15 +42,13 @@ namespace Evaluator {
             case IMBALANCE:
             case INITIATIVE:
             case TOTAL:
-                os << " | ----- -----"
-                   << " | ----- -----";
+                os  << " | ----- -----" << " | ----- -----";
                 break;
             default:
-                os << " | " << score[WHITE]
-                   << " | " << score[BLACK];
+                os  << " | " << score[WHITE] << " | " << score[BLACK];
                 break;
             }
-            os << " | " << score[WHITE] - score[BLACK] << " |\n";
+            os  << " | " << score[WHITE] - score[BLACK] << " |\n";
             return os;
         }
 
@@ -90,11 +88,11 @@ namespace Evaluator {
 
         constexpr Array<Score, PIECE_TYPES> MinorThreat
         {
-            S( 0, 0), S( 6,32), S(59,41), S(79,56), S(90,119), S(79,161), S( 0, 0)
+            S( 0, 0), S( 5,32), S(57,41), S(77,56), S(88,119), S(79,161), S( 0, 0)
         };
         constexpr Array<Score, PIECE_TYPES> MajorThreat
         {
-            S( 0, 0), S( 3,44), S(38,71), S(38,61), S( 0, 38), S(51, 38), S( 0, 0)
+            S( 0, 0), S( 2,44), S(36,71), S(36,61), S( 0, 38), S(51, 38), S( 0, 0)
         };
 
         constexpr Array<Score, RANKS> PasserRank
@@ -116,6 +114,7 @@ namespace Evaluator {
         constexpr Score KingFlankAttacks{ S(  8,  0) };
         constexpr Score PieceRestricted { S(  7,  7) };
         constexpr Score PieceHanged     { S( 69, 36) };
+        constexpr Score QueenProtected  { S( 14,  0) };
         constexpr Score PawnThreat      { S(173, 94) };
         constexpr Score PawnPushThreat  { S( 48, 39) };
         constexpr Score KingThreat      { S( 24, 89) };
@@ -559,8 +558,8 @@ namespace Evaluator {
             Score score{ SCORE_ZERO };
 
             // Squares defended by the opponent,
-            // - attack the square with a pawn
-            // - attack the square twice and not defended twice.
+            // - defended the square with a pawn
+            // - defended the square twice and not attacked twice.
             Bitboard defendedArea = sqlAttacks[Opp][PAWN]
                                   | ( dblAttacks[Opp]
                                    & ~dblAttacks[Own]);
@@ -582,10 +581,10 @@ namespace Evaluator {
                 // Bonus according to the type of attacking pieces
 
                 // Enemies attacked by minors
-                b = (attackedUndefendedEnemies
-                   | defendedNonPawnsEnemies)
-                  & (sqlAttacks[Own][NIHT]
-                   | sqlAttacks[Own][BSHP]);
+                b =  (attackedUndefendedEnemies
+                    | defendedNonPawnsEnemies)
+                  &  (sqlAttacks[Own][NIHT]
+                    | sqlAttacks[Own][BSHP]);
                 while (0 != b) {
                     score += MinorThreat[pType(pos[popLSq(b)])];
                 }
@@ -606,11 +605,16 @@ namespace Evaluator {
                     }
 
                     // Enemies attacked are hanging
-                    b = attackedUndefendedEnemies
-                      & (~sqlAttacks[Opp][NONE]
-                       | (nonPawnsEnemies
-                        & dblAttacks[Own]));
+                    b =  attackedUndefendedEnemies
+                      &  (~sqlAttacks[Opp][NONE]
+                        | (nonPawnsEnemies
+                         & dblAttacks[Own]));
                     score += PieceHanged * popCount(b);
+
+                    // Additional bonus if weak piece is only protected by a queen
+                    b =  attackedUndefendedEnemies
+                      &  sqlAttacks[Opp][QUEN];
+                    score += QueenProtected * popCount(b);
                 }
             }
 
