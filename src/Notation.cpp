@@ -4,10 +4,6 @@
 #include <sstream>
 
 #include "MoveGenerator.h"
-#include "Searcher.h"
-#include "SyzygyTB.h"
-#include "TimeManager.h"
-#include "Transposition.h"
 #include "Thread.h"
 #include "UCI.h"
 
@@ -150,62 +146,6 @@ ostream& operator<<(ostream &os, Score s) {
 ostream& operator<<(ostream &os, Move m) {
     os << moveToCAN(m);
     return os;
-}
-
-
-/// multipvInfo() formats PV information according to UCI protocol.
-/// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
-string multipvInfo(Thread const *const &th, Depth depth, Value alfa, Value beta) {
-    auto elapsed{ TimeMgr.elapsed() + 1 };
-    auto nodes{ Threadpool.sum(&Thread::nodes) };
-    auto tbHits{ Threadpool.sum(&Thread::tbHits)
-               + th->rootMoves.size() * SyzygyTB::HasRoot };
-
-    std::ostringstream oss;
-    for (u16 i = 0; i < PVCount; ++i)
-    {
-        bool updated{ -VALUE_INFINITE != th->rootMoves[i].newValue };
-        if (1 == depth
-         && !updated) {
-            continue;
-        }
-
-        auto d{ updated ?
-                    depth :
-                    Depth(depth - 1) };
-        auto v{ updated ?
-                    th->rootMoves[i].newValue :
-                    th->rootMoves[i].oldValue };
-
-        bool tb{ SyzygyTB::HasRoot
-              && abs(v) < +VALUE_MATE_1_MAX_PLY };
-        v = tb ? th->rootMoves[i].tbValue : v;
-
-        //if (oss.rdbuf()->in_avail()) // Not at first line
-        //    oss << "\n";
-        oss << "info"
-            << " depth "    << d
-            << " seldepth " << th->rootMoves[i].selDepth
-            << " multipv "  << i + 1
-            << " score "    << v;
-        if (!tb && i == th->pvCur) {
-        oss << (beta <= v ? " lowerbound" :
-                v <= alfa ? " upperbound" : "");
-        }
-        oss << " nodes "    << nodes
-            << " time "     << elapsed
-            << " nps "      << nodes * 1000 / elapsed
-            << " tbhits "   << tbHits;
-        // Hashfull after 1 sec
-        if (1000 < elapsed) {
-        oss << " hashfull " << TT.hashFull();
-        }
-        oss << " pv"        << th->rootMoves[i];
-        if (i < PVCount - 1) {
-            oss << "\n";
-        }
-    }
-    return oss.str();
 }
 
 

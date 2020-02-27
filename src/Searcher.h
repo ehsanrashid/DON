@@ -69,10 +69,10 @@ extern Limit Limits;
 
 extern u16 PVCount;
 
-namespace SyzygyTB {
-
-    extern Depth   DepthLimit;
-    extern i16     PieceLimit;
-    extern bool    Move50Rule;
-    extern bool    HasRoot;
-}
+//namespace SyzygyTB {
+//
+//    extern Depth   DepthLimit;
+//    extern i16     PieceLimit;
+//    extern bool    Move50Rule;
+//    extern bool    HasRoot;
+//}

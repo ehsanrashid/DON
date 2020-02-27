@@ -1,8 +1,10 @@
 #include "ThreadMarker.h"
+#include "Table.h"
 
 namespace {
 
     constexpr u16 ThreadMarkSize{ 0x800 };
+
     Array<ThreadMark, ThreadMarkSize> ThreadMarks;
 
 }
@@ -38,7 +40,6 @@ ThreadMarker::~ThreadMarker() {
     if (nullptr != threadMark) { // Free the marked location
         threadMark->store(&ThreadMark::thread, static_cast<Thread const*>(nullptr));
         threadMark->store(&ThreadMark::posiKey, U64(0));
-        threadMark = nullptr;
+        //threadMark = nullptr;
     }
 }
-

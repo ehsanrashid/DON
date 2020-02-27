@@ -122,6 +122,62 @@ namespace {
              || (pv.back() == childPV.back() && !childPV.empty())));
     }
 
+    /// multipvInfo() formats PV information according to UCI protocol.
+    /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
+    std::string multipvInfo(Thread const *const &th, Depth depth, Value alfa, Value beta) {
+        auto elapsed{ TimeMgr.elapsed() + 1 };
+        auto nodes{ Threadpool.sum(&Thread::nodes) };
+        auto tbHits{ Threadpool.sum(&Thread::tbHits)
+                   + th->rootMoves.size() * SyzygyTB::HasRoot };
+
+        std::ostringstream oss;
+        for (u16 i = 0; i < PVCount; ++i)
+        {
+            bool updated{ -VALUE_INFINITE != th->rootMoves[i].newValue };
+            if (1 == depth
+             && !updated) {
+                continue;
+            }
+
+            auto d{ updated ?
+                    depth :
+                    Depth(depth - 1) };
+            auto v{ updated ?
+                    th->rootMoves[i].newValue :
+                    th->rootMoves[i].oldValue };
+
+            bool tb{ SyzygyTB::HasRoot
+                  && abs(v) < +VALUE_MATE_1_MAX_PLY };
+            v = tb ? th->rootMoves[i].tbValue : v;
+
+            //if (oss.rdbuf()->in_avail()) // Not at first line
+            //    oss << "\n";
+            oss << "info"
+                << " depth "    << d
+                << " seldepth " << th->rootMoves[i].selDepth
+                << " multipv "  << i + 1
+                << " score "    << v;
+            if (!tb && i == th->pvCur) {
+            oss << (beta <= v ? " lowerbound" :
+                    v <= alfa ? " upperbound" : "");
+            }
+            oss << " nodes "    << nodes
+                << " time "     << elapsed
+                << " nps "      << nodes * 1000 / elapsed
+                << " tbhits "   << tbHits;
+            // Hashfull after 1 sec
+            if (1000 < elapsed) {
+            oss << " hashfull " << TT.hashFull();
+            }
+            oss << " pv"        << th->rootMoves[i];
+            if (i < PVCount - 1) {
+                oss << "\n";
+            }
+        }
+        return oss.str();
+    }
+
+
     /// quienSearch() is quiescence search function, which is called by the main depth limited search function when the remaining depth <= 0.
     template<bool PVNode>
     Value quienSearch(Position &pos, Stack *const &ss, Value alfa, Value beta, Depth depth = DEPTH_ZERO) {
@@ -143,7 +199,7 @@ namespace {
          || ss->ply >= MAX_PLY) {
             return ss->ply >= MAX_PLY
                 && !inCheck ?
-                        evaluate(pos) : VALUE_DRAW;
+                    evaluate(pos) : VALUE_DRAW;
         }
 
         assert(ss->ply >= 1
@@ -276,19 +332,24 @@ namespace {
             if (!inCheck
              && !giveCheck
              && -VALUE_KNOWN_WIN < futilityBase
-             && !pos.pawnAdvanceAt(pos.activeSide(), org)
+             && !(PAWN == pType(mpc)
+               && pos.pawnAdvanceAt(pos.activeSide(), org))
              && 0 == Limits.mate) {
                 assert(ENPASSANT != mType(move)); // Due to !pos.pawnAdvanceAt
                 // Futility pruning parent node
                 auto futilityValue{ futilityBase + PieceValues[EG][CASTLE != mType(move) ? pType(pos[dst]) : NONE] };
                 if (futilityValue <= alfa) {
-                    bestValue = std::max(futilityValue, bestValue);
+                    if (bestValue < futilityValue) {
+                        bestValue = futilityValue;
+                    }
                     continue;
                 }
                 // Prune moves with negative or zero SEE
                 if (futilityBase <= alfa
                  && !pos.see(move, Value(1))) {
-                    bestValue = std::max(futilityBase, bestValue);
+                    if (bestValue < futilityBase) {
+                        bestValue = futilityBase;
+                    }
                     continue;
                 }
             }
@@ -426,7 +487,7 @@ namespace {
              || ss->ply >= MAX_PLY) {
                 return ss->ply >= MAX_PLY
                     && !inCheck ?
-                            evaluate(pos) : drawValue();
+                        evaluate(pos) : drawValue();
             }
 
             // Step 3. Mate distance pruning.
@@ -832,6 +893,9 @@ namespace {
             }
 
             if (rootNode) {
+
+                assert(MOVE_NONE != ttMove);
+
                 // At root obey the "searchmoves" option and skip moves not listed in
                 // RootMove List. As a consequence any illegal move is also skipped.
                 // In MultiPV mode we also skip PV moves which have been already searched
@@ -958,15 +1022,15 @@ namespace {
               && (contains(pos.kingBlockers(~pos.activeSide()), org)
                || pos.see(move)))
                 // Passed pawn extension
-             || (ss->killerMoves[0] == move
+             || (PAWN == pType(mpc)
               && pos.pawnAdvanceAt(pos.activeSide(), org)
-              && pos.pawnPassedAt(pos.activeSide(), dst))) {
+              && pos.pawnPassedAt(pos.activeSide(), dst)
+              && ss->killerMoves[0] == move)) {
                 extension = 1;
             }
 
             // Castle extension
-            if (0 == extension
-             && CASTLE == mType(move)) {
+            if (CASTLE == mType(move)) {
                 extension = 1;
             }
 
@@ -1093,6 +1157,7 @@ namespace {
 
                 if (doLMR
                  && !captureOrPromotion) {
+
                     auto bonus{ alfa < value ?
                                 +statBonus(newDepth) :
                                 -statBonus(newDepth) };
@@ -1109,6 +1174,7 @@ namespace {
               || (alfa < value
                && (rootNode
                 || value < beta)))) {
+
                 (ss+1)->pv.clear();
 
                 value = -depthSearch<true>(pos, ss+1, -beta, -alfa, newDepth, false);
@@ -1749,7 +1815,7 @@ void MainThread::search() {
 void MainThread::doTick() {
     static TimePoint InfoTime{ now() };
 
-    if (0 < --ticks) {
+    if (0 < --_ticks) {
         return;
     }
     // When using nodes, ensure checking rate is in range [1, 1024]

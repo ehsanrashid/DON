@@ -48,12 +48,12 @@ namespace {
 }
 
 Logger::Logger()
-    : ofs{}
-    , iTSB{ std:: cin.rdbuf(), ofs.rdbuf() }
-    , oTSB{ std::cout.rdbuf(), ofs.rdbuf() }
+    : _tsbInnput{ std:: cin.rdbuf(), _ofs.rdbuf() }
+    , _tsbOutput{ std::cout.rdbuf(), _ofs.rdbuf() }
 {}
 
 Logger::~Logger() {
+
     setFile("");
 }
 
@@ -66,30 +66,31 @@ Logger& Logger::instance() {
     return _instance;
 }
 
-void Logger::setFile(std::string const &lFn) {
-    if (ofs.is_open()) {
-        std::cout.rdbuf(oTSB.readSB);
-        std::cin.rdbuf(iTSB.readSB);
+void Logger::setFile(std::string const &fnLog) {
+    if (_ofs.is_open()) {
+        std::cout.rdbuf(_tsbOutput.sbRead);
+        std:: cin.rdbuf(_tsbInnput.sbRead);
 
-        ofs << "[" << std::chrono::system_clock::now() << "] <-\n";
-        ofs.close();
+        _ofs << "[" << std::chrono::system_clock::now() << "] <-\n";
+        _ofs.close();
     }
 
-    logFn = lFn;
-    replace(logFn, '\\', '/');
-    trim(logFn);
-    if (logFn.empty()) {
+    _fnLog = fnLog;
+    replace(_fnLog, '\\', '/');
+    trim(_fnLog);
+    if (whiteSpaces(_fnLog)) {
+        _fnLog.clear();
         return;
     }
 
-    ofs.open(logFn, std::ios::out | std::ios::app);
-    if (!ofs.is_open()) {
-        std::cerr << "Unable to open Log File " << logFn << std::endl;
+    _ofs.open(_fnLog, std::ios::out|std::ios::app);
+    if (!_ofs.is_open()) {
+        std::cerr << "Unable to open Log File " << _fnLog << std::endl;
         std::exit(EXIT_FAILURE);
     }
-    ofs << "[" << std::chrono::system_clock::now() << "] ->\n";
+    _ofs << "[" << std::chrono::system_clock::now() << "] ->\n";
 
-    std::cin.rdbuf(&iTSB);
-    std::cout.rdbuf(&oTSB);
+    std:: cin.rdbuf(&_tsbInnput);
+    std::cout.rdbuf(&_tsbOutput);
 
 }

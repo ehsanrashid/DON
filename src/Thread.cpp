@@ -48,29 +48,29 @@ ThreadPool Threadpool;
 
 /// Thread constructor launches the thread and waits until it goes to sleep in idleFunction().
 /// Note that 'busy' and 'dead' should be already set.
-Thread::Thread(u16 idx)
-    : index(idx)
-    , nativeThread(&Thread::idleFunction, this) {
+Thread::Thread(u16 index)
+    : _index(index)
+    , _nativeThread(&Thread::idleFunction, this) {
     waitIdle();
 }
 /// Thread destructor wakes up the thread in idleFunction() and waits for its termination.
 /// Thread should be already waiting.
 Thread::~Thread() {
-    assert(!busy);
-    dead = true;
+    assert(!_busy);
+    _dead = true;
     wakeUp();
-    nativeThread.join();
+    _nativeThread.join();
 }
 /// Thread::wakeUp() wakes up the thread that will start the search.
 void Thread::wakeUp() {
-    std::lock_guard<std::mutex> lockGuard(mutex);
-    busy = true;
-    conditionVar.notify_one(); // Wake up the thread in idleFunction()
+    std::lock_guard<std::mutex> lockGuard(_mutex);
+    _busy = true;
+    _conditionVar.notify_one(); // Wake up the thread in idleFunction()
 }
 /// Thread::waitIdle() blocks on the condition variable while the thread is busy.
 void Thread::waitIdle() {
-    std::unique_lock<std::mutex> uniqueLock(mutex);
-    conditionVar.wait(uniqueLock, [&]{ return !busy; });
+    std::unique_lock<std::mutex> uniqueLock(_mutex);
+    _conditionVar.wait(uniqueLock, [&]{ return !_busy; });
 }
 /// Thread::idleFunction() is where the thread is parked.
 /// Blocked on the condition variable, when it has no work to do.
@@ -81,17 +81,17 @@ void Thread::idleFunction() {
     // just check if running threads are below a threshold, in this case all this
     // NUMA machinery is not needed.
     if (8 < optionThreads()) {
-        WinProcGroup::bind(index);
+        WinProcGroup::bind(_index);
     }
 
     while (true) {
         {
-        std::unique_lock<std::mutex> uniqueLock(mutex);
-        busy = false;
-        conditionVar.notify_one(); // Wake up anyone waiting for search finished
-        conditionVar.wait(uniqueLock, [&]{ return busy; });
+        std::unique_lock<std::mutex> uniqueLock(_mutex);
+        _busy = false;
+        _conditionVar.notify_one(); // Wake up anyone waiting for search finished
+        _conditionVar.wait(uniqueLock, [&]{ return _busy; });
         } // uniqueLock.unlock();
-        if (dead) {
+        if (_dead) {
             return;
         }
         search();
@@ -123,8 +123,8 @@ void Thread::clear() {
 }
 
 void MainThread::setTicks(i16 tc) {
-    ticks = tc;
-    assert(0 != ticks);
+    _ticks = tc;
+    assert(0 != _ticks);
 }
 /// MainThread::clear()
 void MainThread::clear() {
@@ -341,6 +341,7 @@ void ThreadPool::configure(u16 threadCount) {
 /// ThreadPool::startThinking() wakes up main thread waiting in idleFunction() and returns immediately.
 /// Main thread will wake up other threads and start the search.
 void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
+
     stop = false;
     research = false;
 
@@ -357,17 +358,17 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     // After ownership transfer 'states' becomes empty, so if we stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.
     assert(nullptr != states.get()
-        || nullptr != setupStates.get());
+        || nullptr != _states.get());
 
     if (nullptr != states.get()) {
-        setupStates = std::move(states); // Ownership transfer, states is now empty
+        _states = std::move(states); // Ownership transfer, states is now empty
     }
 
     // We use setup() to set root position across threads.
     // So we need to save and later to restore last stateinfo, cleared by setup().
     // Note that states is shared by threads but is accessed in read-only mode.
     auto fen{ pos.fen() };
-    auto ssBack = setupStates->back();
+    auto sBack = _states->back();
     for (auto *th : *this) {
         th->rootDepth       = DEPTH_ZERO;
         th->finishedDepth   = DEPTH_ZERO;
@@ -378,9 +379,9 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
         th->nmpColor        = COLOR_NONE;
         th->lowPlyStats.fill(0);
         th->rootMoves       = rootMoves;
-        th->rootPos.setup(fen, setupStates->back(), th);
+        th->rootPos.setup(fen, _states->back(), th);
     }
-    setupStates->back() = ssBack;
+    _states->back() = sBack;
 
     mainThread()->wakeUp();
 }

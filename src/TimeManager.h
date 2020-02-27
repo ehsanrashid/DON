@@ -7,11 +7,11 @@
 class TimeManager {
 
 private:
-    TimePoint optimumTime{ 0 };
-    TimePoint maximumTime{ 0 };
+    TimePoint _optimum{ 0 };
+    TimePoint _maximum{ 0 };
 
-    u16 npmSec{ 0 };
-    u64 nodes{ 0 }; // Available Nodes to play
+    u16 _timeNodes{ 0 };
+    u64 _nodes{ 0 }; // Available Nodes to play
 
 public:
 
@@ -19,10 +19,10 @@ public:
     TimeManager(TimeManager const&) = delete;
     TimeManager& operator=(TimeManager const&) = delete;
 
-    TimePoint optimum() const { return optimumTime; }
-    TimePoint maximum() const { return maximumTime; }
+    TimePoint optimum() const;
+    TimePoint maximum() const;
     TimePoint elapsed() const;
-    u16  timeNodes() const { return npmSec; }
+    u16 timeNodes() const;
 
     void reset();
 

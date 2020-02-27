@@ -39,9 +39,6 @@ extern std::ostream& operator<<(std::ostream&, Value);
 extern std::ostream& operator<<(std::ostream&, Score);
 extern std::ostream& operator<<(std::ostream&, Move);
 
-
-extern std::string multipvInfo(Thread const *const&, i16, Value, Value);
-
 extern std::string moveToSAN(Move, Position&);
 extern Move moveOfSAN(std::string const&, Position&);
 

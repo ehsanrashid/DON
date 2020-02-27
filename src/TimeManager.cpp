@@ -39,11 +39,23 @@ namespace {
 
 }
 
+TimePoint TimeManager::optimum() const {
+    return _optimum;
+}
+
+TimePoint TimeManager::maximum() const {
+    return _maximum;
+}
+
 /// TimeManager::elapsed()
 TimePoint TimeManager::elapsed() const {
     return{ 0 == timeNodes() ?
             now() - Limits.startTime :
             TimePoint(Threadpool.sum(&Thread::nodes)) };
+}
+
+u16 TimeManager::timeNodes() const {
+    return _timeNodes;
 }
 
 /// TimeManager::set() calculates the allowed thinking time out of the time control and current game ply.
@@ -67,15 +79,15 @@ void TimeManager::setup(Color c, i16 ply) {
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
     if (0 != timeNodes()) {
         // Only once at after ucinewgame
-        if (0 == nodes) {
-            nodes = Limits.clock[c].time * timeNodes();
+        if (0 == _nodes) {
+            _nodes = Limits.clock[c].time * timeNodes();
         }
         // Convert from milli-seconds to nodes
-        Limits.clock[c].time = nodes;
+        Limits.clock[c].time = _nodes;
         Limits.clock[c].inc *= timeNodes();
     }
 
-    optimumTime = maximumTime = std::max(Limits.clock[c].time, minimumMoveTime);
+    _optimum = _maximum = std::max(Limits.clock[c].time, minimumMoveTime);
     // Move Horizon:
     // Plan time management at most this many moves ahead.
     u08 maxMovestogo{ 50 };
@@ -93,22 +105,22 @@ void TimeManager::setup(Color c, i16 ply) {
                              - overheadMoveTime * (2 + std::min(movestogo, { 40 })) // (ClockTime + MovesTime)
                             , { 0 });
 
-        optimumTime = std::min(optimumTime, minimumMoveTime + remainingTime<true >(time, movestogo, ply, moveSlowness));
-        maximumTime = std::min(maximumTime, minimumMoveTime + remainingTime<false>(time, movestogo, ply, moveSlowness));
+        _optimum = std::min(_optimum, minimumMoveTime + remainingTime<true >(time, movestogo, ply, moveSlowness));
+        _maximum = std::min(_maximum, minimumMoveTime + remainingTime<false>(time, movestogo, ply, moveSlowness));
     }
 
     if (Options["Ponder"]) {
-        optimumTime += optimumTime / 4;
+        _optimum += _optimum / 4;
     }
 }
 
 void TimeManager::reset() {
-    npmSec = Options["Time Nodes"];
-    nodes = 0;
+    _timeNodes = Options["Time Nodes"];
+    _nodes = 0;
 }
 
 void TimeManager::updateNodes(Color c) {
     // In 'Nodes as Time' mode, subtract the searched nodes from the available ones.
-    nodes += Limits.clock[c].inc
+    _nodes += Limits.clock[c].inc
            - Threadpool.sum(&Thread::nodes);
 }

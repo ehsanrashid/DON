@@ -8,14 +8,16 @@
 #include "Type.h"
 
 // Singleton Logger
+// Tie std::cin and std::cout to a out file stream.
 class Logger {
+
 private:
 
-    std::string logFn;
-    std::ofstream ofs;
+    std::string _fnLog;
+    std::ofstream _ofs;
 
-    TieStreamBuf iTSB
-        , oTSB;
+    TieStreamBuf _tsbInnput
+        ,        _tsbOutput;
 
 protected:
 
@@ -30,7 +32,7 @@ public:
     Logger(Logger const&) = delete;             // Copy construct
     Logger(Logger&&) = delete;                  // Move construct
     Logger& operator=(Logger const&) = delete;  // Copy assign
-    Logger& operator=(Logger&&) = delete;      // Move assign
+    Logger& operator=(Logger&&) = delete;       // Move assign
 
     void setFile(std::string const&);
 };

@@ -10,6 +10,7 @@
 ///  - Weight    2 bytes
 ///  - Learn     4 bytes
 struct PolyEntry {
+
     u64 key;
     u16 move;
     u16 weight;
@@ -40,13 +41,15 @@ class PolyBook {
 
 private:
 
-    PolyEntry  *entryTable;
-    u64         entryCount;
+    PolyEntry  *_entryTable{ nullptr };
+    u64         _entryCount{ 0 };
 
-    bool        doProbe;
-    Bitboard    prevPieces;
-    i32         prevPieceCount;
-    u08         failCount;
+    std::string _fnBook;
+
+    bool        _doProbe{ true };
+    Bitboard    _pieces{ 0 };
+    i32         _pieceCount{ 0 };
+    u08         _failCount{ 0 };
 
     void clear();
 
@@ -60,10 +63,8 @@ public:
 
     u64 const HeaderSize = 0;
 
-    bool enabled;
-    std::string bookFn;
+    bool enabled{ false };
 
-    PolyBook();
     ~PolyBook();
 
     void initialize(std::string const&);

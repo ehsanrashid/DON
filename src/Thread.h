@@ -20,13 +20,13 @@
 /// someone changing the entry under our feet.
 class Thread {
 private:
-    bool  dead{ false }
-        , busy{ true };
+    bool  _dead{ false }
+        , _busy{ true };
 
-    std::mutex mutex;
-    std::condition_variable conditionVar;
-    u16 index;
-    NativeThread nativeThread;
+    std::mutex _mutex;
+    std::condition_variable _conditionVar;
+    u16 _index;
+    NativeThread _nativeThread;
 
 protected:
 
@@ -97,8 +97,9 @@ public:
 /// MainThread class is derived from Thread class used specific for main thread.
 class MainThread
     : public Thread {
+
 private:
-    i16  ticks;
+    i16  _ticks;
 
 public:
     using Thread::Thread;
@@ -135,7 +136,7 @@ class ThreadPool
     : public std::vector<Thread*> {
 private:
 
-    StateListPtr setupStates;
+    StateListPtr _states;
 
 protected:
     using Base = std::vector<Thread*>;
