@@ -218,7 +218,7 @@ namespace {
             if (1000 < elapsed) {
             oss << " hashfull " << TT.hashFull();
             }
-            oss << " pv"        << th->rootMoves[i];
+            oss << " pv "       << th->rootMoves[i];
             if (i + 1 < PVCount) {
                 oss << "\n";
             }
@@ -270,8 +270,7 @@ namespace {
         // Note that in quienSearch use only 2 types of depth: DEPTH_QS_CHECK or DEPTH_QS_NO_CHECK.
         Depth qsDepth{ inCheck
                     || DEPTH_QS_CHECK <= depth ?
-                        DEPTH_QS_CHECK :
-                        DEPTH_QS_NO_CHECK };
+                        DEPTH_QS_CHECK : DEPTH_QS_NO_CHECK };
 
         if (!PVNode
          && VALUE_NONE != ttValue // Handle ttHit
@@ -355,8 +354,7 @@ namespace {
         };
 
         auto recapSq{ isOk((ss-1)->playedMove) ?
-                        dstSq((ss-1)->playedMove) :
-                        SQ_NONE };
+                        fdstSq((ss-1)->playedMove) : SQ_NONE };
 
         // Initialize move-picker(2) for the current position
         MovePicker mp{ pos
