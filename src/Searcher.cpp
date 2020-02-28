@@ -24,7 +24,6 @@
 
 using std::vector;
 
-using namespace Searcher;
 using namespace SyzygyTB;
 using Evaluator::evaluate;
 
@@ -42,16 +41,31 @@ namespace SyzygyTB {
 
 namespace {
 
+    /// Stack keeps the information of the nodes in the tree during the search.
+    struct Stack {
+
+        i16   ply;
+        Move  playedMove{ MOVE_NONE };
+        Move  excludedMove{ MOVE_NONE };
+        u08   moveCount{ 0 };
+        Value staticEval{ VALUE_ZERO };
+        i32   stats{ 0 };
+        PieceSquareStatsTable *pieceStats;
+
+        Array<Move, 2> killerMoves;
+        std::list<Move> pv;
+    };
+
     constexpr u64 TTHitAverageWindow = 4096;
     constexpr u64 TTHitAverageResolution = 1024;
 
-    // Razor margin
+    /// Razor margin
     constexpr Value RazorMargin = Value(531);
-    // Futility margin
+    /// Futility margin
     constexpr Value futilityMargin(Depth d, bool imp) {
         return Value(217 * (d - imp));
     }
-    // Futility move count threshold
+    /// Futility move count threshold
     constexpr i16 futilityMoveCount(Depth d, bool imp) {
         return (4 + d * d) / (2 - imp);
     }
@@ -65,9 +79,44 @@ namespace {
                    + (!imp && (r > 1007)));
     }
 
-    // Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
+    /// Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
     Value drawValue() {
         return VALUE_DRAW + rand() % 3 - 1;
+    }
+
+    /// It adjusts a mate score from "plies to mate from the root" to "plies to mate from the current position".
+    /// Non-mate scores are unchanged.
+    /// The function is called before storing a value to the transposition table.
+    constexpr Value valueToTT(Value v, i32 ply) {
+        return v >= +VALUE_MATE_2_MAX_PLY ? v + ply :
+            v <= -VALUE_MATE_2_MAX_PLY ? v - ply : v;
+    }
+
+    /// valueOfTT() is the inverse of value_to_tt(): It adjusts a mate or TB score
+    /// from the transposition table (which refers to the plies to mate/be mated
+    /// from current position) to "plies to mate/be mated (TB win/loss) from the root".
+    /// However, for mate scores, to avoid potentially false mate scores related to the 50 moves rule,
+    /// and the graph history interaction, return an optimal TB score instead.
+    inline Value valueOfTT(Value v, i32 ply, i32 clockPly) {
+
+        if (v != VALUE_NONE) {
+
+            if (v >= +VALUE_MATE_2_MAX_PLY) // TB win or better
+            {
+                return v >= +VALUE_MATE_1_MAX_PLY
+                    && VALUE_MATE - v >= 100 - clockPly ?
+                        // do not return a potentially false mate score
+                        +VALUE_MATE_1_MAX_PLY - 1 : v - ply;
+            }
+            if (v <= -VALUE_MATE_2_MAX_PLY) // TB loss or worse
+            {
+                return v <= -VALUE_MATE_1_MAX_PLY
+                    && VALUE_MATE + v >= 100 - clockPly ?
+                        // do not return a potentially false mate score
+                        -VALUE_MATE_1_MAX_PLY + 1 : v + ply;
+            }
+        }
+        return v;
     }
 
     /// statBonus() is the bonus, based on depth
@@ -170,7 +219,7 @@ namespace {
             oss << " hashfull " << TT.hashFull();
             }
             oss << " pv"        << th->rootMoves[i];
-            if (i < PVCount - 1) {
+            if (i + 1 < PVCount) {
                 oss << "\n";
             }
         }
@@ -1601,7 +1650,7 @@ void Thread::search() {
             // If skill level is enabled and can pick move, pick a sub-optimal best move.
             if (SkillMgr.enabled()
              && SkillMgr.canPick(rootDepth)) {
-                SkillMgr.clearBestMove();
+                SkillMgr.clear();
                 SkillMgr.pickBestMove();
             }
 

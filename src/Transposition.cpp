@@ -149,7 +149,7 @@ void TTable::autoResize(u32 memSize) {
         }
         mSize >>= 1;
     }
-    exit(EXIT_FAILURE);
+    std::exit(EXIT_FAILURE);
 }
 /// TTable::clear() clear the entire transposition table in a multi-threaded way.
 void TTable::clear() {

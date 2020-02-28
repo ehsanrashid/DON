@@ -301,16 +301,17 @@ Thread* ThreadPool::bestThread() const
     return bestThread;
 }
 
-/// ThreadPool::clear() clears the threadpool
-void ThreadPool::clear() {
+/// ThreadPool::clearThreads() clears all the threads in threadpool
+void ThreadPool::clearThreads() {
+
     for (auto *th : *this) {
         th->clear();
     }
 }
-/// ThreadPool::configure() creates/destroys threads to match the requested number.
+/// ThreadPool::setSize() creates/destroys threads to match the requested number.
 /// Created and launched threads will immediately go to sleep in idleFunction.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::configure(u16 threadCount) {
+void ThreadPool::setSize(u16 threadCount) {
     // Destroy any existing thread(s)
     if (0 < size()) {
         mainThread()->waitIdle();
@@ -325,7 +326,7 @@ void ThreadPool::configure(u16 threadCount) {
         while (size() < threadCount) {
             push_back(new Thread(size()));
         }
-        clear();
+        clearThreads();
 
         std::cout << "info string Thread(s) used " << threadCount << std::endl;
 

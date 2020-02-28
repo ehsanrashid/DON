@@ -340,19 +340,24 @@ template<> void generate<GenType::LEGAL>(ValMoves &moves, Position const &pos) {
         generate<GenType::NATURAL>(moves, pos) :
         generate<GenType::EVASION>(moves, pos);
 
-    Bitboard candidate{ (// Pinneds
-                         pos.kingBlockers(pos.activeSide())
-                         // King
-                       | pos.pieces(KING))
-                      & pos.pieces(pos.activeSide()) };
+    Square fkSq = pos.square(pos.activeSide()|KING);
+    Bitboard mocc = pos.pieces() ^ fkSq;
+    Bitboard enemies = pos.pieces(~pos.activeSide());
+    Bitboard pinneds = pos.kingBlockers(pos.activeSide())
+                     & pos.pieces(pos.activeSide());
+
     // Filter illegal moves
     moves.erase(
         std::remove_if(
             moves.begin(), moves.end(),
             [&](ValMove const &vm) {
-                return (contains(candidate, orgSq(vm))
-                     || ENPASSANT == mType(vm))
-                    && !pos.legal(vm);
+                return (NORMAL == mType(vm)
+                     && fkSq == orgSq(vm)
+                     && 0 != (pos.attackersTo(dstSq(vm), mocc) & enemies))
+                    || ((contains(pinneds, orgSq(vm))
+                      || CASTLE == mType(vm)
+                      || ENPASSANT == mType(vm))
+                     && !pos.legal(vm));
             }),
         moves.end());
 }

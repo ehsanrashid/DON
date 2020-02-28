@@ -60,11 +60,11 @@ public:
 
     using std::vector<RootMove>::vector;
 
-    void operator+=(Move m) { emplace_back(m); }
-    //void operator-=(Move m) { erase(std::remove(begin(), end(), m), end()); }
+    void operator+=(Move);
+    //void operator-=(Move);
 
-    void operator+=(RootMove const &rm) { push_back(rm); }
-    //void operator-=(RootMove const &rm) { erase(std::remove(begin(), end(), rm), end()); }
+    void operator+=(RootMove const&);
+    //void operator-=(RootMove const&);
 
     void initialize(Position const&);
     void initialize(Position const&, Moves const&);

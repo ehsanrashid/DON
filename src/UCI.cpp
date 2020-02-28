@@ -353,7 +353,7 @@ namespace UCI {
         void onThreads() {
             auto threadCount{ optionThreads() };
             if (threadCount != Threadpool.size()) {
-                Threadpool.configure(threadCount);
+                Threadpool.setSize(threadCount);
             }
         }
 
@@ -920,7 +920,7 @@ namespace UCI {
         Threadpool.stop = true;
         Threadpool.mainThread()->waitIdle();
 
-        Threadpool.clear();
+        Threadpool.clearThreads();
         TT.clear();
         TimeMgr.reset();
 

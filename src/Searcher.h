@@ -47,21 +47,6 @@ struct Limit {
 
 namespace Searcher {
 
-    /// Stack keeps the information of the nodes in the tree during the search.
-    struct Stack {
-
-        i16   ply;
-        Move  playedMove{ MOVE_NONE };
-        Move  excludedMove{ MOVE_NONE };
-        u08   moveCount{ 0 };
-        Value staticEval{ VALUE_ZERO };
-        i32   stats{ 0 };
-        PieceSquareStatsTable *pieceStats;
-
-        Array<Move, 2> killerMoves;
-        std::list<Move> pv;
-    };
-
     extern void initialize();
 }
 

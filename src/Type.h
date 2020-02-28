@@ -526,42 +526,6 @@ constexpr Value toValue(i16 cp) {
     return Value(i32(cp) * VALUE_EG_PAWN / 100);
 }
 
-/// It adjusts a mate score from "plies to mate from the root" to "plies to mate from the current position".
-/// Non-mate scores are unchanged.
-/// The function is called before storing a value to the transposition table.
-constexpr Value valueToTT(Value v, i32 ply) {
-    return v >= +VALUE_MATE_2_MAX_PLY ? v + ply :
-           v <= -VALUE_MATE_2_MAX_PLY ? v - ply :
-                                      v;
-}
-
-// valueOfTT() is the inverse of value_to_tt(): It adjusts a mate or TB score
-// from the transposition table (which refers to the plies to mate/be mated
-// from current position) to "plies to mate/be mated (TB win/loss) from the root".
-// However, for mate scores, to avoid potentially false mate scores related to the 50 moves rule,
-// and the graph history interaction, return an optimal TB score instead.
-inline Value valueOfTT(Value v, i32 ply, i32 clockPly) {
-
-    if (v != VALUE_NONE) {
-
-        if (v >= +VALUE_MATE_2_MAX_PLY) // TB win or better
-        {
-            return v >= +VALUE_MATE_1_MAX_PLY
-                && VALUE_MATE - v >= 100 - clockPly ?
-                    +VALUE_MATE_1_MAX_PLY - 1 : // do not return a potentially false mate score
-                    v - ply;
-        }
-        if (v <= -VALUE_MATE_2_MAX_PLY) // TB loss or worse
-        {
-            return v <= -VALUE_MATE_1_MAX_PLY
-                && VALUE_MATE + v >= 100 - clockPly ?
-                    -VALUE_MATE_1_MAX_PLY + 1 : // do not return a potentially false mate score
-                    v + ply;
-        }
-    }
-    return v;
-}
-
 constexpr Value matesIn(i32 ply) {
     return +VALUE_MATE - ply;
 }

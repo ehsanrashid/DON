@@ -24,7 +24,7 @@ public:
 
     void setLevel(u16);
 
-    void clearBestMove();
+    void clear();
 
     Move pickBestMove();
 };

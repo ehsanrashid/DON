@@ -14,14 +14,14 @@ RootMove::RootMove(Move m)
 
 bool RootMove::operator<(RootMove const &rm) const {
     return (rm.newValue < newValue)
-        || (rm.newValue == newValue && rm.oldValue < oldValue);
+        || (rm.newValue == newValue
+         && rm.oldValue < oldValue);
 }
-
 bool RootMove::operator>(RootMove const &rm) const {
     return (rm.newValue > newValue)
-        || (rm.newValue == newValue && rm.oldValue > oldValue);
+        || (rm.newValue == newValue
+         && rm.oldValue > oldValue);
 }
-
 
 //bool RootMove::operator==(RootMove const &rm) const {
 //    return front() == rm.front();
@@ -29,7 +29,6 @@ bool RootMove::operator>(RootMove const &rm) const {
 //bool RootMove::operator!=(RootMove const &rm) const {
 //    return front() != rm.front();
 //}
-
 
 bool RootMove::operator==(Move m) const {
     return front() == m;
@@ -42,7 +41,6 @@ bool RootMove::operator!=(Move m) const {
 void RootMove::operator+=(Move m) {
     push_back(m);
 }
-
 //void RootMove::operator-=(Move m) {
 //    erase(std::remove(begin(), end(), m), end());
 //}
@@ -63,7 +61,19 @@ std::ostream& operator<<(std::ostream &os, RootMove const &rm) {
 }
 
 
+void RootMoves::operator+=(Move m) {
+    emplace_back(m);
+}
+//void RootMoves::operator-=(Move m) {
+//    erase(std::remove(begin(), end(), m), end());
+//}
 
+void RootMoves::operator+=(RootMove const &rm) {
+    push_back(rm);
+}
+//void RootMoves::operator-=(RootMove const &rm) {
+//    erase(std::remove(begin(), end(), rm), end());
+//}
 
 void RootMoves::initialize(Position const &pos) {
     assert(empty());

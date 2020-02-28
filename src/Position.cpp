@@ -217,8 +217,8 @@ bool Position::pseudoLegal(Move m) const
     }
 
     if (CASTLE == mType(m)) {
-        auto cs{ dst > org ? CS_KING : CS_QUEN };
 
+        auto cs{ dst > org ? CS_KING : CS_QUEN };
         return (active|KING) == board[org] //&& contains(pieces(active, KING), org)
             && (active|ROOK) == board[dst] //&& contains(pieces(active, ROOK), dst)
             && castleRookSq(active, cs) == dst
@@ -285,10 +285,11 @@ bool Position::pseudoLegal(Move m) const
     // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
     // So have to take care that the same kind of moves are filtered out here.
     if (0 != checkers()) {
+        auto fkSq = square(active|KING);
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
-        if (KING == mpt) {
-            return 0 == (attackersTo(dst, pieces() ^ org) & pieces(~active));
+        if (fkSq == org) {
+            return 0 == (attackersTo(dst, pieces() ^ fkSq) & pieces(~active));
         }
         // Double check? In this case a king move is required
         if (moreThanOne(checkers())) {
@@ -296,20 +297,22 @@ bool Position::pseudoLegal(Move m) const
         }
         return ENPASSANT != mType(m) ?
                 // Move must be a capture of the checking piece or a blocking evasion of the checking piece
-                contains(checkers() | betweens(scanLSq(checkers()), square(active|KING)), dst) :
+                contains(checkers() | betweens(scanLSq(checkers()), fkSq), dst) :
                 // Move must be a capture of the checking enpassant pawn or a blocking evasion of the checking piece
                 //(contains(checkers() & pieces(~active, PAWN), dst - pawnPush(active))
                 (contains(checkers() & pieces(PAWN), dst - pawnPush(active))
-              || contains(betweens(scanLSq(checkers()), square(active|KING)), dst));
+              || contains(betweens(scanLSq(checkers()), fkSq), dst));
     }
     return true;
 }
 /// Position::legal() tests whether a pseudo-legal move is legal.
 bool Position::legal(Move m) const {
     assert(isOk(m));
+    //assert(pseudoLegal(m));
 
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
+    auto fkSq = square(active|KING);
     assert(contains(pieces(active), org));
 
     switch (mType(m)) {
@@ -318,8 +321,8 @@ bool Position::legal(Move m) const {
         // In case of king moves under check have to remove king so to catch
         // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
         // check whether the destination square is attacked by the opponent.
-        if (KING == pType(board[org])) {
-            return 0 == (attackersTo(dst, pieces() ^ org) & pieces(~active));
+        if (fkSq == org) {
+            return 0 == (attackersTo(dst, pieces() ^ fkSq) & pieces(~active));
         }
         /* fall through */
     case PROMOTE:
@@ -332,7 +335,7 @@ bool Position::legal(Move m) const {
         // - not pinned
         // - moving along the ray from the king
         return !contains(kingBlockers(active), org)
-            || aligned(org, dst, square(active|KING));
+            || aligned(org, dst, fkSq);
         break;
     case CASTLE: {
         assert((active|KING) == board[org] //&& contains(pieces(active, KING), org)
@@ -370,8 +373,8 @@ bool Position::legal(Move m) const {
             && (~active|PAWN) == board[dst - pawnPush(active)]); //&& contains(pieces(~active, PAWN), dst - pawnPush(active))
         Bitboard mocc{ (pieces() ^ org ^ (dst - pawnPush(active))) | dst };
         // If any attacker then in check and not legal move.
-        return 0 == (pieces(~active, BSHP, QUEN) & attacksBB<BSHP>(square(active|KING), mocc))
-            && 0 == (pieces(~active, ROOK, QUEN) & attacksBB<ROOK>(square(active|KING), mocc));
+        return 0 == (pieces(~active, BSHP, QUEN) & attacksBB<BSHP>(fkSq, mocc))
+            && 0 == (pieces(~active, ROOK, QUEN) & attacksBB<ROOK>(fkSq, mocc));
     }
     default: assert(false); return false;
     }
@@ -439,10 +442,10 @@ void Position::setCastle(Color c, Square rookOrg) {
     sqCastleRight[kingOrg] |= cr;
     sqCastleRight[rookOrg] |= cr;
 
-    cslKingPath[c][cs] = (betweens(kingOrg, kingDst) | kingDst)
-                          & ~(squareBB(kingOrg));
-    cslRookPath[c][cs] = (betweens(kingOrg, kingDst) | betweens(rookOrg, rookDst) | kingDst | rookDst)
-                          & ~(squareBB(kingOrg) | squareBB(rookOrg));
+    cslKingPath[c][cs] =  (betweens(kingOrg, kingDst) | kingDst)
+                       & ~(squareBB(kingOrg));
+    cslRookPath[c][cs] =  (betweens(kingOrg, kingDst) | betweens(rookOrg, rookDst) | kingDst | rookDst)
+                       & ~(squareBB(kingOrg) | squareBB(rookOrg));
 }
 /// Position::setCheckInfo() sets check info used for fast check detection.
 void Position::setCheckInfo() {

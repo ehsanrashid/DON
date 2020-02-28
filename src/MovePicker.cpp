@@ -161,7 +161,8 @@ Move MovePicker::nextMove() {
     case PROBCUT_TT:
     case QUIESCENCE_TT:
         ++pickStage;
-        assert(MOVE_NONE != ttMove);
+        assert(MOVE_NONE != ttMove
+            && pos.pseudoLegal(ttMove));
         return ttMove;
 
     case NATURAL_INIT:
@@ -238,16 +239,28 @@ Move MovePicker::nextMove() {
         /* end */
 
     case EVASION_INIT:
+    {
+        Square fkSq = pos.square(pos.activeSide()|KING);
+        Bitboard mocc = pos.pieces() ^ fkSq;
+        Bitboard enemies = pos.pieces(~pos.activeSide());
+        Bitboard pinneds = pos.kingBlockers(pos.activeSide())
+                         & pos.pieces(pos.activeSide());
+
         generate<GenType::EVASION>(vmoves, pos);
         vmBeg = vmoves.begin();
         vmEnd = std::remove_if(vmBeg, vmoves.end(),
                 [&](ValMove const &vm) {
                     return ttMove == vm
-                        || (KING == pType(pos[orgSq(vm)])
-                         && 0 != (pos.attackersTo(dstSq(vm), pos.pieces() ^ orgSq(vm)) & pos.pieces(~pos.activeSide())));
+                        //|| CASTLE == mType(vm) not needed
+                        || (fkSq == orgSq(vm) // NORMAL == mType(vm) no castling possible in check
+                         && 0 != (pos.attackersTo(dstSq(vm), mocc) & enemies))
+                        || ((contains(pinneds, orgSq(vm))
+                          || ENPASSANT == mType(vm))
+                         && !pos.pseudoLegal(vm));
                 });
         value<GenType::EVASION>();
         ++pickStage;
+    }
         /* fall through */
     case EVASION_MOVES:
         return pick([]() {
@@ -270,6 +283,7 @@ Move MovePicker::nextMove() {
             })) {
             return *std::prev(vmBeg);
         }
+
         // If did not find any move then do not try checks, finished.
         if (DEPTH_QS_CHECK > depth) {
             return MOVE_NONE;
@@ -278,13 +292,13 @@ Move MovePicker::nextMove() {
         generate<GenType::QUIET_CHECK>(vmoves, pos);
         vmBeg = vmoves.begin();
         vmEnd = std::remove(vmBeg, vmoves.end(), ttMove);
-
         ++pickStage;
         /* fall through */
     case QUIESCENCE_CHECKS:
         return vmBeg != vmEnd ?
                 *vmBeg++ : MOVE_NONE;
         /* end */
+
     case PICK_STAGE_NONE:
     default:
         return MOVE_NONE;

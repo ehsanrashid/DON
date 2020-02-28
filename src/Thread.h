@@ -19,7 +19,9 @@
 /// an entry its life time is unlimited and we don't have to care about
 /// someone changing the entry under our feet.
 class Thread {
+
 private:
+
     bool  _dead{ false }
         , _busy{ true };
 
@@ -171,8 +173,8 @@ public:
 
     Thread* bestThread() const;
 
-    void clear();
-    void configure(u16);
+    void clearThreads();
+    void setSize(u16);
 
     void startThinking(Position&, StateListPtr&);
 };

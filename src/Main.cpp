@@ -19,7 +19,7 @@
 /// clean() cleans the stuffs in case of some crash.
 void clean() {
     Threadpool.stop = true;
-    Threadpool.configure(0);
+    Threadpool.setSize(0);
 }
 
 int main(int argc, char const *const *argv) {
@@ -37,7 +37,7 @@ int main(int argc, char const *const *argv) {
     Endgames::initialize();
     Book.initialize(Options["Book File"]);
     WinProcGroup::initialize();
-    Threadpool.configure(optionThreads());
+    Threadpool.setSize(optionThreads());
     TimeMgr.reset();
     std::srand(u32(time(nullptr)));
     UCI::clear();

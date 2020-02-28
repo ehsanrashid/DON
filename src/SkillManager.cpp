@@ -20,7 +20,7 @@ void SkillManager::setLevel(u16 lvl) {
     _level = lvl;
 }
 
-void SkillManager::clearBestMove() {
+void SkillManager::clear() {
     _bestMove = MOVE_NONE;
 }
 
