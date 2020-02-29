@@ -833,9 +833,21 @@ namespace UCI {
                 sync_cout << oss.str() << sync_endl;
             }
             else if (token == "moves")      {
+
                 i32 count;
 
                 if (0 == pos.checkers()) {
+
+                    std::cout << "\nCapture moves: ";
+                    count = 0;
+                    for (auto const &vm : MoveList<GenType::CAPTURE>(pos)) {
+                        if (pos.pseudoLegal(vm)
+                            && pos.legal(vm)) {
+                            std::cout << moveToSAN(vm, pos) << " ";
+                            ++count;
+                        }
+                    }
+                    std::cout << "(" << count << ")";
 
                     std::cout << "\nQuiet moves: ";
                     count = 0;
@@ -848,31 +860,9 @@ namespace UCI {
                     }
                     std::cout << "(" << count << ")";
 
-                    std::cout << "\nCheck moves: ";
-                    count = 0;
-                    for (auto const &vm : MoveList<GenType::CHECK>(pos)) {
-                        if (pos.pseudoLegal(vm)
-                         && pos.legal(vm)) {
-                            std::cout << moveToSAN(vm, pos) << " ";
-                            ++count;
-                        }
-                    }
-                    std::cout << "(" << count << ")";
-
                     std::cout << "\nQuiet Check moves: ";
                     count = 0;
                     for (auto const &vm : MoveList<GenType::QUIET_CHECK>(pos)) {
-                        if (pos.pseudoLegal(vm)
-                         && pos.legal(vm)) {
-                            std::cout << moveToSAN(vm, pos) << " ";
-                            ++count;
-                        }
-                    }
-                    std::cout << "(" << count << ")";
-
-                    std::cout << "\nCapture moves: ";
-                    count = 0;
-                    for (auto const &vm : MoveList<GenType::CAPTURE>(pos)) {
                         if (pos.pseudoLegal(vm)
                          && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";

@@ -101,8 +101,8 @@ namespace Evaluator {
         };
 
         constexpr Score MinorBehindPawn { S( 18,  3) };
-        constexpr Score MinorOutpost    { S( 30, 21) };
         constexpr Score MinorKingProtect{ S(  7,  8) };
+        constexpr Score KnightOutpost   { S( 30, 21) };
         constexpr Score BishopOnDiagonal{ S( 45,  0) };
         constexpr Score BishopPawns     { S(  3,  7) };
         constexpr Score BishopTrapped   { S( 50, 50) };
@@ -325,33 +325,27 @@ namespace Evaluator {
                       & ~pawnEntry->attackSpan[Opp]
                       & sqlAttacks[Own][PAWN];
 
-                    switch (PT) {
-                    case NIHT: {
+                    if (NIHT == PT) {
                         // Bonus for knight outpost squares
                         if (contains(b, s)) {
-                            score += MinorOutpost * 2;
+                            score += KnightOutpost * 2;
                         }
                         else
-                            if (0 != (b & attacks & ~pos.pieces(Own))) {
-                                score += MinorOutpost * 1;
-                            }
-                    }
-                        break;
-                    case BSHP:
-                    default: {
-                        // Bonus for bishop outpost squares
-                        if (contains(b, s)) {
-                            score += MinorOutpost * 1;
+                        if (0 != (b & attacks & ~pos.pieces(Own))) {
+                            score += KnightOutpost * 1;
                         }
+                    }
+                    else
+                    if (BSHP == PT) {
 
                         // Penalty for pawns on the same color square as the bishop,
                         // more when the center files are blocked with pawns.
-                        b = pos.pieces(Own, PAWN)
-                            &  Sides[CS_NONE]
-                            & pawnSglPushes(Opp, pos.pieces());
+                        b = Sides[CS_NONE]
+                          & pos.pieces(Own, PAWN)
+                          & pawnSglPushes(Opp, pos.pieces());
                         score -= BishopPawns
-                            * (1 + popCount(b))
-                            * popCount(pos.pieces(Own, PAWN) & Colors[sColor(s)]);
+                               * (1 + popCount(b))
+                               * popCount(pos.pieces(Own, PAWN) & Colors[sColor(s)]);
 
                         // Bonus for bishop on a long diagonal which can "see" both center squares
                         score += BishopOnDiagonal * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB);
@@ -360,19 +354,20 @@ namespace Evaluator {
                         // It is a very serious problem, especially when that pawn is also blocked.
                         // Bishop (white or black) on a1/h1 or a8/h8 which is trapped by own pawn on b2/g2 or b7/g7.
                         if (1 >= mob
-                            && contains(FABB | FHBB, s)
-                            && RANK_1 == relativeRank(Own, s)
-                            && Options["UCI_Chess960"]) {
-                            auto del{ pawnPush(Own) + (WEST + (FILE_A == sFile(s)) * 2 * EAST) };
-                            if (contains(pos.pieces(Own, PAWN), s + del)) {
-                                score -= BishopTrapped
-                                    * (!contains(pos.pieces(), s + del + pawnPush(Own)) ?
-                                        !contains(pos.pieces(Own, PAWN), s + del + del) ?
-                                        1 : 2 : 4);
+                         && Options["UCI_Chess960"]) {
+                            auto relSq = relativeSq(Own, s);
+                            if (SQ_A1 == relSq
+                             || SQ_H1 == relSq) {
+
+                                auto del{ pawnPush(Own) + sign(FILE_E - sFile(s)) * EAST };
+                                if (contains(pos.pieces(Own, PAWN), s + del)) {
+                                    score -= BishopTrapped
+                                           * (!contains(pos.pieces(), s + del + pawnPush(Own)) ?
+                                                 !contains(pos.pieces(Own, PAWN), s + del + del) ?
+                                                     1 : 2 : 4);
+                                }
                             }
                         }
-                    }
-                        break;
                     }
                 }
                     break;
@@ -388,7 +383,8 @@ namespace Evaluator {
                     else
                     // Penalty for rook when trapped by the king, even more if the king can't castle
                     if (3 >= mob
-                     && RANK_5 > relativeRank(Own, s)) {
+                     && RANK_4 > relativeRank(Own, s)
+                     && 0 != (frontSquaresBB(Own, s) & pos.pieces(Own, PAWN))) {
                         auto kF = sFile(pos.square(Own|KING));
                         if (((kF < FILE_E) && (sFile(s) < kF))
                          || ((kF > FILE_D) && (sFile(s) > kF))) {

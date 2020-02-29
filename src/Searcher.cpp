@@ -183,14 +183,11 @@ namespace {
         for (u16 i = 0; i < PVCount; ++i)
         {
             bool updated{ -VALUE_INFINITE != th->rootMoves[i].newValue };
-            if (1 == depth
+            if (DEPTH_ONE == depth
              && !updated) {
                 continue;
             }
 
-            auto d{ updated ?
-                    depth :
-                    Depth(depth - 1) };
             auto v{ updated ?
                     th->rootMoves[i].newValue :
                     th->rootMoves[i].oldValue };
@@ -202,7 +199,7 @@ namespace {
             //if (oss.rdbuf()->in_avail()) // Not at first line
             //    oss << "\n";
             oss << "info"
-                << " depth "    << d
+                << " depth "    << (updated ? depth : depth - DEPTH_ONE)
                 << " seldepth " << th->rootMoves[i].selDepth
                 << " multipv "  << i + 1
                 << " score "    << v;
@@ -428,7 +425,7 @@ namespace {
                                 [inCheck][captureOrPromotion][mpc][dst];
             // Do the move
             pos.doMove(move, si, giveCheck);
-            auto value{ -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth - 1) };
+            auto value{ -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth - DEPTH_ONE) };
             // Undo the move
             pos.undoMove(move);
 
@@ -748,7 +745,7 @@ namespace {
 
             // Step 7. Razoring. (~1 ELO)
             if (!rootNode // The RootNode PV handling is not available in qsearch
-             && 1 == depth
+             && DEPTH_ONE == depth
              && eval + RazorMargin <= alfa) {
                 return quienSearch<PVNode>(pos, ss, alfa, beta);
             }
@@ -980,7 +977,7 @@ namespace {
             bool captureOrPromotion{ pos.captureOrPromotion(move) };
 
             // Calculate new depth for this move
-            auto newDepth{ Depth(depth - 1) };
+            auto newDepth{ Depth(depth - DEPTH_ONE) };
 
             // Step 13. Pruning at shallow depth. (~200 ELO)
             if (!rootNode
@@ -1041,14 +1038,14 @@ namespace {
              && depth < tte->depth() + 4
              && BOUND_NONE != (tte->bound() & BOUND_LOWER)
              && pos.legal(ttMove)) {
-                auto singularBeta{ ttValue - ((4 + (ttPV && !PVNode)) * depth) / 2 };
+                auto singularBeta{ ttValue - ((4 + (!PVNode && ttPV)) * depth) / 2 };
 
                 ss->excludedMove = move;
-                value = depthSearch<false>(pos, ss, singularBeta -1, singularBeta, depth / 2, cutNode);
+                value = depthSearch<false>(pos, ss, singularBeta-1, singularBeta, depth / 2, cutNode);
                 ss->excludedMove = MOVE_NONE;
 
                 if (value < singularBeta) {
-                    extension = 1;
+                    extension = DEPTH_ONE;
                     singularLMR = true;
                 }
                 // Multi-cut pruning
@@ -1062,8 +1059,9 @@ namespace {
             }
             else
             if (// Previous capture extension
-                (PieceValues[EG][pos.captured()] > VALUE_EG_PAWN
-              && pos.nonPawnMaterial() <= 2 * VALUE_MG_ROOK)
+                (PAWN < pos.captured()
+              //&& VALUE_EG_PAWN < PieceValues[EG][pos.captured()]
+              && 2 * VALUE_MG_ROOK >= pos.nonPawnMaterial())
                 // Check extension (~2 ELO)
              || (giveCheck
               && (contains(pos.kingBlockers(~pos.activeSide()), org)
@@ -1073,12 +1071,12 @@ namespace {
               && pos.pawnAdvanceAt(pos.activeSide(), org)
               && pos.pawnPassedAt(pos.activeSide(), dst)
               && ss->killerMoves[0] == move)) {
-                extension = 1;
+                extension = DEPTH_ONE;
             }
 
             // Castle extension
             if (CASTLE == mType(move)) {
-                extension = 1;
+                extension = DEPTH_ONE;
             }
 
             // Check for legality just before making the move
@@ -1152,10 +1150,10 @@ namespace {
                     }
 
                     ss->stats = thread->butterFlyStats[~pos.activeSide()][mIndex(move)]
-                                + (*pieceStats[0])[mpc][dst]
-                                + (*pieceStats[1])[mpc][dst]
-                                + (*pieceStats[3])[mpc][dst]
-                                - 4926;
+                              + (*pieceStats[0])[mpc][dst]
+                              + (*pieceStats[1])[mpc][dst]
+                              + (*pieceStats[3])[mpc][dst]
+                              - 4926;
                     // Reset stats to zero if negative and most stats shows >= 0
                     if (0 >  ss->stats
                      && 0 <= thread->butterFlyStats[~pos.activeSide()][mIndex(move)]
@@ -1185,7 +1183,7 @@ namespace {
                 }
 
                 reductDepth = std::max(reductDepth, DEPTH_ZERO);
-                auto d{ Depth(std::max(newDepth - reductDepth, 1)) };
+                auto d{ std::max(Depth(newDepth - reductDepth), DEPTH_ONE) };
                 assert(d <= newDepth);
 
                 value = -depthSearch<false>(pos, ss+1, -alfa-1, -alfa, d, true);
@@ -1742,20 +1740,19 @@ void MainThread::search() {
          && 0 == Limits.mate
          && Options["Use Book"]) {
             auto bbm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
-            if (MOVE_NONE != bbm) {
-                if (rootMoves.contains(bbm)) {
-                    think = false;
+            if (MOVE_NONE != bbm
+             && rootMoves.contains(bbm)) {
+                think = false;
 
-                    rootMoves.bringToFront(bbm);
-                    rootMoves.front().newValue = VALUE_NONE;
-                    StateInfo si;
-                    rootPos.doMove(bbm, si);
-                    auto bpm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
-                    if (MOVE_NONE != bpm) {
-                        rootMoves.front() += bpm;
-                    }
-                    rootPos.undoMove(bbm);
+                rootMoves.bringToFront(bbm);
+                rootMoves.front().newValue = VALUE_NONE;
+                StateInfo si;
+                rootPos.doMove(bbm, si);
+                auto bpm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
+                if (MOVE_NONE != bpm) {
+                    rootMoves.front() += bpm;
                 }
+                rootPos.undoMove(bbm);
             }
         }
 

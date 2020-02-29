@@ -10,7 +10,6 @@ enum GenType : u08 {
     EVASION,
     CAPTURE,
     QUIET,
-    CHECK,
     QUIET_CHECK,
     LEGAL,
 };

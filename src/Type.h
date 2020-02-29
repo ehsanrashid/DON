@@ -121,6 +121,7 @@ enum Direction : i08
 using Depth = i16;
 
 constexpr Depth DEPTH_ZERO       {  0 };
+constexpr Depth DEPTH_ONE        {  1 };
 constexpr Depth DEPTH_QS_CHECK   {  0 };
 constexpr Depth DEPTH_QS_NO_CHECK{ -1 };
 constexpr Depth DEPTH_QS_RECAP   { -5 };
@@ -192,7 +193,7 @@ enum Value : i32
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
 
-    VALUE_NONE      = 32002,//SHRT_MAX, //32002,
+    VALUE_NONE      = SHRT_MAX, //32002,
     VALUE_INFINITE  = VALUE_NONE - 1,
     VALUE_MATE      = VALUE_INFINITE - 1,
 
