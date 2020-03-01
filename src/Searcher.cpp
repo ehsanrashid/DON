@@ -1182,9 +1182,7 @@ namespace {
                     reductDepth += 1;
                 }
 
-                reductDepth = std::max(reductDepth, DEPTH_ZERO);
-                auto d{ std::max(Depth(newDepth - reductDepth), DEPTH_ONE) };
-                assert(d <= newDepth);
+                auto d{ clamp(Depth(newDepth - reductDepth), DEPTH_ONE, newDepth) };
 
                 value = -depthSearch<false>(pos, ss+1, -alfa-1, -alfa, d, true);
 
