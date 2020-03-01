@@ -11,8 +11,6 @@ struct ThreadMark {
     std::atomic<Thread const*> thread;
     std::atomic<Key>           posiKey;
 
-    bool empty() const;
-
     template<typename T>
     T load(std::atomic<T> ThreadMark::*member) const;
     template<typename T>
@@ -35,17 +33,21 @@ inline void ThreadMark::store(std::atomic<T> ThreadMark::*member, T t) {
 /// node for potential reductions. A free node will be marked upon entering the moves
 /// loop by the constructor, and unmarked upon leaving that loop by the destructor.
 class ThreadMarker {
+
 private:
-    ThreadMark *threadMark;
+
+    ThreadMark *threadMark{ nullptr };
+    bool ownThreadMark{ false };
+    bool otrThreadMark{ false };
 
 public:
-
-    bool marked;
 
     ThreadMarker() = delete;
     ThreadMarker(Thread const*, Key, i16);
 
     ~ThreadMarker();
+
+    bool marked() const;
 
 };
 

@@ -9,37 +9,35 @@ namespace {
 
 }
 
-bool ThreadMark::empty() const {
-    return 0 == load(&ThreadMark::posiKey)
-        || nullptr == load(&ThreadMark::thread);
-}
 
-
-ThreadMarker::ThreadMarker(Thread const *thread, Key posiKey, i16 ply)
-    : threadMark{ nullptr }
-    , marked{ false } {
+ThreadMarker::ThreadMarker(Thread const *thread, Key posiKey, i16 ply) {
 
     if (8 > ply) {
 
-        auto *tm{ &ThreadMarks[u16(posiKey) & (ThreadMarkSize - 1)] };
+        threadMark = &ThreadMarks[u16(posiKey) & (ThreadMarkSize - 1)];
         // Check if another already marked it, if not, mark it
-        if (tm->empty()) {
-            tm->store(&ThreadMark::thread, thread);
-            tm->store(&ThreadMark::posiKey, posiKey);
-            threadMark = tm;
+        auto *th = threadMark->load(&ThreadMark::thread);
+        auto key = threadMark->load(&ThreadMark::posiKey);
+        if (nullptr == th) {
+            threadMark->store(&ThreadMark::thread, thread);
+            threadMark->store(&ThreadMark::posiKey, posiKey);
+            ownThreadMark = true;
         }
         else
-        if (tm->load(&ThreadMark::posiKey) == posiKey
-         && tm->load(&ThreadMark::thread) != thread) {
-            marked = true;
+        if (th != thread
+         && key == posiKey) {
+            otrThreadMark = true;
         }
     }
 }
 
 ThreadMarker::~ThreadMarker() {
-    if (nullptr != threadMark) { // Free the marked location
+    if (ownThreadMark) { // Free the marked location
         threadMark->store(&ThreadMark::thread, static_cast<Thread const*>(nullptr));
         threadMark->store(&ThreadMark::posiKey, U64(0));
-        //threadMark = nullptr;
     }
+}
+
+bool ThreadMarker::marked() const {
+    return otrThreadMark;
 }

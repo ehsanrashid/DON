@@ -1124,7 +1124,7 @@ namespace {
                 auto reductDepth{ reduction(depth, moveCount, improving) };
                 reductDepth +=
                     // If other threads are searching this position.
-                    +1 * threadMarker.marked
+                    +1 * threadMarker.marked()
                     // If the ttHit running average is large
                     -1 * (thread->ttHitAvg > 500 * TTHitAverageWindow)
                     // If opponent's move count is high (~5 ELO)
