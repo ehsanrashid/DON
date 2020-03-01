@@ -145,10 +145,10 @@ bool Position::cycled(i16 pp) const {
 
         Key moveKey{ pKey
                    ^ psi->posiKey };
-        u16 j;
-        if ((j = hash1(moveKey), moveKey == Cuckoos[j].key)
-         || (j = hash2(moveKey), moveKey == Cuckoos[j].key)) {
-            auto move{ Cuckoos[j].move };
+        u16 h;
+        if ((h = hash(moveKey >> 0x00), moveKey == Cuckoos[h].key)
+         || (h = hash(moveKey >> 0x10), moveKey == Cuckoos[h].key)) {
+            auto move{ Cuckoos[h].move };
             auto s1{ orgSq(move) };
             auto s2{ dstSq(move) };
             if (0 == (betweens(s1, s2) & pieces())) {

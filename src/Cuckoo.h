@@ -21,13 +21,9 @@ namespace CucKoo {
 
 constexpr u16 CuckooSize = 0x2000;
 
-// Hash functions for indexing the cuckoo tables
-
-constexpr u16 hash1(Key posiKey) {
-    return u16(posiKey >> 0x00) & (CuckooSize - 1);
-}
-constexpr u16 hash2(Key posiKey) {
-    return u16(posiKey >> 0x10) & (CuckooSize - 1);
+// Hash function for indexing the cuckoo tables
+constexpr u16 hash(u16 key) {
+    return key & (CuckooSize - 1);
 }
 
 // Global Cuckoo table

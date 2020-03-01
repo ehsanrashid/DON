@@ -30,17 +30,15 @@ namespace CucKoo {
                                      ^ RandZob.colorKey,
                                        makeMove<NORMAL>(org, dst) };
 
-                        u16 i = hash1(cuckoo.key);
+                        u16 h = hash(cuckoo.key >> 0x00);
                         while (true) {
-                            std::swap(Cuckoos[i], cuckoo);
+                            std::swap(Cuckoos[h], cuckoo);
                             // Arrived at empty slot ?
                             if (cuckoo.empty()) {
                                 break;
                             }
                             // Push victim to alternative slot
-                            i = i == hash1(cuckoo.key) ?
-                                hash2(cuckoo.key) :
-                                hash1(cuckoo.key);
+                            h = hash(cuckoo.key >> (0x10 * (h == hash(cuckoo.key >> 0x00))));
                         }
                         ++count;
                     }

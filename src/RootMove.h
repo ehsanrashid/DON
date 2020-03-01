@@ -69,14 +69,17 @@ public:
     void initialize(Position const&);
     void initialize(Position const&, Moves const&);
 
-    RootMoves::const_iterator find(Move) const;
-    RootMoves::const_iterator find(u16, u16, Move) const;
+    const_iterator find(Move) const;
+    const_iterator find(u16, u16, Move) const;
 
     bool contains(Move) const;
     bool contains(u16, u16, Move) const;
 
     u16 bestCount(Move) const;
     u16 bestCount(u16, u16, Move) const;
+
+    iterator find(Move);
+    iterator find(u16, u16, Move);
 
     void stableSort();
     void stableSort(u16, u16);

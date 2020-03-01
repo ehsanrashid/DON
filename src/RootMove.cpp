@@ -127,6 +127,14 @@ u16 RootMoves::bestCount(u16 iBeg, u16 iEnd, Move m) const {
             find(iBeg, iEnd, m)->bestCount : 0;
 }
 
+RootMoves::iterator RootMoves::find(Move m) {
+    return std::find(begin(), end(), m);
+}
+RootMoves::iterator RootMoves::find(u16 iBeg, u16 iEnd, Move m) {
+    return std::find(std::next(begin(), iBeg),
+        std::next(begin(), iEnd), m);
+}
+
 void RootMoves::stableSort() {
     std::stable_sort(begin(), end());
 }

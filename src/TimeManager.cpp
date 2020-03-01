@@ -98,11 +98,11 @@ void TimeManager::setup(Color c, i16 ply) {
     // choose the minimum of calculated search time values.
     for (u08 movestogo = 1; movestogo <= maxMovestogo; ++movestogo) {
         // Calculate thinking time for hypothetical "moves to go"
-        auto time = std::max(  Limits.clock[c].time
-                             + Limits.clock[c].inc * (movestogo - 1)
-                                // ClockTime: Attempt to keep this much time at clock.
-                                // MovesTime: Attempt to keep at most this many moves time at clock.
-                             - overheadMoveTime * (2 + std::min(movestogo, { 40 })) // (ClockTime + MovesTime)
+        auto time = std::max(Limits.clock[c].time
+                           + Limits.clock[c].inc * (movestogo - 1)
+                             // ClockTime: Attempt to keep this much time at clock.
+                             // MovesTime: Attempt to keep at most this many moves time at clock.
+                           - overheadMoveTime * (2 + std::min(movestogo, { 40 })) // (ClockTime + MovesTime)
                             , { 0 });
 
         _optimum = std::min(_optimum, minimumMoveTime + remainingTime<true >(time, movestogo, ply, moveSlowness));

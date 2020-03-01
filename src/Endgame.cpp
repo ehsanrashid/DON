@@ -261,7 +261,7 @@ template<> Value Endgame<KQKP>::operator()(Position const &pos) const {
 
     if (RANK_7 != relativeRank(weakColor, wpSq)
      || 1 != dist(wkSq, wpSq)
-     || !contains(FABB|FCBB|FFBB|FHBB, wpSq)) {
+     || contains(FBBB|FDBB|FEBB|FGBB, wpSq)) {
         value += VALUE_EG_QUEN
                - VALUE_EG_PAWN;
     }

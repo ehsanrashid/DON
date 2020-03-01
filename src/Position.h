@@ -470,7 +470,7 @@ inline PieceType Position::captureType(Move m) const {
 }
 /// Position::pawnAdvanceAt() check if pawn is advanced at the given square
 inline bool Position::pawnAdvanceAt(Color c, Square s) const {
-    return contains(pieces(c, PAWN) & Regions[~c], s);
+    return contains(/*pieces(c, PAWN) & */Regions[~c], s);
 }
 /// Position::pawnPassedAt() check if pawn passed at the given square
 inline bool Position::pawnPassedAt(Color c, Square s) const {

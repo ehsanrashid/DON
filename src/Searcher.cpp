@@ -317,7 +317,7 @@ namespace {
                                   ss->staticEval,
                                   DEPTH_NONE,
                                   BOUND_LOWER,
-                                  ttPV);
+                                  false);
                     }
 
                     assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
@@ -1106,7 +1106,7 @@ namespace {
 
             bool doLMR{
                 2 < depth
-             && 1 + 2 * rootNode + 1 < moveCount
+             && 1 + 2 * rootNode < moveCount
              && (!rootNode
                 // At root if zero best counter
               || 0 == thread->rootMoves.bestCount(thread->pvCur, thread->pvEnd, move))
@@ -1128,7 +1128,7 @@ namespace {
                     // If the ttHit running average is large
                     -1 * (thread->ttHitAvg > 500 * TTHitAverageWindow)
                     // If opponent's move count is high (~5 ELO)
-                    -1 * ((ss-1)->moveCount >= 15)
+                    -1 * ((ss-1)->moveCount > 14)
                     // If position is or has been on the PV (~10 ELO)
                     -2 * ttPV
                     // If move has been singularly extended (~3 ELO)
@@ -1239,8 +1239,8 @@ namespace {
             }
 
             if (rootNode) {
-                assert(std::find(thread->rootMoves.begin(), thread->rootMoves.end(), move) != thread->rootMoves.end());
-                auto &rm{ *std::find(thread->rootMoves.begin(), thread->rootMoves.end(), move) };
+                assert(thread->rootMoves.contains(move));
+                RootMove &rm{ *thread->rootMoves.find(move) };
                 // First PV move or new best move?
                 if (1 == moveCount
                  || alfa < value) {
