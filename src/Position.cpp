@@ -98,7 +98,7 @@ Key Position::movePosiKey(Move m) const {
          ^ RandZob.colorKey
          ^ RandZob.pieceSquareKey[active][pType(board[org])][org]
          ^ RandZob.pieceSquareKey[active][PROMOTE != mType(m) ? pType(board[org]) : promoteType(m)][CASTLE != mType(m) ? dst : kingCastleSq(org, dst)]
-         ^ RandZob.castleRightKey[si->castleRights & (sqCastleRight[org]|sqCastleRight[dst])];
+         ^ RandZob.castleRightKey[castleRights() & (sqCastleRight[org]|sqCastleRight[dst])];
 }
 
 /// Position::draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
@@ -951,9 +951,9 @@ void Position::doMove(Move m, StateInfo &nsi, bool isCheck) {
 
     // Update castling rights
     CastleRight cr;
-    if (CR_NONE != si->castleRights
+    if (CR_NONE != castleRights()
      && CR_NONE != (cr = (sqCastleRight[org]|sqCastleRight[dst]))) {
-        pKey ^= RandZob.castleRightKey[si->castleRights & cr];
+        pKey ^= RandZob.castleRightKey[castleRights() & cr];
         si->castleRights &= ~cr;
     }
 

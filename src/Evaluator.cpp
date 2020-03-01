@@ -103,6 +103,7 @@ namespace Evaluator {
         constexpr Score MinorBehindPawn { S( 18,  3) };
         constexpr Score MinorKingProtect{ S(  7,  8) };
         constexpr Score KnightOutpost   { S( 30, 21) };
+        constexpr Score BishopOutpost   { S( 30, 21) };
         constexpr Score BishopOnDiagonal{ S( 45,  0) };
         constexpr Score BishopPawns     { S(  3,  7) };
         constexpr Score BishopTrapped   { S( 50, 50) };
@@ -337,7 +338,10 @@ namespace Evaluator {
                     }
                     else
                     if (BSHP == PT) {
-
+                        // Bonus for bishop outpost squares
+                        if (contains(b, s)) {
+                            score += BishopOutpost * 1;
+                        }
                         // Penalty for pawns on the same color square as the bishop,
                         // more when the center files are blocked with pawns.
                         b = Sides[CS_NONE]
@@ -348,7 +352,8 @@ namespace Evaluator {
                                * popCount(pos.pieces(Own, PAWN) & Colors[sColor(s)]);
 
                         // Bonus for bishop on a long diagonal which can "see" both center squares
-                        score += BishopOnDiagonal * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB);
+                        score += BishopOnDiagonal
+                               * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB);
 
                         // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
                         // It is a very serious problem, especially when that pawn is also blocked.
@@ -437,20 +442,20 @@ namespace Evaluator {
                               |  sqlAttacks[Own][KING]) };
 
             // Safe squares where enemy's safe checks are possible on next move
-            Bitboard safeArea = ~pos.pieces(Opp)
-                              & (~sqlAttacks[Own][NONE]
-                               | (weakArea
-                                & dblAttacks[Opp]));
+            Bitboard safeArea{ ~pos.pieces(Opp)
+                             & (~sqlAttacks[Own][NONE]
+                              | (weakArea
+                               & dblAttacks[Opp])) };
 
-            Bitboard unsafeCheck = 0;
+            Bitboard unsafeCheck{ 0 };
 
-            Bitboard rookPins = attacksBB<ROOK>(kSq, pos.pieces() ^ pos.pieces(Own, QUEN));
-            Bitboard bshpPins = attacksBB<BSHP>(kSq, pos.pieces() ^ pos.pieces(Own, QUEN));
+            Bitboard rookPins{ attacksBB<ROOK>(kSq, pos.pieces() ^ pos.pieces(Own, QUEN)) };
+            Bitboard bshpPins{ attacksBB<BSHP>(kSq, pos.pieces() ^ pos.pieces(Own, QUEN)) };
 
             // Enemy rooks checks
-            Bitboard rookSafeChecks =  rookPins
-                                    &  sqlAttacks[Opp][ROOK]
-                                    &  safeArea;
+            Bitboard rookSafeChecks{  rookPins
+                                   &  sqlAttacks[Opp][ROOK]
+                                   &  safeArea};
             if (0 != rookSafeChecks) {
                 kingDanger += SafeCheckWeight[ROOK];
             }
@@ -460,21 +465,20 @@ namespace Evaluator {
             }
 
             // Enemy queens checks
-            Bitboard quenSafeChecks = (rookPins | bshpPins)
-                                    &  sqlAttacks[Opp][QUEN]
-                                    &  safeArea
-                                    & ~sqlAttacks[Own][QUEN]
-                                    & ~rookSafeChecks;
+            Bitboard quenSafeChecks{ (rookPins | bshpPins)
+                                   &  sqlAttacks[Opp][QUEN]
+                                   &  safeArea
+                                   & ~sqlAttacks[Own][QUEN]
+                                   & ~rookSafeChecks };
             if (0 != quenSafeChecks) {
                 kingDanger += SafeCheckWeight[QUEN];
             }
-            //else {}
 
             // Enemy bishops checks
-            Bitboard bshpSafeChecks =  bshpPins
-                                    &  sqlAttacks[Opp][BSHP]
-                                    &  safeArea
-                                    & ~quenSafeChecks;
+            Bitboard bshpSafeChecks{  bshpPins
+                                   &  sqlAttacks[Opp][BSHP]
+                                   &  safeArea
+                                   & ~quenSafeChecks };
             if (0!= bshpSafeChecks) {
                 kingDanger += SafeCheckWeight[BSHP];
             }
@@ -484,8 +488,8 @@ namespace Evaluator {
             }
 
             // Enemy knights checks
-            Bitboard nihtChecks =  PieceAttacks[NIHT][kSq]
-                                &  sqlAttacks[Opp][NIHT];
+            Bitboard nihtChecks{  PieceAttacks[NIHT][kSq]
+                               &  sqlAttacks[Opp][NIHT]};
             if (0 != (nihtChecks & safeArea)) {
                 kingDanger += SafeCheckWeight[NIHT];
             }

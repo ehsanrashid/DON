@@ -73,17 +73,17 @@ namespace {
                 if (contains(PieceAttacks[NIHT][dst], ekSq)) {
                     moves += makePromoteMove(org, dst, NIHT);
                 }
-
+                /*
                 Bitboard mocc{ pos.pieces() ^ org };
                 Bitboard rookAttacks{ attacksBB<ROOK>(dst, mocc) };
                 Bitboard bshpAttacks{ attacksBB<BSHP>(dst, mocc) };
-
                 if (contains(rookAttacks, ekSq)) {
                     moves += makePromoteMove(org, dst, ROOK);
                 }
                 if (contains(bshpAttacks, ekSq)) {
                     moves += makePromoteMove(org, dst, BSHP);
                 }
+                */
             }
         }
     }
@@ -307,8 +307,6 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &
     moves.clear();
     Bitboard targets{ ~pos.pieces() };
 
-    generateMoves<GenType::QUIET_CHECK>(moves, pos, targets);
-
     // Pawns is excluded, already generated with direct checks
     Bitboard dscBlockersEx{  pos.kingBlockers(~pos.activeSide())
                           & ~pos.pieces(PAWN)
@@ -322,6 +320,8 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &
         }
         while (0 != attacks) { moves += makeMove<NORMAL>(org, popLSq(attacks)); }
     }
+
+    generateMoves<GenType::QUIET_CHECK>(moves, pos, targets);
 }
 
 /// generate<LEGAL>       Generates all legal moves.
