@@ -144,14 +144,9 @@ namespace {
         assert(1 == std::count(ss->killerMoves.begin(), ss->killerMoves.end(), move));
 
         if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ fdstSq((ss-1)->playedMove) };
-            assert(NO_PIECE != pos[pmDst]);
-            pos.thread()->counterMoves[pos[pmDst]][pmDst] = move;
-        }
-
-        pos.thread()->butterFlyStats[pos.activeSide()][mIndex(move)] << bonus;
-        if (PAWN != pType(pos[orgSq(move)])) {
-            pos.thread()->butterFlyStats[pos.activeSide()][mIndex(reverseMove(move))] << -bonus;
+            auto pmDst{ dstSq((ss-1)->playedMove) };
+            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : (~pos.activeSide())|KING };
+            pos.thread()->counterMoves[pmPiece][pmDst] = move;
         }
 
         if (12 < depth
@@ -159,6 +154,10 @@ namespace {
             pos.thread()->lowPlyStats[ss->ply][mIndex(move)] << statBonus(depth - 7);
         }
 
+        pos.thread()->butterFlyStats[pos.activeSide()][mIndex(move)] << bonus;
+        if (PAWN != pType(pos[orgSq(move)])) {
+            pos.thread()->butterFlyStats[pos.activeSide()][mIndex(reverseMove(move))] << -bonus;
+        }
         updateContinuationStats(ss, pos[orgSq(move)], dstSq(move), bonus);
     }
 
@@ -351,7 +350,7 @@ namespace {
         };
 
         auto recapSq{ isOk((ss-1)->playedMove) ?
-                        fdstSq((ss-1)->playedMove) : SQ_NONE };
+                        dstSq((ss-1)->playedMove) : SQ_NONE };
 
         // Initialize move-picker(2) for the current position
         MovePicker mp{ pos
@@ -362,7 +361,7 @@ namespace {
         // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
         while (MOVE_NONE != (move = mp.nextMove())) {
             assert(isOk(move)
-                && pos.pseudoLegal(move));
+                && (inCheck || pos.pseudoLegal(move)));
 
             ++moveCount;
 
@@ -421,8 +420,7 @@ namespace {
 
             // Update the current move
             ss->playedMove = move;
-            ss->pieceStats = &thread->continuationStats
-                                [inCheck][captureOrPromotion][mpc][dst];
+            ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mpc][dst];
             // Do the move
             pos.doMove(move, si, giveCheck);
             auto value{ -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth - DEPTH_ONE) };
@@ -586,8 +584,8 @@ namespace {
                                 && (NONE != pos.captured()
                                  || PROMOTE == mType((ss-1)->playedMove)) };
 
-        if (12 < depth
-         && ttPV
+        if (ttPV
+         && 12 < depth
          && !pmCaptureOrPromotion
          && (ss-1)->ply < MAX_LOWPLY
          && isOk((ss-1)->playedMove)) {
@@ -629,8 +627,9 @@ namespace {
                 if (!pmCaptureOrPromotion
                  && 2 >= (ss-1)->moveCount
                  && isOk((ss-1)->playedMove)) {
-                    auto pmDst{ fdstSq((ss-1)->playedMove) };
-                    updateContinuationStats(ss-1, pos[pmDst], pmDst, -statBonus(depth + 1));
+                    auto pmDst{ dstSq((ss-1)->playedMove) };
+                    auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : (~pos.activeSide())|KING };
+                    updateContinuationStats(ss-1, pmPiece, pmDst, -statBonus(depth + 1));
                 }
             }
 
@@ -785,7 +784,7 @@ namespace {
                 auto R = Depth((854 + 68 * depth) / 258 + std::min(i32(eval - beta) / 192, 3));
 
                 ss->playedMove = MOVE_NULL;
-                ss->pieceStats = &thread->continuationStats[0][0][NO_PIECE][0];
+                ss->pieceStats = &thread->continuationStats[0][0][NO_PIECE][32];
 
                 pos.doNullMove(si);
 
@@ -835,14 +834,13 @@ namespace {
                     && MOVE_NONE != (move = mp.nextMove())) {
                     assert(isOk(move)
                         && pos.pseudoLegal(move)
-                        && pos.captureOrPromotion(move));
+                        && pos.captureOrPromotion(move)
+                        && CASTLE != mType(move));
 
-                    if (move == ss->excludedMove
+                    if (ss->excludedMove == move
                      || !pos.legal(move)) {
                         continue;
                     }
-
-                    bool captureOrPromotion{ true };
 
                     ++probCutCount;
 
@@ -850,8 +848,8 @@ namespace {
                     prefetch(TT.cluster(pos.movePosiKey(move))->entryTable);
 
                     ss->playedMove = move;
-                    ss->pieceStats = &thread->continuationStats
-                                        [inCheck][captureOrPromotion][pos[orgSq(move)]][dstSq(move)];
+                    // inCheck{ false }, captureOrPromotion{ true }
+                    ss->pieceStats = &thread->continuationStats[0][1][pos[orgSq(move)]][dstSq(move)];
 
                     pos.doMove(move, si);
 
@@ -912,9 +910,9 @@ namespace {
 
         auto counterMove{ MOVE_NONE };
         if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ fdstSq((ss-1)->playedMove) };
-            assert(NO_PIECE != pos[pmDst]);
-            counterMove = pos.thread()->counterMoves[pos[pmDst]][pmDst];
+            auto pmDst{ dstSq((ss-1)->playedMove) };
+            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : (~pos.activeSide())|KING };
+            counterMove = pos.thread()->counterMoves[pmPiece][pmDst];
         }
 
         // Initialize move-picker(1) for the current position
@@ -929,10 +927,10 @@ namespace {
         // Step 12. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
         while (MOVE_NONE != (move = mp.nextMove())) {
             assert(isOk(move)
-                && pos.pseudoLegal(move));
+                && (inCheck || pos.pseudoLegal(move)));
 
             // Skip exclusion move
-            if (move == ss->excludedMove) {
+            if (ss->excludedMove == move) {
                 continue;
             }
 
@@ -1031,7 +1029,7 @@ namespace {
             // if result is lower than ttValue minus a margin then extend ttMove.
             if (!rootNode
              && 5 < depth
-             && move == ttMove
+             && ttMove == move
              && MOVE_NONE == ss->excludedMove // Avoid recursive singular search
              // && VALUE_NONE != ttValue  Already implicit in the next condition
              && +VALUE_KNOWN_WIN > abs(ttValue) // Handle ttHit
@@ -1083,8 +1081,7 @@ namespace {
             if (!rootNode
              && !pos.legal(move)) {
                 ss->moveCount = --moveCount;
-                if (ttmCapture
-                 && move == ttMove) {
+                if (ttMove == move) {
                     ttmCapture = false;
                 }
                 continue;
@@ -1098,8 +1095,7 @@ namespace {
 
             // Update the current move.
             ss->playedMove = move;
-            ss->pieceStats = &thread->continuationStats
-                                [inCheck][captureOrPromotion][mpc][dst];
+            ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mpc][dst];
 
             // Step 15. Do the move
             pos.doMove(move, si, giveCheck);
@@ -1115,7 +1111,7 @@ namespace {
               || mp.skipQuiets
                 // If ttHit running average is small
               || thread->ttHitAvg < 375 * TTHitAverageWindow
-              || ss->staticEval + PieceValues[EG][std::max(pos.captured(), PROMOTE == mType(move) ? promoteType(move) : NONE)] <= alfa) };
+              || ss->staticEval + PieceValues[EG][pos.captured()] <= alfa) };
 
             bool doFullSearch;
             // Step 16. Reduced depth search (LMR, ~200 ELO).
@@ -1168,10 +1164,7 @@ namespace {
                            && (ss-1)->stats >= -116)
                         -1 * ((ss-0)->stats >= -102
                            && (ss-1)->stats < -114);
-                    assert(!((ss-0)->stats < -154
-                          && (ss-1)->stats >= -116)
-                        || !((ss-0)->stats >= -102
-                          && (ss-1)->stats < -114));
+
                     // Decrease/Increase reduction for moves with a good/bad history (~30 Elo)
                     reductDepth -= i16(ss->stats / 0x4000);
                 }
@@ -1351,8 +1344,9 @@ namespace {
              && (1 == (ss-1)->moveCount
               || (ss-1)->killerMoves[0] == (ss-1)->playedMove)
              && isOk((ss-1)->playedMove)) {
-                auto pmDst{ fdstSq((ss-1)->playedMove) };
-                updateContinuationStats(ss-1, pos[pmDst], pmDst, -bonus1);
+                auto pmDst{ dstSq((ss-1)->playedMove) };
+                auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : (~pos.activeSide())|KING };
+                updateContinuationStats(ss-1, pmPiece, pmDst, -bonus1);
             }
         }
         else
@@ -1361,8 +1355,9 @@ namespace {
          && (PVNode
           || 2 < depth)
          && isOk((ss-1)->playedMove)) {
-            auto pmDst{ fdstSq((ss-1)->playedMove) };
-            updateContinuationStats(ss-1, pos[pmDst], pmDst, statBonus(depth));
+            auto pmDst{ dstSq((ss-1)->playedMove) };
+            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : (~pos.activeSide())|KING };
+            updateContinuationStats(ss-1, pmPiece, pmDst, statBonus(depth));
         }
 
         if (PVNode)
@@ -1486,7 +1481,7 @@ void Thread::search() {
         ss->staticEval      = VALUE_ZERO;
         ss->stats           = 0;
         ss->pieceStats      = ss < stack + 7 ?
-                                &continuationStats[0][0][NO_PIECE][0] : nullptr;
+                                &continuationStats[0][0][NO_PIECE][32] : nullptr;
         ss->killerMoves.fill(MOVE_NONE);
         ss->pv.clear();
     }

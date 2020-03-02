@@ -47,6 +47,9 @@ using EndgameType = typename std::conditional<C < SCALING_FUNCTIONS, Value, Scal
 template<typename T>
 class EndgameBase {
 
+protected:
+    using Base = EndgameBase;
+
 public:
 
     Color const stngColor
@@ -73,7 +76,6 @@ public:
     explicit Endgame(Color c)
         : EndgameBase<T>{ c }
     {}
-
     Endgame& operator=(Endgame const&) = delete;
 
     T operator()(Position const&) const override;
@@ -81,7 +83,7 @@ public:
 };
 
 
-namespace Endgames {
+namespace EndGame {
 
     template<typename T>  using EGPtr = std::unique_ptr<EndgameBase<T>>;
     template<typename T>  using EGMap = std::unordered_map<Key, EGPtr<T>>;

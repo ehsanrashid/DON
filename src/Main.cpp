@@ -34,7 +34,7 @@ int main(int argc, char const *const *argv) {
     Zobrists::initialize();
     CucKoo::initialize();
     UCI::initialize();
-    Endgames::initialize();
+    EndGame::initialize();
     Book.initialize(Options["Book File"]);
     WinProcGroup::initialize();
     Threadpool.setSize(optionThreads());

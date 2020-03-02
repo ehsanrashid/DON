@@ -48,9 +48,6 @@ void RootMove::operator+=(Move m) {
 /// RootMove::toString()
 std::string RootMove::toString() const {
     std::ostringstream oss;
-    //for (auto move : *this) {
-    //    oss << move << " ";
-    //}
     std::copy(begin(), end(), std::ostream_iterator<Move>(oss, " "));
     return oss.str();
 }

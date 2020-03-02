@@ -31,6 +31,7 @@ private:
     NativeThread _nativeThread;
 
 protected:
+    using Base = Thread;
 
 public:
 
@@ -102,7 +103,7 @@ private:
     i16  _ticks;
 
 public:
-    using Thread::Thread;
+    using Base::Base;
 
     bool stopOnPonderhit;       // Stop search on ponderhit
     std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
@@ -117,8 +118,8 @@ public:
     void setTicks(i16);
     void doTick();
 
-    void clear() override;
-    void search() override;
+    void clear() override final;
+    void search() override final;
 };
 
 namespace WinProcGroup {

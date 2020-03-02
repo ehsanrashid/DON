@@ -103,7 +103,7 @@ namespace Material {
         // Let's look if have a specialized evaluation function for this
         // particular material configuration. First look for a fixed
         // configuration one, then a generic one if previous search failed.
-        evaluationFunc = Endgames::probe<Value>(pos.matlKey());
+        evaluationFunc = EndGame::probe<Value>(pos.matlKey());
         if (nullptr != evaluationFunc) {
             return;
         }
@@ -121,7 +121,7 @@ namespace Material {
         //
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
-        auto const *scalingFn{ Endgames::probe<Scale>(pos.matlKey()) };
+        auto const *scalingFn{ EndGame::probe<Scale>(pos.matlKey()) };
         if (nullptr != scalingFn) {
             scalingFunc[scalingFn->stngColor] = scalingFn;
             return;
@@ -184,13 +184,13 @@ namespace Material {
         Array<i32, COLORS, PIECE_TYPES> pieceCount
         {{
             {
-                pos.pairedBishop(WHITE), pos.count(WHITE|PAWN),
+                pos.bishopPaired(WHITE), pos.count(WHITE|PAWN),
                 pos.count(WHITE|NIHT)  , pos.count(WHITE|BSHP),
                 pos.count(WHITE|ROOK)  , pos.count(WHITE|QUEN),
                 pos.count(WHITE|KING)
             },
             {
-                pos.pairedBishop(BLACK), pos.count(BLACK|PAWN),
+                pos.bishopPaired(BLACK), pos.count(BLACK|PAWN),
                 pos.count(BLACK|NIHT)  , pos.count(BLACK|BSHP),
                 pos.count(BLACK|ROOK)  , pos.count(BLACK|QUEN),
                 pos.count(BLACK|KING)

@@ -227,7 +227,8 @@ public:
     bool pawnAdvanceAt(Color, Square) const;
     bool pawnPassedAt(Color, Square) const;
 
-    bool pairedBishop(Color) const;
+    bool bishopPaired(Color) const;
+    bool bishopOpposed() const;
     bool semiopenFileOn(Color, Square) const;
 
     void clear();
@@ -477,12 +478,18 @@ inline bool Position::pawnPassedAt(Color c, Square s) const {
     return 0 == (pawnPassSpan(c, s) & pieces(~c, PAWN));
 }
 
-/// Position::pairedBishop() check the side has pair of opposite color bishops
-inline bool Position::pairedBishop(Color c) const {
+/// Position::bishopPaired() check the side has pair of opposite color bishops
+inline bool Position::bishopPaired(Color c) const {
     return 2 <= count(c|BSHP)
         && 0 != (pieces(c, BSHP) & Colors[WHITE])
         && 0 != (pieces(c, BSHP) & Colors[BLACK]);
 }
+inline bool Position::bishopOpposed() const {
+    return 1 == count(WHITE|BSHP)
+        && 1 == count(BLACK|BSHP)
+        && oppositeColor(square(WHITE|BSHP), square(BLACK|BSHP));
+}
+
 inline bool Position::semiopenFileOn(Color c, Square s) const {
     return 0 == (pieces(c, PAWN) & fileBB(s));
 }

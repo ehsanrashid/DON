@@ -94,7 +94,7 @@ template<> Value Endgame<KXK>::operator()(Position const &pos) const {
 
     if (0 != pos.count(stngColor|QUEN)
      || 0 != pos.count(stngColor|ROOK)
-     || pos.pairedBishop(stngColor)
+     || pos.bishopPaired(stngColor)
      || (0 != pos.count(stngColor|BSHP)
       && 0 != pos.count(stngColor|NIHT))
      || 2 < pos.count(stngColor|NIHT)) {
@@ -772,7 +772,7 @@ template<> Scale Endgame<KQKRPs>::operator()(Position const &pos) const {
 }
 
 
-namespace Endgames {
+namespace EndGame {
 
     EGMapPair<Value, Scale> EndGames;
 

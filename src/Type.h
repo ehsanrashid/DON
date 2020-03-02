@@ -495,11 +495,6 @@ constexpr MoveType mType(Move m) {
 constexpr u16 mIndex(Move m) {
     return u16(m & 0x0FFF);
 }
-constexpr Square fdstSq(Move m) {
-    return CASTLE != mType(m) ?
-            dstSq(m) :
-            kingCastleSq(orgSq(m), dstSq(m));
-}
 
 constexpr Move makePromoteMove(Square org, Square dst, PieceType pt = QUEN) {
     return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst);

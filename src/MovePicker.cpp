@@ -126,21 +126,23 @@ void MovePicker::value() {
         auto &vm = *vmItr++;
 
         if (GenType::CAPTURE == GT) {
-            assert(pos.captureOrPromotion(vm));
-            vm.value = 6 * (i32(PieceValues[MG][pos.captureType(vm)])
-                          - pType(pos[orgSq(vm)]))
-                     +     (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][pos.captureType(vm)];
+            assert(pos.captureOrPromotion(vm)
+                && CASTLE != mType(vm));
+            vm.value = i32(PieceValues[MG][pos.captureType(vm)]) * 6
+                     + (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][pos.captureType(vm)];
         }
         else
         if (GenType::QUIET == GT) {
-            vm.value =      (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
-                      + 2 * (*pieceStats[0])[pos[orgSq(vm)]][dstSq(vm)]
-                      + 2 * (*pieceStats[1])[pos[orgSq(vm)]][dstSq(vm)]
-                      + 2 * (*pieceStats[3])[pos[orgSq(vm)]][dstSq(vm)]
-                      + 1 * (*pieceStats[5])[pos[orgSq(vm)]][dstSq(vm)];
-            if (ply < MAX_LOWPLY) {
-            vm.value += 4 * (*lowPlyStats)[ply][mIndex(vm)];
-            }
+            auto dst{ dstSq(vm) };
+            auto mpc{ pos[orgSq(vm)] };
+
+            vm.value = (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
+                     + (*pieceStats[0])[mpc][dst] * 2
+                     + (*pieceStats[1])[mpc][dst] * 2
+                     + (*pieceStats[3])[mpc][dst] * 2
+                     + (*pieceStats[5])[mpc][dst]
+                   + (ply < MAX_LOWPLY ?
+                       (*lowPlyStats)[ply][mIndex(vm)] * 4 : 0);
             // Reset Low values
             if (vm.value < threshold) {
                 vm.value = threshold - 1;
@@ -148,13 +150,18 @@ void MovePicker::value() {
         }
         else { // GenType::EVASION == GT
             if (pos.capture(vm)) {
-                vm.value =  i32(PieceValues[MG][pos.captureType(vm)])
-                          - pType(pos[orgSq(vm)]);
+                assert(pos.captureOrPromotion(vm)
+                    && CASTLE != mType(vm));
+                vm.value = i32(PieceValues[MG][pos.captureType(vm)])
+                         - pType(pos[orgSq(vm)]);
             }
             else {
-                vm.value =      (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
-                          + 1 * (*pieceStats[0])[pos[orgSq(vm)]][dstSq(vm)]
-                          - (0x10000000); // 1 << 28
+                auto dst{ dstSq(vm) };
+                auto mpc{ pos[orgSq(vm)] };
+
+                vm.value = (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
+                         + (*pieceStats[0])[mpc][dst]
+                         - (0x10000000); // 1 << 28
             }
         }
     }
@@ -165,8 +172,9 @@ template<typename Pred>
 bool MovePicker::pick(Pred filter) {
     while (vmBeg != vmEnd) {
         std::swap(*vmBeg, *std::max_element(vmBeg, vmEnd));
-        assert(ttMove != *vmBeg
-            && pos.pseudoLegal(*vmBeg));
+        assert(MOVE_NONE != *vmBeg
+            && ttMove != *vmBeg
+            && (0 != pos.checkers() || pos.pseudoLegal(*vmBeg)));
 
         bool ok{ filter() };
 
@@ -189,8 +197,8 @@ Move MovePicker::nextMove() {
     case PROBCUT_TT:
     case QUIESCENCE_TT:
         ++stage;
-        assert(MOVE_NONE != ttMove
-            && pos.pseudoLegal(ttMove));
+        //assert(MOVE_NONE != ttMove
+        //    && pos.pseudoLegal(ttMove));
         return ttMove;
 
     case NATURAL_INIT:
@@ -198,7 +206,8 @@ Move MovePicker::nextMove() {
     case QUIESCENCE_INIT: {
         generate<GenType::CAPTURE>(vmoves, pos);
         vmBeg = vmoves.begin();
-        vmEnd = std::remove(vmBeg, vmoves.end(), ttMove);
+        vmEnd = MOVE_NONE != ttMove ?
+                std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
         value<GenType::CAPTURE>();
 
         ++stage;
@@ -272,24 +281,10 @@ Move MovePicker::nextMove() {
         /* end */
 
     case EVASION_INIT: {
-        Square fkSq{ pos.square(pos.activeSide()|KING) };
-        Bitboard mocc{ pos.pieces() ^ fkSq };
-        Bitboard enemies{ pos.pieces(~pos.activeSide()) };
-        Bitboard pinneds{ pos.kingBlockers(pos.activeSide())
-                        & pos.pieces(pos.activeSide()) };
-
         generate<GenType::EVASION>(vmoves, pos);
         vmBeg = vmoves.begin();
-        vmEnd = std::remove_if(vmBeg, vmoves.end(),
-                [&](ValMove const &vm) {
-                    assert(CASTLE != mType(vm));
-                    return ttMove == vm
-                        || (fkSq == orgSq(vm) // NORMAL == mType(vm) no castling possible in check
-                         && 0 != (pos.attackersTo(dstSq(vm), mocc) & enemies))
-                        || ((contains(pinneds, orgSq(vm))
-                          || ENPASSANT == mType(vm))
-                         && !pos.pseudoLegal(vm));
-                });
+        vmEnd = MOVE_NONE != ttMove ?
+                std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
         value<GenType::EVASION>();
         ++stage;
     }
@@ -323,7 +318,8 @@ Move MovePicker::nextMove() {
 
         generate<GenType::QUIET_CHECK>(vmoves, pos);
         vmBeg = vmoves.begin();
-        vmEnd = std::remove(vmBeg, vmoves.end(), ttMove);
+        vmEnd = MOVE_NONE != ttMove ?
+                std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
         ++stage;
     }
         /* fall through */

@@ -264,29 +264,29 @@ namespace Evaluator {
                 case NIHT: default: attacks = PieceAttacks[NIHT][s];                                                                                      break;
                 }
 
-                if (contains(pos.kingBlockers(Own), s)) {
-                    attacks &= lines(pos.square(Own|KING), s);
-                }
+                Bitboard action{
+                    contains(pos.kingBlockers(Own), s) ?
+                        lines(pos.square(Own|KING), s) : FullBB };
+
+                attacks &= action;
 
                 switch (PT) {
                 case BSHP: {
-                    Bitboard att =  attacks
-                                 &  pos.pieces(Own)
-                                 & ~pos.kingBlockers(Own);
+                    Bitboard pc =  pos.pieces(Own)
+                                & ~pos.kingBlockers(Own);
                     dblAttacks[Own] |= sqlAttacks[Own][NONE]
                                      & (attacks
-                                      | (pawnSglAttacks<Own>(att & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttacks[BSHP][s]));
+                                      | (pawnSglAttacks<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttacks[BSHP][s] & action));
                 }
                     break;
                 case QUEN: {
-                    Bitboard att =  attacks
-                                 &  pos.pieces(Own)
-                                 & ~pos.kingBlockers(Own);
+                    Bitboard pc =  pos.pieces(Own)
+                                & ~pos.kingBlockers(Own);
                     dblAttacks[Own] |= sqlAttacks[Own][NONE]
                                      & (attacks
-                                      | (pawnSglAttacks<Own>(att & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttacks[BSHP][s])
-                                      | attacksBB<BSHP>(s, pos.pieces() ^ (att & pos.pieces(BSHP) & PieceAttacks[BSHP][s]))
-                                      | attacksBB<ROOK>(s, pos.pieces() ^ (att & pos.pieces(ROOK) & PieceAttacks[ROOK][s])));
+                                      | (pawnSglAttacks<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttacks[BSHP][s] & action)
+                                      | (attacksBB<BSHP>(s, pos.pieces() ^ (pc & pos.pieces(BSHP) & PieceAttacks[BSHP][s])) & action)
+                                      | (attacksBB<ROOK>(s, pos.pieces() ^ (pc & pos.pieces(ROOK) & PieceAttacks[ROOK][s])) & action));
                 }
                     break;
                 default:
@@ -848,14 +848,12 @@ namespace Evaluator {
 
             // If don't already have an unusual scale, check for certain types of endgames.
             if (SCALE_NORMAL == scl) {
-                bool oppositeBishop{ 1 == pos.count(WHITE|BSHP)
-                                  && 1 == pos.count(BLACK|BSHP)
-                                  && oppositeColor(pos.square(WHITE|BSHP), pos.square(BLACK|BSHP)) };
-                scl = oppositeBishop
+
+                scl = pos.bishopOpposed()
                    && 2 * VALUE_MG_BSHP == pos.nonPawnMaterial() ?
                         // Endings with opposite-colored bishops and no other pieces is almost a draw
                         Scale(22) :
-                        std::min(Scale(36 + (7 - 5 * oppositeBishop) * pos.count(stngColor|PAWN)), SCALE_NORMAL);
+                        std::min(Scale(36 + (7 - 5 * pos.bishopOpposed()) * pos.count(stngColor|PAWN)), SCALE_NORMAL);
 
                 // Scale down endgame factor when shuffling
                 scl = std::max(Scale(scl - std::max(pos.clockPly() / 4 - 3, 0)), SCALE_DRAW);

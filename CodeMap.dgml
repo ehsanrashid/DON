@@ -580,7 +580,7 @@
     <Node Id="@570" Category="CodeSchema_Method" Bounds="25375.5334466234,26084.2917794632,195.206666666665,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for 'Limits''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@571" Category="CodeSchema_Method" Bounds="25376.4912444571,25860.3317794632,224.966666666667,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for 'Threadpool''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@572" Category="CodeSchema_Method" Bounds="25602.3498890256,24916.6517794632,176.82,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="`dynamic initializer for 'TT''" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@573" Category="CodeSchema_Method" Bounds="25844.3483953399,23094.6613222153,100.690000000002,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="~Endgames" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@573" Category="CodeSchema_Method" Bounds="25844.3483953399,23094.6613222153,100.690000000002,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="~EndGame" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@574" Category="CodeSchema_Method" Bounds="26410.3695387693,21066.7717794633,99.3499999999985,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="~HashTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@575" Category="CodeSchema_Method" Bounds="25426.9383978354,24043.0697157357,62.1366666666654,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="clear" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@576" Category="CodeSchema_Method" Bounds="25670.1375129784,24018.3674760523,98.8666666666686,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="debugPrint" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -672,7 +672,7 @@
     <Node Id="@66" Category="CodeSchema_Method" Bounds="25173.4104951255,23748.0517794633,90.119999999999,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator+" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@660" Category="CodeSchema_Class" Bounds="25118.5723855702,23313.7025444837,195.66333333333,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Endgame‎&lt;8‎,enum Value‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@661" Category="CodeSchema_Class" Bounds="25494.4358189036,23341.7092219104,195.66333333333,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Endgame‎&lt;9‎,enum Value‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@662" Category="CodeSchema_Class" Bounds="25346.9091522369,23341.7092219104,117.526666666672,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Endgames" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@662" Category="CodeSchema_Class" Bounds="25346.9091522369,23341.7092219104,117.526666666672,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="EndGame" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@663" Category="CodeSchema_Struct" Bounds="25740.8190776597,23402.6336369483,66.2033333333384,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="Entry" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@664" Category="CodeSchema_Struct" Bounds="25503.7482997925,24439.3388206314,86.2033333333384,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Entry" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@665" Category="CodeSchema_Class" Bounds="24940.212272972,24185.9738385723,132.886666666658,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Evaluator‎&lt;0‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -6722,7 +6722,7 @@
     <Alias n="570" Id="(@1 @3 Member=&quot;`dynamic initializer for 'Limits''&quot;)" />
     <Alias n="571" Id="(@1 @3 Member=&quot;`dynamic initializer for 'Threadpool''&quot;)" />
     <Alias n="572" Id="(@1 @3 Member=&quot;`dynamic initializer for 'TT''&quot;)" />
-    <Alias n="573" Id="(@1 @17 Member=~Endgames)" />
+    <Alias n="573" Id="(@1 @17 Member=~EndGame)" />
     <Alias n="574" Id="(@1 @3 Member=~HashTable)" />
     <Alias n="575" Id="(@1 @33 Member=clear)" />
     <Alias n="576" Id="(@1 @15 Member=debugPrint)" />
@@ -6808,7 +6808,7 @@
     <Alias n="659" Id="(@1 @17 Type=&quot;Endgame&lt;7,enum Value&gt;&quot;)" />
     <Alias n="660" Id="(@1 @17 Type=&quot;Endgame&lt;8,enum Value&gt;&quot;)" />
     <Alias n="661" Id="(@1 @17 Type=&quot;Endgame&lt;9,enum Value&gt;&quot;)" />
-    <Alias n="662" Id="(@1 @17 Type=Endgames)" />
+    <Alias n="662" Id="(@1 @17 Type=EndGame)" />
     <Alias n="663" Id="(@1 @22 Type=Entry)" />
     <Alias n="664" Id="(@1 @28 Type=Entry)" />
     <Alias n="665" Id="(@1 @5 Type=Evaluator&lt;0&gt;)" />
