@@ -627,7 +627,6 @@
     <ClInclude Include="src\RootMove.h" />
     <ClInclude Include="src\Searcher.h" />
     <ClInclude Include="src\SkillManager.h" />
-    <ClInclude Include="src\Table.h" />
     <ClInclude Include="src\SyzygyTB.h" />
     <ClInclude Include="src\Thread.h" />
     <ClInclude Include="src\ThreadMarker.h" />

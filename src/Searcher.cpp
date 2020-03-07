@@ -145,7 +145,7 @@ namespace {
 
         if (isOk((ss-1)->playedMove)) {
             auto pmDst{ dstSq((ss-1)->playedMove) };
-            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : (~pos.activeSide())|KING };
+            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
             pos.thread()->counterMoves[pmPiece][pmDst] = move;
         }
 
@@ -155,7 +155,7 @@ namespace {
         }
 
         pos.thread()->butterFlyStats[pos.activeSide()][mIndex(move)] << bonus;
-        if (PAWN != pType(pos[orgSq(move)])) {
+        if (PAWN != PType[pos[orgSq(move)]]) {
             pos.thread()->butterFlyStats[pos.activeSide()][mIndex(reverseMove(move))] << -bonus;
         }
         updateContinuationStats(ss, pos[orgSq(move)], dstSq(move), bonus);
@@ -375,12 +375,12 @@ namespace {
             if (!inCheck
              && !giveCheck
              && -VALUE_KNOWN_WIN < futilityBase
-             && !(PAWN == pType(mpc)
+             && !(PAWN == PType[mpc]
                && pos.pawnAdvanceAt(pos.activeSide(), org))
              && 0 == Limits.mate) {
                 assert(ENPASSANT != mType(move)); // Due to !pos.pawnAdvanceAt
                 // Futility pruning parent node
-                auto futilityValue{ futilityBase + PieceValues[EG][CASTLE != mType(move) ? pType(pos[dst]) : NONE] };
+                auto futilityValue{ futilityBase + PieceValues[EG][CASTLE != mType(move) ? PType[pos[dst]] : NONE] };
                 if (futilityValue <= alfa) {
                     if (bestValue < futilityValue) {
                         bestValue = futilityValue;
@@ -628,7 +628,7 @@ namespace {
                  && 2 >= (ss-1)->moveCount
                  && isOk((ss-1)->playedMove)) {
                     auto pmDst{ dstSq((ss-1)->playedMove) };
-                    auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : (~pos.activeSide())|KING };
+                    auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
                     updateContinuationStats(ss-1, pmPiece, pmDst, -statBonus(depth + 1));
                 }
             }
@@ -911,7 +911,7 @@ namespace {
         auto counterMove{ MOVE_NONE };
         if (isOk((ss-1)->playedMove)) {
             auto pmDst{ dstSq((ss-1)->playedMove) };
-            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : (~pos.activeSide())|KING };
+            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
             counterMove = pos.thread()->counterMoves[pmPiece][pmDst];
         }
 
@@ -1065,7 +1065,7 @@ namespace {
               && (contains(pos.kingBlockers(~pos.activeSide()), org)
                || pos.see(move)))
                 // Passed pawn extension
-             || (PAWN == pType(mpc)
+             || (PAWN == PType[mpc]
               && pos.pawnAdvanceAt(pos.activeSide(), org)
               && pos.pawnPassedAt(pos.activeSide(), dst)
               && ss->killerMoves[0] == move)) {
@@ -1145,11 +1145,12 @@ namespace {
                         reductDepth -= 2 + ttPV;
                     }
 
-                    ss->stats = thread->butterFlyStats[~pos.activeSide()][mIndex(move)]
-                              + (*pieceStats[0])[mpc][dst]
-                              + (*pieceStats[1])[mpc][dst]
-                              + (*pieceStats[3])[mpc][dst]
-                              - 4926;
+                    ss->stats =
+                          thread->butterFlyStats[~pos.activeSide()][mIndex(move)]
+                        + (*pieceStats[0])[mpc][dst]
+                        + (*pieceStats[1])[mpc][dst]
+                        + (*pieceStats[3])[mpc][dst]
+                        - 4926;
                     // Reset stats to zero if negative and most stats shows >= 0
                     if (0 >  ss->stats
                      && 0 <= thread->butterFlyStats[~pos.activeSide()][mIndex(move)]
@@ -1345,7 +1346,7 @@ namespace {
               || (ss-1)->killerMoves[0] == (ss-1)->playedMove)
              && isOk((ss-1)->playedMove)) {
                 auto pmDst{ dstSq((ss-1)->playedMove) };
-                auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : (~pos.activeSide())|KING };
+                auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
                 updateContinuationStats(ss-1, pmPiece, pmDst, -bonus1);
             }
         }
@@ -1356,7 +1357,7 @@ namespace {
           || 2 < depth)
          && isOk((ss-1)->playedMove)) {
             auto pmDst{ dstSq((ss-1)->playedMove) };
-            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : (~pos.activeSide())|KING };
+            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
             updateContinuationStats(ss-1, pmPiece, pmDst, statBonus(depth));
         }
 

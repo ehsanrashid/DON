@@ -153,7 +153,7 @@ void MovePicker::value() {
                 assert(pos.captureOrPromotion(vm)
                     && CASTLE != mType(vm));
                 vm.value = i32(PieceValues[MG][pos.captureType(vm)])
-                         - pType(pos[orgSq(vm)]);
+                         - PType[pos[orgSq(vm)]];
             }
             else {
                 auto dst{ dstSq(vm) };
@@ -219,7 +219,7 @@ Move MovePicker::nextMove() {
         if (pick([&]() {
                 return pos.see(*vmBeg, Value(-55 * vmBeg->value / 1024)) ?
                     // Put losing capture to badCaptureMoves to be tried later
-                        true : (badCaptureMoves.push_back(*vmBeg), false);
+                        true : (badCaptureMoves += *vmBeg, false);
             })) {
             return *std::prev(vmBeg);
         }

@@ -110,10 +110,10 @@ namespace PSQT {
             for (Square s = SQ_A1; s <= SQ_H8; ++s) {
                 Score psq{ score
                          + (PAWN == pt ?
-                                PawnScores[sRank(s)][sFile(s)] :
-                                PieceScores[pt][sRank(s)][mapFile(sFile(s))]) };
-                PSQ[WHITE|pt][ s] = +psq;
-                PSQ[BLACK|pt][~s] = -psq;
+                                PawnScores[SRank[s]][SFile[s]] :
+                                PieceScores[pt][SRank[s]][foldFile(SFile[s])]) };
+                PSQ[WHITE|pt][s]           = +psq;
+                PSQ[BLACK|pt][flipRank(s)] = -psq;
             }
         }
     }

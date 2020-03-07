@@ -7,9 +7,9 @@
 
 #include "ThreadWin32OSX.h"
 
+#include "MovePicker.h"
 #include "Position.h"
 #include "RootMove.h"
-#include "Table.h"
 #include "Material.h"
 #include "Pawns.h"
 #include "Type.h"

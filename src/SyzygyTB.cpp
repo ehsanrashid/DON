@@ -24,6 +24,7 @@ using std::vector;
 using namespace SyzygyTB;
 
 #if defined(_WIN32)
+
 #   if !defined(NOMINMAX)
 #       define NOMINMAX // Disable macros min() and max()
 #   endif
@@ -35,6 +36,7 @@ using namespace SyzygyTB;
 
 #   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
+
 
 // Create a string with last error message
 string getLastErrorStr() {
@@ -103,7 +105,7 @@ namespace {
         return MapPawns[s1] < MapPawns[s2];
     }
     i32 offA1H8(Square s) {
-        return i32(sRank(s)) - i32(sFile(s));
+        return i32(SRank[s]) - i32(SFile[s]);
     }
 
     template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
@@ -791,17 +793,20 @@ namespace {
         if (entry->hasPawns) {
             // In all the 4 tables, pawns are at the beginning of the piece sequence and
             // their color is the reference one. So we just pick the first one.
-            Piece p =
-                flip ? ~Piece(entry->get(0, 0)->pieces[0]) : Piece(entry->get(0, 0)->pieces[0]);
-            assert(PAWN == pType(p));
-            pawns = pos.pieces(pColor(p), PAWN);
+            Piece p{
+                flip ? flipColor(Piece(entry->get(0, 0)->pieces[0])) :
+                                 Piece(entry->get(0, 0)->pieces[0]) };
+            assert(PAWN == PType[p]);
+
+            pawns = pos.pieces(PColor[p], PAWN);
 
             Bitboard b{ pawns };
             assert(0 != b);
             do {
                 auto s{ popLSq(b) };
+
                 squares[size] =
-                    flip ? ~s : s;
+                    flip ? flipRank(s) : s;
 
                 ++size;
             } while (0 != b);
@@ -809,7 +814,7 @@ namespace {
 
             std::swap(squares[0],
                      *std::max_element(squares, squares + size, mapPawnsCompare));
-            pawnFile = mapFile(sFile(squares[0]));
+            pawnFile = foldFile(SFile[squares[0]]);
         }
         else {
             pawns = 0;
@@ -831,10 +836,11 @@ namespace {
         assert(0 != b);
         do {
             auto s{ popLSq(b) };
+
             squares[size] =
-                flip ? ~s : s;
+                flip ? flipRank(s) : s;
             pieces[size] =
-                flip ? ~pos[s] : pos[s];
+                flip ? flipColor(pos[s]) : pos[s];
 
             ++size;
         } while (0 != b);
@@ -857,9 +863,9 @@ namespace {
 
         // Now we map again the squares so that the square of the lead piece is in
         // the triangle A1-D1-D4.
-        if (sFile(squares[0]) > FILE_D) {
+        if (SFile[squares[0]] > FILE_D) {
             for (i16 i = 0; i < size; ++i) {
-                squares[i] = !squares[i];
+                squares[i] = flipFile(squares[i]);
             }
         }
 
@@ -880,9 +886,9 @@ namespace {
 
         // In positions without pawns:
         // Flip the squares to ensure leading piece is below RANK_5.
-        if (sRank(squares[0]) > RANK_4) {
+        if (SRank[squares[0]] > RANK_4) {
             for (i32 i = 0; i < size; ++i) {
-                squares[i] = ~squares[i];
+                squares[i] = flipRank(squares[i]);
             }
         }
         // Look for the first piece of the leading group not on the A1-D4 diagonal
@@ -948,7 +954,7 @@ namespace {
             else
             if (offA1H8(squares[1]) != 0) {
                 idx =                         6 * 63 * 62
-                  + sRank(squares[0])           * 28 * 62
+                  + SRank[squares[0]]           * 28 * 62
                   + MapB1H1H7[squares[1]]            * 62
                   + (squares[2] - adjust2);
             }
@@ -957,8 +963,8 @@ namespace {
             if (offA1H8(squares[2]) != 0) {
                 idx =                         6 * 63 * 62
                   +                           4 * 28 * 62
-                  + sRank(squares[0])           *  7 * 28
-                  + (sRank(squares[1]) - adjust1)    * 28
+                  + SRank[squares[0]]           *  7 * 28
+                  + (SRank[squares[1]] - adjust1)    * 28
                   + MapB1H1H7[squares[2]];
             }
             // All 3 pieces on the diagonal a1-h8
@@ -966,9 +972,9 @@ namespace {
                 idx =                         6 * 63 * 62
                   +                           4 * 28 * 62
                   +                           4 *  7 * 28
-                  + sRank(squares[0])           *  7 *  6
-                  + (sRank(squares[1]) - adjust1)    *  6
-                  + (sRank(squares[2]) - adjust2);
+                  + SRank[squares[0]]           *  7 *  6
+                  + (SRank[squares[1]] - adjust1)    *  6
+                  + (SRank[squares[2]] - adjust2);
             }
         }
         else {
@@ -1397,7 +1403,7 @@ namespace {
         for (auto &move : moveList) {
             if (!pos.capture(move)
              && (!checkZeroing
-              || PAWN != pType(pos[orgSq(move)]))) {
+              || PAWN != PType[pos[orgSq(move)]])) {
                 continue;
             }
 
@@ -1558,7 +1564,7 @@ namespace SyzygyTB {
 
         for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
             bool zeroing = pos.capture(vm)
-                        || PAWN == pType(pos[orgSq(vm)]);
+                        || PAWN == PType[pos[orgSq(vm)]];
 
             pos.doMove(vm, si);
 
@@ -1820,8 +1826,8 @@ namespace SyzygyTB {
                         // squares when sq = a2 and reduced by 2 for any rank increase
                         // due to mirroring: sq == a3 -> no a2, h2, so MapPawns[a3] = 45
                         if (1 == leadPawnCount) {
-                            MapPawns[ sq] = availableSq--;
-                            MapPawns[!sq] = availableSq--; // Horizontal flip
+                            MapPawns[sq]           = availableSq--;
+                            MapPawns[flipFile(sq)] = availableSq--; // Horizontal flip
                         }
                         LeadPawnIdx[leadPawnCount][sq] = idx;
                         idx += Binomial[leadPawnCount - 1][MapPawns[sq]];

@@ -15,7 +15,7 @@ string const ColorChar{ "wb" };
 
 Color toColor(char c) {
     auto pos{ ColorChar.find(c) };
-    return pos != string::npos ? Color(pos) : COLOR_NONE;
+    return pos != string::npos ? Color(pos) : COLORS;
 }
 char toChar(Color c) {
     return isOk(c) ? ColorChar[c] : '-';
@@ -36,7 +36,7 @@ char toChar(Rank r) {
 }
 
 string toString(Square s) {
-    return{ toChar(sFile(s)), toChar(sRank(s)) };
+    return{ toChar(SFile[s]), toChar(SRank[s]) };
 }
 
 Piece toPiece(char p) {
@@ -167,7 +167,7 @@ namespace {
 
         auto org{ orgSq(m) };
         auto dst{ dstSq(m) };
-        auto pt{ pType(pos[org]) };
+        auto pt{ PType[pos[org]] };
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
         Bitboard piece{ pos.attacksFrom(pt, dst)
@@ -246,14 +246,14 @@ string moveToSAN(Move m, Position &pos) {
     auto dst{ dstSq(m) };
 
     if (CASTLE != mType(m)) {
-        auto pt = pType(pos[org]);
+        auto pt = PType[pos[org]];
         if (PAWN != pt) {
             oss << (WHITE|pt);
             if (KING != pt) {
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'dst' with a legal move.
                 switch (ambiguity(m, pos)) {
-                case AMB_RANK:   oss << sFile(org); break;
-                case AMB_FILE:   oss << sRank(org); break;
+                case AMB_RANK:   oss << SFile[org]; break;
+                case AMB_FILE:   oss << SRank[org]; break;
                 case AMB_SQUARE: oss << org;        break;
                 case AMB_NONE: default:             break;
                 }
@@ -262,7 +262,7 @@ string moveToSAN(Move m, Position &pos) {
 
         if (pos.capture(m)) {
             if (PAWN == pt) {
-                oss << sFile(org);
+                oss << SFile[org];
             }
             oss << "x";
         }

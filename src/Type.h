@@ -24,10 +24,13 @@
 #include <cassert>
 #include <cctype>
 #include <climits>
+#include <cmath>
 #include <cstdint>
 #include <cstdlib>
+
 #include <algorithm>
 #include <chrono>
+#include <array>
 #include <vector>
 
 using i08 =  int8_t;
@@ -39,6 +42,9 @@ using u32 = uint32_t;
 using i64 =  int64_t;
 using u64 = uint64_t;
 using uPtr = uintptr_t;
+
+using Key = u64;
+using Bitboard = u64;
 
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
@@ -66,10 +72,7 @@ using uPtr = uintptr_t;
 
 #endif
 
-using Key = u64;
-using Bitboard = u64;
-
-enum Color : i08 { WHITE, BLACK, COLOR_NONE, COLORS = 2 };
+enum Color : i08 { WHITE, BLACK, COLORS = 2 };
 
 enum File : i08 { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILES = 8 };
 
@@ -135,12 +138,12 @@ enum CastleSide : i08 { CS_KING, CS_QUEN, CS_NONE, CASTLE_SIDES = 2 };
 /// Castle Right defined as in Polyglot book hash key
 enum CastleRight : u08
 {
-    CR_NONE  = 0,                   // 0000
+    CR_NONE  = 0,       // 0000
 
-    CR_WKING = 1,                   // 0001
-    CR_WQUEN = CR_WKING << 1,       // 0010
-    CR_BKING = CR_WKING << 2,       // 0100
-    CR_BQUEN = CR_WKING << 3,       // 1000
+    CR_WKING = 1,       // 0001
+    CR_WQUEN = 2,       // 0010
+    CR_BKING = 4,       // 0100
+    CR_BQUEN = 8,       // 1000
 
     CR_WHITE = CR_WKING | CR_WQUEN, // 0011
     CR_BLACK = CR_BKING | CR_BQUEN, // 1100
@@ -237,8 +240,9 @@ enum Bound : u08
 
 enum Phase : u08
 {
-    MG    = 0,
-    EG    = 1,
+    MG,
+    EG,
+    PHASES = 2
 };
 
 enum Scale : u08
@@ -365,6 +369,43 @@ constexpr Score operator*(Score s, bool b) {
 Score operator*(Score, Score) = delete;
 Score operator/(Score, Score) = delete;
 
+// Return the sign of a number (-1, 0, 1)
+template<typename T>
+constexpr i32 sign(T const &v) {
+    return (T{} < v) - (v < T{});
+}
+
+template<typename T>
+T const& clamp(T const &v, T const &minimum, T const &maximum) {
+    return
+        (minimum > v) ? minimum :
+        (v > maximum) ? maximum : v;
+}
+
+
+/// Multi-dimensional Array
+template<typename T, size_t Size, size_t... Sizes>
+class ArrayType {
+    static_assert (Size != 0, "Size incorrect");
+private:
+    using NestedArrayType = typename ArrayType<T, Sizes...>::type;
+
+public:
+    using type = std::array<NestedArrayType, Size>;
+};
+
+template<typename T, size_t Size>
+class ArrayType<T, Size> {
+    static_assert (Size != 0, "Size incorrect");
+public:
+    using type = std::array<T, Size>;
+};
+
+template<typename T, size_t... Sizes>
+using Array = typename ArrayType<T, Sizes...>::type;
+
+
+
 constexpr bool isOk(Color c) {
     return WHITE == c || BLACK == c;
 }
@@ -375,85 +416,111 @@ constexpr Color operator~(Color c) {
 constexpr bool isOk(File f) {
     return FILE_A <= f && f <= FILE_H;
 }
-constexpr File operator~(File f) {
-    return File(f ^ FILE_H);
+constexpr File flipFile(File f) {
+    return File(i32(f) ^ i32(FILE_H));
 }
-// Map file [ABCDEFGH] to file [ABCDDCBA]
-inline File mapFile(File f) {
-    return std::min(f, ~f);
+// Fold file [ABCDEFGH] to file [ABCDDCBA]
+inline File foldFile(File f) {
+    return std::min(f, flipFile(f));
 }
 
 constexpr bool isOk(Rank r) {
     return RANK_1 <= r && r <= RANK_8;
 }
-constexpr Rank operator~(Rank r) {
-    return Rank(r ^ RANK_8);
+constexpr Rank flipRank(Rank r) {
+    return Rank(i32(r) ^ i32(RANK_8));
 }
 
-constexpr Square makeSquare(File f, Rank r) {
-    return Square((r << 3) + f);
-}
 
 constexpr bool isOk(Square s) {
     return SQ_A1 <= s && s <= SQ_H8;
 }
-constexpr File sFile(Square s) {
-    return File((s >> 0) & FILE_H);
-}
-constexpr Rank sRank(Square s) {
-    return Rank((s >> 3) & RANK_8);
-}
-constexpr Color sColor(Square s) {
-    return Color(((i32(s) ^ (s >> 3)) & BLACK) ^ BLACK);
+
+constexpr Array<Square, RANKS, FILES> Squares
+{{
+    { SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1 },
+    { SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2 },
+    { SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3 },
+    { SQ_A4, SQ_B4, SQ_C4, SQ_D4, SQ_E4, SQ_F4, SQ_G4, SQ_H4 },
+    { SQ_A5, SQ_B5, SQ_C5, SQ_D5, SQ_E5, SQ_F5, SQ_G5, SQ_H5 },
+    { SQ_A6, SQ_B6, SQ_C6, SQ_D6, SQ_E6, SQ_F6, SQ_G6, SQ_H6 },
+    { SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7 },
+    { SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8 }
+}};
+
+constexpr Square makeSquare(File f, Rank r) {
+    return
+        //Square((r << 3) + f);
+        Squares[r][f];
 }
 
-// SQ_A8 -> SQ_A1
-constexpr Square operator~(Square s) {
-    return Square(i32(s) ^ i32(SQ_A8));
+constexpr Array<File, SQUARES> SFile
+{
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H
+};
+constexpr Array<Rank, SQUARES> SRank
+{
+    RANK_1, RANK_1, RANK_1, RANK_1, RANK_1, RANK_1, RANK_1, RANK_1,
+    RANK_2, RANK_2, RANK_2, RANK_2, RANK_2, RANK_2, RANK_2, RANK_2,
+    RANK_3, RANK_3, RANK_3, RANK_3, RANK_3, RANK_3, RANK_3, RANK_3,
+    RANK_4, RANK_4, RANK_4, RANK_4, RANK_4, RANK_4, RANK_4, RANK_4,
+    RANK_5, RANK_5, RANK_5, RANK_5, RANK_5, RANK_5, RANK_5, RANK_5,
+    RANK_6, RANK_6, RANK_6, RANK_6, RANK_6, RANK_6, RANK_6, RANK_6,
+    RANK_7, RANK_7, RANK_7, RANK_7, RANK_7, RANK_7, RANK_7, RANK_7,
+    RANK_8, RANK_8, RANK_8, RANK_8, RANK_8, RANK_8, RANK_8, RANK_8
+};
+constexpr Array<Color, SQUARES> SColor
+{
+    BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE,
+    WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK,
+    BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE,
+    WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK,
+    BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE,
+    WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK,
+    BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE,
+    WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK
+};
+
+// Flip File: SQ_H1 -> SQ_A1
+constexpr Square flipFile(Square s) {
+    return
+        //Squares[SRank[s]][flipFile(SFile[s])];
+        Square(i32(s) ^ i32(SQ_H1));
 }
-// SQ_H1 -> SQ_A1
-constexpr Square operator!(Square s) {
-    return Square(i32(s) ^ i32(SQ_H1));
+// Flip Rank: SQ_A8 -> SQ_A1
+constexpr Square flipRank(Square s) {
+    return
+        //Squares[flipRank(SRank[s])][SFile[s]];
+        Square(i32(s) ^ i32(SQ_A8));
 }
 
-constexpr bool oppositeColor(Square s1, Square s2) {
-    return 0 != ((i32(s1) ^ (s1 >> 3)
-                ^ i32(s2) ^ (s2 >> 3)) & BLACK);
+constexpr bool colorOpposed(Square s1, Square s2) {
+    return SColor[s1] != SColor[s2];
 }
 
 constexpr Square relativeSq(Color c, Square s) {
-    return Square(i32(s) ^ (c * SQ_A8));
+    return Square(i32(s) ^ i32(SQ_A8 * c));
 }
 
-constexpr Rank relativeRank(Color c, Rank   r) {
-    return Rank(r ^ (c * RANK_8));
+constexpr Rank relativeRank(Color c, Rank r) {
+    return Rank(i32(r) ^ i32(RANK_8 * c));
 }
 constexpr Rank relativeRank(Color c, Square s) {
-    return relativeRank(c, sRank(s));
+    return relativeRank(c, SRank[s]);
 }
 
 constexpr Square kingCastleSq(Square org, Square dst) {
-    return makeSquare(File(i32(FILE_C) + (dst > org) * 4), sRank(org));
+    return makeSquare(File(i32(FILE_E) + 2 * sign(dst - org)), SRank[org]);
 }
 constexpr Square rookCastleSq(Square org, Square dst) {
-    return makeSquare(File(i32(FILE_D) + (dst > org) * 2), sRank(org));
-}
-
-constexpr Direction pawnPush(Color c) {
-    return NORTH + SOUTH * (c << 1);
-}
-constexpr Direction pawnLAtt(Color c) {
-    return NORTH_WEST + SOUTH_EAST * (c << 1);
-}
-constexpr Direction pawnRAtt(Color c) {
-    return NORTH_EAST + SOUTH_WEST * (c << 1);
-}
-
-constexpr CastleRight makeCastleRight(Color c) {
-    return CastleRight(CR_WHITE <<  (c << 1));
-}
-constexpr CastleRight makeCastleRight(Color c, CastleSide cs) {
-    return CastleRight(CR_WKING << ((c << 1) + cs));
+    return makeSquare(File(i32(FILE_E) + 1 * sign(dst - org)), SRank[org]);
 }
 
 constexpr bool isOk(PieceType pt) {
@@ -464,18 +531,60 @@ constexpr bool isOk(Piece p) {
     return (W_PAWN <= p && p <= W_KING)
         || (B_PAWN <= p && p <= B_KING);
 }
-constexpr PieceType pType(Piece p) {
-    return PieceType(p & PIECE_TYPES);
-}
-constexpr Color pColor(Piece p) {
-    return Color((p >> 3) & BLACK);
-}
-constexpr Piece operator~(Piece p) {
-    return Piece(p ^ (BLACK << 3));
-}
+
+constexpr Array<Piece, 12> Pieces
+{
+    W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+    B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING
+};
+
+constexpr Array<Piece, COLORS, PIECE_TYPES> CPieces
+{{
+    { NO_PIECE, W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING },
+    { NO_PIECE, B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING }
+}};
+/// makePiece
 constexpr Piece operator|(Color c, PieceType pt) {
-    return Piece((c << 3) + pt);
+    return
+        //Piece((c << 3) + pt);
+        CPieces[c][pt];
 }
+
+constexpr Array<PieceType, PIECES> PType
+{
+    NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING, NONE,
+    NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING,
+};
+constexpr Array<Color, PIECES> PColor
+{
+    COLORS, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, COLORS,
+    COLORS, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK,
+};
+
+constexpr Piece flipColor(Piece p) {
+    return
+        //CPieces[~PColor[p]][PType[p]];
+        Piece(i32(p) ^ (BLACK << 3));
+}
+
+constexpr Array<CastleRight, COLORS, CASTLE_SIDES> CastleRights
+{{
+    { CR_WKING, CR_WQUEN },
+    { CR_BKING, CR_BQUEN }
+}};
+
+constexpr CastleRight makeCastleRight(Color c) {
+    return
+        //CastleRight(CR_WHITE <<  (c << 1));
+        CastleRights[c][CS_KING]
+      | CastleRights[c][CS_QUEN];
+}
+constexpr CastleRight makeCastleRight(Color c, CastleSide cs) {
+    return
+        //CastleRight(CR_WKING << ((c << 1) + cs));
+        CastleRights[c][cs];
+}
+
 
 constexpr Square orgSq(Move m) {
     return Square((m >> 6) & i32(SQ_H8));
@@ -487,7 +596,7 @@ constexpr bool isOk(Move m) {
     return orgSq(m) != dstSq(m);
 }
 constexpr PieceType promoteType(Move m) {
-    return PieceType(((m >> 12) & 0x03) + NIHT);
+    return PieceType(((m >> 12) & 3) + NIHT);
 }
 constexpr MoveType mType(Move m) {
     return MoveType(m & PROMOTE);
@@ -529,6 +638,13 @@ constexpr Value matedIn(i32 ply) {
     return -VALUE_MATE + ply;
 }
 
+constexpr Array<Value, PHASES, PIECE_TYPES> PieceValues
+{{
+    { VALUE_ZERO, VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO },
+    { VALUE_ZERO, VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO }
+}};
+
+
 class Moves
     : public std::vector<Move> {
 public:
@@ -537,6 +653,10 @@ public:
     bool contains(Move const move) const {
         return std::find(begin(), end(), move) != end();
     }
+
+    void operator+=(Move move) { push_back(move); }
+    //void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
+
 };
 
 struct ValMove {
@@ -594,3 +714,121 @@ inline TimePoint now() {
     return std::chrono::duration_cast<std::chrono::milliseconds>
           (std::chrono::steady_clock::now().time_since_epoch()).count();
 }
+
+/// ----- Tables -----
+
+/// Hash table
+template<typename T, u32 Size>
+class HashTable {
+
+private:
+    // Allocate on the heap
+    std::vector<T> table;
+
+public:
+
+    HashTable()
+        : table(Size) {}
+
+    void clear() {
+        table.assign(Size, T());
+    }
+
+    T* operator[](Key key) {
+        return &table[u32(key) & (Size - 1)];
+    }
+};
+
+/// Table
+template<typename T, size_t Size, size_t... Sizes>
+class Table
+    : public std::array<Table<T, Sizes...>, Size>
+{
+    static_assert (Size != 0, "Size incorrect");
+private:
+    using NestedTable = Table<T, Size, Sizes...>;
+
+public:
+
+    void fill(T const &value) {
+        assert(std::is_standard_layout<NestedTable>::value);
+
+        auto *p = reinterpret_cast<T*>(this);
+        std::fill(p, p + sizeof (*this) / sizeof (T), value);
+    }
+
+};
+template<typename T, size_t Size>
+class Table<T, Size>
+    : public std::array<T, Size>
+{
+    static_assert (Size != 0, "Size incorrect");
+};
+
+
+/// Stats stores the value. It is usually a number.
+/// We use a class instead of naked value to directly call
+/// history update operator<<() on the entry so to use stats
+/// tables at caller sites as simple multi-dim arrays.
+template<typename T, i32 D>
+class Stats {
+private:
+    T entry;
+
+public:
+
+    void operator=(T const &e) {
+        entry = e;
+    }
+
+    T* operator&() {
+        return &entry;
+    }
+    T* operator->() {
+        return &entry;
+    }
+
+    operator T const&() const {
+        return entry;
+    }
+
+    void operator<<(i32 bonus) {
+        static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
+        assert(std::abs(bonus) <= D); // Ensure range is [-D, +D]
+
+        entry += T(bonus - entry * std::abs(bonus) / D);
+
+        assert(std::abs(entry) <= D);
+    }
+};
+
+/// StatsTable is a generic N-dimensional array used to store various statistics.
+/// The first template T parameter is the base type of the array,
+/// the D parameter limits the range of updates (range is [-D, +D]), and
+/// the last parameters (Size and Sizes) encode the dimensions of the array.
+template<typename T, i32 D, size_t Size, size_t... Sizes>
+class StatsTable
+    : public std::array<StatsTable<T, D, Sizes...>, Size>
+{
+    static_assert (Size != 0, "Size incorrect");
+private:
+    using NestedStatsTable = StatsTable<T, D, Size, Sizes...>;
+
+public:
+
+    void fill(T const &value) {
+        // For standard-layout 'this' points to first struct member
+        assert(std::is_standard_layout<NestedStatsTable>::value);
+
+        using Entry = Stats<T, D>;
+        auto *p = reinterpret_cast<Entry*>(this);
+        std::fill(p, p + sizeof (*this) / sizeof (Entry), value);
+    }
+};
+template<typename T, i32 D, size_t Size>
+class StatsTable<T, D, Size>
+    : public std::array<Stats<T, D>, Size>
+{
+    static_assert (Size != 0, "Size incorrect");
+};
+

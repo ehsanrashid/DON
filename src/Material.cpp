@@ -66,7 +66,7 @@ namespace Material {
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
         i32 computeImbalance(Array<i32, COLORS, PIECE_TYPES> const &count) {
-            constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
+            constexpr auto Opp{ ~Own };
 
             i32 value{ 0 };
             // "The Evaluation of Material Imbalances in Chess"

@@ -6,7 +6,6 @@
 #include <string>
 
 #include "Bitboard.h"
-#include "Table.h"
 #include "Type.h"
 
 /// Pre-loads the given address in L1/L2 cache.
@@ -35,17 +34,6 @@ inline void prefetch(void const *addr) {
 inline void prefetch(void const*) {}
 #endif // (PREFETCH)
 
-constexpr Array<Piece, 12> Pieces
-{
-    W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-    B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING
-};
-
-constexpr Array<Value, 2, PIECE_TYPES> PieceValues
-{{
-    { VALUE_ZERO, VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO },
-    { VALUE_ZERO, VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO }
-}};
 
 /// StateInfo stores information needed to restore a Position object to its previous state when we retract a move.
 ///
@@ -208,8 +196,6 @@ public:
     Bitboard attackersTo(Square) const;
     Bitboard attacksFrom(PieceType, Square) const;
     Bitboard attacksFrom(Square) const;
-    //template<PieceType>
-    //Bitboard xattacksFrom(Square, Color) const;
 
     Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const;
 
@@ -268,7 +254,7 @@ inline bool Position::empty(Square s) const {
 inline Bitboard Position::pieces() const {
     return types[NONE];
 }
-//inline Bitboard Position::pieces(Piece p) const { return colors[pColor(p)] & types[pType(p)]; }
+//inline Bitboard Position::pieces(Piece p) const { return colors[PColor[p]] & types[PType[p]]; }
 inline Bitboard Position::pieces(Color c) const {
     return colors[c];
 }
@@ -433,29 +419,7 @@ inline Bitboard Position::attacksFrom(PieceType pt, Square s) const {
 inline Bitboard Position::attacksFrom(Square s) const {
     return attacksBB(board[s], s, pieces());
 }
-/*
-/// Position::xattacksFrom() finds xattacks of the piecetype of the color from the square.
-template<>
-inline Bitboard Position::xattacksFrom<NIHT>(Square s, Color) const {
-    return PieceAttacks[NIHT][s];
-}
-template<>
-inline Bitboard Position::xattacksFrom<BSHP>(Square s, Color c) const {
-    return attacksBB<BSHP>(s, pieces() ^ ((pieces(c, QUEN, BSHP) & ~kingBlockers(c)) | pieces(~c, QUEN)));
-}
-template<>
-inline Bitboard Position::xattacksFrom<ROOK>(Square s, Color c) const {
-    return attacksBB<ROOK>(s, pieces() ^ ((pieces(c, QUEN, ROOK) & ~kingBlockers(c)) | pieces(~c, QUEN)));
-}
-template<>
-inline Bitboard Position::xattacksFrom<QUEN>(Square s, Color c) const {
-    return attacksBB<QUEN>(s, pieces() ^ ((pieces(c, QUEN)       & ~kingBlockers(c))));
-}
-template<>
-inline Bitboard Position::xattacksFrom<KING>(Square s, Color) const {
-    return PieceAttacks[KING][s];
-}
-*/
+
 inline bool Position::capture(Move m) const {
     return ((NORMAL == mType(m) || PROMOTE == mType(m)) && !empty(dstSq(m)))
         || (ENPASSANT == mType(m) && dstSq(m) == epSquare());
@@ -467,11 +431,11 @@ inline bool Position::captureOrPromotion(Move m) const {
 }
 inline PieceType Position::captureType(Move m) const {
     return ENPASSANT != mType(m) ?
-            pType(board[dstSq(m)]) : PAWN;
+            PType[board[dstSq(m)]] : PAWN;
 }
 /// Position::pawnAdvanceAt() check if pawn is advanced at the given square
 inline bool Position::pawnAdvanceAt(Color c, Square s) const {
-    return contains(/*pieces(c, PAWN) & */Regions[~c], s);
+    return contains(/*pieces(c, PAWN) & */PawnSideBB[~c], s);
 }
 /// Position::pawnPassedAt() check if pawn passed at the given square
 inline bool Position::pawnPassedAt(Color c, Square s) const {
@@ -481,13 +445,13 @@ inline bool Position::pawnPassedAt(Color c, Square s) const {
 /// Position::bishopPaired() check the side has pair of opposite color bishops
 inline bool Position::bishopPaired(Color c) const {
     return 2 <= count(c|BSHP)
-        && 0 != (pieces(c, BSHP) & Colors[WHITE])
-        && 0 != (pieces(c, BSHP) & Colors[BLACK]);
+        && 0 != (pieces(c, BSHP) & ColorBB[WHITE])
+        && 0 != (pieces(c, BSHP) & ColorBB[BLACK]);
 }
 inline bool Position::bishopOpposed() const {
     return 1 == count(WHITE|BSHP)
         && 1 == count(BLACK|BSHP)
-        && oppositeColor(square(WHITE|BSHP), square(BLACK|BSHP));
+        && colorOpposed(square(WHITE|BSHP), square(BLACK|BSHP));
 }
 
 inline bool Position::semiopenFileOn(Color c, Square s) const {

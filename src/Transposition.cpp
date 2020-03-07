@@ -69,7 +69,7 @@ namespace {
 
 #if defined(__linux__) && !defined(__ANDROID__)
 
-#   include <stdlib.h>
+#   include <cstdlib>
 #   include <sys/mman.h>
 
 #endif

@@ -2,8 +2,31 @@
 
 #include "MoveGenerator.h"
 #include "Position.h"
-#include "Table.h"
 #include "Type.h"
+
+/// ColorIndexStatsTable stores moves history according to color.
+/// Used for reduction and move ordering decisions.
+/// indexed by [color][moveIndex]
+using ColorIndexStatsTable      = StatsTable<i16, 10692, COLORS, SQUARES*SQUARES>;
+
+/// PlyIndexStatsTable stores moves history according to ply from 0 to MAX_LOWPLY-1
+constexpr i16 MAX_LOWPLY = 4;
+using PlyIndexStatsTable        = StatsTable<i16, 10692, MAX_LOWPLY, SQUARES*SQUARES>;
+
+/// PieceSquareTypeStatsTable stores move history according to piece.
+/// indexed by [piece][square][captureType]
+using PieceSquareTypeStatsTable = StatsTable<i16, 10692, PIECES, SQUARES, PIECE_TYPES>;
+
+/// PieceSquareStatsTable store moves history according to piece.
+/// indexed by [piece][square]
+using PieceSquareStatsTable     = StatsTable<i16, 29952, PIECES, SQUARES>;
+/// ContinuationStatsTable is the combined history of a given pair of moves, usually the current one given a previous one.
+/// The nested history table is based on PieceSquareStatsTable, indexed by [piece][square]
+using ContinuationStatsTable    = Table<PieceSquareStatsTable, PIECES, SQUARES>;
+
+/// PieceSquareMoveTable stores moves, indexed by [piece][square]
+using PieceSquareMoveTable      = Table<Move, PIECES, SQUARES>;
+
 
 /// MovePicker class is used to pick one legal moves from the current position.
 /// nextMove() is the most important method, which returns a new legal move every time until there are no more moves

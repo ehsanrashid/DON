@@ -1,6 +1,5 @@
 #pragma once
 
-#include "Table.h"
 #include "Type.h"
 
 /// Cuckoo consists Zobrist hashes and corresponding valid reversible moves

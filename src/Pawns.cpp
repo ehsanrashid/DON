@@ -5,7 +5,6 @@
 
 #include "BitBoard.h"
 #include "Helper.h"
-#include "Table.h"
 #include "Thread.h"
 
 namespace Pawns {
@@ -51,7 +50,7 @@ namespace Pawns {
         /// looking at the king file and the two closest files.
         template<Color Own>
         Score evaluateSafetyOn(Position const &pos, Square kSq) {
-            constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
+            constexpr auto Opp{ ~Own };
 
             Bitboard frontPawns{ ~frontRanksBB(Opp, kSq) & pos.pieces(PAWN) };
             Bitboard ownFrontPawns{ pos.pieces(Own) & frontPawns };
@@ -59,20 +58,20 @@ namespace Pawns {
 
             Score safety{ Initial };
 
-            auto kF{ clamp(sFile(kSq), FILE_B, FILE_G) };
+            auto kF{ clamp(SFile[kSq], FILE_B, FILE_G) };
             for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
                 assert(FILE_A <= f && f <= FILE_H);
-                Bitboard ownFrontFilePawns = ownFrontPawns & fileBB(f);
+                Bitboard ownFrontFilePawns = ownFrontPawns & FileBB[f];
                 auto ownR{ 0 != ownFrontFilePawns ?
                             relativeRank(Own, scanFrontMostSq(Opp, ownFrontFilePawns)) : RANK_1 };
-                Bitboard oppFrontFilePawns = oppFrontPawns & fileBB(f);
+                Bitboard oppFrontFilePawns = oppFrontPawns & FileBB[f];
                 auto oppR{ 0 != oppFrontFilePawns ?
                             relativeRank(Own, scanFrontMostSq(Opp, oppFrontFilePawns)) : RANK_1 };
                 assert((ownR != oppR)
                     || (RANK_1 == ownR
                      && RANK_1 == oppR));
 
-                auto ff{ mapFile(f) };
+                auto ff{ foldFile(f) };
                 assert(FILE_E > ff);
 
                 safety += Shelter[ff][ownR];
@@ -148,7 +147,7 @@ namespace Pawns {
                     else {
                         kDist = 8;
                         while (0 != pawns) {
-                            kDist = std::min(dist(kSq, popLSq(pawns)), kDist);
+                            kDist = std::min(distance(kSq, popLSq(pawns)), kDist);
                         }
                     }
                 }
@@ -168,8 +167,7 @@ namespace Pawns {
     /// Entry::evaluate()
     template<Color Own>
     void Entry::evaluate(Position const &pos) {
-        constexpr auto Opp{ WHITE == Own ? BLACK : WHITE };
-        constexpr auto Push{ pawnPush(Own) };
+        constexpr auto Opp{ ~Own };
         auto const Attack{ PawnAttacks[Own] };
 
         Bitboard pawns{ pos.pieces(PAWN) };
@@ -190,17 +188,17 @@ namespace Pawns {
             assert(RANK_2 <= r && r <= RANK_7);
 
             Bitboard neighbours { ownPawns & adjacentFilesBB(s) };
-            Bitboard supporters { neighbours & rankBB(s - Push) };
+            Bitboard supporters { neighbours & rankBB(s - PawnPush[Own]) };
             Bitboard phalanxes  { neighbours & rankBB(s) };
             Bitboard stoppers   { oppPawns & pawnPassSpan(Own, s) };
-            Bitboard blockers   { stoppers & (s + Push) };
+            Bitboard blockers   { stoppers & (s + PawnPush[Own]) };
             Bitboard levers     { stoppers & Attack[s] };
-            Bitboard escapes    { stoppers & Attack[s + Push] }; // Push levers
+            Bitboard escapes    { stoppers & Attack[s + PawnPush[Own]] }; // push levers
 
             bool opposed    { 0 != (stoppers & frontSquaresBB(Own, s)) };
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
-            bool backward   { 0 == (neighbours & frontRanksBB(Opp, s + Push))
+            bool backward   { 0 == (neighbours & frontRanksBB(Opp, s + PawnPush[Own]))
                            && 0 != (blockers | escapes) };
 
             // Compute additional span if pawn is not blocked nor backward
@@ -219,7 +217,7 @@ namespace Pawns {
               && popCount(phalanxes) >= popCount(escapes))
              || (stoppers == blockers
               && RANK_4 < r
-              && 0 != ( pawnSglPushes(Own, supporters)
+              && 0 != ( pawnSglPushes<Own>(supporters)
                      & ~(oppPawns | pawnDblAttacks<Opp>(oppPawns))))) {
                 passers[Own] |= s;
             }
@@ -244,7 +242,7 @@ namespace Pawns {
             }
 
             if (0 == supporters) {
-                sp -= WeakDoubled * contains(ownPawns, s - Push)
+                sp -= WeakDoubled * contains(ownPawns, s - PawnPush[Own])
                         // Attacked twice by enemy pawns
                     + WeakTwiceLever * moreThanOne(levers);
             }

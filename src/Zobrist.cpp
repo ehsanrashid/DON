@@ -42,7 +42,7 @@ Key Zobrist::computePosiKey(Position const &pos) const {
     }
     posiKey ^= castleRightKey[pos.castleRights()];
     if (SQ_NONE != pos.epSquare()) {
-        posiKey ^= enpassantKey[sFile(pos.epSquare())];
+        posiKey ^= enpassantKey[SFile[pos.epSquare()]];
     }
     return posiKey;
 }

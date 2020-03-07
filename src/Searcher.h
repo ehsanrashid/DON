@@ -3,7 +3,6 @@
 #include <list>
 #include <vector>
 
-#include "Table.h"
 #include "Type.h"
 
 // Threshold for counter moves based pruning

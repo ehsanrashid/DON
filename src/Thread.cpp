@@ -28,6 +28,7 @@
 
 #   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
+
     /// The needed Windows API for processor groups could be missed from old Windows versions,
     /// so instead of calling them directly (forcing the linker to resolve the calls at compile time),
     /// try to load them at runtime. To do this first define the corresponding function pointers.
@@ -373,7 +374,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
         th->tbHits          = 0;
         th->pvChange        = 0;
         th->nmpPly          = 0;
-        th->nmpColor        = COLOR_NONE;
+        th->nmpColor        = COLORS;
         th->lowPlyStats.fill(0);
         th->rootMoves       = rootMoves;
         th->rootPos.setup(fen, _states->back(), th);

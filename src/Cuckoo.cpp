@@ -39,8 +39,8 @@ namespace CucKoo {
                             }
                             // Push victim to alternative slot
                             h = h == hash(cuckoo.key >> 0x00) ?
-                                hash(cuckoo.key >> 0x10) :
-                                hash(cuckoo.key >> 0x00);
+                                hash(u16(cuckoo.key >> 0x10)) :
+                                hash(u16(cuckoo.key >> 0x00));
                         }
                         ++count;
                     }

@@ -8,17 +8,8 @@
 
 #include "Type.h"
 
-// Return the sign of a number (-1, 0, 1)
-template<typename T>
-constexpr i32 sign(T const &v) {
-    return (T(0) < v) - (v < T(0));
-}
 
-template<typename T>
-T const& clamp(T const &v, T const &minimum, T const &maximum) {
-    return (minimum > v) ? minimum :
-           (v > maximum) ? maximum : v;
-}
+
 
 /// std::string Helpers
 

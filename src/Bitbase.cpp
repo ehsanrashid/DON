@@ -4,8 +4,6 @@
 #include <bitset>
 
 #include "BitBoard.h"
-#include "Table.h"
-
 
 namespace BitBase {
 
@@ -29,14 +27,14 @@ namespace BitBase {
         // bit 13-14: white pawn file [(from FILE_A to FILE_D) - FILE_A]
         // bit 15-17: white pawn rank [(from RANK_2 to RANK_7) - RANK_2]
         u32 index(Color active, Square wkSq, Square bkSq, Square wpSq) {
-            assert(FILE_A <= sFile(wpSq) && sFile(wpSq) <= FILE_D);
-            assert(RANK_2 <= sRank(wpSq) && sRank(wpSq) <= RANK_7);
+            assert(FILE_A <= SFile[wpSq] && SFile[wpSq] <= FILE_D);
+            assert(RANK_2 <= SRank[wpSq] && SRank[wpSq] <= RANK_7);
 
             return (wkSq << 0)
                  | (bkSq << 6)
                  | (active << 12)
-                 | ((sFile(wpSq) - FILE_A) << 13)
-                 | ((sRank(wpSq) - RANK_2) << 15);
+                 | ((SFile[wpSq] - FILE_A) << 13)
+                 | ((SRank[wpSq] - RANK_2) << 15);
         }
 
         enum Result : u08 {
@@ -83,7 +81,7 @@ namespace BitBase {
                 && index(active, kSq[WHITE], kSq[BLACK], pSq) == idx);
 
             // Check if two pieces are on the same square or if a king can be captured
-            if (1 >= dist(kSq[WHITE], kSq[BLACK])
+            if (1 >= distance(kSq[WHITE], kSq[BLACK])
              || kSq[WHITE] == pSq
              || kSq[BLACK] == pSq
              || (WHITE == active
@@ -93,9 +91,9 @@ namespace BitBase {
             else
             // Immediate win if a pawn can be promoted without getting captured
             if (WHITE == active
-             && RANK_7 == sRank(pSq)
+             && RANK_7 == SRank[pSq]
              && kSq[WHITE] != pSq + NORTH
-             && (1 < dist(kSq[BLACK], pSq + NORTH)
+             && (1 < distance(kSq[BLACK], pSq + NORTH)
               || contains(PieceAttacks[KING][kSq[WHITE]], pSq + NORTH))) {
                 result = WIN;
             }
@@ -140,12 +138,12 @@ namespace BitBase {
 
             if (WHITE == active) {
                 // Single push
-                if (RANK_7 > sRank(pSq)) {
+                if (RANK_7 > SRank[pSq]) {
                     auto pushSq{ pSq + NORTH };
                     r |= kpkDB[index(BLACK, kSq[WHITE], kSq[BLACK], pushSq)];
 
                     // Double push
-                    if (RANK_2 == sRank(pSq)
+                    if (RANK_2 == SRank[pSq]
                         // Front is not own king
                      && kSq[WHITE] != pushSq
                         // Front is not opp king
