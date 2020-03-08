@@ -49,9 +49,9 @@ ThreadPool Threadpool;
 
 /// Thread constructor launches the thread and waits until it goes to sleep in idleFunction().
 /// Note that 'busy' and 'dead' should be already set.
-Thread::Thread(u16 index)
-    : _index(index)
-    , _nativeThread(&Thread::idleFunction, this) {
+Thread::Thread(u16 index) :
+    _index(index),
+    _nativeThread(&Thread::idleFunction, this) {
     waitIdle();
 }
 /// Thread destructor wakes up the thread in idleFunction() and waits for its termination.
@@ -261,60 +261,56 @@ MainThread * ThreadPool::mainThread() const {
 
 Thread* ThreadPool::bestThread() const
 {
-    Thread *bestThread = front();
+    Thread *bestTh = front();
 
-    auto minValue = (*std::min_element(begin(), end(),
-                    [](Thread *const &th1, Thread *const &th2) {
-                        return th1->rootMoves.front().newValue
-                             < th2->rootMoves.front().newValue;
-                    }))->rootMoves.front().newValue;
-
+    auto minValue = +VALUE_INFINITE;
+    for (auto *th : *this) {
+        minValue = std::min(th->rootMoves.front().newValue, minValue);
+    }
     // Vote according to value and depth
     std::map<Move, u64> votes;
     for (auto *th : *this) {
+
         votes[th->rootMoves.front().front()] +=
-            i32(th->rootMoves.front().newValue - minValue + 14) * th->finishedDepth;
-    }
-    for (auto *th : *this) {
-        if (bestThread->rootMoves.front().newValue >= +VALUE_MATE_2_MAX_PLY) {
-            // Make sure we pick the shortest mate
-            if (bestThread->rootMoves.front().newValue < th->rootMoves.front().newValue) {
-                bestThread = th;
+            i32(th->finishedDepth)
+          * i32(th->rootMoves.front().newValue - minValue + 14);
+
+        if (bestTh->rootMoves.front().newValue >= +VALUE_MATE_2_MAX_PLY) {
+            // Select the shortest mate
+            if (bestTh->rootMoves.front().newValue
+              <     th->rootMoves.front().newValue) {
+                bestTh = th;
             }
         }
         else {
             if (th->rootMoves.front().newValue >= +VALUE_MATE_2_MAX_PLY
-             || votes[bestThread->rootMoves.front().front()] < votes[th->rootMoves.front().front()]) {
-                bestThread = th;
+             || (votes[bestTh->rootMoves.front().front()]
+               < votes[    th->rootMoves.front().front()])) {
+                bestTh = th;
             }
         }
     }
     // Select best thread with max depth
-    auto bestMove = bestThread->rootMoves.front().front();
+    auto bestMove = bestTh->rootMoves.front().front();
     for (auto *th : *this) {
         if (bestMove == th->rootMoves.front().front()) {
-            if (bestThread->finishedDepth < th->finishedDepth) {
-                bestThread = th;
+            if (bestTh->finishedDepth
+              <     th->finishedDepth) {
+                bestTh = th;
             }
         }
     }
 
-    return bestThread;
+    return bestTh;
 }
 
-/// ThreadPool::clearThreads() clears all the threads in threadpool
-void ThreadPool::clearThreads() {
-
-    for (auto *th : *this) {
-        th->clear();
-    }
-}
 /// ThreadPool::setSize() creates/destroys threads to match the requested number.
 /// Created and launched threads will immediately go to sleep in idleFunction.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::setSize(u16 threadCount) {
+void ThreadPool::setup(u16 threadCount) {
     // Destroy any existing thread(s)
     if (0 < size()) {
+
         mainThread()->waitIdle();
         while (0 < size()) {
             delete back();
@@ -323,11 +319,13 @@ void ThreadPool::setSize(u16 threadCount) {
     }
     // Create new thread(s)
     if (0 != threadCount) {
+
         push_back(new MainThread(size()));
         while (size() < threadCount) {
             push_back(new Thread(size()));
         }
-        clearThreads();
+
+        clean();
 
         std::cout << "info string Thread(s) used " << threadCount << std::endl;
 
@@ -336,6 +334,15 @@ void ThreadPool::setSize(u16 threadCount) {
         TT.autoResize(Options["Hash"]);
     }
 }
+
+/// ThreadPool::clean() clears all the threads in threadpool
+void ThreadPool::clean() {
+
+    for (auto *th : *this) {
+        th->clear();
+    }
+}
+
 /// ThreadPool::startThinking() wakes up main thread waiting in idleFunction() and returns immediately.
 /// Main thread will wake up other threads and start the search.
 void ThreadPool::startThinking(Position &pos, StateListPtr &states) {

@@ -203,8 +203,8 @@ namespace {
     // class TBFile memory maps/unmaps the single .rtbw and .rtbz files. Files are
     // memory mapped for best performance. Files are mapped at first access: at init
     // time only existence of the file is checked.
-    class TBFile
-        : public std::ifstream {
+    class TBFile :
+        public std::ifstream {
 
     public:
 
@@ -420,11 +420,11 @@ namespace {
             return &items[stm % Sides][hasPawns ? f : 0];
         }
 
-        TBTable()
-            : ready{ false }
-            , baseAddress{ nullptr }
-            , map{ nullptr }
-            , mapping{ 0 }
+        TBTable() :
+            ready{ false },
+            baseAddress{ nullptr },
+            map{ nullptr },
+            mapping{ 0 }
         {}
 
         explicit TBTable(string const&);
@@ -438,8 +438,8 @@ namespace {
     };
 
     template<>
-    TBTable<WDL>::TBTable(string const &code)
-        : TBTable{} {
+    TBTable<WDL>::TBTable(string const &code) :
+        TBTable{} {
 
         StateInfo si;
         Position pos;
@@ -470,8 +470,8 @@ namespace {
     }
 
     template<>
-    TBTable<DTZ>::TBTable(TBTable<WDL> const &wdl)
-        : TBTable{} {
+    TBTable<DTZ>::TBTable(TBTable<WDL> const &wdl) :
+        TBTable{} {
 
         matlKey1 = wdl.matlKey1;
         matlKey2 = wdl.matlKey2;
@@ -898,10 +898,9 @@ namespace {
                 continue;
             }
 
-            if (offA1H8(squares[i]) > 0) { // A1-H8 diagonal flip: SQ_A3 -> SQ_C3
+            if (offA1H8(squares[i]) > 0) { // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
                 for (i32 j = i; j < size; ++j) {
-                    squares[j] = Square(( (squares[j] >> 3)
-                                        | (squares[j] << 3)) & i32(SQ_H8));
+                    squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & i32(SQ_H8));
                 }
             }
             break;
@@ -1148,8 +1147,8 @@ namespace {
         // element stores the biggest index that is the tb size.
         u64 tbSize = d->groupIdx[std::find(d->groupLen, d->groupLen + TBPIECES, 0) - d->groupLen];
 
-        d->blockSize = U64(1) << *data++;
-        d->span = U64(1) << *data++;
+        d->blockSize = u64(1) << *data++;
+        d->span = u64(1) << *data++;
         d->sparseIndexSize = (tbSize + d->span - 1) / d->span; // Round up
         auto padding = number<u08, Endian::LITTLE>(data++);
         d->numBlocks = number<u32, Endian::LITTLE>(data); data += sizeof (u32);
@@ -1764,7 +1763,7 @@ namespace SyzygyTB {
                      && (0 != idx || SQ_B1 == s1)) { // SQ_B1 is mapped to 0
 
                         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
-                            if (contains(PieceAttacks[KING][s1] | s1, s2)) {
+                            if (contains(PieceAttackBB[KING][s1] | s1, s2)) {
                                 continue; // Illegal position
                             }
                             else

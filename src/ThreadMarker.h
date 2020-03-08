@@ -43,6 +43,10 @@ private:
 public:
 
     ThreadMarker() = delete;
+    ThreadMarker(ThreadMarker const&) = delete;
+    ThreadMarker(ThreadMarker&&) = delete;
+    ThreadMarker& operator=(ThreadMarker const&) = delete;
+    ThreadMarker& operator=(ThreadMarker&&) = delete;
     ThreadMarker(Thread const*, Key, i16);
 
     ~ThreadMarker();

@@ -103,33 +103,37 @@ bool PolyEntry::operator!=(PolyEntry const &pe) const {
 }
 
 bool PolyEntry::operator>(PolyEntry const &pe) const {
-    return key != pe.key ?
-        key > pe.key :
-    weight != pe.weight ?
-        weight > pe.weight :
-    move > pe.move;
+    return
+        key != pe.key ?
+            key > pe.key :
+            weight != pe.weight ?
+                weight > pe.weight :
+                move > pe.move;
 }
 bool PolyEntry::operator<(PolyEntry const &pe) const {
-    return key != pe.key ?
-        key < pe.key :
-        weight != pe.weight ?
-        weight < pe.weight :
-        move < pe.move;
+    return
+        key != pe.key ?
+            key < pe.key :
+            weight != pe.weight ?
+                weight < pe.weight :
+                move < pe.move;
 }
 
 bool PolyEntry::operator>=(PolyEntry const &pe) const {
-    return key != pe.key ?
-        key >= pe.key :
-        weight != pe.weight ?
-        weight >= pe.weight :
-        move >= pe.move;
+    return
+        key != pe.key ?
+            key >= pe.key :
+            weight != pe.weight ?
+                weight >= pe.weight :
+                move >= pe.move;
 }
 bool PolyEntry::operator<=(PolyEntry const &pe) const {
-    return key != pe.key ?
-        key <= pe.key :
-        weight != pe.weight ?
-        weight <= pe.weight :
-        move <= pe.move;
+    return
+        key != pe.key ?
+            key <= pe.key :
+            weight != pe.weight ?
+                weight <= pe.weight :
+                move <= pe.move;
 }
 
 bool PolyEntry::operator==(Move m) const { return move == m; }

@@ -141,7 +141,7 @@ namespace Pawns {
                 i32 kDist{ 0 };
                 Bitboard pawns{ pos.pieces(Own, PAWN) };
                 if (0 != pawns) {
-                    if (0 != (pawns & PieceAttacks[KING][kSq])) {
+                    if (0 != (pawns & PieceAttackBB[KING][kSq])) {
                         kDist = 1;
                     }
                     else {
@@ -168,7 +168,6 @@ namespace Pawns {
     template<Color Own>
     void Entry::evaluate(Position const &pos) {
         constexpr auto Opp{ ~Own };
-        auto const Attack{ PawnAttacks[Own] };
 
         Bitboard pawns{ pos.pieces(PAWN) };
         Bitboard ownPawns{ pos.pieces(Own) & pawns };
@@ -178,7 +177,7 @@ namespace Pawns {
         //kingPath  [Own] = 0;
         //kingSafety[Own] = SCORE_ZERO;
         //kingDist  [Own] = SCORE_ZERO;
-        attackSpan[Own] = pawnSglAttacks<Own>(ownPawns);
+        attackSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
         passers   [Own] = 0;
         score     [Own] = SCORE_ZERO;
         for (Square s : pos.squares(Own|PAWN)) {
@@ -192,14 +191,14 @@ namespace Pawns {
             Bitboard phalanxes  { neighbours & rankBB(s) };
             Bitboard stoppers   { oppPawns & pawnPassSpan(Own, s) };
             Bitboard blockers   { stoppers & (s + PawnPush[Own]) };
-            Bitboard levers     { stoppers & Attack[s] };
-            Bitboard escapes    { stoppers & Attack[s + PawnPush[Own]] }; // push levers
+            Bitboard levers     { stoppers & PawnAttackBB[Own][s] };
+            Bitboard sentres    { stoppers & PawnAttackBB[Own][s + PawnPush[Own]] }; // push levers
 
-            bool opposed    { 0 != (stoppers & frontSquaresBB(Own, s)) };
+            bool opposed { 0 != (stoppers & frontSquaresBB(Own, s)) };
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
-            bool backward   { 0 == (neighbours & frontRanksBB(Opp, s + PawnPush[Own]))
-                           && 0 != (blockers | escapes) };
+            bool backward{ 0 == (neighbours & frontRanksBB(Opp, s + PawnPush[Own]))
+                        && 0 != (blockers | sentres) };
 
             // Compute additional span if pawn is not blocked nor backward
             if (0 == blockers
@@ -208,17 +207,20 @@ namespace Pawns {
             }
 
             // A pawn is passed if one of the three following conditions is true:
-            // - there is no stoppers except the levers
-            // - there is no stoppers except the escapes, but we outnumber them
-            // - there is only one front stopper which can be levered.
+            // - Lever there is no stoppers except the levers
+            // - Sentry there is no stoppers except the sentres, but we outnumber them
+            // - Sneaker there is only one front stopper which can be levered.
             // Passed pawns will be properly scored later in evaluation when we have full attack info.
-            if ((stoppers == levers) // Also handles 0 == stoppers
-             || (stoppers == (levers | escapes)
-              && popCount(phalanxes) >= popCount(escapes))
+            if (// Lever
+                (stoppers == levers)
+                // Lever + Sentry
+             || (stoppers == (levers | sentres)
+              && popCount(phalanxes) >= popCount(sentres))
+                // Sneaker => Blocked pawn
              || (stoppers == blockers
               && RANK_4 < r
-              && 0 != ( pawnSglPushes<Own>(supporters)
-                     & ~(oppPawns | pawnDblAttacks<Opp>(oppPawns))))) {
+              && 0 != ( pawnSglPushBB<Own>(supporters)
+                     & ~(oppPawns | pawnDblAttackBB<Opp>(oppPawns))))) {
                 passers[Own] |= s;
             }
 

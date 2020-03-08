@@ -7,7 +7,7 @@
 #include "TieStreamBuf.h"
 #include "Type.h"
 
-// Singleton Logger
+// Logger class (singleton)
 // Tie std::cin and std::cout to a out file stream.
 class Logger {
 
@@ -16,8 +16,9 @@ private:
     std::string _fnLog;
     std::ofstream _ofs;
 
-    TieStreamBuf _tsbInnput
-        ,        _tsbOutput;
+    TieStreamBuf
+        _tsbInnput,
+        _tsbOutput;
 
 protected:
 
@@ -29,10 +30,10 @@ public:
     static Logger& instance();
 
     // Delete copy and move constructors and assign operators
-    Logger(Logger const&) = delete;             // Copy construct
-    Logger(Logger&&) = delete;                  // Move construct
-    Logger& operator=(Logger const&) = delete;  // Copy assign
-    Logger& operator=(Logger&&) = delete;       // Move assign
+    Logger(Logger const&) = delete;
+    Logger(Logger&&) = delete;
+    Logger& operator=(Logger const&) = delete;
+    Logger& operator=(Logger&&) = delete;
 
-    void setFile(std::string const&);
+    void setup(std::string const&);
 };

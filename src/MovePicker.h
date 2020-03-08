@@ -37,10 +37,11 @@ class MovePicker {
 private:
 
     Position const &pos;
-    ColorIndexStatsTable const *butterFlyStats{ nullptr };
-    PlyIndexStatsTable const *lowPlyStats{ nullptr };
-    PieceSquareTypeStatsTable const *captureStats{ nullptr };
-    PieceSquareStatsTable const **pieceStats{ nullptr };
+
+    ColorIndexStatsTable        const *butterFlyStats{ nullptr };
+    PlyIndexStatsTable          const *lowPlyStats{ nullptr };
+    PieceSquareTypeStatsTable   const *captureStats{ nullptr };
+    PieceSquareStatsTable       const **pieceStats{ nullptr };
 
     Move    ttMove{ MOVE_NONE };
     Depth   depth{ DEPTH_ZERO };
@@ -50,12 +51,18 @@ private:
 
     u08     stage{ 0 };
 
-    ValMoves vmoves;
-    ValMoves::iterator vmBeg, vmEnd;
+    ValMoves
+        vmoves;
+    ValMoves::iterator
+        vmBeg,
+        vmEnd;
 
-    Moves refutationMoves
-        , badCaptureMoves;
-    Moves::iterator mBeg, mEnd;
+    Moves
+        refutationMoves,
+        badCaptureMoves;
+    Moves::iterator
+        mBeg,
+        mEnd;
 
     template<GenType GT>
     void value();
@@ -69,28 +76,30 @@ public:
 
     MovePicker() = delete;
     MovePicker(MovePicker const&) = delete;
+    MovePicker(MovePicker&&) = delete;
     MovePicker& operator=(MovePicker const&) = delete;
+    MovePicker& operator=(MovePicker&&) = delete;
 
     MovePicker(
-          Position const&
-        , ColorIndexStatsTable const*
-        , PlyIndexStatsTable const*
-        , PieceSquareTypeStatsTable const*
-        , PieceSquareStatsTable const**
-        , Move, Depth, i16
-        , Array<Move, 2> const&, Move);
+        Position const&,
+        ColorIndexStatsTable const*,
+        PlyIndexStatsTable const*,
+        PieceSquareTypeStatsTable const*,
+        PieceSquareStatsTable const**,
+        Move, Depth, i16,
+        Array<Move, 2> const&, Move);
 
     MovePicker(
-          Position const&
-        , ColorIndexStatsTable const*
-        , PieceSquareTypeStatsTable const*
-        , PieceSquareStatsTable const**
-        , Move, Depth, Square);
+        Position const&,
+        ColorIndexStatsTable const*,
+        PieceSquareTypeStatsTable const*,
+        PieceSquareStatsTable const**,
+        Move, Depth, Square);
 
     MovePicker(
-          Position const&
-        , PieceSquareTypeStatsTable const*
-        , Move, Value);
+        Position const&,
+        PieceSquareTypeStatsTable const*,
+        Move, Value);
 
 
     Move nextMove();

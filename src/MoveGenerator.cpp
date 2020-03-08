@@ -70,7 +70,7 @@ namespace {
             if (GenType::QUIET_CHECK == GT) {
                 auto ekSq{ pos.square(~pos.activeSide()|KING) };
 
-                if (contains(PieceAttacks[NIHT][dst], ekSq)) {
+                if (contains(PieceAttackBB[NIHT][dst], ekSq)) {
                     moves += makePromoteMove(org, dst, NIHT);
                 }
                 /*
@@ -108,8 +108,8 @@ namespace {
         case GenType::EVASION:
         case GenType::CAPTURE: {
             // Pawn normal and en-passant captures, no promotions
-            Bitboard lAttacks{ enemies & pawnLAttacks<Own>(rxPawns) };
-            Bitboard rAttacks{ enemies & pawnRAttacks<Own>(rxPawns) };
+            Bitboard lAttacks{ enemies & pawnLAttackBB<Own>(rxPawns) };
+            Bitboard rAttacks{ enemies & pawnRAttackBB<Own>(rxPawns) };
 
             Bitboard lChecks{ pos.checks(PAWN) };
             Bitboard rChecks{ pos.checks(PAWN) };
@@ -117,8 +117,8 @@ namespace {
             Bitboard dscPawns{ rxPawns
                              & pos.kingBlockers(Opp) };
             if (0 != dscPawns) {
-                lChecks |= enemies & pawnLAttacks<Own>(dscPawns);
-                rChecks |= enemies & pawnRAttacks<Own>(dscPawns);
+                lChecks |= enemies & pawnLAttackBB<Own>(dscPawns);
+                rChecks |= enemies & pawnRAttackBB<Own>(dscPawns);
             }
 
             Bitboard lDirChecks = lAttacks & lChecks;
@@ -136,7 +136,7 @@ namespace {
             if (SQ_NONE != pos.epSquare()) {
                 assert(RANK_6 == relativeRank(Own, pos.epSquare()));
                 Bitboard epPawns{ rxPawns
-                                & PawnAttacks[Opp][pos.epSquare()] };
+                                & PawnAttackBB[Opp][pos.epSquare()] };
 
                 // If the checking piece is the double pushed pawn and also is in the target.
                 // Otherwise this is a discovery check and are forced to do otherwise.
@@ -155,13 +155,13 @@ namespace {
             if (0 != r7Pawns) {
                 Bitboard b;
 
-                b = enemies & pawnLAttacks<Own>(r7Pawns);
+                b = enemies & pawnLAttackBB<Own>(r7Pawns);
                 generatePromotionMoves<GT>(moves, pos, b, PawnLAtt[Own]);
 
-                b = enemies & pawnRAttacks<Own>(r7Pawns);
+                b = enemies & pawnRAttackBB<Own>(r7Pawns);
                 generatePromotionMoves<GT>(moves, pos, b, PawnRAtt[Own]);
 
-                b = empties & pawnSglPushes<Own>(r7Pawns);
+                b = empties & pawnSglPushBB<Own>(r7Pawns);
                 if (GenType::EVASION == GT) {
                     b &= targets;
                 }
@@ -173,8 +173,8 @@ namespace {
             }
 
             // Pawn single-push and double-push, no promotions
-            Bitboard pushs1{ empties & pawnSglPushes<Own>(rxPawns) };
-            Bitboard pushs2{ empties & pawnSglPushes<Own>(pushs1 & RankBB[relativeRank(Own, RANK_3)]) };
+            Bitboard pushs1{ empties & pawnSglPushBB<Own>(rxPawns) };
+            Bitboard pushs2{ empties & pawnSglPushBB<Own>(pushs1 & RankBB[relativeRank(Own, RANK_3)]) };
 
             if (GenType::EVASION == GT) {
                 pushs1 &= targets;
@@ -192,8 +192,8 @@ namespace {
                                  & pos.kingBlockers(Opp)
                                  & ~fileBB(pos.square(Opp|KING)) };
                 if (0 != dscPawns) {
-                    Bitboard dscPushs1{ empties & pawnSglPushes<Own>(dscPawns) };
-                    Bitboard dscPushs2{ empties & pawnSglPushes<Own>(dscPushs1 & RankBB[relativeRank(Own, RANK_3)]) };
+                    Bitboard dscPushs1{ empties & pawnSglPushBB<Own>(dscPawns) };
+                    Bitboard dscPushs2{ empties & pawnSglPushBB<Own>(dscPushs1 & RankBB[relativeRank(Own, RANK_3)]) };
                     pushs1 |= dscPushs1;
                     pushs2 |= dscPushs2;
                 }
@@ -212,9 +212,9 @@ namespace {
 
         auto fkSq{ pos.square( pos.activeSide()|KING) };
         auto ekSq{ pos.square(~pos.activeSide()|KING) };
-        Bitboard attacks{  PieceAttacks[KING][fkSq]
+        Bitboard attacks{  PieceAttackBB[KING][fkSq]
                         &  targets
-                        & ~PieceAttacks[KING][ekSq] };
+                        & ~PieceAttackBB[KING][ekSq] };
         while (0 != attacks) { moves += makeMove<NORMAL>(fkSq, popLSq(attacks)); }
 
         if (GenType::NATURAL == GT
@@ -293,7 +293,7 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos)
         generateMoves<GenType::EVASION>(moves, pos, targets);
     }
 
-    Bitboard checks{ PieceAttacks[KING][pos.square(~pos.activeSide()|KING)] };
+    Bitboard checks{ PieceAttackBB[KING][pos.square(~pos.activeSide()|KING)] };
     Bitboard checkersEx{  checkers
                        & ~pos.pieces(PAWN) };
     Bitboard mocc{ pos.pieces() ^ fkSq };
@@ -304,7 +304,7 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos)
         checks |= attacksBB(PType[pos[checkSq]], checkSq, mocc);
     }
     // Generate evasions for king, capture and non-capture moves
-    Bitboard attacks{  PieceAttacks[KING][fkSq]
+    Bitboard attacks{  PieceAttackBB[KING][fkSq]
                     & ~checks
                     & ~pos.pieces(pos.activeSide()) };
     while (0 != attacks) { moves += makeMove<NORMAL>(fkSq, popLSq(attacks)); }
@@ -325,7 +325,7 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &
         auto org{ popLSq(dscBlockersEx) };
         Bitboard attacks{ pos.attacksFrom(org) & targets };
         if (KING == PType[pos[org]]) {
-            attacks &= ~PieceAttacks[QUEN][pos.square(~pos.activeSide()|KING)];
+            attacks &= ~PieceAttackBB[QUEN][pos.square(~pos.activeSide()|KING)];
         }
         while (0 != attacks) { moves += makeMove<NORMAL>(org, popLSq(attacks)); }
     }

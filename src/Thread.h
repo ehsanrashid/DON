@@ -22,8 +22,9 @@ class Thread {
 
 private:
 
-    bool  _dead{ false }
-        , _busy{ true };
+    bool
+        _dead{ false },
+        _busy{ true };
 
     std::mutex _mutex;
     std::condition_variable _conditionVar;
@@ -38,20 +39,24 @@ public:
     Position  rootPos;
     RootMoves rootMoves;
 
-    Depth rootDepth
-        , finishedDepth
-        , selDepth;
+    Depth
+        rootDepth,
+        finishedDepth,
+        selDepth;
 
-    std::atomic<u64> nodes
-        ,            tbHits;
-    std::atomic<u32> pvChange;
+    std::atomic<u64>
+        nodes,
+        tbHits;
+    std::atomic<u32>
+        pvChange;
 
     i16   nmpPly;
     Color nmpColor;
 
-    u16   pvBeg
-        , pvCur
-        , pvEnd;
+    u16
+        pvBeg,
+        pvCur,
+        pvEnd;
 
     u64   ttHitAvg;
 
@@ -82,7 +87,9 @@ public:
     Thread() = delete;
     explicit Thread(u16);
     Thread(Thread const&) = delete;
+    Thread(Thread&&) = delete;
     Thread& operator=(Thread const&) = delete;
+    Thread& operator=(Thread&&) = delete;
 
     virtual ~Thread();
 
@@ -96,8 +103,8 @@ public:
 };
 
 /// MainThread class is derived from Thread class used specific for main thread.
-class MainThread
-    : public Thread {
+class MainThread :
+    public Thread {
 
 private:
     i16  _ticks;
@@ -133,8 +140,9 @@ namespace WinProcGroup {
 /// ThreadPool class handles all the threads related stuff like,
 /// initializing & deinitializing, starting, parking & launching a thread
 /// All the access to shared thread data is done through this class.
-class ThreadPool
-    : public std::vector<Thread*> {
+class ThreadPool :
+    public std::vector<Thread*> {
+
 private:
 
     StateListPtr _states;
@@ -174,8 +182,8 @@ public:
 
     Thread* bestThread() const;
 
-    void clearThreads();
-    void setSize(u16);
+    void setup(u16);
+    void clean();
 
     void startThinking(Position&, StateListPtr&);
 };

@@ -85,7 +85,7 @@ namespace BitBase {
              || kSq[WHITE] == pSq
              || kSq[BLACK] == pSq
              || (WHITE == active
-              && contains(PawnAttacks[WHITE][pSq], kSq[BLACK]))) {
+              && contains(PawnAttackBB[WHITE][pSq], kSq[BLACK]))) {
                 result = INVALID;
             }
             else
@@ -94,17 +94,17 @@ namespace BitBase {
              && RANK_7 == SRank[pSq]
              && kSq[WHITE] != pSq + NORTH
              && (1 < distance(kSq[BLACK], pSq + NORTH)
-              || contains(PieceAttacks[KING][kSq[WHITE]], pSq + NORTH))) {
+              || contains(PieceAttackBB[KING][kSq[WHITE]], pSq + NORTH))) {
                 result = WIN;
             }
             else
             // Immediate draw if is a stalemate or king captures undefended pawn
             if (BLACK == active
-             && (0 == (  PieceAttacks[KING][kSq[BLACK]]
-                     & ~(PieceAttacks[KING][kSq[WHITE]]
-                       | PawnAttacks[WHITE][pSq]))
-              || contains( PieceAttacks[KING][kSq[BLACK]]
-                        & ~PieceAttacks[KING][kSq[WHITE]], pSq))) {
+             && (0 == (  PieceAttackBB[KING][kSq[BLACK]]
+                     & ~(PieceAttackBB[KING][kSq[WHITE]]
+                       | PawnAttackBB[WHITE][pSq]))
+              || contains( PieceAttackBB[KING][kSq[BLACK]]
+                        & ~PieceAttackBB[KING][kSq[WHITE]], pSq))) {
                 result = DRAW;
             }
             // Position will be classified later
@@ -128,7 +128,7 @@ namespace BitBase {
             auto const  Bad{ WHITE == active ? DRAW : WIN };
 
             auto r{ INVALID };
-            Bitboard b{ PieceAttacks[KING][kSq[active]] };
+            Bitboard b{ PieceAttackBB[KING][kSq[active]] };
             while (0 != b) {
                 auto ksq{ popLSq(b) };
                 r |= WHITE == active ?

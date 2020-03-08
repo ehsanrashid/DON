@@ -18,8 +18,8 @@ template<GenType>
 extern void generate(ValMoves&, Position const&);
 
 template<GenType GT>//, PieceType PT = NONE>
-class MoveList
-    : public ValMoves {
+class MoveList :
+    public ValMoves {
 
 public:
 

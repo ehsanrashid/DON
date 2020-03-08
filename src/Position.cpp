@@ -22,7 +22,9 @@ namespace {
     /// Material values are updated incrementally during the search.
     template<Color Own>
     Value computeNPM(Position const &pos) {
+
         auto npm{ VALUE_ZERO };
+
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
             npm += PieceValues[MG][pt] * pos.count(Own|pt);
         }
@@ -181,8 +183,8 @@ Bitboard Position::sliderBlockersAt(Square s, Bitboard attackers, Bitboard &pinn
     // Snipers are X-ray slider attackers at 's'
     // No need to remove direct attackers at 's' as in check no evaluation
     Bitboard snipers{ attackers
-                    & ((pieces(BSHP, QUEN) & PieceAttacks[BSHP][s])
-                     | (pieces(ROOK, QUEN) & PieceAttacks[ROOK][s])) };
+                    & ((pieces(BSHP, QUEN) & PieceAttackBB[BSHP][s])
+                     | (pieces(ROOK, QUEN) & PieceAttackBB[ROOK][s])) };
     Bitboard mocc{pieces() ^ snipers};
     while (0 != snipers) {
         auto sniperSq{ popLSq(snipers) };
@@ -255,7 +257,7 @@ bool Position::pseudoLegal(Move m) const
            && (PROMOTE != mType(m)
             || RANK_7 != orgR
             || RANK_8 != dstR))
-          || !contains(PawnAttacks[active][org], dst)
+          || !contains(PawnAttackBB[active][org], dst)
           || empty(dst))
             // Double push
          && (NORMAL != mType(m)
@@ -269,7 +271,7 @@ bool Position::pseudoLegal(Move m) const
           || RANK_5 != orgR
           || RANK_6 != dstR
           || dst != epSquare()
-          || !contains(PawnAttacks[active][org], dst)
+          || !contains(PawnAttackBB[active][org], dst)
           || !empty(dst)
           || empty(dst - 1 * PawnPush[active])
           || 0 != clockPly())) {
@@ -459,8 +461,8 @@ void Position::setCheckInfo() {
     si->kingBlockers[WHITE] = sliderBlockersAt(square(WHITE|KING), pieces(BLACK), si->kingCheckers[WHITE], si->kingCheckers[BLACK]);
     si->kingBlockers[BLACK] = sliderBlockersAt(square(BLACK|KING), pieces(WHITE), si->kingCheckers[BLACK], si->kingCheckers[WHITE]);
 
-    si->checks[PAWN] = PawnAttacks[~active][square(~active|KING)];
-    si->checks[NIHT] = PieceAttacks[NIHT][square(~active|KING)];
+    si->checks[PAWN] = PawnAttackBB[~active][square(~active|KING)];
+    si->checks[NIHT] = PieceAttackBB[NIHT][square(~active|KING)];
     si->checks[BSHP] = attacksBB<BSHP>(square(~active|KING), pieces());
     si->checks[ROOK] = attacksBB<ROOK>(square(~active|KING), pieces());
     si->checks[QUEN] = si->checks[BSHP]
@@ -477,14 +479,14 @@ bool Position::canEnpassant(Color c, Square epSq, bool moveDone) const {
                 epSq + PawnPush[c] };
     assert((~c|PAWN) == board[cap]); //contains(pieces(~c, PAWN), cap));
     // Enpassant attackers
-    Bitboard attackers{ pieces(c, PAWN) & PawnAttacks[~c][epSq] };
+    Bitboard attackers{ pieces(c, PAWN) & PawnAttackBB[~c][epSq] };
     if (0 == attackers) {
        return false;
     }
     assert(2 >= popCount(attackers));
     auto kSq{ square(c|KING) };
-    Bitboard bq{ pieces(~c, BSHP, QUEN) & PieceAttacks[BSHP][kSq] };
-    Bitboard rq{ pieces(~c, ROOK, QUEN) & PieceAttacks[ROOK][kSq] };
+    Bitboard bq{ pieces(~c, BSHP, QUEN) & PieceAttackBB[BSHP][kSq] };
+    Bitboard rq{ pieces(~c, ROOK, QUEN) & PieceAttackBB[ROOK][kSq] };
     Bitboard mocc{ (pieces() ^ cap) | epSq };
     while (0 != attackers) {
         auto org{ popLSq(attackers) };
@@ -770,21 +772,23 @@ Position& Position::setup(std::string const &ff, StateInfo &nsi, Thread *const n
         Square rookOrg;
         token = char(tolower(token));
 
-        /**/ if ('k' == token) {
+        if ('k' == token) {
             for (rookOrg = relativeSq(c, SQ_H1);
                  rook != board[rookOrg];
                  /*&& rookOrg > square(c|KING)*/
                  --rookOrg)
             {}
         }
-        else if ('q' == token) {
+        else
+        if ('q' == token) {
             for (rookOrg = relativeSq(c, SQ_A1);
                  rook != board[rookOrg];
                  /*&& rookOrg < square(c|KING)*/
                  ++rookOrg)
             {}
         }
-        else if ('a' <= token && token <= 'h') {
+        else
+        if ('a' <= token && token <= 'h') {
             rookOrg = makeSquare(toFile(token), relativeRank(c, RANK_1));
         }
         else {
@@ -847,10 +851,13 @@ Position& Position::setup(std::string const &code, Color c, StateInfo &nsi) {
     assert(0 < codes[BLACK].length() && codes[BLACK].length() < 8);
 
     toLower(codes[c]);
-    auto fen = "8/" + codes[WHITE] + char('0' + 8 - codes[WHITE].length()) + "/8/8/8/8/"
-                    + codes[BLACK] + char('0' + 8 - codes[BLACK].length()) + "/8 w - - 0 1";
 
-    return setup(fen, nsi, nullptr);
+    std::ostringstream oss;
+    oss << "8/"
+        << codes[WHITE] << char('0' + 8 - codes[WHITE].length()) << "/8/8/8/8/"
+        << codes[BLACK] << char('0' + 8 - codes[BLACK].length()) << "/8 w - - 0 1";
+
+    return setup(oss.str(), nsi, nullptr);
 }
 
 /// Position::doMove() makes a move, and saves all information necessary to a StateInfo object.

@@ -47,14 +47,14 @@ namespace {
 
 }
 
-Logger::Logger()
-    : _tsbInnput{ std:: cin.rdbuf(), _ofs.rdbuf() }
-    , _tsbOutput{ std::cout.rdbuf(), _ofs.rdbuf() }
+Logger::Logger() :
+    _tsbInnput{ std:: cin.rdbuf(), _ofs.rdbuf() },
+    _tsbOutput{ std::cout.rdbuf(), _ofs.rdbuf() }
 {}
 
 Logger::~Logger() {
 
-    setFile("");
+    setup("");
 }
 
 Logger& Logger::instance() {
@@ -66,7 +66,7 @@ Logger& Logger::instance() {
     return _instance;
 }
 
-void Logger::setFile(std::string const &fnLog) {
+void Logger::setup(std::string const &fnLog) {
     if (_ofs.is_open()) {
         std::cout.rdbuf(_tsbOutput.sbRead);
         std:: cin.rdbuf(_tsbInnput.sbRead);

@@ -5,10 +5,9 @@
 #include "Position.h"
 #include "Type.h"
 
-/// Zobrist
-class Zobrist
-{
-public:
+/// Zobrist class
+struct Zobrist {
+
     // 2*6*64 + 16 + 8 + 1 = 793
     Array<Key, COLORS
              , PIECE_TYPES
@@ -19,7 +18,9 @@ public:
 
     Zobrist() = default;
     Zobrist(Zobrist const&) = delete;
+    Zobrist(Zobrist&&) = delete;
     Zobrist& operator=(Zobrist const&) = delete;
+    Zobrist& operator=(Zobrist&&) = delete;
 
     Key computeMatlKey(Position const&) const;
     Key computePawnKey(Position const&) const;

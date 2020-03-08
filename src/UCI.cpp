@@ -152,34 +152,36 @@ string const compilerInfo() {
 
 namespace UCI {
 
-    Option::Option(OnChange pFn)
-        : type{ "button" }
-        , onChange{ pFn } {}
-    Option::Option(bool v, OnChange pFn)
-        : type{ "check" }
-        , onChange{ pFn } {
+    Option::Option(OnChange pFn) :
+        type{ "button" },
+        onChange{ pFn }
+    {}
+    Option::Option(bool v, OnChange pFn) :
+        type{ "check" },
+        onChange{ pFn } {
         defaultVal = currentVal = (v ? "true" : "false");
     }
-    Option::Option(char const *v, OnChange pFn)
-        : Option{ string{ v }, pFn } {}
-    Option::Option(string const &v, OnChange pFn)
-        : type{ "string" }
-        , onChange{ pFn } {
+    Option::Option(char const *v, OnChange pFn) :
+        Option{ string{ v }, pFn }
+    {}
+    Option::Option(string const &v, OnChange pFn) :
+        type{ "string" },
+        onChange{ pFn } {
         defaultVal = currentVal = v;
     }
-    Option::Option(double v, double minV, double maxV, OnChange pFn)
-        : type{ "spin" }
-        , minVal{ minV }
-        , maxVal{ maxV }
-        , onChange{ pFn } {
+    Option::Option(double v, double minV, double maxV, OnChange pFn) :
+        type{ "spin" },
+        minVal{ minV },
+        maxVal{ maxV },
+        onChange{ pFn } {
         defaultVal = currentVal = std::to_string(v);
     }
-    Option::Option(char const* v, char const* cur, OnChange pFn)
-        : Option{ string{ v }, string{ cur }, pFn }
+    Option::Option(char const* v, char const* cur, OnChange pFn) :
+        Option{ string{ v }, string{ cur }, pFn }
     {}
-    Option::Option(string const& v, string const& cur, OnChange pFn)
-        : type{ "combo" }
-        , onChange{ pFn } {
+    Option::Option(string const& v, string const& cur, OnChange pFn) :
+        type{ "combo" },
+        onChange{ pFn } {
         defaultVal = v; currentVal = cur;
     }
 
@@ -243,18 +245,21 @@ namespace UCI {
                 v = "false";
             }
         }
-        else if (type == "spin") {
+        else
+        if (type == "spin") {
             auto d = std::stod(v);
             if (minVal > d || d > maxVal) {
                 v = std::to_string(i32(clamp(d, minVal, maxVal)));
             }
         }
-        else if (type == "string") {
+        else
+        if (type == "string") {
             if (whiteSpaces(v)) {
                 v.clear();
             }
         }
-        else if (type == "combo") {
+        else
+        if (type == "combo") {
             StringOptionMap comboMap; // To have case insensitive compare
             istringstream iss{ defaultVal };
             string token;
@@ -353,16 +358,16 @@ namespace UCI {
         void onThreads() {
             auto threadCount{ optionThreads() };
             if (threadCount != Threadpool.size()) {
-                Threadpool.setSize(threadCount);
+                Threadpool.setup(threadCount);
             }
         }
 
         void onTimeNodes() {
-            TimeMgr.reset();
+            TimeMgr.clear();
         }
 
         void onDebugFile() {
-            Logger::instance().setFile(Options["Debug File"]);
+            Logger::instance().setup(Options["Debug File"]);
         }
 
         void onSyzygyPath() {
@@ -910,9 +915,9 @@ namespace UCI {
         Threadpool.stop = true;
         Threadpool.mainThread()->waitIdle();
 
-        Threadpool.clearThreads();
+        Threadpool.clean();
         TT.clear();
-        TimeMgr.reset();
+        TimeMgr.clear();
 
         SyzygyTB::initialize(Options["SyzygyPath"]); // Free up mapped files
     }

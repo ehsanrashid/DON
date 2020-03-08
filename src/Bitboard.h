@@ -44,18 +44,20 @@ struct Magic {
 };
 
 inline u16 Magic::index(Bitboard occ) const {
+
 #if defined(BM2)
     return u16(PEXT(occ, mask));
 #elif defined(BIT64)
     return u16(((occ & mask) * number) >> shift);
 #else
     return u16((u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(number >> 0x00))
-        ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(number >> 0x20))) >> shift);
+              ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(number >> 0x20))) >> shift);
 #endif
 }
 
 
 constexpr Bitboard BoardBB{ U64(0xFFFFFFFFFFFFFFFF) };
+//constexpr Bitboard DiagonalBB{ U64(0x8142241818244281) }; // A1..H8 | H1..A8
 
 constexpr Array<Bitboard, SQUARES> SquareBB
 {
@@ -106,13 +108,36 @@ constexpr Array<Bitboard, COLORS> PawnSideBB
     RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]
 };
 
+constexpr Array<Bitboard, COLORS, RANKS> FrontRankBB
+{{
+    {
+        RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]|RankBB[RANK_3]|RankBB[RANK_2],
+        RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]|RankBB[RANK_3],
+        RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4],
+        RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5],
+        RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6],
+        RankBB[RANK_8]|RankBB[RANK_7],
+        RankBB[RANK_8],
+        0,
+    },
+    {
+        0,
+        RankBB[RANK_1],
+        RankBB[RANK_1]|RankBB[RANK_2],
+        RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3],
+        RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4],
+        RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4]|RankBB[RANK_5],
+        RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4]|RankBB[RANK_5]|RankBB[RANK_6],
+        RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4]|RankBB[RANK_5]|RankBB[RANK_6]|RankBB[RANK_7],
+    }
+}};
 
 extern Array<u08, SQUARES, SQUARES> SquareDistance;
 
 extern Array<Bitboard, SQUARES, SQUARES> LineBB;
 
-extern Array<Bitboard, COLORS, SQUARES> PawnAttacks;
-extern Array<Bitboard, PIECE_TYPES, SQUARES> PieceAttacks;
+extern Array<Bitboard, COLORS, SQUARES> PawnAttackBB;
+extern Array<Bitboard, PIECE_TYPES, SQUARES> PieceAttackBB;
 
 extern Array<Magic, SQUARES> BMagics;
 extern Array<Magic, SQUARES> RMagics;
@@ -189,13 +214,13 @@ constexpr Bitboard operator|(Square s1, Square s2) {
 }
 
 inline bool moreThanOne(Bitboard bb) {
+
 #if defined(BM2)
     return 0 != BLSR(bb);
 #else
     return 0 != (bb & (bb - 1));
 #endif
 }
-
 
 /// Shift the bitboard using delta
 template<Direction D>
@@ -234,16 +259,9 @@ template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) {
     return (bb & ~FileBB[FILE_A]) >> 9;
 }
 
-
-/// frontRanksBB() returns ranks in front of the given rank
-constexpr Bitboard frontRanksBB(Color c, Rank r) {
-    return WHITE == c ?
-            ~RankBB[RANK_1] << (r - RANK_1) * 8 :
-            ~RankBB[RANK_8] >> (RANK_8 - r) * 8;
-}
 /// frontRanksBB() returns ranks in front of the given square
 constexpr Bitboard frontRanksBB(Color c, Square s) {
-    return frontRanksBB(c, SRank[s]);
+    return FrontRankBB[c][SRank[s]];
 }
 
 constexpr Bitboard adjacentFilesBB(Square s) {
@@ -280,11 +298,11 @@ inline bool aligned(Square s1, Square s2, Square s3) {
 constexpr Array<Direction, COLORS> PawnPush{ NORTH, SOUTH };
 
 template<Color C>
-constexpr Bitboard pawnSglPushes(Bitboard bb) {
+constexpr Bitboard pawnSglPushBB(Bitboard bb) {
     return shift<PawnPush[C]>(bb);
 }
 //template<Color C>
-//constexpr Bitboard pawnDblPushes(Bitboard bb) {
+//constexpr Bitboard pawnDblPushBB(Bitboard bb) {
 //    return shift<2 * PawnPush[C]>(bb);
 //}
 
@@ -292,29 +310,29 @@ constexpr Array<Direction, COLORS> PawnLAtt{ NORTH_WEST, SOUTH_EAST };
 constexpr Array<Direction, COLORS> PawnRAtt{ NORTH_EAST, SOUTH_WEST };
 
 template<Color C>
-constexpr Bitboard pawnLAttacks(Bitboard bb) {
+constexpr Bitboard pawnLAttackBB(Bitboard bb) {
     return shift<PawnLAtt[C]>(bb);
 }
 template<Color C>
-constexpr Bitboard pawnRAttacks(Bitboard bb) {
+constexpr Bitboard pawnRAttackBB(Bitboard bb) {
     return shift<PawnRAtt[C]>(bb);;
 }
-/// pawnSglAttacks() returns the single attackes by pawns of the given color
+/// pawnSglAttackBB() returns the single attackes by pawns of the given color
 template<Color C>
-constexpr Bitboard pawnSglAttacks(Bitboard bb) {
-    return pawnLAttacks<C>(bb) | pawnRAttacks<C>(bb);
+constexpr Bitboard pawnSglAttackBB(Bitboard bb) {
+    return pawnLAttackBB<C>(bb) | pawnRAttackBB<C>(bb);
 }
-/// pawnDblAttacks() returns the double attackes by pawns of the given color
+/// pawnDblAttackBB() returns the double attackes by pawns of the given color
 template<Color C>
-constexpr Bitboard pawnDblAttacks(Bitboard bb) {
-    return pawnLAttacks<C>(bb) & pawnRAttacks<C>(bb);
+constexpr Bitboard pawnDblAttackBB(Bitboard bb) {
+    return pawnLAttackBB<C>(bb) & pawnRAttackBB<C>(bb);
 }
 
 /// attacksBB(s, occ) takes a square and a bitboard of occupied squares,
 /// and returns a bitboard representing all squares attacked by PT (Bishop or Rook or Queen) on the given square.
 template<PieceType PT> Bitboard attacksBB(Square, Bitboard);
-//template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) { return PieceAttacks[NIHT][s]; }
-//template<> inline Bitboard attacksBB<KING>(Square s, Bitboard) { return PieceAttacks[KING][s]; }
+//template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) { return PieceAttackBB[NIHT][s]; }
+//template<> inline Bitboard attacksBB<KING>(Square s, Bitboard) { return PieceAttackBB[KING][s]; }
 /// Attacks of the Bishop with occupancy
 template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) {
     return BMagics[s].attacksBB(occ);
@@ -337,7 +355,7 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
     case ROOK: return attacksBB<ROOK>(s, occ);
     case QUEN: return attacksBB<QUEN>(s, occ);
     // case NIHT: case KING:
-    default:   return PieceAttacks[pt][s];
+    default:   return PieceAttackBB[pt][s];
     }
 }
 /// Position::attacksBB() finds attacks of the piece from the square on occupancy.
@@ -345,12 +363,12 @@ inline Bitboard attacksBB(Piece p, Square s, Bitboard occ) {
     auto pt{ PType[p] };
     switch (pt)
     {
-    case PAWN: return PawnAttacks[PColor[p]][s];
+    case PAWN: return PawnAttackBB[PColor[p]][s];
     case BSHP: return attacksBB<BSHP>(s, occ);
     case ROOK: return attacksBB<ROOK>(s, occ);
     case QUEN: return attacksBB<QUEN>(s, occ);
     // case NIHT: case KING:
-    default:   return PieceAttacks[pt][s];
+    default:   return PieceAttackBB[pt][s];
     }
 }
 

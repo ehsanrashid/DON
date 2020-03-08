@@ -8,8 +8,8 @@
 // Can toggle the logging of std::cout and std:cin at runtime whilst preserving
 // usual I/O functionality, all without changing a single line of code!
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
-class TieStreamBuf
-    : public std::streambuf {
+class TieStreamBuf :
+    public std::streambuf {
 
 private:
 
@@ -27,14 +27,15 @@ private:
 
 public:
 
-    std::streambuf *sbRead
-        ,          *sbWrit;
+    std::streambuf
+        *sbRead,
+        *sbWrit;
 
     TieStreamBuf(
-          std::streambuf *sbRd
-        , std::streambuf *sbWr)
-        : sbRead{ sbRd }
-        , sbWrit{ sbWr }
+        std::streambuf *sbRd,
+        std::streambuf *sbWr) :
+        sbRead{ sbRd },
+        sbWrit{ sbWr }
     {}
     //TieStreamBuf(TieStreamBuf const&) = delete;
     //TieStreamBuf& operator=(TieStreamBuf const&) = delete;

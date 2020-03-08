@@ -16,10 +16,11 @@
 #include "UCI.h"
 #include "Zobrist.h"
 
-/// clean() cleans the stuffs in case of some crash.
-void clean() {
+/// clear() clears the stuffs in case of some crash.
+void clear() {
     Threadpool.stop = true;
-    Threadpool.setSize(0);
+    Threadpool.setup(0);
+    Threadpool.clear();
 }
 
 int main(int argc, char const *const *argv) {
@@ -37,12 +38,12 @@ int main(int argc, char const *const *argv) {
     EndGame::initialize();
     Book.initialize(Options["Book File"]);
     WinProcGroup::initialize();
-    Threadpool.setSize(optionThreads());
-    TimeMgr.reset();
+    Threadpool.setup(optionThreads());
+    TimeMgr.clear();
     std::srand(u32(time(nullptr)));
     UCI::clear();
 
-    std::atexit(clean);
+    std::atexit(clear);
 
     // Join arguments
     std::string cmdLine;

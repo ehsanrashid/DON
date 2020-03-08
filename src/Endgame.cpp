@@ -441,7 +441,7 @@ template<> Scale Endgame<KRPKB>::operator()(Position const &pos) const {
         // and the defending king is near the corner
         if (RANK_6 == spR
          && 1 >= distance(spSq + 2 * PawnPush[stngColor], wkSq)
-         && contains(PieceAttacks[BSHP][wbSq], spSq + PawnPush[stngColor])
+         && contains(PieceAttackBB[BSHP][wbSq], spSq + PawnPush[stngColor])
          && 2 <= distance<File>(wbSq, spSq)) {
             return Scale(8);
         }
@@ -755,8 +755,8 @@ template<> Scale Endgame<KQKRPs>::operator()(Position const &pos) const {
      && RANK_4 <= relativeRank(weakColor, skSq)
      && RANK_3 == relativeRank(weakColor, wrSq)
      && 0 != (pos.pieces(weakColor, PAWN)
-            & PieceAttacks[KING][wkSq]
-            & PawnAttacks[stngColor][wrSq])) {
+            & PieceAttackBB[KING][wkSq]
+            & PawnAttackBB[stngColor][wrSq])) {
         return SCALE_DRAW;
     }
 

@@ -52,15 +52,17 @@ protected:
 
 public:
 
-    Color const stngColor
-        ,       weakColor;
+    Color const
+        stngColor,
+        weakColor;
 
-    explicit EndgameBase(Color c)
-        : stngColor{  c }
-        , weakColor{ ~c }
+    explicit EndgameBase(Color c) :
+        stngColor{  c },
+        weakColor{ ~c }
     {}
     virtual ~EndgameBase() = default;
     EndgameBase& operator=(EndgameBase const&) = delete;
+    //EndgameBase& operator=(EndgameBase&&) = delete;
 
     virtual T operator()(Position const&) const = 0;
 
@@ -68,15 +70,16 @@ public:
 
 /// Derived functors for endgame evaluation and scaling functions
 template<EndgameCode C, typename T = EndgameType<C>>
-class Endgame
-    : public EndgameBase<T> {
+class Endgame :
+    public EndgameBase<T> {
 
 public:
 
-    explicit Endgame(Color c)
-        : EndgameBase<T>{ c }
+    explicit Endgame(Color c) :
+        EndgameBase<T>{ c }
     {}
     Endgame& operator=(Endgame const&) = delete;
+    //Endgame& operator=(Endgame&&) = delete;
 
     T operator()(Position const&) const override;
 
@@ -87,8 +90,8 @@ namespace EndGame {
 
     template<typename T>  using EGPtr = std::unique_ptr<EndgameBase<T>>;
     template<typename T>  using EGMap = std::unordered_map<Key, EGPtr<T>>;
-    template<typename T1
-           , typename T2> using EGMapPair = std::pair<EGMap<T1>, EGMap<T2>>;
+    template<typename T1,
+             typename T2> using EGMapPair = std::pair<EGMap<T1>, EGMap<T2>>;
 
     extern EGMapPair<Value, Scale> EndGames;
 

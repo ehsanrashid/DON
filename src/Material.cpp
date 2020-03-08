@@ -60,7 +60,7 @@ namespace Material {
         {
             Endgame<KQKRPs>(WHITE),
             Endgame<KQKRPs>(BLACK)
-        } ;
+        };
 
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR

@@ -114,7 +114,7 @@ void TimeManager::setup(Color c, i16 ply) {
     }
 }
 
-void TimeManager::reset() {
+void TimeManager::clear() {
     _timeNodes = Options["Time Nodes"];
     _nodes = 0;
 }

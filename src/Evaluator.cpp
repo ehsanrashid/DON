@@ -59,7 +59,6 @@ namespace Evaluator {
         Table<Score, TERM_NO, COLORS> Tracer::Scores;
 
 
-        //constexpr Bitboard DiagonalsBB{ U64(0x8142241818244281) }; // A1..H8 | H1..A8
         constexpr Bitboard CenterBB{ (FileBB[FILE_D]|FileBB[FILE_E]) & (RankBB[RANK_4]|RankBB[RANK_5]) };
 
         constexpr Array<Bitboard, COLORS> LowRankBB
@@ -225,8 +224,8 @@ namespace Evaluator {
             Evaluation(Evaluation const&) = delete;
             Evaluation& operator=(Evaluation const&) = delete;
 
-            Evaluation(Position const &p)
-                : pos{ p }
+            Evaluation(Position const &p) :
+                pos{ p }
             {}
 
             Value value();
@@ -240,16 +239,16 @@ namespace Evaluator {
             auto kSq{ pos.square(Own|KING) };
 
             sqlAttacks[Own].fill(0);
-            sqlAttacks[Own][PAWN] =  pawnSglAttacks<Own>(pawns & ~pos.kingBlockers(Own))
-                                  | (pawnSglAttacks<Own>(pawns &  pos.kingBlockers(Own)) & PieceAttacks[BSHP][kSq]);
-            sqlAttacks[Own][KING] = PieceAttacks[KING][kSq];
+            sqlAttacks[Own][PAWN] =  pawnSglAttackBB<Own>(pawns & ~pos.kingBlockers(Own))
+                                  | (pawnSglAttackBB<Own>(pawns &  pos.kingBlockers(Own)) & PieceAttackBB[BSHP][kSq]);
+            sqlAttacks[Own][KING] = PieceAttackBB[KING][kSq];
             sqlAttacks[Own][NONE] = sqlAttacks[Own][PAWN]
                                   | sqlAttacks[Own][KING];
             //
-            fulAttacks[Own] = pawnSglAttacks<Own>(pawns)
+            fulAttacks[Own] = pawnSglAttackBB<Own>(pawns)
                             | sqlAttacks[Own][KING];
             //
-            pawnsDblAttacks[Own] = pawnDblAttacks<Own>(pawns)
+            pawnsDblAttacks[Own] = pawnDblAttackBB<Own>(pawns)
                                  & sqlAttacks[Own][PAWN];
             dblAttacks[Own] = pawnsDblAttacks[Own]
                             | (sqlAttacks[Own][PAWN]
@@ -272,7 +271,7 @@ namespace Evaluator {
                             // Squares occupied by block pawns (pawns on ranks 2-3/blocked)
                            | (pos.pieces(Own, PAWN)
                             & (LowRankBB[Own]
-                             | pawnSglPushes<Opp>(pos.pieces()))));
+                             | pawnSglPushBB<Opp>(pos.pieces()))));
 
             mobility[Own] = SCORE_ZERO;
 
@@ -280,7 +279,7 @@ namespace Evaluator {
             // King safety tables
             auto sq{ makeSquare(clamp(SFile[kSq], FILE_B, FILE_G),
                                 clamp(SRank[kSq], RANK_2, RANK_7)) };
-            kingRing[Own] = PieceAttacks[KING][sq] | sq;
+            kingRing[Own] = PieceAttackBB[KING][sq] | sq;
 
             kingAttackersCount [Opp] = popCount(kingRing[Own] & sqlAttacks[Opp][PAWN]);
             kingAttackersWeight[Opp] = 0;
@@ -308,7 +307,7 @@ namespace Evaluator {
                 case BSHP: attacks = attacksBB<BSHP>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, BSHP) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))); break;
                 case ROOK: attacks = attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))); break;
                 case QUEN: attacks = attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~pos.kingBlockers(Own))));                         break;
-                case NIHT: default: attacks = PieceAttacks[NIHT][s];                                                                                      break;
+                case NIHT: default: attacks = PieceAttackBB[NIHT][s];                                                                                      break;
                 }
 
                 Bitboard action{
@@ -323,7 +322,7 @@ namespace Evaluator {
                                 & ~pos.kingBlockers(Own);
                     dblAttacks[Own] |= sqlAttacks[Own][NONE]
                                      & (attacks
-                                      | (pawnSglAttacks<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttacks[BSHP][s] & action));
+                                      | (pawnSglAttackBB<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttackBB[BSHP][s] & action));
                 }
                     break;
                 case QUEN: {
@@ -331,9 +330,9 @@ namespace Evaluator {
                                 & ~pos.kingBlockers(Own);
                     dblAttacks[Own] |= sqlAttacks[Own][NONE]
                                      & (attacks
-                                      | (pawnSglAttacks<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttacks[BSHP][s] & action)
-                                      | (attacksBB<BSHP>(s, pos.pieces() ^ (pc & pos.pieces(BSHP) & PieceAttacks[BSHP][s])) & action)
-                                      | (attacksBB<ROOK>(s, pos.pieces() ^ (pc & pos.pieces(ROOK) & PieceAttacks[ROOK][s])) & action));
+                                      | (pawnSglAttackBB<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttackBB[BSHP][s] & action)
+                                      | (attacksBB<BSHP>(s, pos.pieces() ^ (pc & pos.pieces(BSHP) & PieceAttackBB[BSHP][s])) & action)
+                                      | (attacksBB<ROOK>(s, pos.pieces() ^ (pc & pos.pieces(ROOK) & PieceAttackBB[ROOK][s])) & action));
                 }
                     break;
                 default:
@@ -364,7 +363,7 @@ namespace Evaluator {
                 case NIHT:
                 case BSHP: {
                     // Bonus for minor behind a pawn
-                    score += MinorBehindPawn * contains(pawnSglPushes<Opp>(pos.pieces(PAWN)), s);
+                    score += MinorBehindPawn * contains(pawnSglPushBB<Opp>(pos.pieces(PAWN)), s);
 
                     // Penalty for distance from the friend king
                     score -= MinorKingProtect * distance(s, pos.square(Own|KING));
@@ -400,7 +399,7 @@ namespace Evaluator {
                                         & ColorBB[SColor[s]])
                                * (1 + popCount(pos.pieces(Own, PAWN)
                                              & SlotFileBB[CS_NONE]
-                                             & pawnSglPushes<Opp>(pos.pieces())));
+                                             & pawnSglPushBB<Opp>(pos.pieces())));
 
                         // Bonus for bishop on a long diagonal which can "see" both center squares
                         score += BishopOnDiagonal
@@ -463,7 +462,7 @@ namespace Evaluator {
                        & ~pos.kingBlockers(Opp)
                        & ~( pos.pieces(Opp, PAWN)
                          &  fileBB(s)
-                         & ~pawnSglAttacks<Own>(pos.pieces(Own)))) != 0) {
+                         & ~pawnSglAttackBB<Own>(pos.pieces(Own)))) != 0) {
                         score -= QueenWeaken;
                     }
                 }
@@ -542,7 +541,7 @@ namespace Evaluator {
             }
 
             // Enemy knights checks
-            Bitboard nihtChecks{  PieceAttacks[NIHT][kSq]
+            Bitboard nihtChecks{  PieceAttackBB[NIHT][kSq]
                                &  sqlAttacks[Opp][NIHT]};
             if (0 != (nihtChecks & safeArea)) {
                 kingDanger += SafeCheckWeight[NIHT];
@@ -688,7 +687,7 @@ namespace Evaluator {
               &  pos.pieces(Own, PAWN);
             // Safe friend pawns attacks on non-pawn enemies
             b =  nonPawnsEnemies
-              &  pawnSglAttacks<Own>(b)
+              &  pawnSglAttackBB<Own>(b)
               &  sqlAttacks[Own][PAWN];
             score += PawnThreat * popCount(b);
 
@@ -696,16 +695,16 @@ namespace Evaluator {
             b =  pos.pieces(Own, PAWN)
               & ~pos.kingBlockers(Own);
             // Friend pawns push (squares where friend pawns can push on the next move)
-            b =  pawnSglPushes<Own>(b)
+            b =  pawnSglPushBB<Own>(b)
               & ~pos.pieces();
-            b |= pawnSglPushes<Own>(b & RankBB[relativeRank(Own, RANK_3)])
+            b |= pawnSglPushBB<Own>(b & RankBB[relativeRank(Own, RANK_3)])
               & ~pos.pieces();
             // Friend pawns push safe (only the squares which are relatively safe)
             b &= safeArea
               & ~sqlAttacks[Opp][PAWN];
             // Friend pawns push safe attacks an enemies
             b =  nonPawnsEnemies
-              &  pawnSglAttacks<Own>(b);
+              &  pawnSglAttackBB<Own>(b);
             score += PawnPushThreat * popCount(b);
 
             // Bonus for threats on the next moves against enemy queens
@@ -744,9 +743,9 @@ namespace Evaluator {
             Bitboard psr{ pawnEntry->passers[Own] };
             while (0 != psr) {
                 auto s{ popLSq(psr) };
-                assert(0 == ((pawnSglPushes<Own>(frontSquaresBB(Own, s))
+                assert(0 == ((pawnSglPushBB<Own>(frontSquaresBB(Own, s))
                             | ( pawnPassSpan(Own, s + PawnPush[Own])
-                             & ~PawnAttacks[Own][s + PawnPush[Own]]))
+                             & ~PawnAttackBB[Own][s + PawnPush[Own]]))
                            & pos.pieces(Opp, PAWN)));
 
                 i32 r{ relativeRank(Own, s) };
@@ -822,8 +821,8 @@ namespace Evaluator {
 
             // Find all squares which are at most three squares behind some friend pawn
             Bitboard behind{ pos.pieces(Own, PAWN) };
-            behind |= pawnSglPushes<Opp>(behind);
-            behind |= pawnSglPushes<Opp>(behind);
+            behind |= pawnSglPushBB<Opp>(behind);
+            behind |= pawnSglPushBB<Opp>(behind);
 
             // Safe squares for friend pieces inside the area defined by SpaceMask.
             Bitboard safeSpace{  PawnSideBB[Own]
@@ -900,17 +899,16 @@ namespace Evaluator {
             }
             assert(SCALE_NONE != scl);
 
-            // If don't already have an unusual scale, check for certain types of endgames.
+            // If scale is not already specific, scale down the endgame via general heuristics
             if (SCALE_NORMAL == scl) {
 
                 scl = pos.bishopOpposed()
                    && 2 * VALUE_MG_BSHP == pos.nonPawnMaterial() ?
-                        // Endings with opposite-colored bishops and no other pieces is almost a draw
                         Scale(22) :
                         std::min(Scale(36 + (7 - 5 * pos.bishopOpposed()) * pos.count(stngColor|PAWN)), SCALE_NORMAL);
 
                 // Scale down endgame factor when shuffling
-                scl = std::max(Scale(scl - std::max(pos.clockPly() / 4 - 3, 0)), SCALE_DRAW);
+                scl = std::max(Scale(scl + 3 - pos.clockPly() / 4), SCALE_DRAW);
             }
             return scl;
         }

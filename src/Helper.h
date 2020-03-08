@@ -8,9 +8,6 @@
 
 #include "Type.h"
 
-
-
-
 /// std::string Helpers
 
 extern bool whiteSpaces(std::string const&);

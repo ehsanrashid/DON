@@ -21,8 +21,8 @@
 ///  - SelDepth
 ///  - PV (really a refutation table in the case of moves which fail low)
 /// Value is normally set at -VALUE_INFINITE for all non-pv moves.
-class RootMove
-    : public std::list<Move> {
+class RootMove :
+    public std::list<Move> {
 
 public:
 
@@ -53,8 +53,8 @@ public:
 
 extern std::ostream& operator<<(std::ostream&, RootMove const&);
 
-class RootMoves
-    : public std::vector<RootMove> {
+class RootMoves :
+    public std::vector<RootMove> {
 
 public:
 

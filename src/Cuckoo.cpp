@@ -21,7 +21,7 @@ namespace CucKoo {
                 for (Square org = SQ_A1; org <= SQ_H8; ++org) {
                     for (Square dst = Square(org + 1); dst <= SQ_H8; ++dst) {
 
-                        if (!contains(PieceAttacks[pt][org], dst)) {
+                        if (!contains(PieceAttackBB[pt][org], dst)) {
                             continue;
                         }
 

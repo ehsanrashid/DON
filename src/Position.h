@@ -18,20 +18,31 @@
 #endif
 
 inline void prefetch(void const *addr) {
+
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
 #   if defined(__INTEL_COMPILER)
+
     // This hack prevents prefetches from being optimized away by
     // Intel compiler. Both MSVC and gcc seem not be affected by this.
     __asm__("");
+
 #   endif
+
     _mm_prefetch((char const*) (addr), _MM_HINT_T0);
+
 #else
+
     __builtin_prefetch(addr);
+
 #endif
+
 }
 
 #else
+
 inline void prefetch(void const*) {}
+
 #endif // (PREFETCH)
 
 
@@ -129,7 +140,9 @@ public:
 
     Position() = default;
     Position(Position const&) = delete;
+    Position(Position&&) = delete;
     Position& operator=(Position const&) = delete;
+    Position& operator=(Position&&) = delete;
 
     Piece operator[](Square) const;
     bool empty(Square) const;
@@ -296,7 +309,7 @@ inline i32 Position::count(PieceType pt) const {
              + pieceList[BLACK|pt].size());
 }
 
-inline const std::list<Square>& Position::squares(Piece p) const {
+inline std::list<Square> const& Position::squares(Piece p) const {
     return pieceList[p];
 }
 
@@ -399,12 +412,12 @@ inline i16 Position::moveCount() const {
 
 /// Position::attackersTo() finds attackers to the square on occupancy.
 inline Bitboard Position::attackersTo(Square s, Bitboard occ) const {
-    return (pieces(BLACK, PAWN) & PawnAttacks[WHITE][s])
-         | (pieces(WHITE, PAWN) & PawnAttacks[BLACK][s])
-         | (pieces(NIHT)        & PieceAttacks[NIHT][s])
+    return (pieces(BLACK, PAWN) & PawnAttackBB[WHITE][s])
+         | (pieces(WHITE, PAWN) & PawnAttackBB[BLACK][s])
+         | (pieces(NIHT)        & PieceAttackBB[NIHT][s])
          | (pieces(BSHP, QUEN)  & attacksBB<BSHP>(s, occ))
          | (pieces(ROOK, QUEN)  & attacksBB<ROOK>(s, occ))
-         | (pieces(KING)        & PieceAttacks[KING][s]);
+         | (pieces(KING)        & PieceAttackBB[KING][s]);
 }
 /// Position::attackersTo() finds attackers to the square.
 inline Bitboard Position::attackersTo(Square s) const {
@@ -444,7 +457,7 @@ inline bool Position::pawnPassedAt(Color c, Square s) const {
 
 /// Position::bishopPaired() check the side has pair of opposite color bishops
 inline bool Position::bishopPaired(Color c) const {
-    return 2 <= count(c|BSHP)
+    return moreThanOne(pieces(c, BSHP))
         && 0 != (pieces(c, BSHP) & ColorBB[WHITE])
         && 0 != (pieces(c, BSHP) & ColorBB[BLACK]);
 }

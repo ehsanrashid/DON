@@ -32,12 +32,14 @@ private:
 public:
 
     PRNG() = delete;
-    PRNG(u64 seed)
-        : s{ seed }
+    PRNG(u64 seed) :
+        s{ seed }
     { assert(0 != s); }
 
     PRNG(PRNG const&) = delete;
+    PRNG(PRNG&&) = delete;
     PRNG& operator=(PRNG const&) = delete;
+    PRNG& operator=(PRNG&&) = delete;
 
     template<typename T>
     T rand() {

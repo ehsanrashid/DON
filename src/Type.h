@@ -72,6 +72,19 @@ using Bitboard = u64;
 
 #endif
 
+// Return the sign of a number (-1, 0, 1)
+template<typename T>
+constexpr i32 sign(T const &v) {
+    return (T{} < v) - (v < T{});
+}
+
+template<typename T>
+T const& clamp(T const &v, T const &minimum, T const &maximum) {
+    return
+        (minimum > v) ? minimum :
+        (v > maximum) ? maximum : v;
+}
+
 enum Color : i08 { WHITE, BLACK, COLORS = 2 };
 
 enum File : i08 { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILES = 8 };
@@ -81,8 +94,7 @@ enum Rank : i08 { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8
 /// Square needs 6-bits to be stored
 /// bit 0-2: File
 /// bit 3-5: Rank
-enum Square : i08
-{
+enum Square : i08 {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
     SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3,
@@ -94,8 +106,7 @@ enum Square : i08
     SQ_NONE, SQUARES = 64
 };
 
-enum Direction : i08
-{
+enum Direction : i08 {
     EAST    =  1,
     NORTH   =  8,
     WEST    = -EAST,
@@ -136,8 +147,7 @@ constexpr i32 MAX_PLY{ 256 + DEPTH_OFFSET - 4 };
 enum CastleSide : i08 { CS_KING, CS_QUEN, CS_NONE, CASTLE_SIDES = 2 };
 
 /// Castle Right defined as in Polyglot book hash key
-enum CastleRight : u08
-{
+enum CastleRight : u08 {
     CR_NONE  = 0,       // 0000
 
     CR_WKING = 1,       // 0001
@@ -159,16 +169,14 @@ enum PieceType : i08 { NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING, PIECE_TYPES = 7
 /// Piece needs 4-bits to be stored
 /// bit 0-2: Type of piece
 /// bit   3: Color of piece { White = 0..., Black = 1... }
-enum Piece : u08
-{
+enum Piece : u08 {
     NO_PIECE,
     W_PAWN = 1, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
     B_PAWN = 9, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
     PIECES = 15
 };
 
-enum MoveType : u16
-{
+enum MoveType : u16 {
     NORMAL    = 0 << 14, // [00]-- ===
     CASTLE    = 1 << 14, // [01]-- ===
     ENPASSANT = 2 << 14, // [10]-- ===
@@ -185,14 +193,12 @@ enum MoveType : u16
 /// bit 14-15: Move Type
 ///
 /// Special cases are MOVE_NONE and MOVE_NULL.
-enum Move : u16
-{
+enum Move : u16 {
     MOVE_NONE = 0x00,
     MOVE_NULL = 0x41,
 };
 
-enum Value : i32
-{
+enum Value : i32 {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
 
@@ -225,28 +231,24 @@ enum Value : i32
 /// the lower 16-bits are used to store the midgame value
 /// the upper 16-bits are used to store the endgame value
 /// Take some care to avoid left-shifting a signed int to avoid undefined behavior.
-enum Score : u32
-{
+enum Score : u32 {
     SCORE_ZERO = 0,
 };
 
-enum Bound : u08
-{
+enum Bound : u08 {
     BOUND_NONE  = 0,
     BOUND_UPPER = 1,
     BOUND_LOWER = 2,
     BOUND_EXACT = 3,
 };
 
-enum Phase : u08
-{
+enum Phase : u08 {
     MG,
     EG,
     PHASES = 2
 };
 
-enum Scale : u08
-{
+enum Scale : u08 {
     SCALE_DRAW    =   0,
     SCALE_NORMAL  =  64,
     SCALE_MAX     = 128,
@@ -368,20 +370,6 @@ constexpr Score operator*(Score s, bool b) {
 /// So user should explicitly convert to integer.
 Score operator*(Score, Score) = delete;
 Score operator/(Score, Score) = delete;
-
-// Return the sign of a number (-1, 0, 1)
-template<typename T>
-constexpr i32 sign(T const &v) {
-    return (T{} < v) - (v < T{});
-}
-
-template<typename T>
-T const& clamp(T const &v, T const &minimum, T const &maximum) {
-    return
-        (minimum > v) ? minimum :
-        (v > maximum) ? maximum : v;
-}
-
 
 /// Multi-dimensional Array
 template<typename T, size_t Size, size_t... Sizes>
@@ -645,8 +633,9 @@ constexpr Array<Value, PHASES, PIECE_TYPES> PieceValues
 }};
 
 
-class Moves
-    : public std::vector<Move> {
+class Moves :
+    public std::vector<Move> {
+
 public:
     using std::vector<Move>::vector;
 
@@ -665,8 +654,8 @@ struct ValMove {
     i32  value{ 0 };
 
     ValMove() = default;
-    explicit ValMove(Move m)
-        : move{ m }
+    explicit ValMove(Move m) :
+        move{ m }
     {}
 
     operator Move() const { return move; }
@@ -691,8 +680,9 @@ struct ValMove {
     //}
 };
 
-class ValMoves
-    : public std::vector<ValMove> {
+class ValMoves :
+    public std::vector<ValMove> {
+
 public:
     using std::vector<ValMove>::vector;
 
@@ -727,8 +717,8 @@ private:
 
 public:
 
-    HashTable()
-        : table(Size) {}
+    HashTable() :
+        table(Size) {}
 
     void clear() {
         table.assign(Size, T());
@@ -741,8 +731,8 @@ public:
 
 /// Table
 template<typename T, size_t Size, size_t... Sizes>
-class Table
-    : public std::array<Table<T, Sizes...>, Size>
+class Table :
+    public std::array<Table<T, Sizes...>, Size>
 {
     static_assert (Size != 0, "Size incorrect");
 private:
@@ -759,8 +749,8 @@ public:
 
 };
 template<typename T, size_t Size>
-class Table<T, Size>
-    : public std::array<T, Size>
+class Table<T, Size> :
+    public std::array<T, Size>
 {
     static_assert (Size != 0, "Size incorrect");
 };
@@ -772,6 +762,7 @@ class Table<T, Size>
 /// tables at caller sites as simple multi-dim arrays.
 template<typename T, i32 D>
 class Stats {
+
 private:
     T entry;
 
@@ -807,8 +798,8 @@ public:
 /// the D parameter limits the range of updates (range is [-D, +D]), and
 /// the last parameters (Size and Sizes) encode the dimensions of the array.
 template<typename T, i32 D, size_t Size, size_t... Sizes>
-class StatsTable
-    : public std::array<StatsTable<T, D, Sizes...>, Size>
+class StatsTable :
+    public std::array<StatsTable<T, D, Sizes...>, Size>
 {
     static_assert (Size != 0, "Size incorrect");
 private:
@@ -826,8 +817,8 @@ public:
     }
 };
 template<typename T, i32 D, size_t Size>
-class StatsTable<T, D, Size>
-    : public std::array<Stats<T, D>, Size>
+class StatsTable<T, D, Size> :
+    public std::array<Stats<T, D>, Size>
 {
     static_assert (Size != 0, "Size incorrect");
 };

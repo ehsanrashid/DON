@@ -28,6 +28,33 @@ namespace {
         QUIESCENCE_CHECKS,
     };
 
+    /// limitedInsertionSort() sorts moves in descending order up to and including a given limit.
+    /// The order of moves smaller than the limit is left unspecified.
+    void limitedInsertionSort(
+        ValMoves::iterator const &iBeg,
+        ValMoves::iterator const &iEnd,
+        i32 limit) {
+
+        auto sortedEnd = iBeg;
+        auto p = sortedEnd + 1;
+        while (p != iEnd) {
+
+            if (p->value >= limit) {
+                auto item = *p;
+                *p = *(++sortedEnd);
+
+                auto q = sortedEnd;
+                while (q != iBeg
+                    && (q - 1)->value < item.value) {
+                    *q = *(q - 1);
+                    --q;
+                }
+                *q = item;
+            }
+            ++p;
+        }
+    }
+
 }
 
 /// Constructors of the MovePicker class.
@@ -37,22 +64,21 @@ namespace {
 
 /// MovePicker constructor for the main search
 MovePicker::MovePicker(
-      Position const &p
-    , ColorIndexStatsTable const *bfStats
-    , PlyIndexStatsTable const *lpStats
-    , PieceSquareTypeStatsTable const *cStats
-    , PieceSquareStatsTable const **pStats
-    , Move ttm, Depth d, i16 sp
-    , Array<Move, 2> const &km, Move cm)
-    : pos{ p }
-    , butterFlyStats{ bfStats }
-    , lowPlyStats{ lpStats }
-    , captureStats{ cStats }
-    , pieceStats{ pStats }
-    , depth{ d }
-    , ply { sp }
-    , threshold{ Value(-3000 * d) }
-    , refutationMoves{ km[0], km[1], cm } {
+    Position const &p,
+    ColorIndexStatsTable const *bfStats,
+    PlyIndexStatsTable const *lpStats,
+    PieceSquareTypeStatsTable const *cStats,
+    PieceSquareStatsTable const **pStats,
+    Move ttm, Depth d, i16 sp,
+    Array<Move, 2> const &km, Move cm) :
+    pos{ p },
+    butterFlyStats{ bfStats },
+    lowPlyStats{ lpStats },
+    captureStats{ cStats },
+    pieceStats{ pStats },
+    depth{ d },
+    ply { sp },
+    refutationMoves{ km[0], km[1], cm } {
     assert(DEPTH_ZERO < depth);
     assert(!skipQuiets);
 
@@ -67,17 +93,17 @@ MovePicker::MovePicker(
 /// Because the depth <= DEPTH_ZERO here, only captures, queen promotions
 /// and quiet checks (only if depth >= DEPTH_QS_CHECK) will be generated.
 MovePicker::MovePicker(
-      Position const &p
-    , ColorIndexStatsTable const *bfStats
-    , PieceSquareTypeStatsTable const *cStats
-    , PieceSquareStatsTable const **pStats
-    , Move ttm, Depth d, Square rs)
-    : pos{ p }
-    , butterFlyStats{ bfStats }
-    , captureStats{ cStats }
-    , pieceStats{ pStats }
-    , depth{ d }
-    , recapSq{ rs } {
+    Position const &p,
+    ColorIndexStatsTable const *bfStats,
+    PieceSquareTypeStatsTable const *cStats,
+    PieceSquareStatsTable const **pStats,
+    Move ttm, Depth d, Square rs) :
+    pos{ p },
+    butterFlyStats{ bfStats },
+    captureStats{ cStats },
+    pieceStats{ pStats },
+    depth{ d },
+    recapSq{ rs } {
     assert(DEPTH_ZERO >= depth);
     assert(!skipQuiets);
 
@@ -93,12 +119,12 @@ MovePicker::MovePicker(
 /// MovePicker constructor for ProbCut search.
 /// Generate captures with SEE greater than or equal to the given threshold.
 MovePicker::MovePicker(
-      Position const &p
-    , PieceSquareTypeStatsTable const *cStats
-    , Move ttm, Value thr)
-    : pos{ p }
-    , captureStats{ cStats }
-    , threshold{ thr } {
+    Position const &p,
+    PieceSquareTypeStatsTable const *cStats,
+    Move ttm, Value thr) :
+    pos{ p },
+    captureStats{ cStats },
+    threshold{ thr } {
     assert(0 == pos.checkers());
     assert(!skipQuiets);
 
@@ -143,10 +169,6 @@ void MovePicker::value() {
                      + (*pieceStats[5])[mpc][dst]
                    + (ply < MAX_LOWPLY ?
                        (*lowPlyStats)[ply][mIndex(vm)] * 4 : 0);
-            // Reset Low values
-            if (vm.value < threshold) {
-                vm.value = threshold - 1;
-            }
         }
         else { // GenType::EVASION == GT
             if (pos.capture(vm)) {
@@ -218,7 +240,7 @@ Move MovePicker::nextMove() {
     case NATURAL_GOOD_CAPTURES: {
         if (pick([&]() {
                 return pos.see(*vmBeg, Value(-55 * vmBeg->value / 1024)) ?
-                    // Put losing capture to badCaptureMoves to be tried later
+                        // Put losing capture to badCaptureMoves to be tried later
                         true : (badCaptureMoves += *vmBeg, false);
             })) {
             return *std::prev(vmBeg);
@@ -258,7 +280,7 @@ Move MovePicker::nextMove() {
                             || std::find(mBeg, mEnd, vm.move) != mEnd;
                     });
             value<GenType::QUIET>();
-            std::stable_sort(vmBeg, vmEnd, std::greater<ValMove>());
+            limitedInsertionSort(vmBeg, vmEnd, -3000 * depth);
         }
         ++stage;
     }
@@ -330,8 +352,7 @@ Move MovePicker::nextMove() {
 
     case PICK_STAGE_NONE:
     default:
+        assert(false);
         return MOVE_NONE;
     }
-    assert(false);
-    return MOVE_NONE;
 }

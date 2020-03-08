@@ -17,14 +17,16 @@ public:
 
     TimeManager() = default;
     TimeManager(TimeManager const&) = delete;
+    TimeManager(TimeManager&&) = delete;
     TimeManager& operator=(TimeManager const&) = delete;
+    TimeManager& operator=(TimeManager&&) = delete;
 
     TimePoint optimum() const;
     TimePoint maximum() const;
     TimePoint elapsed() const;
     u16 timeNodes() const;
 
-    void reset();
+    void clear();
 
     void setup(Color, i16);
 

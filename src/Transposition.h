@@ -87,7 +87,9 @@ public:
 
     TTable() = default;
     TTable(TTable const&) = delete;
+    TTable(TTable&&) = delete;
     TTable& operator=(TTable const&) = delete;
+    TTable& operator=(TTable&&) = delete;
     ~TTable();
 
     u32 size() const;

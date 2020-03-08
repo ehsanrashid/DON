@@ -17,7 +17,9 @@ public:
 
     SkillManager() = default;
     SkillManager(SkillManager const&) = delete;
+    SkillManager(SkillManager&&) = delete;
     SkillManager& operator=(SkillManager const&) = delete;
+    SkillManager& operator=(SkillManager&&) = delete;
 
     bool enabled() const;
     bool canPick(Depth) const;
