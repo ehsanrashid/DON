@@ -828,7 +828,7 @@ namespace {
                 // Initialize move-picker(3) for the current position
                 MovePicker mp{ pos
                              , &thread->captureStats
-                             , ttMove, raisedBeta - ss->staticEval };
+                             , ttMove, depth, raisedBeta - ss->staticEval };
                 // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
                 while (2 + 2 * cutNode > probCutCount
                     && MOVE_NONE != (move = mp.nextMove())) {
@@ -1333,12 +1333,12 @@ namespace {
                 }
             }
             else {
-                thread->captureStats[pos[orgSq(bestMove)]][dstSq(bestMove)][pos.captureType(bestMove)] << bonus1;
+                thread->captureStats[pos[orgSq(bestMove)]][dstSq(bestMove)][pos.captured(bestMove)] << bonus1;
             }
 
             // Decrease all the other played capture moves
             for (auto cm : captureMoves) {
-                thread->captureStats[pos[orgSq(cm)]][dstSq(cm)][pos.captureType(cm)] << -bonus1;
+                thread->captureStats[pos[orgSq(cm)]][dstSq(cm)][pos.captured(cm)] << -bonus1;
             }
             // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
             if (!pmCaptureOrPromotion

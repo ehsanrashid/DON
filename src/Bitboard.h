@@ -182,16 +182,6 @@ constexpr bool contains(Bitboard bb, Square s) {
     return 0 != (bb & SquareBB[s]);
 }
 
-constexpr Bitboard operator&(Bitboard bb, Square s) {
-    return bb & SquareBB[s];
-}
-constexpr Bitboard operator|(Bitboard bb, Square s) {
-    return bb | SquareBB[s];
-}
-constexpr Bitboard operator^(Bitboard bb, Square s) {
-    return bb ^ SquareBB[s];
-}
-
 constexpr Bitboard operator&(Square s, Bitboard bb) {
     return bb & SquareBB[s];
 }
@@ -199,6 +189,16 @@ constexpr Bitboard operator|(Square s, Bitboard bb) {
     return bb | SquareBB[s];
 }
 constexpr Bitboard operator^(Square s, Bitboard bb) {
+    return bb ^ SquareBB[s];
+}
+
+constexpr Bitboard operator&(Bitboard bb, Square s) {
+    return bb & SquareBB[s];
+}
+constexpr Bitboard operator|(Bitboard bb, Square s) {
+    return bb | SquareBB[s];
+}
+constexpr Bitboard operator^(Bitboard bb, Square s) {
     return bb ^ SquareBB[s];
 }
 
@@ -279,16 +279,22 @@ constexpr Bitboard frontSquaresBB(Color c, Square s) {
 constexpr Bitboard pawnAttackSpan(Color c, Square s) {
     return frontRanksBB(c, s) & adjacentFilesBB(s);
 }
-constexpr Bitboard pawnPassSpan  (Color c, Square s) {
+constexpr Bitboard pawnPassSpan(Color c, Square s) {
     return frontRanksBB(c, s) & (fileBB(s) | adjacentFilesBB(s));
 }
 
 /// between_bb() returns squares that are linearly between the given squares
 /// If the given squares are not on a same file/rank/diagonal, return 0.
 inline Bitboard betweenBB(Square s1, Square s2) {
+
+#if defined(BM2)
+    return BLSR(LineBB[s1][s2]
+              & ((BoardBB << s1) ^ (BoardBB << s2)));
+#else
     return LineBB[s1][s2]
          & ((BoardBB << s1) ^ (BoardBB << s2))
          & ~std::min(s1, s2);
+#endif
 }
 /// aligned() Check the squares s1, s2 and s3 are aligned on a straight line.
 inline bool aligned(Square s1, Square s2, Square s3) {
@@ -487,12 +493,11 @@ inline Square scanMSq(Bitboard bb) {
 
 // Find the most advanced square in the given bitboard relative to the given color.
 inline Square scanFrontMostSq(Color c, Bitboard bb) {
-    return WHITE == c ?
-            scanMSq(bb) :
-            scanLSq(bb);
+    return WHITE == c ? scanMSq(bb) : scanLSq(bb);
 }
 
 inline Square popLSq(Bitboard &bb) {
+
     Square sq = scanLSq(bb);
 #if defined(BM2)
     bb = BLSR(bb);

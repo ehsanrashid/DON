@@ -65,10 +65,10 @@ namespace {
 /// MovePicker constructor for the main search
 MovePicker::MovePicker(
     Position const &p,
-    ColorIndexStatsTable const *bfStats,
-    PlyIndexStatsTable const *lpStats,
-    PieceSquareTypeStatsTable const *cStats,
-    PieceSquareStatsTable const **pStats,
+    ColorIndexStatsTable        const *bfStats,
+    PlyIndexStatsTable          const *lpStats,
+    PieceSquareTypeStatsTable   const *cStats,
+    PieceSquareStatsTable       const **pStats,
     Move ttm, Depth d, i16 sp,
     Array<Move, 2> const &km, Move cm) :
     pos{ p },
@@ -94,9 +94,9 @@ MovePicker::MovePicker(
 /// and quiet checks (only if depth >= DEPTH_QS_CHECK) will be generated.
 MovePicker::MovePicker(
     Position const &p,
-    ColorIndexStatsTable const *bfStats,
-    PieceSquareTypeStatsTable const *cStats,
-    PieceSquareStatsTable const **pStats,
+    ColorIndexStatsTable        const *bfStats,
+    PieceSquareTypeStatsTable   const *cStats,
+    PieceSquareStatsTable       const **pStats,
     Move ttm, Depth d, Square rs) :
     pos{ p },
     butterFlyStats{ bfStats },
@@ -120,10 +120,11 @@ MovePicker::MovePicker(
 /// Generate captures with SEE greater than or equal to the given threshold.
 MovePicker::MovePicker(
     Position const &p,
-    PieceSquareTypeStatsTable const *cStats,
-    Move ttm, Value thr) :
+    PieceSquareTypeStatsTable   const *cStats,
+    Move ttm, Depth d, Value thr) :
     pos{ p },
     captureStats{ cStats },
+    depth{ d },
     threshold{ thr } {
     assert(0 == pos.checkers());
     assert(!skipQuiets);
@@ -154,8 +155,8 @@ void MovePicker::value() {
         if (GenType::CAPTURE == GT) {
             assert(pos.captureOrPromotion(vm)
                 && CASTLE != mType(vm));
-            vm.value = i32(PieceValues[MG][pos.captureType(vm)]) * 6
-                     + (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][pos.captureType(vm)];
+            vm.value = i32(PieceValues[MG][pos.captured(vm)]) * 6
+                     + (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][pos.captured(vm)];
         }
         else
         if (GenType::QUIET == GT) {
@@ -174,7 +175,7 @@ void MovePicker::value() {
             if (pos.capture(vm)) {
                 assert(pos.captureOrPromotion(vm)
                     && CASTLE != mType(vm));
-                vm.value = i32(PieceValues[MG][pos.captureType(vm)])
+                vm.value = i32(PieceValues[MG][pos.captured(vm)])
                          - PType[pos[orgSq(vm)]];
             }
             else {

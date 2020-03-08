@@ -417,7 +417,8 @@ template<> Scale Endgame<KRPKB>::operator()(Position const &pos) const {
         && verifyMaterial(pos, weakColor, VALUE_MG_BSHP, 0));
 
     // If rook pawns
-    if (0 != (pos.pieces(PAWN) & (FileBB[FILE_A]|FileBB[FILE_H]))) {
+    if (0 != (pos.pieces(stngColor, PAWN)
+            & (FileBB[FILE_A]|FileBB[FILE_H]))) {
         auto wkSq{ pos.square(weakColor|KING) };
         auto wbSq{ pos.square(weakColor|BSHP) };
         auto spSq{ pos.square(stngColor|PAWN) };
@@ -469,7 +470,7 @@ template<> Scale Endgame<KRPPKRP>::operator()(Position const &pos) const {
     if (1 >= distance<File>(wkSq, sp1Sq)
      && 1 >= distance<File>(wkSq, sp2Sq)
      && spR < relativeRank(stngColor, wkSq)) {
-        assert(RANK_1 < spR && spR < RANK_7);
+        assert(RANK_2 <= spR && spR <= RANK_6);
         return Scale(7 * spR);
     }
 
@@ -548,32 +549,36 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
         switch (distance<File>(sp1Sq, sp2Sq)) {
         // Both pawns are on the same file. It's an easy draw if the defender firmly
         // controls some square in the front most pawn's path.
-        case 0:
+        case 0: {
             if (SFile[wkSq] == SFile[block1Sq]
              && relativeRank(stngColor, wkSq) >= relativeRank(stngColor, block1Sq)
              && colorOpposed(wkSq, sbSq)) {
                 return SCALE_DRAW;
             }
+        }
             break;
         // Pawns on adjacent files. It's a draw if the defender firmly controls the
         // square in front of the front most pawn's path, and the square diagonally
         // behind this square on the file of the other pawn.
-        case 1:
+        case 1: {
             if (colorOpposed(wkSq, sbSq)) {
+
                 if (wkSq == block1Sq
                  && (wbSq == block2Sq
                   || 0 != (pos.pieces(weakColor, BSHP)
-                         & attacksBB<BSHP>(block2Sq, pos.pieces()))
+                         & pos.attacksFrom(BSHP, block2Sq))
                   || 2 <= distance<Rank>(sp1Sq, sp2Sq))) {
                     return SCALE_DRAW;
                 }
+
                 if (wkSq == block2Sq
                  && (wbSq == block1Sq
                   || 0 != (pos.pieces(weakColor, BSHP)
-                         & attacksBB<BSHP>(block1Sq, pos.pieces())))) {
+                         & pos.attacksFrom(BSHP, block1Sq)))) {
                     return SCALE_DRAW;
                 }
             }
+        }
             break;
         // The pawns are not on the same file or adjacent files. No scaling.
         default:
@@ -618,7 +623,7 @@ template<> Scale Endgame<KNPKB>::operator()(Position const &pos) const {
     // King needs to get close to promoting pawn to prevent knight from blocking.
     // Rules for this are very tricky, so just approximate.
     if (0 != (frontSquaresBB(stngColor, spSq)
-            & attacksBB<BSHP>(sbSq, pos.pieces()))) {
+            & pos.attacksFrom(BSHP, sbSq))) {
         return Scale(distance(wkSq, spSq));
     }
 

@@ -219,7 +219,7 @@ public:
     bool captureOrPromotion(Move) const;
     bool giveCheck(Move) const;
 
-    PieceType captureType(Move) const;
+    PieceType captured(Move) const;
 
     bool see(Move, Value = VALUE_ZERO) const;
 
@@ -434,15 +434,16 @@ inline Bitboard Position::attacksFrom(Square s) const {
 }
 
 inline bool Position::capture(Move m) const {
-    return ((NORMAL == mType(m) || PROMOTE == mType(m)) && !empty(dstSq(m)))
-        || (ENPASSANT == mType(m) && dstSq(m) == epSquare());
+    assert(isOk(m));
+    return (!empty(dstSq(m)) && CASTLE != mType(m))
+        || ENPASSANT == mType(m); /*&& dstSq(m) == epSquare()*/
 }
 inline bool Position::captureOrPromotion(Move m) const {
-    return (NORMAL == mType(m) && !empty(dstSq(m)))
-        || (ENPASSANT == mType(m) && dstSq(m) == epSquare())
-        || PROMOTE == mType(m);
+    assert(isOk(m));
+    return NORMAL == mType(m) ? !empty(dstSq(m)) : CASTLE != mType(m);
 }
-inline PieceType Position::captureType(Move m) const {
+inline PieceType Position::captured(Move m) const {
+    assert(isOk(m));
     return ENPASSANT != mType(m) ?
             PType[board[dstSq(m)]] : PAWN;
 }
@@ -452,7 +453,7 @@ inline bool Position::pawnAdvanceAt(Color c, Square s) const {
 }
 /// Position::pawnPassedAt() check if pawn passed at the given square
 inline bool Position::pawnPassedAt(Color c, Square s) const {
-    return 0 == (pawnPassSpan(c, s) & pieces(~c, PAWN));
+    return 0 == (pieces(~c, PAWN) & pawnPassSpan(c, s));
 }
 
 /// Position::bishopPaired() check the side has pair of opposite color bishops

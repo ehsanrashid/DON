@@ -14,7 +14,7 @@ constexpr i16 MAX_LOWPLY = 4;
 using PlyIndexStatsTable        = StatsTable<i16, 10692, MAX_LOWPLY, SQUARES*SQUARES>;
 
 /// PieceSquareTypeStatsTable stores move history according to piece.
-/// indexed by [piece][square][captureType]
+/// indexed by [piece][square][captured]
 using PieceSquareTypeStatsTable = StatsTable<i16, 10692, PIECES, SQUARES, PIECE_TYPES>;
 
 /// PieceSquareStatsTable store moves history according to piece.
@@ -82,24 +82,24 @@ public:
 
     MovePicker(
         Position const&,
-        ColorIndexStatsTable const*,
-        PlyIndexStatsTable const*,
-        PieceSquareTypeStatsTable const*,
-        PieceSquareStatsTable const**,
+        ColorIndexStatsTable        const*,
+        PlyIndexStatsTable          const*,
+        PieceSquareTypeStatsTable   const*,
+        PieceSquareStatsTable       const**,
         Move, Depth, i16,
         Array<Move, 2> const&, Move);
 
     MovePicker(
         Position const&,
-        ColorIndexStatsTable const*,
-        PieceSquareTypeStatsTable const*,
-        PieceSquareStatsTable const**,
+        ColorIndexStatsTable        const*,
+        PieceSquareTypeStatsTable   const*,
+        PieceSquareStatsTable       const**,
         Move, Depth, Square);
 
     MovePicker(
         Position const&,
-        PieceSquareTypeStatsTable const*,
-        Move, Value);
+        PieceSquareTypeStatsTable   const*,
+        Move, Depth, Value);
 
 
     Move nextMove();

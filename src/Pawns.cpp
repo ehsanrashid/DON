@@ -190,7 +190,7 @@ namespace Pawns {
             Bitboard supporters { neighbours & rankBB(s - PawnPush[Own]) };
             Bitboard phalanxes  { neighbours & rankBB(s) };
             Bitboard stoppers   { oppPawns & pawnPassSpan(Own, s) };
-            Bitboard blockers   { stoppers & (s + PawnPush[Own]) };
+            Bitboard blocker    { stoppers & (s + PawnPush[Own]) };
             Bitboard levers     { stoppers & PawnAttackBB[Own][s] };
             Bitboard sentres    { stoppers & PawnAttackBB[Own][s + PawnPush[Own]] }; // push levers
 
@@ -198,29 +198,29 @@ namespace Pawns {
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
             bool backward{ 0 == (neighbours & frontRanksBB(Opp, s + PawnPush[Own]))
-                        && 0 != (blockers | sentres) };
+                        && 0 != (blocker | sentres) };
 
             // Compute additional span if pawn is not blocked nor backward
-            if (0 == blockers
-             && !backward) {
-                attackSpan[Own] |= pawnAttackSpan(Own, s);
+            if (!backward
+             && !blocker) {
+                attackSpan[Own] |= pawnAttackSpan(Own, s /*+ PawnPush[Own]*/);
             }
 
             // A pawn is passed if one of the three following conditions is true:
             // - Lever there is no stoppers except the levers
             // - Sentry there is no stoppers except the sentres, but we outnumber them
             // - Sneaker there is only one front stopper which can be levered.
-            // Passed pawns will be properly scored later in evaluation when we have full attack info.
             if (// Lever
                 (stoppers == levers)
                 // Lever + Sentry
              || (stoppers == (levers | sentres)
               && popCount(phalanxes) >= popCount(sentres))
                 // Sneaker => Blocked pawn
-             || (stoppers == blockers
-              && RANK_4 < r
+             || (stoppers == blocker
+              && RANK_5 <= r
               && 0 != ( pawnSglPushBB<Own>(supporters)
                      & ~(oppPawns | pawnDblAttackBB<Opp>(oppPawns))))) {
+                // Passed pawns will be properly scored later in evaluation when we have full attack info.
                 passers[Own] |= s;
             }
 
@@ -245,7 +245,7 @@ namespace Pawns {
 
             if (0 == supporters) {
                 sp -= WeakDoubled * contains(ownPawns, s - PawnPush[Own])
-                        // Attacked twice by enemy pawns
+                    // Attacked twice by enemy pawns
                     + WeakTwiceLever * moreThanOne(levers);
             }
 

@@ -25,7 +25,7 @@ private:
     u08 d08;
     u08 g08;
 
-    friend class TCluster;
+    friend struct TCluster;
 
 public:
     // "Generation" variable distinguish transposition table entries from different searches.

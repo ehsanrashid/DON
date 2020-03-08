@@ -460,8 +460,8 @@ namespace Evaluator {
                     b = 0; // Queen attackers
                     if (( pos.sliderBlockersAt(s, pos.pieces(Opp, BSHP, ROOK), b, b)
                        & ~pos.kingBlockers(Opp)
-                       & ~( pos.pieces(Opp, PAWN)
-                         &  fileBB(s)
+                       & ~( fileBB(s)
+                         &  pos.pieces(Opp, PAWN)
                          & ~pawnSglAttackBB<Own>(pos.pieces(Own)))) != 0) {
                         score -= QueenWeaken;
                     }
