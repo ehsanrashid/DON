@@ -106,7 +106,7 @@ template<> Value Endgame<KPK>::operator()(Position const &pos) const {
     auto spSq{ normalize(pos.square(stngColor|PAWN), stngColor, spFile) };
     auto wkSq{ normalize(pos.square(weakColor|KING), stngColor, spFile) };
 
-    if (!BitBase::probe(stngColor == pos.activeSide() ? WHITE : BLACK, skSq, spSq, wkSq)) {
+    if (!BitBase::probe(stngColor == pos.activeSide(), skSq, wkSq, spSq)) {
         return VALUE_DRAW;
     }
 
@@ -652,7 +652,7 @@ template<> Scale Endgame<KPKP>::operator()(Position const &pos) const {
      || FILE_A == SFile[spSq]) {
         // Probe the KPK bitbase with the weakest side's pawn removed.
         // If it's a draw, it's probably at least a draw even with the pawn.
-        if (!BitBase::probe(stngColor == pos.activeSide() ? WHITE : BLACK, skSq, spSq, wkSq)) {
+        if (!BitBase::probe(stngColor == pos.activeSide(), skSq, wkSq, spSq)) {
             return SCALE_DRAW;
         }
     }
@@ -760,8 +760,8 @@ template<> Scale Endgame<KQKRPs>::operator()(Position const &pos) const {
      && RANK_4 <= relativeRank(weakColor, skSq)
      && RANK_3 == relativeRank(weakColor, wrSq)
      && 0 != (pos.pieces(weakColor, PAWN)
-            & PieceAttackBB[KING][wkSq]
-            & PawnAttackBB[stngColor][wrSq])) {
+            & pos.attacksFrom(KING, wkSq)
+            & pos.pawnAttacksFrom(stngColor, wrSq))) {
         return SCALE_DRAW;
     }
 

@@ -136,7 +136,7 @@ namespace {
             if (SQ_NONE != pos.epSquare()) {
                 assert(RANK_6 == relativeRank(Own, pos.epSquare()));
                 Bitboard epPawns{ rxPawns
-                                & PawnAttackBB[Opp][pos.epSquare()] };
+                                & pos.pawnAttacksFrom(Opp, pos.epSquare()) };
 
                 // If the checking piece is the double pushed pawn and also is in the target.
                 // Otherwise this is a discovery check and are forced to do otherwise.
@@ -322,11 +322,17 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &
                           &  pos.pieces(pos.activeSide()) };
     assert(0 == (dscBlockersEx & pos.pieces(QUEN)));
     while (0 != dscBlockersEx) {
+
         auto org{ popLSq(dscBlockersEx) };
-        Bitboard attacks{ pos.attacksFrom(org) & targets };
-        if (KING == PType[pos[org]]) {
+        auto mpt{ PType[pos[org]] };
+
+        Bitboard attacks{ pos.attacksFrom(mpt, org)
+                        & targets };
+
+        if (KING == mpt) {
             attacks &= ~PieceAttackBB[QUEN][pos.square(~pos.activeSide()|KING)];
         }
+
         while (0 != attacks) { moves += makeMove<NORMAL>(org, popLSq(attacks)); }
     }
 
@@ -335,6 +341,7 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &
 
 /// generate<LEGAL>       Generates all legal moves.
 template<> void generate<GenType::LEGAL>(ValMoves &moves, Position const &pos) {
+
     0 == pos.checkers() ?
         generate<GenType::NATURAL>(moves, pos) :
         generate<GenType::EVASION>(moves, pos);

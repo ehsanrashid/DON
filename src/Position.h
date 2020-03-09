@@ -208,7 +208,7 @@ public:
     Bitboard attackersTo(Square, Bitboard) const;
     Bitboard attackersTo(Square) const;
     Bitboard attacksFrom(PieceType, Square) const;
-    Bitboard attacksFrom(Square) const;
+    //Bitboard attacksFrom(Square) const;
     Bitboard pawnAttacksFrom(Color, Square) const;
 
     Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const;
@@ -429,10 +429,10 @@ inline Bitboard Position::attackersTo(Square s) const {
 inline Bitboard Position::attacksFrom(PieceType pt, Square s) const {
     return attacksBB(pt, s, pieces());
 }
-/// Position::attacksFrom() finds attacks from the square
-inline Bitboard Position::attacksFrom(Square s) const {
-    return attacksBB(board[s], s, pieces());
-}
+///// Position::attacksFrom() finds attacks from the square
+//inline Bitboard Position::attacksFrom(Square s) const {
+//    return attacksBB(board[s], s, pieces());
+//}
 
 inline Bitboard Position::pawnAttacksFrom(Color c, Square s) const {
     return PawnAttackBB[c][s];
@@ -440,12 +440,13 @@ inline Bitboard Position::pawnAttacksFrom(Color c, Square s) const {
 
 inline bool Position::capture(Move m) const {
     assert(isOk(m));
-    return (!empty(dstSq(m)) && CASTLE != mType(m))
-        || ENPASSANT == mType(m); /*&& dstSq(m) == epSquare()*/
+    return (CASTLE != mType(m) && !empty(dstSq(m)))
+        || ENPASSANT == mType(m); //&& dstSq(m) == epSquare()
 }
 inline bool Position::captureOrPromotion(Move m) const {
     assert(isOk(m));
-    return NORMAL == mType(m) ? !empty(dstSq(m)) : CASTLE != mType(m);
+    return NORMAL == mType(m) ?
+            !empty(dstSq(m)) : CASTLE != mType(m);
 }
 inline PieceType Position::captured(Move m) const {
     assert(isOk(m));

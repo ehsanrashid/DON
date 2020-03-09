@@ -260,7 +260,7 @@ bool Position::pseudoLegal(Move m) const
            && (PROMOTE != mType(m)
             || RANK_7 != orgR
             || RANK_8 != dstR))
-          || !contains(PawnAttackBB[active][org], dst)
+          || !contains(pawnAttacksFrom(active, org), dst)
           || empty(dst))
             // Double push
          && (NORMAL != mType(m)
@@ -274,7 +274,7 @@ bool Position::pseudoLegal(Move m) const
           || RANK_5 != orgR
           || RANK_6 != dstR
           || dst != epSquare()
-          || !contains(PawnAttackBB[active][org], dst)
+          || !contains(pawnAttacksFrom(active, org), dst)
           || !empty(dst)
           || empty(dst - 1 * PawnPush[active])
           || 0 != clockPly())) {
@@ -469,8 +469,7 @@ void Position::setCheckInfo() {
     si->checks[NIHT] = attacksFrom(NIHT, ekSq);
     si->checks[BSHP] = attacksFrom(BSHP, ekSq);
     si->checks[ROOK] = attacksFrom(ROOK, ekSq);
-    si->checks[QUEN] = si->checks[BSHP]
-                     | si->checks[ROOK];
+    si->checks[QUEN] = si->checks[BSHP]|si->checks[ROOK];
     si->checks[KING] = 0;
 }
 
@@ -481,11 +480,13 @@ bool Position::canEnpassant(Color c, Square epSq, bool moveDone) const {
     auto cap{ moveDone ? epSq - PawnPush[c] : epSq + PawnPush[c] };
     assert((~c|PAWN) == board[cap]); //contains(pieces(~c, PAWN), cap));
     // Enpassant attackers
-    Bitboard attackers{ pieces(c, PAWN) & PawnAttackBB[~c][epSq] };
+    Bitboard attackers{ pieces(c, PAWN)
+                      & pawnAttacksFrom(~c, epSq) };
+    assert(2 >= popCount(attackers));
     if (0 == attackers) {
        return false;
     }
-    assert(2 >= popCount(attackers));
+
     auto kSq{ square(c|KING) };
     Bitboard bq{ pieces(~c, BSHP, QUEN) & PieceAttackBB[BSHP][kSq] };
     Bitboard rq{ pieces(~c, ROOK, QUEN) & PieceAttackBB[ROOK][kSq] };

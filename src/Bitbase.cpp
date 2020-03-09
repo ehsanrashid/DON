@@ -13,7 +13,7 @@ namespace BitBase {
 
         // There are 24 possible pawn squares: files A to D and ranks from 2 to 7
         // Positions with the pawn on files E to H will be mirrored before probing.
-        constexpr u32 MaxIndex{ 24 * 2 * 64 * 64 }; // pSq * active * wkSq * bkSq
+        constexpr u32 MaxIndex{ 24 * 2 * 64 * 64 }; // wpSq * active * wkSq * bkSq
 
         bitset<MaxIndex> KPKBitbase;
 
@@ -52,59 +52,59 @@ namespace BitBase {
         struct KPKPosition {
 
             Color  active;
-            Square pSq;
-            Array<Square, COLORS> kSq;
+            Square wkSq;
+            Square bkSq;
+            Square wpSq;
 
             Result result;
 
             KPKPosition() = default;
             explicit KPKPosition(u32);
 
-            operator Result() const {
-                return result;
-            }
+            operator Result() const { return result; }
 
             Result classify(Array<KPKPosition, MaxIndex> const&);
         };
 
         KPKPosition::KPKPosition(u32 idx) {
-            kSq[WHITE] = Square((idx >>  0) & i32(SQ_H8));
-            kSq[BLACK] = Square((idx >>  6) & i32(SQ_H8));
-            active     =  Color((idx >> 12) & BLACK);
-            pSq        = makeSquare(File(((idx >> 13) & 0x03) + FILE_A),
-                                    Rank(((idx >> 15) & 0x07) + RANK_2));
 
-            assert(isOk(kSq[WHITE])
-                && isOk(kSq[BLACK])
+            wkSq   = Square((idx >>  0) & i32(SQ_H8));
+            bkSq   = Square((idx >>  6) & i32(SQ_H8));
+            active =  Color((idx >> 12) & BLACK);
+            wpSq   = makeSquare(File(((idx >> 13) & 0x03) + FILE_A),
+                                Rank(((idx >> 15) & 0x07) + RANK_2));
+
+            assert(isOk(wkSq)
+                && isOk(bkSq)
                 && isOk(active)
-                && isOk(pSq)
-                && index(active, kSq[WHITE], kSq[BLACK], pSq) == idx);
+                && isOk(wpSq)
+                && index(active, wkSq, bkSq, wpSq) == idx);
 
             // Check if two pieces are on the same square or if a king can be captured
-            if (1 >= distance(kSq[WHITE], kSq[BLACK])
-             || kSq[WHITE] == pSq
-             || kSq[BLACK] == pSq
+            if (1 >= distance(wkSq, bkSq)
+             || wkSq == wpSq
+             || bkSq == wpSq
              || (WHITE == active
-              && contains(PawnAttackBB[WHITE][pSq], kSq[BLACK]))) {
+              && contains(PawnAttackBB[WHITE][wpSq], bkSq))) {
                 result = INVALID;
             }
             else
             // Immediate win if a pawn can be promoted without getting captured
             if (WHITE == active
-             && RANK_7 == SRank[pSq]
-             && kSq[WHITE] != pSq + NORTH
-             && (1 < distance(kSq[BLACK], pSq + NORTH)
-              || contains(PieceAttackBB[KING][kSq[WHITE]], pSq + NORTH))) {
+             && RANK_7 == SRank[wpSq]
+             && wkSq != wpSq + NORTH
+             && (1 < distance(bkSq, wpSq + NORTH)
+              || contains(PieceAttackBB[KING][wkSq], wpSq + NORTH))) {
                 result = WIN;
             }
             else
             // Immediate draw if is a stalemate or king captures undefended pawn
             if (BLACK == active
-             && (0 == (  PieceAttackBB[KING][kSq[BLACK]]
-                     & ~(PieceAttackBB[KING][kSq[WHITE]]
-                       | PawnAttackBB[WHITE][pSq]))
-              || contains( PieceAttackBB[KING][kSq[BLACK]]
-                        & ~PieceAttackBB[KING][kSq[WHITE]], pSq))) {
+             && (0 == (  PieceAttackBB[KING][bkSq]
+                     & ~(PieceAttackBB[KING][wkSq]
+                       | PawnAttackBB[WHITE][wpSq]))
+              || contains( PieceAttackBB[KING][bkSq]
+                        & ~PieceAttackBB[KING][wkSq], wpSq))) {
                 result = DRAW;
             }
             // Position will be classified later
@@ -124,33 +124,42 @@ namespace BitBase {
             // If all moves lead to positions classified as WIN, the result of the current position is WIN
             // otherwise the current position is classified as UNKNOWN.
 
-            auto const Good{ WHITE == active ? WIN : DRAW };
-            auto const  Bad{ WHITE == active ? DRAW : WIN };
+            Result const Good{ WHITE == active ? WIN : DRAW };
+            Result const  Bad{ WHITE == active ? DRAW : WIN };
 
-            auto r{ INVALID };
-            Bitboard b{ PieceAttackBB[KING][kSq[active]] };
-            while (0 != b) {
-                auto ksq{ popLSq(b) };
-                r |= WHITE == active ?
-                        kpkDB[index(BLACK, ksq, kSq[BLACK], pSq)] :
-                        kpkDB[index(WHITE, kSq[WHITE], ksq, pSq)];
-            }
+            Result r{ INVALID };
 
-            if (WHITE == active) {
-                // Single push
-                if (RANK_7 > SRank[pSq]) {
-                    auto pushSq{ pSq + NORTH };
-                    r |= kpkDB[index(BLACK, kSq[WHITE], kSq[BLACK], pushSq)];
+            switch (active) {
 
-                    // Double push
-                    if (RANK_2 == SRank[pSq]
-                        // Front is not own king
-                     && kSq[WHITE] != pushSq
-                        // Front is not opp king
-                     && kSq[BLACK] != pushSq) {
-                        r |= kpkDB[index(BLACK, kSq[WHITE], kSq[BLACK], pushSq + NORTH)];
+            case WHITE: {
+                Bitboard b{  PieceAttackBB[KING][wkSq]
+                          & ~PieceAttackBB[KING][bkSq] };
+                while (0 != b) {
+                    r |= kpkDB[index(BLACK, popLSq(b), bkSq, wpSq)];
+                }
+
+                // Pawn Single push
+                if (RANK_6 >= SRank[wpSq]) {
+                    r |= kpkDB[index(BLACK, wkSq, bkSq, wpSq + NORTH)];
+
+                    // Pawn Double push
+                    if (RANK_2 == SRank[wpSq]
+                     && wkSq != wpSq + NORTH    // Front is not own king
+                     && bkSq != wpSq + NORTH) { // Front is not opp king
+                        r |= kpkDB[index(BLACK, wkSq, bkSq, wpSq + NORTH + NORTH)];
                     }
                 }
+            }
+                break;
+            case BLACK: {
+                Bitboard b{  PieceAttackBB[KING][bkSq]
+                          & ~PieceAttackBB[KING][wkSq] };
+                while (0 != b) {
+                    r |= kpkDB[index(WHITE, wkSq, popLSq(b), wpSq)];
+                }
+            }
+                break;
+            default: break;
             }
 
             result = r & Good ? Good :
@@ -160,6 +169,7 @@ namespace BitBase {
     }
 
     void initialize() {
+
         Array<KPKPosition, MaxIndex> kpkDB;
         // Initialize kpkDB with known win / draw positions
         for (u32 idx = 0; idx < MaxIndex; ++idx) {
@@ -183,11 +193,11 @@ namespace BitBase {
         }
     }
 
-    bool probe(Color active, Square wkSq, Square wpSq, Square bkSq) {
-        // wkSq = White King
-        // wpSq = White Pawn
-        // bkSq = Black King
-        return KPKBitbase[index(active, wkSq, bkSq, wpSq)];
+    bool probe(bool stngActive, Square skSq, Square wkSq, Square spSq) {
+        // skSq = White King
+        // wkSq = Black King
+        // spSq = White Pawn
+        return KPKBitbase[index(stngActive ? WHITE : BLACK, skSq, wkSq, spSq)];
     }
 
 }

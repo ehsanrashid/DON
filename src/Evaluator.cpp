@@ -745,7 +745,7 @@ namespace Evaluator {
                 auto s{ popLSq(psr) };
                 assert(0 == ((pawnSglPushBB<Own>(frontSquaresBB(Own, s))
                             | ( pawnPassSpan(Own, s + PawnPush[Own])
-                             & ~PawnAttackBB[Own][s + PawnPush[Own]]))
+                             & ~pos.pawnAttacksFrom(Own, s + PawnPush[Own])))
                            & pos.pieces(Opp, PAWN)));
 
                 i32 r{ relativeRank(Own, s) };

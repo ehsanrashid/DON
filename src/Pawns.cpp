@@ -187,8 +187,8 @@ namespace Pawns {
             Bitboard phalanxes  { neighbours & rankBB(s) };
             Bitboard stoppers   { oppPawns & pawnPassSpan(Own, s) };
             Bitboard blocker    { stoppers & (s + PawnPush[Own]) };
-            Bitboard levers     { stoppers & PawnAttackBB[Own][s] };
-            Bitboard sentres    { stoppers & PawnAttackBB[Own][s + PawnPush[Own]] }; // push levers
+            Bitboard levers     { stoppers & pos.pawnAttacksFrom(Own, s) };
+            Bitboard sentres    { stoppers & pos.pawnAttacksFrom(Own, s + PawnPush[Own]) }; // push levers
 
             bool opposed { 0 != (stoppers & frontSquaresBB(Own, s)) };
             // Backward: A pawn is backward when it is behind all pawns of the same color
