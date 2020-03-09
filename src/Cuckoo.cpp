@@ -5,14 +5,10 @@
 
 Array<Cuckoo, CuckooSize> Cuckoos;
 
-bool Cuckoo::empty() const {
-    return 0 == key
-        || MOVE_NONE == move;
-}
-
 namespace CucKoo {
 
     void initialize() {
+
         u16 count = 0;
         // Prepare the Cuckoo tables
         Cuckoos.fill({ 0, MOVE_NONE });
@@ -21,28 +17,28 @@ namespace CucKoo {
                 for (Square org = SQ_A1; org <= SQ_H8; ++org) {
                     for (Square dst = Square(org + 1); dst <= SQ_H8; ++dst) {
 
-                        if (!contains(PieceAttackBB[pt][org], dst)) {
-                            continue;
-                        }
+                        if (contains(PieceAttackBB[pt][org], dst)) {
 
-                        Cuckoo cuckoo{ RandZob.pieceSquareKey[c][pt][org]
-                                     ^ RandZob.pieceSquareKey[c][pt][dst]
-                                     ^ RandZob.colorKey,
-                                       makeMove<NORMAL>(org, dst) };
+                            Cuckoo cuckoo{ RandZob.colorKey
+                                         ^ RandZob.pieceSquareKey[c][pt][org]
+                                         ^ RandZob.pieceSquareKey[c][pt][dst],
+                                           makeMove<NORMAL>(org, dst) };
 
-                        u16 h = hash(cuckoo.key >> 0x00);
-                        while (true) {
-                            std::swap(Cuckoos[h], cuckoo);
-                            // Arrived at empty slot ?
-                            if (cuckoo.empty()) {
-                                break;
+                            u16 h = hash<0>(cuckoo.key);
+                            while (true) {
+
+                                std::swap(Cuckoos[h], cuckoo);
+                                // Arrived at empty slot ?
+                                if (MOVE_NONE == cuckoo.move) {
+                                    break;
+                                }
+                                // Push victim to alternative slot
+                                h = h == hash<0>(cuckoo.key) ?
+                                    hash<1>(cuckoo.key) :
+                                    hash<0>(cuckoo.key);
                             }
-                            // Push victim to alternative slot
-                            h = h == hash(cuckoo.key >> 0x00) ?
-                                hash(u16(cuckoo.key >> 0x10)) :
-                                hash(u16(cuckoo.key >> 0x00));
+                            ++count;
                         }
-                        ++count;
                     }
                 }
             }

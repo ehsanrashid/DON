@@ -37,7 +37,7 @@ namespace Pawns {
 
         constexpr Score BlockedStorm  { S(82,82) };
 
-        constexpr Score Initial       { S( 5, 5) };
+        constexpr Score Basic         { S( 5, 5) };
         constexpr Score Backward      { S( 9,24) };
         constexpr Score Isolated      { S( 5,15) };
         constexpr Score Unopposed     { S(13,27) };
@@ -56,7 +56,7 @@ namespace Pawns {
             Bitboard ownFrontPawns{ pos.pieces(Own) & frontPawns };
             Bitboard oppFrontPawns{ pos.pieces(Opp) & frontPawns };
 
-            Score safety{ Initial };
+            Score safety{ Basic };
 
             auto kF{ clamp(SFile[kSq], FILE_B, FILE_G) };
             for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
@@ -71,17 +71,13 @@ namespace Pawns {
                     || (RANK_1 == ownR
                      && RANK_1 == oppR));
 
-                auto ff{ foldFile(f) };
-                assert(FILE_E > ff);
+                safety += Shelter[foldFile(f)][ownR];
+                safety -=
+                       (RANK_1 != ownR)
+                    && (ownR + 1) == oppR ?
+                          BlockedStorm * (RANK_3 == oppR) :
+                          Storm[foldFile(f)][oppR];
 
-                safety += Shelter[ff][ownR];
-                if (RANK_1 != ownR
-                 && (ownR + 1) == oppR) {
-                    safety -= BlockedStorm * (RANK_3 == oppR);
-                }
-                else {
-                    safety -= Storm[ff][oppR];
-                }
             }
 
             return safety;

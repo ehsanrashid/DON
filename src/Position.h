@@ -13,9 +13,9 @@
 /// waiting for data to be loaded from memory, which can be quite slow.
 #if defined(PREFETCH)
 
-#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-#   include <xmmintrin.h> // Microsoft and Intel Header for _mm_prefetch()
-#endif
+#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#       include <xmmintrin.h> // Microsoft and Intel Header for _mm_prefetch()
+#   endif
 
 inline void prefetch(void const *addr) {
 
@@ -209,6 +209,7 @@ public:
     Bitboard attackersTo(Square) const;
     Bitboard attacksFrom(PieceType, Square) const;
     Bitboard attacksFrom(Square) const;
+    Bitboard pawnAttacksFrom(Color, Square) const;
 
     Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const;
 
@@ -412,12 +413,12 @@ inline i16 Position::moveCount() const {
 
 /// Position::attackersTo() finds attackers to the square on occupancy.
 inline Bitboard Position::attackersTo(Square s, Bitboard occ) const {
-    return (pieces(BLACK, PAWN) & PawnAttackBB[WHITE][s])
-         | (pieces(WHITE, PAWN) & PawnAttackBB[BLACK][s])
-         | (pieces(NIHT)        & PieceAttackBB[NIHT][s])
+    return (pieces(BLACK, PAWN) & pawnAttacksFrom(WHITE, s))
+         | (pieces(WHITE, PAWN) & pawnAttacksFrom(BLACK, s))
+         | (pieces(NIHT)        & attacksFrom(NIHT, s))
          | (pieces(BSHP, QUEN)  & attacksBB<BSHP>(s, occ))
          | (pieces(ROOK, QUEN)  & attacksBB<ROOK>(s, occ))
-         | (pieces(KING)        & PieceAttackBB[KING][s]);
+         | (pieces(KING)        & attacksFrom(KING, s));
 }
 /// Position::attackersTo() finds attackers to the square.
 inline Bitboard Position::attackersTo(Square s) const {
@@ -431,6 +432,10 @@ inline Bitboard Position::attacksFrom(PieceType pt, Square s) const {
 /// Position::attacksFrom() finds attacks from the square
 inline Bitboard Position::attacksFrom(Square s) const {
     return attacksBB(board[s], s, pieces());
+}
+
+inline Bitboard Position::pawnAttacksFrom(Color c, Square s) const {
+    return PawnAttackBB[c][s];
 }
 
 inline bool Position::capture(Move m) const {

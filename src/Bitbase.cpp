@@ -183,10 +183,10 @@ namespace BitBase {
         }
     }
 
-    // wkSq = White King
-    // wpSq = White Pawn
-    // bkSq = Black King
     bool probe(Color active, Square wkSq, Square wpSq, Square bkSq) {
+        // wkSq = White King
+        // wpSq = White Pawn
+        // bkSq = Black King
         return KPKBitbase[index(active, wkSq, bkSq, wpSq)];
     }
 

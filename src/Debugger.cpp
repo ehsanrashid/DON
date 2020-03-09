@@ -44,7 +44,7 @@ void Debugger::print() {
             << "Hit1  :" << std::setw(20) << Hit1Count << "\n"
             << "Hit2  :" << std::setw(20) << Hit2Count << "\n"
             << "Rate  :" << std::setw(20) << std::fixed << std::setprecision(2)
-                                          << 100.0 * Hit2Count / Hit1Count;
+                                          << 100 * (double) Hit2Count / Hit1Count;
         std::cerr << oss.str() << std::endl;
     }
     if (0 != ItemCount) {
@@ -54,7 +54,7 @@ void Debugger::print() {
             << "Count :" << std::setw(20) << ItemCount << "\n"
             << "Sum   :" << std::setw(20) << ItemSum   << "\n"
             << "Mean  :" << std::setw(20) << std::fixed << std::setprecision(2)
-                                          << 1.0 * ItemSum / ItemCount;
+                                          << (double) ItemSum / ItemCount;
         std::cerr << oss.str() << std::endl;
     }
 }

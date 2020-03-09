@@ -13,8 +13,6 @@ PolyBook Book;
 using std::string;
 using std::ifstream;
 using std::ofstream;
-using std::ostream;
-
 
 namespace {
 
@@ -151,7 +149,7 @@ string PolyEntry::toString() const {
     return oss.str();
 }
 
-ostream& operator<<(ostream &os, PolyEntry const &pe) {
+std::ostream& operator<<(std::ostream &os, PolyEntry const &pe) {
     os << pe.toString();
     return os;
 }
@@ -182,13 +180,13 @@ i64 PolyBook::findIndex(Key pgKey) const {
             beg = mid;
         }
         else
-            if (pgKey < _entryTable[mid].key) {
-                end = mid;
-            }
-            else { // pgKey == entryTable[mid].key
-                beg = std::max(mid - 4, i64(0));
-                end = std::min(mid + 4, i64(_entryCount));
-            }
+        if (pgKey < _entryTable[mid].key) {
+            end = mid;
+        }
+        else { // pgKey == entryTable[mid].key
+            beg = std::max(mid - 4, i64(0));
+            end = std::min(mid + 4, i64(_entryCount));
+        }
     }
 
     while (beg < end) {
@@ -252,6 +250,10 @@ void PolyBook::initialize(string const &fnBook) {
 
     _entryCount = (fileSize - HeaderSize) / sizeof(PolyEntry);
     _entryTable = new PolyEntry[_entryCount];
+    if (nullptr == _entryTable) {
+        return;
+    }
+    enabled = true;
 
     if (0 != HeaderSize) {
         PolyEntry dummy;
@@ -265,7 +267,6 @@ void PolyBook::initialize(string const &fnBook) {
     ifs.close();
 
     std::cout << "info string Book entries found " << _entryCount << " from file \'" << _fnBook << "\'" << std::endl;
-    enabled = true;
 }
 
 /// PolyBook::probe() tries to find a book move for the given position.
@@ -291,7 +292,6 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
             _doProbe = false;
             _failCount = 0;
         }
-
         return MOVE_NONE;
     }
 
@@ -303,6 +303,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
     u64 idx = index;
     while (idx < _entryCount
         && pgKey == _entryTable[idx].key) {
+
         if (MOVE_NONE == _entryTable[idx].move) {
             continue;
         }

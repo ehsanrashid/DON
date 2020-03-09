@@ -9,7 +9,10 @@ namespace {
 }
 
 
-ThreadMarker::ThreadMarker(Thread const *thread, Key posiKey, i16 ply) {
+ThreadMarker::ThreadMarker(
+    Thread const *thread,
+    Key posiKey,
+    i16 ply) {
 
     if (8 <= ply) {
         return;

@@ -24,7 +24,6 @@
 
 using std::vector;
 
-using namespace SyzygyTB;
 using Evaluator::evaluate;
 
 Limit Limits;
@@ -127,7 +126,7 @@ namespace {
     /// updateContinuationStats() updates Stats of the move pairs formed
     /// by moves at ply -1, -2, -4 and -6 with current move.
     void updateContinuationStats(Stack *const &ss, Piece p, Square dst, i32 bonus) {
-        assert(NO_PIECE != p);
+        assert(isOk(p));
         for (auto i : { 1, 2, 4, 6 }) {
             if (isOk((ss-i)->playedMove)) {
                 (*(ss-i)->pieceStats)[p][dst] << bonus;
@@ -640,28 +639,28 @@ namespace {
 
         // Step 5. Tablebases probe.
         if (!rootNode
-         && 0 != PieceLimit)
+         && 0 != SyzygyTB::PieceLimit)
         {
             auto pieceCount{ pos.count() };
 
-            if (( pieceCount < PieceLimit
-              || (pieceCount == PieceLimit
-               && depth >= DepthLimit))
+            if (( pieceCount < SyzygyTB::PieceLimit
+              || (pieceCount == SyzygyTB::PieceLimit
+               && depth >= SyzygyTB::DepthLimit))
              && 0 == pos.clockPly()
              && CR_NONE == pos.castleRights()) {
 
-                ProbeState probeState;
-                auto wdlScore{ probeWDL(pos, probeState) };
+                SyzygyTB::ProbeState probeState;
+                auto wdlScore{ SyzygyTB::probeWDL(pos, probeState) };
 
                 // Force check of time on the next occasion
                 if (Threadpool.mainThread() == thread) {
                     Threadpool.mainThread()->setTicks(1);
                 }
 
-                if (PS_FAILURE != probeState) {
+                if (SyzygyTB::ProbeState::PS_FAILURE != probeState) {
                     thread->tbHits.fetch_add(1, std::memory_order::memory_order_relaxed);
 
-                    i16 draw{ Move50Rule };
+                    i16 draw{ SyzygyTB::Move50Rule };
 
                     value = wdlScore < -draw ? -VALUE_MATE_1_MAX_PLY + (ss->ply + 1) :
                             wdlScore > +draw ? +VALUE_MATE_1_MAX_PLY - (ss->ply + 1) :
@@ -788,7 +787,7 @@ namespace {
 
                 pos.doNullMove(si);
 
-                auto null_value = -depthSearch<false>(pos, ss+1, -beta, -beta+1, depth-R, !cutNode);
+                auto null_value = -depthSearch<false>(pos, ss+1, -beta, -(beta-1), depth-R, !cutNode);
 
                 pos.undoNullMove();
 
@@ -830,8 +829,8 @@ namespace {
                              , &thread->captureStats
                              , ttMove, depth, raisedBeta - ss->staticEval };
                 // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
-                while (2 + 2 * cutNode > probCutCount
-                    && MOVE_NONE != (move = mp.nextMove())) {
+                while (MOVE_NONE != (move = mp.nextMove())
+                    && 2 + 2 * cutNode > probCutCount) {
                     assert(isOk(move)
                         && pos.pseudoLegal(move)
                         && pos.captureOrPromotion(move)
@@ -872,8 +871,8 @@ namespace {
             // Step 11. Internal iterative deepening (IID). (~1 ELO)
             if (6 < depth
              && (MOVE_NONE == ttMove
-              || !pos.pseudoLegal(ttMove)
-              /*|| !pos.legal(ttMove)*/)) {
+              || !pos.pseudoLegal(ttMove))) { //|| !pos.legal(ttMove)
+
                 depthSearch<PVNode>(pos, ss, alfa, beta, depth - 7, cutNode);
 
                 tte = TT.probe(key, ttHit);
@@ -891,9 +890,9 @@ namespace {
         // Mark this node as being searched.
         ThreadMarker threadMarker{ thread, pos.posiKey(), ss->ply };
 
-        vector<Move> quietMoves
-            ,        captureMoves;
+        Moves quietMoves;
         quietMoves.reserve(32);
+        Moves captureMoves;
         captureMoves.reserve(16);
 
         bool singularLMR{ false };
@@ -951,11 +950,11 @@ namespace {
                     if (3000 < elapsed) {
                         sync_cout << std::setfill('0')
                                   << "info"
+                                  << " depth "          << std::setw(2) << depth
+                                  << " seldepth "       << std::setw(2) << thread->rootMoves.find(thread->pvCur, thread->pvEnd, move)->selDepth
                                   << " currmove "       << move
                                   << " currmovenumber " << std::setw(2) << thread->pvCur + moveCount + 1
                                   //<< " maxmoves "       << thread->rootMoves.size()
-                                  << " depth "          << depth
-                                  << " seldepth "       << std::setw(2) << thread->rootMoves.find(thread->pvCur, thread->pvEnd, move)->selDepth
                                   << " time "           << elapsed
                                   << std::setfill('0')  << sync_endl;
                     }
@@ -1117,7 +1116,9 @@ namespace {
             // Step 16. Reduced depth search (LMR, ~200 ELO).
             // If the move fails high will be re-searched at full depth.
             if (doLMR) {
+
                 auto reductDepth{ reduction(depth, moveCount, improving) };
+
                 reductDepth +=
                     // If other threads are searching this position.
                     +1 * threadMarker.marked()
@@ -1169,16 +1170,17 @@ namespace {
                     // Decrease/Increase reduction for moves with a good/bad history (~30 Elo)
                     reductDepth -= i16(ss->stats / 0x4000);
                 }
-                else
-                // Increase reduction for captures/promotions if late move and at low depth
-                if (8 > depth
-                 && 2 < moveCount) {
-                    reductDepth += 1;
+                else {
+                    // Increase reduction for captures/promotions if late move and at low depth
+                    if (8 > depth
+                     && 2 < moveCount) {
+                        reductDepth += 1;
+                    }
                 }
 
                 auto d{ clamp(Depth(newDepth - reductDepth), DEPTH_ONE, newDepth) };
 
-                value = -depthSearch<false>(pos, ss+1, -alfa-1, -alfa, d, true);
+                value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, d, true);
 
                 doFullSearch = alfa < value
                             && d < newDepth;
@@ -1190,7 +1192,7 @@ namespace {
 
             // Step 17. Full depth search when LMR is skipped or fails high.
             if (doFullSearch) {
-                value = -depthSearch<false>(pos, ss+1, -alfa-1, -alfa, newDepth, !cutNode);
+                value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, newDepth, !cutNode);
 
                 if (doLMR
                  && !captureOrPromotion) {
@@ -1283,10 +1285,10 @@ namespace {
 
             if (move != bestMove) {
                 if (captureOrPromotion) {
-                    captureMoves.push_back(move);
+                    captureMoves += move;
                 }
                 else {
-                    quietMoves.push_back(move);
+                    quietMoves += move;
                 }
             }
         }

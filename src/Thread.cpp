@@ -140,40 +140,36 @@ void MainThread::clear() {
 /// Original code from Texel by Peter Osterlund.
 namespace WinProcGroup {
 
-    namespace {
+    std::vector<i16> Groups;
 
-        std::vector<i16> Groups;
-    }
-
-    /// initialize() retrieves logical processor information using specific API
+    /// initialize() retrieves logical processor information from specific API
     void initialize() {
-#   if defined(_WIN32)
+
+#if defined(_WIN32)
+
         // Early exit if the needed API is not available at runtime
         auto kernel32{ GetModuleHandle("Kernel32.dll") };
         if (nullptr == kernel32) {
             return;
         }
-        // GetLogicalProcessorInformationEx
-        auto glpie = GLPIE((void (*)())GetProcAddress(kernel32, "GetLogicalProcessorInformationEx"));
+        auto glpie{ (GLPIE)(void(*)())GetProcAddress(kernel32, "GetLogicalProcessorInformationEx") };
         if (nullptr == glpie) {
             return;
         }
 
-        DWORD length;
-        // First call to get length. We expect it to fail due to null buffer
-        if (glpie(LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &length)) {
+        DWORD buffSize;
+        // First call to get size, expect it to fail due to null buffer
+        if (glpie(LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, nullptr, &buffSize)) {
             return;
         }
-
-        // Once we know length, allocate the buffer
-        auto *ptrSysLogicalProcInfoBase = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)(malloc(length));
-        if (nullptr == ptrSysLogicalProcInfoBase) {
+        // Once know size, allocate the buffer
+        auto *ptrBase{ (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) malloc(buffSize) };
+        if (nullptr == ptrBase) {
             return;
         }
-
-        // Second call, now we expect to succeed
-        if (!glpie(LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, ptrSysLogicalProcInfoBase, &length)) {
-            free(ptrSysLogicalProcInfoBase);
+        // Second call, now expect to succeed
+        if (!glpie(LOGICAL_PROCESSOR_RELATIONSHIP::RelationAll, ptrBase, &buffSize)) {
+            free(ptrBase);
             return;
         }
 
@@ -181,25 +177,28 @@ namespace WinProcGroup {
         u16 coreCount{ 0 };
         u16 threadCount{ 0 };
 
-        DWORD offset{ 0 };
-        auto *ptrSysLogicalProcInfoCurr{ ptrSysLogicalProcInfoBase };
-        while (offset < length) {
-            switch (ptrSysLogicalProcInfoCurr->Relationship) {
-            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore:
-                ++coreCount;
-                threadCount += 1 + 1 * (ptrSysLogicalProcInfoCurr->Processor.Flags == LTP_PC_SMT);
+        DWORD byteOffset{ 0UL };
+        auto *ptrCur{ ptrBase };
+        while (byteOffset < buffSize) {
+            assert(0 != ptrCur->Size);
+
+            switch (ptrCur->Relationship) {
+            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore: {
+                coreCount += 1;
+                threadCount += 1 + 1 * (ptrCur->Processor.Flags == LTP_PC_SMT);
+            }
                 break;
-            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode:
-                ++nodeCount;
+            case LOGICAL_PROCESSOR_RELATIONSHIP::RelationNumaNode: {
+                nodeCount += 1;
+            }
                 break;
             default:
                 break;
             }
-            assert(0 != ptrSysLogicalProcInfoCurr->Size);
-            offset += ptrSysLogicalProcInfoCurr->Size;
-            ptrSysLogicalProcInfoCurr = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*)((char*)(ptrSysLogicalProcInfoCurr)+ptrSysLogicalProcInfoCurr->Size);
+            byteOffset += ptrCur->Size;
+            ptrCur = (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) (((char*)ptrCur) + ptrCur->Size);
         }
-        free(ptrSysLogicalProcInfoBase);
+        free(ptrBase);
 
         // Run as many threads as possible on the same node until core limit is
         // reached, then move on filling the next node.
@@ -208,45 +207,49 @@ namespace WinProcGroup {
                 Groups.push_back(n);
             }
         }
-
         // In case a core has more than one logical processor (we assume 2) and
         // have still threads to allocate, then spread them evenly across available nodes.
         for (u16 t = 0; t < threadCount - coreCount; ++t) {
             Groups.push_back(t % nodeCount);
         }
 
-#   endif
+#endif
+
     }
 
     /// bind() set the group affinity for the thread index.
     void bind(u16 index) {
+
         // If we still have more threads than the total number of logical processors then let the OS to decide what to do.
         if (index >= Groups.size()) {
             return;
         }
 
-#   if defined(_WIN32)
+#if defined(_WIN32)
+
         u16 group{ u16(Groups[index]) };
+
         auto kernel32{ GetModuleHandle("Kernel32.dll") };
         if (nullptr == kernel32) {
             return;
         }
-        // GetNumaNodeProcessorMaskEx
-        auto gnnpme = GNNPME((void (*)())GetProcAddress(kernel32, "GetNumaNodeProcessorMaskEx"));
+
+        auto gnnpme{ (GNNPME)(void(*)())GetProcAddress(kernel32, "GetNumaNodeProcessorMaskEx") };
         if (nullptr == gnnpme) {
             return;
         }
+        auto stga{ (STGA)(void(*)())GetProcAddress(kernel32, "SetThreadGroupAffinity") };
+        if (nullptr == stga) {
+            return;
+        }
+
         GROUP_AFFINITY group_affinity;
         if (gnnpme(group, &group_affinity)) {
-            // SetThreadGroupAffinity
-            auto stga = STGA((void (*)())GetProcAddress(kernel32, "SetThreadGroupAffinity"));
-            if (nullptr == stga) {
-                return;
-            }
             stga(GetCurrentThread(), &group_affinity, nullptr);
         }
 
-#   endif
+#endif
+
     }
 
 }

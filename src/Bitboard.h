@@ -30,6 +30,7 @@
 
 // Magic holds all magic relevant data for a single square
 struct Magic {
+
     Bitboard *attacks;
     Bitboard  mask;
 
@@ -354,27 +355,29 @@ template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) {
 
 /// Position::attacksBB() finds attacks of the piecetype from the square on occupancy.
 inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
-    assert(PAWN != pt);
+    assert(NIHT <= pt && pt <= KING);
     switch (pt)
     {
+    case NIHT: return PieceAttackBB[NIHT][s];
     case BSHP: return attacksBB<BSHP>(s, occ);
     case ROOK: return attacksBB<ROOK>(s, occ);
     case QUEN: return attacksBB<QUEN>(s, occ);
-    // case NIHT: case KING:
-    default:   return PieceAttackBB[pt][s];
+    case KING: return PieceAttackBB[KING][s];
+    default:   return 0;
     }
 }
 /// Position::attacksBB() finds attacks of the piece from the square on occupancy.
 inline Bitboard attacksBB(Piece p, Square s, Bitboard occ) {
-    auto pt{ PType[p] };
-    switch (pt)
+    assert(isOk(PType[p]));
+    switch (PType[p])
     {
     case PAWN: return PawnAttackBB[PColor[p]][s];
+    case NIHT: return PieceAttackBB[NIHT][s];
     case BSHP: return attacksBB<BSHP>(s, occ);
     case ROOK: return attacksBB<ROOK>(s, occ);
     case QUEN: return attacksBB<QUEN>(s, occ);
-    // case NIHT: case KING:
-    default:   return PieceAttackBB[pt][s];
+    case KING: return PieceAttackBB[KING][s];
+    default:   return 0;
     }
 }
 

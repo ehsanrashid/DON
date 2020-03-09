@@ -4,8 +4,8 @@
 
 namespace {
 
-    enum : u08 {
-        PICK_STAGE_NONE = 0,
+    enum Stage : u08 {
+        STAGE_NONE = 0,
 
         NATURAL_TT = 1,
         NATURAL_INIT,
@@ -35,23 +35,26 @@ namespace {
         ValMoves::iterator const &iEnd,
         i32 limit) {
 
-        auto sortedEnd = iBeg;
-        auto p = sortedEnd + 1;
-        while (p != iEnd) {
+        if (iBeg != iEnd) {
 
-            if (p->value >= limit) {
-                auto item = *p;
-                *p = *(++sortedEnd);
+            auto sortedEnd = iBeg;
+            auto p = sortedEnd + 1;
+            while (p != iEnd) {
 
-                auto q = sortedEnd;
-                while (q != iBeg
-                    && (q - 1)->value < item.value) {
-                    *q = *(q - 1);
-                    --q;
+                if (p->value >= limit) {
+                    auto item = *p;
+                    *p = *(++sortedEnd);
+
+                    auto q = sortedEnd;
+                    while (q != iBeg
+                        && (q - 1)->value < item.value) {
+                        *q = *(q - 1);
+                        --q;
+                    }
+                    *q = item;
                 }
-                *q = item;
+                ++p;
             }
-            ++p;
         }
     }
 
@@ -148,44 +151,42 @@ void MovePicker::value() {
                 || GenType::QUIET == GT
                 || GenType::EVASION == GT, "GT incorrect");
 
-    auto vmItr = vmBeg;
-    while (vmItr != vmEnd) {
-        auto &vm = *vmItr++;
+    auto vmCur = vmBeg;
+    while (vmCur != vmEnd) {
+        auto &vm = *(vmCur++);
 
         if (GenType::CAPTURE == GT) {
-            assert(pos.captureOrPromotion(vm)
-                && CASTLE != mType(vm));
-            vm.value = i32(PieceValues[MG][pos.captured(vm)]) * 6
-                     + (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][pos.captured(vm)];
+            auto captured{ pos.captured(vm) };
+
+            vm.value = i32(PieceValues[MG][captured]) * 6
+                     + (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][captured];
         }
         else
         if (GenType::QUIET == GT) {
             auto dst{ dstSq(vm) };
             auto mpc{ pos[orgSq(vm)] };
+            auto index{ mIndex(vm) };
 
-            vm.value = (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
+            vm.value = (*butterFlyStats)[pos.activeSide()][index]
                      + (*pieceStats[0])[mpc][dst] * 2
                      + (*pieceStats[1])[mpc][dst] * 2
                      + (*pieceStats[3])[mpc][dst] * 2
                      + (*pieceStats[5])[mpc][dst]
                    + (ply < MAX_LOWPLY ?
-                       (*lowPlyStats)[ply][mIndex(vm)] * 4 : 0);
+                       (*lowPlyStats)[ply][index] * 4 : 0);
         }
         else { // GenType::EVASION == GT
-            if (pos.capture(vm)) {
-                assert(pos.captureOrPromotion(vm)
-                    && CASTLE != mType(vm));
-                vm.value = i32(PieceValues[MG][pos.captured(vm)])
-                         - PType[pos[orgSq(vm)]];
-            }
-            else {
-                auto dst{ dstSq(vm) };
-                auto mpc{ pos[orgSq(vm)] };
+            auto mpc{ pos[orgSq(vm)] };
 
-                vm.value = (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
-                         + (*pieceStats[0])[mpc][dst]
-                         - (0x10000000); // 1 << 28
-            }
+            vm.value =
+                pos.capture(vm) ?
+
+                    i32(PieceValues[MG][pos.captured(vm)])
+                  - PType[mpc] :
+
+                    (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
+                  + (*pieceStats[0])[mpc][dstSq(vm)]
+                  - 0x10000000; // 1 << 28
         }
     }
 }
@@ -351,7 +352,7 @@ Move MovePicker::nextMove() {
                 *vmBeg++ : MOVE_NONE;
         /* end */
 
-    case PICK_STAGE_NONE:
+    case STAGE_NONE:
     default:
         assert(false);
         return MOVE_NONE;

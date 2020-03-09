@@ -154,8 +154,9 @@ public:
 
     double reductionFactor{ 0.0 };
 
-    std::atomic<bool> stop // Stop search forcefully
-        ,             research;
+    std::atomic<bool>
+        stop, // Stop search forcefully
+        research;
 
     ThreadPool() = default;
     ThreadPool(ThreadPool const&) = delete;

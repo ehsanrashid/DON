@@ -148,12 +148,15 @@ bool Position::cycled(i16 pp) const {
         Key moveKey{ pKey
                    ^ psi->posiKey };
         u16 h;
-        if ((h = hash(u16(moveKey >> 0x00)), moveKey == Cuckoos[h].key)
-         || (h = hash(u16(moveKey >> 0x10)), moveKey == Cuckoos[h].key)) {
+        if ((h = hash<0>(moveKey), moveKey == Cuckoos[h].key)
+         || (h = hash<1>(moveKey), moveKey == Cuckoos[h].key)) {
+
             auto move{ Cuckoos[h].move };
             auto s1{ orgSq(move) };
             auto s2{ dstSq(move) };
+
             if (0 == (betweenBB(s1, s2) & pieces())) {
+
                 if (p < pp) {
                     return true;
                 }
@@ -230,11 +233,11 @@ bool Position::pseudoLegal(Move m) const
             && canCastle(active, cs)
             && 0 == checkers();
     }
-
     // The captured square cannot be occupied by a friendly piece
     if (contains(pieces(active), dst)) {
         return false;
     }
+
     auto mpt{ PType[board[org]] };
     // Handle the special case of a piece move
     if (PAWN == mpt) {
@@ -461,10 +464,11 @@ void Position::setCheckInfo() {
     si->kingBlockers[WHITE] = sliderBlockersAt(square(WHITE|KING), pieces(BLACK), si->kingCheckers[WHITE], si->kingCheckers[BLACK]);
     si->kingBlockers[BLACK] = sliderBlockersAt(square(BLACK|KING), pieces(WHITE), si->kingCheckers[BLACK], si->kingCheckers[WHITE]);
 
-    si->checks[PAWN] = PawnAttackBB[~active][square(~active|KING)];
-    si->checks[NIHT] = PieceAttackBB[NIHT][square(~active|KING)];
-    si->checks[BSHP] = attacksBB<BSHP>(square(~active|KING), pieces());
-    si->checks[ROOK] = attacksBB<ROOK>(square(~active|KING), pieces());
+    auto ekSq{ square(~active|KING) };
+    si->checks[PAWN] = pawnAttacksFrom(~active, ekSq);
+    si->checks[NIHT] = attacksFrom(NIHT, ekSq);
+    si->checks[BSHP] = attacksFrom(BSHP, ekSq);
+    si->checks[ROOK] = attacksFrom(ROOK, ekSq);
     si->checks[QUEN] = si->checks[BSHP]
                      | si->checks[ROOK];
     si->checks[KING] = 0;
@@ -474,9 +478,7 @@ void Position::setCheckInfo() {
 bool Position::canEnpassant(Color c, Square epSq, bool moveDone) const {
     assert(isOk(epSq)
         && RANK_6 == relativeRank(c, epSq));
-    auto cap{ moveDone ?
-                epSq - PawnPush[c] :
-                epSq + PawnPush[c] };
+    auto cap{ moveDone ? epSq - PawnPush[c] : epSq + PawnPush[c] };
     assert((~c|PAWN) == board[cap]); //contains(pieces(~c, PAWN), cap));
     // Enpassant attackers
     Bitboard attackers{ pieces(c, PAWN) & PawnAttackBB[~c][epSq] };
@@ -578,7 +580,7 @@ bool Position::see(Move m, Value threshold) const {
         // the bitboard 'attackers' any X-ray attackers behind it.
         Bitboard bb;
 
-        /**/ if (0 != (bb = pieces(PAWN) & movAttackers)) {
+        if (0 != (bb = pieces(PAWN) & movAttackers)) {
             swap = VALUE_MG_PAWN - swap;
             if (swap < 1*res) {
                 break;
@@ -587,7 +589,8 @@ bool Position::see(Move m, Value threshold) const {
             mocc ^= org;
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
         }
-        else if (0 != (bb = pieces(NIHT) & movAttackers)) {
+        else
+        if (0 != (bb = pieces(NIHT) & movAttackers)) {
             swap = VALUE_MG_NIHT - swap;
             if (swap < 1*res) {
                 break;
@@ -595,7 +598,8 @@ bool Position::see(Move m, Value threshold) const {
             org = scanLSq(bb);
             mocc ^= org;
         }
-        else if (0 != (bb = pieces(BSHP) & movAttackers)) {
+        else
+        if (0 != (bb = pieces(BSHP) & movAttackers)) {
             swap = VALUE_MG_BSHP - swap;
             if (swap < 1*res) {
                 break;
@@ -604,7 +608,8 @@ bool Position::see(Move m, Value threshold) const {
             mocc ^= org;
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
         }
-        else if (0 != (bb = pieces(ROOK) & movAttackers)) {
+        else
+        if (0 != (bb = pieces(ROOK) & movAttackers)) {
             swap = VALUE_MG_ROOK - swap;
             if (swap < 1*res) {
                 break;
@@ -613,7 +618,8 @@ bool Position::see(Move m, Value threshold) const {
             mocc ^= org;
             attackers |= (pieces(ROOK, QUEN) & attacksBB<ROOK>(dst, mocc));
         }
-        else if (0 != (bb = pieces(QUEN) & movAttackers)) {
+        else
+        if (0 != (bb = pieces(QUEN) & movAttackers)) {
             swap = VALUE_MG_QUEN - swap;
             if (swap < 1*res) {
                 break;
@@ -638,7 +644,8 @@ void Position::clear() {
     board.fill(NO_PIECE);
     colors.fill(0);
     types.fill(0);
-    for (auto &list : pieceList) list.clear();
+    for (auto &list : pieceList)
+        list.clear();
 
     npMaterial.fill(VALUE_ZERO);
 
@@ -740,14 +747,16 @@ Position& Position::setup(std::string const &ff, StateInfo &nsi, Thread *const n
     while ((iss >> token)
         && !isspace(token)) {
         Piece p;
-        /**/ if (isdigit(token)
+        if (isdigit(token)
          && ('1' <= token && token <= '8')) {
             sq += (token - '0') * EAST;
         }
-        else if (token == '/') {
+        else
+        if (token == '/') {
             sq += 2 * SOUTH;
         }
-        else if ((p = toPiece(token)) != NO_PIECE) {
+        else
+        if ((p = toPiece(token)) != NO_PIECE) {
             placePiece(sq, p);
             ++sq;
         }

@@ -681,9 +681,10 @@ namespace UCI {
                 }
                 else {
                     uciCmds.push_back("position fen " + cmd);
-                    /**/ if (mode == "eval")    uciCmds.push_back(mode);
-                    else if (mode == "perft")   uciCmds.push_back(mode + " " + value);
-                    else                        uciCmds.push_back("go " + mode + " " + value);
+                    if (mode == "eval")     { uciCmds.push_back(mode); }
+                    else
+                    if (mode == "perft")    { uciCmds.push_back(mode + " " + value); }
+                    else                    { uciCmds.push_back("go " + mode + " " + value); }
                 }
             }
 
@@ -728,12 +729,14 @@ namespace UCI {
                         << std::left
                         << pos.fen() << std::endl;
 
-                    /**/ if (token == "eval")   { sync_cout << Evaluator::trace(pos) << sync_endl; }
-                    else if (token == "perft")  {
+                    if (token == "eval")   { sync_cout << Evaluator::trace(pos) << sync_endl; }
+                    else
+                    if (token == "perft")  {
                         Depth depth{ 1 }; is >> depth; depth = std::max(Depth(1), depth);
                         perft<true>(pos, depth);
                     }
-                    else if (token == "go")     {
+                    else
+                    if (token == "go")     {
                         go(is, pos, states);
                         Threadpool.mainThread()->waitIdle();
                         nodes += Threadpool.sum(&Thread::nodes);
