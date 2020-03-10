@@ -301,7 +301,7 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos)
     // so to skip known illegal moves avoiding useless legality check later.
     while (0 != checkersEx) {
         auto checkSq{ popLSq(checkersEx) };
-        checks |= attacksBB(PType[pos[checkSq]], checkSq, mocc);
+        checks |= attacksBB(pType(pos[checkSq]), checkSq, mocc);
     }
     // Generate evasions for king, capture and non-capture moves
     Bitboard attacks{  PieceAttackBB[KING][fkSq]
@@ -324,7 +324,7 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &
     while (0 != dscBlockersEx) {
 
         auto org{ popLSq(dscBlockersEx) };
-        auto mpt{ PType[pos[org]] };
+        auto mpt{ pType(pos[org]) };
 
         Bitboard attacks{ pos.pieceAttacksFrom(mpt, org)
                         & targets };
@@ -403,7 +403,7 @@ void Perft::classify(Position &pos, Move m) {
     }
     if (pos.giveCheck(m)) {
         ++anyCheck;
-        if (!contains(pos.checks(PROMOTE != mType(m) ? PType[pos[orgSq(m)]] : promoteType(m)), dstSq(m))) {
+        if (!contains(pos.checks(PROMOTE != mType(m) ? pType(pos[orgSq(m)]) : promoteType(m)), dstSq(m))) {
             auto ekSq = pos.square(~pos.activeSide()|KING);
             if (contains(pos.kingBlockers(~pos.activeSide()), orgSq(m))
              && !aligned(orgSq(m), dstSq(m), ekSq)) {
@@ -411,7 +411,7 @@ void Perft::classify(Position &pos, Move m) {
             }
             else
             if (ENPASSANT == mType(m)) {
-                auto epSq{ makeSquare(SFile[dstSq(m)], SRank[orgSq(m)]) };
+                auto epSq{ makeSquare(sFile(dstSq(m)), sRank(orgSq(m))) };
                 Bitboard mocc{ (pos.pieces() ^ orgSq(m) ^ epSq) | dstSq(m) };
                 if (0 != (pos.pieces(pos.activeSide(), BSHP, QUEN) & attacksBB<BSHP>(ekSq, mocc))
                  || 0 != (pos.pieces(pos.activeSide(), ROOK, QUEN) & attacksBB<ROOK>(ekSq, mocc))) {

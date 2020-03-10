@@ -58,7 +58,7 @@ namespace Pawns {
 
             Score safety{ Basic };
 
-            auto kF{ clamp(SFile[kSq], FILE_B, FILE_G) };
+            auto kF{ clamp(sFile(kSq), FILE_B, FILE_G) };
             for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
                 assert(FILE_A <= f && f <= FILE_H);
                 Bitboard ownFrontFilePawns = ownFrontPawns & FileBB[f];
@@ -119,15 +119,15 @@ namespace Pawns {
             auto safety{ evaluateSafetyOn<Own>(pos, kSq) };
             if (0 != kPaths[CS_KING]) {
                 safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_G1)), safety,
-                                  [](Score s1, Score s2) {
-                                    return mgValue(s1) < mgValue(s2);
-                                  });
+                        [](Score s1, Score s2) {
+                            return mgValue(s1) < mgValue(s2);
+                        });
             }
             if (0 != kPaths[CS_QUEN]) {
                 safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_C1)), safety,
-                                  [](Score s1, Score s2) {
-                                    return mgValue(s1) < mgValue(s2);
-                                  });
+                        [](Score s1, Score s2) {
+                            return mgValue(s1) < mgValue(s2);
+                        });
             }
 
             kingSafety[Own] = safety;

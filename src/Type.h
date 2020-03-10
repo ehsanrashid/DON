@@ -371,28 +371,6 @@ constexpr Score operator*(Score s, bool b) {
 Score operator*(Score, Score) = delete;
 Score operator/(Score, Score) = delete;
 
-/// Multi-dimensional Array
-template<typename T, size_t Size, size_t... Sizes>
-class ArrayType {
-    static_assert (Size != 0, "Size incorrect");
-private:
-    using NestedArrayType = typename ArrayType<T, Sizes...>::type;
-
-public:
-    using type = std::array<NestedArrayType, Size>;
-};
-
-template<typename T, size_t Size>
-class ArrayType<T, Size> {
-    static_assert (Size != 0, "Size incorrect");
-public:
-    using type = std::array<T, Size>;
-};
-
-template<typename T, size_t... Sizes>
-using Array = typename ArrayType<T, Sizes...>::type;
-
-
 
 constexpr bool isOk(Color c) {
     return WHITE == c || BLACK == c;
@@ -404,93 +382,51 @@ constexpr Color operator~(Color c) {
 constexpr bool isOk(File f) {
     return FILE_A <= f && f <= FILE_H;
 }
-constexpr File flipFile(File f) {
-    return File(i32(f) ^ i32(FILE_H));
+constexpr File operator~(File f) {
+    return File(FILE_H - f);
 }
 // Fold file [ABCDEFGH] to file [ABCDDCBA]
 inline File foldFile(File f) {
-    return std::min(f, flipFile(f));
+    return std::min(f, ~f);
 }
 
 constexpr bool isOk(Rank r) {
     return RANK_1 <= r && r <= RANK_8;
 }
-constexpr Rank flipRank(Rank r) {
-    return Rank(i32(r) ^ i32(RANK_8));
+constexpr Rank operator~(Rank r) {
+    return Rank(RANK_8 - r);
 }
-
+// Fold rank [12345678] to rank [12344321]
+inline Rank foldRank(Rank r) {
+    return std::min(r, ~r);
+}
 
 constexpr bool isOk(Square s) {
     return SQ_A1 <= s && s <= SQ_H8;
 }
-
-constexpr Array<Square, RANKS, FILES> Squares
-{{
-    { SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1 },
-    { SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2 },
-    { SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3 },
-    { SQ_A4, SQ_B4, SQ_C4, SQ_D4, SQ_E4, SQ_F4, SQ_G4, SQ_H4 },
-    { SQ_A5, SQ_B5, SQ_C5, SQ_D5, SQ_E5, SQ_F5, SQ_G5, SQ_H5 },
-    { SQ_A6, SQ_B6, SQ_C6, SQ_D6, SQ_E6, SQ_F6, SQ_G6, SQ_H6 },
-    { SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7 },
-    { SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8 }
-}};
-
 constexpr Square makeSquare(File f, Rank r) {
-    return
-        //Square((r << 3) + f);
-        Squares[r][f];
+    return Square((r << 3) + f);
 }
-
-constexpr Array<File, SQUARES> SFile
-{
-    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
-    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
-    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
-    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
-    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
-    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
-    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
-    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H
-};
-constexpr Array<Rank, SQUARES> SRank
-{
-    RANK_1, RANK_1, RANK_1, RANK_1, RANK_1, RANK_1, RANK_1, RANK_1,
-    RANK_2, RANK_2, RANK_2, RANK_2, RANK_2, RANK_2, RANK_2, RANK_2,
-    RANK_3, RANK_3, RANK_3, RANK_3, RANK_3, RANK_3, RANK_3, RANK_3,
-    RANK_4, RANK_4, RANK_4, RANK_4, RANK_4, RANK_4, RANK_4, RANK_4,
-    RANK_5, RANK_5, RANK_5, RANK_5, RANK_5, RANK_5, RANK_5, RANK_5,
-    RANK_6, RANK_6, RANK_6, RANK_6, RANK_6, RANK_6, RANK_6, RANK_6,
-    RANK_7, RANK_7, RANK_7, RANK_7, RANK_7, RANK_7, RANK_7, RANK_7,
-    RANK_8, RANK_8, RANK_8, RANK_8, RANK_8, RANK_8, RANK_8, RANK_8
-};
-constexpr Array<Color, SQUARES> SColor
-{
-    BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE,
-    WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK,
-    BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE,
-    WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK,
-    BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE,
-    WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK,
-    BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE,
-    WHITE, BLACK, WHITE, BLACK, WHITE, BLACK, WHITE, BLACK
-};
-
+constexpr File sFile(Square s) {
+    return File((s >> 0) & i32(FILE_H));
+}
+constexpr Rank sRank(Square s) {
+    return Rank((s >> 3) & i32(RANK_8));
+}
+constexpr Color sColor(Square s) {
+    return Color((sFile(s) + sRank(s) + 1) & BLACK);
+}
 // Flip File: SQ_H1 -> SQ_A1
 constexpr Square flipFile(Square s) {
-    return
-        //Squares[SRank[s]][flipFile(SFile[s])];
-        Square(i32(s) ^ i32(SQ_H1));
+    return Square(i32(s) ^ i32(SQ_H1));
 }
 // Flip Rank: SQ_A8 -> SQ_A1
 constexpr Square flipRank(Square s) {
-    return
-        //Squares[flipRank(SRank[s])][SFile[s]];
-        Square(i32(s) ^ i32(SQ_A8));
+    return Square(i32(s) ^ i32(SQ_A8));
 }
 
 constexpr bool colorOpposed(Square s1, Square s2) {
-    return SColor[s1] != SColor[s2];
+    return sColor(s1) != sColor(s2);
 }
 
 constexpr Square relativeSq(Color c, Square s) {
@@ -501,14 +437,14 @@ constexpr Rank relativeRank(Color c, Rank r) {
     return Rank(i32(r) ^ i32(RANK_8 * c));
 }
 constexpr Rank relativeRank(Color c, Square s) {
-    return relativeRank(c, SRank[s]);
+    return relativeRank(c, sRank(s));
 }
 
 constexpr Square kingCastleSq(Square org, Square dst) {
-    return makeSquare(File(i32(FILE_E) + 2 * sign(dst - org)), SRank[org]);
+    return makeSquare(File(i32(FILE_E) + 2 * sign(dst - org)), sRank(org));
 }
 constexpr Square rookCastleSq(Square org, Square dst) {
-    return makeSquare(File(i32(FILE_E) + 1 * sign(dst - org)), SRank[org]);
+    return makeSquare(File(i32(FILE_E) + 1 * sign(dst - org)), sRank(org));
 }
 
 constexpr bool isOk(PieceType pt) {
@@ -520,12 +456,6 @@ constexpr bool isOk(Piece p) {
         || (B_PAWN <= p && p <= B_KING);
 }
 
-constexpr Array<Piece, 12> Pieces
-{
-    W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-    B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING
-};
-
 constexpr Piece operator|(Color c, PieceType pt) {
     return Piece((c << 3) + pt);
 }
@@ -533,15 +463,13 @@ constexpr Piece makePiece(Color c, PieceType pt) {
     return Piece((c << 3) + pt);
 }
 
-constexpr Array<PieceType, PIECES> PType
-{
-    NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING, NONE,
-    NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING,
-};
-
+constexpr PieceType pType(Piece p) {
+    //assert(isOk(p));
+    return PieceType((p >> 0) & PIECE_TYPES);
+}
 constexpr Color pColor(Piece p) {
     //assert(isOk(p));
-    return Color(p >> 3);
+    return Color((p >> 3) & BLACK);
 }
 
 constexpr Piece flipColor(Piece p) {
@@ -607,12 +535,6 @@ constexpr Value matesIn(i32 ply) {
 constexpr Value matedIn(i32 ply) {
     return -VALUE_MATE + ply;
 }
-
-constexpr Array<Value, PHASES, PIECE_TYPES> PieceValues
-{{
-    { VALUE_ZERO, VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO },
-    { VALUE_ZERO, VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO }
-}};
 
 
 class Moves :
@@ -687,8 +609,6 @@ inline TimePoint now() {
           (std::chrono::steady_clock::now().time_since_epoch()).count();
 }
 
-/// ----- Tables -----
-
 /// Hash table
 template<typename T, u32 Size>
 class HashTable {
@@ -700,7 +620,8 @@ private:
 public:
 
     HashTable() :
-        table(Size) {}
+        table(Size)
+    {}
 
     void clear() {
         table.assign(Size, T());
@@ -711,11 +632,35 @@ public:
     }
 };
 
-/// Table
+/// Multi-dimensional Array
+template<typename T, size_t Size, size_t... Sizes>
+class ArrayType {
+
+    static_assert (Size != 0, "Size incorrect");
+private:
+    using NestedArrayType = typename ArrayType<T, Sizes...>::type;
+
+public:
+    using type = std::array<NestedArrayType, Size>;
+};
+
+template<typename T, size_t Size>
+class ArrayType<T, Size> {
+
+    static_assert (Size != 0, "Size incorrect");
+public:
+    using type = std::array<T, Size>;
+};
+
+template<typename T, size_t... Sizes>
+using Array = typename ArrayType<T, Sizes...>::type;
+
+
+/// Table is a generic N-dimensional array
 template<typename T, size_t Size, size_t... Sizes>
 class Table :
-    public std::array<Table<T, Sizes...>, Size>
-{
+    public std::array<Table<T, Sizes...>, Size> {
+
     static_assert (Size != 0, "Size incorrect");
 private:
     using NestedTable = Table<T, Size, Sizes...>;
@@ -732,76 +677,38 @@ public:
 };
 template<typename T, size_t Size>
 class Table<T, Size> :
-    public std::array<T, Size>
-{
+    public std::array<T, Size> {
+
     static_assert (Size != 0, "Size incorrect");
 };
 
 
-/// Stats stores the value. It is usually a number.
-/// We use a class instead of naked value to directly call
-/// history update operator<<() on the entry so to use stats
-/// tables at caller sites as simple multi-dim arrays.
-template<typename T, i32 D>
-class Stats {
+/// distance() functions return the distance between s1 and s2, defined as the
+/// number of steps for a king in s1 to reach s2.
 
-private:
-    T entry;
+template<typename T = Square> inline i32 distance(Square, Square);
 
-public:
+template<> inline i32 distance<File>(Square s1, Square s2) {
+    return std::abs(sFile(s1) - sFile(s2));
+}
+template<> inline i32 distance<Rank>(Square s1, Square s2) {
+    return std::abs(sRank(s1) - sRank(s2));
+}
 
-    void operator=(T const &e) {
-        entry = e;
-    }
+extern Array<u08, SQUARES, SQUARES> SquareDistance;
+template<> inline i32 distance<Square>(Square s1, Square s2) {
+    //return std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
+    return SquareDistance[s1][s2];
+}
 
-    T* operator&() {
-        return &entry;
-    }
-    T* operator->() {
-        return &entry;
-    }
-
-    operator T const&() const {
-        return entry;
-    }
-
-    void operator<<(i32 bonus) {
-        static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
-        assert(std::abs(bonus) <= D); // Ensure range is [-D, +D]
-
-        entry += T(bonus - entry * std::abs(bonus) / D);
-
-        assert(std::abs(entry) <= D);
-    }
-};
-
-/// StatsTable is a generic N-dimensional array used to store various statistics.
-/// The first template T parameter is the base type of the array,
-/// the D parameter limits the range of updates (range is [-D, +D]), and
-/// the last parameters (Size and Sizes) encode the dimensions of the array.
-template<typename T, i32 D, size_t Size, size_t... Sizes>
-class StatsTable :
-    public std::array<StatsTable<T, D, Sizes...>, Size>
+constexpr Array<Piece, 12> Pieces
 {
-    static_assert (Size != 0, "Size incorrect");
-private:
-    using NestedStatsTable = StatsTable<T, D, Size, Sizes...>;
-
-public:
-
-    void fill(T const &value) {
-        // For standard-layout 'this' points to first struct member
-        assert(std::is_standard_layout<NestedStatsTable>::value);
-
-        using Entry = Stats<T, D>;
-        auto *p = reinterpret_cast<Entry*>(this);
-        std::fill(p, p + sizeof (*this) / sizeof (Entry), value);
-    }
-};
-template<typename T, i32 D, size_t Size>
-class StatsTable<T, D, Size> :
-    public std::array<Stats<T, D>, Size>
-{
-    static_assert (Size != 0, "Size incorrect");
+    W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+    B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING
 };
 
+constexpr Array<Value, PHASES, PIECE_TYPES> PieceValues
+{{
+    { VALUE_ZERO, VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO },
+    { VALUE_ZERO, VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO }
+}};

@@ -35,7 +35,7 @@ public:
         //        std::remove_if(
         //            begin(), end(),
         //            [&](ValMove const &vm) {
-        //                return PT != PType[pos[orgSq(vm)]];
+        //                return PT != pType(pos[orgSq(vm)]);
         //            }),
         //        end());
         //}

@@ -277,8 +277,8 @@ namespace Evaluator {
 
             auto kSq{ pos.square(Own|KING) };
             // King safety tables
-            auto sq{ makeSquare(clamp(SFile[kSq], FILE_B, FILE_G),
-                                clamp(SRank[kSq], RANK_2, RANK_7)) };
+            auto sq{ makeSquare(clamp(sFile(kSq), FILE_B, FILE_G),
+                                clamp(sRank(kSq), RANK_2, RANK_7)) };
             kingRing[Own] = PieceAttackBB[KING][sq] | sq;
 
             kingAttackersCount [Opp] = popCount(kingRing[Own] & sqlAttacks[Opp][PAWN]);
@@ -396,7 +396,7 @@ namespace Evaluator {
                         // more when the center files are blocked with pawns.
                         score -= BishopPawns
                                * popCount(pos.pieces(Own, PAWN)
-                                        & ColorBB[SColor[s]])
+                                        & ColorBB[sColor(s)])
                                * (1 + popCount(pos.pieces(Own, PAWN)
                                              & SlotFileBB[CS_NONE]
                                              & pawnSglPushBB<Opp>(pos.pieces())));
@@ -414,7 +414,7 @@ namespace Evaluator {
                             if (SQ_A1 == relSq
                              || SQ_H1 == relSq) {
 
-                                auto del{ PawnPush[Own] + sign(FILE_E - SFile[s]) * EAST };
+                                auto del{ PawnPush[Own] + sign(FILE_E - sFile(s)) * EAST };
                                 if (contains(pos.pieces(Own, PAWN), s + del)) {
                                     score -= BishopTrapped
                                            * (!contains(pos.pieces(), s + del + PawnPush[Own]) ?
@@ -442,9 +442,9 @@ namespace Evaluator {
                     if (3 >= mob
                      && RANK_4 > relativeRank(Own, s)
                      && 0 != (frontSquaresBB(Own, s) & pos.pieces(Own, PAWN))) {
-                        auto kF = SFile[pos.square(Own|KING)];
-                        if (((kF < FILE_E) && (SFile[s] < kF))
-                         || ((kF > FILE_D) && (SFile[s] > kF))) {
+                        auto kF = sFile(pos.square(Own|KING));
+                        if (((kF < FILE_E) && (sFile(s) < kF))
+                         || ((kF > FILE_D) && (sFile(s) > kF))) {
                             score -= RookTrapped * (1 + !pos.canCastle(Own));
                         }
                     }
@@ -552,14 +552,14 @@ namespace Evaluator {
 
             Bitboard b;
 
-            b =  KingFlankBB[SFile[kSq]]
+            b =  KingFlankBB[sFile(kSq)]
               &  CampBB[Own]
               &  sqlAttacks[Opp][NONE];
             // Friend king flank attack count
             i32 kfAttacks = popCount(b)                     // Squares attacked by enemy in friend king flank
                           + popCount(b & dblAttacks[Opp]);  // Squares attacked by enemy twice in friend king flank.
             // Friend king flank defense count
-            b =  KingFlankBB[SFile[kSq]]
+            b =  KingFlankBB[sFile(kSq)]
               &  CampBB[Own]
               &  sqlAttacks[Own][NONE];
             i32 kfDefense = popCount(b);
@@ -591,7 +591,7 @@ namespace Evaluator {
             }
 
             // Penalty for king on a pawn less flank
-            score -= PawnLessFlank * (0 == (pos.pieces(PAWN) & KingFlankBB[SFile[kSq]]));
+            score -= PawnLessFlank * (0 == (pos.pieces(PAWN) & KingFlankBB[sFile(kSq)]));
 
             // King tropism: Penalty for slow motion attacks moving towards friend king zone
             score -= KingFlankAttacks * kfAttacks;
@@ -639,7 +639,7 @@ namespace Evaluator {
                   &  (sqlAttacks[Own][NIHT]
                     | sqlAttacks[Own][BSHP]);
                 while (0 != b) {
-                    score += MinorThreat[PType[pos[popLSq(b)]]];
+                    score += MinorThreat[pType(pos[popLSq(b)])];
                 }
 
                 if (0 != attackedUndefendedEnemies) {
@@ -647,7 +647,7 @@ namespace Evaluator {
                     b =  attackedUndefendedEnemies
                       &  sqlAttacks[Own][ROOK];
                     while (0 != b) {
-                        score += MajorThreat[PType[pos[popLSq(b)]]];
+                        score += MajorThreat[pType(pos[popLSq(b)])];
                     }
 
                     // Enemies attacked by king
@@ -800,7 +800,7 @@ namespace Evaluator {
                 }
 
                 score += bonus
-                    - PasserFile * foldFile(SFile[s]);
+                    - PasserFile * foldFile(sFile(s));
             }
 
             if (Trace) {
@@ -855,8 +855,8 @@ namespace Evaluator {
                            +  9 * pawnEntry->passedCount()
                            +  9 * outflanking
                             // King infiltration
-                           + 24 * (SRank[pos.square(WHITE|KING)] > RANK_4
-                                || SRank[pos.square(BLACK|KING)] < RANK_5)
+                           + 24 * (sRank(pos.square(WHITE|KING)) > RANK_4
+                                || sRank(pos.square(BLACK|KING)) < RANK_5)
                            + 51 * (VALUE_ZERO == pos.nonPawnMaterial())
                            - 110;
 

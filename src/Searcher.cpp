@@ -154,7 +154,7 @@ namespace {
         }
 
         pos.thread()->butterFlyStats[pos.activeSide()][mIndex(move)] << bonus;
-        if (PAWN != PType[pos[orgSq(move)]]) {
+        if (PAWN != pType(pos[orgSq(move)])) {
             pos.thread()->butterFlyStats[pos.activeSide()][mIndex(reverseMove(move))] << -bonus;
         }
         updateContinuationStats(ss, pos[orgSq(move)], dstSq(move), bonus);
@@ -374,12 +374,12 @@ namespace {
             if (!inCheck
              && !giveCheck
              && -VALUE_KNOWN_WIN < futilityBase
-             && !(PAWN == PType[mpc]
+             && !(PAWN == pType(mpc)
                && pos.pawnAdvanceAt(pos.activeSide(), org))
              && 0 == Limits.mate) {
                 assert(ENPASSANT != mType(move)); // Due to !pos.pawnAdvanceAt
                 // Futility pruning parent node
-                auto futilityValue{ futilityBase + PieceValues[EG][CASTLE != mType(move) ? PType[pos[dst]] : NONE] };
+                auto futilityValue{ futilityBase + PieceValues[EG][CASTLE != mType(move) ? pType(pos[dst]) : NONE] };
                 if (futilityValue <= alfa) {
                     if (bestValue < futilityValue) {
                         bestValue = futilityValue;
@@ -1064,7 +1064,7 @@ namespace {
               && (contains(pos.kingBlockers(~pos.activeSide()), org)
                || pos.see(move)))
                 // Passed pawn extension
-             || (PAWN == PType[mpc]
+             || (PAWN == pType(mpc)
               && pos.pawnAdvanceAt(pos.activeSide(), org)
               && pos.pawnPassedAt(pos.activeSide(), dst)
               && ss->killerMoves[0] == move)) {

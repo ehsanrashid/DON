@@ -268,7 +268,7 @@ inline bool Position::empty(Square s) const {
 inline Bitboard Position::pieces() const {
     return types[NONE];
 }
-//inline Bitboard Position::pieces(Piece p) const { return colors[pColor(p)] & types[PType[p]]; }
+//inline Bitboard Position::pieces(Piece p) const { return colors[pColor(p)] & types[pType(p)]; }
 inline Bitboard Position::pieces(Color c) const {
     return colors[c];
 }
@@ -451,7 +451,7 @@ inline bool Position::captureOrPromotion(Move m) const {
 inline PieceType Position::captured(Move m) const {
     assert(isOk(m));
     return ENPASSANT != mType(m) ?
-            PType[board[dstSq(m)]] : PAWN;
+            pType(board[dstSq(m)]) : PAWN;
 }
 /// Position::pawnAdvanceAt() check if pawn is advanced at the given square
 inline bool Position::pawnAdvanceAt(Color c, Square s) const {

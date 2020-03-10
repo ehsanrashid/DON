@@ -133,7 +133,6 @@ constexpr Array<Bitboard, COLORS, RANKS> FrontRankBB
     }
 }};
 
-extern Array<u08, SQUARES, SQUARES> SquareDistance;
 
 extern Array<Bitboard, SQUARES, SQUARES> LineBB;
 
@@ -143,23 +142,6 @@ extern Array<Bitboard, PIECE_TYPES, SQUARES> PieceAttackBB;
 extern Array<Magic, SQUARES> BMagics;
 extern Array<Magic, SQUARES> RMagics;
 
-
-/// distance() functions return the distance between s1 and s2, defined as the
-/// number of steps for a king in s1 to reach s2.
-
-template<typename T = Square> inline i32 distance(Square, Square);
-
-template<> inline i32 distance<File>(Square s1, Square s2) {
-    return std::abs(SFile[s1] - SFile[s2]);
-}
-template<> inline i32 distance<Rank>(Square s1, Square s2) {
-    return std::abs(SRank[s1] - SRank[s2]);
-}
-template<> inline i32 distance<Square>(Square s1, Square s2) {
-    return
-        //std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
-        SquareDistance[s1][s2];
-}
 
 #if !defined(ABM)
 
@@ -172,11 +154,11 @@ constexpr Bitboard operator~(Square s) {
 }
 
 constexpr Bitboard fileBB(Square s) {
-    return FileBB[SFile[s]];
+    return FileBB[sFile(s)];
 }
 
 constexpr Bitboard rankBB(Square s) {
-    return RankBB[SRank[s]];
+    return RankBB[sRank(s)];
 }
 
 constexpr bool contains(Bitboard bb, Square s) {
@@ -262,7 +244,7 @@ template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) {
 
 /// frontRanksBB() returns ranks in front of the given square
 constexpr Bitboard frontRanksBB(Color c, Square s) {
-    return FrontRankBB[c][SRank[s]];
+    return FrontRankBB[c][sRank(s)];
 }
 
 constexpr Bitboard adjacentFilesBB(Square s) {
@@ -368,8 +350,8 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
 }
 ///// Position::attacksBB() finds attacks of the piece from the square on occupancy.
 //inline Bitboard attacksBB(Piece p, Square s, Bitboard occ) {
-//    assert(isOk(PType[p]));
-//    switch (PType[p])
+//    assert(isOk(pType(p)));
+//    switch (pType(p))
 //    {
 //    case PAWN: return PawnAttackBB[pColor(p)][s];
 //    case NIHT: return PieceAttackBB[NIHT][s];

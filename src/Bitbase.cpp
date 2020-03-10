@@ -27,14 +27,14 @@ namespace BitBase {
         // bit 13-14: white pawn file [(from FILE_A to FILE_D) - FILE_A]
         // bit 15-17: white pawn rank [(from RANK_2 to RANK_7) - RANK_2]
         u32 index(Color active, Square wkSq, Square bkSq, Square wpSq) {
-            assert(FILE_A <= SFile[wpSq] && SFile[wpSq] <= FILE_D);
-            assert(RANK_2 <= SRank[wpSq] && SRank[wpSq] <= RANK_7);
+            assert(FILE_A <= sFile(wpSq) && sFile(wpSq) <= FILE_D);
+            assert(RANK_2 <= sRank(wpSq) && sRank(wpSq) <= RANK_7);
 
             return (wkSq << 0)
                  | (bkSq << 6)
                  | (active << 12)
-                 | ((SFile[wpSq] - FILE_A) << 13)
-                 | ((SRank[wpSq] - RANK_2) << 15);
+                 | ((sFile(wpSq) - FILE_A) << 13)
+                 | ((sRank(wpSq) - RANK_2) << 15);
         }
 
         enum Result : u08 {
@@ -91,7 +91,7 @@ namespace BitBase {
             else
             // Immediate win if a pawn can be promoted without getting captured
             if (WHITE == active
-             && RANK_7 == SRank[wpSq]
+             && RANK_7 == sRank(wpSq)
              && wkSq != wpSq + NORTH
              && (1 < distance(bkSq, wpSq + NORTH)
               || 2 > distance(wkSq, wpSq + NORTH))) {
@@ -139,11 +139,11 @@ namespace BitBase {
                 }
 
                 // Pawn Single push
-                if (RANK_6 >= SRank[wpSq]) {
+                if (RANK_6 >= sRank(wpSq)) {
                     r |= kpkDB[index(BLACK, wkSq, bkSq, wpSq + NORTH)];
 
                     // Pawn Double push
-                    if (RANK_2 == SRank[wpSq]
+                    if (RANK_2 == sRank(wpSq)
                      && wkSq != wpSq + NORTH    // Front is not own king
                      && bkSq != wpSq + NORTH) { // Front is not opp king
                         r |= kpkDB[index(BLACK, wkSq, bkSq, wpSq + NORTH + NORTH)];

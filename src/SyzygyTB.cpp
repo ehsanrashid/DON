@@ -6,9 +6,9 @@
 #include <algorithm>
 #include <deque>
 #include <fstream>
-#include <string>
-#include <sstream>
 #include <list>
+#include <sstream>
+#include <string>
 #include <vector>
 
 #include "BitBoard.h"
@@ -88,9 +88,6 @@ namespace {
 
     enum Endian : u08 { BIG, LITTLE, UNKNOWN };
 
-    constexpr Square operator^(Square s, i32 i) { return Square(i32(s) ^ i); }
-    inline Square& operator^=(Square &s, i32 i) { return s = s ^ i; }
-
     i32 MapPawns[SQUARES];
     i32 MapB1H1H7[SQUARES];
     i32 MapA1D1D4[SQUARES];
@@ -105,7 +102,7 @@ namespace {
         return MapPawns[s1] < MapPawns[s2];
     }
     i32 offA1H8(Square s) {
-        return i32(SRank[s]) - i32(SFile[s]);
+        return i32(sRank(s)) - i32(sFile(s));
     }
 
     template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
@@ -796,7 +793,7 @@ namespace {
             Piece p{
                 flip ? flipColor(Piece(entry->get(0, 0)->pieces[0])) :
                                  Piece(entry->get(0, 0)->pieces[0]) };
-            assert(PAWN == PType[p]);
+            assert(PAWN == pType(p));
 
             pawns = pos.pieces(pColor(p), PAWN);
 
@@ -812,9 +809,8 @@ namespace {
             } while (0 != b);
             pawnCount = size;
 
-            std::swap(squares[0],
-                     *std::max_element(squares, squares + size, mapPawnsCompare));
-            pawnFile = foldFile(SFile[squares[0]]);
+            std::swap(squares[0], *std::max_element(squares, squares + size, mapPawnsCompare));
+            pawnFile = foldFile(sFile(squares[0]));
         }
         else {
             pawns = 0;
@@ -863,7 +859,7 @@ namespace {
 
         // Now we map again the squares so that the square of the lead piece is in
         // the triangle A1-D1-D4.
-        if (SFile[squares[0]] > FILE_D) {
+        if (FILE_D < sFile(squares[0])) {
             for (i16 i = 0; i < size; ++i) {
                 squares[i] = flipFile(squares[i]);
             }
@@ -886,7 +882,7 @@ namespace {
 
         // In positions without pawns:
         // Flip the squares to ensure leading piece is below RANK_5.
-        if (SRank[squares[0]] > RANK_4) {
+        if (RANK_4 < sRank(squares[0])) {
             for (i32 i = 0; i < size; ++i) {
                 squares[i] = flipRank(squares[i]);
             }
@@ -953,7 +949,7 @@ namespace {
             else
             if (offA1H8(squares[1]) != 0) {
                 idx =                         6 * 63 * 62
-                  + SRank[squares[0]]           * 28 * 62
+                  + (sRank(squares[0]))         * 28 * 62
                   + MapB1H1H7[squares[1]]            * 62
                   + (squares[2] - adjust2);
             }
@@ -962,8 +958,8 @@ namespace {
             if (offA1H8(squares[2]) != 0) {
                 idx =                         6 * 63 * 62
                   +                           4 * 28 * 62
-                  + SRank[squares[0]]           *  7 * 28
-                  + (SRank[squares[1]] - adjust1)    * 28
+                  + (sRank(squares[0]))         *  7 * 28
+                  + (sRank(squares[1]) - adjust1)    * 28
                   + MapB1H1H7[squares[2]];
             }
             // All 3 pieces on the diagonal a1-h8
@@ -971,9 +967,9 @@ namespace {
                 idx =                         6 * 63 * 62
                   +                           4 * 28 * 62
                   +                           4 *  7 * 28
-                  + SRank[squares[0]]           *  7 *  6
-                  + (SRank[squares[1]] - adjust1)    *  6
-                  + (SRank[squares[2]] - adjust2);
+                  + (sRank(squares[0]))         *  7 *  6
+                  + (sRank(squares[1]) - adjust1)    *  6
+                  + (sRank(squares[2]) - adjust2);
             }
         }
         else {
@@ -1361,8 +1357,8 @@ namespace {
     Ret probeTable(Position const &pos, ProbeState &state, WDLScore wdl = WDL_DRAW) {
 
         // KvK
-        if (pos.count() == 2
-         /*|| 0 == (pos.pieces() ^ pos.pieces(KING))*/) {
+        //if (pos.count() == 2) {
+        if (0 == (pos.pieces() ^ pos.pieces(KING))) {
             //state = PS_SUCCESS;
             return Ret(WDL_DRAW);
         }
@@ -1402,7 +1398,7 @@ namespace {
         for (auto &move : moveList) {
             if (!pos.capture(move)
              && (!checkZeroing
-              || PAWN != PType[pos[orgSq(move)]])) {
+              || PAWN != pType(pos[orgSq(move)]))) {
                 continue;
             }
 
@@ -1562,8 +1558,9 @@ namespace SyzygyTB {
         i32 minDTZ = 0xFFFF;
 
         for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+
             bool zeroing = pos.capture(vm)
-                        || PAWN == PType[pos[orgSq(vm)]];
+                        || PAWN == pType(pos[orgSq(vm)]);
 
             pos.doMove(vm, si);
 

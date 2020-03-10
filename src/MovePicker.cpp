@@ -182,7 +182,7 @@ void MovePicker::value() {
                 pos.capture(vm) ?
 
                     i32(PieceValues[MG][pos.captured(vm)])
-                  - PType[mpc] :
+                  - pType(mpc) :
 
                     (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
                   + (*pieceStats[0])[mpc][dstSq(vm)]

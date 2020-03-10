@@ -153,7 +153,7 @@ namespace {
 
 #if !defined(BM2)
 
-            PRNG prng{ Seeds[SRank[s]] };
+            PRNG prng{ Seeds[sRank(s)] };
             // Find a magic for square picking up an (almost) random number
             // until found the one that passes the verification test.
             for (u16 i = 0; i < size; ) {
