@@ -343,7 +343,7 @@ namespace Evaluator {
 
                 sqlAttacks[Own][PT]   |= attacks;
                 sqlAttacks[Own][NONE] |= attacks;
-                fulAttacks[Own]       |= pos.attacksFrom(PT, s);
+                fulAttacks[Own]       |= pos.pieceAttacksFrom(PT, s);
 
                 if ((attacks & kingRing[Opp]) != 0) {
                     kingAttackersCount [Own]++;
@@ -452,9 +452,9 @@ namespace Evaluator {
                     break;
                 case QUEN: {
 
-                    queenAttacked[Own][0] |= pos.attacksFrom(NIHT, s);
-                    queenAttacked[Own][1] |= pos.attacksFrom(BSHP, s);
-                    queenAttacked[Own][2] |= pos.attacksFrom(ROOK, s);
+                    queenAttacked[Own][0] |= pos.pieceAttacksFrom(NIHT, s);
+                    queenAttacked[Own][1] |= pos.pieceAttacksFrom(BSHP, s);
+                    queenAttacked[Own][2] |= pos.pieceAttacksFrom(ROOK, s);
 
                     // Penalty for pin or discover attack on the queen
                     b = 0; // Queen attackers

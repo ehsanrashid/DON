@@ -81,7 +81,7 @@ namespace BitBase {
                 && index(active, wkSq, bkSq, wpSq) == idx);
 
             // Check if two pieces are on the same square or if a king can be captured
-            if (1 >= distance(wkSq, bkSq)
+            if (2 > distance(wkSq, bkSq)
              || wkSq == wpSq
              || bkSq == wpSq
              || (WHITE == active
@@ -94,7 +94,7 @@ namespace BitBase {
              && RANK_7 == SRank[wpSq]
              && wkSq != wpSq + NORTH
              && (1 < distance(bkSq, wpSq + NORTH)
-              || contains(PieceAttackBB[KING][wkSq], wpSq + NORTH))) {
+              || 2 > distance(wkSq, wpSq + NORTH))) {
                 result = WIN;
             }
             else

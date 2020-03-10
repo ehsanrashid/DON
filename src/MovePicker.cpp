@@ -31,8 +31,8 @@ namespace {
     /// limitedInsertionSort() sorts moves in descending order up to and including a given limit.
     /// The order of moves smaller than the limit is left unspecified.
     void limitedInsertionSort(
-        ValMoves::iterator const &iBeg,
-        ValMoves::iterator const &iEnd,
+        ValMoves::iterator iBeg,
+        ValMoves::iterator iEnd,
         i32 limit) {
 
         if (iBeg != iEnd) {

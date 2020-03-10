@@ -207,9 +207,9 @@ public:
 
     Bitboard attackersTo(Square, Bitboard) const;
     Bitboard attackersTo(Square) const;
-    Bitboard attacksFrom(PieceType, Square) const;
-    //Bitboard attacksFrom(Square) const;
+    Bitboard pieceAttacksFrom(PieceType, Square) const;
     Bitboard pawnAttacksFrom(Color, Square) const;
+    //Bitboard attacksFrom(Square) const;
 
     Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const;
 
@@ -268,7 +268,7 @@ inline bool Position::empty(Square s) const {
 inline Bitboard Position::pieces() const {
     return types[NONE];
 }
-//inline Bitboard Position::pieces(Piece p) const { return colors[PColor[p]] & types[PType[p]]; }
+//inline Bitboard Position::pieces(Piece p) const { return colors[pColor(p)] & types[PType[p]]; }
 inline Bitboard Position::pieces(Color c) const {
     return colors[c];
 }
@@ -415,28 +415,28 @@ inline i16 Position::moveCount() const {
 inline Bitboard Position::attackersTo(Square s, Bitboard occ) const {
     return (pieces(BLACK, PAWN) & pawnAttacksFrom(WHITE, s))
          | (pieces(WHITE, PAWN) & pawnAttacksFrom(BLACK, s))
-         | (pieces(NIHT)        & attacksFrom(NIHT, s))
+         | (pieces(NIHT)        & pieceAttacksFrom(NIHT, s))
          | (pieces(BSHP, QUEN)  & attacksBB<BSHP>(s, occ))
          | (pieces(ROOK, QUEN)  & attacksBB<ROOK>(s, occ))
-         | (pieces(KING)        & attacksFrom(KING, s));
+         | (pieces(KING)        & pieceAttacksFrom(KING, s));
 }
 /// Position::attackersTo() finds attackers to the square.
 inline Bitboard Position::attackersTo(Square s) const {
     return attackersTo(s, pieces());
 }
 
-/// Position::attacksFrom() finds attacks of the piecetype from the square
-inline Bitboard Position::attacksFrom(PieceType pt, Square s) const {
+/// Position::pieceAttacksFrom() finds attacks of the piecetype from the square
+inline Bitboard Position::pieceAttacksFrom(PieceType pt, Square s) const {
     return attacksBB(pt, s, pieces());
 }
-///// Position::attacksFrom() finds attacks from the square
-//inline Bitboard Position::attacksFrom(Square s) const {
-//    return attacksBB(board[s], s, pieces());
-//}
-
+/// Position::pawnAttacksFrom() finds attacks of the pawn from the square
 inline Bitboard Position::pawnAttacksFrom(Color c, Square s) const {
     return PawnAttackBB[c][s];
 }
+///// Position::pieceAttacksFrom() finds attacks from the square
+//inline Bitboard Position::attacksFrom(Square s) const {
+//    return attacksBB(board[s], s, pieces());
+//}
 
 inline bool Position::capture(Move m) const {
     assert(isOk(m));

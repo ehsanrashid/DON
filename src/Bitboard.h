@@ -366,20 +366,20 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
     default:   return 0;
     }
 }
-/// Position::attacksBB() finds attacks of the piece from the square on occupancy.
-inline Bitboard attacksBB(Piece p, Square s, Bitboard occ) {
-    assert(isOk(PType[p]));
-    switch (PType[p])
-    {
-    case PAWN: return PawnAttackBB[PColor[p]][s];
-    case NIHT: return PieceAttackBB[NIHT][s];
-    case BSHP: return attacksBB<BSHP>(s, occ);
-    case ROOK: return attacksBB<ROOK>(s, occ);
-    case QUEN: return attacksBB<QUEN>(s, occ);
-    case KING: return PieceAttackBB[KING][s];
-    default:   return 0;
-    }
-}
+///// Position::attacksBB() finds attacks of the piece from the square on occupancy.
+//inline Bitboard attacksBB(Piece p, Square s, Bitboard occ) {
+//    assert(isOk(PType[p]));
+//    switch (PType[p])
+//    {
+//    case PAWN: return PawnAttackBB[pColor(p)][s];
+//    case NIHT: return PieceAttackBB[NIHT][s];
+//    case BSHP: return attacksBB<BSHP>(s, occ);
+//    case ROOK: return attacksBB<ROOK>(s, occ);
+//    case QUEN: return attacksBB<QUEN>(s, occ);
+//    case KING: return PieceAttackBB[KING][s];
+//    default:   return 0;
+//    }
+//}
 
 /// popCount() counts the number of non-zero bits in a bitboard
 inline i32 popCount(Bitboard bb) {

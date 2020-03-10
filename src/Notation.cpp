@@ -170,7 +170,7 @@ namespace {
         auto pt{ PType[pos[org]] };
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
-        Bitboard piece{ pos.attacksFrom(pt, dst)
+        Bitboard piece{ pos.pieceAttacksFrom(pt, dst)
                       & pos.pieces(pos.activeSide(), pt) };
 
         Bitboard amb{ piece ^ org };

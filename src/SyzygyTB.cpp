@@ -798,7 +798,7 @@ namespace {
                                  Piece(entry->get(0, 0)->pieces[0]) };
             assert(PAWN == PType[p]);
 
-            pawns = pos.pieces(PColor[p], PAWN);
+            pawns = pos.pieces(pColor(p), PAWN);
 
             Bitboard b{ pawns };
             assert(0 != b);

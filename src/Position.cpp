@@ -164,7 +164,7 @@ bool Position::cycled(i16 pp) const {
                 // rather than a move to the current position
                 // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
                 // So select which square to check.
-                if (PColor[empty(s1) ? board[s2] : board[s1]] != active) {
+                if (pColor(empty(s1) ? board[s2] : board[s1]) != active) {
                     continue;
                 }
                 // For repetitions before or at the root, require one more
@@ -182,7 +182,7 @@ bool Position::cycled(i16 pp) const {
 Bitboard Position::sliderBlockersAt(Square s, Bitboard attackers, Bitboard &pinners, Bitboard &hidders) const {
     Bitboard blockers{ 0 };
 
-    Bitboard defenders{ pieces(PColor[board[s]]) };
+    Bitboard defenders{ pieces(pColor(board[s])) };
     // Snipers are X-ray slider attackers at 's'
     // No need to remove direct attackers at 's' as in check no evaluation
     Bitboard snipers{ attackers
@@ -283,7 +283,7 @@ bool Position::pseudoLegal(Move m) const
     }
     else
     if (NORMAL != mType(m)
-     || !contains(attacksFrom(mpt, org), dst)) {
+     || !contains(pieceAttacksFrom(mpt, org), dst)) {
         return false;
     }
 
@@ -466,9 +466,9 @@ void Position::setCheckInfo() {
 
     auto ekSq{ square(~active|KING) };
     si->checks[PAWN] = pawnAttacksFrom(~active, ekSq);
-    si->checks[NIHT] = attacksFrom(NIHT, ekSq);
-    si->checks[BSHP] = attacksFrom(BSHP, ekSq);
-    si->checks[ROOK] = attacksFrom(ROOK, ekSq);
+    si->checks[NIHT] = pieceAttacksFrom(NIHT, ekSq);
+    si->checks[BSHP] = pieceAttacksFrom(BSHP, ekSq);
+    si->checks[ROOK] = pieceAttacksFrom(ROOK, ekSq);
     si->checks[QUEN] = si->checks[BSHP]|si->checks[ROOK];
     si->checks[KING] = 0;
 }
@@ -531,7 +531,7 @@ bool Position::see(Move m, Value threshold) const {
     bool res{ true };
 
     Bitboard mocc{ pieces() ^ org ^ dst };
-    auto mov{ PColor[board[org]] };
+    auto mov{ pColor(board[org]) };
 
     Bitboard attackers{ attackersTo(dst, mocc) };
     while (0 != attackers) {
@@ -665,7 +665,7 @@ void Position::clear() {
 void Position::placePiece(Square s, Piece p) {
     assert(isOk(p)
         && std::count(pieceList[p].begin(), pieceList[p].end(), s) == 0);
-    colors[PColor[p]] |= s;
+    colors[pColor(p)] |= s;
     types[PType[p]] |= s;
     types[NONE] |= s;
     pieceList[p].push_back(s);
@@ -676,7 +676,7 @@ void Position::removePiece(Square s) {
     auto p{ board[s] };
     assert(isOk(p)
         && 1 == std::count(pieceList[p].begin(), pieceList[p].end(), s));
-    colors[PColor[p]] ^= s;
+    colors[pColor(p)] ^= s;
     types[PType[p]] ^= s;
     types[NONE] ^= s;
     pieceList[p].remove(s);
@@ -689,7 +689,7 @@ void Position::movePiece(Square s1, Square s2) {
         && 1 == std::count(pieceList[p].begin(), pieceList[p].end(), s1)
         && 0 == std::count(pieceList[p].begin(), pieceList[p].end(), s2));
     Bitboard bb{ s1 | s2 };
-    colors[PColor[p]] ^= bb;
+    colors[pColor(p)] ^= bb;
     types[PType[p]] ^= bb;
     types[NONE] ^= bb;
     std::replace(pieceList[p].begin(), pieceList[p].end(), s1, s2);
@@ -1417,7 +1417,7 @@ bool Position::ok() const {
 
     // SQUARE_LIST
     for (Piece p : Pieces) {
-        if (count(p) != popCount(pieces(PColor[p], PType[p]))) {
+        if (count(p) != popCount(pieces(pColor(p), PType[p]))) {
             assert(false && "Position OK: SQUARE_LIST");
             return false;
         }

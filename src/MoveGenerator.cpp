@@ -17,7 +17,7 @@ namespace {
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
             for (Square s : pos.squares(pos.activeSide()|pt)) {
 
-                Bitboard attacks{ pos.attacksFrom(pt, s)
+                Bitboard attacks{ pos.pieceAttacksFrom(pt, s)
                                 & targets };
 
                 pieceAttacks[pt].push_back(attacks);
@@ -326,7 +326,7 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &
         auto org{ popLSq(dscBlockersEx) };
         auto mpt{ PType[pos[org]] };
 
-        Bitboard attacks{ pos.attacksFrom(mpt, org)
+        Bitboard attacks{ pos.pieceAttacksFrom(mpt, org)
                         & targets };
 
         if (KING == mpt) {

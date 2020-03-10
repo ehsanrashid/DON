@@ -526,16 +526,11 @@ constexpr Array<Piece, 12> Pieces
     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING
 };
 
-constexpr Array<Piece, COLORS, PIECE_TYPES> CPieces
-{{
-    { NO_PIECE, W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING },
-    { NO_PIECE, B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING }
-}};
-/// makePiece
 constexpr Piece operator|(Color c, PieceType pt) {
-    return
-        //Piece((c << 3) + pt);
-        CPieces[c][pt];
+    return Piece((c << 3) + pt);
+}
+constexpr Piece makePiece(Color c, PieceType pt) {
+    return Piece((c << 3) + pt);
 }
 
 constexpr Array<PieceType, PIECES> PType
@@ -543,34 +538,21 @@ constexpr Array<PieceType, PIECES> PType
     NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING, NONE,
     NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING,
 };
-constexpr Array<Color, PIECES> PColor
-{
-    COLORS, WHITE, WHITE, WHITE, WHITE, WHITE, WHITE, COLORS,
-    COLORS, BLACK, BLACK, BLACK, BLACK, BLACK, BLACK,
-};
+
+constexpr Color pColor(Piece p) {
+    //assert(isOk(p));
+    return Color(p >> 3);
+}
 
 constexpr Piece flipColor(Piece p) {
-    return
-        //CPieces[~PColor[p]][PType[p]];
-        Piece(i32(p) ^ (BLACK << 3));
+    return Piece(i32(p) ^ (BLACK << 3));
 }
-
-constexpr Array<CastleRight, COLORS, CASTLE_SIDES> CastleRights
-{{
-    { CR_WKING, CR_WQUEN },
-    { CR_BKING, CR_BQUEN }
-}};
 
 constexpr CastleRight makeCastleRight(Color c) {
-    return
-        //CastleRight(CR_WHITE <<  (c << 1));
-        CastleRights[c][CS_KING]
-      | CastleRights[c][CS_QUEN];
+    return CastleRight(CR_WHITE <<  (c << 1));
 }
 constexpr CastleRight makeCastleRight(Color c, CastleSide cs) {
-    return
-        //CastleRight(CR_WKING << ((c << 1) + cs));
-        CastleRights[c][cs];
+    return CastleRight(CR_WKING << ((c << 1) + cs));
 }
 
 

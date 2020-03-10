@@ -19,7 +19,7 @@ namespace CucKoo {
 
 constexpr u16 CuckooSize = 0x2000;
 
-// Hash function for indexing the cuckoo tables
+// Hash function for indexing the Cuckoo table
 template<u08 F>
 constexpr u16 hash(Key key) {
     //assert(0 <= F && F <= 3);

@@ -1143,7 +1143,7 @@ namespace {
                     // If move escapes a capture in no-cut nodes (~2 ELO)
                     if (NORMAL == mType(move)
                      && !pos.see(reverseMove(move))) {
-                        reductDepth -= 2 + ttPV;
+                        reductDepth -= 2 + 1 * ttPV;
                     }
 
                     ss->stats =
@@ -1152,13 +1152,6 @@ namespace {
                         + (*pieceStats[1])[mpc][dst]
                         + (*pieceStats[3])[mpc][dst]
                         - 4926;
-                    // Reset stats to zero if negative and most stats shows >= 0
-                    if (0 >  ss->stats
-                     && 0 <= thread->butterFlyStats[~pos.activeSide()][mIndex(move)]
-                     && 0 <= (*pieceStats[0])[mpc][dst]
-                     && 0 <= (*pieceStats[1])[mpc][dst]) {
-                        ss->stats = 0;
-                    }
 
                     // Decrease/Increase reduction by comparing opponent's stat score (~10 Elo)
                     reductDepth +=
