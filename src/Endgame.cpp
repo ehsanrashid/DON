@@ -66,7 +66,7 @@ template<> Value Endgame<KXK>::operator()(Position const &pos) const {
     auto skSq{ pos.square(stngColor|KING) };
     auto wkSq{ pos.square(weakColor|KING) };
 
-    auto value{ std::min(pos.count(stngColor|PAWN)*VALUE_EG_PAWN
+    auto value{ std::min(pos.count(stngColor|PAWN) * VALUE_EG_PAWN
                        + pos.nonPawnMaterial(stngColor)
                        + pushToEdge(wkSq)
                        + pushClose(skSq, wkSq),

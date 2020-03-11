@@ -9,40 +9,51 @@ namespace CucKoo {
 
     void initialize() {
 
+#if !defined(NDEBUG)
         u16 count = 0;
+#endif
+
         // Prepare the Cuckoo tables
         Cuckoos.fill({ 0, MOVE_NONE });
-        for (Color c : { WHITE, BLACK }) {
-            for (PieceType pt = NIHT; pt <= KING; ++pt) {
-                for (Square org = SQ_A1; org <= SQ_H8; ++org) {
-                    for (Square dst = Square(org + 1); dst <= SQ_H8; ++dst) {
 
-                        if (contains(PieceAttackBB[pt][org], dst)) {
+        for (Piece p : Pieces) {
+            // Pawn moves are not reversible
+            if (PAWN == pType(p)) {
+                continue;
+            }
 
-                            Cuckoo cuckoo{ RandZob.colorKey
-                                         ^ RandZob.pieceSquareKey[c][pt][org]
-                                         ^ RandZob.pieceSquareKey[c][pt][dst],
-                                           makeMove<NORMAL>(org, dst) };
+            for (Square s1 = SQ_A1; s1 <= SQ_H8 + WEST; ++s1) {
+                for (Square s2 = s1 + EAST; s2 <= SQ_H8; ++s2) {
 
-                            u16 h = hash<0>(cuckoo.key);
-                            while (true) {
+                    if (contains(PieceAttackBB[pType(p)][s1], s2)) {
 
-                                std::swap(Cuckoos[h], cuckoo);
-                                // Arrived at empty slot ?
-                                if (MOVE_NONE == cuckoo.move) {
-                                    break;
-                                }
-                                // Push victim to alternative slot
-                                h = h == hash<0>(cuckoo.key) ?
-                                    hash<1>(cuckoo.key) :
-                                    hash<0>(cuckoo.key);
+                        Cuckoo cuckoo{ RandZob.colorKey
+                                     ^ RandZob.pieceSquareKey[p][s1]
+                                     ^ RandZob.pieceSquareKey[p][s2],
+                                       makeMove<NORMAL>(s1, s2) };
+
+                        u16 h = hash<0>(cuckoo.key);
+                        while (true) {
+
+                            std::swap(Cuckoos[h], cuckoo);
+                            // Arrived at empty slot ?
+                            if (MOVE_NONE == cuckoo.move) {
+                                break;
                             }
-                            ++count;
+                            // Push victim to alternative slot
+                            h = h == hash<0>(cuckoo.key) ?
+                                hash<1>(cuckoo.key) :
+                                hash<0>(cuckoo.key);
                         }
+
+#if !defined(NDEBUG)
+                        ++count;
+#endif
                     }
                 }
             }
         }
+
         assert(3668 == count);
     }
 }

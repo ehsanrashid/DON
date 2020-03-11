@@ -219,8 +219,8 @@ namespace BitBoard {
             assert(2 >= popCount(PawnAttackBB[WHITE][s])
                 && 2 >= popCount(PawnAttackBB[BLACK][s]));
 
-            for (auto dir : { SOUTH_2_WEST, SOUTH_2_EAST, WEST_2_SOUTH, EAST_2_SOUTH,
-                              WEST_2_NORTH, EAST_2_NORTH, NORTH_2_WEST, NORTH_2_EAST }) {
+            for (auto dir : { SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
+                              WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST }) {
                 Square sq{ s + dir };
                 if (isOk(sq)
                  && 2 == distance(s, sq)) {

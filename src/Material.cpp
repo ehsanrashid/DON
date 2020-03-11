@@ -162,17 +162,17 @@ namespace Material {
         if (npm[WHITE] + npm[BLACK] == VALUE_ZERO
          && pos.pieces(PAWN) != 0) {
             if (pos.pieces(BLACK, PAWN) == 0) {
-                assert(2 <= pos.count(WHITE|PAWN));
+                assert(2 <= pos.count(W_PAWN));
                 scalingFunc[WHITE] = &ScaleKPsK[WHITE];
             }
             else
             if (pos.pieces(WHITE, PAWN) == 0) {
-                assert(2 <= pos.count(BLACK|PAWN));
+                assert(2 <= pos.count(B_PAWN));
                 scalingFunc[BLACK] = &ScaleKPsK[BLACK];
             }
             else
-            if (pos.count(WHITE|PAWN) == 1
-             && pos.count(BLACK|PAWN) == 1) {
+            if (pos.count(W_PAWN) == 1
+             && pos.count(B_PAWN) == 1) {
                 scalingFunc[WHITE] = &ScaleKPKP[WHITE];
                 scalingFunc[BLACK] = &ScaleKPKP[BLACK];
             }
@@ -184,16 +184,16 @@ namespace Material {
         Array<i32, COLORS, PIECE_TYPES> pieceCount
         {{
             {
-                pos.bishopPaired(WHITE), pos.count(WHITE|PAWN),
-                pos.count(WHITE|NIHT)  , pos.count(WHITE|BSHP),
-                pos.count(WHITE|ROOK)  , pos.count(WHITE|QUEN),
-                pos.count(WHITE|KING)
+                pos.bishopPaired(WHITE),
+                pos.count(W_PAWN), pos.count(W_NIHT),
+                pos.count(W_BSHP), pos.count(W_ROOK),
+                pos.count(W_QUEN), pos.count(W_KING)
             },
             {
-                pos.bishopPaired(BLACK), pos.count(BLACK|PAWN),
-                pos.count(BLACK|NIHT)  , pos.count(BLACK|BSHP),
-                pos.count(BLACK|ROOK)  , pos.count(BLACK|QUEN),
-                pos.count(BLACK|KING)
+                pos.bishopPaired(BLACK),
+                pos.count(B_PAWN), pos.count(B_NIHT),
+                pos.count(B_BSHP), pos.count(B_ROOK),
+                pos.count(B_QUEN), pos.count(B_KING)
             }
         }};
 

@@ -120,16 +120,7 @@ enum Direction : i08 {
     NORTH_EAST = NORTH + EAST,
     SOUTH_EAST = SOUTH + EAST,
     SOUTH_WEST = SOUTH + WEST,
-    NORTH_WEST = NORTH + WEST,
-
-    EAST_2_NORTH = EAST_2 + NORTH,
-    EAST_2_SOUTH = EAST_2 + SOUTH,
-    WEST_2_NORTH = WEST_2 + NORTH,
-    WEST_2_SOUTH = WEST_2 + SOUTH,
-    NORTH_2_EAST = NORTH_2 + EAST,
-    NORTH_2_WEST = NORTH_2 + WEST,
-    SOUTH_2_EAST = SOUTH_2 + EAST,
-    SOUTH_2_WEST = SOUTH_2 + WEST,
+    NORTH_WEST = NORTH + WEST
 };
 
 using Depth = i16;
@@ -408,33 +399,33 @@ constexpr Square makeSquare(File f, Rank r) {
     return Square((r << 3) + f);
 }
 constexpr File sFile(Square s) {
-    return File((s >> 0) & i32(FILE_H));
+    return File(s & 7); //File((s >> 0) & i32(FILE_H));
 }
 constexpr Rank sRank(Square s) {
-    return Rank((s >> 3) & i32(RANK_8));
+    return Rank(s >> 3); //Rank((s >> 3) & i32(RANK_8));
 }
 constexpr Color sColor(Square s) {
     return Color((sFile(s) + sRank(s) + 1) & BLACK);
 }
 // Flip File: SQ_H1 -> SQ_A1
 constexpr Square flipFile(Square s) {
-    return Square(i32(s) ^ i32(SQ_H1));
+    return Square(s ^ SQ_H1);
 }
 // Flip Rank: SQ_A8 -> SQ_A1
 constexpr Square flipRank(Square s) {
-    return Square(i32(s) ^ i32(SQ_A8));
+    return Square(s ^ SQ_A8);
 }
 
 constexpr bool colorOpposed(Square s1, Square s2) {
-    return sColor(s1) != sColor(s2);
+    return (s1 + sRank(s1) + s2 + sRank(s2)) & BLACK; //sColor(s1) != sColor(s2);
 }
 
 constexpr Square relativeSq(Color c, Square s) {
-    return Square(i32(s) ^ i32(SQ_A8 * c));
+    return Square(s ^ (SQ_A8 * c));
 }
 
 constexpr Rank relativeRank(Color c, Rank r) {
-    return Rank(i32(r) ^ i32(RANK_8 * c));
+    return Rank(r ^ (RANK_8 * c));
 }
 constexpr Rank relativeRank(Color c, Square s) {
     return relativeRank(c, sRank(s));
@@ -465,15 +456,15 @@ constexpr Piece makePiece(Color c, PieceType pt) {
 
 constexpr PieceType pType(Piece p) {
     //assert(isOk(p));
-    return PieceType((p >> 0) & PIECE_TYPES);
+    return PieceType(p & PIECE_TYPES); //PieceType((p >> 0) & PIECE_TYPES);
 }
 constexpr Color pColor(Piece p) {
     //assert(isOk(p));
-    return Color((p >> 3) & BLACK);
+    return Color(p >> 3); //Color((p >> 3) & BLACK);
 }
 
 constexpr Piece flipColor(Piece p) {
-    return Piece(i32(p) ^ (BLACK << 3));
+    return Piece(p ^ (BLACK << 3));
 }
 
 constexpr CastleRight makeCastleRight(Color c) {
@@ -485,10 +476,10 @@ constexpr CastleRight makeCastleRight(Color c, CastleSide cs) {
 
 
 constexpr Square orgSq(Move m) {
-    return Square((m >> 6) & i32(SQ_H8));
+    return Square((m >> 6) & SQ_H8);
 }
 constexpr Square dstSq(Move m) {
-    return Square((m >> 0) & i32(SQ_H8));
+    return Square((m     ) & SQ_H8);
 }
 constexpr bool isOk(Move m) {
     return orgSq(m) != dstSq(m);

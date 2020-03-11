@@ -455,9 +455,9 @@ namespace {
         // Set the leading color. In case both sides have pawns the leading color
         // is the side with less pawns because this leads to better compression.
         auto leadColor =
-            pos.count(BLACK|PAWN) == 0
-         || (pos.count(WHITE|PAWN) != 0
-          && pos.count(BLACK|PAWN) >= pos.count(WHITE|PAWN)) ?
+             pos.count(B_PAWN) == 0
+         || (pos.count(W_PAWN) != 0
+          && pos.count(B_PAWN) >= pos.count(W_PAWN)) ?
                 WHITE : BLACK;
 
         pawnCount[0] = u08(pos.count( leadColor|PAWN));

@@ -11,9 +11,9 @@ using std::string;
 bool whiteSpaces(string const &str) {
     return str.empty()
         || std::all_of(str.begin(), str.end(),
-            //[](int ch) -> int { return std::isspace(ch); }
-            std::ptr_fun<int, int>([](int ch) -> int { return std::isspace(ch); })
-    );
+                //[](int ch) -> int { return std::isspace(ch); }
+                std::ptr_fun<int, int>([](int ch) -> int { return std::isspace(ch); })
+            );
 }
 
 string& toLower(string &str) {

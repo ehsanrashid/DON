@@ -7,10 +7,10 @@
 
 /// Zobrist class
 struct Zobrist {
-
-    // 2*6*64 + 16 + 8 + 1 = 793
-    Array<Key, COLORS
-             , PIECE_TYPES
+    // 15*64 + 16 + 8 + 1 = 985
+    // 12*64 + 16 + 8 + 1 = 793
+    //                    = 192 extra
+    Array<Key, PIECES
              , SQUARES>       pieceSquareKey;
     Array<Key, CASTLE_RIGHTS> castleRightKey;
     Array<Key, FILES>         enpassantKey;
