@@ -153,7 +153,9 @@ void TTable::autoResize(u32 memSize) {
 }
 /// TTable::clear() clear the entire transposition table in a multi-threaded way.
 void TTable::clear() {
-    assert(0 != _clusterCount);
+    assert(nullptr != _clusterTable
+        && 0 != _clusterCount);
+
     if (Options["Retain Hash"]) {
         return;
     }
@@ -174,9 +176,11 @@ void TTable::clear() {
                 std::memset(_clusterTable + start, 0, count * sizeof (TCluster));
             });
     }
+
     for (auto &th : threads) {
         th.join();
     }
+    
     threads.clear();
     //sync_cout << "info string Hash cleared" << sync_endl;
 }
