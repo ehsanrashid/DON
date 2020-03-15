@@ -135,7 +135,7 @@ constexpr Depth DEPTH_OFFSET     { -7 };
 // Maximum Depth
 constexpr i32 MAX_PLY{ 256 + DEPTH_OFFSET - 4 };
 
-enum CastleSide : i08 { CS_KING, CS_QUEN, CS_NONE, CASTLE_SIDES = 2 };
+enum CastleSide : i08 { CS_KING, CS_QUEN, CS_CENTRE, CASTLE_SIDES = 2 };
 
 /// Castle Right defined as in Polyglot book hash key
 enum CastleRight : u08 {
@@ -391,6 +391,9 @@ constexpr Rank operator~(Rank r) {
 inline Rank foldRank(Rank r) {
     return std::min(r, ~r);
 }
+constexpr Rank relativeRank(Color c, Rank r) {
+    return Rank(r ^ (RANK_8 * c));
+}
 
 constexpr bool isOk(Square s) {
     return SQ_A1 <= s && s <= SQ_H8;
@@ -405,7 +408,7 @@ constexpr Rank sRank(Square s) {
     return Rank(s >> 3); //Rank((s >> 3) & i32(RANK_8));
 }
 constexpr Color sColor(Square s) {
-    return Color((sFile(s) + sRank(s) + 1) & BLACK);
+    return Color(((s + sRank(s)) ^ 1) & 1);
 }
 // Flip File: SQ_H1 -> SQ_A1
 constexpr Square flipFile(Square s) {
@@ -417,15 +420,11 @@ constexpr Square flipRank(Square s) {
 }
 
 constexpr bool colorOpposed(Square s1, Square s2) {
-    return (s1 + sRank(s1) + s2 + sRank(s2)) & BLACK; //sColor(s1) != sColor(s2);
+    return (s1 + sRank(s1) + s2 + sRank(s2)) & 1; //sColor(s1) != sColor(s2);
 }
 
 constexpr Square relativeSq(Color c, Square s) {
     return Square(s ^ (SQ_A8 * c));
-}
-
-constexpr Rank relativeRank(Color c, Rank r) {
-    return Rank(r ^ (RANK_8 * c));
 }
 constexpr Rank relativeRank(Color c, Square s) {
     return relativeRank(c, sRank(s));
@@ -446,11 +445,8 @@ constexpr bool isOk(Piece p) {
     return (W_PAWN <= p && p <= W_KING)
         || (B_PAWN <= p && p <= B_KING);
 }
-
+// makePiece()
 constexpr Piece operator|(Color c, PieceType pt) {
-    return Piece((c << 3) + pt);
-}
-constexpr Piece makePiece(Color c, PieceType pt) {
     return Piece((c << 3) + pt);
 }
 
@@ -476,10 +472,10 @@ constexpr CastleRight makeCastleRight(Color c, CastleSide cs) {
 
 
 constexpr Square orgSq(Move m) {
-    return Square((m >> 6) & SQ_H8);
+    return Square((m >> 6) & 63); //Square((m >> 6) & SQ_H8);
 }
 constexpr Square dstSq(Move m) {
-    return Square((m     ) & SQ_H8);
+    return Square((m     ) & 63); //Square((m     ) & SQ_H8);
 }
 constexpr bool isOk(Move m) {
     return orgSq(m) != dstSq(m);

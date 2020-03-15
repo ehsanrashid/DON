@@ -85,8 +85,8 @@ namespace Evaluator {
             SlotFileBB[CS_QUEN] ^ FileBB[FILE_D],
             SlotFileBB[CS_QUEN],
             SlotFileBB[CS_QUEN],
-            SlotFileBB[CS_NONE],
-            SlotFileBB[CS_NONE],
+            SlotFileBB[CS_CENTRE],
+            SlotFileBB[CS_CENTRE],
             SlotFileBB[CS_KING],
             SlotFileBB[CS_KING],
             SlotFileBB[CS_KING] ^ FileBB[FILE_E]
@@ -289,7 +289,7 @@ namespace Evaluator {
             kingRing[Own] &= ~pawnsDblAttacks[Own];
         }
 
-        /// pieces() evaluates the pieces of the color and type.
+        /// pieces() evaluates the pieces of the color and type
         template<bool Trace> template<Color Own, PieceType PT>
         Score Evaluation<Trace>::pieces() {
             static_assert (NIHT <= PT && PT <= QUEN, "PT incorrect");
@@ -398,7 +398,7 @@ namespace Evaluator {
                                * popCount(pos.pieces(Own, PAWN)
                                         & ColorBB[sColor(s)])
                                * (1 + popCount(pos.pieces(Own, PAWN)
-                                             & SlotFileBB[CS_NONE]
+                                             & SlotFileBB[CS_CENTRE]
                                              & pawnSglPushBB<Opp>(pos.pieces())));
 
                         // Bonus for bishop on a long diagonal which can "see" both center squares
@@ -477,7 +477,7 @@ namespace Evaluator {
             return score;
         }
 
-        /// king() evaluates the king of the color.
+        /// king() evaluates the king of the color
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::king() const {
             constexpr auto Opp{ ~Own };
@@ -603,7 +603,7 @@ namespace Evaluator {
             return score;
         }
 
-        /// threats() evaluates the threats of the color.
+        /// threats() evaluates the threats of the color
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::threats() const {
             constexpr auto Opp{ ~Own };
@@ -729,7 +729,7 @@ namespace Evaluator {
             return score;
         }
 
-        /// passers() evaluates the passed pawns of the color.
+        /// passers() evaluates the passed pawns of the color
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::passers() const {
             constexpr auto Opp{ ~Own };
@@ -810,7 +810,7 @@ namespace Evaluator {
             return score;
         }
 
-        /// space() evaluates the space of the color.
+        /// space() evaluates the space of the color
         /// The space evaluation is a simple bonus based on the number of safe squares
         /// available for minor pieces on the central four files on ranks 2-4
         /// Safe squares one, two or three squares behind a friend pawn are counted twice
@@ -826,7 +826,7 @@ namespace Evaluator {
 
             // Safe squares for friend pieces inside the area defined by SpaceMask.
             Bitboard safeSpace{  PawnSideBB[Own]
-                              &  SlotFileBB[CS_NONE]
+                              &  SlotFileBB[CS_CENTRE]
                               & ~pos.pieces(Own, PAWN)
                               & ~sqlAttacks[Opp][PAWN] };
 
@@ -892,7 +892,7 @@ namespace Evaluator {
         Scale Evaluation<Trace>::scale(Value eg) const {
             auto stngColor{ eg >= VALUE_ZERO ? WHITE : BLACK };
 
-            auto scl{ nullptr != matlEntry->scalingFunc[stngColor] ?
+            Scale scl{ nullptr != matlEntry->scalingFunc[stngColor] ?
                         (*matlEntry->scalingFunc[stngColor])(pos) : SCALE_NONE };
             if (SCALE_NONE == scl) {
                 scl = matlEntry->scale[stngColor];
@@ -937,8 +937,7 @@ namespace Evaluator {
             // - dynamic contempt
             Score score{ pos.psqScore()
                        + matlEntry->imbalance
-                       + (pawnEntry->score[WHITE]
-                        - pawnEntry->score[BLACK])
+                       + (pawnEntry->score[WHITE] - pawnEntry->score[BLACK])
                        + pos.thread()->contempt };
 
             // Early exit if score is high

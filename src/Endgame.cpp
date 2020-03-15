@@ -1,18 +1,18 @@
 #include "Endgame.h"
 
-#include <array>
-#include <string>
-#include <utility>
-
 #include "Bitbase.h"
 #include "MoveGenerator.h"
 
 namespace {
 
+    constexpr i32 numSquare(i32 x) {
+        return x * x;
+    }
+
     // Drive a piece towards the edge of the board
     inline int pushToEdge(Square s) {
-        return 90 - (7 * i32(std::pow(i32(foldFile(sFile(s))), 2)) / 2
-                   + 7 * i32(std::pow(i32(foldRank(sRank(s))), 2)) / 2);
+        return 90 - (7 * numSquare(foldFile(sFile(s))) / 2
+                   + 7 * numSquare(foldRank(sRank(s))) / 2);
     }
     // Drive a piece towards the corner of the board, used in KBN vs K to A1H8 corners
     inline int pushToCorner(Square s) {

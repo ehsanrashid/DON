@@ -330,8 +330,6 @@ void ThreadPool::setup(u16 threadCount) {
 
         clean();
 
-        std::cout << "info string Thread(s) used " << threadCount << std::endl;
-
         reductionFactor = std::pow(24.8 + std::log(size()) / 2, 2);
         // Reallocate the hash with the new threadpool size
         TT.autoResize(Options["Hash"]);

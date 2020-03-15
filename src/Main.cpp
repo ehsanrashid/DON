@@ -33,7 +33,7 @@ int main(int argc, char const *const *argv) {
     BitBase::initialize();
     PSQT::initialize();
     Zobrists::initialize();
-    CucKoo::initialize();
+    Cuckoos::initialize();
     UCI::initialize();
     EndGame::initialize();
     Book.initialize(Options["Book File"]);

@@ -1310,7 +1310,7 @@ namespace {
         }
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (i16 i = 0; i < sides; ++i) {
-                data = (u08*)((uPtr(data) + 0x3F) & ~0x3F); // 64 byte alignment
+                data = (u08*)((uPtr(data) + 63) & ~63); // 64 byte alignment
                 PairsData *d = e.get(i, f);
                 d->data = data;
                 data += d->numBlocks * d->blockSize;

@@ -3,19 +3,65 @@
 #include "Bitboard.h"
 #include "Zobrist.h"
 
-Array<Cuckoo, CuckooSize> Cuckoos;
+bool Cuckoo::empty() const {
+    return NO_PIECE == piece
+        || SQ_NONE == s1
+        || SQ_NONE == s2;
+}
 
-namespace CucKoo {
+bool Cuckoo::operator==(Cuckoo const &ck) const {
+    return piece == ck.piece
+        && s1 == ck.s1
+        && s2 == ck.s2;
+}
+bool Cuckoo::operator!=(Cuckoo const &ck) const {
+    return piece != ck.piece
+        || s1 != ck.s1
+        || s2 != ck.s2;
+}
+
+Key Cuckoo::key() const {
+    return empty() ?
+           0 :
+           RandZob.colorKey
+         ^ RandZob.pieceSquareKey[piece][s1]
+         ^ RandZob.pieceSquareKey[piece][s2];
+}
+
+namespace Cuckoos {
+
+    Array<Cuckoo, CuckooSize> CuckooTable;
+
+
+    u16 nextHash(Key key, u16 h) {
+        return h == hash<0>(key) ?
+                hash<1>(key) :
+                hash<0>(key);
+    }
+
+    void place(Cuckoo &cuckoo) {
+
+        u16 h = hash<0>(cuckoo.key());
+        while (true) { // max 20 iteration
+
+            std::swap(CuckooTable[h], cuckoo);
+            // Arrived at empty slot ?
+            if (cuckoo.empty()) {
+                return;
+            }
+            // Push victim to alternative slot
+            h = nextHash(cuckoo.key(), h);
+        }
+    }
+
+    bool lookup(Key key, Cuckoo &cuckoo) {
+        return ((cuckoo = CuckooTable[hash<0>(key)]).key() == key)
+            || ((cuckoo = CuckooTable[hash<1>(key)]).key() == key);
+    }
 
     void initialize() {
 
-#if !defined(NDEBUG)
-        u16 count = 0;
-#endif
-
-        // Prepare the Cuckoo tables
-        Cuckoos.fill({ 0, MOVE_NONE });
-
+        std::vector<Cuckoo> cuckoos;
         for (Piece p : Pieces) {
             // Pawn moves are not reversible
             if (PAWN == pType(p)) {
@@ -27,33 +73,17 @@ namespace CucKoo {
 
                     if (contains(PieceAttackBB[pType(p)][s1], s2)) {
 
-                        Cuckoo cuckoo{ RandZob.colorKey
-                                     ^ RandZob.pieceSquareKey[p][s1]
-                                     ^ RandZob.pieceSquareKey[p][s2],
-                                       makeMove<NORMAL>(s1, s2) };
-
-                        u16 h = hash<0>(cuckoo.key);
-                        while (true) {
-
-                            std::swap(Cuckoos[h], cuckoo);
-                            // Arrived at empty slot ?
-                            if (MOVE_NONE == cuckoo.move) {
-                                break;
-                            }
-                            // Push victim to alternative slot
-                            h = h == hash<0>(cuckoo.key) ?
-                                hash<1>(cuckoo.key) :
-                                hash<0>(cuckoo.key);
-                        }
-
-#if !defined(NDEBUG)
-                        ++count;
-#endif
+                        cuckoos.push_back({ p, s1, s2 });
                     }
                 }
             }
         }
+        assert(3668 == cuckoos.size()); // 2*(168+280+448+728+210) = 7336 / 2
 
-        assert(3668 == count);
+        // Prepare the Cuckoo table
+        CuckooTable.fill({ NO_PIECE, SQ_NONE, SQ_NONE });
+        for (auto cuckoo : cuckoos) {
+            place(cuckoo);
+        }
     }
 }

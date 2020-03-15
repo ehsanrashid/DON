@@ -121,9 +121,9 @@ private:
     Color active;
     Score psq;
     i16   ply;
-    Thread *th;
+    Thread *_thread;
 
-    StateInfo *si;
+    StateInfo *_stateInfo;
 
     void placePiece(Square, Piece);
     void removePiece(Square);
@@ -341,7 +341,7 @@ inline Square Position::square(Piece p, u08 index) const {
 }
 
 inline CastleRight Position::castleRights() const {
-    return si->castleRights;
+    return _stateInfo->castleRights;
 }
 inline bool Position::canCastle(Color c) const {
     return CR_NONE != (castleRights() & makeCastleRight(c));
@@ -350,43 +350,43 @@ inline bool Position::canCastle(Color c, CastleSide cs) const {
     return CR_NONE != (castleRights() & makeCastleRight(c, cs));
 }
 inline Square Position::epSquare() const {
-    return si->epSquare;
+    return _stateInfo->epSquare;
 }
 
 inline i16 Position::clockPly() const {
-    return si->clockPly;
+    return _stateInfo->clockPly;
 }
 inline i16 Position::nullPly() const {
-    return si->nullPly;
+    return _stateInfo->nullPly;
 }
 
 inline Key Position::matlKey() const {
-    return si->matlKey;
+    return _stateInfo->matlKey;
 }
 inline Key Position::pawnKey() const {
-    return si->pawnKey;
+    return _stateInfo->pawnKey;
 }
 inline Key Position::posiKey() const {
-    return si->posiKey;
+    return _stateInfo->posiKey;
 }
 inline Bitboard Position::checkers() const {
-    return si->checkers;
+    return _stateInfo->checkers;
 }
 inline PieceType Position::captured() const {
-    return si->captured;
+    return _stateInfo->captured;
 }
 inline i16 Position::repetition() const {
-    return si->repetition;
+    return _stateInfo->repetition;
 }
 
 inline Bitboard Position::kingBlockers(Color c) const {
-    return si->kingBlockers[c];
+    return _stateInfo->kingBlockers[c];
 }
 inline Bitboard Position::kingCheckers(Color c) const {
-    return si->kingCheckers[c];
+    return _stateInfo->kingCheckers[c];
 }
 inline Bitboard Position::checks(PieceType pt) const {
-    return si->checks[pt];
+    return _stateInfo->checks[pt];
 }
 
 inline Color Position::activeSide() const {
@@ -400,7 +400,7 @@ inline i16 Position::gamePly() const {
 }
 
 inline Thread* Position::thread() const {
-    return th;
+    return _thread;
 }
 
 inline bool Position::castleExpeded(Color c, CastleSide cs) const {

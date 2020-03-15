@@ -27,7 +27,7 @@ namespace Pawns {
         // Danger of unblocked enemy pawns storm toward our king by [distance from edge][rank].
         // RANK_1 is used for files where the enemy has no pawn, or their pawn is behind our king.
         // [0][1 - 2] accommodate opponent pawn on edge (likely blocked by king)
-        constexpr Array<Score, FILES/2, RANKS> Storm
+        constexpr Array<Score, FILES/2, RANKS> UnblockedStorm
         {{
             { S( 85, 0), S(-289, 0), S(-166, 0), S( 97, 0), S( 50, 0), S( 45, 0), S( 50, 0), S(0, 0) },
             { S( 46, 0), S( -25, 0), S( 122, 0), S( 45, 0), S( 37, 0), S(-10, 0), S( 20, 0), S(0, 0) },
@@ -71,12 +71,12 @@ namespace Pawns {
                     || (RANK_1 == ownR
                      && RANK_1 == oppR));
 
-                safety += Shelter[foldFile(f)][ownR];
-                safety -=
-                       (RANK_1 != ownR)
+                safety +=
+                      Shelter[foldFile(f)][ownR]
+                    - ((RANK_1 != ownR)
                     && (ownR + 1) == oppR ?
                           BlockedStorm * (RANK_3 == oppR) :
-                          Storm[foldFile(f)][oppR];
+                          UnblockedStorm[foldFile(f)][oppR]);
 
             }
 

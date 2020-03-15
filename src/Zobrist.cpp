@@ -75,6 +75,10 @@ namespace Zobrists {
             }
         }
         RandZob.colorKey = prng.rand<Key>();
+
+        for (Square s = SQ_A1; s <= SQ_H8; ++s) {
+            RandZob.pieceSquareKey[NO_PIECE][s] = 0;
+        }
     }
 
 }

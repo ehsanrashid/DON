@@ -35,9 +35,9 @@ public:
     Value     value() const { return Value(v16); }
     Value      eval() const { return Value(e16); }
     Depth     depth() const { return Depth(d08 + DEPTH_OFFSET); }
-    u08  generation() const { return u08  (g08 & 0xF8); }
-    bool         pv() const { return bool (g08 & 0x04); }
-    Bound     bound() const { return Bound(g08 & 0x03); }
+    Bound     bound() const { return Bound(g08 & 3); }
+    bool         pv() const { return bool (g08 & 4); }
+    u08  generation() const { return u08  (g08 & 248); }
 
     void save(u64, Move, Value, Value, Depth, Bound, bool);
 };

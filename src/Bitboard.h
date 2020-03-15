@@ -478,11 +478,12 @@ inline Square scanMSq(Bitboard bb) {
 
 // Find the most advanced square in the given bitboard relative to the given color.
 inline Square scanFrontMostSq(Color c, Bitboard bb) {
+    assert(0 != bb);
     return WHITE == c ? scanMSq(bb) : scanLSq(bb);
 }
 
 inline Square popLSq(Bitboard &bb) {
-
+    assert(0 != bb);
     Square sq = scanLSq(bb);
 #if defined(BM2)
     bb = BLSR(bb);

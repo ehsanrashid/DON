@@ -9,15 +9,13 @@ namespace BitBase {
 
     namespace {
 
-        using std::bitset;
-
         // There are 24 possible pawn squares: files A to D and ranks from 2 to 7
         // Positions with the pawn on files E to H will be mirrored before probing.
-        constexpr u32 MaxIndex{ 24 * 2 * 64 * 64 }; // wpSq * active * wkSq * bkSq
+        constexpr u32 BaseSize{ 24 * 2 * 64 * 64 }; // wpSq * active * wkSq * bkSq
 
-        bitset<MaxIndex> KPKBitbase;
+        std::bitset<BaseSize> KPKBitBase;
 
-        // A KPK bitbase index is an integer in [0, MaxIndex] range
+        // A KPK bitbase index is an integer in [0, BaseSize] range
         //
         // Information is mapped in a way that minimizes the number of iterations:
         //
@@ -59,20 +57,20 @@ namespace BitBase {
             Result result;
 
             KPKPosition() = default;
-            explicit KPKPosition(u32);
+            KPKPosition(u32);
 
             operator Result() const { return result; }
 
-            Result classify(Array<KPKPosition, MaxIndex> const&);
+            Result classify(Array<KPKPosition, BaseSize> const&);
         };
 
         KPKPosition::KPKPosition(u32 idx) {
-
-            wkSq   = Square((idx >>  0) & i32(SQ_H8));
-            bkSq   = Square((idx >>  6) & i32(SQ_H8));
-            active =  Color((idx >> 12) & BLACK);
-            wpSq   = makeSquare(File(((idx >> 13) & 0x03) + FILE_A),
-                                Rank(((idx >> 15) & 0x07) + RANK_2));
+            assert(idx < BaseSize);
+            wkSq   = Square((idx >>  0) & 63);
+            bkSq   = Square((idx >>  6) & 63);
+            active =  Color((idx >> 12) & 1);
+            wpSq   = makeSquare(File(((idx >> 13) & 3) + FILE_A),
+                                Rank(((idx >> 15) & 7) + RANK_2));
 
             assert(isOk(wkSq)
                 && isOk(bkSq)
@@ -113,7 +111,7 @@ namespace BitBase {
             }
         }
 
-        Result KPKPosition::classify(Array<KPKPosition, MaxIndex> const &kpkDB) {
+        Result KPKPosition::classify(Array<KPKPosition, BaseSize> const &kpkArrBase) {
             // White to Move:
             // If one move leads to a position classified as WIN, the result of the current position is WIN.
             // If all moves lead to positions classified as DRAW, the result of the current position is DRAW
@@ -135,18 +133,18 @@ namespace BitBase {
                 Bitboard b{  PieceAttackBB[KING][wkSq]
                           & ~PieceAttackBB[KING][bkSq] };
                 while (0 != b) {
-                    r |= kpkDB[index(BLACK, popLSq(b), bkSq, wpSq)];
+                    r |= kpkArrBase[index(BLACK, popLSq(b), bkSq, wpSq)];
                 }
 
                 // Pawn Single push
                 if (RANK_6 >= sRank(wpSq)) {
-                    r |= kpkDB[index(BLACK, wkSq, bkSq, wpSq + NORTH)];
+                    r |= kpkArrBase[index(BLACK, wkSq, bkSq, wpSq + NORTH)];
 
                     // Pawn Double push
                     if (RANK_2 == sRank(wpSq)
                      && wkSq != wpSq + NORTH    // Front is not own king
                      && bkSq != wpSq + NORTH) { // Front is not opp king
-                        r |= kpkDB[index(BLACK, wkSq, bkSq, wpSq + NORTH + NORTH)];
+                        r |= kpkArrBase[index(BLACK, wkSq, bkSq, wpSq + NORTH + NORTH)];
                     }
                 }
             }
@@ -155,7 +153,7 @@ namespace BitBase {
                 Bitboard b{  PieceAttackBB[KING][bkSq]
                           & ~PieceAttackBB[KING][wkSq] };
                 while (0 != b) {
-                    r |= kpkDB[index(WHITE, wkSq, popLSq(b), wpSq)];
+                    r |= kpkArrBase[index(WHITE, wkSq, popLSq(b), wpSq)];
                 }
             }
                 break;
@@ -170,37 +168,37 @@ namespace BitBase {
 
     void initialize() {
 
-        Array<KPKPosition, MaxIndex> kpkDB;
-        // Initialize kpkDB with known win / draw positions
-        for (u32 idx = 0; idx < MaxIndex; ++idx) {
-            kpkDB[idx] = KPKPosition(idx);
+        Array<KPKPosition, BaseSize> kpkArrBase;
+        // Initialize kpkArrBase with known WIN/DRAW positions
+        for (u32 idx = 0; idx < kpkArrBase.size(); ++idx) {
+            kpkArrBase[idx] = { idx };
         }
-        // Iterate through the positions until none of the unknown positions can be
-        // changed to either wins or draws (15 cycles needed).
+        // Iterate through the positions until none of the unknown positions
+        // can be changed to either WIN/DRAW (15 cycles needed).
         bool repeat{ true };
         while (repeat) {
             repeat = false;
-            for (u32 idx = 0; idx < MaxIndex; ++idx) {
-                repeat |= UNKNOWN == kpkDB[idx]
-                       && UNKNOWN != kpkDB[idx].classify(kpkDB);
+            for (u32 idx = 0; idx < kpkArrBase.size(); ++idx) {
+                repeat |= UNKNOWN == kpkArrBase[idx]
+                       && UNKNOWN != kpkArrBase[idx].classify(kpkArrBase);
             }
         }
 
-        // Fill the bitbase with the decisive results
-        for (u32 idx = 0; idx < MaxIndex; ++idx) {
-            if (WIN == kpkDB[idx]) {
-                KPKBitbase.set(idx);
+        // Fill the Bitbase from Arraybase
+        for (u32 idx = 0; idx < kpkArrBase.size(); ++idx) {
+            if (WIN == kpkArrBase[idx]) {
+                KPKBitBase.set(idx);
             }
         }
 
-        assert(111282 == KPKBitbase.count());
+        assert(111282 == KPKBitBase.count());
     }
 
     bool probe(bool stngActive, Square skSq, Square wkSq, Square spSq) {
         // skSq = White King
         // wkSq = Black King
         // spSq = White Pawn
-        return KPKBitbase[index(stngActive ? WHITE : BLACK, skSq, wkSq, spSq)];
+        return KPKBitBase[index(stngActive ? WHITE : BLACK, skSq, wkSq, spSq)];
     }
 
 }

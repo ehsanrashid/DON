@@ -984,8 +984,14 @@ namespace {
                 // Skip quiet moves if move count exceeds our futilityMoveCount() threshold
                 mp.skipQuiets = futilityMoveCount(depth, improving) <= moveCount;
 
-                if (!captureOrPromotion
-                 && !giveCheck) {
+                if (giveCheck
+                 || captureOrPromotion) {
+                    // SEE based pruning: negative SEE (~25 ELO)
+                    if (!pos.see(move, Value(-194 * depth))) {
+                        continue;
+                    }
+                }
+                else {
                     // Reduced depth of the next LMR search.
                     i32 lmrDepth{ std::max(newDepth - reduction(depth, moveCount, improving), 0) };
                     // Counter moves based pruning: (~20 ELO)
@@ -998,22 +1004,15 @@ namespace {
                     if (!inCheck
                      && 6 > lmrDepth
                      && ss->staticEval + 235 + 172 * lmrDepth <= alfa
-                     && thread->butterFlyStats[pos.activeSide()][mIndex(move)]
-                      + (*pieceStats[0])[mpc][dst]
+                     && (*pieceStats[0])[mpc][dst]
                       + (*pieceStats[1])[mpc][dst]
-                      + (*pieceStats[3])[mpc][dst] < 25000) {
+                      + (*pieceStats[3])[mpc][dst] < 27400) {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 ELO)
                     if (!pos.see(move, Value(-(32 - std::min(lmrDepth, 18)) * lmrDepth * lmrDepth))) {
                         continue;
                     }
-                }
-                // SEE based pruning: negative SEE (~25 ELO)
-                else
-                if (!pos.see(move, Value(-194 * depth)))
-                {
-                    continue;
                 }
             }
 
@@ -1057,7 +1056,6 @@ namespace {
             else
             if (// Previous capture extension
                 (PAWN < pos.captured()
-              //&& VALUE_EG_PAWN < PieceValues[EG][pos.captured()]
               && 2 * VALUE_MG_ROOK >= pos.nonPawnMaterial())
                 // Check extension (~2 ELO)
              || (giveCheck
@@ -1092,7 +1090,7 @@ namespace {
             // Speculative prefetch as early as possible
             prefetch(TT.cluster(pos.movePosiKey(move))->entryTable);
 
-            // Update the current move.
+            // Update the current move
             ss->playedMove = move;
             ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mpc][dst];
 

@@ -50,15 +50,15 @@ TEntry* TCluster::probe(u16 key16, bool &hit) {
         if (ite->d08 == 0
          || ite->k16 == key16) {
             // Refresh entry
-            ite->g08 = u08(TEntry::Generation | (ite->g08 & 0x07));
+            ite->g08 = u08(TEntry::Generation | (ite->g08 & 7));
             return hit = ite->d08 != 0, ite;
         }
         // Replacement strategy.
         // Due to packed storage format for generation and its cyclic nature
-        // add 0x107 (0x100 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
+        // add 263 (256 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
         // to calculate the entry age correctly even after generation overflows into the next cycle.
-        if ((rte->d08 - ((0x107 + TEntry::Generation - rte->g08) & 0xF8))
-          > (ite->d08 - ((0x107 + TEntry::Generation - ite->g08) & 0xF8))) {
+        if ((rte->d08 - ((263 + TEntry::Generation - rte->g08) & 248))
+          > (ite->d08 - ((263 + TEntry::Generation - ite->g08) & 248))) {
             rte = ite;
         }
     }
@@ -180,7 +180,7 @@ void TTable::clear() {
     for (auto &th : threads) {
         th.join();
     }
-    
+
     threads.clear();
     //sync_cout << "info string Hash cleared" << sync_endl;
 }

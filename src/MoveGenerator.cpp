@@ -180,7 +180,6 @@ namespace {
                 pushs1 &= targets;
                 pushs2 &= targets;
             }
-            else
             if (GenType::QUIET_CHECK == GT) {
                 pushs1 &= pos.checks(PAWN);
                 pushs2 &= pos.checks(PAWN);
