@@ -605,19 +605,19 @@ namespace {
             if (MOVE_NONE != ttMove
              && pos.pseudoLegal(ttMove)
              && pos.legal(ttMove)) {
-                if (ttValue >= beta) {
+
+                if (!pos.captureOrPromotion(ttMove)) {
                     // Bonus for a quiet ttMove that fails high
-                    if (!pos.captureOrPromotion(ttMove)) {
+                    if (ttValue >= beta) {
                         updateQuietStats(ss, pos, ttMove, depth, statBonus(depth));
                     }
-                }
-                // Penalty for a quiet ttMove that fails low
-                else {
-                    if (!pos.captureOrPromotion(ttMove)) {
+                    // Penalty for a quiet ttMove that fails low
+                    else {
                         auto bonus{ statBonus(depth) };
                         thread->butterFlyStats[pos.activeSide()][mIndex(ttMove)] << -bonus;
                         updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), -bonus);
                     }
+
                 }
             }
 

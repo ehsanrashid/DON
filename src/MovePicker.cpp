@@ -38,7 +38,7 @@ namespace {
         if (iBeg != iEnd) {
 
             auto sortedEnd = iBeg;
-            auto p = sortedEnd + 1;
+            auto p = std::next(sortedEnd);
             while (p != iEnd) {
 
                 if (p->value >= limit) {
@@ -47,8 +47,8 @@ namespace {
 
                     auto q = sortedEnd;
                     while (q != iBeg
-                        && (q - 1)->value < item.value) {
-                        *q = *(q - 1);
+                        && std::prev(q)->value < item.value) {
+                        *q = *std::prev(q);
                         --q;
                     }
                     *q = item;
@@ -155,14 +155,15 @@ void MovePicker::value() {
     while (vmCur != vmEnd) {
         auto &vm = *(vmCur++);
 
-        if (GenType::CAPTURE == GT) {
+        switch (GT) {
+        case GenType::CAPTURE: {
             auto captured{ pos.captured(vm) };
 
             vm.value = i32(PieceValues[MG][captured]) * 6
                      + (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][captured];
         }
-        else
-        if (GenType::QUIET == GT) {
+            break;
+        case GenType::QUIET: {
             auto dst{ dstSq(vm) };
             auto mpc{ pos[orgSq(vm)] };
             auto index{ mIndex(vm) };
@@ -175,7 +176,8 @@ void MovePicker::value() {
                    + (ply < MAX_LOWPLY ?
                        (*lowPlyStats)[ply][index] * 4 : 0);
         }
-        else { // GenType::EVASION == GT
+            break;
+        case GenType::EVASION: {
             auto mpc{ pos[orgSq(vm)] };
 
             vm.value =
@@ -187,6 +189,9 @@ void MovePicker::value() {
                     (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
                   + (*pieceStats[0])[mpc][dstSq(vm)]
                   - 0x10000000; // 1 << 28
+        }
+            break;
+        default: break;
         }
     }
 }

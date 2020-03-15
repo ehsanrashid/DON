@@ -220,8 +220,8 @@ namespace {
          || GenType::QUIET == GT) {
             if (pos.canCastle(pos.activeSide())) {
                 for (CastleSide cs : { CS_KING, CS_QUEN }) {
-                    if (pos.canCastle(pos.activeSide(), cs)
-                     && pos.castleExpeded(pos.activeSide(), cs)) {
+                    if (pos.castleExpeded(pos.activeSide(), cs)
+                     && pos.canCastle(pos.activeSide(), cs)) {
                         moves += makeMove<CASTLE>(fkSq, pos.castleRookSq(pos.activeSide(), cs));
                     }
                 }
@@ -254,7 +254,7 @@ void generate(ValMoves &moves, Position const &pos) {
                 || GenType::QUIET   == GT, "GT incorrect");
 
     moves.clear();
-
+    moves.reserve(64 - 32 * (GenType::CAPTURE == GT));
     Bitboard targets =
         GenType::NATURAL == GT ? ~pos.pieces( pos.activeSide()) :
         GenType::CAPTURE == GT ?  pos.pieces(~pos.activeSide()) :
@@ -281,6 +281,7 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos)
         && 2 >= popCount(checkers));
 
     moves.clear();
+    moves.reserve(16);
     auto fkSq{ pos.square(pos.activeSide()|KING) };
     // Double-check, only king move can save the day
     if (!moreThanOne(checkers)) {
@@ -313,6 +314,7 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos)
 template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &pos) {
     assert(0 == pos.checkers());
     moves.clear();
+    moves.reserve(16);
     Bitboard targets{ ~pos.pieces() };
 
     // Pawns is excluded, already generated with direct checks
