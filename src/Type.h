@@ -72,6 +72,10 @@ using Bitboard = u64;
 
 #endif
 
+constexpr i32 numSquare(i32 x) {
+    return x * x;
+}
+
 // Return the sign of a number (-1, 0, 1)
 template<typename T>
 constexpr i32 sign(T const &v) {

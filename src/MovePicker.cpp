@@ -224,11 +224,12 @@ Move MovePicker::nextMove() {
     case NATURAL_TT:
     case EVASION_TT:
     case PROBCUT_TT:
-    case QUIESCENCE_TT:
+    case QUIESCENCE_TT: {
         ++stage;
         //assert(MOVE_NONE != ttMove
         //    && pos.pseudoLegal(ttMove));
         return ttMove;
+    }
 
     case NATURAL_INIT:
     case PROBCUT_INIT:
@@ -304,9 +305,10 @@ Move MovePicker::nextMove() {
         ++stage;
     }
         /* fall through */
-    case NATURAL_BAD_CAPTURES:
+    case NATURAL_BAD_CAPTURES: {
         return mBeg != mEnd ?
                 *mBeg++ : MOVE_NONE;
+    }
         /* end */
 
     case EVASION_INIT: {
@@ -318,18 +320,20 @@ Move MovePicker::nextMove() {
         ++stage;
     }
         /* fall through */
-    case EVASION_MOVES:
+    case EVASION_MOVES: {
         return pick([]() {
                     return true;
                 }) ?
                 *std::prev(vmBeg) : MOVE_NONE;
+    }
         /* end */
 
-    case PROBCUT_CAPTURE:
+    case PROBCUT_CAPTURE: {
         return pick([&]() {
                     return pos.see(*vmBeg, threshold);
                 }) ?
                 *std::prev(vmBeg) : MOVE_NONE;
+    }
         /* end */
 
     case QUIESCENCE_CAPTURES: {
@@ -352,9 +356,10 @@ Move MovePicker::nextMove() {
         ++stage;
     }
         /* fall through */
-    case QUIESCENCE_CHECKS:
+    case QUIESCENCE_CHECKS: {
         return vmBeg != vmEnd ?
                 *vmBeg++ : MOVE_NONE;
+    }
         /* end */
 
     case STAGE_NONE:

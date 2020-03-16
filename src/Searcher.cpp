@@ -63,7 +63,7 @@ namespace {
     }
     /// Futility move count threshold
     constexpr i16 futilityMoveCount(Depth d, bool imp) {
-        return (4 + d * d) / (2 - imp);
+        return (4 + numSquare(d)) / (2 - imp);
     }
 
     Depth reduction(Depth d, u08 mc, bool imp) {
@@ -120,18 +120,6 @@ namespace {
         return 15 >= depth ? (19 * depth + 155) * depth - 132 : -8;
     }
 
-    /// updateRefutationMoves() updates Killer and Counter moves
-    void updateRefutationMoves(Stack *const &ss, Position const &pos, Move move) {
-        if (ss->killerMoves[0] != move) {
-            ss->killerMoves[1] = ss->killerMoves[0];
-            ss->killerMoves[0] = move;
-        }
-        if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ dstSq((ss-1)->playedMove) };
-            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
-            pos.thread()->counterMoves[pmPiece][pmDst] = move;
-        }
-    }
     /// updateContinuationStats() updates Stats of the move pairs formed
     /// by moves at ply -1, -2, -4 and -6 with current move.
     void updateContinuationStats(Stack *const &ss, Piece p, Square dst, i32 bonus) {
@@ -144,7 +132,21 @@ namespace {
     }
 
     /// updateQuietStats() updates move sorting heuristics when a new quiet best move is found
-    void updateQuietStats(Stack *const &ss, Position const &pos, Move move, Depth depth, i32 bonus) {
+    void updateQuietStats(
+        Stack *const &ss,
+        Position const &pos,
+        Move move,
+        bool pmOK, Square pmDst, Piece pmPiece,
+        Depth depth, i32 bonus) {
+        // Refutation Moves
+        if (ss->killerMoves[0] != move) {
+            ss->killerMoves[1] = ss->killerMoves[0];
+            ss->killerMoves[0] = move;
+        }
+        if (pmOK) {
+            pos.thread()->counterMoves[pmPiece][pmDst] = move;
+        }
+
         if (12 < depth
          && ss->ply < MAX_LOWPLY) {
             pos.thread()->lowPlyStats[ss->ply][mIndex(move)] << statBonus(depth - 7);
@@ -321,7 +323,6 @@ namespace {
                     return bestValue;
                 }
 
-                assert(bestValue < beta);
                 // Update alfa! Always alfa < beta
                 if (PVNode) {
                     alfa = bestValue;
@@ -441,7 +442,6 @@ namespace {
                     if (value >= beta) { // Fail high
                         break;
                     }
-                    else
                     if (PVNode) { // Update alfa! Always alfa < beta
                         alfa = value;
                     }
@@ -578,14 +578,17 @@ namespace {
         auto ttPV   { PVNode
                    || (ttHit && tte->pv()) };
 
+        bool pmOK{ isOk((ss-1)->playedMove) };
+        auto pmDst{ dstSq((ss-1)->playedMove) };
+        auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
         bool pmCaptureOrPromotion{ NONE != pos.captured()
                                 || PROMOTE == mType((ss-1)->playedMove) };
 
-        if (ttPV
-         && 12 < depth
+        if (12 < depth
+         && ttPV
+         && pmOK
          && !pmCaptureOrPromotion
-         && (ss-1)->ply < MAX_LOWPLY
-         && isOk((ss-1)->playedMove)) {
+         && (ss-1)->ply < MAX_LOWPLY) {
             thread->lowPlyStats[(ss-1)->ply][mIndex((ss-1)->playedMove)] << statBonus(depth - 5);
         }
 
@@ -604,33 +607,25 @@ namespace {
 
                 if (!pos.captureOrPromotion(ttMove)
                  && pos.pseudoLegal(ttMove)) {
+
+                    auto bonus1{ statBonus(depth) };
+                    // Bonus for a quiet ttMove that fails high
                     if (ttValue >= beta) {
-                        updateRefutationMoves(ss, pos, ttMove);
-                    }
+                        updateQuietStats(ss, pos, ttMove, pmOK, pmDst, pmPiece, depth, bonus1);
 
-                    if (pos.legal(ttMove)) {
-                        auto bonus{ statBonus(depth) };
-                        // Bonus for a quiet ttMove that fails high
-                        if (ttValue >= beta) {
-                            updateQuietStats(ss, pos, ttMove, depth, bonus);
-                        }
-                        // Penalty for a quiet ttMove that fails low
-                        else {
-                            thread->butterFlyStats[pos.activeSide()][mIndex(ttMove)] << -bonus;
-                            updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), -bonus);
+                        // Extra penalty for early quiet moves in previous ply when it gets refuted
+                        if (pmOK
+                         && !pmCaptureOrPromotion
+                         && 2 >= (ss-1)->moveCount) {
+                            auto bonus2{ statBonus(depth + 1) };
+                            updateContinuationStats(ss-1, pmPiece, pmDst, -bonus2);
                         }
                     }
-                }
-
-                // Extra penalty for early quiet moves in previous ply when it gets refuted
-                if (ttValue >= beta
-                 && !pmCaptureOrPromotion
-                 && 2 >= (ss-1)->moveCount
-                 && isOk((ss-1)->playedMove)) {
-                    auto pmDst{ dstSq((ss-1)->playedMove) };
-                    auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
-                    auto bonus{ statBonus(depth + 1) };
-                    updateContinuationStats(ss-1, pmPiece, pmDst, -bonus);
+                    // Penalty for a quiet ttMove that fails low
+                    else {
+                        thread->butterFlyStats[pos.activeSide()][mIndex(ttMove)] << -bonus1;
+                        updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), -bonus1);
+                    }
                 }
             }
 
@@ -731,7 +726,7 @@ namespace {
             else {
                 ss->staticEval = eval =
                     MOVE_NULL != (ss-1)->playedMove ?
-                        evaluate(pos) + (-(ss-1)->stats / 512) :
+                        evaluate(pos) - (ss-1)->stats / 512 :
                         -(ss-1)->staticEval + 2 * VALUE_TEMPO;
 
                 tte->save(key,
@@ -873,7 +868,7 @@ namespace {
             // Step 11. Internal iterative deepening (IID). (~1 ELO)
             if (6 < depth
              && (MOVE_NONE == ttMove
-              || !pos.pseudoLegal(ttMove))) { //|| !pos.legal(ttMove)
+              || !pos.pseudoLegal(ttMove))) {
 
                 depthSearch<PVNode>(pos, ss, alfa, beta, depth - 7, cutNode);
 
@@ -909,12 +904,7 @@ namespace {
             nullptr           , (ss-6)->pieceStats
         };
 
-        auto counterMove{ MOVE_NONE };
-        if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ dstSq((ss-1)->playedMove) };
-            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
-            counterMove = pos.thread()->counterMoves[pmPiece][pmDst];
-        }
+        auto counterMove = pos.thread()->counterMoves[pmPiece][pmDst];
 
         // Initialize move-picker(1) for the current position
         MovePicker mp{ pos
@@ -1012,7 +1002,7 @@ namespace {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 ELO)
-                    if (!pos.see(move, Value(-(32 - std::min(lmrDepth, 18)) * lmrDepth * lmrDepth))) {
+                    if (!pos.see(move, Value(-(32 - std::min(lmrDepth, 18)) * numSquare(lmrDepth)))) {
                         continue;
                     }
                 }
@@ -1269,7 +1259,6 @@ namespace {
                         ss->stats = 0;
                         break;
                     }
-                    else
                     if (PVNode) { // Update alfa! Always alfa < beta
                         alfa = value;
                     }
@@ -1316,12 +1305,10 @@ namespace {
             auto bonus1{ statBonus(depth + 1) };
 
             if (!pos.captureOrPromotion(bestMove)) {
-                updateRefutationMoves(ss, pos, bestMove);
 
                 auto bonus2{ bestValue > std::min(beta + VALUE_MG_PAWN, +VALUE_INFINITE) ?
                                 bonus1 : statBonus(depth) };
-
-                updateQuietStats(ss, pos, bestMove, depth, bonus2);
+                updateQuietStats(ss, pos, bestMove, pmOK, pmDst, pmPiece, depth, bonus2);
                 // Decrease all the other played quiet moves
                 for (auto qm : quietMoves) {
                     thread->butterFlyStats[pos.activeSide()][mIndex(qm)] << -bonus2;
@@ -1337,23 +1324,19 @@ namespace {
                 thread->captureStats[pos[orgSq(cm)]][dstSq(cm)][pos.captured(cm)] << -bonus1;
             }
             // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
-            if (!pmCaptureOrPromotion
+            if (pmOK
+             && !pmCaptureOrPromotion
              && (1 == (ss-1)->moveCount
-              || (ss-1)->killerMoves[0] == (ss-1)->playedMove)
-             && isOk((ss-1)->playedMove)) {
-                auto pmDst{ dstSq((ss-1)->playedMove) };
-                auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
+              || (ss-1)->killerMoves[0] == (ss-1)->playedMove)) {
                 updateContinuationStats(ss-1, pmPiece, pmDst, -bonus1);
             }
         }
         else
         // Bonus for prior quiet move that caused the fail low.
-        if (!pmCaptureOrPromotion
+        if (pmOK
+         && !pmCaptureOrPromotion
          && (PVNode
-          || 2 < depth)
-         && isOk((ss-1)->playedMove)) {
-            auto pmDst{ dstSq((ss-1)->playedMove) };
-            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
+          || 2 < depth)) {
             auto bonus{ statBonus(depth) };
             updateContinuationStats(ss-1, pmPiece, pmDst, bonus);
         }

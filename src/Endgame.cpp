@@ -5,10 +5,6 @@
 
 namespace {
 
-    constexpr i32 numSquare(i32 x) {
-        return x * x;
-    }
-
     // Drive a piece towards the edge of the board
     inline int pushToEdge(Square s) {
         return 90 - (7 * numSquare(foldFile(sFile(s))) / 2
