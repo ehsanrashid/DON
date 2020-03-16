@@ -3,7 +3,6 @@
 #include <cmath>
 #include <ctime>
 #include <cstdlib>
-#include <vector>
 
 #include "Debugger.h"
 #include "Evaluator.h"
@@ -21,8 +20,6 @@
 #include "Transposition.h"
 #include "SkillManager.h"
 #include "UCI.h"
-
-using std::vector;
 
 using Evaluator::evaluate;
 
@@ -52,7 +49,7 @@ namespace {
         PieceSquareStatsTable *pieceStats;
 
         Array<Move, 2> killerMoves;
-        std::list<Move> pv;
+        Moves pv;
     };
 
     constexpr u64 TTHitAverageWindow = 4096;
@@ -161,9 +158,11 @@ namespace {
     }
 
     /// updatePV() appends the move and child pv
-    void updatePV(std::list<Move> &pv, Move move, std::list<Move> const &childPV) {
-        pv.assign(childPV.begin(), childPV.end());
-        pv.push_front(move);
+    void updatePV(Moves &pv, Move move, Moves const &childPV) {
+        pv.resize(1);
+        pv[0] = move;
+        pv.insert(pv.end(), childPV.begin(), childPV.end());
+
         assert(pv.front() == move
             && ((pv.size() == 1 && childPV.empty())
              || (pv.back() == childPV.back() && !childPV.empty())));
@@ -602,33 +601,31 @@ namespace {
          && BOUND_NONE != (tte->bound()
                          & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))) {
             // Update move sorting heuristics on ttMove
-            if (MOVE_NONE != ttMove
-             && pos.pseudoLegal(ttMove)
-             && pos.legal(ttMove)) {
+            if (MOVE_NONE != ttMove) {
 
                 if (!pos.captureOrPromotion(ttMove)) {
+
+                    auto bonus{ statBonus(depth) };
                     // Bonus for a quiet ttMove that fails high
                     if (ttValue >= beta) {
-                        updateQuietStats(ss, pos, ttMove, depth, statBonus(depth));
+                        updateQuietStats(ss, pos, ttMove, depth, bonus);
                     }
                     // Penalty for a quiet ttMove that fails low
                     else {
-                        auto bonus{ statBonus(depth) };
                         thread->butterFlyStats[pos.activeSide()][mIndex(ttMove)] << -bonus;
                         updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), -bonus);
                     }
-
                 }
-            }
 
-            if (ttValue >= beta) {
                 // Extra penalty for early quiet moves in previous ply when it gets refuted
-                if (!pmCaptureOrPromotion
+                if (ttValue >= beta
+                 && !pmCaptureOrPromotion
                  && 2 >= (ss-1)->moveCount
                  && isOk((ss-1)->playedMove)) {
                     auto pmDst{ dstSq((ss-1)->playedMove) };
                     auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
-                    updateContinuationStats(ss-1, pmPiece, pmDst, -statBonus(depth + 1));
+                    auto bonus{ statBonus(depth + 1) };
+                    updateContinuationStats(ss-1, pmPiece, pmDst, -bonus);
                 }
             }
 
@@ -1351,14 +1348,15 @@ namespace {
          && isOk((ss-1)->playedMove)) {
             auto pmDst{ dstSq((ss-1)->playedMove) };
             auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
-            updateContinuationStats(ss-1, pmPiece, pmDst, statBonus(depth));
+            auto bonus{ statBonus(depth) };
+            updateContinuationStats(ss-1, pmPiece, pmDst, bonus);
         }
 
-        if (PVNode)
-        {
-            if (bestValue > maxValue) {
-                bestValue = maxValue;
-            }
+        if (PVNode
+         && !rootNode
+         && 0 != SyzygyTB::PieceLimit
+         && bestValue > maxValue) {
+            bestValue = maxValue;
         }
 
         if (MOVE_NONE == ss->excludedMove
@@ -1478,6 +1476,7 @@ void Thread::search() {
                                 &continuationStats[0][0][NO_PIECE][32] : nullptr;
         ss->killerMoves.fill(MOVE_NONE);
         ss->pv.clear();
+        ss->pv.reserve(16);
     }
     ss = stack + 7;
 

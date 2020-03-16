@@ -1,8 +1,5 @@
 #pragma once
 
-#include <list>
-#include <vector>
-
 #include "Type.h"
 
 // Threshold for counter moves based pruning
