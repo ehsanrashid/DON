@@ -85,7 +85,7 @@ namespace {
     /// The function is called before storing a value to the transposition table.
     constexpr Value valueToTT(Value v, i32 ply) {
         return v >= +VALUE_MATE_2_MAX_PLY ? v + ply :
-            v <= -VALUE_MATE_2_MAX_PLY ? v - ply : v;
+               v <= -VALUE_MATE_2_MAX_PLY ? v - ply : v;
     }
 
     /// valueOfTT() is the inverse of value_to_tt(): It adjusts a mate or TB score
@@ -120,6 +120,18 @@ namespace {
         return 15 >= depth ? (19 * depth + 155) * depth - 132 : -8;
     }
 
+    /// updateRefutationMoves() updates Killer and Counter moves
+    void updateRefutationMoves(Stack *const &ss, Position const &pos, Move move) {
+        if (ss->killerMoves[0] != move) {
+            ss->killerMoves[1] = ss->killerMoves[0];
+            ss->killerMoves[0] = move;
+        }
+        if (isOk((ss-1)->playedMove)) {
+            auto pmDst{ dstSq((ss-1)->playedMove) };
+            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
+            pos.thread()->counterMoves[pmPiece][pmDst] = move;
+        }
+    }
     /// updateContinuationStats() updates Stats of the move pairs formed
     /// by moves at ply -1, -2, -4 and -6 with current move.
     void updateContinuationStats(Stack *const &ss, Piece p, Square dst, i32 bonus) {
@@ -133,18 +145,6 @@ namespace {
 
     /// updateQuietStats() updates move sorting heuristics when a new quiet best move is found
     void updateQuietStats(Stack *const &ss, Position const &pos, Move move, Depth depth, i32 bonus) {
-        if (ss->killerMoves[0] != move) {
-            ss->killerMoves[1] = ss->killerMoves[0];
-            ss->killerMoves[0] = move;
-        }
-        assert(1 == std::count(ss->killerMoves.begin(), ss->killerMoves.end(), move));
-
-        if (isOk((ss-1)->playedMove)) {
-            auto pmDst{ dstSq((ss-1)->playedMove) };
-            auto pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~pos.activeSide()|KING };
-            pos.thread()->counterMoves[pmPiece][pmDst] = move;
-        }
-
         if (12 < depth
          && ss->ply < MAX_LOWPLY) {
             pos.thread()->lowPlyStats[ss->ply][mIndex(move)] << statBonus(depth - 7);
@@ -578,9 +578,8 @@ namespace {
         auto ttPV   { PVNode
                    || (ttHit && tte->pv()) };
 
-        bool pmCaptureOrPromotion{ isOk((ss-1)->playedMove)
-                                && (NONE != pos.captured()
-                                 || PROMOTE == mType((ss-1)->playedMove)) };
+        bool pmCaptureOrPromotion{ NONE != pos.captured()
+                                || PROMOTE == mType((ss-1)->playedMove) };
 
         if (ttPV
          && 12 < depth
@@ -603,17 +602,23 @@ namespace {
             // Update move sorting heuristics on ttMove
             if (MOVE_NONE != ttMove) {
 
-                if (!pos.captureOrPromotion(ttMove)) {
-
-                    auto bonus{ statBonus(depth) };
-                    // Bonus for a quiet ttMove that fails high
+                if (!pos.captureOrPromotion(ttMove)
+                 && pos.pseudoLegal(ttMove)) {
                     if (ttValue >= beta) {
-                        updateQuietStats(ss, pos, ttMove, depth, bonus);
+                        updateRefutationMoves(ss, pos, ttMove);
                     }
-                    // Penalty for a quiet ttMove that fails low
-                    else {
-                        thread->butterFlyStats[pos.activeSide()][mIndex(ttMove)] << -bonus;
-                        updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), -bonus);
+
+                    if (pos.legal(ttMove)) {
+                        auto bonus{ statBonus(depth) };
+                        // Bonus for a quiet ttMove that fails high
+                        if (ttValue >= beta) {
+                            updateQuietStats(ss, pos, ttMove, depth, bonus);
+                        }
+                        // Penalty for a quiet ttMove that fails low
+                        else {
+                            thread->butterFlyStats[pos.activeSide()][mIndex(ttMove)] << -bonus;
+                            updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), -bonus);
+                        }
                     }
                 }
 
@@ -1311,9 +1316,10 @@ namespace {
             auto bonus1{ statBonus(depth + 1) };
 
             if (!pos.captureOrPromotion(bestMove)) {
-                auto bonus2{ bestValue - VALUE_MG_PAWN > beta ?
-                                bonus1 :
-                                statBonus(depth) };
+                updateRefutationMoves(ss, pos, bestMove);
+
+                auto bonus2{ bestValue > std::min(beta + VALUE_MG_PAWN, +VALUE_INFINITE) ?
+                                bonus1 : statBonus(depth) };
 
                 updateQuietStats(ss, pos, bestMove, depth, bonus2);
                 // Decrease all the other played quiet moves

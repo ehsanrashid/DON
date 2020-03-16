@@ -11,37 +11,21 @@ namespace {
     /// Generates piece normal move
     template<bool Checks>
     void generatePieceMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
-
-        Array<std::vector<Bitboard>, 6> pieceAttacks;
-
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
             for (Square s : pos.squares(pos.activeSide()|pt)) {
-
-                Bitboard attacks{ pos.pieceAttacksFrom(pt, s)
-                                & targets };
-
-                pieceAttacks[pt].push_back(attacks);
 
                 if (Checks
                  && contains(pos.kingBlockers(~pos.activeSide()), s)) {
                     continue;
                 }
 
-                attacks &= pos.checks(pt);
-                while (0 != attacks) { moves += makeMove<NORMAL>(s, popLSq(attacks)); }
-            }
-        }
+                Bitboard attacks{ pos.pieceAttacksFrom(pt, s)
+                                & targets };
 
-        if (Checks) {
-            return;
-        }
+                if (Checks) {
+                    attacks &= pos.checks(pt);
+                }
 
-        for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
-            i16 idx = 0;
-            for (Square s : pos.squares(pos.activeSide()|pt)) {
-
-                Bitboard attacks{  pieceAttacks[pt][idx++]
-                                & ~pos.checks(pt) };
                 while (0 != attacks) { moves += makeMove<NORMAL>(s, popLSq(attacks)); }
             }
         }
