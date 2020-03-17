@@ -227,12 +227,12 @@ bool Position::pseudoLegal(Move m) const
         auto cs{ dst > org ? CS_KING : CS_QUEN };
         return (active|KING) == board[org] //&& contains(pieces(active, KING), org)
             && (active|ROOK) == board[dst] //&& contains(pieces(active, ROOK), dst)
+            && 0 == chkrs
             && castleRookSq(active, cs) == dst
             && castleExpeded(active, cs)
             //&& RANK_1 == relativeRank(active, org)
             //&& RANK_1 == relativeRank(active, dst)
-            && canCastle(active, cs)
-            && 0 == chkrs;
+            && canCastle(active, cs);
     }
 
     // The captured square cannot be occupied by a friendly piece

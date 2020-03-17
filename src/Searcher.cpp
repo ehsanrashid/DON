@@ -950,7 +950,7 @@ namespace {
                                   << " currmovenumber " << std::setw(2) << thread->pvCur + moveCount + 1
                                   //<< " maxmoves "       << thread->rootMoves.size()
                                   << " time "           << elapsed
-                                  << std::setfill('0')  << sync_endl;
+                                  << std::setfill(' ')  << sync_endl;
                     }
                 }
             }
@@ -1121,7 +1121,7 @@ namespace {
                     // If position is or has been on the PV (~10 ELO)
                     -2 * ttPV
                     // If move has been singularly extended (~3 ELO)
-                    -2 * singularLMR;
+                    -(1 + (!PVNode && ttPV)) * singularLMR;
 
                 if (!captureOrPromotion) {
                     // If TT move is a capture (~5 ELO)
@@ -1308,7 +1308,7 @@ namespace {
 
             if (!pos.captureOrPromotion(bestMove)) {
 
-                auto bonus2{ bestValue > std::min(beta + VALUE_MG_PAWN, +VALUE_INFINITE) ?
+                auto bonus2{ std::max(bestValue - VALUE_MG_PAWN, -VALUE_INFINITE) > beta ?
                                 bonus1 : statBonus(depth) };
                 updateQuietStats(ss, pos, bestMove, pmOK, pmPiece, pmDst, depth, bonus2);
                 // Decrease all the other played quiet moves
@@ -1467,7 +1467,9 @@ void Thread::search() {
                                 &continuationStats[0][0][NO_PIECE][32] : nullptr;
         ss->killerMoves.fill(MOVE_NONE);
         ss->pv.clear();
-        ss->pv.reserve(16);
+        if (0 <= ss->ply) {
+        ss->pv.reserve(std::max(32 - ss->ply, 4));
+        }
     }
     ss = stack + 7;
 
