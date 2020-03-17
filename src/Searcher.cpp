@@ -1903,7 +1903,7 @@ namespace SyzygyTB {
         if (HasRoot) {
             // Sort moves according to TB rank
             std::sort(rootMoves.begin(), rootMoves.end(),
-                [](RootMove const &rm1, RootMove const &rm2) -> bool {
+                [](RootMove const &rm1, RootMove const &rm2) {
                     return rm1.tbRank > rm2.tbRank;
                 });
             // Probe during search only if DTZ is not available and winning

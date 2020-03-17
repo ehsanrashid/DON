@@ -392,6 +392,7 @@ namespace Evaluator {
                         }
 
                         // Penalty for pawns on the same color square as the bishop,
+                        // less when the bishop is protected by pawn
                         // more when the center files are blocked with pawns.
                         score -= BishopPawns
                                * popCount(pos.pieces(Own, PAWN)

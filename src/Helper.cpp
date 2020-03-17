@@ -11,29 +11,29 @@ using std::string;
 bool whiteSpaces(string const &str) {
     return str.empty()
         || std::all_of(str.begin(), str.end(),
-                //[](int ch) -> int { return std::isspace(ch); }
-                std::ptr_fun<int, int>([](int ch) -> int { return std::isspace(ch); })
+                //[](int ch) { return std::isspace(ch); }
+                std::ptr_fun<int, int>([](int ch) { return std::isspace(ch); })
             );
 }
 
 string& toLower(string &str) {
     std::transform(str.begin(), str.end(), str.begin(),
-        //[](int ch) -> int { return std::tolower(ch); }
-        std::ptr_fun<int, int>([](int ch) -> int { return std::tolower(ch); })
+        //[](int ch) { return std::tolower(ch); }
+        std::ptr_fun<int, int>([](int ch) { return std::tolower(ch); })
     );
     return str;
 }
 string& toUpper(string &str) {
     std::transform(str.begin(), str.end(), str.begin(),
-        //[](int ch) -> int { return std::toupper(ch); }
-        std::ptr_fun<int, int>([](int ch) -> int { return std::toupper(ch); })
+        //[](int ch) { return std::toupper(ch); }
+        std::ptr_fun<int, int>([](int ch) { return std::toupper(ch); })
     );
     return str;
 }
 string& toggle(string &str) {
     std::transform(str.begin(), str.end(), str.begin(),
-        //[](int ch) -> int { return std::islower(ch) ? std::toupper(ch) : std::tolower(ch); }
-        std::ptr_fun<int, int>([](int ch) -> int { return std::islower(ch) ? std::toupper(ch) : std::tolower(ch); })
+        //[](int ch) { return std::islower(ch) ? std::toupper(ch) : std::tolower(ch); }
+        std::ptr_fun<int, int>([](int ch) { return std::islower(ch) ? std::toupper(ch) : std::tolower(ch); })
     );
     return str;
 }
@@ -51,8 +51,8 @@ string& ltrim(string &str)
     str.erase(
         str.begin(),
         std::find_if(str.begin(), str.end(),
-            //[](int ch) -> int { return !(std::isspace(ch) || ch == '\0'); }
-            std::not1(std::ptr_fun<int, int>([](int ch) -> int { return std::isspace(ch) || ch == '\0'; }))
+            //[](int ch) { return !(std::isspace(ch) || ch == '\0'); }
+            std::not1(std::ptr_fun<int, bool>([](int ch) { return std::isspace(ch) || ch == '\0'; }))
         )
     );
     return str;
@@ -61,8 +61,8 @@ string& rtrim(string &str)
 {
     str.erase(
         std::find_if(str.rbegin(), str.rend(),
-            //[](int ch) -> int { return !(std::isspace(ch) || ch == '\0'); }
-            std::not1(std::ptr_fun<int, int>([](int ch) -> int { return std::isspace(ch) || ch == '\0'; }))
+            //[](int ch) { return !(std::isspace(ch) || ch == '\0'); }
+            std::not1(std::ptr_fun<int, bool>([](int ch) { return std::isspace(ch) || ch == '\0'; }))
         ).base(),
         str.end()
     );

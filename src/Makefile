@@ -44,7 +44,7 @@ endif
 # ----------------------------------------------------------------------------
 #
 # debug    = yes/no    --- -DNDEBUG         --- Enable/Disable debug mode
-# sanitize =undefined/thread/no (-fsanitize )
+# sanitize =undefined/thread/address/no (-fsanitize )
 #                      --- (undefined)      --- Enable undefined behavior checks
 #                      --- (thread)         --- Enable threading error checks
 # optimize = yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
