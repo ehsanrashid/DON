@@ -385,7 +385,7 @@ string PolyBook::show(Position const &pos) const {
     u32 sumWeight{ 0 };
     while (u64(index) < _entryCount
         && key == _entryTable[index].key) {
-        peList.push_back(_entryTable[index]);
+        peList.emplace_back(_entryTable[index]);
         sumWeight += _entryTable[index].weight;
         ++index;
     }

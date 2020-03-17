@@ -204,13 +204,13 @@ namespace WinProcGroup {
         // reached, then move on filling the next node.
         for (u16 n = 0; n < nodeCount; ++n) {
             for (u16 i = 0; i < coreCount / nodeCount; ++i) {
-                Groups.push_back(n);
+                Groups.emplace_back(n);
             }
         }
         // In case a core has more than one logical processor (we assume 2) and
         // have still threads to allocate, then spread them evenly across available nodes.
         for (u16 t = 0; t < threadCount - coreCount; ++t) {
-            Groups.push_back(t % nodeCount);
+            Groups.emplace_back(t % nodeCount);
         }
 
 #endif
@@ -323,9 +323,9 @@ void ThreadPool::setup(u16 threadCount) {
     // Create new thread(s)
     if (0 != threadCount) {
 
-        push_back(new MainThread(size()));
+        emplace_back(new MainThread(size()));
         while (size() < threadCount) {
-            push_back(new Thread(size()));
+            emplace_back(new Thread(size()));
         }
 
         clean();

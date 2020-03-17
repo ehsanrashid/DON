@@ -74,7 +74,7 @@ Key Position::movePosiKey(Move m) const {
 
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
-    auto pKey{ posiKey() };
+    auto pKey{ posiKey() ^ RandZob.colorKey };
     if (CASTLE == mType(m)) {
         pKey ^= RandZob.pieceSquareKey[active|ROOK][dst]
               ^ RandZob.pieceSquareKey[active|ROOK][rookCastleSq(org, dst)];
@@ -87,7 +87,7 @@ Key Position::movePosiKey(Move m) const {
         else
         if (PAWN == pType(board[org])
          && dst == org + 2 * PawnPush[active]) {
-            auto epSq = org + PawnPush[active];
+            auto epSq{ org + PawnPush[active] };
             if (canEnpassant(~active, epSq, false)) {
                 pKey ^= RandZob.enpassantKey[sFile(epSq)];
             }
@@ -97,7 +97,6 @@ Key Position::movePosiKey(Move m) const {
         pKey ^= RandZob.enpassantKey[sFile(epSquare())];
     }
     return pKey
-         ^ RandZob.colorKey
          ^ RandZob.pieceSquareKey[board[org]][org]
          ^ RandZob.pieceSquareKey[PROMOTE != mType(m) ? board[org] : active|promoteType(m)][CASTLE != mType(m) ? dst : kingCastleSq(org, dst)]
          ^ RandZob.castleRightKey[castleRights() & (sqCastleRight[org]|sqCastleRight[dst])];
@@ -153,13 +152,13 @@ bool Position::cycled(i16 pp) const {
             assert(!cuckoo.empty());
 
             // Legality of a reverting move: clear path
-            if (0 == (betweenBB(cuckoo.s1, cuckoo.s2) & pieces())) {
+            if (0 == (betweenBB(cuckoo.sq1, cuckoo.sq2) & pieces())) {
 
                 if (i < pp) {
                     return true;
                 }
-                assert(cuckoo.piece == board[cuckoo.s1]
-                    || cuckoo.piece == board[cuckoo.s2]);
+                assert(cuckoo.piece == board[cuckoo.sq1]
+                    || cuckoo.piece == board[cuckoo.sq2]);
                 // For nodes before or at the root, check that the move is a repetition one
                 // rather than a move to the current position
                 // In the cuckoo table, both moves Rc1c5 and Rc5c1 are stored in the same location.
@@ -657,7 +656,7 @@ void Position::placePiece(Square s, Piece p) {
     colors[pColor(p)] |= s;
     types[pType(p)] |= s;
     types[NONE] |= s;
-    pieceList[p].push_back(s);
+    pieceList[p].emplace_back(s);
     psq += PSQ[p][s];
     board[s] = p;
 }
@@ -944,7 +943,6 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         }
         pKey ^= RandZob.pieceSquareKey[cp][cap];
         _stateInfo->matlKey ^= RandZob.pieceSquareKey[cp][count(cp)];
-        prefetch(_thread->matlHash[matlKey()]);
 
         // Reset clock ply counter
         _stateInfo->clockPly = 0;
@@ -1001,14 +999,22 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
             _stateInfo->pawnKey ^= RandZob.pieceSquareKey[mp][dst];
             _stateInfo->matlKey ^= RandZob.pieceSquareKey[mp][count(mp)]
                                  ^ RandZob.pieceSquareKey[pp][count(pp) - 1];
-            prefetch(_thread->matlHash[matlKey()]);
         }
 
         // Reset clock ply counter
         _stateInfo->clockPly = 0;
         _stateInfo->pawnKey ^= RandZob.pieceSquareKey[mp][org]
                              ^ RandZob.pieceSquareKey[mp][dst];
-        //prefetch(th->pawnHash[pawnKey()]);
+    }
+
+    if (PAWN == pType(mp)
+     || PAWN == pType(cp)
+     || PROMOTE == mType(m)) {
+        prefetch(_thread->pawnHash[pawnKey()]);
+    }
+    if (NO_PIECE != cp
+     || PROMOTE == mType(m)) {
+        prefetch(_thread->matlHash[matlKey()]);
     }
 
     // Update the key with the final value

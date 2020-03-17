@@ -47,11 +47,12 @@ TEntry* TCluster::probe(u16 key16, bool &hit) {
     // Find an entry to be replaced according to the replacement strategy.
     auto *rte = entryTable; // Default first
     for (auto *ite = entryTable; ite < entryTable + EntryCount; ++ite) {
-        if (ite->d08 == 0
-         || ite->k16 == key16) {
+        if (0 == ite->d08
+         || key16 == ite->k16) {
             // Refresh entry
             ite->g08 = u08(TEntry::Generation | (ite->g08 & 7));
-            return hit = ite->d08 != 0, ite;
+            hit = (0 != ite->d08);
+            return ite;
         }
         // Replacement strategy.
         // Due to packed storage format for generation and its cyclic nature
@@ -62,7 +63,8 @@ TEntry* TCluster::probe(u16 key16, bool &hit) {
             rte = ite;
         }
     }
-    return hit = false, rte;
+    hit = false;
+    return rte;
 }
 
 namespace {

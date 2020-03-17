@@ -123,7 +123,7 @@ void removeExtension(string &filename) {
 //        if (keepEmpty
 //         || !token.empty())
 //        {
-//            tokens.push_back(token);
+//            tokens.emplace_back(token);
 //        }
 //        if (fail)
 //        {

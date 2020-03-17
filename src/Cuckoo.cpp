@@ -3,29 +3,39 @@
 #include "Bitboard.h"
 #include "Zobrist.h"
 
+
+Cuckoo::Cuckoo(Piece p, Square s1, Square s2) :
+    piece{ p },
+    sq1{ s1 },
+    sq2{ s2 }
+{}
+
+Cuckoo::Cuckoo() :
+    Cuckoo(NO_PIECE, SQ_NONE, SQ_NONE)
+{}
+
 bool Cuckoo::empty() const {
     return NO_PIECE == piece
-        || SQ_NONE == s1
-        || SQ_NONE == s2;
+        || SQ_NONE == sq1
+        || SQ_NONE == sq2;
 }
 
 bool Cuckoo::operator==(Cuckoo const &ck) const {
     return piece == ck.piece
-        && s1 == ck.s1
-        && s2 == ck.s2;
+        && sq1 == ck.sq1
+        && sq2 == ck.sq2;
 }
 bool Cuckoo::operator!=(Cuckoo const &ck) const {
     return piece != ck.piece
-        || s1 != ck.s1
-        || s2 != ck.s2;
+        || sq1 != ck.sq1
+        || sq2 != ck.sq2;
 }
 
 Key Cuckoo::key() const {
-    return empty() ?
-           0 :
+    return empty() ? 0 :
            RandZob.colorKey
-         ^ RandZob.pieceSquareKey[piece][s1]
-         ^ RandZob.pieceSquareKey[piece][s2];
+         ^ RandZob.pieceSquareKey[piece][sq1]
+         ^ RandZob.pieceSquareKey[piece][sq2];
 }
 
 namespace Cuckoos {
@@ -73,7 +83,7 @@ namespace Cuckoos {
 
                     if (contains(PieceAttackBB[pType(p)][s1], s2)) {
 
-                        cuckoos.push_back({ p, s1, s2 });
+                        cuckoos.emplace_back(p, s1, s2);
                     }
                 }
             }

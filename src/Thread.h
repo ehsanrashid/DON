@@ -81,8 +81,8 @@ public:
     // usually the current one given a previous one.
     Array<ContinuationStatsTable, 2, 2> continuationStats;
 
-    Pawns   ::Table pawnHash;
-    Material::Table matlHash;
+    Pawns   ::Table pawnHash{ Pawns   ::Table(0x20000) };
+    Material::Table matlHash{ Material::Table(0x2000) };
 
     Thread() = delete;
     explicit Thread(u16);

@@ -1,8 +1,6 @@
 #include "Searcher.h"
 
 #include <cmath>
-#include <ctime>
-#include <cstdlib>
 
 #include "Debugger.h"
 #include "Evaluator.h"
@@ -75,22 +73,21 @@ namespace {
                    + (!imp && (r > 1007)));
     }
 
-    /// Add a small random component to draw evaluations to keep search dynamic and to avoid 3-fold-blindness.
-    Value drawValue() {
-        return VALUE_DRAW + rand() % 3 - 1;
+    /// Add a small random component to draw evaluations to avoid 3-fold-blindness
+    Value drawValue(Thread const *const &th) {
+        return VALUE_DRAW + Value(2 * (th->nodes & 1) - 1);
     }
 
-    /// It adjusts a mate score from "plies to mate from the root" to "plies to mate from the current position".
-    /// Non-mate scores are unchanged.
-    /// The function is called before storing a value to the transposition table.
+    /// valueToTT() adjusts a mate or TB score from "plies to mate from the root" to
+    /// "plies to mate from the current position". standard scores are unchanged.
     constexpr Value valueToTT(Value v, i32 ply) {
         return v >= +VALUE_MATE_2_MAX_PLY ? v + ply :
                v <= -VALUE_MATE_2_MAX_PLY ? v - ply : v;
     }
 
-    /// valueOfTT() is the inverse of value_to_tt(): It adjusts a mate or TB score
-    /// from the transposition table (which refers to the plies to mate/be mated
-    /// from current position) to "plies to mate/be mated (TB win/loss) from the root".
+    /// valueOfTT() adjusts a mate or TB score from the transposition table
+    /// (which refers to the plies to mate/be mated from current position)
+    /// to "plies to mate/be mated (TB win/loss) from the root".
     /// However, for mate scores, to avoid potentially false mate scores related to the 50 moves rule,
     /// and the graph history interaction, return an optimal TB score instead.
     inline Value valueOfTT(Value v, i32 ply, i32 clockPly) {
@@ -167,7 +164,7 @@ namespace {
 
         assert(pv.front() == move
             && ((pv.size() == 1 && childPV.empty())
-             || (pv.back() == childPV.back() && !childPV.empty())));
+             || (pv.back() == childPV.back())));
     }
 
     /// multipvInfo() formats PV information according to UCI protocol.
@@ -269,10 +266,12 @@ namespace {
                         DEPTH_QS_CHECK : DEPTH_QS_NO_CHECK };
 
         if (!PVNode
-         && VALUE_NONE != ttValue // Handle ttHit
+         && ttHit
          && qsDepth <= tte->depth()
+         && VALUE_NONE != ttValue
          && BOUND_NONE != (tte->bound()
-                         & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))) {
+                         & (ttValue >= beta ?
+                            BOUND_LOWER : BOUND_UPPER))) {
             return ttValue;
         }
 
@@ -295,7 +294,8 @@ namespace {
                 // Can ttValue be used as a better position evaluation?
                 if (VALUE_NONE != ttValue
                  && BOUND_NONE != (tte->bound()
-                                 & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER))) {
+                                 & (ttValue > bestValue ?
+                                    BOUND_LOWER : BOUND_UPPER))) {
                     bestValue = ttValue;
                 }
             }
@@ -478,13 +478,15 @@ namespace {
         bool rootNode = PVNode
                      && 0 == ss->ply;
 
+        auto *thread{ pos.thread() };
+
         // Check if there exists a move which draws by repetition,
         // or an alternative earlier move to this position.
         if (!rootNode
          && alfa < VALUE_DRAW
          && pos.clockPly() >= 3
          && pos.cycled(ss->ply)) {
-            alfa = drawValue();
+            alfa = drawValue(thread);
             if (alfa >= beta) {
                 return alfa;
             }
@@ -502,8 +504,6 @@ namespace {
 
         // Step 1. Initialize node
         ss->moveCount = 0;
-
-        auto *thread{ pos.thread() };
 
         // Check for the available remaining limit
         if (Threadpool.mainThread() == thread) {
@@ -527,7 +527,7 @@ namespace {
              || ss->ply >= MAX_PLY) {
                 return ss->ply >= MAX_PLY
                     && !inCheck ?
-                        evaluate(pos) : drawValue();
+                        evaluate(pos) : drawValue(thread);
             }
 
             // Step 3. Mate distance pruning.
@@ -562,11 +562,13 @@ namespace {
         // This influences the reduction rules in LMR which are based on the stats of parent position.
         (ss+2 + 2 * rootNode)->stats = 0;
 
+        auto excludedMove{ ss->excludedMove };
+
         // Step 4. Transposition table lookup.
         // Don't want the score of a partial search to overwrite a previous full search
         // TT value, so use a different position key in case of an excluded move.
         Key key{ pos.posiKey()
-               ^ (Key(ss->excludedMove) << 0x10) };
+               ^ (Key(excludedMove) << 0x10) };
         bool ttHit;
         auto *tte   { TT.probe(key, ttHit) };
         auto ttMove { rootNode ?
@@ -598,10 +600,12 @@ namespace {
 
         // At non-PV nodes we check for an early TT cutoff
         if (!PVNode
-         && VALUE_NONE != ttValue // Handle ttHit
+         && ttHit
          && depth <= tte->depth()
+         && VALUE_NONE != ttValue
          && BOUND_NONE != (tte->bound()
-                         & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))) {
+                         & (ttValue >= beta ?
+                            BOUND_LOWER : BOUND_UPPER))) {
             // Update move sorting heuristics on ttMove
             if (MOVE_NONE != ttMove
              && pos.pseudoLegal(ttMove)) {
@@ -625,8 +629,7 @@ namespace {
                  && pmOK
                  && !pmCaptureOrPromotion
                  && 2 >= (ss-1)->moveCount) {
-                    auto bonus{ statBonus(depth + 1) };
-                    updateContinuationStats(ss-1, pmPiece, pmDst, -bonus);
+                    updateContinuationStats(ss-1, pmPiece, pmDst, -statBonus(depth + 1));
                 }
             }
 
@@ -715,12 +718,13 @@ namespace {
                 }
 
                 if (eval == VALUE_DRAW) {
-                    eval = drawValue();
+                    eval = drawValue(thread);
                 }
                 // Can ttValue be used as a better position evaluation?
                 if (VALUE_NONE != ttValue
                  && BOUND_NONE != (tte->bound()
-                                 & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER))) {
+                                 & (ttValue > eval ?
+                                    BOUND_LOWER : BOUND_UPPER))) {
                     eval = ttValue;
                 }
             }
@@ -772,7 +776,7 @@ namespace {
              && eval >= beta
              && eval >= ss->staticEval
              && ss->staticEval - 292 + 32 * depth + 30 * improving - 120 * ttPV >= beta
-             && MOVE_NONE == ss->excludedMove
+             && MOVE_NONE == excludedMove
              && VALUE_ZERO != pos.nonPawnMaterial(pos.activeSide())
              && (thread->nmpPly <= ss->ply
               || thread->nmpColor != pos.activeSide())
@@ -834,7 +838,7 @@ namespace {
                         && pos.captureOrPromotion(move)
                         && CASTLE != mType(move));
 
-                    if (ss->excludedMove == move
+                    if (excludedMove == move
                      || !pos.legal(move)) {
                         continue;
                     }
@@ -868,17 +872,19 @@ namespace {
 
             // Step 11. Internal iterative deepening (IID). (~1 ELO)
             if (6 < depth
+             && MOVE_NONE == excludedMove
              && (MOVE_NONE == ttMove
-              || !pos.pseudoLegal(ttMove))
-             && 2 < MoveList<GenType::LEGAL>(pos).size()) {
+              || !pos.pseudoLegal(ttMove))) {
 
                 depthSearch<PVNode>(pos, ss, alfa, beta, depth - 7, cutNode);
 
                 tte = TT.probe(key, ttHit);
-                ttMove  = ttHit ?
+                ttMove = ttHit ?
                             tte->move() : MOVE_NONE;
                 ttValue = ttHit ?
                             valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE;
+                //ttPV    = PVNode
+                //       || (ttHit && tte->pv());
             }
         }
 
@@ -923,7 +929,7 @@ namespace {
                 && (inCheck || pos.pseudoLegal(move)));
 
             // Skip exclusion move
-            if (ss->excludedMove == move) {
+            if (excludedMove == move) {
                 continue;
             }
 
@@ -1022,12 +1028,13 @@ namespace {
             if (!rootNode
              && 5 < depth
              && ttMove == move
-             && MOVE_NONE == ss->excludedMove // Avoid recursive singular search
+             && MOVE_NONE == excludedMove // Avoid recursive singular search
              // && VALUE_NONE != ttValue  Already implicit in the next condition
              && +VALUE_KNOWN_WIN > abs(ttValue) // Handle ttHit
-             && depth < tte->depth() + 4
+             && depth < (tte->depth() + 4)
              && BOUND_NONE != (tte->bound() & BOUND_LOWER)
              && pos.legal(ttMove)) {
+
                 auto singularBeta{ ttValue - ((4 + (!PVNode && ttPV)) * depth) / 2 };
 
                 ss->excludedMove = move;
@@ -1287,7 +1294,7 @@ namespace {
 
         assert(0 != moveCount
             || !inCheck
-            || MOVE_NONE != ss->excludedMove
+            || MOVE_NONE != excludedMove
             || 0 == MoveList<GenType::LEGAL>(pos).size());
 
         // Step 21. Check for checkmate and stalemate.
@@ -1295,21 +1302,23 @@ namespace {
         // If in a singular extension search then return a fail low score (alfa).
         // Otherwise it must be a checkmate or a stalemate, so return value accordingly.
         if (0 == moveCount) {
-            bestValue = MOVE_NONE != ss->excludedMove ?
+            bestValue = MOVE_NONE != excludedMove ?
                             alfa :
                             inCheck ?
                                 matedIn(ss->ply) :
                                 VALUE_DRAW;
         }
         else
-        // Quiet best move: update move sorting heuristics.
         if (MOVE_NONE != bestMove) {
+
             auto bonus1{ statBonus(depth + 1) };
 
+            // Quiet best move: update move sorting heuristics.
             if (!pos.captureOrPromotion(bestMove)) {
 
                 auto bonus2{ std::max(bestValue - VALUE_MG_PAWN, -VALUE_INFINITE) > beta ?
                                 bonus1 : statBonus(depth) };
+
                 updateQuietStats(ss, pos, bestMove, pmOK, pmPiece, pmDst, depth, bonus2);
                 // Decrease all the other played quiet moves
                 for (auto qm : quietMoves) {
@@ -1325,6 +1334,7 @@ namespace {
             for (auto cm : captureMoves) {
                 thread->captureStats[pos[orgSq(cm)]][dstSq(cm)][pos.captured(cm)] << -bonus1;
             }
+
             // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
             if (pmOK
              && !pmCaptureOrPromotion
@@ -1333,24 +1343,22 @@ namespace {
                 updateContinuationStats(ss-1, pmPiece, pmDst, -bonus1);
             }
         }
-        else
-        // Bonus for prior quiet move that caused the fail low.
-        if (pmOK
-         && !pmCaptureOrPromotion
-         && (PVNode
-          || 2 < depth)) {
-            auto bonus{ statBonus(depth) };
-            updateContinuationStats(ss-1, pmPiece, pmDst, bonus);
+        else {
+            // Bonus for prior quiet move that caused the fail low.
+            if (pmOK
+             && !pmCaptureOrPromotion
+             && (PVNode
+              || 2 < depth)) {
+                updateContinuationStats(ss-1, pmPiece, pmDst, statBonus(depth));
+            }
         }
 
         if (PVNode
-         && !rootNode
-         && 0 != SyzygyTB::PieceLimit
          && bestValue > maxValue) {
             bestValue = maxValue;
         }
 
-        if (MOVE_NONE == ss->excludedMove
+        if (MOVE_NONE == excludedMove
          && (!rootNode
           || 0 == thread->pvCur)) {
             tte->save(key,

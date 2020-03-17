@@ -495,15 +495,15 @@ inline Square popLSq(Bitboard &bb) {
 
 ///// makeBitboard() returns a bitboard compile-time constructed from a list of squares, files, ranks
 //constexpr Bitboard makeBitboard() { return 0; }
-//template<typename ...Squares>
+//template<typename... Squares>
 //constexpr Bitboard makeBitboard(Square s, Squares... squares) {
 //    return U64(0x0000000000000001) << s | makeBitboard(squares...);
 //}
-//template<typename ...Files>
+//template<typename... Files>
 //constexpr Bitboard makeBitboard(File f, Files... files) {
 //    return U64(0x0101010101010101) << f | makeBitboard(files...);
 //}
-//template<typename ...Ranks>
+//template<typename... Ranks>
 //constexpr Bitboard makeBitboard(Rank r, Ranks... ranks) {
 //    return U64(0x00000000000000FF) << (r * 8) | makeBitboard(ranks...);
 //}

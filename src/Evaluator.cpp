@@ -397,8 +397,7 @@ namespace Evaluator {
                         score -= BishopPawns
                                * popCount(pos.pieces(Own, PAWN)
                                         & ColorBB[sColor(s)])
-                               * (1
-                                - contains(sqlAttacks[Own][PAWN], s)
+                               * (!contains(sqlAttacks[Own][PAWN], s)
                                 + popCount(pos.pieces(Own, PAWN)
                                          & SlotFileBB[CS_CENTRE]
                                          & pawnSglPushBB<Opp>(pos.pieces())));
@@ -414,7 +413,7 @@ namespace Evaluator {
                          && Options["UCI_Chess960"]
                          && (s == relativeSq(Own, SQ_A1)
                           || s == relativeSq(Own, SQ_H1))) {
-                          
+
                             auto del{ PawnPush[Own] + sign(FILE_E - sFile(s)) * EAST };
                             if (contains(pos.pieces(Own, PAWN), s + del)) {
                                 score -= BishopTrapped

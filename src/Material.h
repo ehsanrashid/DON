@@ -25,7 +25,7 @@ namespace Material {
 
     };
 
-    using Table = HashTable<Entry, 0x2000>;
+    using Table = HashTable<Entry>;
 
     extern Entry* probe(Position const&);
 }

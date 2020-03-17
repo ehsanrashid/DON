@@ -39,7 +39,7 @@ bool RootMove::operator!=(Move m) const {
 }
 
 void RootMove::operator+=(Move m) {
-    push_back(m);
+    emplace_back(m);
 }
 //void RootMove::operator-=(Move m) {
 //    erase(std::remove(begin(), end(), m), end());
@@ -66,7 +66,7 @@ void RootMoves::operator+=(Move m) {
 //}
 
 void RootMoves::operator+=(RootMove const &rm) {
-    push_back(rm);
+    emplace_back(rm);
 }
 //void RootMoves::operator-=(RootMove const &rm) {
 //    erase(std::remove(begin(), end(), rm), end());

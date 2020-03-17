@@ -151,9 +151,9 @@ public:
     //Bitboard pieces(Piece) const;
     Bitboard pieces(Color) const;
     Bitboard pieces(PieceType) const;
-    template<typename ...PieceTypes>
+    template<typename... PieceTypes>
     Bitboard pieces(PieceType, PieceTypes...) const;
-    template<typename ...PieceTypes>
+    template<typename... PieceTypes>
     Bitboard pieces(Color, PieceTypes...) const;
 
     i32 count() const;
@@ -275,11 +275,11 @@ inline Bitboard Position::pieces(Color c) const {
 inline Bitboard Position::pieces(PieceType pt) const {
     return types[pt];
 }
-template<typename ...PieceTypes>
+template<typename... PieceTypes>
 inline Bitboard Position::pieces(PieceType pt, PieceTypes... pts) const {
     return types[pt] | pieces(pts...);
 }
-template<typename ...PieceTypes>
+template<typename... PieceTypes>
 inline Bitboard Position::pieces(Color c, PieceTypes... pts) const {
     return colors[c] & pieces(pts...);
 }

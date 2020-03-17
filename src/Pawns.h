@@ -32,7 +32,7 @@ namespace Pawns {
 
     };
 
-    using Table = HashTable<Entry, 0x20000>;
+    using Table = HashTable<Entry>;
 
     extern Entry* probe(Position const&);
 }

@@ -1743,7 +1743,7 @@ namespace SyzygyTB {
                 }
                 else
                 if (offA1H8(s) == 0) {
-                    diagonal.push_back(s);
+                    diagonal.emplace_back(s);
                 }
             }
             // Diagonal squares are encoded as last ones
@@ -1862,7 +1862,7 @@ namespace SyzygyTB {
             if (whiteSpaces(path)) {
                 continue;
             }
-            TBFile::Paths.push_back(path);
+            TBFile::Paths.emplace_back(path);
         }
 
         for (PieceType p1 = PAWN; p1 <= QUEN; ++p1) {

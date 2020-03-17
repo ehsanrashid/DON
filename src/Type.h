@@ -538,7 +538,7 @@ public:
         return std::find(begin(), end(), move) != end();
     }
 
-    void operator+=(Move move) { push_back(move); }
+    void operator+=(Move move) { emplace_back(move); }
     //void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
 
 };
@@ -601,25 +601,25 @@ inline TimePoint now() {
 }
 
 /// Hash table
-template<typename T, u32 Size>
-class HashTable {
-
-private:
-    // Allocate on the heap
-    std::vector<T> table;
+template<typename T>
+class HashTable :
+    private std::vector<T> {
 
 public:
 
-    HashTable() :
-        table(Size)
+    u32 const Mask;
+
+    HashTable(u32 size) :
+        std::vector<T>(size),
+        Mask{ size - 1 }
     {}
 
     void clear() {
-        table.assign(Size, T());
+        std::vector<T>::assign(std::vector<T>::size(), T());
     }
 
     T* operator[](Key key) {
-        return &table[u32(key) & (Size - 1)];
+        return &std::vector<T>::operator[](u32(key) & Mask);
     }
 };
 

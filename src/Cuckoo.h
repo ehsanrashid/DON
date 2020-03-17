@@ -9,7 +9,11 @@
 struct Cuckoo {
 
     Piece piece;
-    Square s1, s2;
+    Square sq1;
+    Square sq2;
+
+    Cuckoo(Piece, Square, Square);
+    Cuckoo();
 
     bool empty() const;
     bool operator==(Cuckoo const&) const;

@@ -592,13 +592,13 @@ namespace UCI {
                         //    std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                         //    continue;
                         //}
-                        Limits.searchMoves.push_back(m);
+                        Limits.searchMoves.emplace_back(m);
                     }
                 }
                 else if (token == "ignoremoves") {
                     // Parse and Validate ignore-moves (if any)
                     for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
-                        Limits.searchMoves.push_back(vm);
+                        Limits.searchMoves.emplace_back(vm);
                     }
                     while (iss >> token) {
                         auto m = moveOfCAN(token, pos);
@@ -653,7 +653,7 @@ namespace UCI {
             vector<string> uciCmds;
 
             if (whiteSpaces(fen))      { return uciCmds; }
-            else if (fen == "current") { cmds.push_back(pos.fen()); }
+            else if (fen == "current") { cmds.emplace_back(pos.fen()); }
             else if (fen == "default") { cmds = DefaultCmds; }
             else {
                 std::ifstream ifs{ fen, std::ios::in };
@@ -664,7 +664,7 @@ namespace UCI {
                 string cmd;
                 while (std::getline(ifs, cmd, '\n')) {
                     if (!whiteSpaces(cmd)) {
-                        cmds.push_back(cmd);
+                        cmds.emplace_back(cmd);
                     }
                 }
                 ifs.close();
@@ -672,26 +672,26 @@ namespace UCI {
 
             bool chess960{ Options["UCI_Chess960"] };
 
-            uciCmds.push_back("setoption name Threads value " + threads);
-            uciCmds.push_back("setoption name Hash value " + hash);
-            uciCmds.push_back("ucinewgame");
+            uciCmds.emplace_back("setoption name Threads value " + threads);
+            uciCmds.emplace_back("setoption name Hash value " + hash);
+            uciCmds.emplace_back("ucinewgame");
 
             for (auto const &cmd : cmds) {
                 if (cmd.find("setoption") != string::npos) {
-                    uciCmds.push_back(cmd);
+                    uciCmds.emplace_back(cmd);
                 }
                 else {
-                    uciCmds.push_back("position fen " + cmd);
-                    if (mode == "eval")     { uciCmds.push_back(mode); }
+                    uciCmds.emplace_back("position fen " + cmd);
+                    if (mode == "eval")     { uciCmds.emplace_back(mode); }
                     else
-                    if (mode == "perft")    { uciCmds.push_back(mode + " " + value); }
-                    else                    { uciCmds.push_back("go " + mode + " " + value); }
+                    if (mode == "perft")    { uciCmds.emplace_back(mode + " " + value); }
+                    else                    { uciCmds.emplace_back("go " + mode + " " + value); }
                 }
             }
 
             if (fen != "current") {
-                uciCmds.push_back("setoption name UCI_Chess960 value " + string{ chess960 ? "true" : "false" });
-                uciCmds.push_back("position fen " + pos.fen());
+                uciCmds.emplace_back("setoption name UCI_Chess960 value " + string{ chess960 ? "true" : "false" });
+                uciCmds.emplace_back("position fen " + pos.fen());
             }
             return uciCmds;
         }

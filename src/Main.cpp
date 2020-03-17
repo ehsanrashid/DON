@@ -1,8 +1,5 @@
-#include <cstdlib>
-
 #include <iostream>
 #include <thread>
-#include <cstdlib>
 
 #include "Bitbase.h"
 #include "Bitboard.h"
@@ -40,7 +37,6 @@ int main(int argc, char const *const *argv) {
     WinProcGroup::initialize();
     Threadpool.setup(optionThreads());
     TimeMgr.clear();
-    std::srand(u32(time(nullptr)));
     UCI::clear();
 
     std::atexit(clear);
