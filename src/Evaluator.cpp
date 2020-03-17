@@ -369,8 +369,8 @@ namespace Evaluator {
                     score -= MinorKingProtect * distance(s, pos.square(Own|KING));
 
                     b = OutpostBB[Own]
-                      & ~pawnEntry->attackSpan[Opp]
-                      & sqlAttacks[Own][PAWN];
+                      & sqlAttacks[Own][PAWN]
+                      & ~pawnEntry->attackSpan[Opp];
 
                     if (NIHT == PT) {
 
@@ -382,9 +382,8 @@ namespace Evaluator {
                         if (0 != (b & attacks & ~pos.pieces(Own))) {
                             score += KnightOutpost * 1;
                         }
-
                     }
-                    else
+
                     if (BSHP == PT) {
 
                         // Bonus for bishop outpost squares
@@ -397,9 +396,11 @@ namespace Evaluator {
                         score -= BishopPawns
                                * popCount(pos.pieces(Own, PAWN)
                                         & ColorBB[sColor(s)])
-                               * (1 + popCount(pos.pieces(Own, PAWN)
-                                             & SlotFileBB[CS_CENTRE]
-                                             & pawnSglPushBB<Opp>(pos.pieces())));
+                               * (1
+                                - contains(sqlAttacks[Own][PAWN], s)
+                                + popCount(pos.pieces(Own, PAWN)
+                                         & SlotFileBB[CS_CENTRE]
+                                         & pawnSglPushBB<Opp>(pos.pieces())));
 
                         // Bonus for bishop on a long diagonal which can "see" both center squares
                         score += BishopOnDiagonal
@@ -409,18 +410,16 @@ namespace Evaluator {
                         // It is a very serious problem, especially when that pawn is also blocked.
                         // Bishop (white or black) on a1/h1 or a8/h8 which is trapped by own pawn on b2/g2 or b7/g7.
                         if (1 >= mob
-                         && Options["UCI_Chess960"]) {
-                            auto relSq = relativeSq(Own, s);
-                            if (SQ_A1 == relSq
-                             || SQ_H1 == relSq) {
-
-                                auto del{ PawnPush[Own] + sign(FILE_E - sFile(s)) * EAST };
-                                if (contains(pos.pieces(Own, PAWN), s + del)) {
-                                    score -= BishopTrapped
-                                           * (!contains(pos.pieces(), s + del + PawnPush[Own]) ?
-                                                 !contains(pos.pieces(Own, PAWN), s + del + del) ?
-                                                     1 : 2 : 4);
-                                }
+                         && Options["UCI_Chess960"]
+                         && (s == relativeSq(Own, SQ_A1)
+                          || s == relativeSq(Own, SQ_H1))) {
+                          
+                            auto del{ PawnPush[Own] + sign(FILE_E - sFile(s)) * EAST };
+                            if (contains(pos.pieces(Own, PAWN), s + del)) {
+                                score -= BishopTrapped
+                                        * (!contains(pos.pieces(), s + del + PawnPush[Own]) ?
+                                                !contains(pos.pieces(Own, PAWN), s + del + del) ?
+                                                    1 : 2 : 4);
                             }
                         }
                     }

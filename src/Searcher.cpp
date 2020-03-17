@@ -136,7 +136,7 @@ namespace {
         Stack *const &ss,
         Position const &pos,
         Move move,
-        bool pmOK, Square pmDst, Piece pmPiece,
+        bool pmOK, Piece pmPiece, Square pmDst,
         Depth depth, i32 bonus) {
         // Refutation Moves
         if (ss->killerMoves[0] != move) {
@@ -603,29 +603,30 @@ namespace {
          && BOUND_NONE != (tte->bound()
                          & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))) {
             // Update move sorting heuristics on ttMove
-            if (MOVE_NONE != ttMove) {
+            if (MOVE_NONE != ttMove
+             && pos.pseudoLegal(ttMove)) {
 
-                if (!pos.captureOrPromotion(ttMove)
-                 && pos.pseudoLegal(ttMove)) {
+                if (!pos.captureOrPromotion(ttMove)) {
 
-                    auto bonus1{ statBonus(depth) };
+                    auto bonus{ statBonus(depth) };
                     // Bonus for a quiet ttMove that fails high
                     if (ttValue >= beta) {
-                        updateQuietStats(ss, pos, ttMove, pmOK, pmDst, pmPiece, depth, bonus1);
-
-                        // Extra penalty for early quiet moves in previous ply when it gets refuted
-                        if (pmOK
-                         && !pmCaptureOrPromotion
-                         && 2 >= (ss-1)->moveCount) {
-                            auto bonus2{ statBonus(depth + 1) };
-                            updateContinuationStats(ss-1, pmPiece, pmDst, -bonus2);
-                        }
+                        updateQuietStats(ss, pos, ttMove, pmOK, pmPiece, pmDst, depth, bonus);
                     }
                     // Penalty for a quiet ttMove that fails low
                     else {
-                        thread->butterFlyStats[pos.activeSide()][mIndex(ttMove)] << -bonus1;
-                        updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), -bonus1);
+                        thread->butterFlyStats[pos.activeSide()][mIndex(ttMove)] << -bonus;
+                        updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), -bonus);
                     }
+                }
+
+                // Extra penalty for early quiet moves in previous ply when it gets refuted
+                if (ttValue >= beta
+                 && pmOK
+                 && !pmCaptureOrPromotion
+                 && 2 >= (ss-1)->moveCount) {
+                    auto bonus{ statBonus(depth + 1) };
+                    updateContinuationStats(ss-1, pmPiece, pmDst, -bonus);
                 }
             }
 
@@ -868,7 +869,8 @@ namespace {
             // Step 11. Internal iterative deepening (IID). (~1 ELO)
             if (6 < depth
              && (MOVE_NONE == ttMove
-              || !pos.pseudoLegal(ttMove))) {
+              || !pos.pseudoLegal(ttMove))
+             && 2 < MoveList<GenType::LEGAL>(pos).size()) {
 
                 depthSearch<PVNode>(pos, ss, alfa, beta, depth - 7, cutNode);
 
@@ -1308,7 +1310,7 @@ namespace {
 
                 auto bonus2{ bestValue > std::min(beta + VALUE_MG_PAWN, +VALUE_INFINITE) ?
                                 bonus1 : statBonus(depth) };
-                updateQuietStats(ss, pos, bestMove, pmOK, pmDst, pmPiece, depth, bonus2);
+                updateQuietStats(ss, pos, bestMove, pmOK, pmPiece, pmDst, depth, bonus2);
                 // Decrease all the other played quiet moves
                 for (auto qm : quietMoves) {
                     thread->butterFlyStats[pos.activeSide()][mIndex(qm)] << -bonus2;

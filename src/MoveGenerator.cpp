@@ -94,28 +94,8 @@ namespace {
             // Pawn normal and en-passant captures, no promotions
             Bitboard lAttacks{ enemies & pawnLAttackBB<Own>(rxPawns) };
             Bitboard rAttacks{ enemies & pawnRAttackBB<Own>(rxPawns) };
-
-            Bitboard lChecks{ pos.checks(PAWN) };
-            Bitboard rChecks{ pos.checks(PAWN) };
-            // Pawns which give discovered check
-            Bitboard dscPawns{ rxPawns
-                             & pos.kingBlockers(Opp) };
-            if (0 != dscPawns) {
-                lChecks |= enemies & pawnLAttackBB<Own>(dscPawns);
-                rChecks |= enemies & pawnRAttackBB<Own>(dscPawns);
-            }
-
-            Bitboard lDirChecks = lAttacks & lChecks;
-            Bitboard rDirChecks = rAttacks & rChecks;
-
-            while (0 != lDirChecks) { auto dst{ popLSq(lDirChecks) }; moves += makeMove<NORMAL>(dst - PawnLAtt[Own], dst); }
-            while (0 != rDirChecks) { auto dst{ popLSq(rDirChecks) }; moves += makeMove<NORMAL>(dst - PawnRAtt[Own], dst); }
-
-            Bitboard lNonChecks = lAttacks & ~lChecks;
-            Bitboard rNonChecks = rAttacks & ~rChecks;
-
-            while (0 != lNonChecks) { auto dst{ popLSq(lNonChecks) }; moves += makeMove<NORMAL>(dst - PawnLAtt[Own], dst); }
-            while (0 != rNonChecks) { auto dst{ popLSq(rNonChecks) }; moves += makeMove<NORMAL>(dst - PawnRAtt[Own], dst); }
+            while (0 != lAttacks) { auto dst{ popLSq(lAttacks) }; moves += makeMove<NORMAL>(dst - PawnLAtt[Own], dst); }
+            while (0 != rAttacks) { auto dst{ popLSq(rAttacks) }; moves += makeMove<NORMAL>(dst - PawnRAtt[Own], dst); }
 
             if (SQ_NONE != pos.epSquare()) {
                 assert(RANK_6 == relativeRank(Own, pos.epSquare()));

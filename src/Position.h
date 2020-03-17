@@ -478,8 +478,8 @@ inline bool Position::semiopenFileOn(Color c, Square s) const {
     return 0 == (pieces(c, PAWN) & fileBB(s));
 }
 
-inline void Position::doMove(Move m, StateInfo &nsi) {
-    doMove(m, nsi, giveCheck(m));
+inline void Position::doMove(Move m, StateInfo &si) {
+    doMove(m, si, giveCheck(m));
 }
 
 
