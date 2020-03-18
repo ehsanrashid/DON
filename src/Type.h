@@ -24,7 +24,6 @@
 #include <cassert>
 #include <cctype>
 #include <climits>
-#include <cmath>
 #include <cstdint>
 #include <cstdlib>
 
@@ -231,10 +230,10 @@ enum Score : u32 {
 };
 
 enum Bound : u08 {
-    BOUND_NONE  = 0,
-    BOUND_UPPER = 1,
-    BOUND_LOWER = 2,
-    BOUND_EXACT = 3,
+    BOUND_NONE,
+    BOUND_UPPER,
+    BOUND_LOWER,
+    BOUND_EXACT = BOUND_UPPER | BOUND_LOWER,
 };
 
 enum Phase : u08 {

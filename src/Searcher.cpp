@@ -352,74 +352,81 @@ namespace {
                         dstSq((ss-1)->playedMove) : SQ_NONE };
 
         // Initialize move-picker(2) for the current position
-        MovePicker mp{ pos
-                     , &thread->butterFlyStats
-                     , &thread->captureStats
-                     , pieceStats
-                     , ttMove, depth, recapSq };
+        MovePicker movePicker{
+            pos,
+            &thread->butterFlyStats,
+            &thread->captureStats,
+            pieceStats,
+            ttMove, depth, recapSq };
         // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
-        while (MOVE_NONE != (move = mp.nextMove())) {
+        while (MOVE_NONE != (move = movePicker.nextMove())) {
             assert(isOk(move)
                 && (inCheck || pos.pseudoLegal(move)));
 
-            ++moveCount;
-
             auto org{ orgSq(move) };
             auto dst{ dstSq(move) };
-            auto mpc{ pos[org] };
+            auto mp{ pos[org] };
             bool giveCheck{ pos.giveCheck(move) };
             bool captureOrPromotion{ pos.captureOrPromotion(move) };
 
-            // Futility pruning
-            if (!inCheck
-             && !giveCheck
-             && -VALUE_KNOWN_WIN < futilityBase
-             && !(PAWN == pType(mpc)
-               && pos.pawnAdvanceAt(pos.activeSide(), org))
-             && 0 == Limits.mate) {
-                assert(ENPASSANT != mType(move)); // Due to !pos.pawnAdvanceAt
-                // Futility pruning parent node
-                auto futilityValue{ futilityBase + PieceValues[EG][CASTLE != mType(move) ? pType(pos[dst]) : NONE] };
-                if (futilityValue <= alfa) {
-                    if (bestValue < futilityValue) {
-                        bestValue = futilityValue;
+            if (!inCheck) {
+                // Futility pruning
+                if (!giveCheck
+                 && -VALUE_KNOWN_WIN < futilityBase
+                 && !(PAWN == pType(mp)
+                   && pos.pawnAdvanceAt(pos.activeSide(), org))
+                 && 0 == Limits.mate) {
+                    assert(ENPASSANT != mType(move)); // Due to !pos.pawnAdvanceAt
+                    // Futility pruning parent node
+                    auto futilityValue{ futilityBase + PieceValues[EG][CASTLE != mType(move) ? pType(pos[dst]) : NONE] };
+                    if (futilityValue <= alfa) {
+                        if (bestValue < futilityValue) {
+                            bestValue = futilityValue;
+                        }
+                        continue;
                     }
-                    continue;
+                    // Prune moves with negative or zero SEE
+                    if (futilityBase <= alfa
+                     && !pos.see(move, Value(1))) {
+                        if (bestValue < futilityBase) {
+                            bestValue = futilityBase;
+                        }
+                        continue;
+                    }
                 }
-                // Prune moves with negative or zero SEE
-                if (futilityBase <= alfa
-                 && !pos.see(move, Value(1))) {
-                    if (bestValue < futilityBase) {
-                        bestValue = futilityBase;
-                    }
+
+                // Pruning: Don't search moves with negative SEE
+                if (0 == Limits.mate
+                 && !pos.see(move)) {
                     continue;
                 }
             }
-
-            // Pruning: Don't search moves with negative SEE
-            if ((!inCheck
-                 // Evasion Prunable: Detect non-capture evasions that are candidates to be pruned
-              || ((DEPTH_ZERO != depth
-                || 2 < moveCount)
-               && -VALUE_MATE_2_MAX_PLY < bestValue
-               && !pos.capture(move)))
-             && !pos.see(move)
-             && 0 == Limits.mate) {
-                continue;
+            else {
+                // Pruning: Don't search moves with negative SEE
+                // Evasion Prunable: Detect non-capture evasions that are candidates to be pruned
+                if (((DEPTH_QS_CHECK > depth
+                   || 1 < moveCount)
+                  && -VALUE_MATE_2_MAX_PLY < bestValue
+                  && !pos.capture(move))
+                 && 0 == Limits.mate
+                 && !pos.see(move)) {
+                    continue;
+                }
             }
 
             // Check for legality just before making the move
             if (!pos.legal(move)) {
-                --moveCount;
                 continue;
             }
+
+            ++moveCount;
 
             // Speculative prefetch as early as possible
             prefetch(TT.cluster(pos.movePosiKey(move))->entryTable);
 
             // Update the current move
             ss->playedMove = move;
-            ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mpc][dst];
+            ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mp][dst];
             // Do the move
             pos.doMove(move, si, giveCheck);
             auto value{ -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth - DEPTH_ONE) };
@@ -709,7 +716,7 @@ namespace {
             ss->staticEval = eval = VALUE_NONE;
             improving = false;
         }
-        // Skip early pruning when in check
+        // Early pruning
         else {
             if (ttHit) {
                 // Never assume anything on values stored in TT.
@@ -827,11 +834,12 @@ namespace {
 
                 u08 probCutCount{ 0 };
                 // Initialize move-picker(3) for the current position
-                MovePicker mp{ pos
-                             , &thread->captureStats
-                             , ttMove, depth, raisedBeta - ss->staticEval };
+                MovePicker movePicker{
+                    pos,
+                    &thread->captureStats,
+                    ttMove, depth, raisedBeta - ss->staticEval };
                 // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
-                while (MOVE_NONE != (move = mp.nextMove())
+                while (MOVE_NONE != (move = movePicker.nextMove())
                     && 2 + 2 * cutNode > probCutCount) {
                     assert(isOk(move)
                         && pos.pseudoLegal(move)
@@ -883,8 +891,8 @@ namespace {
                             tte->move() : MOVE_NONE;
                 ttValue = ttHit ?
                             valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE;
-                //ttPV    = PVNode
-                //       || (ttHit && tte->pv());
+                ttPV    = PVNode
+                       || (ttHit && tte->pv());
             }
         }
 
@@ -915,16 +923,17 @@ namespace {
         auto counterMove = pos.thread()->counterMoves[pmPiece][pmDst];
 
         // Initialize move-picker(1) for the current position
-        MovePicker mp{ pos
-                     , &thread->butterFlyStats
-                     , &thread->lowPlyStats
-                     , &thread->captureStats
-                     , pieceStats
-                     , ttMove, depth
-                     , 12 < depth ? ss->ply : i16(MAX_PLY)
-                     , ss->killerMoves, counterMove };
+        MovePicker movePicker{
+            pos,
+            &thread->butterFlyStats,
+            &thread->lowPlyStats,
+            &thread->captureStats,
+            pieceStats,
+            ttMove, depth,
+            12 < depth ? ss->ply : i16(MAX_PLY),
+            ss->killerMoves, counterMove };
         // Step 12. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
-        while (MOVE_NONE != (move = mp.nextMove())) {
+        while (MOVE_NONE != (move = movePicker.nextMove())) {
             assert(isOk(move)
                 && (inCheck || pos.pseudoLegal(move)));
 
@@ -969,7 +978,7 @@ namespace {
 
             auto org{ orgSq(move) };
             auto dst{ dstSq(move) };
-            auto mpc{ pos[org] };
+            auto mp{ pos[org] };
             bool giveCheck{ pos.giveCheck(move) };
             bool captureOrPromotion{ pos.captureOrPromotion(move) };
 
@@ -982,7 +991,7 @@ namespace {
              && VALUE_ZERO < pos.nonPawnMaterial(pos.activeSide())
              && 0 == Limits.mate) {
                 // Skip quiet moves if move count exceeds our futilityMoveCount() threshold
-                mp.skipQuiets = futilityMoveCount(depth, improving) <= moveCount;
+                movePicker.skipQuiets = futilityMoveCount(depth, improving) <= moveCount;
 
                 if (giveCheck
                  || captureOrPromotion) {
@@ -996,17 +1005,17 @@ namespace {
                     i32 lmrDepth{ std::max(newDepth - reduction(depth, moveCount, improving), 0) };
                     // Counter moves based pruning: (~20 ELO)
                     if (4 + (0 < (ss-1)->stats || 1 == (ss-1)->moveCount) > lmrDepth
-                     && (*pieceStats[0])[mpc][dst] < CounterMovePruneThreshold
-                     && (*pieceStats[1])[mpc][dst] < CounterMovePruneThreshold) {
+                     && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
+                     && (*pieceStats[1])[mp][dst] < CounterMovePruneThreshold) {
                         continue;
                     }
                     // Futility pruning: parent node. (~5 ELO)
                     if (!inCheck
                      && 6 > lmrDepth
                      && ss->staticEval + 235 + 172 * lmrDepth <= alfa
-                     && (*pieceStats[0])[mpc][dst]
-                      + (*pieceStats[1])[mpc][dst]
-                      + (*pieceStats[3])[mpc][dst] < 27400) {
+                     && (*pieceStats[0])[mp][dst]
+                      + (*pieceStats[1])[mp][dst]
+                      + (*pieceStats[3])[mp][dst] < 27400) {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 ELO)
@@ -1063,7 +1072,7 @@ namespace {
               && (contains(pos.kingBlockers(~pos.activeSide()), org)
                || pos.see(move)))
                 // Passed pawn extension
-             || (PAWN == pType(mpc)
+             || (PAWN == pType(mp)
               && pos.pawnAdvanceAt(pos.activeSide(), org)
               && pos.pawnPassedAt(pos.activeSide(), dst)
               && ss->killerMoves[0] == move)) {
@@ -1093,20 +1102,20 @@ namespace {
 
             // Update the current move
             ss->playedMove = move;
-            ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mpc][dst];
+            ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mp][dst];
 
             // Step 15. Do the move
             pos.doMove(move, si, giveCheck);
 
             bool doLMR{
                 2 < depth
-             && 1 + 2 * rootNode < moveCount
+             && (1 + 2 * rootNode) < moveCount
              && (!rootNode
                 // At root if zero best counter
               || 0 == thread->rootMoves.bestCount(thread->pvCur, thread->pvEnd, move))
              && (cutNode
               || !captureOrPromotion
-              || mp.skipQuiets
+              || movePicker.skipQuiets
                 // If ttHit running average is small
               || thread->ttHitAvg < 375 * TTHitAverageWindow
               || ss->staticEval + PieceValues[EG][pos.captured()] <= alfa) };
@@ -1147,9 +1156,9 @@ namespace {
 
                     ss->stats =
                           thread->butterFlyStats[~pos.activeSide()][mIndex(move)]
-                        + (*pieceStats[0])[mpc][dst]
-                        + (*pieceStats[1])[mpc][dst]
-                        + (*pieceStats[3])[mpc][dst]
+                        + (*pieceStats[0])[mp][dst]
+                        + (*pieceStats[1])[mp][dst]
+                        + (*pieceStats[3])[mp][dst]
                         - 4926;
 
                     // Decrease/Increase reduction by comparing opponent's stat score (~10 Elo)
@@ -1195,7 +1204,7 @@ namespace {
                     if (ss->killerMoves[0] == move) {
                         bonus += bonus / 4;
                     }
-                    updateContinuationStats(ss, mpc, dst, bonus);
+                    updateContinuationStats(ss, mp, dst, bonus);
                 }
             }
 
@@ -1466,16 +1475,17 @@ void Thread::search() {
     Stack stack[MAX_PLY + 10], *ss;
     for (ss = stack; ss < stack + MAX_PLY + 10; ++ss) {
         ss->ply             = i16(ss - (stack+7));
+
+        bool ssOk = 0 <= ss->ply;
         ss->playedMove      = MOVE_NONE;
         ss->excludedMove    = MOVE_NONE;
         ss->moveCount       = 0;
-        ss->staticEval      = VALUE_ZERO;
+        ss->staticEval      = ssOk ? VALUE_ZERO : VALUE_NONE;
         ss->stats           = 0;
-        ss->pieceStats      = ss < stack + 7 ?
-                                &continuationStats[0][0][NO_PIECE][32] : nullptr;
+        ss->pieceStats      = ssOk ? nullptr : &continuationStats[0][0][NO_PIECE][32];
         ss->killerMoves.fill(MOVE_NONE);
-        ss->pv.clear();
-        if (0 <= ss->ply) {
+        if (ssOk) {
+        //ss->pv.clear();
         ss->pv.reserve(std::max(32 - ss->ply, 4));
         }
     }

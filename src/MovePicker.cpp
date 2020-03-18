@@ -165,29 +165,28 @@ void MovePicker::value() {
             break;
         case GenType::QUIET: {
             auto dst{ dstSq(vm) };
-            auto mpc{ pos[orgSq(vm)] };
+            auto mp{ pos[orgSq(vm)] };
             auto index{ mIndex(vm) };
 
             vm.value = (*butterFlyStats)[pos.activeSide()][index]
-                     + (*pieceStats[0])[mpc][dst] * 2
-                     + (*pieceStats[1])[mpc][dst] * 2
-                     + (*pieceStats[3])[mpc][dst] * 2
-                     + (*pieceStats[5])[mpc][dst]
+                     + (*pieceStats[0])[mp][dst] * 2
+                     + (*pieceStats[1])[mp][dst] * 2
+                     + (*pieceStats[3])[mp][dst] * 2
+                     + (*pieceStats[5])[mp][dst]
                    + (ply < MAX_LOWPLY ?
                        (*lowPlyStats)[ply][index] * 4 : 0);
         }
             break;
         case GenType::EVASION: {
-            auto mpc{ pos[orgSq(vm)] };
 
             vm.value =
                 pos.capture(vm) ?
 
                     i32(PieceValues[MG][pos.captured(vm)])
-                  - pType(mpc) :
+                  - pType(pos[orgSq(vm)]) :
 
                     (*butterFlyStats)[pos.activeSide()][mIndex(vm)]
-                  + (*pieceStats[0])[mpc][dstSq(vm)]
+                  + (*pieceStats[0])[pos[orgSq(vm)]][dstSq(vm)]
                   - 0x10000000; // 1 << 28
         }
             break;

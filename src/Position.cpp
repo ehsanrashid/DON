@@ -74,18 +74,25 @@ Key Position::movePosiKey(Move m) const {
 
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
-    auto pKey{ posiKey() ^ RandZob.colorKey };
+    auto mp = board[org];
+    auto cp = ENPASSANT != mType(m) ?
+                board[dst] : ~active|PAWN;
+
+    auto pKey{ posiKey()
+             ^ RandZob.colorKey
+             ^ (SQ_NONE != epSquare() ? RandZob.enpassantKey[sFile(epSquare())] : 0) };
+
     if (CASTLE == mType(m)) {
-        pKey ^= RandZob.pieceSquareKey[active|ROOK][dst]
-              ^ RandZob.pieceSquareKey[active|ROOK][rookCastleSq(org, dst)];
+        // ROOK
+        pKey ^= RandZob.pieceSquareKey[cp][dst]
+              ^ RandZob.pieceSquareKey[cp][rookCastleSq(org, dst)];
     }
     else {
-        auto cp{ ENPASSANT != mType(m) ? board[dst] : ~active|PAWN };
         if (NO_PIECE != cp) {
             pKey ^= RandZob.pieceSquareKey[cp][ENPASSANT != mType(m) ? dst : dst - PawnPush[active]];
         }
         else
-        if (PAWN == pType(board[org])
+        if (PAWN == pType(mp)
          && dst == org + 2 * PawnPush[active]) {
             auto epSq{ org + PawnPush[active] };
             if (canEnpassant(~active, epSq, false)) {
@@ -93,12 +100,9 @@ Key Position::movePosiKey(Move m) const {
             }
         }
     }
-    if (SQ_NONE != epSquare()) {
-        pKey ^= RandZob.enpassantKey[sFile(epSquare())];
-    }
     return pKey
-         ^ RandZob.pieceSquareKey[board[org]][org]
-         ^ RandZob.pieceSquareKey[PROMOTE != mType(m) ? board[org] : active|promoteType(m)][CASTLE != mType(m) ? dst : kingCastleSq(org, dst)]
+         ^ RandZob.pieceSquareKey[mp][org]
+         ^ RandZob.pieceSquareKey[PROMOTE != mType(m) ? mp : active|promoteType(m)][CASTLE != mType(m) ? dst : kingCastleSq(org, dst)]
          ^ RandZob.castleRightKey[castleRights() & (sqCastleRight[org]|sqCastleRight[dst])];
 }
 
