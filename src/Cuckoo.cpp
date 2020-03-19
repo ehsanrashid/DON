@@ -11,7 +11,7 @@ Cuckoo::Cuckoo(Piece p, Square s1, Square s2) :
 {}
 
 Cuckoo::Cuckoo() :
-    Cuckoo(NO_PIECE, SQ_NONE, SQ_NONE)
+    Cuckoo{ NO_PIECE, SQ_NONE, SQ_NONE }
 {}
 
 bool Cuckoo::empty() const {

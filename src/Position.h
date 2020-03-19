@@ -73,6 +73,8 @@ struct StateInfo {
     Bitboard    checkers;       // Checkers
     PieceType   captured;       // Piece type captured
     i16         repetition;
+    //bool        dirtyMatlKey;
+    //bool        dirtyPawnKey;
     // Check info
     Array<Bitboard, COLORS> kingBlockers; // Absolute and Discover Blockers
     Array<Bitboard, COLORS> kingCheckers; // Absolute and Discover Checkers
@@ -226,6 +228,7 @@ public:
 
     bool pawnAdvanceAt(Color, Square) const;
     bool pawnPassedAt(Color, Square) const;
+    Bitboard pawnsOnSqColor(Color, Color) const;
 
     bool bishopPaired(Color) const;
     bool bishopOpposed() const;
@@ -460,6 +463,10 @@ inline bool Position::pawnAdvanceAt(Color c, Square s) const {
 /// Position::pawnPassedAt() check if pawn passed at the given square
 inline bool Position::pawnPassedAt(Color c, Square s) const {
     return 0 == (pieces(~c, PAWN) & pawnPassSpan(c, s));
+}
+
+inline Bitboard Position::pawnsOnSqColor(Color c, Color sqC) const {
+    return pieces(c, PAWN) & ColorBB[sqC];
 }
 
 /// Position::bishopPaired() check the side has pair of opposite color bishops

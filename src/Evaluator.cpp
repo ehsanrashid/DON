@@ -39,16 +39,14 @@ namespace Evaluator {
             }
 
             friend std::ostream& operator<<(std::ostream &os, Term t) {
-                switch (t) {
-                case MATERIAL:
-                case IMBALANCE:
-                case INITIATIVE:
-                case TOTAL:
+                if (MATERIAL == t
+                 || IMBALANCE == t
+                 || INITIATIVE == t
+                 || TOTAL == t) {
                     os << " | ----- -----" << " | ----- -----";
-                    break;
-                default:
+                }
+                else {
                     os << " | " << Scores[t][WHITE] << " | " << Scores[t][BLACK];
-                    break;
                 }
                 os << " | " << Scores[t][WHITE] - Scores[t][BLACK] << " |\n";
                 return os;
@@ -301,55 +299,16 @@ namespace Evaluator {
             for (Square s : pos.squares(Own|PT)) {
                 assert((Own|PT) == pos[s]);
 
-                // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
-                Bitboard attacks;
-                switch (PT) {
-                case BSHP: attacks = attacksBB<BSHP>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, BSHP) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))); break;
-                case ROOK: attacks = attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))); break;
-                case QUEN: attacks = attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~pos.kingBlockers(Own))));                         break;
-                case NIHT: default: attacks = PieceAttackBB[NIHT][s];                                                                                      break;
-                }
-
                 Bitboard action{
                     contains(pos.kingBlockers(Own), s) ?
                         LineBB[pos.square(Own|KING)][s] : BoardBB };
 
-                attacks &= action;
-
-                switch (PT) {
-                case BSHP: {
-                    Bitboard pc =  pos.pieces(Own)
-                                & ~pos.kingBlockers(Own);
-                    dblAttacks[Own] |= sqlAttacks[Own][NONE]
-                                     & (attacks
-                                      | (pawnSglAttackBB<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttackBB[BSHP][s] & action));
-                }
-                    break;
-                case QUEN: {
-                    Bitboard pc =  pos.pieces(Own)
-                                & ~pos.kingBlockers(Own);
-                    dblAttacks[Own] |= sqlAttacks[Own][NONE]
-                                     & (attacks
-                                      | (pawnSglAttackBB<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttackBB[BSHP][s] & action)
-                                      | (attacksBB<BSHP>(s, pos.pieces() ^ (pc & pos.pieces(BSHP) & PieceAttackBB[BSHP][s])) & action)
-                                      | (attacksBB<ROOK>(s, pos.pieces() ^ (pc & pos.pieces(ROOK) & PieceAttackBB[ROOK][s])) & action));
-                }
-                    break;
-                default:
-                    dblAttacks[Own] |= sqlAttacks[Own][NONE]
-                                     & attacks;
-                    break;
-                }
-
-                sqlAttacks[Own][PT]   |= attacks;
-                sqlAttacks[Own][NONE] |= attacks;
-                fulAttacks[Own]       |= pos.pieceAttacksFrom(PT, s);
-
-                if ((attacks & kingRing[Opp]) != 0) {
-                    kingAttackersCount [Own]++;
-                    kingAttackersWeight[Own] += KingAttackerWeight[PT];
-                    kingAttacksCount   [Own] += popCount(attacks & sqlAttacks[Opp][KING]);
-                }
+                // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
+                Bitboard attacks{
+                    NIHT == PT ? PieceAttackBB[NIHT][s] & action :
+                    BSHP == PT ? attacksBB<BSHP>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, BSHP) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))) & action :
+                    ROOK == PT ? attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))) & action :
+                                 attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~pos.kingBlockers(Own)))) & action };
 
                 auto mob = popCount(attacks & mobArea[Own]);
                 assert(0 <= mob && mob <= 27);
@@ -359,32 +318,42 @@ namespace Evaluator {
 
                 Bitboard b;
                 // Special extra evaluation for pieces
-                switch (PT) {
-                case NIHT:
-                case BSHP: {
+                if (NIHT == PT
+                 || BSHP == PT) {
                     // Bonus for minor behind a pawn
                     score += MinorBehindPawn * contains(pawnSglPushBB<Opp>(pos.pieces(PAWN)), s);
 
                     // Penalty for distance from the friend king
                     score -= MinorKingProtect * distance(s, pos.square(Own|KING));
 
-                    b = OutpostBB[Own]
-                      & sqlAttacks[Own][PAWN]
+                    b =  OutpostBB[Own]
+                      &  sqlAttacks[Own][PAWN]
                       & ~pawnEntry->attackSpan[Opp];
 
                     if (NIHT == PT) {
+
+                        dblAttacks[Own] |= sqlAttacks[Own][NONE]
+                                         & attacks;
 
                         // Bonus for knight outpost squares
                         if (contains(b, s)) {
                             score += KnightOutpost * 2;
                         }
                         else
-                        if (0 != (b & attacks & ~pos.pieces(Own))) {
+                        if (0 != (b
+                                & attacks
+                                & ~pos.pieces(Own))) {
                             score += KnightOutpost * 1;
                         }
                     }
 
                     if (BSHP == PT) {
+
+                        Bitboard pc =  pos.pieces(Own)
+                                    & ~pos.kingBlockers(Own);
+                        dblAttacks[Own] |= sqlAttacks[Own][NONE]
+                                         & (attacks
+                                          | (pawnSglAttackBB<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttackBB[BSHP][s] & action));
 
                         // Bonus for bishop outpost squares
                         if (contains(b, s)) {
@@ -395,8 +364,7 @@ namespace Evaluator {
                         // less when the bishop is protected by pawn
                         // more when the center files are blocked with pawns.
                         score -= BishopPawns
-                               * popCount(pos.pieces(Own, PAWN)
-                                        & ColorBB[sColor(s)])
+                               * popCount(pos.pawnsOnSqColor(Own, sColor(s)))
                                * (!contains(sqlAttacks[Own][PAWN], s)
                                 + popCount(pos.pieces(Own, PAWN)
                                          & SlotFileBB[CS_CENTRE]
@@ -424,8 +392,10 @@ namespace Evaluator {
                         }
                     }
                 }
-                    break;
-                case ROOK: {
+                if (ROOK == PT) {
+
+                    dblAttacks[Own] |= sqlAttacks[Own][NONE]
+                                     & attacks;
 
                     // Bonus for rook on the same file as a queen
                     if (0 != (fileBB(s) & pos.pieces(QUEN))) {
@@ -448,8 +418,15 @@ namespace Evaluator {
                         }
                     }
                 }
-                    break;
-                case QUEN: {
+                if (QUEN == PT) {
+
+                    Bitboard pc =  pos.pieces(Own)
+                                & ~pos.kingBlockers(Own);
+                    dblAttacks[Own] |= sqlAttacks[Own][NONE]
+                                     & (attacks
+                                      | (pawnSglAttackBB<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttackBB[BSHP][s] & action)
+                                      | (attacksBB<BSHP>(s, pos.pieces() ^ (pc & pos.pieces(BSHP) & PieceAttackBB[BSHP][s])) & action)
+                                      | (attacksBB<ROOK>(s, pos.pieces() ^ (pc & pos.pieces(ROOK) & PieceAttackBB[ROOK][s])) & action));
 
                     queenAttacked[Own][0] |= pos.pieceAttacksFrom(NIHT, s);
                     queenAttacked[Own][1] |= pos.pieceAttacksFrom(BSHP, s);
@@ -465,7 +442,15 @@ namespace Evaluator {
                         score -= QueenWeaken;
                     }
                 }
-                    break;
+
+                sqlAttacks[Own][PT]   |= attacks;
+                sqlAttacks[Own][NONE] |= attacks;
+                fulAttacks[Own]       |= pos.pieceAttacksFrom(PT, s);
+
+                if ((attacks & kingRing[Opp]) != 0) {
+                    kingAttackersCount [Own]++;
+                    kingAttackersWeight[Own] += KingAttackerWeight[PT];
+                    kingAttacksCount   [Own] += popCount(attacks & sqlAttacks[Opp][KING]);
                 }
             }
 
@@ -540,13 +525,15 @@ namespace Evaluator {
             }
 
             // Enemy knights checks
-            Bitboard nihtChecks{  PieceAttackBB[NIHT][kSq]
-                               &  sqlAttacks[Opp][NIHT]};
-            if (0 != (nihtChecks & safeArea)) {
+            Bitboard nihtSafeChecks{  PieceAttackBB[NIHT][kSq]
+                                   &  sqlAttacks[Opp][NIHT]
+                                   &  safeArea };
+            if (0 != nihtSafeChecks) {
                 kingDanger += SafeCheckWeight[NIHT];
             }
             else {
-                unsafeCheck |= nihtChecks;
+                unsafeCheck |= PieceAttackBB[NIHT][kSq]
+                             & sqlAttacks[Opp][NIHT];
             }
 
             Bitboard b;

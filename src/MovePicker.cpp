@@ -82,12 +82,12 @@ MovePicker::MovePicker(
     depth{ d },
     ply { sp },
     refutationMoves{ km[0], km[1], cm } {
+    assert(MOVE_NONE == ttm
+        || pos.pseudoLegal(ttm));
     assert(DEPTH_ZERO < depth);
     assert(!skipQuiets);
 
-    ttMove = MOVE_NONE != ttm
-          && pos.pseudoLegal(ttm) ?
-                ttm : MOVE_NONE;
+    ttMove = ttm;
     stage = (0 != pos.checkers() ? EVASION_TT : NATURAL_TT)
           + (MOVE_NONE == ttMove);
 }
@@ -107,13 +107,14 @@ MovePicker::MovePicker(
     pieceStats{ pStats },
     depth{ d },
     recapSq{ rs } {
+    assert(MOVE_NONE == ttm
+        || pos.pseudoLegal(ttm));
     assert(DEPTH_ZERO >= depth);
     assert(!skipQuiets);
 
     ttMove = MOVE_NONE != ttm
           && (DEPTH_QS_RECAP < depth
-           || dstSq(ttm) == recapSq)
-          && pos.pseudoLegal(ttm) ?
+           || dstSq(ttm) == recapSq) ?
                 ttm : MOVE_NONE;
     stage = (0 != pos.checkers() ? EVASION_TT : QUIESCENCE_TT)
           + (MOVE_NONE == ttMove);
@@ -129,12 +130,13 @@ MovePicker::MovePicker(
     captureStats{ cStats },
     depth{ d },
     threshold{ thr } {
+    assert(MOVE_NONE == ttm
+        || pos.pseudoLegal(ttm));
     assert(0 == pos.checkers());
     assert(!skipQuiets);
 
     ttMove = MOVE_NONE != ttm
           && pos.capture(ttm)
-          && pos.pseudoLegal(ttm)
           && pos.see(ttm, threshold) ?
                 ttm : MOVE_NONE;
     stage = PROBCUT_TT

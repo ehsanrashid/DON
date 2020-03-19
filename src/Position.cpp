@@ -50,7 +50,8 @@ void StateInfo::clear() {
     captured = NONE;
     checkers = 0;
     repetition = 0;
-
+    //dirtyMatlKey = false;
+    //dirtyPawnKey = false;
     kingBlockers.fill(0);
     kingCheckers.fill(0);
     checks.fill(0);
@@ -894,6 +895,9 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     auto cp = ENPASSANT != mType(m) ?
                 board[dst] : pasive|PAWN;
 
+    bool dirtyMatlKey = false;
+    bool dirtyPawnKey = false;
+
     if (CASTLE == mType(m)) {
         assert((active|KING) == mp
             && (active|ROOK) == cp
@@ -936,6 +940,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
                     && cp == board[cap]); //&& contains(pieces(pasive, PAWN), cap));
             }
             _stateInfo->pawnKey ^= RandZob.pieceSquareKey[cp][cap];
+            dirtyPawnKey = true;
         }
         else {
             npMaterial[pasive] -= PieceValues[MG][pType(cp)];
@@ -947,7 +952,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         }
         pKey ^= RandZob.pieceSquareKey[cp][cap];
         _stateInfo->matlKey ^= RandZob.pieceSquareKey[cp][count(cp)];
-
+        dirtyMatlKey = true;
         // Reset clock ply counter
         _stateInfo->clockPly = 0;
     }
@@ -1003,27 +1008,22 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
             _stateInfo->pawnKey ^= RandZob.pieceSquareKey[mp][dst];
             _stateInfo->matlKey ^= RandZob.pieceSquareKey[mp][count(mp)]
                                  ^ RandZob.pieceSquareKey[pp][count(pp) - 1];
+            dirtyMatlKey = true;
         }
 
         // Reset clock ply counter
         _stateInfo->clockPly = 0;
         _stateInfo->pawnKey ^= RandZob.pieceSquareKey[mp][org]
                              ^ RandZob.pieceSquareKey[mp][dst];
+        dirtyPawnKey = true;
     }
 
-    if (PAWN == pType(mp)
-     || PAWN == pType(cp)
-     || PROMOTE == mType(m)) {
-        prefetch(_thread->pawnHash[pawnKey()]);
-    }
-    if (NO_PIECE != cp
-     || PROMOTE == mType(m)) {
+    if (dirtyMatlKey) {
         prefetch(_thread->matlHash[matlKey()]);
     }
-
-    // Update the key with the final value
-    _stateInfo->posiKey = pKey;
-    //prefetch(TT.cluster(posiKey())->entryTable);
+    if (dirtyPawnKey) {
+        prefetch(_thread->pawnHash[pawnKey()]);
+    }
 
     assert(0 == (attackersTo(square(active|KING)) & pieces(pasive)));
     // Calculate checkers
@@ -1034,6 +1034,9 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 
     // Switch sides
     active = pasive;
+    // Update the key with the final value
+    _stateInfo->posiKey = pKey;
+    //prefetch(TT.cluster(posiKey())->entryTable); // Not needed
 
     setCheckInfo();
 
@@ -1130,8 +1133,17 @@ void Position::undoMove(Move m) {
         }
     }
 
+    //if (_stateInfo->dirtyMatlKey) {
+    //    prefetch(_thread->matlHash[_stateInfo->ptr->matlKey]); // Not needed
+    //}
+    //if (_stateInfo->dirtyPawnKey) {
+    //    prefetch(_thread->pawnHash[_stateInfo->ptr->pawnKey]); // Not needed
+    //}
+
     // Point state pointer back to the previous state.
     _stateInfo = _stateInfo->ptr;
+    //prefetch(TT.cluster(_stateInfo->posiKey)->entryTable); // Not needed
+
     --ply;
 
     assert(ok());
@@ -1156,10 +1168,9 @@ void Position::doNullMove(StateInfo &si) {
         _stateInfo->epSquare = SQ_NONE;
     }
 
-    _stateInfo->posiKey ^= RandZob.colorKey;
-    prefetch(TT.cluster(posiKey())->entryTable);
-
     active = ~active;
+    _stateInfo->posiKey ^= RandZob.colorKey;
+    //prefetch(TT.cluster(_stateInfo->posiKey)->entryTable); // Not needed
 
     setCheckInfo();
 
@@ -1176,6 +1187,7 @@ void Position::undoNullMove() {
 
     active = ~active;
     _stateInfo = _stateInfo->ptr;
+    //prefetch(TT.cluster(_stateInfo->posiKey)->entryTable); // Not needed
 
     assert(ok());
 }

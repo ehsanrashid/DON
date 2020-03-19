@@ -604,9 +604,11 @@ template<typename T>
 class HashTable :
     private std::vector<T> {
 
-public:
+private:
 
     u32 const Mask;
+
+public:
 
     HashTable(u32 size) :
         std::vector<T>(size),
