@@ -79,30 +79,30 @@ namespace BitBase {
                 && index(active, wkSq, bkSq, wpSq) == idx);
 
             // Check if two pieces are on the same square or if a king can be captured
-            if (2 > distance(wkSq, bkSq)
+            if (distance(wkSq, bkSq) < 2
              || wkSq == wpSq
              || bkSq == wpSq
-             || (WHITE == active
+             || (active == WHITE
               && contains(PawnAttackBB[WHITE][wpSq], bkSq))) {
                 result = INVALID;
             }
             else
             // Immediate win if a pawn can be promoted without getting captured
-            if (WHITE == active
-             && RANK_7 == sRank(wpSq)
+            if (active == WHITE
+             && sRank(wpSq) == RANK_7
              && wkSq != wpSq + NORTH
              && bkSq != wpSq + NORTH
-             && (1 < distance(bkSq, wpSq + NORTH)
-              || 2 > distance(wkSq, wpSq + NORTH))) {
+             && (distance(bkSq, wpSq + NORTH) > 1
+              || distance(wkSq, wpSq + NORTH) < 2)) {
                 result = WIN;
             }
             else
             // Immediate draw if king captures undefended pawn or is a stalemate
-            if (BLACK == active
-             && ((2 > distance(bkSq, wpSq)
-               && 1 < distance(wkSq, wpSq))
-              || 0 == (   PieceAttackBB[KING][bkSq]
-                      & ~(PieceAttackBB[KING][wkSq]|PawnAttackBB[WHITE][wpSq])))) {
+            if (active == BLACK
+             && ((distance(bkSq, wpSq) < 2
+               && distance(wkSq, wpSq) > 1)
+              || (  PieceAttackBB[KING][bkSq]
+                & ~(PieceAttackBB[KING][wkSq]|PawnAttackBB[WHITE][wpSq])) == 0)) {
                 result = DRAW;
             }
             // Position will be classified later
@@ -122,42 +122,36 @@ namespace BitBase {
             // If all moves lead to positions classified as WIN, the result of the current position is WIN
             // otherwise the current position is classified as UNKNOWN.
 
-            Result const Good{ WHITE == active ? WIN : DRAW };
-            Result const  Bad{ WHITE == active ? DRAW : WIN };
+            Result const Good{ active == WHITE ? WIN : DRAW };
+            Result const  Bad{ active == WHITE ? DRAW : WIN };
 
             Result r{ INVALID };
 
-            switch (active) {
-
-            case WHITE: {
+            if (active == WHITE) {
                 Bitboard b{  PieceAttackBB[KING][wkSq]
                           & ~PieceAttackBB[KING][bkSq] };
-                while (0 != b) {
+                while (b != 0) {
                     r |= kpkArrBase[index(BLACK, popLSq(b), bkSq, wpSq)];
                 }
 
                 // Pawn Single push
-                if (RANK_6 >= sRank(wpSq)) {
+                if (sRank(wpSq) <= RANK_6) {
                     r |= kpkArrBase[index(BLACK, wkSq, bkSq, wpSq + NORTH)];
 
                     // Pawn Double push
-                    if (RANK_2 == sRank(wpSq)
+                    if (sRank(wpSq) == RANK_2
                      && wkSq != wpSq + NORTH    // Front is not own king
                      && bkSq != wpSq + NORTH) { // Front is not opp king
                         r |= kpkArrBase[index(BLACK, wkSq, bkSq, wpSq + NORTH + NORTH)];
                     }
                 }
             }
-                break;
-            case BLACK: {
+            else { // if (active == BLACK)
                 Bitboard b{  PieceAttackBB[KING][bkSq]
                           & ~PieceAttackBB[KING][wkSq] };
-                while (0 != b) {
+                while (b != 0) {
                     r |= kpkArrBase[index(WHITE, wkSq, popLSq(b), wpSq)];
                 }
-            }
-                break;
-            default: break;
             }
 
             result = r & Good ? Good :
@@ -179,19 +173,19 @@ namespace BitBase {
         while (repeat) {
             repeat = false;
             for (u32 idx = 0; idx < kpkArrBase.size(); ++idx) {
-                repeat |= UNKNOWN == kpkArrBase[idx]
-                       && UNKNOWN != kpkArrBase[idx].classify(kpkArrBase);
+                repeat |= kpkArrBase[idx] == UNKNOWN
+                       && kpkArrBase[idx].classify(kpkArrBase) != UNKNOWN;
             }
         }
 
         // Fill the Bitbase from Arraybase
         for (u32 idx = 0; idx < kpkArrBase.size(); ++idx) {
-            if (WIN == kpkArrBase[idx]) {
+            if (kpkArrBase[idx] == WIN) {
                 KPKBitBase.set(idx);
             }
         }
 
-        assert(111282 == KPKBitBase.count());
+        assert(KPKBitBase.count() == 111282);
     }
 
     bool probe(bool stngActive, Square skSq, Square wkSq, Square spSq) {

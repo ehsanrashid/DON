@@ -64,7 +64,7 @@ namespace {
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
         u08 pt = (m >> 12) & PIECE_TYPES;
-        if (PAWN < pt) {
+        if (pt > PAWN) {
             assert(NIHT <= pt && pt <= QUEN);
             // Set new type for promotion piece
             m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + mIndex(m));
@@ -163,7 +163,7 @@ PolyBook::~PolyBook() {
 void PolyBook::clear() {
 
     enabled = false;
-    if (nullptr != _entryTable) {
+    if (_entryTable != nullptr) {
         delete[] _entryTable;
         _entryTable = nullptr;
     }
@@ -191,7 +191,7 @@ i64 PolyBook::findIndex(Key pgKey) const {
 
     while (beg < end) {
         if (pgKey == _entryTable[beg].key) {
-            while (0 < beg
+            while (beg > 0
                 && pgKey == _entryTable[beg - 1].key) {
                 --beg;
             }
@@ -218,7 +218,7 @@ bool PolyBook::canProbe(Position const &pos) {
      || popCount(pieces ^ _pieces) > 6
      || pieceCount > _pieceCount
      || pieceCount < _pieceCount - 2
-     || U64(0x463B96181691FC9C) == pos.pgKey()) {
+     || pos.pgKey() == U64(0x463B96181691FC9C)) {
         _doProbe = true;
     }
 
@@ -250,12 +250,12 @@ void PolyBook::initialize(string const &fnBook) {
 
     _entryCount = (fileSize - HeaderSize) / sizeof(PolyEntry);
     _entryTable = new PolyEntry[_entryCount];
-    if (nullptr == _entryTable) {
+    if (_entryTable == nullptr) {
         return;
     }
     enabled = true;
 
-    if (0 != HeaderSize) {
+    if (HeaderSize != 0) {
         PolyEntry dummy;
         for (u64 idx = 0; idx < HeaderSize / sizeof(PolyEntry); ++idx) {
             ifs >> dummy;
@@ -278,16 +278,17 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
     static PRNG prng{ u64(now()) };
 
     if (!enabled
-     || nullptr == _entryTable
-     || (0 != moveCount && moveCount < pos.moveCount())
+     || _entryTable == nullptr
+     || (moveCount != 0
+      && moveCount < pos.moveCount())
      || !canProbe(pos)) {
         return MOVE_NONE;
     }
 
     auto pgKey{ pos.pgKey() };
     auto index{ findIndex(pgKey) };
-    if (0 > index) {
-        if (4 < ++_failCount) {
+    if (index < 0) {
+        if (++_failCount > 4) {
             // Stop probe after 4 times not in the book till position changes according to canProbe()
             _doProbe = false;
             _failCount = 0;
@@ -304,7 +305,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
     while (idx < _entryCount
         && pgKey == _entryTable[idx].key) {
 
-        if (MOVE_NONE == _entryTable[idx].move) {
+        if (_entryTable[idx].move == MOVE_NONE) {
             continue;
         }
         ++count;
@@ -319,8 +320,8 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
         }
         else {
             // Move with a very high score, has a higher probability of being choosen.
-            if (0 != sumWeight
-                && (prng.rand<u32>() % sumWeight) < _entryTable[idx].weight) {
+            if (sumWeight != 0
+             && (prng.rand<u32>() % sumWeight) < _entryTable[idx].weight) {
                 pick1Index = idx;
             }
         }
@@ -330,14 +331,14 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
     Move move;
 
     move = Move(_entryTable[pick1Index].move);
-    if (MOVE_NONE == move) {
+    if (move == MOVE_NONE) {
         return MOVE_NONE;
     }
 
     move = polyMove(move, pos);
 
     if (!pos.draw(64)
-        || 1 >= count) {
+     || count <= 1) {
         return move;
     }
 
@@ -354,7 +355,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
     }
 
     move = Move(_entryTable[pick2Index].move);
-    if (MOVE_NONE == move) {
+    if (move == MOVE_NONE) {
         return MOVE_NONE;
     }
 
@@ -368,14 +369,14 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
 }
 
 string PolyBook::show(Position const &pos) const {
-    if (nullptr == _entryTable
+    if (_entryTable == nullptr
      || !enabled) {
         return "Book entries empty.";
     }
 
     auto key{ pos.pgKey() };
     auto index{ findIndex(key) };
-    if (0 > index) {
+    if (index < 0) {
         return "Book entries not found.";
     }
 
@@ -396,10 +397,11 @@ string PolyBook::show(Position const &pos) const {
         oss << "\nBook entries: " << peList.size() << "\n";
         for (auto &pe : peList) {
             pe.move = polyMove(Move(pe.move), pos);
+            auto prob = sumWeight != 0 ? 100.0 * pe.weight / sumWeight : 0.0;
             oss << pe
                 << " prob: "
                 << std::setfill('0')
-                << std::setw(7) << std::fixed << std::setprecision(4) << (0 != sumWeight ? 100.0 * pe.weight / sumWeight : 0.0)
+                << std::setw(7) << std::fixed << std::setprecision(4) << prob
                 << std::setfill(' ');
         }
     }

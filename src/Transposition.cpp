@@ -16,13 +16,13 @@ u08 TEntry::Generation = 0;
 
 void TEntry::save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv) {
     // Preserve more valuable entries
-    if (MOVE_NONE != m
+    if (m != MOVE_NONE
      || k16 != u16(k >> 0x30)) {
         m16 = u16(m);
     }
     if (k16 != u16(k >> 0x30)
      || d08 < d - DEPTH_OFFSET + 4
-     || BOUND_EXACT == b) {
+     || b == BOUND_EXACT) {
         assert(d > DEPTH_OFFSET);
 
         k16 = u16(k >> 0x30);
@@ -47,11 +47,11 @@ TEntry* TCluster::probe(u16 key16, bool &hit) {
     // Find an entry to be replaced according to the replacement strategy.
     auto *rte = entryTable; // Default first
     for (auto *ite = entryTable; ite < entryTable + EntryCount; ++ite) {
-        if (0 == ite->d08
-         || key16 == ite->k16) {
+        if (ite->d08 == 0
+         || ite->k16 == key16) {
             // Refresh entry
             ite->g08 = u08(TEntry::Generation | (ite->g08 & 7));
-            hit = (0 != ite->d08);
+            hit = (ite->d08 != 0);
             return ite;
         }
         // Replacement strategy.
@@ -98,8 +98,8 @@ namespace {
         return reinterpret_cast<void*>((uPtr(mem) + alignment - 1) & ~uPtr(alignment - 1));
 
 #   endif
-        //assert(nullptr != new_mem
-        //    && 0 == (uPtr(new_mem) & (alignment - 1)));
+        //assert(new_mem != nullptr
+        //    && (uPtr(new_mem) & (alignment - 1)) == 0);
     }
 
 }
@@ -132,7 +132,7 @@ u32 TTable::resize(u32 memSize) {
 
     _clusterCount = (size_t(memSize) << 20) / sizeof (TCluster);
     _clusterTable = static_cast<TCluster*>(allocAlignedMemory(_mem, size_t(_clusterCount * sizeof (TCluster))));
-    if (nullptr == _mem) {
+    if (_mem == nullptr) {
         std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << std::endl;
         return 0;
     }
@@ -144,9 +144,9 @@ u32 TTable::resize(u32 memSize) {
 
 /// TTable::autoResize() set size automatically
 void TTable::autoResize(u32 memSize) {
-    auto mSize{ 0 != memSize ? memSize : MaxHashSize };
+    auto mSize{ memSize != 0 ? memSize : MaxHashSize };
     while (mSize >= MinHashSize) {
-        if (0 != resize(mSize)) {
+        if (resize(mSize) != 0) {
             return;
         }
         mSize >>= 1;
@@ -155,8 +155,8 @@ void TTable::autoResize(u32 memSize) {
 }
 /// TTable::clear() clear the entire transposition table in a multi-threaded way.
 void TTable::clear() {
-    assert(nullptr != _clusterTable
-        && 0 != _clusterCount);
+    assert(_clusterTable != nullptr
+        && _clusterCount != 0);
 
     if (Options["Retain Hash"]) {
         return;
@@ -167,7 +167,7 @@ void TTable::clear() {
     for (u16 idx = 0; idx < threadCount; ++idx) {
         threads.emplace_back(
             [this, idx, threadCount]() {
-                if (8 < threadCount) {
+                if (threadCount > 8) {
                     WinProcGroup::bind(idx);
                 }
                 auto const stride{ _clusterCount / threadCount };
@@ -207,7 +207,7 @@ u32 TTable::hashFull() const {
 
 /// TTable::extractNextMove() extracts next move after this move.
 Move TTable::extractNextMove(Position &pos, Move m) const {
-    assert(MOVE_NONE != m
+    assert(m != MOVE_NONE
         && MoveList<GenType::LEGAL>(pos).contains(m));
 
     StateInfo si;
@@ -216,12 +216,12 @@ Move TTable::extractNextMove(Position &pos, Move m) const {
     auto *tte{ probe(pos.posiKey(), ttHit) };
     auto nm{ ttHit ?
                 tte->move() : MOVE_NONE };
-    if (MOVE_NONE != nm
+    if (nm != MOVE_NONE
      && !(pos.pseudoLegal(nm)
        && pos.legal(nm))) {
         nm = MOVE_NONE;
     }
-    assert(MOVE_NONE == nm
+    assert(nm == MOVE_NONE
         || MoveList<GenType::LEGAL>(pos).contains(nm));
     pos.undoMove(m);
 

@@ -15,9 +15,9 @@ Cuckoo::Cuckoo() :
 {}
 
 bool Cuckoo::empty() const {
-    return NO_PIECE == piece
-        || SQ_NONE == sq1
-        || SQ_NONE == sq2;
+    return piece == NO_PIECE
+        || sq1 == SQ_NONE
+        || sq2 == SQ_NONE;
 }
 
 bool Cuckoo::operator==(Cuckoo const &ck) const {
@@ -44,7 +44,7 @@ namespace Cuckoos {
 
 
     u16 nextHash(Key key, u16 h) {
-        return h == hash<0>(key) ?
+        return hash<0>(key) == h ?
                 hash<1>(key) :
                 hash<0>(key);
     }
@@ -74,7 +74,7 @@ namespace Cuckoos {
         std::vector<Cuckoo> cuckoos;
         for (Piece p : Pieces) {
             // Pawn moves are not reversible
-            if (PAWN == pType(p)) {
+            if (pType(p) == PAWN) {
                 continue;
             }
 
@@ -88,7 +88,7 @@ namespace Cuckoos {
                 }
             }
         }
-        assert(3668 == cuckoos.size()); // 2*(168+280+448+728+210) = 7336 / 2
+        assert(cuckoos.size() == 3668); // 2*(168+280+448+728+210) = 7336 / 2
 
         // Prepare the Cuckoo table
         CuckooTable.fill({ NO_PIECE, SQ_NONE, SQ_NONE });

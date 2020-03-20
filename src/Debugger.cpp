@@ -37,7 +37,7 @@ void Debugger::meanOf(i64 item) {
 }
 
 void Debugger::print() {
-    if (0 != Hit1Count) {
+    if (Hit1Count != 0) {
         std::ostringstream oss;
         oss << std::right
             << "---------------------------\n"
@@ -47,7 +47,7 @@ void Debugger::print() {
                                           << 100 * (double) Hit2Count / Hit1Count;
         std::cerr << oss.str() << std::endl;
     }
-    if (0 != ItemCount) {
+    if (ItemCount != 0) {
         std::ostringstream oss;
         oss << std::right
             << "---------------------------\n"

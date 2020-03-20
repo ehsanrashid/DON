@@ -162,7 +162,7 @@ constexpr Bitboard rankBB(Square s) {
 }
 
 constexpr bool contains(Bitboard bb, Square s) {
-    return 0 != (bb & SquareBB[s]);
+    return (bb & SquareBB[s]) != 0;
 }
 
 constexpr Bitboard operator&(Square s, Bitboard bb) {
@@ -199,9 +199,9 @@ constexpr Bitboard operator|(Square s1, Square s2) {
 inline bool moreThanOne(Bitboard bb) {
 
 #if defined(BM2)
-    return 0 != BLSR(bb);
+    return BLSR(bb) != 0;
 #else
-    return 0 != (bb & (bb - 1));
+    return (bb & (bb - 1)) != 0;
 #endif
 }
 
@@ -338,30 +338,13 @@ template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) {
 /// Position::attacksBB() finds attacks of the piecetype from the square on occupancy.
 inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
     assert(NIHT <= pt && pt <= KING);
-    switch (pt)
-    {
-    case NIHT: return PieceAttackBB[NIHT][s];
-    case BSHP: return attacksBB<BSHP>(s, occ);
-    case ROOK: return attacksBB<ROOK>(s, occ);
-    case QUEN: return attacksBB<QUEN>(s, occ);
-    case KING: return PieceAttackBB[KING][s];
-    default:   return 0;
-    }
+    return
+        pt == NIHT ? PieceAttackBB[NIHT][s] :
+        pt == BSHP ? attacksBB<BSHP>(s, occ) :
+        pt == ROOK ? attacksBB<ROOK>(s, occ) :
+        pt == QUEN ? attacksBB<QUEN>(s, occ) :
+                     PieceAttackBB[KING][s];
 }
-///// Position::attacksBB() finds attacks of the piece from the square on occupancy.
-//inline Bitboard attacksBB(Piece p, Square s, Bitboard occ) {
-//    assert(isOk(pType(p)));
-//    switch (pType(p))
-//    {
-//    case PAWN: return PawnAttackBB[pColor(p)][s];
-//    case NIHT: return PieceAttackBB[NIHT][s];
-//    case BSHP: return attacksBB<BSHP>(s, occ);
-//    case ROOK: return attacksBB<ROOK>(s, occ);
-//    case QUEN: return attacksBB<QUEN>(s, occ);
-//    case KING: return PieceAttackBB[KING][s];
-//    default:   return 0;
-//    }
-//}
 
 /// popCount() counts the number of non-zero bits in a bitboard
 inline i32 popCount(Bitboard bb) {
@@ -395,7 +378,7 @@ inline i32 popCount(Bitboard bb) {
 
 /// scanLSq() return the least significant bit in a non-zero bitboard
 inline Square scanLSq(Bitboard bb) {
-    assert(0 != bb);
+    assert(bb != 0);
 
 #if defined(__GNUC__)   // GCC, Clang, ICC
 
@@ -410,7 +393,7 @@ inline Square scanLSq(Bitboard bb) {
 
 #   else
 
-    if (0 != u32(bb >> 0))
+    if (u32(bb >> 0) != 0)
     {
         _BitScanForward(&index, u32(bb >> 0x00));
     }
@@ -436,7 +419,7 @@ inline Square scanLSq(Bitboard bb) {
 }
 /// scanLSq() return the most significant bit in a non-zero bitboard
 inline Square scanMSq(Bitboard bb) {
-    assert(0 != bb);
+    assert(bb != 0);
 
 #if defined(__GNUC__)   // GCC, Clang, ICC
 
@@ -451,7 +434,7 @@ inline Square scanMSq(Bitboard bb) {
 
 #   else
 
-    if (0 != u32(bb >> 0x20))
+    if (u32(bb >> 0x20) != 0)
     {
         _BitScanReverse(&index, u32(bb >> 0x20));
         index += 0x20;
@@ -478,12 +461,12 @@ inline Square scanMSq(Bitboard bb) {
 
 // Find the most advanced square in the given bitboard relative to the given color.
 inline Square scanFrontMostSq(Color c, Bitboard bb) {
-    assert(0 != bb);
-    return WHITE == c ? scanMSq(bb) : scanLSq(bb);
+    assert(bb != 0);
+    return c == WHITE ? scanMSq(bb) : scanLSq(bb);
 }
 
 inline Square popLSq(Bitboard &bb) {
-    assert(0 != bb);
+    assert(bb != 0);
     Square sq = scanLSq(bb);
 #if defined(BM2)
     bb = BLSR(bb);

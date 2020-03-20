@@ -299,7 +299,7 @@ INC_DEC_OPERATORS(CastleSide)
     inline T& operator^=(T &t1, T t2) { return t1 = t1 ^ t2; }
 
 BITWISE_OPERATORS(CastleRight)
-BITWISE_OPERATORS(Bound)
+//BITWISE_OPERATORS(Bound)
 #undef BITWISE_OPERATORS
 
 constexpr Square operator+(Square s, Direction d) {
@@ -343,7 +343,7 @@ constexpr Score operator/(Score s, i32 i) {
 //    Score score{ Score(i32(s) * i) };
 //    assert(egValue(score) == (egValue(s) * i));
 //    assert(mgValue(score) == (mgValue(s) * i));
-//    assert((0 == i) || (score / i) == s);
+//    assert((i == 0) || (score / i) == s);
 //    return score;
 //}
 constexpr Score operator*(Score s, i32 i) {
@@ -367,7 +367,7 @@ Score operator/(Score, Score) = delete;
 
 
 constexpr bool isOk(Color c) {
-    return WHITE == c || BLACK == c;
+    return WHITE <= c && c <= BLACK;
 }
 constexpr Color operator~(Color c) {
     return Color(c ^ BLACK);

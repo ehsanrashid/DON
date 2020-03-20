@@ -72,7 +72,7 @@ namespace Material {
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
             for (PieceType pt1 = NONE; pt1 <= QUEN; ++pt1) {
-                if (0 != count[Own][pt1]) {
+                if (count[Own][pt1] != 0) {
                     i32 v{ 0 };
                     for (PieceType pt2 = NONE; pt2 <= pt1; ++pt2) {
                         v += count[Own][pt2] * OwnQuadratic[pt1][pt2]
@@ -100,11 +100,9 @@ namespace Material {
         scale.fill(SCALE_NORMAL);
         scalingFunc.fill(nullptr);
 
-        // Let's look if have a specialized evaluation function for this
-        // particular material configuration. First look for a fixed
-        // configuration one, then a generic one if previous search failed.
-        evaluationFunc = EndGame::probe<Value>(pos.matlKey());
-        if (nullptr != evaluationFunc) {
+        // Let's look if have a specialized evaluation function for this particular material configuration.
+        // First look for a fixed configuration one, then a generic one if previous search failed.
+        if ((evaluationFunc = EndGame::probe<Value>(pos.matlKey())) != nullptr) {
             return;
         }
         // Generic evaluation
@@ -122,7 +120,7 @@ namespace Material {
         // Face problems when there are several conflicting applicable
         // scaling functions and need to decide which one to use.
         auto const *scalingFn{ EndGame::probe<Scale>(pos.matlKey()) };
-        if (nullptr != scalingFn) {
+        if (scalingFn != nullptr) {
             scalingFunc[scalingFn->stngColor] = scalingFn;
             return;
         }
@@ -162,12 +160,12 @@ namespace Material {
         if (npm[WHITE] + npm[BLACK] == VALUE_ZERO
          && pos.pieces(PAWN) != 0) {
             if (pos.pieces(BLACK, PAWN) == 0) {
-                assert(2 <= pos.count(W_PAWN));
+                assert(pos.count(W_PAWN) >= 2);
                 scalingFunc[WHITE] = &ScaleKPsK[WHITE];
             }
             else
             if (pos.pieces(WHITE, PAWN) == 0) {
-                assert(2 <= pos.count(B_PAWN));
+                assert(pos.count(B_PAWN) >= 2);
                 scalingFunc[BLACK] = &ScaleKPsK[BLACK];
             }
             else

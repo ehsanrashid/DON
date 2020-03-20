@@ -109,7 +109,7 @@ namespace PSQT {
 
             for (Square s = SQ_A1; s <= SQ_H8; ++s) {
                 Score psq{ score
-                         + (PAWN == pt ?
+                         + (pt == PAWN ?
                                 PawnScores[sRank(s)][sFile(s)] :
                                 PieceScores[pt][sRank(s)][foldFile(sFile(s))]) };
                 PSQ[WHITE|pt][s]           = +psq;

@@ -22,7 +22,7 @@ ThreadMarker::ThreadMarker(
     // Check if another already marked it, if not, mark it
     auto *th = threadMark->load(&ThreadMark::thread);
     auto key = threadMark->load(&ThreadMark::posiKey);
-    if (nullptr == th) {
+    if (th == nullptr) {
         threadMark->store(&ThreadMark::thread, thread);
         threadMark->store(&ThreadMark::posiKey, posiKey);
         ownThreadMark = true;

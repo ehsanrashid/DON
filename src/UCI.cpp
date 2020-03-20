@@ -273,7 +273,7 @@ namespace UCI {
         }
 
         if (type != "button") currentVal = v;
-        if (nullptr != onChange) onChange();
+        if (onChange != nullptr) onChange();
 
         return *this;
     }
@@ -552,7 +552,7 @@ namespace UCI {
             while (iss >> token) {
                 ++count;
                 auto m = moveOfCAN(token, pos);
-                //if (MOVE_NONE == m) {
+                //if (m == MOVE_NONE) {
                 //    std::cerr << "ERROR: Illegal Move '" << token << "' at " << count << std::endl;
                 //    return;
                 //}
@@ -588,7 +588,7 @@ namespace UCI {
                     // Parse and Validate search-moves (if any)
                     while (iss >> token) {
                         auto m = moveOfCAN(token, pos);
-                        //if (MOVE_NONE == m) {
+                        //if (m == MOVE_NONE) {
                         //    std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                         //    continue;
                         //}
@@ -602,7 +602,7 @@ namespace UCI {
                     }
                     while (iss >> token) {
                         auto m = moveOfCAN(token, pos);
-                        //if (MOVE_NONE == m) {
+                        //if (m == MOVE_NONE) {
                         //    std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                         //    continue;
                         //}
@@ -702,9 +702,9 @@ namespace UCI {
             auto const uciCmds = setupBench(iss, pos);
             auto const count = u16(std::count_if(uciCmds.begin(), uciCmds.end(),
                                                 [](string const &s) {
-                                                    return 0 == s.find("eval")
-                                                        || 0 == s.find("perft ")
-                                                        || 0 == s.find("go ");
+                                                    return s.find("eval") == 0
+                                                        || s.find("perft ") == 0
+                                                        || s.find("go ") == 0;
                                                 }));
             Debugger::reset();
 
@@ -845,7 +845,7 @@ namespace UCI {
 
                 i32 count;
 
-                if (0 == pos.checkers()) {
+                if (pos.checkers() == 0) {
 
                     std::cout << "\nCapture moves: ";
                     count = 0;
@@ -930,7 +930,7 @@ namespace UCI {
 
 u16 optionThreads() {
     u16 threadCount{ Options["Threads"] };
-    if (0 == threadCount) {
+    if (threadCount == 0) {
         threadCount = u16(std::thread::hardware_concurrency());
     }
     return threadCount;

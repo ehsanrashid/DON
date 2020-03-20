@@ -34,7 +34,7 @@ public:
     PRNG() = delete;
     PRNG(u64 seed) :
         s{ seed }
-    { assert(0 != s); }
+    { assert(s != 0); }
 
     PRNG(PRNG const&) = delete;
     PRNG(PRNG&&) = delete;

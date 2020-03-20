@@ -36,11 +36,11 @@ Key Zobrist::computePosiKey(Position const &pos) const {
             posiKey ^= pieceSquareKey[p][s];
         }
     }
-    if (WHITE == pos.activeSide()) {
+    if (pos.activeSide() == WHITE) {
         posiKey ^= colorKey;
     }
     posiKey ^= castleRightKey[pos.castleRights()];
-    if (SQ_NONE != pos.epSquare()) {
+    if (pos.epSquare() != SQ_NONE) {
         posiKey ^= enpassantKey[sFile(pos.epSquare())];
     }
     return posiKey;
@@ -69,9 +69,9 @@ namespace Zobrists {
         for (i16 cr = CR_NONE; cr <= CR_ANY; ++cr) {
             RandZob.castleRightKey[cr] = 0;
             Bitboard b = cr;
-            while (0 != b) {
+            while (b != 0) {
                 Key k{ RandZob.castleRightKey[u64(1) << popLSq(b)] };
-                RandZob.castleRightKey[cr] ^= 0 != k ? k : prng.rand<Key>();
+                RandZob.castleRightKey[cr] ^= k != 0 ? k : prng.rand<Key>();
             }
         }
         RandZob.colorKey = prng.rand<Key>();

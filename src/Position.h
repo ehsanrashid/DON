@@ -8,57 +8,19 @@
 #include "Bitboard.h"
 #include "Type.h"
 
-/// Pre-loads the given address in L1/L2 cache.
-/// This is a non-blocking function that doesn't stall the CPU
-/// waiting for data to be loaded from memory, which can be quite slow.
-#if defined(PREFETCH)
-
-#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-#       include <xmmintrin.h> // Microsoft and Intel Header for _mm_prefetch()
-#   endif
-
-inline void prefetch(void const *addr) {
-
-#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
-#   if defined(__INTEL_COMPILER)
-
-    // This hack prevents prefetches from being optimized away by
-    // Intel compiler. Both MSVC and gcc seem not be affected by this.
-    __asm__("");
-
-#   endif
-
-    _mm_prefetch((char const*) (addr), _MM_HINT_T0);
-
-#else
-
-    __builtin_prefetch(addr);
-
-#endif
-
-}
-
-#else
-
-inline void prefetch(void const*) {}
-
-#endif // (PREFETCH)
-
-
 /// StateInfo stores information needed to restore a Position object to its previous state when we retract a move.
 ///
-///  - Castling-rights information.
-///  - Enpassant square(SQ_NONE if no Enpassant capture is possible).
-///  - Counter (clock) for detecting 50 move rule draws.
-///  - Hash key of the material situation.
-///  - Hash key of the pawn structure.
-///  - Hash key of the position.
-///  - Move played on the last position.
-///  - Piece type captured on last position.
-///  - Bitboard of all checking pieces.
-///  - Pointer to previous StateInfo.
-///  - Hash keys for all previous positions in the game for detecting repetition draws.
+///  - Hash key of the material situation
+///  - Hash key of the pawn structure
+///  - Hash key of the position
+///  - Castling-rights information
+///  - Enpassant square(SQ_NONE if no Enpassant capture is possible)
+///  - Clock for detecting 50 move rule draws
+///  - Piece type captured on last position
+///  - Repetition info
+///  - Bitboards of kingBlockers & kingCheckers
+///  - Bitboards of all checking pieces
+///  - Pointer to previous StateInfo
 struct StateInfo {
     // ---Copied when making a move---
     Key         matlKey;        // Hash key of materials
@@ -72,9 +34,8 @@ struct StateInfo {
     Key         posiKey;        // Hash key of position
     Bitboard    checkers;       // Checkers
     PieceType   captured;       // Piece type captured
+    bool        promoted;
     i16         repetition;
-    //bool        dirtyMatlKey;
-    //bool        dirtyPawnKey;
     // Check info
     Array<Bitboard, COLORS> kingBlockers; // Absolute and Discover Blockers
     Array<Bitboard, COLORS> kingCheckers; // Absolute and Discover Checkers
@@ -186,6 +147,7 @@ public:
     Key posiKey() const;
     Bitboard checkers() const;
     PieceType captured() const;
+    bool promoted() const;
     i16 repetition() const;
 
     Bitboard kingBlockers(Color) const;
@@ -265,7 +227,7 @@ inline Piece Position::operator[](Square s) const {
     return board[s];
 }
 inline bool Position::empty(Square s) const {
-    return NO_PIECE == board[s];
+    return board[s] == NO_PIECE;
 }
 
 inline Bitboard Position::pieces() const {
@@ -347,10 +309,10 @@ inline CastleRight Position::castleRights() const {
     return _stateInfo->castleRights;
 }
 inline bool Position::canCastle(Color c) const {
-    return CR_NONE != (castleRights() & makeCastleRight(c));
+    return (castleRights() & makeCastleRight(c)) != CR_NONE;
 }
 inline bool Position::canCastle(Color c, CastleSide cs) const {
-    return CR_NONE != (castleRights() & makeCastleRight(c, cs));
+    return (castleRights() & makeCastleRight(c, cs)) != CR_NONE;
 }
 inline Square Position::epSquare() const {
     return _stateInfo->epSquare;
@@ -377,6 +339,9 @@ inline Bitboard Position::checkers() const {
 }
 inline PieceType Position::captured() const {
     return _stateInfo->captured;
+}
+inline bool Position::promoted() const {
+    return _stateInfo->promoted;
 }
 inline i16 Position::repetition() const {
     return _stateInfo->repetition;
@@ -407,7 +372,7 @@ inline Thread* Position::thread() const {
 }
 
 inline bool Position::castleExpeded(Color c, CastleSide cs) const {
-    return 0 == (castleRookPath(c, cs) & pieces());
+    return (castleRookPath(c, cs) & pieces()) == 0;
 }
 /// Position::moveCount() starts at 1, and is incremented after BLACK's move.
 inline i16 Position::moveCount() const {
@@ -443,17 +408,17 @@ inline Bitboard Position::pawnAttacksFrom(Color c, Square s) const {
 
 inline bool Position::capture(Move m) const {
     assert(isOk(m));
-    return (CASTLE != mType(m) && !empty(dstSq(m)))
-        || ENPASSANT == mType(m); //&& dstSq(m) == epSquare()
+    return (mType(m) != CASTLE && !empty(dstSq(m)))
+        || mType(m) == ENPASSANT; //&& dstSq(m) == epSquare()
 }
 inline bool Position::captureOrPromotion(Move m) const {
     assert(isOk(m));
-    return NORMAL == mType(m) ?
-            !empty(dstSq(m)) : CASTLE != mType(m);
+    return mType(m) == NORMAL ?
+            !empty(dstSq(m)) : mType(m) != CASTLE;
 }
 inline PieceType Position::captured(Move m) const {
     assert(isOk(m));
-    return ENPASSANT != mType(m) ?
+    return mType(m) != ENPASSANT ?
             pType(board[dstSq(m)]) : PAWN;
 }
 /// Position::pawnAdvanceAt() check if pawn is advanced at the given square
@@ -462,7 +427,7 @@ inline bool Position::pawnAdvanceAt(Color c, Square s) const {
 }
 /// Position::pawnPassedAt() check if pawn passed at the given square
 inline bool Position::pawnPassedAt(Color c, Square s) const {
-    return 0 == (pieces(~c, PAWN) & pawnPassSpan(c, s));
+    return (pieces(~c, PAWN) & pawnPassSpan(c, s)) == 0;
 }
 
 inline Bitboard Position::pawnsOnSqColor(Color c, Color sqC) const {
@@ -472,17 +437,17 @@ inline Bitboard Position::pawnsOnSqColor(Color c, Color sqC) const {
 /// Position::bishopPaired() check the side has pair of opposite color bishops
 inline bool Position::bishopPaired(Color c) const {
     return moreThanOne(pieces(c, BSHP))
-        && 0 != (pieces(c, BSHP) & ColorBB[WHITE])
-        && 0 != (pieces(c, BSHP) & ColorBB[BLACK]);
+        && (pieces(c, BSHP) & ColorBB[WHITE]) != 0
+        && (pieces(c, BSHP) & ColorBB[BLACK]) != 0;
 }
 inline bool Position::bishopOpposed() const {
-    return 1 == count(WHITE|BSHP)
-        && 1 == count(BLACK|BSHP)
+    return count(WHITE|BSHP) == 1
+        && count(BLACK|BSHP) == 1
         && colorOpposed(square(WHITE|BSHP), square(BLACK|BSHP));
 }
 
 inline bool Position::semiopenFileOn(Color c, Square s) const {
-    return 0 == (pieces(c, PAWN) & fileBB(s));
+    return (pieces(c, PAWN) & fileBB(s)) == 0;
 }
 
 inline void Position::doMove(Move m, StateInfo &si) {

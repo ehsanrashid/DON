@@ -17,7 +17,7 @@ private:
         // Previous character
         static int_type pCh = '\n';
 
-        if ('\n' == pCh) {
+        if (pCh == '\n') {
             //if (
             sbWrit->sputn(prefix.c_str(), prefix.length());
             //    != prefix.length()) return EOF;

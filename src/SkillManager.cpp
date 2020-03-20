@@ -30,7 +30,7 @@ void SkillManager::clear() {
 Move SkillManager::pickBestMove() {
     static PRNG prng{ u64(now()) }; // PRNG sequence should be non-deterministic.
 
-    if (MOVE_NONE == _bestMove) {
+    if (_bestMove == MOVE_NONE) {
         auto const &rootMoves{ Threadpool.mainThread()->rootMoves };
         assert(!rootMoves.empty());
 

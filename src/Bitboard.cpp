@@ -43,7 +43,7 @@ namespace {
 
             Square sq{ s + dir };
             while (isOk(sq)
-                && 1 == distance(sq, sq - dir)) {
+                && distance(sq, sq - dir) == 1) {
 
                 attacks |= sq;
                 if (contains(occ, sq)) {
@@ -120,7 +120,7 @@ namespace {
             // Set the offset for the attacks table of the square.
             // For each square got individual table sizes with "Fancy Magic Bitboards".
             // new Bitboard[1 << popCount(magic.mask)];
-            magic.attacks = SQ_A1 == s ? attacks : magics[s - 1].attacks + size;
+            magic.attacks = s == SQ_A1 ? attacks : magics[s - 1].attacks + size;
 
 #if !defined(BM2)
 
@@ -147,7 +147,7 @@ namespace {
 #endif
                 ++size;
                 occ = (occ - magic.mask) & magic.mask;
-            } while (0 != occ);
+            } while (occ != 0);
 
             assert(size == 1 << popCount(magic.mask));
 
@@ -159,7 +159,7 @@ namespace {
             for (u16 i = 0; i < size; ) {
 
                 magic.number = 0;
-                while (6 > popCount((magic.mask * magic.number) >> 56)) {
+                while (popCount((magic.mask * magic.number) >> 56) < 6) {
                     magic.number = prng.sparseRand<Bitboard>();
                 }
 
@@ -199,8 +199,8 @@ namespace BitBoard {
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
                 SquareDistance[s1][s2] = u08(std::max(distance<File>(s1, s2), distance<Rank>(s1, s2)));
-                assert(0 <= SquareDistance[s1][s2]
-                    && 7 >= SquareDistance[s1][s2]);
+                assert(SquareDistance[s1][s2] >= 0
+                    && SquareDistance[s1][s2] <= 7);
             }
         }
 
@@ -216,14 +216,14 @@ namespace BitBoard {
         for (Square s = SQ_A1; s <= SQ_H8; ++s) {
             PawnAttackBB[WHITE][s] = pawnSglAttackBB<WHITE>(SquareBB[s]);
             PawnAttackBB[BLACK][s] = pawnSglAttackBB<BLACK>(SquareBB[s]);
-            assert(2 >= popCount(PawnAttackBB[WHITE][s])
-                && 2 >= popCount(PawnAttackBB[BLACK][s]));
+            assert(popCount(PawnAttackBB[WHITE][s]) <= 2
+                && popCount(PawnAttackBB[BLACK][s]) <= 2);
 
             for (auto dir : { SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                               WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST }) {
                 Square sq{ s + dir };
                 if (isOk(sq)
-                 && 2 == distance(s, sq)) {
+                 && distance(s, sq) == 2) {
                     PieceAttackBB[NIHT][s] |= sq;
                 }
             }
@@ -231,7 +231,7 @@ namespace BitBoard {
                               EAST, NORTH_WEST, NORTH, NORTH_EAST }) {
                 Square sq{ s + dir };
                 if (isOk(sq)
-                 && 1 == distance(s, sq)) {
+                 && distance(s, sq) == 1) {
                     PieceAttackBB[KING][s] |= sq;
                 }
             }
@@ -259,14 +259,10 @@ namespace BitBoard {
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
 
                 LineBB[s1][s2] = 0;
-
                 if (s1 != s2) {
                     for (PieceType pt : { BSHP, ROOK }) {
                         if (contains(PieceAttackBB[pt][s1], s2)) {
-
-                            LineBB[s1][s2] = (PieceAttackBB[pt][s1]
-                                            & PieceAttackBB[pt][s2])
-                                           | s1 | s2;
+                            LineBB[s1][s2] = (PieceAttackBB[pt][s1] & PieceAttackBB[pt][s2]) | s1 | s2;
                         }
                     }
                 }

@@ -49,7 +49,7 @@ TimePoint TimeManager::maximum() const {
 
 /// TimeManager::elapsed()
 TimePoint TimeManager::elapsed() const {
-    return{ 0 == timeNodes() ?
+    return{ timeNodes() == 0 ?
             now() - Limits.startTime :
             TimePoint(Threadpool.sum(&Thread::nodes)) };
 }
@@ -77,9 +77,9 @@ void TimeManager::setup(Color c, i16 ply) {
 
     // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
-    if (0 != timeNodes()) {
+    if (timeNodes() != 0) {
         // Only once at after ucinewgame
-        if (0 == _nodes) {
+        if (_nodes == 0) {
             _nodes = Limits.clock[c].time * timeNodes();
         }
         // Convert from milli-seconds to nodes
@@ -91,7 +91,7 @@ void TimeManager::setup(Color c, i16 ply) {
     // Move Horizon:
     // Plan time management at most this many moves ahead.
     u08 maxMovestogo{ 50 };
-    if (0 != Limits.movestogo) {
+    if (Limits.movestogo != 0) {
         maxMovestogo = std::min(Limits.movestogo, maxMovestogo);
     }
     // Calculate optimum time usage for different hypothetic "moves to go" and

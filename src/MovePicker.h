@@ -39,7 +39,9 @@ public:
         static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
         assert(std::abs(bonus) <= D); // Ensure range is [-D, +D]
 
-        entry += T(bonus - (entry * std::abs(bonus)) / D);
+        auto aBonus = std::abs(bonus);
+        if (aBonus == 1) aBonus = 56;
+        entry += bonus - entry * std::abs(bonus) / D;
 
         assert(std::abs(entry) <= D);
     }

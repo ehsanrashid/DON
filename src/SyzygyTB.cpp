@@ -43,7 +43,7 @@ string getLastErrorStr() {
 
     string message;
     DWORD error = GetLastError();
-    if (0 != error) {
+    if (error != 0) {
         LPTSTR buffer{ nullptr };
         DWORD bufferLen = FormatMessage(
             FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
@@ -53,8 +53,8 @@ string getLastErrorStr() {
             LPTSTR(&buffer),
             0,
             nullptr);
-        if (nullptr != buffer
-         && 0 != bufferLen) {
+        if (buffer != nullptr
+         && bufferLen != 0) {
             message = { buffer, bufferLen };
             LocalFree(buffer);
         }
@@ -127,16 +127,16 @@ namespace {
         static IntChar const U{ 0x01020304 };
         static Endian const End = (0x04 == U.c[0]) ? Endian::LITTLE :
                                   (0x01 == U.c[0]) ? Endian::BIG : Endian::UNKNOWN;
-        assert(Endian::UNKNOWN != End);
+        assert(End != Endian::UNKNOWN);
         T v;
-        if (0 != (uPtr(addr) & (alignof (T) - 1))) { // Unaligned pointer (very rare)
+        if ((uPtr(addr) & (alignof (T) - 1)) != 0) { // Unaligned pointer (very rare)
             memcpy(&v, addr, sizeof (T));
         }
         else {
             v = *((T*)addr);
         }
 
-        if (End != E) {
+        if (E != End) {
             swapEndian(v);
         }
         return v;
@@ -270,7 +270,7 @@ namespace {
 
             CloseHandle(fHandle);
 
-            if (nullptr == hfMap) {
+            if (hfMap == nullptr) {
                 std::cerr
                     << "CreateFileMapping() failed, file = " << filename
                     << ", error = " << getLastErrorStr() << std::endl;
@@ -282,10 +282,10 @@ namespace {
                 MapViewOfFile(
                     hfMap,
                     FILE_MAP_READ,
-                    0,
-                    0,
+                    0, // FileOffsetHigh
+                    0, // FileOffsetLow
                     0);
-            if (nullptr == *baseAddress) {
+            if (*baseAddress == nullptr) {
                 std::cerr
                     << "MapViewOfFile() failed, file = " << filename
                     << ", error = " << getLastErrorStr() << std::endl;
@@ -298,7 +298,7 @@ namespace {
                 ::open(
                     filename.c_str(),
                     O_RDONLY);
-            if (-1 == fHandle) {
+            if (fHandle == -1) {
                 std::cerr << "open() failed, file = " << filename << std::endl;
                 *baseAddress = nullptr;
                 return nullptr;
@@ -307,13 +307,13 @@ namespace {
             stat statbuf;
             fstat(fHandle, &statbuf);
 
-            if (0 == statbuf.st_size) {
+            if (statbuf.st_size == 0) {
                 std::cerr << "fstat() failed, file = " << filename << std::endl;
                 ::close(fHandle);
                 std::exit(EXIT_FAILURE);
             }
 
-            if (16 != statbuf.st_size % 64) {
+            if (statbuf.st_size % 64 != 16) {
                 std::cerr << "Corrupt tablebase, file = " << filename << std::endl;
                 ::close(fHandle);
                 std::exit(EXIT_FAILURE);
@@ -338,7 +338,7 @@ namespace {
 #       endif
 
             u08 *data = (u08*)(*baseAddress);
-            if (0 != memcmp(data, TB_MAGIC[WDL == type], 4)) {
+            if (memcmp(data, TB_MAGIC[type == WDL], 4) != 0) {
                 std::cerr << "Corrupted table, file = " << filename << std::endl;
                 unmap(*baseAddress, *mapping);
                 *baseAddress = nullptr;
@@ -397,9 +397,9 @@ namespace {
     /// populated at first access, when the corresponding file is memory mapped.
     template<TBType Type>
     struct TBTable {
-        using Ret = typename std::conditional<WDL == Type, WDLScore, i32>::type;
+        using Ret = typename std::conditional<Type == WDL, WDLScore, i32>::type;
 
-        static constexpr i32 Sides = WDL == Type ? 2 : 1;
+        static constexpr i32 Sides = Type == WDL ? 2 : 1;
 
         std::atomic<bool> ready;
         void *baseAddress;
@@ -428,7 +428,7 @@ namespace {
         explicit TBTable(TBTable<WDL> const&);
 
         virtual ~TBTable() {
-            if (nullptr != baseAddress) {
+            if (baseAddress != nullptr) {
                 TBFile::unmap(baseAddress, mapping);
             }
         }
@@ -445,13 +445,13 @@ namespace {
 
         hasUniquePieces = false;
         for (Piece p : Pieces) {
-            if (1 == pos.count(p)) {
+            if (pos.count(p) == 1) {
                 hasUniquePieces = true;
                 break;
             }
         }
 
-        hasPawns = 0 != pos.count(PAWN);
+        hasPawns = pos.count(PAWN) != 0;
         // Set the leading color. In case both sides have pawns the leading color
         // is the side with less pawns because this leads to better compression.
         auto leadColor =
@@ -590,7 +590,7 @@ namespace {
     /// file a,b,c,d also in this case one set for wtm and one for btm.
     i32 decompressPairs(PairsData *d, u64 idx) {
         // Special case where all table positions store the same value
-        if (0 != (d->flags & TBFlag::SINGLE_VALUE)) {
+        if ((d->flags & TBFlag::SINGLE_VALUE) != 0) {
             return d->minSymLen;
         }
 
@@ -685,7 +685,7 @@ namespace {
         // We binary-search for our value recursively expanding into the left and
         // right child symbols until we reach a leaf node where symLen[sym] + 1 == 1
         // that will store the value we need.
-        while (0 != d->symLen[sym]) {
+        while (d->symLen[sym] != 0) {
             Sym left = d->btree[sym].get<LR::Side::LEFT>();
 
             // If a symbol contains 36 sub-symbols (d->symLen[sym] + 1 = 36) and
@@ -729,8 +729,8 @@ namespace {
         i32 flags = entry->get(0, f)->flags;
         u08 *map = entry->map;
         u16* idx = entry->get(0, f)->mapIdx;
-        if (0 != (flags & TBFlag::MAPPED)) {
-            if (0 != (flags & TBFlag::WIDE)) {
+        if ((flags & TBFlag::MAPPED) != 0) {
+            if ((flags & TBFlag::WIDE) != 0) {
                 value = ((u16*)(map))[idx[WDLMap[wdl + 2]] + value];
             }
             else {
@@ -740,8 +740,8 @@ namespace {
 
         // DTZ tables store distance to zero in number of moves or plies. We
         // want to return plies, so we have convert to plies when needed.
-        if ((wdl == WDL_WIN  && 0 == (flags & TBFlag::WIN_PLIES))
-         || (wdl == WDL_LOSS && 0 == (flags & TBFlag::LOSS_PLIES))
+        if ((wdl == WDL_WIN  && (flags & TBFlag::WIN_PLIES) == 0)
+         || (wdl == WDL_LOSS && (flags & TBFlag::LOSS_PLIES) == 0)
          ||  wdl == WDL_CURSED_WIN
          ||  wdl == WDL_BLESSED_LOSS) {
             value *= 2;
@@ -790,23 +790,22 @@ namespace {
         if (entry->hasPawns) {
             // In all the 4 tables, pawns are at the beginning of the piece sequence and
             // their color is the reference one. So we just pick the first one.
-            Piece p{
-                flip ? flipColor(Piece(entry->get(0, 0)->pieces[0])) :
-                                 Piece(entry->get(0, 0)->pieces[0]) };
-            assert(PAWN == pType(p));
+            Piece p{flip ?
+                flipColor(Piece(entry->get(0, 0)->pieces[0])) :
+                          Piece(entry->get(0, 0)->pieces[0]) };
+            assert(pType(p) == PAWN);
 
             pawns = pos.pieces(pColor(p), PAWN);
 
             Bitboard b{ pawns };
-            assert(0 != b);
+            assert(b != 0);
             do {
                 auto s{ popLSq(b) };
 
-                squares[size] =
-                    flip ? flipRank(s) : s;
+                squares[size] = flip ? flipRank(s) : s;
 
                 ++size;
-            } while (0 != b);
+            } while (b != 0);
             pawnCount = size;
 
             std::swap(squares[0], *std::max_element(squares, squares + size, mapPawnsCompare));
@@ -829,17 +828,15 @@ namespace {
         // Now we are ready to get all the position pieces(but the lead pawns) and
         // directly map them to the correct color and square.
         Bitboard b{ pos.pieces() ^ pawns };
-        assert(0 != b);
+        assert(b != 0);
         do {
             auto s{ popLSq(b) };
 
-            squares[size] =
-                flip ? flipRank(s) : s;
-            pieces[size] =
-                flip ? flipColor(pos[s]) : pos[s];
+            squares[size] = flip ? flipRank(s) : s;
+            pieces [size] = flip ? flipColor(pos[s]) : pos[s];
 
             ++size;
-        } while (0 != b);
+        } while (b != 0);
 
         assert(2 <= size);
 
@@ -859,7 +856,7 @@ namespace {
 
         // Now we map again the squares so that the square of the lead piece is in
         // the triangle A1-D1-D4.
-        if (FILE_D < sFile(squares[0])) {
+        if (sFile(squares[0]) > FILE_D) {
             for (i16 i = 0; i < size; ++i) {
                 squares[i] = flipFile(squares[i]);
             }
@@ -882,7 +879,7 @@ namespace {
 
         // In positions without pawns:
         // Flip the squares to ensure leading piece is below RANK_5.
-        if (RANK_4 < sRank(squares[0])) {
+        if (sRank(squares[0]) > RANK_4) {
             for (i32 i = 0; i < size; ++i) {
                 squares[i] = flipRank(squares[i]);
             }
@@ -985,10 +982,10 @@ namespace {
         // Encode remaining pawns then pieces according to square, in ascending order
         bool pawnRemains =
                entry->hasPawns
-            && 0 != entry->pawnCount[1];
+            && entry->pawnCount[1] != 0;
 
         i16 next = 0;
-        while (0 != d->groupLen[++next]) {
+        while (d->groupLen[++next] != 0) {
 
             assert(0 <= d->groupLen[next] && d->groupLen[next] < TBPIECES);
 
@@ -1065,7 +1062,7 @@ namespace {
         // Pawns on both sides
         bool pp =
             e.hasPawns
-         && 0 != e.pawnCount[1];
+         && e.pawnCount[1] != 0;
         i32 next = pp ? 2 : 1;
         i32 emptyCount =
             64
@@ -1130,7 +1127,7 @@ namespace {
 
         d->flags = *data++;
 
-        if (0 != (d->flags & TBFlag::SINGLE_VALUE)) {
+        if ((d->flags & TBFlag::SINGLE_VALUE) != 0) {
             d->numBlocks = 0;
             d->blockLengthSize = 0;
             d->span = 0;
@@ -1245,7 +1242,7 @@ namespace {
         data++; // First byte stores flags
 
         i16 const sides =
-            2 == T::Sides
+            T::Sides == 2
          && (e.matlKey1 != e.matlKey2) ?
                 2 : 1;
         File const maxFile =
@@ -1255,9 +1252,9 @@ namespace {
         // Pawns on both sides
         bool pp =
             e.hasPawns
-         && 0 != e.pawnCount[1];
+         && e.pawnCount[1] != 0;
 
-        assert(!pp || 0 != e.pawnCount[0]);
+        assert(!pp || e.pawnCount[0] != 0);
 
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (i16 i = 0; i < sides; ++i) {
@@ -1275,7 +1272,7 @@ namespace {
             for (i16 k = 0; k < e.pieceCount; ++k, ++data) {
                 for (i16 i = 0; i < sides; ++i) {
                     e.get(i, f)->pieces[k] =
-                        Piece(0 != i ? *data >> 4 : *data & 0xF);
+                        Piece(i != 0 ? *data >> 4 : *data & 0xF);
                 }
             }
 
@@ -1341,11 +1338,11 @@ namespace {
             b += string(pos.count(BLACK|pt), toChar(WHITE|pt));
         }
 
-        string code = e.matlKey1 == pos.matlKey() ? w + b : b + w;
-        string ext = WDL == Type ? ".rtbw" : ".rtbz";
+        string code = pos.matlKey() == e.matlKey1 ? w + b : b + w;
+        string ext = Type == WDL ? ".rtbw" : ".rtbz";
 
         u08 *data = TBFile{ code, ext }.map(&e.baseAddress, &e.mapping, Type);
-        if (nullptr != data) {
+        if (data != nullptr) {
             set(e, data);
         }
 
@@ -1358,15 +1355,15 @@ namespace {
 
         // KvK
         //if (pos.count() == 2) {
-        if (0 == (pos.pieces() ^ pos.pieces(KING))) {
+        if ((pos.pieces() ^ pos.pieces(KING)) == 0) {
             //state = PS_SUCCESS;
             return Ret(WDL_DRAW);
         }
 
         TBTable<Type> *entry = TBTables.get<Type>(pos.matlKey());
 
-        if (nullptr == entry
-         || nullptr == mapped(*entry, pos)) {
+        if (entry == nullptr
+         || mapped(*entry, pos) == nullptr) {
             state = PS_FAILURE;
             return Ret();
         }
@@ -1398,7 +1395,7 @@ namespace {
         for (auto &move : moveList) {
             if (!pos.capture(move)
              && (!checkZeroing
-              || PAWN != pType(pos[orgSq(move)]))) {
+              || pType(pos[orgSq(move)]) != PAWN)) {
                 continue;
             }
 
@@ -1408,7 +1405,7 @@ namespace {
             wdlScore = -search(pos, state, false);
             pos.undoMove(move);
 
-            if (PS_FAILURE == state) {
+            if (state == PS_FAILURE) {
                 return WDL_DRAW;
             }
 
@@ -1428,16 +1425,15 @@ namespace {
         // the state of probe_wdl_table is wrong. Also in case of only capture
         // moves, for instance here 4K3/4q3/6p1/2k5/6p1/8/8/8 w - - 0 7, we have to
         // return with PS_ZEROING set.
-        bool completed = 0 != moveCount
+        bool completed = moveCount != 0
                       && moveCount == moveList.size();
-
 
         if (completed) {
             wdlScore = wdlBestScore;
         }
         else {
             wdlScore = probeTable<WDL>(pos, state);
-            if (PS_FAILURE == state) {
+            if (state == PS_FAILURE) {
                 return WDL_DRAW;
             }
         }
@@ -1527,29 +1523,28 @@ namespace SyzygyTB {
         state = PS_SUCCESS;
         WDLScore wdlScore = search(pos, state, true);
 
-        if (PS_FAILURE == state
-         || WDL_DRAW == wdlScore) // DTZ tables don't store draws
-        {
+        if (state == PS_FAILURE
+         || wdlScore == WDL_DRAW) { // DTZ tables don't store draws
             return 0;
         }
 
         // DTZ stores a 'don't care' value in this case, or even a plain wrong
         // one as in case the best move is a losing Enpassant, so it cannot be probed.
-        if (PS_ZEROING == state) {
+        if (state == PS_ZEROING) {
             return beforeZeroingDTZ(wdlScore);
         }
 
         i32 dtz = probeTable<DTZ>(pos, state, wdlScore);
 
-        if (PS_FAILURE == state) {
+        if (state == PS_FAILURE) {
             return 0;
         }
 
-        if (PS_OPP_SIDE != state) {
+        if (state != PS_OPP_SIDE) {
             return sign(wdlScore)
                  * (dtz
-                  + 100 * (WDL_BLESSED_LOSS == wdlScore
-                        || WDL_CURSED_WIN == wdlScore));
+                  + 100 * (wdlScore == WDL_BLESSED_LOSS
+                        || wdlScore == WDL_CURSED_WIN));
         }
 
         // DTZ stores results for the other side, so we need to do a 1-ply search and
@@ -1560,7 +1555,7 @@ namespace SyzygyTB {
         for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
 
             bool zeroing = pos.capture(vm)
-                        || PAWN == pType(pos[orgSq(vm)]);
+                        || pType(pos[orgSq(vm)]) == PAWN;
 
             pos.doMove(vm, si);
 
@@ -1573,9 +1568,9 @@ namespace SyzygyTB {
                 -probeDTZ(pos, state);
 
             // If the move mates, force minDTZ to 1
-            if (1 == dtz
-             && 0 != pos.checkers()
-             && 0 == MoveList<LEGAL>(pos).size()) {
+            if (dtz == 1
+             && pos.checkers() != 0
+             && MoveList<GenType::LEGAL>(pos).size() == 0) {
                 minDTZ = 1;
             }
 
@@ -1592,7 +1587,7 @@ namespace SyzygyTB {
 
             pos.undoMove(vm);
 
-            if (PS_FAILURE == state) {
+            if (state == PS_FAILURE) {
                 return 0;
             }
         }
@@ -1638,7 +1633,7 @@ namespace SyzygyTB {
 
             rootPos.undoMove(move);
 
-            if (PS_FAILURE == state) {
+            if (state == PS_FAILURE) {
                 return false;
             }
 
@@ -1658,7 +1653,7 @@ namespace SyzygyTB {
     ///
     /// A return value false indicates that not all probes were successful.
     bool rootProbeDTZ(Position &rootPos, RootMoves &rootMoves) {
-        assert(0 != rootMoves.size());
+        assert(rootMoves.size() != 0);
 
         // Obtain 50-move counter for the root position
         auto clockPly = rootPos.clockPly();
@@ -1676,7 +1671,7 @@ namespace SyzygyTB {
             rootPos.doMove(move, si);
 
             // Calculate dtz for the current move counting from the root position
-            if (0 == rootPos.clockPly()) {
+            if (rootPos.clockPly() == 0) {
                 // In case of a zeroing move, dtz is one of -101/-1/0/+1/+101
                 dtz = beforeZeroingDTZ(-probeWDL(rootPos, state));
             }
@@ -1687,15 +1682,15 @@ namespace SyzygyTB {
                       dtz < 0 ? dtz - 1 : dtz;
             }
             // Make sure that a mating move is assigned a dtz value of 1
-            if (0 != rootPos.checkers()
-             && 2 == dtz
-             && 0 == MoveList<LEGAL>(rootPos).size()) {
+            if (rootPos.checkers() != 0
+             && dtz == 2
+             && MoveList<LEGAL>(rootPos).size() == 0) {
                 dtz = 1;
             }
 
             rootPos.undoMove(move);
 
-            if (PS_FAILURE == state) {
+            if (state == PS_FAILURE) {
                 return false;
             }
 
@@ -1756,8 +1751,8 @@ namespace SyzygyTB {
             code = 0;
             for (i32 idx = 0; idx < 10; ++idx) {
                 for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1) {
-                    if (MapA1D1D4[s1] == idx
-                     && (0 != idx || SQ_B1 == s1)) { // SQ_B1 is mapped to 0
+                    if (idx == MapA1D1D4[s1]
+                     && (idx != 0 || s1 == SQ_B1)) { // SQ_B1 is mapped to 0
 
                         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
                             if (contains(PieceAttackBB[KING][s1] | s1, s2)) {
@@ -1821,7 +1816,7 @@ namespace SyzygyTB {
                         // below or more toward the edge of sq. There are 47 available
                         // squares when sq = a2 and reduced by 2 for any rank increase
                         // due to mirroring: sq == a3 -> no a2, h2, so MapPawns[a3] = 45
-                        if (1 == leadPawnCount) {
+                        if (leadPawnCount == 1) {
                             MapPawns[sq]           = availableSq--;
                             MapPawns[flipFile(sq)] = availableSq--; // Horizontal flip
                         }

@@ -62,20 +62,20 @@ namespace Pawns {
             for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
                 assert(FILE_A <= f && f <= FILE_H);
                 Bitboard ownFrontFilePawns = ownFrontPawns & FileBB[f];
-                auto ownR{ 0 != ownFrontFilePawns ?
+                auto ownR{ ownFrontFilePawns != 0 ?
                             relativeRank(Own, scanFrontMostSq(Opp, ownFrontFilePawns)) : RANK_1 };
                 Bitboard oppFrontFilePawns = oppFrontPawns & FileBB[f];
-                auto oppR{ 0 != oppFrontFilePawns ?
+                auto oppR{ oppFrontFilePawns != 0 ?
                             relativeRank(Own, scanFrontMostSq(Opp, oppFrontFilePawns)) : RANK_1 };
                 assert((ownR != oppR)
-                    || (RANK_1 == ownR
-                     && RANK_1 == oppR));
+                    || (ownR == RANK_1
+                     && oppR == RANK_1));
 
                 safety +=
                       Shelter[foldFile(f)][ownR]
-                    - ((RANK_1 != ownR)
+                    - ((ownR != RANK_1)
                     && (ownR + 1) == oppR ?
-                          BlockedStorm * (RANK_3 == oppR) :
+                          BlockedStorm * (oppR == RANK_3) :
                           UnblockedStorm[foldFile(f)][oppR]);
 
             }
@@ -103,10 +103,10 @@ namespace Pawns {
             pos.castleKingPath(Own, CS_KING) * (pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING)),
             pos.castleKingPath(Own, CS_QUEN) * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN))
         };
-        if (0 != (kPaths[CS_KING] & attacks)) {
+        if ((kPaths[CS_KING] & attacks) != 0) {
             kPaths[CS_KING] = 0;
         }
-        if (0 != (kPaths[CS_QUEN] & attacks)) {
+        if ((kPaths[CS_QUEN] & attacks) != 0) {
             kPaths[CS_QUEN] = 0;
         }
 
@@ -117,13 +117,13 @@ namespace Pawns {
          || kingPath[Own] != kPath) {
 
             auto safety{ evaluateSafetyOn<Own>(pos, kSq) };
-            if (0 != kPaths[CS_KING]) {
+            if (kPaths[CS_KING] != 0) {
                 safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_G1)), safety,
                         [](Score s1, Score s2) {
                             return mgValue(s1) < mgValue(s2);
                         });
             }
-            if (0 != kPaths[CS_QUEN]) {
+            if (kPaths[CS_QUEN] != 0) {
                 safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_C1)), safety,
                         [](Score s1, Score s2) {
                             return mgValue(s1) < mgValue(s2);
@@ -136,13 +136,13 @@ namespace Pawns {
                 // In endgame, king near to closest pawn
                 i32 kDist{ 0 };
                 Bitboard pawns{ pos.pieces(Own, PAWN) };
-                if (0 != pawns) {
-                    if (0 != (pawns & PieceAttackBB[KING][kSq])) {
+                if (pawns != 0) {
+                    if ((pawns & PieceAttackBB[KING][kSq]) != 0) {
                         kDist = 1;
                     }
                     else {
                         kDist = 8;
-                        while (0 != pawns) {
+                        while (pawns != 0) {
                             kDist = std::min(distance(kSq, popLSq(pawns)), kDist);
                         }
                     }
@@ -177,7 +177,7 @@ namespace Pawns {
         passers   [Own] = 0;
         score     [Own] = SCORE_ZERO;
         for (Square s : pos.squares(Own|PAWN)) {
-            assert((Own|PAWN) == pos[s]);
+            assert(pos[s] == (Own|PAWN));
 
             auto r{ relativeRank(Own, s) };
             assert(RANK_2 <= r && r <= RANK_7);
@@ -190,11 +190,11 @@ namespace Pawns {
             Bitboard levers     { stoppers & pos.pawnAttacksFrom(Own, s) };
             Bitboard sentres    { stoppers & pos.pawnAttacksFrom(Own, s + PawnPush[Own]) }; // push levers
 
-            bool opposed { 0 != (stoppers & frontSquaresBB(Own, s)) };
+            bool opposed { (stoppers & frontSquaresBB(Own, s)) != 0 };
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
-            bool backward{ 0 == (neighbours & frontRanksBB(Opp, s + PawnPush[Own]))
-                        && 0 != (blocker | sentres) };
+            bool backward{ (neighbours & frontRanksBB(Opp, s + PawnPush[Own])) == 0
+                        && (blocker | sentres) != 0 };
 
             // Compute additional span if pawn is not blocked nor backward
             if (!backward
@@ -213,23 +213,23 @@ namespace Pawns {
               && popCount(phalanxes) >= popCount(sentres))
                 // Sneaker => Blocked pawn
              || (stoppers == blocker
-              && RANK_5 <= r
-              && 0 != ( pawnSglPushBB<Own>(supporters)
-                     & ~(oppPawns | pawnDblAttackBB<Opp>(oppPawns))))) {
+              && r >= RANK_5
+              && ( pawnSglPushBB<Own>(supporters)
+                & ~(oppPawns | pawnDblAttackBB<Opp>(oppPawns))) != 0)) {
                 // Passed pawns will be properly scored later in evaluation when we have full attack info.
                 passers[Own] |= s;
             }
 
             Score sp{ SCORE_ZERO };
 
-            if (0 != supporters
-             || 0 != phalanxes) {
-                i32 v{ Connected[r] * (2 + (0 != phalanxes) - opposed)
+            if (supporters != 0
+             || phalanxes != 0) {
+                i32 v{ Connected[r] * (2 + (phalanxes != 0) - opposed)
                      + 21 * popCount(supporters) };
                 sp += makeScore(v, v * (r - RANK_3) / 4);
             }
             else
-            if (0 == neighbours) {
+            if (neighbours == 0) {
                 sp -= Isolated
                     + Unopposed * !opposed;
             }
@@ -239,7 +239,7 @@ namespace Pawns {
                     + Unopposed * !opposed;
             }
 
-            if (0 == supporters) {
+            if (supporters == 0) {
                 sp -= WeakDoubled * contains(ownPawns, s - PawnPush[Own])
                     // Attacked twice by enemy pawns
                     + WeakTwiceLever * moreThanOne(levers);

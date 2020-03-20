@@ -83,15 +83,15 @@ string toString(Score s) {
 ///  - e1h1 notation in chess960 mode.
 /// Internally castle moves are always coded as "king captures rook".
 string moveToCAN(Move m) {
-    if (MOVE_NONE == m) return { "(none)" };
-    if (MOVE_NULL == m) return { "(null)" };
+    if (m == MOVE_NONE) return { "(none)" };
+    if (m == MOVE_NULL) return { "(null)" };
 
     std::ostringstream oss;
     oss << orgSq(m)
-        << ((CASTLE != mType(m)
+        << ((mType(m) != CASTLE
           || Options["UCI_Chess960"]) ?
             dstSq(m) : kingCastleSq(orgSq(m), dstSq(m)));
-    if (PROMOTE == mType(m)) {
+    if (mType(m) == PROMOTE) {
         oss << (BLACK|promoteType(m));
     }
     return oss.str();
@@ -100,14 +100,14 @@ string moveToCAN(Move m) {
 /// to the corresponding legal move, if any.
 Move moveOfCAN(string const &can, Position const &pos) {
     //// If promotion piece in uppercase, convert to lowercase
-    //if (5 == can.size()
+    //if (can.size() == 5
     // && isupper(can[4])) {
     //    can[4] = char(tolower(can[4]));
     //}
-    assert(5 > can.size()
+    assert(can.size() < 5
         || islower(can[4]));
     for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
-        if (can == moveToCAN(vm)) {
+        if (moveToCAN(vm) == can) {
             return vm;
         }
     }
@@ -174,14 +174,14 @@ namespace {
                       & pos.pieces(pos.activeSide(), pt) };
 
         Bitboard amb{ piece ^ org };
-        if (0 == amb) {
+        if (amb == 0) {
             return AMB_NONE;
         }
 
         Bitboard pcs{ amb };
                     // If pinned piece is considered as ambiguous
                     //& ~pos.kingBlockers(pos.activeSide()) };
-        while (0 != pcs) {
+        while (pcs != 0) {
             auto sq{ popLSq(pcs) };
             auto move{ makeMove<NORMAL>(sq, dst) };
             if (!(pos.pseudoLegal(move)
@@ -189,8 +189,8 @@ namespace {
                 amb ^= sq;
             }
         }
-        if (0 == (amb & fileBB(org))) return AMB_RANK;
-        if (0 == (amb & rankBB(org))) return AMB_FILE;
+        if ((amb & fileBB(org)) == 0) return AMB_RANK;
+        if ((amb & rankBB(org)) == 0) return AMB_FILE;
         return AMB_SQUARE;
     }
 
@@ -237,31 +237,29 @@ namespace {
 
 /// Converts a move to a string in short algebraic notation.
 string moveToSAN(Move m, Position &pos) {
-    if (MOVE_NONE == m) return { "(none)" };
-    if (MOVE_NULL == m) return { "(null)" };
+    if (m == MOVE_NONE) return { "(none)" };
+    if (m == MOVE_NULL) return { "(null)" };
     assert(MoveList<GenType::LEGAL>(pos).contains(m));
 
     std::ostringstream oss;
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
 
-    if (CASTLE != mType(m)) {
+    if (mType(m) != CASTLE) {
         auto pt = pType(pos[org]);
-        if (PAWN != pt) {
+        if (pt != PAWN) {
             oss << (WHITE|pt);
-            if (KING != pt) {
+            if (pt != KING) {
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'dst' with a legal move.
-                switch (ambiguity(m, pos)) {
-                case AMB_RANK:   oss << sFile(org); break;
-                case AMB_FILE:   oss << sRank(org); break;
-                case AMB_SQUARE: oss << org;        break;
-                case AMB_NONE: default:             break;
-                }
+                auto amb{ ambiguity(m, pos) };
+                amb == AMB_RANK   ? oss << sFile(org) :
+                amb == AMB_FILE   ? oss << sRank(org) :
+                amb == AMB_SQUARE ? oss << org : oss << "";
             }
         }
 
         if (pos.capture(m)) {
-            if (PAWN == pt) {
+            if (pt == PAWN) {
                 oss << sFile(org);
             }
             oss << "x";
@@ -269,8 +267,8 @@ string moveToSAN(Move m, Position &pos) {
 
         oss << dst;
 
-        if (PAWN == pt
-         && PROMOTE == mType(m)) {
+        if (pt == PAWN
+         && mType(m) == PROMOTE) {
             oss << "=" << (WHITE|promoteType(m));
         }
     }
@@ -282,7 +280,7 @@ string moveToSAN(Move m, Position &pos) {
     if (pos.giveCheck(m)) {
         StateInfo si;
         pos.doMove(m, si, true);
-        oss << (0 != MoveList<GenType::LEGAL>(pos).size() ? "+" : "#");
+        oss << (MoveList<GenType::LEGAL>(pos).size() != 0 ? "+" : "#");
         pos.undoMove(m);
     }
 
@@ -292,7 +290,7 @@ string moveToSAN(Move m, Position &pos) {
 /// to the corresponding legal move, if any.
 Move moveOfSAN(string const &san, Position &pos) {
     for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
-        if (san == moveToSAN(vm, pos)) {
+        if (moveToSAN(vm, pos) == san) {
             return vm;
         }
     }
@@ -327,7 +325,7 @@ string prettyInfo(Thread *const &th) {
     std::for_each(th->rootMoves.front().begin(),
                   th->rootMoves.front().end(),
                   [&](Move m) {
-                      assert(MOVE_NONE != m);
+                      assert(m != MOVE_NONE);
                       oss << moveToSAN(m, th->rootPos) << " ";
                       states->emplace_back();
                       th->rootPos.doMove(m, states->back());
@@ -335,7 +333,7 @@ string prettyInfo(Thread *const &th) {
     std::for_each(th->rootMoves.front().rbegin(),
                   th->rootMoves.front().rend(),
                   [&](Move m) {
-                      assert(MOVE_NONE != m);
+                      assert(m != MOVE_NONE);
                       th->rootPos.undoMove(m);
                       states->pop_back();
                   });

@@ -121,7 +121,6 @@ void Thread::clear() {
 
 void MainThread::setTicks(i16 tc) {
     _ticks = tc;
-    assert(0 != _ticks);
 }
 /// MainThread::clear()
 void MainThread::clear() {
@@ -149,11 +148,11 @@ namespace WinProcGroup {
 
         // Early exit if the needed API is not available at runtime
         auto kernel32{ GetModuleHandle("Kernel32.dll") };
-        if (nullptr == kernel32) {
+        if (kernel32 == nullptr) {
             return;
         }
         auto glpie{ (GLPIE)(void(*)())GetProcAddress(kernel32, "GetLogicalProcessorInformationEx") };
-        if (nullptr == glpie) {
+        if (glpie == nullptr) {
             return;
         }
 
@@ -164,7 +163,7 @@ namespace WinProcGroup {
         }
         // Once know size, allocate the buffer
         auto *ptrBase{ (SYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX*) malloc(buffSize) };
-        if (nullptr == ptrBase) {
+        if (ptrBase == nullptr) {
             return;
         }
         // Second call, now expect to succeed
@@ -180,7 +179,7 @@ namespace WinProcGroup {
         DWORD byteOffset{ 0UL };
         auto *ptrCur{ ptrBase };
         while (byteOffset < buffSize) {
-            assert(0 != ptrCur->Size);
+            assert(ptrCur->Size != 0);
 
             switch (ptrCur->Relationship) {
             case LOGICAL_PROCESSOR_RELATIONSHIP::RelationProcessorCore: {
@@ -230,16 +229,16 @@ namespace WinProcGroup {
         u16 group{ u16(Groups[index]) };
 
         auto kernel32{ GetModuleHandle("Kernel32.dll") };
-        if (nullptr == kernel32) {
+        if (kernel32 == nullptr) {
             return;
         }
 
         auto gnnpme{ (GNNPME)(void(*)())GetProcAddress(kernel32, "GetNumaNodeProcessorMaskEx") };
-        if (nullptr == gnnpme) {
+        if (gnnpme == nullptr) {
             return;
         }
         auto stga{ (STGA)(void(*)())GetProcAddress(kernel32, "SetThreadGroupAffinity") };
-        if (nullptr == stga) {
+        if (stga == nullptr) {
             return;
         }
 
@@ -311,17 +310,16 @@ Thread* ThreadPool::bestThread() const
 /// Created and launched threads will immediately go to sleep in idleFunction.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
 void ThreadPool::setup(u16 threadCount) {
-    // Destroy any existing thread(s)
-    if (0 < size()) {
-
+    if (!empty()) {
         mainThread()->waitIdle();
-        while (0 < size()) {
-            delete back();
-            pop_back();
-        }
+    }
+    // Destroy any existing thread(s)
+    while (!empty()) {
+        delete back();
+        pop_back();
     }
     // Create new thread(s)
-    if (0 != threadCount) {
+    if (threadCount != 0) {
 
         emplace_back(new MainThread(size()));
         while (size() < threadCount) {
@@ -363,10 +361,10 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
 
     // After ownership transfer 'states' becomes empty, so if we stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.
-    assert(nullptr != states.get()
-        || nullptr != _states.get());
+    assert(states.get() != nullptr
+        || _states.get() != nullptr);
 
-    if (nullptr != states.get()) {
+    if (states.get() != nullptr) {
         _states = std::move(states); // Ownership transfer, states is now empty
     }
 
