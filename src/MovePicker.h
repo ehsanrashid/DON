@@ -40,8 +40,7 @@ public:
         assert(std::abs(bonus) <= D); // Ensure range is [-D, +D]
 
         auto aBonus = std::abs(bonus);
-        if (aBonus == 1) aBonus = 56;
-        entry += bonus - entry * std::abs(bonus) / D;
+        entry += bonus - entry * (aBonus != 1 ? aBonus : 12) / D;
 
         assert(std::abs(entry) <= D);
     }

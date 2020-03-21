@@ -195,7 +195,7 @@ namespace {
     }
 
     /*
-    string pretty_value(Value v) {
+    string prettyValue(Value v) {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
         std::ostringstream oss;
         if (abs(v) < +VALUE_MATE_1_MAX_PLY) {
@@ -214,7 +214,7 @@ namespace {
     constexpr u32 SecondMilliSec = 1000;
     constexpr u32 MinuteMilliSec = 60*SecondMilliSec;
     constexpr u32 HourMilliSec   = 60*MinuteMilliSec;
-    string pretty_time(u64 time) {
+    string prettyTime(u64 time) {
         u32 hours  = u32(time / HourMilliSec);
         time      %= HourMilliSec;
         u32 minutes= u32(time / MinuteMilliSec);
@@ -304,8 +304,8 @@ string prettyInfo(Thread *const &th) {
 
     std::ostringstream oss;
     oss << std::setw( 4) << th->finishedDepth
-        << std::setw( 8) << pretty_value(th->rootMoves.front().newValue)
-        << std::setw(12) << pretty_time(TimeMgr.elapsed());
+        << std::setw( 8) << prettyValue(th->rootMoves.front().newValue)
+        << std::setw(12) << prettyTime(TimeMgr.elapsed());
 
          if (nodes < 10ULL*1000) {
         oss << std::setw(8) << u16(nodes);

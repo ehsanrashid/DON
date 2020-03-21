@@ -222,12 +222,15 @@ namespace Evaluator {
             Evaluation(Evaluation const&) = delete;
             Evaluation& operator=(Evaluation const&) = delete;
 
-            Evaluation(Position const &p) :
-                pos{ p }
-            {}
+            Evaluation(Position const&);
 
             Value value();
         };
+
+        template<bool Trace>
+        Evaluation<Trace>::Evaluation(Position const &p) :
+            pos{ p }
+        {}
 
         /// initAttacks() computes pawn and king attacks.
         template<bool Trace> template<Color Own>

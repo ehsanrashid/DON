@@ -31,6 +31,7 @@ void TEntry::save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv) {
         d08 = u08(d - DEPTH_OFFSET);
         g08 = u08(Generation | (u08(pv) << 2) | b);
     }
+    assert(d08 != 0);
 }
 
 

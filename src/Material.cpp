@@ -68,7 +68,7 @@ namespace Material {
         i32 computeImbalance(Array<i32, COLORS, PIECE_TYPES> const &count) {
             constexpr auto Opp{ ~Own };
 
-            i32 value{ 0 };
+            i32 imbalance{ 0 };
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
             for (PieceType pt1 = NONE; pt1 <= QUEN; ++pt1) {
@@ -78,10 +78,10 @@ namespace Material {
                         v += count[Own][pt2] * OwnQuadratic[pt1][pt2]
                            + count[Opp][pt2] * OppQuadratic[pt1][pt2];
                     }
-                    value += count[Own][pt1] * v;
+                    imbalance += count[Own][pt1] * v;
                 }
             }
-            return value;
+            return imbalance;
         }
     }
 

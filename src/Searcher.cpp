@@ -102,13 +102,20 @@ namespace {
         return (4 + numSquare(d)) / (2 - imp);
     }
 
+    Array<double, 256> cacheLog{};
+    double memoizeLog(i32 x) {
+        if (x != 0
+         //&& x < cacheLog.size()
+         && cacheLog[x] == 0.0) {
+            cacheLog[x] = std::log(x);
+        }
+        return cacheLog[x];
+    }
+
     Depth reduction(Depth d, u08 mc, bool imp) {
         assert(d >= DEPTH_ZERO);
-        auto r{ d != DEPTH_ZERO
-             && mc != 0 ?
-                Threadpool.reductionFactor * std::log(d) * std::log(mc) : 0 };
-        return Depth((r + 511) / 1024
-                   + (!imp && (r > 1007)));
+        auto r{ Threadpool.reductionFactor * memoizeLog(d) * memoizeLog(mc) };
+        return Depth((r + 511) / 1024 + (!imp && (r > 1007)));
     }
 
     /// Add a small random component to draw evaluations to avoid 3-fold-blindness
@@ -152,7 +159,7 @@ namespace {
 
     /// statBonus() is the bonus, based on depth
     constexpr i32 statBonus(Depth depth) {
-        return 15 >= depth ? (19 * depth + 155) * depth - 132 : 1;
+        return depth < 16 ? (19 * depth + 155) * depth - 132 : 1;
     }
 
     /// updateContinuationStats() updates Stats of the move pairs formed
@@ -277,8 +284,8 @@ namespace {
         // Check for maximum ply reached or immediate draw.
         if (pos.draw(ss->ply)
          || ss->ply >= MAX_PLY) {
-            return ss->ply >= MAX_PLY
-                && !inCheck ?
+            return !inCheck
+                && ss->ply >= MAX_PLY ?
                     evaluate(pos) : VALUE_DRAW;
         }
 
@@ -457,8 +464,16 @@ namespace {
             //}
 
             // Check for legality just before making the move
-            if (!pos.legal(move)) {
-                continue;
+            if (inCheck) {
+                if (!pos.pseudoLegal(move)
+                 || !pos.legal(move)) {
+                    continue;
+                }
+            }
+            else {
+                if (!pos.legal(move)) {
+                    continue;
+                }
             }
 
             ++playedMoveCount;
@@ -498,8 +513,8 @@ namespace {
             }
         }
 
-        // All legal moves have been searched. A special case: If we're in check
-        // and no legal moves were found, it is checkmate.
+        // All legal moves have been searched.
+        // A special case: If in check and no legal moves were found, it is checkmate.
         if (inCheck
          && bestValue == -VALUE_INFINITE) {
             return matedIn(ss->ply); // Plies to mate from the root
@@ -542,7 +557,7 @@ namespace {
         }
 
         // Dive into quiescence search when the depth reaches zero
-        if (DEPTH_ZERO >= depth) {
+        if (depth <= DEPTH_ZERO) {
             return quienSearch<PVNode>(pos, ss, alfa, beta);
         }
 
@@ -574,8 +589,8 @@ namespace {
             if (Threadpool.stop.load(std::memory_order::memory_order_relaxed)
              || pos.draw(ss->ply)
              || ss->ply >= MAX_PLY) {
-                return ss->ply >= MAX_PLY
-                    && !inCheck ?
+                return !inCheck
+                    && ss->ply >= MAX_PLY ?
                         evaluate(pos) : drawValue(thread);
             }
 
@@ -802,7 +817,7 @@ namespace {
                           ttPV);
             }
 
-            // Step 7. Razoring. (~1 ELO)
+            // Step 7. Razoring (~1 ELO)
             if (!rootNode // The RootNode PV handling is not available in qsearch
              && depth == DEPTH_ONE
              && eval + RazorMargin <= alfa) {
@@ -817,10 +832,10 @@ namespace {
                                     ss->staticEval > (ss-6)->staticEval :
                                     true;
 
-            // Step 8. Futility pruning: child node. (~50 ELO)
+            // Step 8. Futility pruning: child node (~50 ELO)
             // Betting that the opponent doesn't have a move that will reduce
             // the score by more than futility margins if do a null move.
-            if (!rootNode
+            if (!PVNode
              && depth < 6
              && eval - futilityMargin(depth, improving) >= beta
              && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
@@ -828,7 +843,7 @@ namespace {
                 return eval;
             }
 
-            // Step 9. Null move search with verification search. (~40 ELO)
+            // Step 9. Null move search with verification search (~40 ELO)
             if (!PVNode
              && (ss-1)->playedMove != MOVE_NULL
              && (ss-1)->stats < 23397
@@ -841,7 +856,7 @@ namespace {
               || thread->nmpColor != activeSide)
              && Limits.mate == 0) {
                 // Null move dynamic reduction based on depth and static evaluation.
-                auto R = Depth((854 + 68 * depth) / 258 + std::min(i32(eval - beta) / 192, 3));
+                auto nullDepth{ Depth(depth - ((854 + 68 * depth) / 258 + std::min(i32(eval - beta) / 192, 3))) };
 
                 Key nullMoveKey{ pos.posiKey()
                                ^ RandZob.colorKey
@@ -855,29 +870,30 @@ namespace {
 
                 pos.doNullMove(si);
 
-                auto null_value = -depthSearch<false>(pos, ss+1, -beta, -(beta-1), depth-R, !cutNode);
+                auto nullValue = -depthSearch<false>(pos, ss+1, -beta, -(beta-1), nullDepth, !cutNode);
 
                 pos.undoNullMove();
 
-                if (null_value >= beta) {
+                if (nullValue >= beta) {
                     // Skip verification search
                     if (thread->nmpPly != 0 // Recursive verification is not allowed
                      || (depth < 13
                       && abs(beta) < +VALUE_KNOWN_WIN)) {
                         // Don't return unproven wins
-                        return null_value >= +VALUE_MATE_2_MAX_PLY ? beta : null_value;
+                        return nullValue >= +VALUE_MATE_2_MAX_PLY ? beta : nullValue;
                     }
 
                     // Do verification search at high depths,
                     // with null move pruning disabled for nmpColor until ply exceeds nmpPly
                     thread->nmpColor = activeSide;
-                    thread->nmpPly = ss->ply + 3 * (depth-R) / 4;
-                    value = depthSearch<false>(pos, ss, beta-1, beta, depth-R, false);
+
+                    thread->nmpPly = ss->ply + 3 * nullDepth / 4;
+                    value = depthSearch<false>(pos, ss, beta-1, beta, nullDepth, false);
                     thread->nmpPly = 0;
 
                     if (value >= beta) {
                         // Don't return unproven wins
-                        return null_value >= +VALUE_MATE_2_MAX_PLY ? beta : null_value;
+                        return nullValue >= +VALUE_MATE_2_MAX_PLY ? beta : nullValue;
                     }
                 }
             }
@@ -1046,8 +1062,8 @@ namespace {
 
             // Step 13. Pruning at shallow depth. (~200 ELO)
             if (!rootNode
-             && -VALUE_MATE_2_MAX_PLY < bestValue
-             && VALUE_ZERO < pos.nonPawnMaterial(activeSide)
+             && bestValue > -VALUE_MATE_2_MAX_PLY
+             && pos.nonPawnMaterial(activeSide) > VALUE_ZERO
              && Limits.mate == 0) {
                 // Skip quiet moves if move count exceeds our futilityMoveCount() threshold
                 movePicker.skipQuiets = futilityMoveCount(depth, improving) <= moveCount;
@@ -1063,7 +1079,7 @@ namespace {
                     // Reduced depth of the next LMR search.
                     i32 lmrDepth{ std::max(newDepth - reduction(depth, moveCount, improving), 0) };
                     // Counter moves based pruning: (~20 ELO)
-                    if (lmrDepth < 4 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1)
+                    if (lmrDepth < (4 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1))
                      && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
                      && (*pieceStats[1])[mp][dst] < CounterMovePruneThreshold) {
                         continue;
@@ -1109,14 +1125,15 @@ namespace {
              && move == ttMove
              && excludedMove == MOVE_NONE // Avoid recursive singular search
              // && ttValue != VALUE_NONE  Already implicit in the next condition
-             && +VALUE_KNOWN_WIN > abs(ttValue)
+             && abs(ttValue) < VALUE_KNOWN_WIN
              && (depth - 4) < tte->depth()
              && (tte->bound() & BOUND_LOWER)) {
 
                 auto singularBeta{ ttValue - ((4 + (!PVNode && ttPV)) * depth) / 2 };
-                auto d{ (depth + 3 * (!PVNode && ttPV) - 1) / 2 };
+                auto singularDepth{ (depth + 3 * (!PVNode && ttPV) - 1) / 2 };
+
                 ss->excludedMove = move;
-                value = depthSearch<false>(pos, ss, singularBeta-1, singularBeta, d, cutNode);
+                value = depthSearch<false>(pos, ss, singularBeta-1, singularBeta, singularDepth, cutNode);
                 ss->excludedMove = MOVE_NONE;
 
                 if (value < singularBeta) {
@@ -1167,7 +1184,7 @@ namespace {
             pos.doMove(move, si, giveCheck);
 
             bool doLMR{
-                2 < depth
+                depth > 2
              && moveCount > (1 + 2 * rootNode)
              && (!rootNode
                 // At root if zero best counter
@@ -1247,7 +1264,7 @@ namespace {
             }
             else {
                 doFullSearch = !PVNode
-                            || 1 < moveCount;
+                            || moveCount > 1;
             }
 
             // Step 17. Full depth search when LMR is skipped or fails high.
@@ -1306,7 +1323,7 @@ namespace {
                     // Record how often the best move has been changed in each iteration.
                     // This information is used for time management:
                     // When the best move changes frequently, allocate some more time.
-                    if (1 < moveCount
+                    if (moveCount > 1
                      && Limits.useTimeMgmt()) {
                         ++thread->pvChange;
                     }
@@ -1356,8 +1373,9 @@ namespace {
         // completed. But in this case bestValue is valid because we have fully
         // searched our subtree, and we can anyhow save the result in TT.
         /*
-        if (Threadpool.stop)
+        if (Threadpool.stop) {
             return VALUE_DRAW;
+        }
         */
 
         assert(moveCount != 0
@@ -1370,11 +1388,11 @@ namespace {
         // If in a singular extension search then return a fail low score (alfa).
         // Otherwise it must be a checkmate or a stalemate, so return value accordingly.
         if (moveCount == 0) {
-            bestValue = excludedMove != MOVE_NONE ?
-                            alfa :
-                            inCheck ?
-                                matedIn(ss->ply) :
-                                VALUE_DRAW;
+            bestValue =
+                excludedMove != MOVE_NONE ?
+                    alfa :
+                    inCheck ?
+                        matedIn(ss->ply) : VALUE_DRAW;
         }
         else
         if (bestMove != MOVE_NONE) {
@@ -1384,7 +1402,7 @@ namespace {
             // Quiet best move: update move sorting heuristics.
             if (!pos.captureOrPromotion(bestMove)) {
 
-                auto bonus2{ std::max(bestValue - VALUE_MG_PAWN, -VALUE_INFINITE) > beta ?
+                auto bonus2{ bestValue > beta + VALUE_MG_PAWN ?
                                 bonus1 : statBonus(depth) };
 
                 updateQuietStats(ss, pos, bestMove, pmOK, pmPiece, pmDst, depth, bonus2);
@@ -1416,7 +1434,7 @@ namespace {
             if (pmOK
              && !pmCapOrPro
              && (PVNode
-              || 2 < depth)) {
+              || depth > 2)) {
                 updateContinuationStats(ss-1, pmPiece, pmDst, statBonus(depth));
             }
         }
@@ -1438,8 +1456,7 @@ namespace {
                           BOUND_LOWER :
                           PVNode
                        && bestMove != MOVE_NONE ?
-                              BOUND_EXACT :
-                              BOUND_UPPER,
+                              BOUND_EXACT : BOUND_UPPER,
                       ttPV);
         }
 

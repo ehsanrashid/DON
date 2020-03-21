@@ -360,7 +360,7 @@ bool Position::legal(Move m) const {
         // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
         return !Options["UCI_Chess960"]
             || (pieces(~active, ROOK, QUEN)
-              & RankBB[relativeRank(active, RANK_1)]
+              & RankBB[sRank(org)]
               & attacksBB<ROOK>(kingCastleSq(org, dst), pieces() ^ dst)) == 0;
     }
 
@@ -439,8 +439,7 @@ bool Position::giveCheck(Move m) const {
     // case PROMOTE:
     default: {
         // Promotion with check?
-        Bitboard mocc{ pieces() ^ org };
-        return contains(attacksBB(promoteType(m), dst, mocc), ekSq);
+        return contains(attacksBB(promoteType(m), dst, pieces() ^ org), ekSq);
     }
     }
 }
@@ -490,7 +489,7 @@ bool Position::canEnpassant(Color c, Square epSq, bool moveDone) const {
     // Enpassant attackers
     Bitboard attackers{ pieces(c, PAWN)
                       & pawnAttacksFrom(~c, epSq) };
-    assert(2 >= popCount(attackers));
+    assert(popCount(attackers) <= 2);
     if (attackers == 0) {
        return false;
     }
@@ -527,12 +526,12 @@ bool Position::see(Move m, Value threshold) const {
 
     i32 swap;
     swap = PieceValues[MG][pType(board[dst])] - threshold;
-    if (0 > swap) {
+    if (swap < 0) {
         return false;
     }
 
     swap = PieceValues[MG][pType(board[org])] - swap;
-    if (0 >= swap) {
+    if (swap <= 0) {
         return true;
     }
 
@@ -690,7 +689,7 @@ void Position::placePiece(Square s, Piece p) {
 void Position::removePiece(Square s) {
     auto p{ board[s] };
     assert(isOk(p)
-        && 1 == std::count(pieceList[p].begin(), pieceList[p].end(), s));
+        && std::count(pieceList[p].begin(), pieceList[p].end(), s) == 1);
     colors[pColor(p)] ^= s;
     types[pType(p)] ^= s;
     types[NONE] ^= s;
@@ -1382,8 +1381,8 @@ bool Position::ok() const {
     for (Color c : { WHITE, BLACK }) {
         if (count(c) > 16
          || count(c) != popCount(pieces(c))
-         || 1 != std::count(board.begin(), board.end(), (c|KING))
-         || 1 != count(c|KING)
+         || std::count(board.begin(), board.end(), (c|KING)) != 1
+         || count(c|KING) != 1
          || !isOk(square(c|KING))
          || board[square(c|KING)] != (c|KING)
          || (        (count(c|PAWN)
