@@ -37,10 +37,10 @@ class ThreadMarker {
 private:
 
     ThreadMark *threadMark{ nullptr };
-    bool ownThreadMark{ false };
-    bool otrThreadMark{ false };
+    bool owner{ false };
 
 public:
+    bool marked{ false };
 
     ThreadMarker() = delete;
     ThreadMarker(ThreadMarker const&) = delete;
@@ -54,8 +54,5 @@ public:
         i16);
 
     ~ThreadMarker();
-
-    bool marked() const;
-
 };
 

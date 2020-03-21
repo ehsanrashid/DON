@@ -22,10 +22,9 @@ namespace Evaluator {
 
         class Tracer {
 
-        private:
+        public:
             static Table<Score, TERM_NO, COLORS> Scores;
 
-        public:
             static void clear() {
                 Scores.fill(SCORE_ZERO);
             }
@@ -38,24 +37,26 @@ namespace Evaluator {
                 write(t, BLACK, sB);
             }
 
-            friend std::ostream& operator<<(std::ostream &os, Term t) {
-                if (MATERIAL == t
-                 || IMBALANCE == t
-                 || INITIATIVE == t
-                 || TOTAL == t) {
-                    os << " | ----- -----" << " | ----- -----";
-                }
-                else {
-                    os << " | " << Scores[t][WHITE] << " | " << Scores[t][BLACK];
-                }
-                os << " | " << Scores[t][WHITE] - Scores[t][BLACK] << " |\n";
-                return os;
-            }
+            friend std::ostream& operator<<(std::ostream &, Term);
+
 
         };
 
         Table<Score, TERM_NO, COLORS> Tracer::Scores;
 
+        std::ostream& operator<<(std::ostream &os, Term t) {
+            if (t == MATERIAL
+             || t == IMBALANCE
+             || t == INITIATIVE
+             || t == TOTAL) {
+                os << " | ----- -----" << " | ----- -----";
+            }
+            else {
+                os << " | " << Tracer::Scores[t][WHITE] << " | " << Tracer::Scores[t][BLACK];
+            }
+            os << " | " << Tracer::Scores[t][WHITE] - Tracer::Scores[t][BLACK] << " |\n";
+            return os;
+        }
 
         constexpr Bitboard CenterBB{ (FileBB[FILE_D]|FileBB[FILE_E]) & (RankBB[RANK_4]|RankBB[RANK_5]) };
 
@@ -185,10 +186,9 @@ namespace Evaluator {
             // Contains all squares attacked by the color and piece type with pinned removed.
             Array<Bitboard, COLORS, PIECE_TYPES> sqlAttacks;
             // Contains all squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
-            Array<Bitboard, COLORS> pawnsDblAttacks;
             Array<Bitboard, COLORS> dblAttacks;
             // Contains all squares from which queen can be attacked
-            Array<Bitboard, COLORS, 3>  queenAttacked;
+            Array<Bitboard, COLORS, 3> queenAttacked;
 
             Array<Bitboard, COLORS> mobArea;
             Array<Score, COLORS> mobility;
@@ -205,12 +205,11 @@ namespace Evaluator {
             // For instance, if there is a white knight on g5 and black's king is on g8, this white knight adds 2 to kingAttacksCount[WHITE]
             Array<i32, COLORS> kingAttacksCount;
 
-            template<Color> void initAttacks();
-            template<Color> void initMobility();
+            template<Color> void initialize();
             template<Color, PieceType> Score pieces();
             template<Color> Score king() const;
             template<Color> Score threats() const;
-            template<Color> Score passers() const;
+            template<Color> Score passPawn() const;
             template<Color> Score space() const;
 
             Score initiative(Score) const;
@@ -232,39 +231,30 @@ namespace Evaluator {
             pos{ p }
         {}
 
-        /// initAttacks() computes pawn and king attacks.
+        /// initialize() computes pawn and king attacks also mobility and the king ring
         template<bool Trace> template<Color Own>
-        void Evaluation<Trace>::initAttacks() {
-            Bitboard pawns{ pos.pieces(Own, PAWN) };
+        void Evaluation<Trace>::initialize() {
+            constexpr auto Opp{ ~Own };
 
-            auto kSq{ pos.square(Own|KING) };
+            const auto kSq{ pos.square(Own|KING) };
 
             sqlAttacks[Own].fill(0);
-            sqlAttacks[Own][PAWN] =  pawnSglAttackBB<Own>(pawns & ~pos.kingBlockers(Own))
-                                  | (pawnSglAttackBB<Own>(pawns &  pos.kingBlockers(Own)) & PieceAttackBB[BSHP][kSq]);
+            sqlAttacks[Own][PAWN] = pawnEntry->sglAttacks[Own];
             sqlAttacks[Own][KING] = PieceAttackBB[KING][kSq];
+
+            fulAttacks[Own] =
             sqlAttacks[Own][NONE] = sqlAttacks[Own][PAWN]
                                   | sqlAttacks[Own][KING];
-            //
-            fulAttacks[Own] = pawnSglAttackBB<Own>(pawns)
-                            | sqlAttacks[Own][KING];
-            //
-            pawnsDblAttacks[Own] = pawnDblAttackBB<Own>(pawns)
-                                 & sqlAttacks[Own][PAWN];
-            dblAttacks[Own] = pawnsDblAttacks[Own]
+
+            dblAttacks[Own] = pawnEntry->dblAttacks[Own]
                             | (sqlAttacks[Own][PAWN]
                              & sqlAttacks[Own][KING]);
-            //
+
             queenAttacked[Own].fill(0);
-        }
-        /// initMobility() computes mobility and king-ring.
-        template<bool Trace> template<Color Own>
-        void Evaluation<Trace>::initMobility() {
-            constexpr auto Opp{ ~Own };
 
             // Mobility area: Exclude followings
             mobArea[Own] = ~(// Squares protected by enemy pawns
-                             sqlAttacks[Opp][PAWN]
+                             pawnEntry->sglAttacks[Opp]
                              // Squares occupied by friend Queen and King
                            | pos.pieces(Own, QUEN, KING)
                             // Squares occupied by friend King blockers
@@ -276,18 +266,17 @@ namespace Evaluator {
 
             mobility[Own] = SCORE_ZERO;
 
-            auto kSq{ pos.square(Own|KING) };
             // King safety tables
             auto sq{ makeSquare(clamp(sFile(kSq), FILE_B, FILE_G),
                                 clamp(sRank(kSq), RANK_2, RANK_7)) };
             kingRing[Own] = PieceAttackBB[KING][sq] | sq;
 
-            kingAttackersCount [Opp] = popCount(kingRing[Own] & sqlAttacks[Opp][PAWN]);
+            kingAttackersCount [Opp] = popCount(kingRing[Own] & pawnEntry->sglAttacks[Opp]);
             kingAttackersWeight[Opp] = 0;
             kingAttacksCount   [Opp] = 0;
 
             // Remove from kingRing the squares defended by two pawns
-            kingRing[Own] &= ~pawnsDblAttacks[Own];
+            kingRing[Own] &= ~pawnEntry->dblAttacks[Own];
         }
 
         /// pieces() evaluates the pieces of the color and type
@@ -331,12 +320,11 @@ namespace Evaluator {
 
                     b =  OutpostBB[Own]
                       &  sqlAttacks[Own][PAWN]
-                      & ~pawnEntry->attackSpan[Opp];
+                      & ~pawnEntry->attacksSpan[Opp];
 
                     if (PT == NIHT) {
 
-                        dblAttacks[Own] |= sqlAttacks[Own][NONE]
-                                         & attacks;
+                        dblAttacks[Own] |= sqlAttacks[Own][NONE] & attacks;
 
                         // Bonus for knight outpost squares
                         if (contains(b, s)) {
@@ -397,8 +385,7 @@ namespace Evaluator {
                 }
                 if (PT == ROOK) {
 
-                    dblAttacks[Own] |= sqlAttacks[Own][NONE]
-                                     & attacks;
+                    dblAttacks[Own] |= sqlAttacks[Own][NONE] & attacks;
 
                     // Bonus for rook on the same file as a queen
                     if ((pos.pieces(QUEN) & fileBB(s)) != 0) {
@@ -413,7 +400,7 @@ namespace Evaluator {
                     // Penalty for rook when trapped by the king, even more if the king can't castle
                     if (mob <= 3
                      && relativeRank(Own, s) < RANK_4
-                     && (frontSquaresBB(Own, s) & pos.pieces(Own, PAWN)) != 0) {
+                     && (pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) != 0) {
                         auto kF = sFile(pos.square(Own|KING));
                         if (((kF < FILE_E) && (sFile(s) < kF))
                          || ((kF > FILE_D) && (sFile(s) > kF))) {
@@ -431,9 +418,9 @@ namespace Evaluator {
                                       | (attacksBB<BSHP>(s, pos.pieces() ^ (pc & pos.pieces(BSHP) & PieceAttackBB[BSHP][s])) & action)
                                       | (attacksBB<ROOK>(s, pos.pieces() ^ (pc & pos.pieces(ROOK) & PieceAttackBB[ROOK][s])) & action));
 
-                    queenAttacked[Own][0] |= pos.pieceAttacksFrom(NIHT, s);
-                    queenAttacked[Own][1] |= pos.pieceAttacksFrom(BSHP, s);
-                    queenAttacked[Own][2] |= pos.pieceAttacksFrom(ROOK, s);
+                    queenAttacked[Own][0] |= pos.attacksFrom(NIHT, s);
+                    queenAttacked[Own][1] |= pos.attacksFrom(BSHP, s);
+                    queenAttacked[Own][2] |= pos.attacksFrom(ROOK, s);
 
                     // Penalty for pin or discover attack on the queen
                     b = 0; // Queen attackers
@@ -448,7 +435,7 @@ namespace Evaluator {
 
                 sqlAttacks[Own][PT]   |= attacks;
                 sqlAttacks[Own][NONE] |= attacks;
-                fulAttacks[Own]       |= pos.pieceAttacksFrom(PT, s);
+                fulAttacks[Own]       |= pos.attacksFrom(PT, s);
 
                 if ((attacks & kingRing[Opp]) != 0) {
                     kingAttackersCount [Own]++;
@@ -602,19 +589,23 @@ namespace Evaluator {
             // Squares defended by the opponent,
             // - defended the square with a pawn
             // - defended the square twice and not attacked twice.
-            Bitboard defendedArea = sqlAttacks[Opp][PAWN]
-                                  | ( dblAttacks[Opp]
-                                   & ~dblAttacks[Own]);
+            Bitboard defendedArea =
+                sqlAttacks[Opp][PAWN]
+              | ( dblAttacks[Opp]
+               & ~dblAttacks[Own]);
             // Enemy non-pawns
-            Bitboard nonPawnsEnemies =  pos.pieces(Opp)
-                                     & ~pos.pieces(PAWN);
+            Bitboard nonPawnsEnemies =
+                pos.pieces(Opp)
+             & ~pos.pieces(PAWN);
             // Enemy not defended and under attacked by any friend piece
-            Bitboard attackedUndefendedEnemies =  pos.pieces(Opp)
-                                               & ~defendedArea
-                                               &  sqlAttacks[Own][NONE];
+            Bitboard attackedUndefendedEnemies =
+                pos.pieces(Opp)
+             & ~defendedArea
+             &  sqlAttacks[Own][NONE];
             // Non-pawn enemies, defended by enemies
-            Bitboard defendedNonPawnsEnemies = nonPawnsEnemies
-                                             & defendedArea;
+            Bitboard defendedNonPawnsEnemies =
+                nonPawnsEnemies
+              & defendedArea;
 
             Bitboard b;
 
@@ -666,18 +657,16 @@ namespace Evaluator {
               &  sqlAttacks[Own][NONE];
             score += PieceRestricted * popCount(b);
 
-            Bitboard safeArea;
-
             // Defended or Unattacked squares
-            safeArea =  sqlAttacks[Own][NONE]
-                     | ~sqlAttacks[Opp][NONE];
+            Bitboard safeArea =
+                sqlAttacks[Own][NONE]
+             | ~sqlAttacks[Opp][NONE];
             // Safe friend pawns
             b =  safeArea
               &  pos.pieces(Own, PAWN);
             // Safe friend pawns attacks on non-pawn enemies
-            b =  nonPawnsEnemies
-              &  pawnSglAttackBB<Own>(b)
-              &  sqlAttacks[Own][PAWN];
+            b =  pawnSglAttackBB<Own>(b)
+              &  nonPawnsEnemies;
             score += PawnThreat * popCount(b);
 
             // Friend pawns who can push on the next move
@@ -718,9 +707,9 @@ namespace Evaluator {
             return score;
         }
 
-        /// passers() evaluates the passed pawns of the color
+        /// passPawn() evaluates the passed pawns of the color
         template<bool Trace> template<Color Own>
-        Score Evaluation<Trace>::passers() const {
+        Score Evaluation<Trace>::passPawn() const {
             constexpr auto Opp{ ~Own };
 
             auto kingProximity = [&](Color c, Square s) {
@@ -729,13 +718,13 @@ namespace Evaluator {
 
             Score score{ SCORE_ZERO };
 
-            Bitboard psr{ pawnEntry->passers[Own] };
-            while (psr != 0) {
-                auto s{ popLSq(psr) };
+            Bitboard passPawns{ pawnEntry->passPawns[Own] };
+            while (passPawns != 0) {
+                auto s{ popLSq(passPawns) };
                 assert((pos.pieces(Opp, PAWN)
                       & (pawnSglPushBB<Own>(frontSquaresBB(Own, s))
                        | ( pawnPassSpan(Own, s + PawnPush[Own])
-                        & ~pos.pawnAttacksFrom(Own, s + PawnPush[Own])))) == 0);
+                        & ~PawnAttackBB[Own][s + PawnPush[Own]]))) == 0);
 
                 i32 r{ relativeRank(Own, s) };
                 // Base bonus depending on rank.
@@ -777,9 +766,9 @@ namespace Evaluator {
                     }
                 }
 
-                // Scale down bonus for candidate passers
-                // - have a pawn in front of it.
-                // - need more than one pawn push to become passer.
+                // Scale down bonus for candidate passPawns
+                // - have a pawn in front of it
+                // - need more than one pawn push to become passPawns
                 if (!pos.pawnPassedAt(Own, pushSq)
                  || contains(pos.pieces(PAWN), pushSq)) {
                     bonus = bonus / 2;
@@ -805,16 +794,15 @@ namespace Evaluator {
         Score Evaluation<Trace>::space() const {
             constexpr auto Opp{ ~Own };
 
-            // Find all squares which are at most three squares behind some friend pawn
-            Bitboard behind{ pos.pieces(Own, PAWN) };
-            behind |= pawnSglPushBB<Opp>(behind);
-            behind |= pawnSglPushBB<Opp>(behind);
-
             // Safe squares for friend pieces inside the area defined by SpaceMask.
             Bitboard safeSpace{  PawnSideBB[Own]
                               &  SlotFileBB[CS_CENTRE]
                               & ~pos.pieces(Own, PAWN)
                               & ~sqlAttacks[Opp][PAWN] };
+            // Find all squares which are at most three squares behind some friend pawn
+            Bitboard behind{ pos.pieces(Own, PAWN) };
+            behind |= pawnSglPushBB<Opp>(behind);
+            behind |= pawnDblPushBB<Opp>(behind);
 
             i32 bonus{ popCount(safeSpace)
                      + popCount( behind
@@ -936,8 +924,8 @@ namespace Evaluator {
                 Tracer::clear();
             }
 
-            initAttacks <WHITE>(), initAttacks <BLACK>();
-            initMobility<WHITE>(), initMobility<BLACK>();
+            initialize<WHITE>();
+            initialize<BLACK>();
 
             // Pieces should be evaluated first (populate attack information)
             score += pieces<WHITE, NIHT>() - pieces<BLACK, NIHT>();
@@ -948,12 +936,12 @@ namespace Evaluator {
             assert((sqlAttacks[WHITE][NONE] & dblAttacks[WHITE]) == dblAttacks[WHITE]);
             assert((sqlAttacks[BLACK][NONE] & dblAttacks[BLACK]) == dblAttacks[BLACK]);
 
-            score += mobility[WHITE]  - mobility[BLACK]
-                   + king   <WHITE>() - king   <BLACK>()
-                   + threats<WHITE>() - threats<BLACK>()
-                   + passers<WHITE>() - passers<BLACK>();
+            score += mobility[WHITE]   - mobility[BLACK]
+                   + king    <WHITE>() - king    <BLACK>()
+                   + threats <WHITE>() - threats <BLACK>()
+                   + passPawn<WHITE>() - passPawn<BLACK>();
             if (pos.nonPawnMaterial() >= VALUE_SPACE_THRESHOLD) {
-            score += space  <WHITE>() - space  <BLACK>();
+            score += space   <WHITE>() - space   <BLACK>();
             }
 
             score += initiative(score);
@@ -1023,7 +1011,7 @@ namespace Evaluator {
             << "----------------+-------------+-------------+--------------\n"
             << "          Total" << Term(TOTAL)
             << std::showpos << std::showpoint << std::fixed << std::setprecision(2)
-            << "\nEvaluation: " << toCP(value) / 100.0 << " (white side)\n";
+            << "\nEvaluation: " << toCP(value) / 100 << " (white side)\n";
 
         return oss.str();
     }

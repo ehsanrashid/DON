@@ -279,7 +279,7 @@ bool Position::pseudoLegal(Move m) const
            && (mType(m) != PROMOTE
             || orgR != RANK_7
             || dstR != RANK_8))
-          || !contains(pawnAttacksFrom(active, org), dst)
+          || !contains(PawnAttackBB[active][org], dst)
           || empty(dst))
             // Double push
          && (mType(m) != NORMAL
@@ -293,7 +293,7 @@ bool Position::pseudoLegal(Move m) const
           || orgR != RANK_5
           || dstR != RANK_6
           || dst != epSquare()
-          || !contains(pawnAttacksFrom(active, org), dst)
+          || !contains(PawnAttackBB[active][org], dst)
           || !empty(dst)
           || empty(dst - 1 * PawnPush[active])
           || clockPly() != 0)) {
@@ -302,7 +302,7 @@ bool Position::pseudoLegal(Move m) const
     }
     else {
         if (mType(m) != NORMAL
-         || !contains(pieceAttacksFrom(org), dst)) {
+         || !contains(attacksFrom(org), dst)) {
             return false;
         }
     }
@@ -476,10 +476,10 @@ void Position::setCheckInfo() {
     _stateInfo->kingBlockers[BLACK] = sliderBlockersAt(square(BLACK|KING), pieces(WHITE), _stateInfo->kingCheckers[BLACK], _stateInfo->kingCheckers[WHITE]);
 
     auto ekSq{ square(~active|KING) };
-    _stateInfo->checks[PAWN] = pawnAttacksFrom(~active, ekSq);
-    _stateInfo->checks[NIHT] = pieceAttacksFrom(NIHT, ekSq);
-    _stateInfo->checks[BSHP] = pieceAttacksFrom(BSHP, ekSq);
-    _stateInfo->checks[ROOK] = pieceAttacksFrom(ROOK, ekSq);
+    _stateInfo->checks[PAWN] = PawnAttackBB[~active][ekSq];
+    _stateInfo->checks[NIHT] = attacksFrom(NIHT, ekSq);
+    _stateInfo->checks[BSHP] = attacksFrom(BSHP, ekSq);
+    _stateInfo->checks[ROOK] = attacksFrom(ROOK, ekSq);
     _stateInfo->checks[QUEN] = _stateInfo->checks[BSHP]|_stateInfo->checks[ROOK];
     _stateInfo->checks[KING] = 0;
 }
@@ -492,7 +492,7 @@ bool Position::canEnpassant(Color c, Square epSq, bool moveDone) const {
     assert(board[cap] == (~c|PAWN)); //contains(pieces(~c, PAWN), cap));
     // Enpassant attackers
     Bitboard attackers{ pieces(c, PAWN)
-                      & pawnAttacksFrom(~c, epSq) };
+                      & PawnAttackBB[~c][epSq] };
     assert(popCount(attackers) <= 2);
     if (attackers == 0) {
        return false;

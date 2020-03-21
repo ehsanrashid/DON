@@ -89,7 +89,7 @@ namespace Pawns {
     }
 
     i32 Entry::passedCount() const {
-        return popCount(passers[WHITE] | passers[BLACK]);
+        return popCount(passPawns[WHITE] | passPawns[BLACK]);
     }
 
     /// Entry::evaluateKingSafety()
@@ -169,13 +169,15 @@ namespace Pawns {
         Bitboard ownPawns{ pos.pieces(Own) & pawns };
         Bitboard oppPawns{ pos.pieces(Opp) & pawns };
 
-        kingSq    [Own] = SQ_NONE;
-        //kingPath  [Own] = 0;
-        //kingSafety[Own] = SCORE_ZERO;
-        //kingDist  [Own] = SCORE_ZERO;
-        attackSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
-        passers   [Own] = 0;
-        score     [Own] = SCORE_ZERO;
+        kingSq     [Own] = SQ_NONE;
+        //kingPath   [Own] = 0;
+        //kingSafety [Own] = SCORE_ZERO;
+        //kingDist   [Own] = SCORE_ZERO;
+        passPawns     [Own] = 0;
+        score      [Own] = SCORE_ZERO;
+        sglAttacks [Own] =
+        attacksSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
+        dblAttacks [Own] = pawnDblAttackBB<Own>(ownPawns);
         for (Square s : pos.squares(Own|PAWN)) {
             assert(pos[s] == (Own|PAWN));
 
@@ -187,8 +189,8 @@ namespace Pawns {
             Bitboard phalanxes  { neighbours & rankBB(s) };
             Bitboard stoppers   { oppPawns & pawnPassSpan(Own, s) };
             Bitboard blocker    { stoppers & (s + PawnPush[Own]) };
-            Bitboard levers     { stoppers & pos.pawnAttacksFrom(Own, s) };
-            Bitboard sentres    { stoppers & pos.pawnAttacksFrom(Own, s + PawnPush[Own]) }; // push levers
+            Bitboard levers     { stoppers & PawnAttackBB[Own][s] };
+            Bitboard sentres    { stoppers & PawnAttackBB[Own][s + PawnPush[Own]] }; // push levers
 
             bool opposed { (stoppers & frontSquaresBB(Own, s)) != 0 };
             // Backward: A pawn is backward when it is behind all pawns of the same color
@@ -199,7 +201,7 @@ namespace Pawns {
             // Compute additional span if pawn is not blocked nor backward
             if (!backward
              && !blocker) {
-                attackSpan[Own] |= pawnAttackSpan(Own, s); // + PawnPush[Own]
+                attacksSpan[Own] |= pawnAttackSpan(Own, s); // + PawnPush[Own]
             }
 
             // A pawn is passed if one of the three following conditions is true:
@@ -217,7 +219,7 @@ namespace Pawns {
               && ( pawnSglPushBB<Own>(supporters)
                 & ~(oppPawns | pawnDblAttackBB<Opp>(oppPawns))) != 0)) {
                 // Passed pawns will be properly scored later in evaluation when we have full attack info.
-                passers[Own] |= s;
+                passPawns[Own] |= s;
             }
 
             Score sp{ SCORE_ZERO };

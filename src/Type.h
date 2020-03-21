@@ -511,12 +511,12 @@ constexpr Move reverseMove(Move m) {
 }
 
 /// Convert Value to Centipawn
-constexpr i16   toCP(Value   v) {
-    return i16(double(v) * 100 / VALUE_EG_PAWN);
+constexpr double toCP(Value   v) {
+    return double(v) / VALUE_EG_PAWN * 100;
 }
 /// Convert Centipawn to Value
-constexpr Value toValue(i16 cp) {
-    return Value(i32(cp) * VALUE_EG_PAWN / 100);
+constexpr Value toValue(double cp) {
+    return Value(i32(cp) / 100 * VALUE_EG_PAWN);
 }
 
 constexpr Value matesIn(i32 ply) {

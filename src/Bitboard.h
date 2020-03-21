@@ -291,10 +291,10 @@ template<Color C>
 constexpr Bitboard pawnSglPushBB(Bitboard bb) {
     return shift<PawnPush[C]>(bb);
 }
-//template<Color C>
-//constexpr Bitboard pawnDblPushBB(Bitboard bb) {
-//    return shift<2 * PawnPush[C]>(bb);
-//}
+template<Color C>
+constexpr Bitboard pawnDblPushBB(Bitboard bb) {
+    return shift<2 * PawnPush[C]>(bb);
+}
 
 constexpr Array<Direction, COLORS> PawnLAtt{ NORTH_WEST, SOUTH_EAST };
 constexpr Array<Direction, COLORS> PawnRAtt{ NORTH_EAST, SOUTH_WEST };

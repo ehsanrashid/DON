@@ -550,14 +550,14 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
                 if (wkSq == block1Sq
                  && (wbSq == block2Sq
                   || (pos.pieces(weakColor, BSHP)
-                    & pos.pieceAttacksFrom(BSHP, block2Sq)) != 0
+                    & pos.attacksFrom(BSHP, block2Sq)) != 0
                   || distance<Rank>(sp1Sq, sp2Sq) >= 2)) {
                     return SCALE_DRAW;
                 }
                 if (wkSq == block2Sq
                  && (wbSq == block1Sq
                   || (pos.pieces(weakColor, BSHP)
-                    & pos.pieceAttacksFrom(BSHP, block1Sq)) != 0)) {
+                    & pos.attacksFrom(BSHP, block1Sq)) != 0)) {
                     return SCALE_DRAW;
                 }
             }
@@ -605,7 +605,7 @@ template<> Scale Endgame<KNPKB>::operator()(Position const &pos) const {
     // King needs to get close to promoting pawn to prevent knight from blocking.
     // Rules for this are very tricky, so just approximate.
     if ((frontSquaresBB(stngColor, spSq)
-       & pos.pieceAttacksFrom(BSHP, sbSq)) != 0) {
+       & pos.attacksFrom(BSHP, sbSq)) != 0) {
         return Scale(distance(wkSq, spSq));
     }
 
@@ -742,8 +742,8 @@ template<> Scale Endgame<KQKRPs>::operator()(Position const &pos) const {
      && relativeRank(weakColor, skSq) >= RANK_4
      && relativeRank(weakColor, wrSq) == RANK_3
      && (pos.pieces(weakColor, PAWN)
-       & pos.pieceAttacksFrom(KING, wkSq)
-       & pos.pawnAttacksFrom(stngColor, wrSq)) != 0) {
+       & pos.attacksFrom(KING, wkSq)
+       & PawnAttackBB[stngColor][wrSq]) != 0) {
         return SCALE_DRAW;
     }
 

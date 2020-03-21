@@ -21,7 +21,7 @@ namespace {
                     continue;
                 }
 
-                Bitboard attacks{ pos.pieceAttacksFrom(pt, s)
+                Bitboard attacks{ pos.attacksFrom(pt, s)
                                 & targets };
 
                 if (Checks) {
@@ -102,7 +102,7 @@ namespace {
             if (epSq != SQ_NONE) {
                 assert(relativeRank(Own, epSq) == RANK_6);
                 Bitboard epPawns{ rxPawns
-                                & pos.pawnAttacksFrom(Opp, epSq) };
+                                & PawnAttackBB[Opp][epSq] };
 
                 // If the checking piece is the double pushed pawn and also is in the target.
                 // Otherwise this is a discovery check and are forced to do otherwise.
@@ -263,7 +263,7 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos)
     // Squares attacked by slide checkers will remove them from the king evasions
     // so to skip known illegal moves avoiding useless legality check later.
     while (checkersEx != 0) {
-        checkAttacks |= pos.pieceAttacksFrom(popLSq(checkersEx), mocc);
+        checkAttacks |= pos.attacksFrom(popLSq(checkersEx), mocc);
     }
     // Generate evasions for king, capture and non-capture moves
     Bitboard attacks{  PieceAttackBB[KING][fkSq]
@@ -291,7 +291,7 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &
     while (dscBlockersEx != 0) {
         auto org{ popLSq(dscBlockersEx) };
 
-        Bitboard attacks{ pos.pieceAttacksFrom(org)
+        Bitboard attacks{ pos.attacksFrom(org)
                         & targets };
         if (org == fkSq) {
             // Stop king from stepping in the way to check

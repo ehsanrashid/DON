@@ -57,7 +57,7 @@ string toString(Value v) {
 
     std::ostringstream oss;
     if (abs(v) < +VALUE_MATE_1_MAX_PLY) {
-        oss << "cp " << toCP(v);
+        oss << "cp " << i32(toCP(v));
     }
     else {
         oss << "mate " << i16(v > 0 ?
@@ -72,8 +72,8 @@ string toString(Score s) {
         //<< std::setw(5) << mgValue(s) << " "
         //<< std::setw(5) << egValue(s)
         << std::fixed << std::setprecision(2)
-        << std::setw(5) << toCP(mgValue(s)) / 100.0 << " "
-        << std::setw(5) << toCP(egValue(s)) / 100.0;
+        << std::setw(5) << toCP(mgValue(s)) / 100 << " "
+        << std::setw(5) << toCP(egValue(s)) / 100;
     return oss.str();
 }
 
@@ -170,7 +170,7 @@ namespace {
         auto pt{ pType(pos[org]) };
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
-        Bitboard piece{ pos.pieceAttacksFrom(pt, dst)
+        Bitboard piece{ pos.attacksFrom(pt, dst)
                       & pos.pieces(pos.activeSide(), pt) };
 
         Bitboard amb{ piece ^ org };
@@ -200,7 +200,7 @@ namespace {
         std::ostringstream oss;
         if (abs(v) < +VALUE_MATE_1_MAX_PLY) {
             oss << std::showpos << std::fixed << std::setprecision(2)
-                << toCP(v) / 100.0;
+                << toCP(v) / 100;
         }
         else {
             oss << std::showpos

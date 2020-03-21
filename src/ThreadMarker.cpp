@@ -14,33 +14,29 @@ ThreadMarker::ThreadMarker(
     Key posiKey,
     i16 ply) {
 
-    if (8 <= ply) {
+    if (ply >= 8) {
         return;
     }
 
     threadMark = &ThreadMarks[u16(posiKey) & (ThreadMarkSize - 1)];
     // Check if another already marked it, if not, mark it
-    auto *th = threadMark->load(&ThreadMark::thread);
-    auto key = threadMark->load(&ThreadMark::posiKey);
+    auto *th{ threadMark->load(&ThreadMark::thread) };
+    auto key{ threadMark->load(&ThreadMark::posiKey) };
     if (th == nullptr) {
         threadMark->store(&ThreadMark::thread, thread);
         threadMark->store(&ThreadMark::posiKey, posiKey);
-        ownThreadMark = true;
+        owner = true;
     }
     else
     if (th != thread
      && key == posiKey) {
-        otrThreadMark = true;
+        marked = true;
     }
 }
 
 ThreadMarker::~ThreadMarker() {
-    if (ownThreadMark) { // Free the marked location
+    if (owner) { // Free the marked location
         threadMark->store(&ThreadMark::thread, static_cast<Thread const*>(nullptr));
-        threadMark->store(&ThreadMark::posiKey, U64(0));
+        threadMark->store(&ThreadMark::posiKey, u64(0));
     }
-}
-
-bool ThreadMarker::marked() const {
-    return otrThreadMark;
 }

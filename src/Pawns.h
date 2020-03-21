@@ -14,8 +14,10 @@ namespace Pawns {
 
         Array<Score, COLORS> score;
 
-        Array<Bitboard, COLORS> attackSpan;
-        Array<Bitboard, COLORS> passers;
+        Array<Bitboard, COLORS> sglAttacks;
+        Array<Bitboard, COLORS> dblAttacks;
+        Array<Bitboard, COLORS> attacksSpan;
+        Array<Bitboard, COLORS> passPawns;
 
         Array<Square, COLORS> kingSq{ SQ_NONE, SQ_NONE };
         Array<Bitboard, COLORS> kingPath;
