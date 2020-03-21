@@ -270,13 +270,14 @@ constexpr Bitboard pawnPassSpan(Color c, Square s) {
 /// If the given squares are not on a same file/rank/diagonal, return 0.
 inline Bitboard betweenBB(Square s1, Square s2) {
 
+    Bitboard sLine{ LineBB[s1][s2]
+                  & ((BoardBB << s1) ^ (BoardBB << s2)) };
+    // Exclude lsb
 #if defined(BM2)
-    return BLSR(LineBB[s1][s2]
-              & ((BoardBB << s1) ^ (BoardBB << s2)));
+    return BLSR(sLine);
 #else
-    return LineBB[s1][s2]
-         & ((BoardBB << s1) ^ (BoardBB << s2))
-         & ~std::min(s1, s2);
+    //return sLine & ~std::min(s1, s2);
+    return sLine & (sLine - 1);
 #endif
 }
 /// aligned() Check the squares s1, s2 and s3 are aligned on a straight line.
@@ -335,7 +336,7 @@ template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) {
          | RMagics[s].attacksBB(occ);
 }
 
-/// Position::attacksBB() finds attacks of the piecetype from the square on occupancy.
+/// attacksBB() finds attacks of the piecetype from the square on occupancy.
 inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
     assert(NIHT <= pt && pt <= KING);
     return
@@ -410,9 +411,9 @@ inline Square scanLSq(Bitboard bb) {
 #else // Compiler is neither GCC nor MSVC compatible
 
     // Assembly code by Heinz van Saanen
-    Bitboard index;
-    __asm__("bsfq %1, %0": "=r" (index) : "rm" (bb));
-    return Square(index);
+    Bitboard sq;
+    __asm__("bsfq %1, %0": "=r"(sq) : "rm"(bb));
+    return Square(sq);
 
 #endif
 
@@ -452,9 +453,9 @@ inline Square scanMSq(Bitboard bb) {
 
     // Assembly code by Heinz van Saanen
 
-    Bitboard index;
-    __asm__("bsrq %1, %0": "=r" (index) : "rm" (bb));
-    return Square(index);
+    Bitboard sq;
+    __asm__("bsrq %1, %0": "=r"(sq) : "rm"(bb));
+    return Square(sq);
 
 #endif
 }
@@ -467,7 +468,7 @@ inline Square scanFrontMostSq(Color c, Bitboard bb) {
 
 inline Square popLSq(Bitboard &bb) {
     assert(bb != 0);
-    Square sq = scanLSq(bb);
+    Square sq{ scanLSq(bb) };
 #if defined(BM2)
     bb = BLSR(bb);
 #else
@@ -501,6 +502,9 @@ namespace BitBoard {
     extern void initialize();
 
 #if !defined(NDEBUG)
+
     extern std::string toString(Bitboard);
+
 #endif
+
 }

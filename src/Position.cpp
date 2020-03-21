@@ -302,7 +302,7 @@ bool Position::pseudoLegal(Move m) const
     }
     else {
         if (mType(m) != NORMAL
-         || !contains(pieceAttacksFrom(pType(board[org]), org), dst)) {
+         || !contains(pieceAttacksFrom(org), dst)) {
             return false;
         }
     }
@@ -313,7 +313,7 @@ bool Position::pseudoLegal(Move m) const
         auto fkSq = square(active|KING);
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
-        if (fkSq == org) {
+        if (org == fkSq) {
             return (attackersTo(dst, pieces() ^ fkSq) & pieces(~active)) == 0;
         }
         // Double check? In this case a king move is required
@@ -349,19 +349,23 @@ bool Position::legal(Move m) const {
             && canCastle(active, dst > org ? CS_KING : CS_QUEN)
             && checkers() == 0);
 
-        Bitboard kingPath{ castleKingPath(active, dst > org ? CS_KING : CS_QUEN) };
         // Check king's path for attackers
+        Bitboard mocc{ pieces() ^ dst };
+        Bitboard enemies{ pieces(~active) };
+        Bitboard kingPath{ castleKingPath(active, dst > org ? CS_KING : CS_QUEN) };
         while (kingPath != 0) {
-            if ((attackersTo(popLSq(kingPath)) & pieces(~active)) != 0) {
+            if ((attackersTo(popLSq(kingPath), mocc) & enemies) != 0) {
                 return false;
             }
         }
-        // In case of Chess960, verify that when moving the castling rook we do not discover some hidden checker.
-        // For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
-        return !Options["UCI_Chess960"]
-            || (pieces(~active, ROOK, QUEN)
-              & RankBB[sRank(org)]
-              & attacksBB<ROOK>(kingCastleSq(org, dst), pieces() ^ dst)) == 0;
+        //// In case of Chess960, verify that when moving the castling rook we do not discover some hidden checker.
+        //// For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
+        //return !Options["UCI_Chess960"]
+        //    || (enemies
+        //      & pieces(ROOK, QUEN)
+        //      & rankBB(org)
+        //      & attacksBB<ROOK>(kingCastleSq(org, dst), pieces() ^ dst)) == 0;
+        return true;
     }
 
     auto fkSq{ square(active|KING) };
@@ -383,14 +387,14 @@ bool Position::legal(Move m) const {
     }
 
     return
-        fkSq == org ?
-            // NORMAL moves
+        org == fkSq ?
+            // KING NORMAL moves
             // Only king moves to non attacked squares, sliding check x-rays the king
             // In case of king moves under check have to remove king so to catch
             // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
             // check whether the destination square is attacked by the opponent.
             (attackersTo(dst, pieces() ^ fkSq) & pieces(~active)) == 0 :
-            // NORMAL + PROMOTE moves
+            // OTHER NORMAL + PROMOTE moves
             // A non-king move is legal if and only if
             // - not pinned
             // - moving along the ray from the king

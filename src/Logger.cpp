@@ -18,10 +18,10 @@ namespace {
 
 #   if defined(_WIN32)
 
-        auto time = std::chrono::system_clock::to_time_t(tp);
+        auto time{ std::chrono::system_clock::to_time_t(tp) };
 
-        auto const *ltm = localtime(&time);
-        char const *format = "%Y.%m.%d-%H.%M.%S";
+        auto const *ltm{ localtime(&time) };
+        char const *format{ "%Y.%m.%d-%H.%M.%S" };
         char buffer[32];
         strftime(buffer, sizeof (buffer), format, ltm);
         str.append(buffer);
@@ -92,5 +92,4 @@ void Logger::setup(std::string const &fnLog) {
 
     std:: cin.rdbuf(&_tsbInnput);
     std::cout.rdbuf(&_tsbOutput);
-
 }

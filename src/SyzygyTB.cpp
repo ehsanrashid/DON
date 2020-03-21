@@ -88,14 +88,14 @@ namespace {
 
     enum Endian : u08 { BIG, LITTLE, UNKNOWN };
 
-    i32 MapPawns[SQUARES];
-    i32 MapB1H1H7[SQUARES];
-    i32 MapA1D1D4[SQUARES];
-    i32 MapKK[10][SQUARES]; // [MapA1D1D4][SQUARES]
+    Array<i32, SQUARES> MapPawns;
+    Array<i32, SQUARES> MapB1H1H7;
+    Array<i32, SQUARES> MapA1D1D4;
+    Array<i32, 10, SQUARES> MapKK; // [MapA1D1D4][SQUARES]
 
-    i32 Binomial[6][SQUARES];    // [k][n] k elements from a set of n elements
-    i32 LeadPawnIdx[5][SQUARES]; // [leadPawnCount][SQUARES]
-    i32 LeadPawnsSize[5][4];   // [leadPawnCount][FILE_A..FILE_D]
+    Array<i32, 6, SQUARES> Binomial;      // [k][n] k elements from a set of n elements
+    Array<i32, 5, SQUARES> LeadPawnIdx;   // [leadPawnCount][SQUARES]
+    Array<i32, 5, FILES/2> LeadPawnsSize; // [leadPawnCount][FILE_A..FILE_D]
 
     /// Comparison function to sort leading pawns in ascending MapPawns[] order
     bool mapPawnsCompare(Square s1, Square s2) {
@@ -125,9 +125,11 @@ namespace {
     template<typename T, Endian E>
     T number(void *addr) {
         static IntChar const U{ 0x01020304 };
-        static Endian const End = (0x04 == U.c[0]) ? Endian::LITTLE :
-                                  (0x01 == U.c[0]) ? Endian::BIG : Endian::UNKNOWN;
+        static Endian const End =
+            (0x04 == U.c[0]) ? Endian::LITTLE :
+            (0x01 == U.c[0]) ? Endian::BIG : Endian::UNKNOWN;
         assert(End != Endian::UNKNOWN);
+
         T v;
         if ((uPtr(addr) & (alignof (T) - 1)) != 0) { // Unaligned pointer (very rare)
             memcpy(&v, addr, sizeof (T));
@@ -151,7 +153,8 @@ namespace {
         case WDL_BLESSED_LOSS: return -101;
         case WDL_CURSED_WIN:   return +101;
         case WDL_WIN:          return +1;
-        case WDL_DRAW:default: return 0;
+        case WDL_DRAW:
+        default:               return 0;
         }
     }
 
@@ -729,6 +732,7 @@ namespace {
         i32 flags = entry->get(0, f)->flags;
         u08 *map = entry->map;
         u16* idx = entry->get(0, f)->mapIdx;
+
         if ((flags & TBFlag::MAPPED) != 0) {
             if ((flags & TBFlag::WIDE) != 0) {
                 value = ((u16*)(map))[idx[WDLMap[wdl + 2]] + value];
@@ -838,7 +842,7 @@ namespace {
             ++size;
         } while (b != 0);
 
-        assert(2 <= size);
+        assert(size >= 2);
 
         PairsData *d = entry->get(stm, pawnFile);
 
@@ -1060,14 +1064,10 @@ namespace {
         // are at order[1] position.
 
         // Pawns on both sides
-        bool pp =
-            e.hasPawns
-         && e.pawnCount[1] != 0;
-        i32 next = pp ? 2 : 1;
-        i32 emptyCount =
-            64
-          - d->groupLen[0]
-          - (pp ? d->groupLen[1] : 0);
+        bool pp{ e.hasPawns
+              && e.pawnCount[1] != 0 };
+        i32 next{ pp ? 2 : 1 };
+        i32 emptyCount{ 64 - d->groupLen[0] - (pp ? d->groupLen[1] : 0) };
 
         u64 idx = 1;
         for (i16 k = 0;
@@ -1078,9 +1078,8 @@ namespace {
             // Leading pawns or pieces
             if (k == order[0]) {
                 d->groupIdx[0] = idx;
-                idx *=
-                    e.hasPawns ?            LeadPawnsSize[d->groupLen[0]][f] :
-                        e.hasUniquePieces ? 31332 : 462;
+                idx *= e.hasPawns        ? LeadPawnsSize[d->groupLen[0]][f] :
+                       e.hasUniquePieces ? 31332 : 462;
             }
             else
             // Remaining pawns
@@ -1106,21 +1105,21 @@ namespace {
 
         visited[s] = true; // We can set it now because tree is acyclic
 
-        Sym rS = d->btree[s].get<LR::Side::RIGHT>();
-        if (rS == 0xFFF) {
+        Sym rSym = d->btree[s].get<LR::Side::RIGHT>();
+        if (rSym == 0xFFF) {
             return 0;
         }
 
-        Sym lS = d->btree[s].get<LR::Side::LEFT>();
+        Sym lSym = d->btree[s].get<LR::Side::LEFT>();
 
-        if (!visited[lS]) {
-            d->symLen[lS] = setSymLen(d, lS, visited);
+        if (!visited[lSym]) {
+            d->symLen[lSym] = setSymLen(d, lSym, visited);
         }
-        if (!visited[rS]) {
-            d->symLen[rS] = setSymLen(d, rS, visited);
+        if (!visited[rSym]) {
+            d->symLen[rSym] = setSymLen(d, rSym, visited);
         }
 
-        return d->symLen[lS] + d->symLen[rS] + 1;
+        return d->symLen[lSym] + d->symLen[rSym] + 1;
     }
 
     u08* setSizes(PairsData *d, u08 *data) {
@@ -1162,9 +1161,9 @@ namespace {
         // See http://www.eecs.harvard.edu/~michaelm/E210/huffman.pdf
         for (i16 i = base64Size - 2; i >= 0; --i) {
             d->base64[i] =
-                ( d->base64[i + 1]
-                + number<Sym, Endian::LITTLE>(&d->lowestSym[i])
-                - number<Sym, Endian::LITTLE>(&d->lowestSym[i + 1])) / 2;
+                (d->base64[i + 1]
+               + number<Sym, Endian::LITTLE>(&d->lowestSym[i])
+               - number<Sym, Endian::LITTLE>(&d->lowestSym[i + 1])) / 2;
 
             assert(d->base64[i] * 2 >= d->base64[i + 1]);
         }
@@ -1250,10 +1249,8 @@ namespace {
                 FILE_D : FILE_A;
 
         // Pawns on both sides
-        bool pp =
-            e.hasPawns
-         && e.pawnCount[1] != 0;
-
+        bool pp{ e.hasPawns
+              && e.pawnCount[1] != 0 };
         assert(!pp || e.pawnCount[0] != 0);
 
         for (File f = FILE_A; f <= maxFile; ++f) {
@@ -1386,12 +1383,12 @@ namespace {
     /// the state to PS_ZEROING.
     WDLScore search(Position &pos, ProbeState &state, bool checkZeroing) {
 
-        WDLScore wdlBestScore = WDL_LOSS;
+        WDLScore wdlBestScore{ WDL_LOSS };
 
         WDLScore wdlScore;
         StateInfo si;
         auto moveList{ MoveList<GenType::LEGAL>(pos) };
-        u16 moveCount = 0;
+        u16 moveCount{ 0 };
         for (auto &move : moveList) {
             if (!pos.capture(move)
              && (!checkZeroing
@@ -1440,8 +1437,8 @@ namespace {
 
         // DTZ stores a "don't care" wdlScore if wdlBestScore is a win
         if (wdlBestScore >= wdlScore) {
-            state = wdlBestScore > WDL_DRAW
-                 || completed ?
+            state = completed
+                 || wdlBestScore > WDL_DRAW ?
                     PS_ZEROING : PS_SUCCESS;
             return wdlBestScore;
         }
@@ -1521,7 +1518,7 @@ namespace SyzygyTB {
     i32 probeDTZ(Position &pos, ProbeState &state) {
 
         state = PS_SUCCESS;
-        WDLScore wdlScore = search(pos, state, true);
+        WDLScore wdlScore{ search(pos, state, true) };
 
         if (state == PS_FAILURE
          || wdlScore == WDL_DRAW) { // DTZ tables don't store draws
@@ -1564,8 +1561,8 @@ namespace SyzygyTB {
             // position after the move to get the score sign(because even in a
             // winning position we could make a losing capture or going for a draw).
             dtz = zeroing ?
-                -beforeZeroingDTZ(search(pos, state, false)) :
-                -probeDTZ(pos, state);
+                    -beforeZeroingDTZ(search(pos, state, false)) :
+                    -probeDTZ(pos, state);
 
             // If the move mates, force minDTZ to 1
             if (dtz == 1
@@ -1629,7 +1626,7 @@ namespace SyzygyTB {
             auto move = rm.front();
             rootPos.doMove(move, si);
 
-            WDLScore wdl = -probeWDL(rootPos, state);
+            WDLScore wdl{ -probeWDL(rootPos, state) };
 
             rootPos.undoMove(move);
 
@@ -1696,9 +1693,9 @@ namespace SyzygyTB {
 
             // Better moves are ranked higher. Certain wins are ranked equally.
             // Losing moves are ranked equally unless a 50-move draw is in sight.
-            i16 r = i16(
-                dtz > 0 ? (+dtz     + clockPly < 100 && !repeated ? +1000 : +1000 - (clockPly + dtz)) :
-                dtz < 0 ? (-dtz * 2 + clockPly < 100              ? -1000 : -1000 + (clockPly - dtz)) : 0);
+            i16 r{
+            i16(dtz > 0 ? (+dtz     + clockPly < 100 && !repeated ? +1000 : +1000 - (clockPly + dtz)) :
+                dtz < 0 ? (-dtz * 2 + clockPly < 100              ? -1000 : -1000 + (clockPly - dtz)) : 0) };
 
             rm.tbRank = r;
             // Determine the score to be displayed for this move. Assign at least
@@ -1809,7 +1806,7 @@ namespace SyzygyTB {
                     // Sum all possible combinations for a given file, starting with
                     // the leading pawn on rank 2 and increasing the rank.
                     for (Rank r = RANK_2; r <= RANK_7; ++r) {
-                        auto sq = makeSquare(f, r);
+                        auto sq{ makeSquare(f, r) };
 
                         // Compute MapPawns[] at first pass.
                         // If sq is the leading pawn square, any other pawn cannot be

@@ -268,7 +268,7 @@ namespace Evaluator {
                              // Squares occupied by friend Queen and King
                            | pos.pieces(Own, QUEN, KING)
                             // Squares occupied by friend King blockers
-                           | (pos.kingBlockers(Own) /*& pos.pieces(Own)*/)
+                           | (pos.pieces(Own) & pos.kingBlockers(Own))
                             // Squares occupied by block pawns (pawns on ranks 2-3/blocked)
                            | (pos.pieces(Own, PAWN)
                             & (LowRankBB[Own]
@@ -401,7 +401,7 @@ namespace Evaluator {
                                      & attacks;
 
                     // Bonus for rook on the same file as a queen
-                    if ((fileBB(s) & pos.pieces(QUEN)) != 0) {
+                    if ((pos.pieces(QUEN) & fileBB(s)) != 0) {
                         score += RookOnQueenFile;
                     }
 
@@ -749,32 +749,29 @@ namespace Evaluator {
                     // Adjust bonus based on the king's proximity
                     bonus += makeScore(0, i32(+4.75*w*kingProximity(Opp, pushSq)
                                               -2.00*w*kingProximity(Own, pushSq)));
-                    // If block square is not the queening square then consider also a second push.
-                    if (r != RANK_7) {
+                    // If pushSq is not the queening square then consider also a second push.
+                    if (r < RANK_7) {
                         bonus += makeScore(0, -1*w*kingProximity(Own, pushSq + PawnPush[Own]));
                     }
 
                     // If the pawn is free to advance.
                     if (pos.empty(pushSq)) {
-                        Bitboard attackedSquares{ pawnPassSpan(Own, s) };
-
                         Bitboard behindMajors{ frontSquaresBB(Opp, s)
                                              & pos.pieces(ROOK, QUEN) };
+
+                        Bitboard attackedSquares{ pawnPassSpan(Own, s) };
                         if ((behindMajors & pos.pieces(Opp)) == 0) {
                             attackedSquares &= sqlAttacks[Opp][NONE];
                         }
 
-                        // Bonus according to attacked squares.
-                        i32 k{ attackedSquares == 0               ? 35 :
-                               (attackedSquares
-                              & frontSquaresBB(Own, s)) == 0      ? 20 :
-                               !contains(attackedSquares, pushSq) ?  9 : 0 };
-
-                        // Bonus according to defended squares.
-                        if ((behindMajors & pos.pieces(Own)) != 0
-                         || contains(sqlAttacks[Own][NONE], pushSq)) {
-                            k += 5;
-                        }
+                        i32 k{
+                            // Bonus according to attacked squares
+                            9 * !contains(attackedSquares, pushSq)
+                         + 11 * ((attackedSquares & frontSquaresBB(Own, s)) == 0)
+                         + 15 * ((attackedSquares) == 0)
+                            // Bonus according to defended squares
+                         +  5 * ((behindMajors & pos.pieces(Own)) != 0
+                              || contains(sqlAttacks[Own][NONE], pushSq)) };
 
                         bonus += makeScore(k*w, k*w);
                     }
@@ -783,11 +780,11 @@ namespace Evaluator {
                 // Scale down bonus for candidate passers
                 // - have a pawn in front of it.
                 // - need more than one pawn push to become passer.
-                if (contains(pos.pieces(PAWN), pushSq)
-                 || !pos.pawnPassedAt(Own, pushSq)) {
+                if (!pos.pawnPassedAt(Own, pushSq)
+                 || contains(pos.pieces(PAWN), pushSq)) {
                     bonus = bonus / 2;
                 }
-
+                // Rank bonus + File bonus
                 score += bonus
                        - PasserFile * foldFile(sFile(s));
             }

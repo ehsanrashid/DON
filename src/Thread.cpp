@@ -110,7 +110,7 @@ void Thread::clear() {
 
     for (bool inCheck : { false, true }) {
         for (bool capture : { false, true }) {
-            continuationStats[inCheck][capture].fill(PieceSquareStatsTable());
+            continuationStats[inCheck][capture].fill(PieceSquareStatsTable{});
             continuationStats[inCheck][capture][NO_PIECE][0].fill(CounterMovePruneThreshold - 1);
         }
     }

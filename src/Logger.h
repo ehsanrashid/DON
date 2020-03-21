@@ -13,12 +13,11 @@ class Logger {
 
 private:
 
-    std::string _fnLog;
-    std::ofstream _ofs;
+    std::string     _fnLog;
+    std::ofstream   _ofs;
 
-    TieStreamBuf
-        _tsbInnput,
-        _tsbOutput;
+    TieStreamBuf    _tsbInnput;
+    TieStreamBuf    _tsbOutput;
 
 protected:
 

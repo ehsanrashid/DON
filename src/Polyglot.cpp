@@ -67,7 +67,7 @@ namespace {
         if (pt > PAWN) {
             assert(NIHT <= pt && pt <= QUEN);
             // Set new type for promotion piece
-            m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + mIndex(m));
+            m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + mMask(m));
         }
         // Add special move flags and verify it is legal
         for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {

@@ -169,6 +169,8 @@ namespace {
     /// Generates king normal move
     template<GenType GT>
     void generateKingMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
+        assert(pos.checkers() == 0);
+
         auto activeSide{ pos.activeSide() };
         auto fkSq{ pos.square( activeSide|KING) };
         auto ekSq{ pos.square(~activeSide|KING) };
@@ -207,12 +209,10 @@ namespace {
 
 template<GenType GT>
 void generate(ValMoves &moves, Position const &pos) {
-
-    assert(pos.checkers() == 0);
-
     static_assert (GT == GenType::NATURAL
                 || GT == GenType::CAPTURE
                 || GT == GenType::QUIET, "GT incorrect");
+    assert(pos.checkers() == 0);
 
     moves.clear();
     moves.reserve(64 - 32 * (GT == GenType::CAPTURE));
@@ -237,13 +237,12 @@ template void generate<GenType::QUIET>(ValMoves&, Position const&);
 
 /// generate<EVASION>     Generates all pseudo-legal check evasions moves.
 template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos) {
-
     Bitboard checkers{ pos.checkers() };
     assert(checkers != 0
         && popCount(checkers) <= 2);
 
     moves.clear();
-    moves.reserve(16);
+    moves.reserve(32);
 
     auto activeSide{ pos.activeSide() };
     auto fkSq{ pos.square(activeSide|KING) };
@@ -264,8 +263,7 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos)
     // Squares attacked by slide checkers will remove them from the king evasions
     // so to skip known illegal moves avoiding useless legality check later.
     while (checkersEx != 0) {
-        auto checkSq{ popLSq(checkersEx) };
-        checkAttacks |= attacksBB(pType(pos[checkSq]), checkSq, mocc);
+        checkAttacks |= pos.pieceAttacksFrom(popLSq(checkersEx), mocc);
     }
     // Generate evasions for king, capture and non-capture moves
     Bitboard attacks{  PieceAttackBB[KING][fkSq]
@@ -277,26 +275,26 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos)
 /// generate<QUIET_CHECK> Generates all pseudo-legal non-captures and knight under promotions check giving moves.
 template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &pos) {
     assert(pos.checkers() == 0);
+
     moves.clear();
-    moves.reserve(16);
+    moves.reserve(32);
 
     auto activeSide{ pos.activeSide() };
     Bitboard targets{ ~pos.pieces() };
 
+    auto fkSq{ pos.square(activeSide|KING) };
     // Pawns is excluded, already generated with direct checks
-    Bitboard dscBlockersEx{  pos.kingBlockers(~activeSide)
-                          & ~pos.pieces(PAWN)
-                          &  pos.pieces(activeSide) };
+    Bitboard dscBlockersEx{  pos.pieces(activeSide)
+                          &  pos.kingBlockers(~activeSide)
+                          & ~pos.pieces(PAWN) };
     assert((dscBlockersEx & pos.pieces(QUEN)) == 0);
     while (dscBlockersEx != 0) {
-
         auto org{ popLSq(dscBlockersEx) };
-        auto mpt{ pType(pos[org]) };
 
-        Bitboard attacks{ pos.pieceAttacksFrom(mpt, org)
+        Bitboard attacks{ pos.pieceAttacksFrom(org)
                         & targets };
-
-        if (mpt == KING) {
+        if (org == fkSq) {
+            // Stop king from stepping in the way to check
             attacks &= ~PieceAttackBB[QUEN][pos.square(~activeSide|KING)];
         }
 
@@ -314,11 +312,11 @@ template<> void generate<GenType::LEGAL>(ValMoves &moves, Position const &pos) {
         generate<GenType::EVASION>(moves, pos);
 
     auto activeSide{ pos.activeSide() };
-    Square fkSq = pos.square(activeSide|KING);
-    Bitboard mocc = pos.pieces() ^ fkSq;
-    Bitboard enemies = pos.pieces(~activeSide);
-    Bitboard pinneds = pos.kingBlockers(activeSide)
-                     & pos.pieces(activeSide);
+    auto fkSq{ pos.square(activeSide|KING) };
+    Bitboard mocc{ pos.pieces() ^ fkSq };
+    Bitboard enemies{ pos.pieces(~activeSide) };
+    Bitboard pinneds{ pos.pieces(activeSide)
+                    & pos.kingBlockers(activeSide) };
 
     // Filter illegal moves
     moves.erase(
@@ -326,7 +324,7 @@ template<> void generate<GenType::LEGAL>(ValMoves &moves, Position const &pos) {
             moves.begin(), moves.end(),
             [&](ValMove const &vm) {
                 return (mType(vm) == NORMAL
-                     && fkSq == orgSq(vm)
+                     && orgSq(vm) == fkSq
                      && (pos.attackersTo(dstSq(vm), mocc) & enemies) != 0)
                     || ((contains(pinneds, orgSq(vm))
                       || mType(vm) == CASTLE

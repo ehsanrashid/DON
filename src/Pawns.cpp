@@ -199,7 +199,7 @@ namespace Pawns {
             // Compute additional span if pawn is not blocked nor backward
             if (!backward
              && !blocker) {
-                attackSpan[Own] |= pawnAttackSpan(Own, s /*+ PawnPush[Own]*/);
+                attackSpan[Own] |= pawnAttackSpan(Own, s); // + PawnPush[Own]
             }
 
             // A pawn is passed if one of the three following conditions is true:

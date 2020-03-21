@@ -171,17 +171,19 @@ public:
 
     Bitboard attackersTo(Square, Bitboard) const;
     Bitboard attackersTo(Square) const;
+    Bitboard pieceAttacksFrom(Square, Bitboard) const;
+    Bitboard pieceAttacksFrom(Square) const;
     Bitboard pieceAttacksFrom(PieceType, Square) const;
     Bitboard pawnAttacksFrom(Color, Square) const;
-    //Bitboard attacksFrom(Square) const;
 
     Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const;
 
-    bool pseudoLegal(Move) const;
-    bool legal(Move) const;
-
+    bool valid(Move) const;
     bool capture(Move) const;
     bool captureOrPromotion(Move) const;
+
+    bool pseudoLegal(Move) const;
+    bool legal(Move) const;
     bool giveCheck(Move) const;
 
     PieceType captured(Move) const;
@@ -393,6 +395,13 @@ inline Bitboard Position::attackersTo(Square s) const {
     return attackersTo(s, pieces());
 }
 
+inline Bitboard Position::pieceAttacksFrom(Square s, Bitboard occ) const {
+    return attacksBB(pType(board[s]), s, occ);
+}
+inline Bitboard Position::pieceAttacksFrom(Square s) const {
+    return pieceAttacksFrom(s, pieces());
+}
+
 /// Position::pieceAttacksFrom() finds attacks of the piecetype from the square
 inline Bitboard Position::pieceAttacksFrom(PieceType pt, Square s) const {
     return attacksBB(pt, s, pieces());
@@ -401,25 +410,27 @@ inline Bitboard Position::pieceAttacksFrom(PieceType pt, Square s) const {
 inline Bitboard Position::pawnAttacksFrom(Color c, Square s) const {
     return PawnAttackBB[c][s];
 }
-///// Position::pieceAttacksFrom() finds attacks from the square
-//inline Bitboard Position::attacksFrom(Square s) const {
-//    return attacksBB(board[s], s, pieces());
-//}
 
+inline bool Position::valid(Move m) const {
+    return contains(pieces(active), orgSq(m));
+}
 inline bool Position::capture(Move m) const {
     assert(isOk(m));
-    return (mType(m) != CASTLE && !empty(dstSq(m)))
-        || mType(m) == ENPASSANT; //&& dstSq(m) == epSquare()
+    auto mt = mType(m);
+    return ((mt == NORMAL
+          || mt == PROMOTE) && !empty(dstSq(m)))
+        || (mt == ENPASSANT && dstSq(m) == epSquare());
 }
 inline bool Position::captureOrPromotion(Move m) const {
     assert(isOk(m));
-    return mType(m) == NORMAL ?
-            !empty(dstSq(m)) : mType(m) != CASTLE;
+    auto mt = mType(m);
+    return mt == NORMAL    ? !empty(dstSq(m)) :
+           mt == ENPASSANT ? dstSq(m) == epSquare() :
+           mt == PROMOTE;
 }
 inline PieceType Position::captured(Move m) const {
     assert(isOk(m));
-    return mType(m) != ENPASSANT ?
-            pType(board[dstSq(m)]) : PAWN;
+    return mType(m) == ENPASSANT ? PAWN : pType(board[dstSq(m)]);
 }
 /// Position::pawnAdvanceAt() check if pawn is advanced at the given square
 inline bool Position::pawnAdvanceAt(Color c, Square s) const {
@@ -441,9 +452,9 @@ inline bool Position::bishopPaired(Color c) const {
         && (pieces(c, BSHP) & ColorBB[BLACK]) != 0;
 }
 inline bool Position::bishopOpposed() const {
-    return count(WHITE|BSHP) == 1
-        && count(BLACK|BSHP) == 1
-        && colorOpposed(square(WHITE|BSHP), square(BLACK|BSHP));
+    return count(W_BSHP) == 1
+        && count(B_BSHP) == 1
+        && colorOpposed(square(W_BSHP), square(B_BSHP));
 }
 
 inline bool Position::semiopenFileOn(Color c, Square s) const {

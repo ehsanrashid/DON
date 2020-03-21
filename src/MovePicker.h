@@ -30,7 +30,6 @@ public:
     T* operator->() {
         return &entry;
     }
-
     operator T const&() const {
         return entry;
     }
@@ -39,8 +38,9 @@ public:
         static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
         assert(std::abs(bonus) <= D); // Ensure range is [-D, +D]
 
-        auto aBonus = std::abs(bonus);
-        entry += bonus - entry * (aBonus != 1 ? aBonus : 12) / D;
+        //auto aBonus{ std::abs(bonus) };
+        //entry += bonus - entry * (aBonus != 1 ? aBonus : 8) / D;
+        entry += bonus - entry * std::abs(bonus) / D;
 
         assert(std::abs(entry) <= D);
     }
@@ -78,10 +78,11 @@ class StatsTable<T, D, Size> :
 
 /// ColorIndexStatsTable stores moves history according to color.
 /// Used for reduction and move ordering decisions.
-/// indexed by [color][moveIndex]
+/// indexed by [color][moveMask]
 using ColorIndexStatsTable      = StatsTable<i16, 10692, COLORS, SQUARES*SQUARES>;
 
 /// PlyIndexStatsTable stores moves history according to ply from 0 to MAX_LOWPLY-1
+/// indexed by [0...MAX_LOWPLY-1][moveMask]
 constexpr i16 MAX_LOWPLY = 4;
 using PlyIndexStatsTable        = StatsTable<i16, 10692, MAX_LOWPLY, SQUARES*SQUARES>;
 

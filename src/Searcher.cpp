@@ -88,25 +88,20 @@ namespace {
         Moves pv;
     };
 
-    constexpr u64 TTHitAverageWindow = 4096;
-    constexpr u64 TTHitAverageResolution = 1024;
+    constexpr u64 TTHitAverageWindow{ 4096 };
+    constexpr u64 TTHitAverageResolution{ 1024 };
 
-    /// Razor margin
-    constexpr Value RazorMargin = Value(531);
-    /// Futility margin
-    constexpr Value futilityMargin(Depth d, bool imp) {
-        return Value(217 * (d - imp));
-    }
-    /// Futility move count threshold
+    /// Futility Move Count
     constexpr i16 futilityMoveCount(Depth d, bool imp) {
         return (4 + numSquare(d)) / (2 - imp);
     }
 
     Array<double, 256> cacheLog{};
     double memoizeLog(i32 x) {
-        if (x != 0
-         //&& x < cacheLog.size()
-         && cacheLog[x] == 0.0) {
+        if (x == 0
+         || x == 1) return 0;
+        if (//x < cacheLog.size() &&
+            cacheLog[x] == 0.0) {
             cacheLog[x] = std::log(x);
         }
         return cacheLog[x];
@@ -159,7 +154,7 @@ namespace {
 
     /// statBonus() is the bonus, based on depth
     constexpr i32 statBonus(Depth depth) {
-        return depth < 16 ? (19 * depth + 155) * depth - 132 : 1;
+        return depth < 16 ? (19 * depth + 155) * depth - 132 : -8;
     }
 
     /// updateContinuationStats() updates Stats of the move pairs formed
@@ -185,19 +180,22 @@ namespace {
             ss->killerMoves[1] = ss->killerMoves[0];
             ss->killerMoves[0] = move;
         }
+
+        auto *thread{ pos.thread() };
+
         if (pmOK) {
-            pos.thread()->counterMoves[pmPiece][pmDst] = move;
+            thread->counterMoves[pmPiece][pmDst] = move;
         }
 
         if (depth > 12
          //&& ss->ply >= 0
          && ss->ply < MAX_LOWPLY) {
-            pos.thread()->lowPlyStats[ss->ply][mIndex(move)] << statBonus(depth - 7);
+            thread->lowPlyStats[ss->ply][mMask(move)] << statBonus(depth - 7);
         }
         auto activeSide{ pos.activeSide() };
-        pos.thread()->butterFlyStats[activeSide][mIndex(move)] << bonus;
+        thread->butterFlyStats[activeSide][mMask(move)] << bonus;
         if (pType(pos[orgSq(move)]) != PAWN) {
-            pos.thread()->butterFlyStats[activeSide][mIndex(reverseMove(move))] << -bonus;
+            thread->butterFlyStats[activeSide][mMask(reverseMove(move))] << -bonus;
         }
         updateContinuationStats(ss, pos[orgSq(move)], dstSq(move), bonus);
     }
@@ -303,12 +301,12 @@ namespace {
                         tte->move() : MOVE_NONE };
         auto ttValue{ ttHit ?
                         valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
-        auto ttPV   { ttHit && tte->pv() };
+        //auto ttPV   { ttHit && tte->pv() };
 
         // Decide whether or not to include checks.
         // Fixes also the type of TT entry depth that are going to use.
         // Note that in quienSearch use only 2 types of depth: DEPTH_QS_CHECK or DEPTH_QS_NO_CHECK.
-        Depth qsDepth{ inCheck
+        auto qsDepth{ inCheck
                     || depth >= DEPTH_QS_CHECK ?
                         DEPTH_QS_CHECK : DEPTH_QS_NO_CHECK };
 
@@ -438,7 +436,10 @@ namespace {
                  && Limits.mate == 0) {
                     assert(mType(move) != ENPASSANT); // Due to !pos.pawnAdvanceAt
                     // Futility pruning parent node
-                    auto futilityValue{ futilityBase + PieceValues[EG][CASTLE != mType(move) ? pType(pos[dst]) : NONE] };
+                    auto futilityValue{ futilityBase
+                                      + PieceValues[EG][pType(pos[dst])]
+                                      //+ PieceValues[EG][CASTLE != mType(move) ? pType(pos[dst]) : NONE]
+                                        };
                     if (futilityValue <= alfa) {
                         if (bestValue < futilityValue) {
                             bestValue = futilityValue;
@@ -447,7 +448,7 @@ namespace {
                     }
                     // Prune moves with negative or zero SEE
                     if (futilityBase <= alfa
-                     && !pos.see(move, Value(1))) {
+                     && !pos.see(move, VALUE_ZERO + 1)) {
                         if (bestValue < futilityBase) {
                             bestValue = futilityBase;
                         }
@@ -525,13 +526,10 @@ namespace {
                   valueToTT(bestValue, ss->ply),
                   ss->staticEval,
                   qsDepth,
-                  bestValue >= beta ?
-                      BOUND_LOWER :
+                  bestValue >= beta ? BOUND_LOWER :
                       PVNode
-                   && bestValue > actualAlfa ?
-                          BOUND_EXACT :
-                          BOUND_UPPER,
-                  ttPV);
+                   && bestValue > actualAlfa ? BOUND_EXACT : BOUND_UPPER,
+                  ttHit && tte->pv());
 
         assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
         return bestValue;
@@ -550,6 +548,7 @@ namespace {
          && alfa < VALUE_DRAW
          && pos.clockPly() >= 3
          && pos.cycled(ss->ply)) {
+
             alfa = drawValue(thread);
             if (alfa >= beta) {
                 return alfa;
@@ -576,7 +575,7 @@ namespace {
 
         if (PVNode) {
             // Used to send selDepth info to GUI (selDepth from 1, ply from 0)
-            if (thread->selDepth <= ss->ply) {
+            if (thread->selDepth < ss->ply + 1) {
                 thread->selDepth = ss->ply + 1;
             }
         }
@@ -658,10 +657,10 @@ namespace {
          && depth > 12
          && pmOK
          && !pmCapOrPro
-         //&& (ss-1)->ply >= 0
-         && (ss-1)->ply < MAX_LOWPLY) {
+         //&& ss->ply - 1 >= 0
+         && ss->ply - 1 < MAX_LOWPLY) {
             assert((ss-1)->ply >= 0);
-            thread->lowPlyStats[(ss-1)->ply][mIndex((ss-1)->playedMove)] << statBonus(depth - 5);
+            thread->lowPlyStats[ss->ply - 1][mMask((ss-1)->playedMove)] << statBonus(depth - 5);
         }
 
         // ttHitAvg can be used to approximate the running average of ttHit
@@ -680,7 +679,7 @@ namespace {
 
                 // Update move sorting heuristics on ttMove
                 if (!pos.captureOrPromotion(ttMove)
-                 && contains(pos.pieces(activeSide), orgSq(ttMove))) {
+                 && pos.valid(ttMove)) {
                     auto bonus{ statBonus(depth) };
                     // Bonus for a quiet ttMove that fails high
                     if (ttValue >= beta) {
@@ -688,7 +687,7 @@ namespace {
                     }
                     // Penalty for a quiet ttMove that fails low
                     else {
-                        thread->butterFlyStats[activeSide][mIndex(ttMove)] << -bonus;
+                        thread->butterFlyStats[activeSide][mMask(ttMove)] << -bonus;
                         updateContinuationStats(ss, pos[orgSq(ttMove)], dstSq(ttMove), -bonus);
                     }
                 }
@@ -820,24 +819,21 @@ namespace {
             // Step 7. Razoring (~1 ELO)
             if (!rootNode // The RootNode PV handling is not available in qsearch
              && depth == DEPTH_ONE
-             && eval + RazorMargin <= alfa) {
+                // Razor Margin
+             && eval <= alfa - 531) {
                 return quienSearch<PVNode>(pos, ss, alfa, beta);
             }
 
-            improving = (ss-2)->staticEval != VALUE_NONE ?
-                            ss->staticEval > (ss-2)->staticEval :
-                            (ss-4)->staticEval != VALUE_NONE ?
-                                ss->staticEval > (ss-4)->staticEval :
-                                (ss-6)->staticEval != VALUE_NONE ?
-                                    ss->staticEval > (ss-6)->staticEval :
-                                    true;
+            improving = (ss-2)->staticEval != VALUE_NONE ? ss->staticEval > (ss-2)->staticEval :
+                        (ss-4)->staticEval != VALUE_NONE ? ss->staticEval > (ss-4)->staticEval : true;
 
             // Step 8. Futility pruning: child node (~50 ELO)
             // Betting that the opponent doesn't have a move that will reduce
             // the score by more than futility margins if do a null move.
             if (!PVNode
              && depth < 6
-             && eval - futilityMargin(depth, improving) >= beta
+                // Futility Margin
+             && eval - 217 * (depth - improving) >= beta
              && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
              && Limits.mate == 0) {
                 return eval;
@@ -866,7 +862,7 @@ namespace {
                 prefetch(TT.cluster(nullMoveKey)->entryTable);
 
                 ss->playedMove = MOVE_NULL;
-                ss->pieceStats = &thread->continuationStats[0][0][NO_PIECE][32];
+                ss->pieceStats = &thread->continuationStats[0][0][NO_PIECE][0];
 
                 pos.doNullMove(si);
 
@@ -921,7 +917,7 @@ namespace {
                         && pos.captureOrPromotion(move)
                         && CASTLE != mType(move));
 
-                    if (excludedMove == move
+                    if (move == excludedMove
                      || !pos.legal(move)) {
                         continue;
                     }
@@ -960,15 +956,12 @@ namespace {
                 depthSearch<PVNode>(pos, ss, alfa, beta, depth - 7, cutNode);
 
                 tte = TT.probe(key, ttHit);
-                move = tte->move();
                 ttMove = ttHit
-                      && move != MOVE_NONE
+                      && (move = tte->move()) != MOVE_NONE
                       && pos.pseudoLegal(move) ?
                             move : MOVE_NONE;
                 ttValue = ttHit ?
                             valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE;
-                ttPV    = PVNode
-                       || (ttHit && tte->pv());
             }
         }
 
@@ -1077,7 +1070,7 @@ namespace {
                 }
                 else {
                     // Reduced depth of the next LMR search.
-                    i32 lmrDepth{ std::max(newDepth - reduction(depth, moveCount, improving), 0) };
+                    i32 lmrDepth{ std::max(i16(newDepth - reduction(depth, moveCount, improving)), DEPTH_ZERO) };
                     // Counter moves based pruning: (~20 ELO)
                     if (lmrDepth < (4 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1))
                      && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
@@ -1231,7 +1224,7 @@ namespace {
                     }
 
                     ss->stats =
-                          thread->butterFlyStats[activeSide][mIndex(move)]
+                          thread->butterFlyStats[activeSide][mMask(move)]
                         + (*pieceStats[0])[mp][dst]
                         + (*pieceStats[1])[mp][dst]
                         + (*pieceStats[3])[mp][dst]
@@ -1408,7 +1401,7 @@ namespace {
                 updateQuietStats(ss, pos, bestMove, pmOK, pmPiece, pmDst, depth, bonus2);
                 // Decrease all the other played quiet moves
                 for (auto qm : quietMoves) {
-                    thread->butterFlyStats[activeSide][mIndex(qm)] << -bonus2;
+                    thread->butterFlyStats[activeSide][mMask(qm)] << -bonus2;
                     updateContinuationStats(ss, pos[orgSq(qm)], dstSq(qm), -bonus2);
                 }
             }
@@ -1545,8 +1538,8 @@ void Thread::search() {
 
     // To allow access to (ss-7) up to (ss+2), the stack must be over-sized.
     // The former is needed to allow updateContinuationStats(ss-1, ...),
-    // which accesses its argument at ss-4, also near the root.
-    // The latter is needed for stats and killer initialization.
+    // which accesses its argument at ss-6, also near the root.
+    // The latter is needed for stats and killer initialization at ss+2.
     Stack stack[MAX_PLY + 10], *ss;
     for (ss = stack; ss < stack + MAX_PLY + 10; ++ss) {
         ss->ply             = i16(ss - (stack+7));
@@ -1555,9 +1548,9 @@ void Thread::search() {
         ss->playedMove      = MOVE_NONE;
         ss->excludedMove    = MOVE_NONE;
         ss->moveCount       = 0;
-        ss->staticEval      = ssOk ? VALUE_ZERO : VALUE_NONE;
+        ss->staticEval      = VALUE_ZERO;
         ss->stats           = 0;
-        ss->pieceStats      = ssOk ? nullptr : &continuationStats[0][0][NO_PIECE][32];
+        ss->pieceStats      = ssOk ? nullptr : &this->continuationStats[0][0][NO_PIECE][0];
         ss->killerMoves.fill(MOVE_NONE);
         if (ssOk) {
         //ss->pv.clear();
