@@ -309,9 +309,12 @@ namespace Evaluator {
                 mobility[Own] += Mobility[PT][mob];
 
                 Bitboard b;
-                // Special extra evaluation for pieces
+                // Special evaluation for pieces
                 if (PT == NIHT
                  || PT == BSHP) {
+
+                    dblAttacks[Own] |= sqlAttacks[Own][NONE] & attacks;
+
                     // Bonus for minor behind a pawn
                     score += MinorBehindPawn * contains(pawnSglPushBB<Opp>(pos.pieces(PAWN)), s);
 
@@ -324,8 +327,6 @@ namespace Evaluator {
 
                     if (PT == NIHT) {
 
-                        dblAttacks[Own] |= sqlAttacks[Own][NONE] & attacks;
-
                         // Bonus for knight outpost squares
                         if (contains(b, s)) {
                             score += KnightOutpost * 2;
@@ -337,14 +338,7 @@ namespace Evaluator {
                             score += KnightOutpost * 1;
                         }
                     }
-
                     if (PT == BSHP) {
-
-                        Bitboard pc{  pos.pieces(Own)
-                                   & ~pos.kingBlockers(Own) };
-                        dblAttacks[Own] |= sqlAttacks[Own][NONE]
-                                         & (attacks
-                                          | (pawnSglAttackBB<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttackBB[BSHP][s] & action));
 
                         // Bonus for bishop outpost squares
                         if (contains(b, s)) {
@@ -401,7 +395,7 @@ namespace Evaluator {
                     if (mob <= 3
                      && relativeRank(Own, s) < RANK_4
                      && (pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) != 0) {
-                        auto kF = sFile(pos.square(Own|KING));
+                        auto kF{ sFile(pos.square(Own|KING)) };
                         if (((kF < FILE_E) && (sFile(s) < kF))
                          || ((kF > FILE_D) && (sFile(s) > kF))) {
                             score -= RookTrapped * (1 + !pos.canCastle(Own));
@@ -414,7 +408,6 @@ namespace Evaluator {
                                & ~pos.kingBlockers(Own) };
                     dblAttacks[Own] |= sqlAttacks[Own][NONE]
                                      & (attacks
-                                      | (pawnSglAttackBB<Own>(pc & pos.pieces(PAWN) & frontRanksBB(Own, s)) & PieceAttackBB[BSHP][s] & action)
                                       | (attacksBB<BSHP>(s, pos.pieces() ^ (pc & pos.pieces(BSHP) & PieceAttackBB[BSHP][s])) & action)
                                       | (attacksBB<ROOK>(s, pos.pieces() ^ (pc & pos.pieces(ROOK) & PieceAttackBB[ROOK][s])) & action));
 
@@ -532,13 +525,13 @@ namespace Evaluator {
               &  CampBB[Own]
               &  sqlAttacks[Opp][NONE];
             // Friend king flank attack count
-            i32 kfAttacks = popCount(b)                     // Squares attacked by enemy in friend king flank
+            i32 kingFlankAttack = popCount(b)                     // Squares attacked by enemy in friend king flank
                           + popCount(b & dblAttacks[Opp]);  // Squares attacked by enemy twice in friend king flank.
             // Friend king flank defense count
             b =  KingFlankBB[sFile(kSq)]
               &  CampBB[Own]
               &  sqlAttacks[Own][NONE];
-            i32 kfDefense = popCount(b);
+            i32 kingFlankDefense = popCount(b);
 
             // King Safety:
             Score score{ pawnEntry->evaluateKingSafety<Own>(pos, fulAttacks[Opp]) };
@@ -548,7 +541,7 @@ namespace Evaluator {
                         + 185 * popCount(kingRing[Own] & weakArea)
                         + 148 * popCount(unsafeCheck)
                         +  98 * popCount(pos.kingBlockers(Own))
-                        +   3 * kfAttacks * kfAttacks / 8
+                        +   3 * numSquare(kingFlankAttack) / 8
                         // Enemy queen is gone
                         - 873 * (pos.pieces(Opp, QUEN) == 0)
                         // Friend knight is near by to defend king
@@ -556,21 +549,21 @@ namespace Evaluator {
                                 & (sqlAttacks[Own][KING] | kSq)) != 0)
                         // Mobility
                         -   1 * (mgValue(mobility[Own] - mobility[Opp]))
-                        -   4 * kfDefense
+                        -   4 * kingFlankDefense
                         // Pawn Safety quality
                         -   3 * mgValue(score) / 4
                         +  37;
 
             // Transform the king danger into a score
             if (kingDanger > 100) {
-                score -= makeScore(kingDanger * kingDanger / 0x1000, kingDanger / 0x10);
+                score -= makeScore(numSquare(kingDanger) / 0x1000, kingDanger / 0x10);
             }
 
             // Penalty for king on a pawn less flank
             score -= PawnLessFlank * ((pos.pieces(PAWN) & KingFlankBB[sFile(kSq)]) == 0);
 
             // King tropism: Penalty for slow motion attacks moving towards friend king zone
-            score -= KingFlankAttacks * kfAttacks;
+            score -= KingFlankAttacks * kingFlankAttack;
 
             if (Trace) {
                 Tracer::write(Term(KING), Own, score);
@@ -795,8 +788,8 @@ namespace Evaluator {
             constexpr auto Opp{ ~Own };
 
             // Safe squares for friend pieces inside the area defined by SpaceMask.
-            Bitboard safeSpace{  PawnSideBB[Own]
-                              &  SlotFileBB[CS_CENTRE]
+            Bitboard safeSpace{  SlotFileBB[CS_CENTRE]
+                              &  PawnSideBB[Own]
                               & ~pos.pieces(Own, PAWN)
                               & ~sqlAttacks[Opp][PAWN] };
             // Find all squares which are at most three squares behind some friend pawn

@@ -71,7 +71,10 @@ using Bitboard = u64;
 
 #endif
 
-constexpr i32 numSquare(i32 x) {
+constexpr u32 numSquare(i16 x) {
+    return x * x;
+}
+constexpr u64 numSquare(i32 x) {
     return x * x;
 }
 

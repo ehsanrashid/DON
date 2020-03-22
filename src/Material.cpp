@@ -121,7 +121,7 @@ namespace Material {
         // scaling functions and need to decide which one to use.
         auto const *scalingFn{ EndGame::probe<Scale>(pos.matlKey()) };
         if (scalingFn != nullptr) {
-            scalingFunc[scalingFn->stngColor] = scalingFn;
+            scalingFunc[scalingFn->stngColor] = scalingFn; // Only strong color assigned
             return;
         }
 
@@ -130,25 +130,22 @@ namespace Material {
         for (Color c : { WHITE, BLACK }) {
 
             if (npm[ c] == VALUE_MG_BSHP
-             //&& pos.count( c|BSHP) == 1
-             && pos.count( c|PAWN) != 0) {
+             && pos.count( c|PAWN) >= 1) {
                 scalingFunc[c] = &ScaleKBPsK[c];
             }
             else
             if (npm[ c] == VALUE_MG_QUEN
-             //&& pos.count( c|QUEN) == 1
              && pos.count( c|PAWN) == 0
-             && npm[~c] == VALUE_MG_ROOK
-             //&& pos.count(~c|ROOK) == 1
-             && pos.count(~c|PAWN) != 0) {
+             && pos.count(~c|ROOK) == 1
+             && pos.count(~c|PAWN) >= 1) {
                 scalingFunc[c] = &ScaleKQKRPs[c];
             }
 
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scale for cases such as KRKBP and KmmKm (except for KBBKN).
-            if (pos.count( c|PAWN) == 0
-             && npm[ c] - npm[~c] <= VALUE_MG_BSHP) {
+            if ((npm[ c] - npm[~c]) <= VALUE_MG_BSHP
+             && pos.count( c|PAWN) == 0) {
                 scale[c] =
                     npm[ c] < VALUE_MG_ROOK ?
                         SCALE_DRAW :
@@ -157,20 +154,21 @@ namespace Material {
         }
 
         // Only pawns left
-        if (npm[WHITE] + npm[BLACK] == VALUE_ZERO
+        if ((npm[WHITE] + npm[BLACK]) == VALUE_ZERO
          && pos.pieces(PAWN) != 0) {
-            if (pos.pieces(BLACK, PAWN) == 0) {
+            if (pos.count(B_PAWN) == 0) {
                 assert(pos.count(W_PAWN) >= 2);
                 scalingFunc[WHITE] = &ScaleKPsK[WHITE];
             }
             else
-            if (pos.pieces(WHITE, PAWN) == 0) {
+            if (pos.count(W_PAWN) == 0) {
                 assert(pos.count(B_PAWN) >= 2);
                 scalingFunc[BLACK] = &ScaleKPsK[BLACK];
             }
             else
             if (pos.count(W_PAWN) == 1
              && pos.count(B_PAWN) == 1) {
+                // This is a special case so set scaling functions for both
                 scalingFunc[WHITE] = &ScaleKPKP[WHITE];
                 scalingFunc[BLACK] = &ScaleKPKP[BLACK];
             }

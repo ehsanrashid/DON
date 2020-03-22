@@ -95,35 +95,33 @@ namespace Pawns {
     /// Entry::evaluateKingSafety()
     template<Color Own>
     Score Entry::evaluateKingSafety(Position const &pos, Bitboard attacks) {
+
         auto kSq{ pos.square(Own|KING) };
+        u08 cSide{ pos.canCastle(Own) ?
+                u08(1 * (pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING))
+                  + 2 * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN))) : u08(0) };
 
-        // Find King path
-        Array<Bitboard, CASTLE_SIDES> kPaths
-        {
-            pos.castleKingPath(Own, CS_KING) * (pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING)),
-            pos.castleKingPath(Own, CS_QUEN) * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN))
-        };
-        if ((kPaths[CS_KING] & attacks) != 0) {
-            kPaths[CS_KING] = 0;
+        if ((cSide & 1) != 0
+         && (pos.castleKingPath(Own, CS_KING) & attacks) != 0) {
+            cSide -= 1;
         }
-        if ((kPaths[CS_QUEN] & attacks) != 0) {
-            kPaths[CS_QUEN] = 0;
+        if ((cSide & 2) != 0
+         && (pos.castleKingPath(Own, CS_QUEN) & attacks) != 0) {
+            cSide -= 2;
         }
 
-        Bitboard kPath{ kPaths[CS_KING]
-                      | kPaths[CS_QUEN] };
-
-        if (kingSq[Own]   != kSq
-         || kingPath[Own] != kPath) {
+        if (kingSq[Own] != kSq
+         || castleSide[Own] != cSide) {
 
             auto safety{ evaluateSafetyOn<Own>(pos, kSq) };
-            if (kPaths[CS_KING] != 0) {
+
+            if ((cSide & 1) != 0) {
                 safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_G1)), safety,
                         [](Score s1, Score s2) {
                             return mgValue(s1) < mgValue(s2);
                         });
             }
-            if (kPaths[CS_QUEN] != 0) {
+            if ((cSide & 2) != 0) {
                 safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_C1)), safety,
                         [](Score s1, Score s2) {
                             return mgValue(s1) < mgValue(s2);
@@ -131,6 +129,7 @@ namespace Pawns {
             }
 
             kingSafety[Own] = safety;
+            castleSide[Own] = cSide;
 
             if (kingSq[Own] != kSq) {
                 // In endgame, king near to closest pawn
@@ -151,7 +150,6 @@ namespace Pawns {
             }
 
             kingSq[Own] = kSq;
-            kingPath[Own] = kPath;
         }
 
         return (kingSafety[Own] - kingDist[Own]);
@@ -170,7 +168,7 @@ namespace Pawns {
         Bitboard oppPawns{ pos.pieces(Opp) & pawns };
 
         kingSq     [Own] = SQ_NONE;
-        //kingPath   [Own] = 0;
+        //castleSide [Own] = 0;
         //kingSafety [Own] = SCORE_ZERO;
         //kingDist   [Own] = SCORE_ZERO;
         passPawns     [Own] = 0;
