@@ -105,15 +105,16 @@ namespace PSQT {
     void initialize() {
 
         for (PieceType pt = PAWN; pt <= KING; ++pt) {
+
             Score score{ makeScore(PieceValues[MG][pt], PieceValues[EG][pt]) };
 
             for (Square s = SQ_A1; s <= SQ_H8; ++s) {
-                Score psq{ score
-                         + (pt == PAWN ?
-                                PawnScores[sRank(s)][sFile(s)] :
-                                PieceScores[pt][sRank(s)][foldFile(sFile(s))]) };
-                PSQ[WHITE|pt][s]           = +psq;
-                PSQ[BLACK|pt][flipRank(s)] = -psq;
+
+                PSQ[WHITE|pt][s] =
+                    pt == PAWN ?
+                        score + PawnScores[sRank(s)][sFile(s)] :
+                        score + PieceScores[pt][sRank(s)][foldFile(sFile(s))];
+                PSQ[BLACK|pt][flipRank(s)] = -PSQ[WHITE|pt][s];
             }
         }
     }

@@ -102,11 +102,11 @@ namespace Pawns {
                   + 2 * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN))) : u08(0) };
 
         if ((cSide & 1) != 0
-         && (pos.castleKingPath(Own, CS_KING) & attacks) != 0) {
+         && (attacks & pos.castleKingPath(Own, CS_KING)) != 0) {
             cSide -= 1;
         }
         if ((cSide & 2) != 0
-         && (pos.castleKingPath(Own, CS_QUEN) & attacks) != 0) {
+         && (attacks & pos.castleKingPath(Own, CS_QUEN)) != 0) {
             cSide -= 2;
         }
 

@@ -93,7 +93,7 @@ namespace {
 
     /// Futility Move Count
     constexpr i16 futilityMoveCount(Depth d, bool imp) {
-        return (4 + numSquare(d)) / (2 - imp);
+        return (4 + nSqr(d)) / (2 - imp);
     }
 
     Array<double, 256> cacheLog{};
@@ -194,7 +194,7 @@ namespace {
         }
         auto activeSide{ pos.activeSide() };
         thread->butterFlyStats[activeSide][mMask(move)] << bonus;
-        if (pType(pos[orgSq(move)]) != PAWN) {
+        if (pType(pos[orgSq(move)]) > PAWN) {
             thread->butterFlyStats[activeSide][mMask(reverseMove(move))] << -bonus;
         }
         updateContinuationStats(ss, pos[orgSq(move)], dstSq(move), bonus);
@@ -841,13 +841,13 @@ namespace {
 
             // Step 9. Null move search with verification search (~40 ELO)
             if (!PVNode
+             && eval >= beta
              && (ss-1)->playedMove != MOVE_NULL
              && (ss-1)->stats < 23397
-             && excludedMove == MOVE_NONE
-             && eval >= beta
              && eval >= ss->staticEval
              && ss->staticEval >= beta - 32 * depth - 30 * improving + 120 * ttPV + 292
              && pos.nonPawnMaterial(activeSide) != VALUE_ZERO
+             && excludedMove == MOVE_NONE
              && (thread->nmpPly <= ss->ply
               || thread->nmpColor != activeSide)
              && Limits.mate == 0) {
@@ -1006,7 +1006,7 @@ namespace {
                 && (inCheck || pos.pseudoLegal(move)));
 
             // Skip exclusion move
-            if (excludedMove == move) {
+            if (move == excludedMove) {
                 continue;
             }
 
@@ -1055,11 +1055,11 @@ namespace {
 
             // Step 13. Pruning at shallow depth. (~200 ELO)
             if (!rootNode
-             && bestValue > -VALUE_MATE_2_MAX_PLY
              && pos.nonPawnMaterial(activeSide) > VALUE_ZERO
+             && bestValue > -VALUE_MATE_2_MAX_PLY
              && Limits.mate == 0) {
                 // Skip quiet moves if move count exceeds our futilityMoveCount() threshold
-                movePicker.skipQuiets = futilityMoveCount(depth, improving) <= moveCount;
+                movePicker.skipQuiets = (moveCount >= futilityMoveCount(depth, improving));
 
                 if (giveCheck
                  || captureOrPromotion) {
@@ -1087,7 +1087,7 @@ namespace {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 ELO)
-                    if (!pos.see(move, Value(-(32 - std::min(lmrDepth, 18)) * numSquare(lmrDepth)))) {
+                    if (!pos.see(move, Value(-(32 - std::min(lmrDepth, 18)) * nSqr(lmrDepth)))) {
                         continue;
                     }
                 }
@@ -1119,8 +1119,8 @@ namespace {
              && excludedMove == MOVE_NONE // Avoid recursive singular search
              // && ttValue != VALUE_NONE  Already implicit in the next condition
              && abs(ttValue) < VALUE_KNOWN_WIN
-             && (depth - 4) < tte->depth()
-             && (tte->bound() & BOUND_LOWER)) {
+             && (tte->bound() & BOUND_LOWER)
+             && depth < (tte->depth() + 4)) {
 
                 auto singularBeta{ ttValue - ((4 + (!PVNode && ttPV)) * depth) / 2 };
                 auto singularDepth{ (depth + 3 * (!PVNode && ttPV) - 1) / 2 };
@@ -1151,8 +1151,8 @@ namespace {
               && (contains(pos.kingBlockers(~activeSide), org)
                || pos.see(move)))
                 // Passed pawn extension
-             || (pType(mp) == PAWN
-              && ss->killerMoves[0] == move
+             || (ss->killerMoves[0] == move
+              && pType(mp) == PAWN
               && pos.pawnAdvanceAt(activeSide, org)
               && pos.pawnPassedAt(activeSide, dst))) {
                 extension = DEPTH_ONE;
@@ -1182,12 +1182,12 @@ namespace {
              && (!rootNode
                 // At root if zero best counter
               || thread->rootMoves.bestCount(thread->pvCur, thread->pvEnd, move) == 0)
-             && (cutNode
-              || !captureOrPromotion
+             && (!captureOrPromotion
               || movePicker.skipQuiets
+              || ss->staticEval + PieceValues[EG][pos.captured()] <= alfa
+              || cutNode
                 // If ttHit running average is small
-              || thread->ttHitAvg < 375 * TTHitAverageWindow
-              || ss->staticEval + PieceValues[EG][pos.captured()] <= alfa) };
+              || thread->ttHitAvg < 375 * TTHitAverageWindow) };
 
             bool doFullSearch;
             // Step 16. Reduced depth search (LMR, ~200 ELO).
@@ -1220,7 +1220,7 @@ namespace {
                     // If move escapes a capture in no-cut nodes (~2 ELO)
                     if (mType(move) == NORMAL
                      && !pos.see(reverseMove(move))) {
-                        reductDepth -= 2 + 1 * ttPV;
+                        reductDepth -= (2 + 1 * ttPV);
                     }
 
                     ss->stats =

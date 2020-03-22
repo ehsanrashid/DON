@@ -212,8 +212,18 @@ namespace BitBoard {
 
 #endif
 
+        // Initialize Magic Table
+#if !defined(NDEBUG)
+        initializeMagic(BAttacks, BMagics, { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST }, 9);
+        initializeMagic(RAttacks, RMagics, { SOUTH     , WEST      , EAST      , NORTH      }, 12);
+#else
+        initializeMagic(BAttacks, BMagics, { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST });
+        initializeMagic(RAttacks, RMagics, { SOUTH     , WEST      , EAST      , NORTH      });
+#endif
+
         // Pawn and Pieces Attack Table
         for (Square s = SQ_A1; s <= SQ_H8; ++s) {
+
             PawnAttackBB[WHITE][s] = pawnSglAttackBB<WHITE>(SquareBB[s]);
             PawnAttackBB[BLACK][s] = pawnSglAttackBB<BLACK>(SquareBB[s]);
             assert(popCount(PawnAttackBB[WHITE][s]) <= 2
@@ -235,20 +245,8 @@ namespace BitBoard {
                     PieceAttackBB[KING][s] |= sq;
                 }
             }
-        }
 
-        // Initialize Magic Table
-#if !defined(NDEBUG)
-        initializeMagic(BAttacks, BMagics, { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST }, 9);
-        initializeMagic(RAttacks, RMagics, { SOUTH     , WEST      , EAST      , NORTH      }, 12);
-#else
-        initializeMagic(BAttacks, BMagics, { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST });
-        initializeMagic(RAttacks, RMagics, { SOUTH     , WEST      , EAST      , NORTH      });
-#endif
-
-        // NOTE:: must be after initialize Bishop & Rook Table
-        for (Square s = SQ_A1; s <= SQ_H8; ++s) {
-
+            // NOTE:: must be after initialize magic Bishop & Rook Table
             PieceAttackBB[BSHP][s] = attacksBB<BSHP>(s, 0);
             PieceAttackBB[ROOK][s] = attacksBB<ROOK>(s, 0);
             PieceAttackBB[QUEN][s] = PieceAttackBB[BSHP][s]

@@ -21,7 +21,7 @@ void TEntry::save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv) {
         m16 = u16(m);
     }
     if (k16 != u16(k >> 0x30)
-     || d08 - 4 < d - DEPTH_OFFSET
+     || d08 < (d - DEPTH_OFFSET + 4)
      || b == BOUND_EXACT) {
         assert(d > DEPTH_OFFSET);
 

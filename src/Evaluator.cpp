@@ -205,6 +205,8 @@ namespace Evaluator {
             // For instance, if there is a white knight on g5 and black's king is on g8, this white knight adds 2 to kingAttacksCount[WHITE]
             Array<i32, COLORS> kingAttacksCount;
 
+            Array<bool, COLORS> canCastle;
+
             template<Color> void initialize();
             template<Color, PieceType> Score pieces();
             template<Color> Score king() const;
@@ -258,7 +260,7 @@ namespace Evaluator {
                              // Squares occupied by friend Queen and King
                            | pos.pieces(Own, QUEN, KING)
                             // Squares occupied by friend King blockers
-                           | (pos.pieces(Own) & pos.kingBlockers(Own))
+                           | (pos.kingBlockers(Own)) // pos.pieces(Own)
                             // Squares occupied by block pawns (pawns on ranks 2-3/blocked)
                            | (pos.pieces(Own, PAWN)
                             & (LowRankBB[Own]
@@ -277,6 +279,9 @@ namespace Evaluator {
 
             // Remove from kingRing the squares defended by two pawns
             kingRing[Own] &= ~pawnEntry->dblAttacks[Own];
+            canCastle[Own] = pos.canCastle(Own)
+                          && ((pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING))
+                           || (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN)));
         }
 
         /// pieces() evaluates the pieces of the color and type
@@ -285,6 +290,8 @@ namespace Evaluator {
             static_assert (NIHT <= PT && PT <= QUEN, "PT incorrect");
 
             constexpr auto Opp{ ~Own };
+            auto kSq{ pos.square(Own|KING) };
+            Bitboard kingBlockers{ pos.kingBlockers(Own) };
 
             Score score{ SCORE_ZERO };
 
@@ -292,15 +299,15 @@ namespace Evaluator {
                 assert(pos[s] == (Own|PT));
 
                 Bitboard action{
-                    contains(pos.kingBlockers(Own), s) ?
-                        LineBB[pos.square(Own|KING)][s] : BoardBB };
+                    contains(kingBlockers, s) ?
+                        LineBB[kSq][s] : BoardBB };
 
                 // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
                 Bitboard attacks{
                     PT == NIHT ? PieceAttackBB[NIHT][s] & action :
-                    PT == BSHP ? attacksBB<BSHP>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, BSHP) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))) & action :
-                    PT == ROOK ? attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))) & action :
-                                 attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~pos.kingBlockers(Own)))) & action };
+                    PT == BSHP ? attacksBB<BSHP>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, BSHP) & ~kingBlockers) | pos.pieces(Opp, QUEN))) & action :
+                    PT == ROOK ? attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~kingBlockers) | pos.pieces(Opp, QUEN))) & action :
+                                 attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~kingBlockers))) & action };
 
                 auto mob = popCount(attacks & mobArea[Own]);
                 assert(0 <= mob && mob <= 27);
@@ -315,11 +322,11 @@ namespace Evaluator {
 
                     dblAttacks[Own] |= sqlAttacks[Own][NONE] & attacks;
 
-                    // Bonus for minor behind a pawn
-                    score += MinorBehindPawn * contains(pawnSglPushBB<Opp>(pos.pieces(PAWN)), s);
+                    // Bonus for minor shielded by pawn
+                    score += MinorBehindPawn * contains(pos.pieces(PAWN), s + PawnPush[Own]);
 
                     // Penalty for distance from the friend king
-                    score -= MinorKingProtect * distance(s, pos.square(Own|KING));
+                    score -= MinorKingProtect * distance(kSq, s);
 
                     b =  OutpostBB[Own]
                       &  sqlAttacks[Own][PAWN]
@@ -398,14 +405,14 @@ namespace Evaluator {
                         auto kF{ sFile(pos.square(Own|KING)) };
                         if (((kF < FILE_E) && (sFile(s) < kF))
                          || ((kF > FILE_D) && (sFile(s) > kF))) {
-                            score -= RookTrapped * (1 + !pos.canCastle(Own));
+                            score -= RookTrapped * (1 + !canCastle[Own]);
                         }
                     }
                 }
                 if (PT == QUEN) {
 
                     Bitboard pc{  pos.pieces(Own)
-                               & ~pos.kingBlockers(Own) };
+                               & ~kingBlockers };
                     dblAttacks[Own] |= sqlAttacks[Own][NONE]
                                      & (attacks
                                       | (attacksBB<BSHP>(s, pos.pieces() ^ (pc & pos.pieces(BSHP) & PieceAttackBB[BSHP][s])) & action)
@@ -428,7 +435,9 @@ namespace Evaluator {
 
                 sqlAttacks[Own][PT]   |= attacks;
                 sqlAttacks[Own][NONE] |= attacks;
+                if (canCastle[Opp]) {
                 fulAttacks[Own]       |= pos.attacksFrom(PT, s);
+                }
 
                 if ((attacks & kingRing[Opp]) != 0) {
                     kingAttackersCount [Own]++;
@@ -541,7 +550,7 @@ namespace Evaluator {
                         + 185 * popCount(kingRing[Own] & weakArea)
                         + 148 * popCount(unsafeCheck)
                         +  98 * popCount(pos.kingBlockers(Own))
-                        +   3 * numSquare(kingFlankAttack) / 8
+                        +   3 * nSqr(kingFlankAttack) / 8
                         // Enemy queen is gone
                         - 873 * (pos.pieces(Opp, QUEN) == 0)
                         // Friend knight is near by to defend king
@@ -556,7 +565,7 @@ namespace Evaluator {
 
             // Transform the king danger into a score
             if (kingDanger > 100) {
-                score -= makeScore(numSquare(kingDanger) / 0x1000, kingDanger / 0x10);
+                score -= makeScore(nSqr(kingDanger) / 0x1000, kingDanger / 0x10);
             }
 
             // Penalty for king on a pawn less flank
@@ -746,22 +755,21 @@ namespace Evaluator {
                             attackedSquares &= sqlAttacks[Opp][NONE];
                         }
 
-                        i32 k{
-                            // Bonus according to attacked squares
-                            9 * !contains(attackedSquares, pushSq)
-                         + 11 * ((attackedSquares & frontSquaresBB(Own, s)) == 0)
-                         + 15 * ((attackedSquares) == 0)
-                            // Bonus according to defended squares
-                         +  5 * ((behindMajors & pos.pieces(Own)) != 0
-                              || contains(sqlAttacks[Own][NONE], pushSq)) };
+                        // Bonus according to attacked squares
+                        i32 k{ (attackedSquares) == 0                           ? 35 :
+                               (attackedSquares & frontSquaresBB(Own, s)) == 0  ? 20 :
+                               !contains(attackedSquares, pushSq)               ?  9 : 0 };
+                        // Bonus according to defended squares
+                        k += 5 * ((behindMajors & pos.pieces(Own)) != 0
+                               || contains(sqlAttacks[Own][NONE], pushSq));
 
                         bonus += makeScore(k*w, k*w);
                     }
                 }
 
                 // Scale down bonus for candidate passPawns
-                // - have a pawn in front of it
                 // - need more than one pawn push to become passPawns
+                // - have a pawn in front of it
                 if (!pos.pawnPassedAt(Own, pushSq)
                  || contains(pos.pieces(PAWN), pushSq)) {
                     bonus = bonus / 2;

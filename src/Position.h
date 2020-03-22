@@ -425,7 +425,7 @@ inline bool Position::captureOrPromotion(Move m) const {
 }
 inline PieceType Position::captured(Move m) const {
     assert(isOk(m));
-    return mType(m) == ENPASSANT ? PAWN : pType(board[dstSq(m)]);
+    return mType(m) != ENPASSANT ? pType(board[dstSq(m)]) : PAWN;
 }
 /// Position::pawnAdvanceAt() check if pawn is advanced at the given square
 inline bool Position::pawnAdvanceAt(Color c, Square s) const {
@@ -442,7 +442,7 @@ inline Bitboard Position::pawnsOnSqColor(Color c, Color sqC) const {
 
 /// Position::bishopPaired() check the side has pair of opposite color bishops
 inline bool Position::bishopPaired(Color c) const {
-    return moreThanOne(pieces(c, BSHP))
+    return count(c|BSHP) >= 2
         && (pieces(c, BSHP) & ColorBB[WHITE]) != 0
         && (pieces(c, BSHP) & ColorBB[BLACK]) != 0;
 }

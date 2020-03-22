@@ -7,8 +7,8 @@ namespace {
 
     // Drive a piece towards the edge of the board
     inline int pushToEdge(Square s) {
-        return 90 - (7 * numSquare(foldFile(sFile(s))) / 2
-                   + 7 * numSquare(foldRank(sRank(s))) / 2);
+        return 90 - (7 * nSqr(foldFile(sFile(s))) / 2
+                   + 7 * nSqr(foldRank(sRank(s))) / 2);
     }
     // Drive a piece towards the corner of the board, used in KBN vs K to A1H8 corners
     inline int pushToCorner(Square s) {
@@ -592,26 +592,6 @@ template<> Scale Endgame<KBPKN>::operator()(Position const &pos) const {
     return SCALE_NONE;
 }
 
-/// KNP vs KB. If knight can block bishop from taking pawn, it's a win.
-/// Otherwise the position is a draw.
-template<> Scale Endgame<KNPKB>::operator()(Position const &pos) const {
-    assert(verifyMaterial(pos, stngColor, VALUE_MG_NIHT, 1)
-        && verifyMaterial(pos, weakColor, VALUE_MG_BSHP, 0));
-
-    auto spSq{ pos.square(stngColor|PAWN) };
-    auto sbSq{ pos.square(weakColor|BSHP) };
-    auto wkSq{ pos.square(weakColor|KING) };
-
-    // King needs to get close to promoting pawn to prevent knight from blocking.
-    // Rules for this are very tricky, so just approximate.
-    if ((frontSquaresBB(stngColor, spSq)
-       & pos.attacksFrom(BSHP, sbSq)) != 0) {
-        return Scale(distance(wkSq, spSq));
-    }
-
-    return SCALE_NONE;
-}
-
 /// Generic Scaling functions
 
 /// KP vs KP. This is done by removing the weakest side's pawn and probing the
@@ -786,7 +766,6 @@ namespace EndGame {
         addEG<KBPKB  >("KBPKB");
         addEG<KBPPKB >("KBPPKB");
         addEG<KBPKN  >("KBPKN");
-        addEG<KNPKB  >("KNPKB");
     }
 
 }

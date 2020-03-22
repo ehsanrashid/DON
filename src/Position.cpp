@@ -171,7 +171,7 @@ bool Position::cycled(i16 pp) const {
             assert(!cuckoo.empty());
 
             // Legality of a reverting move: clear path
-            if ((betweenBB(cuckoo.sq1, cuckoo.sq2) & pieces()) == 0) {
+            if ((pieces() & betweenBB(cuckoo.sq1, cuckoo.sq2)) == 0) {
 
                 if (i < pp) {
                     return true;
@@ -354,7 +354,7 @@ bool Position::legal(Move m) const {
         Bitboard enemies{ pieces(~active) };
         Bitboard kingPath{ castleKingPath(active, dst > org ? CS_KING : CS_QUEN) };
         while (kingPath != 0) {
-            if ((attackersTo(popLSq(kingPath), mocc) & enemies) != 0) {
+            if ((enemies & attackersTo(popLSq(kingPath), mocc)) != 0) {
                 return false;
             }
         }

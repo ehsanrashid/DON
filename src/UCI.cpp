@@ -123,14 +123,14 @@ string const compilerInfo() {
     oss << " on MinGW64";
 #elif defined(__MINGW32__)
     oss << " on MinGW32";
+#elif defined(_WIN64)
+    oss << " on Microsoft Windows 64-bit";
+#elif defined(_WIN32)
+    oss << " on Microsoft Windows 32-bit";
 #elif defined(__ANDROID__)
     oss << " on Android";
 #elif defined(__linux__)
     oss << " on Linux";
-#elif defined(_WIN32)
-    oss << " on Microsoft Windows 32-bit";
-#elif defined(_WIN64)
-    oss << " on Microsoft Windows 64-bit";
 #else
     oss << " on unknown system";
 #endif

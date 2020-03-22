@@ -230,18 +230,20 @@ Move MovePicker::nextMove() {
     case NATURAL_INIT:
     case PROBCUT_INIT:
     case QUIESCENCE_INIT: {
+        vmoves.reserve(32);
+        vmoves.clear();
         generate<GenType::CAPTURE>(vmoves, pos);
 
         vmBeg = vmoves.begin();
         vmEnd = stage == QUIESCENCE_INIT
              && depth == DEPTH_QS_RECAP ?
-            std::remove_if(vmBeg, vmoves.end(),
-                [&](ValMove const &vm) {
-                    return vm == ttMove
-                        || dstSq(vm) != recapSq;
-                }) :
-            ttMove != MOVE_NONE ?
-                std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
+                std::remove_if(vmBeg, vmoves.end(),
+                    [&](ValMove const &vm) {
+                        return vm == ttMove
+                            || dstSq(vm) != recapSq;
+                    }) :
+                ttMove != MOVE_NONE ?
+                    std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
 
         value<GenType::CAPTURE>();
 
@@ -285,6 +287,8 @@ Move MovePicker::nextMove() {
 
         mBeg = refutationMoves.begin();
         if (!skipQuiets) {
+            vmoves.reserve(64);
+            vmoves.clear();
             generate<GenType::QUIET>(vmoves, pos);
             vmBeg = vmoves.begin();
             vmEnd = std::remove_if(vmBeg, vmoves.end(),
@@ -317,6 +321,8 @@ Move MovePicker::nextMove() {
         /* end */
 
     case EVASION_INIT: {
+        vmoves.reserve(32);
+        vmoves.clear();
         generate<GenType::EVASION>(vmoves, pos);
         vmBeg = vmoves.begin();
         vmEnd = ttMove != MOVE_NONE ?
@@ -353,6 +359,7 @@ Move MovePicker::nextMove() {
             return MOVE_NONE;
         }
 
+        vmoves.clear();
         generate<GenType::QUIET_CHECK>(vmoves, pos);
         vmBeg = vmoves.begin();
         vmEnd = ttMove != MOVE_NONE ?

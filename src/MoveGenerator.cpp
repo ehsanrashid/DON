@@ -89,10 +89,60 @@ namespace {
         // Pawns not on 7th Rank
         Bitboard rxPawns{ pawns & ~r7Pawns };
 
-        if (GT == GenType::NATURAL
+        // Pawn single-push and double-push, no promotions
+        if (GT != GenType::CAPTURE) {
+
+            Bitboard pushs1{ empties & pawnSglPushBB<Own>(rxPawns) };
+            Bitboard pushs2{ empties & pawnSglPushBB<Own>(pushs1 & RankBB[relativeRank(Own, RANK_3)]) };
+
+            if (GT == GenType::EVASION) {
+                pushs1 &= targets;
+                pushs2 &= targets;
+            }
+            if (GT == GenType::QUIET_CHECK) {
+                pushs1 &= pos.checks(PAWN);
+                pushs2 &= pos.checks(PAWN);
+                // Pawns which give discovered check
+                // Add pawn pushes which give discovered check.
+                // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
+                // Note that a possible discovery check promotion has been already generated among captures.
+                Bitboard dscPawns{ rxPawns
+                                 & pos.kingBlockers(Opp)
+                                 & ~fileBB(pos.square(Opp|KING)) };
+                if (dscPawns != 0) {
+                    Bitboard dscPushs1{ empties & pawnSglPushBB<Own>(dscPawns) };
+                    Bitboard dscPushs2{ empties & pawnSglPushBB<Own>(dscPushs1 & RankBB[relativeRank(Own, RANK_3)]) };
+                    pushs1 |= dscPushs1;
+                    pushs2 |= dscPushs2;
+                }
+            }
+
+            while (pushs1 != 0) { auto dst{ popLSq(pushs1) }; moves += makeMove<NORMAL>(dst - 1 * PawnPush[Own], dst); }
+            while (pushs2 != 0) { auto dst{ popLSq(pushs2) }; moves += makeMove<NORMAL>(dst - 2 * PawnPush[Own], dst); }
+        }
+
+        // Promotions (queening and under-promotions)
+        if (r7Pawns != 0) {
+            Bitboard b;
+
+            b = enemies & pawnLAttackBB<Own>(r7Pawns);
+            generatePromotionMoves<GT>(moves, pos, b, PawnLAtt[Own]);
+
+            b = enemies & pawnRAttackBB<Own>(r7Pawns);
+            generatePromotionMoves<GT>(moves, pos, b, PawnRAtt[Own]);
+
+            b = empties & pawnSglPushBB<Own>(r7Pawns);
+            if (GT == GenType::EVASION) {
+                b &= targets;
+            }
+            generatePromotionMoves<GT>(moves, pos, b, PawnPush[Own]);
+        }
+
+        // Pawn normal and en-passant captures, no promotions
+        if (GT == GenType::CAPTURE
          || GT == GenType::EVASION
-         || GT == GenType::CAPTURE) {
-            // Pawn normal and en-passant captures, no promotions
+         || GT == GenType::NATURAL) {
+
             Bitboard attacksL{ enemies & pawnLAttackBB<Own>(rxPawns) };
             Bitboard attacksR{ enemies & pawnRAttackBB<Own>(rxPawns) };
             while (attacksL != 0) { auto dst{ popLSq(attacksL) }; moves += makeMove<NORMAL>(dst - PawnLAtt[Own], dst); }
@@ -114,56 +164,6 @@ namespace {
                 while (epPawns != 0) { moves += makeMove<ENPASSANT>(popLSq(epPawns), epSq); }
             }
         }
-
-        // Promotions (queening and under-promotions)
-        if (r7Pawns != 0) {
-            Bitboard b;
-
-            b = enemies & pawnLAttackBB<Own>(r7Pawns);
-            generatePromotionMoves<GT>(moves, pos, b, PawnLAtt[Own]);
-
-            b = enemies & pawnRAttackBB<Own>(r7Pawns);
-            generatePromotionMoves<GT>(moves, pos, b, PawnRAtt[Own]);
-
-            b = empties & pawnSglPushBB<Own>(r7Pawns);
-            if (GT == GenType::EVASION) {
-                b &= targets;
-            }
-            generatePromotionMoves<GT>(moves, pos, b, PawnPush[Own]);
-        }
-
-        if (GT == GenType::CAPTURE) {
-            return;
-        }
-
-        // Pawn single-push and double-push, no promotions
-        Bitboard pushs1{ empties & pawnSglPushBB<Own>(rxPawns) };
-        Bitboard pushs2{ empties & pawnSglPushBB<Own>(pushs1 & RankBB[relativeRank(Own, RANK_3)]) };
-
-        if (GT == GenType::EVASION) {
-            pushs1 &= targets;
-            pushs2 &= targets;
-        }
-        if (GT == GenType::QUIET_CHECK) {
-            pushs1 &= pos.checks(PAWN);
-            pushs2 &= pos.checks(PAWN);
-            // Pawns which give discovered check
-            // Add pawn pushes which give discovered check.
-            // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
-            // Note that a possible discovery check promotion has been already generated among captures.
-            Bitboard dscPawns{ rxPawns
-                                & pos.kingBlockers(Opp)
-                                & ~fileBB(pos.square(Opp|KING)) };
-            if (dscPawns != 0) {
-                Bitboard dscPushs1{ empties & pawnSglPushBB<Own>(dscPawns) };
-                Bitboard dscPushs2{ empties & pawnSglPushBB<Own>(dscPushs1 & RankBB[relativeRank(Own, RANK_3)]) };
-                pushs1 |= dscPushs1;
-                pushs2 |= dscPushs2;
-            }
-        }
-
-        while (pushs1 != 0) { auto dst{ popLSq(pushs1) }; moves += makeMove<NORMAL>(dst - 1 * PawnPush[Own], dst); }
-        while (pushs2 != 0) { auto dst{ popLSq(pushs2) }; moves += makeMove<NORMAL>(dst - 2 * PawnPush[Own], dst); }
     }
 
     /// Generates king normal move
@@ -214,9 +214,6 @@ void generate(ValMoves &moves, Position const &pos) {
                 || GT == GenType::QUIET, "GT incorrect");
     assert(pos.checkers() == 0);
 
-    moves.clear();
-    moves.reserve(64 - 32 * (GT == GenType::CAPTURE));
-
     Bitboard targets =
         GT == GenType::NATURAL ? ~pos.pieces( pos.activeSide()) :
         GT == GenType::CAPTURE ?  pos.pieces(~pos.activeSide()) :
@@ -240,9 +237,6 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos)
     Bitboard checkers{ pos.checkers() };
     assert(checkers != 0
         && popCount(checkers) <= 2);
-
-    moves.clear();
-    moves.reserve(32);
 
     auto activeSide{ pos.activeSide() };
     auto fkSq{ pos.square(activeSide|KING) };
@@ -276,9 +270,6 @@ template<> void generate<GenType::EVASION>(ValMoves &moves, Position const &pos)
 template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &pos) {
     assert(pos.checkers() == 0);
 
-    moves.clear();
-    moves.reserve(32);
-
     auto activeSide{ pos.activeSide() };
     Bitboard targets{ ~pos.pieces() };
 
@@ -306,6 +297,8 @@ template<> void generate<GenType::QUIET_CHECK>(ValMoves &moves, Position const &
 
 /// generate<LEGAL>       Generates all legal moves.
 template<> void generate<GenType::LEGAL>(ValMoves &moves, Position const &pos) {
+
+    moves.reserve(64 - 48 * (pos.checkers() != 0));
 
     pos.checkers() == 0 ?
         generate<GenType::NATURAL>(moves, pos) :

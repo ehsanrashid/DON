@@ -71,11 +71,11 @@ using Bitboard = u64;
 
 #endif
 
-constexpr u32 numSquare(i16 x) {
-    return x * x;
+constexpr u32 nSqr(i16 n) {
+    return n * n;
 }
-constexpr u64 numSquare(i32 x) {
-    return x * x;
+constexpr u64 nSqr(i32 n) {
+    return n * n;
 }
 
 // Return the sign of a number (-1, 0, 1)
