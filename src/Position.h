@@ -184,6 +184,7 @@ public:
     bool pseudoLegal(Move) const;
     bool legal(Move) const;
     bool giveCheck(Move) const;
+    bool giveDblCheck(Move) const;
 
     PieceType captured(Move) const;
 

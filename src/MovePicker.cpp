@@ -285,11 +285,11 @@ Move MovePicker::nextMove() {
             return *mBeg++;
         }
 
-        mBeg = refutationMoves.begin();
         if (!skipQuiets) {
             vmoves.reserve(64);
             vmoves.clear();
             generate<GenType::QUIET>(vmoves, pos);
+            mBeg = refutationMoves.begin();
             vmBeg = vmoves.begin();
             vmEnd = std::remove_if(vmBeg, vmoves.end(),
                     [&](ValMove const &vm) {

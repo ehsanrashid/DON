@@ -399,7 +399,7 @@ bool Position::legal(Move m) const {
             // - not pinned
             // - moving along the ray from the king
             !contains(kingBlockers(active), org)
-         || aligned(org, dst, fkSq);
+         || aligned(fkSq, org, dst);
 }
 
 /// Position::giveCheck() tests whether a pseudo-legal move gives a check.
@@ -416,7 +416,7 @@ bool Position::giveCheck(Move m) const {
         contains(checks(mType(m) != PROMOTE ? pType(board[org]) : promoteType(m)), dst)
         // Discovered check ?
      || (contains(kingBlockers(~active), org)
-      && !aligned(org, dst, ekSq))) {
+      && !aligned(ekSq, org, dst))) {
         return true;
     }
 
@@ -428,8 +428,7 @@ bool Position::giveCheck(Move m) const {
         // Enpassant capture with check?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
-        auto epSq{ makeSquare(sFile(dst), sRank(org)) };
-        Bitboard mocc{ (pieces() ^ org ^ epSq) | dst };
+        Bitboard mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
         return (pieces(active, BSHP, QUEN) & attacksBB<BSHP>(ekSq, mocc)) != 0
             || (pieces(active, ROOK, QUEN) & attacksBB<ROOK>(ekSq, mocc)) != 0;
     }
@@ -446,6 +445,36 @@ bool Position::giveCheck(Move m) const {
         return contains(attacksBB(promoteType(m), dst, pieces() ^ org), ekSq);
     }
     }
+}
+
+bool Position::giveDblCheck(Move m) const {
+    assert(isOk(m));
+    //assert(giveCheck(m));
+
+    if (mType(m) == CASTLE) {
+        return false;
+    }
+
+    auto org{ orgSq(m) };
+    auto dst{ dstSq(m) };
+
+    auto ekSq{ square(~active|KING) };
+
+    if (mType(m) == ENPASSANT) {
+        Bitboard mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
+        auto chkrCount{ popCount((pieces(active, BSHP, QUEN) & attacksBB<BSHP>(ekSq, mocc))
+                               | (pieces(active, ROOK, QUEN) & attacksBB<ROOK>(ekSq, mocc))) };
+        return chkrCount > 1
+            || (chkrCount > 0
+             && contains(checks(PAWN), dst));
+    }
+
+    return
+        // Direct check ?
+        contains(checks(mType(m) != PROMOTE ? pType(board[org]) : promoteType(m)), dst)
+        // Discovered check ?
+     && (contains(kingBlockers(~active), org)
+      && !aligned(ekSq, org, dst));
 }
 
 /// Position::setCastle() set the castling right.
@@ -503,11 +532,10 @@ bool Position::canEnpassant(Color c, Square epSq, bool moveDone) const {
     Bitboard rq{ pieces(~c, ROOK, QUEN) & PieceAttackBB[ROOK][kSq] };
     Bitboard mocc{ (pieces() ^ cap) | epSq };
     while (attackers != 0) {
-        auto org{ popLSq(attackers) };
-        assert(contains(mocc, org));
+        Bitboard amocc{ mocc ^ popLSq(attackers) };
         // Check enpassant is legal for the position
-        if ((bq == 0 || (bq & attacksBB<BSHP>(kSq, mocc ^ org)) == 0)
-         && (rq == 0 || (rq & attacksBB<ROOK>(kSq, mocc ^ org)) == 0)) {
+        if ((bq == 0 || (bq & attacksBB<BSHP>(kSq, amocc)) == 0)
+         && (rq == 0 || (rq & attacksBB<ROOK>(kSq, amocc)) == 0)) {
             return true;
         }
     }
@@ -539,12 +567,33 @@ bool Position::see(Move m, Value threshold) const {
         return true;
     }
 
+    Bitboard mocc{ pieces() ^ org ^ dst };
+    Bitboard attackers{ attackersTo(dst, mocc) };
+
+    if (attackers == 0) {
+        return true;
+    }
+
     bool res{ true };
 
-    Bitboard mocc{ pieces() ^ org ^ dst };
     auto mov{ pColor(board[org]) };
 
-    Bitboard attackers{ attackersTo(dst, mocc) };
+    Array<Square, COLORS> kSq
+    {
+        square(W_KING),
+        square(B_KING)
+    };
+    Array<Bitboard, COLORS> kBlockers
+    {
+        kingBlockers(WHITE),
+        kingBlockers(BLACK)
+    };
+    Array<Bitboard, COLORS> kCheckers
+    {
+        kingCheckers(WHITE),
+        kingCheckers(BLACK)
+    };
+
     while (attackers != 0) {
         mov = ~mov;
         attackers &= mocc;
@@ -556,41 +605,31 @@ bool Position::see(Move m, Value threshold) const {
             break;
         }
 
-        // Only allow king for defensive capture to evade the discovered check,
-        // as long any discoverers are on their original square.
-        if (contains(kingBlockers(mov) & pieces(~mov), org)
-         && (kingCheckers(~mov)
-           & pieces(~mov)
-           & mocc
-           & attacksBB<QUEN>(square(mov|KING), mocc)) != 0) {
-            movAttackers &= pieces(KING);
+        if (contains(kCheckers[mov], org)) {
+            kCheckers[mov] ^= org;
+            kBlockers[mov] &= ~betweenBB(kSq[mov], org);
         }
         // Don't allow pinned pieces for defensive capture,
         // as long respective pinners are on their original square.
-        /*
-        else {
-            Bitboard kCheckers{ kingCheckers(mov)
-                              & pieces(~mov)
-                              & mocc };
-            if (kCheckers != 0) {
-                auto mkSq{ square(mov|KING) };
-                // Pinned Attackers
-                Bitboard pinned{ kingBlockers(mov) & movAttackers };
-                while (pinned != 0) {
-                    auto sq{ popLSq(pinned) };
-                    if ((kCheckers
-                       & attacksBB<QUEN>(mkSq, mocc ^ sq)) != 0) {
-                        movAttackers ^= sq;
-                    }
-                }
-            }
-        }
-        */
-        else
-        if ((kingCheckers(mov)
+        if (// Pinned Attackers
+            (kBlockers[mov]
+           & movAttackers) != 0
+            // Pinners
+         && (kCheckers[mov]
            & pieces(~mov)
            & mocc) != 0) {
-            movAttackers &= ~kingBlockers(mov);
+            movAttackers &= ~kBlockers[mov];
+        }
+        else
+        // Only allow king for defensive capture to evade the discovered check,
+        // as long any discoverers are on their original square.
+        if (contains(kBlockers[mov], org)
+         && !aligned(kSq[mov], org, dst)
+         && (kCheckers[~mov]
+           & mocc
+           & LineBB[kSq[mov]][org]) != 0) { //& attacksBB<QUEN>(kSq[mov], mocc)
+            //assert(contains(pieces(~mov), org));
+            movAttackers = SquareBB[kSq[mov]];
         }
 
         // If mov has no more attackers then give up: mov loses
@@ -605,7 +644,7 @@ bool Position::see(Move m, Value threshold) const {
         Bitboard bb;
 
         if ((bb = pieces(PAWN) & movAttackers) != 0) {
-            if ((swap = VALUE_MG_PAWN - swap) < 1*res) {
+            if ((swap = VALUE_MG_PAWN - swap) < res) {
                 break;
             }
             org = scanLSq(bb);
@@ -614,7 +653,7 @@ bool Position::see(Move m, Value threshold) const {
         }
         else
         if ((bb = pieces(NIHT) & movAttackers) != 0) {
-            if ((swap = VALUE_MG_NIHT - swap) < 1*res) {
+            if ((swap = VALUE_MG_NIHT - swap) < res) {
                 break;
             }
             org = scanLSq(bb);
@@ -622,7 +661,7 @@ bool Position::see(Move m, Value threshold) const {
         }
         else
         if ((bb = pieces(BSHP) & movAttackers) != 0) {
-            if ((swap = VALUE_MG_BSHP - swap) < 1*res) {
+            if ((swap = VALUE_MG_BSHP - swap) < res) {
                 break;
             }
             org = scanLSq(bb);
@@ -631,7 +670,7 @@ bool Position::see(Move m, Value threshold) const {
         }
         else
         if ((bb = pieces(ROOK) & movAttackers) != 0) {
-            if ((swap = VALUE_MG_ROOK - swap) < 1*res) {
+            if ((swap = VALUE_MG_ROOK - swap) < res) {
                 break;
             }
             org = scanLSq(bb);
@@ -640,7 +679,7 @@ bool Position::see(Move m, Value threshold) const {
         }
         else
         if ((bb = pieces(QUEN) & movAttackers) != 0) {
-            if ((swap = VALUE_MG_QUEN - swap) < 1*res) {
+            if ((swap = VALUE_MG_QUEN - swap) < res) {
                 break;
             }
             org = scanLSq(bb);

@@ -323,7 +323,8 @@ namespace Evaluator {
                     dblAttacks[Own] |= sqlAttacks[Own][NONE] & attacks;
 
                     // Bonus for minor shielded by pawn
-                    score += MinorBehindPawn * contains(pos.pieces(PAWN), s + PawnPush[Own]);
+                    score += MinorBehindPawn * (relativeRank(Own, s) < RANK_6
+                                             && contains(pos.pieces(PAWN), s + PawnPush[Own]));
 
                     // Penalty for distance from the friend king
                     score -= MinorKingProtect * distance(kSq, s);

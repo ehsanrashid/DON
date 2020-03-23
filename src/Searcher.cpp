@@ -414,7 +414,6 @@ namespace {
             bool giveCheck{ pos.giveCheck(move) };
             bool captureOrPromotion{ pos.captureOrPromotion(move) };
 
-            //if (ttMove != move) {
             if (inCheck) {
                 // Pruning: Don't search moves with negative SEE
                 // Evasion Prunable: Detect non-capture evasions that are candidates to be pruned
@@ -462,19 +461,10 @@ namespace {
                     continue;
                 }
             }
-            //}
 
             // Check for legality just before making the move
-            if (inCheck) {
-                if (!pos.pseudoLegal(move)
-                 || !pos.legal(move)) {
-                    continue;
-                }
-            }
-            else {
-                if (!pos.legal(move)) {
-                    continue;
-                }
+            if (!pos.legal(move)) {
+                continue;
             }
 
             ++playedMoveCount;
@@ -1148,7 +1138,10 @@ namespace {
               && pos.nonPawnMaterial() <= 2 * VALUE_MG_ROOK)
                 // Check extension (~2 ELO)
              || (giveCheck
-              && (contains(pos.kingBlockers(~activeSide), org)
+              && (// Discovered check ?
+                  (contains(pos.kingBlockers(~activeSide), org)
+                && !aligned(pos.square(~activeSide|KING), org, dst))
+                  // Direct check ?
                || pos.see(move)))
                 // Passed pawn extension
              || (ss->killerMoves[0] == move
