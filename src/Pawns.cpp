@@ -162,6 +162,7 @@ namespace Pawns {
     template<Color Own>
     void Entry::evaluate(Position const &pos) {
         constexpr auto Opp{ ~Own };
+        constexpr auto Push{ PawnPush[Own] };
 
         Bitboard pawns{ pos.pieces(PAWN) };
         Bitboard ownPawns{ pos.pieces(Own) & pawns };
@@ -171,7 +172,7 @@ namespace Pawns {
         //castleSide [Own] = 0;
         //kingSafety [Own] = SCORE_ZERO;
         //kingDist   [Own] = SCORE_ZERO;
-        passPawns     [Own] = 0;
+        passPawns  [Own] = 0;
         score      [Own] = SCORE_ZERO;
         sglAttacks [Own] =
         attacksSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
@@ -183,23 +184,23 @@ namespace Pawns {
             assert(RANK_2 <= r && r <= RANK_7);
 
             Bitboard neighbours { ownPawns & adjacentFilesBB(s) };
-            Bitboard supporters { neighbours & rankBB(s - PawnPush[Own]) };
+            Bitboard supporters { neighbours & rankBB(s - Push) };
             Bitboard phalanxes  { neighbours & rankBB(s) };
             Bitboard stoppers   { oppPawns & pawnPassSpan(Own, s) };
-            Bitboard blocker    { stoppers & (s + PawnPush[Own]) };
+            Bitboard blocker    { stoppers & (s + Push) };
             Bitboard levers     { stoppers & PawnAttackBB[Own][s] };
-            Bitboard sentres    { stoppers & PawnAttackBB[Own][s + PawnPush[Own]] }; // push levers
+            Bitboard sentres    { stoppers & PawnAttackBB[Own][s + Push] }; // push levers
 
             bool opposed { (stoppers & frontSquaresBB(Own, s)) != 0 };
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
-            bool backward{ (neighbours & frontRanksBB(Opp, s + PawnPush[Own])) == 0
+            bool backward{ (neighbours & frontRanksBB(Opp, s + Push)) == 0
                         && (blocker | sentres) != 0 };
 
             // Compute additional span if pawn is not blocked nor backward
             if (!backward
              && !blocker) {
-                attacksSpan[Own] |= pawnAttackSpan(Own, s); // + PawnPush[Own]
+                attacksSpan[Own] |= pawnAttackSpan(Own, s); // + Push
             }
 
             // A pawn is passed if one of the three following conditions is true:
@@ -240,7 +241,7 @@ namespace Pawns {
             }
 
             if (supporters == 0) {
-                sp -= WeakDoubled * contains(ownPawns, s - PawnPush[Own])
+                sp -= WeakDoubled * contains(ownPawns, s - Push)
                     // Attacked twice by enemy pawns
                     + WeakTwiceLever * moreThanOne(levers);
             }

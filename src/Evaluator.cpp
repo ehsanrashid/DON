@@ -215,7 +215,7 @@ namespace Evaluator {
             template<Color> Score space() const;
 
             Score initiative(Score) const;
-            Scale scale(Value) const;
+            Scale scaleFactor(Value) const;
 
         public:
 
@@ -288,8 +288,8 @@ namespace Evaluator {
         template<bool Trace> template<Color Own, PieceType PT>
         Score Evaluation<Trace>::pieces() {
             static_assert (NIHT <= PT && PT <= QUEN, "PT incorrect");
-
             constexpr auto Opp{ ~Own };
+
             auto kSq{ pos.square(Own|KING) };
             Bitboard kingBlockers{ pos.kingBlockers(Own) };
 
@@ -323,7 +323,7 @@ namespace Evaluator {
                     dblAttacks[Own] |= sqlAttacks[Own][NONE] & attacks;
 
                     // Bonus for minor shielded by pawn
-                    score += MinorBehindPawn * (relativeRank(Own, s) < RANK_6
+                    score += MinorBehindPawn * (relativeRank(Own, s) <= RANK_6
                                              && contains(pos.pieces(PAWN), s + PawnPush[Own]));
 
                     // Penalty for distance from the friend king
@@ -374,11 +374,11 @@ namespace Evaluator {
                          && Options["UCI_Chess960"]
                          && (relativeSq(Own, s) == SQ_A1
                           || relativeSq(Own, s) == SQ_H1)) {
-
-                            auto del{ PawnPush[Own] + sign(FILE_E - sFile(s)) * EAST };
+                            auto Push{ PawnPush[Own] };
+                            auto del{ Push + sign(FILE_E - sFile(s)) * EAST };
                             if (contains(pos.pieces(Own, PAWN), s + del)) {
                                 score -= BishopTrapped
-                                        * (!contains(pos.pieces(), s + del + PawnPush[Own]) ?
+                                        * (!contains(pos.pieces(), s + del + Push) ?
                                                 !contains(pos.pieces(Own, PAWN), s + del + del) ?
                                                     1 : 2 : 4);
                             }
@@ -714,6 +714,7 @@ namespace Evaluator {
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::passPawn() const {
             constexpr auto Opp{ ~Own };
+            constexpr auto Push{ PawnPush[Own] };
 
             auto kingProximity = [&](Color c, Square s) {
                 return std::min(distance(pos.square(c|KING), s), 5);
@@ -726,14 +727,14 @@ namespace Evaluator {
                 auto s{ popLSq(passPawns) };
                 assert((pos.pieces(Opp, PAWN)
                       & (pawnSglPushBB<Own>(frontSquaresBB(Own, s))
-                       | ( pawnPassSpan(Own, s + PawnPush[Own])
-                        & ~PawnAttackBB[Own][s + PawnPush[Own]]))) == 0);
+                       | ( pawnPassSpan(Own, s + Push)
+                        & ~PawnAttackBB[Own][s + Push]))) == 0);
 
                 i32 r{ relativeRank(Own, s) };
                 // Base bonus depending on rank.
                 Score bonus{ PasserRank[r] };
 
-                auto pushSq{ s + PawnPush[Own] };
+                auto pushSq{ s + Push };
 
                 if (r > RANK_3) {
                     i32 w{ 5 * r - 13 };
@@ -743,7 +744,7 @@ namespace Evaluator {
                                               -2.00*w*kingProximity(Own, pushSq)));
                     // If pushSq is not the queening square then consider also a second push.
                     if (r < RANK_7) {
-                        bonus += makeScore(0, -1*w*kingProximity(Own, pushSq + PawnPush[Own]));
+                        bonus += makeScore(0, -1*w*kingProximity(Own, pushSq + Push));
                     }
 
                     // If the pawn is free to advance.
@@ -863,29 +864,29 @@ namespace Evaluator {
             return score;
         }
 
-        /// scale() evaluates the scale for the position
+        /// scaleFactor() evaluates the scaleFactor for the position
         template<bool Trace>
-        Scale Evaluation<Trace>::scale(Value eg) const {
+        Scale Evaluation<Trace>::scaleFactor(Value eg) const {
             auto stngColor{ eg >= VALUE_ZERO ? WHITE : BLACK };
 
-            Scale scl{ matlEntry->scalingFunc[stngColor] != nullptr ?
+            Scale scale{ matlEntry->scalingFunc[stngColor] != nullptr ?
                         (*matlEntry->scalingFunc[stngColor])(pos) : SCALE_NONE };
-            if (scl == SCALE_NONE) {
-                scl = matlEntry->scale[stngColor];
+            if (scale == SCALE_NONE) {
+                scale = matlEntry->scaleFactor[stngColor];
             }
 
-            // If scale is not already specific, scale down the endgame via general heuristics
-            if (scl == SCALE_NORMAL) {
+            // If scaleFactor is not already specific, scaleFactor down the endgame via general heuristics
+            if (scale == SCALE_NORMAL) {
 
-                scl = pos.bishopOpposed()
-                   && pos.nonPawnMaterial() == 2 * VALUE_MG_BSHP ?
+                scale = pos.bishopOpposed()
+                     && pos.nonPawnMaterial() == 2 * VALUE_MG_BSHP ?
                         Scale(22) :
                         std::min(Scale(36 + (7 - 5 * pos.bishopOpposed()) * pos.count(stngColor|PAWN)), SCALE_NORMAL);
 
                 // Scale down endgame factor when shuffling
-                scl = std::max(Scale(scl + 3 - pos.clockPly() / 4), SCALE_DRAW);
+                scale = std::max(Scale(scale + 3 - pos.clockPly() / 4), SCALE_DRAW);
             }
-            return scl;
+            return scale;
         }
 
         /// value() computes the various parts of the evaluation and
@@ -952,9 +953,9 @@ namespace Evaluator {
             assert(-VALUE_INFINITE < egValue(score) && egValue(score) < +VALUE_INFINITE);
             assert(0 <= matlEntry->phase && matlEntry->phase <= Material::PhaseResolution);
 
-            // Interpolates between midgame and scaled endgame values (scaled by 'scale(egValue(score))').
+            // Interpolates between midgame and scaled endgame values (scaled by 'scaleFactor(egValue(score))').
             v = mgValue(score) * (matlEntry->phase)
-              + egValue(score) * (Material::PhaseResolution - matlEntry->phase) * scale(egValue(score)) / SCALE_NORMAL;
+              + egValue(score) * (Material::PhaseResolution - matlEntry->phase) * scaleFactor(egValue(score)) / SCALE_NORMAL;
             v /= Material::PhaseResolution;
 
             if (Trace) {

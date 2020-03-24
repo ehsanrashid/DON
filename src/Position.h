@@ -412,17 +412,24 @@ inline bool Position::valid(Move m) const {
 }
 inline bool Position::capture(Move m) const {
     assert(isOk(m));
-    auto mt = mType(m);
-    return ((mt == NORMAL
-          || mt == PROMOTE) && !empty(dstSq(m)))
-        || (mt == ENPASSANT && dstSq(m) == epSquare());
+    //auto mt = mType(m);
+    //return ((mt == NORMAL
+    //      || mt == PROMOTE) && !empty(dstSq(m)))
+    //    || (mt == ENPASSANT && dstSq(m) == epSquare());
+    return mType(m) != ENPASSANT ?
+            contains(pieces(~active), dstSq(m)) :
+            dstSq(m) == epSquare();
 }
 inline bool Position::captureOrPromotion(Move m) const {
     assert(isOk(m));
-    auto mt = mType(m);
-    return mt == NORMAL    ? !empty(dstSq(m)) :
-           mt == ENPASSANT ? dstSq(m) == epSquare() :
-           mt == PROMOTE;
+    //auto mt = mType(m);
+    //return mt == NORMAL    ? !empty(dstSq(m)) :
+    //       mt == ENPASSANT ? dstSq(m) == epSquare() :
+    //       mt == PROMOTE;
+    return mType(m) != ENPASSANT ?
+            contains(pieces(~active), dstSq(m))
+         || mType(m) == PROMOTE :
+            dstSq(m) == epSquare();
 }
 inline PieceType Position::captured(Move m) const {
     assert(isOk(m));

@@ -68,9 +68,9 @@ Key Position::pgKey() const {
 /// Position::movePosiKey() computes the new hash key after the given moven, needed for speculative prefetch.
 /// It doesn't recognize special moves like castling, en-passant and promotions.
 Key Position::movePosiKey(Move m) const {
-    assert(isOk(m)
-        && pseudoLegal(m)
-        && legal(m));
+    assert(isOk(m));
+    //assert(pseudoLegal(m)
+    //    && legal(m));
     /*
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
@@ -93,7 +93,7 @@ Key Position::movePosiKey(Move m) const {
         }
         else
         if (pType(mp) == PAWN
-         && dst == org + 2 * PawnPush[active]) {
+         && dst == org + PawnPush[active] * 2) {
             auto epSq{ org + PawnPush[active] };
             if (canEnpassant(~active, epSq, false)) {
                 pKey ^= RandZob.enpassantKey[sFile(epSq)];
@@ -262,6 +262,7 @@ bool Position::pseudoLegal(Move m) const
     if (pType(board[org]) == PAWN) {
         auto orgR{ relativeRank(active, org) };
         auto dstR{ relativeRank(active, dst) };
+        auto Push{ PawnPush[active] };
 
         if (// Single push
             (((mType(m) != NORMAL
@@ -270,7 +271,7 @@ bool Position::pseudoLegal(Move m) const
            && (mType(m) != PROMOTE
             || orgR != RANK_7
             || dstR != RANK_8))
-          || dst != org + 1 * PawnPush[active]
+          || dst != org + Push
           || !empty(dst))
             // Normal capture
          && (((mType(m) != NORMAL
@@ -285,9 +286,9 @@ bool Position::pseudoLegal(Move m) const
          && (mType(m) != NORMAL
           || orgR != RANK_2
           || dstR != RANK_4
-          || dst != org + 2 * PawnPush[active]
+          || dst != org + Push * 2
           || !empty(dst)
-          || !empty(dst - 1 * PawnPush[active]))
+          || !empty(dst - Push))
             // Enpassant capture
          && (mType(m) != ENPASSANT
           || orgR != RANK_5
@@ -295,7 +296,7 @@ bool Position::pseudoLegal(Move m) const
           || dst != epSquare()
           || !contains(PawnAttackBB[active][org], dst)
           || !empty(dst)
-          || empty(dst - 1 * PawnPush[active])
+          || empty(dst - Push)
           || clockPly() != 0)) {
             return false;
         }
@@ -429,8 +430,10 @@ bool Position::giveCheck(Move m) const {
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
         Bitboard mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
-        return (pieces(active, BSHP, QUEN) & attacksBB<BSHP>(ekSq, mocc)) != 0
-            || (pieces(active, ROOK, QUEN) & attacksBB<ROOK>(ekSq, mocc)) != 0;
+        return (pieces(active, BSHP, QUEN)
+              & attacksBB<BSHP>(ekSq, mocc)) != 0
+            || (pieces(active, ROOK, QUEN)
+              & attacksBB<ROOK>(ekSq, mocc)) != 0;
     }
     case CASTLE: {
         // Castling with check?
@@ -442,7 +445,17 @@ bool Position::giveCheck(Move m) const {
     // case PROMOTE:
     default: {
         // Promotion with check?
-        return contains(attacksBB(promoteType(m), dst, pieces() ^ org), ekSq);
+        auto ppt{ promoteType(m) };
+        Bitboard mocc{ (pieces() ^ org) | dst };
+        return
+         //   ppt > NIHT
+         //&& contains(attacksBB(ppt, dst, mocc), ekSq)
+            ((ppt == BSHP
+           || ppt == QUEN)
+          && contains(attacksBB<BSHP>(dst, mocc), ekSq))
+         || ((ppt == ROOK
+           || ppt == QUEN)
+          && contains(attacksBB<ROOK>(dst, mocc), ekSq));
     }
     }
 }
@@ -462,8 +475,10 @@ bool Position::giveDblCheck(Move m) const {
 
     if (mType(m) == ENPASSANT) {
         Bitboard mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
-        auto chkrCount{ popCount((pieces(active, BSHP, QUEN) & attacksBB<BSHP>(ekSq, mocc))
-                               | (pieces(active, ROOK, QUEN) & attacksBB<ROOK>(ekSq, mocc))) };
+        auto chkrCount{ popCount((pieces(active, BSHP, QUEN)
+                                & attacksBB<BSHP>(ekSq, mocc))
+                               | (pieces(active, ROOK, QUEN)
+                                & attacksBB<ROOK>(ekSq, mocc))) };
         return chkrCount > 1
             || (chkrCount > 0
              && contains(checks(PAWN), dst));
@@ -474,7 +489,7 @@ bool Position::giveDblCheck(Move m) const {
         contains(checks(mType(m) != PROMOTE ? pType(board[org]) : promoteType(m)), dst)
         // Discovered check ?
      && (contains(kingBlockers(~active), org)
-      && !aligned(ekSq, org, dst));
+      /*&& !aligned(ekSq, org, dst)*/);
 }
 
 /// Position::setCastle() set the castling right.
@@ -604,18 +619,15 @@ bool Position::see(Move m, Value threshold) const {
         if (movAttackers == 0) {
             break;
         }
-
+        // Update Pinners and Pinneds
         if (contains(kCheckers[mov], org)) {
             kCheckers[mov] ^= org;
             kBlockers[mov] &= ~betweenBB(kSq[mov], org);
         }
         // Don't allow pinned pieces for defensive capture,
         // as long respective pinners are on their original square.
-        if (// Pinned Attackers
-            (kBlockers[mov]
-           & movAttackers) != 0
-            // Pinners
-         && (kCheckers[mov]
+        if (// Pinners
+            (kCheckers[mov]
            & pieces(~mov)
            & mocc) != 0) {
             movAttackers &= ~kBlockers[mov];
@@ -626,9 +638,10 @@ bool Position::see(Move m, Value threshold) const {
         if (contains(kBlockers[mov], org)
          && !aligned(kSq[mov], org, dst)
          && (kCheckers[~mov]
+           //& pieces(~mov)
            & mocc
-           & LineBB[kSq[mov]][org]) != 0) { //& attacksBB<QUEN>(kSq[mov], mocc)
-            //assert(contains(pieces(~mov), org));
+           //& attacksBB<QUEN>(kSq[mov], mocc)
+           & LineBB[kSq[mov]][org]) != 0) {
             movAttackers = SquareBB[kSq[mov]];
         }
 
@@ -1043,15 +1056,13 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     }
 
     if (pType(mp) == PAWN) {
+
         // Double push pawn
-        if (relativeRank(active, org) == RANK_2
-         && dst == org + 2 * PawnPush[active]) {
-            auto epSq{ org + 1 * PawnPush[active] };
-            // Set enpassant square if the moved pawn can be captured
-            if (canEnpassant(pasive, epSq)) {
-                _stateInfo->epSquare = epSq;
-                pKey ^= RandZob.enpassantKey[sFile(epSq)];
-            }
+        // Set enpassant square if the moved pawn can be captured
+        if (dst == org + PawnPush[active] * 2
+         && canEnpassant(pasive, org + PawnPush[active])) {
+            _stateInfo->epSquare = org + PawnPush[active];
+            pKey ^= RandZob.enpassantKey[sFile(_stateInfo->epSquare)];
         }
         else
         if (mType(m) == PROMOTE) {

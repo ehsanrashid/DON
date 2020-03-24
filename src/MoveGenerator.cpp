@@ -79,8 +79,8 @@ namespace {
     template<GenType GT, Color Own>
     void generatePawnMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
         constexpr auto Opp{ ~Own };
-        constexpr auto Push1{ 1 * PawnPush[Own] };
-        constexpr auto Push2{ 2 * PawnPush[Own] };
+        constexpr auto Push1{ PawnPush[Own] };
+        constexpr auto Push2{ Push1 + Push1 };
         constexpr auto LAtt{ PawnLAtt[Own] };
         constexpr auto RAtt{ PawnRAtt[Own] };
 
@@ -373,28 +373,32 @@ void Perft::classify(Position &pos, Move m) {
     }
     if (pos.giveCheck(m)) {
         ++anyCheck;
-        // Not Direct Check but Discovered Check
+        // Discovered Check but not Direct Check
         if (!contains(pos.checks(mType(m) != PROMOTE ? pType(pos[orgSq(m)]) : promoteType(m)), dstSq(m))) {
-            auto ekSq = pos.square(~activeSide|KING);
-            if (contains(pos.kingBlockers(~activeSide), orgSq(m))
-             && !aligned(orgSq(m), dstSq(m), ekSq)) {
-                ++dscCheck;
-            }
-            else
+            auto ekSq{ pos.square(~activeSide|KING) };
             if (mType(m) == ENPASSANT) {
-                auto epSq{ makeSquare(sFile(dstSq(m)), sRank(orgSq(m))) };
-                Bitboard mocc{ (pos.pieces() ^ orgSq(m) ^ epSq) | dstSq(m) };
-                if ((pos.pieces(activeSide, BSHP, QUEN) & attacksBB<BSHP>(ekSq, mocc)) != 0
-                 || (pos.pieces(activeSide, ROOK, QUEN) & attacksBB<ROOK>(ekSq, mocc)) != 0) {
+                Bitboard mocc{ (pos.pieces() ^ orgSq(m) ^ makeSquare(sFile(dstSq(m)), sRank(orgSq(m)))) | dstSq(m) };
+                if ((pos.pieces(activeSide, BSHP, QUEN)
+                   & attacksBB<BSHP>(ekSq, mocc)) != 0
+                 || (pos.pieces(activeSide, ROOK, QUEN)
+                   & attacksBB<ROOK>(ekSq, mocc)) != 0) {
                     ++dscCheck;
                 }
             }
+            else
+            if (contains(pos.kingBlockers(~activeSide), orgSq(m))
+             /*&& !aligned(orgSq(m), dstSq(m), ekSq)*/) {
+                ++dscCheck;
+            }
         }
+        //if (pos.giveDblCheck(m)) {
+        //    ++dblCheck;
+        //}
+
         StateInfo si;
         pos.doMove(m, si, true);
         assert(pos.checkers() != 0
             && popCount(pos.checkers()) <= 2);
-        // Only if Discovered Check
         if (moreThanOne(pos.checkers())) {
             ++dblCheck;
         }

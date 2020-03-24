@@ -16,7 +16,7 @@ namespace Material {
         Key   key;
         i32   phase;
         Score imbalance;
-        Array<Scale, COLORS> scale;
+        Array<Scale, COLORS> scaleFactor;
 
         EndgameBase<Value> const *evaluationFunc;
         Array<EndgameBase<Scale> const*, COLORS> scalingFunc;

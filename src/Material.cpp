@@ -40,16 +40,11 @@ namespace Material {
             Endgame<KXK>(WHITE),
             Endgame<KXK>(BLACK)
         };
-        // Endgame generic scale functions
+        // Endgame generic scaleFactor functions
         Array<Endgame<KPKP>, COLORS> ScaleKPKP
         {
             Endgame<KPKP>(WHITE),
             Endgame<KPKP>(BLACK)
-        };
-        Array<Endgame<KPsK>, COLORS> ScaleKPsK
-        {
-            Endgame<KPsK>(WHITE),
-            Endgame<KPsK>(BLACK)
         };
         Array<Endgame<KBPsK>, COLORS> ScaleKBPsK
         {
@@ -97,7 +92,7 @@ namespace Material {
         phase = (i32(clamp(npm[WHITE] + npm[BLACK], VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME) * PhaseResolution)
               / i32(VALUE_MIDGAME - VALUE_ENDGAME);
         imbalance = SCORE_ZERO;
-        scale.fill(SCALE_NORMAL);
+        scaleFactor.fill(SCALE_NORMAL);
         scalingFunc.fill(nullptr);
 
         // Let's look if have a specialized evaluation function for this particular material configuration.
@@ -143,10 +138,10 @@ namespace Material {
 
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
-            // scale for cases such as KRKBP and KmmKm (except for KBBKN).
+            // scaleFactor for cases such as KRKBP and KmmKm (except for KBBKN).
             if ((npm[ c] - npm[~c]) <= VALUE_MG_BSHP
              && pos.count( c|PAWN) == 0) {
-                scale[c] =
+                scaleFactor[c] =
                     npm[ c] < VALUE_MG_ROOK ?
                         SCALE_DRAW :
                         Scale(14 - 10 * (npm[~c] <= VALUE_MG_BSHP));
@@ -155,23 +150,11 @@ namespace Material {
 
         // Only pawns left
         if ((npm[WHITE] + npm[BLACK]) == VALUE_ZERO
-         && pos.pieces(PAWN) != 0) {
-            if (pos.count(B_PAWN) == 0) {
-                assert(pos.count(W_PAWN) >= 2);
-                scalingFunc[WHITE] = &ScaleKPsK[WHITE];
-            }
-            else
-            if (pos.count(W_PAWN) == 0) {
-                assert(pos.count(B_PAWN) >= 2);
-                scalingFunc[BLACK] = &ScaleKPsK[BLACK];
-            }
-            else
-            if (pos.count(W_PAWN) == 1
-             && pos.count(B_PAWN) == 1) {
-                // This is a special case so set scaling functions for both
-                scalingFunc[WHITE] = &ScaleKPKP[WHITE];
-                scalingFunc[BLACK] = &ScaleKPKP[BLACK];
-            }
+         && pos.count(W_PAWN) == 1
+         && pos.count(B_PAWN) == 1) {
+            // This is a special case so set scaling functions for both
+            scalingFunc[WHITE] = &ScaleKPKP[WHITE];
+            scalingFunc[BLACK] = &ScaleKPKP[BLACK];
         }
 
         // Evaluate the material imbalance.

@@ -51,7 +51,7 @@ struct Perft {
     u64 enpassant{ 0 };
     u64 anyCheck{ 0 };
     u64 dscCheck{ 0 };
-    u64 dblCheck{ 0 };
+    u64 dblCheck{ 0 }; // Only if Direct & Discovered Check or one Enpassant case Bishop & Rook
     u64 castle{ 0 };
     u64 promotion{ 0 };
     u64 checkmate{ 0 };

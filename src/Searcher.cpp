@@ -401,12 +401,14 @@ namespace {
             pieceStats,
             ttMove, depth, dstSq((ss-1)->playedMove) };
 
-        u08 playedMoveCount{ 0 };
+        u08 moveCount{ 0 };
         StateInfo si;
         // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
         while ((move = movePicker.nextMove()) != MOVE_NONE) {
             assert(isOk(move)
                 && (inCheck || pos.pseudoLegal(move)));
+
+            ++moveCount;
 
             auto org{ orgSq(move) };
             auto dst{ dstSq(move) };
@@ -418,7 +420,7 @@ namespace {
                 // Pruning: Don't search moves with negative SEE
                 // Evasion Prunable: Detect non-capture evasions that are candidates to be pruned
                 if (((depth < DEPTH_QS_CHECK
-                   || playedMoveCount > 1)
+                   || moveCount > 2)
                   && bestValue > -VALUE_MATE_2_MAX_PLY
                   && !pos.capture(move))
                  && Limits.mate == 0
@@ -464,10 +466,9 @@ namespace {
 
             // Check for legality just before making the move
             if (!pos.legal(move)) {
+                --moveCount;
                 continue;
             }
-
-            ++playedMoveCount;
 
             // Speculative prefetch as early as possible
             prefetch(TT.cluster(pos.movePosiKey(move))->entryTable);
@@ -1061,6 +1062,7 @@ namespace {
                 else {
                     // Reduced depth of the next LMR search.
                     i32 lmrDepth{ std::max(i16(newDepth - reduction(depth, moveCount, improving)), DEPTH_ZERO) };
+
                     // Counter moves based pruning: (~20 ELO)
                     if (lmrDepth < (4 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1))
                      && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
@@ -1140,7 +1142,7 @@ namespace {
              || (giveCheck
               && (// Discovered check ?
                   (contains(pos.kingBlockers(~activeSide), org)
-                && !aligned(pos.square(~activeSide|KING), org, dst))
+                /*&& !aligned(pos.square(~activeSide|KING), org, dst)*/)
                   // Direct check ?
                || pos.see(move)))
                 // Passed pawn extension
