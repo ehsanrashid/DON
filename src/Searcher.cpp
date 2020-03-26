@@ -646,7 +646,7 @@ namespace {
 
         if (ttPV
          && depth > 12
-         && pmOK
+         &&  pmOK
          && !pmCapOrPro
          //&& ss->ply - 1 >= 0
          && ss->ply - 1 < MAX_LOWPLY) {
@@ -685,7 +685,7 @@ namespace {
 
                 // Extra penalty for early quiet moves in previous ply when it gets refuted
                 if (ttValue >= beta
-                 && pmOK
+                 &&  pmOK
                  && !pmCapOrPro
                  && (ss-1)->moveCount <= 2) {
                     updateContinuationStats(ss-1, pmPiece, pmDst, -statBonus(depth + 1));
@@ -1410,7 +1410,7 @@ namespace {
             }
 
             // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
-            if (pmOK
+            if ( pmOK
              && !pmCapOrPro
              && ((ss-1)->moveCount == 1
               || (ss-1)->killerMoves[0] == (ss-1)->playedMove)) {
@@ -1419,7 +1419,7 @@ namespace {
         }
         else {
             // Bonus for prior quiet move that caused the fail low.
-            if (pmOK
+            if ( pmOK
              && !pmCapOrPro
              && (PVNode
               || depth > 2)) {

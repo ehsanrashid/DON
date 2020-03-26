@@ -78,24 +78,22 @@ namespace {
 
     // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
     enum TBFlag : u08 {
-        STM         = 1 << 0,
-        MAPPED      = 1 << 1,
-        WIN_PLIES   = 1 << 2,
-        LOSS_PLIES  = 1 << 3,
-        WIDE        = 1 << 4,
-        SINGLE_VALUE = 1 << 7,
+        STM             = 1 << 0,
+        MAPPED          = 1 << 1,
+        WIN_PLIES       = 1 << 2,
+        LOSS_PLIES      = 1 << 3,
+        WIDE            = 1 << 4,
+        SINGLE_VALUE    = 1 << 7
     };
-
-    enum Endian : u08 { BIG, LITTLE, UNKNOWN };
 
     Array<i32, SQUARES> MapPawns;
     Array<i32, SQUARES> MapB1H1H7;
     Array<i32, SQUARES> MapA1D1D4;
     Array<i32, 10, SQUARES> MapKK; // [MapA1D1D4][SQUARES]
 
-    Array<i32, 6, SQUARES> Binomial;      // [k][n] k elements from a set of n elements
-    Array<i32, 5, SQUARES> LeadPawnIdx;   // [leadPawnCount][SQUARES]
-    Array<i32, 5, FILES/2> LeadPawnsSize; // [leadPawnCount][FILE_A..FILE_D]
+    Array<i32, TBPIECES - 1, SQUARES> Binomial;      // [k][n] k elements from a set of n elements
+    Array<i32, TBPIECES - 1, SQUARES> LeadPawnIdx;   // [lpCount][SQUARES]
+    Array<i32, TBPIECES - 1, FILES/2> LeadPawnsSize; // [lpCount][FILE_A..FILE_D]
 
     /// Comparison function to sort leading pawns in ascending MapPawns[] order
     bool mapPawnsCompare(Square s1, Square s2) {
@@ -105,30 +103,23 @@ namespace {
         return i32(sRank(s)) - i32(sFile(s));
     }
 
-    template<typename T, i32 Half = sizeof (T) / 2, i32 End = sizeof (T) - 1>
+    template<typename T, i16 Half = sizeof (T) / 2, i16 End = sizeof (T) - 1>
     inline void swapEndian(T &x) {
         static_assert (std::is_unsigned<T>::value, "Argument of swapEndian not unsigned");
 
-        u08 *c = (u08*)(&x);
-        for (i32 i = 0; i < Half; ++i) {
-            u08 tmp = c[i];
-            c[i] = c[End - i];
-            c[End - i] = tmp;
+        u08 *c = (u08*)(&x), tmp;
+        for (i16 i = 0; i < Half; ++i) {
+            tmp = c[i], c[i] = c[End - i], c[End - i] = tmp;
         }
     }
     template<>
     inline void swapEndian<u08>(u08&)
     {}
 
-    union IntChar { u32 i; char c[4]; };
-
-    template<typename T, Endian E>
+    template<typename T, bool LE>
     T number(void *addr) {
-        static IntChar const U{ 0x01020304 };
-        static Endian const End =
-            (0x04 == U.c[0]) ? Endian::LITTLE :
-            (0x01 == U.c[0]) ? Endian::BIG : Endian::UNKNOWN;
-        assert(End != Endian::UNKNOWN);
+        static const union { u32 i; char c[4]; } U{ 0x01020304 };
+        static bool const LittleEndian = (U.c[0] == 0x04);
 
         T v;
         if ((uPtr(addr) & (alignof (T) - 1)) != 0) { // Unaligned pointer (very rare)
@@ -138,9 +129,10 @@ namespace {
             v = *((T*)addr);
         }
 
-        if (E != End) {
+        if (LE != LittleEndian) {
             swapEndian(v);
         }
+
         return v;
     }
 
@@ -166,7 +158,7 @@ namespace {
 
     static_assert (sizeof (SparseEntry) == 6, "SparseEntry size incorrect");
 
-    using Sym = u16; // Huffman symbol
+    using Symbol = u16; // Huffman symbol
 
     struct LR {
     public:
@@ -178,10 +170,10 @@ namespace {
         u08 lr[3];
 
         template<Side S>
-        Sym get() {
+        Symbol get() {
             return
                 S == Side::LEFT  ? ((lr[1] & 0xF) << 8) | lr[0] :
-                S == Side::RIGHT ?  (lr[2] << 4) | (lr[1] >> 4) : (assert(false), Sym(-1));
+                S == Side::RIGHT ?  (lr[2] << 4) | (lr[1] >> 4) : (assert(false), Symbol(-1));
         }
     };
 
@@ -239,7 +231,7 @@ namespace {
 
 #       if defined(_WIN32)
 
-            HANDLE fHandle =
+            HANDLE hFile =
                 CreateFile(
                     filename.c_str(),
                     GENERIC_READ,
@@ -248,42 +240,42 @@ namespace {
                     OPEN_EXISTING,
                     FILE_FLAG_RANDOM_ACCESS, // NOTE: FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored.
                     nullptr);
-            if (INVALID_HANDLE_VALUE == fHandle) {
+            if (INVALID_HANDLE_VALUE == hFile) {
                 std::cerr << "CreateFile() failed, file = " << filename << std::endl;
                 *baseAddress = nullptr;
                 return nullptr;
             }
 
             DWORD hiSize;
-            DWORD loSize = GetFileSize(fHandle, &hiSize);
+            DWORD loSize = GetFileSize(hFile, &hiSize);
 
-            if (16 != loSize % 64) {
+            if (loSize % 64 != 16) {
                 std::cerr << "Corrupt tablebase, file = " << filename << std::endl;
                 std::exit(EXIT_FAILURE);
             }
 
-            HANDLE hfMap =
+            HANDLE hFileMap =
                 CreateFileMapping(
-                    fHandle,
+                    hFile,
                     nullptr,
                     PAGE_READONLY,
                     hiSize,
                     loSize,
                     nullptr);
 
-            CloseHandle(fHandle);
+            CloseHandle(hFile);
 
-            if (hfMap == nullptr) {
+            if (hFileMap == nullptr) {
                 std::cerr
                     << "CreateFileMapping() failed, file = " << filename
                     << ", error = " << getLastErrorStr() << std::endl;
                 std::exit(EXIT_FAILURE);
             }
 
-            *mapping = u64(hfMap);
+            *mapping = u64(hFileMap);
             *baseAddress =
                 MapViewOfFile(
-                    hfMap,
+                    hFileMap,
                     FILE_MAP_READ,
                     0, // FileOffsetHigh
                     0, // FileOffsetLow
@@ -297,28 +289,28 @@ namespace {
 
 #       else
 
-            i32 fHandle =
+            i32 hFile =
                 ::open(
                     filename.c_str(),
                     O_RDONLY);
-            if (fHandle == -1) {
+            if (hFile == -1) {
                 std::cerr << "open() failed, file = " << filename << std::endl;
                 *baseAddress = nullptr;
                 return nullptr;
             }
 
             stat statbuf;
-            fstat(fHandle, &statbuf);
+            fstat(hFile, &statbuf);
 
             if (statbuf.st_size == 0) {
                 std::cerr << "fstat() failed, file = " << filename << std::endl;
-                ::close(fHandle);
+                ::close(hFile);
                 std::exit(EXIT_FAILURE);
             }
 
             if (statbuf.st_size % 64 != 16) {
                 std::cerr << "Corrupt tablebase, file = " << filename << std::endl;
-                ::close(fHandle);
+                ::close(hFile);
                 std::exit(EXIT_FAILURE);
             }
 
@@ -328,12 +320,12 @@ namespace {
                      statbuf.st_size,
                      PROT_READ,
                      MAP_SHARED,
-                     fHandle,
+                     hFile,
                      0);
             madvise(*baseAddress, statbuf.st_size, MADV_RANDOM);
-            ::close(fHandle);
+            ::close(hFile);
 
-            if (MAP_FAILED == *baseAddress) {
+            if (*baseAddress == MAP_FAILED) {
                 std::cerr << "mmap() failed, file = " << filename << std::endl;
                 std::exit(EXIT_FAILURE);
             }
@@ -379,7 +371,7 @@ namespace {
         i32 numBlocks;              // Number of blocks in the TB file
         size_t blockSize;           // Block size in bytes
         size_t span;                // About every span values there is a SparseIndex[] entry
-        Sym *lowestSym;             // lowestSym[l] is the symbol of length l with the lowest value
+        Symbol *lowestSym;          // lowestSym[l] is the symbol of length l with the lowest value
         LR *btree;                  // btree[sym] stores the left and right symbols that expand sym
         u16 *blockLength;           // Number of stored positions (minus one) for each block: 1..65536
         i32 blockLengthSize;        // Size of blockLength[] table: padded so it's bigger than numBlocks
@@ -520,7 +512,7 @@ namespace {
                 }
             }
 
-            std::cerr << "HSHMAX too low!" << std::endl;
+            std::cerr << "TB hash table size too low!" << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
@@ -557,9 +549,9 @@ namespace {
             for (PieceType pt : pieces) {
                 oss << (WHITE|pt);
             }
-            string code = oss.str();
 
-            TBFile file(code, ".rtbw");
+            string code{ oss.str() };
+            TBFile file{ code, ".rtbw" };
             if (file.filename.empty()) { // Only WDL file is checked
                 return;
             }
@@ -615,8 +607,8 @@ namespace {
         u32 k = u32(idx / d->span);
 
         // Then we read the corresponding SparseIndex[] entry
-        u32 block   = number<u32, Endian::LITTLE>(&d->sparseIndex[k].block);
-        i32 offset  = number<u16, Endian::LITTLE>(&d->sparseIndex[k].offset);
+        u32 block   = number<u32, true>(&d->sparseIndex[k].block);
+        i32 offset  = number<u16, true>(&d->sparseIndex[k].offset);
 
         // Now compute the difference idx - I(k). From definition of k we know that
         //
@@ -644,9 +636,9 @@ namespace {
         // Read the first 64 bits in our block, this is a (truncated) sequence of
         // unknown number of symbols of unknown length but we know the first one
         // is at the beginning of this 64 bits sequence.
-        u64 buf64 = number<u64, Endian::BIG>(ptr); ptr += 2;
+        u64 buf64 = number<u64, false>(ptr); ptr += 2;
         i32 buf64Size = 64;
-        Sym sym;
+        Symbol sym;
 
         while (true) {
             i32 len = 0; // This is the symbol length - d->minSymLen
@@ -661,10 +653,10 @@ namespace {
             // All the symbols of a given length are consecutive integers (numerical
             // sequence property), so we can compute the offset of our symbol of
             // length len, stored at the beginning of buf64.
-            sym = Sym((buf64 - d->base64[len]) >> (64 - len - d->minSymLen));
+            sym = Symbol((buf64 - d->base64[len]) >> (64 - len - d->minSymLen));
 
             // Now add the value of the lowest symbol of length len to get our symbol
-            sym += number<Sym, Endian::LITTLE>(&d->lowestSym[len]);
+            sym += number<Symbol, true>(&d->lowestSym[len]);
 
             // If our offset is within the number of values represented by symbol sym
             if (offset < d->symLen[sym] + 1) {
@@ -680,7 +672,7 @@ namespace {
             if (buf64Size <= 32) {
                 // Refill the buffer
                 buf64Size += 32;
-                buf64 |= u64(number<u32, Endian::BIG>(ptr++)) << (64 - buf64Size);
+                buf64 |= u64(number<u32, false>(ptr++)) << (64 - buf64Size);
             }
         }
 
@@ -689,7 +681,7 @@ namespace {
         // right child symbols until we reach a leaf node where symLen[sym] + 1 == 1
         // that will store the value we need.
         while (d->symLen[sym] != 0) {
-            Sym left = d->btree[sym].get<LR::Side::LEFT>();
+            Symbol left{ d->btree[sym].get<LR::Side::LEFT>() };
 
             // If a symbol contains 36 sub-symbols (d->symLen[sym] + 1 = 36) and
             // expands in a pair (d->symLen[left] = 23, d->symLen[right] = 11), then
@@ -767,7 +759,7 @@ namespace {
         Piece pieces[TBPIECES];
         i16 size{ 0 };
 
-        bool flip =
+        bool flip{
             // Black Symmetric
             // A given TB entry like KRK has associated two material keys: KRvK and KvKR.
             // If both sides have the same pieces keys are equal. In this case TB tables
@@ -780,7 +772,7 @@ namespace {
             // KRvK, not KvKR. A position where stronger side is white will have its
             // material key == entry->matlKey1, otherwise we have to switch the color and
             // flip the squares before to lookup.
-         || (pos.matlKey() != entry->matlKey1);
+         || (pos.matlKey() != entry->matlKey1) };
 
         Color stm{
             flip ? ~pos.activeSide() : pos.activeSide() };
@@ -794,10 +786,9 @@ namespace {
         if (entry->hasPawns) {
             // In all the 4 tables, pawns are at the beginning of the piece sequence and
             // their color is the reference one. So we just pick the first one.
-            Piece p{flip ?
-                flipColor(Piece(entry->get(0, 0)->pieces[0])) :
-                          Piece(entry->get(0, 0)->pieces[0]) };
+            Piece p{ Piece(entry->get(0, 0)->pieces[0]) };
             assert(pType(p) == PAWN);
+            if (flip) p = flipColor(p);
 
             pawns = pos.pieces(pColor(p), PAWN);
 
@@ -805,8 +796,8 @@ namespace {
             assert(b != 0);
             do {
                 auto s{ popLSq(b) };
-
-                squares[size] = flip ? flipRank(s) : s;
+                if (flip) s = flipRank(s);
+                squares[size] = s;
 
                 ++size;
             } while (b != 0);
@@ -835,9 +826,13 @@ namespace {
         assert(b != 0);
         do {
             auto s{ popLSq(b) };
-
-            squares[size] = flip ? flipRank(s) : s;
-            pieces [size] = flip ? flipColor(pos[s]) : pos[s];
+            auto p{ pos[s] };
+            if (flip) {
+                s = flipRank(s);
+                p = flipColor(p);
+            }
+            squares[size] = s;
+            pieces [size] = p;
 
             ++size;
         } while (b != 0);
@@ -891,13 +886,15 @@ namespace {
         // Look for the first piece of the leading group not on the A1-D4 diagonal
         // and ensure it is mapped below the diagonal.
         for (i16 i = 0; i < d->groupLen[0]; ++i) {
-            if (offA1H8(squares[i]) == 0) {
+            auto off = offA1H8(squares[i]);
+
+            if (off == 0) {
                 continue;
             }
 
-            if (offA1H8(squares[i]) > 0) { // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
+            if (off > 0) { // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
                 for (i32 j = i; j < size; ++j) {
-                    squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & i32(SQ_H8));
+                    squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 63);
                 }
             }
             break;
@@ -930,23 +927,23 @@ namespace {
         //
         // In case we have at least 3 unique pieces(included kings) we encode them together.
         if (entry->hasUniquePieces) {
-            i32 adjust1 =
-                (squares[1] > squares[0]);
-            i32 adjust2 =
-                (squares[2] > squares[0])
-              + (squares[2] > squares[1]);
-            // First piece is below a1-h8 diagonal. MapA1D1D4[] maps the b1-d1-d3
-            // triangle to 0...5. There are 63 squares for second piece and and 62
-            // (mapped to 0...61) for the third.
+            i32 adjust1{ (squares[1] > squares[0]) };
+            i32 adjust2{ (squares[2] > squares[0])
+                       + (squares[2] > squares[1]) };
+
+            // First piece is below a1-h8 diagonal. MapA1D1D4[] maps the b1-d1-d3 triangle to 0...5.
+            // There are 63 squares (mapped to 0...62) for the second piece
+            //       and 62 squares (mapped to 0...61) for the third piece.
             if (offA1H8(squares[0]) != 0) {
                 idx =                         0 * 63 * 62
                   + MapA1D1D4[squares[0]]       * 63 * 62
                   + (squares[1] - adjust1)           * 62
                   + (squares[2] - adjust2);
             }
-            // First piece is on a1-h8 diagonal, second below: map this occurrence to
-            // 6 to differentiate from the above case, rank() maps a1-d4 diagonal
-            // to 0...3 and finally MapB1H1H7[] maps the b1-h1-h7 triangle to 0..27.
+            // First piece is on a1-h8 diagonal, second below:
+            // map this occurrence to 6 to differentiate from the above case,
+            // rank() maps a1-d4 diagonal to 0...3 and
+            // finally MapB1H1H7[] maps the b1-h1-h7 triangle to 0..27.
             else
             if (offA1H8(squares[1]) != 0) {
                 idx =                         6 * 63 * 62
@@ -981,14 +978,14 @@ namespace {
     encodeRemaining:
 
         idx *= d->groupIdx[0];
-        Square *groupSq = &squares[d->groupLen[0]];
+        Square *groupSq = squares + d->groupLen[0];
 
         // Encode remaining pawns then pieces according to square, in ascending order
-        bool pawnRemains =
+        bool pawnRemains{
                entry->hasPawns
-            && entry->pawnCount[1] != 0;
+            && entry->pawnCount[1] != 0 };
 
-        i16 next = 0;
+        i16 next{ 0 };
         while (d->groupLen[++next] != 0) {
 
             assert(0 <= d->groupLen[next] && d->groupLen[next] < TBPIECES);
@@ -1032,9 +1029,7 @@ namespace {
             e.hasPawns ?            0 :
                 e.hasUniquePieces ? 3 : 2;
 
-        i16 n;
-
-        n = 0;
+        i16 n{ 0 };
         d->groupLen[n] = 1;
         // Number of pieces per group is stored in groupLen[], for instance in KRKN
         // the encoder will default on '111', so groupLen[] will be (3, 1).
@@ -1066,7 +1061,7 @@ namespace {
         // Pawns on both sides
         bool pp{ e.hasPawns
               && e.pawnCount[1] != 0 };
-        i32 next{ pp ? 2 : 1 };
+        i16 next = 1 + pp;
         i32 emptyCount{ 64 - d->groupLen[0] - (pp ? d->groupLen[1] : 0) };
 
         u64 idx = 1;
@@ -1101,25 +1096,24 @@ namespace {
     /// In Recursive Pairing each symbol represents a pair of children symbols. So
     /// read d->btree[] symbols data and expand each one in his left and right child
     /// symbol until reaching the leafs that represent the symbol value.
-    u08 setSymLen(PairsData *d, Sym s, vector<bool> &visited) {
+    u08 setSymLen(PairsData *d, Symbol s, vector<bool> &visited) {
 
         visited[s] = true; // We can set it now because tree is acyclic
 
-        Sym rSym = d->btree[s].get<LR::Side::RIGHT>();
-        if (rSym == 0xFFF) {
+        Symbol symR{ d->btree[s].get<LR::Side::RIGHT>() };
+        if (symR == 0xFFF) {
             return 0;
         }
 
-        Sym lSym = d->btree[s].get<LR::Side::LEFT>();
-
-        if (!visited[lSym]) {
-            d->symLen[lSym] = setSymLen(d, lSym, visited);
+        Symbol symL{ d->btree[s].get<LR::Side::LEFT>() };
+        if (!visited[symL]) {
+            d->symLen[symL] = setSymLen(d, symL, visited);
         }
-        if (!visited[rSym]) {
-            d->symLen[rSym] = setSymLen(d, rSym, visited);
+        if (!visited[symR]) {
+            d->symLen[symR] = setSymLen(d, symR, visited);
         }
 
-        return d->symLen[lSym] + d->symLen[rSym] + 1;
+        return d->symLen[symL] + d->symLen[symR] + 1;
     }
 
     u08* setSizes(PairsData *d, u08 *data) {
@@ -1142,13 +1136,13 @@ namespace {
         d->blockSize = u64(1) << *data++;
         d->span = u64(1) << *data++;
         d->sparseIndexSize = (tbSize + d->span - 1) / d->span; // Round up
-        auto padding = number<u08, Endian::LITTLE>(data++);
-        d->numBlocks = number<u32, Endian::LITTLE>(data); data += sizeof (u32);
+        auto padding = number<u08, true>(data++);
+        d->numBlocks = number<u32, true>(data); data += sizeof (u32);
         d->blockLengthSize = d->numBlocks + padding; // Padded to ensure SparseIndex[] does not point out of range.
 
         d->maxSymLen = *data++;
         d->minSymLen = *data++;
-        d->lowestSym = (Sym*)(data);
+        d->lowestSym = (Symbol*)(data);
 
         i16 const base64Size = d->maxSymLen - d->minSymLen + 1;
         d->base64.resize(base64Size);
@@ -1162,8 +1156,8 @@ namespace {
         for (i16 i = base64Size - 2; i >= 0; --i) {
             d->base64[i] =
                 (d->base64[i + 1]
-               + number<Sym, Endian::LITTLE>(&d->lowestSym[i])
-               - number<Sym, Endian::LITTLE>(&d->lowestSym[i + 1])) / 2;
+               + number<Symbol, true>(&d->lowestSym[i])
+               - number<Symbol, true>(&d->lowestSym[i + 1])) / 2;
 
             assert(d->base64[i] * 2 >= d->base64[i + 1]);
         }
@@ -1176,9 +1170,8 @@ namespace {
             d->base64[i] <<= 64 - i - d->minSymLen; // Right-padding to 64 bits
         }
 
-        data += base64Size * sizeof (Sym);
-        auto const symLenSize = number<u16, Endian::LITTLE>(data); data += sizeof(u16);
-        d->symLen.resize(symLenSize);
+        data += base64Size * sizeof (Symbol);
+        d->symLen.resize(number<u16, true>(data)); data += sizeof(u16);
         d->btree = (LR*)(data);
 
         // The compression scheme used is "Recursive Pairing", that replaces the most
@@ -1186,16 +1179,16 @@ namespace {
         // reevaluating the frequencies of all of the symbol pairs with respect to
         // the extended alphabet, and then repeating the process.
         // See http://www.larsson.dogma.net/dcc99.pdf
-        vector<bool> visited(symLenSize);
-        for (Sym sym = 0; sym < symLenSize; ++sym) {
+        vector<bool> visited(d->symLen.size());
+        for (Symbol sym = 0; sym < d->symLen.size(); ++sym) {
             if (!visited[sym]) {
                 d->symLen[sym] = setSymLen(d, sym, visited);
             }
         }
 
         return data
-             + symLenSize * sizeof (LR)
-             + (symLenSize & 1);
+             + d->symLen.size() * sizeof (LR)
+             + (d->symLen.size() & 1);
     }
 
     u08* setDTZMap(TBTable<WDL>&, u08 *data, File) {
@@ -1206,7 +1199,7 @@ namespace {
 
         e.map = data;
         for (File f = FILE_A; f <= maxFile; ++f) {
-            auto flags = e.get(0, f)->flags;
+            auto flags{ e.get(0, f)->flags };
 
             if ((TBFlag::MAPPED & flags) != 0) {
                 if ((TBFlag::WIDE & flags) != 0) {
@@ -1214,7 +1207,7 @@ namespace {
                     // Sequence like 3,x,x,x,1,x,0,2,x,x
                     for (i16 i = 0; i < 4; ++i) {
                         e.get(0, f)->mapIdx[i] = u16((u16*)(data) - (u16*)(e.map) + 1);
-                        data += 2 * number<u16, Endian::LITTLE>(data) + 2;
+                        data += 2 * number<u16, true>(data) + 2;
                     }
                 }
                 else {
@@ -1244,9 +1237,9 @@ namespace {
             T::Sides == 2
          && (e.matlKey1 != e.matlKey2) ?
                 2 : 1;
-        File const maxFile =
+        File const maxFile{
             e.hasPawns ?
-                FILE_D : FILE_A;
+                FILE_D : FILE_A };
 
         // Pawns on both sides
         bool pp{ e.hasPawns
@@ -1255,7 +1248,7 @@ namespace {
 
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (i16 i = 0; i < sides; ++i) {
-                *e.get(i, f) = {}; // PairsData
+                *e.get(i, f) = PairsData{}; // PairsData
             }
 
             i16 order[][2]
@@ -1290,22 +1283,22 @@ namespace {
 
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (i16 i = 0; i < sides; ++i) {
-                PairsData *d = e.get(i, f);
+                PairsData *d{ e.get(i, f) };
                 d->sparseIndex = (SparseEntry*)(data);
                 data += d->sparseIndexSize * sizeof (SparseEntry);
             }
         }
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (i16 i = 0; i < sides; ++i) {
-                PairsData *d = e.get(i, f);
+                PairsData *d{ e.get(i, f) };
                 d->blockLength = (u16*)(data);
                 data += d->blockLengthSize * sizeof (u16);
             }
         }
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (i16 i = 0; i < sides; ++i) {
-                data = (u08*)((uPtr(data) + 63) & ~63); // 64 byte alignment
-                PairsData *d = e.get(i, f);
+                data = (u08*)((uPtr(data) + 0x3F) & ~0x3F); // 64 byte alignment
+                PairsData *d{ e.get(i, f) };
                 d->data = data;
                 data += d->numBlocks * d->blockSize;
             }
@@ -1335,10 +1328,10 @@ namespace {
             b += string(pos.count(BLACK|pt), toChar(WHITE|pt));
         }
 
-        string code = pos.matlKey() == e.matlKey1 ? w + b : b + w;
-        string ext = Type == WDL ? ".rtbw" : ".rtbz";
+        string code{ pos.matlKey() == e.matlKey1 ? w + b : b + w };
+        string ext{ Type == WDL ? ".rtbw" : ".rtbz" };
 
-        u08 *data = TBFile{ code, ext }.map(&e.baseAddress, &e.mapping, Type);
+        u08 *data{ TBFile{ code, ext }.map(&e.baseAddress, &e.mapping, Type) };
         if (data != nullptr) {
             set(e, data);
         }
@@ -1617,7 +1610,7 @@ namespace SyzygyTB {
     /// no moves were filtered out.
     bool rootProbeWDL(Position &rootPos, RootMoves &rootMoves) {
 
-        bool move50Rule = Options["SyzygyMove50Rule"];
+        bool move50Rule{ Options["SyzygyMove50Rule"] };
 
         StateInfo si;
         ProbeState state;
@@ -1653,18 +1646,18 @@ namespace SyzygyTB {
         assert(rootMoves.size() != 0);
 
         // Obtain 50-move counter for the root position
-        auto clockPly = rootPos.clockPly();
+        auto clockPly{ rootPos.clockPly() };
         // Check whether a position was repeated since the last zeroing move.
-        bool repeated = rootPos.repeated();
+        bool repeated{ rootPos.repeated() };
 
-        i16 bound = Options["SyzygyMove50Rule"] ? 900 : 1;
+        i16 bound{ i16(Options["SyzygyMove50Rule"] ? 900 : 1) };
         i32 dtz;
 
         StateInfo si;
         ProbeState state;
         // Probe and rank each move
         for (auto &rm : rootMoves) {
-            auto move = rm.front();
+            auto move{ rm.front() };
             rootPos.doMove(move, si);
 
             // Calculate dtz for the current move counting from the root position
@@ -1694,8 +1687,8 @@ namespace SyzygyTB {
             // Better moves are ranked higher. Certain wins are ranked equally.
             // Losing moves are ranked equally unless a 50-move draw is in sight.
             i16 r{
-            i16(dtz > 0 ? (+dtz     + clockPly < 100 && !repeated ? +1000 : +1000 - (clockPly + dtz)) :
-                dtz < 0 ? (-dtz * 2 + clockPly < 100              ? -1000 : -1000 + (clockPly - dtz)) : 0) };
+                i16(dtz > 0 ? (+dtz     + clockPly < 100 && !repeated ? +1000 : +1000 - (clockPly + dtz)) :
+                    dtz < 0 ? (-dtz * 2 + clockPly < 100              ? -1000 : -1000 + (clockPly - dtz)) : 0) };
 
             rm.tbRank = r;
             // Determine the score to be displayed for this move. Assign at least
@@ -1715,8 +1708,9 @@ namespace SyzygyTB {
         static bool initialized = false;
 
         if (!initialized) {
+
             // MapB1H1H7[] encodes a square below a1-h8 diagonal to 0..27
-            i32 code = 0;
+            i32 code{ 0 };
             for (Square s = SQ_A1; s <= SQ_H8; ++s) {
                 if (offA1H8(s) < 0) {
                     MapB1H1H7[s] = code++;
@@ -1730,23 +1724,26 @@ namespace SyzygyTB {
                     SQ_A2, SQ_B2, SQ_C2, SQ_D2,
                     SQ_A3, SQ_B3, SQ_C3, SQ_D3,
                     SQ_A4, SQ_B4, SQ_C4, SQ_D4 }) {
-                if (offA1H8(s) < 0) {
+                auto off = offA1H8(s);
+
+                if (off < 0) {
                     MapA1D1D4[s] = code++;
                 }
                 else
-                if (offA1H8(s) == 0) {
-                    diagonal.emplace_back(s);
+                if (off == 0) {
+                    diagonal.push_back(s);
                 }
             }
             // Diagonal squares are encoded as last ones
             for (Square s : diagonal) {
                 MapA1D1D4[s] = code++;
             }
+
+            code = 0;
             // MapKK[] encodes all the 461 possible legal positions of two kings where the first is in the a1-d1-d4 triangle.
             // If the first king is on the a1-d4 diagonal, the other one shall not to be above the a1-h8 diagonal.
             vector<std::pair<i32, Square>> bothOnDiagonal;
-            code = 0;
-            for (i32 idx = 0; idx < 10; ++idx) {
+            for (i16 idx = 0; idx < i16(MapKK.size()); ++idx) {
                 for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1) {
                     if (idx == MapA1D1D4[s1]
                      && (idx != 0 || s1 == SQ_B1)) { // SQ_B1 is mapped to 0
@@ -1755,13 +1752,14 @@ namespace SyzygyTB {
                             if (contains(PieceAttackBB[KING][s1] | s1, s2)) {
                                 continue; // Illegal position
                             }
-                            else
-                            if (offA1H8(s1) == 0 && offA1H8(s2) > 0) {
+                            auto off1 = offA1H8(s1);
+                            auto off2 = offA1H8(s1);
+                            if (off1 == 0 && off2 > 0) {
                                 continue; // First on diagonal, second above
                             }
-                            else
-                            if (offA1H8(s1) == 0 && offA1H8(s2) == 0) {
-                                bothOnDiagonal.emplace_back(std::make_pair(idx, s2));
+
+                            if (off1 == 0 && off2 == 0) {
+                                bothOnDiagonal.emplace_back(idx, s2);
                             }
                             else {
                                 MapKK[idx][s2] = code++;
@@ -1779,10 +1777,9 @@ namespace SyzygyTB {
             // Binomial[] stores the Binomial Coefficients using Pascal rule. There
             // are Binomial[k][n] ways to choose k elements from a set of n elements.
             Binomial[0][0] = 1;
-
-            for (i32 n = 1; n < 64; ++n) // Squares
+            for (i32 n = 1; n < SQUARES; ++n) // Squares
             {
-                for (i32 k = 0; k < 6 && k <= n; ++k) // Pieces
+                for (i32 k = 0; k < TBPIECES - 1 && k <= n; ++k) // Pieces
                 {
                     Binomial[k][n] = (k > 0 ? Binomial[k - 1][n - 1] : 0)
                                    + (k < n ? Binomial[k][n - 1] : 0);
@@ -1793,15 +1790,15 @@ namespace SyzygyTB {
             // available squares when the leading one is in square. Moreover the pawn with
             // highest MapPawns[] is the leading pawn, the one nearest the edge and,
             // among pawns with same file, the one with lowest rank.
-            i32 availableSq = 47; // Available squares when lead pawn is in a2
+            i32 availableSq{ 47 }; // 63 - 16; // Available squares when lead pawn is in a2
 
             // Init the tables for the encoding of leading pawns group:
-            // with 6-men TB can have up to 4 leading pawns (KPPPPK).
-            for (i32 leadPawnCount = 1; leadPawnCount <= 4; ++leadPawnCount) {
+            // with 6-men TB can have up to 5 leading pawns (KPPPPPK).
+            for (i32 lpCount = 1; lpCount <= TBPIECES - 2; ++lpCount) {
                 for (File f = FILE_A; f <= FILE_D; ++f) {
                     // Restart the index at every file because TB table is splitted
                     // by file, so we can reuse the same index for different files.
-                    i32 idx = 0;
+                    i32 idx{ 0 };
 
                     // Sum all possible combinations for a given file, starting with
                     // the leading pawn on rank 2 and increasing the rank.
@@ -1813,15 +1810,15 @@ namespace SyzygyTB {
                         // below or more toward the edge of sq. There are 47 available
                         // squares when sq = a2 and reduced by 2 for any rank increase
                         // due to mirroring: sq == a3 -> no a2, h2, so MapPawns[a3] = 45
-                        if (leadPawnCount == 1) {
+                        if (lpCount == 1) {
                             MapPawns[sq]           = availableSq--;
                             MapPawns[flipFile(sq)] = availableSq--; // Horizontal flip
                         }
-                        LeadPawnIdx[leadPawnCount][sq] = idx;
-                        idx += Binomial[leadPawnCount - 1][MapPawns[sq]];
+                        LeadPawnIdx[lpCount][sq] = idx;
+                        idx += Binomial[lpCount - 1][MapPawns[sq]];
                     }
                     // After a file is traversed, store the cumulated per-file index
-                    LeadPawnsSize[leadPawnCount][f] = idx;
+                    LeadPawnsSize[lpCount][f] = idx;
                 }
             }
             initialized = true;
@@ -1854,19 +1851,29 @@ namespace SyzygyTB {
             if (whiteSpaces(path)) {
                 continue;
             }
-            TBFile::Paths.emplace_back(path);
+            TBFile::Paths.push_back(path);
         }
 
         for (PieceType p1 = PAWN; p1 <= QUEN; ++p1) {
             TBTables.add({ KING, p1, KING });
 
             for (PieceType p2 = PAWN; p2 <= p1; ++p2) {
-                TBTables.add({ KING, p1, p2, KING });
                 TBTables.add({ KING, p1, KING, p2 });
+                TBTables.add({ KING, p1, p2, KING });
 
+                for (PieceType p3 = PAWN; p3 <= QUEN; ++p3) {
+                    TBTables.add({ KING, p1, p2, KING, p3 });
+                }
                 for (PieceType p3 = PAWN; p3 <= p2; ++p3) {
                     TBTables.add({ KING, p1, p2, p3, KING });
 
+                    for (PieceType p4 = PAWN; p4 <= QUEN; ++p4) {
+                        TBTables.add({ KING, p1, p2, p3, KING, p4 });
+
+                        for (PieceType p5 = PAWN; p5 <= p4; ++p5) {
+                            TBTables.add({ KING, p1, p2, p3, KING, p4, p5 });
+                        }
+                    }
                     for (PieceType p4 = PAWN; p4 <= p3; ++p4) {
                         TBTables.add({ KING, p1, p2, p3, p4, KING });
 
@@ -1877,19 +1884,9 @@ namespace SyzygyTB {
                             TBTables.add({ KING, p1, p2, p3, p4, KING, p5 });
                         }
                     }
-                    for (PieceType p4 = PAWN; p4 <= QUEN; ++p4) {
-                        TBTables.add({ KING, p1, p2, p3, KING, p4 });
-
-                        for (PieceType p5 = PAWN; p5 <= p4; ++p5) {
-                            TBTables.add({ KING, p1, p2, p3, KING, p4, p5 });
-                        }
-                    }
-                }
-                for (PieceType p3 = PAWN; p3 <= QUEN; ++p3) {
-                    TBTables.add({ KING, p1, p2, KING, p3 });
                 }
                 for (PieceType p3 = PAWN; p3 <= p1; ++p3) {
-                    for (PieceType p4 = PAWN; p4 <= (p1 == p3 ? p2 : p3); ++p4) {
+                    for (PieceType p4 = PAWN; p4 <= (p3 < p1 ? p3 : p2); ++p4) {
                         TBTables.add({ KING, p1, p2, KING, p3, p4 });
                     }
                 }

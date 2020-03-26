@@ -540,7 +540,7 @@ public:
         return std::find(begin(), end(), move) != end();
     }
 
-    void operator+=(Move move) { emplace_back(move); }
+    void operator+=(Move move) { push_back(move); }
     //void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
 
 };

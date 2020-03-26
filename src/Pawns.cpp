@@ -63,10 +63,10 @@ namespace Pawns {
                 assert(FILE_A <= f && f <= FILE_H);
                 Bitboard ownFrontFilePawns = ownFrontPawns & FileBB[f];
                 auto ownR{ ownFrontFilePawns != 0 ?
-                            relativeRank(Own, scanFrontMostSq(Opp, ownFrontFilePawns)) : RANK_1 };
+                            relativeRank(Own, scanFrontMostSq<Opp>(ownFrontFilePawns)) : RANK_1 };
                 Bitboard oppFrontFilePawns = oppFrontPawns & FileBB[f];
                 auto oppR{ oppFrontFilePawns != 0 ?
-                            relativeRank(Own, scanFrontMostSq(Opp, oppFrontFilePawns)) : RANK_1 };
+                            relativeRank(Own, scanFrontMostSq<Opp>(oppFrontFilePawns)) : RANK_1 };
                 assert((ownR != oppR)
                     || (ownR == RANK_1
                      && oppR == RANK_1));
@@ -97,9 +97,9 @@ namespace Pawns {
     Score Entry::evaluateKingSafety(Position const &pos, Bitboard attacks) {
 
         auto kSq{ pos.square(Own|KING) };
-        u08 cSide{ pos.canCastle(Own) ?
-                u08(1 * (pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING))
-                  + 2 * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN))) : u08(0) };
+        u08 cSide{ u08(pos.canCastle(Own) ?
+                    1 * (pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING))
+                  + 2 * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN)) : 0) };
 
         if ((cSide & 1) != 0
          && (attacks & pos.castleKingPath(Own, CS_KING)) != 0) {
@@ -116,13 +116,13 @@ namespace Pawns {
             auto safety{ evaluateSafetyOn<Own>(pos, kSq) };
 
             if ((cSide & 1) != 0) {
-                safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_G1)), safety,
+                safety = std::max(safety, evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_G1)),
                         [](Score s1, Score s2) {
                             return mgValue(s1) < mgValue(s2);
                         });
             }
             if ((cSide & 2) != 0) {
-                safety = std::max(evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_C1)), safety,
+                safety = std::max(safety, evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_C1)),
                         [](Score s1, Score s2) {
                             return mgValue(s1) < mgValue(s2);
                         });

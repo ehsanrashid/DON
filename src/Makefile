@@ -208,10 +208,8 @@ ifeq ($(COMP), clang)
 	CXX = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
-	ifneq ($(KERNEL), Darwin)
-		ifneq ($(KERNEL), OpenBSD)
-			LDFLAGS += -latomic
-		endif
+	ifneq ($(filter $(KERNEL), Darwin OpenBSD), )
+		LDFLAGS += -latomic
 	endif
 
 	ifeq ($(ARCH), armv7)
@@ -225,17 +223,16 @@ ifeq ($(COMP), clang)
 	endif
 endif
 
+
 ifeq ($(comp), icc)
 	profile_make = icc-profile-make
 	profile_use = icc-profile-use
-else
-ifeq ($(comp), clang)
+else ifeq ($(comp), clang)
 	profile_make = clang-profile-make
 	profile_use = clang-profile-use
-else
+else # ifeq ($(comp), mingw)
 	profile_make = gcc-profile-make
 	profile_use = gcc-profile-use
-endif
 endif
 
 ifeq ($(KERNEL), Darwin)

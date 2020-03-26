@@ -147,9 +147,8 @@ namespace {
         }
 
         // Pawn normal and en-passant captures, no promotions
-        if (GT == GenType::CAPTURE
-         || GT == GenType::EVASION
-         || GT == GenType::NATURAL) {
+        if (GT != GenType::QUIET
+         && GT != GenType::QUIET_CHECK) {
 
             Bitboard attacksL{ enemies & pawnLAttackBB<Own>(rxPawns) };
             Bitboard attacksR{ enemies & pawnRAttackBB<Own>(rxPawns) };
@@ -187,8 +186,8 @@ namespace {
                         & ~PieceAttackBB[KING][ekSq] };
         while (attacks != 0) { moves += makeMove<NORMAL>(fkSq, popLSq(attacks)); }
 
-        if (GT == GenType::NATURAL
-         || GT == GenType::QUIET) {
+        if (GT == GenType::QUIET
+         || GT == GenType::NATURAL) {
             if (pos.canCastle(activeSide)) {
                 for (CastleSide cs : { CS_KING, CS_QUEN }) {
                     if (pos.castleExpeded(activeSide, cs)
@@ -217,15 +216,15 @@ namespace {
 
 template<GenType GT>
 void generate(ValMoves &moves, Position const &pos) {
-    static_assert (GT == GenType::NATURAL
-                || GT == GenType::CAPTURE
-                || GT == GenType::QUIET, "GT incorrect");
+    static_assert (GT == GenType::CAPTURE
+                || GT == GenType::QUIET
+                || GT == GenType::NATURAL, "GT incorrect");
     assert(pos.checkers() == 0);
 
     Bitboard targets =
-        GT == GenType::NATURAL ? ~pos.pieces( pos.activeSide()) :
         GT == GenType::CAPTURE ?  pos.pieces(~pos.activeSide()) :
-        GT == GenType::QUIET   ? ~pos.pieces() : 0;
+        GT == GenType::QUIET   ? ~pos.pieces() :
+        GT == GenType::NATURAL ? ~pos.pieces( pos.activeSide()) : 0;
 
     generateMoves<GT>(moves, pos, targets);
     generateKingMoves<GT>(moves, pos, targets);

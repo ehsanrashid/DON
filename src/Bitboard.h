@@ -149,52 +149,27 @@ extern Array<u08, 1 << 16> PopCount16;
 
 #endif
 
-constexpr Bitboard operator~(Square s) {
-    return ~SquareBB[s];
-}
+constexpr Bitboard operator~(Square s) { return ~SquareBB[s]; }
 
-constexpr Bitboard fileBB(Square s) {
-    return FileBB[sFile(s)];
-}
+constexpr Bitboard fileBB(Square s) { return FileBB[sFile(s)]; }
+constexpr Bitboard rankBB(Square s) { return RankBB[sRank(s)]; }
+/// frontRanksBB() returns ranks in front of the given square
+constexpr Bitboard frontRanksBB(Color c, Square s) { return FrontRankBB[c][sRank(s)]; }
 
-constexpr Bitboard rankBB(Square s) {
-    return RankBB[sRank(s)];
-}
+constexpr bool contains(Bitboard bb, Square s) { return (bb & SquareBB[s]) != 0; }
 
-constexpr bool contains(Bitboard bb, Square s) {
-    return (bb & SquareBB[s]) != 0;
-}
+constexpr Bitboard operator&(Square s, Bitboard bb) { return bb & SquareBB[s]; }
+constexpr Bitboard operator|(Square s, Bitboard bb) { return bb | SquareBB[s]; }
+constexpr Bitboard operator^(Square s, Bitboard bb) { return bb ^ SquareBB[s]; }
 
-constexpr Bitboard operator&(Square s, Bitboard bb) {
-    return bb & SquareBB[s];
-}
-constexpr Bitboard operator|(Square s, Bitboard bb) {
-    return bb | SquareBB[s];
-}
-constexpr Bitboard operator^(Square s, Bitboard bb) {
-    return bb ^ SquareBB[s];
-}
+constexpr Bitboard operator&(Bitboard bb, Square s) { return bb & SquareBB[s]; }
+constexpr Bitboard operator|(Bitboard bb, Square s) { return bb | SquareBB[s]; }
+constexpr Bitboard operator^(Bitboard bb, Square s) { return bb ^ SquareBB[s]; }
 
-constexpr Bitboard operator&(Bitboard bb, Square s) {
-    return bb & SquareBB[s];
-}
-constexpr Bitboard operator|(Bitboard bb, Square s) {
-    return bb | SquareBB[s];
-}
-constexpr Bitboard operator^(Bitboard bb, Square s) {
-    return bb ^ SquareBB[s];
-}
+inline Bitboard& operator|=(Bitboard &bb, Square s) { return bb |= SquareBB[s]; }
+inline Bitboard& operator^=(Bitboard &bb, Square s) { return bb ^= SquareBB[s]; }
 
-inline Bitboard& operator|=(Bitboard &bb, Square s) {
-    return bb |= SquareBB[s];
-}
-inline Bitboard& operator^=(Bitboard &bb, Square s) {
-    return bb ^= SquareBB[s];
-}
-
-constexpr Bitboard operator|(Square s1, Square s2) {
-    return SquareBB[s1] | SquareBB[s2];
-}
+constexpr Bitboard operator|(Square s1, Square s2) { return SquareBB[s1] | SquareBB[s2]; }
 
 inline bool moreThanOne(Bitboard bb) {
 
@@ -206,65 +181,27 @@ inline bool moreThanOne(Bitboard bb) {
 }
 
 /// Shift the bitboard using delta
-template<Direction D>
-constexpr Bitboard shift(Bitboard) {
-    return 0;
-}
-template<> constexpr Bitboard shift<NORTH>(Bitboard bb) {
-    return (bb) <<  8;
-}
-template<> constexpr Bitboard shift<SOUTH>(Bitboard bb) {
-    return (bb) >>  8;
-}
-template<> constexpr Bitboard shift<NORTH_2>(Bitboard bb) {
-    return (bb) << 16;
-}
-template<> constexpr Bitboard shift<SOUTH_2>(Bitboard bb) {
-    return (bb) >> 16;
-}
+template<Direction D> constexpr Bitboard shift(Bitboard) { return 0; }
+template<> constexpr Bitboard shift<NORTH     >(Bitboard bb) { return (bb) <<  8; }
+template<> constexpr Bitboard shift<SOUTH     >(Bitboard bb) { return (bb) >>  8; }
+template<> constexpr Bitboard shift<NORTH_2   >(Bitboard bb) { return (bb) << 16; }
+template<> constexpr Bitboard shift<SOUTH_2   >(Bitboard bb) { return (bb) >> 16; }
 // If (shifting & 7) != 0 then  bound clipping is done (~FileBB[FILE_A] or ~FileBB[FILE_H])
-template<> constexpr Bitboard shift<EAST>(Bitboard bb) {
-    return (bb & ~FileBB[FILE_H]) << 1;
-}
-template<> constexpr Bitboard shift<WEST>(Bitboard bb) {
-    return (bb & ~FileBB[FILE_A]) >> 1;
-}
-template<> constexpr Bitboard shift<NORTH_EAST>(Bitboard bb) {
-    return (bb & ~FileBB[FILE_H]) << 9;
-}
-template<> constexpr Bitboard shift<NORTH_WEST>(Bitboard bb) {
-    return (bb & ~FileBB[FILE_A]) << 7;
-}
-template<> constexpr Bitboard shift<SOUTH_EAST>(Bitboard bb) {
-    return (bb & ~FileBB[FILE_H]) >> 7;
-}
-template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) {
-    return (bb & ~FileBB[FILE_A]) >> 9;
-}
+template<> constexpr Bitboard shift<EAST      >(Bitboard bb) { return (bb & ~FileBB[FILE_H]) << 1; }
+template<> constexpr Bitboard shift<WEST      >(Bitboard bb) { return (bb & ~FileBB[FILE_A]) >> 1; }
+template<> constexpr Bitboard shift<NORTH_EAST>(Bitboard bb) { return (bb & ~FileBB[FILE_H]) << 9; }
+template<> constexpr Bitboard shift<NORTH_WEST>(Bitboard bb) { return (bb & ~FileBB[FILE_A]) << 7; }
+template<> constexpr Bitboard shift<SOUTH_EAST>(Bitboard bb) { return (bb & ~FileBB[FILE_H]) >> 7; }
+template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) { return (bb & ~FileBB[FILE_A]) >> 9; }
 
-/// frontRanksBB() returns ranks in front of the given square
-constexpr Bitboard frontRanksBB(Color c, Square s) {
-    return FrontRankBB[c][sRank(s)];
-}
+constexpr Bitboard adjacentFilesBB(Square s) { return shift<EAST >(fileBB(s))
+                                                    | shift<WEST >(fileBB(s)); }
+//constexpr Bitboard adjacentRanksBB(Square s) { return shift<NORTH>(rankBB(s))
+//                                                    | shift<SOUTH>(rankBB(s)); }
 
-constexpr Bitboard adjacentFilesBB(Square s) {
-    return shift<EAST>(fileBB(s))
-         | shift<WEST>(fileBB(s));
-}
-//constexpr Bitboard adjacentRanksBB(Square s) {
-//    return shift<NORTH>(rankBB(s))
-//         | shift<SOUTH>(rankBB(s));
-//}
-
-constexpr Bitboard frontSquaresBB(Color c, Square s) {
-    return frontRanksBB(c, s) & fileBB(s);
-}
-constexpr Bitboard pawnAttackSpan(Color c, Square s) {
-    return frontRanksBB(c, s) & adjacentFilesBB(s);
-}
-constexpr Bitboard pawnPassSpan(Color c, Square s) {
-    return frontRanksBB(c, s) & (fileBB(s) | adjacentFilesBB(s));
-}
+constexpr Bitboard frontSquaresBB(Color c, Square s) { return frontRanksBB(c, s) & fileBB(s); }
+constexpr Bitboard pawnAttackSpan(Color c, Square s) { return frontRanksBB(c, s) & adjacentFilesBB(s); }
+constexpr Bitboard pawnPassSpan  (Color c, Square s) { return frontRanksBB(c, s) & (fileBB(s) | adjacentFilesBB(s)); }
 
 /// between_bb() returns squares that are linearly between the given squares
 /// If the given squares are not on a same file/rank/diagonal, return 0.
@@ -281,42 +218,20 @@ inline Bitboard betweenBB(Square s1, Square s2) {
 #endif
 }
 /// aligned() Check the squares s1, s2 and s3 are aligned on a straight line.
-inline bool aligned(Square s1, Square s2, Square s3) {
-    return contains(LineBB[s1][s2], s3);
-}
+inline bool aligned(Square s1, Square s2, Square s3) { return contains(LineBB[s1][s2], s3); }
 
 constexpr Array<Direction, COLORS> PawnPush{ NORTH, SOUTH };
 
-template<Color C>
-constexpr Bitboard pawnSglPushBB(Bitboard bb) {
-    return shift<PawnPush[C]>(bb);
-}
-template<Color C>
-constexpr Bitboard pawnDblPushBB(Bitboard bb) {
-    return shift<PawnPush[C] * 2>(bb);
-}
+template<Color C> constexpr Bitboard pawnSglPushBB(Bitboard bb) { return shift<PawnPush[C]>(bb); }
+template<Color C> constexpr Bitboard pawnDblPushBB(Bitboard bb) { return shift<PawnPush[C] * 2>(bb); }
 
 constexpr Array<Direction, COLORS> PawnLAtt{ NORTH_WEST, SOUTH_EAST };
 constexpr Array<Direction, COLORS> PawnRAtt{ NORTH_EAST, SOUTH_WEST };
 
-template<Color C>
-constexpr Bitboard pawnLAttackBB(Bitboard bb) {
-    return shift<PawnLAtt[C]>(bb);
-}
-template<Color C>
-constexpr Bitboard pawnRAttackBB(Bitboard bb) {
-    return shift<PawnRAtt[C]>(bb);;
-}
-/// pawnSglAttackBB() returns the single attackes by pawns of the given color
-template<Color C>
-constexpr Bitboard pawnSglAttackBB(Bitboard bb) {
-    return pawnLAttackBB<C>(bb) | pawnRAttackBB<C>(bb);
-}
-/// pawnDblAttackBB() returns the double attackes by pawns of the given color
-template<Color C>
-constexpr Bitboard pawnDblAttackBB(Bitboard bb) {
-    return pawnLAttackBB<C>(bb) & pawnRAttackBB<C>(bb);
-}
+template<Color C> constexpr Bitboard pawnLAttackBB(Bitboard bb) { return shift<PawnLAtt[C]>(bb); }
+template<Color C> constexpr Bitboard pawnRAttackBB(Bitboard bb) { return shift<PawnRAtt[C]>(bb); }
+template<Color C> constexpr Bitboard pawnSglAttackBB(Bitboard bb) { return pawnLAttackBB<C>(bb) | pawnRAttackBB<C>(bb); }
+template<Color C> constexpr Bitboard pawnDblAttackBB(Bitboard bb) { return pawnLAttackBB<C>(bb) & pawnRAttackBB<C>(bb); }
 
 /// attacksBB(s, occ) takes a square and a bitboard of occupied squares,
 /// and returns a bitboard representing all squares attacked by PT (Bishop or Rook or Queen) on the given square.
@@ -324,17 +239,12 @@ template<PieceType PT> Bitboard attacksBB(Square, Bitboard);
 //template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) { return PieceAttackBB[NIHT][s]; }
 //template<> inline Bitboard attacksBB<KING>(Square s, Bitboard) { return PieceAttackBB[KING][s]; }
 /// Attacks of the Bishop with occupancy
-template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) {
-    return BMagics[s].attacksBB(occ);
-}
+template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) { return BMagics[s].attacksBB(occ); }
 /// Attacks of the Rook with occupancy
-template<> inline Bitboard attacksBB<ROOK>(Square s, Bitboard occ) {
-    return RMagics[s].attacksBB(occ); }
+template<> inline Bitboard attacksBB<ROOK>(Square s, Bitboard occ) { return RMagics[s].attacksBB(occ); }
 /// Attacks of the Queen with occupancy
-template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) {
-    return BMagics[s].attacksBB(occ)
-         | RMagics[s].attacksBB(occ);
-}
+template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) { return BMagics[s].attacksBB(occ)
+                                                                          | RMagics[s].attacksBB(occ); }
 
 /// attacksBB() finds attacks of the piecetype from the square on occupancy.
 inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
@@ -461,10 +371,9 @@ inline Square scanMSq(Bitboard bb) {
 }
 
 // Find the most advanced square in the given bitboard relative to the given color.
-inline Square scanFrontMostSq(Color c, Bitboard bb) {
-    assert(bb != 0);
-    return c == WHITE ? scanMSq(bb) : scanLSq(bb);
-}
+template<Color C> inline Square scanFrontMostSq(Bitboard) { return 0; }
+template<> inline Square scanFrontMostSq<WHITE>(Bitboard bb) { assert(bb != 0); return scanMSq(bb); }
+template<> inline Square scanFrontMostSq<BLACK>(Bitboard bb) { assert(bb != 0); return scanLSq(bb); }
 
 inline Square popLSq(Bitboard &bb) {
     assert(bb != 0);

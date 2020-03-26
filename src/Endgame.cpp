@@ -158,11 +158,11 @@ template<> Value Endgame<KRKP>::operator()(Position const &pos) const {
     else
     // If the pawn is far advanced and supported by the defending king, it's a drawish.
     if (sRank(wkSq) <= RANK_3
-     && distance(wkSq, wpSq) == 1
+     && distance(wpSq, wkSq) == 1
      && sRank(skSq) >= RANK_4
-     && distance(skSq, wpSq) > 2 + (pos.activeSide() == stngColor)) {
+     && distance(wpSq, skSq) > 2 + (pos.activeSide() == stngColor)) {
         value = Value(80)
-              - 8 * distance(skSq, wpSq);
+              - 8 * distance(wpSq, skSq);
     }
     else {
         value = Value(200)
@@ -498,11 +498,12 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
 
     auto sbSq{ pos.square(stngColor|BSHP) };
     auto wbSq{ pos.square(weakColor|BSHP) };
+    auto wkSq{ pos.square(weakColor|KING) };
 
-    if (colorOpposed(sbSq, wbSq)) {
+    if (colorOpposed(sbSq, wbSq)
+     && colorOpposed(sbSq, wkSq)) {
         auto sp1Sq{ pos.square(stngColor|PAWN, 0) };
         auto sp2Sq{ pos.square(stngColor|PAWN, 1) };
-        auto wkSq{ pos.square(weakColor|KING) };
 
         auto Push{ PawnPush[stngColor] };
 
@@ -522,8 +523,7 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
         // Both pawns are on the same file. It's an easy draw if the defender firmly
         // controls some square in the front most pawn's path.
         if (d == 0) {
-            if (contains(frontSquaresBB(stngColor, block1Sq - Push), wkSq)
-             && colorOpposed(wkSq, sbSq)) {
+            if (contains(frontSquaresBB(stngColor, block1Sq - Push), wkSq)) {
                 return SCALE_DRAW;
             }
         }
@@ -532,25 +532,18 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
         // square in front of the front most pawn's path, and the square diagonally
         // behind this square on the file of the other pawn.
         if (d == 1) {
-            if (colorOpposed(wkSq, sbSq)) {
-
-                if (wkSq == block1Sq
-                 && (wbSq == block2Sq
-                  || contains(pos.attacksFrom(BSHP, block2Sq), wbSq)
-                  || distance<Rank>(sp1Sq, sp2Sq) >= 2)) {
-                    return SCALE_DRAW;
-                }
-                if (wkSq == block2Sq
-                 && (wbSq == block1Sq
-                  || contains(pos.attacksFrom(BSHP, block1Sq), wbSq))) {
-                    return SCALE_DRAW;
-                }
+            if ((wkSq == block1Sq
+              && (distance<Rank>(sp1Sq, sp2Sq) >= 2
+               || contains(pos.attacksFrom(BSHP, wbSq) | wbSq, block2Sq)))
+             || (wkSq == block2Sq
+              && contains(pos.attacksFrom(BSHP, wbSq) | wbSq, block1Sq))) {
+                return SCALE_DRAW;
             }
         }
         // The pawns are not on the same file or adjacent files. No scaling.
-        else {
-            return SCALE_NONE;
-        }
+        //else {
+        //    return SCALE_NONE;
+        //}
     }
 
     return SCALE_NONE;
@@ -643,7 +636,9 @@ template<> Scale Endgame<KBPsK>::operator()(Position const &pos) const {
      && pos.nonPawnMaterial(weakColor) == VALUE_ZERO
      && wPawns != 0) {
         // Get weak side pawn that is closest to home rank
-        auto wpSq{ scanFrontMostSq(stngColor, wPawns) };
+        auto wpSq{ stngColor == WHITE ?
+                    scanFrontMostSq<WHITE>(wPawns) :
+                    scanFrontMostSq<BLACK>(wPawns) };
 
         // There's potential for a draw if weak pawn is blocked on the 7th rank
         // and the bishop cannot attack it or only one strong pawn left
@@ -658,8 +653,8 @@ template<> Scale Endgame<KBPsK>::operator()(Position const &pos) const {
             // where Q-search will immediately correct the problem
             // positions such as 8/4k1p1/6P1/1K6/3B4/8/8/8 w
             if (relativeRank(stngColor, wkSq) >= RANK_7
-             && distance(wkSq, wpSq) <= 2
-             && distance(wkSq, wpSq) <= distance(skSq, wpSq)) {
+             && distance(wpSq, wkSq) <= 2
+             && distance(wpSq, wkSq) <= distance(wpSq, skSq)) {
                 return SCALE_DRAW;
             }
         }

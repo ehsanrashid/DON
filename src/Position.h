@@ -1,9 +1,9 @@
 #pragma once
 
 #include <deque>
-#include <list>
 #include <memory> // For std::unique_ptr
 #include <string>
+#include <vector>
 
 #include "Bitboard.h"
 #include "Type.h"
@@ -72,7 +72,7 @@ private:
     Array<Piece, SQUARES> board;
     Array<Bitboard, COLORS> colors;
     Array<Bitboard, PIECE_TYPES> types;
-    Array<std::list<Square>, PIECES> pieceList;
+    Array<std::vector<Square>, PIECES> squareSet;
 
     Array<Value, COLORS> npMaterial;
 
@@ -123,7 +123,7 @@ public:
     i32 count(Piece) const;
     i32 count(Color) const;
     i32 count(PieceType) const;
-    std::list<Square> const& squares(Piece) const;
+    std::vector<Square> const& squares(Piece) const;
     Square square(Piece, u08 = 0) const;
 
     Value nonPawnMaterial(Color) const;
@@ -252,33 +252,33 @@ inline Bitboard Position::pieces(Color c, PieceTypes... pts) const {
 }
 /// Position::count() counts all
 inline i32 Position::count() const {
-    return i32(pieceList[W_PAWN].size() + pieceList[B_PAWN].size()
-             + pieceList[W_NIHT].size() + pieceList[B_NIHT].size()
-             + pieceList[W_BSHP].size() + pieceList[B_BSHP].size()
-             + pieceList[W_ROOK].size() + pieceList[B_ROOK].size()
-             + pieceList[W_QUEN].size() + pieceList[B_QUEN].size()
-             + pieceList[W_KING].size() + pieceList[B_KING].size());
+    return i32(squareSet[W_PAWN].size() + squareSet[B_PAWN].size()
+             + squareSet[W_NIHT].size() + squareSet[B_NIHT].size()
+             + squareSet[W_BSHP].size() + squareSet[B_BSHP].size()
+             + squareSet[W_ROOK].size() + squareSet[B_ROOK].size()
+             + squareSet[W_QUEN].size() + squareSet[B_QUEN].size()
+             + squareSet[W_KING].size() + squareSet[B_KING].size());
 }
 inline i32 Position::count(Piece p) const {
-    return i32(pieceList[p].size());
+    return i32(squareSet[p].size());
 }
 /// Position::count() counts specific color
 inline i32 Position::count(Color c) const {
-    return i32(pieceList[c|PAWN].size()
-             + pieceList[c|NIHT].size()
-             + pieceList[c|BSHP].size()
-             + pieceList[c|ROOK].size()
-             + pieceList[c|QUEN].size()
-             + pieceList[c|KING].size());
+    return i32(squareSet[c|PAWN].size()
+             + squareSet[c|NIHT].size()
+             + squareSet[c|BSHP].size()
+             + squareSet[c|ROOK].size()
+             + squareSet[c|QUEN].size()
+             + squareSet[c|KING].size());
 }
 /// Position::count() counts specific type
 inline i32 Position::count(PieceType pt) const {
-    return i32(pieceList[WHITE|pt].size()
-             + pieceList[BLACK|pt].size());
+    return i32(squareSet[WHITE|pt].size()
+             + squareSet[BLACK|pt].size());
 }
 
-inline std::list<Square> const& Position::squares(Piece p) const {
-    return pieceList[p];
+inline std::vector<Square> const& Position::squares(Piece p) const {
+    return squareSet[p];
 }
 
 //inline CastleRight Position::castleRight(Square s) const { return sqCastleRight[s]; }
@@ -303,8 +303,8 @@ inline Bitboard Position::castleRookPath(Color c, CastleSide cs) const {
 
 inline Square Position::square(Piece p, u08 index) const {
     assert(isOk(p));
-    assert(pieceList[p].size() > index);
-    return *std::next(pieceList[p].begin(), index);
+    assert(squareSet[p].size() > index);
+    return *std::next(squareSet[p].begin(), index);
 }
 
 inline CastleRight Position::castleRights() const {

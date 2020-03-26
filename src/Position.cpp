@@ -571,14 +571,14 @@ bool Position::see(Move m, Value threshold) const {
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
 
-    i32 swap;
-    swap = PieceValues[MG][pType(board[dst])] - threshold;
-    if (swap < 0) {
+    i32 val;
+    val = PieceValues[MG][pType(board[dst])] - threshold;
+    if (val < 0) {
         return false;
     }
 
-    swap = PieceValues[MG][pType(board[org])] - swap;
-    if (swap <= 0) {
+    val = PieceValues[MG][pType(board[org])] - val;
+    if (val <= 0) {
         return true;
     }
 
@@ -657,53 +657,48 @@ bool Position::see(Move m, Value threshold) const {
         Bitboard bb;
 
         if ((bb = pieces(PAWN) & movAttackers) != 0) {
-            if ((swap = VALUE_MG_PAWN - swap) < res) {
+            if ((val = VALUE_MG_PAWN - val) < res) {
                 break;
             }
-            org = scanLSq(bb);
-            mocc ^= org;
+            mocc ^= (org = scanLSq(bb));
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
         }
         else
         if ((bb = pieces(NIHT) & movAttackers) != 0) {
-            if ((swap = VALUE_MG_NIHT - swap) < res) {
+            if ((val = VALUE_MG_NIHT - val) < res) {
                 break;
             }
-            org = scanLSq(bb);
-            mocc ^= org;
+            mocc ^= (org = scanLSq(bb));
         }
         else
         if ((bb = pieces(BSHP) & movAttackers) != 0) {
-            if ((swap = VALUE_MG_BSHP - swap) < res) {
+            if ((val = VALUE_MG_BSHP - val) < res) {
                 break;
             }
-            org = scanLSq(bb);
-            mocc ^= org;
+            mocc ^= (org = scanLSq(bb));
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
         }
         else
         if ((bb = pieces(ROOK) & movAttackers) != 0) {
-            if ((swap = VALUE_MG_ROOK - swap) < res) {
+            if ((val = VALUE_MG_ROOK - val) < res) {
                 break;
             }
-            org = scanLSq(bb);
-            mocc ^= org;
+            mocc ^= (org = scanLSq(bb));
             attackers |= (pieces(ROOK, QUEN) & attacksBB<ROOK>(dst, mocc));
         }
         else
         if ((bb = pieces(QUEN) & movAttackers) != 0) {
-            if ((swap = VALUE_MG_QUEN - swap) < res) {
+            if ((val = VALUE_MG_QUEN - val) < res) {
                 break;
             }
-            org = scanLSq(bb);
-            mocc ^= org;
+            mocc ^= (org = scanLSq(bb));
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc))
                        | (pieces(ROOK, QUEN) & attacksBB<ROOK>(dst, mocc));
         }
         else { // KING
             // If we "capture" with the king but opponent still has attackers, reverse the result.
             //return (attackers & pieces(~mov)) != 0 ? !res : res;
-            return res != ((attackers & pieces(~mov)) != 0);
+            return ((attackers & pieces(~mov)) != 0) != res;
         }
     }
 
@@ -715,8 +710,8 @@ void Position::clear() {
     board.fill(NO_PIECE);
     colors.fill(0);
     types.fill(0);
-    for (auto &list : pieceList) {
-        list.clear();
+    for (auto &set : squareSet) {
+        set.clear();
     }
     npMaterial.fill(VALUE_ZERO);
 
@@ -733,42 +728,46 @@ void Position::clear() {
 }
 
 void Position::placePiece(Square s, Piece p) {
-    assert(isOk(p)
-        && std::count(pieceList[p].begin(), pieceList[p].end(), s) == 0);
+    //assert(isOk(p)
+    //    && std::count(squareSet[p].begin(), squareSet[p].end(), s) == 0);
     colors[pColor(p)] |= s;
     types[pType(p)] |= s;
     types[NONE] |= s;
-    pieceList[p].emplace_back(s);
     psq += PSQ[p][s];
+    squareSet[p].push_back(s);
     board[s] = p;
 }
 void Position::removePiece(Square s) {
     auto p{ board[s] };
-    assert(isOk(p)
-        && std::count(pieceList[p].begin(), pieceList[p].end(), s) == 1);
+    //assert(isOk(p)
+    //    && std::count(squareSet[p].begin(), squareSet[p].end(), s) == 1);
     colors[pColor(p)] ^= s;
     types[pType(p)] ^= s;
     types[NONE] ^= s;
-    pieceList[p].remove(s);
     psq -= PSQ[p][s];
+    // Do keep order
+    //squareSet[p].erase(std::find(squareSet[p].begin(), squareSet[p].end(), s));
+    // Don't keep order
+    *std::find(squareSet[p].begin(), squareSet[p].end(), s) = squareSet[p].back();
+    squareSet[p].pop_back();
+
     //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
 }
 void Position::movePiece(Square s1, Square s2) {
     auto p{ board[s1] };
-    assert(isOk(p)
-        && std::count(pieceList[p].begin(), pieceList[p].end(), s1) == 1
-        && std::count(pieceList[p].begin(), pieceList[p].end(), s2) == 0);
+    //assert(isOk(p)
+    //    && std::count(squareSet[p].begin(), squareSet[p].end(), s1) == 1
+    //    && std::count(squareSet[p].begin(), squareSet[p].end(), s2) == 0);
     Bitboard bb{ s1 | s2 };
     colors[pColor(p)] ^= bb;
     types[pType(p)] ^= bb;
     types[NONE] ^= bb;
-    std::replace(pieceList[p].begin(), pieceList[p].end(), s1, s2);
     psq += PSQ[p][s2]
          - PSQ[p][s1];
+    *std::find(squareSet[p].begin(), squareSet[p].end(), s1) = s2;
     board[s2] = p;
     board[s1] = NO_PIECE;
 }
-
 
 /// Position::setup() initializes the position object with the given FEN string.
 /// This function is not very robust - make sure that input FENs are correct,
