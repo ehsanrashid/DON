@@ -1779,7 +1779,7 @@ namespace SyzygyTB {
             Binomial[0][0] = 1;
             for (i32 n = 1; n < SQUARES; ++n) // Squares
             {
-                for (i32 k = 0; k < TBPIECES - 1 && k <= n; ++k) // Pieces
+                for (i32 k = 0; k <= TBPIECES - 2 && k <= n; ++k) // Pieces
                 {
                     Binomial[k][n] = (k > 0 ? Binomial[k - 1][n - 1] : 0)
                                    + (k < n ? Binomial[k][n - 1] : 0);

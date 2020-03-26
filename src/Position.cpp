@@ -16,6 +16,8 @@
 #include "Zobrist.h"
 #include "UCI.h"
 
+Array<Score, PIECES, SQUARES> PSQ;
+
 namespace {
 
     /// Computes the non-pawn middle game material value for the given side.
@@ -725,48 +727,6 @@ void Position::clear() {
     ply = 0;
     active = COLORS;
     _thread = nullptr;
-}
-
-void Position::placePiece(Square s, Piece p) {
-    //assert(isOk(p)
-    //    && std::count(squareSet[p].begin(), squareSet[p].end(), s) == 0);
-    colors[pColor(p)] |= s;
-    types[pType(p)] |= s;
-    types[NONE] |= s;
-    psq += PSQ[p][s];
-    squareSet[p].push_back(s);
-    board[s] = p;
-}
-void Position::removePiece(Square s) {
-    auto p{ board[s] };
-    //assert(isOk(p)
-    //    && std::count(squareSet[p].begin(), squareSet[p].end(), s) == 1);
-    colors[pColor(p)] ^= s;
-    types[pType(p)] ^= s;
-    types[NONE] ^= s;
-    psq -= PSQ[p][s];
-    // Do keep order
-    //squareSet[p].erase(std::find(squareSet[p].begin(), squareSet[p].end(), s));
-    // Don't keep order
-    *std::find(squareSet[p].begin(), squareSet[p].end(), s) = squareSet[p].back();
-    squareSet[p].pop_back();
-
-    //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
-}
-void Position::movePiece(Square s1, Square s2) {
-    auto p{ board[s1] };
-    //assert(isOk(p)
-    //    && std::count(squareSet[p].begin(), squareSet[p].end(), s1) == 1
-    //    && std::count(squareSet[p].begin(), squareSet[p].end(), s2) == 0);
-    Bitboard bb{ s1 | s2 };
-    colors[pColor(p)] ^= bb;
-    types[pType(p)] ^= bb;
-    types[NONE] ^= bb;
-    psq += PSQ[p][s2]
-         - PSQ[p][s1];
-    *std::find(squareSet[p].begin(), squareSet[p].end(), s1) = s2;
-    board[s2] = p;
-    board[s1] = NO_PIECE;
 }
 
 /// Position::setup() initializes the position object with the given FEN string.

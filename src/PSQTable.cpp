@@ -2,8 +2,6 @@
 
 #include "Position.h"
 
-Array<Score, PIECES, SQUARES> PSQ;
-
 namespace {
 
 #define S(mg, eg) makeScore(mg, eg)

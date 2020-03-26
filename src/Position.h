@@ -54,6 +54,8 @@ using StateListPtr = std::unique_ptr<std::deque<StateInfo>>;
 
 class Thread;
 
+extern Array<Score, PIECES, SQUARES> PSQ;
+
 /// Position class stores information regarding the board representation:
 ///  - 64-entry array of pieces, indexed by the square.
 ///  - Bitboards of each piece type.
@@ -110,10 +112,9 @@ public:
     Piece operator[](Square) const;
     bool empty(Square) const;
 
-    Bitboard pieces() const;
     //Bitboard pieces(Piece) const;
     Bitboard pieces(Color) const;
-    Bitboard pieces(PieceType) const;
+    Bitboard pieces(PieceType = NONE) const;
     template<typename... PieceTypes>
     Bitboard pieces(PieceType, PieceTypes...) const;
     template<typename... PieceTypes>
@@ -232,9 +233,6 @@ inline bool Position::empty(Square s) const {
     return board[s] == NO_PIECE;
 }
 
-inline Bitboard Position::pieces() const {
-    return types[NONE];
-}
 //inline Bitboard Position::pieces(Piece p) const { return colors[pColor(p)] & types[pType(p)]; }
 inline Bitboard Position::pieces(Color c) const {
     return colors[c];
@@ -379,6 +377,52 @@ inline bool Position::castleExpeded(Color c, CastleSide cs) const {
 /// Position::moveCount() starts at 1, and is incremented after BLACK's move.
 inline i16 Position::moveCount() const {
     return i16(std::max((ply - active) / 2, 0) + 1);
+}
+
+inline void Position::placePiece(Square s, Piece p) {
+    //assert(isOk(p));
+    //assert(std::count(squareSet[p].begin(), squareSet[p].end(), s) == 0);
+    colors[pColor(p)] |= s;
+    types[pType(p)] |= s;
+    types[NONE] |= s;
+    psq += PSQ[p][s];
+    squareSet[p].push_back(s);
+    board[s] = p;
+}
+inline void Position::removePiece(Square s) {
+    auto p{ board[s] };
+    //assert(isOk(p));
+    //assert(squareSet[p].size() != 0);
+    //assert(std::count(squareSet[p].begin(), squareSet[p].end(), s) == 1);
+    colors[pColor(p)] ^= s;
+    types[pType(p)] ^= s;
+    types[NONE] ^= s;
+    psq -= PSQ[p][s];
+    // Do keep order
+    //squareSet[p].erase(std::find(squareSet[p].begin(), squareSet[p].end(), s));
+    // Don't keep order
+    if (squareSet[p].size() > 1) {
+        *std::find(squareSet[p].begin(), squareSet[p].end(), s) = squareSet[p].back();
+    }
+    squareSet[p].pop_back();
+
+    //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
+}
+inline void Position::movePiece(Square s1, Square s2) {
+    auto p{ board[s1] };
+    //assert(isOk(p));
+    //assert(squareSet[p].size() != 0);
+    //assert(std::count(squareSet[p].begin(), squareSet[p].end(), s1) == 1
+    //    && std::count(squareSet[p].begin(), squareSet[p].end(), s2) == 0);
+    Bitboard bb{ s1 | s2 };
+    colors[pColor(p)] ^= bb;
+    types[pType(p)] ^= bb;
+    types[NONE] ^= bb;
+    psq += PSQ[p][s2]
+         - PSQ[p][s1];
+    *std::find(squareSet[p].begin(), squareSet[p].end(), s1) = s2;
+    board[s2] = p;
+    board[s1] = NO_PIECE;
 }
 
 /// Position::attackersTo() finds attackers to the square on occupancy.

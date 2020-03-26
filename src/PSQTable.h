@@ -11,5 +11,3 @@ namespace PSQT {
 
     extern Score computePSQ(Position const&);
 }
-
-extern Array<Score, PIECES, SQUARES> PSQ;

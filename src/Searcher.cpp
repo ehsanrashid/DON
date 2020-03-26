@@ -238,10 +238,12 @@ namespace {
 
             //if (oss.rdbuf()->in_avail()) // Not at first line
             //    oss << "\n";
-            oss << "info"
-                << " depth "    << (updated ? depth : depth - DEPTH_ONE)
-                << " seldepth " << th->rootMoves[i].selDepth
+            oss << std::setfill('0')
+                << "info"
+                << " depth "    << std::setw(2) << (updated ? depth : depth - DEPTH_ONE)
+                << " seldepth " << std::setw(2) << th->rootMoves[i].selDepth
                 << " multipv "  << i + 1
+                << std::setfill(' ')
                 << " score "    << v;
             if (!tb && i == th->pvCur) {
             oss << (beta <= v ? " lowerbound" :
@@ -1233,7 +1235,7 @@ namespace {
                            && (ss-1)->stats < -114);
 
                     // Decrease/Increase reduction for moves with a good/bad history (~30 Elo)
-                    reductDepth -= i16(ss->stats / 0x4000);
+                    reductDepth -= i16(ss->stats / 16434);
                 }
                 else {
                     // Increase reduction for captures/promotions at low depth and late move

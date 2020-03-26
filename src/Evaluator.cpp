@@ -844,8 +844,7 @@ namespace Evaluator {
             }
             else
             // Almost Unwinnable
-            if (outflanking < 0
-             && pawnEntry->passedCount() == 0) {
+            if (outflanking < 0) {
                 complexity -= 43;
             }
 
