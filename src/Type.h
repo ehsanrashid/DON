@@ -458,11 +458,11 @@ constexpr Piece operator|(Color c, PieceType pt) {
 
 constexpr PieceType pType(Piece p) {
     //assert(isOk(p));
-    return PieceType(p & PIECE_TYPES); //PieceType((p >> 0) & PIECE_TYPES);
+    return PieceType(p & 7); //PieceType((p >> 0) & 7);
 }
 constexpr Color pColor(Piece p) {
     //assert(isOk(p));
-    return Color(p >> 3); //Color((p >> 3) & BLACK);
+    return Color(p >> 3); //Color((p >> 3) & 1);
 }
 
 constexpr Piece flipColor(Piece p) {

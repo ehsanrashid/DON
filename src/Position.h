@@ -178,7 +178,6 @@ public:
 
     Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const;
 
-    bool valid(Move) const;
     bool capture(Move) const;
     bool captureOrPromotion(Move) const;
 
@@ -302,7 +301,8 @@ inline Bitboard Position::castleRookPath(Color c, CastleSide cs) const {
 inline Square Position::square(Piece p, u08 index) const {
     assert(isOk(p));
     assert(squareSet[p].size() > index);
-    return *std::next(squareSet[p].begin(), index);
+    //return *std::next(squareSet[p].begin(), index);
+    return squareSet[p][index];
 }
 
 inline CastleRight Position::castleRights() const {
@@ -451,9 +451,6 @@ inline Bitboard Position::attacksFrom(PieceType pt, Square s) const {
     return attacksBB(pt, s, pieces());
 }
 
-inline bool Position::valid(Move m) const {
-    return contains(pieces(active), orgSq(m));
-}
 inline bool Position::capture(Move m) const {
     assert(isOk(m));
     //auto mt = mType(m);

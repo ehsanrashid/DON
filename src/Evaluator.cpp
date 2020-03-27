@@ -22,9 +22,10 @@ namespace Evaluator {
 
         class Tracer {
 
-        public:
+        private:
             static Table<Score, TERM_NO, COLORS> Scores;
 
+        public:
             static void clear() {
                 Scores.fill(SCORE_ZERO);
             }
@@ -154,7 +155,7 @@ namespace Evaluator {
         constexpr Score BishopTrapped   { S( 50, 50) };
         constexpr Score RookOnQueenFile { S(  7,  6) };
         constexpr Score RookTrapped     { S( 52, 10) };
-        constexpr Score QueenWeaken     { S( 49, 15) };
+        constexpr Score QueenAttacked   { S( 49, 15) };
         constexpr Score PawnLessFlank   { S( 17, 95) };
         constexpr Score PasserFile      { S( 11,  8) };
         constexpr Score KingFlankAttacks{ S(  8,  0) };
@@ -425,12 +426,10 @@ namespace Evaluator {
 
                     // Penalty for pin or discover attack on the queen
                     b = 0; // Queen attackers
-                    if (( pos.sliderBlockersAt(s, pos.pieces(Opp, BSHP, ROOK), b, b)
-                       & ~pos.kingBlockers(Opp)
-                       & ~( fileBB(s)
-                         &  pos.pieces(Opp, PAWN)
-                         & ~pawnSglAttackBB<Own>(pos.pieces(Own)))) != 0) {
-                        score -= QueenWeaken;
+                    Bitboard queenBlockers{  pos.sliderBlockersAt(s, pos.pieces(Opp, BSHP, ROOK), b, b)
+                                          & ~pos.kingBlockers(Opp) };
+                    if (queenBlockers != 0) {
+                        score -= QueenAttacked;
                     }
                 }
 
@@ -443,7 +442,8 @@ namespace Evaluator {
                 if ((attacks & kingRing[Opp]) != 0) {
                     kingAttackersCount [Own]++;
                     kingAttackersWeight[Own] += KingAttackerWeight[PT];
-                    kingAttacksCount   [Own] += popCount(attacks & sqlAttacks[Opp][KING]);
+                    kingAttacksCount   [Own] += popCount(attacks
+                                                       & sqlAttacks[Opp][KING]);
                 }
             }
 

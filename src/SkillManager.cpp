@@ -47,7 +47,7 @@ Move SkillManager::pickBestMove() {
             // Then choose the move with the highest value.
             if (bestValue <= value) {
                 bestValue = value;
-                _bestMove = rootMoves[i].front();
+                _bestMove = rootMoves[i][0];
             }
         }
     }

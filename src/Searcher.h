@@ -41,10 +41,10 @@ struct Limit {
     void clear();
 };
 
-namespace Searcher {
-
-    extern void initialize();
-}
+//namespace Searcher {
+//
+//    extern void initialize();
+//}
 
 extern Limit Limits;
 

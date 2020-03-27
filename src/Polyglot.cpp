@@ -1,8 +1,9 @@
 #include "Polyglot.h"
 
+#include <algorithm>
 #include <fstream>
 #include <iostream>
-#include <list>
+#include <vector>
 
 #include "Helper.h"
 #include "MoveGenerator.h"
@@ -63,7 +64,7 @@ namespace {
         // So in case book move is a promotion have to convert to our representation,
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
-        u08 pt = (m >> 12) & PIECE_TYPES;
+        u08 pt = (m >> 12) & 7;
         if (pt > PAWN) {
             assert(NIHT <= pt && pt <= QUEN);
             // Set new type for promotion piece
@@ -380,30 +381,33 @@ string PolyBook::show(Position const &pos) const {
         return "Book entries not found.";
     }
 
-    std::ostringstream oss;
-
-    std::list<PolyEntry> peList;
+    std::vector<PolyEntry> peSet;
     u32 sumWeight{ 0 };
     while (u64(index) < _entryCount
         && key == _entryTable[index].key) {
-        peList.emplace_back(_entryTable[index]);
+        peSet.push_back(_entryTable[index]);
         sumWeight += _entryTable[index].weight;
         ++index;
     }
 
-    if (!peList.empty()) {
-        peList.sort();
-        peList.reverse();
-        oss << "\nBook entries: " << peList.size() << "\n";
-        for (auto &pe : peList) {
-            pe.move = polyMove(Move(pe.move), pos);
-            auto prob = sumWeight != 0 ? 100.0 * pe.weight / sumWeight : 0.0;
-            oss << pe
-                << " prob: "
-                << std::setfill('0')
-                << std::setw(7) << std::fixed << std::setprecision(4) << prob
-                << std::setfill(' ');
-        }
+    if (peSet.empty()) {
+        return "No Book entry found";
+    }
+
+    std::sort(peSet.begin(), peSet.end());
+    std::reverse(peSet.begin(), peSet.end());
+
+    std::ostringstream oss;
+    oss << "\nBook entries: " << peSet.size() << "\n";
+    for (auto &pe : peSet) {
+        pe.move = polyMove(Move(pe.move), pos);
+        auto prob{ sumWeight != 0 ? 100.0 * pe.weight / sumWeight : 0.0 };
+        oss << pe
+            << " prob: "
+            << std::setfill('0')
+            << std::setw(7) << std::fixed << std::setprecision(4) << prob
+            << std::setfill(' ');
     }
     return oss.str();
+
 }

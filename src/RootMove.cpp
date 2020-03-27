@@ -9,7 +9,7 @@
 #include "Notation.h"
 
 RootMove::RootMove(Move m) :
-    std::list<Move>{ 1, m }
+    std::vector<Move>{ 1, m }
 {}
 
 bool RootMove::operator<(RootMove const &rm) const {

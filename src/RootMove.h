@@ -1,6 +1,5 @@
 #pragma once
 
-#include <list>
 #include <vector>
 
 #include "Position.h"
@@ -22,7 +21,7 @@
 ///  - PV (really a refutation table in the case of moves which fail low)
 /// Value is normally set at -VALUE_INFINITE for all non-pv moves.
 class RootMove :
-    public std::list<Move> {
+    public std::vector<Move> {
 
 public:
 
@@ -33,7 +32,7 @@ public:
     Value tbValue{ VALUE_ZERO };
     u16   bestCount{ 0 };
 
-    using std::list<Move>::list;
+    //using std::vector<Move>::vector;
 
     explicit RootMove(Move = MOVE_NONE);
 

@@ -214,12 +214,9 @@ Bitboard Position::sliderBlockersAt(Square s, Bitboard attackers, Bitboard &pinn
         if (b != 0
          && !moreThanOne(b)) {
             blockers |= b;
-            if ((b & defenders) != 0) {
-                pinners |= sniperSq;
-            }
-            else {
+            (b & defenders) != 0 ?
+                pinners |= sniperSq :
                 hidders |= sniperSq;
-            }
         }
     }
     return blockers;

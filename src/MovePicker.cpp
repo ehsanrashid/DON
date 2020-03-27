@@ -37,15 +37,15 @@ namespace {
 
         if (iBeg != iEnd) {
 
-            auto sortedEnd = iBeg;
-            auto p = std::next(sortedEnd);
+            auto sortedEnd{ iBeg };
+            auto p{ std::next(sortedEnd) };
             while (p != iEnd) {
 
                 if (p->value >= limit) {
-                    auto item = *p;
+                    auto item{ *p };
                     *p = *(++sortedEnd);
 
-                    auto q = sortedEnd;
+                    auto q{ sortedEnd };
                     while (q != iBeg
                         && std::prev(q)->value < item.value) {
                         *q = *std::prev(q);
@@ -144,7 +144,7 @@ MovePicker::MovePicker(
 }
 
 
-/// value() assigns a numerical value to each move in a list, used for sorting.
+/// value() assigns a numerical value to each move, used for sorting.
 /// Captures are ordered by Most Valuable Victim (MVV) with using the histories.
 /// Quiets are ordered using the histories.
 template<GenType GT>

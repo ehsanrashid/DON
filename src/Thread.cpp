@@ -267,35 +267,35 @@ Thread* ThreadPool::bestThread() const
 
     auto minValue = +VALUE_INFINITE;
     for (auto *th : *this) {
-        minValue = std::min(th->rootMoves.front().newValue, minValue);
+        minValue = std::min(th->rootMoves[0].newValue, minValue);
     }
     // Vote according to value and depth
     std::map<Move, u64> votes;
     for (auto *th : *this) {
 
-        votes[th->rootMoves.front().front()] +=
+        votes[th->rootMoves[0][0]] +=
             i32(th->finishedDepth)
-          * i32(th->rootMoves.front().newValue - minValue + 14);
+          * i32(th->rootMoves[0].newValue - minValue + 14);
 
-        if (bestTh->rootMoves.front().newValue >= +VALUE_MATE_2_MAX_PLY) {
+        if (bestTh->rootMoves[0].newValue >= +VALUE_MATE_2_MAX_PLY) {
             // Select the shortest mate
-            if (bestTh->rootMoves.front().newValue
-              <     th->rootMoves.front().newValue) {
+            if (bestTh->rootMoves[0].newValue
+              <     th->rootMoves[0].newValue) {
                 bestTh = th;
             }
         }
         else {
-            if (th->rootMoves.front().newValue >= +VALUE_MATE_2_MAX_PLY
-             || (votes[bestTh->rootMoves.front().front()]
-               < votes[    th->rootMoves.front().front()])) {
+            if (th->rootMoves[0].newValue >= +VALUE_MATE_2_MAX_PLY
+             || (votes[bestTh->rootMoves[0][0]]
+               < votes[    th->rootMoves[0][0]])) {
                 bestTh = th;
             }
         }
     }
     // Select best thread with max depth
-    auto bestMove = bestTh->rootMoves.front().front();
+    auto bestMove = bestTh->rootMoves[0][0];
     for (auto *th : *this) {
-        if (bestMove == th->rootMoves.front().front()) {
+        if (bestMove == th->rootMoves[0][0]) {
             if (bestTh->finishedDepth
               <     th->finishedDepth) {
                 bestTh = th;

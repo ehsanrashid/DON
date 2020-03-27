@@ -304,7 +304,7 @@ string prettyInfo(Thread *const &th) {
 
     std::ostringstream oss;
     oss << std::setw( 4) << th->finishedDepth
-        << std::setw( 8) << prettyValue(th->rootMoves.front().newValue)
+        << std::setw( 8) << prettyValue(th->rootMoves[0].newValue)
         << std::setw(12) << prettyTime(TimeMgr.elapsed());
 
          if (nodes < 10ULL*1000) {
@@ -322,16 +322,16 @@ string prettyInfo(Thread *const &th) {
     oss << " ";
 
     StateListPtr states{ new deque<StateInfo>(0) };
-    std::for_each(th->rootMoves.front().begin(),
-                  th->rootMoves.front().end(),
+    std::for_each(th->rootMoves[0].begin(),
+                  th->rootMoves[0].end(),
                   [&](Move m) {
                       assert(m != MOVE_NONE);
                       oss << moveToSAN(m, th->rootPos) << " ";
                       states->emplace_back();
                       th->rootPos.doMove(m, states->back());
                   });
-    std::for_each(th->rootMoves.front().rbegin(),
-                  th->rootMoves.front().rend(),
+    std::for_each(th->rootMoves[0].rbegin(),
+                  th->rootMoves[0].rend(),
                   [&](Move m) {
                       assert(m != MOVE_NONE);
                       th->rootPos.undoMove(m);

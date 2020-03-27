@@ -6,7 +6,6 @@
 #include <algorithm>
 #include <deque>
 #include <fstream>
-#include <list>
 #include <sstream>
 #include <string>
 #include <vector>
@@ -394,7 +393,7 @@ namespace {
     struct TBTable {
         using Ret = typename std::conditional<Type == WDL, WDLScore, i32>::type;
 
-        static constexpr i32 Sides = Type == WDL ? 2 : 1;
+        static constexpr i16 Sides = Type == WDL ? 2 : 1;
 
         std::atomic<bool> ready;
         void *baseAddress;
@@ -408,8 +407,8 @@ namespace {
         u08 pawnCount[COLORS]; // [Lead color / other color]
         PairsData items[Sides][4]; // [wtm / btm][FILE_A..FILE_D or 0]
 
-        PairsData* get(i16 stm, i32 f) {
-            return &items[stm % Sides][hasPawns ? f : 0];
+        PairsData* get(i16 stm, File f) {
+            return &items[stm % Sides][f * hasPawns];
         }
 
         TBTable() :
@@ -437,16 +436,18 @@ namespace {
         Position pos;
         matlKey1 = pos.setup(code, WHITE, si).matlKey();
         pieceCount = i16(pos.count());
+        hasPawns = pos.count(PAWN) != 0;
 
         hasUniquePieces = false;
-        for (Piece p : Pieces) {
-            if (pos.count(p) == 1) {
-                hasUniquePieces = true;
-                break;
+        for (Color c : { WHITE, BLACK }) {
+            for (PieceType pt = PAWN; pt <= QUEN; ++pt) {
+                if (pos.count(c|pt) == 1) {
+                    hasUniquePieces = true;
+                    break;
+                }
             }
         }
 
-        hasPawns = pos.count(PAWN) != 0;
         // Set the leading color. In case both sides have pawns the leading color
         // is the side with less pawns because this leads to better compression.
         auto leadColor =
@@ -604,11 +605,11 @@ namespace {
         //     I(k) = k * d->span + d->span / 2      (1)
 
         // First step is to get the 'k' of the I(k) nearest to our idx, using definition (1)
-        u32 k = u32(idx / d->span);
+        u32 k{ u32(idx / d->span) };
 
         // Then we read the corresponding SparseIndex[] entry
-        u32 block   = number<u32, true>(&d->sparseIndex[k].block);
-        i32 offset  = number<u16, true>(&d->sparseIndex[k].offset);
+        u32 block { number<u32, true>(&d->sparseIndex[k].block) };
+        i32 offset{ number<u16, true>(&d->sparseIndex[k].offset) };
 
         // Now compute the difference idx - I(k). From definition of k we know that
         //
@@ -786,7 +787,7 @@ namespace {
         if (entry->hasPawns) {
             // In all the 4 tables, pawns are at the beginning of the piece sequence and
             // their color is the reference one. So we just pick the first one.
-            Piece p{ Piece(entry->get(0, 0)->pieces[0]) };
+            Piece p{ Piece(entry->get(0, FILE_A)->pieces[0]) };
             assert(pType(p) == PAWN);
             if (flip) p = flipColor(p);
 
@@ -817,7 +818,7 @@ namespace {
         // early exit otherwise.
         if (!checkDTZStm(entry, stm, pawnFile)) {
             state = PS_OPP_SIDE;
-            return Ret();
+            return Ret{};
         }
 
         // Now we are ready to get all the position pieces(but the lead pawns) and
@@ -1248,7 +1249,7 @@ namespace {
 
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (i16 i = 0; i < sides; ++i) {
-                *e.get(i, f) = PairsData{}; // PairsData
+                *e.get(i, f) = PairsData{};
             }
 
             i16 order[][2]
@@ -1616,7 +1617,7 @@ namespace SyzygyTB {
         ProbeState state;
         // Probe and rank each move
         for (auto &rm : rootMoves) {
-            auto move = rm.front();
+            auto move = rm[0];
             rootPos.doMove(move, si);
 
             WDLScore wdl{ -probeWDL(rootPos, state) };
@@ -1657,7 +1658,7 @@ namespace SyzygyTB {
         ProbeState state;
         // Probe and rank each move
         for (auto &rm : rootMoves) {
-            auto move{ rm.front() };
+            auto move{ rm[0] };
             rootPos.doMove(move, si);
 
             // Calculate dtz for the current move counting from the root position
