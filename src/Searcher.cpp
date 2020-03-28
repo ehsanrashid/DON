@@ -292,6 +292,7 @@ namespace {
         assert(ss->ply >= 1
             && ss->ply == (ss-1)->ply + 1
             && ss->ply < MAX_PLY);
+        assert(ss->excludedMove == MOVE_NONE);
 
         Move move;
         // Transposition table lookup.
@@ -325,6 +326,7 @@ namespace {
          && !pos.pseudoLegal(ttMove)) {
             ttMove = MOVE_NONE;
         }
+
 
         Value bestValue
             , futilityBase;
@@ -385,7 +387,6 @@ namespace {
         auto *thread{ pos.thread() };
 
         auto bestMove{ MOVE_NONE };
-
         auto activeSide{ pos.activeSide() };
 
         PieceSquareStatsTable const *pieceStats[]
@@ -622,13 +623,13 @@ namespace {
         Move excludedMove{ ss->excludedMove };
 
         // Step 4. Transposition table lookup.
-        // Don't want the score of a partial search to overwrite a previous full search
-        // TT value, so use a different position key in case of an excluded move.
-        Key key{ pos.posiKey()
-               ^ Key(excludedMove << 0x10) };
-        bool ttHit;
-        auto *tte   { TT.probe(key, ttHit) };
-
+        // Don't want to search TT value in case of an excluded move.
+        Key key{ pos.posiKey() };
+        bool ttHit = false;
+        TEntry *tte = nullptr;
+        if (excludedMove == MOVE_NONE) {
+            tte = TT.probe(key, ttHit);
+        }
         auto ttMove { rootNode ?
                         thread->rootMoves[thread->pvCur][0] :
                         ttHit ?
@@ -669,7 +670,8 @@ namespace {
                                tte->bound() & BOUND_UPPER)) {
             if (ttMove != MOVE_NONE) {
                 // Update move sorting heuristics on ttMove
-                if (!pos.captureOrPromotion(ttMove)) {
+                if (!pos.captureOrPromotion(ttMove)
+                 && pos.pseudoLegal(ttMove)) {
                     auto bonus{ statBonus(depth) };
                     // Bonus for a quiet ttMove that fails high
                     if (ttValue >= beta) {
@@ -730,14 +732,15 @@ namespace {
 
                     if ( bound == BOUND_EXACT
                      || (bound == BOUND_LOWER ? beta <= value : value <= alfa)) {
-                        tte->save(key,
-                                  MOVE_NONE,
-                                  valueToTT(value, ss->ply),
-                                  VALUE_NONE,
-                                  Depth(std::min(depth + 6, MAX_PLY - 1)),
-                                  bound,
-                                  ttPV);
-
+                        if (excludedMove == MOVE_NONE) {
+                            tte->save(key,
+                                      MOVE_NONE,
+                                      valueToTT(value, ss->ply),
+                                      VALUE_NONE,
+                                      Depth(std::min(depth + 6, MAX_PLY - 1)),
+                                      bound,
+                                      ttPV);
+                        }
                         return value;
                     }
 
@@ -796,13 +799,15 @@ namespace {
                         evaluate(pos) - (ss-1)->stats / 512 :
                         -(ss-1)->staticEval + 2 * VALUE_TEMPO;
 
-                tte->save(key,
-                          MOVE_NONE,
-                          VALUE_NONE,
-                          eval,
-                          DEPTH_NONE,
-                          BOUND_NONE,
-                          ttPV);
+                if (excludedMove == MOVE_NONE) {
+                    tte->save(key,
+                              MOVE_NONE,
+                              VALUE_NONE,
+                              eval,
+                              DEPTH_NONE,
+                              BOUND_NONE,
+                              ttPV);
+                }
             }
 
             // Step 7. Razoring (~1 ELO)
@@ -940,6 +945,7 @@ namespace {
 
             // Step 11. Internal iterative deepening (IID). (~1 ELO)
             if (depth > 6
+             && excludedMove == MOVE_NONE
              && ttMove == MOVE_NONE) {
 
                 depthSearch<PVNode>(pos, ss, alfa, beta, depth - 7, cutNode);
@@ -1475,12 +1481,6 @@ void Limit::clear() {
 
     startTime   = 0;
 }
-
-//namespace Searcher {
-//
-//    void initialize()
-//    {}
-//}
 
 /// Thread::search() is thread iterative deepening loop function.
 /// It calls depthSearch() repeatedly with increasing depth until

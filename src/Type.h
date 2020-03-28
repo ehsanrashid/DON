@@ -147,10 +147,10 @@ enum CastleSide : i08 { CS_KING, CS_QUEN, CS_CENTRE, CASTLE_SIDES = 2 };
 enum CastleRight : u08 {
     CR_NONE  = 0,       // 0000
 
-    CR_WKING = 1,       // 0001
-    CR_WQUEN = 2,       // 0010
-    CR_BKING = 4,       // 0100
-    CR_BQUEN = 8,       // 1000
+    CR_WKING = 1 << 0,  // 0001
+    CR_WQUEN = 1 << 1,  // 0010
+    CR_BKING = 1 << 2,  // 0100
+    CR_BQUEN = 1 << 3,  // 1000
 
     CR_WHITE = CR_WKING | CR_WQUEN, // 0011
     CR_BLACK = CR_BKING | CR_BQUEN, // 1100
@@ -191,8 +191,8 @@ enum MoveType : u16 {
 ///
 /// Special cases are MOVE_NONE and MOVE_NULL.
 enum Move : u16 {
-    MOVE_NONE = 0x00,
-    MOVE_NULL = 0x41,
+    MOVE_NONE = 0x000,
+    MOVE_NULL = 0x041,
 };
 
 enum Value : i32 {
@@ -234,8 +234,8 @@ enum Score : u32 {
 
 enum Bound : u08 {
     BOUND_NONE,
-    BOUND_UPPER,
-    BOUND_LOWER,
+    BOUND_UPPER = 1 << 0,
+    BOUND_LOWER = 1 << 1,
     BOUND_EXACT = BOUND_UPPER | BOUND_LOWER,
 };
 

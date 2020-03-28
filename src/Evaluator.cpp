@@ -281,8 +281,10 @@ namespace Evaluator {
             // Remove from kingRing the squares defended by two pawns
             kingRing[Own] &= ~pawnEntry->dblAttacks[Own];
             canCastle[Own] = pos.canCastle(Own)
-                          && ((pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING))
-                           || (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN)));
+                          && ((pos.canCastle(Own, CS_KING)
+                            && pos.castleExpeded(Own, CS_KING))
+                           || (pos.canCastle(Own, CS_QUEN)
+                            && pos.castleExpeded(Own, CS_QUEN)));
         }
 
         /// pieces() evaluates the pieces of the color and type
@@ -404,10 +406,10 @@ namespace Evaluator {
                     if (mob <= 3
                      && relativeRank(Own, s) < RANK_4
                      && (pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) != 0) {
-                        auto kF{ sFile(pos.square(Own|KING)) };
+                        auto kF{ sFile(kSq) };
                         if (((kF < FILE_E) && (sFile(s) < kF))
                          || ((kF > FILE_D) && (sFile(s) > kF))) {
-                            score -= RookTrapped * (1 + !canCastle[Own]);
+                            score -= RookTrapped * (1 + (/*(sRank(s) == sRank(kSq)) &&*/ !pos.canCastle(Own)));
                         }
                     }
                 }
@@ -427,7 +429,10 @@ namespace Evaluator {
                     // Penalty for pin or discover attack on the queen
                     b = 0; // Queen attackers
                     Bitboard queenBlockers{  pos.sliderBlockersAt(s, pos.pieces(Opp, BSHP, ROOK), b, b)
-                                          & ~pos.kingBlockers(Opp) };
+                                          & ~(  pos.kingBlockers(Opp)
+                                            | ( pos.pieces(Opp, PAWN)
+                                             &  fileBB(s)
+                                             & ~pawnSglAttackBB<Own>(pos.pieces(Own)))) };
                     if (queenBlockers != 0) {
                         score -= QueenAttacked;
                     }
@@ -757,10 +762,11 @@ namespace Evaluator {
                             attackedSquares &= sqlAttacks[Opp][NONE];
                         }
 
+                        i32 k{ 0 };
                         // Bonus according to attacked squares
-                        i32 k{ (attackedSquares) == 0                           ? 35 :
-                               (attackedSquares & frontSquaresBB(Own, s)) == 0  ? 20 :
-                               !contains(attackedSquares, pushSq)               ?  9 : 0 };
+                        k += ((attackedSquares) == 0                           ? 35 :
+                              (attackedSquares & frontSquaresBB(Own, s)) == 0  ? 20 :
+                              !contains(attackedSquares, pushSq)               ?  9 : 0);
                         // Bonus according to defended squares
                         k += 5 * ((behindMajors & pos.pieces(Own)) != 0
                                || contains(sqlAttacks[Own][NONE], pushSq));
@@ -825,8 +831,11 @@ namespace Evaluator {
         /// i.e. second order bonus/malus based on the known attacking/defending status of the players
         template<bool Trace>
         Score Evaluation<Trace>::initiative(Score s) const {
-            i32 outflanking = distance<File>(pos.square(WHITE|KING), pos.square(BLACK|KING))
-                            - distance<Rank>(pos.square(WHITE|KING), pos.square(BLACK|KING));
+            i32 outflanking{ distance<File>(pos.square(WHITE|KING), pos.square(BLACK|KING))
+                           - distance<Rank>(pos.square(WHITE|KING), pos.square(BLACK|KING)) };
+            bool pawnNotBothFlank{ (pos.pieces(PAWN) & SlotFileBB[CS_KING]) == 0
+                                || (pos.pieces(PAWN) & SlotFileBB[CS_QUEN]) == 0 };
+
             // Compute the initiative bonus for the attacking side
             i32 complexity = 11 * pos.count(PAWN)
                            +  9 * pawnEntry->passedCount()
@@ -835,18 +844,12 @@ namespace Evaluator {
                            + 24 * (sRank(pos.square(WHITE|KING)) > RANK_4
                                 || sRank(pos.square(BLACK|KING)) < RANK_5)
                            + 51 * (pos.nonPawnMaterial() == VALUE_ZERO)
-                           - 110;
-
-            // Pawn on both flanks
-            if ((pos.pieces(PAWN) & SlotFileBB[CS_KING]) != 0
-             && (pos.pieces(PAWN) & SlotFileBB[CS_QUEN]) != 0) {
-                complexity += 21;
-            }
-            else
-            // Almost Unwinnable
-            if (outflanking < 0) {
-                complexity -= 43;
-            }
+                            // Pawn not on both flanks
+                           - 21 * (pawnNotBothFlank)
+                            // Almost Unwinnable
+                           - 43 * (pawnNotBothFlank
+                                && outflanking < 0)
+                           - 89;
 
             auto mg{ mgValue(s) };
             auto eg{ egValue(s) };
