@@ -8,23 +8,23 @@
 #include "PRNG.h"
 #include "Notation.h"
 
-Array<u08, SQUARES, SQUARES> SquareDistance;
+u08 Distance[SQUARES][SQUARES];
 
-Array<Bitboard, SQUARES, SQUARES> LineBB;
+Bitboard LineBB[SQUARES][SQUARES];
 
-Array<Bitboard, COLORS, SQUARES> PawnAttackBB;
-Array<Bitboard, PIECE_TYPES, SQUARES> PieceAttackBB;
+Bitboard PawnAttacksBB[COLORS][SQUARES];
+Bitboard PieceAttacksBB[PIECE_TYPES][SQUARES];
 
-Array<Magic, SQUARES> BMagics;
-Array<Magic, SQUARES> RMagics;
+Magic BMagics[SQUARES];
+Magic RMagics[SQUARES];
 
 #if !defined(ABM)
 
-Array<u08, 1 << 16> PopCount16;
+u08 PopCount[USHRT_MAX+1];
 
 /*
 // Counts the non-zero bits using SWAR-Popcount algorithm
-u08 popCount16(u32 u) {
+u08 popCount16(u16 u) {
     u -= (u >> 1) & 0x5555U;
     u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
     u = ((u >> 4) + u) & 0x0F0FU;
@@ -36,11 +36,12 @@ u08 popCount16(u32 u) {
 
 namespace {
 
-    Bitboard slideAttacks(Square s, Array<Direction, 4> const &directions, Bitboard occ = 0) {
+    Bitboard slideAttacks(Square s, Direction const directions[], Bitboard occ = 0) {
 
         Bitboard attacks{ 0 };
-        for (Direction dir : directions) {
 
+        for (i08 i = 0; i < 4; ++i) {
+            auto dir{ directions[i] };
             Square sq{ s + dir };
             while (isOk(sq)
                 && distance(sq, sq - dir) == 1) {
@@ -73,25 +74,25 @@ namespace {
     /// In particular, here we use the so called "fancy" approach.
 #if !defined(NDEBUG)
     void initializeMagic(
-        Bitboard *attacks,
-        Array<Magic, SQUARES> &magics,
-        Array<Direction, 4> const &directions,
+        Bitboard attacks[],
+        Magic magics[],
+        Direction const directions[],
         u08 maxMaskPopCount)
 #else
     void initializeMagic(
-        Bitboard *attacks,
-        Array<Magic, SQUARES> &magics,
-        Array<Direction, 4> const &directions)
+        Bitboard attacks[],
+        Magic magics[],
+        Direction const directions[])
 #endif
     {
 
 #if !defined(BM2)
 
         constexpr u16 MaxIndex{ 0x1000 };
-        Array<Bitboard, MaxIndex> occupancy;
-        Array<Bitboard, MaxIndex> reference;
+        Bitboard occupancy[MaxIndex];
+        Bitboard reference[MaxIndex];
 
-        constexpr Array<u32, RANKS> Seeds
+        constexpr u32 Seeds[RANKS]
 #   if defined(BIT64)
         { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
 #   else
@@ -198,43 +199,46 @@ namespace BitBoard {
 
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
-                SquareDistance[s1][s2] = u08(std::max(distance<File>(s1, s2), distance<Rank>(s1, s2)));
-                assert(SquareDistance[s1][s2] >= 0
-                    && SquareDistance[s1][s2] <= 7);
+                Distance[s1][s2] = u08(std::max(fileDistance(s1, s2), rankDistance(s1, s2)));
+                assert(Distance[s1][s2] >= 0
+                    && Distance[s1][s2] <= 7);
             }
         }
 
 #if !defined(ABM)
 
-        for (u32 i = 0; i < PopCount16.size(); ++i) {
-            PopCount16[i] = std::bitset<16>(i).count(); //pop_count16(i);
+        for (u16 i = 0; ; ++i) {
+            PopCount[i] = std::bitset<16>(i).count(); //popCount16(i);
+            if (i == USHRT_MAX) break;
         }
 
 #endif
 
+        Direction const BDirections[] = { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST };
+        Direction const RDirections[] = { SOUTH     , WEST      , EAST      , NORTH      };
         // Initialize Magic Table
 #if !defined(NDEBUG)
-        initializeMagic(BAttacks, BMagics, { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST }, 9);
-        initializeMagic(RAttacks, RMagics, { SOUTH     , WEST      , EAST      , NORTH      }, 12);
+        initializeMagic(BAttacks, BMagics, BDirections, 9);
+        initializeMagic(RAttacks, RMagics, RDirections, 12);
 #else
-        initializeMagic(BAttacks, BMagics, { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST });
-        initializeMagic(RAttacks, RMagics, { SOUTH     , WEST      , EAST      , NORTH      });
+        initializeMagic(BAttacks, BMagics, BDirections);
+        initializeMagic(RAttacks, RMagics, RDirections);
 #endif
 
         // Pawn and Pieces Attack Table
         for (Square s = SQ_A1; s <= SQ_H8; ++s) {
 
-            PawnAttackBB[WHITE][s] = pawnSglAttackBB<WHITE>(SquareBB[s]);
-            PawnAttackBB[BLACK][s] = pawnSglAttackBB<BLACK>(SquareBB[s]);
-            assert(popCount(PawnAttackBB[WHITE][s]) <= 2
-                && popCount(PawnAttackBB[BLACK][s]) <= 2);
+            PawnAttacksBB[WHITE][s] = pawnSglAttackBB<WHITE>(SquareBB[s]);
+            PawnAttacksBB[BLACK][s] = pawnSglAttackBB<BLACK>(SquareBB[s]);
+            assert(popCount(PawnAttacksBB[WHITE][s]) <= 2
+                && popCount(PawnAttacksBB[BLACK][s]) <= 2);
 
             for (auto dir : { SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                               WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST }) {
                 Square sq{ s + dir };
                 if (isOk(sq)
                  && distance(s, sq) == 2) {
-                    PieceAttackBB[NIHT][s] |= sq;
+                    PieceAttacksBB[NIHT][s] |= sq;
                 }
             }
             for (auto dir : { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST,
@@ -242,26 +246,22 @@ namespace BitBoard {
                 Square sq{ s + dir };
                 if (isOk(sq)
                  && distance(s, sq) == 1) {
-                    PieceAttackBB[KING][s] |= sq;
+                    PieceAttacksBB[KING][s] |= sq;
                 }
             }
 
             // NOTE:: must be after initialize magic Bishop & Rook Table
-            PieceAttackBB[BSHP][s] = attacksBB<BSHP>(s, 0);
-            PieceAttackBB[ROOK][s] = attacksBB<ROOK>(s, 0);
-            PieceAttackBB[QUEN][s] = PieceAttackBB[BSHP][s]
-                                   | PieceAttackBB[ROOK][s];
+            PieceAttacksBB[BSHP][s] = attacksBB<BSHP>(s, 0);
+            PieceAttacksBB[ROOK][s] = attacksBB<ROOK>(s, 0);
+            PieceAttacksBB[QUEN][s] = PieceAttacksBB[BSHP][s]
+                                    | PieceAttacksBB[ROOK][s];
         }
 
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
-            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
-
-                LineBB[s1][s2] = 0;
-                if (s1 != s2) {
-                    for (PieceType pt : { BSHP, ROOK }) {
-                        if (contains(PieceAttackBB[pt][s1], s2)) {
-                            LineBB[s1][s2] = (PieceAttackBB[pt][s1] & PieceAttackBB[pt][s2]) | s1 | s2;
-                        }
+            for (PieceType pt : { BSHP, ROOK }) {
+                for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
+                    if (contains(PieceAttacksBB[pt][s1], s2)) { // contains(PieceAttacksBB[pt][s2], s1)
+                        LineBB[s1][s2] = (PieceAttacksBB[pt][s1] & PieceAttacksBB[pt][s2]) | s1 | s2;
                     }
                 }
             }

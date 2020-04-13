@@ -1,12 +1,10 @@
 #pragma once
 
-#include <vector>
-
 #include "Position.h"
 #include "Type.h"
 
 enum GenType : u08 {
-    NATURAL,
+    NORMAL,
     EVASION,
     CAPTURE,
     QUIET,

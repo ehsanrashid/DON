@@ -3,7 +3,7 @@
 #include "Type.h"
 
 // Threshold for counter moves based pruning
-constexpr i32 CounterMovePruneThreshold = 0;
+constexpr i32 CounterMovePruneThreshold{ 0 };
 
 /// Limit stores information sent by GUI after Go command about limit to search
 ///  - Available Time and Increment
@@ -23,7 +23,7 @@ struct Limit {
         TimePoint inc{ 0 };
     };
 
-    Array<Clock, COLORS> clock;     // Search with Clock
+    Clock     clock[COLORS]{};        // Search with Clock
 
     u08       movestogo{ 0 };       // Search <x> moves to the next time control
     TimePoint moveTime{ 0 };        // Search <x> exact time in milli-seconds
@@ -40,6 +40,12 @@ struct Limit {
 
     void clear();
 };
+
+namespace Searcher {
+
+    extern void initialize();
+
+}
 
 extern Limit Limits;
 

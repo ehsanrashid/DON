@@ -36,31 +36,6 @@ using namespace SyzygyTB;
 #   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
 
-
-// Create a string with last error message
-string getLastErrorStr() {
-
-    string message;
-    DWORD error = GetLastError();
-    if (error != 0) {
-        LPTSTR buffer{ nullptr };
-        DWORD bufferLen = FormatMessage(
-            FORMAT_MESSAGE_ALLOCATE_BUFFER | FORMAT_MESSAGE_FROM_SYSTEM | FORMAT_MESSAGE_IGNORE_INSERTS,
-            nullptr,
-            error,
-            MAKELANGID(LANG_NEUTRAL, SUBLANG_DEFAULT),
-            LPTSTR(&buffer),
-            0,
-            nullptr);
-        if (buffer != nullptr
-         && bufferLen != 0) {
-            message = { buffer, bufferLen };
-            LocalFree(buffer);
-        }
-    }
-    return message;
-}
-
 #else
 
 #   include <fcntl.h>
@@ -85,28 +60,26 @@ namespace {
         SINGLE_VALUE    = 1 << 7
     };
 
-    Array<i32, SQUARES> MapPawns;
-    Array<i32, SQUARES> MapB1H1H7;
-    Array<i32, SQUARES> MapA1D1D4;
-    Array<i32, 10, SQUARES> MapKK; // [MapA1D1D4][SQUARES]
+    i32 MapPawns[SQUARES];
+    i32 MapB1H1H7[SQUARES];
+    i32 MapA1D1D4[SQUARES];
 
-    Array<i32, TBPIECES - 1, SQUARES> Binomial;      // [k][n] k elements from a set of n elements
-    Array<i32, TBPIECES - 1, SQUARES> LeadPawnIdx;   // [lpCount][SQUARES]
-    Array<i32, TBPIECES - 1, FILES/2> LeadPawnsSize; // [lpCount][FILE_A..FILE_D]
+    constexpr i16 MapKKSize{ 10 };
+    i32 MapKK[MapKKSize][SQUARES]; // [MapA1D1D4][SQUARES]
+
+    i32 Binomial[TBPIECES - 1][SQUARES];      // [k][n] k elements from a set of n elements
+    i32 LeadPawnIdx[TBPIECES - 1][SQUARES];   // [lpCount][SQUARES]
+    i32 LeadPawnsSize[TBPIECES - 1][FILES/2]; // [lpCount][FILE_A..FILE_D]
 
     /// Comparison function to sort leading pawns in ascending MapPawns[] order
-    bool mapPawnsCompare(Square s1, Square s2) {
-        return MapPawns[s1] < MapPawns[s2];
-    }
-    i32 offA1H8(Square s) {
-        return i32(sRank(s)) - i32(sFile(s));
-    }
+    bool mapPawnsCompare(Square s1, Square s2) { return MapPawns[s1] < MapPawns[s2]; }
+    i32 offA1H8(Square s) { return i32(sRank(s)) - i32(sFile(s)); }
 
     template<typename T, i16 Half = sizeof (T) / 2, i16 End = sizeof (T) - 1>
     inline void swapEndian(T &x) {
         static_assert (std::is_unsigned<T>::value, "Argument of swapEndian not unsigned");
 
-        u08 *c = (u08*)(&x), tmp;
+        u08 *c = (u08*)&x, tmp;
         for (i16 i = 0; i < Half; ++i) {
             tmp = c[i], c[i] = c[End - i], c[End - i] = tmp;
         }
@@ -160,8 +133,8 @@ namespace {
     using Symbol = u16; // Huffman symbol
 
     struct LR {
-    public:
-        enum Side : u08 { LEFT, RIGHT };
+
+        enum Side { LEFT, RIGHT };
 
         // The 1st 12 bits is the left-hand symbol,
         // the 2nd 12 bits is the right-hand symbol.
@@ -178,12 +151,6 @@ namespace {
 
     static_assert (sizeof (LR) == 3, "LR size incorrect");
 
-
-    constexpr u08 TB_MAGIC[][4]
-    {
-        { 0xD7, 0x66, 0x0C, 0xA5 },
-        { 0x71, 0xE8, 0x23, 0x5D }
-    };
 
     // Tablebases data layout is structured as following:
     //
@@ -208,18 +175,15 @@ namespace {
 
         string filename;
 
-        TBFile(string const &code, string const &ext) {
-            auto file{ code };
-            file.insert(file.find('K', 1), "v");
-            file += ext;
+        TBFile(string const &file) {
             filename.clear();
             for (auto &path : Paths) {
-                auto fname = appendPath(path, file);
-                open(fname);
+                auto fname{ path + "/" + file }; //appendPath(path, file);
+                std::ifstream::open(fname);
                 if (is_open()) {
                     filename = fname;
-                    close();
-                    break;
+                    std::ifstream::close();
+                    return;
                 }
             }
         }
@@ -239,7 +203,7 @@ namespace {
                     OPEN_EXISTING,
                     FILE_FLAG_RANDOM_ACCESS, // NOTE: FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored.
                     nullptr);
-            if (INVALID_HANDLE_VALUE == hFile) {
+            if (hFile == INVALID_HANDLE_VALUE) {
                 std::cerr << "CreateFile() failed, file = " << filename << std::endl;
                 *baseAddress = nullptr;
                 return nullptr;
@@ -266,12 +230,11 @@ namespace {
 
             if (hFileMap == nullptr) {
                 std::cerr
-                    << "CreateFileMapping() failed, file = " << filename
-                    << ", error = " << getLastErrorStr() << std::endl;
+                    << "CreateFileMapping() failed, file = " << filename << std::endl;
                 std::exit(EXIT_FAILURE);
             }
 
-            *mapping = u64(hFileMap);
+            *mapping = (u64)hFileMap;
             *baseAddress =
                 MapViewOfFile(
                     hFileMap,
@@ -279,10 +242,9 @@ namespace {
                     0, // FileOffsetHigh
                     0, // FileOffsetLow
                     0);
-            if (*baseAddress == nullptr) {
+            if ((*baseAddress) == nullptr) {
                 std::cerr
-                    << "MapViewOfFile() failed, file = " << filename
-                    << ", error = " << getLastErrorStr() << std::endl;
+                    << "MapViewOfFile() failed, file = " << filename << std::endl;
                 std::exit(EXIT_FAILURE);
             }
 
@@ -332,7 +294,14 @@ namespace {
 #       endif
 
             u08 *data = (u08*)(*baseAddress);
-            if (memcmp(data, TB_MAGIC[type == WDL], 4) != 0) {
+
+            constexpr u08 TB_MAGIC[][4]
+            {
+                { 0xD7, 0x66, 0x0C, 0xA5 },
+                { 0x71, 0xE8, 0x23, 0x5D }
+            };
+
+            if (memcmp(data, TB_MAGIC[type == WDL], 4)) {
                 std::cerr << "Corrupted table, file = " << filename << std::endl;
                 unmap(*baseAddress, *mapping);
                 *baseAddress = nullptr;
@@ -347,7 +316,7 @@ namespace {
 #       if defined(_WIN32)
 
             UnmapViewOfFile(baseAddress);
-            CloseHandle(HANDLE(mapping));
+            CloseHandle((HANDLE)mapping);
 
 #       else
 
@@ -393,7 +362,7 @@ namespace {
     struct TBTable {
         using Ret = typename std::conditional<Type == WDL, WDLScore, i32>::type;
 
-        static constexpr i16 Sides = Type == WDL ? 2 : 1;
+        static constexpr i16 Sides{ Type == WDL ? 2 : 1 };
 
         std::atomic<bool> ready;
         void *baseAddress;
@@ -401,14 +370,14 @@ namespace {
         u64 mapping;
         Key matlKey1;
         Key matlKey2;
-        i16 pieceCount;
+        i32 pieceCount;
         bool hasPawns;
         bool hasUniquePieces;
         u08 pawnCount[COLORS]; // [Lead color / other color]
         PairsData items[Sides][4]; // [wtm / btm][FILE_A..FILE_D or 0]
 
         PairsData* get(i16 stm, File f) {
-            return &items[stm % Sides][f * hasPawns];
+            return &items[stm % Sides][hasPawns ? f : 0];
         }
 
         TBTable() :
@@ -435,7 +404,7 @@ namespace {
         StateInfo si;
         Position pos;
         matlKey1 = pos.setup(code, WHITE, si).matlKey();
-        pieceCount = i16(pos.count());
+        pieceCount = pos.count();
         hasPawns = pos.count(PAWN) != 0;
 
         hasUniquePieces = false;
@@ -443,21 +412,20 @@ namespace {
             for (PieceType pt = PAWN; pt <= QUEN; ++pt) {
                 if (pos.count(c|pt) == 1) {
                     hasUniquePieces = true;
-                    break;
+                    goto exitLoop;
                 }
             }
         }
-
+        exitLoop:
         // Set the leading color. In case both sides have pawns the leading color
         // is the side with less pawns because this leads to better compression.
-        auto leadColor =
+        bool c =
              pos.count(B_PAWN) == 0
          || (pos.count(W_PAWN) != 0
-          && pos.count(B_PAWN) >= pos.count(W_PAWN)) ?
-                WHITE : BLACK;
+          && pos.count(B_PAWN) >= pos.count(W_PAWN));
 
-        pawnCount[0] = u08(pos.count( leadColor|PAWN));
-        pawnCount[1] = u08(pos.count(~leadColor|PAWN));
+        pawnCount[0] = u08(pos.count((c ? WHITE : BLACK)|PAWN));
+        pawnCount[1] = u08(pos.count((c ? BLACK : WHITE)|PAWN));
 
         matlKey2 = pos.setup(code, BLACK, si).matlKey();
     }
@@ -483,7 +451,7 @@ namespace {
     private:
         using Entry = std::tuple<Key, TBTable<WDL>*, TBTable<DTZ>*>;
 
-        static constexpr i32 Size = 1 << 12; // 4K table, indexed by key's 12 lsb
+        static constexpr i32 Size{ 1 << 12 }; // 4K table, indexed by key's 12 lsb
 
         Entry entryTable[Size + 1];
 
@@ -491,12 +459,12 @@ namespace {
         std::deque<TBTable<DTZ>> dtzTable;
 
         void insert(Key matlKey, TBTable<WDL> *wdl, TBTable<DTZ> *dtz) {
-            u32 homeBucket = u32(matlKey & (Size - 1));
-            Entry entry = std::make_tuple(matlKey, wdl, dtz);
+            u32 homeBucket = matlKey & (Size - 1);
+            Entry entry{ std::make_tuple(matlKey, wdl, dtz) };
 
             // Ensure last element is empty to avoid overflow when looking up
             for (u32 bucket = homeBucket; bucket < Size; ++bucket) {
-                Key omatlKey = std::get<KEY>(entryTable[bucket]);
+                Key omatlKey{ std::get<KEY>(entryTable[bucket]) };
                 if (omatlKey == matlKey
                 || !std::get<WDL>(entryTable[bucket])) {
                     entryTable[bucket] = entry;
@@ -505,9 +473,9 @@ namespace {
 
                 // Robin Hood hashing: If we've probed for longer than this element,
                 // insert here and search for a new spot for the other element instead.
-                u32 ohomeBucket = u32(omatlKey & (Size - 1));
+                u32 ohomeBucket = omatlKey & (Size - 1);
                 if (ohomeBucket > homeBucket) {
-                    swap(entry, entryTable[bucket]);
+                    std::swap(entry, entryTable[bucket]);
                     matlKey = omatlKey;
                     homeBucket = ohomeBucket;
                 }
@@ -521,10 +489,9 @@ namespace {
 
         template<TBType Type>
         TBTable<Type>* get(Key matlKey) {
-            Entry const *entry = &entryTable[u32(matlKey) & (Size - 1)];
-            while (true/*entry - entryTable < Size*/) {
-                if (std::get<KEY>(*entry) == matlKey
-                    // Empty
+            Entry const *entry{ &entryTable[matlKey & (Size - 1)] };
+            while (true) {
+                if ( std::get<KEY>(*entry) == matlKey
                  || !std::get<Type>(*entry)) {
 
                     return std::get<Type>(*entry);
@@ -548,11 +515,12 @@ namespace {
 
             std::ostringstream oss;
             for (PieceType pt : pieces) {
-                oss << (WHITE|pt);
+                oss << toChar(pt);
             }
 
             string code{ oss.str() };
-            TBFile file{ code, ".rtbw" };
+            code.insert(code.find('K', 1), "v");
+            TBFile file{ code + ".rtbw" };
             if (file.filename.empty()) { // Only WDL file is checked
                 return;
             }
@@ -637,12 +605,12 @@ namespace {
         // Read the first 64 bits in our block, this is a (truncated) sequence of
         // unknown number of symbols of unknown length but we know the first one
         // is at the beginning of this 64 bits sequence.
-        u64 buf64 = number<u64, false>(ptr); ptr += 2;
-        i32 buf64Size = 64;
+        u64 buf64{ number<u64, false>(ptr) }; ptr += 2;
+        i32 buf64Size{ 64 };
         Symbol sym;
 
         while (true) {
-            i32 len = 0; // This is the symbol length - d->minSymLen
+            i32 len{ 0 }; // This is the symbol length - d->minSymLen
 
             // Now get the symbol length. For any symbol s64 of length l right-padded
             // to 64 bits we know that d->base64[l-1] >= s64 >= d->base64[l] so we
@@ -673,7 +641,7 @@ namespace {
             if (buf64Size <= 32) {
                 // Refill the buffer
                 buf64Size += 32;
-                buf64 |= u64(number<u32, false>(ptr++)) << (64 - buf64Size);
+                buf64 |= (u64)(number<u32, false>(ptr++)) << (64 - buf64Size);
             }
         }
 
@@ -705,8 +673,9 @@ namespace {
     }
 
     bool checkDTZStm(TBTable<DTZ> *entry, Color stm, File f) {
-        return (entry->get(stm, f)->flags & TBFlag::STM) == stm
-            || (entry->matlKey1 == entry->matlKey2
+        auto flags = entry->get(stm, f)->flags;
+        return (flags & TBFlag::STM) == stm
+            || ((entry->matlKey1 == entry->matlKey2)
              && !entry->hasPawns);
     }
 
@@ -718,7 +687,7 @@ namespace {
         return WDLScore(value - 2);
     }
 
-    constexpr i32 WDLMap[] = { 1, 3, 0, 2, 0 };
+    constexpr i32 WDLMap[]{ 1, 3, 0, 2, 0 };
 
     i32 mapScore(TBTable<DTZ> *entry, File f, i32 value, WDLScore wdl) {
 
@@ -727,12 +696,9 @@ namespace {
         u16* idx = entry->get(0, f)->mapIdx;
 
         if ((flags & TBFlag::MAPPED) != 0) {
-            if ((flags & TBFlag::WIDE) != 0) {
-                value = ((u16*)(map))[idx[WDLMap[wdl + 2]] + value];
-            }
-            else {
-                value = map[idx[WDLMap[wdl + 2]] + value];
-            }
+            value = (flags & TBFlag::WIDE) != 0 ?
+                    ((u16*)map)[idx[WDLMap[wdl + 2]] + value] :
+                    map[idx[WDLMap[wdl + 2]] + value];
         }
 
         // DTZ tables store distance to zero in number of moves or plies. We
@@ -757,7 +723,7 @@ namespace {
     Ret doProbeTable(Position const &pos, T *entry, WDLScore wdl, ProbeState &state) {
 
         Square squares[TBPIECES];
-        Piece pieces[TBPIECES];
+        Piece  pieces [TBPIECES];
         i16 size{ 0 };
 
         bool flip{
@@ -775,8 +741,8 @@ namespace {
             // flip the squares before to lookup.
          || (pos.matlKey() != entry->matlKey1) };
 
-        Color stm{
-            flip ? ~pos.activeSide() : pos.activeSide() };
+        Color stm{ pos.activeSide() };
+        if (flip) stm = ~stm;
 
         Bitboard pawns;
         i16 pawnCount;
@@ -804,8 +770,8 @@ namespace {
             } while (b != 0);
             pawnCount = size;
 
-            std::swap(squares[0], *std::max_element(squares, squares + size, mapPawnsCompare));
-            pawnFile = foldFile(sFile(squares[0]));
+            std::swap(squares[0], *std::max_element(squares, squares + pawnCount, mapPawnsCompare));
+            pawnFile = File(edgeDistance(sFile(squares[0])));
         }
         else {
             pawns = 0;
@@ -818,7 +784,7 @@ namespace {
         // early exit otherwise.
         if (!checkDTZStm(entry, stm, pawnFile)) {
             state = PS_OPP_SIDE;
-            return Ret{};
+            return Ret();
         }
 
         // Now we are ready to get all the position pieces(but the lead pawns) and
@@ -887,18 +853,11 @@ namespace {
         // Look for the first piece of the leading group not on the A1-D4 diagonal
         // and ensure it is mapped below the diagonal.
         for (i16 i = 0; i < d->groupLen[0]; ++i) {
-            auto off = offA1H8(squares[i]);
-
-            if (off == 0) {
-                continue;
-            }
-
-            if (off > 0) { // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
+            if (offA1H8(squares[i]) > 0) { // A1-H8 diagonal flip: SQ_A3 -> SQ_C1
                 for (i32 j = i; j < size; ++j) {
                     squares[j] = Square(((squares[j] >> 3) | (squares[j] << 3)) & 63);
                 }
             }
-            break;
         }
 
         // Encode the leading group.
@@ -984,7 +943,7 @@ namespace {
         // Encode remaining pawns then pieces according to square, in ascending order
         bool pawnRemains{
                entry->hasPawns
-            && entry->pawnCount[1] != 0 };
+            && entry->pawnCount[1] };
 
         i16 next{ 0 };
         while (d->groupLen[++next] != 0) {
@@ -1034,7 +993,7 @@ namespace {
         d->groupLen[n] = 1;
         // Number of pieces per group is stored in groupLen[], for instance in KRKN
         // the encoder will default on '111', so groupLen[] will be (3, 1).
-        for (i16 i = 1; i < e.pieceCount; ++i) {
+        for (i32 i = 1; i < e.pieceCount; ++i) {
             if (--firstLen > 0
              || d->pieces[i] == d->pieces[i - 1]) {
                 d->groupLen[n]++;
@@ -1061,7 +1020,7 @@ namespace {
 
         // Pawns on both sides
         bool pp{ e.hasPawns
-              && e.pawnCount[1] != 0 };
+              && e.pawnCount[1] };
         i16 next = 1 + pp;
         i32 emptyCount{ 64 - d->groupLen[0] - (pp ? d->groupLen[1] : 0) };
 
@@ -1137,7 +1096,7 @@ namespace {
         d->blockSize = u64(1) << *data++;
         d->span = u64(1) << *data++;
         d->sparseIndexSize = (tbSize + d->span - 1) / d->span; // Round up
-        auto padding = number<u08, true>(data++);
+        auto padding = number<u08, true>(data); data += 1;
         d->numBlocks = number<u32, true>(data); data += sizeof (u32);
         d->blockLengthSize = d->numBlocks + padding; // Padded to ensure SparseIndex[] does not point out of range.
 
@@ -1172,7 +1131,7 @@ namespace {
         }
 
         data += base64Size * sizeof (Symbol);
-        d->symLen.resize(number<u16, true>(data)); data += sizeof(u16);
+        d->symLen.resize(number<u16, true>(data)); data += sizeof (u16);
         d->btree = (LR*)(data);
 
         // The compression scheme used is "Recursive Pairing", that replaces the most
@@ -1213,14 +1172,14 @@ namespace {
                 }
                 else {
                     for (i16 i = 0; i < 4; ++i) {
-                        e.get(0, f)->mapIdx[i] = u16(data - e.map + 1);
+                        e.get(0, f)->mapIdx[i] = (u16)(data - e.map + 1);
                         data += *data + 1;
                     }
                 }
             }
         }
 
-        data += uPtr(data) & 1; // Word alignment
+        data += (uPtr)data & 1; // Word alignment
         return data;
     }
 
@@ -1244,8 +1203,8 @@ namespace {
 
         // Pawns on both sides
         bool pp{ e.hasPawns
-              && e.pawnCount[1] != 0 };
-        assert(!pp || e.pawnCount[0] != 0);
+              && e.pawnCount[1] };
+        assert(!pp || e.pawnCount[0]);
 
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (i16 i = 0; i < sides; ++i) {
@@ -1254,16 +1213,15 @@ namespace {
 
             i16 order[][2]
             {
-                { i16(*(data + 0) & 0xF), i16(pp ? *(data + 1) & 0xF : 0xF) },
-                { i16(*(data + 0) >>  4), i16(pp ? *(data + 1) >>  4 : 0xF) }
+                { i16(*(data) & 0xF), i16(pp ? *(data + 1) & 0xF : 0xF) },
+                { i16(*(data) >>  4), i16(pp ? *(data + 1) >>  4 : 0xF) }
             };
 
             data += 1 + pp;
 
-            for (i16 k = 0; k < e.pieceCount; ++k, ++data) {
+            for (i32 k = 0; k < e.pieceCount; ++k, ++data) {
                 for (i16 i = 0; i < sides; ++i) {
-                    e.get(i, f)->pieces[k] =
-                        Piece(i != 0 ? *data >> 4 : *data & 0xF);
+                    e.get(i, f)->pieces[k] = Piece(i != 0 ? *data >> 4 : *data & 0xF);
                 }
             }
 
@@ -1282,30 +1240,32 @@ namespace {
 
         data = setDTZMap(e, data, maxFile);
 
+        PairsData *d;
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (i16 i = 0; i < sides; ++i) {
-                PairsData *d{ e.get(i, f) };
-                d->sparseIndex = (SparseEntry*)(data);
+                (d = e.get(i, f))->sparseIndex = (SparseEntry*)(data);
                 data += d->sparseIndexSize * sizeof (SparseEntry);
             }
         }
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (i16 i = 0; i < sides; ++i) {
-                PairsData *d{ e.get(i, f) };
-                d->blockLength = (u16*)(data);
+                (d = e.get(i, f))->blockLength = (u16*)(data);
                 data += d->blockLengthSize * sizeof (u16);
             }
         }
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (i16 i = 0; i < sides; ++i) {
-                data = (u08*)((uPtr(data) + 0x3F) & ~0x3F); // 64 byte alignment
-                PairsData *d{ e.get(i, f) };
-                d->data = data;
+                data = (u08*)(((uPtr)data + 0x3F) & ~0x3F); // 64 byte alignment
+                (d = e.get(i, f))->data = data;
                 data += d->numBlocks * d->blockSize;
             }
         }
     }
 
+    // If the TB file corresponding to the given position is already memory mapped
+    // then return its base address, otherwise try to memory map and init it. Called
+    // at every probe, memory map and init only at first access. Function is thread
+    // safe and can be called concurrently.
     template<TBType Type>
     void* mapped(TBTable<Type> &e, Position const &pos) {
         static std::mutex mutex;
@@ -1325,14 +1285,13 @@ namespace {
         // Pieces strings in decreasing order for each color, like ("KPP","KR")
         string w, b;
         for (PieceType pt = KING; pt >= PAWN; --pt) {
-            w += string(pos.count(WHITE|pt), toChar(WHITE|pt));
-            b += string(pos.count(BLACK|pt), toChar(WHITE|pt));
+            w += string(pos.count(WHITE|pt), toChar(pt));
+            b += string(pos.count(BLACK|pt), toChar(pt));
         }
 
-        string code{ pos.matlKey() == e.matlKey1 ? w + b : b + w };
-        string ext{ Type == WDL ? ".rtbw" : ".rtbz" };
+        string code{ pos.matlKey() == e.matlKey1 ? w + 'v' + b : b + 'v' + w };
 
-        u08 *data{ TBFile{ code, ext }.map(&e.baseAddress, &e.mapping, Type) };
+        u08 *data{ TBFile{ code + (Type == WDL ? ".rtbw" : ".rtbz") }.map(&e.baseAddress, &e.mapping, Type) };
         if (data != nullptr) {
             set(e, data);
         }
@@ -1351,7 +1310,7 @@ namespace {
             return Ret(WDL_DRAW);
         }
 
-        TBTable<Type> *entry = TBTables.get<Type>(pos.matlKey());
+        TBTable<Type> *entry{ TBTables.get<Type>(pos.matlKey()) };
 
         if (entry == nullptr
          || mapped(*entry, pos) == nullptr) {
@@ -1381,7 +1340,7 @@ namespace {
 
         WDLScore wdlScore;
         StateInfo si;
-        auto moveList{ MoveList<GenType::LEGAL>(pos) };
+        auto moveList{ MoveList<LEGAL>(pos) };
         u16 moveCount{ 0 };
         for (auto &move : moveList) {
             if (!pos.capture(move)
@@ -1543,7 +1502,7 @@ namespace SyzygyTB {
         StateInfo si;
         i32 minDTZ = 0xFFFF;
 
-        for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+        for (auto const &vm : MoveList<LEGAL>(pos)) {
 
             bool zeroing = pos.capture(vm)
                         || pType(pos[orgSq(vm)]) == PAWN;
@@ -1561,7 +1520,7 @@ namespace SyzygyTB {
             // If the move mates, force minDTZ to 1
             if (dtz == 1
              && pos.checkers() != 0
-             && MoveList<GenType::LEGAL>(pos).size() == 0) {
+             && MoveList<LEGAL>(pos).size() == 0) {
                 minDTZ = 1;
             }
 
@@ -1744,15 +1703,16 @@ namespace SyzygyTB {
             // MapKK[] encodes all the 461 possible legal positions of two kings where the first is in the a1-d1-d4 triangle.
             // If the first king is on the a1-d4 diagonal, the other one shall not to be above the a1-h8 diagonal.
             vector<std::pair<i32, Square>> bothOnDiagonal;
-            for (i16 idx = 0; idx < i16(MapKK.size()); ++idx) {
+            for (i16 idx = 0; idx < MapKKSize; ++idx) {
                 for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1) {
                     if (idx == MapA1D1D4[s1]
                      && (idx != 0 || s1 == SQ_B1)) { // SQ_B1 is mapped to 0
 
                         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
-                            if (contains(PieceAttackBB[KING][s1] | s1, s2)) {
+                            if (contains(PieceAttacksBB[KING][s1] | s1, s2)) {
                                 continue; // Illegal position
                             }
+
                             auto off1 = offA1H8(s1);
                             auto off2 = offA1H8(s1);
                             if (off1 == 0 && off2 > 0) {
@@ -1837,9 +1797,9 @@ namespace SyzygyTB {
         // (Unix-based OS)= .\tb\wdl345:.\tb\wdl6:.\tb\dtz345:.\tb\dtz6
 
 #   if defined(_WIN32)
-        constexpr char Delimiter = ';';
+        constexpr char Delimiter{ ';' };
 #   else
-        constexpr char Delimiter = ':';
+        constexpr char Delimiter{ ':' };
 #   endif
 
         // Split paths by delimiter
@@ -1847,11 +1807,11 @@ namespace SyzygyTB {
         std::stringstream ss{ paths };
         string path;
         while (std::getline(ss, path, Delimiter)) {
-            replace(path, '\\', '/');
-            trim(path);
-            if (whiteSpaces(path)) {
-                continue;
-            }
+            //replace(path, '\\', '/');
+            //trim(path);
+            //if (whiteSpaces(path)) {
+            //    continue;
+            //}
             TBFile::Paths.push_back(path);
         }
 

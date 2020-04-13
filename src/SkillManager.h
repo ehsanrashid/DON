@@ -3,7 +3,7 @@
 #include "Type.h"
 
 // MaxLevel should be <= MAX_PLY/9
-constexpr u16 MaxLevel = 25;
+constexpr u16 MaxLevel{ 25 };
 
 /// Skill Manager class is used to implement strength limit
 class SkillManager {

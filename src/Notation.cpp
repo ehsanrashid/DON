@@ -39,6 +39,10 @@ string toString(Square s) {
     return{ toChar(sFile(s)), toChar(sRank(s)) };
 }
 
+char toChar(PieceType pt) {
+    return PieceChar[pt];
+}
+
 Piece toPiece(char p) {
     auto pos{ PieceChar.find(p) };
     return pos != string::npos ? Piece(pos) : NO_PIECE;
@@ -56,7 +60,7 @@ string toString(Value v) {
     assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
 
     std::ostringstream oss;
-    if (abs(v) < +VALUE_MATE_1_MAX_PLY) {
+    if (std::abs(v) < +VALUE_MATE_1_MAX_PLY) {
         oss << "cp " << i32(toCP(v));
     }
     else {
@@ -106,7 +110,7 @@ Move moveOfCAN(string const &can, Position const &pos) {
     //}
     assert(can.size() < 5
         || islower(can[4]));
-    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+    for (auto const &vm : MoveList<LEGAL>(pos)) {
         if (moveToCAN(vm) == can) {
             return vm;
         }
@@ -183,7 +187,7 @@ namespace {
                     //& ~pos.kingBlockers(pos.activeSide()) };
         while (pcs != 0) {
             auto sq{ popLSq(pcs) };
-            auto move{ makeMove<NORMAL>(sq, dst) };
+            auto move{ makeMove<SIMPLE>(sq, dst) };
             if (!(pos.pseudoLegal(move)
                && pos.legal(move))) {
                 amb ^= sq;
@@ -198,7 +202,7 @@ namespace {
     string prettyValue(Value v) {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
         std::ostringstream oss;
-        if (abs(v) < +VALUE_MATE_1_MAX_PLY) {
+        if (std::abs(v) < +VALUE_MATE_1_MAX_PLY) {
             oss << std::showpos << std::fixed << std::setprecision(2)
                 << toCP(v) / 100;
         }
@@ -211,9 +215,9 @@ namespace {
         return oss.str();
     }
 
-    constexpr u32 SecondMilliSec = 1000;
-    constexpr u32 MinuteMilliSec = 60*SecondMilliSec;
-    constexpr u32 HourMilliSec   = 60*MinuteMilliSec;
+    constexpr u32 SecondMilliSec{ 1000 };
+    constexpr u32 MinuteMilliSec{ 60*SecondMilliSec };
+    constexpr u32 HourMilliSec  { 60*MinuteMilliSec };
     string prettyTime(u64 time) {
         u32 hours  = u32(time / HourMilliSec);
         time      %= HourMilliSec;
@@ -239,7 +243,7 @@ namespace {
 string moveToSAN(Move m, Position &pos) {
     if (m == MOVE_NONE) return { "(none)" };
     if (m == MOVE_NULL) return { "(null)" };
-    assert(MoveList<GenType::LEGAL>(pos).contains(m));
+    assert(MoveList<LEGAL>(pos).contains(m));
 
     std::ostringstream oss;
     auto org{ orgSq(m) };
@@ -280,7 +284,7 @@ string moveToSAN(Move m, Position &pos) {
     if (pos.giveCheck(m)) {
         StateInfo si;
         pos.doMove(m, si, true);
-        oss << (MoveList<GenType::LEGAL>(pos).size() != 0 ? "+" : "#");
+        oss << (MoveList<LEGAL>(pos).size() != 0 ? "+" : "#");
         pos.undoMove(m);
     }
 
@@ -289,7 +293,7 @@ string moveToSAN(Move m, Position &pos) {
 /// Converts a string representing a move in short algebraic notation
 /// to the corresponding legal move, if any.
 Move moveOfSAN(string const &san, Position &pos) {
-    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+    for (auto const &vm : MoveList<LEGAL>(pos)) {
         if (moveToSAN(vm, pos) == san) {
             return vm;
         }
@@ -299,7 +303,7 @@ Move moveOfSAN(string const &san, Position &pos) {
 
 /*
 /// Returns formated human-readable search information.
-string prettyInfo(Thread *const &th) {
+string prettyInfo(Thread *th) {
     u64 nodes{ Threadpool.sum(&Thread::nodes) };
 
     std::ostringstream oss;

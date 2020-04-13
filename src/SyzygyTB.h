@@ -7,7 +7,7 @@
 
 namespace SyzygyTB {
 
-    constexpr i16 TBPIECES = 7;
+    constexpr i16 TBPIECES{ 7 };
 
     /// WDL Score
     enum WDLScore
@@ -17,6 +17,7 @@ namespace SyzygyTB {
         WDL_DRAW         =  0, // Draw
         WDL_CURSED_WIN   = +1, // Win, but draw under 50-move rule
         WDL_WIN          = +2, // Win
+        //WDLScoreNone     = -1000
     };
 
     extern WDLScore operator-(WDLScore wdl);

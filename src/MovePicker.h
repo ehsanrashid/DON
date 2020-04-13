@@ -1,11 +1,39 @@
 #pragma once
 
+#include <array>
 #include <limits>
 #include <type_traits>
 
 #include "MoveGenerator.h"
 #include "Position.h"
 #include "Type.h"
+
+/// Table is a generic N-dimensional array
+template<typename T, size_t Size, size_t... Sizes>
+class Table :
+    public std::array<Table<T, Sizes...>, Size> {
+
+    static_assert (Size != 0, "Size incorrect");
+private:
+    using NestedTable = Table<T, Size, Sizes...>;
+
+public:
+
+    void fill(T const &value) {
+        assert(std::is_standard_layout<NestedTable>::value);
+
+        auto *p = reinterpret_cast<T*>(this);
+        std::fill(p, p + sizeof (*this) / sizeof (T), value);
+    }
+
+};
+template<typename T, size_t Size>
+class Table<T, Size> :
+    public std::array<T, Size> {
+
+    static_assert (Size != 0, "Size incorrect");
+};
+
 
 
 /// Stats stores the value. It is usually a number.
@@ -81,7 +109,7 @@ using ColorIndexStatsTable      = StatsTable<i16, 10692, COLORS, SQUARES*SQUARES
 
 /// PlyIndexStatsTable stores moves history according to ply from 0 to MAX_LOWPLY-1
 /// indexed by [0...MAX_LOWPLY-1][moveMask]
-constexpr i16 MAX_LOWPLY = 4;
+constexpr i16 MAX_LOWPLY{ 4 };
 using PlyIndexStatsTable        = StatsTable<i16, 10692, MAX_LOWPLY, SQUARES*SQUARES>;
 
 /// PieceSquareTypeStatsTable stores move history according to piece.
@@ -135,6 +163,8 @@ private:
         mBeg,
         mEnd;
 
+    void limitedInsertionSort(i32) const;
+
     template<GenType GT>
     void value();
 
@@ -143,7 +173,7 @@ private:
 
 public:
 
-    bool skipQuiets{ false };
+    bool pickQuiets{ true };
 
     MovePicker() = delete;
     MovePicker(MovePicker const&) = delete;
@@ -158,7 +188,7 @@ public:
         PieceSquareTypeStatsTable   const*,
         PieceSquareStatsTable       const**,
         Move, Depth, i16,
-        Array<Move, 2> const&, Move);
+        Move const *, Move);
 
     MovePicker(
         Position const&,

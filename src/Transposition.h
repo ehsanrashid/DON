@@ -39,7 +39,10 @@ public:
     bool         pv() const { return bool (g08 & 4); }
     u08  generation() const { return u08  (g08 & 248); }
 
-    void save(u64, Move, Value, Value, Depth, Bound, bool);
+    u16       worth() const { return d08 - ((263 + Generation - g08) & 248); }
+
+    void refresh();
+    void save(Key, Move, Value, Value, Depth, Bound, u08);
 };
 
 /// Size of TEntry (10 bytes)
@@ -50,7 +53,7 @@ static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
 struct TCluster {
 
     // Cluster entry count
-    static constexpr u08 EntryCount = 3;
+    static constexpr u08 EntryCount{ 3 };
 
     TEntry entryTable[EntryCount];
     char padding[2]; // Pad to 32 bytes
@@ -77,12 +80,12 @@ private:
 
 public:
     // Minimum size of Table (MB)
-    static constexpr u32 MinHashSize = 4;
+    static constexpr u32 MinHashSize{ 4 };
     // Maximum size of Table (MB)
 #if defined(BIT64)
-    static constexpr u32 MaxHashSize = 128 << 10;
+    static constexpr u32 MaxHashSize{ 128 << 10 };
 #else
-    static constexpr u32 MaxHashSize =   2 << 10;
+    static constexpr u32 MaxHashSize{   2 << 10 };
 #endif
 
     TTable() = default;
@@ -117,3 +120,4 @@ public:
 
 // Global Transposition Table
 extern TTable TT;
+extern TTable TTEx;

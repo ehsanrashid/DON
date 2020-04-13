@@ -1,6 +1,7 @@
 #include "Material.h"
 
 #include <cassert>
+#include <cstring> // For std::memset
 
 #include "Helper.h"
 #include "Thread.h"
@@ -10,8 +11,8 @@ namespace Material {
     namespace {
 
         // Polynomial material imbalance parameters
-        constexpr Array<i32, PIECE_TYPES, PIECE_TYPES> OwnQuadratic
-        {{
+        constexpr i32 OwnQuadratic[PIECE_TYPES][PIECE_TYPES]
+        {
             // BP    P    N    B    R    Q
             {1438                          }, // BP
             {  40,  38                     }, // P
@@ -20,9 +21,9 @@ namespace Material {
             { -26,  -2,  47, 105,-208      }, // R
             {-189,  24, 117, 133,-134,  -6 }, // Q
             {  0,    0,   0,   0,   0,   0 }  // K
-        }};
-        constexpr Array<i32, PIECE_TYPES, PIECE_TYPES> OppQuadratic
-        {{
+        };
+        constexpr i32 OppQuadratic[PIECE_TYPES][PIECE_TYPES]
+        {
             // BP    P    N    B    R    Q
             {   0                          }, // BP
             {  36,   0                     }, // P
@@ -31,27 +32,27 @@ namespace Material {
             {  46,  39,  24, -24,   0      }, // R
             {  97, 100, -42, 137, 268,   0 }, // Q
             {  0,    0,   0,   0,   0,   0 }  // K
-        }};
+        };
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
-        Array<Endgame<KXK>, COLORS> ValueKXK
+        Endgame<KXK> ValueKXK[COLORS]
         {
             Endgame<KXK>(WHITE),
             Endgame<KXK>(BLACK)
         };
         // Endgame generic scaleFactor functions
-        Array<Endgame<KPKP>, COLORS> ScaleKPKP
+        Endgame<KPKP> ScaleKPKP[COLORS]
         {
             Endgame<KPKP>(WHITE),
             Endgame<KPKP>(BLACK)
         };
-        Array<Endgame<KBPsK>, COLORS> ScaleKBPsK
+        Endgame<KBPsK> ScaleKBPsK[COLORS]
         {
             Endgame<KBPsK>(WHITE),
             Endgame<KBPsK>(BLACK)
         };
-        Array<Endgame<KQKRPs>, COLORS> ScaleKQKRPs
+        Endgame<KQKRPs> ScaleKQKRPs[COLORS]
         {
             Endgame<KQKRPs>(WHITE),
             Endgame<KQKRPs>(BLACK)
@@ -60,20 +61,20 @@ namespace Material {
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
-        i32 computeImbalance(Array<i32, COLORS, PIECE_TYPES> const &count) {
+        i32 computeImbalance(const int pieceCount[][PIECE_TYPES]) {
             constexpr auto Opp{ ~Own };
 
             i32 imbalance{ 0 };
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
             for (PieceType pt1 = NONE; pt1 <= QUEN; ++pt1) {
-                if (count[Own][pt1] != 0) {
+                if (pieceCount[Own][pt1] != 0) {
                     i32 v{ 0 };
                     for (PieceType pt2 = NONE; pt2 <= pt1; ++pt2) {
-                        v += count[Own][pt2] * OwnQuadratic[pt1][pt2]
-                           + count[Opp][pt2] * OppQuadratic[pt1][pt2];
+                        v += pieceCount[Own][pt2] * OwnQuadratic[pt1][pt2]
+                           + pieceCount[Opp][pt2] * OppQuadratic[pt1][pt2];
                     }
-                    imbalance += count[Own][pt1] * v;
+                    imbalance += pieceCount[Own][pt1] * v;
                 }
             }
             return imbalance;
@@ -82,18 +83,10 @@ namespace Material {
 
     void Entry::evaluate(Position const &pos) {
 
-        Array<Value, COLORS> npm
-        {
-            pos.nonPawnMaterial(WHITE),
-            pos.nonPawnMaterial(BLACK)
-        };
-
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        phase = (i32(clamp(npm[WHITE] + npm[BLACK], VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME) * PhaseResolution)
+        phase = (i32(clamp(pos.nonPawnMaterial(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME) * PhaseResolution)
               / i32(VALUE_MIDGAME - VALUE_ENDGAME);
-        imbalance = SCORE_ZERO;
-        scaleFactor.fill(SCALE_NORMAL);
-        scalingFunc.fill(nullptr);
+        scaleFactor[WHITE] = scaleFactor[BLACK] = SCALE_NORMAL;
 
         // Let's look if have a specialized evaluation function for this particular material configuration.
         // First look for a fixed configuration one, then a generic one if previous search failed.
@@ -102,8 +95,8 @@ namespace Material {
         }
         // Generic evaluation
         for (Color c : { WHITE, BLACK }) {
-            if (npm[ c] >= VALUE_MG_ROOK
-             && pos.count(~c) == 1) {
+            if (pos.nonPawnMaterial( c) >= VALUE_MG_ROOK
+             && !moreThanOne(pos.pieces(~c))) {
                 evaluationFunc = &ValueKXK[c];
                 return;
             }
@@ -111,9 +104,6 @@ namespace Material {
 
         // Didn't find any special evaluation function for the current
         // material configuration. Is there a suitable scaling function?
-        //
-        // Face problems when there are several conflicting applicable
-        // scaling functions and need to decide which one to use.
         auto const *scalingFn{ EndGame::probe<Scale>(pos.matlKey()) };
         if (scalingFn != nullptr) {
             scalingFunc[scalingFn->stngColor] = scalingFn; // Only strong color assigned
@@ -122,46 +112,47 @@ namespace Material {
 
         // Didn't find any specialized scaling function, so fall back on
         // generic scaling functions that refer to more than one material distribution.
-        for (Color c : { WHITE, BLACK }) {
+        // Note that in this case don't return after setting the function.
 
-            if (npm[ c] == VALUE_MG_BSHP
-             && pos.count( c|PAWN) >= 1) {
-                scalingFunc[c] = &ScaleKBPsK[c];
-            }
-            else
-            if (npm[ c] == VALUE_MG_QUEN
+        // Only pawns left
+        if (pos.count(W_PAWN) == 1
+         && pos.count(B_PAWN) == 1
+         && pos.nonPawnMaterial() == VALUE_ZERO) {
+            // This is a special case so set scaling functions for both
+            scalingFunc[WHITE] = &ScaleKPKP[WHITE];
+            scalingFunc[BLACK] = &ScaleKPKP[BLACK];
+        }
+        else
+        for (Color c : { WHITE, BLACK }) {
+            if (pos.nonPawnMaterial( c) == VALUE_MG_QUEN
              && pos.count( c|PAWN) == 0
              && pos.count(~c|ROOK) == 1
              && pos.count(~c|PAWN) >= 1) {
                 scalingFunc[c] = &ScaleKQKRPs[c];
             }
+            else
+            if (pos.nonPawnMaterial( c) == VALUE_MG_BSHP
+             && pos.count( c|PAWN) >= 1) {
+                scalingFunc[c] = &ScaleKBPsK[c];
+            }
+        }
+
+        for (Color c : { WHITE, BLACK }) {
 
             // Zero or just one pawn makes it difficult to win, even with a material advantage.
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scaleFactor for cases such as KRKBP and KmmKm (except for KBBKN).
-            if ((npm[ c] - npm[~c]) <= VALUE_MG_BSHP
-             && pos.count( c|PAWN) == 0) {
-                scaleFactor[c] =
-                    npm[ c] < VALUE_MG_ROOK ?
-                        SCALE_DRAW :
-                        Scale(14 - 10 * (npm[~c] <= VALUE_MG_BSHP));
+            if (pos.count(c|PAWN) == 0
+             && (pos.nonPawnMaterial( c) - pos.nonPawnMaterial(~c)) <= VALUE_MG_BSHP) {
+                scaleFactor[c] = Scale((14 - 10 * (pos.nonPawnMaterial(~c) <= VALUE_MG_BSHP)) * (pos.nonPawnMaterial( c) >= VALUE_MG_ROOK));
             }
-        }
-
-        // Only pawns left
-        if ((npm[WHITE] + npm[BLACK]) == VALUE_ZERO
-         && pos.count(W_PAWN) == 1
-         && pos.count(B_PAWN) == 1) {
-            // This is a special case so set scaling functions for both
-            scalingFunc[WHITE] = &ScaleKPKP[WHITE];
-            scalingFunc[BLACK] = &ScaleKPKP[BLACK];
         }
 
         // Evaluate the material imbalance.
         // Use KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.
-        Array<i32, COLORS, PIECE_TYPES> pieceCount
-        {{
+        i32 pieceCount[COLORS][PIECE_TYPES]
+        {
             {
                 pos.bishopPaired(WHITE),
                 pos.count(W_PAWN), pos.count(W_NIHT),
@@ -174,7 +165,7 @@ namespace Material {
                 pos.count(B_BSHP), pos.count(B_ROOK),
                 pos.count(B_QUEN), pos.count(B_KING)
             }
-        }};
+        };
 
         auto value{ (computeImbalance<WHITE>(pieceCount)
                    - computeImbalance<BLACK>(pieceCount)) / 16 }; // Imbalance Resolution
@@ -191,6 +182,7 @@ namespace Material {
             return e;
         }
 
+        std::memset(e, 0, sizeof(*e));
         e->key = matlKey;
         e->evaluate(pos);
 

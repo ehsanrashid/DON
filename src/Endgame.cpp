@@ -7,8 +7,8 @@ namespace {
 
     // Drive a piece towards the edge of the board
     inline int pushToEdge(Square s) {
-        return 90 - (7 * nSqr(foldFile(sFile(s))) / 2
-                   + 7 * nSqr(foldRank(sRank(s))) / 2);
+        return 90 - (7 * nSqr(edgeDistance(sFile(s))) / 2
+                   + 7 * nSqr(edgeDistance(sRank(s))) / 2);
     }
     // Drive a piece towards the corner of the board, used in KBN vs K to A1H8 corners
     inline int pushToCorner(Square s) {
@@ -55,7 +55,7 @@ template<> Value Endgame<KXK>::operator()(Position const &pos) const {
 
     // Stalemate detection with lone weak king
     if (pos.activeSide() == weakColor
-     && MoveList<GenType::LEGAL>(pos).size() == 0) {
+     && MoveList<LEGAL>(pos).size() == 0) {
         return VALUE_DRAW;
     }
 
@@ -117,7 +117,7 @@ template<> Value Endgame<KBNK>::operator()(Position const &pos) const {
               + VALUE_EG_NIHT
               + pushClose(skSq, wkSq)
               + pushToCorner(colorOpposed(sbSq, SQ_A1) ? flipFile(wkSq) : wkSq) };
-    assert(abs(value) < +VALUE_MATE_2_MAX_PLY);
+    assert(value < +VALUE_MATE_2_MAX_PLY);
     return pos.activeSide() == stngColor ? +value : -value;
 }
 
@@ -308,7 +308,7 @@ template<> Scale Endgame<KRPKR>::operator()(Position const &pos) const {
      && sRank(skSq) <= RANK_6 - sTempo
      && (sRank(wrSq) == RANK_1
       || (!sTempo
-       && distance<File>(wrSq, spSq) >= 3))) {
+       && fileDistance(wrSq, spSq) >= 3))) {
         return SCALE_DRAW;
     }
     //
@@ -413,8 +413,8 @@ template<> Scale Endgame<KRPKB>::operator()(Position const &pos) const {
         // and the defending king is near the corner
         if (spR == RANK_6
          && distance(spSq + Push * 2, wkSq) <= 1
-         && distance<File>(spSq, wbSq) >= 2
-         && contains(PieceAttackBB[BSHP][wbSq], spSq + Push)) {
+         && fileDistance(spSq, wbSq) >= 2
+         && contains(PieceAttacksBB[BSHP][wbSq], spSq + Push)) {
             return Scale(8);
         }
     }
@@ -438,29 +438,11 @@ template<> Scale Endgame<KRPPKRP>::operator()(Position const &pos) const {
     }
 
     auto spR{ std::max(relativeRank(stngColor, sp1Sq), relativeRank(stngColor, sp2Sq)) };
-    if (distance<File>(wkSq, sp1Sq) <= 1
-     && distance<File>(wkSq, sp2Sq) <= 1
+    if (fileDistance(wkSq, sp1Sq) <= 1
+     && fileDistance(wkSq, sp2Sq) <= 1
      && spR < relativeRank(stngColor, wkSq)) {
         assert(RANK_2 <= spR && spR <= RANK_6); // Not RANK_7 due to pawnPassedAt()
         return Scale(7 * spR);
-    }
-
-    return SCALE_NONE;
-}
-
-/// KNP vs K. There is a single rule: if the pawn is a rook pawn on the 7th rank
-/// and the defending king prevents the pawn from advancing the position is drawn.
-template<> Scale Endgame<KNPK>::operator()(Position const &pos) const {
-    assert(verifyMaterial(pos, stngColor, VALUE_MG_NIHT, 1)
-        && verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
-
-    auto spFile{ sFile(pos.square(stngColor|PAWN)) };
-    auto spSq{ normalize(pos.square(stngColor|PAWN), stngColor, spFile) };
-    auto wkSq{ normalize(pos.square(weakColor|KING), stngColor, spFile) };
-
-    if (spSq == SQ_A7
-     && distance(wkSq, SQ_A8) <= 1) {
-        return SCALE_DRAW;
     }
 
     return SCALE_NONE;
@@ -519,7 +501,7 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
             block2Sq = makeSquare(sFile(sp1Sq), sRank(sp2Sq));
         }
 
-        auto d{ distance<File>(sp1Sq, sp2Sq) };
+        auto d{ fileDistance(sp1Sq, sp2Sq) };
         // Both pawns are on the same file. It's an easy draw if the defender firmly
         // controls some square in the front most pawn's path.
         if (d == 0) {
@@ -533,7 +515,7 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
         // behind this square on the file of the other pawn.
         if (d == 1) {
             if ((wkSq == block1Sq
-              && (distance<Rank>(sp1Sq, sp2Sq) >= 2
+              && (rankDistance(sp1Sq, sp2Sq) >= 2
                || contains(pos.attacksFrom(BSHP, wbSq) | wbSq, block2Sq)))
              || (wkSq == block2Sq
               && contains(pos.attacksFrom(BSHP, wbSq) | wbSq, block1Sq))) {
@@ -680,7 +662,7 @@ template<> Scale Endgame<KQKRPs>::operator()(Position const &pos) const {
      && relativeRank(weakColor, wrSq) == RANK_3
      && (pos.pieces(weakColor, PAWN)
        & pos.attacksFrom(KING, wkSq)
-       & PawnAttackBB[stngColor][wrSq]) != 0) {
+       & PawnAttacksBB[stngColor][wrSq]) != 0) {
         return SCALE_DRAW;
     }
 
@@ -694,11 +676,11 @@ namespace EndGame {
 
     namespace {
 
-        template<EndgameCode C, typename T = EndgameType<C>>
+        template<EndgameCode EC, typename T = EndgameType<EC>>
         void addEG(std::string const &code) {
             StateInfo si;
-            mapEG<T>()[Position().setup(code, WHITE, si).matlKey()] = EGPtr<T>(new Endgame<C>(WHITE));
-            mapEG<T>()[Position().setup(code, BLACK, si).matlKey()] = EGPtr<T>(new Endgame<C>(BLACK));
+            mapEG<T>()[Position().setup(code, WHITE, si).matlKey()] = EGPtr<T>(new Endgame<EC>(WHITE));
+            mapEG<T>()[Position().setup(code, BLACK, si).matlKey()] = EGPtr<T>(new Endgame<EC>(BLACK));
         }
 
     }
@@ -719,7 +701,6 @@ namespace EndGame {
         addEG<KRPKR  >("KRPKR");
         addEG<KRPKB  >("KRPKB");
         addEG<KRPPKRP>("KRPPKRP");
-        addEG<KNPK   >("KNPK");
         addEG<KBPKB  >("KBPKB");
         addEG<KBPPKB >("KBPPKB");
         addEG<KBPKN  >("KBPKN");

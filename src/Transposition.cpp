@@ -11,25 +11,29 @@
 #include "UCI.h"
 
 TTable TT;
+TTable TTEx;
 
 u08 TEntry::Generation = 0;
 
-void TEntry::save(u64 k, Move m, Value v, Value e, Depth d, Bound b, bool pv) {
-    // Preserve more valuable entries
-    if (m != MOVE_NONE
-     || k16 != u16(k >> 0x30)) {
+void TEntry::refresh() {
+    g08 = u08(Generation | (g08 & 7));
+}
+
+void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) {
+    if ((m != MOVE_NONE)
+     || (k >> 0x30) != k16) {
         m16 = u16(m);
     }
-    if (k16 != u16(k >> 0x30)
-     || d08 < (d - DEPTH_OFFSET + 4)
-     || b == BOUND_EXACT) {
+    if ((k >> 0x30) != k16
+     || (d - DEPTH_OFFSET) > (d08 - 4)
+     || (b == BOUND_EXACT)) {
         assert(d > DEPTH_OFFSET);
 
         k16 = u16(k >> 0x30);
         v16 = i16(v);
         e16 = i16(e);
         d08 = u08(d - DEPTH_OFFSET);
-        g08 = u08(Generation | u08(pv) << 2 | b);
+        g08 = u08(Generation | pv << 2 | b);
     }
     assert(d08 != 0);
 }
@@ -51,7 +55,7 @@ TEntry* TCluster::probe(u16 key16, bool &hit) {
         if (ite->d08 == 0
          || ite->k16 == key16) {
             // Refresh entry
-            ite->g08 = u08(TEntry::Generation | (ite->g08 & 7));
+            ite->refresh();
             hit = (ite->d08 != 0);
             return ite;
         }
@@ -59,8 +63,7 @@ TEntry* TCluster::probe(u16 key16, bool &hit) {
         // Due to packed storage format for generation and its cyclic nature
         // add 263 (256 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
         // to calculate the entry age correctly even after generation overflows into the next cycle.
-        if ((rte->d08 - ((263 + TEntry::Generation - rte->g08) & 248))
-          > (ite->d08 - ((263 + TEntry::Generation - ite->g08) & 248))) {
+        if (rte->worth() > ite->worth()) {
             rte = ite;
         }
     }
@@ -85,16 +88,16 @@ namespace {
 
 #   if defined(__linux__) && !defined(__ANDROID__)
 
-        constexpr size_t alignment = 2 * 1024 * 1024; // assumed 2MB page sizes
-        size_t size = ((mSize + alignment - 1) / alignment) * alignment; // multiple of alignment
+        constexpr size_t alignment{ 2 * 1024 * 1024 };                      // assumed 2MB page sizes
+        size_t size{ ((mSize + alignment - 1) / alignment) * alignment };   // multiple of alignment
         mem = aligned_alloc(alignment, size);
         madvise(mem, mSize, MADV_HUGEPAGE);
         return mem;
 
 #   else
 
-        constexpr size_t alignment = 64;        // assumed cache line size
-        size_t size = mSize + alignment - 1;    // allocate some extra space
+        constexpr size_t alignment{ 64 };        // assumed cache line size
+        size_t size{ mSize + alignment - 1 };    // allocate some extra space
         mem = malloc(size);
         return reinterpret_cast<void*>((uPtr(mem) + alignment - 1) & ~uPtr(alignment - 1));
 
@@ -139,7 +142,7 @@ u32 TTable::resize(u32 memSize) {
     }
 
     clear();
-    sync_cout << "info string Hash memory " << memSize << " MB" << sync_endl;
+    //sync_cout << "info string Hash memory " << memSize << " MB" << sync_endl;
     return memSize;
 }
 
@@ -165,15 +168,17 @@ void TTable::clear() {
 
     std::vector<std::thread> threads;
     auto threadCount{ optionThreads() };
-    for (u16 idx = 0; idx < threadCount; ++idx) {
+    for (u16 index = 0; index < threadCount; ++index) {
         threads.emplace_back(
-            [this, idx, threadCount]() {
+            [this, index, threadCount]() {
+
                 if (threadCount > 8) {
-                    WinProcGroup::bind(idx);
+                    WinProcGroup::bind(index);
                 }
+
                 auto const stride{ _clusterCount / threadCount };
-                auto const start{ stride * idx };
-                auto const count{ idx != threadCount - 1 ?
+                auto const start{ stride * index };
+                auto const count{ index != threadCount - 1 ?
                                     stride :
                                     _clusterCount - start };
                 std::memset(_clusterTable + start, 0, count * sizeof (TCluster));
@@ -209,7 +214,7 @@ u32 TTable::hashFull() const {
 /// TTable::extractNextMove() extracts next move after this move.
 Move TTable::extractNextMove(Position &pos, Move m) const {
     assert(m != MOVE_NONE
-        && MoveList<GenType::LEGAL>(pos).contains(m));
+        && MoveList<LEGAL>(pos).contains(m));
 
     StateInfo si;
     pos.doMove(m, si);
@@ -223,7 +228,7 @@ Move TTable::extractNextMove(Position &pos, Move m) const {
         nm = MOVE_NONE;
     }
     assert(nm == MOVE_NONE
-        || MoveList<GenType::LEGAL>(pos).contains(nm));
+        || MoveList<LEGAL>(pos).contains(nm));
     pos.undoMove(m);
 
     return nm;

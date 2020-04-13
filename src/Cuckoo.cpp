@@ -33,14 +33,14 @@ bool Cuckoo::operator!=(Cuckoo const &ck) const {
 
 Key Cuckoo::key() const {
     return empty() ? 0 :
-           RandZob.colorKey
-         ^ RandZob.pieceSquareKey[piece][sq1]
-         ^ RandZob.pieceSquareKey[piece][sq2];
+           RandZob.side
+         ^ RandZob.psq[piece][sq1]
+         ^ RandZob.psq[piece][sq2];
 }
 
 namespace Cuckoos {
 
-    Array<Cuckoo, CuckooSize> CuckooTable;
+    Cuckoo CuckooTable[CuckooSize];
 
 
     u16 nextHash(Key key, u16 h) {
@@ -80,9 +80,7 @@ namespace Cuckoos {
 
             for (Square s1 = SQ_A1; s1 <= SQ_H8 + WEST; ++s1) {
                 for (Square s2 = s1 + EAST; s2 <= SQ_H8; ++s2) {
-
-                    if (contains(PieceAttackBB[pType(p)][s1], s2)) {
-
+                    if (contains(PieceAttacksBB[pType(p)][s1], s2)) {
                         cuckoos.emplace_back(p, s1, s2);
                     }
                 }
@@ -91,7 +89,7 @@ namespace Cuckoos {
         assert(cuckoos.size() == 3668); // 2*(168+280+448+728+210) = 7336 / 2
 
         // Prepare the Cuckoo table
-        CuckooTable.fill({ NO_PIECE, SQ_NONE, SQ_NONE });
+        std::fill_n(CuckooTable, CuckooSize, Cuckoo{ NO_PIECE, SQ_NONE, SQ_NONE });
         for (auto cuckoo : cuckoos) {
             place(cuckoo);
         }

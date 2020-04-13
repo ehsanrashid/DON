@@ -29,10 +29,10 @@ namespace BitBase {
             assert(RANK_2 <= sRank(wpSq) && sRank(wpSq) <= RANK_7);
 
             return (wkSq << 0)
-                 | (bkSq << 6)
-                 | (active << 12)
-                 | ((sFile(wpSq) - FILE_A) << 13)
-                 | ((sRank(wpSq) - RANK_2) << 15);
+                 + (bkSq << 6)
+                 + (active << 12)
+                 + ((sFile(wpSq) - FILE_A) << 13)
+                 + ((sRank(wpSq) - RANK_2) << 15);
         }
 
         enum Result : u08 {
@@ -61,7 +61,7 @@ namespace BitBase {
 
             operator Result() const { return result; }
 
-            Result classify(Array<KPKPosition, BaseSize> const&);
+            Result classify(KPKPosition kpkArrBase[]);
         };
 
         KPKPosition::KPKPosition(u32 idx) {
@@ -79,11 +79,11 @@ namespace BitBase {
                 && index(active, wkSq, bkSq, wpSq) == idx);
 
             // Check if two pieces are on the same square or if a king can be captured
-            if (distance(wkSq, bkSq) < 2
+            if (distance(wkSq, bkSq) <= 1
              || wkSq == wpSq
              || bkSq == wpSq
              || (active == WHITE
-              && contains(PawnAttackBB[WHITE][wpSq], bkSq))) {
+              && contains(PawnAttacksBB[WHITE][wpSq], bkSq))) {
                 result = INVALID;
             }
             else
@@ -92,17 +92,17 @@ namespace BitBase {
              && sRank(wpSq) == RANK_7
              && wkSq != wpSq + NORTH
              && bkSq != wpSq + NORTH
-             && (distance(bkSq, wpSq + NORTH) > 1
-              || distance(wkSq, wpSq + NORTH) < 2)) {
+             && (distance(bkSq, wpSq + NORTH) >= 2
+              || distance(wkSq, wpSq + NORTH) <= 1)) {
                 result = WIN;
             }
             else
             // Immediate draw if king captures undefended pawn or is a stalemate
             if (active == BLACK
-             && ((distance(bkSq, wpSq) < 2
-               && distance(wkSq, wpSq) > 1)
-              || (  PieceAttackBB[KING][bkSq]
-                & ~(PieceAttackBB[KING][wkSq]|PawnAttackBB[WHITE][wpSq])) == 0)) {
+             && ((distance(bkSq, wpSq) <= 1
+               && distance(wkSq, wpSq) >= 2)
+              || (  PieceAttacksBB[KING][bkSq]
+                & ~(PieceAttacksBB[KING][wkSq]|PawnAttacksBB[WHITE][wpSq])) == 0)) {
                 result = DRAW;
             }
             // Position will be classified later
@@ -111,7 +111,7 @@ namespace BitBase {
             }
         }
 
-        Result KPKPosition::classify(Array<KPKPosition, BaseSize> const &kpkArrBase) {
+        Result KPKPosition::classify(KPKPosition kpkArrBase[]) {
             // White to Move:
             // If one move leads to a position classified as WIN, the result of the current position is WIN.
             // If all moves lead to positions classified as DRAW, the result of the current position is DRAW
@@ -128,8 +128,8 @@ namespace BitBase {
             Result r{ INVALID };
 
             if (active == WHITE) {
-                Bitboard b{  PieceAttackBB[KING][wkSq]
-                          & ~PieceAttackBB[KING][bkSq] };
+                Bitboard b{  PieceAttacksBB[KING][wkSq]
+                          & ~PieceAttacksBB[KING][bkSq] };
                 while (b != 0) {
                     r |= kpkArrBase[index(BLACK, popLSq(b), bkSq, wpSq)];
                 }
@@ -147,8 +147,8 @@ namespace BitBase {
                 }
             }
             else { // if (active == BLACK)
-                Bitboard b{  PieceAttackBB[KING][bkSq]
-                          & ~PieceAttackBB[KING][wkSq] };
+                Bitboard b{  PieceAttacksBB[KING][bkSq]
+                          & ~PieceAttacksBB[KING][wkSq] };
                 while (b != 0) {
                     r |= kpkArrBase[index(WHITE, wkSq, popLSq(b), wpSq)];
                 }
@@ -162,9 +162,9 @@ namespace BitBase {
 
     void initialize() {
 
-        Array<KPKPosition, BaseSize> kpkArrBase;
+        KPKPosition kpkArrBase[BaseSize];
         // Initialize kpkArrBase with known WIN/DRAW positions
-        for (u32 idx = 0; idx < kpkArrBase.size(); ++idx) {
+        for (u32 idx = 0; idx < BaseSize; ++idx) {
             kpkArrBase[idx] = { idx };
         }
         // Iterate through the positions until none of the unknown positions
@@ -172,14 +172,14 @@ namespace BitBase {
         bool repeat{ true };
         while (repeat) {
             repeat = false;
-            for (u32 idx = 0; idx < kpkArrBase.size(); ++idx) {
+            for (u32 idx = 0; idx < BaseSize; ++idx) {
                 repeat |= kpkArrBase[idx] == UNKNOWN
                        && kpkArrBase[idx].classify(kpkArrBase) != UNKNOWN;
             }
         }
 
         // Fill the Bitbase from Arraybase
-        for (u32 idx = 0; idx < kpkArrBase.size(); ++idx) {
+        for (u32 idx = 0; idx < BaseSize; ++idx) {
             if (kpkArrBase[idx] == WIN) {
                 KPKBitBase.set(idx);
             }

@@ -10,6 +10,7 @@
 #include "MovePicker.h"
 #include "Position.h"
 #include "RootMove.h"
+#include "King.h"
 #include "Material.h"
 #include "Pawns.h"
 #include "Type.h"
@@ -28,7 +29,7 @@ private:
 
     std::mutex _mutex;
     std::condition_variable _conditionVar;
-    u16 _index;
+    u16 _index; // indentity
     NativeThread _nativeThread;
 
 protected:
@@ -50,8 +51,7 @@ public:
     std::atomic<u32>
         pvChange;
 
-    i16   nmpPly;
-    Color nmpColor;
+    i16   nmpPly[COLORS];
 
     u16
         pvBeg,
@@ -79,10 +79,11 @@ public:
 
     // continuationStats is the combined stats of a given pair of moves,
     // usually the current one given a previous one.
-    Array<ContinuationStatsTable, 2, 2> continuationStats;
+    ContinuationStatsTable continuationStats[2][2];
 
+    Material::Table matlHash{ Material::Table(0x2000 ) };
     Pawns   ::Table pawnHash{ Pawns   ::Table(0x20000) };
-    Material::Table matlHash{ Material::Table(0x2000) };
+    King    ::Table kingHash{ King    ::Table(0x40000) };
 
     Thread() = delete;
     explicit Thread(u16);
@@ -96,7 +97,7 @@ public:
     void wakeUp();
     void waitIdle();
 
-    void idleFunction();
+    void threadFunc();
 
     virtual void clear();
     virtual void search();
@@ -106,35 +107,25 @@ public:
 class MainThread :
     public Thread {
 
-private:
-    i16  _ticks;
-
 public:
     using Base::Base;
 
-    bool stopOnPonderhit;       // Stop search on ponderhit
+    bool stopOnPonderHit;       // Stop search on ponderhit
     std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
 
     Value  bestValue;
     double timeReduction;
-    Array<Value, 4> iterValues;
+    Value  iterValues[4];
 
     Move bestMove;
     i16  bestDepth;
+    i16  tickCount;
 
-    void setTicks(i16);
-    void doTick();
+    void tick();
 
     void clear() override final;
     void search() override final;
 };
-
-namespace WinProcGroup {
-
-    extern void initialize();
-
-    extern void bind(u16);
-}
 
 
 /// ThreadPool class handles all the threads related stuff like,
@@ -152,8 +143,6 @@ protected:
 
 public:
 
-    double reductionFactor{ 0.0 };
-
     std::atomic<bool>
         stop, // Stop search forcefully
         research;
@@ -161,6 +150,7 @@ public:
     ThreadPool() = default;
     ThreadPool(ThreadPool const&) = delete;
     ThreadPool& operator=(ThreadPool const&) = delete;
+    virtual ~ThreadPool();
 
     template<typename T>
     T sum(std::atomic<T> Thread::*member) const {
@@ -171,7 +161,7 @@ public:
         return s;
     }
     template<typename T>
-    void reset(std::atomic<T> Thread::*member) const {
+    void reset(std::atomic<T> Thread::*member) {
         for (auto *th : *this) {
             th->*member = {};
         }
@@ -188,6 +178,11 @@ public:
 
     void startThinking(Position&, StateListPtr&);
 };
+
+namespace WinProcGroup {
+
+    extern void bind(u16);
+}
 
 // Global ThreadPool
 extern ThreadPool Threadpool;

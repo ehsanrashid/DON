@@ -12,22 +12,15 @@ struct ThreadMark {
     std::atomic<Key>           posiKey;
 
     template<typename T>
-    T load(std::atomic<T> ThreadMark::*member) const;
+    T load(std::atomic<T> ThreadMark::*member) const {
+        return (this->*member).load(std::memory_order::memory_order_relaxed);
+    }
     template<typename T>
-    void store(std::atomic<T> ThreadMark::*member, T t);
+    void store(std::atomic<T> ThreadMark::*member, T t) {
+        (this->*member).store(t, std::memory_order::memory_order_relaxed);
+    }
 
 };
-
-template<typename T>
-inline T ThreadMark::load(std::atomic<T> ThreadMark::*member) const {
-    return (this->*member).load(std::memory_order::memory_order_relaxed);
-}
-
-template<typename T>
-inline void ThreadMark::store(std::atomic<T> ThreadMark::*member, T t) {
-    (this->*member).store(t, std::memory_order::memory_order_relaxed);
-}
-
 
 /// ThreadMarker structure keeps track of which thread left ThreadMark at the given
 /// node for potential reductions. A free node will be marked upon entering the moves

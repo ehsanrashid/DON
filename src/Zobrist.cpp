@@ -6,42 +6,42 @@
 
 /// Zobrist::computeMatlKey() computes hash key of the material situation.
 Key Zobrist::computeMatlKey(Position const &pos) const {
-
     Key matlKey{ 0 };
     for (Piece p : Pieces) {
         for (i32 cnt = 0; cnt < pos.count(p); ++cnt) {
-            matlKey ^= pieceSquareKey[p][cnt];
+            matlKey ^= psq[p][cnt];
         }
     }
     return matlKey;
 }
 /// Zobrist::computePawnKey() computes hash key of the pawn structure.
 Key Zobrist::computePawnKey(Position const &pos) const {
-    // Include King Key for zero pawns
-    Key pawnKey{ pieceSquareKey[W_KING][0]
-               ^ pieceSquareKey[B_KING][0]};
+    Key pawnKey{ nopawn };
     for (Piece p : { W_PAWN, B_PAWN }) {
-        for (Square s : pos.squares(p)) {
-            pawnKey ^= pieceSquareKey[p][s];
+        Square const *ps{ pos.squares(p) };
+        Square s;
+        while ((s = *ps++) != SQ_NONE) {
+            pawnKey ^= psq[p][s];
         }
     }
     return pawnKey;
 }
 /// Zobrist::computePosiKey() computes hash key of the complete position.
 Key Zobrist::computePosiKey(Position const &pos) const {
-
     Key posiKey{ 0 };
     for (Piece p : Pieces) {
-        for (Square s : pos.squares(p)) {
-            posiKey ^= pieceSquareKey[p][s];
+        Square const *ps{ pos.squares(p) };
+        Square s;
+        while ((s = *ps++) != SQ_NONE) {
+            posiKey ^= psq[p][s];
         }
     }
     if (pos.activeSide() == WHITE) {
-        posiKey ^= colorKey;
+        posiKey ^= side;
     }
-    posiKey ^= castleRightKey[pos.castleRights()];
+    posiKey ^= castling[pos.castleRights()];
     if (pos.epSquare() != SQ_NONE) {
-        posiKey ^= enpassantKey[sFile(pos.epSquare())];
+        posiKey ^= enpassant[sFile(pos.epSquare())];
     }
     return posiKey;
 }
@@ -50,34 +50,35 @@ namespace Zobrists {
 
     /// initialize() initializes Zobrist lookup tables.
     void initialize() {
-        assert(PolyZob.pieceSquareKey[W_PAWN][SQ_A1] == U64(0x5355F900C2A82DC7));
-        assert(PolyZob.pieceSquareKey[W_KING][SQ_H8] == U64(0xD20D8C88C8FFE65F));
-        assert(PolyZob.pieceSquareKey[B_PAWN][SQ_A1] == U64(0x9D39247E33776D41));
-        assert(PolyZob.pieceSquareKey[B_KING][SQ_H8] == U64(0xFF577222C14F0A3A));
-        assert(PolyZob.colorKey == U64(0xF8D626AAAF278509));
+        assert(PolyZob.psq[W_PAWN][SQ_A1] == U64(0x5355F900C2A82DC7));
+        assert(PolyZob.psq[W_KING][SQ_H8] == U64(0xD20D8C88C8FFE65F));
+        assert(PolyZob.psq[B_PAWN][SQ_A1] == U64(0x9D39247E33776D41));
+        assert(PolyZob.psq[B_KING][SQ_H8] == U64(0xFF577222C14F0A3A));
+        assert(PolyZob.side == U64(0xF8D626AAAF278509));
 
         PRNG prng{ 0x105524 };
 
         for (Piece p : Pieces) {
             for (Square s = SQ_A1; s <= SQ_H8; ++s) {
-                RandZob.pieceSquareKey[p][s] = prng.rand<Key>();
+                RandZob.psq[p][s] = prng.rand<Key>();
             }
         }
         for (File f = FILE_A; f <= FILE_H; ++f) {
-            RandZob.enpassantKey[f] = prng.rand<Key>();
+            RandZob.enpassant[f] = prng.rand<Key>();
         }
         for (i16 cr = CR_NONE; cr <= CR_ANY; ++cr) {
-            RandZob.castleRightKey[cr] = 0;
+            RandZob.castling[cr] = 0;
             Bitboard b = cr;
             while (b != 0) {
-                Key k{ RandZob.castleRightKey[u64(1) << popLSq(b)] };
-                RandZob.castleRightKey[cr] ^= k != 0 ? k : prng.rand<Key>();
+                Key k{ RandZob.castling[u64(1) << popLSq(b)] };
+                RandZob.castling[cr] ^= k != 0 ? k : prng.rand<Key>();
             }
         }
-        RandZob.colorKey = prng.rand<Key>();
+        RandZob.side = prng.rand<Key>();
+        RandZob.nopawn = prng.rand<Key>();
 
         for (Square s = SQ_A1; s <= SQ_H8; ++s) {
-            RandZob.pieceSquareKey[NO_PIECE][s] = 0;
+            RandZob.psq[NO_PIECE][s] = 0;
         }
     }
 
@@ -89,7 +90,7 @@ Zobrist RandZob;
 Zobrist const PolyZob
 {
     // PieceSquare (768)
-    {{
+    {
         {},
         // W_PAWN
         {
@@ -324,7 +325,7 @@ Zobrist const PolyZob
         U64(0x13AE978D09FE5557), U64(0x730499AF921549FF), U64(0x4E4B705B92903BA4), U64(0xFF577222C14F0A3A)
         }
 
-    }},
+    },
     // CastleRights (4)->(16)
     {
     U64(0x0000000000000000),
@@ -356,5 +357,7 @@ Zobrist const PolyZob
     U64(0x67A34DAC4356550B),
     },
     // Color (1)
-    U64(0xF8D626AAAF278509)
+    U64(0xF8D626AAAF278509),
+    // NoPawn
+    U64(0x0000000000000000)
 };

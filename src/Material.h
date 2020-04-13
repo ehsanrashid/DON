@@ -1,25 +1,23 @@
 #pragma once
 
-#include <array>
-
 #include "Endgame.h"
 #include "Position.h"
 #include "Type.h"
 
 namespace Material {
 
-    constexpr i32 PhaseResolution = 128;
+    constexpr i32 PhaseResolution{ 128 };
 
-    /// Material::Entry contains various information about a material configuration.
+    /// Material::Entry contains information about Material configuration.
     struct Entry {
 
         Key   key;
         i32   phase;
         Score imbalance;
-        Array<Scale, COLORS> scaleFactor;
 
+        Scale scaleFactor[COLORS];
         EndgameBase<Value> const *evaluationFunc;
-        Array<EndgameBase<Scale> const*, COLORS> scalingFunc;
+        EndgameBase<Scale> const *scalingFunc[COLORS];
 
         void evaluate(Position const&);
 

@@ -26,7 +26,6 @@ enum EndgameCode : u08 {
     KRPKR,   // KRP vs KR
     KRPKB,   // KRP vs KB
     KRPPKRP, // KRPP vs KRP
-    KNPK,    // KNP vs K
     KBPKB,   // KBP vs KB
     KBPPKB,  // KBPP vs KB
     KBPKN,   // KBP vs KN

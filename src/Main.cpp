@@ -1,5 +1,4 @@
 #include <iostream>
-#include <thread>
 
 #include "Bitbase.h"
 #include "Bitboard.h"
@@ -12,13 +11,6 @@
 #include "TimeManager.h"
 #include "UCI.h"
 #include "Zobrist.h"
-
-/// clear() clears the stuffs in case of some crash.
-void clear() {
-    Threadpool.stop = true;
-    Threadpool.setup(0);
-    Threadpool.clear();
-}
 
 int main(int argc, char const *const *argv) {
 
@@ -34,12 +26,9 @@ int main(int argc, char const *const *argv) {
     UCI::initialize();
     EndGame::initialize();
     Book.initialize(Options["Book File"]);
-    WinProcGroup::initialize();
     Threadpool.setup(optionThreads());
     TimeMgr.clear();
     UCI::clear();
-
-    std::atexit(clear);
 
     // Join arguments
     std::string cmdLine;
@@ -49,6 +38,6 @@ int main(int argc, char const *const *argv) {
 
     UCI::handleCommands(cmdLine);
 
-    std::exit(EXIT_SUCCESS);
+    //std::atexit(clear);
     return EXIT_SUCCESS;
 }

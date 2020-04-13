@@ -20,6 +20,8 @@ extern char toChar(Rank);
 
 extern std::string toString(Square);
 
+extern char toChar(PieceType);
+
 extern Piece toPiece(char);
 extern char toChar(Piece);
 
@@ -42,4 +44,4 @@ extern std::ostream& operator<<(std::ostream&, Move);
 extern std::string moveToSAN(Move, Position&);
 extern Move moveOfSAN(std::string const&, Position&);
 
-//extern std::string prettyInfo(Thread *const&);
+//extern std::string prettyInfo(Thread*);

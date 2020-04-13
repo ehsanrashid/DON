@@ -1,7 +1,5 @@
 #pragma once
 
-#include <array>
-
 #include "Position.h"
 #include "Type.h"
 
@@ -10,11 +8,11 @@ struct Zobrist {
     // 15*64 + 16 + 8 + 1 = 985
     // 12*64 + 16 + 8 + 1 = 793
     //                    = 192 extra
-    Array<Key, PIECES
-             , SQUARES>       pieceSquareKey;
-    Array<Key, CASTLE_RIGHTS> castleRightKey;
-    Array<Key, FILES>         enpassantKey;
-    Key                       colorKey;
+    Key psq[PIECES][SQUARES];
+    Key castling[CASTLE_RIGHTS];
+    Key enpassant[FILES];
+    Key side;
+    Key nopawn;
 
     Zobrist() = default;
     Zobrist(Zobrist const&) = delete;

@@ -29,7 +29,6 @@
 
 #include <algorithm>
 #include <chrono>
-#include <array>
 #include <vector>
 
 using i08 =  int8_t;
@@ -81,7 +80,8 @@ constexpr u64 nSqr(i32 n) {
 // Return the sign of a number (-1, 0, 1)
 template<typename T>
 constexpr i32 sign(T const &v) {
-    return (T{} < v) - (v < T{});
+    //return (T{} < v) - (v < T{});
+    return (0 < v) - (v < 0);
 }
 
 template<typename T>
@@ -132,7 +132,6 @@ enum Direction : i08 {
 using Depth = i16;
 
 constexpr Depth DEPTH_ZERO       {  0 };
-constexpr Depth DEPTH_ONE        {  1 };
 constexpr Depth DEPTH_QS_CHECK   {  0 };
 constexpr Depth DEPTH_QS_NO_CHECK{ -1 };
 constexpr Depth DEPTH_QS_RECAP   { -5 };
@@ -174,13 +173,11 @@ enum Piece : u08 {
 };
 
 enum MoveType : u16 {
-    NORMAL    = 0 << 14, // [00]-- ===
+    SIMPLE    = 0 << 14, // [00]-- ===
     CASTLE    = 1 << 14, // [01]-- ===
     ENPASSANT = 2 << 14, // [10]-- ===
     PROMOTE   = 3 << 14, // [11]xx ===
 };
-
-//constexpr i32 MaxMoves          = 256;
 
 /// Move needs 16-bits to be stored
 ///
@@ -373,7 +370,7 @@ constexpr bool isOk(Color c) {
     return WHITE <= c && c <= BLACK;
 }
 constexpr Color operator~(Color c) {
-    return Color(c ^ BLACK);
+    return Color(BLACK - c);
 }
 
 constexpr bool isOk(File f) {
@@ -382,10 +379,6 @@ constexpr bool isOk(File f) {
 constexpr File operator~(File f) {
     return File(FILE_H - f);
 }
-// Fold file [ABCDEFGH] to file [ABCDDCBA]
-inline File foldFile(File f) {
-    return std::min(f, ~f);
-}
 
 constexpr bool isOk(Rank r) {
     return RANK_1 <= r && r <= RANK_8;
@@ -393,10 +386,7 @@ constexpr bool isOk(Rank r) {
 constexpr Rank operator~(Rank r) {
     return Rank(RANK_8 - r);
 }
-// Fold rank [12345678] to rank [12344321]
-inline Rank foldRank(Rank r) {
-    return std::min(r, ~r);
-}
+
 constexpr Rank relativeRank(Color c, Rank r) {
     return Rank(r ^ (RANK_8 * c));
 }
@@ -408,21 +398,21 @@ constexpr Square makeSquare(File f, Rank r) {
     return Square((r << 3) + f);
 }
 constexpr File sFile(Square s) {
-    return File(s & 7); //File((s >> 0) & i32(FILE_H));
+    return File(s & 7);
 }
 constexpr Rank sRank(Square s) {
-    return Rank(s >> 3); //Rank((s >> 3) & i32(RANK_8));
+    return Rank(s >> 3);
 }
 constexpr Color sColor(Square s) {
     return Color(((s + sRank(s)) ^ 1) & 1);
 }
 // Flip File: SQ_H1 -> SQ_A1
 constexpr Square flipFile(Square s) {
-    return Square(s ^ SQ_H1);
+    return Square(s ^ 7);
 }
 // Flip Rank: SQ_A8 -> SQ_A1
 constexpr Square flipRank(Square s) {
-    return Square(s ^ SQ_A8);
+    return Square(s ^ 56);
 }
 
 constexpr bool colorOpposed(Square s1, Square s2) {
@@ -430,7 +420,7 @@ constexpr bool colorOpposed(Square s1, Square s2) {
 }
 
 constexpr Square relativeSq(Color c, Square s) {
-    return Square(s ^ (SQ_A8 * c));
+    return Square(s ^ (56 * c));
 }
 constexpr Rank relativeRank(Color c, Square s) {
     return relativeRank(c, sRank(s));
@@ -457,12 +447,10 @@ constexpr Piece operator|(Color c, PieceType pt) {
 }
 
 constexpr PieceType pType(Piece p) {
-    //assert(isOk(p));
-    return PieceType(p & 7); //PieceType((p >> 0) & 7);
+    return PieceType(p & 7);
 }
 constexpr Color pColor(Piece p) {
-    //assert(isOk(p));
-    return Color(p >> 3); //Color((p >> 3) & 1);
+    return Color(p >> 3);
 }
 
 constexpr Piece flipColor(Piece p) {
@@ -478,10 +466,10 @@ constexpr CastleRight makeCastleRight(Color c, CastleSide cs) {
 
 
 constexpr Square orgSq(Move m) {
-    return Square((m >> 6) & 63); //Square((m >> 6) & SQ_H8);
+    return Square((m >> 6) & 63);
 }
 constexpr Square dstSq(Move m) {
-    return Square((m     ) & 63); //Square((m     ) & SQ_H8);
+    return Square((m >> 0) & 63);
 }
 constexpr bool isOk(Move m) {
     return orgSq(m) != dstSq(m);
@@ -497,12 +485,12 @@ constexpr u16 mMask(Move m) {
 }
 
 constexpr Move makePromoteMove(Square org, Square dst, PieceType pt = QUEN) {
-    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst);
+    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + (dst << 0));
 }
 
 template<MoveType MT>
 constexpr Move makeMove(Square org, Square dst) {
-    return Move(MT + (org << 6) + dst);
+    return Move(MT + (org << 6) + (dst << 0));
 }
 template<>
 constexpr Move makeMove<PROMOTE>(Square org, Square dst) {
@@ -510,7 +498,7 @@ constexpr Move makeMove<PROMOTE>(Square org, Square dst) {
 }
 
 constexpr Move reverseMove(Move m) {
-    return makeMove<NORMAL>(dstSq(m), orgSq(m));
+    return makeMove<SIMPLE>(dstSq(m), orgSq(m));
 }
 
 /// Convert Value to Centipawn
@@ -536,12 +524,12 @@ class Moves :
 public:
     using std::vector<Move>::vector;
 
-    bool contains(Move const move) const {
+    bool contains(Move move) const {
         return std::find(begin(), end(), move) != end();
     }
 
     void operator+=(Move move) { push_back(move); }
-    //void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
+    void operator-=(Move move) { erase(std::find(begin(), end(), move)); }
 
 };
 
@@ -584,9 +572,9 @@ public:
     using std::vector<ValMove>::vector;
 
     void operator+=(Move move) { emplace_back(move); }
-    //void operator-=(Move move) { erase(std::remove(begin(), end(), move), end()); }
+    //void operator-=(Move move) { erase(std::find(begin(), end(), move)); }
 
-    bool contains(Move const move) const {
+    bool contains(Move move) const {
         return std::find(begin(), end(), move) != end();
     }
     //bool contains(ValMove const &vm) const {
@@ -623,87 +611,36 @@ public:
     }
 
     T* operator[](Key key) {
-        return &std::vector<T>::operator[](u32(key) & Mask);
+        return &std::vector<T>::operator[](key & Mask);
     }
 };
 
-/// Multi-dimensional Array
-template<typename T, size_t Size, size_t... Sizes>
-class ArrayType {
+// Fold file [ABCDEFGH] to file [ABCDDCBA]
+// Fold rank [12345678] to rank [12344321]
+constexpr i32 edgeDistance(i08 d) { return std::min(d - 0, 7 - d); }
 
-    static_assert (Size != 0, "Size incorrect");
-private:
-    using NestedArrayType = typename ArrayType<T, Sizes...>::type;
+/// distance() functions return the distance between s1 and s2
+/// defined as the number of steps for a king in s1 to reach s2.
 
-public:
-    using type = std::array<NestedArrayType, Size>;
-};
+inline i32 fileDistance(Square s1, Square s2) { return std::abs(sFile(s1) - sFile(s2)); }
+inline i32 rankDistance(Square s1, Square s2) { return std::abs(sRank(s1) - sRank(s2)); }
 
-template<typename T, size_t Size>
-class ArrayType<T, Size> {
+extern u08 Distance[SQUARES][SQUARES];
 
-    static_assert (Size != 0, "Size incorrect");
-public:
-    using type = std::array<T, Size>;
-};
-
-template<typename T, size_t... Sizes>
-using Array = typename ArrayType<T, Sizes...>::type;
-
-
-/// Table is a generic N-dimensional array
-template<typename T, size_t Size, size_t... Sizes>
-class Table :
-    public std::array<Table<T, Sizes...>, Size> {
-
-    static_assert (Size != 0, "Size incorrect");
-private:
-    using NestedTable = Table<T, Size, Sizes...>;
-
-public:
-
-    void fill(T const &value) {
-        assert(std::is_standard_layout<NestedTable>::value);
-
-        auto *p = reinterpret_cast<T*>(this);
-        std::fill(p, p + sizeof (*this) / sizeof (T), value);
-    }
-
-};
-template<typename T, size_t Size>
-class Table<T, Size> :
-    public std::array<T, Size> {
-
-    static_assert (Size != 0, "Size incorrect");
-};
-
-
-/// distance() functions return the distance between s1 and s2, defined as the
-/// number of steps for a king in s1 to reach s2.
-
-template<typename T = Square> inline i32 distance(Square, Square);
-
-template<> inline i32 distance<File>(Square s1, Square s2) {
-    return std::abs(sFile(s1) - sFile(s2));
-}
-template<> inline i32 distance<Rank>(Square s1, Square s2) {
-    return std::abs(sRank(s1) - sRank(s2));
+inline i32 distance(Square s1, Square s2) {
+    //return std::max(fileDistance(s1, s2), rankDistance(s1, s2));
+    return Distance[s1][s2];
 }
 
-extern Array<u08, SQUARES, SQUARES> SquareDistance;
-template<> inline i32 distance<Square>(Square s1, Square s2) {
-    //return std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
-    return SquareDistance[s1][s2];
-}
 
-constexpr Array<Piece, 12> Pieces
+constexpr Piece Pieces[12]
 {
     W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING
 };
 
-constexpr Array<Value, PHASES, PIECE_TYPES> PieceValues
-{{
+constexpr Value PieceValues[PHASES][PIECE_TYPES]
+{
     { VALUE_ZERO, VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO },
     { VALUE_ZERO, VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO }
-}};
+};

@@ -1,7 +1,5 @@
 #pragma once
 
-#include <array>
-
 #include "Position.h"
 #include "Type.h"
 

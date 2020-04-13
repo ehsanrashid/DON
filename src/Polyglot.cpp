@@ -20,15 +20,15 @@ namespace {
     template<typename T>
     ifstream& operator >> (ifstream &ifs, T &t) {
         t = T();
-        for (u08 idx = 0; idx < sizeof(T) && ifs.good(); ++idx) {
+        for (u08 idx = 0; idx < sizeof (T) && ifs.good(); ++idx) {
             t = T((t << 8) + u08(ifs.get()));
         }
         return ifs;
     }
     //template<typename T>
     //ofstream& operator<<(ofstream &ofs, T const &t) {
-    //    for (u08 idx = 0; idx < sizeof(T) && ofs.good(); ++idx) {
-    //        ofs.put(u08(t >> (8 * (sizeof(T) - 1 - idx))));
+    //    for (u08 idx = 0; idx < sizeof (T) && ofs.good(); ++idx) {
+    //        ofs.put(u08(t >> (8 * (sizeof (T) - 1 - idx))));
     //    }
     //    return ofs;
     //}
@@ -65,13 +65,12 @@ namespace {
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
         u08 pt = (m >> 12) & 7;
-        if (pt > PAWN) {
-            assert(NIHT <= pt && pt <= QUEN);
+        if (pt != 0) {
             // Set new type for promotion piece
             m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + mMask(m));
         }
         // Add special move flags and verify it is legal
-        for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+        for (auto const &vm : MoveList<LEGAL>(pos)) {
             if ((vm.move & ~PROMOTE) == m) {
                 return vm;
             }
@@ -249,7 +248,7 @@ void PolyBook::initialize(string const &fnBook) {
     u64 fileSize = ifs.tellg();
     ifs.seekg(0, std::ios::beg);
 
-    _entryCount = (fileSize - HeaderSize) / sizeof(PolyEntry);
+    _entryCount = (fileSize - HeaderSize) / sizeof (PolyEntry);
     _entryTable = new PolyEntry[_entryCount];
     if (_entryTable == nullptr) {
         return;
@@ -258,7 +257,7 @@ void PolyBook::initialize(string const &fnBook) {
 
     if (HeaderSize != 0) {
         PolyEntry dummy;
-        for (u64 idx = 0; idx < HeaderSize / sizeof(PolyEntry); ++idx) {
+        for (u64 idx = 0; idx < HeaderSize / sizeof (PolyEntry); ++idx) {
             ifs >> dummy;
         }
     }

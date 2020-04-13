@@ -75,7 +75,7 @@ void RootMoves::operator+=(RootMove const &rm) {
 void RootMoves::initialize(Position const &pos) {
     assert(empty());
     //clear();
-    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+    for (auto const &vm : MoveList<LEGAL>(pos)) {
         *this += vm;
         assert(back().tbRank == 0
             && back().tbValue == VALUE_ZERO);
@@ -91,7 +91,7 @@ void RootMoves::initialize(Position const &pos, Moves const &filterMoves) {
 
     assert(empty());
     //clear();
-    for (auto const &vm : MoveList<GenType::LEGAL>(pos)) {
+    for (auto const &vm : MoveList<LEGAL>(pos)) {
         if (filterMoves.contains(vm)) {
             *this += vm;
             assert(back().tbRank == 0
@@ -104,15 +104,15 @@ RootMoves::const_iterator RootMoves::find(Move m) const {
     return std::find(begin(), end(), m);
 }
 RootMoves::const_iterator RootMoves::find(u16 iBeg, u16 iEnd, Move m) const {
-    return std::find(std::next(begin(), iBeg),
-                     std::next(begin(), iEnd), m);
+    return std::find(begin() + iBeg,
+                     begin() + iEnd, m);
 }
 
 bool RootMoves::contains(Move m) const {
     return find(m) != end();
 }
 bool RootMoves::contains(u16 iBeg, u16 iEnd, Move m) const {
-    return find(iBeg, iEnd, m) != std::next(begin(), iEnd);
+    return find(iBeg, iEnd, m) != (begin() + iEnd);
 }
 
 u16 RootMoves::bestCount(Move m) const {
@@ -125,23 +125,23 @@ u16 RootMoves::bestCount(u16 iBeg, u16 iEnd, Move m) const {
     //return contains(iBeg, iEnd, m) ?
     //        find(iBeg, iEnd, m)->bestCount : 0;
     auto rm{ find(iBeg, iEnd, m) };
-    return rm != std::next(begin(), iEnd) ? rm->bestCount : 0;
+    return rm != (begin() + iEnd) ? rm->bestCount : 0;
 }
 
 RootMoves::iterator RootMoves::find(Move m) {
     return std::find(begin(), end(), m);
 }
 RootMoves::iterator RootMoves::find(u16 iBeg, u16 iEnd, Move m) {
-    return std::find(std::next(begin(), iBeg),
-                     std::next(begin(), iEnd), m);
+    return std::find(begin() + iBeg,
+                     begin() + iEnd, m);
 }
 
 void RootMoves::stableSort() {
     std::stable_sort(begin(), end());
 }
 void RootMoves::stableSort(u16 iBeg, u16 iEnd) {
-    std::stable_sort(std::next(begin(), iBeg),
-                     std::next(begin(), iEnd));
+    std::stable_sort(begin() + iBeg,
+                     begin() + iEnd);
 }
 
 void RootMoves::saveValues() {
