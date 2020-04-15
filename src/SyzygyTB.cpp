@@ -961,7 +961,7 @@ namespace {
                         [&](Square s) {
                             return groupSq[i] > s;
                         });
-                n += Binomial[i + 1][groupSq[i] - adjust - 8 * pawnRemains];
+                n += Binomial[i + 1][groupSq[i] - 1 * adjust - 8 * pawnRemains];
             }
 
             pawnRemains = false;

@@ -430,49 +430,37 @@ namespace {
             bool giveCheck{ pos.giveCheck(move) };
             bool captureOrPromotion{ pos.captureOrPromotion(move) };
 
-            if (inCheck) {
-                // Pruning: Don't search moves with negative SEE
-                // Evasion Prunable: Detect non-capture evasions that are candidates to be pruned
-                if (((depth <= DEPTH_QS_NO_CHECK
-                   || moveCount >= 3)
-                  && bestValue > -VALUE_MATE_2_MAX_PLY
-                  && !pos.capture(move))
-                 && Limits.mate == 0
-                 && !pos.see(move)) {
+            // Futility pruning
+            if (!inCheck
+             && !giveCheck
+             && futilityBase > -VALUE_KNOWN_WIN
+             && !(pType(mp) == PAWN
+               && pos.pawnAdvanceAt(activeSide, org))
+             && Limits.mate == 0) {
+                assert(mType(move) != ENPASSANT); // Due to !pos.pawnAdvanceAt
+                // Futility pruning parent node
+                auto futilityValue{ futilityBase + PieceValues[EG][pType(pos[dst])] };
+                if (futilityValue <= alfa) {
+                    if (bestValue < futilityValue) {
+                        bestValue = futilityValue;
+                    }
+                    continue;
+                }
+                // Prune moves with negative or zero SEE
+                if (futilityBase <= alfa
+                 && !pos.see(move, VALUE_ZERO + 1)) {
+                    if (bestValue < futilityBase) {
+                        bestValue = futilityBase;
+                    }
                     continue;
                 }
             }
-            else {
-                // Futility pruning
-                if (!giveCheck
-                 && futilityBase > -VALUE_KNOWN_WIN
-                 && !(pType(mp) == PAWN
-                   && pos.pawnAdvanceAt(activeSide, org))
-                 && Limits.mate == 0) {
-                    assert(mType(move) != ENPASSANT); // Due to !pos.pawnAdvanceAt
-                    // Futility pruning parent node
-                    auto futilityValue{ futilityBase + PieceValues[EG][pType(pos[dst])] };
-                    if (futilityValue <= alfa) {
-                        if (bestValue < futilityValue) {
-                            bestValue = futilityValue;
-                        }
-                        continue;
-                    }
-                    // Prune moves with negative or zero SEE
-                    if (futilityBase <= alfa
-                     && !pos.see(move, VALUE_ZERO + 1)) {
-                        if (bestValue < futilityBase) {
-                            bestValue = futilityBase;
-                        }
-                        continue;
-                    }
-                }
 
-                // Pruning: Don't search moves with negative SEE
-                if (Limits.mate == 0
-                 && !pos.see(move)) {
-                    continue;
-                }
+            // Don't search moves with negative SEE values
+            if (!inCheck
+             && !pos.see(move)
+             && Limits.mate == 0) {
+                continue;
             }
 
             // Check for legality just before making the move
@@ -839,7 +827,7 @@ namespace {
             if (!PVNode
              && depth <= 5
                 // Futility Margin
-             && eval - 217 * (depth - improving) >= beta
+             && eval - 217 * (depth - 1 * improving) >= beta
              && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
              && Limits.mate == 0) {
                 return eval;
@@ -1788,7 +1776,7 @@ void Thread::search() {
 
                 double pvInstability{ 1.00 + pvChangeSum / Threadpool.size() };
 
-                auto availableTime{ TimePoint(TimeMgr.optimum()
+                auto availableTime{ TimePoint(TimeMgr.optimum
                                             * reduction
                                             * evalFalling
                                             * pvInstability) };
@@ -1948,8 +1936,11 @@ void MainThread::search() {
     auto &rm{ bestThread->rootMoves[0] };
 
     if (Limits.useTimeMgmt()) {
-        if (TimeMgr.timeNodes() != 0) {
-            TimeMgr.updateNodes(rootPos.activeSide());
+        if (u16(Options["Time Nodes"]) != 0) {
+            // In 'Nodes as Time' mode, subtract the searched nodes from the available ones.
+            TimeMgr.remainNodes +=
+                Limits.clock[rootPos.activeSide()].inc
+              - Threadpool.sum(&Thread::nodes);
         }
 
         bestValue = rm.newValue;
@@ -1999,7 +1990,7 @@ void MainThread::tick() {
 
     if ((Limits.useTimeMgmt()
       && (stopOnPonderHit
-       || TimeMgr.maximum() < elapsed + 10))
+       || TimeMgr.maximum < elapsed + 10))
      || (Limits.moveTime != 0
       && Limits.moveTime <= elapsed)
      || (Limits.nodes != 0

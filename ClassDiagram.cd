@@ -3,7 +3,7 @@
   <Class Name="Position">
     <Position X="9.5" Y="5.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>4kCAQAQEQQCNBashxRbBtACCwZuEUACwIqjoYAIgI5A=</HashCode>
+      <HashCode>4gCAQAQEQQCNBasjxVbBtACCwZuEUACwIqjoYAIgI5A=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -29,14 +29,14 @@
     </TypeIdentifier>
   </Class>
   <Class Name="EndgameBase&lt;T&gt;">
-    <Position X="22.5" Y="3.5" Width="1.5" />
+    <Position X="22.75" Y="3.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAQAAEEAAAABAAAAAAAAAAIAgAAAAAAA=</HashCode>
       <FileName>src\Endgame.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Endgame&lt;C, T&gt;">
-    <Position X="22.5" Y="6.25" Width="1.5" />
+    <Position X="22.75" Y="6.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAABAgAAAAAAA=</HashCode>
       <FileName>src\Endgame.h</FileName>
@@ -69,7 +69,7 @@
   <Class Name="Thread">
     <Position X="12.5" Y="9.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gEAAAIDQBQgAKACYAAGiBCgARBAAAAEAADCwgAAAIBE=</HashCode>
+      <HashCode>gEAAAIDQBQAAKACYAAGiBCgARBAAAAAAADC0gAAAIBE=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -81,7 +81,7 @@
   <Class Name="MainThread">
     <Position X="12.5" Y="16.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEgACAAAAAAAAAgAAAAIAAAAEAAAAAAAACgEEAAAIAA=</HashCode>
+      <HashCode>AEBACAAAAAAAAAgAABAIAAAAEAAAAAAAACAEEAAIAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -91,7 +91,7 @@
   <Class Name="ThreadPool">
     <Position X="19.5" Y="1.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AEAABAAGAAAAAAgASIAAAAAAAAAgAAACAABgAIQAAAA=</HashCode>
+      <HashCode>AEAABAAGAAAAAAgAQIAAAAAAAAAgAAACAABgAIQAAAA=</HashCode>
       <FileName>src\Thread.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -109,8 +109,8 @@
   <Class Name="std::vector&lt;_Ty, _Alloc&gt;" Collapsed="true">
     <Position X="16.5" Y="0.5" Width="3" />
     <TypeIdentifier>
-      <HashCode>IUoEEIEqCLBMUEBAAKMIAgISAgUESAIAxQMwgwAEQgI=</HashCode>
-      <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\vector</FileName>
+      <HashCode>AUIAEIEqCrBsEEBAAOMIAAAyAAUEQBIAhQkwggAFUkI=</HashCode>
+      <FileName>C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.16.27023\include\vector</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="RootMoves">
@@ -137,7 +137,7 @@
   <Class Name="Evaluator::`anonymous-namespace'::Evaluation&lt;Trace&gt;" Collapsed="true">
     <Position X="31.75" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gIAAgAoAARAkAAAAIQEgAIAAABAAMCAgAEAkQAEAAAA=</HashCode>
+      <HashCode>gIAAgAoAARBkAAAAIQEgAIAAABAAMCAgAEAkQAEAAAA=</HashCode>
       <FileName>src\Evaluator.cpp</FileName>
     </TypeIdentifier>
   </Class>
@@ -151,8 +151,8 @@
   <Class Name="std::array&lt;_Ty, _Size&gt;" Collapsed="true">
     <Position X="16" Y="6.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AQAAAIECADAEAABAAKAAEAISAAEAAAAAwAgQAgAEAAI=</HashCode>
-      <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\array</FileName>
+      <HashCode>AQAAAIECADAEAABAAKAAAAASAAEAABAAwQgQAgAFAAI=</HashCode>
+      <FileName>C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.16.27023\include\array</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="PolyBook" Collapsed="true">
@@ -197,7 +197,7 @@
       <FileName>src\ThreadWin32OSX.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="HashTable&lt;T&gt;" Collapsed="true">
+  <Class Name="HashTable&lt;T&gt;">
     <Position X="21.75" Y="1.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AEAAAAAgAAAAAAAAAAAAAAAAAAEAAAAAAACAAAAAAAA=</HashCode>
@@ -208,14 +208,14 @@
     <Position X="12.75" Y="7.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAgAAAAAAAA=</HashCode>
-      <FileName>src\Type.h</FileName>
+      <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Table&lt;T, Size&gt;" Collapsed="true">
     <Position X="15" Y="7.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\Type.h</FileName>
+      <FileName>src\MovePicker.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="StatsTable&lt;T, D, Size, ...Sizes&gt;" Collapsed="true">
@@ -242,7 +242,7 @@
   <Struct Name="StateInfo">
     <Position X="3.5" Y="13.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gEAAQAQAAAAJAYMAAQBAEAAAAAAAAEAAAgAAAAAgAAA=</HashCode>
+      <HashCode>gAAAQAQAAAAJAYMAAQBAEAAAAAAAAEAAAgAAAAAgAAA=</HashCode>
       <FileName>src\Position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -272,15 +272,15 @@
       <FileName>src\Comparer.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Pawns::Entry" Collapsed="true">
-    <Position X="31.75" Y="3.75" Width="1.5" />
+  <Struct Name="Pawns::Entry">
+    <Position X="25.5" Y="2.25" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>ACAAAAAAAEAAAAAAAEAMgAAAAAIAIAAAAAAAQAAAAAA=</HashCode>
+      <HashCode>ASgAAAAAAEBAAAAAAEAMgAAAAAIAAAAAAAAAQAAAAAA=</HashCode>
       <FileName>src\Pawns.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="Material::Entry" Collapsed="true">
-    <Position X="33.5" Y="3.75" Width="1.5" />
+  <Struct Name="Material::Entry">
+    <Position X="27.25" Y="2.25" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAgAAAEAAAEAAAAAAIAAAAAAAQEAAAAAAA=</HashCode>
       <FileName>src\Material.h</FileName>
@@ -292,7 +292,7 @@
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>AkAAAAAAAAAAAAABAAAgAAAAQACAAAAAAIACMIAAIAA=</HashCode>
+      <HashCode>AkAAAAAAAAAAAAABAAAgAAAAQACAAAAAAIAAMIAAIAA=</HashCode>
       <FileName>src\Searcher.h</FileName>
     </TypeIdentifier>
   </Struct>
@@ -300,14 +300,14 @@
     <Position X="35.25" Y="4.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\xstddef</FileName>
+      <FileName>C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.16.27023\include\xstddef</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="std::binary_function&lt;_Arg1, _Arg2, _Result&gt;" Collapsed="true">
     <Position X="18" Y="9.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\xstddef</FileName>
+      <FileName>C:\Program Files (x86)\Microsoft Visual Studio\2019\Community\VC\Tools\MSVC\14.16.27023\include\xstddef</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="ValMove">
@@ -358,8 +358,8 @@
       <FileName>src\Bitbase.cpp</FileName>
     </TypeIdentifier>
   </Struct>
-  <Struct Name="King::Entry" Collapsed="true">
-    <Position X="35.25" Y="3.75" Width="1.5" />
+  <Struct Name="King::Entry">
+    <Position X="27.25" Y="4.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAABAAACEAAAAAAIAAAAAABAAAgAAAAA=</HashCode>
       <FileName>src\King.h</FileName>
@@ -379,13 +379,6 @@
       <FileName>src\ThreadMarker.h</FileName>
     </TypeIdentifier>
   </Struct>
-  <Typedef Name="std::ofstream" Collapsed="true">
-    <Position X="30" Y="9.25" Width="1.5" />
-    <TypeIdentifier>
-      <HashCode>AAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>c:\Program Files (x86)\Microsoft Visual Studio 14.0\VC\include\iosfwd</FileName>
-    </TypeIdentifier>
-  </Typedef>
   <Enum Name="OutputState" Collapsed="true">
     <Position X="35.25" Y="6.75" Width="1.5" />
     <TypeIdentifier>

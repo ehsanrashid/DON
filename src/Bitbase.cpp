@@ -154,8 +154,8 @@ namespace BitBase {
                 }
             }
 
-            result = r & Good ? Good :
-                        r & UNKNOWN ? UNKNOWN : Bad;
+            result = r & Good    ? Good :
+                     r & UNKNOWN ? UNKNOWN : Bad;
             return result;
         }
     }
@@ -177,7 +177,6 @@ namespace BitBase {
                        && kpkArrBase[idx].classify(kpkArrBase) != UNKNOWN;
             }
         }
-
         // Fill the Bitbase from Arraybase
         for (u32 idx = 0; idx < BaseSize; ++idx) {
             if (kpkArrBase[idx] == WIN) {

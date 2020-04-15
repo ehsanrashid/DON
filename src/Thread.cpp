@@ -49,29 +49,30 @@ ThreadPool Threadpool;
 
 /// Thread constructor launches the thread and waits until it goes to sleep in threadFunc().
 /// Note that 'busy' and 'dead' should be already set.
-Thread::Thread(u16 index) :
-    _index(index),
-    _nativeThread(&Thread::threadFunc, this) {
+Thread::Thread(u16 idx) :
+    index(idx),
+    NativeThread(&Thread::threadFunc, this) {
+
     waitIdle();
 }
 /// Thread destructor wakes up the thread in threadFunc() and waits for its termination.
 /// Thread should be already waiting.
 Thread::~Thread() {
-    assert(!_busy);
-    _dead = true;
+    assert(!busy);
+    dead = true;
     wakeUp();
-    _nativeThread.join();
+    join();
 }
 /// Thread::wakeUp() wakes up the thread that will start the search.
 void Thread::wakeUp() {
-    std::lock_guard<std::mutex> lockGuard(_mutex);
-    _busy = true;
-    _conditionVar.notify_one(); // Wake up the thread in threadFunc()
+    std::lock_guard<std::mutex> lockGuard(mutex);
+    busy = true;
+    conditionVar.notify_one(); // Wake up the thread in threadFunc()
 }
 /// Thread::waitIdle() blocks on the condition variable while the thread is busy.
 void Thread::waitIdle() {
-    std::unique_lock<std::mutex> uniqueLock(_mutex);
-    _conditionVar.wait(uniqueLock, [&]{ return !_busy; });
+    std::unique_lock<std::mutex> uniqueLock(mutex);
+    conditionVar.wait(uniqueLock, [&]{ return !busy; });
 }
 /// Thread::threadFunc() is where the thread is parked.
 /// Blocked on the condition variable, when it has no work to do.
@@ -82,16 +83,16 @@ void Thread::threadFunc() {
     // just check if running threads are below a threshold, in this case all this
     // NUMA machinery is not needed.
     if (optionThreads() > 8) {
-        WinProcGroup::bind(_index);
+        WinProcGroup::bind(index);
     }
 
     while (true) {
         {
-        std::unique_lock<std::mutex> uniqueLock(_mutex);
-        _busy = false;
-        _conditionVar.notify_one(); // Wake up anyone waiting for search finished
-        _conditionVar.wait(uniqueLock, [&]{ return _busy; });
-        if (_dead) {
+        std::unique_lock<std::mutex> uniqueLock(mutex);
+        busy = false;
+        conditionVar.notify_one(); // Wake up anyone waiting for search finished
+        conditionVar.wait(uniqueLock, [&]{ return busy; });
+        if (dead) {
             return;
         }
         } //uniqueLock.unlock();
@@ -243,17 +244,17 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     // After ownership transfer 'states' becomes empty, so if we stop the search
     // and call 'go' again without setting a new position states.get() == nullptr.
     assert(states.get() != nullptr
-        || _states.get() != nullptr);
+        || setupStates.get() != nullptr);
 
     if (states.get() != nullptr) {
-        _states = std::move(states); // Ownership transfer, states is now empty
+        setupStates = std::move(states); // Ownership transfer, states is now empty
     }
 
     // We use setup() to set root position across threads.
     // So we need to save and later to restore last stateinfo, cleared by setup().
     // Note that states is shared by threads but is accessed in read-only mode.
     auto fen{ pos.fen() };
-    auto sBack = _states->back();
+    auto sBack = setupStates->back();
     for (auto *th : *this) {
         th->rootDepth       = DEPTH_ZERO;
         th->finishedDepth   = DEPTH_ZERO;
@@ -264,9 +265,9 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
         th->nmpPly[BLACK]   = 0;
         th->lowPlyStats.fill(0);
         th->rootMoves       = rootMoves;
-        th->rootPos.setup(fen, _states->back(), th);
+        th->rootPos.setup(fen, setupStates->back(), th);
     }
-    _states->back() = sBack;
+    setupStates->back() = sBack;
 
     mainThread()->wakeUp();
 }

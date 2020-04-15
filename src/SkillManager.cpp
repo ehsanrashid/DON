@@ -8,20 +8,20 @@ SkillManager SkillMgr;
 
 
 bool SkillManager::enabled() const {
-    return _level < MaxLevel;
+    return level < MaxLevel;
 }
 
 bool SkillManager::canPick(Depth depth) const {
-    return depth == 1 + _level;
+    return depth == 1 + level;
 }
 
 
 void SkillManager::setLevel(u16 lvl) {
-    _level = lvl;
+    level = lvl;
 }
 
 void SkillManager::clear() {
-    _bestMove = MOVE_NONE;
+    bestMove = MOVE_NONE;
 }
 
 
@@ -30,12 +30,12 @@ void SkillManager::clear() {
 Move SkillManager::pickBestMove() {
     static PRNG prng{ u64(now()) }; // PRNG sequence should be non-deterministic.
 
-    if (_bestMove == MOVE_NONE) {
+    if (bestMove == MOVE_NONE) {
         auto const &rootMoves{ Threadpool.mainThread()->rootMoves };
         assert(!rootMoves.empty());
 
         // RootMoves are already sorted by value in descending order
-        i32  weakness{ MAX_PLY - 8 * _level };
+        i32  weakness{ MAX_PLY - 8 * level };
         i32  deviance{ std::min(rootMoves[0].newValue - rootMoves[PVCount - 1].newValue, VALUE_MG_PAWN) };
         auto bestValue{ -VALUE_INFINITE };
         for (u16 i = 0; i < PVCount; ++i) {
@@ -47,9 +47,9 @@ Move SkillManager::pickBestMove() {
             // Then choose the move with the highest value.
             if (bestValue <= value) {
                 bestValue = value;
-                _bestMove = rootMoves[i][0];
+                bestMove = rootMoves[i][0];
             }
         }
     }
-    return _bestMove;
+    return bestMove;
 }

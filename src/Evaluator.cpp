@@ -206,7 +206,7 @@ namespace Evaluator {
             template<Color, PieceType> Score pieces();
             template<Color> Score king() const;
             template<Color> Score threats() const;
-            template<Color> Score passPawn() const;
+            template<Color> Score passers() const;
             template<Color> Score space() const;
 
             Score initiative(Score) const;
@@ -721,9 +721,9 @@ namespace Evaluator {
             return score;
         }
 
-        /// passPawn() evaluates the passed pawns of the color
+        /// passers() evaluates the passed pawns of the color
         template<bool Trace> template<Color Own>
-        Score Evaluation<Trace>::passPawn() const {
+        Score Evaluation<Trace>::passers() const {
             constexpr auto Opp{ ~Own };
             constexpr auto Push{ PawnPush[Own] };
 
@@ -733,9 +733,41 @@ namespace Evaluator {
 
             Score score{ SCORE_ZERO };
 
-            Bitboard passPawns{ pawnEntry->passPawns[Own] };
-            while (passPawns != 0) {
-                auto s{ popLSq(passPawns) };
+            Bitboard pass{ pawnEntry->passeds[Own] };
+
+            Bitboard candidatePass{ pass
+                                  & pawnEntry->blockeds[Own] };
+            if (candidatePass != 0) {
+                
+                Bitboard oppPawns{ pos.pieces(Opp, PAWN)
+                                 ^ pawnSglPushBB<Own>(candidatePass) };
+                // Can we lever the blocker of a candidate passer?
+                Bitboard leverable{ pawnSglPushBB<Own>(pos.pieces(Own, PAWN))
+                                  & ~pos.pieces(Opp)
+                                  & (~(pawnSglAttackBB<Opp>(oppPawns)
+                                     | sqlAttacks[Opp][NIHT]
+                                     | sqlAttacks[Opp][BSHP]
+                                     | sqlAttacks[Opp][ROOK]
+                                     | sqlAttacks[Opp][QUEN]
+                                     | sqlAttacks[Opp][KING])
+                                   |  (sqlAttacks[Own][PAWN]
+                                     | sqlAttacks[Own][NIHT]
+                                     | sqlAttacks[Own][BSHP]
+                                     | sqlAttacks[Own][ROOK]
+                                     | sqlAttacks[Own][QUEN]))
+                                  & (~(sqlAttacks[Opp][NIHT]
+                                     | sqlAttacks[Opp][BSHP])
+                                   |  (sqlAttacks[Own][PAWN]
+                                     | sqlAttacks[Own][NIHT]
+                                     | sqlAttacks[Own][BSHP])) };
+                // Remove candidate otherwise
+                pass &= ~candidatePass
+                      | shift<WEST>(leverable)
+                      | shift<EAST>(leverable);
+            }
+
+            while (pass != 0) {
+                auto s{ popLSq(pass) };
                 assert((pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) == 0
                     && (pos.pieces(Opp, PAWN)
                       & (pawnSglPushBB<Own>(frontSquaresBB(Own, s))
@@ -781,8 +813,7 @@ namespace Evaluator {
                     }
                 }
 
-                // Pass bonus less if need more than one pawn push to become passer
-                // Rank bonus + File bonus
+                // Pass bonus = Rank bonus + File bonus
                 score += bonus
                        - PasserFile * edgeDistance(sFile(s));
             }
@@ -817,7 +848,7 @@ namespace Evaluator {
                      + popCount( behind
                               &  safeSpace
                               & ~sqlAttacks[Opp][NONE]) };
-            i32 weight{ pos.count(Own) - 1 };
+            i32 weight{ pos.count(Own) + pawnEntry->blockedCount() / 2 - 2 };
             Score score{ makeScore(bonus * weight * weight / 16, 0) };
 
             if (Trace) {
@@ -947,7 +978,7 @@ namespace Evaluator {
             score += mobility[WHITE]   - mobility[BLACK]
                    + king    <WHITE>() - king    <BLACK>()
                    + threats <WHITE>() - threats <BLACK>()
-                   + passPawn<WHITE>() - passPawn<BLACK>();
+                   + passers<WHITE>()   - passers<BLACK>();
             if (pos.nonPawnMaterial() >= VALUE_SPACE_THRESHOLD) {
             score += space   <WHITE>() - space   <BLACK>();
             }

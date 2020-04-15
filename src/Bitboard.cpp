@@ -106,8 +106,8 @@ namespace {
             Magic &magic{ magics[s] };
 
             // Board edges are not considered in the relevant occupancies
-            Bitboard edge = ((FileBB[FILE_A]|FileBB[FILE_H]) & ~fileBB(s))
-                          | ((RankBB[RANK_1]|RankBB[RANK_8]) & ~rankBB(s));
+            Bitboard edge{ ((FileBB[FILE_A]|FileBB[FILE_H]) & ~fileBB(s))
+                         | ((RankBB[RANK_1]|RankBB[RANK_8]) & ~rankBB(s)) };
 
             // Given a square, the mask is the bitboard of sliding attacks from
             // computed on an empty board. The index must be big enough to contain
@@ -134,6 +134,7 @@ namespace {
 
             magic.shift = bits - popCount(magic.mask);
 #endif
+
             size = 0;
             // Use Carry-Rippler trick to enumerate all subsets of magic.mask
             // Store the corresponding slide attack bitboard in reference[].
@@ -167,19 +168,19 @@ namespace {
                 // A good magic must map every possible occupancy to an index that
                 // looks up the correct slide attack in the magics[s].attacks database.
                 // Note that build up the database for square as a side effect of verifying the magic.
-                std::vector<bool> used(size, false);
+                std::vector<bool> epoch(size, false);
                 for (i = 0; i < size; ++i) {
 
                     u16 idx{ magic.index(occupancy[i]) };
                     assert(idx < size);
 
-                    if (used[idx]) {
+                    if (epoch[idx]) {
                         if (magic.attacks[idx] != reference[i]) {
                             break;
                         }
                     }
                     else {
-                        used[idx] = true;
+                        epoch[idx] = true;
                         magic.attacks[idx] = reference[i];
                     }
                 }

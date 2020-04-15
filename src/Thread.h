@@ -19,18 +19,18 @@
 /// It use pawn and material hash tables so that once get a pointer to
 /// an entry its life time is unlimited and we don't have to care about
 /// someone changing the entry under our feet.
-class Thread {
+class Thread :
+    public NativeThread {
 
 private:
 
     bool
-        _dead{ false },
-        _busy{ true };
+        dead{ false },
+        busy{ true };
 
-    std::mutex _mutex;
-    std::condition_variable _conditionVar;
-    u16 _index; // indentity
-    NativeThread _nativeThread;
+    std::mutex mutex;
+    std::condition_variable conditionVar;
+    u16 index; // indentity
 
 protected:
     using Base = Thread;
@@ -136,7 +136,7 @@ class ThreadPool :
 
 private:
 
-    StateListPtr _states;
+    StateListPtr setupStates;
 
 protected:
     using Base = std::vector<Thread*>;

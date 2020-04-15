@@ -10,8 +10,8 @@ class SkillManager {
 
 private:
 
-    u16  _level{ MaxLevel };
-    Move _bestMove{ MOVE_NONE };
+    u16  level{ MaxLevel };
+    Move bestMove{ MOVE_NONE };
 
 public:
 

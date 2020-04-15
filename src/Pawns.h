@@ -18,8 +18,10 @@ namespace Pawns {
         Bitboard sglAttacks[COLORS];
         Bitboard dblAttacks[COLORS];
         Bitboard attacksSpan[COLORS];
-        Bitboard passPawns[COLORS];
+        Bitboard blockeds[COLORS];
+        Bitboard passeds[COLORS];
 
+        i32 blockedCount() const;
         i32 passedCount() const;
 
         template<Color>

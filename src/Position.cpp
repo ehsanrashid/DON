@@ -590,7 +590,7 @@ bool Position::see(Move m, Value threshold) const {
         Bitboard bb;
 
         if ((bb = pieces(PAWN) & movAttackers) != 0) {
-            if ((val = VALUE_MG_PAWN - val) < res) {
+            if ((val = VALUE_MG_PAWN - val) < i32(res)) {
                 break;
             }
             mocc ^= scanLSq(bb);
@@ -598,14 +598,14 @@ bool Position::see(Move m, Value threshold) const {
         }
         else
         if ((bb = pieces(NIHT) & movAttackers) != 0) {
-            if ((val = VALUE_MG_NIHT - val) < res) {
+            if ((val = VALUE_MG_NIHT - val) < i32(res)) {
                 break;
             }
             mocc ^= scanLSq(bb);
         }
         else
         if ((bb = pieces(BSHP) & movAttackers) != 0) {
-            if ((val = VALUE_MG_BSHP - val) < res) {
+            if ((val = VALUE_MG_BSHP - val) < i32(res)) {
                 break;
             }
             mocc ^= scanLSq(bb);
@@ -613,7 +613,7 @@ bool Position::see(Move m, Value threshold) const {
         }
         else
         if ((bb = pieces(ROOK) & movAttackers) != 0) {
-            if ((val = VALUE_MG_ROOK - val) < res) {
+            if ((val = VALUE_MG_ROOK - val) < i32(res)) {
                 break;
             }
             mocc ^= scanLSq(bb);
@@ -621,7 +621,7 @@ bool Position::see(Move m, Value threshold) const {
         }
         else
         if ((bb = pieces(QUEN) & movAttackers) != 0) {
-            if ((val = VALUE_MG_QUEN - val) < res) {
+            if ((val = VALUE_MG_QUEN - val) < i32(res)) {
                 break;
             }
             mocc ^= scanLSq(bb);

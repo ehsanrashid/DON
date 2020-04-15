@@ -41,15 +41,15 @@ class PolyBook {
 
 private:
 
-    PolyEntry  *_entryTable{ nullptr };
-    u64         _entryCount{ 0 };
+    PolyEntry  *entryTable{ nullptr };
+    u64         entryCount{ 0 };
 
-    std::string _fnBook;
+    std::string fnBook;
 
-    bool        _doProbe{ true };
-    Bitboard    _pieces{ 0 };
-    i32         _pieceCount{ 0 };
-    u08         _failCount{ 0 };
+    bool        doProbe{ true };
+    Bitboard    pieces{ 0 };
+    i32         pieceCount{ 0 };
+    u08         failCount{ 0 };
 
     void clear();
 

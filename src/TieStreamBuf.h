@@ -27,9 +27,8 @@ private:
 
 public:
 
-    std::streambuf
-        *sbRead,
-        *sbWrit;
+    std::streambuf *sbRead;
+    std::streambuf *sbWrit;
 
     TieStreamBuf(
         std::streambuf *sbRd,

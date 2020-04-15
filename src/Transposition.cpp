@@ -110,18 +110,18 @@ namespace {
 
 
 TTable::~TTable() {
-    free(_mem);
-    //_mem = nullptr;
+    free(mem);
+    //mem = nullptr;
 }
 
 /// size() returns hash size in MB
 u32 TTable::size() const {
-    return u32((_clusterCount * sizeof (TCluster)) >> 20);
+    return u32((clusterCount * sizeof (TCluster)) >> 20);
 }
 /// cluster() returns a pointer to the cluster of given a key.
 /// Lower 32 bits of the key are used to get the index of the cluster.
 TCluster* TTable::cluster(Key posiKey) const {
-    return &_clusterTable[(u32(posiKey) * _clusterCount) >> 0x20];
+    return &clusterTable[(u32(posiKey) * clusterCount) >> 0x20];
 }
 
 /// TTable::resize() sets the size of the transposition table, measured in MB.
@@ -132,11 +132,11 @@ u32 TTable::resize(u32 memSize) {
 
     Threadpool.mainThread()->waitIdle();
 
-    free(_mem);
+    free(mem);
 
-    _clusterCount = (size_t(memSize) << 20) / sizeof (TCluster);
-    _clusterTable = static_cast<TCluster*>(allocAlignedMemory(_mem, size_t(_clusterCount * sizeof (TCluster))));
-    if (_mem == nullptr) {
+    clusterCount = (size_t(memSize) << 20) / sizeof (TCluster);
+    clusterTable = static_cast<TCluster*>(allocAlignedMemory(mem, size_t(clusterCount * sizeof (TCluster))));
+    if (mem == nullptr) {
         std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << std::endl;
         return 0;
     }
@@ -159,8 +159,8 @@ void TTable::autoResize(u32 memSize) {
 }
 /// TTable::clear() clear the entire transposition table in a multi-threaded way.
 void TTable::clear() {
-    assert(_clusterTable != nullptr
-        && _clusterCount != 0);
+    assert(clusterTable != nullptr
+        && clusterCount != 0);
 
     if (Options["Retain Hash"]) {
         return;
@@ -176,12 +176,12 @@ void TTable::clear() {
                     WinProcGroup::bind(index);
                 }
 
-                auto const stride{ _clusterCount / threadCount };
+                auto const stride{ clusterCount / threadCount };
                 auto const start{ stride * index };
                 auto const count{ index != threadCount - 1 ?
                                     stride :
-                                    _clusterCount - start };
-                std::memset(_clusterTable + start, 0, count * sizeof (TCluster));
+                                    clusterCount - start };
+                std::memset(clusterTable + start, 0, count * sizeof (TCluster));
             });
     }
 
@@ -205,7 +205,7 @@ TEntry* TTable::probe(Key posiKey, bool &hit) const {
 /// hash, are using <x>%. of the state of full.
 u32 TTable::hashFull() const {
     u32 freshEntryCount{ 0 };
-    for (auto *itc = _clusterTable; itc < _clusterTable + 1000; ++itc) {
+    for (auto *itc = clusterTable; itc < clusterTable + 1000; ++itc) {
         freshEntryCount += itc->freshEntryCount();
     }
     return freshEntryCount / TCluster::EntryCount;
@@ -275,8 +275,8 @@ std::ostream& operator<<(std::ostream &os, TTable const &tt) {
     os.write((char const*)(&dummy), sizeof (dummy));
     os.write((char const*)(&dummy), sizeof (dummy));
     os.write((char const*)(&TEntry::Generation), sizeof (TEntry::Generation));
-    for (size_t i = 0; i < tt._clusterCount / BufferSize; ++i) {
-        os.write((char const*)(tt._clusterTable + i*BufferSize), sizeof (TCluster)*BufferSize);
+    for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
+        os.write((char const*)(tt.clusterTable + i*BufferSize), sizeof (TCluster)*BufferSize);
     }
     return os;
 }
@@ -290,8 +290,8 @@ std::istream& operator>>(std::istream &is, TTable       &tt) {
     is.read((char*)(&dummy), sizeof (dummy));
     is.read((char*)(&TEntry::Generation), sizeof (TEntry::Generation));
     tt.resize(memSize);
-    for (size_t i = 0; i < tt._clusterCount / BufferSize; ++i) {
-        is.read((char*)(tt._clusterTable + i*BufferSize), sizeof (TCluster)*BufferSize);
+    for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
+        is.read((char*)(tt.clusterTable + i*BufferSize), sizeof (TCluster)*BufferSize);
     }
     return is;
 }

@@ -48,8 +48,8 @@ namespace {
 }
 
 Logger::Logger() :
-    _tsbInnput{ std:: cin.rdbuf(), _ofs.rdbuf() },
-    _tsbOutput{ std::cout.rdbuf(), _ofs.rdbuf() }
+    tsbInnput{ std:: cin.rdbuf(), ofs.rdbuf() },
+    tsbOutput{ std::cout.rdbuf(), ofs.rdbuf() }
 {}
 
 Logger::~Logger() {
@@ -61,35 +61,35 @@ Logger& Logger::instance() {
     // Since it's a static variable, if the class has already been created,
     // it won't be created again.
     // And it is thread-safe in C++11.
-    static Logger _instance;
+    static Logger staticInstance;
 
-    return _instance;
+    return staticInstance;
 }
 
-void Logger::setup(std::string const &fnLog) {
-    if (_ofs.is_open()) {
-        std::cout.rdbuf(_tsbOutput.sbRead);
-        std:: cin.rdbuf(_tsbInnput.sbRead);
+void Logger::setup(std::string const &fn) {
+    if (ofs.is_open()) {
+        std::cout.rdbuf(tsbOutput.sbRead);
+        std:: cin.rdbuf(tsbInnput.sbRead);
 
-        _ofs << "[" << std::chrono::system_clock::now() << "] <-\n";
-        _ofs.close();
+        ofs << "[" << std::chrono::system_clock::now() << "] <-\n";
+        ofs.close();
     }
 
-    _fnLog = fnLog;
-    replace(_fnLog, '\\', '/');
-    trim(_fnLog);
-    if (whiteSpaces(_fnLog)) {
-        _fnLog.clear();
+    ofn = fn;
+    replace(ofn, '\\', '/');
+    trim(ofn);
+    if (whiteSpaces(ofn)) {
+        ofn.clear();
         return;
     }
 
-    _ofs.open(_fnLog, std::ios::out|std::ios::app);
-    if (!_ofs.is_open()) {
-        std::cerr << "Unable to open Log File " << _fnLog << std::endl;
+    ofs.open(ofn, std::ios::out|std::ios::app);
+    if (!ofs.is_open()) {
+        std::cerr << "Unable to open Log File " << ofn << std::endl;
         std::exit(EXIT_FAILURE);
     }
-    _ofs << "[" << std::chrono::system_clock::now() << "] ->\n";
+    ofs << "[" << std::chrono::system_clock::now() << "] ->\n";
 
-    std:: cin.rdbuf(&_tsbInnput);
-    std::cout.rdbuf(&_tsbOutput);
+    std:: cin.rdbuf(&tsbInnput);
+    std::cout.rdbuf(&tsbOutput);
 }

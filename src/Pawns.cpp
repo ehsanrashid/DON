@@ -24,8 +24,12 @@ namespace Pawns {
 
     }
 
+    i32 Entry::blockedCount() const {
+        return popCount(blockeds[WHITE] | blockeds[BLACK]);
+    }
+
     i32 Entry::passedCount() const {
-        return popCount(passPawns[WHITE] | passPawns[BLACK]);
+        return popCount(passeds[WHITE] | passeds[BLACK]);
     }
 
     /// Entry::evaluate()
@@ -41,7 +45,8 @@ namespace Pawns {
         sglAttacks [Own] =
         attacksSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
         dblAttacks [Opp] = pawnDblAttackBB<Opp>(oppPawns);
-        passPawns  [Own] = 0;
+        blockeds    [Own] = 0;
+        passeds     [Own] = 0;
 
         score      [Own] = SCORE_ZERO;
 
@@ -67,9 +72,12 @@ namespace Pawns {
             bool backward{ (neighbours & frontRanksBB(Opp, s + Push)) == 0
                         && (blocker | sentres) != 0 };
 
+            if (blocker != 0) {
+                blockeds[Own] |= s;
+            }
+            else
             // Compute additional span if pawn is not blocked nor backward
-            if (!backward
-             && !blocker) {
+            if (!backward) {
                 attacksSpan[Own] |= pawnAttackSpan(Own, s);
             }
 
@@ -91,14 +99,14 @@ namespace Pawns {
                && ( pawnSglPushBB<Own>(supporters)
                  & ~(oppPawns | dblAttacks[Opp])) != 0))) {
                 // Passed pawns will be properly scored later in evaluation when we have full attack info.
-                passPawns[Own] |= s;
+                passeds[Own] |= s;
             }
 
             Score sp{ SCORE_ZERO };
 
             if (supporters != 0
              || phalanxes != 0) {
-                i32 v{ Connected[r] * (2 + (phalanxes != 0) - opposed)
+                i32 v{ Connected[r] * (4 + 2 * (phalanxes != 0) - 2 * opposed - 1 * (blocker != 0)) / 2
                      + 21 * popCount(supporters) };
                 sp += makeScore(v, v * (r - RANK_3) / 4);
             }

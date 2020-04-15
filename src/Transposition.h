@@ -74,9 +74,9 @@ static_assert (sizeof (TCluster) == 32, "Cluster size incorrect");
 class TTable {
 
 private:
-    void     *_mem{ nullptr };
-    TCluster *_clusterTable{ nullptr };
-    u64       _clusterCount{ 0 };
+    void     *mem{ nullptr };
+    TCluster *clusterTable{ nullptr };
+    u64       clusterCount{ 0 };
 
 public:
     // Minimum size of Table (MB)
