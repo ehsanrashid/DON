@@ -68,11 +68,11 @@ void TimeManager::setup(Color c, i16 ply) {
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
     if (timeNodes != 0) {
         // Only once at after ucinewgame
-        if (remainNodes == 0) {
-            remainNodes = Limits.clock[c].time * timeNodes;
+        if (totalNodes == 0) {
+            totalNodes = Limits.clock[c].time * timeNodes;
         }
         // Convert from milli-seconds to nodes
-        Limits.clock[c].time = remainNodes;
+        Limits.clock[c].time = totalNodes;
         Limits.clock[c].inc *= timeNodes;
     }
 
@@ -105,5 +105,5 @@ void TimeManager::setup(Color c, i16 ply) {
 }
 
 void TimeManager::clear() {
-    remainNodes = 0;
+    totalNodes = 0;
 }

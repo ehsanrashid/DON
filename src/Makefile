@@ -28,8 +28,6 @@ OBJS = Bitbase.o Bitboard.o Cuckoo.o Debugger.o Endgame.o Evaluator.o \
        RootMove.o Searcher.o SkillManager.o SyzygyTB.o Thread.o ThreadMarker.o \
        TimeManager.o Transposition.o UCI.o Zobrist.o
 
-
-
 ### Establish the operating system name
 KERNEL = $(shell uname -s)
 ifeq ($(KERNEL), Linux)
@@ -208,7 +206,7 @@ ifeq ($(COMP), clang)
 	CXX = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
-	ifneq ( , $(filter $(KERNEL), Darwin OpenBSD))
+	ifneq ($(filter $(KERNEL), Darwin OpenBSD), )
 		LDFLAGS += -latomic
 	endif
 
@@ -227,12 +225,15 @@ endif
 ifeq ($(comp), icc)
 	profile_make = icc-profile-make
 	profile_use = icc-profile-use
-else ifeq ($(comp), clang)
+else
+ifeq ($(comp), clang)
 	profile_make = clang-profile-make
 	profile_use = clang-profile-use
-else # ifeq ($(comp), mingw)
+else
+#ifeq ($(comp), mingw)
 	profile_make = gcc-profile-make
 	profile_use = gcc-profile-use
+endif
 endif
 
 ifeq ($(KERNEL), Darwin)
@@ -542,4 +543,3 @@ icc-profile-use:
 	-@$(CXX) $(DEPENDFLAGS) -MM $(OBJS:.o=.cpp) > $@ 2> /dev/null
 
 -include .depend
-

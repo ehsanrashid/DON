@@ -10,7 +10,7 @@ public:
     TimePoint optimum{ 0 };
     TimePoint maximum{ 0 };
 
-    u64 remainNodes{ 0 }; // Available Nodes to play
+    u64 totalNodes{ 0 }; // Available Nodes to play
 
     TimeManager() = default;
     TimeManager(TimeManager const&) = delete;

@@ -107,22 +107,22 @@ namespace Evaluator {
                 S( 91, 88), S( 98, 97)
             },
             { // Rook
-                S(-58,-76), S(-27,-18), S(-15, 28), S(-10, 55), S( -5, 69), S( -2, 82),
-                S(  9,112), S( 16,118), S( 30,132), S( 29,142), S( 32,155), S( 38,165),
-                S( 46,166), S( 48,169), S( 58,171)
+                S(-60,-78), S(-20,-17), S(  2, 23), S(  3, 39), S(  3, 70), S( 11, 99),
+                S( 22,103), S( 31,121), S( 40,134), S( 40,139), S( 41,158), S( 48,164),
+                S( 57,168), S( 57,169), S( 62,172)
             },
             { // Queen
-                S(-39,-36), S(-21,-15), S(  3,  8), S(  3, 18), S( 14, 34), S( 22, 54),
-                S( 28, 61), S( 41, 73), S( 43, 79), S( 48, 92), S( 56, 94), S( 60,104),
-                S( 60,113), S( 66,120), S( 67,123), S( 70,126), S( 71,133), S( 73,136),
-                S( 79,140), S( 88,143), S( 88,148), S( 99,166), S(102,170), S(102,175),
-                S(106,184), S(109,191), S(113,206), S(116,212)
+                S(-34,-36), S(-15,-21), S(-10, -1), S(-10, 22), S( 20, 41), S( 23, 56),
+                S( 23, 59), S( 35, 75), S( 38, 78), S( 53, 96), S( 64, 96), S( 65,100),
+                S( 65,121), S( 66,127), S( 67,131), S( 67,133), S( 72,136), S( 72,141),
+                S( 77,147), S( 79,150), S( 93,151), S(108,168), S(108,168), S(108,171),
+                S(110,182), S(114,182), S(114,192), S(116,219)
             }
         };
 
         constexpr Score RookOnFile[2]
         {
-            S(21, 4), S(47,25)
+            S(19, 7), S(48,29)
         };
 
         constexpr Score MinorThreat[PIECE_TYPES]
@@ -131,7 +131,7 @@ namespace Evaluator {
         };
         constexpr Score MajorThreat[PIECE_TYPES]
         {
-            S( 0, 0), S( 2,44), S(36,71), S(36,61), S( 0, 38), S(51, 38), S( 0, 0)
+            S( 0, 0), S( 3,46), S(37,68), S(42,60), S( 0, 38), S(58, 41), S( 0, 0)
         };
 
         constexpr Score PasserRank[RANKS]
@@ -146,24 +146,24 @@ namespace Evaluator {
         constexpr Score BishopOnDiagonal{ S( 45,  0) };
         constexpr Score BishopPawns     { S(  3,  7) };
         constexpr Score BishopTrapped   { S( 50, 50) };
-        constexpr Score RookOnQueenFile { S(  7,  6) };
-        constexpr Score RookTrapped     { S( 52, 10) };
-        constexpr Score QueenAttacked   { S( 49, 15) };
+        constexpr Score RookOnQueenFile { S(  5,  9) };
+        constexpr Score RookTrapped     { S( 55, 13) };
+        constexpr Score QueenAttacked   { S( 51, 14) };
         constexpr Score PawnLessFlank   { S( 17, 95) };
         constexpr Score PasserFile      { S( 11,  8) };
         constexpr Score KingFlankAttacks{ S(  8,  0) };
         constexpr Score PieceRestricted { S(  7,  7) };
         constexpr Score PieceHanged     { S( 69, 36) };
-        constexpr Score QueenProtected  { S( 14,  0) };
+        constexpr Score QueenProtected  { S( 15,  0) };
         constexpr Score PawnThreat      { S(173, 94) };
         constexpr Score PawnPushThreat  { S( 48, 39) };
         constexpr Score KingThreat      { S( 24, 89) };
-        constexpr Score KnightOnQueen   { S( 16, 12) };
+        constexpr Score KnightOnQueen   { S( 16, 11) };
         constexpr Score SliderOnQueen   { S( 59, 18) };
 
     #undef S
 
-        constexpr i32 SafeCheckWeight   [PIECE_TYPES] { 0, 0, 790, 635, 1080, 780, 0 };
+        constexpr i32 SafeCheckWeight   [PIECE_TYPES] { 0, 0, 790, 635, 1078, 780, 0 };
         constexpr i32 KingAttackerWeight[PIECE_TYPES] { 0, 0,  81,  52,   44,  10, 0 };
 
         // Evaluator class contains various evaluation functions.
@@ -736,15 +736,15 @@ namespace Evaluator {
             Bitboard pass{ pawnEntry->passeds[Own] };
 
             Bitboard candidatePass{ pass
-                                  & pawnEntry->blockeds[Own] };
+                                  & pawnSglPushBB<Opp>(pos.pieces(Opp, PAWN)) };
             if (candidatePass != 0) {
                 
-                Bitboard oppPawns{ pos.pieces(Opp, PAWN)
-                                 ^ pawnSglPushBB<Own>(candidatePass) };
+                Bitboard oppPawnsEx{ pos.pieces(Opp, PAWN)
+                                   ^ pawnSglPushBB<Own>(candidatePass) };
                 // Can we lever the blocker of a candidate passer?
                 Bitboard leverable{ pawnSglPushBB<Own>(pos.pieces(Own, PAWN))
                                   & ~pos.pieces(Opp)
-                                  & (~(pawnSglAttackBB<Opp>(oppPawns)
+                                  & (~(pawnSglAttackBB<Opp>(oppPawnsEx)
                                      | sqlAttacks[Opp][NIHT]
                                      | sqlAttacks[Opp][BSHP]
                                      | sqlAttacks[Opp][ROOK]
@@ -848,7 +848,9 @@ namespace Evaluator {
                      + popCount( behind
                               &  safeSpace
                               & ~sqlAttacks[Opp][NONE]) };
-            i32 weight{ pos.count(Own) + pawnEntry->blockedCount() / 2 - 2 };
+            i32 weight{ pos.count(Own)
+                      + std::min(pawnEntry->blockedCount(), 9)
+                      - 3 };
             Score score{ makeScore(bonus * weight * weight / 16, 0) };
 
             if (Trace) {

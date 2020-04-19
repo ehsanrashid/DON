@@ -96,12 +96,12 @@ namespace {
     inline Depth reduction(Depth d, u08 mc, bool imp) {
         assert(d >= DEPTH_ZERO);
         i32 r{ Reduction[d] * Reduction[mc] };
-        return Depth((r + 511) / 1024 + (!imp && (r > 1007)));
+        return Depth((r + 511) / 1024 + 1 * (!imp && (r > 1007)));
     }
 
     /// Futility Move Count
     constexpr i16 futilityMoveCount(Depth d, bool imp) {
-        return (4 + nSqr(d)) / (2 - imp);
+        return (4 + nSqr(d)) / (2 - 1 * imp);
     }
 
     /// Add a small random component to draw evaluations to avoid 3-fold-blindness
@@ -1937,8 +1937,8 @@ void MainThread::search() {
 
     if (Limits.useTimeMgmt()) {
         if (u16(Options["Time Nodes"]) != 0) {
-            // In 'Nodes as Time' mode, subtract the searched nodes from the available ones.
-            TimeMgr.remainNodes +=
+            // In 'Nodes as Time' mode, subtract the searched nodes from the total nodes.
+            TimeMgr.totalNodes +=
                 Limits.clock[rootPos.activeSide()].inc
               - Threadpool.sum(&Thread::nodes);
         }

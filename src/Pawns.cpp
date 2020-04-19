@@ -67,17 +67,19 @@ namespace Pawns {
             Bitboard sentres    { stoppers & PawnAttacksBB[Own][s + Push] }; // push levers
 
             bool opposed { (stoppers & frontSquaresBB(Own, s)) != 0 };
+            bool blocked { blocker != 0 };
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
             bool backward{ (neighbours & frontRanksBB(Opp, s + Push)) == 0
                         && (blocker | sentres) != 0 };
 
-            if (blocker != 0) {
+            if (blocked
+             || moreThanOne(sentres)) {
                 blockeds[Own] |= s;
             }
-            else
             // Compute additional span if pawn is not blocked nor backward
-            if (!backward) {
+            if (!blocked
+             && !backward) {
                 attacksSpan[Own] |= pawnAttackSpan(Own, s);
             }
 
@@ -91,7 +93,7 @@ namespace Pawns {
              && (// Lever
                  (stoppers == levers)
                  // Lever + Sentry
-              || (stoppers == (levers | sentres)
+              || (stoppers == levers | sentres
                && popCount(phalanxes) >= popCount(sentres))
                  // Sneaker => Blocked pawn
               || (stoppers == blocker
@@ -106,7 +108,7 @@ namespace Pawns {
 
             if (supporters != 0
              || phalanxes != 0) {
-                i32 v{ Connected[r] * (4 + 2 * (phalanxes != 0) - 2 * opposed - 1 * (blocker != 0)) / 2
+                i32 v{ Connected[r] * (4 + 2 * (phalanxes != 0) - 2 * opposed - 1 * blocked) / 2
                      + 21 * popCount(supporters) };
                 sp += makeScore(v, v * (r - RANK_3) / 4);
             }
