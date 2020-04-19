@@ -899,6 +899,8 @@ namespace {
                 auto raisedBeta{ beta - 45 * improving + 189 };
                 assert(raisedBeta < +VALUE_INFINITE);
 
+                bool ttmNotWorth{ tte->depth() >= depth - 4
+                               && ttValue < raisedBeta };
                 u08 probMoveCount{ 0 };
                 // Initialize move-picker(3) for the current position
                 MovePicker movePicker{
@@ -907,7 +909,9 @@ namespace {
                     ttMove, depth, raisedBeta - ss->staticEval };
                 // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
                 while ((move = movePicker.nextMove()) != MOVE_NONE
-                    && probMoveCount < (2 + 2 * cutNode)) {
+                    && probMoveCount < (2 + 2 * cutNode)
+                    && (move != ttMove
+                     || !ttmNotWorth)) {
                     assert(isOk(move)
                         && pos.pseudoLegal(move)
                         && pos.captureOrPromotion(move)
@@ -1154,6 +1158,19 @@ namespace {
                 else
                 if (singularBeta >= beta) {
                     return singularBeta;
+                }
+                // If the eval of ttMove is greater than beta we try also if there is an other move that
+                // pushes it over beta, if so also produce a cutoff
+                else
+                if (ttValue >= beta)
+                {
+                    ss->excludedMove = move;
+                    value = depthSearch<false>(pos, ss, beta - 1, beta, (depth + 3) / 2, cutNode);
+                    ss->excludedMove = MOVE_NONE;
+
+                    if (value >= beta) {
+                        return beta;
+                    }
                 }
             }
             else
