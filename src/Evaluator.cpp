@@ -494,7 +494,9 @@ namespace Evaluator {
                                    &  sqlAttacks[Opp][ROOK]
                                    &  safeArea};
             if (rookSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[ROOK];
+                kingDanger += moreThanOne(rookSafeChecks) ?
+                                SafeCheckWeight[ROOK] * 3 / 2 :
+                                SafeCheckWeight[ROOK];
             }
             else {
                 unsafeCheck |= rookPins
@@ -508,7 +510,9 @@ namespace Evaluator {
                                    & ~sqlAttacks[Own][QUEN]
                                    & ~rookSafeChecks };
             if (quenSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[QUEN];
+                kingDanger += moreThanOne(quenSafeChecks) ?
+                                SafeCheckWeight[QUEN] * 3 / 2 :
+                                SafeCheckWeight[QUEN];
             }
 
             // Enemy bishops checks
@@ -517,7 +521,9 @@ namespace Evaluator {
                                    &  safeArea
                                    & ~quenSafeChecks };
             if (bshpSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[BSHP];
+                kingDanger += moreThanOne(bshpSafeChecks) ?
+                                SafeCheckWeight[BSHP] * 3 / 2 :
+                                SafeCheckWeight[BSHP];
             }
             else {
                 unsafeCheck |= bshpPins
@@ -529,7 +535,9 @@ namespace Evaluator {
                                    &  sqlAttacks[Opp][NIHT]
                                    &  safeArea };
             if (nihtSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[NIHT];
+                kingDanger += moreThanOne(nihtSafeChecks) ?
+                                SafeCheckWeight[NIHT] * 3 / 2 :
+                                SafeCheckWeight[NIHT];
             }
             else {
                 unsafeCheck |= PieceAttacksBB[NIHT][kSq]
@@ -912,11 +920,12 @@ namespace Evaluator {
 
             // If scaleFactor is not already specific, scaleFactor down the endgame via general heuristics
             if (scale == SCALE_NORMAL) {
-
-                scale = pos.bishopOpposed()
-                     && pos.nonPawnMaterial() == 2 * VALUE_MG_BSHP ?
-                        Scale(22) :
-                        std::min(Scale(36 + (7 - 5 * pos.bishopOpposed()) * pos.count(stngColor|PAWN)), SCALE_NORMAL);
+                if (pos.bishopOpposed()) {
+                    scale = Scale(22 + 3 * pos.count() * (pos.nonPawnMaterial() != 2 * VALUE_MG_BSHP));
+                }
+                else {
+                    scale = std::min(Scale(36 + 7 * pos.count(stngColor|PAWN)), SCALE_NORMAL);
+                }
 
                 // Scale down endgame factor when shuffling
                 scale = std::max(Scale(scale + 3 - pos.clockPly() / 4), SCALE_DRAW);
