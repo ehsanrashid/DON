@@ -80,6 +80,7 @@ namespace {
         Move  playedMove{ MOVE_NONE };
         Move  excludedMove{ MOVE_NONE };
         u08   moveCount{ 0 };
+        bool  inCheck;
         Value staticEval{ VALUE_ZERO };
         i32   stats{ 0 };
         PieceSquareStatsTable *pieceStats;
@@ -153,6 +154,9 @@ namespace {
     void updateContinuationStats(Stack *ss, Piece p, Square dst, i32 bonus) {
         //assert(isOk(p));
         for (auto i : { 1, 2, 4, 6 }) {
+            if (ss->inCheck && i > 2) {
+                break;
+            }
             if (isOk((ss-i)->playedMove)) {
                 (*(ss-i)->pieceStats)[p][dst] << bonus;
             }
@@ -284,6 +288,7 @@ namespace {
         }
 
         bool inCheck{ pos.checkers() != 0 };
+        ss->inCheck = inCheck;
 
         // Check for immediate draw or maximum ply reached.
         if (pos.draw(ss->ply)
@@ -532,6 +537,10 @@ namespace {
         bool rootNode = PVNode
                      && ss->ply == 0;
 
+        // Step 1. Initialize node
+        ss->moveCount = 0;
+        bool inCheck{ pos.checkers() != 0 };
+        ss->inCheck = inCheck;
         auto *thread{ pos.thread() };
 
         // Check if there exists a move which draws by repetition,
@@ -557,9 +566,6 @@ namespace {
         assert(!(PVNode && cutNode));
         assert(DEPTH_ZERO < depth && depth < MAX_PLY);
 
-        // Step 1. Initialize node
-        ss->moveCount = 0;
-
         // Check for the available remaining limit
         if (thread == Threadpool.mainThread()) {
             static_cast<MainThread*>(thread)->tick();
@@ -571,8 +577,6 @@ namespace {
                 thread->selDepth = ss->ply + 1;
             }
         }
-
-        bool inCheck{ pos.checkers() != 0 };
 
         if (!rootNode)
         {
@@ -1072,7 +1076,6 @@ namespace {
                 i16 lmrDepth = std::max(newDepth - reduction(depth, moveCount, improving), 0);
 
                 if (giveCheck) {
-
                     // SEE based pruning: negative SEE (~25 ELO)
                     if (!pos.see(move, Value(-194 * depth))) {
                         continue;
@@ -1080,9 +1083,14 @@ namespace {
                 }
                 else
                 if (captureOrPromotion) {
-
                     if (lmrDepth <= 0
                      && thread->captureStats[mp][dst][pos.captured(move)] < 0) {
+                        continue;
+                    }
+                    // Futility pruning for captures
+                    if (lmrDepth <= 5
+                     && !inCheck
+                     && ss->staticEval + 384 * lmrDepth + PieceValues[MG][pType(pos[dst])] + 270 <= alfa) {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~25 ELO)
@@ -1091,7 +1099,6 @@ namespace {
                     }
                 }
                 else {
-
                     // Counter moves based pruning: (~20 ELO)
                     if (lmrDepth <= (3 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1))
                      && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
@@ -1143,7 +1150,7 @@ namespace {
                 auto singularBeta{ ttValue - ((4 + pastPV) * depth) / 2 };
                 auto singularDepth{ Depth((depth + 3 * pastPV - 1) / 2) };
 
-                ss->excludedMove = move;
+                ss->excludedMove = ttMove;
                 value = depthSearch<false>(pos, ss, singularBeta-1, singularBeta, singularDepth, cutNode);
                 ss->excludedMove = MOVE_NONE;
 
@@ -1164,7 +1171,7 @@ namespace {
                 else
                 if (ttValue >= beta)
                 {
-                    ss->excludedMove = move;
+                    ss->excludedMove = ttMove;
                     value = depthSearch<false>(pos, ss, beta - 1, beta, (depth + 3) / 2, cutNode);
                     ss->excludedMove = MOVE_NONE;
 
@@ -1195,10 +1202,10 @@ namespace {
             if (mType(move) == CASTLE) {
                 extension = 1;
             }
-
+            else
             // Late irreversible move extension
-            if (pos.clockPly() > 80
-             && move == ttMove
+            if (move == ttMove
+             && pos.clockPly() > 80
              && (captureOrPromotion
               || pType(mp) == PAWN)) {
                 extension = 2;
@@ -1605,6 +1612,7 @@ void Thread::search() {
         ss->playedMove      = MOVE_NONE;
         ss->excludedMove    = MOVE_NONE;
         ss->moveCount       = 0;
+        ss->inCheck         = false;
         ss->staticEval      = VALUE_ZERO;
         ss->stats           = 0;
         ss->pieceStats      = ssOk ? nullptr : &this->continuationStats[0][0][NO_PIECE][0];
@@ -1696,16 +1704,15 @@ void Thread::search() {
                 }
 
                 // Give some update before to re-search.
-                if (mainThread != nullptr
-                 && PVCount == 1
+                if (PVCount == 1
+                 && mainThread != nullptr
                  && (bestValue <= alfa
                   || beta <= bestValue)
                  && TimeMgr.elapsed() > 3000) {
-
                     sync_cout << multipvInfo(mainThread, rootDepth, alfa, beta) << sync_endl;
                 }
 
-                // If fail low set new bounds.
+                // If fail low set new bounds
                 if (bestValue <= alfa) {
                     beta = (alfa + beta) / 2;
                     alfa = std::max(bestValue - window, -VALUE_INFINITE);
@@ -1716,14 +1723,14 @@ void Thread::search() {
                     }
                 }
                 else
-                // If fail high set new bounds.
+                // If fail high set new bounds
                 if (bestValue >= beta) {
                     // NOTE:: Don't change alfa = (alfa + beta) / 2
                     beta = std::min(bestValue + window, +VALUE_INFINITE);
 
                     ++failHighCount;
                 }
-                // Otherwise exit the loop.
+                // Otherwise exit the loop
                 else {
                     ++rootMoves[pvCur].bestCount;
                     break;
@@ -1777,12 +1784,12 @@ void Thread::search() {
                 }
 
                 // Reduce time if the bestMove is stable over 10 iterations
-                // Time Reduction factor
+                // Time Reduction
                 timeReduction = 0.91 + 1.03 * ((finishedDepth - mainThread->bestDepth) > 9);
-                // Reduction factor - Use part of the gained time from a previous stable move for the current move
-                double reduction{ (1.41 + mainThread->timeReduction) / (2.27 * timeReduction) };
+                // Reduction Ratio - Use part of the gained time from a previous stable move for the current move
+                double reductionRatio{ (1.41 + mainThread->timeReduction) / (2.27 * timeReduction) };
                 // Eval Falling factor
-                double evalFalling{ clamp((332
+                double fallingEval{ clamp((332
                                          + 6 * (mainThread->bestValue - bestValue)
                                          + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 704.0,
                                           0.50, 1.50) };
@@ -1790,12 +1797,11 @@ void Thread::search() {
                 pvChangeSum += Threadpool.sum(&Thread::pvChange);
                 // Reset pv change
                 Threadpool.reset(&Thread::pvChange);
-
                 double pvInstability{ 1.00 + pvChangeSum / Threadpool.size() };
 
                 auto availableTime{ TimePoint(TimeMgr.optimum
-                                            * reduction
-                                            * evalFalling
+                                            * reductionRatio
+                                            * fallingEval
                                             * pvInstability) };
                 auto elapsed{ TimeMgr.elapsed() };
 
@@ -1818,9 +1824,6 @@ void Thread::search() {
                         Threadpool.research = true;
                     }
                 }
-                //else {
-                //    Threadpool.research = false;
-                //}
 
                 mainThread->iterValues[iterIdx] = bestValue;
                 iterIdx = (iterIdx + 1) & 3;

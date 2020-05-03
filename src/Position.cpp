@@ -485,8 +485,11 @@ void Position::setCastle(Color c, Square rookOrg) {
     sqCastleRight[kingOrg]   |= cr;
     sqCastleRight[rookOrg]   |= cr;
 
-    cslKingPath[c][cs] = (betweenBB(kingOrg, kingDst) | kingDst) & ~kingOrg;
-    cslRookPath[c][cs] = (betweenBB(kingOrg, kingDst) | betweenBB(rookOrg, rookDst) | kingDst | rookDst) & ~kingOrg & ~rookOrg;
+    cslKingPath[c][cs] = (betweenBB(kingOrg, kingDst) | kingDst)
+                       & ~(kingOrg);
+    cslRookPath[c][cs] = ((betweenBB(kingOrg, kingDst) | kingDst)
+                        | (betweenBB(rookOrg, rookDst) | rookDst))
+                       & ~(kingOrg | rookOrg);
 }
 /// Position::setCheckInfo() sets check info used for fast check detection.
 void Position::setCheckInfo() {

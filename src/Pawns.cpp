@@ -25,7 +25,7 @@ namespace Pawns {
     }
 
     i32 Entry::blockedCount() const {
-        return popCount(blockeds[WHITE] | blockeds[BLACK]);
+        return popCount(blockeds);
     }
 
     i32 Entry::passedCount() const {
@@ -45,8 +45,7 @@ namespace Pawns {
         sglAttacks [Own] =
         attacksSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
         dblAttacks [Opp] = pawnDblAttackBB<Opp>(oppPawns);
-        blockeds    [Own] = 0;
-        passeds     [Own] = 0;
+        passeds    [Own] = 0;
 
         score      [Own] = SCORE_ZERO;
 
@@ -75,7 +74,7 @@ namespace Pawns {
 
             if (blocked
              || moreThanOne(sentres)) {
-                blockeds[Own] |= s;
+                blockeds |= s;
             }
             // Compute additional span if pawn is not blocked nor backward
             if (!blocked
@@ -147,13 +146,13 @@ namespace Pawns {
         }
 
         e->key = pawnKey;
-        e->evaluate<WHITE>(pos),
-        e->evaluate<BLACK>(pos);
-
-        e->complexity = 11 * pos.count(PAWN)
-                      +  9 * e->passedCount();
+        e->blockeds = 0;
         e->pawnNotBothFlank = (pos.pieces(PAWN) & SlotFileBB[CS_KING]) == 0
                            || (pos.pieces(PAWN) & SlotFileBB[CS_QUEN]) == 0;
+        e->evaluate<WHITE>(pos);
+        e->evaluate<BLACK>(pos);
+        e->complexity = 11 * pos.count(PAWN)
+                      +  9 * e->passedCount();
 
         return e;
     }

@@ -17,17 +17,16 @@ namespace Evaluator {
 
     namespace {
 
-        // PAWN, NIHT, BSHP, ROOK, QUEN, KING,
-        enum Term : u08 { MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, INITIATIVE, TOTAL, TERM_NO = 16 };
+        enum Term : u08 { MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, INITIATIVE, TOTAL, TERMS = 16 };
 
         class Tracer {
 
         private:
-            static Score Scores[TERM_NO][COLORS];
+            static Score Scores[TERMS][COLORS];
 
         public:
             static void clear() {
-                std::fill_n(*Scores, TERM_NO*COLORS, SCORE_ZERO);
+                std::fill_n(*Scores, TERMS*COLORS, SCORE_ZERO);
             }
 
             static void write(Term t, Color c, Score s) {
@@ -43,7 +42,7 @@ namespace Evaluator {
 
         };
 
-        Score Tracer::Scores[TERM_NO][COLORS];
+        Score Tracer::Scores[TERMS][COLORS];
 
         std::ostream& operator<<(std::ostream &os, Term t) {
             if (t == MATERIAL
@@ -139,31 +138,33 @@ namespace Evaluator {
             S( 0, 0), S(10,28), S(17,33), S(15,41), S(62,72), S(168,177), S(276,260), S( 0, 0)
         };
 
-        constexpr Score MinorBehindPawn { S( 18,  3) };
-        constexpr Score MinorKingProtect{ S(  7,  8) };
-        constexpr Score KnightOutpost   { S( 30, 21) };
-        constexpr Score BishopOutpost   { S( 30, 21) };
-        constexpr Score BishopOnDiagonal{ S( 45,  0) };
-        constexpr Score BishopPawns     { S(  3,  7) };
-        constexpr Score BishopTrapped   { S( 50, 50) };
-        constexpr Score RookOnQueenFile { S(  5,  9) };
-        constexpr Score RookTrapped     { S( 55, 13) };
-        constexpr Score QueenAttacked   { S( 51, 14) };
-        constexpr Score PawnLessFlank   { S( 17, 95) };
-        constexpr Score PasserFile      { S( 11,  8) };
-        constexpr Score KingFlankAttacks{ S(  8,  0) };
-        constexpr Score PieceRestricted { S(  7,  7) };
-        constexpr Score PieceHanged     { S( 69, 36) };
-        constexpr Score QueenProtected  { S( 15,  0) };
-        constexpr Score PawnThreat      { S(173, 94) };
-        constexpr Score PawnPushThreat  { S( 48, 39) };
-        constexpr Score KingThreat      { S( 24, 89) };
-        constexpr Score KnightOnQueen   { S( 16, 11) };
-        constexpr Score SliderOnQueen   { S( 59, 18) };
+        constexpr Score MinorBehindPawn   { S( 18,  3) };
+        constexpr Score KnightOutpost     { S( 56, 36) };
+        constexpr Score KnightReachOutpost{ S( 31, 22) };
+        constexpr Score KnightKingProtect { S(  8,  9) };
+        constexpr Score BishopOutpost     { S( 30, 23) };
+        constexpr Score BishopKingProtect { S(  6,  9) };
+        constexpr Score BishopOnDiagonal  { S( 45,  0) };
+        constexpr Score BishopPawns       { S(  3,  7) };
+        constexpr Score BishopTrapped     { S( 50, 50) };
+        constexpr Score RookOnQueenFile   { S(  5,  9) };
+        constexpr Score RookTrapped       { S( 55, 13) };
+        constexpr Score QueenAttacked     { S( 51, 14) };
+        constexpr Score PawnLessFlank     { S( 17, 95) };
+        constexpr Score PasserFile        { S( 11,  8) };
+        constexpr Score KingFlankAttacks  { S(  8,  0) };
+        constexpr Score PieceRestricted   { S(  7,  7) };
+        constexpr Score PieceHanged       { S( 69, 36) };
+        constexpr Score QueenProtected    { S( 15,  0) };
+        constexpr Score PawnThreat        { S(173, 94) };
+        constexpr Score PawnPushThreat    { S( 48, 39) };
+        constexpr Score KingThreat        { S( 24, 89) };
+        constexpr Score KnightOnQueen     { S( 16, 11) };
+        constexpr Score SliderOnQueen     { S( 59, 18) };
 
     #undef S
 
-        constexpr i32 SafeCheckWeight   [PIECE_TYPES] { 0, 0, 790, 635, 1078, 780, 0 };
+        constexpr i32 SafeCheckWeight   [PIECE_TYPES] { 0, 0, 792, 645, 1084, 772, 0 };
         constexpr i32 KingAttackerWeight[PIECE_TYPES] { 0, 0,  81,  52,   44,  10, 0 };
 
         // Evaluator class contains various evaluation functions.
@@ -328,32 +329,33 @@ namespace Evaluator {
                     score += MinorBehindPawn * (relativeRank(Own, s) <= RANK_6
                                              && contains(pos.pieces(PAWN), s + PawnPush[Own]));
 
-                    // Penalty for distance from the friend king
-                    score -= MinorKingProtect * distance(kSq, s);
+
 
                     b =  OutpostBB[Own]
                       &  sqlAttacks[Own][PAWN]
                       & ~pawnEntry->attacksSpan[Opp];
 
                     if (PT == NIHT) {
-
                         // Bonus for knight outpost squares
                         if (contains(b, s)) {
-                            score += KnightOutpost * 2;
+                            score += KnightOutpost;
                         }
                         else
                         if ((b
                            & attacks
                            & ~pos.pieces(Own)) != 0) {
-                            score += KnightOutpost * 1;
+                            score += KnightReachOutpost;
                         }
+                        // Penalty for knight distance from the friend king
+                        score -= KnightKingProtect * distance(kSq, s);
                     }
                     if (PT == BSHP) {
-
                         // Bonus for bishop outpost squares
                         if (contains(b, s)) {
-                            score += BishopOutpost * 1;
+                            score += BishopOutpost;
                         }
+                        // Penalty for bishop distance from the friend king
+                        score -= BishopKingProtect * distance(kSq, s);
 
                         // Penalty for pawns on the same color square as the bishop,
                         // less when the bishop is protected by pawn
@@ -495,7 +497,7 @@ namespace Evaluator {
                                    &  safeArea};
             if (rookSafeChecks != 0) {
                 kingDanger += moreThanOne(rookSafeChecks) ?
-                                SafeCheckWeight[ROOK] * 3 / 2 :
+                                SafeCheckWeight[ROOK] * 175 / 100 :
                                 SafeCheckWeight[ROOK];
             }
             else {
@@ -511,7 +513,7 @@ namespace Evaluator {
                                    & ~rookSafeChecks };
             if (quenSafeChecks != 0) {
                 kingDanger += moreThanOne(quenSafeChecks) ?
-                                SafeCheckWeight[QUEN] * 3 / 2 :
+                                SafeCheckWeight[QUEN] * 145 / 100 :
                                 SafeCheckWeight[QUEN];
             }
 
@@ -522,7 +524,7 @@ namespace Evaluator {
                                    & ~quenSafeChecks };
             if (bshpSafeChecks != 0) {
                 kingDanger += moreThanOne(bshpSafeChecks) ?
-                                SafeCheckWeight[BSHP] * 3 / 2 :
+                                SafeCheckWeight[BSHP] * 150 / 100 :
                                 SafeCheckWeight[BSHP];
             }
             else {
@@ -536,7 +538,7 @@ namespace Evaluator {
                                    &  safeArea };
             if (nihtSafeChecks != 0) {
                 kingDanger += moreThanOne(nihtSafeChecks) ?
-                                SafeCheckWeight[NIHT] * 3 / 2 :
+                                SafeCheckWeight[NIHT] * 162 / 100 :
                                 SafeCheckWeight[NIHT];
             }
             else {
@@ -921,7 +923,9 @@ namespace Evaluator {
             // If scaleFactor is not already specific, scaleFactor down the endgame via general heuristics
             if (scale == SCALE_NORMAL) {
                 if (pos.bishopOpposed()) {
-                    scale = Scale(22 + 3 * pos.count() * (pos.nonPawnMaterial() != 2 * VALUE_MG_BSHP));
+                    scale = Scale(pos.nonPawnMaterial() == 2 * VALUE_MG_BSHP ?
+                                18 + 4 * popCount(pawnEntry->passeds[stngColor]) :
+                                22 + 3 * pos.count());
                 }
                 else {
                     scale = std::min(Scale(36 + 7 * pos.count(stngColor|PAWN)), SCALE_NORMAL);
@@ -977,15 +981,16 @@ namespace Evaluator {
             initialize<WHITE>();
             initialize<BLACK>();
 
-            // Pieces should be evaluated first (populate attack information)
-            score += pieces<WHITE, NIHT>() - pieces<BLACK, NIHT>();
-            score += pieces<WHITE, BSHP>() - pieces<BLACK, BSHP>();
-            score += pieces<WHITE, ROOK>() - pieces<BLACK, ROOK>();
-            score += pieces<WHITE, QUEN>() - pieces<BLACK, QUEN>();
+            // Pieces should be evaluated first (also populate attack information)
+            // Note that the order of evaluation of the terms is left unspecified
+            score += pieces<WHITE, NIHT>() - pieces<BLACK, NIHT>()
+                   + pieces<WHITE, BSHP>() - pieces<BLACK, BSHP>()
+                   + pieces<WHITE, ROOK>() - pieces<BLACK, ROOK>()
+                   + pieces<WHITE, QUEN>() - pieces<BLACK, QUEN>();
 
             assert((sqlAttacks[WHITE][NONE] & dblAttacks[WHITE]) == dblAttacks[WHITE]);
             assert((sqlAttacks[BLACK][NONE] & dblAttacks[BLACK]) == dblAttacks[BLACK]);
-
+            // More complex interactions that require fully populated attack information
             score += mobility[WHITE]   - mobility[BLACK]
                    + king    <WHITE>() - king    <BLACK>()
                    + threats <WHITE>() - threats <BLACK>()

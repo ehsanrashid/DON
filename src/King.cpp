@@ -130,7 +130,7 @@ namespace King {
         auto kSq{ pos.square(Own|KING) };
 
         // In endgame, king near to closest pawn
-        i32 dist{ 0 };
+        i32 dist{ 7 };
         Bitboard pawns{ pos.pieces(Own, PAWN) };
         if (pawns != 0) {
             dist = 1;
@@ -139,6 +139,7 @@ namespace King {
                 ++dist;
                 b = floodFill(b);
             }
+            assert(dist <= 6);
         }
         pawnDist[Own] = makeScore(0, 16 * dist);
         castleSide[Own] = 4;

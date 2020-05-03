@@ -41,11 +41,7 @@ public:
     ThreadMarker& operator=(ThreadMarker const&) = delete;
     ThreadMarker& operator=(ThreadMarker&&) = delete;
 
-    ThreadMarker(
-        Thread const*,
-        Key,
-        i16);
-
+    ThreadMarker(Thread const*, Key, i16);
     ~ThreadMarker();
 };
 

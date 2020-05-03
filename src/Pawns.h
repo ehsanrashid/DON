@@ -12,13 +12,13 @@ namespace Pawns {
 
         i32      complexity;
         bool     pawnNotBothFlank;
+        Bitboard blockeds;
 
         Score    score[COLORS];
 
         Bitboard sglAttacks[COLORS];
         Bitboard dblAttacks[COLORS];
         Bitboard attacksSpan[COLORS];
-        Bitboard blockeds[COLORS];
         Bitboard passeds[COLORS];
 
         i32 blockedCount() const;
