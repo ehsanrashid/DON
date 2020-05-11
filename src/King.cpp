@@ -52,21 +52,21 @@ namespace King {
             auto kF{ clamp(sFile(kSq), FILE_B, FILE_G) };
             for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
                 assert(FILE_A <= f && f <= FILE_H);
-                Bitboard ownFrontFilePawns = ownFrontPawns & FileBB[f];
+                Bitboard ownFrontFilePawns{ ownFrontPawns & FileBB[f] };
                 auto ownR{ ownFrontFilePawns != 0 ?
                     relativeRank(Own, scanFrontMostSq<Opp>(ownFrontFilePawns)) : RANK_1 };
-                Bitboard oppFrontFilePawns = oppFrontPawns & FileBB[f];
+                Bitboard oppFrontFilePawns{ oppFrontPawns & FileBB[f] };
                 auto oppR{ oppFrontFilePawns != 0 ?
                     relativeRank(Own, scanFrontMostSq<Opp>(oppFrontFilePawns)) : RANK_1 };
                 assert((ownR != oppR)
                     || (ownR == RANK_1
                      && oppR == RANK_1));
 
-                i16 d = edgeDistance(f);
+                auto d{ edgeDistance(f) };
                 safety +=
                     Shelter[d][ownR]
-                  - (ownR != RANK_1
-                  && ownR + 1 == oppR ?
+                  - (ownR > RANK_1
+                  && oppR == ownR + 1 ?
                         BlockedStorm * (oppR == RANK_3) :
                         UnblockedStorm[d][oppR]);
             }

@@ -110,8 +110,7 @@ namespace {
 
 
 TTable::~TTable() {
-    free(mem);
-    //mem = nullptr;
+    free();
 }
 
 /// size() returns hash size in MB
@@ -132,7 +131,7 @@ u32 TTable::resize(u32 memSize) {
 
     Threadpool.mainThread()->waitIdle();
 
-    free(mem);
+    free();
 
     clusterCount = (size_t(memSize) << 20) / sizeof (TCluster);
     clusterTable = static_cast<TCluster*>(allocAlignedMemory(mem, size_t(clusterCount * sizeof (TCluster))));
@@ -191,6 +190,13 @@ void TTable::clear() {
 
     threads.clear();
     //sync_cout << "info string Hash cleared" << sync_endl;
+}
+
+void TTable::free() {
+    if (mem != nullptr) {
+        ::free(mem);
+        mem = nullptr;
+    }
 }
 
 /// TTable::probe() looks up the entry in the transposition table.
@@ -261,11 +267,7 @@ void TTable::load(std::string const &hashFn) {
     sync_cout << "info string Hash loaded from file \'" << hashFn << "\'" << sync_endl;
 }
 
-namespace {
-
-    constexpr u32 BufferSize = 0x1000;
-
-}
+constexpr u32 BufferSize{ 0x1000 };
 
 std::ostream& operator<<(std::ostream &os, TTable const &tt) {
     u32 memSize = tt.size();

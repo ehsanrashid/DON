@@ -105,6 +105,8 @@ public:
 
     void clear();
 
+    void free();
+
     TEntry* probe(Key, bool&) const;
 
     u32 hashFull() const;

@@ -218,9 +218,8 @@ enum Value : i32 {
     VALUE_SPACE_THRESHOLD   = 12222,
     VALUE_TEMPO = 28,
 
-    //VALUE_MG_FULL = VALUE_MG_NIHT * 4 + VALUE_MG_BSHP * 4 + VALUE_MG_ROOK * 4 + VALUE_MG_QUEN * 2,
-    //VALUE_EG_FULL = VALUE_EG_NIHT * 4 + VALUE_EG_BSHP * 4 + VALUE_EG_ROOK * 4 + VALUE_EG_QUEN * 2,
 };
+
 /// Score needs 32-bits to be stored
 /// the lower 16-bits are used to store the midgame value
 /// the upper 16-bits are used to store the endgame value
@@ -365,6 +364,8 @@ constexpr Score operator*(Score s, bool b) {
 Score operator*(Score, Score) = delete;
 Score operator/(Score, Score) = delete;
 
+constexpr i32 BaseRank  [COLORS] { RANK_1, RANK_8 };
+constexpr i32 BaseSquare[COLORS] { SQ_A1, SQ_A8 };
 
 constexpr bool isOk(Color c) {
     return WHITE <= c && c <= BLACK;
@@ -388,7 +389,7 @@ constexpr Rank operator~(Rank r) {
 }
 
 constexpr Rank relativeRank(Color c, Rank r) {
-    return Rank(r ^ (RANK_8 * c));
+    return Rank(r ^ BaseRank[c]);
 }
 
 constexpr bool isOk(Square s) {
@@ -420,7 +421,7 @@ constexpr bool colorOpposed(Square s1, Square s2) {
 }
 
 constexpr Square relativeSq(Color c, Square s) {
-    return Square(s ^ (56 * c));
+    return Square(s ^ BaseSquare[c]);
 }
 constexpr Rank relativeRank(Color c, Square s) {
     return relativeRank(c, sRank(s));
@@ -463,7 +464,6 @@ constexpr CastleRight makeCastleRight(Color c) {
 constexpr CastleRight makeCastleRight(Color c, CastleSide cs) {
     return CastleRight(CR_WKING << ((c << 1) + cs));
 }
-
 
 constexpr Square orgSq(Move m) {
     return Square((m >> 6) & 63);
@@ -516,7 +516,6 @@ constexpr Value matesIn(i32 ply) {
 constexpr Value matedIn(i32 ply) {
     return -VALUE_MATE + ply;
 }
-
 
 class Moves :
     public std::vector<Move> {
@@ -631,7 +630,6 @@ inline i32 distance(Square s1, Square s2) {
     //return std::max(fileDistance(s1, s2), rankDistance(s1, s2));
     return Distance[s1][s2];
 }
-
 
 constexpr Piece Pieces[12]
 {

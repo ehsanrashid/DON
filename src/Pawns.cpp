@@ -98,7 +98,8 @@ namespace Pawns {
               || (stoppers == blocker
                && r >= RANK_5
                && ( pawnSglPushBB<Own>(supporters)
-                 & ~(oppPawns | dblAttacks[Opp])) != 0))) {
+                 & ~(oppPawns
+                   | dblAttacks[Opp])) != 0))) {
                 // Passed pawns will be properly scored later in evaluation when we have full attack info.
                 passeds[Own] |= s;
             }
@@ -153,7 +154,6 @@ namespace Pawns {
         e->evaluate<BLACK>(pos);
         e->complexity = 11 * pos.count(PAWN)
                       +  9 * e->passedCount();
-
         return e;
     }
 

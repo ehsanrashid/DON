@@ -9,6 +9,7 @@
 #include "Searcher.h"
 #include "Thread.h"
 #include "TimeManager.h"
+#include "Transposition.h"
 #include "UCI.h"
 #include "Zobrist.h"
 
@@ -37,6 +38,9 @@ int main(int argc, char const *const *argv) {
     }
 
     UCI::handleCommands(cmdLine);
+
+    TT.free();
+    TTEx.free();
 
     //std::atexit(clear);
     return EXIT_SUCCESS;

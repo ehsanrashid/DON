@@ -21,12 +21,16 @@ BINDIR = $(PREFIX)/bin
 ### Built-in benchmark for pgo-builds
 PGOBENCH = ./$(EXE) bench
 
-### Object files
-OBJS = Bitbase.o Bitboard.o Cuckoo.o Debugger.o Endgame.o Evaluator.o \
-       Helper.o Logger.o Main.o Material.o MoveGenerator.o MovePicker.o \
-       Notation.o King.o Pawns.o Polyglot.o Position.o PSQTable.o \
-       RootMove.o Searcher.o SkillManager.o SyzygyTB.o Thread.o ThreadMarker.o \
-       TimeManager.o Transposition.o UCI.o Zobrist.o
+### Source and Object files
+SRCS = Bitbase.cpp Bitboard.cpp Cuckoo.cpp Debugger.cpp Endgame.cpp Evaluator.cpp \
+       Helper.cpp Logger.cpp Main.cpp Material.cpp MoveGenerator.cpp MovePicker.cpp \
+       Notation.cpp King.cpp Pawns.cpp Polyglot.cpp Position.cpp PSQTable.cpp \
+       RootMove.cpp Searcher.cpp SkillManager.cpp SyzygyTB.cpp Thread.cpp ThreadMarker.cpp \
+       TimeManager.cpp Transposition.cpp UCI.cpp Zobrist.cpp
+
+OBJS = $(notdir $(SRCS:.cpp=.o))
+
+VPATH = 
 
 ### Establish the operating system name
 KERNEL = $(shell uname -s)

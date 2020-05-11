@@ -145,7 +145,8 @@ namespace Evaluator {
         constexpr Score BishopOutpost     { S( 30, 23) };
         constexpr Score BishopKingProtect { S(  6,  9) };
         constexpr Score BishopOnDiagonal  { S( 45,  0) };
-        constexpr Score BishopPawns       { S(  3,  7) };
+        constexpr Score BishopPawnsBlocked{ S(  3,  7) };
+        constexpr Score BishopPawnsXRayed { S(  4,  5) };
         constexpr Score BishopTrapped     { S( 50, 50) };
         constexpr Score RookOnQueenFile   { S(  5,  9) };
         constexpr Score RookTrapped       { S( 55, 13) };
@@ -312,7 +313,7 @@ namespace Evaluator {
                     PT == ROOK ? attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~kingBlockers) | pos.pieces(Opp, QUEN))) & action :
                                  attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~kingBlockers))) & action };
 
-                auto mob = popCount(attacks & mobArea[Own]);
+                auto mob{ popCount(attacks & mobArea[Own]) };
                 assert(0 <= mob && mob <= 27);
 
                 // Bonus for piece mobility
@@ -328,8 +329,6 @@ namespace Evaluator {
                     // Bonus for minor shielded by pawn
                     score += MinorBehindPawn * (relativeRank(Own, s) <= RANK_6
                                              && contains(pos.pieces(PAWN), s + PawnPush[Own]));
-
-
 
                     b =  OutpostBB[Own]
                       &  sqlAttacks[Own][PAWN]
@@ -360,16 +359,20 @@ namespace Evaluator {
                         // Penalty for pawns on the same color square as the bishop,
                         // less when the bishop is protected by pawn
                         // more when the center files are blocked with pawns.
-                        score -= BishopPawns
+                        score -= BishopPawnsBlocked
                                * popCount(pos.pawnsOnSqColor(Own, sColor(s)))
                                * (!contains(sqlAttacks[Own][PAWN], s)
                                 + popCount(pos.pieces(Own, PAWN)
                                          & SlotFileBB[CS_CENTRE]
                                          & pawnSglPushBB<Opp>(pos.pieces())));
-
+                        // Penalty for all enemy pawns x-rayed
+                        score -= BishopPawnsXRayed
+                               * popCount(pos.pieces(Opp, PAWN)
+                                        & PieceAttacksBB[BSHP][s]);
                         // Bonus for bishop on a long diagonal which can "see" both center squares
                         score += BishopOnDiagonal
-                               * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB);
+                               * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN))
+                                           & CenterBB);
 
                         // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
                         // It is a very serious problem, especially when that pawn is also blocked.
@@ -397,7 +400,6 @@ namespace Evaluator {
                     if ((pos.pieces(QUEN) & fileBB(s)) != 0) {
                         score += RookOnQueenFile;
                     }
-
                     // Bonus for rook when on an open or semi-open file
                     if (pos.semiopenFileOn(Own, s)) {
                         score += RookOnFile[pos.semiopenFileOn(Opp, s)];
@@ -967,7 +969,7 @@ namespace Evaluator {
             // Early exit if score is high
             Value v{ (mgValue(score) + egValue(score)) / 2 };
             if (std::abs(v) > (VALUE_LAZY_THRESHOLD
-                        + pos.nonPawnMaterial() / 64)) {
+                             + pos.nonPawnMaterial() / 64)) {
                 return pos.activeSide() == WHITE ? +v : -v;
             }
 
@@ -1037,13 +1039,13 @@ namespace Evaluator {
             return "Evaluation: none (in check)\n";
         }
         // Reset any dynamic contempt
-        auto contempt = pos.thread()->contempt;
+        auto contempt{ pos.thread()->contempt };
         pos.thread()->contempt = SCORE_ZERO;
         auto value{ Evaluation<true>(pos).value() };
         pos.thread()->contempt = contempt;
 
         // Trace scores are from White's point of view
-        value = pos.activeSide() == WHITE ? +value : -value;
+        value = (pos.activeSide() == WHITE ? +value : -value);
 
         std::ostringstream oss;
 

@@ -1169,8 +1169,7 @@ namespace {
                 // If the eval of ttMove is greater than beta we try also if there is an other move that
                 // pushes it over beta, if so also produce a cutoff
                 else
-                if (ttValue >= beta)
-                {
+                if (ttValue >= beta) {
                     ss->excludedMove = ttMove;
                     value = depthSearch<false>(pos, ss, beta - 1, beta, (depth + 3) / 2, cutNode);
                     ss->excludedMove = MOVE_NONE;
@@ -1934,13 +1933,12 @@ void MainThread::search() {
                 th->waitIdle();
             }
         }
-        // Check if there is better thread than main thread.
+        // Check if there is better thread than main thread
         if (PVCount == 1
          && Threadpool.size() >= 2
-         && Limits.depth == DEPTH_ZERO // Depth limit search don't use deeper thread
+         //&& Limits.depth == DEPTH_ZERO // Depth limit search don't use deeper thread
          && !SkillMgr.enabled()
-         && !Options["UCI_LimitStrength"]
-         && rootMoves[0][0] != MOVE_NONE) {
+         && !Options["UCI_LimitStrength"]) {
 
             bestThread = Threadpool.bestThread();
             // If new best thread then send PV info again.

@@ -508,11 +508,11 @@ void Position::setCheckInfo() {
 }
 
 /// Position::canEnpassant() Can the enpassant possible.
-bool Position::canEnpassant(Color c, Square epSq, bool moveDone) const {
+bool Position::canEnpassant(Color c, Square epSq, bool moved) const {
     assert(isOk(epSq)
         && relativeRank(c, epSq) == RANK_6);
-    auto cap{ moveDone ? epSq - PawnPush[c] : epSq + PawnPush[c] };
-    assert(board[cap] == (~c|PAWN)); //contains(pieces(~c, PAWN), cap));
+    auto cap{ moved ? epSq - PawnPush[c] : epSq + PawnPush[c] };
+    assert(board[cap] == (~c|PAWN));
     // Enpassant attackers
     Bitboard attackers{ pieces(c, PAWN)
                       & PawnAttacksBB[~c][epSq] };
@@ -562,7 +562,6 @@ bool Position::see(Move m, Value threshold) const {
 
     bool res{ true };
     auto mov{ pColor(board[org]) };
-
     Bitboard mocc{ pieces() ^ org ^ dst };
     Bitboard attackers{ attackersTo(dst, mocc) };
     while (attackers != 0) {
@@ -571,18 +570,32 @@ bool Position::see(Move m, Value threshold) const {
 
         Bitboard movAttackers{ attackers & pieces(mov) };
 
-        Bitboard b;
-        // Don't allow pinned pieces to attack (except the king) as long as
-        // there are pinners on their original square.
-        if (movAttackers != 0
-         && (b = kingCheckers(mov) & pieces(~mov) & mocc) != 0) {
-            while (b != 0) {
-                movAttackers &= ~betweenBB(square(mov|KING), popLSq(b));
+        if (movAttackers != 0) {
+            auto kSq{ square(mov|KING) };
+            Bitboard b;
+            // Don't allow pinned pieces to attack (except the king) as long as
+            // there are pinners on their original square.
+            if ((b = kingCheckers(mov) & pieces(~mov) & mocc) != 0) {
+                while (b != 0) {
+                    movAttackers &= ~betweenBB(kSq, popLSq(b));
+                }
+            }
+            else
+            if (contains(kingBlockers(mov), org)
+             && !aligned(kSq, org, dst)
+             && (kingCheckers(~mov)
+               & pieces(~mov)
+               & mocc
+               & LineBB[kSq][org]) != 0) {
+                movAttackers = SquareBB[kSq];
+            }
+            
+            // If mov has no more attackers then give up: mov loses
+            if (movAttackers == 0) {
+                break;
             }
         }
-
-        // If mov has no more attackers then give up: mov loses
-        if (movAttackers == 0) {
+        else {
             break;
         }
 
@@ -596,7 +609,7 @@ bool Position::see(Move m, Value threshold) const {
             if ((val = VALUE_MG_PAWN - val) < i32(res)) {
                 break;
             }
-            mocc ^= scanLSq(bb);
+            mocc ^= (org = scanLSq(bb));
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
         }
         else
@@ -604,14 +617,14 @@ bool Position::see(Move m, Value threshold) const {
             if ((val = VALUE_MG_NIHT - val) < i32(res)) {
                 break;
             }
-            mocc ^= scanLSq(bb);
+            mocc ^= (org = scanLSq(bb));
         }
         else
         if ((bb = pieces(BSHP) & movAttackers) != 0) {
             if ((val = VALUE_MG_BSHP - val) < i32(res)) {
                 break;
             }
-            mocc ^= scanLSq(bb);
+            mocc ^= (org = scanLSq(bb));
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
         }
         else
@@ -619,7 +632,7 @@ bool Position::see(Move m, Value threshold) const {
             if ((val = VALUE_MG_ROOK - val) < i32(res)) {
                 break;
             }
-            mocc ^= scanLSq(bb);
+            mocc ^= (org = scanLSq(bb));
             attackers |= (pieces(ROOK, QUEN) & attacksBB<ROOK>(dst, mocc));
         }
         else
@@ -627,7 +640,7 @@ bool Position::see(Move m, Value threshold) const {
             if ((val = VALUE_MG_QUEN - val) < i32(res)) {
                 break;
             }
-            mocc ^= scanLSq(bb);
+            mocc ^= (org = scanLSq(bb));
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc))
                        | (pieces(ROOK, QUEN) & attacksBB<ROOK>(dst, mocc));
         }
@@ -702,9 +715,6 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
             placePiece(sq, p);
             ++sq;
         }
-        //else {
-        //    assert(false);
-        //}
     }
     assert(count(W_KING) == 1
         && count(B_KING) == 1);
@@ -746,7 +756,7 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     if ((iss >> file && ('a' <= file && file <= 'h'))
      && (iss >> rank && ('3' == rank || rank == '6'))) {
         _stateInfo->epSquare = makeSquare(toFile(file), toRank(rank));
-        if (!canEnpassant(active, _stateInfo->epSquare)) {
+        if (!canEnpassant(active, epSquare())) {
             _stateInfo->epSquare = SQ_NONE;
         }
     }
@@ -797,8 +807,8 @@ Position& Position::setup(std::string const &code, Color c, StateInfo &si) {
 
     toLower(codes[c]);
 
-    std::string fenStr = "8/" + codes[WHITE] + char('0' + 8 - codes[WHITE].size()) + "/8/8/8/8/"
-                              + codes[BLACK] + char('0' + 8 - codes[BLACK].size()) + "/8 w - - 0 10";
+    std::string fenStr{ "8/" + codes[WHITE] + char('0' + 8 - codes[WHITE].size()) + "/8/8/8/8/"
+                             + codes[BLACK] + char('0' + 8 - codes[BLACK].size()) + "/8 w - - 0 10" };
 
     return setup(fenStr, si, nullptr);
 }
