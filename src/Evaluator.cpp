@@ -894,6 +894,7 @@ namespace Evaluator {
                             // Almost Unwinnable
                            - 43 * (pawnEntry->pawnNotBothFlank
                                 && outflanking < 0)
+                           - 2  * pos.clockPly()
                            - 89;
 
             auto mg{ mgValue(s) };
@@ -932,9 +933,6 @@ namespace Evaluator {
                 else {
                     scale = std::min(Scale(36 + 7 * pos.count(stngColor|PAWN)), SCALE_NORMAL);
                 }
-
-                // Scale down endgame factor when shuffling
-                scale = std::max(Scale(scale + 3 - pos.clockPly() / 4), SCALE_DRAW);
             }
             return scale;
         }

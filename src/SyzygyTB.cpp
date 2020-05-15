@@ -48,7 +48,7 @@ using namespace SyzygyTB;
 namespace {
 
     // Type of table
-    enum TBType : u08 { KEY, WDL, DTZ };
+    enum TBType : u08 { WDL, DTZ };
 
     // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
     enum TBFlag : u08 {
@@ -449,7 +449,21 @@ namespace {
     class TBTableDB {
 
     private:
-        using Entry = std::tuple<Key, TBTable<WDL>*, TBTable<DTZ>*>;
+
+        struct Entry
+        {
+            Key key;
+            TBTable<WDL>* wdl;
+            TBTable<DTZ>* dtz;
+
+            template <TBType Type>
+            TBTable<Type>* get() const {
+                return (TBTable<Type>*)
+                        (Type == WDL ?
+                            (void*)wdl : (void*)dtz);
+            }
+        };
+        static_assert(std::is_trivially_copyable<Entry>::value, "");
 
         static constexpr i32 Size{ 1 << 12 }; // 4K table, indexed by key's 12 lsb
 
@@ -460,13 +474,13 @@ namespace {
 
         void insert(Key matlKey, TBTable<WDL> *wdl, TBTable<DTZ> *dtz) {
             u32 homeBucket = matlKey & (Size - 1);
-            Entry entry{ std::make_tuple(matlKey, wdl, dtz) };
+            Entry entry{ matlKey, wdl, dtz };
 
             // Ensure last element is empty to avoid overflow when looking up
             for (u32 bucket = homeBucket; bucket < Size; ++bucket) {
-                Key omatlKey{ std::get<KEY>(entryTable[bucket]) };
+                Key omatlKey{ entryTable[bucket].key };
                 if (omatlKey == matlKey
-                || !std::get<WDL>(entryTable[bucket])) {
+                 || entryTable[bucket].get<WDL>() == nullptr) {
                     entryTable[bucket] = entry;
                     return;
                 }
@@ -491,10 +505,10 @@ namespace {
         TBTable<Type>* get(Key matlKey) {
             Entry const *entry{ &entryTable[matlKey & (Size - 1)] };
             while (true) {
-                if ( std::get<KEY>(*entry) == matlKey
-                 || !std::get<Type>(*entry)) {
-
-                    return std::get<Type>(*entry);
+                auto type{ entry->get<Type>() };
+                if (entry->key == matlKey
+                 || type == nullptr) {
+                    return type;
                 }
                 ++entry;
             }
