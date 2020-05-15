@@ -9,54 +9,10 @@
 
 TimeManager TimeMgr;
 
-namespace {
-
-    // Skew-logistic function based on naive statistical analysis of
-    // "how many games are still undecided after n half-moves".
-    // Game is considered "undecided" as long as neither side has >275cp advantage.
-    // Data was extracted from the CCRL game database with some simple filtering criteria.
-    double moveImportance(i16 ply) {
-        //                                             Shift    Scale   Skew
-        return{ std::max(std::pow(1.00 + std::exp((ply - 64.50) / 6.85), -0.171), DBL_MIN) }; // Ensure non-zero
-    }
-
-    template<bool Optimum>
-    TimePoint remainingTime(TimePoint time, u08 movestogo, i16 ply, u32 moveSlowness) {
-        constexpr auto  StepRatio{ 7.30 - 6.30 * Optimum }; // When in trouble, can step over reserved time with this ratio
-        constexpr auto StealRatio{ 0.34 - 0.34 * Optimum }; // However must not steal time from remaining moves over this ratio
-
-        auto moveImp1{ (moveImportance(ply) * moveSlowness) / 100 };
-        auto moveImp2{ 0.0 };
-        for (u08 i = 1; i < movestogo; ++i) {
-            moveImp2 += moveImportance(ply + 2 * i);
-        }
-
-        auto timeRatio1{ (1.0) / (1.0 + moveImp2 / (moveImp1 * StepRatio)) };
-        auto timeRatio2{ (1.0 + (moveImp2 * StealRatio) / moveImp1) / (1.0 + moveImp2 / moveImp1) };
-
-        return{ TimePoint(time * std::min(timeRatio1, timeRatio2)) };
-    }
-
-}
-
-/// TimeManager::elapsed()
-TimePoint TimeManager::elapsed() const {
-    return{ u16(Options["Time Nodes"]) == 0 ?
-            now() - Limits.startTime :
-            TimePoint(Threadpool.sum(&Thread::nodes)) };
-}
-
-/// TimeManager::set() calculates the allowed thinking time out of the time control and current game ply.
-/// Support four different kind of time controls, passed in 'limit':
-///
-/// increment == 0, moves to go == 0 => y basetime                             ['sudden death']
-/// increment != 0, moves to go == 0 => y basetime + z increment
-/// increment == 0, moves to go != 0 => x moves in y basetime                  ['standard']
-/// increment != 0, moves to go != 0 => x moves in y basetime + z increment
-///
-/// Minimum MoveTime = No matter what, use at least this much time before doing the move, in milli-seconds.
-/// Overhead MoveTime = Attempt to keep at least this much time for each remaining move, in milli-seconds.
-/// Move Slowness = Move Slowness, in %age.
+/// TimeManager::setup() is called at the beginning of the search and calculates the bounds
+/// of time allowed for the current game ply.  We currently support:
+//   1) x basetime (+z increment)
+//   2) x moves in y seconds (+z increment)
 void TimeManager::setup(Color c, i16 ply) {
 
     TimePoint minimumMoveTime{ Options["Minimum MoveTime"] };
@@ -76,32 +32,58 @@ void TimeManager::setup(Color c, i16 ply) {
         Limits.clock[c].inc *= timeNodes;
     }
 
-    optimum =
-    maximum = std::max(Limits.clock[c].time, minimumMoveTime);
-    // Move Horizon:
-    // Plan time management at most this many moves ahead.
+    // Maximum move horizon: Plan time management at most this many moves ahead.
     u08 maxMovestogo{ 50 };
     if (Limits.movestogo != 0) {
         maxMovestogo = std::min(Limits.movestogo, maxMovestogo);
     }
-    // Calculate optimum time usage for different hypothetic "moves to go" and
-    // choose the minimum of calculated search time values.
-    for (u08 movestogo = 1; movestogo <= maxMovestogo; ++movestogo) {
-        // Calculate thinking time for hypothetical "moves to go"
-        auto time = std::max(Limits.clock[c].time
-                           + Limits.clock[c].inc * (movestogo - 1)
-                             // ClockTime: Attempt to keep this much time at clock.
-                             // MovesTime: Attempt to keep at most this many moves time at clock.
-                           - overheadMoveTime * (2 + std::min(movestogo, { 40 })) // (ClockTime + MovesTime)
-                            , { 0 });
+    // Adjust moveOverhead if there are tiny increments
+    overheadMoveTime = clamp(overheadMoveTime, TimePoint(10), TimePoint(Limits.clock[c].inc / 2));
 
-        optimum = std::min(minimumMoveTime + remainingTime<true >(time, movestogo, ply, moveSlowness), optimum);
-        maximum = std::min(minimumMoveTime + remainingTime<false>(time, movestogo, ply, moveSlowness), maximum);
+    // Make sure timeLeft is > 0 since we may use it as a divisor
+    TimePoint leftTime{ std::max(TimePoint(1),
+                                 Limits.clock[c].time
+                               + Limits.clock[c].inc * (maxMovestogo - 1)
+                               - overheadMoveTime * (2 + maxMovestogo)) };
+    // A user may scale time usage by setting UCI option "Slow Mover"
+    // Default is 100 and changing this value will probably lose elo.
+    leftTime = leftTime * moveSlowness / 100;
+
+    // optimumScale is a percentage of available time to use for the current move.
+    // maximumScale is a multiplier applied to optimumTime.
+    double optimumScale,
+           maximumScale;
+    // x basetime (+ z increment)
+    // If there is a healthy increment, timeLeft can exceed actual available
+    // game time for the current move, so also cap to 20% of available game time.
+    if (Limits.movestogo == 0)
+    {
+        optimumScale = std::min(0.007 + std::pow(ply + 3.0, 0.5) / 250.0,
+                                0.2 * Limits.clock[c].time / double(leftTime));
+        maximumScale = 4 + std::pow(ply + 3, 0.3);
     }
+    // x moves in y seconds (+ z increment)
+    else
+    {
+        optimumScale = std::min((0.8 + ply / 128.0) / maxMovestogo,
+                                (0.8 * Limits.clock[c].time / double(leftTime)));
+        maximumScale = std::min(6.3, 1.5 + 0.11 * maxMovestogo);
+    }
+
+    // Never use more than 80% of the available time for this move
+    optimum = std::max(minimumMoveTime, TimePoint(optimumScale * leftTime));
+    maximum = std::min(0.8 * Limits.clock[c].time - overheadMoveTime, maximumScale * optimum);
 
     if (Options["Ponder"]) {
         optimum += optimum / 4;
     }
+}
+
+/// TimeManager::elapsed()
+TimePoint TimeManager::elapsed() const {
+    return{ u16(Options["Time Nodes"]) == 0 ?
+        now() - Limits.startTime :
+        TimePoint(Threadpool.sum(&Thread::nodes)) };
 }
 
 void TimeManager::clear() {
