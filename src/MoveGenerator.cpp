@@ -8,7 +8,7 @@
 
 namespace {
 
-    /// Generates piece normal move
+    /// Generates piece move
     template<bool Checks>
     void generatePieceMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
         auto activeSide{ pos.activeSide() };
@@ -17,19 +17,15 @@ namespace {
             Square const *ps{ pos.squares(activeSide|pt) };
             Square s;
             while ((s = *ps++) != SQ_NONE) {
-
                 if (Checks
                  && contains(pos.kingBlockers(~activeSide), s)) {
                     continue;
                 }
-
                 Bitboard attacks{ pos.attacksFrom(pt, s)
                                 & targets };
-
                 if (Checks) {
                     attacks &= pos.checks(pt);
                 }
-
                 while (attacks != 0) { moves += makeMove<SIMPLE>(s, popLSq(attacks)); }
             }
         }
@@ -37,9 +33,9 @@ namespace {
 
     /// Generates pawn promotion move
     template<GenType GT>
-    void generatePromotionMoves(ValMoves &moves, Position const &pos, Bitboard promotion, Direction dir) {
-        while (promotion != 0) {
-            auto dst{ popLSq(promotion) };
+    void generatePromotionMoves(ValMoves &moves, Position const &pos, Bitboard promotions, Direction dir) {
+        while (promotions != 0) {
+            auto dst{ popLSq(promotions) };
             auto org{ dst - dir };
 
             if (GT == CAPTURE
@@ -158,7 +154,7 @@ namespace {
         }
     }
 
-    /// Generates king normal move
+    /// Generates king move
     template<GenType GT>
     void generateKingMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
         assert(pos.checkers() == 0);
@@ -189,7 +185,6 @@ namespace {
     /// Generates all pseudo-legal moves of color for targets.
     template<GenType GT>
     void generateMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
-
         constexpr bool Checks{ GT == QUIET_CHECK };
 
         pos.activeSide() == WHITE ?

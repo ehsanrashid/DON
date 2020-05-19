@@ -55,7 +55,7 @@ inline void prefetch(void const *addr) {
 
 inline void prefetch(void const*) {}
 
-#endif // (PREFETCH)
+#endif
 
 using Evaluator::evaluate;
 
@@ -93,7 +93,7 @@ namespace {
     constexpr u64 TTHitAverageResolution{ 1024 };
 
     constexpr i32 MaxMoves{ 256 };
-    i32 Reduction[MaxMoves]{};
+    i32 Reduction[MaxMoves];
     inline Depth reduction(Depth d, u08 mc, bool imp) {
         assert(d >= DEPTH_ZERO);
         i32 r{ Reduction[d] * Reduction[mc] };
@@ -125,16 +125,13 @@ namespace {
     inline Value valueOfTT(Value v, i32 ply, i32 clockPly) {
 
         if (v != VALUE_NONE) {
-
-            if (v >= +VALUE_MATE_2_MAX_PLY) // TB win or better
-            {
+            if (v >= +VALUE_MATE_2_MAX_PLY) { // TB win or better
                 return v >= +VALUE_MATE_1_MAX_PLY
                     && VALUE_MATE - v >= 100 - clockPly ?
                         // do not return a potentially false mate score
                         +VALUE_MATE_1_MAX_PLY - 1 : v - ply;
             }
-            if (v <= -VALUE_MATE_2_MAX_PLY) // TB loss or worse
-            {
+            if (v <= -VALUE_MATE_2_MAX_PLY) { // TB loss or worse
                 return v <= -VALUE_MATE_1_MAX_PLY
                     && VALUE_MATE + v >= 100 - clockPly ?
                         // do not return a potentially false mate score
@@ -219,15 +216,13 @@ namespace {
     /// multipvInfo() formats PV information according to UCI protocol.
     /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
     std::string multipvInfo(Thread const *th, Depth depth, Value alfa, Value beta) {
-        auto elapsed{ TimeMgr.elapsed() };
-        if (elapsed == 0) elapsed = 1;
+        auto elapsed{ std::max(TimeMgr.elapsed(), { 1 }) };
         auto nodes{ Threadpool.sum(&Thread::nodes) };
         auto tbHits{ Threadpool.sum(&Thread::tbHits)
                    + th->rootMoves.size() * SyzygyTB::HasRoot };
 
         std::ostringstream oss;
-        for (u16 i = 0; i < PVCount; ++i)
-        {
+        for (u16 i = 0; i < PVCount; ++i) {
             bool updated{ th->rootMoves[i].newValue != -VALUE_INFINITE };
             if (depth == 1
              && !updated) {
@@ -269,7 +264,6 @@ namespace {
         }
         return oss.str();
     }
-
 
     /// quienSearch() is quiescence search function, which is called by the main depth limited search function when the remaining depth <= 0.
     template<bool PVNode>
@@ -534,8 +528,8 @@ namespace {
     /// depthSearch() is main depth limited search function, which is called when the remaining depth > 0.
     template<bool PVNode>
     Value depthSearch(Position &pos, Stack *ss, Value alfa, Value beta, Depth depth, bool cutNode) {
-        bool rootNode = PVNode
-                     && ss->ply == 0;
+        bool rootNode{ PVNode
+                    && ss->ply == 0 };
 
         // Step 1. Initialize node
         ss->moveCount = 0;
@@ -1542,6 +1536,7 @@ void Limit::clear() {
 namespace Searcher {
 
     void initialize() {
+        Reduction[0] = 0;
         double r = 24.8 + std::log(Threadpool.size());
         for (i16 i = 1; i < MaxMoves; ++i) {
             Reduction[i] = i32(r * std::log(i));
@@ -1575,10 +1570,15 @@ void Thread::search() {
              Options["Analysis Contempt"] == "Black" && rootPos.activeSide() == WHITE ? -bc :
              /*Options["Analysis Contempt"] == "Both"                         ? +bc :*/ +bc;
     }
-
     contempt = rootPos.activeSide() == WHITE ?
                 +makeScore(bc, bc / 2) :
                 -makeScore(bc, bc / 2);
+
+    for (i16 p = 0; p < MAX_LOWPLY; ++p) {
+        for (auto m = 0; m < SQUARES * SQUARES; ++m) {
+            lowPlyStats[p][m] = p < MAX_LOWPLY - 2 ? lowPlyStats[p + 2][m] : 0;
+        }
+    }
 
     auto *mainThread{ this == Threadpool.mainThread() ?
                         static_cast<MainThread*>(this) : nullptr };
@@ -1887,9 +1887,9 @@ void MainThread::search() {
                 bestDepth = DEPTH_ZERO;
             }
 
-            auto level = Options["UCI_LimitStrength"] ?
+            auto level{ Options["UCI_LimitStrength"] ?
                             clamp(u16(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), {0}, MaxLevel) :
-                            u16(Options["Skill Level"]);
+                            u16(Options["Skill Level"]) };
             SkillMgr.setLevel(level);
 
             // Have to play with skill handicap?
@@ -1960,7 +1960,6 @@ void MainThread::search() {
                 Limits.clock[rootPos.activeSide()].inc
               - Threadpool.sum(&Thread::nodes);
         }
-
         bestValue = rm.newValue;
     }
 
@@ -1990,7 +1989,9 @@ void MainThread::tick() {
         return;
     }
     // When using nodes, ensure checking rate is in range [1, 1024]
-    tickCount = i16(Limits.nodes != 0 ? clamp(i32(Limits.nodes / 1024), 1, 1024) : 1024);
+    tickCount = i16(Limits.nodes != 0 ?
+                        clamp(i32(Limits.nodes / 1024), 1, 1024) :
+                        1024);
 
     auto elapsed{ TimeMgr.elapsed() };
     auto time{ Limits.startTime + elapsed };

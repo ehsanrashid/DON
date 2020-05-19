@@ -57,6 +57,38 @@ std::ostream& operator<<(std::ostream &os, RootMove const &rm) {
     return os;
 }
 
+RootMoves::RootMoves(Position const &pos) :
+    std::vector<RootMove>() {
+    assert(empty());
+    //clear();
+    for (auto const &vm : MoveList<LEGAL>(pos)) {
+        *this += vm;
+        assert(back().tbRank == 0
+            && back().tbValue == VALUE_ZERO);
+    }
+}
+
+RootMoves::RootMoves(Position const &pos, Moves const &filterMoves) :
+    std::vector<RootMove>() {
+    assert(empty());
+    //clear();
+    if (filterMoves.empty()) {
+        for (auto const &vm : MoveList<LEGAL>(pos)) {
+            *this += vm;
+            assert(back().tbRank == 0
+                && back().tbValue == VALUE_ZERO);
+        }
+    }
+    else {
+        for (auto const& vm : MoveList<LEGAL>(pos)) {
+            if (filterMoves.contains(vm)) {
+                *this += vm;
+                assert(back().tbRank == 0
+                    && back().tbValue == VALUE_ZERO);
+            }
+        }
+    }
+}
 
 void RootMoves::operator+=(Move m) {
     emplace_back(m);
@@ -71,34 +103,6 @@ void RootMoves::operator+=(RootMove const &rm) {
 //void RootMoves::operator-=(RootMove const &rm) {
 //    erase(std::remove(begin(), end(), rm), end());
 //}
-
-void RootMoves::initialize(Position const &pos) {
-    assert(empty());
-    //clear();
-    for (auto const &vm : MoveList<LEGAL>(pos)) {
-        *this += vm;
-        assert(back().tbRank == 0
-            && back().tbValue == VALUE_ZERO);
-    }
-}
-
-void RootMoves::initialize(Position const &pos, Moves const &filterMoves) {
-
-    if (filterMoves.empty()) {
-        initialize(pos);
-        return;
-    }
-
-    assert(empty());
-    //clear();
-    for (auto const &vm : MoveList<LEGAL>(pos)) {
-        if (filterMoves.contains(vm)) {
-            *this += vm;
-            assert(back().tbRank == 0
-                && back().tbValue == VALUE_ZERO);
-        }
-    }
-}
 
 RootMoves::const_iterator RootMoves::find(Move m) const {
     return std::find(begin(), end(), m);

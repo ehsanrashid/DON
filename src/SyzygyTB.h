@@ -10,22 +10,20 @@ namespace SyzygyTB {
     constexpr i16 TBPIECES{ 7 };
 
     /// WDL Score
-    enum WDLScore
-    {
+    enum WDLScore {
         WDL_LOSS         = -2, // Loss
         WDL_BLESSED_LOSS = -1, // Loss, but draw under 50-move rule
         WDL_DRAW         =  0, // Draw
         WDL_CURSED_WIN   = +1, // Win, but draw under 50-move rule
         WDL_WIN          = +2, // Win
-        //WDLScoreNone     = -1000
+        //WDL_NONE         = -1000
     };
 
     extern WDLScore operator-(WDLScore wdl);
     extern std::ostream& operator<<(std::ostream&, WDLScore);
 
     /// Possible states after a probing operation
-    enum ProbeState
-    {
+    enum ProbeState {
         PS_OPP_SIDE = -1, // DTZ should check the other side
         PS_FAILURE  =  0, // Probe failure (missing file table)
         PS_SUCCESS  = +1, // Probe success

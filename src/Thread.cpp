@@ -10,41 +10,6 @@
 #include "Transposition.h"
 #include "UCI.h"
 
-#if defined(_WIN32)
-
-#   if _WIN32_WINNT < 0x0601
-#       undef  _WIN32_WINNT
-#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
-#   endif
-
-#   if !defined(NOMINMAX)
-#       define NOMINMAX // Disable macros min() and max()
-#   endif
-#   if !defined(WIN32_LEAN_AND_MEAN)
-#       define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
-#   endif
-
-#   include <windows.h>
-
-#   undef WIN32_LEAN_AND_MEAN
-#   undef NOMINMAX
-
-    /// The needed Windows API for processor groups could be missed from old Windows versions,
-    /// so instead of calling them directly (forcing the linker to resolve the calls at compile time),
-    /// try to load them at runtime. To do this first define the corresponding function pointers.
-    extern "C" {
-
-        //using GLPIE  = bool (*)(LOGICAL_PROCESSOR_RELATIONSHIP LogicalProcRelationship, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX PtrSysLogicalProcInfo, PDWORD PtrLength);
-        using GLPIE  = std::add_pointer<bool(LOGICAL_PROCESSOR_RELATIONSHIP, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD)>::type;
-        //using GNNPME = bool (*)(USHORT Node, PGROUP_AFFINITY PtrGroupAffinity);
-        using GNNPME = std::add_pointer<bool(USHORT, PGROUP_AFFINITY)>::type;
-        //using STGA   = bool (*)(HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
-        using STGA   = std::add_pointer<bool(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY)>::type;
-    }
-
-#endif
-
-
 ThreadPool Threadpool;
 
 /// Thread constructor launches the thread and waits until it goes to sleep in threadFunc().
@@ -99,7 +64,6 @@ void Thread::threadFunc() {
         search();
     }
 }
-
 /// Thread::clear() clears all the thread related stuff.
 void Thread::clear() {
     butterFlyStats.fill(0);
@@ -141,8 +105,7 @@ MainThread * ThreadPool::mainThread() const {
     return static_cast<MainThread*>(front());
 }
 
-Thread* ThreadPool::bestThread() const
-{
+Thread* ThreadPool::bestThread() const {
     Thread *bestTh{ front() };
 
     auto minValue{ +VALUE_INFINITE };
@@ -234,8 +197,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     mainThread()->stopOnPonderHit = false;
     mainThread()->ponder = Limits.ponder;
 
-    RootMoves rootMoves;
-    rootMoves.initialize(pos, Limits.searchMoves);
+    RootMoves rootMoves{ pos, Limits.searchMoves };
 
     if (!rootMoves.empty()) {
         SyzygyTB::rankRootMoves(pos, rootMoves);
@@ -254,7 +216,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     // So we need to save and later to restore last stateinfo, cleared by setup().
     // Note that states is shared by threads but is accessed in read-only mode.
     auto fen{ pos.fen() };
-    auto sBack = setupStates->back();
+    auto backState = setupStates->back();
     for (auto *th : *this) {
         th->rootDepth       = DEPTH_ZERO;
         th->finishedDepth   = DEPTH_ZERO;
@@ -263,14 +225,46 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
         th->pvChange        = 0;
         th->nmpPly[WHITE]   = 0;
         th->nmpPly[BLACK]   = 0;
-        th->lowPlyStats.fill(0);
         th->rootMoves       = rootMoves;
         th->rootPos.setup(fen, setupStates->back(), th);
     }
-    setupStates->back() = sBack;
+    setupStates->back() = backState;
 
     mainThread()->wakeUp();
 }
+
+#if defined(_WIN32)
+
+#   if _WIN32_WINNT < 0x0601
+#       undef  _WIN32_WINNT
+#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
+#   endif
+#   if !defined(NOMINMAX)
+#       define NOMINMAX // Disable macros min() and max()
+#   endif
+#   if !defined(WIN32_LEAN_AND_MEAN)
+#       define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
+#   endif
+
+#   include <windows.h>
+
+#   undef WIN32_LEAN_AND_MEAN
+#   undef NOMINMAX
+
+    /// The needed Windows API for processor groups could be missed from old Windows versions,
+    /// so instead of calling them directly (forcing the linker to resolve the calls at compile time),
+    /// try to load them at runtime. To do this first define the corresponding function pointers.
+    extern "C" {
+
+        //using GLPIE  = bool (*)(LOGICAL_PROCESSOR_RELATIONSHIP LogicalProcRelationship, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX PtrSysLogicalProcInfo, PDWORD PtrLength);
+        using GLPIE  = std::add_pointer<bool(LOGICAL_PROCESSOR_RELATIONSHIP, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD)>::type;
+        //using GNNPME = bool (*)(USHORT Node, PGROUP_AFFINITY PtrGroupAffinity);
+        using GNNPME = std::add_pointer<bool(USHORT, PGROUP_AFFINITY)>::type;
+        //using STGA   = bool (*)(HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
+        using STGA   = std::add_pointer<bool(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY)>::type;
+    }
+
+#endif
 
 /// Win Processors Group
 /// Under Windows it is not possible for a process to run on more than one logical processor group.

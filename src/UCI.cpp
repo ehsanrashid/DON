@@ -407,7 +407,7 @@ namespace UCI {
 
         Options["Draw MoveCount"]     << Option(50, 5, 50);
 
-        Options["Overhead MoveTime"]  << Option(30,  0, 5000);
+        Options["Overhead MoveTime"]  << Option(10,  0, 5000);
         Options["Minimum MoveTime"]   << Option( 0,  0, 5000);
         Options["Move Slowness"]      << Option(100, 10, 1000);
         Options["Ponder"]             << Option(true);
@@ -742,11 +742,10 @@ namespace UCI {
                 else if (token == "position")   { position(is, pos, states); }
                 else if (token == "ucinewgame") { UCI::clear(); elapsed = now(); }
             }
-
-            elapsed = now() - elapsed + 1; // Ensure positivity to avoid a 'divide by zero'
+            elapsed = std::max(now() - elapsed, { 1 });
 
             Debugger::print(); // Just before exiting
-
+            
             ostringstream oss;
             oss << std::right
                 << "\n=================================\n"

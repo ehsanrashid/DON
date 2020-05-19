@@ -337,8 +337,7 @@ constexpr Score operator/(Score s, i32 i) {
     return makeScore(mgValue(s) / i, egValue(s) / i);
 }
 /// Multiplication of a Score by an integer. We check for overflow in debug mode.
-//inline Score operator*(Score s, i32 i)
-//{
+//inline Score operator*(Score s, i32 i) {
 //    Score score{ Score(i32(s) * i) };
 //    assert(egValue(score) == (egValue(s) * i));
 //    assert(mgValue(score) == (mgValue(s) * i));

@@ -450,8 +450,7 @@ namespace {
 
     private:
 
-        struct Entry
-        {
+        struct Entry {
             Key key;
             TBTable<WDL>* wdl;
             TBTable<DTZ>* dtz;
@@ -463,7 +462,6 @@ namespace {
                             (void*)wdl : (void*)dtz);
             }
         };
-        static_assert(std::is_trivially_copyable<Entry>::value, "");
 
         static constexpr i32 Size{ 1 << 12 }; // 4K table, indexed by key's 12 lsb
 

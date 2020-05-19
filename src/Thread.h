@@ -24,9 +24,8 @@ class Thread :
 
 private:
 
-    bool
-        dead{ false },
-        busy{ true };
+    bool dead{ false },
+         busy{ true };
 
     std::mutex mutex;
     std::condition_variable conditionVar;
@@ -40,25 +39,21 @@ public:
     Position  rootPos;
     RootMoves rootMoves;
 
-    Depth
-        rootDepth,
-        finishedDepth,
-        selDepth;
+    Depth rootDepth,
+          finishedDepth,
+          selDepth;
 
-    std::atomic<u64>
-        nodes,
-        tbHits;
-    std::atomic<u32>
-        pvChange;
+    std::atomic<u64> nodes,
+                     tbHits;
+    std::atomic<u32> pvChange;
 
-    i16   nmpPly[COLORS];
+    i16 nmpPly[COLORS];
 
-    u16
-        pvBeg,
+    u16 pvBeg,
         pvCur,
         pvEnd;
 
-    u64   ttHitAvg;
+    u64 ttHitAvg;
 
     Score contempt;
 
@@ -143,9 +138,8 @@ protected:
 
 public:
 
-    std::atomic<bool>
-        stop, // Stop search forcefully
-        research;
+    std::atomic<bool> stop, // Stop search forcefully
+                      research;
 
     ThreadPool() = default;
     ThreadPool(ThreadPool const&) = delete;

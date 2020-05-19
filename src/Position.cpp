@@ -1026,7 +1026,6 @@ void Position::undoMove(Move m) {
         placePiece(rookOrg, active|ROOK);
     }
     else {
-
         auto mp = board[dst];
         assert(mp != NO_PIECE
             && pColor(mp) == active);
@@ -1044,7 +1043,6 @@ void Position::undoMove(Move m) {
         movePiece(dst, org);
 
         if (captured() != NONE) {
-
             auto cap{ dst };
 
             if (mType(m) == ENPASSANT) {

@@ -1031,8 +1031,7 @@ namespace Evaluator {
 
     /// trace() returns a string (suitable for outputting to stdout for debugging)
     /// that contains the detailed descriptions and values of each evaluation term.
-    std::string trace(Position const &pos)
-    {
+    std::string trace(Position const &pos) {
         if (pos.checkers() != 0) {
             return "Evaluation: none (in check)\n";
         }

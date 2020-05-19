@@ -59,14 +59,15 @@ public:
 
     using std::vector<RootMove>::vector;
 
+    RootMoves() = default;
+    RootMoves(Position const&);
+    RootMoves(Position const&, Moves const&);
+
     void operator+=(Move);
     //void operator-=(Move);
 
     void operator+=(RootMove const&);
     //void operator-=(RootMove const&);
-
-    void initialize(Position const&);
-    void initialize(Position const&, Moves const&);
 
     const_iterator find(Move) const;
     const_iterator find(u16, u16, Move) const;
