@@ -575,7 +575,9 @@ bool Position::see(Move m, Value threshold) const {
             Bitboard b;
             // Don't allow pinned pieces to attack (except the king) as long as
             // there are pinners on their original square.
-            if ((b = kingCheckers(mov) & pieces(~mov) & mocc) != 0) {
+            if ((b = kingCheckers(mov)
+                   & pieces(~mov)
+                   & mocc) != 0) {
                 while (b != 0) {
                     movAttackers &= ~betweenBB(kSq, popLSq(b));
                 }

@@ -97,8 +97,8 @@ namespace Evaluator {
         {
             {}, {},
             { // Knight
-                S(-62,-81), S(-53,-56), S(-12,-30), S( -4,-14), S(  3,  8), S( 13, 15),
-                S( 22, 23), S( 28, 27), S( 33, 33)
+                S(-62,-81), S(-53,-56), S(-12,-31), S( -4,-16), S(  3,  5), S( 13, 11),
+                S( 22, 17), S( 28, 20), S( 33, 25)
             },
             { // Bishop
                 S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42),
@@ -743,40 +743,22 @@ namespace Evaluator {
                 return std::min(distance(pos.square(c|KING), s), 5);
             };
 
-            Score score{ SCORE_ZERO };
-
             Bitboard pass{ pawnEntry->passeds[Own] };
-
-            Bitboard candidatePass{ pass
+            Bitboard blockedPass{ pass
                                   & pawnSglPushBB<Opp>(pos.pieces(Opp, PAWN)) };
-            if (candidatePass != 0) {
-                
-                Bitboard oppPawnsEx{ pos.pieces(Opp, PAWN)
-                                   ^ pawnSglPushBB<Own>(candidatePass) };
-                // Can we lever the blocker of a candidate passer?
-                Bitboard leverable{ pawnSglPushBB<Own>(pos.pieces(Own, PAWN))
-                                  & ~pos.pieces(Opp)
-                                  & (~(pawnSglAttackBB<Opp>(oppPawnsEx)
-                                     | sqlAttacks[Opp][NIHT]
-                                     | sqlAttacks[Opp][BSHP]
-                                     | sqlAttacks[Opp][ROOK]
-                                     | sqlAttacks[Opp][QUEN]
-                                     | sqlAttacks[Opp][KING])
-                                   |  (sqlAttacks[Own][PAWN]
-                                     | sqlAttacks[Own][NIHT]
-                                     | sqlAttacks[Own][BSHP]
-                                     | sqlAttacks[Own][ROOK]
-                                     | sqlAttacks[Own][QUEN]))
-                                  & (~(sqlAttacks[Opp][NIHT]
-                                     | sqlAttacks[Opp][BSHP])
-                                   |  (sqlAttacks[Own][PAWN]
-                                     | sqlAttacks[Own][NIHT]
-                                     | sqlAttacks[Own][BSHP])) };
-                // Remove candidate otherwise
-                pass &= ~candidatePass
-                      | shift<WEST>(leverable)
-                      | shift<EAST>(leverable);
+            if (blockedPass != 0) {
+                // Can we lever the blocker of a blocked passer?
+                Bitboard helpers{  pawnSglPushBB<Own>(pos.pieces(Own, PAWN))
+                                & ~pos.pieces(Opp)
+                                & (~dblAttacks[Opp]
+                                 |  sqlAttacks[Own][NONE]) };
+                // Remove blocked otherwise
+                pass &= ~blockedPass
+                      | shift<WEST>(helpers)
+                      | shift<EAST>(helpers);
             }
+
+            Score score{ SCORE_ZERO };
 
             while (pass != 0) {
                 auto s{ popLSq(pass) };
@@ -791,7 +773,6 @@ namespace Evaluator {
                 Score bonus{ PasserRank[r] };
 
                 auto pushSq{ s + Push };
-
                 if (r > RANK_3) {
                     i32 w{ 5 * r - 13 };
 
@@ -824,7 +805,6 @@ namespace Evaluator {
                         bonus += makeScore(k*w, k*w);
                     }
                 }
-
                 // Pass bonus = Rank bonus + File bonus
                 score += bonus
                        - PasserFile * edgeDistance(sFile(s));

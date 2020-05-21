@@ -148,7 +148,11 @@ namespace {
 
     /// updateContinuationStats() updates Stats of the move pairs formed
     /// by moves at ply -1, -2, -4 and -6 with current move.
-    void updateContinuationStats(Stack *ss, Piece p, Square dst, i32 bonus) {
+    void updateContinuationStats(
+        Stack *ss,
+        Piece p,
+        Square dst,
+        i32 bonus) {
         //assert(isOk(p));
         for (auto i : { 1, 2, 4, 6 }) {
             if (ss->inCheck && i > 2) {
@@ -189,8 +193,8 @@ namespace {
         }
 
         if (depth >= 13
-            //&& ss->ply >= 0
-            && ss->ply < MAX_LOWPLY) {
+         //&& ss->ply >= 0
+         && ss->ply < MAX_LOWPLY) {
             th->lowPlyStats[ss->ply][mMask(move)] << statBonus(depth - 7);
         }
 
@@ -206,16 +210,26 @@ namespace {
     }
 
     /// updatePV() appends the move and child pv
-    void updatePV(Move *pv, Move move, Move *childPV) {
-        for (*pv++ = move; childPV && *childPV != MOVE_NONE; ) {
-            *pv++ = *childPV++;
+    void updatePV(
+        Move *pv,
+        Move move,
+        Move *childPV) {
+        *pv++ = move;
+        if (childPV != nullptr) {
+            while (*childPV != MOVE_NONE) {
+                *pv++ = *childPV++;
+            }
         }
         *pv = MOVE_NONE;
     }
 
     /// multipvInfo() formats PV information according to UCI protocol.
     /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
-    std::string multipvInfo(Thread const *th, Depth depth, Value alfa, Value beta) {
+    std::string multipvInfo(
+        Thread const *th,
+        Depth depth,
+        Value alfa,
+        Value beta) {
         auto elapsed{ std::max(TimeMgr.elapsed(), { 1 }) };
         auto nodes{ Threadpool.sum(&Thread::nodes) };
         auto tbHits{ Threadpool.sum(&Thread::tbHits)
@@ -246,7 +260,8 @@ namespace {
                 << " multipv "  << i + 1
                 << std::setfill(' ')
                 << " score "    << v;
-            if (!tb && i == th->pvCur) {
+            if (!tb
+             && i == th->pvCur) {
             oss << (beta <= v ? " lowerbound" :
                     v <= alfa ? " upperbound" : "");
             }
@@ -267,7 +282,12 @@ namespace {
 
     /// quienSearch() is quiescence search function, which is called by the main depth limited search function when the remaining depth <= 0.
     template<bool PVNode>
-    Value quienSearch(Position &pos, Stack *ss, Value alfa, Value beta, Depth depth = DEPTH_ZERO) {
+    Value quienSearch(
+        Position &pos,
+        Stack *ss,
+        Value alfa,
+        Value beta,
+        Depth depth = DEPTH_ZERO) {
         assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
         assert(PVNode || (alfa == beta-1));
         assert(depth <= DEPTH_ZERO);
@@ -527,7 +547,13 @@ namespace {
     }
     /// depthSearch() is main depth limited search function, which is called when the remaining depth > 0.
     template<bool PVNode>
-    Value depthSearch(Position &pos, Stack *ss, Value alfa, Value beta, Depth depth, bool cutNode) {
+    Value depthSearch(
+        Position &pos,
+        Stack *ss,
+        Value alfa,
+        Value beta,
+        Depth depth,
+        bool cutNode) {
         bool rootNode{ PVNode
                     && ss->ply == 0 };
 
@@ -999,8 +1025,8 @@ namespace {
 
         u08 moveCount{ 0 };
         Moves quietMoves;
-        quietMoves.reserve(32);
         Moves captureMoves;
+        quietMoves.reserve(32);
         captureMoves.reserve(16);
 
         // Step 12. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
@@ -1506,6 +1532,7 @@ namespace {
         assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
         return bestValue;
     }
+
 }
 
 bool Limit::useTimeMgmt() const {

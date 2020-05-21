@@ -253,7 +253,7 @@ Move MovePicker::nextMove() {
 
     case NORMAL_GOOD_CAPTURES: {
         if (pick([&]() {
-                return pos.see(*vmBeg, Value(-55 * vmBeg->value / 1024)) ?
+                return pos.see(*vmBeg, Value(-69 * vmBeg->value / 1024)) ?
                         // Put losing capture to badCaptureMoves to be tried later
                         true : (badCaptureMoves += *vmBeg, false);
             })) {

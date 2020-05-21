@@ -45,8 +45,10 @@ namespace Pawns {
         sglAttacks [Own] =
         attacksSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
         dblAttacks [Opp] = pawnDblAttackBB<Opp>(oppPawns);
-        passeds    [Own] = 0;
+        blockeds |= ownPawns
+                  & pawnSglPushBB<Opp>(oppPawns | dblAttacks[Opp]);
 
+        passeds    [Own] = 0;
         score      [Own] = SCORE_ZERO;
 
         Square const *ps{ pos.squares(Own|PAWN) };
@@ -72,10 +74,6 @@ namespace Pawns {
             bool backward{ (neighbours & frontRanksBB(Opp, s + Push)) == 0
                         && (blocker | sentres) != 0 };
 
-            if (blocked
-             || moreThanOne(sentres)) {
-                blockeds |= s;
-            }
             // Compute additional span if pawn is not blocked nor backward
             if (!blocked
              && !backward) {
@@ -152,7 +150,7 @@ namespace Pawns {
                            || (pos.pieces(PAWN) & SlotFileBB[CS_QUEN]) == 0;
         e->evaluate<WHITE>(pos);
         e->evaluate<BLACK>(pos);
-        e->complexity = 11 * pos.count(PAWN)
+        e->complexity = 12 * pos.count(PAWN)
                       +  9 * e->passedCount();
         return e;
     }
