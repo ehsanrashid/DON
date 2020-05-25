@@ -55,9 +55,9 @@ Key Position::movePosiKey(Move m) const {
     /*
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
-    auto mp = board[org];
-    auto cp = mType(m) != ENPASSANT ?
-                board[dst] : ~active|PAWN;
+    auto mp{ board[org] };
+    auto cp{ mType(m) != ENPASSANT ?
+                board[dst] : ~active|PAWN };
 
     auto pKey{ posiKey()
              ^ RandZob.side

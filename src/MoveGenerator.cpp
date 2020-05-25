@@ -205,7 +205,7 @@ void generate(ValMoves &moves, Position const &pos) {
     Bitboard targets =
         GT == CAPTURE ?  pos.pieces(~pos.activeSide()) :
         GT == QUIET   ? ~pos.pieces() :
-        GT == NORMAL ? ~pos.pieces( pos.activeSide()) : 0;
+        GT == NORMAL  ? ~pos.pieces( pos.activeSide()) : 0;
 
     generateMoves<GT>(moves, pos, targets);
     generateKingMoves<GT>(moves, pos, targets);

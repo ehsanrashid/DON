@@ -173,8 +173,9 @@ void ThreadPool::setup(u16 threadCount) {
 
         clean();
         // Reallocate the hash with the new threadpool size
-        TT.autoResize(Options["Hash"]);
-        TTEx.autoResize(u32(Options["Hash"])/4);
+        u32 hash{ Options["Hash"] };
+        TT.autoResize(hash);
+        TTEx.autoResize(hash / 4);
         Searcher::initialize();
     }
 }
@@ -233,6 +234,13 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     mainThread()->wakeUp();
 }
 
+/// Win Processors Group
+/// Under Windows it is not possible for a process to run on more than one logical processor group.
+/// This usually means to be limited to use max 64 cores.
+/// To overcome this, some special platform specific API should be called to set group affinity for each thread.
+/// Original code from Texel by Peter Osterlund.
+namespace WinProcGroup {
+
 #if defined(_WIN32)
 
 #   if _WIN32_WINNT < 0x0601
@@ -263,17 +271,6 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
         //using STGA   = bool (*)(HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
         using STGA   = std::add_pointer<bool(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY)>::type;
     }
-
-#endif
-
-/// Win Processors Group
-/// Under Windows it is not possible for a process to run on more than one logical processor group.
-/// This usually means to be limited to use max 64 cores.
-/// To overcome this, some special platform specific API should be called to set group affinity for each thread.
-/// Original code from Texel by Peter Osterlund.
-namespace WinProcGroup {
-
-#if defined(_WIN32)
 
     namespace {
 

@@ -111,7 +111,7 @@ namespace Evaluator {
                 S( 57,168), S( 57,169), S( 62,172)
             },
             { // Queen
-                S(-34,-36), S(-15,-21), S(-10, -1), S(-10, 22), S( 20, 41), S( 23, 56),
+                S(-30,-48), S(-12,-30), S( -8, -7), S( -9, 19), S( 20, 40), S( 23, 55),
                 S( 23, 59), S( 35, 75), S( 38, 78), S( 53, 96), S( 64, 96), S( 65,100),
                 S( 65,121), S( 66,127), S( 67,131), S( 67,133), S( 72,136), S( 72,141),
                 S( 77,147), S( 79,150), S( 93,151), S(108,168), S(108,168), S(108,171),
@@ -267,7 +267,8 @@ namespace Evaluator {
                                 clamp(sRank(kSq), RANK_2, RANK_7)) };
             kingRing[Own] = PieceAttacksBB[KING][sq] | sq;
 
-            kingAttackersCount [Opp] = popCount(kingRing[Own] & pawnEntry->sglAttacks[Opp]);
+            kingAttackersCount [Opp] = popCount(kingRing[Own]
+                                              & pawnEntry->sglAttacks[Opp]);
             kingAttackersWeight[Opp] = 0;
             kingAttacksCount   [Opp] = 0;
 
@@ -739,13 +740,13 @@ namespace Evaluator {
             constexpr auto Opp{ ~Own };
             constexpr auto Push{ PawnPush[Own] };
 
-            auto kingProximity = [&](Color c, Square s) {
+            auto kingProximity{ [&](Color c, Square s) {
                 return std::min(distance(pos.square(c|KING), s), 5);
-            };
+            } };
 
             Bitboard pass{ pawnEntry->passeds[Own] };
             Bitboard blockedPass{ pass
-                                  & pawnSglPushBB<Opp>(pos.pieces(Opp, PAWN)) };
+                                & pawnSglPushBB<Opp>(pos.pieces(Opp, PAWN)) };
             if (blockedPass != 0) {
                 // Can we lever the blocker of a blocked passer?
                 Bitboard helpers{  pawnSglPushBB<Own>(pos.pieces(Own, PAWN))

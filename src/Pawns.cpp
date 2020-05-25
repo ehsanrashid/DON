@@ -14,11 +14,11 @@ namespace Pawns {
 
     #define S(mg, eg) makeScore(mg, eg)
 
-        constexpr Score Backward      { S( 9,24) };
-        constexpr Score Isolated      { S( 5,15) };
-        constexpr Score Unopposed     { S(13,27) };
-        constexpr Score WeakDoubled   { S(11,56) };
-        constexpr Score WeakTwiceLever{ S( 0,56) };
+        constexpr Score Backward       { S( 9,24) };
+        constexpr Score Isolated       { S( 5,15) };
+        constexpr Score Unopposed      { S(13,27) };
+        constexpr Score WeakDoubled    { S(11,56) };
+        constexpr Score WeakTwiceLever { S( 0,56) };
 
     #undef S
 
@@ -63,11 +63,12 @@ namespace Pawns {
             Bitboard supporters { neighbours & rankBB(s - Push) };
             Bitboard phalanxes  { neighbours & rankBB(s) };
             Bitboard stoppers   { oppPawns & pawnPassSpan(Own, s) };
-            Bitboard blocker    { stoppers & (s + Push) };
             Bitboard levers     { stoppers & PawnAttacksBB[Own][s] };
             Bitboard sentres    { stoppers & PawnAttacksBB[Own][s + Push] }; // push levers
+            Bitboard opposers   { stoppers & frontSquaresBB(Own, s) };
+            Bitboard blocker    { stoppers & (s + Push) };
 
-            bool opposed { (stoppers & frontSquaresBB(Own, s)) != 0 };
+            bool opposed { opposers != 0 };
             bool blocked { blocker != 0 };
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
@@ -114,6 +115,10 @@ namespace Pawns {
             if (neighbours == 0) {
                 sp -= Isolated
                     + Unopposed * !opposed;
+                if ((stoppers == opposers)
+                 && (ownPawns & frontSquaresBB(Opp, s)) != 0) {
+                    sp -= WeakDoubled;
+                }
             }
             else
             if (backward) {

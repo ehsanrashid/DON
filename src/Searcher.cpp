@@ -885,7 +885,7 @@ namespace {
 
                 pos.doNullMove(si);
 
-                auto nullValue = -depthSearch<false>(pos, ss+1, -beta, -(beta-1), nullDepth, !cutNode);
+                auto nullValue{ -depthSearch<false>(pos, ss + 1, -beta, -(beta - 1), nullDepth, !cutNode) };
 
                 pos.undoNullMove();
 
@@ -1601,11 +1601,8 @@ void Thread::search() {
                 +makeScore(bc, bc / 2) :
                 -makeScore(bc, bc / 2);
 
-    for (i16 p = 0; p < MAX_LOWPLY; ++p) {
-        for (auto m = 0; m < SQUARES * SQUARES; ++m) {
-            lowPlyStats[p][m] = p < MAX_LOWPLY - 2 ? lowPlyStats[p + 2][m] : 0;
-        }
-    }
+    std::copy(&lowPlyStats[2][0], &lowPlyStats.back().back() + 1, &lowPlyStats[0][0]);
+    std::fill(&lowPlyStats[MAX_LOWPLY - 2][0], &lowPlyStats.back().back() + 1, 0);
 
     auto *mainThread{ this == Threadpool.mainThread() ?
                         static_cast<MainThread*>(this) : nullptr };

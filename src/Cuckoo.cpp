@@ -51,7 +51,7 @@ namespace Cuckoos {
 
     void place(Cuckoo &cuckoo) {
 
-        u16 h = hash<0>(cuckoo.key());
+        u16 h{ hash<0>(cuckoo.key()) };
         while (true) { // max 20 iteration
 
             std::swap(CuckooTable[h], cuckoo);
