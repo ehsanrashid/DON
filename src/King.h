@@ -3,6 +3,7 @@
 #include <algorithm>
 #include <cassert>
 
+#include "Pawns.h"
 #include "Position.h"
 #include "Type.h"
 
@@ -11,7 +12,13 @@ namespace King {
     /// King::Entry contains information about King & Pawn structure.
     struct Entry {
 
+    private:
+        template<Color>
+        Score evaluateSafetyOn(Position const&, Square);
+
+    public:
         Key key;
+        Pawns::Entry *pawnEntry;
 
         Score pawnDist[COLORS];
 
@@ -27,6 +34,6 @@ namespace King {
 
     using Table = HashTable<Entry>;
 
-    extern Entry* probe(Position const&);
+    extern Entry* probe(Position const&, Pawns::Entry*);
 
 }

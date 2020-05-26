@@ -953,7 +953,7 @@ namespace Evaluator {
             }
 
             // Probe the king hash table
-            kingEntry = King::probe(pos);
+            kingEntry = King::probe(pos, pawnEntry);
 
             if (Trace) {
                 Tracer::clear();

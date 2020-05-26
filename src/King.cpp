@@ -33,51 +33,52 @@ namespace King {
             { S(-15, 0), S( -11, 0), S( 101, 0), S(  4, 0), S( 11, 0), S(-15, 0), S(-29, 0), S(0, 0) }
         };
 
+        constexpr Score BlockedStorm[RANKS]
+        { S( 0, 0), S( 0, 0), S( 76, 78), S(-10, 15), S(-7, 10), S(-4, 6), S(-1, 2), S( 0, 0) };
+
         constexpr Score BasicSafety { S( 5, 5) };
-        constexpr Score BlockedStorm{ S(82,82) };
 
     #undef S
 
-
-        template<Color Own>
-        Score evaluateSafetyOn(Position const &pos, Square kSq) {
-            constexpr auto Opp{ ~Own };
-
-            Bitboard frontPawns{ ~frontRanksBB(Opp, kSq) & pos.pieces(PAWN) };
-            Bitboard ownFrontPawns{ pos.pieces(Own) & frontPawns };
-            Bitboard oppFrontPawns{ pos.pieces(Opp) & frontPawns };
-
-            Score safety{ BasicSafety };
-
-            auto kF{ clamp(sFile(kSq), FILE_B, FILE_G) };
-            for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
-                assert(FILE_A <= f && f <= FILE_H);
-                Bitboard ownFrontFilePawns{ ownFrontPawns & FileBB[f] };
-                auto ownR{ ownFrontFilePawns != 0 ?
-                    relativeRank(Own, scanFrontMostSq<Opp>(ownFrontFilePawns)) : RANK_1 };
-                Bitboard oppFrontFilePawns{ oppFrontPawns & FileBB[f] };
-                auto oppR{ oppFrontFilePawns != 0 ?
-                    relativeRank(Own, scanFrontMostSq<Opp>(oppFrontFilePawns)) : RANK_1 };
-                assert((ownR != oppR)
-                    || (ownR == RANK_1
-                     && oppR == RANK_1));
-
-                auto d{ edgeDistance(f) };
-                safety +=
-                    Shelter[d][ownR]
-                  - (ownR > RANK_1
-                  && oppR == ownR + 1 ?
-                        BlockedStorm * (oppR == RANK_3) :
-                        UnblockedStorm[d][oppR]);
-            }
-
-            return safety;
-        }
-        // Explicit template instantiations
-        template Score evaluateSafetyOn<WHITE>(Position const&, Square);
-        template Score evaluateSafetyOn<BLACK>(Position const&, Square);
-
     }
+
+    template<Color Own>
+    Score Entry::evaluateSafetyOn(Position const &pos, Square kSq) {
+        constexpr auto Opp{ ~Own };
+
+        Bitboard frontPawns{ ~frontRanksBB(Opp, kSq) & pos.pieces(PAWN) };
+        Bitboard ownFrontPawns{ pos.pieces(Own) & frontPawns & ~pawnEntry->sglAttacks[Opp] };
+        Bitboard oppFrontPawns{ pos.pieces(Opp) & frontPawns & ~pawnEntry->sglAttacks[Own] };
+
+        Score safety{ BasicSafety };
+
+        auto kF{ clamp(sFile(kSq), FILE_B, FILE_G) };
+        for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
+            assert(FILE_A <= f && f <= FILE_H);
+            Bitboard ownFrontFilePawns{ ownFrontPawns & FileBB[f] };
+            auto ownR{ ownFrontFilePawns != 0 ?
+                relativeRank(Own, scanFrontMostSq<Opp>(ownFrontFilePawns)) : RANK_1 };
+            Bitboard oppFrontFilePawns{ oppFrontPawns & FileBB[f] };
+            auto oppR{ oppFrontFilePawns != 0 ?
+                relativeRank(Own, scanFrontMostSq<Opp>(oppFrontFilePawns)) : RANK_1 };
+            assert((ownR != oppR)
+                || (ownR == RANK_1
+                    && oppR == RANK_1));
+
+            auto d{ edgeDistance(f) };
+            safety +=
+                Shelter[d][ownR]
+                - (ownR > RANK_1
+                && oppR == ownR + 1 ?
+                    BlockedStorm[oppR] :
+                    UnblockedStorm[d][oppR]);
+        }
+
+        return safety;
+    }
+    // Explicit template instantiations
+    template Score Entry::evaluateSafetyOn<WHITE>(Position const&, Square);
+    template Score Entry::evaluateSafetyOn<BLACK>(Position const&, Square);
 
     template<Color Own>
     Score Entry::evaluateSafety(Position const &pos, Bitboard attacks) {
@@ -146,7 +147,7 @@ namespace King {
     }
 
 
-    Entry* probe(Position const &pos) {
+    Entry* probe(Position const &pos, Pawns::Entry* pe) {
         Key kingKey{ pos.pawnKey()
                    ^ RandZob.psq[W_KING][pos.square(W_KING)]
                    ^ RandZob.psq[B_KING][pos.square(B_KING)] };
@@ -158,6 +159,7 @@ namespace King {
         }
 
         e->key = kingKey;
+        e->pawnEntry = pe;
         e->evaluate<WHITE>(pos),
         e->evaluate<BLACK>(pos);
         return e;
