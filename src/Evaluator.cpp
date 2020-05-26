@@ -149,6 +149,7 @@ namespace Evaluator {
         constexpr Score BishopPawnsXRayed { S(  4,  5) };
         constexpr Score BishopTrapped     { S( 50, 50) };
         constexpr Score RookOnQueenFile   { S(  5,  9) };
+        constexpr Score RookOnKingRing    { S( 16,  0) };
         constexpr Score RookTrapped       { S( 55, 13) };
         constexpr Score QueenAttacked     { S( 51, 14) };
         constexpr Score PawnLessFlank     { S( 17, 95) };
@@ -454,6 +455,11 @@ namespace Evaluator {
                     kingAttackersWeight[Own] += KingAttackerWeight[PT];
                     kingAttacksCount   [Own] += popCount(attacks
                                                        & sqlAttacks[Opp][KING]);
+                }
+                else
+                if (PT == ROOK
+                 && (sFile(s) & kingRing[Opp]) != 0) {
+                    score += RookOnKingRing;
                 }
             }
 
