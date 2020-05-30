@@ -348,7 +348,7 @@
       <FileName>src\Transposition.h</FileName>
     </TypeIdentifier>
     <ShowAsCollectionAssociation>
-      <Field Name="entryTable" />
+      <Field Name="entry" />
     </ShowAsCollectionAssociation>
   </Struct>
   <Struct Name="BitBase::`anonymous-namespace'::KPKPosition" Collapsed="true">

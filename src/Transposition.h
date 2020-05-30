@@ -55,8 +55,8 @@ struct TCluster {
     // Cluster entry count
     static constexpr u08 EntryCount{ 3 };
 
-    TEntry entryTable[EntryCount];
-    char padding[2]; // Pad to 32 bytes
+    TEntry entry[EntryCount];
+    char pad[2]; // Pad to 32 bytes
 
     u32 freshEntryCount() const;
 

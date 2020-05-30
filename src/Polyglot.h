@@ -41,7 +41,7 @@ class PolyBook {
 
 private:
 
-    PolyEntry  *entryTable{ nullptr };
+    PolyEntry  *entry{ nullptr };
     u64         entryCount{ 0 };
 
     std::string fnBook;

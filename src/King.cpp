@@ -48,7 +48,7 @@ namespace King {
 
         Bitboard frontPawns{ ~frontRanksBB(Opp, kSq) & pos.pieces(PAWN) };
         Bitboard ownFrontPawns{ pos.pieces(Own) & frontPawns & ~pawnEntry->sglAttacks[Opp] };
-        Bitboard oppFrontPawns{ pos.pieces(Opp) & frontPawns & ~pawnEntry->sglAttacks[Own] };
+        Bitboard oppFrontPawns{ pos.pieces(Opp) & frontPawns };
 
         Score safety{ BasicSafety };
 

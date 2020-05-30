@@ -465,21 +465,21 @@ namespace {
 
         static constexpr i32 Size{ 1 << 12 }; // 4K table, indexed by key's 12 lsb
 
-        Entry entryTable[Size + 1];
+        Entry entry[Size + 1];
 
         std::deque<TBTable<WDL>> wdlTable;
         std::deque<TBTable<DTZ>> dtzTable;
 
         void insert(Key matlKey, TBTable<WDL> *wdl, TBTable<DTZ> *dtz) {
             u32 homeBucket = matlKey & (Size - 1);
-            Entry entry{ matlKey, wdl, dtz };
+            Entry e{ matlKey, wdl, dtz };
 
             // Ensure last element is empty to avoid overflow when looking up
             for (u32 bucket = homeBucket; bucket < Size; ++bucket) {
-                Key omatlKey{ entryTable[bucket].key };
+                Key omatlKey{ entry[bucket].key };
                 if (omatlKey == matlKey
-                 || entryTable[bucket].get<WDL>() == nullptr) {
-                    entryTable[bucket] = entry;
+                 || entry[bucket].get<WDL>() == nullptr) {
+                    entry[bucket] = e;
                     return;
                 }
 
@@ -487,7 +487,7 @@ namespace {
                 // insert here and search for a new spot for the other element instead.
                 u32 ohomeBucket = omatlKey & (Size - 1);
                 if (ohomeBucket > homeBucket) {
-                    std::swap(entry, entryTable[bucket]);
+                    std::swap(e, entry[bucket]);
                     matlKey = omatlKey;
                     homeBucket = ohomeBucket;
                 }
@@ -501,20 +501,20 @@ namespace {
 
         template<TBType Type>
         TBTable<Type>* get(Key matlKey) {
-            Entry const *entry{ &entryTable[matlKey & (Size - 1)] };
+            Entry const *e{ &entry[matlKey & (Size - 1)] };
             while (true) {
-                auto type{ entry->get<Type>() };
-                if (entry->key == matlKey
+                auto type{ e->get<Type>() };
+                if (e->key == matlKey
                  || type == nullptr) {
                     return type;
                 }
-                ++entry;
+                ++e;
             }
             return nullptr;
         }
 
         void clear() {
-            std::memset(entryTable, 0, sizeof (entryTable));
+            std::memset(entry, 0, sizeof (entry));
             wdlTable.clear();
             dtzTable.clear();
         }

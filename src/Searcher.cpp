@@ -489,7 +489,7 @@ namespace {
             }
 
             // Speculative prefetch as early as possible
-            prefetch(TT.cluster(pos.movePosiKey(move))->entryTable);
+            prefetch(TT.cluster(pos.movePosiKey(move))->entry);
 
             // Update the current move
             ss->playedMove = move;
@@ -878,7 +878,7 @@ namespace {
                                ^ (pos.epSquare() != SQ_NONE ? RandZob.enpassant[sFile(pos.epSquare())] : 0) };
 
                 // Speculative prefetch as early as possible
-                prefetch(TT.cluster(nullMoveKey)->entryTable);
+                prefetch(TT.cluster(nullMoveKey)->entry);
 
                 ss->playedMove = MOVE_NULL;
                 ss->pieceStats = &thread->continuationStats[0][0][NO_PIECE][0];
@@ -949,7 +949,7 @@ namespace {
                     ++probMoveCount;
 
                     // Speculative prefetch as early as possible
-                    prefetch(TT.cluster(pos.movePosiKey(move))->entryTable);
+                    prefetch(TT.cluster(pos.movePosiKey(move))->entry);
 
                     ss->playedMove = move;
                     // inCheck{ false }, captureOrPromotion{ true }
@@ -1234,7 +1234,7 @@ namespace {
             newDepth += extension;
 
             // Speculative prefetch as early as possible
-            prefetch(TT.cluster(pos.movePosiKey(move))->entryTable);
+            prefetch(TT.cluster(pos.movePosiKey(move))->entry);
 
             // Update the current move
             ss->playedMove = move;

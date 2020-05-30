@@ -163,9 +163,9 @@ PolyBook::~PolyBook() {
 void PolyBook::clear() {
 
     enabled = false;
-    if (entryTable != nullptr) {
-        delete[] entryTable;
-        entryTable = nullptr;
+    if (entry != nullptr) {
+        delete[] entry;
+        entry = nullptr;
     }
 }
 
@@ -176,23 +176,23 @@ i64 PolyBook::findIndex(Key pgKey) const {
     while (beg + 8 < end) {
         i64 mid{ (beg + end) / 2 };
 
-        if (pgKey > entryTable[mid].key) {
+        if (pgKey > entry[mid].key) {
             beg = mid;
         }
         else
-        if (pgKey < entryTable[mid].key) {
+        if (pgKey < entry[mid].key) {
             end = mid;
         }
-        else { // pgKey == entryTable[mid].key
+        else { // pgKey == entry[mid].key
             beg = std::max(mid - 4, i64(0));
             end = std::min(mid + 4, i64(entryCount));
         }
     }
 
     while (beg < end) {
-        if (pgKey == entryTable[beg].key) {
+        if (pgKey == entry[beg].key) {
             while (beg > 0
-                && pgKey == entryTable[beg - 1].key) {
+                && pgKey == entry[beg - 1].key) {
                 --beg;
             }
             return beg;
@@ -247,8 +247,8 @@ void PolyBook::initialize(string const &fn) {
     ifs.seekg(0, std::ios::beg);
 
     entryCount = (fileSize - HeaderSize) / sizeof (PolyEntry);
-    entryTable = new PolyEntry[entryCount];
-    if (entryTable == nullptr) {
+    entry = new PolyEntry[entryCount];
+    if (entry == nullptr) {
         return;
     }
     enabled = true;
@@ -260,7 +260,7 @@ void PolyBook::initialize(string const &fn) {
         }
     }
     for (u64 idx = 0; idx < entryCount; ++idx) {
-        ifs >> entryTable[idx];
+        ifs >> entry[idx];
     }
     ifs.close();
 
@@ -276,7 +276,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
     static PRNG prng{ u64(now()) };
 
     if (!enabled
-     || entryTable == nullptr
+     || entry == nullptr
      || (moveCount != 0
       && moveCount < pos.moveCount())
      || !canProbe(pos)) {
@@ -301,25 +301,25 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
     u64 pick1Index = index;
     u64 idx = index;
     while (idx < entryCount
-        && pgKey == entryTable[idx].key) {
+        && pgKey == entry[idx].key) {
 
-        if (entryTable[idx].move == MOVE_NONE) {
+        if (entry[idx].move == MOVE_NONE) {
             continue;
         }
         ++count;
-        maxWeight = std::max(entryTable[idx].weight, maxWeight);
-        sumWeight += entryTable[idx].weight;
+        maxWeight = std::max(entry[idx].weight, maxWeight);
+        sumWeight += entry[idx].weight;
 
         // Choose the move
         if (pickBest) {
-            if (maxWeight == entryTable[idx].weight) {
+            if (maxWeight == entry[idx].weight) {
                 pick1Index = idx;
             }
         }
         else {
             // Move with a very high score, has a higher probability of being choosen.
             if (sumWeight != 0
-             && (prng.rand<u32>() % sumWeight) < entryTable[idx].weight) {
+             && (prng.rand<u32>() % sumWeight) < entry[idx].weight) {
                 pick1Index = idx;
             }
         }
@@ -328,7 +328,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
 
     Move move;
 
-    move = Move(entryTable[pick1Index].move);
+    move = Move(entry[pick1Index].move);
     if (move == MOVE_NONE) {
         return MOVE_NONE;
     }
@@ -352,7 +352,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
         assert(pick2Index < idx);
     }
 
-    move = Move(entryTable[pick2Index].move);
+    move = Move(entry[pick2Index].move);
     if (move == MOVE_NONE) {
         return MOVE_NONE;
     }
@@ -367,7 +367,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
 }
 
 string PolyBook::show(Position const &pos) const {
-    if (entryTable == nullptr
+    if (entry == nullptr
      || !enabled) {
         return "Book entries empty.";
     }
@@ -381,9 +381,9 @@ string PolyBook::show(Position const &pos) const {
     std::vector<PolyEntry> peSet;
     u32 sumWeight{ 0 };
     while (u64(index) < entryCount
-        && key == entryTable[index].key) {
-        peSet.push_back(entryTable[index]);
-        sumWeight += entryTable[index].weight;
+        && key == entry[index].key) {
+        peSet.push_back(entry[index]);
+        sumWeight += entry[index].weight;
         ++index;
     }
 

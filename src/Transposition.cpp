@@ -40,9 +40,9 @@ void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) {
 
 
 u32 TCluster::freshEntryCount() const {
-    return (entryTable[0].generation() == TEntry::Generation)
-         + (entryTable[1].generation() == TEntry::Generation)
-         + (entryTable[2].generation() == TEntry::Generation);
+    return (entry[0].generation() == TEntry::Generation)
+         + (entry[1].generation() == TEntry::Generation)
+         + (entry[2].generation() == TEntry::Generation);
 }
 
 /// TCluster::probe()
@@ -50,8 +50,8 @@ u32 TCluster::freshEntryCount() const {
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
 TEntry* TCluster::probe(u16 key16, bool &hit) {
     // Find an entry to be replaced according to the replacement strategy.
-    auto* rte{ entryTable }; // Default first
-    for (auto *ite = entryTable; ite < entryTable + EntryCount; ++ite) {
+    auto* rte{ entry }; // Default first
+    for (auto *ite = entry; ite < entry + EntryCount; ++ite) {
         if (ite->d08 == 0
          || ite->k16 == key16) {
             // Refresh entry
