@@ -172,9 +172,6 @@ public:
 
     Bitboard attackersTo(Square, Bitboard) const;
     Bitboard attackersTo(Square) const;
-    Bitboard attacksFrom(Square, Bitboard) const;
-    Bitboard attacksFrom(Square) const;
-    Bitboard attacksFrom(PieceType, Square) const;
 
     Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const;
 
@@ -408,28 +405,16 @@ inline void Position::movePiece(Square s1, Square s2) {
 
 /// Position::attackersTo() finds attackers to the square on occupancy.
 inline Bitboard Position::attackersTo(Square s, Bitboard occ) const {
-    return (pieces(BLACK, PAWN) & PawnAttacksBB[WHITE][s])
-         | (pieces(WHITE, PAWN) & PawnAttacksBB[BLACK][s])
-         | (pieces(NIHT)        & attacksFrom(NIHT, s))
+    return (pieces(BLACK, PAWN) & pawnAttacksBB(WHITE, s))
+         | (pieces(WHITE, PAWN) & pawnAttacksBB(BLACK, s))
+         | (pieces(NIHT)        & attacksBB<NIHT>(s))
          | (pieces(BSHP, QUEN)  & attacksBB<BSHP>(s, occ))
          | (pieces(ROOK, QUEN)  & attacksBB<ROOK>(s, occ))
-         | (pieces(KING)        & attacksFrom(KING, s));
+         | (pieces(KING)        & attacksBB<KING>(s));
 }
 /// Position::attackersTo() finds attackers to the square.
 inline Bitboard Position::attackersTo(Square s) const {
     return attackersTo(s, pieces());
-}
-
-inline Bitboard Position::attacksFrom(Square s, Bitboard occ) const {
-    return attacksBB(pType(board[s]), s, occ);
-}
-inline Bitboard Position::attacksFrom(Square s) const {
-    return attacksFrom(s, pieces());
-}
-
-/// Position::attacksFrom() finds attacks of the piecetype from the square
-inline Bitboard Position::attacksFrom(PieceType pt, Square s) const {
-    return attacksBB(pt, s, pieces());
 }
 
 inline bool Position::capture(Move m) const {

@@ -239,7 +239,7 @@ namespace Evaluator {
             const auto kSq{ pos.square(Own|KING) };
 
             sqlAttacks[Own][PAWN] = pawnEntry->sglAttacks[Own];
-            sqlAttacks[Own][KING] = PieceAttacksBB[KING][kSq];
+            sqlAttacks[Own][KING] = attacksBB<KING>(kSq);
 
             fulAttacks[Own] =
             sqlAttacks[Own][NONE] = sqlAttacks[Own][PAWN]
@@ -266,7 +266,7 @@ namespace Evaluator {
             // King safety tables
             auto sq{ makeSquare(clamp(sFile(kSq), FILE_B, FILE_G),
                                 clamp(sRank(kSq), RANK_2, RANK_7)) };
-            kingRing[Own] = PieceAttacksBB[KING][sq] | sq;
+            kingRing[Own] = attacksBB<KING>(sq) | sq;
 
             kingAttackersCount [Opp] = popCount(kingRing[Own]
                                               & pawnEntry->sglAttacks[Opp]);
@@ -310,7 +310,7 @@ namespace Evaluator {
 
                 // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
                 Bitboard attacks{
-                    PT == NIHT ? PieceAttacksBB[NIHT][s] & action :
+                    PT == NIHT ? attacksBB<NIHT>(s) & action :
                     PT == BSHP ? attacksBB<BSHP>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, BSHP) & ~kingBlockers) | pos.pieces(Opp, QUEN))) & action :
                     PT == ROOK ? attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~kingBlockers) | pos.pieces(Opp, QUEN))) & action :
                                  attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~kingBlockers))) & action };
@@ -370,7 +370,7 @@ namespace Evaluator {
                         // Penalty for all enemy pawns x-rayed
                         score -= BishopPawnsXRayed
                                * popCount(pos.pieces(Opp, PAWN)
-                                        & PieceAttacksBB[BSHP][s]);
+                                        & attacksBB<BSHP>(s));
                         // Bonus for bishop on a long diagonal which can "see" both center squares
                         score += BishopOnDiagonal
                                * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN))
@@ -424,12 +424,12 @@ namespace Evaluator {
                       & ~kingBlockers;
                     dblAttacks[Own] |= sqlAttacks[Own][NONE]
                                      & ( attacks
-                                      | (attacksBB<BSHP>(s, pos.pieces() ^ (pos.pieces(BSHP) & b & PieceAttacksBB[BSHP][s])) & action)
-                                      | (attacksBB<ROOK>(s, pos.pieces() ^ (pos.pieces(ROOK) & b & PieceAttacksBB[ROOK][s])) & action));
+                                      | (attacksBB<BSHP>(s, pos.pieces() ^ (pos.pieces(BSHP) & b & attacksBB<BSHP>(s))) & action)
+                                      | (attacksBB<ROOK>(s, pos.pieces() ^ (pos.pieces(ROOK) & b & attacksBB<ROOK>(s))) & action));
 
-                    queenAttacked[Own][0] |= pos.attacksFrom(NIHT, s);
-                    queenAttacked[Own][1] |= pos.attacksFrom(BSHP, s);
-                    queenAttacked[Own][2] |= pos.attacksFrom(ROOK, s);
+                    queenAttacked[Own][0] |= attacksBB<NIHT>(s);
+                    queenAttacked[Own][1] |= attacksBB<BSHP>(s, pos.pieces());
+                    queenAttacked[Own][2] |= attacksBB<ROOK>(s, pos.pieces());
 
                     // Penalty for pin or discover attack on the queen
                     // Queen attackers
@@ -447,7 +447,7 @@ namespace Evaluator {
                 sqlAttacks[Own][PT]   |= attacks;
                 sqlAttacks[Own][NONE] |= attacks;
                 if (canCastle[Opp]) {
-                fulAttacks[Own]       |= pos.attacksFrom(PT, s);
+                fulAttacks[Own]       |= attacksBB<PT>(s, pos.pieces());
                 }
 
                 if ((attacks & kingRing[Opp]) != 0) {
@@ -542,7 +542,7 @@ namespace Evaluator {
             }
 
             // Enemy knights checks
-            Bitboard nihtSafeChecks{  PieceAttacksBB[NIHT][kSq]
+            Bitboard nihtSafeChecks{  attacksBB<NIHT>(kSq)
                                    &  sqlAttacks[Opp][NIHT]
                                    &  safeArea };
             if (nihtSafeChecks != 0) {
@@ -551,7 +551,7 @@ namespace Evaluator {
                                 SafeCheckWeight[NIHT];
             }
             else {
-                unsafeCheck |= PieceAttacksBB[NIHT][kSq]
+                unsafeCheck |= attacksBB<NIHT>(kSq)
                              & sqlAttacks[Opp][NIHT];
             }
 
@@ -773,7 +773,7 @@ namespace Evaluator {
                     && (pos.pieces(Opp, PAWN)
                       & (pawnSglPushBB<Own>(frontSquaresBB(Own, s))
                        | ( pawnPassSpan(Own, s + Push)
-                        & ~PawnAttacksBB[Own][s + Push]))) == 0);
+                        & ~pawnAttacksBB(Own, s + Push)))) == 0);
 
                 i32 r{ relativeRank(Own, s) };
                 // Base bonus depending on rank.

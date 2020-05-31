@@ -1110,6 +1110,7 @@ namespace {
                     // Futility pruning for captures
                     if (lmrDepth <= 5
                      && !inCheck
+                     && !(PVNode && std::abs(bestValue) < 2)
                      && ss->staticEval + 384 * lmrDepth + PieceValues[MG][pType(pos[dst])] + 270 <= alfa) {
                         continue;
                     }

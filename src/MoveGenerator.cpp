@@ -21,7 +21,7 @@ namespace {
                  && contains(pos.kingBlockers(~activeSide), s)) {
                     continue;
                 }
-                Bitboard attacks{ pos.attacksFrom(pt, s)
+                Bitboard attacks{ attacksBB(pt, s, pos.pieces())
                                 & targets };
                 if (Checks) {
                     attacks &= pos.checks(pt);
@@ -140,7 +140,7 @@ namespace {
             if (epSq != SQ_NONE) {
                 assert(relativeRank(Own, epSq) == RANK_6);
                 Bitboard epPawns{ rxPawns
-                                & PawnAttacksBB[Opp][epSq] };
+                                & pawnAttacksBB(Opp, epSq) };
 
                 // If the checking piece is the double pushed pawn and also is in the target.
                 // Otherwise this is a discovery check and are forced to do otherwise.
@@ -162,9 +162,9 @@ namespace {
         auto activeSide{ pos.activeSide() };
         auto fkSq{ pos.square( activeSide|KING) };
         auto ekSq{ pos.square(~activeSide|KING) };
-        Bitboard attacks{  PieceAttacksBB[KING][fkSq]
+        Bitboard attacks{  attacksBB<KING>(fkSq)
                         &  targets
-                        & ~PieceAttacksBB[KING][ekSq] };
+                        & ~attacksBB<KING>(ekSq) };
         while (attacks != 0) { moves += makeMove<SIMPLE>(fkSq, popLSq(attacks)); }
 
         if (GT == QUIET
@@ -238,17 +238,18 @@ template<> void generate<EVASION>(ValMoves &moves, Position const &pos) {
         generateMoves<EVASION>(moves, pos, targets);
     }
 
-    Bitboard checkAttacks{ PieceAttacksBB[KING][pos.square(~activeSide|KING)] };
+    Bitboard checkAttacks{ attacksBB<KING>(pos.square(~activeSide|KING)) };
     Bitboard checkersEx{  checkers
                        & ~pos.pieces(PAWN) };
     Bitboard mocc{ pos.pieces() ^ fkSq };
     // Squares attacked by slide checkers will remove them from the king evasions
     // so to skip known illegal moves avoiding useless legality check later.
     while (checkersEx != 0) {
-        checkAttacks |= pos.attacksFrom(popLSq(checkersEx), mocc);
+        auto sq{ popLSq(checkersEx) };
+        checkAttacks |= attacksBB(pType(pos[sq]), sq, mocc);
     }
     // Generate evasions for king, capture and non-capture moves
-    Bitboard attacks{  PieceAttacksBB[KING][fkSq]
+    Bitboard attacks{  attacksBB<KING>(fkSq)
                     & ~checkAttacks
                     & ~pos.pieces(activeSide) };
     while (attacks != 0) { moves += makeMove<SIMPLE>(fkSq, popLSq(attacks)); }
@@ -270,11 +271,11 @@ template<> void generate<QUIET_CHECK>(ValMoves &moves, Position const &pos) {
     while (dscBlockersEx != 0) {
         auto org{ popLSq(dscBlockersEx) };
 
-        Bitboard attacks{ pos.attacksFrom(org)
+        Bitboard attacks{ attacksBB(pType(pos[org]), org, pos.pieces())
                         & targets };
         if (org == fkSq) {
             // Stop king from stepping in the way to check
-            attacks &= ~PieceAttacksBB[QUEN][pos.square(~activeSide|KING)];
+            attacks &= ~attacksBB<QUEN>(pos.square(~activeSide|KING));
         }
 
         while (attacks != 0) { moves += makeMove<SIMPLE>(org, popLSq(attacks)); }

@@ -1721,7 +1721,7 @@ namespace SyzygyTB {
                      && (idx != 0 || s1 == SQ_B1)) { // SQ_B1 is mapped to 0
 
                         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
-                            if (contains(PieceAttacksBB[KING][s1] | s1, s2)) {
+                            if (contains(attacksBB<KING>(s1) | s1, s2)) {
                                 continue; // Illegal position
                             }
 

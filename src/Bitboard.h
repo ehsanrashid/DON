@@ -225,11 +225,21 @@ template<Color C> constexpr Bitboard pawnRAttackBB(Bitboard bb) { return shift<P
 template<Color C> constexpr Bitboard pawnSglAttackBB(Bitboard bb) { return pawnLAttackBB<C>(bb) | pawnRAttackBB<C>(bb); }
 template<Color C> constexpr Bitboard pawnDblAttackBB(Bitboard bb) { return pawnLAttackBB<C>(bb) & pawnRAttackBB<C>(bb); }
 
+inline Bitboard pawnAttacksBB(Color c, Square s) {
+    return PawnAttacksBB[c][s];
+}
+
+/// attacks_bb(Square) returns the pseudo attacks of the give piece type
+/// assuming an empty board.
+template<PieceType PT> inline Bitboard attacksBB(Square s) {
+    assert(PT != PAWN);
+    return PieceAttacksBB[PT][s];
+}
+
 /// attacksBB(s, occ) takes a square and a bitboard of occupied squares,
 /// and returns a bitboard representing all squares attacked by PT (Bishop or Rook or Queen) on the given square.
 template<PieceType PT> Bitboard attacksBB(Square, Bitboard);
-//template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) { return PieceAttacksBB[NIHT][s]; }
-//template<> inline Bitboard attacksBB<KING>(Square s, Bitboard) { return PieceAttacksBB[KING][s]; }
+template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) { return PieceAttacksBB[NIHT][s]; }
 /// Attacks of the Bishop with occupancy
 template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) { return BMagics[s].attacksBB(occ); }
 /// Attacks of the Rook with occupancy
@@ -242,11 +252,11 @@ template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) { return BMag
 inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
     assert(NIHT <= pt && pt <= KING);
     return
-        pt == NIHT ? PieceAttacksBB[NIHT][s] :
+        pt == NIHT ? attacksBB<NIHT>(s) :
         pt == BSHP ? attacksBB<BSHP>(s, occ) :
         pt == ROOK ? attacksBB<ROOK>(s, occ) :
         pt == QUEN ? attacksBB<QUEN>(s, occ) :
-                     PieceAttacksBB[KING][s];
+                     attacksBB<KING>(s);
 }
 
 inline Bitboard floodFill(Bitboard b) {

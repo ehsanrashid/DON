@@ -63,8 +63,8 @@ namespace Pawns {
             Bitboard supporters { neighbours & rankBB(s - Push) };
             Bitboard phalanxes  { neighbours & rankBB(s) };
             Bitboard stoppers   { oppPawns & pawnPassSpan(Own, s) };
-            Bitboard levers     { stoppers & PawnAttacksBB[Own][s] };
-            Bitboard sentres    { stoppers & PawnAttacksBB[Own][s + Push] }; // push levers
+            Bitboard levers     { stoppers & pawnAttacksBB(Own, s) };
+            Bitboard sentres    { stoppers & pawnAttacksBB(Own, s + Push) }; // push levers
             Bitboard opposers   { stoppers & frontSquaresBB(Own, s) };
             Bitboard blocker    { stoppers & (s + Push) };
 

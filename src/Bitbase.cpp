@@ -83,7 +83,7 @@ namespace BitBase {
              || wkSq == wpSq
              || bkSq == wpSq
              || (active == WHITE
-              && contains(PawnAttacksBB[WHITE][wpSq], bkSq))) {
+              && contains(pawnAttacksBB(WHITE, wpSq), bkSq))) {
                 result = INVALID;
             }
             else
@@ -101,8 +101,8 @@ namespace BitBase {
             if (active == BLACK
              && ((distance(bkSq, wpSq) <= 1
                && distance(wkSq, wpSq) >= 2)
-              || (  PieceAttacksBB[KING][bkSq]
-                & ~(PieceAttacksBB[KING][wkSq]|PawnAttacksBB[WHITE][wpSq])) == 0)) {
+              || (  attacksBB<KING>(bkSq)
+                & ~(attacksBB<KING>(wkSq)|pawnAttacksBB(WHITE, wpSq))) == 0)) {
                 result = DRAW;
             }
             // Position will be classified later
@@ -128,8 +128,8 @@ namespace BitBase {
             Result r{ INVALID };
 
             if (active == WHITE) {
-                Bitboard b{  PieceAttacksBB[KING][wkSq]
-                          & ~PieceAttacksBB[KING][bkSq] };
+                Bitboard b{  attacksBB<KING>(wkSq)
+                          & ~attacksBB<KING>(bkSq) };
                 while (b != 0) {
                     r |= kpkArrBase[index(BLACK, popLSq(b), bkSq, wpSq)];
                 }
@@ -147,8 +147,8 @@ namespace BitBase {
                 }
             }
             else { // if (active == BLACK)
-                Bitboard b{  PieceAttacksBB[KING][bkSq]
-                          & ~PieceAttacksBB[KING][wkSq] };
+                Bitboard b{  attacksBB<KING>(bkSq)
+                          & ~attacksBB<KING>(wkSq) };
                 while (b != 0) {
                     r |= kpkArrBase[index(WHITE, wkSq, popLSq(b), wpSq)];
                 }

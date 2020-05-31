@@ -135,7 +135,7 @@ namespace King {
         Bitboard pawns{ pos.pieces(Own, PAWN) };
         if (pawns != 0) {
             dist = 1;
-            Bitboard b{ PieceAttacksBB[KING][kSq] };
+            Bitboard b{ attacksBB<KING>(kSq) };
             while ((pawns & b) == 0) {
                 ++dist;
                 b = floodFill(b);

@@ -184,8 +184,8 @@ Bitboard Position::sliderBlockersAt(Square s, Bitboard attackers, Bitboard &pinn
     // Snipers are X-ray slider attackers at 's'
     // No need to remove direct attackers at 's' as in check no evaluation
     Bitboard snipers{ attackers
-                    & ((pieces(BSHP, QUEN) & PieceAttacksBB[BSHP][s])
-                     | (pieces(ROOK, QUEN) & PieceAttacksBB[ROOK][s])) };
+                    & ((pieces(BSHP, QUEN) & attacksBB<BSHP>(s))
+                     | (pieces(ROOK, QUEN) & attacksBB<ROOK>(s))) };
     Bitboard mocc{ pieces() ^ snipers };
     while (snipers != 0) {
         auto sniperSq{ popLSq(snipers) };
@@ -258,7 +258,7 @@ bool Position::pseudoLegal(Move m) const
            && (mType(m) != PROMOTE
             || orgR != RANK_7
             || dstR != RANK_8))
-          || !contains(PawnAttacksBB[active][org], dst)
+          || !contains(pawnAttacksBB(active, org), dst)
           || empty(dst))
             // Double push
          && (mType(m) != SIMPLE
@@ -272,7 +272,7 @@ bool Position::pseudoLegal(Move m) const
           || orgR != RANK_5
           || dstR != RANK_6
           || dst != epSquare()
-          || !contains(PawnAttacksBB[active][org], dst)
+          || !contains(pawnAttacksBB(active, org), dst)
           || !empty(dst)
           || empty(dst - Push)
           || clockPly() != 0)) {
@@ -281,7 +281,7 @@ bool Position::pseudoLegal(Move m) const
     }
     else {
         if (mType(m) != SIMPLE
-         || !contains(attacksFrom(org), dst)) {
+         || !contains(attacksBB(pType(board[org]), org, pieces()), dst)) {
             return false;
         }
     }
@@ -499,10 +499,10 @@ void Position::setCheckInfo() {
     _stateInfo->kingBlockers[BLACK] = sliderBlockersAt(square(BLACK|KING), pieces(WHITE), _stateInfo->kingCheckers[BLACK], _stateInfo->kingCheckers[WHITE]);
 
     auto ekSq{ square(~active|KING) };
-    _stateInfo->checks[PAWN] = PawnAttacksBB[~active][ekSq];
-    _stateInfo->checks[NIHT] = attacksFrom(NIHT, ekSq);
-    _stateInfo->checks[BSHP] = attacksFrom(BSHP, ekSq);
-    _stateInfo->checks[ROOK] = attacksFrom(ROOK, ekSq);
+    _stateInfo->checks[PAWN] = pawnAttacksBB(~active, ekSq);
+    _stateInfo->checks[NIHT] = attacksBB<NIHT>(ekSq);
+    _stateInfo->checks[BSHP] = attacksBB<BSHP>(ekSq, pieces());
+    _stateInfo->checks[ROOK] = attacksBB<ROOK>(ekSq, pieces());
     _stateInfo->checks[QUEN] = _stateInfo->checks[BSHP]|_stateInfo->checks[ROOK];
     _stateInfo->checks[KING] = 0;
 }
@@ -515,15 +515,15 @@ bool Position::canEnpassant(Color c, Square epSq, bool moved) const {
     assert(board[cap] == (~c|PAWN));
     // Enpassant attackers
     Bitboard attackers{ pieces(c, PAWN)
-                      & PawnAttacksBB[~c][epSq] };
+                      & pawnAttacksBB(~c, epSq) };
     assert(popCount(attackers) <= 2);
     if (attackers == 0) {
        return false;
     }
 
     auto kSq{ square(c|KING) };
-    Bitboard bq{ pieces(~c, BSHP, QUEN) & PieceAttacksBB[BSHP][kSq] };
-    Bitboard rq{ pieces(~c, ROOK, QUEN) & PieceAttacksBB[ROOK][kSq] };
+    Bitboard bq{ pieces(~c, BSHP, QUEN) & attacksBB<BSHP>(kSq) };
+    Bitboard rq{ pieces(~c, ROOK, QUEN) & attacksBB<ROOK>(kSq) };
     Bitboard mocc{ (pieces() ^ cap) | epSq };
     while (attackers != 0) {
         Bitboard amocc{ mocc ^ popLSq(attackers) };
