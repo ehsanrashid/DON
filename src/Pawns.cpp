@@ -113,11 +113,14 @@ namespace Pawns {
             }
             else
             if (neighbours == 0) {
-                sp -= Isolated
-                    + Unopposed * !opposed;
-                if ((stoppers == opposers)
-                 && (ownPawns & frontSquaresBB(Opp, s)) != 0) {
+                if (opposed
+                 && (ownPawns & frontSquaresBB(Opp, s)) != 0
+                 && (oppPawns & adjacentFilesBB(s)) == 0) {
                     sp -= WeakDoubled;
+                }
+                else {
+                    sp -= Isolated
+                        + Unopposed * !opposed;
                 }
             }
             else

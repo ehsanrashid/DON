@@ -80,7 +80,7 @@ namespace Cuckoos {
 
             for (Square s1 = SQ_A1; s1 <= SQ_H8 + WEST; ++s1) {
                 for (Square s2 = s1 + EAST; s2 <= SQ_H8; ++s2) {
-                    if (contains(PieceAttacksBB[pType(p)][s1], s2)) {
+                    if (contains(attacksBB(pType(p), s1, 0), s2)) {
                         cuckoos.emplace_back(p, s1, s2);
                     }
                 }

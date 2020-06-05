@@ -998,7 +998,7 @@ namespace {
         // Mark this node as being searched.
         ThreadMarker threadMarker{ thread, key, ss->ply };
 
-        bool singularLMR{ false };
+        bool singularQuietLMR{ false };
         bool moveCountPruning{ false };
         bool ttmCapture{ ttMove != MOVE_NONE
                       && pos.captureOrPromotion(ttMove) };
@@ -1177,7 +1177,7 @@ namespace {
 
                 if (value < singularBeta) {
                     extension = 1;
-                    singularLMR = true;
+                    singularQuietLMR = !ttmCapture;
                 }
                 // Multi-cut pruning
                 // Our ttMove is assumed to fail high, and now failed high also on a reduced
@@ -1274,7 +1274,7 @@ namespace {
                     // Decrease if position is or has been on the PV (~10 ELO)
                     -2 * ttPV
                     // Decrease if move has been singularly extended (~3 ELO)
-                    -(1 + pastPV) * singularLMR
+                    -(1 + pastPV) * singularQuietLMR
                     // Decrease if opponent's move count is high (~5 ELO)
                     -1 * ((ss-1)->moveCount > 14);
 

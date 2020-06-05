@@ -116,7 +116,8 @@ namespace Evaluator {
                 S( 65,121), S( 66,127), S( 67,131), S( 67,133), S( 72,136), S( 72,141),
                 S( 77,147), S( 79,150), S( 93,151), S(108,168), S(108,168), S(108,171),
                 S(110,182), S(114,182), S(114,192), S(116,219)
-            }
+            },
+            {}
         };
 
         constexpr Score RookOnFile[2]
@@ -147,6 +148,7 @@ namespace Evaluator {
         constexpr Score BishopOnDiagonal  { S( 45,  0) };
         constexpr Score BishopPawnsBlocked{ S(  3,  7) };
         constexpr Score BishopPawnsXRayed { S(  4,  5) };
+        constexpr Score BishopOnKingRing  { S( 24,  0) };
         constexpr Score BishopTrapped     { S( 50, 50) };
         constexpr Score RookOnQueenFile   { S(  5,  9) };
         constexpr Score RookOnKingRing    { S( 16,  0) };
@@ -456,10 +458,15 @@ namespace Evaluator {
                     kingAttacksCount   [Own] += popCount(attacks
                                                        & sqlAttacks[Opp][KING]);
                 }
-                else
-                if (PT == ROOK
-                 && (sFile(s) & kingRing[Opp]) != 0) {
-                    score += RookOnKingRing;
+                else {
+                    if (PT == BSHP
+                     && (attacksBB<BSHP>(s, pos.pieces(PAWN)) & kingRing[Opp]) != 0) {
+                        score += BishopOnKingRing;
+                    }
+                    if (PT == ROOK
+                     && (sFile(s) & kingRing[Opp]) != 0) {
+                        score += RookOnKingRing;
+                    }
                 }
             }
 
