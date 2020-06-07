@@ -1020,7 +1020,7 @@ namespace {
             &thread->captureStats,
             pieceStats,
             ttMove, depth,
-            depth >= 13 ? ss->ply : i16(MAX_PLY),
+            ss->ply,
             ss->killerMoves, counterMove };
 
         u08 moveCount{ 0 };
@@ -1823,16 +1823,16 @@ void Thread::search() {
                 Threadpool.reset(&Thread::pvChange);
                 double pvInstability{ 1.00 + pvChangeSum / Threadpool.size() };
 
-                auto availableTime{ TimePoint(TimeMgr.optimum
-                                            * reductionRatio
-                                            * fallingEval
-                                            * pvInstability) };
+                auto totalTime{ TimePoint(rootMoves.size() > 1 ?
+                                    TimeMgr.optimum
+                                  * reductionRatio
+                                  * fallingEval
+                                  * pvInstability :
+                                    0) };
                 auto elapsed{ TimeMgr.elapsed() };
 
-                // Stop the search
-                // - If all of the available time has been used
-                // - If there is less than 2 legal move available
-                if (elapsed > availableTime * (1 < rootMoves.size())) {
+                // Stop the search if we have exceeded the totalTime (at least 1ms).
+                if (elapsed > totalTime) {
                     // If allowed to ponder do not stop the search now but
                     // keep pondering until GUI sends "stop"/"ponderhit".
                     if (!mainThread->ponder) {
@@ -1843,7 +1843,7 @@ void Thread::search() {
                     }
                 }
                 else
-                if (elapsed > availableTime * 0.60) {
+                if (elapsed > totalTime * 0.60) {
                     if (!mainThread->ponder) {
                         Threadpool.research = true;
                     }

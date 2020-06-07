@@ -142,7 +142,7 @@ void MovePicker::value() {
                      + (*pieceStats[3])[mp][dst] * 2
                      + (*pieceStats[5])[mp][dst]
                    + (ply < MAX_LOWPLY ?
-                       (*lowPlyStats)[ply][mask] * 4 : 0);
+                       (*lowPlyStats)[ply][mask] * std::min(depth / 3, 4) : 0);
         }
         if (GT == EVASION) {
 

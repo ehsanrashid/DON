@@ -352,6 +352,7 @@ namespace Evaluator {
                         // Penalty for knight distance from the friend king
                         score -= KnightKingProtect * distance(kSq, s);
                     }
+                    else
                     if (PT == BSHP) {
                         // Bonus for bishop outpost squares
                         if (contains(b, s)) {
@@ -396,6 +397,7 @@ namespace Evaluator {
                         }
                     }
                 }
+                else
                 if (PT == ROOK) {
 
                     dblAttacks[Own] |= sqlAttacks[Own][NONE] & attacks;
@@ -420,6 +422,7 @@ namespace Evaluator {
                         }
                     }
                 }
+                else
                 if (PT == QUEN) {
 
                     b =  pos.pieces(Own)
@@ -463,6 +466,7 @@ namespace Evaluator {
                      && (attacksBB<BSHP>(s, pos.pieces(PAWN)) & kingRing[Opp]) != 0) {
                         score += BishopOnKingRing;
                     }
+                    else
                     if (PT == ROOK
                      && (sFile(s) & kingRing[Opp]) != 0) {
                         score += RookOnKingRing;
