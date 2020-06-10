@@ -588,7 +588,7 @@ bool Position::see(Move m, Value threshold) const {
              && (kingCheckers(~mov)
                & pieces(~mov)
                & mocc
-               & LineBB[kSq][org]) != 0) {
+               & lineBB(kSq, org)) != 0) {
                 movAttackers = SquareBB[kSq];
             }
             

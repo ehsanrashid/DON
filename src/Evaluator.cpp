@@ -17,7 +17,7 @@ namespace Evaluator {
 
     namespace {
 
-        enum Term : u08 { MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, INITIATIVE, TOTAL, TERMS = 16 };
+        enum Term : u08 { MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, SCALING, TOTAL, TERMS = 16 };
 
         class Tracer {
 
@@ -47,7 +47,7 @@ namespace Evaluator {
         std::ostream& operator<<(std::ostream &os, Term t) {
             if (t == MATERIAL
              || t == IMBALANCE
-             || t == INITIATIVE
+             || t == SCALING
              || t == TOTAL) {
                 os << " | ----- -----" << " | ----- -----";
             }
@@ -214,8 +214,7 @@ namespace Evaluator {
             template<Color> Score passers() const;
             template<Color> Score space() const;
 
-            Score initiative(Score) const;
-            Scale scaleFactor(Value) const;
+            Value scaling(Score) const;
 
         public:
 
@@ -308,7 +307,7 @@ namespace Evaluator {
 
                 Bitboard action{
                     contains(kingBlockers, s) ?
-                        LineBB[kSq][s] : BoardBB };
+                        lineBB(kSq, s) : BoardBB };
 
                 // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
                 Bitboard attacks{
@@ -870,10 +869,11 @@ namespace Evaluator {
             return score;
         }
 
-        /// initiative() evaluates the initiative correction value for the position
-        /// i.e. second order bonus/malus based on the known attacking/defending status of the players
+        /// Evaluation::scaling() adjusts the mg and eg score components based on the
+        /// known attacking/defending status of the players.
+        /// Single value is derived from the mg and eg values and returned.
         template<bool Trace>
-        Score Evaluation<Trace>::initiative(Score s) const {
+        Value Evaluation<Trace>::scaling(Score score) const {
             auto wkSq{ pos.square(W_KING) };
             auto bkSq{ pos.square(B_KING) };
 
@@ -892,35 +892,28 @@ namespace Evaluator {
                             // Almost Unwinnable
                            - 43 * (pawnEntry->pawnNotBothFlank
                                 && outflanking < 0)
-                           - 2  * pos.clockPly()
                            - 89;
 
-            auto mg{ mgValue(s) };
-            auto eg{ egValue(s) };
+            auto mg{ mgValue(score) };
+            auto eg{ egValue(score) };
+
             // Now apply the bonus: note that we find the attacking side by extracting the
             // sign of the midgame or endgame values, and that we carefully cap the bonus
             // so that the midgame and endgame scores do not change sign after the bonus.
-            Score score{ makeScore(sign(mg) * clamp(complexity + 50, -std::abs(mg), 0),
-                                   sign(eg) * std::max(complexity, -std::abs(eg))) };
+            auto mv{ sign(mg) * clamp(complexity + 50, -std::abs(mg), 0) };
+            auto ev{ sign(eg) * std::max(complexity, -std::abs(eg)) };
 
-            if (Trace) {
-                Tracer::write(INITIATIVE, score);
-            }
+            mg += mv;
+            eg += ev;
 
-            return score;
-        }
-
-        /// scaleFactor() evaluates the scaleFactor for the position
-        template<bool Trace>
-        Scale Evaluation<Trace>::scaleFactor(Value eg) const {
-            auto stngColor{ eg >= VALUE_ZERO ? WHITE : BLACK };
+            // Compute the scale factor for the winning side
+            auto stngColor{ eg > VALUE_ZERO ? WHITE : BLACK };
 
             Scale scale{ matlEntry->scalingFunc[stngColor] != nullptr ?
                         (*matlEntry->scalingFunc[stngColor])(pos) : SCALE_NONE };
             if (scale == SCALE_NONE) {
                 scale = matlEntry->scaleFactor[stngColor];
             }
-
             // If scaleFactor is not already specific, scaleFactor down the endgame via general heuristics
             if (scale == SCALE_NORMAL) {
                 if (pos.bishopOpposed()) {
@@ -932,7 +925,18 @@ namespace Evaluator {
                     scale = std::min(Scale(36 + 7 * pos.count(stngColor|PAWN)), SCALE_NORMAL);
                 }
             }
-            return scale;
+            
+            // Interpolates between midgame and scaled endgame values (scaled by 'scaleFactor(egValue(score))').
+            Value value{ mg * (matlEntry->phase)
+                       + eg * (Material::PhaseResolution - matlEntry->phase) * scale / SCALE_NORMAL };
+            value /= Material::PhaseResolution;
+
+            if (Trace) {
+                Tracer::write(SCALING, makeScore(mv, ev + eg * (scale / SCALE_NORMAL - 1)));
+                Tracer::write(TOTAL  , makeScore(mg, eg * scale / SCALE_NORMAL));
+            }
+
+            return value;
         }
 
         /// value() computes the various parts of the evaluation and
@@ -997,28 +1001,24 @@ namespace Evaluator {
             score += space   <WHITE>() - space   <BLACK>();
             }
 
-            score += initiative(score);
-
-            assert(-VALUE_INFINITE < mgValue(score) && mgValue(score) < +VALUE_INFINITE);
-            assert(-VALUE_INFINITE < egValue(score) && egValue(score) < +VALUE_INFINITE);
-            assert(0 <= matlEntry->phase && matlEntry->phase <= Material::PhaseResolution);
-
-            // Interpolates between midgame and scaled endgame values (scaled by 'scaleFactor(egValue(score))').
-            v = mgValue(score) * (matlEntry->phase)
-              + egValue(score) * (Material::PhaseResolution - matlEntry->phase) * scaleFactor(egValue(score)) / SCALE_NORMAL;
-            v /= Material::PhaseResolution;
-
             if (Trace) {
                 // Write remaining evaluation terms
                 Tracer::write(Term(PAWN), pawnEntry->score[WHITE], pawnEntry->score[BLACK]);
                 Tracer::write(MATERIAL  , pos.psqScore());
                 Tracer::write(IMBALANCE , matlEntry->imbalance);
-                Tracer::write(MOBILITY  , mobility[WHITE], mobility[BLACK]);
-                Tracer::write(TOTAL     , score);
+                Tracer::write(MOBILITY  , mobility[WHITE], mobility[BLACK]);                
             }
 
+            // Derive single value from mg and eg parts of score
+            v = scaling(score);
+
             // Active side's point of view
-            return (pos.activeSide() == WHITE ? +v : -v) + VALUE_TEMPO;
+            v = (pos.activeSide() == WHITE ? +v : -v) + VALUE_TEMPO;
+
+            // Damp down the evaluation linearly when shuffling
+            v = v * (100 - pos.clockPly()) / 100;
+
+            return v;
         }
     }
 
@@ -1059,7 +1059,7 @@ namespace Evaluator {
             << "         Threat" << Term(THREAT)
             << "         Passer" << Term(PASSER)
             << "          Space" << Term(SPACE)
-            << "     Initiative" << Term(INITIATIVE)
+            << "        Scaling" << Term(SCALING)
             << "----------------+-------------+-------------+--------------\n"
             << "          Total" << Term(TOTAL)
             << std::showpos << std::showpoint << std::fixed << std::setprecision(2)

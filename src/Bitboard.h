@@ -199,18 +199,29 @@ constexpr Bitboard frontSquaresBB(Color c, Square s) { return frontRanksBB(c, s)
 constexpr Bitboard pawnAttackSpan(Color c, Square s) { return frontRanksBB(c, s) & adjacentFilesBB(s); }
 constexpr Bitboard pawnPassSpan  (Color c, Square s) { return frontRanksBB(c, s) & (fileBB(s) | adjacentFilesBB(s)); }
 
+
+/// line_bb(Square, Square) returns a Bitboard representing an entire line
+/// (from board edge to board edge) that intersects the given squares.
+/// If the given squares are not on a same file/rank/diagonal, return 0.
+/// Ex. line_bb(SQ_C4, SQ_F7) returns a bitboard with the A2-G8 diagonal.
+inline Bitboard lineBB(Square s1, Square s2) {
+    assert(isOk(s1)
+        && isOk(s2));
+    return LineBB[s1][s2];
+}
+
 /// between_bb() returns squares that are linearly between the given squares
 /// If the given squares are not on a same file/rank/diagonal, return 0.
 inline Bitboard betweenBB(Square s1, Square s2) {
 
-    Bitboard sLine{ LineBB[s1][s2]
+    Bitboard sLine{ lineBB(s1, s2)
                   & ((BoardBB << s1) ^ (BoardBB << s2)) };
     // Exclude lsb
     //return sLine & ~std::min(s1, s2);
     return sLine & (sLine - 1);
 }
 /// aligned() Check the squares s1, s2 and s3 are aligned on a straight line.
-inline bool aligned(Square s1, Square s2, Square s3) { return contains(LineBB[s1][s2], s3); }
+inline bool aligned(Square s1, Square s2, Square s3) { return contains(lineBB(s1, s2), s3); }
 
 constexpr Direction PawnPush[COLORS] { NORTH, SOUTH };
 
