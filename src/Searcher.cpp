@@ -1924,12 +1924,8 @@ void MainThread::search() {
                             u16(1 + 3 * SkillMgr.enabled()),
                             u16(rootMoves.size()));
 
-            for (auto *th : Threadpool) {
-                if (th != this) {
-                    th->wakeUp();
-                }
-            }
-            Thread::search(); // Let's start searching !
+            Threadpool.wakeUpThreads(); // start non-main threads searching !
+            Thread::search();           // start main thread searching !
 
             // Swap best PV line with the sub-optimal one if skill level is enabled
             if (SkillMgr.enabled()) {
@@ -1950,14 +1946,11 @@ void MainThread::search() {
 
     Thread *bestThread{ this };
     if (think) {
-        // Stop the threads if not already stopped (Also raise the stop if "ponderhit" just reset Threads.ponder).
+        // Stop the threads if not already stopped (Also raise the stop if "ponderhit" just reset Threads.ponder)
         Threadpool.stop = true;
-        // Wait until all threads have finished.
-        for (auto *th : Threadpool) {
-            if (th != this) {
-                th->waitIdle();
-            }
-        }
+        // Wait until non-main threads have finished
+        Threadpool.waitForThreads();
+
         // Check if there is better thread than main thread
         if (PVCount == 1
          && Threadpool.size() >= 2
@@ -1966,7 +1959,7 @@ void MainThread::search() {
          && !Options["UCI_LimitStrength"]) {
 
             bestThread = Threadpool.bestThread();
-            // If new best thread then send PV info again.
+            // If new best thread then send PV info again
             if (bestThread != this) {
                 sync_cout << multipvInfo(bestThread, bestThread->finishedDepth, -VALUE_INFINITE, +VALUE_INFINITE) << sync_endl;
             }

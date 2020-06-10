@@ -105,51 +105,6 @@ MainThread * ThreadPool::mainThread() const {
     return static_cast<MainThread*>(front());
 }
 
-Thread* ThreadPool::bestThread() const {
-    Thread *bestTh{ front() };
-
-    auto minValue{ +VALUE_INFINITE };
-    for (auto *th : *this) {
-        if (minValue > th->rootMoves[0].newValue) {
-            minValue = th->rootMoves[0].newValue;
-        }
-    }
-    // Vote according to value and depth
-    std::map<Move, i64> votes;
-    for (auto *th : *this) {
-        votes[th->rootMoves[0][0]] += i32(th->rootMoves[0].newValue - minValue + 14) * i32(th->finishedDepth);
-
-        if (std::abs(bestTh->rootMoves[0].newValue) < +VALUE_MATE_2_MAX_PLY) {
-            if (  th->rootMoves[0].newValue >  -VALUE_MATE_2_MAX_PLY
-             && ( th->rootMoves[0].newValue >= +VALUE_MATE_2_MAX_PLY
-              ||  votes[bestTh->rootMoves[0][0]] <  votes[th->rootMoves[0][0]]
-              || (votes[bestTh->rootMoves[0][0]] == votes[th->rootMoves[0][0]]
-               && bestTh->finishedDepth < th->finishedDepth))) {
-                bestTh = th;
-            }
-        }
-        else {
-            // Select the shortest mate for own/longest mate for opp
-            if ( bestTh->rootMoves[0].newValue <  th->rootMoves[0].newValue
-             || (bestTh->rootMoves[0].newValue == th->rootMoves[0].newValue
-              && bestTh->finishedDepth < th->finishedDepth)) {
-                bestTh = th;
-            }
-        }
-    }
-    //// Select best thread with max depth
-    //auto bestMove{ bestTh->rootMoves[0][0] };
-    //for (auto *th : *this) {
-    //    if (bestMove == th->rootMoves[0][0]) {
-    //        if (bestTh->finishedDepth < th->finishedDepth) {
-    //            bestTh = th;
-    //        }
-    //    }
-    //}
-
-    return bestTh;
-}
-
 /// ThreadPool::setSize() creates/destroys threads to match the requested number.
 /// Created and launched threads will immediately go to sleep in threadFunc.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
@@ -233,6 +188,67 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
 
     mainThread()->wakeUp();
 }
+
+void ThreadPool::wakeUpThreads() {
+    for (auto *th : *this) {
+        if (th != front()) {
+            th->wakeUp();
+        }
+    }
+}
+void ThreadPool::waitForThreads() {
+    for (auto *th : *this) {
+        if (th != front()) {
+            th->waitIdle();
+        }
+    }
+}
+
+Thread* ThreadPool::bestThread() const {
+    Thread *bestTh{ front() };
+
+    auto minValue{ +VALUE_INFINITE };
+    for (auto *th : *this) {
+        if (minValue > th->rootMoves[0].newValue) {
+            minValue = th->rootMoves[0].newValue;
+        }
+    }
+    // Vote according to value and depth
+    std::map<Move, i64> votes;
+    for (auto *th : *this) {
+        votes[th->rootMoves[0][0]] += i32(th->rootMoves[0].newValue - minValue + 14) * i32(th->finishedDepth);
+
+        if (std::abs(bestTh->rootMoves[0].newValue) < +VALUE_MATE_2_MAX_PLY) {
+            if (  th->rootMoves[0].newValue >  -VALUE_MATE_2_MAX_PLY
+             && ( th->rootMoves[0].newValue >= +VALUE_MATE_2_MAX_PLY
+              ||  votes[bestTh->rootMoves[0][0]] <  votes[th->rootMoves[0][0]]
+              || (votes[bestTh->rootMoves[0][0]] == votes[th->rootMoves[0][0]]
+               && bestTh->finishedDepth < th->finishedDepth))) {
+                bestTh = th;
+            }
+        }
+        else {
+            // Select the shortest mate for own/longest mate for opp
+            if ( bestTh->rootMoves[0].newValue <  th->rootMoves[0].newValue
+             || (bestTh->rootMoves[0].newValue == th->rootMoves[0].newValue
+              && bestTh->finishedDepth < th->finishedDepth)) {
+                bestTh = th;
+            }
+        }
+    }
+    //// Select best thread with max depth
+    //auto bestMove{ bestTh->rootMoves[0][0] };
+    //for (auto *th : *this) {
+    //    if (bestMove == th->rootMoves[0][0]) {
+    //        if (bestTh->finishedDepth < th->finishedDepth) {
+    //            bestTh = th;
+    //        }
+    //    }
+    //}
+
+    return bestTh;
+}
+
 
 /// Win Processors Group
 /// Under Windows it is not possible for a process to run on more than one logical processor group.

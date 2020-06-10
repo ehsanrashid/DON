@@ -165,12 +165,15 @@ public:
 
     MainThread* mainThread() const;
 
-    Thread* bestThread() const;
-
     void setup(u16);
     void clean();
 
     void startThinking(Position&, StateListPtr&);
+
+    void wakeUpThreads();
+    void waitForThreads();
+    Thread* bestThread() const;
+
 };
 
 namespace WinProcGroup {
