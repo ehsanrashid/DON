@@ -52,10 +52,9 @@ static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
 /// 10 x 3 + 2 = 32
 struct TCluster {
 
-    // Cluster entry count
-    static constexpr u08 EntryCount{ 3 };
+    static constexpr u08 EntryPerCluster{ 3 };
 
-    TEntry entry[EntryCount];
+    TEntry entry[EntryPerCluster];
     char pad[2]; // Pad to 32 bytes
 
     u32 freshEntryCount() const;
@@ -66,8 +65,8 @@ struct TCluster {
 /// Size of TCluster (32 bytes)
 static_assert (sizeof (TCluster) == 32, "Cluster size incorrect");
 
-/// Transposition::Table is an array of Cluster, of size clusterCount.
-/// Each cluster consists of EntryCount number of TTEntry.
+/// Transposition::Table is an array of Cluster, of size superClusterCount.
+/// Each cluster consists of EntryPerCluster number of TTEntry.
 /// Each TTEntry contains information on exactly one position.
 /// The size of a Cluster should divide the size of a cache line for best performance,
 /// as the cacheline is prefetched when possible.
@@ -76,17 +75,20 @@ class TTable {
 private:
     void     *mem{ nullptr };
     TCluster *clusterTable{ nullptr };
-    u64       clusterCount{ 0 };
+    u64       superClusterCount{ 0 };
 
 public:
     // Minimum size of Table (MB)
     static constexpr u32 MinHashSize{ 4 };
     // Maximum size of Table (MB)
 #if defined(BIT64)
-    static constexpr u32 MaxHashSize{ 128 << 10 };
+    // At most 2^32 superclusters. Supercluster = 8 kB
+    static constexpr u32 MaxHashSize{ 32 << 20 };
 #else
-    static constexpr u32 MaxHashSize{   2 << 10 };
+    static constexpr u32 MaxHashSize{  2 << 10 };
 #endif
+
+    static constexpr u16 ClusterPerSuperCluster{ 256 };
 
     TTable() = default;
     TTable(TTable const&) = delete;

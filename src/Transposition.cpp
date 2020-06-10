@@ -51,7 +51,7 @@ u32 TCluster::freshEntryCount() const {
 TEntry* TCluster::probe(u16 key16, bool &hit) {
     // Find an entry to be replaced according to the replacement strategy.
     auto* rte{ entry }; // Default first
-    for (auto *ite = entry; ite < entry + EntryCount; ++ite) {
+    for (auto *ite = entry; ite < entry + EntryPerCluster; ++ite) {
         if (ite->d08 == 0
          || ite->k16 == key16) {
             // Refresh entry
@@ -231,17 +231,24 @@ TTable::~TTable() {
 
 /// size() returns hash size in MB
 u32 TTable::size() const {
-    return u32((clusterCount * sizeof (TCluster)) >> 20);
+    return u32((superClusterCount * ClusterPerSuperCluster * sizeof (TCluster)) >> 20);
 }
 /// cluster() returns a pointer to the cluster of given a key.
 /// Lower 32 bits of the key are used to get the index of the cluster.
 TCluster* TTable::cluster(Key posiKey) const {
-    return &clusterTable[(u32(posiKey) * clusterCount) >> 0x20];
+
+    // The index is computed from
+    // Idx = (K48 * SCC) / 2^40, with K48 the 48 lowest bits swizzled.
+
+    const u64 Term1{ u32(posiKey) * superClusterCount };
+    const u64 Term2{ (u16(posiKey >> 32) * superClusterCount) >> 16 };
+
+    return &clusterTable[(Term1 + Term2) >> 24];
 }
 
 /// TTable::resize() sets the size of the transposition table, measured in MB.
 /// Transposition table consists of a power of 2 number of clusters and
-/// each cluster consists of EntryCount number of TTEntry.
+/// each cluster consists of EntryPerCluster number of TTEntry.
 u32 TTable::resize(u32 memSize) {
     memSize = clamp(memSize, MinHashSize, MaxHashSize);
 
@@ -249,8 +256,8 @@ u32 TTable::resize(u32 memSize) {
 
     free();
 
-    clusterCount = (size_t(memSize) << 20) / sizeof (TCluster);
-    clusterTable = static_cast<TCluster*>(allocAlignedMemory(mem, clusterCount * sizeof (TCluster)));
+    superClusterCount = (size_t(memSize) << 20) / (sizeof (TCluster) * ClusterPerSuperCluster);
+    clusterTable = static_cast<TCluster*>(allocAlignedMemory(mem, superClusterCount * ClusterPerSuperCluster * sizeof (TCluster)));
     if (mem == nullptr) {
         std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << std::endl;
         return 0;
@@ -275,7 +282,7 @@ void TTable::autoResize(u32 memSize) {
 /// TTable::clear() clear the entire transposition table in a multi-threaded way.
 void TTable::clear() {
     assert(clusterTable != nullptr
-        && clusterCount != 0);
+        && superClusterCount != 0);
 
     if (Options["Retain Hash"]) {
         return;
@@ -286,6 +293,8 @@ void TTable::clear() {
     for (u16 index = 0; index < threadCount; ++index) {
         threads.emplace_back(
             [this, index, threadCount]() {
+
+            const size_t clusterCount{ superClusterCount * ClusterPerSuperCluster };
 
                 if (threadCount > 8) {
                     WinProcGroup::bind(index);
@@ -326,7 +335,7 @@ u32 TTable::hashFull() const {
     for (auto *itc = clusterTable; itc < clusterTable + 1000; ++itc) {
         freshEntryCount += itc->freshEntryCount();
     }
-    return freshEntryCount / TCluster::EntryCount;
+    return freshEntryCount / TCluster::EntryPerCluster;
 }
 
 /// TTable::extractNextMove() extracts next move after this move.
@@ -389,7 +398,7 @@ std::ostream& operator<<(std::ostream &os, TTable const &tt) {
     os.write((char const*)(&dummy), sizeof (dummy));
     os.write((char const*)(&dummy), sizeof (dummy));
     os.write((char const*)(&TEntry::Generation), sizeof (TEntry::Generation));
-    for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
+    for (size_t i = 0; i < tt.superClusterCount / BufferSize; ++i) {
         os.write((char const*)(tt.clusterTable + i*BufferSize), sizeof (TCluster)*BufferSize);
     }
     return os;
@@ -404,7 +413,7 @@ std::istream& operator>>(std::istream &is, TTable       &tt) {
     is.read((char*)(&dummy), sizeof (dummy));
     is.read((char*)(&TEntry::Generation), sizeof (TEntry::Generation));
     tt.resize(memSize);
-    for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
+    for (size_t i = 0; i < tt.superClusterCount / BufferSize; ++i) {
         is.read((char*)(tt.clusterTable + i*BufferSize), sizeof (TCluster)*BufferSize);
     }
     return is;
