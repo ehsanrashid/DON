@@ -272,8 +272,8 @@ namespace WinProcGroup {
 
 #   include <windows.h>
 
-#   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
+#   undef WIN32_LEAN_AND_MEAN
 
     /// The needed Windows API for processor groups could be missed from old Windows versions,
     /// so instead of calling them directly (forcing the linker to resolve the calls at compile time),

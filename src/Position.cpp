@@ -1274,12 +1274,12 @@ std::string Position::toString() const {
     if (Book.enabled) {
         oss << '\n' << Book.show(*this);
     }
-    if (SyzygyTB::MaxPieceLimit >= count()
+    if (count() <= SyzygyTB::MaxPieceLimit
      && castleRights() == CR_NONE) {
         SyzygyTB::ProbeState wdlState;
-        auto wdlScore = SyzygyTB::probeWDL(*const_cast<Position*>(this), wdlState);
+        auto wdlScore{ SyzygyTB::probeWDL(*const_cast<Position*>(this), wdlState) };
         SyzygyTB::ProbeState dtzState;
-        auto dtzScore = SyzygyTB::probeDTZ(*const_cast<Position*>(this), dtzState);
+        auto dtzScore{ SyzygyTB::probeDTZ(*const_cast<Position*>(this), dtzState) };
         oss << "\nTablebases WDL: " << std::setw(4) << wdlScore << " (" << wdlState << ")"
             << "\nTablebases DTZ: " << std::setw(4) << dtzScore << " (" << dtzState << ")";
     }

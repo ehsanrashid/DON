@@ -33,8 +33,8 @@ using namespace SyzygyTB;
 
 #   include <windows.h>
 
-#   undef WIN32_LEAN_AND_MEAN
 #   undef NOMINMAX
+#   undef WIN32_LEAN_AND_MEAN
 
 #else
 

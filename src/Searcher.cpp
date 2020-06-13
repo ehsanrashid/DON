@@ -1132,7 +1132,8 @@ namespace {
                      && ss->staticEval + 172 * lmrDepth + 235 <= alfa
                      && ((*pieceStats[0])[mp][dst]
                        + (*pieceStats[1])[mp][dst]
-                       + (*pieceStats[3])[mp][dst] < 27400)) {
+                       + (*pieceStats[3])[mp][dst]
+                       + (*pieceStats[5])[mp][dst] / 2 < 31400)) {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 ELO)
@@ -1974,9 +1975,8 @@ void MainThread::search() {
     if (Limits.useTimeMgmt()) {
         if (u16(Options["Time Nodes"]) != 0) {
             // In 'Nodes as Time' mode, subtract the searched nodes from the total nodes.
-            TimeMgr.totalNodes +=
-                Limits.clock[rootPos.activeSide()].inc
-              - Threadpool.sum(&Thread::nodes);
+            TimeMgr.totalNodes += Limits.clock[rootPos.activeSide()].inc
+                                - Threadpool.sum(&Thread::nodes);
         }
         bestValue = rm.newValue;
     }

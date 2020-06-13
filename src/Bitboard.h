@@ -190,38 +190,44 @@ template<> constexpr Bitboard shift<NORTH_WEST>(Bitboard bb) { return (bb & ~Fil
 template<> constexpr Bitboard shift<SOUTH_EAST>(Bitboard bb) { return (bb & ~FileBB[FILE_H]) >> 7; }
 template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) { return (bb & ~FileBB[FILE_A]) >> 9; }
 
-constexpr Bitboard adjacentFilesBB(Square s) { return shift<EAST >(fileBB(s))
-                                                    | shift<WEST >(fileBB(s)); }
-//constexpr Bitboard adjacentRanksBB(Square s) { return shift<NORTH>(rankBB(s))
-//                                                    | shift<SOUTH>(rankBB(s)); }
+constexpr Bitboard adjacentFilesBB(Square s) {
+    return shift<EAST >(fileBB(s))
+         | shift<WEST >(fileBB(s));
+}
+//constexpr Bitboard adjacentRanksBB(Square s) {
+//    return shift<NORTH>(rankBB(s))
+//         | shift<SOUTH>(rankBB(s));
+//}
 
 constexpr Bitboard frontSquaresBB(Color c, Square s) { return frontRanksBB(c, s) & fileBB(s); }
 constexpr Bitboard pawnAttackSpan(Color c, Square s) { return frontRanksBB(c, s) & adjacentFilesBB(s); }
 constexpr Bitboard pawnPassSpan  (Color c, Square s) { return frontRanksBB(c, s) & (fileBB(s) | adjacentFilesBB(s)); }
 
-
-/// line_bb(Square, Square) returns a Bitboard representing an entire line
+/// lineBB() returns a Bitboard representing an entire line
 /// (from board edge to board edge) that intersects the given squares.
 /// If the given squares are not on a same file/rank/diagonal, return 0.
-/// Ex. line_bb(SQ_C4, SQ_F7) returns a bitboard with the A2-G8 diagonal.
+/// Ex. lineBB(SQ_C4, SQ_F7) returns a bitboard with the A2-G8 diagonal.
 inline Bitboard lineBB(Square s1, Square s2) {
     assert(isOk(s1)
         && isOk(s2));
     return LineBB[s1][s2];
 }
-
-/// between_bb() returns squares that are linearly between the given squares
+/// betweenBB() returns squares that are linearly between the given squares
 /// If the given squares are not on a same file/rank/diagonal, return 0.
+/// Ex. betweenBB(SQ_C4, SQ_F7) returns a bitboard with squares D5 and E6.
 inline Bitboard betweenBB(Square s1, Square s2) {
-
     Bitboard sLine{ lineBB(s1, s2)
-                  & ((BoardBB << s1) ^ (BoardBB << s2)) };
-    // Exclude lsb
-    //return sLine & ~std::min(s1, s2);
-    return sLine & (sLine - 1);
+                  & ((BoardBB << s1)
+                   ^ (BoardBB << s2)) };
+    // Exclude LSB
+    return //sLine & ~std::min(s1, s2);
+           sLine & (sLine - 1);
 }
 /// aligned() Check the squares s1, s2 and s3 are aligned on a straight line.
-inline bool aligned(Square s1, Square s2, Square s3) { return contains(lineBB(s1, s2), s3); }
+inline bool aligned(Square s1, Square s2, Square s3) {
+    assert(isOk(s3));
+    return contains(lineBB(s1, s2), s3);
+}
 
 constexpr Direction PawnPush[COLORS] { NORTH, SOUTH };
 
@@ -240,26 +246,30 @@ inline Bitboard pawnAttacksBB(Color c, Square s) {
     return PawnAttacksBB[c][s];
 }
 
-/// attacks_bb(Square) returns the pseudo attacks of the give piece type
-/// assuming an empty board.
+/// attacksBB() returns the pseudo-attacks by piece-type assuming an empty board
 template<PieceType PT> inline Bitboard attacksBB(Square s) {
     assert(PT != PAWN);
     return PieceAttacksBB[PT][s];
 }
 
-/// attacksBB(s, occ) takes a square and a bitboard of occupied squares,
-/// and returns a bitboard representing all squares attacked by PT (Bishop or Rook or Queen) on the given square.
+/// attacksBB() returns attacks by piece-type from the square on occupancy
 template<PieceType PT> Bitboard attacksBB(Square, Bitboard);
-template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) { return PieceAttacksBB[NIHT][s]; }
-/// Attacks of the Bishop with occupancy
-template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) { return BMagics[s].attacksBB(occ); }
-/// Attacks of the Rook with occupancy
-template<> inline Bitboard attacksBB<ROOK>(Square s, Bitboard occ) { return RMagics[s].attacksBB(occ); }
-/// Attacks of the Queen with occupancy
-template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) { return BMagics[s].attacksBB(occ)
-                                                                          | RMagics[s].attacksBB(occ); }
 
-/// attacksBB() finds attacks of the piecetype from the square on occupancy.
+template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) {
+    return PieceAttacksBB[NIHT][s];
+}
+template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) {
+    return BMagics[s].attacksBB(occ);
+}
+template<> inline Bitboard attacksBB<ROOK>(Square s, Bitboard occ) {
+    return RMagics[s].attacksBB(occ);
+}
+template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) {
+    return attacksBB<BSHP>(s, occ)
+         | attacksBB<ROOK>(s, occ);
+}
+
+/// attacksBB() returns attacks of the piece-type from the square on occupancy
 inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
     assert(NIHT <= pt && pt <= KING);
     return
@@ -267,7 +277,7 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
         pt == BSHP ? attacksBB<BSHP>(s, occ) :
         pt == ROOK ? attacksBB<ROOK>(s, occ) :
         pt == QUEN ? attacksBB<QUEN>(s, occ) :
-                     attacksBB<KING>(s);
+        pt == KING ? attacksBB<KING>(s) : 0;
 }
 
 inline Bitboard floodFill(Bitboard b) {

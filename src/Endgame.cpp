@@ -5,26 +5,28 @@
 
 namespace {
 
-    // Drive a piece towards the edge of the board
+    /// Drive a piece towards the edge of the board,
+    /// used in KX vs K and KQ vs KR
     inline int pushToEdge(Square s) {
         return 90 - (7 * nSqr(edgeDistance(sFile(s))) / 2
                    + 7 * nSqr(edgeDistance(sRank(s))) / 2);
     }
-    // Drive a piece towards the corner of the board, used in KBN vs K to A1H8 corners
+    /// Drive a piece towards the corner of the board,
+    /// used in KBN vs K to A1H8 corners
     inline int pushToCorner(Square s) {
-        return 420 * std::abs(7 - (sFile(s) + sRank(s)));
+        return 420 * std::abs(7 - sFile(s) - sRank(s));
     }
-    // Drive a piece close to another piece
+    /// Drive a piece close to another piece
     inline i32 pushClose(Square s1, Square s2) {
         return 20 * (7 - distance(s1, s2));
     }
-    // Drive a piece away from another piece
+    /// Drive a piece away from another piece
     inline i32 pushAway(Square s1, Square s2) {
         return 20 * (distance(s1, s2) - 1);
     }
 
-    // Required stngColor must have a single pawn
-    // Map the square as if stngColor is white and pawn square is on files A-D
+    /// Required stngColor must have a single pawn
+    /// Map the square as if stngColor is white and pawn square is on files A-D
     Square normalize(Square sq, Color stngColor, File spF) {
 
         if (stngColor == BLACK) {

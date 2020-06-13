@@ -1011,7 +1011,8 @@ namespace Evaluator {
 
             // Derive single value from mg and eg parts of score
             v = scaling(score);
-
+            // Evaluation grain
+            v = (v / 16) * 16;
             // Active side's point of view
             v = (pos.activeSide() == WHITE ? +v : -v) + VALUE_TEMPO;
 

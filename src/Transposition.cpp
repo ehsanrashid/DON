@@ -75,28 +75,26 @@ namespace {
 
     /// allocAlignedMemory will return suitably aligned memory, and if possible use large pages.
     /// The returned pointer is the aligned one, while the mem argument is the one that needs to be passed to free.
-    /// With c++17 some of this functionality can be simplified.
+    /// With C++17 some of this functionality can be simplified.
 #if defined(_WIN64)
 
-#   if defined(_WIN32)
-#       if _WIN32_WINNT < 0x0601
-#           undef  _WIN32_WINNT
-#           define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
-#       endif
-#       if !defined(NOMINMAX)
-#           define NOMINMAX
-#       endif
-#       if !defined(WIN32_LEAN_AND_MEAN)
-#           define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
-#       endif
-
-#       include <windows.h>
-
-#       undef WIN32_LEAN_AND_MEAN
-#       undef NOMINMAX
-
-#       pragma comment(lib, "advapi32.lib")
+#   if _WIN32_WINNT < 0x0601
+#       undef  _WIN32_WINNT
+#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
 #   endif
+#   if !defined(NOMINMAX)
+#       define NOMINMAX // Disable macros min() and max()
+#   endif
+#   if !defined(WIN32_LEAN_AND_MEAN)
+#       define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
+#   endif
+
+#   include <windows.h>
+
+#   undef NOMINMAX
+#   undef WIN32_LEAN_AND_MEAN
+
+#   pragma comment(lib, "advapi32.lib")
 
     void* allocAlignedMemoryLargePages(size_t mSize) {
         HANDLE processToken{ };
@@ -256,7 +254,7 @@ u32 TTable::resize(u32 memSize) {
 
     free();
 
-    superClusterCount = (size_t(memSize) << 20) / (sizeof (TCluster) * ClusterPerSuperCluster);
+    superClusterCount = (size_t(memSize) << 20) / (ClusterPerSuperCluster * sizeof (TCluster));
     clusterTable = static_cast<TCluster*>(allocAlignedMemory(mem, superClusterCount * ClusterPerSuperCluster * sizeof (TCluster)));
     if (mem == nullptr) {
         std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << std::endl;
@@ -290,21 +288,21 @@ void TTable::clear() {
 
     std::vector<std::thread> threads;
     auto threadCount{ optionThreads() };
+    const size_t clusterCount{ superClusterCount * ClusterPerSuperCluster };
     for (u16 index = 0; index < threadCount; ++index) {
         threads.emplace_back(
-            [this, index, threadCount]() {
-
-            const size_t clusterCount{ superClusterCount * ClusterPerSuperCluster };
+            [this, index, threadCount, clusterCount]() {
 
                 if (threadCount > 8) {
                     WinProcGroup::bind(index);
                 }
+                // Each thread will zero its part of the hash table
                 auto const stride{ clusterCount / threadCount };
                 auto const start{ stride * index };
                 auto const count{ index != threadCount - 1 ?
                                     stride :
                                     clusterCount - start };
-                std::memset(clusterTable + start, 0, count * sizeof (TCluster));
+                std::memset(&clusterTable[start], 0, count * sizeof (TCluster));
             });
     }
 
@@ -398,8 +396,9 @@ std::ostream& operator<<(std::ostream &os, TTable const &tt) {
     os.write((char const*)(&dummy), sizeof (dummy));
     os.write((char const*)(&dummy), sizeof (dummy));
     os.write((char const*)(&TEntry::Generation), sizeof (TEntry::Generation));
-    for (size_t i = 0; i < tt.superClusterCount / BufferSize; ++i) {
-        os.write((char const*)(tt.clusterTable + i*BufferSize), sizeof (TCluster)*BufferSize);
+    const size_t clusterCount{ tt.superClusterCount * TTable::ClusterPerSuperCluster };
+    for (size_t i = 0; i < clusterCount / BufferSize; ++i) {
+        os.write((char const*)(&tt.clusterTable[i*BufferSize]), sizeof (TCluster)*BufferSize);
     }
     return os;
 }
@@ -413,8 +412,9 @@ std::istream& operator>>(std::istream &is, TTable       &tt) {
     is.read((char*)(&dummy), sizeof (dummy));
     is.read((char*)(&TEntry::Generation), sizeof (TEntry::Generation));
     tt.resize(memSize);
-    for (size_t i = 0; i < tt.superClusterCount / BufferSize; ++i) {
-        is.read((char*)(tt.clusterTable + i*BufferSize), sizeof (TCluster)*BufferSize);
+    const size_t clusterCount{ tt.superClusterCount * TTable::ClusterPerSuperCluster };
+    for (size_t i = 0; i < clusterCount / BufferSize; ++i) {
+        is.read((char*)(&tt.clusterTable[i*BufferSize]), sizeof (TCluster)*BufferSize);
     }
     return is;
 }

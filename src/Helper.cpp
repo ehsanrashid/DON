@@ -33,16 +33,14 @@ string& replace(string &str, char const oldCh, char const newCh) {
     return str;
 }
 
-string& ltrim(string &str)
-{
+string& ltrim(string& str) {
     str.erase(
         str.begin(),
         std::find_if(str.begin(), str.end(),
             [](int ch) { return !(std::isspace(ch) || ch == '\0'); }));
     return str;
 }
-string& rtrim(string &str)
-{
+string& rtrim(string& str) {
     str.erase(
         std::find_if(str.rbegin(), str.rend(),
             [](int ch) { return !(std::isspace(ch) || ch == '\0'); }).base(),
@@ -67,9 +65,15 @@ string& trim(string &str) {
 
 /// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 std::ostream& operator<<(std::ostream &os, OutputState outputState) {
-    static std::mutex mutex;
-    if (outputState == OS_LOCK)     mutex.lock();
-    else
-    if (outputState == OS_UNLOCK)   mutex.unlock();
+    static std::mutex Mutex;
+
+    switch (outputState) {
+    case OS_LOCK:
+        Mutex.lock();
+        break;
+    case OS_UNLOCK:
+        Mutex.unlock();
+        break;
+    }
     return os;
 }
