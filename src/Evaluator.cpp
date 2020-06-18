@@ -996,7 +996,7 @@ namespace Evaluator {
             score += mobility[WHITE]   - mobility[BLACK]
                    + king    <WHITE>() - king    <BLACK>()
                    + threats <WHITE>() - threats <BLACK>()
-                   + passers<WHITE>()   - passers<BLACK>();
+                   + passers <WHITE>() - passers <BLACK>();
             if (pos.nonPawnMaterial() >= VALUE_SPACE_THRESHOLD) {
             score += space   <WHITE>() - space   <BLACK>();
             }

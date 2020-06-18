@@ -20,16 +20,16 @@ void TEntry::refresh() {
 }
 
 void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) {
-    if ((m != MOVE_NONE)
-     || (k >> 0x30) != k16) {
+    if (m != MOVE_NONE
+     || u16(k) != k16) {
         m16 = u16(m);
     }
-    if ((k >> 0x30) != k16
-     || (d - DEPTH_OFFSET) > (d08 - 4)
-     || (b == BOUND_EXACT)) {
+    if (u16(k) != k16
+     || d - DEPTH_OFFSET > d08 - 4
+     || b == BOUND_EXACT) {
         assert(d > DEPTH_OFFSET);
 
-        k16 = u16(k >> 0x30);
+        k16 = u16(k);
         v16 = i16(v);
         e16 = i16(e);
         d08 = u08(d - DEPTH_OFFSET);
@@ -220,6 +220,23 @@ namespace {
 
 #endif
 
+    inline u64 mul_hi64(u64 a, u64 b) {
+
+#if defined(__GNUC__) && defined(IS_64BIT)
+        __extension__ typedef unsigned __int128 u128;
+
+        return ((u128)a * (u128)b) >> 64;
+#else
+        u64 aL = (u32)a, aH = a >> 32;
+        u64 bL = (u32)b, bH = b >> 32;
+        u64 c1 = (aL * bL) >> 32;
+        u64 c2 = aH * bL + c1;
+        u64 c3 = aL * bH + (u32)c2;
+        return aH * bH + (c2 >> 32) + (c3 >> 32);
+#endif
+
+    }
+
 }
 
 
@@ -229,19 +246,13 @@ TTable::~TTable() {
 
 /// size() returns hash size in MB
 u32 TTable::size() const {
-    return u32((superClusterCount * ClusterPerSuperCluster * sizeof (TCluster)) >> 20);
+    return u32((clusterCount * sizeof (TCluster)) >> 20);
 }
 /// cluster() returns a pointer to the cluster of given a key.
 /// Lower 32 bits of the key are used to get the index of the cluster.
 TCluster* TTable::cluster(Key posiKey) const {
 
-    // The index is computed from
-    // Idx = (K48 * SCC) / 2^40, with K48 the 48 lowest bits swizzled.
-
-    const u64 Term1{ u32(posiKey) * superClusterCount };
-    const u64 Term2{ (u16(posiKey >> 32) * superClusterCount) >> 16 };
-
-    return &clusterTable[(Term1 + Term2) >> 24];
+    return &clusterTable[mul_hi64(posiKey, clusterCount)];
 }
 
 /// TTable::resize() sets the size of the transposition table, measured in MB.
@@ -254,8 +265,8 @@ u32 TTable::resize(u32 memSize) {
 
     free();
 
-    superClusterCount = (size_t(memSize) << 20) / (ClusterPerSuperCluster * sizeof (TCluster));
-    clusterTable = static_cast<TCluster*>(allocAlignedMemory(mem, superClusterCount * ClusterPerSuperCluster * sizeof (TCluster)));
+    clusterCount = (size_t(memSize) << 20) / sizeof (TCluster);
+    clusterTable = static_cast<TCluster*>(allocAlignedMemory(mem, clusterCount * sizeof (TCluster)));
     if (mem == nullptr) {
         std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << std::endl;
         return 0;
@@ -280,7 +291,7 @@ void TTable::autoResize(u32 memSize) {
 /// TTable::clear() clear the entire transposition table in a multi-threaded way.
 void TTable::clear() {
     assert(clusterTable != nullptr
-        && superClusterCount != 0);
+        && clusterCount != 0);
 
     if (Options["Retain Hash"]) {
         return;
@@ -288,10 +299,9 @@ void TTable::clear() {
 
     std::vector<std::thread> threads;
     auto threadCount{ optionThreads() };
-    const size_t clusterCount{ superClusterCount * ClusterPerSuperCluster };
     for (u16 index = 0; index < threadCount; ++index) {
         threads.emplace_back(
-            [this, index, threadCount, clusterCount]() {
+            [this, index, threadCount]() {
 
                 if (threadCount > 8) {
                     WinProcGroup::bind(index);
@@ -320,7 +330,7 @@ void TTable::free() {
 
 /// TTable::probe() looks up the entry in the transposition table.
 TEntry* TTable::probe(Key posiKey, bool &hit) const {
-    return cluster(posiKey)->probe(u16(posiKey >> 0x30), hit);
+    return cluster(posiKey)->probe(u16(posiKey), hit);
 }
 /// TTable::hashFull() returns an approximation of the per-mille of the
 /// all transposition entries during a search which have received
@@ -396,8 +406,7 @@ std::ostream& operator<<(std::ostream &os, TTable const &tt) {
     os.write((char const*)(&dummy), sizeof (dummy));
     os.write((char const*)(&dummy), sizeof (dummy));
     os.write((char const*)(&TEntry::Generation), sizeof (TEntry::Generation));
-    const size_t clusterCount{ tt.superClusterCount * TTable::ClusterPerSuperCluster };
-    for (size_t i = 0; i < clusterCount / BufferSize; ++i) {
+    for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
         os.write((char const*)(&tt.clusterTable[i*BufferSize]), sizeof (TCluster)*BufferSize);
     }
     return os;
@@ -412,8 +421,7 @@ std::istream& operator>>(std::istream &is, TTable       &tt) {
     is.read((char*)(&dummy), sizeof (dummy));
     is.read((char*)(&TEntry::Generation), sizeof (TEntry::Generation));
     tt.resize(memSize);
-    const size_t clusterCount{ tt.superClusterCount * TTable::ClusterPerSuperCluster };
-    for (size_t i = 0; i < clusterCount / BufferSize; ++i) {
+    for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
         is.read((char*)(&tt.clusterTable[i*BufferSize]), sizeof (TCluster)*BufferSize);
     }
     return is;
