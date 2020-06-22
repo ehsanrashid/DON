@@ -201,7 +201,7 @@ constexpr Bitboard adjacentFilesBB(Square s) {
 
 constexpr Bitboard frontSquaresBB(Color c, Square s) { return frontRanksBB(c, s) & fileBB(s); }
 constexpr Bitboard pawnAttackSpan(Color c, Square s) { return frontRanksBB(c, s) & adjacentFilesBB(s); }
-constexpr Bitboard pawnPassSpan  (Color c, Square s) { return frontRanksBB(c, s) & (fileBB(s) | adjacentFilesBB(s)); }
+constexpr Bitboard pawnPassSpan  (Color c, Square s) { return frontSquaresBB(c, s) | pawnAttackSpan(c, s); }
 
 /// lineBB() returns a Bitboard representing an entire line
 /// (from board edge to board edge) that intersects the given squares.

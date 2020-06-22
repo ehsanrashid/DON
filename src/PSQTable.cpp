@@ -102,7 +102,7 @@ namespace PSQT {
     /// initialize() initializes piece-square tables
     void initialize() {
 
-        for (PieceType pt = PAWN; pt <= KING; ++pt) {
+        for (PieceType pt : { PAWN, NIHT, BSHP, ROOK, QUEN, KING }) {
             Score score{ makeScore(PieceValues[MG][pt], PieceValues[EG][pt]) };
 
             for (Square s = SQ_A1; s <= SQ_H8; ++s) {

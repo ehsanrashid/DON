@@ -148,9 +148,12 @@ namespace King {
 
 
     Entry* probe(Position const &pos, Pawns::Entry* pe) {
+        auto wkSq{ pos.square(W_KING) };
+        auto bkSq{ pos.square(B_KING) };
+        
         Key kingKey{ pos.pawnKey()
-                   ^ RandZob.psq[W_KING][pos.square(W_KING)]
-                   ^ RandZob.psq[B_KING][pos.square(B_KING)] };
+                   ^ RandZob.psq[W_KING][makeSquare(clamp(sFile(wkSq), FILE_B, FILE_G), sRank(wkSq))]
+                   ^ RandZob.psq[B_KING][makeSquare(clamp(sFile(bkSq), FILE_B, FILE_G), sRank(bkSq))] };
 
         auto *e{ pos.thread()->kingHash[kingKey] };
 

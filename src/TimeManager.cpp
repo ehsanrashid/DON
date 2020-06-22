@@ -54,7 +54,7 @@ void TimeManager::setup(Color c, i16 ply) {
     if (Limits.movestogo == 0) {
         optimumScale = std::min((0.2 * Limits.clock[c].time) / remainTime,
                                 0.008 + std::pow(ply + 3.0, 0.5) / 250.0);
-        maximumScale = 4 + std::min(ply, { 36 }) / 12.0;
+        maximumScale = std::min(4.0 + ply / 12.0, 7.0);
     }
     // x moves in y seconds (+ z increment)
     else {

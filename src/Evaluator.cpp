@@ -214,8 +214,6 @@ namespace Evaluator {
             template<Color> Score passers() const;
             template<Color> Score space() const;
 
-            Value scaling(Score) const;
-
         public:
 
             Evaluation() = delete;
@@ -779,11 +777,7 @@ namespace Evaluator {
 
             while (pass != 0) {
                 auto s{ popLSq(pass) };
-                assert((pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) == 0
-                    && (pos.pieces(Opp, PAWN)
-                      & (pawnSglPushBB<Own>(frontSquaresBB(Own, s))
-                       | ( pawnPassSpan(Own, s + Push)
-                        & ~pawnAttacksBB(Own, s + Push)))) == 0);
+                assert((pos.pieces(Opp, PAWN) & frontSquaresBB(Own, s + Push)) == 0);
 
                 i32 r{ relativeRank(Own, s) };
                 // Base bonus depending on rank.
@@ -834,11 +828,11 @@ namespace Evaluator {
             return score;
         }
 
-        /// space() evaluates the space of the color
-        /// The space evaluation is a simple bonus based on the number of safe squares
-        /// available for minor pieces on the central four files on ranks 2-4
-        /// Safe squares one, two or three squares behind a friend pawn are counted twice
-        /// The aim is to improve play on opening
+        /// Evaluation::space() computes a space evaluation for a given side,
+        /// aiming to improve game play in the opening.
+        /// It is based on the number of safe squares on the 4 central files on ranks 2 to 4.
+        /// Completely safe squares behind a friendly pawn are counted twice.
+        /// Finally, the space bonus is multiplied by a weight which decreases according to occupancy.
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::space() const {
             constexpr auto Opp{ ~Own };
@@ -869,11 +863,77 @@ namespace Evaluator {
             return score;
         }
 
-        /// Evaluation::scaling() adjusts the mg and eg score components based on the
-        /// known attacking/defending status of the players.
-        /// Single value is derived from the mg and eg values and returned.
+        /// value() computes the various parts of the evaluation and
+        /// returns the value of the position from the point of view of the side to move.
         template<bool Trace>
-        Value Evaluation<Trace>::scaling(Score score) const {
+        Value Evaluation<Trace>::value() {
+            assert(pos.checkers() == 0);
+
+            // Probe the material hash table
+            matlEntry = Material::probe(pos);
+            // If have a specialized evaluation function for the material configuration
+            if (matlEntry->evaluationFunc != nullptr) {
+                return (*matlEntry->evaluationFunc)(pos);
+            }
+
+            // Probe the pawn hash table
+            pawnEntry = Pawns::probe(pos);
+
+            // Score is computed internally from the white point of view.
+            // Initialize by
+            // - incrementally updated scores (material + piece square tables)
+            // - material imbalance
+            // - pawn score
+            // - dynamic contempt
+            Score score{ pos.psqScore()
+                       + matlEntry->imbalance
+                       + (pawnEntry->score[WHITE] - pawnEntry->score[BLACK])
+                       + pos.thread()->contempt };
+
+            auto mg{ mgValue(score) };
+            auto eg{ egValue(score) };
+
+            Value v;
+            v = mg * (matlEntry->phase)
+              + eg * (Material::PhaseResolution - matlEntry->phase);
+            v /= Material::PhaseResolution;
+            assert(-VALUE_INFINITE < v && v < +VALUE_INFINITE);
+
+            // Early exit if score is high
+            if (std::abs(v) > VALUE_LAZY_THRESHOLD) {
+                return pos.activeSide() == WHITE ? +v : -v;
+            }
+
+            // Probe the king hash table
+            kingEntry = King::probe(pos, pawnEntry);
+
+            if (Trace) {
+                Tracer::clear();
+            }
+
+            initialize<WHITE>();
+            initialize<BLACK>();
+
+            // Pieces should be evaluated first (also populate attack information)
+            // Note that the order of evaluation of the terms is left unspecified
+            score += pieces<WHITE, NIHT>() - pieces<BLACK, NIHT>()
+                   + pieces<WHITE, BSHP>() - pieces<BLACK, BSHP>()
+                   + pieces<WHITE, ROOK>() - pieces<BLACK, ROOK>()
+                   + pieces<WHITE, QUEN>() - pieces<BLACK, QUEN>();
+
+            assert((sqlAttacks[WHITE][NONE] & dblAttacks[WHITE]) == dblAttacks[WHITE]);
+            assert((sqlAttacks[BLACK][NONE] & dblAttacks[BLACK]) == dblAttacks[BLACK]);
+            // More complex interactions that require fully populated attack information
+            score += mobility[WHITE]   - mobility[BLACK]
+                   + king    <WHITE>() - king    <BLACK>()
+                   + threats <WHITE>() - threats <BLACK>()
+                   + passers <WHITE>() - passers <BLACK>();
+            // Skip if, for example, both queens or 6 minor pieces have been exchanged
+            if (pos.nonPawnMaterial() >= VALUE_SPACE_THRESHOLD) {
+            score += space   <WHITE>() - space   <BLACK>();
+            }
+
+            // Derive single value from mg and eg parts of score
             auto wkSq{ pos.square(W_KING) };
             auto bkSq{ pos.square(B_KING) };
 
@@ -883,19 +943,19 @@ namespace Evaluator {
             // Compute the initiative bonus for the attacking side
             i32 complexity =  1 * pawnEntry->complexity
                            +  9 * outflanking
-                            // King infiltration
+                           // King infiltration
                            + 24 * (sRank(wkSq) > RANK_4
                                 || sRank(bkSq) < RANK_5)
                            + 51 * (pos.nonPawnMaterial() == VALUE_ZERO)
-                            // Pawn not on both flanks
+                           // Pawn not on both flanks
                            - 21 * (pawnEntry->pawnNotBothFlank)
-                            // Almost Unwinnable
+                           // Almost Unwinnable
                            - 43 * (pawnEntry->pawnNotBothFlank
                                 && outflanking < 0)
                            - 89;
 
-            auto mg{ mgValue(score) };
-            auto eg{ egValue(score) };
+            mg = mgValue(score);
+            eg = egValue(score);
 
             // Now apply the bonus: note that we find the attacking side by extracting the
             // sign of the midgame or endgame values, and that we carefully cap the bonus
@@ -925,92 +985,13 @@ namespace Evaluator {
                     scale = std::min(Scale(36 + 7 * pos.count(stngColor|PAWN)), SCALE_NORMAL);
                 }
             }
-            
+
             // Interpolates between midgame and scaled endgame values (scaled by 'scaleFactor(egValue(score))').
-            Value value{ mg * (matlEntry->phase)
-                       + eg * (Material::PhaseResolution - matlEntry->phase) * scale / SCALE_NORMAL };
-            value /= Material::PhaseResolution;
+            v = mg * (matlEntry->phase)
+              + eg * (Material::PhaseResolution - matlEntry->phase) * scale / SCALE_NORMAL;
+            v /= Material::PhaseResolution;
+            assert(-VALUE_INFINITE < v && v < +VALUE_INFINITE);
 
-            if (Trace) {
-                Tracer::write(SCALING, makeScore(mv, ev + eg * (scale / SCALE_NORMAL - 1)));
-                Tracer::write(TOTAL  , makeScore(mg, eg * scale / SCALE_NORMAL));
-            }
-
-            return value;
-        }
-
-        /// value() computes the various parts of the evaluation and
-        /// returns the value of the position from the point of view of the side to move.
-        template<bool Trace>
-        Value Evaluation<Trace>::value() {
-            assert(pos.checkers() == 0);
-
-            // Probe the material hash table
-            matlEntry = Material::probe(pos);
-            // If have a specialized evaluation function for the material configuration
-            if (matlEntry->evaluationFunc != nullptr) {
-                return (*matlEntry->evaluationFunc)(pos);
-            }
-
-            // Probe the pawn hash table
-            pawnEntry = Pawns::probe(pos);
-
-            // Score is computed internally from the white point of view.
-            // Initialize by
-            // - incrementally updated scores (material + piece square tables)
-            // - material imbalance
-            // - pawn score
-            // - dynamic contempt
-            Score score{ pos.psqScore()
-                       + matlEntry->imbalance
-                       + (pawnEntry->score[WHITE] - pawnEntry->score[BLACK])
-                       + pos.thread()->contempt };
-
-            // Early exit if score is high
-            Value v{ (mgValue(score) + egValue(score)) / 2 };
-            if (std::abs(v) > (VALUE_LAZY_THRESHOLD
-                             + pos.nonPawnMaterial() / 64)) {
-                return pos.activeSide() == WHITE ? +v : -v;
-            }
-
-            // Probe the king hash table
-            kingEntry = King::probe(pos, pawnEntry);
-
-            if (Trace) {
-                Tracer::clear();
-            }
-
-            initialize<WHITE>();
-            initialize<BLACK>();
-
-            // Pieces should be evaluated first (also populate attack information)
-            // Note that the order of evaluation of the terms is left unspecified
-            score += pieces<WHITE, NIHT>() - pieces<BLACK, NIHT>()
-                   + pieces<WHITE, BSHP>() - pieces<BLACK, BSHP>()
-                   + pieces<WHITE, ROOK>() - pieces<BLACK, ROOK>()
-                   + pieces<WHITE, QUEN>() - pieces<BLACK, QUEN>();
-
-            assert((sqlAttacks[WHITE][NONE] & dblAttacks[WHITE]) == dblAttacks[WHITE]);
-            assert((sqlAttacks[BLACK][NONE] & dblAttacks[BLACK]) == dblAttacks[BLACK]);
-            // More complex interactions that require fully populated attack information
-            score += mobility[WHITE]   - mobility[BLACK]
-                   + king    <WHITE>() - king    <BLACK>()
-                   + threats <WHITE>() - threats <BLACK>()
-                   + passers <WHITE>() - passers <BLACK>();
-            if (pos.nonPawnMaterial() >= VALUE_SPACE_THRESHOLD) {
-            score += space   <WHITE>() - space   <BLACK>();
-            }
-
-            if (Trace) {
-                // Write remaining evaluation terms
-                Tracer::write(Term(PAWN), pawnEntry->score[WHITE], pawnEntry->score[BLACK]);
-                Tracer::write(MATERIAL  , pos.psqScore());
-                Tracer::write(IMBALANCE , matlEntry->imbalance);
-                Tracer::write(MOBILITY  , mobility[WHITE], mobility[BLACK]);                
-            }
-
-            // Derive single value from mg and eg parts of score
-            v = scaling(score);
             // Evaluation grain
             v = (v / 16) * 16;
             // Active side's point of view
@@ -1018,6 +999,16 @@ namespace Evaluator {
 
             // Damp down the evaluation linearly when shuffling
             v = v * (100 - pos.clockPly()) / 100;
+            
+            // Write remaining evaluation terms
+            if (Trace) {
+                Tracer::write(Term(PAWN), pawnEntry->score[WHITE], pawnEntry->score[BLACK]);
+                Tracer::write(MATERIAL  , pos.psqScore());
+                Tracer::write(IMBALANCE , matlEntry->imbalance);
+                Tracer::write(MOBILITY  , mobility[WHITE], mobility[BLACK]);                
+                Tracer::write(SCALING   , makeScore(mv, ev + eg * (scale / SCALE_NORMAL - 1)));
+                Tracer::write(TOTAL     , makeScore(mg, eg * scale / SCALE_NORMAL));
+            }
 
             return v;
         }

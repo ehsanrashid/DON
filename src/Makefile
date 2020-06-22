@@ -329,7 +329,7 @@ ifeq ($(bm2), yes)
 	endif
 endif
 
-### 3.8 Link Time Optimization, it works since gcc 4.5 but not on mingw under windows.
+### 3.8 Link Time Optimization
 ### This is a mix of compile and link time options because the lto link phase
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)

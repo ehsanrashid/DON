@@ -78,7 +78,7 @@ namespace BitBase {
                 && isOk(wpSq)
                 && index(active, wkSq, bkSq, wpSq) == idx);
 
-            // Check if two pieces are on the same square or if a king can be captured
+            // Invalid if two pieces are on the same square or if a king can be captured
             if (distance(wkSq, bkSq) <= 1
              || wkSq == wpSq
              || bkSq == wpSq
@@ -87,19 +87,19 @@ namespace BitBase {
                 result = INVALID;
             }
             else
-            // Immediate win if a pawn can be promoted without getting captured
+            // Win if a pawn can be promoted without getting captured
             if (active == WHITE
              && sRank(wpSq) == RANK_7
              && wkSq != wpSq + NORTH
              && bkSq != wpSq + NORTH
              && (distance(bkSq, wpSq + NORTH) >= 2
-              || distance(wkSq, wpSq + NORTH) <= 1)) {
+              || distance(wkSq, wpSq + NORTH) == 1)) {
                 result = WIN;
             }
             else
-            // Immediate draw if king captures undefended pawn or is a stalemate
+            // Draw if king captures undefended pawn or is a stalemate
             if (active == BLACK
-             && ((distance(bkSq, wpSq) <= 1
+             && ((distance(bkSq, wpSq) == 1
                && distance(wkSq, wpSq) >= 2)
               || (  attacksBB<KING>(bkSq)
                 & ~(attacksBB<KING>(wkSq)|pawnAttacksBB(WHITE, wpSq))) == 0)) {

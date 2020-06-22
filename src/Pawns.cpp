@@ -91,7 +91,7 @@ namespace Pawns {
              && (// Lever
                  (stoppers == levers)
                  // Lever + Sentry
-              || (stoppers == levers | sentres
+              || (stoppers == (levers | sentres)
                && popCount(phalanxes) >= popCount(sentres))
                  // Sneaker => Blocked pawn
               || (stoppers == blocker

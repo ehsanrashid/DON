@@ -36,12 +36,18 @@ u08 popCount16(u16 u) {
 
 namespace {
 
-    Bitboard slideAttacks(Square s, Direction const directions[], Bitboard occ = 0) {
+    Direction const Directions[2][4]
+    {
+        { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST },
+        { SOUTH     , WEST      , EAST      , NORTH      }
+    };
+
+    Bitboard slideAttacks(PieceType pt, Square s, Bitboard occ = 0) {
 
         Bitboard attacks{ 0 };
 
         for (i08 i = 0; i < 4; ++i) {
-            auto dir{ directions[i] };
+            auto dir{ Directions[pt-3][i] };
             Square sq{ s + dir };
             while (isOk(sq)
                 && distance(sq, sq - dir) == 1) {
@@ -74,15 +80,15 @@ namespace {
     /// In particular, here we use the so called "fancy" approach.
 #if !defined(NDEBUG)
     void initializeMagic(
+        PieceType pt,
         Bitboard attacks[],
         Magic magics[],
-        Direction const directions[],
         u08 maxMaskPopCount)
 #else
     void initializeMagic(
+        PieceType pt,
         Bitboard attacks[],
-        Magic magics[],
-        Direction const directions[])
+        Magic magics[])
 #endif
     {
 
@@ -114,7 +120,7 @@ namespace {
             // all the attacks for each possible subset of the mask and so is 2 power
             // the number of 1s of the mask. Hence deduce the size of the shift to
             // apply to the 64 or 32 bits word to get the index.
-            magic.mask = slideAttacks(s, directions, 0) & ~edge;
+            magic.mask = slideAttacks(pt, s, 0) & ~edge;
             assert(popCount(magic.mask) <= maxMaskPopCount);
 
             // magics[s].attacks is a pointer to the beginning of the attacks table for the square
@@ -142,10 +148,10 @@ namespace {
             do {
 
 #if defined(BM2)
-                magic.attacks[PEXT(occ, magic.mask)] = slideAttacks(s, directions, occ);
+                magic.attacks[PEXT(occ, magic.mask)] = slideAttacks(pt, s occ);
 #else
                 occupancy[size] = occ;
-                reference[size] = slideAttacks(s, directions, occ);
+                reference[size] = slideAttacks(pt, s, occ);
 #endif
                 ++size;
                 occ = (occ - magic.mask) & magic.mask;
@@ -215,15 +221,13 @@ namespace BitBoard {
 
 #endif
 
-        Direction const BDirections[] = { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST };
-        Direction const RDirections[] = { SOUTH     , WEST      , EAST      , NORTH      };
         // Initialize Magic Table
 #if !defined(NDEBUG)
-        initializeMagic(BAttacks, BMagics, BDirections, 9);
-        initializeMagic(RAttacks, RMagics, RDirections, 12);
+        initializeMagic(BSHP, BAttacks, BMagics, 9);
+        initializeMagic(ROOK, RAttacks, RMagics, 12);
 #else
-        initializeMagic(BAttacks, BMagics, BDirections);
-        initializeMagic(RAttacks, RMagics, RDirections);
+        initializeMagic(BSHP, BAttacks, BMagics);
+        initializeMagic(ROOK, RAttacks, RMagics);
 #endif
 
         // Pawn and Pieces Attack Table
