@@ -35,19 +35,12 @@ u08 popCount16(u16 u) {
 #endif
 
 namespace {
-
-    Direction const Directions[2][4]
-    {
-        { SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST },
-        { SOUTH     , WEST      , EAST      , NORTH      }
-    };
-
-    Bitboard slideAttacks(PieceType pt, Square s, Bitboard occ = 0) {
-
+    
+    Bitboard slideAttacks(Square s,  Bitboard occ, Direction const directions[]) {
         Bitboard attacks{ 0 };
 
         for (i08 i = 0; i < 4; ++i) {
-            auto dir{ Directions[pt-3][i] };
+            auto dir{ directions[i] };
             Square sq{ s + dir };
             while (isOk(sq)
                 && distance(sq, sq - dir) == 1) {
@@ -61,6 +54,19 @@ namespace {
             }
         }
         return attacks;
+    }
+
+    template<PieceType>
+    Bitboard slideAttacks(Square, Bitboard = 0);
+
+    Direction const BDirections[4]{ SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST };
+    template<> Bitboard slideAttacks<BSHP>(Square s, Bitboard occ) {
+        return slideAttacks(s, occ, BDirections);
+    }
+
+    Direction const RDirections[4]{ SOUTH     , WEST      , EAST      , NORTH      };
+    template<> Bitboard slideAttacks<ROOK>(Square s, Bitboard occ) {
+        return slideAttacks(s, occ, RDirections);
     }
 
     // Max Bishop Table Size
@@ -78,18 +84,10 @@ namespace {
     /// Initialize all bishop and rook attacks at startup.
     /// Magic bitboards are used to look up attacks of sliding pieces.
     /// In particular, here we use the so called "fancy" approach.
-#if !defined(NDEBUG)
+    template<PieceType PT>
     void initializeMagic(
-        PieceType pt,
-        Bitboard attacks[],
-        Magic magics[],
-        u08 maxMaskPopCount)
-#else
-    void initializeMagic(
-        PieceType pt,
         Bitboard attacks[],
         Magic magics[])
-#endif
     {
 
 #if !defined(BM2)
@@ -120,8 +118,8 @@ namespace {
             // all the attacks for each possible subset of the mask and so is 2 power
             // the number of 1s of the mask. Hence deduce the size of the shift to
             // apply to the 64 or 32 bits word to get the index.
-            magic.mask = slideAttacks(pt, s, 0) & ~edge;
-            assert(popCount(magic.mask) <= maxMaskPopCount);
+            magic.mask = slideAttacks<PT>(s, 0) & ~edge;
+            assert(popCount(magic.mask) <= 3*PT);
 
             // magics[s].attacks is a pointer to the beginning of the attacks table for the square
             // Set the offset for the attacks table of the square.
@@ -148,10 +146,10 @@ namespace {
             do {
 
 #if defined(BM2)
-                magic.attacks[PEXT(occ, magic.mask)] = slideAttacks(pt, s occ);
+                magic.attacks[PEXT(occ, magic.mask)] = slideAttacks<PT>(s occ);
 #else
                 occupancy[size] = occ;
-                reference[size] = slideAttacks(pt, s, occ);
+                reference[size] = slideAttacks<PT>(s, occ);
 #endif
                 ++size;
                 occ = (occ - magic.mask) & magic.mask;
@@ -222,13 +220,8 @@ namespace BitBoard {
 #endif
 
         // Initialize Magic Table
-#if !defined(NDEBUG)
-        initializeMagic(BSHP, BAttacks, BMagics, 9);
-        initializeMagic(ROOK, RAttacks, RMagics, 12);
-#else
-        initializeMagic(BSHP, BAttacks, BMagics);
-        initializeMagic(ROOK, RAttacks, RMagics);
-#endif
+        initializeMagic<BSHP>(BAttacks, BMagics);
+        initializeMagic<ROOK>(RAttacks, RMagics);
 
         // Pawn and Pieces Attack Table
         for (Square s = SQ_A1; s <= SQ_H8; ++s) {

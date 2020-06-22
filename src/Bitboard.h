@@ -177,7 +177,7 @@ constexpr Bitboard operator|(Square s1, Square s2) { return SquareBB[s1] | Squar
 inline bool moreThanOne(Bitboard bb) { return (bb & (bb - 1)) != 0; }
 
 /// Shift the bitboard using delta
-template<Direction D> constexpr Bitboard shift(Bitboard) { return 0; }
+template<Direction> constexpr Bitboard shift(Bitboard) { return 0; }
 template<> constexpr Bitboard shift<NORTH     >(Bitboard bb) { return (bb) <<  8; }
 template<> constexpr Bitboard shift<SOUTH     >(Bitboard bb) { return (bb) >>  8; }
 template<> constexpr Bitboard shift<NORTH_2   >(Bitboard bb) { return (bb) << 16; }
@@ -253,7 +253,7 @@ template<PieceType PT> inline Bitboard attacksBB(Square s) {
 }
 
 /// attacksBB() returns attacks by piece-type from the square on occupancy
-template<PieceType PT> Bitboard attacksBB(Square, Bitboard);
+template<PieceType> Bitboard attacksBB(Square, Bitboard);
 
 template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) {
     return PieceAttacksBB[NIHT][s];
@@ -277,7 +277,7 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
         pt == BSHP ? attacksBB<BSHP>(s, occ) :
         pt == ROOK ? attacksBB<ROOK>(s, occ) :
         pt == QUEN ? attacksBB<QUEN>(s, occ) :
-        pt == KING ? attacksBB<KING>(s) : 0;
+        pt == KING ? attacksBB<KING>(s) : assert(false), 0;
 }
 
 inline Bitboard floodFill(Bitboard b) {
