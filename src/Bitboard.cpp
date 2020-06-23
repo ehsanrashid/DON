@@ -64,7 +64,7 @@ namespace {
         return slideAttacks(s, occ, BDirections);
     }
 
-    Direction const RDirections[4]{ SOUTH     , WEST      , EAST      , NORTH      };
+    Direction const RDirections[4]{ SOUTH, WEST, EAST, NORTH };
     template<> Bitboard slideAttacks<ROOK>(Square s, Bitboard occ) {
         return slideAttacks(s, occ, RDirections);
     }
@@ -87,8 +87,7 @@ namespace {
     template<PieceType PT>
     void initializeMagic(
         Bitboard attacks[],
-        Magic magics[])
-    {
+        Magic magics[]) {
 
 #if !defined(BM2)
 
@@ -198,11 +197,9 @@ namespace BitBoard {
 
     void initialize() {
 
-        //for (Square s = SQ_A1; s <= SQ_H8; ++s) {
-        //    SquareBB[s] = U64(1) << s;
-        //}
-
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
+            //SquareBB[s1] = Bitboard(1) << s1;
+
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
                 Distance[s1][s2] = u08(std::max(fileDistance(s1, s2), rankDistance(s1, s2)));
                 assert(Distance[s1][s2] >= 0

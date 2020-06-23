@@ -150,21 +150,22 @@ namespace Evaluator {
         constexpr Score BishopPawnsXRayed { S(  4,  5) };
         constexpr Score BishopOnKingRing  { S( 24,  0) };
         constexpr Score BishopTrapped     { S( 50, 50) };
-        constexpr Score RookOnQueenFile   { S(  5,  9) };
+        constexpr Score RookOnQueenFile   { S(  6, 11) };
         constexpr Score RookOnKingRing    { S( 16,  0) };
         constexpr Score RookTrapped       { S( 55, 13) };
-        constexpr Score QueenAttacked     { S( 51, 14) };
+        constexpr Score QueenAttacked     { S( 56, 15) };
+        constexpr Score QueenInfiltration { S( -2, 14) };
         constexpr Score PawnLessFlank     { S( 17, 95) };
         constexpr Score PasserFile        { S( 11,  8) };
         constexpr Score KingFlankAttacks  { S(  8,  0) };
         constexpr Score PieceRestricted   { S(  7,  7) };
         constexpr Score PieceHanged       { S( 69, 36) };
-        constexpr Score QueenProtected    { S( 15,  0) };
+        constexpr Score QueenProtected    { S( 14,  0) };
         constexpr Score PawnThreat        { S(173, 94) };
         constexpr Score PawnPushThreat    { S( 48, 39) };
         constexpr Score KingThreat        { S( 24, 89) };
         constexpr Score KnightOnQueen     { S( 16, 11) };
-        constexpr Score SliderOnQueen     { S( 59, 18) };
+        constexpr Score SliderOnQueen     { S( 60, 18) };
 
     #undef S
 
@@ -443,6 +444,11 @@ namespace Evaluator {
                          &  fileBB(s)
                          & ~pawnSglAttackBB<Own>(pos.pieces(Own))))) != 0) {
                         score -= QueenAttacked;
+                    }
+                    // Bonus for queen on weak square in enemy camp
+                    if (relativeRank(Own, s) > RANK_4
+                     && !contains(pawnEntry->attacksSpan[Opp], s)) {
+                        score += QueenInfiltration;
                     }
                 }
 

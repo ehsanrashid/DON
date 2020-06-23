@@ -281,12 +281,12 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
 }
 
 inline Bitboard floodFill(Bitboard b) {
-    b &= ~(FileBB[FILE_A]|FileBB[FILE_H]);
-    b |= b << 1 | b >> 1;
-    return b | shift<SOUTH>(b) | shift<NORTH>(b);
+    return b
+         | shift<EAST >(b) | shift<WEST >(b)
+         | shift<SOUTH>(b) | shift<NORTH>(b);
 }
 
-/// popCount() counts the number of non-zero bits in a bitboard
+/// popCount() counts the number of ones in a bitboard
 inline i32 popCount(Bitboard bb) {
 
 #if defined(ABM)
@@ -295,7 +295,7 @@ inline i32 popCount(Bitboard bb) {
 
     return i32(_mm_popcnt_u64(bb));
 
-#   else // #elif defined(__GNUC__) // GCC, Clang, ICC or compatible compiler
+#   else // Assumed gcc or compatible compiler
 
     return i32(__builtin_popcountll(bb));
 
