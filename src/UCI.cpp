@@ -408,7 +408,6 @@ namespace UCI {
         Options["Draw MoveCount"]     << Option(50, 5, 50);
 
         Options["Overhead MoveTime"]  << Option(10,  0, 5000);
-        Options["Minimum MoveTime"]   << Option( 0,  0, 5000);
         Options["Move Slowness"]      << Option(100, 10, 1000);
         Options["Ponder"]             << Option(true);
         Options["Time Nodes"]         << Option( 0,  0, 10000, onTimeNodes);

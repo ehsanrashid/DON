@@ -446,6 +446,7 @@ namespace {
             auto org{ orgSq(move) };
             auto dst{ dstSq(move) };
             auto mp{ pos[org] };
+            auto cp{ pos[dst] };
             bool giveCheck{ pos.giveCheck(move) };
             bool captureOrPromotion{ pos.captureOrPromotion(move) };
 
@@ -458,7 +459,7 @@ namespace {
              && Limits.mate == 0) {
                 assert(mType(move) != ENPASSANT); // Due to !pos.pawnAdvanceAt
                 // Futility pruning parent node
-                auto futilityValue{ futilityBase + PieceValues[EG][pType(pos[dst])] };
+                auto futilityValue{ futilityBase + PieceValues[EG][pType(cp)] };
                 if (futilityValue <= alfa) {
                     if (bestValue < futilityValue) {
                         bestValue = futilityValue;
@@ -1077,6 +1078,7 @@ namespace {
             auto org{ orgSq(move) };
             auto dst{ dstSq(move) };
             auto mp{ pos[org] };
+            auto cp{ pos[dst] };
             bool giveCheck{ pos.giveCheck(move) };
             bool captureOrPromotion{ pos.captureOrPromotion(move) };
 
@@ -1111,7 +1113,8 @@ namespace {
                     if (lmrDepth <= 5
                      && !inCheck
                      && !(PVNode && std::abs(bestValue) < 2)
-                     && ss->staticEval + 391 * lmrDepth + PieceValues[MG][pType(pos[dst])] + 267 <= alfa) {
+                     && PieceValues[MG][pType(mp)] >= PieceValues[MG][pType(cp)]
+                     && ss->staticEval + 391 * lmrDepth + PieceValues[MG][pType(cp)] + 267 <= alfa) {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~25 ELO)

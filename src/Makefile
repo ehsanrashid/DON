@@ -124,6 +124,12 @@ ifeq ($(ARCH), ppc-32)
 	bits = 32
 endif
 
+ifeq ($(ARCH), armv8)
+	arch = armv8-a
+	bits = 64
+	prefetch = yes
+endif
+
 ifeq ($(ARCH), armv7)
 	arch = armv7
 	bits = 32
@@ -160,7 +166,7 @@ ifeq ($(COMP), gcc)
 	CXX = g++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
-	ifeq ($(ARCH), armv7)
+	ifeq ($(ARCH), $(filter $(ARCH), armv7 armv8))
 		ifeq ($(OS), Android)
 			CXXFLAGS += -m$(bits)
 			LDFLAGS += -m$(bits)
@@ -334,16 +340,9 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
 	ifeq ($(debug), no)
-		ifeq ($(comp), $(filter $(comp), gcc clang))
+		ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 			CXXFLAGS += -flto
 			LDFLAGS += $(CXXFLAGS)
-		endif
-
-		ifeq ($(comp), mingw)
-			ifeq ($(KERNEL), Linux)
-				CXXFLAGS += -flto
-				LDFLAGS += $(CXXFLAGS)
-			endif
 		endif
 	endif
 endif
@@ -361,7 +360,7 @@ ifneq ($(VER), )
 endif
 
 ### ==========================================================================
-### Section 4. Public targets
+### Section 4. Public Targets
 ### ==========================================================================
 
 help:
@@ -458,7 +457,7 @@ default:
 	help
 
 ### ==========================================================================
-### Section 5. Private targets
+### Section 5. Private Targets
 ### ==========================================================================
 
 all: $(EXE) .depend

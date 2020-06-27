@@ -15,7 +15,6 @@ TimeManager TimeMgr;
 ///   * x moves in y seconds (+ z increment)
 void TimeManager::setup(Color c, i16 ply) {
 
-    TimePoint minimumMoveTime{ Options["Minimum MoveTime"] };
     TimePoint overheadMoveTime{ Options["Overhead MoveTime"] };
     u32 moveSlowness{ Options["Move Slowness"] };
     u16 timeNodes{ Options["Time Nodes"] };
@@ -63,7 +62,7 @@ void TimeManager::setup(Color c, i16 ply) {
         maximumScale = std::min(1.5 + 0.11 * maxMovestogo, 6.3);
     }
     // Never use more than 80% of the available time for this move
-    optimum = TimePoint(std::max(1.0 * minimumMoveTime, optimumScale * remainTime));
+    optimum = TimePoint(optimumScale * remainTime);
     maximum = TimePoint(std::min(0.8 * Limits.clock[c].time - overheadMoveTime, maximumScale * optimum));
     if (Options["Ponder"]) {
         optimum += optimum / 4;
