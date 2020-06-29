@@ -401,13 +401,13 @@ namespace UCI {
         Options["MultiPV"]            << Option( 1, 1, 500);
 
         Options["Fixed Contempt"]     << Option(  0, -100, 100);
-        Options["Contempt Time"]      << Option( 40, 0, 1000);
-        Options["Contempt Value"]     << Option(100, 0, 1000);
+        Options["Contempt Time"]      << Option( 40,    0, 1000);
+        Options["Contempt Value"]     << Option(100,    0, 1000);
         Options["Analysis Contempt"]  << Option("Both var Off var White var Black var Both", "Both");
 
         Options["Draw MoveCount"]     << Option(50, 5, 50);
 
-        Options["Overhead MoveTime"]  << Option(10,  0, 5000);
+        Options["Overhead MoveTime"]  << Option( 10,  0, 5000);
         Options["Move Slowness"]      << Option(100, 10, 1000);
         Options["Ponder"]             << Option(true);
         Options["Time Nodes"]         << Option( 0,  0, 10000, onTimeNodes);

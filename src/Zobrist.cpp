@@ -67,12 +67,7 @@ namespace Zobrists {
             RandZob.enpassant[f] = prng.rand<Key>();
         }
         for (i16 cr = CR_NONE; cr <= CR_ANY; ++cr) {
-            RandZob.castling[cr] = 0;
-            Bitboard b = cr;
-            while (b != 0) {
-                Key k{ RandZob.castling[u64(1) << popLSq(b)] };
-                RandZob.castling[cr] ^= k != 0 ? k : prng.rand<Key>();
-            }
+            RandZob.castling[cr] = prng.rand<Key>();
         }
         RandZob.side = prng.rand<Key>();
         RandZob.nopawn = prng.rand<Key>();

@@ -516,6 +516,11 @@ constexpr Value matedIn(i32 ply) {
     return -VALUE_MATE + ply;
 }
 
+/// Based on a congruential pseudo random number generator
+constexpr Key makeKey(u64 seed) {
+    return seed * U64(6364136223846793005) + U64(1442695040888963407);
+}
+
 class Moves :
     public std::vector<Move> {
 

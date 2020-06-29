@@ -128,6 +128,7 @@ ifeq ($(ARCH), armv8)
 	arch = armv8-a
 	bits = 64
 	prefetch = yes
+	abm  = yes
 endif
 
 ifeq ($(ARCH), armv7)
@@ -318,7 +319,7 @@ endif
 
 ### 3.6 ABM (Advance Bit Manipulation)
 ifeq ($(abm), yes)
-	ifeq ($(arch), ppc64)
+	ifeq ($(arch), $(filter $(arch), ppc64 armv8-a))
 		CXXFLAGS += -DABM
 	else ifeq ($(comp), icc)
 		CXXFLAGS += -DABM -msse3
@@ -340,9 +341,17 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
 	ifeq ($(debug), no)
-		ifeq ($(comp), $(filter $(comp), gcc clang mingw))
+		ifeq ($(comp), $(filter $(comp), gcc clang))
 			CXXFLAGS += -flto
 			LDFLAGS += $(CXXFLAGS)
+		# To use LTO and static linking on windows, the tool chain requires a recent gcc:
+		# gcc version 10.1 in msys2 or TDM-GCC version 9.2 are know to work, older might not.
+		# So, only enable it for a cross from Linux by default.
+		else ifeq ($(comp), mingw)
+			ifeq ($(KERNEL), Linux)
+				CXXFLAGS += -flto
+				LDFLAGS += $(CXXFLAGS)
+			endif
 		endif
 	endif
 endif

@@ -925,11 +925,11 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     }
 
     // Update castling rights
-    CastleRight cr;
     if (castleRights() != CR_NONE
-     && (cr = (sqCastleRight[org]|sqCastleRight[dst])) != CR_NONE) {
-        pKey ^= RandZob.castling[castleRights() & cr];
-        _stateInfo->castleRights &= ~cr;
+     && (sqCastleRight[org]|sqCastleRight[dst]) != CR_NONE) {
+        pKey ^= RandZob.castling[castleRights()];
+        _stateInfo->castleRights &= ~(sqCastleRight[org]|sqCastleRight[dst]);
+        pKey ^= RandZob.castling[castleRights()];
     }
 
     if (pType(mp) == PAWN) {

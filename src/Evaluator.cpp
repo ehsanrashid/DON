@@ -973,22 +973,37 @@ namespace Evaluator {
             eg += ev;
 
             // Compute the scale factor for the winning side
-            auto stngColor{ eg > VALUE_ZERO ? WHITE : BLACK };
+            auto strongSide{ eg > VALUE_ZERO ? WHITE : BLACK };
 
-            Scale scale{ matlEntry->scalingFunc[stngColor] != nullptr ?
-                        (*matlEntry->scalingFunc[stngColor])(pos) : SCALE_NONE };
+            Scale scale{ matlEntry->scalingFunc[strongSide] != nullptr ?
+                        (*matlEntry->scalingFunc[strongSide])(pos) : SCALE_NONE };
             if (scale == SCALE_NONE) {
-                scale = matlEntry->scaleFactor[stngColor];
+                scale = matlEntry->scaleFactor[strongSide];
             }
             // If scaleFactor is not already specific, scaleFactor down the endgame via general heuristics
             if (scale == SCALE_NORMAL) {
                 if (pos.bishopOpposed()) {
                     scale = Scale(pos.nonPawnMaterial() == 2 * VALUE_MG_BSHP ?
-                                18 + 4 * popCount(pawnEntry->passeds[stngColor]) :
+                                18 + 4 * popCount(pawnEntry->passeds[strongSide]) :
                                 22 + 3 * pos.count());
                 }
+                else
+                if (pos.nonPawnMaterial(WHITE) == VALUE_MG_ROOK
+                 && pos.nonPawnMaterial(BLACK) == VALUE_MG_ROOK
+                 && pawnEntry->passeds[strongSide] == 0
+                 && (pos.count( strongSide|PAWN)
+                   - pos.count(~strongSide|PAWN)) <= 1
+                 && (bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_KING])
+                  != bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_QUEN]))
+                 && (attacksBB<KING>(pos.square(~strongSide|KING)) & pos.pieces(~strongSide, PAWN)) != 0) {
+                    scale = Scale(36);
+                }
+                else
+                if (pos.count(QUEN) == 1) {
+                    scale = Scale(37);
+                }
                 else {
-                    scale = std::min(Scale(36 + 7 * pos.count(stngColor|PAWN)), SCALE_NORMAL);
+                    scale = std::min(Scale(36 + 7 * pos.count(strongSide|PAWN)), SCALE_NORMAL);
                 }
             }
 

@@ -651,8 +651,9 @@ namespace {
         // Don't want the score of a partial search to overwrite
         // a previous full search TT value, so we use a different
         // position key in case of an excluded move.
-        Key key     { pos.posiKey()
-                    ^ (Key(excludedMove) << 0x30) };
+        Key key     { excludedMove == MOVE_NONE ?
+                        pos.posiKey() :
+                        pos.posiKey() ^ makeKey(excludedMove) };
         bool ttHit;
         auto *tte   { excludedMove == MOVE_NONE ?
                         TT.probe(key, ttHit) :
@@ -1541,11 +1542,8 @@ namespace {
 }
 
 bool Limit::useTimeMgmt() const {
-    return !infinite
-        && moveTime == 0
-        && depth == DEPTH_ZERO
-        && nodes == 0
-        && mate == 0;
+    return clock[WHITE].time != 0
+        || clock[BLACK].time != 0;
 }
 
 void Limit::clear() {
@@ -1568,8 +1566,8 @@ void Limit::clear() {
 namespace Searcher {
 
     void initialize() {
+        double r{ 24.8 + std::log(Threadpool.size()) };
         Reduction[0] = 0;
-        double r = 24.8 + std::log(Threadpool.size());
         for (i16 i = 1; i < MaxMoves; ++i) {
             Reduction[i] = i32(r * std::log(i));
         }
