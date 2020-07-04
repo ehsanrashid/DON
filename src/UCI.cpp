@@ -420,6 +420,7 @@ namespace UCI {
         Options["Debug File"]         << Option("", onDebugFile);
 
         Options["UCI_Chess960"]       << Option(false);
+        Options["UCI_ShowWDL"]        << Option(false);
         Options["UCI_AnalyseMode"]    << Option(false);
         Options["UCI_LimitStrength"]  << Option(false);
         Options["UCI_Elo"]            << Option(1350, 1350, 3100);

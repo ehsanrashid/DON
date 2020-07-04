@@ -169,8 +169,14 @@ namespace Evaluator {
 
     #undef S
 
-        constexpr i32 SafeCheckWeight   [PIECE_TYPES] { 0, 0, 792, 645, 1084, 772, 0 };
-        constexpr i32 KingAttackerWeight[PIECE_TYPES] { 0, 0,  81,  52,   44,  10, 0 };
+        constexpr i32 SafeCheckWeight[PIECE_TYPES][2]
+        {
+            {0, 0}, {0, 0}, {792, 1283}, {645, 967}, {1084, 1897}, {772, 1119}, {0, 0}
+        };
+        constexpr i32 KingAttackerWeight[PIECE_TYPES]
+        {
+            0, 0,  81,  52,   44,  10, 0
+        };
 
         // Evaluator class contains various evaluation functions.
         template<bool Trace>
@@ -519,9 +525,7 @@ namespace Evaluator {
                                    &  sqlAttacks[Opp][ROOK]
                                    &  safeArea};
             if (rookSafeChecks != 0) {
-                kingDanger += moreThanOne(rookSafeChecks) ?
-                                SafeCheckWeight[ROOK] * 175 / 100 :
-                                SafeCheckWeight[ROOK];
+                kingDanger += SafeCheckWeight[ROOK][moreThanOne(rookSafeChecks)];
             }
             else {
                 unsafeCheck |= rookPins
@@ -535,9 +539,7 @@ namespace Evaluator {
                                    & ~sqlAttacks[Own][QUEN]
                                    & ~rookSafeChecks };
             if (quenSafeChecks != 0) {
-                kingDanger += moreThanOne(quenSafeChecks) ?
-                                SafeCheckWeight[QUEN] * 145 / 100 :
-                                SafeCheckWeight[QUEN];
+                kingDanger += SafeCheckWeight[QUEN][moreThanOne(quenSafeChecks)];
             }
 
             // Enemy bishops checks
@@ -546,9 +548,7 @@ namespace Evaluator {
                                    &  safeArea
                                    & ~quenSafeChecks };
             if (bshpSafeChecks != 0) {
-                kingDanger += moreThanOne(bshpSafeChecks) ?
-                                SafeCheckWeight[BSHP] * 150 / 100 :
-                                SafeCheckWeight[BSHP];
+                kingDanger += SafeCheckWeight[BSHP][moreThanOne(bshpSafeChecks)];
             }
             else {
                 unsafeCheck |= bshpPins
@@ -560,9 +560,7 @@ namespace Evaluator {
                                    &  sqlAttacks[Opp][NIHT]
                                    &  safeArea };
             if (nihtSafeChecks != 0) {
-                kingDanger += moreThanOne(nihtSafeChecks) ?
-                                SafeCheckWeight[NIHT] * 162 / 100 :
-                                SafeCheckWeight[NIHT];
+                kingDanger += SafeCheckWeight[NIHT][moreThanOne(nihtSafeChecks)];
             }
             else {
                 unsafeCheck |= attacksBB<NIHT>(kSq)
@@ -984,13 +982,12 @@ namespace Evaluator {
             if (scale == SCALE_NORMAL) {
                 if (pos.bishopOpposed()) {
                     scale = Scale(pos.nonPawnMaterial() == 2 * VALUE_MG_BSHP ?
-                                18 + 4 * popCount(pawnEntry->passeds[strongSide]) :
-                                22 + 3 * pos.count());
+                                    18 + 4 * popCount(pawnEntry->passeds[strongSide]) :
+                                    22 + 3 * pos.count());
                 }
                 else
                 if (pos.nonPawnMaterial(WHITE) == VALUE_MG_ROOK
                  && pos.nonPawnMaterial(BLACK) == VALUE_MG_ROOK
-                 && pawnEntry->passeds[strongSide] == 0
                  && (pos.count( strongSide|PAWN)
                    - pos.count(~strongSide|PAWN)) <= 1
                  && (bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_KING])
@@ -1000,7 +997,8 @@ namespace Evaluator {
                 }
                 else
                 if (pos.count(QUEN) == 1) {
-                    scale = Scale(37);
+                    auto queenColor{ pColor(pos[scanLSq(pos.pieces(QUEN))]) };
+                    scale = Scale(37 + 3 * (pos.count(~queenColor|NIHT) + pos.count(~queenColor|BSHP)));
                 }
                 else {
                     scale = std::min(Scale(36 + 7 * pos.count(strongSide|PAWN)), SCALE_NORMAL);
@@ -1020,7 +1018,7 @@ namespace Evaluator {
 
             // Damp down the evaluation linearly when shuffling
             v = v * (100 - pos.clockPly()) / 100;
-            
+
             // Write remaining evaluation terms
             if (Trace) {
                 Tracer::write(Term(PAWN), pawnEntry->score[WHITE], pawnEntry->score[BLACK]);

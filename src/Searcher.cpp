@@ -223,6 +223,40 @@ namespace {
         *pv = MOVE_NONE;
     }
 
+    // The win rate model returns the probability (per mille) of winning given an eval
+    // and a game-ply. The model fits rather accurately the LTC fishtest statistics.
+    i16 winRateModel(Value v, i16 ply) {
+
+        // The model captures only up to 240 plies, so limit input (and rescale)
+        double m = std::min(ply, { 240 }) / 64.0;
+
+        // Coefficients of a 3rd order polynomial fit based on fishtest data
+        // for two parameters needed to transform eval to the argument of a
+        // logistic function.
+        double as[] = {-8.24404295, 64.23892342, -95.73056462, 153.86478679};
+        double bs[] = {-3.37154371, 28.44489198, -56.67657741,  72.05858751};
+        double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
+        double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
+
+        // Transform eval to centipawns with limited range
+        double x = clamp(double(100 * v) / VALUE_EG_PAWN, -1000.0, 1000.0);
+
+        // Return win rate in per mille (rounded to nearest)
+        return i16(0.5 + 1000 / (1 + std::exp((a - x) / b)));
+    }
+
+    /// wdl() report WDL statistics given an evaluation and a game ply, based on
+    /// data gathered for fishtest LTC games.
+    std::string wdl(Value v, i16 ply) {
+        std::stringstream ss;
+
+        i16 wdl_w = winRateModel( v, ply);
+        i16 wdl_l = winRateModel(-v, ply);
+        i16 wdl_d = 1000 - wdl_w - wdl_l;
+        ss << " wdl " << wdl_w << " " << wdl_d << " " << wdl_l;
+        return ss.str();
+    }
+
     /// multipvInfo() formats PV information according to UCI protocol.
     /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
     std::string multipvInfo(
@@ -251,8 +285,6 @@ namespace {
                   && std::abs(v) < +VALUE_MATE_1_MAX_PLY };
             v = tb ? th->rootMoves[i].tbValue : v;
 
-            //if (oss.rdbuf()->in_avail()) // Not at first line
-            //    oss << "\n";
             oss << std::setfill('0')
                 << "info"
                 << " depth "    << std::setw(2) << (updated ? depth : depth - 1)
@@ -260,6 +292,9 @@ namespace {
                 << " multipv "  << i + 1
                 << std::setfill(' ')
                 << " score "    << v;
+            if (Options["UCI_ShowWDL"]) {
+            oss << wdl(v, th->rootPos.clockPly());
+            }
             if (!tb
              && i == th->pvCur) {
             oss << (beta <= v ? " lowerbound" :
@@ -274,7 +309,7 @@ namespace {
             }
             oss << " pv "       << th->rootMoves[i];
             if (i + 1 < PVCount) {
-                oss << "\n";
+            oss << "\n";
             }
         }
         return oss.str();
@@ -732,7 +767,7 @@ namespace {
          && SyzygyTB::PieceLimit != 0) {
             auto pieceCount{ pos.count() };
 
-            if (( pieceCount < SyzygyTB::PieceLimit
+            if (( pieceCount  < SyzygyTB::PieceLimit
               || (pieceCount == SyzygyTB::PieceLimit
                && depth >= SyzygyTB::DepthLimit))
              && pos.clockPly() == 0
