@@ -147,7 +147,7 @@ namespace King {
     }
 
 
-    Entry* probe(Position const &pos, Pawns::Entry* pe) {
+    Entry* probe(Position const &pos, Pawns::Entry *pe) {
         Key kingKey{ pos.pawnKey()
                    ^ RandZob.psq[W_KING][pos.square(W_KING)]
                    ^ RandZob.psq[B_KING][pos.square(B_KING)] };

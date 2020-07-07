@@ -20,6 +20,9 @@ namespace Pawns {
         constexpr Score WeakDoubled    { S(11,56) };
         constexpr Score WeakTwiceLever { S( 0,56) };
 
+        // Bonus for blocked pawns at 5th or 6th rank
+        constexpr Score BlockedPawn[2] { S(-10, -3), S(-3, 3) };
+
     #undef S
 
     }
@@ -133,6 +136,11 @@ namespace Pawns {
                 sp -= WeakDoubled * contains(ownPawns, s - Push)
                     // Attacked twice by enemy pawns
                     + WeakTwiceLever * moreThanOne(levers);
+            }
+
+            if (blocked
+             && r >= RANK_5) {
+                sp += BlockedPawn[r - RANK_5];
             }
 
             score[Own] += sp;

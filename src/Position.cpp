@@ -513,11 +513,15 @@ bool Position::canEnpassant(Color c, Square epSq, bool moved) const {
         && relativeRank(c, epSq) == RANK_6);
     auto cap{ moved ? epSq - PawnPush[c] : epSq + PawnPush[c] };
     assert(board[cap] == (~c|PAWN));
+
     // Enpassant attackers
     Bitboard attackers{ pieces(c, PAWN)
                       & pawnAttacksBB(~c, epSq) };
     assert(popCount(attackers) <= 2);
-    if (attackers == 0) {
+    if (!(attackers != 0
+       && (contains(pieces(~c, PAWN), (epSq + PawnPush[~c])))
+       && empty(epSq)
+       && empty(epSq + PawnPush[c]))) {
        return false;
     }
 
@@ -753,16 +757,16 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
         setCastle(c, rookOrg);
     }
 
-    // 4. Enpassant square. Ignore if no pawn capture is possible.
+    // 4. Enpassant square.
+    // Ignore if square is invalid or not on side to move relative rank 6.
+    bool enpassant{ false };
     u08 file, rank;
     if ((iss >> file && ('a' <= file && file <= 'h'))
-     && (iss >> rank && ('3' == rank || rank == '6'))) {
+     && (iss >> rank && (rank == (active == WHITE ? '6' : '3')))) {
         _stateInfo->epSquare = makeSquare(toFile(file), toRank(rank));
-        if (!canEnpassant(active, epSquare())) {
-            _stateInfo->epSquare = SQ_NONE;
-        }
+        enpassant = canEnpassant(active, epSquare());
     }
-    else {
+    if (!enpassant) {
         _stateInfo->epSquare = SQ_NONE;
     }
 

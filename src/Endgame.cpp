@@ -140,18 +140,18 @@ template<> Value Endgame<KRKP>::operator()(Position const &pos) const {
     assert(verifyMaterial(pos, stngColor, VALUE_MG_ROOK, 0)
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 1));
 
-    auto skSq{ relativeSq(stngColor, pos.square(stngColor|KING)) };
-    auto srSq{ relativeSq(stngColor, pos.square(stngColor|ROOK)) };
-    auto wkSq{ relativeSq(stngColor, pos.square(weakColor|KING)) };
-    auto wpSq{ relativeSq(stngColor, pos.square(weakColor|PAWN)) };
+    auto skSq{ pos.square(stngColor|KING) };
+    auto srSq{ pos.square(stngColor|ROOK) };
+    auto wkSq{ pos.square(weakColor|KING) };
+    auto wpSq{ pos.square(weakColor|PAWN) };
 
-    auto promoteSq{ makeSquare(sFile(wpSq), RANK_1) };
+    auto promoteSq{ makeSquare(sFile(wpSq), relativeRank(weakColor, RANK_8)) };
 
     Value value;
 
     // If the strong side's king is in front of the pawn, or
     // If the weak side's king is too far from the rook and pawn, it's a win.
-    if (contains(frontSquaresBB(WHITE, skSq), wpSq)
+    if (contains(frontSquaresBB(stngColor, skSq), wpSq)
      || (distance(wkSq, srSq) >= 3
       && distance(wkSq, wpSq) >= 3 + (pos.activeSide() == weakColor))) {
         value = VALUE_EG_ROOK
@@ -159,17 +159,17 @@ template<> Value Endgame<KRKP>::operator()(Position const &pos) const {
     }
     else
     // If the pawn is far advanced and supported by the defending king, it's a drawish.
-    if (sRank(wkSq) <= RANK_3
+    if (relativeRank(stngColor, wkSq) <= RANK_3
      && distance(wpSq, wkSq) == 1
-     && sRank(skSq) >= RANK_4
+     && relativeRank(stngColor, skSq) >= RANK_4
      && distance(wpSq, skSq) > 2 + (pos.activeSide() == stngColor)) {
         value = Value(80)
               - 8 * distance(wpSq, skSq);
     }
     else {
         value = Value(200)
-              - 8 * (distance(skSq, wpSq + SOUTH)
-                   - distance(wkSq, wpSq + SOUTH)
+              - 8 * (distance(skSq, wpSq + PawnPush[weakColor])
+                   - distance(wkSq, wpSq + PawnPush[weakColor])
                    - distance(wpSq, promoteSq));
     }
 
