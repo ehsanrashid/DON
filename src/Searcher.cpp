@@ -950,29 +950,40 @@ namespace {
                 }
             }
 
+            auto probcutBeta = beta + 176 - 49 * improving;
+
             // Step 10. ProbCut. (~10 ELO)
             // If good enough capture and a reduced search returns a value much above beta,
             // then can (almost) safely prune the previous move.
             if (!PVNode
              && depth > 4
              && std::abs(beta) < +VALUE_MATE_2_MAX_PLY
+             && !(ttHit
+               && tte->depth() >= depth - 3
+               && ttValue != VALUE_NONE
+               && ttValue < probcutBeta)
              && Limits.mate == 0) {
-                auto raisedBeta{ beta - 49 * improving + 176 };
-                assert(raisedBeta < +VALUE_INFINITE);
 
-                bool ttmNotWorth{ tte->depth() >= depth - 4
-                               && ttValue < raisedBeta };
+                if (ttHit
+                 && tte->depth() >= depth - 3
+                 && ttValue != VALUE_NONE
+                 && ttValue >= probcutBeta
+                 && ttMove
+                 && pos.captureOrPromotion(ttMove)) { 
+                    return probcutBeta;
+                }
+
+                assert(probcutBeta < +VALUE_INFINITE);
+
                 u08 probMoveCount{ 0 };
                 // Initialize move-picker(3) for the current position
                 MovePicker movePicker{
                     pos,
                     &thread->captureStats,
-                    ttMove, depth, raisedBeta - ss->staticEval };
+                    ttMove, depth, probcutBeta - ss->staticEval };
                 // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
                 while ((move = movePicker.nextMove()) != MOVE_NONE
-                    && probMoveCount < (2 + 2 * cutNode)
-                    && (move != ttMove
-                     || !ttmNotWorth)) {
+                    && probMoveCount < (2 + 2 * cutNode)) {
                     assert(isOk(move)
                         && pos.pseudoLegal(move)
                         && pos.captureOrPromotion(move)
@@ -995,16 +1006,23 @@ namespace {
                     pos.doMove(move, si);
 
                     // Perform a preliminary quienSearch to verify that the move holds
-                    value = -quienSearch<false>(pos, ss+1, -raisedBeta, -raisedBeta+1);
+                    value = -quienSearch<false>(pos, ss+1, -probcutBeta, -probcutBeta+1);
 
                     // If the quienSearch held perform the regular search
-                    if (value >= raisedBeta) {
-                        value = -depthSearch<false>(pos, ss+1, -raisedBeta, -raisedBeta+1, depth - 4, !cutNode);
+                    if (value >= probcutBeta) {
+                        value = -depthSearch<false>(pos, ss+1, -probcutBeta, -probcutBeta+1, depth - 4, !cutNode);
                     }
 
                     pos.undoMove(move);
 
-                    if (value >= raisedBeta) {
+                    if (value >= probcutBeta) {
+                        tte->save(key,
+                                  move,
+                                  valueToTT(value, ss->ply),
+                                  ss->staticEval,
+                                  depth - 3,
+                                  BOUND_LOWER,
+                                  ttPV);
                         return value;
                     }
                 }
