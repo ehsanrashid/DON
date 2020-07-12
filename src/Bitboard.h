@@ -174,7 +174,15 @@ inline Bitboard& operator^=(Bitboard &bb, Square s) { return bb ^= SquareBB[s]; 
 
 constexpr Bitboard operator|(Square s1, Square s2) { return SquareBB[s1] | SquareBB[s2]; }
 
-inline bool moreThanOne(Bitboard bb) { return (bb & (bb - 1)) != 0; }
+constexpr bool moreThanOne(Bitboard bb) {
+    return (bb & (bb - 1)) != 0;
+}
+
+/// Counts the occupation of the bitboard depending on the occupation of SQ_A1
+/// as in `bb & (1ULL << SQ_A1) ? moreThanTwo(bb) : moreThanOne(bb)`
+constexpr bool conditionalMoreThanTwo(Bitboard bb) {
+    return (bb & (bb - 1) & (bb - 2)) != 0;
+}
 
 /// Shift the bitboard using delta
 template<Direction> constexpr Bitboard shift(Bitboard) { return 0; }

@@ -142,6 +142,7 @@ namespace Evaluator {
         constexpr Score MinorBehindPawn   { S( 18,  3) };
         constexpr Score KnightOutpost     { S( 56, 36) };
         constexpr Score KnightReachOutpost{ S( 31, 22) };
+        constexpr Score KnightBadOutpost  { S( -7, 36) };
         constexpr Score KnightKingProtect { S(  8,  9) };
         constexpr Score BishopOutpost     { S( 30, 23) };
         constexpr Score BishopKingProtect { S(  6,  9) };
@@ -344,6 +345,14 @@ namespace Evaluator {
 
                     if (PT == NIHT) {
                         // Bonus for knight outpost squares
+                        if (contains(b & ~SlotFileBB[CS_CENTRE], s)
+                         && (attacks & pos.pieces(Opp) & ~pos.pieces(PAWN)) == 0
+                         && !conditionalMoreThanTwo( pos.pieces(Opp)
+                                                  & ~pos.pieces(PAWN)
+                                                  & (contains(SlotFileBB[CS_QUEN], s) ? SlotFileBB[CS_QUEN] : SlotFileBB[CS_KING]))) {
+                            score += KnightBadOutpost;
+                        }
+                        else
                         if (contains(b, s)) {
                             score += KnightOutpost;
                         }

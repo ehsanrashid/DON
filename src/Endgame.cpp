@@ -555,6 +555,26 @@ template<> Scale Endgame<KBPKN>::operator()(Position const &pos) const {
 
 /// Generic Scaling functions
 
+/// K and two or more pawns vs K. There is just a single rule here: if all pawns
+/// are on the same rook file and are blocked by the defending king, it's a draw.
+template<> Scale Endgame<KPsK>::operator()(const Position& pos) const {
+    assert(pos.nonPawnMaterial(stngColor) == VALUE_ZERO);
+    assert(pos.count(stngColor|PAWN) >= 2);
+    assert(verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
+
+    auto wkSq{ pos.square(weakColor|KING) };
+    Bitboard sPawns{ pos.pieces(stngColor, PAWN) };
+
+    // If all pawns are ahead of the king on a single rook file, it's a draw.
+    if (((sPawns & ~FileBB[FILE_A]) == 0
+      || (sPawns & ~FileBB[FILE_H]) == 0)
+     && (sPawns & ~pawnPassSpan(weakColor, wkSq)) == 0) {
+        return SCALE_DRAW;
+    }
+
+    return SCALE_NONE;
+}
+
 /// KP vs KP. This is done by removing the weakest side's pawn and probing the
 /// KP vs K bitbase: If the weakest side has a draw without the pawn, it probably
 /// has at least a draw with the pawn as well. The exception is when the strong

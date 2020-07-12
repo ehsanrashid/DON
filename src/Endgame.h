@@ -31,6 +31,7 @@ enum EndgameCode : u08 {
     KBPKN,   // KBP vs KN
 
     // Generic Scale functions
+    KPsK,    // KPs vs K
     KPKP,    // KP vs KP
     KBPsK,   // KBPs vs K
     KQKRPs,  // KQ vs KRPs
