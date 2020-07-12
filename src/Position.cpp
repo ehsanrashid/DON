@@ -511,19 +511,23 @@ void Position::setCheckInfo() {
 bool Position::canEnpassant(Color c, Square epSq, bool moved) const {
     assert(isOk(epSq)
         && relativeRank(c, epSq) == RANK_6);
-    auto cap{ moved ? epSq - PawnPush[c] : epSq + PawnPush[c] };
-    assert(board[cap] == (~c|PAWN));
 
+    if (moved
+     && !(contains(pieces(~c, PAWN), (epSq + PawnPush[~c]))
+       && empty(epSq)
+       && empty(epSq + PawnPush[c]))) {
+        return false;
+    }
     // Enpassant attackers
     Bitboard attackers{ pieces(c, PAWN)
                       & pawnAttacksBB(~c, epSq) };
     assert(popCount(attackers) <= 2);
-    if (!(attackers != 0
-       && (contains(pieces(~c, PAWN), (epSq + PawnPush[~c])))
-       && empty(epSq)
-       && empty(epSq + PawnPush[c]))) {
-       return false;
+    if (attackers == 0) {
+        return false;
     }
+
+    auto cap{ moved ? epSq - PawnPush[c] : epSq + PawnPush[c] };
+    assert(board[cap] == (~c|PAWN));
 
     auto kSq{ square(c|KING) };
     Bitboard bq{ pieces(~c, BSHP, QUEN) & attacksBB<BSHP>(kSq) };

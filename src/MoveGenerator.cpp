@@ -42,17 +42,18 @@ namespace {
              || GT == NORMAL
              || GT == EVASION) {
                 moves += makePromoteMove(org, dst, QUEN);
+                if (contains(pos.checks(NIHT), dst)) {
+                    moves += makePromoteMove(org, dst, NIHT);
+                }
             }
             if (GT == QUIET
              || GT == NORMAL
              || GT == EVASION) {
                 moves += makePromoteMove(org, dst, ROOK);
                 moves += makePromoteMove(org, dst, BSHP);
-                moves += makePromoteMove(org, dst, NIHT);
-            }
-            if (GT == QUIET_CHECK
-             && contains(pos.checks(NIHT), dst)) {
-                moves += makePromoteMove(org, dst, NIHT);
+                if (!contains(pos.checks(NIHT), dst)) {
+                    moves += makePromoteMove(org, dst, NIHT);
+                }
             }
         }
     }

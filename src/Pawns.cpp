@@ -21,7 +21,7 @@ namespace Pawns {
         constexpr Score WeakTwiceLever { S( 0,56) };
 
         // Bonus for blocked pawns at 5th or 6th rank
-        constexpr Score BlockedPawn[2] { S(-10, -3), S(-3, 3) };
+        constexpr Score BlockedPawn[2] { S(-11, -4), S(-3, 4) };
 
     #undef S
 
@@ -110,7 +110,7 @@ namespace Pawns {
 
             if (supporters != 0
              || phalanxes != 0) {
-                i32 v{ Connected[r] * (4 + 2 * (phalanxes != 0) - 2 * opposed - 1 * blocked) / 2
+                i32 v{ Connected[r] * (2 + 1 * (phalanxes != 0) - 1 * opposed)
                      + 21 * popCount(supporters) };
                 sp += makeScore(v, v * (r - RANK_3) / 4);
             }

@@ -992,7 +992,7 @@ namespace Evaluator {
                    - pos.count(~strongSide|PAWN)) <= 1
                  && (bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_KING])
                   != bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_QUEN]))
-                 && (attacksBB<KING>(pos.square(~strongSide|KING)) & pos.pieces(~strongSide, PAWN)) != 0) {
+                 && (sqlAttacks[~strongSide][KING] & pos.pieces(~strongSide, PAWN)) != 0) {
                     scale = Scale(36);
                 }
                 else

@@ -63,8 +63,8 @@ MovePicker::MovePicker(
 }
 
 /// MovePicker constructor for quiescence search
-/// Because the depth <= DEPTH_ZERO here, only captures, queen promotions
-/// and quiet checks (only if depth >= DEPTH_QS_CHECK) will be generated.
+/// Because the depth <= DEPTH_ZERO here, only captures, queen & checking knight promotions
+/// and other checks (only if depth >= DEPTH_QS_CHECK) will be generated.
 MovePicker::MovePicker(
     Position const &p,
     ColorIndexStatsTable        const *bfStats,
