@@ -119,22 +119,7 @@ namespace Material {
         // generic scaling functions that refer to more than one material distribution.
         // Note that in this case don't return after setting the function.
 
-        for (Color c : { WHITE, BLACK }) {
-            if (pos.nonPawnMaterial( c) == VALUE_MG_QUEN
-             && pos.count( c|PAWN) == 0
-             && pos.count(~c|ROOK) == 1
-             && pos.count(~c|PAWN) >= 1) {
-                scalingFunc[c] = &ScaleKQKRPs[c];
-            }
-            else
-            if (pos.nonPawnMaterial( c) == VALUE_MG_BSHP
-             && pos.count( c|PAWN) >= 1) {
-                scalingFunc[c] = &ScaleKBPsK[c];
-            }
-        }
-        
         // Only pawns left
-
         if (pos.nonPawnMaterial() == VALUE_ZERO
          && pos.pieces(PAWN) != 0) {
             if (pos.count(W_PAWN) == 0) {
@@ -152,6 +137,21 @@ namespace Material {
                 // This is a special case so set scaling functions for both
                 scalingFunc[WHITE] = &ScaleKPKP[WHITE];
                 scalingFunc[BLACK] = &ScaleKPKP[BLACK];
+            }
+        }
+        else {
+            for (Color c : { WHITE, BLACK }) {
+                if (pos.nonPawnMaterial( c) == VALUE_MG_QUEN
+                 && pos.count( c|PAWN) == 0
+                 && pos.count(~c|ROOK) == 1
+                 && pos.count(~c|PAWN) >= 1) {
+                    scalingFunc[c] = &ScaleKQKRPs[c];
+                }
+                else
+                if (pos.nonPawnMaterial( c) == VALUE_MG_BSHP
+                 && pos.count( c|PAWN) >= 1) {
+                    scalingFunc[c] = &ScaleKBPsK[c];
+                }
             }
         }
 

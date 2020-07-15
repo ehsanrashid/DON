@@ -376,8 +376,8 @@ namespace {
 
         if (!PVNode
          && ttHit
-         && qsDepth <= tte->depth()
          && ttValue != VALUE_NONE
+         && tte->depth() >= qsDepth
          && (ttValue >= beta ? tte->bound() & BOUND_LOWER :
                                tte->bound() & BOUND_UPPER)) {
             return ttValue;
@@ -405,9 +405,9 @@ namespace {
                 }
 
                 // Can ttValue be used as a better position evaluation?
-                if (ttValue != VALUE_NONE
-                 && (tte->bound()
-                   & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER))) {
+                if ( ttValue != VALUE_NONE
+                 && (ttValue > bestValue ? tte->bound() & BOUND_LOWER :
+                                           tte->bound() & BOUND_UPPER)) {
                     bestValue = ttValue;
                 }
             }
@@ -730,8 +730,8 @@ namespace {
         // At non-PV nodes we check for an early TT cutoff
         if (!PVNode
          && ttHit
-         && depth <= tte->depth()
          && ttValue != VALUE_NONE
+         && tte->depth() >= depth
          && (ttValue >= beta ? tte->bound() & BOUND_LOWER :
                                tte->bound() & BOUND_UPPER)) {
             if (ttMove != MOVE_NONE) {
@@ -849,9 +849,9 @@ namespace {
                     eval = drawValue(thread);
                 }
                 // Can ttValue be used as a better position evaluation?
-                if (ttValue != VALUE_NONE
-                 && (tte->bound()
-                   & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER))) {
+                if ( ttValue != VALUE_NONE
+                 && (ttValue > eval ? tte->bound() & BOUND_LOWER :
+                                      tte->bound() &  BOUND_UPPER)) {
                     eval = ttValue;
                 }
             }
@@ -959,16 +959,16 @@ namespace {
              && depth > 4
              && std::abs(beta) < +VALUE_MATE_2_MAX_PLY
              && !(ttHit
-               && tte->depth() >= depth - 3
                && ttValue != VALUE_NONE
-               && ttValue < probcutBeta)
+               && ttValue < probcutBeta
+               && tte->depth() >= depth - 3)
              && Limits.mate == 0) {
 
                 if (ttHit
-                 && tte->depth() >= depth - 3
                  && ttValue != VALUE_NONE
                  && ttValue >= probcutBeta
-                 && ttMove
+                 && tte->depth() >= depth - 3
+                 && ttMove != MOVE_NONE
                  && pos.captureOrPromotion(ttMove)) { 
                     return probcutBeta;
                 }
@@ -1016,13 +1016,17 @@ namespace {
                     pos.undoMove(move);
 
                     if (value >= probcutBeta) {
-                        tte->save(key,
-                                  move,
-                                  valueToTT(value, ss->ply),
-                                  ss->staticEval,
-                                  depth - 3,
-                                  BOUND_LOWER,
-                                  ttPV);
+                        if (!(ttHit
+                           && ttValue != VALUE_NONE
+                           && tte->depth() >= depth - 3)) {
+                            tte->save(key,
+                                      move,
+                                      valueToTT(value, ss->ply),
+                                      ss->staticEval,
+                                      depth - 3,
+                                      BOUND_LOWER,
+                                      ttPV);
+                        }
                         return value;
                     }
                 }
@@ -1218,13 +1222,13 @@ namespace {
             // if result is lower than ttValue minus a margin then extend ttMove.
             if (!rootNode
              && depth >= 6
-             //&& ttHit
+             && ttHit
              && move == ttMove
              && excludedMove == MOVE_NONE // Avoid recursive singular search
-             // && ttValue != VALUE_NONE  Already implicit in the next condition
+             //&& ttValue != VALUE_NONE  Already implicit in the next condition
              && std::abs(ttValue) < VALUE_KNOWN_WIN
              && (tte->bound() & BOUND_LOWER)
-             && depth < (tte->depth() + 4)) {
+             &&  tte->depth() >= depth - 3) {
 
                 auto singularBeta{ ttValue - ((4 + pastPV) * depth) / 2 };
                 auto singularDepth{ Depth((depth + 3 * pastPV - 1) / 2) };

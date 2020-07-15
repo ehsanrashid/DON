@@ -346,7 +346,9 @@ namespace Evaluator {
                     if (PT == NIHT) {
                         // Bonus for knight outpost squares
                         if (contains(b & ~SlotFileBB[CS_CENTRE], s)
-                         && (attacks & pos.pieces(Opp) & ~pos.pieces(PAWN)) == 0
+                         && ( attacks
+                           &  pos.pieces(Opp)
+                           & ~pos.pieces(PAWN)) == 0
                          && !conditionalMoreThanTwo( pos.pieces(Opp)
                                                   & ~pos.pieces(PAWN)
                                                   & (contains(SlotFileBB[CS_QUEN], s) ? SlotFileBB[CS_QUEN] : SlotFileBB[CS_KING]))) {
