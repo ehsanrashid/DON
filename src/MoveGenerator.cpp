@@ -38,11 +38,13 @@ namespace {
             auto dst{ popLSq(promotions) };
             auto org{ dst - dir };
 
+            bool knightCheck{ contains(pos.checks(NIHT), dst) };
+
             if (GT == CAPTURE
              || GT == NORMAL
              || GT == EVASION) {
                 moves += makePromoteMove(org, dst, QUEN);
-                if (contains(pos.checks(NIHT), dst)) {
+                if (knightCheck) {
                     moves += makePromoteMove(org, dst, NIHT);
                 }
             }
@@ -51,7 +53,7 @@ namespace {
              || GT == EVASION) {
                 moves += makePromoteMove(org, dst, ROOK);
                 moves += makePromoteMove(org, dst, BSHP);
-                if (!contains(pos.checks(NIHT), dst)) {
+                if (!knightCheck) {
                     moves += makePromoteMove(org, dst, NIHT);
                 }
             }

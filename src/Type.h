@@ -214,10 +214,7 @@ enum Value : i32 {
     VALUE_MIDGAME = 15258,
     VALUE_ENDGAME =  3915,
 
-    VALUE_LAZY_THRESHOLD    =  1400,
-    VALUE_SPACE_THRESHOLD   = 12222,
     VALUE_TEMPO = 28,
-
 };
 
 /// Score needs 32-bits to be stored

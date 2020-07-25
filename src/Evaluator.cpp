@@ -170,6 +170,11 @@ namespace Evaluator {
 
     #undef S
 
+        // Threshold for lazy and space evaluation
+        constexpr Value LazyThreshold1{ Value( 1400) };
+        constexpr Value LazyThreshold2{ Value( 1300) };
+        constexpr Value SpaceThreshold{ Value(12222) };
+
         constexpr i32 SafeCheckWeight[PIECE_TYPES][2]
         {
             {0, 0}, {0, 0}, {792, 1283}, {645, 967}, {1084, 1897}, {772, 1119}, {0, 0}
@@ -905,18 +910,13 @@ namespace Evaluator {
                        + (pawnEntry->score[WHITE] - pawnEntry->score[BLACK])
                        + pos.thread()->contempt };
 
-            auto mg{ mgValue(score) };
-            auto eg{ egValue(score) };
-
-            Value v;
-            v = mg * (matlEntry->phase)
-              + eg * (Material::PhaseResolution - matlEntry->phase);
-            v /= Material::PhaseResolution;
-            assert(-VALUE_INFINITE < v && v < +VALUE_INFINITE);
-
             // Early exit if score is high
-            if (std::abs(v) > VALUE_LAZY_THRESHOLD) {
-                return pos.activeSide() == WHITE ? +v : -v;
+            auto lazySkip = [&](Value lazyThreshold) {
+                return std::abs(mgValue(score) + egValue(score)) / 2 > lazyThreshold + pos.nonPawnMaterial() / 64;
+            };
+
+            if (lazySkip(LazyThreshold1)) {
+                goto returnValue;
             }
 
             // Probe the king hash table
@@ -941,13 +941,19 @@ namespace Evaluator {
             // More complex interactions that require fully populated attack information
             score += mobility[WHITE]   - mobility[BLACK]
                    + king    <WHITE>() - king    <BLACK>()
-                   + threats <WHITE>() - threats <BLACK>()
                    + passers <WHITE>() - passers <BLACK>();
+
+            if (lazySkip(LazyThreshold2)) {
+                goto returnValue;
+            }
+
+            score += threats <WHITE>() - threats <BLACK>();
             // Skip if, for example, both queens or 6 minor pieces have been exchanged
-            if (pos.nonPawnMaterial() >= VALUE_SPACE_THRESHOLD) {
+            if (pos.nonPawnMaterial() >= SpaceThreshold) {
             score += space   <WHITE>() - space   <BLACK>();
             }
 
+        returnValue:
             // Derive single value from mg and eg parts of score
             auto wkSq{ pos.square(W_KING) };
             auto bkSq{ pos.square(B_KING) };
@@ -969,8 +975,8 @@ namespace Evaluator {
                                 && outflanking < 0)
                            - 89;
 
-            mg = mgValue(score);
-            eg = egValue(score);
+            auto mg{ mgValue(score) };
+            auto eg{ egValue(score) };
 
             // Now apply the bonus: note that we find the attacking side by extracting the
             // sign of the midgame or endgame values, and that we carefully cap the bonus
@@ -1003,7 +1009,8 @@ namespace Evaluator {
                    - pos.count(~strongSide|PAWN)) <= 1
                  && (bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_KING])
                   != bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_QUEN]))
-                 && (sqlAttacks[~strongSide][KING] & pos.pieces(~strongSide, PAWN)) != 0) {
+                 && (attacksBB<KING>(pos.square(~strongSide|KING))
+                   & pos.pieces(~strongSide, PAWN)) != 0) {
                     scale = Scale(36);
                 }
                 else
@@ -1016,6 +1023,7 @@ namespace Evaluator {
                 }
             }
 
+            Value v;
             // Interpolates between midgame and scaled endgame values (scaled by 'scaleFactor(egValue(score))').
             v = mg * (matlEntry->phase)
               + eg * (Material::PhaseResolution - matlEntry->phase) * scale / SCALE_NORMAL;

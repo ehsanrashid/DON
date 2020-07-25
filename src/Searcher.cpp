@@ -950,40 +950,41 @@ namespace {
                 }
             }
 
-            auto probcutBeta = beta + 176 - 49 * improving;
+            auto probCutBeta = beta + 176 - 49 * improving;
 
             // Step 10. ProbCut. (~10 ELO)
             // If good enough capture and a reduced search returns a value much above beta,
             // then can (almost) safely prune the previous move.
+            // Note: Only enter ProbCut with no TT hit, a too low TT depth, or a good enough TT value.
             if (!PVNode
              && depth > 4
              && std::abs(beta) < +VALUE_MATE_2_MAX_PLY
-             && !(ttHit
-               && ttValue != VALUE_NONE
-               && ttValue < probcutBeta
-               && tte->depth() >= depth - 3)
+             && (!ttHit
+              || tte->depth() < depth - 3
+              || (ttValue != VALUE_NONE
+               && ttValue >= probCutBeta))
              && Limits.mate == 0) {
 
+                assert(probCutBeta < +VALUE_INFINITE);
+
                 if (ttHit
-                 && ttValue != VALUE_NONE
-                 && ttValue >= probcutBeta
                  && tte->depth() >= depth - 3
+                 //&& ttValue != VALUE_NONE
+                 && ttValue >= probCutBeta
                  && ttMove != MOVE_NONE
                  && pos.captureOrPromotion(ttMove)) { 
-                    return probcutBeta;
+                    return probCutBeta;
                 }
 
-                assert(probcutBeta < +VALUE_INFINITE);
-
-                u08 probMoveCount{ 0 };
+                u08 probCutCount{ 0 };
                 // Initialize move-picker(3) for the current position
                 MovePicker movePicker{
                     pos,
                     &thread->captureStats,
-                    ttMove, depth, probcutBeta - ss->staticEval };
+                    ttMove, depth, probCutBeta - ss->staticEval };
                 // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
                 while ((move = movePicker.nextMove()) != MOVE_NONE
-                    && probMoveCount < (2 + 2 * cutNode)) {
+                    && probCutCount < (2 + 2 * cutNode)) {
                     assert(isOk(move)
                         && pos.pseudoLegal(move)
                         && pos.captureOrPromotion(move)
@@ -994,7 +995,7 @@ namespace {
                         continue;
                     }
 
-                    ++probMoveCount;
+                    ++probCutCount;
 
                     // Speculative prefetch as early as possible
                     prefetch(TT.cluster(pos.movePosiKey(move))->entry);
@@ -1006,19 +1007,19 @@ namespace {
                     pos.doMove(move, si);
 
                     // Perform a preliminary quienSearch to verify that the move holds
-                    value = -quienSearch<false>(pos, ss+1, -probcutBeta, -probcutBeta+1);
+                    value = -quienSearch<false>(pos, ss+1, -probCutBeta, -probCutBeta+1);
 
                     // If the quienSearch held perform the regular search
-                    if (value >= probcutBeta) {
-                        value = -depthSearch<false>(pos, ss+1, -probcutBeta, -probcutBeta+1, depth - 4, !cutNode);
+                    if (value >= probCutBeta) {
+                        value = -depthSearch<false>(pos, ss+1, -probCutBeta, -probCutBeta+1, depth - 4, !cutNode);
                     }
 
                     pos.undoMove(move);
 
-                    if (value >= probcutBeta) {
-                        if (!(ttHit
-                           && ttValue != VALUE_NONE
-                           && tte->depth() >= depth - 3)) {
+                    if (value >= probCutBeta) {
+                        // If TT doesn't have equal or more deep info write probCut data into it
+                        if (!ttHit
+                         || tte->depth() < depth - 3) {
                             tte->save(key,
                                       move,
                                       valueToTT(value, ss->ply),
@@ -1155,25 +1156,21 @@ namespace {
                 // Reduced depth of the next LMR search.
                 i16 lmrDepth = std::max(newDepth - reduction(depth, moveCount, improving), 0);
 
-                if (giveCheck) {
-                    // SEE based pruning: negative SEE (~25 ELO)
-                    if (!pos.see(move, Value(-194 * depth))) {
-                        continue;
-                    }
-                }
-                else
-                if (captureOrPromotion) {
-                    if (lmrDepth <= 0
-                     && thread->captureStats[mp][dst][pos.captured(move)] < 0) {
-                        continue;
-                    }
-                    // Futility pruning for captures
-                    if (lmrDepth <= 5
-                     && !inCheck
-                     && !(PVNode && std::abs(bestValue) < 2)
-                     && PieceValues[MG][pType(mp)] >= PieceValues[MG][pType(cp)]
-                     && ss->staticEval + 391 * lmrDepth + PieceValues[MG][pType(cp)] + 267 <= alfa) {
-                        continue;
+                if (giveCheck
+                 || captureOrPromotion) {
+                    if (!giveCheck) {
+                        if (lmrDepth <= 0
+                         && thread->captureStats[mp][dst][pos.captured(move)] < 0) {
+                            continue;
+                        }
+                        // Futility pruning for captures
+                        if (lmrDepth <= 5
+                         && !inCheck
+                         && !(PVNode && std::abs(bestValue) < 2)
+                         && PieceValues[MG][pType(mp)] >= PieceValues[MG][pType(cp)]
+                         && ss->staticEval + 391 * lmrDepth + PieceValues[MG][pType(cp)] + 267 <= alfa) {
+                            continue;
+                        }
                     }
                     // SEE based pruning: negative SEE (~25 ELO)
                     if (!pos.see(move, Value(-202 * depth))) {
@@ -1531,12 +1528,10 @@ namespace {
         }
         else
         if (bestMove != MOVE_NONE) {
-
             auto bonus1{ statBonus(depth + 1) };
 
             // Quiet best move: update move sorting heuristics.
             if (!pos.captureOrPromotion(bestMove)) {
-
                 auto bonus2{ bestValue > beta + VALUE_MG_PAWN ?
                                 bonus1 : statBonus(depth) };
 
