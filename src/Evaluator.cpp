@@ -751,7 +751,7 @@ namespace Evaluator {
 
             // Bonus for threats on the next moves against enemy queens
             if (pos.pieces(Opp, QUEN) != 0) {
-                bool queenImbalance{ pos.count(QUEN) == 1 };
+                bool queenImbalance{ pos.count(Own|QUEN) < pos.count(Opp|QUEN) };
 
                 safeArea =  mobArea[Own]
                          & ~pos.pieces(Own, PAWN)
