@@ -344,19 +344,22 @@ namespace Evaluator {
                     score += MinorBehindPawn * (relativeRank(Own, s) <= RANK_6
                                              && contains(pos.pieces(PAWN), s + PawnPush[Own]));
 
+                    // Bonus if the piece is on an outpost square or can reach one
+                    // Reduced bonus for knights (BadOutpost) if few relevant targets
                     b =  OutpostBB[Own]
                       &  sqlAttacks[Own][PAWN]
                       & ~pawnEntry->attacksSpan[Opp];
 
                     if (PT == NIHT) {
+                        
                         // Bonus for knight outpost squares
-                        if (contains(b & ~SlotFileBB[CS_CENTRE], s)
-                         && ( attacks
-                           &  pos.pieces(Opp)
-                           & ~pos.pieces(PAWN)) == 0
-                         && !conditionalMoreThanTwo( pos.pieces(Opp)
-                                                  & ~pos.pieces(PAWN)
-                                                  & (contains(SlotFileBB[CS_QUEN], s) ? SlotFileBB[CS_QUEN] : SlotFileBB[CS_KING]))) {
+                        Bitboard targets{ pos.pieces(Opp) & ~pos.pieces(PAWN) };
+                        if (// On a side outpost
+                            contains(b & ~SlotFileBB[CS_CENTRE], s)
+                            // No relevant attacks
+                         && (attacks & targets) == 0
+                         && !moreThanOne(targets
+                                       & (contains(SlotFileBB[CS_QUEN], s) ? SlotFileBB[CS_QUEN] : SlotFileBB[CS_KING]))) {
                             score += KnightBadOutpost;
                         }
                         else
@@ -748,17 +751,21 @@ namespace Evaluator {
 
             // Bonus for threats on the next moves against enemy queens
             if (pos.pieces(Opp, QUEN) != 0) {
+                bool queenImbalance{ pos.count(QUEN) == 1 };
+
                 safeArea =  mobArea[Own]
+                         & ~pos.pieces(Own, PAWN)
                          & ~defendedArea;
+
                 b = safeArea
                   & (sqlAttacks[Own][NIHT] & queenAttacked[Opp][0]);
-                score += KnightOnQueen * popCount(b);
+                score += KnightOnQueen * popCount(b) * (1 + queenImbalance);
 
                 b = safeArea
                   & ((sqlAttacks[Own][BSHP] & queenAttacked[Opp][1])
                    | (sqlAttacks[Own][ROOK] & queenAttacked[Opp][2]))
                   & dblAttacks[Own];
-                score += SliderOnQueen * popCount(b);
+                score += SliderOnQueen * popCount(b) * (1 + queenImbalance);
             }
 
             if (Trace) {

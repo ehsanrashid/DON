@@ -178,12 +178,6 @@ constexpr bool moreThanOne(Bitboard bb) {
     return (bb & (bb - 1)) != 0;
 }
 
-/// Counts the occupation of the bitboard depending on the occupation of SQ_A1
-/// as in `bb & (1ULL << SQ_A1) ? moreThanTwo(bb) : moreThanOne(bb)`
-constexpr bool conditionalMoreThanTwo(Bitboard bb) {
-    return (bb & (bb - 1) & (bb - 2)) != 0;
-}
-
 /// Shift the bitboard using delta
 template<Direction> constexpr Bitboard shift(Bitboard) { return 0; }
 template<> constexpr Bitboard shift<NORTH     >(Bitboard bb) { return (bb) <<  8; }

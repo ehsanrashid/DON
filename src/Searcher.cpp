@@ -1281,14 +1281,6 @@ namespace {
             if (mType(move) == CASTLE) {
                 extension = 1;
             }
-            else
-            // Late irreversible move extension
-            if (move == ttMove
-             && pos.clockPly() > 80
-             && (captureOrPromotion
-              || pType(mp) == PAWN)) {
-                extension = 2;
-            }
 
             // Add extension to new depth
             newDepth += extension;
@@ -1327,7 +1319,8 @@ namespace {
                     // Increase if other threads are searching this position.
                     +1 * threadMarker.marked
                     // Increase if move count pruning
-                    +1 * (moveCountPruning && !pastPV)
+                    +1 * (moveCountPruning
+                       && !pastPV)
                     // Decrease if the ttHit running average is large
                     -1 * (thread->ttHitAvg > 473 * TTHitAverageWindow)
                     // Decrease if position is or has been on the PV (~10 ELO)
@@ -1335,7 +1328,12 @@ namespace {
                     // Decrease if move has been singularly extended (~3 ELO)
                     -(1 + pastPV) * singularQuietLMR
                     // Decrease if opponent's move count is high (~5 ELO)
-                    -1 * ((ss-1)->moveCount > 13);
+                    -1 * ((ss-1)->moveCount > 13)
+                    // Decrease reduction at non-check cut nodes for second move at low depths
+                    -1 * (cutNode
+                       && !inCheck
+                       && depth <= 10
+                       && moveCount <= 2);
 
                 if (captureOrPromotion) {
                     // Increase reduction for captures/promotions at low depth and late move
