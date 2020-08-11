@@ -359,7 +359,7 @@ namespace Evaluator {
                             // No relevant attacks
                          && (attacks & targets) == 0
                          && !moreThanOne(targets
-                                       & (contains(SlotFileBB[CS_QUEN], s) ? SlotFileBB[CS_QUEN] : SlotFileBB[CS_KING]))) {
+                                       & (contains(SlotFileBB[CS_KING], s) ? SlotFileBB[CS_KING] : SlotFileBB[CS_QUEN]))) {
                             score += KnightBadOutpost;
                         }
                         else

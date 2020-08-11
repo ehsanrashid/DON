@@ -97,7 +97,7 @@ namespace {
     inline Depth reduction(Depth d, u08 mc, bool imp) {
         assert(d >= DEPTH_ZERO);
         i32 r{ Reduction[d] * Reduction[mc] };
-        return Depth((r + 570) / 1024 + 1 * (!imp && (r > 1018)));
+        return Depth((r + 509) / 1024 + 1 * (!imp && (r > 894)));
     }
 
     /// Futility Move Count
@@ -143,7 +143,7 @@ namespace {
 
     /// statBonus() is the bonus, based on depth
     constexpr i32 statBonus(Depth depth) {
-        return depth <= 15 ? (17 * depth + 133) * depth - 134 : 27;
+        return depth <= 13 ? (17 * depth + 134) * depth - 134 : 29;
     }
 
     /// updateContinuationStats() updates Stats of the move pairs formed
@@ -195,7 +195,7 @@ namespace {
         if (depth > 11
          //&& ss->ply >= 0
          && ss->ply < MAX_LOWPLY) {
-            th->lowPlyStats[ss->ply][mMask(move)] << statBonus(depth - 6);
+            th->lowPlyStats[ss->ply][mMask(move)] << statBonus(depth - 7);
         }
 
         // Refutation Moves
@@ -441,7 +441,7 @@ namespace {
                 }
             }
 
-            futilityBase = bestValue + 141;
+            futilityBase = bestValue + 145;
         }
 
         auto *thread{ pos.thread() };
@@ -874,7 +874,7 @@ namespace {
             if (!rootNode // The RootNode PV handling is not available in qsearch
              && depth == 1
                 // Razor Margin
-             && eval <= alfa - 527) {
+             && eval <= alfa - 510) {
                 return quienSearch<PVNode>(pos, ss, alfa, beta);
             }
 
@@ -888,7 +888,7 @@ namespace {
             if (!PVNode
              && depth <= 7
                 // Futility Margin
-             && eval - 227 * (depth - 1 * improving) >= beta
+             && eval - 223 * (depth - 1 * improving) >= beta
              && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
              && Limits.mate == 0) {
                 return eval;
@@ -898,9 +898,9 @@ namespace {
             if (!PVNode
              && eval >= beta
              && (ss-1)->playedMove != MOVE_NULL
-             && (ss-1)->stats < 23824
+             && (ss-1)->stats < 22977
              && eval >= ss->staticEval
-             && ss->staticEval >= beta - 28 * depth - 28 * improving + 94 * ttPv + 200
+             && ss->staticEval >= beta - 30 * depth - 28 * improving + 84 * ttPV + 182
              && pos.nonPawnMaterial(activeSide) > VALUE_ZERO
              //&& pos.count(activeSide) >= 3
              && excludedMove == MOVE_NONE
@@ -908,7 +908,7 @@ namespace {
              && ss->ply >= thread->nmpPly[activeSide]
              && Limits.mate == 0) {
                 // Null move dynamic reduction based on depth and static evaluation.
-                auto nullDepth{ Depth(depth - ((737 + 77 * depth) / 246 + std::min(i32(eval - beta) / 192, 3))) };
+                auto nullDepth{ Depth(depth - ((817 + 77 * depth) / 213 + std::min(i32(eval - beta) / 192, 3))) };
 
                 Key nullMoveKey{ key
                                ^ RandZob.side
@@ -1174,12 +1174,12 @@ namespace {
                          && !inCheck
                          && !(PVNode && std::abs(bestValue) < 2)
                          && PieceValues[MG][pType(mp)] >= PieceValues[MG][pType(cp)]
-                         && ss->staticEval + 261 * lmrDepth + PieceValues[MG][pType(cp)] + 178 <= alfa) {
+                         && ss->staticEval + 244 * lmrDepth + PieceValues[MG][pType(cp)] + 169 <= alfa) {
                             continue;
                         }
                     }
                     // SEE based pruning: negative SEE (~25 ELO)
-                    if (!pos.see(move, Value(-202 * depth))) {
+                    if (!pos.see(move, Value(-221 * depth))) {
                         continue;
                     }
                 }
@@ -1191,22 +1191,22 @@ namespace {
                         continue;
                     }
                     // Futility pruning: parent node. (~5 ELO)
-                    if (lmrDepth <= 5
+                    if (lmrDepth <= 6
                      && !inCheck
-                     && ss->staticEval + 188 * lmrDepth + 284 <= alfa
+                     && ss->staticEval + 170 * lmrDepth + 283 <= alfa
                      && ((*pieceStats[0])[mp][dst]
                        + (*pieceStats[1])[mp][dst]
                        + (*pieceStats[3])[mp][dst]
-                       + (*pieceStats[5])[mp][dst] / 2 < 28388)) {
+                       + (*pieceStats[5])[mp][dst] / 2 < 27376)) {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 ELO)
-                    if (!pos.see(move, Value(-(29 - std::min(lmrDepth, i16(17))) * nSqr(lmrDepth)))) {
+                    if (!pos.see(move, Value(-(29 - std::min(lmrDepth, i16(18))) * nSqr(lmrDepth)))) {
                         continue;
                     }
                 }
             }
-
+            
             // Step 14. Extensions. (~75 ELO)
             auto extension{ DEPTH_ZERO };
 
@@ -1277,7 +1277,10 @@ namespace {
             }
 
             // Castle extension
-            if (mType(move) == CASTLE) {
+            if (mType(move) == CASTLE
+             && popCount( pos.pieces(activeSide)
+                       & ~pos.pieces(PAWN)
+                       & (contains(SlotFileBB[CS_KING], dst) ? SlotFileBB[CS_KING] : SlotFileBB[CS_QUEN])) <= 3) {
                 extension = 1;
             }
             else
@@ -1313,7 +1316,7 @@ namespace {
               || moveCountPruning
               || ss->staticEval + PieceValues[EG][pos.captured()] <= alfa
                 // If ttHit running average is small
-              || thread->ttHitAvg < 415 * TTHitAverageWindow) };
+              || thread->ttHitAvg < 427 * TTHitAverageWindow) };
 
             bool doFullSearch;
             // Step 16. Reduced depth search (LMR, ~200 ELO).
@@ -1329,7 +1332,7 @@ namespace {
                     +1 * (moveCountPruning
                        && !pastPV)
                     // Decrease if the ttHit running average is large
-                    -1 * (thread->ttHitAvg > 473 * TTHitAverageWindow)
+                    -1 * (thread->ttHitAvg > 509 * TTHitAverageWindow)
                     // Decrease if position is or has been on the PV (~10 ELO)
                     -2 * ttPV
                     // Decrease if move has been singularly extended (~3 ELO)
@@ -1350,7 +1353,7 @@ namespace {
                     }
                     // Increase reduction for captures/promotions that don't give check if static eval is bad enough
                     if (!giveCheck
-                     && ss->staticEval + PieceValues[EG][pos.captured()] + 211 * depth <= alfa) {
+                     && ss->staticEval + PieceValues[EG][pos.captured()] + 213 * depth <= alfa) {
                         reductDepth += 1;
                     }
                 }
@@ -1374,17 +1377,17 @@ namespace {
                         + (*pieceStats[0])[mp][dst]
                         + (*pieceStats[1])[mp][dst]
                         + (*pieceStats[3])[mp][dst]
-                        - 4826;
+                        - 5287;
 
                     // Decrease/Increase reduction by comparing opponent's stat score (~10 Elo)
                     reductDepth +=
-                        +1 * ( ((ss-1)->stats >= -125
-                             && (ss-0)->stats <  -138)
-                             - ((ss-0)->stats >= -100
-                             && (ss-1)->stats <  -112));
+                        +1 * ( ((ss-1)->stats >= -119
+                             && (ss-0)->stats <  -140)
+                             - ((ss-0)->stats >= -106
+                             && (ss-1)->stats <  -104));
 
                     // Decrease/Increase reduction for moves with a good/bad history (~30 Elo)
-                    reductDepth -= i16(ss->stats / 14615);
+                    reductDepth -= i16(ss->stats / 14884);
                 }
 
                 auto d{ Depth(clamp(newDepth - reductDepth, 1, {newDepth})) };
@@ -1623,7 +1626,7 @@ void Limit::clear() {
 namespace Searcher {
 
     void initialize() {
-        double r{ 24.8 + std::log(Threadpool.size()) };
+        double r{ 22.0 + std::log(Threadpool.size()) };
         Reduction[0] = 0;
         for (i16 i = 1; i < MaxMoves; ++i) {
             Reduction[i] = i32(r * std::log(i));
@@ -1748,7 +1751,7 @@ void Thread::search() {
 
             // Reset aspiration window starting size.
             if (rootDepth >= 4) {
-                window = Value(19);
+                window = Value(17);
                 auto oldValue{ rootMoves[pvCur].oldValue };
                 alfa = std::max(oldValue - window, -VALUE_INFINITE);
                 beta = std::min(oldValue + window, +VALUE_INFINITE);
@@ -1757,7 +1760,7 @@ void Thread::search() {
                 auto dc{ bc };
                 i32 contemptValue{ Options["Contempt Value"] };
                 if (contemptValue != 0) {
-                    dc += ((110 - bc / 2) * oldValue * 100) / ((std::abs(oldValue) + 140) * contemptValue);
+                    dc += ((105 - bc / 2) * oldValue * 100) / ((std::abs(oldValue) + 149) * contemptValue);
                 }
                 contempt = rootPos.activeSide() == WHITE ?
                             +makeScore(dc, dc / 2) :
@@ -1868,13 +1871,13 @@ void Thread::search() {
 
                 // Reduce time if the bestMove is stable over 10 iterations
                 // Time Reduction
-                timeReduction = 0.95 + 0.97 * ((finishedDepth - mainThread->bestDepth) > 10);
+                timeReduction = 0.95 + 0.97 * ((finishedDepth - mainThread->bestDepth) > 9);
                 // Reduction Ratio - Use part of the gained time from a previous stable move for the current move
-                double reductionRatio{ (1.47 + mainThread->timeReduction) / (2.22 * timeReduction) };
+                double reductionRatio{ (1.47 + mainThread->timeReduction) / (2.32 * timeReduction) };
                 // Eval Falling factor
-                double fallingEval{ clamp((296
+                double fallingEval{ clamp((318
                                          + 6 * (mainThread->bestValue - bestValue)
-                                         + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 725.0,
+                                         + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 825.0,
                                           0.50, 1.50) };
 
                 pvChangeSum += Threadpool.sum(&Thread::pvChange);
@@ -1902,7 +1905,7 @@ void Thread::search() {
                     }
                 }
                 else
-                if (elapsed > totalTime * 0.56) {
+                if (elapsed > totalTime * 0.58) {
                     if (!mainThread->ponder) {
                         Threadpool.research = true;
                     }

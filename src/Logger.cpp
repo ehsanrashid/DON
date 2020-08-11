@@ -20,10 +20,11 @@ namespace {
 
         auto time{ std::chrono::system_clock::to_time_t(tp) };
 
-        auto const *ltm{ localtime(&time) };
+        tm ltm;
+        localtime_s(&ltm, &time);
         char const *format{ "%Y.%m.%d-%H.%M.%S" };
         char buffer[32];
-        strftime(buffer, sizeof (buffer), format, ltm);
+        strftime(buffer, sizeof (buffer), format, (const tm*)&ltm);
         str.append(buffer);
 
         auto ms{ std::chrono::duration_cast<std::chrono::milliseconds>
