@@ -886,7 +886,7 @@ namespace {
             // Betting that the opponent doesn't have a move that will reduce
             // the score by more than futility margins if do a null move.
             if (!PVNode
-             && depth <= 5
+             && depth <= 7
                 // Futility Margin
              && eval - 227 * (depth - 1 * improving) >= beta
              && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
@@ -900,7 +900,7 @@ namespace {
              && (ss-1)->playedMove != MOVE_NULL
              && (ss-1)->stats < 23824
              && eval >= ss->staticEval
-             && ss->staticEval >= beta - 33 * depth - 33 * improving + 112 * ttPV + 311
+             && ss->staticEval >= beta - 28 * depth - 28 * improving + 94 * ttPv + 200
              && pos.nonPawnMaterial(activeSide) > VALUE_ZERO
              //&& pos.count(activeSide) >= 3
              && excludedMove == MOVE_NONE
@@ -1128,6 +1128,12 @@ namespace {
                 }
             }
 
+            // Check for legality
+            if (!rootNode
+             && !pos.legal(move)) {
+                continue;
+            }
+
             ss->moveCount = ++moveCount;
 
             if (PVNode) {
@@ -1164,11 +1170,11 @@ namespace {
                             continue;
                         }
                         // Futility pruning for captures
-                        if (lmrDepth <= 5
+                        if (lmrDepth <= 7
                          && !inCheck
                          && !(PVNode && std::abs(bestValue) < 2)
                          && PieceValues[MG][pType(mp)] >= PieceValues[MG][pType(cp)]
-                         && ss->staticEval + 391 * lmrDepth + PieceValues[MG][pType(cp)] + 267 <= alfa) {
+                         && ss->staticEval + 261 * lmrDepth + PieceValues[MG][pType(cp)] + 178 <= alfa) {
                             continue;
                         }
                     }
@@ -1201,13 +1207,6 @@ namespace {
                 }
             }
 
-            // Check for legality just before making the move
-            if (!rootNode
-             && !pos.legal(move)) {
-                ss->moveCount = --moveCount;
-                continue;
-            }
-
             // Step 14. Extensions. (~75 ELO)
             auto extension{ DEPTH_ZERO };
 
@@ -1218,7 +1217,7 @@ namespace {
             // To verify this do a reduced search on all the other moves but the ttMove,
             // if result is lower than ttValue minus a margin then extend ttMove.
             if (!rootNode
-             && depth >= 6
+             && depth >= 7
              && ttHit
              && move == ttMove
              && excludedMove == MOVE_NONE // Avoid recursive singular search
@@ -1281,6 +1280,14 @@ namespace {
             if (mType(move) == CASTLE) {
                 extension = 1;
             }
+            else
+            // Late irreversible move extension
+            if (move == ttMove
+             && pos.clockPly() > 80
+             && (captureOrPromotion
+              || pType(mp) == PAWN)) {
+                extension = 2;
+            }
 
             // Add extension to new depth
             newDepth += extension;
@@ -1297,7 +1304,7 @@ namespace {
 
             bool doLMR{
                 depth >= 3
-             && moveCount > (1 + 2 * rootNode)
+             && moveCount > 1 + 2 * rootNode + 2 * (PVNode && abs(bestValue) < 2)
              && (!rootNode
                 // At root if zero best counter
               || thread->rootMoves.bestCount(thread->pvCur, thread->pvEnd, move) == 0)

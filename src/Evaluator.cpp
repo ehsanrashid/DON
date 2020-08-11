@@ -155,7 +155,6 @@ namespace Evaluator {
         constexpr Score RookOnKingRing    { S( 16,  0) };
         constexpr Score RookTrapped       { S( 55, 13) };
         constexpr Score QueenAttacked     { S( 56, 15) };
-        constexpr Score QueenInfiltration { S( -2, 14) };
         constexpr Score PawnLessFlank     { S( 17, 95) };
         constexpr Score PasserFile        { S( 11,  8) };
         constexpr Score KingFlankAttacks  { S(  8,  0) };
@@ -347,7 +346,8 @@ namespace Evaluator {
                     // Bonus if the piece is on an outpost square or can reach one
                     // Reduced bonus for knights (BadOutpost) if few relevant targets
                     b =  OutpostBB[Own]
-                      &  sqlAttacks[Own][PAWN]
+                      &  (sqlAttacks[Own][PAWN]
+                        | pawnSglPushBB<Opp>(pos.pieces(PAWN)))
                       & ~pawnEntry->attacksSpan[Opp];
 
                     if (PT == NIHT) {
@@ -469,11 +469,6 @@ namespace Evaluator {
                          &  fileBB(s)
                          & ~pawnSglAttackBB<Own>(pos.pieces(Own))))) != 0) {
                         score -= QueenAttacked;
-                    }
-                    // Bonus for queen on weak square in enemy camp
-                    if (relativeRank(Own, s) > RANK_4
-                     && !contains(pawnEntry->attacksSpan[Opp], s)) {
-                        score += QueenInfiltration;
                     }
                 }
 

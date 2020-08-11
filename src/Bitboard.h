@@ -1,5 +1,9 @@
 #pragma once
 
+#if !defined(NDEBUG)
+    #include <string>
+#endif
+
 #include "Type.h"
 
 // When no Makefile used

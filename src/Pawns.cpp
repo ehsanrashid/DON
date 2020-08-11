@@ -10,18 +10,18 @@ namespace Pawns {
 
     namespace {
         // Connected pawn bonus
-        constexpr i32 Connected[RANKS] { 0, 7, 8, 12, 29, 48, 86, 0 };
+        constexpr i32 Connected[RANKS] { 0, 7, 8, 11, 24, 45, 85, 0 };
 
     #define S(mg, eg) makeScore(mg, eg)
 
-        constexpr Score Backward       { S( 9,24) };
-        constexpr Score Isolated       { S( 5,15) };
-        constexpr Score Unopposed      { S(13,27) };
-        constexpr Score WeakDoubled    { S(11,56) };
-        constexpr Score WeakTwiceLever { S( 0,56) };
+        constexpr Score Backward       { S( 8,27) };
+        constexpr Score Isolated       { S( 5,17) };
+        constexpr Score Unopposed      { S(15,25) };
+        constexpr Score WeakDoubled    { S(11,55) };
+        constexpr Score WeakTwiceLever { S( 2,54) };
 
         // Bonus for blocked pawns at 5th or 6th rank
-        constexpr Score BlockedPawn[2] { S(-11, -4), S(-3, 4) };
+        constexpr Score BlockedPawn[2] { S(-13, -4), S(-4, 3) };
 
     #undef S
 
