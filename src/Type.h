@@ -109,7 +109,9 @@ enum Square : i08 {
     SQ_A6, SQ_B6, SQ_C6, SQ_D6, SQ_E6, SQ_F6, SQ_G6, SQ_H6,
     SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
-    SQ_NONE, SQUARES = 64
+    SQ_NONE,
+    SQUARE_ZERO = 0,
+    SQUARES = 64
 };
 
 enum Direction : i08 {
@@ -169,7 +171,111 @@ enum Piece : u08 {
     NO_PIECE,
     W_PAWN = 1, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
     B_PAWN = 9, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
-    PIECES = 15
+    PIECES = 16
+};
+
+// An ID used to track the pieces. Max. 32 pieces on board.
+enum PieceId {
+    PIECE_ID_ZERO   = 0,
+    PIECE_ID_KING   = 30,
+    PIECE_ID_WKING  = 30,
+    PIECE_ID_BKING  = 31,
+    PIECE_ID_NONE   = 32
+};
+
+inline PieceId operator++(PieceId &d, int) {
+    PieceId x = d;
+    d = PieceId(int(d) + 1);
+    return x;
+}
+
+// unique number for each piece type on each square
+enum PieceSquare : uint32_t {
+    PS_NONE     =  0,
+    PS_W_PAWN   =  1,
+    PS_B_PAWN   =  1 * SQUARES + 1,
+    PS_W_KNIGHT =  2 * SQUARES + 1,
+    PS_B_KNIGHT =  3 * SQUARES + 1,
+    PS_W_BISHOP =  4 * SQUARES + 1,
+    PS_B_BISHOP =  5 * SQUARES + 1,
+    PS_W_ROOK   =  6 * SQUARES + 1,
+    PS_B_ROOK   =  7 * SQUARES + 1,
+    PS_W_QUEEN  =  8 * SQUARES + 1,
+    PS_B_QUEEN  =  9 * SQUARES + 1,
+    PS_W_KING   = 10 * SQUARES + 1,
+    PS_END      = PS_W_KING, // pieces without kings (pawns included)
+    PS_B_KING   = 11 * SQUARES + 1,
+    PS_END2     = 12 * SQUARES + 1
+};
+
+struct ExtPieceSquare {
+    PieceSquare from[COLORS];
+};
+
+// Array for finding the PieceSquare corresponding to the piece on the board
+extern ExtPieceSquare kpp_board_index[PIECES];
+
+constexpr bool isOk(PieceId pid);
+constexpr Square rotate180(Square sq);
+
+// Structure holding which tracked piece (PieceId) is where (PieceSquare)
+class EvalList {
+
+public:
+    // Max. number of pieces without kings is 30 but must be a multiple of 4 in AVX2
+    static const int MAX_LENGTH = 32;
+
+    // Array that holds the piece id for the pieces on the board
+    PieceId piece_id_list[SQUARES];
+
+    // List of pieces, separate from White and Black POV
+    PieceSquare* piece_list_fw() const { return const_cast<PieceSquare*>(pieceListFw); }
+    PieceSquare* piece_list_fb() const { return const_cast<PieceSquare*>(pieceListFb); }
+
+    // Place the piece pc with piece_id on the square sq on the board
+    void put_piece(PieceId piece_id, Square sq, Piece pc)
+    {
+        assert(isOk(piece_id));
+        if (pc != NO_PIECE)
+        {
+            pieceListFw[piece_id] = PieceSquare(kpp_board_index[pc].from[WHITE] + sq);
+            pieceListFb[piece_id] = PieceSquare(kpp_board_index[pc].from[BLACK] + rotate180(sq));
+            piece_id_list[sq] = piece_id;
+        }
+        else
+        {
+            pieceListFw[piece_id] = PS_NONE;
+            pieceListFb[piece_id] = PS_NONE;
+            piece_id_list[sq] = piece_id;
+        }
+    }
+
+    // Convert the specified piece_id piece to ExtPieceSquare type and return it
+    ExtPieceSquare piece_with_id(PieceId piece_id) const
+    {
+        ExtPieceSquare eps;
+        eps.from[WHITE] = pieceListFw[piece_id];
+        eps.from[BLACK] = pieceListFb[piece_id];
+        return eps;
+    }
+
+private:
+    PieceSquare pieceListFw[MAX_LENGTH];
+    PieceSquare pieceListFb[MAX_LENGTH];
+};
+
+// For differential evaluation of pieces that changed since last turn
+struct DirtyPiece {
+
+    // Number of changed pieces
+    int dirty_num;
+
+    // The ids of changed pieces, max. 2 pieces can change in one move
+    PieceId pieceId[2];
+
+    // What changed from the piece with that piece number
+    ExtPieceSquare old_piece[2];
+    ExtPieceSquare new_piece[2];
 };
 
 enum MoveType : u16 {
@@ -282,6 +388,8 @@ INC_DEC_OPERATORS(Rank)
 INC_DEC_OPERATORS(Square)
 INC_DEC_OPERATORS(PieceType)
 INC_DEC_OPERATORS(Piece)
+INC_DEC_OPERATORS(PieceSquare)
+INC_DEC_OPERATORS(PieceId)
 INC_DEC_OPERATORS(CastleSide)
 #undef INC_DEC_OPERATORS
 
@@ -452,6 +560,14 @@ constexpr Color pColor(Piece p) {
 
 constexpr Piece flipColor(Piece p) {
     return Piece(p ^ (BLACK << 3));
+}
+
+constexpr bool isOk(PieceId pid) {
+    return pid < PIECE_ID_NONE;
+}
+// Return relative square when turning the board 180 degrees
+constexpr Square rotate180(Square s) {
+    return (Square)(s ^ 0x3F);
 }
 
 constexpr CastleRight makeCastleRight(Color c) {

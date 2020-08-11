@@ -8,9 +8,9 @@
 
 #include "Helper.h"
 #include "Debugger.h"
-#include "Evaluator.h"
 #include "Polyglot.h"
 #include "Position.h"
+#include "Evaluator.h"
 #include "Logger.h"
 #include "MoveGenerator.h"
 #include "Notation.h"
@@ -136,7 +136,39 @@ string const compilerInfo() {
     oss << " on unknown system";
 #endif
 
-    oss << "\n __VERSION__ macro expands to: ";
+    oss << "\nCompilation settings include: ";
+#if defined(BIT64)
+    oss << " 64bit";
+#else
+    oss << " 32bit";
+#endif
+
+#if defined(USE_AVX512)
+    oss << " AVX512";
+#endif
+#if defined(USE_AVX2)
+    oss << " AVX2";
+#endif
+#if defined(USE_SSE41)
+    oss << " SSE41";
+#endif
+#if defined(USE_SSSE3)
+    oss << " SSSE3";
+#endif
+#if defined(BM2)
+    oss << " BMI2";
+#endif
+#if defined(ABM)
+    oss << " POPCNT";
+#endif
+#if defined(USE_MMX)
+    oss << " MMX";
+#endif
+#if !defined(NDEBUG)
+    oss << " DEBUG";
+#endif
+
+    oss << "\n__VERSION__ macro expands to: ";
 #ifdef __VERSION__
     oss << __VERSION__;
 #else
@@ -378,52 +410,52 @@ namespace UCI {
 
     }
 
-    void initialize() {
+    void initialize(StringOptionMap &om) {
 
-        Options["Hash"]               << Option(16, 0, TTable::MaxHashSize, onHash);
+        om["Hash"]               << Option(16, 0, TTable::MaxHashSize, onHash);
 
-        Options["Clear Hash"]         << Option(onClearHash);
-        Options["Retain Hash"]        << Option(false);
+        om["Clear Hash"]         << Option(onClearHash);
+        om["Retain Hash"]        << Option(false);
 
-        Options["Hash File"]          << Option("Hash.dat");
-        Options["Save Hash"]          << Option(onSaveHash);
-        Options["Load Hash"]          << Option(onLoadHash);
+        om["Hash File"]          << Option("Hash.dat");
+        om["Save Hash"]          << Option(onSaveHash);
+        om["Load Hash"]          << Option(onLoadHash);
 
-        Options["Use Book"]           << Option(false);
-        Options["Book File"]          << Option("Book.bin", onBookFile);
-        Options["Book Pick Best"]     << Option(true);
-        Options["Book Move Num"]      << Option(20, 0, 100);
+        om["Use Book"]           << Option(false);
+        om["Book File"]          << Option("Book.bin", onBookFile);
+        om["Book Pick Best"]     << Option(true);
+        om["Book Move Num"]      << Option(20, 0, 100);
 
-        Options["Threads"]            << Option(1, 0, 512, onThreads);
+        om["Threads"]            << Option(1, 0, 512, onThreads);
 
-        Options["Skill Level"]        << Option(MaxLevel,  0, MaxLevel);
+        om["Skill Level"]        << Option(MaxLevel,  0, MaxLevel);
 
-        Options["MultiPV"]            << Option( 1, 1, 500);
+        om["MultiPV"]            << Option( 1, 1, 500);
 
-        Options["Fixed Contempt"]     << Option(  0, -100, 100);
-        Options["Contempt Time"]      << Option( 40,    0, 1000);
-        Options["Contempt Value"]     << Option(100,    0, 1000);
-        Options["Analysis Contempt"]  << Option("Both var Off var White var Black var Both", "Both");
+        om["Fixed Contempt"]     << Option(  0, -100, 100);
+        om["Contempt Time"]      << Option( 40,    0, 1000);
+        om["Contempt Value"]     << Option(100,    0, 1000);
+        om["Analysis Contempt"]  << Option("Both var Off var White var Black var Both", "Both");
 
-        Options["Draw MoveCount"]     << Option(50, 5, 50);
+        om["Draw MoveCount"]     << Option(50, 5, 50);
 
-        Options["Overhead MoveTime"]  << Option( 10,  0, 5000);
-        Options["Move Slowness"]      << Option(100, 10, 1000);
-        Options["Ponder"]             << Option(true);
-        Options["Time Nodes"]         << Option( 0,  0, 10000, onTimeNodes);
+        om["Overhead MoveTime"]  << Option( 10,  0, 5000);
+        om["Move Slowness"]      << Option(100, 10, 1000);
+        om["Ponder"]             << Option(true);
+        om["Time Nodes"]         << Option( 0,  0, 10000, onTimeNodes);
 
-        Options["SyzygyPath"]         << Option("", onSyzygyPath);
-        Options["SyzygyDepthLimit"]   << Option(1, 1, 100);
-        Options["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
-        Options["SyzygyMove50Rule"]   << Option(true);
+        om["SyzygyPath"]         << Option("", onSyzygyPath);
+        om["SyzygyDepthLimit"]   << Option(1, 1, 100);
+        om["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
+        om["SyzygyMove50Rule"]   << Option(true);
 
-        Options["Debug File"]         << Option("", onDebugFile);
+        om["Debug File"]         << Option("", onDebugFile);
 
-        Options["UCI_Chess960"]       << Option(false);
-        Options["UCI_ShowWDL"]        << Option(false);
-        Options["UCI_AnalyseMode"]    << Option(false);
-        Options["UCI_LimitStrength"]  << Option(false);
-        Options["UCI_Elo"]            << Option(1350, 1350, 3100);
+        om["UCI_Chess960"]       << Option(false);
+        om["UCI_ShowWDL"]        << Option(false);
+        om["UCI_AnalyseMode"]    << Option(false);
+        om["UCI_LimitStrength"]  << Option(false);
+        om["UCI_Elo"]            << Option(1350, 1350, 3100);
 
     }
 

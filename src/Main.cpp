@@ -4,6 +4,7 @@
 #include "Bitboard.h"
 #include "Cuckoo.h"
 #include "Endgame.h"
+#include "Evaluator.h"
 #include "Polyglot.h"
 #include "PSQTable.h"
 #include "Searcher.h"
@@ -24,10 +25,11 @@ int main(int argc, char const *const *argv) {
     PSQT::initialize();
     Zobrists::initialize();
     Cuckoos::initialize();
-    UCI::initialize();
+    UCI::initialize(Options);
     EndGame::initialize();
     Book.initialize(Options["Book File"]);
     Threadpool.setup(optionThreads());
+    Evaluator::init_NNUE();
     TimeMgr.clear();
     UCI::clear();
 

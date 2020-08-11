@@ -2,6 +2,13 @@
 
 [![Build Status](https://www.donchess.net)](https://www.donchess.net)
 
+[DON] is a free, powerful UCI chess engine.
+It features two evaluation functions, the classical evaluation based on handcrafted terms,
+and the NNUE evaluation based on efficiently updateable neural networks.
+The classical evaluation runs efficiently on most 64bit CPU architectures,
+while the NNUE evaluation benefits strongly from the vector intrinsics
+available on modern CPUs (avx2 or similar).
+
 DON is a free UCI chess engine. It is not a complete chess program
 and requires some UCI-compatible GUI (e.g. XBoard with Polyglot,
 eboard, Arena, Sigma Chess, Shredder, Chess Partner or Fritz)
@@ -36,21 +43,14 @@ This distribution of DON consists of the following files:
   * src, a subdirectory containing the full source code, including a Makefile
     that can be used to compile DON on Unix-like systems.
 
+To use the NNUE evaluation an additional data file with neural network parameters
+needs to be downloaded. The filename for the default set can be found as the default
+value of the `EvalFile` UCI option, with the format
+`nn-[SHA256 first 12 digits].nnue` (e.g. nn-c157e0a5755b.nnue).
 
-## UCI parameters
+## UCI options
 
 Currently, DON has the following UCI options:
-
-  * #### Contempt
-    A positive value for contempt favors middle game positions and avoids draws.
-
-  * #### Analysis Contempt
-    By default, contempt is set to prefer the side to move. Set this option to "White"
-    or "Black" to analyse with contempt for that side, or "Off" to disable contempt.
-
-  * #### Threads
-    The number of CPU threads used for searching a position. For best performance, set
-    this equal to the number of CPU cores available.
 
   * #### Hash
     The size of the hash table in MB.
@@ -58,25 +58,40 @@ Currently, DON has the following UCI options:
   * #### Clear Hash
     Clear the hash table.
 
-  * #### Ponder
-    Let DON ponder its next move while the opponent is thinking.
+  * #### Retain Hash
+    Retain the hash table.
 
+  * #### Hash File
+    Hash file name.
+    
+  * #### Threads
+    The number of CPU threads used for searching a position. For best performance, set
+    this equal to the number of CPU cores available.
+
+  * #### Skill Level
+    Lower the Skill Level in order to make Stockfish play weaker (see also UCI_LimitStrength).
+    Internally, MultiPV is enabled, and with a certain probability depending on the Skill Level a
+    weaker move will be played.
+    
   * #### MultiPV
     Output the N best lines (principal variations, PVs) when searching.
     Leave at 1 for best performance.
+    
+  * #### Contempt
+    A positive value for contempt favors middle game positions and avoids draws.
 
-  * #### Skill Level
-    Lower the Skill Level in order to make DON play weaker (see also UCI_LimitStrength).
-    Internally, MultiPV is enabled, and with a certain probability depending on the Skill Level a
-    weaker move will be played.
+  * #### Analysis Contempt
+    By default, contempt is set to prefer the side to move. Set this option to "White"
+    or "Black" to analyse with contempt for that side, or "Off" to disable contempt.
 
-  * #### UCI_LimitStrength
-    Enable weaker play aiming for an Elo rating as set by UCI_Elo. This option overrides Skill Level.
+  * #### Use NNUE
+    Toggle between the NNUE and classical evaluation functions. If set to "true",
+    the network parameters must be available to load from file (see also EvalFile).
 
-  * #### UCI_Elo
-    If enabled by UCI_LimitStrength, aim for an engine strength of the given Elo.
-    This Elo rating has been calibrated at a time control of 60s+0.6s and anchored to CCRL 40/4.
-
+  * #### EvalFile
+    The name of the file of the NNUE evaluation parameters. Depending on the GUI the
+    filename should include the full path to the folder/directory that contains the file.
+    
   * #### Overhead Move Time
     Assume a time delay of x ms due to network and GUI overheads. This is useful to
     avoid losses on time in those cases.
@@ -85,15 +100,12 @@ Currently, DON has the following UCI options:
     Lower values will make DON take less time in games, higher values will
     make it think longer.
 
+  * #### Ponder
+    Let DON ponder its next move while the opponent is thinking.
+    
   * #### Nodes Time
     Tells the engine to use nodes searched instead of wall time to account for
     elapsed time. Useful for engine testing.
-
-  * #### UCI_Chess960
-    An option handled by your GUI. If true, DON will play Chess960.
-
-  * #### UCI_AnalyseMode
-    An option handled by your GUI.
 
   * #### Debug File
     Write all communication to and from the engine into a text file.
@@ -124,6 +136,45 @@ Currently, DON has the following UCI options:
   * #### SyzygyPieceLimit
     Limit Syzygy tablebase probing to positions with at most this many pieces left
     (including kings and pawns).
+
+  * #### UCI_Chess960
+    An option handled by your GUI. If true, Stockfish will play Chess960.
+
+  * #### UCI_ShowWDL
+    If enabled, show approximate WDL statistics as part of the engine output.
+    These WDL numbers model expected game outcomes for a given evaluation and
+    game ply for engine self-play at fishtest LTC conditions (60+0.6s per game).
+
+  * #### UCI_LimitStrength
+    Enable weaker play aiming for an Elo rating as set by UCI_Elo. This option overrides Skill Level.
+
+  * #### UCI_Elo
+    If enabled by UCI_LimitStrength, aim for an engine strength of the given Elo.
+    This Elo rating has been calibrated at a time control of 60s+0.6s and anchored to CCRL 40/4.
+    
+## Classical and NNUE evaluation
+
+Both approaches assign a value to a position that is used in alpha-beta (PVS) search
+to find the best move. The classical evaluation computes this value as a function
+of various chess concepts, handcrafted by experts, tested and tuned using fishtest.
+The NNUE evaluation computes this value with a neural network based on basic
+inputs (e.g. piece positions only). The network is optimized and trained
+on the evalutions of millions of positions at moderate search depth.
+
+The NNUE evaluation was first introduced in shogi, and ported to Stockfish afterward.
+It can be evaluated efficiently on CPUs, and exploits the fact that only parts
+of the neural network need to be updated after a typical chess move.
+[The nodchip repository](https://github.com/nodchip/Stockfish) provides additional
+tools to train and develop the NNUE networks.
+
+On CPUs supporting modern vector instructions (avx2 and similar), the NNUE evaluation
+results in stronger playing strength, even if the nodes per second computed by the engine
+is somewhat lower (roughly 60% of nps is typical).
+
+Note that the NNUE evaluation depends on the Stockfish binary and the network parameter
+file (see EvalFile). Not every parameter file is compatible with a given Stockfish binary.
+The default value of the EvalFile UCI option is the name of a network that is guaranteed
+to be compatible with that binary.
 
 ## What to expect from Syzygybases?
 

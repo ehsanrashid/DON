@@ -184,3 +184,5 @@ $RECYCLE.BIN/
 src/DON
 
 \.vscode/
+*.db-shm
+*.db-wal

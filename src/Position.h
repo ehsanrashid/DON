@@ -6,6 +6,7 @@
 
 #include "Bitboard.h"
 #include "Type.h"
+#include "nnue/nnue_accumulator.h"
 
 /// StateInfo stores information needed to restore a Position object to its previous state when we retract a move.
 ///
@@ -39,6 +40,10 @@ struct StateInfo {
     Bitboard kingBlockers[COLORS]; // Absolute and Discover Blockers
     Bitboard kingCheckers[COLORS]; // Absolute and Discover Checkers
     Bitboard checks[PIECE_TYPES];
+
+    // Used by NNUE
+    Evaluator::NNUE::Accumulator accumulator;
+    DirtyPiece dirtyPiece;
 
     StateInfo *ptr;             // Previous StateInfo pointer
 };
@@ -88,6 +93,8 @@ private:
 
     StateInfo *_stateInfo;
     Thread    *_thread;
+    // List of pieces used in NNUE evaluation function
+    EvalList evalList;
 
     void placePiece(Square, Piece);
     void removePiece(Square);
@@ -97,6 +104,9 @@ private:
     void setCheckInfo();
 
     bool canEnpassant(Color, Square, bool = true) const;
+
+    // ID of a piece on a given square
+    PieceId piece_id_on(Square sq) const;
 
 public:
 
@@ -206,6 +216,10 @@ public:
 
     void flip();
     void mirror();
+
+    // Used by NNUE
+    StateInfo* state() const;
+    const EvalList* eval_list() const;
 
     std::string fen(bool full = true) const;
 
@@ -462,6 +476,22 @@ inline bool Position::semiopenFileOn(Color c, Square s) const {
 
 inline void Position::doMove(Move m, StateInfo &si) {
     doMove(m, si, giveCheck(m));
+}
+
+
+inline StateInfo* Position::state() const {
+    return _stateInfo;
+}
+inline const EvalList* Position::eval_list() const {
+    return &evalList;
+}
+
+inline PieceId Position::piece_id_on(Square sq) const {
+    assert(board[sq] != NO_PIECE);
+
+    PieceId pid = evalList.piece_id_list[sq];
+    assert(isOk(pid));
+    return pid;
 }
 
 

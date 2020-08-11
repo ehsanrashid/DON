@@ -28,8 +28,7 @@ inline bool compareCaseInsensitiveEqual(u08 ch1, u08 ch2) {
 
 // Case-insensitive comparator for string
 
-struct CaseInsensitiveLessComparer
-    : public std::binary_function<std::string&, std::string&, bool> {
+struct CaseInsensitiveLessComparer {
     bool operator()(std::string const &s1, std::string const &s2) const {
         //return stricmp(s1.c_str(), s2.c_str()) < 0;
         return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end()
@@ -37,8 +36,7 @@ struct CaseInsensitiveLessComparer
     }
 };
 
-struct CaseInsensitiveMoreComparer
-    : public std::binary_function<std::string&, std::string&, bool> {
+struct CaseInsensitiveMoreComparer {
     bool operator()(std::string const &s1, std::string const &s2) const {
         //return stricmp(s1.c_str(), s2.c_str()) > 0;
         return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end()
@@ -46,8 +44,7 @@ struct CaseInsensitiveMoreComparer
     }
 };
 
-struct CaseInsensitiveEqualComparer
-    : public std::binary_function<std::string&, std::string&, bool> {
+struct CaseInsensitiveEqualComparer {
     bool operator()(std::string const &s1, std::string const &s2) const {
         //return stricmp(s1.c_str(), s2.c_str()) == 0;
         return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end()

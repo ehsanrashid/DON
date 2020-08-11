@@ -63,6 +63,29 @@ string& trim(string &str) {
     return str;
 }
 
+/// Wrappers for systems where the c++17 implementation doesn't guarantee the availability of aligned_alloc.
+/// Memory allocated with std_aligned_alloc must be freed with std_aligned_free.
+
+void* std_aligned_alloc(size_t alignment, size_t size) {
+#if (defined(__APPLE__) && defined(_LIBCPP_HAS_C11_FEATURES)) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
+    return aligned_alloc(alignment, size);
+#elif (defined(_WIN32) || (defined(__APPLE__) && !defined(_LIBCPP_HAS_C11_FEATURES)))
+    return _mm_malloc(size, alignment);
+#else
+    return std::aligned_alloc(alignment, size);
+#endif
+}
+
+void std_aligned_free(void *ptr) {
+#if (defined(__APPLE__) && defined(_LIBCPP_HAS_C11_FEATURES)) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
+    free(ptr);
+#elif (defined(_WIN32) || (defined(__APPLE__) && !defined(_LIBCPP_HAS_C11_FEATURES)))
+    _mm_free(ptr);
+#else
+    free(ptr);
+#endif
+}
+
 /// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 std::ostream& operator<<(std::ostream &os, OutputState outputState) {
     static std::mutex Mutex;

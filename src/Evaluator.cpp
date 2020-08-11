@@ -3,12 +3,15 @@
 #include <algorithm>
 #include <cassert>
 #include <cmath>
+#include <cstdlib>
+#include <iostream>
 
 #include "BitBoard.h"
 #include "Helper.h"
 #include "King.h"
 #include "Material.h"
 #include "Pawns.h"
+#include "Position.h"
 #include "Notation.h"
 #include "Thread.h"
 #include "UCI.h"
@@ -1056,7 +1059,12 @@ namespace Evaluator {
 
     /// evaluate() returns a static evaluation of the position from the point of view of the side to move.
     Value evaluate(Position const &pos) {
-        return Evaluation<false>(pos).value();
+        if (useNNUE) {
+            return NNUE::evaluate(pos);
+        }
+        else {
+            return Evaluation<false>(pos).value();
+        }
     }
 
     /// trace() returns a string (suitable for outputting to stdout for debugging)
@@ -1065,38 +1073,85 @@ namespace Evaluator {
         if (pos.checkers() != 0) {
             return "Evaluation: none (in check)\n";
         }
-        // Reset any dynamic contempt
-        auto contempt{ pos.thread()->contempt };
-        pos.thread()->contempt = SCORE_ZERO;
-        auto value{ Evaluation<true>(pos).value() };
-        pos.thread()->contempt = contempt;
-
-        // Trace scores are from White's point of view
-        value = (pos.activeSide() == WHITE ? +value : -value);
 
         std::ostringstream oss;
 
-        oss << "      Eval Term |    White    |    Black    |    Total     \n"
-            << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
-            << "----------------+-------------+-------------+--------------\n"
-            << "       Material" << Term(MATERIAL)
-            << "      Imbalance" << Term(IMBALANCE)
-            << "           Pawn" << Term(PAWN)
-            << "         Knight" << Term(NIHT)
-            << "         Bishop" << Term(BSHP)
-            << "           Rook" << Term(ROOK)
-            << "          Queen" << Term(QUEN)
-            << "       Mobility" << Term(MOBILITY)
-            << "           King" << Term(KING)
-            << "         Threat" << Term(THREAT)
-            << "         Passer" << Term(PASSER)
-            << "          Space" << Term(SPACE)
-            << "        Scaling" << Term(SCALING)
-            << "----------------+-------------+-------------+--------------\n"
-            << "          Total" << Term(TOTAL)
-            << std::showpos << std::showpoint << std::fixed << std::setprecision(2)
+        Value value;
+
+        if (useNNUE) {
+            value = NNUE::evaluate(pos);
+        }
+        else {
+            // Reset any dynamic contempt
+            auto contempt{ pos.thread()->contempt };
+            pos.thread()->contempt = SCORE_ZERO;
+            value = Evaluation<true>(pos).value();
+            pos.thread()->contempt = contempt;
+
+            oss << "      Eval Term |    White    |    Black    |    Total     \n"
+                << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
+                << "----------------+-------------+-------------+--------------\n"
+                << "       Material" << Term(MATERIAL)
+                << "      Imbalance" << Term(IMBALANCE)
+                << "           Pawn" << Term(PAWN)
+                << "         Knight" << Term(NIHT)
+                << "         Bishop" << Term(BSHP)
+                << "           Rook" << Term(ROOK)
+                << "          Queen" << Term(QUEN)
+                << "       Mobility" << Term(MOBILITY)
+                << "           King" << Term(KING)
+                << "         Threat" << Term(THREAT)
+                << "         Passer" << Term(PASSER)
+                << "          Space" << Term(SPACE)
+                << "        Scaling" << Term(SCALING)
+                << "----------------+-------------+-------------+--------------\n"
+                << "          Total" << Term(TOTAL);
+        }
+        
+        // Trace scores are from White's point of view
+        value = (pos.activeSide() == WHITE ? +value : -value);
+        oss << std::showpos << std::showpoint << std::fixed << std::setprecision(2)
             << "\nEvaluation: " << toCP(value) / 100 << " (white side)\n";
 
         return oss.str();
     }
+}
+
+namespace Evaluator {
+
+    bool useNNUE;
+    std::string eval_file_loaded = "None";
+
+    void init_NNUE() {
+
+        useNNUE = Options["Use NNUE"];
+        std::string eval_file = std::string(Options["EvalFile"]);
+        if (useNNUE && eval_file_loaded != eval_file) {
+            if (Evaluator::NNUE::load_eval_file(eval_file)) {
+                eval_file_loaded = eval_file;
+            }
+        }
+    }
+
+    void verify_NNUE() {
+
+        std::string eval_file = std::string(Options["EvalFile"]);
+        if (useNNUE && eval_file_loaded != eval_file)
+        {
+            UCI::StringOptionMap defaults;
+            UCI::initialize(defaults);
+
+            std::cerr << "NNUE evaluation used, but the network file " << eval_file << " was not loaded successfully. "
+                << "These network evaluation parameters must be available, and compatible with this version of the code. "
+                << "The UCI option EvalFile might need to specify the full path, including the directory/folder name, to the file. "
+                << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/"+std::string(defaults["EvalFile"]) << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
+
+        if (useNNUE)
+            sync_cout << "info string NNUE evaluation using " << eval_file << " enabled." << sync_endl;
+        else
+            sync_cout << "info string classical evaluation enabled." << sync_endl;
+    }
+
 }
