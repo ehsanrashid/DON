@@ -35,7 +35,7 @@ u08 popCount16(u16 u) {
 #endif
 
 namespace {
-    
+
     Bitboard slideAttacks(Square s,  Bitboard occ, Direction const directions[]) {
         Bitboard attacks{ 0 };
 

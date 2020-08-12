@@ -24,7 +24,7 @@ namespace {
         localtime_s(&ltm, &time);
         char const *format{ "%Y.%m.%d-%H.%M.%S" };
         char buffer[32];
-        strftime(buffer, sizeof (buffer), format, (const tm*)&ltm);
+        strftime(buffer, sizeof (buffer), format, (tm const*)&ltm);
         str.append(buffer);
 
         auto ms{ std::chrono::duration_cast<std::chrono::milliseconds>

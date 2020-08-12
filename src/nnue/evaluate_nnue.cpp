@@ -37,9 +37,9 @@ namespace Evaluator::NNUE {
     namespace {
 
         /// Wrappers for systems where the c++17 implementation doesn't guarantee the availability of aligned_alloc.
-        /// Memory allocated with std_aligned_alloc must be freed with std_aligned_free.
+        /// Memory allocated with stdAlignedAlloc must be freed with stdAlignedFree.
 
-        void* std_aligned_alloc(size_t alignment, size_t size) {
+        void* stdAlignedAlloc(size_t alignment, size_t size) {
 
 #if (defined(__APPLE__) && defined(_LIBCPP_HAS_C11_FEATURES)) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
             return aligned_alloc(alignment, size);
@@ -50,7 +50,7 @@ namespace Evaluator::NNUE {
 #endif
         }
 
-        void std_aligned_free(void *ptr) {
+        void stdAlignedFree(void *ptr) {
 
 #if (defined(__APPLE__) && defined(_LIBCPP_HAS_C11_FEATURES)) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
             free(ptr);
@@ -65,13 +65,13 @@ namespace Evaluator::NNUE {
 
 
     template<typename T>
-    inline void AlignedDeleter<T>::operator()(T * ptr) const {
+    inline void AlignedDeleter<T>::operator()(T *ptr) const {
         ptr->~T();
-        std_aligned_free(ptr);
+        stdAlignedFree(ptr);
     }
 
     // Input feature converter
-    AlignedPtr<FeatureTransformer> feature_transformer;
+    AlignedPtr<FeatureTransformer> featureTransformer;
 
     // Evaluation function
     AlignedPtr<Network> network;
@@ -83,17 +83,17 @@ namespace Evaluator::NNUE {
 
         // Initialize the evaluation function parameters
         template <typename T>
-        void Initialize(AlignedPtr<T>& pointer) {
+        void Initialize(AlignedPtr<T> &pointer) {
 
-            pointer.reset(reinterpret_cast<T*>(std_aligned_alloc(alignof(T), sizeof(T))));
+            pointer.reset(reinterpret_cast<T*>(stdAlignedAlloc(alignof(T), sizeof(T))));
             std::memset(pointer.get(), 0, sizeof(T));
         }
 
         // Read evaluation function parameters
         template <typename T>
-        bool ReadParameters(std::istream& stream, const AlignedPtr<T>& pointer) {
+        bool ReadParameters(std::istream &stream, const AlignedPtr<T> &pointer) {
 
-            std::uint32_t header;
+            u32 header;
             stream.read(reinterpret_cast<char*>(&header), sizeof(header));
             if (!stream || header != T::GetHashValue()) return false;
             return pointer->ReadParameters(stream);
@@ -104,15 +104,14 @@ namespace Evaluator::NNUE {
     // Initialize the evaluation function parameters
     void Initialize() {
 
-        Detail::Initialize(feature_transformer);
+        Detail::Initialize(featureTransformer);
         Detail::Initialize(network);
     }
 
     // Read network header
-    bool ReadHeader(std::istream& stream,
-        std::uint32_t* hash_value, std::string* architecture) {
+    bool ReadHeader(std::istream &stream, u32 *hash_value, std::string *architecture) {
 
-        std::uint32_t version, size;
+        u32 version, size;
         stream.read(reinterpret_cast<char*>(&version), sizeof(version));
         stream.read(reinterpret_cast<char*>(hash_value), sizeof(*hash_value));
         stream.read(reinterpret_cast<char*>(&size), sizeof(size));
@@ -123,72 +122,68 @@ namespace Evaluator::NNUE {
     }
 
     // Read network parameters
-    bool ReadParameters(std::istream& stream) {
+    bool ReadParameters(std::istream &stream) {
 
-        std::uint32_t hash_value;
+        u32 hash_value;
         std::string architecture;
         if (!ReadHeader(stream, &hash_value, &architecture)) return false;
         if (hash_value != kHashValue) return false;
-        if (!Detail::ReadParameters(stream, feature_transformer)) return false;
+        if (!Detail::ReadParameters(stream, featureTransformer)) return false;
         if (!Detail::ReadParameters(stream, network)) return false;
         return stream && stream.peek() == std::ios::traits_type::eof();
     }
 
     // Proceed with the difference calculation if possible
-    static void UpdateAccumulatorIfPossible(const Position& pos) {
+    static void UpdateAccumulatorIfPossible(Position const &pos) {
 
-        feature_transformer->UpdateAccumulatorIfPossible(pos);
+        featureTransformer->UpdateAccumulatorIfPossible(pos);
     }
 
     // Calculate the evaluation value
-    static Value ComputeScore(const Position& pos, bool refresh) {
+    static Value ComputeScore(Position const &pos, bool refresh) {
 
         auto& accumulator = pos.state()->accumulator;
-        if (!refresh && accumulator.computed_score) {
+        if (!refresh
+         && accumulator.computedScore) {
             return accumulator.score;
         }
 
         alignas(kCacheLineSize) TransformedFeatureType
             transformed_features[FeatureTransformer::kBufferSize];
-        feature_transformer->Transform(pos, transformed_features, refresh);
+        featureTransformer->Transform(pos, transformed_features, refresh);
         alignas(kCacheLineSize) char buffer[Network::kBufferSize];
         const auto output = network->Propagate(transformed_features, buffer);
 
         auto score = static_cast<Value>(output[0] / FV_SCALE);
 
         accumulator.score = score;
-        accumulator.computed_score = true;
+        accumulator.computedScore = true;
         return accumulator.score;
     }
 
     // Load the evaluation function file
-    bool load_eval_file(const std::string& evalFile) {
+    bool loadEvalFile(std::string const &evalFile) {
 
         Initialize();
         fileName = evalFile;
 
         std::ifstream stream(evalFile, std::ios::binary);
-
-        const bool result = ReadParameters(stream);
-
-        return result;
+        return ReadParameters(stream);
     }
 
     // Evaluation function. Perform differential calculation.
-    Value evaluate(const Position& pos) {
-        Value v = ComputeScore(pos, false);
-        v = clamp(v, -VALUE_MATE_2_MAX_PLY + 1, VALUE_MATE_2_MAX_PLY - 1);
-
-        return v;
+    Value evaluate(Position const &pos) {
+        Value v{ ComputeScore(pos, false) };
+        return clamp(v, -VALUE_MATE_2_MAX_PLY + 1, VALUE_MATE_2_MAX_PLY - 1);
     }
 
     // Evaluation function. Perform full calculation.
-    Value compute_eval(const Position& pos) {
+    Value computeEval(Position const &pos) {
         return ComputeScore(pos, true);
     }
 
     // Proceed with the difference calculation if possible
-    void update_eval(const Position& pos) {
+    void updateEval(Position const &pos) {
         UpdateAccumulatorIfPossible(pos);
     }
 

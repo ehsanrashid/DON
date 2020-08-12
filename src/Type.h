@@ -229,21 +229,18 @@ public:
     PieceId piece_id_list[SQUARES];
 
     // List of pieces, separate from White and Black POV
-    PieceSquare* piece_list_fw() const { return const_cast<PieceSquare*>(pieceListFw); }
-    PieceSquare* piece_list_fb() const { return const_cast<PieceSquare*>(pieceListFb); }
+    PieceSquare *piece_list_fw() const { return const_cast<PieceSquare *>(pieceListFw); }
+    PieceSquare *piece_list_fb() const { return const_cast<PieceSquare *>(pieceListFb); }
 
     // Place the piece pc with piece_id on the square sq on the board
-    void put_piece(PieceId piece_id, Square sq, Piece pc)
-    {
+    void putPiece(PieceId piece_id, Square sq, Piece pc) {
         assert(isOk(piece_id));
-        if (pc != NO_PIECE)
-        {
+        if (pc != NO_PIECE) {
             pieceListFw[piece_id] = PieceSquare(kpp_board_index[pc].from[WHITE] + sq);
             pieceListFb[piece_id] = PieceSquare(kpp_board_index[pc].from[BLACK] + rotate180(sq));
             piece_id_list[sq] = piece_id;
         }
-        else
-        {
+        else {
             pieceListFw[piece_id] = PS_NONE;
             pieceListFb[piece_id] = PS_NONE;
             piece_id_list[sq] = piece_id;
@@ -251,8 +248,7 @@ public:
     }
 
     // Convert the specified piece_id piece to ExtPieceSquare type and return it
-    ExtPieceSquare piece_with_id(PieceId piece_id) const
-    {
+    ExtPieceSquare piece_with_id(PieceId piece_id) const {
         ExtPieceSquare eps;
         eps.from[WHITE] = pieceListFw[piece_id];
         eps.from[BLACK] = pieceListFb[piece_id];
@@ -656,8 +652,7 @@ struct ValMove {
 
     ValMove() = default;
     explicit ValMove(Move m) :
-        move{ m }
-    {}
+        move{ m } {}
 
     operator Move() const { return move; }
     void operator=(Move m) { move = m; }
@@ -719,8 +714,7 @@ public:
 
     HashTable(u32 size) :
         std::vector<T>(size),
-        Mask{ size - 1 }
-    {}
+        Mask{ size - 1 } {}
 
     void clear() {
         std::vector<T>::assign(std::vector<T>::size(), T());

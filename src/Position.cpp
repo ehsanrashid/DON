@@ -735,7 +735,7 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
                     (pos == W_KING) ? PIECE_ID_WKING :
                     (pos == B_KING) ? PIECE_ID_BKING :
                     next_piece_id++;
-                evalList.put_piece(piece_id, sq, pc);
+                _evalList.putPiece(piece_id, sq, pc);
             }
 
             ++sq;
@@ -861,8 +861,8 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     _stateInfo->promoted = false;
 
     // Used by NNUE
-    _stateInfo->accumulator.computed_accumulation = false;
-    _stateInfo->accumulator.computed_score = false;
+    _stateInfo->accumulator.computedAccumulation = false;
+    _stateInfo->accumulator.computedScore = false;
     PieceId dp0 = PIECE_ID_NONE;
     PieceId dp1 = PIECE_ID_NONE;
     auto &dp = _stateInfo->dirtyPiece;
@@ -933,9 +933,9 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
             dp.dirty_num = 2; // 2 pieces moved
             dp1 = piece_id_on(cap);
             dp.pieceId[1] = dp1;
-            dp.old_piece[1] = evalList.piece_with_id(dp1);
-            evalList.put_piece(dp1, cap, NO_PIECE);
-            dp.new_piece[1] = evalList.piece_with_id(dp1);
+            dp.old_piece[1] = _evalList.piece_with_id(dp1);
+            _evalList.putPiece(dp1, cap, NO_PIECE);
+            dp.new_piece[1] = _evalList.piece_with_id(dp1);
         }
 
         removePiece(cap);
@@ -956,16 +956,16 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         if (Evaluator::useNNUE) {
             dp0 = piece_id_on(org);
             dp.pieceId[0] = dp0;
-            dp.old_piece[0] = evalList.piece_with_id(dp0);
-            evalList.put_piece(dp0, dst, mp);
-            dp.new_piece[0] = evalList.piece_with_id(dp0);
+            dp.old_piece[0] = _evalList.piece_with_id(dp0);
+            _evalList.putPiece(dp0, dst, mp);
+            dp.new_piece[0] = _evalList.piece_with_id(dp0);
         }
 
         movePiece(org, dst);
 
         if (Evaluator::useNNUE) {
             PieceId dp0 = _stateInfo->dirtyPiece.pieceId[0];
-            evalList.put_piece(dp0, org, mp);
+            _evalList.putPiece(dp0, org, mp);
         }
     }
     pKey ^= RandZob.psq[mp][org]
@@ -1008,8 +1008,8 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 
             if (Evaluator::useNNUE) {
                 dp0 = piece_id_on(dst);
-                evalList.put_piece(dp0, dst, pp);
-                dp.new_piece[0] = evalList.piece_with_id(dp0);
+                _evalList.putPiece(dp0, dst, pp);
+                dp.new_piece[0] = _evalList.piece_with_id(dp0);
             }
 
             npMaterial[active] += PieceValues[MG][pType(pp)];
@@ -1124,6 +1124,13 @@ void Position::undoMove(Move m) {
             // Restore the captured piece.
             placePiece(cap, ~active|captured());
 
+            if (Evaluator::useNNUE) {
+                PieceId dp1 = _stateInfo->dirtyPiece.pieceId[1];
+                assert(_evalList.piece_with_id(dp1).from[WHITE] == PS_NONE);
+                assert(_evalList.piece_with_id(dp1).from[BLACK] == PS_NONE);
+                _evalList.putPiece(dp1, cap, ~active|_stateInfo->captured);
+            }
+
             if (captured() > PAWN) {
                 npMaterial[~active] += PieceValues[MG][captured()];
             }
@@ -1145,7 +1152,7 @@ void Position::doNullMove(StateInfo &si) {
 
     if (Evaluator::useNNUE) {
         std::memcpy(&si, _stateInfo, sizeof(StateInfo));
-        _stateInfo->accumulator.computed_score = false;
+        _stateInfo->accumulator.computedScore = false;
     }
     else {
         std::memcpy(&si, _stateInfo, offsetof(StateInfo, accumulator));

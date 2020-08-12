@@ -92,9 +92,9 @@ private:
     i16   ply;
 
     StateInfo *_stateInfo;
-    Thread    *_thread;
+    Thread *_thread;
     // List of pieces used in NNUE evaluation function
-    EvalList evalList;
+    EvalList _evalList;
 
     void placePiece(Square, Piece);
     void removePiece(Square);
@@ -219,7 +219,7 @@ public:
 
     // Used by NNUE
     StateInfo* state() const;
-    const EvalList* eval_list() const;
+    const EvalList* evalList() const;
 
     std::string fen(bool full = true) const;
 
@@ -482,14 +482,14 @@ inline void Position::doMove(Move m, StateInfo &si) {
 inline StateInfo* Position::state() const {
     return _stateInfo;
 }
-inline const EvalList* Position::eval_list() const {
-    return &evalList;
+inline const EvalList* Position::evalList() const {
+    return &_evalList;
 }
 
 inline PieceId Position::piece_id_on(Square sq) const {
     assert(board[sq] != NO_PIECE);
 
-    PieceId pid = evalList.piece_id_list[sq];
+    PieceId pid = _evalList.piece_id_list[sq];
     assert(isOk(pid));
     return pid;
 }

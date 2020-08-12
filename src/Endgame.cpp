@@ -557,7 +557,7 @@ template<> Scale Endgame<KBPKN>::operator()(Position const &pos) const {
 
 /// K and two or more pawns vs K. There is just a single rule here: if all pawns
 /// are on the same rook file and are blocked by the defending king, it's a draw.
-template<> Scale Endgame<KPsK>::operator()(const Position& pos) const {
+template<> Scale Endgame<KPsK>::operator()(Position const &pos) const {
     assert(pos.nonPawnMaterial(stngColor) == VALUE_ZERO);
     assert(pos.count(stngColor|PAWN) >= 2);
     assert(verifyMaterial(pos, weakColor, VALUE_ZERO, 0));

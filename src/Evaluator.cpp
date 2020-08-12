@@ -18,6 +18,45 @@
 
 namespace Evaluator {
 
+    bool useNNUE = false;
+    std::string prevEvalFile = "None";
+
+    void initNNUE() {
+
+        useNNUE = Options["Use NNUE"];
+        std::string evalFile = std::string(Options["EvalFile"]);
+        if (useNNUE
+         && prevEvalFile != evalFile) {
+            if (Evaluator::NNUE::loadEvalFile(evalFile)) {
+                prevEvalFile = evalFile;
+            }
+        }
+    }
+
+    void verifyNNUE() {
+
+        std::string evalFile = std::string(Options["EvalFile"]);
+        if (useNNUE
+         && prevEvalFile != evalFile) {
+            UCI::OptionMap defaultOptions;
+            UCI::initialize(defaultOptions);
+
+            std::cerr << "NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully. "
+                << "These network evaluation parameters must be available, and compatible with this version of the code. "
+                << "The UCI option EvalFile might need to specify the full path, including the directory/folder name, to the file. "
+                << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/"+std::string(defaultOptions["EvalFile"]) << std::endl;
+            std::exit(EXIT_FAILURE);
+        }
+
+        if (useNNUE) {
+            sync_cout << "info string NNUE evaluation using " << evalFile << " enabled." << sync_endl;
+        }
+        else {
+            sync_cout << "info string classical evaluation enabled." << sync_endl;
+        }
+    }
+
+
     namespace {
 
         enum Term : u08 { MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, SCALING, TOTAL, TERMS = 16 };
@@ -176,6 +215,7 @@ namespace Evaluator {
         constexpr Value LazyThreshold1{ Value( 1400) };
         constexpr Value LazyThreshold2{ Value( 1300) };
         constexpr Value SpaceThreshold{ Value(12222) };
+        constexpr Value NNUEThreshold {   Value(575) };
 
         constexpr i32 SafeCheckWeight[PIECE_TYPES][2]
         {
@@ -1061,10 +1101,13 @@ namespace Evaluator {
     Value evaluate(Position const &pos) {
         if (useNNUE) {
             return NNUE::evaluate(pos);
+            Value v = egValue(pos.psqScore());
+            // Take NNUE eval only on balanced positions
+            if (abs(v) < NNUEThreshold) {
+                return NNUE::evaluate(pos) + VALUE_TEMPO;
+            }
         }
-        else {
-            return Evaluation<false>(pos).value();
-        }
+        return Evaluation<false>(pos).value();
     }
 
     /// trace() returns a string (suitable for outputting to stdout for debugging)
@@ -1115,43 +1158,4 @@ namespace Evaluator {
 
         return oss.str();
     }
-}
-
-namespace Evaluator {
-
-    bool useNNUE;
-    std::string eval_file_loaded = "None";
-
-    void init_NNUE() {
-
-        useNNUE = Options["Use NNUE"];
-        std::string eval_file = std::string(Options["EvalFile"]);
-        if (useNNUE && eval_file_loaded != eval_file) {
-            if (Evaluator::NNUE::load_eval_file(eval_file)) {
-                eval_file_loaded = eval_file;
-            }
-        }
-    }
-
-    void verify_NNUE() {
-
-        std::string eval_file = std::string(Options["EvalFile"]);
-        if (useNNUE && eval_file_loaded != eval_file)
-        {
-            UCI::StringOptionMap defaults;
-            UCI::initialize(defaults);
-
-            std::cerr << "NNUE evaluation used, but the network file " << eval_file << " was not loaded successfully. "
-                << "These network evaluation parameters must be available, and compatible with this version of the code. "
-                << "The UCI option EvalFile might need to specify the full path, including the directory/folder name, to the file. "
-                << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/"+std::string(defaults["EvalFile"]) << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-
-        if (useNNUE)
-            sync_cout << "info string NNUE evaluation using " << eval_file << " enabled." << sync_endl;
-        else
-            sync_cout << "info string classical evaluation enabled." << sync_endl;
-    }
-
 }

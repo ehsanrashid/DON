@@ -222,9 +222,8 @@ namespace {
 
     inline u64 mul_hi64(u64 a, u64 b) {
 
-#if defined(__GNUC__) && defined(IS_64BIT)
+#if defined(__GNUC__) && defined(BIT64)
         __extension__ typedef unsigned __int128 u128;
-
         return ((u128)a * (u128)b) >> 64;
 #else
         u64 aL = (u32)a, aH = a >> 32;

@@ -29,7 +29,7 @@ int main(int argc, char const *const *argv) {
     EndGame::initialize();
     Book.initialize(Options["Book File"]);
     Threadpool.setup(optionThreads());
-    Evaluator::init_NNUE();
+    Evaluator::initNNUE();
     TimeMgr.clear();
     UCI::clear();
 

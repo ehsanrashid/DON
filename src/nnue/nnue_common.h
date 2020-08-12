@@ -1,7 +1,5 @@
 // Constants used in NNUE evaluation function
-
-#ifndef NNUE_COMMON_H_INCLUDED
-#define NNUE_COMMON_H_INCLUDED
+#pragma once
 
 #if defined(USE_AVX2)
 #include <immintrin.h>
@@ -47,42 +45,40 @@
 
 namespace Evaluator::NNUE {
 
-  // Version of the evaluation file
-  constexpr std::uint32_t kVersion = 0x7AF32F16u;
+    // Version of the evaluation file
+    constexpr u32 kVersion = 0x7AF32F16u;
 
-  // Constant used in evaluation value calculation
-  constexpr int FV_SCALE = 16;
-  constexpr int kWeightScaleBits = 6;
+    // Constant used in evaluation value calculation
+    constexpr int FV_SCALE = 16;
+    constexpr int kWeightScaleBits = 6;
 
-  // Size of cache line (in bytes)
-  constexpr std::size_t kCacheLineSize = 64;
+    // Size of cache line (in bytes)
+    constexpr std::size_t kCacheLineSize = 64;
 
-  // SIMD width (in bytes)
-  #if defined(USE_AVX2)
-  constexpr std::size_t kSimdWidth = 32;
+    // SIMD width (in bytes)
+#if defined(USE_AVX2)
+    constexpr std::size_t kSimdWidth = 32;
 
-  #elif defined(USE_SSE2)
-  constexpr std::size_t kSimdWidth = 16;
+#elif defined(USE_SSE2)
+    constexpr std::size_t kSimdWidth = 16;
 
-  #elif defined(USE_MMX)
-  constexpr std::size_t kSimdWidth = 8;
+#elif defined(USE_MMX)
+    constexpr std::size_t kSimdWidth = 8;
 
-  #elif defined(USE_NEON)
-  constexpr std::size_t kSimdWidth = 16;
-  #endif
+#elif defined(USE_NEON)
+    constexpr std::size_t kSimdWidth = 16;
+#endif
 
-  constexpr std::size_t kMaxSimdWidth = 32;
+    constexpr std::size_t kMaxSimdWidth = 32;
 
-  // Type of input feature after conversion
-  using TransformedFeatureType = std::uint8_t;
-  using IndexType = std::uint32_t;
+    // Type of input feature after conversion
+    using TransformedFeatureType = u08;
+    using IndexType = u32;
 
-  // Round n up to be a multiple of base
-  template <typename IntType>
-  constexpr IntType CeilToMultiple(IntType n, IntType base) {
-    return (n + base - 1) / base * base;
-  }
+    // Round n up to be a multiple of base
+    template <typename IntType>
+    constexpr IntType CeilToMultiple(IntType n, IntType base) {
+        return (n + base - 1) / base * base;
+    }
 
 }  // namespace Evaluator::NNUE
-
-#endif // #ifndef NNUE_COMMON_H_INCLUDED

@@ -33,7 +33,7 @@ string const Version{ "" };
 // Author Name
 string const Author{ "Ehsan Rashid" };
 
-UCI::StringOptionMap Options;
+UCI::OptionMap Options;
 
 namespace {
 
@@ -293,7 +293,7 @@ namespace UCI {
         }
         else
         if (type == "combo") {
-            StringOptionMap comboMap; // To have case insensitive compare
+            OptionMap comboMap; // To have case insensitive compare
             istringstream iss{ defaultVal };
             string token;
             while (iss >> token) {
@@ -348,9 +348,9 @@ namespace UCI {
 
     /// This is used to print all the options default values in chronological
     /// insertion order and in the format defined by the UCI protocol.
-    std::ostream& operator<<(std::ostream &os, StringOptionMap const &strOptMap) {
-        for (size_t idx = 0; idx < strOptMap.size(); ++idx) {
-            for (auto &strOptPair : strOptMap) {
+    std::ostream& operator<<(std::ostream &os, OptionMap const &om) {
+        for (size_t idx = 0; idx < om.size(); ++idx) {
+            for (auto &strOptPair : om) {
                 if (strOptPair.second.index == idx) {
                     os  << "option name "
                         << strOptPair.first
@@ -408,9 +408,15 @@ namespace UCI {
             SyzygyTB::initialize(Options["SyzygyPath"]);
         }
 
+        void onUseNNUE() {
+            Evaluator::initNNUE();
+        }
+        void onEvalFile() {
+            Evaluator::initNNUE();
+        }
     }
 
-    void initialize(StringOptionMap &om) {
+    void initialize(OptionMap &om) {
 
         om["Hash"]               << Option(16, 0, TTable::MaxHashSize, onHash);
 
@@ -448,6 +454,9 @@ namespace UCI {
         om["SyzygyDepthLimit"]   << Option(1, 1, 100);
         om["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
         om["SyzygyMove50Rule"]   << Option(true);
+
+        om["Use NNUE"]           << Option(false, onUseNNUE);
+        om["EvalFile"]           << Option("nn-97f742aaefcd.nnue", onEvalFile);
 
         om["Debug File"]         << Option("", onDebugFile);
 
@@ -525,6 +534,20 @@ namespace UCI {
             "setoption name UCI_Chess960 value true",
             "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
         };
+
+        // trace_eval() prints the evaluation for the current position, consistent with the UCI
+        // options set so far.
+
+        void traceEval(Position &pos) {
+
+            StateListPtr states(new std::deque<StateInfo>(1));
+            Position p;
+            p.setup(pos.fen(), states->back(), Threadpool.mainThread());
+
+            Evaluator::verifyNNUE();
+
+            sync_cout << "\n" << Evaluator::trace(p) << sync_endl;
+        }
 
         /// setoption() updates the UCI option ("name") to the given value ("value").
         void setOption(istringstream &iss, Position &pos) {
@@ -757,7 +780,9 @@ namespace UCI {
                         << std::left
                         << pos.fen() << std::endl;
 
-                    if (token == "eval")   { sync_cout << Evaluator::trace(pos) << sync_endl; }
+                    if (token == "eval") {
+                        traceEval(pos);
+                    }
                     else
                     if (token == "perft")  {
                         Depth depth{ 1 }; is >> depth; depth = std::max(Depth(1), depth);
@@ -846,7 +871,7 @@ namespace UCI {
             else if (token == "mirror")     { pos.mirror(); }
             else if (token == "compiler")   { sync_cout << compilerInfo() << sync_endl; }
             else if (token == "show")       { sync_cout << pos << sync_endl; }
-            else if (token == "eval")       { sync_cout << Evaluator::trace(pos) << sync_endl; }
+            else if (token == "eval")       { traceEval(pos); }
             else if (token == "perft")      {
                 Depth depth{ 1 };     iss >> depth; depth = std::max(Depth(1), depth);
                 bool detail{ false }; iss >> std::boolalpha >> detail;

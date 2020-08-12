@@ -1280,7 +1280,7 @@ namespace {
             if (mType(move) == CASTLE
              && popCount( pos.pieces(activeSide)
                        & ~pos.pieces(PAWN)
-                       & (contains(SlotFileBB[CS_KING], dst) ? SlotFileBB[CS_KING] : SlotFileBB[CS_QUEN])) <= 3) {
+                       & (contains(SlotFileBB[CS_KING], dst) ? SlotFileBB[CS_KING] : SlotFileBB[CS_QUEN])) <= 2) {
                 extension = 1;
             }
             else

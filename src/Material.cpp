@@ -66,7 +66,7 @@ namespace Material {
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
-        i32 computeImbalance(const int pieceCount[][PIECE_TYPES]) {
+        i32 computeImbalance(i32 const pieceCount[][PIECE_TYPES]) {
             constexpr auto Opp{ ~Own };
 
             i32 imbalance{ 0 };
