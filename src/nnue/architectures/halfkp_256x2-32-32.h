@@ -11,8 +11,7 @@
 namespace Evaluator::NNUE {
 
     // Input features used in evaluation function
-    using RawFeatures = Features::FeatureSet<
-        Features::HalfKP<Features::Side::kFriend>>;
+    using RawFeatures = Features::FeatureSet<Features::HalfKP<Features::Side::kFriend>>;
 
     // Number of input feature dimensions after conversion
     constexpr IndexType kTransformedFeatureDimensions = 256;

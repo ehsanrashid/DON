@@ -29,7 +29,7 @@ namespace Evaluator::NNUE::Features {
 
     // Get a list of indices for active features
     template <Side AssociatedKing>
-    void HalfKP<AssociatedKing>::AppendActiveIndices(
+    void HalfKP<AssociatedKing>::appendActiveIndices(
         Position const &pos, Color perspective, IndexList *active) {
 
         // Do nothing if array size is small to avoid compiler warning
@@ -47,7 +47,7 @@ namespace Evaluator::NNUE::Features {
 
     // Get a list of indices for recently changed features
     template <Side AssociatedKing>
-    void HalfKP<AssociatedKing>::AppendChangedIndices(
+    void HalfKP<AssociatedKing>::appendChangedIndices(
         Position const &pos, Color perspective,
         IndexList *removed, IndexList *added) {
 

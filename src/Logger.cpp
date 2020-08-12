@@ -18,10 +18,10 @@ namespace {
 
 #   if defined(_WIN32)
 
-        auto time{ std::chrono::system_clock::to_time_t(tp) };
+        time_t const time{ std::chrono::system_clock::to_time_t(tp) };
 
         tm ltm;
-        localtime_s(&ltm, &time);
+        localtime_s(&ltm, (time_t const*)&time);
         char const *format{ "%Y.%m.%d-%H.%M.%S" };
         char buffer[32];
         strftime(buffer, sizeof (buffer), format, (tm const*)&ltm);

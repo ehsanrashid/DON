@@ -143,16 +143,16 @@ string const compilerInfo() {
     oss << " 32bit";
 #endif
 
-#if defined(USE_AVX512)
+#if defined(AVX512)
     oss << " AVX512";
 #endif
-#if defined(USE_AVX2)
+#if defined(AVX2)
     oss << " AVX2";
 #endif
-#if defined(USE_SSE41)
+#if defined(SSE41)
     oss << " SSE41";
 #endif
-#if defined(USE_SSSE3)
+#if defined(SSSE3)
     oss << " SSSE3";
 #endif
 #if defined(BM2)
@@ -161,7 +161,7 @@ string const compilerInfo() {
 #if defined(ABM)
     oss << " POPCNT";
 #endif
-#if defined(USE_MMX)
+#if defined(MMX)
     oss << " MMX";
 #endif
 #if !defined(NDEBUG)
@@ -409,10 +409,10 @@ namespace UCI {
         }
 
         void onUseNNUE() {
-            Evaluator::initNNUE();
+            Evaluator::initializeNNUE();
         }
         void onEvalFile() {
-            Evaluator::initNNUE();
+            Evaluator::initializeNNUE();
         }
     }
 
@@ -456,7 +456,7 @@ namespace UCI {
         om["SyzygyMove50Rule"]   << Option(true);
 
         om["Use NNUE"]           << Option(false, onUseNNUE);
-        om["EvalFile"]           << Option("nn-97f742aaefcd.nnue", onEvalFile);
+        om["Eval File"]          << Option("nn-97f742aaefcd.nnue", onEvalFile);
 
         om["Debug File"]         << Option("", onDebugFile);
 

@@ -53,15 +53,15 @@ endif
 # optimize = yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
 # arch     = (name)    --- (-arch)          --- Target architecture
 # bits     = 64/32     --- -DBIT64          --- 64/32-bit operating system
-# prefetch = yes/no    --- -DPREFETCH       --- Use Prefetch x86 asm-instruction
-# popcnt    = yes/no   --- -DPOPCNT         --- Use popcnt asm-instruction
+# prefetch = yes/no    --- -DPREFETCH       --- Use prefetch x86 asm-instruction
+# popcnt   = yes/no    --- -DABM            --- Use popcnt asm-instruction
 # sse      = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
-# ssse3	   = yes/no    --- -mssse3          --- Use Intel Supplemental Streaming SIMD Extensions 3
+# ssse3    = yes/no    --- -mssse3          --- Use Intel Supplemental Streaming SIMD Extensions 3
 # sse41    = yes/no    --- -msse4.1         --- Use Intel Streaming SIMD Extensions 4.1
 # avx2     = yes/no    --- -mavx2           --- Use Intel Advanced Vector Extensions 2
-# pext     = yes/no    --- -DABM            --- Use ABM (Adv Bit Manipulation) x86_64 asm-instructions (POPCNT, LZCNT)
+# pext     = yes/no    --- -DBM2            --- Use pext x86_64 asm-instruction
 # avx512   = yes/no    --- -mavx512bw       --- Use Intel Advanced Vector Extensions 512
-# neon     = yes/no    --- -DNEON       --- Use ARM SIMD architecture
+# neon     = yes/no    --- -DNEON           --- Use ARM SIMD architecture
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -73,6 +73,7 @@ debug = no
 sanitize = no
 bits = 64
 prefetch = no
+
 popcnt = no
 mmx = no
 sse = no
@@ -82,6 +83,7 @@ avx2 = no
 pext = no
 avx512 = no
 neon = no
+
 ARCH = x86-64-modern
 
 ### 2.2 Architecture specific
@@ -395,36 +397,36 @@ ifeq ($(abm), yes)
 endif
 
 ifeq ($(avx2), yes)
-	CXXFLAGS += -DUSE_AVX2
-	ifeq ($(comp),$(filter $(comp), gcc clang mingw))
+	CXXFLAGS += -DAVX2
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mavx2
 	endif
 endif
 
 ifeq ($(avx512), yes)
-	CXXFLAGS += -DUSE_AVX512
-	ifeq ($(comp),$(filter $(comp), gcc clang mingw))
+	CXXFLAGS += -DAVX512
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mavx512bw
 	endif
 endif
 
 ifeq ($(sse41), yes)
-	CXXFLAGS += -DUSE_SSE41
-	ifeq ($(comp),$(filter $(comp), gcc clang mingw))
+	CXXFLAGS += -DSSE41
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -msse4.1
 	endif
 endif
 
 ifeq ($(ssse3), yes)
-	CXXFLAGS += -DUSE_SSSE3
-	ifeq ($(comp),$(filter $(comp), gcc clang mingw))
+	CXXFLAGS += -DSSSE3
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mssse3
 	endif
 endif
 
 ifeq ($(mmx), yes)
-	CXXFLAGS += -DUSE_MMX
-	ifeq ($(comp),$(filter $(comp), gcc clang mingw))
+	CXXFLAGS += -DMMX
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mmmx
 	endif
 endif
@@ -434,7 +436,7 @@ ifeq ($(neon), yes)
 endif
 
 ifeq ($(arch), x86_64)
-	CXXFLAGS += -DUSE_SSE2
+	CXXFLAGS += -DSSE2
 endif
 
 ### 3.7 BM2 (Bit Manipulation Instruction Set 2)
@@ -450,19 +452,24 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
 	ifeq ($(debug), no)
-	ifeq ($(comp),clang)
+	ifeq ($(comp), clang)
 		CXXFLAGS += -flto=thin
 		LDFLAGS += $(CXXFLAGS)
 
 # GCC and CLANG use different methods for parallelizing LTO and CLANG pretends to be
 # GCC on some systems.
-	else ifeq ($(comp),gcc)
-	ifeq ($(gccisclang),)
-			CXXFLAGS += -flto
+	else ifeq ($(comp), gcc)
+	ifeq ($(gccisclang), )
+		CXXFLAGS += -flto
 		LDFLAGS += $(CXXFLAGS) -flto=jobserver
+		ifneq ($(findstring MINGW, $(KERNEL)),)
+			LDFLAGS += -save-temps
+		else ifneq ($(findstring MSYS, $(KERNEL)),)
+			LDFLAGS += -save-temps
+		endif
 	else
 		CXXFLAGS += -flto=thin
-			LDFLAGS += $(CXXFLAGS)
+		LDFLAGS += $(CXXFLAGS)
 	endif
 
 		# To use LTO and static linking on windows, the tool chain requires a recent gcc:
@@ -502,10 +509,11 @@ help:
 	@echo "Supported targets:"
 	@echo "------------------"
 	@echo "build         > Standard build"
-	@echo "profile-build > PGO build"
+	@echo "profile-build > Standard build with PGO"
 	@echo "strip         > Strip executable"
 	@echo "install       > Install executable"
 	@echo "clean         > Clean up"
+	@echo "net                     > Download the default nnue net"
 	@echo ""
 	@echo "Supported archs:"
 	@echo ""
@@ -536,13 +544,14 @@ help:
 	@echo ""
 	@echo "Simple examples, for inexperienced users: "
 	@echo "----------------------------------------------------------------"
-	@echo "make build ARCH=x86-64    (This is for 64-bit systems)"
-	@echo "make build ARCH=x86-32    (This is for 32-bit systems)"
+	@echo ""
+	@echo "make -j build ARCH=x86-64    (This is for 64-bit systems)"
+	@echo "make -j build ARCH=x86-32    (This is for 32-bit systems)"
 	@echo ""
 	@echo "Advanced examples, for experienced users: "
 	@echo ""
-	@echo "make build ARCH=x86-64 COMP=clang"
-	@echo "make profile-build ARCH=x86-64-bm2 COMP=gcc COMPCXX=g++-4.8"
+	@echo "make -j build ARCH=x86-64-modern COMP=clang"
+	@echo "make -j profile-build ARCH=x86-64-bmi2 COMP=gcc COMPCXX=g++-4.8"
 	@echo ""
 	@echo "The selected architecture $(ARCH) enables the following configuration: "
 	@echo ""
@@ -556,7 +565,7 @@ help:
 build: config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
 
-profile-build: config-sanity objclean profileclean
+profile-build: net config-sanity objclean profileclean
 	@echo ""
 	@echo "Step 1/4. Building instrumented executable ..."
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) $(profile_make)
@@ -622,8 +631,8 @@ config-sanity:
 	@echo "arch    : '$(arch)'"
 	@echo "comp    : '$(comp)'"
 	@echo "bits    : '$(bits)'"
-	@echo "KERNEL  : '$(KERNEL)'"
-	@echo "OS      : '$(OS)'"
+	@echo "kernel: '$(KERNEL)'"
+	@echo "os: '$(OS)'"
 	@echo "prefetch: '$(prefetch)'"
 	@echo "popcnt: '$(popcnt)'"
 	@echo "sse     : '$(sse)'"

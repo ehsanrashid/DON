@@ -1,8 +1,9 @@
 // A class template that represents the input feature set of the NNUE evaluation function
 #pragma once
 
-#include "features_common.h"
 #include <array>
+
+#include "features_common.h"
 
 namespace Evaluator::NNUE::Features {
 
@@ -12,8 +13,8 @@ namespace Evaluator::NNUE::Features {
 
     template <typename T, T First, T... Remaining>
     struct CompileTimeList<T, First, Remaining...> {
-        static constexpr bool Contains(T value) {
-            return value == First || CompileTimeList<T, Remaining...>::Contains(value);
+        static constexpr bool contains(T value) {
+            return value == First || CompileTimeList<T, Remaining...>::contains(value);
         }
         static constexpr std::array<T, sizeof...(Remaining) + 1>
             kValues = { {First, Remaining...} };
@@ -26,25 +27,30 @@ namespace Evaluator::NNUE::Features {
     public:
         // Get a list of indices for active features
         template <typename IndexListType>
-        static void AppendActiveIndices(
-            Position const &pos, TriggerEvent trigger, IndexListType active[2]) {
+        static void appendActiveIndices(
+            Position const &pos,
+            TriggerEvent trigger,
+            IndexListType active[2]) {
 
-            for (Color perspective : { WHITE, BLACK }) {
-                Derived::CollectActiveIndices(
+            for (auto perspective : { WHITE, BLACK }) {
+                Derived::collectActiveIndices(
                     pos, trigger, perspective, &active[perspective]);
             }
         }
 
         // Get a list of indices for recently changed features
         template <typename PositionType, typename IndexListType>
-        static void AppendChangedIndices(
-            const PositionType &pos, TriggerEvent trigger,
-            IndexListType removed[2], IndexListType added[2], bool reset[2]) {
+        static void appendChangedIndices(
+            PositionType const &pos,
+            TriggerEvent trigger,
+            IndexListType removed[2],
+            IndexListType added[2],
+            bool reset[2]) {
 
             const auto &dp = pos.state()->dirtyPiece;
             if (dp.dirty_num == 0) return;
 
-            for (Color perspective : { WHITE, BLACK }) {
+            for (auto perspective : { WHITE, BLACK }) {
                 reset[perspective] = false;
                 switch (trigger) {
                 case TriggerEvent::kFriendKingMoved:
@@ -56,11 +62,11 @@ namespace Evaluator::NNUE::Features {
                     break;
                 }
                 if (reset[perspective]) {
-                    Derived::CollectActiveIndices(
+                    Derived::collectActiveIndices(
                         pos, trigger, perspective, &added[perspective]);
                 }
                 else {
-                    Derived::CollectChangedIndices(
+                    Derived::collectChangedIndices(
                         pos, trigger, perspective,
                         &removed[perspective], &added[perspective]);
                 }
@@ -70,7 +76,8 @@ namespace Evaluator::NNUE::Features {
 
     // Class template that represents the feature set
     template <typename FeatureType>
-    class FeatureSet<FeatureType> : public FeatureSetBase<FeatureSet<FeatureType>> {
+    class FeatureSet<FeatureType> :
+        public FeatureSetBase<FeatureSet<FeatureType>> {
 
     public:
         // Hash value embedded in the evaluation file
@@ -87,21 +94,26 @@ namespace Evaluator::NNUE::Features {
 
     private:
         // Get a list of indices for active features
-        static void CollectActiveIndices(
-            Position const &pos, const TriggerEvent trigger, const Color perspective,
+        static void collectActiveIndices(
+            Position const &pos,
+            TriggerEvent const trigger,
+            Color const perspective,
             IndexList *const active) {
             if (FeatureType::kRefreshTrigger == trigger) {
-                FeatureType::AppendActiveIndices(pos, perspective, active);
+                FeatureType::appendActiveIndices(pos, perspective, active);
             }
         }
 
         // Get a list of indices for recently changed features
-        static void CollectChangedIndices(
-            Position const &pos, const TriggerEvent trigger, const Color perspective,
-            IndexList *const removed, IndexList *const added) {
+        static void collectChangedIndices(
+            Position const &pos,
+            TriggerEvent const trigger,
+            Color const perspective,
+            IndexList *const removed,
+            IndexList *const added) {
 
             if (FeatureType::kRefreshTrigger == trigger) {
-                FeatureType::AppendChangedIndices(pos, perspective, removed, added);
+                FeatureType::appendChangedIndices(pos, perspective, removed, added);
             }
         }
 

@@ -19,7 +19,7 @@ namespace Evaluator::NNUE::Layers {
         static constexpr IndexType kOutputDimensions = OutputDimensions;
 
         // Size of forward propagation buffer used from the input layer to this layer
-        static constexpr std::size_t kBufferSize = 0;
+        static constexpr size_t kBufferSize = 0;
 
         // Hash value embedded in the evaluation file
         static constexpr u32 GetHashValue() {
@@ -29,7 +29,7 @@ namespace Evaluator::NNUE::Layers {
         }
 
         // Read network parameters
-        bool ReadParameters(std::istream & /*stream*/) {
+        bool readParameters(std::istream & /*stream*/) {
             return true;
         }
 

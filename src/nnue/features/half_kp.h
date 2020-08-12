@@ -26,11 +26,11 @@ namespace Evaluator::NNUE::Features {
         static constexpr TriggerEvent kRefreshTrigger = TriggerEvent::kFriendKingMoved;
 
         // Get a list of indices for active features
-        static void AppendActiveIndices(Position const &pos, Color perspective,
+        static void appendActiveIndices(Position const &pos, Color perspective,
             IndexList *active);
 
         // Get a list of indices for recently changed features
-        static void AppendChangedIndices(Position const &pos, Color perspective,
+        static void appendChangedIndices(Position const &pos, Color perspective,
             IndexList *removed, IndexList *added);
 
         // Index of a feature for a given king position and another piece on some square

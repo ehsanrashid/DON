@@ -21,10 +21,10 @@ namespace Evaluator {
     bool useNNUE = false;
     std::string prevEvalFile = "None";
 
-    void initNNUE() {
+    void initializeNNUE() {
 
         useNNUE = Options["Use NNUE"];
-        std::string evalFile = std::string(Options["EvalFile"]);
+        auto evalFile{ std::string(Options["Eval File"]) };
         if (useNNUE
          && prevEvalFile != evalFile) {
             if (Evaluator::NNUE::loadEvalFile(evalFile)) {
@@ -35,16 +35,16 @@ namespace Evaluator {
 
     void verifyNNUE() {
 
-        std::string evalFile = std::string(Options["EvalFile"]);
+        auto evalFile{ std::string(Options["Eval File"]) };
         if (useNNUE
          && prevEvalFile != evalFile) {
             UCI::OptionMap defaultOptions;
             UCI::initialize(defaultOptions);
 
             std::cerr << "NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully. "
-                << "These network evaluation parameters must be available, and compatible with this version of the code. "
-                << "The UCI option EvalFile might need to specify the full path, including the directory/folder name, to the file. "
-                << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/"+std::string(defaultOptions["EvalFile"]) << std::endl;
+                      << "These network evaluation parameters must be available, and compatible with this version of the code. "
+                      << "The UCI option EvalFile might need to specify the full path, including the directory/folder name, to the file. "
+                      << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/" << std::string(defaultOptions["Eval File"]) << std::endl;
             std::exit(EXIT_FAILURE);
         }
 

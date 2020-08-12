@@ -10,6 +10,11 @@
 
 #include "evaluate_nnue.h"
 
+#if defined(__APPLE__) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
+#   define POSIXALIGNEDALLOC
+#   include <stdlib.h>
+#endif
+
 ExtPieceSquare kpp_board_index[PIECES] = {
     // convention: W - us, B - them
     // viewed from other side, W and B are reversed
@@ -41,9 +46,13 @@ namespace Evaluator::NNUE {
 
         void* stdAlignedAlloc(size_t alignment, size_t size) {
 
-#if (defined(__APPLE__) && defined(_LIBCPP_HAS_C11_FEATURES)) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
-            return aligned_alloc(alignment, size);
-#elif (defined(_WIN32) || (defined(__APPLE__) && !defined(_LIBCPP_HAS_C11_FEATURES)))
+#if defined(POSIXALIGNEDALLOC)
+            void *pointer;
+            if (posix_memalign(&pointer, alignment, size) == 0) {
+                return pointer;
+            }
+            return nullptr;
+#elif defined(_WIN32)
             return _mm_malloc(size, alignment);
 #else
             return std::aligned_alloc(alignment, size);
@@ -52,9 +61,9 @@ namespace Evaluator::NNUE {
 
         void stdAlignedFree(void *ptr) {
 
-#if (defined(__APPLE__) && defined(_LIBCPP_HAS_C11_FEATURES)) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
+#if defined(POSIXALIGNEDALLOC)
             free(ptr);
-#elif (defined(_WIN32) || (defined(__APPLE__) && !defined(_LIBCPP_HAS_C11_FEATURES)))
+#elif defined(_WIN32)
             _mm_free(ptr);
 #else
             free(ptr);
@@ -81,9 +90,9 @@ namespace Evaluator::NNUE {
 
     namespace Detail {
 
-        // Initialize the evaluation function parameters
+        // initialize the evaluation function parameters
         template <typename T>
-        void Initialize(AlignedPtr<T> &pointer) {
+        void initialize(AlignedPtr<T> &pointer) {
 
             pointer.reset(reinterpret_cast<T*>(stdAlignedAlloc(alignof(T), sizeof(T))));
             std::memset(pointer.get(), 0, sizeof(T));
@@ -91,25 +100,25 @@ namespace Evaluator::NNUE {
 
         // Read evaluation function parameters
         template <typename T>
-        bool ReadParameters(std::istream &stream, const AlignedPtr<T> &pointer) {
+        bool readParameters(std::istream &stream, const AlignedPtr<T> &pointer) {
 
             u32 header;
             stream.read(reinterpret_cast<char*>(&header), sizeof(header));
             if (!stream || header != T::GetHashValue()) return false;
-            return pointer->ReadParameters(stream);
+            return pointer->readParameters(stream);
         }
 
     }  // namespace Detail
 
-    // Initialize the evaluation function parameters
-    void Initialize() {
+    // initialize the evaluation function parameters
+    void initialize() {
 
-        Detail::Initialize(featureTransformer);
-        Detail::Initialize(network);
+        Detail::initialize(featureTransformer);
+        Detail::initialize(network);
     }
 
     // Read network header
-    bool ReadHeader(std::istream &stream, u32 *hash_value, std::string *architecture) {
+    bool readHeader(std::istream &stream, u32 *hash_value, std::string *architecture) {
 
         u32 version, size;
         stream.read(reinterpret_cast<char*>(&version), sizeof(version));
@@ -122,14 +131,14 @@ namespace Evaluator::NNUE {
     }
 
     // Read network parameters
-    bool ReadParameters(std::istream &stream) {
+    bool readParameters(std::istream &stream) {
 
         u32 hash_value;
         std::string architecture;
-        if (!ReadHeader(stream, &hash_value, &architecture)) return false;
+        if (!readHeader(stream, &hash_value, &architecture)) return false;
         if (hash_value != kHashValue) return false;
-        if (!Detail::ReadParameters(stream, featureTransformer)) return false;
-        if (!Detail::ReadParameters(stream, network)) return false;
+        if (!Detail::readParameters(stream, featureTransformer)) return false;
+        if (!Detail::readParameters(stream, network)) return false;
         return stream && stream.peek() == std::ios::traits_type::eof();
     }
 
@@ -164,11 +173,11 @@ namespace Evaluator::NNUE {
     // Load the evaluation function file
     bool loadEvalFile(std::string const &evalFile) {
 
-        Initialize();
+        initialize();
         fileName = evalFile;
 
         std::ifstream stream(evalFile, std::ios::binary);
-        return ReadParameters(stream);
+        return readParameters(stream);
     }
 
     // Evaluation function. Perform differential calculation.

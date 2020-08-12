@@ -11,7 +11,7 @@ namespace Evaluator {
     extern bool useNNUE;
     extern std::string prevEvalFile;
 
-    extern void initNNUE();
+    extern void initializeNNUE();
     extern void verifyNNUE();
 
     namespace NNUE {
