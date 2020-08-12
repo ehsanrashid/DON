@@ -69,7 +69,7 @@ Currently, DON has the following UCI options:
     this equal to the number of CPU cores available.
 
   * #### Skill Level
-    Lower the Skill Level in order to make Stockfish play weaker (see also UCI_LimitStrength).
+    Lower the Skill Level in order to make DON play weaker (see also UCI_LimitStrength).
     Internally, MultiPV is enabled, and with a certain probability depending on the Skill Level a
     weaker move will be played.
     
@@ -138,7 +138,7 @@ Currently, DON has the following UCI options:
     (including kings and pawns).
 
   * #### UCI_Chess960
-    An option handled by your GUI. If true, Stockfish will play Chess960.
+    An option handled by your GUI. If true, DON will play Chess960.
 
   * #### UCI_ShowWDL
     If enabled, show approximate WDL statistics as part of the engine output.
@@ -161,18 +161,17 @@ The NNUE evaluation computes this value with a neural network based on basic
 inputs (e.g. piece positions only). The network is optimized and trained
 on the evalutions of millions of positions at moderate search depth.
 
-The NNUE evaluation was first introduced in shogi, and ported to Stockfish afterward.
+The NNUE evaluation was first introduced in shogi, and ported to DON afterward.
 It can be evaluated efficiently on CPUs, and exploits the fact that only parts
 of the neural network need to be updated after a typical chess move.
-[The nodchip repository](https://github.com/nodchip/Stockfish) provides additional
-tools to train and develop the NNUE networks.
+Website provides additional tools to train and develop the NNUE networks.
 
 On CPUs supporting modern vector instructions (avx2 and similar), the NNUE evaluation
 results in stronger playing strength, even if the nodes per second computed by the engine
 is somewhat lower (roughly 60% of nps is typical).
 
-Note that the NNUE evaluation depends on the Stockfish binary and the network parameter
-file (see EvalFile). Not every parameter file is compatible with a given Stockfish binary.
+Note that the NNUE evaluation depends on the DON binary and the network parameter
+file (see EvalFile). Not every parameter file is compatible with a given DON binary.
 The default value of the EvalFile UCI option is the name of a network that is guaranteed
 to be compatible with that binary.
 

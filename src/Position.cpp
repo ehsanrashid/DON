@@ -703,6 +703,9 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     std::memset(&si, 0, sizeof (si));
     _stateInfo = &si;
 
+    // Each piece on board gets a unique ID used to track the piece later
+    PieceId piece_id, next_piece_id = PIECE_ID_ZERO;
+
     std::istringstream iss{ ff };
     iss >> std::noskipws;
 
@@ -712,7 +715,7 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     while ((iss >> token)
         && !isspace(token)) {
 
-        Piece p;
+        size_t pos;
         if ('1' <= token && token <= '8') {
             sq += (token - '0') * EAST;
         }
@@ -721,8 +724,20 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
             sq += 2 * SOUTH;
         }
         else
-        if ((p = toPiece(token)) != NO_PIECE) {
-            placePiece(sq, p);
+        if ((pos = PieceChar.find(token)) != std::string::npos) {
+
+            auto pc{ Piece(pos) };
+            placePiece(sq, pc);
+
+            if (Evaluator::useNNUE) {
+                // Kings get a fixed ID, other pieces get ID in order of placement
+                piece_id =
+                    (pos == W_KING) ? PIECE_ID_WKING :
+                    (pos == B_KING) ? PIECE_ID_BKING :
+                    next_piece_id++;
+                evalList.put_piece(piece_id, sq, pc);
+            }
+
             ++sq;
         }
     }
@@ -845,6 +860,14 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     ++_stateInfo->nullPly;
     _stateInfo->promoted = false;
 
+    // Used by NNUE
+    _stateInfo->accumulator.computed_accumulation = false;
+    _stateInfo->accumulator.computed_score = false;
+    PieceId dp0 = PIECE_ID_NONE;
+    PieceId dp1 = PIECE_ID_NONE;
+    auto &dp = _stateInfo->dirtyPiece;
+    dp.dirty_num = 1;
+
     auto pasive = ~active;
 
     auto org{ orgSq(m) };
@@ -906,6 +929,15 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
             npMaterial[pasive] -= PieceValues[MG][pType(cp)];
         }
 
+        if (Evaluator::useNNUE) {
+            dp.dirty_num = 2; // 2 pieces moved
+            dp1 = piece_id_on(cap);
+            dp.pieceId[1] = dp1;
+            dp.old_piece[1] = evalList.piece_with_id(dp1);
+            evalList.put_piece(dp1, cap, NO_PIECE);
+            dp.new_piece[1] = evalList.piece_with_id(dp1);
+        }
+
         removePiece(cap);
         if (mType(m) == ENPASSANT) {
             board[cap] = NO_PIECE; // Not done by removePiece()
@@ -920,7 +952,21 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 
     // Move the piece. The tricky Chess960 castling is handled earlier
     if (mType(m) != CASTLE) {
+
+        if (Evaluator::useNNUE) {
+            dp0 = piece_id_on(org);
+            dp.pieceId[0] = dp0;
+            dp.old_piece[0] = evalList.piece_with_id(dp0);
+            evalList.put_piece(dp0, dst, mp);
+            dp.new_piece[0] = evalList.piece_with_id(dp0);
+        }
+
         movePiece(org, dst);
+
+        if (Evaluator::useNNUE) {
+            PieceId dp0 = _stateInfo->dirtyPiece.pieceId[0];
+            evalList.put_piece(dp0, org, mp);
+        }
     }
     pKey ^= RandZob.psq[mp][org]
           ^ RandZob.psq[mp][dst];
@@ -959,6 +1005,13 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
             // Replace the pawn with the promoted piece
             removePiece(dst);
             placePiece(dst, pp);
+
+            if (Evaluator::useNNUE) {
+                dp0 = piece_id_on(dst);
+                evalList.put_piece(dp0, dst, pp);
+                dp.new_piece[0] = evalList.piece_with_id(dp0);
+            }
+
             npMaterial[active] += PieceValues[MG][pType(pp)];
             pKey ^= RandZob.psq[mp][dst]
                   ^ RandZob.psq[pp][dst];
@@ -1090,7 +1143,14 @@ void Position::doNullMove(StateInfo &si) {
     assert(&si != _stateInfo
         && checkers() == 0);
 
-    std::memcpy(&si, _stateInfo, sizeof (StateInfo));
+    if (Evaluator::useNNUE) {
+        std::memcpy(&si, _stateInfo, sizeof(StateInfo));
+        _stateInfo->accumulator.computed_score = false;
+    }
+    else {
+        std::memcpy(&si, _stateInfo, offsetof(StateInfo, accumulator));
+    }
+
     si.ptr = _stateInfo;
     _stateInfo = &si;
 

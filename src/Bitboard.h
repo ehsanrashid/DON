@@ -283,7 +283,7 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
         pt == BSHP ? attacksBB<BSHP>(s, occ) :
         pt == ROOK ? attacksBB<ROOK>(s, occ) :
         pt == QUEN ? attacksBB<QUEN>(s, occ) :
-        pt == KING ? attacksBB<KING>(s) : assert(false), 0;
+      /*pt == KING*/ attacksBB<KING>(s);
 }
 
 inline Bitboard floodFill(Bitboard b) {

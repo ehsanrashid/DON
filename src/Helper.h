@@ -21,9 +21,6 @@ extern std::string& ltrim(std::string&);
 extern std::string& rtrim(std::string&);
 extern std::string& trim(std::string&);
 
-extern void* std_aligned_alloc(size_t, size_t);
-extern void std_aligned_free(void*);
-
 enum OutputState : u08 { OS_LOCK, OS_UNLOCK };
 
 extern std::ostream& operator<<(std::ostream&, OutputState);
