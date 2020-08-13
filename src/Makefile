@@ -183,7 +183,7 @@ ifeq ($(ARCH), x86-64-avx512)
 	avx512 = yes
 endif
 
-ifeq ($(ARCH),x86-64-vnni)
+ifeq ($(ARCH), x86-64-vnni)
 	arch = x86_64
 	prefetch = yes
 	abmi = yes
@@ -428,7 +428,7 @@ endif
 
 ifeq ($(vnni), yes)
 	CXXFLAGS += -DVNNI
-	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
+	ifeq ($(comp),$(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mavx512vnni -mavx512dq -mavx512vl
 	endif
 endif
@@ -485,9 +485,9 @@ ifeq ($(optimize), yes)
 	ifeq ($(gccisclang), )
 		CXXFLAGS += -flto
 		LDFLAGS += $(CXXFLAGS) -flto=jobserver
-		ifneq ($(findstring MINGW, $(KERNEL)),)
+		ifneq ($(findstring MINGW, $(KERNEL)), )
 			LDFLAGS += -save-temps
-		else ifneq ($(findstring MSYS, $(KERNEL)),)
+		else ifneq ($(findstring MSYS, $(KERNEL)), )
 			LDFLAGS += -save-temps
 		endif
 	else
@@ -501,7 +501,7 @@ ifeq ($(optimize), yes)
 		else ifeq ($(comp), mingw)
 			ifeq ($(KERNEL), Linux)
 				CXXFLAGS += -flto
-		LDFLAGS += $(CXXFLAGS) -flto=jobserver
+				LDFLAGS += $(CXXFLAGS) -flto=jobserver
 			endif
 		endif
 	endif
@@ -531,15 +531,15 @@ help:
 	@echo ""
 	@echo "Supported targets:"
 	@echo "------------------"
-	@echo "build         > Standard build"
-	@echo "profile-build > Standard build with PGO"
-	@echo "strip         > Strip executable"
-	@echo "install       > Install executable"
-	@echo "clean         > Clean up"
+	@echo "build                   > Standard build"
+	@echo "profile-build           > Standard build with PGO"
+	@echo "strip                   > Strip executable"
+	@echo "install                 > Install executable"
+	@echo "clean                   > Clean up"
 	@echo "net                     > Download the default nnue net"
 	@echo ""
 	@echo "Supported archs:"
-	@echo ""
+	@echo "------------------"
 	@echo "x86-64-vnni             > x86 64-bit with vnni support"
 	@echo "x86-64-avx512           > x86 64-bit with avx512 support"
 	@echo "x86-64-bmi2             > x86 64-bit with bmi2 support"
@@ -548,23 +548,23 @@ help:
 	@echo "x86-64-modern           > the same as previous (x86-64-sse41-popcnt)"
 	@echo "x86-64-ssse3            > x86 64-bit with ssse3 support"
 	@echo "x86-64-sse3-popcnt      > x86 64-bit with sse3 and popcnt support"
-	@echo "x86-64       > x86 64-bit generic"
+	@echo "x86-64                  > x86 64-bit generic"
 	@echo "x86-32                  > x86 32-bit (also enables MMX and SSE)"
-	@echo "x86-32-old   > x86 32-bit fall back for old hardware"
-	@echo "ppc-64       > PPC 64-bit"
-	@echo "ppc-32       > PPC 32-bit"
-	@echo "armv7        > ARMv7 32-bit"
+	@echo "x86-32-old              > x86 32-bit fall back for old hardware"
+	@echo "ppc-64                  > PPC 64-bit"
+	@echo "ppc-32                  > PPC 32-bit"
+	@echo "armv7                   > ARMv7 32-bit"
 	@echo "armv8                   > ARMv8 64-bit"
 	@echo "apple-silicon           > Apple silicon ARM64"
-	@echo "general-64   > unspecified 64-bit"
-	@echo "general-32   > unspecified 32-bit"
+	@echo "general-64              > unspecified 64-bit"
+	@echo "general-32              > unspecified 32-bit"
 	@echo ""
 	@echo "Supported compilers:"
 	@echo "--------------------"
-	@echo "gcc          > GNU compiler (default)"
-	@echo "mingw        > GNU compiler with MinGW under Windows"
-	@echo "clang        > LLVM Clang compiler"
-	@echo "icc          > Intel compiler"
+	@echo "gcc                     > GNU compiler (default)"
+	@echo "mingw                   > GNU compiler with MinGW under Windows"
+	@echo "clang                   > LLVM Clang compiler"
+	@echo "icc                     > Intel compiler"
 	@echo ""
 	@echo "Simple examples, for inexperienced users: "
 	@echo "----------------------------------------------------------------"
@@ -630,7 +630,7 @@ objclean:
 # Clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
-	@rm -f bench.txt *.gcda *.gcno ./nnue/*.gcda ./nnue/features/*.gcda
+	@rm -f bench.txt *.gcno *.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s
 	@rm -f DON.profdata *.profraw
 
 default:

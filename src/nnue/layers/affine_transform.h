@@ -17,45 +17,38 @@ namespace Evaluator::NNUE::Layers {
         static_assert(std::is_same<InputType, u08>::value, "");
 
         // Number of input/output dimensions
-        static constexpr IndexType kInputDimensions =
-            PreviousLayer::kOutputDimensions;
+        static constexpr IndexType kInputDimensions = PreviousLayer::kOutputDimensions;
         static constexpr IndexType kOutputDimensions = OutputDimensions;
-        static constexpr IndexType kPaddedInputDimensions =
-            ceilToMultiple<IndexType>(kInputDimensions, kMaxSimdWidth);
+        static constexpr IndexType kPaddedInputDimensions = ceilToMultiple<IndexType>(kInputDimensions, kMaxSimdWidth);
 
         // Size of forward propagation buffer used in this layer
-        static constexpr size_t kSelfBufferSize =
-            ceilToMultiple(kOutputDimensions * sizeof(OutputType), kCacheLineSize);
+        static constexpr size_t kSelfBufferSize = ceilToMultiple(kOutputDimensions * sizeof(OutputType), kCacheLineSize);
 
         // Size of the forward propagation buffer used from the input layer to this layer
-        static constexpr size_t kBufferSize =
-            PreviousLayer::kBufferSize + kSelfBufferSize;
+        static constexpr size_t kBufferSize = PreviousLayer::kBufferSize + kSelfBufferSize;
 
         // Hash value embedded in the evaluation file
-        static constexpr u32 GetHashValue() {
+        static constexpr u32 getHashValue() {
             u32 hash_value = 0xCC03DAE4u;
             hash_value += kOutputDimensions;
-            hash_value ^= PreviousLayer::GetHashValue() >> 1;
-            hash_value ^= PreviousLayer::GetHashValue() << 31;
+            hash_value ^= PreviousLayer::getHashValue() >> 1;
+            hash_value ^= PreviousLayer::getHashValue() << 31;
             return hash_value;
         }
 
         // Read network parameters
         bool readParameters(std::istream &stream) {
-            if (!_previous_layer.readParameters(stream)) return false;
-            stream.read(reinterpret_cast<char *>(biases_),
-                kOutputDimensions * sizeof(BiasType));
-            stream.read(reinterpret_cast<char *>(weights_),
-                kOutputDimensions * kPaddedInputDimensions *
-                sizeof(WeightType));
+            if (!_previous_layer.readParameters(stream)) {
+                return false;
+            }
+            stream.read(reinterpret_cast<char *>(biases_), kOutputDimensions * sizeof(BiasType));
+            stream.read(reinterpret_cast<char *>(weights_), kOutputDimensions * kPaddedInputDimensions * sizeof(WeightType));
             return !stream.fail();
         }
 
         // Forward propagation
-        const OutputType *Propagate(
-            const TransformedFeatureType *transformed_features, char *buffer) const {
-            const auto input = _previous_layer.Propagate(
-                transformed_features, buffer + kSelfBufferSize);
+        const OutputType *Propagate(const TransformedFeatureType *transformed_features, char *buffer) const {
+            const auto input = _previous_layer.Propagate(transformed_features, buffer + kSelfBufferSize);
             const auto output = reinterpret_cast<OutputType *>(buffer);
 
 #if defined(AVX512)
@@ -112,8 +105,7 @@ namespace Evaluator::NNUE::Layers {
                     const auto iv256 = reinterpret_cast<const __m256i *>(&input_vector[kNumChunks]);
                     const auto row256 = reinterpret_cast<const __m256i *>(&row[kNumChunks]);
 #if defined(VNNI)
-                    __m256i product256 = _mm256_dpbusd_epi32(
-                        _mm512_castsi512_si256(sum), _mm256_loadA_si256(&iv256[0]), _mm256_load_si256(&row256[0]));
+                    __m256i product256 = _mm256_dpbusd_epi32(_mm512_castsi512_si256(sum), _mm256_loadA_si256(&iv256[0]), _mm256_load_si256(&row256[0]));
                     sum = _mm512_inserti32x8(sum, product256, 0);
 #else
                     __m256i product256 = _mm256_maddubs_epi16(_mm256_loadA_si256(&iv256[0]), _mm256_load_si256(&row256[0]));
@@ -209,7 +201,6 @@ namespace Evaluator::NNUE::Layers {
                     sum = vpadalq_s16(sum, product);
                 }
                 output[i] = sum[0] + sum[1] + sum[2] + sum[3];
-
 #else
                 OutputType sum = biases_[i];
                 for (IndexType j = 0; j < kInputDimensions; ++j) {
@@ -232,8 +223,7 @@ namespace Evaluator::NNUE::Layers {
         PreviousLayer _previous_layer;
 
         alignas(kCacheLineSize) BiasType biases_[kOutputDimensions];
-        alignas(kCacheLineSize)
-            WeightType weights_[kOutputDimensions * kPaddedInputDimensions];
+        alignas(kCacheLineSize) WeightType weights_[kOutputDimensions * kPaddedInputDimensions];
     };
 
 }  // namespace Evaluator::NNUE::Layers

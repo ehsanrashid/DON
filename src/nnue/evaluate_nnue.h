@@ -8,7 +8,7 @@
 namespace Evaluator::NNUE {
 
     // Hash value of evaluation function structure
-    constexpr u32 kHashValue = FeatureTransformer::GetHashValue() ^ Network::GetHashValue();
+    constexpr u32 kHashValue = FeatureTransformer::getHashValue() ^ Network::getHashValue();
 
     // Deleter for automating release of memory area
     template <typename T>

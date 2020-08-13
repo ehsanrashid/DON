@@ -229,35 +229,35 @@ public:
     PieceId piece_id_list[SQUARES];
 
     // List of pieces, separate from White and Black POV
-    PieceSquare *piece_list_fw() const { return const_cast<PieceSquare *>(pieceListFw); }
-    PieceSquare *piece_list_fb() const { return const_cast<PieceSquare *>(pieceListFb); }
+    PieceSquare *pieceListFw() const { return const_cast<PieceSquare *>(_pieceListFw); }
+    PieceSquare *pieceListFb() const { return const_cast<PieceSquare *>(_pieceListFb); }
 
-    // Place the piece pc with piece_id on the square sq on the board
-    void putPiece(PieceId piece_id, Square sq, Piece pc) {
-        assert(isOk(piece_id));
+    // Place the piece pc with pieceId on the square sq on the board
+    void putPiece(PieceId pieceId, Square sq, Piece pc) {
+        assert(isOk(pieceId));
         if (pc != NO_PIECE) {
-            pieceListFw[piece_id] = PieceSquare(kpp_board_index[pc].from[WHITE] + sq);
-            pieceListFb[piece_id] = PieceSquare(kpp_board_index[pc].from[BLACK] + rotate180(sq));
-            piece_id_list[sq] = piece_id;
+            _pieceListFw[pieceId] = PieceSquare(kpp_board_index[pc].from[WHITE] + sq);
+            _pieceListFb[pieceId] = PieceSquare(kpp_board_index[pc].from[BLACK] + rotate180(sq));
+            piece_id_list[sq] = pieceId;
         }
         else {
-            pieceListFw[piece_id] = PS_NONE;
-            pieceListFb[piece_id] = PS_NONE;
-            piece_id_list[sq] = piece_id;
+            _pieceListFw[pieceId] = PS_NONE;
+            _pieceListFb[pieceId] = PS_NONE;
+            piece_id_list[sq] = pieceId;
         }
     }
 
-    // Convert the specified piece_id piece to ExtPieceSquare type and return it
-    ExtPieceSquare piece_with_id(PieceId piece_id) const {
+    // Convert the specified pieceId piece to ExtPieceSquare type and return it
+    ExtPieceSquare pieceWithId(PieceId pieceId) const {
         ExtPieceSquare eps;
-        eps.from[WHITE] = pieceListFw[piece_id];
-        eps.from[BLACK] = pieceListFb[piece_id];
+        eps.from[WHITE] = _pieceListFw[pieceId];
+        eps.from[BLACK] = _pieceListFb[pieceId];
         return eps;
     }
 
 private:
-    PieceSquare pieceListFw[MAX_LENGTH];
-    PieceSquare pieceListFb[MAX_LENGTH];
+    PieceSquare _pieceListFw[MAX_LENGTH];
+    PieceSquare _pieceListFb[MAX_LENGTH];
 };
 
 // For differential evaluation of pieces that changed since last turn
@@ -270,8 +270,8 @@ struct DirtyPiece {
     PieceId pieceId[2];
 
     // What changed from the piece with that piece number
-    ExtPieceSquare old_piece[2];
-    ExtPieceSquare new_piece[2];
+    ExtPieceSquare oldPiece[2];
+    ExtPieceSquare newPiece[2];
 };
 
 enum MoveType : u16 {

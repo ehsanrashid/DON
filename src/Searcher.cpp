@@ -238,7 +238,7 @@ namespace {
         double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
         double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
 
-        // Transform eval to centipawns with limited range
+        // transform eval to centipawns with limited range
         double x = clamp(double(100 * v) / VALUE_EG_PAWN, -1000.0, 1000.0);
 
         // Return win rate in per mille (rounded to nearest)
@@ -886,7 +886,7 @@ namespace {
             // Betting that the opponent doesn't have a move that will reduce
             // the score by more than futility margins if do a null move.
             if (!PVNode
-             && depth <= 7
+             && depth < 8
                 // Futility Margin
              && eval - 223 * (depth - 1 * improving) >= beta
              && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
@@ -902,10 +902,10 @@ namespace {
              && eval >= ss->staticEval
              && ss->staticEval >= beta - 30 * depth - 28 * improving + 84 * ttPV + 182
              && pos.nonPawnMaterial(activeSide) > VALUE_ZERO
-             //&& pos.count(activeSide) >= 3
              && excludedMove == MOVE_NONE
              // Null move pruning disabled for activeSide until ply exceeds nmpPly
-             && ss->ply >= thread->nmpPly[activeSide]
+                && (ss->ply >= thread->nmpMinPly
+                 || activeSide != thread->nmpColor)
              && Limits.mate == 0) {
                 // Null move dynamic reduction based on depth and static evaluation.
                 auto nullDepth{ Depth(depth - ((817 + 77 * depth) / 213 + std::min(i32(eval - beta) / 192, 3))) };
@@ -933,16 +933,19 @@ namespace {
                         nullValue = beta;
                     }
                     // Skip verification search
-                    if (thread->nmpPly[activeSide] != 0 // Recursive verification is not allowed
-                     || (depth <= 12
+                    if (thread->nmpMinPly != 0 // Recursive verification is not allowed
+                     || (depth < 13
                       && std::abs(beta) < +VALUE_KNOWN_WIN)) {
                         return nullValue;
                     }
 
                     // Do verification search at high depths
-                    thread->nmpPly[activeSide] = ss->ply + 3 * nullDepth / 4;
+                    thread->nmpMinPly = ss->ply + 3 * nullDepth / 4;
+                    thread->nmpColor = activeSide;
+
                     value = depthSearch<false>(pos, ss, beta-1, beta, nullDepth, false);
-                    thread->nmpPly[activeSide] = 0;
+
+                    thread->nmpMinPly = 0;
 
                     if (value >= beta) {
                         return nullValue;
@@ -1165,12 +1168,12 @@ namespace {
                 if (giveCheck
                  || captureOrPromotion) {
                     if (!giveCheck) {
-                        if (lmrDepth <= 0
+                        if (lmrDepth < 1
                          && thread->captureStats[mp][dst][pos.captured(move)] < 0) {
                             continue;
                         }
                         // Futility pruning for captures
-                        if (lmrDepth <= 7
+                        if (lmrDepth < 6
                          && !inCheck
                          && !(PVNode && std::abs(bestValue) < 2)
                          && PieceValues[MG][pType(mp)] >= PieceValues[MG][pType(cp)]
@@ -1933,6 +1936,8 @@ void MainThread::search() {
     }
 
     TEntry::Generation += 8;
+
+    Evaluator::verifyNNUE();
 
     bool think{ true };
 

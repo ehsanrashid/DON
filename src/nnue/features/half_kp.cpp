@@ -19,8 +19,8 @@ namespace Evaluator::NNUE::Features {
         PieceSquare **pieces, Square *sq_target_k) {
 
         *pieces = (perspective == BLACK) ?
-            pos.evalList()->piece_list_fb() :
-            pos.evalList()->piece_list_fw();
+            pos.evalList()->pieceListFb() :
+            pos.evalList()->pieceListFw();
         const PieceId target = (AssociatedKing == Side::kFriend) ?
             static_cast<PieceId>(PIECE_ID_KING + perspective) :
             static_cast<PieceId>(PIECE_ID_KING + ~perspective);
@@ -58,12 +58,12 @@ namespace Evaluator::NNUE::Features {
         for (int i = 0; i < dp.dirty_num; ++i) {
             if (dp.pieceId[i] >= PIECE_ID_KING) continue;
             const auto old_p = static_cast<PieceSquare>(
-                dp.old_piece[i].from[perspective]);
+                dp.oldPiece[i].from[perspective]);
             if (old_p != PS_NONE) {
                 removed->push_back(MakeIndex(sq_target_k, old_p));
             }
             const auto new_p = static_cast<PieceSquare>(
-                dp.new_piece[i].from[perspective]);
+                dp.newPiece[i].from[perspective]);
             if (new_p != PS_NONE) {
                 added->push_back(MakeIndex(sq_target_k, new_p));
             }

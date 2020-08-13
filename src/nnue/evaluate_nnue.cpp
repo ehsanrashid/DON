@@ -11,7 +11,7 @@
 #include "evaluate_nnue.h"
 
 #if defined(__APPLE__) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
-#   define POSIXALIGNEDALLOC
+#   define POSIX_ALIGNED_ALLOC
 #   include <stdlib.h>
 #endif
 
@@ -46,7 +46,7 @@ namespace Evaluator::NNUE {
 
         void* stdAlignedAlloc(size_t alignment, size_t size) {
 
-#if defined(POSIXALIGNEDALLOC)
+#if defined(POSIX_ALIGNED_ALLOC)
             void *pointer;
             if (posix_memalign(&pointer, alignment, size) == 0) {
                 return pointer;
@@ -61,7 +61,7 @@ namespace Evaluator::NNUE {
 
         void stdAlignedFree(void *ptr) {
 
-#if defined(POSIXALIGNEDALLOC)
+#if defined(POSIX_ALIGNED_ALLOC)
             free(ptr);
 #elif defined(_WIN32)
             _mm_free(ptr);
@@ -104,7 +104,7 @@ namespace Evaluator::NNUE {
 
             u32 header;
             stream.read(reinterpret_cast<char*>(&header), sizeof(header));
-            if (!stream || header != T::GetHashValue()) return false;
+            if (!stream || header != T::getHashValue()) return false;
             return pointer->readParameters(stream);
         }
 
@@ -143,9 +143,9 @@ namespace Evaluator::NNUE {
     }
 
     // Proceed with the difference calculation if possible
-    static void UpdateAccumulatorIfPossible(Position const &pos) {
+    static void updateAccumulatorIfPossible(Position const &pos) {
 
-        featureTransformer->UpdateAccumulatorIfPossible(pos);
+        featureTransformer->updateAccumulatorIfPossible(pos);
     }
 
     // Calculate the evaluation value
@@ -159,7 +159,7 @@ namespace Evaluator::NNUE {
 
         alignas(kCacheLineSize) TransformedFeatureType
             transformed_features[FeatureTransformer::kBufferSize];
-        featureTransformer->Transform(pos, transformed_features, refresh);
+        featureTransformer->transform(pos, transformed_features, refresh);
         alignas(kCacheLineSize) char buffer[Network::kBufferSize];
         const auto output = network->Propagate(transformed_features, buffer);
 
@@ -193,7 +193,7 @@ namespace Evaluator::NNUE {
 
     // Proceed with the difference calculation if possible
     void updateEval(Position const &pos) {
-        UpdateAccumulatorIfPossible(pos);
+        updateAccumulatorIfPossible(pos);
     }
 
 } // namespace Evaluator::NNUE

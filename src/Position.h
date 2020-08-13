@@ -106,7 +106,7 @@ private:
     bool canEnpassant(Color, Square, bool = true) const;
 
     // ID of a piece on a given square
-    PieceId piece_id_on(Square sq) const;
+    PieceId pieceIdOn(Square sq) const;
 
 public:
 
@@ -486,7 +486,7 @@ inline const EvalList* Position::evalList() const {
     return &_evalList;
 }
 
-inline PieceId Position::piece_id_on(Square sq) const {
+inline PieceId Position::pieceIdOn(Square sq) const {
     assert(board[sq] != NO_PIECE);
 
     PieceId pid = _evalList.piece_id_list[sq];

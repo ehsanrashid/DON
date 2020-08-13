@@ -9,11 +9,11 @@
 // When no Makefile used
 
 #if defined(_WIN64) && defined(_MSC_VER)
-#  include <intrin.h>       // Microsoft Header for _BitScanForward64() & _BitScanReverse64()
+#   include <intrin.h>       // Microsoft Header for _BitScanForward64() & _BitScanReverse64()
 #endif
 
 #if defined(ABMI) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
-#  include <nmmintrin.h>    // Microsoft and Intel Header for _mm_popcnt_u64() & _mm_popcnt_u32()
+#   include <nmmintrin.h>    // Microsoft and Intel Header for _mm_popcnt_u64() & _mm_popcnt_u32()
 #endif
 
 #if defined(BMI2)

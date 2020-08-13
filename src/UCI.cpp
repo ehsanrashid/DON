@@ -143,8 +143,14 @@ string const compilerInfo() {
     oss << " 32bit";
 #endif
 
+#if defined(VNNI)
+    oss << " VNNI";
+#endif
 #if defined(AVX512)
     oss << " AVX512";
+#endif
+#if defined(BMI2)
+    oss << " BMI2";
 #endif
 #if defined(AVX2)
     oss << " AVX2";
@@ -155,11 +161,11 @@ string const compilerInfo() {
 #if defined(SSSE3)
     oss << " SSSE3";
 #endif
-#if defined(BMI2)
-    oss << " BMI2";
+#if defined(SSE2)
+    oss << " SSE2";
 #endif
 #if defined(ABMI)
-    oss << " POPCNT";
+    oss << " ABMI";
 #endif
 #if defined(MMX)
     oss << " MMX";
@@ -319,6 +325,10 @@ namespace UCI {
         index = insertOrder++;
     }
 
+    std::string Option::defaultValue() const {
+        return defaultVal;
+    }
+
     /// Option::toString()
     string Option::toString() const
     {
@@ -456,7 +466,7 @@ namespace UCI {
         om["SyzygyMove50Rule"]   << Option(true);
 
         om["Use NNUE"]           << Option(false, onUseNNUE);
-        om["Eval File"]          << Option("nn-97f742aaefcd.nnue", onEvalFile);
+        om["Eval File"]          << Option("nn-82215d0fd0df.nnue", onEvalFile);
 
         om["Debug File"]         << Option("", onDebugFile);
 

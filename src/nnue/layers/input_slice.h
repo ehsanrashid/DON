@@ -22,7 +22,7 @@ namespace Evaluator::NNUE::Layers {
         static constexpr size_t kBufferSize = 0;
 
         // Hash value embedded in the evaluation file
-        static constexpr u32 GetHashValue() {
+        static constexpr u32 getHashValue() {
             u32 hash_value = 0xEC42E90Du;
             hash_value ^= kOutputDimensions ^ (Offset << 10);
             return hash_value;

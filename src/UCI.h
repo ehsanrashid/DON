@@ -66,6 +66,7 @@ namespace UCI {
 
         void operator<<(Option const&);
 
+        std::string defaultValue() const;
         std::string toString() const;
     };
 

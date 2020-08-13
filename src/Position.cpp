@@ -704,7 +704,7 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     _stateInfo = &si;
 
     // Each piece on board gets a unique ID used to track the piece later
-    PieceId piece_id, next_piece_id = PIECE_ID_ZERO;
+    PieceId pieceId, nextPieceId = PIECE_ID_ZERO;
 
     std::istringstream iss{ ff };
     iss >> std::noskipws;
@@ -731,11 +731,11 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
 
             if (Evaluator::useNNUE) {
                 // Kings get a fixed ID, other pieces get ID in order of placement
-                piece_id =
+                pieceId =
                     (pos == W_KING) ? PIECE_ID_WKING :
                     (pos == B_KING) ? PIECE_ID_BKING :
-                    next_piece_id++;
-                _evalList.putPiece(piece_id, sq, pc);
+                    nextPieceId++;
+                _evalList.putPiece(pieceId, sq, pc);
             }
 
             ++sq;
@@ -863,12 +863,12 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     // Used by NNUE
     _stateInfo->accumulator.computedAccumulation = false;
     _stateInfo->accumulator.computedScore = false;
-    PieceId dp0 = PIECE_ID_NONE;
-    PieceId dp1 = PIECE_ID_NONE;
-    auto &dp = _stateInfo->dirtyPiece;
+    PieceId dp0{ PIECE_ID_NONE };
+    PieceId dp1{ PIECE_ID_NONE };
+    auto &dp{ _stateInfo->dirtyPiece };
     dp.dirty_num = 1;
 
-    auto pasive = ~active;
+    auto pasive{ ~active };
 
     auto org{ orgSq(m) };
     auto dst{ dstSq(m) };
@@ -894,6 +894,23 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         auto rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
         auto rookDst{ rookCastleSq(org, rookOrg) };
         /* king*/dst = kingCastleSq(org, rookOrg);
+
+        if (Evaluator::useNNUE) {
+            auto &dp{ _stateInfo->dirtyPiece };
+            dp.dirty_num = 2; // 2 pieces moved
+
+            dp0 = pieceIdOn(org);
+            dp1 = pieceIdOn(rookOrg);
+            dp.pieceId[0] = dp0;
+            dp.oldPiece[0] = _evalList.pieceWithId(dp0);
+            _evalList.putPiece(dp0, dst, active|KING);
+            dp.newPiece[0] = _evalList.pieceWithId(dp0);
+            dp.pieceId[1] = dp1;
+            dp.oldPiece[1] = _evalList.pieceWithId(dp1);
+            _evalList.putPiece(dp1, rookDst, active|ROOK);
+            dp.newPiece[1] = _evalList.pieceWithId(dp1);
+        }
+
         // Remove both pieces first since squares could overlap in chess960
         removePiece(org);
         removePiece(rookOrg);
@@ -931,11 +948,11 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 
         if (Evaluator::useNNUE) {
             dp.dirty_num = 2; // 2 pieces moved
-            dp1 = piece_id_on(cap);
+            dp1 = pieceIdOn(cap);
             dp.pieceId[1] = dp1;
-            dp.old_piece[1] = _evalList.piece_with_id(dp1);
+            dp.oldPiece[1] = _evalList.pieceWithId(dp1);
             _evalList.putPiece(dp1, cap, NO_PIECE);
-            dp.new_piece[1] = _evalList.piece_with_id(dp1);
+            dp.newPiece[1] = _evalList.pieceWithId(dp1);
         }
 
         removePiece(cap);
@@ -954,11 +971,11 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     if (mType(m) != CASTLE) {
 
         if (Evaluator::useNNUE) {
-            dp0 = piece_id_on(org);
+            dp0 = pieceIdOn(org);
             dp.pieceId[0] = dp0;
-            dp.old_piece[0] = _evalList.piece_with_id(dp0);
+            dp.oldPiece[0] = _evalList.pieceWithId(dp0);
             _evalList.putPiece(dp0, dst, mp);
-            dp.new_piece[0] = _evalList.piece_with_id(dp0);
+            dp.newPiece[0] = _evalList.pieceWithId(dp0);
         }
 
         movePiece(org, dst);
@@ -1002,9 +1019,9 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
             placePiece(dst, pp);
 
             if (Evaluator::useNNUE) {
-                dp0 = piece_id_on(dst);
+                dp0 = pieceIdOn(dst);
                 _evalList.putPiece(dp0, dst, pp);
-                dp.new_piece[0] = _evalList.piece_with_id(dp0);
+                dp.newPiece[0] = _evalList.pieceWithId(dp0);
             }
 
             npMaterial[active] += PieceValues[MG][pType(pp)];
@@ -1076,6 +1093,17 @@ void Position::undoMove(Move m) {
         auto rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
         auto rookDst{ rookCastleSq(org, rookOrg) };
         /* king*/dst = kingCastleSq(org, rookOrg);
+
+        if (Evaluator::useNNUE) {
+            auto &dp{ _stateInfo->dirtyPiece };
+            dp.dirty_num = 2; // 2 pieces moved
+
+            PieceId dp0{ pieceIdOn(dst) };
+            PieceId dp1{ pieceIdOn(rookDst) };
+            _evalList.putPiece(dp0, org, active|KING);
+            _evalList.putPiece(dp1, rookOrg, active|ROOK);
+        }
+
         // Remove both pieces first since squares could overlap in chess960
         removePiece(dst);
         removePiece(rookDst);
@@ -1084,7 +1112,7 @@ void Position::undoMove(Move m) {
         placePiece(rookOrg, active|ROOK);
     }
     else {
-        auto mp = board[dst];
+        auto mp{ board[dst] };
         assert(mp != NO_PIECE
             && pColor(mp) == active);
 
@@ -1101,7 +1129,7 @@ void Position::undoMove(Move m) {
         movePiece(dst, org);
 
         if (Evaluator::useNNUE) {
-            PieceId dp0 = _stateInfo->dirtyPiece.pieceId[0];
+            PieceId dp0{ _stateInfo->dirtyPiece.pieceId[0] };
             _evalList.putPiece(dp0, org, mp);
         }
 
@@ -1125,9 +1153,9 @@ void Position::undoMove(Move m) {
             placePiece(cap, ~active|captured());
 
             if (Evaluator::useNNUE) {
-                PieceId dp1 = _stateInfo->dirtyPiece.pieceId[1];
-                assert(_evalList.piece_with_id(dp1).from[WHITE] == PS_NONE);
-                assert(_evalList.piece_with_id(dp1).from[BLACK] == PS_NONE);
+                PieceId dp1{ _stateInfo->dirtyPiece.pieceId[1] };
+                assert(_evalList.pieceWithId(dp1).from[WHITE] == PS_NONE);
+                assert(_evalList.pieceWithId(dp1).from[BLACK] == PS_NONE);
                 _evalList.putPiece(dp1, cap, ~active|_stateInfo->captured);
             }
 

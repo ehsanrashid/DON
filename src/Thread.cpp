@@ -179,8 +179,8 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
         th->nodes           = 0;
         th->tbHits          = 0;
         th->pvChange        = 0;
-        th->nmpPly[WHITE]   = 0;
-        th->nmpPly[BLACK]   = 0;
+        th->nmpMinPly       = 0;
+        th->nmpColor        = COLORS;
         th->rootMoves       = rootMoves;
         th->rootPos.setup(fen, setupStates->back(), th);
     }

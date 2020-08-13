@@ -47,7 +47,8 @@ public:
                      tbHits;
     std::atomic<u32> pvChange;
 
-    i16 nmpPly[COLORS];
+    i16   nmpMinPly;
+    Color nmpColor;
 
     u16 pvBeg,
         pvCur,

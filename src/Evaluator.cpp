@@ -38,13 +38,10 @@ namespace Evaluator {
         auto evalFile{ std::string(Options["Eval File"]) };
         if (useNNUE
          && prevEvalFile != evalFile) {
-            UCI::OptionMap defaultOptions;
-            UCI::initialize(defaultOptions);
-
             std::cerr << "NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully. "
                       << "These network evaluation parameters must be available, and compatible with this version of the code. "
                       << "The UCI option EvalFile might need to specify the full path, including the directory/folder name, to the file. "
-                      << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/" << std::string(defaultOptions["Eval File"]) << std::endl;
+                      << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/" << Options["Eval File"].defaultValue() << std::endl;
             std::exit(EXIT_FAILURE);
         }
 
@@ -402,7 +399,7 @@ namespace Evaluator {
                             // No relevant attacks
                          && (attacks & targets) == 0
                          && !moreThanOne(targets
-                                       & (contains(SlotFileBB[CS_KING], s) ? SlotFileBB[CS_KING] : SlotFileBB[CS_QUEN]))) {
+                                       & (contains(SlotFileBB[CS_QUEN], s) ? SlotFileBB[CS_QUEN] : SlotFileBB[CS_KING]))) {
                             score += KnightBadOutpost;
                         }
                         else
@@ -659,7 +656,7 @@ namespace Evaluator {
                         -   3 * mgValue(score) / 4
                         +  37;
 
-            // Transform the king danger into a score
+            // transform the king danger into a score
             if (kingDanger > 100) {
                 score -= makeScore(nSqr(kingDanger) / 0x1000, kingDanger / 0x10);
             }

@@ -15,22 +15,19 @@ namespace Evaluator::NNUE::Layers {
         static_assert(std::is_same<InputType, i32>::value, "");
 
         // Number of input/output dimensions
-        static constexpr IndexType kInputDimensions =
-            PreviousLayer::kOutputDimensions;
+        static constexpr IndexType kInputDimensions = PreviousLayer::kOutputDimensions;
         static constexpr IndexType kOutputDimensions = kInputDimensions;
 
         // Size of forward propagation buffer used in this layer
-        static constexpr size_t kSelfBufferSize =
-            ceilToMultiple(kOutputDimensions * sizeof(OutputType), kCacheLineSize);
+        static constexpr size_t kSelfBufferSize = ceilToMultiple(kOutputDimensions * sizeof(OutputType), kCacheLineSize);
 
         // Size of the forward propagation buffer used from the input layer to this layer
-        static constexpr size_t kBufferSize =
-            PreviousLayer::kBufferSize + kSelfBufferSize;
+        static constexpr size_t kBufferSize = PreviousLayer::kBufferSize + kSelfBufferSize;
 
         // Hash value embedded in the evaluation file
-        static constexpr u32 GetHashValue() {
+        static constexpr u32 getHashValue() {
             u32 hash_value = 0x538D24C7u;
-            hash_value += PreviousLayer::GetHashValue();
+            hash_value += PreviousLayer::getHashValue();
             return hash_value;
         }
 
@@ -40,10 +37,9 @@ namespace Evaluator::NNUE::Layers {
         }
 
         // Forward propagation
-        const OutputType *Propagate(
-            const TransformedFeatureType *transformed_features, char *buffer) const {
-            const auto input = _previous_layer.Propagate(
-                transformed_features, buffer + kSelfBufferSize);
+        const OutputType *Propagate(const TransformedFeatureType *transformed_features, char *buffer) const {
+
+            const auto input = _previous_layer.Propagate(transformed_features, buffer + kSelfBufferSize);
             const auto output = reinterpret_cast<OutputType *>(buffer);
 
 #if defined(AVX2)
@@ -53,14 +49,9 @@ namespace Evaluator::NNUE::Layers {
             const auto in = reinterpret_cast<const __m256i *>(input);
             const auto out = reinterpret_cast<__m256i *>(output);
             for (IndexType i = 0; i < kNumChunks; ++i) {
-                const __m256i words0 = _mm256_srai_epi16(_mm256_packs_epi32(
-                    _mm256_loadA_si256(&in[i * 4 + 0]),
-                    _mm256_loadA_si256(&in[i * 4 + 1])), kWeightScaleBits);
-                const __m256i words1 = _mm256_srai_epi16(_mm256_packs_epi32(
-                    _mm256_loadA_si256(&in[i * 4 + 2]),
-                    _mm256_loadA_si256(&in[i * 4 + 3])), kWeightScaleBits);
-                _mm256_storeA_si256(&out[i], _mm256_permutevar8x32_epi32(_mm256_max_epi8(
-                    _mm256_packs_epi16(words0, words1), kZero), kOffsets));
+                const __m256i words0 = _mm256_srai_epi16(_mm256_packs_epi32(_mm256_loadA_si256(&in[i * 4 + 0]), _mm256_loadA_si256(&in[i * 4 + 1])), kWeightScaleBits);
+                const __m256i words1 = _mm256_srai_epi16(_mm256_packs_epi32(_mm256_loadA_si256(&in[i * 4 + 2]), _mm256_loadA_si256(&in[i * 4 + 3])), kWeightScaleBits);
+                _mm256_storeA_si256(&out[i], _mm256_permutevar8x32_epi32(_mm256_max_epi8(_mm256_packs_epi16(words0, words1), kZero), kOffsets));
             }
             constexpr IndexType kStart = kNumChunks * kSimdWidth;
 
@@ -76,12 +67,8 @@ namespace Evaluator::NNUE::Layers {
             const auto in = reinterpret_cast<const __m128i *>(input);
             const auto out = reinterpret_cast<__m128i *>(output);
             for (IndexType i = 0; i < kNumChunks; ++i) {
-                const __m128i words0 = _mm_srai_epi16(_mm_packs_epi32(
-                    _mm_load_si128(&in[i * 4 + 0]),
-                    _mm_load_si128(&in[i * 4 + 1])), kWeightScaleBits);
-                const __m128i words1 = _mm_srai_epi16(_mm_packs_epi32(
-                    _mm_load_si128(&in[i * 4 + 2]),
-                    _mm_load_si128(&in[i * 4 + 3])), kWeightScaleBits);
+                const __m128i words0 = _mm_srai_epi16(_mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1])), kWeightScaleBits);
+                const __m128i words1 = _mm_srai_epi16(_mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3])), kWeightScaleBits);
                 const __m128i packedbytes = _mm_packs_epi16(words0, words1);
                 _mm_store_si128(&out[i],
 
@@ -101,12 +88,8 @@ namespace Evaluator::NNUE::Layers {
             const auto in = reinterpret_cast<const __m64 *>(input);
             const auto out = reinterpret_cast<__m64 *>(output);
             for (IndexType i = 0; i < kNumChunks; ++i) {
-                const __m64 words0 = _mm_srai_pi16(
-                    _mm_packs_pi32(in[i * 4 + 0], in[i * 4 + 1]),
-                    kWeightScaleBits);
-                const __m64 words1 = _mm_srai_pi16(
-                    _mm_packs_pi32(in[i * 4 + 2], in[i * 4 + 3]),
-                    kWeightScaleBits);
+                const __m64 words0 = _mm_srai_pi16(_mm_packs_pi32(in[i * 4 + 0], in[i * 4 + 1]), kWeightScaleBits);
+                const __m64 words1 = _mm_srai_pi16(_mm_packs_pi32(in[i * 4 + 2], in[i * 4 + 3]), kWeightScaleBits);
                 const __m64 packedbytes = _mm_packs_pi16(words0, words1);
                 out[i] = _mm_subs_pi8(_mm_adds_pi8(packedbytes, k0x80s), k0x80s);
             }
@@ -131,8 +114,7 @@ namespace Evaluator::NNUE::Layers {
 #endif
 
             for (IndexType i = kStart; i < kInputDimensions; ++i) {
-                output[i] = static_cast<OutputType>(
-                    std::max(0, std::min(127, input[i] >> kWeightScaleBits)));
+                output[i] = static_cast<OutputType>(std::max(0, std::min(127, input[i] >> kWeightScaleBits)));
             }
             return output;
         }
