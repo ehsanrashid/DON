@@ -91,10 +91,10 @@ string const engineInfo() {
     oss << ".32";
 #endif
 
-#if defined(BM2)
-    oss << ".BM2";
-#elif defined(ABM)
-    oss << ".ABM";
+#if defined(BMI2)
+    oss << ".BMI2";
+#elif defined(ABMI)
+    oss << ".ABMI";
 #endif
 
     return oss.str();
@@ -155,10 +155,10 @@ string const compilerInfo() {
 #if defined(SSSE3)
     oss << " SSSE3";
 #endif
-#if defined(BM2)
+#if defined(BMI2)
     oss << " BMI2";
 #endif
-#if defined(ABM)
+#if defined(ABMI)
     oss << " POPCNT";
 #endif
 #if defined(MMX)

@@ -18,7 +18,7 @@ Bitboard PieceAttacksBB[PIECE_TYPES][SQUARES];
 Magic BMagics[SQUARES];
 Magic RMagics[SQUARES];
 
-#if !defined(ABM)
+#if !defined(ABMI)
 
 u08 PopCount[USHRT_MAX+1];
 
@@ -89,7 +89,7 @@ namespace {
         Bitboard attacks[],
         Magic magics[]) {
 
-#if !defined(BM2)
+#if !defined(BMI2)
 
         constexpr u16 MaxIndex{ 0x1000 };
         Bitboard occupancy[MaxIndex];
@@ -126,7 +126,7 @@ namespace {
             // new Bitboard[1 << popCount(magic.mask)];
             magic.attacks = s == SQ_A1 ? attacks : magics[s - 1].attacks + size;
 
-#if !defined(BM2)
+#if !defined(BMI2)
 
             u08 bits
 #   if defined(BIT64)
@@ -144,8 +144,8 @@ namespace {
             Bitboard occ{ 0 };
             do {
 
-#if defined(BM2)
-                magic.attacks[PEXT(occ, magic.mask)] = slideAttacks<PT>(s occ);
+#if defined(BMI2)
+                magic.attacks[PEXT(occ, magic.mask)] = slideAttacks<PT>(s, occ);
 #else
                 occupancy[size] = occ;
                 reference[size] = slideAttacks<PT>(s, occ);
@@ -156,7 +156,7 @@ namespace {
 
             assert(size == 1 << popCount(magic.mask));
 
-#if !defined(BM2)
+#if !defined(BMI2)
 
             PRNG prng{ Seeds[sRank(s)] };
             // Find a magic for square picking up an (almost) random number
@@ -207,7 +207,7 @@ namespace BitBoard {
             }
         }
 
-#if !defined(ABM)
+#if !defined(ABMI)
 
         for (u16 i = 0; ; ++i) {
             PopCount[i] = std::bitset<16>(i).count(); //popCount16(i);

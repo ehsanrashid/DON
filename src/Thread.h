@@ -19,8 +19,7 @@
 /// It use pawn and material hash tables so that once get a pointer to
 /// an entry its life time is unlimited and we don't have to care about
 /// someone changing the entry under our feet.
-class Thread :
-    public NativeThread {
+class Thread {
 
 private:
 
@@ -30,6 +29,7 @@ private:
     std::mutex mutex;
     std::condition_variable conditionVar;
     u16 index; // indentity
+    NativeThread nativeThread;
 
 protected:
     using Base = Thread;

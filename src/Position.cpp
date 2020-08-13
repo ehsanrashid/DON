@@ -962,11 +962,6 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         }
 
         movePiece(org, dst);
-
-        if (Evaluator::useNNUE) {
-            PieceId dp0 = _stateInfo->dirtyPiece.pieceId[0];
-            _evalList.putPiece(dp0, org, mp);
-        }
     }
     pKey ^= RandZob.psq[mp][org]
           ^ RandZob.psq[mp][dst];
@@ -1104,6 +1099,11 @@ void Position::undoMove(Move m) {
         }
         // Move the piece
         movePiece(dst, org);
+
+        if (Evaluator::useNNUE) {
+            PieceId dp0 = _stateInfo->dirtyPiece.pieceId[0];
+            _evalList.putPiece(dp0, org, mp);
+        }
 
         if (captured() != NONE) {
             auto cap{ dst };

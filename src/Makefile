@@ -54,13 +54,14 @@ endif
 # arch     = (name)    --- (-arch)          --- Target architecture
 # bits     = 64/32     --- -DBIT64          --- 64/32-bit operating system
 # prefetch = yes/no    --- -DPREFETCH       --- Use prefetch x86 asm-instruction
-# popcnt   = yes/no    --- -DABM            --- Use popcnt asm-instruction
+# abmi     = yes/no    --- -DABMI           --- Use popcnt asm-instruction
 # sse      = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
 # ssse3    = yes/no    --- -mssse3          --- Use Intel Supplemental Streaming SIMD Extensions 3
 # sse41    = yes/no    --- -msse4.1         --- Use Intel Streaming SIMD Extensions 4.1
 # avx2     = yes/no    --- -mavx2           --- Use Intel Advanced Vector Extensions 2
-# pext     = yes/no    --- -DBM2            --- Use pext x86_64 asm-instruction
+# bmi2     = yes/no    --- -DBMI2           --- Use pext x86_64 asm-instruction
 # avx512   = yes/no    --- -mavx512bw       --- Use Intel Advanced Vector Extensions 512
+# vnni     = yes/no    --- -mavx512vnni     --- Use Intel Vector Neural Network Instructions 512
 # neon     = yes/no    --- -DNEON           --- Use ARM SIMD architecture
 #
 # Note that Makefile is space sensitive, so when adding new architectures
@@ -74,14 +75,15 @@ sanitize = no
 bits = 64
 prefetch = no
 
-popcnt = no
+abmi = no
 mmx = no
 sse = no
 ssse3 = no
 sse41 = no
 avx2 = no
-pext = no
+bmi2 = no
 avx512 = no
+vnni = no
 neon = no
 
 ARCH = x86-64-modern
@@ -120,7 +122,7 @@ ifeq ($(ARCH), x86-64-sse3-popcnt)
 	arch = x86_64
 	prefetch = yes
 	sse = yes
-	popcnt = yes
+	abmi = yes
 endif
 
 ifeq ($(ARCH), x86-64-ssse3)
@@ -133,7 +135,7 @@ endif
 ifeq ($(ARCH), x86-64-modern)
 	arch = x86_64
 	prefetch = yes
-	popcnt = yes
+	abmi = yes
 	sse = yes
 	ssse3 = yes
 	sse41 = yes
@@ -142,7 +144,7 @@ endif
 ifeq ($(ARCH), x86-64-sse41-popcnt)
 	arch = x86_64
 	prefetch = yes
-	popcnt = yes
+	abmi = yes
 	sse = yes
 	ssse3 = yes
 	sse41 = yes
@@ -151,7 +153,7 @@ endif
 ifeq ($(ARCH), x86-64-avx2)
 	arch = x86_64
 	prefetch = yes
-	popcnt = yes
+	abmi = yes
 	sse = yes
 	ssse3 = yes
 	sse41 = yes
@@ -161,24 +163,37 @@ endif
 ifeq ($(ARCH), x86-64-bmi2)
 	arch = x86_64
 	prefetch = yes
-	popcnt = yes
+	abmi = yes
 	sse = yes
 	ssse3 = yes
 	sse41 = yes
 	avx2 = yes
-	pext = yes
+	bmi2 = yes
 endif
 
 ifeq ($(ARCH), x86-64-avx512)
 	arch = x86_64
 	prefetch = yes
-	popcnt = yes
+	abmi = yes
 	sse = yes
 	ssse3 = yes
 	sse41 = yes
 	avx2 = yes
-	pext = yes
+	bmi2 = yes
 	avx512 = yes
+endif
+
+ifeq ($(ARCH),x86-64-vnni)
+	arch = x86_64
+	prefetch = yes
+	abmi = yes
+	sse = yes
+	ssse3 = yes
+	sse41 = yes
+	avx2 = yes
+	bmi2 = yes
+	avx512 = yes
+	vnni = yes
 endif
 
 ifeq ($(ARCH), armv7)
@@ -190,14 +205,14 @@ endif
 ifeq ($(ARCH), armv8)
 	arch = armv8-a
 	prefetch = yes
-	popcnt = yes
+	abmi = yes
 	neon = yes
 endif
 
 ifeq ($(ARCH), apple-silicon)
 	arch = arm64
 	prefetch = yes
-	popcnt = yes
+	abmi = yes
 	neon = yes
 endif
 
@@ -208,7 +223,7 @@ endif
 
 ifeq ($(ARCH), ppc-64)
 	arch = ppc64
-	popcnt = yes
+	abmi = yes
 	prefetch = yes
 endif
 
@@ -385,14 +400,15 @@ ifeq ($(prefetch), yes)
 	endif
 endif
 
-### 3.6 popcnt (ABM-Advance Bit Manipulation)
-ifeq ($(abm), yes)
+### 3.6 abmi (ABMI-Advance Bit Manipulation)
+ifeq ($(abmi), yes)
+	CXXFLAGS += -DABMI
 	ifeq ($(arch), $(filter $(arch), ppc64 armv8-a arm64))
-		CXXFLAGS += -DABM
+		#CXXFLAGS +=
 	else ifeq ($(comp), icc)
-		CXXFLAGS += -DABM -msse3
+		CXXFLAGS += -msse3
 	else
-		CXXFLAGS += -DABM -msse3 -mpopcnt
+		CXXFLAGS += -msse3 -mpopcnt
 	endif
 endif
 
@@ -406,7 +422,14 @@ endif
 ifeq ($(avx512), yes)
 	CXXFLAGS += -DAVX512
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
-		CXXFLAGS += -mavx512bw
+		CXXFLAGS += -mavx512f -mavx512bw
+	endif
+endif
+
+ifeq ($(vnni), yes)
+	CXXFLAGS += -DVNNI
+	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
+		CXXFLAGS += -mavx512vnni -mavx512dq -mavx512vl
 	endif
 endif
 
@@ -436,12 +459,12 @@ ifeq ($(neon), yes)
 endif
 
 ifeq ($(arch), x86_64)
-	CXXFLAGS += -DSSE2
+	CXXFLAGS += -DSSE2 -msse2
 endif
 
-### 3.7 BM2 (Bit Manipulation Instruction Set 2)
-ifeq ($(bm2), yes)
-	CXXFLAGS += -DBM2
+### 3.7 BMI2 (Bit Manipulation Instruction Set 2)
+ifeq ($(bmi2), yes)
+	CXXFLAGS += -DBMI2
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mbmi2
 	endif
@@ -517,6 +540,7 @@ help:
 	@echo ""
 	@echo "Supported archs:"
 	@echo ""
+	@echo "x86-64-vnni             > x86 64-bit with vnni support"
 	@echo "x86-64-avx512           > x86 64-bit with avx512 support"
 	@echo "x86-64-bmi2             > x86 64-bit with bmi2 support"
 	@echo "x86-64-avx2             > x86 64-bit with avx2 support"
@@ -634,13 +658,14 @@ config-sanity:
 	@echo "kernel: '$(KERNEL)'"
 	@echo "os: '$(OS)'"
 	@echo "prefetch: '$(prefetch)'"
-	@echo "popcnt: '$(popcnt)'"
+	@echo "abmi: '$(abmi)'"
 	@echo "sse     : '$(sse)'"
 	@echo "ssse3: '$(ssse3)'"
 	@echo "sse41: '$(sse41)'"
 	@echo "avx2: '$(avx2)'"
-	@echo "pext: '$(pext)'"
+	@echo "bmi2: '$(bmi2)'"
 	@echo "avx512: '$(avx512)'"
+	@echo "vnni: '$(vnni)'"
 	@echo "neon: '$(neon)'"
 	@echo ""
 	@echo "Flags:"
@@ -659,13 +684,14 @@ config-sanity:
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8-a" || test "$(arch)" = "arm64"
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
-	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
+	@test "$(abmi)" = "yes" || test "$(abmi)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
 	@test "$(ssse3)" = "yes" || test "$(ssse3)" = "no"
 	@test "$(sse41)" = "yes" || test "$(sse41)" = "no"
 	@test "$(avx2)" = "yes" || test "$(avx2)" = "no"
-	@test "$(pext)" = "yes" || test "$(pext)" = "no"
+	@test "$(bmi2)" = "yes" || test "$(bmi2)" = "no"
 	@test "$(avx512)" = "yes" || test "$(avx512)" = "no"
+	@test "$(vnni)" = "yes" || test "$(vnni)" = "no"
 	@test "$(neon)" = "yes" || test "$(neon)" = "no"
 	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang"
 

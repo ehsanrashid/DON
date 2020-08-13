@@ -94,8 +94,6 @@ namespace {
 #   undef NOMINMAX
 #   undef WIN32_LEAN_AND_MEAN
 
-#   pragma comment(lib, "advapi32.lib")
-
     void* allocAlignedMemoryLargePages(size_t mSize) {
         HANDLE processToken{ };
         LUID luid{ };
@@ -167,7 +165,7 @@ namespace {
 #   include <cstdlib>
 #   include <sys/mman.h>
 
-    void* allocAlignedMemory(void*& mem, size_t mSize) {
+    void* allocAlignedMemory(void *&mem, size_t mSize) {
         constexpr size_t alignment{ 2 * 1024 * 1024 };                      // assumed 2MB page sizes
         size_t size{ ((mSize + alignment - 1) / alignment) * alignment };   // multiple of alignment
         if (!posix_memalign(&mem, alignment, size)) {
@@ -196,7 +194,7 @@ namespace {
     /// freeAlignedMemory will free the previously allocated ttmem
 #if defined(_WIN64)
 
-    void freeAlignedMemory(void* mem) {
+    void freeAlignedMemory(void *mem) {
         if (mem != nullptr) {
             if (VirtualFree(mem,
                             0,

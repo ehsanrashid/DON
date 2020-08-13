@@ -16,7 +16,7 @@ ThreadPool Threadpool;
 /// Note that 'busy' and 'dead' should be already set.
 Thread::Thread(u16 idx) :
     index(idx),
-    NativeThread(&Thread::threadFunc, this) {
+    nativeThread(&Thread::threadFunc, this) {
 
     waitIdle();
 }
@@ -26,7 +26,7 @@ Thread::~Thread() {
     assert(!busy);
     dead = true;
     wakeUp();
-    join();
+    nativeThread.join();
 }
 /// Thread::wakeUp() wakes up the thread that will start the search.
 void Thread::wakeUp() {

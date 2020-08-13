@@ -12,11 +12,11 @@
 #  include <intrin.h>       // Microsoft Header for _BitScanForward64() & _BitScanReverse64()
 #endif
 
-#if defined(ABM) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
+#if defined(ABMI) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
 #  include <nmmintrin.h>    // Microsoft and Intel Header for _mm_popcnt_u64() & _mm_popcnt_u32()
 #endif
 
-#if defined(BM2)
+#if defined(BMI2)
 #   include <immintrin.h>   // Header for BMI2 instructions
 // PDEP  = Parallel bits deposit
 // PEXT  = Parallel bits extract
@@ -35,7 +35,7 @@ struct Magic {
     Bitboard *attacks;
     Bitboard  mask;
 
-#if !defined(BM2)
+#if !defined(BMI2)
     Bitboard  number;
     u08       shift;
 #endif
@@ -47,7 +47,7 @@ struct Magic {
 
 inline u16 Magic::index(Bitboard occ) const {
 
-#if defined(BM2)
+#if defined(BMI2)
     return u16(PEXT(occ, mask));
 #elif defined(BIT64)
     return u16(((occ & mask) * number) >> shift);
@@ -150,7 +150,7 @@ extern Magic BMagics[SQUARES];
 extern Magic RMagics[SQUARES];
 
 
-#if !defined(ABM)
+#if !defined(ABMI)
 
 extern u08 PopCount[USHRT_MAX+1]; // 16-bit
 
@@ -295,7 +295,7 @@ inline Bitboard floodFill(Bitboard b) {
 /// popCount() counts the number of ones in a bitboard
 inline i32 popCount(Bitboard bb) {
 
-#if defined(ABM)
+#if defined(ABMI)
 
 #   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 

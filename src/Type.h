@@ -8,10 +8,10 @@
 /// -DNDEBUG    | Disable debugging mode. Always use this for release.
 /// -DPREFETCH  | Enable use of prefetch asm-instruction.
 ///             | Don't enable it if want to run on some very old machines.
-/// -DABM       | Add runtime support for use of ABM asm-instruction.
-///             | Works only in 64-bit mode and requires hardware with ABM support.
-/// -DBM2       | Add runtime support for use of BM2 asm-instruction.
-///             | Works only in 64-bit mode and requires hardware with BM2 support.
+/// -DABMI      | Add runtime support for use of ABMI asm-instruction.
+///             | Works only in 64-bit mode and requires hardware with ABMI support.
+/// -DBMI2      | Add runtime support for use of BMI2 asm-instruction.
+///             | Works only in 64-bit mode and requires hardware with BMI2 support.
 
 /// Predefined macros hell:
 ///
