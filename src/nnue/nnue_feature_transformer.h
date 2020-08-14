@@ -14,18 +14,18 @@ namespace Evaluator::NNUE {
 
     private:
         // Number of output dimensions for one side
-        static constexpr IndexType kHalfDimensions = kTransformedFeatureDimensions;
+        static constexpr IndexType kHalfDimensions{ kTransformedFeatureDimensions };
 
     public:
         // Output type
         using OutputType = TransformedFeatureType;
 
         // Number of input/output dimensions
-        static constexpr IndexType kInputDimensions = RawFeatures::kDimensions;
-        static constexpr IndexType kOutputDimensions = kHalfDimensions * 2;
+        static constexpr IndexType kInputDimensions{ RawFeatures::kDimensions };
+        static constexpr IndexType kOutputDimensions{ kHalfDimensions * 2 };
 
         // Size of forward propagation buffer
-        static constexpr size_t kBufferSize = kOutputDimensions * sizeof(OutputType);
+        static constexpr size_t kBufferSize{ kOutputDimensions * sizeof(OutputType) };
 
         // Hash value embedded in the evaluation file
         static constexpr u32 getHashValue() {

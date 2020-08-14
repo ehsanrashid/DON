@@ -33,8 +33,7 @@ namespace Evaluator::NNUE::Features {
             IndexListType active[2]) {
 
             for (auto perspective : { WHITE, BLACK }) {
-                Derived::collectActiveIndices(
-                    pos, trigger, perspective, &active[perspective]);
+                Derived::collectActiveIndices(pos, trigger, perspective, &active[perspective]);
             }
         }
 
@@ -54,21 +53,17 @@ namespace Evaluator::NNUE::Features {
                 reset[perspective] = false;
                 switch (trigger) {
                 case TriggerEvent::kFriendKingMoved:
-                    reset[perspective] =
-                        dp.pieceId[0] == PIECE_ID_KING + perspective;
+                    reset[perspective] = dp.pieceId[0] == PIECE_ID_KING + perspective;
                     break;
                 default:
                     assert(false);
                     break;
                 }
                 if (reset[perspective]) {
-                    Derived::collectActiveIndices(
-                        pos, trigger, perspective, &added[perspective]);
+                    Derived::collectActiveIndices(pos, trigger, perspective, &added[perspective]);
                 }
                 else {
-                    Derived::collectChangedIndices(
-                        pos, trigger, perspective,
-                        &removed[perspective], &added[perspective]);
+                    Derived::collectChangedIndices(pos, trigger, perspective, &removed[perspective], &added[perspective]);
                 }
             }
         }
@@ -85,11 +80,9 @@ namespace Evaluator::NNUE::Features {
         // Number of feature dimensions
         static constexpr IndexType kDimensions = FeatureType::kDimensions;
         // Maximum number of simultaneously active features
-        static constexpr IndexType kMaxActiveDimensions =
-            FeatureType::kMaxActiveDimensions;
+        static constexpr IndexType kMaxActiveDimensions = FeatureType::kMaxActiveDimensions;
         // Trigger for full calculation instead of difference calculation
-        using SortedTriggerSet =
-            CompileTimeList<TriggerEvent, FeatureType::kRefreshTrigger>;
+        using SortedTriggerSet = CompileTimeList<TriggerEvent, FeatureType::kRefreshTrigger>;
         static constexpr auto kRefreshTriggers = SortedTriggerSet::kValues;
 
     private:

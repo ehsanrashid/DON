@@ -29,18 +29,17 @@ namespace Evaluator::NNUE::Layers {
         }
 
         // Read network parameters
-        bool readParameters(std::istream & /*stream*/) {
+        bool readParameters(std::istream&) {
             return true;
         }
 
         // Forward propagation
-        const OutputType *Propagate(
-            const TransformedFeatureType *transformed_features,
-            char * /*buffer*/) const {
-            return transformed_features + Offset;
+        const OutputType *propagate(const TransformedFeatureType *transformedFeatures, char*) const {
+            return transformedFeatures + Offset;
         }
 
     private:
+
     };
 
 }  // namespace Layers

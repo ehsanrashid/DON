@@ -11,6 +11,6 @@ namespace Evaluator::NNUE {
     static_assert(std::is_same<Network::OutputType, i32>::value, "");
 
     // Trigger for full calculation instead of difference calculation
-    constexpr auto kRefreshTriggers = RawFeatures::kRefreshTriggers;
+    constexpr auto kRefreshTriggers{ RawFeatures::kRefreshTriggers };
 
 }  // namespace Evaluator::NNUE

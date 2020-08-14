@@ -47,8 +47,8 @@ namespace Evaluator::NNUE::Layers {
         }
 
         // Forward propagation
-        const OutputType *Propagate(const TransformedFeatureType *transformed_features, char *buffer) const {
-            const auto input = _previous_layer.Propagate(transformed_features, buffer + kSelfBufferSize);
+        const OutputType *propagate(const TransformedFeatureType *transformed_features, char *buffer) const {
+            const auto input = _previous_layer.propagate(transformed_features, buffer + kSelfBufferSize);
             const auto output = reinterpret_cast<OutputType *>(buffer);
 
 #if defined(AVX512)

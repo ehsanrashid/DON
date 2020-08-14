@@ -161,7 +161,7 @@ namespace Evaluator::NNUE {
             transformed_features[FeatureTransformer::kBufferSize];
         featureTransformer->transform(pos, transformed_features, refresh);
         alignas(kCacheLineSize) char buffer[Network::kBufferSize];
-        const auto output = network->Propagate(transformed_features, buffer);
+        const auto output = network->propagate(transformed_features, buffer);
 
         auto score = static_cast<Value>(output[0] / FV_SCALE);
 

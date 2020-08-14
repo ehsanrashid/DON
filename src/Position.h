@@ -489,7 +489,7 @@ inline const EvalList* Position::evalList() const {
 inline PieceId Position::pieceIdOn(Square sq) const {
     assert(board[sq] != NO_PIECE);
 
-    PieceId pid = _evalList.piece_id_list[sq];
+    PieceId pid = _evalList.pieceIdList[sq];
     assert(isOk(pid));
     return pid;
 }

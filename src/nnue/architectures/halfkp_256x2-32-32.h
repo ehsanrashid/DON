@@ -14,7 +14,7 @@ namespace Evaluator::NNUE {
     using RawFeatures = Features::FeatureSet<Features::HalfKP<Features::Side::kFriend>>;
 
     // Number of input feature dimensions after conversion
-    constexpr IndexType kTransformedFeatureDimensions = 256;
+    constexpr IndexType kTransformedFeatureDimensions{ 256 };
 
     namespace Layers {
 

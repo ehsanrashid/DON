@@ -896,7 +896,6 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         /* king*/dst = kingCastleSq(org, rookOrg);
 
         if (Evaluator::useNNUE) {
-            auto &dp{ _stateInfo->dirtyPiece };
             dp.dirty_num = 2; // 2 pieces moved
 
             dp0 = pieceIdOn(org);
@@ -1154,8 +1153,8 @@ void Position::undoMove(Move m) {
 
             if (Evaluator::useNNUE) {
                 PieceId dp1{ _stateInfo->dirtyPiece.pieceId[1] };
-                assert(_evalList.pieceWithId(dp1).from[WHITE] == PS_NONE);
-                assert(_evalList.pieceWithId(dp1).from[BLACK] == PS_NONE);
+                assert(_evalList.pieceWithId(dp1).org[WHITE] == PS_NONE);
+                assert(_evalList.pieceWithId(dp1).org[BLACK] == PS_NONE);
                 _evalList.putPiece(dp1, cap, ~active|_stateInfo->captured);
             }
 

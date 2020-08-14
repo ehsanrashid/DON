@@ -183,6 +183,9 @@ enum PieceId {
     PIECE_ID_NONE   = 32
 };
 
+constexpr bool isOk(PieceId pid) {
+    return pid < PIECE_ID_NONE;
+}
 inline PieceId operator++(PieceId &d, int) {
     PieceId x = d;
     d = PieceId(int(d) + 1);
@@ -209,14 +212,17 @@ enum PieceSquare : uint32_t {
 };
 
 struct ExtPieceSquare {
-    PieceSquare from[COLORS];
+    PieceSquare org[COLORS];
 };
+
+
+// Return relative square when turning the board 180 degrees
+constexpr Square rotate180(Square s) {
+    return Square(s ^ 0x3F);
+}
 
 // Array for finding the PieceSquare corresponding to the piece on the board
 extern ExtPieceSquare kpp_board_index[PIECES];
-
-constexpr bool isOk(PieceId pid);
-constexpr Square rotate180(Square sq);
 
 // Structure holding which tracked piece (PieceId) is where (PieceSquare)
 class EvalList {
@@ -226,7 +232,7 @@ public:
     static const int MAX_LENGTH = 32;
 
     // Array that holds the piece id for the pieces on the board
-    PieceId piece_id_list[SQUARES];
+    PieceId pieceIdList[SQUARES];
 
     // List of pieces, separate from White and Black POV
     PieceSquare *pieceListFw() const { return const_cast<PieceSquare *>(_pieceListFw); }
@@ -236,22 +242,22 @@ public:
     void putPiece(PieceId pieceId, Square sq, Piece pc) {
         assert(isOk(pieceId));
         if (pc != NO_PIECE) {
-            _pieceListFw[pieceId] = PieceSquare(kpp_board_index[pc].from[WHITE] + sq);
-            _pieceListFb[pieceId] = PieceSquare(kpp_board_index[pc].from[BLACK] + rotate180(sq));
-            piece_id_list[sq] = pieceId;
+            _pieceListFw[pieceId] = PieceSquare(kpp_board_index[pc].org[WHITE] + sq);
+            _pieceListFb[pieceId] = PieceSquare(kpp_board_index[pc].org[BLACK] + rotate180(sq));
+            pieceIdList[sq] = pieceId;
         }
         else {
             _pieceListFw[pieceId] = PS_NONE;
             _pieceListFb[pieceId] = PS_NONE;
-            piece_id_list[sq] = pieceId;
+            pieceIdList[sq] = pieceId;
         }
     }
 
     // Convert the specified pieceId piece to ExtPieceSquare type and return it
     ExtPieceSquare pieceWithId(PieceId pieceId) const {
         ExtPieceSquare eps;
-        eps.from[WHITE] = _pieceListFw[pieceId];
-        eps.from[BLACK] = _pieceListFb[pieceId];
+        eps.org[WHITE] = _pieceListFw[pieceId];
+        eps.org[BLACK] = _pieceListFb[pieceId];
         return eps;
     }
 
@@ -556,14 +562,6 @@ constexpr Color pColor(Piece p) {
 
 constexpr Piece flipColor(Piece p) {
     return Piece(p ^ (BLACK << 3));
-}
-
-constexpr bool isOk(PieceId pid) {
-    return pid < PIECE_ID_NONE;
-}
-// Return relative square when turning the board 180 degrees
-constexpr Square rotate180(Square s) {
-    return (Square)(s ^ 0x3F);
 }
 
 constexpr CastleRight makeCastleRight(Color c) {
