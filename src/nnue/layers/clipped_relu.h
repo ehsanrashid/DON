@@ -6,7 +6,7 @@
 namespace Evaluator::NNUE::Layers {
 
     // Clipped ReLU
-    template <typename PreviousLayer>
+    template<typename PreviousLayer>
     class ClippedReLU {
     public:
         // Input/output type

@@ -449,6 +449,9 @@ namespace {
         auto bestMove{ MOVE_NONE };
         auto activeSide{ pos.activeSide() };
 
+        bool pmOK  { isOk((ss-1)->playedMove) };
+        auto pmDst { dstSq((ss-1)->playedMove) };
+
         PieceSquareStatsTable const *pieceStats[]
         {
             (ss-1)->pieceStats, (ss-2)->pieceStats,
@@ -462,7 +465,7 @@ namespace {
             &thread->butterFlyStats,
             &thread->captureStats,
             pieceStats,
-            ttMove, depth, depth <= DEPTH_QS_RECAP ? dstSq((ss-1)->playedMove) : SQ_NONE };
+            ttMove, depth, pmOK && depth <= DEPTH_QS_RECAP ? pmDst : SQ_NONE };
 
         u08 moveCount{ 0 };
         StateInfo si;
@@ -1345,13 +1348,13 @@ namespace {
                     // Decrease reduction at non-check cut nodes for second move at low depths
                     -1 * (cutNode
                        && !inCheck
-                       && depth <= 10
-                       && moveCount <= 2);
+                       && depth < 11
+                       && moveCount < 3);
 
                 if (captureOrPromotion) {
                     // Increase reduction for captures/promotions at low depth and late move
-                    if (depth <= 7
-                     && moveCount >= 3) {
+                    if (depth < 8
+                     && moveCount > 2) {
                         reductDepth += 1;
                     }
                     // Increase reduction for captures/promotions that don't give check if static eval is bad enough

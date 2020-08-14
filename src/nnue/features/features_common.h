@@ -8,7 +8,7 @@ namespace Evaluator::NNUE::Features {
 
     class IndexList;
 
-    template <typename... FeatureTypes>
+    template<typename... FeatureTypes>
     class FeatureSet;
 
     // Trigger to perform full calculations instead of difference only

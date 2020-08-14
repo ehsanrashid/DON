@@ -8,7 +8,7 @@
 namespace Evaluator::NNUE::Layers {
 
     // Affine transformation layer
-    template <typename PreviousLayer, IndexType OutputDimensions>
+    template<typename PreviousLayer, IndexType OutputDimensions>
     class AffineTransform {
     public:
         // Input/output type

@@ -455,7 +455,7 @@ namespace {
             TBTable<WDL>* wdl;
             TBTable<DTZ>* dtz;
 
-            template <TBType Type>
+            template<TBType Type>
             TBTable<Type>* get() const {
                 return (TBTable<Type>*)
                         (Type == WDL ?

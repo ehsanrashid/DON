@@ -11,12 +11,12 @@ namespace Evaluator::NNUE {
     constexpr u32 kHashValue{ FeatureTransformer::getHashValue() ^ Network::getHashValue() };
 
     // Deleter for automating release of memory area
-    template <typename T>
+    template<typename T>
     struct AlignedDeleter {
-        void operator()(T *ptr) const;
+        void operator()(T*) const;
     };
 
-    template <typename T>
+    template<typename T>
     using AlignedPtr = std::unique_ptr<T, AlignedDeleter<T>>;
 
 }  // namespace Evaluator::NNUE

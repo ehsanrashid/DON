@@ -91,7 +91,7 @@ namespace Evaluator::NNUE {
     namespace Detail {
 
         // initialize the evaluation function parameters
-        template <typename T>
+        template<typename T>
         void initialize(AlignedPtr<T> &pointer) {
 
             pointer.reset(reinterpret_cast<T*>(stdAlignedAlloc(alignof(T), sizeof(T))));
@@ -99,7 +99,7 @@ namespace Evaluator::NNUE {
         }
 
         // Read evaluation function parameters
-        template <typename T>
+        template<typename T>
         bool readParameters(std::istream &stream, const AlignedPtr<T> &pointer) {
 
             u32 header;

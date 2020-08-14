@@ -5,6 +5,7 @@
 #include <string>
 
 #include "Bitboard.h"
+#include "Evaluator.h"
 #include "Type.h"
 #include "nnue/nnue_accumulator.h"
 

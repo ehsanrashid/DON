@@ -7,26 +7,26 @@
 namespace Evaluator::NNUE::Features {
 
     // Find the index of the feature quantity from the king position and PieceSquare
-    template <Side AssociatedKing>
+    template<Side AssociatedKing>
     inline IndexType HalfKP<AssociatedKing>::makeIndex(Square sq_k, PieceSquare p) {
         return static_cast<IndexType>(PS_END) * static_cast<IndexType>(sq_k) + p;
     }
 
     // Get pieces information
-    template <Side AssociatedKing>
+    template<Side AssociatedKing>
     inline void HalfKP<AssociatedKing>::getPieces(Position const &pos, Color perspective, PieceSquare **pieces, Square *sq_target_k) {
 
         *pieces = (perspective == BLACK) ?
-            pos.evalList()->pieceListFb() :
-            pos.evalList()->pieceListFw();
-        const PieceId target = (AssociatedKing == Side::kFriend) ?
-            static_cast<PieceId>(PIECE_ID_KING + perspective) :
-            static_cast<PieceId>(PIECE_ID_KING + ~perspective);
+                    pos.evalList()->pieceListFb() :
+                    pos.evalList()->pieceListFw();
+        PieceId const target{ (AssociatedKing == Side::kFriend) ?
+                                static_cast<PieceId>(PIECE_ID_KING + perspective) :
+                                static_cast<PieceId>(PIECE_ID_KING + ~perspective) };
         *sq_target_k = static_cast<Square>(((*pieces)[target] - PS_W_KING) % SQUARES);
     }
 
     // Get a list of indices for active features
-    template <Side AssociatedKing>
+    template<Side AssociatedKing>
     void HalfKP<AssociatedKing>::appendActiveIndices(Position const &pos, Color perspective, IndexList *active) {
 
         // Do nothing if array size is small to avoid compiler warning
@@ -44,7 +44,7 @@ namespace Evaluator::NNUE::Features {
     }
 
     // Get a list of indices for recently changed features
-    template <Side AssociatedKing>
+    template<Side AssociatedKing>
     void HalfKP<AssociatedKing>::appendChangedIndices(Position const &pos, Color perspective, IndexList *removed, IndexList *added) {
 
         PieceSquare *pieces;

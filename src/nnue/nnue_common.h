@@ -68,7 +68,7 @@ namespace Evaluator::NNUE {
     using IndexType = u32;
 
     // Round n up to be a multiple of base
-    template <typename IntType>
+    template<typename IntType>
     constexpr IntType ceilToMultiple(IntType n, IntType base) {
         return (n + base - 1) / base * base;
     }

@@ -6,7 +6,7 @@
 namespace Evaluator::NNUE::Layers {
 
     // Input layer
-    template <IndexType OutputDimensions, IndexType Offset = 0>
+    template<IndexType OutputDimensions, IndexType Offset = 0>
     class InputSlice {
     public:
         // Need to maintain alignment
@@ -16,14 +16,14 @@ namespace Evaluator::NNUE::Layers {
         using OutputType = TransformedFeatureType;
 
         // Output dimensionality
-        static constexpr IndexType kOutputDimensions = OutputDimensions;
+        static constexpr IndexType kOutputDimensions{ OutputDimensions };
 
         // Size of forward propagation buffer used from the input layer to this layer
-        static constexpr size_t kBufferSize = 0;
+        static constexpr size_t kBufferSize{ 0 };
 
         // Hash value embedded in the evaluation file
         static constexpr u32 getHashValue() {
-            u32 hash_value = 0xEC42E90Du;
+            u32 hash_value{ 0xEC42E90Du };
             hash_value ^= kOutputDimensions ^ (Offset << 10);
             return hash_value;
         }
