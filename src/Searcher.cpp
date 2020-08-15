@@ -930,7 +930,10 @@ namespace {
                         return nullValue;
                     }
 
-                    // Do verification search at high depths
+                    assert(thread->nmpMinPly == 0); // Recursive verification is not allowed
+
+                    // Do verification search at high depths,
+                    // with null move pruning disabled for activeSide, until ply exceeds nmpMinPly.
                     thread->nmpMinPly = ss->ply + 3 * nullDepth / 4;
                     thread->nmpColor = activeSide;
 

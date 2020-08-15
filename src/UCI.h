@@ -23,14 +23,12 @@ namespace UCI {
     private:
         using OnChange = void(*)(); // std::add_pointer<void()>;
 
-        std::string
-            type,
-            defaultVal,
-            currentVal;
+        std::string type,
+                    defaultVal,
+                    currentVal;
 
-        double
-            minVal,
-            maxVal;
+        double  minVal,
+                maxVal;
 
         OnChange onChange{ nullptr };
 

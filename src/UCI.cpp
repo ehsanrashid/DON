@@ -58,9 +58,6 @@ namespace {
     }
 }
 
-#define STRINGIFY(x)                    #x
-#define STRING(x)                       STRINGIFY(x)
-#define VER_STRING(major, minor, patch) STRING(major) "." STRING(minor) "." STRING(patch)
 
 /// engineInfo() returns a string trying to describe the engine
 string const engineInfo() {
@@ -91,6 +88,10 @@ string const engineInfo() {
 string const compilerInfo() {
     ostringstream oss{};
     oss << "\nCompiled by ";
+
+#define STRINGIFY(x)                    #x
+#define STRING(x)                       STRINGIFY(x)
+#define VER_STRING(major, minor, patch) STRING(major) "." STRING(minor) "." STRING(patch)
 
 #if defined(__clang__)
     oss << "clang++ " << VER_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
@@ -170,12 +171,12 @@ string const compilerInfo() {
 #endif
     oss << '\n';
 
+#undef VER_STRING
+#undef STRING
+#undef STRINGIFY
+
     return oss.str();
 }
-
-#undef STRINGIFY
-#undef STRING
-#undef VER_STRING
 
 namespace UCI {
 
@@ -296,9 +297,12 @@ namespace UCI {
             }
         }
 
-        if (type != "button") currentVal = v;
-        if (onChange != nullptr) onChange();
-
+        if (type != "button") {
+            currentVal = v;
+        }
+        if (onChange != nullptr) {
+            onChange();
+        }
         return *this;
     }
 
@@ -327,7 +331,7 @@ namespace UCI {
                 //<< " current " << currentVal;
         }
         else if (type == "spin") {
-            oss << " default " << i32(std::stod(defaultVal))
+            oss << " default " << i32(std::stof(defaultVal))
                 << " min " << minVal
                 << " max " << maxVal;
                 //<< " current " << std::stod(currentVal);
@@ -467,7 +471,7 @@ namespace UCI {
         /// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
         string const StartFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
 
-        vector<string> const DefaultCmds
+        vector<string> const DefaultFens
         {
             // ---Chess Normal---
             "setoption name UCI_Chess960 value false",
@@ -506,16 +510,20 @@ namespace UCI {
             "r3k2r/3nnpbp/q2pp1p1/p7/Pp1PPPP1/4BNN1/1P5P/R2Q1RK1 w kq - 0 16",
             "3Qb1k1/1r2ppb1/pN1n2q1/Pp1Pp1Pr/4P2p/4BP2/4B1R1/1R5K b - - 11 40",
             "4k3/3q1r2/1N2r1b1/3ppN2/2nPP3/1B1R2n1/2R1Q3/3K4 w - - 5 1",
+            
             // 5-men positions
             "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 80",     // Kc2 - Mate
             "8/8/8/5N2/8/p7/8/2NK3k w - - 0 82",      // Na2 - Mate
             "8/3k4/8/8/8/4B3/4KB2/2B5 w - - 0 85",    // Draw
+            
             // 6-men positions
             "8/8/1P6/5pr1/8/4R3/7k/2K5 w - - 0 92",   // Re5 - Mate
             "8/2p4P/8/kr6/6R1/8/8/1K6 w - - 0 94",    // Ka2 - Mate
             "8/8/3P3k/8/1p6/8/1P6/1K3n2 b - - 0 90",  // Nd2 - Draw
+            
             // 7-men positions
             "8/R7/2q5/8/6k1/8/1P5p/K6R w - - 0 124", // Draw
+            
             // Mate and stalemate positions
             "6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1",
             "r2r1n2/pp2bk2/2p1p2p/3q4/3PN1QP/2P3R1/P4PP1/5RK1 w - - 0 1",
@@ -525,6 +533,7 @@ namespace UCI {
             // ---Chess 960---
             "setoption name UCI_Chess960 value true",
             "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
+            "setoption name UCI_Chess960 value false"
         };
 
         // trace_eval() prints the evaluation for the current position, consistent with the UCI
@@ -675,6 +684,7 @@ namespace UCI {
         ///     * nodes
         ///     * mate
         ///     * perft
+        ///     * evaluation type [mixed (default), classical, NNUE]
         /// - FEN positions to be used in FEN format
         ///     * 'default' for builtin positions (default)
         ///     * 'current' for current position
@@ -688,53 +698,67 @@ namespace UCI {
         vector<string> setupBench(istringstream &iss, Position const &pos) {
             string token;
             // Assign default values to missing arguments
-            string    hash{ (iss >> token) && !whiteSpaces(token) ? token : "16" };
-            string threads{ (iss >> token) && !whiteSpaces(token) ? token : "1" };
-            string   value{ (iss >> token) && !whiteSpaces(token) ? token : "13" };
-            string    mode{ (iss >> token) && !whiteSpaces(token) ? token : "depth" };
-            string     fen{ (iss >> token) && !whiteSpaces(token) ? token : "default" };
+            string    hash { (iss >> token) && !whiteSpaces(token) ? token : "16" };
+            string threads { (iss >> token) && !whiteSpaces(token) ? token : "1" };
+            string   value { (iss >> token) && !whiteSpaces(token) ? token : "13" };
+            string    mode { (iss >> token) && !whiteSpaces(token) ? token : "depth" };
+            string fenFile { (iss >> token) && !whiteSpaces(token) ? token : "default" };
+            string evalType{ (iss >> token) && !whiteSpaces(token) ? token : "mixed" };
 
-            vector<string> cmds;
-            vector<string> uciCmds;
+            string operation{ mode == "eval"  ? mode :
+                              mode == "perft" ? mode + " " + value :
+                                                "go " + mode + " " + value };
+            vector<string> fens;
 
-                 if (fen == "current") { cmds.push_back(pos.fen()); }
-            else if (fen == "default") { cmds = DefaultCmds; }
+                 if (fenFile == "current") { fens.push_back(pos.fen()); }
+            else if (fenFile == "default") { fens = DefaultFens; }
             else {
-                std::ifstream ifs{ fen, std::ios::in };
-                if (!ifs.is_open()) {
-                    std::cerr << "ERROR: unable to open file ... \'" << fen << "\'" << std::endl;
-                    return uciCmds;
-                }
-                string cmd;
-                while (std::getline(ifs, cmd, '\n')) {
-                    if (!whiteSpaces(cmd)) {
-                        cmds.push_back(cmd);
+                std::ifstream ifs{ fenFile, std::ios::in };
+                if (ifs.is_open()) {
+                    string fen;
+                    while (std::getline(ifs, fen, '\n')) {
+                        if (!whiteSpaces(fen)) {
+                            fens.push_back(fen);
+                        }
                     }
+                    ifs.close();
                 }
-                ifs.close();
+                else {
+                    std::cerr << "ERROR: unable to open file ... \'" << fenFile << "\'" << std::endl;
+                }
             }
 
             bool uciChess960{ Options["UCI_Chess960"] };
 
-            uciCmds.push_back("setoption name Threads value " + threads);
-            uciCmds.push_back("setoption name Hash value " + hash);
-            uciCmds.push_back("ucinewgame");
+            vector<string> uciCmds;
+            uciCmds.emplace_back("setoption name Threads value " + threads);
+            uciCmds.emplace_back("setoption name Hash value " + hash);
+            uciCmds.emplace_back("ucinewgame");
 
-            for (auto const &cmd : cmds) {
-                if (cmd.find("setoption") != string::npos) {
-                    uciCmds.push_back(cmd);
+            u32 posCount{ 0 };
+            for (auto const &fen : fens) {
+                if (fen.find("setoption") != string::npos) {
+                    uciCmds.emplace_back(fen);
                 }
                 else {
-                    uciCmds.push_back("position fen " + cmd);
-                         if (mode == "eval")  { uciCmds.push_back(mode); }
-                    else if (mode == "perft") { uciCmds.push_back(mode + " " + value); }
-                    else                      { uciCmds.push_back("go " + mode + " " + value); }
+                    if (evalType == "classical" || (evalType == "mixed" && posCount % 2 == 0)) {
+                        uciCmds.emplace_back("setoption name Use NNUE value false");
+                    }
+                    else
+                    if (evalType == "NNUE" || (evalType == "mixed" && posCount % 2 != 0)) {
+                        uciCmds.emplace_back("setoption name Use NNUE value true");
+                    }
+
+                    uciCmds.emplace_back("position fen " + fen);
+                    uciCmds.emplace_back(operation);
+
+                    ++posCount;
                 }
             }
 
-            if (fen != "current") {
-                uciCmds.push_back("setoption name UCI_Chess960 value " + ToString(uciChess960));
-                uciCmds.push_back("position fen " + pos.fen());
+            if (fenFile != "current") {
+                uciCmds.emplace_back("setoption name UCI_Chess960 value " + ToString(uciChess960));
+                uciCmds.emplace_back("position fen " + pos.fen());
             }
             return uciCmds;
         }
@@ -784,7 +808,8 @@ namespace UCI {
                 else if (token == "position")   { position(is, pos, states); }
                 else if (token == "ucinewgame") { UCI::clear(); elapsed = now(); }
             }
-            elapsed = std::max(now() - elapsed, { 1 });
+
+            elapsed = std::max(now() - elapsed, { 1 }); // Ensure non-zero to avoid a 'divide by zero'
 
             Debugger::print(); // Just before exiting
             

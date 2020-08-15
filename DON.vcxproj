@@ -714,6 +714,10 @@
     <None Include="src\make-strip.bat" />
     <None Include="src\make-strip.sh" />
     <None Include="src\Makefile" />
+    <None Include="tests\instrumented.sh" />
+    <None Include="tests\perft.sh" />
+    <None Include="tests\reprosearch.sh" />
+    <None Include="tests\signature.sh" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="src\Bitbase.cpp" />

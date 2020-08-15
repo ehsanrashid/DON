@@ -169,10 +169,10 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     }
 
     // We use setup() to set root position across threads.
-    // So we need to save and later to restore last stateinfo, cleared by setup().
-    // Note that states is shared by threads but is accessed in read-only mode.
+    // But there are some StateInfo fields (previous, nullPly, captured) that cannot be deduced
+    // from a fen string, so setup() clears them and they are set from setupStates->back() later.
+    // The rootState is per thread, earlier states are shared since they are read-only.
     auto fen{ pos.fen() };
-    auto backState = setupStates->back();
     for (auto *th : *this) {
         th->rootDepth       = DEPTH_ZERO;
         th->finishedDepth   = DEPTH_ZERO;
@@ -182,9 +182,9 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
         th->nmpMinPly       = 0;
         th->nmpColor        = COLORS;
         th->rootMoves       = rootMoves;
-        th->rootPos.setup(fen, setupStates->back(), th);
+        th->rootPos.setup(fen, th->rootState, th);
+        th->rootState       = setupStates->back();
     }
-    setupStates->back() = backState;
 
     mainThread()->wakeUp();
 }
