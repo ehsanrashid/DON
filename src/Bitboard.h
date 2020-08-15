@@ -40,12 +40,12 @@ struct Magic {
     u08       shift;
 #endif
 
-    u16 index(Bitboard) const;
+    u16 index(Bitboard) const noexcept;
 
-    Bitboard attacksBB(Bitboard occ) const { return attacks[index(occ)]; }
+    Bitboard attacksBB(Bitboard occ) const noexcept { return attacks[index(occ)]; }
 };
 
-inline u16 Magic::index(Bitboard occ) const {
+inline u16 Magic::index(Bitboard occ) const noexcept {
 
 #if defined(BMI2)
     return u16(PEXT(occ, mask));
@@ -61,8 +61,7 @@ inline u16 Magic::index(Bitboard occ) const {
 constexpr Bitboard BoardBB{ U64(0xFFFFFFFFFFFFFFFF) };
 //constexpr Bitboard DiagonalBB{ U64(0x8142241818244281) }; // A1..H8 | H1..A8
 
-constexpr Bitboard SquareBB[SQUARES]
-{
+constexpr Bitboard SquareBB[SQUARES]{
 #define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
 #define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
 #define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
@@ -74,8 +73,7 @@ constexpr Bitboard SquareBB[SQUARES]
 #undef S_02
 };
 
-constexpr Bitboard FileBB[FILES]
-{
+constexpr Bitboard FileBB[FILES]{
     U64(0x0101010101010101),
     U64(0x0202020202020202),
     U64(0x0404040404040404),
@@ -86,8 +84,7 @@ constexpr Bitboard FileBB[FILES]
     U64(0x8080808080808080)
 };
 
-constexpr Bitboard RankBB[RANKS]
-{
+constexpr Bitboard RankBB[RANKS]{
     U64(0x00000000000000FF),
     U64(0x000000000000FF00),
     U64(0x0000000000FF0000),
@@ -98,20 +95,17 @@ constexpr Bitboard RankBB[RANKS]
     U64(0xFF00000000000000)
 };
 
-constexpr Bitboard ColorBB[COLORS]
-{
+constexpr Bitboard ColorBB[COLORS]{
     U64(0x55AA55AA55AA55AA),
     U64(0xAA55AA55AA55AA55)
 };
 
-constexpr Bitboard PawnSideBB[COLORS]
-{
+constexpr Bitboard PawnSideBB[COLORS]{
     RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4],
     RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]
 };
 
-constexpr Bitboard FrontRankBB[COLORS][RANKS]
-{
+constexpr Bitboard FrontRankBB[COLORS][RANKS]{
     {
         RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]|RankBB[RANK_3]|RankBB[RANK_2],
         RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]|RankBB[RANK_3],
@@ -134,8 +128,7 @@ constexpr Bitboard FrontRankBB[COLORS][RANKS]
     }
 };
 
-constexpr Bitboard SlotFileBB[3]
-{
+constexpr Bitboard SlotFileBB[3]{
     FileBB[FILE_E]|FileBB[FILE_F]|FileBB[FILE_G]|FileBB[FILE_H],    // K-File
     FileBB[FILE_A]|FileBB[FILE_B]|FileBB[FILE_C]|FileBB[FILE_D],    // Q-File
     FileBB[FILE_C]|FileBB[FILE_D]|FileBB[FILE_E]|FileBB[FILE_F]     // C-File
@@ -173,8 +166,8 @@ constexpr Bitboard operator&(Bitboard bb, Square s) { return bb & SquareBB[s]; }
 constexpr Bitboard operator|(Bitboard bb, Square s) { return bb | SquareBB[s]; }
 constexpr Bitboard operator^(Bitboard bb, Square s) { return bb ^ SquareBB[s]; }
 
-inline Bitboard& operator|=(Bitboard &bb, Square s) { return bb |= SquareBB[s]; }
-inline Bitboard& operator^=(Bitboard &bb, Square s) { return bb ^= SquareBB[s]; }
+inline Bitboard& operator|=(Bitboard &bb, Square s) noexcept { return bb |= SquareBB[s]; }
+inline Bitboard& operator^=(Bitboard &bb, Square s) noexcept { return bb ^= SquareBB[s]; }
 
 constexpr Bitboard operator|(Square s1, Square s2) { return SquareBB[s1] | SquareBB[s2]; }
 
@@ -222,9 +215,10 @@ inline Bitboard lineBB(Square s1, Square s2) {
 /// If the given squares are not on a same file/rank/diagonal, return 0.
 /// Ex. betweenBB(SQ_C4, SQ_F7) returns a bitboard with squares D5 and E6.
 inline Bitboard betweenBB(Square s1, Square s2) {
-    Bitboard sLine{ lineBB(s1, s2)
-                  & ((BoardBB << s1)
-                   ^ (BoardBB << s2)) };
+    Bitboard const sLine{
+        lineBB(s1, s2)
+      & ((BoardBB << s1)
+       ^ (BoardBB << s2)) };
     // Exclude LSB
     return //sLine & ~std::min(s1, s2);
            sLine & (sLine - 1);
@@ -235,25 +229,31 @@ inline bool aligned(Square s1, Square s2, Square s3) {
     return contains(lineBB(s1, s2), s3);
 }
 
-constexpr Direction PawnPush[COLORS] { NORTH, SOUTH };
+constexpr Direction PawnPush[COLORS]{
+    NORTH, SOUTH
+};
 
 template<Color C> constexpr Bitboard pawnSglPushBB(Bitboard bb) { return shift<PawnPush[C]>(bb); }
 template<Color C> constexpr Bitboard pawnDblPushBB(Bitboard bb) { return shift<PawnPush[C] * 2>(bb); }
 
-constexpr Direction PawnLAtt[COLORS] { NORTH_WEST, SOUTH_EAST };
-constexpr Direction PawnRAtt[COLORS] { NORTH_EAST, SOUTH_WEST };
+constexpr Direction PawnLAtt[COLORS]{
+    NORTH_WEST, SOUTH_EAST
+};
+constexpr Direction PawnRAtt[COLORS]{
+    NORTH_EAST, SOUTH_WEST
+};
 
 template<Color C> constexpr Bitboard pawnLAttackBB(Bitboard bb) { return shift<PawnLAtt[C]>(bb); }
 template<Color C> constexpr Bitboard pawnRAttackBB(Bitboard bb) { return shift<PawnRAtt[C]>(bb); }
 template<Color C> constexpr Bitboard pawnSglAttackBB(Bitboard bb) { return pawnLAttackBB<C>(bb) | pawnRAttackBB<C>(bb); }
 template<Color C> constexpr Bitboard pawnDblAttackBB(Bitboard bb) { return pawnLAttackBB<C>(bb) & pawnRAttackBB<C>(bb); }
 
-inline Bitboard pawnAttacksBB(Color c, Square s) {
+inline Bitboard pawnAttacksBB(Color c, Square s) noexcept {
     return PawnAttacksBB[c][s];
 }
 
 /// attacksBB() returns the pseudo-attacks by piece-type assuming an empty board
-template<PieceType PT> inline Bitboard attacksBB(Square s) {
+template<PieceType PT> inline Bitboard attacksBB(Square s) noexcept {
     assert(PT != PAWN);
     return PieceAttacksBB[PT][s];
 }
@@ -261,22 +261,22 @@ template<PieceType PT> inline Bitboard attacksBB(Square s) {
 /// attacksBB() returns attacks by piece-type from the square on occupancy
 template<PieceType> Bitboard attacksBB(Square, Bitboard);
 
-template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) {
+template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) noexcept {
     return PieceAttacksBB[NIHT][s];
 }
-template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) {
+template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) noexcept {
     return BMagics[s].attacksBB(occ);
 }
-template<> inline Bitboard attacksBB<ROOK>(Square s, Bitboard occ) {
+template<> inline Bitboard attacksBB<ROOK>(Square s, Bitboard occ) noexcept {
     return RMagics[s].attacksBB(occ);
 }
-template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) {
+template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) noexcept {
     return attacksBB<BSHP>(s, occ)
          | attacksBB<ROOK>(s, occ);
 }
 
 /// attacksBB() returns attacks of the piece-type from the square on occupancy
-inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
+inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) noexcept {
     assert(NIHT <= pt && pt <= KING);
     return
         pt == NIHT ? attacksBB<NIHT>(s) :
@@ -286,14 +286,14 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) {
       /*pt == KING*/ attacksBB<KING>(s);
 }
 
-inline Bitboard floodFill(Bitboard b) {
-    return b
-         | shift<EAST >(b) | shift<WEST >(b)
-         | shift<SOUTH>(b) | shift<NORTH>(b);
-}
+//inline Bitboard floodFill(Bitboard b) {
+//    return b
+//         | shift<EAST >(b) | shift<WEST >(b)
+//         | shift<SOUTH>(b) | shift<NORTH>(b);
+//}
 
 /// popCount() counts the number of ones in a bitboard
-inline i32 popCount(Bitboard bb) {
+inline i32 popCount(Bitboard bb) noexcept {
 
 #if defined(ABMI)
 
@@ -327,7 +327,7 @@ inline i32 popCount(Bitboard bb) {
 }
 
 /// scanLSq() return the least significant bit in a non-zero bitboard
-inline Square scanLSq(Bitboard bb) {
+inline Square scanLSq(Bitboard bb) noexcept {
     assert(bb != 0);
 
 #if defined(__GNUC__) // GCC, Clang, ICC
@@ -367,7 +367,7 @@ inline Square scanLSq(Bitboard bb) {
 
 }
 /// scanLSq() return the most significant bit in a non-zero bitboard
-inline Square scanMSq(Bitboard bb) {
+inline Square scanMSq(Bitboard bb) noexcept {
     assert(bb != 0);
 
 #if defined(__GNUC__) // GCC, Clang, ICC
@@ -414,7 +414,7 @@ template<> inline Square scanFrontMostSq<BLACK>(Bitboard bb) { assert(bb != 0); 
 
 inline Square popLSq(Bitboard &bb) {
     assert(bb != 0);
-    Square sq{ scanLSq(bb) };
+    Square const sq{ scanLSq(bb) };
     bb &= (bb - 1); // bb &= ~(1ULL << sq);
     return sq;
 }

@@ -8,8 +8,7 @@ namespace {
     // PieceScores[piece-type][rank][file/2] contains half Piece-Square scores (symmetric distribution).
     // It is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
-    constexpr Score PieceScores[PIECE_TYPES][RANKS][FILES/2]
-    {
+    constexpr Score PieceScores[PIECE_TYPES][RANKS][FILES/2]{
         {
             { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
             { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
@@ -83,8 +82,7 @@ namespace {
     };
 
     // PawnScores contains full Pawn-Square score (asymmetric distribution)
-    constexpr Score PawnScores[RANKS][FILES]
-    {
+    constexpr Score PawnScores[RANKS][FILES]{
         { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) },
         { S(  3,-10), S(  3, -6), S( 10, 10), S( 19,  0), S( 16, 14), S( 19,  7), S(  7, -5), S( -5,-19) },
         { S( -9,-10), S(-15,-10), S( 11,-10), S( 15,  4), S( 32,  4), S( 22,  3), S(  5, -6), S(-22, -4) },

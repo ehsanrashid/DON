@@ -52,7 +52,7 @@ namespace {
         //     }
         // }
         // return 0;
-        auto itr{ std::find(std::begin(Months), std::end(Months), mmm) };
+        auto const itr{ std::find(std::begin(Months), std::end(Months), mmm) };
         return itr != std::end(Months) ?
                 i32(std::distance(std::begin(Months), itr)) + 1 : 0;
     }
@@ -274,7 +274,7 @@ namespace UCI {
             }
         }
         else if (type == "spin") {
-            auto d = std::stod(v);
+            auto const d = std::stod(v);
             if (minVal > d || d > maxVal) {
                 v = std::to_string(i32(clamp(d, minVal, maxVal)));
             }
@@ -386,7 +386,7 @@ namespace UCI {
         }
 
         void onThreads() {
-            auto threadCount{ optionThreads() };
+            auto const threadCount{ optionThreads() };
             if (threadCount != Threadpool.size()) {
                 Threadpool.setup(threadCount);
             }
@@ -606,7 +606,7 @@ namespace UCI {
 
             // Parse and validate moves (if any)
             while (iss >> token) {
-                auto m = moveOfCAN(token, pos);
+                auto const m{ moveOfCAN(token, pos) };
                 if (m == MOVE_NONE) {
                     std::cerr << "ERROR: Illegal Move '" << token << "' at " << iss.tellg() << std::endl;
                     break;
@@ -642,7 +642,7 @@ namespace UCI {
                 else if (token == "searchmoves") {
                     // Parse and Validate search-moves (if any)
                     while (iss >> token) {
-                        auto m{ moveOfCAN(token, pos) };
+                        auto const m{ moveOfCAN(token, pos) };
                         if (m == MOVE_NONE) {
                             std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                             continue;
@@ -656,7 +656,7 @@ namespace UCI {
                         Limits.searchMoves += vm;
                     }
                     while (iss >> token) {
-                        auto m{ moveOfCAN(token, pos) };
+                        auto const m{ moveOfCAN(token, pos) };
                         if (m == MOVE_NONE) {
                             std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                             continue;
@@ -684,13 +684,14 @@ namespace UCI {
         ///     * nodes
         ///     * mate
         ///     * perft
-        ///     * evaluation type [mixed (default), classical, NNUE]
+        ///     * evaluation type [classical (default), NNUE, mixed]
         /// - FEN positions to be used in FEN format
         ///     * 'default' for builtin positions (default)
         ///     * 'current' for current position
         ///     * '<filename>' for file containing FEN positions
         /// example:
         /// bench -> search default positions up to depth 13
+        /// bench 256 4 10 depth default classical -> search default positions up to depth 10 using classical evaluation
         /// bench 64 1 15 -> search default positions up to depth 15 (TT = 64MB)
         /// bench 64 4 5000 movetime current -> search current position with 4 threads for 5 sec (TT = 64MB)
         /// bench 64 1 100000 nodes -> search default positions for 100K nodes (TT = 64MB)
@@ -703,7 +704,7 @@ namespace UCI {
             string   value { (iss >> token) && !whiteSpaces(token) ? token : "13" };
             string    mode { (iss >> token) && !whiteSpaces(token) ? token : "depth" };
             string fenFile { (iss >> token) && !whiteSpaces(token) ? token : "default" };
-            string evalType{ (iss >> token) && !whiteSpaces(token) ? token : "mixed" };
+            string evalType{ (iss >> token) && !whiteSpaces(token) ? token : "classical" };
 
             string operation{ mode == "eval"  ? mode :
                               mode == "perft" ? mode + " " + value :
@@ -741,11 +742,13 @@ namespace UCI {
                     uciCmds.emplace_back(fen);
                 }
                 else {
-                    if (evalType == "classical" || (evalType == "mixed" && posCount % 2 == 0)) {
+                    if (evalType == "classical"
+                     || (evalType == "mixed" && posCount % 2 == 0)) {
                         uciCmds.emplace_back("setoption name Use NNUE value false");
                     }
                     else
-                    if (evalType == "NNUE" || (evalType == "mixed" && posCount % 2 != 0)) {
+                    if (evalType == "NNUE"
+                     || (evalType == "mixed" && posCount % 2 != 0)) {
                         uciCmds.emplace_back("setoption name Use NNUE value true");
                     }
 

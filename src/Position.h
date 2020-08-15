@@ -121,20 +121,20 @@ public:
     Piece operator[](Square) const;
     bool empty(Square) const;
 
-    //Bitboard pieces(Piece) const;
-    Bitboard pieces(Color) const;
-    Bitboard pieces(PieceType = NONE) const;
+    //Bitboard pieces(Piece) const noexcept;
+    Bitboard pieces(Color) const noexcept;
+    Bitboard pieces(PieceType = NONE) const noexcept;
     template<typename... PieceTypes>
-    Bitboard pieces(PieceType, PieceTypes...) const;
+    Bitboard pieces(PieceType, PieceTypes...) const noexcept;
     template<typename... PieceTypes>
-    Bitboard pieces(Color, PieceTypes...) const;
+    Bitboard pieces(Color, PieceTypes...) const noexcept;
 
-    i32 count(Piece) const;
-    i32 count(PieceType) const;
-    i32 count(Color) const;
-    i32 count() const;
-    Square const *squares(Piece) const;
-    Square square(Piece, u08 = 0) const;
+    i32 count(Piece) const noexcept;
+    i32 count(PieceType) const noexcept;
+    i32 count(Color) const noexcept;
+    i32 count() const noexcept;
+    Square const *squares(Piece) const noexcept;
+    Square square(Piece, u08 = 0) const noexcept;
 
     Value nonPawnMaterial(Color) const;
     Value nonPawnMaterial() const;
@@ -242,43 +242,43 @@ inline bool Position::empty(Square s) const {
     return operator[](s) == NO_PIECE;
 }
 
-//inline Bitboard Position::pieces(Piece p) const { return colors[pColor(p)] & types[pType(p)]; }
-inline Bitboard Position::pieces(Color c) const {
+//inline Bitboard Position::pieces(Piece p) const noexcept { return colors[pColor(p)] & types[pType(p)]; }
+inline Bitboard Position::pieces(Color c) const noexcept {
     return colors[c];
 }
-inline Bitboard Position::pieces(PieceType pt) const {
+inline Bitboard Position::pieces(PieceType pt) const noexcept {
     return types[pt];
 }
 template<typename... PieceTypes>
-inline Bitboard Position::pieces(PieceType pt, PieceTypes... pts) const {
+inline Bitboard Position::pieces(PieceType pt, PieceTypes... pts) const noexcept {
     return types[pt] | pieces(pts...);
 }
 template<typename... PieceTypes>
-inline Bitboard Position::pieces(Color c, PieceTypes... pts) const {
+inline Bitboard Position::pieces(Color c, PieceTypes... pts) const noexcept {
     return colors[c] & pieces(pts...);
 }
 
 /// Position::count() counts specific piece
-inline i32 Position::count(Piece p) const {
+inline i32 Position::count(Piece p) const noexcept {
     return pieceCount[p];
 }
 /// Position::count() counts specific type
-inline i32 Position::count(PieceType pt) const {
+inline i32 Position::count(PieceType pt) const noexcept {
     return count(WHITE|pt) + count(BLACK|pt);
 }
 /// Position::count() counts specific color
-inline i32 Position::count(Color c) const {
+inline i32 Position::count(Color c) const noexcept {
     return count(c|PAWN) + count(c|NIHT) + count(c|BSHP) + count(c|ROOK) + count(c|QUEN) + count(c|KING);
 }
 /// Position::count() counts all
-inline i32 Position::count() const {
+inline i32 Position::count() const noexcept {
     return count(WHITE) + count(BLACK);
 }
 
-inline Square const *Position::squares(Piece p) const {
+inline Square const *Position::squares(Piece p) const noexcept {
     return pieceSquare[p];
 }
-inline Square Position::square(Piece p, u08 idx) const {
+inline Square Position::square(Piece p, u08 idx) const noexcept {
     assert(isOk(p));
     assert(count(p) > idx);
     return squares(p)[idx];

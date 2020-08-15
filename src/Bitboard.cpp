@@ -36,7 +36,7 @@ namespace {
         Bitboard attacks{ 0 };
 
         for (i08 i = 0; i < 4; ++i) {
-            auto dir{ directions[i] };
+            auto const dir{ directions[i] };
             Square sq{ s + dir };
             while (isOk(sq)
                 && distance(sq, sq - dir) == 1) {
@@ -88,12 +88,13 @@ namespace {
         Bitboard occupancy[MaxIndex];
         Bitboard reference[MaxIndex];
 
-        constexpr u32 Seeds[RANKS]
+        constexpr u32 Seeds[RANKS]{
     #if defined(BIT64)
-        { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
+        0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF
     #else
-        { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C };
+        0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C
     #endif
+        };
 #endif
         u16 size{ 0 };
         for (Square s = SQ_A1; s <= SQ_H8; ++s) {
@@ -101,8 +102,8 @@ namespace {
             Magic &magic{ magics[s] };
 
             // Board edges are not considered in the relevant occupancies
-            Bitboard edge{ ((FileBB[FILE_A]|FileBB[FILE_H]) & ~fileBB(s))
-                         | ((RankBB[RANK_1]|RankBB[RANK_8]) & ~rankBB(s)) };
+            Bitboard const edge{ ((FileBB[FILE_A]|FileBB[FILE_H]) & ~fileBB(s))
+                               | ((RankBB[RANK_1]|RankBB[RANK_8]) & ~rankBB(s)) };
 
             // Given a square, the mask is the bitboard of sliding attacks from
             // computed on an empty board. The index must be big enough to contain

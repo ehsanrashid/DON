@@ -10,7 +10,9 @@ namespace Pawns {
 
     namespace {
         // Connected pawn bonus
-        constexpr i32 Connected[RANKS] { 0, 7, 8, 11, 24, 45, 85, 0 };
+        constexpr i32 Connected[RANKS]{
+            0, 7, 8, 11, 24, 45, 85, 0
+        };
 
     #define S(mg, eg) makeScore(mg, eg)
 
@@ -21,7 +23,9 @@ namespace Pawns {
         constexpr Score WeakTwiceLever { S( 2,54) };
 
         // Bonus for blocked pawns at 5th or 6th rank
-        constexpr Score BlockedPawn[2] { S(-13, -4), S(-4, 3) };
+        constexpr Score BlockedPawn[2]{
+            S(-13, -4), S(-4, 3)
+        };
 
     #undef S
 
@@ -41,9 +45,9 @@ namespace Pawns {
         constexpr auto Opp{ ~Own };
         constexpr auto Push{ PawnPush[Own] };
 
-        Bitboard pawns{ pos.pieces(PAWN) };
-        Bitboard ownPawns{ pos.pieces(Own) & pawns };
-        Bitboard oppPawns{ pos.pieces(Opp) & pawns };
+        Bitboard const pawns{ pos.pieces(PAWN) };
+        Bitboard const ownPawns{ pos.pieces(Own) & pawns };
+        Bitboard const oppPawns{ pos.pieces(Opp) & pawns };
 
         sglAttacks [Own] =
         attacksSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
@@ -62,21 +66,21 @@ namespace Pawns {
             auto r{ relativeRank(Own, s) };
             assert(RANK_2 <= r && r <= RANK_7);
 
-            Bitboard neighbours { ownPawns & adjacentFilesBB(s) };
-            Bitboard supporters { neighbours & rankBB(s - Push) };
-            Bitboard phalanxes  { neighbours & rankBB(s) };
-            Bitboard stoppers   { oppPawns & pawnPassSpan(Own, s) };
-            Bitboard levers     { stoppers & pawnAttacksBB(Own, s) };
-            Bitboard sentres    { stoppers & pawnAttacksBB(Own, s + Push) }; // push levers
-            Bitboard opposers   { stoppers & frontSquaresBB(Own, s) };
-            Bitboard blocker    { stoppers & (s + Push) };
+            Bitboard const neighbours { ownPawns & adjacentFilesBB(s) };
+            Bitboard const supporters { neighbours & rankBB(s - Push) };
+            Bitboard const phalanxes  { neighbours & rankBB(s) };
+            Bitboard const stoppers   { oppPawns & pawnPassSpan(Own, s) };
+            Bitboard const levers     { stoppers & pawnAttacksBB(Own, s) };
+            Bitboard const sentres    { stoppers & pawnAttacksBB(Own, s + Push) }; // push levers
+            Bitboard const opposers   { stoppers & frontSquaresBB(Own, s) };
+            Bitboard const blocker    { stoppers & (s + Push) };
 
-            bool opposed { opposers != 0 };
-            bool blocked { blocker != 0 };
+            bool const opposed { opposers != 0 };
+            bool const blocked { blocker != 0 };
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
-            bool backward{ (neighbours & frontRanksBB(Opp, s + Push)) == 0
-                        && (blocker | sentres) != 0 };
+            bool const backward{ (neighbours & frontRanksBB(Opp, s + Push)) == 0
+                              && (blocker | sentres) != 0 };
 
             // Compute additional span if pawn is not blocked nor backward
             if (!blocked
@@ -153,7 +157,7 @@ namespace Pawns {
     /// Pawns::probe() looks up a current position's pawn configuration in the pawn hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(Position const &pos) {
-        Key pawnKey{ pos.pawnKey() };
+        Key const pawnKey{ pos.pawnKey() };
         auto *e{ pos.thread()->pawnHash[pawnKey] };
 
         if (e->key == pawnKey) {

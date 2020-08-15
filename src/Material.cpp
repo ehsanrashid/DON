@@ -11,8 +11,7 @@ namespace Material {
     namespace {
 
         // Polynomial material imbalance parameters
-        constexpr i32 OwnQuadratic[PIECE_TYPES][PIECE_TYPES]
-        {
+        constexpr i32 OwnQuadratic[PIECE_TYPES][PIECE_TYPES]{
             // BP    P    N    B    R    Q
             {1438                          }, // BP
             {  40,  38                     }, // P
@@ -22,8 +21,7 @@ namespace Material {
             {-189,  24, 117, 133,-134,  -6 }, // Q
             {  0,    0,   0,   0,   0,   0 }  // K
         };
-        constexpr i32 OppQuadratic[PIECE_TYPES][PIECE_TYPES]
-        {
+        constexpr i32 OppQuadratic[PIECE_TYPES][PIECE_TYPES]{
             // BP    P    N    B    R    Q
             {   0                          }, // BP
             {  36,   0                     }, // P
@@ -36,29 +34,24 @@ namespace Material {
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
-        Endgame<KXK> ValueKXK[COLORS]
-        {
+        Endgame<KXK> ValueKXK[COLORS]{
             Endgame<KXK>(WHITE),
             Endgame<KXK>(BLACK)
         };
         // Endgame generic scaleFactor functions
-        Endgame<KPsK> ScaleKPsK[COLORS]
-        { 
+        Endgame<KPsK> ScaleKPsK[COLORS]{ 
             Endgame<KPsK>(WHITE),
             Endgame<KPsK>(BLACK)
         };
-        Endgame<KPKP> ScaleKPKP[COLORS]
-        {
+        Endgame<KPKP> ScaleKPKP[COLORS]{
             Endgame<KPKP>(WHITE),
             Endgame<KPKP>(BLACK)
         };
-        Endgame<KBPsK> ScaleKBPsK[COLORS]
-        {
+        Endgame<KBPsK> ScaleKBPsK[COLORS]{
             Endgame<KBPsK>(WHITE),
             Endgame<KBPsK>(BLACK)
         };
-        Endgame<KQKRPs> ScaleKQKRPs[COLORS]
-        {
+        Endgame<KQKRPs> ScaleKQKRPs[COLORS]{
             Endgame<KQKRPs>(WHITE),
             Endgame<KQKRPs>(BLACK)
         };
@@ -169,8 +162,7 @@ namespace Material {
         // Evaluate the material imbalance.
         // Use KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.
-        i32 pieceCount[COLORS][PIECE_TYPES]
-        {
+        i32 const pieceCount[COLORS][PIECE_TYPES]{
             {
                 pos.bishopPaired(WHITE),
                 pos.count(W_PAWN), pos.count(W_NIHT),
@@ -193,7 +185,7 @@ namespace Material {
     /// Material::probe() looks up a current position's material configuration in the material hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(Position const &pos) {
-        Key matlKey{ pos.matlKey() };
+        Key const matlKey{ pos.matlKey() };
         auto *e{ pos.thread()->matlHash[matlKey] };
 
         if (e->key == matlKey) {

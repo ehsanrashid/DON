@@ -83,9 +83,8 @@ constexpr i32 sign(T const &v) {
 
 template<typename T>
 T const& clamp(T const &v, T const &minimum, T const &maximum) {
-    return
-        (minimum > v) ? minimum :
-        (v > maximum) ? maximum : v;
+    return (minimum > v) ? minimum :
+           (v > maximum) ? maximum : v;
 }
 
 enum Color : i08 { WHITE, BLACK, COLORS = 2 };
@@ -363,24 +362,24 @@ BASIC_OPERATORS(Value)
 BASIC_OPERATORS(Score)
 #undef BASIC_OPERATORS
 
-#define ARTHMAT_OPERATORS(T)                                    \
-    constexpr T operator+(T t, i32 i) { return T(i32(t) + i); } \
-    constexpr T operator-(T t, i32 i) { return T(i32(t) - i); } \
-    constexpr T operator*(T t, i32 i) { return T(i32(t) * i); } \
-    constexpr T operator*(i32 i, T t) { return T(i32(t) * i); } \
-    constexpr T operator/(T t, i32 i) { return T(i32(t) / i); } \
-    inline T& operator+=(T &t, i32 i) { return t = t + i; }     \
-    inline T& operator-=(T &t, i32 i) { return t = t - i; }     \
-    inline T& operator*=(T &t, i32 i) { return t = t * i; }     \
-    inline T& operator/=(T &t, i32 i) { return t = t / i; }
+#define ARTHMAT_OPERATORS(T)                                             \
+    constexpr T operator+(T t, i32 i) noexcept { return T(i32(t) + i); } \
+    constexpr T operator-(T t, i32 i) noexcept { return T(i32(t) - i); } \
+    constexpr T operator*(T t, i32 i) noexcept { return T(i32(t) * i); } \
+    constexpr T operator*(i32 i, T t) noexcept { return T(i32(t) * i); } \
+    constexpr T operator/(T t, i32 i) noexcept { return T(i32(t) / i); } \
+    inline T& operator+=(T &t, i32 i) noexcept { return t = t + i; }     \
+    inline T& operator-=(T &t, i32 i) noexcept { return t = t - i; }     \
+    inline T& operator*=(T &t, i32 i) noexcept { return t = t * i; }     \
+    inline T& operator/=(T &t, i32 i) noexcept { return t = t / i; }
 
 ARTHMAT_OPERATORS(Direction)
 ARTHMAT_OPERATORS(Value)
 #undef ARTHMAT_OPERATORS
 
-#define INC_DEC_OPERATORS(T)                                 \
-    inline T& operator++(T &t) { return t = T(i32(t) + 1); } \
-    inline T& operator--(T &t) { return t = T(i32(t) - 1); }
+#define INC_DEC_OPERATORS(T)                                          \
+    inline T& operator++(T &t) noexcept { return t = T(i32(t) + 1); } \
+    inline T& operator--(T &t) noexcept { return t = T(i32(t) - 1); }
 
 INC_DEC_OPERATORS(File)
 INC_DEC_OPERATORS(Rank)
@@ -467,8 +466,12 @@ constexpr Score operator*(Score s, bool b) {
 Score operator*(Score, Score) = delete;
 Score operator/(Score, Score) = delete;
 
-constexpr i32 BaseRank  [COLORS] { RANK_1, RANK_8 };
-constexpr i32 BaseSquare[COLORS] { SQ_A1, SQ_A8 };
+constexpr i32 BaseRank[COLORS]{
+    RANK_1, RANK_8
+};
+constexpr i32 BaseSquare[COLORS]{
+    SQ_A1, SQ_A8
+};
 
 constexpr bool isOk(Color c) {
     return WHITE <= c && c <= BLACK;
@@ -657,16 +660,16 @@ struct ValMove {
     operator float() const = delete;
     operator double() const = delete;
 
-    bool operator<(ValMove const &vm) const {
+    bool operator<(ValMove const &vm) const noexcept {
         return value < vm.value;
     }
-    bool operator>(ValMove const &vm) const {
+    bool operator>(ValMove const &vm) const noexcept {
         return value > vm.value;
     }
-    //bool operator<=(ValMove const &vm) const {
+    //bool operator<=(ValMove const &vm) const noexcept {
     //    return value <= vm.value;
     //}
-    //bool operator>=(ValMove const &vm) const {
+    //bool operator>=(ValMove const &vm) const noexcept {
     //    return value >= vm.value;
     //}
 };
@@ -691,7 +694,7 @@ public:
 using TimePoint = std::chrono::milliseconds::rep; // Time in milli-seconds
 static_assert (sizeof (TimePoint) == sizeof (i64), "TimePoint should be 64 bits");
 
-inline TimePoint now() {
+inline TimePoint now() noexcept {
     return std::chrono::duration_cast<std::chrono::milliseconds>
           (std::chrono::steady_clock::now().time_since_epoch()).count();
 }

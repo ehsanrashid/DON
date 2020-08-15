@@ -65,10 +65,10 @@ namespace Evaluator {
                 std::fill_n(*Scores, TERMS*COLORS, SCORE_ZERO);
             }
 
-            static void write(Term t, Color c, Score s) {
+            static void write(Term t, Color c, Score s) noexcept {
                 Scores[t][c] = s;
             }
-            static void write(Term t, Score sW, Score sB = SCORE_ZERO) {
+            static void write(Term t, Score sW, Score sB = SCORE_ZERO) noexcept {
                 write(t, WHITE, sW);
                 write(t, BLACK, sB);
             }
@@ -96,26 +96,22 @@ namespace Evaluator {
 
         constexpr Bitboard CenterBB{ (FileBB[FILE_D]|FileBB[FILE_E]) & (RankBB[RANK_4]|RankBB[RANK_5]) };
 
-        constexpr Bitboard LowRankBB[COLORS]
-        {
+        constexpr Bitboard LowRankBB[COLORS]{
             RankBB[RANK_2]|RankBB[RANK_3],
             RankBB[RANK_7]|RankBB[RANK_6]
         };
 
-        constexpr Bitboard CampBB[COLORS]
-        {
+        constexpr Bitboard CampBB[COLORS]{
             RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4]|RankBB[RANK_5],
             RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]
         };
 
-        constexpr Bitboard OutpostBB[COLORS]
-        {
+        constexpr Bitboard OutpostBB[COLORS]{
             RankBB[RANK_4]|RankBB[RANK_5]|RankBB[RANK_6],
             RankBB[RANK_5]|RankBB[RANK_4]|RankBB[RANK_3]
         };
 
-        constexpr Bitboard KingFlankBB[FILES]
-        {
+        constexpr Bitboard KingFlankBB[FILES]{
             SlotFileBB[CS_QUEN] ^ FileBB[FILE_D],
             SlotFileBB[CS_QUEN],
             SlotFileBB[CS_QUEN],
@@ -129,49 +125,38 @@ namespace Evaluator {
 
     #define S(mg, eg) makeScore(mg, eg)
 
-        constexpr Score Mobility[PIECE_TYPES][28]
-        {
-            {}, {},
-            { // Knight
-                S(-62,-81), S(-53,-56), S(-12,-31), S( -4,-16), S(  3,  5), S( 13, 11),
+        constexpr Score Mobility[4][28]{
+            {   S(-62,-81), S(-53,-56), S(-12,-31), S( -4,-16), S(  3,  5), S( 13, 11),
                 S( 22, 17), S( 28, 20), S( 33, 25)
             },
-            { // Bishop
-                S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42),
+            {   S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42),
                 S( 55, 54), S( 63, 57), S( 63, 65), S( 68, 73), S( 81, 78), S( 81, 86),
                 S( 91, 88), S( 98, 97)
             },
-            { // Rook
-                S(-60,-78), S(-20,-17), S(  2, 23), S(  3, 39), S(  3, 70), S( 11, 99),
+            {   S(-60,-78), S(-20,-17), S(  2, 23), S(  3, 39), S(  3, 70), S( 11, 99),
                 S( 22,103), S( 31,121), S( 40,134), S( 40,139), S( 41,158), S( 48,164),
                 S( 57,168), S( 57,169), S( 62,172)
             },
-            { // Queen
-                S(-30,-48), S(-12,-30), S( -8, -7), S( -9, 19), S( 20, 40), S( 23, 55),
+            {   S(-30,-48), S(-12,-30), S( -8, -7), S( -9, 19), S( 20, 40), S( 23, 55),
                 S( 23, 59), S( 35, 75), S( 38, 78), S( 53, 96), S( 64, 96), S( 65,100),
                 S( 65,121), S( 66,127), S( 67,131), S( 67,133), S( 72,136), S( 72,141),
                 S( 77,147), S( 79,150), S( 93,151), S(108,168), S(108,168), S(108,171),
                 S(110,182), S(114,182), S(114,192), S(116,219)
             },
-            {}
         };
 
-        constexpr Score RookOnFile[2]
-        {
+        constexpr Score RookOnFile[2]{
             S(19, 7), S(48,29)
         };
 
-        constexpr Score MinorThreat[PIECE_TYPES]
-        {
+        constexpr Score MinorThreat[PIECE_TYPES]{
             S( 0, 0), S( 5,32), S(57,41), S(77,56), S(88,119), S(79,161), S( 0, 0)
         };
-        constexpr Score MajorThreat[PIECE_TYPES]
-        {
+        constexpr Score MajorThreat[PIECE_TYPES]{
             S( 0, 0), S( 3,46), S(37,68), S(42,60), S( 0, 38), S(58, 41), S( 0, 0)
         };
 
-        constexpr Score PasserRank[RANKS]
-        {
+        constexpr Score PasserRank[RANKS]{
             S( 0, 0), S(10,28), S(17,33), S(15,41), S(62,72), S(168,177), S(276,260), S( 0, 0)
         };
 
@@ -211,13 +196,11 @@ namespace Evaluator {
         constexpr Value SpaceThreshold{ Value(12222) };
         constexpr Value NNUEThreshold {   Value(575) };
 
-        constexpr i32 SafeCheckWeight[PIECE_TYPES][2]
-        {
-            {0, 0}, {0, 0}, {792, 1283}, {645, 967}, {1084, 1897}, {772, 1119}, {0, 0}
+        constexpr i32 SafeCheckWeight[4][2]{
+            {792, 1283}, {645, 967}, {1084, 1897}, {772, 1119}
         };
-        constexpr i32 KingAttackerWeight[PIECE_TYPES]
-        {
-            0, 0,  81,  52,   44,  10, 0
+        constexpr i32 KingAttackerWeight[4]{
+            81, 52, 44, 10
         };
 
         // Evaluator class contains various evaluation functions.
@@ -312,8 +295,8 @@ namespace Evaluator {
             mobility[Own] = SCORE_ZERO;
 
             // King safety tables
-            auto sq{ makeSquare(clamp(sFile(kSq), FILE_B, FILE_G),
-                                clamp(sRank(kSq), RANK_2, RANK_7)) };
+            auto const sq{ makeSquare(clamp(sFile(kSq), FILE_B, FILE_G),
+                                      clamp(sRank(kSq), RANK_2, RANK_7)) };
             kingRing[Own] = attacksBB<KING>(sq) | sq;
 
             kingAttackersCount [Opp] = popCount(kingRing[Own]
@@ -336,7 +319,7 @@ namespace Evaluator {
             static_assert (NIHT <= PT && PT <= QUEN, "PT incorrect");
             constexpr auto Opp{ ~Own };
 
-            auto kSq{ pos.square(Own|KING) };
+            auto const kSq{ pos.square(Own|KING) };
             Bitboard kingBlockers{ pos.kingBlockers(Own) };
 
             sqlAttacks[Own][PT] = 0;
@@ -352,7 +335,7 @@ namespace Evaluator {
             while ((s = *ps++) != SQ_NONE) {
                 assert(pos[s] == (Own|PT));
 
-                Bitboard action{
+                Bitboard const action{
                     contains(kingBlockers, s) ?
                         lineBB(kSq, s) : BoardBB };
 
@@ -363,11 +346,11 @@ namespace Evaluator {
                     PT == ROOK ? attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~kingBlockers) | pos.pieces(Opp, QUEN))) & action :
                                  attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~kingBlockers))) & action };
 
-                auto mob{ popCount(attacks & mobArea[Own]) };
+                auto const mob{ popCount(attacks & mobArea[Own]) };
                 assert(0 <= mob && mob <= 27);
 
                 // Bonus for piece mobility
-                mobility[Own] += Mobility[PT][mob];
+                mobility[Own] += Mobility[PT - 2][mob];
 
                 Bitboard b;
                 // Special evaluation for pieces
@@ -390,7 +373,7 @@ namespace Evaluator {
                     if (PT == NIHT) {
                         
                         // Bonus for knight outpost squares
-                        Bitboard targets{ pos.pieces(Opp) & ~pos.pieces(PAWN) };
+                        Bitboard const targets{ pos.pieces(Opp) & ~pos.pieces(PAWN) };
                         if (// On a side outpost
                             contains(b & ~SlotFileBB[CS_CENTRE], s)
                             // No relevant attacks
@@ -446,8 +429,8 @@ namespace Evaluator {
                          && Options["UCI_Chess960"]
                          && (relativeSq(Own, s) == SQ_A1
                           || relativeSq(Own, s) == SQ_H1)) {
-                            auto Push{ PawnPush[Own] };
-                            auto del{ Push + sign(FILE_E - sFile(s)) * EAST };
+                            auto const Push{ PawnPush[Own] };
+                            auto const del{ Push + sign(FILE_E - sFile(s)) * EAST };
                             if (contains(pos.pieces(Own, PAWN), s + del)) {
                                 score -= BishopTrapped
                                         * (!contains(pos.pieces(), s + del + Push) ?
@@ -475,7 +458,7 @@ namespace Evaluator {
                     if (mob <= 3
                      && relativeRank(Own, s) < RANK_4
                      && (pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) != 0) {
-                        auto kF{ sFile(kSq) };
+                        auto const kF{ sFile(kSq) };
                         if (((kF < FILE_E) && (sFile(s) < kF))
                          || ((kF > FILE_D) && (sFile(s) > kF))) {
                             score -= RookTrapped * (1 + !pos.canCastle(Own));
@@ -517,7 +500,7 @@ namespace Evaluator {
 
                 if ((attacks & kingRing[Opp]) != 0) {
                     kingAttackersCount [Own]++;
-                    kingAttackersWeight[Own] += KingAttackerWeight[PT];
+                    kingAttackersWeight[Own] += KingAttackerWeight[PT - 2];
                     kingAttacksCount   [Own] += popCount(attacks
                                                        & sqlAttacks[Opp][KING]);
                 }
@@ -546,13 +529,13 @@ namespace Evaluator {
         Score Evaluation<Trace>::king() const {
             constexpr auto Opp{ ~Own };
 
-            auto kSq{ pos.square(Own|KING) };
+            auto const kSq{ pos.square(Own|KING) };
 
             // Main king safety evaluation
             i32 kingDanger{ 0 };
 
             // Attacked squares defended at most once by friend queen or king
-            Bitboard weakArea{
+            Bitboard const weakArea{
                  sqlAttacks[Opp][NONE]
               & ~dblAttacks[Own]
               & (~sqlAttacks[Own][NONE]
@@ -560,7 +543,7 @@ namespace Evaluator {
                |  sqlAttacks[Own][KING]) };
 
             // Safe squares where enemy's safe checks are possible on next move
-            Bitboard safeArea{
+            Bitboard const safeArea{
                  ~pos.pieces(Opp)
               & (~sqlAttacks[Own][NONE]
                | (weakArea
@@ -568,15 +551,15 @@ namespace Evaluator {
 
             Bitboard unsafeCheck{ 0 };
 
-            Bitboard rookPins{ attacksBB<ROOK>(kSq, pos.pieces() ^ pos.pieces(Own, QUEN)) };
-            Bitboard bshpPins{ attacksBB<BSHP>(kSq, pos.pieces() ^ pos.pieces(Own, QUEN)) };
+            Bitboard const rookPins{ attacksBB<ROOK>(kSq, pos.pieces() ^ pos.pieces(Own, QUEN)) };
+            Bitboard const bshpPins{ attacksBB<BSHP>(kSq, pos.pieces() ^ pos.pieces(Own, QUEN)) };
 
             // Enemy rooks checks
             Bitboard rookSafeChecks{  rookPins
                                    &  sqlAttacks[Opp][ROOK]
                                    &  safeArea};
             if (rookSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[ROOK][moreThanOne(rookSafeChecks)];
+                kingDanger += SafeCheckWeight[ROOK - 2][moreThanOne(rookSafeChecks)];
             }
             else {
                 unsafeCheck |= rookPins
@@ -590,7 +573,7 @@ namespace Evaluator {
                                    & ~sqlAttacks[Own][QUEN]
                                    & ~rookSafeChecks };
             if (quenSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[QUEN][moreThanOne(quenSafeChecks)];
+                kingDanger += SafeCheckWeight[QUEN - 2][moreThanOne(quenSafeChecks)];
             }
 
             // Enemy bishops checks
@@ -599,7 +582,7 @@ namespace Evaluator {
                                    &  safeArea
                                    & ~quenSafeChecks };
             if (bshpSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[BSHP][moreThanOne(bshpSafeChecks)];
+                kingDanger += SafeCheckWeight[BSHP - 2][moreThanOne(bshpSafeChecks)];
             }
             else {
                 unsafeCheck |= bshpPins
@@ -611,7 +594,7 @@ namespace Evaluator {
                                    &  sqlAttacks[Opp][NIHT]
                                    &  safeArea };
             if (nihtSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[NIHT][moreThanOne(nihtSafeChecks)];
+                kingDanger += SafeCheckWeight[NIHT - 2][moreThanOne(nihtSafeChecks)];
             }
             else {
                 unsafeCheck |= attacksBB<NIHT>(kSq)
@@ -624,13 +607,13 @@ namespace Evaluator {
               &  CampBB[Own]
               &  sqlAttacks[Opp][NONE];
             // Friend king flank attack count
-            i32 kingFlankAttack = popCount(b)                     // Squares attacked by enemy in friend king flank
-                          + popCount(b & dblAttacks[Opp]);  // Squares attacked by enemy twice in friend king flank.
+            i32 const kingFlankAttack{ popCount(b)                      // Squares attacked by enemy in friend king flank
+                                     + popCount(b & dblAttacks[Opp]) }; // Squares attacked by enemy twice in friend king flank.
             // Friend king flank defense count
             b =  KingFlankBB[sFile(kSq)]
               &  CampBB[Own]
               &  sqlAttacks[Own][NONE];
-            i32 kingFlankDefense = popCount(b);
+            i32 const kingFlankDefense{ popCount(b) };
 
             // King Safety:
             Score score{ kingEntry->evaluateSafety<Own>(pos, fulAttacks[Opp]) };
@@ -682,21 +665,21 @@ namespace Evaluator {
             // Squares defended by the opponent,
             // - defended the square with a pawn
             // - defended the square twice and not attacked twice.
-            Bitboard defendedArea{
+            Bitboard const defendedArea{
                 sqlAttacks[Opp][PAWN]
               | ( dblAttacks[Opp]
                & ~dblAttacks[Own]) };
             // Enemy non-pawns
-            Bitboard nonPawnsEnemies{
+            Bitboard const nonPawnsEnemies{
                 pos.pieces(Opp)
              & ~pos.pieces(PAWN) };
             // Enemy not defended and under attacked by any friend piece
-            Bitboard attackedUndefendedEnemies{
+            Bitboard const attackedUndefendedEnemies{
                 pos.pieces(Opp)
              & ~defendedArea
              &  sqlAttacks[Own][NONE] };
             // Non-pawn enemies, defended by enemies
-            Bitboard defendedNonPawnsEnemies{
+            Bitboard const defendedNonPawnsEnemies{
                 nonPawnsEnemies
               & defendedArea };
 
@@ -783,7 +766,7 @@ namespace Evaluator {
 
             // Bonus for threats on the next moves against enemy queens
             if (pos.pieces(Opp, QUEN) != 0) {
-                bool queenImbalance{ pos.count(Own|QUEN) < pos.count(Opp|QUEN) };
+                bool const queenImbalance{ pos.count(Own|QUEN) < pos.count(Opp|QUEN) };
 
                 safeArea =  mobArea[Own]
                          & ~pos.pieces(Own, PAWN)
@@ -818,14 +801,16 @@ namespace Evaluator {
             } };
 
             Bitboard pass{ pawnEntry->passeds[Own] };
-            Bitboard blockedPass{ pass
-                                & pawnSglPushBB<Opp>(pos.pieces(Opp, PAWN)) };
+            Bitboard const blockedPass{
+                pass
+              & pawnSglPushBB<Opp>(pos.pieces(Opp, PAWN)) };
             if (blockedPass != 0) {
                 // Can we lever the blocker of a blocked passer?
-                Bitboard helpers{  pawnSglPushBB<Own>(pos.pieces(Own, PAWN))
-                                & ~pos.pieces(Opp)
-                                & (~dblAttacks[Opp]
-                                 |  sqlAttacks[Own][NONE]) };
+                Bitboard const helpers{
+                    pawnSglPushBB<Own>(pos.pieces(Own, PAWN))
+                  & ~pos.pieces(Opp)
+                  & (~dblAttacks[Opp]
+                   |  sqlAttacks[Own][NONE]) };
                 // Remove blocked otherwise
                 pass &= ~blockedPass
                       | shift<WEST>(helpers)
@@ -835,16 +820,16 @@ namespace Evaluator {
             Score score{ SCORE_ZERO };
 
             while (pass != 0) {
-                auto s{ popLSq(pass) };
+                auto const s{ popLSq(pass) };
                 assert((pos.pieces(Opp, PAWN) & frontSquaresBB(Own, s + Push)) == 0);
 
-                i32 r{ relativeRank(Own, s) };
+                i32 const r{ relativeRank(Own, s) };
                 // Base bonus depending on rank.
                 Score bonus{ PasserRank[r] };
 
-                auto pushSq{ s + Push };
+                auto const pushSq{ s + Push };
                 if (r > RANK_3) {
-                    i32 w{ 5 * r - 13 };
+                    i32 const w{ 5 * r - 13 };
 
                     // Adjust bonus based on the king's proximity
                     bonus += makeScore(0, i32(+4.75*w*kingProximity(Opp, pushSq)
@@ -856,21 +841,22 @@ namespace Evaluator {
 
                     // If the pawn is free to advance.
                     if (pos.empty(pushSq)) {
-                        Bitboard behindMajors{ frontSquaresBB(Opp, s)
-                                             & pos.pieces(ROOK, QUEN) };
+                        Bitboard const behindMajors{
+                            frontSquaresBB(Opp, s)
+                          & pos.pieces(ROOK, QUEN) };
 
                         Bitboard attackedSquares{ pawnPassSpan(Own, s) };
                         if ((behindMajors & pos.pieces(Opp)) == 0) {
                             attackedSquares &= sqlAttacks[Opp][NONE];
                         }
 
-                        i32 k = // Bonus according to attacked squares
+                        i32 const k{ // Bonus according to attacked squares
                               + 15 * ((attackedSquares) == 0)
                               + 11 * ((attackedSquares & frontSquaresBB(Own, s)) == 0)
                               +  9 * !contains(attackedSquares, pushSq)
                                 // Bonus according to defended squares
                               +  5 * ((behindMajors & pos.pieces(Own)) != 0
-                                   || contains(sqlAttacks[Own][NONE], pushSq));
+                                   || contains(sqlAttacks[Own][NONE], pushSq)) };
 
                         bonus += makeScore(k*w, k*w);
                     }
@@ -897,23 +883,26 @@ namespace Evaluator {
             constexpr auto Opp{ ~Own };
 
             // Safe squares for friend pieces inside the area defined by SpaceMask.
-            Bitboard safeSpace{  SlotFileBB[CS_CENTRE]
-                              &  PawnSideBB[Own]
-                              & ~pos.pieces(Own, PAWN)
-                              & ~sqlAttacks[Opp][PAWN] };
+            Bitboard const safeSpace{
+                 SlotFileBB[CS_CENTRE]
+              &  PawnSideBB[Own]
+              & ~pos.pieces(Own, PAWN)
+              & ~sqlAttacks[Opp][PAWN] };
             // Find all squares which are at most three squares behind some friend pawn
             Bitboard behind{ pos.pieces(Own, PAWN) };
             behind |= pawnSglPushBB<Opp>(behind);
             behind |= pawnDblPushBB<Opp>(behind);
 
-            i32 bonus{ popCount(safeSpace)
-                     + popCount( behind
-                              &  safeSpace
-                              & ~sqlAttacks[Opp][NONE]) };
-            i32 weight{ pos.count(Own)
-                      + std::min(pawnEntry->blockedCount(), 9)
-                      - 3 };
-            Score score{ makeScore(bonus * weight * weight / 16, 0) };
+            i32 const bonus{
+                popCount(safeSpace)
+              + popCount(  behind
+                        &  safeSpace
+                        & ~sqlAttacks[Opp][NONE]) };
+            i32 const weight{
+                pos.count(Own)
+              + std::min(pawnEntry->blockedCount(), 9)
+              - 3 };
+            Score const score{ makeScore(bonus * weight * weight / 16, 0) };
 
             if (Trace) {
                 Tracer::write(SPACE, Own, score);
@@ -950,7 +939,7 @@ namespace Evaluator {
                        + pos.thread()->contempt };
 
             // Early exit if score is high
-            auto lazySkip = [&](Value lazyThreshold) {
+            auto const lazySkip = [&](Value lazyThreshold) {
                 return std::abs(mgValue(score) + egValue(score)) / 2 > lazyThreshold + pos.nonPawnMaterial() / 64;
             };
 
@@ -994,25 +983,27 @@ namespace Evaluator {
 
         returnValue:
             // Derive single value from mg and eg parts of score
-            auto wkSq{ pos.square(W_KING) };
-            auto bkSq{ pos.square(B_KING) };
+            auto const wkSq{ pos.square(W_KING) };
+            auto const bkSq{ pos.square(B_KING) };
 
-            i32 outflanking{ fileDistance(wkSq, bkSq)
-                           - rankDistance(wkSq, bkSq) };
+            i32 const outflanking{
+                fileDistance(wkSq, bkSq)
+              - rankDistance(wkSq, bkSq) };
 
             // Compute the initiative bonus for the attacking side
-            i32 complexity =  1 * pawnEntry->complexity
-                           +  9 * outflanking
-                           // King infiltration
-                           + 24 * (sRank(wkSq) > RANK_4
-                                || sRank(bkSq) < RANK_5)
-                           + 51 * (pos.nonPawnMaterial() == VALUE_ZERO)
-                           // Pawn not on both flanks
-                           - 21 * (pawnEntry->pawnNotBothFlank)
-                           // Almost Unwinnable
-                           - 43 * (pawnEntry->pawnNotBothFlank
-                                && outflanking < 0)
-                           - 89;
+            i32 const complexity =
+                 1 * pawnEntry->complexity
+              +  9 * outflanking
+                // King infiltration
+              + 24 * (sRank(wkSq) > RANK_4
+                   || sRank(bkSq) < RANK_5)
+              + 51 * (pos.nonPawnMaterial() == VALUE_ZERO)
+                // Pawn not on both flanks
+              - 21 * (pawnEntry->pawnNotBothFlank)
+                // Almost Unwinnable
+              - 43 * (pawnEntry->pawnNotBothFlank
+                   && outflanking < 0)
+              - 89;
 
             auto mg{ mgValue(score) };
             auto eg{ egValue(score) };
@@ -1027,7 +1018,7 @@ namespace Evaluator {
             eg += ev;
 
             // Compute the scale factor for the winning side
-            auto strongSide{ eg > VALUE_ZERO ? WHITE : BLACK };
+            auto const strongSide{ eg > VALUE_ZERO ? WHITE : BLACK };
 
             Scale scale{ matlEntry->scalingFunc[strongSide] != nullptr ?
                         (*matlEntry->scalingFunc[strongSide])(pos) : SCALE_NONE };
@@ -1054,7 +1045,7 @@ namespace Evaluator {
                 }
                 else
                 if (pos.count(QUEN) == 1) {
-                    auto queenColor{ pColor(pos[scanLSq(pos.pieces(QUEN))]) };
+                    auto const queenColor{ pColor(pos[scanLSq(pos.pieces(QUEN))]) };
                     scale = Scale(37 + 3 * (pos.count(~queenColor|NIHT) + pos.count(~queenColor|BSHP)));
                 }
                 else {
@@ -1118,7 +1109,7 @@ namespace Evaluator {
         }
         else {
             // Reset any dynamic contempt
-            auto contempt{ pos.thread()->contempt };
+            auto const contempt{ pos.thread()->contempt };
             pos.thread()->contempt = SCORE_ZERO;
             value = Evaluation<true>(pos).value();
             pos.thread()->contempt = contempt;

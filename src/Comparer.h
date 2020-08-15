@@ -8,19 +8,19 @@
 
 // Case-insensitive comparator for char
 
-inline bool compareCaseInsensitiveLess(u08 ch1, u08 ch2) {
+inline bool compareCaseInsensitiveLess(u08 ch1, u08 ch2) noexcept {
     return
         //toupper(ch1) < toupper(ch2);
         tolower(ch1) < tolower(ch2);
 }
 
-inline bool compareCaseInsensitiveMore(u08 ch1, u08 ch2) {
+inline bool compareCaseInsensitiveMore(u08 ch1, u08 ch2) noexcept {
     return
         //toupper(ch1) > toupper(ch2);
         tolower(ch1) > tolower(ch2);
 }
 
-inline bool compareCaseInsensitiveEqual(u08 ch1, u08 ch2) {
+inline bool compareCaseInsensitiveEqual(u08 ch1, u08 ch2) noexcept {
     return
         //toupper(ch1) == toupper(ch2);
         tolower(ch1) == tolower(ch2);

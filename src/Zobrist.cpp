@@ -82,8 +82,7 @@ namespace Zobrists {
 // Random numbers from PRNG, used to compute position key
 Zobrist RandZob;
 // Constant numbers from Polyglot, used to compute polyglot book key
-Zobrist const PolyZob
-{
+Zobrist const PolyZob{
     // PieceSquare (768)
     {
         {},
