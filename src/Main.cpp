@@ -24,7 +24,7 @@ int main(int argc, char const *const *argv) {
     PSQT::initialize();
     Zobrists::initialize();
     Cuckoos::initialize();
-    UCI::initialize(Options);
+    UCI::initialize();
     EndGame::initialize();
     Book.initialize(Options["Book File"]);
     Threadpool.setup(optionThreads());

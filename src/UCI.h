@@ -78,7 +78,7 @@ namespace UCI {
     extern std::ostream& operator<<(std::ostream&, OptionMap const&);
 
 
-    extern void initialize(OptionMap&);
+    extern void initialize();
 
     extern void handleCommands(std::string const&);
 

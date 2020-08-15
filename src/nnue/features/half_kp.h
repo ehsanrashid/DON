@@ -13,7 +13,7 @@ namespace Evaluator::NNUE::Features {
 
     public:
         // Feature name
-        static constexpr const char *kName{ "HalfKP(Friend)" };
+        static constexpr char const *kName{ "HalfKP(Friend)" };
         // Hash value embedded in the evaluation file
         static constexpr u32 kHashValue{ 0x5D69D5B9u ^ (AssociatedKing == Side::kFriend) };
         // Number of feature dimensions

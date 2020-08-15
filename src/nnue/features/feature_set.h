@@ -36,8 +36,8 @@ namespace Evaluator::NNUE::Features {
         template<typename PositionType, typename IndexListType>
         static void appendChangedIndices(PositionType const &pos, TriggerEvent trigger, IndexListType removed[2], IndexListType added[2], bool reset[2]) {
 
-            const auto &dp{ pos.state()->dirtyPiece };
-            if (dp.dirty_num == 0) {
+            auto const &dp{ pos.state()->dirtyPiece };
+            if (dp.dirtyCount == 0) {
                 return;
             }
             for (auto perspective : { WHITE, BLACK }) {

@@ -9,29 +9,29 @@ namespace Evaluator::NNUE::Features {
     // Class template used for feature index list
     template<typename T, size_t MaxSize>
     class ValueList {
+    
+    private:
+        T _values[MaxSize];
+        size_t _size = 0;
 
     public:
-        size_t size() const { return size_; }
-        void resize(size_t size) { size_ = size; }
-        void push_back(T const &value) { values_[size_++] = value; }
-        T &operator[](size_t index) { return values_[index]; }
-        T *begin() { return values_; }
-        T *end() { return values_ + size_; }
-        T const &operator[](size_t index) const { return values_[index]; }
-        T const *begin() const { return values_; }
-        T const *end() const { return values_ + size_; }
+        size_t size() const { return _size; }
+        void resize(size_t size) { _size = size; }
+        void push_back(T const &value) { _values[_size++] = value; }
+        T &operator[](size_t index) { return _values[index]; }
+        T *begin() { return _values; }
+        T *end() { return _values + _size; }
+        T const &operator[](size_t index) const { return _values[index]; }
+        T const *begin() const { return _values; }
+        T const *end() const { return _values + _size; }
 
-        void swap(ValueList &other) {
-            const size_t max_size = std::max(size_, other.size_);
-            for (size_t i = 0; i < max_size; ++i) {
-                std::swap(values_[i], other.values_[i]);
+        void swap(ValueList &valueList) {
+            size_t const maxSize{ std::max(_size, valueList._size) };
+            for (size_t i = 0; i < maxSize; ++i) {
+                std::swap(_values[i], valueList._values[i]);
             }
-            std::swap(size_, other.size_);
+            std::swap(_size, valueList._size);
         }
-
-    private:
-        T values_[MaxSize];
-        size_t size_ = 0;
     };
 
     //Type of feature index list

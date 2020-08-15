@@ -219,7 +219,7 @@ public:
 
     // Used by NNUE
     StateInfo* state() const;
-    const EvalList* evalList() const;
+    EvalList const* evalList() const;
 
     std::string fen(bool full = true) const;
 
@@ -482,7 +482,7 @@ inline void Position::doMove(Move m, StateInfo &si) {
 inline StateInfo* Position::state() const {
     return _stateInfo;
 }
-inline const EvalList* Position::evalList() const {
+inline EvalList const* Position::evalList() const {
     return &_evalList;
 }
 

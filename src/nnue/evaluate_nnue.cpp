@@ -15,7 +15,7 @@
     #include <stdlib.h>
 #endif
 
-ExtPieceSquare kpp_board_index[PIECES] = {
+ExtPieceSquare KPP_BoardIndex[PIECES] = {
     // convention: W - us, B - them
     // viewed from other side, W and B are reversed
        { PS_NONE,     PS_NONE     },
@@ -133,10 +133,10 @@ namespace Evaluator::NNUE {
     // Read network parameters
     bool readParameters(std::istream &stream) {
 
-        u32 hash_value;
+        u32 hashValue;
         std::string architecture;
-        if (!readHeader(stream, &hash_value, &architecture)) return false;
-        if (hash_value != kHashValue) return false;
+        if (!readHeader(stream, &hashValue, &architecture)) return false;
+        if (hashValue != kHashValue) return false;
         if (!Detail::readParameters(stream, featureTransformer)) return false;
         if (!Detail::readParameters(stream, network)) return false;
         return stream && stream.peek() == std::ios::traits_type::eof();
@@ -157,13 +157,12 @@ namespace Evaluator::NNUE {
             return accumulator.score;
         }
 
-        alignas(kCacheLineSize) TransformedFeatureType
-            transformed_features[FeatureTransformer::kBufferSize];
-        featureTransformer->transform(pos, transformed_features, refresh);
+        alignas(kCacheLineSize) TransformedFeatureType transformedFeatures[FeatureTransformer::kBufferSize];
+        featureTransformer->transform(pos, transformedFeatures, refresh);
         alignas(kCacheLineSize) char buffer[Network::kBufferSize];
-        const auto output = network->propagate(transformed_features, buffer);
+        auto const output{ network->propagate(transformedFeatures, buffer) };
 
-        auto score = static_cast<Value>(output[0] / FV_SCALE);
+        auto score{ static_cast<Value>(output[0] / FV_SCALE) };
 
         accumulator.score = score;
         accumulator.computedScore = true;

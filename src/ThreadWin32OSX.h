@@ -8,13 +8,14 @@
 /// The implementation calls pthread_create() with the stack size parameter
 /// equal to the linux 8MB default, on platforms that support it.
 #if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__)
+
     #include <pthread.h>
 
-static constexpr size_t TH_STACK_SIZE = 8 * 1024 * 1024;
+static constexpr size_t TH_STACK_SIZE{ 8 * 1024 * 1024 };
 
 template<typename T, class P = std::pair<T*, void(T::*)()>>
 void* startRoutine(void *arg) {
-    P *p = reinterpret_cast<P*>(arg);
+    auto *p{ reinterpret_cast<P*>(arg) };
     (p->first->*(p->second))(); // Call member function pointer
     delete p;
     return NULL;

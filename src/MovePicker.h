@@ -22,7 +22,7 @@ public:
     void fill(T const &value) {
         assert(std::is_standard_layout<NestedTable>::value);
 
-        auto *p = reinterpret_cast<T*>(this);
+        auto *p{ reinterpret_cast<T*>(this) };
         std::fill(p, p + sizeof (*this) / sizeof (T), value);
     }
 
@@ -91,7 +91,7 @@ public:
         assert(std::is_standard_layout<NestedStatsTable>::value);
 
         using Entry = Stats<T, D>;
-        auto *p = reinterpret_cast<Entry*>(this);
+        auto *p{ reinterpret_cast<Entry*>(this) };
         std::fill(p, p + sizeof (*this) / sizeof (Entry), value);
     }
 };
@@ -138,10 +138,10 @@ private:
 
     Position const &pos;
 
-    ColorIndexStatsTable        const *butterFlyStats{ nullptr };
-    PlyIndexStatsTable          const *lowPlyStats{ nullptr };
-    PieceSquareTypeStatsTable   const *captureStats{ nullptr };
-    PieceSquareStatsTable       const **pieceStats{ nullptr };
+    ColorIndexStatsTable      const *butterFlyStats{ nullptr };
+    PlyIndexStatsTable        const *lowPlyStats{ nullptr };
+    PieceSquareTypeStatsTable const *captureStats{ nullptr };
+    PieceSquareStatsTable     const **pieceStats{ nullptr };
 
     Move    ttMove{ MOVE_NONE };
     Depth   depth{ DEPTH_ZERO };
@@ -184,23 +184,23 @@ public:
 
     MovePicker(
         Position const&,
-        ColorIndexStatsTable        const*,
-        PlyIndexStatsTable          const*,
-        PieceSquareTypeStatsTable   const*,
-        PieceSquareStatsTable       const**,
+        ColorIndexStatsTable      const*,
+        PlyIndexStatsTable        const*,
+        PieceSquareTypeStatsTable const*,
+        PieceSquareStatsTable     const**,
         Move, Depth, i16,
         Move const *, Move);
 
     MovePicker(
         Position const&,
-        ColorIndexStatsTable        const*,
-        PieceSquareTypeStatsTable   const*,
-        PieceSquareStatsTable       const**,
+        ColorIndexStatsTable      const*,
+        PieceSquareTypeStatsTable const*,
+        PieceSquareStatsTable     const**,
         Move, Depth, Square);
 
     MovePicker(
         Position const&,
-        PieceSquareTypeStatsTable   const*,
+        PieceSquareTypeStatsTable const*,
         Move, Depth, Value);
 
 

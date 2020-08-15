@@ -212,14 +212,13 @@ struct ExtPieceSquare {
     PieceSquare org[COLORS];
 };
 
-
 // Return relative square when turning the board 180 degrees
 constexpr Square rotate180(Square s) {
     return Square(s ^ 0x3F);
 }
 
 // Array for finding the PieceSquare corresponding to the piece on the board
-extern ExtPieceSquare kpp_board_index[PIECES];
+extern ExtPieceSquare KPP_BoardIndex[PIECES];
 
 // Structure holding which tracked piece (PieceId) is where (PieceSquare)
 class EvalList {
@@ -228,19 +227,24 @@ public:
     // Max. number of pieces without kings is 30 but must be a multiple of 4 in AVX2
     static const int MAX_LENGTH = 32;
 
+private:
+    PieceSquare _pieceListFw[MAX_LENGTH];
+    PieceSquare _pieceListFb[MAX_LENGTH];
+
+public:
     // Array that holds the piece id for the pieces on the board
     PieceId pieceIdList[SQUARES];
 
     // List of pieces, separate from White and Black POV
-    PieceSquare *pieceListFw() const { return const_cast<PieceSquare *>(_pieceListFw); }
-    PieceSquare *pieceListFb() const { return const_cast<PieceSquare *>(_pieceListFb); }
+    PieceSquare* pieceListFw() const { return const_cast<PieceSquare*>(_pieceListFw); }
+    PieceSquare* pieceListFb() const { return const_cast<PieceSquare*>(_pieceListFb); }
 
     // Place the piece pc with pieceId on the square sq on the board
     void putPiece(PieceId pieceId, Square sq, Piece pc) {
         assert(isOk(pieceId));
         if (pc != NO_PIECE) {
-            _pieceListFw[pieceId] = PieceSquare(kpp_board_index[pc].org[WHITE] + sq);
-            _pieceListFb[pieceId] = PieceSquare(kpp_board_index[pc].org[BLACK] + rotate180(sq));
+            _pieceListFw[pieceId] = PieceSquare(KPP_BoardIndex[pc].org[WHITE] + sq);
+            _pieceListFb[pieceId] = PieceSquare(KPP_BoardIndex[pc].org[BLACK] + rotate180(sq));
             pieceIdList[sq] = pieceId;
         }
         else {
@@ -257,17 +261,13 @@ public:
         eps.org[BLACK] = _pieceListFb[pieceId];
         return eps;
     }
-
-private:
-    PieceSquare _pieceListFw[MAX_LENGTH];
-    PieceSquare _pieceListFb[MAX_LENGTH];
 };
 
 // For differential evaluation of pieces that changed since last turn
 struct DirtyPiece {
 
-    // Number of changed pieces
-    int dirty_num;
+    // Count of changed pieces
+    int dirtyCount;
 
     // The ids of changed pieces, max. 2 pieces can change in one move
     PieceId pieceId[2];

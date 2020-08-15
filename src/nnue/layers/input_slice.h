@@ -8,6 +8,8 @@ namespace Evaluator::NNUE::Layers {
     // Input layer
     template<IndexType OutputDimensions, IndexType Offset = 0>
     class InputSlice {
+    private:
+
     public:
         // Need to maintain alignment
         static_assert(Offset %kMaxSimdWidth == 0, "");
@@ -23,9 +25,9 @@ namespace Evaluator::NNUE::Layers {
 
         // Hash value embedded in the evaluation file
         static constexpr u32 getHashValue() {
-            u32 hash_value{ 0xEC42E90Du };
-            hash_value ^= kOutputDimensions ^ (Offset << 10);
-            return hash_value;
+            u32 hashValue{ 0xEC42E90Du };
+            hashValue ^= kOutputDimensions ^ (Offset << 10);
+            return hashValue;
         }
 
         // Read network parameters
@@ -34,12 +36,9 @@ namespace Evaluator::NNUE::Layers {
         }
 
         // Forward propagation
-        const OutputType *propagate(const TransformedFeatureType *transformedFeatures, char*) const {
+        OutputType const* propagate(const TransformedFeatureType *transformedFeatures, char*) const {
             return transformedFeatures + Offset;
         }
-
-    private:
-
     };
 
 }  // namespace Layers

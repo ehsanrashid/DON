@@ -866,7 +866,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     PieceId dp0{ PIECE_ID_NONE };
     PieceId dp1{ PIECE_ID_NONE };
     auto &dp{ _stateInfo->dirtyPiece };
-    dp.dirty_num = 1;
+    dp.dirtyCount = 1;
 
     auto pasive{ ~active };
 
@@ -896,7 +896,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         /* king*/dst = kingCastleSq(org, rookOrg);
 
         if (Evaluator::useNNUE) {
-            dp.dirty_num = 2; // 2 pieces moved
+            dp.dirtyCount = 2; // 2 pieces moved
 
             dp0 = pieceIdOn(org);
             dp1 = pieceIdOn(rookOrg);
@@ -946,7 +946,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         }
 
         if (Evaluator::useNNUE) {
-            dp.dirty_num = 2; // 2 pieces moved
+            dp.dirtyCount = 2; // 2 pieces moved
             dp1 = pieceIdOn(cap);
             dp.pieceId[1] = dp1;
             dp.oldPiece[1] = _evalList.pieceWithId(dp1);
@@ -1095,7 +1095,7 @@ void Position::undoMove(Move m) {
 
         if (Evaluator::useNNUE) {
             auto &dp{ _stateInfo->dirtyPiece };
-            dp.dirty_num = 2; // 2 pieces moved
+            dp.dirtyCount = 2; // 2 pieces moved
 
             PieceId dp0{ pieceIdOn(dst) };
             PieceId dp1{ pieceIdOn(rookDst) };
@@ -1333,11 +1333,10 @@ std::string Position::fen(bool full) const {
     oss << ' ' << active << ' ';
 
     if (castleRights() != CR_NONE) {
-        bool chess960{Options["UCI_Chess960"]};
-        if (canCastle(WHITE, CS_KING)) { oss << (chess960 ? toChar(sFile(castleRookSq(WHITE, CS_KING)), false) : 'K'); }
-        if (canCastle(WHITE, CS_QUEN)) { oss << (chess960 ? toChar(sFile(castleRookSq(WHITE, CS_QUEN)), false) : 'Q'); }
-        if (canCastle(BLACK, CS_KING)) { oss << (chess960 ? toChar(sFile(castleRookSq(BLACK, CS_KING)),  true) : 'k'); }
-        if (canCastle(BLACK, CS_QUEN)) { oss << (chess960 ? toChar(sFile(castleRookSq(BLACK, CS_QUEN)),  true) : 'q'); }
+        if (canCastle(WHITE, CS_KING)) { oss << (Options["UCI_Chess960"] ? toChar(sFile(castleRookSq(WHITE, CS_KING)), false) : 'K'); }
+        if (canCastle(WHITE, CS_QUEN)) { oss << (Options["UCI_Chess960"] ? toChar(sFile(castleRookSq(WHITE, CS_QUEN)), false) : 'Q'); }
+        if (canCastle(BLACK, CS_KING)) { oss << (Options["UCI_Chess960"] ? toChar(sFile(castleRookSq(BLACK, CS_KING)),  true) : 'k'); }
+        if (canCastle(BLACK, CS_QUEN)) { oss << (Options["UCI_Chess960"] ? toChar(sFile(castleRookSq(BLACK, CS_QUEN)),  true) : 'q'); }
     }
     else {
         oss << '-';

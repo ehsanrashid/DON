@@ -408,60 +408,58 @@ namespace UCI {
         }
     }
 
-    void initialize(OptionMap &om) {
+    void initialize() {
 
-        om["Hash"]               << Option(16, 0, TTable::MaxHashSize, onHash);
+        Options["Hash"]               << Option(16, 0, TTable::MaxHashSize, onHash);
 
-        om["Clear Hash"]         << Option(onClearHash);
-        om["Retain Hash"]        << Option(false);
+        Options["Clear Hash"]         << Option(onClearHash);
+        Options["Retain Hash"]        << Option(false);
 
-        om["Hash File"]          << Option("Hash.dat");
-        om["Save Hash"]          << Option(onSaveHash);
-        om["Load Hash"]          << Option(onLoadHash);
+        Options["Hash File"]          << Option("Hash.dat");
+        Options["Save Hash"]          << Option(onSaveHash);
+        Options["Load Hash"]          << Option(onLoadHash);
 
-        om["Use Book"]           << Option(false);
-        om["Book File"]          << Option("Book.bin", onBookFile);
-        om["Book Pick Best"]     << Option(true);
-        om["Book Move Num"]      << Option(20, 0, 100);
+        Options["Use Book"]           << Option(false);
+        Options["Book File"]          << Option("Book.bin", onBookFile);
+        Options["Book Pick Best"]     << Option(true);
+        Options["Book Move Num"]      << Option(20, 0, 100);
 
-        om["Threads"]            << Option(1, 0, 512, onThreads);
+        Options["Threads"]            << Option(1, 0, 512, onThreads);
 
-        om["Skill Level"]        << Option(MaxLevel,  0, MaxLevel);
+        Options["Skill Level"]        << Option(MaxLevel,  0, MaxLevel);
 
-        om["MultiPV"]            << Option( 1, 1, 500);
+        Options["MultiPV"]            << Option( 1, 1, 500);
 
-        om["Fixed Contempt"]     << Option(  0, -100, 100);
-        om["Contempt Time"]      << Option( 40,    0, 1000);
-        om["Contempt Value"]     << Option(100,    0, 1000);
-        om["Analysis Contempt"]  << Option("Both var Off var White var Black var Both", "Both");
+        Options["Fixed Contempt"]     << Option(  0, -100, 100);
+        Options["Contempt Time"]      << Option( 40,    0, 1000);
+        Options["Contempt Value"]     << Option(100,    0, 1000);
+        Options["Analysis Contempt"]  << Option("Both var Off var White var Black var Both", "Both");
 
-        om["Draw MoveCount"]     << Option(50, 5, 50);
+        Options["Draw MoveCount"]     << Option(50, 5, 50);
 
-        om["Overhead MoveTime"]  << Option( 10,  0, 5000);
-        om["Move Slowness"]      << Option(100, 10, 1000);
-        om["Ponder"]             << Option(true);
-        om["Time Nodes"]         << Option( 0,  0, 10000, onTimeNodes);
+        Options["Overhead MoveTime"]  << Option( 10,  0, 5000);
+        Options["Move Slowness"]      << Option(100, 10, 1000);
+        Options["Ponder"]             << Option(true);
+        Options["Time Nodes"]         << Option( 0,  0, 10000, onTimeNodes);
 
-        om["SyzygyPath"]         << Option("", onSyzygyPath);
-        om["SyzygyDepthLimit"]   << Option(1, 1, 100);
-        om["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
-        om["SyzygyMove50Rule"]   << Option(true);
+        Options["SyzygyPath"]         << Option("", onSyzygyPath);
+        Options["SyzygyDepthLimit"]   << Option(1, 1, 100);
+        Options["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
+        Options["SyzygyMove50Rule"]   << Option(true);
 
-        om["Use NNUE"]           << Option(false, onUseNNUE);
+        Options["Use NNUE"]           << Option(false, onUseNNUE);
         // The default must follow the format nn-[SHA256 first 12 digits].nnue
         // for the build process (profile-build and fishtest) to work.
-        om["Eval File"]          << Option("nn-82215d0fd0df.nnue", onEvalFile);
+        Options["Eval File"]          << Option("nn-82215d0fd0df.nnue", onEvalFile);
 
-        om["Debug File"]         << Option("", onDebugFile);
+        Options["Debug File"]         << Option("", onDebugFile);
 
-        om["UCI_Chess960"]       << Option(false);
-        om["UCI_ShowWDL"]        << Option(false);
-        om["UCI_AnalyseMode"]    << Option(false);
-        om["UCI_LimitStrength"]  << Option(false);
-        om["UCI_Elo"]            << Option(1350, 1350, 3100);
-
+        Options["UCI_Chess960"]       << Option(false);
+        Options["UCI_ShowWDL"]        << Option(false);
+        Options["UCI_AnalyseMode"]    << Option(false);
+        Options["UCI_LimitStrength"]  << Option(false);
+        Options["UCI_Elo"]            << Option(1350, 1350, 3100);
     }
-
 
     namespace {
 
@@ -717,7 +715,7 @@ namespace UCI {
                 ifs.close();
             }
 
-            bool chess960{ Options["UCI_Chess960"] };
+            bool uciChess960{ Options["UCI_Chess960"] };
 
             uciCmds.push_back("setoption name Threads value " + threads);
             uciCmds.push_back("setoption name Hash value " + hash);
@@ -736,7 +734,7 @@ namespace UCI {
             }
 
             if (fen != "current") {
-                uciCmds.push_back("setoption name UCI_Chess960 value " + ToString(chess960));
+                uciCmds.push_back("setoption name UCI_Chess960 value " + ToString(uciChess960));
                 uciCmds.push_back("position fen " + pos.fen());
             }
             return uciCmds;

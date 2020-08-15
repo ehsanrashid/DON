@@ -34,11 +34,11 @@ namespace Evaluator::NNUE::Features {
             return;
         }
         PieceSquare *pieces;
-        Square sq_target_k;
-        getPieces(pos, perspective, &pieces, &sq_target_k);
+        Square target_sq_k;
+        getPieces(pos, perspective, &pieces, &target_sq_k);
         for (PieceId i = PIECE_ID_ZERO; i < PIECE_ID_KING; ++i) {
             if (pieces[i] != PS_NONE) {
-                active->push_back(makeIndex(sq_target_k, pieces[i]));
+                active->push_back(makeIndex(target_sq_k, pieces[i]));
             }
         }
     }
@@ -48,20 +48,20 @@ namespace Evaluator::NNUE::Features {
     void HalfKP<AssociatedKing>::appendChangedIndices(Position const &pos, Color perspective, IndexList *removed, IndexList *added) {
 
         PieceSquare *pieces;
-        Square sq_target_k;
-        getPieces(pos, perspective, &pieces, &sq_target_k);
-        const auto &dp = pos.state()->dirtyPiece;
-        for (int i = 0; i < dp.dirty_num; ++i) {
+        Square target_sq_k;
+        getPieces(pos, perspective, &pieces, &target_sq_k);
+        auto const &dp{ pos.state()->dirtyPiece };
+        for (int i = 0; i < dp.dirtyCount; ++i) {
             if (dp.pieceId[i] >= PIECE_ID_KING) {
                 continue;
             }
-            const auto old_p = static_cast<PieceSquare>(dp.oldPiece[i].org[perspective]);
+            auto const old_p{ static_cast<PieceSquare>(dp.oldPiece[i].org[perspective]) };
             if (old_p != PS_NONE) {
-                removed->push_back(makeIndex(sq_target_k, old_p));
+                removed->push_back(makeIndex(target_sq_k, old_p));
             }
-            const auto new_p = static_cast<PieceSquare>(dp.newPiece[i].org[perspective]);
+            auto const new_p{ static_cast<PieceSquare>(dp.newPiece[i].org[perspective]) };
             if (new_p != PS_NONE) {
-                added->push_back(makeIndex(sq_target_k, new_p));
+                added->push_back(makeIndex(target_sq_k, new_p));
             }
         }
     }

@@ -287,7 +287,7 @@ namespace Evaluator {
         void Evaluation<Trace>::initialize() {
             constexpr auto Opp{ ~Own };
 
-            const auto kSq{ pos.square(Own|KING) };
+            auto const kSq{ pos.square(Own|KING) };
 
             sqlAttacks[Own][PAWN] = pawnEntry->sglAttacks[Own];
             sqlAttacks[Own][KING] = attacksBB<KING>(kSq);

@@ -38,10 +38,10 @@ namespace {
 /// MovePicker constructor for the main search
 MovePicker::MovePicker(
     Position const &p,
-    ColorIndexStatsTable        const *bfStats,
-    PlyIndexStatsTable          const *lpStats,
-    PieceSquareTypeStatsTable   const *cStats,
-    PieceSquareStatsTable       const **pStats,
+    ColorIndexStatsTable      const *bfStats,
+    PlyIndexStatsTable        const *lpStats,
+    PieceSquareTypeStatsTable const *cStats,
+    PieceSquareStatsTable     const **pStats,
     Move ttm, Depth d, i16 sp,
     Move const *km, Move cm) :
     pos{ p },
@@ -67,9 +67,9 @@ MovePicker::MovePicker(
 /// and other checks (only if depth >= DEPTH_QS_CHECK) will be generated.
 MovePicker::MovePicker(
     Position const &p,
-    ColorIndexStatsTable        const *bfStats,
-    PieceSquareTypeStatsTable   const *cStats,
-    PieceSquareStatsTable       const **pStats,
+    ColorIndexStatsTable      const *bfStats,
+    PieceSquareTypeStatsTable const *cStats,
+    PieceSquareStatsTable     const **pStats,
     Move ttm, Depth d, Square rs) :
     pos{ p },
     butterFlyStats{ bfStats },
@@ -93,7 +93,7 @@ MovePicker::MovePicker(
 /// Generate captures with SEE greater than or equal to the given threshold.
 MovePicker::MovePicker(
     Position const &p,
-    PieceSquareTypeStatsTable   const *cStats,
+    PieceSquareTypeStatsTable const *cStats,
     Move ttm, Depth d, Value thr) :
     pos{ p },
     captureStats{ cStats },
@@ -121,9 +121,9 @@ void MovePicker::value() {
                 || GT == QUIET
                 || GT == EVASION, "GT incorrect");
 
-    auto vmCur = vmBeg;
+    auto vmCur{ vmBeg };
     while (vmCur != vmEnd) {
-        auto &vm = *(vmCur++);
+        auto &vm{ *(vmCur++) };
 
         if (GT == CAPTURE) {
             auto captured{ pos.captured(vm) };
@@ -170,7 +170,6 @@ void MovePicker::limitedInsertionSort(i32 limit) const {
     auto iSortedEnd{ vmBeg };
     auto iUnsortedBeg{ iSortedEnd + 1 };
     while (iUnsortedBeg != vmEnd) {
-
         if (iUnsortedBeg->value >= limit) {
             auto unSortedItem{ *iUnsortedBeg };
             *iUnsortedBeg = *++iSortedEnd;
