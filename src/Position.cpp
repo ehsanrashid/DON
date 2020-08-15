@@ -1310,7 +1310,7 @@ void Position::mirror() {
 /// Position::fen() returns a FEN representation of the position.
 /// In case of Chess960 the Shredder-FEN notation is used.
 std::string Position::fen(bool full) const {
-    std::ostringstream oss;
+    std::ostringstream oss{};
 
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         for (File f = FILE_A; f <= FILE_H; ++f) {
@@ -1353,7 +1353,7 @@ std::string Position::fen(bool full) const {
 }
 /// Position::toString() returns an ASCII representation of the position.
 std::string Position::toString() const {
-    std::ostringstream oss;
+    std::ostringstream oss{};
     oss << " +---+---+---+---+---+---+---+---+\n";
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         oss << r << "| ";

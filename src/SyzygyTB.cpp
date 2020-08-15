@@ -510,7 +510,7 @@ namespace {
 
         void add(vector<PieceType> const &pieces) {
 
-            std::ostringstream oss;
+            std::ostringstream oss{};
             for (PieceType pt : pieces) {
                 oss << toChar(pt);
             }

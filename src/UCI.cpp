@@ -38,7 +38,7 @@ UCI::OptionMap Options;
 namespace {
 
     string ToString(bool b) {
-        ostringstream oss;
+        ostringstream oss{};
         oss << std::boolalpha << b;
         return oss.str();
     }
@@ -64,7 +64,7 @@ namespace {
 
 /// engineInfo() returns a string trying to describe the engine
 string const engineInfo() {
-    ostringstream oss;
+    ostringstream oss{};
 
     oss << std::setfill('0');
 #if defined(VER)
@@ -89,7 +89,7 @@ string const engineInfo() {
 }
 /// compilerInfo() returns a string trying to describe the compiler used
 string const compilerInfo() {
-    ostringstream oss;
+    ostringstream oss{};
     oss << "\nCompiled by ";
 
 #if defined(__clang__)
@@ -317,7 +317,7 @@ namespace UCI {
     /// Option::toString()
     string Option::toString() const
     {
-        ostringstream oss;
+        ostringstream oss{};
         oss << " type " << type;
 
         if (type == "string"
@@ -748,12 +748,12 @@ namespace UCI {
             Debugger::reset();
             
             auto const uciCmds{ setupBench(iss, pos) };
-            auto const count{ u16(std::count_if(uciCmds.begin(), uciCmds.end(),
-                                                [](string const &s) {
-                                                    return s.find("eval") == 0
-                                                        || s.find("perft ") == 0
-                                                        || s.find("go ") == 0;
-                                                })) };
+            auto const cmdCount{ u16(std::count_if(uciCmds.begin(), uciCmds.end(),
+                                                    [](string const &s) {
+                                                        return s.find("eval") == 0
+                                                            || s.find("perft ") == 0
+                                                            || s.find("go ") == 0;
+                                                    })) };
             auto elapsed{ now() };
             u16 i{ 0 };
             u64 nodes{ 0 };
@@ -766,13 +766,15 @@ namespace UCI {
                       || token == "perft"
                       || token == "go") {
 
-                    std::cerr << "\n---------------\nPosition: " << std::right << std::setw(2) << ++i << '/' << count << " " << std::left << pos.fen() << '\n';
+                    std::cerr << "\n---------------\nPosition: "
+                              << std::right << std::setw(2) << ++i << '/' << cmdCount << " " << std::left << pos.fen() << '\n';
 
                          if (token == "eval") {
                         traceEval(pos);
                     }
                     else if (token == "perft") {
-                        Depth depth{ 1 }; is >> depth; depth = std::max(Depth(1), depth);
+                        Depth depth{ 1 }; is >> depth;
+                        if (depth < 1) depth = 1;
                         perft<true>(pos, depth);
                     }
                     else if (token == "go") {
@@ -789,7 +791,7 @@ namespace UCI {
 
             Debugger::print(); // Just before exiting
             
-            ostringstream oss;
+            ostringstream oss{};
             oss << std::right
                 << "\n=================================\n"
                 << "Total time (ms) :" << std::setw(16) << elapsed << '\n'
@@ -862,7 +864,7 @@ namespace UCI {
                 perft<true>(pos, depth, detail);
             }
             else if (token == "keys")       {
-                ostringstream oss;
+                ostringstream oss{};
                 oss << "FEN: " << pos.fen() << '\n'
                     << std::hex << std::uppercase << std::setfill('0')
                     << "Posi key: " << std::setw(16) << pos.posiKey() << '\n'
@@ -873,64 +875,64 @@ namespace UCI {
             }
             else if (token == "moves")      {
 
-                i32 count{};
+                i32 moveCount{};
                 std::cout << '\n';
                 if (pos.checkers() == 0) {
                     std::cout << "Capture moves: ";
-                    count = 0;
+                    moveCount = 0;
                     for (auto const &vm : MoveList<CAPTURE>(pos)) {
                         if (pos.pseudoLegal(vm)
                             && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";
-                            ++count;
+                            ++moveCount;
                         }
                     }
-                    std::cout << "(" << count << ")\n";
+                    std::cout << "(" << moveCount << ")\n";
 
                     std::cout << "Quiet moves: ";
-                    count = 0;
+                    moveCount = 0;
                     for (auto const &vm : MoveList<QUIET>(pos)) {
                         if (pos.pseudoLegal(vm)
                          && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";
-                            ++count;
+                            ++moveCount;
                         }
                     }
-                    std::cout << "(" << count << ")\n";
+                    std::cout << "(" << moveCount << ")\n";
 
                     std::cout << "Quiet Check moves: ";
-                    count = 0;
+                    moveCount = 0;
                     for (auto const &vm : MoveList<QUIET_CHECK>(pos)) {
                         if (pos.pseudoLegal(vm)
                          && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";
-                            ++count;
+                            ++moveCount;
                         }
                     }
-                    std::cout << "(" << count << ")\n";
+                    std::cout << "(" << moveCount << ")\n";
 
                     std::cout << "Natural moves: ";
-                    count = 0;
+                    moveCount = 0;
                     for (auto const &vm : MoveList<NORMAL>(pos)) {
                         if (pos.pseudoLegal(vm)
                          && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";
-                            ++count;
+                            ++moveCount;
                         }
                     }
-                    std::cout << "(" << count << ")\n";
+                    std::cout << "(" << moveCount << ")\n";
                 }
                 else {
                     std::cout << "Evasion moves: ";
-                    count = 0;
+                    moveCount = 0;
                     for (auto const &vm : MoveList<EVASION>(pos)) {
                         if (pos.pseudoLegal(vm)
                          && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";
-                            ++count;
+                            ++moveCount;
                         }
                     }
-                    std::cout << "(" << count << ")\n";
+                    std::cout << "(" << moveCount << ")\n";
                 }
             }
             else { sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl; }

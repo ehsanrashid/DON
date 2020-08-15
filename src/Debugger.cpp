@@ -38,7 +38,7 @@ void Debugger::meanOf(i64 item) {
 
 void Debugger::print() {
     if (Hit1Count != 0) {
-        std::ostringstream oss;
+        std::ostringstream oss{};
         oss << std::right
             << "---------------------------\n"
             << "Hit1  :" << std::setw(20) << Hit1Count << '\n'
@@ -48,7 +48,7 @@ void Debugger::print() {
         std::cerr << oss.str() << std::endl;
     }
     if (ItemCount != 0) {
-        std::ostringstream oss;
+        std::ostringstream oss{};
         oss << std::right
             << "---------------------------\n"
             << "Count :" << std::setw(20) << ItemCount << '\n'

@@ -257,7 +257,7 @@ namespace {
         auto tbHits{ Threadpool.sum(&Thread::tbHits)
                    + th->rootMoves.size() * SyzygyTB::HasRoot };
 
-        std::ostringstream oss;
+        std::ostringstream oss{};
         for (u16 i = 0; i < PVCount; ++i) {
             bool updated{ th->rootMoves[i].newValue != -VALUE_INFINITE };
             if (depth == 1

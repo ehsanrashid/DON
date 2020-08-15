@@ -413,7 +413,7 @@ template<bool RootNode>
 Perft perft(Position &pos, Depth depth, bool detail) {
     Perft sumLeaf;
     if (RootNode) {
-        std::ostringstream oss;
+        std::ostringstream oss{};
         oss << std::left
             << std::setw( 3) << "N"
             << std::setw(10) << "Move"
@@ -464,7 +464,7 @@ Perft perft(Position &pos, Depth depth, bool detail) {
         if (RootNode) {
             ++sumLeaf.moves;
 
-            std::ostringstream oss;
+            std::ostringstream oss{};
             oss << std::right << std::setfill('0') << std::setw( 2) << sumLeaf.moves << " "
                 << std::left  << std::setfill(' ') << std::setw( 7) << //moveToCAN(vm)
                                                                        moveToSAN(vm, pos)
@@ -485,7 +485,7 @@ Perft perft(Position &pos, Depth depth, bool detail) {
         }
     }
     if (RootNode) {
-        std::ostringstream oss;
+        std::ostringstream oss{};
         oss << "\nTotal:  " << std::right << std::setfill('.')
             << std::setw(18) << sumLeaf.any;
         if (detail) {

@@ -1114,7 +1114,7 @@ namespace Evaluator {
             return "Evaluation: none (in check)\n";
         }
 
-        std::ostringstream oss;
+        std::ostringstream oss{};
 
         Value value;
 

@@ -256,7 +256,7 @@ namespace BitBoard {
     /// Returns an ASCII representation of a bitboard to print on console output
     /// Bitboard in an easily readable format. This is sometimes useful for debugging.
     std::string toString(Bitboard bb) {
-        std::ostringstream oss;
+        std::ostringstream oss{};
 
         oss << " /---------------\\\n";
         for (Rank r = RANK_8; r >= RANK_1; --r) {
