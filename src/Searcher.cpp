@@ -25,21 +25,21 @@
 /// waiting for data to be loaded from memory, which can be quite slow.
 #if defined(PREFETCH)
 
-#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-#       include <xmmintrin.h> // Microsoft and Intel Header for _mm_prefetch()
-#   endif
+    #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+        #include <xmmintrin.h> // Microsoft and Intel Header for _mm_prefetch()
+    #endif
 
 inline void prefetch(void const *addr) {
 
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
-#   if defined(__INTEL_COMPILER)
+    #if defined(__INTEL_COMPILER)
 
     // This hack prevents prefetches from being optimized away by
     // Intel compiler. Both MSVC and gcc seem not be affected by this.
     __asm__("");
 
-#   endif
+    #endif
 
     _mm_prefetch((char const*) (addr), _MM_HINT_T0);
 
@@ -674,7 +674,7 @@ namespace {
 
         assert((ss+1)->excludedMove == MOVE_NONE);
         (ss+2)->killerMoves[0] =
-        (ss+2)->killerMoves[1] = MOVE_NONE,
+        (ss+2)->killerMoves[1] = MOVE_NONE;
 
         // Initialize stats to zero for the grandchildren of the current position.
         // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.

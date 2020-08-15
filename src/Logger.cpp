@@ -6,7 +6,7 @@
 #include "Helper.h"
 
 #if defined(_WIN32)
-#   include <ctime>
+    #include <ctime>
 #endif
 
 namespace {
@@ -16,7 +16,7 @@ namespace {
     std::string toString(SystemClockTimePoint const &tp) {
         std::string str;
 
-#   if defined(_WIN32)
+    #if defined(_WIN32)
 
         time_t const time{ std::chrono::system_clock::to_time_t(tp) };
 
@@ -32,11 +32,11 @@ namespace {
         str.append(".");
         str.append(std::to_string(ms));
 
-#   else
+    #else
 
         (void)tp;
 
-#   endif
+    #endif
 
         return str;
     }

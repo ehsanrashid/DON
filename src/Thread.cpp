@@ -259,21 +259,21 @@ namespace WinProcGroup {
 
 #if defined(_WIN32)
 
-#   if _WIN32_WINNT < 0x0601
-#       undef  _WIN32_WINNT
-#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
-#   endif
-#   if !defined(NOMINMAX)
-#       define NOMINMAX // Disable macros min() and max()
-#   endif
-#   if !defined(WIN32_LEAN_AND_MEAN)
-#       define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
-#   endif
+    #if _WIN32_WINNT < 0x0601
+        #undef  _WIN32_WINNT
+        #define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
+    #endif
+    #if !defined(NOMINMAX)
+        #define NOMINMAX // Disable macros min() and max()
+    #endif
+    #if !defined(WIN32_LEAN_AND_MEAN)
+        #define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
+    #endif
 
-#   include <windows.h>
+    #include <windows.h>
 
-#   undef NOMINMAX
-#   undef WIN32_LEAN_AND_MEAN
+    #undef NOMINMAX
+    #undef WIN32_LEAN_AND_MEAN
 
     /// The needed Windows API for processor groups could be missed from old Windows versions,
     /// so instead of calling them directly (forcing the linker to resolve the calls at compile time),

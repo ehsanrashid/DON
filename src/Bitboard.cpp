@@ -96,11 +96,11 @@ namespace {
         Bitboard reference[MaxIndex];
 
         constexpr u32 Seeds[RANKS]
-#   if defined(BIT64)
+    #if defined(BIT64)
         { 0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF };
-#   else
+    #else
         { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C };
-#   endif
+    #endif
 
 #endif
         u16 size{ 0 };
@@ -129,11 +129,11 @@ namespace {
 #if !defined(BMI2)
 
             u08 bits
-#   if defined(BIT64)
+    #if defined(BIT64)
             { 64 };
-#   else
+    #else
             { 32 };
-#   endif
+    #endif
 
             magic.shift = bits - popCount(magic.mask);
 #endif

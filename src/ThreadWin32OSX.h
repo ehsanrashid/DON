@@ -9,7 +9,7 @@
 /// equal to the linux 8MB default, on platforms that support it.
 #if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__)
 
-#   include <pthread.h>
+    #include <pthread.h>
 
 static constexpr size_t TH_STACK_SIZE = 8 * 1024 * 1024;
 

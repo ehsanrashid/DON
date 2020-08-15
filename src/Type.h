@@ -46,27 +46,27 @@ using Bitboard = u64;
 
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
-#   pragma warning (disable: 4127) // Conditional expression is constant
-#   pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
-#   pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
+    #pragma warning (disable: 4127) // Conditional expression is constant
+    #pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
+    #pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
 
-#   if defined(_WIN64)
-#       if !defined(BIT64)
-#           define BIT64
-#       endif
-#   endif
+    #if defined(_WIN64)
+        #if !defined(BIT64)
+            #define BIT64
+        #endif
+    #endif
 
-#   define S32(X) (X ##  i32)
-#   define U32(X) (X ## ui32)
-#   define S64(X) (X ##  i64)
-#   define U64(X) (X ## ui64)
+    #define S32(X) (X ##  i32)
+    #define U32(X) (X ## ui32)
+    #define S64(X) (X ##  i64)
+    #define U64(X) (X ## ui64)
 
 #else
 
-#   define S32(X) (X ##   L)
-#   define U32(X) (X ##  UL)
-#   define S64(X) (X ##  LL)
-#   define U64(X) (X ## ULL)
+    #define S32(X) (X ##   L)
+    #define U32(X) (X ##  UL)
+    #define S64(X) (X ##  LL)
+    #define U64(X) (X ## ULL)
 
 #endif
 

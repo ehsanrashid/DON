@@ -11,8 +11,8 @@
 #include "evaluate_nnue.h"
 
 #if defined(__APPLE__) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
-#   define POSIX_ALIGNED_ALLOC
-#   include <stdlib.h>
+    #define POSIX_ALIGNED_ALLOC
+    #include <stdlib.h>
 #endif
 
 ExtPieceSquare kpp_board_index[PIECES] = {

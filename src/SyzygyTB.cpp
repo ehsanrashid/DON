@@ -24,24 +24,24 @@ using namespace SyzygyTB;
 
 #if defined(_WIN32)
 
-#   if !defined(NOMINMAX)
-#       define NOMINMAX // Disable macros min() and max()
-#   endif
-#   if !defined(WIN32_LEAN_AND_MEAN)
-#       define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
-#   endif
+    #if !defined(NOMINMAX)
+        #define NOMINMAX // Disable macros min() and max()
+    #endif
+    #if !defined(WIN32_LEAN_AND_MEAN)
+        #define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
+    #endif
 
-#   include <windows.h>
+    #include <windows.h>
 
-#   undef NOMINMAX
-#   undef WIN32_LEAN_AND_MEAN
+    #undef NOMINMAX
+    #undef WIN32_LEAN_AND_MEAN
 
 #else
 
-#   include <fcntl.h>
-#   include <unistd.h>
-#   include <sys/mman.h>
-#   include <sys/stat.h>
+    #include <fcntl.h>
+    #include <unistd.h>
+    #include <sys/mman.h>
+    #include <sys/stat.h>
 
 #endif
 
@@ -192,7 +192,7 @@ namespace {
         u08* map(void **baseAddress, u64 *mapping, TBType type) {
             assert(!filename.empty());
 
-#       if defined(_WIN32)
+        #if defined(_WIN32)
 
             HANDLE hFile =
                 CreateFile(
@@ -248,7 +248,7 @@ namespace {
                 std::exit(EXIT_FAILURE);
             }
 
-#       else
+        #else
 
             i32 hFile =
                 ::open(
@@ -291,7 +291,7 @@ namespace {
                 std::exit(EXIT_FAILURE);
             }
 
-#       endif
+        #endif
 
             u08 *data = (u08*)(*baseAddress);
 
@@ -313,16 +313,16 @@ namespace {
 
         static void unmap(void *baseAddress, u64 mapping) {
 
-#       if defined(_WIN32)
+        #if defined(_WIN32)
 
             UnmapViewOfFile(baseAddress);
             CloseHandle((HANDLE)mapping);
 
-#       else
+        #else
 
             munmap(baseAddress, mapping);
 
-#       endif
+        #endif
 
         }
     };
@@ -1808,11 +1808,11 @@ namespace SyzygyTB {
         // (Windows)= D:\tb\wdl345;D:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
         // (Unix-based OS)= .\tb\wdl345:.\tb\wdl6:.\tb\dtz345:.\tb\dtz6
 
-#   if defined(_WIN32)
+    #if defined(_WIN32)
         constexpr char Delimiter{ ';' };
-#   else
+    #else
         constexpr char Delimiter{ ':' };
-#   endif
+    #endif
 
         // Split paths by delimiter
         TBFile::Paths.clear();

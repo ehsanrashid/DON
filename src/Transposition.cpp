@@ -78,21 +78,21 @@ namespace {
     /// With C++17 some of this functionality can be simplified.
 #if defined(_WIN64)
 
-#   if _WIN32_WINNT < 0x0601
-#       undef  _WIN32_WINNT
-#       define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
-#   endif
-#   if !defined(NOMINMAX)
-#       define NOMINMAX // Disable macros min() and max()
-#   endif
-#   if !defined(WIN32_LEAN_AND_MEAN)
-#       define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
-#   endif
+    #if _WIN32_WINNT < 0x0601
+        #undef  _WIN32_WINNT
+        #define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
+    #endif
+    #if !defined(NOMINMAX)
+        #define NOMINMAX // Disable macros min() and max()
+    #endif
+    #if !defined(WIN32_LEAN_AND_MEAN)
+        #define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
+    #endif
 
-#   include <windows.h>
+    #include <windows.h>
 
-#   undef NOMINMAX
-#   undef WIN32_LEAN_AND_MEAN
+    #undef NOMINMAX
+    #undef WIN32_LEAN_AND_MEAN
 
     void* allocAlignedMemoryLargePages(size_t mSize) {
         HANDLE processToken{ };
@@ -162,8 +162,8 @@ namespace {
 
 #elif defined(__linux__) && !defined(__ANDROID__)
 
-#   include <cstdlib>
-#   include <sys/mman.h>
+    #include <cstdlib>
+    #include <sys/mman.h>
 
     void* allocAlignedMemory(void *&mem, size_t mSize) {
         constexpr size_t alignment{ 2 * 1024 * 1024 };                      // assumed 2MB page sizes

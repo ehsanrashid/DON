@@ -2,40 +2,40 @@
 #pragma once
 
 #if defined(AVX2)
-#   include <immintrin.h>
+    #include <immintrin.h>
 #elif defined(SSE41)
-#   include <smmintrin.h>
+    #include <smmintrin.h>
 #elif defined(SSSE3)
-#   include <tmmintrin.h>
+    #include <tmmintrin.h>
 #elif defined(SSE2)
-#   include <emmintrin.h>
+    #include <emmintrin.h>
 #elif defined(MMX)
-#   include <mmintrin.h>
+    #include <mmintrin.h>
 #elif defined(NEON)
-#   include <arm_neon.h>
+    #include <arm_neon.h>
 #endif
 
 // HACK: Use _mm256_loadu_si256() instead of _mm256_load_si256. Otherwise a binary
 //       compiled with older g++ crashes because the output memory is not aligned
 //       even though alignas is specified.
 #if defined(AVX2)
-#   if defined(__GNUC__ ) && (__GNUC__ < 9) && defined(_WIN32)
-#       define _mm256_loadA_si256  _mm256_loadu_si256
-#       define _mm256_storeA_si256 _mm256_storeu_si256
-#   else
-#       define _mm256_loadA_si256  _mm256_load_si256
-#       define _mm256_storeA_si256 _mm256_store_si256
-#   endif
+    #if defined(__GNUC__ ) && (__GNUC__ < 9) && defined(_WIN32)
+        #define _mm256_loadA_si256  _mm256_loadu_si256
+        #define _mm256_storeA_si256 _mm256_storeu_si256
+    #else
+        #define _mm256_loadA_si256  _mm256_load_si256
+        #define _mm256_storeA_si256 _mm256_store_si256
+    #endif
 #endif
 
 #if defined(AVX512)
-#   if defined(__GNUC__ ) && (__GNUC__ < 9) && defined(_WIN32)
-#       define _mm512_loadA_si512   _mm512_loadu_si512
-#       define _mm512_storeA_si512  _mm512_storeu_si512
-#   else
-#       define _mm512_loadA_si512   _mm512_load_si512
-#       define _mm512_storeA_si512  _mm512_store_si512
-#   endif
+    #if defined(__GNUC__ ) && (__GNUC__ < 9) && defined(_WIN32)
+        #define _mm512_loadA_si512   _mm512_loadu_si512
+        #define _mm512_storeA_si512  _mm512_storeu_si512
+    #else
+        #define _mm512_loadA_si512   _mm512_load_si512
+        #define _mm512_storeA_si512  _mm512_store_si512
+    #endif
 #endif
 
 namespace Evaluator::NNUE {

@@ -9,24 +9,24 @@
 // When no Makefile used
 
 #if defined(_WIN64) && defined(_MSC_VER)
-#   include <intrin.h>       // Microsoft Header for _BitScanForward64() & _BitScanReverse64()
+    #include <intrin.h>       // Microsoft Header for _BitScanForward64() & _BitScanReverse64()
 #endif
 
 #if defined(ABMI) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
-#   include <nmmintrin.h>    // Microsoft and Intel Header for _mm_popcnt_u64() & _mm_popcnt_u32()
+    #include <nmmintrin.h>    // Microsoft and Intel Header for _mm_popcnt_u64() & _mm_popcnt_u32()
 #endif
 
 #if defined(BMI2)
-#   include <immintrin.h>   // Header for BMI2 instructions
+    #include <immintrin.h>   // Header for BMI2 instructions
 // PDEP  = Parallel bits deposit
 // PEXT  = Parallel bits extract
-#   if defined(BIT64)
-//#       define PDEP(b, m)   _pdep_u64(b, m)
-#       define PEXT(b, m)   _pext_u64(b, m)
-// #   else
-// #       define PDEP(b, m)   _pdep_u32(b, m)
-// #       define PEXT(b, m)   _pext_u32(b, m)
-#   endif
+    #if defined(BIT64)
+//        #define PDEP(b, m)   _pdep_u64(b, m)
+        #define PEXT(b, m)   _pext_u64(b, m)
+//    #else
+//        #define PDEP(b, m)   _pdep_u32(b, m)
+//        #define PEXT(b, m)   _pext_u32(b, m)
+    #endif
 #endif
 
 // Magic holds all magic relevant data for a single square
@@ -63,15 +63,15 @@ constexpr Bitboard BoardBB{ U64(0xFFFFFFFFFFFFFFFF) };
 
 constexpr Bitboard SquareBB[SQUARES]
 {
-#   define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
-#   define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
-#   define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
-#   define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)
+#define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
+#define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
+#define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
+#define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)
     S_16(0), S_16(1), S_16(2), S_16(3),
-#   undef S_16
-#   undef S_08
-#   undef S_04
-#   undef S_02
+#undef S_16
+#undef S_08
+#undef S_04
+#undef S_02
 };
 
 constexpr Bitboard FileBB[FILES]
@@ -297,15 +297,15 @@ inline i32 popCount(Bitboard bb) {
 
 #if defined(ABMI)
 
-#   if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+    #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
     return i32(_mm_popcnt_u64(bb));
 
-#   else // Assumed gcc or compatible compiler
+    #else // Assumed gcc or compatible compiler
 
     return i32(__builtin_popcountll(bb));
 
-#   endif
+    #endif
 
 #else // PopCount Table
 
@@ -338,12 +338,12 @@ inline Square scanLSq(Bitboard bb) {
 
     unsigned long index;
 
-#   if defined(BIT64)
+    #if defined(BIT64)
 
     _BitScanForward64(&index, bb);
     return Square(index);
 
-#   else
+    #else
 
     if (u32(bb >> 0) != 0) {
         _BitScanForward(&index, u32(bb >> 0x00));
@@ -354,7 +354,7 @@ inline Square scanLSq(Bitboard bb) {
         return Square(index + 0x20);
     }
 
-#   endif
+    #endif
 
 #else // Compiler is neither GCC nor MSVC compatible
 
@@ -378,12 +378,12 @@ inline Square scanMSq(Bitboard bb) {
 
     unsigned long index;
 
-#   if defined(BIT64)
+    #if defined(BIT64)
 
     _BitScanReverse64(&index, bb);
     return Square(index);
 
-#   else
+    #else
 
     if (u32(bb >> 0x20) != 0) {
         _BitScanReverse(&index, u32(bb >> 0x20));
@@ -394,7 +394,7 @@ inline Square scanMSq(Bitboard bb) {
         return Square(index);
     }
 
-#   endif
+    #endif
 
 #else // Compiler is neither GCC nor MSVC compatible
 
