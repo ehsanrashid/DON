@@ -19,19 +19,15 @@ Magic BMagics[SQUARES];
 Magic RMagics[SQUARES];
 
 #if !defined(ABMI)
-
 u08 PopCount[USHRT_MAX+1];
 
-/*
-// Counts the non-zero bits using SWAR-Popcount algorithm
-u08 popCount16(u16 u) {
-    u -= (u >> 1) & 0x5555U;
-    u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
-    u = ((u >> 4) + u) & 0x0F0FU;
-    return u08((u * 0x0101U) >> 8);
-}
-*/
-
+//// Counts the non-zero bits using SWAR-Popcount algorithm
+//u08 popCount16(u16 u) {
+//    u -= (u >> 1) & 0x5555U;
+//    u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
+//    u = ((u >> 4) + u) & 0x0F0FU;
+//    return u08((u * 0x0101U) >> 8);
+//}
 #endif
 
 namespace {
@@ -85,12 +81,9 @@ namespace {
     /// Magic bitboards are used to look up attacks of sliding pieces.
     /// In particular, here we use the so called "fancy" approach.
     template<PieceType PT>
-    void initializeMagic(
-        Bitboard attacks[],
-        Magic magics[]) {
+    void initializeMagic(Bitboard attacks[], Magic magics[]) {
 
 #if !defined(BMI2)
-
         constexpr u16 MaxIndex{ 0x1000 };
         Bitboard occupancy[MaxIndex];
         Bitboard reference[MaxIndex];
@@ -101,7 +94,6 @@ namespace {
     #else
         { 0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C };
     #endif
-
 #endif
         u16 size{ 0 };
         for (Square s = SQ_A1; s <= SQ_H8; ++s) {
@@ -127,14 +119,12 @@ namespace {
             magic.attacks = s == SQ_A1 ? attacks : magics[s - 1].attacks + size;
 
 #if !defined(BMI2)
-
             u08 bits
     #if defined(BIT64)
             { 64 };
     #else
             { 32 };
     #endif
-
             magic.shift = bits - popCount(magic.mask);
 #endif
 
@@ -208,12 +198,10 @@ namespace BitBoard {
         }
 
 #if !defined(ABMI)
-
         for (u16 i = 0; ; ++i) {
             PopCount[i] = std::bitset<16>(i).count(); //popCount16(i);
             if (i == USHRT_MAX) break;
         }
-
 #endif
 
         // Initialize Magic Table
@@ -265,7 +253,6 @@ namespace BitBoard {
     }
 
 #if !defined(NDEBUG)
-
     /// Returns an ASCII representation of a bitboard to print on console output
     /// Bitboard in an easily readable format. This is sometimes useful for debugging.
     std::string toString(Bitboard bb) {
@@ -290,7 +277,6 @@ namespace BitBoard {
 
         return oss.str();
     }
-
 #endif
 
 }

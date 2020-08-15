@@ -17,7 +17,6 @@ namespace {
         std::string str;
 
     #if defined(_WIN32)
-
         time_t const time{ std::chrono::system_clock::to_time_t(tp) };
 
         tm ltm;
@@ -31,13 +30,9 @@ namespace {
                     (tp - std::chrono::system_clock::from_time_t(time)).count() };
         str.append(".");
         str.append(std::to_string(ms));
-
     #else
-
         (void)tp;
-
     #endif
-
         return str;
     }
 

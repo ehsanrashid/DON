@@ -24,37 +24,25 @@
 /// This is a non-blocking function that doesn't stall the CPU
 /// waiting for data to be loaded from memory, which can be quite slow.
 #if defined(PREFETCH)
-
     #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
         #include <xmmintrin.h> // Microsoft and Intel Header for _mm_prefetch()
     #endif
 
 inline void prefetch(void const *addr) {
-
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
     #if defined(__INTEL_COMPILER)
-
     // This hack prevents prefetches from being optimized away by
     // Intel compiler. Both MSVC and gcc seem not be affected by this.
     __asm__("");
-
     #endif
-
     _mm_prefetch((char const*) (addr), _MM_HINT_T0);
-
 #else
-
     __builtin_prefetch(addr);
-
 #endif
-
 }
 
 #else
-
 inline void prefetch(void const*) {}
-
 #endif
 
 using Evaluator::evaluate;
@@ -309,7 +297,7 @@ namespace {
             }
             oss << " pv "       << th->rootMoves[i];
             if (i + 1 < PVCount) {
-            oss << "\n";
+            oss << '\n';
             }
         }
         return oss.str();

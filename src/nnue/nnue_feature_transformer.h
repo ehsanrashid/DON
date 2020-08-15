@@ -41,13 +41,13 @@ namespace Evaluator::NNUE {
 
         // Proceed with the difference calculation if possible
         bool updateAccumulatorIfPossible(Position const &pos) const {
-            const auto now = pos.state();
-            if (now->accumulator.computedAccumulation) {
+            const auto currState = pos.state();
+            if (currState->accumulator.computedAccumulation) {
                 return true;
             }
-            const auto prev = now->ptr;
-            if (prev != nullptr
-             && prev->accumulator.computedAccumulation) {
+            const auto prevState = currState->prevState;
+            if (prevState != nullptr
+             && prevState->accumulator.computedAccumulation) {
                 updateAccumulator(pos);
                 return true;
             }
@@ -208,7 +208,7 @@ namespace Evaluator::NNUE {
 
         // Calculate cumulative value using difference calculation
         void updateAccumulator(Position const &pos) const {
-            const auto prev_accumulator = pos.state()->ptr->accumulator;
+            const auto prev_accumulator = pos.state()->prevState->accumulator;
             auto &accumulator = pos.state()->accumulator;
             IndexType i = 0;
             Features::IndexList removed_indices[2], added_indices[2];

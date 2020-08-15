@@ -395,7 +395,7 @@ string PolyBook::show(Position const &pos) const {
     std::reverse(peSet.begin(), peSet.end());
 
     std::ostringstream oss;
-    oss << "\nBook entries: " << peSet.size() << "\n";
+    oss << "\nBook entries: " << peSet.size() << '\n';
     for (auto &pe : peSet) {
         pe.move = polyMove(Move(pe.move), pos);
         auto prob{ sumWeight != 0 ? 100.0 * pe.weight / sumWeight : 0.0 };

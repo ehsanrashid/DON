@@ -39,12 +39,10 @@ namespace {
     }
 
 #if !defined(NDEBUG)
-
     bool verifyMaterial(Position const &pos, Color c, Value npm, i32 pawnCount) {
         return pos.nonPawnMaterial(c) == npm
             && pos.count(c|PAWN) == pawnCount;
     }
-
 #endif
 }
 

@@ -41,8 +41,8 @@ void Debugger::print() {
         std::ostringstream oss;
         oss << std::right
             << "---------------------------\n"
-            << "Hit1  :" << std::setw(20) << Hit1Count << "\n"
-            << "Hit2  :" << std::setw(20) << Hit2Count << "\n"
+            << "Hit1  :" << std::setw(20) << Hit1Count << '\n'
+            << "Hit2  :" << std::setw(20) << Hit2Count << '\n'
             << "Rate  :" << std::setw(20) << std::fixed << std::setprecision(2)
                                           << 100 * (double) Hit2Count / Hit1Count;
         std::cerr << oss.str() << std::endl;
@@ -51,8 +51,8 @@ void Debugger::print() {
         std::ostringstream oss;
         oss << std::right
             << "---------------------------\n"
-            << "Count :" << std::setw(20) << ItemCount << "\n"
-            << "Sum   :" << std::setw(20) << ItemSum   << "\n"
+            << "Count :" << std::setw(20) << ItemCount << '\n'
+            << "Sum   :" << std::setw(20) << ItemSum   << '\n'
             << "Mean  :" << std::setw(20) << std::fixed << std::setprecision(2)
                                           << (double) ItemSum / ItemCount;
         std::cerr << oss.str() << std::endl;

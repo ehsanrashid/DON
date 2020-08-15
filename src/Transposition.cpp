@@ -77,7 +77,6 @@ namespace {
     /// The returned pointer is the aligned one, while the mem argument is the one that needs to be passed to free.
     /// With C++17 some of this functionality can be simplified.
 #if defined(_WIN64)
-
     #if _WIN32_WINNT < 0x0601
         #undef  _WIN32_WINNT
         #define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
@@ -159,9 +158,7 @@ namespace {
         }
         return mem;
     }
-
 #elif defined(__linux__) && !defined(__ANDROID__)
-
     #include <cstdlib>
     #include <sys/mman.h>
 
@@ -177,9 +174,7 @@ namespace {
         }
         return mem;
     }
-
 #else
-
     void* allocAlignedMemory(void *&mem, size_t mSize) {
         constexpr size_t alignment{ 64 };        // assumed cache line size
         size_t size{ mSize + alignment - 1 };    // allocate some extra space
@@ -188,12 +183,10 @@ namespace {
                 reinterpret_cast<void*>((uPtr(mem) + alignment - 1) & ~uPtr(alignment - 1)) :
                 nullptr;
     }
-
 #endif
  
     /// freeAlignedMemory will free the previously allocated ttmem
 #if defined(_WIN64)
-
     void freeAlignedMemory(void *mem) {
         if (mem != nullptr) {
             if (VirtualFree(mem,
@@ -206,16 +199,13 @@ namespace {
             }
         }
     }
-
 #else
-
     void freeAlignedMemory(void *mem) {
         if (mem != nullptr) {
             free(mem);
             mem = nullptr;
         }
     }
-
 #endif
 
     inline u64 mul_hi64(u64 a, u64 b) {

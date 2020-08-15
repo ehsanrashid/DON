@@ -85,18 +85,6 @@ string const engineInfo() {
 #endif
     oss << std::setfill(' ');
 
-#if defined(BIT64)
-    oss << ".64";
-#else
-    oss << ".32";
-#endif
-
-#if defined(BMI2)
-    oss << ".BMI2";
-#elif defined(ABMI)
-    oss << ".ABMI";
-#endif
-
     return oss.str();
 }
 /// compilerInfo() returns a string trying to describe the compiler used
@@ -180,7 +168,7 @@ string const compilerInfo() {
 #else
     oss << "(undefined macro)";
 #endif
-    oss << "\n";
+    oss << '\n';
 
     return oss.str();
 }
@@ -284,21 +272,18 @@ namespace UCI {
                 v = "false";
             }
         }
-        else
-        if (type == "spin") {
+        else if (type == "spin") {
             auto d = std::stod(v);
             if (minVal > d || d > maxVal) {
                 v = std::to_string(i32(clamp(d, minVal, maxVal)));
             }
         }
-        else
-        if (type == "string") {
+        else if (type == "string") {
             if (whiteSpaces(v)) {
                 v.clear();
             }
         }
-        else
-        if (type == "combo") {
+        else if (type == "combo") {
             OptionMap comboMap; // To have case insensitive compare
             istringstream iss{ defaultVal };
             string token;
@@ -362,10 +347,7 @@ namespace UCI {
         for (size_t idx = 0; idx < om.size(); ++idx) {
             for (auto &strOptPair : om) {
                 if (strOptPair.second.index == idx) {
-                    os  << "option name "
-                        << strOptPair.first
-                        << strOptPair.second
-                        << std::endl;
+                    os  << "option name " << strOptPair.first << strOptPair.second << '\n';
                 }
             }
         }
@@ -466,6 +448,8 @@ namespace UCI {
         om["SyzygyMove50Rule"]   << Option(true);
 
         om["Use NNUE"]           << Option(false, onUseNNUE);
+        // The default must follow the format nn-[SHA256 first 12 digits].nnue
+        // for the build process (profile-build and fishtest) to work.
         om["Eval File"]          << Option("nn-82215d0fd0df.nnue", onEvalFile);
 
         om["Debug File"]         << Option("", onDebugFile);
@@ -556,7 +540,7 @@ namespace UCI {
 
             Evaluator::verifyNNUE();
 
-            sync_cout << "\n" << Evaluator::trace(p) << sync_endl;
+            sync_cout << '\n' << Evaluator::trace(p) << sync_endl;
         }
 
         /// setoption() updates the UCI option ("name") to the given value ("value").
@@ -582,7 +566,9 @@ namespace UCI {
             if (Options.find(name) != Options.end()) {
                 Options[name] = value;
                 sync_cout << "info string option " << name << " = " << value << sync_endl;
-                if (pos.thread() != Threadpool.mainThread()) pos.thread(Threadpool.mainThread());
+                if (pos.thread() != Threadpool.mainThread()) {
+                    pos.thread(Threadpool.mainThread());
+                }
             }
             else { sync_cout << "No such option: \'" << name << "\'" << sync_endl; }
         }
@@ -594,12 +580,11 @@ namespace UCI {
             iss >> token; // Consume "startpos" or "fen" token
 
             string fen;
-            if (token == "startpos") {
+                 if (token == "startpos") {
                 fen = StartFEN;
                 iss >> token; // Consume "moves" token if any
             }
-            else
-            if (token == "fen") {
+            else if (token == "fen") {
                 while (iss >> token) { // Consume "moves" token if any
                     if (token == "moves") break;
                     fen += token + " ";
@@ -651,7 +636,7 @@ namespace UCI {
                 else if (token == "searchmoves") {
                     // Parse and Validate search-moves (if any)
                     while (iss >> token) {
-                        auto m = moveOfCAN(token, pos);
+                        auto m{ moveOfCAN(token, pos) };
                         if (m == MOVE_NONE) {
                             std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                             continue;
@@ -665,7 +650,7 @@ namespace UCI {
                         Limits.searchMoves += vm;
                     }
                     while (iss >> token) {
-                        auto m = moveOfCAN(token, pos);
+                        auto m{ moveOfCAN(token, pos) };
                         if (m == MOVE_NONE) {
                             std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
                             continue;
@@ -705,7 +690,6 @@ namespace UCI {
         /// bench 16 1 5 perft -> run perft 5 on default positions
         vector<string> setupBench(istringstream &iss, Position const &pos) {
             string token;
-
             // Assign default values to missing arguments
             string    hash{ (iss >> token) && !whiteSpaces(token) ? token : "16" };
             string threads{ (iss >> token) && !whiteSpaces(token) ? token : "1" };
@@ -745,10 +729,9 @@ namespace UCI {
                 }
                 else {
                     uciCmds.push_back("position fen " + cmd);
-                    if (mode == "eval")     { uciCmds.push_back(mode); }
-                    else
-                    if (mode == "perft")    { uciCmds.push_back(mode + " " + value); }
-                    else                    { uciCmds.push_back("go " + mode + " " + value); }
+                         if (mode == "eval")  { uciCmds.push_back(mode); }
+                    else if (mode == "perft") { uciCmds.push_back(mode + " " + value); }
+                    else                      { uciCmds.push_back("go " + mode + " " + value); }
                 }
             }
 
@@ -762,6 +745,8 @@ namespace UCI {
         /// bench() setup list of UCI commands is setup according to bench parameters,
         /// then it is run one by one printing a summary at the end.
         void bench(istringstream &iss, Position &pos, StateListPtr &states) {
+            Debugger::reset();
+            
             auto const uciCmds{ setupBench(iss, pos) };
             auto const count{ u16(std::count_if(uciCmds.begin(), uciCmds.end(),
                                                 [](string const &s) {
@@ -769,8 +754,6 @@ namespace UCI {
                                                         || s.find("perft ") == 0
                                                         || s.find("go ") == 0;
                                                 })) };
-            Debugger::reset();
-
             auto elapsed{ now() };
             u16 i{ 0 };
             u64 nodes{ 0 };
@@ -781,25 +764,18 @@ namespace UCI {
 
                      if (token == "eval"
                       || token == "perft"
-                      || token == "go")         {
-                    std::cerr
-                        << "\n---------------\n"
-                        << "Position: "
-                        << std::right
-                        << std::setw(2) << ++i << '/' << count << " "
-                        << std::left
-                        << pos.fen() << std::endl;
+                      || token == "go") {
 
-                    if (token == "eval") {
+                    std::cerr << "\n---------------\nPosition: " << std::right << std::setw(2) << ++i << '/' << count << " " << std::left << pos.fen() << '\n';
+
+                         if (token == "eval") {
                         traceEval(pos);
                     }
-                    else
-                    if (token == "perft")  {
+                    else if (token == "perft") {
                         Depth depth{ 1 }; is >> depth; depth = std::max(Depth(1), depth);
                         perft<true>(pos, depth);
                     }
-                    else
-                    if (token == "go")     {
+                    else if (token == "go") {
                         go(is, pos, states);
                         Threadpool.mainThread()->waitIdle();
                         nodes += Threadpool.sum(&Thread::nodes);
@@ -816,8 +792,8 @@ namespace UCI {
             ostringstream oss;
             oss << std::right
                 << "\n=================================\n"
-                << "Total time (ms) :" << std::setw(16) << elapsed << "\n"
-                << "Nodes searched  :" << std::setw(16) << nodes << "\n"
+                << "Total time (ms) :" << std::setw(16) << elapsed << '\n'
+                << "Nodes searched  :" << std::setw(16) << nodes << '\n'
                 << "Nodes/second    :" << std::setw(16) << nodes * 1000 / elapsed
                 << "\n---------------------------------\n";
             std::cerr << oss.str() << std::endl;
@@ -829,9 +805,7 @@ namespace UCI {
     /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
     /// In addition to the UCI ones, also some additional commands are supported.
     void handleCommands(string const &cmdLine) {
-
         Debugger::reset();
-
         Position pos;
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
@@ -865,8 +839,8 @@ namespace UCI {
             else if (token == "ponderhit")  { Threadpool.mainThread()->ponder = false; } // Switch to normal search
             else if (token == "isready")    { sync_cout << "readyok" << sync_endl; }
             else if (token == "uci")        {
-                sync_cout << "id name "     << Name << " " << engineInfo() << "\n"
-                          << "id author "   << Author << "\n"
+                sync_cout << "id name "     << Name << " " << engineInfo() << '\n'
+                          << "id author "   << Author << '\n'
                           << Options
                           << "uciok" << sync_endl;
             }
@@ -889,21 +863,20 @@ namespace UCI {
             }
             else if (token == "keys")       {
                 ostringstream oss;
-                oss << "FEN: " << pos.fen() << "\n"
+                oss << "FEN: " << pos.fen() << '\n'
                     << std::hex << std::uppercase << std::setfill('0')
-                    << "Posi key: " << std::setw(16) << pos.posiKey() << "\n"
-                    << "Matl key: " << std::setw(16) << pos.matlKey() << "\n"
-                    << "Pawn key: " << std::setw(16) << pos.pawnKey() << "\n"
+                    << "Posi key: " << std::setw(16) << pos.posiKey() << '\n'
+                    << "Matl key: " << std::setw(16) << pos.matlKey() << '\n'
+                    << "Pawn key: " << std::setw(16) << pos.pawnKey() << '\n'
                     << "PG key: "   << std::setw(16) << pos.pgKey();
                 sync_cout << oss.str() << sync_endl;
             }
             else if (token == "moves")      {
 
-                i32 count;
-
+                i32 count{};
+                std::cout << '\n';
                 if (pos.checkers() == 0) {
-
-                    std::cout << "\nCapture moves: ";
+                    std::cout << "Capture moves: ";
                     count = 0;
                     for (auto const &vm : MoveList<CAPTURE>(pos)) {
                         if (pos.pseudoLegal(vm)
@@ -912,9 +885,9 @@ namespace UCI {
                             ++count;
                         }
                     }
-                    std::cout << "(" << count << ")";
+                    std::cout << "(" << count << ")\n";
 
-                    std::cout << "\nQuiet moves: ";
+                    std::cout << "Quiet moves: ";
                     count = 0;
                     for (auto const &vm : MoveList<QUIET>(pos)) {
                         if (pos.pseudoLegal(vm)
@@ -923,9 +896,9 @@ namespace UCI {
                             ++count;
                         }
                     }
-                    std::cout << "(" << count << ")";
+                    std::cout << "(" << count << ")\n";
 
-                    std::cout << "\nQuiet Check moves: ";
+                    std::cout << "Quiet Check moves: ";
                     count = 0;
                     for (auto const &vm : MoveList<QUIET_CHECK>(pos)) {
                         if (pos.pseudoLegal(vm)
@@ -934,9 +907,9 @@ namespace UCI {
                             ++count;
                         }
                     }
-                    std::cout << "(" << count << ")";
+                    std::cout << "(" << count << ")\n";
 
-                    std::cout << "\nNatural moves: ";
+                    std::cout << "Natural moves: ";
                     count = 0;
                     for (auto const &vm : MoveList<NORMAL>(pos)) {
                         if (pos.pseudoLegal(vm)
@@ -945,10 +918,10 @@ namespace UCI {
                             ++count;
                         }
                     }
-                    std::cout << "(" << count << ")" << std::endl;
+                    std::cout << "(" << count << ")\n";
                 }
                 else {
-                    std::cout << "\nEvasion moves: ";
+                    std::cout << "Evasion moves: ";
                     count = 0;
                     for (auto const &vm : MoveList<EVASION>(pos)) {
                         if (pos.pseudoLegal(vm)
@@ -957,7 +930,7 @@ namespace UCI {
                             ++count;
                         }
                     }
-                    std::cout << "(" << count << ")" << std::endl;
+                    std::cout << "(" << count << ")\n";
                 }
             }
             else { sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl; }

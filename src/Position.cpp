@@ -125,7 +125,7 @@ bool Position::repeated() const {
         if (csi->repetition != 0) {
             return true;
         }
-        csi = csi->ptr;
+        csi = csi->prevState;
     }
     return false;
 }
@@ -140,9 +140,9 @@ bool Position::cycled(i16 pp) const {
 
     Key pKey{ posiKey() };
 
-    auto const *psi = _stateInfo->ptr;
+    auto const *psi = _stateInfo->prevState;
     for (i16 i = 3; i <= end; i += 2) {
-        psi = psi->ptr->ptr;
+        psi = psi->prevState->prevState;
 
         Key moveKey{ pKey
                    ^ psi->posiKey };
@@ -852,7 +852,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 
     // Copy some fields of old state info to new state info object
     std::memcpy(&si, _stateInfo, offsetof(StateInfo, posiKey));
-    si.ptr = _stateInfo;
+    si.prevState = _stateInfo;
     _stateInfo = &si;
 
     ++ply;
@@ -889,7 +889,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
             && relativeRank(active, org) == RANK_1
             && relativeRank(active, dst) == RANK_1
             && canCastle(active, dst > org ? CS_KING : CS_QUEN)
-            && _stateInfo->ptr->checkers == 0); //&& (attackersTo(org) & pieces(pasive))
+            && _stateInfo->prevState->checkers == 0); //&& (attackersTo(org) & pieces(pasive))
 
         auto rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
         auto rookDst{ rookCastleSq(org, rookOrg) };
@@ -1058,9 +1058,9 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     _stateInfo->repetition = 0;
     auto end = std::min(clockPly(), nullPly());
     if (end >= 4) {
-        auto const* psi{ _stateInfo->ptr->ptr };
+        auto const* psi{ _stateInfo->prevState->prevState };
         for (i16 i = 4; i <= end; i += 2) {
-            psi = psi->ptr->ptr;
+            psi = psi->prevState->prevState;
             if (psi->posiKey == posiKey()) {
                 _stateInfo->repetition = i * (1 - 2 * (psi->repetition != 0));
                 break;
@@ -1074,7 +1074,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 /// The move is assumed to be legal.
 void Position::undoMove(Move m) {
     assert(isOk(m)
-        && _stateInfo->ptr != nullptr);
+        && _stateInfo->prevState != nullptr);
 
     active = ~active;
 
@@ -1142,7 +1142,7 @@ void Position::undoMove(Move m) {
                 assert(pType(mp) == PAWN //&& contains(pieces(active, PAWN), org)
                     && relativeRank(active, org) == RANK_5
                     && relativeRank(active, dst) == RANK_6
-                    && dst == _stateInfo->ptr->epSquare
+                    && dst == _stateInfo->prevState->epSquare
                     //&& empty(cap)
                     && captured() == PAWN);
             }
@@ -1165,7 +1165,7 @@ void Position::undoMove(Move m) {
     }
 
     // Point state pointer back to the previous state.
-    _stateInfo = _stateInfo->ptr;
+    _stateInfo = _stateInfo->prevState;
 
     --ply;
 
@@ -1185,7 +1185,7 @@ void Position::doNullMove(StateInfo &si) {
         std::memcpy(&si, _stateInfo, offsetof(StateInfo, accumulator));
     }
 
-    si.ptr = _stateInfo;
+    si.prevState = _stateInfo;
     _stateInfo = &si;
 
     ++_stateInfo->clockPly;
@@ -1210,13 +1210,13 @@ void Position::doNullMove(StateInfo &si) {
 }
 /// Position::undoNullMove() unmakes a 'null move'.
 void Position::undoNullMove() {
-    assert(_stateInfo->ptr != nullptr
+    assert(_stateInfo->prevState != nullptr
         && nullPly() == 0
         && captured() == NONE
         && checkers() == 0);
 
     active = ~active;
-    _stateInfo = _stateInfo->ptr;
+    _stateInfo = _stateInfo->prevState;
 
     assert(ok());
 }
@@ -1396,7 +1396,6 @@ std::ostream& operator<<(std::ostream &os, Position const &pos) {
 }
 
 #if !defined(NDEBUG)
-
 /// Position::ok() performs some consistency checks for the position,
 /// and raises an assert if something wrong is detected.
 bool Position::ok() const {
@@ -1529,5 +1528,4 @@ bool isOk(std::string const &fen) {
     return !whiteSpaces(fen)
         && pos.setup(fen, si, nullptr).ok();
 }
-
 #endif

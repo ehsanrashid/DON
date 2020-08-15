@@ -182,8 +182,7 @@ namespace Evaluator::NNUE {
 
     // Evaluation function. Perform differential calculation.
     Value evaluate(Position const &pos) {
-        Value v{ ComputeScore(pos, false) };
-        return clamp(v, -VALUE_MATE_2_MAX_PLY + 1, VALUE_MATE_2_MAX_PLY - 1);
+        return ComputeScore(pos, false);
     }
 
     // Evaluation function. Perform full calculation.

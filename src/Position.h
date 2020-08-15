@@ -42,11 +42,11 @@ struct StateInfo {
     Bitboard kingCheckers[COLORS]; // Absolute and Discover Checkers
     Bitboard checks[PIECE_TYPES];
 
+    StateInfo *prevState; // Previous StateInfo pointer
+
     // Used by NNUE
     Evaluator::NNUE::Accumulator accumulator;
     DirtyPiece dirtyPiece;
-
-    StateInfo *ptr;             // Previous StateInfo pointer
 };
 
 /// A list to keep track of the position states along the setup moves
@@ -81,7 +81,7 @@ private:
     Square pieceSquare[PIECES][12];
     u08    pieceCount[PIECES];
 
-    Value npMaterial[COLORS];
+    Value  npMaterial[COLORS];
 
     Square   cslRookSq[COLORS][CASTLE_SIDES];
     Bitboard cslKingPath[COLORS][CASTLE_SIDES];
@@ -110,7 +110,6 @@ private:
     PieceId pieceIdOn(Square sq) const;
 
 public:
-
     //static void initialize();
 
     Position() = default;
@@ -497,7 +496,5 @@ inline PieceId Position::pieceIdOn(Square sq) const {
 
 
 #if !defined(NDEBUG)
-
 extern bool isOk(std::string const&);
-
 #endif

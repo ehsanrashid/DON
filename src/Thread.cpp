@@ -258,7 +258,6 @@ Thread* ThreadPool::bestThread() const {
 namespace WinProcGroup {
 
 #if defined(_WIN32)
-
     #if _WIN32_WINNT < 0x0601
         #undef  _WIN32_WINNT
         #define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
@@ -399,9 +398,7 @@ namespace WinProcGroup {
     }
 
 #else
-
     void bind(u16) {}
-
 #endif
 
 }

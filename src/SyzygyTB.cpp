@@ -23,7 +23,6 @@ using std::vector;
 using namespace SyzygyTB;
 
 #if defined(_WIN32)
-
     #if !defined(NOMINMAX)
         #define NOMINMAX // Disable macros min() and max()
     #endif
@@ -35,14 +34,11 @@ using namespace SyzygyTB;
 
     #undef NOMINMAX
     #undef WIN32_LEAN_AND_MEAN
-
 #else
-
     #include <fcntl.h>
     #include <unistd.h>
     #include <sys/mman.h>
     #include <sys/stat.h>
-
 #endif
 
 namespace {
@@ -193,7 +189,6 @@ namespace {
             assert(!filename.empty());
 
         #if defined(_WIN32)
-
             HANDLE hFile =
                 CreateFile(
                     filename.c_str(),
@@ -229,8 +224,7 @@ namespace {
             CloseHandle(hFile);
 
             if (hFileMap == nullptr) {
-                std::cerr
-                    << "CreateFileMapping() failed, file = " << filename << std::endl;
+                std::cerr << "CreateFileMapping() failed, file = " << filename << std::endl;
                 std::exit(EXIT_FAILURE);
             }
 
@@ -243,13 +237,10 @@ namespace {
                     0, // FileOffsetLow
                     0);
             if ((*baseAddress) == nullptr) {
-                std::cerr
-                    << "MapViewOfFile() failed, file = " << filename << std::endl;
+                std::cerr << "MapViewOfFile() failed, file = " << filename << std::endl;
                 std::exit(EXIT_FAILURE);
             }
-
         #else
-
             i32 hFile =
                 ::open(
                     filename.c_str(),
@@ -290,7 +281,6 @@ namespace {
                 std::cerr << "mmap() failed, file = " << filename << std::endl;
                 std::exit(EXIT_FAILURE);
             }
-
         #endif
 
             u08 *data = (u08*)(*baseAddress);
@@ -314,16 +304,11 @@ namespace {
         static void unmap(void *baseAddress, u64 mapping) {
 
         #if defined(_WIN32)
-
             UnmapViewOfFile(baseAddress);
             CloseHandle((HANDLE)mapping);
-
         #else
-
             munmap(baseAddress, mapping);
-
         #endif
-
         }
     };
 

@@ -1077,9 +1077,6 @@ namespace Evaluator {
             // Active side's point of view
             v = (pos.activeSide() == WHITE ? +v : -v) + VALUE_TEMPO;
 
-            // Damp down the evaluation linearly when shuffling
-            v = v * (100 - pos.clockPly()) / 100;
-
             // Write remaining evaluation terms
             if (Trace) {
                 Tracer::write(Term(PAWN), pawnEntry->score[WHITE], pawnEntry->score[BLACK]);
@@ -1096,15 +1093,18 @@ namespace Evaluator {
 
     /// evaluate() returns a static evaluation of the position from the point of view of the side to move.
     Value evaluate(Position const &pos) {
-        if (useNNUE) {
-            return NNUE::evaluate(pos);
-            Value v = egValue(pos.psqScore());
-            // Take NNUE eval only on balanced positions
-            if (abs(v) < NNUEThreshold) {
-                return NNUE::evaluate(pos) + VALUE_TEMPO;
-            }
-        }
-        return Evaluation<false>(pos).value();
+        Value v{ !useNNUE
+               || egValue(pos.psqScore()) >= NNUEThreshold ?
+                    Evaluation<false>(pos).value() :
+                    NNUE::evaluate(pos) * 5 / 4 + VALUE_TEMPO };
+
+        // Damp down the evaluation linearly when shuffling
+        v = v * (100 - pos.clockPly()) / 100;
+
+        // Guarantee evalution outside of TB range
+        v = clamp(v, -VALUE_MATE_2_MAX_PLY + 1, +VALUE_MATE_2_MAX_PLY - 1);
+
+        return v;
     }
 
     /// trace() returns a string (suitable for outputting to stdout for debugging)

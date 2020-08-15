@@ -8,7 +8,6 @@
 /// The implementation calls pthread_create() with the stack size parameter
 /// equal to the linux 8MB default, on platforms that support it.
 #if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__)
-
     #include <pthread.h>
 
 static constexpr size_t TH_STACK_SIZE = 8 * 1024 * 1024;
@@ -43,7 +42,5 @@ public:
 };
 
 #else // Default case: use STL classes
-
 using NativeThread = std::thread;
-
 #endif
