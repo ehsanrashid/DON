@@ -362,7 +362,7 @@ namespace UCI {
     namespace {
 
         void onHash() {
-            TT.autoResize(Options["Hash"]);
+            TT.autoResize(u32(Options["Hash"]));
             TTEx.autoResize(u32(Options["Hash"])/4);
         }
 
@@ -531,14 +531,13 @@ namespace UCI {
         // options set so far.
 
         void traceEval(Position &pos) {
-
-            StateListPtr states(new std::deque<StateInfo>(1));
-            Position p;
-            p.setup(pos.fen(), states->back(), Threadpool.mainThread());
+            StateListPtr states{ new std::deque<StateInfo>(1) };
+            Position cPos;
+            cPos.setup(pos.fen(), states->back(), Threadpool.mainThread());
 
             Evaluator::verifyNNUE();
 
-            sync_cout << '\n' << Evaluator::trace(p) << sync_endl;
+            sync_cout << '\n' << Evaluator::trace(cPos) << sync_endl;
         }
 
         /// setoption() updates the UCI option ("name") to the given value ("value").

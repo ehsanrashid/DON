@@ -18,34 +18,31 @@
 
 namespace Evaluator {
 
-    bool useNNUE = false;
-    std::string prevEvalFile = "None";
+    bool useNNUE{ false };
+    std::string prevEvalFile{ "None" };
 
     void initializeNNUE() {
 
         useNNUE = Options["Use NNUE"];
         auto evalFile{ std::string(Options["Eval File"]) };
         if (useNNUE
-         && prevEvalFile != evalFile) {
-            if (Evaluator::NNUE::loadEvalFile(evalFile)) {
-                prevEvalFile = evalFile;
-            }
+         && prevEvalFile != evalFile
+         && Evaluator::NNUE::loadEvalFile(evalFile)) {
+            prevEvalFile = evalFile;
         }
     }
 
     void verifyNNUE() {
 
         auto evalFile{ std::string(Options["Eval File"]) };
-        if (useNNUE
-         && prevEvalFile != evalFile) {
-            std::cerr << "NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully. "
-                      << "These network evaluation parameters must be available, and compatible with this version of the code. "
-                      << "The UCI option EvalFile might need to specify the full path, including the directory/folder name, to the file. "
-                      << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/" << Options["Eval File"].defaultValue() << std::endl;
-            std::exit(EXIT_FAILURE);
-        }
-
         if (useNNUE) {
+            if (prevEvalFile != evalFile) {
+                std::cerr << "NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully.\n"
+                          << "These network evaluation parameters must be available, and compatible with this version of the code.\n"
+                          << "The UCI option EvalFile might need to specify the full path, including the directory/folder name, to the file.\n"
+                          << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/" << Options["Eval File"].defaultValue() << std::endl;
+                std::exit(EXIT_FAILURE);
+            }
             sync_cout << "info string NNUE evaluation using " << evalFile << " enabled." << sync_endl;
         }
         else {
@@ -1099,12 +1096,10 @@ namespace Evaluator {
                     NNUE::evaluate(pos) * 5 / 4 + VALUE_TEMPO };
 
         // Damp down the evaluation linearly when shuffling
-        v = v * (100 - pos.clockPly()) / 100;
+        v *= (100 - pos.clockPly()) / 100;
 
         // Guarantee evalution outside of TB range
-        v = clamp(v, -VALUE_MATE_2_MAX_PLY + 1, +VALUE_MATE_2_MAX_PLY - 1);
-
-        return v;
+        return clamp(v, -VALUE_MATE_2_MAX_PLY + 1, +VALUE_MATE_2_MAX_PLY - 1);
     }
 
     /// trace() returns a string (suitable for outputting to stdout for debugging)

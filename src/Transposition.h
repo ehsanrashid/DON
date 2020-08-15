@@ -75,16 +75,16 @@ class TTable {
 private:
     void     *mem{ nullptr };
     TCluster *clusterTable{ nullptr };
-    u64       clusterCount{ 0 };
+    size_t    clusterCount{ 0 };
 
 public:
     // Minimum size of Table (MB)
-    static constexpr u32 MinHashSize{ 4 };
+    static constexpr size_t MinHashSize{ 4 };
     // Maximum size of Table (MB)
 #if defined(BIT64)
-    static constexpr u32 MaxHashSize{ 32 << 20 };
+    static constexpr size_t MaxHashSize{ 32 << 20 };
 #else
-    static constexpr u32 MaxHashSize{  2 << 10 };
+    static constexpr size_t MaxHashSize{  2 << 10 };
 #endif
 
     TTable() = default;
@@ -98,9 +98,9 @@ public:
 
     TCluster* cluster(Key) const;
 
-    u32 resize(u32);
+    u32 resize(size_t);
 
-    void autoResize(u32);
+    void autoResize(size_t);
 
     void clear();
 

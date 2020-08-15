@@ -471,25 +471,25 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
 	ifeq ($(debug), no)
-	ifeq ($(comp), clang)
-		CXXFLAGS += -flto=thin
-		LDFLAGS += $(CXXFLAGS)
+		ifeq ($(comp), clang)
+			CXXFLAGS += -flto=thin
+			LDFLAGS += $(CXXFLAGS)
 
-# GCC and CLANG use different methods for parallelizing LTO and CLANG pretends to be
-# GCC on some systems.
-	else ifeq ($(comp), gcc)
-	ifeq ($(gccisclang), )
-		CXXFLAGS += -flto
-		LDFLAGS += $(CXXFLAGS) -flto=jobserver
-		ifneq ($(findstring MINGW, $(KERNEL)), )
-			LDFLAGS += -save-temps
-		else ifneq ($(findstring MSYS, $(KERNEL)), )
-			LDFLAGS += -save-temps
-		endif
-	else
-		CXXFLAGS += -flto=thin
-		LDFLAGS += $(CXXFLAGS)
-	endif
+		# GCC and CLANG use different methods for parallelizing LTO and CLANG pretends to be
+		# GCC on some systems.
+		else ifeq ($(comp), gcc)
+			ifeq ($(gccisclang), )
+				CXXFLAGS += -flto
+				LDFLAGS += $(CXXFLAGS) -flto=jobserver
+				ifneq ($(findstring MINGW, $(KERNEL)), )
+					LDFLAGS += -save-temps
+				else ifneq ($(findstring MSYS, $(KERNEL)), )
+					LDFLAGS += -save-temps
+				endif
+			else
+				CXXFLAGS += -flto=thin
+				LDFLAGS += $(CXXFLAGS)
+			endif
 
 		# To use LTO and static linking on windows, the tool chain requires a recent gcc:
 		# gcc version 10.1 in msys2 or TDM-GCC version 9.2 are know to work, older might not.
