@@ -157,7 +157,7 @@ namespace Evaluator::NNUE {
     // Calculate the evaluation value
     static Value ComputeScore(Position const &pos, bool refresh) {
 
-        auto& accumulator = pos.state()->accumulator;
+        auto &accumulator{ pos.state()->accumulator };
         if (!refresh
          && accumulator.computedScore) {
             return accumulator.score;

@@ -146,7 +146,8 @@ namespace BitBase {
                     }
                 }
             }
-            else { // if (active == BLACK)
+            else {
+                // if (active == BLACK)
                 Bitboard b{  attacksBB<KING>(bkSq)
                           & ~attacksBB<KING>(wkSq) };
                 while (b != 0) {

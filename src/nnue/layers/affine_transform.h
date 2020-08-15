@@ -72,7 +72,7 @@ namespace Evaluator::NNUE::Layers {
 
 #elif defined(AVX2)
             constexpr IndexType kNumChunks{ kPaddedInputDimensions / kSimdWidth };
-            __m256i const kOnes = _mm256_set1_epi16(1);
+            __m256i const kOnes{ _mm256_set1_epi16(1) };
             auto const inputVector{ reinterpret_cast<__m256i const*>(input) };
 
 #elif defined(SSE2)
@@ -95,16 +95,16 @@ namespace Evaluator::NNUE::Layers {
 #endif
 
             for (IndexType i = 0; i < kOutputDimensions; ++i) {
-                IndexType const offset = i * kPaddedInputDimensions;
+                IndexType const offset{ i * kPaddedInputDimensions };
 
 #if defined(AVX512)
-                __m512i sum = _mm512_setzero_si512();
+                __m512i sum{ _mm512_setzero_si512() };
                 auto const row{ reinterpret_cast<__m512i const*>(&_weights[offset]) };
                 for (IndexType j = 0; j < kNumChunks; ++j) {
 #if defined(VNNI)
                     sum = _mm512_dpbusd_epi32(sum, _mm512_loadA_si512(&inputVector[j]), _mm512_load_si512(&row[j]));
 #else
-                    __m512i product = _mm512_maddubs_epi16(_mm512_loadA_si512(&inputVector[j]), _mm512_load_si512(&row[j]));
+                    __m512i product{ _mm512_maddubs_epi16(_mm512_loadA_si512(&inputVector[j]), _mm512_load_si512(&row[j])) };
                     product = _mm512_madd_epi16(product, kOnes);
                     sum = _mm512_add_epi32(sum, product);
 #endif
@@ -127,31 +127,31 @@ namespace Evaluator::NNUE::Layers {
                 output[i] = _mm512_reduce_add_epi32(sum) + _biases[i];
 
 #elif defined(AVX2)
-                __m256i sum = _mm256_setzero_si256();
+                __m256i sum{ _mm256_setzero_si256() };
                 auto const row{ reinterpret_cast<__m256i const*>(&_weights[offset]) };
                 for (IndexType j = 0; j < kNumChunks; ++j) {
-                    __m256i product = _mm256_maddubs_epi16(_mm256_loadA_si256(&inputVector[j]), _mm256_load_si256(&row[j]));
+                    __m256i product{ _mm256_maddubs_epi16(_mm256_loadA_si256(&inputVector[j]), _mm256_load_si256(&row[j])) };
                     product = _mm256_madd_epi16(product, kOnes);
                     sum = _mm256_add_epi32(sum, product);
                 }
-                __m128i sum128 = _mm_add_epi32(_mm256_castsi256_si128(sum), _mm256_extracti128_si256(sum, 1));
+                __m128i sum128{ _mm_add_epi32(_mm256_castsi256_si128(sum), _mm256_extracti128_si256(sum, 1)) };
                 sum128 = _mm_add_epi32(sum128, _mm_shuffle_epi32(sum128, _MM_PERM_BADC));
                 sum128 = _mm_add_epi32(sum128, _mm_shuffle_epi32(sum128, _MM_PERM_CDAB));
                 output[i] = _mm_cvtsi128_si32(sum128) + _biases[i];
 
 #elif defined(SSSE3)
-                __m128i sum = _mm_setzero_si128();
+                __m128i sum{ _mm_setzero_si128() };
                 auto const row{ reinterpret_cast<__m128i const*>(&_weights[offset]) };
                 for (int j = 0; j < (int) kNumChunks - 1; j += 2) {
-                    __m128i product0 = _mm_maddubs_epi16(_mm_load_si128(&inputVector[j]), _mm_load_si128(&row[j]));
+                    __m128i product0{ _mm_maddubs_epi16(_mm_load_si128(&inputVector[j]), _mm_load_si128(&row[j])) };
                     product0 = _mm_madd_epi16(product0, kOnes);
                     sum = _mm_add_epi32(sum, product0);
-                    __m128i product1 = _mm_maddubs_epi16(_mm_load_si128(&inputVector[j + 1]), _mm_load_si128(&row[j + 1]));
+                    __m128i product1{ _mm_maddubs_epi16(_mm_load_si128(&inputVector[j + 1]), _mm_load_si128(&row[j + 1])) };
                     product1 = _mm_madd_epi16(product1, kOnes);
                     sum = _mm_add_epi32(sum, product1);
                 }
                 if (kNumChunks & 0x1) {
-                    __m128i product = _mm_maddubs_epi16(_mm_load_si128(&inputVector[kNumChunks - 1]), _mm_load_si128(&row[kNumChunks - 1]));
+                    __m128i product{ _mm_maddubs_epi16(_mm_load_si128(&inputVector[kNumChunks - 1]), _mm_load_si128(&row[kNumChunks - 1])) };
                     product = _mm_madd_epi16(product, kOnes);
                     sum = _mm_add_epi32(sum, product);
                 }
@@ -160,47 +160,47 @@ namespace Evaluator::NNUE::Layers {
                 output[i] = _mm_cvtsi128_si32(sum) + _biases[i];
 
 #elif defined(SSE2)
-                __m128i sum_lo = _mm_cvtsi32_si128(_biases[i]);
-                __m128i sum_hi = kZeros;
+                __m128i sum_lo{ _mm_cvtsi32_si128(_biases[i]) };
+                __m128i sum_hi{ kZeros };
                 auto const row{ reinterpret_cast<__m128i const*>(&_weights[offset]) };
                 for (IndexType j = 0; j < kNumChunks; ++j) {
-                    __m128i row_j = _mm_load_si128(&row[j]);
-                    __m128i input_j = _mm_load_si128(&inputVector[j]);
-                    __m128i row_signs = _mm_cmpgt_epi8(kZeros, row_j);
-                    __m128i extended_row_lo = _mm_unpacklo_epi8(row_j, row_signs);
-                    __m128i extended_row_hi = _mm_unpackhi_epi8(row_j, row_signs);
-                    __m128i extended_input_lo = _mm_unpacklo_epi8(input_j, kZeros);
-                    __m128i extended_input_hi = _mm_unpackhi_epi8(input_j, kZeros);
-                    __m128i product_lo = _mm_madd_epi16(extended_row_lo, extended_input_lo);
-                    __m128i product_hi = _mm_madd_epi16(extended_row_hi, extended_input_hi);
+                    __m128i row_j{ _mm_load_si128(&row[j]) };
+                    __m128i input_j{ _mm_load_si128(&inputVector[j]) };
+                    __m128i row_signs{ _mm_cmpgt_epi8(kZeros, row_j) };
+                    __m128i extended_row_lo{ _mm_unpacklo_epi8(row_j, row_signs) };
+                    __m128i extended_row_hi{ _mm_unpackhi_epi8(row_j, row_signs) };
+                    __m128i extended_input_lo{ _mm_unpacklo_epi8(input_j, kZeros) };
+                    __m128i extended_input_hi{ _mm_unpackhi_epi8(input_j, kZeros) };
+                    __m128i product_lo{ _mm_madd_epi16(extended_row_lo, extended_input_lo) };
+                    __m128i product_hi{ _mm_madd_epi16(extended_row_hi, extended_input_hi) };
                     sum_lo = _mm_add_epi32(sum_lo, product_lo);
                     sum_hi = _mm_add_epi32(sum_hi, product_hi);
                 }
-                __m128i sum = _mm_add_epi32(sum_lo, sum_hi);
-                __m128i sum_high_64 = _mm_shuffle_epi32(sum, _MM_SHUFFLE(1, 0, 3, 2));
+                __m128i sum{ _mm_add_epi32(sum_lo, sum_hi) };
+                __m128i sum_high_64{ _mm_shuffle_epi32(sum, _MM_SHUFFLE(1, 0, 3, 2)) };
                 sum = _mm_add_epi32(sum, sum_high_64);
-                __m128i sum_second_32 = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
+                __m128i sum_second_32{ _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2)) };
                 sum = _mm_add_epi32(sum, sum_second_32);
                 output[i] = _mm_cvtsi128_si32(sum);
 
 #elif defined(MMX)
-                __m64 sum_lo = _mm_cvtsi32_si64(_biases[i]);
-                __m64 sum_hi = kZeros;
+                __m64 sum_lo{ _mm_cvtsi32_si64(_biases[i]) };
+                __m64 sum_hi{ kZeros };
                 auto const row{ reinterpret_cast<__m64 const*>(&_weights[offset]) };
                 for (IndexType j = 0; j < kNumChunks; ++j) {
-                    __m64 row_j = row[j];
-                    __m64 input_j = inputVector[j];
-                    __m64 row_signs = _mm_cmpgt_pi8(kZeros, row_j);
-                    __m64 extended_row_lo = _mm_unpacklo_pi8(row_j, row_signs);
-                    __m64 extended_row_hi = _mm_unpackhi_pi8(row_j, row_signs);
-                    __m64 extended_input_lo = _mm_unpacklo_pi8(input_j, kZeros);
-                    __m64 extended_input_hi = _mm_unpackhi_pi8(input_j, kZeros);
-                    __m64 product_lo = _mm_madd_pi16(extended_row_lo, extended_input_lo);
-                    __m64 product_hi = _mm_madd_pi16(extended_row_hi, extended_input_hi);
+                    __m64 row_j{ row[j] };
+                    __m64 input_j{ inputVector[j] };
+                    __m64 row_signs{ _mm_cmpgt_pi8(kZeros, row_j) };
+                    __m64 extended_row_lo{ _mm_unpacklo_pi8(row_j, row_signs) };
+                    __m64 extended_row_hi{ _mm_unpackhi_pi8(row_j, row_signs) };
+                    __m64 extended_input_lo{ _mm_unpacklo_pi8(input_j, kZeros) };
+                    __m64 extended_input_hi{ _mm_unpackhi_pi8(input_j, kZeros) };
+                    __m64 product_lo{ _mm_madd_pi16(extended_row_lo, extended_input_lo) };
+                    __m64 product_hi{ _mm_madd_pi16(extended_row_hi, extended_input_hi) };
                     sum_lo = _mm_add_pi32(sum_lo, product_lo);
                     sum_hi = _mm_add_pi32(sum_hi, product_hi);
                 }
-                __m64 sum = _mm_add_pi32(sum_lo, sum_hi);
+                __m64 sum{ _mm_add_pi32(sum_lo, sum_hi) };
                 sum = _mm_add_pi32(sum, _mm_unpackhi_pi32(sum, sum));
                 output[i] = _mm_cvtsi64_si32(sum);
 

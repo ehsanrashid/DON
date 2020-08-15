@@ -12,7 +12,7 @@ namespace Evaluator::NNUE::Features {
     
     private:
         T _values[MaxSize];
-        size_t _size = 0;
+        size_t _size{ 0 };
 
     public:
         size_t size() const { return _size; }

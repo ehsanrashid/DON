@@ -64,7 +64,7 @@ namespace {
         // So in case book move is a promotion have to convert to our representation,
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
-        u08 pt = (m >> 12) & 7;
+        u08 pt{ u08((m >> 12) & 7) };
         if (pt != 0) {
             // Set new type for promotion piece
             m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + mMask(m));
@@ -75,14 +75,13 @@ namespace {
                 return vm;
             }
         }
-
         return MOVE_NONE;
     }
 
     bool moveIsDraw(Position &pos, Move m) {
         StateInfo si;
         pos.doMove(m, si);
-        bool dr = pos.draw(64);
+        bool const dr{ pos.draw(64) };
         pos.undoMove(m);
         return dr;
     }

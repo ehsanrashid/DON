@@ -73,7 +73,7 @@ namespace Evaluator::NNUE::Layers {
             for (IndexType i = 0; i < kNumChunks; ++i) {
                 __m128i const words0{ _mm_srai_epi16(_mm_packs_epi32(_mm_load_si128(&in[i * 4 + 0]), _mm_load_si128(&in[i * 4 + 1])), kWeightScaleBits) };
                 __m128i const words1{ _mm_srai_epi16(_mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3])), kWeightScaleBits) };
-                __m128i const packedbytes = _mm_packs_epi16(words0, words1);
+                __m128i const packedbytes{ _mm_packs_epi16(words0, words1) };
                 _mm_store_si128(&out[i],
     #ifdef SSE41
                     _mm_max_epi8(packedbytes, kZero)

@@ -16,7 +16,7 @@ namespace Evaluator::NNUE::Features {
         static constexpr bool contains(T value) {
             return value == First || CompileTimeList<T, Remaining...>::contains(value);
         }
-        static constexpr std::array<T, sizeof...(Remaining) + 1> kValues = { {First, Remaining...} };
+        static constexpr std::array<T, sizeof...(Remaining) + 1> kValues{ {First, Remaining...} };
     };
 
     // Base class of feature set
