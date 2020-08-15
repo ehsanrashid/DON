@@ -8,11 +8,12 @@ namespace Evaluator::NNUE::Layers {
     // Input layer
     template<IndexType OutputDimensions, IndexType Offset = 0>
     class InputSlice {
+
     private:
 
     public:
         // Need to maintain alignment
-        static_assert(Offset %kMaxSimdWidth == 0, "");
+        static_assert (Offset % kMaxSimdWidth == 0, "");
 
         // Output type
         using OutputType = TransformedFeatureType;

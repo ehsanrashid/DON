@@ -10,16 +10,17 @@ namespace Evaluator::NNUE::Layers {
     // Affine transformation layer
     template<typename PreviousLayer, IndexType OutputDimensions>
     class AffineTransform {
+
     public:
         // Input/output type
         using InputType = typename PreviousLayer::OutputType;
         using OutputType = i32;
-        static_assert(std::is_same<InputType, u08>::value, "");
+        static_assert (std::is_same<InputType, u08>::value, "");
 
         // Number of input/output dimensions
-        static constexpr IndexType kInputDimensions = PreviousLayer::kOutputDimensions;
-        static constexpr IndexType kOutputDimensions = OutputDimensions;
-        static constexpr IndexType kPaddedInputDimensions = ceilToMultiple<IndexType>(kInputDimensions, kMaxSimdWidth);
+        static constexpr IndexType kInputDimensions{ PreviousLayer::kOutputDimensions };
+        static constexpr IndexType kOutputDimensions{ OutputDimensions };
+        static constexpr IndexType kPaddedInputDimensions{ ceilToMultiple<IndexType>(kInputDimensions, kMaxSimdWidth) };
 
     private:
         using BiasType = OutputType;
@@ -32,10 +33,10 @@ namespace Evaluator::NNUE::Layers {
 
     public:
         // Size of forward propagation buffer used in this layer
-        static constexpr size_t kSelfBufferSize = ceilToMultiple(kOutputDimensions * sizeof(OutputType), kCacheLineSize);
+        static constexpr size_t kSelfBufferSize{ ceilToMultiple(kOutputDimensions * sizeof (OutputType), kCacheLineSize) };
 
         // Size of the forward propagation buffer used from the input layer to this layer
-        static constexpr size_t kBufferSize = PreviousLayer::kBufferSize + kSelfBufferSize;
+        static constexpr size_t kBufferSize{ PreviousLayer::kBufferSize + kSelfBufferSize };
 
         // Hash value embedded in the evaluation file
         static constexpr u32 getHashValue() {
@@ -51,8 +52,8 @@ namespace Evaluator::NNUE::Layers {
             if (!_previousLayer.readParameters(stream)) {
                 return false;
             }
-            stream.read(reinterpret_cast<char*>(_biases), kOutputDimensions * sizeof(BiasType));
-            stream.read(reinterpret_cast<char*>(_weights), kOutputDimensions * kPaddedInputDimensions * sizeof(WeightType));
+            stream.read(reinterpret_cast<char*>(_biases), kOutputDimensions * sizeof (BiasType));
+            stream.read(reinterpret_cast<char*>(_weights), kOutputDimensions * kPaddedInputDimensions * sizeof (WeightType));
             return !stream.fail();
         }
 
@@ -63,19 +64,19 @@ namespace Evaluator::NNUE::Layers {
             auto const output{ reinterpret_cast<OutputType*>(buffer) };
 
 #if defined(AVX512)
-            constexpr IndexType kNumChunks = kPaddedInputDimensions / (kSimdWidth * 2);
+            constexpr IndexType kNumChunks{ kPaddedInputDimensions / (kSimdWidth * 2) };
             auto const inputVector{ reinterpret_cast<__m512i const*>(input) };
 #if !defined(VNNI)
             __m512i const kOnes{ _mm512_set1_epi16(1) };
 #endif
 
 #elif defined(AVX2)
-            constexpr IndexType kNumChunks = kPaddedInputDimensions / kSimdWidth;
+            constexpr IndexType kNumChunks{ kPaddedInputDimensions / kSimdWidth };
             __m256i const kOnes = _mm256_set1_epi16(1);
             auto const inputVector{ reinterpret_cast<__m256i const*>(input) };
 
 #elif defined(SSE2)
-            constexpr IndexType kNumChunks = kPaddedInputDimensions / kSimdWidth;
+            constexpr IndexType kNumChunks{ kPaddedInputDimensions / kSimdWidth };
 #ifndef SSSE3
             __m128i const kZeros{ _mm_setzero_si128() };
 #else

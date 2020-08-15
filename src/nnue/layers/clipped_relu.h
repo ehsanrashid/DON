@@ -8,6 +8,7 @@ namespace Evaluator::NNUE::Layers {
     // Clipped ReLU
     template<typename PreviousLayer>
     class ClippedReLU {
+
     private:
         PreviousLayer _previousLayer;
 
@@ -15,14 +16,14 @@ namespace Evaluator::NNUE::Layers {
         // Input/output type
         using InputType = typename PreviousLayer::OutputType;
         using OutputType = u08;
-        static_assert(std::is_same<InputType, i32>::value, "");
+        static_assert (std::is_same<InputType, i32>::value, "");
 
         // Number of input/output dimensions
         static constexpr IndexType kInputDimensions{ PreviousLayer::kOutputDimensions };
         static constexpr IndexType kOutputDimensions{ kInputDimensions };
 
         // Size of forward propagation buffer used in this layer
-        static constexpr size_t kSelfBufferSize{ ceilToMultiple(kOutputDimensions * sizeof(OutputType), kCacheLineSize) };
+        static constexpr size_t kSelfBufferSize{ ceilToMultiple(kOutputDimensions * sizeof (OutputType), kCacheLineSize) };
 
         // Size of the forward propagation buffer used from the input layer to this layer
         static constexpr size_t kBufferSize{ PreviousLayer::kBufferSize + kSelfBufferSize };

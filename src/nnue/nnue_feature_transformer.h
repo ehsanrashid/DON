@@ -15,17 +15,24 @@ namespace Evaluator::NNUE {
     private:
         // Number of output dimensions for one side
         static constexpr IndexType kHalfDimensions{ kTransformedFeatureDimensions };
-
+        
     public:
-        // Output type
-        using OutputType = TransformedFeatureType;
-
         // Number of input/output dimensions
         static constexpr IndexType kInputDimensions{ RawFeatures::kDimensions };
         static constexpr IndexType kOutputDimensions{ kHalfDimensions * 2 };
 
+    private:
+        using BiasType = i16;
+        using WeightType = i16;
+
+        alignas(kCacheLineSize) BiasType _biases[kHalfDimensions];
+        alignas(kCacheLineSize) WeightType _weights[kHalfDimensions * kInputDimensions];
+
+    public:
+        // Output type
+        using OutputType = TransformedFeatureType;
         // Size of forward propagation buffer
-        static constexpr size_t kBufferSize{ kOutputDimensions * sizeof(OutputType) };
+        static constexpr size_t kBufferSize{ kOutputDimensions * sizeof (OutputType) };
 
         // Hash value embedded in the evaluation file
         static constexpr u32 getHashValue() {
@@ -34,18 +41,18 @@ namespace Evaluator::NNUE {
 
         // Read network parameters
         bool readParameters(std::istream &stream) {
-            stream.read(reinterpret_cast<char*>(_biases), kHalfDimensions * sizeof(BiasType));
-            stream.read(reinterpret_cast<char*>(_weights), kHalfDimensions * kInputDimensions * sizeof(WeightType));
+            stream.read(reinterpret_cast<char*>(_biases), kHalfDimensions * sizeof (BiasType));
+            stream.read(reinterpret_cast<char*>(_weights), kHalfDimensions * kInputDimensions * sizeof (WeightType));
             return !stream.fail();
         }
 
         // Proceed with the difference calculation if possible
         bool updateAccumulatorIfPossible(Position const &pos) const {
-            auto const currState = pos.state();
+            auto const currState{ pos.state() };
             if (currState->accumulator.computedAccumulation) {
                 return true;
             }
-            auto const prevState = currState->prevState;
+            auto const prevState{ currState->prevState };
             if (prevState != nullptr
              && prevState->accumulator.computedAccumulation) {
                 updateAccumulator(pos);
@@ -60,7 +67,7 @@ namespace Evaluator::NNUE {
              || !updateAccumulatorIfPossible(pos)) {
                 refreshAccumulator(pos);
             }
-            auto const &accumulation = pos.state()->accumulator.accumulation;
+            auto const &accumulation{ pos.state()->accumulator.accumulation };
 
 #if defined(AVX2)
             constexpr IndexType kNumChunks{ kHalfDimensions / kSimdWidth };
@@ -152,7 +159,7 @@ namespace Evaluator::NNUE {
             Features::IndexList activeIndices[2];
             RawFeatures::appendActiveIndices(pos, kRefreshTriggers[i], activeIndices);
             for (Color perspective : { WHITE, BLACK }) {
-                std::memcpy(accumulator.accumulation[perspective][i], _biases, kHalfDimensions * sizeof(BiasType));
+                std::memcpy(accumulator.accumulation[perspective][i], _biases, kHalfDimensions * sizeof (BiasType));
                 for (auto const index : activeIndices[perspective]) {
                     IndexType const offset{ kHalfDimensions * index };
 
@@ -184,7 +191,6 @@ namespace Evaluator::NNUE {
                     for (IndexType j = 0; j < kNumChunks; ++j) {
                         accumulation[j] = _mm_add_pi16(accumulation[j], column[j]);
                     }
-
 #elif defined(NEON)
                     auto accumulation{ reinterpret_cast<int16x8_t*>(&accumulator.accumulation[perspective][i][0]) };
                     auto column{ reinterpret_cast<int16x8_t const*>(&_weights[offset]) };
@@ -236,10 +242,10 @@ namespace Evaluator::NNUE {
 #endif
 
                 if (reset[perspective]) {
-                    std::memcpy(accumulator.accumulation[perspective][i], _biases, kHalfDimensions * sizeof(BiasType));
+                    std::memcpy(accumulator.accumulation[perspective][i], _biases, kHalfDimensions * sizeof (BiasType));
                 }
                 else {
-                    std::memcpy(accumulator.accumulation[perspective][i], prevAccumulator.accumulation[perspective][i], kHalfDimensions * sizeof(BiasType));
+                    std::memcpy(accumulator.accumulation[perspective][i], prevAccumulator.accumulation[perspective][i], kHalfDimensions * sizeof (BiasType));
                     // Difference calculation for the deactivated features
                     for (auto const index : removedIndices[perspective]) {
                         IndexType const offset{ kHalfDimensions * index };
@@ -322,12 +328,6 @@ namespace Evaluator::NNUE {
             accumulator.computedAccumulation = true;
             accumulator.computedScore = false;
         }
-
-        using BiasType = i16;
-        using WeightType = i16;
-
-        alignas(kCacheLineSize) BiasType _biases[kHalfDimensions];
-        alignas(kCacheLineSize) WeightType _weights[kHalfDimensions * kInputDimensions];
     };
 
 }  // namespace Evaluator::NNUE

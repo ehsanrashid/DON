@@ -1178,7 +1178,7 @@ void Position::doNullMove(StateInfo &si) {
         && checkers() == 0);
 
     if (Evaluator::useNNUE) {
-        std::memcpy(&si, _stateInfo, sizeof(StateInfo));
+        std::memcpy(&si, _stateInfo, sizeof (StateInfo));
         _stateInfo->accumulator.computedScore = false;
     }
     else {

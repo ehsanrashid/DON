@@ -94,18 +94,20 @@ namespace Evaluator::NNUE {
         template<typename T>
         void initialize(AlignedPtr<T> &pointer) {
 
-            pointer.reset(reinterpret_cast<T*>(stdAlignedAlloc(alignof(T), sizeof(T))));
-            std::memset(pointer.get(), 0, sizeof(T));
+            pointer.reset(reinterpret_cast<T*>(stdAlignedAlloc(alignof(T), sizeof (T))));
+            std::memset(pointer.get(), 0, sizeof (T));
         }
 
         // Read evaluation function parameters
         template<typename T>
         bool readParameters(std::istream &stream, const AlignedPtr<T> &pointer) {
-
             u32 header;
-            stream.read(reinterpret_cast<char*>(&header), sizeof(header));
-            if (!stream || header != T::getHashValue()) return false;
-            return pointer->readParameters(stream);
+            stream.read(reinterpret_cast<char*>(&header), sizeof (header));
+            
+            return !stream
+                || header != T::getHashValue() ?
+                    false :
+                    pointer->readParameters(stream);
         }
 
     }  // namespace Detail
@@ -121,10 +123,13 @@ namespace Evaluator::NNUE {
     bool readHeader(std::istream &stream, u32 *hash_value, std::string *architecture) {
 
         u32 version, size;
-        stream.read(reinterpret_cast<char*>(&version), sizeof(version));
-        stream.read(reinterpret_cast<char*>(hash_value), sizeof(*hash_value));
-        stream.read(reinterpret_cast<char*>(&size), sizeof(size));
-        if (!stream || version != kVersion) return false;
+        stream.read(reinterpret_cast<char*>(&version), sizeof (version));
+        stream.read(reinterpret_cast<char*>(hash_value), sizeof (*hash_value));
+        stream.read(reinterpret_cast<char*>(&size), sizeof (size));
+        if (!stream
+         || version != kVersion) {
+            return false;
+        }
         architecture->resize(size);
         stream.read(&(*architecture)[0], size);
         return !stream.fail();
@@ -132,19 +137,20 @@ namespace Evaluator::NNUE {
 
     // Read network parameters
     bool readParameters(std::istream &stream) {
-
         u32 hashValue;
         std::string architecture;
-        if (!readHeader(stream, &hashValue, &architecture)) return false;
-        if (hashValue != kHashValue) return false;
-        if (!Detail::readParameters(stream, featureTransformer)) return false;
-        if (!Detail::readParameters(stream, network)) return false;
-        return stream && stream.peek() == std::ios::traits_type::eof();
+        if (!readHeader(stream, &hashValue, &architecture)
+         || hashValue != kHashValue
+         || !Detail::readParameters(stream, featureTransformer)
+         || !Detail::readParameters(stream, network)) {
+            return false;
+        }
+        return stream
+            && stream.peek() == std::ios::traits_type::eof();
     }
 
     // Proceed with the difference calculation if possible
     static void updateAccumulatorIfPossible(Position const &pos) {
-
         featureTransformer->updateAccumulatorIfPossible(pos);
     }
 
