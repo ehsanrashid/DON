@@ -68,11 +68,11 @@ namespace {
     i32 LeadPawnsSize[TBPIECES - 1][FILES/2]; // [lpCount][FILE_A..FILE_D]
 
     /// Comparison function to sort leading pawns in ascending MapPawns[] order
-    bool mapPawnsCompare(Square s1, Square s2) { return MapPawns[s1] < MapPawns[s2]; }
+    bool mapPawnsCompare(Square s1, Square s2) noexcept { return MapPawns[s1] < MapPawns[s2]; }
     i32 offA1H8(Square s) { return i32(sRank(s)) - i32(sFile(s)); }
 
     template<typename T, i16 Half = sizeof (T) / 2, i16 End = sizeof (T) - 1>
-    inline void swapEndian(T &x) {
+    inline void swapEndian(T &x) noexcept {
         static_assert (std::is_unsigned<T>::value, "Argument of swapEndian not unsigned");
 
         u08 *c = (u08*)&x, tmp;
@@ -85,7 +85,7 @@ namespace {
     {}
 
     template<typename T, bool LE>
-    T number(void *addr) {
+    T number(void *addr) noexcept {
         static const union { u32 i; char c[4]; } U{ 0x01020304 };
         static bool const LittleEndian = (U.c[0] == 0x04);
 
@@ -107,7 +107,7 @@ namespace {
     // DTZ tables don't store valid scores for moves that reset the move50Rule counter
     // like captures and pawn moves but we can easily recover the correct dtz of the
     // previous move if we know the position's WDL score.
-    i32 beforeZeroingDTZ(WDLScore wdlScore) {
+    i32 beforeZeroingDTZ(WDLScore wdlScore) noexcept {
         switch (wdlScore) {
         case WDL_LOSS:         return -1;
         case WDL_BLESSED_LOSS: return -101;
@@ -138,7 +138,7 @@ namespace {
         u08 lr[3];
 
         template<Side S>
-        Symbol get() {
+        Symbol get() noexcept {
             return
                 S == Side::LEFT  ? ((lr[1] & 0xF) << 8) | lr[0] :
                 S == Side::RIGHT ?  (lr[2] << 4) | (lr[1] >> 4) : (assert(false), Symbol(-1));
@@ -301,7 +301,7 @@ namespace {
             return data + 4; // Skip Magics's header
         }
 
-        static void unmap(void *baseAddress, u64 mapping) {
+        static void unmap(void *baseAddress, u64 mapping) noexcept {
 
         #if defined(_WIN32)
             UnmapViewOfFile(baseAddress);
@@ -361,7 +361,7 @@ namespace {
         u08 pawnCount[COLORS]; // [Lead color / other color]
         PairsData items[Sides][4]; // [wtm / btm][FILE_A..FILE_D or 0]
 
-        PairsData* get(i16 stm, File f) {
+        PairsData* get(i16 stm, File f) noexcept {
             return &items[stm % Sides][hasPawns ? f : 0];
         }
 
@@ -441,7 +441,7 @@ namespace {
             TBTable<DTZ>* dtz;
 
             template<TBType Type>
-            TBTable<Type>* get() const {
+            TBTable<Type>* get() const noexcept {
                 return (TBTable<Type>*)
                         (Type == WDL ?
                             (void*)wdl : (void*)dtz);
@@ -498,13 +498,13 @@ namespace {
             return nullptr;
         }
 
-        void clear() {
+        void clear() noexcept {
             std::memset(entry, 0, sizeof (entry));
             wdlTable.clear();
             dtzTable.clear();
         }
 
-        size_t size() const {
+        size_t size() const noexcept {
             return wdlTable.size();
         }
 
@@ -665,11 +665,11 @@ namespace {
         return d->btree[sym].get<LR::Side::LEFT>();
     }
 
-    bool checkDTZStm(TBTable<WDL>*, Color, File) {
+    bool checkDTZStm(TBTable<WDL>*, Color, File) noexcept {
         return true;
     }
 
-    bool checkDTZStm(TBTable<DTZ> *entry, Color stm, File f) {
+    bool checkDTZStm(TBTable<DTZ> *entry, Color stm, File f) noexcept {
         auto flags = entry->get(stm, f)->flags;
         return (flags & TBFlag::STM) == stm
             || ((entry->matlKey1 == entry->matlKey2)
@@ -1016,8 +1016,9 @@ namespace {
         // are at order[1] position.
 
         // Pawns on both sides
-        bool pp{ e.hasPawns
-              && e.pawnCount[1] };
+        bool const pp{
+            e.hasPawns
+         && e.pawnCount[1] };
         i16 next = 1 + pp;
         i32 emptyCount{ 64 - d->groupLen[0] - (pp ? d->groupLen[1] : 0) };
 

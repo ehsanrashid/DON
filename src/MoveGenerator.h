@@ -55,8 +55,8 @@ struct Perft {
     u64 checkmate{ 0 };
     //u64 stalemate{ 0 };
 
-    void operator+=(Perft const&);
-    void operator-=(Perft const&);
+    void operator+=(Perft const&) noexcept;
+    void operator-=(Perft const&) noexcept;
 
     void classify(Position&, Move);
 };

@@ -36,16 +36,16 @@ public:
 
     explicit RootMove(Move = MOVE_NONE);
 
-    bool operator< (RootMove const&) const;
-    bool operator> (RootMove const&) const;
-    //bool operator==(RootMove const&) const;
-    //bool operator!=(RootMove const&) const;
+    bool operator< (RootMove const&) const noexcept;
+    bool operator> (RootMove const&) const noexcept;
+    //bool operator==(RootMove const&) const noexcept;
+    //bool operator!=(RootMove const&) const noexcept;
 
-    bool operator==(Move) const;
-    bool operator!=(Move) const;
+    bool operator==(Move) const noexcept;
+    bool operator!=(Move) const noexcept;
 
-    void operator+=(Move);
-    //void operator-=(Move);
+    void operator+=(Move) noexcept;
+    //void operator-=(Move) noexcept;
 
     std::string toString() const;
 };

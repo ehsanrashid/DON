@@ -64,7 +64,7 @@ namespace {
         // So in case book move is a promotion have to convert to our representation,
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
-        u08 pt{ u08((m >> 12) & 7) };
+        auto const pt{ u08((m >> 12) & 7) };
         if (pt != 0) {
             // Set new type for promotion piece
             m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + mMask(m));
@@ -88,18 +88,18 @@ namespace {
 
 }
 
-bool PolyEntry::operator==(PolyEntry const &pe) const {
+bool PolyEntry::operator==(PolyEntry const &pe) const noexcept {
     return key == pe.key
         && move == pe.move
         && weight == pe.weight;
 }
-bool PolyEntry::operator!=(PolyEntry const &pe) const {
+bool PolyEntry::operator!=(PolyEntry const &pe) const noexcept {
     return key != pe.key
         || move != pe.move
         || weight != pe.weight;
 }
 
-bool PolyEntry::operator>(PolyEntry const &pe) const {
+bool PolyEntry::operator>(PolyEntry const &pe) const noexcept {
     return
         key != pe.key ?
             key > pe.key :
@@ -107,7 +107,7 @@ bool PolyEntry::operator>(PolyEntry const &pe) const {
                 weight > pe.weight :
                 move > pe.move;
 }
-bool PolyEntry::operator<(PolyEntry const &pe) const {
+bool PolyEntry::operator<(PolyEntry const &pe) const noexcept {
     return
         key != pe.key ?
             key < pe.key :
@@ -116,7 +116,7 @@ bool PolyEntry::operator<(PolyEntry const &pe) const {
                 move < pe.move;
 }
 
-bool PolyEntry::operator>=(PolyEntry const &pe) const {
+bool PolyEntry::operator>=(PolyEntry const &pe) const noexcept {
     return
         key != pe.key ?
             key >= pe.key :
@@ -124,7 +124,7 @@ bool PolyEntry::operator>=(PolyEntry const &pe) const {
                 weight >= pe.weight :
                 move >= pe.move;
 }
-bool PolyEntry::operator<=(PolyEntry const &pe) const {
+bool PolyEntry::operator<=(PolyEntry const &pe) const noexcept {
     return
         key != pe.key ?
             key <= pe.key :
@@ -133,8 +133,8 @@ bool PolyEntry::operator<=(PolyEntry const &pe) const {
                 move <= pe.move;
 }
 
-bool PolyEntry::operator==(Move m) const { return move == m; }
-bool PolyEntry::operator!=(Move m) const { return move != m; }
+bool PolyEntry::operator==(Move m) const noexcept { return move == m; }
+bool PolyEntry::operator!=(Move m) const noexcept { return move != m; }
 
 string PolyEntry::toString() const {
     std::ostringstream oss{};
@@ -159,7 +159,7 @@ PolyBook::~PolyBook() {
     clear();
 }
 
-void PolyBook::clear() {
+void PolyBook::clear() noexcept {
 
     enabled = false;
     if (entry != nullptr) {
@@ -168,7 +168,7 @@ void PolyBook::clear() {
     }
 }
 
-i64 PolyBook::findIndex(Key pgKey) const {
+i64 PolyBook::findIndex(Key pgKey) const noexcept {
     i64 beg{ 0 };
     i64 end{ i64(entryCount) };
 
@@ -201,15 +201,15 @@ i64 PolyBook::findIndex(Key pgKey) const {
 
     return -1;
 }
-//i64 PolyBook::findIndex(Position const &pos) const {
+//i64 PolyBook::findIndex(Position const &pos) const noexcept {
 //    return findIndex(pos.pgKey());
 //}
-//i64 PolyBook::findIndex(string const &fen) const {
+//i64 PolyBook::findIndex(string const &fen) const noexcept {
 //    StateInfo si;
 //    return findIndex(Position().setup(fen, si, nullptr).pgKey());
 //}
 
-bool PolyBook::canProbe(Position const &pos) {
+bool PolyBook::canProbe(Position const &pos) noexcept {
 
     if (pieces != pos.pieces()
      || popCount(pieces ^ pos.pieces()) > 6
@@ -242,7 +242,7 @@ void PolyBook::initialize(string const &fn) {
     }
 
     ifs.seekg(0, std::ios::end);
-    u64 fileSize = ifs.tellg();
+    u64 const fileSize = ifs.tellg();
     ifs.seekg(0, std::ios::beg);
 
     entryCount = (fileSize - HeaderSize) / sizeof (PolyEntry);
@@ -282,8 +282,8 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
         return MOVE_NONE;
     }
 
-    auto pgKey{ pos.pgKey() };
-    auto index{ findIndex(pgKey) };
+    auto const pgKey{ pos.pgKey() };
+    auto const index{ findIndex(pgKey) };
     if (index < 0) {
         if (++failCount > 4) {
             // Stop probe after 4 times not in the book till position changes according to canProbe()
@@ -371,7 +371,7 @@ string PolyBook::show(Position const &pos) const {
         return "Book entries empty.";
     }
 
-    auto key{ pos.pgKey() };
+    auto const key{ pos.pgKey() };
     auto index{ findIndex(key) };
     if (index < 0) {
         return "Book entries not found.";
@@ -397,7 +397,7 @@ string PolyBook::show(Position const &pos) const {
     oss << "\nBook entries: " << peSet.size() << '\n';
     for (auto &pe : peSet) {
         pe.move = polyMove(Move(pe.move), pos);
-        auto prob{ sumWeight != 0 ? 100.0 * pe.weight / sumWeight : 0.0 };
+        auto const prob{ sumWeight != 0 ? 100.0 * pe.weight / sumWeight : 0.0 };
         oss << pe
             << " prob: "
             << std::setfill('0')

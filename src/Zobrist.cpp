@@ -5,7 +5,7 @@
 #include "PRNG.h"
 
 /// Zobrist::computeMatlKey() computes hash key of the material situation.
-Key Zobrist::computeMatlKey(Position const &pos) const {
+Key Zobrist::computeMatlKey(Position const &pos) const noexcept {
     Key matlKey{ 0 };
     for (Piece p : Pieces) {
         for (i32 cnt = 0; cnt < pos.count(p); ++cnt) {
@@ -15,7 +15,7 @@ Key Zobrist::computeMatlKey(Position const &pos) const {
     return matlKey;
 }
 /// Zobrist::computePawnKey() computes hash key of the pawn structure.
-Key Zobrist::computePawnKey(Position const &pos) const {
+Key Zobrist::computePawnKey(Position const &pos) const noexcept {
     Key pawnKey{ nopawn };
     for (Piece p : { W_PAWN, B_PAWN }) {
         Square const *ps{ pos.squares(p) };
@@ -27,7 +27,7 @@ Key Zobrist::computePawnKey(Position const &pos) const {
     return pawnKey;
 }
 /// Zobrist::computePosiKey() computes hash key of the complete position.
-Key Zobrist::computePosiKey(Position const &pos) const {
+Key Zobrist::computePosiKey(Position const &pos) const noexcept {
     Key posiKey{ 0 };
     for (Piece p : Pieces) {
         Square const *ps{ pos.squares(p) };
@@ -49,7 +49,7 @@ Key Zobrist::computePosiKey(Position const &pos) const {
 namespace Zobrists {
 
     /// initialize() initializes Zobrist lookup tables.
-    void initialize() {
+    void initialize() noexcept {
         assert(PolyZob.psq[W_PAWN][SQ_A1] == U64(0x5355F900C2A82DC7));
         assert(PolyZob.psq[W_KING][SQ_H8] == U64(0xD20D8C88C8FFE65F));
         assert(PolyZob.psq[B_PAWN][SQ_A1] == U64(0x9D39247E33776D41));

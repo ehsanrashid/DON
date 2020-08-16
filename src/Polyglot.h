@@ -16,19 +16,19 @@ struct PolyEntry {
     u16 weight;
     u32 learn;
 
-    explicit operator Move() const { return Move(move); }
+    explicit operator Move() const noexcept { return Move(move); }
 
-    bool operator==(PolyEntry const&) const;
-    bool operator!=(PolyEntry const&) const;
+    bool operator==(PolyEntry const&) const noexcept;
+    bool operator!=(PolyEntry const&) const noexcept;
 
-    bool operator>(PolyEntry const&) const;
-    bool operator<(PolyEntry const&) const;
+    bool operator>(PolyEntry const&) const noexcept;
+    bool operator<(PolyEntry const&) const noexcept;
 
-    bool operator>=(PolyEntry const&) const;
-    bool operator<=(PolyEntry const&) const;
+    bool operator>=(PolyEntry const&) const noexcept;
+    bool operator<=(PolyEntry const&) const noexcept;
 
-    bool operator==(Move) const;
-    bool operator!=(Move) const;
+    bool operator==(Move) const noexcept;
+    bool operator!=(Move) const noexcept;
 
     std::string toString() const;
 };
@@ -51,13 +51,13 @@ private:
     i32         pieceCount{ 0 };
     u08         failCount{ 0 };
 
-    void clear();
+    void clear() noexcept;
 
-    i64 findIndex(Key) const;
-    //i64 findIndex(Position const&) const;
-    //i64 findIndex(std::string const&) const;
+    i64 findIndex(Key) const noexcept;
+    //i64 findIndex(Position const&) const noexcept;
+    //i64 findIndex(std::string const&) const noexcept;
 
-    bool canProbe(Position const&);
+    bool canProbe(Position const&) noexcept;
 
 public:
 

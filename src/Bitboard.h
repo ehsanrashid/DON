@@ -189,24 +189,24 @@ template<> constexpr Bitboard shift<NORTH_WEST>(Bitboard bb) { return (bb & ~Fil
 template<> constexpr Bitboard shift<SOUTH_EAST>(Bitboard bb) { return (bb & ~FileBB[FILE_H]) >> 7; }
 template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) { return (bb & ~FileBB[FILE_A]) >> 9; }
 
-constexpr Bitboard adjacentFilesBB(Square s) {
+constexpr Bitboard adjacentFilesBB(Square s) noexcept {
     return shift<EAST >(fileBB(s))
          | shift<WEST >(fileBB(s));
 }
-//constexpr Bitboard adjacentRanksBB(Square s) {
+//constexpr Bitboard adjacentRanksBB(Square s) noexcept {
 //    return shift<NORTH>(rankBB(s))
 //         | shift<SOUTH>(rankBB(s));
 //}
 
-constexpr Bitboard frontSquaresBB(Color c, Square s) { return frontRanksBB(c, s) & fileBB(s); }
-constexpr Bitboard pawnAttackSpan(Color c, Square s) { return frontRanksBB(c, s) & adjacentFilesBB(s); }
-constexpr Bitboard pawnPassSpan  (Color c, Square s) { return frontSquaresBB(c, s) | pawnAttackSpan(c, s); }
+constexpr Bitboard frontSquaresBB(Color c, Square s) noexcept { return frontRanksBB(c, s) & fileBB(s); }
+constexpr Bitboard pawnAttackSpan(Color c, Square s) noexcept { return frontRanksBB(c, s) & adjacentFilesBB(s); }
+constexpr Bitboard pawnPassSpan  (Color c, Square s) noexcept { return frontSquaresBB(c, s) | pawnAttackSpan(c, s); }
 
 /// lineBB() returns a Bitboard representing an entire line
 /// (from board edge to board edge) that intersects the given squares.
 /// If the given squares are not on a same file/rank/diagonal, return 0.
 /// Ex. lineBB(SQ_C4, SQ_F7) returns a bitboard with the A2-G8 diagonal.
-inline Bitboard lineBB(Square s1, Square s2) {
+inline Bitboard lineBB(Square s1, Square s2) noexcept {
     assert(isOk(s1)
         && isOk(s2));
     return LineBB[s1][s2];
@@ -214,7 +214,7 @@ inline Bitboard lineBB(Square s1, Square s2) {
 /// betweenBB() returns squares that are linearly between the given squares
 /// If the given squares are not on a same file/rank/diagonal, return 0.
 /// Ex. betweenBB(SQ_C4, SQ_F7) returns a bitboard with squares D5 and E6.
-inline Bitboard betweenBB(Square s1, Square s2) {
+inline Bitboard betweenBB(Square s1, Square s2) noexcept {
     Bitboard const sLine{
         lineBB(s1, s2)
       & ((BoardBB << s1)

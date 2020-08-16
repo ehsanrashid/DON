@@ -21,14 +21,14 @@ public:
     SkillManager& operator=(SkillManager const&) = delete;
     SkillManager& operator=(SkillManager&&) = delete;
 
-    bool enabled() const;
-    bool canPick(Depth) const;
+    bool enabled() const noexcept;
+    bool canPick(Depth) const noexcept;
 
-    void setLevel(u16);
+    void setLevel(u16) noexcept;
 
-    void clear();
+    void clear() noexcept;
 
-    Move pickBestMove();
+    Move pickBestMove() noexcept;
 };
 
 // Global Skill Manager

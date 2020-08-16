@@ -163,9 +163,10 @@ public:
         }
     }
 
-    u16 size() const;
+    u16 size() const noexcept;
 
-    MainThread* mainThread() const;
+    MainThread* mainThread() const noexcept;
+    Thread* bestThread() const noexcept;
 
     void setup(u16);
     void clean();
@@ -174,7 +175,6 @@ public:
 
     void wakeUpThreads();
     void waitForThreads();
-    Thread* bestThread() const;
 
 };
 

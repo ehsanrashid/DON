@@ -94,13 +94,13 @@ namespace EndGame {
     extern EGMapPair<Value, Scale> EndGames;
 
     template<typename T>
-    EGMap<T>& mapEG() {
+    EGMap<T>& mapEG() noexcept {
         return std::get<std::is_same<T, Scale>::value>(EndGames);
     }
 
     template<typename T>
-    EndgameBase<T> const* probe(Key matlKey) {
-        auto itr{ mapEG<T>().find(matlKey) };
+    EndgameBase<T> const* probe(Key matlKey) noexcept {
+        auto const itr{ mapEG<T>().find(matlKey) };
         return itr != mapEG<T>().end() ?
                 itr->second.get() : nullptr;
     }

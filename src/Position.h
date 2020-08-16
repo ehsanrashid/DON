@@ -118,8 +118,8 @@ public:
     Position& operator=(Position const&) = delete;
     Position& operator=(Position&&) = delete;
 
-    Piece operator[](Square) const;
-    bool empty(Square) const;
+    Piece operator[](Square) const noexcept;
+    bool empty(Square) const noexcept;
 
     //Bitboard pieces(Piece) const noexcept;
     Bitboard pieces(Color) const noexcept;
@@ -234,11 +234,11 @@ public:
 extern std::ostream& operator<<(std::ostream&, Position const&);
 
 
-inline Piece Position::operator[](Square s) const {
+inline Piece Position::operator[](Square s) const noexcept {
     assert(isOk(s));
     return board[s];
 }
-inline bool Position::empty(Square s) const {
+inline bool Position::empty(Square s) const noexcept {
     return operator[](s) == NO_PIECE;
 }
 
@@ -404,7 +404,7 @@ inline void Position::removePiece(Square s) {
 }
 inline void Position::movePiece(Square s1, Square s2) {
     auto p{ board[s1] };
-    Bitboard bb{ s1 | s2 };
+    Bitboard const bb{ s1 | s2 };
     types[NONE] ^= bb;
     types[pType(p)] ^= bb;
     colors[pColor(p)] ^= bb;
@@ -459,7 +459,7 @@ inline Bitboard Position::pawnsOnSqColor(Color c, Color sqC) const noexcept {
 
 /// Position::bishopPaired() check the side has pair of opposite color bishops
 inline bool Position::bishopPaired(Color c) const noexcept {
-    Bitboard b{ pieces(c, BSHP) };
+    Bitboard const b{ pieces(c, BSHP) };
     return moreThanOne(b)
         && ((b & ColorBB[WHITE]) != 0) == ((b & ColorBB[BLACK]) != 0);
 }
@@ -488,7 +488,7 @@ inline EvalList const* Position::evalList() const noexcept {
 inline PieceId Position::pieceIdOn(Square sq) const noexcept {
     assert(board[sq] != NO_PIECE);
 
-    PieceId pid = _evalList.pieceIdList[sq];
+    PieceId const pid{ _evalList.pieceIdList[sq] };
     assert(isOk(pid));
     return pid;
 }

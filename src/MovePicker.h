@@ -48,21 +48,21 @@ private:
 
 public:
 
-    void operator=(T const &e) {
+    void operator=(T const &e) noexcept {
         entry = e;
     }
 
-    T* operator&() {
+    T* operator&() noexcept {
         return &entry;
     }
-    T* operator->() {
+    T* operator->() noexcept {
         return &entry;
     }
-    operator T const&() const {
+    operator T const&() const noexcept {
         return entry;
     }
 
-    void operator<<(i32 bonus) {
+    void operator<<(i32 bonus) noexcept {
         static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
         assert(std::abs(bonus) <= D); // Ensure range is [-D, +D]
 

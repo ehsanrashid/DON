@@ -10,7 +10,7 @@ std::atomic<u64> Debugger::Hit2Count;
 std::atomic<u64> Debugger::ItemCount;
 std::atomic<i64> Debugger::ItemSum;
 
-void Debugger::reset() {
+void Debugger::reset() noexcept {
 
     Hit1Count = 0;
     Hit2Count = 0;
@@ -19,24 +19,24 @@ void Debugger::reset() {
     ItemSum = 0;
 }
 
-void Debugger::hitOn(bool hit2) {
+void Debugger::hitOn(bool hit2) noexcept {
     ++Hit1Count;
     if (hit2) {
         ++Hit2Count;
     }
 }
-void Debugger::hitOn(bool hit1, bool hit2) {
+void Debugger::hitOn(bool hit1, bool hit2) noexcept {
     if (hit1) {
         hitOn(hit2);
     }
 }
 
-void Debugger::meanOf(i64 item) {
+void Debugger::meanOf(i64 item) noexcept {
     ++ItemCount;
     ItemSum += item;
 }
 
-void Debugger::print() {
+void Debugger::print() noexcept {
     if (Hit1Count != 0) {
         std::ostringstream oss{};
         oss << std::right

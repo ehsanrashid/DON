@@ -12,14 +12,14 @@ struct Cuckoo {
     Square sq1;
     Square sq2;
 
-    Cuckoo(Piece, Square, Square);
-    Cuckoo();
+    Cuckoo(Piece, Square, Square) noexcept;
+    Cuckoo() noexcept;
 
-    bool empty() const;
-    bool operator==(Cuckoo const&) const;
-    bool operator!=(Cuckoo const&) const;
+    bool empty() const noexcept;
+    bool operator==(Cuckoo const&) const noexcept;
+    bool operator!=(Cuckoo const&) const noexcept;
 
-    Key key() const;
+    Key key() const noexcept;
 };
 
 

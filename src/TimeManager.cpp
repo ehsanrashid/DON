@@ -70,12 +70,12 @@ void TimeManager::setup(Color c, i16 ply) {
 }
 
 /// TimeManager::elapsed()
-TimePoint TimeManager::elapsed() const {
+TimePoint TimeManager::elapsed() const noexcept {
     return{ u16(Options["Time Nodes"]) == 0 ?
                 now() - Limits.startTime :
                 TimePoint(Threadpool.sum(&Thread::nodes)) };
 }
 
-void TimeManager::clear() {
+void TimeManager::clear() noexcept {
     totalNodes = 0;
 }

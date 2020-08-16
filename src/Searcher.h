@@ -36,14 +36,14 @@ struct Limit {
 
     TimePoint startTime;
 
-    bool useTimeMgmt() const;
+    bool useTimeMgmt() const noexcept;
 
-    void clear();
+    void clear() noexcept;
 };
 
 namespace Searcher {
 
-    extern void initialize();
+    extern void initialize() noexcept;
 
 }
 

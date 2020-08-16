@@ -41,8 +41,8 @@ public:
 
     u16       worth() const noexcept { return d08 - ((263 + Generation - g08) & 248); }
 
-    void refresh();
-    void save(Key, Move, Value, Value, Depth, Bound, u08);
+    void refresh() noexcept;
+    void save(Key, Move, Value, Value, Depth, Bound, u08) noexcept;
 };
 
 /// Size of TEntry (10 bytes)
@@ -57,9 +57,9 @@ struct TCluster {
     TEntry entry[EntryPerCluster];
     char pad[2]; // Pad to 32 bytes
 
-    u32 freshEntryCount() const;
+    u32 freshEntryCount() const noexcept;
 
-    TEntry* probe(u16, bool&);
+    TEntry* probe(u16, bool&) noexcept;
 };
 
 /// Size of TCluster (32 bytes)
@@ -94,23 +94,23 @@ public:
     TTable& operator=(TTable&&) = delete;
     ~TTable();
 
-    u32 size() const;
+    u32 size() const noexcept;
 
-    TCluster* cluster(Key) const;
+    TCluster* cluster(Key) const noexcept;
 
-    u32 resize(size_t);
+    size_t resize(size_t);
 
     void autoResize(size_t);
 
     void clear();
 
-    void free();
+    void free() noexcept;
 
-    TEntry* probe(Key, bool&) const;
+    TEntry* probe(Key, bool&) const noexcept;
 
-    u32 hashFull() const;
+    u32 hashFull() const noexcept;
 
-    Move extractNextMove(Position&, Move) const;
+    Move extractNextMove(Position&, Move) const noexcept;
 
     void save(std::string const&) const;
     void load(std::string const&);

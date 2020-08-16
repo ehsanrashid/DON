@@ -252,13 +252,13 @@ namespace Evaluator {
             Evaluation(Evaluation const&) = delete;
             Evaluation& operator=(Evaluation const&) = delete;
 
-            Evaluation(Position const&);
+            Evaluation(Position const&) noexcept;
 
             Value value();
         };
 
         template<bool Trace>
-        Evaluation<Trace>::Evaluation(Position const &p) :
+        Evaluation<Trace>::Evaluation(Position const &p) noexcept :
             pos{ p }
         {}
 

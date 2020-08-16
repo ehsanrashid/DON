@@ -15,11 +15,11 @@ TTable TTEx;
 
 u08 TEntry::Generation = 0;
 
-void TEntry::refresh() {
+void TEntry::refresh() noexcept {
     g08 = u08(Generation | (g08 & 7));
 }
 
-void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) {
+void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) noexcept {
     if (m != MOVE_NONE
      || u16(k) != k16) {
         m16 = u16(m);
@@ -39,7 +39,7 @@ void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) {
 }
 
 
-u32 TCluster::freshEntryCount() const {
+u32 TCluster::freshEntryCount() const noexcept {
     return (entry[0].generation() == TEntry::Generation)
          + (entry[1].generation() == TEntry::Generation)
          + (entry[2].generation() == TEntry::Generation);
@@ -48,7 +48,7 @@ u32 TCluster::freshEntryCount() const {
 /// TCluster::probe()
 /// If the position is found, it returns true and a pointer to the found entry.
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
-TEntry* TCluster::probe(u16 key16, bool &hit) {
+TEntry* TCluster::probe(u16 key16, bool &hit) noexcept {
     // Find an entry to be replaced according to the replacement strategy.
     auto* rte{ entry }; // Default first
     for (auto *ite{ entry }; ite < entry + EntryPerCluster; ++ite) {
@@ -93,7 +93,7 @@ namespace {
     #undef NOMINMAX
     #undef WIN32_LEAN_AND_MEAN
 
-    void* allocAlignedMemoryLargePages(size_t mSize) {
+    void* allocAlignedMemoryLargePages(size_t mSize) noexcept {
         HANDLE processToken{};
         LUID luid{};
         void* mem{ nullptr };
@@ -146,7 +146,7 @@ namespace {
         return mem;
     }
     
-    void* allocAlignedMemory(void *&mem, size_t mSize) {
+    void* allocAlignedMemory(void *&mem, size_t mSize) noexcept {
         // Try to allocate large pages
         mem = allocAlignedMemoryLargePages(mSize);
         // Fall back to regular, page aligned, allocation if necessary
@@ -163,7 +163,7 @@ namespace {
     #include <cstdlib>
     #include <sys/mman.h>
 
-    void* allocAlignedMemory(void *&mem, size_t mSize) {
+    void* allocAlignedMemory(void *&mem, size_t mSize) noexcept {
         constexpr size_t alignment{ 2 * 1024 * 1024 };                      // assumed 2MB page sizes
         size_t size{ ((mSize + alignment - 1) / alignment) * alignment };   // multiple of alignment
         if (!posix_memalign(&mem, alignment, size)) {
@@ -177,7 +177,7 @@ namespace {
     }
 
 #else
-    void* allocAlignedMemory(void *&mem, size_t mSize) {
+    void* allocAlignedMemory(void *&mem, size_t mSize) noexcept {
         constexpr size_t alignment{ 64 };        // assumed cache line size
         size_t size{ mSize + alignment - 1 };    // allocate some extra space
         mem = malloc(size);
@@ -189,7 +189,7 @@ namespace {
  
     /// freeAlignedMemory will free the previously allocated ttmem
 #if defined(_WIN64)
-    void freeAlignedMemory(void *mem) {
+    void freeAlignedMemory(void *mem) noexcept {
         if (mem != nullptr) {
             if (VirtualFree(mem,
                             0,
@@ -203,7 +203,7 @@ namespace {
     }
 
 #else
-    void freeAlignedMemory(void *mem) {
+    void freeAlignedMemory(void *mem) noexcept {
         if (mem != nullptr) {
             free(mem);
             mem = nullptr;
@@ -211,7 +211,7 @@ namespace {
     }
 #endif
 
-    inline u64 mul_hi64(u64 a, u64 b) {
+    inline u64 mul_hi64(u64 a, u64 b) noexcept {
 
 #if defined(__GNUC__) && defined(BIT64)
         __extension__ typedef unsigned __int128 u128;
@@ -235,12 +235,12 @@ TTable::~TTable() {
 }
 
 /// size() returns hash size in MB
-u32 TTable::size() const {
+u32 TTable::size() const noexcept {
     return u32((clusterCount * sizeof (TCluster)) >> 20);
 }
 /// cluster() returns a pointer to the cluster of given a key.
 /// Lower 32 bits of the key are used to get the index of the cluster.
-TCluster* TTable::cluster(Key posiKey) const {
+TCluster* TTable::cluster(Key posiKey) const noexcept {
 
     return &clusterTable[mul_hi64(posiKey, clusterCount)];
 }
@@ -248,7 +248,7 @@ TCluster* TTable::cluster(Key posiKey) const {
 /// TTable::resize() sets the size of the transposition table, measured in MB.
 /// Transposition table consists of a power of 2 number of clusters and
 /// each cluster consists of EntryPerCluster number of TTEntry.
-u32 TTable::resize(size_t memSize) {
+size_t TTable::resize(size_t memSize) {
     memSize = clamp(memSize, MinHashSize, MaxHashSize);
 
     Threadpool.mainThread()->waitIdle();
@@ -288,7 +288,7 @@ void TTable::clear() {
     }
 
     std::vector<std::thread> threads;
-    auto threadCount{ optionThreads() };
+    auto const threadCount{ optionThreads() };
     for (u16 index = 0; index < threadCount; ++index) {
         threads.emplace_back(
             [this, index, threadCount]() {
@@ -314,12 +314,12 @@ void TTable::clear() {
     //sync_cout << "info string Hash cleared" << sync_endl;
 }
 
-void TTable::free() {
+void TTable::free() noexcept {
     freeAlignedMemory(mem);
 }
 
 /// TTable::probe() looks up the entry in the transposition table.
-TEntry* TTable::probe(Key posiKey, bool &hit) const {
+TEntry* TTable::probe(Key posiKey, bool &hit) const noexcept {
     return cluster(posiKey)->probe(u16(posiKey), hit);
 }
 /// TTable::hashFull() returns an approximation of the per-mille of the
@@ -328,7 +328,7 @@ TEntry* TTable::probe(Key posiKey, bool &hit) const {
 /// It is used to display the "info hashfull ..." information in UCI.
 /// "the hash is <x> per mill full", the engine should send this info regularly.
 /// hash, are using <x>%. of the state of full.
-u32 TTable::hashFull() const {
+u32 TTable::hashFull() const noexcept {
     u32 freshEntryCount{ 0 };
     for (auto *itc{ clusterTable }; itc < clusterTable + 1000; ++itc) {
         freshEntryCount += itc->freshEntryCount();
@@ -337,14 +337,14 @@ u32 TTable::hashFull() const {
 }
 
 /// TTable::extractNextMove() extracts next move after this move.
-Move TTable::extractNextMove(Position &pos, Move m) const {
+Move TTable::extractNextMove(Position &pos, Move m) const noexcept {
     assert(m != MOVE_NONE
         && MoveList<LEGAL>(pos).contains(m));
 
     StateInfo si;
     pos.doMove(m, si);
     bool ttHit;
-    auto *tte{ probe(pos.posiKey(), ttHit) };
+    auto const *tte{ probe(pos.posiKey(), ttHit) };
     auto nm{ ttHit ?
                 tte->move() : MOVE_NONE };
     if (nm != MOVE_NONE
@@ -389,7 +389,7 @@ void TTable::load(std::string const &hashFn) {
 constexpr u32 BufferSize{ 0x1000 };
 
 std::ostream& operator<<(std::ostream &os, TTable const &tt) {
-    u32 memSize{ tt.size() };
+    u32 const memSize{ tt.size() };
     u08 dummy{ 0 };
     os.write((char const*)(&memSize), sizeof (memSize));
     os.write((char const*)(&dummy), sizeof (dummy));

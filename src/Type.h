@@ -183,7 +183,7 @@ constexpr bool isOk(PieceId pid) noexcept {
     return pid < PIECE_ID_NONE;
 }
 inline PieceId operator++(PieceId &d, int) noexcept {
-    PieceId x = d;
+    PieceId const x{ d };
     d = PieceId(int(d) + 1);
     return x;
 }
@@ -239,7 +239,7 @@ public:
     PieceSquare* pieceListFb() const noexcept { return const_cast<PieceSquare*>(_pieceListFb); }
 
     // Place the piece pc with pieceId on the square sq on the board
-    void putPiece(PieceId pieceId, Square sq, Piece pc) {
+    void putPiece(PieceId pieceId, Square sq, Piece pc) noexcept {
         assert(isOk(pieceId));
         if (pc != NO_PIECE) {
             _pieceListFw[pieceId] = PieceSquare(KPP_BoardIndex[pc].org[WHITE] + sq);
@@ -254,7 +254,7 @@ public:
     }
 
     // Convert the specified pieceId piece to ExtPieceSquare type and return it
-    ExtPieceSquare pieceWithId(PieceId pieceId) const {
+    ExtPieceSquare pieceWithId(PieceId pieceId) const noexcept {
         ExtPieceSquare eps;
         eps.org[WHITE] = _pieceListFw[pieceId];
         eps.org[BLACK] = _pieceListFb[pieceId];

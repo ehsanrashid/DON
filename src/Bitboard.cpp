@@ -219,7 +219,7 @@ namespace BitBoard {
 
             for (auto dir : { SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                               WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST }) {
-                Square sq{ s + dir };
+                auto const sq{ s + dir };
                 if (isOk(sq)
                  && distance(s, sq) == 2) {
                     PieceAttacksBB[NIHT][s] |= sq;
@@ -227,7 +227,7 @@ namespace BitBoard {
             }
             for (auto dir : { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST,
                               EAST, NORTH_WEST, NORTH, NORTH_EAST }) {
-                Square sq{ s + dir };
+                auto const sq{ s + dir };
                 if (isOk(sq)
                  && distance(s, sq) == 1) {
                     PieceAttacksBB[KING][s] |= sq;
@@ -242,7 +242,7 @@ namespace BitBoard {
         }
 
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
-            for (PieceType pt : { BSHP, ROOK }) {
+            for (PieceType const pt : { BSHP, ROOK }) {
                 for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
                     if (contains(PieceAttacksBB[pt][s1], s2)) {
                         LineBB[s1][s2] = (PieceAttacksBB[pt][s1] & PieceAttacksBB[pt][s2]) | s1 | s2;

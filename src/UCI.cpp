@@ -365,12 +365,12 @@ namespace UCI {
 
     namespace {
 
-        void onHash() {
+        void onHash() noexcept {
             TT.autoResize(u32(Options["Hash"]));
             TTEx.autoResize(u32(Options["Hash"])/4);
         }
 
-        void onClearHash() {
+        void onClearHash() noexcept {
             UCI::clear();
         }
 
@@ -392,7 +392,7 @@ namespace UCI {
             }
         }
 
-        void onTimeNodes() {
+        void onTimeNodes() noexcept {
             TimeMgr.clear();
         }
 
@@ -412,7 +412,7 @@ namespace UCI {
         }
     }
 
-    void initialize() {
+    void initialize() noexcept {
 
         Options["Hash"]               << Option(16, 0, TTable::MaxHashSize, onHash);
 
@@ -971,7 +971,7 @@ namespace UCI {
     }
 
     /// clear() clear all stuff
-    void clear() {
+    void clear() noexcept {
         Threadpool.stop = true;
         Threadpool.mainThread()->waitIdle();
 

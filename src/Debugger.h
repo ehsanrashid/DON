@@ -16,13 +16,13 @@ private:
 
 public:
 
-    static void reset();
+    static void reset() noexcept;
 
-    static void hitOn(bool);
-    static void hitOn(bool, bool);
+    static void hitOn(bool) noexcept;
+    static void hitOn(bool, bool) noexcept;
 
-    static void meanOf(i64);
+    static void meanOf(i64) noexcept;
 
-    static void print();
+    static void print() noexcept;
 
 };

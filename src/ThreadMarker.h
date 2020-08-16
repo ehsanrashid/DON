@@ -12,11 +12,11 @@ struct ThreadMark {
     std::atomic<Key>           posiKey;
 
     template<typename T>
-    T load(std::atomic<T> ThreadMark::*member) const {
+    T load(std::atomic<T> ThreadMark::*member) const noexcept {
         return (this->*member).load(std::memory_order::memory_order_relaxed);
     }
     template<typename T>
-    void store(std::atomic<T> ThreadMark::*member, T t) {
+    void store(std::atomic<T> ThreadMark::*member, T t) noexcept {
         (this->*member).store(t, std::memory_order::memory_order_relaxed);
     }
 
@@ -41,7 +41,7 @@ public:
     ThreadMarker& operator=(ThreadMarker const&) = delete;
     ThreadMarker& operator=(ThreadMarker&&) = delete;
 
-    ThreadMarker(Thread const*, Key, i16);
+    ThreadMarker(Thread const*, Key, i16) noexcept;
     ~ThreadMarker();
 };
 

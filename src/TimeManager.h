@@ -18,9 +18,9 @@ public:
     TimeManager& operator=(TimeManager const&) = delete;
     TimeManager& operator=(TimeManager&&) = delete;
 
-    TimePoint elapsed() const;
+    TimePoint elapsed() const noexcept;
 
-    void clear();
+    void clear() noexcept;
 
     void setup(Color, i16);
 };

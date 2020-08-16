@@ -32,7 +32,7 @@ private:
 public:
 
     PRNG() = delete;
-    PRNG(u64 seed) :
+    PRNG(u64 seed) noexcept :
         s{ seed }
     { assert(s != 0); }
 

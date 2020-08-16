@@ -87,8 +87,8 @@ Key Position::movePosiKey(Move m) const noexcept {
          ^ RandZob.castling[castleRights() & (sqCastleRight[org]|sqCastleRight[dst])];
     */
 
-    auto org{ orgSq(m) };
-    auto dst{ dstSq(m) };
+    auto const org{ orgSq(m) };
+    auto const dst{ dstSq(m) };
     auto pKey{ posiKey()
              ^ RandZob.side
              ^ RandZob.psq[board[org]][org]
@@ -138,7 +138,7 @@ bool Position::cycled(i16 pp) const noexcept {
         return false;
     }
 
-    Key pKey{ posiKey() };
+    Key const pKey{ posiKey() };
 
     auto const *psi = _stateInfo->prevState;
     for (i16 i = 3; i <= end; i += 2) {
@@ -237,9 +237,9 @@ bool Position::pseudoLegal(Move m) const noexcept {
 
     // Handle the special case of a piece move
     if (pType(board[org]) == PAWN) {
-        auto orgR{ relativeRank(active, org) };
-        auto dstR{ relativeRank(active, dst) };
-        auto Push{ PawnPush[active] };
+        auto const orgR{ relativeRank(active, org) };
+        auto const dstR{ relativeRank(active, dst) };
+        auto const Push{ PawnPush[active] };
 
         if (// Single push
             (((mType(m) != SIMPLE
@@ -346,7 +346,7 @@ bool Position::legal(Move m) const noexcept {
         return true;
     }
 
-    auto fkSq{ square(active|KING) };
+    auto const fkSq{ square(active|KING) };
 
     // Enpassant captures are a tricky special case. Because they are rather uncommon,
     // do it simply by testing whether the king is attacked after the move is made.
@@ -359,7 +359,7 @@ bool Position::legal(Move m) const noexcept {
             && empty(dst)
             && board[dst - PawnPush[active]] == (~active|PAWN));
 
-        Bitboard mocc{ (pieces() ^ org ^ (dst - PawnPush[active])) | dst };
+        Bitboard const mocc{ (pieces() ^ org ^ (dst - PawnPush[active])) | dst };
         return (pieces(~active, BSHP, QUEN) & attacksBB<BSHP>(fkSq, mocc)) == 0
             && (pieces(~active, ROOK, QUEN) & attacksBB<ROOK>(fkSq, mocc)) == 0;
     }
@@ -406,7 +406,7 @@ bool Position::giveCheck(Move m) const noexcept {
         // Enpassant capture with check?
         // already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
-        Bitboard mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
+        Bitboard const mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
         return (pieces(active, BSHP, QUEN)
               & attacksBB<BSHP>(ekSq, mocc)) != 0
             || (pieces(active, ROOK, QUEN)
@@ -414,16 +414,16 @@ bool Position::giveCheck(Move m) const noexcept {
     }
     case CASTLE: {
         // Castling with check?
-        auto kingDst{ kingCastleSq(org, dst) };
-        auto rookDst{ rookCastleSq(org, dst) };
-        Bitboard mocc{ (pieces() ^ org ^ dst) | kingDst | rookDst };
+        auto const kingDst{ kingCastleSq(org, dst) };
+        auto const rookDst{ rookCastleSq(org, dst) };
+        Bitboard const mocc{ (pieces() ^ org ^ dst) | kingDst | rookDst };
         return contains(attacksBB<ROOK>(rookDst, mocc), ekSq);
     }
     // case PROMOTE:
     default: {
         // Promotion with check?
-        auto ppt{ promoteType(m) };
-        Bitboard mocc{ (pieces() ^ org) | dst };
+        auto const ppt{ promoteType(m) };
+        Bitboard const mocc{ (pieces() ^ org) | dst };
         return
          //   ppt > NIHT
          //&& contains(attacksBB(ppt, dst, mocc), ekSq)
@@ -497,7 +497,7 @@ void Position::setCheckInfo() {
     _stateInfo->kingBlockers[WHITE] = sliderBlockersAt(square(WHITE|KING), pieces(BLACK), _stateInfo->kingCheckers[WHITE], _stateInfo->kingCheckers[BLACK]);
     _stateInfo->kingBlockers[BLACK] = sliderBlockersAt(square(BLACK|KING), pieces(WHITE), _stateInfo->kingCheckers[BLACK], _stateInfo->kingCheckers[WHITE]);
 
-    auto ekSq{ square(~active|KING) };
+    auto const ekSq{ square(~active|KING) };
     _stateInfo->checks[PAWN] = pawnAttacksBB(~active, ekSq);
     _stateInfo->checks[NIHT] = attacksBB<NIHT>(ekSq);
     _stateInfo->checks[BSHP] = attacksBB<BSHP>(ekSq, pieces());
@@ -525,15 +525,15 @@ bool Position::canEnpassant(Color c, Square epSq, bool moved) const noexcept {
         return false;
     }
 
-    auto cap{ moved ? epSq - PawnPush[c] : epSq + PawnPush[c] };
+    auto const cap{ moved ? epSq - PawnPush[c] : epSq + PawnPush[c] };
     assert(board[cap] == (~c|PAWN));
 
-    auto kSq{ square(c|KING) };
-    Bitboard bq{ pieces(~c, BSHP, QUEN) & attacksBB<BSHP>(kSq) };
-    Bitboard rq{ pieces(~c, ROOK, QUEN) & attacksBB<ROOK>(kSq) };
-    Bitboard mocc{ (pieces() ^ cap) | epSq };
+    auto const kSq{ square(c|KING) };
+    Bitboard const bq{ pieces(~c, BSHP, QUEN) & attacksBB<BSHP>(kSq) };
+    Bitboard const rq{ pieces(~c, ROOK, QUEN) & attacksBB<ROOK>(kSq) };
+    Bitboard const mocc{ (pieces() ^ cap) | epSq };
     while (attackers != 0) {
-        Bitboard amocc{ mocc ^ popLSq(attackers) };
+        Bitboard const amocc{ mocc ^ popLSq(attackers) };
         // Check enpassant is legal for the position
         if ((bq == 0 || (bq & attacksBB<BSHP>(kSq, amocc)) == 0)
          && (rq == 0 || (rq & attacksBB<ROOK>(kSq, amocc)) == 0)) {
@@ -578,7 +578,7 @@ bool Position::see(Move m, Value threshold) const {
         Bitboard movAttackers{ attackers & pieces(mov) };
 
         if (movAttackers != 0) {
-            auto kSq{ square(mov|KING) };
+            auto const kSq{ square(mov|KING) };
             Bitboard b;
             // Don't allow pinned pieces to attack (except the king) as long as
             // there are pinners on their original square.
@@ -725,7 +725,7 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
         else
         if ((pos = PieceChar.find(token)) != std::string::npos) {
 
-            auto pc{ Piece(pos) };
+            auto const pc{ Piece(pos) };
             placePiece(sq, pc);
 
             if (Evaluator::useNNUE) {
@@ -751,8 +751,8 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     iss >> token;
     while ((iss >> token)
         && !isspace(token)) {
-        Color c{ isupper(token) ? WHITE : BLACK };
-        Piece rook{ (c|ROOK) };
+        Color const c{ isupper(token) ? WHITE : BLACK };
+        Piece const rook{ (c|ROOK) };
 
         token = char(tolower(token));
         Square rookOrg;
@@ -875,10 +875,10 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         && (!contains(pieces(active), dst)
          || mType(m) == CASTLE));
 
-    auto mp = board[org];
+    auto const mp{ board[org] };
     assert(mp != NO_PIECE);
-    auto cp = mType(m) != ENPASSANT ?
-                board[dst] : (pasive|PAWN);
+    auto cp{ mType(m) != ENPASSANT ?
+                board[dst] : (pasive | PAWN) };
 
     if (mType(m) == CASTLE) {
         assert(mp == (active|KING)

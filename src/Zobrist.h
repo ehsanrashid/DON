@@ -20,14 +20,14 @@ struct Zobrist {
     Zobrist& operator=(Zobrist const&) = delete;
     Zobrist& operator=(Zobrist&&) = delete;
 
-    Key computeMatlKey(Position const&) const;
-    Key computePawnKey(Position const&) const;
-    Key computePosiKey(Position const&) const;
+    Key computeMatlKey(Position const&) const noexcept;
+    Key computePawnKey(Position const&) const noexcept;
+    Key computePosiKey(Position const&) const noexcept;
 };
 
 namespace Zobrists {
 
-    extern void initialize();
+    extern void initialize() noexcept;
 }
 
 extern Zobrist RandZob;

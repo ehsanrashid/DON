@@ -126,15 +126,15 @@ void MovePicker::value() {
         auto &vm{ *(vmCur++) };
 
         if (GT == CAPTURE) {
-            auto captured{ pos.captured(vm) };
+            auto const captured{ pos.captured(vm) };
 
             vm.value = i32(PieceValues[MG][captured]) * 6
                      + (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][captured];
         }
         if (GT == QUIET) {
-            auto dst{ dstSq(vm) };
-            auto mp{ pos[orgSq(vm)] };
-            auto mask{ mMask(vm) };
+            auto const dst{ dstSq(vm) };
+            auto const mp{ pos[orgSq(vm)] };
+            auto const mask{ mMask(vm) };
 
             vm.value = (*butterFlyStats)[pos.activeSide()][mask]
                      + (*pieceStats[0])[mp][dst] * 2

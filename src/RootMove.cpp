@@ -12,36 +12,36 @@ RootMove::RootMove(Move m) :
     std::vector<Move>{ 1, m }
 {}
 
-bool RootMove::operator<(RootMove const &rm) const {
+bool RootMove::operator<(RootMove const &rm) const noexcept {
     return (rm.newValue < newValue)
         || (rm.newValue == newValue
          && rm.oldValue < oldValue);
 }
-bool RootMove::operator>(RootMove const &rm) const {
+bool RootMove::operator>(RootMove const &rm) const noexcept {
     return (rm.newValue > newValue)
         || (rm.newValue == newValue
          && rm.oldValue > oldValue);
 }
 
-//bool RootMove::operator==(RootMove const &rm) const {
+//bool RootMove::operator==(RootMove const &rm) const noexcept {
 //    return front() == rm.front();
 //}
-//bool RootMove::operator!=(RootMove const &rm) const {
+//bool RootMove::operator!=(RootMove const &rm) const noexcept {
 //    return front() != rm.front();
 //}
 
-bool RootMove::operator==(Move m) const {
+bool RootMove::operator==(Move m) const noexcept {
     return front() == m;
 }
 
-bool RootMove::operator!=(Move m) const {
+bool RootMove::operator!=(Move m) const noexcept {
     return front() != m;
 }
 
-void RootMove::operator+=(Move m) {
+void RootMove::operator+=(Move m) noexcept {
     push_back(m);
 }
-//void RootMove::operator-=(Move m) {
+//void RootMove::operator-=(Move m) noexcept {
 //    erase(std::remove(begin(), end(), m), end());
 //}
 

@@ -76,11 +76,11 @@ namespace UCI {
     extern std::ostream& operator<<(std::ostream&, OptionMap const&);
 
 
-    extern void initialize();
+    extern void initialize() noexcept;
 
     extern void handleCommands(std::string const&);
 
-    extern void clear();
+    extern void clear() noexcept;
 }
 
 // Global nocase mapping of Options
