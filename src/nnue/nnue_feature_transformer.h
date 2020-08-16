@@ -15,7 +15,7 @@ namespace Evaluator::NNUE {
     private:
         // Number of output dimensions for one side
         static constexpr IndexType kHalfDimensions{ kTransformedFeatureDimensions };
-        
+
     public:
         // Number of input/output dimensions
         static constexpr IndexType kInputDimensions{ RawFeatures::kDimensions };

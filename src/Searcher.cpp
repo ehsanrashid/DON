@@ -136,11 +136,7 @@ namespace {
 
     /// updateContinuationStats() updates Stats of the move pairs formed
     /// by moves at ply -1, -2, -4 and -6 with current move.
-    void updateContinuationStats(
-        Stack *ss,
-        Piece p,
-        Square dst,
-        i32 bonus) {
+    void updateContinuationStats(Stack *ss, Piece p, Square dst, i32 bonus) {
         //assert(isOk(p));
         for (auto i : { 1, 2, 4, 6 }) {
             if (ss->inCheck && i > 2) {
@@ -153,26 +149,14 @@ namespace {
     }
 
     /// updateQuietStats() updates move sorting heuristics when a new quiet best move is found
-    void updateQuietStats(
-        Stack *ss,
-        Thread *th,
-        Position const &pos,
-        Color activeSide,
-        Move move,
-        i32 bonus) {
+    void updateQuietStats(Stack *ss, Thread *th, Position const &pos, Color activeSide, Move move, i32 bonus) {
 
         th->butterFlyStats[activeSide][mMask(move)] << bonus;
         updateContinuationStats(ss, pos[orgSq(move)], dstSq(move), bonus);
     }
 
-    void updateQuietStatsRefutationMoves(
-        Stack *ss,
-        Thread *th,
-        Position const &pos,
-        Color activeSide,
-        Move move,
-        i32 bonus, Depth depth,
-        bool pmOK, Piece pmPiece, Square pmDst) {
+    void updateQuietStatsRefutationMoves(Stack *ss, Thread *th, Position const &pos, Color activeSide, Move move, i32 bonus,
+                                         Depth depth, bool pmOK, Piece pmPiece, Square pmDst) {
 
         updateQuietStats(ss, th, pos, activeSide, move, bonus);
 
@@ -244,21 +228,17 @@ namespace {
 
     /// multipvInfo() formats PV information according to UCI protocol.
     /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
-    std::string multipvInfo(
-        Thread const *th,
-        Depth depth,
-        Value alfa,
-        Value beta) {
-        auto elapsed{ std::max(TimeMgr.elapsed(), { 1 }) };
-        auto nodes{ Threadpool.sum(&Thread::nodes) };
-        auto tbHits{ Threadpool.sum(&Thread::tbHits)
-                   + th->rootMoves.size() * SyzygyTB::HasRoot };
+    std::string multipvInfo(Thread const *th, Depth depth, Value alfa, Value beta) {
+        auto const elapsed{ std::max(TimeMgr.elapsed(), { 1 }) };
+        auto const nodes{ Threadpool.sum(&Thread::nodes) };
+        auto const tbHits{ Threadpool.sum(&Thread::tbHits)
+                         + th->rootMoves.size() * SyzygyTB::HasRoot };
 
         std::ostringstream oss{};
         for (u16 i = 0; i < PVCount; ++i) {
-            
+
             bool const updated{ th->rootMoves[i].newValue != -VALUE_INFINITE };
-            
+
             if (depth == 1
              && !updated) {
                 continue;
@@ -308,12 +288,8 @@ namespace {
 
     /// quienSearch() is quiescence search function, which is called by the main depth limited search function when the remaining depth <= 0.
     template<bool PVNode>
-    Value quienSearch(
-        Position &pos,
-        Stack *ss,
-        Value alfa,
-        Value beta,
-        Depth depth = DEPTH_ZERO) {
+    Value quienSearch(Position &pos, Stack *ss, Value alfa, Value beta, Depth depth = DEPTH_ZERO) {
+
         assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
         assert(PVNode || (alfa == beta-1));
         assert(depth <= DEPTH_ZERO);
@@ -579,21 +555,11 @@ namespace {
     }
     /// depthSearch() is main depth limited search function, which is called when the remaining depth > 0.
     template<bool PVNode>
-    Value depthSearch(
-        Position &pos,
-        Stack *ss,
-        Value alfa,
-        Value beta,
-        Depth depth,
-        bool cutNode) {
+    Value depthSearch(Position &pos, Stack *ss, Value alfa, Value beta, Depth depth, bool cutNode) {
+
         bool rootNode{ PVNode
                     && ss->ply == 0 };
 
-        // Step 1. Initialize node
-        ss->moveCount = 0;
-        bool inCheck{ pos.checkers() != 0 };
-        ss->inCheck = inCheck;
-        auto *thread{ pos.thread() };
 
         // Check if there exists a move which draws by repetition,
         // or an alternative earlier move to this position.
@@ -602,7 +568,7 @@ namespace {
          && pos.clockPly() >= 3
          && pos.cycled(ss->ply)) {
 
-            alfa = drawValue(thread);
+            alfa = drawValue(pos.thread());
             if (alfa >= beta) {
                 return alfa;
             }
@@ -617,6 +583,12 @@ namespace {
         assert(PVNode || (alfa == beta-1));
         assert(!(PVNode && cutNode));
         assert(DEPTH_ZERO < depth && depth < MAX_PLY);
+
+        // Step 1. Initialize node
+        ss->moveCount = 0;
+        bool inCheck{ pos.checkers() != 0 };
+        ss->inCheck = inCheck;
+        auto *thread{ pos.thread() };
 
         // Check for the available remaining limit
         if (thread == Threadpool.mainThread()) {
@@ -707,8 +679,8 @@ namespace {
         bool const pmOK   { isOk((ss-1)->playedMove) };
         auto const pmDst  { dstSq((ss-1)->playedMove) };
         auto const pmPiece{ CASTLE != mType((ss-1)->playedMove) ? pos[pmDst] : ~activeSide|KING };
-        bool const pmCapOrPro { pos.captured() != NONE
-                             || pos.promoted() };
+        bool const pmCapOrPro{ pos.captured() != NONE
+                            || pos.promoted() };
 
         if (ttPV
          && depth > 12
@@ -901,8 +873,8 @@ namespace {
              && pos.nonPawnMaterial(activeSide) > VALUE_ZERO
              && excludedMove == MOVE_NONE
              // Null move pruning disabled for activeSide until ply exceeds nmpPly
-                && (ss->ply >= thread->nmpMinPly
-                 || activeSide != thread->nmpColor)
+             && (ss->ply >= thread->nmpMinPly
+              || activeSide != thread->nmpColor)
              && Limits.mate == 0) {
                 // Null move dynamic reduction based on depth and static evaluation.
                 auto const nullDepth{
@@ -1212,7 +1184,7 @@ namespace {
                     }
                 }
             }
-            
+
             // Step 14. Extensions. (~75 ELO)
             auto extension{ DEPTH_ZERO };
 
@@ -1676,7 +1648,8 @@ void Thread::search() {
     std::fill(&lowPlyStats[MAX_LOWPLY - 2][0], &lowPlyStats.back().back() + 1, 0);
 
     auto *mainThread{ this == Threadpool.mainThread() ?
-                        static_cast<MainThread*>(this) : nullptr };
+                        static_cast<MainThread*>(this) :
+                        nullptr };
 
     if (mainThread != nullptr) {
         std::fill_n(mainThread->iterValues, 4,
@@ -1896,11 +1869,11 @@ void Thread::search() {
 
                 auto const totalTime{
                     TimePoint(rootMoves.size() > 1 ?
-                        TimeMgr.optimum
-                      * reductionRatio
-                      * fallingEval
-                      * pvInstability :
-                        0) };
+                                TimeMgr.optimum
+                              * reductionRatio
+                              * fallingEval
+                              * pvInstability :
+                                0) };
                 auto elapsed{ TimeMgr.elapsed() };
 
                 // Stop the search if we have exceeded the totalTime (at least 1ms).
@@ -2143,9 +2116,9 @@ namespace SyzygyTB {
         if (HasRoot) {
             // Sort moves according to TB rank
             std::sort(rootMoves.begin(), rootMoves.end(),
-                [](RootMove const &rm1, RootMove const &rm2) {
-                    return rm1.tbRank > rm2.tbRank;
-                });
+                    [](RootMove const &rm1, RootMove const &rm2) {
+                        return rm1.tbRank > rm2.tbRank;
+                    });
             // Probe during search only if DTZ is not available and winning
             if (dtzAvailable
              || rootMoves[0].tbValue <= VALUE_DRAW) {

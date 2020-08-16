@@ -337,7 +337,8 @@ namespace Evaluator {
 
                 Bitboard const action{
                     contains(kingBlockers, s) ?
-                        lineBB(kSq, s) : BoardBB };
+                        lineBB(kSq, s) :
+                        BoardBB };
 
                 // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
                 Bitboard attacks{
@@ -555,9 +556,11 @@ namespace Evaluator {
             Bitboard const bshpPins{ attacksBB<BSHP>(kSq, pos.pieces() ^ pos.pieces(Own, QUEN)) };
 
             // Enemy rooks checks
-            Bitboard rookSafeChecks{  rookPins
-                                   &  sqlAttacks[Opp][ROOK]
-                                   &  safeArea};
+            Bitboard const rookSafeChecks{
+                rookPins
+              & sqlAttacks[Opp][ROOK]
+              & safeArea };
+
             if (rookSafeChecks != 0) {
                 kingDanger += SafeCheckWeight[ROOK - 2][moreThanOne(rookSafeChecks)];
             }
@@ -567,20 +570,24 @@ namespace Evaluator {
             }
 
             // Enemy queens checks
-            Bitboard quenSafeChecks{ (rookPins | bshpPins)
-                                   &  sqlAttacks[Opp][QUEN]
-                                   &  safeArea
-                                   & ~sqlAttacks[Own][QUEN]
-                                   & ~rookSafeChecks };
+            Bitboard const quenSafeChecks{
+                (rookPins | bshpPins)
+              & sqlAttacks[Opp][QUEN]
+              & safeArea
+              & ~sqlAttacks[Own][QUEN]
+              & ~rookSafeChecks };
+
             if (quenSafeChecks != 0) {
                 kingDanger += SafeCheckWeight[QUEN - 2][moreThanOne(quenSafeChecks)];
             }
 
             // Enemy bishops checks
-            Bitboard bshpSafeChecks{  bshpPins
-                                   &  sqlAttacks[Opp][BSHP]
-                                   &  safeArea
-                                   & ~quenSafeChecks };
+            Bitboard bshpSafeChecks{
+                bshpPins
+              & sqlAttacks[Opp][BSHP]
+              & safeArea
+              & ~quenSafeChecks };
+
             if (bshpSafeChecks != 0) {
                 kingDanger += SafeCheckWeight[BSHP - 2][moreThanOne(bshpSafeChecks)];
             }
@@ -590,9 +597,11 @@ namespace Evaluator {
             }
 
             // Enemy knights checks
-            Bitboard nihtSafeChecks{  attacksBB<NIHT>(kSq)
-                                   &  sqlAttacks[Opp][NIHT]
-                                   &  safeArea };
+            Bitboard nihtSafeChecks{
+                attacksBB<NIHT>(kSq)
+              & sqlAttacks[Opp][NIHT]
+              & safeArea };
+
             if (nihtSafeChecks != 0) {
                 kingDanger += SafeCheckWeight[NIHT - 2][moreThanOne(nihtSafeChecks)];
             }
@@ -796,9 +805,11 @@ namespace Evaluator {
             constexpr auto Opp{ ~Own };
             constexpr auto Push{ PawnPush[Own] };
 
-            auto kingProximity{ [&](Color c, Square s) {
-                return std::min(distance(pos.square(c|KING), s), 5);
-            } };
+            auto const kingProximity{
+                [&](Color c, Square s) {
+                    return std::min(distance(pos.square(c | KING), s), 5);
+                }
+            };
 
             Bitboard pass{ pawnEntry->passeds[Own] };
             Bitboard const blockedPass{
@@ -902,6 +913,7 @@ namespace Evaluator {
                 pos.count(Own)
               + std::min(pawnEntry->blockedCount(), 9)
               - 3 };
+
             Score const score{ makeScore(bonus * weight * weight / 16, 0) };
 
             if (Trace) {
@@ -939,8 +951,10 @@ namespace Evaluator {
                        + pos.thread()->contempt };
 
             // Early exit if score is high
-            auto const lazySkip = [&](Value lazyThreshold) {
-                return std::abs(mgValue(score) + egValue(score)) / 2 > lazyThreshold + pos.nonPawnMaterial() / 64;
+            auto const lazySkip{
+                [&](Value lazyThreshold) {
+                    return std::abs(mgValue(score) + egValue(score)) / 2 > lazyThreshold + pos.nonPawnMaterial() / 64;
+                }
             };
 
             if (lazySkip(LazyThreshold1)) {
@@ -1025,7 +1039,7 @@ namespace Evaluator {
             if (scale == SCALE_NONE) {
                 scale = matlEntry->scaleFactor[strongSide];
             }
-            // If scaleFactor is not already specific, scaleFactor down the endgame via general heuristics
+            // If scale factor is not already specific, scale down via general heuristics
             if (scale == SCALE_NORMAL) {
                 if (pos.bishopOpposed()) {
                     scale = Scale(pos.nonPawnMaterial() == 2 * VALUE_MG_BSHP ?
@@ -1035,11 +1049,11 @@ namespace Evaluator {
                 else
                 if (pos.nonPawnMaterial(WHITE) == VALUE_MG_ROOK
                  && pos.nonPawnMaterial(BLACK) == VALUE_MG_ROOK
-                 && (pos.count( strongSide|PAWN)
-                   - pos.count(~strongSide|PAWN)) <= 1
-                 && (bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_KING])
-                  != bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_QUEN]))
-                 && (attacksBB<KING>(pos.square(~strongSide|KING))
+                 && pos.count( strongSide|PAWN)
+                  - pos.count(~strongSide|PAWN) <= 1
+                 && bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_KING])
+                 != bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_QUEN])
+                 && (sqlAttacks[~strongSide][KING]
                    & pos.pieces(~strongSide, PAWN)) != 0) {
                     scale = Scale(36);
                 }
@@ -1134,7 +1148,7 @@ namespace Evaluator {
                 << "----------------+-------------+-------------+--------------\n"
                 << "          Total" << Term(TOTAL);
         }
-        
+
         // Trace scores are from White's point of view
         value = (pos.activeSide() == WHITE ? +value : -value);
         oss << std::showpos << std::showpoint << std::fixed << std::setprecision(2)
