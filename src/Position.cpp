@@ -43,12 +43,12 @@ namespace {
 //void Position::initialize()
 //{}
 
-Key Position::pgKey() const {
+Key Position::pgKey() const noexcept {
     return PolyZob.computePosiKey(*this);
 }
 /// Position::movePosiKey() computes the new hash key after the given moven, needed for speculative prefetch.
 /// It doesn't recognize special moves like castling, en-passant and promotions.
-Key Position::movePosiKey(Move m) const {
+Key Position::movePosiKey(Move m) const noexcept {
     assert(isOk(m));
     //assert(pseudoLegal(m)
     //    && legal(m));
@@ -104,7 +104,7 @@ Key Position::movePosiKey(Move m) const {
 
 /// Position::draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
 /// It does not detect Insufficient materials and Stalemate.
-bool Position::draw(i16 pp) const {
+bool Position::draw(i16 pp) const noexcept {
     return  // Draw by Clock Ply Rule?
             // Not in check or in check have legal moves
            (clockPly() >= 2 * i16(Options["Draw MoveCount"])
@@ -118,7 +118,7 @@ bool Position::draw(i16 pp) const {
 }
 
 /// Position::repeated() tests whether there has been at least one repetition of positions since the last capture or pawn move.
-bool Position::repeated() const {
+bool Position::repeated() const noexcept {
     auto end{ std::min(clockPly(), nullPly()) };
     auto const *csi{ _stateInfo };
     while (end-- >= 4) {
@@ -132,7 +132,7 @@ bool Position::repeated() const {
 
 /// Position::cycled() tests if the position has a move which draws by repetition,
 /// or an earlier position has a move that directly reaches the current position.
-bool Position::cycled(i16 pp) const {
+bool Position::cycled(i16 pp) const noexcept {
     auto end{ std::min(clockPly(), nullPly()) };
     if (end < 3) {
         return false;
@@ -177,7 +177,7 @@ bool Position::cycled(i16 pp) const {
 
 /// Position::sliderBlockersAt() returns a bitboard of all the pieces that are blocking attacks on the square.
 /// King-attack piece can be either pinner or hidden piece.
-Bitboard Position::sliderBlockersAt(Square s, Bitboard attackers, Bitboard &pinners, Bitboard &hidders) const {
+Bitboard Position::sliderBlockersAt(Square s, Bitboard attackers, Bitboard &pinners, Bitboard &hidders) const noexcept {
     Bitboard blockers{ 0 };
 
     Bitboard defenders{ pieces(pColor(board[s])) };
@@ -204,19 +204,18 @@ Bitboard Position::sliderBlockersAt(Square s, Bitboard attackers, Bitboard &pinn
 /// Position::pseudoLegal() tests whether a random move is pseudo-legal.
 /// It is used to validate moves from TT that can be corrupted
 /// due to SMP concurrent access or hash position key aliasing.
-bool Position::pseudoLegal(Move m) const
-{
+bool Position::pseudoLegal(Move m) const noexcept {
     assert(isOk(m));
 
-    auto org{ orgSq(m) };
-    auto dst{ dstSq(m) };
+    auto const org{ orgSq(m) };
+    auto const dst{ dstSq(m) };
     // If the org square is not occupied by a piece belonging to the side to move,
     // then the move is obviously not legal.
     if (!contains(pieces(active), org)) {
         return false;
     }
 
-    auto chkrs{ checkers() };
+    auto const chkrs{ checkers() };
 
     if (mType(m) == CASTLE) {
 
@@ -309,12 +308,12 @@ bool Position::pseudoLegal(Move m) const
     return true;
 }
 /// Position::legal() tests whether a pseudo-legal move is legal.
-bool Position::legal(Move m) const {
+bool Position::legal(Move m) const noexcept {
     assert(isOk(m));
     //assert(pseudoLegal(m));
 
-    auto org{ orgSq(m) };
-    auto dst{ dstSq(m) };
+    auto const org{ orgSq(m) };
+    auto const dst{ dstSq(m) };
     assert(contains(pieces(active), org));
 
     // Castling moves check for clear path for king
@@ -382,14 +381,14 @@ bool Position::legal(Move m) const {
 }
 
 /// Position::giveCheck() tests whether a pseudo-legal move gives a check.
-bool Position::giveCheck(Move m) const {
+bool Position::giveCheck(Move m) const noexcept {
     assert(isOk(m));
 
-    auto org{ orgSq(m) };
-    auto dst{ dstSq(m) };
+    auto const org{ orgSq(m) };
+    auto const dst{ dstSq(m) };
     assert(contains(pieces(active), org));
 
-    auto ekSq{ square(~active|KING) };
+    auto const ekSq{ square(~active|KING) };
 
     if (// Direct check ?
         contains(checks(mType(m) != PROMOTE ? pType(board[org]) : promoteType(m)), dst)
@@ -436,7 +435,7 @@ bool Position::giveCheck(Move m) const {
     }
 }
 
-bool Position::giveDblCheck(Move m) const {
+bool Position::giveDblCheck(Move m) const noexcept {
     assert(isOk(m));
     //assert(giveCheck(m));
 
@@ -444,10 +443,10 @@ bool Position::giveDblCheck(Move m) const {
         return false;
     }
 
-    auto org{ orgSq(m) };
-    auto dst{ dstSq(m) };
+    auto const org{ orgSq(m) };
+    auto const dst{ dstSq(m) };
 
-    auto ekSq{ square(~active|KING) };
+    auto const ekSq{ square(~active|KING) };
 
     if (mType(m) == ENPASSANT) {
         Bitboard mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
@@ -508,7 +507,7 @@ void Position::setCheckInfo() {
 }
 
 /// Position::canEnpassant() Can the enpassant possible.
-bool Position::canEnpassant(Color c, Square epSq, bool moved) const {
+bool Position::canEnpassant(Color c, Square epSq, bool moved) const noexcept {
     assert(isOk(epSq)
         && relativeRank(c, epSq) == RANK_6);
 

@@ -13,41 +13,24 @@ using std::ostream;
 string const PieceChar{ " PNBRQK  pnbrqk" };
 string const ColorChar{ "wb" };
 
-Color toColor(char c) {
-    auto pos{ ColorChar.find(c) };
+Color toColor(char c) noexcept {
+    auto const pos{ ColorChar.find(c) };
     return pos != string::npos ? Color(pos) : COLORS;
 }
-char toChar(Color c) {
-    return isOk(c) ? ColorChar[c] : '-';
-}
 
-File toFile(char f) {
-    return File(f - 'a');
-}
-char toChar(File f, bool lower) {
-    return char(f + 'A' + 0x20 * lower);
-}
-
-Rank toRank(char r) {
-    return Rank(r - '1');
-}
-char toChar(Rank r) {
-    return char(r + '1');
-}
-
-string toString(Square s) {
+string toString(Square s) noexcept {
     return{ toChar(sFile(s)), toChar(sRank(s)) };
 }
 
-char toChar(PieceType pt) {
+char toChar(PieceType pt) noexcept {
     return PieceChar[pt];
 }
 
-Piece toPiece(char p) {
-    auto pos{ PieceChar.find(p) };
+Piece toPiece(char p) noexcept {
+    auto const pos{ PieceChar.find(p) };
     return pos != string::npos ? Piece(pos) : NO_PIECE;
 }
-char toChar(Piece p) {
+char toChar(Piece p) noexcept {
     return isOk(p) ? PieceChar[p] : '-';
 }
 
@@ -186,8 +169,8 @@ namespace {
                     // If pinned piece is considered as ambiguous
                     //& ~pos.kingBlockers(pos.activeSide()) };
         while (pcs != 0) {
-            auto sq{ popLSq(pcs) };
-            auto move{ makeMove<SIMPLE>(sq, dst) };
+            auto const sq{ popLSq(pcs) };
+            auto const move{ makeMove<SIMPLE>(sq, dst) };
             if (!(pos.pseudoLegal(move)
                && pos.legal(move))) {
                 amb ^= sq;
@@ -246,11 +229,11 @@ string moveToSAN(Move m, Position &pos) {
     assert(MoveList<LEGAL>(pos).contains(m));
 
     std::ostringstream oss{};
-    auto org{ orgSq(m) };
-    auto dst{ dstSq(m) };
+    auto const org{ orgSq(m) };
+    auto const dst{ dstSq(m) };
 
     if (mType(m) != CASTLE) {
-        auto pt = pType(pos[org]);
+        auto const pt = pType(pos[org]);
         if (pt != PAWN) {
             oss << (WHITE|pt);
             if (pt != KING) {

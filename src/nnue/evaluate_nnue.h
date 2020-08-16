@@ -13,7 +13,7 @@ namespace Evaluator::NNUE {
     // Deleter for automating release of memory area
     template<typename T>
     struct AlignedDeleter {
-        void operator()(T*) const;
+        void operator()(T*) const noexcept;
     };
 
     template<typename T>

@@ -31,15 +31,15 @@ public:
     // "Generation" variable distinguish transposition table entries from different searches.
     static u08 Generation;
 
-    Move       move() const { return Move (m16); }
-    Value     value() const { return Value(v16); }
-    Value      eval() const { return Value(e16); }
-    Depth     depth() const { return Depth(d08 + DEPTH_OFFSET); }
-    Bound     bound() const { return Bound(g08 & 3); }
-    bool         pv() const { return bool (g08 & 4); }
-    u08  generation() const { return u08  (g08 & 248); }
+    Move       move() const noexcept { return Move (m16); }
+    Value     value() const noexcept { return Value(v16); }
+    Value      eval() const noexcept { return Value(e16); }
+    Depth     depth() const noexcept { return Depth(d08 + DEPTH_OFFSET); }
+    Bound     bound() const noexcept { return Bound(g08 & 3); }
+    bool         pv() const noexcept { return bool (g08 & 4); }
+    u08  generation() const noexcept { return u08  (g08 & 248); }
 
-    u16       worth() const { return d08 - ((263 + Generation - g08) & 248); }
+    u16       worth() const noexcept { return d08 - ((263 + Generation - g08) & 248); }
 
     void refresh();
     void save(Key, Move, Value, Value, Depth, Bound, u08);

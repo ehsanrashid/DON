@@ -179,10 +179,10 @@ enum PieceId {
     PIECE_ID_NONE   = 32
 };
 
-constexpr bool isOk(PieceId pid) {
+constexpr bool isOk(PieceId pid) noexcept {
     return pid < PIECE_ID_NONE;
 }
-inline PieceId operator++(PieceId &d, int) {
+inline PieceId operator++(PieceId &d, int) noexcept {
     PieceId x = d;
     d = PieceId(int(d) + 1);
     return x;
@@ -235,8 +235,8 @@ public:
     PieceId pieceIdList[SQUARES];
 
     // List of pieces, separate from White and Black POV
-    PieceSquare* pieceListFw() const { return const_cast<PieceSquare*>(_pieceListFw); }
-    PieceSquare* pieceListFb() const { return const_cast<PieceSquare*>(_pieceListFb); }
+    PieceSquare* pieceListFw() const noexcept { return const_cast<PieceSquare*>(_pieceListFw); }
+    PieceSquare* pieceListFb() const noexcept { return const_cast<PieceSquare*>(_pieceListFb); }
 
     // Place the piece pc with pieceId on the square sq on the board
     void putPiece(PieceId pieceId, Square sq, Piece pc) {
@@ -608,7 +608,7 @@ constexpr Move reverseMove(Move m) {
 }
 
 /// Convert Value to Centipawn
-constexpr double toCP(Value   v) {
+constexpr double toCP(Value v) {
     return double(v) / VALUE_EG_PAWN * 100;
 }
 /// Convert Centipawn to Value
@@ -652,8 +652,8 @@ struct ValMove {
     explicit ValMove(Move m) :
         move{ m } {}
 
-    operator Move() const { return move; }
-    void operator=(Move m) { move = m; }
+    operator Move() const noexcept { return move; }
+    void operator=(Move m) noexcept { move = m; }
 
     // Inhibit unwanted implicit conversions to Move
     // with an ambiguity that yields to a compile error.
@@ -730,12 +730,12 @@ constexpr i32 edgeDistance(i08 d) { return std::min(d - 0, 7 - d); }
 /// distance() functions return the distance between s1 and s2
 /// defined as the number of steps for a king in s1 to reach s2.
 
-inline i32 fileDistance(Square s1, Square s2) { return std::abs(sFile(s1) - sFile(s2)); }
-inline i32 rankDistance(Square s1, Square s2) { return std::abs(sRank(s1) - sRank(s2)); }
+inline i32 fileDistance(Square s1, Square s2) noexcept { return std::abs(sFile(s1) - sFile(s2)); }
+inline i32 rankDistance(Square s1, Square s2) noexcept { return std::abs(sRank(s1) - sRank(s2)); }
 
 extern u08 Distance[SQUARES][SQUARES];
 
-inline i32 distance(Square s1, Square s2) {
+inline i32 distance(Square s1, Square s2) noexcept {
     //return std::max(fileDistance(s1, s2), rankDistance(s1, s2));
     return Distance[s1][s2];
 }

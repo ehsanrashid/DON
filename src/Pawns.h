@@ -21,8 +21,8 @@ namespace Pawns {
         Bitboard attacksSpan[COLORS];
         Bitboard passeds[COLORS];
 
-        i32 blockedCount() const;
-        i32 passedCount() const;
+        i32 blockedCount() const noexcept;
+        i32 passedCount() const noexcept;
 
         template<Color>
         void evaluate(Position const&);

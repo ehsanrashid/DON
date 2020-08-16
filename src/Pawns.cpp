@@ -31,11 +31,11 @@ namespace Pawns {
 
     }
 
-    i32 Entry::blockedCount() const {
+    i32 Entry::blockedCount() const noexcept {
         return popCount(blockeds);
     }
 
-    i32 Entry::passedCount() const {
+    i32 Entry::passedCount() const noexcept {
         return popCount(passeds[WHITE] | passeds[BLACK]);
     }
 

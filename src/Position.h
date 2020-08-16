@@ -104,10 +104,10 @@ private:
     void setCastle(Color, Square);
     void setCheckInfo();
 
-    bool canEnpassant(Color, Square, bool = true) const;
+    bool canEnpassant(Color, Square, bool = true) const noexcept;
 
     // ID of a piece on a given square
-    PieceId pieceIdOn(Square sq) const;
+    PieceId pieceIdOn(Square sq) const noexcept;
 
 public:
     //static void initialize();
@@ -136,74 +136,74 @@ public:
     Square const *squares(Piece) const noexcept;
     Square square(Piece, u08 = 0) const noexcept;
 
-    Value nonPawnMaterial(Color) const;
-    Value nonPawnMaterial() const;
+    Value nonPawnMaterial(Color) const noexcept;
+    Value nonPawnMaterial() const noexcept;
 
-    Square   castleRookSq(Color, CastleSide) const;
-    Bitboard castleKingPath(Color, CastleSide) const;
-    Bitboard castleRookPath(Color, CastleSide) const;
-    //CastleRight castleRight(Square) const;
+    Square   castleRookSq(Color, CastleSide) const noexcept;
+    Bitboard castleKingPath(Color, CastleSide) const noexcept;
+    Bitboard castleRookPath(Color, CastleSide) const noexcept;
+    //CastleRight castleRight(Square) const noexcept;
 
-    CastleRight castleRights() const;
-    bool canCastle(Color) const;
-    bool canCastle(Color, CastleSide) const;
-    Square epSquare() const;
+    CastleRight castleRights() const noexcept;
+    bool canCastle(Color) const noexcept;
+    bool canCastle(Color, CastleSide) const noexcept;
+    Square epSquare() const noexcept;
 
-    i16 clockPly() const;
-    i16 nullPly() const;
+    i16 clockPly() const noexcept;
+    i16 nullPly() const noexcept;
 
-    Key matlKey() const;
-    Key pawnKey() const;
-    Key posiKey() const;
-    Bitboard checkers() const;
-    PieceType captured() const;
-    bool promoted() const;
-    i16 repetition() const;
+    Key matlKey() const noexcept;
+    Key pawnKey() const noexcept;
+    Key posiKey() const noexcept;
+    Bitboard checkers() const noexcept;
+    PieceType captured() const noexcept;
+    bool promoted() const noexcept;
+    i16 repetition() const noexcept;
 
-    Bitboard kingBlockers(Color) const;
-    Bitboard kingCheckers(Color) const;
-    Bitboard checks(PieceType) const;
+    Bitboard kingBlockers(Color) const noexcept;
+    Bitboard kingCheckers(Color) const noexcept;
+    Bitboard checks(PieceType) const noexcept;
 
-    Color activeSide() const;
-    Score psqScore() const;
-    i16 gamePly() const;
-    Thread* thread() const;
-    void thread(Thread*);
+    Color activeSide() const noexcept;
+    Score psqScore() const noexcept;
+    i16 gamePly() const noexcept;
+    Thread* thread() const noexcept;
+    void thread(Thread*) noexcept;
 
-    bool castleExpeded(Color, CastleSide) const;
+    bool castleExpeded(Color, CastleSide) const noexcept;
 
-    Key pgKey() const;
-    Key movePosiKey(Move) const;
+    Key pgKey() const noexcept;
+    Key movePosiKey(Move) const noexcept;
 
-    i16  moveCount() const;
-    bool draw(i16) const;
-    bool repeated() const;
-    bool cycled(i16) const;
+    i16  moveCount() const noexcept;
+    bool draw(i16) const noexcept;
+    bool repeated() const noexcept;
+    bool cycled(i16) const noexcept;
 
-    Bitboard attackersTo(Square, Bitboard) const;
-    Bitboard attackersTo(Square) const;
+    Bitboard attackersTo(Square, Bitboard) const noexcept;
+    Bitboard attackersTo(Square) const noexcept;
 
-    Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const;
+    Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const noexcept;
 
-    bool capture(Move) const;
-    bool captureOrPromotion(Move) const;
+    bool capture(Move) const noexcept;
+    bool captureOrPromotion(Move) const noexcept;
 
-    bool pseudoLegal(Move) const;
-    bool legal(Move) const;
-    bool giveCheck(Move) const;
-    bool giveDblCheck(Move) const;
+    bool pseudoLegal(Move) const noexcept;
+    bool legal(Move) const noexcept;
+    bool giveCheck(Move) const noexcept;
+    bool giveDblCheck(Move) const noexcept;
 
     PieceType captured(Move) const;
 
     bool see(Move, Value = VALUE_ZERO) const;
 
-    bool pawnAdvanceAt(Color, Square) const;
-    bool pawnPassedAt(Color, Square) const;
-    Bitboard pawnsOnSqColor(Color, Color) const;
+    bool pawnAdvanceAt(Color, Square) const noexcept;
+    bool pawnPassedAt(Color, Square) const noexcept;
+    Bitboard pawnsOnSqColor(Color, Color) const noexcept;
 
-    bool bishopPaired(Color) const;
-    bool bishopOpposed() const;
-    bool semiopenFileOn(Color, Square) const;
+    bool bishopPaired(Color) const noexcept;
+    bool bishopOpposed() const noexcept;
+    bool semiopenFileOn(Color, Square) const noexcept;
 
     Position& setup(std::string const&, StateInfo&, Thread *const = nullptr);
     Position& setup(std::string const&, Color, StateInfo&);
@@ -218,8 +218,8 @@ public:
     void mirror();
 
     // Used by NNUE
-    StateInfo* state() const;
-    EvalList const* evalList() const;
+    StateInfo* state() const noexcept;
+    EvalList const* evalList() const noexcept;
 
     std::string fen(bool full = true) const;
 
@@ -284,99 +284,98 @@ inline Square Position::square(Piece p, u08 idx) const noexcept {
     return squares(p)[idx];
 }
 
-//inline CastleRight Position::castleRight(Square s) const { return sqCastleRight[s]; }
-
-inline Value Position::nonPawnMaterial(Color c) const {
+inline Value Position::nonPawnMaterial(Color c) const noexcept {
     return npMaterial[c];
 }
-inline Value Position::nonPawnMaterial() const {
+inline Value Position::nonPawnMaterial() const noexcept {
     return nonPawnMaterial(WHITE) + nonPawnMaterial(BLACK);
 }
 
-inline Square Position::castleRookSq(Color c, CastleSide cs) const {
+inline Square Position::castleRookSq(Color c, CastleSide cs) const noexcept {
     return cslRookSq[c][cs];
 }
-inline Bitboard Position::castleKingPath(Color c, CastleSide cs) const {
+inline Bitboard Position::castleKingPath(Color c, CastleSide cs) const noexcept {
     return cslKingPath[c][cs];
 }
-inline Bitboard Position::castleRookPath(Color c, CastleSide cs) const {
+inline Bitboard Position::castleRookPath(Color c, CastleSide cs) const noexcept {
     return cslRookPath[c][cs];
 }
+//inline CastleRight Position::castleRight(Square s) const noexcept { return sqCastleRight[s]; }
 
-inline CastleRight Position::castleRights() const {
+inline CastleRight Position::castleRights() const noexcept {
     return _stateInfo->castleRights;
 }
-inline bool Position::canCastle(Color c) const {
+inline bool Position::canCastle(Color c) const noexcept {
     return (castleRights() & makeCastleRight(c)) != CR_NONE;
 }
-inline bool Position::canCastle(Color c, CastleSide cs) const {
+inline bool Position::canCastle(Color c, CastleSide cs) const noexcept {
     return (castleRights() & makeCastleRight(c, cs)) != CR_NONE;
 }
-inline Square Position::epSquare() const {
+inline Square Position::epSquare() const noexcept {
     return _stateInfo->epSquare;
 }
 
-inline i16 Position::clockPly() const {
+inline i16 Position::clockPly() const noexcept {
     return _stateInfo->clockPly;
 }
-inline i16 Position::nullPly() const {
+inline i16 Position::nullPly() const noexcept {
     return _stateInfo->nullPly;
 }
 
-inline Key Position::matlKey() const {
+inline Key Position::matlKey() const noexcept {
     return _stateInfo->matlKey;
 }
-inline Key Position::pawnKey() const {
+inline Key Position::pawnKey() const noexcept {
     return _stateInfo->pawnKey;
 }
-inline Key Position::posiKey() const {
+inline Key Position::posiKey() const noexcept {
     return _stateInfo->posiKey;
 }
-inline Bitboard Position::checkers() const {
+inline Bitboard Position::checkers() const noexcept {
     return _stateInfo->checkers;
 }
-inline PieceType Position::captured() const {
+inline PieceType Position::captured() const noexcept {
     return _stateInfo->captured;
 }
-inline bool Position::promoted() const {
+inline bool Position::promoted() const noexcept {
     return _stateInfo->promoted;
 }
-inline i16 Position::repetition() const {
+inline i16 Position::repetition() const noexcept {
     return _stateInfo->repetition;
 }
 
-inline Bitboard Position::kingBlockers(Color c) const {
+inline Bitboard Position::kingBlockers(Color c) const noexcept {
     return _stateInfo->kingBlockers[c];
 }
-inline Bitboard Position::kingCheckers(Color c) const {
+inline Bitboard Position::kingCheckers(Color c) const noexcept {
     return _stateInfo->kingCheckers[c];
 }
-inline Bitboard Position::checks(PieceType pt) const {
+inline Bitboard Position::checks(PieceType pt) const noexcept {
     return _stateInfo->checks[pt];
 }
 
-inline Color Position::activeSide() const {
+inline Color Position::activeSide() const noexcept {
     return active;
 }
-inline Score Position::psqScore() const {
+inline Score Position::psqScore() const noexcept {
     return psq;
 }
-inline i16 Position::gamePly() const {
+inline i16 Position::gamePly() const noexcept {
     return ply;
 }
 
-inline Thread* Position::thread() const {
+inline Thread* Position::thread() const noexcept {
     return _thread;
 }
-inline void Position::thread(Thread *th) {
+inline void Position::thread(Thread *th) noexcept {
     _thread = th;
 }
 
-inline bool Position::castleExpeded(Color c, CastleSide cs) const {
+inline bool Position::castleExpeded(Color c, CastleSide cs) const noexcept {
     return (castleRookPath(c, cs) & pieces()) == 0;
 }
 /// Position::moveCount() starts at 1, and is incremented after BLACK's move.
-inline i16 Position::moveCount() const {
+inline i16 Position::moveCount() const noexcept {
     return i16(std::max((ply - active) / 2, 0) + 1);
 }
 
@@ -418,7 +417,7 @@ inline void Position::movePiece(Square s1, Square s2) {
 }
 
 /// Position::attackersTo() finds attackers to the square on occupancy.
-inline Bitboard Position::attackersTo(Square s, Bitboard occ) const {
+inline Bitboard Position::attackersTo(Square s, Bitboard occ) const noexcept {
     return (pieces(BLACK, PAWN) & pawnAttacksBB(WHITE, s))
          | (pieces(WHITE, PAWN) & pawnAttacksBB(BLACK, s))
          | (pieces(NIHT)        & attacksBB<NIHT>(s))
@@ -427,16 +426,16 @@ inline Bitboard Position::attackersTo(Square s, Bitboard occ) const {
          | (pieces(KING)        & attacksBB<KING>(s));
 }
 /// Position::attackersTo() finds attackers to the square.
-inline Bitboard Position::attackersTo(Square s) const {
+inline Bitboard Position::attackersTo(Square s) const noexcept {
     return attackersTo(s, pieces());
 }
 
-inline bool Position::capture(Move m) const {
+inline bool Position::capture(Move m) const noexcept {
     assert(isOk(m));
     return mType(m) != ENPASSANT ?
             contains(pieces(~active), dstSq(m)) : true;
 }
-inline bool Position::captureOrPromotion(Move m) const {
+inline bool Position::captureOrPromotion(Move m) const noexcept {
     assert(isOk(m));
     return mType(m) == SIMPLE ?
             contains(pieces(~active), dstSq(m)) : mType(m) != CASTLE;
@@ -446,31 +445,31 @@ inline PieceType Position::captured(Move m) const {
     return mType(m) != ENPASSANT ? pType(operator[](dstSq(m))) : PAWN;
 }
 /// Position::pawnAdvanceAt() check if pawn is advanced at the given square
-inline bool Position::pawnAdvanceAt(Color c, Square s) const {
+inline bool Position::pawnAdvanceAt(Color c, Square s) const noexcept {
     return contains(/*pieces(c, PAWN) & */PawnSideBB[~c], s);
 }
 /// Position::pawnPassedAt() check if pawn passed at the given square
-inline bool Position::pawnPassedAt(Color c, Square s) const {
+inline bool Position::pawnPassedAt(Color c, Square s) const noexcept {
     return (pieces(~c, PAWN) & pawnPassSpan(c, s)) == 0;
 }
 
-inline Bitboard Position::pawnsOnSqColor(Color c, Color sqC) const {
+inline Bitboard Position::pawnsOnSqColor(Color c, Color sqC) const noexcept {
     return pieces(c, PAWN) & ColorBB[sqC];
 }
 
 /// Position::bishopPaired() check the side has pair of opposite color bishops
-inline bool Position::bishopPaired(Color c) const {
+inline bool Position::bishopPaired(Color c) const noexcept {
     Bitboard b{ pieces(c, BSHP) };
     return moreThanOne(b)
         && ((b & ColorBB[WHITE]) != 0) == ((b & ColorBB[BLACK]) != 0);
 }
-inline bool Position::bishopOpposed() const {
+inline bool Position::bishopOpposed() const noexcept {
     return count(W_BSHP) == 1
         && count(B_BSHP) == 1
         && colorOpposed(square(W_BSHP), square(B_BSHP));
 }
 
-inline bool Position::semiopenFileOn(Color c, Square s) const {
+inline bool Position::semiopenFileOn(Color c, Square s) const noexcept {
     return (pieces(c, PAWN) & fileBB(s)) == 0;
 }
 
@@ -479,14 +478,14 @@ inline void Position::doMove(Move m, StateInfo &si) {
 }
 
 
-inline StateInfo* Position::state() const {
+inline StateInfo* Position::state() const noexcept {
     return _stateInfo;
 }
-inline EvalList const* Position::evalList() const {
+inline EvalList const* Position::evalList() const noexcept {
     return &_evalList;
 }
 
-inline PieceId Position::pieceIdOn(Square sq) const {
+inline PieceId Position::pieceIdOn(Square sq) const noexcept {
     assert(board[sq] != NO_PIECE);
 
     PieceId pid = _evalList.pieceIdList[sq];

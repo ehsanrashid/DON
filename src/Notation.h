@@ -9,21 +9,32 @@
 extern std::string const PieceChar;
 extern std::string const ColorChar;
 
-extern Color toColor(char);
-extern char toChar(Color);
+extern Color toColor(char) noexcept;
 
-extern File toFile(char);
-extern char toChar(File, bool = true);
+constexpr char toChar(Color c) noexcept {
+    return isOk(c) ? ColorChar[c] : '-';
+}
 
-extern Rank toRank(char);
-extern char toChar(Rank);
+constexpr File toFile(char f) noexcept {
+    return File(f - 'a');
+}
+constexpr char toChar(File f, bool lower = true) noexcept {
+    return char(f + 'A' + 0x20 * lower);
+}
 
-extern std::string toString(Square);
+constexpr Rank toRank(char r) noexcept {
+    return Rank(r - '1');
+}
+constexpr char toChar(Rank r) noexcept {
+    return char(r + '1');
+}
 
-extern char toChar(PieceType);
+extern std::string toString(Square) noexcept;
 
-extern Piece toPiece(char);
-extern char toChar(Piece);
+extern char toChar(PieceType) noexcept;
+
+extern Piece toPiece(char) noexcept;
+extern char toChar(Piece) noexcept;
 
 extern std::string toString(Value);
 extern std::string toString(Score);

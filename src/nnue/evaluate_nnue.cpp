@@ -44,7 +44,7 @@ namespace Evaluator::NNUE {
         /// Wrappers for systems where the c++17 implementation doesn't guarantee the availability of aligned_alloc.
         /// Memory allocated with stdAlignedAlloc must be freed with stdAlignedFree.
 
-        void* stdAlignedAlloc(size_t alignment, size_t size) {
+        void* stdAlignedAlloc(size_t alignment, size_t size) noexcept {
 
 #if defined(POSIX_ALIGNED_ALLOC)
             void *pointer;
@@ -59,7 +59,7 @@ namespace Evaluator::NNUE {
 #endif
         }
 
-        void stdAlignedFree(void *ptr) {
+        void stdAlignedFree(void *ptr) noexcept {
 
 #if defined(POSIX_ALIGNED_ALLOC)
             free(ptr);
@@ -74,7 +74,7 @@ namespace Evaluator::NNUE {
 
 
     template<typename T>
-    inline void AlignedDeleter<T>::operator()(T *ptr) const {
+    inline void AlignedDeleter<T>::operator()(T *ptr) const noexcept {
         ptr->~T();
         stdAlignedFree(ptr);
     }
@@ -166,7 +166,7 @@ namespace Evaluator::NNUE {
             alignas(kCacheLineSize) char buffer[Network::kBufferSize];
             auto const output{ network->propagate(transformedFeatures, buffer) };
 
-            auto score{ static_cast<Value>(output[0] / FV_SCALE) };
+            auto const score{ static_cast<Value>(output[0] / FV_SCALE) };
 
             accumulator.score = score;
             accumulator.scoreComputed = true;

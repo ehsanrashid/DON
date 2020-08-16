@@ -22,7 +22,7 @@ class PRNG {
 private:
     u64 s;
 
-    u64 rand64() {
+    u64 rand64() noexcept {
         s ^= s >> 12;
         s ^= s << 25;
         s ^= s >> 27;
@@ -42,7 +42,7 @@ public:
     PRNG& operator=(PRNG&&) = delete;
 
     template<typename T>
-    T rand() {
+    T rand() noexcept {
         return T(rand64());
     }
 
@@ -51,7 +51,7 @@ public:
     /// Special generator used to fast initialize magic numbers.
     /// Output values only have 1/8th of their bits set on average.
     template<typename T>
-    T sparseRand() {
+    T sparseRand() noexcept {
         return T(rand64() & rand64() & rand64());
     }
 

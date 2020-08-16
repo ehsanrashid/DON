@@ -408,17 +408,17 @@ inline Square scanMSq(Bitboard bb) noexcept {
 }
 
 // Find the most advanced square in the given bitboard relative to the given color.
-template<Color C> inline Square scanFrontMostSq(Bitboard) { return 0; }
-template<> inline Square scanFrontMostSq<WHITE>(Bitboard bb) { assert(bb != 0); return scanMSq(bb); }
-template<> inline Square scanFrontMostSq<BLACK>(Bitboard bb) { assert(bb != 0); return scanLSq(bb); }
+template<Color C> inline Square scanFrontMostSq(Bitboard) noexcept { return 0; }
+template<> inline Square scanFrontMostSq<WHITE>(Bitboard bb) noexcept { assert(bb != 0); return scanMSq(bb); }
+template<> inline Square scanFrontMostSq<BLACK>(Bitboard bb) noexcept { assert(bb != 0); return scanLSq(bb); }
 
-inline Square popLSq(Bitboard &bb) {
+inline Square popLSq(Bitboard &bb) noexcept {
     assert(bb != 0);
     Square const sq{ scanLSq(bb) };
     bb &= (bb - 1); // bb &= ~(1ULL << sq);
     return sq;
 }
-//inline Square popMSq(Bitboard &bb) {
+//inline Square popMSq(Bitboard &bb) noexcept {
 //    assert(bb != 0);
 //    Square sq{ scanMSq(bb) };
 //    bb &= ~(1ULL << sq);
