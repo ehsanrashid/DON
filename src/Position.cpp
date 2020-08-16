@@ -861,8 +861,8 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     _stateInfo->promoted = false;
 
     // Used by NNUE
-    _stateInfo->accumulator.computedAccumulation = false;
-    _stateInfo->accumulator.computedScore = false;
+    _stateInfo->accumulator.accumulationComputed = false;
+    _stateInfo->accumulator.scoreComputed = false;
     PieceId dp0{ PIECE_ID_NONE };
     PieceId dp1{ PIECE_ID_NONE };
     auto &dp{ _stateInfo->dirtyPiece };
@@ -1179,7 +1179,7 @@ void Position::doNullMove(StateInfo &si) {
 
     if (Evaluator::useNNUE) {
         std::memcpy(&si, _stateInfo, sizeof (StateInfo));
-        _stateInfo->accumulator.computedScore = false;
+        _stateInfo->accumulator.scoreComputed = false;
     }
     else {
         std::memcpy(&si, _stateInfo, offsetof(StateInfo, accumulator));

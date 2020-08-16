@@ -10,8 +10,8 @@ namespace Evaluator::NNUE {
 
         i16 accumulation[2][kRefreshTriggers.size()][kTransformedFeatureDimensions];
         Value score;
-        bool computedAccumulation;
-        bool computedScore;
+        bool accumulationComputed;
+        bool scoreComputed;
     };
 
 }  // namespace Evaluator::NNUE

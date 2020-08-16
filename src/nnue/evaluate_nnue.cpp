@@ -158,20 +158,19 @@ namespace Evaluator::NNUE {
     static Value ComputeScore(Position const &pos, bool refresh) {
 
         auto &accumulator{ pos.state()->accumulator };
-        if (!refresh
-         && accumulator.computedScore) {
-            return accumulator.score;
+        if (refresh
+         || !accumulator.scoreComputed) {
+
+            alignas(kCacheLineSize) TransformedFeatureType transformedFeatures[FeatureTransformer::kBufferSize];
+            featureTransformer->transform(pos, transformedFeatures, refresh);
+            alignas(kCacheLineSize) char buffer[Network::kBufferSize];
+            auto const output{ network->propagate(transformedFeatures, buffer) };
+
+            auto score{ static_cast<Value>(output[0] / FV_SCALE) };
+
+            accumulator.score = score;
+            accumulator.scoreComputed = true;
         }
-
-        alignas(kCacheLineSize) TransformedFeatureType transformedFeatures[FeatureTransformer::kBufferSize];
-        featureTransformer->transform(pos, transformedFeatures, refresh);
-        alignas(kCacheLineSize) char buffer[Network::kBufferSize];
-        auto const output{ network->propagate(transformedFeatures, buffer) };
-
-        auto score{ static_cast<Value>(output[0] / FV_SCALE) };
-
-        accumulator.score = score;
-        accumulator.computedScore = true;
         return accumulator.score;
     }
 

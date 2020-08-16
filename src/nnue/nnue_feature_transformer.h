@@ -49,12 +49,12 @@ namespace Evaluator::NNUE {
         // Proceed with the difference calculation if possible
         bool updateAccumulatorIfPossible(Position const &pos) const {
             auto const currState{ pos.state() };
-            if (currState->accumulator.computedAccumulation) {
+            if (currState->accumulator.accumulationComputed) {
                 return true;
             }
             auto const prevState{ currState->prevState };
             if (prevState != nullptr
-             && prevState->accumulator.computedAccumulation) {
+             && prevState->accumulator.accumulationComputed) {
                 updateAccumulator(pos);
                 return true;
             }
@@ -210,8 +210,8 @@ namespace Evaluator::NNUE {
             _mm_empty();
 #endif
 
-            accumulator.computedAccumulation = true;
-            accumulator.computedScore = false;
+            accumulator.accumulationComputed = true;
+            accumulator.scoreComputed = false;
         }
 
         // Calculate cumulative value using difference calculation
@@ -325,8 +325,8 @@ namespace Evaluator::NNUE {
             _mm_empty();
 #endif
 
-            accumulator.computedAccumulation = true;
-            accumulator.computedScore = false;
+            accumulator.accumulationComputed = true;
+            accumulator.scoreComputed = false;
         }
     };
 
