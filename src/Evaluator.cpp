@@ -1082,9 +1082,9 @@ namespace Evaluator {
     /// evaluate() returns a static evaluation of the position from the point of view of the side to move.
     Value evaluate(Position const &pos) {
         Value v{ !useNNUE
-               || egValue(pos.psqScore()) >= NNUEThreshold ?
+               || egValue(pos.psqScore()) >= NNUEThreshold * (16 + pos.clockPly()) / 16 ? // Increase for fortresses
                     Evaluation<false>(pos).value() :
-                    NNUE::evaluate(pos) * 5 / 4 + VALUE_TEMPO };
+                    NNUE::evaluate(pos) };
 
         // Damp down the evaluation linearly when shuffling
         v *= (100 - pos.clockPly()) / 100;
