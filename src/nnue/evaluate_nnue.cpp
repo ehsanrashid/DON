@@ -187,7 +187,8 @@ namespace Evaluator::NNUE {
     // Evaluation function. Perform differential calculation.
     Value evaluate(Position const &pos) {
         auto v{ ComputeScore(pos, false) };
-        v = v * 5 / 4 + VALUE_TEMPO;
+        v = v * 5 / 4;
+        v += VALUE_TEMPO;
         return v;
     }
 

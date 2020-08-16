@@ -1063,7 +1063,8 @@ namespace Evaluator {
             // Evaluation grain
             v = (v / 16) * 16;
             // Active side's point of view
-            v = (pos.activeSide() == WHITE ? +v : -v) + VALUE_TEMPO;
+            v = (pos.activeSide() == WHITE ? +v : -v);
+            v += VALUE_TEMPO;
 
             // Write remaining evaluation terms
             if (Trace) {
@@ -1087,7 +1088,7 @@ namespace Evaluator {
                     NNUE::evaluate(pos) };
 
         // Damp down the evaluation linearly when shuffling
-        v *= (100 - pos.clockPly()) / 100;
+        v = v * (100 - pos.clockPly()) / 100;
 
         // Guarantee evalution outside of TB range
         return clamp(v, -VALUE_MATE_2_MAX_PLY + 1, +VALUE_MATE_2_MAX_PLY - 1);
