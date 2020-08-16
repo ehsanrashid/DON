@@ -706,9 +706,10 @@ namespace UCI {
             string fenFile { (iss >> token) && !whiteSpaces(token) ? token : "default" };
             string evalType{ (iss >> token) && !whiteSpaces(token) ? token : "classical" };
 
-            string operation{ mode == "eval"  ? mode :
-                              mode == "perft" ? mode + " " + value :
-                                                "go " + mode + " " + value };
+            string operation{
+                mode == "eval"  ? mode :
+                mode == "perft" ? mode + " " + value :
+                                  "go " + mode + " " + value };
             vector<string> fens;
 
                  if (fenFile == "current") { fens.push_back(pos.fen()); }
@@ -770,7 +771,7 @@ namespace UCI {
         /// then it is run one by one printing a summary at the end.
         void bench(istringstream &iss, Position &pos, StateListPtr &states) {
             Debugger::reset();
-            
+
             auto const uciCmds{ setupBench(iss, pos) };
             auto const cmdCount{ u16(std::count_if(uciCmds.begin(), uciCmds.end(),
                                                     [](string const &s) {
@@ -815,7 +816,7 @@ namespace UCI {
             elapsed = std::max(now() - elapsed, { 1 }); // Ensure non-zero to avoid a 'divide by zero'
 
             Debugger::print(); // Just before exiting
-            
+
             ostringstream oss{};
             oss << std::right
                 << "\n=================================\n"
@@ -884,8 +885,9 @@ namespace UCI {
             else if (token == "show")       { sync_cout << pos << sync_endl; }
             else if (token == "eval")       { traceEval(pos); }
             else if (token == "perft")      {
-                Depth depth{ 1 };     iss >> depth; depth = std::max(Depth(1), depth);
+                Depth depth{ 1 };     iss >> depth;
                 bool detail{ false }; iss >> std::boolalpha >> detail;
+                if (depth < 1) depth = 1;
                 perft<true>(pos, depth, detail);
             }
             else if (token == "keys")       {

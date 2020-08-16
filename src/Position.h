@@ -376,7 +376,7 @@ inline bool Position::castleExpeded(Color c, CastleSide cs) const noexcept {
 }
 /// Position::moveCount() starts at 1, and is incremented after BLACK's move.
 inline i16 Position::moveCount() const noexcept {
-    return i16(std::max((ply - active) / 2, 0) + 1);
+    return( std::max((ply - active) / 2, 0) + 1 );
 }
 
 inline void Position::placePiece(Square s, Piece p) {
@@ -390,12 +390,12 @@ inline void Position::placePiece(Square s, Piece p) {
     psq += PSQ[p][s];
 }
 inline void Position::removePiece(Square s) {
-    auto p{ board[s] };
+    auto const p{ board[s] };
     types[NONE] ^= s;
     types[pType(p)] ^= s;
     colors[pColor(p)] ^= s;
     //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
-    Square endSq = pieceSquare[p][--pieceCount[p]];
+    auto const endSq{ pieceSquare[p][--pieceCount[p]] };
     pieceIndex[endSq] = pieceIndex[s];
     pieceSquare[p][pieceIndex[endSq]] = endSq;
     pieceSquare[p][pieceCount[p]] = SQ_NONE;
@@ -403,7 +403,7 @@ inline void Position::removePiece(Square s) {
     psq -= PSQ[p][s];
 }
 inline void Position::movePiece(Square s1, Square s2) {
-    auto p{ board[s1] };
+    auto const p{ board[s1] };
     Bitboard const bb{ s1 | s2 };
     types[NONE] ^= bb;
     types[pType(p)] ^= bb;

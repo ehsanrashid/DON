@@ -38,10 +38,10 @@ bool RootMove::operator!=(Move m) const noexcept {
     return front() != m;
 }
 
-void RootMove::operator+=(Move m) noexcept {
+void RootMove::operator+=(Move m) {
     push_back(m);
 }
-//void RootMove::operator-=(Move m) noexcept {
+//void RootMove::operator-=(Move m) {
 //    erase(std::remove(begin(), end(), m), end());
 //}
 

@@ -53,6 +53,7 @@ MovePicker::MovePicker(
     depth{ d },
     ply { sp },
     refutationMoves{ km[0], km[1], cm } {
+
     assert(ttm == MOVE_NONE
         || pos.pseudoLegal(ttm));
     assert(depth > DEPTH_ZERO);
@@ -78,6 +79,7 @@ MovePicker::MovePicker(
     ttMove { ttm },
     depth{ d },
     recapSq{ rs } {
+
     assert(ttm == MOVE_NONE
         || pos.pseudoLegal(ttm));
     assert(depth <= DEPTH_QS_CHECK);
@@ -100,6 +102,7 @@ MovePicker::MovePicker(
     ttMove { ttm },
     depth{ d },
     threshold{ thr } {
+
     assert(ttm == MOVE_NONE
         || pos.pseudoLegal(ttm));
     assert(pos.checkers() == 0);

@@ -217,18 +217,18 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     // But there are some StateInfo fields (previous, nullPly, captured) that cannot be deduced
     // from a fen string, so setup() clears them and they are set from setupStates->back() later.
     // The rootState is per thread, earlier states are shared since they are read-only.
-    auto fen{ pos.fen() };
+    auto const fen{ pos.fen() };
     for (auto *th : *this) {
-        th->rootDepth       = DEPTH_ZERO;
-        th->finishedDepth   = DEPTH_ZERO;
-        th->nodes           = 0;
-        th->tbHits          = 0;
-        th->pvChange        = 0;
-        th->nmpMinPly       = 0;
-        th->nmpColor        = COLORS;
-        th->rootMoves       = rootMoves;
+        th->rootDepth     = DEPTH_ZERO;
+        th->finishedDepth = DEPTH_ZERO;
+        th->nodes         = 0;
+        th->tbHits        = 0;
+        th->pvChange      = 0;
+        th->nmpMinPly     = 0;
+        th->nmpColor      = COLORS;
+        th->rootMoves     = rootMoves;
         th->rootPos.setup(fen, th->rootState, th);
-        th->rootState       = setupStates->back();
+        th->rootState     = setupStates->back();
     }
 
     mainThread()->wakeUp();

@@ -63,7 +63,8 @@ void TimeManager::setup(Color c, i16 ply) {
     }
     // Never use more than 80% of the available time for this move
     optimum = TimePoint(optimumScale * remainTime);
-    maximum = TimePoint(std::min(0.8 * Limits.clock[c].time - overheadMoveTime, maximumScale * optimum));
+    maximum = TimePoint(std::min(maximumScale * optimum, 0.8 * Limits.clock[c].time - overheadMoveTime));
+
     if (Options["Ponder"]) {
         optimum += optimum / 4;
     }

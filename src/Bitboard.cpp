@@ -26,7 +26,7 @@ u08 PopCount[USHRT_MAX+1];
 //    u -= (u >> 1) & 0x5555U;
 //    u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
 //    u = ((u >> 4) + u) & 0x0F0FU;
-//    return u08((u * 0x0101U) >> 8);
+//    return( (u * 0x0101U) >> 8 );
 //}
 #endif
 

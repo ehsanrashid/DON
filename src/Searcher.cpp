@@ -85,12 +85,12 @@ namespace {
     inline Depth reduction(Depth d, u08 mc, bool imp) noexcept {
         assert(d >= DEPTH_ZERO);
         auto const r{ Reduction[d] * Reduction[mc] };
-        return Depth((r + 509) / 1024 + 1 * (!imp && (r > 894)));
+        return( (r + 509) / 1024 + 1 * (!imp && (r > 894)) );
     }
 
     /// Futility Move Count
     constexpr i16 futilityMoveCount(Depth d, bool imp) noexcept {
-        return i16((3 + nSqr(d)) / (2 - 1 * imp));
+        return( (3 + nSqr(d)) / (2 - 1 * imp) );
     }
 
     /// Add a small random component to draw evaluations to avoid 3-fold-blindness
@@ -211,7 +211,7 @@ namespace {
         double x{ clamp(double(100 * v) / VALUE_EG_PAWN, -1000.0, 1000.0) };
 
         // Return win rate in per mille (rounded to nearest)
-        return i16(0.5 + 1000 / (1 + std::exp((a - x) / b)));
+        return( 0.5 + 1000 / (1 + std::exp((a - x) / b)) );
     }
 
     /// wdl() report WDL statistics given an evaluation and a game ply, based on
@@ -219,9 +219,9 @@ namespace {
     std::string wdl(Value v, i16 ply) {
         std::stringstream ss;
 
-        auto const wdl_w{ winRateModel(v, ply) };
-        auto const wdl_l{ winRateModel(-v, ply) };
-        auto const wdl_d{ i16(1000 - wdl_w - wdl_l) };
+        i16 const wdl_w( winRateModel(v, ply) );
+        i16 const wdl_l( winRateModel(-v, ply) );
+        i16 const wdl_d( 1000 - wdl_w - wdl_l );
         ss << " wdl " << wdl_w << " " << wdl_d << " " << wdl_l;
         return ss.str();
     }
@@ -877,8 +877,8 @@ namespace {
               || activeSide != thread->nmpColor)
              && Limits.mate == 0) {
                 // Null move dynamic reduction based on depth and static evaluation.
-                auto const nullDepth{
-                    Depth(depth - ((817 + 77 * depth) / 213 + std::min(i32(eval - beta) / 192, 3))) };
+                Depth const nullDepth(
+                    depth - ((817 + 77 * depth) / 213 + std::min(i32(eval - beta) / 192, 3)) );
 
                 Key const nullMoveKey{
                     key
@@ -927,7 +927,7 @@ namespace {
                 }
             }
 
-            auto const probCutBeta{ beta + 176 - 49 * improving };
+            Value const probCutBeta( beta + 176 - 49 * improving );
 
             // Step 10. ProbCut. (~10 ELO)
             // If good enough capture and a reduced search returns a value much above beta,
@@ -1048,7 +1048,7 @@ namespace {
             nullptr           , (ss-6)->pieceStats
         };
 
-        auto const counterMove{ pos.thread()->counterMoves[pmPiece][pmDst] };
+        Move const counterMove( pos.thread()->counterMoves[pmPiece][pmDst] );
 
         // Initialize move-picker(1) for the current position
         MovePicker movePicker{
@@ -1126,7 +1126,7 @@ namespace {
             bool const captureOrPromotion{ pos.captureOrPromotion(move) };
 
             // Calculate new depth for this move
-            auto newDepth{ Depth(depth - 1) };
+            Depth newDepth( depth - 1 );
 
             // Step 13. Pruning at shallow depth. (~200 ELO)
             if (!rootNode
@@ -1138,7 +1138,7 @@ namespace {
                 movePicker.pickQuiets = !moveCountPruning;
 
                 // Reduced depth of the next LMR search.
-                auto const lmrDepth{ i16(std::max(newDepth - reduction(depth, moveCount, improving), 0)) };
+                Depth const lmrDepth( std::max(newDepth - reduction(depth, moveCount, improving), 0) );
 
                 if (giveCheck
                  || captureOrPromotion) {
@@ -1179,14 +1179,14 @@ namespace {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 ELO)
-                    if (!pos.see(move, Value(-(29 - std::min(lmrDepth, i16(18))) * nSqr(lmrDepth)))) {
+                    if (!pos.see(move, Value(-(29 - std::min(lmrDepth, { 18 })) * nSqr(lmrDepth)))) {
                         continue;
                     }
                 }
             }
 
             // Step 14. Extensions. (~75 ELO)
-            auto extension{ DEPTH_ZERO };
+            Depth extension{ DEPTH_ZERO };
 
             // Singular extension (SE) (~70 ELO)
             // Extend the TT move if its value is much better than its siblings.
@@ -1204,8 +1204,8 @@ namespace {
              && (tte->bound() & BOUND_LOWER)
              &&  tte->depth() >= depth - 3) {
 
-                auto const singularBeta{ ttValue - ((4 + pastPV) * depth) / 2 };
-                auto const singularDepth{ Depth((depth + 3 * pastPV - 1) / 2) };
+                Value const singularBeta( ttValue - ((4 + pastPV) * depth) / 2 );
+                Depth const singularDepth( (depth + 3 * pastPV - 1) / 2 );
 
                 ss->excludedMove = ttMove;
                 value = depthSearch<false>(pos, ss, singularBeta-1, singularBeta, singularDepth, cutNode);
@@ -1368,7 +1368,7 @@ namespace {
                     reductDepth -= i16(ss->stats / 14884);
                 }
 
-                auto const d{ Depth(clamp(newDepth - reductDepth, 1, {newDepth})) };
+                Depth const d( clamp(newDepth - reductDepth, 1, {newDepth}) );
 
                 value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, d, true);
 
@@ -1520,7 +1520,8 @@ namespace {
             if (!pos.captureOrPromotion(bestMove)) {
                 auto const bonus2{
                     bestValue > beta + VALUE_MG_PAWN ?
-                        bonus1 : statBonus(depth) };
+                        bonus1 :
+                        statBonus(depth) };
 
                 updateQuietStatsRefutationMoves(ss, thread, pos, activeSide, bestMove, bonus2, depth, pmOK, pmPiece, pmDst);
                 // Decrease all the other played quiet moves
@@ -1753,7 +1754,7 @@ void Thread::search() {
             // Start with a small aspiration window and, in case of fail high/low,
             // research with bigger window until not failing high/low anymore.
             do {
-                auto const adjustedDepth{ Depth(std::max(rootDepth - failHighCount - researchCount, 1)) };
+                Depth const adjustedDepth( std::max(rootDepth - failHighCount - researchCount, 1) );
                 bestValue = depthSearch<true>(rootPos, ss, alfa, beta, adjustedDepth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
@@ -1854,9 +1855,9 @@ void Thread::search() {
                 // Time Reduction
                 timeReduction = 0.95 + 0.97 * ((finishedDepth - mainThread->bestDepth) > 9);
                 // Reduction Ratio - Use part of the gained time from a previous stable move for the current move
-                double const reductionRatio{ (1.47 + mainThread->timeReduction) / (2.32 * timeReduction) };
+                auto const reductionRatio{ (1.47 + mainThread->timeReduction) / (2.32 * timeReduction) };
                 // Eval Falling factor
-                double const fallingEval{
+                auto const fallingEval{
                     clamp((318
                          + 6 * (mainThread->bestValue - bestValue)
                          + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 825.0,
@@ -1867,13 +1868,13 @@ void Thread::search() {
                 Threadpool.reset(&Thread::pvChange);
                 auto const pvInstability{ 1.00 + pvChangeSum / Threadpool.size() };
 
-                auto const totalTime{
-                    TimePoint(rootMoves.size() > 1 ?
-                                TimeMgr.optimum
-                              * reductionRatio
-                              * fallingEval
-                              * pvInstability :
-                                0) };
+                TimePoint const totalTime(
+                    rootMoves.size() > 1 ?
+                        TimeMgr.optimum
+                      * reductionRatio
+                      * fallingEval
+                      * pvInstability :
+                        0 );
                 auto elapsed{ TimeMgr.elapsed() };
 
                 // Stop the search if we have exceeded the totalTime (at least 1ms).

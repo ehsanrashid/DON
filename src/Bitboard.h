@@ -48,12 +48,12 @@ struct Magic {
 inline u16 Magic::index(Bitboard occ) const noexcept {
 
 #if defined(BMI2)
-    return u16(PEXT(occ, mask));
+    return( PEXT(occ, mask) );
 #elif defined(BIT64)
-    return u16(((occ & mask) * number) >> shift);
+    return( ((occ & mask) * number) >> shift );
 #else
-    return u16((u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(number >> 0x00))
-              ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(number >> 0x20))) >> shift);
+    return( (u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(number >> 0x00))
+           ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(number >> 0x20))) >> shift );
 #endif
 }
 
@@ -299,11 +299,11 @@ inline i32 popCount(Bitboard bb) noexcept {
 
     #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
 
-    return i32(_mm_popcnt_u64(bb));
+    return( _mm_popcnt_u64(bb) );
 
     #else // Assumed gcc or compatible compiler
 
-    return i32(__builtin_popcountll(bb));
+    return( __builtin_popcountll(bb) );
 
     #endif
 
@@ -420,7 +420,7 @@ inline Square popLSq(Bitboard &bb) noexcept {
 }
 //inline Square popMSq(Bitboard &bb) noexcept {
 //    assert(bb != 0);
-//    Square sq{ scanMSq(bb) };
+//    Square const sq{ scanMSq(bb) };
 //    bb &= ~(1ULL << sq);
 //    return sq;
 //}

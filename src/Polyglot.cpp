@@ -64,7 +64,7 @@ namespace {
         // So in case book move is a promotion have to convert to our representation,
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
-        auto const pt{ u08((m >> 12) & 7) };
+        u08 const pt( (m >> 12) & 7 );
         if (pt != 0) {
             // Set new type for promotion piece
             m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + mMask(m));
@@ -100,37 +100,33 @@ bool PolyEntry::operator!=(PolyEntry const &pe) const noexcept {
 }
 
 bool PolyEntry::operator>(PolyEntry const &pe) const noexcept {
-    return
-        key != pe.key ?
-            key > pe.key :
-            weight != pe.weight ?
-                weight > pe.weight :
-                move > pe.move;
+    return key != pe.key ?
+               key > pe.key :
+               weight != pe.weight ?
+                   weight > pe.weight :
+                   move > pe.move;
 }
 bool PolyEntry::operator<(PolyEntry const &pe) const noexcept {
-    return
-        key != pe.key ?
-            key < pe.key :
-            weight != pe.weight ?
-                weight < pe.weight :
-                move < pe.move;
+    return key != pe.key ?
+               key < pe.key :
+               weight != pe.weight ?
+                   weight < pe.weight :
+                   move < pe.move;
 }
 
 bool PolyEntry::operator>=(PolyEntry const &pe) const noexcept {
-    return
-        key != pe.key ?
-            key >= pe.key :
-            weight != pe.weight ?
-                weight >= pe.weight :
-                move >= pe.move;
+    return key != pe.key ?
+               key >= pe.key :
+               weight != pe.weight ?
+                   weight >= pe.weight :
+                   move >= pe.move;
 }
 bool PolyEntry::operator<=(PolyEntry const &pe) const noexcept {
-    return
-        key != pe.key ?
-            key <= pe.key :
-            weight != pe.weight ?
-                weight <= pe.weight :
-                move <= pe.move;
+    return key != pe.key ?
+               key <= pe.key :
+               weight != pe.weight ?
+                   weight <= pe.weight :
+                   move <= pe.move;
 }
 
 bool PolyEntry::operator==(Move m) const noexcept { return move == m; }

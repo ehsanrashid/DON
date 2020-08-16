@@ -632,7 +632,7 @@ namespace Evaluator {
                         + 185 * popCount(kingRing[Own] & weakArea)
                         + 148 * popCount(unsafeCheck)
                         +  98 * popCount(pos.kingBlockers(Own))
-                        +   3 * nSqr(kingFlankAttack) / 8
+                        +   3 * i32(nSqr(kingFlankAttack)) / 8
                         // Enemy queen is gone
                         - 873 * (pos.pieces(Opp, QUEN) == 0)
                         // Friend knight is near by to defend king
@@ -843,8 +843,8 @@ namespace Evaluator {
                     i32 const w{ 5 * r - 13 };
 
                     // Adjust bonus based on the king's proximity
-                    bonus += makeScore(0, i32(+4.75*w*kingProximity(Opp, pushSq)
-                                              -2.00*w*kingProximity(Own, pushSq)));
+                    bonus += makeScore(0, ( +4.75*w*kingProximity(Opp, pushSq)
+                                            -2.00*w*kingProximity(Own, pushSq) ));
                     // If pushSq is not the queening square then consider also a second push.
                     if (r < RANK_7) {
                         bonus += makeScore(0, -1*w*kingProximity(Own, pushSq + Push));
@@ -861,7 +861,8 @@ namespace Evaluator {
                             attackedSquares &= sqlAttacks[Opp][NONE];
                         }
 
-                        i32 const k{ // Bonus according to attacked squares
+                        i32 const k{
+                                // Bonus according to attacked squares
                               + 15 * ((attackedSquares) == 0)
                               + 11 * ((attackedSquares & frontSquaresBB(Own, s)) == 0)
                               +  9 * !contains(attackedSquares, pushSq)

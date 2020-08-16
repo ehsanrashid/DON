@@ -44,8 +44,8 @@ public:
     bool operator==(Move) const noexcept;
     bool operator!=(Move) const noexcept;
 
-    void operator+=(Move) noexcept;
-    //void operator-=(Move) noexcept;
+    void operator+=(Move);
+    //void operator-=(Move);
 
     std::string toString() const;
 };
