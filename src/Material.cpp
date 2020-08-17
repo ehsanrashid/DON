@@ -83,7 +83,7 @@ namespace Material {
 
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
         phase = (i32(clamp(pos.nonPawnMaterial(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME) * PhaseResolution)
-              / i32(VALUE_MIDGAME - VALUE_ENDGAME);
+               / i32(VALUE_MIDGAME - VALUE_ENDGAME);
         scaleFactor[WHITE] = scaleFactor[BLACK] = SCALE_NORMAL;
 
         // Let's look if have a specialized evaluation function for this particular material configuration.
@@ -177,8 +177,9 @@ namespace Material {
             }
         };
 
-        auto value{ (computeImbalance<WHITE>(pieceCount)
-                   - computeImbalance<BLACK>(pieceCount)) / 16 }; // Imbalance Resolution
+        i32 const value(
+            (computeImbalance<WHITE>(pieceCount)
+           - computeImbalance<BLACK>(pieceCount)) / 16 ); // Imbalance Resolution
         imbalance = makeScore(value, value);
     }
 

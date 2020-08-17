@@ -326,7 +326,7 @@ namespace Evaluator {
 
             Score score{ SCORE_ZERO };
 
-            Square const *ps{ pos.squares(Own | PT) };
+            Square const *ps{ pos.squares(Own|PT) };
             if (PT == QUEN
              && *ps != SQ_NONE) {
                 std::fill_n(queenAttacked[Own], 3, 0);
@@ -807,7 +807,7 @@ namespace Evaluator {
 
             auto const kingProximity{
                 [&](Color c, Square s) {
-                    return std::min(distance(pos.square(c | KING), s), 5);
+                    return std::min(distance(pos.square(c|KING), s), 5);
                 }
             };
 

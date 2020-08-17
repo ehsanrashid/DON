@@ -13,11 +13,11 @@ namespace Evaluator::NNUE::Features {
 
     // Trigger to perform full calculations instead of difference only
     enum class TriggerEvent {
-        kFriendKingMoved // calculate full evaluation when own king moves
+        FRIEND_KING_MOVED // calculate full evaluation when own king moves
     };
 
     enum class Side {
-        kFriend // side to move
+        FRIEND // side to move
     };
 
 }  // namespace Evaluator::NNUE::Features

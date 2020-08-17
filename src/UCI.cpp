@@ -21,10 +21,10 @@
 #include "SkillManager.h"
 #include "SyzygyTB.h"
 
-using std::istringstream;
-using std::ostringstream;
 using std::string;
 using std::vector;
+using std::istringstream;
+using std::ostringstream;
 
 // Engine Name
 string const Name{ "DON" };
@@ -54,7 +54,7 @@ namespace {
         // return 0;
         auto const itr{ std::find(std::begin(Months), std::end(Months), mmm) };
         return itr != std::end(Months) ?
-                i32(std::distance(std::begin(Months), itr)) + 1 : 0;
+                std::distance(std::begin(Months), itr) + 1 : 0;
     }
 }
 
@@ -159,6 +159,10 @@ string const compilerInfo() {
 #if defined(MMX)
     oss << " MMX";
 #endif
+#if defined(NEON)
+    oss << " NEON";
+#endif
+
 #if !defined(NDEBUG)
     oss << " DEBUG";
 #endif
@@ -213,7 +217,7 @@ namespace UCI {
         defaultVal = v; currentVal = cur;
     }
 
-    Option::operator std::string() const {
+    Option::operator string() const {
         assert(type == "string");
         return currentVal;
     }
@@ -223,31 +227,31 @@ namespace UCI {
     }
     Option::operator i16() const {
         assert(type == "spin");
-        return i16(std::stoi(currentVal));
+        return( std::stoi(currentVal) );
     }
     Option::operator u16() const {
         assert(type == "spin");
-        return u16(std::stoi(currentVal));
+        return( std::stoi(currentVal) );
     }
     Option::operator i32() const {
         assert(type == "spin");
-        return i32(std::stoi(currentVal));
+        return( std::stoi(currentVal) );
     }
     Option::operator u32() const {
         assert(type == "spin");
-        return u32(std::stoi(currentVal));
+        return( std::stoi(currentVal) );
     }
     Option::operator i64() const {
         assert(type == "spin");
-        return i64(std::stoi(currentVal)); //std::stol(currentVal);
+        return( std::stoi(currentVal) ); //std::stol(currentVal);
     }
     Option::operator u64() const {
         assert(type == "spin");
-        return u64(std::stoi(currentVal)); //std::stol(currentVal);
+        return( std::stoi(currentVal) ); //std::stol(currentVal);
     }
     Option::operator double() const {
         assert(type == "spin");
-        return std::stod(currentVal);
+        return( std::stod(currentVal) );
     }
 
     bool Option::operator==(char const *v) const {
@@ -314,7 +318,7 @@ namespace UCI {
         index = insertOrder++;
     }
 
-    std::string Option::defaultValue() const {
+    string Option::defaultValue() const {
         return defaultVal;
     }
 
@@ -737,20 +741,22 @@ namespace UCI {
             uciCmds.emplace_back("setoption name Hash value " + hash);
             uciCmds.emplace_back("ucinewgame");
 
+            if (evalType == "classical") {
+                uciCmds.emplace_back("setoption name Use NNUE value false");
+            }
+            else
+            if (evalType == "NNUE") {
+                uciCmds.emplace_back("setoption name Use NNUE value true");
+            }
+
             u32 posCount{ 0 };
             for (auto const &fen : fens) {
                 if (fen.find("setoption") != string::npos) {
                     uciCmds.emplace_back(fen);
                 }
                 else {
-                    if (evalType == "classical"
-                     || (evalType == "mixed" && posCount % 2 == 0)) {
-                        uciCmds.emplace_back("setoption name Use NNUE value false");
-                    }
-                    else
-                    if (evalType == "NNUE"
-                     || (evalType == "mixed" && posCount % 2 != 0)) {
-                        uciCmds.emplace_back("setoption name Use NNUE value true");
+                    if (evalType == "mixed") {
+                        uciCmds.emplace_back(string("setoption name Use NNUE value ") + (posCount % 2 != 0 ? "true" : "false"));
                     }
 
                     uciCmds.emplace_back("position fen " + fen);

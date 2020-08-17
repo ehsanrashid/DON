@@ -140,7 +140,6 @@ ifeq ($(ARCH),$(filter $(ARCH),x86-64-sse41-popcnt x86-64-modern))
 	arch = x86_64
 	prefetch = yes
 	abmi = yes
-
 	sse = yes
 	ssse3 = yes
 	sse41 = yes

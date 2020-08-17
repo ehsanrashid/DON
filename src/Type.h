@@ -217,7 +217,7 @@ constexpr Square rotate180(Square s) {
 }
 
 // Array for finding the PieceSquare corresponding to the piece on the board
-extern ExtPieceSquare KPP_BoardIndex[PIECES];
+extern ExtPieceSquare PP_BoardIndex[PIECES];
 
 // Structure holding which tracked piece (PieceId) is where (PieceSquare)
 class EvalList {
@@ -242,8 +242,8 @@ public:
     void putPiece(PieceId pieceId, Square sq, Piece pc) noexcept {
         assert(isOk(pieceId));
         if (pc != NO_PIECE) {
-            _pieceListFw[pieceId] = PieceSquare(KPP_BoardIndex[pc].org[WHITE] + sq);
-            _pieceListFb[pieceId] = PieceSquare(KPP_BoardIndex[pc].org[BLACK] + rotate180(sq));
+            _pieceListFw[pieceId] = PieceSquare(PP_BoardIndex[pc].org[WHITE] + sq);
+            _pieceListFb[pieceId] = PieceSquare(PP_BoardIndex[pc].org[BLACK] + rotate180(sq));
             pieceIdList[sq] = pieceId;
         }
         else {

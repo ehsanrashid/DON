@@ -236,12 +236,11 @@ TTable::~TTable() {
 
 /// size() returns hash size in MB
 u32 TTable::size() const noexcept {
-    return u32((clusterCount * sizeof (TCluster)) >> 20);
+    return( (clusterCount * sizeof (TCluster)) >> 20 );
 }
 /// cluster() returns a pointer to the cluster of given a key.
 /// Lower 32 bits of the key are used to get the index of the cluster.
 TCluster* TTable::cluster(Key posiKey) const noexcept {
-
     return &clusterTable[mul_hi64(posiKey, clusterCount)];
 }
 

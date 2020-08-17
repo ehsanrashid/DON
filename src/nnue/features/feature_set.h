@@ -43,7 +43,7 @@ namespace Evaluator::NNUE::Features {
             for (auto perspective : { WHITE, BLACK }) {
                 reset[perspective] = false;
                 switch (trigger) {
-                case TriggerEvent::kFriendKingMoved:
+                case TriggerEvent::FRIEND_KING_MOVED:
                     reset[perspective] = dp.pieceId[0] == PIECE_ID_KING + perspective;
                     break;
                 default:
@@ -67,26 +67,26 @@ namespace Evaluator::NNUE::Features {
 
     public:
         // Hash value embedded in the evaluation file
-        static constexpr u32 kHashValue{ FeatureType::kHashValue };
+        static constexpr u32 HashValue{ FeatureType::HashValue };
         // Number of feature dimensions
         static constexpr IndexType kDimensions{ FeatureType::kDimensions };
         // Maximum number of simultaneously active features
-        static constexpr IndexType kMaxActiveDimensions{ FeatureType::kMaxActiveDimensions };
+        static constexpr IndexType MaxActiveDimensions{ FeatureType::MaxActiveDimensions };
         // Trigger for full calculation instead of difference calculation
-        using SortedTriggerSet = CompileTimeList<TriggerEvent, FeatureType::kRefreshTrigger>;
-        static constexpr auto kRefreshTriggers{ SortedTriggerSet::kValues };
+        using SortedTriggerSet = CompileTimeList<TriggerEvent, FeatureType::RefreshTrigger>;
+        static constexpr auto RefreshTriggers{ SortedTriggerSet::kValues };
 
     private:
         // Get a list of indices for active features
         static void collectActiveIndices(Position const &pos, TriggerEvent const trigger, Color const perspective, IndexList *const active) {
-            if (FeatureType::kRefreshTrigger == trigger) {
+            if (FeatureType::RefreshTrigger == trigger) {
                 FeatureType::appendActiveIndices(pos, perspective, active);
             }
         }
 
         // Get a list of indices for recently changed features
         static void collectChangedIndices(Position const &pos, TriggerEvent const trigger, Color const perspective, IndexList *const removed, IndexList *const added) {
-            if (FeatureType::kRefreshTrigger == trigger) {
+            if (FeatureType::RefreshTrigger == trigger) {
                 FeatureType::appendChangedIndices(pos, perspective, removed, added);
             }
         }

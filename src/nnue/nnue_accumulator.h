@@ -6,9 +6,9 @@
 namespace Evaluator::NNUE {
 
     // Class that holds the result of affine transformation of input features
-    struct alignas(kCacheLineSize) Accumulator {
+    struct alignas(CacheLineSize) Accumulator {
 
-        i16 accumulation[2][kRefreshTriggers.size()][kTransformedFeatureDimensions];
+        i16 accumulation[2][RefreshTriggers.size()][kTransformedFeatureDimensions];
         Value score;
         bool accumulationComputed;
         bool scoreComputed;

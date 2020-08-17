@@ -13,15 +13,15 @@ namespace Evaluator::NNUE::Features {
 
     public:
         // Feature name
-        static constexpr char const *kName{ "HalfKP(Friend)" };
+        static constexpr char const *Name{ "HalfKP(Friend)" };
         // Hash value embedded in the evaluation file
-        static constexpr u32 kHashValue{ 0x5D69D5B9u ^ (AssociatedKing == Side::kFriend) };
+        static constexpr u32 HashValue{ 0x5D69D5B9u ^ (AssociatedKing == Side::FRIEND) };
         // Number of feature dimensions
         static constexpr IndexType kDimensions{ static_cast<IndexType>(SQUARES) * static_cast<IndexType>(PS_END) };
         // Maximum number of simultaneously active features
-        static constexpr IndexType kMaxActiveDimensions{ PIECE_ID_KING };
+        static constexpr IndexType MaxActiveDimensions{ PIECE_ID_KING };
         // Trigger for full calculation instead of difference calculation
-        static constexpr TriggerEvent kRefreshTrigger{ TriggerEvent::kFriendKingMoved };
+        static constexpr TriggerEvent RefreshTrigger{ TriggerEvent::FRIEND_KING_MOVED };
 
         // Get a list of indices for active features
         static void appendActiveIndices(Position const&, Color, IndexList*);

@@ -19,7 +19,7 @@ namespace Evaluator::NNUE::Features {
         *pieces = (perspective == BLACK) ?
                     pos.evalList()->pieceListFb() :
                     pos.evalList()->pieceListFw();
-        PieceId const target{ (AssociatedKing == Side::kFriend) ?
+        PieceId const target{ (AssociatedKing == Side::FRIEND) ?
                                 static_cast<PieceId>(PIECE_ID_KING + perspective) :
                                 static_cast<PieceId>(PIECE_ID_KING + ~perspective) };
         *sq_target_k = static_cast<Square>(((*pieces)[target] - PS_W_KING) % SQUARES);
@@ -30,7 +30,7 @@ namespace Evaluator::NNUE::Features {
     void HalfKP<AssociatedKing>::appendActiveIndices(Position const &pos, Color perspective, IndexList *active) {
 
         // Do nothing if array size is small to avoid compiler warning
-        if (RawFeatures::kMaxActiveDimensions < kMaxActiveDimensions) {
+        if (RawFeatures::MaxActiveDimensions < MaxActiveDimensions) {
             return;
         }
         PieceSquare *pieces;
@@ -66,6 +66,6 @@ namespace Evaluator::NNUE::Features {
         }
     }
 
-    template class HalfKP<Side::kFriend>;
+    template class HalfKP<Side::FRIEND>;
 
 }  // namespace Evaluator::NNUE::Features

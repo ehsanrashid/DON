@@ -1245,12 +1245,7 @@ namespace {
               && (// Discovered check ?
                   contains(pos.kingBlockers(~activeSide), org)
                   // Direct check ?
-               || pos.see(move)))
-                // Passed pawn extension
-             || (ss->killerMoves[0] == move
-              && pType(mp) == PAWN
-              && pos.pawnAdvanceAt(activeSide, org)
-              && pos.pawnPassedAt(activeSide, dst))) {
+               || pos.see(move)))) {
                 extension = 1;
             }
 

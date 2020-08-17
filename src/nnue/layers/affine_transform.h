@@ -8,7 +8,7 @@
 namespace Evaluator::NNUE::Layers {
 
     // Affine transformation layer
-    template<typename PreviousLayer, IndexType OutputDimensions>
+    template<typename PreviousLayer, IndexType TOutputDimensions>
     class AffineTransform {
 
     public:
@@ -18,9 +18,9 @@ namespace Evaluator::NNUE::Layers {
         static_assert (std::is_same<InputType, u08>::value, "");
 
         // Number of input/output dimensions
-        static constexpr IndexType kInputDimensions{ PreviousLayer::kOutputDimensions };
-        static constexpr IndexType kOutputDimensions{ OutputDimensions };
-        static constexpr IndexType kPaddedInputDimensions{ ceilToMultiple<IndexType>(kInputDimensions, kMaxSimdWidth) };
+        static constexpr IndexType kInputDimensions{ PreviousLayer::OutputDimensions };
+        static constexpr IndexType OutputDimensions{ TOutputDimensions };
+        static constexpr IndexType kPaddedInputDimensions{ ceilToMultiple<IndexType>(kInputDimensions, MaxSimdWidth) };
 
     private:
         using BiasType = OutputType;
@@ -28,55 +28,59 @@ namespace Evaluator::NNUE::Layers {
 
         PreviousLayer _previousLayer;
 
-        alignas(kCacheLineSize) BiasType _biases[kOutputDimensions];
-        alignas(kCacheLineSize) WeightType _weights[kOutputDimensions * kPaddedInputDimensions];
+        alignas(CacheLineSize) BiasType _biases[OutputDimensions];
+        alignas(CacheLineSize) WeightType _weights[OutputDimensions * kPaddedInputDimensions];
 
     public:
         // Size of forward propagation buffer used in this layer
-        static constexpr size_t kSelfBufferSize{ ceilToMultiple(kOutputDimensions * sizeof (OutputType), kCacheLineSize) };
+        static constexpr size_t SelfBufferSize{ ceilToMultiple(OutputDimensions * sizeof (OutputType), CacheLineSize) };
 
         // Size of the forward propagation buffer used from the input layer to this layer
-        static constexpr size_t kBufferSize{ PreviousLayer::kBufferSize + kSelfBufferSize };
+        static constexpr size_t BufferSize{ PreviousLayer::BufferSize + SelfBufferSize };
 
         // Hash value embedded in the evaluation file
         static constexpr u32 getHashValue() {
             u32 hashValue{ 0xCC03DAE4u };
-            hashValue += kOutputDimensions;
+            hashValue += OutputDimensions;
             hashValue ^= PreviousLayer::getHashValue() >> 1;
             hashValue ^= PreviousLayer::getHashValue() << 31;
             return hashValue;
         }
 
         // Read network parameters
-        bool readParameters(std::istream &stream) {
-            if (!_previousLayer.readParameters(stream)) {
+        bool readParameters(std::istream &is) {
+            if (!_previousLayer.readParameters(is)) {
                 return false;
             }
-            stream.read(reinterpret_cast<char*>(_biases), kOutputDimensions * sizeof (BiasType));
-            stream.read(reinterpret_cast<char*>(_weights), kOutputDimensions * kPaddedInputDimensions * sizeof (WeightType));
-            return !stream.fail();
+            for (size_t i = 0; i < OutputDimensions; ++i) {
+                _biases[i] = readLittleEndian<BiasType>(is);
+            }
+            for (size_t i = 0; i < OutputDimensions * kPaddedInputDimensions; ++i) {
+                _weights[i] = readLittleEndian<WeightType>(is);
+            }
+            return !is.fail();
         }
 
         // Forward propagation
-        OutputType const* propagate(const TransformedFeatureType *transformedFeatures, char *buffer) const {
+        OutputType const* propagate(TransformedFeatureType const *transformedFeatures, char *buffer) const {
         
-            auto const input{ _previousLayer.propagate(transformedFeatures, buffer + kSelfBufferSize) };
+            auto const input{ _previousLayer.propagate(transformedFeatures, buffer + SelfBufferSize) };
             auto const output{ reinterpret_cast<OutputType*>(buffer) };
 
 #if defined(AVX512)
-            constexpr IndexType kNumChunks{ kPaddedInputDimensions / (kSimdWidth * 2) };
+            constexpr IndexType NumChunks{ kPaddedInputDimensions / (SimdWidth * 2) };
             auto const inputVector{ reinterpret_cast<__m512i const*>(input) };
 #if !defined(VNNI)
             __m512i const kOnes{ _mm512_set1_epi16(1) };
 #endif
 
 #elif defined(AVX2)
-            constexpr IndexType kNumChunks{ kPaddedInputDimensions / kSimdWidth };
+            constexpr IndexType NumChunks{ kPaddedInputDimensions / SimdWidth };
             __m256i const kOnes{ _mm256_set1_epi16(1) };
             auto const inputVector{ reinterpret_cast<__m256i const*>(input) };
 
 #elif defined(SSE2)
-            constexpr IndexType kNumChunks{ kPaddedInputDimensions / kSimdWidth };
+            constexpr IndexType NumChunks{ kPaddedInputDimensions / SimdWidth };
 #ifndef SSSE3
             __m128i const kZeros{ _mm_setzero_si128() };
 #else
@@ -85,22 +89,22 @@ namespace Evaluator::NNUE::Layers {
             auto const inputVector{ reinterpret_cast<__m128i const*>(input) };
 
 #elif defined(MMX)
-            constexpr IndexType kNumChunks{ kPaddedInputDimensions / kSimdWidth };
+            constexpr IndexType NumChunks{ kPaddedInputDimensions / SimdWidth };
             __m64 const kZeros{ _mm_setzero_si64() };
             auto const inputVector{ reinterpret_cast<__m64 const*>(input) };
 
 #elif defined(NEON)
-            constexpr IndexType kNumChunks{ kPaddedInputDimensions / kSimdWidth };
+            constexpr IndexType NumChunks{ kPaddedInputDimensions / SimdWidth };
             auto const inputVector{ reinterpret_cast<int8x8_t const*>(input) };
 #endif
 
-            for (IndexType i = 0; i < kOutputDimensions; ++i) {
+            for (IndexType i = 0; i < OutputDimensions; ++i) {
                 IndexType const offset{ i * kPaddedInputDimensions };
 
 #if defined(AVX512)
                 __m512i sum{ _mm512_setzero_si512() };
                 auto const row{ reinterpret_cast<__m512i const*>(&_weights[offset]) };
-                for (IndexType j = 0; j < kNumChunks; ++j) {
+                for (IndexType j = 0; j < NumChunks; ++j) {
 #if defined(VNNI)
                     sum = _mm512_dpbusd_epi32(sum, _mm512_loadA_si512(&inputVector[j]), _mm512_load_si512(&row[j]));
 #else
@@ -110,12 +114,12 @@ namespace Evaluator::NNUE::Layers {
 #endif
                 }
 
-                // Note: Changing kMaxSimdWidth from 32 to 64 breaks loading existing networks.
+                // Note: Changing MaxSimdWidth from 32 to 64 breaks loading existing networks.
                 // As a result kPaddedInputDimensions may not be an even multiple of 64(512bit)
                 // and we have to do one more 256bit chunk.
-                if (kPaddedInputDimensions != kNumChunks * kSimdWidth * 2) {
-                    auto const iv256{ reinterpret_cast<__m256i const*>(&inputVector[kNumChunks]) };
-                    auto const row256{ reinterpret_cast<__m256i const*>(&row[kNumChunks]) };
+                if (kPaddedInputDimensions != NumChunks * SimdWidth * 2) {
+                    auto const iv256{ reinterpret_cast<__m256i const*>(&inputVector[NumChunks]) };
+                    auto const row256{ reinterpret_cast<__m256i const*>(&row[NumChunks]) };
 #if defined(VNNI)
                     __m256i product256{ _mm256_dpbusd_epi32(_mm512_castsi512_si256(sum), _mm256_loadA_si256(&iv256[0]), _mm256_load_si256(&row256[0])) };
                     sum = _mm512_inserti32x8(sum, product256, 0);
@@ -129,7 +133,7 @@ namespace Evaluator::NNUE::Layers {
 #elif defined(AVX2)
                 __m256i sum{ _mm256_setzero_si256() };
                 auto const row{ reinterpret_cast<__m256i const*>(&_weights[offset]) };
-                for (IndexType j = 0; j < kNumChunks; ++j) {
+                for (IndexType j = 0; j < NumChunks; ++j) {
                     __m256i product{ _mm256_maddubs_epi16(_mm256_loadA_si256(&inputVector[j]), _mm256_load_si256(&row[j])) };
                     product = _mm256_madd_epi16(product, kOnes);
                     sum = _mm256_add_epi32(sum, product);
@@ -142,7 +146,7 @@ namespace Evaluator::NNUE::Layers {
 #elif defined(SSSE3)
                 __m128i sum{ _mm_setzero_si128() };
                 auto const row{ reinterpret_cast<__m128i const*>(&_weights[offset]) };
-                for (int j = 0; j < (int) kNumChunks - 1; j += 2) {
+                for (int j = 0; j < (int) NumChunks - 1; j += 2) {
                     __m128i product0{ _mm_maddubs_epi16(_mm_load_si128(&inputVector[j]), _mm_load_si128(&row[j])) };
                     product0 = _mm_madd_epi16(product0, kOnes);
                     sum = _mm_add_epi32(sum, product0);
@@ -150,8 +154,8 @@ namespace Evaluator::NNUE::Layers {
                     product1 = _mm_madd_epi16(product1, kOnes);
                     sum = _mm_add_epi32(sum, product1);
                 }
-                if (kNumChunks & 0x1) {
-                    __m128i product{ _mm_maddubs_epi16(_mm_load_si128(&inputVector[kNumChunks - 1]), _mm_load_si128(&row[kNumChunks - 1])) };
+                if (NumChunks & 0x1) {
+                    __m128i product{ _mm_maddubs_epi16(_mm_load_si128(&inputVector[NumChunks - 1]), _mm_load_si128(&row[NumChunks - 1])) };
                     product = _mm_madd_epi16(product, kOnes);
                     sum = _mm_add_epi32(sum, product);
                 }
@@ -163,7 +167,7 @@ namespace Evaluator::NNUE::Layers {
                 __m128i sum_lo{ _mm_cvtsi32_si128(_biases[i]) };
                 __m128i sum_hi{ kZeros };
                 auto const row{ reinterpret_cast<__m128i const*>(&_weights[offset]) };
-                for (IndexType j = 0; j < kNumChunks; ++j) {
+                for (IndexType j = 0; j < NumChunks; ++j) {
                     __m128i row_j{ _mm_load_si128(&row[j]) };
                     __m128i input_j{ _mm_load_si128(&inputVector[j]) };
                     __m128i row_signs{ _mm_cmpgt_epi8(kZeros, row_j) };
@@ -187,7 +191,7 @@ namespace Evaluator::NNUE::Layers {
                 __m64 sum_lo{ _mm_cvtsi32_si64(_biases[i]) };
                 __m64 sum_hi{ kZeros };
                 auto const row{ reinterpret_cast<__m64 const*>(&_weights[offset]) };
-                for (IndexType j = 0; j < kNumChunks; ++j) {
+                for (IndexType j = 0; j < NumChunks; ++j) {
                     __m64 row_j{ row[j] };
                     __m64 input_j{ inputVector[j] };
                     __m64 row_signs{ _mm_cmpgt_pi8(kZeros, row_j) };
@@ -207,7 +211,7 @@ namespace Evaluator::NNUE::Layers {
 #elif defined(NEON)
                 int32x4_t sum{ _biases[i] };
                 auto const row{ reinterpret_cast<int8x8_t const*>(&_weights[offset]) };
-                for (IndexType j = 0; j < kNumChunks; ++j) {
+                for (IndexType j = 0; j < NumChunks; ++j) {
                     int16x8_t product = vmull_s8(inputVector[j * 2], row[j * 2]);
                     product = vmlal_s8(product, inputVector[j * 2 + 1], row[j * 2 + 1]);
                     sum = vpadalq_s16(sum, product);

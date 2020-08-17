@@ -84,9 +84,9 @@ namespace King {
 
         auto const kSq{ pos.square(Own|KING) };
 
-        u08 cSide{ u08(pos.canCastle(Own) ?
+        u08 cSide( pos.canCastle(Own) ?
             + 1 * (pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING))
-            + 2 * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN)) : 0) };
+            + 2 * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN)) : 0 );
 
         if ((cSide & 1) != 0
          && (attacks & pos.castleKingPath(Own, CS_KING)) != 0) {
@@ -146,7 +146,7 @@ namespace King {
 
     Entry* probe(Position const &pos, Pawns::Entry *pe) {
         Key const kingKey{
-            pos.pawnKey()
+            pe->key //pos.pawnKey()
           ^ RandZob.psq[W_KING][pos.square(W_KING)]
           ^ RandZob.psq[B_KING][pos.square(B_KING)] };
 

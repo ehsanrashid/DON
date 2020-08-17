@@ -38,7 +38,7 @@ namespace Cuckoos {
     // Cuckoo tables with Zobrist hashes of valid reversible moves, and the moves themselves
     extern Cuckoo CuckooTable[CuckooSize];
 
-    extern bool lookup(Key, Cuckoo&);
+    extern bool lookup(Key, Cuckoo&) noexcept;
 
-    extern void initialize();
+    extern void initialize() noexcept;
 }

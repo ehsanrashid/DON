@@ -1,8 +1,6 @@
 // A class that converts the input features of the NNUE evaluation function
 #pragma once
 
-#include <cstring> // std::memset()
-
 #include "nnue_common.h"
 #include "nnue_architecture.h"
 #include "features/index_list.h"
@@ -19,31 +17,35 @@ namespace Evaluator::NNUE {
     public:
         // Number of input/output dimensions
         static constexpr IndexType kInputDimensions{ RawFeatures::kDimensions };
-        static constexpr IndexType kOutputDimensions{ kHalfDimensions * 2 };
+        static constexpr IndexType OutputDimensions{ kHalfDimensions * 2 };
 
     private:
         using BiasType = i16;
         using WeightType = i16;
 
-        alignas(kCacheLineSize) BiasType _biases[kHalfDimensions];
-        alignas(kCacheLineSize) WeightType _weights[kHalfDimensions * kInputDimensions];
+        alignas(CacheLineSize) BiasType _biases[kHalfDimensions];
+        alignas(CacheLineSize) WeightType _weights[kHalfDimensions * kInputDimensions];
 
     public:
         // Output type
         using OutputType = TransformedFeatureType;
         // Size of forward propagation buffer
-        static constexpr size_t kBufferSize{ kOutputDimensions * sizeof (OutputType) };
+        static constexpr size_t BufferSize{ OutputDimensions * sizeof (OutputType) };
 
         // Hash value embedded in the evaluation file
         static constexpr u32 getHashValue() {
-            return RawFeatures::kHashValue ^ kOutputDimensions;
+            return RawFeatures::HashValue ^ OutputDimensions;
         }
 
         // Read network parameters
-        bool readParameters(std::istream &stream) {
-            stream.read(reinterpret_cast<char*>(_biases), kHalfDimensions * sizeof (BiasType));
-            stream.read(reinterpret_cast<char*>(_weights), kHalfDimensions * kInputDimensions * sizeof (WeightType));
-            return !stream.fail();
+        bool readParameters(std::istream &is) {
+            for (size_t i = 0; i < kHalfDimensions; ++i) {
+                _biases[i] = readLittleEndian<BiasType>(is);
+            }
+            for (size_t i = 0; i < kHalfDimensions * kInputDimensions; ++i) {
+                _weights[i] = readLittleEndian<WeightType>(is);
+            }
+            return !is.fail();
         }
 
         // Proceed with the difference calculation if possible
@@ -70,12 +72,12 @@ namespace Evaluator::NNUE {
             auto const &accumulation{ pos.state()->accumulator.accumulation };
 
 #if defined(AVX2)
-            constexpr IndexType kNumChunks{ kHalfDimensions / kSimdWidth };
+            constexpr IndexType NumChunks{ kHalfDimensions / SimdWidth };
             constexpr int kControl{ 0b11011000 };
             __m256i const kZero{ _mm256_setzero_si256() };
 
 #elif defined(SSE2)
-            constexpr IndexType kNumChunks{ kHalfDimensions / kSimdWidth };
+            constexpr IndexType NumChunks{ kHalfDimensions / SimdWidth };
 
 #ifdef SSE41
             __m128i const kZero{ _mm_setzero_si128() };
@@ -84,11 +86,11 @@ namespace Evaluator::NNUE {
 #endif
 
 #elif defined(MMX)
-            constexpr IndexType kNumChunks{ kHalfDimensions / kSimdWidth };
+            constexpr IndexType NumChunks{ kHalfDimensions / SimdWidth };
             __m64 const k0x80s{ _mm_set1_pi8(-128) };
 
 #elif defined(NEON)
-            constexpr IndexType kNumChunks{ kHalfDimensions / (kSimdWidth / 2) };
+            constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
             int8x8_t const kZero{ 0 };
 #endif
 
@@ -98,7 +100,7 @@ namespace Evaluator::NNUE {
 
 #if defined(AVX2)
                 auto out{ reinterpret_cast<__m256i*>(&output[offset]) };
-                for (IndexType j = 0; j < kNumChunks; ++j) {
+                for (IndexType j = 0; j < NumChunks; ++j) {
                     __m256i sum0{ _mm256_loadA_si256(&reinterpret_cast<__m256i const*>(accumulation[perspectives[p]][0])[j * 2 + 0]) };
                     __m256i sum1{ _mm256_loadA_si256(&reinterpret_cast<__m256i const*>(accumulation[perspectives[p]][0])[j * 2 + 1]) };
                     _mm256_storeA_si256(&out[j], _mm256_permute4x64_epi64(_mm256_max_epi8(_mm256_packs_epi16(sum0, sum1), kZero), kControl));
@@ -106,7 +108,7 @@ namespace Evaluator::NNUE {
 
 #elif defined(SSE2)
                 auto out{ reinterpret_cast<__m128i*>(&output[offset]) };
-                for (IndexType j = 0; j < kNumChunks; ++j) {
+                for (IndexType j = 0; j < NumChunks; ++j) {
                     __m128i sum0{ _mm_load_si128(&reinterpret_cast<__m128i const*>(accumulation[perspectives[p]][0])[j * 2 + 0]) };
                     __m128i sum1{ _mm_load_si128(&reinterpret_cast<__m128i const*>(accumulation[perspectives[p]][0])[j * 2 + 1]) };
                     __m128i const packedbytes{ _mm_packs_epi16(sum0, sum1) };
@@ -124,7 +126,7 @@ namespace Evaluator::NNUE {
 
 #elif defined(MMX)
                 auto out{ reinterpret_cast<__m64*>(&output[offset]) };
-                for (IndexType j = 0; j < kNumChunks; ++j) {
+                for (IndexType j = 0; j < NumChunks; ++j) {
                     __m64 sum0{ *(&reinterpret_cast<__m64 const*>(accumulation[perspectives[p]][0])[j * 2 + 0]) };
                     __m64 sum1{ *(&reinterpret_cast<__m64 const*>(accumulation[perspectives[p]][0])[j * 2 + 1]) };
                     __m64 const packedbytes{ _mm_packs_pi16(sum0, sum1) };
@@ -133,7 +135,7 @@ namespace Evaluator::NNUE {
 
 #elif defined(NEON)
                 auto const out{ reinterpret_cast<int8x8_t*>(&output[offset]) };
-                for (IndexType j = 0; j < kNumChunks; ++j) {
+                for (IndexType j = 0; j < NumChunks; ++j) {
                     int16x8_t sum{ reinterpret_cast<int16x8_t const*>(accumulation[perspectives[p]][0])[j] };
                     out[j] = vmax_s8(vqmovn_s16(sum), kZero);
                 }
@@ -157,7 +159,7 @@ namespace Evaluator::NNUE {
             auto &accumulator{ pos.state()->accumulator };
             IndexType i{ 0 };
             Features::IndexList activeIndices[2];
-            RawFeatures::appendActiveIndices(pos, kRefreshTriggers[i], activeIndices);
+            RawFeatures::appendActiveIndices(pos, RefreshTriggers[i], activeIndices);
             for (Color perspective : { WHITE, BLACK }) {
                 std::memcpy(accumulator.accumulation[perspective][i], _biases, kHalfDimensions * sizeof (BiasType));
                 for (auto const index : activeIndices[perspective]) {
@@ -166,36 +168,36 @@ namespace Evaluator::NNUE {
 #if defined(AVX512)
                     auto accumulation{ reinterpret_cast<__m512i*>(&accumulator.accumulation[perspective][i][0]) };
                     auto column{ reinterpret_cast<__m512i const*>(&_weights[offset]) };
-                    constexpr IndexType kNumChunks{ kHalfDimensions / kSimdWidth };
-                    for (IndexType j = 0; j < kNumChunks; ++j) {
+                    constexpr IndexType NumChunks{ kHalfDimensions / SimdWidth };
+                    for (IndexType j = 0; j < NumChunks; ++j) {
                         _mm512_storeA_si512(&accumulation[j], _mm512_add_epi16(_mm512_loadA_si512(&accumulation[j]), column[j]));
                     }
 #elif defined(AVX2)
                     auto accumulation{ reinterpret_cast<__m256i*>(&accumulator.accumulation[perspective][i][0]) };
                     auto column{ reinterpret_cast<__m256i const*>(&_weights[offset]) };
-                    constexpr IndexType kNumChunks{ kHalfDimensions / (kSimdWidth / 2) };
-                    for (IndexType j = 0; j < kNumChunks; ++j) {
+                    constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                    for (IndexType j = 0; j < NumChunks; ++j) {
                         _mm256_storeA_si256(&accumulation[j], _mm256_add_epi16(_mm256_loadA_si256(&accumulation[j]), column[j]));
                     }
 #elif defined(SSE2)
                     auto accumulation{ reinterpret_cast<__m128i*>(&accumulator.accumulation[perspective][i][0]) };
                     auto column{ reinterpret_cast<__m128i const*>(&_weights[offset]) };
-                    constexpr IndexType kNumChunks{ kHalfDimensions / (kSimdWidth / 2) };
-                    for (IndexType j = 0; j < kNumChunks; ++j) {
+                    constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                    for (IndexType j = 0; j < NumChunks; ++j) {
                         accumulation[j] = _mm_add_epi16(accumulation[j], column[j]);
                     }
 #elif defined(MMX)
                     auto accumulation{ reinterpret_cast<__m64*>(&accumulator.accumulation[perspective][i][0]) };
                     auto column{ reinterpret_cast<__m64 const*>(&_weights[offset]) };
-                    constexpr IndexType kNumChunks{ kHalfDimensions / (kSimdWidth / 2) };
-                    for (IndexType j = 0; j < kNumChunks; ++j) {
+                    constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                    for (IndexType j = 0; j < NumChunks; ++j) {
                         accumulation[j] = _mm_add_pi16(accumulation[j], column[j]);
                     }
 #elif defined(NEON)
                     auto accumulation{ reinterpret_cast<int16x8_t*>(&accumulator.accumulation[perspective][i][0]) };
                     auto column{ reinterpret_cast<int16x8_t const*>(&_weights[offset]) };
-                    constexpr IndexType kNumChunks{ kHalfDimensions / (kSimdWidth / 2) };
-                    for (IndexType j = 0; j < kNumChunks; ++j) {
+                    constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                    for (IndexType j = 0; j < NumChunks; ++j) {
                         accumulation[j] = vaddq_s16(accumulation[j], column[j]);
                     }
 #else
@@ -221,23 +223,23 @@ namespace Evaluator::NNUE {
             IndexType i{ 0 };
             Features::IndexList removedIndices[2], addedIndices[2];
             bool reset[2];
-            RawFeatures::appendChangedIndices(pos, kRefreshTriggers[i], removedIndices, addedIndices, reset);
+            RawFeatures::appendChangedIndices(pos, RefreshTriggers[i], removedIndices, addedIndices, reset);
             for (Color perspective : { WHITE, BLACK }) {
 
 #if defined(AVX2)
-                constexpr IndexType kNumChunks{ kHalfDimensions / (kSimdWidth / 2) };
+                constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
                 auto accumulation{ reinterpret_cast<__m256i*>(&accumulator.accumulation[perspective][i][0]) };
 
 #elif defined(SSE2)
-                constexpr IndexType kNumChunks{ kHalfDimensions / (kSimdWidth / 2) };
+                constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
                 auto accumulation{ reinterpret_cast<__m128i*>(&accumulator.accumulation[perspective][i][0]) };
 
 #elif defined(MMX)
-                constexpr IndexType kNumChunks{ kHalfDimensions / (kSimdWidth / 2) };
+                constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
                 auto accumulation{ reinterpret_cast<__m64*>(&accumulator.accumulation[perspective][i][0]) };
 
 #elif defined(NEON)
-                constexpr IndexType kNumChunks{ kHalfDimensions / (kSimdWidth / 2) };
+                constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
                 auto accumulation{ reinterpret_cast<int16x8_t*>(&accumulator.accumulation[perspective][i][0]) };
 #endif
 
@@ -252,25 +254,25 @@ namespace Evaluator::NNUE {
 
 #if defined(AVX2)
                         auto column{ reinterpret_cast<__m256i const*>(&_weights[offset]) };
-                        for (IndexType j = 0; j < kNumChunks; ++j) {
+                        for (IndexType j = 0; j < NumChunks; ++j) {
                             accumulation[j] = _mm256_sub_epi16(accumulation[j], column[j]);
                         }
 
 #elif defined(SSE2)
                         auto column{ reinterpret_cast<__m128i const*>(&_weights[offset]) };
-                        for (IndexType j = 0; j < kNumChunks; ++j) {
+                        for (IndexType j = 0; j < NumChunks; ++j) {
                             accumulation[j] = _mm_sub_epi16(accumulation[j], column[j]);
                         }
 
 #elif defined(MMX)
                         auto column{ reinterpret_cast<__m64 const*>(&_weights[offset]) };
-                        for (IndexType j = 0; j < kNumChunks; ++j) {
+                        for (IndexType j = 0; j < NumChunks; ++j) {
                             accumulation[j] = _mm_sub_pi16(accumulation[j], column[j]);
                         }
 
 #elif defined(NEON)
                         auto column{ reinterpret_cast<int16x8_t const*>(&_weights[offset]) };
-                        for (IndexType j = 0; j < kNumChunks; ++j) {
+                        for (IndexType j = 0; j < NumChunks; ++j) {
                             accumulation[j] = vsubq_s16(accumulation[j], column[j]);
                         }
 
@@ -290,25 +292,25 @@ namespace Evaluator::NNUE {
 
 #if defined(AVX2)
                         auto column{ reinterpret_cast<__m256i const*>(&_weights[offset]) };
-                        for (IndexType j = 0; j < kNumChunks; ++j) {
+                        for (IndexType j = 0; j < NumChunks; ++j) {
                             accumulation[j] = _mm256_add_epi16(accumulation[j], column[j]);
                         }
 
 #elif defined(SSE2)
                         auto column{ reinterpret_cast<__m128i const*>(&_weights[offset]) };
-                        for (IndexType j = 0; j < kNumChunks; ++j) {
+                        for (IndexType j = 0; j < NumChunks; ++j) {
                             accumulation[j] = _mm_add_epi16(accumulation[j], column[j]);
                         }
 
 #elif defined(MMX)
                         auto column{ reinterpret_cast<__m64 const*>(&_weights[offset]) };
-                        for (IndexType j = 0; j < kNumChunks; ++j) {
+                        for (IndexType j = 0; j < NumChunks; ++j) {
                             accumulation[j] = _mm_add_pi16(accumulation[j], column[j]);
                         }
 
 #elif defined(NEON)
                         auto column{ reinterpret_cast<int16x8_t const*>(&_weights[offset]) };
-                        for (IndexType j = 0; j < kNumChunks; ++j) {
+                        for (IndexType j = 0; j < NumChunks; ++j) {
                             accumulation[j] = vaddq_s16(accumulation[j], column[j]);
                         }
 

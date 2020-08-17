@@ -43,13 +43,13 @@ namespace Cuckoos {
     Cuckoo CuckooTable[CuckooSize];
 
 
-    constexpr u16 nextHash(Key key, u16 h) {
+    constexpr u16 nextHash(Key key, u16 h) noexcept {
         return hash<0>(key) == h ?
                 hash<1>(key) :
                 hash<0>(key);
     }
 
-    void place(Cuckoo &cuckoo) {
+    void place(Cuckoo &cuckoo) noexcept {
 
         u16 h{ hash<0>(cuckoo.key()) };
         while (true) { // max 20 iteration
@@ -64,12 +64,12 @@ namespace Cuckoos {
         }
     }
 
-    bool lookup(Key key, Cuckoo &cuckoo) {
+    bool lookup(Key key, Cuckoo &cuckoo) noexcept {
         return ((cuckoo = CuckooTable[hash<0>(key)]).key() == key)
             || ((cuckoo = CuckooTable[hash<1>(key)]).key() == key);
     }
 
-    void initialize() {
+    void initialize() noexcept {
 
         std::vector<Cuckoo> cuckoos;
         for (Piece p : Pieces) {

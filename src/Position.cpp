@@ -40,8 +40,7 @@ namespace {
 }
 
 //// initialize() static function
-//void Position::initialize()
-//{}
+//void Position::initialize() {}
 
 Key Position::pgKey() const noexcept {
     return PolyZob.computePosiKey(*this);
@@ -53,11 +52,12 @@ Key Position::movePosiKey(Move m) const noexcept {
     //assert(pseudoLegal(m)
     //    && legal(m));
     /*
-    auto org{ orgSq(m) };
-    auto dst{ dstSq(m) };
-    auto mp{ board[org] };
-    auto cp{ mType(m) != ENPASSANT ?
-                board[dst] : ~active|PAWN };
+    auto const org{ orgSq(m) };
+    auto const dst{ dstSq(m) };
+    auto const mp{ board[org] };
+    auto const cp{ mType(m) != ENPASSANT ?
+                    board[dst] :
+                    ~active|PAWN };
 
     auto pKey{ posiKey()
              ^ RandZob.side
@@ -140,12 +140,13 @@ bool Position::cycled(i16 pp) const noexcept {
 
     Key const pKey{ posiKey() };
 
-    auto const *psi = _stateInfo->prevState;
+    auto const *psi{ _stateInfo->prevState };
     for (i16 i = 3; i <= end; i += 2) {
         psi = psi->prevState->prevState;
 
-        Key moveKey{ pKey
-                   ^ psi->posiKey };
+        Key const moveKey{
+            pKey
+          ^ psi->posiKey };
 
         Cuckoo cuckoo;
         if (Cuckoos::lookup(moveKey, cuckoo)) {
@@ -180,16 +181,16 @@ bool Position::cycled(i16 pp) const noexcept {
 Bitboard Position::sliderBlockersAt(Square s, Bitboard attackers, Bitboard &pinners, Bitboard &hidders) const noexcept {
     Bitboard blockers{ 0 };
 
-    Bitboard defenders{ pieces(pColor(board[s])) };
+    Bitboard const defenders{ pieces(pColor(board[s])) };
     // Snipers are X-ray slider attackers at 's'
     // No need to remove direct attackers at 's' as in check no evaluation
     Bitboard snipers{ attackers
                     & ((pieces(BSHP, QUEN) & attacksBB<BSHP>(s))
                      | (pieces(ROOK, QUEN) & attacksBB<ROOK>(s))) };
-    Bitboard mocc{ pieces() ^ snipers };
+    Bitboard const mocc{ pieces() ^ snipers };
     while (snipers != 0) {
-        auto sniperSq{ popLSq(snipers) };
-        Bitboard b{ betweenBB(s, sniperSq) & mocc };
+        auto const sniperSq{ popLSq(snipers) };
+        Bitboard const b{ betweenBB(s, sniperSq) & mocc };
         if (b != 0
          && !moreThanOne(b)) {
             blockers |= b;
@@ -219,7 +220,7 @@ bool Position::pseudoLegal(Move m) const noexcept {
 
     if (mType(m) == CASTLE) {
 
-        auto cs{ dst > org ? CS_KING : CS_QUEN };
+        auto const cs{ dst > org ? CS_KING : CS_QUEN };
         return board[org] == (active|KING) //&& contains(pieces(active, KING), org)
             && board[dst] == (active|ROOK) //&& contains(pieces(active, ROOK), dst)
             && chkrs == 0
@@ -288,7 +289,7 @@ bool Position::pseudoLegal(Move m) const noexcept {
     // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
     // So have to take care that the same kind of moves are filtered out here.
     if (chkrs != 0) {
-        auto fkSq = square(active|KING);
+        auto const fkSq{ square(active | KING) };
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
         if (org == fkSq) {
@@ -449,11 +450,12 @@ bool Position::giveDblCheck(Move m) const noexcept {
     auto const ekSq{ square(~active|KING) };
 
     if (mType(m) == ENPASSANT) {
-        Bitboard mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
-        auto chkrCount{ popCount((pieces(active, BSHP, QUEN)
-                                & attacksBB<BSHP>(ekSq, mocc))
-                               | (pieces(active, ROOK, QUEN)
-                                & attacksBB<ROOK>(ekSq, mocc))) };
+        Bitboard const mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
+        auto const chkrCount{
+            popCount( (pieces(active, BSHP, QUEN)
+                     & attacksBB<BSHP>(ekSq, mocc))
+                   |  (pieces(active, ROOK, QUEN)
+                     & attacksBB<ROOK>(ekSq, mocc))) };
         return chkrCount > 1
             || (chkrCount > 0
              && contains(checks(PAWN), dst));
@@ -469,16 +471,16 @@ bool Position::giveDblCheck(Move m) const noexcept {
 
 /// Position::setCastle() set the castling right.
 void Position::setCastle(Color c, Square rookOrg) {
-    auto kingOrg{ square(c|KING) };
+    auto const kingOrg{ square(c|KING) };
     assert(isOk(rookOrg)
         && relativeRank(c, kingOrg) == RANK_1
         && relativeRank(c, rookOrg) == RANK_1
         && board[rookOrg] == (c|ROOK)); //&& contains(pieces(c, ROOK), rookOrg)
 
-    auto cs{rookOrg > kingOrg ? CS_KING : CS_QUEN};
-    auto kingDst{ kingCastleSq(kingOrg, rookOrg) };
-    auto rookDst{ rookCastleSq(kingOrg, rookOrg) };
-    auto cr{ makeCastleRight(c, cs) };
+    auto const cs{rookOrg > kingOrg ? CS_KING : CS_QUEN};
+    auto const kingDst{ kingCastleSq(kingOrg, rookOrg) };
+    auto const rookDst{ rookCastleSq(kingOrg, rookOrg) };
+    auto const cr{ makeCastleRight(c, cs) };
     cslRookSq[c][cs] = rookOrg;
     _stateInfo->castleRights |= cr;
     sqCastleRight[kingOrg]   |= cr;
@@ -555,7 +557,7 @@ bool Position::see(Move m, Value threshold) const {
     }
 
     auto org{ orgSq(m) };
-    auto dst{ dstSq(m) };
+    auto const dst{ dstSq(m) };
 
     i32 val;
     val = PieceValues[MG][pType(board[dst])] - threshold;
@@ -869,7 +871,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 
     auto pasive{ ~active };
 
-    auto org{ orgSq(m) };
+    auto const org{ orgSq(m) };
     auto dst{ dstSq(m) };
     assert(contains(pieces(active), org)
         && (!contains(pieces(active), dst)
@@ -878,7 +880,8 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     auto const mp{ board[org] };
     assert(mp != NO_PIECE);
     auto cp{ mType(m) != ENPASSANT ?
-                board[dst] : (pasive | PAWN) };
+                board[dst] :
+                (pasive|PAWN) };
 
     if (mType(m) == CASTLE) {
         assert(mp == (active|KING)
@@ -890,8 +893,8 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
             && canCastle(active, dst > org ? CS_KING : CS_QUEN)
             && _stateInfo->prevState->checkers == 0); //&& (attackersTo(org) & pieces(pasive))
 
-        auto rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
-        auto rookDst{ rookCastleSq(org, rookOrg) };
+        auto const rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
+        auto const rookDst{ rookCastleSq(org, rookOrg) };
         /* king*/dst = kingCastleSq(org, rookOrg);
 
         if (Evaluator::useNNUE) {
@@ -1057,7 +1060,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     _stateInfo->repetition = 0;
     auto end = std::min(clockPly(), nullPly());
     if (end >= 4) {
-        auto const* psi{ _stateInfo->prevState->prevState };
+        auto const *psi{ _stateInfo->prevState->prevState };
         for (i16 i = 4; i <= end; i += 2) {
             psi = psi->prevState->prevState;
             if (psi->posiKey == posiKey()) {
@@ -1077,7 +1080,7 @@ void Position::undoMove(Move m) {
 
     active = ~active;
 
-    auto org{ orgSq(m) };
+    auto const org{ orgSq(m) };
     auto dst{ dstSq(m) };
     assert(empty(org)
         || mType(m) == CASTLE);
@@ -1088,8 +1091,8 @@ void Position::undoMove(Move m) {
             && relativeRank(active, dst) == RANK_1
             && captured() == NONE);
 
-        auto rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
-        auto rookDst{ rookCastleSq(org, rookOrg) };
+        auto const rookOrg{ dst }; // Castling is encoded as "King captures friendly Rook"
+        auto const rookDst{ rookCastleSq(org, rookOrg) };
         /* king*/dst = kingCastleSq(org, rookOrg);
 
         if (Evaluator::useNNUE) {

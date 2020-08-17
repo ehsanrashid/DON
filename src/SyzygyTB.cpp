@@ -570,7 +570,7 @@ namespace {
         //     I(k) = k * d->span + d->span / 2      (1)
 
         // First step is to get the 'k' of the I(k) nearest to our idx, using definition (1)
-        u32 k{ u32(idx / d->span) };
+        u32 k( idx / d->span );
 
         // Then we read the corresponding SparseIndex[] entry
         u32 block { number<u32, true>(&d->sparseIndex[k].block) };

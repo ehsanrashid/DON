@@ -15,27 +15,26 @@
     #include <stdlib.h>
 #endif
 
-ExtPieceSquare KPP_BoardIndex[PIECES] = {
+ExtPieceSquare PP_BoardIndex[PIECES] = {
     // convention: W - us, B - them
     // viewed from other side, W and B are reversed
-       { PS_NONE,     PS_NONE     },
-       { PS_W_PAWN,   PS_B_PAWN   },
-       { PS_W_KNIGHT, PS_B_KNIGHT },
-       { PS_W_BISHOP, PS_B_BISHOP },
-       { PS_W_ROOK,   PS_B_ROOK   },
-       { PS_W_QUEEN,  PS_B_QUEEN  },
-       { PS_W_KING,   PS_B_KING   },
-       { PS_NONE,     PS_NONE     },
-       { PS_NONE,     PS_NONE     },
-       { PS_B_PAWN,   PS_W_PAWN   },
-       { PS_B_KNIGHT, PS_W_KNIGHT },
-       { PS_B_BISHOP, PS_W_BISHOP },
-       { PS_B_ROOK,   PS_W_ROOK   },
-       { PS_B_QUEEN,  PS_W_QUEEN  },
-       { PS_B_KING,   PS_W_KING   },
-       { PS_NONE,     PS_NONE     }
+    { PS_NONE,     PS_NONE     },
+    { PS_W_PAWN,   PS_B_PAWN   },
+    { PS_W_KNIGHT, PS_B_KNIGHT },
+    { PS_W_BISHOP, PS_B_BISHOP },
+    { PS_W_ROOK,   PS_B_ROOK   },
+    { PS_W_QUEEN,  PS_B_QUEEN  },
+    { PS_W_KING,   PS_B_KING   },
+    { PS_NONE,     PS_NONE     },
+    { PS_NONE,     PS_NONE     },
+    { PS_B_PAWN,   PS_W_PAWN   },
+    { PS_B_KNIGHT, PS_W_KNIGHT },
+    { PS_B_BISHOP, PS_W_BISHOP },
+    { PS_B_ROOK,   PS_W_ROOK   },
+    { PS_B_QUEEN,  PS_W_QUEEN  },
+    { PS_B_KING,   PS_W_KING   },
+    { PS_NONE,     PS_NONE     }
 };
-
 
 namespace Evaluator::NNUE {
 
@@ -90,63 +89,58 @@ namespace Evaluator::NNUE {
 
     namespace Detail {
 
-        // initialize the evaluation function parameters
+        /// Initialize the evaluation function parameters
         template<typename T>
         void initialize(AlignedPtr<T> &pointer) {
-
-            pointer.reset(reinterpret_cast<T*>(stdAlignedAlloc(alignof(T), sizeof (T))));
+            pointer.reset(reinterpret_cast<T*>(stdAlignedAlloc(alignof (T), sizeof (T))));
             std::memset(pointer.get(), 0, sizeof (T));
         }
 
-        // Read evaluation function parameters
+        /// Read evaluation function parameters
         template<typename T>
-        bool readParameters(std::istream &stream, const AlignedPtr<T> &pointer) {
-            u32 header;
-            stream.read(reinterpret_cast<char*>(&header), sizeof (header));
-            
-            return !stream
+        bool readParameters(std::istream &is, const AlignedPtr<T> &pointer) {
+            u32 header{ readLittleEndian<u32>(is) };
+            return !is
                 || header != T::getHashValue() ?
                     false :
-                    pointer->readParameters(stream);
+                    pointer->readParameters(is);
         }
 
     }  // namespace Detail
 
-    // initialize the evaluation function parameters
+    /// Initialize the evaluation function parameters
     void initialize() {
-
         Detail::initialize(featureTransformer);
         Detail::initialize(network);
     }
 
-    // Read network header
-    bool readHeader(std::istream &stream, u32 *hash_value, std::string *architecture) {
+    /// Read network header
+    bool readHeader(std::istream &is, u32 *hashValue, std::string *architecture) {
+        u32 const version{ readLittleEndian<u32>(is) };
+        *hashValue = readLittleEndian<u32>(is);
+        u32 const size{ readLittleEndian<u32>(is) };
 
-        u32 version, size;
-        stream.read(reinterpret_cast<char*>(&version), sizeof (version));
-        stream.read(reinterpret_cast<char*>(hash_value), sizeof (*hash_value));
-        stream.read(reinterpret_cast<char*>(&size), sizeof (size));
-        if (!stream
-         || version != kVersion) {
+        if (!is
+         || version != Version) {
             return false;
         }
         architecture->resize(size);
-        stream.read(&(*architecture)[0], size);
-        return !stream.fail();
+        is.read(&(*architecture)[0], size);
+        return !is.fail();
     }
 
     // Read network parameters
-    bool readParameters(std::istream &stream) {
+    bool readParameters(std::istream &is) {
         u32 hashValue;
         std::string architecture;
-        if (!readHeader(stream, &hashValue, &architecture)
-         || hashValue != kHashValue
-         || !Detail::readParameters(stream, featureTransformer)
-         || !Detail::readParameters(stream, network)) {
+        if (!readHeader(is, &hashValue, &architecture)
+         || hashValue != HashValue
+         || !Detail::readParameters(is, featureTransformer)
+         || !Detail::readParameters(is, network)) {
             return false;
         }
-        return stream
-            && stream.peek() == std::ios::traits_type::eof();
+        return is
+            && is.peek() == std::ios::traits_type::eof();
     }
 
     // Proceed with the difference calculation if possible
@@ -156,17 +150,16 @@ namespace Evaluator::NNUE {
 
     // Calculate the evaluation value
     static Value ComputeScore(Position const &pos, bool refresh) {
-
         auto &accumulator{ pos.state()->accumulator };
         if (refresh
          || !accumulator.scoreComputed) {
 
-            alignas(kCacheLineSize) TransformedFeatureType transformedFeatures[FeatureTransformer::kBufferSize];
+            alignas(CacheLineSize) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
             featureTransformer->transform(pos, transformedFeatures, refresh);
-            alignas(kCacheLineSize) char buffer[Network::kBufferSize];
+            alignas(CacheLineSize) char buffer[Network::BufferSize];
             auto const output{ network->propagate(transformedFeatures, buffer) };
 
-            auto const score{ static_cast<Value>(output[0] / FV_SCALE) };
+            auto const score{ static_cast<Value>(output[0] / FVScale) };
 
             accumulator.score = score;
             accumulator.scoreComputed = true;
@@ -176,7 +169,6 @@ namespace Evaluator::NNUE {
 
     // Load the evaluation function file
     bool loadEvalFile(std::string const &evalFile) {
-
         initialize();
         fileName = evalFile;
 
