@@ -612,7 +612,7 @@ namespace UCI {
             while (iss >> token) {
                 auto const m{ moveOfCAN(token, pos) };
                 if (m == MOVE_NONE) {
-                    std::cerr << "ERROR: Illegal Move '" << token << "' at " << iss.tellg() << std::endl;
+                    std::cerr << "ERROR: Illegal Move '" << token << "' at " << iss.tellg() << '\n';
                     break;
                 }
 
@@ -648,7 +648,7 @@ namespace UCI {
                     while (iss >> token) {
                         auto const m{ moveOfCAN(token, pos) };
                         if (m == MOVE_NONE) {
-                            std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
+                            std::cerr << "ERROR: Illegal Rootmove '" << token << "'\n";
                             continue;
                         }
                         Limits.searchMoves += m;
@@ -662,7 +662,7 @@ namespace UCI {
                     while (iss >> token) {
                         auto const m{ moveOfCAN(token, pos) };
                         if (m == MOVE_NONE) {
-                            std::cerr << "ERROR: Illegal Rootmove '" << token << "'" << std::endl;
+                            std::cerr << "ERROR: Illegal Rootmove '" << token << "'\n";
                             continue;
                         }
                         if (Limits.searchMoves.contains(m)) {
@@ -671,7 +671,7 @@ namespace UCI {
                     }
                 }
                 //else {
-                //    std::cerr << "Unknown token : " << token << std::endl;
+                //    std::cerr << "Unknown token : " << token << '\n';
                 //}
             }
             Threadpool.startThinking(pos, states);
@@ -730,7 +730,7 @@ namespace UCI {
                     ifs.close();
                 }
                 else {
-                    std::cerr << "ERROR: unable to open file ... \'" << fenFile << "\'" << std::endl;
+                    std::cerr << "ERROR: unable to open file ... \'" << fenFile << "\'\n";
                 }
             }
 
@@ -830,7 +830,7 @@ namespace UCI {
                 << "Nodes searched  :" << std::setw(16) << nodes << '\n'
                 << "Nodes/second    :" << std::setw(16) << nodes * 1000 / elapsed
                 << "\n---------------------------------\n";
-            std::cerr << oss.str() << std::endl;
+            std::cerr << oss.str() << '\n';
         }
     }
 

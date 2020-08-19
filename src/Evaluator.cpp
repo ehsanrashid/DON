@@ -40,7 +40,7 @@ namespace Evaluator {
                 std::cerr << "NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully.\n"
                           << "These network evaluation parameters must be available, and compatible with this version of the code.\n"
                           << "The UCI option 'Eval File' might need to specify the full path, including the directory/folder name, to the file.\n"
-                          << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/" << Options["Eval File"].defaultValue() << std::endl;
+                          << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/" << Options["Eval File"].defaultValue() << '\n';
                 std::exit(EXIT_FAILURE);
             }
             sync_cout << "info string NNUE evaluation using " << evalFile << " enabled." << sync_endl;

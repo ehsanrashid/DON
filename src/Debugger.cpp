@@ -45,7 +45,7 @@ void Debugger::print() noexcept {
             << "Hit2  :" << std::setw(20) << Hit2Count << '\n'
             << "Rate  :" << std::setw(20) << std::fixed << std::setprecision(2)
                                           << 100 * (double) Hit2Count / Hit1Count;
-        std::cerr << oss.str() << std::endl;
+        std::cerr << oss.str() << '\n';
     }
     if (ItemCount != 0) {
         std::ostringstream oss{};
@@ -55,6 +55,6 @@ void Debugger::print() noexcept {
             << "Sum   :" << std::setw(20) << ItemSum   << '\n'
             << "Mean  :" << std::setw(20) << std::fixed << std::setprecision(2)
                                           << (double) ItemSum / ItemCount;
-        std::cerr << oss.str() << std::endl;
+        std::cerr << oss.str() << '\n';
     }
 }

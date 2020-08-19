@@ -257,7 +257,7 @@ size_t TTable::resize(size_t memSize) {
     clusterCount = (memSize << 20) / sizeof (TCluster);
     clusterTable = static_cast<TCluster*>(allocAlignedMemory(mem, clusterCount * sizeof (TCluster)));
     if (mem == nullptr) {
-        std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << std::endl;
+        std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << '\n';
         return 0;
     }
 

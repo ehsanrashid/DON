@@ -199,7 +199,7 @@ namespace {
                     FILE_FLAG_RANDOM_ACCESS, // NOTE: FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored.
                     nullptr);
             if (hFile == INVALID_HANDLE_VALUE) {
-                std::cerr << "CreateFile() failed, file = " << filename << std::endl;
+                std::cerr << "CreateFile() failed, file = " << filename << '\n';
                 *baseAddress = nullptr;
                 return nullptr;
             }
@@ -208,7 +208,7 @@ namespace {
             DWORD loSize = GetFileSize(hFile, &hiSize);
 
             if (loSize % 64 != 16) {
-                std::cerr << "Corrupt tablebase, file = " << filename << std::endl;
+                std::cerr << "Corrupt tablebase, file = " << filename << '\n';
                 std::exit(EXIT_FAILURE);
             }
 
@@ -224,7 +224,7 @@ namespace {
             CloseHandle(hFile);
 
             if (hFileMap == nullptr) {
-                std::cerr << "CreateFileMapping() failed, file = " << filename << std::endl;
+                std::cerr << "CreateFileMapping() failed, file = " << filename << '\n';
                 std::exit(EXIT_FAILURE);
             }
 
@@ -237,7 +237,7 @@ namespace {
                     0, // FileOffsetLow
                     0);
             if ((*baseAddress) == nullptr) {
-                std::cerr << "MapViewOfFile() failed, file = " << filename << std::endl;
+                std::cerr << "MapViewOfFile() failed, file = " << filename << '\n';
                 std::exit(EXIT_FAILURE);
             }
         #else
@@ -246,7 +246,7 @@ namespace {
                     filename.c_str(),
                     O_RDONLY);
             if (hFile == -1) {
-                std::cerr << "open() failed, file = " << filename << std::endl;
+                std::cerr << "open() failed, file = " << filename << '\n';
                 *baseAddress = nullptr;
                 return nullptr;
             }
@@ -255,13 +255,13 @@ namespace {
             fstat(hFile, &statbuf);
 
             if (statbuf.st_size == 0) {
-                std::cerr << "fstat() failed, file = " << filename << std::endl;
+                std::cerr << "fstat() failed, file = " << filename << '\n';
                 ::close(hFile);
                 std::exit(EXIT_FAILURE);
             }
 
             if (statbuf.st_size % 64 != 16) {
-                std::cerr << "Corrupt tablebase, file = " << filename << std::endl;
+                std::cerr << "Corrupt tablebase, file = " << filename << '\n';
                 ::close(hFile);
                 std::exit(EXIT_FAILURE);
             }
@@ -278,7 +278,7 @@ namespace {
             ::close(hFile);
 
             if (*baseAddress == MAP_FAILED) {
-                std::cerr << "mmap() failed, file = " << filename << std::endl;
+                std::cerr << "mmap() failed, file = " << filename << '\n';
                 std::exit(EXIT_FAILURE);
             }
         #endif
@@ -292,7 +292,7 @@ namespace {
             };
 
             if (memcmp(data, TB_MAGIC[type == WDL], 4)) {
-                std::cerr << "Corrupted table, file = " << filename << std::endl;
+                std::cerr << "Corrupted table, file = " << filename << '\n';
                 unmap(*baseAddress, *mapping);
                 *baseAddress = nullptr;
                 return nullptr;
@@ -478,7 +478,7 @@ namespace {
                 }
             }
 
-            std::cerr << "TB hash table size too low!" << std::endl;
+            std::cerr << "TB hash table size too low!" << '\n';
             std::exit(EXIT_FAILURE);
         }
 
