@@ -6,7 +6,7 @@
 namespace Evaluator::NNUE::Layers {
 
     // Input layer
-    template<IndexType TOutputDimensions, IndexType Offset = 0>
+    template<IndexType OutputDimensionsT, IndexType Offset = 0>
     class InputSlice {
 
     private:
@@ -19,7 +19,7 @@ namespace Evaluator::NNUE::Layers {
         using OutputType = TransformedFeatureType;
 
         // Output dimensionality
-        static constexpr IndexType OutputDimensions{ TOutputDimensions };
+        static constexpr IndexType OutputDimensions{ OutputDimensionsT };
 
         // Size of forward propagation buffer used from the input layer to this layer
         static constexpr size_t BufferSize{ 0 };

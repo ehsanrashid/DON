@@ -45,7 +45,7 @@ This distribution of DON consists of the following files:
 
 To use the NNUE evaluation an additional data file with neural network parameters
 needs to be downloaded. The filename for the default set can be found as the default
-value of the `EvalFile` UCI option, with the format
+value of the `Eval File` UCI option, with the format
 `nn-[SHA256 first 12 digits].nnue` (e.g. nn-c157e0a5755b.nnue).
 
 ## UCI options
@@ -86,9 +86,9 @@ Currently, DON has the following UCI options:
 
   * #### Use NNUE
     Toggle between the NNUE and classical evaluation functions. If set to "true",
-    the network parameters must be available to load from file (see also EvalFile).
+    the network parameters must be available to load from file (see also `Eval File`).
 
-  * #### EvalFile
+  * #### Eval File
     The name of the file of the NNUE evaluation parameters. Depending on the GUI the
     filename should include the full path to the folder/directory that contains the file.
     
@@ -171,8 +171,8 @@ results in stronger playing strength, even if the nodes per second computed by t
 is somewhat lower (roughly 60% of nps is typical).
 
 Note that the NNUE evaluation depends on the DON binary and the network parameter
-file (see EvalFile). Not every parameter file is compatible with a given DON binary.
-The default value of the EvalFile UCI option is the name of a network that is guaranteed
+file (see `Eval File`). Not every parameter file is compatible with a given DON binary.
+The default value of the `Eval File` UCI option is the name of a network that is guaranteed
 to be compatible with that binary.
 
 ## What to expect from Syzygybases?

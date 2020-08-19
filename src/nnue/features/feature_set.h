@@ -16,7 +16,7 @@ namespace Evaluator::NNUE::Features {
         static constexpr bool contains(T value) {
             return value == First || CompileTimeList<T, Remaining...>::contains(value);
         }
-        static constexpr std::array<T, sizeof...(Remaining) + 1> kValues{ {First, Remaining...} };
+        static constexpr std::array<T, sizeof...(Remaining) + 1> Values{ {First, Remaining...} };
     };
 
     // Base class of feature set
@@ -69,12 +69,12 @@ namespace Evaluator::NNUE::Features {
         // Hash value embedded in the evaluation file
         static constexpr u32 HashValue{ FeatureType::HashValue };
         // Number of feature dimensions
-        static constexpr IndexType kDimensions{ FeatureType::kDimensions };
+        static constexpr IndexType Dimensions{ FeatureType::Dimensions };
         // Maximum number of simultaneously active features
         static constexpr IndexType MaxActiveDimensions{ FeatureType::MaxActiveDimensions };
         // Trigger for full calculation instead of difference calculation
         using SortedTriggerSet = CompileTimeList<TriggerEvent, FeatureType::RefreshTrigger>;
-        static constexpr auto RefreshTriggers{ SortedTriggerSet::kValues };
+        static constexpr auto RefreshTriggers{ SortedTriggerSet::Values };
 
     private:
         // Get a list of indices for active features

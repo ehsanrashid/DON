@@ -19,8 +19,8 @@ namespace Evaluator::NNUE::Layers {
         static_assert (std::is_same<InputType, i32>::value, "");
 
         // Number of input/output dimensions
-        static constexpr IndexType kInputDimensions{ PreviousLayer::OutputDimensions };
-        static constexpr IndexType OutputDimensions{ kInputDimensions };
+        static constexpr IndexType InputDimensions{ PreviousLayer::OutputDimensions };
+        static constexpr IndexType OutputDimensions{ InputDimensions };
 
         // Size of forward propagation buffer used in this layer
         static constexpr size_t SelfBufferSize{ ceilToMultiple(OutputDimensions * sizeof (OutputType), CacheLineSize) };
@@ -47,7 +47,7 @@ namespace Evaluator::NNUE::Layers {
             auto const output{ reinterpret_cast<OutputType*>(buffer) };
 
 #if defined(AVX2)
-            constexpr IndexType NumChunks{ kInputDimensions / SimdWidth };
+            constexpr IndexType NumChunks{ InputDimensions / SimdWidth };
             __m256i const kZero{ _mm256_setzero_si256() };
             __m256i const kOffsets{ _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0) };
             auto const in{ reinterpret_cast<__m256i const*>(input) };
@@ -60,7 +60,7 @@ namespace Evaluator::NNUE::Layers {
             constexpr IndexType Start{ NumChunks * SimdWidth };
 
 #elif defined(SSE2)
-            constexpr IndexType NumChunks{ kInputDimensions / SimdWidth };
+            constexpr IndexType NumChunks{ InputDimensions / SimdWidth };
 
     #ifdef SSE41
             __m128i const kZero{ _mm_setzero_si128() };
@@ -85,7 +85,7 @@ namespace Evaluator::NNUE::Layers {
             constexpr IndexType Start{ NumChunks * SimdWidth };
 
 #elif defined(MMX)
-            constexpr IndexType NumChunks{ kInputDimensions / SimdWidth };
+            constexpr IndexType NumChunks{ InputDimensions / SimdWidth };
             __m64 const k0x80s{ _mm_set1_pi8(-128) };
             auto const in{ reinterpret_cast<__m64 const*>(input) };
             auto const out{ reinterpret_cast<__m64*>(output) };
@@ -99,7 +99,7 @@ namespace Evaluator::NNUE::Layers {
             constexpr IndexType Start{ NumChunks * SimdWidth };
 
 #elif defined(NEON)
-            constexpr IndexType NumChunks{ kInputDimensions / (SimdWidth / 2) };
+            constexpr IndexType NumChunks{ InputDimensions / (SimdWidth / 2) };
             int8x8_t const kZero{ 0 };
             auto const in{ reinterpret_cast<int32x4_t const*>(input) };
             auto const out{ reinterpret_cast<int8x8_t*>(output) };
@@ -116,7 +116,7 @@ namespace Evaluator::NNUE::Layers {
             constexpr IndexType Start{ 0 };
 #endif
 
-            for (IndexType i = Start; i < kInputDimensions; ++i) {
+            for (IndexType i = Start; i < InputDimensions; ++i) {
                 output[i] = static_cast<OutputType>(std::max(0, std::min(127, input[i] >> WeightScaleBits)));
             }
             return output;

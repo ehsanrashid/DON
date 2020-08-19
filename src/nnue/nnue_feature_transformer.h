@@ -12,19 +12,19 @@ namespace Evaluator::NNUE {
 
     private:
         // Number of output dimensions for one side
-        static constexpr IndexType kHalfDimensions{ kTransformedFeatureDimensions };
+        static constexpr IndexType HalfDimensions{ TransformedFeatureDimensions };
 
     public:
         // Number of input/output dimensions
-        static constexpr IndexType kInputDimensions{ RawFeatures::kDimensions };
-        static constexpr IndexType OutputDimensions{ kHalfDimensions * 2 };
+        static constexpr IndexType InputDimensions{ RawFeatures::Dimensions };
+        static constexpr IndexType OutputDimensions{ HalfDimensions * 2 };
 
     private:
         using BiasType = i16;
         using WeightType = i16;
 
-        alignas(CacheLineSize) BiasType _biases[kHalfDimensions];
-        alignas(CacheLineSize) WeightType _weights[kHalfDimensions * kInputDimensions];
+        alignas(CacheLineSize) BiasType _biases[HalfDimensions];
+        alignas(CacheLineSize) WeightType _weights[HalfDimensions * InputDimensions];
 
     public:
         // Output type
@@ -39,10 +39,10 @@ namespace Evaluator::NNUE {
 
         // Read network parameters
         bool readParameters(std::istream &is) {
-            for (size_t i = 0; i < kHalfDimensions; ++i) {
+            for (size_t i = 0; i < HalfDimensions; ++i) {
                 _biases[i] = readLittleEndian<BiasType>(is);
             }
-            for (size_t i = 0; i < kHalfDimensions * kInputDimensions; ++i) {
+            for (size_t i = 0; i < HalfDimensions * InputDimensions; ++i) {
                 _weights[i] = readLittleEndian<WeightType>(is);
             }
             return !is.fail();
@@ -72,12 +72,12 @@ namespace Evaluator::NNUE {
             auto const &accumulation{ pos.state()->accumulator.accumulation };
 
 #if defined(AVX2)
-            constexpr IndexType NumChunks{ kHalfDimensions / SimdWidth };
+            constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
             constexpr int kControl{ 0b11011000 };
             __m256i const kZero{ _mm256_setzero_si256() };
 
 #elif defined(SSE2)
-            constexpr IndexType NumChunks{ kHalfDimensions / SimdWidth };
+            constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
 
 #ifdef SSE41
             __m128i const kZero{ _mm_setzero_si128() };
@@ -86,17 +86,17 @@ namespace Evaluator::NNUE {
 #endif
 
 #elif defined(MMX)
-            constexpr IndexType NumChunks{ kHalfDimensions / SimdWidth };
+            constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
             __m64 const k0x80s{ _mm_set1_pi8(-128) };
 
 #elif defined(NEON)
-            constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+            constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth / 2) };
             int8x8_t const kZero{ 0 };
 #endif
 
             Color const perspectives[2]{ pos.activeSide(), ~pos.activeSide() };
             for (IndexType p = 0; p < 2; ++p) {
-                IndexType const offset{ kHalfDimensions * p };
+                IndexType const offset{ HalfDimensions * p };
 
 #if defined(AVX2)
                 auto out{ reinterpret_cast<__m256i*>(&output[offset]) };
@@ -141,7 +141,7 @@ namespace Evaluator::NNUE {
                 }
 
 #else
-                for (IndexType j = 0; j < kHalfDimensions; ++j) {
+                for (IndexType j = 0; j < HalfDimensions; ++j) {
                     BiasType sum{ accumulation[static_cast<int>(perspectives[p])][0][j] };
                     output[offset + j] = static_cast<OutputType>(std::max<int>(0, std::min<int>(127, sum)));
                 }
@@ -161,47 +161,47 @@ namespace Evaluator::NNUE {
             Features::IndexList activeIndices[2];
             RawFeatures::appendActiveIndices(pos, RefreshTriggers[i], activeIndices);
             for (Color perspective : { WHITE, BLACK }) {
-                std::memcpy(accumulator.accumulation[perspective][i], _biases, kHalfDimensions * sizeof (BiasType));
+                std::memcpy(accumulator.accumulation[perspective][i], _biases, HalfDimensions * sizeof (BiasType));
                 for (auto const index : activeIndices[perspective]) {
-                    IndexType const offset{ kHalfDimensions * index };
+                    IndexType const offset{ HalfDimensions * index };
 
 #if defined(AVX512)
                     auto accumulation{ reinterpret_cast<__m512i*>(&accumulator.accumulation[perspective][i][0]) };
                     auto column{ reinterpret_cast<__m512i const*>(&_weights[offset]) };
-                    constexpr IndexType NumChunks{ kHalfDimensions / SimdWidth };
+                    constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
                     for (IndexType j = 0; j < NumChunks; ++j) {
                         _mm512_storeA_si512(&accumulation[j], _mm512_add_epi16(_mm512_loadA_si512(&accumulation[j]), column[j]));
                     }
 #elif defined(AVX2)
                     auto accumulation{ reinterpret_cast<__m256i*>(&accumulator.accumulation[perspective][i][0]) };
                     auto column{ reinterpret_cast<__m256i const*>(&_weights[offset]) };
-                    constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                    constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth / 2) };
                     for (IndexType j = 0; j < NumChunks; ++j) {
                         _mm256_storeA_si256(&accumulation[j], _mm256_add_epi16(_mm256_loadA_si256(&accumulation[j]), column[j]));
                     }
 #elif defined(SSE2)
                     auto accumulation{ reinterpret_cast<__m128i*>(&accumulator.accumulation[perspective][i][0]) };
                     auto column{ reinterpret_cast<__m128i const*>(&_weights[offset]) };
-                    constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                    constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth / 2) };
                     for (IndexType j = 0; j < NumChunks; ++j) {
                         accumulation[j] = _mm_add_epi16(accumulation[j], column[j]);
                     }
 #elif defined(MMX)
                     auto accumulation{ reinterpret_cast<__m64*>(&accumulator.accumulation[perspective][i][0]) };
                     auto column{ reinterpret_cast<__m64 const*>(&_weights[offset]) };
-                    constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                    constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth / 2) };
                     for (IndexType j = 0; j < NumChunks; ++j) {
                         accumulation[j] = _mm_add_pi16(accumulation[j], column[j]);
                     }
 #elif defined(NEON)
                     auto accumulation{ reinterpret_cast<int16x8_t*>(&accumulator.accumulation[perspective][i][0]) };
                     auto column{ reinterpret_cast<int16x8_t const*>(&_weights[offset]) };
-                    constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                    constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth / 2) };
                     for (IndexType j = 0; j < NumChunks; ++j) {
                         accumulation[j] = vaddq_s16(accumulation[j], column[j]);
                     }
 #else
-                    for (IndexType j = 0; j < kHalfDimensions; ++j) {
+                    for (IndexType j = 0; j < HalfDimensions; ++j) {
                         accumulator.accumulation[perspective][i][j] += _weights[offset + j];
                     }
 #endif
@@ -227,30 +227,30 @@ namespace Evaluator::NNUE {
             for (Color perspective : { WHITE, BLACK }) {
 
 #if defined(AVX2)
-                constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth / 2) };
                 auto accumulation{ reinterpret_cast<__m256i*>(&accumulator.accumulation[perspective][i][0]) };
 
 #elif defined(SSE2)
-                constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth / 2) };
                 auto accumulation{ reinterpret_cast<__m128i*>(&accumulator.accumulation[perspective][i][0]) };
 
 #elif defined(MMX)
-                constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth / 2) };
                 auto accumulation{ reinterpret_cast<__m64*>(&accumulator.accumulation[perspective][i][0]) };
 
 #elif defined(NEON)
-                constexpr IndexType NumChunks{ kHalfDimensions / (SimdWidth / 2) };
+                constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth / 2) };
                 auto accumulation{ reinterpret_cast<int16x8_t*>(&accumulator.accumulation[perspective][i][0]) };
 #endif
 
                 if (reset[perspective]) {
-                    std::memcpy(accumulator.accumulation[perspective][i], _biases, kHalfDimensions * sizeof (BiasType));
+                    std::memcpy(accumulator.accumulation[perspective][i], _biases, HalfDimensions * sizeof (BiasType));
                 }
                 else {
-                    std::memcpy(accumulator.accumulation[perspective][i], prevAccumulator.accumulation[perspective][i], kHalfDimensions * sizeof (BiasType));
+                    std::memcpy(accumulator.accumulation[perspective][i], prevAccumulator.accumulation[perspective][i], HalfDimensions * sizeof (BiasType));
                     // Difference calculation for the deactivated features
                     for (auto const index : removedIndices[perspective]) {
-                        IndexType const offset{ kHalfDimensions * index };
+                        IndexType const offset{ HalfDimensions * index };
 
 #if defined(AVX2)
                         auto column{ reinterpret_cast<__m256i const*>(&_weights[offset]) };
@@ -277,7 +277,7 @@ namespace Evaluator::NNUE {
                         }
 
 #else
-                        for (IndexType j = 0; j < kHalfDimensions; ++j) {
+                        for (IndexType j = 0; j < HalfDimensions; ++j) {
                             accumulator.accumulation[perspective][i][j] -= _weights[offset + j];
                         }
 #endif
@@ -288,7 +288,7 @@ namespace Evaluator::NNUE {
                 {
                     // Difference calculation for the activated features
                     for (auto const index : addedIndices[perspective]) {
-                        IndexType const offset{ kHalfDimensions * index };
+                        IndexType const offset{ HalfDimensions * index };
 
 #if defined(AVX2)
                         auto column{ reinterpret_cast<__m256i const*>(&_weights[offset]) };
@@ -315,7 +315,7 @@ namespace Evaluator::NNUE {
                         }
 
 #else
-                        for (IndexType j = 0; j < kHalfDimensions; ++j) {
+                        for (IndexType j = 0; j < HalfDimensions; ++j) {
                             accumulator.accumulation[perspective][i][j] += _weights[offset + j];
                         }
 #endif

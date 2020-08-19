@@ -17,7 +17,7 @@ namespace Evaluator::NNUE::Features {
         // Hash value embedded in the evaluation file
         static constexpr u32 HashValue{ 0x5D69D5B9u ^ (AssociatedKing == Side::FRIEND) };
         // Number of feature dimensions
-        static constexpr IndexType kDimensions{ static_cast<IndexType>(SQUARES) * static_cast<IndexType>(PS_END) };
+        static constexpr IndexType Dimensions{ static_cast<IndexType>(SQUARES) * static_cast<IndexType>(PS_END) };
         // Maximum number of simultaneously active features
         static constexpr IndexType MaxActiveDimensions{ PIECE_ID_KING };
         // Trigger for full calculation instead of difference calculation

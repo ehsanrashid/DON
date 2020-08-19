@@ -827,7 +827,7 @@ namespace {
             else {
                 ss->staticEval = eval =
                     (ss-1)->playedMove != MOVE_NULL ?
-                        evaluate(pos) - (ss-1)->stats / 512 :
+                        evaluate(pos) :
                         -(ss-1)->staticEval + 2 * VALUE_TEMPO;
 
                 tte->save(key,
@@ -1237,15 +1237,12 @@ namespace {
                 }
             }
             else
-            if (// Previous capture extension
-                (pos.captured() > PAWN
-              && pos.nonPawnMaterial() <= 2 * VALUE_MG_ROOK)
-                // Check extension (~2 ELO)
-             || (giveCheck
-              && (// Discovered check ?
-                  contains(pos.kingBlockers(~activeSide), org)
-                  // Direct check ?
-               || pos.see(move)))) {
+            if (// Check extension (~2 ELO)
+                giveCheck
+             && (// Discovered check ?
+                 contains(pos.kingBlockers(~activeSide), org)
+                 // Direct check ?
+              || pos.see(move))) {
                 extension = 1;
             }
 

@@ -6,7 +6,7 @@
 
 namespace Evaluator::NNUE {
 
-    static_assert (kTransformedFeatureDimensions % MaxSimdWidth == 0, "");
+    static_assert (TransformedFeatureDimensions % MaxSimdWidth == 0, "");
     static_assert (Network::OutputDimensions == 1, "");
     static_assert (std::is_same<Network::OutputType, i32>::value, "");
 

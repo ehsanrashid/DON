@@ -39,7 +39,7 @@ namespace Evaluator {
             if (prevEvalFile != evalFile) {
                 std::cerr << "NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully.\n"
                           << "These network evaluation parameters must be available, and compatible with this version of the code.\n"
-                          << "The UCI option EvalFile might need to specify the full path, including the directory/folder name, to the file.\n"
+                          << "The UCI option 'Eval File' might need to specify the full path, including the directory/folder name, to the file.\n"
                           << "The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/" << Options["Eval File"].defaultValue() << std::endl;
                 std::exit(EXIT_FAILURE);
             }
@@ -194,7 +194,8 @@ namespace Evaluator {
         constexpr Value LazyThreshold1{ Value( 1400) };
         constexpr Value LazyThreshold2{ Value( 1300) };
         constexpr Value SpaceThreshold{ Value(12222) };
-        constexpr Value NNUEThreshold {   Value(575) };
+        constexpr Value NNUEThreshold1{   Value(575) };
+        constexpr Value NNUEThreshold2{   Value(150) };
 
         constexpr i32 SafeCheckWeight[4][2]{
             {792, 1283}, {645, 967}, {1084, 1897}, {772, 1119}
@@ -1097,10 +1098,21 @@ namespace Evaluator {
 
     /// evaluate() returns a static evaluation of the position from the point of view of the side to move.
     Value evaluate(Position const &pos) {
-        Value v{ !useNNUE
-               || egValue(pos.psqScore()) >= NNUEThreshold * (16 + pos.clockPly()) / 16 ? // Increase for fortresses
-                    Evaluation<false>(pos).value() :
-                    NNUE::evaluate(pos) };
+
+        bool const classical{
+            !useNNUE
+          || egValue(pos.psqScore()) * 16 >= NNUEThreshold1 * (16 + pos.clockPly())
+        };
+
+        Value v{
+            classical ? // Increase for fortresses
+                Evaluation<false>(pos).value() :
+                NNUE::evaluate(pos) };
+        if (classical
+         && useNNUE
+         && abs(v) * 16 < NNUEThreshold2 * (16 + pos.clockPly())) {
+            v = NNUE::evaluate(pos);
+        }
 
         // Damp down the evaluation linearly when shuffling
         v = v * (100 - pos.clockPly()) / 100;

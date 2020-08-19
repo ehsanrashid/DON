@@ -8,7 +8,7 @@
 namespace Evaluator::NNUE::Layers {
 
     // Affine transformation layer
-    template<typename PreviousLayer, IndexType TOutputDimensions>
+    template<typename PreviousLayer, IndexType OutputDimensionsT>
     class AffineTransform {
 
     public:
@@ -18,9 +18,9 @@ namespace Evaluator::NNUE::Layers {
         static_assert (std::is_same<InputType, u08>::value, "");
 
         // Number of input/output dimensions
-        static constexpr IndexType kInputDimensions{ PreviousLayer::OutputDimensions };
-        static constexpr IndexType OutputDimensions{ TOutputDimensions };
-        static constexpr IndexType kPaddedInputDimensions{ ceilToMultiple<IndexType>(kInputDimensions, MaxSimdWidth) };
+        static constexpr IndexType InputDimensions{ PreviousLayer::OutputDimensions };
+        static constexpr IndexType OutputDimensions{ OutputDimensionsT };
+        static constexpr IndexType PaddedInputDimensions{ ceilToMultiple<IndexType>(InputDimensions, MaxSimdWidth) };
 
     private:
         using BiasType = OutputType;
@@ -29,7 +29,7 @@ namespace Evaluator::NNUE::Layers {
         PreviousLayer _previousLayer;
 
         alignas(CacheLineSize) BiasType _biases[OutputDimensions];
-        alignas(CacheLineSize) WeightType _weights[OutputDimensions * kPaddedInputDimensions];
+        alignas(CacheLineSize) WeightType _weights[OutputDimensions * PaddedInputDimensions];
 
     public:
         // Size of forward propagation buffer used in this layer
@@ -55,7 +55,7 @@ namespace Evaluator::NNUE::Layers {
             for (size_t i = 0; i < OutputDimensions; ++i) {
                 _biases[i] = readLittleEndian<BiasType>(is);
             }
-            for (size_t i = 0; i < OutputDimensions * kPaddedInputDimensions; ++i) {
+            for (size_t i = 0; i < OutputDimensions * PaddedInputDimensions; ++i) {
                 _weights[i] = readLittleEndian<WeightType>(is);
             }
             return !is.fail();
@@ -68,19 +68,19 @@ namespace Evaluator::NNUE::Layers {
             auto const output{ reinterpret_cast<OutputType*>(buffer) };
 
 #if defined(AVX512)
-            constexpr IndexType NumChunks{ kPaddedInputDimensions / (SimdWidth * 2) };
+            constexpr IndexType NumChunks{ PaddedInputDimensions / (SimdWidth * 2) };
             auto const inputVector{ reinterpret_cast<__m512i const*>(input) };
 #if !defined(VNNI)
             __m512i const kOnes{ _mm512_set1_epi16(1) };
 #endif
 
 #elif defined(AVX2)
-            constexpr IndexType NumChunks{ kPaddedInputDimensions / SimdWidth };
+            constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
             __m256i const kOnes{ _mm256_set1_epi16(1) };
             auto const inputVector{ reinterpret_cast<__m256i const*>(input) };
 
 #elif defined(SSE2)
-            constexpr IndexType NumChunks{ kPaddedInputDimensions / SimdWidth };
+            constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
 #ifndef SSSE3
             __m128i const kZeros{ _mm_setzero_si128() };
 #else
@@ -89,17 +89,17 @@ namespace Evaluator::NNUE::Layers {
             auto const inputVector{ reinterpret_cast<__m128i const*>(input) };
 
 #elif defined(MMX)
-            constexpr IndexType NumChunks{ kPaddedInputDimensions / SimdWidth };
+            constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
             __m64 const kZeros{ _mm_setzero_si64() };
             auto const inputVector{ reinterpret_cast<__m64 const*>(input) };
 
 #elif defined(NEON)
-            constexpr IndexType NumChunks{ kPaddedInputDimensions / SimdWidth };
+            constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
             auto const inputVector{ reinterpret_cast<int8x8_t const*>(input) };
 #endif
 
             for (IndexType i = 0; i < OutputDimensions; ++i) {
-                IndexType const offset{ i * kPaddedInputDimensions };
+                IndexType const offset{ i * PaddedInputDimensions };
 
 #if defined(AVX512)
                 __m512i sum{ _mm512_setzero_si512() };
@@ -115,9 +115,9 @@ namespace Evaluator::NNUE::Layers {
                 }
 
                 // Note: Changing MaxSimdWidth from 32 to 64 breaks loading existing networks.
-                // As a result kPaddedInputDimensions may not be an even multiple of 64(512bit)
+                // As a result PaddedInputDimensions may not be an even multiple of 64(512bit)
                 // and we have to do one more 256bit chunk.
-                if (kPaddedInputDimensions != NumChunks * SimdWidth * 2) {
+                if (PaddedInputDimensions != NumChunks * SimdWidth * 2) {
                     auto const iv256{ reinterpret_cast<__m256i const*>(&inputVector[NumChunks]) };
                     auto const row256{ reinterpret_cast<__m256i const*>(&row[NumChunks]) };
 #if defined(VNNI)
@@ -219,7 +219,7 @@ namespace Evaluator::NNUE::Layers {
                 output[i] = sum[0] + sum[1] + sum[2] + sum[3];
 #else
                 OutputType sum{ _biases[i] };
-                for (IndexType j = 0; j < kInputDimensions; ++j) {
+                for (IndexType j = 0; j < InputDimensions; ++j) {
                     sum += _weights[offset + j] * input[j];
                 }
                 output[i] = sum;
