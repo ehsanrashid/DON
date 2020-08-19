@@ -194,7 +194,7 @@ namespace Evaluator {
         constexpr Value LazyThreshold1{ Value( 1400) };
         constexpr Value LazyThreshold2{ Value( 1300) };
         constexpr Value SpaceThreshold{ Value(12222) };
-        constexpr Value NNUEThreshold1{   Value(575) };
+        constexpr Value NNUEThreshold1{   Value(550) };
         constexpr Value NNUEThreshold2{   Value(150) };
 
         constexpr i32 SafeCheckWeight[4][2]{
@@ -1099,18 +1099,19 @@ namespace Evaluator {
     /// evaluate() returns a static evaluation of the position from the point of view of the side to move.
     Value evaluate(Position const &pos) {
 
+        auto const fortress{ 16 + pos.clockPly() };
         bool const classical{
             !useNNUE
-          || egValue(pos.psqScore()) * 16 >= NNUEThreshold1 * (16 + pos.clockPly())
+         || std::abs(egValue(pos.psqScore())) * 16 > NNUEThreshold1 * fortress
         };
 
         Value v{
-            classical ? // Increase for fortresses
+            classical ?
                 Evaluation<false>(pos).value() :
                 NNUE::evaluate(pos) };
         if (classical
          && useNNUE
-         && abs(v) * 16 < NNUEThreshold2 * (16 + pos.clockPly())) {
+         && std::abs(v) * 16 < NNUEThreshold2 * fortress) {
             v = NNUE::evaluate(pos);
         }
 

@@ -151,18 +151,14 @@ private:
 
     u08     stage{ 0 };
 
-    ValMoves
-        vmoves;
-    ValMoves::iterator
-        vmBeg,
-        vmEnd;
+    ValMoves vmoves;
+    ValMoves::iterator vmBeg,
+                       vmEnd;
 
-    Moves
-        refutationMoves,
-        badCaptureMoves;
-    Moves::iterator
-        mBeg,
-        mEnd;
+    Moves refutationMoves,
+          badCaptureMoves;
+    Moves::iterator    mBeg,
+                       mEnd;
 
     void limitedInsertionSort(i32) const;
 
@@ -203,7 +199,6 @@ public:
         PieceSquareTypeStatsTable const*,
         Move, Depth, Value);
 
-
-    Move nextMove();
+    Move nextMove() noexcept;
 
 };

@@ -1277,7 +1277,7 @@ namespace {
 
             bool const doLMR{
                 depth >= 3
-             && moveCount > 1 + 2 * rootNode + 2 * (PVNode && abs(bestValue) < 2)
+             && moveCount > 1 + 2 * rootNode + 2 * (PVNode && std::abs(bestValue) < 2)
              && (!rootNode
                 // At root if zero best counter
               || thread->rootMoves.bestCount(thread->pvCur, thread->pvEnd, move) == 0)

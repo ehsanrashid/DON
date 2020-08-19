@@ -54,15 +54,14 @@ endif
 # arch     = (name)    --- (-arch)          --- Target architecture
 # bits     = 64/32     --- -DBIT64          --- 64/32-bit operating system
 # prefetch = yes/no    --- -DPREFETCH       --- Use prefetch x86 asm-instruction
-# popcnt     = yes/no    --- -DABMI           --- Use popcnt asm-instruction
+# popcnt   = yes/no    --- -DABMI           --- Use popcnt asm-instruction
 # pext     = yes/no    --- -DBMI2           --- Use pext x86_64 asm-instruction
 # sse      = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
-# mmx = yes/no        --- -mmmx            --- Use Intel MMX instructions
-# sse2 = yes/no       --- -msse2           --- Use Intel Streaming SIMD Extensions 2
+# mmx      = yes/no    --- -mmmx            --- Use Intel MMX instructions
+# sse2     = yes/no    --- -msse2           --- Use Intel Streaming SIMD Extensions 2
 # ssse3    = yes/no    --- -mssse3          --- Use Intel Supplemental Streaming SIMD Extensions 3
 # sse41    = yes/no    --- -msse4.1         --- Use Intel Streaming SIMD Extensions 4.1
 # avx2     = yes/no    --- -mavx2           --- Use Intel Advanced Vector Extensions 2
-
 # avx512   = yes/no    --- -mavx512bw       --- Use Intel Advanced Vector Extensions 512
 # vnni     = yes/no    --- -mavx512vnni     --- Use Intel Vector Neural Network Instructions 512
 # neon     = yes/no    --- -DNEON           --- Use ARM SIMD architecture
@@ -499,7 +498,7 @@ ifeq ($(ssse3), yes)
 	endif
 endif
 
-ifeq ($(sse2),yes)
+ifeq ($(sse2), yes)
 	CXXFLAGS += -DSSE2
 	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
 		CXXFLAGS += -msse2
