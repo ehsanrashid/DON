@@ -11,7 +11,7 @@ namespace {
     /// Generates piece move
     template<bool Checks>
     void generatePieceMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
-        auto activeSide{ pos.activeSide() };
+        auto const activeSide{ pos.activeSide() };
 
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
             Square const *ps{ pos.squares(activeSide|pt) };

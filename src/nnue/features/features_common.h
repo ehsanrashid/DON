@@ -1,7 +1,6 @@
 // Common header of input features of NNUE evaluation function
 #pragma once
 
-#include "../../Evaluator.h"
 #include "../nnue_common.h"
 
 namespace Evaluator::NNUE::Features {

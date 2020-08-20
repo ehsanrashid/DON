@@ -1,6 +1,6 @@
 // Definition of input features HalfKP of NNUE evaluation function
 
-#include "../../Type.h"
+#include "../../Position.h"
 #include "half_kp.h"
 #include "index_list.h"
 

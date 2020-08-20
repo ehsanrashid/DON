@@ -1867,6 +1867,7 @@ void Thread::search() {
                       * fallingEval
                       * pvInstability :
                         0 );
+
                 auto elapsed{ TimeMgr.elapsed() };
 
                 // Stop the search if we have exceeded the totalTime (at least 1ms).

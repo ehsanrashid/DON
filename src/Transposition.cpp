@@ -217,8 +217,8 @@ namespace {
         __extension__ typedef unsigned __int128 u128;
         return ((u128)a * (u128)b) >> 64;
 #else
-        u64 const aL{ (u32)a }, const aH{ a >> 32 };
-        u64 const bL{ (u32)b }, const bH{ b >> 32 };
+        u64 const aL{ (u32)a }, aH{ a >> 32 };
+        u64 const bL{ (u32)b }, bH{ b >> 32 };
         u64 const c1{ (aL * bL) >> 32 };
         u64 const c2{ aH * bL + c1 };
         u64 const c3{ aL * bH + (u32)c2 };

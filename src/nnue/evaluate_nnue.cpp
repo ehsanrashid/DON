@@ -4,7 +4,6 @@
 #include <iostream>
 #include <set>
 
-#include "../Evaluator.h"
 #include "../Position.h"
 #include "../UCI.h"
 
