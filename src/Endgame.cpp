@@ -130,8 +130,8 @@ template<> Value Endgame<KNNK>::operator()(Position const &pos) const {
         && verifyMaterial(pos, weakColor, VALUE_ZERO, 0));
 
     auto const value{
-        Value(pos.count(stngColor|NIHT) / 2) };
-
+        VALUE_DRAW
+      + pos.count(stngColor|NIHT) / 2 };
     return pos.activeSide() == stngColor ? +value : -value;
 }
 

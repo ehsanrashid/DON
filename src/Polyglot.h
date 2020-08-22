@@ -44,7 +44,7 @@ private:
     PolyEntry  *entry{ nullptr };
     u64         entryCount{ 0 };
 
-    std::string fnBook;
+    std::string bookFile;
 
     bool        doProbe{ true };
     Bitboard    pieces{ 0 };

@@ -19,4 +19,7 @@ namespace Evaluator::NNUE {
     template<typename T>
     using AlignedPtr = std::unique_ptr<T, AlignedDeleter<T>>;
 
+    template<typename T>
+    extern void alignedAllocator(AlignedPtr<T>&) noexcept;
+
 }  // namespace Evaluator::NNUE

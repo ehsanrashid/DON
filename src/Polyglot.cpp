@@ -221,18 +221,18 @@ bool PolyBook::canProbe(Position const &pos) noexcept {
     return doProbe;
 }
 
-void PolyBook::initialize(string const &fn) {
+void PolyBook::initialize(string const &file) {
 
     clear();
 
-    fnBook = fn;
-    replace(fnBook, '\\', '/');
-    trim(fnBook);
-    if (fnBook.empty()) {
+    bookFile = file;
+    replace(bookFile, '\\', '/');
+    trim(bookFile);
+    if (bookFile.empty()) {
         return;
     }
 
-    ifstream ifs{ fnBook, std::ios::in|std::ios::binary };
+    ifstream ifs{ bookFile, std::ios::in|std::ios::binary };
     if (!ifs.is_open()) {
         return;
     }
@@ -259,7 +259,7 @@ void PolyBook::initialize(string const &fn) {
     }
     ifs.close();
 
-    std::cout << "info string Book entries found " << entryCount << " from file \'" << fnBook << "\'" << std::endl;
+    std::cout << "info string Book entries found " << entryCount << " from file \'" << bookFile << "\'" << std::endl;
 }
 
 /// PolyBook::probe() tries to find a book move for the given position.

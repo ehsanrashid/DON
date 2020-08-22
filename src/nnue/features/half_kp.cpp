@@ -8,21 +8,21 @@ namespace Evaluator::NNUE::Features {
 
     // Find the index of the feature quantity from the king position and PieceSquare
     template<Side AssociatedKing>
-    inline IndexType HalfKP<AssociatedKing>::makeIndex(Square sq_k, PieceSquare p) {
-        return static_cast<IndexType>(PS_END) * static_cast<IndexType>(sq_k) + p;
+    inline IndexType HalfKP<AssociatedKing>::makeIndex(Square kSq, PieceSquare p) {
+        return static_cast<IndexType>(PS_END) * static_cast<IndexType>(kSq) + p;
     }
 
     // Get pieces information
     template<Side AssociatedKing>
-    inline void HalfKP<AssociatedKing>::getPieces(Position const &pos, Color perspective, PieceSquare **pieces, Square *sq_target_k) {
+    inline void HalfKP<AssociatedKing>::getPieces(Position const &pos, Color perspective, PieceSquare **pieces, Square *targetKSq) {
 
         *pieces = (perspective == BLACK) ?
                     pos.evalList()->pieceListFb() :
                     pos.evalList()->pieceListFw();
         PieceId const target{ (AssociatedKing == Side::FRIEND) ?
-                                static_cast<PieceId>(PIECE_ID_KING + perspective) :
+                                static_cast<PieceId>(PIECE_ID_KING +  perspective) :
                                 static_cast<PieceId>(PIECE_ID_KING + ~perspective) };
-        *sq_target_k = static_cast<Square>(((*pieces)[target] - PS_W_KING) % SQUARES);
+        *targetKSq = static_cast<Square>(((*pieces)[target] - PS_W_KING) % SQUARES);
     }
 
     // Get a list of indices for active features
@@ -34,11 +34,11 @@ namespace Evaluator::NNUE::Features {
             return;
         }
         PieceSquare *pieces;
-        Square target_sq_k;
-        getPieces(pos, perspective, &pieces, &target_sq_k);
+        Square targetKSq;
+        getPieces(pos, perspective, &pieces, &targetKSq);
         for (PieceId i = PIECE_ID_ZERO; i < PIECE_ID_KING; ++i) {
             if (pieces[i] != PS_NONE) {
-                active->push_back(makeIndex(target_sq_k, pieces[i]));
+                active->push_back(makeIndex(targetKSq, pieces[i]));
             }
         }
     }
@@ -48,20 +48,20 @@ namespace Evaluator::NNUE::Features {
     void HalfKP<AssociatedKing>::appendChangedIndices(Position const &pos, Color perspective, IndexList *removed, IndexList *added) {
 
         PieceSquare *pieces;
-        Square target_sq_k;
-        getPieces(pos, perspective, &pieces, &target_sq_k);
+        Square targetKSq;
+        getPieces(pos, perspective, &pieces, &targetKSq);
         auto const &dp{ pos.state()->dirtyPiece };
         for (int i = 0; i < dp.dirtyCount; ++i) {
             if (dp.pieceId[i] >= PIECE_ID_KING) {
                 continue;
             }
-            auto const old_p{ static_cast<PieceSquare>(dp.oldPiece[i].org[perspective]) };
-            if (old_p != PS_NONE) {
-                removed->push_back(makeIndex(target_sq_k, old_p));
+            auto const oldPS{ static_cast<PieceSquare>(dp.oldPiece[i].org[perspective]) };
+            if (oldPS != PS_NONE) {
+                removed->push_back(makeIndex(targetKSq, oldPS));
             }
-            auto const new_p{ static_cast<PieceSquare>(dp.newPiece[i].org[perspective]) };
-            if (new_p != PS_NONE) {
-                added->push_back(makeIndex(target_sq_k, new_p));
+            auto const newPS{ static_cast<PieceSquare>(dp.newPiece[i].org[perspective]) };
+            if (newPS != PS_NONE) {
+                added->push_back(makeIndex(targetKSq, newPS));
             }
         }
     }

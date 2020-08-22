@@ -87,11 +87,17 @@ T const& clamp(T const &v, T const &minimum, T const &maximum) {
            (v > maximum) ? maximum : v;
 }
 
-enum Color : i08 { WHITE, BLACK, COLORS = 2 };
+enum Color : i08 {
+    WHITE, BLACK, COLORS = 2
+};
 
-enum File : i08 { FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILES = 8 };
+enum File : i08 {
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILES = 8
+};
 
-enum Rank : i08 { RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANKS = 8 };
+enum Rank : i08 {
+    RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANKS = 8
+};
 
 /// Square needs 6-bits to be stored
 /// bit 0-2: File
@@ -134,11 +140,13 @@ constexpr Depth DEPTH_QS_CHECK   {  0 };
 constexpr Depth DEPTH_QS_NO_CHECK{ -1 };
 constexpr Depth DEPTH_QS_RECAP   { -5 };
 constexpr Depth DEPTH_NONE       { -6 };
-constexpr Depth DEPTH_OFFSET     { -7 };
+constexpr Depth DEPTH_OFFSET     { DEPTH_NONE - 1 };
 // Maximum Depth
 constexpr i32 MAX_PLY{ 256 + DEPTH_OFFSET - 4 };
 
-enum CastleSide : i08 { CS_KING, CS_QUEN, CS_CENTRE, CASTLE_SIDES = 2 };
+enum CastleSide : i08 {
+    CS_KING, CS_QUEN, CS_CENTRE, CASTLE_SIDES = 2
+};
 
 /// Castle Right defined as in Polyglot book hash key
 enum CastleRight : u08 {
@@ -158,7 +166,9 @@ enum CastleRight : u08 {
     CASTLE_RIGHTS = 16
 };
 
-enum PieceType : i08 { NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING, PIECE_TYPES = 7 };
+enum PieceType : i08 {
+    NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING, PIECE_TYPES = 7
+};
 
 /// Piece needs 4-bits to be stored
 /// bit 0-2: Type of piece
@@ -255,10 +265,13 @@ public:
 
     // Convert the specified pieceId piece to ExtPieceSquare type and return it
     ExtPieceSquare pieceWithId(PieceId pieceId) const noexcept {
-        ExtPieceSquare eps;
-        eps.org[WHITE] = _pieceListFw[pieceId];
-        eps.org[BLACK] = _pieceListFb[pieceId];
-        return eps;
+        return
+            ExtPieceSquare{
+                {
+                    _pieceListFw[pieceId],
+                    _pieceListFb[pieceId]
+                }
+            };
     }
 };
 
@@ -625,7 +638,7 @@ constexpr Value matedIn(i32 ply) {
 
 /// Based on a congruential pseudo random number generator
 constexpr Key makeKey(u64 seed) {
-    return seed * U64(6364136223846793005) + U64(1442695040888963407);
+    return( seed * U64(6364136223846793005) + U64(1442695040888963407) );
 }
 
 class Moves :

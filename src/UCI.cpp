@@ -184,36 +184,36 @@ string const compilerInfo() {
 
 namespace UCI {
 
-    Option::Option(OnChange pFn) :
+    Option::Option(OnChange onCng) :
         type{ "button" },
-        onChange{ pFn }
+        onChange{ onCng }
     {}
-    Option::Option(bool v, OnChange pFn) :
+    Option::Option(bool v, OnChange onCng) :
         type{ "check" },
-        onChange{ pFn } {
+        onChange{ onCng } {
         defaultVal = currentVal = ToString(v);
     }
-    Option::Option(char const *v, OnChange pFn) :
-        Option{ string{ v }, pFn }
+    Option::Option(char const *v, OnChange onCng) :
+        Option{ string{ v }, onCng }
     {}
-    Option::Option(string const &v, OnChange pFn) :
+    Option::Option(string const &v, OnChange onCng) :
         type{ "string" },
-        onChange{ pFn } {
+        onChange{ onCng } {
         defaultVal = currentVal = v;
     }
-    Option::Option(double v, double minV, double maxV, OnChange pFn) :
+    Option::Option(double v, double minV, double maxV, OnChange onCng) :
         type{ "spin" },
         minVal{ minV },
         maxVal{ maxV },
-        onChange{ pFn } {
+        onChange{ onCng } {
         defaultVal = currentVal = std::to_string(v);
     }
-    Option::Option(char const* v, char const* cur, OnChange pFn) :
-        Option{ string{ v }, string{ cur }, pFn }
+    Option::Option(char const* v, char const* cur, OnChange onCng) :
+        Option{ string{ v }, string{ cur }, onCng }
     {}
-    Option::Option(string const& v, string const& cur, OnChange pFn) :
+    Option::Option(string const& v, string const& cur, OnChange onCng) :
         type{ "combo" },
-        onChange{ pFn } {
+        onChange{ onCng } {
         defaultVal = v; currentVal = cur;
     }
 
@@ -323,8 +323,7 @@ namespace UCI {
     }
 
     /// Option::toString()
-    string Option::toString() const
-    {
+    string Option::toString() const {
         ostringstream oss{};
         oss << " type " << type;
 
@@ -455,7 +454,7 @@ namespace UCI {
         Options["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
         Options["SyzygyMove50Rule"]   << Option(true);
 
-        Options["Use NNUE"]           << Option(false, onUseNNUE);
+        Options["Use NNUE"]           << Option(true, onUseNNUE);
         // The default must follow the format nn-[SHA256 first 12 digits].nnue
         // for the build process (profile-build and fishtest) to work.
         Options["Eval File"]          << Option("nn-82215d0fd0df.nnue", onEvalFile);

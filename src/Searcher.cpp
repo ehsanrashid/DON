@@ -1237,12 +1237,18 @@ namespace {
                 }
             }
             else
-            if (// Check extension (~2 ELO)
-                giveCheck
+            // Check extension (~2 ELO)
+            if (giveCheck
              && (// Discovered check ?
                  contains(pos.kingBlockers(~activeSide), org)
                  // Direct check ?
               || pos.see(move))) {
+                extension = 1;
+            }
+            else
+            // Previous capture extension
+            if (pos.captured() > PAWN
+             && pos.nonPawnMaterial() <= 2 * VALUE_MG_ROOK) {
                 extension = 1;
             }
 

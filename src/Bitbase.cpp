@@ -29,10 +29,10 @@ namespace BitBase {
             assert(RANK_2 <= sRank(wpSq) && sRank(wpSq) <= RANK_7);
 
             return (wkSq << 0)
-                 + (bkSq << 6)
-                 + (active << 12)
-                 + ((sFile(wpSq) - FILE_A) << 13)
-                 + ((sRank(wpSq) - RANK_2) << 15);
+                 | (bkSq << 6)
+                 | (active << 12)
+                 | (((sFile(wpSq) - FILE_A) & 3) << 13)
+                 | (((sRank(wpSq) - RANK_2) & 7) << 15);
         }
 
         enum Result : u08 {

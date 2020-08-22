@@ -25,7 +25,7 @@ void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) noe
         m16 = u16(m);
     }
     if (u16(k) != k16
-     || d - DEPTH_OFFSET > d08 - 4
+     || d - DEPTH_OFFSET + 4 > d08
      || b == BOUND_EXACT) {
         assert(d > DEPTH_OFFSET);
 
@@ -359,30 +359,30 @@ Move TTable::extractNextMove(Position &pos, Move m) const noexcept {
 }
 
 /// TTable::save() saves hash to file
-void TTable::save(std::string const &hashFn) const {
-    if (whiteSpaces(hashFn)) {
+void TTable::save(std::string const &hashFile) const {
+    if (whiteSpaces(hashFile)) {
         return;
     }
-    std::ofstream ofs{ hashFn, std::ios::out|std::ios::binary };
+    std::ofstream ofs{ hashFile, std::ios::out|std::ios::binary };
     if (!ofs.is_open()) {
         return;
     }
     ofs << *this;
     ofs.close();
-    sync_cout << "info string Hash saved to file \'" << hashFn << "\'" << sync_endl;
+    sync_cout << "info string Hash saved to file \'" << hashFile << "\'" << sync_endl;
 }
 /// TTable::load() loads hash from file
-void TTable::load(std::string const &hashFn) {
-    if (whiteSpaces(hashFn)) {
+void TTable::load(std::string const &hashFile) {
+    if (whiteSpaces(hashFile)) {
         return;
     }
-    std::ifstream ifs{ hashFn, std::ios::in|std::ios::binary };
+    std::ifstream ifs{ hashFile, std::ios::in|std::ios::binary };
     if (!ifs.is_open()) {
         return;
     }
     ifs >> *this;
     ifs.close();
-    sync_cout << "info string Hash loaded from file \'" << hashFn << "\'" << sync_endl;
+    sync_cout << "info string Hash loaded from file \'" << hashFile << "\'" << sync_endl;
 }
 
 constexpr u32 BufferSize{ 0x1000 };

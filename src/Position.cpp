@@ -600,7 +600,6 @@ bool Position::see(Move m, Value threshold) const {
                & lineBB(kSq, org)) != 0) {
                 movAttackers = SquareBB[kSq];
             }
-            
             // If mov has no more attackers then give up: mov loses
             if (movAttackers == 0) {
                 break;
@@ -823,8 +822,7 @@ Position& Position::setup(std::string const &code, Color c, StateInfo &si) {
     assert(code[0] == 'K'
         && code.find('K', 1) != std::string::npos);
 
-    std::string codes[COLORS]
-    {
+    std::string codes[COLORS]{
         code.substr(code.find('K', 1)),                             // Weak
         code.substr(0, std::min(code.find('v'), code.find('K', 1))) // Strong
     };

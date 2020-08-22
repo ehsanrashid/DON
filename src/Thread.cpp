@@ -396,7 +396,6 @@ namespace WinProcGroup {
             pSTGA(GetCurrentThread(), &group_affinity, nullptr);
         }
     }
-
 #else
     void bind(u16) {}
 #endif

@@ -40,6 +40,7 @@ int main(int argc, char const *const *argv) {
 
     UCI::handleCommands(cmdLine);
 
+    Threadpool.setup(0);
     TT.free();
     TTEx.free();
 

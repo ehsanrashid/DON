@@ -500,7 +500,7 @@ endif
 
 ifeq ($(sse2), yes)
 	CXXFLAGS += -DSSE2
-	ifeq ($(comp),$(filter $(comp),gcc clang mingw))
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -msse2
 	endif
 endif
@@ -603,6 +603,7 @@ help:
 	@echo ""
 	@echo "Supported archs:"
 	@echo "------------------"
+	@echo "x86-64-popcnt           > x86 64-bit with popcnt support"
 	@echo "x86-64-vnni             > x86 64-bit with vnni support"
 	@echo "x86-64-avx512           > x86 64-bit with avx512 support"
 	@echo "x86-64-bmi2             > x86 64-bit with bmi2 support"
