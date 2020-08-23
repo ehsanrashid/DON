@@ -755,25 +755,6 @@ public:
     }
 };
 
-
-/// distance() functions return the distance between s1 and s2
-/// defined as the number of steps for a king in s1 to reach s2.
-
-template<typename T1 = Square> inline i32 distance(Square, Square);
-template<> inline i32 distance<File>(Square s1, Square s2) { return std::abs(sFile(s1) - sFile(s2)); }
-template<> inline i32 distance<Rank>(Square s1, Square s2) { return std::abs(sRank(s1) - sRank(s2)); }
-
-extern u08 Distance[SQUARES][SQUARES];
-template<> inline i32 distance<Square>(Square s1, Square s2) {
-    //return std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
-    return Distance[s1][s2];
-}
-
-// Fold file [ABCDEFGH] to file [ABCDDCBA]
-constexpr i32 edgeDistance(File f) { return std::min(f - FILE_A, FILE_H - f); }
-// Fold rank [12345678] to rank [12344321]
-constexpr i32 edgeDistance(Rank r) { return std::min(r - RANK_1, RANK_8 - r); }
-
 constexpr Piece Pieces[12]{
     W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING

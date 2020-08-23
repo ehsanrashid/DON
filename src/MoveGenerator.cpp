@@ -21,8 +21,7 @@ namespace {
                  && contains(pos.kingBlockers(~activeSide), s)) {
                     continue;
                 }
-                Bitboard attacks{ attacksBB(pt, s, pos.pieces())
-                                & targets };
+                Bitboard attacks{ attacksBB(pt, s, pos.pieces()) & targets };
                 if (Checks) {
                     attacks &= pos.checks(pt);
                 }
@@ -72,7 +71,7 @@ namespace {
         constexpr Bitboard Rank7{ RankBB[relativeRank(Own, RANK_7)] };
 
         Bitboard const empties{ ~pos.pieces() };
-        Bitboard const enemies{ pos.pieces(Opp) & targets };
+        Bitboard const enemies{  pos.pieces(Opp) & targets };
 
         Bitboard const pawns{ pos.pieces(Own, PAWN) };
 
@@ -98,10 +97,9 @@ namespace {
                 // Add pawn pushes which give discovered check.
                 // This is possible only if the pawn is not on the same file as the enemy king, because don't generate captures.
                 // Note that a possible discovery check promotion has been already generated among captures.
-                Bitboard const dscPawns{
-                    rxPawns
-                  & pos.kingBlockers(Opp)
-                  & ~fileBB(pos.square(Opp|KING)) };
+                Bitboard const dscPawns{ rxPawns
+                                       & pos.kingBlockers(Opp)
+                                       & ~fileBB(pos.square(Opp|KING)) };
                 if (dscPawns != 0) {
                     Bitboard const dscPushs1{ empties & pawnSglPushBB<Own>(dscPawns) };
                     Bitboard const dscPushs2{ empties & pawnSglPushBB<Own>(dscPushs1 & Rank3) };
@@ -143,8 +141,7 @@ namespace {
             auto const epSq{ pos.epSquare() };
             if (epSq != SQ_NONE) {
                 assert(relativeRank(Own, epSq) == RANK_6);
-                Bitboard epPawns{ rxPawns
-                                & pawnAttacksBB(Opp, epSq) };
+                Bitboard epPawns{ rxPawns & pawnAttacksBB(Opp, epSq) };
 
                 // If the checking piece is the double pushed pawn and also is in the target.
                 // Otherwise this is a discovery check and are forced to do otherwise.
@@ -243,8 +240,7 @@ template<> void generate<EVASION>(ValMoves &moves, Position const &pos) {
     }
 
     Bitboard checkAttacks{ attacksBB<KING>(pos.square(~activeSide|KING)) };
-    Bitboard checkersEx{  checkers
-                       & ~pos.pieces(PAWN) };
+    Bitboard checkersEx{ checkers & ~pos.pieces(PAWN) };
     Bitboard const mocc{ pos.pieces() ^ fkSq };
     // Squares attacked by slide checkers will remove them from the king evasions
     // so to skip known illegal moves avoiding useless legality check later.
@@ -275,8 +271,7 @@ template<> void generate<QUIET_CHECK>(ValMoves &moves, Position const &pos) {
     while (dscBlockersEx != 0) {
         auto const org{ popLSq(dscBlockersEx) };
 
-        Bitboard attacks{ attacksBB(pType(pos[org]), org, pos.pieces())
-                        & targets };
+        Bitboard attacks{ attacksBB(pType(pos[org]), org, pos.pieces()) & targets };
         if (org == fkSq) {
             // Stop king from stepping in the way to check
             attacks &= ~attacksBB<QUEN>(pos.square(~activeSide|KING));
@@ -301,8 +296,7 @@ template<> void generate<LEGAL>(ValMoves &moves, Position const &pos) {
     auto const fkSq{ pos.square(activeSide|KING) };
     Bitboard const mocc{ pos.pieces() ^ fkSq };
     Bitboard const enemies{ pos.pieces(~activeSide) };
-    Bitboard const pinneds{ pos.pieces(activeSide)
-                          & pos.kingBlockers(activeSide) };
+    Bitboard const pinneds{ pos.pieces( activeSide) & pos.kingBlockers(activeSide) };
 
     // Filter illegal moves
     moves.erase(

@@ -1,6 +1,5 @@
 #include "Bitboard.h"
 
-#include <bitset>
 #include <memory>
 #include <sstream>
 #include <vector>
@@ -19,6 +18,8 @@ Magic BMagics[SQUARES];
 Magic RMagics[SQUARES];
 
 #if !defined(USE_POPCNT)
+#include <bitset>
+
 u08 PopCount[USHRT_MAX+1];
 
 //// Counts the non-zero bits using SWAR-Popcount algorithm
@@ -34,10 +35,10 @@ namespace {
 
     /// safeDestiny() returns the bitboard of target square for the given step
     /// from the given square. If the step is off the board, returns empty bitboard.
-    inline Bitboard safeDestiny(Square s, Direction dir) {
+    inline Bitboard safeDestiny(Square s, Direction dir, i32 d = 1) {
         Square dst{ s + dir };
         return isOk(dst)
-            && distance(s, dst) <= 2 ?
+            && distance(s, dst) <= d ?
                 SquareBB[dst] :
                 0;
     }
@@ -192,7 +193,6 @@ namespace BitBoard {
 
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
             //SquareBB[s1] = Bitboard(1) << s1;
-
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
                 Distance[s1][s2] = u08(std::max(distance<File>(s1, s2), distance<Rank>(s1, s2)));
                 assert(Distance[s1][s2] >= 0
@@ -201,9 +201,9 @@ namespace BitBoard {
         }
 
 #if !defined(USE_POPCNT)
-        for (u16 i = 0; ; ++i) {
-            PopCount[i] = std::bitset<16>(i).count(); //popCount16(i);
-            if (i == USHRT_MAX) break;
+        for (u32 i = 0; i <= USHRT_MAX; ++i) {
+            PopCount[i] = //popCount16(i);
+                          u08(std::bitset<16>(i).count());
         }
 #endif
 
@@ -221,7 +221,7 @@ namespace BitBoard {
 
             for (auto dir : { SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                               WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST }) {
-                PieceAttacksBB[NIHT][s] |= safeDestiny(s, dir);
+                PieceAttacksBB[NIHT][s] |= safeDestiny(s, dir, 2);
             }
             for (auto dir : { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST,
                               EAST, NORTH_WEST, NORTH, NORTH_EAST }) {

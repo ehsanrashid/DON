@@ -553,8 +553,9 @@ namespace Evaluator {
 
             Bitboard unsafeCheck{ 0 };
 
-            Bitboard const rookPins{ attacksBB<ROOK>(kSq, pos.pieces() ^ pos.pieces(Own, QUEN)) };
-            Bitboard const bshpPins{ attacksBB<BSHP>(kSq, pos.pieces() ^ pos.pieces(Own, QUEN)) };
+            Bitboard const mocc{ pos.pieces() ^ pos.pieces(Own, QUEN) };
+            Bitboard const rookPins{ attacksBB<ROOK>(kSq, mocc) };
+            Bitboard const bshpPins{ attacksBB<BSHP>(kSq, mocc) };
 
             // Enemy rooks checks
             Bitboard const rookSafeChecks{
@@ -617,18 +618,20 @@ namespace Evaluator {
               &  CampBB[Own]
               &  sqlAttacks[Opp][NONE];
             // Friend king flank attack count
-            i32 const kingFlankAttack{ popCount(b)                      // Squares attacked by enemy in friend king flank
-                                     + popCount(b & dblAttacks[Opp]) }; // Squares attacked by enemy twice in friend king flank.
+            i32 const kingFlankAttack{
+                popCount(b)                      // Squares attacked by enemy in friend king flank
+              + popCount(b & dblAttacks[Opp]) }; // Squares attacked by enemy twice in friend king flank.
             // Friend king flank defense count
             b =  KingFlankBB[sFile(kSq)]
               &  CampBB[Own]
               &  sqlAttacks[Own][NONE];
-            i32 const kingFlankDefense{ popCount(b) };
+            i32 const kingFlankDefense{
+                popCount(b) };                   // Squares attacked by friend in friend king flank
 
             // King Safety:
             Score score{ kingEntry->evaluateSafety<Own>(pos, fulAttacks[Opp]) };
 
-            kingDanger +=   1 * (kingAttackersCount[Opp] * kingAttackersWeight[Opp])
+            kingDanger +=   1 * kingAttackersCount[Opp] * kingAttackersWeight[Opp]
                         +  69 * kingAttacksCount[Opp]
                         + 185 * popCount(kingRing[Own] & weakArea)
                         + 148 * popCount(unsafeCheck)
@@ -844,18 +847,16 @@ namespace Evaluator {
                     i32 const w{ 5 * r - 13 };
 
                     // Adjust bonus based on the king's proximity
-                    bonus += makeScore(0, ( +4.75*w*kingProximity(Opp, pushSq)
-                                            -2.00*w*kingProximity(Own, pushSq) ));
+                    bonus += makeScore(0,  kingProximity(Opp, pushSq) * w * 19 / 4
+                                         + kingProximity(Own, pushSq) * w * -2);
                     // If pushSq is not the queening square then consider also a second push.
                     if (r < RANK_7) {
-                        bonus += makeScore(0, -1*w*kingProximity(Own, pushSq + Push));
+                        bonus += makeScore(0, kingProximity(Own, pushSq + Push) * w * -1);
                     }
 
                     // If the pawn is free to advance.
                     if (pos.empty(pushSq)) {
-                        Bitboard const behindMajors{
-                            frontSquaresBB(Opp, s)
-                          & pos.pieces(ROOK, QUEN) };
+                        Bitboard const behindMajors{ frontSquaresBB(Opp, s) & pos.pieces(ROOK, QUEN) };
 
                         Bitboard attackedSquares{ pawnPassSpan(Own, s) };
                         if ((behindMajors & pos.pieces(Opp)) == 0) {

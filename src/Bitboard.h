@@ -111,6 +111,8 @@ constexpr Bitboard SlotFileBB[3]{
     FileBB[FILE_C]|FileBB[FILE_D]|FileBB[FILE_E]|FileBB[FILE_F]     // C-File
 };
 
+extern u08 Distance[SQUARES][SQUARES];
+
 extern Bitboard LineBB[SQUARES][SQUARES];
 
 extern Bitboard PawnAttacksBB[COLORS][SQUARES];
@@ -204,6 +206,24 @@ inline bool aligned(Square s1, Square s2, Square s3) {
     return contains(lineBB(s1, s2), s3);
 }
 
+
+/// distance() functions return the distance between s1 and s2
+/// defined as the number of steps for a king in s1 to reach s2.
+
+template<typename T1 = Square> inline i32 distance(Square, Square);
+template<> inline i32 distance<File>(Square s1, Square s2) { return std::abs(sFile(s1) - sFile(s2)); }
+template<> inline i32 distance<Rank>(Square s1, Square s2) { return std::abs(sRank(s1) - sRank(s2)); }
+
+template<> inline i32 distance<Square>(Square s1, Square s2) {
+    //return std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
+    return Distance[s1][s2];
+}
+
+// Fold file [ABCDEFGH] to file [ABCDDCBA]
+constexpr i32 edgeDistance(File f) { return std::min(f - FILE_A, FILE_H - f); }
+// Fold rank [12345678] to rank [12344321]
+constexpr i32 edgeDistance(Rank r) { return std::min(r - RANK_1, RANK_8 - r); }
+
 constexpr Direction PawnPush[COLORS]{
     NORTH, SOUTH
 };
@@ -280,9 +300,9 @@ inline i32 popCount(Bitboard bb) noexcept {
 
     union { Bitboard b; u16 u[4]; } v{ bb };
     return PopCount[v.u[0]]
-        + PopCount[v.u[1]]
-        + PopCount[v.u[2]]
-        + PopCount[v.u[3]];
+         + PopCount[v.u[1]]
+         + PopCount[v.u[2]]
+         + PopCount[v.u[3]];
 
 #elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
     return( _mm_popcnt_u64(bb) );
