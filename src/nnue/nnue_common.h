@@ -1,7 +1,7 @@
 // Constants used in NNUE evaluation function
 #pragma once
 
-#include <cstring> // For std::memset and std::memcpy
+#include <cstring> // For std::memset(), std::memcmp()
 #include <iostream>
 
 #if defined(USE_AVX2)

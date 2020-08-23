@@ -369,15 +369,15 @@ endif
 ifeq ($(COMP), ndk)
 	CXXFLAGS += -stdlib=libc++ -fPIE
 	ifeq ($(arch), armv7)
-		comp=armv7a-linux-androideabi16-clang
-		CXX=armv7a-linux-androideabi16-clang++
+		comp = armv7a-linux-androideabi16-clang
+		CXX = armv7a-linux-androideabi16-clang++
 		CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon
-		STRIP=arm-linux-androideabi-strip
+		STRIP = arm-linux-androideabi-strip
 	endif
 	ifeq ($(arch), armv8-a)
-		comp=aarch64-linux-android21-clang
-		CXX=aarch64-linux-android21-clang++
-		STRIP=aarch64-linux-android-strip
+		comp = aarch64-linux-android21-clang
+		CXX = aarch64-linux-android21-clang++
+		STRIP = aarch64-linux-android-strip
 	endif
 	LDFLAGS += -static-libstdc++ -pie -lm -latomic
 endif
@@ -393,10 +393,10 @@ ifdef COMPCXX
 endif
 
 ### Sometimes gcc is really clang
-ifeq ($(COMP),gcc)
+ifeq ($(COMP), gcc)
 	gccversion = $(shell $(CXX) --version)
-	gccisclang = $(findstring clang,$(gccversion))
-	ifneq ($(gccisclang),)
+	gccisclang = $(findstring clang, $(gccversion))
+	ifneq ($(gccisclang), )
 		profile_make = clang-profile-make
 		profile_use = clang-profile-use
 	endif
@@ -792,8 +792,10 @@ config-sanity:
 	@test "$(avx512)" = "yes" || test "$(avx512)" = "no"
 	@test "$(vnni)" = "yes" || test "$(vnni)" = "no"
 	@test "$(neon)" = "yes" || test "$(neon)" = "no"
-	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || test "$(comp)" = "mingw" || test "$(comp)" = "clang" \
-	|| test "$(comp)" = "armv7a-linux-androideabi16-clang"  || test "$(comp)" = "aarch64-linux-android21-clang"
+	@test "$(comp)" = "gcc" || test "$(comp)" = "icc" || \
+	 test "$(comp)" = "mingw" || test "$(comp)" = "clang" || \
+	 test "$(comp)" = "armv7a-linux-androideabi16-clang" || \
+	 test "$(comp)" = "aarch64-linux-android21-clang"
 
 # Generating obj files
 $(EXE): $(OBJS)
@@ -808,7 +810,7 @@ clang-profile-make:
 clang-profile-use:
 	$(XCRUN) llvm-profdata merge -output=DON.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS='-fprofile-instr-use=DON.profdata' \
+	EXTRACXXFLAGS = '-fprofile-instr-use=DON.profdata' \
 	EXTRALDFLAGS = '-fprofile-use' \
 	all
 

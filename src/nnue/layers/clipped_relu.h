@@ -111,7 +111,6 @@ namespace Evaluator::NNUE::Layers {
                 out[i] = vmax_s8(vqmovn_s16(shifted), kZero);
             }
             constexpr IndexType Start{ NumChunks * (SimdWidth / 2) };
-
 #else
             constexpr IndexType Start{ 0 };
 #endif

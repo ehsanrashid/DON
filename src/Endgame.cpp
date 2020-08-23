@@ -317,7 +317,7 @@ template<> Scale Endgame<KRPKR>::operator()(Position const &pos) const {
      && sRank(skSq) <= RANK_6 - sTempo
      && (sRank(wrSq) == RANK_1
       || (!sTempo
-       && fileDistance(wrSq, spSq) >= 3))) {
+       && distance<File>(wrSq, spSq) >= 3))) {
         return SCALE_DRAW;
     }
     //
@@ -422,7 +422,7 @@ template<> Scale Endgame<KRPKB>::operator()(Position const &pos) const {
         // and the defending king is near the corner
         if (spR == RANK_6
          && distance(spSq + Push * 2, wkSq) <= 1
-         && fileDistance(spSq, wbSq) >= 2
+         && distance<File>(spSq, wbSq) >= 2
          && contains(attacksBB<BSHP>(wbSq), spSq + Push)) {
             return Scale(8);
         }
@@ -447,8 +447,8 @@ template<> Scale Endgame<KRPPKRP>::operator()(Position const &pos) const {
     }
 
     auto const spR{ std::max(relativeRank(stngColor, sp1Sq), relativeRank(stngColor, sp2Sq)) };
-    if (fileDistance(wkSq, sp1Sq) <= 1
-     && fileDistance(wkSq, sp2Sq) <= 1
+    if (distance<File>(wkSq, sp1Sq) <= 1
+     && distance<File>(wkSq, sp2Sq) <= 1
      && spR < relativeRank(stngColor, wkSq)) {
         assert(RANK_2 <= spR && spR <= RANK_6); // Not RANK_7 due to pawnPassedAt()
         return Scale(7 * spR);
@@ -491,8 +491,7 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
     auto const wbSq{ pos.square(weakColor|BSHP) };
     auto const wkSq{ pos.square(weakColor|KING) };
 
-    if (colorOpposed(sbSq, wbSq)
-     && colorOpposed(sbSq, wkSq)) {
+    if (colorOpposed(sbSq, wbSq)) {
         auto const sp1Sq{ pos.square(stngColor|PAWN, 0) };
         auto const sp2Sq{ pos.square(stngColor|PAWN, 1) };
 
@@ -510,31 +509,37 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
             block2Sq = makeSquare(sFile(sp1Sq), sRank(sp2Sq));
         }
 
-        auto const d{ fileDistance(sp1Sq, sp2Sq) };
-        // Both pawns are on the same file. It's an easy draw if the defender firmly
-        // controls some square in the front most pawn's path.
-        if (d == 0) {
-            if (contains(frontSquaresBB(stngColor, block1Sq - Push), wkSq)) {
+        switch (distance<File>(sp1Sq, sp2Sq)) {
+        case 0:
+            // Both pawns are on the same file. It's an easy draw if the defender firmly
+            // controls some square in the front most pawn's path.
+            if (colorOpposed(sbSq, wkSq)
+             && contains(frontSquaresBB(stngColor, block1Sq - Push), wkSq)) {
                 return SCALE_DRAW;
             }
-        }
-        else
-        // Pawns on adjacent files. It's a draw if the defender firmly controls the
-        // square in front of the front most pawn's path, and the square diagonally
-        // behind this square on the file of the other pawn.
-        if (d == 1) {
+            break;
+        case 1:
+            // Pawns on adjacent files. It's a draw if the defender firmly controls the
+            // square in front of the front most pawn's path, and the square diagonally
+            // behind this square on the file of the other pawn.
             if ((wkSq == block1Sq
-              && (rankDistance(sp1Sq, sp2Sq) >= 2
-               || contains(attacksBB<BSHP>(wbSq, pos.pieces()) | wbSq, block2Sq)))
+              && colorOpposed(sbSq, wkSq)
+              && (wbSq == block2Sq
+               || distance<Rank>(sp1Sq, sp2Sq) >= 2
+               || (attacksBB<BSHP>(block2Sq, pos.pieces())
+                 & pos.pieces(weakColor, BSHP)) != 0))
              || (wkSq == block2Sq
-              && contains(attacksBB<BSHP>(wbSq, pos.pieces()) | wbSq, block1Sq))) {
+              && colorOpposed(sbSq, wkSq)
+              && (wbSq == block1Sq
+               || (attacksBB<BSHP>(block1Sq, pos.pieces())
+                 & pos.pieces(weakColor, BSHP)) != 0))) {
                 return SCALE_DRAW;
             }
+            break;
+        default:
+            // The pawns are not on the same file or adjacent files. No scaling.
+            break;
         }
-        // The pawns are not on the same file or adjacent files. No scaling.
-        //else {
-        //    return SCALE_NONE;
-        //}
     }
 
     return SCALE_NONE;

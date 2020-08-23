@@ -1,6 +1,11 @@
 #include "Searcher.h"
 
+#include <cassert>
+#include <cstring> // For std::memset()
 #include <cmath>
+#include <algorithm>
+#include <iostream>
+#include <sstream>
 
 #include "Debugger.h"
 #include "Evaluator.h"
@@ -1942,9 +1947,10 @@ void MainThread::search() {
                 bestDepth = DEPTH_ZERO;
             }
 
-            auto level{ Options["UCI_LimitStrength"] ?
-                            std::clamp(u16(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), {0}, MaxLevel) :
-                            u16(Options["Skill Level"]) };
+            auto level{
+                Options["UCI_LimitStrength"] ?
+                    std::clamp(u16(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), {0}, MaxLevel) :
+                    u16(Options["Skill Level"]) };
             SkillMgr.setLevel(level);
 
             // Have to play with skill handicap?

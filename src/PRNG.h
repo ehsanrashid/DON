@@ -46,15 +46,13 @@ public:
         return T(rand64());
     }
 
-#if !defined(USE_PEXT)
-
+//#if !defined(USE_PEXT)
     /// Special generator used to fast initialize magic numbers.
     /// Output values only have 1/8th of their bits set on average.
     template<typename T>
     T sparseRand() noexcept {
         return T(rand64() & rand64() & rand64());
     }
-
-#endif
+//#endif
 
 };

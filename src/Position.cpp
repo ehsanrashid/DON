@@ -1,8 +1,10 @@
 #include "Position.h"
 
-#include <cassert>
-#include <cstring> // For std::memset and std::memcpy
+#include <cstddef> // For offsetof()
+#include <cstring> // For std::memset(), std::memcmp()
 #include <algorithm>
+#include <iomanip>
+#include <sstream>
 
 #include "Cuckoo.h"
 #include "Helper.h"

@@ -138,11 +138,11 @@ namespace {
             Bitboard occ{ 0 };
             do {
 
-#if defined(USE_PEXT)
-                magic.attacks[PEXT(occ, magic.mask)] = slideAttacks<PT>(s, occ);
-#else
+#if !defined(USE_PEXT)
                 occupancy[size] = occ;
                 reference[size] = slideAttacks<PT>(s, occ);
+#else
+                magic.attacks[PEXT(occ, magic.mask)] = slideAttacks<PT>(s, occ);
 #endif
                 ++size;
                 occ = (occ - magic.mask) & magic.mask;
@@ -151,7 +151,6 @@ namespace {
             assert(size == 1 << popCount(magic.mask));
 
 #if !defined(USE_PEXT)
-
             PRNG prng{ Seeds[sRank(s)] };
             // Find a magic for square picking up an (almost) random number
             // until found the one that passes the verification test.
@@ -195,7 +194,7 @@ namespace BitBoard {
             //SquareBB[s1] = Bitboard(1) << s1;
 
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
-                Distance[s1][s2] = u08(std::max(fileDistance(s1, s2), rankDistance(s1, s2)));
+                Distance[s1][s2] = u08(std::max(distance<File>(s1, s2), distance<Rank>(s1, s2)));
                 assert(Distance[s1][s2] >= 0
                     && Distance[s1][s2] <= 7);
             }

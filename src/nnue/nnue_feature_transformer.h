@@ -75,20 +75,16 @@ namespace Evaluator::NNUE {
             constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
             constexpr int kControl{ 0b11011000 };
             __m256i const kZero{ _mm256_setzero_si256() };
-
 #elif defined(USE_SSE2)
             constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
-
     #if defined(USE_SSE41)
             __m128i const kZero{ _mm_setzero_si128() };
     #else
             __m128i const k0x80s{ _mm_set1_epi8(-128) };
     #endif
-
 #elif defined(USE_MMX)
             constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
             __m64 const k0x80s{ _mm_set1_pi8(-128) };
-
 #elif defined(USE_NEON)
             constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth / 2) };
             int8x8_t const kZero{ 0 };

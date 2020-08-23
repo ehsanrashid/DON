@@ -73,12 +73,10 @@ namespace Evaluator::NNUE::Layers {
     #if !defined(USE_VNNI)
             __m512i const kOnes{ _mm512_set1_epi16(1) };
     #endif
-
 #elif defined(USE_AVX2)
             constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
             __m256i const kOnes{ _mm256_set1_epi16(1) };
             auto const inputVector{ reinterpret_cast<__m256i const*>(input) };
-
 #elif defined(USE_SSE2)
             constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
     #if !defined(USE_SSSE3)
@@ -87,12 +85,10 @@ namespace Evaluator::NNUE::Layers {
             __m128i const kOnes{ _mm_set1_epi16(1) };
     #endif
             auto const inputVector{ reinterpret_cast<__m128i const*>(input) };
-
 #elif defined(USE_MMX)
             constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
             __m64 const kZeros{ _mm_setzero_si64() };
             auto const inputVector{ reinterpret_cast<__m64 const*>(input) };
-
 #elif defined(USE_NEON)
             constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
             auto const inputVector{ reinterpret_cast<int8x8_t const*>(input) };

@@ -1,7 +1,7 @@
 #include "Material.h"
 
 #include <cassert>
-#include <cstring> // For std::memset
+#include <cstring> // For std::memset(), std::memcmp()
 
 #include "Helper.h"
 #include "Thread.h"
@@ -115,13 +115,13 @@ namespace Material {
         // Only pawns left
         if (pos.nonPawnMaterial() == VALUE_ZERO
          && pos.pieces(PAWN) != 0) {
-            if (pos.count(W_PAWN) == 0) {
-                assert(pos.count(B_PAWN) >= 2);
+            if (pos.count(B_PAWN) == 0) {
+                assert(pos.count(W_PAWN) >= 2);
                 scalingFunc[WHITE] = &ScaleKPsK[WHITE];
             }
             else
-            if (pos.count(B_PAWN) == 0) {
-                assert(pos.count(W_PAWN) >= 2);
+            if (pos.count(W_PAWN) == 0) {
+                assert(pos.count(B_PAWN) >= 2);
                 scalingFunc[BLACK] = &ScaleKPsK[BLACK];
             }
             else

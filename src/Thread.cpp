@@ -1,9 +1,9 @@
 #include "Thread.h"
 
+#include <cassert>
 #include <cmath>
 #include <map>
 #include <iostream>
-#include <type_traits>
 
 #include "Searcher.h"
 #include "SyzygyTB.h"

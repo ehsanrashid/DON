@@ -1,9 +1,11 @@
 #include "Transposition.h"
 
 #include <cstdlib>
-#include <cstring>
+#include <cstring> // For std::memset()
 #include <fstream>
 #include <iostream>
+#include <thread>
+#include <vector>
 
 #include "Helper.h"
 #include "MoveGenerator.h"
@@ -50,13 +52,13 @@ u32 TCluster::freshEntryCount() const noexcept {
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
 TEntry* TCluster::probe(u16 key16, bool &hit) noexcept {
     // Find an entry to be replaced according to the replacement strategy.
-    auto* rte{ entry }; // Default first
+    auto *rte{ entry }; // Default first
     for (auto *ite{ entry }; ite < entry + EntryPerCluster; ++ite) {
         if (ite->d08 == 0
          || ite->k16 == key16) {
             // Refresh entry
             ite->refresh();
-            hit = (ite->d08 != 0);
+            hit = ite->d08 != 0;
             return ite;
         }
         // Replacement strategy.

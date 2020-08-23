@@ -1,7 +1,7 @@
 #include "Logger.h"
 
-#include <chrono>
 #include <cstdlib>
+#include <chrono>
 
 #include "Helper.h"
 
@@ -17,9 +17,7 @@ namespace {
         std::string str;
 
     #if defined(_WIN32)
-
         time_t const cur_time{ std::chrono::system_clock::to_time_t(timePoint) };
-
         tm local_tm;
         localtime_s(&local_tm, (time_t const*)&cur_time);
         char const *format{ "%Y.%m.%d-%H.%M.%S" };
@@ -32,9 +30,7 @@ namespace {
         str.append(".");
         str.append(std::to_string(ms));
     #else
-
         (void)timePoint;
-
     #endif
         return str;
     }
@@ -52,17 +48,15 @@ Logger::Logger() :
 {}
 
 Logger::~Logger() {
-
     setup("");
 }
 
 Logger& Logger::instance() {
-    // Since it's a static variable, if the class has already been created,
-    // it won't be created again.
+    // Since it's a static instance variable,
+    // if the class has already been created, it won't be created again.
     // And it is thread-safe in C++11.
-    static Logger staticInstance;
-
-    return staticInstance;
+    static Logger logger;
+    return logger;
 }
 
 void Logger::setup(std::string const &file) {

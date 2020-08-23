@@ -1,5 +1,7 @@
 #include "PSQTable.h"
 
+#include <algorithm>
+
 #include "Position.h"
 
 namespace {

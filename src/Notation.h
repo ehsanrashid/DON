@@ -19,14 +19,14 @@ constexpr File toFile(char f) noexcept {
     return File(f - 'a');
 }
 constexpr char toChar(File f, bool lower = true) noexcept {
-    return char(f + 'A' + 0x20 * lower);
+    return char(f) + 'A' + 0x20 * lower;
 }
 
 constexpr Rank toRank(char r) noexcept {
     return Rank(r - '1');
 }
 constexpr char toChar(Rank r) noexcept {
-    return char(r + '1');
+    return char(r) + '1';
 }
 
 extern std::string toString(Square) noexcept;

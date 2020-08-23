@@ -121,9 +121,7 @@ extern Magic RMagics[SQUARES];
 
 
 #if !defined(USE_POPCNT)
-
 extern u08 PopCount[USHRT_MAX+1]; // 16-bit
-
 #endif
 
 constexpr Bitboard operator~(Square s) { return ~SquareBB[s]; }
@@ -273,7 +271,6 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) noexcept {
 inline i32 popCount(Bitboard bb) noexcept {
 
 #if !defined(USE_POPCNT)
-
     //Bitboard x = bb;
     //x -= (x >> 1) & 0x5555555555555555;
     //x = ((x >> 0) & 0x3333333333333333)
@@ -288,15 +285,10 @@ inline i32 popCount(Bitboard bb) noexcept {
         + PopCount[v.u[3]];
 
 #elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
     return( _mm_popcnt_u64(bb) );
-
 #else // Assumed gcc or compatible compiler
-
     return( __builtin_popcountll(bb) );
-
 #endif
-
 }
 
 /// scanLSq() return the least significant bit in a non-zero bitboard
@@ -304,20 +296,13 @@ inline Square scanLSq(Bitboard bb) noexcept {
     assert(bb != 0);
 
 #if defined(__GNUC__) // GCC, Clang, ICC
-
     return Square(__builtin_ctzll(bb));
-
 #elif defined(_MSC_VER) // MSVC
-
     unsigned long index;
-
     #if defined(IS_64BIT)
-
     _BitScanForward64(&index, bb);
     return Square(index);
-
     #else
-
     if (u32(bb >> 0) != 0) {
         _BitScanForward(&index, u32(bb >> 0x00));
         return Square(index);
@@ -326,38 +311,26 @@ inline Square scanLSq(Bitboard bb) noexcept {
         _BitScanForward(&index, u32(bb >> 0x20));
         return Square(index + 0x20);
     }
-
     #endif
-
 #else // Compiler is neither GCC nor MSVC compatible
-
     // Assembly code by Heinz van Saanen
     Bitboard sq;
     __asm__("bsfq %1, %0": "=r"(sq) : "rm"(bb));
     return Square(sq);
-
 #endif
-
 }
 /// scanLSq() return the most significant bit in a non-zero bitboard
 inline Square scanMSq(Bitboard bb) noexcept {
     assert(bb != 0);
 
 #if defined(__GNUC__) // GCC, Clang, ICC
-
     return Square(SQ_H8 - __builtin_clzll(bb));
-
 #elif defined(_MSC_VER) // MSVC
-
     unsigned long index;
-
     #if defined(IS_64BIT)
-
     _BitScanReverse64(&index, bb);
     return Square(index);
-
     #else
-
     if (u32(bb >> 0x20) != 0) {
         _BitScanReverse(&index, u32(bb >> 0x20));
         return Square(index + 0x20);
@@ -366,17 +339,12 @@ inline Square scanMSq(Bitboard bb) noexcept {
         _BitScanReverse(&index, u32(bb >> 0x00));
         return Square(index);
     }
-
     #endif
-
 #else // Compiler is neither GCC nor MSVC compatible
-
     // Assembly code by Heinz van Saanen
-
     Bitboard sq;
     __asm__("bsrq %1, %0": "=r"(sq) : "rm"(bb));
     return Square(sq);
-
 #endif
 }
 
@@ -403,9 +371,7 @@ namespace BitBoard {
     extern void initialize();
 
 #if !defined(NDEBUG)
-
     extern std::string toString(Bitboard);
-
 #endif
 
 }

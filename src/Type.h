@@ -69,19 +69,19 @@
 #endif
 
 #if defined(USE_PEXT)
-    #include <immintrin.h>  // Header for _pext_u64() intrinsic
-//  #define PDEP(b, m) _pdep_u64(b, m) // Parallel bits deposit
+    #include <immintrin.h>  // Header for _pdep_u64() & _pext_u64() intrinsic
+    //#define PDEP(b, m) _pdep_u64(b, m) // Parallel bits deposit
     #define PEXT(b, m) _pext_u64(b, m) // Parallel bits extract
 #endif
 
-using i08 =  int8_t;
-using u08 = uint8_t;
-using i16 =  int16_t;
-using u16 = uint16_t;
-using i32 =  int32_t;
-using u32 = uint32_t;
-using i64 =  int64_t;
-using u64 = uint64_t;
+using i08  =  int8_t;
+using u08  = uint8_t;
+using i16  =  int16_t;
+using u16  = uint16_t;
+using i32  =  int32_t;
+using u32  = uint32_t;
+using i64  =  int64_t;
+using u64  = uint64_t;
 using uPtr = uintptr_t;
 
 using Key = u64;
@@ -102,15 +102,18 @@ constexpr i32 sign(T const &v) {
 }
 
 enum Color : i08 {
-    WHITE, BLACK, COLORS = 2
+    WHITE, BLACK,
+    COLORS = 2
 };
 
 enum File : i08 {
-    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H, FILES = 8
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
+    FILES = 8
 };
 
 enum Rank : i08 {
-    RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8, RANKS = 8
+    RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8,
+    RANKS = 8
 };
 
 /// Square needs 6-bits to be stored
@@ -126,7 +129,6 @@ enum Square : i08 {
     SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
     SQ_NONE,
-    SQUARE_ZERO = 0,
     SQUARES = 64
 };
 
@@ -181,7 +183,8 @@ enum CastleRight : u08 {
 };
 
 enum PieceType : i08 {
-    NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING, PIECE_TYPES = 7
+    NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING,
+    PIECE_TYPES = 7
 };
 
 /// Piece needs 4-bits to be stored
@@ -400,6 +403,7 @@ BASIC_OPERATORS(Score)
     inline T& operator*=(T &t, i32 i) noexcept { return t = t * i; }     \
     inline T& operator/=(T &t, i32 i) noexcept { return t = t / i; }
 
+ARTHMAT_OPERATORS(File)
 ARTHMAT_OPERATORS(Direction)
 ARTHMAT_OPERATORS(Value)
 #undef ARTHMAT_OPERATORS
@@ -561,10 +565,10 @@ constexpr Rank relativeRank(Color c, Square s) {
 }
 
 constexpr Square kingCastleSq(Square org, Square dst) {
-    return makeSquare(File(i32(FILE_E) + 2 * sign(dst - org)), sRank(org));
+    return makeSquare(FILE_E + 2 * sign(dst - org), sRank(org));
 }
 constexpr Square rookCastleSq(Square org, Square dst) {
-    return makeSquare(File(i32(FILE_E) + 1 * sign(dst - org)), sRank(org));
+    return makeSquare(FILE_E + 1 * sign(dst - org), sRank(org));
 }
 
 constexpr bool isOk(PieceType pt) {
@@ -677,7 +681,8 @@ struct ValMove {
 
     ValMove() = default;
     explicit ValMove(Move m) :
-        move{ m } {}
+        move{ m }
+    {}
 
     operator Move() const noexcept { return move; }
     void operator=(Move m) noexcept { move = m; }
@@ -732,14 +737,14 @@ class HashTable :
     private std::vector<T> {
 
 private:
-
     u32 const Mask;
 
 public:
 
     HashTable(u32 size) :
         std::vector<T>(size),
-        Mask{ size - 1 } {}
+        Mask{ size - 1 }
+    {}
 
     void clear() {
         std::vector<T>::assign(std::vector<T>::size(), T());
@@ -750,31 +755,31 @@ public:
     }
 };
 
-// Fold file [ABCDEFGH] to file [ABCDDCBA]
-// Fold rank [12345678] to rank [12344321]
-constexpr i32 edgeDistance(i08 d) { return std::min(d - 0, 7 - d); }
 
 /// distance() functions return the distance between s1 and s2
 /// defined as the number of steps for a king in s1 to reach s2.
 
-inline i32 fileDistance(Square s1, Square s2) noexcept { return std::abs(sFile(s1) - sFile(s2)); }
-inline i32 rankDistance(Square s1, Square s2) noexcept { return std::abs(sRank(s1) - sRank(s2)); }
+template<typename T1 = Square> inline i32 distance(Square, Square);
+template<> inline i32 distance<File>(Square s1, Square s2) { return std::abs(sFile(s1) - sFile(s2)); }
+template<> inline i32 distance<Rank>(Square s1, Square s2) { return std::abs(sRank(s1) - sRank(s2)); }
 
 extern u08 Distance[SQUARES][SQUARES];
-
-inline i32 distance(Square s1, Square s2) noexcept {
-    //return std::max(fileDistance(s1, s2), rankDistance(s1, s2));
+template<> inline i32 distance<Square>(Square s1, Square s2) {
+    //return std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
     return Distance[s1][s2];
 }
 
-constexpr Piece Pieces[12]
-{
+// Fold file [ABCDEFGH] to file [ABCDDCBA]
+constexpr i32 edgeDistance(File f) { return std::min(f - FILE_A, FILE_H - f); }
+// Fold rank [12345678] to rank [12344321]
+constexpr i32 edgeDistance(Rank r) { return std::min(r - RANK_1, RANK_8 - r); }
+
+constexpr Piece Pieces[12]{
     W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING
 };
 
-constexpr Value PieceValues[PHASES][PIECE_TYPES]
-{
+constexpr Value PieceValues[PHASES][PIECE_TYPES]{
     { VALUE_ZERO, VALUE_MG_PAWN, VALUE_MG_NIHT, VALUE_MG_BSHP, VALUE_MG_ROOK, VALUE_MG_QUEN, VALUE_ZERO },
     { VALUE_ZERO, VALUE_EG_PAWN, VALUE_EG_NIHT, VALUE_EG_BSHP, VALUE_EG_ROOK, VALUE_EG_QUEN, VALUE_ZERO }
 };

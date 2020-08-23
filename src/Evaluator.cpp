@@ -1,9 +1,10 @@
 #include "Evaluator.h"
 
-#include <algorithm>
 #include <cassert>
-#include <cmath>
 #include <cstdlib>
+#include <algorithm>
+#include <iomanip>
+#include <sstream>
 #include <iostream>
 
 #include "BitBoard.h"
@@ -294,8 +295,9 @@ namespace Evaluator {
             mobility[Own] = SCORE_ZERO;
 
             // King safety tables
-            auto const sq{ makeSquare(std::clamp(sFile(kSq), FILE_B, FILE_G),
-                                      std::clamp(sRank(kSq), RANK_2, RANK_7)) };
+            auto const sq{
+                makeSquare(std::clamp(sFile(kSq), FILE_B, FILE_G),
+                           std::clamp(sRank(kSq), RANK_2, RANK_7)) };
             kingRing[Own] = attacksBB<KING>(sq) | sq;
 
             kingAttackersCount [Opp] = popCount(kingRing[Own]
@@ -446,7 +448,7 @@ namespace Evaluator {
                     dblAttacks[Own] |= sqlAttacks[Own][NONE] & attacks;
 
                     // Bonus for rook on the same file as a queen
-                    if ((pos.pieces(QUEN) & fileBB(s)) != 0) {
+                    if ((fileBB(s) & pos.pieces(QUEN)) != 0) {
                         score += RookOnQueenFile;
                     }
                     // Bonus for rook when on an open or semi-open file
@@ -1002,8 +1004,8 @@ namespace Evaluator {
             auto const bkSq{ pos.square(B_KING) };
 
             i32 const outflanking{
-                fileDistance(wkSq, bkSq)
-              - rankDistance(wkSq, bkSq) };
+                distance<File>(wkSq, bkSq)
+              - distance<Rank>(wkSq, bkSq) };
 
             // Compute the initiative bonus for the attacking side
             i32 const complexity{
