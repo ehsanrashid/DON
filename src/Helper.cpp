@@ -65,14 +65,14 @@ string& trim(string &str) {
 
 /// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
 std::ostream& operator<<(std::ostream &os, OutputState outputState) {
-    static std::mutex Mutex;
+    static std::mutex mutex;
 
     switch (outputState) {
     case OS_LOCK:
-        Mutex.lock();
+        mutex.lock();
         break;
     case OS_UNLOCK:
-        Mutex.unlock();
+        mutex.unlock();
         break;
     }
     return os;

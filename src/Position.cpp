@@ -559,17 +559,17 @@ bool Position::see(Move m, Value threshold) const {
     auto org{ orgSq(m) };
     auto const dst{ dstSq(m) };
 
-    i32 val;
-    val = PieceValues[MG][pType(board[dst])] - threshold;
-    if (val < 0) {
+    i32 swap;
+    swap = PieceValues[MG][pType(board[dst])] - threshold;
+    if (swap < 0) {
         return false;
     }
-    val = PieceValues[MG][pType(board[org])] - val;
-    if (val < 1) {
+    swap = PieceValues[MG][pType(board[org])] - swap;
+    if (swap < 1) {
         return true;
     }
 
-    bool res{ true };
+    auto res{ 1 };
     auto mov{ pColor(board[org]) };
     Bitboard mocc{ pieces() ^ org ^ dst };
     Bitboard attackers{ attackersTo(dst, mocc) };
@@ -609,45 +609,44 @@ bool Position::see(Move m, Value threshold) const {
             break;
         }
 
-        res = !res;
+        res ^= 1;
 
         // Locate and remove the next least valuable attacker, and add to
         // the bitboard 'attackers' any X-ray attackers behind it.
         Bitboard bb;
-
-        if ((bb = pieces(PAWN) & movAttackers) != 0) {
-            if ((val = VALUE_MG_PAWN - val) < i32(res)) {
+        if ((bb = movAttackers & pieces(PAWN)) != 0) {
+            if ((swap = VALUE_MG_PAWN - swap) < res) {
                 break;
             }
             mocc ^= (org = scanLSq(bb));
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
         }
         else
-        if ((bb = pieces(NIHT) & movAttackers) != 0) {
-            if ((val = VALUE_MG_NIHT - val) < i32(res)) {
+        if ((bb = movAttackers & pieces(NIHT)) != 0) {
+            if ((swap = VALUE_MG_NIHT - swap) < res) {
                 break;
             }
             mocc ^= (org = scanLSq(bb));
         }
         else
-        if ((bb = pieces(BSHP) & movAttackers) != 0) {
-            if ((val = VALUE_MG_BSHP - val) < i32(res)) {
+        if ((bb = movAttackers & pieces(BSHP)) != 0) {
+            if ((swap = VALUE_MG_BSHP - swap) < res) {
                 break;
             }
             mocc ^= (org = scanLSq(bb));
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
         }
         else
-        if ((bb = pieces(ROOK) & movAttackers) != 0) {
-            if ((val = VALUE_MG_ROOK - val) < i32(res)) {
+        if ((bb = movAttackers & pieces(ROOK)) != 0) {
+            if ((swap = VALUE_MG_ROOK - swap) < res) {
                 break;
             }
             mocc ^= (org = scanLSq(bb));
             attackers |= (pieces(ROOK, QUEN) & attacksBB<ROOK>(dst, mocc));
         }
         else
-        if ((bb = pieces(QUEN) & movAttackers) != 0) {
-            if ((val = VALUE_MG_QUEN - val) < i32(res)) {
+        if ((bb = movAttackers & pieces(QUEN)) != 0) {
+            if ((swap = VALUE_MG_QUEN - swap) < res) {
                 break;
             }
             mocc ^= (org = scanLSq(bb));
@@ -656,11 +655,14 @@ bool Position::see(Move m, Value threshold) const {
         }
         else { // KING
             // If we "capture" with the king but opponent still has attackers, reverse the result.
-            return ((attackers & pieces(~mov)) != 0) != res;
+            if ((attackers & pieces(~mov)) != 0) {
+                res ^= 1;
+            }
+            break;
         }
     }
 
-    return res;
+    return bool(res);
 }
 
 /// Position::setup() initializes the position object with the given FEN string.

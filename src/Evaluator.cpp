@@ -74,8 +74,6 @@ namespace Evaluator {
             }
 
             friend std::ostream& operator<<(std::ostream &, Term);
-
-
         };
 
         Score Tracer::Scores[TERMS][COLORS];
@@ -296,8 +294,8 @@ namespace Evaluator {
             mobility[Own] = SCORE_ZERO;
 
             // King safety tables
-            auto const sq{ makeSquare(clamp(sFile(kSq), FILE_B, FILE_G),
-                                      clamp(sRank(kSq), RANK_2, RANK_7)) };
+            auto const sq{ makeSquare(std::clamp(sFile(kSq), FILE_B, FILE_G),
+                                      std::clamp(sRank(kSq), RANK_2, RANK_7)) };
             kingRing[Own] = attacksBB<KING>(sq) | sq;
 
             kingAttackersCount [Opp] = popCount(kingRing[Own]
@@ -321,7 +319,7 @@ namespace Evaluator {
             constexpr auto Opp{ ~Own };
 
             auto const kSq{ pos.square(Own|KING) };
-            Bitboard kingBlockers{ pos.kingBlockers(Own) };
+            Bitboard const kingBlockers{ pos.kingBlockers(Own) };
 
             sqlAttacks[Own][PT] = 0;
 
@@ -888,7 +886,7 @@ namespace Evaluator {
 
         /// Evaluation::space() computes a space evaluation for a given side,
         /// aiming to improve game play in the opening.
-        /// It is based on the number of safe squares on the 4 central files on ranks 2 to 4.
+        /// It is based on the number of safe squares on the four central files on ranks 2 to 4.
         /// Completely safe squares behind a friendly pawn are counted twice.
         /// Finally, the space bonus is multiplied by a weight which decreases according to occupancy.
         template<bool Trace> template<Color Own>
@@ -947,10 +945,11 @@ namespace Evaluator {
             // - material imbalance
             // - pawn score
             // - dynamic contempt
-            Score score{ pos.psqScore()
-                       + matlEntry->imbalance
-                       + (pawnEntry->score[WHITE] - pawnEntry->score[BLACK])
-                       + pos.thread()->contempt };
+            Score score{
+                pos.psqScore()
+              + matlEntry->imbalance
+              + (pawnEntry->score[WHITE] - pawnEntry->score[BLACK])
+              + pos.thread()->contempt };
 
             // Early exit if score is high
             auto const lazySkip{
@@ -1007,7 +1006,7 @@ namespace Evaluator {
               - rankDistance(wkSq, bkSq) };
 
             // Compute the initiative bonus for the attacking side
-            i32 const complexity =
+            i32 const complexity{
                  1 * pawnEntry->complexity
               +  9 * outflanking
                 // King infiltration
@@ -1019,7 +1018,7 @@ namespace Evaluator {
                 // Almost Unwinnable
               - 43 * (pawnEntry->pawnNotBothFlank
                    && outflanking < 0)
-              - 89;
+              - 89 };
 
             auto mg{ mgValue(score) };
             auto eg{ egValue(score) };
@@ -1027,7 +1026,7 @@ namespace Evaluator {
             // Now apply the bonus: note that we find the attacking side by extracting the
             // sign of the midgame or endgame values, and that we carefully cap the bonus
             // so that the midgame and endgame scores do not change sign after the bonus.
-            auto mv{ sign(mg) * clamp(complexity + 50, -std::abs(mg), 0) };
+            auto mv{ sign(mg) * std::clamp(complexity + 50, -std::abs(mg), 0) };
             auto ev{ sign(eg) * std::max(complexity, -std::abs(eg)) };
 
             mg += mv;
@@ -1098,6 +1097,7 @@ namespace Evaluator {
 
     /// evaluate() returns a static evaluation of the position from the point of view of the side to move.
     Value evaluate(Position const &pos) {
+        assert(pos.checkers() == 0);
 
         auto const fortress{ 16 + pos.clockPly() };
         bool const classical{
@@ -1118,8 +1118,8 @@ namespace Evaluator {
         // Damp down the evaluation linearly when shuffling
         v = v * (100 - pos.clockPly()) / 100;
 
-        // Guarantee evalution outside of TB range
-        return clamp(v, -VALUE_MATE_2_MAX_PLY + 1, +VALUE_MATE_2_MAX_PLY - 1);
+        // Guarantee evaluation does not hit the tablebase range
+        return std::clamp(v, -VALUE_MATE_2_MAX_PLY + 1, +VALUE_MATE_2_MAX_PLY - 1);
     }
 
     /// trace() returns a string (suitable for outputting to stdout for debugging)
@@ -1130,43 +1130,49 @@ namespace Evaluator {
         }
 
         std::ostringstream oss{};
+        oss << std::showpos << std::showpoint << std::fixed << std::setprecision(2);
 
         Value value;
 
-        if (useNNUE) {
-            value = NNUE::evaluate(pos);
-        }
-        else {
-            // Reset any dynamic contempt
-            auto const contempt{ pos.thread()->contempt };
-            pos.thread()->contempt = SCORE_ZERO;
-            value = Evaluation<true>(pos).value();
-            pos.thread()->contempt = contempt;
+        // Reset any dynamic contempt
+        auto const contempt{ pos.thread()->contempt };
+        pos.thread()->contempt = SCORE_ZERO;
+        value = Evaluation<true>(pos).value();
+        pos.thread()->contempt = contempt;
 
-            oss << "      Eval Term |    White    |    Black    |    Total     \n"
-                << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
-                << "----------------+-------------+-------------+--------------\n"
-                << "       Material" << Term(MATERIAL)
-                << "      Imbalance" << Term(IMBALANCE)
-                << "           Pawn" << Term(PAWN)
-                << "         Knight" << Term(NIHT)
-                << "         Bishop" << Term(BSHP)
-                << "           Rook" << Term(ROOK)
-                << "          Queen" << Term(QUEN)
-                << "       Mobility" << Term(MOBILITY)
-                << "           King" << Term(KING)
-                << "         Threat" << Term(THREAT)
-                << "         Passer" << Term(PASSER)
-                << "          Space" << Term(SPACE)
-                << "        Scaling" << Term(SCALING)
-                << "----------------+-------------+-------------+--------------\n"
-                << "          Total" << Term(TOTAL);
-        }
-
+        oss << "      Eval Term |    White    |    Black    |    Total     \n"
+            << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
+            << "----------------+-------------+-------------+--------------\n"
+            << "       Material" << Term(MATERIAL)
+            << "      Imbalance" << Term(IMBALANCE)
+            << "           Pawn" << Term(PAWN)
+            << "         Knight" << Term(NIHT)
+            << "         Bishop" << Term(BSHP)
+            << "           Rook" << Term(ROOK)
+            << "          Queen" << Term(QUEN)
+            << "       Mobility" << Term(MOBILITY)
+            << "           King" << Term(KING)
+            << "         Threat" << Term(THREAT)
+            << "         Passer" << Term(PASSER)
+            << "          Space" << Term(SPACE)
+            << "        Scaling" << Term(SCALING)
+            << "----------------+-------------+-------------+--------------\n"
+            << "          Total" << Term(TOTAL);
         // Trace scores are from White's point of view
         value = (pos.activeSide() == WHITE ? +value : -value);
-        oss << std::showpos << std::showpoint << std::fixed << std::setprecision(2)
-            << "\nEvaluation: " << toCP(value) / 100 << " (white side)\n";
+        oss << "\nClassical Evaluation: " << toCP(value) / 100 << " (white side)\n";
+
+        if (useNNUE) {
+            value = NNUE::evaluate(pos);
+            // Trace scores are from White's point of view
+            value = (pos.activeSide() == WHITE ? +value : -value);
+            oss << "\nNNUE Evaluation     : " << toCP(value) / 100 << " (white side)\n";
+        }
+
+        value = evaluate(pos);
+        // Trace scores are from White's point of view
+        value = (pos.activeSide() == WHITE ? +value : -value);
+        oss << "\nFinal Evaluation    : " << toCP(value) / 100 << " (white side)\n";
 
         return oss.str();
     }

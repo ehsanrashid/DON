@@ -370,8 +370,7 @@ namespace WinProcGroup {
     void bind(u16 index) {
 
         // Use only local variables to be thread-safe
-        i16 group{ bestGroup(index) };
-
+        i16 const group{ bestGroup(index) };
         // If we still have more threads than the total number of logical processors then let the OS to decide what to do.
         if (group == -1) {
             return;
@@ -391,9 +390,9 @@ namespace WinProcGroup {
             return;
         }
 
-        GROUP_AFFINITY group_affinity;
-        if (pGNNPME(group, &group_affinity)) {
-            pSTGA(GetCurrentThread(), &group_affinity, nullptr);
+        GROUP_AFFINITY groupAffinity;
+        if (pGNNPME(group, &groupAffinity)) {
+            pSTGA(GetCurrentThread(), &groupAffinity, nullptr);
         }
     }
 #else

@@ -8,18 +8,10 @@
 /// -DNDEBUG    | Disable debugging mode. Always use this for release.
 /// -DPREFETCH  | Enable use of prefetch asm-instruction.
 ///             | Don't enable it if want to run on some very old machines.
-/// -DABMI      | Add runtime support for use of ABMI asm-instruction.
-///             | Works only in 64-bit mode and requires hardware with ABMI support.
-/// -DBMI2      | Add runtime support for use of BMI2 asm-instruction.
-///             | Works only in 64-bit mode and requires hardware with BMI2 support.
-
-/// Predefined macros hell:
-///
-/// __GNUC__           Compiler is gcc, Clang or Intel on Linux
-/// __INTEL_COMPILER   Compiler is Intel
-/// _MSC_VER           Compiler is MSVC or Intel on Windows
-/// _WIN32             Compilation target is Windows (any)
-/// _WIN64             Compilation target is Windows 64-bit
+/// -DABMI      | Add runtime support for use of USE_POPCNT asm-instruction.
+///             | Works only in 64-bit mode and requires hardware with USE_POPCNT support.
+/// -DBMI2      | Add runtime support for use of USE_PEXT asm-instruction.
+///             | Works only in 64-bit mode and requires hardware with USE_PEXT support.
 
 #include <cassert>
 #include <cctype>
@@ -31,18 +23,13 @@
 #include <chrono>
 #include <vector>
 
-using i08 =  int8_t;
-using u08 = uint8_t;
-using i16 =  int16_t;
-using u16 = uint16_t;
-using i32 =  int32_t;
-using u32 = uint32_t;
-using i64 =  int64_t;
-using u64 = uint64_t;
-using uPtr = uintptr_t;
-
-using Key = u64;
-using Bitboard = u64;
+/// Predefined macros hell:
+///
+/// __GNUC__           Compiler is gcc, Clang or Intel on Linux
+/// __INTEL_COMPILER   Compiler is Intel
+/// _MSC_VER           Compiler is MSVC or Intel on Windows
+/// _WIN32             Compilation target is Windows (any)
+/// _WIN64             Compilation target is Windows 64-bit
 
 #if defined(_MSC_VER)
 // Disable some silly and noisy warning from MSVC compiler
@@ -51,8 +38,8 @@ using Bitboard = u64;
     #pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'
 
     #if defined(_WIN64)
-        #if !defined(BIT64)
-            #define BIT64
+        #if !defined(IS_64BIT)
+            #define IS_64BIT
         #endif
     #endif
 
@@ -67,6 +54,39 @@ using Bitboard = u64;
     #define U64(X) (X ## ULL)
 #endif
 
+// When no Makefile used
+
+#if defined(_WIN64) && defined(_MSC_VER)
+    #include <intrin.h>     // Microsoft Header for _BitScanForward64() & _BitScanReverse64()
+#endif
+
+#if defined(USE_POPCNT) && (defined(__INTEL_COMPILER) || defined(_MSC_VER))
+    #include <nmmintrin.h>  // Intel and Microsoft Header for _mm_popcnt_u64()
+#endif
+
+#if defined(USE_PREFETCH) && (defined(__INTEL_COMPILER) || defined(_MSC_VER))
+    #include <xmmintrin.h>  // Intel and Microsoft header for _mm_prefetch()
+#endif
+
+#if defined(USE_PEXT)
+    #include <immintrin.h>  // Header for _pext_u64() intrinsic
+//  #define PDEP(b, m) _pdep_u64(b, m) // Parallel bits deposit
+    #define PEXT(b, m) _pext_u64(b, m) // Parallel bits extract
+#endif
+
+using i08 =  int8_t;
+using u08 = uint8_t;
+using i16 =  int16_t;
+using u16 = uint16_t;
+using i32 =  int32_t;
+using u32 = uint32_t;
+using i64 =  int64_t;
+using u64 = uint64_t;
+using uPtr = uintptr_t;
+
+using Key = u64;
+using Bitboard = u64;
+
 constexpr u32 nSqr(i16 n) {
     return n * n;
 }
@@ -79,12 +99,6 @@ template<typename T>
 constexpr i32 sign(T const &v) {
     //return (T{} < v) - (v < T{});
     return (0 < v) - (v < 0);
-}
-
-template<typename T>
-T const& clamp(T const &v, T const &minimum, T const &maximum) {
-    return (minimum > v) ? minimum :
-           (v > maximum) ? maximum : v;
 }
 
 enum Color : i08 {

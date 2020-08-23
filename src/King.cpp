@@ -51,7 +51,7 @@ namespace King {
 
         Score safety{ BasicSafety };
 
-        auto kF{ clamp(sFile(kSq), FILE_B, FILE_G) };
+        auto kF{ std::clamp(sFile(kSq), FILE_B, FILE_G) };
         for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
             assert(FILE_A <= f && f <= FILE_H);
             Bitboard const ownFrontFilePawns{ ownFrontPawns & FileBB[f] };

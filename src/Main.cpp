@@ -19,26 +19,21 @@ int main(int argc, char const *const *argv) {
     std::cout << Name << " " << engineInfo() << " by " << Author << '\n';
     std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency() << '\n';
 
+    UCI::initialize();
     BitBoard::initialize();
     BitBase::initialize();
     PSQT::initialize();
     Zobrists::initialize();
     Cuckoos::initialize();
-    UCI::initialize();
     EndGame::initialize();
     Book.initialize(Options["Book File"]);
     Threadpool.setup(optionThreads());
     Evaluator::initializeNNUE();
-    TimeMgr.clear();
     UCI::clear();
 
-    // Join arguments
-    std::string cmdLine;
-    for (int i = 1; i < argc; ++i) {
-        cmdLine += std::string{ argv[i] } + " ";
-    }
+    //Evaluator::verifyNNUE();
 
-    UCI::handleCommands(cmdLine);
+    UCI::handleCommands(argc, argv);
 
     Threadpool.setup(0);
     TT.free();

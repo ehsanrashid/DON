@@ -108,7 +108,9 @@ class StatsTable<T, D, Size> :
 using ColorIndexStatsTable      = StatsTable<i16, 10692, COLORS, SQUARES*SQUARES>;
 
 /// PlyIndexStatsTable stores moves history according to ply from 0 to MAX_LOWPLY-1
-/// At higher depths it records successful quiet moves near the root and quiet moves which were in the PV (ttPv)
+/// At higher depths it records successful quiet moves near the root
+/// and quiet moves which were in the PV (ttPv)
+/// It is cleared with each new search and filled during iterative deepening.
 /// indexed by [0...MAX_LOWPLY-1][moveMask]
 constexpr i16 MAX_LOWPLY{ 4 };
 using PlyIndexStatsTable        = StatsTable<i16, 10692, MAX_LOWPLY, SQUARES*SQUARES>;

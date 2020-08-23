@@ -2,6 +2,7 @@
 
 #include <iostream>
 
+#include "Position.h"
 #include "RootMove.h"
 #include "Type.h"
 

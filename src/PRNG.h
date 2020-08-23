@@ -46,7 +46,7 @@ public:
         return T(rand64());
     }
 
-#if !defined(BMI2)
+#if !defined(USE_PEXT)
 
     /// Special generator used to fast initialize magic numbers.
     /// Output values only have 1/8th of their bits set on average.

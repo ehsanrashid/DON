@@ -39,17 +39,17 @@ namespace Evaluator::NNUE {
 
     namespace {
 
-        /// Wrappers for systems where the c++17 implementation doesn't guarantee the availability of std::aligned_alloc.
-        /// Memory allocated with allocAligned must be freed with freeAligned.
+        /// allocAligned() is our wrapper for systems where the c++17 implementation
+        /// does not guarantee the availability of aligned_alloc().
+        /// Memory allocated with allocAligned() must be freed with freeAligned().
 
         void* allocAligned(size_t alignment, size_t size) noexcept {
 
 #if defined(POSIX_ALIGNED_MEM)
-            void *ptr;
-            if (posix_memalign(&ptr, alignment, size) == 0) {
-                return ptr;
-            }
-            return nullptr;
+            void *mem;
+            return posix_memalign(&mem, alignment, size) == 0 ?
+                    mem :
+                    nullptr;
 #elif defined(_WIN32)
             return _mm_malloc(size, alignment);
 #else
@@ -57,14 +57,14 @@ namespace Evaluator::NNUE {
 #endif
         }
 
-        void freeAligned(void *ptr) noexcept {
+        void freeAligned(void *mem) noexcept {
 
 #if defined(POSIX_ALIGNED_MEM)
-            free(ptr);
+            free(mem);
 #elif defined(_WIN32)
-            _mm_free(ptr);
+            _mm_free(mem);
 #else
-            free(ptr);
+            free(mem);
 #endif
         }
 
@@ -135,11 +135,6 @@ namespace Evaluator::NNUE {
                 && is.peek() == std::ios::traits_type::eof();
         }
 
-        // Proceed with the difference calculation if possible
-        void updateAccumulatorIfPossible(Position const &pos) {
-            featureTransformer->updateAccumulatorIfPossible(pos);
-        }
-
         // Calculate the evaluation value
         Value ComputeScore(Position const &pos, bool refresh) {
             auto &accumulator{ pos.state()->accumulator };
@@ -179,14 +174,14 @@ namespace Evaluator::NNUE {
         return v;
     }
 
-    // Evaluation function. Perform full calculation.
-    Value computeEval(Position const &pos) {
-        return ComputeScore(pos, true);
-    }
+    //// Evaluation function. Perform full calculation.
+    //Value computeEval(Position const &pos) {
+    //    return ComputeScore(pos, true);
+    //}
 
-    // Proceed with the difference calculation if possible
-    void updateEval(Position const &pos) {
-        updateAccumulatorIfPossible(pos);
-    }
+    //// Proceed with the difference calculation if possible
+    //void updateEval(Position const &pos) {
+    //    featureTransformer->updateAccumulatorIfPossible(pos);
+    //}
 
 } // namespace Evaluator::NNUE

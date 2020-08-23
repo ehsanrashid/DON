@@ -52,10 +52,10 @@ endif
 #                      --- (thread)         --- Enable threading error checks
 # optimize = yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
 # arch     = (name)    --- (-arch)          --- Target architecture
-# bits     = 64/32     --- -DBIT64          --- 64/32-bit operating system
-# prefetch = yes/no    --- -DPREFETCH       --- Use prefetch x86 asm-instruction
-# popcnt   = yes/no    --- -DABMI           --- Use popcnt asm-instruction
-# pext     = yes/no    --- -DBMI2           --- Use pext x86_64 asm-instruction
+# bits     = 64/32     --- -DIS_64BIT       --- 64-/32-bit operating system
+# prefetch = yes/no    --- -DUSE_PREFETCH   --- Use prefetch asm-instruction
+# popcnt   = yes/no    --- -DUSE_POPCNT     --- Use popcnt asm-instruction
+# pext     = yes/no    --- -DUSE_PEXT       --- Use pext x86_64 asm-instruction
 # sse      = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
 # mmx      = yes/no    --- -mmmx            --- Use Intel MMX instructions
 # sse2     = yes/no    --- -msse2           --- Use Intel Streaming SIMD Extensions 2
@@ -64,7 +64,7 @@ endif
 # avx2     = yes/no    --- -mavx2           --- Use Intel Advanced Vector Extensions 2
 # avx512   = yes/no    --- -mavx512bw       --- Use Intel Advanced Vector Extensions 512
 # vnni     = yes/no    --- -mavx512vnni     --- Use Intel Vector Neural Network Instructions 512
-# neon     = yes/no    --- -DNEON           --- Use ARM SIMD architecture
+# neon     = yes/no    --- -DUSE_NEON       --- Use ARM SIMD architecture
 #
 # Note that Makefile is space sensitive, so when adding new architectures
 # or modifying existing flags, you have to make sure there are no extra spaces
@@ -289,9 +289,6 @@ ifeq ($(COMP), gcc)
 	ifneq ($(KERNEL), Darwin)
 		LDFLAGS += -Wl,--no-as-needed
 	endif
-
-	gccversion = $(shell $(CXX) --version)
-	gccisclang = $(findstring clang, $(gccversion))
 endif
 
 ifeq ($(COMP), mingw)
@@ -363,6 +360,7 @@ endif
 ifeq ($(KERNEL), Darwin)
 	CXXFLAGS += -arch $(arch) -mmacosx-version-min=10.14
 	LDFLAGS += -arch $(arch) -mmacosx-version-min=10.14
+	XCRUN = xcrun
 endif
 
 # To cross-compile for Android, NDK version r21 or later is recommended.
@@ -394,8 +392,19 @@ ifdef COMPCXX
 	CXX = $(COMPCXX)
 endif
 
-### On MinGW use Windows threads, otherwise POSIX
+### Sometimes gcc is really clang
+ifeq ($(COMP),gcc)
+	gccversion = $(shell $(CXX) --version)
+	gccisclang = $(findstring clang,$(gccversion))
+	ifneq ($(gccisclang),)
+		profile_make = clang-profile-make
+		profile_use = clang-profile-use
+	endif
+endif
+
+### On minGW use Windows threads, otherwise POSIX
 ifneq ($(comp), mingw)
+	CXXFLAGS += -DUSE_PTHREADS
 	# On Android Bionic's C library comes with its own pthread implementation bundled in
 	ifneq ($(OS), Android)
 		# Haiku has pthreads in its libroot, so only link it in on other platforms
@@ -439,21 +448,20 @@ endif
 
 ### 3.4 Bits
 ifeq ($(bits), 64)
-	CXXFLAGS += -DBIT64
+	CXXFLAGS += -DIS_64BIT
 endif
 
-### 3.5 Prefetch
+### 3.5 prefetch
 ifeq ($(prefetch), yes)
-	CXXFLAGS += -DPREFETCH
+	CXXFLAGS += -DUSE_PREFETCH
 	ifeq ($(sse), yes)
 		CXXFLAGS += -msse
-		DEPENDFLAGS += -msse
 	endif
 endif
 
-### 3.6 popcnt (ABMI-Advance Bit Manipulation)
+### 3.6 popcnt
 ifeq ($(popcnt), yes)
-	CXXFLAGS += -DABMI
+	CXXFLAGS += -DUSE_POPCNT
 	ifeq ($(arch), $(filter $(arch), ppc64 armv7 armv8-a arm64))
 		#CXXFLAGS +=
 	else ifeq ($(comp), icc)
@@ -464,56 +472,56 @@ ifeq ($(popcnt), yes)
 endif
 
 ifeq ($(avx2), yes)
-	CXXFLAGS += -DAVX2
+	CXXFLAGS += -DUSE_AVX2
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mavx2
 	endif
 endif
 
 ifeq ($(avx512), yes)
-	CXXFLAGS += -DAVX512
+	CXXFLAGS += -DUSE_AVX512
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mavx512f -mavx512bw
 	endif
 endif
 
 ifeq ($(vnni), yes)
-	CXXFLAGS += -DVNNI
+	CXXFLAGS += -DUSE_VNNI
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mavx512vnni -mavx512dq -mavx512vl
 	endif
 endif
 
 ifeq ($(sse41), yes)
-	CXXFLAGS += -DSSE41
+	CXXFLAGS += -DUSE_SSE41
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -msse4.1
 	endif
 endif
 
 ifeq ($(ssse3), yes)
-	CXXFLAGS += -DSSSE3
+	CXXFLAGS += -DUSE_SSSE3
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mssse3
 	endif
 endif
 
 ifeq ($(sse2), yes)
-	CXXFLAGS += -DSSE2
+	CXXFLAGS += -DUSE_SSE2
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -msse2
 	endif
 endif
 
 ifeq ($(mmx), yes)
-	CXXFLAGS += -DMMX
+	CXXFLAGS += -DUSE_MMX
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mmmx
 	endif
 endif
 
 ifeq ($(neon), yes)
-	CXXFLAGS += -DNEON
+	CXXFLAGS += -DUSE_NEON
 	ifeq ($(KERNEL), Linux)
 		ifneq ($(COMP), ndk)
 			CXXFLAGS += -mfpu=neon
@@ -521,9 +529,9 @@ ifeq ($(neon), yes)
 	endif
 endif
 
-### 3.7 pext (Bit Manipulation Instruction Set 2)
+### 3.7 pext
 ifeq ($(pext), yes)
-	CXXFLAGS += -DBMI2
+	CXXFLAGS += -DUSE_PEXT
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mbmi2
 	endif
@@ -577,8 +585,8 @@ ifeq ($(OS), Android)
 endif
 
 ### 3.10 Custom Version
-ifneq ($(VER), )
-	CXXFLAGS += -DVER=$(VER)
+ifneq ($(VERSION), )
+	CXXFLAGS += -DUSE_VERSION=$(VERSION)
 endif
 
 ### ==========================================================================
@@ -798,9 +806,9 @@ clang-profile-make:
 	all
 
 clang-profile-use:
-	llvm-profdata merge -output=DON.profdata *.profraw
+	$(XCRUN) llvm-profdata merge -output=DON.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS = '-fprofile-instr-use=DON.profdata' \
+	EXTRACXXFLAGS='-fprofile-instr-use=DON.profdata' \
 	EXTRALDFLAGS = '-fprofile-use' \
 	all
 

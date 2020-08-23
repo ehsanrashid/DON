@@ -81,7 +81,7 @@ public:
     // Minimum size of Table (MB)
     static constexpr size_t MinHashSize{ 4 };
     // Maximum size of Table (MB)
-#if defined(BIT64)
+#if defined(IS_64BIT)
     static constexpr size_t MaxHashSize{ 32 << 20 };
 #else
     static constexpr size_t MaxHashSize{  2 << 10 };

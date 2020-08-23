@@ -18,7 +18,7 @@ Bitboard PieceAttacksBB[PIECE_TYPES][SQUARES];
 Magic BMagics[SQUARES];
 Magic RMagics[SQUARES];
 
-#if !defined(ABMI)
+#if !defined(USE_POPCNT)
 u08 PopCount[USHRT_MAX+1];
 
 //// Counts the non-zero bits using SWAR-Popcount algorithm
@@ -32,21 +32,24 @@ u08 PopCount[USHRT_MAX+1];
 
 namespace {
 
-    Bitboard slideAttacks(Square s,  Bitboard occ, Direction const directions[]) {
-        Bitboard attacks{ 0 };
+    /// safeDestiny() returns the bitboard of target square for the given step
+    /// from the given square. If the step is off the board, returns empty bitboard.
+    inline Bitboard safeDestiny(Square s, Direction dir) {
+        Square dst{ s + dir };
+        return isOk(dst)
+            && distance(s, dst) <= 2 ?
+                SquareBB[dst] :
+                0;
+    }
 
+    Bitboard slideAttacks(Square s,  Bitboard occ, Direction const *directions) {
+        Bitboard attacks{ 0 };
         for (i08 i = 0; i < 4; ++i) {
             auto const dir{ directions[i] };
-            Square sq{ s + dir };
-            while (isOk(sq)
-                && distance(sq, sq - dir) == 1) {
-
-                attacks |= sq;
-                if (contains(occ, sq)) {
-                    break;
-                }
-
-                sq += dir;
+            Square sq = s;
+            while (safeDestiny(sq, dir) != 0
+                && !contains(occ, sq)) {
+                attacks |= (sq += dir);
             }
         }
         return attacks;
@@ -83,13 +86,13 @@ namespace {
     template<PieceType PT>
     void initializeMagic(Bitboard attacks[], Magic magics[]) {
 
-#if !defined(BMI2)
+#if !defined(USE_PEXT)
         constexpr u16 MaxIndex{ 0x1000 };
         Bitboard occupancy[MaxIndex];
         Bitboard reference[MaxIndex];
 
         constexpr u32 Seeds[RANKS]{
-    #if defined(BIT64)
+    #if defined(IS_64BIT)
         0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF
     #else
         0x02311, 0x0AE10, 0x0D447, 0x09856, 0x01663, 0x173E5, 0x199D0, 0x0427C
@@ -119,9 +122,9 @@ namespace {
             // new Bitboard[1 << popCount(magic.mask)];
             magic.attacks = s == SQ_A1 ? attacks : magics[s - 1].attacks + size;
 
-#if !defined(BMI2)
+#if !defined(USE_PEXT)
             u08 bits
-    #if defined(BIT64)
+    #if defined(IS_64BIT)
             { 64 };
     #else
             { 32 };
@@ -135,7 +138,7 @@ namespace {
             Bitboard occ{ 0 };
             do {
 
-#if defined(BMI2)
+#if defined(USE_PEXT)
                 magic.attacks[PEXT(occ, magic.mask)] = slideAttacks<PT>(s, occ);
 #else
                 occupancy[size] = occ;
@@ -147,7 +150,7 @@ namespace {
 
             assert(size == 1 << popCount(magic.mask));
 
-#if !defined(BMI2)
+#if !defined(USE_PEXT)
 
             PRNG prng{ Seeds[sRank(s)] };
             // Find a magic for square picking up an (almost) random number
@@ -198,7 +201,7 @@ namespace BitBoard {
             }
         }
 
-#if !defined(ABMI)
+#if !defined(USE_POPCNT)
         for (u16 i = 0; ; ++i) {
             PopCount[i] = std::bitset<16>(i).count(); //popCount16(i);
             if (i == USHRT_MAX) break;
@@ -219,19 +222,11 @@ namespace BitBoard {
 
             for (auto dir : { SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                               WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST }) {
-                auto const sq{ s + dir };
-                if (isOk(sq)
-                 && distance(s, sq) == 2) {
-                    PieceAttacksBB[NIHT][s] |= sq;
-                }
+                PieceAttacksBB[NIHT][s] |= safeDestiny(s, dir);
             }
             for (auto dir : { SOUTH_WEST, SOUTH, SOUTH_EAST, WEST,
                               EAST, NORTH_WEST, NORTH, NORTH_EAST }) {
-                auto const sq{ s + dir };
-                if (isOk(sq)
-                 && distance(s, sq) == 1) {
-                    PieceAttacksBB[KING][s] |= sq;
-                }
+                PieceAttacksBB[KING][s] |= safeDestiny(s, dir);
             }
 
             // NOTE:: must be after initialize magic Bishop & Rook Table

@@ -4,24 +4,24 @@
 #include <cstring> // For std::memset and std::memcpy
 #include <iostream>
 
-#if defined(AVX2)
+#if defined(USE_AVX2)
     #include <immintrin.h>
-#elif defined(SSE41)
+#elif defined(USE_SSE41)
     #include <smmintrin.h>
-#elif defined(SSSE3)
+#elif defined(USE_SSSE3)
     #include <tmmintrin.h>
-#elif defined(SSE2)
+#elif defined(USE_SSE2)
     #include <emmintrin.h>
-#elif defined(MMX)
+#elif defined(USE_MMX)
     #include <mmintrin.h>
-#elif defined(NEON)
+#elif defined(USE_NEON)
     #include <arm_neon.h>
 #endif
 
 // HACK: Use _mm256_loadu_si256() instead of _mm256_load_si256. Otherwise a binary
 //       compiled with older g++ crashes because the output memory is not aligned
 //       even though alignas is specified.
-#if defined(AVX2)
+#if defined(USE_AVX2)
     #if defined(__GNUC__) && (__GNUC__ < 9) && defined(_WIN32)
         #define _mm256_loadA_si256  _mm256_loadu_si256
         #define _mm256_storeA_si256 _mm256_storeu_si256
@@ -31,7 +31,7 @@
     #endif
 #endif
 
-#if defined(AVX512)
+#if defined(USE_AVX512)
     #if defined(__GNUC__) && (__GNUC__ < 9) && defined(_WIN32)
         #define _mm512_loadA_si512   _mm512_loadu_si512
         #define _mm512_storeA_si512  _mm512_storeu_si512
@@ -54,13 +54,13 @@ namespace Evaluator::NNUE {
     constexpr size_t CacheLineSize{ 64 };
 
     // SIMD width (in bytes)
-#if defined(AVX2)
+#if defined(USE_AVX2)
     constexpr size_t SimdWidth{ 32 };
-#elif defined(SSE2)
+#elif defined(USE_SSE2)
     constexpr size_t SimdWidth{ 16 };
-#elif defined(MMX)
+#elif defined(USE_MMX)
     constexpr size_t SimdWidth{ 8 };
-#elif defined(NEON)
+#elif defined(USE_NEON)
     constexpr size_t SimdWidth{ 16 };
 #endif
 

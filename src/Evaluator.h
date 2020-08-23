@@ -18,8 +18,8 @@ namespace Evaluator {
 
         extern bool loadEvalFile(std::string const&);
         extern Value evaluate(Position const&);
-        extern Value computeEval(Position const&);
-        extern void updateEval(Position const&);
+        //extern Value computeEval(Position const&);
+        //extern void updateEval(Position const&);
 
     } // namespace NNUE
 

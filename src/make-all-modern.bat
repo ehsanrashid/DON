@@ -1,7 +1,7 @@
 REM SET PATH=C:/MinGW/32/bin/;C:/MinGW/msys/bin/;
 
-REM make -f Makefile build ARCH=x86-32-popcnt         COMP=mingw debug=no VER=ddmmyy
-REM make -f Makefile build ARCH=x86-32-popcnt         COMP=mingw debug=no VER=ddmmyy
+REM make -f Makefile build ARCH=x86-32-popcnt         COMP=mingw debug=no VERSION=ddmmyy
+REM make -f Makefile build ARCH=x86-32-popcnt         COMP=mingw debug=no VERSION=ddmmyy
 
 REM -----------------------------------------------------
 

@@ -78,7 +78,7 @@ namespace UCI {
 
     extern void initialize() noexcept;
 
-    extern void handleCommands(std::string const&);
+    extern void handleCommands(int, char const *const*);
 
     extern void clear() noexcept;
 }

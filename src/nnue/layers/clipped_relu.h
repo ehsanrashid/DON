@@ -46,7 +46,7 @@ namespace Evaluator::NNUE::Layers {
             auto const input{ _previousLayer.propagate(transformedFeatures, buffer + SelfBufferSize) };
             auto const output{ reinterpret_cast<OutputType*>(buffer) };
 
-#if defined(AVX2)
+#if defined(USE_AVX2)
             constexpr IndexType NumChunks{ InputDimensions / SimdWidth };
             __m256i const kZero{ _mm256_setzero_si256() };
             __m256i const kOffsets{ _mm256_set_epi32(7, 3, 6, 2, 5, 1, 4, 0) };
@@ -59,10 +59,10 @@ namespace Evaluator::NNUE::Layers {
             }
             constexpr IndexType Start{ NumChunks * SimdWidth };
 
-#elif defined(SSE2)
+#elif defined(USE_SSE2)
             constexpr IndexType NumChunks{ InputDimensions / SimdWidth };
 
-    #ifdef SSE41
+    #if defined(USE_SSE41)
             __m128i const kZero{ _mm_setzero_si128() };
     #else
             __m128i const k0x80s{ _mm_set1_epi8(-128) };
@@ -75,7 +75,7 @@ namespace Evaluator::NNUE::Layers {
                 __m128i const words1{ _mm_srai_epi16(_mm_packs_epi32(_mm_load_si128(&in[i * 4 + 2]), _mm_load_si128(&in[i * 4 + 3])), WeightScaleBits) };
                 __m128i const packedbytes{ _mm_packs_epi16(words0, words1) };
                 _mm_store_si128(&out[i],
-    #ifdef SSE41
+    #if defined(USE_SSE41)
                     _mm_max_epi8(packedbytes, kZero)
     #else
                     _mm_subs_epi8(_mm_adds_epi8(packedbytes, k0x80s), k0x80s)
@@ -84,7 +84,7 @@ namespace Evaluator::NNUE::Layers {
             }
             constexpr IndexType Start{ NumChunks * SimdWidth };
 
-#elif defined(MMX)
+#elif defined(USE_MMX)
             constexpr IndexType NumChunks{ InputDimensions / SimdWidth };
             __m64 const k0x80s{ _mm_set1_pi8(-128) };
             auto const in{ reinterpret_cast<__m64 const*>(input) };
@@ -98,7 +98,7 @@ namespace Evaluator::NNUE::Layers {
             _mm_empty();
             constexpr IndexType Start{ NumChunks * SimdWidth };
 
-#elif defined(NEON)
+#elif defined(USE_NEON)
             constexpr IndexType NumChunks{ InputDimensions / (SimdWidth / 2) };
             int8x8_t const kZero{ 0 };
             auto const in{ reinterpret_cast<int32x4_t const*>(input) };

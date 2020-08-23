@@ -1,19 +1,20 @@
 ## Overview
 
-[![Build Status](https://www.donchess.net)](https://www.donchess.net)
+[![Build Status](https://travis-ci.org/official-DON/DON.svg?branch=master)](https://travis-ci.org/official-DON/DON)
+[![Build Status](https://ci.appveyor.com/api/projects/status/github/official-DON/DON?branch=master&svg=true)](https://ci.appveyor.com/project/mcostalba/DON/branch/master)
 
-[DON] is a free, powerful UCI chess engine.
-It features two evaluation functions, the classical evaluation based on handcrafted terms,
-and the NNUE evaluation based on efficiently updateable neural networks.
-The classical evaluation runs efficiently on most 64bit CPU architectures,
-while the NNUE evaluation benefits strongly from the vector intrinsics
-available on modern CPUs (avx2 or similar).
+[DON](https://stockfishchess.org) is a free, powerful UCI chess engine
+derived from Glaurung 2.1. DON is not a complete chess program and requires a
+UCI-compatible graphical user interface (GUI) (e.g. XBoard with PolyGlot, Scid,
+Cute Chess, eboard, Arena, Sigma Chess, Shredder, Chess Partner or Fritz) in order
+to be used comfortably. Read the documentation for your GUI of choice for information
+about how to use DON with it.
 
-DON is a free UCI chess engine. It is not a complete chess program
-and requires some UCI-compatible GUI (e.g. XBoard with Polyglot,
-eboard, Arena, Sigma Chess, Shredder, Chess Partner or Fritz)
-in order to be used comfortably. Read the documentation for GUI
-of your choice for information about how to use engine with it.
+The DON engine features two evaluation functions for chess, the classical
+evaluation based on handcrafted terms, and the NNUE evaluation based on efficiently
+updateable neural networks. The classical evaluation runs efficiently on most 64bit
+CPU architectures, while the NNUE evaluation benefits strongly from the vector
+intrinsics available on modern CPUs (avx2 or similar).
 
 ## Features
 
@@ -23,7 +24,7 @@ DON supports up to 512 cores. The engine defaults to one search thread,
 so it is therefore recommended to inspect the value of the 'Threads'
 UCI parameter, to make sure it equals the # of CPU cores on your computer.
 
-DON has support for 32/64-bit CPUs, the hardware ABMI/BMI2 instruction,
+DON has support for 32/64-bit CPUs, the hardware USE_POPCNT/USE_PEXT instruction,
 big-endian machines such as Power PC, and other platforms.
 
 DON has support for Polyglot book.
@@ -43,17 +44,23 @@ This distribution of DON consists of the following files:
   * src, a subdirectory containing the full source code, including a Makefile
     that can be used to compile DON on Unix-like systems.
 
-To use the NNUE evaluation an additional data file with neural network parameters
-needs to be downloaded. The filename for the default set can be found as the default
-value of the `Eval File` UCI option, with the format
-`nn-[SHA256 first 12 digits].nnue` (e.g. nn-c157e0a5755b.nnue).
+  * a file with the .nnue extension, storing the neural network for the NNUE 
+    evaluation.
 
+Note: to use the NNUE evaluation, the additional data file with neural network parameters
+needs to be downloaded. The filename for the default net can be found as the default
+value of the `Eval File` UCI option, with the format `nn-[SHA256 first 12 digits].nnue`
+(for instance, `nn-c157e0a5755b.nnue`). This file can be downloaded from
+```
+https://tests.stockfishchess.org/api/nn/[filename]
+```
+replacing `[filename]` as needed.
 ## UCI options
 
 Currently, DON has the following UCI options:
 
   * #### Hash
-    The size of the hash table in MB.
+    The size of the hash table in MB. It is recommended to set Hash after setting Threads.
 
   * #### Clear Hash
     Clear the hash table.
@@ -164,7 +171,8 @@ on the evalutions of millions of positions at moderate search depth.
 The NNUE evaluation was first introduced in shogi, and ported to DON afterward.
 It can be evaluated efficiently on CPUs, and exploits the fact that only parts
 of the neural network need to be updated after a typical chess move.
-Website provides additional tools to train and develop the NNUE networks.
+[The nodchip repository](https://github.com/nodchip/DON) provides additional
+tools to train and develop the NNUE networks.
 
 On CPUs supporting modern vector instructions (avx2 and similar), the NNUE evaluation
 results in stronger playing strength, even if the nodes per second computed by the engine
@@ -178,8 +186,8 @@ to be compatible with that binary.
 ## What to expect from Syzygybases?
 
 If the engine is searching a position that is not in the tablebases (e.g.
-a position with 7 pieces), it will access the tablebases during the search.
-If the engine reports a very large score (typically 123.xx), this means
+a position with 8 pieces), it will access the tablebases during the search.
+If the engine reports a very large score (typically 153.xx), this means
 that it has found a winning line into a tablebase position.
 
 If the engine is given a position to search that is in the tablebases, it
@@ -190,7 +198,7 @@ It will then perform a search only on those moves. **The engine will not move
 immediately**, unless there is only a single good move. **The engine likely
 will not report a mate score even if the position is known to be won.**
 
-It is therefore clear that behaviour is not identical to what one might
+It is therefore clear that this behaviour is not identical to what one might
 be used to with Nalimov tablebases. There are technical reasons for this
 difference, the main technical reason being that Nalimov tablebases use the
 DTM metric (distance-to-mate), while Syzygybases use a variation of the
@@ -199,8 +207,34 @@ counter). This special metric is one of the reasons that Syzygybases are
 more compact than Nalimov tablebases, while still storing all information
 needed for optimal play and in addition being able to take into account
 the 50-move rule.
+## Large Pages
 
-## Compiling it yourself
+DON supports large pages on Linux and Windows. Large pages make
+the hash access more efficient, improving the engine speed, especially
+on large hash sizes. Typical increases are 5..10% in terms of nps, but
+speed increases up to 30% have been measured. The support is
+automatic. DON attempts to use large pages when available and
+will fall back to regular memory allocation when this is not the case.
+
+### Support on Linux
+
+Large page support on Linux is obtained by the Linux kernel
+transparent huge pages functionality. Typically, transparent huge pages
+are already enabled and no configuration is needed.
+
+### Support on Windows
+
+The use of large pages requires "Lock Pages in Memory" privilege. See
+[Enable the Lock Pages in Memory Option (Windows)](https://docs.microsoft.com/en-us/sql/database-engine/configure-windows/enable-the-lock-pages-in-memory-option-windows)
+on how to enable this privilege. Logout/login may be needed
+afterwards. Due to memory fragmentation, it may not always be
+possible to allocate large pages even when enabled. A reboot
+might alleviate this problem. To determine whether large pages
+are in use, see the engine log.
+
+
+
+## Compiling DON yourself from the sources
 
 DON has support for 32 or 64-bit CPUs, certain hardware
 instructions, big-endian machines such as Power PC, and other platforms.
@@ -213,7 +247,7 @@ targets with corresponding descriptions.
 ```
     cd src
     make help
-    make build ARCH=x86-64-abm
+    make build ARCH=x86-64-modern
 ```
 
 When not using the Makefile to compile (for instance with Microsoft MSVC) you
@@ -225,22 +259,52 @@ compiler you used to create your executable. These informations can
 be found by typing the following commands in a console:
 
 ```
-    ./DON
-    compiler
+    ./DON compiler
 ```
+
+## Understanding the code base and participating in the project
+
+DON's improvement over the last couple of years has been a great
+community effort. There are a few ways to help contribute to its growth.
+
+### Donating hardware
+
+Improving DON requires a massive amount of testing. You can donate
+your hardware resources by installing the [Fishtest Worker](https://github.com/glinscott/fishtest/wiki/Running-the-worker:-overview)
+and view the current tests on [Fishtest](https://tests.stockfishchess.org/tests).
+
+### Improving the code
+
+If you want to help improve the code, there are several valuable resources:
+
+* [In this wiki,](https://www.chessprogramming.org) many techniques used in
+DON are explained with a lot of background information.
+
+* [The section on DON](https://www.chessprogramming.org/DON)
+describes many features and techniques used by DON. However, it is
+generic rather than being focused on DON's precise implementation.
+Nevertheless, a helpful resource.
+
+* The latest source can always be found on [GitHub](https://github.com/ehsanrashid/DON).
+Discussions about DON take place in the [FishCooking](https://groups.google.com/forum/#!forum/fishcooking)
+group and engine testing is done on [Fishtest](https://tests.stockfishchess.org/tests).
+If you want to help improve DON, please read this [guideline](https://github.com/glinscott/fishtest/wiki/Creating-my-first-test)
+first, where the basics of DON development are explained.
+
 
 ## Terms of use
 
-DON is free, and distributed under the **GNU General Public License** (GPL).
-Essentially, this means that you are free to do almost exactly what
-you want with the program, including distributing it among your friends,
-making it available for download from your web site, selling it
-(either by itself or as part of some bigger software package), or
+DON is free, and distributed under the **GNU General Public License version 3**
+(GPL v3). Essentially, this means that you are free to do almost exactly
+what you want with the program, including distributing it among your
+friends, making it available for download from your web site, selling
+it (either by itself or as part of some bigger software package), or
 using it as the starting point for a software project of your own.
 
-The only real limitation is that whenever you distribute DON in some way,
-you must always include the full source code, or a pointer to where the
-source code can be found. If you make any changes to the source code,
-these changes must also be made available under the GPL.
+The only real limitation is that whenever you distribute DON in
+some way, you must always include the full source code, or a pointer
+to where the source code can be found. If you make any changes to the
+source code, these changes must also be made available under the GPL.
 
-For full details, read the copy of the GPL found in the file named *Copying.txt*
+For full details, read the copy of the GPL v3 found in the file named
+*Copying.txt*.

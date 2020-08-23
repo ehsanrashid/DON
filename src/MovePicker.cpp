@@ -279,7 +279,7 @@ Move MovePicker::nextMove() noexcept {
 
         ++stage;
     }
-        /* fall through */
+        [[fallthrough]];
     case NORMAL_REFUTATIONS: {
         // Refutation moves: Killers, Counter moves
         if (mBeg != mEnd) {
@@ -303,7 +303,7 @@ Move MovePicker::nextMove() noexcept {
         }
         ++stage;
     }
-        /* fall through */
+        [[fallthrough]];
     case NORMAL_QUIETS: {
         if (vmBeg != vmEnd
          && (pickQuiets
@@ -316,7 +316,7 @@ Move MovePicker::nextMove() noexcept {
         mEnd = badCaptureMoves.end();
         ++stage;
     }
-        /* fall through */
+        [[fallthrough]];
     case NORMAL_BAD_CAPTURES: {
         return mBeg != mEnd ?
                 *mBeg++ : MOVE_NONE;
@@ -333,7 +333,7 @@ Move MovePicker::nextMove() noexcept {
         value<EVASION>();
         ++stage;
     }
-        /* fall through */
+        [[fallthrough]];
     case EVASION_MOVES: {
         return pick([]() {
                     return true;
@@ -369,7 +369,7 @@ Move MovePicker::nextMove() noexcept {
                 std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
         ++stage;
     }
-        /* fall through */
+        [[fallthrough]];
     case QUIESCENCE_CHECKS: {
         return vmBeg != vmEnd ?
                 *vmBeg++ : MOVE_NONE;

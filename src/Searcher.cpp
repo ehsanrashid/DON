@@ -23,11 +23,7 @@
 /// Pre-loads the given address in L1/L2 cache.
 /// This is a non-blocking function that doesn't stall the CPU
 /// waiting for data to be loaded from memory, which can be quite slow.
-#if defined(PREFETCH)
-    #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-        #include <xmmintrin.h> // Microsoft and Intel Header for _mm_prefetch()
-    #endif
-
+#if defined(USE_PREFETCH)
 inline void prefetch(void const *addr) noexcept {
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
     #if defined(__INTEL_COMPILER)
@@ -40,7 +36,6 @@ inline void prefetch(void const *addr) noexcept {
     __builtin_prefetch(addr);
 #endif
 }
-
 #else
 inline void prefetch(void const*) noexcept {}
 #endif
@@ -208,7 +203,7 @@ namespace {
         double const b{ (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3] };
 
         // transform eval to centipawns with limited range
-        double x{ clamp(double(100 * v) / VALUE_EG_PAWN, -1000.0, 1000.0) };
+        double x{ std::clamp(double(100 * v) / VALUE_EG_PAWN, -1000.0, 1000.0) };
 
         // Return win rate in per mille (rounded to nearest)
         return( 0.5 + 1000 / (1 + std::exp((a - x) / b)) );
@@ -1010,23 +1005,11 @@ namespace {
                 }
             }
 
-            // Step 11. Internal iterative deepening (IID). (~1 ELO)
-            if (depth >= 7
+            // Step 11. If the position is not in TT, decrease depth by 2 (~1 Elo)
+            if (PVNode
+             && depth >= 6
              && ttMove == MOVE_NONE) {
-
-                depthSearch<PVNode>(pos, ss, alfa, beta, depth - 7, cutNode);
-
-                tte = excludedMove == MOVE_NONE ?
-                        TT.probe(key, ttHit) :
-                        TTEx.probe(key, ttHit);
-                ttMove = ttHit ?
-                            tte->move() : MOVE_NONE;
-                if (ttMove != MOVE_NONE
-                 && !pos.pseudoLegal(ttMove)) {
-                    ttMove = MOVE_NONE;
-                }
-                ttValue = ttHit ?
-                            valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE;
+                depth -= 2;
             }
         }
 
@@ -1366,7 +1349,7 @@ namespace {
                     reductDepth -= i16(ss->stats / 14884);
                 }
 
-                Depth const d( clamp(newDepth - reductDepth, 1, {newDepth}) );
+                Depth const d( std::clamp(newDepth - reductDepth, 1, {newDepth}) );
 
                 value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, d, true);
 
@@ -1856,10 +1839,10 @@ void Thread::search() {
                 auto const reductionRatio{ (1.47 + mainThread->timeReduction) / (2.32 * timeReduction) };
                 // Eval Falling factor
                 auto const fallingEval{
-                    clamp((318
-                         + 6 * (mainThread->bestValue - bestValue)
-                         + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 825.0,
-                            0.50, 1.50) };
+                    std::clamp((318
+                              + 6 * (mainThread->bestValue - bestValue)
+                              + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 825.0,
+                                0.50, 1.50) };
 
                 pvChangeSum += Threadpool.sum(&Thread::pvChange);
                 // Reset pv change
@@ -1960,16 +1943,16 @@ void MainThread::search() {
             }
 
             auto level{ Options["UCI_LimitStrength"] ?
-                            clamp(u16(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), {0}, MaxLevel) :
+                            std::clamp(u16(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), {0}, MaxLevel) :
                             u16(Options["Skill Level"]) };
             SkillMgr.setLevel(level);
 
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            PVCount = clamp(u16(Options["MultiPV"]),
-                            u16(1 + 3 * SkillMgr.enabled()),
-                            u16(rootMoves.size()));
+            PVCount = std::clamp(u16(Options["MultiPV"]),
+                                 u16(1 + 3 * SkillMgr.enabled()),
+                                 u16(rootMoves.size()));
 
             Threadpool.wakeUpThreads(); // start non-main threads searching !
             Thread::search();           // start main thread searching !
@@ -2054,7 +2037,7 @@ void MainThread::tick() {
     }
     // When using nodes, ensure checking rate is in range [1, 1024]
     tickCount = i16(Limits.nodes != 0 ?
-                        clamp(i32(Limits.nodes / 1024), 1, 1024) :
+                        std::clamp(i32(Limits.nodes / 1024), 1, 1024) :
                         1024);
 
     auto elapsed{ TimeMgr.elapsed() };

@@ -44,7 +44,10 @@ using namespace SyzygyTB;
 namespace {
 
     // Type of table
-    enum TBType : u08 { WDL, DTZ };
+    enum TBType : u08 {
+        WDL,
+        DTZ
+    };
 
     // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
     enum TBFlag : u08 {
@@ -1274,7 +1277,7 @@ namespace {
             return e.baseAddress; // Could be nullptr if file does not exist
         }
 
-        std::unique_lock<std::mutex> lock(mutex);
+        std::unique_lock<std::mutex> uniqueLock(mutex);
 
         if (e.ready.load(std::memory_order::memory_order_relaxed)) { // Recheck under lock
             return e.baseAddress;

@@ -64,8 +64,8 @@ string const engineInfo() {
     ostringstream oss{};
 
     oss << std::setfill('0');
-#if defined(VER)
-    oss << VER;
+#if defined(USE_VERSION)
+    oss << USE_VERSION;
 #else
     if (whiteSpaces(Version)) {
         // From compiler, format is "Sep 2 1982"
@@ -126,40 +126,40 @@ string const compilerInfo() {
 #endif
 
     oss << "\nCompilation settings include: ";
-#if defined(BIT64)
+#if defined(IS_64BIT)
     oss << " 64bit";
 #else
     oss << " 32bit";
 #endif
 
-#if defined(VNNI)
+#if defined(USE_VNNI)
     oss << " VNNI";
 #endif
-#if defined(AVX512)
+#if defined(USE_AVX512)
     oss << " AVX512";
 #endif
-#if defined(BMI2)
+#if defined(USE_PEXT)
     oss << " BMI2";
 #endif
-#if defined(AVX2)
+#if defined(USE_AVX2)
     oss << " AVX2";
 #endif
-#if defined(SSE41)
+#if defined(USE_SSE41)
     oss << " SSE41";
 #endif
-#if defined(SSSE3)
+#if defined(USE_SSSE3)
     oss << " SSSE3";
 #endif
-#if defined(SSE2)
+#if defined(USE_SSE2)
     oss << " SSE2";
 #endif
-#if defined(ABMI)
-    oss << " ABMI";
+#if defined(USE_POPCNT)
+    oss << " POPCNT";
 #endif
-#if defined(MMX)
+#if defined(USE_MMX)
     oss << " MMX";
 #endif
-#if defined(NEON)
+#if defined(USE_NEON)
     oss << " NEON";
 #endif
 
@@ -168,7 +168,7 @@ string const compilerInfo() {
 #endif
 
     oss << "\n__VERSION__ macro expands to: ";
-#ifdef __VERSION__
+#if defined(__VERSION__)
     oss << __VERSION__;
 #else
     oss << "(undefined macro)";
@@ -280,7 +280,7 @@ namespace UCI {
         else if (type == "spin") {
             auto const d = std::stod(v);
             if (minVal > d || d > maxVal) {
-                v = std::to_string(i32(clamp(d, minVal, maxVal)));
+                v = std::to_string(i32(std::clamp(d, minVal, maxVal)));
             }
         }
         else if (type == "string") {
@@ -454,7 +454,7 @@ namespace UCI {
         Options["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
         Options["SyzygyMove50Rule"]   << Option(true);
 
-        Options["Use NNUE"]           << Option(true, onUseNNUE);
+        Options["Use NNUE"]           << Option(false, onUseNNUE);
         // The default must follow the format nn-[SHA256 first 12 digits].nnue
         // for the build process (profile-build and fishtest) to work.
         Options["Eval File"]          << Option("nn-82215d0fd0df.nnue", onEvalFile);
@@ -474,8 +474,7 @@ namespace UCI {
         /// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
         string const StartFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
 
-        vector<string> const DefaultFens
-        {
+        vector<string> const DefaultFens{
             // ---Chess Normal---
             "setoption name UCI_Chess960 value false",
             "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
@@ -837,7 +836,7 @@ namespace UCI {
     /// Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
     /// In addition to the UCI ones, also some additional commands are supported.
-    void handleCommands(string const &cmdLine) {
+    void handleCommands(int argc, char const *const *argv) {
         Debugger::reset();
         Position pos;
         // Stack to keep track of the position states along the setup moves
@@ -846,21 +845,22 @@ namespace UCI {
         StateListPtr states{ new std::deque<StateInfo>{ 1 } };
         pos.setup(StartFEN, states->back(), Threadpool.mainThread());
 
-        while (true) {
-            string cmd;
+        // Join arguments
+        string cmd;
+        for (int i = 1; i < argc; ++i) {
+            cmd += string{ argv[i] } + " ";
+        }
 
-            if (cmdLine.empty()) {
-                // Block here waiting for input or EOF
-                if (!std::getline(std::cin, cmd, '\n')) {
-                    cmd = "quit";
-                }
-            }
-            else {
-                cmd = cmdLine;
+        string token;
+        do {
+            // Block here waiting for input or EOF
+            if (argc == 1
+             && !std::getline(std::cin, cmd, '\n')) {
+                cmd = "quit";
             }
 
             istringstream iss{ cmd };
-            string token;
+            token.clear(); // Avoid a stale if getline() returns empty or blank line
             iss >> std::skipws >> token;
             toLower(token);
 
@@ -967,14 +967,12 @@ namespace UCI {
                     std::cout << "(" << moveCount << ")\n";
                 }
             }
-            else { sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl; }
-
-            if (!cmdLine.empty()
-             || token == "quit") {
-                Threadpool.mainThread()->waitIdle();
-                break;
+            else {
+                sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
             }
-        }
+
+        } while (argc == 1
+              && token != "quit");
     }
 
     /// clear() clear all stuff
@@ -982,10 +980,10 @@ namespace UCI {
         Threadpool.stop = true;
         Threadpool.mainThread()->waitIdle();
 
-        Threadpool.clean();
         TT.clear();
         TTEx.clear();
         TimeMgr.clear();
+        Threadpool.clean();
 
         SyzygyTB::initialize(Options["SyzygyPath"]); // Free up mapped files
     }

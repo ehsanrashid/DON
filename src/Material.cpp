@@ -82,7 +82,7 @@ namespace Material {
     void Entry::evaluate(Position const &pos) {
 
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        phase = (i32(clamp(pos.nonPawnMaterial(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME) * PhaseResolution)
+        phase = (i32(std::clamp(pos.nonPawnMaterial(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME) * PhaseResolution)
                / i32(VALUE_MIDGAME - VALUE_ENDGAME);
         scaleFactor[WHITE] = scaleFactor[BLACK] = SCALE_NORMAL;
 

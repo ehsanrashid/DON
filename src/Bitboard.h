@@ -6,36 +6,13 @@
 
 #include "Type.h"
 
-// When no Makefile used
-
-#if defined(_WIN64) && defined(_MSC_VER)
-    #include <intrin.h>       // Microsoft Header for _BitScanForward64() & _BitScanReverse64()
-#endif
-
-#if defined(ABMI) && (defined(_MSC_VER) || defined(__INTEL_COMPILER))
-    #include <nmmintrin.h>    // Microsoft and Intel Header for _mm_popcnt_u64() & _mm_popcnt_u32()
-#endif
-
-#if defined(BMI2)
-    #include <immintrin.h>   // Header for BMI2 instructions
-// PDEP  = Parallel bits deposit
-// PEXT  = Parallel bits extract
-    #if defined(BIT64)
-//        #define PDEP(b, m)   _pdep_u64(b, m)
-        #define PEXT(b, m)   _pext_u64(b, m)
-//    #else
-//        #define PDEP(b, m)   _pdep_u32(b, m)
-//        #define PEXT(b, m)   _pext_u32(b, m)
-    #endif
-#endif
-
 // Magic holds all magic relevant data for a single square
 struct Magic {
 
     Bitboard *attacks;
     Bitboard  mask;
 
-#if !defined(BMI2)
+#if !defined(USE_PEXT)
     Bitboard  number;
     u08       shift;
 #endif
@@ -47,9 +24,9 @@ struct Magic {
 
 inline u16 Magic::index(Bitboard occ) const noexcept {
 
-#if defined(BMI2)
+#if defined(USE_PEXT)
     return( PEXT(occ, mask) );
-#elif defined(BIT64)
+#elif defined(IS_64BIT)
     return( ((occ & mask) * number) >> shift );
 #else
     return( (u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(number >> 0x00))
@@ -143,7 +120,7 @@ extern Magic BMagics[SQUARES];
 extern Magic RMagics[SQUARES];
 
 
-#if !defined(ABMI)
+#if !defined(USE_POPCNT)
 
 extern u08 PopCount[USHRT_MAX+1]; // 16-bit
 
@@ -295,19 +272,7 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) noexcept {
 /// popCount() counts the number of ones in a bitboard
 inline i32 popCount(Bitboard bb) noexcept {
 
-#if defined(ABMI)
-
-    #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
-
-    return( _mm_popcnt_u64(bb) );
-
-    #else // Assumed gcc or compatible compiler
-
-    return( __builtin_popcountll(bb) );
-
-    #endif
-
-#else // PopCount Table
+#if !defined(USE_POPCNT)
 
     //Bitboard x = bb;
     //x -= (x >> 1) & 0x5555555555555555;
@@ -318,9 +283,17 @@ inline i32 popCount(Bitboard bb) noexcept {
 
     union { Bitboard b; u16 u[4]; } v{ bb };
     return PopCount[v.u[0]]
-         + PopCount[v.u[1]]
-         + PopCount[v.u[2]]
-         + PopCount[v.u[3]];
+        + PopCount[v.u[1]]
+        + PopCount[v.u[2]]
+        + PopCount[v.u[3]];
+
+#elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
+
+    return( _mm_popcnt_u64(bb) );
+
+#else // Assumed gcc or compatible compiler
+
+    return( __builtin_popcountll(bb) );
 
 #endif
 
@@ -338,7 +311,7 @@ inline Square scanLSq(Bitboard bb) noexcept {
 
     unsigned long index;
 
-    #if defined(BIT64)
+    #if defined(IS_64BIT)
 
     _BitScanForward64(&index, bb);
     return Square(index);
@@ -378,7 +351,7 @@ inline Square scanMSq(Bitboard bb) noexcept {
 
     unsigned long index;
 
-    #if defined(BIT64)
+    #if defined(IS_64BIT)
 
     _BitScanReverse64(&index, bb);
     return Square(index);

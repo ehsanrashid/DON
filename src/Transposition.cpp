@@ -73,9 +73,11 @@ TEntry* TCluster::probe(u16 key16, bool &hit) noexcept {
 
 namespace {
 
-    /// allocAlignedMemory will return suitably aligned memory, and if possible use large pages.
-    /// The returned pointer is the aligned one, while the mem argument is the one that needs to be passed to free.
+    /// allocAlignedMemory will return suitably aligned memory, if possible use large pages.
+    /// The returned pointer is the aligned one,
+    /// while the mem argument is the one that needs to be passed to free.
     /// With C++17 some of this functionality can be simplified.
+
 #if defined(_WIN64)
     #if _WIN32_WINNT < 0x0601
         #undef  _WIN32_WINNT
@@ -166,9 +168,11 @@ namespace {
     void* allocAlignedMemory(void *&mem, size_t mSize) noexcept {
         constexpr size_t alignment{ 2 * 1024 * 1024 };                      // assumed 2MB page sizes
         size_t size{ ((mSize + alignment - 1) / alignment) * alignment };   // multiple of alignment
-        if (!posix_memalign(&mem, alignment, size)) {
-            if (!madvise(mem, mSize, MADV_HUGEPAGE)) {
+        if (posix_memalign(&mem, alignment, size) == 0) {
+        #if defined(MADV_HUGEPAGE)
+            if (madvise(mem, mSize, MADV_HUGEPAGE) == 0) {
             }
+        #endif
         }
         else {
             mem = nullptr;
@@ -213,7 +217,7 @@ namespace {
 
     inline u64 mul_hi64(u64 a, u64 b) noexcept {
 
-#if defined(__GNUC__) && defined(BIT64)
+#if defined(__GNUC__) && defined(IS_64BIT)
         __extension__ typedef unsigned __int128 u128;
         return ((u128)a * (u128)b) >> 64;
 #else
@@ -248,7 +252,7 @@ TCluster* TTable::cluster(Key posiKey) const noexcept {
 /// Transposition table consists of a power of 2 number of clusters and
 /// each cluster consists of EntryPerCluster number of TTEntry.
 size_t TTable::resize(size_t memSize) {
-    memSize = clamp(memSize, MinHashSize, MaxHashSize);
+    memSize = std::clamp(memSize, MinHashSize, MaxHashSize);
 
     Threadpool.mainThread()->waitIdle();
 
