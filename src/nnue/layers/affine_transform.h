@@ -75,8 +75,10 @@ namespace Evaluator::NNUE::Layers {
     #endif
 #elif defined(USE_AVX2)
             constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
-            __m256i const kOnes{ _mm256_set1_epi16(1) };
             auto const inputVector{ reinterpret_cast<__m256i const*>(input) };
+    #if !defined(USE_VNNI)
+            __m256i const kOnes{ _mm256_set1_epi16(1) };
+    #endif
 #elif defined(USE_SSE2)
             constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
     #if !defined(USE_SSSE3)
@@ -130,9 +132,13 @@ namespace Evaluator::NNUE::Layers {
                 __m256i sum{ _mm256_setzero_si256() };
                 auto const row{ reinterpret_cast<__m256i const*>(&_weights[offset]) };
                 for (IndexType j = 0; j < NumChunks; ++j) {
+    #if defined(USE_VNNI)
+                    sum = _mm256_dpbusd_epi32(sum, _mm256_loadA_si256(&inputVector[j]), _mm256_load_si256(&row[j]));
+    #else
                     __m256i product{ _mm256_maddubs_epi16(_mm256_loadA_si256(&inputVector[j]), _mm256_load_si256(&row[j])) };
                     product = _mm256_madd_epi16(product, kOnes);
                     sum = _mm256_add_epi32(sum, product);
+    #endif
                 }
                 __m128i sum128{ _mm_add_epi32(_mm256_castsi256_si128(sum), _mm256_extracti128_si256(sum, 1)) };
                 sum128 = _mm_add_epi32(sum128, _mm_shuffle_epi32(sum128, _MM_PERM_BADC));

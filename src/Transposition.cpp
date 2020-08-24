@@ -22,29 +22,31 @@ void TEntry::refresh() noexcept {
 }
 
 void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) noexcept {
+
     if (m != MOVE_NONE
      || u16(k) != k16) {
         m16 = u16(m);
     }
-    if (u16(k) != k16
-     || d - DEPTH_OFFSET + 4 > d08
-     || b == BOUND_EXACT) {
+    if (b == BOUND_EXACT
+     || u16(k) != k16
+     || d - DEPTH_OFFSET + 4 > d08) {
+
         assert(d > DEPTH_OFFSET);
+        assert(d < 256 + DEPTH_OFFSET);
 
         k16 = u16(k);
-        v16 = i16(v);
-        e16 = i16(e);
         d08 = u08(d - DEPTH_OFFSET);
         g08 = u08(Generation | pv << 2 | b);
+        v16 = i16(v);
+        e16 = i16(e);
     }
     assert(d08 != 0);
 }
 
-
 u32 TCluster::freshEntryCount() const noexcept {
-    return (entry[0].generation() == TEntry::Generation)
-         + (entry[1].generation() == TEntry::Generation)
-         + (entry[2].generation() == TEntry::Generation);
+    return (entry[0].d08 != 0 && entry[0].generation() == TEntry::Generation)
+         + (entry[1].d08 != 0 && entry[1].generation() == TEntry::Generation)
+         + (entry[2].d08 != 0 && entry[2].generation() == TEntry::Generation);
 }
 
 /// TCluster::probe()
@@ -54,8 +56,8 @@ TEntry* TCluster::probe(u16 key16, bool &hit) noexcept {
     // Find an entry to be replaced according to the replacement strategy.
     auto *rte{ entry }; // Default first
     for (auto *ite{ entry }; ite < entry + EntryPerCluster; ++ite) {
-        if (ite->d08 == 0
-         || ite->k16 == key16) {
+        if (ite->k16 == key16
+         || ite->d08 == 0) {
             // Refresh entry
             ite->refresh();
             hit = ite->d08 != 0;
@@ -92,13 +94,13 @@ namespace {
         #define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
     #endif
 
-    #include <windows.h>
+    #include <Windows.h>
 
     #undef NOMINMAX
     #undef WIN32_LEAN_AND_MEAN
 
     void* allocAlignedMemoryLargePages(size_t mSize) noexcept {
-        HANDLE processToken{};
+        HANDLE processHandle{};
         LUID luid{};
         void* mem{ nullptr };
 
@@ -109,7 +111,7 @@ namespace {
         // We need SeLockMemoryPrivilege, so try to enable it for the process
         if (!OpenProcessToken(GetCurrentProcess(),
                               TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY,
-                              &processToken)) {
+                              &processHandle)) {
             return nullptr;
         }
         
@@ -124,7 +126,7 @@ namespace {
 
             // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
             // we still need to query GetLastError() to ensure that the privileges were actually obtained...
-            if (AdjustTokenPrivileges(processToken,
+            if (AdjustTokenPrivileges(processHandle,
                                       FALSE,
                                       &currTp,
                                       sizeof (TOKEN_PRIVILEGES),
@@ -138,7 +140,7 @@ namespace {
                                    MEM_RESERVE|MEM_COMMIT|MEM_LARGE_PAGES,
                                    PAGE_READWRITE);
                 // privilege no longer needed, restore previous state
-                AdjustTokenPrivileges(processToken,
+                AdjustTokenPrivileges(processHandle,
                                       FALSE,
                                       &prevTp,
                                       0,
@@ -146,13 +148,25 @@ namespace {
                                       NULL);
             }
         }
-        CloseHandle(processToken);
+        CloseHandle(processHandle);
         return mem;
     }
     
     void* allocAlignedMemory(void *&mem, size_t mSize) noexcept {
+        static bool firstCall{ true };
+
         // Try to allocate large pages
         mem = allocAlignedMemoryLargePages(mSize);
+        if (!firstCall) {
+            if (mem != nullptr) {
+                sync_cout << "info string Hash table allocation: Windows large pages used." << sync_endl;
+            }
+            else {
+                sync_cout << "info string Hash table allocation: Windows large pages not used." << sync_endl;
+            }
+        }
+        firstCall = false;
+
         // Fall back to regular, page aligned, allocation if necessary
         if (mem == nullptr) {
             mem = VirtualAlloc(NULL,

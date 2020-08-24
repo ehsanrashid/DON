@@ -84,8 +84,7 @@ namespace {
         }
     }
     template<>
-    inline void swapEndian<u08>(u08&)
-    {}
+    inline void swapEndian<u08>(u08&) noexcept {}
 
     template<typename T, bool LE>
     T number(void *addr) noexcept {
@@ -726,7 +725,7 @@ namespace {
         Piece  pieces [TBPIECES];
         i16 size{ 0 };
 
-        bool flip{
+        bool fliped{
             // Black Symmetric
             // A given TB entry like KRK has associated two material keys: KRvK and KvKR.
             // If both sides have the same pieces keys are equal. In this case TB tables
@@ -742,7 +741,7 @@ namespace {
          || (pos.matlKey() != entry->matlKey1) };
 
         Color stm{ pos.activeSide() };
-        if (flip) stm = ~stm;
+        if (fliped) stm = ~stm;
 
         Bitboard pawns;
         i16 pawnCount;
@@ -755,7 +754,7 @@ namespace {
             // their color is the reference one. So we just pick the first one.
             Piece p{ Piece(entry->get(0, FILE_A)->pieces[0]) };
             assert(pType(p) == PAWN);
-            if (flip) p = flipColor(p);
+            if (fliped) p = flipColor(p);
 
             pawns = pos.pieces(pColor(p), PAWN);
 
@@ -763,7 +762,7 @@ namespace {
             assert(b != 0);
             do {
                 auto s{ popLSq(b) };
-                if (flip) s = flipRank(s);
+                if (fliped) s = flip<Rank>(s);
                 squares[size] = s;
 
                 ++size;
@@ -794,8 +793,8 @@ namespace {
         do {
             auto s{ popLSq(b) };
             auto p{ pos[s] };
-            if (flip) {
-                s = flipRank(s);
+            if (fliped) {
+                s = flip<Rank>(s);
                 p = flipColor(p);
             }
             squares[size] = s;
@@ -824,7 +823,7 @@ namespace {
         // the triangle A1-D1-D4.
         if (sFile(squares[0]) > FILE_D) {
             for (i16 i = 0; i < size; ++i) {
-                squares[i] = flipFile(squares[i]);
+                squares[i] = flip<File>(squares[i]);
             }
         }
 
@@ -847,7 +846,7 @@ namespace {
         // Flip the squares to ensure leading piece is below RANK_5.
         if (sRank(squares[0]) > RANK_4) {
             for (i32 i = 0; i < size; ++i) {
-                squares[i] = flipRank(squares[i]);
+                squares[i] = flip<Rank>(squares[i]);
             }
         }
         // Look for the first piece of the leading group not on the A1-D4 diagonal
@@ -1774,7 +1773,7 @@ namespace SyzygyTB {
                         // due to mirroring: sq == a3 -> no a2, h2, so MapPawns[a3] = 45
                         if (lpCount == 1) {
                             MapPawns[sq]           = availableSq--;
-                            MapPawns[flipFile(sq)] = availableSq--; // Horizontal flip
+                            MapPawns[flip<File>(sq)] = availableSq--; // Horizontal flip
                         }
                         LeadPawnIdx[lpCount][sq] = idx;
                         idx += Binomial[lpCount - 1][MapPawns[sq]];

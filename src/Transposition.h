@@ -6,24 +6,25 @@
 /// Transposition::Entry needs 16 byte to be stored
 ///
 ///  Key        16 bits
-///  Move       16 bits
-///  Value      16 bits
-///  Evaluation 16 bits
 ///  Depth      08 bits
 ///  Generation 05 bits
 ///  PV Node    01 bits
 ///  Bound      02 bits
+///  Move       16 bits
+///  Value      16 bits
+///  Evaluation 16 bits
+
 ///  ------------------
 ///  Total      80 bits = 10 bytes
 struct TEntry {
 
 private:
     u16 k16;
+    u08 d08;
+    u08 g08;
     u16 m16;
     i16 v16;
     i16 e16;
-    u08 d08;
-    u08 g08;
 
     friend struct TCluster;
 
@@ -31,13 +32,16 @@ public:
     // "Generation" variable distinguish transposition table entries from different searches.
     static u08 Generation;
 
-    Move       move() const noexcept { return Move (m16); }
+    //Key         key() const noexcept { return Key  (k16); }
+    Depth     depth() const noexcept { return Depth(d08 + DEPTH_OFFSET); }
+
+    u08  generation() const noexcept { return u08  (g08 & 248); }
+    bool         pv() const noexcept { return bool (g08 & 4); }
+    Bound     bound() const noexcept { return Bound(g08 & 3); }
+
     Value     value() const noexcept { return Value(v16); }
     Value      eval() const noexcept { return Value(e16); }
-    Depth     depth() const noexcept { return Depth(d08 + DEPTH_OFFSET); }
-    Bound     bound() const noexcept { return Bound(g08 & 3); }
-    bool         pv() const noexcept { return bool (g08 & 4); }
-    u08  generation() const noexcept { return u08  (g08 & 248); }
+    Move       move() const noexcept { return Move (m16); }
 
     u16       worth() const noexcept { return d08 - ((263 + Generation - g08) & 248); }
 

@@ -269,7 +269,7 @@ namespace WinProcGroup {
         #define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
     #endif
 
-    #include <windows.h>
+    #include <Windows.h>
 
     #undef NOMINMAX
     #undef WIN32_LEAN_AND_MEAN

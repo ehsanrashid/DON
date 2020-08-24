@@ -156,7 +156,8 @@ constexpr Depth DEPTH_QS_CHECK   {  0 };
 constexpr Depth DEPTH_QS_NO_CHECK{ -1 };
 constexpr Depth DEPTH_QS_RECAP   { -5 };
 constexpr Depth DEPTH_NONE       { -6 };
-constexpr Depth DEPTH_OFFSET     { DEPTH_NONE - 1 };
+constexpr Depth DEPTH_OFFSET     { DEPTH_NONE - 1 }; // Used only for TT entry occupancy check
+
 // Maximum Depth
 constexpr i32 MAX_PLY{ 256 + DEPTH_OFFSET - 4 };
 
@@ -240,7 +241,7 @@ struct ExtPieceSquare {
 
 // Return relative square when turning the board 180 degrees
 constexpr Square rotate180(Square s) {
-    return Square(s ^ 0x3F);
+    return Square(i32(s) ^ 0x3F);
 }
 
 // Array for finding the PieceSquare corresponding to the piece on the board
@@ -536,7 +537,7 @@ constexpr Square makeSquare(File f, Rank r) {
     return Square((r << 3) + f);
 }
 constexpr File sFile(Square s) {
-    return File(s & 7);
+    return File(i32(s) & 7);
 }
 constexpr Rank sRank(Square s) {
     return Rank(s >> 3);
@@ -544,21 +545,24 @@ constexpr Rank sRank(Square s) {
 constexpr Color sColor(Square s) {
     return Color(((s + sRank(s)) ^ 1) & 1);
 }
+
+template<typename T> constexpr Square flip(Square);
 // Flip File: SQ_H1 -> SQ_A1
-constexpr Square flipFile(Square s) {
-    return Square(s ^ 7);
+template<> constexpr Square flip<File>(Square s) {
+    return Square(i32(s) ^ 0x07);
 }
 // Flip Rank: SQ_A8 -> SQ_A1
-constexpr Square flipRank(Square s) {
-    return Square(s ^ 56);
+template<> constexpr Square flip<Rank>(Square s) {
+    return Square(i32(s) ^ 0x38);
 }
+
 
 constexpr bool colorOpposed(Square s1, Square s2) {
     return (s1 + sRank(s1) + s2 + sRank(s2)) & 1; //sColor(s1) != sColor(s2);
 }
 
 constexpr Square relativeSq(Color c, Square s) {
-    return Square(s ^ BaseSquare[c]);
+    return Square(i32(s) ^ BaseSquare[c]);
 }
 constexpr Rank relativeRank(Color c, Square s) {
     return relativeRank(c, sRank(s));

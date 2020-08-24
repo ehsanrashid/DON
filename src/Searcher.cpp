@@ -447,6 +447,10 @@ namespace {
             if (move == excludedMove) {
                 continue;
             }
+            // Check for legality
+            if (!pos.legal(move)) {
+                continue;
+            }
 
             ++moveCount;
 
@@ -465,6 +469,11 @@ namespace {
                && pos.pawnAdvanceAt(activeSide, org))
              && Limits.mate == 0) {
                 assert(mType(move) != ENPASSANT); // Due to !pos.pawnAdvanceAt
+
+                // Move Count pruning
+                if (moveCount > std::abs(depth) + 2) {
+                    continue;
+                }
                 // Futility pruning parent node
                 auto const futilityValue{ futilityBase + PieceValues[EG][pType(cp)] };
                 if (futilityValue <= alfa) {
@@ -490,18 +499,20 @@ namespace {
                 continue;
             }
 
-            // Check for legality just before making the move
-            if (!pos.legal(move)) {
-                --moveCount;
-                continue;
-            }
-
             // Speculative prefetch as early as possible
             prefetch(TT.cluster(pos.movePosiKey(move))->entry);
 
             // Update the current move
             ss->playedMove = move;
             ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mp][dst];
+
+            if (!captureOrPromotion
+             && moveCount > std::abs(depth)
+             && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
+             && (*pieceStats[1])[mp][dst] < CounterMovePruneThreshold) {
+                continue;
+            }
+
             // Do the move
             pos.doMove(move, si, giveCheck);
             auto const value{ -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth - 1) };
@@ -545,8 +556,7 @@ namespace {
                       ss->staticEval,
                       qsDepth,
                       bestValue >= beta ? BOUND_LOWER :
-                      PVNode
-                   && bestValue > actualAlfa ? BOUND_EXACT : BOUND_UPPER,
+                      PVNode && bestValue > actualAlfa ? BOUND_EXACT : BOUND_UPPER,
                       ttPV);
         }
 
@@ -1065,6 +1075,13 @@ namespace {
             if (move == excludedMove) {
                 continue;
             }
+            // Check for legality
+            if (!rootNode
+             && !pos.legal(move)) {
+                continue;
+            }
+
+            ss->moveCount = ++moveCount;
 
             if (rootNode) {
 
@@ -1086,21 +1103,13 @@ namespace {
                                   << " depth "          << std::setw(2) << depth
                                   << " seldepth "       << std::setw(2) << thread->rootMoves.find(thread->pvCur, thread->pvEnd, move)->selDepth
                                   << " currmove "       << move
-                                  << " currmovenumber " << std::setw(2) << thread->pvCur + moveCount + 1
+                                  << " currmovenumber " << std::setw(2) << thread->pvCur + moveCount
                                   //<< " maxmoves "       << thread->rootMoves.size()
                                   << " time "           << elapsed
                                   << std::setfill(' ')  << sync_endl;
                     }
                 }
             }
-
-            // Check for legality
-            if (!rootNode
-             && !pos.legal(move)) {
-                continue;
-            }
-
-            ss->moveCount = ++moveCount;
 
             if (PVNode) {
                 (ss+1)->pv = nullptr;
@@ -1556,8 +1565,7 @@ namespace {
                       ss->staticEval,
                       depth,
                       bestValue >= beta ? BOUND_LOWER :
-                      PVNode
-                   && bestMove != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
+                      PVNode && bestMove != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
                       ttPV);
         }
 

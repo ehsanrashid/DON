@@ -210,9 +210,13 @@ inline bool aligned(Square s1, Square s2, Square s3) {
 /// distance() functions return the distance between s1 and s2
 /// defined as the number of steps for a king in s1 to reach s2.
 
-template<typename T1 = Square> inline i32 distance(Square, Square);
-template<> inline i32 distance<File>(Square s1, Square s2) { return std::abs(sFile(s1) - sFile(s2)); }
-template<> inline i32 distance<Rank>(Square s1, Square s2) { return std::abs(sRank(s1) - sRank(s2)); }
+template<typename T = Square> inline i32 distance(Square, Square);
+template<> inline i32 distance<File>(Square s1, Square s2) {
+    return std::abs(sFile(s1) - sFile(s2));
+}
+template<> inline i32 distance<Rank>(Square s1, Square s2) {
+    return std::abs(sRank(s1) - sRank(s2));
+}
 
 template<> inline i32 distance<Square>(Square s1, Square s2) {
     //return std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
@@ -254,7 +258,7 @@ template<PieceType PT> inline Bitboard attacksBB(Square s) noexcept {
 }
 
 /// attacksBB() returns attacks by piece-type from the square on occupancy
-template<PieceType> Bitboard attacksBB(Square, Bitboard);
+template<PieceType> Bitboard attacksBB(Square, Bitboard) noexcept;
 
 template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) noexcept {
     return PieceAttacksBB[NIHT][s];

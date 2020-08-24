@@ -30,10 +30,10 @@ namespace {
     Square normalize(Square sq, Color stngColor, File spF) {
 
         if (stngColor == BLACK) {
-            sq = flipRank(sq);
+            sq = flip<Rank>(sq);
         }
         if (spF >= FILE_E) {
-            sq = flipFile(sq);
+            sq = flip<File>(sq);
         }
         return sq;
     }
@@ -119,7 +119,7 @@ template<> Value Endgame<KBNK>::operator()(Position const &pos) const {
       + VALUE_EG_BSHP
       + VALUE_EG_NIHT
       + pushClose(skSq, wkSq)
-      + pushToCorner(colorOpposed(sbSq, SQ_A1) ? flipFile(wkSq) : wkSq) };
+      + pushToCorner(colorOpposed(sbSq, SQ_A1) ? flip<File>(wkSq) : wkSq) };
     assert(value < +VALUE_MATE_2_MAX_PLY);
     return pos.activeSide() == stngColor ? +value : -value;
 }

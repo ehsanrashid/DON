@@ -6,6 +6,7 @@
 #include <string>
 
 #include "Bitboard.h"
+#include "PSQTable.h"
 #include "Evaluator.h"
 #include "Type.h"
 #include "nnue/nnue_accumulator.h"
@@ -57,8 +58,6 @@ struct StateInfo {
 using StateListPtr = std::unique_ptr<std::deque<StateInfo>>;
 
 class Thread;
-
-extern Score PSQ[PIECES][SQUARES];
 
 /// Position class stores information regarding the board representation:
 ///  - 64-entry array of pieces, indexed by the square.
@@ -194,9 +193,9 @@ public:
     bool giveCheck(Move) const noexcept;
     bool giveDblCheck(Move) const noexcept;
 
-    PieceType captured(Move) const;
+    PieceType captured(Move) const noexcept;
 
-    bool see(Move, Value = VALUE_ZERO) const;
+    bool see(Move, Value = VALUE_ZERO) const noexcept;
 
     bool pawnAdvanceAt(Color, Square) const noexcept;
     bool pawnPassedAt(Color, Square) const noexcept;
@@ -441,7 +440,7 @@ inline bool Position::captureOrPromotion(Move m) const noexcept {
     return mType(m) == SIMPLE ?
             contains(pieces(~active), dstSq(m)) : mType(m) != CASTLE;
 }
-inline PieceType Position::captured(Move m) const {
+inline PieceType Position::captured(Move m) const noexcept {
     assert(isOk(m));
     return mType(m) != ENPASSANT ? pType(operator[](dstSq(m))) : PAWN;
 }

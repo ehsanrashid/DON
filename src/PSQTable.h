@@ -1,7 +1,8 @@
 #pragma once
 
-#include "Position.h"
 #include "Type.h"
+
+class Position;
 
 namespace PSQT {
 
@@ -9,3 +10,5 @@ namespace PSQT {
 
     extern Score computePSQ(Position const&);
 }
+
+extern Score PSQ[PIECES][SQUARES];

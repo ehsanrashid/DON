@@ -17,16 +17,17 @@ namespace {
         std::string str;
 
     #if defined(_WIN32)
-        time_t const cur_time{ std::chrono::system_clock::to_time_t(timePoint) };
+        time_t const raw_time{ std::chrono::system_clock::to_time_t(timePoint) };
         tm local_tm;
-        localtime_s(&local_tm, (time_t const*)&cur_time);
+        local_tm = *localtime(&raw_time);
+        //localtime_s(&local_tm, (time_t const*)&raw_time);
         char const *format{ "%Y.%m.%d-%H.%M.%S" };
         char buffer[32];
         strftime(buffer, sizeof (buffer), format, (tm const*)&local_tm);
         str.append(buffer);
-
+        // Append milli-second
         auto ms{ std::chrono::duration_cast<std::chrono::milliseconds>
-                    (timePoint - std::chrono::system_clock::from_time_t(cur_time)).count() };
+                    (timePoint - std::chrono::system_clock::from_time_t(raw_time)).count() };
         str.append(".");
         str.append(std::to_string(ms));
     #else

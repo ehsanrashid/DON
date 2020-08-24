@@ -454,10 +454,14 @@ namespace UCI {
         Options["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
         Options["SyzygyMove50Rule"]   << Option(true);
 
-        Options["Use NNUE"]           << Option(false, onUseNNUE);
+        Options["Use NNUE"]           << Option(true, onUseNNUE);
         // The default must follow the format nn-[SHA256 first 12 digits].nnue
         // for the build process (profile-build and fishtest) to work.
+#if defined(_MSC_VER)
+        Options["Eval File"]          << Option("src/nn-82215d0fd0df.nnue", onEvalFile);
+#else
         Options["Eval File"]          << Option("nn-82215d0fd0df.nnue", onEvalFile);
+#endif
 
         Options["Debug File"]         << Option("", onDebugFile);
 
@@ -466,6 +470,7 @@ namespace UCI {
         Options["UCI_AnalyseMode"]    << Option(false);
         Options["UCI_LimitStrength"]  << Option(false);
         Options["UCI_Elo"]            << Option(1350, 1350, 3100);
+
     }
 
     namespace {
@@ -686,7 +691,7 @@ namespace UCI {
         ///     * nodes
         ///     * mate
         ///     * perft
-        ///     * evaluation type [classical (default), NNUE, mixed]
+        ///     * evaluation type [classical (default), nnue, mixed]
         /// - FEN positions to be used in FEN format
         ///     * 'default' for builtin positions (default)
         ///     * 'current' for current position
@@ -704,9 +709,9 @@ namespace UCI {
             string    hash { (iss >> token) && !whiteSpaces(token) ? token : "16" };
             string threads { (iss >> token) && !whiteSpaces(token) ? token : "1" };
             string   value { (iss >> token) && !whiteSpaces(token) ? token : "13" };
-            string    mode { (iss >> token) && !whiteSpaces(token) ? token : "depth" };
-            string fenFile { (iss >> token) && !whiteSpaces(token) ? token : "default" };
-            string evalType{ (iss >> token) && !whiteSpaces(token) ? token : "classical" };
+            string    mode { (iss >> token) && !whiteSpaces(token) ? toLower(token) : "depth" };
+            string fenFile { (iss >> token) && !whiteSpaces(token) ? toLower(token) : "default" };
+            string evalType{ (iss >> token) && !whiteSpaces(token) ? toLower(token) : "classical" };
 
             string operation{
                 mode == "eval"  ? mode :
@@ -743,7 +748,7 @@ namespace UCI {
                 uciCmds.emplace_back("setoption name Use NNUE value false");
             }
             else
-            if (evalType == "NNUE") {
+            if (evalType == "nnue") {
                 uciCmds.emplace_back("setoption name Use NNUE value true");
             }
 
@@ -768,6 +773,8 @@ namespace UCI {
                 uciCmds.emplace_back("setoption name UCI_Chess960 value " + ToString(uciChess960));
                 uciCmds.emplace_back("position fen " + pos.fen());
             }
+            uciCmds.emplace_back("setoption name Use NNUE value " + ToString(Options["Use NNUE"]));
+
             return uciCmds;
         }
 

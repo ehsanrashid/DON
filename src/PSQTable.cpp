@@ -4,6 +4,8 @@
 
 #include "Position.h"
 
+Score PSQ[PIECES][SQUARES];
+
 namespace {
 
 #define S(mg, eg) makeScore(mg, eg)
@@ -108,10 +110,12 @@ namespace PSQT {
             for (Square s = SQ_A1; s <= SQ_H8; ++s) {
 
                 PSQ[WHITE|pt][s] =
-                    pt == PAWN ?
-                        score + PawnScores[sRank(s)][sFile(s)] :
-                        score + PieceScores[pt][sRank(s)][edgeDistance(sFile(s))];
-                PSQ[BLACK|pt][flipRank(s)] = -PSQ[WHITE|pt][s];
+                    score
+                  + (pt == PAWN ?
+                        PawnScores[sRank(s)][sFile(s)] :
+                        PieceScores[pt][sRank(s)][edgeDistance(sFile(s))]);
+
+                PSQ[BLACK|pt][flip<Rank>(s)] = -PSQ[WHITE|pt][s];
             }
         }
     }

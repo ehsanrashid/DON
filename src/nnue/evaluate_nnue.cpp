@@ -11,7 +11,7 @@
 
 #if defined(__APPLE__) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
     #define POSIX_ALIGNED_MEM
-    #include <stdlib.h>
+    #include <cstdlib>
 #endif
 
 ExtPieceSquare PP_BoardIndex[PIECES] = {

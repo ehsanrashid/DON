@@ -11,14 +11,11 @@
 #include "MoveGenerator.h"
 #include "Notation.h"
 #include "Polyglot.h"
-#include "PSQTable.h"
 #include "SyzygyTB.h"
 #include "Thread.h"
 #include "Transposition.h"
 #include "Zobrist.h"
 #include "UCI.h"
-
-Score PSQ[PIECES][SQUARES];
 
 namespace {
 
@@ -547,10 +544,10 @@ bool Position::canEnpassant(Color c, Square epSq, bool moved) const noexcept {
     return false;
 }
 
-/// Position::see() (Static Exchange Evaluator [SEE] Greater or Equal):
+/// Position::see() is Static Exchange Evaluator.
 /// Checks the SEE value of move is greater or equal to the given threshold.
 /// An algorithm similar to alpha-beta pruning with a null window is used.
-bool Position::see(Move m, Value threshold) const {
+bool Position::see(Move m, Value threshold) const noexcept {
     assert(isOk(m));
 
     // Only deal with normal moves, assume others pass a simple SEE
