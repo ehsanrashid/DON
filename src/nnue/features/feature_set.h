@@ -44,7 +44,7 @@ namespace Evaluator::NNUE::Features {
                 reset[perspective] = false;
                 switch (trigger) {
                 case TriggerEvent::FRIEND_KING_MOVED:
-                    reset[perspective] = dp.pieceId[0] == PIECE_ID_KING + perspective;
+                    reset[perspective] = dp.piece[0] == (perspective|KING);
                     break;
                 default:
                     assert(false);

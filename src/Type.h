@@ -198,115 +198,6 @@ enum Piece : u08 {
     PIECES = 16
 };
 
-// An ID used to track the pieces. Max. 32 pieces on board.
-enum PieceId {
-    PIECE_ID_ZERO   = 0,
-    PIECE_ID_KING   = 30,
-    PIECE_ID_WKING  = 30,
-    PIECE_ID_BKING  = 31,
-    PIECE_ID_NONE   = 32
-};
-
-constexpr bool isOk(PieceId pid) noexcept {
-    return pid < PIECE_ID_NONE;
-}
-inline PieceId operator++(PieceId &d, int) noexcept {
-    PieceId const x{ d };
-    d = PieceId(int(d) + 1);
-    return x;
-}
-
-// unique number for each piece type on each square
-enum PieceSquare : uint32_t {
-    PS_NONE     =  0,
-    PS_W_PAWN   =  1,
-    PS_B_PAWN   =  1 * SQUARES + 1,
-    PS_W_KNIGHT =  2 * SQUARES + 1,
-    PS_B_KNIGHT =  3 * SQUARES + 1,
-    PS_W_BISHOP =  4 * SQUARES + 1,
-    PS_B_BISHOP =  5 * SQUARES + 1,
-    PS_W_ROOK   =  6 * SQUARES + 1,
-    PS_B_ROOK   =  7 * SQUARES + 1,
-    PS_W_QUEEN  =  8 * SQUARES + 1,
-    PS_B_QUEEN  =  9 * SQUARES + 1,
-    PS_W_KING   = 10 * SQUARES + 1,
-    PS_END      = PS_W_KING, // pieces without kings (pawns included)
-    PS_B_KING   = 11 * SQUARES + 1,
-    PS_END2     = 12 * SQUARES + 1
-};
-
-struct ExtPieceSquare {
-    PieceSquare org[COLORS];
-};
-
-// Return relative square when turning the board 180 degrees
-constexpr Square rotate180(Square s) {
-    return Square(i32(s) ^ 0x3F);
-}
-
-// Array for finding the PieceSquare corresponding to the piece on the board
-extern ExtPieceSquare PP_BoardIndex[PIECES];
-
-// Structure holding which tracked piece (PieceId) is where (PieceSquare)
-class EvalList {
-
-public:
-    // Max. number of pieces without kings is 30 but must be a multiple of 4 in AVX2
-    static const int MAX_LENGTH = 32;
-
-private:
-    PieceSquare _pieceListFw[MAX_LENGTH];
-    PieceSquare _pieceListFb[MAX_LENGTH];
-
-public:
-    // Array that holds the piece id for the pieces on the board
-    PieceId pieceIdList[SQUARES];
-
-    // List of pieces, separate from White and Black POV
-    PieceSquare* pieceListFw() const noexcept { return const_cast<PieceSquare*>(_pieceListFw); }
-    PieceSquare* pieceListFb() const noexcept { return const_cast<PieceSquare*>(_pieceListFb); }
-
-    // Place the piece pc with pieceId on the square sq on the board
-    void putPiece(PieceId pieceId, Square sq, Piece pc) noexcept {
-        assert(isOk(pieceId));
-        if (pc != NO_PIECE) {
-            _pieceListFw[pieceId] = PieceSquare(PP_BoardIndex[pc].org[WHITE] + sq);
-            _pieceListFb[pieceId] = PieceSquare(PP_BoardIndex[pc].org[BLACK] + rotate180(sq));
-            pieceIdList[sq] = pieceId;
-        }
-        else {
-            _pieceListFw[pieceId] = PS_NONE;
-            _pieceListFb[pieceId] = PS_NONE;
-            pieceIdList[sq] = pieceId;
-        }
-    }
-
-    // Convert the specified pieceId piece to ExtPieceSquare type and return it
-    ExtPieceSquare pieceWithId(PieceId pieceId) const noexcept {
-        return
-            ExtPieceSquare{
-                {
-                    _pieceListFw[pieceId],
-                    _pieceListFb[pieceId]
-                }
-            };
-    }
-};
-
-// For differential evaluation of pieces that changed since last turn
-struct DirtyPiece {
-
-    // Count of changed pieces
-    int dirtyCount;
-
-    // The ids of changed pieces, max. 2 pieces can change in one move
-    PieceId pieceId[2];
-
-    // What changed from the piece with that piece number
-    ExtPieceSquare oldPiece[2];
-    ExtPieceSquare newPiece[2];
-};
-
 enum MoveType : u16 {
     SIMPLE    = 0 << 14, // [00]-- ===
     CASTLE    = 1 << 14, // [01]-- ===
@@ -418,8 +309,6 @@ INC_DEC_OPERATORS(Rank)
 INC_DEC_OPERATORS(Square)
 INC_DEC_OPERATORS(PieceType)
 INC_DEC_OPERATORS(Piece)
-INC_DEC_OPERATORS(PieceSquare)
-INC_DEC_OPERATORS(PieceId)
 INC_DEC_OPERATORS(CastleSide)
 #undef INC_DEC_OPERATORS
 
@@ -456,6 +345,24 @@ constexpr Direction operator-(Square s1, Square s2) {
 constexpr Score makeScore(i32 mg, i32 eg) {
     return Score(i32(u32(eg) << 0x10) + mg);
 }
+
+// Keep track of what a move changes on the board (used by NNUE)
+struct DirtyPiece {
+
+    // Count of changed pieces
+    int dirtyCount;
+
+    // Max 3 pieces can change in one move.
+    // A promotion with capture moves both
+    // the pawn and the captured piece to SQ_NONE
+    // and the piece promoted to from SQ_NONE to the capture square.
+    Piece piece[3];
+
+    // org and dst squares, which may be SQ_NONE
+    Square org[3];
+    Square dst[3];
+};
+
 /// Extracting the signed lower and upper 16 bits is not so trivial
 /// because according to the standard a simple cast to short is implementation
 /// defined and so is a right shift of a signed integer.

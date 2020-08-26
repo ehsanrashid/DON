@@ -14,28 +14,28 @@
     #include <cstdlib>
 #endif
 
-ExtPieceSquare PP_BoardIndex[PIECES] = {
-    // convention: W - us, B - them
-    // viewed from other side, W and B are reversed
-    { PS_NONE,     PS_NONE     },
-    { PS_W_PAWN,   PS_B_PAWN   },
-    { PS_W_KNIGHT, PS_B_KNIGHT },
-    { PS_W_BISHOP, PS_B_BISHOP },
-    { PS_W_ROOK,   PS_B_ROOK   },
-    { PS_W_QUEEN,  PS_B_QUEEN  },
-    { PS_W_KING,   PS_B_KING   },
-    { PS_NONE,     PS_NONE     },
-    { PS_NONE,     PS_NONE     },
-    { PS_B_PAWN,   PS_W_PAWN   },
-    { PS_B_KNIGHT, PS_W_KNIGHT },
-    { PS_B_BISHOP, PS_W_BISHOP },
-    { PS_B_ROOK,   PS_W_ROOK   },
-    { PS_B_QUEEN,  PS_W_QUEEN  },
-    { PS_B_KING,   PS_W_KING   },
-    { PS_NONE,     PS_NONE     }
-};
-
 namespace Evaluator::NNUE {
+
+    PieceSquare PP_BoardIndex[PIECES][COLORS] = {
+        // convention: W - us, B - them
+        // viewed from other side, W and B are reversed
+        { PS_NONE,     PS_NONE     },
+        { PS_W_PAWN,   PS_B_PAWN   },
+        { PS_W_KNIGHT, PS_B_KNIGHT },
+        { PS_W_BISHOP, PS_B_BISHOP },
+        { PS_W_ROOK,   PS_B_ROOK   },
+        { PS_W_QUEEN,  PS_B_QUEEN  },
+        { PS_W_KING,   PS_B_KING   },
+        { PS_NONE,     PS_NONE     },
+        { PS_NONE,     PS_NONE     },
+        { PS_B_PAWN,   PS_W_PAWN   },
+        { PS_B_KNIGHT, PS_W_KNIGHT },
+        { PS_B_BISHOP, PS_W_BISHOP },
+        { PS_B_ROOK,   PS_W_ROOK   },
+        { PS_B_QUEEN,  PS_W_QUEEN  },
+        { PS_B_KING,   PS_W_KING   },
+        { PS_NONE,     PS_NONE     }
+    };
 
     namespace {
 

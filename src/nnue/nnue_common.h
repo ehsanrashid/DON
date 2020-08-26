@@ -66,6 +66,28 @@ namespace Evaluator::NNUE {
 
     constexpr size_t MaxSimdWidth{ 32 };
 
+    // Unique number for each piece type on each square
+    enum PieceSquare : u32 {
+        PS_NONE     =  0,
+        PS_W_PAWN   =  1,
+        PS_B_PAWN   =  1 * SQUARES + 1,
+        PS_W_KNIGHT =  2 * SQUARES + 1,
+        PS_B_KNIGHT =  3 * SQUARES + 1,
+        PS_W_BISHOP =  4 * SQUARES + 1,
+        PS_B_BISHOP =  5 * SQUARES + 1,
+        PS_W_ROOK   =  6 * SQUARES + 1,
+        PS_B_ROOK   =  7 * SQUARES + 1,
+        PS_W_QUEEN  =  8 * SQUARES + 1,
+        PS_B_QUEEN  =  9 * SQUARES + 1,
+        PS_W_KING   = 10 * SQUARES + 1,
+        PS_END      = PS_W_KING, // pieces without kings (pawns included)
+        PS_B_KING   = 11 * SQUARES + 1,
+        PS_END2     = 12 * SQUARES + 1
+    };
+
+    // Array for finding the PieceSquare corresponding to the piece on the board
+    extern PieceSquare PP_BoardIndex[PIECES][COLORS];
+
     // Type of input feature after conversion
     using TransformedFeatureType = u08;
     using IndexType = u32;

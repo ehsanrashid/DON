@@ -13,6 +13,10 @@ namespace Evaluator::NNUE::Features {
     template<Side AssociatedKing>
     class HalfKP {
 
+    private:
+        // Index of a feature for a given king position and another piece on some square
+        static IndexType makeIndex(Color, Square, Piece, Square);
+
     public:
         // Feature name
         static constexpr char const *Name{ "HalfKP(Friend)" };
@@ -21,7 +25,7 @@ namespace Evaluator::NNUE::Features {
         // Number of feature dimensions
         static constexpr IndexType Dimensions{ static_cast<IndexType>(SQUARES) * static_cast<IndexType>(PS_END) };
         // Maximum number of simultaneously active features
-        static constexpr IndexType MaxActiveDimensions{ PIECE_ID_KING };
+        static constexpr IndexType MaxActiveDimensions{ 30 }; // Kings don't count
         // Trigger for full calculation instead of difference calculation
         static constexpr TriggerEvent RefreshTrigger{ TriggerEvent::FRIEND_KING_MOVED };
 
@@ -31,12 +35,7 @@ namespace Evaluator::NNUE::Features {
         // Get a list of indices for recently changed features
         static void appendChangedIndices(Position const&, Color, IndexList*, IndexList*);
 
-        // Index of a feature for a given king position and another piece on some square
-        static IndexType makeIndex(Square, PieceSquare);
 
-    private:
-        // Get pieces information
-        static void getPieces(Position const&, Color, PieceSquare**, Square*);
     };
 
 }  // namespace Evaluator::NNUE::Features

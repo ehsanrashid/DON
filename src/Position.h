@@ -94,8 +94,6 @@ private:
 
     StateInfo *_stateInfo;
     Thread *_thread;
-    // List of pieces used in NNUE evaluation function
-    EvalList _evalList;
 
     void placePiece(Square, Piece);
     void removePiece(Square);
@@ -105,9 +103,6 @@ private:
     void setCheckInfo();
 
     bool canEnpassant(Color, Square, bool = true) const noexcept;
-
-    // ID of a piece on a given square
-    PieceId pieceIdOn(Square sq) const noexcept;
 
 public:
     //static void initialize();
@@ -219,7 +214,6 @@ public:
 
     // Used by NNUE
     StateInfo* state() const noexcept;
-    EvalList const* evalList() const noexcept;
 
     std::string fen(bool full = true) const;
 
@@ -480,17 +474,6 @@ inline void Position::doMove(Move m, StateInfo &si) {
 
 inline StateInfo* Position::state() const noexcept {
     return _stateInfo;
-}
-inline EvalList const* Position::evalList() const noexcept {
-    return &_evalList;
-}
-
-inline PieceId Position::pieceIdOn(Square sq) const noexcept {
-    assert(board[sq] != NO_PIECE);
-
-    PieceId const pid{ _evalList.pieceIdList[sq] };
-    assert(isOk(pid));
-    return pid;
 }
 
 
