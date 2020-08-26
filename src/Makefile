@@ -72,8 +72,15 @@ endif
 # at the end of the line for flag values.
 
 ### 2.1 General and architecture defaults
-ifeq ($(ARCH), )
-	empty_arch = yes
+# explicitly check for the list of supported architectures (as listed with make help),
+# the user can override with `make ARCH=x86-32-vnni256 SUPPORTED_ARCH=true`
+ifeq ($(ARCH), $(filter $(ARCH), x86-64-vnni512 x86-64-vnni256 x86-64-avx512 x86-64-bmi2 x86-64-avx2 \
+                                 x86-64-sse41-popcnt x86-64-modern x86-64-ssse3 x86-64-sse3-popcnt \
+                                 x86-64 x86-32-sse41-popcnt x86-32-sse2 x86-32 ppc-64 ppc-32 \
+                                 armv7 armv7-neon armv8 apple-silicon general-64 general-32))
+	SUPPORTED_ARCH = true
+else
+	SUPPORTED_ARCH = false
 endif
 
 optimize = yes
@@ -564,12 +571,12 @@ endif
 ### needs access to the optimization flags.
 ifeq ($(optimize), yes)
 	ifeq ($(debug), no)
-	ifeq ($(COMP), ndk)
-		CXXFLAGS += -flto=thin
-		LDFLAGS += $(CXXFLAGS)
-	else ifeq ($(comp), clang)
-		CXXFLAGS += -flto=thin
-		LDFLAGS += $(CXXFLAGS)
+		ifeq ($(COMP), ndk)
+			CXXFLAGS += -flto=thin
+			LDFLAGS += $(CXXFLAGS)
+		else ifeq ($(comp), clang)
+			CXXFLAGS += -flto=thin
+			LDFLAGS += $(CXXFLAGS)
 
 		# GCC and CLANG use different methods for parallelizing LTO and CLANG pretends to be
 		# GCC on some systems.
@@ -675,10 +682,11 @@ help:
 	@echo "make -j profile-build ARCH=x86-64-bmi2 COMP=gcc COMPCXX=g++-9.0"
 	@echo "make -j build ARCH=x86-64-ssse3 COMP=clang"
 	@echo ""
-ifneq ($(empty_arch), yes)
-	@echo "-------------------------------\n"
+ifeq ($(SUPPORTED_ARCH), true)
 	@echo "The selected architecture $(ARCH) will enable the following configuration: "
 	@$(MAKE) ARCH=$(ARCH) COMP=$(COMP) config-sanity
+else
+	@echo "Specify a supported architecture with the ARCH option for more details"
 endif
 
 .PHONY: help build profile-build strip install clean net objclean profileclean config-sanity \
@@ -717,7 +725,7 @@ clean: objclean profileclean
 	@rm -f .depend *~ core
 
 net:
-	$(eval nnuenet := $(shell grep 'Eval File' ucioption.cpp | grep Option | sed 's/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/'))
+	$(eval nnuenet := $(shell grep 'Eval File' UCI.cpp | grep Option | sed 's/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/'))
 	@echo "Default net: $(nnuenet)"
 	$(eval nnuedownloadurl := https://tests.stockfishchess.org/api/nn/$(nnuenet))
 	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))
@@ -799,6 +807,7 @@ config-sanity:
 	@test "$(debug)" = "yes" || test "$(debug)" = "no"
 	@test "$(sanitize)" = "undefined" || test "$(sanitize)" = "thread" || test "$(sanitize)" = "address" || test "$(sanitize)" = "no"
 	@test "$(optimize)" = "yes" || test "$(optimize)" = "no"
+	@test "$(SUPPORTED_ARCH)" = "true"
 	@test "$(arch)" = "any" || test "$(arch)" = "x86_64" || test "$(arch)" = "i386" || \
 	 test "$(arch)" = "armv7" || test "$(arch)" = "armv8" || test "$(arch)" = "arm64" || \
 	 test "$(arch)" = "ppc64" || test "$(arch)" = "ppc"

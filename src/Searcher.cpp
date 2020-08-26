@@ -471,7 +471,7 @@ namespace {
                 assert(mType(move) != ENPASSANT); // Due to !pos.pawnAdvanceAt
 
                 // Move Count pruning
-                if (moveCount > std::abs(depth) + 2) {
+                if (moveCount > 2) {
                     continue;
                 }
                 // Futility pruning parent node
@@ -499,19 +499,19 @@ namespace {
                 continue;
             }
 
-            // Speculative prefetch as early as possible
-            prefetch(TT.cluster(pos.movePosiKey(move))->entry);
-
-            // Update the current move
-            ss->playedMove = move;
-            ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mp][dst];
-
             if (!captureOrPromotion
              && moveCount > std::abs(depth)
              && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
              && (*pieceStats[1])[mp][dst] < CounterMovePruneThreshold) {
                 continue;
             }
+
+            // Speculative prefetch as early as possible
+            prefetch(TT.cluster(pos.movePosiKey(move))->entry);
+
+            // Update the current move
+            ss->playedMove = move;
+            ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mp][dst];
 
             // Do the move
             pos.doMove(move, si, giveCheck);
@@ -1019,13 +1019,6 @@ namespace {
                     }
                 }
             }
-
-            // Step 11. If the position is not in TT, decrease depth by 2 (~1 Elo)
-            if (PVNode
-             && depth >= 6
-             && ttMove == MOVE_NONE) {
-                depth -= 2;
-            }
         }
 
         value = bestValue;
@@ -1065,7 +1058,7 @@ namespace {
         quietMoves.reserve(32);
         captureMoves.reserve(16);
 
-        // Step 12. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
+        // Step 11. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
         while ((move = movePicker.nextMove()) != MOVE_NONE) {
             assert(isOk(move)
                 && (inCheck
@@ -1125,7 +1118,7 @@ namespace {
             // Calculate new depth for this move
             Depth newDepth( depth - 1 );
 
-            // Step 13. Pruning at shallow depth. (~200 ELO)
+            // Step 12. Pruning at shallow depth. (~200 ELO)
             if (!rootNode
              && pos.nonPawnMaterial(activeSide) > VALUE_ZERO
              && bestValue > -VALUE_MATE_2_MAX_PLY
@@ -1182,7 +1175,7 @@ namespace {
                 }
             }
 
-            // Step 14. Extensions. (~75 ELO)
+            // Step 13. Extensions. (~75 ELO)
             Depth extension{ DEPTH_ZERO };
 
             // Singular extension (SE) (~70 ELO)
@@ -1275,7 +1268,7 @@ namespace {
             ss->playedMove = move;
             ss->pieceStats = &thread->continuationStats[inCheck][captureOrPromotion][mp][dst];
 
-            // Step 15. Do the move
+            // Step 14. Do the move
             pos.doMove(move, si, giveCheck);
 
             bool const doLMR{
@@ -1292,7 +1285,7 @@ namespace {
               || thread->ttHitAvg < 427 * TTHitAverageWindow) };
 
             bool doFullSearch;
-            // Step 16. Reduced depth search (LMR, ~200 ELO).
+            // Step 15. Reduced depth search (LMR, ~200 ELO).
             // If the move fails high will be re-searched at full depth.
             if (doLMR) {
 
@@ -1375,7 +1368,7 @@ namespace {
                             || moveCount >= 2;
             }
 
-            // Step 17. Full depth search when LMR is skipped or fails high.
+            // Step 16. Full depth search when LMR is skipped or fails high.
             if (doFullSearch) {
                 value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, newDepth, !cutNode);
 
@@ -1405,12 +1398,12 @@ namespace {
                 value = -depthSearch<true>(pos, ss+1, -beta, -alfa, newDepth, false);
             }
 
-            // Step 18. Undo the move
+            // Step 17. Undo the move
             pos.undoMove(move);
 
             assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
-            // Step 19. Check for the new best move.
+            // Step 18. Check for the new best move.
             // Finished searching the move. If a stop or a cutoff occurred,
             // the return value of the search cannot be trusted,
             // and return immediately without updating best move, PV and TT.
@@ -1449,7 +1442,7 @@ namespace {
                 }
             }
 
-            // Step 20. Check best value.
+            // Step 19. Check best value.
             if (bestValue < value) {
                 bestValue = value;
 
@@ -1496,7 +1489,7 @@ namespace {
             || excludedMove != MOVE_NONE
             || MoveList<LEGAL>(pos).size() == 0);
 
-        // Step 21. Check for checkmate and stalemate.
+        // Step 20. Check for checkmate and stalemate.
         // If all possible moves have been searched and if there are no legal moves,
         // If in a singular extension search then return a fail low score (alfa).
         // Otherwise it must be a checkmate or a stalemate, so return value accordingly.

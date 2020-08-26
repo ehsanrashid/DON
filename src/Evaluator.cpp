@@ -62,8 +62,9 @@ namespace Evaluator {
             static Score Scores[TERMS][COLORS];
 
         public:
+
             static void clear() {
-                std::fill_n(*Scores, TERMS*COLORS, SCORE_ZERO);
+                std::fill_n(&Scores[0][0], TERMS*COLORS, SCORE_ZERO);
             }
 
             static void write(Term t, Color c, Score s) noexcept {
@@ -74,7 +75,7 @@ namespace Evaluator {
                 write(t, BLACK, sB);
             }
 
-            friend std::ostream& operator<<(std::ostream &, Term);
+            friend std::ostream& operator<<(std::ostream&, Term);
         };
 
         Score Tracer::Scores[TERMS][COLORS];

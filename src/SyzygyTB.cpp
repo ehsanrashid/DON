@@ -30,7 +30,7 @@ using namespace SyzygyTB;
         #define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
     #endif
 
-    #include <windows.h>
+    #include <Windows.h>
 
     #undef NOMINMAX
     #undef WIN32_LEAN_AND_MEAN
@@ -293,7 +293,7 @@ namespace {
                 { 0x71, 0xE8, 0x23, 0x5D }
             };
 
-            if (memcmp(data, TB_MAGIC[type == WDL], 4)) {
+            if (std::memcmp(data, TB_MAGIC[type == WDL], 4)) {
                 std::cerr << "Corrupted table, file = " << filename << '\n';
                 unmap(*baseAddress, *mapping);
                 *baseAddress = nullptr;
