@@ -63,7 +63,7 @@ namespace Pawns {
         while ((s = *ps++) != SQ_NONE) {
             assert(pos[s] == (Own|PAWN));
 
-            auto r{ relativeRank(Own, s) };
+            auto const r{ relativeRank(Own, s) };
             assert(RANK_2 <= r && r <= RANK_7);
 
             Bitboard const neighbours { ownPawns & adjacentFilesBB(s) };
@@ -114,8 +114,8 @@ namespace Pawns {
 
             if (supporters != 0
              || phalanxes != 0) {
-                i32 v{ Connected[r] * (2 + 1 * (phalanxes != 0) - 1 * opposed)
-                     + 21 * popCount(supporters) };
+                i32 const v{ Connected[r] * (2 + 1 * (phalanxes != 0) - 1 * opposed)
+                           + 21 * popCount(supporters) };
                 sp += makeScore(v, v * (r - RANK_3) / 4);
             }
             else
@@ -166,8 +166,8 @@ namespace Pawns {
 
         e->key = pawnKey;
         e->blockeds = 0;
-        e->pawnNotBothFlank = (pos.pieces(PAWN) & SlotFileBB[CS_KING]) == 0
-                           || (pos.pieces(PAWN) & SlotFileBB[CS_QUEN]) == 0;
+        e->pawnOnBothFlank = (pos.pieces(PAWN) & SlotFileBB[CS_KING]) != 0
+                          && (pos.pieces(PAWN) & SlotFileBB[CS_QUEN]) != 0;
         e->evaluate<WHITE>(pos);
         e->evaluate<BLACK>(pos);
         e->complexity = 12 * pos.count(PAWN)

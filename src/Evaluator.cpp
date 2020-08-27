@@ -1017,12 +1017,12 @@ namespace Evaluator {
               + 24 * (sRank(wkSq) > RANK_4
                    || sRank(bkSq) < RANK_5)
               + 51 * (pos.nonPawnMaterial() == VALUE_ZERO)
-                // Pawn not on both flanks
-              - 21 * (pawnEntry->pawnNotBothFlank)
+                // Pawn on both flanks
+              + 21 * (pawnEntry->pawnOnBothFlank)
                 // Almost Unwinnable
-              - 43 * (pawnEntry->pawnNotBothFlank
-                   && outflanking < 0)
-              - 89 };
+              - 43 * (outflanking < 0
+                  && !pawnEntry->pawnOnBothFlank)
+              - 110 };
 
             auto mg{ mgValue(score) };
             auto eg{ egValue(score) };

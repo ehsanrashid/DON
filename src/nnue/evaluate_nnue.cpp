@@ -114,7 +114,7 @@ namespace Evaluator::NNUE {
         /// Read evaluation function parameters
         template<typename T>
         bool readParameters(std::istream &is, AlignedPtr<T> const &pointer) {
-            u32 header{ readLittleEndian<u32>(is) };
+            u32 const header{ readLittleEndian<u32>(is) };
             return !is
                 || header != T::getHashValue() ?
                 false :

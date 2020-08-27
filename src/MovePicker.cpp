@@ -164,6 +164,7 @@ void MovePicker::value() {
 
 /// limitedInsertionSort() sorts moves in descending order up to and including a given limit.
 /// The order of moves smaller than the limit is left unspecified.
+/// Sorts only vmoves [vmBeg, vmEnd]
 void MovePicker::limitedInsertionSort(i32 limit) const {
 
     if (vmBeg == vmEnd) {

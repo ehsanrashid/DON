@@ -987,7 +987,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
                 && relativeRank(active, org) == RANK_7
                 && relativeRank(active, dst) == RANK_8);
 
-            auto pp{ active|promoteType(m) };
+            auto const pp{ active|promoteType(m) };
             // Replace the pawn with the promoted piece
             removePiece(dst);
             placePiece(dst, pp);
@@ -1334,9 +1334,9 @@ std::string Position::toString() const {
     if (count() <= SyzygyTB::MaxPieceLimit
      && castleRights() == CR_NONE) {
         SyzygyTB::ProbeState wdlState;
-        auto wdlScore{ SyzygyTB::probeWDL(*const_cast<Position*>(this), wdlState) };
+        auto const wdlScore{ SyzygyTB::probeWDL(*const_cast<Position*>(this), wdlState) };
         SyzygyTB::ProbeState dtzState;
-        auto dtzScore{ SyzygyTB::probeDTZ(*const_cast<Position*>(this), dtzState) };
+        auto const dtzScore{ SyzygyTB::probeDTZ(*const_cast<Position*>(this), dtzState) };
         oss << "\nTablebases WDL: " << std::setw(4) << wdlScore << " (" << wdlState << ")"
             << "\nTablebases DTZ: " << std::setw(4) << dtzScore << " (" << dtzState << ")";
     }
@@ -1400,7 +1400,7 @@ bool Position::ok() const {
             }
         }
     }
-    for (Color c : { WHITE, BLACK }) {
+    for (Color const c : { WHITE, BLACK }) {
         if (popCount(pieces(c, KING)) != 1
          || (        (popCount(pieces(c, PAWN))
            + std::max(popCount(pieces(c, NIHT)) - 2, 0)
@@ -1428,7 +1428,7 @@ bool Position::ok() const {
     }
 
     // SQUARE_LIST
-    for (Piece p : Pieces) {
+    for (Piece const p : Pieces) {
         if (count(p) != popCount(pieces(pColor(p), pType(p)))) {
             assert(false && "Position OK: SQUARE_LIST");
             return false;
@@ -1443,9 +1443,9 @@ bool Position::ok() const {
     }
 
     // CASTLING
-    for (Color c : { WHITE, BLACK }) {
-        for (CastleSide cs : { CS_KING, CS_QUEN }) {
-            auto cr{ makeCastleRight(c, cs) };
+    for (Color const c : { WHITE, BLACK }) {
+        for (CastleSide const cs : { CS_KING, CS_QUEN }) {
+            auto const cr{ makeCastleRight(c, cs) };
             if (canCastle(c, cs)
              && (castleRookSq(c, cs) == SQ_NONE
               || board[castleRookSq(c, cs)] != (c|ROOK)

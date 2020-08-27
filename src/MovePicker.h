@@ -162,10 +162,10 @@ private:
     Moves::iterator    mBeg,
                        mEnd;
 
-    void limitedInsertionSort(i32) const;
-
     template<GenType GT>
     void value();
+
+    void limitedInsertionSort(i32) const;
 
     template<typename Pred>
     bool pick(Pred);

@@ -152,13 +152,14 @@ namespace {
         assert(pos.pseudoLegal(m)
             && pos.legal(m));
 
-        auto org{ orgSq(m) };
-        auto dst{ dstSq(m) };
-        auto pt{ pType(pos[org]) };
+        auto const org{ orgSq(m) };
+        auto const dst{ dstSq(m) };
+        auto const pt{ pType(pos[org]) };
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
-        Bitboard piece{ attacksBB(pt, dst, pos.pieces())
-                      & pos.pieces(pos.activeSide(), pt) };
+        Bitboard const piece{
+            attacksBB(pt, dst, pos.pieces())
+          & pos.pieces(pos.activeSide(), pt) };
 
         Bitboard amb{ piece ^ org };
         if (amb == 0) {
@@ -238,7 +239,7 @@ string moveToSAN(Move m, Position &pos) {
             oss << (WHITE|pt);
             if (pt != KING) {
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'dst' with a legal move.
-                auto amb{ ambiguity(m, pos) };
+                auto const amb{ ambiguity(m, pos) };
                 amb == AMB_RANK   ? oss << sFile(org) :
                 amb == AMB_FILE   ? oss << sRank(org) :
                 amb == AMB_SQUARE ? oss << org : oss << "";

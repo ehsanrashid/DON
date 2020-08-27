@@ -395,7 +395,7 @@ namespace {
         hasPawns = pos.count(PAWN) != 0;
 
         hasUniquePieces = false;
-        for (Color c : { WHITE, BLACK }) {
+        for (Color const c : { WHITE, BLACK }) {
             for (PieceType pt = PAWN; pt <= QUEN; ++pt) {
                 if (pos.count(c|pt) == 1) {
                     hasUniquePieces = true;
@@ -463,7 +463,7 @@ namespace {
 
             // Ensure last element is empty to avoid overflow when looking up
             for (u32 bucket = homeBucket; bucket < Size; ++bucket) {
-                Key omatlKey{ entry[bucket].key };
+                Key const omatlKey{ entry[bucket].key };
                 if (omatlKey == matlKey
                  || entry[bucket].get<WDL>() == nullptr) {
                     entry[bucket] = e;
@@ -472,7 +472,7 @@ namespace {
 
                 // Robin Hood hashing: If we've probed for longer than this element,
                 // insert here and search for a new spot for the other element instead.
-                u32 ohomeBucket = omatlKey & (Size - 1);
+                u32 const ohomeBucket = omatlKey & (Size - 1);
                 if (ohomeBucket > homeBucket) {
                     std::swap(e, entry[bucket]);
                     matlKey = omatlKey;
@@ -513,7 +513,7 @@ namespace {
         void add(vector<PieceType> const &pieces) {
 
             std::ostringstream oss{};
-            for (PieceType pt : pieces) {
+            for (PieceType const pt : pieces) {
                 oss << toChar(pt);
             }
 
@@ -572,7 +572,7 @@ namespace {
         //     I(k) = k * d->span + d->span / 2      (1)
 
         // First step is to get the 'k' of the I(k) nearest to our idx, using definition (1)
-        u32 k( idx / d->span );
+        u32 k( u32(idx / d->span) );
 
         // Then we read the corresponding SparseIndex[] entry
         u32 block { number<u32, true>(&d->sparseIndex[k].block) };
@@ -1646,7 +1646,7 @@ namespace SyzygyTB {
 
             // Better moves are ranked higher. Certain wins are ranked equally.
             // Losing moves are ranked equally unless a 50-move draw is in sight.
-            i16 r{
+            i16 const r{
                 i16(dtz > 0 ? (+dtz     + clockPly < 100 && !repeated ? +1000 : +1000 - (clockPly + dtz)) :
                     dtz < 0 ? (-dtz * 2 + clockPly < 100              ? -1000 : -1000 + (clockPly - dtz)) : 0) };
 

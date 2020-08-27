@@ -160,7 +160,7 @@ namespace {
 
         updateQuietStats(ss, th, pos, activeSide, move, bonus);
 
-        if (pType(pos[orgSq(move)]) > PAWN) {
+        if (pType(pos[orgSq(move)]) != PAWN) {
             th->butterFlyStats[activeSide][mMask(reverseMove(move))] << -bonus;
         }
 
@@ -311,12 +311,12 @@ namespace {
          || ss->ply >= MAX_PLY) {
             return !inCheck
                 && ss->ply >= MAX_PLY ?
-                    evaluate(pos) : VALUE_DRAW;
+                    evaluate(pos) :
+                    VALUE_DRAW;
         }
 
-        assert(ss->ply >= 1
-            && ss->ply == (ss-1)->ply + 1
-            && ss->ply < MAX_PLY);
+        assert(1 <= ss->ply && ss->ply < MAX_PLY
+            && ss->ply == (ss-1)->ply + 1);
 
         Move move;
         //Move const excludedMove{ ss->excludedMove };
@@ -347,7 +347,7 @@ namespace {
 
         if (!PVNode
          && ttHit
-         && ttValue != VALUE_NONE
+         && ttValue != VALUE_NONE // Only in case of TT access race
          && tte->depth() >= qsDepth
          && (ttValue >= beta ? tte->bound() & BOUND_LOWER :
                                tte->bound() & BOUND_UPPER)) {
@@ -476,8 +476,9 @@ namespace {
                 if (moveCount > 2) {
                     continue;
                 }
+
                 // Futility pruning parent node
-                auto const futilityValue{ futilityBase + PieceValues[EG][pType(cp)] };
+                auto const futilityValue{ futilityBase + PieceValues[EG][mType(move) != CASTLE ? pType(cp) : NONE] };
                 if (futilityValue <= alfa) {
                     if (bestValue < futilityValue) {
                         bestValue = futilityValue;
@@ -572,7 +573,6 @@ namespace {
         bool rootNode{ PVNode
                     && ss->ply == 0 };
 
-
         // Check if there exists a move which draws by repetition,
         // or an alternative earlier move to this position.
         if (!rootNode
@@ -622,7 +622,8 @@ namespace {
              || ss->ply >= MAX_PLY) {
                 return !inCheck
                     && ss->ply >= MAX_PLY ?
-                        evaluate(pos) : drawValue(thread);
+                        evaluate(pos) :
+                        drawValue(thread);
             }
 
             // Step 3. Mate distance pruning.
@@ -645,9 +646,8 @@ namespace {
 
         auto bestMove{ MOVE_NONE };
 
-        assert(ss->ply >= 0
-            && ss->ply == (ss-1)->ply + 1
-            && ss->ply < MAX_PLY);
+        assert(0 <= ss->ply && ss->ply < MAX_PLY
+            && ss->ply == (ss-1)->ply + 1);
 
         assert((ss+1)->excludedMove == MOVE_NONE);
         (ss+2)->killerMoves[0] =
@@ -861,7 +861,8 @@ namespace {
 
             improving = (ss-2)->staticEval != VALUE_NONE ? ss->staticEval > (ss-2)->staticEval :
                         (ss-4)->staticEval != VALUE_NONE ? ss->staticEval > (ss-4)->staticEval :
-                        (ss-6)->staticEval != VALUE_NONE ? ss->staticEval > (ss-6)->staticEval : true;
+                        (ss-6)->staticEval != VALUE_NONE ? ss->staticEval > (ss-6)->staticEval :
+                        true;
 
             // Step 8. Futility pruning: child node (~50 ELO)
             // Betting that the opponent doesn't have a move that will reduce
@@ -954,8 +955,8 @@ namespace {
               || ttValue >= probCutBeta)
              && Limits.mate == 0) {
 
-                assert(probCutBeta < +VALUE_INFINITE);
-
+                // if ttMove is a capture and value from transposition table is good enough produce probCut
+                // cutoff without digging into actual probCut search
                 if (ttHit
                  && tte->depth() >= depth - 3
                  && ttValue != VALUE_NONE
@@ -964,6 +965,8 @@ namespace {
                  && pos.captureOrPromotion(ttMove)) { 
                     return probCutBeta;
                 }
+
+                assert(probCutBeta < +VALUE_INFINITE);
 
                 u08 probCutCount{ 0 };
                 // Initialize move-picker(3) for the current position
@@ -981,8 +984,10 @@ namespace {
                     assert(pos.captureOrPromotion(move)
                         && CASTLE != mType(move));
 
-                    if (move == excludedMove
-                     || !pos.legal(move)) {
+                    if (move == excludedMove) {
+                        continue;
+                    }
+                    if (!pos.legal(move)) {
                         continue;
                     }
 
@@ -1137,7 +1142,9 @@ namespace {
 
                 if (giveCheck
                  || captureOrPromotion) {
+
                     if (!giveCheck) {
+                        // Capture history based pruning
                         if (lmrDepth < 1
                          && thread->captureStats[mp][dst][pos.captured(move)] < 0) {
                             continue;
@@ -1158,13 +1165,13 @@ namespace {
                 }
                 else {
                     // Counter moves based pruning: (~20 ELO)
-                    if (lmrDepth <= (3 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1))
+                    if (lmrDepth < (4 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1))
                      && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
                      && (*pieceStats[1])[mp][dst] < CounterMovePruneThreshold) {
                         continue;
                     }
                     // Futility pruning: parent node. (~5 ELO)
-                    if (lmrDepth <= 6
+                    if (lmrDepth < 7
                      && !inCheck
                      && ss->staticEval + 170 * lmrDepth + 283 <= alfa
                      && ((*pieceStats[0])[mp][dst]
@@ -1254,7 +1261,7 @@ namespace {
                        & (contains(SlotFileBB[CS_KING], dst) ? SlotFileBB[CS_KING] : SlotFileBB[CS_QUEN])) <= 2) {
                 extension = 1;
             }
-            else
+
             // Late irreversible move extension
             if (move == ttMove
              && pos.clockPly() > 80
@@ -1313,8 +1320,8 @@ namespace {
                     // Decrease reduction at non-check cut nodes for second move at low depths
                     -1 * (cutNode
                        && !inCheck
-                       && depth < 11
-                       && moveCount < 3);
+                       && depth <= 10
+                       && moveCount <= 2);
 
                 if (captureOrPromotion) {
                     // Increase reduction for captures/promotions at low depth and late move
@@ -1329,18 +1336,20 @@ namespace {
                     }
                 }
                 else {
-                    // Increase if TT move is a capture (~5 ELO)
+                    // Increase reduction if TT move is a capture (~5 ELO)
                     reductDepth += 1 * ttmCapture;
 
-                    // Increase if cut nodes (~10 ELO)
+                    // Increase reduction if cut nodes (~10 ELO)
                     if (cutNode) {
                         reductDepth += 2;
                     }
                     else
-                    // Decrease if move escapes a capture in no-cut nodes (~2 ELO)
+                    // Decrease reduction if move escapes a capture in no-cut nodes
+                    // Filter out castling moves, because they are coded as "king captures rook" and
+                    // hence break make_move(). (~2 Elo)
                     if (mType(move) == SIMPLE
                      && !pos.see(reverseMove(move))) {
-                        reductDepth -= 2 - (pType(mp) == PAWN) + ttPV;
+                        reductDepth -= 2 + ttPV - (pType(mp) == PAWN);
                     }
 
                     ss->stats =

@@ -32,7 +32,7 @@ void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) noe
      || d - DEPTH_OFFSET + 4 > d08) {
 
         assert(d > DEPTH_OFFSET);
-        assert(d < 256 + DEPTH_OFFSET);
+        assert(d < MAX_PLY);
 
         k16 = u16(k);
         d08 = u08(d - DEPTH_OFFSET);

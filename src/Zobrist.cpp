@@ -7,7 +7,7 @@
 /// Zobrist::computeMatlKey() computes hash key of the material situation.
 Key Zobrist::computeMatlKey(Position const &pos) const noexcept {
     Key matlKey{ 0 };
-    for (Piece p : Pieces) {
+    for (Piece const p : Pieces) {
         for (i32 cnt = 0; cnt < pos.count(p); ++cnt) {
             matlKey ^= psq[p][cnt];
         }
@@ -17,7 +17,7 @@ Key Zobrist::computeMatlKey(Position const &pos) const noexcept {
 /// Zobrist::computePawnKey() computes hash key of the pawn structure.
 Key Zobrist::computePawnKey(Position const &pos) const noexcept {
     Key pawnKey{ nopawn };
-    for (Piece p : { W_PAWN, B_PAWN }) {
+    for (Piece const p : { W_PAWN, B_PAWN }) {
         Square const *ps{ pos.squares(p) };
         Square s;
         while ((s = *ps++) != SQ_NONE) {
@@ -29,7 +29,7 @@ Key Zobrist::computePawnKey(Position const &pos) const noexcept {
 /// Zobrist::computePosiKey() computes hash key of the complete position.
 Key Zobrist::computePosiKey(Position const &pos) const noexcept {
     Key posiKey{ 0 };
-    for (Piece p : Pieces) {
+    for (Piece const p : Pieces) {
         Square const *ps{ pos.squares(p) };
         Square s;
         while ((s = *ps++) != SQ_NONE) {

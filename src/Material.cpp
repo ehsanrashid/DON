@@ -92,7 +92,7 @@ namespace Material {
             return;
         }
         // Generic evaluation
-        for (Color c : { WHITE, BLACK }) {
+        for (Color const c : { WHITE, BLACK }) {
             if (pos.nonPawnMaterial( c) >= VALUE_MG_ROOK
              && !moreThanOne(pos.pieces(~c))) {
                 evaluationFunc = &ValueKXK[c];

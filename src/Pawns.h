@@ -11,7 +11,7 @@ namespace Pawns {
         Key      key;
 
         i32      complexity;
-        bool     pawnNotBothFlank;
+        bool     pawnOnBothFlank;
         Bitboard blockeds;
 
         Score    score[COLORS];

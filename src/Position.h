@@ -436,7 +436,7 @@ inline bool Position::captureOrPromotion(Move m) const noexcept {
 }
 inline PieceType Position::captured(Move m) const noexcept {
     assert(isOk(m));
-    return mType(m) != ENPASSANT ? pType(operator[](dstSq(m))) : PAWN;
+    return mType(m) != ENPASSANT ? pType(board[dstSq(m)]) : PAWN;
 }
 /// Position::pawnAdvanceAt() check if pawn is advanced at the given square
 inline bool Position::pawnAdvanceAt(Color c, Square s) const noexcept {

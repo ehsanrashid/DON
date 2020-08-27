@@ -171,7 +171,7 @@ namespace {
         if (GT == QUIET
          || GT == NORMAL) {
             if (pos.canCastle(activeSide)) {
-                for (CastleSide cs : { CS_KING, CS_QUEN }) {
+                for (CastleSide const cs : { CS_KING, CS_QUEN }) {
                     if (pos.castleRookSq(activeSide, cs) != SQ_NONE
                      && pos.castleExpeded(activeSide, cs)
                      && pos.canCastle(activeSide, cs)) {
