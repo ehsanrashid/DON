@@ -7,11 +7,11 @@
 namespace Evaluator::NNUE::Features {
 
     // Class template used for feature index list
-    template<typename T, size_t MaxSize>
+    template<typename T, size_t N>
     class ValueList {
     
     private:
-        T _values[MaxSize];
+        T _values[N];
         size_t _size{ 0 };
 
     public:

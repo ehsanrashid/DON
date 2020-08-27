@@ -85,12 +85,12 @@ namespace {
     inline Depth reduction(Depth d, u08 mc, bool imp) noexcept {
         assert(d >= DEPTH_ZERO);
         auto const r{ Reduction[d] * Reduction[mc] };
-        return( (r + 509) / 1024 + 1 * (!imp && (r > 894)) );
+        return Depth( (r + 509) / 1024 + 1 * (!imp && (r > 894)) );
     }
 
     /// Futility Move Count
     constexpr i16 futilityMoveCount(Depth d, bool imp) noexcept {
-        return( (3 + nSqr(d)) / (2 - 1 * imp) );
+        return i16( (3 + nSqr(d)) / (2 - 1 * imp) );
     }
 
     /// Add a small random component to draw evaluations to avoid 3-fold-blindness
@@ -211,7 +211,7 @@ namespace {
         double x{ std::clamp(double(100 * v) / VALUE_EG_PAWN, -1000.0, 1000.0) };
 
         // Return win rate in per mille (rounded to nearest)
-        return( 0.5 + 1000 / (1 + std::exp((a - x) / b)) );
+        return i16( 0.5 + 1000 / (1 + std::exp((a - x) / b)) );
     }
 
     /// wdl() report WDL statistics given an evaluation and a game ply, based on
@@ -319,15 +319,17 @@ namespace {
             && ss->ply < MAX_PLY);
 
         Move move;
-        Move const excludedMove{ ss->excludedMove };
+        //Move const excludedMove{ ss->excludedMove };
         // Transposition table lookup.
-        Key const key    { pos.posiKey()
-                         ^ Key(excludedMove) };
+        //Key const key{ excludedMove == MOVE_NONE ?
+        //                pos.posiKey() :
+        //                pos.posiKey() ^ makeKey(excludedMove) };
+        Key const key{ pos.posiKey() };
         bool ttHit;
-        auto *tte   { excludedMove == MOVE_NONE ?
-                        TT.probe(key, ttHit) :
-                        TTEx.probe(key, ttHit) };
-
+        //auto *tte   { excludedMove == MOVE_NONE ?
+        //                TT.probe(key, ttHit) :
+        //                TTEx.probe(key, ttHit) };
+        auto *tte   { TT.probe(key, ttHit) };
         auto ttMove { ttHit ?
                         tte->move() : MOVE_NONE };
         auto ttValue{ ttHit ?
@@ -444,9 +446,9 @@ namespace {
                 && (inCheck
                  || pos.pseudoLegal(move)));
 
-            if (move == excludedMove) {
-                continue;
-            }
+            //if (move == excludedMove) {
+            //    continue;
+            //}
             // Check for legality
             if (!pos.legal(move)) {
                 continue;
@@ -549,7 +551,7 @@ namespace {
             return matedIn(ss->ply); // Plies to mate from the root
         }
 
-        if (excludedMove == MOVE_NONE) {
+        //if (excludedMove == MOVE_NONE) {
             tte->save(key,
                       bestMove,
                       valueToTT(bestValue, ss->ply),
@@ -558,7 +560,7 @@ namespace {
                       bestValue >= beta ? BOUND_LOWER :
                       PVNode && bestValue > actualAlfa ? BOUND_EXACT : BOUND_UPPER,
                       ttPV);
-        }
+        //}
 
         assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
         return bestValue;
@@ -948,15 +950,15 @@ namespace {
              && std::abs(beta) < +VALUE_MATE_2_MAX_PLY
              && (!ttHit
               || tte->depth() < depth - 3
-              || (ttValue != VALUE_NONE
-               && ttValue >= probCutBeta))
+              || ttValue == VALUE_NONE
+              || ttValue >= probCutBeta)
              && Limits.mate == 0) {
 
                 assert(probCutBeta < +VALUE_INFINITE);
 
                 if (ttHit
                  && tte->depth() >= depth - 3
-                 //&& ttValue != VALUE_NONE
+                 && ttValue != VALUE_NONE
                  && ttValue >= probCutBeta
                  && ttMove != MOVE_NONE
                  && pos.captureOrPromotion(ttMove)) { 
@@ -973,8 +975,10 @@ namespace {
                 while ((move = movePicker.nextMove()) != MOVE_NONE
                     && probCutCount < (2 + 2 * cutNode)) {
                     assert(isOk(move)
-                        && pos.pseudoLegal(move)
-                        && pos.captureOrPromotion(move)
+                        && pos.pseudoLegal(move));
+
+                    assert(!inCheck);
+                    assert(pos.captureOrPromotion(move)
                         && CASTLE != mType(move));
 
                     if (move == excludedMove
@@ -1006,7 +1010,8 @@ namespace {
                     if (value >= probCutBeta) {
                         // If TT doesn't have equal or more deep info write probCut data into it
                         if (!ttHit
-                         || tte->depth() < depth - 3) {
+                         || tte->depth() < depth - 3
+                         || ttValue == VALUE_NONE) {
                             tte->save(key,
                                       move,
                                       valueToTT(value, ss->ply),
@@ -1550,8 +1555,8 @@ namespace {
         }
 
         if (excludedMove == MOVE_NONE
-         && (!rootNode
-          || thread->pvCur == 0)) {
+         && !(rootNode
+           && thread->pvCur != 0)) {
             tte->save(key,
                       bestMove,
                       valueToTT(bestValue, ss->ply),

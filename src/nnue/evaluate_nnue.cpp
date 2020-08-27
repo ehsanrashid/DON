@@ -136,7 +136,7 @@ namespace Evaluator::NNUE {
         }
 
         // Calculate the evaluation value
-        Value ComputeScore(Position const &pos, bool refresh) {
+        Value computeScore(Position const &pos, bool refresh) {
             auto &accumulator{ pos.state()->accumulator };
             if (refresh
              || !accumulator.scoreComputed) {
@@ -168,7 +168,7 @@ namespace Evaluator::NNUE {
 
     // Evaluation function. Perform differential calculation.
     Value evaluate(Position const &pos) {
-        auto v{ ComputeScore(pos, false) };
+        auto v{ computeScore(pos, false) };
         v = v * 5 / 4;
         v += VALUE_TEMPO;
         return v;
@@ -176,7 +176,7 @@ namespace Evaluator::NNUE {
 
     //// Evaluation function. Perform full calculation.
     //Value computeEval(Position const &pos) {
-    //    return ComputeScore(pos, true);
+    //    return computeScore(pos, true);
     //}
 
     //// Proceed with the difference calculation if possible

@@ -88,10 +88,10 @@ using Key = u64;
 using Bitboard = u64;
 
 constexpr u32 nSqr(i16 n) {
-    return n * n;
+    return u32(n) * n;
 }
 constexpr u64 nSqr(i32 n) {
-    return n * n;
+    return u64(n) * n;
 }
 
 // Return the sign of a number (-1, 0, 1)
@@ -405,13 +405,6 @@ constexpr Score operator*(Score s, bool b) {
 Score operator*(Score, Score) = delete;
 Score operator/(Score, Score) = delete;
 
-constexpr i32 BaseRank[COLORS]{
-    RANK_1, RANK_8
-};
-constexpr i32 BaseSquare[COLORS]{
-    SQ_A1, SQ_A8
-};
-
 constexpr bool isOk(Color c) {
     return WHITE <= c && c <= BLACK;
 }
@@ -433,6 +426,9 @@ constexpr Rank operator~(Rank r) {
     return Rank(RANK_8 - r);
 }
 
+constexpr i32 BaseRank[COLORS]{
+    RANK_1, RANK_8
+};
 constexpr Rank relativeRank(Color c, Rank r) {
     return Rank(r ^ BaseRank[c]);
 }
@@ -468,6 +464,9 @@ constexpr bool colorOpposed(Square s1, Square s2) {
     return (s1 + sRank(s1) + s2 + sRank(s2)) & 1; //sColor(s1) != sColor(s2);
 }
 
+constexpr i32 BaseSquare[COLORS]{
+    SQ_A1, SQ_A8
+};
 constexpr Square relativeSq(Color c, Square s) {
     return Square(i32(s) ^ BaseSquare[c]);
 }
@@ -590,8 +589,8 @@ struct ValMove {
     Move move{ MOVE_NONE };
     i32  value{ 0 };
 
-    ValMove() = default;
-    explicit ValMove(Move m) :
+    ValMove() noexcept = default;
+    explicit ValMove(Move m) noexcept :
         move{ m }
     {}
 
@@ -666,7 +665,7 @@ public:
     }
 };
 
-constexpr Piece Pieces[12]{
+constexpr Piece Pieces[2*KING]{
     W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING
 };

@@ -370,7 +370,7 @@ inline bool Position::castleExpeded(Color c, CastleSide cs) const noexcept {
 }
 /// Position::moveCount() starts at 1, and is incremented after BLACK's move.
 inline i16 Position::moveCount() const noexcept {
-    return( std::max((ply - active) / 2, 0) + 1 );
+    return i16( std::max((ply - active) / 2, 0) + 1 );
 }
 
 inline void Position::placePiece(Square s, Piece p) {

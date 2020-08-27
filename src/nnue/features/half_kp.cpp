@@ -6,9 +6,13 @@
 
 namespace Evaluator::NNUE::Features {
 
+    constexpr i32 OrientSquare[COLORS]{
+        SQ_A1, SQ_H8
+    };
+
     // Orient a square according to perspective (rotates by 180 for black)
     inline Square orient(Color perspective, Square s) {
-        return Square(i32(s) ^ (bool(perspective) * 63));
+        return Square(i32(s) ^ OrientSquare[perspective]);
     }
 
     // Find the index of the feature quantity from the king position and PieceSquare
@@ -34,7 +38,7 @@ namespace Evaluator::NNUE::Features {
     void HalfKP<AssociatedKing>::appendChangedIndices(Position const &pos, Color perspective, IndexList *removed, IndexList *added) {
 
         Square const kSq{ orient(perspective, pos.square(perspective|KING)) };
-        const auto &dp{ pos.state()->dirtyPiece };
+        auto const &dp{ pos.state()->dirtyPiece };
         for (int i = 0; i < dp.dirtyCount; ++i) {
             Piece const pc{ dp.piece[i] };
             if (pType(pc) == KING) {

@@ -98,9 +98,12 @@ namespace Evaluator::NNUE {
         return (n + base - 1) / base * base;
     }
 
-    // Read a signed or unsigned integer from  a stream in little-endian order
+    // readLittleEndian() is our utility to read an integer (signed or unsigned, any size)
+    // from a stream in little-endian order. We swap the byte order after the read if
+    // necessary to return a result with the byte ordering of the compiling machine.
     template <typename IntType>
     inline IntType readLittleEndian(std::istream &is) {
+
         // Read the relevant bytes from the stream in little-endian order
         u08 u[sizeof (IntType)];
         is.read(reinterpret_cast<char*>(u), sizeof (IntType));

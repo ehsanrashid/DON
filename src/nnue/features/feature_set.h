@@ -74,6 +74,7 @@ namespace Evaluator::NNUE::Features {
         static constexpr IndexType MaxActiveDimensions{ FeatureType::MaxActiveDimensions };
         // Trigger for full calculation instead of difference calculation
         using SortedTriggerSet = CompileTimeList<TriggerEvent, FeatureType::RefreshTrigger>;
+
         static constexpr auto RefreshTriggers{ SortedTriggerSet::Values };
 
     private:

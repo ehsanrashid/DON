@@ -53,8 +53,8 @@ namespace {
         // }
         // return 0;
         auto const itr{ std::find(std::begin(Months), std::end(Months), mmm) };
-        return itr != std::end(Months) ?
-                std::distance(std::begin(Months), itr) + 1 : 0;
+        return i32(itr != std::end(Months) ?
+                std::distance(std::begin(Months), itr) + 1 : 0);
     }
 }
 
@@ -227,27 +227,27 @@ namespace UCI {
     }
     Option::operator i16() const {
         assert(type == "spin");
-        return( std::stoi(currentVal) );
+        return i16( std::stoi(currentVal) );
     }
     Option::operator u16() const {
         assert(type == "spin");
-        return( std::stoi(currentVal) );
+        return u16( std::stoi(currentVal) );
     }
     Option::operator i32() const {
         assert(type == "spin");
-        return( std::stoi(currentVal) );
+        return i32( std::stoi(currentVal) );
     }
     Option::operator u32() const {
         assert(type == "spin");
-        return( std::stoi(currentVal) );
+        return u32( std::stoi(currentVal) );
     }
     Option::operator i64() const {
         assert(type == "spin");
-        return( std::stoi(currentVal) ); //std::stol(currentVal);
+        return i64( std::stoi(currentVal) ); //std::stol(currentVal);
     }
     Option::operator u64() const {
         assert(type == "spin");
-        return( std::stoi(currentVal) ); //std::stol(currentVal);
+        return u64( std::stoi(currentVal) ); //std::stol(currentVal);
     }
     Option::operator double() const {
         assert(type == "spin");

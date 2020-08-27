@@ -652,7 +652,7 @@ namespace Evaluator {
 
             // transform the king danger into a score
             if (kingDanger > 100) {
-                score -= makeScore(nSqr(kingDanger) / 0x1000, kingDanger / 0x10);
+                score -= makeScore(u32(nSqr(kingDanger) / 0x1000), kingDanger / 0x10);
             }
 
             // Penalty for king on a pawn less flank

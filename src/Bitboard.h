@@ -25,12 +25,12 @@ struct Magic {
 inline u16 Magic::index(Bitboard occ) const noexcept {
 
 #if defined(USE_PEXT)
-    return( PEXT(occ, mask) );
+    return u16( PEXT(occ, mask) );
 #elif defined(IS_64BIT)
-    return( ((occ & mask) * number) >> shift );
+    return u16( ((occ & mask) * number) >> shift );
 #else
-    return( (u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(number >> 0x00))
-           ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(number >> 0x20))) >> shift );
+    return u16( (u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(number >> 0x00))
+               ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(number >> 0x20))) >> shift );
 #endif
 }
 
@@ -309,9 +309,9 @@ inline i32 popCount(Bitboard bb) noexcept {
          + PopCount[v.u[3]];
 
 #elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
-    return( _mm_popcnt_u64(bb) );
+    return i32( _mm_popcnt_u64(bb) );
 #else // Assumed gcc or compatible compiler
-    return( __builtin_popcountll(bb) );
+    return i32( __builtin_popcountll(bb) );
 #endif
 }
 
