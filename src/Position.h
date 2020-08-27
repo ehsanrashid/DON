@@ -182,6 +182,7 @@ public:
 
     bool capture(Move) const noexcept;
     bool captureOrPromotion(Move) const noexcept;
+    bool advancedPawnPush(Move) const noexcept;
 
     bool pseudoLegal(Move) const noexcept;
     bool legal(Move) const noexcept;
@@ -192,7 +193,6 @@ public:
 
     bool see(Move, Value = VALUE_ZERO) const noexcept;
 
-    bool pawnAdvanceAt(Color, Square) const noexcept;
     bool pawnPassedAt(Color, Square) const noexcept;
     Bitboard pawnsOnSqColor(Color, Color) const noexcept;
 
@@ -434,14 +434,17 @@ inline bool Position::captureOrPromotion(Move m) const noexcept {
     return mType(m) == SIMPLE ?
             contains(pieces(~active), dstSq(m)) : mType(m) != CASTLE;
 }
+/// Position::advancedPawnPush() check if advanced pawn is push
+inline bool Position::advancedPawnPush(Move m) const noexcept {
+    return pType(board[orgSq(m)]) == PAWN
+        && relativeRank(active, dstSq(m)) > RANK_5;
+}
+
 inline PieceType Position::captured(Move m) const noexcept {
     assert(isOk(m));
     return mType(m) != ENPASSANT ? pType(board[dstSq(m)]) : PAWN;
 }
-/// Position::pawnAdvanceAt() check if pawn is advanced at the given square
-inline bool Position::pawnAdvanceAt(Color c, Square s) const noexcept {
-    return contains(/*pieces(c, PAWN) & */PawnSideBB[~c], s);
-}
+
 /// Position::pawnPassedAt() check if pawn passed at the given square
 inline bool Position::pawnPassedAt(Color c, Square s) const noexcept {
     return (pieces(~c, PAWN) & pawnPassSpan(c, s)) == 0;

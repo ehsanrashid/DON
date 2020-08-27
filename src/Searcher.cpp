@@ -319,17 +319,15 @@ namespace {
             && ss->ply == (ss-1)->ply + 1);
 
         Move move;
-        //Move const excludedMove{ ss->excludedMove };
+        Move const excludedMove{ ss->excludedMove };
         // Transposition table lookup.
-        //Key const key{ excludedMove == MOVE_NONE ?
-        //                pos.posiKey() :
-        //                pos.posiKey() ^ makeKey(excludedMove) };
-        Key const key{ pos.posiKey() };
+        Key const key{ excludedMove == MOVE_NONE ?
+                        pos.posiKey() :
+                        pos.posiKey() ^ makeKey(excludedMove) };
         bool ttHit;
-        //auto *tte   { excludedMove == MOVE_NONE ?
-        //                TT.probe(key, ttHit) :
-        //                TTEx.probe(key, ttHit) };
-        auto *tte   { TT.probe(key, ttHit) };
+        auto *tte   { excludedMove == MOVE_NONE ?
+                        TT.probe(key, ttHit) :
+                        TTEx.probe(key, ttHit) };
         auto ttMove { ttHit ?
                         tte->move() : MOVE_NONE };
         auto ttValue{ ttHit ?
@@ -419,12 +417,10 @@ namespace {
 
         auto bestMove{ MOVE_NONE };
 
-        auto const activeSide{ pos.activeSide() };
         bool const pmOK  { isOk((ss-1)->playedMove) };
         auto const pmDst { dstSq((ss-1)->playedMove) };
 
-        PieceSquareStatsTable const *pieceStats[]
-        {
+        PieceSquareStatsTable const *pieceStats[]{
             (ss-1)->pieceStats, (ss-2)->pieceStats,
             nullptr           , (ss-4)->pieceStats,
             nullptr           , (ss-6)->pieceStats
@@ -446,9 +442,9 @@ namespace {
                 && (inCheck
                  || pos.pseudoLegal(move)));
 
-            //if (move == excludedMove) {
-            //    continue;
-            //}
+            if (move == excludedMove) {
+                continue;
+            }
             // Check for legality
             if (!pos.legal(move)) {
                 continue;
@@ -467,10 +463,9 @@ namespace {
             if (!inCheck
              && !giveCheck
              && futilityBase > -VALUE_KNOWN_WIN
-             && !(pType(mp) == PAWN
-               && pos.pawnAdvanceAt(activeSide, org))
+             && !pos.advancedPawnPush(move)
              && Limits.mate == 0) {
-                assert(mType(move) != ENPASSANT); // Due to !pos.pawnAdvanceAt
+                assert(mType(move) != ENPASSANT); // Due to !pos.advancedPawnPush()
 
                 // Move Count pruning
                 if (moveCount > 2) {
@@ -552,7 +547,7 @@ namespace {
             return matedIn(ss->ply); // Plies to mate from the root
         }
 
-        //if (excludedMove == MOVE_NONE) {
+        if (excludedMove == MOVE_NONE) {
             tte->save(key,
                       bestMove,
                       valueToTT(bestValue, ss->ply),
@@ -561,7 +556,7 @@ namespace {
                       bestValue >= beta ? BOUND_LOWER :
                       PVNode && bestValue > actualAlfa ? BOUND_EXACT : BOUND_UPPER,
                       ttPV);
-        //}
+        }
 
         assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
         return bestValue;
@@ -883,7 +878,7 @@ namespace {
              && (ss-1)->stats < 22977
              && eval >= ss->staticEval
              && ss->staticEval >= beta - 30 * depth - 28 * improving + 84 * ttPV + 182
-             && pos.nonPawnMaterial(activeSide) > VALUE_ZERO
+             && pos.nonPawnMaterial(activeSide) != VALUE_ZERO
              && excludedMove == MOVE_NONE
              // Null move pruning disabled for activeSide until ply exceeds nmpPly
              && (ss->ply >= thread->nmpMinPly
@@ -1042,8 +1037,7 @@ namespace {
             ttMove != MOVE_NONE
          && pos.captureOrPromotion(ttMove) };
 
-        PieceSquareStatsTable const *pieceStats[]
-        {
+        PieceSquareStatsTable const *pieceStats[]{
             (ss-1)->pieceStats, (ss-2)->pieceStats,
             nullptr           , (ss-4)->pieceStats,
             nullptr           , (ss-6)->pieceStats
@@ -1130,7 +1124,7 @@ namespace {
 
             // Step 12. Pruning at shallow depth. (~200 ELO)
             if (!rootNode
-             && pos.nonPawnMaterial(activeSide) > VALUE_ZERO
+             && pos.nonPawnMaterial(activeSide) != VALUE_ZERO
              && bestValue > -VALUE_MATE_2_MAX_PLY
              && Limits.mate == 0) {
                 // Skip quiet moves if move count exceeds our futilityMoveCount() threshold

@@ -56,11 +56,11 @@ string toString(Value v) {
 string toString(Score s) {
     std::ostringstream oss{};
     oss << std::showpos << std::showpoint
-        //<< std::setw(5) << mgValue(s) << " "
-        //<< std::setw(5) << egValue(s)
+        //<< std::setw(6) << mgValue(s) << " "
+        //<< std::setw(6) << egValue(s)
         << std::fixed << std::setprecision(2)
-        << std::setw(5) << toCP(mgValue(s)) / 100 << " "
-        << std::setw(5) << toCP(egValue(s)) / 100;
+        << std::setw(6) << toCP(mgValue(s)) / 100 << " "
+        << std::setw(6) << toCP(egValue(s)) / 100;
     return oss.str();
 }
 

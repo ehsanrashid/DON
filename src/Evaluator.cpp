@@ -85,7 +85,7 @@ namespace Evaluator {
              || t == IMBALANCE
              || t == SCALING
              || t == TOTAL) {
-                os << " | ----- -----" << " | ----- -----";
+                os << " | ------ ------" << " | ------ ------";
             }
             else {
                 os << " | " << Tracer::Scores[t][WHITE] << " | " << Tracer::Scores[t][BLACK];
@@ -1001,6 +1001,7 @@ namespace Evaluator {
             }
 
         returnValue:
+            // Winnable:
             // Derive single value from mg and eg parts of score
             auto const wkSq{ pos.square(W_KING) };
             auto const bkSq{ pos.square(B_KING) };
@@ -1091,8 +1092,8 @@ namespace Evaluator {
                 Tracer::write(MATERIAL  , pos.psqScore());
                 Tracer::write(IMBALANCE , matlEntry->imbalance);
                 Tracer::write(MOBILITY  , mobility[WHITE], mobility[BLACK]);                
-                Tracer::write(SCALING   , makeScore(mv, ev + eg * (scale / SCALE_NORMAL - 1)));
-                Tracer::write(TOTAL     , makeScore(mg, eg * scale / SCALE_NORMAL));
+                Tracer::write(SCALING   , makeScore(mv, ev - eg + eg * scale / SCALE_NORMAL));
+                Tracer::write(TOTAL     , makeScore(mg,         + eg * scale / SCALE_NORMAL));
             }
 
             return v;
@@ -1136,17 +1137,17 @@ namespace Evaluator {
         std::ostringstream oss{};
         oss << std::showpos << std::showpoint << std::fixed << std::setprecision(2);
 
-        Value value;
-
-        // Reset any dynamic contempt
+        // Set dynamic contempt to zero
         auto const contempt{ pos.thread()->contempt };
         pos.thread()->contempt = SCORE_ZERO;
-        value = Evaluation<true>(pos).value();
-        pos.thread()->contempt = contempt;
 
-        oss << "      Eval Term |    White    |    Black    |    Total     \n"
-            << "                |   MG    EG  |   MG    EG  |   MG    EG   \n"
-            << "----------------+-------------+-------------+--------------\n"
+        Value value;
+
+        value = Evaluation<true>(pos).value();
+
+        oss << "      Eval Term |      White    |      Black    |      Total    |\n"
+            << "                |    MG     EG  |    MG     EG  |    MG    EG   |\n"
+            << "----------------+---------------+---------------+---------------|\n"
             << "       Material" << Term(MATERIAL)
             << "      Imbalance" << Term(IMBALANCE)
             << "           Pawn" << Term(PAWN)
@@ -1160,7 +1161,7 @@ namespace Evaluator {
             << "         Passer" << Term(PASSER)
             << "          Space" << Term(SPACE)
             << "        Scaling" << Term(SCALING)
-            << "----------------+-------------+-------------+--------------\n"
+            << "----------------+---------------+---------------+---------------\n"
             << "          Total" << Term(TOTAL);
         // Trace scores are from White's point of view
         value = (pos.activeSide() == WHITE ? +value : -value);
@@ -1174,9 +1175,13 @@ namespace Evaluator {
         }
 
         value = evaluate(pos);
+
         // Trace scores are from White's point of view
         value = (pos.activeSide() == WHITE ? +value : -value);
         oss << "\nFinal Evaluation    : " << toCP(value) / 100 << " (white side)\n";
+
+        // Set dynamic contempt back
+        pos.thread()->contempt = contempt;
 
         return oss.str();
     }
