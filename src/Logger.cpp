@@ -11,9 +11,7 @@
 
 namespace {
 
-    using SystemClockTimePoint = std::chrono::system_clock::time_point;
-
-    std::string toString(SystemClockTimePoint const &timePoint) {
+    std::string toString(std::chrono::system_clock::time_point const &timePoint) {
         std::string str;
 
     #if defined(_WIN32)
@@ -36,7 +34,7 @@ namespace {
         return str;
     }
 
-    std::ostream& operator<<(std::ostream &os, SystemClockTimePoint const &timePoint) {
+    std::ostream& operator<<(std::ostream &os, std::chrono::system_clock::time_point const &timePoint) {
         os << toString(timePoint);
         return os;
     }

@@ -2,7 +2,6 @@
 
 #include <cctype>
 #include <algorithm>
-#include <mutex>
 
 using std::string;
 
@@ -63,17 +62,3 @@ string& trim(string &str) {
     return str;
 }
 
-/// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-std::ostream& operator<<(std::ostream &os, OutputState outputState) {
-    static std::mutex mutex;
-
-    switch (outputState) {
-    case OS_LOCK:
-        mutex.lock();
-        break;
-    case OS_UNLOCK:
-        mutex.unlock();
-        break;
-    }
-    return os;
-}

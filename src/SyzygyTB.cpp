@@ -1276,7 +1276,7 @@ namespace {
             return e.baseAddress; // Could be nullptr if file does not exist
         }
 
-        std::unique_lock<std::mutex> uniqueLock(mutex);
+        std::lock_guard<std::mutex> lockGuard(mutex);
 
         if (e.ready.load(std::memory_order::memory_order_relaxed)) { // Recheck under lock
             return e.baseAddress;

@@ -8,7 +8,6 @@
 #include <iostream>
 
 #include "BitBoard.h"
-#include "Helper.h"
 #include "King.h"
 #include "Material.h"
 #include "Pawns.h"

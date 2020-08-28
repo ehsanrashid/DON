@@ -2,8 +2,8 @@
 
 #include <cassert>
 #include <cmath>
-#include <map>
 #include <iostream>
+#include <unordered_map>
 
 #include "Searcher.h"
 #include "SyzygyTB.h"
@@ -37,7 +37,8 @@ void Thread::wakeUp() {
 /// Thread::waitIdle() blocks on the condition variable while the thread is busy.
 void Thread::waitIdle() {
     std::unique_lock<std::mutex> uniqueLock(mutex);
-    conditionVar.wait(uniqueLock, [&]{ return !busy; });
+    conditionVar.wait(uniqueLock, [this]{ return !busy; });
+    //uniqueLock.unlock();
 }
 /// Thread::threadFunc() is where the thread is parked.
 /// Blocked on the condition variable, when it has no work to do.
@@ -52,15 +53,16 @@ void Thread::threadFunc() {
     }
 
     while (true) {
-        {
+        
         std::unique_lock<std::mutex> uniqueLock(mutex);
         busy = false;
         conditionVar.notify_one(); // Wake up anyone waiting for search finished
-        conditionVar.wait(uniqueLock, [&]{ return busy; });
+        conditionVar.wait(uniqueLock, [this]{ return busy; });
         if (dead) {
             return;
         }
-        } //uniqueLock.unlock();
+        uniqueLock.unlock();
+
         search();
     }
 }
@@ -98,7 +100,7 @@ ThreadPool::~ThreadPool() {
 }
 
 u16 ThreadPool::size() const noexcept {
-    return u16(Base::size());
+    return u16(std::vector<Thread*>::size());
 }
 
 MainThread * ThreadPool::mainThread() const noexcept {
@@ -110,12 +112,10 @@ Thread* ThreadPool::bestThread() const noexcept {
 
     auto minValue{ +VALUE_INFINITE };
     for (auto *th : *this) {
-        if (minValue > th->rootMoves[0].newValue) {
-            minValue = th->rootMoves[0].newValue;
-        }
+        minValue = std::min(th->rootMoves[0].newValue, minValue);
     }
     // Vote according to value and depth
-    std::map<Move, i64> votes;
+    std::unordered_map<Move, i64> votes;
     for (auto *th : *this) {
         votes[th->rootMoves[0][0]] += i32(th->rootMoves[0].newValue - minValue + 14) * i32(th->finishedDepth);
 
@@ -399,4 +399,19 @@ namespace WinProcGroup {
     void bind(u16) {}
 #endif
 
+}
+
+/// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
+std::ostream& operator<<(std::ostream &os, OutputState outputState) {
+    static std::mutex mutex;
+
+    switch (outputState) {
+    case OS_LOCK:
+        mutex.lock();
+        break;
+    case OS_UNLOCK:
+        mutex.unlock();
+        break;
+    }
+    return os;
 }

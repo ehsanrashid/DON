@@ -36,8 +36,8 @@ int main(int argc, char const *const *argv) {
     UCI::handleCommands(argc, argv);
 
     Threadpool.setup(0);
-    TT.free();
-    TTEx.free();
+    //TT.free();
+    //TTEx.free();
 
     //std::atexit(clear);
     return EXIT_SUCCESS;

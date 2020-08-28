@@ -9,7 +9,6 @@
 
 #include "Debugger.h"
 #include "Evaluator.h"
-#include "Helper.h"
 #include "Logger.h"
 #include "MoveGenerator.h"
 #include "MovePicker.h"
@@ -230,8 +229,8 @@ namespace {
     /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
     std::string multipvInfo(Thread const *th, Depth depth, Value alfa, Value beta) {
         auto const elapsed{ std::max(TimeMgr.elapsed(), { 1 }) };
-        auto const nodes{ Threadpool.sum(&Thread::nodes) };
-        auto const tbHits{ Threadpool.sum(&Thread::tbHits)
+        auto const nodes{ Threadpool.accumulate(&Thread::nodes, u64(0)) };
+        auto const tbHits{ Threadpool.accumulate(&Thread::tbHits, u64(0))
                          + th->rootMoves.size() * SyzygyTB::HasRoot };
 
         std::ostringstream oss{};
@@ -475,17 +474,13 @@ namespace {
                 // Futility pruning parent node
                 auto const futilityValue{ futilityBase + PieceValues[EG][mType(move) != CASTLE ? pType(cp) : NONE] };
                 if (futilityValue <= alfa) {
-                    if (bestValue < futilityValue) {
-                        bestValue = futilityValue;
-                    }
+                    bestValue = std::max(futilityValue, bestValue);
                     continue;
                 }
                 // Prune moves with negative or zero SEE
                 if (futilityBase <= alfa
                  && !pos.see(move, VALUE_ZERO + 1)) {
-                    if (bestValue < futilityBase) {
-                        bestValue = futilityBase;
-                    }
+                    bestValue = std::max(futilityBase, bestValue);
                     continue;
                 }
             }
@@ -547,16 +542,14 @@ namespace {
             return matedIn(ss->ply); // Plies to mate from the root
         }
 
-        if (excludedMove == MOVE_NONE) {
-            tte->save(key,
-                      bestMove,
-                      valueToTT(bestValue, ss->ply),
-                      ss->staticEval,
-                      qsDepth,
-                      bestValue >= beta ? BOUND_LOWER :
-                      PVNode && bestValue > actualAlfa ? BOUND_EXACT : BOUND_UPPER,
-                      ttPV);
-        }
+        tte->save(key,
+                  bestMove,
+                  valueToTT(bestValue, ss->ply),
+                  ss->staticEval,
+                  qsDepth,
+                  bestValue >= beta ? BOUND_LOWER :
+                  PVNode && bestValue > actualAlfa ? BOUND_EXACT : BOUND_UPPER,
+                  ttPV);
 
         assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
         return bestValue;
@@ -944,10 +937,14 @@ namespace {
             if (!PVNode
              && depth > 4
              && std::abs(beta) < +VALUE_MATE_2_MAX_PLY
-             && (!ttHit
-              || tte->depth() < depth - 3
-              || ttValue == VALUE_NONE
-              || ttValue >= probCutBeta)
+                // if value from transposition table is lower than probCutBeta, don't attempt probCut
+                // there and in further interactions with transposition table cutoff depth is set to depth - 3
+                // because probCut search has depth set to depth - 4 but we also do a move before it
+                // so effective depth is equal to depth - 3
+             && !(ttHit
+               && tte->depth() >= depth - 3
+               && ttValue != VALUE_NONE
+               && ttValue < probCutBeta)
              && Limits.mate == 0) {
 
                 // if ttMove is a capture and value from transposition table is good enough produce probCut
@@ -1009,9 +1006,9 @@ namespace {
 
                     if (value >= probCutBeta) {
                         // If TT doesn't have equal or more deep info write probCut data into it
-                        if (!ttHit
-                         || tte->depth() < depth - 3
-                         || ttValue == VALUE_NONE) {
+                        if (!(ttHit
+                           && tte->depth() >= depth - 3
+                           && ttValue != VALUE_NONE)) {
                             tte->save(key,
                                       move,
                                       valueToTT(value, ss->ply),
@@ -1557,9 +1554,9 @@ namespace {
             bestValue = maxValue;
         }
 
-        if (excludedMove == MOVE_NONE
-         && !(rootNode
-           && thread->pvCur != 0)) {
+        //if (excludedMove == MOVE_NONE
+        // && !(rootNode
+        //   && thread->pvCur != 0))
             tte->save(key,
                       bestMove,
                       valueToTT(bestValue, ss->ply),
@@ -1568,7 +1565,6 @@ namespace {
                       bestValue >= beta ? BOUND_LOWER :
                       PVNode && bestMove != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
                       ttPV);
-        }
 
         assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
         return bestValue;
@@ -1858,9 +1854,9 @@ void Thread::search() {
                               + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 825.0,
                                 0.50, 1.50) };
 
-                pvChangeSum += Threadpool.sum(&Thread::pvChange);
+                pvChangeSum += Threadpool.accumulate(&Thread::pvChange, u32(0));
                 // Reset pv change
-                Threadpool.reset(&Thread::pvChange);
+                Threadpool.set(&Thread::pvChange, u32(0));
                 auto const pvInstability{ 1.00 + pvChangeSum / Threadpool.size() };
 
                 TimePoint const totalTime(
@@ -2020,7 +2016,7 @@ void MainThread::search() {
         if (u16(Options["Time Nodes"]) != 0) {
             // In 'Nodes as Time' mode, subtract the searched nodes from the total nodes.
             TimeMgr.totalNodes += Limits.clock[rootPos.activeSide()].inc
-                                - Threadpool.sum(&Thread::nodes);
+                                - Threadpool.accumulate(&Thread::nodes, u64(0));
         }
         bestValue = rm.newValue;
     }
@@ -2075,7 +2071,7 @@ void MainThread::tick() {
      || (Limits.moveTime != 0
       && Limits.moveTime <= elapsed)
      || (Limits.nodes != 0
-      && Limits.nodes <= Threadpool.sum(&Thread::nodes))) {
+      && Limits.nodes <= Threadpool.accumulate(&Thread::nodes, u64(0)))) {
         Threadpool.stop = true;
     }
 }

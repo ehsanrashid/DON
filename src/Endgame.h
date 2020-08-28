@@ -45,9 +45,6 @@ using EndgameType = typename std::conditional<C < SCALING_FUNCTIONS, Value, Scal
 template<typename T>
 class EndgameBase {
 
-protected:
-    using Base = EndgameBase;
-
 public:
 
     Color const
@@ -63,7 +60,6 @@ public:
     //EndgameBase& operator=(EndgameBase&&) = delete;
 
     virtual T operator()(Position const&) const = 0;
-
 };
 
 /// Derived functors for endgame evaluation and scaling functions
@@ -72,15 +68,12 @@ class Endgame :
     public EndgameBase<T> {
 
 public:
+    using EndgameBase<T>::EndgameBase;
 
-    explicit Endgame(Color c) :
-        EndgameBase<T>{ c }
-    {}
     Endgame& operator=(Endgame const&) = delete;
     //Endgame& operator=(Endgame&&) = delete;
 
     T operator()(Position const&) const override;
-
 };
 
 

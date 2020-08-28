@@ -793,6 +793,7 @@
     <ClInclude Include="src\ThreadWin32OSX.h" />
     <ClInclude Include="src\TieStreamBuf.h" />
     <ClInclude Include="src\TimeManager.h" />
+    <ClInclude Include="src\Timer.h" />
     <ClInclude Include="src\Transposition.h" />
     <ClInclude Include="src\Type.h" />
     <ClInclude Include="src\UCI.h" />

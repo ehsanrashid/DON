@@ -3,7 +3,6 @@
 #include <cassert>
 #include <cstring> // For std::memset(), std::memcmp()
 
-#include "Helper.h"
 #include "Thread.h"
 
 namespace Material {

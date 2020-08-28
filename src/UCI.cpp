@@ -816,7 +816,7 @@ namespace UCI {
                     else if (token == "go") {
                         go(is, pos, states);
                         Threadpool.mainThread()->waitIdle();
-                        nodes += Threadpool.sum(&Thread::nodes);
+                        nodes += Threadpool.accumulate(&Thread::nodes, u64(0));
                     }
                 }
                 else if (token == "setoption")  { setOption(is, pos); }

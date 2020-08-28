@@ -31,9 +31,6 @@ private:
     u16 index; // indentity
     NativeThread nativeThread;
 
-protected:
-    using Base = Thread;
-
 public:
 
     Position  rootPos;
@@ -105,7 +102,7 @@ class MainThread :
     public Thread {
 
 public:
-    using Base::Base;
+    using Thread::Thread;
 
     bool stopOnPonderHit;       // Stop search on ponderhit
     std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
@@ -132,13 +129,10 @@ class ThreadPool :
     public std::vector<Thread*> {
 
 private:
-
     StateListPtr setupStates;
 
-protected:
-    using Base = std::vector<Thread*>;
-
 public:
+    //using std::vector<Thread*>::vector;
 
     std::atomic<bool> stop, // Stop search forcefully
                       research;
@@ -149,17 +143,16 @@ public:
     virtual ~ThreadPool();
 
     template<typename T>
-    T sum(std::atomic<T> Thread::*member) const {
-        T s{};
+    T accumulate(std::atomic<T> Thread::*member, T init) const {
         for (auto *th : *this) {
-            s += (th->*member).load(std::memory_order::memory_order_relaxed);
+            init += (th->*member).load(std::memory_order::memory_order_relaxed);
         }
-        return s;
+        return init;
     }
     template<typename T>
-    void reset(std::atomic<T> Thread::*member) {
+    void set(std::atomic<T> Thread::*member, T value) const {
         for (auto *th : *this) {
-            th->*member = {};
+            th->*member = value;
         }
     }
 
@@ -185,3 +178,11 @@ namespace WinProcGroup {
 
 // Global ThreadPool
 extern ThreadPool Threadpool;
+
+enum OutputState : u08 { OS_LOCK, OS_UNLOCK };
+
+extern std::ostream& operator<<(std::ostream&, OutputState);
+
+#define sync_cout std::cout << OS_LOCK
+#define sync_endl std::endl << OS_UNLOCK
+
