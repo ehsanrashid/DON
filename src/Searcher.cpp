@@ -229,8 +229,8 @@ namespace {
     /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
     std::string multipvInfo(Thread const *th, Depth depth, Value alfa, Value beta) {
         auto const elapsed{ std::max(TimeMgr.elapsed(), { 1 }) };
-        auto const nodes{ Threadpool.accumulate(&Thread::nodes, u64(0)) };
-        auto const tbHits{ Threadpool.accumulate(&Thread::tbHits, u64(0))
+        auto const nodes{ Threadpool.accumulate(&Thread::nodes) };
+        auto const tbHits{ Threadpool.accumulate(&Thread::tbHits)
                          + th->rootMoves.size() * SyzygyTB::HasRoot };
 
         std::ostringstream oss{};
@@ -1854,9 +1854,9 @@ void Thread::search() {
                               + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 825.0,
                                 0.50, 1.50) };
 
-                pvChangeSum += Threadpool.accumulate(&Thread::pvChange, u32(0));
+                pvChangeSum += Threadpool.accumulate(&Thread::pvChange);
                 // Reset pv change
-                Threadpool.set(&Thread::pvChange, u32(0));
+                Threadpool.set(&Thread::pvChange, {0});
                 auto const pvInstability{ 1.00 + pvChangeSum / Threadpool.size() };
 
                 TimePoint const totalTime(
@@ -2016,7 +2016,7 @@ void MainThread::search() {
         if (u16(Options["Time Nodes"]) != 0) {
             // In 'Nodes as Time' mode, subtract the searched nodes from the total nodes.
             TimeMgr.totalNodes += Limits.clock[rootPos.activeSide()].inc
-                                - Threadpool.accumulate(&Thread::nodes, u64(0));
+                                - Threadpool.accumulate(&Thread::nodes);
         }
         bestValue = rm.newValue;
     }
@@ -2071,7 +2071,7 @@ void MainThread::tick() {
      || (Limits.moveTime != 0
       && Limits.moveTime <= elapsed)
      || (Limits.nodes != 0
-      && Limits.nodes <= Threadpool.accumulate(&Thread::nodes, u64(0)))) {
+      && Limits.nodes <= Threadpool.accumulate(&Thread::nodes))) {
         Threadpool.stop = true;
     }
 }

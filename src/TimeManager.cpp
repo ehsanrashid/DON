@@ -74,7 +74,7 @@ void TimeManager::setup(Color c, i16 ply) {
 TimePoint TimeManager::elapsed() const noexcept {
     return( u16(Options["Time Nodes"]) == 0 ?
                 now() - Limits.startTime :
-                Threadpool.accumulate(&Thread::nodes, u64(0)) );
+                Threadpool.accumulate(&Thread::nodes) );
 }
 
 void TimeManager::clear() noexcept {

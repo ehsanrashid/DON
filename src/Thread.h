@@ -143,17 +143,18 @@ public:
     virtual ~ThreadPool();
 
     template<typename T>
-    T accumulate(std::atomic<T> Thread::*member, T init) const {
-        for (auto *th : *this) {
-            init += (th->*member).load(std::memory_order::memory_order_relaxed);
-        }
-        return init;
-    }
-    template<typename T>
     void set(std::atomic<T> Thread::*member, T value) const {
         for (auto *th : *this) {
             th->*member = value;
         }
+    }
+
+    template<typename T>
+    T accumulate(std::atomic<T> Thread:: *member, T value = {}) const {
+        for (auto *th : *this) {
+            value += (th->*member).load(std::memory_order::memory_order_relaxed);
+        }
+        return value;
     }
 
     u16 size() const noexcept;
