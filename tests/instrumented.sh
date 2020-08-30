@@ -1,5 +1,5 @@
 #!/bin/bash
-# check for errors under valgrind or sanitizers.
+# Check for errors under valgrind or sanitizers.
 
 error()
 {
@@ -9,7 +9,7 @@ error()
 }
 trap 'error ${LINENO}' ERR
 
-# define suitable post and prefixes for testing options
+# Define suitable post and prefixes for testing options
 case $1 in
   --valgrind)
     echo "valgrind testing started"
@@ -68,7 +68,7 @@ export TSAN_OPTIONS="suppressions=./tsan.supp"
   ;;
 esac
 
-# simple command line testing
+# Simple command line testing
 for args in "eval" \
             "go nodes 1000" \
             "go depth 10" \
@@ -82,7 +82,7 @@ do
 
 done
 
-# more general testing, following an uci protocol exchange
+# More general testing, following an uci protocol exchange
 cat << EOF > game.exp
  set timeout 240
  spawn $exeprefix ./DON

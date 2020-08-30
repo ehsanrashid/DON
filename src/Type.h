@@ -70,12 +70,12 @@
 
 #if defined(USE_PEXT)
     #include <immintrin.h>  // Header for _pdep_u64() & _pext_u64() intrinsic
-    //#define PDEP(b, m) _pdep_u64(b, m) // Parallel bits deposit
-    #define PEXT(b, m) _pext_u64(b, m) // Parallel bits extract
+  //#define PDEP(b, m)  _pdep_u64(b, m) // Parallel bits deposit
+    #define PEXT(b, m)  _pext_u64(b, m) // Parallel bits extract
 #endif
 
-#define STRINGIFY(x)    #x
-#define STRING(x)       STRINGIFY(x)
+#define XSTRING(x)      #x
+#define STRINGIFY(x)    XSTRING(x)
 
 using i08  =  int8_t;
 using u08  = uint8_t;

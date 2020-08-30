@@ -62,28 +62,28 @@ string& trim(string &str) {
     return str;
 }
 
-#ifdef _WIN32
-#include <direct.h>
-#define GETCWD _getcwd
+#if defined(_WIN32)
+    #include <direct.h>
+    #define GETCWD(buff, size)  _getcwd(buff, size)
 #else
-#include <unistd.h>
-#define GETCWD getcwd
+    #include <unistd.h>
+    #define GETCWD(buff, size)  getcwd(buff, size)
 #endif
 
 namespace CommandLine {
 
-    string argv0;            // path+name of the executable binary, as given by argv[0]
     string binaryDirectory;  // path of the executable directory
     string workingDirectory; // path of the working directory
-    string pathSeparator;    // Separator for our current OS
 
     void initialize(int argc, char const *const *argv) {
         (void)argc;
         string separator;
 
-        // extract the path+name of the executable binary
+        string argv0; // path+name of the executable binary, as given by argv[0]
+        // Extract the path+name of the executable binary
         argv0 = argv[0];
 
+        string pathSeparator; // Separator for our current OS
 #if defined(_WIN32)
         pathSeparator = "\\";
     #if defined(_MSC_VER)
@@ -99,14 +99,14 @@ namespace CommandLine {
         pathSeparator = "/";
 #endif
 
-        // extract the working directory
+        // Extract the working directory
         workingDirectory = "";
         char buff[40000];
         char* cwd = GETCWD(buff, sizeof (buff));
         if (cwd != nullptr) {
             workingDirectory = cwd;
         }
-        // extract the binary directory path from argv0
+        // Extract the binary directory path from argv0
         binaryDirectory = argv0;
         size_t pos = binaryDirectory.find_last_of("\\/");
         if (pos == std::string::npos) {
@@ -116,7 +116,7 @@ namespace CommandLine {
             binaryDirectory.resize(pos + 1);
         }
 
-        // pattern replacement: "./" at the start of path is replaced by the working directory
+        // Pattern replacement: "./" at the start of path is replaced by the working directory
         if (binaryDirectory.find("." + pathSeparator) == 0) {
             binaryDirectory.replace(0, 1, workingDirectory);
         }

@@ -4,7 +4,6 @@
 #include <functional>
 #include <sstream>
 #include <string>
-#include <streambuf>
 
 #include "Type.h"
 
@@ -24,21 +23,9 @@ extern std::string& trim(std::string&);
 
 namespace CommandLine {
 
-    void initialize(int, char const *const*);
-
     extern std::string binaryDirectory;  // path of the executable directory
     extern std::string workingDirectory; // path of the working directory
+
+    extern void initialize(int, char const *const*);
 }
-
-// C++ way to prepare a buffer for a memory stream
-class MemoryBuffer :
-    public std::basic_streambuf<char> {
-
-public:
-
-    MemoryBuffer(char *p, size_t n) {
-        setg(p, p, p + n);
-        setp(p, p + n);
-    }
-};
 

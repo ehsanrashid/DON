@@ -89,14 +89,14 @@ string const compilerInfo() {
     ostringstream oss{};
     oss << "\nCompiled by ";
 
-#define VER_STRING(major, minor, patch) STRING(major) "." STRING(minor) "." STRING(patch)
+#define VER_STRING(major, minor, patch) STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(patch)
 
 #if defined(__clang__)
     oss << "clang++ " << VER_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
 #elif defined(__INTEL_COMPILER)
-    oss << "Intel compiler " << "(version " STRING(__INTEL_COMPILER) " update " STRING(__INTEL_COMPILER_UPDATE) ")";
+    oss << "Intel compiler " << "(version " STRINGIFY(__INTEL_COMPILER) " update " STRINGIFY(__INTEL_COMPILER_UPDATE) ")";
 #elif defined(_MSC_VER)
-    oss << "MSVC " << "(version " STRING(_MSC_FULL_VER) "." STRING(_MSC_BUILD) ")";
+    oss << "MSVC " << "(version " STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD) ")";
 #elif defined(__GNUC__)
     oss << "g++ (GNUC) " << VER_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
 #else

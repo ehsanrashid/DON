@@ -7,6 +7,7 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
+#include <streambuf>
 #include <vector>
 
 #include "BitBoard.h"
@@ -29,12 +30,24 @@
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
     INCBIN(EmbeddedNNUE, DefaultEvalFile);
 #else
-    const unsigned char        gEmbeddedNNUEData[1] = {0x0};
-    const unsigned char *const gEmbeddedNNUEEnd = &gEmbeddedNNUEData[1];
-    const unsigned int         gEmbeddedNNUESize = 1;
+    const unsigned char        gEmbeddedNNUEData[1] = { 0x0 };
+    const unsigned char *const gEmbeddedNNUEEnd     = &gEmbeddedNNUEData[1];
+    const unsigned int         gEmbeddedNNUESize    = 1;
 #endif
 
 using std::string;
+
+// C++ way to prepare a buffer for a memory stream
+class MemoryBuffer :
+    public std::basic_streambuf<char> {
+
+public:
+
+    MemoryBuffer(char *p, size_t n) {
+        setg(p, p, p + n);
+        setp(p, p + n);
+    }
+};
 
 namespace Evaluator {
 
@@ -55,12 +68,14 @@ namespace Evaluator {
 
         if (useNNUE) {
 
-            std::vector<string> directories
+            std::vector<string> directories{
+                  "<internal>"
+                , ""
+                , CommandLine::binaryDirectory
         #if defined(DEFAULT_NNUE_DIRECTORY)
-            { "<internal>" , "" , CommandLine::binaryDirectory , STRING(DEFAULT_NNUE_DIRECTORY) };
-        #else
-            { "<internal>" , "" , CommandLine::binaryDirectory };
+                , STRINGIFY(DEFAULT_NNUE_DIRECTORY)
         #endif
+            };
 
             for (string dir : directories) {
                 if (loadedEvalFile != evalFile) {

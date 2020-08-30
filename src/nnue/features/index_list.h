@@ -15,17 +15,23 @@ namespace Evaluator::NNUE::Features {
         size_t _size{ 0 };
 
     public:
+
         size_t size() const { return _size; }
         void resize(size_t size) { _size = size; }
         void push_back(T const &value) { _values[_size++] = value; }
+
         T &operator[](size_t index) { return _values[index]; }
-        T *begin() { return _values; }
-        T *end() { return _values + _size; }
+
+        T* begin() { return _values; }
+        T* end()  { return _values + _size; }
+
         T const &operator[](size_t index) const { return _values[index]; }
-        T const *begin() const { return _values; }
-        T const *end() const { return _values + _size; }
+
+        T const* begin() const { return _values; }
+        T const* end() const { return _values + _size; }
 
         void swap(ValueList &valueList) {
+
             size_t const maxSize{ std::max(_size, valueList._size) };
             for (size_t i = 0; i < maxSize; ++i) {
                 std::swap(_values[i], valueList._values[i]);

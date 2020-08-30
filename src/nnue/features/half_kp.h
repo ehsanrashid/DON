@@ -35,7 +35,6 @@ namespace Evaluator::NNUE::Features {
         // Get a list of indices for recently changed features
         static void appendChangedIndices(Position const&, Color, IndexList*, IndexList*);
 
-
     };
 
 }  // namespace Evaluator::NNUE::Features
