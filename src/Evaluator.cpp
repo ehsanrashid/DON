@@ -217,22 +217,22 @@ namespace Evaluator {
         };
 
         constexpr Score MinorThreat[PIECE_TYPES]{
-            S( 0, 0), S( 5,32), S(57,41), S(77,56), S(88,119), S(79,161), S( 0, 0)
+            S( 0, 0), S( 5,32), S(55,41), S(77,56), S(89,119), S(79,162), S( 0, 0)
         };
         constexpr Score MajorThreat[PIECE_TYPES]{
-            S( 0, 0), S( 3,46), S(37,68), S(42,60), S( 0, 38), S(58, 41), S( 0, 0)
+            S( 0, 0), S( 3,44), S(37,68), S(42,60), S( 0, 39), S(58, 43), S( 0, 0)
         };
 
         constexpr Score PasserRank[RANKS]{
-            S( 0, 0), S(10,28), S(17,33), S(15,41), S(62,72), S(168,177), S(276,260), S( 0, 0)
+            S( 0, 0), S( 9,28), S(15,31), S(17,39), S(64,70), S(171,177), S(277,260), S( 0, 0)
         };
 
         constexpr Score MinorBehindPawn   { S( 18,  3) };
-        constexpr Score KnightOutpost     { S( 56, 36) };
+        constexpr Score KnightOutpost     { S( 56, 34) };
         constexpr Score KnightReachOutpost{ S( 31, 22) };
         constexpr Score KnightBadOutpost  { S( -7, 36) };
         constexpr Score KnightKingProtect { S(  8,  9) };
-        constexpr Score BishopOutpost     { S( 30, 23) };
+        constexpr Score BishopOutpost     { S( 31, 23) };
         constexpr Score BishopKingProtect { S(  6,  9) };
         constexpr Score BishopOnDiagonal  { S( 45,  0) };
         constexpr Score BishopPawnsBlocked{ S(  3,  7) };
@@ -291,7 +291,7 @@ namespace Evaluator {
             Bitboard queenAttacked[COLORS][3];
 
             Bitboard mobArea[COLORS];
-            Score mobility[COLORS];
+            Score   mobility[COLORS];
 
             // The squares adjacent to the king plus some other very near squares, depending on king position.
             Bitboard kingRing[COLORS];
