@@ -453,7 +453,7 @@ namespace UCI {
         Options["Use NNUE"]           << Option(true, onUseNNUE);
 
 #if defined(_MSC_VER)
-        Options["Eval File"]          << Option("src/" STRING(DefaultEvalFile), onEvalFile);
+        Options["Eval File"]          << Option(string("src/") + DefaultEvalFile, onEvalFile);
 #else
         Options["Eval File"]          << Option(DefaultEvalFile, onEvalFile);
 #endif

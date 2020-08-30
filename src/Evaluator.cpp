@@ -7,7 +7,6 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <streambuf>
 #include <vector>
 
 #include "BitBoard.h"
@@ -56,33 +55,27 @@ namespace Evaluator {
 
         if (useNNUE) {
 
+            std::vector<string> directories
         #if defined(DEFAULT_NNUE_DIRECTORY)
-            std::vector<string> dirs = { "<internal>" , "" , CommandLine::binaryDirectory , STRING(DEFAULT_NNUE_DIRECTORY) };
+            { "<internal>" , "" , CommandLine::binaryDirectory , STRING(DEFAULT_NNUE_DIRECTORY) };
         #else
-            std::vector<string> dirs = { "<internal>" , "" , CommandLine::binaryDirectory };
+            { "<internal>" , "" , CommandLine::binaryDirectory };
         #endif
 
-            for (string directory : dirs) {
+            for (string dir : directories) {
                 if (loadedEvalFile != evalFile) {
 
-                    if (directory != "<internal>") {
-                        std::ifstream stream(directory + evalFile, std::ios::binary);
-                        if (NNUE::loadEvalFile(stream)) {
+                    if (dir != "<internal>") {
+                        std::ifstream ifstream(dir + evalFile, std::ios::binary);
+                        if (NNUE::loadEvalFile(ifstream)) {
                             loadedEvalFile = evalFile;
                         }
                     }
-
-                    if (directory == "<internal>"
-                     && evalFile == DefaultEvalFile) {
-                        // C++ way to prepare a buffer for a memory stream
-                        class MemoryBuffer : public std::basic_streambuf<char> {
-                        public: MemoryBuffer(char* p, size_t n) { setg(p, p, p + n); setp(p, p + n); }
-                        };
-
+                    else
+                    if (evalFile == DefaultEvalFile) {
                         MemoryBuffer buffer(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize));
-
-                        std::istream stream(&buffer);
-                        if (NNUE::loadEvalFile(stream)) {
+                        std::istream istream(&buffer);
+                        if (NNUE::loadEvalFile(istream)) {
                             loadedEvalFile = evalFile;
                         }
                     }

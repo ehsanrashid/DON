@@ -121,17 +121,17 @@ namespace Evaluator::NNUE {
         }
 
         // Read network parameters
-        bool readParameters(std::istream &is) {
+        bool readParameters(std::istream &istream) {
             u32 hashValue;
             std::string architecture;
-            if (!readHeader(is, &hashValue, &architecture)
+            if (!readHeader(istream, &hashValue, &architecture)
              || hashValue != HashValue
-             || !readParameters(is, featureTransformer)
-             || !readParameters(is, network)) {
+             || !readParameters(istream, featureTransformer)
+             || !readParameters(istream, network)) {
                 return false;
             }
-            return is
-                && is.peek() == std::ios::traits_type::eof();
+            return istream
+                && istream.peek() == std::ios::traits_type::eof();
         }
 
         // Calculate the evaluation value
@@ -155,9 +155,9 @@ namespace Evaluator::NNUE {
     }
 
     // Load the evaluation function file
-    bool loadEvalFile(std::istream &stream) {
+    bool loadEvalFile(std::istream &istream) {
         initialize();
-        return readParameters(stream);
+        return readParameters(istream);
     }
 
     // Evaluation function. Perform differential calculation.
