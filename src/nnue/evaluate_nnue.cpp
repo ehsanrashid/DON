@@ -1,6 +1,5 @@
 // Code for calculating NNUE evaluation function
 
-#include <fstream>
 #include <iostream>
 #include <set>
 
@@ -156,14 +155,9 @@ namespace Evaluator::NNUE {
     }
 
     // Load the evaluation function file
-    bool loadEvalFile(std::string const &evalFile) {
+    bool loadEvalFile(std::istream &stream) {
         initialize();
-
-        std::ifstream ifs(evalFile, std::ios::binary);
-        if (!ifs.is_open()) {
-            return false;
-        }
-        return readParameters(ifs);
+        return readParameters(stream);
     }
 
     // Evaluation function. Perform differential calculation.

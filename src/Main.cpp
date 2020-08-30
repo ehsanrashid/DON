@@ -5,6 +5,7 @@
 #include "Cuckoo.h"
 #include "Endgame.h"
 #include "Evaluator.h"
+#include "Helper.h"
 #include "Polyglot.h"
 #include "PSQTable.h"
 #include "Searcher.h"
@@ -19,6 +20,7 @@ int main(int argc, char const *const *argv) {
     std::cout << Name << " " << engineInfo() << " by " << Author << '\n';
     std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency() << '\n';
 
+    CommandLine::initialize(argc, argv);
     UCI::initialize();
     BitBoard::initialize();
     BitBase::initialize();

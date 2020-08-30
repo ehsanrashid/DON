@@ -74,6 +74,9 @@
     #define PEXT(b, m) _pext_u64(b, m) // Parallel bits extract
 #endif
 
+#define STRINGIFY(x)                    #x
+#define STRING(x)                       STRINGIFY(x)
+
 using i08  =  int8_t;
 using u08  = uint8_t;
 using i16  =  int16_t;

@@ -760,6 +760,7 @@
     <ClInclude Include="src\Endgame.h" />
     <ClInclude Include="src\Evaluator.h" />
     <ClInclude Include="src\Helper.h" />
+    <ClInclude Include="src\incbin\incbin.h" />
     <ClInclude Include="src\King.h" />
     <ClInclude Include="src\Logger.h" />
     <ClInclude Include="src\Material.h" />

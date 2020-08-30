@@ -12,9 +12,9 @@ about how to use DON with it.
 
 The DON engine features two evaluation functions for chess, the classical
 evaluation based on handcrafted terms, and the NNUE evaluation based on efficiently
-updateable neural networks. The classical evaluation runs efficiently on most 64bit
-CPU architectures, while the NNUE evaluation benefits strongly from the vector
-intrinsics available on modern CPUs (avx2 or similar).
+updateable neural networks. The classical evaluation runs efficiently on almost all
+CPU architectures, while the NNUE evaluation benefits from the vector
+intrinsics available on most CPUs (sse2, avx2, neon, or similar).
 
 ## Features
 
@@ -39,16 +39,17 @@ This distribution of DON consists of the following files:
 
   * Readme.md, the file you are currently reading.
 
-  * Copying.txt, a text file containing the GNU General Public License.
+  * Copying.txt, a text file containing the GNU General Public License version 3.
 
   * src, a subdirectory containing the full source code, including a Makefile
     that can be used to compile DON on Unix-like systems.
 
   * a file with the .nnue extension, storing the neural network for the NNUE 
-    evaluation.
+    evaluation. Binary distributions will have this file embedded.
 
 Note: to use the NNUE evaluation, the additional data file with neural network parameters
-needs to be downloaded. The filename for the default net can be found as the default
+needs to be available. Normally, this file is already embedded in the binary or it can be downloaded.
+The filename for the default (recommended) net can be found as the default
 value of the `Eval File` UCI option, with the format `nn-[SHA256 first 12 digits].nnue`
 (for instance, `nn-c157e0a5755b.nnue`). This file can be downloaded from
 ```
@@ -93,11 +94,14 @@ Currently, DON has the following UCI options:
 
   * #### Use NNUE
     Toggle between the NNUE and classical evaluation functions. If set to "true",
-    the network parameters must be available to load from file (see also `Eval File`).
+    the network parameters must be available to load from file (see also EvalFile),
+    if they are not embedded in the binary.
 
   * #### Eval File
     The name of the file of the NNUE evaluation parameters. Depending on the GUI the
-    filename should include the full path to the folder/directory that contains the file.
+    filename might have to include the full path to the folder/directory that contains the file.
+    Other locations, such as the directory that contains the binary and the working directory,
+    are also searched.
     
   * #### Overhead Move Time
     Assume a time delay of x ms due to network and GUI overheads. This is useful to

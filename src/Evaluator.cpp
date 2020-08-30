@@ -4,10 +4,14 @@
 #include <cstdlib>
 #include <algorithm>
 #include <iomanip>
-#include <sstream>
+#include <fstream>
 #include <iostream>
+#include <sstream>
+#include <streambuf>
+#include <vector>
 
 #include "BitBoard.h"
+#include "Helper.h"
 #include "King.h"
 #include "Material.h"
 #include "Pawns.h"
@@ -15,28 +19,84 @@
 #include "Notation.h"
 #include "Thread.h"
 #include "UCI.h"
+#include "incbin/incbin.h"
+
+// Macro to embed the default NNUE file data in the engine binary (using incbin.h, by Dale Weiler).
+// This macro invocation will declare the following three variables
+//     const unsigned char        gEmbeddedNNUEData[];  // a pointer to the embedded data
+//     const unsigned char *const gEmbeddedNNUEEnd;     // a marker to the end
+//     const unsigned int         gEmbeddedNNUESize;    // the size of the embedded file
+// Note that this does not work in Microsof Visual Studio.
+#if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
+    INCBIN(EmbeddedNNUE, DefaultEvalFile);
+#else
+    const unsigned char        gEmbeddedNNUEData[1] = {0x0};
+    const unsigned char *const gEmbeddedNNUEEnd = &gEmbeddedNNUEData[1];
+    const unsigned int         gEmbeddedNNUESize = 1;
+#endif
+
+using std::string;
 
 namespace Evaluator {
 
     bool useNNUE{ false };
-    std::string prevEvalFile{ "None" };
+    string loadedEvalFile{ "None" };
 
+    /// initializeNNUE() tries to load a nnue network at startup time, or when the engine
+    /// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
+    /// The name of the nnue network is always retrieved from the EvalFile option.
+    /// We search the given network in three locations: internally (the default
+    /// network may be embedded in the binary), in the active working directory and
+    /// in the engine directory. Distro packagers may define the DEFAULT_NNUE_DIRECTORY
+    /// variable to have the engine search in a special directory in their distro.
     void initializeNNUE() {
 
         useNNUE = Options["Use NNUE"];
-        auto evalFile{ std::string(Options["Eval File"]) };
-        if (useNNUE
-         && prevEvalFile != evalFile
-         && Evaluator::NNUE::loadEvalFile(evalFile)) {
-            prevEvalFile = evalFile;
+        auto evalFile{ string(Options["Eval File"]) };
+
+        if (useNNUE) {
+
+        #if defined(DEFAULT_NNUE_DIRECTORY)
+            std::vector<string> dirs = { "<internal>" , "" , CommandLine::binaryDirectory , STRING(DEFAULT_NNUE_DIRECTORY) };
+        #else
+            std::vector<string> dirs = { "<internal>" , "" , CommandLine::binaryDirectory };
+        #endif
+
+            for (string directory : dirs) {
+                if (loadedEvalFile != evalFile) {
+
+                    if (directory != "<internal>") {
+                        std::ifstream stream(directory + evalFile, std::ios::binary);
+                        if (NNUE::loadEvalFile(stream)) {
+                            loadedEvalFile = evalFile;
+                        }
+                    }
+
+                    if (directory == "<internal>"
+                     && evalFile == DefaultEvalFile) {
+                        // C++ way to prepare a buffer for a memory stream
+                        class MemoryBuffer : public std::basic_streambuf<char> {
+                        public: MemoryBuffer(char* p, size_t n) { setg(p, p, p + n); setp(p, p + n); }
+                        };
+
+                        MemoryBuffer buffer(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize));
+
+                        std::istream stream(&buffer);
+                        if (NNUE::loadEvalFile(stream)) {
+                            loadedEvalFile = evalFile;
+                        }
+                    }
+
+                }
+            }
         }
     }
 
     void verifyNNUE() {
 
-        auto evalFile{ std::string(Options["Eval File"]) };
+        auto evalFile{ string(Options["Eval File"]) };
         if (useNNUE) {
-            if (prevEvalFile != evalFile) {
+            if (loadedEvalFile != evalFile) {
                 sync_cout << "info string ERROR: NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully.\n"
                           << "info string ERROR: These network evaluation parameters must be available, and compatible with this version of the code.\n"
                           << "info string ERROR: The UCI option 'Eval File' might need to specify the full path, including the directory/folder name, to the file.\n"
@@ -1128,7 +1188,7 @@ namespace Evaluator {
 
     /// trace() returns a string (suitable for outputting to stdout for debugging)
     /// that contains the detailed descriptions and values of each evaluation term.
-    std::string trace(Position const &pos) {
+    string trace(Position const &pos) {
         if (pos.checkers() != 0) {
             return "Evaluation: none (in check)\n";
         }

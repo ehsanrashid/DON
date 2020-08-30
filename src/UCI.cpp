@@ -89,8 +89,6 @@ string const compilerInfo() {
     ostringstream oss{};
     oss << "\nCompiled by ";
 
-#define STRINGIFY(x)                    #x
-#define STRING(x)                       STRINGIFY(x)
 #define VER_STRING(major, minor, patch) STRING(major) "." STRING(minor) "." STRING(patch)
 
 #if defined(__clang__)
@@ -176,8 +174,6 @@ string const compilerInfo() {
     oss << '\n';
 
 #undef VER_STRING
-#undef STRING
-#undef STRINGIFY
 
     return oss.str();
 }
@@ -455,12 +451,11 @@ namespace UCI {
         Options["SyzygyMove50Rule"]   << Option(true);
 
         Options["Use NNUE"]           << Option(true, onUseNNUE);
-        // The default must follow the format nn-[SHA256 first 12 digits].nnue
-        // for the build process (profile-build and fishtest) to work.
+
 #if defined(_MSC_VER)
-        Options["Eval File"]          << Option("src/nn-82215d0fd0df.nnue", onEvalFile);
+        Options["Eval File"]          << Option("src/" STRING(DefaultEvalFile), onEvalFile);
 #else
-        Options["Eval File"]          << Option("nn-82215d0fd0df.nnue", onEvalFile);
+        Options["Eval File"]          << Option(DefaultEvalFile, onEvalFile);
 #endif
 
         Options["Debug File"]         << Option("", onDebugFile);

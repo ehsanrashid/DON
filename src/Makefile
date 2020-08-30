@@ -347,8 +347,11 @@ ifeq ($(COMP), clang)
 	CXX = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
-	ifneq ($(filter $(KERNEL), Darwin OpenBSD), )
-		LDFLAGS += -latomic
+	#ifneq ($(filter $(KERNEL), Darwin OpenBSD), )	
+	ifneq ($(KERNEL), Darwin)
+		ifneq ($(KERNEL), OpenBSD)
+			LDFLAGS += -latomic
+		endif
 	endif
 
 	ifeq ($(arch), $(filter $(arch), armv7 armv8))
@@ -599,8 +602,10 @@ ifeq ($(optimize), yes)
 		# So, only enable it for a cross from Linux by default.
 		else ifeq ($(comp), mingw)
 			ifeq ($(KERNEL), Linux)
-				CXXFLAGS += -flto
-				LDFLAGS += $(CXXFLAGS) -flto=jobserver
+				ifneq ($(arch), i386)
+					CXXFLAGS += -flto
+					LDFLAGS += $(CXXFLAGS) -flto=jobserver
+				endif
 			endif
 		endif
 	endif
@@ -694,7 +699,7 @@ endif
         gcc-profile-use gcc-profile-make \
         clang-profile-use clang-profile-make
 
-build: config-sanity
+build: config-sanity net
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
 
 profile-build: net config-sanity objclean profileclean
@@ -724,8 +729,9 @@ install:
 clean: objclean profileclean
 	@rm -f .depend *~ core
 
+# Evaluation network (nnue)
 net:
-	$(eval nnuenet := $(shell grep 'Eval File' UCI.cpp | grep Option | sed 's/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/'))
+	$(eval nnuenet := $(shell grep DefaultEvalFile Evaluator.h | grep define | sed 's/.*\(nn-[a-z0-9]\{12\}.nnue\).*/\1/'))
 	@echo "Default net: $(nnuenet)"
 	$(eval nnuedownloadurl := https://tests.stockfishchess.org/api/nn/$(nnuenet))
 	$(eval curl_or_wget := $(shell if hash curl 2>/dev/null; then echo "curl -skL"; elif hash wget 2>/dev/null; then echo "wget -qO-"; fi))

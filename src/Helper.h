@@ -20,3 +20,12 @@ extern std::string& replace(std::string&, char const, char const);
 extern std::string& ltrim(std::string&);
 extern std::string& rtrim(std::string&);
 extern std::string& trim(std::string&);
+
+namespace CommandLine {
+
+    void initialize(int, char const *const*);
+
+    extern std::string binaryDirectory;  // path of the executable directory
+    extern std::string workingDirectory; // path of the working directory
+}
+
