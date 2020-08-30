@@ -1651,7 +1651,7 @@ void Thread::search() {
     i16 iterIdx{ 0 };
 
     double timeReduction{ 1.0 };
-    double pvChange{ 0.0 };
+    double pvChanges{ 0.0 };
     i16 researchCount{ 0 };
 
     auto bestValue{ -VALUE_INFINITE };
@@ -1694,7 +1694,7 @@ void Thread::search() {
         if (mainThread != nullptr
          && Limits.useTimeMgmt()) {
             // Age out PV variability metric
-            pvChange /= 2;
+            pvChanges /= 2;
         }
 
         // Save the last iteration's values before first PV line is searched and
@@ -1854,10 +1854,10 @@ void Thread::search() {
                               + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 825.0,
                                 0.50, 1.50) };
 
-                pvChange += Threadpool.accumulate(&Thread::pvChange);
+                pvChanges += Threadpool.accumulate(&Thread::pvChange);
                 // Reset pv change
                 Threadpool.set(&Thread::pvChange, { 0 });
-                auto const pvInstability{ 1.00 + pvChange / Threadpool.size() };
+                auto const pvInstability{ 1.00 + pvChanges / Threadpool.size() };
 
                 TimePoint const totalTime(
                     rootMoves.size() > 1 ?
