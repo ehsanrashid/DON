@@ -81,15 +81,15 @@ namespace Evaluator {
                 if (loadedEvalFile != evalFile) {
 
                     if (dir != "<internal>") {
-                        std::ifstream ifstream(dir + evalFile, std::ios::binary);
+                        std::ifstream ifstream{ dir + evalFile, std::ios::binary };
                         if (NNUE::loadEvalFile(ifstream)) {
                             loadedEvalFile = evalFile;
                         }
                     }
                     else
                     if (evalFile == DefaultEvalFile) {
-                        MemoryBuffer buffer(const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize));
-                        std::istream istream(&buffer);
+                        MemoryBuffer buffer{ const_cast<char *>(reinterpret_cast<const char *>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize) };
+                        std::istream istream{ &buffer };
                         if (NNUE::loadEvalFile(istream)) {
                             loadedEvalFile = evalFile;
                         }
@@ -147,18 +147,18 @@ namespace Evaluator {
 
         Score Tracer::Scores[TERMS][COLORS];
 
-        std::ostream& operator<<(std::ostream &os, Term t) {
+        std::ostream& operator<<(std::ostream &ostream, Term t) {
             if (t == MATERIAL
              || t == IMBALANCE
              || t == SCALING
              || t == TOTAL) {
-                os << " | ------ ------" << " | ------ ------";
+                ostream << " | ------ ------" << " | ------ ------";
             }
             else {
-                os << " | " << Tracer::Scores[t][WHITE] << " | " << Tracer::Scores[t][BLACK];
+                ostream << " | " << Tracer::Scores[t][WHITE] << " | " << Tracer::Scores[t][BLACK];
             }
-            os << " | " << Tracer::Scores[t][WHITE] - Tracer::Scores[t][BLACK] << " |\n";
-            return os;
+            ostream << " | " << Tracer::Scores[t][WHITE] - Tracer::Scores[t][BLACK] << " |\n";
+            return ostream;
         }
 
         constexpr Bitboard CenterBB{ (FileBB[FILE_D]|FileBB[FILE_E]) & (RankBB[RANK_4]|RankBB[RANK_5]) };
@@ -405,9 +405,7 @@ namespace Evaluator {
                 assert(pos[s] == (Own|PT));
 
                 Bitboard const action{
-                    contains(kingBlockers, s) ?
-                        lineBB(kSq, s) :
-                        BoardBB };
+                    contains(kingBlockers, s) ? lineBB(kSq, s) : BoardBB };
 
                 // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
                 Bitboard attacks{
@@ -499,13 +497,13 @@ namespace Evaluator {
                          && Options["UCI_Chess960"]
                          && (relativeSq(Own, s) == SQ_A1
                           || relativeSq(Own, s) == SQ_H1)) {
+
                             auto const Push{ PawnPush[Own] };
                             auto const del{ Push + sign(FILE_E - sFile(s)) * EAST };
                             if (contains(pos.pieces(Own, PAWN), s + del)) {
                                 score -= BishopTrapped
-                                        * (!contains(pos.pieces(), s + del + Push) ?
-                                                !contains(pos.pieces(Own, PAWN), s + del + del) ?
-                                                    1 : 2 : 4);
+                                       * (contains(pos.pieces(), s + del + Push)         ? 4 :
+                                          contains(pos.pieces(Own, PAWN), s + del + del) ? 2 : 1);
                             }
                         }
                     }
@@ -616,8 +614,7 @@ namespace Evaluator {
             Bitboard const safeArea{
                  ~pos.pieces(Opp)
               & (~sqlAttacks[Own][NONE]
-               | (weakArea
-                & dblAttacks[Opp])) };
+               | (weakArea & dblAttacks[Opp])) };
 
             Bitboard unsafeCheck{ 0 };
 
@@ -817,8 +814,7 @@ namespace Evaluator {
             // Defended or Unattacked squares
             Bitboard safeArea{
                 ~sqlAttacks[Opp][NONE]
-              | (sqlAttacks[Own][NONE]
-               & ~dblAttacks[Opp])
+              | (sqlAttacks[Own][NONE] & ~dblAttacks[Opp])
               | dblAttacks[Own] };
 
             // Safe friend pawns
@@ -892,8 +888,7 @@ namespace Evaluator {
                 Bitboard const helpers{
                     pawnSglPushBB<Own>(pos.pieces(Own, PAWN))
                   & ~pos.pieces(Opp)
-                  & (~dblAttacks[Opp]
-                   |  sqlAttacks[Own][NONE]) };
+                  & (~dblAttacks[Opp] | sqlAttacks[Own][NONE]) };
                 // Remove blocked otherwise
                 pass &= ~blockedPass
                       | shift<WEST>(helpers)
@@ -1126,8 +1121,7 @@ namespace Evaluator {
                   - pos.count(~strongSide|PAWN) <= 1
                  && bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_KING])
                  != bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_QUEN])
-                 && (sqlAttacks[~strongSide][KING]
-                   & pos.pieces(~strongSide, PAWN)) != 0) {
+                 && (sqlAttacks[~strongSide][KING] & pos.pieces(~strongSide, PAWN)) != 0) {
                     scale = Scale(36);
                 }
                 else

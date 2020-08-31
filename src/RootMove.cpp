@@ -52,9 +52,9 @@ std::string RootMove::toString() const {
     return oss.str();
 }
 
-std::ostream& operator<<(std::ostream &os, RootMove const &rm) {
-    os << rm.toString();
-    return os;
+std::ostream& operator<<(std::ostream &ostream, RootMove const &rm) {
+    ostream << rm.toString();
+    return ostream;
 }
 
 RootMoves::RootMoves(Position const &pos) :
@@ -120,14 +120,12 @@ bool RootMoves::contains(u16 iBeg, u16 iEnd, Move m) const {
 }
 
 u16 RootMoves::bestCount(Move m) const {
-    //return contains(m) ?
-    //        find(m)->bestCount : 0;
+    //return contains(m) ? find(m)->bestCount : 0;
     auto rm{ find(m) };
     return rm != end() ? rm->bestCount : 0;
 }
 u16 RootMoves::bestCount(u16 iBeg, u16 iEnd, Move m) const {
-    //return contains(iBeg, iEnd, m) ?
-    //        find(iBeg, iEnd, m)->bestCount : 0;
+    //return contains(iBeg, iEnd, m) ? find(iBeg, iEnd, m)->bestCount : 0;
     auto rm{ find(iBeg, iEnd, m) };
     return rm != (begin() + iEnd) ? rm->bestCount : 0;
 }
@@ -136,16 +134,14 @@ RootMoves::iterator RootMoves::find(Move m) {
     return std::find(begin(), end(), m);
 }
 RootMoves::iterator RootMoves::find(u16 iBeg, u16 iEnd, Move m) {
-    return std::find(begin() + iBeg,
-                     begin() + iEnd, m);
+    return std::find(begin() + iBeg, begin() + iEnd, m);
 }
 
 void RootMoves::stableSort() {
     std::stable_sort(begin(), end());
 }
 void RootMoves::stableSort(u16 iBeg, u16 iEnd) {
-    std::stable_sort(begin() + iBeg,
-                     begin() + iEnd);
+    std::stable_sort(begin() + iBeg, begin() + iEnd);
 }
 
 void RootMoves::saveValues() {
@@ -166,7 +162,7 @@ std::string RootMoves::toString() const {
     return oss.str();
 }
 
-std::ostream& operator<<(std::ostream &os, RootMoves const &rms) {
-    os << rms.toString();
-    return os;
+std::ostream& operator<<(std::ostream &ostream, RootMoves const &rms) {
+    ostream << rms.toString();
+    return ostream;
 }

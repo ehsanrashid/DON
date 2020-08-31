@@ -48,17 +48,17 @@ namespace Evaluator::NNUE::Layers {
         }
 
         // Read network parameters
-        bool readParameters(std::istream &is) {
-            if (!_previousLayer.readParameters(is)) {
+        bool readParameters(std::istream &istream) {
+            if (!_previousLayer.readParameters(istream)) {
                 return false;
             }
             for (size_t i = 0; i < OutputDimensions; ++i) {
-                _biases[i] = readLittleEndian<BiasType>(is);
+                _biases[i] = readLittleEndian<BiasType>(istream);
             }
             for (size_t i = 0; i < OutputDimensions * PaddedInputDimensions; ++i) {
-                _weights[i] = readLittleEndian<WeightType>(is);
+                _weights[i] = readLittleEndian<WeightType>(istream);
             }
-            return !is.fail();
+            return !istream.fail();
         }
 
         // Forward propagation

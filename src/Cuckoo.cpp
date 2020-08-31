@@ -33,9 +33,9 @@ bool Cuckoo::operator!=(Cuckoo const &ck) const noexcept {
 
 Key Cuckoo::key() const noexcept {
     return empty() ? 0 :
-           RandZob.side
-         ^ RandZob.psq[piece][sq1]
-         ^ RandZob.psq[piece][sq2];
+                     RandZob.side
+                   ^ RandZob.psq[piece][sq1]
+                   ^ RandZob.psq[piece][sq2];
 }
 
 namespace Cuckoos {
@@ -44,9 +44,7 @@ namespace Cuckoos {
 
 
     constexpr u16 nextHash(Key key, u16 h) noexcept {
-        return hash<0>(key) == h ?
-                hash<1>(key) :
-                hash<0>(key);
+        return hash<0>(key) == h ? hash<1>(key) : hash<0>(key);
     }
 
     void place(Cuckoo &cuckoo) noexcept {

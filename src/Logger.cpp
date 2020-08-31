@@ -34,9 +34,9 @@ namespace {
         return str;
     }
 
-    std::ostream& operator<<(std::ostream &os, std::chrono::system_clock::time_point const &timePoint) {
-        os << toString(timePoint);
-        return os;
+    std::ostream& operator<<(std::ostream &ostream, std::chrono::system_clock::time_point const &timePoint) {
+        ostream << toString(timePoint);
+        return ostream;
     }
 
 }

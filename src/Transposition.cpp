@@ -109,43 +109,29 @@ namespace {
             return nullptr;
         }
         // We need SeLockMemoryPrivilege, so try to enable it for the process
-        if (!OpenProcessToken(GetCurrentProcess(),
-                              TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY,
-                              &processHandle)) {
+        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &processHandle)) {
             return nullptr;
         }
-        
-        if (LookupPrivilegeValue(NULL, SE_LOCK_MEMORY_NAME, &luid)) {
-            TOKEN_PRIVILEGES currTp{ };
-            TOKEN_PRIVILEGES prevTp{ };
-            DWORD prevTpLen{ 0 };
 
-            currTp.PrivilegeCount = 1;
-            currTp.Privileges[0].Luid = luid;
-            currTp.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
+        if (LookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &luid)) {
+            TOKEN_PRIVILEGES currTP{};
+            TOKEN_PRIVILEGES prevTP{};
+            DWORD prevTPLen{ 0 };
+
+            currTP.PrivilegeCount = 1;
+            currTP.Privileges[0].Luid = luid;
+            currTP.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
 
             // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
             // we still need to query GetLastError() to ensure that the privileges were actually obtained...
-            if (AdjustTokenPrivileges(processHandle,
-                                      FALSE,
-                                      &currTp,
-                                      sizeof (TOKEN_PRIVILEGES),
-                                      &prevTp,
-                                      &prevTpLen)
+            if (AdjustTokenPrivileges(processHandle, FALSE, &currTP, sizeof (TOKEN_PRIVILEGES), &prevTP, &prevTPLen)
              && GetLastError() == ERROR_SUCCESS) {
                 // round up size to full pages and allocate
                 mSize = (mSize + LargePageSize - 1) & ~size_t(LargePageSize - 1);
-                mem = VirtualAlloc(nullptr,
-                                   mSize,
-                                   MEM_RESERVE|MEM_COMMIT|MEM_LARGE_PAGES,
-                                   PAGE_READWRITE);
+                mem = VirtualAlloc(nullptr, mSize, MEM_RESERVE|MEM_COMMIT|MEM_LARGE_PAGES, PAGE_READWRITE);
+
                 // privilege no longer needed, restore previous state
-                AdjustTokenPrivileges(processHandle,
-                                      FALSE,
-                                      &prevTp,
-                                      0,
-                                      NULL,
-                                      NULL);
+                AdjustTokenPrivileges(processHandle, FALSE, &prevTP, 0, nullptr, nullptr);
             }
         }
         CloseHandle(processHandle);
@@ -169,10 +155,7 @@ namespace {
 
         // Fall back to regular, page aligned, allocation if necessary
         if (mem == nullptr) {
-            mem = VirtualAlloc(NULL,
-                               mSize,
-                               MEM_RESERVE|MEM_COMMIT,
-                               PAGE_READWRITE);
+            mem = VirtualAlloc(nullptr, mSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
         }
         return mem;
     }
@@ -182,11 +165,13 @@ namespace {
     #include <sys/mman.h>
 
     void* allocAlignedMemory(void *&mem, size_t mSize) noexcept {
+
         constexpr size_t alignment{ 2 * 1024 * 1024 };                      // assumed 2MB page sizes
         size_t size{ ((mSize + alignment - 1) / alignment) * alignment };   // multiple of alignment
         if (posix_memalign(&mem, alignment, size) == 0) {
         #if defined(MADV_HUGEPAGE)
             if (madvise(mem, mSize, MADV_HUGEPAGE) == 0) {
+                // HUGEPAGE aligned
             }
         #endif
         }
@@ -195,9 +180,9 @@ namespace {
         }
         return mem;
     }
-
 #else
     void* allocAlignedMemory(void *&mem, size_t mSize) noexcept {
+
         constexpr size_t alignment{ 64 };        // assumed cache line size
         size_t size{ mSize + alignment - 1 };    // allocate some extra space
         mem = malloc(size);
@@ -209,21 +194,19 @@ namespace {
  
     /// freeAlignedMemory will free the previously allocated ttmem
 #if defined(_WIN64)
-    void freeAlignedMemory(void *mem) noexcept {
+    void freeAlignedMemory(void *&mem) noexcept {
         if (mem != nullptr) {
-            if (VirtualFree(mem,
-                            0,
-                            MEM_RELEASE)) {
-                mem = nullptr;
-            }
-            else {
+            if (VirtualFree(mem, 0, MEM_RELEASE) == 0) {
+                DWORD err = GetLastError();
+                std::cerr << "Failed to free transposition table. Error code: 0x" << std::hex << err << std::dec << '\n';
                 std::exit(EXIT_FAILURE);
             }
+            mem = nullptr;
         }
     }
 
 #else
-    void freeAlignedMemory(void *mem) noexcept {
+    void freeAlignedMemory(void *&mem) noexcept {
         if (mem != nullptr) {
             free(mem);
             mem = nullptr;
@@ -318,9 +301,7 @@ void TTable::clear() {
                 // Each thread will zero its part of the hash table
                 auto const stride{ clusterCount / threadCount };
                 auto const start{ stride * index };
-                auto const count{ index != threadCount - 1 ?
-                                    stride :
-                                    clusterCount - start };
+                auto const count{ index != threadCount - 1 ? stride : clusterCount - start };
                 std::memset(&clusterTable[start], 0, count * sizeof (TCluster));
             });
     }
@@ -364,8 +345,7 @@ Move TTable::extractNextMove(Position &pos, Move m) const noexcept {
     pos.doMove(m, si);
     bool ttHit;
     auto const *tte{ probe(pos.posiKey(), ttHit) };
-    auto nm{ ttHit ?
-                tte->move() : MOVE_NONE };
+    auto nm{ ttHit ? tte->move() : MOVE_NONE };
     if (nm != MOVE_NONE
      && !(pos.pseudoLegal(nm)
        && pos.legal(nm))) {
@@ -407,31 +387,31 @@ void TTable::load(std::string const &hashFile) {
 
 constexpr u32 BufferSize{ 0x1000 };
 
-std::ostream& operator<<(std::ostream &os, TTable const &tt) {
+std::ostream& operator<<(std::ostream &ostream, TTable const &tt) {
     u32 const memSize{ tt.size() };
     u08 dummy{ 0 };
-    os.write((char const*)(&memSize), sizeof (memSize));
-    os.write((char const*)(&dummy), sizeof (dummy));
-    os.write((char const*)(&dummy), sizeof (dummy));
-    os.write((char const*)(&dummy), sizeof (dummy));
-    os.write((char const*)(&TEntry::Generation), sizeof (TEntry::Generation));
+    ostream.write((char const*)(&memSize), sizeof (memSize));
+    ostream.write((char const*)(&dummy), sizeof (dummy));
+    ostream.write((char const*)(&dummy), sizeof (dummy));
+    ostream.write((char const*)(&dummy), sizeof (dummy));
+    ostream.write((char const*)(&TEntry::Generation), sizeof (TEntry::Generation));
     for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
-        os.write((char const*)(&tt.clusterTable[i*BufferSize]), sizeof (TCluster)*BufferSize);
+        ostream.write((char const*)(&tt.clusterTable[i*BufferSize]), sizeof (TCluster)*BufferSize);
     }
-    return os;
+    return ostream;
 }
 
-std::istream& operator>>(std::istream &is, TTable       &tt) {
+std::istream& operator>>(std::istream &istream, TTable       &tt) {
     u32 memSize;
     u08 dummy;
-    is.read((char*)(&memSize), sizeof (memSize));
-    is.read((char*)(&dummy), sizeof (dummy));
-    is.read((char*)(&dummy), sizeof (dummy));
-    is.read((char*)(&dummy), sizeof (dummy));
-    is.read((char*)(&TEntry::Generation), sizeof (TEntry::Generation));
+    istream.read((char*)(&memSize), sizeof (memSize));
+    istream.read((char*)(&dummy), sizeof (dummy));
+    istream.read((char*)(&dummy), sizeof (dummy));
+    istream.read((char*)(&dummy), sizeof (dummy));
+    istream.read((char*)(&TEntry::Generation), sizeof (TEntry::Generation));
     tt.resize(memSize);
     for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
-        is.read((char*)(&tt.clusterTable[i*BufferSize]), sizeof (TCluster)*BufferSize);
+        istream.read((char*)(&tt.clusterTable[i*BufferSize]), sizeof (TCluster)*BufferSize);
     }
-    return is;
+    return istream;
 }

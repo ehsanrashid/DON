@@ -102,11 +102,11 @@ namespace Evaluator::NNUE {
     // from a stream in little-endian order. We swap the byte order after the read if
     // necessary to return a result with the byte ordering of the compiling machine.
     template <typename IntType>
-    inline IntType readLittleEndian(std::istream &is) {
+    inline IntType readLittleEndian(std::istream &istream) {
 
         // Read the relevant bytes from the stream in little-endian order
         u08 u[sizeof (IntType)];
-        is.read(reinterpret_cast<char*>(u), sizeof (IntType));
+        istream.read(reinterpret_cast<char*>(u), sizeof (IntType));
         // Use unsigned arithmetic to convert to machine order
         typename std::make_unsigned<IntType>::type v = 0;
         for (size_t i = 0; i < sizeof (IntType); ++i) {

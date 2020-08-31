@@ -299,19 +299,16 @@ template<> void generate<LEGAL>(ValMoves &moves, Position const &pos) {
     Bitboard const pinneds{ pos.pieces( activeSide) & pos.kingBlockers(activeSide) };
 
     // Filter illegal moves
-    moves.erase(
-        std::remove_if(
-            moves.begin(), moves.end(),
-            [&](ValMove const &vm) {
-                return (mType(vm) == SIMPLE
-                     && orgSq(vm) == fkSq
-                     && (pos.attackersTo(dstSq(vm), mocc) & enemies) != 0)
-                    || ((contains(pinneds, orgSq(vm))
-                      || mType(vm) == CASTLE
-                      || mType(vm) == ENPASSANT)
-                     && !pos.legal(vm));
-            }),
-        moves.end());
+    moves.erase(std::remove_if(moves.begin(), moves.end(),
+                                [&](ValMove const &vm) {
+                                    return (mType(vm) == SIMPLE
+                                         && orgSq(vm) == fkSq
+                                         && (pos.attackersTo(dstSq(vm), mocc) & enemies) != 0)
+                                        || ((contains(pinneds, orgSq(vm))
+                                          || mType(vm) == CASTLE
+                                          || mType(vm) == ENPASSANT)
+                                         && !pos.legal(vm));
+                                }), moves.end());
 }
 
 void Perft::operator+=(Perft const &perft) noexcept {

@@ -47,8 +47,7 @@ namespace Evaluator::NNUE {
 #if defined(POSIX_ALIGNED_MEM)
             void *mem;
             return posix_memalign(&mem, alignment, size) == 0 ?
-                    mem :
-                    nullptr;
+                    mem : nullptr;
 #elif defined(_WIN32)
             return _mm_malloc(size, alignment);
 #else
@@ -96,28 +95,28 @@ namespace Evaluator::NNUE {
         }
 
         /// Read network header
-        bool readHeader(std::istream &is, u32 *hashValue, std::string *architecture) {
-            u32 const version{ readLittleEndian<u32>(is) };
-            *hashValue = readLittleEndian<u32>(is);
-            u32 const size{ readLittleEndian<u32>(is) };
+        bool readHeader(std::istream &istream, u32 *hashValue, std::string *architecture) {
+            u32 const version{ readLittleEndian<u32>(istream) };
+            *hashValue = readLittleEndian<u32>(istream);
+            u32 const size{ readLittleEndian<u32>(istream) };
 
-            if (!is
+            if (!istream
              || version != Version) {
                 return false;
             }
             architecture->resize(size);
-            is.read(&(*architecture)[0], size);
-            return !is.fail();
+            istream.read(&(*architecture)[0], size);
+            return !istream.fail();
         }
 
         /// Read evaluation function parameters
         template<typename T>
-        bool readParameters(std::istream &is, AlignedPtr<T> const &pointer) {
-            u32 const header{ readLittleEndian<u32>(is) };
-            return !is
+        bool readParameters(std::istream &istream, AlignedPtr<T> const &pointer) {
+            u32 const header{ readLittleEndian<u32>(istream) };
+            return !istream
                 || header != T::getHashValue() ?
                 false :
-                pointer->readParameters(is);
+                pointer->readParameters(istream);
         }
 
         // Read network parameters

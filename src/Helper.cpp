@@ -33,17 +33,13 @@ string& replace(string &str, char const oldCh, char const newCh) {
 }
 
 string& ltrim(string& str) {
-    str.erase(
-        str.begin(),
-        std::find_if(str.begin(), str.end(),
-            [](int ch) { return !(std::isspace(ch) || ch == '\0'); }));
+    str.erase(str.begin(),
+              std::find_if(str.begin(), str.end(), [](int ch) { return !(std::isspace(ch) || ch == '\0'); }));
     return str;
 }
 string& rtrim(string& str) {
-    str.erase(
-        std::find_if(str.rbegin(), str.rend(),
-            [](int ch) { return !(std::isspace(ch) || ch == '\0'); }).base(),
-        str.end());
+    str.erase(std::find_if(str.rbegin(), str.rend(), [](int ch) { return !(std::isspace(ch) || ch == '\0'); }).base(),
+              str.end());
     return str;
 }
 string& trim(string &str) {

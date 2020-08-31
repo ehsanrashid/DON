@@ -8,7 +8,6 @@
 #include "UCI.h"
 
 using std::string;
-using std::ostream;
 
 string const PieceChar{ " PNBRQK  pnbrqk" };
 string const ColorChar{ "wb" };
@@ -47,9 +46,7 @@ string toString(Value v) {
         oss << "cp " << i32(toCP(v));
     }
     else {
-        oss << "mate " << i16(v > 0 ?
-                            +VALUE_MATE - v + 1 :
-                            -VALUE_MATE - v + 0) / 2;
+        oss << "mate " << i16(v > 0 ? +VALUE_MATE - v + 1 : -VALUE_MATE - v + 0) / 2;
     }
     return oss.str();
 }
@@ -102,37 +99,37 @@ Move moveOfCAN(string const &can, Position const &pos) {
 }
 
 
-ostream& operator<<(ostream &os, Color c) {
-    os << toChar(c);
-    return os;
+std::ostream& operator<<(std::ostream &ostream, Color c) {
+    ostream << toChar(c);
+    return ostream;
 }
-ostream& operator<<(ostream &os, File f) {
-    os << toChar(f);
-    return os;
+std::ostream& operator<<(std::ostream &ostream, File f) {
+    ostream << toChar(f);
+    return ostream;
 }
-ostream& operator<<(ostream &os, Rank r) {
-    os << toChar(r);
-    return os;
+std::ostream& operator<<(std::ostream &ostream, Rank r) {
+    ostream << toChar(r);
+    return ostream;
 }
-ostream& operator<<(ostream &os, Square s) {
-    os << toString(s);
-    return os;
+std::ostream& operator<<(std::ostream &ostream, Square s) {
+    ostream << toString(s);
+    return ostream;
 }
-ostream& operator<<(ostream &os, Piece p) {
-    os << toChar(p);
-    return os;
+std::ostream& operator<<(std::ostream &ostream, Piece p) {
+    ostream << toChar(p);
+    return ostream;
 }
-ostream& operator<<(ostream &os, Value v) {
-    os << toString(v);
-    return os;
+std::ostream& operator<<(std::ostream &ostream, Value v) {
+    ostream << toString(v);
+    return ostream;
 }
-ostream& operator<<(ostream &os, Score s) {
-    os << toString(s);
-    return os;
+std::ostream& operator<<(std::ostream &ostream, Score s) {
+    ostream << toString(s);
+    return ostream;
 }
-ostream& operator<<(ostream &os, Move m) {
-    os << moveToCAN(m);
-    return os;
+std::ostream& operator<<(std::ostream &ostream, Move m) {
+    ostream << moveToCAN(m);
+    return ostream;
 }
 
 

@@ -72,7 +72,7 @@ endif
 # at the end of the line for flag values.
 
 ### 2.1 General and architecture defaults
-ifeq ($(ARCH),)
+ifeq ($(ARCH), )
    ARCH = x86-64-modern
    help_skip_sanity = yes
 endif

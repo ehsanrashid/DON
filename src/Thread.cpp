@@ -402,7 +402,7 @@ namespace WinProcGroup {
 }
 
 /// Used to serialize access to std::cout to avoid multiple threads writing at the same time.
-std::ostream& operator<<(std::ostream &os, OutputState outputState) {
+std::ostream& operator<<(std::ostream &ostream, OutputState outputState) {
     static std::mutex mutex;
 
     switch (outputState) {
@@ -413,5 +413,5 @@ std::ostream& operator<<(std::ostream &os, OutputState outputState) {
         mutex.unlock();
         break;
     }
-    return os;
+    return ostream;
 }

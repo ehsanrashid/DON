@@ -36,8 +36,8 @@ namespace Evaluator::NNUE::Layers {
         }
 
         // Read network parameters
-        bool readParameters(std::istream &is) {
-            return _previousLayer.readParameters(is);
+        bool readParameters(std::istream &istream) {
+            return _previousLayer.readParameters(istream);
         }
 
         // Forward propagation

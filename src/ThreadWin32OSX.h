@@ -17,7 +17,7 @@ void* startRoutine(void *arg) {
     auto *p{ reinterpret_cast<P*>(arg) };
     (p->first->*(p->second))(); // Call member function pointer
     delete p;
-    return NULL;
+    return nullptr;
 }
 
 class NativeThread {
@@ -37,7 +37,7 @@ public:
     }
 
     void join() {
-        pthread_join(thread, NULL);
+        pthread_join(thread, nullptr);
     }
 };
 #else // Default case: use STL classes

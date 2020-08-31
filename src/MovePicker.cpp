@@ -239,13 +239,12 @@ Move MovePicker::nextMove() noexcept {
         vmBeg = vmoves.begin();
         vmEnd = stage == QUIESCENCE_INIT
              && depth <= DEPTH_QS_RECAP ?
-                std::remove_if(vmBeg, vmoves.end(),
-                    [&](ValMove const &vm) {
-                        return vm == ttMove
-                            || dstSq(vm) != recapSq;
-                    }) :
-                ttMove != MOVE_NONE ?
-                    std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
+                    std::remove_if(vmBeg, vmoves.end(),
+                                    [&](ValMove const &vm) {
+                                        return vm == ttMove
+                                            || dstSq(vm) != recapSq;
+                                    }) :
+                ttMove != MOVE_NONE ? std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
 
         value<CAPTURE>();
 
@@ -271,12 +270,12 @@ Move MovePicker::nextMove() noexcept {
         }
         mBeg = refutationMoves.begin();
         mEnd = std::remove_if(mBeg, refutationMoves.end(),
-                [&](Move m) {
-                    return m == MOVE_NONE
-                        || m == ttMove
-                        || pos.capture(m)
-                        || !pos.pseudoLegal(m);
-                });
+                                [&](Move m) {
+                                    return m == MOVE_NONE
+                                        || m == ttMove
+                                        || pos.capture(m)
+                                        || !pos.pseudoLegal(m);
+                                });
 
         ++stage;
     }
@@ -295,10 +294,10 @@ Move MovePicker::nextMove() noexcept {
             mBeg = refutationMoves.begin();
             vmBeg = vmoves.begin();
             vmEnd = std::remove_if(vmBeg, vmoves.end(),
-                    [&](ValMove const &vm) {
-                        return vm == ttMove
-                            || std::find(mBeg, mEnd, vm.move) != mEnd;
-                    });
+                                    [&](ValMove const &vm) {
+                                        return vm == ttMove
+                                            || std::find(mBeg, mEnd, vm.move) != mEnd;
+                                    });
             value<QUIET>();
             limitedInsertionSort(-3000 * depth);
         }
@@ -336,25 +335,20 @@ Move MovePicker::nextMove() noexcept {
     }
         [[fallthrough]];
     case EVASION_MOVES: {
-        return pick([]() {
-                    return true;
-                }) ?
+        return pick([]() { return true; }) ?
                 *vmBeg++ : MOVE_NONE;
     }
         /* end */
 
     case PROBCUT_CAPTURE: {
-        return pick([&]() {
-                    return pos.see(*vmBeg, threshold);
-                }) ?
+        return pick([&]() { return pos.see(*vmBeg, threshold); }) ?
                 *vmBeg++ : MOVE_NONE;
     }
         /* end */
 
     case QUIESCENCE_CAPTURES: {
-        if (pick([&]() {
-                return true; // No filter required, all done in QUIESCENCE_INIT
-            })) {
+        // No filter required, all done in QUIESCENCE_INIT
+        if (pick([]() { return true; })) {
             return *vmBeg++;
         }
 

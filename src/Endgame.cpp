@@ -414,8 +414,7 @@ template<> Scale Endgame<KRPKB>::operator()(Position const &pos) const {
             return d <= 2
                 && (d != 0
                  || wkSq != skSq + Push * 2) ?
-                    Scale(24) :
-                    Scale(48);
+                    Scale(24) : Scale(48);
         }
         // When the pawn has moved to the 6th rank can be fairly sure it's drawn
         // if the bishop attacks the square in front of the pawn from a reasonable distance

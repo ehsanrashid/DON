@@ -12,13 +12,11 @@
 PolyBook Book;
 
 using std::string;
-using std::ifstream;
-using std::ofstream;
 
 namespace {
 
     template<typename T>
-    ifstream& operator >> (ifstream &ifs, T &t) {
+    std::ifstream& operator>>(std::ifstream &ifs, T &t) {
         t = T();
         for (u08 idx = 0; idx < sizeof (T) && ifs.good(); ++idx) {
             t = T((t << 8) + u08(ifs.get()));
@@ -26,21 +24,21 @@ namespace {
         return ifs;
     }
     //template<typename T>
-    //ofstream& operator<<(ofstream &ofs, T const &t) {
+    //std::ofstream& operator<<(std::ofstream &ofs, T const &t) {
     //    for (u08 idx = 0; idx < sizeof (T) && ofs.good(); ++idx) {
     //        ofs.put(u08(t >> (8 * (sizeof (T) - 1 - idx))));
     //    }
     //    return ofs;
     //}
 
-    ifstream& operator >> (ifstream &ifs, PolyEntry &pe) {
+    std::ifstream& operator>>(std::ifstream &ifs, PolyEntry &pe) {
         ifs >> pe.key
             >> pe.move
             >> pe.weight
             >> pe.learn;
         return ifs;
     }
-    //ofstream& operator<<(ofstream &ofs, PolyEntry const &pe) {
+    //std::ofstream& operator<<(std::ofstream &ofs, PolyEntry const &pe) {
     //    ofs << pe.key
     //        << pe.move
     //        << pe.weight
@@ -100,33 +98,25 @@ bool PolyEntry::operator!=(PolyEntry const &pe) const noexcept {
 }
 
 bool PolyEntry::operator>(PolyEntry const &pe) const noexcept {
-    return key != pe.key ?
-               key > pe.key :
-               weight != pe.weight ?
-                   weight > pe.weight :
-                   move > pe.move;
+    return key != pe.key       ? key > pe.key :
+           weight != pe.weight ? weight > pe.weight :
+                                 move > pe.move;
 }
 bool PolyEntry::operator<(PolyEntry const &pe) const noexcept {
-    return key != pe.key ?
-               key < pe.key :
-               weight != pe.weight ?
-                   weight < pe.weight :
-                   move < pe.move;
+    return key != pe.key       ? key < pe.key :
+           weight != pe.weight ? weight < pe.weight :
+                                 move < pe.move;
 }
 
 bool PolyEntry::operator>=(PolyEntry const &pe) const noexcept {
-    return key != pe.key ?
-               key >= pe.key :
-               weight != pe.weight ?
-                   weight >= pe.weight :
-                   move >= pe.move;
+    return key != pe.key       ? key >= pe.key :
+           weight != pe.weight ? weight >= pe.weight :
+                                 move >= pe.move;
 }
 bool PolyEntry::operator<=(PolyEntry const &pe) const noexcept {
-    return key != pe.key ?
-               key <= pe.key :
-               weight != pe.weight ?
-                   weight <= pe.weight :
-                   move <= pe.move;
+    return key != pe.key       ? key <= pe.key :
+           weight != pe.weight ? weight <= pe.weight :
+                                 move <= pe.move;
 }
 
 bool PolyEntry::operator==(Move m) const noexcept { return move == m; }
@@ -144,9 +134,9 @@ string PolyEntry::toString() const {
     return oss.str();
 }
 
-std::ostream& operator<<(std::ostream &os, PolyEntry const &pe) {
-    os << pe.toString();
-    return os;
+std::ostream& operator<<(std::ostream &ostream, PolyEntry const &pe) {
+    ostream << pe.toString();
+    return ostream;
 }
 
 /// ----------------
@@ -232,7 +222,7 @@ void PolyBook::initialize(string const &file) {
         return;
     }
 
-    ifstream ifs{ bookFile, std::ios::in|std::ios::binary };
+    std::ifstream ifs{ bookFile, std::ios::in|std::ios::binary };
     if (!ifs.is_open()) {
         return;
     }

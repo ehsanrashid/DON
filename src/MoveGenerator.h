@@ -29,13 +29,10 @@ public:
 
         generate<GT>(*this, pos);
         //if (NONE != PT) {
-        //    erase(
-        //        std::remove_if(
-        //            begin(), end(),
-        //            [&](ValMove const &vm) {
-        //                return PT != pType(pos[orgSq(vm)]);
-        //            }),
-        //        end());
+        //    erase(std::remove_if(begin(), end(),
+        //                        [&](ValMove const &vm) {
+        //                            return PT != pType(pos[orgSq(vm)]);
+        //                        }), end());
         //}
     }
 

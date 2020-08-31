@@ -54,9 +54,7 @@ Key Position::movePosiKey(Move m) const noexcept {
     auto const org{ orgSq(m) };
     auto const dst{ dstSq(m) };
     auto const mp{ board[org] };
-    auto const cp{ mType(m) != ENPASSANT ?
-                    board[dst] :
-                    ~active|PAWN };
+    auto const cp{ mType(m) != ENPASSANT ? board[dst] : (~active|PAWN) };
 
     auto pKey{ posiKey()
              ^ RandZob.side
@@ -861,9 +859,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 
     auto const mp{ board[org] };
     assert(mp != NO_PIECE);
-    auto cp{ mType(m) != ENPASSANT ?
-                board[dst] :
-                (pasive|PAWN) };
+    auto cp{ mType(m) != ENPASSANT ? board[dst] : (pasive|PAWN) };
 
     if (mType(m) == CASTLE) {
         assert(mp == (active|KING)
@@ -1345,9 +1341,9 @@ std::string Position::toString() const {
     return oss.str();
 }
 
-std::ostream& operator<<(std::ostream &os, Position const &pos) {
-    os << pos.toString();
-    return os;
+std::ostream& operator<<(std::ostream &ostream, Position const &pos) {
+    ostream << pos.toString();
+    return ostream;
 }
 
 #if !defined(NDEBUG)

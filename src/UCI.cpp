@@ -339,22 +339,23 @@ namespace UCI {
         return oss.str();
     }
 
-    std::ostream& operator<<(std::ostream &os, Option const &opt) {
-        os << opt.toString();
-        return os;
+    std::ostream& operator<<(std::ostream &ostream, Option const &opt) {
+        ostream << opt.toString();
+        return ostream;
     }
 
     /// This is used to print all the options default values in chronological
     /// insertion order and in the format defined by the UCI protocol.
-    std::ostream& operator<<(std::ostream &os, OptionMap const &om) {
+    std::ostream& operator<<(std::ostream &ostream, OptionMap const &om) {
         for (size_t idx = 0; idx < om.size(); ++idx) {
             for (auto &strOptPair : om) {
                 if (strOptPair.second.index == idx) {
-                    os  << "option name " << strOptPair.first << strOptPair.second << '\n';
+                    ostream << "option name "
+                            << strOptPair.first << strOptPair.second << '\n';
                 }
             }
         }
-        return os;
+        return ostream;
     }
 
 }
@@ -775,10 +776,10 @@ namespace UCI {
 
         /// bench() setup list of UCI commands is setup according to bench parameters,
         /// then it is run one by one printing a summary at the end.
-        void bench(istringstream &iss, Position &pos, StateListPtr &states) {
+        void bench(istringstream &isstream, Position &pos, StateListPtr &states) {
             Debugger::reset();
 
-            auto const uciCmds{ setupBench(iss, pos) };
+            auto const uciCmds{ setupBench(isstream, pos) };
             auto const cmdCount{ u16(std::count_if(uciCmds.begin(), uciCmds.end(),
                                                     [](string const &s) {
                                                         return s.find("eval") == 0
@@ -789,9 +790,9 @@ namespace UCI {
             u16 i{ 0 };
             u64 nodes{ 0 };
             for (auto const &cmd : uciCmds) {
-                istringstream is{ cmd };
+                istringstream iss{ cmd };
                 string token;
-                is >> std::skipws >> token;
+                iss >> std::skipws >> token;
 
                      if (token == "eval"
                       || token == "perft"
@@ -804,18 +805,19 @@ namespace UCI {
                         traceEval(pos);
                     }
                     else if (token == "perft") {
-                        Depth depth{ 1 }; is >> depth;
-                        if (depth < 1) depth = 1;
+                        Depth depth{ 1 };
+                        iss >> depth; depth = std::max(Depth(1), depth);
+
                         perft<true>(pos, depth);
                     }
                     else if (token == "go") {
-                        go(is, pos, states);
+                        go(iss, pos, states);
                         Threadpool.mainThread()->waitIdle();
                         nodes += Threadpool.accumulate(&Thread::nodes);
                     }
                 }
-                else if (token == "setoption")  { setOption(is, pos); }
-                else if (token == "position")   { position(is, pos, states); }
+                else if (token == "setoption")  { setOption(iss, pos); }
+                else if (token == "position")   { position(iss, pos, states); }
                 else if (token == "ucinewgame") { UCI::clear(); elapsed = now(); }
             }
 
@@ -892,9 +894,11 @@ namespace UCI {
             else if (token == "show")       { sync_cout << pos << sync_endl; }
             else if (token == "eval")       { traceEval(pos); }
             else if (token == "perft")      {
-                Depth depth{ 1 };     iss >> depth;
-                bool detail{ false }; iss >> std::boolalpha >> detail;
-                if (depth < 1) depth = 1;
+                Depth depth{ 1 };
+                iss >> depth; depth = std::max(Depth(1), depth);
+                bool detail{ false };
+                iss >> std::boolalpha >> detail;
+
                 perft<true>(pos, depth, detail);
             }
             else if (token == "keys")       {

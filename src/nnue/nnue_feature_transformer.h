@@ -38,14 +38,14 @@ namespace Evaluator::NNUE {
         }
 
         // Read network parameters
-        bool readParameters(std::istream &is) {
+        bool readParameters(std::istream &istream) {
             for (size_t i = 0; i < HalfDimensions; ++i) {
-                _biases[i] = readLittleEndian<BiasType>(is);
+                _biases[i] = readLittleEndian<BiasType>(istream);
             }
             for (size_t i = 0; i < HalfDimensions * InputDimensions; ++i) {
-                _weights[i] = readLittleEndian<WeightType>(is);
+                _weights[i] = readLittleEndian<WeightType>(istream);
             }
-            return !is.fail();
+            return !istream.fail();
         }
 
         // Proceed with the difference calculation if possible

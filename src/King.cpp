@@ -136,7 +136,7 @@ namespace King {
         }
         else {
             while (pawns != 0) {
-                minPawnDist = std::min(minPawnDist, distance(kSq, popLSq(pawns)));
+                minPawnDist = std::min(distance(kSq, popLSq(pawns)), minPawnDist);
             }
         }
         pawnDist[Own] = makeScore(0, 16 * minPawnDist);

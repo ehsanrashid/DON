@@ -113,16 +113,18 @@ namespace {
     inline Value valueOfTT(Value v, i32 ply, i32 clockPly) noexcept {
 
         if (v != VALUE_NONE) {
-            if (v >= +VALUE_MATE_2_MAX_PLY) { // TB win or better
+            // TB win or better
+            if (v >= +VALUE_MATE_2_MAX_PLY) {
+                // Don't return a potentially false mate score
                 return v >= +VALUE_MATE_1_MAX_PLY
                     && VALUE_MATE - v >= 100 - clockPly ?
-                        // do not return a potentially false mate score
                         +VALUE_MATE_1_MAX_PLY - 1 : v - ply;
             }
-            if (v <= -VALUE_MATE_2_MAX_PLY) { // TB loss or worse
+            // TB loss or worse
+            if (v <= -VALUE_MATE_2_MAX_PLY) {
+                // Don't return a potentially false mate score
                 return v <= -VALUE_MATE_1_MAX_PLY
                     && VALUE_MATE + v >= 100 - clockPly ?
-                        // do not return a potentially false mate score
                         -VALUE_MATE_1_MAX_PLY + 1 : v + ply;
             }
         }
@@ -244,17 +246,12 @@ namespace {
                 continue;
             }
 
-            auto v{
-                updated ?
-                    th->rootMoves[i].newValue :
-                    th->rootMoves[i].oldValue };
+            auto v{ updated ? th->rootMoves[i].newValue : th->rootMoves[i].oldValue };
 
             bool const tb{
                 SyzygyTB::HasRoot
              && std::abs(v) < +VALUE_MATE_1_MAX_PLY };
-            v = tb ?
-                    th->rootMoves[i].tbValue :
-                    v;
+            v = tb ? th->rootMoves[i].tbValue : v;
 
             oss << std::setfill('0')
                 << "info"
@@ -268,8 +265,7 @@ namespace {
             }
             if (!tb
              && i == th->pvCur) {
-            oss << (beta <= v ? " lowerbound" :
-                    v <= alfa ? " upperbound" : "");
+            oss << (beta <= v ? " lowerbound" : v <= alfa ? " upperbound" : "");
             }
             oss << " nodes "    << nodes
                 << " time "     << elapsed
@@ -291,7 +287,7 @@ namespace {
     Value quienSearch(Position &pos, Stack *ss, Value alfa, Value beta, Depth depth = DEPTH_ZERO) {
 
         assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
-        assert(PVNode || (alfa == beta-1));
+        assert(PVNode || (alfa == beta - 1));
         assert(depth <= DEPTH_ZERO);
 
         Value actualAlfa;
@@ -310,8 +306,7 @@ namespace {
          || ss->ply >= MAX_PLY) {
             return !ss->inCheck
                 && ss->ply >= MAX_PLY ?
-                    evaluate(pos) :
-                    VALUE_DRAW;
+                    evaluate(pos) : VALUE_DRAW;
         }
 
         assert(1 <= ss->ply && ss->ply < MAX_PLY
@@ -326,12 +321,10 @@ namespace {
         auto *tte   { ss->excludedMove == MOVE_NONE ?
                         TT.probe(key, ttHit) :
                         TTEx.probe(key, ttHit) };
-        auto ttMove { ttHit ?
-                        tte->move() : MOVE_NONE };
-        auto ttValue{ ttHit ?
-                        valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
-        auto const ttPV{ ttHit
-                      && tte->pv() };
+
+        auto const ttValue{ ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
+        auto       ttMove { ttHit ? tte->move() : MOVE_NONE };
+        auto const ttPV   { ttHit && tte->pv() };
 
         // Decide whether or not to include checks.
         // Fixes also the type of TT entry depth that are going to use.
@@ -345,8 +338,7 @@ namespace {
          && ttHit
          && ttValue != VALUE_NONE // Only in case of TT access race
          && tte->depth() >= qsDepth
-         && (ttValue >= beta ? tte->bound() & BOUND_LOWER :
-                               tte->bound() & BOUND_UPPER)) {
+         && (tte->bound() & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))) {
             return ttValue;
         }
 
@@ -373,16 +365,14 @@ namespace {
 
                 // Can ttValue be used as a better position evaluation?
                 if ( ttValue != VALUE_NONE
-                 && (ttValue > bestValue ? tte->bound() & BOUND_LOWER :
-                                           tte->bound() & BOUND_UPPER)) {
+                 && (tte->bound() & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER))) {
                     bestValue = ttValue;
                 }
             }
             else {
                 ss->staticEval = bestValue =
                     (ss-1)->playedMove != MOVE_NULL ?
-                        evaluate(pos) :
-                        -(ss-1)->staticEval + 2 * VALUE_TEMPO;
+                        evaluate(pos) : -(ss-1)->staticEval + 2 * VALUE_TEMPO;
             }
 
             if (alfa < bestValue) {
@@ -483,6 +473,7 @@ namespace {
                     continue;
                 }
             }
+            assert(moveCount != 0);
 
             // Don't search moves with negative SEE values
             if (!ss->inCheck
@@ -494,7 +485,6 @@ namespace {
             if (!captureOrPromotion
              && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
              && (*pieceStats[1])[mp][dst] < CounterMovePruneThreshold) {
-                assert(moveCount != 0);
                 continue;
             }
 
@@ -557,8 +547,7 @@ namespace {
     template<bool PVNode>
     Value depthSearch(Position &pos, Stack *ss, Value alfa, Value beta, Depth depth, bool cutNode) {
 
-        bool rootNode{ PVNode
-                    && ss->ply == 0 };
+        bool rootNode{ PVNode && ss->ply == 0 };
 
         // Check if there exists a move which draws by repetition,
         // or an alternative earlier move to this position.
@@ -579,7 +568,7 @@ namespace {
         }
 
         assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
-        assert(PVNode || (alfa == beta-1));
+        assert(PVNode || (alfa == beta - 1));
         assert(!(PVNode && cutNode));
         assert(DEPTH_ZERO < depth && depth < MAX_PLY);
 
@@ -595,9 +584,7 @@ namespace {
 
         if (PVNode) {
             // Used to send selDepth info to GUI (selDepth from 1, ply from 0)
-            if (thread->selDepth < ss->ply + 1) {
-                thread->selDepth = ss->ply + 1;
-            }
+            thread->selDepth = std::max(Depth(ss->ply + 1), thread->selDepth);
         }
 
         if (!rootNode)
@@ -608,8 +595,7 @@ namespace {
              || ss->ply >= MAX_PLY) {
                 return !ss->inCheck
                     && ss->ply >= MAX_PLY ?
-                        evaluate(pos) :
-                        drawValue(thread);
+                        evaluate(pos) : drawValue(thread);
             }
 
             // Step 3. Mate distance pruning.
@@ -658,20 +644,15 @@ namespace {
         auto *tte   { ss->excludedMove == MOVE_NONE ?
                         TT.probe(key, ttHit) :
                         TTEx.probe(key, ttHit) };
-        auto ttMove { rootNode ?
-                        thread->rootMoves[thread->pvCur][0] :
-                        ttHit ?
-                            tte->move() : MOVE_NONE };
-        auto ttValue{ ttHit ?
-                        valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
+
+        auto const ttValue{ ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
+        auto       ttMove { rootNode ? thread->rootMoves[thread->pvCur][0] :
+                               ttHit ? tte->move() : MOVE_NONE };
 
         if (ss->excludedMove == MOVE_NONE) {
-            ss->ttPV = PVNode
-                    || (ttHit
-                        && tte->pv());
+            ss->ttPV = PVNode || (ttHit && tte->pv());
         }
-        auto const pastPV { !PVNode
-                         && ss->ttPV };
+        auto const pastPV { !PVNode && ss->ttPV };
 
         auto const activeSide{ pos.activeSide() };
 
@@ -696,13 +677,12 @@ namespace {
 
         // At non-PV nodes we check for an early TT cutoff
         if (!PVNode
-         && ttHit
-         && ttValue != VALUE_NONE
-         && tte->depth() >= depth
-         && (ttValue >= beta ? tte->bound() & BOUND_LOWER :
-                               tte->bound() & BOUND_UPPER)) {
+         &&  ttHit
+         &&  ttValue != VALUE_NONE
+         &&  tte->depth() >= depth
+         && (tte->bound() & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))) {
             if (ttMove != MOVE_NONE) {
-                // Update move sorting heuristics on ttMove
+                // If ttMove is quiet, update move sorting heuristics on TT hit
                 if (!pos.captureOrPromotion(ttMove)) {
                     auto const bonus{ statBonus(depth) };
                     // Bonus for a quiet ttMove that fails high
@@ -759,8 +739,7 @@ namespace {
 
                     auto const bound{
                         wdlScore < -draw ? BOUND_UPPER :
-                        wdlScore > +draw ? BOUND_LOWER :
-                                           BOUND_EXACT };
+                        wdlScore > +draw ? BOUND_LOWER : BOUND_EXACT };
 
                     if ( bound == BOUND_EXACT
                      || (bound == BOUND_LOWER ? beta <= value : value <= alfa)) {
@@ -818,16 +797,14 @@ namespace {
                 }
                 // Can ttValue be used as a better position evaluation?
                 if ( ttValue != VALUE_NONE
-                 && (ttValue > eval ? tte->bound() & BOUND_LOWER :
-                                      tte->bound() &  BOUND_UPPER)) {
+                 && (tte->bound() & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER))) {
                     eval = ttValue;
                 }
             }
             else {
                 ss->staticEval = eval =
                     (ss-1)->playedMove != MOVE_NULL ?
-                        evaluate(pos) :
-                        -(ss-1)->staticEval + 2 * VALUE_TEMPO;
+                        evaluate(pos) : -(ss-1)->staticEval + 2 * VALUE_TEMPO;
 
                 tte->save(key,
                           MOVE_NONE,
@@ -917,7 +894,7 @@ namespace {
                     thread->nmpMinPly = ss->ply + 3 * nullDepth / 4;
                     thread->nmpColor = activeSide;
 
-                    value = depthSearch<false>(pos, ss, beta-1, beta, nullDepth, false);
+                    value = depthSearch<false>(pos, ss, beta - 1, beta, nullDepth, false);
 
                     thread->nmpMinPly = 0;
 
@@ -1194,7 +1171,7 @@ namespace {
 
             // Singular extension (SE) (~70 ELO)
             // Extend the TT move if its value is much better than its siblings.
-            // If all moves but one fail low on a search of (alfa-s, beta-s),
+            // If all moves but one fail low on a search of (alfa - s, beta - s),
             // and just one fails high on (alfa, beta), then that move is singular and should be extended.
             // To verify this do a reduced search on all the other moves but the ttMove,
             // if result is lower than ttValue minus a margin then extend ttMove.
@@ -1243,9 +1220,9 @@ namespace {
             else
             // Check extension (~2 ELO)
             if (giveCheck
-             && (// Discovered check ?
+             && (// Discovered check
                  contains(pos.kingBlockers(~activeSide), org)
-                 // Direct check ?
+                 // Direct check
               || pos.see(move))) {
                 extension = 1;
             }
@@ -1374,7 +1351,7 @@ namespace {
 
                 Depth const d( std::clamp(newDepth - reductDepth, 1, {newDepth}) );
 
-                value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, d, true);
+                value = -depthSearch<false>(pos, ss+1, -(alfa + 1), -alfa, d, true);
 
                 doFullSearch = alfa < value
                             && d < newDepth;
@@ -1386,14 +1363,12 @@ namespace {
 
             // Step 17. Full depth search when LMR is skipped or fails high.
             if (doFullSearch) {
-                value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, newDepth, !cutNode);
+                value = -depthSearch<false>(pos, ss+1, -(alfa + 1), -alfa, newDepth, !cutNode);
 
                 if (doLMR
                  && !captureOrPromotion) {
 
-                    auto bonus{ alfa < value ?
-                                +statBonus(newDepth) :
-                                -statBonus(newDepth) };
+                    auto bonus{ alfa < value ? +statBonus(newDepth) : -statBonus(newDepth) };
                     if (ss->killerMoves[0] == move) {
                         bonus += bonus / 4;
                     }
@@ -1511,10 +1486,8 @@ namespace {
         // Otherwise it must be a checkmate or a stalemate, so return value accordingly.
         if (moveCount == 0) {
             bestValue =
-                ss->excludedMove != MOVE_NONE ?
-                    alfa :
-                    ss->inCheck ?
-                        matedIn(ss->ply) : VALUE_DRAW;
+                ss->excludedMove != MOVE_NONE ? alfa :
+                    ss->inCheck ? matedIn(ss->ply) : VALUE_DRAW;
         }
         else
         if (bestMove != MOVE_NONE) {
@@ -1522,10 +1495,7 @@ namespace {
 
             // Quiet best move: update move sorting heuristics.
             if (!pos.captureOrPromotion(bestMove)) {
-                auto const bonus2{
-                    bestValue > beta + VALUE_MG_PAWN ?
-                        bonus1 :
-                        statBonus(depth) };
+                auto const bonus2{ bestValue > beta + VALUE_MG_PAWN ? bonus1 : statBonus(depth) };
 
                 updateQuietStatsRefutationMoves(ss, thread, pos, activeSide, bestMove, bonus2, depth, pmOK, pmPiece, pmDst);
                 // Decrease all the other played quiet moves
@@ -1560,25 +1530,25 @@ namespace {
             }
         }
 
-        if (PVNode
-         && bestValue > maxValue) {
-            bestValue = maxValue;
+        if (PVNode) {
+            bestValue = std::min(maxValue, bestValue);
         }
-        // If no good move is found and the previous position was ttPv, then the previous
-        // opponent move is probably good and the new position is added to the search tree.
-        if (bestValue <= alfa) {
-            ss->ttPV |= ((ss-1)->ttPV && depth > 3);
-        }
-        // Otherwise, a counter move has been found and if the position is the last leaf
-        // in the search tree, remove the position from the search tree.
-        else
+
         if (depth > 3) {
-            ss->ttPV &= (ss+1)->ttPV;
+            // If no good move is found and the previous position was ttPv, then the previous
+            // opponent move is probably good and the new position is added to the search tree.
+            if (bestValue <= alfa) {
+                ss->ttPV = ss->ttPV || (ss-1)->ttPV;
+            }
+            // Otherwise, a counter move has been found and if the position is the last leaf
+            // in the search tree, remove the position from the search tree.
+            else {
+                ss->ttPV = ss->ttPV && (ss+1)->ttPV;
+            }
         }
 
         //if (ss->excludedMove == MOVE_NONE
-        // && !(rootNode
-        //   && thread->pvCur != 0))
+        // && !(rootNode && thread->pvCur != 0))
             tte->save(key,
                       bestMove,
                       valueToTT(bestValue, ss->ply),
@@ -1662,8 +1632,7 @@ void Thread::search() {
     std::fill(&lowPlyStats[MAX_LOWPLY - 2][0], &lowPlyStats.back().back() + 1, 0);
 
     auto *mainThread{ this == Threadpool.mainThread() ?
-                        static_cast<MainThread*>(this) :
-                        nullptr };
+                        static_cast<MainThread*>(this) : nullptr };
 
     if (mainThread != nullptr) {
         std::fill_n(mainThread->iterValues, 4,
@@ -1887,8 +1856,7 @@ void Thread::search() {
                         TimeMgr.optimum
                       * reductionRatio
                       * fallingEval
-                      * pvInstability :
-                        0 );
+                      * pvInstability : 0);
 
                 auto elapsed{ TimeMgr.elapsed() };
 
@@ -2071,8 +2039,7 @@ void MainThread::tick() {
     }
     // When using nodes, ensure checking rate is in range [1, 1024]
     tickCount = i16(Limits.nodes != 0 ?
-                        std::clamp(i32(Limits.nodes / 1024), 1, 1024) :
-                        1024);
+                    std::clamp(i32(Limits.nodes / 1024), 1, 1024) : 1024);
 
     auto elapsed{ TimeMgr.elapsed() };
     auto time{ Limits.startTime + elapsed };

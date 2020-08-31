@@ -444,9 +444,7 @@ namespace {
 
             template<TBType Type>
             TBTable<Type>* get() const noexcept {
-                return (TBTable<Type>*)
-                        (Type == WDL ?
-                            (void*)wdl : (void*)dtz);
+                return static_cast<TBTable<Type>*>(Type == WDL ? (void*)wdl : (void*)dtz);
             }
         };
 
@@ -985,8 +983,8 @@ namespace {
     template<typename T>
     void setGroups(T &e, PairsData *d, i16 *order, File f) {
         i16 firstLen =
-            e.hasPawns ?            0 :
-                e.hasUniquePieces ? 3 : 2;
+            e.hasPawns        ? 0 :
+            e.hasUniquePieces ? 3 : 2;
 
         i16 n{ 0 };
         d->groupLen[n] = 1;
@@ -1193,13 +1191,8 @@ namespace {
 
         data++; // First byte stores flags
 
-        i16 const sides =
-            T::Sides == 2
-         && (e.matlKey1 != e.matlKey2) ?
-                2 : 1;
-        File const maxFile{
-            e.hasPawns ?
-                FILE_D : FILE_A };
+        i16 const sides{ i16(T::Sides == 2 && (e.matlKey1 != e.matlKey2) ? 2 : 1) };
+        File const maxFile{ e.hasPawns ? FILE_D : FILE_A };
 
         // Pawns on both sides
         bool pp{ e.hasPawns
@@ -1408,25 +1401,25 @@ namespace SyzygyTB {
 
     WDLScore operator-(WDLScore wdl) { return WDLScore(-i32(wdl)); }
 
-    std::ostream& operator<<(std::ostream &os, WDLScore wdlScore) {
+    std::ostream& operator<<(std::ostream &ostream, WDLScore wdlScore) {
         switch (wdlScore) {
-        case WDL_LOSS:         os << "Loss";         break;
-        case WDL_BLESSED_LOSS: os << "Blessed Loss"; break;
-        case WDL_DRAW:         os << "Draw";         break;
-        case WDL_CURSED_WIN:   os << "Cursed win";   break;
-        case WDL_WIN:          os << "Win";          break;
+        case WDL_LOSS:         ostream << "Loss";         break;
+        case WDL_BLESSED_LOSS: ostream << "Blessed Loss"; break;
+        case WDL_DRAW:         ostream << "Draw";         break;
+        case WDL_CURSED_WIN:   ostream << "Cursed win";   break;
+        case WDL_WIN:          ostream << "Win";          break;
         }
-        return os;
+        return ostream;
     }
 
-    std::ostream& operator<<(std::ostream &os, ProbeState probeState) {
+    std::ostream& operator<<(std::ostream &ostream, ProbeState probeState) {
         switch (probeState) {
-        case PS_OPP_SIDE:  os << "Opponent side";        break;
-        case PS_FAILURE:   os << "Failure";              break;
-        case PS_SUCCESS:   os << "Success";              break;
-        case PS_ZEROING:   os << "Best move zeroes DTZ"; break;
+        case PS_OPP_SIDE: ostream << "Opponent side";        break;
+        case PS_FAILURE:  ostream << "Failure";              break;
+        case PS_SUCCESS:  ostream << "Success";              break;
+        case PS_ZEROING:  ostream << "Best move zeroes DTZ"; break;
         }
-        return os;
+        return ostream;
     }
 
     /// Probe the WDL table for a particular position.
@@ -1590,9 +1583,8 @@ namespace SyzygyTB {
             rm.tbRank = wdlToRank[wdl + 2];
 
             if (!move50Rule) {
-                wdl =
-                    wdl > WDL_DRAW ? WDL_WIN :
-                    wdl < WDL_DRAW ? WDL_LOSS : WDL_DRAW;
+                wdl = wdl > WDL_DRAW ? WDL_WIN :
+                      wdl < WDL_DRAW ? WDL_LOSS : WDL_DRAW;
             }
             rm.tbValue = wdlToValue[wdl + 2];
         }
