@@ -76,7 +76,7 @@ public:
     bool contains(u16, u16, Move) const;
 
     u16 bestCount(Move) const;
-    u16 bestCount(u16, u16, Move) const;
+    //u16 bestCount(u16, u16, Move) const;
 
     iterator find(Move);
     iterator find(u16, u16, Move);

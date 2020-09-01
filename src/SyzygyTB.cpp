@@ -831,7 +831,7 @@ namespace {
         if (entry->hasPawns) {
             idx = LeadPawnIdx[pawnCount][squares[0]];
 
-            std::sort(squares + 1, squares + pawnCount, mapPawnsCompare);
+            std::stable_sort(squares + 1, squares + pawnCount, mapPawnsCompare);
 
             for (i16 i = 1; i < pawnCount; ++i) {
                 idx += Binomial[i][MapPawns[squares[i]]];
@@ -947,7 +947,7 @@ namespace {
 
             assert(0 <= d->groupLen[next] && d->groupLen[next] < TBPIECES);
 
-            std::sort(groupSq, groupSq + d->groupLen[next]);
+            std::stable_sort(groupSq, groupSq + d->groupLen[next]);
             u64 n = 0;
 
             // Map down a square if "comes later" than a square in the previous

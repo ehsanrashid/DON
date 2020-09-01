@@ -242,11 +242,16 @@ namespace {
             bool const updated{ th->rootMoves[i].newValue != -VALUE_INFINITE };
 
             if (depth == 1
-             && !updated) {
+             && !updated
+             && i > 0) {
                 continue;
             }
 
             auto v{ updated ? th->rootMoves[i].newValue : th->rootMoves[i].oldValue };
+
+            if (v == -VALUE_INFINITE) {
+                v = VALUE_ZERO;
+            }
 
             bool const tb{
                 SyzygyTB::HasRoot
@@ -255,7 +260,7 @@ namespace {
 
             oss << std::setfill('0')
                 << "info"
-                << " depth "    << std::setw(2) << (updated ? depth : depth - 1)
+                << " depth "    << std::setw(2) << (updated ? depth : std::max(1, depth - 1))
                 << " seldepth " << std::setw(2) << th->rootMoves[i].selDepth
                 << " multipv "  << i + 1
                 << std::setfill(' ')
@@ -1265,9 +1270,6 @@ namespace {
             bool const doLMR{
                 depth >= 3
              && moveCount > 1 + 2 * rootNode + 2 * (PVNode && std::abs(bestValue) < 2)
-             && (!rootNode
-                // At root if zero best counter
-              || thread->rootMoves.bestCount(thread->pvCur, thread->pvEnd, move) == 0)
              && (cutNode
               || !captureOrPromotion
               || moveCountPruning
@@ -2095,10 +2097,10 @@ namespace SyzygyTB {
 
         if (HasRoot) {
             // Sort moves according to TB rank
-            std::sort(rootMoves.begin(), rootMoves.end(),
-                    [](RootMove const &rm1, RootMove const &rm2) {
-                        return rm1.tbRank > rm2.tbRank;
-                    });
+            std::stable_sort(rootMoves.begin(), rootMoves.end(),
+                            [](RootMove const &rm1, RootMove const &rm2) {
+                                return rm1.tbRank > rm2.tbRank;
+                            });
             // Probe during search only if DTZ is not available and winning
             if (dtzAvailable
              || rootMoves.front().tbValue <= VALUE_DRAW) {
