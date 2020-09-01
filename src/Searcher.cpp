@@ -1786,7 +1786,7 @@ void Thread::search() {
                 }
                 // Otherwise exit the loop
                 else {
-                    ++rootMoves[pvCur].bestCount;
+                    //++rootMoves[pvCur].bestCount;
                     break;
                 }
 
@@ -2097,10 +2097,9 @@ namespace SyzygyTB {
 
         if (HasRoot) {
             // Sort moves according to TB rank
-            std::stable_sort(rootMoves.begin(), rootMoves.end(),
-                            [](RootMove const &rm1, RootMove const &rm2) {
-                                return rm1.tbRank > rm2.tbRank;
-                            });
+            rootMoves.stableSort([](RootMove const &rm1, RootMove const &rm2) {
+                                    return rm1.tbRank > rm2.tbRank;
+                                });
             // Probe during search only if DTZ is not available and winning
             if (dtzAvailable
              || rootMoves.front().tbValue <= VALUE_DRAW) {

@@ -30,7 +30,7 @@ public:
     Depth selDepth{ DEPTH_ZERO };
     i16   tbRank{ 0 };
     Value tbValue{ VALUE_ZERO };
-    u16   bestCount{ 0 };
+    //u16   bestCount{ 0 };
 
     //using std::vector<Move>::vector;
 
@@ -75,14 +75,22 @@ public:
     bool contains(Move) const;
     bool contains(u16, u16, Move) const;
 
-    u16 bestCount(Move) const;
+    //u16 bestCount(Move) const;
     //u16 bestCount(u16, u16, Move) const;
 
     iterator find(Move);
     iterator find(u16, u16, Move);
 
-    void stableSort();
-    void stableSort(u16, u16);
+    void stableSort(){
+        std::stable_sort(begin(), end());
+    }
+    void stableSort(u16 iBeg, u16 iEnd) {
+        std::stable_sort(begin() + iBeg, begin() + iEnd);
+    }
+    template<class Pr>
+    void stableSort(Pr pred) {
+        std::stable_sort(begin(), end(), pred);
+    }
 
     void saveValues();
     void bringToFront(Move);
