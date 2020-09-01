@@ -13,11 +13,11 @@ class Logger {
 
 private:
 
-    std::string     logFile;
-    std::ofstream   logFileStream;
+    std::string filename;
+    std::ofstream ofstream;
 
-    TieStreamBuf    iStreamBuf;
-    TieStreamBuf    oStreamBuf;
+    TieStreamBuf istreambuf;
+    TieStreamBuf ostreambuf;
 
 protected:
 

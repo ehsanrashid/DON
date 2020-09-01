@@ -1,12 +1,12 @@
 // Definition of input features and network structure used in NNUE evaluation function
 #pragma once
 
-#include "../features/feature_set.h"
-#include "../features/half_kp.h"
+#include "../features/FeatureSet.h"
+#include "../features/HalfKP.h"
 
-#include "../layers/input_slice.h"
-#include "../layers/affine_transform.h"
-#include "../layers/clipped_relu.h"
+#include "../layers/InputSlice.h"
+#include "../layers/AffineTransform.h"
+#include "../layers/ClippedReLU.h"
 
 namespace Evaluator::NNUE {
 

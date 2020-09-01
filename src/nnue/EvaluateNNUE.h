@@ -3,7 +3,7 @@
 
 #include <memory>
 
-#include "nnue_feature_transformer.h"
+#include "FeatureTransformer.h"
 
 namespace Evaluator::NNUE {
 

@@ -2,7 +2,7 @@
 #pragma once
 
 #include "../../Type.h"
-#include "features_common.h"
+#include "FeaturesCommon.h"
 
 class Position;
 

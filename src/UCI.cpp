@@ -53,8 +53,7 @@ namespace {
         // }
         // return 0;
         auto const itr{ std::find(std::begin(Months), std::end(Months), mmm) };
-        return i32(itr != std::end(Months) ?
-                std::distance(std::begin(Months), itr) + 1 : 0);
+        return i32(itr != std::end(Months) ? std::distance(std::begin(Months), itr) + 1 : 0);
     }
 }
 
@@ -396,8 +395,8 @@ namespace UCI {
             TimeMgr.clear();
         }
 
-        void onDebugFile() {
-            Logger::instance().setup(Options["Debug File"]);
+        void onLogFile() {
+            Logger::instance().setup(Options["Log File"]);
         }
 
         void onSyzygyPath() {
@@ -459,7 +458,7 @@ namespace UCI {
         Options["Eval File"]          << Option(DefaultEvalFile, onEvalFile);
 #endif
 
-        Options["Debug File"]         << Option("", onDebugFile);
+        Options["Log File"]           << Option("", onLogFile);
 
         Options["UCI_Chess960"]       << Option(false);
         Options["UCI_ShowWDL"]        << Option(false);
@@ -718,15 +717,15 @@ namespace UCI {
                  if (fenFile == "current") { fens.push_back(pos.fen()); }
             else if (fenFile == "default") { fens = DefaultFens; }
             else {
-                std::ifstream ifs{ fenFile, std::ios::in };
-                if (ifs.is_open()) {
+                std::ifstream ifstream{ fenFile, std::ios::in };
+                if (ifstream.is_open()) {
                     string fen;
-                    while (std::getline(ifs, fen, '\n')) {
+                    while (std::getline(ifstream, fen, '\n')) {
                         if (!whiteSpaces(fen)) {
                             fens.push_back(fen);
                         }
                     }
-                    ifs.close();
+                    ifstream.close();
                 }
                 else {
                     std::cerr << "ERROR: unable to open file ... \'" << fenFile << "\'\n";

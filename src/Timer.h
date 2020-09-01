@@ -3,19 +3,21 @@
 #include <iostream>
 #include <chrono>
 
+using namespace std::chrono;
+
 struct Timer {
 
-    std::chrono::steady_clock::time_point start, end;
-    std::chrono::nanoseconds duration;
+    steady_clock::time_point beg;
 
-    Timer() {
-        start = std::chrono::steady_clock::now();
-    }
+    Timer() :
+        beg{ steady_clock::now() }
+    {}
 
     ~Timer() {
-        end = std::chrono::steady_clock::now();
-        duration = start - end;
-        auto ms = duration.count() * 1000.0;
+        steady_clock::time_point end{ steady_clock::now() };
+        nanoseconds elapsed{ beg - end };
+
+        auto ms = elapsed.count() * 1000.0;
         std::cout << "Timer took " << ms << " ms" << std::endl;
     }
 

@@ -118,7 +118,7 @@ Currently, DON has the following UCI options:
     Tells the engine to use nodes searched instead of wall time to account for
     elapsed time. Useful for engine testing.
 
-  * #### Debug File
+  * #### Log File
     Write all communication to and from the engine into a text file.
 
   * #### SyzygyPath

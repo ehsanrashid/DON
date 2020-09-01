@@ -37,22 +37,28 @@
 
 using std::string;
 
-// C++ way to prepare a buffer for a memory stream
-class MemoryBuffer :
-    public std::basic_streambuf<char> {
-
-public:
-
-    MemoryBuffer(char *p, size_t n) {
-        setg(p, p, p + n);
-        setp(p, p + n);
-    }
-};
-
 namespace Evaluator {
 
     bool useNNUE{ false };
     string loadedEvalFile{ "None" };
+
+    // C++ way to prepare a buffer for a memory stream
+    template<class T>
+    class MemoryStreamBuffer :
+        public std::basic_streambuf<T> {
+
+    public:
+
+        using std::basic_streambuf<T>::basic_streambuf;
+
+        MemoryStreamBuffer(MemoryStreamBuffer const&) = delete;
+        MemoryStreamBuffer(MemoryStreamBuffer&&) = delete;
+
+        MemoryStreamBuffer(T *p, size_t n) {
+            std::basic_streambuf<T>::setg(p, p, p + n);
+            std::basic_streambuf<T>::setp(p, p + n);
+        }
+    };
 
     /// initializeNNUE() tries to load a nnue network at startup time, or when the engine
     /// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
@@ -77,18 +83,18 @@ namespace Evaluator {
         #endif
             };
 
-            for (string dir : directories) {
+            for (auto &dir : directories) {
                 if (loadedEvalFile != evalFile) {
 
                     if (dir != "<internal>") {
-                        std::ifstream ifstream{ dir + evalFile, std::ios::binary };
+                        std::ifstream ifstream{ dir + evalFile, std::ios::in|std::ios::binary };
                         if (NNUE::loadEvalFile(ifstream)) {
                             loadedEvalFile = evalFile;
                         }
                     }
                     else
                     if (evalFile == DefaultEvalFile) {
-                        MemoryBuffer buffer{ const_cast<char *>(reinterpret_cast<const char *>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize) };
+                        MemoryStreamBuffer buffer{ const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize) };
                         std::istream istream{ &buffer };
                         if (NNUE::loadEvalFile(istream)) {
                             loadedEvalFile = evalFile;
@@ -131,7 +137,8 @@ namespace Evaluator {
         public:
 
             static void clear() {
-                std::fill_n(&Scores[0][0], TERMS*COLORS, SCORE_ZERO);
+                //std::fill(&Scores[0][0], &Scores[0][0] + sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);
+                std::fill_n(&Scores[0][0], sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);
             }
 
             static void write(Term t, Color c, Score s) noexcept {

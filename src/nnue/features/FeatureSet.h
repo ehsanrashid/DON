@@ -3,7 +3,7 @@
 
 #include <array>
 
-#include "features_common.h"
+#include "FeaturesCommon.h"
 
 namespace Evaluator::NNUE::Features {
 

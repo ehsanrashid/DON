@@ -936,7 +936,7 @@ namespace {
 
                 assert(probCutBeta < +VALUE_INFINITE);
 
-                bool ttPV{ ss->ttPV };
+                bool const ttPV{ ss->ttPV };
                 ss->ttPV = false;
                 u08 probCutCount{ 0 };
 
@@ -1349,7 +1349,7 @@ namespace {
                     reductDepth -= i16(ss->stats / 14884);
                 }
 
-                Depth const d( std::clamp(newDepth - reductDepth, 1, {newDepth}) );
+                Depth const d( std::clamp(newDepth - reductDepth, 1, { newDepth }) );
 
                 value = -depthSearch<false>(pos, ss+1, -(alfa + 1), -alfa, d, true);
 
@@ -1548,7 +1548,7 @@ namespace {
         }
 
         //if (ss->excludedMove == MOVE_NONE
-        // && !(rootNode && thread->pvCur != 0))
+        // && !(rootNode && thread->pvCur != 0)) {
             tte->save(key,
                       bestMove,
                       valueToTT(bestValue, ss->ply),
@@ -1557,6 +1557,7 @@ namespace {
                       bestValue >= beta ? BOUND_LOWER :
                       PVNode && bestMove != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
                       ss->ttPV);
+        //}
 
         assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
         return bestValue;
@@ -1829,8 +1830,8 @@ void Thread::search() {
              && !Threadpool.stop
              && !mainThread->stopOnPonderHit) {
 
-                if (mainThread->bestMove != rootMoves[0][0]) {
-                    mainThread->bestMove = rootMoves[0][0];
+                if (mainThread->bestMove != rootMoves.front()[0]) {
+                    mainThread->bestMove = rootMoves.front()[0];
                     mainThread->bestDepth = rootDepth;
                 }
 
@@ -1925,12 +1926,12 @@ void MainThread::search() {
                 think = false;
 
                 rootMoves.bringToFront(bbm);
-                rootMoves[0].newValue = VALUE_NONE;
+                rootMoves.front().newValue = VALUE_NONE;
                 StateInfo si;
                 rootPos.doMove(bbm, si);
                 auto bpm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
                 if (bpm != MOVE_NONE) {
-                    rootMoves[0] += bpm;
+                    rootMoves.front() += bpm;
                 }
                 rootPos.undoMove(bbm);
             }
@@ -1945,16 +1946,14 @@ void MainThread::search() {
 
             auto level{
                 Options["UCI_LimitStrength"] ?
-                    std::clamp(u16(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), {0}, MaxLevel) :
+                    std::clamp(u16(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), { 0 }, MaxLevel) :
                     u16(Options["Skill Level"]) };
             SkillMgr.setLevel(level);
 
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            PVCount = std::clamp(u16(Options["MultiPV"]),
-                                 u16(1 + 3 * SkillMgr.enabled()),
-                                 u16(rootMoves.size()));
+            PVCount = std::clamp(u16(Options["MultiPV"]), u16(1 + 3 * SkillMgr.enabled()), u16(rootMoves.size()));
 
             Threadpool.wakeUpThreads(); // start non-main threads searching !
             Thread::search();           // start main thread searching !
@@ -1999,9 +1998,9 @@ void MainThread::search() {
     }
 
     assert(!bestThread->rootMoves.empty()
-        && !bestThread->rootMoves[0].empty());
+        && !bestThread->rootMoves.front().empty());
 
-    auto &rm{ bestThread->rootMoves[0] };
+    auto &rm{ bestThread->rootMoves.front() };
 
     if (Limits.useTimeMgmt()) {
         if (u16(Options["Time Nodes"]) != 0) {
@@ -2012,12 +2011,11 @@ void MainThread::search() {
         bestValue = rm.newValue;
     }
 
-    auto bm{ rm[0] };
+    auto bm{ rm.front() };
     auto pm{ MOVE_NONE };
     if (bm != MOVE_NONE) {
         auto const itr{ rm.begin() + 1 };
-        pm = itr != rm.end() ?
-            *itr : TT.extractNextMove(rootPos, bm);
+        pm = itr != rm.end() ? *itr : TT.extractNextMove(rootPos, bm);
         assert(bm != pm);
     }
 
@@ -2038,8 +2036,7 @@ void MainThread::tick() {
         return;
     }
     // When using nodes, ensure checking rate is in range [1, 1024]
-    tickCount = i16(Limits.nodes != 0 ?
-                    std::clamp(i32(Limits.nodes / 1024), 1, 1024) : 1024);
+    tickCount = i16(Limits.nodes != 0 ? std::clamp(i32(Limits.nodes / 1024), 1, 1024) : 1024);
 
     auto elapsed{ TimeMgr.elapsed() };
     auto time{ Limits.startTime + elapsed };
@@ -2084,8 +2081,7 @@ namespace SyzygyTB {
         }
 
         // Rank moves using DTZ tables
-        if (PieceLimit != 0
-         && PieceLimit >= pos.count()
+        if (PieceLimit >= pos.count()
          && pos.castleRights() == CR_NONE) {
             // If the current root position is in the table-bases,
             // then RootMoves contains only moves that preserve the draw or the win.
@@ -2105,7 +2101,7 @@ namespace SyzygyTB {
                     });
             // Probe during search only if DTZ is not available and winning
             if (dtzAvailable
-             || rootMoves[0].tbValue <= VALUE_DRAW) {
+             || rootMoves.front().tbValue <= VALUE_DRAW) {
                 PieceLimit = 0;
             }
         }

@@ -633,7 +633,7 @@
     <Node Id="@622" Category="CodeSchema_Struct" Bounds="24654.6927890476,22160.7612715668,96.6233333333512,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Atomic" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@623" Category="CodeSchema_TypeDef" Bounds="25542.4461848842,23858.0517794633,86.2833333333328,26" DelayedCrossGroupLinksState="NotFetched" Label="Bitboard" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@624" Category="CodeSchema_Enum" Bounds="25508.1291188157,25748.4117794632,71.5566666666673,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="Bound" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@625" Category="CodeSchema_Struct" Bounds="25427.3408012727,24192.8917794633,141.32,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="ColorIndexStatsTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@625" Category="CodeSchema_Struct" Bounds="25427.3408012727,24192.8917794633,141.32,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="ButterFlyStatsTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@626" Category="CodeSchema_TypeDef" Bounds="25369.9682088093,25972.2917794632,134.966666666667,26" DelayedCrossGroupLinksState="NotFetched" Label="ButterflyStatTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@627" Category="CodeSchema_Struct" Bounds="25469.7492821067,24469.8517794633,205.57,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="PieceSquareTypeStatsTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@628" Category="CodeSchema_TypeDef" Bounds="25146.3166799567,26083.3317794632,199.216666666667,26" DelayedCrossGroupLinksState="NotFetched" Label="CapturePieceDestinyStatTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -6771,8 +6771,7 @@
     <Alias n="622" Id="(@1 @5 Type=Atomic)" />
     <Alias n="623" Id="(@1 @3 Type=Bitboard)" />
     <Alias n="624" Id="(@1 @3 Type=Bound)" />
-    <Alias n="625" Id="(@1 @3 Type=ColorIndexStatsTable)" />
-    <Alias n="626" Id="(@1 @3 Type=ButterflyStatTable)" />
+    <Alias n="625" Id="(@1 @3 Type=ButterFlyStatsTable)" />
     <Alias n="627" Id="(@1 @3 Type=PieceSquareTypeStatsTable)" />
     <Alias n="628" Id="(@1 @3 Type=CapturePieceDestinyStatTable)" />
     <Alias n="629" Id="(@1 @3 Type=CastleRight)" />

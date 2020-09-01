@@ -9,7 +9,7 @@
 #include "PSQTable.h"
 #include "Evaluator.h"
 #include "Type.h"
-#include "nnue/nnue_accumulator.h"
+#include "nnue/Accumulator.h"
 
 /// StateInfo stores information needed to restore a Position object to its previous state when we retract a move.
 ///

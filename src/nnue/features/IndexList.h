@@ -2,33 +2,52 @@
 #pragma once
 
 #include "../../Position.h"
-#include "../nnue_architecture.h"
+#include "../Architecture.h"
 
 namespace Evaluator::NNUE::Features {
 
     // Class template used for feature index list
     template<typename T, size_t N>
     class ValueList {
-    
+
     private:
         T _values[N];
         size_t _size{ 0 };
 
     public:
 
-        size_t size() const { return _size; }
-        void resize(size_t size) { _size = size; }
-        void push_back(T const &value) { _values[_size++] = value; }
+        size_t size() const {
+            return _size;
+        }
 
-        T &operator[](size_t index) { return _values[index]; }
+        void resize(size_t size) {
+            _size = size;
+        }
+        void push_back(T const &value) {
+            _values[_size++] = value;
+        }
 
-        T* begin() { return _values; }
-        T* end()  { return _values + _size; }
+        T &operator[](size_t index) {
+            return _values[index];
+        }
 
-        T const &operator[](size_t index) const { return _values[index]; }
+        T* begin() {
+            return _values;
+        }
+        T* end() {
+            return _values + _size;
+        }
 
-        T const* begin() const { return _values; }
-        T const* end() const { return _values + _size; }
+        T const& operator[](size_t index) const {
+            return _values[index];
+        }
+
+        T const* begin() const {
+            return _values;
+        }
+        T const* end() const {
+            return _values + _size;
+        }
 
         void swap(ValueList &valueList) {
 

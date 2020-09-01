@@ -94,8 +94,7 @@ namespace EndGame {
     template<typename T>
     EndgameBase<T> const* probe(Key matlKey) noexcept {
         auto const itr{ mapEG<T>().find(matlKey) };
-        return itr != mapEG<T>().end() ?
-                itr->second.get() : nullptr;
+        return itr != mapEG<T>().end() ? itr->second.get() : nullptr;
     }
 
     extern void initialize();

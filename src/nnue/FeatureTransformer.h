@@ -1,9 +1,9 @@
 // A class that converts the input features of the NNUE evaluation function
 #pragma once
 
-#include "nnue_common.h"
-#include "nnue_architecture.h"
-#include "features/index_list.h"
+#include "NNUECommon.h"
+#include "Architecture.h"
+#include "features/IndexList.h"
 
 namespace Evaluator::NNUE {
 

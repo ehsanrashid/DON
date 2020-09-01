@@ -27,7 +27,7 @@ SRCS = Bitbase.cpp Bitboard.cpp Cuckoo.cpp Debugger.cpp Endgame.cpp Evaluator.cp
        Notation.cpp King.cpp Pawns.cpp Polyglot.cpp Position.cpp PSQTable.cpp \
        RootMove.cpp Searcher.cpp SkillManager.cpp SyzygyTB.cpp Thread.cpp ThreadMarker.cpp \
        TimeManager.cpp Transposition.cpp UCI.cpp Zobrist.cpp \
-	   nnue/evaluate_nnue.cpp nnue/features/half_kp.cpp
+       nnue/EvaluateNNUE.cpp nnue/features/HalfKP.cpp
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 

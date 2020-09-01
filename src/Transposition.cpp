@@ -363,12 +363,12 @@ void TTable::save(std::string const &hashFile) const {
     if (whiteSpaces(hashFile)) {
         return;
     }
-    std::ofstream ofs{ hashFile, std::ios::out|std::ios::binary };
-    if (!ofs.is_open()) {
+    std::ofstream ofstream{ hashFile, std::ios::out|std::ios::binary };
+    if (!ofstream.is_open()) {
         return;
     }
-    ofs << *this;
-    ofs.close();
+    ofstream << *this;
+    ofstream.close();
     sync_cout << "info string Hash saved to file \'" << hashFile << "\'" << sync_endl;
 }
 /// TTable::load() loads hash from file
@@ -376,12 +376,12 @@ void TTable::load(std::string const &hashFile) {
     if (whiteSpaces(hashFile)) {
         return;
     }
-    std::ifstream ifs{ hashFile, std::ios::in|std::ios::binary };
-    if (!ifs.is_open()) {
+    std::ifstream ifstream{ hashFile, std::ios::in|std::ios::binary };
+    if (!ifstream.is_open()) {
         return;
     }
-    ifs >> *this;
-    ifs.close();
+    ifstream >> *this;
+    ifstream.close();
     sync_cout << "info string Hash loaded from file \'" << hashFile << "\'" << sync_endl;
 }
 

@@ -6,7 +6,7 @@
 #include "../Position.h"
 #include "../UCI.h"
 
-#include "evaluate_nnue.h"
+#include "EvaluateNNUE.h"
 
 #if defined(__APPLE__) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
     #define POSIX_ALIGNED_MEM
@@ -44,26 +44,28 @@ namespace Evaluator::NNUE {
 
         void* allocAligned(size_t alignment, size_t size) noexcept {
 
-#if defined(POSIX_ALIGNED_MEM)
+        #if defined(POSIX_ALIGNED_MEM)
             void *mem;
-            return posix_memalign(&mem, alignment, size) == 0 ?
-                    mem : nullptr;
-#elif defined(_WIN32)
+            return posix_memalign(&mem, alignment, size) == 0 ? mem : nullptr;
+        #elif defined(_WIN32)
             return _mm_malloc(size, alignment);
-#else
+        #else
             return std::aligned_alloc(alignment, size);
-#endif
+        #endif
         }
 
         void freeAligned(void *mem) noexcept {
 
-#if defined(POSIX_ALIGNED_MEM)
-            free(mem);
-#elif defined(_WIN32)
-            _mm_free(mem);
-#else
-            free(mem);
-#endif
+            if (mem != nullptr) {
+        #if defined(POSIX_ALIGNED_MEM)
+                free(mem);
+        #elif defined(_WIN32)
+                _mm_free(mem);
+        #else
+                free(mem);
+        #endif
+                //mem = nullptr; // need (void *&mem)
+            }
         }
 
     }
@@ -71,7 +73,7 @@ namespace Evaluator::NNUE {
     template<typename T>
     inline void AlignedDeleter<T>::operator()(T *ptr) const noexcept {
         ptr->~T();
-        freeAligned(ptr);
+        freeAligned(static_cast<void*>(ptr));
     }
 
     /// Initialize the aligned pointer

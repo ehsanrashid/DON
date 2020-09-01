@@ -11,11 +11,13 @@
 
 namespace {
 
-    std::string toString(std::chrono::system_clock::time_point const &timePoint) {
+    using namespace std::chrono;
+
+    std::string toString(system_clock::time_point const &timePoint) {
         std::string str;
 
     #if defined(_WIN32)
-        time_t const raw_time{ std::chrono::system_clock::to_time_t(timePoint) };
+        time_t const raw_time{ system_clock::to_time_t(timePoint) };
         tm local_tm;
         local_tm = *localtime(&raw_time);
         //localtime_s(&local_tm, (time_t const*)&raw_time);
@@ -24,8 +26,8 @@ namespace {
         strftime(buffer, sizeof (buffer), format, (tm const*)&local_tm);
         str.append(buffer);
         // Append milli-second
-        auto ms{ std::chrono::duration_cast<std::chrono::milliseconds>
-                    (timePoint - std::chrono::system_clock::from_time_t(raw_time)).count() };
+        auto ms{ duration_cast<milliseconds>
+                    (timePoint - system_clock::from_time_t(raw_time)).count() };
         str.append(".");
         str.append(std::to_string(ms));
     #else
@@ -34,7 +36,7 @@ namespace {
         return str;
     }
 
-    std::ostream& operator<<(std::ostream &ostream, std::chrono::system_clock::time_point const &timePoint) {
+    std::ostream& operator<<(std::ostream &ostream, system_clock::time_point const &timePoint) {
         ostream << toString(timePoint);
         return ostream;
     }
@@ -42,8 +44,8 @@ namespace {
 }
 
 Logger::Logger() :
-    iStreamBuf{ std:: cin.rdbuf(), logFileStream.rdbuf() },
-    oStreamBuf{ std::cout.rdbuf(), logFileStream.rdbuf() }
+    istreambuf{ std:: cin.rdbuf(), ofstream.rdbuf() },
+    ostreambuf{ std::cout.rdbuf(), ofstream.rdbuf() }
 {}
 
 Logger::~Logger() {
@@ -58,30 +60,30 @@ Logger& Logger::instance() {
     return logger;
 }
 
-void Logger::setup(std::string const &file) {
-    if (logFileStream.is_open()) {
-        std::cout.rdbuf(oStreamBuf.sbRead);
-        std:: cin.rdbuf(iStreamBuf.sbRead);
+void Logger::setup(std::string const &logFile) {
+    if (ofstream.is_open()) {
+        std::cout.rdbuf(ostreambuf.sbRead);
+        std:: cin.rdbuf(istreambuf.sbRead);
 
-        logFileStream << "[" << std::chrono::system_clock::now() << "] <-\n";
-        logFileStream.close();
+        ofstream << "[" << system_clock::now() << "] <-\n";
+        ofstream.close();
     }
 
-    logFile = file;
-    replace(logFile, '\\', '/');
-    trim(logFile);
-    if (whiteSpaces(logFile)) {
-        logFile.clear();
+    filename = logFile;
+    replace(filename, '\\', '/');
+    trim(filename);
+    if (whiteSpaces(filename)) {
+        filename.clear();
         return;
     }
 
-    logFileStream.open(logFile, std::ios::out|std::ios::app);
-    if (!logFileStream.is_open()) {
-        std::cerr << "Unable to open Log File " << logFile << '\n';
+    ofstream.open(filename, std::ios::out|std::ios::app);
+    if (!ofstream.is_open()) {
+        std::cerr << "Unable to open Log File " << filename << '\n';
         std::exit(EXIT_FAILURE);
     }
-    logFileStream << "[" << std::chrono::system_clock::now() << "] ->\n";
+    ofstream << "[" << system_clock::now() << "] ->\n";
 
-    std:: cin.rdbuf(&iStreamBuf);
-    std::cout.rdbuf(&oStreamBuf);
+    std:: cin.rdbuf(&istreambuf);
+    std::cout.rdbuf(&ostreambuf);
 }

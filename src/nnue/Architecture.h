@@ -2,7 +2,7 @@
 #pragma once
 
 // Defines the network structure
-#include "architectures/halfkp_256x2-32-32.h"
+#include "architectures/HalfKP_256x2-32-32.h"
 
 namespace Evaluator::NNUE {
 

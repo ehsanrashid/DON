@@ -102,10 +102,10 @@ class StatsTable<T, D, Size> :
     static_assert (Size != 0, "Size incorrect");
 };
 
-/// ColorIndexStatsTable stores moves history according to color.
+/// ButterFlyStatsTable stores moves history according to color.
 /// Used for reduction and move ordering decisions.
 /// indexed by [color][moveMask]
-using ColorIndexStatsTable      = StatsTable<i16, 10692, COLORS, SQUARES*SQUARES>;
+using ButterFlyStatsTable       = StatsTable<i16, 10692, COLORS, SQUARES*SQUARES>;
 
 /// PlyIndexStatsTable stores moves history according to ply from 0 to MAX_LOWPLY-1
 /// At higher depths it records successful quiet moves near the root
@@ -140,7 +140,7 @@ private:
 
     Position const &pos;
 
-    ColorIndexStatsTable      const *butterFlyStats{ nullptr };
+    ButterFlyStatsTable       const *butterFlyStats{ nullptr };
     PlyIndexStatsTable        const *lowPlyStats{ nullptr };
     PieceSquareTypeStatsTable const *captureStats{ nullptr };
     PieceSquareStatsTable     const **pieceStats{ nullptr };
@@ -182,7 +182,7 @@ public:
 
     MovePicker(
         Position const&,
-        ColorIndexStatsTable      const*,
+        ButterFlyStatsTable       const*,
         PlyIndexStatsTable        const*,
         PieceSquareTypeStatsTable const*,
         PieceSquareStatsTable     const**,
@@ -191,7 +191,7 @@ public:
 
     MovePicker(
         Position const&,
-        ColorIndexStatsTable      const*,
+        ButterFlyStatsTable       const*,
         PieceSquareTypeStatsTable const*,
         PieceSquareStatsTable     const**,
         Move, Depth, Square);

@@ -16,34 +16,34 @@ using std::string;
 namespace {
 
     template<typename T>
-    std::ifstream& operator>>(std::ifstream &ifs, T &t) {
+    std::ifstream& operator>>(std::ifstream &ifstream, T &t) {
         t = T();
-        for (u08 idx = 0; idx < sizeof (T) && ifs.good(); ++idx) {
-            t = T((t << 8) + u08(ifs.get()));
+        for (u08 idx = 0; idx < sizeof (T) && ifstream.good(); ++idx) {
+            t = T((t << 8) + u08(ifstream.get()));
         }
-        return ifs;
+        return ifstream;
     }
     //template<typename T>
-    //std::ofstream& operator<<(std::ofstream &ofs, T const &t) {
-    //    for (u08 idx = 0; idx < sizeof (T) && ofs.good(); ++idx) {
-    //        ofs.put(u08(t >> (8 * (sizeof (T) - 1 - idx))));
+    //std::ofstream& operator<<(std::ofstream &ofstream, T const &t) {
+    //    for (u08 idx = 0; idx < sizeof (T) && ofstream.good(); ++idx) {
+    //        ofstream.put(u08(t >> (8 * (sizeof (T) - 1 - idx))));
     //    }
-    //    return ofs;
+    //    return ofstream;
     //}
 
-    std::ifstream& operator>>(std::ifstream &ifs, PolyEntry &pe) {
-        ifs >> pe.key
-            >> pe.move
-            >> pe.weight
-            >> pe.learn;
-        return ifs;
+    std::ifstream& operator>>(std::ifstream &ifstream, PolyEntry &pe) {
+        ifstream >> pe.key
+                 >> pe.move
+                 >> pe.weight
+                 >> pe.learn;
+        return ifstream;
     }
-    //std::ofstream& operator<<(std::ofstream &ofs, PolyEntry const &pe) {
-    //    ofs << pe.key
-    //        << pe.move
-    //        << pe.weight
-    //        << pe.learn;
-    //    return ofs;
+    //std::ofstream& operator<<(std::ofstream &ofstream, PolyEntry const &pe) {
+    //    ofstream << pe.key
+    //             << pe.move
+    //             << pe.weight
+    //             << pe.learn;
+    //    return ofstream;
     //}
 
     // Converts polyglot move to engine move
@@ -222,14 +222,14 @@ void PolyBook::initialize(string const &file) {
         return;
     }
 
-    std::ifstream ifs{ bookFile, std::ios::in|std::ios::binary };
-    if (!ifs.is_open()) {
+    std::ifstream ifstream{ bookFile, std::ios::in|std::ios::binary };
+    if (!ifstream.is_open()) {
         return;
     }
 
-    ifs.seekg(0, std::ios::end);
-    u64 const fileSize = ifs.tellg();
-    ifs.seekg(0, std::ios::beg);
+    ifstream.seekg(0, std::ios::end);
+    u64 const fileSize = ifstream.tellg();
+    ifstream.seekg(0, std::ios::beg);
 
     entryCount = (fileSize - HeaderSize) / sizeof (PolyEntry);
     entry = new PolyEntry[entryCount];
@@ -241,13 +241,13 @@ void PolyBook::initialize(string const &file) {
     if (HeaderSize != 0) {
         PolyEntry dummy;
         for (u64 idx = 0; idx < HeaderSize / sizeof (PolyEntry); ++idx) {
-            ifs >> dummy;
+            ifstream >> dummy;
         }
     }
     for (u64 idx = 0; idx < entryCount; ++idx) {
-        ifs >> entry[idx];
+        ifstream >> entry[idx];
     }
-    ifs.close();
+    ifstream.close();
 
     std::cout << "info string Book entries found " << entryCount << " from file \'" << bookFile << "\'" << std::endl;
 }

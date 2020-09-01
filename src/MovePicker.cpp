@@ -38,7 +38,7 @@ namespace {
 /// MovePicker constructor for the main search
 MovePicker::MovePicker(
     Position const &p,
-    ColorIndexStatsTable      const *bfStats,
+    ButterFlyStatsTable       const *bfStats,
     PlyIndexStatsTable        const *lpStats,
     PieceSquareTypeStatsTable const *cStats,
     PieceSquareStatsTable     const **pStats,
@@ -68,7 +68,7 @@ MovePicker::MovePicker(
 /// and other checks (only if depth >= DEPTH_QS_CHECK) will be generated.
 MovePicker::MovePicker(
     Position const &p,
-    ColorIndexStatsTable      const *bfStats,
+    ButterFlyStatsTable       const *bfStats,
     PieceSquareTypeStatsTable const *cStats,
     PieceSquareStatsTable     const **pStats,
     Move ttm, Depth d, Square rs) :
