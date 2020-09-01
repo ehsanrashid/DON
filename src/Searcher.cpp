@@ -256,7 +256,9 @@ namespace {
             bool const tb{
                 SyzygyTB::HasRoot
              && std::abs(v) < +VALUE_MATE_1_MAX_PLY };
-            v = tb ? th->rootMoves[i].tbValue : v;
+            if (tb) {
+                v = th->rootMoves[i].tbValue;
+            }
 
             oss << std::setfill('0')
                 << "info"
@@ -1786,7 +1788,6 @@ void Thread::search() {
                 }
                 // Otherwise exit the loop
                 else {
-                    //++rootMoves[pvCur].bestCount;
                     break;
                 }
 

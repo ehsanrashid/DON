@@ -119,17 +119,6 @@ bool RootMoves::contains(u16 iBeg, u16 iEnd, Move m) const {
     return find(iBeg, iEnd, m) != (begin() + iEnd);
 }
 
-//u16 RootMoves::bestCount(Move m) const {
-//    //return contains(m) ? find(m)->bestCount : 0;
-//    auto rm{ find(m) };
-//    return rm != end() ? rm->bestCount : 0;
-//}
-//u16 RootMoves::bestCount(u16 iBeg, u16 iEnd, Move m) const {
-//    //return contains(iBeg, iEnd, m) ? find(iBeg, iEnd, m)->bestCount : 0;
-//    auto rm{ find(iBeg, iEnd, m) };
-//    return rm != (begin() + iEnd) ? rm->bestCount : 0;
-//}
-
 RootMoves::iterator RootMoves::find(Move m) {
     return std::find(begin(), end(), m);
 }

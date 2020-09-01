@@ -30,7 +30,6 @@ public:
     Depth selDepth{ DEPTH_ZERO };
     i16   tbRank{ 0 };
     Value tbValue{ VALUE_ZERO };
-    //u16   bestCount{ 0 };
 
     //using std::vector<Move>::vector;
 
@@ -74,9 +73,6 @@ public:
 
     bool contains(Move) const;
     bool contains(u16, u16, Move) const;
-
-    //u16 bestCount(Move) const;
-    //u16 bestCount(u16, u16, Move) const;
 
     iterator find(Move);
     iterator find(u16, u16, Move);
