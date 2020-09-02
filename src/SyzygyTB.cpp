@@ -191,15 +191,10 @@ namespace {
             assert(!filename.empty());
 
         #if defined(_WIN32)
-            HANDLE hFile =
-                CreateFile(
-                    filename.c_str(),
-                    GENERIC_READ,
-                    FILE_SHARE_READ,
-                    nullptr,
-                    OPEN_EXISTING,
-                    FILE_FLAG_RANDOM_ACCESS, // NOTE: FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored.
-                    nullptr);
+
+            // NOTE: FILE_FLAG_RANDOM_ACCESS is only a hint to Windows and as such may get ignored.
+            HANDLE hFile = CreateFile(filename.c_str(), GENERIC_READ, FILE_SHARE_READ, nullptr, OPEN_EXISTING, FILE_FLAG_RANDOM_ACCESS, nullptr);
+
             if (hFile == INVALID_HANDLE_VALUE) {
                 std::cerr << "CreateFile() failed, file = " << filename << '\n';
                 *baseAddress = nullptr;
@@ -214,14 +209,7 @@ namespace {
                 std::exit(EXIT_FAILURE);
             }
 
-            HANDLE hFileMap =
-                CreateFileMapping(
-                    hFile,
-                    nullptr,
-                    PAGE_READONLY,
-                    hiSize,
-                    loSize,
-                    nullptr);
+            HANDLE hFileMap = CreateFileMapping(hFile, nullptr, PAGE_READONLY, hiSize, loSize, nullptr);
 
             CloseHandle(hFile);
 
@@ -231,22 +219,15 @@ namespace {
             }
 
             *mapping = (u64)hFileMap;
-            *baseAddress =
-                MapViewOfFile(
-                    hFileMap,
-                    FILE_MAP_READ,
-                    0, // FileOffsetHigh
-                    0, // FileOffsetLow
-                    0);
+            *baseAddress = MapViewOfFile(hFileMap, FILE_MAP_READ, 0, 0, 0);
             if ((*baseAddress) == nullptr) {
                 std::cerr << "MapViewOfFile() failed, file = " << filename << '\n';
                 std::exit(EXIT_FAILURE);
             }
+
         #else
-            i32 hFile =
-                ::open(
-                    filename.c_str(),
-                    O_RDONLY);
+
+            i32 hFile = ::open(filename.c_str(), O_RDONLY);
             if (hFile == -1) {
                 std::cerr << "open() failed, file = " << filename << '\n';
                 *baseAddress = nullptr;
@@ -269,20 +250,19 @@ namespace {
             }
 
             *mapping = statbuf.st_size;
-            *baseAddress =
-                mmap(nullptr,
-                     statbuf.st_size,
-                     PROT_READ,
-                     MAP_SHARED,
-                     hFile,
-                     0);
-            madvise(*baseAddress, statbuf.st_size, MADV_RANDOM);
+            *baseAddress = mmap(nullptr, statbuf.st_size, PROT_READ, MAP_SHARED, hFile, 0);
+
+            #if defined(MADV_RANDOM)
+                madvise(*baseAddress, statbuf.st_size, MADV_RANDOM);
+            #endif
+
             ::close(hFile);
 
             if (*baseAddress == MAP_FAILED) {
                 std::cerr << "mmap() failed, file = " << filename << '\n';
                 std::exit(EXIT_FAILURE);
             }
+
         #endif
 
             u08 *data = (u08*)(*baseAddress);
