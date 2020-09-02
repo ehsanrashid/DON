@@ -262,7 +262,7 @@ namespace {
 
             oss << std::setfill('0')
                 << "info"
-                << " depth "    << std::setw(2) << (updated ? depth : std::max(1, depth - 1))
+                << " depth "    << std::setw(2) << (updated ? depth : std::max(1, depth-1))
                 << " seldepth " << std::setw(2) << th->rootMoves[i].selDepth
                 << " multipv "  << i + 1
                 << std::setfill(' ')
@@ -294,7 +294,7 @@ namespace {
     Value quienSearch(Position &pos, Stack *ss, Value alfa, Value beta, Depth depth = DEPTH_ZERO) {
 
         assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
-        assert(PVNode || (alfa == beta - 1));
+        assert(PVNode || (alfa == beta-1));
         assert(depth <= DEPTH_ZERO);
 
         Value actualAlfa;
@@ -504,7 +504,7 @@ namespace {
 
             // Do the move
             pos.doMove(move, si, giveCheck);
-            auto const value{ -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth - 1) };
+            auto const value{ -quienSearch<PVNode>(pos, ss+1, -beta, -alfa, depth-1) };
             // Undo the move
             pos.undoMove(move);
 
@@ -575,7 +575,7 @@ namespace {
         }
 
         assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
-        assert(PVNode || (alfa == beta - 1));
+        assert(PVNode || (alfa == beta-1));
         assert(!(PVNode && cutNode));
         assert(DEPTH_ZERO < depth && depth < MAX_PLY);
 
@@ -877,7 +877,7 @@ namespace {
 
                 pos.doNullMove(si);
 
-                auto nullValue{ -depthSearch<false>(pos, ss + 1, -beta, -(beta - 1), nullDepth, !cutNode) };
+                auto nullValue{ -depthSearch<false>(pos, ss + 1, -beta, -(beta-1), nullDepth, !cutNode) };
 
                 pos.undoNullMove();
 
@@ -901,7 +901,7 @@ namespace {
                     thread->nmpMinPly = ss->ply + 3 * nullDepth / 4;
                     thread->nmpColor = activeSide;
 
-                    value = depthSearch<false>(pos, ss, beta - 1, beta, nullDepth, false);
+                    value = depthSearch<false>(pos, ss, beta-1, beta, nullDepth, false);
 
                     thread->nmpMinPly = 0;
 
@@ -1025,9 +1025,8 @@ namespace {
 
         bool singularQuietLMR{ false };
         bool moveCountPruning{ false };
-        bool const ttmCapture{
-            ttMove != MOVE_NONE
-         && pos.captureOrPromotion(ttMove) };
+        bool const ttmCapture{ ttMove != MOVE_NONE
+                            && pos.captureOrPromotion(ttMove) };
 
         PieceSquareStatsTable const *pieceStats[]{
             (ss-1)->pieceStats, (ss-2)->pieceStats,
@@ -1112,7 +1111,7 @@ namespace {
             bool const captureOrPromotion{ pos.captureOrPromotion(move) };
 
             // Calculate new depth for this move
-            Depth newDepth( depth - 1 );
+            Depth newDepth( depth-1 );
 
             // Step 13. Pruning at shallow depth. (~200 ELO)
             if (!rootNode
@@ -1178,7 +1177,7 @@ namespace {
 
             // Singular extension (SE) (~70 ELO)
             // Extend the TT move if its value is much better than its siblings.
-            // If all moves but one fail low on a search of (alfa - s, beta - s),
+            // If all moves but one fail low on a search of (alfa-s, beta-s),
             // and just one fails high on (alfa, beta), then that move is singular and should be extended.
             // To verify this do a reduced search on all the other moves but the ttMove,
             // if result is lower than ttValue minus a margin then extend ttMove.
@@ -1216,7 +1215,7 @@ namespace {
                 else
                 if (ttValue >= beta) {
                     ss->excludedMove = ttMove;
-                    value = depthSearch<false>(pos, ss, beta - 1, beta, (depth + 3) / 2, cutNode);
+                    value = depthSearch<false>(pos, ss, beta-1, beta, (depth + 3) / 2, cutNode);
                     ss->excludedMove = MOVE_NONE;
 
                     if (value >= beta) {
@@ -1355,7 +1354,7 @@ namespace {
 
                 Depth const d( std::clamp(newDepth - reductDepth, 1, { newDepth }) );
 
-                value = -depthSearch<false>(pos, ss+1, -(alfa + 1), -alfa, d, true);
+                value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, d, true);
 
                 doFullSearch = alfa < value
                             && d < newDepth;
@@ -1367,7 +1366,7 @@ namespace {
 
             // Step 17. Full depth search when LMR is skipped or fails high.
             if (doFullSearch) {
-                value = -depthSearch<false>(pos, ss+1, -(alfa + 1), -alfa, newDepth, !cutNode);
+                value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, newDepth, !cutNode);
 
                 if (doLMR
                  && !captureOrPromotion) {
@@ -1382,10 +1381,7 @@ namespace {
 
             // Full PV search
             if (PVNode
-             && (moveCount == 1
-              || (alfa < value
-               && (rootNode
-                || value < beta)))) {
+             && (moveCount == 1 || (alfa < value && (rootNode || value < beta)))) {
 
                 (ss+1)->pv = pv;
                 (ss+1)->pv[0] = MOVE_NONE;

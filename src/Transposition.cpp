@@ -83,9 +83,9 @@ namespace {
     /// With C++17 some of this functionality can be simplified.
 
 #if defined(_WIN64)
-    #if _WIN32_WINNT < 0x0601
+    #if (_WIN32_WINNT < 0x0601)
         #undef  _WIN32_WINNT
-        #define _WIN32_WINNT 0x0601 // Force to include needed API prototypes
+        #define _WIN32_WINNT _WIN32_WINNT_WIN7 // Force to include needed API prototypes
     #endif
     #if !defined(NOMINMAX)
         #define NOMINMAX // Disable macros min() and max()
