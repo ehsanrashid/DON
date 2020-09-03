@@ -58,6 +58,22 @@ string& trim(string &str) {
     return str;
 }
 
+std::vector<string> split(string const &str, char delimiter) {
+    std::vector<string> tokens;
+    string token;
+    std::istringstream iss{ str };
+    while (std::getline(iss, token, delimiter)) {
+
+        //replace(token, '\\', '/');
+        //trim(token);
+        //if (whiteSpaces(token)) {
+        //    continue;
+        //}
+        tokens.push_back(token);
+    }
+    return tokens;
+}
+
 #if defined(_WIN32)
     #include <direct.h>
     #define GETCWD(buff, size)  _getcwd(buff, size)
@@ -105,7 +121,7 @@ namespace CommandLine {
         // Extract the binary directory path from argv0
         binaryDirectory = argv0;
         size_t pos = binaryDirectory.find_last_of("\\/");
-        if (pos == std::string::npos) {
+        if (pos == string::npos) {
             binaryDirectory = "." + pathSeparator;
         }
         else {

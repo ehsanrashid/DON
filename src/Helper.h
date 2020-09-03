@@ -4,6 +4,7 @@
 #include <functional>
 #include <sstream>
 #include <string>
+#include <vector>
 
 #include "Type.h"
 
@@ -20,6 +21,7 @@ extern std::string& replace(std::string&, char const, char const);
 extern std::string& ltrim(std::string&);
 extern std::string& rtrim(std::string&);
 extern std::string& trim(std::string&);
+extern std::vector<std::string> split(std::string const&, char);
 
 namespace CommandLine {
 

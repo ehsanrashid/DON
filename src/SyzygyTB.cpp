@@ -202,7 +202,7 @@ namespace {
             }
 
             DWORD hiSize;
-            DWORD loSize = GetFileSize(hFile, &hiSize);
+            DWORD const loSize = GetFileSize(hFile, &hiSize);
 
             if (loSize % 64 != 16) {
                 std::cerr << "Corrupt tablebase, file = " << filename << '\n';
@@ -253,7 +253,7 @@ namespace {
             *baseAddress = mmap(nullptr, statbuf.st_size, PROT_READ, MAP_SHARED, hFile, 0);
 
             #if defined(MADV_RANDOM)
-                madvise(*baseAddress, statbuf.st_size, MADV_RANDOM);
+            madvise(*baseAddress, statbuf.st_size, MADV_RANDOM);
             #endif
 
             ::close(hFile);
@@ -265,7 +265,7 @@ namespace {
 
         #endif
 
-            u08 *data = (u08*)(*baseAddress);
+            u08 *data = static_cast<u08*>(*baseAddress);
 
             constexpr u08 TB_MAGIC[][4]
             {
@@ -1775,17 +1775,7 @@ namespace SyzygyTB {
     #endif
 
         // Split paths by delimiter
-        TBFile::Paths.clear();
-        std::stringstream ss{ paths };
-        string path;
-        while (std::getline(ss, path, Delimiter)) {
-            //replace(path, '\\', '/');
-            //trim(path);
-            //if (whiteSpaces(path)) {
-            //    continue;
-            //}
-            TBFile::Paths.push_back(path);
-        }
+        TBFile::Paths = split(paths, Delimiter);
 
         for (PieceType p1 = PAWN; p1 <= QUEN; ++p1) {
             TBTables.add({ KING, p1, KING });
