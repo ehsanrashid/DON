@@ -412,6 +412,8 @@ namespace {
 
         auto bestMove{ MOVE_NONE };
 
+        auto const activeSide{ pos.activeSide() };
+
         bool const pmOK  { isOk((ss-1)->playedMove) };
         auto const pmDst { dstSq((ss-1)->playedMove) };
 
@@ -484,6 +486,8 @@ namespace {
 
             // Don't search moves with negative SEE values
             if (!ss->inCheck
+             && !(giveCheck
+               && contains(pos.kingBlockers(~activeSide), org))
              && !pos.see(move)
              && Limits.mate == 0) {
                 continue;
@@ -1296,14 +1300,9 @@ namespace {
                     // Decrease if position is or has been on the PV (~10 ELO)
                     -2 * ss->ttPV
                     // Decrease if move has been singularly extended (~3 ELO)
-                    -(1 + pastPV) * singularQuietLMR
+                    -1 * singularQuietLMR
                     // Decrease if opponent's move count is high (~5 ELO)
-                    -1 * ((ss-1)->moveCount > 13)
-                    // Decrease reduction at non-check cut nodes for second move at low depths
-                    -1 * (cutNode
-                       && !ss->inCheck
-                       && depth <= 10
-                       && moveCount <= 2);
+                    -1 * ((ss-1)->moveCount > 13);
 
                 if (captureOrPromotion) {
                     // Increase reduction for captures/promotions at low depth and late move
