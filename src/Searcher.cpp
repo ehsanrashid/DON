@@ -69,6 +69,7 @@ namespace {
         u08   moveCount{ 0 };
         bool  inCheck;
         bool  ttPV;
+        bool  ttHit;
         Value staticEval{ VALUE_ZERO };
         i32   stats{ 0 };
         PieceSquareStatsTable *pieceStats;
@@ -324,14 +325,14 @@ namespace {
         Key const key{ ss->excludedMove == MOVE_NONE ?
                         pos.posiKey() :
                         pos.posiKey() ^ makeKey(ss->excludedMove) };
-        bool ttHit;
-        auto *tte   { ss->excludedMove == MOVE_NONE ?
-                        TT.probe(key, ttHit) :
-                        TTEx.probe(key, ttHit) };
 
-        auto const ttValue{ ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
-        auto       ttMove { ttHit ? tte->move() : MOVE_NONE };
-        auto const ttPV   { ttHit && tte->pv() };
+        auto *tte   { ss->excludedMove == MOVE_NONE ?
+                        TT.probe(key, ss->ttHit) :
+                        TTEx.probe(key, ss->ttHit) };
+
+        auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
+        auto       ttMove { ss->ttHit ? tte->move() : MOVE_NONE };
+        auto const ttPV   { ss->ttHit && tte->pv() };
 
         // Decide whether or not to include checks.
         // Fixes also the type of TT entry depth that are going to use.
@@ -342,7 +343,7 @@ namespace {
                 DEPTH_QS_CHECK : DEPTH_QS_NO_CHECK };
 
         if (!PVNode
-         && ttHit
+         && ss->ttHit
          && ttValue != VALUE_NONE // Only in case of TT access race
          && tte->depth() >= qsDepth
          && (tte->bound() & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))) {
@@ -364,7 +365,7 @@ namespace {
             bestValue = futilityBase = -VALUE_INFINITE;
         }
         else {
-            if (ttHit) {
+            if (ss->ttHit) {
                 // Never assume anything on values stored in TT.
                 if ((ss->staticEval = bestValue = tte->eval()) == VALUE_NONE) {
                     ss->staticEval = bestValue = evaluate(pos);
@@ -385,7 +386,7 @@ namespace {
             if (alfa < bestValue) {
                 // Stand pat. Return immediately if static value is at least beta
                 if (bestValue >= beta) {
-                    if (!ttHit) {
+                    if (!ss->ttHit) {
                         tte->save(key,
                                   MOVE_NONE,
                                   valueToTT(bestValue, ss->ply),
@@ -651,17 +652,17 @@ namespace {
         Key const key{ ss->excludedMove == MOVE_NONE ?
                         pos.posiKey() :
                         pos.posiKey() ^ makeKey(ss->excludedMove) };
-        bool ttHit;
-        auto *tte   { ss->excludedMove == MOVE_NONE ?
-                        TT.probe(key, ttHit) :
-                        TTEx.probe(key, ttHit) };
 
-        auto const ttValue{ ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
+        auto *tte   { ss->excludedMove == MOVE_NONE ?
+                        TT.probe(key, ss->ttHit) :
+                        TTEx.probe(key, ss->ttHit) };
+
+        auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { rootNode ? thread->rootMoves[thread->pvCur][0] :
-                               ttHit ? tte->move() : MOVE_NONE };
+                           ss->ttHit ? tte->move() : MOVE_NONE };
 
         if (ss->excludedMove == MOVE_NONE) {
-            ss->ttPV = PVNode || (ttHit && tte->pv());
+            ss->ttPV = PVNode || (ss->ttHit && tte->pv());
         }
         auto const pastPV { !PVNode && ss->ttPV };
 
@@ -684,11 +685,11 @@ namespace {
 
         // ttHitAvg can be used to approximate the running average of ttHit
         thread->ttHitAvg = (TTHitAverageWindow - 1) * thread->ttHitAvg / TTHitAverageWindow
-                         + TTHitAverageResolution * ttHit;
+                         + TTHitAverageResolution * ss->ttHit;
 
         // At non-PV nodes we check for an early TT cutoff
         if (!PVNode
-         &&  ttHit
+         &&  ss->ttHit
          &&  ttValue != VALUE_NONE
          &&  tte->depth() >= depth
          && (tte->bound() & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))) {
@@ -797,7 +798,7 @@ namespace {
         }
         // Early pruning
         else {
-            if (ttHit) {
+            if (ss->ttHit) {
                 // Never assume anything on values stored in TT.
                 if ((ss->staticEval = eval = tte->eval()) == VALUE_NONE) {
                     ss->staticEval = eval = evaluate(pos);
@@ -928,7 +929,7 @@ namespace {
                 // there and in further interactions with transposition table cutoff depth is set to depth - 3
                 // because probCut search has depth set to depth - 4 but we also do a move before it
                 // so effective depth is equal to depth - 3
-             && !(ttHit
+             && !(ss->ttHit
                && tte->depth() >= depth - 3
                && ttValue != VALUE_NONE
                && ttValue < probCutBeta)
@@ -936,7 +937,7 @@ namespace {
 
                 // if ttMove is a capture and value from transposition table is good enough produce probCut
                 // cutoff without digging into actual probCut search
-                if (ttHit
+                if (ss->ttHit
                  && tte->depth() >= depth - 3
                  && ttValue != VALUE_NONE
                  && ttValue >= probCutBeta
@@ -996,7 +997,7 @@ namespace {
 
                     if (value >= probCutBeta) {
                         // If TT doesn't have equal or more deep info write probCut data into it
-                        if (!(ttHit
+                        if (!(ss->ttHit
                            && tte->depth() >= depth - 3
                            && ttValue != VALUE_NONE)) {
                             tte->save(key,
@@ -1187,7 +1188,7 @@ namespace {
             // if result is lower than ttValue minus a margin then extend ttMove.
             if (!rootNode
              && depth >= 7
-             && ttHit
+             && ss->ttHit
              && move == ttMove
              && ss->excludedMove == MOVE_NONE // Avoid recursive singular search
              //&& ttValue != VALUE_NONE  Already implicit in the next condition
@@ -1511,10 +1512,10 @@ namespace {
                 thread->captureStats[pos[orgSq(cm)]][dstSq(cm)][pos.captured(cm)] << -bonus1;
             }
 
-            // Extra penalty for a quiet TT move or main killer move in previous ply when it gets refuted
+            // Extra penalty for a quiet early move that was not a TT move or main killer move in previous ply when it gets refuted
             if ( pmOK
              && !pmCapOrPro
-             && ((ss-1)->moveCount == 1
+             && ((ss-1)->moveCount == 1 + (ss-1)->ttHit
               || (ss-1)->killerMoves[0] == (ss-1)->playedMove)) {
                 updateContinuationStats(ss-1, pmPiece, pmDst, -bonus1);
             }

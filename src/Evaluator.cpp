@@ -1173,16 +1173,17 @@ namespace Evaluator {
         assert(pos.checkers() == 0);
 
         auto const fortress{ 16 + pos.clockPly() };
-        bool const classical{
-            !useNNUE
-         || std::abs(egValue(pos.psqScore())) * 16 > NNUEThreshold1 * fortress
-        };
+        bool const useClassical{ std::abs(egValue(pos.psqScore())) * 16 > NNUEThreshold1 * fortress };
 
         Value v{
-            classical ?
+            !useNNUE
+         || useClassical
+         || (std::abs(egValue(pos.psqScore())) > VALUE_MG_PAWN / 8
+          && !(pos.thread()->nodes & 0xF)) ?
                 Evaluation<false>(pos).value() :
                 NNUE::evaluate(pos) };
-        if (classical
+
+        if (useClassical
          && useNNUE
          && std::abs(v) * 16 < NNUEThreshold2 * fortress) {
             v = NNUE::evaluate(pos);
