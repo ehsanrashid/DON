@@ -40,15 +40,14 @@ namespace Evaluator::NNUE::Features {
         Square const kSq{ orient(perspective, pos.square(perspective|KING)) };
         auto const &dp{ pos.state()->dirtyPiece };
         for (int i = 0; i < dp.dirtyCount; ++i) {
-            Piece const pc{ dp.piece[i] };
-            if (pType(pc) == KING) {
+            if (pType(dp.piece[i]) == KING) {
                 continue;
             }
             if (dp.org[i] != SQ_NONE) {
-                removed->push_back(makeIndex(perspective, dp.org[i], pc, kSq));
+                removed->push_back(makeIndex(perspective, dp.org[i], dp.piece[i], kSq));
             }
             if (dp.dst[i] != SQ_NONE) {
-                added->push_back(makeIndex(perspective, dp.dst[i], pc, kSq));
+                added->push_back(makeIndex(perspective, dp.dst[i], dp.piece[i], kSq));
             }
         }
     }

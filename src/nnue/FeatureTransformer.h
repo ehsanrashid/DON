@@ -64,12 +64,11 @@ namespace Evaluator::NNUE {
         }
 
         // Convert input features
-        void transform(Position const &pos, OutputType *output, bool refresh) const {
-            if (refresh
-             || !updateAccumulatorIfPossible(pos)) {
+        void transform(Position const &pos, OutputType *output) const {
+            if (!updateAccumulatorIfPossible(pos)) {
                 refreshAccumulator(pos);
             }
-            auto const &accumulation{ pos.state()->accumulator.accumulation };
+            auto const &accumulation = pos.state()->accumulator.accumulation;
 
 #if defined(USE_AVX2)
             constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
@@ -209,7 +208,6 @@ namespace Evaluator::NNUE {
 #endif
 
             accumulator.accumulationComputed = true;
-            accumulator.scoreComputed = false;
         }
 
         // Calculate cumulative value using difference calculation
@@ -324,7 +322,6 @@ namespace Evaluator::NNUE {
 #endif
 
             accumulator.accumulationComputed = true;
-            accumulator.scoreComputed = false;
         }
     };
 

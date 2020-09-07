@@ -566,7 +566,7 @@ bool Position::see(Move m, Value threshold) const noexcept {
         return true;
     }
 
-    auto res{ 1 };
+    i32 res{ 1 };
     auto mov{ pColor(board[org]) };
     Bitboard mocc{ pieces() ^ org ^ dst };
     Bitboard attackers{ attackersTo(dst, mocc) };
@@ -845,7 +845,6 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 
     // Used by NNUE
     _stateInfo->accumulator.accumulationComputed = false;
-    _stateInfo->accumulator.scoreComputed = false;
     auto &dp{ _stateInfo->dirtyPiece };
     dp.dirtyCount = 1;
 
@@ -1129,13 +1128,7 @@ void Position::doNullMove(StateInfo &si) {
     assert(&si != _stateInfo
         && checkers() == 0);
 
-    if (Evaluator::useNNUE) {
-        std::memcpy(&si, _stateInfo, sizeof (StateInfo));
-        _stateInfo->accumulator.scoreComputed = false;
-    }
-    else {
-        std::memcpy(&si, _stateInfo, offsetof(StateInfo, accumulator));
-    }
+    std::memcpy(&si, _stateInfo, Evaluator::useNNUE ? sizeof (StateInfo) : offsetof(StateInfo, accumulator));
 
     si.prevState = _stateInfo;
     _stateInfo = &si;

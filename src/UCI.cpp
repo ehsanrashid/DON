@@ -911,7 +911,7 @@ namespace UCI {
                 sync_cout << oss.str() << sync_endl;
             }
             else if (token == "moves")      {
-
+                sync_cout;
                 i32 moveCount{};
                 std::cout << '\n';
                 if (pos.checkers() == 0) {
@@ -971,6 +971,7 @@ namespace UCI {
                     }
                     std::cout << "(" << moveCount << ")\n";
                 }
+                std::cout << sync_endl;
             }
             else {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;

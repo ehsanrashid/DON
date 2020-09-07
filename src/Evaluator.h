@@ -22,9 +22,8 @@ namespace Evaluator {
     namespace NNUE {
 
         extern bool loadEvalFile(std::istream&);
+
         extern Value evaluate(Position const&);
-        //extern Value computeEval(Position const&);
-        //extern void updateEval(Position const&);
 
     } // namespace NNUE
 

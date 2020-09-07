@@ -1,5 +1,6 @@
 #pragma once
 
+#include <array>
 #include <atomic>
 #include <condition_variable>
 #include <mutex>
@@ -43,7 +44,7 @@ public:
 
     std::atomic<u64> nodes,
                      tbHits;
-    std::atomic<u32> pvChange;
+    std::atomic<u32> pvChanges;
 
     i16   nmpMinPly;
     Color nmpColor;
@@ -93,7 +94,7 @@ public:
 
     void threadFunc();
 
-    virtual void clear();
+    virtual void clean();
     virtual void search();
 };
 
@@ -109,7 +110,7 @@ public:
 
     Value  bestValue;
     double timeReduction;
-    Value  iterValues[4];
+    std::array<Value, 4> iterValues;
 
     Move bestMove;
     i16  bestDepth;
@@ -117,7 +118,7 @@ public:
 
     void tick();
 
-    void clear() override final;
+    void clean() override final;
     void search() override final;
 };
 

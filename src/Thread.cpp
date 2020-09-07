@@ -66,8 +66,8 @@ void Thread::threadFunc() {
         search();
     }
 }
-/// Thread::clear() clears all the thread related stuff.
-void Thread::clear() {
+/// Thread::clean() clears all the thread related stuff.
+void Thread::clean() {
     butterFlyStats.fill(0);
     lowPlyStats.fill(0);
 
@@ -87,12 +87,13 @@ void Thread::clear() {
     //pawnHash.clear();
 }
 
-/// MainThread::clear()
-void MainThread::clear() {
-    Thread::clear();
+/// MainThread::clean()
+void MainThread::clean() {
+    Thread::clean();
 
     bestValue = +VALUE_INFINITE;
     timeReduction = 1.00;
+    iterValues.fill(VALUE_ZERO);
 }
 
 ThreadPool::~ThreadPool() {
@@ -184,7 +185,7 @@ void ThreadPool::setup(u16 threadCount) {
 void ThreadPool::clean() {
 
     for (auto *th : *this) {
-        th->clear();
+        th->clean();
     }
 }
 
@@ -223,7 +224,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
         th->finishedDepth = DEPTH_ZERO;
         th->nodes         = 0;
         th->tbHits        = 0;
-        th->pvChange      = 0;
+        th->pvChanges     = 0;
         th->nmpMinPly     = 0;
         th->nmpColor      = COLORS;
         th->rootMoves     = rootMoves;

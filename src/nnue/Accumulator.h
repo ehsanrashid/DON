@@ -9,9 +9,7 @@ namespace Evaluator::NNUE {
     struct alignas(CacheLineSize) Accumulator {
 
         i16 accumulation[2][RefreshTriggers.size()][TransformedFeatureDimensions];
-        Value score;
         bool accumulationComputed;
-        bool scoreComputed;
     };
 
 }  // namespace Evaluator::NNUE

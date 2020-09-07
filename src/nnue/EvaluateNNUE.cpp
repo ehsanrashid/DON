@@ -136,22 +136,14 @@ namespace Evaluator::NNUE {
         }
 
         // Calculate the evaluation value
-        Value computeScore(Position const &pos, bool refresh) {
-            auto &accumulator{ pos.state()->accumulator };
-            if (refresh
-             || !accumulator.scoreComputed) {
+        Value computeScore(Position const &pos) {
 
-                alignas(CacheLineSize) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
-                featureTransformer->transform(pos, transformedFeatures, refresh);
-                alignas(CacheLineSize) char buffer[Network::BufferSize];
-                auto const output{ network->propagate(transformedFeatures, buffer) };
+            alignas(CacheLineSize) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
+            featureTransformer->transform(pos, transformedFeatures);
+            alignas(CacheLineSize) char buffer[Network::BufferSize];
+            auto const output{ network->propagate(transformedFeatures, buffer) };
 
-                auto const score{ static_cast<Value>(output[0] / FVScale) };
-
-                accumulator.score = score;
-                accumulator.scoreComputed = true;
-            }
-            return accumulator.score;
+            return{ static_cast<Value>(output[0] / FVScale) };
         }
     }
 
@@ -163,20 +155,10 @@ namespace Evaluator::NNUE {
 
     // Evaluation function. Perform differential calculation.
     Value evaluate(Position const &pos) {
-        auto v{ computeScore(pos, false) };
+        auto v{ computeScore(pos) };
         v = v * 5 / 4;
         v += VALUE_TEMPO;
         return v;
     }
-
-    //// Evaluation function. Perform full calculation.
-    //Value computeEval(Position const &pos) {
-    //    return computeScore(pos, true);
-    //}
-
-    //// Proceed with the difference calculation if possible
-    //void updateEval(Position const &pos) {
-    //    featureTransformer->updateAccumulatorIfPossible(pos);
-    //}
 
 } // namespace Evaluator::NNUE
