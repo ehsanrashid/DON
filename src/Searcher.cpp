@@ -1335,10 +1335,8 @@ namespace {
 
                     // Decrease/Increase reduction by comparing opponent's stat score (~10 Elo)
                     reductDepth +=
-                        +1 * ( ((ss-1)->stats >= -119
-                             && (ss-0)->stats <  -140)
-                             - ((ss-0)->stats >= -106
-                             && (ss-1)->stats <  -104));
+                        +1 * ( ((ss-1)->stats >= -119 && (ss-0)->stats < -140)
+                             - ((ss-0)->stats >= -106 && (ss-1)->stats < -104));
 
                     // Decrease/Increase reduction for moves with a good/bad history (~30 Elo)
                     reductDepth -= i16(ss->stats / 14884);

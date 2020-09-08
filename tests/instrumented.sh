@@ -115,8 +115,8 @@ EOF
 
 #download TB as needed
 if [ ! -d ../tests/syzygy ]; then
-   curl -sL https://api.github.com/repos/niklasf/python-chess/tarball/9b9aa13f9f36d08aadfabff872882f4ab1494e95 | tar -xzf -
-   mv niklasf-python-chess-9b9aa13 ../tests/syzygy
+    curl -sL https://api.github.com/repos/niklasf/python-chess/tarball/9b9aa13f9f36d08aadfabff872882f4ab1494e95 | tar -xzf -
+    mv niklasf-python-chess-9b9aa13 ../tests/syzygy
 fi
 
 cat << EOF > syzygy.exp
