@@ -344,7 +344,7 @@ Move TTable::extractNextMove(Position &pos, Move m) const noexcept {
     StateInfo si;
     pos.doMove(m, si);
     bool ttHit;
-    auto const *tte{ probe(pos.posiKey(), ttHit) };
+    auto const *const tte{ probe(pos.posiKey(), ttHit) };
     auto nm{ ttHit ? tte->move() : MOVE_NONE };
     if (nm != MOVE_NONE
      && !(pos.pseudoLegal(nm)

@@ -142,7 +142,8 @@ namespace {
     void updateContinuationStats(Stack *ss, Piece p, Square dst, i32 bonus) {
         //assert(isOk(p));
         for (auto i : { 1, 2, 4, 6 }) {
-            if (ss->inCheck && i > 2) {
+            if (i > 2
+             && ss->inCheck) {
                 break;
             }
             if (isOk((ss-i)->playedMove)) {
@@ -242,9 +243,9 @@ namespace {
 
             bool const updated{ th->rootMoves[i].newValue != -VALUE_INFINITE };
 
-            if (depth == 1
-             && !updated
-             && i > 0) {
+            if (i > 0
+             && depth == 1
+             && !updated) {
                 continue;
             }
 
@@ -323,9 +324,9 @@ namespace {
 
         Move move;
         // Transposition table lookup.
-        Key const key{ pos.posiKey() };
+        Key  const key    { pos.posiKey() };
 
-        auto *tte   { TT.probe(key, ss->ttHit) };
+        auto *const tte   { TT.probe(key, ss->ttHit) };
 
         auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { ss->ttHit ? tte->move() : MOVE_NONE };
@@ -483,6 +484,7 @@ namespace {
             if (!ss->inCheck
              && !(giveCheck
                && contains(pos.kingBlockers(~activeSide), org))
+               //&& !aligned(pos.square(~activeSide|KING), org, dst))
              && !pos.see(move)
              && Limits.mate == 0) {
                 continue;
@@ -642,13 +644,13 @@ namespace {
         // Don't want the score of a partial search to overwrite
         // a previous full search TT value, so we use a different
         // position key in case of an excluded move.
-        Key const key{ excludedMove == MOVE_NONE ?
-                        pos.posiKey() :
-                        pos.posiKey() ^ makeKey(excludedMove) };
+        Key const   key   { excludedMove == MOVE_NONE ?
+                                pos.posiKey() :
+                                pos.posiKey() ^ makeKey(excludedMove) };
 
-        auto *tte   { excludedMove == MOVE_NONE ?
-                        TT.probe(key, ss->ttHit) :
-                        TTEx.probe(key, ss->ttHit) };
+        auto *const tte   { excludedMove == MOVE_NONE ?
+                                TT.probe(key, ss->ttHit) :
+                                TTEx.probe(key, ss->ttHit) };
 
         auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { rootNode ? thread->rootMoves[thread->pvCur][0] :
@@ -1225,6 +1227,7 @@ namespace {
             if (giveCheck
              && (// Discovered check
                  contains(pos.kingBlockers(~activeSide), org)
+              //&& !aligned(pos.square(~activeSide|KING), org, dst)
                  // Direct check
               || pos.see(move))) {
                 extension = 1;

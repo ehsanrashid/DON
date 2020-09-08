@@ -513,6 +513,9 @@ namespace UCI {
             "3Qb1k1/1r2ppb1/pN1n2q1/Pp1Pp1Pr/4P2p/4BP2/4B1R1/1R5K b - - 11 40",
             "4k3/3q1r2/1N2r1b1/3ppN2/2nPP3/1B1R2n1/2R1Q3/3K4 w - - 5 1",
 
+            // 4-man positions
+            "8/6k1/5r2/8/8/8/1K6/Q7 w - - 0 1"        // Kc3 - mate in 27
+
             // 5-men positions
             "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 80",     // Kc2 - Mate
             "8/8/8/5N2/8/p7/8/2NK3k w - - 0 82",      // Na2 - Mate
@@ -919,7 +922,7 @@ namespace UCI {
                     moveCount = 0;
                     for (auto const &vm : MoveList<CAPTURE>(pos)) {
                         if (pos.pseudoLegal(vm)
-                            && pos.legal(vm)) {
+                         && pos.legal(vm)) {
                             std::cout << moveToSAN(vm, pos) << " ";
                             ++moveCount;
                         }

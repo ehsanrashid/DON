@@ -274,7 +274,7 @@ Move MovePicker::nextMove() noexcept {
                                     return m == MOVE_NONE
                                         || m == ttMove
                                         || pos.capture(m)
-                                        || !pos.pseudoLegal(m);
+                                        ||!pos.pseudoLegal(m);
                                 });
 
         ++stage;

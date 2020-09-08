@@ -304,9 +304,9 @@ template<> void generate<LEGAL>(ValMoves &moves, Position const &pos) {
                                     return (mType(vm) == SIMPLE
                                          && orgSq(vm) == fkSq
                                          && (pos.attackersTo(dstSq(vm), mocc) & enemies) != 0)
-                                        || ((contains(pinneds, orgSq(vm))
-                                          || mType(vm) == CASTLE
-                                          || mType(vm) == ENPASSANT)
+                                        || ((mType(vm) == CASTLE
+                                          || mType(vm) == ENPASSANT
+                                          || contains(pinneds, orgSq(vm)))
                                          && !pos.legal(vm));
                                 }), moves.end());
 }
@@ -478,7 +478,8 @@ Perft perft(Position &pos, Depth depth, bool detail) {
     }
     if (RootNode) {
         std::ostringstream oss{};
-        oss << "\nTotal:  " << std::right << std::setfill('.')
+        oss << '\n'
+            << "Total Nodes:  " << std::right << std::setfill('.')
             << std::setw(18) << sumLeaf.any;
         if (detail) {
             oss << " " << std::setw(16) << sumLeaf.capture
