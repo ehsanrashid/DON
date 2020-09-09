@@ -67,7 +67,7 @@ public:
 
     ~PolyBook();
 
-    void initialize(std::string const&);
+    void initialize(std::string_view);
 
     Move probe(Position&, i16, bool);
 

@@ -5,7 +5,7 @@
 
 using std::string;
 
-bool whiteSpaces(string const &str) {
+bool whiteSpaces(std::string_view str) {
     return str.empty()
         || std::all_of(str.begin(), str.end(), ::isspace);
 }
@@ -58,10 +58,10 @@ string& trim(string &str) {
     return str;
 }
 
-std::vector<string> split(string const &str, char delimiter) {
+std::vector<string> split(std::string_view str, char delimiter) {
     std::vector<string> tokens;
     string token;
-    std::istringstream iss{ str };
+    std::istringstream iss{ string{ str } };
     while (std::getline(iss, token, delimiter)) {
 
         //replace(token, '\\', '/');

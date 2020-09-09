@@ -665,7 +665,7 @@ bool Position::see(Move m, Value threshold) const noexcept {
 /// Position::setup() initializes the position object with the given FEN string.
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
-Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th) {
+Position& Position::setup(std::string_view ff, StateInfo &si, Thread *const th) {
     // A FEN string defines a particular position using only the ASCII character set.
     // A FEN string contains six fields separated by a space.
     // 1) Piece placement (from White's perspective).
@@ -702,7 +702,7 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
     std::memset(&si, 0, sizeof (si));
     _stateInfo = &si;
 
-    std::istringstream iss{ ff };
+    std::istringstream iss{ ff.data() };
     iss >> std::noskipws;
 
     u08 token;
@@ -802,13 +802,13 @@ Position& Position::setup(std::string const &ff, StateInfo &si, Thread *const th
 }
 /// Position::setup() initializes the position object with the given endgame code string like "KBPKN".
 /// It is mainly an helper to get the material key out of an endgame code.
-Position& Position::setup(std::string const &code, Color c, StateInfo &si) {
+Position& Position::setup(std::string_view code, Color c, StateInfo &si) {
     assert(code[0] == 'K'
         && code.find('K', 1) != std::string::npos);
 
     std::string codes[COLORS]{
-        code.substr(code.find('K', 1)),                             // Weak
-        code.substr(0, std::min(code.find('v'), code.find('K', 1))) // Strong
+        std::string{ code.substr(code.find('K', 1)) },                             // Weak
+        std::string{ code.substr(0, std::min(code.find('v'), code.find('K', 1))) } // Strong
     };
     assert(0 < codes[WHITE].size() && codes[WHITE].size() < 8);
     assert(0 < codes[BLACK].size() && codes[BLACK].size() < 8);
@@ -1466,7 +1466,7 @@ bool Position::ok() const {
 }
 
 /// isOk() Check the validity of FEN string
-bool isOk(std::string const &fen) {
+bool isOk(std::string_view fen) {
     Position pos;
     StateInfo si;
     return !whiteSpaces(fen)

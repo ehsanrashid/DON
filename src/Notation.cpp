@@ -8,6 +8,7 @@
 #include "UCI.h"
 
 using std::string;
+using std::string_view;
 
 string const PieceChar{ " PNBRQK  pnbrqk" };
 string const ColorChar{ "wb" };
@@ -82,7 +83,7 @@ string moveToCAN(Move m) {
 }
 /// Converts a string representing a move in coordinate algebraic notation
 /// to the corresponding legal move, if any.
-Move moveOfCAN(string const &can, Position const &pos) {
+Move moveOfCAN(string_view can, Position const &pos) {
     //// If promotion piece in uppercase, convert to lowercase
     //if (can.size() == 5
     // && isupper(can[4])) {
@@ -273,7 +274,7 @@ string moveToSAN(Move m, Position &pos) {
 }
 /// Converts a string representing a move in short algebraic notation
 /// to the corresponding legal move, if any.
-Move moveOfSAN(string const &san, Position &pos) {
+Move moveOfSAN(string_view san, Position &pos) {
     for (auto const &vm : MoveList<LEGAL>(pos)) {
         if (moveToSAN(vm, pos) == san) {
             return vm;

@@ -38,15 +38,14 @@ namespace UCI {
 
         Option(OnChange = nullptr);
         Option(bool, OnChange = nullptr);
-        Option(char const*, OnChange = nullptr);
-        Option(std::string const&, OnChange = nullptr);
+        Option(std::string_view, OnChange = nullptr);
         Option(double, double, double, OnChange = nullptr);
-        Option(char const*, char const*, OnChange = nullptr);
-        Option(std::string const&, std::string const&, OnChange = nullptr);
+        Option(std::string_view, std::string_view, OnChange = nullptr);
         Option(Option const&) = delete;
         //Option(Option&&) = delete;
 
         operator std::string() const;
+        operator std::string_view() const;
         operator bool() const;
         operator i16() const;
         operator u16() const;
@@ -56,11 +55,9 @@ namespace UCI {
         operator u64() const;
         operator double() const;
 
-        bool operator==(char const*) const;
-        bool operator==(std::string const&) const;
+        bool operator==(std::string_view) const;
 
-        Option& operator=(char const*);
-        Option& operator=(std::string&);
+        Option& operator=(std::string_view);
 
         void operator<<(Option const&);
 

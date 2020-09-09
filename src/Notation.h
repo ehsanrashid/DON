@@ -2,6 +2,7 @@
 
 #include <iomanip>
 #include <ostream>
+#include <string_view>
 
 #include "Position.h"
 #include "Type.h"
@@ -40,7 +41,7 @@ extern std::string toString(Value);
 extern std::string toString(Score);
 
 extern std::string moveToCAN(Move);
-extern Move moveOfCAN(std::string const&, Position const&);
+extern Move moveOfCAN(std::string_view, Position const&);
 
 /// Overloading output operators
 extern std::ostream& operator<<(std::ostream&, Color);
@@ -53,6 +54,6 @@ extern std::ostream& operator<<(std::ostream&, Score);
 extern std::ostream& operator<<(std::ostream&, Move);
 
 extern std::string moveToSAN(Move, Position&);
-extern Move moveOfSAN(std::string const&, Position&);
+extern Move moveOfSAN(std::string_view, Position&);
 
 //extern std::string prettyInfo(Thread*);

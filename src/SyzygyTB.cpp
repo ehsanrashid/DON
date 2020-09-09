@@ -8,6 +8,7 @@
 #include <fstream>
 #include <sstream>
 #include <string>
+#include <string_view>
 #include <vector>
 
 #include "BitBoard.h"
@@ -354,7 +355,7 @@ namespace {
             mapping{ 0 }
         {}
 
-        explicit TBTable(string const&);
+        explicit TBTable(std::string_view);
         explicit TBTable(TBTable<WDL> const&);
 
         virtual ~TBTable() {
@@ -365,7 +366,7 @@ namespace {
     };
 
     template<>
-    TBTable<WDL>::TBTable(string const &code) :
+    TBTable<WDL>::TBTable(std::string_view code) :
         TBTable{} {
 
         StateInfo si;
@@ -1636,7 +1637,7 @@ namespace SyzygyTB {
         return true;
     }
 
-    void initialize(string const &paths) {
+    void initialize(std::string_view paths) {
         static bool initialized = false;
 
         if (!initialized) {

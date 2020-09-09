@@ -211,7 +211,7 @@ bool PolyBook::canProbe(Position const &pos) noexcept {
     return doProbe;
 }
 
-void PolyBook::initialize(string const &file) {
+void PolyBook::initialize(std::string_view file) {
 
     clear();
 

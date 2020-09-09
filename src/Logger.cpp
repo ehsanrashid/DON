@@ -60,7 +60,7 @@ Logger& Logger::instance() {
     return logger;
 }
 
-void Logger::setup(std::string const &logFile) {
+void Logger::setup(std::string_view logFile) {
     if (ofstream.is_open()) {
         std::cout.rdbuf(ostreambuf.sbRead);
         std:: cin.rdbuf(istreambuf.sbRead);

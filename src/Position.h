@@ -200,8 +200,8 @@ public:
     bool bishopOpposed() const noexcept;
     bool semiopenFileOn(Color, Square) const noexcept;
 
-    Position& setup(std::string const&, StateInfo&, Thread *const = nullptr);
-    Position& setup(std::string const&, Color, StateInfo&);
+    Position& setup(std::string_view, StateInfo&, Thread *const = nullptr);
+    Position& setup(std::string_view, Color, StateInfo&);
 
     void doMove(Move, StateInfo&, bool);
     void doMove(Move, StateInfo&);
@@ -481,5 +481,5 @@ inline StateInfo* Position::state() const noexcept {
 
 
 #if !defined(NDEBUG)
-extern bool isOk(std::string const&);
+extern bool isOk(std::string_view);
 #endif

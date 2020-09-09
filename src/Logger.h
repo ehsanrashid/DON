@@ -34,5 +34,5 @@ public:
     Logger& operator=(Logger const&) = delete;
     Logger& operator=(Logger&&) = delete;
 
-    void setup(std::string const&);
+    void setup(std::string_view);
 };

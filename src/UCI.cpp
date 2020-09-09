@@ -22,9 +22,13 @@
 #include "SyzygyTB.h"
 
 using std::string;
+using std::string_view;
+using namespace std::literals::string_view_literals;
+
 using std::vector;
 using std::istringstream;
 using std::ostringstream;
+
 
 // Engine Name
 string const Name{ "DON" };
@@ -188,10 +192,7 @@ namespace UCI {
         onChange{ onCng } {
         defaultVal = currentVal = ToString(v);
     }
-    Option::Option(char const *v, OnChange onCng) :
-        Option{ string{ v }, onCng }
-    {}
-    Option::Option(string const &v, OnChange onCng) :
+    Option::Option(string_view v, OnChange onCng) :
         type{ "string" },
         onChange{ onCng } {
         defaultVal = currentVal = v;
@@ -203,16 +204,17 @@ namespace UCI {
         onChange{ onCng } {
         defaultVal = currentVal = std::to_string(v);
     }
-    Option::Option(char const* v, char const* cur, OnChange onCng) :
-        Option{ string{ v }, string{ cur }, onCng }
-    {}
-    Option::Option(string const& v, string const& cur, OnChange onCng) :
+    Option::Option(string_view v, string_view cur, OnChange onCng) :
         type{ "combo" },
         onChange{ onCng } {
         defaultVal = v; currentVal = cur;
     }
 
     Option::operator string() const {
+        assert(type == "string");
+        return currentVal;
+    }
+    Option::operator string_view() const {
         assert(type == "string");
         return currentVal;
     }
@@ -249,38 +251,31 @@ namespace UCI {
         return( std::stod(currentVal) );
     }
 
-    bool Option::operator==(char const *v) const {
-        return *this == string{ v };
-    }
-    bool Option::operator==(string const &v) const {
+    bool Option::operator==(string_view v) const {
         assert(type == "combo");
         return !CaseInsensitiveLessComparer()(currentVal, v)
             && !CaseInsensitiveLessComparer()(v, currentVal);
     }
 
-    Option& Option::operator=(char const *v) {
-        *this = string{ v };
-        return *this;
-    }
     /// Option::operator=() updates currentValue and triggers onChange() action
-    Option& Option::operator=(string &v) {
+    Option& Option::operator=(string_view v) {
         assert(!type.empty());
-
+        string val{ v };
         if (type == "check") {
-            toLower(v);
-            if (v != "true" && v != "false") {
-                v = "false";
+            toLower(val);
+            if (val != "true" && val != "false") {
+                val = "false";
             }
         }
         else if (type == "spin") {
-            auto const d = std::stod(v);
+            auto const d = std::stod(val);
             if (minVal > d || d > maxVal) {
-                v = std::to_string(i32(std::clamp(d, minVal, maxVal)));
+                val = std::to_string(i32(std::clamp(d, minVal, maxVal)));
             }
         }
         else if (type == "string") {
-            if (whiteSpaces(v)) {
-                v.clear();
+            if (whiteSpaces(val)) {
+                val.clear();
             }
         }
         else if (type == "combo") {
@@ -290,14 +285,14 @@ namespace UCI {
             while (iss >> token) {
                 comboMap[token] << Option();
             }
-            if (comboMap.find(v) == comboMap.end()
-             || v == "var") {
+            if (comboMap.find(val) == comboMap.end()
+             || val == "var") {
                 return *this;
             }
         }
 
         if (type != "button") {
-            currentVal = v;
+            currentVal = val;
         }
         if (onChange != nullptr) {
             onChange();
@@ -418,12 +413,12 @@ namespace UCI {
         Options["Clear Hash"]         << Option(onClearHash);
         Options["Retain Hash"]        << Option(false);
 
-        Options["Hash File"]          << Option("Hash.dat");
+        Options["Hash File"]          << Option("Hash.dat"sv);
         Options["Save Hash"]          << Option(onSaveHash);
         Options["Load Hash"]          << Option(onLoadHash);
 
         Options["Use Book"]           << Option(false);
-        Options["Book File"]          << Option("Book.bin", onBookFile);
+        Options["Book File"]          << Option("Book.bin"sv, onBookFile);
         Options["Book Pick Best"]     << Option(true);
         Options["Book Move Num"]      << Option(20, 0, 100);
 
@@ -445,7 +440,7 @@ namespace UCI {
         Options["Ponder"]             << Option(true);
         Options["Time Nodes"]         << Option( 0,  0, 10000, onTimeNodes);
 
-        Options["SyzygyPath"]         << Option("", onSyzygyPath);
+        Options["SyzygyPath"]         << Option(""sv, onSyzygyPath);
         Options["SyzygyDepthLimit"]   << Option(1, 1, 100);
         Options["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
         Options["SyzygyMove50Rule"]   << Option(true);
@@ -455,10 +450,10 @@ namespace UCI {
 #if defined(_MSC_VER)
         Options["Eval File"]          << Option(string("src/") + DefaultEvalFile, onEvalFile);
 #else
-        Options["Eval File"]          << Option(DefaultEvalFile, onEvalFile);
+        Options["Eval File"]          << Option(string_view{ DefaultEvalFile }, onEvalFile);
 #endif
 
-        Options["Log File"]           << Option("", onLogFile);
+        Options["Log File"]           << Option(string_view{ "" }, onLogFile);
 
         Options["UCI_Chess960"]       << Option(false);
         Options["UCI_ShowWDL"]        << Option(false);

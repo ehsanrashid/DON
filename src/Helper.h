@@ -10,7 +10,7 @@
 
 /// std::string Helpers
 
-extern bool whiteSpaces(std::string const&);
+extern bool whiteSpaces(std::string_view);
 
 extern std::string& toLower(std::string&);
 extern std::string& toUpper(std::string&);
@@ -21,7 +21,7 @@ extern std::string& replace(std::string&, char const, char const);
 extern std::string& ltrim(std::string&);
 extern std::string& rtrim(std::string&);
 extern std::string& trim(std::string&);
-extern std::vector<std::string> split(std::string const&, char);
+extern std::vector<std::string> split(std::string_view, char);
 
 namespace CommandLine {
 

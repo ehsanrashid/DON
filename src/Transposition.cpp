@@ -359,11 +359,11 @@ Move TTable::extractNextMove(Position &pos, Move m) const noexcept {
 }
 
 /// TTable::save() saves hash to file
-void TTable::save(std::string const &hashFile) const {
+void TTable::save(std::string_view hashFile) const {
     if (whiteSpaces(hashFile)) {
         return;
     }
-    std::ofstream ofstream{ hashFile, std::ios::out|std::ios::binary };
+    std::ofstream ofstream{ hashFile.data(), std::ios::out|std::ios::binary };
     if (!ofstream.is_open()) {
         return;
     }
@@ -372,11 +372,11 @@ void TTable::save(std::string const &hashFile) const {
     sync_cout << "info string Hash saved to file \'" << hashFile << "\'" << sync_endl;
 }
 /// TTable::load() loads hash from file
-void TTable::load(std::string const &hashFile) {
+void TTable::load(std::string_view hashFile) {
     if (whiteSpaces(hashFile)) {
         return;
     }
-    std::ifstream ifstream{ hashFile, std::ios::in|std::ios::binary };
+    std::ifstream ifstream{ hashFile.data(), std::ios::in|std::ios::binary };
     if (!ifstream.is_open()) {
         return;
     }

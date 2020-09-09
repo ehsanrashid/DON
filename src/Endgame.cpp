@@ -1,5 +1,7 @@
 #include "Endgame.h"
 
+#include <string_view>
+
 #include "Bitbase.h"
 #include "MoveGenerator.h"
 
@@ -711,7 +713,7 @@ namespace EndGame {
     namespace {
 
         template<EndgameCode EC, typename T = EndgameType<EC>>
-        void addEG(std::string const &code) {
+        void addEG(std::string_view code) {
             StateInfo si;
             mapEG<T>()[Position().setup(code, WHITE, si).matlKey()] = EGPtr<T>(new Endgame<EC>(WHITE));
             mapEG<T>()[Position().setup(code, BLACK, si).matlKey()] = EGPtr<T>(new Endgame<EC>(BLACK));

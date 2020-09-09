@@ -116,8 +116,8 @@ public:
 
     Move extractNextMove(Position&, Move) const noexcept;
 
-    void save(std::string const&) const;
-    void load(std::string const&);
+    void save(std::string_view) const;
+    void load(std::string_view);
 
     friend std::ostream& operator<<(std::ostream&, TTable const&);
     friend std::istream& operator>>(std::istream&, TTable      &);

@@ -33,15 +33,15 @@ namespace SyzygyTB {
 
     extern std::ostream& operator<<(std::ostream&, ProbeState);
 
-    extern i32      probeDTZ(Position&, ProbeState&);
     extern WDLScore probeWDL(Position&, ProbeState&);
+    extern i32      probeDTZ(Position&, ProbeState&);
 
-    extern bool rootProbeDTZ(Position&, RootMoves&);
     extern bool rootProbeWDL(Position&, RootMoves&);
+    extern bool rootProbeDTZ(Position&, RootMoves&);
 
     extern void rankRootMoves(Position&, RootMoves&);
 
-    extern void initialize(std::string const&);
+    extern void initialize(std::string_view);
 
     extern i16 MaxPieceLimit;
 
