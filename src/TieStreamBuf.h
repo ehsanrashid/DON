@@ -1,6 +1,7 @@
 #pragma once
 
 #include <streambuf>
+#include <string_view>
 
 // Fancy logging facility.
 // The trick here is to replace cin.rdbuf() and cout.rdbuf() with two
@@ -13,13 +14,13 @@ class TieStreamBuf :
 
 private:
 
-    int_type write(int_type ch, std::string const &prefix) {
+    int_type write(int_type ch, std::string_view prefix) {
         // Previous character
         static int_type pCh = '\n';
 
         if (pCh == '\n') {
             //if (
-            sbWrit->sputn(prefix.c_str(), prefix.length());
+            sbWrit->sputn(prefix.data(), prefix.length());
             //    != prefix.length()) return EOF;
         }
         return pCh = sbWrit->sputc(char(ch));

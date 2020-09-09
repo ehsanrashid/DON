@@ -1,6 +1,8 @@
 #pragma once
 
 #include <iostream>
+#include <string>
+#include <string_view>
 
 #include "Position.h"
 #include "RootMove.h"

@@ -11,8 +11,6 @@
 
 PolyBook Book;
 
-using std::string;
-
 namespace {
 
     template<typename T>
@@ -122,7 +120,7 @@ bool PolyEntry::operator<=(PolyEntry const &pe) const noexcept {
 bool PolyEntry::operator==(Move m) const noexcept { return move == m; }
 bool PolyEntry::operator!=(Move m) const noexcept { return move != m; }
 
-string PolyEntry::toString() const {
+std::string PolyEntry::toString() const {
     std::ostringstream oss{};
     oss << std::right
         << " key: " << std::setw(16) << std::setfill('0') << std::hex << std::uppercase << key << std::nouppercase << std::dec
@@ -190,7 +188,7 @@ i64 PolyBook::findIndex(Key pgKey) const noexcept {
 //i64 PolyBook::findIndex(Position const &pos) const noexcept {
 //    return findIndex(pos.pgKey());
 //}
-//i64 PolyBook::findIndex(string const &fen) const noexcept {
+//i64 PolyBook::findIndex(std::string_view fen) const noexcept {
 //    StateInfo si;
 //    return findIndex(Position().setup(fen, si, nullptr).pgKey());
 //}
@@ -351,7 +349,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
     return MOVE_NONE;
 }
 
-string PolyBook::show(Position const &pos) const {
+std::string PolyBook::show(Position const &pos) const {
     if (entry == nullptr
      || !enabled) {
         return "Book entries empty.";

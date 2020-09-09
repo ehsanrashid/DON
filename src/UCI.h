@@ -2,6 +2,7 @@
 
 #include <map>
 #include <string>
+#include <string_view>
 #include <type_traits>
 
 #include "Comparer.h"
@@ -44,7 +45,7 @@ namespace UCI {
         Option(Option const&) = delete;
         //Option(Option&&) = delete;
 
-        operator std::string() const;
+        //operator std::string() const;
         operator std::string_view() const;
         operator bool() const;
         operator i16() const;

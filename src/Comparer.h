@@ -30,7 +30,7 @@ inline bool compareCaseInsensitiveEqual(u08 ch1, u08 ch2) noexcept {
 
 struct CaseInsensitiveLessComparer {
     bool operator()(std::string_view s1, std::string_view s2) const {
-        //return stricmp(s1.c_str(), s2.c_str()) < 0;
+        //return stricmp(s1.data(), s2.data()) < 0;
         return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end()
                     , compareCaseInsensitiveLess);
     }
@@ -38,7 +38,7 @@ struct CaseInsensitiveLessComparer {
 
 struct CaseInsensitiveMoreComparer {
     bool operator()(std::string_view s1, std::string_view s2) const {
-        //return stricmp(s1.c_str(), s2.c_str()) > 0;
+        //return stricmp(s1.data(), s2.data()) > 0;
         return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end()
                     , compareCaseInsensitiveMore);
     }
@@ -46,7 +46,7 @@ struct CaseInsensitiveMoreComparer {
 
 struct CaseInsensitiveEqualComparer {
     bool operator()(std::string_view s1, std::string_view s2) const {
-        //return stricmp(s1.c_str(), s2.c_str()) == 0;
+        //return stricmp(s1.data(), s2.data()) == 0;
         return std::lexicographical_compare(s1.begin(), s1.end(), s2.begin(), s2.end()
                     , compareCaseInsensitiveEqual);
     }

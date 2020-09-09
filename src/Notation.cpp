@@ -7,18 +7,15 @@
 #include "Thread.h"
 #include "UCI.h"
 
-using std::string;
-using std::string_view;
-
-string const PieceChar{ " PNBRQK  pnbrqk" };
-string const ColorChar{ "wb" };
+std::string const PieceChar{ " PNBRQK  pnbrqk" };
+std::string const ColorChar{ "wb" };
 
 Color toColor(char c) noexcept {
     auto const pos{ ColorChar.find(c) };
-    return pos != string::npos ? Color(pos) : COLORS;
+    return pos != std::string::npos ? Color(pos) : COLORS;
 }
 
-string toString(Square s) noexcept {
+std::string toString(Square s) noexcept {
     return{ toChar(sFile(s)), toChar(sRank(s)) };
 }
 
@@ -28,7 +25,7 @@ char toChar(PieceType pt) noexcept {
 
 Piece toPiece(char p) noexcept {
     auto const pos{ PieceChar.find(p) };
-    return pos != string::npos ? Piece(pos) : NO_PIECE;
+    return pos != std::string::npos ? Piece(pos) : NO_PIECE;
 }
 char toChar(Piece p) noexcept {
     return isOk(p) ? PieceChar[p] : '-';
@@ -39,7 +36,7 @@ char toChar(Piece p) noexcept {
 /// cp   <x>   The score x from the engine's point of view in centipawns.
 /// mate <y>   Mate in y moves, not plies.
 ///            If the engine is getting mated use negative values for y.
-string toString(Value v) {
+std::string toString(Value v) {
     assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
 
     std::ostringstream oss{};
@@ -51,7 +48,7 @@ string toString(Value v) {
     }
     return oss.str();
 }
-string toString(Score s) {
+std::string toString(Score s) {
     std::ostringstream oss{};
     oss << std::showpos << std::showpoint
         //<< std::setw(6) << mgValue(s) << " "
@@ -67,7 +64,7 @@ string toString(Score s) {
 ///  - e1g1 notation in normal chess mode,
 ///  - e1h1 notation in chess960 mode.
 /// Internally castle moves are always coded as "king captures rook".
-string moveToCAN(Move m) {
+std::string moveToCAN(Move m) {
     if (m == MOVE_NONE) return { "(none)" };
     if (m == MOVE_NULL) return { "(null)" };
 
@@ -83,14 +80,12 @@ string moveToCAN(Move m) {
 }
 /// Converts a string representing a move in coordinate algebraic notation
 /// to the corresponding legal move, if any.
-Move moveOfCAN(string_view can, Position const &pos) {
+Move moveOfCAN(std::string_view can, Position const &pos) {
     //// If promotion piece in uppercase, convert to lowercase
-    //if (can.size() == 5
-    // && isupper(can[4])) {
+    //if (can.size() == 5 && isupper(can[4])) {
     //    can[4] = char(tolower(can[4]));
     //}
-    assert(can.size() < 5
-        || islower(can[4]));
+    assert(can.size() < 5 || islower(can[4]));
     for (auto const &vm : MoveList<LEGAL>(pos)) {
         if (moveToCAN(vm) == can) {
             return vm;
@@ -222,7 +217,7 @@ namespace {
 }
 
 /// Converts a move to a string in short algebraic notation.
-string moveToSAN(Move m, Position &pos) {
+std::string moveToSAN(Move m, Position &pos) {
     if (m == MOVE_NONE) return { "(none)" };
     if (m == MOVE_NULL) return { "(null)" };
     assert(MoveList<LEGAL>(pos).contains(m));
@@ -274,7 +269,7 @@ string moveToSAN(Move m, Position &pos) {
 }
 /// Converts a string representing a move in short algebraic notation
 /// to the corresponding legal move, if any.
-Move moveOfSAN(string_view san, Position &pos) {
+Move moveOfSAN(std::string_view san, Position &pos) {
     for (auto const &vm : MoveList<LEGAL>(pos)) {
         if (moveToSAN(vm, pos) == san) {
             return vm;

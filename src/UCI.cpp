@@ -210,10 +210,10 @@ namespace UCI {
         defaultVal = v; currentVal = cur;
     }
 
-    Option::operator string() const {
-        assert(type == "string");
-        return currentVal;
-    }
+    //Option::operator string() const {
+    //    assert(type == "string");
+    //    return currentVal;
+    //}
     Option::operator string_view() const {
         assert(type == "string");
         return currentVal;
@@ -376,7 +376,7 @@ namespace UCI {
         }
 
         void onBookFile() {
-            Book.initialize(Options["Book.bin"]);
+            Book.initialize(Options["Book File"]);
         }
 
         void onThreads() {

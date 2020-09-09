@@ -19,8 +19,6 @@
 #include "Thread.h"
 #include "UCI.h"
 
-using std::string;
-using std::vector;
 using namespace SyzygyTB;
 
 #if defined(_WIN32)
@@ -170,14 +168,14 @@ namespace {
         //
         // Example:
         // C:\tb\wdl345;C:\tb\wdl6;D:\tb\dtz345;D:\tb\dtz6
-        static vector<string> Paths;
+        static std::vector<std::string> Paths;
 
-        string filename;
+        std::string filename;
 
-        TBFile(string const &file) {
+        TBFile(std::string_view file) {
             filename.clear();
             for (auto &path : Paths) {
-                auto fname{ path + "/" + file }; //appendPath(path, file);
+                auto fname{ path + "/" + file.data() }; //appendPath(path, file);
                 std::ifstream::open(fname);
                 if (is_open()) {
                     filename = fname;
@@ -295,7 +293,7 @@ namespace {
         }
     };
 
-    vector<string> TBFile::Paths;
+    std::vector<std::string> TBFile::Paths;
 
     /// struct PairsData contains low level indexing information to access TB data.
     /// There are 8, 4 or 2 PairsData records for each TBTable, according to type of
@@ -314,8 +312,8 @@ namespace {
         SparseEntry *sparseIndex;   // Partial indices into blockLength[]
         size_t sparseIndexSize;     // Size of sparseIndex[] table
         u08 *data;                  // Start of Huffman compressed data
-        vector<u64> base64;         // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
-        vector<u08> symLen;         // Number of values (-1) represented by a given Huffman symbol: 1..256
+        std::vector<u64> base64;         // base64[l - minSymLen] is the 64bit-padded lowest symbol of length l
+        std::vector<u08> symLen;         // Number of values (-1) represented by a given Huffman symbol: 1..256
         Piece pieces[TBPIECES];     // Position pieces: the order of pieces defines the groups
         u64 groupIdx[TBPIECES + 1]; // Start index used for the encoding of the group's pieces
         i16 groupLen[TBPIECES + 1]; // Number of pieces in a given group: KRKN ->(3, 1)
@@ -489,14 +487,14 @@ namespace {
             return wdlTable.size();
         }
 
-        void add(vector<PieceType> const &pieces) {
+        void add(std::vector<PieceType> const &pieces) {
 
             std::ostringstream oss{};
             for (PieceType const pt : pieces) {
                 oss << toChar(pt);
             }
 
-            string code{ oss.str() };
+            std::string code{ oss.str() };
             code.insert(code.find('K', 1), "v");
             TBFile file{ code + ".rtbw" };
             if (file.filename.empty()) { // Only WDL file is checked
@@ -1035,7 +1033,7 @@ namespace {
     /// In Recursive Pairing each symbol represents a pair of children symbols. So
     /// read d->btree[] symbols data and expand each one in his left and right child
     /// symbol until reaching the leafs that represent the symbol value.
-    u08 setSymLen(PairsData *d, Symbol s, vector<bool> &visited) {
+    u08 setSymLen(PairsData *d, Symbol s, std::vector<bool> &visited) {
 
         visited[s] = true; // We can set it now because tree is acyclic
 
@@ -1118,7 +1116,7 @@ namespace {
         // reevaluating the frequencies of all of the symbol pairs with respect to
         // the extended alphabet, and then repeating the process.
         // See http://www.larsson.dogma.net/dcc99.pdf
-        vector<bool> visited(d->symLen.size());
+        std::vector<bool> visited(d->symLen.size());
         for (Symbol sym = 0; sym < d->symLen.size(); ++sym) {
             if (!visited[sym]) {
                 d->symLen[sym] = setSymLen(d, sym, visited);
@@ -1257,13 +1255,13 @@ namespace {
         }
 
         // Pieces strings in decreasing order for each color, like ("KPP","KR")
-        string w, b;
+        std::string w, b;
         for (PieceType pt = KING; pt >= PAWN; --pt) {
-            w += string(pos.count(WHITE|pt), toChar(pt));
-            b += string(pos.count(BLACK|pt), toChar(pt));
+            w += std::string(pos.count(WHITE|pt), toChar(pt));
+            b += std::string(pos.count(BLACK|pt), toChar(pt));
         }
 
-        string code{ pos.matlKey() == e.matlKey1 ? w + 'v' + b : b + 'v' + w };
+        std::string code{ pos.matlKey() == e.matlKey1 ? w + 'v' + b : b + 'v' + w };
 
         u08 *data{ TBFile{ code + (Type == WDL ? ".rtbw" : ".rtbz") }.map(&e.baseAddress, &e.mapping, Type) };
         if (data != nullptr) {
@@ -1651,7 +1649,7 @@ namespace SyzygyTB {
             }
             // MapA1D1D4[] encodes a square in the a1-d1-d4 triangle to 0..9
             code = 0;
-            vector<Square> diagonal;
+            std::vector<Square> diagonal;
             for (Square s : {
                     SQ_A1, SQ_B1, SQ_C1, SQ_D1,
                     SQ_A2, SQ_B2, SQ_C2, SQ_D2,
@@ -1675,7 +1673,7 @@ namespace SyzygyTB {
             code = 0;
             // MapKK[] encodes all the 461 possible legal positions of two kings where the first is in the a1-d1-d4 triangle.
             // If the first king is on the a1-d4 diagonal, the other one shall not to be above the a1-h8 diagonal.
-            vector<std::pair<i32, Square>> bothOnDiagonal;
+            std::vector<std::pair<i32, Square>> bothOnDiagonal;
             for (i16 idx = 0; idx < MapKKSize; ++idx) {
                 for (Square s1 = SQ_A1; s1 <= SQ_D4; ++s1) {
                     if (idx == MapA1D1D4[s1]

@@ -3,46 +3,44 @@
 #include <cctype>
 #include <algorithm>
 
-using std::string;
-
 bool whiteSpaces(std::string_view str) {
     return str.empty()
         || std::all_of(str.begin(), str.end(), ::isspace);
 }
 
-string& toLower(string &str) {
+std::string& toLower(std::string &str) {
     std::transform(str.begin(), str.end(), str.begin(), ::tolower);
     return str;
 }
-string& toUpper(string &str) {
+std::string& toUpper(std::string &str) {
     std::transform(str.begin(), str.end(), str.begin(), ::toupper);
     return str;
 }
-string& toggle(string &str) {
+std::string& toggle(std::string &str) {
     std::transform(str.begin(), str.end(), str.begin(),
         [](int ch) { return std::islower(ch) ? std::toupper(ch) : std::tolower(ch); });
     return str;
 }
-string& reverse(string &str) {
+std::string& reverse(std::string &str) {
     std::reverse(str.begin(), str.end());
     return str;
 }
-string& replace(string &str, char const oldCh, char const newCh) {
+std::string& replace(std::string &str, char const oldCh, char const newCh) {
     std::replace(str.begin(), str.end(), oldCh, newCh);
     return str;
 }
 
-string& ltrim(string& str) {
+std::string& ltrim(std::string &str) {
     str.erase(str.begin(),
               std::find_if(str.begin(), str.end(), [](int ch) { return !(std::isspace(ch) || ch == '\0'); }));
     return str;
 }
-string& rtrim(string& str) {
+std::string& rtrim(std::string &str) {
     str.erase(std::find_if(str.rbegin(), str.rend(), [](int ch) { return !(std::isspace(ch) || ch == '\0'); }).base(),
               str.end());
     return str;
 }
-string& trim(string &str) {
+std::string& trim(std::string &str) {
     /*
     auto beg{ str.find_first_not_of(' ') };
     if (beg != string::npos)
@@ -58,10 +56,10 @@ string& trim(string &str) {
     return str;
 }
 
-std::vector<string> split(std::string_view str, char delimiter) {
-    std::vector<string> tokens;
-    string token;
-    std::istringstream iss{ string{ str } };
+std::vector<std::string> split(std::string_view str, char delimiter) {
+    std::vector<std::string> tokens;
+    std::string token;
+    std::istringstream iss{ str.data() };
     while (std::getline(iss, token, delimiter)) {
 
         //replace(token, '\\', '/');
@@ -84,18 +82,18 @@ std::vector<string> split(std::string_view str, char delimiter) {
 
 namespace CommandLine {
 
-    string binaryDirectory;  // path of the executable directory
-    string workingDirectory; // path of the working directory
+    std::string binaryDirectory;  // path of the executable directory
+    std::string workingDirectory; // path of the working directory
 
     void initialize(int argc, char const *const *argv) {
         (void)argc;
-        string separator;
+        std::string separator;
 
-        string argv0; // path+name of the executable binary, as given by argv[0]
+        std::string argv0; // path+name of the executable binary, as given by argv[0]
         // Extract the path+name of the executable binary
         argv0 = argv[0];
 
-        string pathSeparator; // Separator for our current OS
+        std::string pathSeparator; // Separator for our current OS
 #if defined(_WIN32)
         pathSeparator = "\\";
     #if defined(_MSC_VER)
@@ -121,7 +119,7 @@ namespace CommandLine {
         // Extract the binary directory path from argv0
         binaryDirectory = argv0;
         size_t pos = binaryDirectory.find_last_of("\\/");
-        if (pos == string::npos) {
+        if (pos == std::string::npos) {
             binaryDirectory = "." + pathSeparator;
         }
         else {

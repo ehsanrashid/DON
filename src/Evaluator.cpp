@@ -35,12 +35,11 @@
     const unsigned int         gEmbeddedNNUESize    = 1;
 #endif
 
-using std::string;
 
 namespace Evaluator {
 
     bool useNNUE{ false };
-    string loadedEvalFile{ "None" };
+    std::string loadedEvalFile{ "None" };
 
     // C++ way to prepare a buffer for a memory stream
     template<class T>
@@ -70,11 +69,11 @@ namespace Evaluator {
     void initializeNNUE() {
 
         useNNUE = Options["Use NNUE"];
-        auto evalFile{ string(Options["Eval File"]) };
+        auto evalFile{ std::string(Options["Eval File"]) };
 
         if (useNNUE) {
 
-            std::vector<string> directories{
+            std::vector<std::string> directories{
                   "<internal>"
                 , ""
                 , CommandLine::binaryDirectory
@@ -108,7 +107,7 @@ namespace Evaluator {
 
     void verifyNNUE() {
 
-        auto evalFile{ string(Options["Eval File"]) };
+        auto evalFile{ std::string(Options["Eval File"]) };
         if (useNNUE) {
             if (loadedEvalFile != evalFile) {
                 sync_cout << "info string ERROR: NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully.\n"
@@ -1173,15 +1172,13 @@ namespace Evaluator {
         assert(pos.checkers() == 0);
 
         auto const fortress{ 16 + pos.clockPly() };
-
-        // Use classical eval if there is a large imbalance
-        // If there is a moderate imbalance, use classical eval with probability (1/8),
-        // as derived from the node counter.
         bool const useClassical{ std::abs(egValue(pos.psqScore())) * 16 > NNUEThreshold1 * fortress };
 
         Value v{
             !useNNUE
          || useClassical
+            // If there is a large imbalance, use classical eval
+            // If there is a moderate imbalance, use classical eval with probability (1/8), as derived from the node counter.
          || (std::abs(egValue(pos.psqScore())) > VALUE_MG_PAWN / 4
           && !(pos.thread()->nodes & 0xB)) ?
                 Evaluation<false>(pos).value() :
@@ -1202,7 +1199,7 @@ namespace Evaluator {
 
     /// trace() returns a string (suitable for outputting to stdout for debugging)
     /// that contains the detailed descriptions and values of each evaluation term.
-    string trace(Position const &pos) {
+    std::string trace(Position const &pos) {
         if (pos.checkers() != 0) {
             return "Evaluation: none (in check)\n";
         }

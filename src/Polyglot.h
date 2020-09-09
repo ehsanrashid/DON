@@ -1,5 +1,6 @@
 #pragma once
 
+#include <string_view>
 #include "Position.h"
 #include "PRNG.h"
 #include "Type.h"
@@ -55,7 +56,7 @@ private:
 
     i64 findIndex(Key) const noexcept;
     //i64 findIndex(Position const&) const noexcept;
-    //i64 findIndex(std::string const&) const noexcept;
+    //i64 findIndex(std::string_view) const noexcept;
 
     bool canProbe(Position const&) noexcept;
 
