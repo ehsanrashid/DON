@@ -1173,13 +1173,17 @@ namespace Evaluator {
         assert(pos.checkers() == 0);
 
         auto const fortress{ 16 + pos.clockPly() };
+
+        // Use classical eval if there is a large imbalance
+        // If there is a moderate imbalance, use classical eval with probability (1/8),
+        // as derived from the node counter.
         bool const useClassical{ std::abs(egValue(pos.psqScore())) * 16 > NNUEThreshold1 * fortress };
 
         Value v{
             !useNNUE
          || useClassical
-         || (std::abs(egValue(pos.psqScore())) > VALUE_MG_PAWN / 8
-          && !(pos.thread()->nodes & 0xF)) ?
+         || (std::abs(egValue(pos.psqScore())) > VALUE_MG_PAWN / 4
+          && !(pos.thread()->nodes & 0xB)) ?
                 Evaluation<false>(pos).value() :
                 NNUE::evaluate(pos) };
 

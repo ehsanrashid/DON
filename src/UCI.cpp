@@ -766,7 +766,7 @@ namespace UCI {
                 uciCmds.emplace_back("setoption name UCI_Chess960 value " + ToString(uciChess960));
                 uciCmds.emplace_back("position fen " + pos.fen());
             }
-            uciCmds.emplace_back("setoption name Use NNUE value " + ToString(Options["Use NNUE"]));
+            uciCmds.emplace_back("setoption name Use NNUE value " + Options["Use NNUE"].defaultValue());
 
             return uciCmds;
         }

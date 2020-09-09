@@ -134,17 +134,6 @@ namespace Evaluator::NNUE {
             return istream
                 && istream.peek() == std::ios::traits_type::eof();
         }
-
-        // Calculate the evaluation value
-        Value computeScore(Position const &pos) {
-
-            alignas(CacheLineSize) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
-            featureTransformer->transform(pos, transformedFeatures);
-            alignas(CacheLineSize) char buffer[Network::BufferSize];
-            auto const output{ network->propagate(transformedFeatures, buffer) };
-
-            return{ static_cast<Value>(output[0] / FVScale) };
-        }
     }
 
     // Load the evaluation function file
@@ -155,7 +144,14 @@ namespace Evaluator::NNUE {
 
     // Evaluation function. Perform differential calculation.
     Value evaluate(Position const &pos) {
-        auto v{ computeScore(pos) };
+
+        alignas(CacheLineSize) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
+        featureTransformer->transform(pos, transformedFeatures);
+        alignas(CacheLineSize) char buffer[Network::BufferSize];
+        auto const output{ network->propagate(transformedFeatures, buffer) };
+
+        auto v{ static_cast<Value>(output[0] / FVScale) };
+
         v = v * 5 / 4;
         v += VALUE_TEMPO;
         return v;
