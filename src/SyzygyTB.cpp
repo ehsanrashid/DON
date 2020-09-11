@@ -162,7 +162,6 @@ namespace {
         public std::ifstream {
 
     public:
-
         // Look for and open the file among the Paths directories where the .rtbw and .rtbz files can be found.
         // Multiple directories are separated by ";" on Windows and by ":" on Unix-based operating systems.
         //
@@ -415,54 +414,9 @@ namespace {
     class TBTableDB {
 
     private:
-
-        struct Entry {
-            Key key;
-            TBTable<WDL>* wdl;
-            TBTable<DTZ>* dtz;
-
-            template<TBType Type>
-            TBTable<Type>* get() const noexcept {
-                return static_cast<TBTable<Type>*>(Type == WDL ? (void*)wdl : (void*)dtz);
-            }
-        };
-
         static constexpr i32 Size{ 1 << 12 }; // 4K table, indexed by key's 12 lsb
 
-        Entry entry[Size + 1];
-
-        std::deque<TBTable<WDL>> wdlTable;
-        std::deque<TBTable<DTZ>> dtzTable;
-
-        void insert(Key matlKey, TBTable<WDL> *wdl, TBTable<DTZ> *dtz) {
-            u32 homeBucket = matlKey & (Size - 1);
-            Entry e{ matlKey, wdl, dtz };
-
-            // Ensure last element is empty to avoid overflow when looking up
-            for (u32 bucket = homeBucket; bucket < Size; ++bucket) {
-                Key const omatlKey{ entry[bucket].key };
-                if (omatlKey == matlKey
-                 || entry[bucket].get<WDL>() == nullptr) {
-                    entry[bucket] = e;
-                    return;
-                }
-
-                // Robin Hood hashing: If we've probed for longer than this element,
-                // insert here and search for a new spot for the other element instead.
-                u32 const ohomeBucket = omatlKey & (Size - 1);
-                if (ohomeBucket > homeBucket) {
-                    std::swap(e, entry[bucket]);
-                    matlKey = omatlKey;
-                    homeBucket = ohomeBucket;
-                }
-            }
-
-            std::cerr << "TB hash table size too low!" << '\n';
-            std::exit(EXIT_FAILURE);
-        }
-
     public:
-
         template<TBType Type>
         TBTable<Type>* get(Key matlKey) {
             Entry const *e{ &entry[matlKey & (Size - 1)] };
@@ -509,6 +463,50 @@ namespace {
             insert(wdlTable.back().matlKey1, &wdlTable.back(), &dtzTable.back());
             insert(wdlTable.back().matlKey2, &wdlTable.back(), &dtzTable.back());
         }
+
+    private:
+        struct Entry {
+            Key key;
+            TBTable<WDL>* wdl;
+            TBTable<DTZ>* dtz;
+
+            template<TBType Type>
+            TBTable<Type>* get() const noexcept {
+                return static_cast<TBTable<Type>*>(Type == WDL ? (void*)wdl : (void*)dtz);
+            }
+        };
+
+        void insert(Key matlKey, TBTable<WDL> *wdl, TBTable<DTZ> *dtz) {
+            u32 homeBucket = matlKey & (Size - 1);
+            Entry e{ matlKey, wdl, dtz };
+
+            // Ensure last element is empty to avoid overflow when looking up
+            for (u32 bucket = homeBucket; bucket < Size; ++bucket) {
+                Key const omatlKey{ entry[bucket].key };
+                if (omatlKey == matlKey
+                 || entry[bucket].get<WDL>() == nullptr) {
+                    entry[bucket] = e;
+                    return;
+                }
+
+                // Robin Hood hashing: If we've probed for longer than this element,
+                // insert here and search for a new spot for the other element instead.
+                u32 const ohomeBucket = omatlKey & (Size - 1);
+                if (ohomeBucket > homeBucket) {
+                    std::swap(e, entry[bucket]);
+                    matlKey = omatlKey;
+                    homeBucket = ohomeBucket;
+                }
+            }
+
+            std::cerr << "TB hash table size too low!" << '\n';
+            std::exit(EXIT_FAILURE);
+        }
+
+        Entry entry[Size + 1];
+
+        std::deque<TBTable<WDL>> wdlTable;
+        std::deque<TBTable<DTZ>> dtzTable;
     };
 
     TBTableDB TBTables;

@@ -649,11 +649,7 @@ template<typename T>
 class HashTable :
     private std::vector<T> {
 
-private:
-    u32 const Mask;
-
 public:
-
     HashTable(u32 size) :
         std::vector<T>(size),
         Mask{ size - 1 }
@@ -666,6 +662,9 @@ public:
     T* operator[](Key key) {
         return &std::vector<T>::operator[](key & Mask);
     }
+
+private:
+    u32 const Mask;
 };
 
 constexpr Piece Pieces[2*KING]{

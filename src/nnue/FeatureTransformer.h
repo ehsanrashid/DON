@@ -15,20 +15,13 @@ namespace Evaluator::NNUE {
         static constexpr IndexType HalfDimensions{ TransformedFeatureDimensions };
 
     public:
+        // Output type
+        using OutputType = TransformedFeatureType;
+
         // Number of input/output dimensions
         static constexpr IndexType InputDimensions{ RawFeatures::Dimensions };
         static constexpr IndexType OutputDimensions{ HalfDimensions * 2 };
 
-    private:
-        using BiasType = i16;
-        using WeightType = i16;
-
-        alignas(CacheLineSize) BiasType _biases[HalfDimensions];
-        alignas(CacheLineSize) WeightType _weights[HalfDimensions * InputDimensions];
-
-    public:
-        // Output type
-        using OutputType = TransformedFeatureType;
         // Size of forward propagation buffer
         static constexpr size_t BufferSize{ OutputDimensions * sizeof (OutputType) };
 
@@ -323,6 +316,13 @@ namespace Evaluator::NNUE {
 
             accumulator.accumulationComputed = true;
         }
+
+        using BiasType = i16;
+        using WeightType = i16;
+
+        alignas(CacheLineSize) BiasType _biases[HalfDimensions];
+        alignas(CacheLineSize) WeightType _weights[HalfDimensions * InputDimensions];
+
     };
 
 }  // namespace Evaluator::NNUE

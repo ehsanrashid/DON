@@ -15,7 +15,7 @@
 #include "UCI.h"
 #include "Zobrist.h"
 
-int main(int argc, char const *const *argv) {
+int main(int argc, char const *const argv[]) {
 
     std::cout << Name << " " << engineInfo() << " by " << Author << '\n';
     std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency() << '\n';

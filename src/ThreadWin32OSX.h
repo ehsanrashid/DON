@@ -22,11 +22,7 @@ void* startRoutine(void *arg) {
 
 class NativeThread {
 
-private:
-    pthread_t thread;
-
 public:
-
     template<typename T, class P = std::pair<T*, void (T::*)()>>
     explicit NativeThread(void(T::*fun)(), T *obj) {
         pthread_attr_t thread_attr;
@@ -39,6 +35,9 @@ public:
     void join() {
         pthread_join(thread, nullptr);
     }
+
+private:
+    pthread_t thread;
 };
 #else // Default case: use STL classes
 using NativeThread = std::thread;

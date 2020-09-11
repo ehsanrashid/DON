@@ -47,7 +47,6 @@ namespace Evaluator {
         public std::basic_streambuf<T> {
 
     public:
-
         using std::basic_streambuf<T>::basic_streambuf;
 
         MemoryStreamBuffer(MemoryStreamBuffer const&) = delete;
@@ -130,11 +129,7 @@ namespace Evaluator {
 
         class Tracer {
 
-        private:
-            static Score Scores[TERMS][COLORS];
-
         public:
-
             static void clear() {
                 //std::fill(&Scores[0][0], &Scores[0][0] + sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);
                 std::fill_n(&Scores[0][0], sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);
@@ -147,6 +142,9 @@ namespace Evaluator {
                 write(t, WHITE, sW);
                 write(t, BLACK, sB);
             }
+
+        private:
+            static Score Scores[TERMS][COLORS];
 
             friend std::ostream& operator<<(std::ostream&, Term);
         };
@@ -280,7 +278,24 @@ namespace Evaluator {
         // Evaluator class contains various evaluation functions.
         template<bool Trace>
         class Evaluation {
+
+        public:
+            Evaluation() = delete;
+            Evaluation(Evaluation const&) = delete;
+            Evaluation& operator=(Evaluation const&) = delete;
+
+            Evaluation(Position const&) noexcept;
+
+            Value value();
+
         private:
+            template<Color> void initialize();
+            template<Color, PieceType> Score pieces();
+            template<Color> Score king() const;
+            template<Color> Score threats() const;
+            template<Color> Score passers() const;
+            template<Color> Score space() const;
+
             Position const &pos;
 
             King    ::Entry *kingEntry{ nullptr };
@@ -312,29 +327,7 @@ namespace Evaluator {
             i32 kingAttacksCount[COLORS];
 
             bool canCastle[COLORS];
-
-            template<Color> void initialize();
-            template<Color, PieceType> Score pieces();
-            template<Color> Score king() const;
-            template<Color> Score threats() const;
-            template<Color> Score passers() const;
-            template<Color> Score space() const;
-
-        public:
-
-            Evaluation() = delete;
-            Evaluation(Evaluation const&) = delete;
-            Evaluation& operator=(Evaluation const&) = delete;
-
-            Evaluation(Position const&) noexcept;
-
-            Value value();
         };
-
-        template<bool Trace>
-        Evaluation<Trace>::Evaluation(Position const &p) noexcept :
-            pos{ p }
-        {}
 
         /// initialize() computes pawn and king attacks also mobility and the king ring
         template<bool Trace> template<Color Own>
@@ -994,6 +987,12 @@ namespace Evaluator {
 
             return score;
         }
+
+
+        template<bool Trace>
+        Evaluation<Trace>::Evaluation(Position const& p) noexcept :
+            pos{ p }
+        {}
 
         /// value() computes the various parts of the evaluation and
         /// returns the value of the position from the point of view of the side to move.

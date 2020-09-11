@@ -22,17 +22,24 @@
 /// someone changing the entry under our feet.
 class Thread {
 
-private:
-
-    bool dead{ false },
-         busy{ true };
-
-    std::mutex mutex;
-    std::condition_variable conditionVar;
-    u16 index; // indentity
-    NativeThread nativeThread;
-
 public:
+    Thread() = delete;
+    explicit Thread(u16);
+    Thread(Thread const&) = delete;
+    Thread(Thread&&) = delete;
+    Thread& operator=(Thread const&) = delete;
+    Thread& operator=(Thread&&) = delete;
+
+    virtual ~Thread();
+
+    void wakeUp();
+    void waitIdle();
+
+    void threadFunc();
+
+    virtual void clean();
+    virtual void search();
+
 
     Position  rootPos;
     StateInfo rootState;
@@ -80,22 +87,16 @@ public:
     Pawns   ::Table pawnHash{ Pawns   ::Table(0x20000) };
     King    ::Table kingHash{ King    ::Table(0x40000) };
 
-    Thread() = delete;
-    explicit Thread(u16);
-    Thread(Thread const&) = delete;
-    Thread(Thread&&) = delete;
-    Thread& operator=(Thread const&) = delete;
-    Thread& operator=(Thread&&) = delete;
+private:
 
-    virtual ~Thread();
+    bool dead{ false },
+         busy{ true };
 
-    void wakeUp();
-    void waitIdle();
+    std::mutex mutex;
+    std::condition_variable conditionVar;
+    u16 index; // indentity
+    NativeThread nativeThread;
 
-    void threadFunc();
-
-    virtual void clean();
-    virtual void search();
 };
 
 /// MainThread class is derived from Thread class used specific for main thread.
@@ -104,6 +105,11 @@ class MainThread :
 
 public:
     using Thread::Thread;
+
+    void tick();
+
+    void clean() override final;
+    void search() override final;
 
     bool stopOnPonderHit;       // Stop search on ponderhit
     std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
@@ -115,11 +121,6 @@ public:
     Move bestMove;
     i16  bestDepth;
     i16  tickCount;
-
-    void tick();
-
-    void clean() override final;
-    void search() override final;
 };
 
 
@@ -129,14 +130,8 @@ public:
 class ThreadPool :
     public std::vector<Thread*> {
 
-private:
-    StateListPtr setupStates;
-
 public:
     //using std::vector<Thread*>::vector;
-
-    std::atomic<bool> stop, // Stop search forcefully
-                      research;
 
     ThreadPool() = default;
     ThreadPool(ThreadPool const&) = delete;
@@ -170,6 +165,11 @@ public:
 
     void wakeUpThreads();
     void waitForThreads();
+
+    std::atomic<bool> stop, // Stop search forcefully
+                      research;
+private:
+    StateListPtr setupStates;
 
 };
 

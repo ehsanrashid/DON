@@ -43,7 +43,7 @@ namespace {
                 0;
     }
 
-    Bitboard slideAttacks(Square s,  Bitboard occ, Direction const *directions) {
+    Bitboard slideAttacks(Square s,  Bitboard occ, Direction const directions[]) {
         Bitboard attacks{ 0 };
         for (i08 i = 0; i < 4; ++i) {
             auto const dir{ directions[i] };
@@ -152,7 +152,7 @@ namespace {
             assert(size == 1 << popCount(magic.mask));
 
 #if !defined(USE_PEXT)
-            PRNG prng{ Seeds[sRank(s)] };
+            PRNG prng(Seeds[sRank(s)]);
             // Find a magic for square picking up an (almost) random number
             // until found the one that passes the verification test.
             for (u16 i = 0; i < size; ) {

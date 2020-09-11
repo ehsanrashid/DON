@@ -3,6 +3,7 @@
 #include <cctype>
 #include <functional>
 #include <string>
+#include <string_view>
 
 #include "Type.h"
 

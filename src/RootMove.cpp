@@ -108,8 +108,7 @@ RootMoves::const_iterator RootMoves::find(Move m) const {
     return std::find(begin(), end(), m);
 }
 RootMoves::const_iterator RootMoves::find(u16 iBeg, u16 iEnd, Move m) const {
-    return std::find(begin() + iBeg,
-                     begin() + iEnd, m);
+    return std::find(begin() + iBeg, begin() + iEnd, m);
 }
 
 bool RootMoves::contains(Move m) const {

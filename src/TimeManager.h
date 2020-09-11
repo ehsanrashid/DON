@@ -7,11 +7,6 @@
 class TimeManager {
 
 public:
-    TimePoint optimum{ 0 };
-    TimePoint maximum{ 0 };
-
-    u64 totalNodes{ 0 }; // Available Nodes to play
-
     TimeManager() = default;
     TimeManager(TimeManager const&) = delete;
     TimeManager(TimeManager&&) = delete;
@@ -23,6 +18,12 @@ public:
     void clear() noexcept;
 
     void setup(Color, i16);
+
+    TimePoint optimum{ 0 };
+    TimePoint maximum{ 0 };
+
+    u64 totalNodes{ 0 }; // Available Nodes to play
+
 };
 
 // Global Time Manager

@@ -13,10 +13,6 @@ namespace Evaluator::NNUE::Features {
     template<Side AssociatedKing>
     class HalfKP {
 
-    private:
-        // Index of a feature for a given king position and another piece on some square
-        static IndexType makeIndex(Color, Square, Piece, Square);
-
     public:
         // Feature name
         static constexpr char const *Name{ "HalfKP(Friend)" };
@@ -34,6 +30,10 @@ namespace Evaluator::NNUE::Features {
 
         // Get a list of indices for recently changed features
         static void appendChangedIndices(Position const&, Color, IndexList*, IndexList*);
+
+    private:
+        // Index of a feature for a given king position and another piece on some square
+        static IndexType makeIndex(Color, Square, Piece, Square);
 
     };
 

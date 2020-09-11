@@ -28,7 +28,7 @@ void SkillManager::clear() noexcept {
 /// SkillManager::pickBestMove() chooses best move among a set of RootMoves when playing with a strength handicap,
 /// using a statistical rule dependent on 'level'. Idea by Heinz van Saanen.
 Move SkillManager::pickBestMove() noexcept {
-    static PRNG prng{ u64(now()) }; // PRNG sequence should be non-deterministic.
+    static PRNG prng(now()); // PRNG sequence should be non-deterministic.
 
     if (bestMove == MOVE_NONE) {
         auto const &rootMoves{ Threadpool.mainThread()->rootMoves };

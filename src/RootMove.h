@@ -24,13 +24,6 @@ class RootMove :
     public std::vector<Move> {
 
 public:
-
-    Value oldValue{ -VALUE_INFINITE }
-        , newValue{ -VALUE_INFINITE };
-    Depth selDepth{ DEPTH_ZERO };
-    i16   tbRank{ 0 };
-    Value tbValue{ VALUE_ZERO };
-
     //using std::vector<Move>::vector;
 
     explicit RootMove(Move = MOVE_NONE);
@@ -47,6 +40,12 @@ public:
     //void operator-=(Move);
 
     std::string toString() const;
+
+    Value oldValue{ -VALUE_INFINITE }
+        , newValue{ -VALUE_INFINITE };
+    Depth selDepth{ DEPTH_ZERO };
+    i16   tbRank  { 0 };
+    Value tbValue { VALUE_ZERO };
 };
 
 extern std::ostream& operator<<(std::ostream&, RootMove const&);
@@ -55,7 +54,6 @@ class RootMoves :
     public std::vector<RootMove> {
 
 public:
-
     using std::vector<RootMove>::vector;
 
     RootMoves() = default;

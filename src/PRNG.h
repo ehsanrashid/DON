@@ -19,22 +19,11 @@
 ///   <http://vigna.di.unimi.it/ftp/papers/xorshift.pdf>
 class PRNG {
 
-private:
-    u64 s;
-
-    u64 rand64() noexcept {
-        s ^= s >> 12;
-        s ^= s << 25;
-        s ^= s >> 27;
-        return s * U64(0x2545F4914F6CDD1D);
-    }
-
 public:
-
     PRNG() = delete;
     PRNG(u64 seed) noexcept :
-        s{ seed }
-    { assert(s != 0); }
+        x{ seed }
+    { assert(x != 0); }
 
     PRNG(PRNG const&) = delete;
     PRNG(PRNG&&) = delete;
@@ -55,4 +44,13 @@ public:
     }
 //#endif
 
+private:
+    u64 rand64() noexcept {
+        x ^= x >> 12;
+        x ^= x << 25;
+        x ^= x >> 27;
+        return x * U64(0x2545F4914F6CDD1D);
+    }
+
+    u64 x;
 };

@@ -18,7 +18,6 @@ private:
     using NestedTable = Table<T, Size, Sizes...>;
 
 public:
-
     void fill(T const &value) {
         assert(std::is_standard_layout<NestedTable>::value);
 
@@ -43,11 +42,7 @@ class Table<T, Size> :
 template<typename T, i32 D>
 class Stats {
 
-private:
-    T entry;
-
 public:
-
     void operator=(T const &e) noexcept {
         entry = e;
     }
@@ -70,6 +65,9 @@ public:
 
         assert(std::abs(entry) <= D);
     }
+
+private:
+    T entry;
 };
 
 /// StatsTable is a generic N-dimensional array used to store various statistics.
@@ -85,7 +83,6 @@ private:
     using NestedStatsTable = StatsTable<T, D, Size, Sizes...>;
 
 public:
-
     void fill(T const &value) {
         // For standard-layout 'this' points to first struct member
         assert(std::is_standard_layout<NestedStatsTable>::value);
@@ -136,44 +133,7 @@ using PieceSquareMoveTable      = Table<Move, PIECES, SQUARES>;
 /// MovePicker attempts to return the moves which are most likely to get a cut-off first.
 class MovePicker {
 
-private:
-
-    Position const &pos;
-
-    ButterFlyStatsTable       const *butterFlyStats{ nullptr };
-    PlyIndexStatsTable        const *lowPlyStats{ nullptr };
-    PieceSquareTypeStatsTable const *captureStats{ nullptr };
-    PieceSquareStatsTable     const **pieceStats{ nullptr };
-
-    Move    ttMove{ MOVE_NONE };
-    Depth   depth{ DEPTH_ZERO };
-    i16     ply{ 0 };
-    Value   threshold{ VALUE_ZERO };
-    Square  recapSq{ SQ_NONE };
-
-    u08     stage{ 0 };
-
-    ValMoves vmoves;
-    ValMoves::iterator vmBeg,
-                       vmEnd;
-
-    Moves refutationMoves,
-          badCaptureMoves;
-    Moves::iterator    mBeg,
-                       mEnd;
-
-    template<GenType GT>
-    void value();
-
-    void limitedInsertionSort(i32) const;
-
-    template<typename Pred>
-    bool pick(Pred);
-
 public:
-
-    bool pickQuiets{ true };
-
     MovePicker() = delete;
     MovePicker(MovePicker const&) = delete;
     MovePicker(MovePicker&&) = delete;
@@ -203,4 +163,39 @@ public:
 
     Move nextMove() noexcept;
 
+    bool pickQuiets{ true };
+
+private:
+    template<GenType GT>
+    void value();
+
+    void limitedInsertionSort(i32) const;
+
+    template<typename Pred>
+    bool pick(Pred);
+
+
+    Position const &pos;
+
+    ButterFlyStatsTable       const *butterFlyStats{ nullptr };
+    PlyIndexStatsTable        const *lowPlyStats{ nullptr };
+    PieceSquareTypeStatsTable const *captureStats{ nullptr };
+    PieceSquareStatsTable     const **pieceStats{ nullptr };
+
+    Move    ttMove{ MOVE_NONE };
+    Depth   depth{ DEPTH_ZERO };
+    i16     ply{ 0 };
+    Value   threshold{ VALUE_ZERO };
+    Square  recapSq{ SQ_NONE };
+
+    u08     stage{ 0 };
+
+    ValMoves vmoves;
+    ValMoves::iterator vmBeg,
+                       vmEnd;
+
+    Moves refutationMoves,
+          badCaptureMoves;
+    Moves::iterator    mBeg,
+                       mEnd;
 };

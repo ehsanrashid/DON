@@ -20,7 +20,6 @@ class MoveList :
     public ValMoves {
 
 public:
-
     MoveList() = delete;
     //MoveList(MoveList const&) = delete;
     MoveList& operator=(MoveList const&) = delete;
@@ -40,6 +39,11 @@ public:
 
 struct Perft {
 
+    void classify(Position&, Move);
+
+    void operator+=(Perft const&) noexcept;
+    void operator-=(Perft const&) noexcept;
+
     i16 moves{ 0 };
     u64 any{ 0 };
     u64 capture{ 0 };
@@ -51,11 +55,6 @@ struct Perft {
     u64 promotion{ 0 };
     u64 checkmate{ 0 };
     //u64 stalemate{ 0 };
-
-    void operator+=(Perft const&) noexcept;
-    void operator-=(Perft const&) noexcept;
-
-    void classify(Position&, Move);
 };
 
 template<bool RootNode>

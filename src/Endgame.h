@@ -46,11 +46,6 @@ template<typename T>
 class EndgameBase {
 
 public:
-
-    Color const
-        stngColor,
-        weakColor;
-
     explicit EndgameBase(Color c) :
         stngColor{  c },
         weakColor{ ~c }
@@ -60,6 +55,9 @@ public:
     //EndgameBase& operator=(EndgameBase&&) = delete;
 
     virtual T operator()(Position const&) const = 0;
+
+    Color const stngColor,
+                weakColor;
 };
 
 /// Derived functors for endgame evaluation and scaling functions

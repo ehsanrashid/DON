@@ -40,18 +40,21 @@ extern std::ostream& operator<<(std::ostream&, PolyEntry const&);
 
 class PolyBook {
 
+public:
+    PolyBook() = default;
+    ~PolyBook();
+
+    void initialize(std::string_view);
+
+    Move probe(Position&, i16, bool);
+
+    std::string show(Position const&) const;
+
+    u64 const HeaderSize = 0;
+
+    bool enabled{ false };
+
 private:
-
-    PolyEntry  *entry{ nullptr };
-    u64         entryCount{ 0 };
-
-    std::string bookFile;
-
-    bool        doProbe{ true };
-    Bitboard    pieces{ 0 };
-    i32         pieceCount{ 0 };
-    u08         failCount{ 0 };
-
     void clear() noexcept;
 
     i64 findIndex(Key) const noexcept;
@@ -60,19 +63,16 @@ private:
 
     bool canProbe(Position const&) noexcept;
 
-public:
+    PolyEntry* entry{ nullptr };
+    u64         entryCount{ 0 };
 
-    u64 const HeaderSize = 0;
+    std::string filename;
 
-    bool enabled{ false };
+    bool        doProbe{ true };
+    Bitboard    pieces{ 0 };
+    i32         pieceCount{ 0 };
+    u08         failCount{ 0 };
 
-    ~PolyBook();
-
-    void initialize(std::string_view);
-
-    Move probe(Position&, i16, bool);
-
-    std::string show(Position const&) const;
 };
 
 // Global Polyglot Book

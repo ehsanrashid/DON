@@ -9,8 +9,6 @@ namespace Evaluator::NNUE::Layers {
     template<IndexType OutputDimensionsT, IndexType Offset = 0>
     class InputSlice {
 
-    private:
-
     public:
         // Need to maintain alignment
         static_assert (Offset % MaxSimdWidth == 0, "");
@@ -40,6 +38,9 @@ namespace Evaluator::NNUE::Layers {
         OutputType const* propagate(TransformedFeatureType const *transformedFeatures, char*) const {
             return transformedFeatures + Offset;
         }
+
+    private:
+
     };
 
 }  // namespace Layers

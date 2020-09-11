@@ -21,21 +21,8 @@ namespace UCI {
     /// Option class implements an option as defined by UCI protocol
     class Option {
 
-    private:
-        using OnChange = void(*)(); // std::add_pointer<void()>;
-
-        std::string type,
-                    defaultVal,
-                    currentVal;
-
-        double  minVal,
-                maxVal;
-
-        OnChange onChange{ nullptr };
-
     public:
-
-        u32 index;
+        using OnChange = void(*)(); // std::add_pointer<void()>;
 
         Option(OnChange = nullptr);
         Option(bool, OnChange = nullptr);
@@ -64,6 +51,18 @@ namespace UCI {
 
         std::string defaultValue() const;
         std::string toString() const;
+
+        u32     index;
+
+    private:
+        std::string type,
+                    defaultVal,
+                    currentVal;
+
+        double  minVal,
+                maxVal;
+
+        OnChange onChange{ nullptr };
     };
 
     extern std::ostream& operator<<(std::ostream&, Option const&);

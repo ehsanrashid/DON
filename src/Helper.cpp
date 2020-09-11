@@ -85,7 +85,7 @@ namespace CommandLine {
     std::string binaryDirectory;  // path of the executable directory
     std::string workingDirectory; // path of the working directory
 
-    void initialize(int argc, char const *const *argv) {
+    void initialize(int argc, char const *const argv[]) {
         (void)argc;
         std::string separator;
 

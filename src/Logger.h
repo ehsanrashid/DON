@@ -11,21 +11,7 @@
 // Tie std::cin and std::cout to a out file stream.
 class Logger {
 
-private:
-
-    std::string filename;
-    std::ofstream ofstream;
-
-    TieStreamBuf istreambuf;
-    TieStreamBuf ostreambuf;
-
-protected:
-
-    Logger();
-    ~Logger();
-
 public:
-
     static Logger& instance();
 
     // Delete copy and move constructors and assign operators
@@ -35,4 +21,15 @@ public:
     Logger& operator=(Logger&&) = delete;
 
     void setup(std::string_view);
+
+protected:
+    Logger();
+    ~Logger();
+
+private:
+    std::string filename;
+    std::ofstream ofstream;
+
+    TieStreamBuf istreambuf;
+    TieStreamBuf ostreambuf;
 };

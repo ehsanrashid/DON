@@ -20,20 +20,7 @@
 ///  Total      80 bits = 10 bytes
 struct TEntry {
 
-private:
-    u16 k16;
-    u08 d08;
-    u08 g08;
-    u16 m16;
-    i16 v16;
-    i16 e16;
-
-    friend struct TCluster;
-
 public:
-    // "Generation" variable distinguish transposition table entries from different searches.
-    static u08 Generation;
-
     //Key         key() const noexcept { return Key  (k16); }
     Depth     depth() const noexcept { return Depth(d08 + DEPTH_OFFSET); }
 
@@ -49,6 +36,19 @@ public:
 
     void refresh() noexcept;
     void save(Key, Move, Value, Value, Depth, Bound, u08) noexcept;
+
+    // "Generation" variable distinguish transposition table entries from different searches.
+    static u08 Generation;
+
+private:
+    u16 k16;
+    u08 d08;
+    u08 g08;
+    u16 m16;
+    i16 v16;
+    i16 e16;
+
+    friend struct TCluster;
 };
 
 /// Size of TEntry (10 bytes)
@@ -78,21 +78,7 @@ static_assert (sizeof (TCluster) == 32, "Cluster size incorrect");
 /// as the cacheline is prefetched when possible.
 class TTable {
 
-private:
-    void     *mem{ nullptr };
-    TCluster *clusterTable{ nullptr };
-    size_t    clusterCount{ 0 };
-
 public:
-    // Minimum size of Table (MB)
-    static constexpr size_t MinHashSize{ 4 };
-    // Maximum size of Table (MB)
-#if defined(IS_64BIT)
-    static constexpr size_t MaxHashSize{ 32 << 20 };
-#else
-    static constexpr size_t MaxHashSize{  2 << 10 };
-#endif
-
     TTable() = default;
     TTable(TTable const&) = delete;
     TTable(TTable&&) = delete;
@@ -120,6 +106,20 @@ public:
 
     void save(std::string_view) const;
     void load(std::string_view);
+
+    // Minimum size of Table (MB)
+    static constexpr size_t MinHashSize{ 4 };
+    // Maximum size of Table (MB)
+#if defined(IS_64BIT)
+    static constexpr size_t MaxHashSize{ 32 << 20 };
+#else
+    static constexpr size_t MaxHashSize{ 2 << 10 };
+#endif
+
+private:
+    void*       mem{ nullptr };
+    TCluster*   clusterTable{ nullptr };
+    size_t      clusterCount{ 0 };
 
     friend std::ostream& operator<<(std::ostream&, TTable const&);
     friend std::istream& operator>>(std::istream&, TTable      &);

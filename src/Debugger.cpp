@@ -4,11 +4,11 @@
 #include <iostream>
 #include <sstream>
 
-std::atomic<u64> Debugger::Hit1Count;
-std::atomic<u64> Debugger::Hit2Count;
+std::atomic<u64> Debugger::Hit1Count{ 0 };
+std::atomic<u64> Debugger::Hit2Count{ 0 };
 
-std::atomic<u64> Debugger::ItemCount;
-std::atomic<i64> Debugger::ItemSum;
+std::atomic<u64> Debugger::ItemCount{ 0 };
+std::atomic<i64> Debugger::ItemSum{ 0 };
 
 void Debugger::reset() noexcept {
 

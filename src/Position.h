@@ -72,38 +72,6 @@ class Thread;
 ///  - StateInfo pointer for the current status.
 class Position {
 
-private:
-    Bitboard colors[COLORS];
-    Bitboard types[PIECE_TYPES];
-
-    Piece  board[SQUARES];
-    u08    pieceIndex[SQUARES];
-    Square pieceSquare[PIECES][12];
-    u08    pieceCount[PIECES];
-
-    Value  npMaterial[COLORS];
-
-    Square   cslRookSq[COLORS][CASTLE_SIDES];
-    Bitboard cslKingPath[COLORS][CASTLE_SIDES];
-    Bitboard cslRookPath[COLORS][CASTLE_SIDES];
-    CastleRight sqCastleRight[SQUARES];
-
-    Color active;
-    Score psq;
-    i16   ply;
-
-    StateInfo *_stateInfo;
-    Thread *_thread;
-
-    void placePiece(Square, Piece);
-    void removePiece(Square);
-    void movePiece(Square, Square);
-
-    void setCastle(Color, Square);
-    void setCheckInfo();
-
-    bool canEnpassant(Color, Square, bool = true) const noexcept;
-
 public:
     //static void initialize();
 
@@ -223,6 +191,37 @@ public:
     bool ok() const;
 #endif
 
+private:
+    void placePiece(Square, Piece);
+    void removePiece(Square);
+    void movePiece(Square, Square);
+
+    void setCastle(Color, Square);
+    void setCheckInfo();
+
+    bool canEnpassant(Color, Square, bool = true) const noexcept;
+
+    Bitboard colors[COLORS];
+    Bitboard types[PIECE_TYPES];
+
+    Piece  board[SQUARES];
+    u08    pieceIndex[SQUARES];
+    Square pieceSquare[PIECES][12];
+    u08    pieceCount[PIECES];
+
+    Value  npMaterial[COLORS];
+
+    Square   cslRookSq[COLORS][CASTLE_SIDES];
+    Bitboard cslKingPath[COLORS][CASTLE_SIDES];
+    Bitboard cslRookPath[COLORS][CASTLE_SIDES];
+    CastleRight sqCastleRight[SQUARES];
+
+    Color active;
+    Score psq;
+    i16   ply;
+
+    StateInfo *_stateInfo;
+    Thread    *_thread;
 };
 
 extern std::ostream& operator<<(std::ostream&, Position const&);

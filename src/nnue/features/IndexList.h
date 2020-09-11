@@ -10,58 +10,62 @@ namespace Evaluator::NNUE::Features {
     template<typename T, size_t N>
     class ValueList {
 
-    private:
-        T _values[N];
-        size_t _size{ 0 };
-
     public:
 
         size_t size() const {
-            return _size;
+            return size_;
         }
-
         void resize(size_t size) {
-            _size = size;
+            size_ = size;
         }
         void push_back(T const &value) {
-            _values[_size++] = value;
+            values[size_++] = value;
         }
 
         T &operator[](size_t index) {
-            return _values[index];
+            return values[index];
         }
 
         T* begin() {
-            return _values;
+            return values;
         }
         T* end() {
-            return _values + _size;
+            return values + size_;
         }
 
         T const& operator[](size_t index) const {
-            return _values[index];
+            return values[index];
         }
 
         T const* begin() const {
-            return _values;
+            return values;
         }
         T const* end() const {
-            return _values + _size;
+            return values + size_;
         }
 
         void swap(ValueList &valueList) {
 
-            size_t const maxSize{ std::max(_size, valueList._size) };
+            size_t const maxSize{ std::max(size_, valueList.size_) };
             for (size_t i = 0; i < maxSize; ++i) {
-                std::swap(_values[i], valueList._values[i]);
+                std::swap(values[i], valueList.values[i]);
             }
-            std::swap(_size, valueList._size);
+            std::swap(size_, valueList.size_);
         }
+
+    private:
+        T      values[N];
+        size_t size_{ 0 };
+
     };
 
     //Type of feature index list
     class IndexList
         : public ValueList<IndexType, RawFeatures::MaxActiveDimensions>
-    {};
+    {
+    public:
+
+    private:
+    };
 
 }  // namespace Evaluator::NNUE::Features

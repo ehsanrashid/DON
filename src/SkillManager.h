@@ -8,13 +8,7 @@ constexpr u16 MaxLevel{ 25 };
 /// Skill Manager class is used to implement strength limit
 class SkillManager {
 
-private:
-
-    u16  level{ MaxLevel };
-    Move bestMove{ MOVE_NONE };
-
 public:
-
     SkillManager() = default;
     SkillManager(SkillManager const&) = delete;
     SkillManager(SkillManager&&) = delete;
@@ -29,6 +23,10 @@ public:
     void clear() noexcept;
 
     Move pickBestMove() noexcept;
+
+private:
+    u16  level{ MaxLevel };
+    Move bestMove{ MOVE_NONE };
 };
 
 // Global Skill Manager

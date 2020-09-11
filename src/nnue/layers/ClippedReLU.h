@@ -9,9 +9,6 @@ namespace Evaluator::NNUE::Layers {
     template<typename PreviousLayer>
     class ClippedReLU {
 
-    private:
-        PreviousLayer _previousLayer;
-
     public:
         // Input/output type
         using InputType = typename PreviousLayer::OutputType;
@@ -120,6 +117,10 @@ namespace Evaluator::NNUE::Layers {
             }
             return output;
         }
+
+    private:
+        PreviousLayer _previousLayer;
+
     };
 
 }  // namespace Evaluator::NNUE::Layers

@@ -12,25 +12,7 @@
 class TieStreamBuf :
     public std::streambuf {
 
-private:
-
-    int_type write(int_type ch, std::string_view prefix) {
-        // Previous character
-        static int_type pCh = '\n';
-
-        if (pCh == '\n') {
-            //if (
-            sbWrit->sputn(prefix.data(), prefix.length());
-            //    != prefix.length()) return EOF;
-        }
-        return pCh = sbWrit->sputc(char(ch));
-    }
-
 public:
-
-    std::streambuf *sbRead;
-    std::streambuf *sbWrit;
-
     TieStreamBuf(
         std::streambuf *sbRd,
         std::streambuf *sbWr) :
@@ -56,4 +38,19 @@ public:
         return write(sbRead->sbumpc(), ">> ");
     }
 
+    std::streambuf* sbRead;
+    std::streambuf* sbWrit;
+
+private:
+    int_type write(int_type ch, std::string_view prefix) {
+        // Previous character
+        static int_type pCh = '\n';
+
+        if (pCh == '\n') {
+            //if (
+            sbWrit->sputn(prefix.data(), prefix.length());
+            //    != prefix.length()) return EOF;
+        }
+        return pCh = sbWrit->sputc(char(ch));
+    }
 };

@@ -56,7 +56,7 @@ namespace Zobrists {
         assert(PolyZob.psq[B_KING][SQ_H8] == U64(0xFF577222C14F0A3A));
         assert(PolyZob.side == U64(0xF8D626AAAF278509));
 
-        PRNG prng{ 0x105524 };
+        PRNG prng(0x105524);
 
         for (Piece p : Pieces) {
             for (Square s = SQ_A1; s <= SQ_H8; ++s) {

@@ -22,16 +22,6 @@ namespace Evaluator::NNUE::Layers {
         static constexpr IndexType OutputDimensions{ OutputDimensionsT };
         static constexpr IndexType PaddedInputDimensions{ ceilToMultiple<IndexType>(InputDimensions, MaxSimdWidth) };
 
-    private:
-        using BiasType = OutputType;
-        using WeightType = i08;
-
-        PreviousLayer _previousLayer;
-
-        alignas(CacheLineSize) BiasType _biases[OutputDimensions];
-        alignas(CacheLineSize) WeightType _weights[OutputDimensions * PaddedInputDimensions];
-
-    public:
         // Size of forward propagation buffer used in this layer
         static constexpr size_t SelfBufferSize{ ceilToMultiple(OutputDimensions * sizeof (OutputType), CacheLineSize) };
 
@@ -233,6 +223,15 @@ namespace Evaluator::NNUE::Layers {
 #endif
             return output;
         }
+
+    private:
+        using BiasType = OutputType;
+        using WeightType = i08;
+
+        PreviousLayer _previousLayer;
+
+        alignas(CacheLineSize) BiasType _biases[OutputDimensions];
+        alignas(CacheLineSize) WeightType _weights[OutputDimensions * PaddedInputDimensions];
     };
 
 }  // namespace Evaluator::NNUE::Layers

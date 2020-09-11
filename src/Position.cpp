@@ -152,7 +152,7 @@ bool Position::cycled(i16 pp) const noexcept {
             // Legality of a reverting move: clear path
             if ((pieces() & betweenBB(cuckoo.sq1, cuckoo.sq2)) == 0) {
 
-                if (i < pp) {
+                if (pp > i) {
                     return true;
                 }
                 assert(cuckoo.piece == board[cuckoo.sq1]

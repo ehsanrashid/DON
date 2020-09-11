@@ -8,9 +8,7 @@
 /// ThreadMark are used to mark nodes as being searched by a given thread
 struct ThreadMark {
 
-    std::atomic<Thread const*> thread;
-    std::atomic<Key>           posiKey;
-
+public:
     template<typename T>
     T load(std::atomic<T> ThreadMark::*member) const noexcept {
         return (this->*member).load(std::memory_order::memory_order_relaxed);
@@ -20,6 +18,8 @@ struct ThreadMark {
         (this->*member).store(t, std::memory_order::memory_order_relaxed);
     }
 
+    std::atomic<Thread const*> thread;
+    std::atomic<Key>           posiKey;
 };
 
 /// ThreadMarker structure keeps track of which thread left ThreadMark at the given
@@ -27,14 +27,7 @@ struct ThreadMark {
 /// loop by the constructor, and unmarked upon leaving that loop by the destructor.
 class ThreadMarker {
 
-private:
-
-    ThreadMark *threadMark{ nullptr };
-    bool owner{ false };
-
 public:
-    bool marked{ false };
-
     ThreadMarker() = delete;
     ThreadMarker(ThreadMarker const&) = delete;
     ThreadMarker(ThreadMarker&&) = delete;
@@ -43,5 +36,11 @@ public:
 
     ThreadMarker(Thread const*, Key, i16) noexcept;
     ~ThreadMarker();
+
+    bool marked{ false };
+
+private:
+    ThreadMark* threadMark{ nullptr };
+    bool owner{ false };
 };
 
