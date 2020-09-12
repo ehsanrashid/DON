@@ -52,18 +52,18 @@ u16  PVCount;
 
 namespace SyzygyTB {
 
-    Depth   DepthLimit;
-    i16     PieceLimit;
-    bool    Move50Rule;
-    bool    HasRoot;
+    Depth DepthLimit;
+    i16   PieceLimit;
+    bool  Move50Rule;
+    bool  HasRoot;
 }
 
 namespace {
 
     /// Stack keeps the information of the nodes in the tree during the search.
     struct Stack {
-        Move* pv;
-        PieceSquareStatsTable* pieceStats;
+        Move *pv;
+        PieceSquareStatsTable *pieceStats;
 
         i16   ply;
         Move  playedMove;
@@ -324,7 +324,7 @@ namespace {
 
         Move move;
         // Transposition table lookup.
-        Key  const key    { pos.posiKey() };
+        Key const key     { pos.posiKey() };
 
         auto *const tte   { TT.probe(key, ss->ttHit) };
 
@@ -644,7 +644,7 @@ namespace {
         // Don't want the score of a partial search to overwrite
         // a previous full search TT value, so we use a different
         // position key in case of an excluded move.
-        Key const   key   { excludedMove == MOVE_NONE ?
+        Key const key     { excludedMove == MOVE_NONE ?
                                 pos.posiKey() :
                                 pos.posiKey() ^ makeKey(excludedMove) };
 
@@ -1803,8 +1803,8 @@ void Thread::search() {
              && !Threadpool.stop
              && !mainThread->stopOnPonderHit) {
 
-                if (mainThread->bestMove != rootMoves.front()[0]) {
-                    mainThread->bestMove  = rootMoves.front()[0];
+                if (mainThread->bestMove != rootMoves[0][0]) {
+                    mainThread->bestMove  = rootMoves[0][0];
                     mainThread->bestDepth = rootDepth;
                 }
 
@@ -1900,12 +1900,12 @@ void MainThread::search() {
                 think = false;
 
                 rootMoves.bringToFront(bbm);
-                rootMoves.front().newValue = VALUE_NONE;
+                rootMoves[0].newValue = VALUE_NONE;
                 StateInfo si;
                 rootPos.doMove(bbm, si);
                 auto bpm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
                 if (bpm != MOVE_NONE) {
-                    rootMoves.front() += bpm;
+                    rootMoves[0] += bpm;
                 }
                 rootPos.undoMove(bbm);
             }
@@ -1972,9 +1972,9 @@ void MainThread::search() {
     }
 
     assert(!bestThread->rootMoves.empty()
-        && !bestThread->rootMoves.front().empty());
+        && !bestThread->rootMoves[0].empty());
 
-    auto &rm{ bestThread->rootMoves.front() };
+    auto &rm{ bestThread->rootMoves[0] };
 
     if (Limits.useTimeMgmt()) {
         if (u16(Options["Time Nodes"]) != 0) {
@@ -1985,7 +1985,7 @@ void MainThread::search() {
         bestValue = rm.newValue;
     }
 
-    auto bm{ rm.front() };
+    auto bm{ rm[0] };
     auto pm{ MOVE_NONE };
     if (bm != MOVE_NONE) {
         auto const itr{ rm.begin() + 1 };
@@ -2074,7 +2074,7 @@ namespace SyzygyTB {
                                 });
             // Probe during search only if DTZ is not available and winning
             if (dtzAvailable
-             || rootMoves.front().tbValue <= VALUE_DRAW) {
+             || rootMoves[0].tbValue <= VALUE_DRAW) {
                 PieceLimit = 0;
             }
         }

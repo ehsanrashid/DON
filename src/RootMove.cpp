@@ -24,10 +24,10 @@ bool RootMove::operator>(RootMove const &rm) const noexcept {
 }
 
 //bool RootMove::operator==(RootMove const &rm) const noexcept {
-//    return front() == rm.front();
+//    return front() == rm[0];
 //}
 //bool RootMove::operator!=(RootMove const &rm) const noexcept {
-//    return front() != rm.front();
+//    return front() != rm[0];
 //}
 
 bool RootMove::operator==(Move m) const noexcept {
@@ -59,33 +59,19 @@ std::ostream& operator<<(std::ostream &ostream, RootMove const &rm) {
 
 RootMoves::RootMoves(Position const &pos) :
     std::vector<RootMove>() {
-    assert(empty());
-    //clear();
+
     for (auto const &vm : MoveList<LEGAL>(pos)) {
         *this += vm;
-        assert(back().tbRank == 0
-            && back().tbValue == VALUE_ZERO);
     }
 }
 
 RootMoves::RootMoves(Position const &pos, Moves const &filterMoves) :
     std::vector<RootMove>() {
-    assert(empty());
-    //clear();
-    if (filterMoves.empty()) {
-        for (auto const &vm : MoveList<LEGAL>(pos)) {
+
+    for (auto const &vm : MoveList<LEGAL>(pos)) {
+        if (filterMoves.empty()
+         || filterMoves.contains(vm)) {
             *this += vm;
-            assert(back().tbRank == 0
-                && back().tbValue == VALUE_ZERO);
-        }
-    }
-    else {
-        for (auto const& vm : MoveList<LEGAL>(pos)) {
-            if (filterMoves.contains(vm)) {
-                *this += vm;
-                assert(back().tbRank == 0
-                    && back().tbValue == VALUE_ZERO);
-            }
         }
     }
 }

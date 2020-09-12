@@ -153,8 +153,7 @@ namespace Material {
             // This catches some trivial draws like KK, KBK and KNK and gives a very drawish
             // scaleFactor for cases such as KRKBP and KmmKm (except for KBBKN).
             if (pos.count(c|PAWN) == 0
-             && (pos.nonPawnMaterial( c)
-               - pos.nonPawnMaterial(~c)) <= VALUE_MG_BSHP) {
+             && (pos.nonPawnMaterial( c) - pos.nonPawnMaterial(~c)) <= VALUE_MG_BSHP) {
                 scaleFactor[c] = Scale((14 - 10 * (pos.nonPawnMaterial(~c) <= VALUE_MG_BSHP)) * (pos.nonPawnMaterial( c) >= VALUE_MG_ROOK));
             }
         }

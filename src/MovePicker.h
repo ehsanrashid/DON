@@ -182,13 +182,13 @@ private:
     PieceSquareTypeStatsTable const *captureStats{ nullptr };
     PieceSquareStatsTable     const **pieceStats{ nullptr };
 
-    Move    ttMove{ MOVE_NONE };
-    Depth   depth{ DEPTH_ZERO };
-    i16     ply{ 0 };
-    Value   threshold{ VALUE_ZERO };
-    Square  recapSq{ SQ_NONE };
+    Move ttMove{ MOVE_NONE };
+    Depth depth{ DEPTH_ZERO };
+    i16 ply{ 0 };
+    Value threshold{ VALUE_ZERO };
+    Square recapSq{ SQ_NONE };
 
-    u08     stage{ 0 };
+    u08 stage{ 0 };
 
     ValMoves vmoves;
     ValMoves::iterator vmBeg,
@@ -196,6 +196,6 @@ private:
 
     Moves refutationMoves,
           badCaptureMoves;
-    Moves::iterator    mBeg,
-                       mEnd;
+    Moves::iterator mBeg,
+                    mEnd;
 };

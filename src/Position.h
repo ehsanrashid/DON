@@ -96,7 +96,7 @@ public:
     i32 count(PieceType) const noexcept;
     i32 count(Color) const noexcept;
     i32 count() const noexcept;
-    Square const *squares(Piece) const noexcept;
+    Square const* squares(Piece) const noexcept;
     Square square(Piece, u08 = 0) const noexcept;
 
     Value nonPawnMaterial(Color) const noexcept;
@@ -168,7 +168,7 @@ public:
     bool bishopOpposed() const noexcept;
     bool semiopenFileOn(Color, Square) const noexcept;
 
-    Position& setup(std::string_view, StateInfo&, Thread *const = nullptr);
+    Position& setup(std::string_view, StateInfo&, Thread* = nullptr);
     Position& setup(std::string_view, Color, StateInfo&);
 
     void doMove(Move, StateInfo&, bool);
@@ -222,6 +222,8 @@ private:
 
     StateInfo *_stateInfo;
     Thread    *_thread;
+
+    //friend std::ostream& operator<<(std::ostream&, Position const&);
 };
 
 extern std::ostream& operator<<(std::ostream&, Position const&);
@@ -268,7 +270,7 @@ inline i32 Position::count() const noexcept {
     return count(WHITE) + count(BLACK);
 }
 
-inline Square const *Position::squares(Piece p) const noexcept {
+inline Square const* Position::squares(Piece p) const noexcept {
     return pieceSquare[p];
 }
 inline Square Position::square(Piece p, u08 idx) const noexcept {

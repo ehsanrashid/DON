@@ -30,6 +30,6 @@ private:
     std::string filename;
     std::ofstream ofstream;
 
-    TieStreamBuf istreambuf;
-    TieStreamBuf ostreambuf;
+    TieStreamBuf itiestreambuf;
+    TieStreamBuf otiestreambuf;
 };

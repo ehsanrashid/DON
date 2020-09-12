@@ -13,27 +13,32 @@ namespace Evaluator::NNUE::Features {
     public:
 
         size_t size() const {
-            return size_;
+            return _size;
         }
-        void resize(size_t size) {
-            size_ = size;
+        void resize(size_t const sz) {
+            _size = sz;
         }
         void push_back(T const &value) {
-            values[size_++] = value;
+            values[_size++] = value;
         }
 
-        T &operator[](size_t index) {
+        T& operator[](size_t const index) {
+            assert(0 <= index || index < _size);
             return values[index];
         }
+        //T& operator[](size_t const index) throw (const char*) {
+        //    if (0 > index || index >= _size) throw "Invalid array access";
+        //    return values[index];
+        //}
 
         T* begin() {
             return values;
         }
         T* end() {
-            return values + size_;
+            return values + _size;
         }
 
-        T const& operator[](size_t index) const {
+        T const& operator[](size_t const index) const {
             return values[index];
         }
 
@@ -41,30 +46,27 @@ namespace Evaluator::NNUE::Features {
             return values;
         }
         T const* end() const {
-            return values + size_;
+            return values + _size;
         }
 
         void swap(ValueList &valueList) {
 
-            size_t const maxSize{ std::max(size_, valueList.size_) };
+            size_t const maxSize{ std::max(_size, valueList._size) };
             for (size_t i = 0; i < maxSize; ++i) {
                 std::swap(values[i], valueList.values[i]);
             }
-            std::swap(size_, valueList.size_);
+            std::swap(_size, valueList._size);
         }
 
     private:
         T      values[N];
-        size_t size_{ 0 };
-
+        size_t _size{ 0 };
     };
 
     //Type of feature index list
     class IndexList
-        : public ValueList<IndexType, RawFeatures::MaxActiveDimensions>
-    {
+        : public ValueList<IndexType, RawFeatures::MaxActiveDimensions> {
     public:
-
     private:
     };
 

@@ -13,44 +13,41 @@ class TieStreamBuf :
     public std::streambuf {
 
 public:
-    TieStreamBuf(
-        std::streambuf *sbRd,
-        std::streambuf *sbWr) :
-        sbRead{ sbRd },
-        sbWrit{ sbWr }
+    TieStreamBuf(std::streambuf *rsb, std::streambuf *wsb) :
+        rstreambuf{ rsb },
+        wstreambuf{ wsb }
     {}
     //TieStreamBuf(TieStreamBuf const&) = delete;
     //TieStreamBuf& operator=(TieStreamBuf const&) = delete;
 
     int sync() override {
-        return sbWrit->pubsync(), sbRead->pubsync();
+        return wstreambuf->pubsync(), rstreambuf->pubsync();
     }
 
     int_type overflow(int_type ch) override {
-        return write(sbRead->sputc(char(ch)), "<< ");
+        return write(rstreambuf->sputc(char(ch)), "<< ");
     }
 
     int_type underflow() override {
-        return sbRead->sgetc();
+        return rstreambuf->sgetc();
     }
 
     int_type uflow() override {
-        return write(sbRead->sbumpc(), ">> ");
+        return write(rstreambuf->sbumpc(), ">> ");
     }
 
-    std::streambuf* sbRead;
-    std::streambuf* sbWrit;
+    std::streambuf *rstreambuf;
+    std::streambuf *wstreambuf;
 
 private:
     int_type write(int_type ch, std::string_view prefix) {
-        // Previous character
-        static int_type pCh = '\n';
+        static int_type prevCh = '\n';
 
-        if (pCh == '\n') {
+        if (prevCh == '\n') {
             //if (
-            sbWrit->sputn(prefix.data(), prefix.length());
+            wstreambuf->sputn(prefix.data(), prefix.length());
             //    != prefix.length()) return EOF;
         }
-        return pCh = sbWrit->sputc(char(ch));
+        return prevCh = wstreambuf->sputc(char(ch));
     }
 };

@@ -58,14 +58,14 @@ static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
 /// 10 x 3 + 2 = 32
 struct TCluster {
 
+    u32 freshEntryCount() const noexcept;
+
+    TEntry* probe(u16, bool&) noexcept;
+
     static constexpr u08 EntryPerCluster{ 3 };
 
     TEntry entry[EntryPerCluster];
     char pad[2]; // Pad to 32 bytes
-
-    u32 freshEntryCount() const noexcept;
-
-    TEntry* probe(u16, bool&) noexcept;
 };
 
 /// Size of TCluster (32 bytes)
@@ -110,20 +110,25 @@ public:
     // Minimum size of Table (MB)
     static constexpr size_t MinHashSize{ 4 };
     // Maximum size of Table (MB)
+    static constexpr size_t MaxHashSize{
 #if defined(IS_64BIT)
-    static constexpr size_t MaxHashSize{ 32 << 20 };
+                                        32 << 20
 #else
-    static constexpr size_t MaxHashSize{ 2 << 10 };
+                                        2 << 10
 #endif
+    };
 
 private:
-    void*       mem{ nullptr };
-    TCluster*   clusterTable{ nullptr };
-    size_t      clusterCount{ 0 };
+    void *mem{ nullptr };
+    TCluster *clusterTable{ nullptr };
+    size_t clusterCount{ 0 };
 
     friend std::ostream& operator<<(std::ostream&, TTable const&);
     friend std::istream& operator>>(std::istream&, TTable      &);
 };
+
+extern std::ostream& operator<<(std::ostream&, TTable const&);
+extern std::istream& operator>>(std::istream&, TTable&);
 
 // Global Transposition Table
 extern TTable TT;

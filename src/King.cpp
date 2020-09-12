@@ -62,7 +62,7 @@ namespace King {
                 relativeRank(Own, scanFrontMostSq<Opp>(oppFrontFilePawns)) : RANK_1 };
             assert((ownR != oppR)
                 || (ownR == RANK_1
-                    && oppR == RANK_1));
+                 && oppR == RANK_1));
 
             auto const d{ edgeDistance(f) };
             safety +=
@@ -143,7 +143,6 @@ namespace King {
         castleSide[Own] = 4;
     }
 
-
     Entry* probe(Position const &pos, Pawns::Entry *pe) {
         Key const kingKey{
             pe->key //pos.pawnKey()
@@ -164,4 +163,3 @@ namespace King {
     }
 
 }
-

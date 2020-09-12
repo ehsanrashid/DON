@@ -30,9 +30,9 @@
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
     INCBIN(EmbeddedNNUE, DefaultEvalFile);
 #else
-    const unsigned char        gEmbeddedNNUEData[1] = { 0x0 };
-    const unsigned char *const gEmbeddedNNUEEnd     = &gEmbeddedNNUEData[1];
-    const unsigned int         gEmbeddedNNUESize    = 1;
+    const unsigned char        gEmbeddedNNUEData[1]{ 0x0 };
+    const unsigned char *const gEmbeddedNNUEEnd    { &gEmbeddedNNUEData[1] };
+    const unsigned int         gEmbeddedNNUESize   { 1 };
 #endif
 
 
@@ -990,7 +990,7 @@ namespace Evaluator {
 
 
         template<bool Trace>
-        Evaluation<Trace>::Evaluation(Position const& p) noexcept :
+        Evaluation<Trace>::Evaluation(Position const &p) noexcept :
             pos{ p }
         {}
 
@@ -1170,25 +1170,25 @@ namespace Evaluator {
     Value evaluate(Position const &pos) {
         assert(pos.checkers() == 0);
 
-        auto const fortress{ 16 + pos.clockPly() };
-        bool const useClassical{ std::abs(egValue(pos.psqScore())) * 16 > NNUEThreshold1 * fortress };
-
-        Value v{
+        bool const classical{
             !useNNUE
-         || useClassical
+         || (std::abs(egValue(pos.psqScore())) * 16 > NNUEThreshold1 * (pos.clockPly() + 16))
             // If there is a large imbalance, use classical eval
             // If there is a moderate imbalance, use classical eval with probability (1/8), as derived from the node counter.
          || (std::abs(egValue(pos.psqScore())) > VALUE_MG_PAWN / 4
-          && !(pos.thread()->nodes & 0xB)) ?
-                Evaluation<false>(pos).value() :
-                NNUE::evaluate(pos) };
+          && (pos.thread()->nodes & 0xB) == 0) };
 
-        if (useClassical
-         && useNNUE
-         && std::abs(v) * 16 < NNUEThreshold2 * fortress) {
-            v = NNUE::evaluate(pos);
+        Value v;
+        if (classical) {
+            v = Evaluation<false>(pos).value();
+            if (!useNNUE
+             || (std::abs(v) * 16 >= NNUEThreshold2 * (pos.clockPly() + 16))) {
+                goto skipNNUE;
+            }
         }
+        v = NNUE::evaluate(pos) * 5 / 4 + VALUE_TEMPO;
 
+        skipNNUE:
         // Damp down the evaluation linearly when shuffling
         v = v * (100 - pos.clockPly()) / 100;
 

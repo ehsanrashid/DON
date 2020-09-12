@@ -645,26 +645,22 @@ inline TimePoint now() noexcept {
 }
 
 /// Hash table
-template<typename T>
-class HashTable :
-    private std::vector<T> {
+template<typename T, size_t Size>
+class HashTable {
 
 public:
-    HashTable(u32 size) :
-        std::vector<T>(size),
-        Mask{ size - 1 }
-    {}
+    HashTable() = default;
 
     void clear() {
-        std::vector<T>::assign(std::vector<T>::size(), T());
+        table.assign(Size, T{});
     }
 
     T* operator[](Key key) {
-        return &std::vector<T>::operator[](key & Mask);
+        return &table[u32(key) & (Size - 1)];
     }
 
 private:
-    u32 const Mask;
+    std::vector<T> table = std::vector<T>(Size); // Allocate on the heap
 };
 
 constexpr Piece Pieces[2*KING]{

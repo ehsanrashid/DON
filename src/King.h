@@ -20,11 +20,12 @@ namespace King {
         void evaluate(Position const&);
 
         Key key;
+
         Pawns::Entry *pawnEntry;
 
         Score pawnDist[COLORS];
 
-        u08   castleSide[COLORS];
+        u08 castleSide[COLORS];
         Score pawnSafety[COLORS];
 
     private:
@@ -32,7 +33,7 @@ namespace King {
         Score evaluateSafetyOn(Position const&, Square);
     };
 
-    using Table = HashTable<Entry>;
+    using Table = HashTable<Entry, 0x40000>;
 
     extern Entry* probe(Position const&, Pawns::Entry*);
 

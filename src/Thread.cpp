@@ -104,7 +104,7 @@ u16 ThreadPool::size() const noexcept {
     return u16(std::vector<Thread*>::size());
 }
 
-MainThread * ThreadPool::mainThread() const noexcept {
+MainThread* ThreadPool::mainThread() const noexcept {
     return static_cast<MainThread*>(front());
 }
 
@@ -113,35 +113,35 @@ Thread* ThreadPool::bestThread() const noexcept {
 
     auto minValue{ +VALUE_INFINITE };
     for (auto *th : *this) {
-        minValue = std::min(th->rootMoves.front().newValue, minValue);
+        minValue = std::min(th->rootMoves[0].newValue, minValue);
     }
     // Vote according to value and depth
     std::unordered_map<Move, i64> votes;
     for (auto *th : *this) {
-        votes[th->rootMoves.front()[0]] += i32(th->rootMoves.front().newValue - minValue + 14) * i32(th->finishedDepth);
+        votes[th->rootMoves[0][0]] += i32(th->rootMoves[0].newValue - minValue + 14) * i32(th->finishedDepth);
 
-        if (std::abs(bestTh->rootMoves.front().newValue) < +VALUE_MATE_2_MAX_PLY) {
-            if (  th->rootMoves.front().newValue >  -VALUE_MATE_2_MAX_PLY
-             && ( th->rootMoves.front().newValue >= +VALUE_MATE_2_MAX_PLY
-              ||  votes[bestTh->rootMoves.front()[0]] <  votes[th->rootMoves.front()[0]]
-              || (votes[bestTh->rootMoves.front()[0]] == votes[th->rootMoves.front()[0]]
+        if (std::abs(bestTh->rootMoves[0].newValue) < +VALUE_MATE_2_MAX_PLY) {
+            if (  th->rootMoves[0].newValue >  -VALUE_MATE_2_MAX_PLY
+             && ( th->rootMoves[0].newValue >= +VALUE_MATE_2_MAX_PLY
+              ||  votes[bestTh->rootMoves[0][0]] <  votes[th->rootMoves[0][0]]
+              || (votes[bestTh->rootMoves[0][0]] == votes[th->rootMoves[0][0]]
                && bestTh->finishedDepth < th->finishedDepth))) {
                 bestTh = th;
             }
         }
         else {
             // Select the shortest mate for own/longest mate for opp
-            if ( bestTh->rootMoves.front().newValue <  th->rootMoves.front().newValue
-             || (bestTh->rootMoves.front().newValue == th->rootMoves.front().newValue
+            if ( bestTh->rootMoves[0].newValue <  th->rootMoves[0].newValue
+             || (bestTh->rootMoves[0].newValue == th->rootMoves[0].newValue
               && bestTh->finishedDepth < th->finishedDepth)) {
                 bestTh = th;
             }
         }
     }
     //// Select best thread with max depth
-    //auto bestMove{ bestTh->rootMoves.front()[0] };
+    //auto bestMove{ bestTh->rootMoves[0][0] };
     //for (auto *th : *this) {
-    //    if (bestMove == th->rootMoves.front()[0]) {
+    //    if (bestMove == th->rootMoves[0][0]) {
     //        if (bestTh->finishedDepth < th->finishedDepth) {
     //            bestTh = th;
     //        }

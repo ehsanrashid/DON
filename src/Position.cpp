@@ -364,13 +364,13 @@ bool Position::legal(Move m) const noexcept {
 
     return
         org == fkSq ?
-            // KING SIMPLE moves
+            // For KING SIMPLE moves
             // Only king moves to non attacked squares, sliding check x-rays the king
             // In case of king moves under check have to remove king so to catch
             // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
             // check whether the destination square is attacked by the opponent.
             (attackersTo(dst, pieces() ^ fkSq) & pieces(~active)) == 0 :
-            // OTHER SIMPLE + PROMOTE moves
+            // For NON-KING SIMPLE + PROMOTE moves
             // A non-king move is legal if and only if
             // - not pinned
             // - moving along the ray from the king
@@ -665,7 +665,7 @@ bool Position::see(Move m, Value threshold) const noexcept {
 /// Position::setup() initializes the position object with the given FEN string.
 /// This function is not very robust - make sure that input FENs are correct,
 /// this is assumed to be the responsibility of the GUI.
-Position& Position::setup(std::string_view ff, StateInfo &si, Thread *const th) {
+Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
     // A FEN string defines a particular position using only the ASCII character set.
     // A FEN string contains six fields separated by a space.
     // 1) Piece placement (from White's perspective).
@@ -806,17 +806,17 @@ Position& Position::setup(std::string_view code, Color c, StateInfo &si) {
     assert(code[0] == 'K'
         && code.find('K', 1) != std::string::npos);
 
-    std::string codes[COLORS]{
-        std::string{ code.substr(code.find('K', 1)) },                             // Weak
-        std::string{ code.substr(0, std::min(code.find('v'), code.find('K', 1))) } // Strong
+    std::string sides[COLORS]{
+        std::string(code.substr(code.find('K', 1))),                             // Weak
+        std::string(code.substr(0, std::min(code.find('v'), code.find('K', 1)))) // Strong
     };
-    assert(0 < codes[WHITE].size() && codes[WHITE].size() < 8);
-    assert(0 < codes[BLACK].size() && codes[BLACK].size() < 8);
+    assert(sides[WHITE].length() < 8
+        && sides[BLACK].length() < 8);
 
-    toLower(codes[c]);
+    toLower(sides[c]);
 
-    std::string fenStr{ "8/" + codes[WHITE] + char('0' + 8 - codes[WHITE].size()) + "/8/8/8/8/"
-                             + codes[BLACK] + char('0' + 8 - codes[BLACK].size()) + "/8 w - - 0 10" };
+    std::string fenStr{ "8/" + sides[WHITE] + char(8 - sides[WHITE].length() + '0') + "/8/8/8/8/"
+                             + sides[BLACK] + char(8 - sides[BLACK].length() + '0') + "/8 w - - 0 10" };
 
     return setup(fenStr, si, nullptr);
 }

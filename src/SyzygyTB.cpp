@@ -466,14 +466,15 @@ namespace {
 
     private:
         struct Entry {
-            Key key;
-            TBTable<WDL>* wdl;
-            TBTable<DTZ>* dtz;
 
             template<TBType Type>
             TBTable<Type>* get() const noexcept {
                 return static_cast<TBTable<Type>*>(Type == WDL ? (void*)wdl : (void*)dtz);
             }
+
+            Key key;
+            TBTable<WDL>* wdl;
+            TBTable<DTZ>* dtz;
         };
 
         void insert(Key matlKey, TBTable<WDL> *wdl, TBTable<DTZ> *dtz) {

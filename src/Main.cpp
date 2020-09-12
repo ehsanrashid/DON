@@ -33,13 +33,9 @@ int main(int argc, char const *const argv[]) {
     Evaluator::initializeNNUE();
     UCI::clear();
 
-    //Evaluator::verifyNNUE();
-
     UCI::handleCommands(argc, argv);
 
     Threadpool.setup(0);
-    //TT.free();
-    //TTEx.free();
 
     //std::atexit(clear);
     return EXIT_SUCCESS;

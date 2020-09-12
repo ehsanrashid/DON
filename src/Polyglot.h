@@ -12,11 +12,6 @@
 ///  - Learn     4 bytes
 struct PolyEntry {
 
-    u64 key;
-    u16 move;
-    u16 weight;
-    u32 learn;
-
     explicit operator Move() const noexcept { return Move(move); }
 
     bool operator==(PolyEntry const&) const noexcept;
@@ -32,6 +27,11 @@ struct PolyEntry {
     bool operator!=(Move) const noexcept;
 
     std::string toString() const;
+
+    u64 key;
+    u16 move;
+    u16 weight;
+    u32 learn;
 };
 
 static_assert (sizeof (PolyEntry) == 16, "Entry size incorrect");
@@ -63,16 +63,17 @@ private:
 
     bool canProbe(Position const&) noexcept;
 
-    PolyEntry* entry{ nullptr };
-    u64         entryCount{ 0 };
+    PolyEntry *entry{ nullptr };
+    u64 entryCount{ 0 };
 
     std::string filename;
 
-    bool        doProbe{ true };
-    Bitboard    pieces{ 0 };
-    i32         pieceCount{ 0 };
-    u08         failCount{ 0 };
+    bool doProbe{ true };
 
+    Bitboard pieces{ 0 };
+    i32 pieceCount{ 0 };
+
+    u08 failCount{ 0 };
 };
 
 // Global Polyglot Book

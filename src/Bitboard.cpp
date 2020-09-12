@@ -100,6 +100,7 @@ namespace {
     #endif
         };
 #endif
+
         u16 size{ 0 };
         for (Square s = SQ_A1; s <= SQ_H8; ++s) {
 
@@ -124,12 +125,13 @@ namespace {
             magic.attacks = s == SQ_A1 ? attacks : magics[s - 1].attacks + size;
 
 #if !defined(USE_PEXT)
-            u08 bits
+            u08 bits{
     #if defined(IS_64BIT)
-            { 64 };
+                    64
     #else
-            { 32 };
+                    32
     #endif
+            };
             magic.shift = bits - popCount(magic.mask);
 #endif
 

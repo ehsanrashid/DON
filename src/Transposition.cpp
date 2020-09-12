@@ -102,7 +102,7 @@ namespace {
     void* allocAlignedMemoryLargePages(size_t mSize) noexcept {
         HANDLE processHandle{};
         LUID luid{};
-        void* mem{ nullptr };
+        void *mem{ nullptr };
 
         const size_t LargePageSize{ GetLargePageMinimum() };
         if (LargePageSize == 0) {

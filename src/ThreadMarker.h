@@ -19,7 +19,7 @@ public:
     }
 
     std::atomic<Thread const*> thread;
-    std::atomic<Key>           posiKey;
+    std::atomic<Key> posiKey;
 };
 
 /// ThreadMarker structure keeps track of which thread left ThreadMark at the given
@@ -40,7 +40,7 @@ public:
     bool marked{ false };
 
 private:
-    ThreadMark* threadMark{ nullptr };
+    ThreadMark *threadMark{ nullptr };
     bool owner{ false };
 };
 

@@ -83,9 +83,9 @@ public:
     // usually the current one given a previous one.
     ContinuationStatsTable continuationStats[2][2];
 
-    Material::Table matlHash{ Material::Table(0x2000 ) };
-    Pawns   ::Table pawnHash{ Pawns   ::Table(0x20000) };
-    King    ::Table kingHash{ King    ::Table(0x40000) };
+    Material::Table matlHash{};
+    Pawns   ::Table pawnHash{};
+    King    ::Table kingHash{};
 
 private:
 
@@ -96,7 +96,6 @@ private:
     std::condition_variable conditionVar;
     u16 index; // indentity
     NativeThread nativeThread;
-
 };
 
 /// MainThread class is derived from Thread class used specific for main thread.
@@ -146,7 +145,7 @@ public:
     }
 
     template<typename T>
-    T accumulate(std::atomic<T> Thread:: *member, T value = {}) const {
+    T accumulate(std::atomic<T> Thread::*member, T value = {}) const {
         for (auto *th : *this) {
             value += (th->*member).load(std::memory_order::memory_order_relaxed);
         }
@@ -170,7 +169,6 @@ public:
                       research;
 private:
     StateListPtr setupStates;
-
 };
 
 namespace WinProcGroup {

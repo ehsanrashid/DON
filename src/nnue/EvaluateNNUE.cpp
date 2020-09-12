@@ -150,11 +150,7 @@ namespace Evaluator::NNUE {
         alignas(CacheLineSize) char buffer[Network::BufferSize];
         auto const output{ network->propagate(transformedFeatures, buffer) };
 
-        auto v{ static_cast<Value>(output[0] / FVScale) };
-
-        v = v * 5 / 4;
-        v += VALUE_TEMPO;
-        return v;
+        return static_cast<Value>(output[0] / FVScale);
     }
 
 } // namespace Evaluator::NNUE

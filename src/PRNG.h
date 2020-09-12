@@ -22,8 +22,9 @@ class PRNG {
 public:
     PRNG() = delete;
     PRNG(u64 seed) noexcept :
-        x{ seed }
-    { assert(x != 0); }
+        x{ seed } {
+        assert(x != 0);
+    }
 
     PRNG(PRNG const&) = delete;
     PRNG(PRNG&&) = delete;

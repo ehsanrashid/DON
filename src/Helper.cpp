@@ -99,7 +99,7 @@ namespace CommandLine {
     #if defined(_MSC_VER)
         // Under windows argv[0] may not have the extension. Also _get_pgmptr() had
         // issues in some windows 10 versions, so check returned values carefully.
-        char* pgmptr = nullptr;
+        char *pgmptr = nullptr;
         if (!_get_pgmptr(&pgmptr) && pgmptr != nullptr && *pgmptr) {
             argv0 = pgmptr;
         }
@@ -112,7 +112,7 @@ namespace CommandLine {
         // Extract the working directory
         workingDirectory = "";
         char buff[40000];
-        char* cwd = GETCWD(buff, sizeof (buff));
+        char const *cwd = GETCWD(buff, sizeof (buff));
         if (cwd != nullptr) {
             workingDirectory = cwd;
         }

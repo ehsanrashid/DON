@@ -23,7 +23,6 @@ public:
     TimePoint maximum{ 0 };
 
     u64 totalNodes{ 0 }; // Available Nodes to play
-
 };
 
 // Global Time Manager

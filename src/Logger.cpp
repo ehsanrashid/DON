@@ -44,8 +44,8 @@ namespace {
 }
 
 Logger::Logger() :
-    istreambuf{ std:: cin.rdbuf(), ofstream.rdbuf() },
-    ostreambuf{ std::cout.rdbuf(), ofstream.rdbuf() }
+    itiestreambuf{ std:: cin.rdbuf(), ofstream.rdbuf() },
+    otiestreambuf{ std::cout.rdbuf(), ofstream.rdbuf() }
 {}
 
 Logger::~Logger() {
@@ -62,8 +62,8 @@ Logger& Logger::instance() {
 
 void Logger::setup(std::string_view logFile) {
     if (ofstream.is_open()) {
-        std::cout.rdbuf(ostreambuf.sbRead);
-        std:: cin.rdbuf(istreambuf.sbRead);
+        std::cout.rdbuf(otiestreambuf.rstreambuf);
+        std:: cin.rdbuf(itiestreambuf.rstreambuf);
 
         ofstream << "[" << system_clock::now() << "] <-\n";
         ofstream.close();
@@ -84,6 +84,6 @@ void Logger::setup(std::string_view logFile) {
     }
     ofstream << "[" << system_clock::now() << "] ->\n";
 
-    std:: cin.rdbuf(&istreambuf);
-    std::cout.rdbuf(&ostreambuf);
+    std:: cin.rdbuf(&itiestreambuf);
+    std::cout.rdbuf(&otiestreambuf);
 }

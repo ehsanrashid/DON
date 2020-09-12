@@ -7,8 +7,6 @@ using namespace std::chrono;
 
 struct Timer {
 
-    steady_clock::time_point beg;
-
     Timer() :
         beg{ steady_clock::now() }
     {}
@@ -18,7 +16,8 @@ struct Timer {
         nanoseconds elapsed{ beg - end };
 
         auto ms = elapsed.count() * 1000.0;
-        std::cout << "Timer took " << ms << " ms" << std::endl;
+        std::cout << "Time elapsed: " << ms << " ms" << std::endl;
     }
 
+    steady_clock::time_point beg;
 };

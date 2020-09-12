@@ -837,7 +837,7 @@ namespace UCI {
     /// Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
     /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
     /// In addition to the UCI ones, also some additional commands are supported.
-    void handleCommands(int argc, char const *const *argv) {
+    void handleCommands(int argc, char const *const argv[]) {
         Debugger::reset();
         Position pos;
         // Stack to keep track of the position states along the setup moves
@@ -849,7 +849,7 @@ namespace UCI {
         // Join arguments
         string cmd;
         for (int i = 1; i < argc; ++i) {
-            cmd += string{ argv[i] } + " ";
+            cmd += string(argv[i]) + " ";
         }
 
         string token;

@@ -11,19 +11,18 @@ namespace Material {
     /// Material::Entry contains information about Material configuration.
     struct Entry {
 
-        Key   key;
-        i32   phase;
+        void evaluate(Position const&);
+
+        Key key;
+        i32 phase;
         Score imbalance;
 
         Scale scaleFactor[COLORS];
         EndgameBase<Value> const *evaluationFunc;
         EndgameBase<Scale> const *scalingFunc[COLORS];
-
-        void evaluate(Position const&);
-
     };
 
-    using Table = HashTable<Entry>;
+    using Table = HashTable<Entry, 0x2000>;
 
     extern Entry* probe(Position const&);
 }
