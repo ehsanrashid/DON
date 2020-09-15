@@ -3,11 +3,13 @@
 #include <cfloat>
 #include <cmath>
 
-#include "Searcher.h"
-#include "Thread.h"
-#include "UCI.h"
-
 TimeManager TimeMgr;
+
+TimeManager::TimeManager() :
+    remainingNodes{ 0 },
+    optimumTime{ 0 },
+    maximumTime{ 0 } {
+}
 
 /// TimeManager::setup() is called at the beginning of the search and calculates the bounds
 /// of time allowed for the current game ply.  We currently support:
@@ -23,11 +25,11 @@ void TimeManager::setup(Color c, i16 ply) {
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
     if (timeNodes != 0) {
         // Only once at after ucinewgame
-        if (totalNodes == 0) {
-            totalNodes = Limits.clock[c].time * timeNodes;
+        if (remainingNodes == 0) {
+            remainingNodes = Limits.clock[c].time * timeNodes;
         }
         // Convert from milli-seconds to nodes
-        Limits.clock[c].time = totalNodes;
+        Limits.clock[c].time = remainingNodes;
         Limits.clock[c].inc *= timeNodes;
     }
     // Maximum move horizon: Plan time management at most this many moves ahead.
@@ -62,21 +64,10 @@ void TimeManager::setup(Color c, i16 ply) {
         maximumScale = std::min(1.5 + 0.11 * maxMovestogo, 6.3);
     }
     // Never use more than 80% of the available time for this move
-    optimum = TimePoint(optimumScale * remainTime);
-    maximum = TimePoint(std::min(maximumScale * optimum, 0.8 * Limits.clock[c].time - overheadMoveTime));
+    optimumTime = TimePoint(optimumScale * remainTime);
+    maximumTime = TimePoint(std::min(maximumScale * optimumTime, 0.8 * Limits.clock[c].time - overheadMoveTime));
 
     if (Options["Ponder"]) {
-        optimum += optimum / 4;
+        optimumTime += optimumTime / 4;
     }
-}
-
-/// TimeManager::elapsed()
-TimePoint TimeManager::elapsed() const noexcept {
-    return( u16(Options["Time Nodes"]) == 0 ?
-                now() - Limits.startTime :
-                Threadpool.accumulate(&Thread::nodes) );
-}
-
-void TimeManager::clear() noexcept {
-    totalNodes = 0;
 }

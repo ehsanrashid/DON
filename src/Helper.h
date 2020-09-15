@@ -23,11 +23,16 @@ extern std::string& rtrim(std::string&);
 extern std::string& trim(std::string&);
 extern std::vector<std::string> split(std::string_view, char);
 
+template<typename Container, typename Key>
+auto contains(Container const &c, Key const &k)-> bool {
+    return c.find(k) != c.end();
+}
+
 namespace CommandLine {
 
     extern std::string binaryDirectory;  // path of the executable directory
     extern std::string workingDirectory; // path of the working directory
 
-    extern void initialize(int, char const *const*);
+    extern void initialize(int, char const *const[]);
 }
 

@@ -330,7 +330,7 @@ bool Position::legal(Move m) const noexcept {
         Bitboard enemies{ pieces(~active) };
         Bitboard kingPath{ castleKingPath(active, dst > org ? CS_KING : CS_QUEN) };
         while (kingPath != 0) {
-            if ((enemies & attackersTo(popLSq(kingPath), mocc)) != 0) {
+            if ((attackersTo(popLSq(kingPath), mocc) & enemies) != 0) {
                 return false;
             }
         }
@@ -340,7 +340,7 @@ bool Position::legal(Move m) const noexcept {
         //    || (enemies
         //      & pieces(ROOK, QUEN)
         //      & rankBB(org)
-        //      & attacksBB<ROOK>(kingCastleSq(org, dst), pieces() ^ dst)) == 0;
+        //      & attacksBB<ROOK>(kingCastleSq(org, dst), mocc)) == 0;
         return true;
     }
 
@@ -696,8 +696,8 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
     //    It starts at 1, and is incremented after Black's move.
 
     std::memset(this, 0, sizeof (*this));
-    std::fill_n(*pieceSquare, PIECES*12, SQ_NONE);
-    std::fill_n(*cslRookSq, COLORS*CASTLE_SIDES, SQ_NONE);
+    std::fill_n(&pieceSquare[0][0], sizeof (pieceSquare) / sizeof (pieceSquare[0][0]), SQ_NONE);
+    std::fill_n(&cslRookSq[0][0], sizeof (cslRookSq) / sizeof (cslRookSq[0][0]), SQ_NONE);
 
     std::memset(&si, 0, sizeof (si));
     _stateInfo = &si;
@@ -830,14 +830,18 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         && &si != _stateInfo);
 
     _thread->nodes.fetch_add(1, std::memory_order::memory_order_relaxed);
+
     Key pKey{ posiKey()
             ^ RandZob.side };
 
-    // Copy some fields of old state info to new state info object
+    // Copy some fields of the old state to our new StateInfo object except the
+    // ones which are going to be recalculated from scratch anyway and then switch
+    // our state pointer to point to the new (ready to be updated) state.
     std::memcpy(&si, _stateInfo, offsetof(StateInfo, posiKey));
     si.prevState = _stateInfo;
     _stateInfo = &si;
-
+    // Increment ply counters. In particular, clockPly will be reset to zero later on
+    // in case of a capture or a pawn move.
     ++ply;
     ++_stateInfo->clockPly;
     ++_stateInfo->nullPly;
@@ -848,7 +852,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     auto &dp{ _stateInfo->dirtyPiece };
     dp.dirtyCount = 1;
 
-    auto pasive{ ~active };
+    auto const pasive{ ~active };
 
     auto const org{ orgSq(m) };
     auto dst{ dstSq(m) };
@@ -896,6 +900,8 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         cp = NO_PIECE;
     }
 
+    // Set capture piece
+    _stateInfo->captured = pType(cp);
     if (cp != NO_PIECE) {
         assert(pType(cp) < KING);
 
@@ -935,8 +941,6 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         // Reset clock ply counter
         _stateInfo->clockPly = 0;
     }
-    // Set capture piece
-    _stateInfo->captured = pType(cp);
 
     // Move the piece. The tricky Chess960 castling is handled earlier
     if (mType(m) != CASTLE) {

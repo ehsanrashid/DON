@@ -637,7 +637,9 @@ namespace {
         // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.
         // Later grandchildren start with the last calculated stats of the previous grandchild.
         // This influences the reduction rules in LMR which are based on the stats of parent position.
-        (ss+2+2*rootNode)->stats = 0;
+        if (!rootNode) {
+            (ss+2)->stats = 0;
+        }
 
         auto excludedMove{ ss->excludedMove };
         // Step 4. Transposition table lookup.
@@ -1827,7 +1829,7 @@ void Thread::search() {
 
                 TimePoint const totalTime(
                     rootMoves.size() > 1 ?
-                        TimeMgr.optimum
+                        TimeMgr.optimum()
                       * reductionRatio
                       * fallingEval
                       * pvInstability : 0);
@@ -1979,8 +1981,8 @@ void MainThread::search() {
     if (Limits.useTimeMgmt()) {
         if (u16(Options["Time Nodes"]) != 0) {
             // In 'Nodes as Time' mode, subtract the searched nodes from the total nodes.
-            TimeMgr.totalNodes += Limits.clock[rootPos.activeSide()].inc
-                                - Threadpool.accumulate(&Thread::nodes);
+            TimeMgr.remainingNodes += Limits.clock[rootPos.activeSide()].inc
+                                    - Threadpool.accumulate(&Thread::nodes);
         }
         bestValue = rm.newValue;
     }
@@ -2028,7 +2030,7 @@ void MainThread::tick() {
 
     if ((Limits.useTimeMgmt()
       && (stopOnPonderHit
-       || TimeMgr.maximum < elapsed + 10))
+       || TimeMgr.maximum() < elapsed + 10))
      || (Limits.moveTime != 0
       && Limits.moveTime <= elapsed)
      || (Limits.nodes != 0

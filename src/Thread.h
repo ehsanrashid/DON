@@ -179,7 +179,10 @@ namespace WinProcGroup {
 // Global ThreadPool
 extern ThreadPool Threadpool;
 
-enum OutputState : u08 { OS_LOCK, OS_UNLOCK };
+enum OutputState : u08 {
+    OS_LOCK,
+    OS_UNLOCK
+};
 
 extern std::ostream& operator<<(std::ostream&, OutputState);
 

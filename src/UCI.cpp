@@ -279,13 +279,13 @@ namespace UCI {
             }
         }
         else if (type == "combo") {
-            OptionMap comboMap; // To have case insensitive compare
             istringstream iss{ defaultVal };
+            OptionMap comboMap; // To have case insensitive compare
             string token;
             while (iss >> token) {
                 comboMap[token] << Option();
             }
-            if (comboMap.find(val) == comboMap.end()
+            if (!contains(comboMap, val)
              || val == "var") {
                 return *this;
             }
@@ -569,7 +569,7 @@ namespace UCI {
                 value += (value.empty() ? "" : " ") + token;
             }
 
-            if (Options.find(name) != Options.end()) {
+            if (contains(Options, name)) {
                 Options[name] = value;
                 sync_cout << "info string option " << name << " = " << value << sync_endl;
                 if (pos.thread() != Threadpool.mainThread()) {

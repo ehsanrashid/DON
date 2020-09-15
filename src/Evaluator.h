@@ -11,7 +11,7 @@ namespace Evaluator {
     // The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
     // for the build process (profile-build and fishtest) to work. Do not change the
     // name of the macro, as it is used in the Makefile.
-    #define DefaultEvalFile "nn-308d71810dff.nnue"
+    #define DefaultEvalFile "nn-03744f8d56d8.nnue"
 
     extern bool useNNUE;
     extern std::string loadedEvalFile;
