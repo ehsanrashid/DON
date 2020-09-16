@@ -616,14 +616,13 @@ namespace {
             if (alfa >= beta) {
                 return alfa;
             }
+
+            // Initialize stats to zero for the grandchildren of the current position.
+            // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.
+            // Later grandchildren start with the last calculated stats of the previous grandchild.
+            // This influences the reduction rules in LMR which are based on the stats of parent position.
+            (ss+2)->stats = 0;
         }
-
-        Move pv[MAX_PLY+1];
-        Value value;
-        auto bestValue{ -VALUE_INFINITE };
-        auto maxValue{ +VALUE_INFINITE };
-
-        auto bestMove{ MOVE_NONE };
 
         assert(0 <= ss->ply && ss->ply < MAX_PLY
             && ss->ply == (ss-1)->ply + 1);
@@ -633,13 +632,12 @@ namespace {
         (ss+2)->killerMoves[0] =
         (ss+2)->killerMoves[1] = MOVE_NONE;
 
-        // Initialize stats to zero for the grandchildren of the current position.
-        // So stats is shared between all grandchildren and only the first grandchild starts with stats = 0.
-        // Later grandchildren start with the last calculated stats of the previous grandchild.
-        // This influences the reduction rules in LMR which are based on the stats of parent position.
-        if (!rootNode) {
-            (ss+2)->stats = 0;
-        }
+        Move pv[MAX_PLY + 1];
+        Value value;
+        auto bestValue{ -VALUE_INFINITE };
+        auto maxValue{ +VALUE_INFINITE };
+
+        auto bestMove{ MOVE_NONE };
 
         auto excludedMove{ ss->excludedMove };
         // Step 4. Transposition table lookup.
