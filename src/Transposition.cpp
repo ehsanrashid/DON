@@ -293,7 +293,7 @@ void TTable::clear() {
     auto const threadCount{ optionThreads() };
     for (u16 index = 0; index < threadCount; ++index) {
         threads.emplace_back(
-            [this, index, threadCount]() {
+            [this, threadCount](u16 index) {
 
                 if (threadCount > 8) {
                     WinProcGroup::bind(index);
@@ -303,7 +303,7 @@ void TTable::clear() {
                 auto const start{ stride * index };
                 auto const count{ index != threadCount - 1 ? stride : clusterCount - start };
                 std::memset(&clusterTable[start], 0, count * sizeof (TCluster));
-            });
+            }, index);
     }
 
     for (auto &th : threads) {

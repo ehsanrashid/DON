@@ -1137,7 +1137,6 @@ namespace {
                         if (lmrDepth < 6
                          && !ss->inCheck
                          && !(PVNode && std::abs(bestValue) < 2)
-                         && PieceValues[MG][pType(mp)] >= PieceValues[MG][pType(cp)]
                          && ss->staticEval + 244 * lmrDepth + PieceValues[MG][pType(cp)] + 169 <= alfa) {
                             continue;
                         }
@@ -1236,14 +1235,6 @@ namespace {
             // Previous capture extension
             if (pos.captured() > PAWN
              && pos.nonPawnMaterial() <= 2 * VALUE_MG_ROOK) {
-                extension = 1;
-            }
-
-            // Castle extension
-            if (mType(move) == CASTLE
-             && popCount( pos.pieces(activeSide)
-                       & ~pos.pieces(PAWN)
-                       & (contains(SlotFileBB[CS_KING], dst) ? SlotFileBB[CS_KING] : SlotFileBB[CS_QUEN])) <= 2) {
                 extension = 1;
             }
 
@@ -1823,7 +1814,7 @@ void Thread::search() {
                 pvChangesSum += Threadpool.accumulate(&Thread::pvChanges);
                 // Set pvChanges to 0
                 Threadpool.set(&Thread::pvChanges, { 0 });
-                auto const pvInstability{ 1.00 + pvChangesSum / Threadpool.size() };
+                auto const pvInstability{ 1.00 + 2 * pvChangesSum / Threadpool.size() };
 
                 TimePoint const totalTime(
                     rootMoves.size() > 1 ?

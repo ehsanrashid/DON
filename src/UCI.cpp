@@ -796,7 +796,7 @@ namespace UCI {
                       || token == "go") {
 
                     std::cerr << "\n---------------\nPosition: "
-                              << std::right << std::setw(2) << ++i << '/' << cmdCount << " " << std::left << pos.fen() << '\n';
+                              << std::right << std::setw(2) << ++i << '/' << cmdCount << " (" << std::left << pos.fen() << ")\n";
 
                          if (token == "eval") {
                         traceEval(pos);
