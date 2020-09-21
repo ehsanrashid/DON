@@ -30,7 +30,7 @@ int main(int argc, char const *const argv[]) {
     EndGame::initialize();
     Book.initialize(Options["Book File"]);
     Threadpool.setup(optionThreads());
-    Evaluator::initializeNNUE();
+    Evaluator::NNUE::initialize();
     UCI::clear();
 
     UCI::handleCommands(argc, argv);

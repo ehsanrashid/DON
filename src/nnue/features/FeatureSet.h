@@ -3,6 +3,8 @@
 
 #include <array>
 
+#include "../../Type.h"
+#include "../../Position.h"
 #include "FeaturesCommon.h"
 
 namespace Evaluator::NNUE::Features {

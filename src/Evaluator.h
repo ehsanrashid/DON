@@ -16,14 +16,15 @@ namespace Evaluator {
     extern bool useNNUE;
     extern std::string loadedEvalFile;
 
-    extern void initializeNNUE();
-    extern void verifyNNUE();
-
     namespace NNUE {
 
         extern bool loadEvalFile(std::istream&);
 
         extern Value evaluate(Position const&);
+
+        extern void initialize();
+
+        extern void verify();
 
     } // namespace NNUE
 

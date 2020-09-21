@@ -1,6 +1,7 @@
 // Input features and network structure used in NNUE evaluation function
 #pragma once
 
+#include "../Type.h"
 // Defines the network structure
 #include "architectures/HalfKP_256x2-32-32.h"
 

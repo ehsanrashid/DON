@@ -58,70 +58,71 @@ namespace Evaluator {
         }
     };
 
-    /// initializeNNUE() tries to load a nnue network at startup time, or when the engine
-    /// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
-    /// The name of the nnue network is always retrieved from the EvalFile option.
-    /// We search the given network in three locations: internally (the default
-    /// network may be embedded in the binary), in the active working directory and
-    /// in the engine directory. Distro packagers may define the DEFAULT_NNUE_DIRECTORY
-    /// variable to have the engine search in a special directory in their distro.
-    void initializeNNUE() {
+    namespace NNUE {
+        /// initialize() tries to load a nnue network at startup time, or when the engine
+        /// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
+        /// The name of the nnue network is always retrieved from the EvalFile option.
+        /// We search the given network in three locations: internally (the default
+        /// network may be embedded in the binary), in the active working directory and
+        /// in the engine directory. Distro packagers may define the DEFAULT_NNUE_DIRECTORY
+        /// variable to have the engine search in a special directory in their distro.
+        void initialize() {
 
-        useNNUE = Options["Use NNUE"];
-        auto evalFile{ std::string(Options["Eval File"]) };
+            useNNUE = Options["Use NNUE"];
+            auto evalFile{ std::string(Options["Eval File"]) };
 
-        if (useNNUE) {
+            if (useNNUE) {
 
-            std::vector<std::string> directories{
-                  "<internal>"
-                , ""
-                , CommandLine::binaryDirectory
-        #if defined(DEFAULT_NNUE_DIRECTORY)
-                , STRINGIFY(DEFAULT_NNUE_DIRECTORY)
-        #endif
-            };
+                std::vector<std::string> directories{
+                      "<internal>"
+                    , ""
+                    , CommandLine::binaryDirectory
+            #if defined(DEFAULT_NNUE_DIRECTORY)
+                    , STRINGIFY(DEFAULT_NNUE_DIRECTORY)
+            #endif
+                };
 
-            for (auto &dir : directories) {
-                if (loadedEvalFile != evalFile) {
+                for (auto &dir : directories) {
+                    if (loadedEvalFile != evalFile) {
 
-                    if (dir != "<internal>") {
-                        std::ifstream ifstream{ dir + evalFile, std::ios::in|std::ios::binary };
-                        if (NNUE::loadEvalFile(ifstream)) {
-                            loadedEvalFile = evalFile;
+                        if (dir != "<internal>") {
+                            std::ifstream ifstream{ dir + evalFile, std::ios::in | std::ios::binary };
+                            if (NNUE::loadEvalFile(ifstream)) {
+                                loadedEvalFile = evalFile;
+                            }
                         }
-                    }
-                    else
-                    if (evalFile == DefaultEvalFile) {
-                        MemoryStreamBuffer buffer{ const_cast<char*>(reinterpret_cast<const char*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize) };
-                        std::istream istream{ &buffer };
-                        if (NNUE::loadEvalFile(istream)) {
-                            loadedEvalFile = evalFile;
-                        }
-                    }
+                        else
+                            if (evalFile == DefaultEvalFile) {
+                                MemoryStreamBuffer buffer{ const_cast<char *>(reinterpret_cast<const char *>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize) };
+                                std::istream istream{ &buffer };
+                                if (NNUE::loadEvalFile(istream)) {
+                                    loadedEvalFile = evalFile;
+                                }
+                            }
 
+                    }
                 }
             }
         }
-    }
 
-    void verifyNNUE() {
+        void verify() {
 
-        auto evalFile{ std::string(Options["Eval File"]) };
-        if (useNNUE) {
-            if (loadedEvalFile != evalFile) {
-                sync_cout << "info string ERROR: NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully.\n"
-                          << "info string ERROR: These network evaluation parameters must be available, and compatible with this version of the code.\n"
-                          << "info string ERROR: The UCI option 'Eval File' might need to specify the full path, including the directory/folder name, to the file.\n"
-                          << "info string ERROR: The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/" << Options["Eval File"].defaultValue() << sync_endl;
-                std::exit(EXIT_FAILURE);
+            auto evalFile{ std::string(Options["Eval File"]) };
+            if (useNNUE) {
+                if (loadedEvalFile != evalFile) {
+                    sync_cout << "info string ERROR: NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully.\n"
+                        << "info string ERROR: These network evaluation parameters must be available, and compatible with this version of the code.\n"
+                        << "info string ERROR: The UCI option 'Eval File' might need to specify the full path, including the directory/folder name, to the file.\n"
+                        << "info string ERROR: The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/" << Options["Eval File"].defaultValue() << sync_endl;
+                    std::exit(EXIT_FAILURE);
+                }
+                sync_cout << "info string NNUE evaluation using " << evalFile << " enabled." << sync_endl;
             }
-            sync_cout << "info string NNUE evaluation using " << evalFile << " enabled." << sync_endl;
-        }
-        else {
-            sync_cout << "info string classical evaluation enabled." << sync_endl;
+            else {
+                sync_cout << "info string classical evaluation enabled." << sync_endl;
+            }
         }
     }
-
 
     namespace {
 
@@ -1170,25 +1171,35 @@ namespace Evaluator {
     Value evaluate(Position const &pos) {
         assert(pos.checkers() == 0);
 
-        bool const classical{
-            !useNNUE
-         || (std::abs(egValue(pos.psqScore())) * 16 > NNUEThreshold1 * (pos.clockPly() + 16))
-            // If there is a large imbalance, use classical eval
-            // If there is a moderate imbalance, use classical eval with probability (1/8), as derived from the node counter.
-         || (std::abs(egValue(pos.psqScore())) > VALUE_MG_PAWN / 4
-          && (pos.thread()->nodes & 0xB) == 0) };
-
         Value v;
-        if (classical) {
-            v = Evaluation<false>(pos).value();
-            if (!useNNUE
-             || (std::abs(v) * 16 >= NNUEThreshold2 * (pos.clockPly() + 16))) {
-                goto skipNNUE;
+
+        if (useNNUE) {
+            // scale and shift NNUE for compatibility with search and classical evaluation
+            auto adjustedNNUE = [&]() { return NNUE::evaluate(pos) * 5 / 4 + VALUE_TEMPO; };
+
+            // if there is PSQ imbalance use classical eval, with small probability if it is small
+            Value psq = Value(std::abs(egValue(pos.psqScore())));
+            int   r50 = pos.clockPly() + 16;
+            bool  psqLarge = psq * 16 > (NNUEThreshold1 + pos.nonPawnMaterial() / 64) * r50;
+            bool  classical = psqLarge || (psq > VALUE_MG_PAWN / 4 && !(pos.thread()->nodes & 0xB));
+
+            if (classical) {
+                v = Evaluation<false>(pos).value();
+
+                // if the classical eval is small and imbalance large, use NNUE nevertheless.
+                if (psqLarge
+                 && abs(v) * 16 < NNUEThreshold2 * r50) {
+                    v = adjustedNNUE();
+                }
+            }
+            else {
+                v = adjustedNNUE();
             }
         }
-        v = NNUE::evaluate(pos) * 5 / 4 + VALUE_TEMPO;
+        else {
+            v = Evaluation<false>(pos).value();
+        }
 
-        skipNNUE:
         // Damp down the evaluation linearly when shuffling
         v = v * (100 - pos.clockPly()) / 100;
 

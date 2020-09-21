@@ -171,11 +171,6 @@ private:
     StateListPtr setupStates;
 };
 
-namespace WinProcGroup {
-
-    extern void bind(u16);
-}
-
 // Global ThreadPool
 extern ThreadPool Threadpool;
 

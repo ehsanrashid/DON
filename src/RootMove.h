@@ -75,7 +75,7 @@ public:
     iterator find(Move);
     iterator find(u16, u16, Move);
 
-    void stableSort(){
+    void stableSort() {
         std::stable_sort(begin(), end());
     }
     void stableSort(u16 iBeg, u16 iEnd) {

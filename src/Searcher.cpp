@@ -490,6 +490,7 @@ namespace {
                 continue;
             }
 
+            // CounterMove based pruning
             if (!captureOrPromotion
              && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
              && (*pieceStats[1])[mp][dst] < CounterMovePruneThreshold) {
@@ -1261,7 +1262,7 @@ namespace {
 
             bool const doLMR{
                 depth >= 3
-             && moveCount > 1 + 2 * rootNode + 2 * (PVNode && std::abs(bestValue) < 2)
+             && moveCount > 1 + 2 * rootNode
              && (cutNode
               || !captureOrPromotion
               || moveCountPruning
@@ -1866,7 +1867,7 @@ void MainThread::search() {
 
     TEntry::Generation += 8;
 
-    Evaluator::verifyNNUE();
+    Evaluator::NNUE::verify();
 
     bool think{ true };
 

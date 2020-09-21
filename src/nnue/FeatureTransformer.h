@@ -13,40 +13,40 @@ namespace Evaluator::NNUE {
 
     #ifdef USE_AVX512
         using vec_t = __m512i;
-        #define vec_load(a) _mm512_loadA_si512(a)
-        #define vec_store(a,b) _mm512_storeA_si512(a,b)
+        #define vec_load(a)     _mm512_loadA_si512(a)
+        #define vec_store(a,b)  _mm512_storeA_si512(a,b)
         #define vec_add_16(a,b) _mm512_add_epi16(a,b)
         #define vec_sub_16(a,b) _mm512_sub_epi16(a,b)
         static constexpr IndexType NumRegs = 8; // only 8 are needed
 
     #elif USE_AVX2
         using vec_t = __m256i;
-        #define vec_load(a) _mm256_loadA_si256(a)
-        #define vec_store(a,b) _mm256_storeA_si256(a,b)
+        #define vec_load(a)     _mm256_loadA_si256(a)
+        #define vec_store(a,b)  _mm256_storeA_si256(a,b)
         #define vec_add_16(a,b) _mm256_add_epi16(a,b)
         #define vec_sub_16(a,b) _mm256_sub_epi16(a,b)
         static constexpr IndexType NumRegs = 16;
 
     #elif USE_SSE2
         using vec_t = __m128i;
-        #define vec_load(a) (*(a))
-        #define vec_store(a,b) *(a)=(b)
+        #define vec_load(a)     (*(a))
+        #define vec_store(a,b)  *(a)=(b)
         #define vec_add_16(a,b) _mm_add_epi16(a,b)
         #define vec_sub_16(a,b) _mm_sub_epi16(a,b)
         static constexpr IndexType NumRegs = Is64Bit ? 16 : 8;
 
     #elif USE_MMX
         using vec_t = __m64;
-        #define vec_load(a) (*(a))
-        #define vec_store(a,b) *(a)=(b)
+        #define vec_load(a)     (*(a))
+        #define vec_store(a,b)  *(a)=(b)
         #define vec_add_16(a,b) _mm_add_pi16(a,b)
         #define vec_sub_16(a,b) _mm_sub_pi16(a,b)
         static constexpr IndexType NumRegs = 8;
 
     #elif USE_NEON
         using vec_t = int16x8_t;
-        #define vec_load(a) (*(a))
-        #define vec_store(a,b) *(a)=(b)
+        #define vec_load(a)     (*(a))
+        #define vec_store(a,b)  *(a)=(b)
         #define vec_add_16(a,b) vaddq_s16(a,b)
         #define vec_sub_16(a,b) vsubq_s16(a,b)
         static constexpr IndexType NumRegs = 16;
@@ -66,7 +66,7 @@ namespace Evaluator::NNUE {
 
     #if defined(TILING)
         static constexpr IndexType TileHeight = NumRegs * sizeof(vec_t) / 2;
-        static_assert(HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
+        static_assert (HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
     #endif
 
     public:
@@ -321,7 +321,6 @@ namespace Evaluator::NNUE {
                         for (IndexType j = 0; j < HalfDimensions; ++j) {
                             accumulator.accumulation[perspective][i][j] -= _weights[offset + j];
                         }
-
                     }
                 }
                 {   // Difference calculation for the activated features

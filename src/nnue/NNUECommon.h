@@ -4,6 +4,8 @@
 #include <cstring> // For std::memset(), std::memcmp()
 #include <iostream>
 
+#include "../Type.h"
+
 #if defined(USE_AVX2)
     #include <immintrin.h>
 #elif defined(USE_SSE41)
@@ -86,7 +88,7 @@ namespace Evaluator::NNUE {
     };
 
     // Array for finding the PieceSquare corresponding to the piece on the board
-    extern PieceSquare PP_BoardIndex[PIECES][COLORS];
+    extern const PieceSquare PP_BoardIndex[PIECES][COLORS];
 
     // Type of input feature after conversion
     using TransformedFeatureType = u08;

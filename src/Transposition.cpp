@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Helper.h"
+#include "MemoryHandler.h"
 #include "MoveGenerator.h"
 #include "Thread.h"
 #include "UCI.h"
@@ -77,143 +78,6 @@ TEntry* TCluster::probe(u16 key16, bool &hit) noexcept {
 
 namespace {
 
-    /// allocAlignedMemory will return suitably aligned memory, if possible use large pages.
-    /// The returned pointer is the aligned one,
-    /// while the mem argument is the one that needs to be passed to free.
-    /// With C++17 some of this functionality can be simplified.
-
-#if defined(_WIN64)
-    #if (_WIN32_WINNT < 0x0601)
-        #undef  _WIN32_WINNT
-        #define _WIN32_WINNT _WIN32_WINNT_WIN7 // Force to include needed API prototypes
-    #endif
-    #if !defined(NOMINMAX)
-        #define NOMINMAX // Disable macros min() and max()
-    #endif
-    #if !defined(WIN32_LEAN_AND_MEAN)
-        #define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
-    #endif
-
-    #include <Windows.h>
-
-    #undef NOMINMAX
-    #undef WIN32_LEAN_AND_MEAN
-
-    void* allocAlignedMemoryLargePages(size_t mSize) noexcept {
-        HANDLE processHandle{};
-        LUID luid{};
-        void *mem{ nullptr };
-
-        const size_t LargePageSize{ GetLargePageMinimum() };
-        if (LargePageSize == 0) {
-            return nullptr;
-        }
-        // We need SeLockMemoryPrivilege, so try to enable it for the process
-        if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES|TOKEN_QUERY, &processHandle)) {
-            return nullptr;
-        }
-
-        if (LookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &luid)) {
-            TOKEN_PRIVILEGES currTP{};
-            TOKEN_PRIVILEGES prevTP{};
-            DWORD prevTPLen{ 0 };
-
-            currTP.PrivilegeCount = 1;
-            currTP.Privileges[0].Luid = luid;
-            currTP.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
-            // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
-            // we still need to query GetLastError() to ensure that the privileges were actually obtained...
-            if (AdjustTokenPrivileges(processHandle, FALSE, &currTP, sizeof (TOKEN_PRIVILEGES), &prevTP, &prevTPLen)
-             && GetLastError() == ERROR_SUCCESS) {
-                // round up size to full pages and allocate
-                mSize = (mSize + LargePageSize - 1) & ~size_t(LargePageSize - 1);
-                mem = VirtualAlloc(nullptr, mSize, MEM_RESERVE|MEM_COMMIT|MEM_LARGE_PAGES, PAGE_READWRITE);
-
-                // privilege no longer needed, restore previous state
-                AdjustTokenPrivileges(processHandle, FALSE, &prevTP, 0, nullptr, nullptr);
-            }
-        }
-        CloseHandle(processHandle);
-        return mem;
-    }
-    
-    void* allocAlignedMemory(void *&mem, size_t mSize) noexcept {
-        static bool firstCall{ true };
-
-        // Try to allocate large pages
-        mem = allocAlignedMemoryLargePages(mSize);
-        if (!firstCall) {
-            if (mem != nullptr) {
-                sync_cout << "info string Hash table allocation: Windows large pages used." << sync_endl;
-            }
-            else {
-                sync_cout << "info string Hash table allocation: Windows large pages not used." << sync_endl;
-            }
-        }
-        firstCall = false;
-
-        // Fall back to regular, page aligned, allocation if necessary
-        if (mem == nullptr) {
-            mem = VirtualAlloc(nullptr, mSize, MEM_RESERVE|MEM_COMMIT, PAGE_READWRITE);
-        }
-        return mem;
-    }
-
-#elif defined(__linux__) && !defined(__ANDROID__)
-    #include <cstdlib>
-    #include <sys/mman.h>
-
-    void* allocAlignedMemory(void *&mem, size_t mSize) noexcept {
-
-        constexpr size_t alignment{ 2 * 1024 * 1024 };                      // assumed 2MB page sizes
-        size_t size{ ((mSize + alignment - 1) / alignment) * alignment };   // multiple of alignment
-        if (posix_memalign(&mem, alignment, size) == 0) {
-        #if defined(MADV_HUGEPAGE)
-            if (madvise(mem, mSize, MADV_HUGEPAGE) == 0) {
-                // HUGEPAGE aligned
-            }
-        #endif
-        }
-        else {
-            mem = nullptr;
-        }
-        return mem;
-    }
-#else
-    void* allocAlignedMemory(void *&mem, size_t mSize) noexcept {
-
-        constexpr size_t alignment{ 64 };        // assumed cache line size
-        size_t size{ mSize + alignment - 1 };    // allocate some extra space
-        mem = malloc(size);
-        return mem != nullptr ?
-                reinterpret_cast<void*>((uPtr(mem) + alignment - 1) & ~uPtr(alignment - 1)) :
-                nullptr;
-    }
-#endif
- 
-    /// freeAlignedMemory will free the previously allocated ttmem
-#if defined(_WIN64)
-    void freeAlignedMemory(void *&mem) noexcept {
-        if (mem != nullptr) {
-            if (VirtualFree(mem, 0, MEM_RELEASE) == 0) {
-                DWORD err = GetLastError();
-                std::cerr << "Failed to free transposition table. Error code: 0x" << std::hex << err << std::dec << '\n';
-                std::exit(EXIT_FAILURE);
-            }
-            mem = nullptr;
-        }
-    }
-
-#else
-    void freeAlignedMemory(void *&mem) noexcept {
-        if (mem != nullptr) {
-            free(mem);
-            mem = nullptr;
-        }
-    }
-#endif
-
     inline u64 mul_hi64(u64 a, u64 b) noexcept {
 
 #if defined(__GNUC__) && defined(IS_64BIT)
@@ -258,8 +122,8 @@ size_t TTable::resize(size_t memSize) {
     free();
 
     clusterCount = (memSize << 20) / sizeof (TCluster);
-    clusterTable = static_cast<TCluster*>(allocAlignedMemory(mem, clusterCount * sizeof (TCluster)));
-    if (mem == nullptr) {
+    clusterTable = static_cast<TCluster*>(allocAlignedLargePages(clusterCount * sizeof (TCluster)));
+    if (clusterTable == nullptr) {
         std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << '\n';
         return 0;
     }
@@ -293,7 +157,7 @@ void TTable::clear() {
     auto const threadCount{ optionThreads() };
     for (u16 index = 0; index < threadCount; ++index) {
         threads.emplace_back(
-            [this, threadCount](u16 index) {
+            [this, threadCount, index]() {
 
                 if (threadCount > 8) {
                     WinProcGroup::bind(index);
@@ -303,7 +167,7 @@ void TTable::clear() {
                 auto const start{ stride * index };
                 auto const count{ index != threadCount - 1 ? stride : clusterCount - start };
                 std::memset(&clusterTable[start], 0, count * sizeof (TCluster));
-            }, index);
+            });
     }
 
     for (auto &th : threads) {
@@ -315,7 +179,7 @@ void TTable::clear() {
 }
 
 void TTable::free() noexcept {
-    freeAlignedMemory(mem);
+    freeAlignedLargePages(clusterTable);
 }
 
 /// TTable::probe() looks up the entry in the transposition table.

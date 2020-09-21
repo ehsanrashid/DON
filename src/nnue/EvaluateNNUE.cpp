@@ -1,21 +1,15 @@
-// Code for calculating NNUE evaluation function
-
 #include <iostream>
 #include <set>
 
+#include "../MemoryHandler.h"
 #include "../Position.h"
 #include "../UCI.h"
 
 #include "EvaluateNNUE.h"
 
-#if defined(__APPLE__) || defined(__ANDROID__) || defined(__OpenBSD__) || (defined(__GLIBCXX__) && !defined(_GLIBCXX_HAVE_ALIGNED_ALLOC) && !defined(_WIN32))
-    #define POSIX_ALIGNED_MEM
-    #include <cstdlib>
-#endif
-
 namespace Evaluator::NNUE {
 
-    PieceSquare PP_BoardIndex[PIECES][COLORS] = {
+    const PieceSquare PP_BoardIndex[PIECES][COLORS] = {
         // convention: W - us, B - them
         // viewed from other side, W and B are reversed
         { PS_NONE,     PS_NONE     },
@@ -36,63 +30,40 @@ namespace Evaluator::NNUE {
         { PS_NONE,     PS_NONE     }
     };
 
-    namespace {
-
-        /// allocAligned() is our wrapper for systems where the c++17 implementation
-        /// does not guarantee the availability of aligned_alloc().
-        /// Memory allocated with allocAligned() must be freed with freeAligned().
-
-        void* allocAligned(size_t alignment, size_t size) noexcept {
-
-        #if defined(POSIX_ALIGNED_MEM)
-            void *mem;
-            return posix_memalign(&mem, alignment, size) == 0 ? mem : nullptr;
-        #elif defined(_WIN32)
-            return _mm_malloc(size, alignment);
-        #else
-            return std::aligned_alloc(alignment, size);
-        #endif
-        }
-
-        void freeAligned(void *mem) noexcept {
-
-            if (mem != nullptr) {
-        #if defined(POSIX_ALIGNED_MEM)
-                free(mem);
-        #elif defined(_WIN32)
-                _mm_free(mem);
-        #else
-                free(mem);
-        #endif
-                //mem = nullptr; // need (void *&mem)
-            }
-        }
-
-    }
-
     template<typename T>
     inline void AlignedDeleter<T>::operator()(T *ptr) const noexcept {
         ptr->~T();
-        freeAligned(static_cast<void*>(ptr));
+        freeAlignedStd(static_cast<void*>(ptr));
+    }
+    template<typename T>
+    inline void AlignedLargePageDeleter<T>::operator()(T *ptr) const noexcept {
+        ptr->~T();
+        freeAlignedLargePages(static_cast<void*>(ptr));
     }
 
     /// Initialize the aligned pointer
     template<typename T>
     void alignedAllocator(AlignedPtr<T> &pointer) noexcept {
-        pointer.reset(reinterpret_cast<T*>(allocAligned(alignof (T), sizeof (T))));
+        pointer.reset(reinterpret_cast<T*>(allocAlignedStd(alignof (T), sizeof (T))));
+        std::memset(pointer.get(), 0, sizeof (T));
+    }
+    template<typename T>
+    void alignedLargePageAllocator(AlignedLargePagePtr<T> &pointer) noexcept {
+        static_assert (alignof(T) <= 4096, "aligned_large_pages_alloc() may fail for such a big alignment requirement of T");
+        pointer.reset(reinterpret_cast<T*>(allocAlignedLargePages(sizeof (T))));
         std::memset(pointer.get(), 0, sizeof (T));
     }
 
     namespace {
         // Input feature converter
-        AlignedPtr<FeatureTransformer> featureTransformer;
+        AlignedLargePagePtr<FeatureTransformer> featureTransformer;
 
         // Evaluation function
         AlignedPtr<Network> network;
 
         /// Initialize the evaluation function parameters
-        void initialize() {
-            alignedAllocator(featureTransformer);
+        void initializeParameters() {
+            alignedLargePageAllocator(featureTransformer);
             alignedAllocator(network);
         }
 
@@ -113,12 +84,12 @@ namespace Evaluator::NNUE {
 
         /// Read evaluation function parameters
         template<typename T>
-        bool readParameters(std::istream &istream, AlignedPtr<T> const &pointer) {
+        bool readParameters(std::istream &istream, T &reference) {
             u32 const header{ readLittleEndian<u32>(istream) };
             return !istream
                 || header != T::getHashValue() ?
                 false :
-                pointer->readParameters(istream);
+                reference.readParameters(istream);
         }
 
         // Read network parameters
@@ -127,8 +98,8 @@ namespace Evaluator::NNUE {
             std::string architecture;
             if (!readHeader(istream, &hashValue, &architecture)
              || hashValue != HashValue
-             || !readParameters(istream, featureTransformer)
-             || !readParameters(istream, network)) {
+             || !readParameters(istream, *featureTransformer)
+             || !readParameters(istream, *network)) {
                 return false;
             }
             return istream
@@ -138,7 +109,7 @@ namespace Evaluator::NNUE {
 
     // Load the evaluation function file
     bool loadEvalFile(std::istream &istream) {
-        initialize();
+        initializeParameters();
         return readParameters(istream);
     }
 

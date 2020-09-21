@@ -399,10 +399,10 @@ namespace UCI {
         }
 
         void onUseNNUE() {
-            Evaluator::initializeNNUE();
+            Evaluator::NNUE::initialize();
         }
         void onEvalFile() {
-            Evaluator::initializeNNUE();
+            Evaluator::NNUE::initialize();
         }
     }
 
@@ -544,7 +544,7 @@ namespace UCI {
             Position cPos;
             cPos.setup(pos.fen(), states->back(), Threadpool.mainThread());
 
-            Evaluator::verifyNNUE();
+            Evaluator::NNUE::verify();
 
             sync_cout << '\n' << Evaluator::trace(cPos) << sync_endl;
         }

@@ -119,7 +119,6 @@ public:
     };
 
 private:
-    void *mem{ nullptr };
     TCluster *clusterTable{ nullptr };
     size_t clusterCount{ 0 };
 

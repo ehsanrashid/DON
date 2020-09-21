@@ -24,9 +24,9 @@ PGOBENCH = ./$(EXE) bench
 ### Source and Object files
 SRCS = Bitbase.cpp Bitboard.cpp Cuckoo.cpp Debugger.cpp Endgame.cpp Evaluator.cpp \
        Helper.cpp Logger.cpp Main.cpp Material.cpp MoveGenerator.cpp MovePicker.cpp \
-       Notation.cpp King.cpp Pawns.cpp Polyglot.cpp Position.cpp PSQTable.cpp \
-       RootMove.cpp Searcher.cpp SkillManager.cpp SyzygyTB.cpp Thread.cpp ThreadMarker.cpp \
-       TimeManager.cpp Transposition.cpp UCI.cpp Zobrist.cpp \
+       MemoryHandler.cpp Notation.cpp King.cpp Pawns.cpp Polyglot.cpp Position.cpp \
+       PSQTable.cpp RootMove.cpp Searcher.cpp SkillManager.cpp SyzygyTB.cpp Thread.cpp \
+       ThreadMarker.cpp TimeManager.cpp Transposition.cpp UCI.cpp Zobrist.cpp \
        nnue/EvaluateNNUE.cpp nnue/features/HalfKP.cpp
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
