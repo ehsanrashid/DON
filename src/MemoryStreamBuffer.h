@@ -10,11 +10,11 @@ class MemoryStreamBuffer :
 public:
     using std::basic_streambuf<T>::basic_streambuf;
 
-    MemoryStreamBuffer(MemoryStreamBuffer const &) = delete;
-    MemoryStreamBuffer(MemoryStreamBuffer &&) = delete;
+    MemoryStreamBuffer(MemoryStreamBuffer const&) = delete;
+    MemoryStreamBuffer(MemoryStreamBuffer&&) = delete;
 
-    MemoryStreamBuffer(T *p, size_t n) {
-        std::basic_streambuf<T>::setg(p, p, p + n);
-        std::basic_streambuf<T>::setp(p, p + n);
+    MemoryStreamBuffer(T *beg, size_t size) {
+        std::basic_streambuf<T>::setg(beg, beg, beg + size);
+        std::basic_streambuf<T>::setp(beg, beg + size);
     }
 };

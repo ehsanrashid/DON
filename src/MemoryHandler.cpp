@@ -66,6 +66,11 @@ void freeAlignedStd(void *mem) {
 
 namespace {
 
+    void* allocAlignedStdWin(size_t mSize) {
+
+        return VirtualAlloc(nullptr, mSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+    }
+
     void* allocAlignedLargePagesWin(size_t mSize) {
 
         void *mem{ nullptr };
@@ -132,7 +137,7 @@ void* allocAlignedLargePages(size_t mSize) {
 
     // Fall back to regular, page aligned, allocation if necessary
     if (mem == nullptr) {
-        mem = VirtualAlloc(nullptr, mSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
+        mem = allocAlignedStdWin(mSize);
     }
 #else
     constexpr size_t alignment =
