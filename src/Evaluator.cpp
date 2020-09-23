@@ -7,13 +7,13 @@
 #include <fstream>
 #include <iostream>
 #include <sstream>
-#include <streambuf>
 #include <vector>
 
 #include "BitBoard.h"
 #include "Helper.h"
 #include "King.h"
 #include "Material.h"
+#include "MemoryStreamBuffer.h"
 #include "Pawns.h"
 #include "Position.h"
 #include "Notation.h"
@@ -40,23 +40,6 @@ namespace Evaluator {
 
     bool useNNUE{ false };
     std::string loadedEvalFile{ "None" };
-
-    // C++ way to prepare a buffer for a memory stream
-    template<class T>
-    class MemoryStreamBuffer :
-        public std::basic_streambuf<T> {
-
-    public:
-        using std::basic_streambuf<T>::basic_streambuf;
-
-        MemoryStreamBuffer(MemoryStreamBuffer const&) = delete;
-        MemoryStreamBuffer(MemoryStreamBuffer&&) = delete;
-
-        MemoryStreamBuffer(T *p, size_t n) {
-            std::basic_streambuf<T>::setg(p, p, p + n);
-            std::basic_streambuf<T>::setp(p, p + n);
-        }
-    };
 
     namespace NNUE {
         /// initialize() tries to load a nnue network at startup time, or when the engine
@@ -86,7 +69,7 @@ namespace Evaluator {
                     if (loadedEvalFile != evalFile) {
 
                         if (dir != "<internal>") {
-                            std::ifstream ifstream{ dir + evalFile, std::ios::in | std::ios::binary };
+                            std::ifstream ifstream{ dir + evalFile, std::ios::in|std::ios::binary };
                             if (NNUE::loadEvalFile(ifstream)) {
                                 loadedEvalFile = evalFile;
                             }

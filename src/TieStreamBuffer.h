@@ -5,20 +5,20 @@
 
 // Fancy logging facility.
 // The trick here is to replace cin.rdbuf() and cout.rdbuf() with two
-// TieStreamBuf objects that tie std::cin and std::cout to a out file stream.
+// TieStreamBuffer objects that tie std::cin and std::cout to a out file stream.
 // Can toggle the logging of std::cout and std:cin at runtime whilst preserving
 // usual I/O functionality, all without changing a single line of code!
 // Idea from http://groups.google.com/group/comp.lang.c++/msg/1d941c0f26ea0d81
-class TieStreamBuf :
+class TieStreamBuffer :
     public std::streambuf {
 
 public:
-    TieStreamBuf(std::streambuf *rsb, std::streambuf *wsb) :
+    TieStreamBuffer(std::streambuf *rsb, std::streambuf *wsb) :
         rstreambuf{ rsb },
         wstreambuf{ wsb }
     {}
-    //TieStreamBuf(TieStreamBuf const&) = delete;
-    //TieStreamBuf& operator=(TieStreamBuf const&) = delete;
+    //TieStreamBuffer(TieStreamBuffer const&) = delete;
+    //TieStreamBuffer& operator=(TieStreamBuffer const&) = delete;
 
     int sync() override {
         return wstreambuf->pubsync(), rstreambuf->pubsync();

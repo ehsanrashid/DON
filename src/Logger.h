@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-#include "TieStreamBuf.h"
+#include "TieStreamBuffer.h"
 #include "Type.h"
 
 // Logger class (singleton)
@@ -30,6 +30,6 @@ private:
     std::string filename;
     std::ofstream ofstream;
 
-    TieStreamBuf itiestreambuf;
-    TieStreamBuf otiestreambuf;
+    TieStreamBuffer itiestreambuf;
+    TieStreamBuffer otiestreambuf;
 };

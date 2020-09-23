@@ -766,6 +766,7 @@
     <ClInclude Include="src\Logger.h" />
     <ClInclude Include="src\Material.h" />
     <ClInclude Include="src\MemoryHandler.h" />
+    <ClInclude Include="src\MemoryStreamBuffer.h" />
     <ClInclude Include="src\MoveGenerator.h" />
     <ClInclude Include="src\MovePicker.h" />
     <ClInclude Include="src\nnue\architectures\HalfKP_256x2-32-32.h" />
@@ -794,7 +795,7 @@
     <ClInclude Include="src\Thread.h" />
     <ClInclude Include="src\ThreadMarker.h" />
     <ClInclude Include="src\ThreadWin32OSX.h" />
-    <ClInclude Include="src\TieStreamBuf.h" />
+    <ClInclude Include="src\TieStreamBuffer.h" />
     <ClInclude Include="src\TimeManager.h" />
     <ClInclude Include="src\Timer.h" />
     <ClInclude Include="src\Transposition.h" />
