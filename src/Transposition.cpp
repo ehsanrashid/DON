@@ -18,38 +18,6 @@ TTable TTEx;
 
 u08 TEntry::Generation = 0;
 
-void TEntry::refresh() noexcept {
-    g08 = u08(Generation | (g08 & 7));
-}
-
-void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, u08 pv) noexcept {
-
-    if (m != MOVE_NONE
-     || u16(k) != k16) {
-        m16 = u16(m);
-    }
-    if (b == BOUND_EXACT
-     || u16(k) != k16
-     || d - DEPTH_OFFSET + 4 > d08) {
-
-        assert(d > DEPTH_OFFSET);
-        assert(d < MAX_PLY);
-
-        k16 = u16(k);
-        d08 = u08(d - DEPTH_OFFSET);
-        g08 = u08(Generation | pv << 2 | b);
-        v16 = i16(v);
-        e16 = i16(e);
-    }
-    assert(d08 != 0);
-}
-
-u32 TCluster::freshEntryCount() const noexcept {
-    return (entry[0].d08 != 0 && entry[0].generation() == TEntry::Generation)
-         + (entry[1].d08 != 0 && entry[1].generation() == TEntry::Generation)
-         + (entry[2].d08 != 0 && entry[2].generation() == TEntry::Generation);
-}
-
 /// TCluster::probe()
 /// If the position is found, it returns true and a pointer to the found entry.
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
@@ -76,26 +44,11 @@ TEntry* TCluster::probe(u16 key16, bool &hit) noexcept {
     return rte;
 }
 
-namespace {
 
-    inline u64 mul_hi64(u64 a, u64 b) noexcept {
-
-#if defined(__GNUC__) && defined(IS_64BIT)
-        __extension__ typedef unsigned __int128 u128;
-        return ((u128)a * (u128)b) >> 64;
-#else
-        u64 const aL{ (u32)a }, aH{ a >> 32 };
-        u64 const bL{ (u32)b }, bH{ b >> 32 };
-        u64 const c1{ (aL * bL) >> 32 };
-        u64 const c2{ aH * bL + c1 };
-        u64 const c3{ aL * bH + (u32)c2 };
-        return aH * bH + (c2 >> 32) + (c3 >> 32);
-#endif
-
-    }
-
+TTable::TTable() :
+    clusterTable{ nullptr },
+    clusterCount{ 0 } {
 }
-
 
 TTable::~TTable() {
     free();
@@ -103,12 +56,7 @@ TTable::~TTable() {
 
 /// size() returns hash size in MB
 u32 TTable::size() const noexcept {
-    return( (clusterCount * sizeof (TCluster)) >> 20 );
-}
-/// cluster() returns a pointer to the cluster of given a key.
-/// Lower 32 bits of the key are used to get the index of the cluster.
-TCluster* TTable::cluster(Key posiKey) const noexcept {
-    return &clusterTable[mul_hi64(posiKey, clusterCount)];
+    return u32((clusterCount * sizeof (TCluster)) >> 20);
 }
 
 /// TTable::resize() sets the size of the transposition table, measured in MB.
@@ -249,7 +197,10 @@ void TTable::load(std::string_view hashFile) {
     sync_cout << "info string Hash loaded from file \'" << hashFile << "\'" << sync_endl;
 }
 
-constexpr u32 BufferSize{ 0x1000 };
+namespace {
+
+    constexpr u32 BufferSize{ 0x1000 };
+}
 
 std::ostream& operator<<(std::ostream &ostream, TTable const &tt) {
     u32 const memSize{ tt.size() };

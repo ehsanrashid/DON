@@ -19,8 +19,6 @@
 #include "Thread.h"
 #include "UCI.h"
 
-using namespace SyzygyTB;
-
 #if defined(_WIN32)
     #if !defined(NOMINMAX)
         #define NOMINMAX // Disable macros min() and max()
@@ -40,6 +38,10 @@ using namespace SyzygyTB;
     #include <sys/stat.h>
 #endif
 
+using namespace SyzygyTB;
+
+i16 SyzygyTB::MaxPieceLimit;
+
 namespace {
 
     // Type of table
@@ -50,12 +52,12 @@ namespace {
 
     // Each table has a set of flags: all of them refer to DTZ tables, the last one to WDL tables
     enum TBFlag : u08 {
-        STM             = 1 << 0,
-        MAPPED          = 1 << 1,
-        WIN_PLIES       = 1 << 2,
-        LOSS_PLIES      = 1 << 3,
-        WIDE            = 1 << 4,
-        SINGLE_VALUE    = 1 << 7
+        STM          = 1 << 0,
+        MAPPED       = 1 << 1,
+        WIN_PLIES    = 1 << 2,
+        LOSS_PLIES   = 1 << 3,
+        WIDE         = 1 << 4,
+        SINGLE_VALUE = 1 << 7
     };
 
     i32 MapPawns[SQUARES];
@@ -717,11 +719,13 @@ namespace {
          || (pos.matlKey() != entry->matlKey1) };
 
         Color stm{ pos.activeSide() };
-        if (fliped) stm = ~stm;
+        if (fliped) {
+            stm = ~stm;
+        }
 
-        Bitboard pawns;
-        i16 pawnCount;
-        File pawnFile;
+        Bitboard pawns{ 0 };
+        i16      pawnCount{ 0 };
+        File     pawnFile{ FILE_A };
         // For pawns, TB files store 4 separate tables according if leading pawn is on
         // file a, b, c or d after reordering. The leading pawn is the one with maximum
         // MapPawns[] value, that is the one most toward the edges and with lowest rank.
@@ -730,7 +734,9 @@ namespace {
             // their color is the reference one. So we just pick the first one.
             Piece p{ Piece(entry->get(0, FILE_A)->pieces[0]) };
             assert(pType(p) == PAWN);
-            if (fliped) p = flipColor(p);
+            if (fliped) {
+                p = flipColor(p);
+            }
 
             pawns = pos.pieces(pColor(p), PAWN);
 
@@ -738,7 +744,9 @@ namespace {
             assert(b != 0);
             do {
                 auto s{ popLSq(b) };
-                if (fliped) s = flip<Rank>(s);
+                if (fliped) {
+                    s = flip<Rank>(s);
+                }
                 squares[size] = s;
 
                 ++size;
@@ -747,11 +755,6 @@ namespace {
 
             std::swap(squares[0], *std::max_element(squares, squares + pawnCount, mapPawnsCompare));
             pawnFile = File(edgeDistance(sFile(squares[0])));
-        }
-        else {
-            pawns = 0;
-            pawnCount = 0;
-            pawnFile = FILE_A;
         }
 
         // DTZ tables are one-sided, i.e. they store positions only for white to
@@ -917,8 +920,8 @@ namespace {
 
         // Encode remaining pawns then pieces according to square, in ascending order
         bool pawnRemains{
-               entry->hasPawns
-            && entry->pawnCount[1] };
+            entry->hasPawns
+         && entry->pawnCount[1] };
 
         i16 next{ 0 };
         while (d->groupLen[++next] != 0) {
@@ -1374,8 +1377,6 @@ namespace {
 } // namespace
 
 namespace SyzygyTB {
-
-    i16 MaxPieceLimit;
 
     WDLScore operator-(WDLScore wdl) { return WDLScore(-i32(wdl)); }
 

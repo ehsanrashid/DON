@@ -33,26 +33,19 @@
 #endif
 
 
-//    /// allocAlignedMemory will return suitably aligned memory, if possible use large pages.
-//    /// The returned pointer is the aligned one,
-//    /// while the mem argument is the one that needs to be passed to free.
-//    /// With C++17 some of this functionality can be simplified.
-
-/// allocAlignedStd() is our wrapper for systems where the c++17 implementation
+/// allocAlignedStd() is wrapper for systems where the c++17 implementation
 /// does not guarantee the availability of std::aligned_alloc().
 /// Memory allocated with allocAlignedStd() must be freed with freeAlignedStd().
-void *allocAlignedStd(size_t alignment, size_t size) {
+void* allocAlignedStd(size_t alignment, size_t size) {
 
 #if defined(POSIX_ALIGNED_MEM)
     void *mem;
-    return posix_memalign(&mem, alignment, size) ? nullptr : mem;
+    return posix_memalign(&mem, alignment, size) == 0 ? mem : nullptr;
 #elif defined(_WIN32)
     return _mm_malloc(size, alignment);
 #else
     return std::aligned_alloc(alignment, size);
 #endif
-
-    return nullptr;
 }
 
 /// freeAlignedStd() free aligned memory
@@ -72,21 +65,21 @@ void freeAlignedStd(void *mem) {
 
 namespace {
 
-    void *allocAlignedLargePagesWin(size_t mSize) {
+    void* allocAlignedLargePagesWin(size_t mSize) {
 
-        HANDLE processHandle{};
-        LUID luid{};
         void *mem{ nullptr };
 
-        const size_t LargePageSize{ GetLargePageMinimum() };
-        if (LargePageSize == 0) {
+        HANDLE processHandle{};
+        const size_t largePageSize{ GetLargePageMinimum() };
+        if (largePageSize == 0) {
             return nullptr;
         }
         // We need SeLockMemoryPrivilege, so try to enable it for the process
         if (!OpenProcessToken(GetCurrentProcess(), TOKEN_ADJUST_PRIVILEGES | TOKEN_QUERY, &processHandle)) {
             return nullptr;
         }
-
+        // SeLockMemoryPrivilege
+        LUID luid{};
         if (LookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &luid)) {
             TOKEN_PRIVILEGES currTP{};
             TOKEN_PRIVILEGES prevTP{};
@@ -95,20 +88,21 @@ namespace {
             currTP.PrivilegeCount = 1;
             currTP.Privileges[0].Luid = luid;
             currTP.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
-
             // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
             // we still need to query GetLastError() to ensure that the privileges were actually obtained...
-            if (AdjustTokenPrivileges(processHandle, FALSE, &currTP, sizeof(TOKEN_PRIVILEGES), &prevTP, &prevTPLen)
-                && GetLastError() == ERROR_SUCCESS) {
-                // round up size to full pages and allocate
-                mSize = (mSize + LargePageSize - 1) & ~size_t(LargePageSize - 1);
-                mem = VirtualAlloc(nullptr, mSize, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
+            if (AdjustTokenPrivileges(processHandle, FALSE, &currTP, sizeof(TOKEN_PRIVILEGES), &prevTP, &prevTPLen)) {
+                if (GetLastError() == ERROR_SUCCESS) {
+                    // Round up size to full pages and allocate
+                    mSize = (mSize + largePageSize - 1) & ~size_t(largePageSize - 1);
+                    mem = VirtualAlloc(nullptr, mSize, MEM_RESERVE | MEM_COMMIT | MEM_LARGE_PAGES, PAGE_READWRITE);
 
-                // privilege no longer needed, restore previous state
-                AdjustTokenPrivileges(processHandle, FALSE, &prevTP, 0, nullptr, nullptr);
+                    // privilege no longer needed, restore previous state
+                    AdjustTokenPrivileges(processHandle, FALSE, &prevTP, 0, nullptr, nullptr);
+                }
             }
         }
         CloseHandle(processHandle);
+
         return mem;
     }
 }
@@ -116,13 +110,15 @@ namespace {
 #endif
 
 /// allocAlignedLargePages() will return suitably aligned memory, if possible using large pages.
-void *allocAlignedLargePages(size_t mSize) {
+void* allocAlignedLargePages(size_t mSize) {
 
 #if defined(_WIN32)
     static bool firstCall{ true };
 
     // Try to allocate large pages
     void *mem = allocAlignedLargePagesWin(mSize);
+    // Suppress info strings on the first call. The first call occurs before 'uci'
+    // is received and in that case this output confuses some GUIs.
     if (!firstCall) {
         if (mem != nullptr) {
             sync_cout << "info string Hash table allocation: Windows large pages used." << sync_endl;
@@ -138,15 +134,14 @@ void *allocAlignedLargePages(size_t mSize) {
         mem = VirtualAlloc(nullptr, mSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     }
 #else
-
     constexpr size_t alignment =
     #if defined(__linux__)
         2 * 1024 * 1024; // assumed 2MB page size
     #else
-        4096; // assumed small page size
+        4096;            // assumed small page size
     #endif
 
-  // round up to multiples of alignment
+    // Round up to multiples of alignment
     size_t size = ((mSize + alignment - 1) / alignment) * alignment;
     void *mem = allocAlignedStd(alignment, size);
     if (mem != nullptr) {
@@ -175,7 +170,6 @@ void freeAlignedLargePages(void *mem) {
     freeAlignedStd(mem);
 #endif
 }
-
 
 /// Win Processors Group
 /// Under Windows it is not possible for a process to run on more than one logical processor group.
@@ -312,4 +306,3 @@ namespace WinProcGroup {
 #endif
 
 }
-

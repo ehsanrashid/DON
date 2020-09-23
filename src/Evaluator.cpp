@@ -1175,7 +1175,7 @@ namespace Evaluator {
 
         if (useNNUE) {
             // scale and shift NNUE for compatibility with search and classical evaluation
-            auto adjustedNNUE = [&]() { return NNUE::evaluate(pos) * 5 / 4 + VALUE_TEMPO; };
+            auto adjustedNNUE = [&pos]() { return NNUE::evaluate(pos) * 5 / 4 + VALUE_TEMPO; };
 
             // if there is PSQ imbalance use classical eval, with small probability if it is small
             Value psq = Value(std::abs(egValue(pos.psqScore())));

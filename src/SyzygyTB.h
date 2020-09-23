@@ -35,6 +35,8 @@ namespace SyzygyTB {
 
     extern std::ostream& operator<<(std::ostream&, ProbeState);
 
+    extern i16 MaxPieceLimit;
+
     extern WDLScore probeWDL(Position&, ProbeState&);
     extern i32      probeDTZ(Position&, ProbeState&);
 
@@ -44,7 +46,5 @@ namespace SyzygyTB {
     extern void rankRootMoves(Position&, RootMoves&);
 
     extern void initialize(std::string_view);
-
-    extern i16 MaxPieceLimit;
 
 }

@@ -1,5 +1,6 @@
 #pragma once
 
+#include <algorithm>
 #include <string_view>
 
 #include "Position.h"
@@ -34,8 +35,10 @@ public:
 
     u16       worth() const noexcept { return d08 - ((263 + Generation - g08) & 248); }
 
+    static void updateGeneration() noexcept;
+
     void refresh() noexcept;
-    void save(Key, Move, Value, Value, Depth, Bound, u08) noexcept;
+    void save(Key, Move, Value, Value, Depth, Bound, bool) noexcept;
 
     // "Generation" variable distinguish transposition table entries from different searches.
     static u08 Generation;
@@ -50,9 +53,40 @@ private:
 
     friend struct TCluster;
 };
-
 /// Size of TEntry (10 bytes)
 static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
+
+inline void TEntry::updateGeneration() noexcept {
+    Generation += 8;
+}
+
+inline void TEntry::refresh() noexcept {
+    g08 = u08(Generation | (g08 & 7));
+}
+
+inline void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, bool pv) noexcept {
+
+    // Preserve any existing move for the same position
+    if (m != MOVE_NONE
+     || u16(k) != k16) {
+        m16 = u16(m);
+    }
+    // Overwrite less valuable entries
+    if (b == BOUND_EXACT
+     || u16(k) != k16
+     || d - DEPTH_OFFSET + 4 > d08) {
+
+        assert(d > DEPTH_OFFSET);
+        assert(d < MAX_PLY);
+
+        k16 = u16(k);
+        d08 = u08(d - DEPTH_OFFSET);
+        g08 = u08(Generation | u08(pv) << 2 | b);
+        v16 = i16(v);
+        e16 = i16(e);
+    }
+    assert(d08 != 0);
+}
 
 /// Transposition::Cluster needs 32 bytes to be stored
 /// 10 x 3 + 2 = 32
@@ -67,9 +101,15 @@ struct TCluster {
     TEntry entry[EntryPerCluster];
     char pad[2]; // Pad to 32 bytes
 };
-
 /// Size of TCluster (32 bytes)
 static_assert (sizeof (TCluster) == 32, "Cluster size incorrect");
+
+inline u32 TCluster::freshEntryCount() const noexcept {
+    return std::count_if(std::begin(entry), std::end(entry),
+                        [](auto const &e) noexcept {
+                            return e.d08 != 0 && e.generation() == TEntry::Generation;
+                        });
+}
 
 /// Transposition::Table is an array of Cluster, of size clusterCount.
 /// Each cluster consists of EntryPerCluster number of TTEntry.
@@ -79,7 +119,7 @@ static_assert (sizeof (TCluster) == 32, "Cluster size incorrect");
 class TTable {
 
 public:
-    TTable() = default;
+    TTable();
     TTable(TTable const&) = delete;
     TTable(TTable&&) = delete;
     TTable& operator=(TTable const&) = delete;
@@ -119,12 +159,35 @@ public:
     };
 
 private:
-    TCluster *clusterTable{ nullptr };
-    size_t clusterCount{ 0 };
+
+    TCluster *clusterTable;
+    size_t    clusterCount;
 
     friend std::ostream& operator<<(std::ostream&, TTable const&);
     friend std::istream& operator>>(std::istream&, TTable      &);
 };
+
+inline u64 mul_hi64(u64 a, u64 b) noexcept {
+
+#if defined(__GNUC__) && defined(IS_64BIT)
+    __extension__ typedef unsigned __int128 u128;
+    return ((u128)a * (u128)b) >> 64;
+#else
+    u64 const aL{ (u32)a }, aH{ a >> 32 };
+    u64 const bL{ (u32)b }, bH{ b >> 32 };
+    u64 const c1{ (aL * bL) >> 32 };
+    u64 const c2{ aH * bL + c1 };
+    u64 const c3{ aL * bH + (u32)c2 };
+    return aH * bH + (c2 >> 32) + (c3 >> 32);
+#endif
+
+}
+
+/// cluster() returns a pointer to the cluster of given a key.
+/// Lower 32 bits of the key are used to get the index of the cluster.
+inline TCluster* TTable::cluster(Key posiKey) const noexcept {
+    return &clusterTable[mul_hi64(posiKey, clusterCount)];
+}
 
 extern std::ostream& operator<<(std::ostream&, TTable const&);
 extern std::istream& operator>>(std::istream&, TTable&);

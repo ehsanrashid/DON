@@ -1865,7 +1865,7 @@ void MainThread::search() {
         TimeMgr.setup(rootPos.activeSide(), rootPos.gamePly());
     }
 
-    TEntry::Generation += 8;
+    TEntry::updateGeneration();
 
     Evaluator::NNUE::verify();
 

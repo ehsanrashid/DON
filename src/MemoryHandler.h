@@ -2,11 +2,10 @@
 
 #include "Type.h"
 
-
 void* allocAlignedStd(size_t, size_t);
 void  freeAlignedStd(void*);
 
-void *allocAlignedLargePages(size_t);
+void* allocAlignedLargePages(size_t);
 void  freeAlignedLargePages(void*);
 
 /// Win Processors Group

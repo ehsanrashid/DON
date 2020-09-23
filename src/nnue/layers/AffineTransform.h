@@ -53,7 +53,7 @@ namespace Evaluator::NNUE::Layers {
 
         // Forward propagation
         OutputType const* propagate(TransformedFeatureType const *transformedFeatures, char *buffer) const {
-        
+
             auto const input{ _previousLayer.propagate(transformedFeatures, buffer + SelfBufferSize) };
             auto const output{ reinterpret_cast<OutputType*>(buffer) };
 
