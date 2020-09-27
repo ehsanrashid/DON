@@ -1,7 +1,7 @@
 #include "Transposition.h"
 
 #include <cstdlib>
-#include <cstring> // For std::memset()
+#include <cstring> // For memset()
 #include <fstream>
 #include <iostream>
 #include <thread>
@@ -45,12 +45,12 @@ TEntry* TCluster::probe(u16 key16, bool &hit) noexcept {
 }
 
 
-TTable::TTable() :
+TTable::TTable() noexcept :
     clusterTable{ nullptr },
     clusterCount{ 0 } {
 }
 
-TTable::~TTable() {
+TTable::~TTable() noexcept {
     free();
 }
 

@@ -122,7 +122,7 @@ namespace {
             // Set the offset for the attacks table of the square.
             // For each square got individual table sizes with "Fancy Magic Bitboards".
             // new Bitboard[1 << popCount(magic.mask)];
-            magic.attacks = s == SQ_A1 ? attacks : magics[s - 1].attacks + size;
+            magic.attacks = (s == SQ_A1) ? attacks : magics[s - 1].attacks + size;
 
 #if !defined(USE_PEXT)
             u08 bits{
@@ -151,7 +151,7 @@ namespace {
                 occ = (occ - magic.mask) & magic.mask;
             } while (occ != 0);
 
-            assert(size == 1 << popCount(magic.mask));
+            assert(size == (1 << popCount(magic.mask)));
 
 #if !defined(USE_PEXT)
             PRNG prng(Seeds[sRank(s)]);

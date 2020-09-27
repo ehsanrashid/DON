@@ -586,11 +586,12 @@ namespace UCI {
             iss >> token; // Consume "startpos" or "fen" token
 
             string fen;
-                 if (token == "startpos") {
+            if (token == "startpos") {
                 fen = StartFEN;
                 iss >> token; // Consume "moves" token if any
             }
-            else if (token == "fen") {
+            else
+            if (token == "fen") {
                 while (iss >> token) { // Consume "moves" token if any
                     if (token == "moves") break;
                     fen += token + " ";

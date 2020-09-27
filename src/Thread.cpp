@@ -101,10 +101,6 @@ ThreadPool::~ThreadPool() {
     setup(0);
 }
 
-u16 ThreadPool::size() const noexcept {
-    return u16(std::vector<Thread*>::size());
-}
-
 MainThread* ThreadPool::mainThread() const noexcept {
     return static_cast<MainThread*>(front());
 }
@@ -159,11 +155,10 @@ void ThreadPool::setup(u16 threadCount) {
     stop = true;
     if (!empty()) {
         mainThread()->waitIdle();
-    }
-    // Destroy any existing thread(s)
-    while (!empty()) {
-        delete back();
-        pop_back();
+        // Destroy any existing thread(s)
+        while (size() > 0) {
+            delete back(), pop_back();
+        }
     }
     // Create new thread(s)
     if (threadCount != 0) {

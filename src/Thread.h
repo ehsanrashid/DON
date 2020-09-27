@@ -110,6 +110,8 @@ public:
     void clean() override final;
     void search() override final;
 
+    i16  tickCount;
+
     bool stopOnPonderHit;       // Stop search on ponderhit
     std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
 
@@ -119,7 +121,6 @@ public:
 
     Move bestMove;
     i16  bestDepth;
-    i16  tickCount;
 };
 
 
@@ -151,8 +152,6 @@ public:
         }
         return value;
     }
-
-    u16 size() const noexcept;
 
     MainThread* mainThread() const noexcept;
     Thread* bestThread() const noexcept;

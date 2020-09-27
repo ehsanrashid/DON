@@ -1,7 +1,7 @@
 // Constants used in NNUE evaluation function
 #pragma once
 
-#include <cstring> // For std::memset(), std::memcmp()
+#include <cstring> // For memcpy()
 #include <iostream>
 
 #include "../Type.h"

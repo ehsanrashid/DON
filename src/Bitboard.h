@@ -19,7 +19,9 @@ struct Magic {
 
     u16 index(Bitboard) const noexcept;
 
-    Bitboard attacksBB(Bitboard occ) const noexcept { return attacks[index(occ)]; }
+    Bitboard attacksBB(Bitboard occ) const noexcept {
+        return attacks[index(occ)];
+    }
 };
 
 inline u16 Magic::index(Bitboard occ) const noexcept {
@@ -323,19 +325,19 @@ inline Square scanLSq(Bitboard bb) noexcept {
     return Square(__builtin_ctzll(bb));
 #elif defined(_MSC_VER) // MSVC
     unsigned long index;
+
     #if defined(IS_64BIT)
     _BitScanForward64(&index, bb);
-    return Square(index);
     #else
     if (u32(bb >> 0) != 0) {
         _BitScanForward(&index, u32(bb >> 0x00));
-        return Square(index);
     }
     else {
         _BitScanForward(&index, u32(bb >> 0x20));
-        return Square(index + 0x20);
+        index += 0x20;
     }
     #endif
+    return Square(index);
 #else // Compiler is neither GCC nor MSVC compatible
     // Assembly code by Heinz van Saanen
     Bitboard sq;
@@ -351,19 +353,19 @@ inline Square scanMSq(Bitboard bb) noexcept {
     return Square(SQ_H8 - __builtin_clzll(bb));
 #elif defined(_MSC_VER) // MSVC
     unsigned long index;
+
     #if defined(IS_64BIT)
     _BitScanReverse64(&index, bb);
-    return Square(index);
     #else
     if (u32(bb >> 0x20) != 0) {
         _BitScanReverse(&index, u32(bb >> 0x20));
-        return Square(index + 0x20);
+        index += 0x20;
     }
     else {
         _BitScanReverse(&index, u32(bb >> 0x00));
-        return Square(index);
     }
     #endif
+    return Square(index);
 #else // Compiler is neither GCC nor MSVC compatible
     // Assembly code by Heinz van Saanen
     Bitboard sq;
@@ -380,13 +382,13 @@ template<> inline Square scanFrontMostSq<BLACK>(Bitboard bb) noexcept { assert(b
 inline Square popLSq(Bitboard &bb) noexcept {
     assert(bb != 0);
     Square const sq{ scanLSq(bb) };
-    bb &= (bb - 1); // bb &= ~(1ULL << sq);
+    bb &= (bb - 1); // bb &= ~(U64(1) << sq);
     return sq;
 }
 //inline Square popMSq(Bitboard &bb) noexcept {
 //    assert(bb != 0);
 //    Square const sq{ scanMSq(bb) };
-//    bb &= ~(1ULL << sq);
+//    bb &= ~(U64(1) << sq);
 //    return sq;
 //}
 

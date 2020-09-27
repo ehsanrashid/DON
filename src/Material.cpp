@@ -1,7 +1,7 @@
 #include "Material.h"
 
 #include <cassert>
-#include <cstring> // For std::memset(), std::memcmp()
+#include <cstring> // For memset()
 
 #include "Thread.h"
 

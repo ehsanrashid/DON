@@ -1,7 +1,7 @@
 #include "Searcher.h"
 
 #include <cassert>
-#include <cstring> // For std::memset()
+#include <cstring> // For memset()
 #include <cmath>
 #include <algorithm>
 #include <iostream>
@@ -1570,7 +1570,7 @@ void Limit::clear() noexcept {
 namespace Searcher {
 
     void initialize() noexcept {
-        double const r{ 22.0 + std::log(Threadpool.size()) };
+        double const r{ 22.0 + 2 * std::log(Threadpool.size()) };
         Reduction[0] = 0;
         for (i16 i = 1; i < MaxMoves; ++i) {
             Reduction[i] = i32(r * std::log(i));

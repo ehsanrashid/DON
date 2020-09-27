@@ -2,7 +2,7 @@
 
 #include <cstdint>
 #include <cstdlib>
-#include <cstring> // For std::memset(), std::memcmp()
+#include <cstring> // For memset(), memcmp()
 #include <algorithm>
 #include <deque>
 #include <fstream>

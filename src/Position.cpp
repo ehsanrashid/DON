@@ -1,7 +1,7 @@
 #include "Position.h"
 
 #include <cstddef> // For offsetof()
-#include <cstring> // For std::memset(), std::memcmp()
+#include <cstring> // For memset(), memcpy()
 #include <algorithm>
 #include <iomanip>
 #include <sstream>

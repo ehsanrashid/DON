@@ -119,12 +119,12 @@ inline u32 TCluster::freshEntryCount() const noexcept {
 class TTable {
 
 public:
-    TTable();
+    TTable() noexcept;
     TTable(TTable const&) = delete;
     TTable(TTable&&) = delete;
     TTable& operator=(TTable const&) = delete;
     TTable& operator=(TTable&&) = delete;
-    ~TTable();
+    ~TTable() noexcept;
 
     u32 size() const noexcept;
 

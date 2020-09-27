@@ -1157,21 +1157,31 @@ namespace Evaluator {
         Value v;
 
         if (useNNUE) {
-            // scale and shift NNUE for compatibility with search and classical evaluation
-            auto adjustedNNUE = [&pos]() { return NNUE::evaluate(pos) * 5 / 4 + VALUE_TEMPO; };
+            // Scale and shift NNUE for compatibility with search and classical evaluation
+            auto adjustedNNUE = [&pos]() {
+                int npm = pos.nonPawnMaterial();
+                return NNUE::evaluate(pos) * (1024 + npm / 32) / 1024 + VALUE_TEMPO;
+            };
 
-            // if there is PSQ imbalance use classical eval, with small probability if it is small
+            // If there is PSQ imbalance use classical eval, with small probability if it is small
             Value psq = Value(std::abs(egValue(pos.psqScore())));
             int   r50 = pos.clockPly() + 16;
             bool  psqLarge = psq * 16 > (NNUEThreshold1 + pos.nonPawnMaterial() / 64) * r50;
-            bool  classical = psqLarge || (psq > VALUE_MG_PAWN / 4 && !(pos.thread()->nodes & 0xB));
+            bool  classical = psqLarge
+                           || ( psq > VALUE_MG_PAWN / 4
+                            && (pos.thread()->nodes & 0xB) == 0);
 
             if (classical) {
                 v = Evaluation<false>(pos).value();
 
-                // if the classical eval is small and imbalance large, use NNUE nevertheless.
-                if (psqLarge
-                 && abs(v) * 16 < NNUEThreshold2 * r50) {
+                // If the classical eval is small and imbalance large, use NNUE nevertheless.
+                // For the case of opposite colored bishops, switch to NNUE eval with
+                // small probability if the classical eval is less than the threshold.
+                if ( psqLarge
+                 && ( abs(v) * 16 < NNUEThreshold2 * r50
+                  || (pos.bishopOpposed()
+                   && abs(v) * 16 < (NNUEThreshold1 + pos.nonPawnMaterial() / 64) * r50
+                   && (pos.thread()->nodes & 0xB) == 0))) {
                     v = adjustedNNUE();
                 }
             }

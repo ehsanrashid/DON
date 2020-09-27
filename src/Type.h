@@ -534,13 +534,13 @@ constexpr u16 mMask(Move m) {
     return u16(m & 0x0FFF);
 }
 
-constexpr Move makePromoteMove(Square org, Square dst, PieceType pt = QUEN) {
-    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + (dst << 0));
-}
-
 template<MoveType MT>
 constexpr Move makeMove(Square org, Square dst) {
     return Move(MT + (org << 6) + (dst << 0));
+}
+
+constexpr Move makePromoteMove(Square org, Square dst, PieceType pt = QUEN) {
+    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + (dst << 0));
 }
 template<>
 constexpr Move makeMove<PROMOTE>(Square org, Square dst) {
