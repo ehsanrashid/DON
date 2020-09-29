@@ -1938,8 +1938,8 @@ void MainThread::search() {
     // Busy wait for a "stop"/"ponderhit" command.
     while (!Threadpool.stop
         && (ponder
-         || Limits.infinite))
-    {} // Busy wait for a stop or a ponder reset
+         || Limits.infinite)) {
+    } // Busy wait for a stop or a ponder reset
 
     Thread *bestThread{ this };
     if (think) {

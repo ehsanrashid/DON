@@ -9,7 +9,10 @@ namespace {
 }
 
 
-ThreadMarker::ThreadMarker(Thread const *thread, Key posiKey, i16 ply) noexcept {
+ThreadMarker::ThreadMarker(Thread const *thread, Key posiKey, i16 ply) noexcept :
+    marked{ false },
+    owned{ false },
+    threadMark{ nullptr } {
 
     if (ply >= 8) {
         return;
@@ -21,10 +24,9 @@ ThreadMarker::ThreadMarker(Thread const *thread, Key posiKey, i16 ply) noexcept 
     if (th == nullptr) {
         threadMark->store(&ThreadMark::thread, thread);
         threadMark->store(&ThreadMark::posiKey, posiKey);
-        owner = true;
-        return;
+        owned = true;
     }
-
+    else
     if (th != thread
      && threadMark->load(&ThreadMark::posiKey) == posiKey) {
         marked = true;
@@ -32,7 +34,7 @@ ThreadMarker::ThreadMarker(Thread const *thread, Key posiKey, i16 ply) noexcept 
 }
 
 ThreadMarker::~ThreadMarker() {
-    if (owner) { // Free the marked location
+    if (owned) { // Free the marked location
         threadMark->store(&ThreadMark::thread, static_cast<Thread const*>(nullptr));
         threadMark->store(&ThreadMark::posiKey, { 0 });
     }

@@ -45,8 +45,8 @@ namespace {
 
 Logger::Logger() :
     itiestreambuf{ std:: cin.rdbuf(), ofstream.rdbuf() },
-    otiestreambuf{ std::cout.rdbuf(), ofstream.rdbuf() }
-{}
+    otiestreambuf{ std::cout.rdbuf(), ofstream.rdbuf() } {
+}
 
 Logger::~Logger() {
     setup("");

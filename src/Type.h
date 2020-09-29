@@ -594,8 +594,8 @@ struct ValMove {
 
     ValMove() noexcept = default;
     explicit ValMove(Move m) noexcept :
-        move{ m }
-    {}
+        move{ m } {
+    }
 
     operator Move() const noexcept { return move; }
     void operator=(Move m) noexcept { move = m; }

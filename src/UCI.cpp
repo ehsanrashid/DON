@@ -185,8 +185,8 @@ namespace UCI {
 
     Option::Option(OnChange onCng) :
         type{ "button" },
-        onChange{ onCng }
-    {}
+        onChange{ onCng } {
+    }
     Option::Option(bool v, OnChange onCng) :
         type{ "check" },
         onChange{ onCng } {

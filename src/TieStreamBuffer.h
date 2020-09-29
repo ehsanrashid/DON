@@ -15,8 +15,8 @@ class TieStreamBuffer :
 public:
     TieStreamBuffer(std::streambuf *rsb, std::streambuf *wsb) :
         rstreambuf{ rsb },
-        wstreambuf{ wsb }
-    {}
+        wstreambuf{ wsb } {
+    }
     //TieStreamBuffer(TieStreamBuffer const&) = delete;
     //TieStreamBuffer& operator=(TieStreamBuffer const&) = delete;
 

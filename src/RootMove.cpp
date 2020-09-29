@@ -9,8 +9,8 @@
 #include "Notation.h"
 
 RootMove::RootMove(Move m) :
-    std::vector<Move>{ 1, m }
-{}
+    std::vector<Move>{ 1, m } {
+}
 
 bool RootMove::operator<(RootMove const &rm) const noexcept {
     return (rm.newValue < newValue)

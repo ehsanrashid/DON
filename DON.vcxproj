@@ -312,7 +312,7 @@
     <ClCompile>
       <AdditionalIncludeDirectories>
       </AdditionalIncludeDirectories>
-      <PreprocessorDefinitions>USE_PREFETCH;WIN32;_CRT_SECURE_NO_WARNINGS;_CONSOLE;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
+      <PreprocessorDefinitions>USE_MMX;USE_PREFETCH;WIN32;_CRT_SECURE_NO_WARNINGS;_CONSOLE;_DEBUG;%(PreprocessorDefinitions)</PreprocessorDefinitions>
       <WarningLevel>Level4</WarningLevel>
       <PrecompiledHeaderFile>
       </PrecompiledHeaderFile>

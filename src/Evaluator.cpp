@@ -971,8 +971,8 @@ namespace Evaluator {
 
         template<bool Trace>
         Evaluation<Trace>::Evaluation(Position const &p) noexcept :
-            pos{ p }
-        {}
+            pos{ p } {
+        }
 
         /// value() computes the various parts of the evaluation and
         /// returns the value of the position from the point of view of the side to move.

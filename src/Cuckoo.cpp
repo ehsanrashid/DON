@@ -7,12 +7,12 @@
 Cuckoo::Cuckoo(Piece p, Square s1, Square s2) noexcept :
     piece{ p },
     sq1{ s1 },
-    sq2{ s2 }
-{}
+    sq2{ s2 } {
+}
 
 Cuckoo::Cuckoo() noexcept :
-    Cuckoo{ NO_PIECE, SQ_NONE, SQ_NONE }
-{}
+    Cuckoo{ NO_PIECE, SQ_NONE, SQ_NONE } {
+}
 
 bool Cuckoo::empty() const noexcept {
     return piece == NO_PIECE

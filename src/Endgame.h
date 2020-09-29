@@ -48,8 +48,8 @@ class EndgameBase {
 public:
     explicit EndgameBase(Color c) :
         stngColor{  c },
-        weakColor{ ~c }
-    {}
+        weakColor{ ~c } {
+    }
     virtual ~EndgameBase() = default;
     EndgameBase& operator=(EndgameBase const&) = delete;
     //EndgameBase& operator=(EndgameBase&&) = delete;

@@ -37,10 +37,11 @@ public:
     ThreadMarker(Thread const*, Key, i16) noexcept;
     ~ThreadMarker();
 
-    bool marked{ false };
+    bool marked;
 
 private:
-    ThreadMark *threadMark{ nullptr };
-    bool owner{ false };
+
+    bool owned;
+    ThreadMark *threadMark;
 };
 

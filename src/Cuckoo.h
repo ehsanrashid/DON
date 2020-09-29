@@ -8,10 +8,6 @@
 /// https://marcelk.net/2013-04-06/paper/upcoming-rep-v2.pdf
 struct Cuckoo {
 
-    Piece piece;
-    Square sq1;
-    Square sq2;
-
     Cuckoo(Piece, Square, Square) noexcept;
     Cuckoo() noexcept;
 
@@ -20,6 +16,10 @@ struct Cuckoo {
     bool operator!=(Cuckoo const&) const noexcept;
 
     Key key() const noexcept;
+
+    Piece piece;
+    Square sq1;
+    Square sq2;
 };
 
 

@@ -8,8 +8,8 @@ using namespace std::chrono;
 struct Timer {
 
     Timer() :
-        beg{ steady_clock::now() }
-    {}
+        beg{ steady_clock::now() } {
+    }
 
     ~Timer() {
         steady_clock::time_point end{ steady_clock::now() };

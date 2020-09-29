@@ -351,8 +351,8 @@ namespace {
             ready{ false },
             baseAddress{ nullptr },
             map{ nullptr },
-            mapping{ 0 }
-        {}
+            mapping{ 0 } {
+        }
 
         explicit TBTable(std::string_view);
         explicit TBTable(TBTable<WDL> const&);
