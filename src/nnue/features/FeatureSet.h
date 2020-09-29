@@ -29,6 +29,7 @@ namespace Evaluator::NNUE::Features {
         // Get a list of indices for active features
         template<typename IndexListType>
         static void appendActiveIndices(Position const &pos, TriggerEvent trigger, IndexListType active[2]) {
+
             for (auto perspective : { WHITE, BLACK }) {
                 Derived::collectActiveIndices(pos, trigger, perspective, &active[perspective]);
             }
@@ -38,27 +39,69 @@ namespace Evaluator::NNUE::Features {
         template<typename PositionType, typename IndexListType>
         static void appendChangedIndices(PositionType const &pos, TriggerEvent trigger, IndexListType removed[2], IndexListType added[2], bool reset[2]) {
 
-            auto const &dp{ pos.state()->dirtyPiece };
-            if (dp.dirtyCount == 0) {
-                return;
-            }
-            for (auto perspective : { WHITE, BLACK }) {
-                reset[perspective] = false;
-                switch (trigger) {
-                case TriggerEvent::FRIEND_KING_MOVED:
-                    reset[perspective] = dp.piece[0] == (perspective|KING);
-                    break;
-                default:
-                    assert(false);
-                    break;
+            auto collect_for_one = [&](DirtyPiece const &dp) {
+                for (Color perspective : { WHITE, BLACK }) {
+                    switch (trigger) {
+                    case TriggerEvent::FRIEND_KING_MOVED:
+                        reset[perspective] = dp.piece[0] == (perspective|KING);
+                        break;
+                    default:
+                        assert(false);
+                        break;
+                    }
+                    if (reset[perspective]) {
+                        Derived::collectActiveIndices(pos, trigger, perspective, &added[perspective]);
+                    }
+                    else {
+                        Derived::collectChangedIndices(pos, dp, trigger, perspective, &removed[perspective], &added[perspective]);
+                    }
                 }
-                if (reset[perspective]) {
-                    Derived::collectActiveIndices(pos, trigger, perspective, &added[perspective]);
+            };
+
+            auto collect_for_two = [&](const DirtyPiece &dp1, const DirtyPiece &dp2) {
+                for (Color perspective : { WHITE, BLACK }) {
+                    switch (trigger) {
+                    case TriggerEvent::FRIEND_KING_MOVED:
+                        reset[perspective] = dp1.piece[0] == (perspective|KING)
+                                          || dp2.piece[0] == (perspective|KING);
+                        break;
+                    default:
+                        assert(false);
+                        break;
+                    }
+                    if (reset[perspective]) {
+                        Derived::collectActiveIndices(pos, trigger, perspective, &added[perspective]);
+                    }
+                    else {
+                        Derived::collectChangedIndices(pos, dp1, trigger, perspective, &removed[perspective], &added[perspective]);
+                        Derived::collectChangedIndices(pos, dp2, trigger, perspective, &removed[perspective], &added[perspective]);
+                    }
+                }
+            };
+
+            if (pos.state()->prevState->accumulator.accumulationComputed) {
+                const auto &prevDP = pos.state()->dirtyPiece;
+                if (prevDP.dirtyCount == 0) return;
+                collect_for_one(prevDP);
+            }
+            else {
+                const auto &prevDP1 = pos.state()->prevState->dirtyPiece;
+                if (prevDP1.dirtyCount == 0) {
+                    const auto &prevDP2 = pos.state()->dirtyPiece;
+                    if (prevDP2.dirtyCount == 0) return;
+                    collect_for_one(prevDP2);
                 }
                 else {
-                    Derived::collectChangedIndices(pos, trigger, perspective, &removed[perspective], &added[perspective]);
+                    const auto &prevDP2 = pos.state()->dirtyPiece;
+                    if (prevDP2.dirtyCount == 0) {
+                        collect_for_one(prevDP1);
+                    }
+                    else {
+                        collect_for_two(prevDP1, prevDP2);
+                    }
                 }
             }
+
         }
     };
 
@@ -88,9 +131,9 @@ namespace Evaluator::NNUE::Features {
         }
 
         // Get a list of indices for recently changed features
-        static void collectChangedIndices(Position const &pos, TriggerEvent const trigger, Color const perspective, IndexList *const removed, IndexList *const added) {
+        static void collectChangedIndices(Position const &pos, DirtyPiece const &dp, TriggerEvent const trigger, Color const perspective, IndexList *const removed, IndexList *const added) {
             if (FeatureType::RefreshTrigger == trigger) {
-                FeatureType::appendChangedIndices(pos, perspective, removed, added);
+                FeatureType::appendChangedIndices(pos, dp, perspective, removed, added);
             }
         }
 

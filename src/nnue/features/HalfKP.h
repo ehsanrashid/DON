@@ -29,7 +29,7 @@ namespace Evaluator::NNUE::Features {
         static void appendActiveIndices(Position const&, Color, IndexList*);
 
         // Get a list of indices for recently changed features
-        static void appendChangedIndices(Position const&, Color, IndexList*, IndexList*);
+        static void appendChangedIndices(Position const&, DirtyPiece const&, Color, IndexList*, IndexList*);
 
     private:
         // Index of a feature for a given king position and another piece on some square

@@ -33,8 +33,12 @@ namespace Evaluator::NNUE {
         #define vec_store(a,b)  *(a)=(b)
         #define vec_add_16(a,b) _mm_add_epi16(a,b)
         #define vec_sub_16(a,b) _mm_sub_epi16(a,b)
-        static constexpr IndexType NumRegs = Is64Bit ? 16 : 8;
-
+        static constexpr IndexType NumRegs =
+        #if defined(IS_64BIT)
+            16;
+        #else
+            8;
+        #endif  
     #elif USE_MMX
         using vec_t = __m64;
         #define vec_load(a)     (*(a))
@@ -103,10 +107,19 @@ namespace Evaluator::NNUE {
                 return true;
             }
             auto const prevState{ currState->prevState };
-            if (prevState != nullptr
-             && prevState->accumulator.accumulationComputed) {
-                updateAccumulator(pos);
-                return true;
+            if (prevState != nullptr) {
+                if (prevState->accumulator.accumulationComputed) {
+                    updateAccumulator(pos);
+                    return true;
+                }
+                else
+                if (prevState->prevState != nullptr) {
+                    if (prevState->prevState->accumulator.accumulationComputed) {
+                        updateAccumulator(pos);
+                        return true;
+                    }
+                    
+                }
             }
             return false;
         }
@@ -250,11 +263,23 @@ namespace Evaluator::NNUE {
 
         // Calculate cumulative value using difference calculation
         void updateAccumulator(Position const &pos) const {
-            auto const prevAccumulator{ pos.state()->prevState->accumulator };
+
+            Accumulator *prevAccumulator;
+            assert(pos.state()->prevState != nullptr);
+            if (pos.state()->prevState->accumulator.accumulationComputed) {
+                prevAccumulator = &pos.state()->prevState->accumulator;
+            }
+            else {
+                assert(pos.state()->prevState->prevState != nullptr
+                    && pos.state()->prevState->prevState->accumulator.accumulationComputed);
+                prevAccumulator = &pos.state()->prevState->prevState->accumulator;
+            }
+
+            
             auto &accumulator{ pos.state()->accumulator };
             IndexType i{ 0 };
             Features::IndexList removedIndices[2], addedIndices[2];
-            bool reset[2];
+            bool reset[2]{false, false};
             RawFeatures::appendChangedIndices(pos, RefreshTriggers[i], removedIndices, addedIndices, reset);
 
         #if defined(TILING)
@@ -270,7 +295,7 @@ namespace Evaluator::NNUE {
                         }
                     }
                     else {
-                        auto prevAccTile = reinterpret_cast<const vec_t*>(&prevAccumulator.accumulation[perspective][i][j * TileHeight]);
+                        auto prevAccTile = reinterpret_cast<const vec_t*>(&prevAccumulator->accumulation[perspective][i][j * TileHeight]);
                         for (IndexType k = 0; k < NumRegs; ++k) {
                             acc[k] = vec_load(&prevAccTile[k]);
                         }
@@ -313,7 +338,7 @@ namespace Evaluator::NNUE {
                     std::memcpy(accumulator.accumulation[perspective][i], _biases, HalfDimensions * sizeof (BiasType));
                 }
                 else {
-                    std::memcpy(accumulator.accumulation[perspective][i], prevAccumulator.accumulation[perspective][i], HalfDimensions * sizeof (BiasType));
+                    std::memcpy(accumulator.accumulation[perspective][i], prevAccumulator->accumulation[perspective][i], HalfDimensions * sizeof (BiasType));
                     // Difference calculation for the deactivated features
                     for (auto const index : removedIndices[perspective]) {
                         IndexType const offset{ HalfDimensions * index };
