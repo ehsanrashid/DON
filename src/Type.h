@@ -32,7 +32,7 @@
 /// _WIN64             Compilation target is Windows 64-bit
 
 #if defined(_MSC_VER)
-// Disable some silly and noisy warning from MSVC compiler
+    // Disable some silly and noisy warning from MSVC compiler
     #pragma warning (disable: 4127) // Conditional expression is constant
     #pragma warning (disable: 4146) // Unary minus operator applied to unsigned type
     #pragma warning (disable: 4800) // Forcing value to bool 'true' or 'false'

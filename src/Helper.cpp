@@ -16,6 +16,22 @@ std::string& toUpper(std::string &str) {
     std::transform(str.begin(), str.end(), str.begin(), ::toupper);
     return str;
 }
+
+std::string toLower(std::string const &str) {
+    std::string r;
+    for (auto ch : str) {
+        r += toLower(ch);
+    }
+    return r;
+}
+std::string toUpper(std::string const &str) {
+    std::string r;
+    for (auto ch : str) {
+        r += toLower(ch);
+    }
+    return r;
+}
+
 std::string& toggle(std::string &str) {
     std::transform(str.begin(), str.end(), str.begin(),
         [](int ch) { return std::islower(ch) ? std::toupper(ch) : std::tolower(ch); });

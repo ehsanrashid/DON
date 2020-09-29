@@ -85,15 +85,12 @@ namespace {
             return nullptr;
         }
         // SeLockMemoryPrivilege
-        LUID luid{};
-        if (LookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &luid)) {
-            TOKEN_PRIVILEGES currTP{};
+        TOKEN_PRIVILEGES currTP{};
+        currTP.PrivilegeCount = 1;
+        currTP.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED; // SE_PRIVILEGE_DISABLED = 0
+        if (LookupPrivilegeValue(nullptr, SE_LOCK_MEMORY_NAME, &currTP.Privileges[0].Luid)) {
             TOKEN_PRIVILEGES prevTP{};
             DWORD prevTPLen{ 0 };
-
-            currTP.PrivilegeCount = 1;
-            currTP.Privileges[0].Luid = luid;
-            currTP.Privileges[0].Attributes = SE_PRIVILEGE_ENABLED;
             // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
             // we still need to query GetLastError() to ensure that the privileges were actually obtained...
             if (AdjustTokenPrivileges(processHandle, FALSE, &currTP, sizeof(TOKEN_PRIVILEGES), &prevTP, &prevTPLen)) {
@@ -107,7 +104,9 @@ namespace {
                 }
             }
         }
-        CloseHandle(processHandle);
+        if (!CloseHandle(processHandle)) {
+            return nullptr;
+        }
 
         return mem;
     }
@@ -121,6 +120,11 @@ void* allocAlignedLargePages(size_t mSize) {
 #if defined(_WIN32)
     // Try to allocate large pages
     void *mem = allocAlignedLargePagesWin(mSize);
+    #if !defined(NDEBUG)
+    if (mem != nullptr) {
+        std::cerr << "info string Hash table allocation: Windows large pages used. (" << mSize << ")\n";
+    }
+    #endif
     // Fall back to regular, page aligned, allocation if necessary
     if (mem == nullptr) {
         mem = allocAlignedStdWin(mSize);
@@ -154,8 +158,7 @@ void freeAlignedLargePages(void *mem) {
 #if defined(_WIN32)
     if (!VirtualFree(mem, 0, MEM_RELEASE)) {
         DWORD err{ GetLastError() };
-        std::cerr << "Failed to free transposition table. Error code: 0x" <<
-            std::hex << err << std::dec << std::endl;
+        std::cerr << "Failed to free memory. Error code: 0x" << std::hex << err << std::dec << std::endl;
         exit(EXIT_FAILURE);
     }
 #else

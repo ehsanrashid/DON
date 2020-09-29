@@ -181,23 +181,19 @@ namespace Evaluator {
     #define S(mg, eg) makeScore(mg, eg)
 
         constexpr Score Mobility[4][28]{
-            {   S(-62,-81), S(-53,-56), S(-12,-31), S( -4,-16), S(  3,  5), S( 13, 11),
-                S( 22, 17), S( 28, 20), S( 33, 25)
-            },
-            {   S(-48,-59), S(-20,-23), S( 16, -3), S( 26, 13), S( 38, 24), S( 51, 42),
-                S( 55, 54), S( 63, 57), S( 63, 65), S( 68, 73), S( 81, 78), S( 81, 86),
-                S( 91, 88), S( 98, 97)
-            },
-            {   S(-60,-78), S(-20,-17), S(  2, 23), S(  3, 39), S(  3, 70), S( 11, 99),
-                S( 22,103), S( 31,121), S( 40,134), S( 40,139), S( 41,158), S( 48,164),
-                S( 57,168), S( 57,169), S( 62,172)
-            },
-            {   S(-30,-48), S(-12,-30), S( -8, -7), S( -9, 19), S( 20, 40), S( 23, 55),
-                S( 23, 59), S( 35, 75), S( 38, 78), S( 53, 96), S( 64, 96), S( 65,100),
-                S( 65,121), S( 66,127), S( 67,131), S( 67,133), S( 72,136), S( 72,141),
-                S( 77,147), S( 79,150), S( 93,151), S(108,168), S(108,168), S(108,171),
-                S(110,182), S(114,182), S(114,192), S(116,219)
-            },
+            {   S(-62,-79), S(-53,-57), S(-12,-31), S( -3,-17), S(  3,  7), S( 12, 13), // Knight
+                S( 21, 16), S( 28, 21), S( 37, 26) },
+            {   S(-47,-59), S(-20,-25), S( 14, -8), S( 29, 12), S( 39, 21), S( 53, 40), // Bishop
+                S( 53, 56), S( 60, 58), S( 62, 65), S( 69, 72), S( 78, 78), S( 83, 87),
+                S( 91, 88), S( 96, 98) },
+            {   S(-61,-82), S(-20,-17), S(  2, 23) ,S(  3, 40), S(  4, 72), S( 11,100), // Rook
+                S( 22,104), S( 31,120), S( 39,134), S(40 ,138), S( 41,158), S( 47,163),
+                S( 59,168), S( 60,169), S( 64,173) },
+            {   S(-29,-49), S(-16,-29), S( -8, -8), S( -8, 17), S( 18, 39), S( 25, 54), // Queen
+                S( 23, 59), S( 37, 73), S( 41, 76), S( 54, 95), S( 65, 95) ,S( 68,101),
+                S( 69,124), S( 70,128), S( 70,132), S( 70,133) ,S( 71,136), S( 72,140),
+                S( 74,147), S( 76,149), S( 90,153), S(104,169), S(105,171), S(106,171),
+                S(112,178), S(114,185), S(114,187), S(119,221) },
         };
 
         constexpr Score RookOnFile[2]{
@@ -252,11 +248,11 @@ namespace Evaluator {
         constexpr Value NNUEThreshold1{   Value(550) };
         constexpr Value NNUEThreshold2{   Value(150) };
 
-        constexpr i32 SafeCheckWeight[4][2]{
-            {792, 1283}, {645, 967}, {1084, 1897}, {772, 1119}
+        constexpr i32 SafeCheckWeight[PIECE_TYPES][2]{
+            {0,0}, {0,0}, {803, 1292}, {639, 974}, {1087, 1878}, {759, 1132}, {0,0}
         };
-        constexpr i32 KingAttackerWeight[4]{
-            81, 52, 44, 10
+        constexpr i32 KingAttackerWeight[PIECE_TYPES]{
+            0, 0, 81, 52, 44, 10, 0
         };
 
         // Evaluator class contains various evaluation functions.
@@ -551,7 +547,7 @@ namespace Evaluator {
 
                 if ((attacks & kingRing[Opp]) != 0) {
                     kingAttackersCount [Own]++;
-                    kingAttackersWeight[Own] += KingAttackerWeight[PT - 2];
+                    kingAttackersWeight[Own] += KingAttackerWeight[PT];
                     kingAttacksCount   [Own] += popCount(attacks
                                                        & sqlAttacks[Opp][KING]);
                 }
@@ -612,7 +608,7 @@ namespace Evaluator {
               & safeArea };
 
             if (rookSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[ROOK - 2][moreThanOne(rookSafeChecks)];
+                kingDanger += SafeCheckWeight[ROOK][moreThanOne(rookSafeChecks)];
             }
             else {
                 unsafeCheck |= rookPins
@@ -628,7 +624,7 @@ namespace Evaluator {
               & ~rookSafeChecks };
 
             if (quenSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[QUEN - 2][moreThanOne(quenSafeChecks)];
+                kingDanger += SafeCheckWeight[QUEN][moreThanOne(quenSafeChecks)];
             }
 
             // Enemy bishops checks
@@ -639,7 +635,7 @@ namespace Evaluator {
               & ~quenSafeChecks };
 
             if (bshpSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[BSHP - 2][moreThanOne(bshpSafeChecks)];
+                kingDanger += SafeCheckWeight[BSHP][moreThanOne(bshpSafeChecks)];
             }
             else {
                 unsafeCheck |= bshpPins
@@ -653,7 +649,7 @@ namespace Evaluator {
               & safeArea };
 
             if (nihtSafeChecks != 0) {
-                kingDanger += SafeCheckWeight[NIHT - 2][moreThanOne(nihtSafeChecks)];
+                kingDanger += SafeCheckWeight[NIHT][moreThanOne(nihtSafeChecks)];
             }
             else {
                 unsafeCheck |= attacksBB<NIHT>(kSq)
@@ -1159,8 +1155,8 @@ namespace Evaluator {
         if (useNNUE) {
             // Scale and shift NNUE for compatibility with search and classical evaluation
             auto adjustedNNUE = [&pos]() {
-                int npm = pos.nonPawnMaterial();
-                return NNUE::evaluate(pos) * (1024 + npm / 32) / 1024 + VALUE_TEMPO;
+                int npm = pos.nonPawnMaterial() + PieceValues[MG][PAWN] * pos.count(PAWN);
+                return NNUE::evaluate(pos) * (720 + npm / 32) / 1024 + VALUE_TEMPO;
             };
 
             // If there is PSQ imbalance use classical eval, with small probability if it is small

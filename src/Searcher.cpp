@@ -864,7 +864,7 @@ namespace {
              && Limits.mate == 0) {
                 // Null move dynamic reduction based on depth and static evaluation.
                 Depth const nullDepth(
-                    depth - ((817 + 77 * depth) / 213 + std::min(i32(eval - beta) / 192, 3)) );
+                    depth - ((982 + 85 * depth) / 256 + std::min(i32(eval - beta) / 192, 3)) );
 
                 Key const nullMoveKey{
                     key
@@ -1573,7 +1573,7 @@ namespace Searcher {
         double const r{ 22.0 + 2 * std::log(Threadpool.size()) };
         Reduction[0] = 0;
         for (i16 i = 1; i < MaxMoves; ++i) {
-            Reduction[i] = i32(r * std::log(i));
+            Reduction[i] = i32(r * std::log(i + 0.25 * std::log(i)));
         }
     }
 }

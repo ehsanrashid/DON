@@ -211,6 +211,7 @@ counter). This special metric is one of the reasons that Syzygybases are
 more compact than Nalimov tablebases, while still storing all information
 needed for optimal play and in addition being able to take into account
 the 50-move rule.
+
 ## Large Pages
 
 DON supports large pages on Linux and Windows. Large pages make

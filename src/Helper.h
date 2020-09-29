@@ -8,12 +8,23 @@
 
 #include "Type.h"
 
+constexpr char toLower(char c) {
+    return (c >= 'A' && c <= 'Z' ? (c - 'A') + 'a' : c);
+}
+constexpr char toUpper(char c) {
+    return (c >= 'a' && c <= 'z' ? (c - 'a') + 'A' : c);
+}
+
 /// std::string Helpers
 
 extern bool whiteSpaces(std::string_view);
 
 extern std::string& toLower(std::string&);
 extern std::string& toUpper(std::string&);
+
+extern std::string toLower(std::string const&);
+extern std::string toUpper(std::string const&);
+
 extern std::string& toggle(std::string&);
 extern std::string& reverse(std::string&);
 extern std::string& replace(std::string&, char const, char const);
