@@ -43,8 +43,8 @@ namespace BitBase {
             LOSE    = 1 << 3,
         };
 
-        Result& operator|=(Result &r1, Result r2) { return r1 = Result(r1 | r2); }
-        //Result& operator&=(Result &r1, Result r2) { return r1 = Result(r1 & r2); }
+        Result& operator|=(Result &r1, Result r2) noexcept { return r1 = Result(r1 | r2); }
+        //Result& operator&=(Result &r1, Result r2) noexcept { return r1 = Result(r1 & r2); }
 
         /// KPKPosition
         struct KPKPosition {
@@ -59,7 +59,7 @@ namespace BitBase {
             KPKPosition() = default;
             KPKPosition(u32);
 
-            operator Result() const { return result; }
+            operator Result() const noexcept { return result; }
 
             Result classify(KPKPosition kpkArrBase[]);
         };

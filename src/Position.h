@@ -55,7 +55,8 @@ struct StateInfo {
 /// (from the start position to the position just before the search starts).
 /// Needed by 'draw by repetition' detection.
 /// Use a std::deque because pointers to elements are not invalidated upon list resizing.
-using StateListPtr = std::unique_ptr<std::deque<StateInfo>>;
+using StateList     = std::deque<StateInfo>;
+using StateListPtr  = std::unique_ptr<StateList>;
 
 class Thread;
 
@@ -70,7 +71,7 @@ class Thread;
 ///  - Color of side on move.
 ///  - Ply of the game.
 ///  - StateInfo pointer for the current status.
-class Position {
+class Position final {
 
 public:
     //static void initialize();
@@ -78,6 +79,7 @@ public:
     Position() = default;
     Position(Position const&) = delete;
     Position(Position&&) = delete;
+
     Position& operator=(Position const&) = delete;
     Position& operator=(Position&&) = delete;
 
@@ -192,6 +194,7 @@ public:
 #endif
 
 private:
+
     void placePiece(Square, Piece);
     void removePiece(Square);
     void movePiece(Square, Square);

@@ -25,7 +25,7 @@ public:
 /// ThreadMarker structure keeps track of which thread left ThreadMark at the given
 /// node for potential reductions. A free node will be marked upon entering the moves
 /// loop by the constructor, and unmarked upon leaving that loop by the destructor.
-class ThreadMarker {
+class ThreadMarker final {
 
 public:
     ThreadMarker() = delete;

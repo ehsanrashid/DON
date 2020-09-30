@@ -42,6 +42,12 @@ namespace Cuckoos {
 
     Cuckoo CuckooTable[CuckooSize];
 
+    // Hash function for indexing the Cuckoo table
+    template<u08 F>
+    constexpr u16 hash(Key key) {
+        //assert(0 <= F && F <= 3);
+        return (key >> (0x10 * F)) & (CuckooSize - 1);
+    }
 
     constexpr u16 nextHash(Key key, u16 h) noexcept {
         return hash<0>(key) == h ? hash<1>(key) : hash<0>(key);

@@ -6,6 +6,10 @@
 
 SkillManager SkillMgr;
 
+SkillManager::SkillManager() noexcept :
+    level{ MaxLevel },
+    bestMove{ MOVE_NONE } {
+}
 
 bool SkillManager::enabled() const noexcept {
     return level < MaxLevel;

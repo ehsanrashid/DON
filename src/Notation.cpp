@@ -302,7 +302,7 @@ string prettyInfo(Thread *th) {
     }
     oss << " ";
 
-    StateListPtr states{ new deque<StateInfo>{ 0 } };
+    StateListPtr states{ new StateList{ 0 } };
     std::for_each(th->rootMoves[0].begin(),
                   th->rootMoves[0].end(),
                   [&](Move m) {

@@ -36,11 +36,10 @@ namespace {
     /// safeDestiny() returns the bitboard of target square for the given step
     /// from the given square. If the step is off the board, returns empty bitboard.
     inline Bitboard safeDestiny(Square s, Direction dir, i32 d = 1) {
-        Square dst{ s + dir };
+        Square const dst{ s + dir };
         return isOk(dst)
             && distance(s, dst) <= d ?
-                SquareBB[dst] :
-                0;
+                SquareBB[dst] : 0;
     }
 
     Bitboard slideAttacks(Square s,  Bitboard occ, Direction const directions[]) {

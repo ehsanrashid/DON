@@ -36,7 +36,7 @@ void Debugger::meanOf(i64 item) noexcept {
     ItemSum += item;
 }
 
-void Debugger::print() noexcept {
+void Debugger::print() {
     if (Hit1Count != 0) {
         std::ostringstream oss{};
         oss << std::right

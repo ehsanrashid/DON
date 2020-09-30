@@ -24,9 +24,10 @@ class Thread {
 
 public:
     Thread() = delete;
-    explicit Thread(u16);
     Thread(Thread const&) = delete;
     Thread(Thread&&) = delete;
+    explicit Thread(u16);
+
     Thread& operator=(Thread const&) = delete;
     Thread& operator=(Thread&&) = delete;
 
@@ -83,15 +84,14 @@ public:
     // usually the current one given a previous one.
     ContinuationStatsTable continuationStats[2][2];
 
-    Material::Table matlHash{};
-    Pawns   ::Table pawnHash{};
-    King    ::Table kingHash{};
+    Material::Table matlHash;
+    Pawns   ::Table pawnHash;
+    King    ::Table kingHash;
 
 private:
 
-    bool dead{ false },
-         busy{ true };
-
+    bool dead;
+    bool busy;
     std::mutex mutex;
     std::condition_variable conditionVar;
     u16 index; // indentity
@@ -107,8 +107,8 @@ public:
 
     void tick();
 
-    void clean() override final;
-    void search() override final;
+    void clean() final;
+    void search() final;
 
     i16  tickCount;
 
@@ -127,16 +127,18 @@ public:
 /// ThreadPool class handles all the threads related stuff like,
 /// initializing & deinitializing, starting, parking & launching a thread
 /// All the access to shared thread data is done through this class.
-class ThreadPool :
+class ThreadPool final :
     public std::vector<Thread*> {
 
 public:
+
     //using std::vector<Thread*>::vector;
 
     ThreadPool() = default;
     ThreadPool(ThreadPool const&) = delete;
-    ThreadPool& operator=(ThreadPool const&) = delete;
     virtual ~ThreadPool();
+    
+    ThreadPool& operator=(ThreadPool const&) = delete;
 
     template<typename T>
     void set(std::atomic<T> Thread::*member, T value) const {
@@ -167,6 +169,7 @@ public:
     std::atomic<bool> stop, // Stop search forcefully
                       research;
 private:
+
     StateListPtr setupStates;
 };
 

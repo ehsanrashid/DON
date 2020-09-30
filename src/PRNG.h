@@ -20,14 +20,15 @@
 class PRNG {
 
 public:
-    PRNG() = delete;
+
     PRNG(u64 seed) noexcept :
         x{ seed } {
         assert(x != 0);
     }
-
+    PRNG() = delete;
     PRNG(PRNG const&) = delete;
     PRNG(PRNG&&) = delete;
+
     PRNG& operator=(PRNG const&) = delete;
     PRNG& operator=(PRNG&&) = delete;
 

@@ -10,9 +10,11 @@
 class TimeManager {
 
 public:
+
     TimeManager();
     TimeManager(TimeManager const&) = delete;
     TimeManager(TimeManager&&) = delete;
+
     TimeManager& operator=(TimeManager const&) = delete;
     TimeManager& operator=(TimeManager&&) = delete;
 
@@ -27,6 +29,7 @@ public:
     u64 remainingNodes; // Remaining Nodes to play
 
 private:
+
     TimePoint optimumTime;
     TimePoint maximumTime;
 };

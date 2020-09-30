@@ -20,9 +20,10 @@ class MoveList :
     public ValMoves {
 
 public:
+
     MoveList() = delete;
-    //MoveList(MoveList const&) = delete;
-    MoveList& operator=(MoveList const&) = delete;
+    MoveList(MoveList const&) = delete;
+    MoveList(MoveList&&) = delete;
 
     explicit MoveList(Position const &pos) {
 
@@ -35,6 +36,8 @@ public:
         //}
     }
 
+    MoveList& operator=(MoveList const&) = delete;
+    MoveList& operator=(MoveList&&) = delete;
 };
 
 struct Perft {

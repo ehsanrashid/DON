@@ -22,6 +22,7 @@ namespace UCI {
     class Option {
 
     public:
+
         using OnChange = void(*)(); // std::add_pointer<void()>;
 
         Option(OnChange = nullptr);
@@ -29,19 +30,19 @@ namespace UCI {
         Option(std::string_view, OnChange = nullptr);
         Option(double, double, double, OnChange = nullptr);
         Option(std::string_view, std::string_view, OnChange = nullptr);
-        Option(Option const&) = delete;
+        //Option(Option const&) = delete;
         //Option(Option&&) = delete;
 
         //operator std::string() const;
-        operator std::string_view() const;
-        operator bool() const;
-        operator i16() const;
-        operator u16() const;
-        operator i32() const;
-        operator u32() const;
-        operator i64() const;
-        operator u64() const;
-        operator double() const;
+        operator std::string_view() const noexcept;
+        operator bool() const noexcept;
+        operator i16() const noexcept;
+        operator u16() const noexcept;
+        operator i32() const noexcept;
+        operator u32() const noexcept;
+        operator i64() const noexcept;
+        operator u64() const noexcept;
+        operator double() const noexcept;
 
         bool operator==(std::string_view) const;
 
@@ -49,20 +50,20 @@ namespace UCI {
 
         void operator<<(Option const&);
 
-        std::string defaultValue() const;
+        std::string defaultValue() const noexcept;
         std::string toString() const;
 
         u32     index;
 
     private:
+
         std::string type,
                     defaultVal,
                     currentVal;
-
         double  minVal,
                 maxVal;
 
-        OnChange onChange{ nullptr };
+        OnChange onChange;
     };
 
     extern std::ostream& operator<<(std::ostream&, Option const&);

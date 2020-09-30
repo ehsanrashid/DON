@@ -180,7 +180,9 @@ namespace Evaluator {
 
     #define S(mg, eg) makeScore(mg, eg)
 
-        constexpr Score Mobility[4][28]{
+        constexpr Score Mobility[PIECE_TYPES_EX][28]{
+            {},
+            {},
             {   S(-62,-79), S(-53,-57), S(-12,-31), S( -3,-17), S(  3,  7), S( 12, 13), // Knight
                 S( 21, 16), S( 28, 21), S( 37, 26) },
             {   S(-47,-59), S(-20,-25), S( 14, -8), S( 29, 12), S( 39, 21), S( 53, 40), // Bishop
@@ -200,11 +202,11 @@ namespace Evaluator {
             S(19, 7), S(48,29)
         };
 
-        constexpr Score MinorThreat[PIECE_TYPES]{
-            S( 0, 0), S( 5,32), S(55,41), S(77,56), S(89,119), S(79,162), S( 0, 0)
+        constexpr Score MinorThreat[PIECE_TYPES_EX]{
+            S( 0, 0), S( 5,32), S(55,41), S(77,56), S(89,119), S(79,162)
         };
-        constexpr Score MajorThreat[PIECE_TYPES]{
-            S( 0, 0), S( 3,44), S(37,68), S(42,60), S( 0, 39), S(58, 43), S( 0, 0)
+        constexpr Score MajorThreat[PIECE_TYPES_EX]{
+            S( 0, 0), S( 3,44), S(37,68), S(42,60), S( 0, 39), S(58, 43)
         };
 
         constexpr Score PasserRank[RANKS]{
@@ -248,11 +250,11 @@ namespace Evaluator {
         constexpr Value NNUEThreshold1{   Value(550) };
         constexpr Value NNUEThreshold2{   Value(150) };
 
-        constexpr i32 SafeCheckWeight[PIECE_TYPES][2]{
-            {0,0}, {0,0}, {803, 1292}, {639, 974}, {1087, 1878}, {759, 1132}, {0,0}
+        constexpr i32 SafeCheckWeight[PIECE_TYPES_EX][2]{
+            {0,0}, {0,0}, {803, 1292}, {639, 974}, {1087, 1878}, {759, 1132}
         };
-        constexpr i32 KingAttackerWeight[PIECE_TYPES]{
-            0, 0, 81, 52, 44, 10, 0
+        constexpr i32 KingAttackerWeight[PIECE_TYPES_EX]{
+            0, 0, 81, 52, 44, 10
         };
 
         // Evaluator class contains various evaluation functions.
@@ -260,11 +262,15 @@ namespace Evaluator {
         class Evaluation {
 
         public:
+
             Evaluation() = delete;
             Evaluation(Evaluation const&) = delete;
-            Evaluation& operator=(Evaluation const&) = delete;
+            Evaluation(Evaluation&&) = delete;
 
             Evaluation(Position const&) noexcept;
+
+            Evaluation& operator=(Evaluation const&) = delete;
+            Evaluation& operator=(Evaluation&&) = delete;
 
             Value value();
 
@@ -397,7 +403,7 @@ namespace Evaluator {
                 assert(0 <= mob && mob <= 27);
 
                 // Bonus for piece mobility
-                mobility[Own] += Mobility[PT - 2][mob];
+                mobility[Own] += Mobility[PT][mob];
 
                 Bitboard b;
                 // Special evaluation for pieces

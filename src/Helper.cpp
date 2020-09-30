@@ -18,18 +18,18 @@ std::string& toUpper(std::string &str) {
 }
 
 std::string toLower(std::string const &str) {
-    std::string r;
+    std::string s;
     for (auto ch : str) {
-        r += toLower(ch);
+        s += toLower(ch);
     }
-    return r;
+    return s;
 }
 std::string toUpper(std::string const &str) {
-    std::string r;
+    std::string s;
     for (auto ch : str) {
-        r += toLower(ch);
+        s += toLower(ch);
     }
-    return r;
+    return s;
 }
 
 std::string& toggle(std::string &str) {
@@ -93,7 +93,7 @@ std::vector<std::string> split(std::string_view str, char delimiter) {
     #define GETCWD(buff, size)  _getcwd(buff, size)
 #else
     #include <unistd.h>
-    #define GETCWD(buff, size)  getcwd(buff, size)
+    #define GETCWD(buff, size)   getcwd(buff, size)
 #endif
 
 namespace CommandLine {
@@ -134,7 +134,7 @@ namespace CommandLine {
         }
         // Extract the binary directory path from argv0
         binaryDirectory = argv0;
-        size_t pos = binaryDirectory.find_last_of("\\/");
+        size_t const pos = binaryDirectory.find_last_of("\\/");
         if (pos == std::string::npos) {
             binaryDirectory = "." + pathSeparator;
         }

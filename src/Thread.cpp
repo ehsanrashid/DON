@@ -16,6 +16,8 @@ ThreadPool Threadpool;
 /// Thread constructor launches the thread and waits until it goes to sleep in threadFunc().
 /// Note that 'busy' and 'dead' should be already set.
 Thread::Thread(u16 idx) :
+    dead{ false },
+    busy{ true },
     index(idx),
     nativeThread(&Thread::threadFunc, this) {
 

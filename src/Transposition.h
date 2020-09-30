@@ -116,15 +116,17 @@ inline u32 TCluster::freshEntryCount() const noexcept {
 /// Each TTEntry contains information on exactly one position.
 /// The size of a Cluster should divide the size of a cache line for best performance,
 /// as the cacheline is prefetched when possible.
-class TTable {
+class TTable final {
 
 public:
+
     TTable() noexcept;
     TTable(TTable const&) = delete;
     TTable(TTable&&) = delete;
+    ~TTable() noexcept;
+
     TTable& operator=(TTable const&) = delete;
     TTable& operator=(TTable&&) = delete;
-    ~TTable() noexcept;
 
     u32 size() const noexcept;
 

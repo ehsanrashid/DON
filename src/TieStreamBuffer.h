@@ -13,12 +13,15 @@ class TieStreamBuffer :
     public std::streambuf {
 
 public:
-    TieStreamBuffer(std::streambuf *rsb, std::streambuf *wsb) :
+
+    TieStreamBuffer(std::streambuf *rsb, std::streambuf *wsb) noexcept :
         rstreambuf{ rsb },
         wstreambuf{ wsb } {
     }
-    //TieStreamBuffer(TieStreamBuffer const&) = delete;
-    //TieStreamBuffer& operator=(TieStreamBuffer const&) = delete;
+
+    TieStreamBuffer(TieStreamBuffer const&) = delete;
+    
+    TieStreamBuffer& operator=(TieStreamBuffer const&) = delete;
 
     int sync() override {
         return wstreambuf->pubsync(), rstreambuf->pubsync();
@@ -40,6 +43,7 @@ public:
     std::streambuf *wstreambuf;
 
 private:
+
     int_type write(int_type ch, std::string_view prefix) {
         static int_type prevCh = '\n';
 

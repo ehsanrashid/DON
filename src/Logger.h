@@ -12,7 +12,8 @@
 class Logger {
 
 public:
-    static Logger& instance();
+
+    static Logger& instance() noexcept;
 
     // Delete copy and move constructors and assign operators
     Logger(Logger const&) = delete;
@@ -23,10 +24,12 @@ public:
     void setup(std::string_view);
 
 protected:
-    Logger();
+
+    Logger() noexcept;
     ~Logger();
 
 private:
+
     std::string filename;
     std::ofstream ofstream;
 

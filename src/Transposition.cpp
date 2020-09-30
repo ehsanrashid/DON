@@ -16,7 +16,7 @@
 TTable TT;
 TTable TTEx;
 
-u08 TEntry::Generation = 0;
+u08 TEntry::Generation{ 0 };
 
 /// TCluster::probe()
 /// If the position is found, it returns true and a pointer to the found entry.

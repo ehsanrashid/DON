@@ -215,7 +215,7 @@ bool MovePicker::pick(Pred filter) {
 /// It returns a new legal move every time it is called, until there are no more moves left.
 /// It picks the move with the biggest value from a list of generated moves
 /// taking care not to return the ttMove if it has already been searched.
-Move MovePicker::nextMove() noexcept {
+Move MovePicker::nextMove() {
     reStage:
     switch (stage) {
 

@@ -33,17 +33,16 @@ void TimeManager::setup(Color c, i16 ply) {
         Limits.clock[c].inc *= timeNodes;
     }
     // Maximum move horizon: Plan time management at most this many moves ahead.
-    u08 maxMovestogo{ 50 };
-    if (Limits.movestogo != 0) {
-        maxMovestogo = std::min(Limits.movestogo, maxMovestogo);
-    }
+    i32 maxMovestogo{ Limits.movestogo != 0 ?
+                        std::min(i32(Limits.movestogo), 50) : 50 };
+    
     // Make sure timeLeft is > 0 since we may use it as a divisor
     TimePoint remainTime{ std::max(Limits.clock[c].time
                                  + Limits.clock[c].inc * (maxMovestogo - 1)
                                  - overheadMoveTime    * (maxMovestogo + 2), { 1 }) };
     // A user may scale time usage by setting UCI option "Slow Mover"
-    // Default is 100 and changing this value will probably lose elo.
-    remainTime = (remainTime * moveSlowness) / 100;
+    // Default is 100 and changing this value will probably lose ELO.
+    remainTime = remainTime * moveSlowness / 100;
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.

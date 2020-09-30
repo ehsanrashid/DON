@@ -134,11 +134,10 @@ using PieceSquareMoveTable      = Table<Move, PIECES, SQUARES>;
 class MovePicker {
 
 public:
+    
     MovePicker() = delete;
     MovePicker(MovePicker const&) = delete;
     MovePicker(MovePicker&&) = delete;
-    MovePicker& operator=(MovePicker const&) = delete;
-    MovePicker& operator=(MovePicker&&) = delete;
 
     MovePicker(
         Position const&,
@@ -161,11 +160,15 @@ public:
         PieceSquareTypeStatsTable const*,
         Move, Depth, Value);
 
-    Move nextMove() noexcept;
+    MovePicker& operator=(MovePicker const&) = delete;
+    MovePicker& operator=(MovePicker&&) = delete;
+
+    Move nextMove();
 
     bool pickQuiets{ true };
 
 private:
+
     template<GenType GT>
     void value();
 

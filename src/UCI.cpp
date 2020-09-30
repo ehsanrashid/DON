@@ -210,43 +210,43 @@ namespace UCI {
         defaultVal = v; currentVal = cur;
     }
 
-    //Option::operator string() const {
+    //Option::operator std::string() const {
     //    assert(type == "string");
     //    return currentVal;
     //}
-    Option::operator string_view() const {
+    Option::operator std::string_view() const noexcept {
         assert(type == "string");
         return currentVal;
     }
-    Option::operator bool() const {
+    Option::operator bool() const noexcept {
         assert(type == "check");
         return currentVal == "true";
     }
-    Option::operator i16() const {
+    Option::operator i16() const noexcept {
         assert(type == "spin");
         return i16( std::stoi(currentVal) );
     }
-    Option::operator u16() const {
+    Option::operator u16() const noexcept {
         assert(type == "spin");
         return u16( std::stoi(currentVal) );
     }
-    Option::operator i32() const {
+    Option::operator i32() const noexcept {
         assert(type == "spin");
         return i32( std::stoi(currentVal) );
     }
-    Option::operator u32() const {
+    Option::operator u32() const noexcept {
         assert(type == "spin");
         return u32( std::stoi(currentVal) );
     }
-    Option::operator i64() const {
+    Option::operator i64() const noexcept {
         assert(type == "spin");
         return i64( std::stoi(currentVal) ); //std::stol(currentVal);
     }
-    Option::operator u64() const {
+    Option::operator u64() const noexcept {
         assert(type == "spin");
         return u64( std::stoi(currentVal) ); //std::stol(currentVal);
     }
-    Option::operator double() const {
+    Option::operator double() const noexcept {
         assert(type == "spin");
         return( std::stod(currentVal) );
     }
@@ -308,7 +308,7 @@ namespace UCI {
         index = insertOrder++;
     }
 
-    string Option::defaultValue() const {
+    string Option::defaultValue() const noexcept {
         return defaultVal;
     }
 
@@ -540,7 +540,7 @@ namespace UCI {
         // options set so far.
 
         void traceEval(Position &pos) {
-            StateListPtr states{ new std::deque<StateInfo>{ 1 } };
+            StateListPtr states{ new StateList{ 1 } };
             Position cPos;
             cPos.setup(pos.fen(), states->back(), Threadpool.mainThread());
 
@@ -601,7 +601,7 @@ namespace UCI {
             else { return; }
 
             // Drop old and create a new one
-            states = StateListPtr{ new std::deque<StateInfo>(1) };
+            states = StateListPtr{ new StateList{ 1 } };
             pos.setup(fen, states->back(), Threadpool.mainThread());
             //assert(pos.fen() == trim(fen));
 
@@ -778,14 +778,14 @@ namespace UCI {
             Debugger::reset();
 
             auto const uciCmds{ setupBench(isstream, pos) };
-            auto const cmdCount{ u16(std::count_if(uciCmds.begin(), uciCmds.end(),
-                                                    [](string const &s) {
-                                                        return s.find("eval") == 0
-                                                            || s.find("perft ") == 0
-                                                            || s.find("go ") == 0;
-                                                    })) };
+            auto const cmdCount{ std::count_if(uciCmds.begin(), uciCmds.end(),
+                                            [](string const &s) {
+                                                return s.find("eval") == 0
+                                                    || s.find("perft ") == 0
+                                                    || s.find("go ") == 0;
+                                            }) };
             auto elapsed{ now() };
-            u16 i{ 0 };
+            i32 i{ 0 };
             u64 nodes{ 0 };
             for (auto const &cmd : uciCmds) {
                 istringstream iss{ cmd };
@@ -844,7 +844,7 @@ namespace UCI {
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
         // Needed by 'draw by repetition' detection.
-        StateListPtr states{ new std::deque<StateInfo>{ 1 } };
+        StateListPtr states{ new StateList{ 1 } };
         pos.setup(StartFEN, states->back(), Threadpool.mainThread());
 
         // Join arguments

@@ -51,8 +51,9 @@ public:
         weakColor{ ~c } {
     }
     virtual ~EndgameBase() = default;
+
     EndgameBase& operator=(EndgameBase const&) = delete;
-    //EndgameBase& operator=(EndgameBase&&) = delete;
+    EndgameBase& operator=(EndgameBase&&) = delete;
 
     virtual T operator()(Position const&) const = 0;
 
@@ -69,7 +70,7 @@ public:
     using EndgameBase<T>::EndgameBase;
 
     Endgame& operator=(Endgame const&) = delete;
-    //Endgame& operator=(Endgame&&) = delete;
+    Endgame& operator=(Endgame&&) = delete;
 
     T operator()(Position const&) const override;
 };
