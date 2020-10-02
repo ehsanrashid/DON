@@ -9,7 +9,7 @@ namespace Evaluator::NNUE {
 
     static_assert (TransformedFeatureDimensions % MaxSimdWidth == 0, "");
     static_assert (Network::OutputDimensions == 1, "");
-    static_assert (std::is_same<Network::OutputType, i32>::value, "");
+    static_assert (std::is_same<Network::OutputType, int32_t>::value, "");
 
     // Trigger for full calculation instead of difference calculation
     constexpr auto RefreshTriggers{ RawFeatures::RefreshTriggers };

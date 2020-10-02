@@ -6,7 +6,7 @@
 
 namespace Material {
 
-    constexpr i32 PhaseResolution{ 128 };
+    constexpr int32_t PhaseResolution{ 128 };
 
     /// Material::Entry contains information about Material configuration.
     struct Entry {
@@ -14,7 +14,7 @@ namespace Material {
         void evaluate(Position const&);
 
         Key key;
-        i32 phase;
+        int32_t phase;
         Score imbalance;
 
         Scale scaleFactor[COLORS];

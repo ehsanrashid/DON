@@ -48,50 +48,51 @@ using Evaluator::evaluate;
 
 Limit Limits{};
 
-u16  PVCount;
+uint16_t PVCount;
 
 namespace SyzygyTB {
 
-    Depth DepthLimit;
-    i16   PieceLimit;
-    bool  Move50Rule;
-    bool  HasRoot;
+    Depth   DepthLimit;
+    int16_t PieceLimit;
+    bool    Move50Rule;
+    bool    HasRoot;
 }
 
 namespace {
 
     /// Stack keeps the information of the nodes in the tree during the search.
     struct Stack {
+
         Move *pv;
         PieceSquareStatsTable *pieceStats;
 
-        i16   ply;
-        Move  playedMove;
-        Move  excludedMove;
-        Move  killerMoves[2];
+        int16_t ply;
+        Move    playedMove;
+        Move    excludedMove;
+        Move    killerMoves[2];
 
-        u08   moveCount;
-        bool  inCheck;
-        bool  ttPV;
-        bool  ttHit;
-        Value staticEval;
-        i32   stats;
+        uint8_t moveCount;
+        bool    inCheck;
+        bool    ttPV;
+        bool    ttHit;
+        Value   staticEval;
+        int32_t stats;
     };
 
-    constexpr u64 TTHitAverageWindow{ 4096 };
-    constexpr u64 TTHitAverageResolution{ 1024 };
+    constexpr uint64_t TTHitAverageWindow{ 4096 };
+    constexpr uint64_t TTHitAverageResolution{ 1024 };
 
-    constexpr i32 MaxMoves{ 256 };
-    i32 Reduction[MaxMoves];
-    inline Depth reduction(Depth d, u08 mc, bool imp) noexcept {
+    constexpr int32_t MaxMoves{ 256 };
+    int32_t Reduction[MaxMoves];
+    inline Depth reduction(Depth d, uint8_t mc, bool imp) noexcept {
         assert(d >= DEPTH_ZERO);
         auto const r{ Reduction[d] * Reduction[mc] };
         return Depth( (r + 509) / 1024 + 1 * (!imp && (r > 894)) );
     }
 
     /// Futility Move Count
-    constexpr i16 futilityMoveCount(Depth d, bool imp) noexcept {
-        return i16( (3 + nSqr(d)) / (2 - 1 * imp) );
+    constexpr int16_t futilityMoveCount(Depth d, bool imp) noexcept {
+        return int16_t( (3 + nSqr(d)) / (2 - 1 * imp) );
     }
 
     /// Add a small random component to draw evaluations to avoid 3-fold-blindness
@@ -101,7 +102,7 @@ namespace {
 
     /// valueToTT() adjusts a mate or TB score from "plies to mate from the root" to
     /// "plies to mate from the current position". standard scores are unchanged.
-    constexpr Value valueToTT(Value v, i32 ply) noexcept {
+    constexpr Value valueToTT(Value v, int32_t ply) noexcept {
         return v >= +VALUE_MATE_2_MAX_PLY ? v + ply :
                v <= -VALUE_MATE_2_MAX_PLY ? v - ply : v;
     }
@@ -111,7 +112,7 @@ namespace {
     /// to "plies to mate/be mated (TB win/loss) from the root".
     /// However, for mate scores, to avoid potentially false mate scores related to the 50 moves rule,
     /// and the graph history interaction, return an optimal TB score instead.
-    inline Value valueOfTT(Value v, i32 ply, i32 clockPly) noexcept {
+    inline Value valueOfTT(Value v, int32_t ply, int32_t clockPly) noexcept {
 
         if (v != VALUE_NONE) {
             // TB win or better
@@ -133,13 +134,13 @@ namespace {
     }
 
     /// statBonus() is the bonus, based on depth
-    constexpr i32 statBonus(Depth depth) noexcept {
+    constexpr int32_t statBonus(Depth depth) noexcept {
         return depth <= 13 ? (17 * depth + 134) * depth - 134 : 29;
     }
 
     /// updateContinuationStats() updates Stats of the move pairs formed
     /// by moves at ply -1, -2, -4 and -6 with current move.
-    void updateContinuationStats(Stack *ss, Piece p, Square dst, i32 bonus) {
+    void updateContinuationStats(Stack *ss, Piece p, Square dst, int32_t bonus) {
         //assert(isOk(p));
         for (auto i : { 1, 2, 4, 6 }) {
             if (i > 2
@@ -153,13 +154,13 @@ namespace {
     }
 
     /// updateQuietStats() updates move sorting heuristics when a new quiet best move is found
-    void updateQuietStats(Stack *ss, Thread *th, Position const &pos, Color activeSide, Move move, i32 bonus) {
+    void updateQuietStats(Stack *ss, Thread *th, Position const &pos, Color activeSide, Move move, int32_t bonus) {
 
         th->butterFlyStats[activeSide][mMask(move)] << bonus;
         updateContinuationStats(ss, pos[orgSq(move)], dstSq(move), bonus);
     }
 
-    void updateQuietStatsRefutationMoves(Stack *ss, Thread *th, Position const &pos, Color activeSide, Move move, i32 bonus,
+    void updateQuietStatsRefutationMoves(Stack *ss, Thread *th, Position const &pos, Color activeSide, Move move, int32_t bonus,
                                          Depth depth, bool pmOK, Piece pmPiece, Square pmDst) {
 
         updateQuietStats(ss, th, pos, activeSide, move, bonus);
@@ -198,7 +199,7 @@ namespace {
 
     // The win rate model returns the probability (per mille) of winning given an eval
     // and a game-ply. The model fits rather accurately the LTC fishtest statistics.
-    i16 winRateModel(Value v, i16 ply) {
+    int16_t winRateModel(Value v, int16_t ply) {
 
         // The model captures only up to 240 plies, so limit input (and rescale)
         double const m{ std::min(ply, { 240 }) / 64.0 };
@@ -215,17 +216,17 @@ namespace {
         double x{ std::clamp(double(100 * v) / VALUE_EG_PAWN, -1000.0, 1000.0) };
 
         // Return win rate in per mille (rounded to nearest)
-        return i16( 0.5 + 1000 / (1 + std::exp((a - x) / b)) );
+        return int16_t( 0.5 + 1000 / (1 + std::exp((a - x) / b)) );
     }
 
     /// wdl() report WDL statistics given an evaluation and a game ply, based on
     /// data gathered for fishtest LTC games.
-    std::string wdl(Value v, i16 ply) {
+    std::string wdl(Value v, int16_t ply) {
         std::stringstream ss;
 
-        i16 const wdl_w( winRateModel(v, ply) );
-        i16 const wdl_l( winRateModel(-v, ply) );
-        i16 const wdl_d( 1000 - wdl_w - wdl_l );
+        int16_t const wdl_w( winRateModel(v, ply) );
+        int16_t const wdl_l( winRateModel(-v, ply) );
+        int16_t const wdl_d( 1000 - wdl_w - wdl_l );
         ss << " wdl " << wdl_w << " " << wdl_d << " " << wdl_l;
         return ss.str();
     }
@@ -239,7 +240,7 @@ namespace {
                          + th->rootMoves.size() * SyzygyTB::HasRoot };
 
         std::ostringstream oss{};
-        for (u16 i = 0; i < PVCount; ++i) {
+        for (uint16_t i = 0; i < PVCount; ++i) {
 
             bool const updated{ th->rootMoves[i].newValue != -VALUE_INFINITE };
 
@@ -430,7 +431,7 @@ namespace {
             pieceStats,
             ttMove, depth, pmOK && depth <= DEPTH_QS_RECAP ? pmDst : SQ_NONE };
 
-        u08 moveCount{ 0 };
+        uint8_t moveCount{ 0 };
         StateInfo si;
         // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
         while ((move = movePicker.nextMove()) != MOVE_NONE) {
@@ -739,11 +740,11 @@ namespace {
                 if (probeState != SyzygyTB::ProbeState::PS_FAILURE) {
                     thread->tbHits.fetch_add(1, std::memory_order::memory_order_relaxed);
 
-                    i16 const draw{ SyzygyTB::Move50Rule };
+                    int16_t const draw{ SyzygyTB::Move50Rule };
 
                     value = wdlScore < -draw ? -VALUE_MATE_1_MAX_PLY + (ss->ply + 1) :
                             wdlScore > +draw ? +VALUE_MATE_1_MAX_PLY - (ss->ply + 1) :
-                                                VALUE_DRAW + 2 * i32(wdlScore) * draw;
+                                                VALUE_DRAW + 2 * int32_t(wdlScore) * draw;
 
                     auto const bound{
                         wdlScore < -draw ? BOUND_UPPER :
@@ -864,7 +865,7 @@ namespace {
              && Limits.mate == 0) {
                 // Null move dynamic reduction based on depth and static evaluation.
                 Depth const nullDepth(
-                    depth - ((982 + 85 * depth) / 256 + std::min(i32(eval - beta) / 192, 3)) );
+                    depth - ((982 + 85 * depth) / 256 + std::min(int32_t(eval - beta) / 192, 3)) );
 
                 Key const nullMoveKey{
                     key
@@ -945,7 +946,7 @@ namespace {
 
                 bool const ttPV{ ss->ttPV };
                 ss->ttPV = false;
-                u08 probCutCount{ 0 };
+                uint8_t probCutCount{ 0 };
 
                 // Initialize move-picker(3) for the current position
                 MovePicker movePicker{
@@ -1047,7 +1048,7 @@ namespace {
             ss->ply,
             ss->killerMoves, counterMove };
 
-        u08 moveCount{ 0 };
+        uint8_t moveCount{ 0 };
         Moves quietMoves;
         Moves captureMoves;
         quietMoves.reserve(32);
@@ -1334,7 +1335,7 @@ namespace {
                              - ((ss-0)->stats >= -106 && (ss-1)->stats < -104));
 
                     // Decrease/Increase reduction for moves with a good/bad history (~30 Elo)
-                    reductDepth -= i16(ss->stats / 14884);
+                    reductDepth -= int16_t(ss->stats / 14884);
                 }
 
                 Depth const d( std::clamp(newDepth - reductDepth, 1, { newDepth }) );
@@ -1572,8 +1573,8 @@ namespace Searcher {
     void initialize() noexcept {
         double const r{ 22.0 + 2 * std::log(Threadpool.size()) };
         Reduction[0] = 0;
-        for (i16 i = 1; i < MaxMoves; ++i) {
-            Reduction[i] = i32(r * std::log(i + 0.25 * std::log(i)));
+        for (int16_t i = 1; i < MaxMoves; ++i) {
+            Reduction[i] = int32_t(r * std::log(i + 0.25 * std::log(i)));
         }
     }
 }
@@ -1586,17 +1587,17 @@ namespace Searcher {
 void Thread::search() {
     ttHitAvg = (TTHitAverageResolution / 2) * TTHitAverageWindow;
 
-    i16 timedContempt{ 0 };
-    i32 contemptTime{ Options["Contempt Time"] };
+    int16_t timedContempt{ 0 };
+    int32_t contemptTime{ Options["Contempt Time"] };
     if (contemptTime != 0
      && Limits.useTimeMgmt()) {
-        i64 const diffTime{
-            (i64(Limits.clock[ rootPos.activeSide()].time)
-           - i64(Limits.clock[~rootPos.activeSide()].time)) / 1000 };
-        timedContempt = i16(diffTime / contemptTime);
+        int64_t const diffTime{
+            (int64_t(Limits.clock[ rootPos.activeSide()].time)
+           - int64_t(Limits.clock[~rootPos.activeSide()].time)) / 1000 };
+        timedContempt = int16_t(diffTime / contemptTime);
     }
     // Basic Contempt
-    i32 bc{ toValue(i16(Options["Fixed Contempt"]) + timedContempt) };
+    int32_t bc{ toValue(int16_t(Options["Fixed Contempt"]) + timedContempt) };
     // In analysis mode, adjust contempt in accordance with user preference
     if (Limits.infinite
      || Options["UCI_AnalyseMode"]) {
@@ -1618,11 +1619,11 @@ void Thread::search() {
     if (mainThread != nullptr) {
         mainThread->iterValues.fill(mainThread->bestValue != +VALUE_INFINITE ? mainThread->bestValue : VALUE_ZERO);
     }
-    i16 iterIdx{ 0 };
+    int16_t iterIdx{ 0 };
 
     double timeReduction{ 1.0 };
     double pvChangesSum{ 0.0 };
-    i16 researchCount{ 0 };
+    int16_t researchCount{ 0 };
 
     auto bestValue{ -VALUE_INFINITE };
     auto window{ VALUE_ZERO };
@@ -1690,7 +1691,7 @@ void Thread::search() {
 
                 // Dynamic contempt
                 auto dc{ bc };
-                i32 contemptValue{ Options["Contempt Value"] };
+                int32_t contemptValue{ Options["Contempt Value"] };
                 if (contemptValue != 0) {
                     dc += ((105 - bc / 2) * oldValue * 100) / ((std::abs(oldValue) + 149) * contemptValue);
                 }
@@ -1699,7 +1700,7 @@ void Thread::search() {
                             -makeScore(dc, dc / 2);
             }
 
-            i16 failHighCount{ 0 };
+            int16_t failHighCount{ 0 };
 
             // Start with a small aspiration window and, in case of fail high/low,
             // research with bigger window until not failing high/low anymore.
@@ -1912,14 +1913,14 @@ void MainThread::search() {
 
             auto level{
                 Options["UCI_LimitStrength"] ?
-                    std::clamp(u16(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), { 0 }, MaxLevel) :
-                    u16(Options["Skill Level"]) };
+                    std::clamp(uint16_t(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), { 0 }, MaxLevel) :
+                    uint16_t(Options["Skill Level"]) };
             SkillMgr.setLevel(level);
 
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            PVCount = std::clamp(u16(Options["MultiPV"]), u16(1 + 3 * SkillMgr.enabled()), u16(rootMoves.size()));
+            PVCount = std::clamp(uint16_t(Options["MultiPV"]), uint16_t(1 + 3 * SkillMgr.enabled()), uint16_t(rootMoves.size()));
 
             Threadpool.wakeUpThreads(); // start non-main threads searching !
             Thread::search();           // start main thread searching !
@@ -1969,7 +1970,7 @@ void MainThread::search() {
     auto &rm{ bestThread->rootMoves[0] };
 
     if (Limits.useTimeMgmt()) {
-        if (u16(Options["Time Nodes"]) != 0) {
+        if (uint16_t(Options["Time Nodes"]) != 0) {
             // In 'Nodes as Time' mode, subtract the searched nodes from the total nodes.
             TimeMgr.remainingNodes += Limits.clock[rootPos.activeSide()].inc
                                     - Threadpool.accumulate(&Thread::nodes);
@@ -2002,7 +2003,7 @@ void MainThread::tick() {
         return;
     }
     // When using nodes, ensure checking rate is in range [1, 1024]
-    tickCount = i16(Limits.nodes != 0 ? std::clamp(i32(Limits.nodes / 1024), 1, 1024) : 1024);
+    tickCount = int16_t(Limits.nodes != 0 ? std::clamp(int32_t(Limits.nodes / 1024), 1, 1024) : 1024);
 
     auto elapsed{ TimeMgr.elapsed() };
     auto time{ Limits.startTime + elapsed };

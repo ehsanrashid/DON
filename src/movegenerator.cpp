@@ -454,10 +454,10 @@ Perft perft(Position &pos, Depth depth, bool detail) {
         sumLeaf += leaf;
 
         if (RootNode) {
-            ++sumLeaf.moves;
+            ++sumLeaf.num;
 
             std::ostringstream oss{};
-            oss << std::right << std::setfill('0') << std::setw( 2) << sumLeaf.moves << " "
+            oss << std::right << std::setfill('0') << std::setw( 2) << sumLeaf.num << " "
                 << std::left  << std::setfill(' ') << std::setw( 7) << //moveToCAN(vm)
                                                                        moveToSAN(vm, pos)
                 << std::right << std::setfill('.') << std::setw(16) << leaf.any;

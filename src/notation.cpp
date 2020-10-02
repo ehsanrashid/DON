@@ -41,10 +41,10 @@ std::string toString(Value v) {
 
     std::ostringstream oss{};
     if (std::abs(v) < +VALUE_MATE_1_MAX_PLY) {
-        oss << "cp " << i32(toCP(v));
+        oss << "cp " << int32_t(toCP(v));
     }
     else {
-        oss << "mate " << i16(v > 0 ? +VALUE_MATE - v + 1 : -VALUE_MATE - v + 0) / 2;
+        oss << "mate " << int16_t(v > 0 ? +VALUE_MATE - v + 1 : -VALUE_MATE - v + 0) / 2;
     }
     return oss.str();
 }
@@ -132,7 +132,7 @@ std::ostream& operator<<(std::ostream &ostream, Move m) {
 namespace {
 
     /// Ambiguity
-    enum Ambiguity : u08 {
+    enum Ambiguity : uint8_t {
         AMB_NONE,
         AMB_RANK,
         AMB_FILE,
@@ -185,22 +185,22 @@ namespace {
         }
         else {
             oss << std::showpos
-                << "#" << i16(v > VALUE_ZERO ?
+                << "#" << int16_t(v > VALUE_ZERO ?
                             +VALUE_MATE - v + 1 :
                             -VALUE_MATE - v + 0) / 2;
         }
         return oss.str();
     }
 
-    constexpr u32 SecondMilliSec{ 1000 };
-    constexpr u32 MinuteMilliSec{ 60*SecondMilliSec };
-    constexpr u32 HourMilliSec  { 60*MinuteMilliSec };
-    string prettyTime(u64 time) {
-        u32 hours  = u32(time / HourMilliSec);
+    constexpr uint32_t SecondMilliSec{ 1000 };
+    constexpr uint32_t MinuteMilliSec{ 60*SecondMilliSec };
+    constexpr uint32_t HourMilliSec  { 60*MinuteMilliSec };
+    string prettyTime(uint64_t time) {
+        uint32_t hours  = uint32_t(time / HourMilliSec);
         time      %= HourMilliSec;
-        u32 minutes= u32(time / MinuteMilliSec);
+        uint32_t minutes= uint32_t(time / MinuteMilliSec);
         time      %= MinuteMilliSec;
-        u32 seconds= u32(time / SecondMilliSec);
+        uint32_t seconds= uint32_t(time / SecondMilliSec);
         time      %= SecondMilliSec;
         time      /= 10;
 
@@ -281,7 +281,7 @@ Move moveOfSAN(std::string_view san, Position &pos) {
 /*
 /// Returns formated human-readable search information.
 string prettyInfo(Thread *th) {
-    u64 nodes{ Threadpool.accumulate(&Thread::nodes) };
+    uint64_t nodes{ Threadpool.accumulate(&Thread::nodes) };
 
     std::ostringstream oss{};
     oss << std::setw( 4) << th->finishedDepth
@@ -289,16 +289,16 @@ string prettyInfo(Thread *th) {
         << std::setw(12) << prettyTime(TimeMgr.elapsed());
 
          if (nodes < 10ULL*1000) {
-        oss << std::setw(8) << u16(nodes);
+        oss << std::setw(8) << uint16_t(nodes);
     }
     else if (nodes < 10ULL*1000*1000) {
-        oss << std::setw(7) << u16(std::round(nodes / 1000.0)) << "K";
+        oss << std::setw(7) << uint16_t(std::round(nodes / 1000.0)) << "K";
     }
     else if (nodes < 10ULL*1000*1000*1000) {
-        oss << std::setw(7) << u16(std::round(nodes / 1000.0*1000.0)) << "M";
+        oss << std::setw(7) << uint16_t(std::round(nodes / 1000.0*1000.0)) << "M";
     }
     else {
-        oss << std::setw(7) << u16(std::round(nodes / 1000.0*1000.0*1000.0)) << "G";
+        oss << std::setw(7) << uint16_t(std::round(nodes / 1000.0*1000.0*1000.0)) << "G";
     }
     oss << " ";
 

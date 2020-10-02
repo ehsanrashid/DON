@@ -102,10 +102,10 @@ Key Position::movePosiKey(Move m) const noexcept {
 
 /// Position::draw() checks whether position is drawn by: Clock Ply Rule, Repetition.
 /// It does not detect Insufficient materials and Stalemate.
-bool Position::draw(i16 pp) const noexcept {
+bool Position::draw(int16_t pp) const noexcept {
     return  // Draw by Clock Ply Rule?
             // Not in check or in check have legal moves
-           (clockPly() >= 2 * i16(Options["Draw MoveCount"])
+           (clockPly() >= 2 * int16_t(Options["Draw MoveCount"])
          && (checkers() == 0
           || MoveList<LEGAL>(*this).size() != 0))
             // Draw by Repetition?
@@ -130,7 +130,7 @@ bool Position::repeated() const noexcept {
 
 /// Position::cycled() tests if the position has a move which draws by repetition,
 /// or an earlier position has a move that directly reaches the current position.
-bool Position::cycled(i16 pp) const noexcept {
+bool Position::cycled(int16_t pp) const noexcept {
     auto end{ std::min(clockPly(), nullPly()) };
     if (end < 3) {
         return false;
@@ -139,7 +139,7 @@ bool Position::cycled(i16 pp) const noexcept {
     Key const pKey{ posiKey() };
 
     auto const *psi{ _stateInfo->prevState };
-    for (i16 i = 3; i <= end; i += 2) {
+    for (int16_t i = 3; i <= end; i += 2) {
         psi = psi->prevState->prevState;
 
         Key const moveKey{
@@ -557,7 +557,7 @@ bool Position::see(Move m, Value threshold) const noexcept {
     auto org{ orgSq(m) };
     auto const dst{ dstSq(m) };
 
-    i32 swap;
+    int32_t swap;
     swap = PieceValues[MG][pType(board[dst])] - threshold;
     if (swap < 0) {
         return false;
@@ -567,7 +567,7 @@ bool Position::see(Move m, Value threshold) const noexcept {
         return true;
     }
 
-    i32 res{ 1 };
+    int32_t res{ 1 };
     auto mov{ pColor(board[org]) };
     Bitboard mocc{ pieces() ^ org ^ dst };
     Bitboard attackers{ attackersTo(dst, mocc) };
@@ -706,7 +706,7 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
     std::istringstream iss{ ff.data() };
     iss >> std::noskipws;
 
-    u08 token;
+    uint8_t token;
     // 1. Piece placement on Board
     Square sq{ SQ_A8 };
     while ((iss >> token)
@@ -764,7 +764,7 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
     // 4. Enpassant square.
     // Ignore if square is invalid or not on side to move relative rank 6.
     bool enpassant{ false };
-    u08 file, rank;
+    uint8_t file, rank;
     if ((iss >> file && ('a' <= file && file <= 'h'))
      && (iss >> rank && (rank == (active == WHITE ? '6' : '3')))) {
         _stateInfo->epSquare = makeSquare(toFile(file), toRank(rank));
@@ -785,7 +785,7 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
     // Rule 50 draw case.
     assert(100 >= clockPly());
     // Convert from moves starting from 1 to ply starting from 0.
-    ply = i16(std::max(2 * (ply - 1), 0) + active);
+    ply = int16_t(std::max(2 * (ply - 1), 0) + active);
     assert(0 <= gamePly());
 
     npMaterial[WHITE] = computeNPM<WHITE>(*this);
@@ -1037,7 +1037,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     auto end = std::min(clockPly(), nullPly());
     if (end >= 4) {
         auto const *psi{ _stateInfo->prevState->prevState };
-        for (i16 i = 4; i <= end; i += 2) {
+        for (int16_t i = 4; i <= end; i += 2) {
             psi = psi->prevState->prevState;
             if (psi->posiKey == posiKey()) {
                 _stateInfo->repetition = i * (1 - 2 * (psi->repetition != 0));
@@ -1264,7 +1264,7 @@ std::string Position::fen(bool full) const {
 
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         for (File f = FILE_A; f <= FILE_H; ++f) {
-            i16 emptyCount;
+            int16_t emptyCount;
             for (emptyCount = 0; f <= FILE_H && empty(makeSquare(f, r)); ++f) {
                 ++emptyCount;
             }
@@ -1456,7 +1456,7 @@ bool Position::ok() const {
      || posiKey() != RandZob.computePosiKey(*this)
      || checkers() != (attackersTo(square(active|KING)) & pieces(~active))
      || popCount(checkers()) > 2
-     || clockPly() > 2 * i16(Options["Draw MoveCount"])
+     || clockPly() > 2 * int16_t(Options["Draw MoveCount"])
      || (captured() != NONE
       && clockPly() != 0)
      || (epSquare() != SQ_NONE

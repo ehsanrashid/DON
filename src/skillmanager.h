@@ -3,7 +3,7 @@
 #include "type.h"
 
 // MaxLevel should be <= MAX_PLY/9
-constexpr u16 MaxLevel{ 25 };
+constexpr uint16_t MaxLevel{ 25 };
 
 /// Skill Manager class is used to implement strength limit
 class SkillManager final {
@@ -20,7 +20,7 @@ public:
     bool enabled() const noexcept;
     bool canPick(Depth) const noexcept;
 
-    void setLevel(u16) noexcept;
+    void setLevel(uint16_t) noexcept;
 
     void clear() noexcept;
 
@@ -28,7 +28,7 @@ public:
 
 private:
 
-    u16  level;
+    uint16_t level;
     Move bestMove;
 };
 

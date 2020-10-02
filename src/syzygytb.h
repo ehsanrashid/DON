@@ -10,7 +10,7 @@
 
 namespace SyzygyTB {
 
-    constexpr i16 TBPIECES{ 7 };
+    constexpr int16_t TBPIECES{ 7 };
 
     /// WDL Score
     enum WDLScore {
@@ -35,10 +35,10 @@ namespace SyzygyTB {
 
     extern std::ostream& operator<<(std::ostream&, ProbeState);
 
-    extern i16 MaxPieceLimit;
+    extern int16_t MaxPieceLimit;
 
     extern WDLScore probeWDL(Position&, ProbeState&);
-    extern i32      probeDTZ(Position&, ProbeState&);
+    extern int32_t  probeDTZ(Position&, ProbeState&);
 
     extern bool rootProbeWDL(Position&, RootMoves&);
     extern bool rootProbeDTZ(Position&, RootMoves&);

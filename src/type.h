@@ -50,9 +50,9 @@
         #endif
     #endif
 
-    #define S32(X) (X ##  i32)
+    #define S32(X) (X ##  int32_t)
     #define U32(X) (X ## ui32)
-    #define S64(X) (X ##  i64)
+    #define S64(X) (X ##  int64_t)
     #define U64(X) (X ## ui64)
 #else
     #define S32(X) (X ##   L)
@@ -84,44 +84,34 @@
 #define XSTRING(x)      #x
 #define STRINGIFY(x)    XSTRING(x)
 
-using i08  =  int8_t;
-using u08  = uint8_t;
-using i16  =  int16_t;
-using u16  = uint16_t;
-using i32  =  int32_t;
-using u32  = uint32_t;
-using i64  =  int64_t;
-using u64  = uint64_t;
-using uPtr = uintptr_t;
+using Key = uint64_t;
+using Bitboard = uint64_t;
 
-using Key = u64;
-using Bitboard = u64;
-
-constexpr u32 nSqr(i16 n) {
-    return u32(n) * n;
+constexpr uint32_t nSqr(int16_t n) {
+    return uint32_t(n) * n;
 }
-constexpr u64 nSqr(i32 n) {
-    return u64(n) * n;
+constexpr uint64_t nSqr(int32_t n) {
+    return uint64_t(n) * n;
 }
 
 // Return the sign of a number (-1, 0, 1)
 template<typename T>
-constexpr i32 sign(T const &v) {
+constexpr int32_t sign(T const &v) {
     //return (T{} < v) - (v < T{});
     return (0 < v) - (v < 0);
 }
 
-enum Color : i08 {
+enum Color : int8_t {
     WHITE, BLACK,
     COLORS = 2
 };
 
-enum File : i08 {
+enum File : int8_t {
     FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
     FILES = 8
 };
 
-enum Rank : i08 {
+enum Rank : int8_t {
     RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8,
     RANKS = 8
 };
@@ -129,7 +119,7 @@ enum Rank : i08 {
 /// Square needs 6-bits to be stored
 /// bit 0-2: File
 /// bit 3-5: Rank
-enum Square : i08 {
+enum Square : int8_t {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
     SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3,
@@ -142,7 +132,7 @@ enum Square : i08 {
     SQUARES = 64
 };
 
-enum Direction : i08 {
+enum Direction : int8_t {
     EAST    =  1,
     NORTH   =  8,
     WEST    = -EAST,
@@ -159,7 +149,7 @@ enum Direction : i08 {
     NORTH_WEST = NORTH + WEST
 };
 
-using Depth = i16;
+using Depth = int16_t;
 
 constexpr Depth DEPTH_ZERO       {  0 };
 constexpr Depth DEPTH_QS_CHECK   {  0 };
@@ -169,14 +159,14 @@ constexpr Depth DEPTH_NONE       { -6 };
 constexpr Depth DEPTH_OFFSET     { DEPTH_NONE - 1 }; // Used only for TT entry occupancy check
 
 // Maximum Depth
-constexpr i32 MAX_PLY{ 256 + DEPTH_OFFSET - 4 };
+constexpr int32_t MAX_PLY{ 256 + DEPTH_OFFSET - 4 };
 
-enum CastleSide : i08 {
+enum CastleSide : int8_t {
     CS_KING, CS_QUEN, CS_CENTRE, CASTLE_SIDES = 2
 };
 
 /// Castle Right defined as in Polyglot book hash key
-enum CastleRight : u08 {
+enum CastleRight : uint8_t {
     CR_NONE  = 0,       // 0000
 
     CR_WKING = 1 << 0,  // 0001
@@ -193,7 +183,7 @@ enum CastleRight : u08 {
     CASTLE_RIGHTS = 16
 };
 
-enum PieceType : i08 {
+enum PieceType : int8_t {
     NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING,
     PIECE_TYPES = 7,
     PIECE_TYPES_EX = PIECE_TYPES - 1 // Exclude King
@@ -202,14 +192,14 @@ enum PieceType : i08 {
 /// Piece needs 4-bits to be stored
 /// bit 0-2: Type of piece
 /// bit   3: Color of piece { White = 0..., Black = 1... }
-enum Piece : u08 {
+enum Piece : uint8_t {
     NO_PIECE,
     W_PAWN = 1, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
     B_PAWN = 9, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
     PIECES = 16
 };
 
-enum MoveType : u16 {
+enum MoveType : uint16_t {
     SIMPLE    = 0 << 14, // [00]-- ===
     CASTLE    = 1 << 14, // [01]-- ===
     ENPASSANT = 2 << 14, // [10]-- ===
@@ -224,12 +214,12 @@ enum MoveType : u16 {
 /// bit 14-15: Move Type
 ///
 /// Special cases are MOVE_NONE and MOVE_NULL.
-enum Move : u16 {
+enum Move : uint16_t {
     MOVE_NONE = 0x000,
     MOVE_NULL = 0x041,
 };
 
-enum Value : i32 {
+enum Value : int32_t {
     VALUE_ZERO      = 0,
     VALUE_DRAW      = 0,
 
@@ -258,36 +248,36 @@ enum Value : i32 {
 /// the lower 16-bits are used to store the midgame value
 /// the upper 16-bits are used to store the endgame value
 /// Take some care to avoid left-shifting a signed int to avoid undefined behavior.
-enum Score : u32 {
+enum Score : uint32_t {
     SCORE_ZERO = 0,
 };
 
-enum Bound : u08 {
+enum Bound : uint8_t {
     BOUND_NONE,
     BOUND_UPPER = 1 << 0,
     BOUND_LOWER = 1 << 1,
     BOUND_EXACT = BOUND_UPPER | BOUND_LOWER,
 };
 
-enum Phase : u08 {
+enum Phase : uint8_t {
     MG,
     EG,
     PHASES = 2
 };
 
-enum Scale : u08 {
+enum Scale : uint8_t {
     SCALE_DRAW    =   0,
     SCALE_NORMAL  =  64,
     SCALE_MAX     = 128,
     SCALE_NONE    = 255,
 };
 
-#define BASIC_OPERATORS(T)                                             \
-    constexpr T operator+(T t) { return T(+i32(t)); }                  \
-    constexpr T operator-(T t) { return T(-i32(t)); }                  \
-    constexpr T operator+(T t1, T t2) { return T(i32(t1) + i32(t2)); } \
-    constexpr T operator-(T t1, T t2) { return T(i32(t1) - i32(t2)); } \
-    inline T& operator+=(T &t1, T t2) { return t1 = t1 + t2; }         \
+#define BASIC_OPERATORS(T)                                                     \
+    constexpr T operator+(T t) { return T(+int32_t(t)); }                      \
+    constexpr T operator-(T t) { return T(-int32_t(t)); }                      \
+    constexpr T operator+(T t1, T t2) { return T(int32_t(t1) + int32_t(t2)); } \
+    constexpr T operator-(T t1, T t2) { return T(int32_t(t1) - int32_t(t2)); } \
+    inline T& operator+=(T &t1, T t2) { return t1 = t1 + t2; }                 \
     inline T& operator-=(T &t1, T t2) { return t1 = t1 - t2; }
 
 BASIC_OPERATORS(Direction)
@@ -295,25 +285,25 @@ BASIC_OPERATORS(Value)
 BASIC_OPERATORS(Score)
 #undef BASIC_OPERATORS
 
-#define ARTHMAT_OPERATORS(T)                                             \
-    constexpr T operator+(T t, i32 i) noexcept { return T(i32(t) + i); } \
-    constexpr T operator-(T t, i32 i) noexcept { return T(i32(t) - i); } \
-    constexpr T operator*(T t, i32 i) noexcept { return T(i32(t) * i); } \
-    constexpr T operator*(i32 i, T t) noexcept { return T(i32(t) * i); } \
-    constexpr T operator/(T t, i32 i) noexcept { return T(i32(t) / i); } \
-    inline T& operator+=(T &t, i32 i) noexcept { return t = t + i; }     \
-    inline T& operator-=(T &t, i32 i) noexcept { return t = t - i; }     \
-    inline T& operator*=(T &t, i32 i) noexcept { return t = t * i; }     \
-    inline T& operator/=(T &t, i32 i) noexcept { return t = t / i; }
+#define ARTHMAT_OPERATORS(T)                                                     \
+    constexpr T operator+(T t, int32_t i) noexcept { return T(int32_t(t) + i); } \
+    constexpr T operator-(T t, int32_t i) noexcept { return T(int32_t(t) - i); } \
+    constexpr T operator*(T t, int32_t i) noexcept { return T(int32_t(t) * i); } \
+    constexpr T operator*(int32_t i, T t) noexcept { return T(int32_t(t) * i); } \
+    constexpr T operator/(T t, int32_t i) noexcept { return T(int32_t(t) / i); } \
+    inline T& operator+=(T &t, int32_t i) noexcept { return t = t + i; }         \
+    inline T& operator-=(T &t, int32_t i) noexcept { return t = t - i; }         \
+    inline T& operator*=(T &t, int32_t i) noexcept { return t = t * i; }         \
+    inline T& operator/=(T &t, int32_t i) noexcept { return t = t / i; }
 
 ARTHMAT_OPERATORS(File)
 ARTHMAT_OPERATORS(Direction)
 ARTHMAT_OPERATORS(Value)
 #undef ARTHMAT_OPERATORS
 
-#define INC_DEC_OPERATORS(T)                                          \
-    inline T& operator++(T &t) noexcept { return t = T(i32(t) + 1); } \
-    inline T& operator--(T &t) noexcept { return t = T(i32(t) - 1); }
+#define INC_DEC_OPERATORS(T)                                              \
+    inline T& operator++(T &t) noexcept { return t = T(int32_t(t) + 1); } \
+    inline T& operator--(T &t) noexcept { return t = T(int32_t(t) - 1); }
 
 INC_DEC_OPERATORS(File)
 INC_DEC_OPERATORS(Rank)
@@ -323,13 +313,13 @@ INC_DEC_OPERATORS(Piece)
 INC_DEC_OPERATORS(CastleSide)
 #undef INC_DEC_OPERATORS
 
-#define BITWISE_OPERATORS(T)                                           \
-    constexpr T operator~(T t) { return T(~i32(t)); }                  \
-    constexpr T operator|(T t1, T t2) { return T(i32(t1) | i32(t2)); } \
-    constexpr T operator&(T t1, T t2) { return T(i32(t1) & i32(t2)); } \
-    constexpr T operator^(T t1, T t2) { return T(i32(t1) ^ i32(t2)); } \
-    inline T& operator|=(T &t1, T t2) { return t1 = t1 | t2; }         \
-    inline T& operator&=(T &t1, T t2) { return t1 = t1 & t2; }         \
+#define BITWISE_OPERATORS(T)                                                   \
+    constexpr T operator~(T t) { return T(~int32_t(t)); }                      \
+    constexpr T operator|(T t1, T t2) { return T(int32_t(t1) | int32_t(t2)); } \
+    constexpr T operator&(T t1, T t2) { return T(int32_t(t1) & int32_t(t2)); } \
+    constexpr T operator^(T t1, T t2) { return T(int32_t(t1) ^ int32_t(t2)); } \
+    inline T& operator|=(T &t1, T t2) { return t1 = t1 | t2; }                 \
+    inline T& operator&=(T &t1, T t2) { return t1 = t1 & t2; }                 \
     inline T& operator^=(T &t1, T t2) { return t1 = t1 ^ t2; }
 
 BITWISE_OPERATORS(CastleRight)
@@ -337,10 +327,10 @@ BITWISE_OPERATORS(CastleRight)
 #undef BITWISE_OPERATORS
 
 constexpr Square operator+(Square s, Direction d) {
-    return Square(i32(s) + i32(d));
+    return Square(int32_t(s) + int32_t(d));
 }
 constexpr Square operator-(Square s, Direction d) {
-    return Square(i32(s) - i32(d));
+    return Square(int32_t(s) - int32_t(d));
 }
 inline Square& operator+=(Square &s, Direction d) {
     return s = s + d;
@@ -350,11 +340,11 @@ inline Square& operator-=(Square &s, Direction d) {
 }
 
 constexpr Direction operator-(Square s1, Square s2) {
-    return Direction(i32(s1) - i32(s2));
+    return Direction(int32_t(s1) - int32_t(s2));
 }
 
-constexpr Score makeScore(i32 mg, i32 eg) {
-    return Score(i32(u32(eg) << 0x10) + mg);
+constexpr Score makeScore(int32_t mg, int32_t eg) {
+    return Score(int32_t(uint32_t(eg) << 0x10) + mg);
 }
 
 // Keep track of what a move changes on the board (used by NNUE)
@@ -377,39 +367,39 @@ struct DirtyPiece {
 /// Extracting the signed lower and upper 16 bits is not so trivial
 /// because according to the standard a simple cast to short is implementation
 /// defined and so is a right shift of a signed integer.
-union Union16 { u16 u; i16 s; };
-constexpr Value mgValue(u32 s) {
-    return Value(Union16{ u16(u32(s + 0x0000) >> 0x00) }.s);
+union Union16 { uint16_t u; int16_t s; };
+constexpr Value mgValue(uint32_t s) {
+    return Value(Union16{ uint16_t(uint32_t(s + 0x0000) >> 0x00) }.s);
 }
-constexpr Value egValue(u32 s) {
-    return Value(Union16{ u16(u32(s + 0x8000) >> 0x10) }.s);
+constexpr Value egValue(uint32_t s) {
+    return Value(Union16{ uint16_t(uint32_t(s + 0x8000) >> 0x10) }.s);
 }
 
 /// Division of a Score must be handled separately for each term
-constexpr Score operator/(Score s, i32 i) {
+constexpr Score operator/(Score s, int32_t i) {
     return makeScore(mgValue(s) / i, egValue(s) / i);
 }
 /// Multiplication of a Score by an integer. We check for overflow in debug mode.
-//inline Score operator*(Score s, i32 i) {
-//    Score score{ Score(i32(s) * i) };
+//inline Score operator*(Score s, int32_t i) {
+//    Score score{ Score(int32_t(s) * i) };
 //    assert(egValue(score) == (egValue(s) * i));
 //    assert(mgValue(score) == (mgValue(s) * i));
 //    assert((i == 0) || (score / i) == s);
 //    return score;
 //}
-constexpr Score operator*(Score s, i32 i) {
-    return Score(i32(s) * i);
+constexpr Score operator*(Score s, int32_t i) {
+    return Score(int32_t(s) * i);
 }
 
-inline Score& operator/=(Score &s, i32 i) {
+inline Score& operator/=(Score &s, int32_t i) {
     return s = s / i;
 }
-inline Score& operator*=(Score &s, i32 i) {
+inline Score& operator*=(Score &s, int32_t i) {
     return s = s * i;
 }
 /// Multiplication of a Score by a boolean
 constexpr Score operator*(Score s, bool b) {
-    return s * i32(b);
+    return s * int32_t(b);
 }
 /// Don't want to multiply two scores due to a very high risk of overflow.
 /// So user should explicitly convert to integer.
@@ -437,7 +427,7 @@ constexpr Rank operator~(Rank r) {
     return Rank(RANK_8 - r);
 }
 
-constexpr i32 BaseRank[COLORS]{
+constexpr int32_t BaseRank[COLORS]{
     RANK_1, RANK_8
 };
 constexpr Rank relativeRank(Color c, Rank r) {
@@ -451,7 +441,7 @@ constexpr Square makeSquare(File f, Rank r) {
     return Square((r << 3) + f);
 }
 constexpr File sFile(Square s) {
-    return File(i32(s) & 7);
+    return File(int32_t(s) & 7);
 }
 constexpr Rank sRank(Square s) {
     return Rank(s >> 3);
@@ -463,11 +453,11 @@ constexpr Color sColor(Square s) {
 template<typename T> constexpr Square flip(Square);
 // Flip File: SQ_H1 -> SQ_A1
 template<> constexpr Square flip<File>(Square s) {
-    return Square(i32(s) ^ 0x07);
+    return Square(int32_t(s) ^ 0x07);
 }
 // Flip Rank: SQ_A8 -> SQ_A1
 template<> constexpr Square flip<Rank>(Square s) {
-    return Square(i32(s) ^ 0x38);
+    return Square(int32_t(s) ^ 0x38);
 }
 
 
@@ -475,11 +465,11 @@ constexpr bool colorOpposed(Square s1, Square s2) {
     return (s1 + sRank(s1) + s2 + sRank(s2)) & 1; //sColor(s1) != sColor(s2);
 }
 
-constexpr i32 BaseSquare[COLORS]{
+constexpr int32_t BaseSquare[COLORS]{
     SQ_A1, SQ_A8
 };
 constexpr Square relativeSq(Color c, Square s) {
-    return Square(i32(s) ^ BaseSquare[c]);
+    return Square(int32_t(s) ^ BaseSquare[c]);
 }
 constexpr Rank relativeRank(Color c, Square s) {
     return relativeRank(c, sRank(s));
@@ -538,8 +528,8 @@ constexpr PieceType promoteType(Move m) {
 constexpr MoveType mType(Move m) {
     return MoveType(m & PROMOTE);
 }
-constexpr u16 mMask(Move m) {
-    return u16(m & 0x0FFF);
+constexpr uint16_t mMask(Move m) {
+    return uint16_t(m & 0x0FFF);
 }
 
 template<MoveType MT>
@@ -565,18 +555,18 @@ constexpr double toCP(Value v) {
 }
 /// Convert Centipawn to Value
 constexpr Value toValue(double cp) {
-    return Value(i32(cp) / 100 * VALUE_EG_PAWN);
+    return Value(int32_t(cp) / 100 * VALUE_EG_PAWN);
 }
 
-constexpr Value matesIn(i32 ply) {
+constexpr Value matesIn(int32_t ply) {
     return +VALUE_MATE - ply;
 }
-constexpr Value matedIn(i32 ply) {
+constexpr Value matedIn(int32_t ply) {
     return -VALUE_MATE + ply;
 }
 
 /// Based on a congruential pseudo random number generator
-constexpr Key makeKey(u64 seed) {
+constexpr Key makeKey(uint64_t seed) {
     return( seed * U64(6364136223846793005) + U64(1442695040888963407) );
 }
 
@@ -597,12 +587,15 @@ public:
 
 struct ValMove {
 
-    Move move{ MOVE_NONE };
-    i32  value{ 0 };
+    Move    move;
+    int32_t value;
 
-    ValMove() noexcept = default;
+    ValMove() noexcept :
+        ValMove{ MOVE_NONE } {
+    }
     explicit ValMove(Move m) noexcept :
-        move{ m } {
+        move{ m },
+        value{ 0 } {
     }
 
     operator Move() const noexcept { return move; }
@@ -645,7 +638,7 @@ public:
 };
 
 using TimePoint = std::chrono::milliseconds::rep; // Time in milli-seconds
-static_assert (sizeof (TimePoint) == sizeof (i64), "TimePoint should be 64 bits");
+static_assert (sizeof (TimePoint) == sizeof (int64_t), "TimePoint should be 64 bits");
 
 inline TimePoint now() noexcept {
     return std::chrono::duration_cast<std::chrono::milliseconds>
@@ -664,7 +657,7 @@ public:
     }
 
     T* operator[](Key key) {
-        return &table[u32(key) & (Size - 1)];
+        return &table[uint32_t(key) & (Size - 1)];
     }
 
 private:

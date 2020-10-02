@@ -2,10 +2,10 @@
 
 #if defined(_WIN32)
     #include <direct.h>
-    #define GETCWD(buff, size)  _getcwd(buff, size)
+    #define GETCWD(buff)  _getcwd(buff, sizeof (buff))
 #else
     #include <unistd.h>
-    #define GETCWD(buff, size)   getcwd(buff, size)
+    #define GETCWD(buff)   getcwd(buff, sizeof (buff))
 #endif
 
 namespace CommandLine {
@@ -28,10 +28,11 @@ namespace CommandLine {
         // Under windows argv[0] may not have the extension. Also _get_pgmptr() had
         // issues in some windows 10 versions, so check returned values carefully.
         char *pgmptr = nullptr;
-        if (!_get_pgmptr(&pgmptr) && pgmptr != nullptr && *pgmptr) {
+        if (!_get_pgmptr(&pgmptr)
+         && pgmptr != nullptr
+         && *pgmptr != 0) {
             argv0 = pgmptr;
         }
-
     #endif
 #else
         pathSeparator = "/";
@@ -40,7 +41,7 @@ namespace CommandLine {
         // Extract the working directory
         workingDirectory = "";
         char buff[40000];
-        char const *cwd = GETCWD(buff, sizeof (buff));
+        char const *cwd = GETCWD(buff);
         if (cwd != nullptr) {
             workingDirectory = cwd;
         }

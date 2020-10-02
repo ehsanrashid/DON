@@ -3,7 +3,7 @@
 #include "position.h"
 #include "type.h"
 
-enum GenType : u08 {
+enum GenType : uint8_t {
     NORMAL,
     EVASION,
     CAPTURE,
@@ -47,17 +47,17 @@ struct Perft {
     void operator+=(Perft const&) noexcept;
     void operator-=(Perft const&) noexcept;
 
-    i16 moves{ 0 };
-    u64 any{ 0 };
-    u64 capture{ 0 };
-    u64 enpassant{ 0 };
-    u64 anyCheck{ 0 };
-    u64 dscCheck{ 0 };
-    u64 dblCheck{ 0 }; // Only if Direct & Discovered Check or one Enpassant case Bishop & Rook
-    u64 castle{ 0 };
-    u64 promotion{ 0 };
-    u64 checkmate{ 0 };
-    //u64 stalemate{ 0 };
+    uint16_t num{ 0 };
+    uint64_t any{ 0 };
+    uint64_t capture{ 0 };
+    uint64_t enpassant{ 0 };
+    uint64_t anyCheck{ 0 };
+    uint64_t dscCheck{ 0 };
+    uint64_t dblCheck{ 0 }; // Only if Direct & Discovered Check or one Enpassant case Bishop & Rook
+    uint64_t castle{ 0 };
+    uint64_t promotion{ 0 };
+    uint64_t checkmate{ 0 };
+    //uint64_t stalemate{ 0 };
 };
 
 template<bool RootNode>

@@ -12,8 +12,8 @@ namespace Evaluator::NNUE::Layers {
     public:
         // Input/output type
         using InputType = typename PreviousLayer::OutputType;
-        using OutputType = u08;
-        static_assert (std::is_same<InputType, i32>::value, "");
+        using OutputType = uint8_t;
+        static_assert (std::is_same<InputType, int32_t>::value, "");
 
         // Number of input/output dimensions
         static constexpr IndexType InputDimensions{ PreviousLayer::OutputDimensions };
@@ -26,8 +26,8 @@ namespace Evaluator::NNUE::Layers {
         static constexpr size_t BufferSize{ PreviousLayer::BufferSize + SelfBufferSize };
 
         // Hash value embedded in the evaluation file
-        static constexpr u32 getHashValue() {
-            u32 hashValue{ 0x538D24C7u };
+        static constexpr uint32_t getHashValue() {
+            uint32_t hashValue{ 0x538D24C7u };
             hashValue += PreviousLayer::getHashValue();
             return hashValue;
         }

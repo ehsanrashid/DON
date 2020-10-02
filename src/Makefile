@@ -21,8 +21,6 @@ BINDIR = $(PREFIX)/bin
 ### Built-in benchmark for pgo-builds
 PGOBENCH = ./$(EXE) bench
 
-VPATH = nnue:nnue/features:helper
-
 ### Source and Object files
 SRCS =  main.cpp \
         bitbase.cpp \
@@ -57,6 +55,8 @@ SRCS =  main.cpp \
         helper/reporter.cpp \
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
+
+VPATH = nnue:nnue/features:helper
 
 ### Establish the operating system name
 KERNEL = $(shell uname -s)

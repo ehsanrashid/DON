@@ -17,15 +17,15 @@ namespace {
     template<typename T>
     std::ifstream& operator>>(std::ifstream &ifstream, T &t) {
         t = T();
-        for (u08 idx = 0; idx < sizeof (T) && ifstream.good(); ++idx) {
-            t = T((t << 8) + u08(ifstream.get()));
+        for (uint8_t idx = 0; idx < sizeof (T) && ifstream.good(); ++idx) {
+            t = T((t << 8) + uint8_t(ifstream.get()));
         }
         return ifstream;
     }
     //template<typename T>
     //std::ofstream& operator<<(std::ofstream &ofstream, T const &t) {
-    //    for (u08 idx = 0; idx < sizeof (T) && ofstream.good(); ++idx) {
-    //        ofstream.put(u08(t >> (8 * (sizeof (T) - 1 - idx))));
+    //    for (uint8_t idx = 0; idx < sizeof (T) && ofstream.good(); ++idx) {
+    //        ofstream.put(uint8_t(t >> (8 * (sizeof (T) - 1 - idx))));
     //    }
     //    return ofstream;
     //}
@@ -61,7 +61,7 @@ namespace {
         // So in case book move is a promotion have to convert to our representation,
         // in all the other cases can directly compare with a Move after having masked out
         // the special Move's flags (bit 14-15) that are not supported by Polyglot.
-        u08 const pt( (m >> 12) & 7 );
+        uint8_t const pt( (m >> 12) & 7 );
         if (pt != 0) {
             // Set new type for promotion piece
             m = Move(/*PROMOTE +*/ ((pt - 1) << 12) + mMask(m));
@@ -153,12 +153,12 @@ void PolyBook::clear() noexcept {
     }
 }
 
-i64 PolyBook::findIndex(Key pgKey) const noexcept {
-    i64 beg{ 0 };
-    i64 end{ i64(entryCount) };
+int64_t PolyBook::findIndex(Key pgKey) const noexcept {
+    int64_t beg{ 0 };
+    int64_t end{ int64_t(entryCount) };
 
     while (beg + 8 < end) {
-        i64 mid{ (beg + end) / 2 };
+        int64_t mid{ (beg + end) / 2 };
 
         if (pgKey > entry[mid].key) {
             beg = mid;
@@ -168,8 +168,8 @@ i64 PolyBook::findIndex(Key pgKey) const noexcept {
             end = mid;
         }
         else { // pgKey == entry[mid].key
-            beg = std::max(mid - 4, i64(0));
-            end = std::min(mid + 4, i64(entryCount));
+            beg = std::max(mid - 4, int64_t(0));
+            end = std::min(mid + 4, int64_t(entryCount));
         }
     }
 
@@ -186,10 +186,10 @@ i64 PolyBook::findIndex(Key pgKey) const noexcept {
 
     return -1;
 }
-//i64 PolyBook::findIndex(Position const &pos) const noexcept {
+//int64_t PolyBook::findIndex(Position const &pos) const noexcept {
 //    return findIndex(pos.pgKey());
 //}
-//i64 PolyBook::findIndex(std::string_view fen) const noexcept {
+//int64_t PolyBook::findIndex(std::string_view fen) const noexcept {
 //    StateInfo si;
 //    return findIndex(Position().setup(fen, si, nullptr).pgKey());
 //}
@@ -227,7 +227,7 @@ void PolyBook::initialize(std::string_view bookFile) {
     }
 
     ifstream.seekg(0, std::ios::end);
-    u64 const fileSize = ifstream.tellg();
+    uint64_t const fileSize = ifstream.tellg();
     ifstream.seekg(0, std::ios::beg);
 
     entryCount = (fileSize - HeaderSize) / sizeof (PolyEntry);
@@ -239,11 +239,11 @@ void PolyBook::initialize(std::string_view bookFile) {
 
     if (HeaderSize != 0) {
         PolyEntry dummy;
-        for (u64 idx = 0; idx < HeaderSize / sizeof (PolyEntry); ++idx) {
+        for (uint64_t idx = 0; idx < HeaderSize / sizeof (PolyEntry); ++idx) {
             ifstream >> dummy;
         }
     }
-    for (u64 idx = 0; idx < entryCount; ++idx) {
+    for (uint64_t idx = 0; idx < entryCount; ++idx) {
         ifstream >> entry[idx];
     }
     ifstream.close();
@@ -255,7 +255,7 @@ void PolyBook::initialize(std::string_view bookFile) {
 /// If no move is found returns MOVE_NONE.
 /// If pickBest is true returns always the highest rated move,
 /// otherwise randomly chooses one, based on the move score.
-Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
+Move PolyBook::probe(Position &pos, int16_t moveCount, bool pickBest) {
 
     static PRNG prng(now());
 
@@ -278,12 +278,12 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
         return MOVE_NONE;
     }
 
-    u08 count{ 0 };
-    u16 maxWeight{ 0 };
-    u32 sumWeight{ 0 };
+    uint8_t count{ 0 };
+    uint16_t maxWeight{ 0 };
+    uint32_t sumWeight{ 0 };
 
-    u64 pick1Index = index;
-    u64 idx = index;
+    uint64_t pick1Index = index;
+    uint64_t idx = index;
     while (idx < entryCount
         && pgKey == entry[idx].key) {
 
@@ -303,7 +303,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
         else {
             // Move with a very high score, has a higher probability of being choosen.
             if (sumWeight != 0
-             && (prng.rand<u32>() % sumWeight) < entry[idx].weight) {
+             && (prng.rand<uint32_t>() % sumWeight) < entry[idx].weight) {
                 pick1Index = idx;
             }
         }
@@ -330,7 +330,7 @@ Move PolyBook::probe(Position &pos, i16 moveCount, bool pickBest) {
 
     // Special case draw position and more than one moves available
 
-    u64 pick2Index = index;
+    uint64_t pick2Index = index;
     if (pick2Index == pick1Index) {
         ++pick2Index;
         assert(pick2Index < idx);
@@ -363,8 +363,8 @@ std::string PolyBook::show(Position const &pos) const {
     }
 
     std::vector<PolyEntry> peSet;
-    u32 sumWeight{ 0 };
-    while (u64(index) < entryCount
+    uint32_t sumWeight{ 0 };
+    while (uint64_t(index) < entryCount
         && key == entry[index].key) {
         peSet.push_back(entry[index]);
         sumWeight += entry[index].weight;

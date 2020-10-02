@@ -36,12 +36,12 @@ namespace UCI {
         //operator std::string() const;
         operator std::string_view() const noexcept;
         operator bool() const noexcept;
-        operator i16() const noexcept;
-        operator u16() const noexcept;
-        operator i32() const noexcept;
-        operator u32() const noexcept;
-        operator i64() const noexcept;
-        operator u64() const noexcept;
+        operator int16_t() const noexcept;
+        operator uint16_t() const noexcept;
+        operator int32_t() const noexcept;
+        operator uint32_t() const noexcept;
+        operator int64_t() const noexcept;
+        operator uint64_t() const noexcept;
         operator double() const noexcept;
 
         bool operator==(std::string_view) const;
@@ -53,7 +53,7 @@ namespace UCI {
         std::string defaultValue() const noexcept;
         std::string toString() const;
 
-        u32     index;
+        uint32_t     index;
 
     private:
 
@@ -84,4 +84,4 @@ namespace UCI {
 // Global nocase mapping of Options
 extern UCI::OptionMap Options;
 
-extern u16 optionThreads();
+extern uint16_t optionThreads();

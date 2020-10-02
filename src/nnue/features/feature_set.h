@@ -114,7 +114,7 @@ namespace Evaluator::NNUE::Features {
 
     public:
         // Hash value embedded in the evaluation file
-        static constexpr u32 HashValue{ FeatureType::HashValue };
+        static constexpr uint32_t HashValue{ FeatureType::HashValue };
         // Number of feature dimensions
         static constexpr IndexType Dimensions{ FeatureType::Dimensions };
         // Maximum number of simultaneously active features

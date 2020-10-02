@@ -16,12 +16,12 @@
 TTable TT;
 TTable TTEx;
 
-u08 TEntry::Generation{ 0 };
+uint8_t TEntry::Generation{ 0 };
 
 /// TCluster::probe()
 /// If the position is found, it returns true and a pointer to the found entry.
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
-TEntry* TCluster::probe(u16 key16, bool &hit) noexcept {
+TEntry* TCluster::probe(uint16_t key16, bool &hit) noexcept {
     // Find an entry to be replaced according to the replacement strategy.
     auto *rte{ entry }; // Default first
     for (auto *ite{ entry }; ite < entry + EntryPerCluster; ++ite) {
@@ -55,8 +55,8 @@ TTable::~TTable() noexcept {
 }
 
 /// size() returns hash size in MB
-u32 TTable::size() const noexcept {
-    return u32((clusterCount * sizeof (TCluster)) >> 20);
+uint32_t TTable::size() const noexcept {
+    return uint32_t((clusterCount * sizeof (TCluster)) >> 20);
 }
 
 /// TTable::resize() sets the size of the transposition table, measured in MB.
@@ -103,7 +103,7 @@ void TTable::clear() {
 
     std::vector<std::thread> threads;
     auto const threadCount{ optionThreads() };
-    for (u16 index = 0; index < threadCount; ++index) {
+    for (uint16_t index = 0; index < threadCount; ++index) {
         threads.emplace_back(
             [this, threadCount, index]() {
 
@@ -132,7 +132,7 @@ void TTable::free() noexcept {
 
 /// TTable::probe() looks up the entry in the transposition table.
 TEntry* TTable::probe(Key posiKey, bool &hit) const noexcept {
-    return cluster(posiKey)->probe(u16(posiKey), hit);
+    return cluster(posiKey)->probe(uint16_t(posiKey), hit);
 }
 /// TTable::hashFull() returns an approximation of the per-mille of the
 /// all transposition entries during a search which have received
@@ -140,8 +140,8 @@ TEntry* TTable::probe(Key posiKey, bool &hit) const noexcept {
 /// It is used to display the "info hashfull ..." information in UCI.
 /// "the hash is <x> per mill full", the engine should send this info regularly.
 /// hash, are using <x>%. of the state of full.
-u32 TTable::hashFull() const noexcept {
-    u32 freshEntryCount{ 0 };
+uint32_t TTable::hashFull() const noexcept {
+    uint32_t freshEntryCount{ 0 };
     for (auto *itc{ clusterTable }; itc < clusterTable + 1000; ++itc) {
         freshEntryCount += itc->freshEntryCount();
     }
@@ -199,12 +199,12 @@ void TTable::load(std::string_view hashFile) {
 
 namespace {
 
-    constexpr u32 BufferSize{ 0x1000 };
+    constexpr uint32_t BufferSize{ 0x1000 };
 }
 
 std::ostream& operator<<(std::ostream &ostream, TTable const &tt) {
-    u32 const memSize{ tt.size() };
-    u08 dummy{ 0 };
+    uint32_t const memSize{ tt.size() };
+    uint8_t dummy{ 0 };
     ostream.write((char const*)(&memSize), sizeof (memSize));
     ostream.write((char const*)(&dummy), sizeof (dummy));
     ostream.write((char const*)(&dummy), sizeof (dummy));
@@ -217,8 +217,8 @@ std::ostream& operator<<(std::ostream &ostream, TTable const &tt) {
 }
 
 std::istream& operator>>(std::istream &istream, TTable       &tt) {
-    u32 memSize;
-    u08 dummy;
+    uint32_t memSize;
+    uint8_t dummy;
     istream.read((char*)(&memSize), sizeof (memSize));
     istream.read((char*)(&dummy), sizeof (dummy));
     istream.read((char*)(&dummy), sizeof (dummy));

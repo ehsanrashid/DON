@@ -9,7 +9,7 @@
 Key Zobrist::computeMatlKey(Position const &pos) const noexcept {
     Key matlKey{ 0 };
     for (Piece const p : Pieces) {
-        for (i32 cnt = 0; cnt < pos.count(p); ++cnt) {
+        for (int32_t cnt = 0; cnt < pos.count(p); ++cnt) {
             matlKey ^= psq[p][cnt];
         }
     }
@@ -67,7 +67,7 @@ namespace Zobrists {
         for (File f = FILE_A; f <= FILE_H; ++f) {
             RandZob.enpassant[f] = prng.rand<Key>();
         }
-        for (i16 cr = CR_NONE; cr <= CR_ANY; ++cr) {
+        for (int16_t cr = CR_NONE; cr <= CR_ANY; ++cr) {
             RandZob.castling[cr] = prng.rand<Key>();
         }
         RandZob.side = prng.rand<Key>();

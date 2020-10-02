@@ -34,7 +34,7 @@ public:
     ThreadMarker& operator=(ThreadMarker const&) = delete;
     ThreadMarker& operator=(ThreadMarker&&) = delete;
 
-    ThreadMarker(Thread const*, Key, i16) noexcept;
+    ThreadMarker(Thread const*, Key, int16_t) noexcept;
     ~ThreadMarker();
 
     bool marked;

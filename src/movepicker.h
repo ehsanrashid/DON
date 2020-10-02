@@ -39,7 +39,7 @@ class Table<T, Size> :
 /// We use a class instead of naked value to directly call
 /// history update operator<<() on the entry so to use stats
 /// tables at caller sites as simple multi-dim arrays.
-template<typename T, i32 D>
+template<typename T, int32_t D>
 class Stats {
 
 public:
@@ -57,7 +57,7 @@ public:
         return entry;
     }
 
-    void operator<<(i32 bonus) noexcept {
+    void operator<<(int32_t bonus) noexcept {
         static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
         assert(std::abs(bonus) <= D); // Ensure range is [-D, +D]
 
@@ -74,7 +74,7 @@ private:
 /// The first template T parameter is the base type of the array,
 /// the D parameter limits the range of updates (range is [-D, +D]), and
 /// the last parameters (Size and Sizes) encode the dimensions of the array.
-template<typename T, i32 D, size_t Size, size_t... Sizes>
+template<typename T, int32_t D, size_t Size, size_t... Sizes>
 class StatsTable :
     public std::array<StatsTable<T, D, Sizes...>, Size> {
 
@@ -92,7 +92,7 @@ public:
         std::fill(p, p + sizeof (*this) / sizeof (Entry), value);
     }
 };
-template<typename T, i32 D, size_t Size>
+template<typename T, int32_t D, size_t Size>
 class StatsTable<T, D, Size> :
     public std::array<Stats<T, D>, Size> {
 
@@ -102,23 +102,23 @@ class StatsTable<T, D, Size> :
 /// ButterFlyStatsTable stores moves history according to color.
 /// Used for reduction and move ordering decisions.
 /// indexed by [color][moveMask]
-using ButterFlyStatsTable       = StatsTable<i16, 10692, COLORS, SQUARES*SQUARES>;
+using ButterFlyStatsTable       = StatsTable<int16_t, 10692, COLORS, SQUARES*SQUARES>;
 
 /// PlyIndexStatsTable stores moves history according to ply from 0 to MAX_LOWPLY-1
 /// At higher depths it records successful quiet moves near the root
 /// and quiet moves which were in the PV (ttPv)
 /// It is cleared with each new search and filled during iterative deepening.
 /// indexed by [0...MAX_LOWPLY-1][moveMask]
-constexpr i16 MAX_LOWPLY{ 4 };
-using PlyIndexStatsTable        = StatsTable<i16, 10692, MAX_LOWPLY, SQUARES*SQUARES>;
+constexpr int16_t MAX_LOWPLY{ 4 };
+using PlyIndexStatsTable        = StatsTable<int16_t, 10692, MAX_LOWPLY, SQUARES*SQUARES>;
 
 /// PieceSquareTypeStatsTable stores move history according to piece.
 /// indexed by [piece][square][captured]
-using PieceSquareTypeStatsTable = StatsTable<i16, 10692, PIECES, SQUARES, PIECE_TYPES>;
+using PieceSquareTypeStatsTable = StatsTable<int16_t, 10692, PIECES, SQUARES, PIECE_TYPES>;
 
 /// PieceSquareStatsTable store moves history according to piece.
 /// indexed by [piece][square]
-using PieceSquareStatsTable     = StatsTable<i16, 29952, PIECES, SQUARES>;
+using PieceSquareStatsTable     = StatsTable<int16_t, 29952, PIECES, SQUARES>;
 /// ContinuationStatsTable is the combined history of a given pair of moves, usually the current one given a previous one.
 /// The nested history table is based on PieceSquareStatsTable, indexed by [piece][square]
 using ContinuationStatsTable    = Table<PieceSquareStatsTable, PIECES, SQUARES>;
@@ -145,7 +145,7 @@ public:
         PlyIndexStatsTable        const*,
         PieceSquareTypeStatsTable const*,
         PieceSquareStatsTable     const**,
-        Move, Depth, i16,
+        Move, Depth, int16_t,
         Move const *, Move);
 
     MovePicker(
@@ -172,7 +172,7 @@ private:
     template<GenType GT>
     void value();
 
-    void limitedInsertionSort(i32) const;
+    void limitedInsertionSort(int32_t) const;
 
     template<typename Pred>
     bool pick(Pred);
@@ -187,11 +187,11 @@ private:
 
     Move ttMove{ MOVE_NONE };
     Depth depth{ DEPTH_ZERO };
-    i16 ply{ 0 };
+    int16_t ply{ 0 };
     Value threshold{ VALUE_ZERO };
     Square recapSq{ SQ_NONE };
 
-    u08 stage{ 0 };
+    uint8_t stage{ 0 };
 
     ValMoves vmoves;
     ValMoves::iterator vmBeg,

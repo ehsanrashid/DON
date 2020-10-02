@@ -1,8 +1,8 @@
 #pragma once
 
-#include "type.h"
 #include "searcher.h"
 #include "thread.h"
+#include "type.h"
 #include "uci.h"
 
 /// The TimeManagement class computes the optimal time to think depending on
@@ -24,9 +24,9 @@ public:
 
     void clear() noexcept;
 
-    void setup(Color, i16);
+    void setup(Color, int16_t);
 
-    u64 remainingNodes; // Remaining Nodes to play
+    uint64_t remainingNodes; // Remaining Nodes to play
 
 private:
 
@@ -44,7 +44,7 @@ inline TimePoint TimeManager::maximum() const noexcept {
 
 /// TimeManager::elapsed()
 inline TimePoint TimeManager::elapsed() const noexcept {
-    return(u16(Options["Time Nodes"]) == 0 ?
+    return(uint16_t(Options["Time Nodes"]) == 0 ?
             now() - Limits.startTime :
             Threadpool.accumulate(&Thread::nodes));
 }

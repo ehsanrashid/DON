@@ -10,7 +10,7 @@ namespace Material {
     namespace {
 
         // Polynomial material imbalance parameters
-        constexpr i32 OwnQuadratic[PIECE_TYPES][PIECE_TYPES]{
+        constexpr int32_t OwnQuadratic[PIECE_TYPES][PIECE_TYPES]{
             // BP    P    N    B    R    Q
             {1438                          }, // BP
             {  40,  38                     }, // P
@@ -20,7 +20,7 @@ namespace Material {
             {-189,  24, 117, 133,-134,  -6 }, // Q
             {  0,    0,   0,   0,   0,   0 }  // K
         };
-        constexpr i32 OppQuadratic[PIECE_TYPES][PIECE_TYPES]{
+        constexpr int32_t OppQuadratic[PIECE_TYPES][PIECE_TYPES]{
             // BP    P    N    B    R    Q
             {   0                          }, // BP
             {  36,   0                     }, // P
@@ -58,15 +58,15 @@ namespace Material {
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
-        i32 computeImbalance(i32 const pieceCount[][PIECE_TYPES]) {
+        int32_t computeImbalance(int32_t const pieceCount[][PIECE_TYPES]) {
             constexpr auto Opp{ ~Own };
 
-            i32 imbalance{ 0 };
+            int32_t imbalance{ 0 };
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
             for (PieceType pt1 = NONE; pt1 <= QUEN; ++pt1) {
                 if (pieceCount[Own][pt1] != 0) {
-                    i32 v{ 0 };
+                    int32_t v{ 0 };
                     for (PieceType pt2 = NONE; pt2 <= pt1; ++pt2) {
                         v += pieceCount[Own][pt2] * OwnQuadratic[pt1][pt2]
                            + pieceCount[Opp][pt2] * OppQuadratic[pt1][pt2];
@@ -81,8 +81,8 @@ namespace Material {
     void Entry::evaluate(Position const &pos) {
 
         // Calculates the phase interpolating total non-pawn material between endgame and midgame limits.
-        phase = (i32(std::clamp(pos.nonPawnMaterial(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME) * PhaseResolution)
-               / i32(VALUE_MIDGAME - VALUE_ENDGAME);
+        phase = (int32_t(std::clamp(pos.nonPawnMaterial(), VALUE_ENDGAME, VALUE_MIDGAME) - VALUE_ENDGAME) * PhaseResolution)
+               / int32_t(VALUE_MIDGAME - VALUE_ENDGAME);
         scaleFactor[WHITE] = scaleFactor[BLACK] = SCALE_NORMAL;
 
         // Let's look if have a specialized evaluation function for this particular material configuration.
@@ -161,7 +161,7 @@ namespace Material {
         // Evaluate the material imbalance.
         // Use KING as a place holder for the bishop pair "extended piece",
         // this allow us to be more flexible in defining bishop pair bonuses.
-        i32 const pieceCount[COLORS][PIECE_TYPES]{
+        int32_t const pieceCount[COLORS][PIECE_TYPES]{
             {
                 pos.bishopPaired(WHITE),
                 pos.count(W_PAWN), pos.count(W_NIHT),
@@ -176,7 +176,7 @@ namespace Material {
             }
         };
 
-        i32 const value(
+        int32_t const value(
             (computeImbalance<WHITE>(pieceCount)
            - computeImbalance<BLACK>(pieceCount)) / 16 ); // Imbalance Resolution
         imbalance = makeScore(value, value);

@@ -25,7 +25,7 @@ struct Cuckoo final {
 
 namespace Cuckoos {
 
-    constexpr u16 CuckooSize{ 0x2000 };
+    constexpr uint16_t CuckooSize{ 0x2000 };
 
     // Global Cuckoo table
     // Cuckoo tables with Zobrist hashes of valid reversible moves, and the moves themselves
@@ -33,5 +33,5 @@ namespace Cuckoos {
 
     extern bool lookup(Key, Cuckoo&) noexcept;
 
-    extern void initialize() noexcept;
+    extern void initialize();
 }

@@ -29,10 +29,10 @@ struct PolyEntry {
 
     std::string toString() const;
 
-    u64 key;
-    u16 move;
-    u16 weight;
-    u32 learn;
+    uint64_t key;
+    uint16_t move;
+    uint16_t weight;
+    uint32_t learn;
 };
 
 static_assert (sizeof (PolyEntry) == 16, "Entry size incorrect");
@@ -47,34 +47,34 @@ public:
 
     void initialize(std::string_view);
 
-    Move probe(Position&, i16, bool);
+    Move probe(Position&, int16_t, bool);
 
     std::string show(Position const&) const;
 
-    u64 const HeaderSize = 0;
+    uint64_t const HeaderSize = 0;
 
     bool enabled{ false };
 
 private:
     void clear() noexcept;
 
-    i64 findIndex(Key) const noexcept;
-    //i64 findIndex(Position const&) const noexcept;
-    //i64 findIndex(std::string_view) const noexcept;
+    int64_t findIndex(Key) const noexcept;
+    //int64_t findIndex(Position const&) const noexcept;
+    //int64_t findIndex(std::string_view) const noexcept;
 
     bool canProbe(Position const&) noexcept;
 
     PolyEntry *entry{ nullptr };
-    u64 entryCount{ 0 };
+    uint64_t entryCount{ 0 };
 
     std::string filename;
 
     bool doProbe{ true };
 
     Bitboard pieces{ 0 };
-    i32 pieceCount{ 0 };
+    int32_t pieceCount{ 0 };
 
-    u08 failCount{ 0 };
+    uint8_t failCount{ 0 };
 };
 
 // Global Polyglot Book

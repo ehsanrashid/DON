@@ -6,13 +6,13 @@
 
 namespace Evaluator::NNUE::Features {
 
-    constexpr i32 OrientSquare[COLORS]{
+    constexpr int32_t OrientSquare[COLORS]{
         SQ_A1, SQ_H8
     };
 
     // Orient a square according to perspective (rotates by 180 for black)
     inline Square orient(Color perspective, Square s) {
-        return Square(i32(s) ^ OrientSquare[perspective]);
+        return Square(int32_t(s) ^ OrientSquare[perspective]);
     }
 
     // Find the index of the feature quantity from the king position and PieceSquare

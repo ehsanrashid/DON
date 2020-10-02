@@ -68,10 +68,10 @@ namespace Evaluator::NNUE {
         }
 
         /// Read network header
-        bool readHeader(std::istream &istream, u32 *hashValue, std::string *architecture) {
-            u32 const version{ readLittleEndian<u32>(istream) };
-            *hashValue = readLittleEndian<u32>(istream);
-            u32 const size{ readLittleEndian<u32>(istream) };
+        bool readHeader(std::istream &istream, uint32_t *hashValue, std::string *architecture) {
+            uint32_t const version{ readLittleEndian<uint32_t>(istream) };
+            *hashValue = readLittleEndian<uint32_t>(istream);
+            uint32_t const size{ readLittleEndian<uint32_t>(istream) };
 
             if (!istream
              || version != Version) {
@@ -85,7 +85,7 @@ namespace Evaluator::NNUE {
         /// Read evaluation function parameters
         template<typename T>
         bool readParameters(std::istream &istream, T &reference) {
-            u32 const header{ readLittleEndian<u32>(istream) };
+            uint32_t const header{ readLittleEndian<uint32_t>(istream) };
             return !istream
                 || header != T::getHashValue() ?
                 false :
@@ -94,7 +94,7 @@ namespace Evaluator::NNUE {
 
         // Read network parameters
         bool readParameters(std::istream &istream) {
-            u32 hashValue;
+            uint32_t hashValue;
             std::string architecture;
             if (!readHeader(istream, &hashValue, &architecture)
              || hashValue != HashValue

@@ -33,7 +33,6 @@ bool RootMove::operator>(RootMove const &rm) const noexcept {
 bool RootMove::operator==(Move m) const noexcept {
     return front() == m;
 }
-
 bool RootMove::operator!=(Move m) const noexcept {
     return front() != m;
 }
@@ -93,21 +92,21 @@ void RootMoves::operator+=(RootMove const &rm) {
 RootMoves::const_iterator RootMoves::find(Move m) const {
     return std::find(begin(), end(), m);
 }
-RootMoves::const_iterator RootMoves::find(u16 iBeg, u16 iEnd, Move m) const {
+RootMoves::const_iterator RootMoves::find(uint16_t iBeg, uint16_t iEnd, Move m) const {
     return std::find(begin() + iBeg, begin() + iEnd, m);
 }
 
 bool RootMoves::contains(Move m) const {
     return find(m) != end();
 }
-bool RootMoves::contains(u16 iBeg, u16 iEnd, Move m) const {
+bool RootMoves::contains(uint16_t iBeg, uint16_t iEnd, Move m) const {
     return find(iBeg, iEnd, m) != (begin() + iEnd);
 }
 
 RootMoves::iterator RootMoves::find(Move m) {
     return std::find(begin(), end(), m);
 }
-RootMoves::iterator RootMoves::find(u16 iBeg, u16 iEnd, Move m) {
+RootMoves::iterator RootMoves::find(uint16_t iBeg, uint16_t iEnd, Move m) {
     return std::find(begin() + iBeg, begin() + iEnd, m);
 }
 

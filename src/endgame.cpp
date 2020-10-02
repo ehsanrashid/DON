@@ -9,21 +9,21 @@ namespace {
 
     /// Drive a piece towards the edge of the board,
     /// used in KX vs K and KQ vs KR
-    inline i32 pushToEdge(Square s) noexcept {
-        return 90 - (7 * i32(nSqr(edgeDistance(sFile(s)))) / 2
-                   + 7 * i32(nSqr(edgeDistance(sRank(s)))) / 2);
+    inline int32_t pushToEdge(Square s) noexcept {
+        return 90 - (7 * int32_t(nSqr(edgeDistance(sFile(s)))) / 2
+                   + 7 * int32_t(nSqr(edgeDistance(sRank(s)))) / 2);
     }
     /// Drive a piece towards the corner of the board,
     /// used in KBN vs K to A1H8 corners
-    inline i32 pushToCorner(Square s) noexcept {
+    inline int32_t pushToCorner(Square s) noexcept {
         return 420 * std::abs(7 - sFile(s) - sRank(s));
     }
     /// Drive a piece close to another piece
-    inline i32 pushClose(Square s1, Square s2) noexcept {
+    inline int32_t pushClose(Square s1, Square s2) noexcept {
         return 20 * (7 - distance(s1, s2));
     }
     /// Drive a piece away from another piece
-    inline i32 pushAway(Square s1, Square s2) noexcept {
+    inline int32_t pushAway(Square s1, Square s2) noexcept {
         return 20 * (distance(s1, s2) - 1);
     }
 
@@ -41,7 +41,7 @@ namespace {
     }
 
 #if !defined(NDEBUG)
-    bool verifyMaterial(Position const &pos, Color c, Value npm, i32 pawnCount) {
+    bool verifyMaterial(Position const &pos, Color c, Value npm, int32_t pawnCount) {
         return pos.nonPawnMaterial(c) == npm
             && pos.count(c|PAWN) == pawnCount;
     }

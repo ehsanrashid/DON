@@ -14,19 +14,19 @@ struct Magic {
 
 #if !defined(USE_PEXT)
     Bitboard  magic;
-    u08       shift;
+    uint8_t   shift;
 #endif
 
     // Compute the attack's index using the 'magic bitboards' approach
-    u16 index(Bitboard occ) const noexcept {
+    uint16_t index(Bitboard occ) const noexcept {
 
     #if defined(USE_PEXT)
-        return u16( PEXT(occ, mask) );
+        return uint16_t( PEXT(occ, mask) );
     #elif defined(IS_64BIT)
-        return u16( ((occ & mask) * magic) >> shift );
+        return uint16_t( ((occ & mask) * magic) >> shift );
     #else
-        return u16( (u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(magic >> 0x00))
-                   ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(magic >> 0x20))) >> shift );
+        return uint16_t( (uint32_t((uint32_t(occ >> 0x00) & uint32_t(mask >> 0x00)) * uint32_t(magic >> 0x00))
+                        ^ uint32_t((uint32_t(occ >> 0x20) & uint32_t(mask >> 0x20)) * uint32_t(magic >> 0x20))) >> shift );
     #endif
     }
 
@@ -112,7 +112,7 @@ constexpr Bitboard SlotFileBB[3]{
     FileBB[FILE_C]|FileBB[FILE_D]|FileBB[FILE_E]|FileBB[FILE_F]     // C-File
 };
 
-extern u08 Distance[SQUARES][SQUARES];
+extern uint8_t Distance[SQUARES][SQUARES];
 
 extern Bitboard LineBB[SQUARES][SQUARES];
 
@@ -124,7 +124,7 @@ extern Magic RMagics[SQUARES];
 
 
 #if !defined(USE_POPCNT)
-extern u08 PopCount[USHRT_MAX+1]; // 16-bit
+extern uint8_t PopCount[USHRT_MAX+1]; // 16-bit
 #endif
 
 constexpr Bitboard operator~(Square s) { return ~SquareBB[s]; }
@@ -211,23 +211,23 @@ inline bool aligned(Square s1, Square s2, Square s3) {
 /// distance() functions return the distance between s1 and s2
 /// defined as the number of steps for a king in s1 to reach s2.
 
-template<typename T = Square> inline i32 distance(Square, Square);
-template<> inline i32 distance<File>(Square s1, Square s2) {
+template<typename T = Square> inline int32_t distance(Square, Square);
+template<> inline int32_t distance<File>(Square s1, Square s2) {
     return std::abs(sFile(s1) - sFile(s2));
 }
-template<> inline i32 distance<Rank>(Square s1, Square s2) {
+template<> inline int32_t distance<Rank>(Square s1, Square s2) {
     return std::abs(sRank(s1) - sRank(s2));
 }
 
-template<> inline i32 distance<Square>(Square s1, Square s2) {
+template<> inline int32_t distance<Square>(Square s1, Square s2) {
     //return std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
     return Distance[s1][s2];
 }
 
 // Fold file [ABCDEFGH] to file [ABCDDCBA]
-constexpr i32 edgeDistance(File f) { return std::min(f - FILE_A, FILE_H - f); }
+constexpr int32_t edgeDistance(File f) { return std::min(f - FILE_A, FILE_H - f); }
 // Fold rank [12345678] to rank [12344321]
-constexpr i32 edgeDistance(Rank r) { return std::min(r - RANK_1, RANK_8 - r); }
+constexpr int32_t edgeDistance(Rank r) { return std::min(r - RANK_1, RANK_8 - r); }
 
 constexpr Direction PawnPush[COLORS]{
     NORTH, SOUTH
@@ -293,7 +293,7 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) noexcept {
 //}
 
 /// popCount() counts the number of ones in a bitboard
-inline i32 popCount(Bitboard bb) noexcept {
+inline int32_t popCount(Bitboard bb) noexcept {
 
 #if !defined(USE_POPCNT)
     //Bitboard x = bb;
@@ -303,16 +303,16 @@ inline i32 popCount(Bitboard bb) noexcept {
     //x = ((x >> 0) + (x >> 4)) & 0x0F0F0F0F0F0F0F0F;
     //return (x * 0x0101010101010101) >> 56;
 
-    union { Bitboard b; u16 u[4]; } v{ bb };
+    union { Bitboard b; uint16_t u[4]; } v{ bb };
     return PopCount[v.u[0]]
          + PopCount[v.u[1]]
          + PopCount[v.u[2]]
          + PopCount[v.u[3]];
 
 #elif defined(_MSC_VER) || defined(__INTEL_COMPILER)
-    return i32( _mm_popcnt_u64(bb) );
+    return int32_t( _mm_popcnt_u64(bb) );
 #else // Assumed gcc or compatible compiler
-    return i32( __builtin_popcountll(bb) );
+    return int32_t( __builtin_popcountll(bb) );
 #endif
 }
 
@@ -328,11 +328,11 @@ inline Square scanLSq(Bitboard bb) noexcept {
     #if defined(IS_64BIT)
     _BitScanForward64(&index, bb);
     #else
-    if (u32(bb >> 0) != 0) {
-        _BitScanForward(&index, u32(bb >> 0x00));
+    if (uint32_t(bb >> 0) != 0) {
+        _BitScanForward(&index, uint32_t(bb >> 0x00));
     }
     else {
-        _BitScanForward(&index, u32(bb >> 0x20));
+        _BitScanForward(&index, uint32_t(bb >> 0x20));
         index += 0x20;
     }
     #endif
@@ -356,12 +356,12 @@ inline Square scanMSq(Bitboard bb) noexcept {
     #if defined(IS_64BIT)
     _BitScanReverse64(&index, bb);
     #else
-    if (u32(bb >> 0x20) != 0) {
-        _BitScanReverse(&index, u32(bb >> 0x20));
+    if (uint32_t(bb >> 0x20) != 0) {
+        _BitScanReverse(&index, uint32_t(bb >> 0x20));
         index += 0x20;
     }
     else {
-        _BitScanReverse(&index, u32(bb >> 0x00));
+        _BitScanReverse(&index, uint32_t(bb >> 0x00));
     }
     #endif
     return Square(index);

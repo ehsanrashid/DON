@@ -46,7 +46,7 @@
 namespace Evaluator::NNUE {
 
     // Version of the evaluation file
-    constexpr u32 Version{ 0x7AF32F16u };
+    constexpr uint32_t Version{ 0x7AF32F16u };
 
     // Constant used in evaluation value calculation
     constexpr int FVScale{ 16 };
@@ -69,7 +69,7 @@ namespace Evaluator::NNUE {
     constexpr size_t MaxSimdWidth{ 32 };
 
     // Unique number for each piece type on each square
-    enum PieceSquare : u32 {
+    enum PieceSquare : uint32_t {
         PS_NONE     =  0,
         PS_W_PAWN   =  1,
         PS_B_PAWN   =  1 * SQUARES + 1,
@@ -91,8 +91,8 @@ namespace Evaluator::NNUE {
     extern const PieceSquare PP_BoardIndex[PIECES][COLORS];
 
     // Type of input feature after conversion
-    using TransformedFeatureType = u08;
-    using IndexType = u32;
+    using TransformedFeatureType = uint8_t;
+    using IndexType = uint32_t;
 
     // Round n up to be a multiple of base
     template<typename IntType>
@@ -107,7 +107,7 @@ namespace Evaluator::NNUE {
     inline IntType readLittleEndian(std::istream &istream) {
 
         // Read the relevant bytes from the stream in little-endian order
-        u08 u[sizeof (IntType)];
+        uint8_t u[sizeof (IntType)];
         istream.read(reinterpret_cast<char*>(u), sizeof (IntType));
         // Use unsigned arithmetic to convert to machine order
         typename std::make_unsigned<IntType>::type v = 0;

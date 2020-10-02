@@ -25,7 +25,7 @@ namespace King {
 
         Score pawnDist[COLORS];
 
-        u08 castleSide[COLORS];
+        uint8_t castleSide[COLORS];
         Score pawnSafety[COLORS];
 
     private:

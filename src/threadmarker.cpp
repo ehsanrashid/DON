@@ -2,14 +2,14 @@
 
 namespace {
 
-    constexpr u16 ThreadMarkSize{ 0x400 };
+    constexpr uint16_t ThreadMarkSize{ 0x400 };
 
     ThreadMark ThreadMarks[ThreadMarkSize];
 
 }
 
 
-ThreadMarker::ThreadMarker(Thread const *thread, Key posiKey, i16 ply) noexcept :
+ThreadMarker::ThreadMarker(Thread const *thread, Key posiKey, int16_t ply) noexcept :
     marked{ false },
     owned{ false },
     threadMark{ nullptr } {

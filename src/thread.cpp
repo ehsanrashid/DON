@@ -15,7 +15,7 @@ ThreadPool Threadpool;
 
 /// Thread constructor launches the thread and waits until it goes to sleep in threadFunc().
 /// Note that 'busy' and 'dead' should be already set.
-Thread::Thread(u16 idx) :
+Thread::Thread(uint16_t idx) :
     dead{ false },
     busy{ true },
     index(idx),
@@ -115,9 +115,9 @@ Thread* ThreadPool::bestThread() const noexcept {
         minValue = std::min(th->rootMoves[0].newValue, minValue);
     }
     // Vote according to value and depth
-    std::unordered_map<Move, i64> votes;
+    std::unordered_map<Move, int64_t> votes;
     for (auto *th : *this) {
-        votes[th->rootMoves[0][0]] += i32(th->rootMoves[0].newValue - minValue + 14) * i32(th->finishedDepth);
+        votes[th->rootMoves[0][0]] += int32_t(th->rootMoves[0].newValue - minValue + 14) * int32_t(th->finishedDepth);
 
         if (std::abs(bestTh->rootMoves[0].newValue) < +VALUE_MATE_2_MAX_PLY) {
             if (  th->rootMoves[0].newValue >  -VALUE_MATE_2_MAX_PLY
@@ -153,7 +153,7 @@ Thread* ThreadPool::bestThread() const noexcept {
 /// ThreadPool::setSize() creates/destroys threads to match the requested number.
 /// Created and launched threads will immediately go to sleep in threadFunc.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::setup(u16 threadCount) {
+void ThreadPool::setup(uint16_t threadCount) {
     stop = true;
     if (!empty()) {
         mainThread()->waitIdle();
@@ -172,7 +172,7 @@ void ThreadPool::setup(u16 threadCount) {
 
         clean();
         // Reallocate the hash with the new threadpool size
-        u32 hash{ Options["Hash"] };
+        uint32_t hash{ Options["Hash"] };
         TT.autoResize(hash);
         TTEx.autoResize(hash / 4);
         Searcher::initialize();

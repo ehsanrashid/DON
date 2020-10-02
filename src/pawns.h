@@ -8,15 +8,15 @@ namespace Pawns {
     /// Pawns::Entry contains information about Pawn structure.
     struct Entry {
 
-        i32 blockedCount() const noexcept;
-        i32 passedCount() const noexcept;
+        int32_t blockedCount() const noexcept;
+        int32_t passedCount() const noexcept;
 
         template<Color>
         void evaluate(Position const&);
 
         Key key;
 
-        i32 complexity;
+        int32_t complexity;
         bool pawnOnBothFlank;
 
         Score score[COLORS];

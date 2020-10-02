@@ -26,7 +26,7 @@ public:
     Thread() = delete;
     Thread(Thread const&) = delete;
     Thread(Thread&&) = delete;
-    explicit Thread(u16);
+    explicit Thread(uint16_t);
 
     Thread& operator=(Thread const&) = delete;
     Thread& operator=(Thread&&) = delete;
@@ -50,18 +50,18 @@ public:
           finishedDepth,
           selDepth;
 
-    std::atomic<u64> nodes,
-                     tbHits;
-    std::atomic<u32> pvChanges;
+    std::atomic<uint64_t> nodes;
+    std::atomic<uint64_t> tbHits;
+    std::atomic<uint32_t> pvChanges;
 
-    i16   nmpMinPly;
-    Color nmpColor;
+    int16_t nmpMinPly;
+    Color   nmpColor;
 
-    u16 pvBeg,
-        pvCur,
-        pvEnd;
+    uint16_t pvBeg,
+             pvCur,
+             pvEnd;
 
-    u64 ttHitAvg;
+    uint64_t ttHitAvg;
 
     Score contempt;
 
@@ -94,7 +94,7 @@ private:
     bool busy;
     std::mutex mutex;
     std::condition_variable conditionVar;
-    u16 index; // indentity
+    uint16_t index; // indentity
     NativeThread nativeThread;
 };
 
@@ -110,7 +110,7 @@ public:
     void clean() final;
     void search() final;
 
-    i16  tickCount;
+    int16_t tickCount;
 
     bool stopOnPonderHit;       // Stop search on ponderhit
     std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
@@ -119,8 +119,8 @@ public:
     double timeReduction;
     std::array<Value, 4> iterValues;
 
-    Move bestMove;
-    i16  bestDepth;
+    Move    bestMove;
+    int16_t bestDepth;
 };
 
 
@@ -158,7 +158,7 @@ public:
     MainThread* mainThread() const noexcept;
     Thread* bestThread() const noexcept;
 
-    void setup(u16);
+    void setup(uint16_t);
     void clean();
 
     void startThinking(Position&, StateListPtr&);
@@ -176,7 +176,7 @@ private:
 // Global ThreadPool
 extern ThreadPool Threadpool;
 
-enum OutputState : u08 {
+enum OutputState : uint8_t {
     OS_LOCK,
     OS_UNLOCK
 };

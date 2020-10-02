@@ -84,7 +84,7 @@ namespace King {
 
         auto const kSq{ pos.square(Own|KING) };
 
-        u08 cSide( pos.canCastle(Own) ?
+        uint8_t cSide( pos.canCastle(Own) ?
             + 1 * (pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING))
             + 2 * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN)) : 0 );
 
@@ -129,7 +129,7 @@ namespace King {
         auto const kSq{ pos.square(Own|KING) };
 
         // In endgame, king near to closest pawn
-        i32 minPawnDist{ 7 };
+        int32_t minPawnDist{ 7 };
         Bitboard pawns{ pos.pieces(Own, PAWN) };
         if ((pawns & attacksBB<KING>(kSq)) != 0) {
             minPawnDist = 1;

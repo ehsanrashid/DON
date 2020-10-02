@@ -679,10 +679,10 @@
     <Node Id="@666" Category="CodeSchema_Class" Bounds="25103.0989396387,24185.9738385723,132.886666666658,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="Evaluator‎&lt;1‎&gt;" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@667" Category="CodeSchema_Enum" Bounds="25419.4532387344,21906.1717794633,54.9500000000007,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="File" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@668" Category="CodeSchema_Class" Bounds="25277.9200672373,25192.6517794632,116.139999999999,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="HashTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@669" Category="CodeSchema_TypeDef" Bounds="25494.799382129,22352.8517794633,56.8466666666682,26" DelayedCrossGroupLinksState="NotFetched" Label="i08" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@670" Category="CodeSchema_TypeDef" Bounds="25403.1621461778,24357.8917794633,56.8466666666682,26" DelayedCrossGroupLinksState="NotFetched" Label="i16" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@671" Category="CodeSchema_TypeDef" Bounds="25345.5116475852,23636.1317794633,56.8466666666682,26" DelayedCrossGroupLinksState="NotFetched" Label="i32" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@672" Category="CodeSchema_TypeDef" Bounds="25427.0323952363,25916.2917794632,56.8466666666682,26" DelayedCrossGroupLinksState="NotFetched" Label="i64" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@669" Category="CodeSchema_TypeDef" Bounds="25494.799382129,22352.8517794633,56.8466666666682,26" DelayedCrossGroupLinksState="NotFetched" Label="int8_t" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@670" Category="CodeSchema_TypeDef" Bounds="25403.1621461778,24357.8917794633,56.8466666666682,26" DelayedCrossGroupLinksState="NotFetched" Label="int16_t" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@671" Category="CodeSchema_TypeDef" Bounds="25345.5116475852,23636.1317794633,56.8466666666682,26" DelayedCrossGroupLinksState="NotFetched" Label="int32_t" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@672" Category="CodeSchema_TypeDef" Bounds="25427.0323952363,25916.2917794632,56.8466666666682,26" DelayedCrossGroupLinksState="NotFetched" Label="int64_t" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@673" Category="CodeSchema_TypeDef" Bounds="25347.7723958489,24524.8517794633,60.0433333333349,26" DelayedCrossGroupLinksState="NotFetched" Label="Key" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@674" Category="CodeSchema_Struct" Bounds="25680.7253350898,23195.7693274614,130.763333333336,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="Fetched" Group="Collapsed" Label="KPK_Position" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@675" Category="CodeSchema_Struct" Bounds="25398.553137429,25636.4917794632,84.866666666665,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="Limit" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -740,10 +740,10 @@
     <Node Id="@723" Category="CodeSchema_Class" Bounds="25363.0890144566,23915.0117794633,121.386666666665,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="ThreadPool" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@724" Category="CodeSchema_Class" Bounds="25350.37234779,23860.0117794633,134.103333333333,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="TimeManager" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@725" Category="CodeSchema_TypeDef" Bounds="25375.5334466234,26028.2917794632,94.3199999999997,26" DelayedCrossGroupLinksState="NotFetched" Label="TimePoint" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@726" Category="CodeSchema_TypeDef" Bounds="25414.6884179042,24580.8517794633,60.7299999999996,26" DelayedCrossGroupLinksState="NotFetched" Label="u08" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@727" Category="CodeSchema_TypeDef" Bounds="25323.9583179042,24580.8517794633,60.7299999999996,26" DelayedCrossGroupLinksState="NotFetched" Label="u16" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@728" Category="CodeSchema_TypeDef" Bounds="25358.4435311319,24692.8117794633,60.7299999999996,26" DelayedCrossGroupLinksState="NotFetched" Label="u32" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@729" Category="CodeSchema_TypeDef" Bounds="25397.1430223589,24971.6517794632,60.7299999999996,26" DelayedCrossGroupLinksState="NotFetched" Label="u64" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@726" Category="CodeSchema_TypeDef" Bounds="25414.6884179042,24580.8517794633,60.7299999999996,26" DelayedCrossGroupLinksState="NotFetched" Label="uint8_t" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@727" Category="CodeSchema_TypeDef" Bounds="25323.9583179042,24580.8517794633,60.7299999999996,26" DelayedCrossGroupLinksState="NotFetched" Label="uint16_t" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@728" Category="CodeSchema_TypeDef" Bounds="25358.4435311319,24692.8117794633,60.7299999999996,26" DelayedCrossGroupLinksState="NotFetched" Label="uint32_t" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
+    <Node Id="@729" Category="CodeSchema_TypeDef" Bounds="25397.1430223589,24971.6517794632,60.7299999999996,26" DelayedCrossGroupLinksState="NotFetched" Label="uint64_t" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@73" Category="CodeSchema_Method" Bounds="25376.7991775109,22745.5717794633,90.119999999999,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator+" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@730" Category="CodeSchema_Struct" Bounds="25530.8712037194,22856.5317794633,105.296666666665,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="ValMove" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@731" Category="CodeSchema_Class" Bounds="25496.6007468419,22464.8117794633,112.389999999999,25" DelayedChildNodesState="NotFetched" DelayedCrossGroupLinksState="NotFetched" Group="Collapsed" Label="ValMoves" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -6814,10 +6814,10 @@
     <Alias n="666" Id="(@1 @5 Type=Evaluator&lt;1&gt;)" />
     <Alias n="667" Id="(@1 @3 Type=File)" />
     <Alias n="668" Id="(@1 @3 Type=HashTable)" />
-    <Alias n="669" Id="(@1 @3 Type=i08)" />
-    <Alias n="670" Id="(@1 @3 Type=i16)" />
-    <Alias n="671" Id="(@1 @3 Type=i32)" />
-    <Alias n="672" Id="(@1 @3 Type=i64)" />
+    <Alias n="669" Id="(@1 @3 Type=int8_t)" />
+    <Alias n="670" Id="(@1 @3 Type=int16_t)" />
+    <Alias n="671" Id="(@1 @3 Type=int32_t)" />
+    <Alias n="672" Id="(@1 @3 Type=int64_t)" />
     <Alias n="673" Id="(@1 @3 Type=Key)" />
     <Alias n="674" Id="(@1 @10 Type=KPK_Position)" />
     <Alias n="675" Id="(@1 @3 Type=Limit)" />
@@ -6871,10 +6871,10 @@
     <Alias n="723" Id="(@1 @3 Type=ThreadPool)" />
     <Alias n="724" Id="(@1 @3 Type=TimeManager)" />
     <Alias n="725" Id="(@1 @3 Type=TimePoint)" />
-    <Alias n="726" Id="(@1 @3 Type=u08)" />
-    <Alias n="727" Id="(@1 @3 Type=u16)" />
-    <Alias n="728" Id="(@1 @3 Type=u32)" />
-    <Alias n="729" Id="(@1 @3 Type=u64)" />
+    <Alias n="726" Id="(@1 @3 Type=uint8_t)" />
+    <Alias n="727" Id="(@1 @3 Type=uint16_t)" />
+    <Alias n="728" Id="(@1 @3 Type=uint32_t)" />
+    <Alias n="729" Id="(@1 @3 Type=uint64_t)" />
     <Alias n="730" Id="(@1 @3 Type=ValMove)" />
     <Alias n="731" Id="(@1 @3 Type=ValMoves)" />
     <Alias n="732" Id="(@1 @3 Type=Value)" />

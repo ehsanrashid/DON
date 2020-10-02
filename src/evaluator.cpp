@@ -109,7 +109,7 @@ namespace Evaluator {
 
     namespace {
 
-        enum Term : u08 { MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, SCALING, TOTAL, TERMS = 16 };
+        enum Term : uint8_t { MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, SCALING, TOTAL, TERMS = 16 };
 
         class Tracer {
 
@@ -128,7 +128,25 @@ namespace Evaluator {
                 write(t, BLACK, sB);
             }
 
+            static std::string toString(Term t) {
+
+                std::ostringstream oss{};
+                if (t == MATERIAL
+                 || t == IMBALANCE
+                 || t == SCALING
+                 || t == TOTAL) {
+                    oss << " | ------ ------" << " | ------ ------";
+                }
+                else {
+                    oss << " | " << Scores[t][WHITE] << " | " << Scores[t][BLACK];
+                }
+                oss << " | " << Scores[t][WHITE] - Scores[t][BLACK] << " |\n";
+
+                return oss.str();
+            }
+
         private:
+
             static Score Scores[TERMS][COLORS];
 
             friend std::ostream& operator<<(std::ostream&, Term);
@@ -137,16 +155,7 @@ namespace Evaluator {
         Score Tracer::Scores[TERMS][COLORS];
 
         std::ostream& operator<<(std::ostream &ostream, Term t) {
-            if (t == MATERIAL
-             || t == IMBALANCE
-             || t == SCALING
-             || t == TOTAL) {
-                ostream << " | ------ ------" << " | ------ ------";
-            }
-            else {
-                ostream << " | " << Tracer::Scores[t][WHITE] << " | " << Tracer::Scores[t][BLACK];
-            }
-            ostream << " | " << Tracer::Scores[t][WHITE] - Tracer::Scores[t][BLACK] << " |\n";
+            ostream << Tracer::toString(t);
             return ostream;
         }
 
@@ -251,10 +260,10 @@ namespace Evaluator {
         constexpr Value NNUEThreshold1{   Value(550) };
         constexpr Value NNUEThreshold2{   Value(150) };
 
-        constexpr i32 SafeCheckWeight[PIECE_TYPES_EX][2]{
+        constexpr int32_t SafeCheckWeight[PIECE_TYPES_EX][2]{
             {0,0}, {0,0}, {803, 1292}, {639, 974}, {1087, 1878}, {759, 1132}
         };
-        constexpr i32 KingAttackerWeight[PIECE_TYPES_EX]{
+        constexpr int32_t KingAttackerWeight[PIECE_TYPES_EX]{
             0, 0, 81, 52, 44, 10
         };
 
@@ -304,14 +313,14 @@ namespace Evaluator {
             // The squares adjacent to the king plus some other very near squares, depending on king position.
             Bitboard kingRing[COLORS];
             // Number of pieces of the color, which attack a square in the kingRing of the enemy king.
-            i32 kingAttackersCount[COLORS];
+            int32_t kingAttackersCount[COLORS];
             // Sum of the "weight" of the pieces of the color which attack a square in the kingRing of the enemy king.
             // The weights of the individual piece types are given by the KingAttackerWeight[piece-type]
-            i32 kingAttackersWeight[COLORS];
+            int32_t kingAttackersWeight[COLORS];
             // Number of attacks by the color to squares directly adjacent to the enemy king.
             // Pieces which attack more than one square are counted multiple times.
             // For instance, if there is a white knight on g5 and black's king is on g8, this white knight adds 2 to kingAttacksCount[WHITE]
-            i32 kingAttacksCount[COLORS];
+            int32_t kingAttacksCount[COLORS];
 
             bool canCastle[COLORS];
         };
@@ -586,7 +595,7 @@ namespace Evaluator {
             auto const kSq{ pos.square(Own|KING) };
 
             // Main king safety evaluation
-            i32 kingDanger{ 0 };
+            int32_t kingDanger{ 0 };
 
             // Attacked squares defended at most once by friend queen or king
             Bitboard const weakArea{
@@ -669,14 +678,14 @@ namespace Evaluator {
               &  CampBB[Own]
               &  sqlAttacks[Opp][NONE];
             // Friend king flank attack count
-            i32 const kingFlankAttack{
+            int32_t const kingFlankAttack{
                 popCount(b)                      // Squares attacked by enemy in friend king flank
               + popCount(b & dblAttacks[Opp]) }; // Squares attacked by enemy twice in friend king flank.
             // Friend king flank defense count
             b =  KingFlankBB[sFile(kSq)]
               &  CampBB[Own]
               &  sqlAttacks[Own][NONE];
-            i32 const kingFlankDefense{
+            int32_t const kingFlankDefense{
                 popCount(b) };                   // Squares attacked by friend in friend king flank
 
             // King Safety:
@@ -687,7 +696,7 @@ namespace Evaluator {
                         + 185 * popCount(kingRing[Own] & weakArea)
                         + 148 * popCount(unsafeCheck)
                         +  98 * popCount(pos.kingBlockers(Own))
-                        +   3 * i32(nSqr(kingFlankAttack)) / 8
+                        +   3 * int32_t(nSqr(kingFlankAttack)) / 8
                         // Enemy queen is gone
                         - 873 * (pos.pieces(Opp, QUEN) == 0)
                         // Friend knight is near by to defend king
@@ -702,7 +711,7 @@ namespace Evaluator {
 
             // transform the king danger into a score
             if (kingDanger > 100) {
-                score -= makeScore(u32(nSqr(kingDanger) / 0x1000), kingDanger / 0x10);
+                score -= makeScore(uint32_t(nSqr(kingDanger) / 0x1000), kingDanger / 0x10);
             }
 
             // Penalty for king on a pawn less flank
@@ -887,13 +896,13 @@ namespace Evaluator {
                 auto const s{ popLSq(pass) };
                 assert((pos.pieces(Opp, PAWN) & frontSquaresBB(Own, s + Push)) == 0);
 
-                i32 const r{ relativeRank(Own, s) };
+                int32_t const r{ relativeRank(Own, s) };
                 // Base bonus depending on rank.
                 Score bonus{ PasserRank[r] };
 
                 auto const pushSq{ s + Push };
                 if (r > RANK_3) {
-                    i32 const w{ 5 * r - 13 };
+                    int32_t const w{ 5 * r - 13 };
 
                     // Adjust bonus based on the king's proximity
                     bonus += makeScore(0,  kingProximity(Opp, pushSq) * w * 19 / 4
@@ -912,7 +921,7 @@ namespace Evaluator {
                             attackedSquares &= sqlAttacks[Opp][NONE];
                         }
 
-                        i32 const k{
+                        int32_t const k{
                                 // Bonus according to attacked squares
                               + 15 * ((attackedSquares) == 0)
                               + 11 * ((attackedSquares & frontSquaresBB(Own, s)) == 0)
@@ -956,12 +965,12 @@ namespace Evaluator {
             behind |= pawnSglPushBB<Opp>(behind);
             behind |= pawnDblPushBB<Opp>(behind);
 
-            i32 const bonus{
+            int32_t const bonus{
                 popCount(safeSpace)
               + popCount(  behind
                         &  safeSpace
                         & ~sqlAttacks[Opp][NONE]) };
-            i32 const weight{
+            int32_t const weight{
                 pos.count(Own)
               + std::min(pawnEntry->blockedCount(), 9)
               - 3 };
@@ -1060,12 +1069,12 @@ namespace Evaluator {
             auto const wkSq{ pos.square(W_KING) };
             auto const bkSq{ pos.square(B_KING) };
 
-            i32 const outflanking{
+            int32_t const outflanking{
                 distance<File>(wkSq, bkSq)
               - distance<Rank>(wkSq, bkSq) };
 
             // Compute the initiative bonus for the attacking side
-            i32 const complexity{
+            int32_t const complexity{
                  1 * pawnEntry->complexity
               +  9 * outflanking
                 // King infiltration

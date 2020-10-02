@@ -7,7 +7,7 @@
 #include "type.h"
 
 /// EndgameCode lists all supported endgame functions by corresponding codes
-enum EndgameCode : u08 {
+enum EndgameCode : uint8_t {
 
     EVALUATION_FUNCTIONS,
 

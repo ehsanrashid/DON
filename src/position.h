@@ -30,15 +30,15 @@ struct StateInfo {
     Key         pawnKey;        // Hash key of pawns
     CastleRight castleRights;   // Castling-rights information
     Square      epSquare;       // Enpassant -> "In passing"
-    i16         clockPly;       // Number of half moves clock since the last pawn advance or any capture
-    i16         nullPly;
+    int16_t     clockPly;       // Number of half moves clock since the last pawn advance or any capture
+    int16_t     nullPly;
 
     // ---Not copied when making a move---
     Key         posiKey;        // Hash key of position
     Bitboard    checkers;       // Checkers
     PieceType   captured;       // Piece type captured
     bool        promoted;
-    i16         repetition;
+    int16_t     repetition;
     // Check info
     Bitboard kingBlockers[COLORS]; // Absolute and Discover Blockers
     Bitboard kingCheckers[COLORS]; // Absolute and Discover Checkers
@@ -94,12 +94,12 @@ public:
     template<typename... PieceTypes>
     Bitboard pieces(Color, PieceTypes...) const noexcept;
 
-    i32 count(Piece) const noexcept;
-    i32 count(PieceType) const noexcept;
-    i32 count(Color) const noexcept;
-    i32 count() const noexcept;
+    int32_t count(Piece) const noexcept;
+    int32_t count(PieceType) const noexcept;
+    int32_t count(Color) const noexcept;
+    int32_t count() const noexcept;
     Square const* squares(Piece) const noexcept;
-    Square square(Piece, u08 = 0) const noexcept;
+    Square square(Piece, uint8_t = 0) const noexcept;
 
     Value nonPawnMaterial(Color) const noexcept;
     Value nonPawnMaterial() const noexcept;
@@ -114,8 +114,8 @@ public:
     bool canCastle(Color, CastleSide) const noexcept;
     Square epSquare() const noexcept;
 
-    i16 clockPly() const noexcept;
-    i16 nullPly() const noexcept;
+    int16_t clockPly() const noexcept;
+    int16_t nullPly() const noexcept;
 
     Key matlKey() const noexcept;
     Key pawnKey() const noexcept;
@@ -123,7 +123,7 @@ public:
     Bitboard checkers() const noexcept;
     PieceType captured() const noexcept;
     bool promoted() const noexcept;
-    i16 repetition() const noexcept;
+    int16_t repetition() const noexcept;
 
     Bitboard kingBlockers(Color) const noexcept;
     Bitboard kingCheckers(Color) const noexcept;
@@ -131,7 +131,7 @@ public:
 
     Color activeSide() const noexcept;
     Score psqScore() const noexcept;
-    i16 gamePly() const noexcept;
+    int16_t gamePly() const noexcept;
     Thread* thread() const noexcept;
     void thread(Thread*) noexcept;
 
@@ -140,10 +140,10 @@ public:
     Key pgKey() const noexcept;
     Key movePosiKey(Move) const noexcept;
 
-    i16  moveCount() const noexcept;
-    bool draw(i16) const noexcept;
+    int16_t  moveCount() const noexcept;
+    bool draw(int16_t) const noexcept;
     bool repeated() const noexcept;
-    bool cycled(i16) const noexcept;
+    bool cycled(int16_t) const noexcept;
 
     Bitboard attackersTo(Square, Bitboard) const noexcept;
     Bitboard attackersTo(Square) const noexcept;
@@ -207,21 +207,21 @@ private:
     Bitboard colors[COLORS];
     Bitboard types[PIECE_TYPES];
 
-    Piece  board[SQUARES];
-    u08    pieceIndex[SQUARES];
-    Square pieceSquare[PIECES][12];
-    u08    pieceCount[PIECES];
+    Piece   board[SQUARES];
+    uint8_t pieceIndex[SQUARES];
+    Square  pieceSquare[PIECES][12];
+    uint8_t pieceCount[PIECES];
 
-    Value  npMaterial[COLORS];
+    Value   npMaterial[COLORS];
 
     Square   cslRookSq[COLORS][CASTLE_SIDES];
     Bitboard cslKingPath[COLORS][CASTLE_SIDES];
     Bitboard cslRookPath[COLORS][CASTLE_SIDES];
     CastleRight sqCastleRight[SQUARES];
 
-    Color active;
-    Score psq;
-    i16   ply;
+    Color   active;
+    Score   psq;
+    int16_t ply;
 
     StateInfo *_stateInfo;
     Thread    *_thread;
@@ -254,26 +254,26 @@ inline Bitboard Position::pieces(Color c, PieceTypes... pts) const noexcept {
 }
 
 /// Position::count() counts specific piece
-inline i32 Position::count(Piece p) const noexcept {
+inline int32_t Position::count(Piece p) const noexcept {
     return pieceCount[p];
 }
 /// Position::count() counts specific type
-inline i32 Position::count(PieceType pt) const noexcept {
+inline int32_t Position::count(PieceType pt) const noexcept {
     return count(WHITE|pt) + count(BLACK|pt);
 }
 /// Position::count() counts specific color
-inline i32 Position::count(Color c) const noexcept {
+inline int32_t Position::count(Color c) const noexcept {
     return count(c|PAWN) + count(c|NIHT) + count(c|BSHP) + count(c|ROOK) + count(c|QUEN) + count(c|KING);
 }
 /// Position::count() counts all
-inline i32 Position::count() const noexcept {
+inline int32_t Position::count() const noexcept {
     return count(WHITE) + count(BLACK);
 }
 
 inline Square const* Position::squares(Piece p) const noexcept {
     return pieceSquare[p];
 }
-inline Square Position::square(Piece p, u08 idx) const noexcept {
+inline Square Position::square(Piece p, uint8_t idx) const noexcept {
     assert(isOk(p));
     assert(count(p) > idx);
     return squares(p)[idx];
@@ -310,10 +310,10 @@ inline Square Position::epSquare() const noexcept {
     return _stateInfo->epSquare;
 }
 
-inline i16 Position::clockPly() const noexcept {
+inline int16_t Position::clockPly() const noexcept {
     return _stateInfo->clockPly;
 }
-inline i16 Position::nullPly() const noexcept {
+inline int16_t Position::nullPly() const noexcept {
     return _stateInfo->nullPly;
 }
 
@@ -335,7 +335,7 @@ inline PieceType Position::captured() const noexcept {
 inline bool Position::promoted() const noexcept {
     return _stateInfo->promoted;
 }
-inline i16 Position::repetition() const noexcept {
+inline int16_t Position::repetition() const noexcept {
     return _stateInfo->repetition;
 }
 
@@ -355,7 +355,7 @@ inline Color Position::activeSide() const noexcept {
 inline Score Position::psqScore() const noexcept {
     return psq;
 }
-inline i16 Position::gamePly() const noexcept {
+inline int16_t Position::gamePly() const noexcept {
     return ply;
 }
 
@@ -370,8 +370,8 @@ inline bool Position::castleExpeded(Color c, CastleSide cs) const noexcept {
     return (castleRookPath(c, cs) & pieces()) == 0;
 }
 /// Position::moveCount() starts at 1, and is incremented after BLACK's move.
-inline i16 Position::moveCount() const noexcept {
-    return i16( std::max((ply - active) / 2, 0) + 1 );
+inline int16_t Position::moveCount() const noexcept {
+    return int16_t( std::max((ply - active) / 2, 0) + 1 );
 }
 
 inline void Position::placePiece(Square s, Piece p) {

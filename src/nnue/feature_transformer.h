@@ -85,7 +85,7 @@ namespace Evaluator::NNUE {
         static constexpr size_t BufferSize{ OutputDimensions * sizeof (OutputType) };
 
         // Hash value embedded in the evaluation file
-        static constexpr u32 getHashValue() {
+        static constexpr uint32_t getHashValue() {
             return RawFeatures::HashValue ^ OutputDimensions;
         }
 
@@ -364,8 +364,8 @@ namespace Evaluator::NNUE {
             accumulator.accumulationComputed = true;
         }
 
-        using BiasType = i16;
-        using WeightType = i16;
+        using BiasType = int16_t;
+        using WeightType = int16_t;
 
         alignas(CacheLineSize) BiasType _biases[HalfDimensions];
         alignas(CacheLineSize) WeightType _weights[HalfDimensions * InputDimensions];

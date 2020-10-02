@@ -22,18 +22,20 @@
 struct TEntry {
 
 public:
-    //Key         key() const noexcept { return Key  (k16); }
-    Depth     depth() const noexcept { return Depth(d08 + DEPTH_OFFSET); }
 
-    u08  generation() const noexcept { return u08  (g08 & 248); }
-    bool         pv() const noexcept { return bool (g08 & 4); }
-    Bound     bound() const noexcept { return Bound(g08 & 3); }
+    //Key            key() const noexcept { return Key(k16); }
+    Depth        depth() const noexcept { return Depth(d08 + DEPTH_OFFSET); }
 
-    Value     value() const noexcept { return Value(v16); }
-    Value      eval() const noexcept { return Value(e16); }
-    Move       move() const noexcept { return Move (m16); }
+    uint8_t generation() const noexcept { return uint8_t(g08 & 248); }
+    bool            pv() const noexcept { return bool   (g08 & 4); }
+    Bound        bound() const noexcept { return Bound  (g08 & 3); }
 
-    u16       worth() const noexcept { return d08 - ((263 + Generation - g08) & 248); }
+    Value        value() const noexcept { return Value(v16); }
+    Value         eval() const noexcept { return Value(e16); }
+
+    Move          move() const noexcept { return Move(m16); }
+
+    uint16_t     worth() const noexcept { return d08 - ((263 + Generation - g08) & 248); }
 
     static void updateGeneration() noexcept;
 
@@ -41,15 +43,16 @@ public:
     void save(Key, Move, Value, Value, Depth, Bound, bool) noexcept;
 
     // "Generation" variable distinguish transposition table entries from different searches.
-    static u08 Generation;
+    static uint8_t Generation;
 
 private:
-    u16 k16;
-    u08 d08;
-    u08 g08;
-    u16 m16;
-    i16 v16;
-    i16 e16;
+
+    uint16_t    k16;
+    uint8_t     d08;
+    uint8_t     g08;
+    uint16_t    m16;
+    int16_t     v16;
+    int16_t     e16;
 
     friend struct TCluster;
 };
@@ -61,29 +64,29 @@ inline void TEntry::updateGeneration() noexcept {
 }
 
 inline void TEntry::refresh() noexcept {
-    g08 = u08(Generation | (g08 & 7));
+    g08 = uint8_t(Generation | (g08 & 7));
 }
 
 inline void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, bool pv) noexcept {
 
     // Preserve any existing move for the same position
     if (m != MOVE_NONE
-     || u16(k) != k16) {
-        m16 = u16(m);
+     || uint16_t(k) != k16) {
+        m16 = uint16_t(m);
     }
     // Overwrite less valuable entries
     if (b == BOUND_EXACT
-     || u16(k) != k16
+     || uint16_t(k) != k16
      || d - DEPTH_OFFSET + 4 > d08) {
 
         assert(d > DEPTH_OFFSET);
         assert(d < MAX_PLY);
 
-        k16 = u16(k);
-        d08 = u08(d - DEPTH_OFFSET);
-        g08 = u08(Generation | u08(pv) << 2 | b);
-        v16 = i16(v);
-        e16 = i16(e);
+        k16 = uint16_t(k);
+        d08 = uint8_t(d - DEPTH_OFFSET);
+        g08 = uint8_t(Generation | uint8_t(pv) << 2 | b);
+        v16 = int16_t(v);
+        e16 = int16_t(e);
     }
     assert(d08 != 0);
 }
@@ -92,11 +95,11 @@ inline void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, bool
 /// 10 x 3 + 2 = 32
 struct TCluster {
 
-    u32 freshEntryCount() const noexcept;
+    uint32_t freshEntryCount() const noexcept;
 
-    TEntry* probe(u16, bool&) noexcept;
+    TEntry* probe(uint16_t, bool&) noexcept;
 
-    static constexpr u08 EntryPerCluster{ 3 };
+    static constexpr uint8_t EntryPerCluster{ 3 };
 
     TEntry entry[EntryPerCluster];
     char pad[2]; // Pad to 32 bytes
@@ -104,7 +107,7 @@ struct TCluster {
 /// Size of TCluster (32 bytes)
 static_assert (sizeof (TCluster) == 32, "Cluster size incorrect");
 
-inline u32 TCluster::freshEntryCount() const noexcept {
+inline uint32_t TCluster::freshEntryCount() const noexcept {
     return std::count_if(std::begin(entry), std::end(entry),
                         [](auto const &e) noexcept {
                             return e.d08 != 0 && e.generation() == TEntry::Generation;
@@ -128,7 +131,7 @@ public:
     TTable& operator=(TTable const&) = delete;
     TTable& operator=(TTable&&) = delete;
 
-    u32 size() const noexcept;
+    uint32_t size() const noexcept;
 
     TCluster* cluster(Key) const noexcept;
 
@@ -142,7 +145,7 @@ public:
 
     TEntry* probe(Key, bool&) const noexcept;
 
-    u32 hashFull() const noexcept;
+    uint32_t hashFull() const noexcept;
 
     Move extractNextMove(Position&, Move) const noexcept;
 
@@ -167,17 +170,17 @@ private:
     friend std::istream& operator>>(std::istream&, TTable      &);
 };
 
-inline u64 mul_hi64(u64 a, u64 b) noexcept {
+constexpr uint64_t mul_hi64(uint64_t a, uint64_t b) noexcept {
 
 #if defined(__GNUC__) && defined(IS_64BIT)
     __extension__ typedef unsigned __int128 u128;
     return ((u128)a * (u128)b) >> 64;
 #else
-    u64 const aL{ (u32)a }, aH{ a >> 32 };
-    u64 const bL{ (u32)b }, bH{ b >> 32 };
-    u64 const c1{ (aL * bL) >> 32 };
-    u64 const c2{ aH * bL + c1 };
-    u64 const c3{ aL * bH + (u32)c2 };
+    uint64_t const aL{ (uint32_t)a }, aH{ a >> 32 };
+    uint64_t const bL{ (uint32_t)b }, bH{ b >> 32 };
+    uint64_t const c1{ (aL * bL) >> 32 };
+    uint64_t const c2{ aH * bL + c1 };
+    uint64_t const c3{ aL * bH + (uint32_t)c2 };
     return aH * bH + (c2 >> 32) + (c3 >> 32);
 #endif
 

@@ -44,8 +44,9 @@ public:
     Value oldValue{ -VALUE_INFINITE }
         , newValue{ -VALUE_INFINITE };
     Depth selDepth{ DEPTH_ZERO };
-    i16   tbRank  { 0 };
-    Value tbValue { VALUE_ZERO };
+    int16_t tbRank{ 0 };
+    Value tbValue{ VALUE_ZERO };
+
 };
 
 extern std::ostream& operator<<(std::ostream&, RootMove const&);
@@ -67,18 +68,18 @@ public:
     //void operator-=(RootMove const&);
 
     const_iterator find(Move) const;
-    const_iterator find(u16, u16, Move) const;
+    const_iterator find(uint16_t, uint16_t, Move) const;
 
     bool contains(Move) const;
-    bool contains(u16, u16, Move) const;
+    bool contains(uint16_t, uint16_t, Move) const;
 
     iterator find(Move);
-    iterator find(u16, u16, Move);
+    iterator find(uint16_t, uint16_t, Move);
 
     void stableSort() {
         std::stable_sort(begin(), end());
     }
-    void stableSort(u16 iBeg, u16 iEnd) {
+    void stableSort(uint16_t iBeg, uint16_t iEnd) {
         std::stable_sort(begin() + iBeg, begin() + iEnd);
     }
     template<class Pr>

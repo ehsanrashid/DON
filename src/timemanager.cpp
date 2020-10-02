@@ -15,11 +15,11 @@ TimeManager::TimeManager() :
 /// of time allowed for the current game ply.  We currently support:
 ///   * x basetime (+ z increment)
 ///   * x moves in y seconds (+ z increment)
-void TimeManager::setup(Color c, i16 ply) {
+void TimeManager::setup(Color c, int16_t ply) {
 
     TimePoint overheadMoveTime{ Options["Overhead MoveTime"] };
-    u32 moveSlowness{ Options["Move Slowness"] };
-    u16 timeNodes{ Options["Time Nodes"] };
+    uint32_t moveSlowness{ Options["Move Slowness"] };
+    uint16_t timeNodes{ Options["Time Nodes"] };
 
     // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
@@ -33,8 +33,8 @@ void TimeManager::setup(Color c, i16 ply) {
         Limits.clock[c].inc *= timeNodes;
     }
     // Maximum move horizon: Plan time management at most this many moves ahead.
-    i32 maxMovestogo{ Limits.movestogo != 0 ?
-                        std::min(i32(Limits.movestogo), 50) : 50 };
+    int32_t maxMovestogo{ Limits.movestogo != 0 ?
+                        std::min(int32_t(Limits.movestogo), 50) : 50 };
     
     // Make sure timeLeft is > 0 since we may use it as a divisor
     TimePoint remainTime{ std::max(Limits.clock[c].time

@@ -18,9 +18,9 @@ public:
     using ostream_type = std::basic_ostream<Elem, Traits>;
 
     DelimitedIterator(ostream_type &os, const Elem *const delimiter) :
-        os(&os),
-        delimiter(delimiter),
-        first(true) {
+        os{ &os },
+        delimiter{ delimiter },
+        first{ true } {
     }
 
     DelimitedIterator &operator++() {
@@ -48,6 +48,7 @@ public:
     }
 
 protected:
+
     ostream_type *os;
     const Elem *delimiter;
     bool first;

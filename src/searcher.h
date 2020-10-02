@@ -3,7 +3,7 @@
 #include "type.h"
 
 // Threshold for counter moves based pruning
-constexpr i32 CounterMovePruneThreshold{ 0 };
+constexpr int32_t CounterMovePruneThreshold{ 0 };
 
 /// Limit stores information sent by GUI after Go command about limit to search
 ///  - Available Time and Increment
@@ -25,11 +25,11 @@ struct Limit {
 
     Clock     clock[COLORS]{};        // Search with Clock
 
-    u08       movestogo{ 0 };       // Search <x> moves to the next time control
+    uint8_t   movestogo{ 0 };       // Search <x> moves to the next time control
     TimePoint moveTime{ 0 };        // Search <x> exact time in milli-seconds
     Depth     depth{ DEPTH_ZERO };  // Search <x> depth(plies) only
-    u64       nodes{ 0 };           // Search <x> nodes only
-    u08       mate{ 0 };            // Search mate in <x> moves
+    uint64_t  nodes{ 0 };           // Search <x> nodes only
+    uint8_t   mate{ 0 };            // Search mate in <x> moves
     bool      infinite{ false };    // Search until the "stop" command
     bool      ponder{ false };      // Search in ponder mode.
     Moves     searchMoves;          // Restrict search to these root moves only
@@ -49,4 +49,4 @@ namespace Searcher {
 
 extern Limit Limits;
 
-extern u16 PVCount;
+extern uint16_t PVCount;

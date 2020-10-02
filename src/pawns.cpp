@@ -10,7 +10,7 @@ namespace Pawns {
 
     namespace {
         // Connected pawn bonus
-        constexpr i32 Connected[RANKS]{
+        constexpr int32_t Connected[RANKS]{
             0, 7, 8, 11, 24, 45, 85, 0
         };
 
@@ -31,11 +31,11 @@ namespace Pawns {
 
     }
 
-    i32 Entry::blockedCount() const noexcept {
+    int32_t Entry::blockedCount() const noexcept {
         return popCount(blockeds);
     }
 
-    i32 Entry::passedCount() const noexcept {
+    int32_t Entry::passedCount() const noexcept {
         return popCount(passeds[WHITE] | passeds[BLACK]);
     }
 
@@ -114,7 +114,7 @@ namespace Pawns {
 
             if (supporters != 0
              || phalanxes != 0) {
-                i32 const v{ Connected[r] * (2 + 1 * (phalanxes != 0) - 1 * opposed)
+                int32_t const v{ Connected[r] * (2 + 1 * (phalanxes != 0) - 1 * opposed)
                            + 21 * popCount(supporters) };
                 sp += makeScore(v, v * (r - RANK_3) / 4);
             }

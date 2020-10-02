@@ -11,7 +11,7 @@ namespace BitBase {
 
         // There are 24 possible pawn squares: files A to D and ranks from 2 to 7
         // Positions with the pawn on files E to H will be mirrored before probing.
-        constexpr u32 BaseSize{ 24 * 2 * 64 * 64 }; // wpSq * active * wkSq * bkSq
+        constexpr uint32_t BaseSize{ 24 * 2 * 64 * 64 }; // wpSq * active * wkSq * bkSq
 
         std::bitset<BaseSize> KPKBitBase;
 
@@ -24,7 +24,7 @@ namespace BitBase {
         // bit    12: active (WHITE or BLACK)
         // bit 13-14: white pawn file [(from FILE_A to FILE_D) - FILE_A]
         // bit 15-17: white pawn rank [(from RANK_2 to RANK_7) - RANK_2]
-        u32 index(Color active, Square wkSq, Square bkSq, Square wpSq) {
+        uint32_t index(Color active, Square wkSq, Square bkSq, Square wpSq) {
             assert(FILE_A <= sFile(wpSq) && sFile(wpSq) <= FILE_D);
             assert(RANK_2 <= sRank(wpSq) && sRank(wpSq) <= RANK_7);
 
@@ -35,7 +35,7 @@ namespace BitBase {
                  | (((sRank(wpSq) - RANK_2) & 7) << 15);
         }
 
-        enum Result : u08 {
+        enum Result : uint8_t {
             INVALID = 0,
             UNKNOWN = 1 << 0,
             DRAW    = 1 << 1,
@@ -57,14 +57,14 @@ namespace BitBase {
             Result result;
 
             KPKPosition() = default;
-            KPKPosition(u32);
+            KPKPosition(uint32_t);
 
             operator Result() const noexcept { return result; }
 
             Result classify(KPKPosition kpkArrBase[]);
         };
 
-        KPKPosition::KPKPosition(u32 idx) {
+        KPKPosition::KPKPosition(uint32_t idx) {
             assert(idx < BaseSize);
             wkSq   = Square((idx >>  0) & 63);
             bkSq   = Square((idx >>  6) & 63);
@@ -165,7 +165,7 @@ namespace BitBase {
 
         KPKPosition kpkArrBase[BaseSize];
         // Initialize kpkArrBase with known WIN/DRAW positions
-        for (u32 idx = 0; idx < BaseSize; ++idx) {
+        for (uint32_t idx = 0; idx < BaseSize; ++idx) {
             kpkArrBase[idx] = { idx };
         }
         // Iterate through the positions until none of the unknown positions
@@ -173,13 +173,13 @@ namespace BitBase {
         bool repeat{ true };
         while (repeat) {
             repeat = false;
-            for (u32 idx = 0; idx < BaseSize; ++idx) {
+            for (uint32_t idx = 0; idx < BaseSize; ++idx) {
                 repeat |= kpkArrBase[idx] == UNKNOWN
                        && kpkArrBase[idx].classify(kpkArrBase) != UNKNOWN;
             }
         }
         // Fill the Bitbase from Arraybase
-        for (u32 idx = 0; idx < BaseSize; ++idx) {
+        for (uint32_t idx = 0; idx < BaseSize; ++idx) {
             if (kpkArrBase[idx] == WIN) {
                 KPKBitBase.set(idx);
             }

@@ -17,7 +17,7 @@ namespace Evaluator::NNUE::Features {
         // Feature name
         static constexpr char const *Name{ "HalfKP(Friend)" };
         // Hash value embedded in the evaluation file
-        static constexpr u32 HashValue{ 0x5D69D5B9u ^ (AssociatedKing == Side::FRIEND) };
+        static constexpr uint32_t HashValue{ 0x5D69D5B9u ^ (AssociatedKing == Side::FRIEND) };
         // Number of feature dimensions
         static constexpr IndexType Dimensions{ static_cast<IndexType>(SQUARES) * static_cast<IndexType>(PS_END) };
         // Maximum number of simultaneously active features

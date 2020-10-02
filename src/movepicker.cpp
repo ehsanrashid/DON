@@ -4,7 +4,7 @@
 
 namespace {
 
-    enum Stage : u08 {
+    enum Stage : uint8_t {
         STAGE_NONE = 0,
 
         NORMAL_TT = 1,
@@ -42,7 +42,7 @@ MovePicker::MovePicker(
     PlyIndexStatsTable        const *lpStats,
     PieceSquareTypeStatsTable const *cStats,
     PieceSquareStatsTable     const **pStats,
-    Move ttm, Depth d, i16 sp,
+    Move ttm, Depth d, int16_t sp,
     Move const *km, Move cm) :
     pos{ p },
     butterFlyStats{ bfStats },
@@ -131,7 +131,7 @@ void MovePicker::value() {
         if (GT == CAPTURE) {
             auto const captured{ pos.captured(vm) };
 
-            vm.value = i32(PieceValues[MG][captured]) * 6
+            vm.value = int32_t(PieceValues[MG][captured]) * 6
                      + (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][captured];
         }
         if (GT == QUIET) {
@@ -152,7 +152,7 @@ void MovePicker::value() {
             vm.value =
                 pos.capture(vm) ?
 
-                    i32(PieceValues[MG][pos.captured(vm)])
+                    int32_t(PieceValues[MG][pos.captured(vm)])
                   - pType(pos[orgSq(vm)]) :
 
                     (*butterFlyStats)[pos.activeSide()][mMask(vm)]
@@ -165,7 +165,7 @@ void MovePicker::value() {
 /// limitedInsertionSort() sorts moves in descending order up to and including a given limit.
 /// The order of moves smaller than the limit is left unspecified.
 /// Sorts only vmoves [vmBeg, vmEnd]
-void MovePicker::limitedInsertionSort(i32 limit) const {
+void MovePicker::limitedInsertionSort(int32_t limit) const {
 
     if (vmBeg == vmEnd) {
         return;

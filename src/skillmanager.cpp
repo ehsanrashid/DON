@@ -19,7 +19,7 @@ bool SkillManager::canPick(Depth depth) const noexcept {
     return depth == 1 + level;
 }
 
-void SkillManager::setLevel(u16 lvl) noexcept {
+void SkillManager::setLevel(uint16_t lvl) noexcept {
     level = lvl;
 }
 
@@ -38,17 +38,17 @@ Move SkillManager::pickBestMove() noexcept {
         assert(!rootMoves.empty());
 
         // RootMoves are already sorted by value in descending order
-        i32 const weakness{ MAX_PLY - 8 * level };
-        i32 const deviance{ std::min(rootMoves[0].newValue - rootMoves[PVCount - 1].newValue, VALUE_MG_PAWN) };
+        int32_t const weakness{ MAX_PLY - 8 * level };
+        int32_t const deviance{ std::min(rootMoves[0].newValue - rootMoves[PVCount - 1].newValue, VALUE_MG_PAWN) };
 
         auto bestValue{ -VALUE_INFINITE };
-        for (u16 i = 0; i < PVCount; ++i) {
+        for (uint16_t i = 0; i < PVCount; ++i) {
             // First for each move score add two terms, both dependent on weakness.
             // One is deterministic with weakness, and one is random with weakness.
             auto const value{
                 rootMoves[i].newValue
-              + (weakness * i32(rootMoves[0].newValue - rootMoves[i].newValue)
-               + deviance * i32(prng.rand<u32>() % weakness)) / VALUE_MG_PAWN };
+              + (weakness * int32_t(rootMoves[0].newValue - rootMoves[i].newValue)
+               + deviance * int32_t(prng.rand<uint32_t>() % weakness)) / VALUE_MG_PAWN };
             // Then choose the move with the highest value.
             if (bestValue <= value) {
                 bestValue = value;

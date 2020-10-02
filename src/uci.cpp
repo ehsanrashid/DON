@@ -51,15 +51,15 @@ namespace {
 
     string const Months[12] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
-    i32 month(string const &mmm) {
-        // for (u32 m = 0; m < 12; ++m) {
+    int32_t month(string const &mmm) {
+        // for (uint32_t m = 0; m < 12; ++m) {
         //     if (mmm == Months[m]) {
         //         return m+1;
         //     }
         // }
         // return 0;
         auto const itr{ std::find(std::begin(Months), std::end(Months), mmm) };
-        return i32(itr != std::end(Months) ? std::distance(std::begin(Months), itr) + 1 : 0);
+        return int32_t(itr != std::end(Months) ? std::distance(std::begin(Months), itr) + 1 : 0);
     }
 }
 
@@ -224,29 +224,29 @@ namespace UCI {
         assert(type == "check");
         return currentVal == "true";
     }
-    Option::operator i16() const noexcept {
+    Option::operator int16_t() const noexcept {
         assert(type == "spin");
-        return i16( std::stoi(currentVal) );
+        return int16_t( std::stoi(currentVal) );
     }
-    Option::operator u16() const noexcept {
+    Option::operator uint16_t() const noexcept {
         assert(type == "spin");
-        return u16( std::stoi(currentVal) );
+        return uint16_t( std::stoi(currentVal) );
     }
-    Option::operator i32() const noexcept {
+    Option::operator int32_t() const noexcept {
         assert(type == "spin");
-        return i32( std::stoi(currentVal) );
+        return int32_t( std::stoi(currentVal) );
     }
-    Option::operator u32() const noexcept {
+    Option::operator uint32_t() const noexcept {
         assert(type == "spin");
-        return u32( std::stoi(currentVal) );
+        return uint32_t( std::stoi(currentVal) );
     }
-    Option::operator i64() const noexcept {
+    Option::operator int64_t() const noexcept {
         assert(type == "spin");
-        return i64( std::stoi(currentVal) ); //std::stol(currentVal);
+        return int64_t( std::stoi(currentVal) ); //std::stol(currentVal);
     }
-    Option::operator u64() const noexcept {
+    Option::operator uint64_t() const noexcept {
         assert(type == "spin");
-        return u64( std::stoi(currentVal) ); //std::stol(currentVal);
+        return uint64_t( std::stoi(currentVal) ); //std::stol(currentVal);
     }
     Option::operator double() const noexcept {
         assert(type == "spin");
@@ -272,7 +272,7 @@ namespace UCI {
         else if (type == "spin") {
             auto const d = std::stod(val);
             if (minVal > d || d > maxVal) {
-                val = std::to_string(i32(std::clamp(d, minVal, maxVal)));
+                val = std::to_string(int32_t(std::clamp(d, minVal, maxVal)));
             }
         }
         else if (type == "string") {
@@ -304,7 +304,7 @@ namespace UCI {
 
     /// Option::operator<<() inits options and assigns idx in the correct printing order
     void Option::operator<<(Option const &opt) {
-        static u32 insertOrder = 0;
+        static uint32_t insertOrder = 0;
 
         *this = opt;
         index = insertOrder++;
@@ -326,7 +326,7 @@ namespace UCI {
                 //<< " current " << currentVal;
         }
         else if (type == "spin") {
-            oss << " default " << i32(std::stof(defaultVal))
+            oss << " default " << int32_t(std::stof(defaultVal))
                 << " min " << minVal
                 << " max " << maxVal;
                 //<< " current " << std::stod(currentVal);
@@ -362,8 +362,8 @@ namespace UCI {
     namespace {
 
         void onHash() noexcept {
-            TT.autoResize(u32(Options["Hash"]));
-            TTEx.autoResize(u32(Options["Hash"])/4);
+            TT.autoResize(uint32_t(Options["Hash"]));
+            TTEx.autoResize(uint32_t(Options["Hash"])/4);
         }
 
         void onClearHash() noexcept {
@@ -748,7 +748,7 @@ namespace UCI {
                 uciCmds.emplace_back("setoption name Use NNUE value true");
             }
 
-            u32 posCount{ 0 };
+            uint32_t posCount{ 0 };
             for (auto const &fen : fens) {
                 if (fen.find("setoption") != string::npos) {
                     uciCmds.emplace_back(fen);
@@ -787,8 +787,8 @@ namespace UCI {
                                                     || s.find("go ") == 0;
                                             }) };
             auto elapsed{ now() };
-            i32 i{ 0 };
-            u64 nodes{ 0 };
+            int32_t i{ 0 };
+            uint64_t nodes{ 0 };
             for (auto const &cmd : uciCmds) {
                 istringstream iss{ cmd };
                 string token;
@@ -913,7 +913,7 @@ namespace UCI {
             }
             else if (token == "moves")      {
                 sync_cout;
-                i32 moveCount{};
+                int32_t moveCount{};
                 std::cout << '\n';
                 if (pos.checkers() == 0) {
                     std::cout << "Capture moves: ";
@@ -997,10 +997,10 @@ namespace UCI {
 
 }
 
-u16 optionThreads() {
-    u16 threadCount{ Options["Threads"] };
+uint16_t optionThreads() {
+    uint16_t threadCount{ Options["Threads"] };
     if (threadCount == 0) {
-        threadCount = u16(std::thread::hardware_concurrency());
+        threadCount = uint16_t(std::thread::hardware_concurrency());
     }
     return threadCount;
 }

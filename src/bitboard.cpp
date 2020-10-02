@@ -7,7 +7,7 @@
 #include "notation.h"
 #include "helper/prng.h"
 
-u08 Distance[SQUARES][SQUARES];
+uint8_t Distance[SQUARES][SQUARES];
 
 Bitboard LineBB[SQUARES][SQUARES];
 
@@ -20,10 +20,10 @@ Magic RMagics[SQUARES];
 #if !defined(USE_POPCNT)
 #include <bitset>
 
-u08 PopCount[USHRT_MAX+1];
+uint8_t PopCount[USHRT_MAX+1];
 
 //// Counts the non-zero bits using SWAR-Popcount algorithm
-//u08 popCount16(u16 u) {
+//uint8_t popCount16(uint16_t u) {
 //    u -= (u >> 1) & 0x5555U;
 //    u = ((u >> 2) & 0x3333U) + (u & 0x3333U);
 //    u = ((u >> 4) + u) & 0x0F0FU;
@@ -35,7 +35,7 @@ namespace {
 
     /// safeDestiny() returns the bitboard of target square for the given step
     /// from the given square. If the step is off the board, returns empty bitboard.
-    Bitboard safeDestiny(Square s, Direction dir, i32 d = 1) {
+    Bitboard safeDestiny(Square s, Direction dir, int32_t d = 1) {
         Square const dst{ s + dir };
         return isOk(dst)
             && distance(s, dst) <= d ?
@@ -44,7 +44,7 @@ namespace {
 
     Bitboard slideAttacks(Square s,  Bitboard occ, Direction const directions[]) {
         Bitboard attacks{ 0 };
-        for (i08 i = 0; i < 4; ++i) {
+        for (int8_t i = 0; i < 4; ++i) {
             auto const dir{ directions[i] };
             Square sq = s;
             while (safeDestiny(sq, dir) != 0
@@ -87,11 +87,11 @@ namespace {
     void initializeMagic(Bitboard attacks[], Magic magics[]) {
 
 #if !defined(USE_PEXT)
-        constexpr u16 MaxIndex{ 0x1000 };
+        constexpr uint16_t MaxIndex{ 0x1000 };
         Bitboard occupancy[MaxIndex];
         Bitboard reference[MaxIndex];
 
-        constexpr u32 Seeds[RANKS]{
+        constexpr uint32_t Seeds[RANKS]{
     #if defined(IS_64BIT)
         0x002D8, 0x0284C, 0x0D6E5, 0x08023, 0x02FF9, 0x03AFC, 0x04105, 0x000FF
     #else
@@ -100,7 +100,7 @@ namespace {
         };
 #endif
 
-        u16 size{ 0 };
+        uint16_t size{ 0 };
         for (Square s = SQ_A1; s <= SQ_H8; ++s) {
 
             Magic &magic{ magics[s] };
@@ -124,7 +124,7 @@ namespace {
             magic.attacks = (s == SQ_A1) ? attacks : magics[s - 1].attacks + size;
 
 #if !defined(USE_PEXT)
-            u08 bits{
+            uint8_t bits{
     #if defined(IS_64BIT)
                     64
     #else
@@ -156,7 +156,7 @@ namespace {
             PRNG prng(Seeds[sRank(s)]);
             // Find a magic for square picking up an (almost) random number
             // until found the one that passes the verification test.
-            for (u16 i = 0; i < size; ) {
+            for (uint16_t i = 0; i < size; ) {
 
                 magic.magic = 0;
                 while (popCount((magic.mask * magic.magic) >> 56) < 6) {
@@ -169,7 +169,7 @@ namespace {
                 std::vector<bool> epoch(size, false);
                 for (i = 0; i < size; ++i) {
 
-                    u16 idx{ magic.index(occupancy[i]) };
+                    uint16_t idx{ magic.index(occupancy[i]) };
                     assert(idx < size);
 
                     if (epoch[idx]) {
@@ -195,16 +195,16 @@ namespace BitBoard {
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
             //SquareBB[s1] = Bitboard(1) << s1;
             for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
-                Distance[s1][s2] = u08(std::max(distance<File>(s1, s2), distance<Rank>(s1, s2)));
+                Distance[s1][s2] = uint8_t(std::max(distance<File>(s1, s2), distance<Rank>(s1, s2)));
                 assert(Distance[s1][s2] >= 0
                     && Distance[s1][s2] <= 7);
             }
         }
 
 #if !defined(USE_POPCNT)
-        for (u32 i = 0; i <= USHRT_MAX; ++i) {
+        for (uint32_t i = 0; i <= USHRT_MAX; ++i) {
             PopCount[i] = //popCount16(i);
-                          u08(std::bitset<16>(i).count());
+                          uint8_t(std::bitset<16>(i).count());
         }
 #endif
 
