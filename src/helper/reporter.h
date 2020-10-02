@@ -1,36 +1,35 @@
 #pragma once
 
+#include <cstdint>
 #include <atomic>
 
-#include "type.h"
-
-// Debug class mainly collects run-time statistics and print them
-class Debugger final {
+// Reporter class mainly collects run-time statistics and print them
+class Reporter final {
 
 public:
 
-    Debugger() = delete;
-    Debugger(Debugger const&) = delete;
-    Debugger(Debugger&&) = delete;
-    ~Debugger() = delete;
+    Reporter() = delete;
+    Reporter(Reporter const&) = delete;
+    Reporter(Reporter&&) = delete;
+    ~Reporter() = delete;
 
-    Debugger& operator=(Debugger const&) = delete;
-    Debugger& operator=(Debugger&&) = delete;
+    Reporter& operator=(Reporter const&) = delete;
+    Reporter& operator=(Reporter&&) = delete;
 
     static void reset() noexcept;
 
     static void hitOn(bool) noexcept;
     static void hitOn(bool, bool) noexcept;
 
-    static void meanOf(i64) noexcept;
+    static void meanOf(int64_t) noexcept;
 
     static void print();
 
 private:
 
-    static std::atomic<u64> Hit1Count;
-    static std::atomic<u64> Hit2Count;
+    static std::atomic<uint64_t> Hit1Count;
+    static std::atomic<uint64_t> Hit2Count;
 
-    static std::atomic<u64> ItemCount;
-    static std::atomic<i64> ItemSum;
+    static std::atomic<uint64_t> ItemCount;
+    static std::atomic<uint64_t> ItemSum;
 };

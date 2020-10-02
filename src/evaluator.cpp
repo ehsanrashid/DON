@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "bitboard.h"
-#include "commandline.h"
 #include "king.h"
 #include "material.h"
 #include "pawns.h"
@@ -19,6 +18,7 @@
 #include "thread.h"
 #include "uci.h"
 #include "incbin/incbin.h"
+#include "helper/commandline.h"
 #include "helper/memorystreambuffer.h"
 
 // Macro to embed the default NNUE file data in the engine binary (using incbin.h, by Dale Weiler).

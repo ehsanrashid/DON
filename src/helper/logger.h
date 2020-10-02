@@ -4,8 +4,7 @@
 #include <iostream>
 #include <string>
 
-#include "helper/tiestreambuffer.h"
-#include "type.h"
+#include "tiestreambuffer.h"
 
 // Logger class (singleton)
 // Tie std::cin and std::cout to a out file stream.

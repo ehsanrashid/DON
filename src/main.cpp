@@ -5,7 +5,6 @@
 #include "cuckoo.h"
 #include "endgame.h"
 #include "evaluator.h"
-#include "commandline.h"
 #include "polyglot.h"
 #include "psqtable.h"
 #include "searcher.h"
@@ -14,6 +13,7 @@
 #include "transposition.h"
 #include "uci.h"
 #include "zobrist.h"
+#include "helper/commandline.h"
 
 int main(int argc, char const *const argv[]) {
 

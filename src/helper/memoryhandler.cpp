@@ -1,8 +1,9 @@
 #include "memoryhandler.h"
 
+#include <cassert>
 #include <memory>
-
-#include "thread.h"
+#include <iostream>
+#include <vector>
 
 #if defined(_WIN32)
     #if (_WIN32_WINNT < 0x0601)
@@ -191,7 +192,7 @@ namespace WinProcGroup {
     namespace {
 
         /// bestGroup() retrieves logical processor information from specific API
-        i16 bestGroup(u16 index) {
+        int16_t bestGroup(uint16_t index) {
 
             // Early exit if the needed API is not available at runtime
             auto pKernel32{ GetModuleHandle("Kernel32.dll") };
@@ -219,9 +220,9 @@ namespace WinProcGroup {
                 return -1;
             }
 
-            u16 nodeCount{ 0 };
-            u16 coreCount{ 0 };
-            u16 threadCount{ 0 };
+            uint16_t nodeCount{ 0 };
+            uint16_t coreCount{ 0 };
+            uint16_t threadCount{ 0 };
 
             DWORD byteOffset{ 0UL };
             auto *iSLPI{ pSLPI };
@@ -246,17 +247,17 @@ namespace WinProcGroup {
             }
             free(pSLPI);
 
-            std::vector<i16> groups;
+            std::vector<int16_t> groups;
             // Run as many threads as possible on the same node until core limit is
             // reached, then move on filling the next node.
-            for (u16 n = 0; n < nodeCount; ++n) {
-                for (u16 i = 0; i < coreCount / nodeCount; ++i) {
+            for (uint16_t n = 0; n < nodeCount; ++n) {
+                for (uint16_t i = 0; i < coreCount / nodeCount; ++i) {
                     groups.push_back(n);
                 }
             }
             // In case a core has more than one logical processor (we assume 2) and
             // have still threads to allocate, then spread them evenly across available nodes.
-            for (u16 t = 0; t < threadCount - coreCount; ++t) {
+            for (uint16_t t = 0; t < threadCount - coreCount; ++t) {
                 groups.push_back(t % nodeCount);
             }
 
@@ -268,10 +269,10 @@ namespace WinProcGroup {
     }
 
     /// bind() set the group affinity for the thread index.
-    void bind(u16 index) {
+    void bind(uint16_t index) {
 
         // Use only local variables to be thread-safe
-        i16 const group{ bestGroup(index) };
+        int16_t const group{ bestGroup(index) };
         // If we still have more threads than the total number of logical processors then let the OS to decide what to do.
         if (group == -1) {
             return;
@@ -297,7 +298,7 @@ namespace WinProcGroup {
         }
     }
 #else
-    void bind(u16) {}
+    void bind(uint16_t) {}
 #endif
 
 }

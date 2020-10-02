@@ -4,7 +4,7 @@
 #include <iostream>
 #include <set>
 
-#include "../memoryhandler.h"
+#include "../helper/memoryhandler.h"
 #include "../uci.h"
 
 namespace Evaluator::NNUE {

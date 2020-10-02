@@ -5,11 +5,11 @@
 #include <iostream>
 #include <unordered_map>
 
-#include "memoryhandler.h"
 #include "searcher.h"
 #include "syzygytb.h"
 #include "transposition.h"
 #include "uci.h"
+#include "helper/memoryhandler.h"
 
 ThreadPool Threadpool;
 

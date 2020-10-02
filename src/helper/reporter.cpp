@@ -1,16 +1,16 @@
-#include "debugger.h"
+#include "reporter.h"
 
 #include <iomanip>
 #include <iostream>
 #include <sstream>
 
-std::atomic<u64> Debugger::Hit1Count{ 0 };
-std::atomic<u64> Debugger::Hit2Count{ 0 };
+std::atomic<uint64_t> Reporter::Hit1Count{ 0 };
+std::atomic<uint64_t> Reporter::Hit2Count{ 0 };
 
-std::atomic<u64> Debugger::ItemCount{ 0 };
-std::atomic<i64> Debugger::ItemSum{ 0 };
+std::atomic<uint64_t> Reporter::ItemCount{ 0 };
+std::atomic<uint64_t> Reporter::ItemSum{ 0 };
 
-void Debugger::reset() noexcept {
+void Reporter::reset() noexcept {
 
     Hit1Count = 0;
     Hit2Count = 0;
@@ -19,24 +19,24 @@ void Debugger::reset() noexcept {
     ItemSum = 0;
 }
 
-void Debugger::hitOn(bool hit2) noexcept {
+void Reporter::hitOn(bool hit2) noexcept {
     ++Hit1Count;
     if (hit2) {
         ++Hit2Count;
     }
 }
-void Debugger::hitOn(bool hit1, bool hit2) noexcept {
+void Reporter::hitOn(bool hit1, bool hit2) noexcept {
     if (hit1) {
         hitOn(hit2);
     }
 }
 
-void Debugger::meanOf(i64 item) noexcept {
+void Reporter::meanOf(int64_t item) noexcept {
     ++ItemCount;
     ItemSum += item;
 }
 
-void Debugger::print() {
+void Reporter::print() {
     if (Hit1Count != 0) {
         std::ostringstream oss{};
         oss << std::right

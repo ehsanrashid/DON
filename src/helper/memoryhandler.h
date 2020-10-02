@@ -1,6 +1,6 @@
 #pragma once
 
-#include "type.h"
+#include <cstdint>
 
 void* allocAlignedStd(size_t, size_t);
 void  freeAlignedStd(void*);
@@ -15,5 +15,5 @@ void  freeAlignedLargePages(void*);
 /// Original code from Texel by Peter Osterlund.
 namespace WinProcGroup {
 
-    extern void bind(u16);
+    extern void bind(uint16_t);
 }

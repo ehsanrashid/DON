@@ -21,16 +21,16 @@ BINDIR = $(PREFIX)/bin
 ### Built-in benchmark for pgo-builds
 PGOBENCH = ./$(EXE) bench
 
+VPATH = nnue:nnue/features:helper
+
 ### Source and Object files
 SRCS =  main.cpp \
         bitbase.cpp \
         bitboard.cpp \
-        commandline.cpp \
         cuckoo.cpp \
         endgame.cpp \
         evaluator.cpp \
         material.cpp \
-        memoryhandler.cpp \
         movegenerator.cpp \
         movepicker.cpp \
         notation.cpp \
@@ -51,12 +51,12 @@ SRCS =  main.cpp \
         zobrist.cpp \
         nnue/evaluate_nnue.cpp \
         nnue/features/half_kp.cpp \
+        helper/commandline.cpp \
         helper/logger.cpp \
+        helper/memoryhandler.cpp \
         helper/reporter.cpp \
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
-
-VPATH = nnue:nnue/features:helper
 
 ### Establish the operating system name
 KERNEL = $(shell uname -s)
