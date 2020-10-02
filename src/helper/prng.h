@@ -1,6 +1,7 @@
 #pragma once
 
-#include "type.h"
+#include <cassert>
+#include <cstdint>
 
 /// XOR Shift64*(Star) Pseudo-Random Number Generator
 /// Based on the original code design/written and dedicated
@@ -21,7 +22,7 @@ class PRNG {
 
 public:
 
-    PRNG(u64 seed) noexcept :
+    PRNG(uint64_t seed) noexcept :
         x{ seed } {
         assert(x != 0);
     }
@@ -47,12 +48,12 @@ public:
 //#endif
 
 private:
-    u64 rand64() noexcept {
+    uint64_t rand64() noexcept {
         x ^= x >> 12;
         x ^= x << 25;
         x ^= x >> 27;
-        return x * U64(0x2545F4914F6CDD1D);
+        return x * 0x2545F4914F6CDD1DULL;
     }
 
-    u64 x;
+    uint64_t x;
 };

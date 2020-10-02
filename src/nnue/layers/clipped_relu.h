@@ -123,4 +123,4 @@ namespace Evaluator::NNUE::Layers {
 
     };
 
-}  // namespace Evaluator::NNUE::Layers
+}

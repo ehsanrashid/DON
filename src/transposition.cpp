@@ -7,7 +7,7 @@
 #include <thread>
 #include <vector>
 
-#include "helper.h"
+#include "helper/string_view.h"
 #include "memoryhandler.h"
 #include "movegenerator.h"
 #include "thread.h"

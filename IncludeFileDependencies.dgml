@@ -77,7 +77,7 @@
         <Node Id="@230" Category="CodeSchema_ProjectItem" Bounds="-57.6479818570069,752.506824697674,129.738000077079,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\vcruntime_new.h" Label="vcruntime_new.h" />
         <Node Id="@232" Category="CodeSchema_ProjectItem" Bounds="119.393157637651,453.81682420412,107.091333410412,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\mm3dnow.h" Label="mm3dnow.h" />
         <Node Id="@234" Category="CodeSchema_ProjectItem" Bounds="104.666019510623,271.393148663893,97.9046667437456,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\setjmpex.h" Label="setjmpex.h" />
-        <Node Id="@236" Category="CodeSchema_ProjectItem" Bounds="425.598367412989,990.775366282198,98.5613334104123,25.998000077079" FilePath="$(VsSolution)\src\TBsyzygy.h" Label="syzygytb.h" />
+        <Node Id="@236" Category="CodeSchema_ProjectItem" Bounds="425.598367412989,990.775366282198,98.5613334104123,25.998000077079" FilePath="$(VsSolution)\src\syzygytb.h" Label="syzygytb.h" />
         <Node Id="@238" Category="CodeSchema_ProjectItem" Bounds="-1267.81068616729,725.257305476258,144.694666743746,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\shared\winpackagefamily.h" Label="winpackagefamily.h" />
         <Node Id="@24" Category="CodeSchema_ProjectItem" Bounds="-453.491572181114,478.169698488108,79.8680000770792,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\cstddef" Label="cstddef" />
         <Node Id="@240" Category="CodeSchema_ProjectItem" Bounds="-1310.25075399115,666.602801536878,116.644666743746,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\shared\winapifamily.h" Label="winapifamily.h" />
@@ -102,29 +102,29 @@
         <Node Id="@276" Category="CodeSchema_ProjectItem" Bounds="-334.20008045803,702.161698796424,74.9846667437459,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\cerrno" Label="cerrno" />
         <Node Id="@278" Category="CodeSchema_ProjectItem" Bounds="-376.167670097005,982.151699181819,84.1280000770792,25.9980000770793" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\iomanip" Label="iomanip" />
         <Node Id="@28" Category="CodeSchema_ProjectItem" Bounds="-512.84443275801,953.559330702188,94.6513334104122,25.9980000770793" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\streambuf" Label="streambuf" />
-        <Node Id="@280" Category="CodeSchema_ProjectItem" Bounds="407.735508933171,430.795416331027,99.9480000770791,25.998000077079" FilePath="$(VsSolution)\src\Thread.cpp" Label="Thread.cpp" />
-        <Node Id="@282" Category="CodeSchema_ProjectItem" Bounds="286.107565817936,262.801428293917,108.358000077079,25.998000077079" FilePath="$(VsSolution)\src\BitBoard.cpp" Label="BitBoard.cpp" />
-        <Node Id="@284" Category="CodeSchema_ProjectItem" Bounds="147.127523907129,150.805418467257,112.961333410412,25.998000077079" FilePath="$(VsSolution)\src\Endgame.cpp" Label="Endgame.cpp" />
+        <Node Id="@280" Category="CodeSchema_ProjectItem" Bounds="407.735508933171,430.795416331027,99.9480000770791,25.998000077079" FilePath="$(VsSolution)\src\thread.cpp" Label="thread.cpp" />
+        <Node Id="@282" Category="CodeSchema_ProjectItem" Bounds="286.107565817936,262.801428293917,108.358000077079,25.998000077079" FilePath="$(VsSolution)\src\bitboard.cpp" Label="bitboard.cpp" />
+        <Node Id="@284" Category="CodeSchema_ProjectItem" Bounds="147.127523907129,150.805418467257,112.961333410412,25.998000077079" FilePath="$(VsSolution)\src\endgame.cpp" Label="endgame.cpp" />
         <Node Id="@286" Category="CodeSchema_ProjectItem" Bounds="413.78037587653,150.805418467257,99.148000077079,25.998000077079" FilePath="$(VsSolution)\src\Engine.cpp" Label="Engine.cpp" />
-        <Node Id="@288" Category="CodeSchema_ProjectItem" Bounds="285.569155173405,934.777380442355,106.568000077079,25.998000077079" FilePath="$(VsSolution)\src\Material.cpp" Label="Material.cpp" />
-        <Node Id="@290" Category="CodeSchema_ProjectItem" Bounds="568.387702536686,38.8094315287805,89.828000077079,25.998000077079" FilePath="$(VsSolution)\src\Main.cpp" Label="Main.cpp" />
-        <Node Id="@292" Category="CodeSchema_ProjectItem" Bounds="136.987056377832,616.323584055636,110.221333410412,25.998000077079" FilePath="$(VsSolution)\src\Notation.cpp" Label="Notation.cpp" />
-        <Node Id="@294" Category="CodeSchema_ProjectItem" Bounds="512.660181377832,206.80341956589,133.531333410412,25.998000077079" FilePath="$(VsSolution)\src\Transposition.cpp" Label="Transposition.cpp" />
-        <Node Id="@296" Category="CodeSchema_ProjectItem" Bounds="402.70659047614,598.789404368136,105.348000077079,25.998000077079" FilePath="$(VsSolution)\src\Position.cpp" Label="Position.cpp" />
-        <Node Id="@298" Category="CodeSchema_ProjectItem" Bounds="417.569750469629,486.793417429659,100.141333410413,25.998000077079" FilePath="$(VsSolution)\src\Option.cpp" Label="Option.cpp" />
+        <Node Id="@288" Category="CodeSchema_ProjectItem" Bounds="285.569155173405,934.777380442355,106.568000077079,25.998000077079" FilePath="$(VsSolution)\src\material.cpp" Label="material.cpp" />
+        <Node Id="@290" Category="CodeSchema_ProjectItem" Bounds="568.387702536686,38.8094315287805,89.828000077079,25.998000077079" FilePath="$(VsSolution)\src\main.cpp" Label="main.cpp" />
+        <Node Id="@292" Category="CodeSchema_ProjectItem" Bounds="136.987056377832,616.323584055636,110.221333410412,25.998000077079" FilePath="$(VsSolution)\src\notation.cpp" Label="notation.cpp" />
+        <Node Id="@294" Category="CodeSchema_ProjectItem" Bounds="512.660181377832,206.80341956589,133.531333410412,25.998000077079" FilePath="$(VsSolution)\src\transposition.cpp" Label="transposition.cpp" />
+        <Node Id="@296" Category="CodeSchema_ProjectItem" Bounds="402.70659047614,598.789404368136,105.348000077079,25.998000077079" FilePath="$(VsSolution)\src\position.cpp" Label="position.cpp" />
+        <Node Id="@298" Category="CodeSchema_ProjectItem" Bounds="417.569750469629,486.793417429659,100.141333410413,25.998000077079" FilePath="$(VsSolution)\src\option.cpp" Label="option.cpp" />
         <Node Id="@30" Category="CodeSchema_ProjectItem" Bounds="-412.993770105482,534.167698565187,76.6380000770791,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\cstring" Label="cstring" />
-        <Node Id="@300" Category="CodeSchema_ProjectItem" Bounds="517.95472727627,766.783361887667,100.511333410412,25.998000077079" FilePath="$(VsSolution)\src\Logger.cpp" Label="Logger.cpp" />
-        <Node Id="@302" Category="CodeSchema_ProjectItem" Bounds="424.465658672754,262.801428293917,108.961333410412,25.998000077079" FilePath="$(VsSolution)\src\Searcher.cpp" Label="Searcher.cpp" />
-        <Node Id="@304" Category="CodeSchema_ProjectItem" Bounds="479.132379050358,710.785376047823,149.488000077079,25.998000077079" FilePath="$(VsSolution)\src\MemoryHandler.cpp" Label="MemoryHandler.cpp" />
-        <Node Id="@306" Category="CodeSchema_ProjectItem" Bounds="246.974546205306,1046.77350470993,146.204666743746,25.998000077079" FilePath="$(VsSolution)\src\MoveGenerator.cpp" Label="MoveGenerator.cpp" />
-        <Node Id="@308" Category="CodeSchema_ProjectItem" Bounds="395.438829652572,374.797399973605,112.244666743746,25.998000077079" FilePath="$(VsSolution)\src\Evaluator.cpp" Label="Evaluator.cpp" />
-        <Node Id="@310" Category="CodeSchema_ProjectItem" Bounds="185.181034649317,318.799414133761,106.551333410412,25.998000077079" FilePath="$(VsSolution)\src\Bitbases.cpp" Label="Bitbases.cpp" />
-        <Node Id="@312" Category="CodeSchema_ProjectItem" Bounds="299.376948955957,990.775366282198,96.2213334104124,25.998000077079" FilePath="$(VsSolution)\src\Pawns.cpp" Label="Pawns.cpp" />
-        <Node Id="@314" Category="CodeSchema_ProjectItem" Bounds="429.062512106999,542.791357493136,106.338000077079,25.998000077079" FilePath="$(VsSolution)\src\Polyglot.cpp" Label="Polyglot.cpp" />
+        <Node Id="@300" Category="CodeSchema_ProjectItem" Bounds="517.95472727627,766.783361887667,100.511333410412,25.998000077079" FilePath="$(VsSolution)\src\logger.cpp" Label="logger.cpp" />
+        <Node Id="@302" Category="CodeSchema_ProjectItem" Bounds="424.465658672754,262.801428293917,108.961333410412,25.998000077079" FilePath="$(VsSolution)\src\searcher.cpp" Label="searcher.cpp" />
+        <Node Id="@304" Category="CodeSchema_ProjectItem" Bounds="479.132379050358,710.785376047823,149.488000077079,25.998000077079" FilePath="$(VsSolution)\src\memoryhandler.cpp" Label="memoryhandler.cpp" />
+        <Node Id="@306" Category="CodeSchema_ProjectItem" Bounds="246.974546205306,1046.77350470993,146.204666743746,25.998000077079" FilePath="$(VsSolution)\src\movegenerator.cpp" Label="movegenerator.cpp" />
+        <Node Id="@308" Category="CodeSchema_ProjectItem" Bounds="395.438829652572,374.797399973605,112.244666743746,25.998000077079" FilePath="$(VsSolution)\src\evaluator.cpp" Label="evaluator.cpp" />
+        <Node Id="@310" Category="CodeSchema_ProjectItem" Bounds="185.181034649317,318.799414133761,106.551333410412,25.998000077079" FilePath="$(VsSolution)\src\bitbases.cpp" Label="bitbases.cpp" />
+        <Node Id="@312" Category="CodeSchema_ProjectItem" Bounds="299.376948955957,990.775366282198,96.2213334104124,25.998000077079" FilePath="$(VsSolution)\src\pawns.cpp" Label="pawns.cpp" />
+        <Node Id="@314" Category="CodeSchema_ProjectItem" Bounds="429.062512106999,542.791357493136,106.338000077079,25.998000077079" FilePath="$(VsSolution)\src\polyglot.cpp" Label="polyglot.cpp" />
         <Node Id="@316" Category="CodeSchema_ProjectItem" Bounds="286.600763246322,430.795416331027,91.1346667437457,25.998000077079" FilePath="$(VsSolution)\src\PSQ.cpp" Label="PSQ.cpp" />
-        <Node Id="@318" Category="CodeSchema_ProjectItem" Bounds="277.093941957259,206.80341956589,100.414666743746,25.998000077079" FilePath="$(VsSolution)\src\Zobrist.cpp" Label="Zobrist.cpp" />
+        <Node Id="@318" Category="CodeSchema_ProjectItem" Bounds="277.093941957259,206.80341956589,100.414666743746,25.998000077079" FilePath="$(VsSolution)\src\zobrist.cpp" Label="zobrist.cpp" />
         <Node Id="@32" Category="CodeSchema_ProjectItem" Bounds="-132.660784751606,864.502824851832,76.6013334104123,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\xstring" Label="xstring" />
-        <Node Id="@320" Category="CodeSchema_ProjectItem" Bounds="433.227327373926,318.799414133761,111.421333410412,25.998000077079" FilePath="$(VsSolution)\src\TBsyzygy.cpp" Label="TBsyzygy.cpp" />
+        <Node Id="@320" Category="CodeSchema_ProjectItem" Bounds="433.227327373926,318.799414133761,111.421333410412,25.998000077079" FilePath="$(VsSolution)\src\syzygytb.cpp" Label="syzygytb.cpp" />
         <Node Id="@322" Category="CodeSchema_ProjectItem" Bounds="-481.543602810441,310.175734929522,77.8280000770792,25.9980000770792" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\cwchar" Label="cwchar" />
         <Node Id="@324" Category="CodeSchema_ProjectItem" Bounds="-400.330318239097,870.155699027661,108.478000077079,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\system_error" Label="system_error" />
         <Node Id="@326" Category="CodeSchema_ProjectItem" Bounds="-262.039570019926,982.151699181819,79.798000077079,25.9980000770793" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\iterator" Label="iterator" />
@@ -871,7 +871,7 @@
         <Alias n="34" Id="(@4 @33)" />
         <Alias n="35" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/xatomic0.h" />
         <Alias n="36" Id="(@4 @35)" />
-        <Alias n="37" Uri="File=$(VsSolutionUri)/src/thread_win32.h" />
+        <Alias n="37" Uri="File=$(VsSolutionUri)/src/thread_win32_osx.h" />
         <Alias n="38" Id="(@1 @37)" />
         <Alias n="39" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/corecrt_wstdlib.h" />
         <Alias n="40" Id="(@4 @39)" />
@@ -898,8 +898,6 @@
         <Alias n="61" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/corecrt_wtime.h" />
         <Alias n="62" Id="(@4 @61)" />
         <Alias n="63" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/time.h" />
-        <Alias n="64" Id="(@4 @63)" />
-        <Alias n="65" Uri="File=$(VsSolutionUri)/src/Engine.h" />
         <Alias n="66" Id="(@1 @65)" />
         <Alias n="67" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/corecrt_wctype.h" />
         <Alias n="68" Id="(@4 @67)" />
@@ -925,7 +923,7 @@
         <Alias n="88" Id="(@4 @87)" />
         <Alias n="89" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/vcruntime_string.h" />
         <Alias n="90" Id="(@4 @89)" />
-        <Alias n="91" Uri="File=$(VsSolutionUri)/src/prng.h" />
+        <Alias n="91" Uri="File=$(VsSolutionUri)/src/helper/prng.h" />
         <Alias n="92" Id="(@1 @91)" />
         <Alias n="93" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/vcruntime_new_debug.h" />
         <Alias n="94" Id="(@4 @93)" />
@@ -1005,7 +1003,7 @@
         <Alias n="168" Id="(@4 @167)" />
         <Alias n="169" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/wchar.h" />
         <Alias n="170" Id="(@4 @169)" />
-        <Alias n="171" Uri="File=$(VsSolutionUri)/src/tiestreambuffer.h" />
+        <Alias n="171" Uri="File=$(VsSolutionUri)/src/helper/tiestreambuffer.h" />
         <Alias n="172" Id="(@1 @171)" />
         <Alias n="173" Uri="File=$(VsSolutionUri)/src/logger.h" />
         <Alias n="174" Id="(@1 @173)" />
@@ -1016,8 +1014,6 @@
         <Alias n="179" Uri="File=$(VsSolutionUri)/src/movegenerator.h" />
         <Alias n="180" Id="(@1 @179)" />
         <Alias n="181" Uri="File=$(VsSolutionUri)/src/evaluator.h" />
-        <Alias n="182" Id="(@1 @181)" />
-        <Alias n="183" Uri="File=$(VsSolutionUri)/src/functor.h" />
         <Alias n="184" Id="(@1 @183)" />
         <Alias n="185" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/armintr.h" />
         <Alias n="186" Id="(@4 @185)" />
@@ -1069,7 +1065,7 @@
         <Alias n="232" Id="(@4 @231)" />
         <Alias n="233" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/setjmpex.h" />
         <Alias n="234" Id="(@4 @233)" />
-        <Alias n="235" Uri="File=$(VsSolutionUri)/src/TBsyzygy.h" />
+        <Alias n="235" Uri="File=$(VsSolutionUri)/src/syzygytb.h" />
         <Alias n="236" Id="(@1 @235)" />
         <Alias n="237" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/shared/winpackagefamily.h" />
         <Alias n="238" Id="(@4 @237)" />
@@ -1113,47 +1109,45 @@
         <Alias n="276" Id="(@4 @275)" />
         <Alias n="277" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/iomanip" />
         <Alias n="278" Id="(@4 @277)" />
-        <Alias n="279" Uri="File=$(VsSolutionUri)/src/Thread.cpp" />
+        <Alias n="279" Uri="File=$(VsSolutionUri)/src/thread.cpp" />
         <Alias n="280" Id="(@1 @279)" />
-        <Alias n="281" Uri="File=$(VsSolutionUri)/src/BitBoard.cpp" />
+        <Alias n="281" Uri="File=$(VsSolutionUri)/src/bitboard.cpp" />
         <Alias n="282" Id="(@1 @281)" />
-        <Alias n="283" Uri="File=$(VsSolutionUri)/src/Endgame.cpp" />
-        <Alias n="284" Id="(@1 @283)" />
-        <Alias n="285" Uri="File=$(VsSolutionUri)/src/Engine.cpp" />
+        <Alias n="283" Uri="File=$(VsSolutionUri)/src/endgame.cpp" />
         <Alias n="286" Id="(@1 @285)" />
-        <Alias n="287" Uri="File=$(VsSolutionUri)/src/Material.cpp" />
+        <Alias n="287" Uri="File=$(VsSolutionUri)/src/material.cpp" />
         <Alias n="288" Id="(@1 @287)" />
-        <Alias n="289" Uri="File=$(VsSolutionUri)/src/Main.cpp" />
+        <Alias n="289" Uri="File=$(VsSolutionUri)/src/main.cpp" />
         <Alias n="290" Id="(@1 @289)" />
-        <Alias n="291" Uri="File=$(VsSolutionUri)/src/Notation.cpp" />
+        <Alias n="291" Uri="File=$(VsSolutionUri)/src/notation.cpp" />
         <Alias n="292" Id="(@1 @291)" />
-        <Alias n="293" Uri="File=$(VsSolutionUri)/src/Transposition.cpp" />
+        <Alias n="293" Uri="File=$(VsSolutionUri)/src/transposition.cpp" />
         <Alias n="294" Id="(@1 @293)" />
-        <Alias n="295" Uri="File=$(VsSolutionUri)/src/Position.cpp" />
+        <Alias n="295" Uri="File=$(VsSolutionUri)/src/position.cpp" />
         <Alias n="296" Id="(@1 @295)" />
-        <Alias n="297" Uri="File=$(VsSolutionUri)/src/Option.cpp" />
+        <Alias n="297" Uri="File=$(VsSolutionUri)/src/option.cpp" />
         <Alias n="298" Id="(@1 @297)" />
-        <Alias n="299" Uri="File=$(VsSolutionUri)/src/Logger.cpp" />
+        <Alias n="299" Uri="File=$(VsSolutionUri)/src/logger.cpp" />
         <Alias n="300" Id="(@1 @299)" />
-        <Alias n="301" Uri="File=$(VsSolutionUri)/src/Searcher.cpp" />
+        <Alias n="301" Uri="File=$(VsSolutionUri)/src/searcher.cpp" />
         <Alias n="302" Id="(@1 @301)" />
-        <Alias n="303" Uri="File=$(VsSolutionUri)/src/MemoryHandler.cpp" />
+        <Alias n="303" Uri="File=$(VsSolutionUri)/src/memoryhandler.cpp" />
         <Alias n="304" Id="(@1 @303)" />
-        <Alias n="305" Uri="File=$(VsSolutionUri)/src/MoveGenerator.cpp" />
+        <Alias n="305" Uri="File=$(VsSolutionUri)/src/movegenerator.cpp" />
         <Alias n="306" Id="(@1 @305)" />
-        <Alias n="307" Uri="File=$(VsSolutionUri)/src/Evaluator.cpp" />
+        <Alias n="307" Uri="File=$(VsSolutionUri)/src/evaluator.cpp" />
         <Alias n="308" Id="(@1 @307)" />
-        <Alias n="309" Uri="File=$(VsSolutionUri)/src/Bitbases.cpp" />
+        <Alias n="309" Uri="File=$(VsSolutionUri)/src/bitbases.cpp" />
         <Alias n="310" Id="(@1 @309)" />
-        <Alias n="311" Uri="File=$(VsSolutionUri)/src/Pawns.cpp" />
+        <Alias n="311" Uri="File=$(VsSolutionUri)/src/pawns.cpp" />
         <Alias n="312" Id="(@1 @311)" />
-        <Alias n="313" Uri="File=$(VsSolutionUri)/src/Polyglot.cpp" />
+        <Alias n="313" Uri="File=$(VsSolutionUri)/src/polyglot.cpp" />
         <Alias n="314" Id="(@1 @313)" />
-        <Alias n="315" Uri="File=$(VsSolutionUri)/src/PSQTable.cpp" />
+        <Alias n="315" Uri="File=$(VsSolutionUri)/src/psqtable.cpp" />
         <Alias n="316" Id="(@1 @315)" />
-        <Alias n="317" Uri="File=$(VsSolutionUri)/src/Zobrist.cpp" />
+        <Alias n="317" Uri="File=$(VsSolutionUri)/src/zobrist.cpp" />
         <Alias n="318" Id="(@1 @317)" />
-        <Alias n="319" Uri="File=$(VsSolutionUri)/src/TBsyzygy.cpp" />
+        <Alias n="319" Uri="File=$(VsSolutionUri)/src/syzygytb.cpp" />
         <Alias n="320" Id="(@1 @319)" />
         <Alias n="321" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/cwchar" />
         <Alias n="322" Id="(@4 @321)" />

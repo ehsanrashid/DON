@@ -26,7 +26,7 @@ namespace Evaluator {
 
         extern void verify();
 
-    } // namespace NNUE
+    }
 
     extern Value evaluate(Position const&);
 

@@ -3,9 +3,10 @@
 #include <algorithm>
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <vector>
 
-#include "helper.h"
+#include "helper/string_view.h"
 #include "movegenerator.h"
 #include "notation.h"
 
@@ -214,8 +215,8 @@ void PolyBook::initialize(std::string_view bookFile) {
     clear();
 
     filename = bookFile;
-    replace(filename, '\\', '/');
-    trim(filename);
+    std::replace(filename.begin(), filename.end(), '\\', '/');
+    filename = trim(filename);
     if (filename.empty()) {
         return;
     }

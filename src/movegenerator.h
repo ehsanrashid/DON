@@ -13,7 +13,7 @@ enum GenType : u08 {
 };
 
 template<GenType>
-extern void generate(ValMoves&, Position const&);
+extern void generate(ValMoves&, Position const&) noexcept;
 
 template<GenType GT>//, PieceType PT = NONE>
 class MoveList :
@@ -25,14 +25,14 @@ public:
     MoveList(MoveList const&) = delete;
     MoveList(MoveList&&) = delete;
 
-    explicit MoveList(Position const &pos) {
+    explicit MoveList(Position const &pos) noexcept {
 
         generate<GT>(*this, pos);
         //if (NONE != PT) {
         //    erase(std::remove_if(begin(), end(),
-        //                        [&](ValMove const &vm) {
-        //                            return PT != pType(pos[orgSq(vm)]);
-        //                        }), end());
+        //        [&](ValMove const &vm) {
+        //            return PT != pType(pos[orgSq(vm)]);
+        //        }), end());
         //}
     }
 

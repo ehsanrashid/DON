@@ -9,11 +9,11 @@
 #include <sstream>
 #include <vector>
 
+#include "helper/memorystreambuffer.h"
 #include "bitboard.h"
-#include "helper.h"
+#include "commandline.h"
 #include "king.h"
 #include "material.h"
-#include "memorystreambuffer.h"
 #include "pawns.h"
 #include "position.h"
 #include "notation.h"
@@ -114,6 +114,7 @@ namespace Evaluator {
         class Tracer {
 
         public:
+
             static void clear() {
                 //std::fill(&Scores[0][0], &Scores[0][0] + sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);
                 std::fill_n(&Scores[0][0], sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);

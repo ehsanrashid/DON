@@ -197,7 +197,7 @@ namespace {
 }
 
 template<GenType GT>
-void generate(ValMoves &moves, Position const &pos) {
+void generate(ValMoves &moves, Position const &pos) noexcept {
     static_assert (GT == CAPTURE
                 || GT == QUIET
                 || GT == NORMAL, "GT incorrect");

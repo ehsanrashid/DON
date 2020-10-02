@@ -1,5 +1,5 @@
-// Definition of input features HalfKP of NNUE evaluation function
 #pragma once
+// Definition of input features HalfKP of NNUE evaluation function
 
 #include "../../type.h"
 #include "features_common.h"
@@ -37,4 +37,4 @@ namespace Evaluator::NNUE::Features {
 
     };
 
-}  // namespace Evaluator::NNUE::Features
+}

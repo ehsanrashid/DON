@@ -1,5 +1,5 @@
-// A class template that represents the input feature set of the NNUE evaluation function
 #pragma once
+// A class template that represents the input feature set of the NNUE evaluation function
 
 #include <array>
 
@@ -15,9 +15,11 @@ namespace Evaluator::NNUE::Features {
 
     template<typename T, T First, T... Remaining>
     struct CompileTimeList<T, First, Remaining...> {
+
         static constexpr bool contains(T value) {
             return value == First || CompileTimeList<T, Remaining...>::contains(value);
         }
+
         static constexpr std::array<T, sizeof...(Remaining) + 1> Values{ {First, Remaining...} };
     };
 
@@ -144,4 +146,4 @@ namespace Evaluator::NNUE::Features {
         friend class FeatureSet;
     };
 
-}  // namespace Evaluator::NNUE::Features
+}

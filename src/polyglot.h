@@ -1,8 +1,9 @@
 #pragma once
 
 #include <string_view>
+
+#include "helper/prng.h"
 #include "position.h"
-#include "prng.h"
 #include "type.h"
 
 /// Polyglot::Entry needs 16 bytes to be stored.

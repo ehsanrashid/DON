@@ -1,5 +1,5 @@
-// Constants used in NNUE evaluation function
 #pragma once
+// Constants used in NNUE evaluation function
 
 #include <cstring> // For memcpy()
 #include <iostream>
@@ -120,4 +120,4 @@ namespace Evaluator::NNUE {
         return w;
     }
 
-}  // namespace Evaluator::NNUE
+}

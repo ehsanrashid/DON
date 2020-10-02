@@ -53,4 +53,4 @@ namespace Evaluator::NNUE::Features {
 
     template class HalfKP<Side::FRIEND>;
 
-}  // namespace Evaluator::NNUE::Features
+}

@@ -11,8 +11,9 @@
 #include <string_view>
 #include <vector>
 
+#include "helper/string.h"
+#include "helper/string_view.h"
 #include "bitboard.h"
-#include "helper.h"
 #include "movegenerator.h"
 #include "notation.h"
 #include "position.h"
@@ -1374,7 +1375,7 @@ namespace {
         return wdlScore;
     }
 
-} // namespace
+}
 
 namespace SyzygyTB {
 

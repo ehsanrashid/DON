@@ -1,5 +1,5 @@
-// Definition of index list of input features
 #pragma once
+// Definition of index list of input features
 
 #include "../../position.h"
 #include "../architecture.h"
@@ -12,62 +12,45 @@ namespace Evaluator::NNUE::Features {
 
     public:
 
-        size_t size() const {
-            return _size;
-        }
-        void resize(size_t const sz) {
-            _size = sz;
-        }
-        void push_back(T const &value) {
-            values[_size++] = value;
-        }
+        size_t size() const { return size_; }
 
-        T& operator[](size_t const index) {
-            assert(0 <= index || index < _size);
-            return values[index];
-        }
-        //T& operator[](size_t const index) throw (const char*) {
-        //    if (0 > index || index >= _size) throw "Invalid array access";
+        T const* begin() const { return values; }
+        T const* end()   const { return values + size(); }
+        T const &operator[](size_t const index) const { return values[index]; }
+
+        T*       begin() { return values; }
+        T*       end()   { return values + size(); }
+        T&       operator[](size_t const index) { assert(0 <= index || index < size()); return values[index]; }
+
+        //T&       operator[](size_t const index) throw (char const*) { 
+        //    if (0 > index || index >= size()) {
+        //        throw "Invalid array access";
+        //    }
         //    return values[index];
         //}
 
-        T* begin() {
-            return values;
-        }
-        T* end() {
-            return values + _size;
-        }
-
-        T const& operator[](size_t const index) const {
-            return values[index];
-        }
-
-        T const* begin() const {
-            return values;
-        }
-        T const* end() const {
-            return values + _size;
-        }
+        void resize(size_t const sz) { size_ = sz; }
+        void push_back(T const &value) { values[size_++] = value; }
 
         void swap(ValueList &valueList) {
 
-            size_t const maxSize{ std::max(_size, valueList._size) };
+            size_t const maxSize{ std::max(size(), valueList.size()) };
             for (size_t i = 0; i < maxSize; ++i) {
                 std::swap(values[i], valueList.values[i]);
             }
-            std::swap(_size, valueList._size);
+            std::swap(size(), valueList.size());
         }
 
     private:
+
         T      values[N];
-        size_t _size{ 0 };
+        size_t size_{ 0 };
     };
 
     //Type of feature index list
     class IndexList
         : public ValueList<IndexType, RawFeatures::MaxActiveDimensions> {
-    public:
-    private:
+
     };
 
-}  // namespace Evaluator::NNUE::Features
+}

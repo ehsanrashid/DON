@@ -5,7 +5,7 @@
 #include "cuckoo.h"
 #include "endgame.h"
 #include "evaluator.h"
-#include "helper.h"
+#include "commandline.h"
 #include "polyglot.h"
 #include "psqtable.h"
 #include "searcher.h"

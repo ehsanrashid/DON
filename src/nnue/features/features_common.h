@@ -1,5 +1,5 @@
-// Common header of input features of NNUE evaluation function
 #pragma once
+// Common header of input features of NNUE evaluation function
 
 #include "../nnue_common.h"
 
@@ -19,4 +19,4 @@ namespace Evaluator::NNUE::Features {
         FRIEND // side to move
     };
 
-}  // namespace Evaluator::NNUE::Features
+}

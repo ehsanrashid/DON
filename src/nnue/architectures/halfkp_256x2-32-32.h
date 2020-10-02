@@ -24,8 +24,8 @@ namespace Evaluator::NNUE {
         using HiddenLayer2 = ClippedReLU<AffineTransform<HiddenLayer1, 32>>;
         using OutputLayer = AffineTransform<HiddenLayer2, 1>;
 
-    }  // namespace Layers
+    }
 
     using Network = Layers::OutputLayer;
 
-}  // namespace Evaluator::NNUE
+}

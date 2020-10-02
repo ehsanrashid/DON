@@ -1,5 +1,5 @@
-// Input features and network structure used in NNUE evaluation function
 #pragma once
+// Input features and network structure used in NNUE evaluation function
 
 #include "../type.h"
 // Defines the network structure
@@ -14,4 +14,4 @@ namespace Evaluator::NNUE {
     // Trigger for full calculation instead of difference calculation
     constexpr auto RefreshTriggers{ RawFeatures::RefreshTriggers };
 
-}  // namespace Evaluator::NNUE
+}

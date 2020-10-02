@@ -30,4 +30,4 @@ namespace Evaluator::NNUE {
     template<typename T>
     extern void alignedLargePageAllocator(AlignedLargePagePtr<T> &) noexcept;
 
-}  // namespace Evaluator::NNUE
+}

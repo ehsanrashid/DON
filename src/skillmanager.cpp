@@ -1,6 +1,6 @@
 #include "skillmanager.h"
 
-#include "prng.h"
+#include "helper/prng.h"
 #include "searcher.h"
 #include "thread.h"
 
@@ -38,15 +38,17 @@ Move SkillManager::pickBestMove() noexcept {
         assert(!rootMoves.empty());
 
         // RootMoves are already sorted by value in descending order
-        i32  weakness{ MAX_PLY - 8 * level };
-        i32  deviance{ std::min(rootMoves[0].newValue - rootMoves[PVCount - 1].newValue, VALUE_MG_PAWN) };
+        i32 const weakness{ MAX_PLY - 8 * level };
+        i32 const deviance{ std::min(rootMoves[0].newValue - rootMoves[PVCount - 1].newValue, VALUE_MG_PAWN) };
+
         auto bestValue{ -VALUE_INFINITE };
         for (u16 i = 0; i < PVCount; ++i) {
             // First for each move score add two terms, both dependent on weakness.
             // One is deterministic with weakness, and one is random with weakness.
-            auto value{ rootMoves[i].newValue
-                      + (weakness * i32(rootMoves[0].newValue - rootMoves[i].newValue)
-                       + deviance * i32(prng.rand<u32>() % weakness)) / VALUE_MG_PAWN };
+            auto const value{
+                rootMoves[i].newValue
+              + (weakness * i32(rootMoves[0].newValue - rootMoves[i].newValue)
+               + deviance * i32(prng.rand<u32>() % weakness)) / VALUE_MG_PAWN };
             // Then choose the move with the highest value.
             if (bestValue <= value) {
                 bestValue = value;

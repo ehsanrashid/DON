@@ -3,7 +3,7 @@
 #include <cstdlib>
 #include <chrono>
 
-#include "helper.h"
+#include "helper/string_view.h"
 
 #if defined(_WIN32)
     #include <ctime>
@@ -70,10 +70,9 @@ void Logger::setup(std::string_view logFile) {
     }
 
     filename = logFile;
-    replace(filename, '\\', '/');
-    trim(filename);
-    if (whiteSpaces(filename)) {
-        filename.clear();
+    std::replace(filename.begin(), filename.end(), '\\', '/');
+    filename = trim(filename);
+    if (filename.empty()) {
         return;
     }
 

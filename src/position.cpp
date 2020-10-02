@@ -6,8 +6,9 @@
 #include <iomanip>
 #include <sstream>
 
+#include "helper/string.h"
+#include "helper/string_view.h"
 #include "cuckoo.h"
-#include "helper.h"
 #include "movegenerator.h"
 #include "notation.h"
 #include "polyglot.h"
@@ -813,7 +814,7 @@ Position& Position::setup(std::string_view code, Color c, StateInfo &si) {
     assert(sides[WHITE].length() < 8
         && sides[BLACK].length() < 8);
 
-    toLower(sides[c]);
+    sides[c] = toLower(sides[c]);
 
     std::string fenStr{ "8/" + sides[WHITE] + char(8 - sides[WHITE].length() + '0') + "/8/8/8/8/"
                              + sides[BLACK] + char(8 - sides[BLACK].length() + '0') + "/8 w - - 0 10" };
@@ -1178,7 +1179,7 @@ void Position::flip() {
     // 1. Piece placement
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
-        toggle(token);
+        token = toggleCase(token);
         ff.insert(0, token + (r < RANK_8 ? "/" : " "));
     }
     // 2. Active color
@@ -1188,7 +1189,7 @@ void Position::flip() {
     // 3. Castling availability
     iss >> token;
     if (token != "-") {
-        toggle(token);
+        token = toggleCase(token);
     }
     ff += token;
     ff += " ";
@@ -1213,7 +1214,7 @@ void Position::mirror() {
     // 1. Piece placement
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         std::getline(iss, token, r > RANK_1 ? '/' : ' ');
-        reverse(token);
+        std::reverse(token.begin(), token.end());
         ff += token + (r > RANK_1 ? "/" : " ");
     }
     // 2. Active color

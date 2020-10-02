@@ -4,7 +4,7 @@
 #include <sstream>
 #include <vector>
 
-#include "prng.h"
+#include "helper/prng.h"
 #include "notation.h"
 
 u08 Distance[SQUARES][SQUARES];

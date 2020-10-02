@@ -234,4 +234,4 @@ namespace Evaluator::NNUE::Layers {
         alignas(CacheLineSize) WeightType _weights[OutputDimensions * PaddedInputDimensions];
     };
 
-}  // namespace Evaluator::NNUE::Layers
+}

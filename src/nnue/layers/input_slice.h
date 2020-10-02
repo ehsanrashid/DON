@@ -43,4 +43,4 @@ namespace Evaluator::NNUE::Layers {
 
     };
 
-}  // namespace Layers
+}

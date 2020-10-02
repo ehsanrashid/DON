@@ -124,4 +124,4 @@ namespace Evaluator::NNUE {
         return static_cast<Value>(output[0] / FVScale);
     }
 
-} // namespace Evaluator::NNUE
+}

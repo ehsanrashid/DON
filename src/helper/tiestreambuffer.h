@@ -18,9 +18,8 @@ public:
         rstreambuf{ rsb },
         wstreambuf{ wsb } {
     }
-
     TieStreamBuffer(TieStreamBuffer const&) = delete;
-    
+
     TieStreamBuffer& operator=(TieStreamBuffer const&) = delete;
 
     int sync() override {

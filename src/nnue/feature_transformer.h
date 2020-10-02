@@ -228,7 +228,7 @@ namespace Evaluator::NNUE {
                     for (unsigned k = 0; k < NumRegs; ++k) {
                         acc[k] = biasesTile[k];
                     }
-                    for (const auto index : activeIndices[perspective]) {
+                    for (auto const index : activeIndices[perspective]) {
                         const IndexType offset = HalfDimensions * index + j * TileHeight;
                         auto column = reinterpret_cast<const vec_t*>(&_weights[offset]);
 
@@ -301,8 +301,8 @@ namespace Evaluator::NNUE {
                         }
 
                         // Difference calculation for the deactivated features
-                        for (const auto index : removedIndices[perspective]) {
-                            const IndexType offset = HalfDimensions * index + j * TileHeight;
+                        for (auto const index : removedIndices[perspective]) {
+                            IndexType const offset = HalfDimensions * index + j * TileHeight;
                             auto column = reinterpret_cast<const vec_t*>(&_weights[offset]);
 
                             for (IndexType k = 0; k < NumRegs; ++k) {
@@ -311,8 +311,8 @@ namespace Evaluator::NNUE {
                         }
                     }
                     {   // Difference calculation for the activated features
-                        for (const auto index : addedIndices[perspective]) {
-                            const IndexType offset = HalfDimensions * index + j * TileHeight;
+                        for (auto const index : addedIndices[perspective]) {
+                            IndexType const offset = HalfDimensions * index + j * TileHeight;
                             auto column = reinterpret_cast<const vec_t*>(&_weights[offset]);
 
                             for (IndexType k = 0; k < NumRegs; ++k) {
@@ -372,4 +372,4 @@ namespace Evaluator::NNUE {
 
     };
 
-}  // namespace Evaluator::NNUE
+}

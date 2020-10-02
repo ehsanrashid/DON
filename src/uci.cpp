@@ -6,7 +6,10 @@
 #include <sstream>
 #include <string>
 
-#include "helper.h"
+#include "helper/string.h"
+#include "helper/string_view.h"
+#include "helper/container.h"
+
 #include "debugger.h"
 #include "polyglot.h"
 #include "position.h"
@@ -262,7 +265,7 @@ namespace UCI {
         assert(!type.empty());
         string val{ v };
         if (type == "check") {
-            toLower(val);
+            val = toLower(val);
             if (val != "true" && val != "false") {
                 val = "false";
             }
@@ -603,7 +606,7 @@ namespace UCI {
             // Drop old and create a new one
             states = StateListPtr{ new StateList{ 1 } };
             pos.setup(fen, states->back(), Threadpool.mainThread());
-            //assert(pos.fen() == trim(fen));
+            //assert(pos.fen() == toString(trim(fen)));
 
             // Parse and validate moves (if any)
             while (iss >> token) {
@@ -864,7 +867,7 @@ namespace UCI {
             istringstream iss{ cmd };
             token.clear(); // Avoid a stale if getline() returns empty or blank line
             iss >> std::skipws >> token;
-            toLower(token);
+            token = toLower(token);
 
                  if (token == "quit"
                   || token == "stop")       { Threadpool.stop = true; }
