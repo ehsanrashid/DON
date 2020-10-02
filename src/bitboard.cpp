@@ -4,8 +4,8 @@
 #include <sstream>
 #include <vector>
 
-#include "helper/prng.h"
 #include "notation.h"
+#include "helper/prng.h"
 
 u08 Distance[SQUARES][SQUARES];
 
@@ -35,7 +35,7 @@ namespace {
 
     /// safeDestiny() returns the bitboard of target square for the given step
     /// from the given square. If the step is off the board, returns empty bitboard.
-    inline Bitboard safeDestiny(Square s, Direction dir, i32 d = 1) {
+    Bitboard safeDestiny(Square s, Direction dir, i32 d = 1) {
         Square const dst{ s + dir };
         return isOk(dst)
             && distance(s, dst) <= d ?
@@ -158,9 +158,9 @@ namespace {
             // until found the one that passes the verification test.
             for (u16 i = 0; i < size; ) {
 
-                magic.number = 0;
-                while (popCount((magic.mask * magic.number) >> 56) < 6) {
-                    magic.number = prng.sparseRand<Bitboard>();
+                magic.magic = 0;
+                while (popCount((magic.mask * magic.magic) >> 56) < 6) {
+                    magic.magic = prng.sparseRand<Bitboard>();
                 }
 
                 // A good magic must map every possible occupancy to an index that

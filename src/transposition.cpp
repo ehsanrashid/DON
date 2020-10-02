@@ -7,11 +7,11 @@
 #include <thread>
 #include <vector>
 
-#include "helper/string_view.h"
 #include "memoryhandler.h"
 #include "movegenerator.h"
 #include "thread.h"
 #include "uci.h"
+#include "helper/string_view.h"
 
 TTable TT;
 TTable TTEx;

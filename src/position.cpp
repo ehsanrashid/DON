@@ -6,8 +6,6 @@
 #include <iomanip>
 #include <sstream>
 
-#include "helper/string.h"
-#include "helper/string_view.h"
 #include "cuckoo.h"
 #include "movegenerator.h"
 #include "notation.h"
@@ -17,6 +15,8 @@
 #include "transposition.h"
 #include "zobrist.h"
 #include "uci.h"
+#include "helper/string.h"
+#include "helper/string_view.h"
 
 namespace {
 

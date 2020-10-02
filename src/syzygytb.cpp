@@ -11,14 +11,14 @@
 #include <string_view>
 #include <vector>
 
-#include "helper/string.h"
-#include "helper/string_view.h"
 #include "bitboard.h"
 #include "movegenerator.h"
 #include "notation.h"
 #include "position.h"
 #include "thread.h"
 #include "uci.h"
+#include "helper/string.h"
+#include "helper/string_view.h"
 
 #if defined(_WIN32)
     #if !defined(NOMINMAX)

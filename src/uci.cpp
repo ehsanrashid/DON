@@ -6,15 +6,9 @@
 #include <sstream>
 #include <string>
 
-#include "helper/string.h"
-#include "helper/string_view.h"
-#include "helper/container.h"
-
-#include "debugger.h"
 #include "polyglot.h"
 #include "position.h"
 #include "evaluator.h"
-#include "logger.h"
 #include "movegenerator.h"
 #include "notation.h"
 #include "thread.h"
@@ -23,6 +17,11 @@
 #include "searcher.h"
 #include "skillmanager.h"
 #include "syzygytb.h"
+#include "helper/string.h"
+#include "helper/string_view.h"
+#include "helper/container.h"
+#include "helper/logger.h"
+#include "helper/reporter.h"
 
 using std::string;
 using std::string_view;
@@ -778,7 +777,7 @@ namespace UCI {
         /// bench() setup list of UCI commands is setup according to bench parameters,
         /// then it is run one by one printing a summary at the end.
         void bench(istringstream &isstream, Position &pos, StateListPtr &states) {
-            Debugger::reset();
+            Reporter::reset();
 
             auto const uciCmds{ setupBench(isstream, pos) };
             auto const cmdCount{ std::count_if(uciCmds.begin(), uciCmds.end(),
@@ -824,7 +823,7 @@ namespace UCI {
 
             elapsed = std::max(now() - elapsed, { 1 }); // Ensure non-zero to avoid a 'divide by zero'
 
-            Debugger::print(); // Just before exiting
+            Reporter::print(); // Just before exiting
 
             ostringstream oss{};
             oss << std::right
@@ -842,7 +841,7 @@ namespace UCI {
     /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
     /// In addition to the UCI ones, also some additional commands are supported.
     void handleCommands(int argc, char const *const argv[]) {
-        Debugger::reset();
+        Reporter::reset();
         Position pos;
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).

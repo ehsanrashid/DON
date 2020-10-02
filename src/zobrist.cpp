@@ -2,8 +2,8 @@
 
 #include <cassert>
 
-#include "helper/prng.h"
 #include "bitboard.h"
+#include "helper/prng.h"
 
 /// Zobrist::computeMatlKey() computes hash key of the material situation.
 Key Zobrist::computeMatlKey(Position const &pos) const noexcept {

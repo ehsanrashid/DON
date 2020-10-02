@@ -27,14 +27,12 @@ SRCS =  main.cpp \
         bitboard.cpp \
         commandline.cpp \
         cuckoo.cpp \
-        debugger.cpp \
         endgame.cpp \
         evaluator.cpp \
-        logger.cpp \
         material.cpp \
+        memoryhandler.cpp \
         movegenerator.cpp \
         movepicker.cpp \
-        memoryhandler.cpp \
         notation.cpp \
         king.cpp \
         pawns.cpp \
@@ -52,11 +50,13 @@ SRCS =  main.cpp \
         uci.cpp \
         zobrist.cpp \
         nnue/evaluate_nnue.cpp \
-        nnue/features/half_kp.cpp
+        nnue/features/half_kp.cpp \
+        helper/logger.cpp \
+        helper/reporter.cpp \
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 
-VPATH = nnue:nnue/features
+VPATH = nnue:nnue/features:helper
 
 ### Establish the operating system name
 KERNEL = $(shell uname -s)

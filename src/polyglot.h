@@ -2,9 +2,9 @@
 
 #include <string_view>
 
-#include "helper/prng.h"
 #include "position.h"
 #include "type.h"
+#include "helper/prng.h"
 
 /// Polyglot::Entry needs 16 bytes to be stored.
 ///  - Key       8 bytes

@@ -71,14 +71,15 @@
   <ItemGroup>
     <ClInclude Include="src\bitbase.h" />
     <ClInclude Include="src\bitboard.h" />
-    <ClInclude Include="src\comparer.h" />
     <ClInclude Include="src\cuckoo.h" />
-    <ClInclude Include="src\debugger.h" />
+    <ClInclude Include="src\helper\reporter.h" />
     <ClInclude Include="src\endgame.h" />
     <ClInclude Include="src\evaluator.h" />
     <ClInclude Include="src\commandline.h" />
+    <ClInclude Include="src\helper\comparer.h" />
     <ClInclude Include="src\helper\container.h" />
     <ClInclude Include="src\helper\delimitediterator.h" />
+    <ClInclude Include="src\helper\logger.h" />
     <ClInclude Include="src\helper\memorystreambuffer.h" />
     <ClInclude Include="src\helper\prng.h" />
     <ClInclude Include="src\helper\string.h" />
@@ -87,7 +88,6 @@
     <ClInclude Include="src\helper\timer.h" />
     <ClInclude Include="src\incbin\incbin.h" />
     <ClInclude Include="src\king.h" />
-    <ClInclude Include="src\logger.h" />
     <ClInclude Include="src\material.h" />
     <ClInclude Include="src\memoryhandler.h" />
     <ClInclude Include="src\movegenerator.h" />
@@ -127,12 +127,12 @@
     <ClCompile Include="src\bitbase.cpp" />
     <ClCompile Include="src\bitboard.cpp" />
     <ClCompile Include="src\cuckoo.cpp" />
-    <ClCompile Include="src\debugger.cpp" />
+    <ClCompile Include="src\helper\reporter.cpp" />
     <ClCompile Include="src\endgame.cpp" />
     <ClCompile Include="src\evaluator.cpp" />
     <ClCompile Include="src\commandline.cpp" />
+    <ClCompile Include="src\helper\logger.cpp" />
     <ClCompile Include="src\king.cpp" />
-    <ClCompile Include="src\logger.cpp" />
     <ClCompile Include="src\main.cpp" />
     <ClCompile Include="src\material.cpp" />
     <ClCompile Include="src\memoryhandler.cpp" />

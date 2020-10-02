@@ -13,8 +13,8 @@ public:
     MemoryStreamBuffer(MemoryStreamBuffer const&) = delete;
     MemoryStreamBuffer(MemoryStreamBuffer&&) = delete;
 
-    MemoryStreamBuffer(T *beg, size_t size) {
-        std::basic_streambuf<T>::setg(beg, beg, beg + size);
-        std::basic_streambuf<T>::setp(beg, beg + size);
+    MemoryStreamBuffer(T *ptr, size_t size) {
+        std::basic_streambuf<T>::setg(ptr, ptr, ptr + size);
+        std::basic_streambuf<T>::setp(ptr, ptr + size);
     }
 };

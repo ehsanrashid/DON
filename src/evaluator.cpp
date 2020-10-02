@@ -9,7 +9,6 @@
 #include <sstream>
 #include <vector>
 
-#include "helper/memorystreambuffer.h"
 #include "bitboard.h"
 #include "commandline.h"
 #include "king.h"
@@ -20,6 +19,7 @@
 #include "thread.h"
 #include "uci.h"
 #include "incbin/incbin.h"
+#include "helper/memorystreambuffer.h"
 
 // Macro to embed the default NNUE file data in the engine binary (using incbin.h, by Dale Weiler).
 // This macro invocation will declare the following three variables

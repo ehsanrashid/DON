@@ -7,9 +7,7 @@
 #include <iostream>
 #include <sstream>
 
-#include "debugger.h"
 #include "evaluator.h"
-#include "logger.h"
 #include "movegenerator.h"
 #include "movepicker.h"
 #include "notation.h"
@@ -23,6 +21,8 @@
 #include "skillmanager.h"
 #include "uci.h"
 #include "zobrist.h"
+#include "helper/logger.h"
+#include "helper/reporter.h"
 
 /// Pre-loads the given address in L1/L2 cache.
 /// This is a non-blocking function that doesn't stall the CPU
@@ -2010,7 +2010,7 @@ void MainThread::tick() {
     if (InfoTime + 1000 <= time) {
         InfoTime = time;
 
-        Debugger::print();
+        Reporter::print();
     }
 
     // Do not stop until told so by the GUI.

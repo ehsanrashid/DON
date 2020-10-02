@@ -13,29 +13,28 @@ struct Magic {
     Bitboard  mask;
 
 #if !defined(USE_PEXT)
-    Bitboard  number;
+    Bitboard  magic;
     u08       shift;
 #endif
 
-    u16 index(Bitboard) const noexcept;
+    // Compute the attack's index using the 'magic bitboards' approach
+    u16 index(Bitboard occ) const noexcept {
 
+    #if defined(USE_PEXT)
+        return u16( PEXT(occ, mask) );
+    #elif defined(IS_64BIT)
+        return u16( ((occ & mask) * magic) >> shift );
+    #else
+        return u16( (u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(magic >> 0x00))
+                   ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(magic >> 0x20))) >> shift );
+    #endif
+    }
+
+    // Return attacks
     Bitboard attacksBB(Bitboard occ) const noexcept {
         return attacks[index(occ)];
     }
 };
-
-inline u16 Magic::index(Bitboard occ) const noexcept {
-
-#if defined(USE_PEXT)
-    return u16( PEXT(occ, mask) );
-#elif defined(IS_64BIT)
-    return u16( ((occ & mask) * number) >> shift );
-#else
-    return u16( (u32((u32(occ >> 0x00) & u32(mask >> 0x00)) * u32(number >> 0x00))
-               ^ u32((u32(occ >> 0x20) & u32(mask >> 0x20)) * u32(number >> 0x20))) >> shift );
-#endif
-}
-
 
 constexpr Bitboard BoardBB{ U64(0xFFFFFFFFFFFFFFFF) };
 //constexpr Bitboard DiagonalBB{ U64(0x8142241818244281) }; // A1..H8 | H1..A8

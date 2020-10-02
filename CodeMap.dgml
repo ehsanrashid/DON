@@ -175,7 +175,7 @@
     <Node Id="@156" Category="CodeSchema_Method" Bounds="25256.3711444571,25859.4117794632,90.119999999999,25.9599999999991" CodeSchemaProperty_IsExternal="True" DelayedCrossGroupLinksState="NotFetched" Label="operator=" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@157" Category="CodeSchema_Method" Bounds="25220.5903715177,25803.4517794632,91.1399999999994,25.9599999999991" CodeSchemaProperty_IsExternal="True" DelayedCrossGroupLinksState="NotFetched" Label="HashTable" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@158" Category="CodeSchema_Method" Bounds="25158.3229374291,25691.4917794632,90.119999999999,25.9599999999991" CodeSchemaProperty_IsExternal="True" DelayedCrossGroupLinksState="NotFetched" Label="operator=" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@16" Category="CodeSchema_Namespace" Bounds="51.7541666666652,436.821297187718,110.116666666669,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="5" Group="Collapsed" Label="Debugger" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
+    <Node Id="@16" Category="CodeSchema_Namespace" Bounds="51.7541666666652,436.821297187718,110.116666666669,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="5" Group="Collapsed" Label="Reporter" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@160" Category="CodeSchema_Method" Bounds="25724.062372972,24018.0938385723,136.756666666668,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="dtz_before_zeroing" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@161" Category="CodeSchema_Method" Bounds="355.694895925535,699.412499999999,86.7099999999991,24.3999999999996" DelayedCrossGroupLinksState="Fetched" Label="operator-" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@162" Category="CodeSchema_Method" Bounds="25449.1736311319,24692.8117794633,110.686666666668,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="prettyInfo" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -6170,7 +6170,7 @@
     <Alias n="12" Id="Namespace=BitBoard" />
     <Alias n="13" Id="(@1 @12)" />
     <Alias n="14" Id="(@1 Namespace=&quot;BitBoard::`anonymous namespace'&quot;)" />
-    <Alias n="15" Id="Namespace=Debugger" />
+    <Alias n="15" Id="Namespace=Reporter" />
     <Alias n="16" Id="(@1 @15)" />
     <Alias n="17" Id="Namespace=EndGame" />
     <Alias n="18" Id="(@1 @17)" />

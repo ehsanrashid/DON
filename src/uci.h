@@ -5,8 +5,8 @@
 #include <string_view>
 #include <type_traits>
 
-#include "Comparer.h"
 #include "type.h"
+#include "helper/comparer.h"
 
 extern std::string const Name;
 extern std::string const Version;

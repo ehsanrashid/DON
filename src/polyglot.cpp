@@ -6,9 +6,9 @@
 #include <sstream>
 #include <vector>
 
-#include "helper/string_view.h"
 #include "movegenerator.h"
 #include "notation.h"
+#include "helper/string_view.h"
 
 PolyBook Book;
 
