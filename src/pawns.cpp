@@ -1,10 +1,10 @@
-#include "Pawns.h"
+#include "pawns.h"
 
 #include <algorithm>
 #include <cassert>
 
-#include "BitBoard.h"
-#include "Thread.h"
+#include "bitboard.h"
+#include "thread.h"
 
 namespace Pawns {
 

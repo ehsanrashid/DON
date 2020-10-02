@@ -1,11 +1,11 @@
-#include "Bitboard.h"
+#include "bitboard.h"
 
 #include <memory>
 #include <sstream>
 #include <vector>
 
-#include "PRNG.h"
-#include "Notation.h"
+#include "prng.h"
+#include "notation.h"
 
 u08 Distance[SQUARES][SQUARES];
 

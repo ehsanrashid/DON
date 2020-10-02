@@ -1,9 +1,9 @@
-#include "Material.h"
+#include "material.h"
 
 #include <cassert>
 #include <cstring> // For memset()
 
-#include "Thread.h"
+#include "thread.h"
 
 namespace Material {
 

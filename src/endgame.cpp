@@ -1,9 +1,9 @@
-#include "Endgame.h"
+#include "endgame.h"
 
 #include <string_view>
 
-#include "Bitbase.h"
-#include "MoveGenerator.h"
+#include "bitbase.h"
+#include "movegenerator.h"
 
 namespace {
 

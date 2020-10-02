@@ -1,15 +1,15 @@
-#include "Thread.h"
+#include "thread.h"
 
 #include <cassert>
 #include <cmath>
 #include <iostream>
 #include <unordered_map>
 
-#include "MemoryHandler.h"
-#include "Searcher.h"
-#include "SyzygyTB.h"
-#include "Transposition.h"
-#include "UCI.h"
+#include "memoryhandler.h"
+#include "searcher.h"
+#include "syzygytb.h"
+#include "transposition.h"
+#include "uci.h"
 
 ThreadPool Threadpool;
 

@@ -1,12 +1,12 @@
-#include "RootMove.h"
+#include "rootmove.h"
 
 #include <algorithm>
 #include <iterator>
 #include <sstream>
 #include <iostream>
 
-#include "MoveGenerator.h"
-#include "Notation.h"
+#include "movegenerator.h"
+#include "notation.h"
 
 RootMove::RootMove(Move m) :
     std::vector<Move>{ 1, m } {

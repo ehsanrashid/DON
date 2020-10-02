@@ -4,7 +4,7 @@
 #include <cstring> // For memcpy()
 #include <iostream>
 
-#include "../Type.h"
+#include "../type.h"
 
 #if defined(USE_AVX2)
     #include <immintrin.h>

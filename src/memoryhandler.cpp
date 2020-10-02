@@ -1,8 +1,8 @@
-#include "MemoryHandler.h"
+#include "memoryhandler.h"
 
 #include <memory>
 
-#include "Thread.h"
+#include "thread.h"
 
 #if defined(_WIN32)
     #if (_WIN32_WINNT < 0x0601)

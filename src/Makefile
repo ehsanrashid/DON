@@ -22,12 +22,37 @@ BINDIR = $(PREFIX)/bin
 PGOBENCH = ./$(EXE) bench
 
 ### Source and Object files
-SRCS = Bitbase.cpp Bitboard.cpp Cuckoo.cpp Debugger.cpp Endgame.cpp Evaluator.cpp \
-       Helper.cpp Logger.cpp Main.cpp Material.cpp MoveGenerator.cpp MovePicker.cpp \
-       MemoryHandler.cpp Notation.cpp King.cpp Pawns.cpp Polyglot.cpp Position.cpp \
-       PSQTable.cpp RootMove.cpp Searcher.cpp SkillManager.cpp SyzygyTB.cpp Thread.cpp \
-       ThreadMarker.cpp TimeManager.cpp Transposition.cpp UCI.cpp Zobrist.cpp \
-       nnue/EvaluateNNUE.cpp nnue/features/HalfKP.cpp
+SRCS =  main.cpp \
+        bitbase.cpp \
+        bitboard.cpp \
+        cuckoo.cpp \
+        debugger.cpp \
+        endgame.cpp \
+        evaluator.cpp \
+        helper.cpp \
+        logger.cpp \
+        material.cpp \
+        movegenerator.cpp \
+        movepicker.cpp \
+        memoryhandler.cpp \
+        notation.cpp \
+        king.cpp \
+        pawns.cpp \
+        polyglot.cpp \
+        position.cpp \
+        psqtable.cpp \
+        rootmove.cpp \
+        searcher.cpp \
+        skillmanager.cpp \
+        syzygytb.cpp \
+        thread.cpp \
+        threadmarker.cpp \
+        timemanager.cpp \
+        transposition.cpp \
+        uci.cpp \
+        zobrist.cpp \
+        nnue/evaluate_nnue.cpp \
+        nnue/features/half_kp.cpp
 
 OBJS = $(notdir $(SRCS:.cpp=.o))
 

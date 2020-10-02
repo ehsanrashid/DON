@@ -2,7 +2,7 @@
 
 #include <atomic>
 
-#include "Thread.h"
+#include "thread.h"
 #include "type.h"
 
 /// ThreadMark are used to mark nodes as being searched by a given thread

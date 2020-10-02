@@ -1,4 +1,4 @@
-#include "TimeManager.h"
+#include "timemanager.h"
 
 #include <cfloat>
 #include <cmath>

@@ -1,7 +1,7 @@
 // Class for difference calculation of NNUE evaluation function
 #pragma once
 
-#include "Architecture.h"
+#include "architecture.h"
 
 namespace Evaluator::NNUE {
 

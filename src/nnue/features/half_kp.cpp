@@ -1,8 +1,8 @@
 // Definition of input features HalfKP of NNUE evaluation function
 
-#include "../../Position.h"
-#include "HalfKP.h"
-#include "IndexList.h"
+#include "../../position.h"
+#include "half_kp.h"
+#include "index_list.h"
 
 namespace Evaluator::NNUE::Features {
 

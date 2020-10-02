@@ -1,7 +1,7 @@
 // Definition of layer ClippedReLU of NNUE evaluation function
 #pragma once
 
-#include "../NNUECommon.h"
+#include "../nnue_common.h"
 
 namespace Evaluator::NNUE::Layers {
 

@@ -6,7 +6,7 @@
 #include <type_traits>
 
 #include "Comparer.h"
-#include "Type.h"
+#include "type.h"
 
 extern std::string const Name;
 extern std::string const Version;

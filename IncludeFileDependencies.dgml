@@ -8,7 +8,7 @@
         <Node Id="@106" Category="CodeSchema_ProjectItem" Bounds="-1509.25049053309,895.792173949662,119.474666743746,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_math.h" Label="corecrt_math.h" />
         <Node Id="@108" Category="CodeSchema_ProjectItem" Bounds="-427.020537351029,30.1857790370362,94.4246667437458,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\use_ansi.h" Label="use_ansi.h" />
         <Node Id="@110" Category="CodeSchema_ProjectItem" Bounds="-435.169685793247,86.1837268526714,104.058000077079,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\xkeycheck.h" Label="xkeycheck.h" />
-        <Node Id="@112" Category="CodeSchema_ProjectItem" Bounds="344.629343161686,654.78739020798,93.7080000770791,25.998000077079" FilePath="$(VsSolution)\src\Material.h" Label="Material.h" />
+        <Node Id="@112" Category="CodeSchema_ProjectItem" Bounds="344.629343161686,654.78739020798,93.7080000770791,25.998000077079" FilePath="$(VsSolution)\src\material.h" Label="material.h" />
         <Node Id="@114" Category="CodeSchema_ProjectItem" Bounds="-20.0411986692088,136.528823849804,132.121333410412,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\ConcurrencySal.h" Label="ConcurrencySal.h" />
         <Node Id="@116" Category="CodeSchema_ProjectItem" Bounds="10.1711817290495,267.33516864797,64.4946667437457,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\sal.h" Label="sal.h" />
         <Node Id="@118" Category="CodeSchema_ProjectItem" Bounds="98.5560584224227,573.123436166825,104.801333410412,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\ammintrin.h" Label="ammintrin.h" />
@@ -25,11 +25,11 @@
         <Node Id="@138" Category="CodeSchema_ProjectItem" Bounds="23.1159801082167,509.814958733518,78.0213334104124,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\intrin.h" Label="intrin.h" />
         <Node Id="@14" Category="CodeSchema_ProjectItem" Bounds="-150.343409031385,976.498825005989,68.0913334104123,25.9980000770793" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\tuple" Label="tuple" />
         <Node Id="@140" Category="CodeSchema_ProjectItem" Bounds="-31.4812834373763,383.389085421522,102.871333410412,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\arm_neon.h" Label="arm_neon.h" />
-        <Node Id="@142" Category="CodeSchema_ProjectItem" Bounds="351.770999248926,710.785376047823,97.3613334104124,25.998000077079" FilePath="$(VsSolution)\src\notation.h" Label="Notation.h" />
-        <Node Id="@144" Category="CodeSchema_ProjectItem" Bounds="538.054719952051,598.789404368136,120.671333410412,25.998000077079" FilePath="$(VsSolution)\src\transposition.h" Label="Transposition.h" />
-        <Node Id="@146" Category="CodeSchema_ProjectItem" Bounds="370.894158835515,94.8074326274133,92.4880000770791,25.998000077079" FilePath="$(VsSolution)\src\position.h" Label="Position.h" />
+        <Node Id="@142" Category="CodeSchema_ProjectItem" Bounds="351.770999248926,710.785376047823,97.3613334104124,25.998000077079" FilePath="$(VsSolution)\src\notation.h" Label="notation.h" />
+        <Node Id="@144" Category="CodeSchema_ProjectItem" Bounds="538.054719952051,598.789404368136,120.671333410412,25.998000077079" FilePath="$(VsSolution)\src\transposition.h" Label="transposition.h" />
+        <Node Id="@146" Category="CodeSchema_ProjectItem" Bounds="370.894158835515,94.8074326274133,92.4880000770791,25.998000077079" FilePath="$(VsSolution)\src\position.h" Label="position.h" />
         <Node Id="@148" Category="CodeSchema_ProjectItem" Bounds="-59.2344702224682,1088.49482516015,159.448000077079,25.9980000770793" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\vcruntime_exception.h" Label="vcruntime_exception.h" />
-        <Node Id="@150" Category="CodeSchema_ProjectItem" Bounds="537.683618877832,426.883642649386,87.2813334104123,25.998000077079" FilePath="$(VsSolution)\src\Option.h" Label="Option.h" />
+        <Node Id="@150" Category="CodeSchema_ProjectItem" Bounds="537.683618877832,426.883642649386,87.2813334104123,25.998000077079" FilePath="$(VsSolution)\src\option.h" Label="option.h" />
         <Node Id="@152" Category="CodeSchema_ProjectItem" Bounds="-274.153169654076,86.183709700911,117.991333410412,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\thr\xthrcommon.h" Label="xthrcommon.h" />
         <Node Id="@154" Category="CodeSchema_ProjectItem" Bounds="-456.874082773659,198.179698102713,91.8580000770789,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\xlocinfo.h" Label="xlocinfo.h" />
         <Node Id="@156" Category="CodeSchema_ProjectItem" Bounds="-105.45849716295,696.508824620595,151.684666743746,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\vcruntime_typeinfo.h" Label="vcruntime_typeinfo.h" />
@@ -42,25 +42,25 @@
         <Node Id="@168" Category="CodeSchema_ProjectItem" Bounds="101.390093212937,383.389128479452,86.1213334104125,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\setjmp.h" Label="setjmp.h" />
         <Node Id="@170" Category="CodeSchema_ProjectItem" Bounds="-1257.63197735805,346.612801151482,81.6746667437455,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\wchar.h" Label="wchar.h" />
         <Node Id="@172" Category="CodeSchema_ProjectItem" Bounds="665.362694398665,490.299780344698,95.4446667437458,25.998000077079" FilePath="$(VsSolution)\src\tiebuffer.h" Label="tiebuffer.h" />
-        <Node Id="@174" Category="CodeSchema_ProjectItem" Bounds="547.711204327051,482.88162848923,87.6513334104125,25.998000077079" FilePath="$(VsSolution)\src\Logger.h" Label="Logger.h" />
-        <Node Id="@176" Category="CodeSchema_ProjectItem" Bounds="395.665647686426,822.781408762667,96.1013334104123,25.998000077079" FilePath="$(VsSolution)\src\Searcher.h" Label="Searcher.h" />
-        <Node Id="@178" Category="CodeSchema_ProjectItem" Bounds="468.337464499577,654.78739020798,136.628000077079,25.998000077079" FilePath="$(VsSolution)\src\MemoryHandler.h" Label="MemoryHandler.h" />
+        <Node Id="@174" Category="CodeSchema_ProjectItem" Bounds="547.711204327051,482.88162848923,87.6513334104125,25.998000077079" FilePath="$(VsSolution)\src\logger.h" Label="logger.h" />
+        <Node Id="@176" Category="CodeSchema_ProjectItem" Bounds="395.665647686426,822.781408762667,96.1013334104123,25.998000077079" FilePath="$(VsSolution)\src\searcher.h" Label="searcher.h" />
+        <Node Id="@178" Category="CodeSchema_ProjectItem" Bounds="468.337464499577,654.78739020798,136.628000077079,25.998000077079" FilePath="$(VsSolution)\src\memoryhandler.h" Label="memoryhandler.h" />
         <Node Id="@18" Category="CodeSchema_ProjectItem" Bounds="-486.348081769081,646.163698719345,70.1280000770792,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\ctime" Label="ctime" />
-        <Node Id="@180" Category="CodeSchema_ProjectItem" Bounds="254.224980775619,486.793417429659,133.344666743746,25.998000077079" FilePath="$(VsSolution)\src\MoveGenerator.h" Label="MoveGenerator.h" />
-        <Node Id="@182" Category="CodeSchema_ProjectItem" Bounds="404.224725648666,878.779394602511,99.3846667437457,25.998000077079" FilePath="$(VsSolution)\src\Evaluator.h" Label="Evaluator.h" />
+        <Node Id="@180" Category="CodeSchema_ProjectItem" Bounds="254.224980775619,486.793417429659,133.344666743746,25.998000077079" FilePath="$(VsSolution)\src\movegenerator.h" Label="movegenerator.h" />
+        <Node Id="@182" Category="CodeSchema_ProjectItem" Bounds="404.224725648666,878.779394602511,99.3846667437457,25.998000077079" FilePath="$(VsSolution)\src\evaluator.h" Label="evaluator.h" />
         <Node Id="@184" Category="CodeSchema_ProjectItem" Bounds="665.362658591374,432.017065500948,88.538000077079,25.998000077079" FilePath="$(VsSolution)\src\functor.h" Label="functor.h" />
         <Node Id="@186" Category="CodeSchema_ProjectItem" Bounds="49.6795634002037,629.121481604659,88.9413334104124,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\armintr.h" Label="armintr.h" />
         <Node Id="@188" Category="CodeSchema_ProjectItem" Bounds="-1509.2504905472,1063.78617873546,162.621333410412,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_math_defines.h" Label="corecrt_math_defines.h" />
         <Node Id="@190" Category="CodeSchema_ProjectItem" Bounds="-1426.777522299,402.61062876538,92.4480000770791,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\inttypes.h" Label="inttypes.h" />
         <Node Id="@192" Category="CodeSchema_ProjectItem" Bounds="-1409.52905713679,1007.78817865838,78.6846667437458,25.9980000770794" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\sys\types.h" Label="types.h" />
-        <Node Id="@194" Category="CodeSchema_ProjectItem" Bounds="290.08900095791,150.805418467257,93.6913334104124,25.998000077079" FilePath="$(VsSolution)\src\Bitbase.h" Label="Bitbase.h" />
+        <Node Id="@194" Category="CodeSchema_ProjectItem" Bounds="290.08900095791,150.805418467257,93.6913334104124,25.998000077079" FilePath="$(VsSolution)\src\bitbase.h" Label="bitbase.h" />
         <Node Id="@196" Category="CodeSchema_ProjectItem" Bounds="-69.6935237008893,192.526823926883,84.4346667437458,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\vadefs.h" Label="vadefs.h" />
         <Node Id="@198" Category="CodeSchema_ProjectItem" Bounds="-137.218724809349,248.524824003962,86.3646667437456,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\crtdefs.h" Label="crtdefs.h" />
         <Node Id="@2" Category="CodeSchema_PoundIncludeFile" Bounds="116.987056377832,-1.19154513487604,663.820304764579,1250.78691579172" FilePath="$(VsSolution)\DON.vcxproj" Group="Expanded" Label="DON.vcxproj" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
         <Node Id="@20" Category="CodeSchema_ProjectItem" Bounds="-356.451995533993,-25.8122336471416,75.288000077079,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\cctype" Label="cctype" />
         <Node Id="@200" Category="CodeSchema_ProjectItem" Bounds="-354.691920137777,254.177698179792,76.048000077079,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\yvals.h" Label="yvals.h" />
         <Node Id="@202" Category="CodeSchema_ProjectItem" Bounds="44.7411972748996,211.337231596962,148.071333410412,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\CodeAnalysis\sourceannotations.h" Label="sourceannotations.h" />
-        <Node Id="@204" Category="CodeSchema_ProjectItem" Bounds="388.96039133877,766.783361887667,83.3613334104124,25.998000077079" FilePath="$(VsSolution)\src\Pawns.h" Label="Pawns.h" />
+        <Node Id="@204" Category="CodeSchema_ProjectItem" Bounds="388.96039133877,766.783361887667,83.3613334104124,25.998000077079" FilePath="$(VsSolution)\src\pawns.h" Label="pawns.h" />
         <Node Id="@206" Category="CodeSchema_ProjectItem" Bounds="-1139.89972364929,1007.78817865838,141.111333410412,25.9980000770789" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_wprocess.h" Label="corecrt_wprocess.h" />
         <Node Id="@208" Category="CodeSchema_ProjectItem" Bounds="-213.840830640095,472.516824312278,78.6046667437456,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\limits.h" Label="limits.h" />
         <Node Id="@210" Category="CodeSchema_ProjectItem" Bounds="-1449.38543510252,839.794173872583,147.601333410413,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_memcpy_s.h" Label="corecrt_memcpy_s.h" />
@@ -69,15 +69,15 @@
         <Node Id="@216" Category="CodeSchema_ProjectItem" Bounds="-1189.71449037893,951.790174026742,130.881333410412,25.9980000770788" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_wdirect.h" Label="corecrt_wdirect.h" />
         <Node Id="@218" Category="CodeSchema_ProjectItem" Bounds="-163.091746580735,416.518824235199,80.3780000770792,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\stdint.h" Label="stdint.h" />
         <Node Id="@22" Category="CodeSchema_ProjectItem" Bounds="-516.395084982842,870.155790843453,86.0646667437454,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\xiosbase" Label="xiosbase" />
-        <Node Id="@220" Category="CodeSchema_ProjectItem" Bounds="422.137256980046,934.777380442355,93.4780000770791,25.998000077079" FilePath="$(VsSolution)\src\Polyglot.h" Label="Polyglot.h" />
-        <Node Id="@222" Category="CodeSchema_ProjectItem" Bounds="320.787721254134,542.791357493136,78.2746667437457,25.998000077079" FilePath="$(VsSolution)\src\PSQTable.h" Label="PSQTable.h" />
+        <Node Id="@220" Category="CodeSchema_ProjectItem" Bounds="422.137256980046,934.777380442355,93.4780000770791,25.998000077079" FilePath="$(VsSolution)\src\polyglot.h" Label="polyglot.h" />
+        <Node Id="@222" Category="CodeSchema_ProjectItem" Bounds="320.787721254134,542.791357493136,78.2746667437457,25.998000077079" FilePath="$(VsSolution)\src\psqtable.h" Label="psqtable.h" />
         <Node Id="@224" Category="CodeSchema_ProjectItem" Bounds="-1300.13853440421,501.757759249965,87.194666743746,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt.h" Label="corecrt.h" />
         <Node Id="@226" Category="CodeSchema_ProjectItem" Bounds="-1371.26412137074,346.61263438881,81.1980000770791,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\assert.h" Label="assert.h" />
-        <Node Id="@228" Category="CodeSchema_ProjectItem" Bounds="450.832932435775,38.8094315287805,87.5546667437457,25.998000077079" FilePath="$(VsSolution)\src\Zobrist.h" Label="Zobrist.h" />
+        <Node Id="@228" Category="CodeSchema_ProjectItem" Bounds="450.832932435775,38.8094315287805,87.5546667437457,25.998000077079" FilePath="$(VsSolution)\src\zobrist.h" Label="zobrist.h" />
         <Node Id="@230" Category="CodeSchema_ProjectItem" Bounds="-57.6479818570069,752.506824697674,129.738000077079,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\vcruntime_new.h" Label="vcruntime_new.h" />
         <Node Id="@232" Category="CodeSchema_ProjectItem" Bounds="119.393157637651,453.81682420412,107.091333410412,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\mm3dnow.h" Label="mm3dnow.h" />
         <Node Id="@234" Category="CodeSchema_ProjectItem" Bounds="104.666019510623,271.393148663893,97.9046667437456,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\setjmpex.h" Label="setjmpex.h" />
-        <Node Id="@236" Category="CodeSchema_ProjectItem" Bounds="425.598367412989,990.775366282198,98.5613334104123,25.998000077079" FilePath="$(VsSolution)\src\TBsyzygy.h" Label="SyzygyTB.h" />
+        <Node Id="@236" Category="CodeSchema_ProjectItem" Bounds="425.598367412989,990.775366282198,98.5613334104123,25.998000077079" FilePath="$(VsSolution)\src\TBsyzygy.h" Label="syzygytb.h" />
         <Node Id="@238" Category="CodeSchema_ProjectItem" Bounds="-1267.81068616729,725.257305476258,144.694666743746,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\shared\winpackagefamily.h" Label="winpackagefamily.h" />
         <Node Id="@24" Category="CodeSchema_ProjectItem" Bounds="-453.491572181114,478.169698488108,79.8680000770792,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\cstddef" Label="cstddef" />
         <Node Id="@240" Category="CodeSchema_ProjectItem" Bounds="-1310.25075399115,666.602801536878,116.644666743746,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\shared\winapifamily.h" Label="winapifamily.h" />
@@ -153,10 +153,10 @@
         <Node Id="@46" Category="CodeSchema_ProjectItem" Bounds="-110.626136540911,528.514859258254,91.884666743746,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\xatomic.h" Label="xatomic.h" />
         <Node Id="@48" Category="CodeSchema_ProjectItem" Bounds="-1206.95862379894,234.616800997324,85.2180000770791,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\malloc.h" Label="malloc.h" />
         <Node Id="@50" Category="CodeSchema_ProjectItem" Bounds="-1049.18315696852,895.792173949662,127.004666743746,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_malloc.h" Label="corecrt_malloc.h" />
-        <Node Id="@52" Category="CodeSchema_ProjectItem" Bounds="423.179333396061,1046.77350470993,87.088000077079,25.998000077079" FilePath="$(VsSolution)\src\Thread.h" Label="Thread.h" />
-        <Node Id="@54" Category="CodeSchema_ProjectItem" Bounds="277.208494773015,598.789404368136,95.498000077079,25.998000077079" FilePath="$(VsSolution)\src\Bitboard.h" Label="Bitboard.h" />
+        <Node Id="@52" Category="CodeSchema_ProjectItem" Bounds="423.179333396061,1046.77350470993,87.088000077079,25.998000077079" FilePath="$(VsSolution)\src\thread.h" Label="thread.h" />
+        <Node Id="@54" Category="CodeSchema_ProjectItem" Bounds="277.208494773015,598.789404368136,95.498000077079,25.998000077079" FilePath="$(VsSolution)\src\bitboard.h" Label="bitboard.h" />
         <Node Id="@56" Category="CodeSchema_ProjectItem" Bounds="-1440.20892420835,458.608611686413,81.1580000770791,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\locale.h" Label="locale.h" />
-        <Node Id="@58" Category="CodeSchema_ProjectItem" Bounds="265.33746165127,374.797399973605,100.101333410412,25.998000077079" FilePath="$(VsSolution)\src\Endgame.h" Label="Endgame.h" />
+        <Node Id="@58" Category="CodeSchema_ProjectItem" Bounds="265.33746165127,374.797399973605,100.101333410412,25.998000077079" FilePath="$(VsSolution)\src\endgame.h" Label="endgame.h" />
         <Node Id="@6" Category="CodeSchema_ProjectItem" Bounds="-168.432587996369,601.990573037627,96.9346667437458,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\xmemory0" Label="xmemory0" />
         <Node Id="@60" Category="CodeSchema_ProjectItem" Bounds="-52.7136465036556,439.386994157398,103.018000077079,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\vcruntime.h" Label="vcruntime.h" />
         <Node Id="@62" Category="CodeSchema_ProjectItem" Bounds="-1359.77582378935,895.792173949662,124.434666743746,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_wtime.h" Label="corecrt_wtime.h" />
@@ -164,7 +164,7 @@
         <Node Id="@66" Category="CodeSchema_ProjectItem" Bounds="494.529284567936,94.8074326274133,86.288000077079,25.998000077079" FilePath="$(VsSolution)\src\Engine.h" Label="Engine.h" />
         <Node Id="@68" Category="CodeSchema_ProjectItem" Bounds="-1509.25049053309,951.790174026742,129.594666743746,25.9980000770788" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_wctype.h" Label="corecrt_wctype.h" />
         <Node Id="@70" Category="CodeSchema_ProjectItem" Bounds="-1263.35202086123,178.618800920245,79.1346667437458,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\ctype.h" Label="ctype.h" />
-        <Node Id="@72" Category="CodeSchema_ProjectItem" Bounds="407.508689678613,206.80341956589,75.1513334104123,25.998000077079" FilePath="$(VsSolution)\src\Type.h" Label="type.h" />
+        <Node Id="@72" Category="CodeSchema_ProjectItem" Bounds="407.508689678613,206.80341956589,75.1513334104123,25.998000077079" FilePath="$(VsSolution)\src\type.h" Label="type.h" />
         <Node Id="@74" Category="CodeSchema_ProjectItem" Bounds="-1249.33178375172,1139.78417425798,78.8280000770792,25.9980000770793" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\share.h" Label="share.h" />
         <Node Id="@76" Category="CodeSchema_ProjectItem" Bounds="-1460.8654207349,725.413278984103,120.614666743746,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_share.h" Label="corecrt_share.h" />
         <Node Id="@78" Category="CodeSchema_ProjectItem" Bounds="-1577.5680678917,514.980034520648,143.174666743746,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_terminate.h" Label="corecrt_terminate.h" />
@@ -175,7 +175,7 @@
         <Node Id="@86" Category="CodeSchema_ProjectItem" Bounds="-1300.84439039304,1007.78817865838,130.944666743746,25.9980000770789" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_wstring.h" Label="corecrt_wstring.h" />
         <Node Id="@88" Category="CodeSchema_ProjectItem" Bounds="-1182.94376766047,514.606801382719,80.4846667437459,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\string.h" Label="string.h" />
         <Node Id="@90" Category="CodeSchema_ProjectItem" Bounds="11.5110611716027,327.391085344443,138.094666743746,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\vcruntime_string.h" Label="vcruntime_string.h" />
-        <Node Id="@92" Category="CodeSchema_ProjectItem" Bounds="321.732500306869,318.799414133761,81.4946667437457,25.998000077079" FilePath="$(VsSolution)\src\PRNG.h" Label="PRNG.h" />
+        <Node Id="@92" Category="CodeSchema_ProjectItem" Bounds="321.732500306869,318.799414133761,81.4946667437457,25.998000077079" FilePath="$(VsSolution)\src\prng.h" Label="prng.h" />
         <Node Id="@94" Category="CodeSchema_ProjectItem" Bounds="15.5261565478131,811.528934313095,168.971333410412,25.998000077079" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\vcruntime_new_debug.h" Label="vcruntime_new_debug.h" />
         <Node Id="@96" Category="CodeSchema_ProjectItem" Bounds="-1205.3411570456,895.792173949662,126.158000077079,25.998000077079" FilePath="$(ProgramFiles)\Windows Kits\10\Include\10.0.16299.0\ucrt\corecrt_search.h" Label="corecrt_search.h" />
         <Node Id="@98" Category="CodeSchema_ProjectItem" Bounds="40.4224045422764,1145.39575078326,63.4546667437457,25.9980000770793" FilePath="$(ProgramFiles)\Microsoft Visual Studio 14.0\VC\include\eh.h" Label="eh.h" />
@@ -885,13 +885,13 @@
         <Alias n="48" Id="(@4 @47)" />
         <Alias n="49" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/corecrt_malloc.h" />
         <Alias n="50" Id="(@4 @49)" />
-        <Alias n="51" Uri="File=$(VsSolutionUri)/src/Thread.h" />
+        <Alias n="51" Uri="File=$(VsSolutionUri)/src/thread.h" />
         <Alias n="52" Id="(@1 @51)" />
-        <Alias n="53" Uri="File=$(VsSolutionUri)/src/Bitboard.h" />
+        <Alias n="53" Uri="File=$(VsSolutionUri)/src/bitboard.h" />
         <Alias n="54" Id="(@1 @53)" />
         <Alias n="55" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/locale.h" />
         <Alias n="56" Id="(@4 @55)" />
-        <Alias n="57" Uri="File=$(VsSolutionUri)/src/Endgame.h" />
+        <Alias n="57" Uri="File=$(VsSolutionUri)/src/endgame.h" />
         <Alias n="58" Id="(@1 @57)" />
         <Alias n="59" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/vcruntime.h" />
         <Alias n="60" Id="(@4 @59)" />
@@ -905,7 +905,7 @@
         <Alias n="68" Id="(@4 @67)" />
         <Alias n="69" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/ctype.h" />
         <Alias n="70" Id="(@4 @69)" />
-        <Alias n="71" Uri="File=$(VsSolutionUri)/src/Type.h" />
+        <Alias n="71" Uri="File=$(VsSolutionUri)/src/type.h" />
         <Alias n="72" Id="(@1 @71)" />
         <Alias n="73" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/share.h" />
         <Alias n="74" Id="(@4 @73)" />
@@ -925,7 +925,7 @@
         <Alias n="88" Id="(@4 @87)" />
         <Alias n="89" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/vcruntime_string.h" />
         <Alias n="90" Id="(@4 @89)" />
-        <Alias n="91" Uri="File=$(VsSolutionUri)/src/PRNG.h" />
+        <Alias n="91" Uri="File=$(VsSolutionUri)/src/prng.h" />
         <Alias n="92" Id="(@1 @91)" />
         <Alias n="93" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/vcruntime_new_debug.h" />
         <Alias n="94" Id="(@4 @93)" />
@@ -945,7 +945,7 @@
         <Alias n="108" Id="(@4 @107)" />
         <Alias n="109" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/xkeycheck.h" />
         <Alias n="110" Id="(@4 @109)" />
-        <Alias n="111" Uri="File=$(VsSolutionUri)/src/Material.h" />
+        <Alias n="111" Uri="File=$(VsSolutionUri)/src/material.h" />
         <Alias n="112" Id="(@1 @111)" />
         <Alias n="113" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/ConcurrencySal.h" />
         <Alias n="114" Id="(@4 @113)" />
@@ -975,15 +975,15 @@
         <Alias n="138" Id="(@4 @137)" />
         <Alias n="139" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/arm_neon.h" />
         <Alias n="140" Id="(@4 @139)" />
-        <Alias n="141" Uri="File=$(VsSolutionUri)/src/Notation.h" />
+        <Alias n="141" Uri="File=$(VsSolutionUri)/src/notation.h" />
         <Alias n="142" Id="(@1 @141)" />
-        <Alias n="143" Uri="File=$(VsSolutionUri)/src/Transposition.h" />
+        <Alias n="143" Uri="File=$(VsSolutionUri)/src/transposition.h" />
         <Alias n="144" Id="(@1 @143)" />
-        <Alias n="145" Uri="File=$(VsSolutionUri)/src/Position.h" />
+        <Alias n="145" Uri="File=$(VsSolutionUri)/src/position.h" />
         <Alias n="146" Id="(@1 @145)" />
         <Alias n="147" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/vcruntime_exception.h" />
         <Alias n="148" Id="(@4 @147)" />
-        <Alias n="149" Uri="File=$(VsSolutionUri)/src/Option.h" />
+        <Alias n="149" Uri="File=$(VsSolutionUri)/src/option.h" />
         <Alias n="150" Id="(@1 @149)" />
         <Alias n="151" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/thr/xthrcommon.h" />
         <Alias n="152" Id="(@4 @151)" />
@@ -1005,17 +1005,17 @@
         <Alias n="168" Id="(@4 @167)" />
         <Alias n="169" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/wchar.h" />
         <Alias n="170" Id="(@4 @169)" />
-        <Alias n="171" Uri="File=$(VsSolutionUri)/src/tiebuffer.h" />
+        <Alias n="171" Uri="File=$(VsSolutionUri)/src/tiestreambuffer.h" />
         <Alias n="172" Id="(@1 @171)" />
-        <Alias n="173" Uri="File=$(VsSolutionUri)/src/Logger.h" />
+        <Alias n="173" Uri="File=$(VsSolutionUri)/src/logger.h" />
         <Alias n="174" Id="(@1 @173)" />
-        <Alias n="175" Uri="File=$(VsSolutionUri)/src/Searcher.h" />
+        <Alias n="175" Uri="File=$(VsSolutionUri)/src/searcher.h" />
         <Alias n="176" Id="(@1 @175)" />
-        <Alias n="177" Uri="File=$(VsSolutionUri)/src/MemoryHandler.h" />
+        <Alias n="177" Uri="File=$(VsSolutionUri)/src/memoryhandler.h" />
         <Alias n="178" Id="(@1 @177)" />
-        <Alias n="179" Uri="File=$(VsSolutionUri)/src/MoveGenerator.h" />
+        <Alias n="179" Uri="File=$(VsSolutionUri)/src/movegenerator.h" />
         <Alias n="180" Id="(@1 @179)" />
-        <Alias n="181" Uri="File=$(VsSolutionUri)/src/Evaluator.h" />
+        <Alias n="181" Uri="File=$(VsSolutionUri)/src/evaluator.h" />
         <Alias n="182" Id="(@1 @181)" />
         <Alias n="183" Uri="File=$(VsSolutionUri)/src/functor.h" />
         <Alias n="184" Id="(@1 @183)" />
@@ -1027,7 +1027,7 @@
         <Alias n="190" Id="(@4 @189)" />
         <Alias n="191" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/sys/types.h" />
         <Alias n="192" Id="(@4 @191)" />
-        <Alias n="193" Uri="File=$(VsSolutionUri)/src/Bitbase.h" />
+        <Alias n="193" Uri="File=$(VsSolutionUri)/src/bitbase.h" />
         <Alias n="194" Id="(@1 @193)" />
         <Alias n="195" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/vadefs.h" />
         <Alias n="196" Id="(@4 @195)" />
@@ -1037,7 +1037,7 @@
         <Alias n="200" Id="(@4 @199)" />
         <Alias n="201" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/CodeAnalysis/sourceannotations.h" />
         <Alias n="202" Id="(@4 @201)" />
-        <Alias n="203" Uri="File=$(VsSolutionUri)/src/Pawns.h" />
+        <Alias n="203" Uri="File=$(VsSolutionUri)/src/pawns.h" />
         <Alias n="204" Id="(@1 @203)" />
         <Alias n="205" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/corecrt_wprocess.h" />
         <Alias n="206" Id="(@4 @205)" />
@@ -1053,15 +1053,15 @@
         <Alias n="216" Id="(@4 @215)" />
         <Alias n="217" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/stdint.h" />
         <Alias n="218" Id="(@4 @217)" />
-        <Alias n="219" Uri="File=$(VsSolutionUri)/src/Polyglot.h" />
+        <Alias n="219" Uri="File=$(VsSolutionUri)/src/polyglot.h" />
         <Alias n="220" Id="(@1 @219)" />
-        <Alias n="221" Uri="File=$(VsSolutionUri)/src/PSQTable.h" />
+        <Alias n="221" Uri="File=$(VsSolutionUri)/src/psqtable.h" />
         <Alias n="222" Id="(@1 @221)" />
         <Alias n="223" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/corecrt.h" />
         <Alias n="224" Id="(@4 @223)" />
         <Alias n="225" Uri="File=$(ProgramFilesUri)/Windows Kits/10/Include/10.0.16299.0/ucrt/assert.h" />
         <Alias n="226" Id="(@4 @225)" />
-        <Alias n="227" Uri="File=$(VsSolutionUri)/src/Zobrist.h" />
+        <Alias n="227" Uri="File=$(VsSolutionUri)/src/zobrist.h" />
         <Alias n="228" Id="(@1 @227)" />
         <Alias n="229" Uri="File=$(ProgramFilesUri)/Microsoft Visual Studio 14.0/VC/include/vcruntime_new.h" />
         <Alias n="230" Id="(@4 @229)" />

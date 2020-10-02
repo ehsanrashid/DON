@@ -1,8 +1,8 @@
-#include "SkillManager.h"
+#include "skillmanager.h"
 
-#include "PRNG.h"
-#include "Searcher.h"
-#include "Thread.h"
+#include "prng.h"
+#include "searcher.h"
+#include "thread.h"
 
 SkillManager SkillMgr;
 

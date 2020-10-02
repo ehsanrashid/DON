@@ -6,16 +6,16 @@
 #include <iomanip>
 #include <sstream>
 
-#include "Cuckoo.h"
+#include "cuckoo.h"
 #include "helper.h"
-#include "MoveGenerator.h"
-#include "Notation.h"
-#include "Polyglot.h"
-#include "SyzygyTB.h"
-#include "Thread.h"
-#include "Transposition.h"
-#include "Zobrist.h"
-#include "UCI.h"
+#include "movegenerator.h"
+#include "notation.h"
+#include "polyglot.h"
+#include "syzygytb.h"
+#include "thread.h"
+#include "transposition.h"
+#include "zobrist.h"
+#include "uci.h"
 
 namespace {
 

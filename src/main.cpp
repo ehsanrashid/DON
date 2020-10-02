@@ -1,19 +1,19 @@
 #include <iostream>
 
-#include "Bitbase.h"
-#include "Bitboard.h"
-#include "Cuckoo.h"
-#include "Endgame.h"
-#include "Evaluator.h"
+#include "bitbase.h"
+#include "bitboard.h"
+#include "cuckoo.h"
+#include "endgame.h"
+#include "evaluator.h"
 #include "helper.h"
-#include "Polyglot.h"
-#include "PSQTable.h"
-#include "Searcher.h"
-#include "Thread.h"
-#include "TimeManager.h"
-#include "Transposition.h"
-#include "UCI.h"
-#include "Zobrist.h"
+#include "polyglot.h"
+#include "psqtable.h"
+#include "searcher.h"
+#include "thread.h"
+#include "timemanager.h"
+#include "transposition.h"
+#include "uci.h"
+#include "zobrist.h"
 
 int main(int argc, char const *const argv[]) {
 

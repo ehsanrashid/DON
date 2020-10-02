@@ -1,11 +1,11 @@
 #include <iostream>
 #include <set>
 
-#include "../MemoryHandler.h"
-#include "../Position.h"
-#include "../UCI.h"
+#include "../memoryhandler.h"
+#include "../position.h"
+#include "../uci.h"
 
-#include "EvaluateNNUE.h"
+#include "evaluate_nnue.h"
 
 namespace Evaluator::NNUE {
 

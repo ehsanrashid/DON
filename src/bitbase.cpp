@@ -1,9 +1,9 @@
-#include "Bitbase.h"
+#include "bitbase.h"
 
 #include <cassert>
 #include <bitset>
 
-#include "BitBoard.h"
+#include "bitboard.h"
 
 namespace BitBase {
 

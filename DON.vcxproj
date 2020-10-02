@@ -42,6 +42,116 @@
       <Platform>x64</Platform>
     </ProjectConfiguration>
   </ItemGroup>
+  <ItemGroup>
+    <None Include=".travis.yml" />
+    <None Include="appveyor.yml" />
+    <None Include="ClassDiagram.cd" />
+    <None Include="CodeMap.dgml" />
+    <None Include="IncludeFileDependencies.dgml" />
+    <None Include="Readme.md" />
+    <None Include="src\make-all-modern.bat" />
+    <None Include="src\make-all-modern.sh" />
+    <None Include="src\make-all.bat" />
+    <None Include="src\make-all.sh" />
+    <None Include="src\make-clean.bat" />
+    <None Include="src\make-clean.sh" />
+    <None Include="src\make-help.bat" />
+    <None Include="src\make-help.sh" />
+    <None Include="src\make-strip.bat" />
+    <None Include="src\make-strip.sh" />
+    <None Include="src\Makefile" />
+    <None Include="tests\instrumented.sh" />
+    <None Include="tests\perft.sh" />
+    <None Include="tests\reprosearch.sh" />
+    <None Include="tests\signature.sh" />
+  </ItemGroup>
+  <ItemGroup>
+    <Text Include="Copying.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="src\bitbase.h" />
+    <ClInclude Include="src\bitboard.h" />
+    <ClInclude Include="src\comparer.h" />
+    <ClInclude Include="src\cuckoo.h" />
+    <ClInclude Include="src\debugger.h" />
+    <ClInclude Include="src\endgame.h" />
+    <ClInclude Include="src\evaluator.h" />
+    <ClInclude Include="src\helper.h" />
+    <ClInclude Include="src\incbin\incbin.h" />
+    <ClInclude Include="src\king.h" />
+    <ClInclude Include="src\logger.h" />
+    <ClInclude Include="src\material.h" />
+    <ClInclude Include="src\memoryhandler.h" />
+    <ClInclude Include="src\memorystreambuffer.h" />
+    <ClInclude Include="src\movegenerator.h" />
+    <ClInclude Include="src\movepicker.h" />
+    <ClInclude Include="src\nnue\accumulator.h" />
+    <ClInclude Include="src\nnue\architecture.h" />
+    <ClInclude Include="src\nnue\architectures\halfkp_256x2-32-32.h" />
+    <ClInclude Include="src\nnue\evaluate_nnue.h" />
+    <ClInclude Include="src\nnue\features\features_common.h" />
+    <ClInclude Include="src\nnue\features\feature_set.h" />
+    <ClInclude Include="src\nnue\features\half_kp.h" />
+    <ClInclude Include="src\nnue\features\index_list.h" />
+    <ClInclude Include="src\nnue\feature_transformer.h" />
+    <ClInclude Include="src\nnue\layers\affine_transform.h" />
+    <ClInclude Include="src\nnue\layers\clipped_relu.h" />
+    <ClInclude Include="src\nnue\layers\input_slice.h" />
+    <ClInclude Include="src\nnue\nnue_common.h" />
+    <ClInclude Include="src\notation.h" />
+    <ClInclude Include="src\pawns.h" />
+    <ClInclude Include="src\polyglot.h" />
+    <ClInclude Include="src\position.h" />
+    <ClInclude Include="src\prng.h" />
+    <ClInclude Include="src\psqtable.h" />
+    <ClInclude Include="src\rootmove.h" />
+    <ClInclude Include="src\searcher.h" />
+    <ClInclude Include="src\skillmanager.h" />
+    <ClInclude Include="src\syzygytb.h" />
+    <ClInclude Include="src\thread.h" />
+    <ClInclude Include="src\threadmarker.h" />
+    <ClInclude Include="src\thread_win32_osx.h" />
+    <ClInclude Include="src\tiestreambuffer.h" />
+    <ClInclude Include="src\timemanager.h" />
+    <ClInclude Include="src\timer.h" />
+    <ClInclude Include="src\transposition.h" />
+    <ClInclude Include="src\type.h" />
+    <ClInclude Include="src\uci.h" />
+    <ClInclude Include="src\zobrist.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="src\bitbase.cpp" />
+    <ClCompile Include="src\bitboard.cpp" />
+    <ClCompile Include="src\cuckoo.cpp" />
+    <ClCompile Include="src\debugger.cpp" />
+    <ClCompile Include="src\endgame.cpp" />
+    <ClCompile Include="src\evaluator.cpp" />
+    <ClCompile Include="src\helper.cpp" />
+    <ClCompile Include="src\king.cpp" />
+    <ClCompile Include="src\logger.cpp" />
+    <ClCompile Include="src\main.cpp" />
+    <ClCompile Include="src\material.cpp" />
+    <ClCompile Include="src\memoryhandler.cpp" />
+    <ClCompile Include="src\movegenerator.cpp" />
+    <ClCompile Include="src\movepicker.cpp" />
+    <ClCompile Include="src\nnue\evaluate_nnue.cpp" />
+    <ClCompile Include="src\nnue\features\half_kp.cpp" />
+    <ClCompile Include="src\notation.cpp" />
+    <ClCompile Include="src\pawns.cpp" />
+    <ClCompile Include="src\polyglot.cpp" />
+    <ClCompile Include="src\position.cpp" />
+    <ClCompile Include="src\psqtable.cpp" />
+    <ClCompile Include="src\rootmove.cpp" />
+    <ClCompile Include="src\searcher.cpp" />
+    <ClCompile Include="src\skillmanager.cpp" />
+    <ClCompile Include="src\syzygytb.cpp" />
+    <ClCompile Include="src\thread.cpp" />
+    <ClCompile Include="src\threadmarker.cpp" />
+    <ClCompile Include="src\timemanager.cpp" />
+    <ClCompile Include="src\transposition.cpp" />
+    <ClCompile Include="src\uci.cpp" />
+    <ClCompile Include="src\zobrist.cpp" />
+  </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectName>DON</ProjectName>
     <ProjectGuid>{563ABBEF-C72E-4C61-BC8D-F98BA06D115D}</ProjectGuid>
@@ -696,116 +806,6 @@
       </AdditionalLibraryDirectories>
     </Link>
   </ItemDefinitionGroup>
-  <ItemGroup>
-    <None Include=".travis.yml" />
-    <None Include="appveyor.yml" />
-    <None Include="ClassDiagram.cd" />
-    <None Include="CodeMap.dgml" />
-    <None Include="IncludeFileDependencies.dgml" />
-    <None Include="Readme.md" />
-    <None Include="src\make-all-modern.bat" />
-    <None Include="src\make-all-modern.sh" />
-    <None Include="src\make-all.bat" />
-    <None Include="src\make-all.sh" />
-    <None Include="src\make-clean.bat" />
-    <None Include="src\make-clean.sh" />
-    <None Include="src\make-help.bat" />
-    <None Include="src\make-help.sh" />
-    <None Include="src\make-strip.bat" />
-    <None Include="src\make-strip.sh" />
-    <None Include="src\Makefile" />
-    <None Include="tests\instrumented.sh" />
-    <None Include="tests\perft.sh" />
-    <None Include="tests\reprosearch.sh" />
-    <None Include="tests\signature.sh" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClCompile Include="src\Bitbase.cpp" />
-    <ClCompile Include="src\Bitboard.cpp" />
-    <ClCompile Include="src\Cuckoo.cpp" />
-    <ClCompile Include="src\Debugger.cpp" />
-    <ClCompile Include="src\Endgame.cpp" />
-    <ClCompile Include="src\Evaluator.cpp" />
-    <ClCompile Include="src\Helper.cpp" />
-    <ClCompile Include="src\King.cpp" />
-    <ClCompile Include="src\Logger.cpp" />
-    <ClCompile Include="src\Main.cpp" />
-    <ClCompile Include="src\Material.cpp" />
-    <ClCompile Include="src\MemoryHandler.cpp" />
-    <ClCompile Include="src\MoveGenerator.cpp" />
-    <ClCompile Include="src\MovePicker.cpp" />
-    <ClCompile Include="src\nnue\EvaluateNNUE.cpp" />
-    <ClCompile Include="src\nnue\features\HalfKP.cpp" />
-    <ClCompile Include="src\Notation.cpp" />
-    <ClCompile Include="src\Pawns.cpp" />
-    <ClCompile Include="src\Polyglot.cpp" />
-    <ClCompile Include="src\Position.cpp" />
-    <ClCompile Include="src\PSQTable.cpp" />
-    <ClCompile Include="src\RootMove.cpp" />
-    <ClCompile Include="src\Searcher.cpp" />
-    <ClCompile Include="src\SkillManager.cpp" />
-    <ClCompile Include="src\SyzygyTB.cpp" />
-    <ClCompile Include="src\Thread.cpp" />
-    <ClCompile Include="src\ThreadMarker.cpp" />
-    <ClCompile Include="src\TimeManager.cpp" />
-    <ClCompile Include="src\Transposition.cpp" />
-    <ClCompile Include="src\UCI.cpp" />
-    <ClCompile Include="src\Zobrist.cpp" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="src\Bitbase.h" />
-    <ClInclude Include="src\Bitboard.h" />
-    <ClInclude Include="src\Comparer.h" />
-    <ClInclude Include="src\Cuckoo.h" />
-    <ClInclude Include="src\Debugger.h" />
-    <ClInclude Include="src\Endgame.h" />
-    <ClInclude Include="src\Evaluator.h" />
-    <ClInclude Include="src\Helper.h" />
-    <ClInclude Include="src\incbin\incbin.h" />
-    <ClInclude Include="src\King.h" />
-    <ClInclude Include="src\Logger.h" />
-    <ClInclude Include="src\Material.h" />
-    <ClInclude Include="src\MemoryHandler.h" />
-    <ClInclude Include="src\MemoryStreamBuffer.h" />
-    <ClInclude Include="src\MoveGenerator.h" />
-    <ClInclude Include="src\MovePicker.h" />
-    <ClInclude Include="src\nnue\architectures\HalfKP_256x2-32-32.h" />
-    <ClInclude Include="src\nnue\EvaluateNNUE.h" />
-    <ClInclude Include="src\nnue\features\FeaturesCommon.h" />
-    <ClInclude Include="src\nnue\features\FeatureSet.h" />
-    <ClInclude Include="src\nnue\features\HalfKP.h" />
-    <ClInclude Include="src\nnue\features\IndexList.h" />
-    <ClInclude Include="src\nnue\layers\AffineTransform.h" />
-    <ClInclude Include="src\nnue\layers\ClippedReLU.h" />
-    <ClInclude Include="src\nnue\layers\InputSlice.h" />
-    <ClInclude Include="src\nnue\Accumulator.h" />
-    <ClInclude Include="src\nnue\Architecture.h" />
-    <ClInclude Include="src\nnue\NNUECommon.h" />
-    <ClInclude Include="src\nnue\FeatureTransformer.h" />
-    <ClInclude Include="src\Notation.h" />
-    <ClInclude Include="src\Pawns.h" />
-    <ClInclude Include="src\Polyglot.h" />
-    <ClInclude Include="src\Position.h" />
-    <ClInclude Include="src\PRNG.h" />
-    <ClInclude Include="src\PSQTable.h" />
-    <ClInclude Include="src\RootMove.h" />
-    <ClInclude Include="src\Searcher.h" />
-    <ClInclude Include="src\SkillManager.h" />
-    <ClInclude Include="src\SyzygyTB.h" />
-    <ClInclude Include="src\Thread.h" />
-    <ClInclude Include="src\ThreadMarker.h" />
-    <ClInclude Include="src\ThreadWin32OSX.h" />
-    <ClInclude Include="src\TieStreamBuffer.h" />
-    <ClInclude Include="src\TimeManager.h" />
-    <ClInclude Include="src\Timer.h" />
-    <ClInclude Include="src\Transposition.h" />
-    <ClInclude Include="src\Type.h" />
-    <ClInclude Include="src\UCI.h" />
-    <ClInclude Include="src\Zobrist.h" />
-  </ItemGroup>
-  <ItemGroup>
-    <Text Include="Copying.txt" />
-  </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">
     <Import Project="$(VCTargetsPath)\BuildCustomizations\lc.targets" />

@@ -1,4 +1,4 @@
-#include "Evaluator.h"
+#include "evaluator.h"
 
 #include <cassert>
 #include <cstdlib>
@@ -9,16 +9,16 @@
 #include <sstream>
 #include <vector>
 
-#include "BitBoard.h"
+#include "bitboard.h"
 #include "helper.h"
-#include "King.h"
-#include "Material.h"
-#include "MemoryStreamBuffer.h"
-#include "Pawns.h"
+#include "king.h"
+#include "material.h"
+#include "memorystreambuffer.h"
+#include "pawns.h"
 #include "position.h"
-#include "Notation.h"
-#include "Thread.h"
-#include "UCI.h"
+#include "notation.h"
+#include "thread.h"
+#include "uci.h"
 #include "incbin/incbin.h"
 
 // Macro to embed the default NNUE file data in the engine binary (using incbin.h, by Dale Weiler).

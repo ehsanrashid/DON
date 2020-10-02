@@ -3,7 +3,7 @@
 #include <algorithm>
 #include <cassert>
 
-#include "Pawns.h"
+#include "pawns.h"
 #include "position.h"
 #include "type.h"
 

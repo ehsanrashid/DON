@@ -1,8 +1,8 @@
 // Definition of input features HalfKP of NNUE evaluation function
 #pragma once
 
-#include "../../Type.h"
-#include "FeaturesCommon.h"
+#include "../../type.h"
+#include "features_common.h"
 
 class Position;
 

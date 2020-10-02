@@ -1,6 +1,6 @@
 #pragma once
 
-#include "Endgame.h"
+#include "endgame.h"
 #include "position.h"
 #include "type.h"
 

@@ -2,8 +2,8 @@
 
 #include <memory>
 
-#include "../Type.h"
-#include "FeatureTransformer.h"
+#include "../type.h"
+#include "feature_transformer.h"
 
 namespace Evaluator::NNUE {
 

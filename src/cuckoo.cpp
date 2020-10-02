@@ -1,7 +1,7 @@
-#include "Cuckoo.h"
+#include "cuckoo.h"
 
-#include "Bitboard.h"
-#include "Zobrist.h"
+#include "bitboard.h"
+#include "zobrist.h"
 
 
 Cuckoo::Cuckoo(Piece p, Square s1, Square s2) noexcept :

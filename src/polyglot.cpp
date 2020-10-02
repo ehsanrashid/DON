@@ -1,4 +1,4 @@
-#include "Polyglot.h"
+#include "polyglot.h"
 
 #include <algorithm>
 #include <fstream>
@@ -6,8 +6,8 @@
 #include <vector>
 
 #include "helper.h"
-#include "MoveGenerator.h"
-#include "Notation.h"
+#include "movegenerator.h"
+#include "notation.h"
 
 PolyBook Book;
 

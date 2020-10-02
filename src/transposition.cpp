@@ -1,4 +1,4 @@
-#include "Transposition.h"
+#include "transposition.h"
 
 #include <cstdlib>
 #include <cstring> // For memset()
@@ -8,10 +8,10 @@
 #include <vector>
 
 #include "helper.h"
-#include "MemoryHandler.h"
-#include "MoveGenerator.h"
-#include "Thread.h"
-#include "UCI.h"
+#include "memoryhandler.h"
+#include "movegenerator.h"
+#include "thread.h"
+#include "uci.h"
 
 TTable TT;
 TTable TTEx;

@@ -1,11 +1,11 @@
-#include "King.h"
+#include "king.h"
 
 #include <algorithm>
 #include <cassert>
 
-#include "BitBoard.h"
-#include "Thread.h"
-#include "Zobrist.h"
+#include "bitboard.h"
+#include "thread.h"
+#include "zobrist.h"
 
 namespace King {
 

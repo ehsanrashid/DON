@@ -5,7 +5,7 @@
 #include <string_view>
 
 #include "position.h"
-#include "RootMove.h"
+#include "rootmove.h"
 #include "type.h"
 
 namespace SyzygyTB {

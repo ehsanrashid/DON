@@ -3,7 +3,7 @@
 
 #include <iostream>
 
-#include "../NNUECommon.h"
+#include "../nnue_common.h"
 
 namespace Evaluator::NNUE::Layers {
 

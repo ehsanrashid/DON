@@ -1,4 +1,4 @@
-#include "PSQTable.h"
+#include "psqtable.h"
 
 #include <algorithm>
 

@@ -1,4 +1,4 @@
-#include "Searcher.h"
+#include "searcher.h"
 
 #include <cassert>
 #include <cstring> // For memset()
@@ -7,22 +7,22 @@
 #include <iostream>
 #include <sstream>
 
-#include "Debugger.h"
-#include "Evaluator.h"
-#include "Logger.h"
-#include "MoveGenerator.h"
-#include "MovePicker.h"
-#include "Notation.h"
-#include "Polyglot.h"
+#include "debugger.h"
+#include "evaluator.h"
+#include "logger.h"
+#include "movegenerator.h"
+#include "movepicker.h"
+#include "notation.h"
+#include "polyglot.h"
 #include "position.h"
-#include "SyzygyTB.h"
-#include "Thread.h"
-#include "ThreadMarker.h"
-#include "TimeManager.h"
-#include "Transposition.h"
-#include "SkillManager.h"
-#include "UCI.h"
-#include "Zobrist.h"
+#include "syzygytb.h"
+#include "thread.h"
+#include "threadmarker.h"
+#include "timemanager.h"
+#include "transposition.h"
+#include "skillmanager.h"
+#include "uci.h"
+#include "zobrist.h"
 
 /// Pre-loads the given address in L1/L2 cache.
 /// This is a non-blocking function that doesn't stall the CPU

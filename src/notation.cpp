@@ -1,11 +1,11 @@
-#include "Notation.h"
+#include "notation.h"
 
 #include <cmath>
 #include <sstream>
 
-#include "MoveGenerator.h"
-#include "Thread.h"
-#include "UCI.h"
+#include "movegenerator.h"
+#include "thread.h"
+#include "uci.h"
 
 std::string const PieceChar{ " PNBRQK  pnbrqk" };
 std::string const ColorChar{ "wb" };

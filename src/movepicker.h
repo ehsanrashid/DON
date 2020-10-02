@@ -4,7 +4,7 @@
 #include <limits>
 #include <type_traits>
 
-#include "MoveGenerator.h"
+#include "movegenerator.h"
 #include "position.h"
 #include "type.h"
 

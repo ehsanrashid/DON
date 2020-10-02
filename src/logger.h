@@ -4,7 +4,7 @@
 #include <iostream>
 #include <string>
 
-#include "TieStreamBuffer.h"
+#include "tiestreambuffer.h"
 #include "type.h"
 
 // Logger class (singleton)

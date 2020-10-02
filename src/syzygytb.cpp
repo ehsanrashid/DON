@@ -1,4 +1,4 @@
-#include "SyzygyTB.h"
+#include "syzygytb.h"
 
 #include <cstdint>
 #include <cstdlib>
@@ -11,13 +11,13 @@
 #include <string_view>
 #include <vector>
 
-#include "BitBoard.h"
+#include "bitboard.h"
 #include "helper.h"
-#include "MoveGenerator.h"
-#include "Notation.h"
+#include "movegenerator.h"
+#include "notation.h"
 #include "position.h"
-#include "Thread.h"
-#include "UCI.h"
+#include "thread.h"
+#include "uci.h"
 
 #if defined(_WIN32)
     #if !defined(NOMINMAX)

@@ -5,11 +5,11 @@
 #include <memory> // For std::unique_ptr
 #include <string>
 
-#include "Bitboard.h"
-#include "PSQTable.h"
-#include "Evaluator.h"
+#include "bitboard.h"
+#include "psqtable.h"
+#include "evaluator.h"
 #include "type.h"
-#include "nnue/Accumulator.h"
+#include "nnue/accumulator.h"
 
 /// StateInfo stores information needed to restore a Position object to its previous state when we retract a move.
 ///

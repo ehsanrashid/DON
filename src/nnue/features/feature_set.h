@@ -3,9 +3,9 @@
 
 #include <array>
 
-#include "../../Type.h"
-#include "../../Position.h"
-#include "FeaturesCommon.h"
+#include "../../type.h"
+#include "../../position.h"
+#include "features_common.h"
 
 namespace Evaluator::NNUE::Features {
 

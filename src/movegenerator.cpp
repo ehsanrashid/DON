@@ -1,10 +1,10 @@
-#include "MoveGenerator.h"
+#include "movegenerator.h"
 
 #include <iostream>
 #include <sstream>
 
-#include "BitBoard.h"
-#include "Notation.h"
+#include "bitboard.h"
+#include "notation.h"
 
 namespace {
 

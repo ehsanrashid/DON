@@ -1,9 +1,9 @@
 #pragma once
 
 #include "type.h"
-#include "Searcher.h"
-#include "Thread.h"
-#include "UCI.h"
+#include "searcher.h"
+#include "thread.h"
+#include "uci.h"
 
 /// The TimeManagement class computes the optimal time to think depending on
 /// the maximum available time, the game move number and other parameters.

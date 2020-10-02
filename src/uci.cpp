@@ -1,4 +1,4 @@
-#include "UCI.h"
+#include "uci.h"
 
 #include <cassert>
 #include <algorithm>
@@ -6,20 +6,20 @@
 #include <sstream>
 #include <string>
 
-#include "Helper.h"
-#include "Debugger.h"
-#include "Polyglot.h"
-#include "Position.h"
-#include "Evaluator.h"
-#include "Logger.h"
-#include "MoveGenerator.h"
-#include "Notation.h"
-#include "Thread.h"
-#include "TimeManager.h"
-#include "Transposition.h"
-#include "Searcher.h"
-#include "SkillManager.h"
-#include "SyzygyTB.h"
+#include "helper.h"
+#include "debugger.h"
+#include "polyglot.h"
+#include "position.h"
+#include "evaluator.h"
+#include "logger.h"
+#include "movegenerator.h"
+#include "notation.h"
+#include "thread.h"
+#include "timemanager.h"
+#include "transposition.h"
+#include "searcher.h"
+#include "skillmanager.h"
+#include "syzygytb.h"
 
 using std::string;
 using std::string_view;

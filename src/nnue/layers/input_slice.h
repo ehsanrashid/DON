@@ -1,7 +1,7 @@
 // NNUE evaluation function layer InputSlice definition
 #pragma once
 
-#include "../NNUECommon.h"
+#include "../nnue_common.h"
 
 namespace Evaluator::NNUE::Layers {
 

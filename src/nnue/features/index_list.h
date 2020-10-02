@@ -1,8 +1,8 @@
 // Definition of index list of input features
 #pragma once
 
-#include "../../Position.h"
-#include "../Architecture.h"
+#include "../../position.h"
+#include "../architecture.h"
 
 namespace Evaluator::NNUE::Features {
 
