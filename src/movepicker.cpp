@@ -44,6 +44,7 @@ MovePicker::MovePicker(
     PieceSquareStatsTable     const **pStats,
     Move ttm, Depth d, int16_t sp,
     Move const *km, Move cm) :
+    pickQuiets{ true },
     pos{ p },
     butterFlyStats{ bfStats },
     lowPlyStats{ lpStats },
@@ -83,7 +84,6 @@ MovePicker::MovePicker(
     assert(ttm == MOVE_NONE
         || pos.pseudoLegal(ttm));
     assert(depth <= DEPTH_QS_CHECK);
-    assert(pickQuiets);
 
     stage = (pos.checkers() != 0 ? EVASION_TT : QUIESCENCE_TT)
           + !(ttMove != MOVE_NONE
@@ -106,7 +106,6 @@ MovePicker::MovePicker(
     assert(ttm == MOVE_NONE
         || pos.pseudoLegal(ttm));
     assert(pos.checkers() == 0);
-    assert(pickQuiets);
 
     stage = PROBCUT_TT
           + !(ttMove != MOVE_NONE
@@ -244,7 +243,8 @@ Move MovePicker::nextMove() {
                                         return vm == ttMove
                                             || dstSq(vm) != recapSq;
                                     }) :
-                ttMove != MOVE_NONE ? std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
+                ttMove != MOVE_NONE ?
+                    std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
 
         value<CAPTURE>();
 
@@ -329,7 +329,7 @@ Move MovePicker::nextMove() {
         generate<EVASION>(vmoves, pos);
         vmBeg = vmoves.begin();
         vmEnd = ttMove != MOVE_NONE ?
-                std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
+                    std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
         value<EVASION>();
         ++stage;
     }
@@ -361,7 +361,7 @@ Move MovePicker::nextMove() {
         generate<QUIET_CHECK>(vmoves, pos);
         vmBeg = vmoves.begin();
         vmEnd = ttMove != MOVE_NONE ?
-                std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
+                    std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
         ++stage;
     }
         [[fallthrough]];

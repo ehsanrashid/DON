@@ -141,15 +141,15 @@ public:
     ThreadPool& operator=(ThreadPool const&) = delete;
 
     template<typename T>
-    void set(std::atomic<T> Thread::*member, T value) const {
+    void set(std::atomic<T> Thread::*member, T value) const noexcept {
         for (auto *th : *this) {
             th->*member = value;
         }
     }
 
     template<typename T>
-    T accumulate(std::atomic<T> Thread::*member, T value = {}) const {
-        for (auto *th : *this) {
+    T accumulate(std::atomic<T> Thread::*member, T value = {}) const noexcept {
+        for (auto const *th : *this) {
             value += (th->*member).load(std::memory_order::memory_order_relaxed);
         }
         return value;

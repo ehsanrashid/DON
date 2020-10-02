@@ -134,7 +134,7 @@ using PieceSquareMoveTable      = Table<Move, PIECES, SQUARES>;
 class MovePicker {
 
 public:
-    
+
     MovePicker() = delete;
     MovePicker(MovePicker const&) = delete;
     MovePicker(MovePicker&&) = delete;
@@ -165,7 +165,7 @@ public:
 
     Move nextMove();
 
-    bool pickQuiets{ true };
+    bool pickQuiets;
 
 private:
 

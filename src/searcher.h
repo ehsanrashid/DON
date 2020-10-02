@@ -23,7 +23,7 @@ struct Limit {
         TimePoint inc{ 0 };
     };
 
-    Clock     clock[COLORS]{};        // Search with Clock
+    Clock     clock[COLORS]{};      // Search with Clock
 
     uint8_t   movestogo{ 0 };       // Search <x> moves to the next time control
     TimePoint moveTime{ 0 };        // Search <x> exact time in milli-seconds

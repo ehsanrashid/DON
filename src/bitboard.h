@@ -9,14 +9,6 @@
 // Magic holds all magic relevant data for a single square
 struct Magic {
 
-    Bitboard *attacks;
-    Bitboard  mask;
-
-#if !defined(USE_PEXT)
-    Bitboard  magic;
-    uint8_t   shift;
-#endif
-
     // Compute the attack's index using the 'magic bitboards' approach
     uint16_t index(Bitboard occ) const noexcept {
 
@@ -34,6 +26,15 @@ struct Magic {
     Bitboard attacksBB(Bitboard occ) const noexcept {
         return attacks[index(occ)];
     }
+
+    Bitboard *attacks;
+    Bitboard  mask;
+
+#if !defined(USE_PEXT)
+    Bitboard  magic;
+    uint8_t   shift;
+#endif
+
 };
 
 constexpr Bitboard BoardBB{ U64(0xFFFFFFFFFFFFFFFF) };

@@ -1,20 +1,20 @@
 #pragma once
 
 #include <streambuf>
+#include <string>
 
-// C++ way to prepare a buffer for a memory stream
-template<class T>
+/// C++ way to prepare a buffer for a memory stream
+template<class Elem>
 class MemoryStreamBuffer :
-    public std::basic_streambuf<T> {
+    public std::basic_streambuf<Elem, std::char_traits<Elem>> {
 
 public:
-    using std::basic_streambuf<T>::basic_streambuf;
 
-    MemoryStreamBuffer(MemoryStreamBuffer const&) = delete;
-    MemoryStreamBuffer(MemoryStreamBuffer&&) = delete;
+    using std::basic_streambuf<Elem, std::char_traits<Elem>>::basic_streambuf;
 
-    MemoryStreamBuffer(T *ptr, size_t size) {
-        std::basic_streambuf<T>::setg(ptr, ptr, ptr + size);
-        std::basic_streambuf<T>::setp(ptr, ptr + size);
+    MemoryStreamBuffer(Elem *ptr, size_t size) {
+        this->setg(ptr, ptr, ptr + size);
+        this->setp(ptr, ptr + size);
     }
+
 };

@@ -76,7 +76,7 @@ namespace Evaluator {
                         }
                         else
                             if (evalFile == DefaultEvalFile) {
-                                MemoryStreamBuffer buffer{ const_cast<char *>(reinterpret_cast<const char *>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize) };
+                                MemoryStreamBuffer buffer(const_cast<char*>(reinterpret_cast<char const*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize));
                                 std::istream istream{ &buffer };
                                 if (NNUE::loadEvalFile(istream)) {
                                     loadedEvalFile = evalFile;
@@ -1171,17 +1171,18 @@ namespace Evaluator {
         if (useNNUE) {
             // Scale and shift NNUE for compatibility with search and classical evaluation
             auto adjustedNNUE = [&pos]() {
-                int npm = pos.nonPawnMaterial() + PieceValues[MG][PAWN] * pos.count(PAWN);
+                int32_t npm{ pos.nonPawnMaterial() + VALUE_MG_PAWN * pos.count(PAWN) };
                 return NNUE::evaluate(pos) * (720 + npm / 32) / 1024 + VALUE_TEMPO;
             };
 
             // If there is PSQ imbalance use classical eval, with small probability if it is small
-            Value psq = Value(std::abs(egValue(pos.psqScore())));
-            int   r50 = pos.clockPly() + 16;
-            bool  psqLarge = psq * 16 > (NNUEThreshold1 + pos.nonPawnMaterial() / 64) * r50;
-            bool  classical = psqLarge
-                           || ( psq > VALUE_MG_PAWN / 4
-                            && (pos.thread()->nodes & 0xB) == 0);
+            Value   const psq{ Value(std::abs(egValue(pos.psqScore()))) };
+            int32_t const r50{ pos.clockPly() + 16 };
+            bool    const psqLarge{ psq * 16 > (NNUEThreshold1 + pos.nonPawnMaterial() / 64) * r50 };
+            bool    const classical{
+                psqLarge
+             || ( psq > VALUE_MG_PAWN / 4
+               && (pos.thread()->nodes & 0xB) == 0) };
 
             if (classical) {
                 v = Evaluation<false>(pos).value();

@@ -33,7 +33,7 @@ ThreadMarker::ThreadMarker(Thread const *thread, Key posiKey, int16_t ply) noexc
     }
 }
 
-ThreadMarker::~ThreadMarker() {
+ThreadMarker::~ThreadMarker() noexcept {
     if (owned) { // Free the marked location
         threadMark->store(&ThreadMark::thread, static_cast<Thread const*>(nullptr));
         threadMark->store(&ThreadMark::posiKey, { 0 });

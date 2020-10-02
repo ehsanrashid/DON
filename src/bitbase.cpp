@@ -49,19 +49,19 @@ namespace BitBase {
         /// KPKPosition
         struct KPKPosition {
 
-            Color  active;
-            Square wkSq;
-            Square bkSq;
-            Square wpSq;
-
-            Result result;
-
             KPKPosition() = default;
             KPKPosition(uint32_t);
 
             operator Result() const noexcept { return result; }
 
             Result classify(KPKPosition kpkArrBase[]);
+
+            Color  active;
+            Square wkSq;
+            Square bkSq;
+            Square wpSq;
+
+            Result result;
         };
 
         KPKPosition::KPKPosition(uint32_t idx) {

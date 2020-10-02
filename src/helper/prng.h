@@ -48,6 +48,7 @@ public:
 //#endif
 
 private:
+
     uint64_t rand64() noexcept {
         x ^= x >> 12;
         x ^= x << 25;
