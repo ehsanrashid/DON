@@ -177,9 +177,9 @@
  * INCBIN(Foo, "foo.txt");
  *
  * // Now you have the following symbols:
- * // const unsigned char gFooData[];
+ * // const unsigned char        gFooData[];
  * // const unsigned char *const gFooEnd;
- * // const unsigned int gFooSize;
+ * // const unsigned int         gFooSize;
  * @endcode
  *
  * If however you specify a prefix before including: e.g:
@@ -189,9 +189,9 @@
  * INCBIN(Foo, "foo.txt");
  *
  * // Now you have the following symbols instead:
- * // const unsigned char incbinFooData[];
+ * // const unsigned char        incbinFooData[];
  * // const unsigned char *const incbinFooEnd;
- * // const unsigned int incbinFooSize;
+ * // const unsigned int         incbinFooSize;
  * @endcode
  */
 #if !defined(INCBIN_PREFIX)
@@ -211,9 +211,9 @@
  * INCBIN(Foo, "foo.txt");
  *
  * // Now you have the following symbols:
- * // const unsigned char <prefix>FooData[];
+ * // const unsigned char        <prefix>FooData[];
  * // const unsigned char *const <prefix>FooEnd;
- * // const unsigned int <prefix>FooSize;
+ * // const unsigned int         <prefix>FooSize;
  * @endcode
  *
  * If however you specify a style before including: e.g:
@@ -223,13 +223,13 @@
  * INCBIN(foo, "foo.txt");
  *
  * // Now you have the following symbols:
- * // const unsigned char <prefix>foo_data[];
+ * // const unsigned char        <prefix>foo_data[];
  * // const unsigned char *const <prefix>foo_end;
- * // const unsigned int <prefix>foo_size;
+ * // const unsigned int         <prefix>foo_size;
  * @endcode
  */
 #if !defined(INCBIN_STYLE)
-    #define INCBIN_STYLE INCBIN_STYLE_CAMEL
+    #define INCBIN_STYLE    INCBIN_STYLE_CAMEL
 #endif
 
 //* Style lookup tables
@@ -267,9 +267,9 @@
  * INCBIN_EXTERN(Foo);
  *
  * // Now you have the following symbols:
- * // extern const unsigned char <prefix>FooData[];
+ * // extern const unsigned char        <prefix>FooData[];
  * // extern const unsigned char *const <prefix>FooEnd;
- * // extern const unsigned int <prefix>FooSize;
+ * // extern const unsigned int         <prefix>FooSize;
  * @endcode
  */
 #define INCBIN_EXTERN(NAME) \
@@ -326,4 +326,3 @@
                 ".text\n"); \
     INCBIN_EXTERN(NAME)
 #endif
-

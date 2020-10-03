@@ -7,17 +7,17 @@ using namespace std::chrono;
 
 struct Timer {
 
-    Timer() :
-        beg{ steady_clock::now() } {
+    Timer() noexcept :
+        start{ steady_clock::now() } {
     }
 
-    ~Timer() {
-        steady_clock::time_point end{ steady_clock::now() };
-        nanoseconds elapsed{ beg - end };
+    ~Timer() noexcept {
+        steady_clock::time_point stop{ steady_clock::now() };
+        nanoseconds const elapsed{ stop - start };
 
-        auto ms = elapsed.count() * 1000.0;
+        auto const ms = elapsed.count() * 1000.0;
         std::cout << "Time elapsed: " << ms << " ms" << std::endl;
     }
 
-    steady_clock::time_point beg;
+    steady_clock::time_point start;
 };

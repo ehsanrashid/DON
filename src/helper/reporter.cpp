@@ -7,8 +7,8 @@
 std::atomic<uint64_t> Reporter::Hit1Count{ 0 };
 std::atomic<uint64_t> Reporter::Hit2Count{ 0 };
 
-std::atomic<uint64_t> Reporter::ItemCount{ 0 };
-std::atomic<uint64_t> Reporter::ItemSum{ 0 };
+std::atomic<uint32_t> Reporter::ItemCount{ 0 };
+std::atomic< int64_t> Reporter::ItemSum{ 0 };
 
 void Reporter::reset() noexcept {
 
@@ -37,6 +37,7 @@ void Reporter::meanOf(int64_t item) noexcept {
 }
 
 void Reporter::print() {
+
     if (Hit1Count != 0) {
         std::ostringstream oss{};
         oss << std::right

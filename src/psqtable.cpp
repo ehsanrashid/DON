@@ -13,26 +13,8 @@ namespace {
     // It is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
     constexpr Score PieceScores[PIECE_TYPES][RANKS][FILES/2]{
-        {
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-        },
-        {
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-            { S(0, 0), S(0, 0), S(0, 0), S(0, 0) },
-        },
+        {},
+        {},
         { // Knight
             { S(-175, -96), S(-92,-65), S(-74,-49), S(-73,-21) },
             { S( -77, -67), S(-41,-54), S(-27,-18), S(-15,  8) },
@@ -126,7 +108,7 @@ namespace PSQT {
     Score computePSQ(Position const &pos) {
         Score psq{ SCORE_ZERO };
 
-        for (Piece p : Pieces) {
+        for (Piece const p : Pieces) {
             Square const *ps{ pos.squares(p) };
             Square s;
             while ((s = *ps++) != SQ_NONE) {

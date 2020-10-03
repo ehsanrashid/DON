@@ -37,10 +37,10 @@ public:
 
     uint16_t     worth() const noexcept { return d08 - ((263 + Generation - g08) & 248); }
 
-    static void updateGeneration() noexcept;
-
     void refresh() noexcept;
     void save(Key, Move, Value, Value, Depth, Bound, bool) noexcept;
+
+    static void updateGeneration() noexcept;
 
     // "Generation" variable distinguish transposition table entries from different searches.
     static uint8_t Generation;
@@ -58,10 +58,6 @@ private:
 };
 /// Size of TEntry (10 bytes)
 static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
-
-inline void TEntry::updateGeneration() noexcept {
-    Generation += 8;
-}
 
 inline void TEntry::refresh() noexcept {
     g08 = uint8_t(Generation | (g08 & 7));
@@ -89,6 +85,10 @@ inline void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, bool
         e16 = int16_t(e);
     }
     assert(d08 != 0);
+}
+
+inline void TEntry::updateGeneration() noexcept {
+    Generation += 8;
 }
 
 /// Transposition::Cluster needs 32 bytes to be stored
@@ -186,10 +186,14 @@ constexpr uint64_t mul_hi64(uint64_t a, uint64_t b) noexcept {
 
 }
 
-/// cluster() returns a pointer to the cluster of given a key.
+/// TTable::cluster() returns a pointer to the cluster of given a key.
 /// Lower 32 bits of the key are used to get the index of the cluster.
 inline TCluster* TTable::cluster(Key posiKey) const noexcept {
     return &clusterTable[mul_hi64(posiKey, clusterCount)];
+}
+/// TTable::probe() looks up the entry in the transposition table.
+inline TEntry *TTable::probe(Key posiKey, bool &hit) const noexcept {
+    return cluster(posiKey)->probe(uint16_t(posiKey), hit);
 }
 
 extern std::ostream& operator<<(std::ostream&, TTable const&);

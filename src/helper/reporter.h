@@ -30,6 +30,6 @@ private:
     static std::atomic<uint64_t> Hit1Count;
     static std::atomic<uint64_t> Hit2Count;
 
-    static std::atomic<uint64_t> ItemCount;
-    static std::atomic<uint64_t> ItemSum;
+    static std::atomic<uint32_t> ItemCount;
+    static std::atomic< int64_t> ItemSum;
 };

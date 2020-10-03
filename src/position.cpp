@@ -850,8 +850,8 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 
     // Used by NNUE
     _stateInfo->accumulator.accumulationComputed = false;
-    auto &dp{ _stateInfo->dirtyPiece };
-    dp.dirtyCount = 1;
+    auto &mi{ _stateInfo->moveInfo };
+    mi.pieceCount = 1;
 
     auto const pasive{ ~active };
 
@@ -880,13 +880,13 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         /* king*/dst = kingCastleSq(org, rookOrg);
 
         if (Evaluator::useNNUE) {
-            dp.piece[0] = active|KING;
-            dp.org[0] = org;
-            dp.dst[0] = dst;
-            dp.piece[1] = active|ROOK;
-            dp.org[1] = rookOrg;
-            dp.dst[1] = rookDst;
-            dp.dirtyCount = 2; // 2 pieces moved
+            mi.piece[0] = active|KING;
+            mi.org[0] = org;
+            mi.dst[0] = dst;
+            mi.piece[1] = active|ROOK;
+            mi.org[1] = rookOrg;
+            mi.dst[1] = rookDst;
+            mi.pieceCount = 2; // 2 pieces moved
         }
 
         // Remove both pieces first since squares could overlap in chess960
@@ -927,10 +927,10 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
         }
 
         if (Evaluator::useNNUE) {
-            dp.piece[1] = cp;
-            dp.org[1] = cap;
-            dp.dst[1] = SQ_NONE;
-            dp.dirtyCount = 2; // 1 piece moved, 1 piece captured
+            mi.piece[1] = cp;
+            mi.org[1] = cap;
+            mi.dst[1] = SQ_NONE;
+            mi.pieceCount = 2; // 1 piece moved, 1 piece captured
         }
 
         removePiece(cap);
@@ -947,9 +947,9 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
     if (mType(m) != CASTLE) {
 
         if (Evaluator::useNNUE) {
-            dp.piece[0] = mp;
-            dp.org[0] = org;
-            dp.dst[0] = dst;
+            mi.piece[0] = mp;
+            mi.org[0] = org;
+            mi.dst[0] = dst;
         }
 
         movePiece(org, dst);
@@ -994,11 +994,11 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 
             if (Evaluator::useNNUE) {
                 // Promoting pawn to SQ_NONE, promoted piece from SQ_NONE
-                dp.dst[0] = SQ_NONE;
-                dp.piece[dp.dirtyCount] = pp;
-                dp.org[dp.dirtyCount] = SQ_NONE;
-                dp.dst[dp.dirtyCount] = dst;
-                dp.dirtyCount++;
+                mi.dst[0] = SQ_NONE;
+                mi.piece[mi.pieceCount] = pp;
+                mi.org[mi.pieceCount] = SQ_NONE;
+                mi.dst[mi.pieceCount] = dst;
+                mi.pieceCount++;
             }
 
             npMaterial[active] += PieceValues[MG][pType(pp)];
@@ -1427,7 +1427,7 @@ bool Position::ok() const {
             assert(false && "Position OK: SQUARE_LIST");
             return false;
         }
-        for (int i = 0; i < pieceCount[p]; ++i) {
+        for (int16_t i = 0; i < pieceCount[p]; ++i) {
             if (board[pieceSquare[p][i]] != p
              || pieceIndex[pieceSquare[p][i]] != i) {
                 assert(false && "Position OK: SQUARE_LIST");

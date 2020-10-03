@@ -75,14 +75,13 @@ namespace Evaluator {
                             }
                         }
                         else
-                            if (evalFile == DefaultEvalFile) {
-                                MemoryStreamBuffer buffer(const_cast<char*>(reinterpret_cast<char const*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize));
-                                std::istream istream{ &buffer };
-                                if (NNUE::loadEvalFile(istream)) {
-                                    loadedEvalFile = evalFile;
-                                }
+                        if (evalFile == DefaultEvalFile) {
+                            MemoryStreamBuffer buffer(const_cast<char*>(reinterpret_cast<char const*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize));
+                            std::istream istream{ &buffer };
+                            if (NNUE::loadEvalFile(istream)) {
+                                loadedEvalFile = evalFile;
                             }
-
+                        }
                     }
                 }
             }
@@ -1170,8 +1169,8 @@ namespace Evaluator {
 
         if (useNNUE) {
             // Scale and shift NNUE for compatibility with search and classical evaluation
-            auto adjustedNNUE = [&pos]() {
-                int32_t npm{ pos.nonPawnMaterial() + VALUE_MG_PAWN * pos.count(PAWN) };
+            auto const adjustedNNUE = [&pos]() {
+                int32_t const npm{ pos.nonPawnMaterial() + VALUE_MG_PAWN * pos.count(PAWN) };
                 return NNUE::evaluate(pos) * (720 + npm / 32) / 1024 + VALUE_TEMPO;
             };
 

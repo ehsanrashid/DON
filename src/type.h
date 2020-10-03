@@ -36,13 +36,13 @@
     #pragma warning (disable: 4127)     // Conditional expression is constant
     #pragma warning (disable: 4146)     // Unary minus operator applied to unsigned type
     #pragma warning (disable: 4800)     // Forcing value to bool 'true' or 'false'
-    #pragma warning (disable: 26429)    // USE_NOTNULL: Symbol is never tested for nullness, it can be marked as gsl::not_null (f.23)
-    #pragma warning (disable: 26446)    // Prefer to use gsl::at() instead of unchecked subscript operator (bounds.4)
-    #pragma warning (disable: 26481)    // Don't use pointer arithmetic. Use span instead (bounds.1)
+    #pragma warning (disable: 26429)    // USE_NOTNULL: Symbol is never tested for nullness, it can be marked as gsl::not_null
+    #pragma warning (disable: 26446)    // Prefer to use gsl::at() instead of unchecked subscript operator (bounds.x)
+    #pragma warning (disable: 26481)    // Don't use pointer arithmetic. Use span instead (bounds.x)
     #pragma warning (disable: 26482)    // Only index into arrays using constant expressions
-    #pragma warning (disable: 26485)    // Expression 'array-name': No array to pointer decay (bounds.3)
+    #pragma warning (disable: 26485)    // Expression 'array-name': No array to pointer decay (bounds.x)
     #pragma warning (disable: 26475)    // NO_FUNCTION_STYLE_CASTS: Do not use function style C - casts
-    #pragma warning (disable: 26493)    // NO_CSTYLE_CAST: Don't use C-style casts (type x)
+    #pragma warning (disable: 26493)    // NO_CSTYLE_CAST: Don't use C-style casts (type.x)
 
     #if defined(_WIN64)
         #if !defined(IS_64BIT)
@@ -348,10 +348,10 @@ constexpr Score makeScore(int32_t mg, int32_t eg) {
 }
 
 // Keep track of what a move changes on the board (used by NNUE)
-struct DirtyPiece {
+struct MoveInfo {
 
     // Count of changed pieces
-    int dirtyCount;
+    uint8_t pieceCount;
 
     // Max 3 pieces can change in one move.
     // A promotion with capture moves both

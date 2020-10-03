@@ -130,10 +130,6 @@ void TTable::free() noexcept {
     freeAlignedLargePages(clusterTable);
 }
 
-/// TTable::probe() looks up the entry in the transposition table.
-TEntry* TTable::probe(Key posiKey, bool &hit) const noexcept {
-    return cluster(posiKey)->probe(uint16_t(posiKey), hit);
-}
 /// TTable::hashFull() returns an approximation of the per-mille of the
 /// all transposition entries during a search which have received
 /// at least one write during the current search.

@@ -48,7 +48,7 @@ struct StateInfo {
 
     // Used by NNUE
     Evaluator::NNUE::Accumulator accumulator;
-    DirtyPiece dirtyPiece;
+    MoveInfo moveInfo;
 };
 
 /// A list to keep track of the position states along the setup moves

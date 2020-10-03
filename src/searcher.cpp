@@ -1636,7 +1636,7 @@ void Thread::search() {
     // The latter is needed for stats and killer initialization at ss+2.
     Stack stack[MAX_PLY + 10], *ss = stack+7;
     std::memset(stack, 0, 10 * sizeof (*stack));
-    for (int i = 7; i > 0; --i) {
+    for (int16_t i = 7; i > 0; --i) {
         (ss-i)->ply = -i;
         (ss-i)->pieceStats = &this->continuationStats[0][0][NO_PIECE][0]; // Use as a sentinel
     }
@@ -1997,7 +1997,7 @@ void MainThread::search() {
 /// MainThread::tick() is used as timer function.
 /// Used to detect when out of available limit and thus stop the search, also print debug info.
 void MainThread::tick() {
-    static TimePoint InfoTime{ now() };
+    static TimePoint reportTime{ now() };
 
     if (--tickCount > 0) {
         return;
@@ -2008,8 +2008,8 @@ void MainThread::tick() {
     auto elapsed{ TimeMgr.elapsed() };
     auto time{ Limits.startTime + elapsed };
 
-    if (InfoTime + 1000 <= time) {
-        InfoTime = time;
+    if (reportTime + 1000 <= time) {
+        reportTime = time;
 
         Reporter::print();
     }

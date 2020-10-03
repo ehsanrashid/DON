@@ -41,11 +41,11 @@ namespace Evaluator::NNUE::Features {
         template<typename PositionType, typename IndexListType>
         static void appendChangedIndices(PositionType const &pos, TriggerEvent trigger, IndexListType removed[2], IndexListType added[2], bool reset[2]) {
 
-            auto collect_for_one = [&](DirtyPiece const &dp) {
+            auto collectOne = [&](MoveInfo const &mi) {
                 for (Color perspective : { WHITE, BLACK }) {
                     switch (trigger) {
                     case TriggerEvent::FRIEND_KING_MOVED:
-                        reset[perspective] = dp.piece[0] == (perspective|KING);
+                        reset[perspective] = mi.piece[0] == (perspective|KING);
                         break;
                     default:
                         assert(false);
@@ -55,17 +55,17 @@ namespace Evaluator::NNUE::Features {
                         Derived::collectActiveIndices(pos, trigger, perspective, &added[perspective]);
                     }
                     else {
-                        Derived::collectChangedIndices(pos, dp, trigger, perspective, &removed[perspective], &added[perspective]);
+                        Derived::collectChangedIndices(pos, mi, trigger, perspective, &removed[perspective], &added[perspective]);
                     }
                 }
             };
 
-            auto collect_for_two = [&](const DirtyPiece &dp1, const DirtyPiece &dp2) {
+            auto collectTwo = [&](MoveInfo const &mi1, MoveInfo const &mi2) {
                 for (Color perspective : { WHITE, BLACK }) {
                     switch (trigger) {
                     case TriggerEvent::FRIEND_KING_MOVED:
-                        reset[perspective] = dp1.piece[0] == (perspective|KING)
-                                          || dp2.piece[0] == (perspective|KING);
+                        reset[perspective] = mi1.piece[0] == (perspective|KING)
+                                          || mi2.piece[0] == (perspective|KING);
                         break;
                     default:
                         assert(false);
@@ -75,31 +75,31 @@ namespace Evaluator::NNUE::Features {
                         Derived::collectActiveIndices(pos, trigger, perspective, &added[perspective]);
                     }
                     else {
-                        Derived::collectChangedIndices(pos, dp1, trigger, perspective, &removed[perspective], &added[perspective]);
-                        Derived::collectChangedIndices(pos, dp2, trigger, perspective, &removed[perspective], &added[perspective]);
+                        Derived::collectChangedIndices(pos, mi1, trigger, perspective, &removed[perspective], &added[perspective]);
+                        Derived::collectChangedIndices(pos, mi2, trigger, perspective, &removed[perspective], &added[perspective]);
                     }
                 }
             };
 
             if (pos.state()->prevState->accumulator.accumulationComputed) {
-                const auto &prevDP = pos.state()->dirtyPiece;
-                if (prevDP.dirtyCount == 0) return;
-                collect_for_one(prevDP);
+                const auto &prevMI = pos.state()->moveInfo;
+                if (prevMI.pieceCount == 0) return;
+                collectOne(prevMI);
             }
             else {
-                const auto &prevDP1 = pos.state()->prevState->dirtyPiece;
-                if (prevDP1.dirtyCount == 0) {
-                    const auto &prevDP2 = pos.state()->dirtyPiece;
-                    if (prevDP2.dirtyCount == 0) return;
-                    collect_for_one(prevDP2);
+                const auto &prevMI1 = pos.state()->prevState->moveInfo;
+                if (prevMI1.pieceCount == 0) {
+                    const auto &prevMI2 = pos.state()->moveInfo;
+                    if (prevMI2.pieceCount == 0) return;
+                    collectOne(prevMI2);
                 }
                 else {
-                    const auto &prevDP2 = pos.state()->dirtyPiece;
-                    if (prevDP2.dirtyCount == 0) {
-                        collect_for_one(prevDP1);
+                    const auto &prevMI2 = pos.state()->moveInfo;
+                    if (prevMI2.pieceCount == 0) {
+                        collectOne(prevMI1);
                     }
                     else {
-                        collect_for_two(prevDP1, prevDP2);
+                        collectTwo(prevMI1, prevMI2);
                     }
                 }
             }
@@ -133,9 +133,9 @@ namespace Evaluator::NNUE::Features {
         }
 
         // Get a list of indices for recently changed features
-        static void collectChangedIndices(Position const &pos, DirtyPiece const &dp, TriggerEvent const trigger, Color const perspective, IndexList *const removed, IndexList *const added) {
+        static void collectChangedIndices(Position const &pos, MoveInfo const &mi, TriggerEvent const trigger, Color const perspective, IndexList *const removed, IndexList *const added) {
             if (FeatureType::RefreshTrigger == trigger) {
-                FeatureType::appendChangedIndices(pos, dp, perspective, removed, added);
+                FeatureType::appendChangedIndices(pos, mi, perspective, removed, added);
             }
         }
 

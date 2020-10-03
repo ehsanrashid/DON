@@ -69,7 +69,7 @@ namespace Evaluator::NNUE {
         static constexpr IndexType HalfDimensions{ TransformedFeatureDimensions };
 
     #if defined(TILING)
-        static constexpr IndexType TileHeight = NumRegs * sizeof(vec_t) / 2;
+        static constexpr IndexType TileHeight = NumRegs * sizeof (vec_t) / 2;
         static_assert (HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
     #endif
 
@@ -221,8 +221,8 @@ namespace Evaluator::NNUE {
         #if defined(TILING)
                 for (unsigned j = 0; j < HalfDimensions / TileHeight; ++j) {
 
-                    auto biasesTile = reinterpret_cast<const vec_t*>(&_biases[j * TileHeight]);
-                    auto accTile = reinterpret_cast<vec_t *>(&accumulator.accumulation[perspective][i][j * TileHeight]);
+                    auto biasesTile = reinterpret_cast<vec_t const*>(&_biases[j * TileHeight]);
+                    auto accTile = reinterpret_cast<vec_t*>(&accumulator.accumulation[perspective][i][j * TileHeight]);
                     vec_t acc[NumRegs];
 
                     for (unsigned k = 0; k < NumRegs; ++k) {
@@ -230,7 +230,7 @@ namespace Evaluator::NNUE {
                     }
                     for (auto const index : activeIndices[perspective]) {
                         const IndexType offset = HalfDimensions * index + j * TileHeight;
-                        auto column = reinterpret_cast<const vec_t*>(&_weights[offset]);
+                        auto column = reinterpret_cast<vec_t const*>(&_weights[offset]);
 
                         for (unsigned k = 0; k < NumRegs; ++k) {
                             acc[k] = vec_add_16(acc[k], column[k]);
@@ -289,13 +289,13 @@ namespace Evaluator::NNUE {
                     vec_t acc[NumRegs];
 
                     if (reset[perspective]) {
-                        auto biasesTile = reinterpret_cast<const vec_t*>(&_biases[j * TileHeight]);
+                        auto biasesTile = reinterpret_cast<vec_t const*>(&_biases[j * TileHeight]);
                         for (unsigned k = 0; k < NumRegs; ++k) {
                             acc[k] = biasesTile[k];
                         }
                     }
                     else {
-                        auto prevAccTile = reinterpret_cast<const vec_t*>(&prevAccumulator->accumulation[perspective][i][j * TileHeight]);
+                        auto prevAccTile = reinterpret_cast<vec_t const*>(&prevAccumulator->accumulation[perspective][i][j * TileHeight]);
                         for (IndexType k = 0; k < NumRegs; ++k) {
                             acc[k] = vec_load(&prevAccTile[k]);
                         }
@@ -303,7 +303,7 @@ namespace Evaluator::NNUE {
                         // Difference calculation for the deactivated features
                         for (auto const index : removedIndices[perspective]) {
                             IndexType const offset = HalfDimensions * index + j * TileHeight;
-                            auto column = reinterpret_cast<const vec_t*>(&_weights[offset]);
+                            auto column = reinterpret_cast<vec_t const*>(&_weights[offset]);
 
                             for (IndexType k = 0; k < NumRegs; ++k) {
                                 acc[k] = vec_sub_16(acc[k], column[k]);
@@ -313,7 +313,7 @@ namespace Evaluator::NNUE {
                     {   // Difference calculation for the activated features
                         for (auto const index : addedIndices[perspective]) {
                             IndexType const offset = HalfDimensions * index + j * TileHeight;
-                            auto column = reinterpret_cast<const vec_t*>(&_weights[offset]);
+                            auto column = reinterpret_cast<vec_t const*>(&_weights[offset]);
 
                             for (IndexType k = 0; k < NumRegs; ++k) {
                                 acc[k] = vec_add_16(acc[k], column[k]);

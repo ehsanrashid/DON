@@ -24,7 +24,7 @@ namespace BitBase {
         // bit    12: active (WHITE or BLACK)
         // bit 13-14: white pawn file [(from FILE_A to FILE_D) - FILE_A]
         // bit 15-17: white pawn rank [(from RANK_2 to RANK_7) - RANK_2]
-        uint32_t index(Color active, Square wkSq, Square bkSq, Square wpSq) {
+        uint32_t index(Color active, Square wkSq, Square bkSq, Square wpSq) noexcept {
             assert(FILE_A <= sFile(wpSq) && sFile(wpSq) <= FILE_D);
             assert(RANK_2 <= sRank(wpSq) && sRank(wpSq) <= RANK_7);
 
@@ -188,7 +188,7 @@ namespace BitBase {
         assert(KPKBitBase.count() == 111282);
     }
 
-    bool probe(bool stngActive, Square skSq, Square wkSq, Square spSq) {
+    bool probe(bool stngActive, Square skSq, Square wkSq, Square spSq) noexcept {
         // skSq = White King
         // wkSq = Black King
         // spSq = White Pawn

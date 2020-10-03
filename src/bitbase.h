@@ -6,5 +6,5 @@ namespace BitBase {
 
     extern void initialize();
 
-    extern bool probe(bool, Square, Square, Square);
+    extern bool probe(bool, Square, Square, Square) noexcept;
 }

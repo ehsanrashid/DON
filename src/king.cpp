@@ -1,7 +1,7 @@
 #include "king.h"
 
-#include <algorithm>
 #include <cassert>
+#include <algorithm>
 
 #include "bitboard.h"
 #include "thread.h"

@@ -49,6 +49,7 @@
     <None Include="CodeMap.dgml" />
     <None Include="IncludeFileDependencies.dgml" />
     <None Include="Readme.md" />
+    <None Include="src\incbin\UNLICENCE" />
     <None Include="src\make-all-modern.bat" />
     <None Include="src\make-all-modern.sh" />
     <None Include="src\make-all.bat" />

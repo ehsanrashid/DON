@@ -85,7 +85,7 @@ Move moveOfCAN(std::string_view can, Position const &pos) {
     //if (can.size() == 5 && isupper(can[4])) {
     //    can[4] = char(tolower(can[4]));
     //}
-    assert(can.size() < 5 || islower(can[4]));
+    assert(can.size() < 5 || islower((int)can[4]));
     for (auto const &vm : MoveList<LEGAL>(pos)) {
         if (moveToCAN(vm) == can) {
             return vm;
@@ -280,7 +280,7 @@ Move moveOfSAN(std::string_view san, Position &pos) {
 
 /*
 /// Returns formated human-readable search information.
-string prettyInfo(Thread *th) {
+std::string prettyInfo(Thread *th) {
     uint64_t nodes{ Threadpool.accumulate(&Thread::nodes) };
 
     std::ostringstream oss{};
