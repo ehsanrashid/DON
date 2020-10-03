@@ -38,7 +38,7 @@
 /// allocAlignedStd() is wrapper for systems where the c++17 implementation
 /// does not guarantee the availability of std::aligned_alloc().
 /// Memory allocated with allocAlignedStd() must be freed with freeAlignedStd().
-void* allocAlignedStd(size_t alignment, size_t size) {
+void* allocAlignedStd(size_t alignment, size_t size) noexcept {
 
 #if defined(POSIX_ALIGNED_MEM)
     void *mem;
@@ -51,7 +51,7 @@ void* allocAlignedStd(size_t alignment, size_t size) {
 }
 
 /// freeAlignedStd() free aligned memory
-void freeAlignedStd(void *mem) {
+void freeAlignedStd(void *mem) noexcept {
 
     if (mem == nullptr) return;
 #if defined(POSIX_ALIGNED_MEM)
@@ -67,12 +67,12 @@ void freeAlignedStd(void *mem) {
 
 namespace {
 
-    void* allocAlignedStdWin(size_t mSize) {
+    void* allocAlignedStdWin(size_t mSize) noexcept {
 
         return VirtualAlloc(nullptr, mSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     }
 
-    void* allocAlignedLargePagesWin(size_t mSize) {
+    void* allocAlignedLargePagesWin(size_t mSize) noexcept {
 
         void *mem{ nullptr };
 
@@ -116,7 +116,7 @@ namespace {
 #endif
 
 /// allocAlignedLargePages() will return suitably aligned memory, if possible using large pages.
-void* allocAlignedLargePages(size_t mSize) {
+void* allocAlignedLargePages(size_t mSize) noexcept {
 
 #if defined(_WIN32)
     // Try to allocate large pages
@@ -153,13 +153,12 @@ void* allocAlignedLargePages(size_t mSize) {
 }
 
 /// freeAlignedLargePages() will free the previously allocated ttmem
-void freeAlignedLargePages(void *mem) {
+void freeAlignedLargePages(void *mem) noexcept {
 
     if (mem == nullptr) return;
 #if defined(_WIN32)
     if (!VirtualFree(mem, 0, MEM_RELEASE)) {
-        DWORD err{ GetLastError() };
-        std::cerr << "Failed to free memory. Error code: 0x" << std::hex << err << std::dec << std::endl;
+        std::cerr << "Failed to free memory. Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
         exit(EXIT_FAILURE);
     }
 #else
@@ -181,12 +180,12 @@ namespace WinProcGroup {
     /// try to load them at runtime. To do this first define the corresponding function pointers.
     extern "C" {
 
-        //using GLPIE  = bool (*)(LOGICAL_PROCESSOR_RELATIONSHIP LogicalProcRelationship, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX PtrSysLogicalProcInfo, PDWORD PtrLength);
-        using GLPIE  = std::add_pointer<bool(LOGICAL_PROCESSOR_RELATIONSHIP, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD)>::type;
-        //using GNNPME = bool (*)(USHORT Node, PGROUP_AFFINITY PtrGroupAffinity);
-        using GNNPME = std::add_pointer<bool(USHORT, PGROUP_AFFINITY)>::type;
-        //using STGA   = bool (*)(HANDLE Thread, CONST GROUP_AFFINITY *GroupAffinity, PGROUP_AFFINITY PtrGroupAffinity);
-        using STGA   = std::add_pointer<bool(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY)>::type;
+        using GLPIE  = BOOL(*)(LOGICAL_PROCESSOR_RELATIONSHIP, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD);
+        //using GLPIE  = std::add_pointer<BOOL(LOGICAL_PROCESSOR_RELATIONSHIP, PSYSTEM_LOGICAL_PROCESSOR_INFORMATION_EX, PDWORD)>::type;
+        using GNNPME = BOOL(*)(USHORT, PGROUP_AFFINITY);
+        //using GNNPME = std::add_pointer<BOOL(USHORT, PGROUP_AFFINITY)>::type;
+        using STGA   = BOOL(*)(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY);
+        //using STGA   = std::add_pointer<BOOL(HANDLE, CONST GROUP_AFFINITY*, PGROUP_AFFINITY)>::type;
     }
 
     namespace {
@@ -195,11 +194,11 @@ namespace WinProcGroup {
         int16_t bestGroup(uint16_t index) {
 
             // Early exit if the needed API is not available at runtime
-            auto pKernel32{ GetModuleHandle("Kernel32.dll") };
+            HMODULE pKernel32{ GetModuleHandle(TEXT("Kernel32.dll")) };
             if (pKernel32 == nullptr) {
                 return -1;
             }
-            auto pGLPIE{ (GLPIE)(void(*)())GetProcAddress(pKernel32, "GetLogicalProcessorInformationEx") };
+            auto *pGLPIE{ (GLPIE)(void(*)())GetProcAddress(pKernel32, "GetLogicalProcessorInformationEx") };
             if (pGLPIE == nullptr) {
                 return -1;
             }

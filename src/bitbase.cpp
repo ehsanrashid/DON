@@ -50,11 +50,11 @@ namespace BitBase {
         struct KPKPosition {
 
             KPKPosition() = default;
-            KPKPosition(uint32_t);
+            explicit KPKPosition(uint32_t);
 
             operator Result() const noexcept { return result; }
 
-            Result classify(KPKPosition kpkArrBase[]);
+            Result classify(KPKPosition kpkArr[]);
 
             Color  active;
             Square wkSq;
@@ -111,7 +111,7 @@ namespace BitBase {
             }
         }
 
-        Result KPKPosition::classify(KPKPosition kpkArrBase[]) {
+        Result KPKPosition::classify(KPKPosition kpkArr[]) {
             // White to Move:
             // If one move leads to a position classified as WIN, the result of the current position is WIN.
             // If all moves lead to positions classified as DRAW, the result of the current position is DRAW
@@ -131,18 +131,18 @@ namespace BitBase {
                 Bitboard b{  attacksBB<KING>(wkSq)
                           & ~attacksBB<KING>(bkSq) };
                 while (b != 0) {
-                    r |= kpkArrBase[index(BLACK, popLSq(b), bkSq, wpSq)];
+                    r |= kpkArr[index(BLACK, popLSq(b), bkSq, wpSq)];
                 }
 
                 // Pawn Single push
                 if (sRank(wpSq) <= RANK_6) {
-                    r |= kpkArrBase[index(BLACK, wkSq, bkSq, wpSq + NORTH)];
+                    r |= kpkArr[index(BLACK, wkSq, bkSq, wpSq + NORTH)];
 
                     // Pawn Double push
                     if (sRank(wpSq) == RANK_2
                      && wkSq != wpSq + NORTH    // Front is not own king
                      && bkSq != wpSq + NORTH) { // Front is not opp king
-                        r |= kpkArrBase[index(BLACK, wkSq, bkSq, wpSq + NORTH + NORTH)];
+                        r |= kpkArr[index(BLACK, wkSq, bkSq, wpSq + NORTH + NORTH)];
                     }
                 }
             }
@@ -151,7 +151,7 @@ namespace BitBase {
                 Bitboard b{  attacksBB<KING>(bkSq)
                           & ~attacksBB<KING>(wkSq) };
                 while (b != 0) {
-                    r |= kpkArrBase[index(WHITE, wkSq, popLSq(b), wpSq)];
+                    r |= kpkArr[index(WHITE, wkSq, popLSq(b), wpSq)];
                 }
             }
 
@@ -163,10 +163,10 @@ namespace BitBase {
 
     void initialize() {
 
-        KPKPosition kpkArrBase[BaseSize];
-        // Initialize kpkArrBase with known WIN/DRAW positions
+        KPKPosition kpkArr[BaseSize];
+        // Initialize kpkArr with known WIN/DRAW positions
         for (uint32_t idx = 0; idx < BaseSize; ++idx) {
-            kpkArrBase[idx] = { idx };
+            kpkArr[idx] = KPKPosition{ idx };
         }
         // Iterate through the positions until none of the unknown positions
         // can be changed to either WIN/DRAW (15 cycles needed).
@@ -174,13 +174,13 @@ namespace BitBase {
         while (repeat) {
             repeat = false;
             for (uint32_t idx = 0; idx < BaseSize; ++idx) {
-                repeat |= kpkArrBase[idx] == UNKNOWN
-                       && kpkArrBase[idx].classify(kpkArrBase) != UNKNOWN;
+                repeat |= kpkArr[idx] == UNKNOWN
+                       && kpkArr[idx].classify(kpkArr) != UNKNOWN;
             }
         }
-        // Fill the Bitbase from Arraybase
+        // Fill the Bitbase from kpkArr
         for (uint32_t idx = 0; idx < BaseSize; ++idx) {
-            if (kpkArrBase[idx] == WIN) {
+            if (kpkArr[idx] == WIN) {
                 KPKBitBase.set(idx);
             }
         }

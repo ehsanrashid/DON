@@ -2,11 +2,11 @@
 
 #include <cstdint>
 
-void* allocAlignedStd(size_t, size_t);
-void  freeAlignedStd(void*);
+void* allocAlignedStd(size_t, size_t) noexcept;
+void  freeAlignedStd(void*) noexcept;
 
-void* allocAlignedLargePages(size_t);
-void  freeAlignedLargePages(void*);
+void* allocAlignedLargePages(size_t) noexcept;
+void  freeAlignedLargePages(void*) noexcept;
 
 /// Win Processors Group
 /// Under Windows it is not possible for a process to run on more than one logical processor group.
