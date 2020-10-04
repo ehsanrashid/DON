@@ -173,11 +173,11 @@ public:
     Position& setup(std::string_view, StateInfo&, Thread* = nullptr);
     Position& setup(std::string_view, Color, StateInfo&);
 
-    void doMove(Move, StateInfo&, bool);
-    void doMove(Move, StateInfo&);
-    void undoMove(Move);
-    void doNullMove(StateInfo&);
-    void undoNullMove();
+    void doMove(Move, StateInfo&, bool) noexcept;
+    void doMove(Move, StateInfo&) noexcept;
+    void undoMove(Move) noexcept;
+    void doNullMove(StateInfo&) noexcept;
+    void undoNullMove() noexcept;
 
     void flip();
     void mirror();
@@ -190,14 +190,14 @@ public:
     std::string toString() const;
 
 #if !defined(NDEBUG)
-    bool ok() const;
+    bool ok() const noexcept;
 #endif
 
 private:
 
-    void placePiece(Square, Piece);
-    void removePiece(Square);
-    void movePiece(Square, Square);
+    void placePiece(Square, Piece) noexcept;
+    void removePiece(Square) noexcept;
+    void movePiece(Square, Square) noexcept;
 
     void setCastle(Color, Square);
     void setCheckInfo();
@@ -374,7 +374,7 @@ inline int16_t Position::moveCount() const noexcept {
     return int16_t( std::max((ply - active) / 2, 0) + 1 );
 }
 
-inline void Position::placePiece(Square s, Piece p) {
+inline void Position::placePiece(Square s, Piece p) noexcept {
     types[NONE] |= s;
     types[pType(p)] |= s;
     colors[pColor(p)] |= s;
@@ -384,7 +384,7 @@ inline void Position::placePiece(Square s, Piece p) {
     ++pieceCount[pColor(p)|NONE];
     psq += PSQ[p][s];
 }
-inline void Position::removePiece(Square s) {
+inline void Position::removePiece(Square s) noexcept {
     auto const p{ board[s] };
     types[NONE] ^= s;
     types[pType(p)] ^= s;
@@ -397,7 +397,7 @@ inline void Position::removePiece(Square s) {
     --pieceCount[pColor(p)|NONE];
     psq -= PSQ[p][s];
 }
-inline void Position::movePiece(Square s1, Square s2) {
+inline void Position::movePiece(Square s1, Square s2) noexcept {
     auto const p{ board[s1] };
     Bitboard const bb{ s1 | s2 };
     types[NONE] ^= bb;
@@ -471,7 +471,7 @@ inline bool Position::semiopenFileOn(Color c, Square s) const noexcept {
     return (pieces(c, PAWN) & fileBB(s)) == 0;
 }
 
-inline void Position::doMove(Move m, StateInfo &si) {
+inline void Position::doMove(Move m, StateInfo &si) noexcept {
     doMove(m, si, giveCheck(m));
 }
 

@@ -53,15 +53,15 @@ namespace UCI {
         std::string defaultValue() const noexcept;
         std::string toString() const;
 
-        uint32_t     index;
+        uint32_t     index{ 0 };
 
     private:
 
         std::string type,
                     defaultVal,
                     currentVal;
-        double  minVal,
-                maxVal;
+        double  minVal{ 0 },
+                maxVal{ 0 };
 
         OnChange onChange;
     };

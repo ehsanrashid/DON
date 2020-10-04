@@ -629,7 +629,7 @@ public:
     void operator+=(Move move) { emplace_back(move); }
     //void operator-=(Move move) { erase(std::find(begin(), end(), move)); }
 
-    bool contains(Move move) const {
+    bool contains(Move move) const noexcept {
         return std::find(begin(), end(), move) != end();
     }
     //bool contains(ValMove const &vm) const {

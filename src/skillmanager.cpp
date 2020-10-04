@@ -6,7 +6,7 @@
 
 SkillManager SkillMgr;
 
-SkillManager::SkillManager() noexcept :
+constexpr SkillManager::SkillManager() noexcept :
     level{ MaxLevel },
     bestMove{ MOVE_NONE } {
 }

@@ -11,7 +11,7 @@ class TimeManager {
 
 public:
 
-    TimeManager();
+    constexpr TimeManager() noexcept;
     TimeManager(TimeManager const&) = delete;
     TimeManager(TimeManager&&) = delete;
 
@@ -24,7 +24,7 @@ public:
 
     void clear() noexcept;
 
-    void setup(Color, int16_t);
+    void setup(Color, int16_t) noexcept;
 
     uint64_t remainingNodes; // Remaining Nodes to play
 

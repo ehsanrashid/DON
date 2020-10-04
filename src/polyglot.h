@@ -4,7 +4,6 @@
 
 #include "position.h"
 #include "type.h"
-#include "helper/prng.h"
 
 /// Polyglot::Entry needs 16 bytes to be stored.
 ///  - Key       8 bytes
@@ -42,8 +41,8 @@ extern std::ostream& operator<<(std::ostream&, PolyEntry const&);
 class PolyBook {
 
 public:
-    PolyBook() = default;
-    ~PolyBook();
+    constexpr PolyBook() noexcept;
+    ~PolyBook() noexcept;
 
     void initialize(std::string_view);
 
@@ -51,9 +50,9 @@ public:
 
     std::string show(Position const&) const;
 
-    uint64_t const HeaderSize = 0;
+    static constexpr uint64_t HeaderSize{ 0 * sizeof (PolyEntry) };
 
-    bool enabled{ false };
+    bool enabled;
 
 private:
     void clear() noexcept;
@@ -64,17 +63,12 @@ private:
 
     bool canProbe(Position const&) noexcept;
 
-    PolyEntry *entry{ nullptr };
-    uint64_t entryCount{ 0 };
+    PolyEntry *entry;
+    uint64_t   entryCount;
 
-    std::string filename;
-
-    bool doProbe{ true };
-
-    Bitboard pieces{ 0 };
-    int32_t pieceCount{ 0 };
-
-    uint8_t failCount{ 0 };
+    // Last probe info
+    Bitboard pieces;
+    uint8_t  failCount;
 };
 
 // Global Polyglot Book

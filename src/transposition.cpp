@@ -29,8 +29,7 @@ TEntry* TCluster::probe(uint16_t key16, bool &hit) noexcept {
          || ite->d08 == 0) {
             // Refresh entry
             ite->refresh();
-            hit = ite->d08 != 0;
-            return ite;
+            return hit = ite->d08 != 0, ite;
         }
         // Replacement strategy.
         // Due to packed storage format for generation and its cyclic nature
@@ -40,12 +39,11 @@ TEntry* TCluster::probe(uint16_t key16, bool &hit) noexcept {
             rte = ite;
         }
     }
-    hit = false;
-    return rte;
+    return hit = false, rte;
 }
 
 
-TTable::TTable() noexcept :
+constexpr TTable::TTable() noexcept :
     clusterTable{ nullptr },
     clusterCount{ 0 } {
 }

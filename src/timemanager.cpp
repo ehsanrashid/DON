@@ -5,7 +5,7 @@
 
 TimeManager TimeMgr;
 
-TimeManager::TimeManager() :
+constexpr TimeManager::TimeManager() noexcept :
     remainingNodes{ 0 },
     optimumTime{ 0 },
     maximumTime{ 0 } {
@@ -15,7 +15,7 @@ TimeManager::TimeManager() :
 /// of time allowed for the current game ply.  We currently support:
 ///   * x basetime (+ z increment)
 ///   * x moves in y seconds (+ z increment)
-void TimeManager::setup(Color c, int16_t ply) {
+void TimeManager::setup(Color c, int16_t ply) noexcept {
 
     TimePoint overheadMoveTime{ Options["Overhead MoveTime"] };
     uint32_t moveSlowness{ Options["Move Slowness"] };

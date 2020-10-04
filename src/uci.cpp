@@ -25,12 +25,10 @@
 
 using std::string;
 using std::string_view;
-using namespace std::literals::string_view_literals;
-
 using std::vector;
 using std::istringstream;
 using std::ostringstream;
-
+using namespace std::literals::string_view_literals;
 
 // Engine Name
 string const Name{ "DON" };
@@ -42,12 +40,6 @@ string const Author{ "Ehsan Rashid" };
 UCI::OptionMap Options;
 
 namespace {
-
-    string ToString(bool b) {
-        ostringstream oss{};
-        oss << std::boolalpha << b;
-        return oss.str();
-    }
 
     string const Months[12] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
 
@@ -192,7 +184,7 @@ namespace UCI {
     Option::Option(bool v, OnChange onCng) :
         type{ "check" },
         onChange{ onCng } {
-        defaultVal = currentVal = ToString(v);
+        defaultVal = currentVal = ::toString(v);
     }
     Option::Option(string_view v, OnChange onCng) :
         type{ "string" },
@@ -766,7 +758,7 @@ namespace UCI {
             }
 
             if (fenFile != "current") {
-                uciCmds.emplace_back("setoption name UCI_Chess960 value " + ToString(uciChess960));
+                uciCmds.emplace_back("setoption name UCI_Chess960 value " + toString(uciChess960));
                 uciCmds.emplace_back("position fen " + pos.fen());
             }
             uciCmds.emplace_back("setoption name Use NNUE value " + Options["Use NNUE"].defaultValue());

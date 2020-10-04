@@ -10,7 +10,7 @@ class SkillManager final {
 
 public:
 
-    SkillManager() noexcept;
+    constexpr SkillManager() noexcept;
     SkillManager(SkillManager const&) = delete;
     SkillManager(SkillManager&&) = delete;
 

@@ -39,6 +39,11 @@ inline std::vector<std::string> split(std::string_view str, char delimiter) {
     return tokens;
 }
 
+inline std::string toString(bool b) {
+    std::ostringstream oss{};
+    oss << std::boolalpha << b;
+    return oss.str();
+}
 
 //constexpr std::string_view BlanksS = " \f\n\r\t\v";
 //

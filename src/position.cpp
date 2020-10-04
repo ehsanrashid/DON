@@ -824,7 +824,7 @@ Position& Position::setup(std::string_view code, Color c, StateInfo &si) {
 
 /// Position::doMove() makes a move, and saves all information necessary to a StateInfo object.
 /// The move is assumed to be legal.
-void Position::doMove(Move m, StateInfo &si, bool isCheck) {
+void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
     assert(isOk(m)
         && pseudoLegal(m)
         && legal(m)
@@ -1050,7 +1050,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) {
 }
 /// Position::undoMove() unmakes a move, and restores the position to exactly the same state as before the move was made.
 /// The move is assumed to be legal.
-void Position::undoMove(Move m) {
+void Position::undoMove(Move m) noexcept {
     assert(isOk(m)
         && _stateInfo->prevState != nullptr);
 
@@ -1079,7 +1079,7 @@ void Position::undoMove(Move m) {
         placePiece(rookOrg, active|ROOK);
     }
     else {
-        auto mp{ board[dst] };
+        auto const mp{ board[dst] };
         assert(mp != NO_PIECE
             && pColor(mp) == active);
 
@@ -1129,7 +1129,7 @@ void Position::undoMove(Move m) {
 }
 /// Position::doNullMove() makes a 'null move'.
 /// It flips the side to move without executing any move on the board.
-void Position::doNullMove(StateInfo &si) {
+void Position::doNullMove(StateInfo &si) noexcept {
     assert(&si != _stateInfo
         && checkers() == 0);
 
@@ -1159,7 +1159,7 @@ void Position::doNullMove(StateInfo &si) {
     assert(ok());
 }
 /// Position::undoNullMove() unmakes a 'null move'.
-void Position::undoNullMove() {
+void Position::undoNullMove() noexcept {
     assert(_stateInfo->prevState != nullptr
         && nullPly() == 0
         && captured() == NONE
@@ -1347,7 +1347,7 @@ std::ostream& operator<<(std::ostream &ostream, Position const &pos) {
 #if !defined(NDEBUG)
 /// Position::ok() performs some consistency checks for the position,
 /// and raises an assert if something wrong is detected.
-bool Position::ok() const {
+bool Position::ok() const noexcept {
     constexpr bool Fast{ true };
 
     // BASIC

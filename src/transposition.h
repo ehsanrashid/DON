@@ -123,7 +123,7 @@ class TTable final {
 
 public:
 
-    TTable() noexcept;
+    constexpr TTable() noexcept;
     TTable(TTable const&) = delete;
     TTable(TTable&&) = delete;
     ~TTable() noexcept;

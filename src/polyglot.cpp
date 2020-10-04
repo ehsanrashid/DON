@@ -8,6 +8,7 @@
 
 #include "movegenerator.h"
 #include "notation.h"
+#include "helper/prng.h"
 #include "helper/string_view.h"
 
 PolyBook Book;
@@ -140,7 +141,15 @@ std::ostream& operator<<(std::ostream &ostream, PolyEntry const &pe) {
 
 /// ----------------
 
-PolyBook::~PolyBook() {
+constexpr PolyBook::PolyBook() noexcept :
+    enabled{ false },
+    entry{ nullptr },
+    entryCount{ 0 },
+    pieces{ 0 },
+    failCount{ 0 } {
+}
+
+PolyBook::~PolyBook() noexcept {
     clear();
 }
 
@@ -198,23 +207,21 @@ bool PolyBook::canProbe(Position const &pos) noexcept {
 
     if (pieces != pos.pieces()
      || popCount(pieces ^ pos.pieces()) > 6
-     || pieceCount < pos.count()
-     || pieceCount > pos.count() + 2
+     || popCount(pieces) > popCount(pos.pieces()) + 2
      || pos.pgKey() == U64(0x463B96181691FC9C)) {
-        doProbe = true;
+        failCount = 0;
     }
 
     pieces = pos.pieces();
-    pieceCount = pos.count();
-
-    return doProbe;
+    // Stop probe after 4 times not in the book till position changes according to canProbe()
+    return failCount <= 4;
 }
 
 void PolyBook::initialize(std::string_view bookFile) {
 
     clear();
 
-    filename = bookFile;
+    std::string filename{ bookFile };
     std::replace(filename.begin(), filename.end(), '\\', '/');
     filename = trim(filename);
     if (filename.empty()) {
@@ -270,11 +277,7 @@ Move PolyBook::probe(Position &pos, int16_t moveCount, bool pickBest) {
     auto const pgKey{ pos.pgKey() };
     auto const index{ findIndex(pgKey) };
     if (index < 0) {
-        if (++failCount > 4) {
-            // Stop probe after 4 times not in the book till position changes according to canProbe()
-            doProbe = false;
-            failCount = 0;
-        }
+        ++failCount;
         return MOVE_NONE;
     }
 
