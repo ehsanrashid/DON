@@ -123,7 +123,7 @@ bool PolyEntry::operator==(Move m) const noexcept { return move == m; }
 bool PolyEntry::operator!=(Move m) const noexcept { return move != m; }
 
 std::string PolyEntry::toString() const {
-    std::ostringstream oss{};
+    std::ostringstream oss;
     oss << std::right
         << " key: " << std::setw(16) << std::setfill('0') << std::hex << std::uppercase << key << std::nouppercase << std::dec
         << std::left
@@ -381,7 +381,7 @@ std::string PolyBook::show(Position const &pos) const {
     std::sort(peSet.begin(), peSet.end());
     std::reverse(peSet.begin(), peSet.end());
 
-    std::ostringstream oss{};
+    std::ostringstream oss;
     oss << "\nBook entries: " << peSet.size() << '\n';
     for (auto &pe : peSet) {
         pe.move = polyMove(Move(pe.move), pos);

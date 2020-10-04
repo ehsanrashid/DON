@@ -19,34 +19,48 @@ struct Limit {
 
     // Clock struct stores the time and inc per move in milli-seconds.
     struct Clock {
-        TimePoint time{ 0 };
-        TimePoint inc{ 0 };
+        TimePoint time;
+        TimePoint inc;
     };
 
-    Clock     clock[COLORS]{};      // Search with Clock
+    Limit() noexcept {
+        clear();
+    }
 
-    uint8_t   movestogo{ 0 };       // Search <x> moves to the next time control
-    TimePoint moveTime{ 0 };        // Search <x> exact time in milli-seconds
-    Depth     depth{ DEPTH_ZERO };  // Search <x> depth(plies) only
-    uint64_t  nodes{ 0 };           // Search <x> nodes only
-    uint8_t   mate{ 0 };            // Search mate in <x> moves
-    bool      infinite{ false };    // Search until the "stop" command
-    bool      ponder{ false };      // Search in ponder mode.
-    Moves     searchMoves;          // Restrict search to these root moves only
+    bool useTimeMgmt() const noexcept {
+        return clock[WHITE].time != 0
+            || clock[BLACK].time != 0;
+    }
 
-    TimePoint startTime;
+    void clear() noexcept {
+        clock[WHITE].time = 0; clock[WHITE].inc = 0;
+        clock[BLACK].time = 0; clock[BLACK].inc = 0;
 
-    bool useTimeMgmt() const noexcept;
+        movestogo   = 0;
+        moveTime    = 0;
+        depth       = DEPTH_ZERO;
+        nodes       = 0;
+        mate        = 0;
+        infinite    = false;
 
-    void clear() noexcept;
+        searchMoves.clear();
+    }
+
+    Clock     clock[COLORS];// Search with Clock
+
+    uint8_t   movestogo;    // Search <x> moves to the next time control
+    TimePoint moveTime;     // Search <x> exact time in milli-seconds
+    Depth     depth;        // Search <x> depth(plies) only
+    uint64_t  nodes;        // Search <x> nodes only
+    uint8_t   mate;         // Search mate in <x> moves
+    bool      infinite;     // Search until the "stop" command
+    Moves     searchMoves;  // Restrict search to these root moves only
 };
 
 namespace Searcher {
 
     extern void initialize() noexcept;
-
 }
 
+// Global Limit
 extern Limit Limits;
-
-extern uint16_t PVCount;

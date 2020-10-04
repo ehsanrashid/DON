@@ -58,7 +58,7 @@ namespace {
 
 /// engineInfo() returns a string trying to describe the engine
 string const engineInfo() {
-    ostringstream oss{};
+    ostringstream oss;
 
     oss << std::setfill('0');
 #if defined(USE_VERSION)
@@ -83,7 +83,7 @@ string const engineInfo() {
 }
 /// compilerInfo() returns a string trying to describe the compiler used
 string const compilerInfo() {
-    ostringstream oss{};
+    ostringstream oss;
     oss << "\nCompiled by ";
 
 #define VER_STRING(major, minor, patch) STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(patch)
@@ -308,7 +308,7 @@ namespace UCI {
 
     /// Option::toString()
     string Option::toString() const {
-        ostringstream oss{};
+        ostringstream oss;
         oss << " type " << type;
 
         if (type == "string"
@@ -616,9 +616,10 @@ namespace UCI {
         void go(istringstream &iss, Position &pos, StateListPtr &states) {
             Threadpool.stop = true;
             Threadpool.mainThread()->waitIdle();
+            Threadpool.mainThread()->ponder = false;
 
             Limits.clear();
-            Limits.startTime = now(); // As early as possible!
+            TimeMgr.startTime = now(); // As early as possible!
 
             string token;
             while (iss >> token) {
@@ -632,7 +633,7 @@ namespace UCI {
                 else if (token == "nodes")     { iss >> Limits.nodes; }
                 else if (token == "mate")      { iss >> Limits.mate; }
                 else if (token == "infinite")  { Limits.infinite = true; }
-                else if (token == "ponder")    { Limits.ponder = true; }
+                else if (token == "ponder")    { Threadpool.mainThread()->ponder = true; }
                 // Needs to be the last command on the line
                 else if (token == "searchmoves") {
                     // Parse and Validate search-moves (if any)
@@ -679,11 +680,14 @@ namespace UCI {
         ///     * nodes
         ///     * mate
         ///     * perft
-        ///     * evaluation type [classical (default), nnue, mixed]
         /// - FEN positions to be used in FEN format
         ///     * 'default' for builtin positions (default)
         ///     * 'current' for current position
         ///     * '<filename>' for file containing FEN positions
+        /// - Evaluation type
+        ///     * classical (default)
+        ///     * nnue
+        ///     * mixed
         /// example:
         /// bench -> search default positions up to depth 13
         /// bench 256 4 10 depth default classical -> search default positions up to depth 10 using classical evaluation
@@ -694,21 +698,21 @@ namespace UCI {
         vector<string> setupBench(istringstream &iss, Position const &pos) {
             string token;
             // Assign default values to missing arguments
-            string    hash { (iss >> token) && !whiteSpaces(token) ? token : "16" };
-            string threads { (iss >> token) && !whiteSpaces(token) ? token : "1" };
-            string   value { (iss >> token) && !whiteSpaces(token) ? token : "13" };
-            string    mode { (iss >> token) && !whiteSpaces(token) ? toLower(token) : "depth" };
-            string fenFile { (iss >> token) && !whiteSpaces(token) ? toLower(token) : "default" };
-            string evalType{ (iss >> token) && !whiteSpaces(token) ? toLower(token) : "classical" };
+            string    hash{ (iss >> token) && !whiteSpaces(token) ? token : "16" };
+            string threads{ (iss >> token) && !whiteSpaces(token) ? token : "1" };
+            string   value{ (iss >> token) && !whiteSpaces(token) ? token : "13" };
+            string   limit{ (iss >> token) && !whiteSpaces(token) ? toLower(token) : "depth" };
+            string fenFile{ (iss >> token) && !whiteSpaces(token) ? toLower(token) : "default" };
+            string    eval{ (iss >> token) && !whiteSpaces(token) ? toLower(token) : "classical" };
 
-            string operation{
-                mode == "eval"  ? mode :
-                mode == "perft" ? mode + " " + value :
-                                  "go " + mode + " " + value };
+            string command{
+                limit == "eval"  ? limit :
+                limit == "perft" ? limit + " " + value :
+                                   "go " + limit + " " + value };
+
             vector<string> fens;
-
-                 if (fenFile == "current") { fens.push_back(pos.fen()); }
-            else if (fenFile == "default") { fens = DefaultFens; }
+                 if (fenFile == "default") { fens = DefaultFens; }
+            else if (fenFile == "current") { fens.push_back(pos.fen()); }
             else {
                 std::ifstream ifstream{ fenFile, std::ios::in };
                 if (ifstream.is_open()) {
@@ -732,11 +736,11 @@ namespace UCI {
             uciCmds.emplace_back("setoption name Hash value " + hash);
             uciCmds.emplace_back("ucinewgame");
 
-            if (evalType == "classical") {
+            if (eval == "classical") {
                 uciCmds.emplace_back("setoption name Use NNUE value false");
             }
             else
-            if (evalType == "nnue") {
+            if (eval == "nnue") {
                 uciCmds.emplace_back("setoption name Use NNUE value true");
             }
 
@@ -746,12 +750,12 @@ namespace UCI {
                     uciCmds.emplace_back(fen);
                 }
                 else {
-                    if (evalType == "mixed") {
+                    if (eval == "mixed") {
                         uciCmds.emplace_back(string("setoption name Use NNUE value ") + (posCount % 2 != 0 ? "true" : "false"));
                     }
 
                     uciCmds.emplace_back("position fen " + fen);
-                    uciCmds.emplace_back(operation);
+                    uciCmds.emplace_back(command);
 
                     ++posCount;
                 }
@@ -769,7 +773,6 @@ namespace UCI {
         /// bench() setup list of UCI commands is setup according to bench parameters,
         /// then it is run one by one printing a summary at the end.
         void bench(istringstream &isstream, Position &pos, StateListPtr &states) {
-            Reporter::reset();
 
             auto const uciCmds{ setupBench(isstream, pos) };
             auto const cmdCount{ std::count_if(uciCmds.begin(), uciCmds.end(),
@@ -778,9 +781,11 @@ namespace UCI {
                                                     || s.find("perft ") == 0
                                                     || s.find("go ") == 0;
                                             }) };
-            auto elapsed{ now() };
-            int32_t i{ 0 };
+
+            Reporter::reset();
+            TimePoint elapsed{ now() };
             uint64_t nodes{ 0 };
+            int32_t i{ 0 };
             for (auto const &cmd : uciCmds) {
                 istringstream iss{ cmd };
                 string token;
@@ -817,7 +822,7 @@ namespace UCI {
 
             Reporter::print(); // Just before exiting
 
-            ostringstream oss{};
+            ostringstream oss;
             oss << std::right
                 << "\n=================================\n"
                 << "Total time (ms) :" << std::setw(16) << elapsed << '\n'
@@ -833,7 +838,7 @@ namespace UCI {
     /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
     /// In addition to the UCI ones, also some additional commands are supported.
     void handleCommands(int argc, char const *const argv[]) {
-        Reporter::reset();
+
         Position pos;
         // Stack to keep track of the position states along the setup moves
         // (from the start position to the position just before the search starts).
@@ -847,6 +852,7 @@ namespace UCI {
             cmd += string(argv[i]) + " ";
         }
 
+        Reporter::reset();
         string token;
         do {
             // Block here waiting for input or EOF
@@ -894,7 +900,7 @@ namespace UCI {
                 perft<true>(pos, depth, detail);
             }
             else if (token == "keys")       {
-                ostringstream oss{};
+                ostringstream oss;
                 oss << "FEN: " << pos.fen() << '\n'
                     << std::hex << std::uppercase << std::setfill('0')
                     << "Posi key: " << std::setw(16) << pos.posiKey() << '\n'
@@ -905,7 +911,7 @@ namespace UCI {
             }
             else if (token == "moves")      {
                 sync_cout;
-                int32_t moveCount{};
+                int32_t moveCount;
                 std::cout << '\n';
                 if (pos.checkers() == 0) {
                     std::cout << "Capture moves: ";

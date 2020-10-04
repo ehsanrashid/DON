@@ -129,7 +129,7 @@ namespace Evaluator {
 
             static std::string toString(Term t) {
 
-                std::ostringstream oss{};
+                std::ostringstream oss;
                 if (t == MATERIAL
                  || t == IMBALANCE
                  || t == SCALING
@@ -272,11 +272,12 @@ namespace Evaluator {
 
         public:
 
+            explicit Evaluation(Position const &p) noexcept :
+                pos{ p } {
+            }
             Evaluation() = delete;
             Evaluation(Evaluation const&) = delete;
             Evaluation(Evaluation&&) = delete;
-
-            Evaluation(Position const&) noexcept;
 
             Evaluation& operator=(Evaluation const&) = delete;
             Evaluation& operator=(Evaluation&&) = delete;
@@ -284,6 +285,7 @@ namespace Evaluator {
             Value value();
 
         private:
+
             template<Color> void initialize();
             template<Color, PieceType> Score pieces();
             template<Color> Score king() const;
@@ -984,11 +986,6 @@ namespace Evaluator {
         }
 
 
-        template<bool Trace>
-        Evaluation<Trace>::Evaluation(Position const &p) noexcept :
-            pos{ p } {
-        }
-
         /// value() computes the various parts of the evaluation and
         /// returns the value of the position from the point of view of the side to move.
         template<bool Trace>
@@ -1219,7 +1216,7 @@ namespace Evaluator {
             return "Evaluation: none (in check)\n";
         }
 
-        std::ostringstream oss{};
+        std::ostringstream oss;
         oss << std::showpos << std::showpoint << std::fixed << std::setprecision(2);
 
         // Set dynamic contempt to zero

@@ -39,7 +39,7 @@ char toChar(Piece p) noexcept {
 std::string toString(Value v) {
     assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
 
-    std::ostringstream oss{};
+    std::ostringstream oss;
     if (std::abs(v) < +VALUE_MATE_1_MAX_PLY) {
         oss << "cp " << int32_t(toCP(v));
     }
@@ -49,7 +49,7 @@ std::string toString(Value v) {
     return oss.str();
 }
 std::string toString(Score s) {
-    std::ostringstream oss{};
+    std::ostringstream oss;
     oss << std::showpos << std::showpoint
         //<< std::setw(6) << mgValue(s) << " "
         //<< std::setw(6) << egValue(s)
@@ -68,7 +68,7 @@ std::string moveToCAN(Move m) {
     if (m == MOVE_NONE) return { "(none)" };
     if (m == MOVE_NULL) return { "(null)" };
 
-    std::ostringstream oss{};
+    std::ostringstream oss;
     oss << orgSq(m)
         << ((mType(m) != CASTLE
           || Options["UCI_Chess960"]) ?
@@ -178,7 +178,7 @@ namespace {
     /*
     string prettyValue(Value v) {
         assert(-VALUE_MATE <= v && v <= +VALUE_MATE);
-        std::ostringstream oss{};
+        std::ostringstream oss;
         if (std::abs(v) < +VALUE_MATE_1_MAX_PLY) {
             oss << std::showpos << std::fixed << std::setprecision(2)
                 << toCP(v) / 100;
@@ -204,7 +204,7 @@ namespace {
         time      %= SecondMilliSec;
         time      /= 10;
 
-        std::ostringstream oss{};
+        std::ostringstream oss;
         oss << std::setfill('0')
             << std::setw(2) << hours   << ":"
             << std::setw(2) << minutes << ":"
@@ -222,7 +222,7 @@ std::string moveToSAN(Move m, Position &pos) {
     if (m == MOVE_NULL) return { "(null)" };
     assert(MoveList<LEGAL>(pos).contains(m));
 
-    std::ostringstream oss{};
+    std::ostringstream oss;
     auto const org{ orgSq(m) };
     auto const dst{ dstSq(m) };
 
@@ -283,7 +283,7 @@ Move moveOfSAN(std::string_view san, Position &pos) {
 std::string prettyInfo(Thread *th) {
     uint64_t nodes{ Threadpool.accumulate(&Thread::nodes) };
 
-    std::ostringstream oss{};
+    std::ostringstream oss;
     oss << std::setw( 4) << th->finishedDepth
         << std::setw( 8) << prettyValue(th->rootMoves[0].newValue)
         << std::setw(12) << prettyTime(TimeMgr.elapsed());

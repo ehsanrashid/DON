@@ -21,7 +21,7 @@
       <FileName>src\helper\prng.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="Logger">
+  <Class Name="Logger" Collapsed="true">
     <Position X="37.5" Y="1.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAQAADCAAIAAAgAAAgAAAAAAABAAAAAAAAgAAAAAAA=</HashCode>
@@ -62,7 +62,7 @@
   <Class Name="UCI::Option" Collapsed="true">
     <Position X="35.75" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAABAAACgAAACASEoECADQAAAAABAAACQIAgAAAJQAA=</HashCode>
+      <HashCode>AAABAAACggAgAACEIACCDQABAAABAAACQAAgACABQAA=</HashCode>
       <FileName>src\uci.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -81,7 +81,7 @@
   <Class Name="MainThread">
     <Position X="15" Y="15.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AABACAAAAAAAAAgAABAIAAAAEAAAAAAAACBEEAAIAAA=</HashCode>
+      <HashCode>AABACAAAAAAAAAgAABAIAAAAEAAAAAIAACBEEAAAAAA=</HashCode>
       <FileName>src\thread.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -91,7 +91,7 @@
   <Class Name="ThreadPool">
     <Position X="22" Y="4.75" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAiAAAAAAgAQAQAAAAAAAAgAEASAABgAIQAAAA=</HashCode>
+      <HashCode>AAAAAAAiEAAAAAgAQAQAAAAAAAAgAEASAgBgAIQAAAA=</HashCode>
       <FileName>src\thread.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -123,7 +123,7 @@
   <Class Name="TimeManager" Collapsed="true">
     <Position X="30.5" Y="4.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>IEAAAIAAAAAAAAkAAAQAAgAAAAAAAAAAAAAgBAAAAAA=</HashCode>
+      <HashCode>IEAAAIAAAAAAAAkAAAQgAgAAAAAAAAAAAAAgBAAAAAA=</HashCode>
       <FileName>src\timemanager.h</FileName>
     </TypeIdentifier>
   </Class>
@@ -158,22 +158,22 @@
   <Class Name="PolyBook" Collapsed="true">
     <Position X="37.5" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>CMAAAABAAAAAAAAKABGAAgAAAgIAAAAgBAAEAAAAGAA=</HashCode>
+      <HashCode>CMAAAAAAAAAAAAAIABGAAgAAAAIAAAAgBAAEAAAAGAA=</HashCode>
       <FileName>src\polyglot.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="MovePicker" Collapsed="true">
     <Position X="32.25" Y="2.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>ABAAEABAAAIAgIAQAgEABIgAAoSACCAAIAIgYAIAAAA=</HashCode>
+      <HashCode>ABAAEABAAAIAgIAQAgEABIgAAgSACCAAIAIgYAIAAAA=</HashCode>
       <FileName>src\movepicker.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Reporter" Collapsed="true">
     <Position X="34" Y="0.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAQCAAEEAgAAAAgAAAAAAAAQAAAAAAAAQAQkAAAAAAA=</HashCode>
-      <FileName>src\debugger.h</FileName>
+      <HashCode>AAQCAAEEAgAAAAAAAAAAAAAQAAAIAAAAAAQkAAAAAQA=</HashCode>
+      <FileName>src\helper\reporter.h</FileName>
     </TypeIdentifier>
   </Class>
   <Class Name="Stats&lt;T, D&gt;" Collapsed="true">
@@ -288,7 +288,7 @@
       <FileName>src\nnue\features\index_list.h</FileName>
     </TypeIdentifier>
   </Class>
-  <Class Name="MemoryStreamBuffer&lt;T&gt;">
+  <Class Name="MemoryStreamBuffer&lt;Elem&gt;">
     <Position X="28" Y="5.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAQAAAAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
@@ -298,14 +298,14 @@
   <Class Name="TieStreamBuffer">
     <Position X="26" Y="5.5" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>AAAAAAAAAKAAAAAAAgAAAAAAAAAAAAAAAQAhAIkAAAA=</HashCode>
+      <HashCode>AAAAAAAAAKAAAAAAAgAAAAAAAAAAAAAAAQABAIkAAAA=</HashCode>
       <FileName>src\helper\tiestreambuffer.h</FileName>
     </TypeIdentifier>
   </Class>
   <Struct Name="StateInfo">
     <Position X="3.5" Y="8" Width="1.5" />
     <TypeIdentifier>
-      <HashCode>gAAAQAQEAAAJAYcAAQBAEAAAAAAAAAAAAgCAAAAgAAA=</HashCode>
+      <HashCode>gAAAQAQEAAAJAYcAAQBAEAAAAACAAAAAAgAAAAAgAAA=</HashCode>
       <FileName>src\position.h</FileName>
     </TypeIdentifier>
     <ShowAsAssociation>
@@ -318,21 +318,21 @@
     <Position X="35.75" Y="5.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\comparer.h</FileName>
+      <FileName>src\helper\comparer.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="CaseInsensitiveMoreComparer" Collapsed="true">
     <Position X="37.5" Y="5.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\comparer.h</FileName>
+      <FileName>src\helper\comparer.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="CaseInsensitiveEqualComparer" Collapsed="true">
     <Position X="34" Y="5.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAAAAEAAAAAAAAAAAAAAAAAAAAAAAAAA=</HashCode>
-      <FileName>src\comparer.h</FileName>
+      <FileName>src\helper\comparer.h</FileName>
     </TypeIdentifier>
   </Struct>
   <Struct Name="Pawns::Entry" Collapsed="true">
@@ -355,7 +355,7 @@
       <Compartment Name="Nested Types" Collapsed="false" />
     </Compartments>
     <TypeIdentifier>
-      <HashCode>AkAAAAAAAAAAAAABAAAgAAAAQACAAAAAAIAAMIAAIAA=</HashCode>
+      <HashCode>AkAAAAAAAAAAAAABAAAAAQAAQACAAAAAAIACIIAAIAA=</HashCode>
       <FileName>src\searcher.h</FileName>
     </TypeIdentifier>
   </Struct>

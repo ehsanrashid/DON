@@ -192,10 +192,9 @@ void ThreadPool::clean() {
 void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
 
     stop = false;
-    research = false;
+    stand = false;
 
-    mainThread()->stopOnPonderHit = false;
-    mainThread()->ponder = Limits.ponder;
+    mainThread()->stopPonderhit = false;
 
     RootMoves rootMoves{ pos, Limits.searchMoves };
 

@@ -112,8 +112,8 @@ public:
 
     int16_t tickCount;
 
-    bool stopOnPonderHit;       // Stop search on ponderhit
-    std::atomic<bool> ponder;   // Search on ponder move until the "stop"/"ponderhit" command
+    std::atomic<bool> ponder;   // Search in ponder mode, on ponder move until the "stop"/"ponderhit" command
+    bool stopPonderhit;         // Stop search on ponderhit
 
     Value  bestValue;
     double timeReduction;
@@ -166,8 +166,10 @@ public:
     void wakeUpThreads();
     void waitForThreads();
 
-    std::atomic<bool> stop, // Stop search forcefully
-                      research;
+    std::atomic<bool> stop;     // Stop search forcefully
+    std::atomic<bool> stand;    // Stop increasing depth
+    uint16_t pvCount;
+
 private:
 
     StateListPtr setupStates;

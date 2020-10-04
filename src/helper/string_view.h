@@ -7,7 +7,7 @@
 
 constexpr std::string_view Blanks{ " \f\n\r\t\v" };
 
-inline bool whiteSpaces(std::string_view str) {
+inline bool whiteSpaces(std::string_view str) noexcept {
     return str.empty()
         || std::all_of(str.begin(), str.end(), ::isspace);
 }

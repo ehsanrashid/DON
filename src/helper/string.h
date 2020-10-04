@@ -40,7 +40,7 @@ inline std::vector<std::string> split(std::string_view str, char delimiter) {
 }
 
 inline std::string toString(bool b) {
-    std::ostringstream oss{};
+    std::ostringstream oss;
     oss << std::boolalpha << b;
     return oss.str();
 }

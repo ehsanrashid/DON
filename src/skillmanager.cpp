@@ -39,10 +39,10 @@ Move SkillManager::pickBestMove() noexcept {
 
         // RootMoves are already sorted by value in descending order
         int32_t const weakness{ MAX_PLY - 8 * level };
-        int32_t const deviance{ std::min(rootMoves[0].newValue - rootMoves[PVCount - 1].newValue, VALUE_MG_PAWN) };
+        int32_t const deviance{ std::min(rootMoves[0].newValue - rootMoves[Threadpool.pvCount - 1].newValue, VALUE_MG_PAWN) };
 
         auto bestValue{ -VALUE_INFINITE };
-        for (uint16_t i = 0; i < PVCount; ++i) {
+        for (uint16_t i = 0; i < Threadpool.pvCount; ++i) {
             // First for each move score add two terms, both dependent on weakness.
             // One is deterministic with weakness, and one is random with weakness.
             auto const value{

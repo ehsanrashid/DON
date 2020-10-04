@@ -46,7 +46,7 @@ void RootMove::operator+=(Move m) {
 
 /// RootMove::toString()
 std::string RootMove::toString() const {
-    std::ostringstream oss{};
+    std::ostringstream oss;
     std::copy(begin(), end(), std::ostream_iterator<Move>(oss, " "));
     return oss.str();
 }
@@ -123,7 +123,7 @@ void RootMoves::bringToFront(Move m) {
 
 /// RootMoves::toString()
 std::string RootMoves::toString() const {
-    std::ostringstream oss{};
+    std::ostringstream oss;
     std::copy(begin(), end(), std::ostream_iterator<RootMove>(oss, "\n"));
     return oss.str();
 }

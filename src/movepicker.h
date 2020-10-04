@@ -135,10 +135,6 @@ class MovePicker {
 
 public:
 
-    MovePicker() = delete;
-    MovePicker(MovePicker const&) = delete;
-    MovePicker(MovePicker&&) = delete;
-
     MovePicker(
         Position const&,
         ButterFlyStatsTable       const*,
@@ -160,6 +156,10 @@ public:
         PieceSquareTypeStatsTable const*,
         Move, Depth, Value);
 
+    MovePicker() = delete;
+    MovePicker(MovePicker const&) = delete;
+    MovePicker(MovePicker&&) = delete;
+
     MovePicker& operator=(MovePicker const&) = delete;
     MovePicker& operator=(MovePicker&&) = delete;
 
@@ -172,11 +172,8 @@ private:
     template<GenType GT>
     void value();
 
-    void limitedInsertionSort(int32_t) const;
-
     template<typename Pred>
     bool pick(Pred);
-
 
     Position const &pos;
 

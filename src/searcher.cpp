@@ -46,9 +46,7 @@ inline void prefetch(void const*) noexcept {}
 
 using Evaluator::evaluate;
 
-Limit Limits{};
-
-uint16_t PVCount;
+Limit Limits;
 
 namespace SyzygyTB {
 
@@ -92,7 +90,7 @@ namespace {
 
     /// Futility Move Count
     constexpr int16_t futilityMoveCount(Depth d, bool imp) noexcept {
-        return int16_t( (3 + nSqr(d)) / (2 - 1 * imp) );
+        return int16_t( (3 + nSqr(d)) / (2 - 1 * (imp)) );
     }
 
     /// Add a small random component to draw evaluations to avoid 3-fold-blindness
@@ -213,7 +211,7 @@ namespace {
         double const b{ (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3] };
 
         // transform eval to centipawns with limited range
-        double x{ std::clamp(double(100 * v) / VALUE_EG_PAWN, -1000.0, 1000.0) };
+        double const x{ std::clamp(double(100 * v) / VALUE_EG_PAWN, -1000.0, 1000.0) };
 
         // Return win rate in per mille (rounded to nearest)
         return int16_t( 0.5 + 1000 / (1 + std::exp((a - x) / b)) );
@@ -234,13 +232,13 @@ namespace {
     /// multipvInfo() formats PV information according to UCI protocol.
     /// UCI requires that all (if any) un-searched PV lines are sent using a previous search score.
     std::string multipvInfo(Thread const *th, Depth depth, Value alfa, Value beta) {
-        auto const elapsed{ std::max(TimeMgr.elapsed(), { 1 }) };
+        TimePoint const elapsed{ std::max(TimeMgr.elapsed(), { 1 }) };
         auto const nodes{ Threadpool.accumulate(&Thread::nodes) };
         auto const tbHits{ Threadpool.accumulate(&Thread::tbHits)
                          + th->rootMoves.size() * SyzygyTB::HasRoot };
 
-        std::ostringstream oss{};
-        for (uint16_t i = 0; i < PVCount; ++i) {
+        std::ostringstream oss;
+        for (uint16_t i = 0; i < Threadpool.pvCount; ++i) {
 
             bool const updated{ th->rootMoves[i].newValue != -VALUE_INFINITE };
 
@@ -285,7 +283,7 @@ namespace {
             oss << " hashfull " << TT.hashFull();
             }
             oss << " pv "       << th->rootMoves[i];
-            if (i + 1 < PVCount) {
+            if (i + 1 < Threadpool.pvCount) {
             oss << '\n';
             }
         }
@@ -1085,7 +1083,7 @@ namespace {
                 }
 
                 if (thread == Threadpool.mainThread()) {
-                    auto elapsed{ TimeMgr.elapsed() };
+                    TimePoint const elapsed{ TimeMgr.elapsed() };
                     if (elapsed > 3000) {
                         sync_cout << std::setfill('0')
                                   << "info"
@@ -1546,31 +1544,10 @@ namespace {
 
 }
 
-bool Limit::useTimeMgmt() const noexcept {
-    return clock[WHITE].time != 0
-        || clock[BLACK].time != 0;
-}
-
-void Limit::clear() noexcept {
-    clock[WHITE].time = 0; clock[WHITE].inc = 0;
-    clock[BLACK].time = 0; clock[BLACK].inc = 0;
-
-    movestogo   = 0;
-    moveTime    = 0;
-    depth       = DEPTH_ZERO;
-    nodes       = 0;
-    mate        = 0;
-    infinite    = false;
-    ponder      = false;
-
-    searchMoves.clear();
-
-    startTime   = 0;
-}
-
 namespace Searcher {
 
     void initialize() noexcept {
+
         double const r{ 22.0 + 2 * std::log(Threadpool.size()) };
         Reduction[0] = 0;
         for (int16_t i = 1; i < MaxMoves; ++i) {
@@ -1623,7 +1600,7 @@ void Thread::search() {
 
     double timeReduction{ 1.0 };
     double pvChangesSum{ 0.0 };
-    int16_t researchCount{ 0 };
+    int16_t standCount{ 0 };
 
     auto bestValue{ -VALUE_INFINITE };
     auto window{ VALUE_ZERO };
@@ -1664,12 +1641,12 @@ void Thread::search() {
         pvBeg = 0;
         pvEnd = 0;
 
-        if (Threadpool.research) {
-            ++researchCount;
+        if (Threadpool.stand) {
+            ++standCount;
         }
 
         // MultiPV loop. Perform a full root search for each PV line.
-        for (pvCur = 0; pvCur < PVCount && !Threadpool.stop; ++pvCur) {
+        for (pvCur = 0; pvCur < Threadpool.pvCount && !Threadpool.stop; ++pvCur) {
             if (pvCur == pvEnd) {
                 pvBeg = pvEnd;
                 while (++pvEnd < rootMoves.size()) {
@@ -1705,7 +1682,7 @@ void Thread::search() {
             // Start with a small aspiration window and, in case of fail high/low,
             // research with bigger window until not failing high/low anymore.
             do {
-                Depth const adjustedDepth( std::max(rootDepth - failHighCount - researchCount, 1) );
+                Depth const adjustedDepth( std::max(rootDepth - failHighCount - standCount, 1) );
                 bestValue = depthSearch<true>(rootPos, ss, alfa, beta, adjustedDepth, false);
 
                 // Bring the best move to the front. It is critical that sorting is
@@ -1723,7 +1700,7 @@ void Thread::search() {
                 }
 
                 // Give some update before to re-search.
-                if (PVCount == 1
+                if (Threadpool.pvCount == 1
                  && mainThread != nullptr
                  && (bestValue <= alfa
                   || beta <= bestValue)
@@ -1738,7 +1715,7 @@ void Thread::search() {
 
                     failHighCount = 0;
                     if (mainThread != nullptr) {
-                        mainThread->stopOnPonderHit = false;
+                        mainThread->stopPonderhit = false;
                     }
                 }
                 else
@@ -1764,7 +1741,7 @@ void Thread::search() {
 
             if (mainThread != nullptr
              && (Threadpool.stop
-              || PVCount == pvCur + 1
+              || Threadpool.pvCount == pvCur + 1
               || TimeMgr.elapsed() > 3000)) {
                 sync_cout << multipvInfo(mainThread, rootDepth, alfa, beta) << sync_endl;
             }
@@ -1794,7 +1771,7 @@ void Thread::search() {
 
             if ( Limits.useTimeMgmt()
              && !Threadpool.stop
-             && !mainThread->stopOnPonderHit) {
+             && !mainThread->stopPonderhit) {
 
                 if (mainThread->bestMove != rootMoves[0][0]) {
                     mainThread->bestMove  = rootMoves[0][0];
@@ -1825,7 +1802,7 @@ void Thread::search() {
                       * fallingEval
                       * pvInstability : 0);
 
-                auto elapsed{ TimeMgr.elapsed() };
+                TimePoint const elapsed{ TimeMgr.elapsed() };
 
                 // Stop the search if we have exceeded the totalTime (at least 1ms).
                 if (elapsed > totalTime) {
@@ -1835,13 +1812,13 @@ void Thread::search() {
                         Threadpool.stop = true;
                     }
                     else {
-                        mainThread->stopOnPonderHit = true;
+                        mainThread->stopPonderhit = true;
                     }
                 }
                 else
                 if (elapsed > totalTime * 0.58) {
                     if (!mainThread->ponder) {
-                        Threadpool.research = true;
+                        Threadpool.stand = true;
                     }
                 }
 
@@ -1920,7 +1897,7 @@ void MainThread::search() {
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            PVCount = std::clamp(uint16_t(Options["MultiPV"]), uint16_t(1 + 3 * SkillMgr.enabled()), uint16_t(rootMoves.size()));
+            Threadpool.pvCount = std::clamp(uint16_t(Options["MultiPV"]), uint16_t(1 + 3 * SkillMgr.enabled()), uint16_t(rootMoves.size()));
 
             Threadpool.wakeUpThreads(); // start non-main threads searching !
             Thread::search();           // start main thread searching !
@@ -1950,7 +1927,7 @@ void MainThread::search() {
         Threadpool.waitForThreads();
 
         // Check if there is better thread than main thread
-        if (PVCount == 1
+        if (Threadpool.pvCount == 1
          && Threadpool.size() >= 2
          //&& Limits.depth == DEPTH_ZERO // Depth limit search don't use deeper thread
          && !SkillMgr.enabled()
@@ -2005,8 +1982,8 @@ void MainThread::tick() {
     // When using nodes, ensure checking rate is in range [1, 1024]
     tickCount = int16_t(Limits.nodes != 0 ? std::clamp(int32_t(Limits.nodes / 1024), 1, 1024) : 1024);
 
-    auto elapsed{ TimeMgr.elapsed() };
-    auto time{ Limits.startTime + elapsed };
+    TimePoint elapsed{ TimeMgr.elapsed() };
+    TimePoint time{ TimeMgr.startTime + elapsed };
 
     if (reportTime + 1000 <= time) {
         reportTime = time;
@@ -2020,7 +1997,7 @@ void MainThread::tick() {
     }
 
     if ((Limits.useTimeMgmt()
-      && (stopOnPonderHit
+      && (stopPonderhit
        || TimeMgr.maximum() < elapsed + 10))
      || (Limits.moveTime != 0
       && Limits.moveTime <= elapsed)

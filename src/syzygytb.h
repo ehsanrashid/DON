@@ -45,6 +45,6 @@ namespace SyzygyTB {
 
     extern void rankRootMoves(Position&, RootMoves&);
 
-    extern void initialize(std::string_view);
+    extern void initialize(std::string_view) noexcept;
 
 }

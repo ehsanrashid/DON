@@ -37,10 +37,37 @@ public:
 
     uint16_t     worth() const noexcept { return d08 - ((263 + Generation - g08) & 248); }
 
-    void refresh() noexcept;
-    void save(Key, Move, Value, Value, Depth, Bound, bool) noexcept;
+    void refresh() noexcept {
+        g08 = uint8_t(Generation | (g08 & 7));
+    }
 
-    static void updateGeneration() noexcept;
+    void save(Key k, Move m, Value v, Value e, Depth d, Bound b, bool pv) noexcept {
+
+        // Preserve any existing move for the same position
+        if (m != MOVE_NONE
+         || uint16_t(k) != k16) {
+            m16 = uint16_t(m);
+        }
+        // Overwrite less valuable entries
+        if (b == BOUND_EXACT
+         || uint16_t(k) != k16
+         || d - DEPTH_OFFSET + 4 > d08) {
+
+            assert(d > DEPTH_OFFSET);
+            assert(d < MAX_PLY);
+
+            k16 = uint16_t(k);
+            d08 = uint8_t(d - DEPTH_OFFSET);
+            g08 = uint8_t(Generation | uint8_t(pv) << 2 | b);
+            v16 = int16_t(v);
+            e16 = int16_t(e);
+        }
+        assert(d08 != 0);
+    }
+
+    static void updateGeneration() noexcept {
+        Generation += 8;
+    }
 
     // "Generation" variable distinguish transposition table entries from different searches.
     static uint8_t Generation;
@@ -59,43 +86,16 @@ private:
 /// Size of TEntry (10 bytes)
 static_assert (sizeof (TEntry) == 10, "Entry size incorrect");
 
-inline void TEntry::refresh() noexcept {
-    g08 = uint8_t(Generation | (g08 & 7));
-}
-
-inline void TEntry::save(Key k, Move m, Value v, Value e, Depth d, Bound b, bool pv) noexcept {
-
-    // Preserve any existing move for the same position
-    if (m != MOVE_NONE
-     || uint16_t(k) != k16) {
-        m16 = uint16_t(m);
-    }
-    // Overwrite less valuable entries
-    if (b == BOUND_EXACT
-     || uint16_t(k) != k16
-     || d - DEPTH_OFFSET + 4 > d08) {
-
-        assert(d > DEPTH_OFFSET);
-        assert(d < MAX_PLY);
-
-        k16 = uint16_t(k);
-        d08 = uint8_t(d - DEPTH_OFFSET);
-        g08 = uint8_t(Generation | uint8_t(pv) << 2 | b);
-        v16 = int16_t(v);
-        e16 = int16_t(e);
-    }
-    assert(d08 != 0);
-}
-
-inline void TEntry::updateGeneration() noexcept {
-    Generation += 8;
-}
-
 /// Transposition::Cluster needs 32 bytes to be stored
 /// 10 x 3 + 2 = 32
 struct TCluster {
 
-    uint32_t freshEntryCount() const noexcept;
+    uint32_t freshEntryCount() const noexcept {
+        return std::count_if(std::begin(entry), std::end(entry),
+            [](auto const &e) noexcept {
+                return e.d08 != 0 && e.generation() == TEntry::Generation;
+            });
+    }
 
     TEntry* probe(uint16_t, bool&) noexcept;
 
@@ -106,13 +106,6 @@ struct TCluster {
 };
 /// Size of TCluster (32 bytes)
 static_assert (sizeof (TCluster) == 32, "Cluster size incorrect");
-
-inline uint32_t TCluster::freshEntryCount() const noexcept {
-    return std::count_if(std::begin(entry), std::end(entry),
-                        [](auto const &e) noexcept {
-                            return e.d08 != 0 && e.generation() == TEntry::Generation;
-                        });
-}
 
 /// Transposition::Table is an array of Cluster, of size clusterCount.
 /// Each cluster consists of EntryPerCluster number of TTEntry.

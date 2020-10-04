@@ -86,7 +86,8 @@ namespace {
         }
     }
     template<>
-    inline void swapEndian<uint8_t>(uint8_t&) noexcept {}
+    inline void swapEndian<uint8_t>(uint8_t&) noexcept {
+    }
 
     template<typename T, bool LE>
     T number(void *addr) noexcept {
@@ -445,7 +446,7 @@ namespace {
 
         void add(std::vector<PieceType> const &pieces) {
 
-            std::ostringstream oss{};
+            std::ostringstream oss;
             for (PieceType const pt : pieces) {
                 oss << toChar(pt);
             }
@@ -1187,8 +1188,7 @@ namespace {
                 *e.get(i, f) = PairsData{};
             }
 
-            int16_t order[][2]
-            {
+            int16_t order[][2]{
                 { int16_t(*(data) & 0xF), int16_t(pp ? *(data + 1) & 0xF : 0xF) },
                 { int16_t(*(data) >>  4), int16_t(pp ? *(data + 1) >>  4 : 0xF) }
             };
@@ -1637,7 +1637,7 @@ namespace SyzygyTB {
         return true;
     }
 
-    void initialize(std::string_view paths) {
+    void initialize(std::string_view paths) noexcept {
         static bool initialized = false;
 
         if (!initialized) {

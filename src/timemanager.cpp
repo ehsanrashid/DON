@@ -3,10 +3,13 @@
 #include <cfloat>
 #include <cmath>
 
+#include "searcher.h"
+
 TimeManager TimeMgr;
 
 constexpr TimeManager::TimeManager() noexcept :
     remainingNodes{ 0 },
+    startTime{ 0 },
     optimumTime{ 0 },
     maximumTime{ 0 } {
 }

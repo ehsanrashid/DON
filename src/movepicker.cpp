@@ -28,6 +28,37 @@ namespace {
         QUIESCENCE_CHECKS,
     };
 
+    /// sortPartial() sorts (insertion) item in descending order up to and including a given limit.
+    /// The order of item smaller than the limit is left unspecified.
+    /// Sorts only in range [beg, end]
+    void sortPartial(ValMoves::iterator const &beg, ValMoves::iterator const &end, int32_t limit) {
+
+        if (beg == end) {
+            return;
+        }
+
+        auto sortedEnd{ beg };
+        auto unsortedBeg{ sortedEnd + 1 };
+        while (unsortedBeg != end) {
+            if (unsortedBeg->value >= limit) {
+                auto unSortedItem{ *unsortedBeg };
+                *unsortedBeg = *++sortedEnd;
+
+                auto e0{ sortedEnd };
+                while (e0 != beg) {
+                    auto e1{ e0 - 1 };
+                    if (e1->value >= unSortedItem.value) {
+                        break;
+                    }
+                    *e0 = *e1;
+                    e0 = e1;
+                }
+                *e0 = unSortedItem;
+            }
+            ++unsortedBeg;
+        }
+    }
+
 }
 
 /// Constructors of the MovePicker class.
@@ -161,37 +192,6 @@ void MovePicker::value() {
     }
 }
 
-/// limitedInsertionSort() sorts moves in descending order up to and including a given limit.
-/// The order of moves smaller than the limit is left unspecified.
-/// Sorts only vmoves [vmBeg, vmEnd]
-void MovePicker::limitedInsertionSort(int32_t limit) const {
-
-    if (vmBeg == vmEnd) {
-        return;
-    }
-
-    auto iSortedEnd{ vmBeg };
-    auto iUnsortedBeg{ iSortedEnd + 1 };
-    while (iUnsortedBeg != vmEnd) {
-        if (iUnsortedBeg->value >= limit) {
-            auto unSortedItem{ *iUnsortedBeg };
-            *iUnsortedBeg = *++iSortedEnd;
-
-            auto iE0{ iSortedEnd };
-            while (iE0 != vmBeg) {
-                auto iE1{ iE0 - 1 };
-                if (iE1->value >= unSortedItem.value) {
-                    break;
-                }
-                *iE0 = *iE1;
-                iE0 = iE1;
-            }
-            *iE0 = unSortedItem;
-        }
-        ++iUnsortedBeg;
-    }
-}
-
 /// pick() returns the next move satisfying a predicate function
 template<typename Pred>
 bool MovePicker::pick(Pred filter) {
@@ -299,7 +299,7 @@ Move MovePicker::nextMove() {
                                             || std::find(mBeg, mEnd, vm.move) != mEnd;
                                     });
             value<QUIET>();
-            limitedInsertionSort(-3000 * depth);
+            sortPartial(vmBeg, vmEnd, -3000 * depth);
         }
         ++stage;
     }
