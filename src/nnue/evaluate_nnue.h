@@ -12,7 +12,7 @@ namespace Evaluator::NNUE {
 
     // Deleter for automating release of memory area
     template<typename T>
-    struct AlignedDeleter {
+    struct AlignedStdDeleter {
         void operator()(T *) const noexcept;
     };
     template<typename T>
@@ -21,12 +21,12 @@ namespace Evaluator::NNUE {
     };
 
     template<typename T>
-    using AlignedPtr            = std::unique_ptr<T, AlignedDeleter<T>>;
+    using AlignedStdPtr         = std::unique_ptr<T, AlignedStdDeleter<T>>;
     template<typename T>
     using AlignedLargePagePtr   = std::unique_ptr<T, AlignedLargePageDeleter<T>>;
 
     template<typename T>
-    extern void alignedAllocator(AlignedPtr<T>&) noexcept;
+    extern void alignedStdAllocator(AlignedStdPtr<T>&) noexcept;
     template<typename T>
     extern void alignedLargePageAllocator(AlignedLargePagePtr<T> &) noexcept;
 

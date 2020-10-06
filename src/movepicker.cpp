@@ -41,19 +41,19 @@ namespace {
         auto unsortedBeg{ sortedEnd + 1 };
         while (unsortedBeg != end) {
             if (unsortedBeg->value >= limit) {
-                auto unSortedItem{ *unsortedBeg };
+                auto unsortedItem{ *unsortedBeg };
                 *unsortedBeg = *++sortedEnd;
 
                 auto e0{ sortedEnd };
                 while (e0 != beg) {
                     auto e1{ e0 - 1 };
-                    if (e1->value >= unSortedItem.value) {
+                    if (e1->value >= unsortedItem.value) {
                         break;
                     }
                     *e0 = *e1;
                     e0 = e1;
                 }
-                *e0 = unSortedItem;
+                *e0 = unsortedItem;
             }
             ++unsortedBeg;
         }

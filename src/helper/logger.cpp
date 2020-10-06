@@ -43,6 +43,11 @@ namespace {
 
 }
 
+// Since it's a static instance variable,
+// if the class has already been created, it won't be created again.
+// And it is thread-safe in C++11.
+Logger Logger::logger;
+
 Logger::Logger() noexcept :
     itiestreambuf{ std:: cin.rdbuf(), ofstream.rdbuf() },
     otiestreambuf{ std::cout.rdbuf(), ofstream.rdbuf() } {
@@ -53,10 +58,7 @@ Logger::~Logger() {
 }
 
 Logger& Logger::instance() noexcept {
-    // Since it's a static instance variable,
-    // if the class has already been created, it won't be created again.
-    // And it is thread-safe in C++11.
-    static Logger logger;
+
     return logger;
 }
 

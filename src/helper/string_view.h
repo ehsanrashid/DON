@@ -13,11 +13,15 @@ inline bool whiteSpaces(std::string_view str) noexcept {
 }
 
 inline std::string_view ltrim(std::string_view str, std::string_view chars = Blanks) noexcept {
-    str.remove_prefix(str.find_first_not_of(chars));
+    if (!str.empty()) {
+        str.remove_prefix(str.find_first_not_of(chars));
+    }
     return str;
 }
 inline std::string_view rtrim(std::string_view str, std::string_view chars = Blanks) noexcept {
-    str.remove_suffix(str.size() - str.find_last_not_of(chars) - 1);
+    if (!str.empty()) {
+        str.remove_suffix(str.size() - str.find_last_not_of(chars) - 1);
+    }
     return str;
 }
 inline std::string_view trim(std::string_view str, std::string_view chars = Blanks) noexcept {

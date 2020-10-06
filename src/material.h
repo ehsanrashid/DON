@@ -11,6 +11,8 @@ namespace Material {
     /// Material::Entry contains information about Material configuration.
     struct Entry {
 
+    public:
+
         void evaluate(Position const&);
 
         Key key;
@@ -18,7 +20,7 @@ namespace Material {
         Score imbalance;
 
         Scale scaleFactor[COLORS];
-        EndgameBase<Value> const *evaluationFunc;
+        EndgameBase<Value> const *evaluatingFunc;
         EndgameBase<Scale> const *scalingFunc[COLORS];
     };
 

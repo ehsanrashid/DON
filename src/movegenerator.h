@@ -21,10 +21,6 @@ class MoveList :
 
 public:
 
-    MoveList() = delete;
-    MoveList(MoveList const&) = delete;
-    MoveList(MoveList&&) = delete;
-
     explicit MoveList(Position const &pos) noexcept {
 
         generate<GT>(*this, pos);
@@ -35,6 +31,9 @@ public:
         //        }), end());
         //}
     }
+    MoveList() = delete;
+    MoveList(MoveList const&) = delete;
+    MoveList(MoveList&&) = delete;
 
     MoveList& operator=(MoveList const&) = delete;
     MoveList& operator=(MoveList&&) = delete;

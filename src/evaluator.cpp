@@ -994,9 +994,9 @@ namespace Evaluator {
 
             // Probe the material hash table
             matlEntry = Material::probe(pos);
-            // If have a specialized evaluation function for the material configuration
-            if (matlEntry->evaluationFunc != nullptr) {
-                return (*matlEntry->evaluationFunc)(pos);
+            // If have a specialized evaluating function for the material configuration
+            if (matlEntry->evaluatingFunc != nullptr) {
+                return (*matlEntry->evaluatingFunc)(pos);
             }
 
             // Probe the pawn hash table

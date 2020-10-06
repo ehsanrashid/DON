@@ -27,6 +27,8 @@ protected:
     Logger() noexcept;
     ~Logger();
 
+    static Logger logger;
+
 private:
 
     std::string filename;

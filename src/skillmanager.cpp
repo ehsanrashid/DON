@@ -38,7 +38,7 @@ Move SkillManager::pickBestMove() noexcept {
         assert(!rootMoves.empty());
 
         // RootMoves are already sorted by value in descending order
-        int32_t const weakness{ MAX_PLY - 8 * level };
+        int32_t const weakness{ MAX_PLY / 2 - 2 * level };
         int32_t const deviance{ std::min(rootMoves[0].newValue - rootMoves[Threadpool.pvCount - 1].newValue, VALUE_MG_PAWN) };
 
         auto bestValue{ -VALUE_INFINITE };

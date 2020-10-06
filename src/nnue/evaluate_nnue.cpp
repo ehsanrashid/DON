@@ -31,7 +31,7 @@ namespace Evaluator::NNUE {
     };
 
     template<typename T>
-    inline void AlignedDeleter<T>::operator()(T *ptr) const noexcept {
+    inline void AlignedStdDeleter<T>::operator()(T *ptr) const noexcept {
         ptr->~T();
         freeAlignedStd(static_cast<void*>(ptr));
     }
@@ -43,7 +43,7 @@ namespace Evaluator::NNUE {
 
     /// Initialize the aligned pointer
     template<typename T>
-    void alignedAllocator(AlignedPtr<T> &pointer) noexcept {
+    void alignedStdAllocator(AlignedStdPtr<T> &pointer) noexcept {
         pointer.reset(reinterpret_cast<T*>(allocAlignedStd(alignof (T), sizeof (T))));
         std::memset(pointer.get(), 0, sizeof (T));
     }
@@ -59,12 +59,12 @@ namespace Evaluator::NNUE {
         AlignedLargePagePtr<FeatureTransformer> featureTransformer;
 
         // Evaluation function
-        AlignedPtr<Network> network;
+        AlignedStdPtr<Network> network;
 
         /// Initialize the evaluation function parameters
         void initializeParameters() {
             alignedLargePageAllocator(featureTransformer);
-            alignedAllocator(network);
+            alignedStdAllocator(network);
         }
 
         /// Read network header

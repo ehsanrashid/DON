@@ -650,6 +650,7 @@ template<typename T, size_t Size>
 class HashTable {
 
 public:
+
     HashTable() = default;
 
     void clear() {
@@ -661,10 +662,11 @@ public:
     }
 
 private:
+
     std::vector<T> table = std::vector<T>(Size); // Allocate on the heap
 };
 
-constexpr Piece Pieces[2*KING]{
+constexpr Piece Pieces[2 * PIECE_TYPES_EX]{
     W_PAWN, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
     B_PAWN, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING
 };

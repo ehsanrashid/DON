@@ -11,32 +11,24 @@ namespace Pawns {
     namespace {
         // Connected pawn bonus
         constexpr int32_t Connected[RANKS]{
-            0, 7, 8, 11, 24, 45, 85, 0
+            0, 5, 7, 11, 24, 48, 86, 0
         };
 
     #define S(mg, eg) makeScore(mg, eg)
 
-        constexpr Score Backward       { S( 8,27) };
-        constexpr Score Isolated       { S( 5,17) };
-        constexpr Score Unopposed      { S(15,25) };
-        constexpr Score WeakDoubled    { S(11,55) };
-        constexpr Score WeakTwiceLever { S( 2,54) };
+        constexpr Score Backward       { S( 8,25) };
+        constexpr Score Isolated       { S( 3,15) };
+        constexpr Score Unopposed      { S(13,25) };
+        constexpr Score WeakDoubled    { S(10,55) };
+        constexpr Score WeakTwiceLever { S( 3,55) };
 
         // Bonus for blocked pawns at 5th or 6th rank
         constexpr Score BlockedPawn[2]{
-            S(-13, -4), S(-4, 3)
+            S(-13, -4), S(-5, 2)
         };
 
     #undef S
 
-    }
-
-    int32_t Entry::blockedCount() const noexcept {
-        return popCount(blockeds);
-    }
-
-    int32_t Entry::passedCount() const noexcept {
-        return popCount(passeds[WHITE] | passeds[BLACK]);
     }
 
     /// Entry::evaluate()
@@ -115,7 +107,7 @@ namespace Pawns {
             if (supporters != 0
              || phalanxes != 0) {
                 int32_t const v{ Connected[r] * (2 + 1 * (phalanxes != 0) - 1 * opposed)
-                           + 21 * popCount(supporters) };
+                               + 22 * popCount(supporters) };
                 sp += makeScore(v, v * (r - RANK_3) / 4);
             }
             else

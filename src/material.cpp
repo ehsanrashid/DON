@@ -87,14 +87,14 @@ namespace Material {
 
         // Let's look if have a specialized evaluation function for this particular material configuration.
         // First look for a fixed configuration one, then a generic one if previous search failed.
-        if ((evaluationFunc = EndGame::probe<Value>(pos.matlKey())) != nullptr) {
+        if ((evaluatingFunc = EndGame::probe<Value>(pos.matlKey())) != nullptr) {
             return;
         }
         // Generic evaluation
         for (Color const c : { WHITE, BLACK }) {
             if (pos.nonPawnMaterial( c) >= VALUE_MG_ROOK
              && !moreThanOne(pos.pieces(~c))) {
-                evaluationFunc = &ValueKXK[c];
+                evaluatingFunc = &ValueKXK[c];
                 return;
             }
         }

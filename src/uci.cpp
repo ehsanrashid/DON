@@ -212,11 +212,11 @@ namespace UCI {
         assert(type == "string");
         return currentVal;
     }
-    Option::operator bool() const noexcept {
+    Option::operator     bool() const noexcept {
         assert(type == "check");
         return currentVal == "true";
     }
-    Option::operator int16_t() const noexcept {
+    Option::operator  int16_t() const noexcept {
         assert(type == "spin");
         return int16_t( std::stoi(currentVal) );
     }
@@ -224,7 +224,7 @@ namespace UCI {
         assert(type == "spin");
         return uint16_t( std::stoi(currentVal) );
     }
-    Option::operator int32_t() const noexcept {
+    Option::operator  int32_t() const noexcept {
         assert(type == "spin");
         return int32_t( std::stoi(currentVal) );
     }
@@ -232,7 +232,7 @@ namespace UCI {
         assert(type == "spin");
         return uint32_t( std::stoi(currentVal) );
     }
-    Option::operator int64_t() const noexcept {
+    Option::operator  int64_t() const noexcept {
         assert(type == "spin");
         return int64_t( std::stoi(currentVal) ); //std::stol(currentVal);
     }
@@ -240,7 +240,7 @@ namespace UCI {
         assert(type == "spin");
         return uint64_t( std::stoi(currentVal) ); //std::stol(currentVal);
     }
-    Option::operator double() const noexcept {
+    Option::operator   double() const noexcept {
         assert(type == "spin");
         return( std::stod(currentVal) );
     }
@@ -302,7 +302,7 @@ namespace UCI {
         index = insertOrder++;
     }
 
-    string Option::defaultValue() const noexcept {
+    const string& Option::defaultValue() const noexcept {
         return defaultVal;
     }
 
@@ -338,8 +338,7 @@ namespace UCI {
         for (size_t idx = 0; idx < om.size(); ++idx) {
             for (auto &strOptPair : om) {
                 if (strOptPair.second.index == idx) {
-                    ostream << "option name "
-                            << strOptPair.first << strOptPair.second << '\n';
+                    ostream << "option name " << strOptPair.first << strOptPair.second << '\n';
                 }
             }
         }
@@ -362,18 +361,18 @@ namespace UCI {
             UCI::clear();
         }
 
-        void onSaveHash() {
+        void onSaveHash() noexcept {
             TT.save(Options["Hash File"]);
         }
-        void onLoadHash() {
+        void onLoadHash() noexcept {
             TT.load(Options["Hash File"]);
         }
 
-        void onBookFile() {
+        void onBookFile() noexcept {
             Book.initialize(Options["Book File"]);
         }
 
-        void onThreads() {
+        void onThreads() noexcept {
             auto const threadCount{ optionThreads() };
             if (threadCount != Threadpool.size()) {
                 Threadpool.setup(threadCount);
@@ -384,18 +383,18 @@ namespace UCI {
             TimeMgr.clear();
         }
 
-        void onLogFile() {
+        void onLogFile() noexcept {
             Logger::instance().setup(Options["Log File"]);
         }
 
-        void onSyzygyPath() {
+        void onSyzygyPath() noexcept {
             SyzygyTB::initialize(Options["SyzygyPath"]);
         }
 
-        void onUseNNUE() {
+        void onUseNNUE() noexcept {
             Evaluator::NNUE::initialize();
         }
-        void onEvalFile() {
+        void onEvalFile() noexcept {
             Evaluator::NNUE::initialize();
         }
     }

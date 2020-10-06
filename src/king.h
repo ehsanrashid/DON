@@ -13,6 +13,7 @@ namespace King {
     struct Entry {
 
     public:
+
         template<Color>
         Score evaluateSafety(Position const&, Bitboard);
 
@@ -29,6 +30,7 @@ namespace King {
         Score pawnSafety[COLORS];
 
     private:
+
         template<Color>
         Score evaluateSafetyOn(Position const&, Square);
     };

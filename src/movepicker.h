@@ -43,6 +43,7 @@ template<typename T, int32_t D>
 class Stats {
 
 public:
+
     void operator=(T const &e) noexcept {
         entry = e;
     }
@@ -67,6 +68,7 @@ public:
     }
 
 private:
+
     T entry;
 };
 

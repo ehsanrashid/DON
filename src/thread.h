@@ -139,6 +139,7 @@ public:
     virtual ~ThreadPool();
     
     ThreadPool& operator=(ThreadPool const&) = delete;
+    ThreadPool &operator=(ThreadPool&&) = delete;
 
     template<typename T>
     void set(std::atomic<T> Thread::*member, T value) const noexcept {
@@ -166,7 +167,7 @@ public:
     void wakeUpThreads();
     void waitForThreads();
 
-    std::atomic<bool> stop;     // Stop search forcefully
+    std::atomic<bool> stop;     // Stop searching forcefully
     std::atomic<bool> stand;    // Stop increasing depth
     uint16_t pvCount;
 

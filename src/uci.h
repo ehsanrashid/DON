@@ -35,14 +35,14 @@ namespace UCI {
 
         //operator std::string() const;
         operator std::string_view() const noexcept;
-        operator bool() const noexcept;
-        operator int16_t() const noexcept;
+        operator     bool() const noexcept;
+        operator  int16_t() const noexcept;
         operator uint16_t() const noexcept;
-        operator int32_t() const noexcept;
+        operator  int32_t() const noexcept;
         operator uint32_t() const noexcept;
-        operator int64_t() const noexcept;
+        operator  int64_t() const noexcept;
         operator uint64_t() const noexcept;
-        operator double() const noexcept;
+        operator   double() const noexcept;
 
         bool operator==(std::string_view) const;
 
@@ -50,7 +50,7 @@ namespace UCI {
 
         void operator<<(Option const&);
 
-        std::string defaultValue() const noexcept;
+        const std::string& defaultValue() const noexcept;
         std::string toString() const;
 
         uint32_t     index{ 0 };

@@ -22,13 +22,16 @@
 #include "uci.h"
 #include "zobrist.h"
 #include "helper/logger.h"
+#include "helper/prng.h"
 #include "helper/reporter.h"
 
 /// Pre-loads the given address in L1/L2 cache.
 /// This is a non-blocking function that doesn't stall the CPU
 /// waiting for data to be loaded from memory, which can be quite slow.
 #if defined(USE_PREFETCH)
+
 inline void prefetch(void const *addr) noexcept {
+
 #if defined(_MSC_VER) || defined(__INTEL_COMPILER)
     #if defined(__INTEL_COMPILER)
     // This hack prevents prefetches from being optimized away by
@@ -40,8 +43,12 @@ inline void prefetch(void const *addr) noexcept {
     __builtin_prefetch(addr);
 #endif
 }
+
 #else
-inline void prefetch(void const*) noexcept {}
+
+inline void prefetch(void const*) noexcept {
+}
+
 #endif
 
 using Evaluator::evaluate;
@@ -447,7 +454,6 @@ namespace {
             auto const org{ orgSq(move) };
             auto const dst{ dstSq(move) };
             auto const mp{ pos[org] };
-            auto const cp{ pos[dst] };
             bool const giveCheck{ pos.giveCheck(move) };
             bool const captureOrPromotion{ pos.captureOrPromotion(move) };
 
@@ -465,7 +471,7 @@ namespace {
                 }
 
                 // Futility pruning parent node
-                auto const futilityValue{ futilityBase + PieceValues[EG][mType(move) != CASTLE ? pType(cp) : NONE] };
+                auto const futilityValue{ futilityBase + PieceValues[EG][mType(move) != CASTLE ? pos.captured(move) : NONE] };
                 if (futilityValue <= alfa) {
                     bestValue = std::max(futilityValue, bestValue);
                     continue;
@@ -1105,7 +1111,6 @@ namespace {
             auto const org{ orgSq(move) };
             auto const dst{ dstSq(move) };
             auto const mp{ pos[org] };
-            auto const cp{ pos[dst] };
             bool const giveCheck{ pos.giveCheck(move) };
             bool const captureOrPromotion{ pos.captureOrPromotion(move) };
 
@@ -1127,19 +1132,11 @@ namespace {
                 if (giveCheck
                  || captureOrPromotion) {
 
-                    if (!giveCheck) {
-                        // Capture history based pruning
-                        if (lmrDepth < 1
-                         && thread->captureStats[mp][dst][pos.captured(move)] < 0) {
-                            continue;
-                        }
-                        // Futility pruning for captures
-                        if (lmrDepth < 6
-                         && !ss->inCheck
-                         && !(PVNode && std::abs(bestValue) < 2)
-                         && ss->staticEval + 244 * lmrDepth + PieceValues[MG][pType(cp)] + 169 <= alfa) {
-                            continue;
-                        }
+                    // Capture history based pruning when the move doesn't give check
+                    if (!giveCheck
+                     && lmrDepth < 1
+                     && thread->captureStats[mp][dst][pos.captured(move)] < 0) {
+                        continue;
                     }
                     // SEE based pruning: negative SEE (~25 ELO)
                     if (!pos.see(move, Value(-221 * depth))) {
@@ -1888,16 +1885,20 @@ void MainThread::search() {
                 bestDepth = DEPTH_ZERO;
             }
 
-            auto level{
+            PRNG prng(now());
+            double const dbllevel{
                 Options["UCI_LimitStrength"] ?
-                    std::clamp(uint16_t(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1.240)), { 0 }, MaxLevel) :
-                    uint16_t(Options["Skill Level"]) };
-            SkillMgr.setLevel(level);
+                    std::clamp(std::pow((double(Options["UCI_Elo"]) - 1346.6) / 143.4, 1 / 0.806), 0.0, double(MaxLevel)) :
+                    double(Options["Skill Level"]) };
+            uint16_t const intLevel = uint16_t(dbllevel) + ((dbllevel - uint16_t(dbllevel)) * 1024 > prng.rand<uint32_t>() % 1024 ? 1 : 0);
+            SkillMgr.setLevel(intLevel);
 
             // Have to play with skill handicap?
             // In this case enable MultiPV search by skill pv size
             // that will use behind the scenes to get a set of possible moves.
-            Threadpool.pvCount = std::clamp(uint16_t(Options["MultiPV"]), uint16_t(1 + 3 * SkillMgr.enabled()), uint16_t(rootMoves.size()));
+            Threadpool.pvCount = std::clamp(uint16_t(Options["MultiPV"]),
+                                            uint16_t(1 + 3 * SkillMgr.enabled()),
+                                            uint16_t(rootMoves.size()));
 
             Threadpool.wakeUpThreads(); // start non-main threads searching !
             Thread::search();           // start main thread searching !

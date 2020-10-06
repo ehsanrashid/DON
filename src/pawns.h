@@ -8,8 +8,14 @@ namespace Pawns {
     /// Pawns::Entry contains information about Pawn structure.
     struct Entry {
 
-        int32_t blockedCount() const noexcept;
-        int32_t passedCount() const noexcept;
+    public:
+
+        int32_t blockedCount() const noexcept {
+            return popCount(blockeds);
+        }
+        int32_t passedCount() const noexcept {
+            return popCount(passeds[WHITE] | passeds[BLACK]);
+        }
 
         template<Color>
         void evaluate(Position const&);
