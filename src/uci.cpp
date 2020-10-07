@@ -39,6 +39,8 @@ string const Author{ "Ehsan Rashid" };
 
 UCI::OptionMap Options;
 
+Logger StdLogger{ std::cin, std::cout }; // Tie std::cin and std::cout to a file.
+
 namespace {
 
     string const Months[12] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
@@ -384,7 +386,7 @@ namespace UCI {
         }
 
         void onLogFile() noexcept {
-            Logger::instance().setup(Options["Log File"]);
+            StdLogger.setup(Options["Log File"]);
         }
 
         void onSyzygyPath() noexcept {

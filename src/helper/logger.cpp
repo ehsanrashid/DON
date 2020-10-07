@@ -43,29 +43,22 @@ namespace {
 
 }
 
-// Since it's a static instance variable,
-// if the class has already been created, it won't be created again.
-// And it is thread-safe in C++11.
-Logger Logger::logger;
-
-Logger::Logger() noexcept :
-    itiestreambuf{ std:: cin.rdbuf(), ofstream.rdbuf() },
-    otiestreambuf{ std::cout.rdbuf(), ofstream.rdbuf() } {
+Logger::Logger(std::istream &is, std::ostream &os) noexcept :
+    istream{ is },
+    ostream{ os },
+    itiestreambuf{ istream.rdbuf(), ofstream.rdbuf() },
+    otiestreambuf{ ostream.rdbuf(), ofstream.rdbuf() } {
 }
 
 Logger::~Logger() {
     setup("");
 }
 
-Logger& Logger::instance() noexcept {
-
-    return logger;
-}
-
 void Logger::setup(std::string_view logFile) {
+
     if (ofstream.is_open()) {
-        std::cout.rdbuf(otiestreambuf.rstreambuf);
-        std:: cin.rdbuf(itiestreambuf.rstreambuf);
+        istream.rdbuf(itiestreambuf.rstreambuf);
+        ostream.rdbuf(otiestreambuf.rstreambuf);
 
         ofstream << "[" << system_clock::now() << "] <-\n";
         ofstream.close();
@@ -85,6 +78,6 @@ void Logger::setup(std::string_view logFile) {
     }
     ofstream << "[" << system_clock::now() << "] ->\n";
 
-    std:: cin.rdbuf(&itiestreambuf);
-    std::cout.rdbuf(&otiestreambuf);
+    istream.rdbuf(&itiestreambuf);
+    ostream.rdbuf(&otiestreambuf);
 }

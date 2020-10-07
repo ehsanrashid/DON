@@ -6,13 +6,14 @@
 
 #include "tiestreambuffer.h"
 
-// Logger class (singleton)
-// Tie std::cin and std::cout to a out file stream.
+// Logger class
+// Tie std::istream and std::ostream to a file std::ofstream.
 class Logger {
 
 public:
 
-    static Logger& instance() noexcept;
+    Logger(std::istream &, std::ostream &) noexcept;
+    ~Logger();
 
     // Delete copy and move constructors and assign operators
     Logger(Logger const&) = delete;
@@ -22,18 +23,15 @@ public:
 
     void setup(std::string_view);
 
-protected:
-
-    Logger() noexcept;
-    ~Logger();
-
-    static Logger logger;
-
 private:
 
     std::string filename;
     std::ofstream ofstream;
 
+    std::istream &istream;
+    std::ostream &ostream;
+
     TieStreamBuffer itiestreambuf;
     TieStreamBuffer otiestreambuf;
 };
+

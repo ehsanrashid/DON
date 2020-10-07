@@ -28,6 +28,6 @@ namespace Evaluator::NNUE {
     template<typename T>
     extern void alignedStdAllocator(AlignedStdPtr<T>&) noexcept;
     template<typename T>
-    extern void alignedLargePageAllocator(AlignedLargePagePtr<T> &) noexcept;
+    extern void alignedLargePageAllocator(AlignedLargePagePtr<T>&) noexcept;
 
 }
