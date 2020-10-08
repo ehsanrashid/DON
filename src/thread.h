@@ -23,10 +23,12 @@
 class Thread {
 
 public:
+
+    explicit Thread(uint16_t);
+
     Thread() = delete;
     Thread(Thread const&) = delete;
     Thread(Thread&&) = delete;
-    explicit Thread(uint16_t);
 
     Thread& operator=(Thread const&) = delete;
     Thread& operator=(Thread&&) = delete;
@@ -103,7 +105,15 @@ class MainThread :
     public Thread {
 
 public:
+
     using Thread::Thread;
+
+    MainThread() = delete;
+    MainThread(MainThread const&) = delete;
+    MainThread(MainThread&&) = delete;
+
+    MainThread& operator=(MainThread const&) = delete;
+    MainThread& operator=(MainThread &&) = delete;
 
     void tick();
 
@@ -135,11 +145,12 @@ public:
     //using std::vector<Thread*>::vector;
 
     ThreadPool() = default;
-    ThreadPool(ThreadPool const&) = delete;
     virtual ~ThreadPool();
-    
+
+    ThreadPool(ThreadPool const&) = delete;
+
     ThreadPool& operator=(ThreadPool const&) = delete;
-    ThreadPool &operator=(ThreadPool&&) = delete;
+    ThreadPool& operator=(ThreadPool&&) = delete;
 
     template<typename T>
     void set(std::atomic<T> Thread::*member, T value) const noexcept {

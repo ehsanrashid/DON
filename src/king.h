@@ -15,24 +15,24 @@ namespace King {
     public:
 
         template<Color>
-        Score evaluateSafety(Position const&, Bitboard);
+        Score evaluateSafety(Position const&, Bitboard) noexcept;
 
         template<Color>
-        void evaluate(Position const&);
+        void initialize() noexcept;
 
         Key key;
 
         Pawns::Entry *pawnEntry;
 
-        Score pawnDist[COLORS];
-
-        uint8_t castleSide[COLORS];
-        Score pawnSafety[COLORS];
+        Square  kingSq[COLORS];
+        bool    castleSide[COLORS][CASTLE_SIDES];
+        Score   pawnSafety[COLORS];
+        Score   pawnDist[COLORS];
 
     private:
 
         template<Color>
-        Score evaluateSafetyOn(Position const&, Square);
+        Score evaluateSafetyOn(Position const&, Square) noexcept;
     };
 
     using Table = HashTable<Entry, 0x40000>;

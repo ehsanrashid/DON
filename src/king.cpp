@@ -42,7 +42,7 @@ namespace King {
     }
 
     template<Color Own>
-    Score Entry::evaluateSafetyOn(Position const &pos, Square kSq) {
+    Score Entry::evaluateSafetyOn(Position const &pos, Square kSq) noexcept {
         constexpr auto Opp{ ~Own };
 
         Bitboard const frontPawns{ ~frontRanksBB(Opp, kSq) & pos.pieces(PAWN) };
@@ -80,44 +80,55 @@ namespace King {
     template Score Entry::evaluateSafetyOn<BLACK>(Position const&, Square);
 
     template<Color Own>
-    Score Entry::evaluateSafety(Position const &pos, Bitboard attacks) {
+    Score Entry::evaluateSafety(Position const &pos, Bitboard attacks) noexcept {
 
         auto const kSq{ pos.square(Own|KING) };
+        bool const cSide[CASTLE_SIDES]{
+            pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING) && ((attacks & pos.castleKingPath(Own, CS_KING)) == 0),
+            pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN) && ((attacks & pos.castleKingPath(Own, CS_QUEN)) == 0)
+        };
 
-        uint8_t cSide( pos.canCastle(Own) ?
-            + 1 * (pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING))
-            + 2 * (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN)) : 0 );
+        if (kingSq[Own] != kSq
+         || castleSide[Own][CS_KING] != cSide[CS_KING]
+         || castleSide[Own][CS_QUEN] != cSide[CS_QUEN]) {
 
-        if ((cSide & 1) != 0
-         && (attacks & pos.castleKingPath(Own, CS_KING)) != 0) {
-            cSide -= 1;
-        }
-        if ((cSide & 2) != 0
-         && (attacks & pos.castleKingPath(Own, CS_QUEN)) != 0) {
-            cSide -= 2;
-        }
-
-        if (castleSide[Own] != cSide) {
+            if (kingSq[Own] != kSq) {
+                // In endgame, king near to closest pawn
+                int32_t minPawnDist{ 7 };
+                Bitboard pawns{ pos.pieces(Own, PAWN) };
+                if ((pawns & attacksBB<KING>(kSq)) != 0) {
+                    minPawnDist = 1;
+                }
+                else {
+                    while (pawns != 0) {
+                        minPawnDist = std::min(distance(kSq, popLSq(pawns)), minPawnDist);
+                    }
+                }
+                pawnDist[Own] = makeScore(0, 16 * minPawnDist);
+            }
 
             auto safety{ evaluateSafetyOn<Own>(pos, kSq) };
-
-            if ((cSide & 1) != 0) {
+            if (cSide[CS_KING]) {
                 safety = std::max(safety, evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_G1)),
                     [](Score s1, Score s2) {
                     return mgValue(s1) < mgValue(s2);
                 });
             }
-            if ((cSide & 2) != 0) {
+            if (cSide[CS_QUEN]) {
                 safety = std::max(safety, evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_C1)),
                     [](Score s1, Score s2) {
                     return mgValue(s1) < mgValue(s2);
                 });
             }
-
             pawnSafety[Own] = safety;
-            castleSide[Own] = cSide;
+
+            kingSq[Own] = kSq;
+            castleSide[Own][CS_KING] = cSide[CS_KING];
+            castleSide[Own][CS_QUEN] = cSide[CS_QUEN];
         }
 
+        //assert(pawnSafety[Own] != SCORE_ZERO);
+        //assert(pawnDist[Own] != SCORE_ZERO);
         return (pawnSafety[Own] - pawnDist[Own]);
     }
     // Explicit template instantiations
@@ -125,22 +136,13 @@ namespace King {
     template Score Entry::evaluateSafety<BLACK>(Position const&, Bitboard);
 
     template<Color Own>
-    void Entry::evaluate(Position const &pos) {
-        auto const kSq{ pos.square(Own|KING) };
+    void Entry::initialize() noexcept {
 
-        // In endgame, king near to closest pawn
-        int32_t minPawnDist{ 7 };
-        Bitboard pawns{ pos.pieces(Own, PAWN) };
-        if ((pawns & attacksBB<KING>(kSq)) != 0) {
-            minPawnDist = 1;
-        }
-        else {
-            while (pawns != 0) {
-                minPawnDist = std::min(distance(kSq, popLSq(pawns)), minPawnDist);
-            }
-        }
-        pawnDist[Own] = makeScore(0, 16 * minPawnDist);
-        castleSide[Own] = 4;
+        kingSq[Own] = SQ_NONE;
+        castleSide[Own][CS_KING] = false;
+        castleSide[Own][CS_QUEN] = false;
+        //pawnSafety[Own] = SCORE_ZERO;
+        //pawnDist[Own] = SCORE_ZERO;
     }
 
     Entry* probe(Position const &pos, Pawns::Entry *pe) {
@@ -157,8 +159,8 @@ namespace King {
 
         e->key = kingKey;
         e->pawnEntry = pe;
-        e->evaluate<WHITE>(pos),
-        e->evaluate<BLACK>(pos);
+        e->initialize<WHITE>(),
+        e->initialize<BLACK>();
         return e;
     }
 

@@ -690,7 +690,7 @@ namespace Evaluator {
                 popCount(b) };                   // Squares attacked by friend in friend king flank
 
             // King Safety:
-            Score score{ kingEntry->evaluateSafety<Own>(pos, fulAttacks[Opp]) };
+            Score score{ kingEntry->evaluateSafety<Own>(pos, fulAttacks[Opp] & RankBB[relativeRank(Own, RANK_1)]) };
 
             kingDanger +=   1 * kingAttackersCount[Opp] * kingAttackersWeight[Opp]
                         +  69 * kingAttacksCount[Opp]

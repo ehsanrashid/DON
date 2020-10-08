@@ -3,6 +3,7 @@
 #include <cassert>
 #include <algorithm>
 #include <iomanip>
+#include <optional>
 #include <sstream>
 #include <string>
 
@@ -39,7 +40,7 @@ string const Author{ "Ehsan Rashid" };
 
 UCI::OptionMap Options;
 
-Logger StdLogger{ std::cin, std::cout }; // Tie std::cin and std::cout to a file.
+std::optional<Logger> StdLogger;
 
 namespace {
 
@@ -386,7 +387,10 @@ namespace UCI {
         }
 
         void onLogFile() noexcept {
-            StdLogger.setup(Options["Log File"]);
+            if (!StdLogger) {
+                StdLogger.emplace(std::cin, std::cout); // Tie std::cin and std::cout to a file.
+            }
+            StdLogger.value().setup(Options["Log File"]);
         }
 
         void onSyzygyPath() noexcept {

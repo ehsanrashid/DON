@@ -263,7 +263,7 @@ Move MovePicker::nextMove() {
         }
 
         // If the countermove is the same as a killers, skip it
-        if (refutationMoves[2] != MOVE_NONE
+        if ( refutationMoves[2] != MOVE_NONE
          && (refutationMoves[2] == refutationMoves[0]
           || refutationMoves[2] == refutationMoves[1])) {
             refutationMoves[2] = MOVE_NONE;

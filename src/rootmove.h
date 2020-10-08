@@ -24,20 +24,40 @@ class RootMove :
     public std::vector<Move> {
 
 public:
+
     //using std::vector<Move>::vector;
 
-    explicit RootMove(Move = MOVE_NONE);
+    explicit RootMove(Move m) :
+        std::vector<Move>{ 1, m } {
+    }
 
-    bool operator< (RootMove const&) const noexcept;
-    bool operator> (RootMove const&) const noexcept;
+    bool operator<(RootMove const &rm) const noexcept {
+        return (rm.newValue < newValue)
+            || (rm.newValue == newValue
+             && rm.oldValue < oldValue);
+    }
+    bool operator>(RootMove const &rm) const noexcept {
+        return (rm.newValue > newValue)
+            || (rm.newValue == newValue
+             && rm.oldValue > oldValue);
+    }
+
     //bool operator==(RootMove const&) const noexcept;
     //bool operator!=(RootMove const&) const noexcept;
 
-    bool operator==(Move) const noexcept;
-    bool operator!=(Move) const noexcept;
+    bool operator==(Move m) const noexcept {
+        return front() == m;
+    }
+    bool operator!=(Move m) const noexcept {
+        return front() != m;
+    }
 
-    void operator+=(Move);
-    //void operator-=(Move);
+    void operator+=(Move m) {
+        push_back(m);
+    }
+    //void operator-=(Move m) {
+    //    erase(std::remove(begin(), end(), m), end());
+    //}
 
     std::string toString() const;
 
@@ -55,26 +75,47 @@ class RootMoves :
     public std::vector<RootMove> {
 
 public:
-    using std::vector<RootMove>::vector;
+
+    //using std::vector<RootMove>::vector;
 
     RootMoves() = default;
     RootMoves(Position const&);
     RootMoves(Position const&, Moves const&);
 
-    void operator+=(Move);
-    //void operator-=(Move);
+    void operator+=(Move m) {
+        emplace_back(m);
+    }
+    //void operator-=(Move m) {
+    //    erase(std::remove(begin(), end(), m), end());
+    //}
 
-    void operator+=(RootMove const&);
-    //void operator-=(RootMove const&);
+    void operator+=(RootMove const &rm) {
+        push_back(rm);
+    }
+    //void operator-=(RootMove const &rm) {
+    //    erase(std::remove(begin(), end(), rm), end());
+    //}
 
-    const_iterator find(Move) const;
-    const_iterator find(uint16_t, uint16_t, Move) const;
+    const_iterator find(Move m) const {
+        return std::find(begin(), end(), m);
+    }
+    const_iterator find(uint16_t iBeg, uint16_t iEnd, Move m) const {
+        return std::find(begin() + iBeg, begin() + iEnd, m);
+    }
 
-    bool contains(Move) const;
-    bool contains(uint16_t, uint16_t, Move) const;
+    bool contains(Move m) const {
+        return find(m) != end();
+    }
+    bool contains(uint16_t iBeg, uint16_t iEnd, Move m) const {
+        return find(iBeg, iEnd, m) != (begin() + iEnd);
+    }
 
-    iterator find(Move);
-    iterator find(uint16_t, uint16_t, Move);
+    iterator find(Move m) {
+        return std::find(begin(), end(), m);
+    }
+    iterator find(uint16_t iBeg, uint16_t iEnd, Move m) {
+        return std::find(begin() + iBeg, begin() + iEnd, m);
+    }
 
     void stableSort() {
         std::stable_sort(begin(), end());
@@ -82,13 +123,19 @@ public:
     void stableSort(uint16_t iBeg, uint16_t iEnd) {
         std::stable_sort(begin() + iBeg, begin() + iEnd);
     }
-    template<class Pr>
-    void stableSort(Pr pred) {
+    template<class Pred>
+    void stableSort(Pred pred) {
         std::stable_sort(begin(), end(), pred);
     }
 
-    void saveValues();
-    void bringToFront(Move);
+    void saveValues() {
+        for (auto &rm : *this) {
+            rm.oldValue = rm.newValue;
+        }
+    }
+    void bringToFront(Move m) {
+        std::swap(front(), *std::find(begin(), end(), m));
+    }
 
     std::string toString() const;
 };

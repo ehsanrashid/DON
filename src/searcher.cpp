@@ -2012,7 +2012,7 @@ namespace SyzygyTB {
 
     void rankRootMoves(Position &pos, RootMoves &rootMoves) {
 
-        DepthLimit = Depth(Options["SyzygyDepthLimit"]);
+        DepthLimit = Options["SyzygyDepthLimit"];
         PieceLimit = Options["SyzygyPieceLimit"];
         Move50Rule = Options["SyzygyMove50Rule"];
         HasRoot    = false;

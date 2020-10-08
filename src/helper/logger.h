@@ -18,6 +18,7 @@ public:
     // Delete copy and move constructors and assign operators
     Logger(Logger const&) = delete;
     Logger(Logger&&) = delete;
+
     Logger& operator=(Logger const&) = delete;
     Logger& operator=(Logger&&) = delete;
 
@@ -25,11 +26,11 @@ public:
 
 private:
 
-    std::string filename;
-    std::ofstream ofstream;
-
     std::istream &istream;
     std::ostream &ostream;
+
+    std::string filename;
+    std::ofstream ofstream;
 
     TieStreamBuffer itiestreambuf;
     TieStreamBuffer otiestreambuf;
