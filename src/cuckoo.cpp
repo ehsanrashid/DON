@@ -1,42 +1,6 @@
 #include "cuckoo.h"
 
 #include "bitboard.h"
-#include "zobrist.h"
-
-
-Cuckoo::Cuckoo(Piece p, Square s1, Square s2) noexcept :
-    piece{ p },
-    sq1{ s1 },
-    sq2{ s2 } {
-}
-
-Cuckoo::Cuckoo() noexcept :
-    Cuckoo{ NO_PIECE, SQ_NONE, SQ_NONE } {
-}
-
-bool Cuckoo::empty() const noexcept {
-    return piece == NO_PIECE
-        || sq1 == SQ_NONE
-        || sq2 == SQ_NONE;
-}
-
-bool Cuckoo::operator==(Cuckoo const &ck) const noexcept {
-    return piece == ck.piece
-        && sq1 == ck.sq1
-        && sq2 == ck.sq2;
-}
-bool Cuckoo::operator!=(Cuckoo const &ck) const noexcept {
-    return piece != ck.piece
-        || sq1 != ck.sq1
-        || sq2 != ck.sq2;
-}
-
-Key Cuckoo::key() const noexcept {
-    return empty() ?
-            0 : RandZob.side
-              ^ RandZob.psq[piece][sq1]
-              ^ RandZob.psq[piece][sq2];
-}
 
 namespace Cuckoos {
 

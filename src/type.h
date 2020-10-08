@@ -343,7 +343,7 @@ constexpr Direction operator-(Square s1, Square s2) {
     return Direction(int32_t(s1) - int32_t(s2));
 }
 
-constexpr Score makeScore(int32_t mg, int32_t eg) {
+constexpr Score makeScore(int32_t mg, int32_t eg) noexcept {
     return Score(int32_t(uint32_t(eg) << 0x10) + mg);
 }
 
@@ -406,24 +406,24 @@ constexpr Score operator*(Score s, bool b) {
 Score operator*(Score, Score) = delete;
 Score operator/(Score, Score) = delete;
 
-constexpr bool isOk(Color c) {
+constexpr bool isOk(Color c) noexcept {
     return WHITE <= c && c <= BLACK;
 }
-constexpr Color operator~(Color c) {
+constexpr Color operator~(Color c) noexcept {
     return Color(BLACK - c);
 }
 
-constexpr bool isOk(File f) {
+constexpr bool isOk(File f) noexcept {
     return FILE_A <= f && f <= FILE_H;
 }
-constexpr File operator~(File f) {
+constexpr File operator~(File f) noexcept {
     return File(FILE_H - f);
 }
 
-constexpr bool isOk(Rank r) {
+constexpr bool isOk(Rank r) noexcept {
     return RANK_1 <= r && r <= RANK_8;
 }
-constexpr Rank operator~(Rank r) {
+constexpr Rank operator~(Rank r) noexcept {
     return Rank(RANK_8 - r);
 }
 
@@ -434,44 +434,44 @@ constexpr Rank relativeRank(Color c, Rank r) {
     return Rank(r ^ BaseRank[c]);
 }
 
-constexpr bool isOk(Square s) {
+constexpr bool isOk(Square s) noexcept {
     return SQ_A1 <= s && s <= SQ_H8;
 }
-constexpr Square makeSquare(File f, Rank r) {
+constexpr Square makeSquare(File f, Rank r) noexcept {
     return Square((r << 3) + f);
 }
-constexpr File sFile(Square s) {
+constexpr File sFile(Square s) noexcept {
     return File(int32_t(s) & 7);
 }
-constexpr Rank sRank(Square s) {
+constexpr Rank sRank(Square s) noexcept {
     return Rank(s >> 3);
 }
-constexpr Color sColor(Square s) {
+constexpr Color sColor(Square s) noexcept {
     return Color(((s + sRank(s)) ^ 1) & 1);
 }
 
-template<typename T> constexpr Square flip(Square);
+template<typename T> constexpr Square flip(Square) noexcept;
 // Flip File: SQ_H1 -> SQ_A1
-template<> constexpr Square flip<File>(Square s) {
+template<> constexpr Square flip<File>(Square s) noexcept {
     return Square(int32_t(s) ^ 0x07);
 }
 // Flip Rank: SQ_A8 -> SQ_A1
-template<> constexpr Square flip<Rank>(Square s) {
+template<> constexpr Square flip<Rank>(Square s) noexcept {
     return Square(int32_t(s) ^ 0x38);
 }
 
 
-constexpr bool colorOpposed(Square s1, Square s2) {
+constexpr bool colorOpposed(Square s1, Square s2) noexcept {
     return (s1 + sRank(s1) + s2 + sRank(s2)) & 1; //sColor(s1) != sColor(s2);
 }
 
 constexpr int32_t BaseSquare[COLORS]{
     SQ_A1, SQ_A8
 };
-constexpr Square relativeSq(Color c, Square s) {
+constexpr Square relativeSq(Color c, Square s) noexcept {
     return Square(int32_t(s) ^ BaseSquare[c]);
 }
-constexpr Rank relativeRank(Color c, Square s) {
+constexpr Rank relativeRank(Color c, Square s) noexcept {
     return relativeRank(c, sRank(s));
 }
 
@@ -482,27 +482,27 @@ constexpr Square rookCastleSq(Square org, Square dst) {
     return makeSquare(FILE_E + 1 * sign(dst - org), sRank(org));
 }
 
-constexpr bool isOk(PieceType pt) {
+constexpr bool isOk(PieceType pt) noexcept {
     return PAWN <= pt && pt <= KING;
 }
 
-constexpr bool isOk(Piece p) {
+constexpr bool isOk(Piece p) noexcept {
     return (W_PAWN <= p && p <= W_KING)
         || (B_PAWN <= p && p <= B_KING);
 }
 // makePiece()
-constexpr Piece operator|(Color c, PieceType pt) {
+constexpr Piece operator|(Color c, PieceType pt) noexcept {
     return Piece((c << 3) + pt);
 }
 
-constexpr PieceType pType(Piece p) {
+constexpr PieceType pType(Piece p) noexcept {
     return PieceType(p & 7);
 }
-constexpr Color pColor(Piece p) {
+constexpr Color pColor(Piece p) noexcept {
     return Color(p >> 3);
 }
 
-constexpr Piece flipColor(Piece p) {
+constexpr Piece flipColor(Piece p) noexcept {
     return Piece(p ^ (BLACK << 3));
 }
 
@@ -513,22 +513,22 @@ constexpr CastleRight makeCastleRight(Color c, CastleSide cs) {
     return CastleRight(CR_WKING << ((c << 1) + cs));
 }
 
-constexpr Square orgSq(Move m) {
+constexpr Square orgSq(Move m) noexcept {
     return Square((m >> 6) & 63);
 }
-constexpr Square dstSq(Move m) {
+constexpr Square dstSq(Move m) noexcept {
     return Square((m >> 0) & 63);
 }
-constexpr bool isOk(Move m) {
+constexpr bool isOk(Move m) noexcept {
     return orgSq(m) != dstSq(m);
 }
-constexpr PieceType promoteType(Move m) {
+constexpr PieceType promoteType(Move m) noexcept {
     return PieceType(((m >> 12) & 3) + NIHT);
 }
-constexpr MoveType mType(Move m) {
+constexpr MoveType mType(Move m) noexcept {
     return MoveType(m & PROMOTE);
 }
-constexpr uint16_t mMask(Move m) {
+constexpr uint16_t mMask(Move m) noexcept {
     return uint16_t(m & 0x0FFF);
 }
 

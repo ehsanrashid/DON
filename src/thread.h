@@ -83,7 +83,7 @@ public:
     PieceSquareMoveTable counterMoves;
 
     // continuationStats is the combined stats of a given pair of moves,
-    // usually the current one given a previous one.
+    // usually the current one given a previous one. [inCheck][captureOrPromotion]
     ContinuationStatsTable continuationStats[2][2];
 
     Material::Table matlHash;

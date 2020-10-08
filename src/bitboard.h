@@ -212,15 +212,15 @@ inline bool aligned(Square s1, Square s2, Square s3) {
 /// distance() functions return the distance between s1 and s2
 /// defined as the number of steps for a king in s1 to reach s2.
 
-template<typename T = Square> inline int32_t distance(Square, Square);
-template<> inline int32_t distance<File>(Square s1, Square s2) {
+template<typename T = Square> inline int32_t distance(Square, Square) noexcept;
+template<> inline int32_t distance<File>(Square s1, Square s2) noexcept {
     return std::abs(sFile(s1) - sFile(s2));
 }
-template<> inline int32_t distance<Rank>(Square s1, Square s2) {
+template<> inline int32_t distance<Rank>(Square s1, Square s2) noexcept {
     return std::abs(sRank(s1) - sRank(s2));
 }
 
-template<> inline int32_t distance<Square>(Square s1, Square s2) {
+template<> inline int32_t distance<Square>(Square s1, Square s2) noexcept {
     //return std::max(distance<File>(s1, s2), distance<Rank>(s1, s2));
     return Distance[s1][s2];
 }
