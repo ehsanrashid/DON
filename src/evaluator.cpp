@@ -807,8 +807,7 @@ namespace Evaluator {
             // Defended or Unattacked squares
             Bitboard safeArea{
                 ~attackedBy[Opp][NONE]
-              | (attackedBy[Own][NONE] & ~attackedBy2[Opp])
-              | attackedBy2[Own] };
+              |  attackedBy[Own][NONE] };
 
             // Safe friend pawns
             b =  safeArea
