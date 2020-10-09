@@ -110,24 +110,24 @@ namespace Evaluator {
 
         enum Term : uint8_t { MATERIAL = 8, IMBALANCE, MOBILITY, THREAT, PASSER, SPACE, SCALING, TOTAL, TERMS = 16 };
 
-        class Tracer {
+        namespace Tracer {
 
-        public:
+            Score Scores[TERMS][COLORS];
 
-            static void clear() {
+            void clear() {
                 //std::fill(&Scores[0][0], &Scores[0][0] + sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);
-                std::fill_n(&Scores[0][0], sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);
+                std::fill_n(&Scores[0][0], sizeof(Scores) / sizeof(Scores[0][0]), SCORE_ZERO);
             }
 
-            static void write(Term t, Color c, Score s) noexcept {
+            void write(Term t, Color c, Score s) noexcept {
                 Scores[t][c] = s;
             }
-            static void write(Term t, Score sW, Score sB = SCORE_ZERO) noexcept {
+            void write(Term t, Score sW, Score sB = SCORE_ZERO) noexcept {
                 write(t, WHITE, sW);
                 write(t, BLACK, sB);
             }
 
-            static std::string toString(Term t) {
+            std::string toString(Term t) {
 
                 std::ostringstream oss;
                 if (t == MATERIAL
@@ -143,20 +143,13 @@ namespace Evaluator {
 
                 return oss.str();
             }
-
-        private:
-
-            static Score Scores[TERMS][COLORS];
-
-            friend std::ostream& operator<<(std::ostream&, Term);
-        };
-
-        Score Tracer::Scores[TERMS][COLORS];
+        }
 
         std::ostream& operator<<(std::ostream &ostream, Term t) {
             ostream << Tracer::toString(t);
             return ostream;
         }
+
 
         constexpr Bitboard CenterBB{ (FileBB[FILE_D]|FileBB[FILE_E]) & (RankBB[RANK_4]|RankBB[RANK_5]) };
 
@@ -400,8 +393,7 @@ namespace Evaluator {
             while ((s = *ps++) != SQ_NONE) {
                 assert(pos[s] == (Own|PT));
 
-                Bitboard const action{
-                    contains(kingBlockers, s) ? lineBB(kSq, s) : BoardBB };
+                Bitboard const action{ contains(kingBlockers, s) ? lineBB(kSq, s) : BoardBB };
 
                 // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
                 Bitboard const attacks{
@@ -450,7 +442,6 @@ namespace Evaluator {
                       & ~pawnEntry->attacksSpan[Opp];
 
                     if (PT == NIHT) {
-                        
                         // Bonus for knight outpost squares
                         Bitboard const targets{ pos.pieces(Opp) & ~pos.pieces(PAWN) };
                         if (// On a side outpost
@@ -461,16 +452,13 @@ namespace Evaluator {
                                        & (contains(SlotFileBB[CS_QUEN], s) ? SlotFileBB[CS_QUEN] : SlotFileBB[CS_KING]))) {
                             score += KnightBadOutpost;
                         }
-                        else
-                        if (contains(b, s)) {
+                        else if (contains(b, s)) {
                             score += KnightOutpost;
                         }
-                        else
-                        if ((b
-                           & attacks
-                           & ~pos.pieces(Own)) != 0) {
+                        else if ((b & attacks & ~pos.pieces(Own)) != 0) {
                             score += KnightReachOutpost;
                         }
+
                         // Penalty for knight distance from the friend king
                         score -= KnightKingProtect * distance(kSq, s);
                     }
@@ -489,17 +477,13 @@ namespace Evaluator {
                         score -= BishopPawnsBlocked
                                * popCount(pos.pawnsOnSqColor(Own, sColor(s)))
                                * (!contains(attackedBy[Own][PAWN], s)
-                                + popCount(pos.pieces(Own, PAWN)
-                                         & SlotFileBB[CS_CENTRE]
-                                         & pawnSglPushBB<Opp>(pos.pieces())));
+                                + popCount(pos.pieces(Own, PAWN) & SlotFileBB[CS_CENTRE] & pawnSglPushBB<Opp>(pos.pieces())));
                         // Penalty for all enemy pawns x-rayed
                         score -= BishopPawnsXRayed
-                               * popCount(pos.pieces(Opp, PAWN)
-                                        & attacksBB<BSHP>(s));
+                               * popCount(pos.pieces(Opp, PAWN) & attacksBB<BSHP>(s));
                         // Bonus for bishop on a long diagonal which can "see" both center squares
                         score += BishopOnDiagonal
-                               * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN))
-                                           & CenterBB);
+                               * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB);
 
                         // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
                         // It is a very serious problem, especially when that pawn is also blocked.
@@ -1036,8 +1020,6 @@ namespace Evaluator {
                    + pieces<WHITE, ROOK>() - pieces<BLACK, ROOK>()
                    + pieces<WHITE, QUEN>() - pieces<BLACK, QUEN>();
 
-            assert((attackedBy[WHITE][NONE] & attackedBy2[WHITE]) == attackedBy2[WHITE]);
-            assert((attackedBy[BLACK][NONE] & attackedBy2[BLACK]) == attackedBy2[BLACK]);
             // More complex interactions that require fully populated attack information
             score += mobility[WHITE]   - mobility[BLACK]
                    + king    <WHITE>() - king    <BLACK>()
@@ -1103,7 +1085,7 @@ namespace Evaluator {
                 if (pos.bishopOpposed()) {
                     scale = Scale(pos.nonPawnMaterial() == 2 * VALUE_MG_BSHP ?
                                     18 + 4 * popCount(pawnEntry->passeds[strongSide]) :
-                                    22 + 3 * pos.count());
+                                    22 + 3 * pos.count(strongSide));
                 }
                 else
                 if (pos.nonPawnMaterial(WHITE) == VALUE_MG_ROOK
@@ -1117,8 +1099,9 @@ namespace Evaluator {
                 }
                 else
                 if (pos.count(QUEN) == 1) {
-                    auto const queenColor{ pColor(pos[scanLSq(pos.pieces(QUEN))]) };
-                    scale = Scale(37 + 3 * (pos.count(~queenColor|NIHT) + pos.count(~queenColor|BSHP)));
+                    // Opposite queen color
+                    auto const queenColor{ ~pColor(pos[scanLSq(pos.pieces(QUEN))]) };
+                    scale = Scale(37 + 3 * (pos.count(queenColor|NIHT) + pos.count(queenColor|BSHP)));
                 }
                 else {
                     scale = std::min(Scale(36 + 7 * pos.count(strongSide|PAWN)), SCALE_NORMAL);
@@ -1160,9 +1143,10 @@ namespace Evaluator {
 
         if (useNNUE) {
             // Scale and shift NNUE for compatibility with search and classical evaluation
-            auto const adjustedNNUE = [&pos]() {
+            auto const nnueAdjEvaluate = [&pos]() {
                 int32_t const npm{ pos.nonPawnMaterial() + VALUE_MG_PAWN * pos.count(PAWN) };
-                return NNUE::evaluate(pos) * (720 + npm / 32) / 1024 + VALUE_TEMPO;
+                int32_t const scale{ (720 + npm / 32) / 1024 };
+                return NNUE::evaluate(pos) * scale + VALUE_TEMPO;
             };
 
             // If there is PSQ imbalance use classical eval, with small probability if it is small
@@ -1185,11 +1169,11 @@ namespace Evaluator {
                   || (pos.bishopOpposed()
                    && abs(v) * 16 < (NNUEThreshold1 + pos.nonPawnMaterial() / 64) * r50
                    && (pos.thread()->nodes & 0xB) == 0))) {
-                    v = adjustedNNUE();
+                    v = nnueAdjEvaluate();
                 }
             }
             else {
-                v = adjustedNNUE();
+                v = nnueAdjEvaluate();
             }
         }
         else {
