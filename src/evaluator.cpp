@@ -163,7 +163,7 @@ namespace Evaluator {
             RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]
         };
 
-        constexpr Bitboard OutpostBB[COLORS]{
+        constexpr Bitboard OutpostRankBB[COLORS]{
             RankBB[RANK_4]|RankBB[RANK_5]|RankBB[RANK_6],
             RankBB[RANK_5]|RankBB[RANK_4]|RankBB[RANK_3]
         };
@@ -217,8 +217,8 @@ namespace Evaluator {
 
         constexpr Score MinorBehindPawn   { S( 18,  3) };
         constexpr Score KnightOutpost     { S( 56, 34) };
-        constexpr Score KnightReachOutpost{ S( 31, 22) };
         constexpr Score KnightBadOutpost  { S( -7, 36) };
+        constexpr Score KnightReachOutpost{ S( 31, 22) };
         constexpr Score KnightKingProtect { S(  8,  9) };
         constexpr Score BishopOutpost     { S( 31, 23) };
         constexpr Score BishopKingProtect { S(  6,  9) };
@@ -227,7 +227,6 @@ namespace Evaluator {
         constexpr Score BishopPawnsXRayed { S(  4,  5) };
         constexpr Score BishopOnKingRing  { S( 24,  0) };
         constexpr Score BishopTrapped     { S( 50, 50) };
-        constexpr Score RookOnQueenFile   { S(  6, 11) };
         constexpr Score RookOnKingRing    { S( 16,  0) };
         constexpr Score RookTrapped       { S( 55, 13) };
         constexpr Score QueenAttacked     { S( 56, 15) };
@@ -393,20 +392,21 @@ namespace Evaluator {
             while ((s = *ps++) != SQ_NONE) {
                 assert(pos[s] == (Own|PT));
 
-                Bitboard const action{ contains(kingBlockers, s) ? lineBB(kSq, s) : BoardBB };
-
                 // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
-                Bitboard const attacks{
-                    PT == NIHT ? attacksBB<NIHT>(s) & action :
-                    PT == BSHP ? attacksBB<BSHP>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, BSHP) & ~kingBlockers) | pos.pieces(Opp, QUEN))) & action :
-                    PT == ROOK ? attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~kingBlockers) | pos.pieces(Opp, QUEN))) & action :
-                                 attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~kingBlockers))) & action };
+                Bitboard attacks{
+                    PT == NIHT ? attacksBB<NIHT>(s) :
+                    PT == BSHP ? attacksBB<BSHP>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, BSHP) & ~kingBlockers) | pos.pieces(Opp, QUEN))) :
+                    PT == ROOK ? attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~kingBlockers) | pos.pieces(Opp, QUEN))) :
+                                 attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~kingBlockers))) };
+
+                if (contains(kingBlockers, s)) {
+                    attacks &= lineBB(kSq, s);
+                }
 
                 if ((kingRing[Opp] & attacks) != 0) {
                     kingAttackersCount [Own]++;
                     kingAttackersWeight[Own] += KingAttackerWeight[PT];
-                    kingAttacksCount   [Own] += popCount(attacks
-                                                       & attackedBy[Opp][KING]);
+                    kingAttacksCount   [Own] += popCount(attacks & attackedBy[Opp][KING]);
                 }
                 else if (PT == BSHP
                       && (kingRing[Opp] & attacksBB<BSHP>(s, pos.pieces(PAWN))) != 0) {
@@ -430,33 +430,41 @@ namespace Evaluator {
 
                     attackedBy2[Own] |= attackedBy[Own][NONE] & attacks;
 
-                    // Bonus for minor shielded by pawn
-                    score += MinorBehindPawn * (relativeRank(Own, s) <= RANK_6
-                                             && contains(pos.pieces(PAWN), s + PawnPush[Own]));
+                    Bitboard const sglPullPawns{ pawnSglPushBB<Opp>(pos.pieces(PAWN)) };
+                    // Bonus for a knight or bishop shielded by pawn
+                    if (//relativeRank(Own, s) <= RANK_6
+                        contains(sglPullPawns, s)) {
+                        score += MinorBehindPawn;
+                    }
 
                     // Bonus if the piece is on an outpost square or can reach one
-                    // Reduced bonus for knights (BadOutpost) if few relevant targets
-                    b =  OutpostBB[Own]
-                      &  (attackedBy[Own][PAWN]
-                        | pawnSglPushBB<Opp>(pos.pieces(PAWN)))
+                    b =  OutpostRankBB[Own]
+                      &  (sglPullPawns
+                        | attackedBy[Own][PAWN])
                       & ~pawnEntry->attacksSpan[Opp];
 
                     if (PT == NIHT) {
+
                         // Bonus for knight outpost squares
-                        Bitboard const targets{ pos.pieces(Opp) & ~pos.pieces(PAWN) };
-                        if (// On a side outpost
-                            contains(b & ~SlotFileBB[CS_CENTRE], s)
-                            // No relevant attacks
-                         && (attacks & targets) == 0
-                         && !moreThanOne(targets
-                                       & (contains(SlotFileBB[CS_QUEN], s) ? SlotFileBB[CS_QUEN] : SlotFileBB[CS_KING]))) {
-                            score += KnightBadOutpost;
+                        if (contains(b, s)) {
+                            
+                            // Reduced bonus for knights (KnightBadOutpost) if few relevant targets
+                            Bitboard const targets{ pos.pieces(Opp) & ~pos.pieces(PAWN) };
+                            if (// On a side outpost
+                                !contains(SlotFileBB[CS_CENTRE], s)
+                                // No relevant attacks
+                             && (attacks & targets) == 0
+                             && !moreThanOne(targets & (contains(SlotFileBB[CS_QUEN], s) ? SlotFileBB[CS_QUEN] : SlotFileBB[CS_KING]))) {
+                                score += KnightBadOutpost;
+                            }
+                            else {
+                                score += KnightOutpost;
+                            }
                         }
-                        else if (contains(b, s)) {
-                            score += KnightOutpost;
-                        }
-                        else if ((b & attacks & ~pos.pieces(Own)) != 0) {
-                            score += KnightReachOutpost;
+                        else {
+                            if ((b & attacks & ~pos.pieces(Own)) != 0) {
+                                score += KnightReachOutpost;
+                            }
                         }
 
                         // Penalty for knight distance from the friend king
@@ -464,26 +472,30 @@ namespace Evaluator {
                     }
                     else
                     if (PT == BSHP) {
+
                         // Bonus for bishop outpost squares
                         if (contains(b, s)) {
                             score += BishopOutpost;
                         }
+
                         // Penalty for bishop distance from the friend king
                         score -= BishopKingProtect * distance(kSq, s);
 
                         // Penalty for pawns on the same color square as the bishop,
                         // less when the bishop is protected by pawn
                         // more when the center files are blocked with pawns.
+                        Bitboard const blockedPawns{ pos.pieces(Own, PAWN) & pawnSglPushBB<Opp>(pos.pieces()) };
                         score -= BishopPawnsBlocked
                                * popCount(pos.pawnsOnSqColor(Own, sColor(s)))
-                               * (!contains(attackedBy[Own][PAWN], s)
-                                + popCount(pos.pieces(Own, PAWN) & SlotFileBB[CS_CENTRE] & pawnSglPushBB<Opp>(pos.pieces())));
+                               * (popCount(blockedPawns & SlotFileBB[CS_CENTRE])
+                                + !contains(attackedBy[Own][PAWN], s));
                         // Penalty for all enemy pawns x-rayed
                         score -= BishopPawnsXRayed
                                * popCount(pos.pieces(Opp, PAWN) & attacksBB<BSHP>(s));
                         // Bonus for bishop on a long diagonal which can "see" both center squares
-                        score += BishopOnDiagonal
-                               * moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB);
+                        if (moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB)) {
+                            score += BishopOnDiagonal;
+                        }
 
                         // An important Chess960 pattern: A cornered bishop blocked by a friend pawn diagonally in front of it.
                         // It is a very serious problem, especially when that pawn is also blocked.
@@ -508,10 +520,6 @@ namespace Evaluator {
 
                     attackedBy2[Own] |= attackedBy[Own][NONE] & attacks;
 
-                    // Bonus for rook on the same file as a queen
-                    if ((fileBB(s) & pos.pieces(QUEN)) != 0) {
-                        score += RookOnQueenFile;
-                    }
                     // Bonus for rook when on an open or semi-open file
                     if (pos.semiopenFileOn(Own, s)) {
                         score += RookOnFile[pos.semiopenFileOn(Opp, s)];
@@ -533,10 +541,13 @@ namespace Evaluator {
 
                     b =  pos.pieces(Own)
                       & ~kingBlockers;
+                    Bitboard xray{ attacksBB<BSHP>(s, pos.pieces() ^ (pos.pieces(BSHP) & b & attacksBB<BSHP>(s)))
+                                 | attacksBB<ROOK>(s, pos.pieces() ^ (pos.pieces(ROOK) & b & attacksBB<ROOK>(s))) };
+                    if (contains(kingBlockers, s)) {
+                        xray &= lineBB(kSq, s);
+                    }
                     attackedBy2[Own] |= attackedBy[Own][NONE]
-                                      & ( attacks
-                                       | (attacksBB<BSHP>(s, pos.pieces() ^ (pos.pieces(BSHP) & b & attacksBB<BSHP>(s))) & action)
-                                       | (attacksBB<ROOK>(s, pos.pieces() ^ (pos.pieces(ROOK) & b & attacksBB<ROOK>(s))) & action));
+                                      & (attacks | xray);
 
                     attackedQueen[Own][0] |= attacksBB<NIHT>(s);
                     attackedQueen[Own][1] |= attacksBB<BSHP>(s, pos.pieces());
@@ -697,7 +708,9 @@ namespace Evaluator {
             }
 
             // Penalty for king on a pawn less flank
-            score -= PawnLessFlank * ((pos.pieces(PAWN) & KingFlankBB[sFile(kSq)]) == 0);
+            if ((pos.pieces(PAWN) & KingFlankBB[sFile(kSq)]) == 0) {
+                score -= PawnLessFlank;
+            }
 
             // King tropism: Penalty for slow motion attacks moving towards friend king zone
             score -= KingFlankAttacks * kingFlankAttack;
@@ -980,6 +993,9 @@ namespace Evaluator {
             // Probe the pawn hash table
             pawnEntry = Pawns::probe(pos);
 
+            // Probe the king hash table
+            kingEntry = King::probe(pos, pawnEntry);
+
             // Score is computed internally from the white point of view.
             // Initialize by
             // - incrementally updated scores (material + piece square tables)
@@ -1000,11 +1016,8 @@ namespace Evaluator {
             };
 
             if (lazySkip(LazyThreshold1)) {
-                goto returnValue;
+                goto makeValue;
             }
-
-            // Probe the king hash table
-            kingEntry = King::probe(pos, pawnEntry);
 
             if (Trace) {
                 Tracer::clear();
@@ -1026,7 +1039,7 @@ namespace Evaluator {
                    + passers <WHITE>() - passers <BLACK>();
 
             if (lazySkip(LazyThreshold2)) {
-                goto returnValue;
+                goto makeValue;
             }
 
             score += threats <WHITE>() - threats <BLACK>();
@@ -1035,29 +1048,22 @@ namespace Evaluator {
             score += space   <WHITE>() - space   <BLACK>();
             }
 
-        returnValue:
+        makeValue:
             // Winnable:
             // Derive single value from mg and eg parts of score
-            auto const wkSq{ pos.square(W_KING) };
-            auto const bkSq{ pos.square(B_KING) };
-
-            int32_t const outflanking{
-                distance<File>(wkSq, bkSq)
-              - distance<Rank>(wkSq, bkSq) };
 
             // Compute the initiative bonus for the attacking side
             int32_t const complexity{
                  1 * pawnEntry->complexity
-              +  9 * outflanking
+              +  9 * kingEntry->outflanking
                 // King infiltration
-              + 24 * (sRank(wkSq) > RANK_4
-                   || sRank(bkSq) < RANK_5)
+              + 24 * kingEntry->infiltration
               + 51 * (pos.nonPawnMaterial() == VALUE_ZERO)
                 // Pawn on both flanks
-              + 21 * (pawnEntry->pawnOnBothFlank)
+              + 21 * (pawnEntry->pawnsOnBothFlank)
                 // Almost Unwinnable
-              - 43 * (outflanking < 0
-                  && !pawnEntry->pawnOnBothFlank)
+              - 43 * (kingEntry->outflanking < 0
+                  && !pawnEntry->pawnsOnBothFlank)
               - 110 };
 
             auto mg{ mgValue(score) };
@@ -1075,17 +1081,18 @@ namespace Evaluator {
             // Compute the scale factor for the winning side
             auto const strongSide{ eg > VALUE_ZERO ? WHITE : BLACK };
 
-            Scale scale{ matlEntry->scalingFunc[strongSide] != nullptr ?
+            int32_t scale{ matlEntry->scalingFunc[strongSide] != nullptr ?
                         (*matlEntry->scalingFunc[strongSide])(pos) : SCALE_NONE };
             if (scale == SCALE_NONE) {
                 scale = matlEntry->scaleFactor[strongSide];
             }
             // If scale factor is not already specific, scale down via general heuristics
             if (scale == SCALE_NORMAL) {
+
                 if (pos.bishopOpposed()) {
-                    scale = Scale(pos.nonPawnMaterial() == 2 * VALUE_MG_BSHP ?
-                                    18 + 4 * popCount(pawnEntry->passeds[strongSide]) :
-                                    22 + 3 * pos.count(strongSide));
+                    scale = pos.nonPawnMaterial() == 2 * VALUE_MG_BSHP ?
+                                18 + 4 * popCount(pawnEntry->passeds[strongSide]) :
+                                22 + 3 * pos.count(strongSide);
                 }
                 else
                 if (pos.nonPawnMaterial(WHITE) == VALUE_MG_ROOK
@@ -1095,31 +1102,32 @@ namespace Evaluator {
                  && bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_KING])
                  != bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_QUEN])
                  && (attackedBy[~strongSide][KING] & pos.pieces(~strongSide, PAWN)) != 0) {
-                    scale = Scale(36);
+                    scale = 36;
                 }
                 else
                 if (pos.count(QUEN) == 1) {
                     // Opposite queen color
                     auto const queenColor{ ~pColor(pos[scanLSq(pos.pieces(QUEN))]) };
-                    scale = Scale(37 + 3 * (pos.count(queenColor|NIHT) + pos.count(queenColor|BSHP)));
+                    scale = 37 + 3 * (pos.count(queenColor|NIHT) + pos.count(queenColor|BSHP));
                 }
                 else {
-                    scale = std::min(Scale(36 + 7 * pos.count(strongSide|PAWN)), SCALE_NORMAL);
+                    scale = std::min(36 + 7 * pos.count(strongSide|PAWN), scale) - 4 * !pawnEntry->pawnsOnBothFlank;
                 }
+
+                scale -= 4 * !pawnEntry->pawnsOnBothFlank;
             }
 
             Value v;
             // Interpolates between midgame and scaled endgame values (scaled by 'scaleFactor(egValue(score))').
             v = mg * (matlEntry->phase)
-              + eg * (Material::PhaseResolution - matlEntry->phase) * scale / SCALE_NORMAL;
+              + eg * (Material::PhaseResolution - matlEntry->phase) * Scale(scale) / SCALE_NORMAL;
             v /= Material::PhaseResolution;
             assert(-VALUE_INFINITE < v && v < +VALUE_INFINITE);
 
             // Evaluation grain
             v = (v / 16) * 16;
             // Active side's point of view
-            v = (pos.activeSide() == WHITE ? +v : -v);
-            v += VALUE_TEMPO;
+            v = (pos.activeSide() == WHITE ? +v : -v) + VALUE_TEMPO;
 
             // Write remaining evaluation terms
             if (Trace) {
@@ -1127,8 +1135,8 @@ namespace Evaluator {
                 Tracer::write(MATERIAL  , pos.psqScore());
                 Tracer::write(IMBALANCE , matlEntry->imbalance);
                 Tracer::write(MOBILITY  , mobility[WHITE], mobility[BLACK]);                
-                Tracer::write(SCALING   , makeScore(mv, ev - eg + eg * scale / SCALE_NORMAL));
-                Tracer::write(TOTAL     , makeScore(mg,         + eg * scale / SCALE_NORMAL));
+                Tracer::write(SCALING   , makeScore(mv, ev - eg + eg * Scale(scale) / SCALE_NORMAL));
+                Tracer::write(TOTAL     , makeScore(mg,         + eg * Scale(scale) / SCALE_NORMAL));
             }
 
             return v;
@@ -1141,18 +1149,20 @@ namespace Evaluator {
 
         Value v;
 
+        auto const npm{ pos.nonPawnMaterial() };
+
         if (useNNUE) {
             // Scale and shift NNUE for compatibility with search and classical evaluation
-            auto const nnueAdjEvaluate = [&pos]() {
-                int32_t const npm{ pos.nonPawnMaterial() + VALUE_MG_PAWN * pos.count(PAWN) };
-                int32_t const scale{ (720 + npm / 32) / 1024 };
+            auto const nnueAdjEvaluate = [&]() {
+                int32_t const mat{ npm + VALUE_MG_PAWN * pos.count(PAWN) };
+                int32_t const scale{ (720 + mat / 32) / 1024 };
                 return NNUE::evaluate(pos) * scale + VALUE_TEMPO;
             };
 
             // If there is PSQ imbalance use classical eval, with small probability if it is small
             Value   const psq{ Value(std::abs(egValue(pos.psqScore()))) };
             int32_t const r50{ pos.clockPly() + 16 };
-            bool    const psqLarge{ psq * 16 > (NNUEThreshold1 + pos.nonPawnMaterial() / 64) * r50 };
+            bool    const psqLarge{ psq * 16 > (NNUEThreshold1 + npm / 64) * r50 };
             bool    const classical{
                 psqLarge
              || ( psq > VALUE_MG_PAWN / 4
@@ -1167,7 +1177,7 @@ namespace Evaluator {
                 if ( psqLarge
                  && ( abs(v) * 16 < NNUEThreshold2 * r50
                   || (pos.bishopOpposed()
-                   && abs(v) * 16 < (NNUEThreshold1 + pos.nonPawnMaterial() / 64) * r50
+                   && abs(v) * 16 < (NNUEThreshold1 + npm / 64) * r50
                    && (pos.thread()->nodes & 0xB) == 0))) {
                     v = nnueAdjEvaluate();
                 }

@@ -23,7 +23,7 @@ namespace Pawns {
         Key key;
 
         int32_t complexity;
-        bool pawnOnBothFlank;
+        bool    pawnsOnBothFlank;
 
         Score score[COLORS];
 

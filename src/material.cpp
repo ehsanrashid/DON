@@ -133,6 +133,7 @@ namespace Material {
         }
         else {
             for (Color c : { WHITE, BLACK }) {
+
                 if (pos.nonPawnMaterial( c) == VALUE_MG_QUEN
                  && pos.count( c|PAWN) == 0
                  && pos.count(~c|ROOK) == 1

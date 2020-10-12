@@ -24,6 +24,9 @@ namespace King {
 
         Pawns::Entry *pawnEntry;
 
+        int8_t  outflanking;
+        bool    infiltration;
+
         Square  kingSq[COLORS];
         bool    castleSide[COLORS][CASTLE_SIDES];
         Score   pawnSafety[COLORS];

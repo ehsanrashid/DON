@@ -102,44 +102,44 @@ namespace Pawns {
                 passeds[Own] |= s;
             }
 
-            Score sp{ SCORE_ZERO };
+            Score sc{ SCORE_ZERO };
 
             if (supporters != 0
              || phalanxes != 0) {
                 int32_t const v{ Connected[r] * (2 + 1 * (phalanxes != 0) - 1 * opposed)
                                + 22 * popCount(supporters) };
-                sp += makeScore(v, v * (r - RANK_3) / 4);
+                sc += makeScore(v, v * (r - RANK_3) / 4);
             }
             else
             if (neighbours == 0) {
                 if (opposed
                  && (ownPawns & frontSquaresBB(Opp, s)) != 0
                  && (oppPawns & adjacentFilesBB(s)) == 0) {
-                    sp -= WeakDoubled;
+                    sc -= WeakDoubled;
                 }
                 else {
-                    sp -= Isolated
+                    sc -= Isolated
                         + Unopposed * !opposed;
                 }
             }
             else
             if (backward) {
-                sp -= Backward
+                sc -= Backward
                     + Unopposed * !opposed;
             }
 
             if (supporters == 0) {
-                sp -= WeakDoubled * contains(ownPawns, s - Push)
+                sc -= WeakDoubled * contains(ownPawns, s - Push)
                     // Attacked twice by enemy pawns
                     + WeakTwiceLever * moreThanOne(levers);
             }
 
             if (blocked
              && r >= RANK_5) {
-                sp += BlockedPawn[r - RANK_5];
+                sc += BlockedPawn[r - RANK_5];
             }
 
-            score[Own] += sp;
+            score[Own] += sc;
         }
     }
     // Explicit template instantiations
@@ -158,8 +158,8 @@ namespace Pawns {
 
         e->key = pawnKey;
         e->blockeds = 0;
-        e->pawnOnBothFlank = (pos.pieces(PAWN) & SlotFileBB[CS_KING]) != 0
-                          && (pos.pieces(PAWN) & SlotFileBB[CS_QUEN]) != 0;
+        e->pawnsOnBothFlank = (pos.pieces(PAWN) & SlotFileBB[CS_KING]) != 0
+                           && (pos.pieces(PAWN) & SlotFileBB[CS_QUEN]) != 0;
         e->evaluate<WHITE>(pos);
         e->evaluate<BLACK>(pos);
         e->complexity = 12 * pos.count(PAWN)

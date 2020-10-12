@@ -489,7 +489,6 @@ namespace {
             if (!ss->inCheck
              && !(giveCheck
                && contains(pos.kingBlockers(~activeSide), org))
-               //&& !aligned(pos.square(~activeSide|KING), org, dst))
              && !pos.see(move)
              && Limits.mate == 0) {
                 continue;
@@ -561,7 +560,7 @@ namespace {
     template<bool PVNode>
     Value depthSearch(Position &pos, Stack *ss, Value alfa, Value beta, Depth depth, bool cutNode) {
 
-        bool rootNode{ PVNode && ss->ply == 0 };
+        bool const rootNode{ PVNode && ss->ply == 0 };
 
         // Check if there exists a move which draws by repetition,
         // or an alternative earlier move to this position.
@@ -645,7 +644,7 @@ namespace {
 
         auto bestMove{ MOVE_NONE };
 
-        auto excludedMove{ ss->excludedMove };
+        auto const excludedMove{ ss->excludedMove };
         // Step 4. Transposition table lookup.
         // Don't want the score of a partial search to overwrite
         // a previous full search TT value, so we use a different
@@ -795,11 +794,13 @@ namespace {
 
         // Step 6. Static evaluation of the position
         if (ss->inCheck) {
+
             ss->staticEval = eval = VALUE_NONE;
             improving = false;
         }
         // Early pruning
         else {
+
             if (ss->ttHit) {
                 // Never assume anything on values stored in TT.
                 if ((ss->staticEval = eval = tte->eval()) == VALUE_NONE) {
@@ -839,8 +840,7 @@ namespace {
 
             improving = (ss-2)->staticEval != VALUE_NONE ? ss->staticEval > (ss-2)->staticEval :
                         (ss-4)->staticEval != VALUE_NONE ? ss->staticEval > (ss-4)->staticEval :
-                        (ss-6)->staticEval != VALUE_NONE ? ss->staticEval > (ss-6)->staticEval :
-                        true;
+                        (ss-6)->staticEval != VALUE_NONE ? ss->staticEval > (ss-6)->staticEval : true;
 
             // Step 8. Futility pruning: child node (~50 ELO)
             // Betting that the opponent doesn't have a move that will reduce
@@ -1014,13 +1014,13 @@ namespace {
 
                 ss->ttPV = ttPV;
             }
+        }
 
-            // Step 11. If the position is not in TT, decrease depth by 2
-            if (PVNode
-             && depth >= 6
-             && ttMove == MOVE_NONE) {
-                depth -= 2;
-            }
+        // Step 11. If the position is not in TT, decrease depth by 2
+        if (PVNode
+         && depth >= 6
+         && ttMove == MOVE_NONE) {
+            depth -= 2;
         }
 
         value = bestValue;
@@ -1068,18 +1068,8 @@ namespace {
             if (move == excludedMove) {
                 continue;
             }
-            // Check for legality
-            if (!rootNode
-             && !pos.legal(move)) {
-                continue;
-            }
-
-            ss->moveCount = ++moveCount;
 
             if (rootNode) {
-
-                assert(ttMove != MOVE_NONE);
-
                 // At root obey the "searchmoves" option and skip moves not listed in
                 // RootMove List. As a consequence any illegal move is also skipped.
                 // In MultiPV mode we also skip PV moves which have been already searched
@@ -1087,20 +1077,29 @@ namespace {
                 if (!thread->rootMoves.contains(thread->pvCur, thread->pvEnd, move)) {
                     continue;
                 }
+            }
+            else {
+                // Check for legality
+                if (!pos.legal(move)) {
+                    continue;
+                }
+            }
 
-                if (thread == Threadpool.mainThread()) {
-                    TimePoint const elapsed{ TimeMgr.elapsed() };
-                    if (elapsed > 3000) {
-                        sync_cout << std::setfill('0')
-                                  << "info"
-                                  << " depth "          << std::setw(2) << depth
-                                  << " seldepth "       << std::setw(2) << thread->rootMoves.find(thread->pvCur, thread->pvEnd, move)->selDepth
-                                  << " currmove "       << move
-                                  << " currmovenumber " << std::setw(2) << thread->pvCur + moveCount
-                                  //<< " maxmoves "       << thread->rootMoves.size()
-                                  << " time "           << elapsed
-                                  << std::setfill(' ')  << sync_endl;
-                    }
+            ss->moveCount = ++moveCount;
+
+            if (rootNode
+             && thread == Threadpool.mainThread()) {
+                TimePoint const elapsed{ TimeMgr.elapsed() };
+                if (elapsed > 3000) {
+                    sync_cout << std::setfill('0')
+                              << "info"
+                              << " depth "          << std::setw(2) << depth
+                              << " seldepth "       << std::setw(2) << thread->rootMoves.find(thread->pvCur, thread->pvEnd, move)->selDepth
+                              << " currmove "       << move
+                              << " currmovenumber " << std::setw(2) << thread->pvCur + moveCount
+                              //<< " maxmoves "       << thread->rootMoves.size()
+                              << " time "           << elapsed
+                              << std::setfill(' ')  << sync_endl;
                 }
             }
 
@@ -1221,10 +1220,7 @@ namespace {
             else
             // Check extension (~2 ELO)
             if (giveCheck
-             && (// Discovered check
-                 contains(pos.kingBlockers(~activeSide), org)
-              //&& !aligned(pos.square(~activeSide|KING), org, dst)
-                 // Direct check
+             && (contains(pos.kingBlockers(~activeSide), org)
               || pos.see(move))) {
                 extension = 1;
             }
