@@ -40,7 +40,7 @@ void Thread::wakeUp() {
 /// Thread::waitIdle() blocks on the condition variable while the thread is busy.
 void Thread::waitIdle() {
     std::unique_lock<std::mutex> uniqueLock(mutex);
-    conditionVar.wait(uniqueLock, [this]{ return !busy; });
+    conditionVar.wait(uniqueLock, [&]{ return !busy; });
     //uniqueLock.unlock();
 }
 /// Thread::threadFunc() is where the thread is parked.
@@ -60,7 +60,7 @@ void Thread::threadFunc() {
         std::unique_lock<std::mutex> uniqueLock(mutex);
         busy = false;
         conditionVar.notify_one(); // Wake up anyone waiting for search finished
-        conditionVar.wait(uniqueLock, [this]{ return busy; });
+        conditionVar.wait(uniqueLock, [&]{ return busy; });
         if (dead) {
             return;
         }
@@ -150,7 +150,7 @@ Thread* ThreadPool::bestThread() const noexcept {
     return bestTh;
 }
 
-/// ThreadPool::setSize() creates/destroys threads to match the requested number.
+/// ThreadPool::setSize() creates/destroys threads to match the threadCount.
 /// Created and launched threads will immediately go to sleep in threadFunc.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
 void ThreadPool::setup(uint16_t threadCount) {

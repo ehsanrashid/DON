@@ -42,6 +42,7 @@ namespace Evaluator {
     std::string loadedEvalFile{ "None" };
 
     namespace NNUE {
+
         /// initialize() tries to load a nnue network at startup time, or when the engine
         /// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
         /// The name of the nnue network is always retrieved from the EvalFile option.
@@ -53,37 +54,36 @@ namespace Evaluator {
 
             useNNUE = Options["Use NNUE"];
             auto evalFile{ std::string(Options["Eval File"]) };
+            if (evalFile == loadedEvalFile) return;
 
             if (useNNUE) {
 
-                std::vector<std::string> directories{
-                      "<internal>"
-                    , ""
-                    , CommandLine::binaryDirectory
-            #if defined(DEFAULT_NNUE_DIRECTORY)
-                    , STRINGIFY(DEFAULT_NNUE_DIRECTORY)
-            #endif
-                };
-
-                for (auto &dir : directories) {
-                    if (loadedEvalFile != evalFile) {
-
-                        if (dir != "<internal>") {
-                            std::ifstream ifstream{ dir + evalFile, std::ios::in|std::ios::binary };
-                            if (NNUE::loadEvalFile(ifstream)) {
-                                loadedEvalFile = evalFile;
-                            }
-                        }
-                        else
-                        if (evalFile == DefaultEvalFile) {
-                            MemoryStreamBuffer buffer(const_cast<char*>(reinterpret_cast<char const*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize));
-                            std::istream istream{ &buffer };
-                            if (NNUE::loadEvalFile(istream)) {
-                                loadedEvalFile = evalFile;
-                            }
-                        }
+                // "<internal>" embedded eval file
+                if (evalFile == DefaultEvalFile) {
+                    MemoryStreamBuffer buffer(const_cast<char*>(reinterpret_cast<char const*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize));
+                    std::istream istream(&buffer);
+                    if (NNUE::loadEvalFile(istream)) {
+                        loadedEvalFile = evalFile;
+                        return;
                     }
                 }
+
+                std::vector<std::string> directories{
+                    "",
+                    CommandLine::binaryDirectory
+                #if defined(DEFAULT_NNUE_DIRECTORY)
+                    , STRINGIFY(DEFAULT_NNUE_DIRECTORY)
+                #endif
+                };
+                for (auto const &dir : directories) {
+
+                    std::ifstream ifstream{ dir + evalFile, std::ios::in|std::ios::binary };
+                    if (NNUE::loadEvalFile(ifstream)) {
+                        loadedEvalFile = evalFile;
+                        return;
+                    }
+                }
+
             }
         }
 
@@ -91,7 +91,7 @@ namespace Evaluator {
 
             auto evalFile{ std::string(Options["Eval File"]) };
             if (useNNUE) {
-                if (loadedEvalFile != evalFile) {
+                if (evalFile != loadedEvalFile) {
                     sync_cout << "info string ERROR: NNUE evaluation used, but the network file " << evalFile << " was not loaded successfully.\n"
                         << "info string ERROR: These network evaluation parameters must be available, and compatible with this version of the code.\n"
                         << "info string ERROR: The UCI option 'Eval File' might need to specify the full path, including the directory/folder name, to the file.\n"
@@ -529,9 +529,8 @@ namespace Evaluator {
                     if (mob <= 3
                      && relativeRank(Own, s) < RANK_4
                      && (pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) != 0) {
-                        auto const kF{ sFile(kSq) };
-                        if (((kF < FILE_E) && (sFile(s) < kF))
-                         || ((kF > FILE_D) && (sFile(s) > kF))) {
+                        if (((sFile(kSq) < FILE_E) && (sFile(s) < sFile(kSq)))
+                         || ((sFile(kSq) > FILE_D) && (sFile(s) > sFile(kSq)))) {
                             score -= RookTrapped * (1 + !pos.canCastle(Own));
                         }
                     }

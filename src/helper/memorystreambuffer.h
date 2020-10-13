@@ -10,7 +10,7 @@ class MemoryStreamBuffer :
 
 public:
 
-    using std::basic_streambuf<Elem, std::char_traits<Elem>>::basic_streambuf;
+    //using std::basic_streambuf<Elem, std::char_traits<Elem>>::basic_streambuf;
 
     MemoryStreamBuffer(Elem *ptr, size_t size) {
         this->setg(ptr, ptr, ptr + size);

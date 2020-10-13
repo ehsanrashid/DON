@@ -140,7 +140,7 @@ public:
     Key pgKey() const noexcept;
     Key movePosiKey(Move) const noexcept;
 
-    int16_t  moveCount() const noexcept;
+    int16_t moveCount() const noexcept;
     bool draw(int16_t) const noexcept;
     bool repeated() const noexcept;
     bool cycled(int16_t) const noexcept;
@@ -185,7 +185,7 @@ public:
     // Used by NNUE
     StateInfo* state() const noexcept;
 
-    std::string fen(bool full = true) const;
+    std::string fen(bool = true) const;
 
     std::string toString() const;
 
@@ -427,11 +427,14 @@ inline Bitboard Position::attackersTo(Square s) const noexcept {
 
 inline bool Position::capture(Move m) const noexcept {
     assert(isOk(m));
-    return mType(m) != ENPASSANT ?
-            contains(pieces(~active), dstSq(m)) : true;
+    return  mType(m) == ENPASSANT
+        || (mType(m) != CASTLE && contains(pieces(~active), dstSq(m)));
 }
 inline bool Position::captureOrPromotion(Move m) const noexcept {
     assert(isOk(m));
+    //return  mType(m) == ENPASSANT
+    //    ||  mType(m) == PROMOTE
+    //    || (mType(m) == SIMPLE && contains(pieces(~active), dstSq(m)));
     return mType(m) == SIMPLE ?
             contains(pieces(~active), dstSq(m)) : mType(m) != CASTLE;
 }

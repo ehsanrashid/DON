@@ -120,6 +120,7 @@
     <ClInclude Include="src\thread_win32_osx.h" />
     <ClInclude Include="src\timemanager.h" />
     <ClInclude Include="src\transposition.h" />
+    <ClInclude Include="src\tune.h" />
     <ClInclude Include="src\type.h" />
     <ClInclude Include="src\uci.h" />
     <ClInclude Include="src\zobrist.h" />
@@ -154,6 +155,7 @@
     <ClCompile Include="src\threadmarker.cpp" />
     <ClCompile Include="src\timemanager.cpp" />
     <ClCompile Include="src\transposition.cpp" />
+    <ClCompile Include="src\tune.cpp" />
     <ClCompile Include="src\uci.cpp" />
     <ClCompile Include="src\zobrist.cpp" />
   </ItemGroup>

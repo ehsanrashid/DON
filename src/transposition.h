@@ -166,8 +166,8 @@ private:
 constexpr uint64_t mul_hi64(uint64_t a, uint64_t b) noexcept {
 
 #if defined(__GNUC__) && defined(IS_64BIT)
-    __extension__ typedef unsigned __int128 u128;
-    return ((u128)a * (u128)b) >> 64;
+    __extension__ typedef unsigned __int128 uint128;
+    return ((uint128)a * (uint128)b) >> 64;
 #else
     uint64_t const aL{ (uint32_t)a }, aH{ a >> 32 };
     uint64_t const bL{ (uint32_t)b }, bH{ b >> 32 };

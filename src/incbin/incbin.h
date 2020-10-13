@@ -97,7 +97,7 @@
     #define INCBIN_ALIGN_BYTE   ".align 1\n"
 #endif
 
-/* INCBIN_CONST is used by incbin.c generated files */
+//* INCBIN_CONST is used by incbin.c generated files
 #if defined(__cplusplus)
     #define INCBIN_EXTERNAL     extern "C"
     #define INCBIN_CONST        extern const
@@ -233,12 +233,12 @@
 #endif
 
 //* Style lookup tables
-#define INCBIN_STYLE_0_DATA     Data
-#define INCBIN_STYLE_0_END      End
-#define INCBIN_STYLE_0_SIZE     Size
-#define INCBIN_STYLE_1_DATA     _data
-#define INCBIN_STYLE_1_END      _end
-#define INCBIN_STYLE_1_SIZE     _size
+#define INCBIN_STYLE_0_DATA Data
+#define INCBIN_STYLE_0_END  End
+#define INCBIN_STYLE_0_SIZE Size
+#define INCBIN_STYLE_1_DATA _data
+#define INCBIN_STYLE_1_END  _end
+#define INCBIN_STYLE_1_SIZE _size
 
 //* Style lookup: returning identifier
 #define INCBIN_STYLE_IDENT(TYPE)    INCBIN_CONCATENATE(INCBIN_STYLE_, INCBIN_CONCATENATE(INCBIN_EVAL(INCBIN_STYLE), INCBIN_CONCATENATE(_, TYPE)))
@@ -323,6 +323,7 @@
                     INCBIN_INT INCBIN_MANGLE INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING(END) " - " \
                                INCBIN_MANGLE INCBIN_STRINGIZE(INCBIN_PREFIX) #NAME INCBIN_STYLE_STRING(DATA) "\n" \
                 INCBIN_ALIGN_HOST \
-                ".text\n"); \
+                ".text\n" \
+        ); \
     INCBIN_EXTERN(NAME)
 #endif

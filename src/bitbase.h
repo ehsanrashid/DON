@@ -2,7 +2,7 @@
 
 #include "type.h"
 
-namespace BitBase {
+namespace Bitbases {
 
     extern void initialize();
 

@@ -392,7 +392,7 @@ inline Square popLSq(Bitboard &bb) noexcept {
 //    return sq;
 //}
 
-namespace BitBoard {
+namespace Bitboards {
 
     extern void initialize();
 

@@ -659,7 +659,7 @@ namespace {
 
         auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { rootNode ? thread->rootMoves[thread->pvCur][0] :
-                           ss->ttHit ? tte->move() : MOVE_NONE };
+                            ss->ttHit ? tte->move() : MOVE_NONE };
 
         if (excludedMove == MOVE_NONE) {
             ss->ttPV = PVNode || (ss->ttHit && tte->pv());

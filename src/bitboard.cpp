@@ -188,7 +188,7 @@ namespace {
     }
 }
 
-namespace BitBoard {
+namespace Bitboards {
 
     void initialize() {
 

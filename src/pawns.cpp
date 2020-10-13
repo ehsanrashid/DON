@@ -16,11 +16,11 @@ namespace Pawns {
 
     #define S(mg, eg) makeScore(mg, eg)
 
-        constexpr Score Backward       { S( 8,25) };
-        constexpr Score Isolated       { S( 3,15) };
-        constexpr Score Unopposed      { S(13,25) };
-        constexpr Score WeakDoubled    { S(10,55) };
-        constexpr Score WeakTwiceLever { S( 3,55) };
+        constexpr Score Backward      { S( 8,25) };
+        constexpr Score Isolated      { S( 3,15) };
+        constexpr Score Unopposed     { S(13,25) };
+        constexpr Score WeakDoubled   { S(10,55) };
+        constexpr Score WeakTwiceLever{ S( 3,55) };
 
         // Bonus for blocked pawns at 5th or 6th rank
         constexpr Score BlockedPawn[2]{

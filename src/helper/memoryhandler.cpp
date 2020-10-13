@@ -121,11 +121,11 @@ void* allocAlignedLargePages(size_t mSize) noexcept {
 #if defined(_WIN32)
     // Try to allocate large pages
     void *mem = allocAlignedLargePagesWin(mSize);
-    #if !defined(NDEBUG)
-    if (mem != nullptr) {
-        std::cerr << "info string Hash table allocation: Windows large pages used. (" << mSize << ")\n";
-    }
-    #endif
+    //#if !defined(NDEBUG)
+    //if (mem != nullptr) {
+    //    std::cerr << "info string Hash table allocation: Windows large pages used. (" << mSize << ")\n";
+    //}
+    //#endif
     // Fall back to regular, page aligned, allocation if necessary
     if (mem == nullptr) {
         mem = allocAlignedStdWin(mSize);
@@ -143,8 +143,8 @@ void* allocAlignedLargePages(size_t mSize) noexcept {
     void *mem = allocAlignedStd(alignment, size);
     if (mem != nullptr) {
     #if defined(MADV_HUGEPAGE)
-        if (madvise(mem, size, MADV_HUGEPAGE) == 0) {
-            // HUGEPAGE aligned
+        if (madvise(mem, size, MADV_HUGEPAGE) < 0) {
+            // HUGEPAGE aligned error
         }
     #endif
     }
@@ -158,8 +158,8 @@ void freeAlignedLargePages(void *mem) noexcept {
     if (mem == nullptr) return;
 #if defined(_WIN32)
     if (!VirtualFree(mem, 0, MEM_RELEASE)) {
-        std::cerr << "Failed to free memory. Error code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
-        exit(EXIT_FAILURE);
+        std::cerr << "ERROR: Failed to free memory. code: 0x" << std::hex << GetLastError() << std::dec << std::endl;
+        std::exit(EXIT_FAILURE);
     }
 #else
     freeAlignedStd(mem);

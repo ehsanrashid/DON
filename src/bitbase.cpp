@@ -5,7 +5,7 @@
 
 #include "bitboard.h"
 
-namespace BitBase {
+namespace Bitbases {
 
     namespace {
 

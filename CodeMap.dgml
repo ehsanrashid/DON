@@ -146,7 +146,7 @@
     <Node Id="@125" Category="CodeSchema_Method" Bounds="26853.8789878051,23554.1213131037,130.653333333335,25.9599999999919" DelayedCrossGroupLinksState="Fetched" Label="move_importance" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@126" Category="CodeSchema_Method" Bounds="27583.4491886602,21066.7717794633,93.0699999999997,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="stat_bonus" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@129" Category="CodeSchema_Method" Bounds="25521.5769307131,22185.0117794633,56.8266666666677,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="_file" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@13" Category="CodeSchema_Namespace" Bounds="783.7575,96.6875000000002,102.110000000001,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="49" Group="Collapsed" Label="BitBoard" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
+    <Node Id="@13" Category="CodeSchema_Namespace" Bounds="783.7575,96.6875000000002,102.110000000001,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="49" Group="Collapsed" Label="Bitboards" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@130" Category="CodeSchema_Method" Bounds="25544.1721960996,22240.9717794633,53.9733333333315,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="_ok" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@131" Category="CodeSchema_Method" Bounds="25512.9926750569,22073.0917794633,64.0133333333324,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="_rank" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@132" Category="CodeSchema_Method" Bounds="25513.298897047,22017.1317794633,62.6833333333343,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="color" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -157,7 +157,7 @@
     <Node Id="@137" Category="CodeSchema_Method" Bounds="26379.8045478898,24869.6098659526,77.9366666666683,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="rank" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@138" Category="CodeSchema_Method" Bounds="26308.1723930004,25037.490168037,91.3366666666698,24.4033333333355" DelayedCrossGroupLinksState="Fetched" Label="square_bb" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@139" Category="CodeSchema_Method" Bounds="25581.6461487957,22296.9317794633,82.1733333333323,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="to_string" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
-    <Node Id="@14" Category="CodeSchema_Namespace" Bounds="637.8475,153.375,237.93,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="1" Group="Collapsed" Label="BitBoard‎::`anonymous namespace'" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
+    <Node Id="@14" Category="CodeSchema_Namespace" Bounds="637.8475,153.375,237.93,25" DelayedChildNodesState="Fetched" DelayedCrossGroupLinksState="Fetched" FetchedChildrenCount="1" Group="Collapsed" Label="Bitboards‎::`anonymous namespace'" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" />
     <Node Id="@140" Category="CodeSchema_Method" Bounds="25474.6150208203,24136.9317794633,91.5099999999984,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator--" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@141" Category="CodeSchema_Method" Bounds="25468.7743742858,24080.9717794633,98.3300000000017,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="operator++" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
     <Node Id="@142" Category="CodeSchema_Method" Bounds="25360.456939658,21402.5317794633,106.266666666666,25.9599999999991" DelayedCrossGroupLinksState="NotFetched" Label="has_repeated" Language="{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}" UseManualLocation="True" />
@@ -6167,9 +6167,9 @@
     <Alias n="9" Id="(@1 Namespace=Bitbases)" />
     <Alias n="10" Id="Namespace=&quot;Bitbases::`anonymous namespace'&quot;" />
     <Alias n="11" Id="(@1 @10)" />
-    <Alias n="12" Id="Namespace=BitBoard" />
+    <Alias n="12" Id="Namespace=Bitboards" />
     <Alias n="13" Id="(@1 @12)" />
-    <Alias n="14" Id="(@1 Namespace=&quot;BitBoard::`anonymous namespace'&quot;)" />
+    <Alias n="14" Id="(@1 Namespace=&quot;Bitboards::`anonymous namespace'&quot;)" />
     <Alias n="15" Id="Namespace=Reporter" />
     <Alias n="16" Id="(@1 @15)" />
     <Alias n="17" Id="Namespace=EndGame" />
@@ -6540,7 +6540,7 @@
     <Alias n="387" Id="(@1 @3 Member=(@231 OverloadingParameters=[@197,@190]))" />
     <Alias n="388" Id="(@1 @3 Member=(@233 OverloadingParameters=[@197,@190]))" />
     <Alias n="389" Id="(@1 @3 Member=(Name=search OverloadingParameters=[@271,@364,@44]))" />
-    <Alias n="390" Id="(@1 Namespace=&quot;BitBoard::`anonymous namespace'&quot; Member=(Name=initialize_table OverloadingParameters=[(Type=&quot;unsigned __int64 * const&quot;),(Type=&quot;BitBoard::Magic * const&quot;),(Type=&quot;Direction const * const&quot;)]))" />
+    <Alias n="390" Id="(@1 Namespace=&quot;Bitboards::`anonymous namespace'&quot; Member=(Name=initialize_table OverloadingParameters=[(Type=&quot;unsigned __int64 * const&quot;),(Type=&quot;Bitboards::Magic * const&quot;),(Type=&quot;Direction const * const&quot;)]))" />
     <Alias n="391" Id="(@1 @3 Member=(Name=check_dtz_stm OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::DTZEntry *&quot;),@76,@67]))" />
     <Alias n="392" Id="(@1 @3 Member=(Name=check_dtz_stm OverloadingParameters=[(Type=&quot;SyzygyTB::A0xa3222161::WDLEntry *&quot;),@76,@67]))" />
     <Alias n="393" Id="Name=item" />

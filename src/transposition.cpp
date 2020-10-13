@@ -126,6 +126,7 @@ void TTable::clear() {
 
 void TTable::free() noexcept {
     freeAlignedLargePages(clusterTable);
+    clusterTable = nullptr;
 }
 
 /// TTable::hashFull() returns an approximation of the per-mille of the

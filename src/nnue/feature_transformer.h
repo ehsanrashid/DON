@@ -92,21 +92,21 @@ namespace Evaluator::NNUE {
         // Read network parameters
         bool readParameters(std::istream &istream) {
             for (size_t i = 0; i < HalfDimensions; ++i) {
-                _biases[i] = readLittleEndian<BiasType>(istream);
+                biases_[i] = readLittleEndian<BiasType>(istream);
             }
             for (size_t i = 0; i < HalfDimensions * InputDimensions; ++i) {
-                _weights[i] = readLittleEndian<WeightType>(istream);
+                weights_[i] = readLittleEndian<WeightType>(istream);
             }
             return !istream.fail();
         }
 
         // Proceed with the difference calculation if possible
         bool updateAccumulatorIfPossible(Position const &pos) const {
-            auto const currState{ pos.state() };
+            auto const *currState{ pos.state() };
             if (currState->accumulator.accumulationComputed) {
                 return true;
             }
-            auto const prevState{ currState->prevState };
+            auto const *prevState{ currState->prevState };
             if (prevState != nullptr) {
                 if (prevState->accumulator.accumulationComputed) {
                     updateAccumulator(pos);
@@ -221,7 +221,7 @@ namespace Evaluator::NNUE {
         #if defined(TILING)
                 for (unsigned j = 0; j < HalfDimensions / TileHeight; ++j) {
 
-                    auto biasesTile = reinterpret_cast<vec_t const*>(&_biases[j * TileHeight]);
+                    auto biasesTile = reinterpret_cast<vec_t const*>(&biases_[j * TileHeight]);
                     auto accTile = reinterpret_cast<vec_t*>(&accumulator.accumulation[perspective][i][j * TileHeight]);
                     vec_t acc[NumRegs];
 
@@ -230,7 +230,7 @@ namespace Evaluator::NNUE {
                     }
                     for (auto const index : activeIndices[perspective]) {
                         const IndexType offset = HalfDimensions * index + j * TileHeight;
-                        auto column = reinterpret_cast<vec_t const*>(&_weights[offset]);
+                        auto column = reinterpret_cast<vec_t const*>(&weights_[offset]);
 
                         for (unsigned k = 0; k < NumRegs; ++k) {
                             acc[k] = vec_add_16(acc[k], column[k]);
@@ -243,12 +243,12 @@ namespace Evaluator::NNUE {
                 }
         #else
 
-                std::memcpy(accumulator.accumulation[perspective][i], _biases, HalfDimensions * sizeof (BiasType));
+                std::memcpy(accumulator.accumulation[perspective][i], biases_, HalfDimensions * sizeof (BiasType));
                 for (auto const index : activeIndices[perspective]) {
                     IndexType const offset{ HalfDimensions * index };
 
                     for (IndexType j = 0; j < HalfDimensions; ++j) {
-                        accumulator.accumulation[perspective][i][j] += _weights[offset + j];
+                        accumulator.accumulation[perspective][i][j] += weights_[offset + j];
                     }
                 }
         #endif
@@ -289,7 +289,7 @@ namespace Evaluator::NNUE {
                     vec_t acc[NumRegs];
 
                     if (reset[perspective]) {
-                        auto biasesTile = reinterpret_cast<vec_t const*>(&_biases[j * TileHeight]);
+                        auto biasesTile = reinterpret_cast<vec_t const*>(&biases_[j * TileHeight]);
                         for (unsigned k = 0; k < NumRegs; ++k) {
                             acc[k] = biasesTile[k];
                         }
@@ -303,7 +303,7 @@ namespace Evaluator::NNUE {
                         // Difference calculation for the deactivated features
                         for (auto const index : removedIndices[perspective]) {
                             IndexType const offset = HalfDimensions * index + j * TileHeight;
-                            auto column = reinterpret_cast<vec_t const*>(&_weights[offset]);
+                            auto column = reinterpret_cast<vec_t const*>(&weights_[offset]);
 
                             for (IndexType k = 0; k < NumRegs; ++k) {
                                 acc[k] = vec_sub_16(acc[k], column[k]);
@@ -313,7 +313,7 @@ namespace Evaluator::NNUE {
                     {   // Difference calculation for the activated features
                         for (auto const index : addedIndices[perspective]) {
                             IndexType const offset = HalfDimensions * index + j * TileHeight;
-                            auto column = reinterpret_cast<vec_t const*>(&_weights[offset]);
+                            auto column = reinterpret_cast<vec_t const*>(&weights_[offset]);
 
                             for (IndexType k = 0; k < NumRegs; ++k) {
                                 acc[k] = vec_add_16(acc[k], column[k]);
@@ -335,7 +335,7 @@ namespace Evaluator::NNUE {
             for (Color perspective : { WHITE, BLACK }) {
 
                 if (reset[perspective]) {
-                    std::memcpy(accumulator.accumulation[perspective][i], _biases, HalfDimensions * sizeof (BiasType));
+                    std::memcpy(accumulator.accumulation[perspective][i], biases_, HalfDimensions * sizeof (BiasType));
                 }
                 else {
                     std::memcpy(accumulator.accumulation[perspective][i], prevAccumulator->accumulation[perspective][i], HalfDimensions * sizeof (BiasType));
@@ -344,7 +344,7 @@ namespace Evaluator::NNUE {
                         IndexType const offset{ HalfDimensions * index };
 
                         for (IndexType j = 0; j < HalfDimensions; ++j) {
-                            accumulator.accumulation[perspective][i][j] -= _weights[offset + j];
+                            accumulator.accumulation[perspective][i][j] -= weights_[offset + j];
                         }
                     }
                 }
@@ -353,7 +353,7 @@ namespace Evaluator::NNUE {
                         IndexType const offset{ HalfDimensions * index };
 
                         for (IndexType j = 0; j < HalfDimensions; ++j) {
-                            accumulator.accumulation[perspective][i][j] += _weights[offset + j];
+                            accumulator.accumulation[perspective][i][j] += weights_[offset + j];
                         }
                     }
                 }
@@ -367,8 +367,8 @@ namespace Evaluator::NNUE {
         using BiasType = int16_t;
         using WeightType = int16_t;
 
-        alignas(CacheLineSize) BiasType _biases[HalfDimensions];
-        alignas(CacheLineSize) WeightType _weights[HalfDimensions * InputDimensions];
+        alignas(CacheLineSize) BiasType biases_[HalfDimensions];
+        alignas(CacheLineSize) WeightType weights_[HalfDimensions * InputDimensions];
 
     };
 

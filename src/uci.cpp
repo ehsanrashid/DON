@@ -29,7 +29,6 @@ using std::string_view;
 using std::vector;
 using std::istringstream;
 using std::ostringstream;
-using namespace std::literals::string_view_literals;
 
 // Engine Name
 string const Name{ "DON" };
@@ -292,7 +291,7 @@ namespace UCI {
             currentVal = val;
         }
         if (onChange != nullptr) {
-            onChange();
+            onChange(*this);
         }
         return *this;
     }
@@ -355,52 +354,52 @@ namespace UCI {
 
     namespace {
 
-        void onHash() noexcept {
+        void onHash(const Option&) noexcept {
             TT.autoResize(uint32_t(Options["Hash"]));
             TTEx.autoResize(uint32_t(Options["Hash"])/4);
         }
 
-        void onClearHash() noexcept {
+        void onClearHash(const Option&) noexcept {
             UCI::clear();
         }
 
-        void onSaveHash() noexcept {
+        void onSaveHash(const Option&) noexcept {
             TT.save(Options["Hash File"]);
         }
-        void onLoadHash() noexcept {
+        void onLoadHash(const Option&) noexcept {
             TT.load(Options["Hash File"]);
         }
 
-        void onBookFile() noexcept {
+        void onBookFile(const Option&) noexcept {
             Book.initialize(Options["Book File"]);
         }
 
-        void onThreads() noexcept {
+        void onThreads(const Option&) noexcept {
             auto const threadCount{ optionThreads() };
             if (threadCount != Threadpool.size()) {
                 Threadpool.setup(threadCount);
             }
         }
 
-        void onTimeNodes() noexcept {
+        void onTimeNodes(const Option&) noexcept {
             TimeMgr.clear();
         }
 
-        void onLogFile() noexcept {
+        void onLogFile(const Option&) noexcept {
             if (!StdLogger) {
                 StdLogger.emplace(std::cin, std::cout); // Tie std::cin and std::cout to a file.
             }
             StdLogger.value().setup(Options["Log File"]);
         }
 
-        void onSyzygyPath() noexcept {
+        void onSyzygyPath(const Option&) noexcept {
             SyzygyTB::initialize(Options["SyzygyPath"]);
         }
 
-        void onUseNNUE() noexcept {
+        void onUseNNUE(const Option&) noexcept {
             Evaluator::NNUE::initialize();
         }
-        void onEvalFile() noexcept {
+        void onEvalFile(const Option&) noexcept {
             Evaluator::NNUE::initialize();
         }
     }
@@ -412,12 +411,12 @@ namespace UCI {
         Options["Clear Hash"]         << Option(onClearHash);
         Options["Retain Hash"]        << Option(false);
 
-        Options["Hash File"]          << Option("Hash.dat"sv);
+        Options["Hash File"]          << Option(string("Hash.dat"));
         Options["Save Hash"]          << Option(onSaveHash);
         Options["Load Hash"]          << Option(onLoadHash);
 
         Options["Use Book"]           << Option(false);
-        Options["Book File"]          << Option("Book.bin"sv, onBookFile);
+        Options["Book File"]          << Option(string("Book.bin"), onBookFile);
         Options["Book Pick Best"]     << Option(true);
         Options["Book Move Num"]      << Option(20, 0, 100);
 
@@ -430,7 +429,7 @@ namespace UCI {
         Options["Fixed Contempt"]     << Option(  0, -100, 100);
         Options["Contempt Time"]      << Option( 40,    0, 1000);
         Options["Contempt Value"]     << Option(100,    0, 1000);
-        Options["Analysis Contempt"]  << Option("Both var Off var White var Black var Both", "Both");
+        Options["Analysis Contempt"]  << Option(string("Both var Off var White var Black var Both"), string("Both"));
 
         Options["Draw MoveCount"]     << Option(50, 5, 50);
 
@@ -439,7 +438,7 @@ namespace UCI {
         Options["Ponder"]             << Option(true);
         Options["Time Nodes"]         << Option( 0,  0, 10000, onTimeNodes);
 
-        Options["SyzygyPath"]         << Option(""sv, onSyzygyPath);
+        Options["SyzygyPath"]         << Option(string(""), onSyzygyPath);
         Options["SyzygyDepthLimit"]   << Option(1, 1, 100);
         Options["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
         Options["SyzygyMove50Rule"]   << Option(true);
@@ -449,10 +448,10 @@ namespace UCI {
 #if defined(_MSC_VER)
         Options["Eval File"]          << Option(string("src/") + DefaultEvalFile, onEvalFile);
 #else
-        Options["Eval File"]          << Option(string_view{ DefaultEvalFile }, onEvalFile);
+        Options["Eval File"]          << Option(string("") + DefaultEvalFile, onEvalFile);
 #endif
 
-        Options["Log File"]           << Option(string_view{ "" }, onLogFile);
+        Options["Log File"]           << Option(string(""), onLogFile);
 
         Options["UCI_Chess960"]       << Option(false);
         Options["UCI_ShowWDL"]        << Option(false);
@@ -862,7 +861,8 @@ namespace UCI {
         do {
             // Block here waiting for input or EOF
             if (argc == 1
-             && !std::getline(std::cin, cmd, '\n')) {
+                // Default endline '\n'
+             && !std::getline(std::cin, cmd)) {
                 cmd = "quit";
             }
 

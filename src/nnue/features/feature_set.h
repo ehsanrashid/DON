@@ -41,7 +41,7 @@ namespace Evaluator::NNUE::Features {
         template<typename PositionType, typename IndexListType>
         static void appendChangedIndices(PositionType const &pos, TriggerEvent trigger, IndexListType removed[2], IndexListType added[2], bool reset[2]) {
 
-            auto collectOne = [&](MoveInfo const &mi) {
+            auto const collectOne = [&](MoveInfo const &mi) {
                 for (Color perspective : { WHITE, BLACK }) {
                     switch (trigger) {
                     case TriggerEvent::FRIEND_KING_MOVED:
@@ -60,7 +60,7 @@ namespace Evaluator::NNUE::Features {
                 }
             };
 
-            auto collectTwo = [&](MoveInfo const &mi1, MoveInfo const &mi2) {
+            auto const collectTwo = [&](MoveInfo const &mi1, MoveInfo const &mi2) {
                 for (Color perspective : { WHITE, BLACK }) {
                     switch (trigger) {
                     case TriggerEvent::FRIEND_KING_MOVED:

@@ -414,7 +414,7 @@
       <Field Name="entry" />
     </ShowAsCollectionAssociation>
   </Struct>
-  <Struct Name="BitBase::`anonymous-namespace'::KPKPosition" Collapsed="true">
+  <Struct Name="Bitbases::`anonymous-namespace'::KPKPosition" Collapsed="true">
     <Position X="37.5" Y="6.75" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAAAAAAIAABBAAAAAAAAAgAABBAAAAIBAAAAA=</HashCode>
@@ -596,7 +596,7 @@
       <FileName>src\evaluator.cpp</FileName>
     </TypeIdentifier>
   </Enum>
-  <Enum Name="BitBase::`anonymous-namespace'::Result" Collapsed="true">
+  <Enum Name="Bitbases::`anonymous-namespace'::Result" Collapsed="true">
     <Position X="37.5" Y="10.5" Width="1.5" />
     <TypeIdentifier>
       <HashCode>AAAAAAAAgBAAAAAAAAAAAAAAAEAAABAAAAAAAAAABAA=</HashCode>

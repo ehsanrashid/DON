@@ -23,7 +23,7 @@ namespace UCI {
 
     public:
 
-        using OnChange = void(*)(); // std::add_pointer<void()>;
+        using OnChange = void(*)(const Option&);
 
         Option(OnChange = nullptr);
         Option(bool, OnChange = nullptr);

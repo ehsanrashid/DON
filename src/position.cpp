@@ -1264,9 +1264,11 @@ std::string Position::fen(bool full) const {
 
     for (Rank r = RANK_8; r >= RANK_1; --r) {
         for (File f = FILE_A; f <= FILE_H; ++f) {
-            int16_t emptyCount;
-            for (emptyCount = 0; f <= FILE_H && empty(makeSquare(f, r)); ++f) {
+            int16_t emptyCount = 0;
+            while (f <= FILE_H
+                && empty(makeSquare(f, r))) {
                 ++emptyCount;
+                ++f;
             }
             if (emptyCount != 0) {
                 oss << emptyCount;

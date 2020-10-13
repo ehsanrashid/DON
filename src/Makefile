@@ -45,6 +45,7 @@ SRCS =  main.cpp \
         threadmarker.cpp \
         timemanager.cpp \
         transposition.cpp \
+        tune.cpp \
         uci.cpp \
         zobrist.cpp \
         nnue/evaluate_nnue.cpp \

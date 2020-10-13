@@ -358,7 +358,7 @@ namespace {
         explicit TBTable(std::string_view);
         explicit TBTable(TBTable<WDL> const&);
 
-        virtual ~TBTable() {
+        ~TBTable() {
             if (baseAddress != nullptr) {
                 TBFile::unmap(baseAddress, mapping);
             }

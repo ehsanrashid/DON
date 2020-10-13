@@ -22,8 +22,9 @@ int main(int argc, char const *const argv[]) {
 
     CommandLine::initialize(argc, argv);
     UCI::initialize();
-    BitBoard::initialize();
-    BitBase::initialize();
+    Tune::initialize();
+    Bitboards::initialize();
+    Bitbases::initialize();
     PSQT::initialize();
     Zobrists::initialize();
     Cuckoos::initialize();

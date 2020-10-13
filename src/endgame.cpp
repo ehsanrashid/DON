@@ -93,7 +93,7 @@ template<> Value Endgame<KPK>::operator()(Position const &pos) const {
     auto const spSq{ normalize(pos.square(stngColor|PAWN), stngColor, spFile) };
     auto const wkSq{ normalize(pos.square(weakColor|KING), stngColor, spFile) };
 
-    if (!BitBase::probe(pos.activeSide() == stngColor, skSq, wkSq, spSq)) {
+    if (!Bitbases::probe(pos.activeSide() == stngColor, skSq, wkSq, spSq)) {
         return VALUE_DRAW;
     }
 
@@ -608,7 +608,7 @@ template<> Scale Endgame<KPKP>::operator()(Position const &pos) const {
      || sFile(spSq) == FILE_A) {
         // Probe the KPK bitbase with the weakest side's pawn removed.
         // If it's a draw, it's probably at least a draw even with the pawn.
-        if (!BitBase::probe(pos.activeSide() == stngColor, skSq, wkSq, spSq)) {
+        if (!Bitbases::probe(pos.activeSide() == stngColor, skSq, wkSq, spSq)) {
             return SCALE_DRAW;
         }
     }

@@ -145,7 +145,7 @@ public:
     //using std::vector<Thread*>::vector;
 
     ThreadPool() = default;
-    virtual ~ThreadPool();
+    ~ThreadPool();
 
     ThreadPool(ThreadPool const&) = delete;
 

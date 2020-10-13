@@ -8,6 +8,8 @@
     #define GETCWD(buff)   getcwd(buff, sizeof (buff))
 #endif
 
+#include <algorithm>
+
 namespace CommandLine {
 
     std::string binaryDirectory;  // path of the executable directory
@@ -41,6 +43,7 @@ namespace CommandLine {
         // Extract the working directory
         workingDirectory = "";
         char buff[40000];
+        
         char const *cwd = GETCWD(buff);
         if (cwd != nullptr) {
             workingDirectory = cwd;
@@ -59,6 +62,7 @@ namespace CommandLine {
         if (binaryDirectory.find("." + pathSeparator) == 0) {
             binaryDirectory.replace(0, 1, workingDirectory);
         }
+        std::replace(binaryDirectory.begin(), binaryDirectory.end(), '\\', '/');
     }
 }
 
