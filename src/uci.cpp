@@ -354,52 +354,52 @@ namespace UCI {
 
     namespace {
 
-        void onHash(const Option&) noexcept {
-            TT.autoResize(uint32_t(Options["Hash"]));
-            TTEx.autoResize(uint32_t(Options["Hash"])/4);
+        void onHash(Option const &o) noexcept {
+            TT.autoResize(uint32_t(o));
+            TTEx.autoResize(uint32_t(o)/4);
         }
 
-        void onClearHash(const Option&) noexcept {
+        void onClearHash(Option const&) noexcept {
             UCI::clear();
         }
 
-        void onSaveHash(const Option&) noexcept {
+        void onSaveHash(Option const&) noexcept {
             TT.save(Options["Hash File"]);
         }
-        void onLoadHash(const Option&) noexcept {
+        void onLoadHash(Option const&) noexcept {
             TT.load(Options["Hash File"]);
         }
 
-        void onBookFile(const Option&) noexcept {
-            Book.initialize(Options["Book File"]);
+        void onBookFile(Option const &o) noexcept {
+            Book.initialize(o);
         }
 
-        void onThreads(const Option&) noexcept {
+        void onThreads(Option const&) noexcept {
             auto const threadCount{ optionThreads() };
-            if (threadCount != Threadpool.size()) {
-                Threadpool.setup(threadCount);
-            }
+            //if (threadCount != Threadpool.size()) {
+            Threadpool.setup(threadCount);
+            //}
         }
 
-        void onTimeNodes(const Option&) noexcept {
+        void onTimeNodes(Option const&) noexcept {
             TimeMgr.clear();
         }
 
-        void onLogFile(const Option&) noexcept {
+        void onLogFile(Option const &o) noexcept {
             if (!StdLogger) {
                 StdLogger.emplace(std::cin, std::cout); // Tie std::cin and std::cout to a file.
             }
-            StdLogger.value().setup(Options["Log File"]);
+            StdLogger.value().setup(o);
         }
 
-        void onSyzygyPath(const Option&) noexcept {
-            SyzygyTB::initialize(Options["SyzygyPath"]);
+        void onSyzygyPath(Option const &o) noexcept {
+            SyzygyTB::initialize(o);
         }
 
-        void onUseNNUE(const Option&) noexcept {
+        void onUseNNUE(Option const&) noexcept {
             Evaluator::NNUE::initialize();
         }
-        void onEvalFile(const Option&) noexcept {
+        void onEvalFile(Option const&) noexcept {
             Evaluator::NNUE::initialize();
         }
     }

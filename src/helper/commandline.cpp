@@ -15,13 +15,8 @@ namespace CommandLine {
     std::string binaryDirectory;  // path of the executable directory
     std::string workingDirectory; // path of the working directory
 
-    void initialize(int argc, char const *const argv[]) {
-        (void)argc;
-        std::string separator;
-
-        std::string argv0; // path+name of the executable binary, as given by argv[0]
-        // Extract the path+name of the executable binary
-        argv0 = argv[0];
+    // path+name of the executable binary, as given by argv[0]
+    void initialize(std::string argv0) {
 
         std::string pathSeparator; // Separator for our current OS
 #if defined(_WIN32)

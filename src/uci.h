@@ -23,7 +23,7 @@ namespace UCI {
 
     public:
 
-        using OnChange = void(*)(const Option&);
+        using OnChange = void(*)(Option const&);
 
         Option(OnChange = nullptr);
         Option(bool, OnChange = nullptr);

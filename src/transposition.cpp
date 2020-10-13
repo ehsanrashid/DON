@@ -61,9 +61,6 @@ uint32_t TTable::size() const noexcept {
 /// Transposition table consists of a power of 2 number of clusters and
 /// each cluster consists of EntryPerCluster number of TTEntry.
 size_t TTable::resize(size_t memSize) {
-    memSize = std::clamp(memSize, MinHashSize, MaxHashSize);
-
-    Threadpool.mainThread()->waitIdle();
 
     free();
 
@@ -81,7 +78,11 @@ size_t TTable::resize(size_t memSize) {
 
 /// TTable::autoResize() set size automatically
 void TTable::autoResize(size_t memSize) {
+
+    Threadpool.mainThread()->waitIdle();
+
     auto mSize{ memSize != 0 ? memSize : MaxHashSize };
+    mSize = std::clamp(mSize, MinHashSize, MaxHashSize);
     while (mSize >= MinHashSize) {
         if (resize(mSize) != 0) {
             return;

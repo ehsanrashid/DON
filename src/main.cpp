@@ -20,7 +20,8 @@ int main(int argc, char const *const argv[]) {
     std::cout << Name << " " << engineInfo() << " by " << Author << '\n';
     std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency() << '\n';
 
-    CommandLine::initialize(argc, argv);
+    // path+name of the executable binary, as given by argv[0]
+    CommandLine::initialize(argv[0]);
     UCI::initialize();
     Tune::initialize();
     Bitboards::initialize();
