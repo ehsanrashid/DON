@@ -26,20 +26,18 @@ public:
     //Key            key() const noexcept { return Key(k16); }
     Depth        depth() const noexcept { return Depth(d08 + DEPTH_OFFSET); }
 
-    uint8_t generation() const noexcept { return uint8_t(g08 & 248); }
-    bool            pv() const noexcept { return bool   (g08 & 4); }
-    Bound        bound() const noexcept { return Bound  (g08 & 3); }
+    uint8_t generation() const noexcept { return uint8_t(g08 & 0xF8); }
+    bool            pv() const noexcept { return bool   (g08 & 0x04); }
+    Bound        bound() const noexcept { return Bound  (g08 & 0x03); }
 
     Value        value() const noexcept { return Value(v16); }
     Value         eval() const noexcept { return Value(e16); }
 
     Move          move() const noexcept { return Move(m16); }
 
-    uint16_t     worth() const noexcept { return d08 - ((263 + Generation - g08) & 248); }
+    uint16_t     worth() const noexcept { return d08 - ((0x107 + Generation - g08) & 0xF8); }
 
-    void refresh() noexcept {
-        g08 = uint8_t(Generation | (g08 & 7));
-    }
+    void       refresh() noexcept { g08 = uint8_t(Generation | (g08 & 0x07)); }
 
     void save(Key k, Move m, Value v, Value e, Depth d, Bound b, bool pv) noexcept {
 
@@ -92,7 +90,7 @@ struct TCluster {
 
     uint32_t freshEntryCount() const noexcept {
         return std::count_if(std::begin(entry), std::end(entry),
-            [](auto const &e) noexcept {
+            [](TEntry const &e) noexcept {
                 return e.d08 != 0 && e.generation() == TEntry::Generation;
             });
     }
@@ -128,7 +126,7 @@ public:
 
     TCluster* cluster(Key) const noexcept;
 
-    size_t resize(size_t);
+    bool resize(size_t);
 
     void autoResize(size_t);
 

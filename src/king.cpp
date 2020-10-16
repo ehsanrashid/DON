@@ -94,15 +94,13 @@ namespace King {
 
             if (kingSq[Own] != kSq) {
                 // In endgame, king near to closest pawn
-                int32_t minPawnDist{ 7 };
+                int32_t minPawnDist{ 6 }; // Max can be 6 because pawn on last rank promotes
                 Bitboard pawns{ pos.pieces(Own, PAWN) };
                 if ((pawns & attacksBB<KING>(kSq)) != 0) {
                     minPawnDist = 1;
                 }
-                else {
-                    while (pawns != 0) {
-                        minPawnDist = std::min(distance(kSq, popLSq(pawns)), minPawnDist);
-                    }
+                else while (pawns != 0) {
+                    minPawnDist = std::min(distance(kSq, popLSq(pawns)), minPawnDist);
                 }
                 pawnDist[Own] = makeScore(0, 16 * minPawnDist);
             }
@@ -146,7 +144,6 @@ namespace King {
     }
 
     Entry* probe(Position const &pos, Pawns::Entry *pe) {
-
         auto const wkSq{ pos.square(W_KING) };
         auto const bkSq{ pos.square(B_KING) };
 
@@ -158,6 +155,7 @@ namespace King {
         auto *e{ pos.thread()->kingHash[kingKey] };
 
         if (e->key == kingKey) {
+            assert(e->pawnEntry == pe);
             return e;
         }
 

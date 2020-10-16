@@ -128,7 +128,19 @@ extern Magic RMagics[SQUARES];
 extern uint8_t PopCount[USHRT_MAX+1]; // 16-bit
 #endif
 
-constexpr Bitboard operator~(Square s) { return ~SquareBB[s]; }
+constexpr Bitboard operator~(Square s) noexcept { return ~SquareBB[s]; }
+constexpr Bitboard operator|(Square s1, Square s2) noexcept { return SquareBB[s1] | SquareBB[s2]; }
+
+constexpr Bitboard operator&(Square s, Bitboard bb) noexcept { return bb & SquareBB[s]; }
+constexpr Bitboard operator|(Square s, Bitboard bb) noexcept { return bb | SquareBB[s]; }
+constexpr Bitboard operator^(Square s, Bitboard bb) noexcept { return bb ^ SquareBB[s]; }
+
+constexpr Bitboard operator&(Bitboard bb, Square s) noexcept { return bb & SquareBB[s]; }
+constexpr Bitboard operator|(Bitboard bb, Square s) noexcept { return bb | SquareBB[s]; }
+constexpr Bitboard operator^(Bitboard bb, Square s) noexcept { return bb ^ SquareBB[s]; }
+
+inline Bitboard& operator|=(Bitboard &bb, Square s) noexcept { return bb |= SquareBB[s]; }
+inline Bitboard& operator^=(Bitboard &bb, Square s) noexcept { return bb ^= SquareBB[s]; }
 
 constexpr Bitboard fileBB(Square s) { return FileBB[sFile(s)]; }
 constexpr Bitboard rankBB(Square s) { return RankBB[sRank(s)]; }
@@ -136,19 +148,6 @@ constexpr Bitboard rankBB(Square s) { return RankBB[sRank(s)]; }
 constexpr Bitboard frontRanksBB(Color c, Square s) { return FrontRankBB[c][sRank(s)]; }
 
 constexpr bool contains(Bitboard bb, Square s) { return (bb & SquareBB[s]) != 0; }
-
-constexpr Bitboard operator&(Square s, Bitboard bb) { return bb & SquareBB[s]; }
-constexpr Bitboard operator|(Square s, Bitboard bb) { return bb | SquareBB[s]; }
-constexpr Bitboard operator^(Square s, Bitboard bb) { return bb ^ SquareBB[s]; }
-
-constexpr Bitboard operator&(Bitboard bb, Square s) { return bb & SquareBB[s]; }
-constexpr Bitboard operator|(Bitboard bb, Square s) { return bb | SquareBB[s]; }
-constexpr Bitboard operator^(Bitboard bb, Square s) { return bb ^ SquareBB[s]; }
-
-inline Bitboard& operator|=(Bitboard &bb, Square s) noexcept { return bb |= SquareBB[s]; }
-inline Bitboard& operator^=(Bitboard &bb, Square s) noexcept { return bb ^= SquareBB[s]; }
-
-constexpr Bitboard operator|(Square s1, Square s2) { return SquareBB[s1] | SquareBB[s2]; }
 
 constexpr bool moreThanOne(Bitboard bb) {
     return (bb & (bb - 1)) != 0;
@@ -375,7 +374,7 @@ inline Square scanMSq(Bitboard bb) noexcept {
 }
 
 // Find the most advanced square in the given bitboard relative to the given color.
-template<Color C> inline Square scanFrontMostSq(Bitboard) noexcept { return 0; }
+template<Color C> inline Square scanFrontMostSq(Bitboard) noexcept;
 template<> inline Square scanFrontMostSq<WHITE>(Bitboard bb) noexcept { assert(bb != 0); return scanMSq(bb); }
 template<> inline Square scanFrontMostSq<BLACK>(Bitboard bb) noexcept { assert(bb != 0); return scanLSq(bb); }
 

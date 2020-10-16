@@ -87,8 +87,8 @@ namespace {
     constexpr uint64_t TTHitAverageWindow{ 4096 };
     constexpr uint64_t TTHitAverageResolution{ 1024 };
 
-    constexpr int32_t MaxMoves{ 256 };
-    int32_t Reduction[MaxMoves];
+    constexpr int32_t MAX_MOVES{ 256 };
+    int32_t Reduction[MAX_MOVES];
     inline Depth reduction(Depth d, uint8_t mc, bool imp) noexcept {
         assert(d >= DEPTH_ZERO);
         auto const r{ Reduction[d] * Reduction[mc] };
@@ -97,12 +97,7 @@ namespace {
 
     /// Futility Move Count
     constexpr int16_t futilityMoveCount(Depth d, bool imp) noexcept {
-        return int16_t( (3 + nSqr(d)) / (2 - 1 * (imp)) );
-    }
-
-    /// Add a small random component to draw evaluations to avoid 3-fold-blindness
-    Value drawValue(Thread const *th) noexcept {
-        return VALUE_DRAW + Value(2 * (th->nodes & 1) - 1);
+        return int16_t( (3 + d*d) / (2 - 1 * imp) );
     }
 
     /// valueToTT() adjusts a mate or TB score from "plies to mate from the root" to
@@ -117,7 +112,7 @@ namespace {
     /// to "plies to mate/be mated (TB win/loss) from the root".
     /// However, for mate scores, to avoid potentially false mate scores related to the 50 moves rule,
     /// and the graph history interaction, return an optimal TB score instead.
-    inline Value valueOfTT(Value v, int32_t ply, int32_t clockPly) noexcept {
+    constexpr Value valueOfTT(Value v, int32_t ply, int32_t clockPly) noexcept {
 
         if (v != VALUE_NONE) {
             // TB win or better
@@ -141,6 +136,11 @@ namespace {
     /// statBonus() is the bonus, based on depth
     constexpr int32_t statBonus(Depth depth) noexcept {
         return depth <= 13 ? (17 * depth + 134) * depth - 134 : 29;
+    }
+
+    /// Add a small random component to draw evaluations to avoid 3-fold-blindness
+    Value drawValue(Thread const* th) noexcept {
+        return VALUE_DRAW + Value(2 * (th->nodes & 1) - 1);
     }
 
     /// updateContinuationStats() updates Stats of the move pairs formed
@@ -299,7 +299,7 @@ namespace {
 
     /// quienSearch() is quiescence search function, which is called by the main depth limited search function when the remaining depth <= 0.
     template<bool PVNode>
-    Value quienSearch(Position &pos, Stack *ss, Value alfa, Value beta, Depth depth = DEPTH_ZERO) {
+    Value quienSearch(Position &pos, Stack *const ss, Value alfa, Value beta, Depth depth = DEPTH_ZERO) {
 
         assert(-VALUE_INFINITE <= alfa && alfa < beta && beta <= +VALUE_INFINITE);
         assert(PVNode || (alfa == beta-1));
@@ -390,6 +390,7 @@ namespace {
             if (alfa < bestValue) {
                 // Stand pat. Return immediately if static value is at least beta
                 if (bestValue >= beta) {
+
                     if (!ss->ttHit) {
                         tte->save(key,
                                   MOVE_NONE,
@@ -556,9 +557,10 @@ namespace {
         assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
         return bestValue;
     }
+
     /// depthSearch() is main depth limited search function, which is called when the remaining depth > 0.
     template<bool PVNode>
-    Value depthSearch(Position &pos, Stack *ss, Value alfa, Value beta, Depth depth, bool cutNode) {
+    Value depthSearch(Position &pos, Stack *const ss, Value alfa, Value beta, Depth depth, bool cutNode) {
 
         bool const rootNode{ PVNode && ss->ply == 0 };
 
@@ -693,6 +695,7 @@ namespace {
          &&  ttValue != VALUE_NONE
          &&  tte->depth() >= depth
          && (tte->bound() & (ttValue >= beta ? BOUND_LOWER : BOUND_UPPER))) {
+
             if (ttMove != MOVE_NONE) {
                 // If ttMove is quiet, update move sorting heuristics on TT hit
                 if (!pos.captureOrPromotion(ttMove)) {
@@ -857,12 +860,12 @@ namespace {
             // Step 9. Null move search with verification search (~40 ELO)
             if (!PVNode
              && eval >= beta
+             && eval >= ss->staticEval
+             && excludedMove == MOVE_NONE
              && (ss-1)->playedMove != MOVE_NULL
              && (ss-1)->stats < 22977
-             && eval >= ss->staticEval
              && ss->staticEval >= beta - 30 * depth - 28 * improving + 84 * ss->ttPV + 182
              && pos.nonPawnMaterial(activeSide) != VALUE_ZERO
-             && excludedMove == MOVE_NONE
              // Null move pruning disabled for activeSide until ply exceeds nmpPly
              && (ss->ply >= thread->nmpMinPly
               || activeSide != thread->nmpColor)
@@ -930,17 +933,17 @@ namespace {
                 // because probCut search has depth set to depth - 4 but we also do a move before it
                 // so effective depth is equal to depth - 3
              && !(ss->ttHit
-               && tte->depth() >= depth - 3
                && ttValue != VALUE_NONE
-               && ttValue < probCutBeta)
+               && ttValue < probCutBeta
+               && tte->depth() >= depth - 3)
              && Limits.mate == 0) {
 
                 // if ttMove is a capture and value from transposition table is good enough produce probCut
                 // cutoff without digging into actual probCut search
                 if (ss->ttHit
-                 && tte->depth() >= depth - 3
                  && ttValue != VALUE_NONE
                  && ttValue >= probCutBeta
+                 && tte->depth() >= depth - 3
                  && ttMove != MOVE_NONE
                  && pos.captureOrPromotion(ttMove)) { 
                     return probCutBeta;
@@ -950,8 +953,8 @@ namespace {
 
                 bool const ttPV{ ss->ttPV };
                 ss->ttPV = false;
-                uint8_t probCutCount{ 0 };
 
+                uint8_t probCutCount{ 0 };
                 // Initialize move-picker(3) for the current position
                 MovePicker movePicker{
                     pos,
@@ -998,29 +1001,32 @@ namespace {
                     if (value >= probCutBeta) {
                         // If TT doesn't have equal or more deep info write probCut data into it
                         if (!(ss->ttHit
-                           && tte->depth() >= depth - 3
-                           && ttValue != VALUE_NONE)) {
+                           && ttValue != VALUE_NONE
+                           && tte->depth() >= depth - 3)) {
+
                             tte->save(key,
                                       move,
                                       valueToTT(value, ss->ply),
                                       ss->staticEval,
                                       depth - 3,
                                       BOUND_LOWER,
-                                      ss->ttPV);
+                                      ttPV);
                         }
+
                         return value;
                     }
                 }
 
                 ss->ttPV = ttPV;
             }
-        }
 
-        // Step 11. If the position is not in TT, decrease depth by 2
-        if (PVNode
-         && depth >= 6
-         && ttMove == MOVE_NONE) {
-            depth -= 2;
+            // Step 11. If the position is not in TT, decrease depth by 2
+            if (PVNode
+             && depth >= 6
+             && ttMove == MOVE_NONE) {
+                depth -= 2;
+            }
+
         }
 
         value = bestValue;
@@ -1053,10 +1059,8 @@ namespace {
             ss->killerMoves, counterMove };
 
         uint8_t moveCount{ 0 };
-        Moves quietMoves;
-        Moves captureMoves;
-        quietMoves.reserve(32);
-        captureMoves.reserve(16);
+        Moves quietMoves;   quietMoves.reserve(32);
+        Moves captureMoves; captureMoves.reserve(16);
 
         // Step 12. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
         while ((move = movePicker.nextMove()) != MOVE_NONE) {
@@ -1160,7 +1164,7 @@ namespace {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 ELO)
-                    if (!pos.see(move, Value(-(29 - std::min(lmrDepth, { 18 })) * nSqr(lmrDepth)))) {
+                    if (!pos.see(move, Value(-(29 - std::min(lmrDepth, { 18 })) * lmrDepth*lmrDepth))) {
                         continue;
                     }
                 }
@@ -1273,8 +1277,7 @@ namespace {
                     // Increase if other threads are searching this position.
                     +1 * threadMarker.marked
                     // Increase if move count pruning
-                    +1 * (moveCountPruning
-                       && !pastPV)
+                    +1 * (moveCountPruning && !pastPV)
                     // Decrease if the ttHit running average is large
                     -1 * (thread->ttHitAvg > 509 * TTHitAverageWindow)
                     // Decrease if position is or has been on the PV (~10 ELO)
@@ -1329,7 +1332,7 @@ namespace {
                     reductDepth -= int16_t(ss->stats / 14884);
                 }
 
-                Depth const d( std::clamp(newDepth - reductDepth, 1, { newDepth }) );
+                Depth const d(std::clamp(newDepth - reductDepth, { 1 }, { newDepth }));
 
                 value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, d, true);
 
@@ -1380,11 +1383,13 @@ namespace {
             }
 
             if (rootNode) {
+
                 assert(thread->rootMoves.contains(move));
                 RootMove &rm{ *thread->rootMoves.find(move) };
                 // First PV move or new best move?
                 if (moveCount == 1
                  || alfa < value) {
+
                     rm.newValue = value;
                     rm.selDepth = thread->selDepth;
                     rm.resize(1);
@@ -1510,17 +1515,18 @@ namespace {
             // If no good move is found and the previous position was ttPv, then the previous
             // opponent move is probably good and the new position is added to the search tree.
             if (bestValue <= alfa) {
-                ss->ttPV = ss->ttPV || (ss-1)->ttPV;
+                ss->ttPV |= (ss-1)->ttPV;
             }
             // Otherwise, a counter move has been found and if the position is the last leaf
             // in the search tree, remove the position from the search tree.
             else {
-                ss->ttPV = ss->ttPV && (ss+1)->ttPV;
+                ss->ttPV &= (ss+1)->ttPV;
             }
         }
 
-        //if (excludedMove == MOVE_NONE
-        // && !(rootNode && thread->pvCur != 0)) {
+        if (//excludedMove == MOVE_NONE &&
+            !(rootNode && thread->pvCur != 0)) {
+
             tte->save(key,
                       bestMove,
                       valueToTT(bestValue, ss->ply),
@@ -1529,7 +1535,7 @@ namespace {
                       bestValue >= beta ? BOUND_LOWER :
                       PVNode && bestMove != MOVE_NONE ? BOUND_EXACT : BOUND_UPPER,
                       ss->ttPV);
-        //}
+        }
 
         assert(-VALUE_INFINITE < bestValue && bestValue < +VALUE_INFINITE);
         return bestValue;
@@ -1543,7 +1549,7 @@ namespace Searcher {
 
         double const r{ 22.0 + 2 * std::log(Threadpool.size()) };
         Reduction[0] = 0;
-        for (int16_t i = 1; i < MaxMoves; ++i) {
+        for (int16_t i = 1; i < MAX_MOVES; ++i) {
             Reduction[i] = int32_t(r * std::log(i + 0.25 * std::log(i)));
         }
     }
@@ -1558,7 +1564,7 @@ void Thread::search() {
     ttHitAvg = (TTHitAverageResolution / 2) * TTHitAverageWindow;
 
     int16_t timedContempt{ 0 };
-    int32_t contemptTime{ Options["Contempt Time"] };
+    int32_t const contemptTime{ Options["Contempt Time"] };
     if (contemptTime != 0
      && Limits.useTimeMgmt()) {
         int64_t const diffTime{
@@ -1661,7 +1667,7 @@ void Thread::search() {
 
                 // Dynamic contempt
                 auto dc{ bc };
-                int32_t contemptValue{ Options["Contempt Value"] };
+                int32_t const contemptValue{ Options["Contempt Value"] };
                 if (contemptValue != 0) {
                     dc += ((105 - bc / 2) * oldValue * 100) / ((std::abs(oldValue) + 149) * contemptValue);
                 }
@@ -1693,8 +1699,8 @@ void Thread::search() {
                 }
 
                 // Give some update before to re-search.
-                if (Threadpool.pvCount == 1
-                 && mainThread != nullptr
+                if (mainThread != nullptr
+                 && Threadpool.pvCount == 1
                  && (bestValue <= alfa
                   || beta <= bestValue)
                  && TimeMgr.elapsed() > 3000) {
@@ -1780,8 +1786,7 @@ void Thread::search() {
                 auto const fallingEval{
                     std::clamp((318
                               + 6 * (mainThread->bestValue - bestValue)
-                              + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 825.0,
-                                0.50, 1.50) };
+                              + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 825.0, 0.50, 1.50) };
 
                 pvChangesSum += Threadpool.accumulate(&Thread::pvChanges);
                 // Set pvChanges to 0

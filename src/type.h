@@ -87,18 +87,11 @@
 using Key = uint64_t;
 using Bitboard = uint64_t;
 
-constexpr uint32_t nSqr(int16_t n) {
-    return uint32_t(n) * n;
-}
-constexpr uint64_t nSqr(int32_t n) {
-    return uint64_t(n) * n;
-}
-
 // Return the sign of a number (-1, 0, 1)
 template<typename T>
-constexpr int32_t sign(T const &v) {
+inline constexpr int32_t sign(T const &v) {
     //return (T{} < v) - (v < T{});
-    return (0 < v) - (v < 0);
+    return (T(0) < v) - (v < T(0));
 }
 
 enum Color : int8_t {

@@ -35,9 +35,9 @@ void TimeManager::setup(Color c, int16_t ply) noexcept {
         Limits.clock[c].time = remainingNodes;
         Limits.clock[c].inc *= timeNodes;
     }
+
     // Maximum move horizon: Plan time management at most this many moves ahead.
-    int32_t maxMovestogo{ Limits.movestogo != 0 ?
-                        std::min(int32_t(Limits.movestogo), 50) : 50 };
+    int32_t const maxMovestogo{ Limits.movestogo != 0 ? std::min(int32_t(Limits.movestogo), 50) : 50 };
     
     // Make sure timeLeft is > 0 since we may use it as a divisor
     TimePoint remainTime{ std::max(Limits.clock[c].time
@@ -55,14 +55,14 @@ void TimeManager::setup(Color c, int16_t ply) noexcept {
     // If there is a healthy increment, timeLeft can exceed actual available
     // game time for the current move, so also cap to 20% of available game time.
     if (Limits.movestogo == 0) {
-        optimumScale = std::min((0.2 * Limits.clock[c].time) / remainTime,
+        optimumScale = std::min(0.2 * Limits.clock[c].time / double(remainTime),
                                 0.008 + std::pow(ply + 3.0, 0.5) / 250.0);
         maximumScale = std::min(4.0 + ply / 12.0, 7.0);
     }
     // x moves in y seconds (+ z increment)
     else {
-        optimumScale = std::min((0.8 * Limits.clock[c].time) / remainTime,
-                                (0.8 + ply / 128.0) / maxMovestogo);
+        optimumScale = std::min(0.8 * Limits.clock[c].time / double(remainTime),
+                               (0.8 + ply / 128.0) / double(maxMovestogo));
         maximumScale = std::min(1.5 + 0.11 * maxMovestogo, 6.3);
     }
     // Never use more than 80% of the available time for this move

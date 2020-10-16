@@ -31,7 +31,7 @@ namespace {
     /// sortPartial() sorts (insertion) item in descending order up to and including a given limit.
     /// The order of item smaller than the limit is left unspecified.
     /// Sorts only in range [beg, end]
-    void sortPartial(ValMoves::iterator const &beg, ValMoves::iterator const &end, int32_t limit) {
+    void sortPartial(ValMoves::iterator beg, ValMoves::iterator end, int32_t limit) {
 
         if (beg == end) {
             return;
@@ -44,16 +44,15 @@ namespace {
                 auto unsortedItem{ *unsortedBeg };
                 *unsortedBeg = *++sortedEnd;
 
-                auto e0{ sortedEnd };
-                while (e0 != beg) {
-                    auto e1{ e0 - 1 };
-                    if (e1->value >= unsortedItem.value) {
+                auto itr{ sortedEnd };
+                while (itr != beg) {
+                    if ((itr - 1)->value >= unsortedItem.value) {
                         break;
                     }
-                    *e0 = *e1;
-                    e0 = e1;
+                    *itr = *(itr - 1);
+                    --itr;
                 }
-                *e0 = unsortedItem;
+                *itr = unsortedItem;
             }
             ++unsortedBeg;
         }

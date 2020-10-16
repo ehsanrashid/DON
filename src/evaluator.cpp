@@ -235,7 +235,7 @@ namespace Evaluator {
         constexpr Score KingFlankAttacks  { S(  8,  0) };
         constexpr Score PieceRestricted   { S(  7,  7) };
         constexpr Score PieceHanged       { S( 69, 36) };
-        constexpr Score QueenProtected    { S( 14,  0) };
+        constexpr Score QueenProtection   { S( 14,  0) };
         constexpr Score PawnThreat        { S(173, 94) };
         constexpr Score PawnPushThreat    { S( 48, 39) };
         constexpr Score KingThreat        { S( 24, 89) };
@@ -287,9 +287,9 @@ namespace Evaluator {
 
             Position const &pos;
 
-            King    ::Entry *kingEntry{ nullptr };
             Material::Entry *matlEntry{ nullptr };
             Pawns   ::Entry *pawnEntry{ nullptr };
+            King    ::Entry *kingEntry{ nullptr };
 
             // Contains all squares attacked by the color and piece type.
             Bitboard attackedFull[COLORS];
@@ -335,6 +335,8 @@ namespace Evaluator {
             attackedBy2[Own] = pawnEntry->dblAttacks[Own]
                              | (attackedBy[Own][PAWN]
                               & attackedBy[Own][KING]);
+
+            std::fill_n(attackedQueen[Own], 3, 0);
 
             // Mobility area: Exclude followings
             mobArea[Own] = ~(// Squares protected by enemy pawns
@@ -384,10 +386,6 @@ namespace Evaluator {
             Score score{ SCORE_ZERO };
 
             Square const *ps{ pos.squares(Own|PT) };
-            if (PT == QUEN
-             && *ps != SQ_NONE) {
-                std::fill_n(attackedQueen[Own], 3, 0);
-            }
             Square s;
             while ((s = *ps++) != SQ_NONE) {
                 assert(pos[s] == (Own|PT));
@@ -413,7 +411,7 @@ namespace Evaluator {
                     score += BishopOnKingRing;
                 }
                 else if (PT == ROOK
-                      && (kingRing[Opp] & fileBB(s)) != 0) {
+                      && (kingRing[Opp] & attacksBB<ROOK>(s, pos.pieces(PAWN))) != 0) {
                     score += RookOnKingRing;
                 }
 
@@ -636,7 +634,7 @@ namespace Evaluator {
             }
 
             // Enemy bishops checks
-            Bitboard bshpSafeChecks{
+            Bitboard const bshpSafeChecks{
                 bshpPins
               & attackedBy[Opp][BSHP]
               & safeArea
@@ -651,7 +649,7 @@ namespace Evaluator {
             }
 
             // Enemy knights checks
-            Bitboard nihtSafeChecks{
+            Bitboard const nihtSafeChecks{
                 attacksBB<NIHT>(kSq)
               & attackedBy[Opp][NIHT]
               & safeArea };
@@ -688,7 +686,7 @@ namespace Evaluator {
                         + 185 * popCount(kingRing[Own] & weakArea)
                         + 148 * popCount(unsafeCheck)
                         +  98 * popCount(pos.kingBlockers(Own))
-                        +   3 * int32_t(nSqr(kingFlankAttack)) / 8
+                        +   3 * (kingFlankAttack*kingFlankAttack) / 8
                         // Enemy queen is gone
                         - 873 * (pos.pieces(Opp, QUEN) == 0)
                         // Friend knight is near by to defend king
@@ -703,7 +701,7 @@ namespace Evaluator {
 
             // transform the king danger into a score
             if (kingDanger > 100) {
-                score -= makeScore(uint32_t(nSqr(kingDanger) / 0x1000), kingDanger / 0x10);
+                score -= makeScore((kingDanger*kingDanger) / 0x1000, kingDanger / 0x10);
             }
 
             // Penalty for king on a pawn less flank
@@ -790,7 +788,7 @@ namespace Evaluator {
                     // Additional bonus if weak piece is only protected by a queen
                     b =  attackedUndefendedEnemies
                       &  attackedBy[Opp][QUEN];
-                    score += QueenProtected * popCount(b);
+                    score += QueenProtection * popCount(b);
                 }
             }
 
@@ -1148,9 +1146,9 @@ namespace Evaluator {
 
         Value v;
 
-        auto const npm{ pos.nonPawnMaterial() };
-
         if (useNNUE) {
+
+            auto const npm{ pos.nonPawnMaterial() };
             // Scale and shift NNUE for compatibility with search and classical evaluation
             auto const nnueAdjEvaluate = [&]() {
                 int32_t const mat{ npm + VALUE_MG_PAWN * pos.count(PAWN) };
@@ -1160,7 +1158,7 @@ namespace Evaluator {
 
             // If there is PSQ imbalance use classical eval, with small probability if it is small
             Value   const psq{ Value(std::abs(egValue(pos.psqScore()))) };
-            int32_t const r50{ pos.clockPly() + 16 };
+            int32_t const r50{ 16 + pos.clockPly() };
             bool    const psqLarge{ psq * 16 > (NNUEThreshold1 + npm / 64) * r50 };
             bool    const classical{
                 psqLarge
@@ -1174,9 +1172,9 @@ namespace Evaluator {
                 // For the case of opposite colored bishops, switch to NNUE eval with
                 // small probability if the classical eval is less than the threshold.
                 if ( psqLarge
-                 && ( abs(v) * 16 < NNUEThreshold2 * r50
+                 && ( std::abs(v) * 16 < NNUEThreshold2 * r50
                   || (pos.bishopOpposed()
-                   && abs(v) * 16 < (NNUEThreshold1 + npm / 64) * r50
+                   && std::abs(v) * 16 < (NNUEThreshold1 + npm / 64) * r50
                    && (pos.thread()->nodes & 0xB) == 0))) {
                     v = nnueAdjEvaluate();
                 }

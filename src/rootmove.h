@@ -61,11 +61,13 @@ public:
 
     std::string toString() const;
 
-    Value oldValue{ -VALUE_INFINITE }
-        , newValue{ -VALUE_INFINITE };
+    Value oldValue{ -VALUE_INFINITE },
+          newValue{ -VALUE_INFINITE };
+    
     Depth selDepth{ DEPTH_ZERO };
+
     int16_t tbRank{ 0 };
-    Value tbValue{ VALUE_ZERO };
+    Value   tbValue{ VALUE_ZERO };
 
 };
 

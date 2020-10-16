@@ -220,7 +220,7 @@ namespace UCI {
     }
     Option::operator  int16_t() const noexcept {
         assert(type == "spin");
-        return int16_t( std::stoi(currentVal) );
+        return  int16_t( std::stoi(currentVal) );
     }
     Option::operator uint16_t() const noexcept {
         assert(type == "spin");
@@ -228,7 +228,7 @@ namespace UCI {
     }
     Option::operator  int32_t() const noexcept {
         assert(type == "spin");
-        return int32_t( std::stoi(currentVal) );
+        return  int32_t( std::stoi(currentVal) );
     }
     Option::operator uint32_t() const noexcept {
         assert(type == "spin");
@@ -236,7 +236,7 @@ namespace UCI {
     }
     Option::operator  int64_t() const noexcept {
         assert(type == "spin");
-        return int64_t( std::stoi(currentVal) ); //std::stol(currentVal);
+        return  int64_t( std::stoi(currentVal) ); //std::stol(currentVal);
     }
     Option::operator uint64_t() const noexcept {
         assert(type == "spin");

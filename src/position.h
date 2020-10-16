@@ -117,9 +117,13 @@ public:
     int16_t clockPly() const noexcept;
     int16_t nullPly() const noexcept;
 
+    // Accessing hash keys
     Key matlKey() const noexcept;
     Key pawnKey() const noexcept;
     Key posiKey() const noexcept;
+    Key pgKey() const noexcept;
+    Key movePosiKey(Move) const noexcept;
+
     Bitboard checkers() const noexcept;
     PieceType captured() const noexcept;
     bool promoted() const noexcept;
@@ -136,9 +140,6 @@ public:
     void thread(Thread*) noexcept;
 
     bool castleExpeded(Color, CastleSide) const noexcept;
-
-    Key pgKey() const noexcept;
-    Key movePosiKey(Move) const noexcept;
 
     int16_t moveCount() const noexcept;
     bool draw(int16_t) const noexcept;
@@ -234,7 +235,7 @@ inline Piece Position::operator[](Square s) const noexcept {
     return board[s];
 }
 inline bool Position::empty(Square s) const noexcept {
-    return operator[](s) == NO_PIECE;
+    return board[s] == NO_PIECE;
 }
 
 //inline Bitboard Position::pieces(Piece p) const noexcept { return colors[pColor(p)] & types[pType(p)]; }

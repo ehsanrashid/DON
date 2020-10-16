@@ -157,6 +157,7 @@ namespace Pawns {
         }
 
         e->key = pawnKey;
+
         e->blockeds = 0;
         e->pawnsOnBothFlank = (pos.pieces(PAWN) & SlotFileBB[CS_KING]) != 0
                            && (pos.pieces(PAWN) & SlotFileBB[CS_QUEN]) != 0;

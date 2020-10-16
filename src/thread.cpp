@@ -23,6 +23,7 @@ Thread::Thread(uint16_t idx) :
 
     waitIdle();
 }
+
 /// Thread destructor wakes up the thread in threadFunc() and waits for its termination.
 /// Thread should be already waiting.
 Thread::~Thread() {
@@ -31,18 +32,21 @@ Thread::~Thread() {
     wakeUp();
     nativeThread.join();
 }
+
 /// Thread::wakeUp() wakes up the thread that will start the search.
 void Thread::wakeUp() {
     std::lock_guard<std::mutex> lockGuard(mutex);
     busy = true;
     conditionVar.notify_one(); // Wake up the thread in threadFunc()
 }
+
 /// Thread::waitIdle() blocks on the condition variable while the thread is busy.
 void Thread::waitIdle() {
     std::unique_lock<std::mutex> uniqueLock(mutex);
     conditionVar.wait(uniqueLock, [&]{ return !busy; });
     //uniqueLock.unlock();
 }
+
 /// Thread::threadFunc() is where the thread is parked.
 /// Blocked on the condition variable, when it has no work to do.
 void Thread::threadFunc() {
@@ -69,6 +73,7 @@ void Thread::threadFunc() {
         search();
     }
 }
+
 /// Thread::clean() clears all the thread related stuff.
 void Thread::clean() {
     butterFlyStats.fill(0);
@@ -98,6 +103,7 @@ void MainThread::clean() {
     timeReduction = 1.00;
     iterValues.fill(VALUE_ZERO);
 }
+
 
 ThreadPool::~ThreadPool() {
     setup(0);
@@ -226,6 +232,10 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
         th->nmpColor      = COLORS;
         th->rootMoves     = rootMoves;
         th->rootPos.setup(fen, th->rootState, th);
+        assert(th->rootState.pawnKey == setupStates->back().pawnKey);
+        assert(th->rootState.matlKey == setupStates->back().matlKey);
+        assert(th->rootState.posiKey == setupStates->back().posiKey);
+        assert(th->rootState.checkers == setupStates->back().checkers);
         th->rootState     = setupStates->back();
     }
 

@@ -60,31 +60,32 @@ uint32_t TTable::size() const noexcept {
 /// TTable::resize() sets the size of the transposition table, measured in MB.
 /// Transposition table consists of a power of 2 number of clusters and
 /// each cluster consists of EntryPerCluster number of TTEntry.
-size_t TTable::resize(size_t memSize) {
+bool TTable::resize(size_t memSize) {
 
     free();
 
     clusterCount = (memSize << 20) / sizeof (TCluster);
     clusterTable = static_cast<TCluster*>(allocAlignedLargePages(clusterCount * sizeof (TCluster)));
     if (clusterTable == nullptr) {
+        clusterCount = 0;
         std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << '\n';
-        return 0;
+        return false;
     }
 
     clear();
     //sync_cout << "info string Hash memory " << memSize << " MB" << sync_endl;
-    return memSize;
+    return true;
 }
 
 /// TTable::autoResize() set size automatically
 void TTable::autoResize(size_t memSize) {
-
+    Threadpool.stop = true;
     Threadpool.mainThread()->waitIdle();
 
     auto mSize{ memSize != 0 ? memSize : MaxHashSize };
     mSize = std::clamp(mSize, MinHashSize, MaxHashSize);
     while (mSize >= MinHashSize) {
-        if (resize(mSize) != 0) {
+        if (resize(mSize)) {
             return;
         }
         mSize >>= 1;
@@ -128,6 +129,7 @@ void TTable::clear() {
 void TTable::free() noexcept {
     freeAlignedLargePages(clusterTable);
     clusterTable = nullptr;
+    clusterCount = 0;
 }
 
 /// TTable::hashFull() returns an approximation of the per-mille of the
@@ -137,11 +139,11 @@ void TTable::free() noexcept {
 /// "the hash is <x> per mill full", the engine should send this info regularly.
 /// hash, are using <x>%. of the state of full.
 uint32_t TTable::hashFull() const noexcept {
-    uint32_t freshEntryCount{ 0 };
-    for (auto *itc{ clusterTable }; itc < clusterTable + 1000; ++itc) {
-        freshEntryCount += itc->freshEntryCount();
+    uint32_t entryCount{ 0 };
+    for (auto *itc{ clusterTable }; itc < clusterTable + std::min(clusterCount, 1000ULL); ++itc) {
+        entryCount += itc->freshEntryCount();
     }
-    return freshEntryCount / TCluster::EntryPerCluster;
+    return entryCount / TCluster::EntryPerCluster;
 }
 
 /// TTable::extractNextMove() extracts next move after this move.

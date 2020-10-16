@@ -9,9 +9,11 @@ namespace {
 
     /// Drive a piece towards the edge of the board,
     /// used in KX vs K and KQ vs KR
-    inline int32_t pushToEdge(Square s) noexcept {
-        return 90 - (7 * int32_t(nSqr(edgeDistance(sFile(s)))) / 2
-                   + 7 * int32_t(nSqr(edgeDistance(sRank(s)))) / 2);
+    constexpr int32_t pushToEdge(Square s) noexcept {
+        int32_t const fd = edgeDistance(sFile(s)),
+                      rd = edgeDistance(sRank(s));
+        return 90 - (7 * fd*fd / 2
+                   + 7 * rd*rd / 2);
     }
     /// Drive a piece towards the corner of the board,
     /// used in KBN vs K to A1H8 corners
@@ -29,7 +31,7 @@ namespace {
 
     /// Required stngColor must have a single pawn
     /// Map the square as if stngColor is white and pawn square is on files A-D
-    Square normalize(Square sq, Color stngColor, File spF) {
+    constexpr Square normalize(Square sq, Color stngColor, File spF) noexcept {
 
         if (stngColor == BLACK) {
             sq = flip<Rank>(sq);
@@ -41,10 +43,12 @@ namespace {
     }
 
 #if !defined(NDEBUG)
-    bool verifyMaterial(Position const &pos, Color c, Value npm, int32_t pawnCount) {
+
+    bool verifyMaterial(Position const &pos, Color c, Value npm, int32_t pawnCount) noexcept {
         return pos.nonPawnMaterial(c) == npm
             && pos.count(c|PAWN) == pawnCount;
     }
+
 #endif
 }
 
@@ -710,15 +714,11 @@ namespace EndGame {
 
     EGMapPair<Value, Scale> EndGames;
 
-    namespace {
-
-        template<EndgameCode EC, typename T = EndgameType<EC>>
-        void addEG(std::string_view code) {
-            StateInfo si;
-            mapEG<T>()[Position().setup(code, WHITE, si).matlKey()] = EGPtr<T>(new Endgame<EC>(WHITE));
-            mapEG<T>()[Position().setup(code, BLACK, si).matlKey()] = EGPtr<T>(new Endgame<EC>(BLACK));
-        }
-
+    template<EndgameCode EC, typename T = EndgameType<EC>>
+    void addEG(std::string_view code) {
+        StateInfo si;
+        mapEG<T>()[Position().setup(code, WHITE, si).matlKey()] = EGPtr<T>(new Endgame<EC>(WHITE));
+        mapEG<T>()[Position().setup(code, BLACK, si).matlKey()] = EGPtr<T>(new Endgame<EC>(BLACK));
     }
 
     void initialize() {
