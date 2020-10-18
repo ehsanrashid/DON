@@ -38,7 +38,8 @@ namespace Evaluator::NNUE {
             16;
         #else
             8;
-        #endif  
+        #endif
+
     #elif USE_MMX
         using vec_t = __m64;
         #define vec_load(a)     (*(a))

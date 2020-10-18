@@ -430,8 +430,7 @@ namespace Evaluator {
 
                     Bitboard const sglPullPawns{ pawnSglPushBB<Opp>(pos.pieces(PAWN)) };
                     // Bonus for a knight or bishop shielded by pawn
-                    if (//relativeRank(Own, s) <= RANK_6
-                        contains(sglPullPawns, s)) {
+                    if (contains(sglPullPawns, s)) {
                         score += MinorBehindPawn;
                     }
 
@@ -503,12 +502,11 @@ namespace Evaluator {
                          && (relativeSq(Own, s) == SQ_A1
                           || relativeSq(Own, s) == SQ_H1)) {
 
-                            auto const Push{ PawnPush[Own] };
-                            auto const del{ Push + sign(FILE_E - sFile(s)) * EAST };
+                            auto const del{ PawnPush[Own] + sign(FILE_E - sFile(s)) * EAST };
                             if (contains(pos.pieces(Own, PAWN), s + del)) {
                                 score -= BishopTrapped
-                                       * (contains(pos.pieces(), s + del + Push)         ? 4 :
-                                          contains(pos.pieces(Own, PAWN), s + del + del) ? 2 : 1);
+                                       * (contains(pos.pieces(), s + del + PawnPush[Own]) ? 4 :
+                                          contains(pos.pieces(Own, PAWN), s + del + del)  ? 2 : 1);
                             }
                         }
                     }
@@ -746,7 +744,7 @@ namespace Evaluator {
             // Non-pawn enemies, defended by enemies
             Bitboard const defendedNonPawnsEnemies{
                 nonPawnsEnemies
-              & defendedArea };
+             &  defendedArea };
 
             Bitboard b;
 
@@ -856,7 +854,6 @@ namespace Evaluator {
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::passers() const {
             constexpr auto Opp{ ~Own };
-            constexpr auto Push{ PawnPush[Own] };
 
             auto const kingProximity{
                 [&](Color c, Square s) {
@@ -883,13 +880,13 @@ namespace Evaluator {
             }
             while (pass != 0) {
                 auto const s{ popLSq(pass) };
-                assert((pos.pieces(Opp, PAWN) & frontSquaresBB(Own, s + Push)) == 0);
+                assert((pos.pieces(Opp, PAWN) & frontSquaresBB(Own, s + PawnPush[Own])) == 0);
 
                 int32_t const r{ relativeRank(Own, s) };
                 // Base bonus depending on rank.
                 Score bonus{ PasserRank[r] };
 
-                auto const pushSq{ s + Push };
+                auto const pushSq{ s + PawnPush[Own] };
                 if (r > RANK_3) {
                     int32_t const w{ 5 * r - 13 };
 
@@ -898,7 +895,7 @@ namespace Evaluator {
                                          + kingProximity(Own, pushSq) * w * -2);
                     // If pushSq is not the queening square then consider also a second push.
                     if (r < RANK_7) {
-                        bonus += makeScore(0, kingProximity(Own, pushSq + Push) * w * -1);
+                        bonus += makeScore(0, kingProximity(Own, pushSq + PawnPush[Own]) * w * -1);
                     }
 
                     // If the pawn is free to advance.

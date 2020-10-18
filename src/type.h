@@ -50,16 +50,16 @@
         #endif
     #endif
 
-    #define S32(X) (X ##  int32_t)
-    #define U32(X) (X ## ui32)
-    #define S64(X) (X ##  int64_t)
-    #define U64(X) (X ## ui64)
-#else
-    #define S32(X) (X ##   L)
-    #define U32(X) (X ##  UL)
-    #define S64(X) (X ##  LL)
-    #define U64(X) (X ## ULL)
+    //#define I32(X) (X ##  i32)
+    //#define U32(X) (X ## ui32)
+    //#define I64(X) (X ##  i64)
+    //#define U64(X) (X ## ui64)
 #endif
+
+#define I32(X) (X ##   L)
+#define U32(X) (X ##  UL)
+#define I64(X) (X ##  LL)
+#define U64(X) (X ## ULL)
 
 // When no Makefile used
 

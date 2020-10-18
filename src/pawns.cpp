@@ -35,7 +35,6 @@ namespace Pawns {
     template<Color Own>
     void Entry::evaluate(Position const &pos) {
         constexpr auto Opp{ ~Own };
-        constexpr auto Push{ PawnPush[Own] };
 
         Bitboard const pawns{ pos.pieces(PAWN) };
         Bitboard const ownPawns{ pos.pieces(Own) & pawns };
@@ -44,8 +43,7 @@ namespace Pawns {
         sglAttacks [Own] =
         attacksSpan[Own] = pawnSglAttackBB<Own>(ownPawns);
         dblAttacks [Opp] = pawnDblAttackBB<Opp>(oppPawns);
-        blockeds |= ownPawns
-                  & pawnSglPushBB<Opp>(oppPawns | dblAttacks[Opp]);
+        blockeds |= ownPawns & pawnSglPushBB<Opp>(oppPawns | dblAttacks[Opp]);
 
         passeds    [Own] = 0;
         score      [Own] = SCORE_ZERO;
@@ -59,19 +57,19 @@ namespace Pawns {
             assert(RANK_2 <= r && r <= RANK_7);
 
             Bitboard const neighbours { ownPawns & adjacentFilesBB(s) };
-            Bitboard const supporters { neighbours & rankBB(s - Push) };
+            Bitboard const supporters { neighbours & rankBB(s - PawnPush[Own]) };
             Bitboard const phalanxes  { neighbours & rankBB(s) };
             Bitboard const stoppers   { oppPawns & pawnPassSpan(Own, s) };
             Bitboard const levers     { stoppers & pawnAttacksBB(Own, s) };
-            Bitboard const sentres    { stoppers & pawnAttacksBB(Own, s + Push) }; // push levers
+            Bitboard const sentres    { stoppers & pawnAttacksBB(Own, s + PawnPush[Own]) }; // push levers
             Bitboard const opposers   { stoppers & frontSquaresBB(Own, s) };
-            Bitboard const blocker    { stoppers & (s + Push) };
+            Bitboard const blocker    { stoppers & (s + PawnPush[Own]) };
 
             bool const opposed { opposers != 0 };
             bool const blocked { blocker != 0 };
             // Backward: A pawn is backward when it is behind all pawns of the same color
             // on the adjacent files and cannot be safely advanced.
-            bool const backward{ (neighbours & frontRanksBB(Opp, s + Push)) == 0
+            bool const backward{ (neighbours & frontRanksBB(Opp, s + PawnPush[Own])) == 0
                               && (blocker | sentres) != 0 };
 
             // Compute additional span if pawn is not blocked nor backward
@@ -129,7 +127,7 @@ namespace Pawns {
             }
 
             if (supporters == 0) {
-                sc -= WeakDoubled * contains(ownPawns, s - Push)
+                sc -= WeakDoubled * contains(ownPawns, s - PawnPush[Own])
                     // Attacked twice by enemy pawns
                     + WeakTwiceLever * moreThanOne(levers);
             }

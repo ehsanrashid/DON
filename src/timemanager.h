@@ -25,19 +25,21 @@ public:
     }
     /// TimeManager::elapsed()
     TimePoint elapsed() const noexcept {
-        return(uint16_t(Options["Time Nodes"]) == 0 ?
-            now() - startTime :
-            Threadpool.accumulate(&Thread::nodes));
+        return(timeNodes == 0 ?
+            now() - startTime : Threadpool.accumulate(&Thread::nodes));
     }
 
     void clear() noexcept {
-        remainingNodes = 0;
+        remainingNodes[WHITE] = 0;
+        remainingNodes[BLACK] = 0;
     }
 
     void setup(Color, int16_t) noexcept;
 
-    uint64_t remainingNodes; // Remaining Nodes to play
     TimePoint startTime;
+
+    uint16_t  timeNodes;
+    uint64_t  remainingNodes[COLORS]; // Remaining Nodes to play
 
 private:
 

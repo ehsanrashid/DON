@@ -321,9 +321,9 @@ namespace UCI {
         }
         else if (type == "spin") {
             oss << " default " << int32_t(std::stof(defaultVal))
-                << " min " << minVal
-                << " max " << maxVal;
-                //<< " current " << std::stod(currentVal);
+                << " min " << int32_t(minVal)
+                << " max " << int32_t(maxVal);
+                //<< " current " << int32_t(std::stod(currentVal));
         }
 
         return oss.str();
@@ -406,7 +406,7 @@ namespace UCI {
 
     void initialize() noexcept {
 
-        Options["Hash"]               << Option(16, 0, TTable::MaxHashSize, onHash);
+        Options["Hash"]               << Option(16, TTable::MinHashSize, TTable::MaxHashSize, onHash);
 
         Options["Clear Hash"]         << Option(onClearHash);
         Options["Retain Hash"]        << Option(false);
@@ -620,7 +620,7 @@ namespace UCI {
         void go(istringstream &iss, Position &pos, StateListPtr &states) {
             Threadpool.stop = true;
             Threadpool.mainThread()->waitIdle();
-            Threadpool.mainThread()->ponder = false;
+            Threadpool.ponder = false;
 
             Limits.clear();
             TimeMgr.startTime = now(); // As early as possible!
@@ -637,7 +637,7 @@ namespace UCI {
                 else if (token == "nodes")     { iss >> Limits.nodes; }
                 else if (token == "mate")      { iss >> Limits.mate; }
                 else if (token == "infinite")  { Limits.infinite = true; }
-                else if (token == "ponder")    { Threadpool.mainThread()->ponder = true; }
+                else if (token == "ponder")    { Threadpool.ponder = true; }
                 // Needs to be the last command on the line
                 else if (token == "searchmoves") {
                     // Parse and Validate search-moves (if any)
@@ -876,7 +876,7 @@ namespace UCI {
             // GUI sends 'ponderhit' to tell that the opponent has played the expected move.
             // So 'ponderhit' will be sent if told to ponder on the same move the opponent has played.
             // Now should continue searching but switch from pondering to normal search.
-            else if (token == "ponderhit")  { Threadpool.mainThread()->ponder = false; } // Switch to normal search
+            else if (token == "ponderhit")  { Threadpool.ponder = false; } // Switch to normal search
             else if (token == "isready")    { sync_cout << "readyok" << sync_endl; }
             else if (token == "uci")        {
                 sync_cout << "id name "     << Name << " " << engineInfo() << '\n'

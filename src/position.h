@@ -461,9 +461,9 @@ inline Bitboard Position::pawnsOnSqColor(Color c, Color sqC) const noexcept {
 
 /// Position::bishopPaired() check the side has pair of opposite color bishops
 inline bool Position::bishopPaired(Color c) const noexcept {
-    Bitboard const b{ pieces(c, BSHP) };
-    return moreThanOne(b)
-        && ((b & ColorBB[WHITE]) != 0) == ((b & ColorBB[BLACK]) != 0);
+    return count(c|BSHP) >= 2
+        && (pieces(c, BSHP) & ColorBB[WHITE]) != 0
+        && (pieces(c, BSHP) & ColorBB[BLACK]) != 0;
 }
 inline bool Position::bishopOpposed() const noexcept {
     return count(W_BSHP) == 1

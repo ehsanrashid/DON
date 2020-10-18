@@ -82,8 +82,7 @@ void TTable::autoResize(size_t memSize) {
     Threadpool.stop = true;
     Threadpool.mainThread()->waitIdle();
 
-    auto mSize{ memSize != 0 ? memSize : MaxHashSize };
-    mSize = std::clamp(mSize, MinHashSize, MaxHashSize);
+    auto mSize = std::clamp(memSize, MinHashSize, MaxHashSize);
     while (mSize >= MinHashSize) {
         if (resize(mSize)) {
             return;

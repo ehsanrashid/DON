@@ -76,6 +76,7 @@ void Thread::threadFunc() {
 
 /// Thread::clean() clears all the thread related stuff.
 void Thread::clean() {
+
     butterFlyStats.fill(0);
     lowPlyStats.fill(0);
 
@@ -99,9 +100,7 @@ void Thread::clean() {
 void MainThread::clean() {
     Thread::clean();
 
-    bestValue = +VALUE_INFINITE;
-    timeReduction = 1.00;
-    iterValues.fill(VALUE_ZERO);
+    tickCount = 0;
 }
 
 
@@ -191,6 +190,9 @@ void ThreadPool::clean() {
     for (auto *th : *this) {
         th->clean();
     }
+    timeReduction = 1.00;
+    bestValue = VALUE_ZERO;
+    iterValues.fill(bestValue);
 }
 
 /// ThreadPool::startThinking() wakes up main thread waiting in threadFunc() and returns immediately.
@@ -200,7 +202,7 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     stop = false;
     stand = false;
 
-    mainThread()->stopPonderhit = false;
+    stopPonderhit = false;
 
     RootMoves rootMoves{ pos, Limits.searchMoves };
 

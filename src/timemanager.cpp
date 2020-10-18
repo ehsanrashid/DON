@@ -8,8 +8,9 @@
 TimeManager TimeMgr;
 
 constexpr TimeManager::TimeManager() noexcept :
-    remainingNodes{ 0 },
     startTime{ 0 },
+    timeNodes{ 0 },
+    remainingNodes{ 0, 0 },
     optimumTime{ 0 },
     maximumTime{ 0 } {
 }
@@ -20,19 +21,20 @@ constexpr TimeManager::TimeManager() noexcept :
 ///   * x moves in y seconds (+ z increment)
 void TimeManager::setup(Color c, int16_t ply) noexcept {
 
-    TimePoint overheadMoveTime{ Options["Overhead MoveTime"] };
-    uint32_t moveSlowness{ Options["Move Slowness"] };
-    uint16_t timeNodes{ Options["Time Nodes"] };
+    TimePoint overheadMoveTime  { Options["Overhead MoveTime"] };
+    uint32_t  moveSlowness      { Options["Move Slowness"] };
+    
+    timeNodes = uint16_t(Options["Time Nodes"]);
 
     // When playing in 'Nodes as Time' mode, then convert from time to nodes, and use values in time management.
     // WARNING: Given NodesTime (nodes per milli-seconds) must be much lower then the real engine speed to avoid time losses.
     if (timeNodes != 0) {
         // Only once at after ucinewgame
-        if (remainingNodes == 0) {
-            remainingNodes = Limits.clock[c].time * timeNodes;
+        if (remainingNodes[c] == 0) {
+            remainingNodes[c] = Limits.clock[c].time * timeNodes;
         }
         // Convert from milli-seconds to nodes
-        Limits.clock[c].time = remainingNodes;
+        Limits.clock[c].time = remainingNodes[c];
         Limits.clock[c].inc *= timeNodes;
     }
 

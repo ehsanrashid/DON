@@ -125,8 +125,7 @@ namespace King {
             castleSide[Own][CS_QUEN] = cSide[CS_QUEN];
         }
 
-        //assert(pawnSafety[Own] != SCORE_ZERO);
-        //assert(pawnDist[Own] != SCORE_ZERO);
+        assert(kingSq[Own] != SQ_NONE);
         return (pawnSafety[Own] - pawnDist[Own]);
     }
     // Explicit template instantiations
@@ -139,8 +138,6 @@ namespace King {
         kingSq[Own] = SQ_NONE;
         castleSide[Own][CS_KING] = false;
         castleSide[Own][CS_QUEN] = false;
-        //pawnSafety[Own] = SCORE_ZERO;
-        //pawnDist[Own] = SCORE_ZERO;
     }
 
     Entry* probe(Position const &pos, Pawns::Entry *pe) {

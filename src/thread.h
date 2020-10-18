@@ -66,25 +66,27 @@ public:
     uint64_t ttHitAvg;
 
     Score contempt;
+    
+    int16_t failHighCount;
 
     // butterFlyStats records how often quiet moves have been successful/unsuccessful
     // during the current search, and is used for reduction and move ordering decisions.
-    ButterFlyStatsTable butterFlyStats;
+    ButterFlyStatsTable         butterFlyStats;
     // lowPlyStats records how often quiet moves have been successful/unsuccessful
     // at higher depths on plies 0 to 3 and in the PV (ttPv)
     // It get cleared with each new search and get filled during iterative deepening
-    PlyIndexStatsTable lowPlyStats;
+    PlyIndexStatsTable          lowPlyStats;
 
     // captureStats records how often capture moves have been successful/unsuccessful
     // during the current search, and is used for reduction and move ordering decisions.
-    PieceSquareTypeStatsTable captureStats;
+    PieceSquareTypeStatsTable   captureStats;
 
     // counterMoves stores counter moves
-    PieceSquareMoveTable counterMoves;
+    PieceSquareMoveTable        counterMoves;
 
     // continuationStats is the combined stats of a given pair of moves,
     // usually the current one given a previous one. [inCheck][captureOrPromotion]
-    ContinuationStatsTable continuationStats[2][2];
+    ContinuationStatsTable      continuationStats[2][2];
 
     Material::Table matlHash;
     Pawns   ::Table pawnHash;
@@ -120,17 +122,7 @@ public:
     void clean() final;
     void search() final;
 
-    int16_t tickCount;
-
-    std::atomic<bool> ponder;   // Search in ponder mode, on ponder move until the "stop"/"ponderhit" command
-    bool stopPonderhit;         // Stop search on ponderhit
-
-    Value  bestValue;
-    double timeReduction;
-    std::array<Value, 4> iterValues;
-
-    Move    bestMove;
-    int16_t bestDepth;
+    int16_t tickCount;    
 };
 
 
@@ -178,9 +170,22 @@ public:
     void wakeUpThreads();
     void waitForThreads();
 
-    std::atomic<bool> stop;     // Stop searching forcefully
-    std::atomic<bool> stand;    // Stop increasing depth
     uint16_t pvCount;
+
+    std::atomic<bool> stop;     // Stop searching forcefully
+    std::atomic<bool> ponder;   // Search in ponder mode, on ponder move until the "stop"/"ponderhit" command
+    std::atomic<bool> stand;    // Stop increasing depth
+    
+    bool    stopPonderhit;      // Stop search on ponderhit
+    
+    double  pvChangesSum;
+    double  timeReduction;
+
+    Move    bestMove;
+    int16_t bestDepth;
+    Value   bestValue;
+    std::array<Value, 4> iterValues;
+    int16_t iterIdx;
 
 private:
 

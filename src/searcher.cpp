@@ -387,7 +387,7 @@ namespace {
                         evaluate(pos) : -(ss-1)->staticEval + 2 * VALUE_TEMPO;
             }
 
-            if (alfa < bestValue) {
+            if (bestValue > alfa) {
                 // Stand pat. Return immediately if static value is at least beta
                 if (bestValue >= beta) {
 
@@ -521,7 +521,7 @@ namespace {
             if (bestValue < value) {
                 bestValue = value;
 
-                if (alfa < value) {
+                if (value > alfa) {
                     bestMove = move;
 
                     if (PVNode) { // Update pv even in fail-high case
@@ -1300,6 +1300,12 @@ namespace {
                     }
                 }
                 else {
+
+                    // Increase reduction at root for late moves in case of consecutive fail highs
+                    if (rootNode) {
+                        reductDepth += thread->failHighCount*thread->failHighCount * moveCount / 512;
+                    }
+
                     // Increase reduction if TT move is a capture (~5 ELO)
                     reductDepth += 1 * ttmCapture;
 
@@ -1351,7 +1357,7 @@ namespace {
                 if (doLMR
                  && !captureOrPromotion) {
 
-                    auto bonus{ alfa < value ? +statBonus(newDepth) : -statBonus(newDepth) };
+                    auto bonus{ value > alfa ? +statBonus(newDepth) : -statBonus(newDepth) };
                     if (ss->killerMoves[0] == move) {
                         bonus += bonus / 4;
                     }
@@ -1388,7 +1394,7 @@ namespace {
                 RootMove &rm{ *thread->rootMoves.find(move) };
                 // First PV move or new best move?
                 if (moveCount == 1
-                 || alfa < value) {
+                 || value > alfa) {
 
                     rm.newValue = value;
                     rm.selDepth = thread->selDepth;
@@ -1419,7 +1425,7 @@ namespace {
             if (bestValue < value) {
                 bestValue = value;
 
-                if (alfa < value) {
+                if (value > alfa) {
                     bestMove = move;
 
                     // Update pv even in fail-high case.
@@ -1592,19 +1598,13 @@ void Thread::search() {
     auto *mainThread{ this == Threadpool.mainThread() ?
                         static_cast<MainThread*>(this) : nullptr };
 
-    if (mainThread != nullptr) {
-        mainThread->iterValues.fill(mainThread->bestValue != +VALUE_INFINITE ? mainThread->bestValue : VALUE_ZERO);
-    }
-    int16_t iterIdx{ 0 };
-
-    double timeReduction{ 1.0 };
-    double pvChangesSum{ 0.0 };
+    double  timeReduction{ 1.0 };
     int16_t standCount{ 0 };
 
     auto bestValue{ -VALUE_INFINITE };
     auto window{ VALUE_ZERO };
-    auto  alfa{ -VALUE_INFINITE }
-        , beta{ +VALUE_INFINITE };
+    auto alfa{ -VALUE_INFINITE },
+         beta{ +VALUE_INFINITE };
 
     // To allow access to (ss-7) up to (ss+2), the stack must be over-sized.
     // The former is needed to allow updateContinuationStats(ss-1, ...),
@@ -1623,14 +1623,13 @@ void Thread::search() {
     // Iterative deepening loop until requested to stop or the target depth is reached.
     while (++rootDepth < MAX_PLY
         && !Threadpool.stop
-        && (mainThread == nullptr
+        && (!mainThread
          || Limits.depth == DEPTH_ZERO
          || rootDepth <= Limits.depth)) {
 
-        if (mainThread != nullptr
-         && Limits.useTimeMgmt()) {
+        if (mainThread) {
             // Age out PV variability metric
-            pvChangesSum /= 2;
+            Threadpool.pvChangesSum /= 2;
         }
 
         // Save the last iteration's values before first PV line is searched and
@@ -1646,6 +1645,7 @@ void Thread::search() {
 
         // MultiPV loop. Perform a full root search for each PV line.
         for (pvCur = 0; pvCur < Threadpool.pvCount && !Threadpool.stop; ++pvCur) {
+
             if (pvCur == pvEnd) {
                 pvBeg = pvEnd;
                 while (++pvEnd < rootMoves.size()) {
@@ -1676,7 +1676,7 @@ void Thread::search() {
                             -makeScore(dc, dc / 2);
             }
 
-            int16_t failHighCount{ 0 };
+            failHighCount = 0;
 
             // Start with a small aspiration window and, in case of fail high/low,
             // research with bigger window until not failing high/low anymore.
@@ -1699,7 +1699,7 @@ void Thread::search() {
                 }
 
                 // Give some update before to re-search.
-                if (mainThread != nullptr
+                if (mainThread
                  && Threadpool.pvCount == 1
                  && (bestValue <= alfa
                   || beta <= bestValue)
@@ -1713,8 +1713,8 @@ void Thread::search() {
                     alfa = std::max(bestValue - window, -VALUE_INFINITE);
 
                     failHighCount = 0;
-                    if (mainThread != nullptr) {
-                        mainThread->stopPonderhit = false;
+                    if (mainThread) {
+                        Threadpool.stopPonderhit = false;
                     }
                 }
                 else
@@ -1738,7 +1738,7 @@ void Thread::search() {
             // Sort the PV lines searched so far and update the GUI.
             rootMoves.stableSort(pvBeg, pvCur + 1);
 
-            if (mainThread != nullptr
+            if (mainThread
              && (Threadpool.stop
               || Threadpool.pvCount == pvCur + 1
               || TimeMgr.elapsed() > 3000)) {
@@ -1746,11 +1746,9 @@ void Thread::search() {
             }
         }
 
-        if (Threadpool.stop) {
-            break;
+        if (!Threadpool.stop) {
+            finishedDepth = rootDepth;
         }
-
-        finishedDepth = rootDepth;
 
         // Has any of the threads found a "mate in <x>"?
         if ( Limits.mate != 0
@@ -1760,74 +1758,75 @@ void Thread::search() {
             Threadpool.stop = true;
         }
 
-        if (mainThread != nullptr) {
-            // If skill level is enabled and can pick move, pick a sub-optimal best move.
-            if (SkillMgr.enabled()
-             && SkillMgr.canPick(rootDepth)) {
-                SkillMgr.clear();
-                SkillMgr.pickBestMove();
+        if (mainThread) {
+
+            if (Threadpool.bestMove != rootMoves[0][0]) {
+                Threadpool.bestMove  = rootMoves[0][0];
+                Threadpool.bestDepth = rootDepth;
             }
+
+            // Reduce time if the bestMove is stable over 10 iterations
+            // Time Reduction
+            timeReduction = 0.95 + 0.97 * ((finishedDepth - Threadpool.bestDepth) > 9);
 
             if ( Limits.useTimeMgmt()
              && !Threadpool.stop
-             && !mainThread->stopPonderhit) {
+             && !Threadpool.stopPonderhit) {
 
-                if (mainThread->bestMove != rootMoves[0][0]) {
-                    mainThread->bestMove  = rootMoves[0][0];
-                    mainThread->bestDepth = rootDepth;
-                }
-
-                // Reduce time if the bestMove is stable over 10 iterations
-                // Time Reduction
-                timeReduction = 0.95 + 0.97 * ((finishedDepth - mainThread->bestDepth) > 9);
                 // Reduction Ratio - Use part of the gained time from a previous stable move for the current move
-                auto const reductionRatio{ (1.47 + mainThread->timeReduction) / (2.32 * timeReduction) };
+                auto const reductionRatio{ (1.47 + Threadpool.timeReduction) / (2.32 * timeReduction) };
                 // Eval Falling factor
                 auto const fallingEval{
                     std::clamp((318
-                              + 6 * (mainThread->bestValue - bestValue)
-                              + 6 * (mainThread->iterValues[iterIdx] - bestValue)) / 825.0, 0.50, 1.50) };
+                              + 6 * (Threadpool.bestValue - bestValue)
+                              + 6 * (Threadpool.iterValues[Threadpool.iterIdx] - bestValue)) / 825.0, 0.50, 1.50) };
 
-                pvChangesSum += Threadpool.accumulate(&Thread::pvChanges);
+                Threadpool.pvChangesSum += Threadpool.accumulate(&Thread::pvChanges);
                 // Set pvChanges to 0
                 Threadpool.set(&Thread::pvChanges, { 0 });
-                auto const pvInstability{ 1.00 + 2 * pvChangesSum / Threadpool.size() };
+                auto const pvInstability{ 1.00 + 2 * Threadpool.pvChangesSum / Threadpool.size() };
 
                 TimePoint const totalTime(
-                    rootMoves.size() > 1 ?
-                        TimeMgr.optimum()
-                      * reductionRatio
-                      * fallingEval
-                      * pvInstability : 0);
+                      TimeMgr.optimum()
+                    * (rootMoves.size() != 1 ?
+                        reductionRatio * fallingEval * pvInstability : 0.001));
 
                 TimePoint const elapsed{ TimeMgr.elapsed() };
 
-                // Stop the search if we have exceeded the totalTime (at least 1ms).
-                if (elapsed > totalTime) {
-                    // If allowed to ponder do not stop the search now but
-                    // keep pondering until GUI sends "stop"/"ponderhit".
-                    if (!mainThread->ponder) {
-                        Threadpool.stop = true;
-                    }
-                    else {
-                        mainThread->stopPonderhit = true;
-                    }
-                }
-                else
                 if (elapsed > totalTime * 0.58) {
-                    if (!mainThread->ponder) {
+
+                    if (!Threadpool.ponder) {
                         Threadpool.stand = true;
+                    }
+
+                    // Stop the search if we have exceeded the totalTime (at least 1ms).
+                    if (elapsed > totalTime) {
+
+                        // If allowed to ponder do not stop the search now but
+                        // keep pondering until GUI sends "stop"/"ponderhit".
+                        if (!Threadpool.ponder) {
+                            Threadpool.stop = true;
+                        }
+                        else {
+                            Threadpool.stopPonderhit = true;
+                        }
                     }
                 }
 
-                mainThread->iterValues[iterIdx] = bestValue;
-                iterIdx = (iterIdx + 1) % mainThread->iterValues.size();
+                Threadpool.iterValues[Threadpool.iterIdx] = bestValue;
+                Threadpool.iterIdx = (Threadpool.iterIdx + 1) % Threadpool.iterValues.size();
+            }
+
+            // If skill level is enabled and can pick move, pick a sub-optimal best move.
+            if (SkillMgr.enabled()
+             && SkillMgr.canPick(rootDepth)) {
+                SkillMgr.pickBestMove();
             }
         }
     }
 
-    if (mainThread != nullptr) {
-        mainThread->timeReduction = timeReduction;
+    if (mainThread) {
+        Threadpool.timeReduction = timeReduction;
     }
 }
 
@@ -1859,9 +1858,11 @@ void MainThread::search() {
     }
     else {
 
-        if (!Limits.infinite
-         &&  Options["Use Book"]
+        if ( Options["Use Book"]
+         &&  Book.enabled
+         && !Limits.infinite
          &&  Limits.mate == 0) {
+
             auto bbm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
             if (bbm != MOVE_NONE
              && rootMoves.contains(bbm)) {
@@ -1881,10 +1882,11 @@ void MainThread::search() {
 
         if (think) {
 
-            if (Limits.useTimeMgmt()) {
-                bestMove = MOVE_NONE;
-                bestDepth = DEPTH_ZERO;
-            }
+            Threadpool.pvChangesSum = 0.0;
+            Threadpool.bestMove = MOVE_NONE;
+            Threadpool.bestDepth = DEPTH_ZERO;
+            Threadpool.iterValues.fill(Threadpool.bestValue);
+            Threadpool.iterIdx = 0;
 
             PRNG prng(now());
             double const dbllevel{
@@ -1900,13 +1902,14 @@ void MainThread::search() {
             Threadpool.pvCount = std::clamp(uint16_t(Options["MultiPV"]),
                                             uint16_t(1 + 3 * SkillMgr.enabled()),
                                             uint16_t(rootMoves.size()));
+            assert(Threadpool.pvCount != 0);
 
             Threadpool.wakeUpThreads(); // start non-main threads searching !
             Thread::search();           // start main thread searching !
 
             // Swap best PV line with the sub-optimal one if skill level is enabled
             if (SkillMgr.enabled()) {
-                rootMoves.bringToFront(SkillMgr.pickBestMove());
+                rootMoves.bringToFront(SkillMgr.bestMove != MOVE_NONE ? SkillMgr.bestMove : SkillMgr.pickBestMove());
             }
         }
     }
@@ -1917,7 +1920,7 @@ void MainThread::search() {
     // receives one of those commands (which also raises Threads.stop).
     // Busy wait for a "stop"/"ponderhit" command.
     while (!Threadpool.stop
-        && (ponder
+        && (Threadpool.ponder
          || Limits.infinite)) {
     } // Busy wait for a stop or a ponder reset
 
@@ -1949,12 +1952,12 @@ void MainThread::search() {
     auto &rm{ bestThread->rootMoves[0] };
 
     if (Limits.useTimeMgmt()) {
-        if (uint16_t(Options["Time Nodes"]) != 0) {
+        if (TimeMgr.timeNodes != 0) {
             // In 'Nodes as Time' mode, subtract the searched nodes from the total nodes.
-            TimeMgr.remainingNodes += Limits.clock[rootPos.activeSide()].inc
-                                    - Threadpool.accumulate(&Thread::nodes);
+            TimeMgr.remainingNodes[rootPos.activeSide()] +=
+                Limits.clock[rootPos.activeSide()].inc - Threadpool.accumulate(&Thread::nodes);
         }
-        bestValue = rm.newValue;
+        Threadpool.bestValue = rm.newValue;
     }
 
     auto bm{ rm[0] };
@@ -1994,12 +1997,12 @@ void MainThread::tick() {
     }
 
     // Do not stop until told so by the GUI.
-    if (ponder) {
+    if (Threadpool.ponder) {
         return;
     }
 
     if ((Limits.useTimeMgmt()
-      && (stopPonderhit
+      && (Threadpool.stopPonderhit
        || TimeMgr.maximum() < elapsed + 10))
      || (Limits.moveTime != 0
       && Limits.moveTime <= elapsed)

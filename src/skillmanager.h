@@ -22,14 +22,13 @@ public:
 
     void setLevel(uint16_t) noexcept;
 
-    void clear() noexcept;
-
     Move pickBestMove() noexcept;
+
+    Move bestMove;
 
 private:
 
     uint16_t level;
-    Move bestMove;
 };
 
 // Global Skill Manager
