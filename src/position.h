@@ -201,7 +201,7 @@ private:
     void movePiece(Square, Square) noexcept;
 
     void setCastle(Color, Square);
-    void setCheckInfo();
+    void setCheckInfo() noexcept;
 
     bool canEnpassant(Color, Square, bool = true) const noexcept;
 

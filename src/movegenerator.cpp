@@ -11,14 +11,13 @@ namespace {
     /// Generates piece move
     template<bool Checks>
     void generatePieceMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
-        auto const activeSide{ pos.activeSide() };
 
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
-            Square const *ps{ pos.squares(activeSide|pt) };
+            Square const *ps{ pos.squares(pos.activeSide()|pt) };
             Square s;
             while ((s = *ps++) != SQ_NONE) {
                 if (Checks
-                 && contains(pos.kingBlockers(~activeSide), s)) {
+                 && contains(pos.kingBlockers(~pos.activeSide()), s)) {
                     continue;
                 }
                 Bitboard attacks{ attacksBB(pt, s, pos.pieces()) & targets };
@@ -62,27 +61,20 @@ namespace {
     template<GenType GT, Color Own>
     void generatePawnMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
         constexpr auto Opp{ ~Own };
-        constexpr auto Push1{ PawnPush[Own] };
-        constexpr auto Push2{ Push1 + Push1 };
-        constexpr auto LAtt{ PawnLAtt[Own] };
-        constexpr auto RAtt{ PawnRAtt[Own] };
-
-        constexpr Bitboard Rank3{ RankBB[relativeRank(Own, RANK_3)] };
-        constexpr Bitboard Rank7{ RankBB[relativeRank(Own, RANK_7)] };
 
         Bitboard const empties{ ~pos.pieces() };
         Bitboard const enemies{  pos.pieces(Opp) & targets };
 
         Bitboard const pawns{ pos.pieces(Own, PAWN) };
 
-        Bitboard const r7Pawns{ pawns &  Rank7 }; // Pawns on 7th Rank only
-        Bitboard const rxPawns{ pawns & ~Rank7 }; // Pawns not on 7th Rank
+        Bitboard const r7Pawns{ pawns &  RankBB[relativeRank(Own, RANK_7)] }; // Pawns on 7th Rank only
+        Bitboard const rxPawns{ pawns & ~RankBB[relativeRank(Own, RANK_7)] }; // Pawns not on 7th Rank
 
         // Pawn single-push and double-push, no promotions
         if (GT != CAPTURE) {
 
             Bitboard pushs1{ empties & pawnSglPushBB<Own>(rxPawns) };
-            Bitboard pushs2{ empties & pawnSglPushBB<Own>(pushs1 & Rank3) };
+            Bitboard pushs2{ empties & pawnSglPushBB<Own>(pushs1 & RankBB[relativeRank(Own, RANK_3)]) };
 
             if (GT == EVASION) {
                 // Only blocking squares
@@ -102,14 +94,14 @@ namespace {
                                        & ~fileBB(pos.square(Opp|KING)) };
                 if (dscPawns != 0) {
                     Bitboard const dscPushs1{ empties & pawnSglPushBB<Own>(dscPawns) };
-                    Bitboard const dscPushs2{ empties & pawnSglPushBB<Own>(dscPushs1 & Rank3) };
+                    Bitboard const dscPushs2{ empties & pawnSglPushBB<Own>(dscPushs1 & RankBB[relativeRank(Own, RANK_3)]) };
                     pushs1 |= dscPushs1;
                     pushs2 |= dscPushs2;
                 }
             }
 
-            while (pushs1 != 0) { auto const dst{ popLSq(pushs1) }; moves += makeMove<SIMPLE>(dst - Push1, dst); }
-            while (pushs2 != 0) { auto const dst{ popLSq(pushs2) }; moves += makeMove<SIMPLE>(dst - Push2, dst); }
+            while (pushs1 != 0) { auto const dst{ popLSq(pushs1) }; moves += makeMove<SIMPLE>(dst - PawnPush[Own], dst); }
+            while (pushs2 != 0) { auto const dst{ popLSq(pushs2) }; moves += makeMove<SIMPLE>(dst - PawnPush[Own]*2, dst); }
         }
 
         // Promotions (queening and under-promotions)
@@ -117,16 +109,16 @@ namespace {
             Bitboard b;
 
             b = enemies & pawnLAttackBB<Own>(r7Pawns);
-            generatePromotionMoves<GT>(moves, pos, b, LAtt);
+            generatePromotionMoves<GT>(moves, pos, b, PawnLAtt[Own]);
 
             b = enemies & pawnRAttackBB<Own>(r7Pawns);
-            generatePromotionMoves<GT>(moves, pos, b, RAtt);
+            generatePromotionMoves<GT>(moves, pos, b, PawnRAtt[Own]);
 
             b = empties & pawnSglPushBB<Own>(r7Pawns);
             if (GT == EVASION) {
                 b &= targets;
             }
-            generatePromotionMoves<GT>(moves, pos, b, Push1);
+            generatePromotionMoves<GT>(moves, pos, b, PawnPush[Own]);
         }
 
         // Pawn normal and en-passant captures, no promotions
@@ -135,22 +127,21 @@ namespace {
 
             Bitboard attacksL{ enemies & pawnLAttackBB<Own>(rxPawns) };
             Bitboard attacksR{ enemies & pawnRAttackBB<Own>(rxPawns) };
-            while (attacksL != 0) { auto const dst{ popLSq(attacksL) }; moves += makeMove<SIMPLE>(dst - LAtt, dst); }
-            while (attacksR != 0) { auto const dst{ popLSq(attacksR) }; moves += makeMove<SIMPLE>(dst - RAtt, dst); }
+            while (attacksL != 0) { auto const dst{ popLSq(attacksL) }; moves += makeMove<SIMPLE>(dst - PawnLAtt[Own], dst); }
+            while (attacksR != 0) { auto const dst{ popLSq(attacksR) }; moves += makeMove<SIMPLE>(dst - PawnRAtt[Own], dst); }
 
-            auto const epSq{ pos.epSquare() };
-            if (epSq != SQ_NONE) {
-                assert(relativeRank(Own, epSq) == RANK_6);
-                Bitboard epPawns{ rxPawns & pawnAttacksBB(Opp, epSq) };
+            if (pos.epSquare() != SQ_NONE) {
+                assert(relativeRank(Own, pos.epSquare()) == RANK_6);
+                Bitboard epPawns{ rxPawns & pawnAttacksBB(Opp, pos.epSquare()) };
 
                 // If the checking piece is the double pushed pawn and also is in the target.
                 // Otherwise this is a discovery check and are forced to do otherwise.
                 if (GT == EVASION
-                 && !contains(enemies /*& pos.pieces(PAWN)*/, epSq - Push1)) {
+                 && !contains(enemies /*& pos.pieces(PAWN)*/, pos.epSquare() - PawnPush[Own])) {
                     epPawns = 0;
                 }
                 assert(popCount(epPawns) <= 2);
-                while (epPawns != 0) { moves += makeMove<ENPASSANT>(popLSq(epPawns), epSq); }
+                while (epPawns != 0) { moves += makeMove<ENPASSANT>(popLSq(epPawns), pos.epSquare()); }
             }
         }
     }
@@ -160,22 +151,19 @@ namespace {
     void generateKingMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
         assert(pos.checkers() == 0);
 
-        auto const activeSide{ pos.activeSide() };
-        auto const fkSq{ pos.square( activeSide|KING) };
-        auto const ekSq{ pos.square(~activeSide|KING) };
-        Bitboard attacks{  attacksBB<KING>(fkSq)
+        Bitboard attacks{  attacksBB<KING>(pos.square( pos.activeSide()|KING))
                         &  targets
-                        & ~attacksBB<KING>(ekSq) };
-        while (attacks != 0) { moves += makeMove<SIMPLE>(fkSq, popLSq(attacks)); }
+                        & ~attacksBB<KING>(pos.square(~pos.activeSide()|KING)) };
+        while (attacks != 0) { moves += makeMove<SIMPLE>(pos.square(pos.activeSide()|KING), popLSq(attacks)); }
 
         if (GT == QUIET
          || GT == NORMAL) {
-            if (pos.canCastle(activeSide)) {
+            if (pos.canCastle(pos.activeSide())) {
                 for (CastleSide const cs : { CS_KING, CS_QUEN }) {
-                    if (pos.castleRookSq(activeSide, cs) != SQ_NONE
-                     && pos.castleExpeded(activeSide, cs)
-                     && pos.canCastle(activeSide, cs)) {
-                        moves += makeMove<CASTLE>(fkSq, pos.castleRookSq(activeSide, cs));
+                    if (pos.castleRookSq(pos.activeSide(), cs) != SQ_NONE
+                     && pos.castleExpeded(pos.activeSide(), cs)
+                     && pos.canCastle(pos.activeSide(), cs)) {
+                        moves += makeMove<CASTLE>(pos.square(pos.activeSide()|KING), pos.castleRookSq(pos.activeSide(), cs));
                     }
                 }
             }
@@ -227,21 +215,19 @@ template<> void generate<EVASION>(ValMoves &moves, Position const &pos) {
     assert(checkers != 0
         && popCount(checkers) <= 2);
 
-    auto const activeSide{ pos.activeSide() };
-    auto const fkSq{ pos.square(activeSide|KING) };
     // Double-check, only king move can save the day
     if (!moreThanOne(checkers)) {
 
         // Generates blocking or captures of the checking piece
         auto const checkSq{ scanLSq(checkers) };
-        Bitboard const targets{ betweenBB(checkSq, fkSq) | checkSq };
+        Bitboard const targets{ betweenBB(checkSq, pos.square(pos.activeSide()|KING)) | checkSq };
 
         generateMoves<EVASION>(moves, pos, targets);
     }
 
-    Bitboard checkAttacks{ attacksBB<KING>(pos.square(~activeSide|KING)) };
+    Bitboard checkAttacks{ attacksBB<KING>(pos.square(~pos.activeSide()|KING)) };
     Bitboard checkersEx{ checkers & ~pos.pieces(PAWN) };
-    Bitboard const mocc{ pos.pieces() ^ fkSq };
+    Bitboard const mocc{ pos.pieces() ^ pos.square(pos.activeSide()|KING) };
     // Squares attacked by slide checkers will remove them from the king evasions
     // so to skip known illegal moves avoiding useless legality check later.
     while (checkersEx != 0) {
@@ -249,35 +235,34 @@ template<> void generate<EVASION>(ValMoves &moves, Position const &pos) {
         checkAttacks |= attacksBB(pType(pos[sq]), sq, mocc);
     }
     // Generate evasions for king, capture and non-capture moves
-    Bitboard attacks{  attacksBB<KING>(fkSq)
+    Bitboard attacks{  attacksBB<KING>(pos.square(pos.activeSide()|KING))
                     & ~checkAttacks
-                    & ~pos.pieces(activeSide) };
-    while (attacks != 0) { moves += makeMove<SIMPLE>(fkSq, popLSq(attacks)); }
+                    & ~pos.pieces(pos.activeSide()) };
+    while (attacks != 0) { moves += makeMove<SIMPLE>(pos.square(pos.activeSide()|KING), popLSq(attacks)); }
 }
 
 /// generate<QUIET_CHECK> Generates all pseudo-legal non-captures and knight under promotions check giving moves.
 template<> void generate<QUIET_CHECK>(ValMoves &moves, Position const &pos) {
     assert(pos.checkers() == 0);
 
-    auto const activeSide{ pos.activeSide() };
     Bitboard const targets{ ~pos.pieces() };
 
-    auto const fkSq{ pos.square(activeSide|KING) };
     // Pawns is excluded, already generated with direct checks
-    Bitboard dscBlockersEx{  pos.pieces(activeSide)
-                          &  pos.kingBlockers(~activeSide)
+    Bitboard dscBlockersEx{  pos.pieces(pos.activeSide())
+                          &  pos.kingBlockers(~pos.activeSide())
                           & ~pos.pieces(PAWN) };
     assert((dscBlockersEx & pos.pieces(QUEN)) == 0);
     while (dscBlockersEx != 0) {
-        auto const org{ popLSq(dscBlockersEx) };
+        auto const sq{ popLSq(dscBlockersEx) };
+        auto const pt{ pType(pos[sq]) };
 
-        Bitboard attacks{ attacksBB(pType(pos[org]), org, pos.pieces()) & targets };
-        if (org == fkSq) {
+        Bitboard attacks{ attacksBB(pt, sq, pos.pieces()) & targets };
+        if (pt == KING) {
             // Stop king from stepping in the way to check
-            attacks &= ~attacksBB<QUEN>(pos.square(~activeSide|KING));
+            attacks &= ~attacksBB<QUEN>(pos.square(~pos.activeSide()|KING));
         }
 
-        while (attacks != 0) { moves += makeMove<SIMPLE>(org, popLSq(attacks)); }
+        while (attacks != 0) { moves += makeMove<SIMPLE>(sq, popLSq(attacks)); }
     }
 
     generateMoves<QUIET_CHECK>(moves, pos, targets);
@@ -292,21 +277,16 @@ template<> void generate<LEGAL>(ValMoves &moves, Position const &pos) {
         generate<NORMAL>(moves, pos) :
         generate<EVASION>(moves, pos);
 
-    auto const activeSide{ pos.activeSide() };
-    auto const fkSq{ pos.square(activeSide|KING) };
-    Bitboard const mocc{ pos.pieces() ^ fkSq };
-    Bitboard const enemies{ pos.pieces(~activeSide) };
-    Bitboard const pinneds{ pos.pieces( activeSide) & pos.kingBlockers(activeSide) };
-
     // Filter illegal moves
     moves.erase(std::remove_if(moves.begin(), moves.end(),
                                 [&](ValMove const &vm) {
-                                    return (mType(vm) == SIMPLE
-                                         && orgSq(vm) == fkSq
-                                         && (pos.attackersTo(dstSq(vm), mocc) & enemies) != 0)
+                                    return (pType(pos[orgSq(vm)]) == KING
+                                         && mType(vm) == SIMPLE
+                                         && (pos.attackersTo(dstSq(vm), pos.pieces() ^ pos.square(pos.activeSide()|KING)) & pos.pieces(~pos.activeSide())) != 0)
                                         || ((mType(vm) == CASTLE
                                           || mType(vm) == ENPASSANT
-                                          || contains(pinneds, orgSq(vm)))
+                                            // Pinned pieces
+                                          || contains(pos.pieces(pos.activeSide()) & pos.kingBlockers(pos.activeSide()), orgSq(vm)))
                                          && !pos.legal(vm));
                                 }), moves.end());
 }
@@ -338,10 +318,8 @@ void Perft::operator-=(Perft const &perft) noexcept {
 
 void Perft::classify(Position &pos, Move m) {
 
-    auto const activeSide{ pos.activeSide() };
-
     if (mType(m) == ENPASSANT
-     || contains(pos.pieces(~activeSide), dstSq(m))) {
+     || contains(pos.pieces(~pos.activeSide()), dstSq(m))) {
         ++capture;
         if (mType(m) == ENPASSANT) {
             ++enpassant;
@@ -351,18 +329,17 @@ void Perft::classify(Position &pos, Move m) {
         ++anyCheck;
         // Discovered Check but not Direct Check
         if (!contains(pos.checks(mType(m) != PROMOTE ? pType(pos[orgSq(m)]) : promoteType(m)), dstSq(m))) {
-            auto const ekSq{ pos.square(~activeSide|KING) };
             if (mType(m) == ENPASSANT) {
                 Bitboard const mocc{ (pos.pieces() ^ orgSq(m) ^ makeSquare(sFile(dstSq(m)), sRank(orgSq(m)))) | dstSq(m) };
-                if ((pos.pieces(activeSide, BSHP, QUEN)
-                   & attacksBB<BSHP>(ekSq, mocc)) != 0
-                 || (pos.pieces(activeSide, ROOK, QUEN)
-                   & attacksBB<ROOK>(ekSq, mocc)) != 0) {
+                if ((pos.pieces(pos.activeSide(), BSHP, QUEN)
+                   & attacksBB<BSHP>(pos.square(~pos.activeSide()|KING), mocc)) != 0
+                 || (pos.pieces(pos.activeSide(), ROOK, QUEN)
+                   & attacksBB<ROOK>(pos.square(~pos.activeSide()|KING), mocc)) != 0) {
                     ++dscCheck;
                 }
             }
             else
-            if (contains(pos.kingBlockers(~activeSide), orgSq(m))
+            if (contains(pos.kingBlockers(~pos.activeSide()), orgSq(m))
              /*&& !aligned(orgSq(m), dstSq(m), ekSq)*/) {
                 ++dscCheck;
             }

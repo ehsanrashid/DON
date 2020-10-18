@@ -284,11 +284,10 @@ bool Position::pseudoLegal(Move m) const noexcept {
     // Evasions generator already takes care to avoid some kind of illegal moves and legal() relies on this.
     // So have to take care that the same kind of moves are filtered out here.
     if (_stateInfo->checkers != 0) {
-        auto const fkSq{ square(active | KING) };
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
-        if (org == fkSq) {
-            return (attackersTo(dst, pieces() ^ fkSq) & pieces(~active)) == 0;
+        if (pType(board[org]) == KING) {
+            return (attackersTo(dst, pieces() ^ square(active|KING)) & pieces(~active)) == 0;
         }
         // Double check? In this case a king move is required
         if (moreThanOne(_stateInfo->checkers)) {
@@ -296,10 +295,10 @@ bool Position::pseudoLegal(Move m) const noexcept {
         }
         return mType(m) != ENPASSANT ?
                 // Move must be a capture of the checking piece or a blocking evasion of the checking piece
-                contains(_stateInfo->checkers | betweenBB(scanLSq(_stateInfo->checkers), fkSq), dst) :
+                contains(_stateInfo->checkers | betweenBB(scanLSq(_stateInfo->checkers), square(active|KING)), dst) :
                 // Move must be a capture of the checking enpassant pawn or a blocking evasion of the checking piece
                 (contains(_stateInfo->checkers & pieces(PAWN), dst - PawnPush[active])
-              || contains(betweenBB(scanLSq(_stateInfo->checkers), fkSq), dst));
+              || contains(betweenBB(scanLSq(_stateInfo->checkers), square(active|KING)), dst));
     }
     return true;
 }
@@ -342,8 +341,6 @@ bool Position::legal(Move m) const noexcept {
         return true;
     }
 
-    auto const fkSq{ square(active|KING) };
-
     // Enpassant captures are a tricky special case. Because they are rather uncommon,
     // do it simply by testing whether the king is attacked after the move is made.
     if (mType(m) == ENPASSANT) {
@@ -355,25 +352,25 @@ bool Position::legal(Move m) const noexcept {
             && empty(dst)
             && board[dst - PawnPush[active]] == (~active|PAWN));
 
-        Bitboard const mocc{ (pieces() ^ org ^ (dst - PawnPush[active])) | dst };
-        return (pieces(~active, BSHP, QUEN) & attacksBB<BSHP>(fkSq, mocc)) == 0
-            && (pieces(~active, ROOK, QUEN) & attacksBB<ROOK>(fkSq, mocc)) == 0;
+        Bitboard const mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
+        return (pieces(~active, BSHP, QUEN) & attacksBB<BSHP>(square(active|KING), mocc)) == 0
+            && (pieces(~active, ROOK, QUEN) & attacksBB<ROOK>(square(active|KING), mocc)) == 0;
     }
 
     return
-        org == fkSq ?
+        pType(board[org]) == KING ?
             // For KING SIMPLE moves
             // Only king moves to non attacked squares, sliding check x-rays the king
             // In case of king moves under check have to remove king so to catch
             // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
             // check whether the destination square is attacked by the opponent.
-            (attackersTo(dst, pieces() ^ fkSq) & pieces(~active)) == 0 :
+            (attackersTo(dst, pieces() ^ square(active|KING)) & pieces(~active)) == 0 :
             // For NON-KING SIMPLE + PROMOTE moves
             // A non-king move is legal if and only if
             // - not pinned
             // - moving along the ray from the king
             !contains(kingBlockers(active), org)
-         || aligned(fkSq, org, dst);
+         || aligned(square(active|KING), org, dst);
 }
 
 /// Position::giveCheck() tests whether a pseudo-legal move gives a check.
@@ -384,13 +381,11 @@ bool Position::giveCheck(Move m) const noexcept {
     auto const dst{ dstSq(m) };
     assert(contains(pieces(active), org));
 
-    auto const ekSq{ square(~active|KING) };
-
     if (// Direct check ?
         contains(checks(mType(m) != PROMOTE ? pType(board[org]) : promoteType(m)), dst)
         // Discovered check ?
      || (contains(kingBlockers(~active), org)
-      && !aligned(ekSq, org, dst))) {
+      && !aligned(square(~active|KING), org, dst))) {
         return true;
     }
 
@@ -404,16 +399,16 @@ bool Position::giveCheck(Move m) const noexcept {
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
         Bitboard const mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
         return (pieces(active, BSHP, QUEN)
-              & attacksBB<BSHP>(ekSq, mocc)) != 0
+              & attacksBB<BSHP>(square(~active|KING), mocc)) != 0
             || (pieces(active, ROOK, QUEN)
-              & attacksBB<ROOK>(ekSq, mocc)) != 0;
+              & attacksBB<ROOK>(square(~active|KING), mocc)) != 0;
     }
     case CASTLE: {
         // Castling with check?
         auto const kingDst{ kingCastleSq(org, dst) };
         auto const rookDst{ rookCastleSq(org, dst) };
         Bitboard const mocc{ (pieces() ^ org ^ dst) | kingDst | rookDst };
-        return contains(attacksBB<ROOK>(rookDst, mocc), ekSq);
+        return contains(attacksBB<ROOK>(rookDst, mocc), square(~active|KING));
     }
     // case PROMOTE:
     default: {
@@ -422,11 +417,11 @@ bool Position::giveCheck(Move m) const noexcept {
         Bitboard const mocc{ (pieces() ^ org) | dst };
         return
          //   ppt > NIHT
-         //&& contains(attacksBB(ppt, dst, mocc), ekSq)
+         //&& contains(attacksBB(ppt, dst, mocc), square(~active|KING))
             ((ppt == QUEN || ppt == BSHP)
-          && contains(attacksBB<BSHP>(dst, mocc), ekSq))
+          && contains(attacksBB<BSHP>(dst, mocc), square(~active|KING)))
          || ((ppt == QUEN || ppt == ROOK)
-          && contains(attacksBB<ROOK>(dst, mocc), ekSq));
+          && contains(attacksBB<ROOK>(dst, mocc), square(~active|KING)));
     }
     }
 }
@@ -442,15 +437,13 @@ bool Position::giveDblCheck(Move m) const noexcept {
     auto const org{ orgSq(m) };
     auto const dst{ dstSq(m) };
 
-    auto const ekSq{ square(~active|KING) };
-
     if (mType(m) == ENPASSANT) {
         Bitboard const mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
         auto const chkrCount{
             popCount( (pieces(active, BSHP, QUEN)
-                     & attacksBB<BSHP>(ekSq, mocc))
+                     & attacksBB<BSHP>(square(~active|KING), mocc))
                    |  (pieces(active, ROOK, QUEN)
-                     & attacksBB<ROOK>(ekSq, mocc))) };
+                     & attacksBB<ROOK>(square(~active|KING), mocc))) };
         return chkrCount > 1
             || (chkrCount > 0
              && contains(checks(PAWN), dst));
@@ -461,7 +454,7 @@ bool Position::giveDblCheck(Move m) const noexcept {
         contains(checks(mType(m) != PROMOTE ? pType(board[org]) : promoteType(m)), dst)
         // Discovered check ?
      && (contains(kingBlockers(~active), org)
-      /*&& !aligned(ekSq, org, dst)*/);
+      /*&& !aligned(square(~active|KING), org, dst)*/);
 }
 
 /// Position::setCastle() set the castling right.
@@ -488,17 +481,16 @@ void Position::setCastle(Color c, Square rookOrg) {
                        & ~(kingOrg | rookOrg);
 }
 /// Position::setCheckInfo() sets check info used for fast check detection.
-void Position::setCheckInfo() {
+void Position::setCheckInfo() noexcept {
     _stateInfo->kingCheckers[WHITE] = 0;
     _stateInfo->kingCheckers[BLACK] = 0;
     _stateInfo->kingBlockers[WHITE] = sliderBlockersAt(square(WHITE|KING), pieces(BLACK), _stateInfo->kingCheckers[WHITE], _stateInfo->kingCheckers[BLACK]);
     _stateInfo->kingBlockers[BLACK] = sliderBlockersAt(square(BLACK|KING), pieces(WHITE), _stateInfo->kingCheckers[BLACK], _stateInfo->kingCheckers[WHITE]);
 
-    auto const ekSq{ square(~active|KING) };
-    _stateInfo->checks[PAWN] = pawnAttacksBB(~active, ekSq);
-    _stateInfo->checks[NIHT] = attacksBB<NIHT>(ekSq);
-    _stateInfo->checks[BSHP] = attacksBB<BSHP>(ekSq, pieces());
-    _stateInfo->checks[ROOK] = attacksBB<ROOK>(ekSq, pieces());
+    _stateInfo->checks[PAWN] = pawnAttacksBB(~active, square(~active|KING));
+    _stateInfo->checks[NIHT] = attacksBB<NIHT>(square(~active|KING));
+    _stateInfo->checks[BSHP] = attacksBB<BSHP>(square(~active|KING), pieces());
+    _stateInfo->checks[ROOK] = attacksBB<ROOK>(square(~active|KING), pieces());
     _stateInfo->checks[QUEN] = _stateInfo->checks[BSHP]|_stateInfo->checks[ROOK];
     _stateInfo->checks[KING] = 0;
 }
@@ -525,15 +517,14 @@ bool Position::canEnpassant(Color c, Square epSq, bool moved) const noexcept {
     auto const cap{ moved ? epSq - PawnPush[c] : epSq + PawnPush[c] };
     assert(board[cap] == (~c|PAWN));
 
-    auto const kSq{ square(c|KING) };
-    Bitboard const bq{ pieces(~c, BSHP, QUEN) & attacksBB<BSHP>(kSq) };
-    Bitboard const rq{ pieces(~c, ROOK, QUEN) & attacksBB<ROOK>(kSq) };
+    Bitboard const bq{ pieces(~c, BSHP, QUEN) & attacksBB<BSHP>(square(c|KING)) };
+    Bitboard const rq{ pieces(~c, ROOK, QUEN) & attacksBB<ROOK>(square(c|KING)) };
     Bitboard const mocc{ (pieces() ^ cap) | epSq };
     while (attackers != 0) {
         Bitboard const amocc{ mocc ^ popLSq(attackers) };
         // Check enpassant is legal for the position
-        if ((bq == 0 || (bq & attacksBB<BSHP>(kSq, amocc)) == 0)
-         && (rq == 0 || (rq & attacksBB<ROOK>(kSq, amocc)) == 0)) {
+        if ((bq == 0 || (bq & attacksBB<BSHP>(square(c|KING), amocc)) == 0)
+         && (rq == 0 || (rq & attacksBB<ROOK>(square(c|KING), amocc)) == 0)) {
             return true;
         }
     }
@@ -575,7 +566,6 @@ bool Position::see(Move m, Value threshold) const noexcept {
         Bitboard movAttackers{ attackers & pieces(mov) };
 
         if (movAttackers != 0) {
-            auto const kSq{ square(mov|KING) };
             Bitboard b;
             // Don't allow pinned pieces to attack (except the king) as long as
             // there are pinners on their original square.
@@ -583,17 +573,17 @@ bool Position::see(Move m, Value threshold) const noexcept {
                    & pieces(~mov)
                    & mocc) != 0) {
                 while (b != 0) {
-                    movAttackers &= ~betweenBB(kSq, popLSq(b));
+                    movAttackers &= ~betweenBB(square(mov|KING), popLSq(b));
                 }
             }
             else
             if (contains(kingBlockers(mov), org)
-             && !aligned(kSq, org, dst)
+             && !aligned(square(mov|KING), org, dst)
              && (kingCheckers(~mov)
                & pieces(~mov)
                & mocc
-               & lineBB(kSq, org)) != 0) {
-                movAttackers = SquareBB[kSq];
+               & lineBB(square(mov|KING), org)) != 0) {
+                movAttackers = SquareBB[square(mov|KING)];
             }
             // If mov has no more attackers then give up: mov loses
             if (movAttackers == 0) {

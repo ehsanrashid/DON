@@ -141,13 +141,11 @@ namespace King {
     }
 
     Entry* probe(Position const &pos, Pawns::Entry *pe) {
-        auto const wkSq{ pos.square(W_KING) };
-        auto const bkSq{ pos.square(B_KING) };
 
         Key const kingKey{
             pe->key //pos.pawnKey()
-          ^ RandZob.psq[W_KING][wkSq]
-          ^ RandZob.psq[B_KING][bkSq] };
+          ^ RandZob.psq[W_KING][pos.square(W_KING)]
+          ^ RandZob.psq[B_KING][pos.square(B_KING)] };
 
         auto *e{ pos.thread()->kingHash[kingKey] };
 
@@ -159,10 +157,10 @@ namespace King {
         e->key = kingKey;
         e->pawnEntry = pe;
 
-        e->outflanking = distance<File>(wkSq, bkSq)
-                       - distance<Rank>(wkSq, bkSq);
-        e->infiltration = sRank(wkSq) > RANK_4
-                       || sRank(bkSq) < RANK_5;
+        e->outflanking = distance<File>(pos.square(W_KING), pos.square(B_KING))
+                       - distance<Rank>(pos.square(W_KING), pos.square(B_KING));
+        e->infiltration = sRank(pos.square(W_KING)) > RANK_4
+                       || sRank(pos.square(B_KING)) < RANK_5;
 
         e->initialize<WHITE>(),
         e->initialize<BLACK>();

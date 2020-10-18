@@ -721,7 +721,6 @@ namespace Evaluator {
         template<bool Trace> template<Color Own>
         Score Evaluation<Trace>::threats() const {
             constexpr auto Opp{ ~Own };
-            constexpr Bitboard Rank3{ RankBB[relativeRank(Own, RANK_3)] };
 
             Score score{ SCORE_ZERO };
 
@@ -815,7 +814,7 @@ namespace Evaluator {
             // Friend pawns push (squares where friend pawns can push on the next move)
             b =  pawnSglPushBB<Own>(b)
               & ~pos.pieces();
-            b |= pawnSglPushBB<Own>(b & Rank3)
+            b |= pawnSglPushBB<Own>(b & RankBB[relativeRank(Own, RANK_3)])
               & ~pos.pieces();
             // Friend pawns push safe (only the squares which are relatively safe)
             b &= safeArea
