@@ -44,19 +44,12 @@ class Stats {
 
 public:
 
-    void operator=(T const &e) noexcept {
-        entry = e;
-    }
+    void operator=(T const &e) noexcept { entry = e; }
 
-    T* operator&() noexcept {
-        return &entry;
-    }
-    T* operator->() noexcept {
-        return &entry;
-    }
-    operator T const&() const noexcept {
-        return entry;
-    }
+    T* operator &() noexcept { return &entry; }
+    T* operator->() noexcept { return &entry; }
+
+    operator T const&() const noexcept { return entry; }
 
     void operator<<(int32_t bonus) noexcept {
         static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");

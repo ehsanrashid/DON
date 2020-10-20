@@ -1,7 +1,5 @@
 #include "movepicker.h"
 
-#include <functional>
-
 namespace {
 
     enum Stage : uint8_t {
@@ -158,35 +156,25 @@ void MovePicker::value() {
         auto &vm{ *(vmCur++) };
 
         if (GT == CAPTURE) {
-            auto const captured{ pos.captured(vm) };
-
-            vm.value = int32_t(PieceValues[MG][captured]) * 6
-                     + (*captureStats)[pos[orgSq(vm)]][dstSq(vm)][captured];
+            vm.value = int32_t(PieceValues[MG][pos.captured(vm)]) * 6
+                     + (*captureStats)[pos.movedPiece(vm)][dstSq(vm)][pos.captured(vm)];
         }
         if (GT == QUIET) {
-            auto const dst{ dstSq(vm) };
-            auto const mp{ pos[orgSq(vm)] };
-            auto const mask{ mMask(vm) };
-
-            vm.value = (*butterFlyStats)[pos.activeSide()][mask]
-                     + (*pieceStats[0])[mp][dst] * 2
-                     + (*pieceStats[1])[mp][dst] * 2
-                     + (*pieceStats[3])[mp][dst] * 2
-                     + (*pieceStats[5])[mp][dst]
-                   + (ply < MAX_LOWPLY ?
-                       (*lowPlyStats)[ply][mask] * std::min(depth / 3, 4) : 0);
+            vm.value = (*butterFlyStats)[pos.activeSide()][mMask(vm)]
+                     + (*pieceStats[0])[pos.movedPiece(vm)][dstSq(vm)] * 2
+                     + (*pieceStats[1])[pos.movedPiece(vm)][dstSq(vm)] * 2
+                     + (*pieceStats[3])[pos.movedPiece(vm)][dstSq(vm)] * 2
+                     + (*pieceStats[5])[pos.movedPiece(vm)][dstSq(vm)]
+                     + (ply < MAX_LOWPLY ? (*lowPlyStats)[ply][mMask(vm)] * std::min(depth / 3, 4) : 0);
         }
         if (GT == EVASION) {
+            vm.value = pos.capture(vm) ?
+                        int32_t(PieceValues[MG][pos.captured(vm)])
+                      - pType(pos.movedPiece(vm)) :
 
-            vm.value =
-                pos.capture(vm) ?
-
-                    int32_t(PieceValues[MG][pos.captured(vm)])
-                  - pType(pos[orgSq(vm)]) :
-
-                    (*butterFlyStats)[pos.activeSide()][mMask(vm)]
-                  + (*pieceStats[0])[pos[orgSq(vm)]][dstSq(vm)]
-                  - 0x10000000; // 1 << 28
+                        (*butterFlyStats)[pos.activeSide()][mMask(vm)]
+                      + (*pieceStats[0])[pos.movedPiece(vm)][dstSq(vm)]
+                      - 0x10000000; // 1 << 28
         }
     }
 }

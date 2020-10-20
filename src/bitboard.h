@@ -51,6 +51,7 @@ constexpr Bitboard SquareBB[SQUARES]{
 #undef S_04
 #undef S_02
 };
+constexpr Bitboard squareBB(Square s) noexcept { assert(isOk(s)); return SquareBB[s]; }
 
 constexpr Bitboard FileBB[FILES]{
     U64(0x0101010101010101),
@@ -62,6 +63,8 @@ constexpr Bitboard FileBB[FILES]{
     U64(0x4040404040404040),
     U64(0x8080808080808080)
 };
+constexpr Bitboard fileBB(File f) noexcept { assert(isOk(f)); return FileBB[f]; }
+constexpr Bitboard fileBB(Square s) noexcept { return fileBB(sFile(s)); }
 
 constexpr Bitboard RankBB[RANKS]{
     U64(0x00000000000000FF),
@@ -73,45 +76,46 @@ constexpr Bitboard RankBB[RANKS]{
     U64(0x00FF000000000000),
     U64(0xFF00000000000000)
 };
+constexpr Bitboard rankBB(Rank r) noexcept { assert(isOk(r)); return RankBB[r]; }
+constexpr Bitboard rankBB(Square s) noexcept { return rankBB(sRank(s)); }
 
 constexpr Bitboard ColorBB[COLORS]{
     U64(0x55AA55AA55AA55AA),
     U64(0xAA55AA55AA55AA55)
 };
-
-constexpr Bitboard PawnSideBB[COLORS]{
-    RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4],
-    RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]
-};
+constexpr Bitboard colorBB(Color c) noexcept { assert(isOk(c)); return ColorBB[c]; }
 
 constexpr Bitboard FrontRankBB[COLORS][RANKS]{
     {
-        RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]|RankBB[RANK_3]|RankBB[RANK_2],
-        RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]|RankBB[RANK_3],
-        RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4],
-        RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5],
-        RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6],
-        RankBB[RANK_8]|RankBB[RANK_7],
-        RankBB[RANK_8],
+        rankBB(RANK_8)|rankBB(RANK_7)|rankBB(RANK_6)|rankBB(RANK_5)|rankBB(RANK_4)|rankBB(RANK_3)|rankBB(RANK_2),
+        rankBB(RANK_8)|rankBB(RANK_7)|rankBB(RANK_6)|rankBB(RANK_5)|rankBB(RANK_4)|rankBB(RANK_3),
+        rankBB(RANK_8)|rankBB(RANK_7)|rankBB(RANK_6)|rankBB(RANK_5)|rankBB(RANK_4),
+        rankBB(RANK_8)|rankBB(RANK_7)|rankBB(RANK_6)|rankBB(RANK_5),
+        rankBB(RANK_8)|rankBB(RANK_7)|rankBB(RANK_6),
+        rankBB(RANK_8)|rankBB(RANK_7),
+        rankBB(RANK_8),
         0,
     },
     {
         0,
-        RankBB[RANK_1],
-        RankBB[RANK_1]|RankBB[RANK_2],
-        RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3],
-        RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4],
-        RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4]|RankBB[RANK_5],
-        RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4]|RankBB[RANK_5]|RankBB[RANK_6],
-        RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4]|RankBB[RANK_5]|RankBB[RANK_6]|RankBB[RANK_7],
+        rankBB(RANK_1),
+        rankBB(RANK_1)|rankBB(RANK_2),
+        rankBB(RANK_1)|rankBB(RANK_2)|rankBB(RANK_3),
+        rankBB(RANK_1)|rankBB(RANK_2)|rankBB(RANK_3)|rankBB(RANK_4),
+        rankBB(RANK_1)|rankBB(RANK_2)|rankBB(RANK_3)|rankBB(RANK_4)|rankBB(RANK_5),
+        rankBB(RANK_1)|rankBB(RANK_2)|rankBB(RANK_3)|rankBB(RANK_4)|rankBB(RANK_5)|rankBB(RANK_6),
+        rankBB(RANK_1)|rankBB(RANK_2)|rankBB(RANK_3)|rankBB(RANK_4)|rankBB(RANK_5)|rankBB(RANK_6)|rankBB(RANK_7),
     }
 };
+/// frontRanksBB() returns ranks in front of the given square
+constexpr Bitboard frontRanksBB(Color c, Square s) noexcept { return FrontRankBB[c][sRank(s)]; }
 
-constexpr Bitboard SlotFileBB[3]{
-    FileBB[FILE_E]|FileBB[FILE_F]|FileBB[FILE_G]|FileBB[FILE_H],    // K-File
-    FileBB[FILE_A]|FileBB[FILE_B]|FileBB[FILE_C]|FileBB[FILE_D],    // Q-File
-    FileBB[FILE_C]|FileBB[FILE_D]|FileBB[FILE_E]|FileBB[FILE_F]     // C-File
+constexpr Bitboard SlotFileBB[CASTLE_SIDES+1]{
+    fileBB(FILE_E)|fileBB(FILE_F)|fileBB(FILE_G)|fileBB(FILE_H),    // K-File
+    fileBB(FILE_A)|fileBB(FILE_B)|fileBB(FILE_C)|fileBB(FILE_D),    // Q-File
+    fileBB(FILE_C)|fileBB(FILE_D)|fileBB(FILE_E)|fileBB(FILE_F)     // C-File
 };
+constexpr Bitboard slotFileBB(CastleSide cs) noexcept { return SlotFileBB[cs]; }
 
 extern uint8_t Distance[SQUARES][SQUARES];
 
@@ -123,35 +127,29 @@ extern Bitboard PieceAttacksBB[PIECE_TYPES][SQUARES];
 extern Magic BMagics[SQUARES];
 extern Magic RMagics[SQUARES];
 
-
 #if !defined(USE_POPCNT)
 extern uint8_t PopCount[USHRT_MAX+1]; // 16-bit
 #endif
 
-constexpr Bitboard operator~(Square s) noexcept { return ~SquareBB[s]; }
-constexpr Bitboard operator|(Square s1, Square s2) noexcept { return SquareBB[s1] | SquareBB[s2]; }
+constexpr Bitboard operator~(Square s) noexcept { return ~squareBB(s); }
 
-constexpr Bitboard operator&(Square s, Bitboard bb) noexcept { return bb & SquareBB[s]; }
-constexpr Bitboard operator|(Square s, Bitboard bb) noexcept { return bb | SquareBB[s]; }
-constexpr Bitboard operator^(Square s, Bitboard bb) noexcept { return bb ^ SquareBB[s]; }
+constexpr Bitboard operator&(Square s, Bitboard bb) noexcept { return bb & squareBB(s); }
+constexpr Bitboard operator|(Square s, Bitboard bb) noexcept { return bb | squareBB(s); }
+constexpr Bitboard operator^(Square s, Bitboard bb) noexcept { return bb ^ squareBB(s); }
 
-constexpr Bitboard operator&(Bitboard bb, Square s) noexcept { return bb & SquareBB[s]; }
-constexpr Bitboard operator|(Bitboard bb, Square s) noexcept { return bb | SquareBB[s]; }
-constexpr Bitboard operator^(Bitboard bb, Square s) noexcept { return bb ^ SquareBB[s]; }
+constexpr Bitboard operator&(Bitboard bb, Square s) noexcept { return bb & squareBB(s); }
+constexpr Bitboard operator|(Bitboard bb, Square s) noexcept { return bb | squareBB(s); }
+constexpr Bitboard operator^(Bitboard bb, Square s) noexcept { return bb ^ squareBB(s); }
 
-inline Bitboard& operator|=(Bitboard &bb, Square s) noexcept { return bb |= SquareBB[s]; }
-inline Bitboard& operator^=(Bitboard &bb, Square s) noexcept { return bb ^= SquareBB[s]; }
+inline Bitboard& operator&=(Bitboard &bb, Square s) noexcept { return bb &= squareBB(s); }
+inline Bitboard& operator|=(Bitboard &bb, Square s) noexcept { return bb |= squareBB(s); }
+inline Bitboard& operator^=(Bitboard &bb, Square s) noexcept { return bb ^= squareBB(s); }
 
-constexpr Bitboard fileBB(Square s) { return FileBB[sFile(s)]; }
-constexpr Bitboard rankBB(Square s) { return RankBB[sRank(s)]; }
-/// frontRanksBB() returns ranks in front of the given square
-constexpr Bitboard frontRanksBB(Color c, Square s) { return FrontRankBB[c][sRank(s)]; }
+constexpr Bitboard operator|(Square s1, Square s2) noexcept { return squareBB(s1) | s2; }
 
-constexpr bool contains(Bitboard bb, Square s) { return (bb & SquareBB[s]) != 0; }
+constexpr bool contains(Bitboard bb, Square s) noexcept { return (bb & squareBB(s)) != 0; }
 
-constexpr bool moreThanOne(Bitboard bb) {
-    return (bb & (bb - 1)) != 0;
-}
+constexpr bool moreThanOne(Bitboard bb) noexcept { return (bb & (bb - 1)) != 0; }
 
 /// Shift the bitboard using delta
 template<Direction> constexpr Bitboard shift(Bitboard) { return 0; }
@@ -159,13 +157,13 @@ template<> constexpr Bitboard shift<NORTH     >(Bitboard bb) { return (bb) <<  8
 template<> constexpr Bitboard shift<SOUTH     >(Bitboard bb) { return (bb) >>  8; }
 template<> constexpr Bitboard shift<NORTH_2   >(Bitboard bb) { return (bb) << 16; }
 template<> constexpr Bitboard shift<SOUTH_2   >(Bitboard bb) { return (bb) >> 16; }
-// If (shifting & 7) != 0 then  bound clipping is done (~FileBB[FILE_A] or ~FileBB[FILE_H])
-template<> constexpr Bitboard shift<EAST      >(Bitboard bb) { return (bb & ~FileBB[FILE_H]) << 1; }
-template<> constexpr Bitboard shift<WEST      >(Bitboard bb) { return (bb & ~FileBB[FILE_A]) >> 1; }
-template<> constexpr Bitboard shift<NORTH_EAST>(Bitboard bb) { return (bb & ~FileBB[FILE_H]) << 9; }
-template<> constexpr Bitboard shift<NORTH_WEST>(Bitboard bb) { return (bb & ~FileBB[FILE_A]) << 7; }
-template<> constexpr Bitboard shift<SOUTH_EAST>(Bitboard bb) { return (bb & ~FileBB[FILE_H]) >> 7; }
-template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) { return (bb & ~FileBB[FILE_A]) >> 9; }
+// If (shifting & 7) != 0 then  bound clipping is done (~fileBB(FILE_A) or ~fileBB(FILE_H))
+template<> constexpr Bitboard shift<EAST      >(Bitboard bb) { return (bb & ~fileBB(FILE_H)) << 1; }
+template<> constexpr Bitboard shift<WEST      >(Bitboard bb) { return (bb & ~fileBB(FILE_A)) >> 1; }
+template<> constexpr Bitboard shift<NORTH_EAST>(Bitboard bb) { return (bb & ~fileBB(FILE_H)) << 9; }
+template<> constexpr Bitboard shift<NORTH_WEST>(Bitboard bb) { return (bb & ~fileBB(FILE_A)) << 7; }
+template<> constexpr Bitboard shift<SOUTH_EAST>(Bitboard bb) { return (bb & ~fileBB(FILE_H)) >> 7; }
+template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) { return (bb & ~fileBB(FILE_A)) >> 9; }
 
 constexpr Bitboard adjacentFilesBB(Square s) noexcept {
     return shift<EAST >(fileBB(s))
@@ -185,25 +183,20 @@ constexpr Bitboard pawnPassSpan  (Color c, Square s) noexcept { return frontSqua
 /// If the given squares are not on a same file/rank/diagonal, return 0.
 /// Ex. lineBB(SQ_C4, SQ_F7) returns a bitboard with the A2-G8 diagonal.
 inline Bitboard lineBB(Square s1, Square s2) noexcept {
-    assert(isOk(s1)
-        && isOk(s2));
     return LineBB[s1][s2];
 }
 /// betweenBB() returns squares that are linearly between the given squares
 /// If the given squares are not on a same file/rank/diagonal, return 0.
 /// Ex. betweenBB(SQ_C4, SQ_F7) returns a bitboard with squares D5 and E6.
 inline Bitboard betweenBB(Square s1, Square s2) noexcept {
-    Bitboard const sLine{
+    Bitboard const line{
         lineBB(s1, s2)
-      & ((BoardBB << s1)
-       ^ (BoardBB << s2)) };
+      & ((BoardBB << s1) ^ (BoardBB << s2)) };
     // Exclude LSB
-    return //sLine & ~std::min(s1, s2);
-           sLine & (sLine - 1);
+    return line & (line - 1); //line & ~std::min(s1, s2);
 }
 /// aligned() Check the squares s1, s2 and s3 are aligned on a straight line.
-inline bool aligned(Square s1, Square s2, Square s3) {
-    assert(isOk(s3));
+inline bool aligned(Square s1, Square s2, Square s3) noexcept {
     return contains(lineBB(s1, s2), s3);
 }
 

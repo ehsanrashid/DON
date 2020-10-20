@@ -45,7 +45,7 @@ namespace King {
     Score Entry::evaluateSafetyOn(Position const &pos, Square kSq) noexcept {
         constexpr auto Opp{ ~Own };
 
-        Bitboard const frontPawns{ ~frontRanksBB(Opp, kSq) & pos.pieces(PAWN) };
+        Bitboard const frontPawns   { pos.pieces(PAWN) & ~frontRanksBB(Opp, kSq) };
         Bitboard const ownFrontPawns{ pos.pieces(Own) & frontPawns & ~pawnEntry->sglAttacks[Opp] };
         Bitboard const oppFrontPawns{ pos.pieces(Opp) & frontPawns };
 
@@ -54,12 +54,10 @@ namespace King {
         auto kF{ std::clamp(sFile(kSq), FILE_B, FILE_G) };
         for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
             assert(FILE_A <= f && f <= FILE_H);
-            Bitboard const ownFrontFilePawns{ ownFrontPawns & FileBB[f] };
-            auto const ownR{ ownFrontFilePawns != 0 ?
-                relativeRank(Own, scanFrontMostSq<Opp>(ownFrontFilePawns)) : RANK_1 };
-            Bitboard const oppFrontFilePawns{ oppFrontPawns & FileBB[f] };
-            auto const oppR{ oppFrontFilePawns != 0 ?
-                relativeRank(Own, scanFrontMostSq<Opp>(oppFrontFilePawns)) : RANK_1 };
+            Bitboard const ownFrontFilePawns{ ownFrontPawns & fileBB(f) };
+            auto const ownR{ ownFrontFilePawns != 0 ? relativeRank(Own, scanFrontMostSq<Opp>(ownFrontFilePawns)) : RANK_1 };
+            Bitboard const oppFrontFilePawns{ oppFrontPawns & fileBB(f) };
+            auto const oppR{ oppFrontFilePawns != 0 ? relativeRank(Own, scanFrontMostSq<Opp>(oppFrontFilePawns)) : RANK_1 };
             assert((ownR != oppR)
                 || (ownR == RANK_1
                  && oppR == RANK_1));

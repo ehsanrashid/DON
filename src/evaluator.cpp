@@ -116,7 +116,7 @@ namespace Evaluator {
 
             void clear() {
                 //std::fill(&Scores[0][0], &Scores[0][0] + sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);
-                std::fill_n(&Scores[0][0], sizeof(Scores) / sizeof(Scores[0][0]), SCORE_ZERO);
+                std::fill_n(&Scores[0][0], sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);
             }
 
             void write(Term t, Color c, Score s) noexcept {
@@ -151,34 +151,38 @@ namespace Evaluator {
         }
 
 
-        constexpr Bitboard CenterBB{ (FileBB[FILE_D]|FileBB[FILE_E]) & (RankBB[RANK_4]|RankBB[RANK_5]) };
+        constexpr Bitboard CenterBB{ (fileBB(FILE_D)|fileBB(FILE_E)) & (rankBB(RANK_4)|rankBB(RANK_5)) };
 
         constexpr Bitboard LowRankBB[COLORS]{
-            RankBB[RANK_2]|RankBB[RANK_3],
-            RankBB[RANK_7]|RankBB[RANK_6]
+            rankBB(RANK_2)|rankBB(RANK_3),
+            rankBB(RANK_7)|rankBB(RANK_6)
         };
 
         constexpr Bitboard CampBB[COLORS]{
-            RankBB[RANK_1]|RankBB[RANK_2]|RankBB[RANK_3]|RankBB[RANK_4]|RankBB[RANK_5],
-            RankBB[RANK_8]|RankBB[RANK_7]|RankBB[RANK_6]|RankBB[RANK_5]|RankBB[RANK_4]
+            rankBB(RANK_1)|rankBB(RANK_2)|rankBB(RANK_3)|rankBB(RANK_4)|rankBB(RANK_5),
+            rankBB(RANK_8)|rankBB(RANK_7)|rankBB(RANK_6)|rankBB(RANK_5)|rankBB(RANK_4)
         };
 
         constexpr Bitboard OutpostRankBB[COLORS]{
-            RankBB[RANK_4]|RankBB[RANK_5]|RankBB[RANK_6],
-            RankBB[RANK_5]|RankBB[RANK_4]|RankBB[RANK_3]
+            rankBB(RANK_4)|rankBB(RANK_5)|rankBB(RANK_6),
+            rankBB(RANK_5)|rankBB(RANK_4)|rankBB(RANK_3)
         };
 
         constexpr Bitboard KingFlankBB[FILES]{
-            SlotFileBB[CS_QUEN] ^ FileBB[FILE_D],
-            SlotFileBB[CS_QUEN],
-            SlotFileBB[CS_QUEN],
-            SlotFileBB[CS_CENTRE],
-            SlotFileBB[CS_CENTRE],
-            SlotFileBB[CS_KING],
-            SlotFileBB[CS_KING],
-            SlotFileBB[CS_KING] ^ FileBB[FILE_E]
+            slotFileBB(CS_QUEN) ^ fileBB(FILE_D),
+            slotFileBB(CS_QUEN),
+            slotFileBB(CS_QUEN),
+            slotFileBB(CS_CENTRE),
+            slotFileBB(CS_CENTRE),
+            slotFileBB(CS_KING),
+            slotFileBB(CS_KING),
+            slotFileBB(CS_KING) ^ fileBB(FILE_E)
         };
 
+        constexpr Bitboard PawnSideBB[COLORS]{
+            rankBB(RANK_2)|rankBB(RANK_3)|rankBB(RANK_4),
+            rankBB(RANK_7)|rankBB(RANK_6)|rankBB(RANK_5)
+        };
 
     #define S(mg, eg) makeScore(mg, eg)
 
@@ -411,7 +415,7 @@ namespace Evaluator {
                     score += BishopOnKingRing;
                 }
                 else if (PT == ROOK
-                      && (kingRing[Opp] & attacksBB<ROOK>(s, pos.pieces(PAWN))) != 0) {
+                      && (kingRing[Opp] & attacksBB<ROOK>(s, pos.pieces(Own, PAWN)) & fileBB(s)) != 0) {
                     score += RookOnKingRing;
                 }
 
@@ -448,10 +452,10 @@ namespace Evaluator {
                             // Reduced bonus for knights (KnightBadOutpost) if few relevant targets
                             Bitboard const targets{ pos.pieces(Opp) & ~pos.pieces(PAWN) };
                             if (// On a side outpost
-                                !contains(SlotFileBB[CS_CENTRE], s)
+                                !contains(slotFileBB(CS_CENTRE), s)
                                 // No relevant attacks
                              && (attacks & targets) == 0
-                             && !moreThanOne(targets & (contains(SlotFileBB[CS_QUEN], s) ? SlotFileBB[CS_QUEN] : SlotFileBB[CS_KING]))) {
+                             && !moreThanOne(targets & (contains(slotFileBB(CS_QUEN), s) ? slotFileBB(CS_QUEN) : slotFileBB(CS_KING)))) {
                                 score += KnightBadOutpost;
                             }
                             else {
@@ -483,8 +487,8 @@ namespace Evaluator {
                         // more when the center files are blocked with pawns.
                         Bitboard const blockedPawns{ pos.pieces(Own, PAWN) & pawnSglPushBB<Opp>(pos.pieces()) };
                         score -= BishopPawnsBlocked
-                               * popCount(pos.pawnsOnSqColor(Own, sColor(s)))
-                               * (popCount(blockedPawns & SlotFileBB[CS_CENTRE])
+                               * popCount(pos.pawnsOnColor(Own, sColor(s)))
+                               * (popCount(blockedPawns & slotFileBB(CS_CENTRE))
                                 + !contains(attackedBy[Own][PAWN], s));
                         // Penalty for all enemy pawns x-rayed
                         score -= BishopPawnsXRayed
@@ -677,7 +681,7 @@ namespace Evaluator {
                 popCount(b) };                      // Squares attacked by friend in friend king flank
 
             // King Safety:
-            Score score{ kingEntry->evaluateSafety<Own>(pos, attackedFull[Opp] & RankBB[relativeRank(Own, RANK_1)]) };
+            Score score{ kingEntry->evaluateSafety<Own>(pos, attackedFull[Opp] & rankBB(relativeRank(Own, RANK_1))) };
 
             kingDanger +=   1 * kingAttackersCount[Opp] * kingAttackersWeight[Opp]
                         +  69 * kingAttacksCount[Opp]
@@ -814,7 +818,7 @@ namespace Evaluator {
             // Friend pawns push (squares where friend pawns can push on the next move)
             b =  pawnSglPushBB<Own>(b)
               & ~pos.pieces();
-            b |= pawnSglPushBB<Own>(b & RankBB[relativeRank(Own, RANK_3)])
+            b |= pawnSglPushBB<Own>(b & rankBB(relativeRank(Own, RANK_3)))
               & ~pos.pieces();
             // Friend pawns push safe (only the squares which are relatively safe)
             b &= safeArea
@@ -941,7 +945,7 @@ namespace Evaluator {
 
             // Safe squares for friend pieces inside the area defined by SpaceMask.
             Bitboard const safeSpace{
-                 SlotFileBB[CS_CENTRE]
+                 slotFileBB(CS_CENTRE)
               &  PawnSideBB[Own]
               & ~pos.pieces(Own, PAWN)
               & ~attackedBy[Opp][PAWN] };
@@ -1092,8 +1096,8 @@ namespace Evaluator {
                  && pos.nonPawnMaterial(BLACK) == VALUE_MG_ROOK
                  && pos.count( strongSide|PAWN)
                   - pos.count(~strongSide|PAWN) <= 1
-                 && bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_KING])
-                 != bool(pos.pieces(strongSide, PAWN) & SlotFileBB[CS_QUEN])
+                 && bool(pos.pieces(strongSide, PAWN) & slotFileBB(CS_KING))
+                 != bool(pos.pieces(strongSide, PAWN) & slotFileBB(CS_QUEN))
                  && (attackedBy[~strongSide][KING] & pos.pieces(~strongSide, PAWN)) != 0) {
                     scale = 36;
                 }

@@ -159,9 +159,10 @@ Thread* ThreadPool::bestThread() const noexcept {
 /// Created and launched threads will immediately go to sleep in threadFunc.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
 void ThreadPool::setup(uint16_t threadCount) {
-    stop = true;
+    
     if (!empty()) {
-        mainThread()->waitIdle();
+        stopThinking();
+        
         // Destroy any existing thread(s)
         while (size() > 0) {
             delete back(), pop_back();
@@ -191,14 +192,13 @@ void ThreadPool::clean() {
         th->clean();
     }
     timeReduction = 1.00;
-    bestValue = VALUE_ZERO;
-    iterValues.fill(bestValue);
+    bestValue = +VALUE_INFINITE;
+    iterValues.fill(VALUE_ZERO);
 }
 
 /// ThreadPool::startThinking() wakes up main thread waiting in threadFunc() and returns immediately.
 /// Main thread will wake up other threads and start the search.
 void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
-
     stop = false;
     stand = false;
 
@@ -242,6 +242,11 @@ void ThreadPool::startThinking(Position &pos, StateListPtr &states) {
     }
 
     mainThread()->wakeUp();
+}
+
+void ThreadPool::stopThinking() {
+    stop = true;
+    mainThread()->waitIdle();
 }
 
 void ThreadPool::wakeUpThreads() {

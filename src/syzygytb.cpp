@@ -1321,7 +1321,7 @@ namespace {
         for (auto &move : moveList) {
             if (!pos.capture(move)
              && (!checkZeroing
-              || pType(pos[orgSq(move)]) != PAWN)) {
+              || pType(pos.movedPiece(move)) != PAWN)) {
                 continue;
             }
 
@@ -1479,7 +1479,7 @@ namespace SyzygyTB {
         for (auto const &vm : MoveList<LEGAL>(pos)) {
 
             bool zeroing = pos.capture(vm)
-                        || pType(pos[orgSq(vm)]) == PAWN;
+                        || pType(pos.movedPiece(vm)) == PAWN;
 
             pos.doMove(vm, si);
 

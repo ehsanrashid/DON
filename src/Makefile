@@ -746,7 +746,7 @@ endif
         gcc-profile-use gcc-profile-make \
         clang-profile-use clang-profile-make
 
-build: config-sanity net
+build: net config-sanity
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) all
 
 profile-build: net config-sanity objclean profileclean
@@ -810,7 +810,7 @@ objclean:
 # Clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
-	@rm -f bench.txt *.gcno *.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.s
+	@rm -f bench.txt *.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.gcno *.s
 	@rm -f DON.profdata *.profraw
 
 default:
@@ -825,7 +825,7 @@ all: $(EXE) .depend
 	@echo "*            SUCCESS            *"
 	@echo "================================="
 
-config-sanity:
+config-sanity: net
 	@echo ""
 	@echo "Config:"
 	@echo "---------"
@@ -891,38 +891,38 @@ $(EXE): $(OBJS)
 
 clang-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS = '-fprofile-instr-generate' \
-	EXTRALDFLAGS = '-fprofile-instr-generate' \
+	EXTRACXXFLAGS='-fprofile-instr-generate' \
+	EXTRALDFLAGS='-fprofile-instr-generate' \
 	all
 
 clang-profile-use:
 	$(XCRUN) llvm-profdata merge -output=DON.profdata *.profraw
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS = '-fprofile-instr-use=DON.profdata' \
-	EXTRALDFLAGS = '-fprofile-use' \
+	EXTRACXXFLAGS='-fprofile-instr-use=DON.profdata' \
+	EXTRALDFLAGS='-fprofile-use' \
 	all
 
 gcc-profile-make:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS = '-fprofile-generate' \
-	EXTRALDFLAGS = '-lgcov' \
+	EXTRACXXFLAGS='-fprofile-generate' \
+	EXTRALDFLAGS='-lgcov' \
 	all
 
 gcc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS = '-fprofile-use -fno-peel-loops -fno-tracer' \
-	EXTRALDFLAGS = '-lgcov' \
+	EXTRACXXFLAGS='-fprofile-use -fno-peel-loops -fno-tracer' \
+	EXTRALDFLAGS='-lgcov' \
 	all
 
 icc-profile-make:
 	@mkdir -p profdir
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS = '-prof-gen=srcpos -prof_dir ./profdir' \
+	EXTRACXXFLAGS='-prof-gen=srcpos -prof_dir ./profdir' \
 	all
 
 icc-profile-use:
 	$(MAKE) ARCH=$(ARCH) COMP=$(COMP) \
-	EXTRACXXFLAGS = '-prof_use -prof_dir ./profdir' \
+	EXTRACXXFLAGS='-prof_use -prof_dir ./profdir' \
 	all
 
 .depend:

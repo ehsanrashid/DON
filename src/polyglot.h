@@ -63,7 +63,7 @@ private:
 
     bool canProbe(Position const&) noexcept;
 
-    PolyEntry *entry;
+    PolyEntry *entryTable;
     uint64_t   entryCount;
 
     // Last probe info

@@ -83,8 +83,8 @@ public:
     Position& operator=(Position const&) = delete;
     Position& operator=(Position&&) = delete;
 
-    Piece operator[](Square) const noexcept;
-    bool empty(Square) const noexcept;
+    constexpr Piece operator[](Square) const noexcept;
+    constexpr bool empty(Square) const noexcept;
 
     //Bitboard pieces(Piece) const noexcept;
     Bitboard pieces(Color) const noexcept;
@@ -135,7 +135,7 @@ public:
 
     Color activeSide() const noexcept;
     Score psqScore() const noexcept;
-    int16_t gamePly() const noexcept;
+    int16_t plyCount() const noexcept;
     Thread* thread() const noexcept;
     void thread(Thread*) noexcept;
 
@@ -151,21 +151,23 @@ public:
 
     Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const noexcept;
 
-    bool capture(Move) const noexcept;
-    bool captureOrPromotion(Move) const noexcept;
-    bool advancedPawnPush(Move) const noexcept;
+    constexpr Piece movedPiece(Move) const noexcept;
+    constexpr Piece prevMovedPiece(Move) const noexcept;
+
+    constexpr bool capture(Move) const noexcept;
+    constexpr bool captureOrPromotion(Move) const noexcept;
+    constexpr bool advancedPawnPush(Move) const noexcept;
+    constexpr PieceType captured(Move) const noexcept;
 
     bool pseudoLegal(Move) const noexcept;
     bool legal(Move) const noexcept;
     bool giveCheck(Move) const noexcept;
     bool giveDblCheck(Move) const noexcept;
 
-    PieceType captured(Move) const noexcept;
-
     bool see(Move, Value = VALUE_ZERO) const noexcept;
 
     bool pawnPassedAt(Color, Square) const noexcept;
-    Bitboard pawnsOnSqColor(Color, Color) const noexcept;
+    Bitboard pawnsOnColor(Color, Color) const noexcept;
 
     bool bishopPaired(Color) const noexcept;
     bool bishopOpposed() const noexcept;
@@ -213,7 +215,7 @@ private:
     Square  pieceSquare[PIECES][12];
     uint8_t pieceCount[PIECES];
 
-    Value   npMaterial[COLORS];
+    Value   npm[COLORS];
 
     Square   cslRookSq[COLORS][CASTLE_SIDES];
     Bitboard cslKingPath[COLORS][CASTLE_SIDES];
@@ -230,11 +232,11 @@ private:
     friend std::ostream& operator<<(std::ostream&, Position const&);
 };
 
-inline Piece Position::operator[](Square s) const noexcept {
-    assert(isOk(s));
+constexpr Piece Position::operator[](Square s) const noexcept {
+    //assert(isOk(s));
     return board[s];
 }
-inline bool Position::empty(Square s) const noexcept {
+constexpr bool Position::empty(Square s) const noexcept {
     return board[s] == NO_PIECE;
 }
 
@@ -281,7 +283,7 @@ inline Square Position::square(Piece p, uint8_t idx) const noexcept {
 }
 
 inline Value Position::nonPawnMaterial(Color c) const noexcept {
-    return npMaterial[c];
+    return npm[c];
 }
 inline Value Position::nonPawnMaterial() const noexcept {
     return nonPawnMaterial(WHITE) + nonPawnMaterial(BLACK);
@@ -356,7 +358,7 @@ inline Color Position::activeSide() const noexcept {
 inline Score Position::psqScore() const noexcept {
     return psq;
 }
-inline int16_t Position::gamePly() const noexcept {
+inline int16_t Position::plyCount() const noexcept {
     return ply;
 }
 
@@ -426,13 +428,18 @@ inline Bitboard Position::attackersTo(Square s) const noexcept {
     return attackersTo(s, pieces());
 }
 
-inline bool Position::capture(Move m) const noexcept {
-    assert(isOk(m));
+constexpr Piece Position::movedPiece(Move m) const noexcept {
+    return board[orgSq(m)];
+}
+constexpr Piece Position::prevMovedPiece(Move m) const noexcept {
+    return mType(m) != CASTLE ? board[dstSq(m)] : ~active|KING;
+}
+
+constexpr bool Position::capture(Move m) const noexcept {
     return  mType(m) == ENPASSANT
         || (mType(m) != CASTLE && contains(pieces(~active), dstSq(m)));
 }
-inline bool Position::captureOrPromotion(Move m) const noexcept {
-    assert(isOk(m));
+constexpr bool Position::captureOrPromotion(Move m) const noexcept {
     //return  mType(m) == ENPASSANT
     //    ||  mType(m) == PROMOTE
     //    || (mType(m) == SIMPLE && contains(pieces(~active), dstSq(m)));
@@ -440,14 +447,14 @@ inline bool Position::captureOrPromotion(Move m) const noexcept {
             contains(pieces(~active), dstSq(m)) : mType(m) != CASTLE;
 }
 /// Position::advancedPawnPush() check if advanced pawn is push
-inline bool Position::advancedPawnPush(Move m) const noexcept {
+constexpr bool Position::advancedPawnPush(Move m) const noexcept {
     return pType(board[orgSq(m)]) == PAWN
         && relativeRank(active, dstSq(m)) > RANK_5;
 }
 
-inline PieceType Position::captured(Move m) const noexcept {
-    assert(isOk(m));
-    return mType(m) != ENPASSANT ? pType(board[dstSq(m)]) : PAWN;
+constexpr PieceType Position::captured(Move m) const noexcept {
+    return mType(m) == ENPASSANT ? PAWN :
+           mType(m) != CASTLE    ? pType(board[dstSq(m)]) : NONE;
 }
 
 /// Position::pawnPassedAt() check if pawn passed at the given square
@@ -455,15 +462,15 @@ inline bool Position::pawnPassedAt(Color c, Square s) const noexcept {
     return (pieces(~c, PAWN) & pawnPassSpan(c, s)) == 0;
 }
 
-inline Bitboard Position::pawnsOnSqColor(Color c, Color sqC) const noexcept {
-    return pieces(c, PAWN) & ColorBB[sqC];
+inline Bitboard Position::pawnsOnColor(Color c, Color sqC) const noexcept {
+    return pieces(c, PAWN) & colorBB(sqC);
 }
 
 /// Position::bishopPaired() check the side has pair of opposite color bishops
 inline bool Position::bishopPaired(Color c) const noexcept {
     return count(c|BSHP) >= 2
-        && (pieces(c, BSHP) & ColorBB[WHITE]) != 0
-        && (pieces(c, BSHP) & ColorBB[BLACK]) != 0;
+        && (pieces(c, BSHP) & colorBB(WHITE)) != 0
+        && (pieces(c, BSHP) & colorBB(BLACK)) != 0;
 }
 inline bool Position::bishopOpposed() const noexcept {
     return count(W_BSHP) == 1

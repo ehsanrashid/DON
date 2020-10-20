@@ -265,13 +265,13 @@ enum Scale : uint8_t {
     SCALE_NONE    = 255,
 };
 
-#define BASIC_OPERATORS(T)                                                     \
-    constexpr T operator+(T t) { return T(+int32_t(t)); }                      \
-    constexpr T operator-(T t) { return T(-int32_t(t)); }                      \
-    constexpr T operator+(T t1, T t2) { return T(int32_t(t1) + int32_t(t2)); } \
-    constexpr T operator-(T t1, T t2) { return T(int32_t(t1) - int32_t(t2)); } \
-    inline T& operator+=(T &t1, T t2) { return t1 = t1 + t2; }                 \
-    inline T& operator-=(T &t1, T t2) { return t1 = t1 - t2; }
+#define BASIC_OPERATORS(T)                                                              \
+    constexpr T operator+(T t)        noexcept { return T(+int32_t(t)); }               \
+    constexpr T operator-(T t)        noexcept { return T(-int32_t(t)); }               \
+    constexpr T operator+(T t1, T t2) noexcept { return T(int32_t(t1) + int32_t(t2)); } \
+    constexpr T operator-(T t1, T t2) noexcept { return T(int32_t(t1) - int32_t(t2)); } \
+    inline T& operator+=(T &t1, T t2) noexcept { return t1 = t1 + t2; }                 \
+    inline T& operator-=(T &t1, T t2) noexcept { return t1 = t1 - t2; }
 
 BASIC_OPERATORS(Direction)
 BASIC_OPERATORS(Value)
@@ -306,35 +306,25 @@ INC_DEC_OPERATORS(Piece)
 INC_DEC_OPERATORS(CastleSide)
 #undef INC_DEC_OPERATORS
 
-#define BITWISE_OPERATORS(T)                                                   \
-    constexpr T operator~(T t) { return T(~int32_t(t)); }                      \
-    constexpr T operator|(T t1, T t2) { return T(int32_t(t1) | int32_t(t2)); } \
-    constexpr T operator&(T t1, T t2) { return T(int32_t(t1) & int32_t(t2)); } \
-    constexpr T operator^(T t1, T t2) { return T(int32_t(t1) ^ int32_t(t2)); } \
-    inline T& operator|=(T &t1, T t2) { return t1 = t1 | t2; }                 \
-    inline T& operator&=(T &t1, T t2) { return t1 = t1 & t2; }                 \
-    inline T& operator^=(T &t1, T t2) { return t1 = t1 ^ t2; }
+#define BITWISE_OPERATORS(T)                                                            \
+    constexpr T operator~(T t)        noexcept { return T(~int32_t(t)); }               \
+    constexpr T operator|(T t1, T t2) noexcept { return T(int32_t(t1) | int32_t(t2)); } \
+    constexpr T operator&(T t1, T t2) noexcept { return T(int32_t(t1) & int32_t(t2)); } \
+    constexpr T operator^(T t1, T t2) noexcept { return T(int32_t(t1) ^ int32_t(t2)); } \
+    inline T& operator|=(T &t1, T t2) noexcept { return t1 = t1 | t2; }                 \
+    inline T& operator&=(T &t1, T t2) noexcept { return t1 = t1 & t2; }                 \
+    inline T& operator^=(T &t1, T t2) noexcept { return t1 = t1 ^ t2; }
 
 BITWISE_OPERATORS(CastleRight)
 //BITWISE_OPERATORS(Bound)
 #undef BITWISE_OPERATORS
 
-constexpr Square operator+(Square s, Direction d) {
-    return Square(int32_t(s) + int32_t(d));
-}
-constexpr Square operator-(Square s, Direction d) {
-    return Square(int32_t(s) - int32_t(d));
-}
-inline Square& operator+=(Square &s, Direction d) {
-    return s = s + d;
-}
-inline Square& operator-=(Square &s, Direction d) {
-    return s = s - d;
-}
+constexpr Square operator+(Square s, Direction d) noexcept { return Square(int32_t(s) + int32_t(d)); }
+constexpr Square operator-(Square s, Direction d) noexcept { return Square(int32_t(s) - int32_t(d)); }
+inline Square& operator+=(Square &s, Direction d) noexcept { return s = s + d; }
+inline Square& operator-=(Square &s, Direction d) noexcept { return s = s - d; }
 
-constexpr Direction operator-(Square s1, Square s2) {
-    return Direction(int32_t(s1) - int32_t(s2));
-}
+constexpr Direction operator-(Square s1, Square s2) noexcept { return Direction(int32_t(s1) - int32_t(s2)); }
 
 constexpr Score makeScore(int32_t mg, int32_t eg) noexcept {
     return Score(int32_t(uint32_t(eg) << 0x10) + mg);
@@ -380,20 +370,13 @@ constexpr Score operator/(Score s, int32_t i) {
 //    assert((i == 0) || (score / i) == s);
 //    return score;
 //}
-constexpr Score operator*(Score s, int32_t i) {
-    return Score(int32_t(s) * i);
-}
+constexpr Score operator*(Score s, int32_t i) { return Score(int32_t(s) * i); }
 
-inline Score& operator/=(Score &s, int32_t i) {
-    return s = s / i;
-}
-inline Score& operator*=(Score &s, int32_t i) {
-    return s = s * i;
-}
+inline Score& operator/=(Score &s, int32_t i) { return s = s / i; }
+inline Score& operator*=(Score &s, int32_t i) { return s = s * i; }
 /// Multiplication of a Score by a boolean
-constexpr Score operator*(Score s, bool b) {
-    return s * int32_t(b);
-}
+constexpr Score operator*(Score s, bool b)    { return b ? s : SCORE_ZERO; }
+
 /// Don't want to multiply two scores due to a very high risk of overflow.
 /// So user should explicitly convert to integer.
 Score operator*(Score, Score) = delete;

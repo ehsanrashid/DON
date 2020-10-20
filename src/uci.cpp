@@ -618,8 +618,7 @@ namespace UCI {
 
         /// go() sets the thinking time and other parameters from the input string, then starts the search.
         void go(istringstream &iss, Position &pos, StateListPtr &states) {
-            Threadpool.stop = true;
-            Threadpool.mainThread()->waitIdle();
+            Threadpool.stopThinking();
             Threadpool.ponder = false;
 
             Limits.clear();
@@ -987,8 +986,7 @@ namespace UCI {
 
     /// clear() clear all stuff
     void clear() noexcept {
-        Threadpool.stop = true;
-        Threadpool.mainThread()->waitIdle();
+        Threadpool.stopThinking();
 
         TT.clear();
         TTEx.clear();

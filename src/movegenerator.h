@@ -27,7 +27,7 @@ public:
         //if (NONE != PT) {
         //    erase(std::remove_if(begin(), end(),
         //        [&](ValMove const &vm) {
-        //            return PT != pType(pos[orgSq(vm)]);
+        //            return PT != pType(pos.movedPiece(vm));
         //        }), end());
         //}
     }

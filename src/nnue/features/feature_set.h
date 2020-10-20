@@ -30,7 +30,7 @@ namespace Evaluator::NNUE::Features {
     public:
         // Get a list of indices for active features
         template<typename IndexListType>
-        static void appendActiveIndices(Position const &pos, TriggerEvent trigger, IndexListType active[2]) {
+        static void appendActiveIndices(Position const &pos, TriggerEvent trigger, IndexListType active[COLORS]) {
 
             for (auto perspective : { WHITE, BLACK }) {
                 Derived::collectActiveIndices(pos, trigger, perspective, &active[perspective]);
@@ -39,7 +39,7 @@ namespace Evaluator::NNUE::Features {
 
         // Get a list of indices for recently changed features
         template<typename PositionType, typename IndexListType>
-        static void appendChangedIndices(PositionType const &pos, TriggerEvent trigger, IndexListType removed[2], IndexListType added[2], bool reset[2]) {
+        static void appendChangedIndices(PositionType const &pos, TriggerEvent trigger, IndexListType removed[COLORS], IndexListType added[COLORS], bool reset[COLORS]) {
 
             auto const collectOne = [&](MoveInfo const &mi) {
                 for (Color perspective : { WHITE, BLACK }) {

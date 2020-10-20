@@ -143,7 +143,7 @@ std::ostream& operator<<(std::ostream &ostream, PolyEntry const &pe) {
 
 constexpr PolyBook::PolyBook() noexcept :
     enabled{ false },
-    entry{ nullptr },
+    entryTable{ nullptr },
     entryCount{ 0 },
     pieces{ 0 },
     failCount{ 0 } {
@@ -156,9 +156,9 @@ PolyBook::~PolyBook() noexcept {
 void PolyBook::clear() noexcept {
 
     enabled = false;
-    if (entry != nullptr) {
-        delete[] entry;
-        entry = nullptr;
+    if (entryTable != nullptr) {
+        delete[] entryTable;
+        entryTable = nullptr;
     }
 }
 
@@ -169,11 +169,11 @@ int64_t PolyBook::findIndex(Key pgKey) const noexcept {
     while (beg + 8 < end) {
         int64_t mid{ (beg + end) / 2 };
 
-        if (pgKey > entry[mid].key) {
+        if (pgKey > entryTable[mid].key) {
             beg = mid;
         }
         else
-        if (pgKey < entry[mid].key) {
+        if (pgKey < entryTable[mid].key) {
             end = mid;
         }
         else { // pgKey == entry[mid].key
@@ -183,9 +183,9 @@ int64_t PolyBook::findIndex(Key pgKey) const noexcept {
     }
 
     while (beg < end) {
-        if (pgKey == entry[beg].key) {
+        if (pgKey == entryTable[beg].key) {
             while (beg > 0
-                && pgKey == entry[beg - 1].key) {
+                && pgKey == entryTable[beg - 1].key) {
                 --beg;
             }
             return beg;
@@ -238,8 +238,8 @@ void PolyBook::initialize(std::string_view bookFile) {
     ifstream.seekg(0, std::ios::beg);
 
     entryCount = (fileSize - HeaderSize) / sizeof (PolyEntry);
-    entry = new PolyEntry[entryCount];
-    if (entry == nullptr) {
+    entryTable = new PolyEntry[entryCount];
+    if (entryTable == nullptr) {
         return;
     }
     enabled = true;
@@ -251,7 +251,7 @@ void PolyBook::initialize(std::string_view bookFile) {
         }
     }
     for (uint64_t idx = 0; idx < entryCount; ++idx) {
-        ifstream >> entry[idx];
+        ifstream >> entryTable[idx];
     }
     ifstream.close();
 
@@ -267,7 +267,7 @@ Move PolyBook::probe(Position &pos, int16_t moveCount, bool pickBest) {
     static PRNG prng(now());
 
     if (!enabled
-     || entry == nullptr
+     || entryTable == nullptr
      || (moveCount != 0
       && moveCount < pos.moveCount())
      || !canProbe(pos)) {
@@ -288,25 +288,25 @@ Move PolyBook::probe(Position &pos, int16_t moveCount, bool pickBest) {
     uint64_t pick1Index = index;
     uint64_t idx = index;
     while (idx < entryCount
-        && pgKey == entry[idx].key) {
+        && pgKey == entryTable[idx].key) {
 
-        if (entry[idx].move == MOVE_NONE) {
+        if (entryTable[idx].move == MOVE_NONE) {
             continue;
         }
         ++count;
-        maxWeight = std::max(entry[idx].weight, maxWeight);
-        sumWeight += entry[idx].weight;
+        maxWeight = std::max(entryTable[idx].weight, maxWeight);
+        sumWeight += entryTable[idx].weight;
 
         // Choose the move
         if (pickBest) {
-            if (maxWeight == entry[idx].weight) {
+            if (maxWeight == entryTable[idx].weight) {
                 pick1Index = idx;
             }
         }
         else {
             // Move with a very high score, has a higher probability of being choosen.
             if (sumWeight != 0
-             && (prng.rand<uint32_t>() % sumWeight) < entry[idx].weight) {
+             && (prng.rand<uint32_t>() % sumWeight) < entryTable[idx].weight) {
                 pick1Index = idx;
             }
         }
@@ -315,7 +315,7 @@ Move PolyBook::probe(Position &pos, int16_t moveCount, bool pickBest) {
 
     Move move;
 
-    move = Move(entry[pick1Index].move);
+    move = Move(entryTable[pick1Index].move);
     if (move == MOVE_NONE) {
         return MOVE_NONE;
     }
@@ -339,7 +339,7 @@ Move PolyBook::probe(Position &pos, int16_t moveCount, bool pickBest) {
         assert(pick2Index < idx);
     }
 
-    move = Move(entry[pick2Index].move);
+    move = Move(entryTable[pick2Index].move);
     if (move == MOVE_NONE) {
         return MOVE_NONE;
     }
@@ -354,7 +354,7 @@ Move PolyBook::probe(Position &pos, int16_t moveCount, bool pickBest) {
 }
 
 std::string PolyBook::show(Position const &pos) const {
-    if (entry == nullptr
+    if (entryTable == nullptr
      || !enabled) {
         return "Book entries empty.";
     }
@@ -368,9 +368,9 @@ std::string PolyBook::show(Position const &pos) const {
     std::vector<PolyEntry> peSet;
     uint32_t sumWeight{ 0 };
     while (uint64_t(index) < entryCount
-        && key == entry[index].key) {
-        peSet.push_back(entry[index]);
-        sumWeight += entry[index].weight;
+        && key == entryTable[index].key) {
+        peSet.push_back(entryTable[index]);
+        sumWeight += entryTable[index].weight;
         ++index;
     }
 

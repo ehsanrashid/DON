@@ -145,7 +145,7 @@ namespace {
 
     /// updateContinuationStats() updates Stats of the move pairs formed
     /// by moves at ply -1, -2, -4 and -6 with current move.
-    void updateContinuationStats(Stack *ss, Piece p, Square dst, int32_t bonus) {
+    void updateContinuationStats(Stack *ss, Piece p, Square dst, int32_t bonus) noexcept {
         //assert(isOk(p));
         for (auto i : { 1, 2, 4, 6 }) {
             if (i > 2
@@ -159,25 +159,24 @@ namespace {
     }
 
     /// updateQuietStats() updates move sorting heuristics when a new quiet best move is found
-    void updateQuietStats(Stack *ss, Thread *th, Position const &pos, Color activeSide, Move move, int32_t bonus) {
+    void updateQuietStats(Stack *ss, Position const &pos, Move move, int32_t bonus) noexcept {
 
-        th->butterFlyStats[activeSide][mMask(move)] << bonus;
-        updateContinuationStats(ss, pos[orgSq(move)], dstSq(move), bonus);
+        pos.thread()->butterFlyStats[pos.activeSide()][mMask(move)] << bonus;
+        updateContinuationStats(ss, pos.movedPiece(move), dstSq(move), bonus);
     }
 
-    void updateQuietStatsRefutationMoves(Stack *ss, Thread *th, Position const &pos, Color activeSide, Move move, int32_t bonus,
-                                         Depth depth, bool pmOK, Piece pmPiece, Square pmDst) {
+    void updateQuietRefutationStats(Stack *ss, Position const &pos, Move move, int32_t bonus, Depth depth) noexcept {
 
-        updateQuietStats(ss, th, pos, activeSide, move, bonus);
+        updateQuietStats(ss, pos, move, bonus);
 
-        if (pType(pos[orgSq(move)]) != PAWN) {
-            th->butterFlyStats[activeSide][mMask(reverseMove(move))] << -bonus;
+        if (pType(pos.movedPiece(move)) != PAWN) {
+            pos.thread()->butterFlyStats[pos.activeSide()][mMask(reverseMove(move))] << -bonus;
         }
 
         if (depth > 11
-         //&& ss->ply >= 0
          && ss->ply < MAX_LOWPLY) {
-            th->lowPlyStats[ss->ply][mMask(move)] << statBonus(depth - 7);
+            assert(ss->ply >= 0);
+            pos.thread()->lowPlyStats[ss->ply][mMask(move)] << statBonus(depth - 7);
         }
 
         // Refutation Moves
@@ -186,8 +185,8 @@ namespace {
             ss->killerMoves[0] = move;
         }
 
-        if (pmOK) {
-            th->counterMoves[pmPiece][pmDst] = move;
+        if (isOk((ss-1)->playedMove)) {
+            pos.thread()->counterMoves[pos.prevMovedPiece((ss-1)->playedMove)][dstSq((ss-1)->playedMove)] = move;
         }
     }
 
@@ -420,9 +419,6 @@ namespace {
 
         auto const activeSide{ pos.activeSide() };
 
-        bool const pmOK  { isOk((ss-1)->playedMove) };
-        auto const pmDst { dstSq((ss-1)->playedMove) };
-
         PieceSquareStatsTable const *pieceStats[]{
             (ss-1)->pieceStats, (ss-2)->pieceStats,
             nullptr           , (ss-4)->pieceStats,
@@ -435,7 +431,7 @@ namespace {
             &thread->butterFlyStats,
             &thread->captureStats,
             pieceStats,
-            ttMove, depth, pmOK && depth <= DEPTH_QS_RECAP ? pmDst : SQ_NONE };
+            ttMove, depth, isOk((ss-1)->playedMove) && depth <= DEPTH_QS_RECAP ? dstSq((ss-1)->playedMove) : SQ_NONE };
 
         uint8_t moveCount{ 0 };
         StateInfo si;
@@ -452,9 +448,6 @@ namespace {
 
             ++moveCount;
 
-            auto const org{ orgSq(move) };
-            auto const dst{ dstSq(move) };
-            auto const mp{ pos[org] };
             bool const giveCheck{ pos.giveCheck(move) };
             bool const captureOrPromotion{ pos.captureOrPromotion(move) };
 
@@ -472,7 +465,7 @@ namespace {
                 }
 
                 // Futility pruning parent node
-                auto const futilityValue{ futilityBase + PieceValues[EG][mType(move) != CASTLE ? pos.captured(move) : NONE] };
+                auto const futilityValue{ futilityBase + PieceValues[EG][pos.captured(move)] };
                 if (futilityValue <= alfa) {
                     bestValue = std::max(futilityValue, bestValue);
                     continue;
@@ -489,7 +482,7 @@ namespace {
             // Don't search moves with negative SEE values
             if (!ss->inCheck
              && !(giveCheck
-               && contains(pos.kingBlockers(~activeSide), org))
+               && contains(pos.kingBlockers(~activeSide), orgSq(move)))
              && !pos.see(move)
              && Limits.mate == 0) {
                 continue;
@@ -497,8 +490,8 @@ namespace {
 
             // CounterMove based pruning
             if (!captureOrPromotion
-             && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
-             && (*pieceStats[1])[mp][dst] < CounterMovePruneThreshold) {
+             && (*pieceStats[0])[pos.movedPiece(move)][dstSq(move)] < CounterMovePruneThreshold
+             && (*pieceStats[1])[pos.movedPiece(move)][dstSq(move)] < CounterMovePruneThreshold) {
                 continue;
             }
 
@@ -507,7 +500,7 @@ namespace {
 
             // Update the current move
             ss->playedMove = move;
-            ss->pieceStats = &thread->continuationStats[ss->inCheck][captureOrPromotion][mp][dst];
+            ss->pieceStats = &thread->continuationStats[ss->inCheck][captureOrPromotion][pos.movedPiece(move)][dstSq(move)];
 
             // Do the move
             pos.doMove(move, si, giveCheck);
@@ -564,6 +557,8 @@ namespace {
 
         bool const rootNode{ PVNode && ss->ply == 0 };
 
+        auto *thread{ pos.thread() };
+
         // Check if there exists a move which draws by repetition,
         // or an alternative earlier move to this position.
         if (!rootNode
@@ -571,7 +566,7 @@ namespace {
          && pos.clockPly() >= 3
          && pos.cycled(ss->ply)) {
 
-            alfa = drawValue(pos.thread());
+            alfa = drawValue(thread);
             if (alfa >= beta) {
                 return alfa;
             }
@@ -590,7 +585,6 @@ namespace {
         // Step 1. Initialize node
         ss->moveCount = 0;
         ss->inCheck = pos.checkers() != 0;
-        auto *thread{ pos.thread() };
 
         // Check for the available remaining limit
         if (thread == Threadpool.mainThread()) {
@@ -670,18 +664,15 @@ namespace {
 
         auto const activeSide{ pos.activeSide() };
 
-        bool const pmOK   { isOk((ss-1)->playedMove) };
-        auto const pmDst  { dstSq((ss-1)->playedMove) };
-        auto const pmPiece{ mType((ss-1)->playedMove) != CASTLE ? pos[pmDst] : ~activeSide|KING };
         bool const pmCapOrPro{ pos.captured() != NONE
                             || pos.promoted() };
 
         if (ss->ttPV
          && depth > 12
-         &&  pmOK
+         && isOk((ss-1)->playedMove)
          && !pmCapOrPro
-         //&& (ss-1)->ply >= 0
          && (ss-1)->ply < MAX_LOWPLY) {
+            assert((ss-1)->ply >= 0);
             thread->lowPlyStats[(ss-1)->ply][mMask((ss-1)->playedMove)] << statBonus(depth - 5);
         }
 
@@ -702,20 +693,20 @@ namespace {
                     auto const bonus{ statBonus(depth) };
                     // Bonus for a quiet ttMove that fails high
                     if (ttValue >= beta) {
-                        updateQuietStatsRefutationMoves(ss, thread, pos, activeSide, ttMove, bonus, depth, pmOK, pmPiece, pmDst);
+                        updateQuietRefutationStats(ss, pos, ttMove, bonus, depth);
                     }
                     // Penalty for a quiet ttMove that fails low
                     else {
-                        updateQuietStats(ss, thread, pos, activeSide, ttMove, -bonus);
+                        updateQuietStats(ss, pos, ttMove, -bonus);
                     }
                 }
 
                 // Extra penalty for early quiet moves in previous ply when it gets refuted
                 if (ttValue >= beta
-                 &&  pmOK
+                 && isOk((ss-1)->playedMove)
                  && !pmCapOrPro
                  && (ss-1)->moveCount <= 2) {
-                    updateContinuationStats(ss-1, pmPiece, pmDst, -statBonus(depth + 1));
+                    updateContinuationStats(ss-1, pos.prevMovedPiece((ss-1)->playedMove), dstSq((ss-1)->playedMove), -statBonus(depth + 1));
                 }
             }
 
@@ -984,7 +975,7 @@ namespace {
 
                     ss->playedMove = move;
                     // ss->inCheck{ false }, captureOrPromotion{ true }
-                    ss->pieceStats = &thread->continuationStats[0][1][pos[orgSq(move)]][dstSq(move)];
+                    ss->pieceStats = &thread->continuationStats[0][1][pos.movedPiece(move)][dstSq(move)];
 
                     pos.doMove(move, si);
 
@@ -1045,7 +1036,7 @@ namespace {
             nullptr           , (ss-6)->pieceStats
         };
 
-        Move const counterMove( pos.thread()->counterMoves[pmPiece][pmDst] );
+        Move const counterMove( pos.thread()->counterMoves[pos.prevMovedPiece((ss-1)->playedMove)][dstSq((ss-1)->playedMove)] );
 
         // Initialize move-picker(1) for the current position
         MovePicker movePicker{
@@ -1111,9 +1102,7 @@ namespace {
                 (ss+1)->pv = nullptr;
             }
 
-            auto const org{ orgSq(move) };
-            auto const dst{ dstSq(move) };
-            auto const mp{ pos[org] };
+            auto const mpc{ pos.movedPiece(move) };
             bool const giveCheck{ pos.giveCheck(move) };
             bool const captureOrPromotion{ pos.captureOrPromotion(move) };
 
@@ -1126,7 +1115,7 @@ namespace {
              && bestValue > -VALUE_MATE_2_MAX_PLY
              && Limits.mate == 0) {
                 // Skip quiet moves if move count exceeds our futilityMoveCount() threshold
-                moveCountPruning = (moveCount >= futilityMoveCount(depth, improving));
+                moveCountPruning = moveCount >= futilityMoveCount(depth, improving);
                 movePicker.pickQuiets = !moveCountPruning;
 
                 // Reduced depth of the next LMR search.
@@ -1138,7 +1127,7 @@ namespace {
                     // Capture history based pruning when the move doesn't give check
                     if (!giveCheck
                      && lmrDepth < 1
-                     && thread->captureStats[mp][dst][pos.captured(move)] < 0) {
+                     && thread->captureStats[mpc][dstSq(move)][pos.captured(move)] < 0) {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~25 ELO)
@@ -1149,18 +1138,18 @@ namespace {
                 else {
                     // Counter moves based pruning: (~20 ELO)
                     if (lmrDepth < 4 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1)
-                     && (*pieceStats[0])[mp][dst] < CounterMovePruneThreshold
-                     && (*pieceStats[1])[mp][dst] < CounterMovePruneThreshold) {
+                     && (*pieceStats[0])[mpc][dstSq(move)] < CounterMovePruneThreshold
+                     && (*pieceStats[1])[mpc][dstSq(move)] < CounterMovePruneThreshold) {
                         continue;
                     }
                     // Futility pruning: parent node. (~5 ELO)
                     if (lmrDepth < 7
                      && !ss->inCheck
                      && ss->staticEval + 170 * lmrDepth + 283 <= alfa
-                     && ((*pieceStats[0])[mp][dst]
-                       + (*pieceStats[1])[mp][dst]
-                       + (*pieceStats[3])[mp][dst]
-                       + (*pieceStats[5])[mp][dst] / 2 < 27376)) {
+                     && ((*pieceStats[0])[mpc][dstSq(move)]
+                       + (*pieceStats[1])[mpc][dstSq(move)]
+                       + (*pieceStats[3])[mpc][dstSq(move)]
+                       + (*pieceStats[5])[mpc][dstSq(move)] / 2 < 27376)) {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 ELO)
@@ -1224,7 +1213,7 @@ namespace {
             else
             // Check extension (~2 ELO)
             if (giveCheck
-             && (contains(pos.kingBlockers(~activeSide), org)
+             && (contains(pos.kingBlockers(~activeSide), orgSq(move))
               || pos.see(move))) {
                 extension = 1;
             }
@@ -1239,7 +1228,7 @@ namespace {
             if (move == ttMove
              && pos.clockPly() > 80
              && (captureOrPromotion
-              || pType(mp) == PAWN)) {
+              || pType(mpc) == PAWN)) {
                 extension = 2;
             }
 
@@ -1251,7 +1240,7 @@ namespace {
 
             // Update the current move
             ss->playedMove = move;
-            ss->pieceStats = &thread->continuationStats[ss->inCheck][captureOrPromotion][mp][dst];
+            ss->pieceStats = &thread->continuationStats[ss->inCheck][captureOrPromotion][mpc][dstSq(move)];
 
             // Step 15. Do the move
             pos.doMove(move, si, giveCheck);
@@ -1319,14 +1308,14 @@ namespace {
                     // hence break make_move(). (~2 Elo)
                     if (mType(move) == SIMPLE
                      && !pos.see(reverseMove(move))) {
-                        reductDepth -= 2 + ss->ttPV - (pType(mp) == PAWN);
+                        reductDepth -= 2 + ss->ttPV - (pType(mpc) == PAWN);
                     }
 
                     ss->stats =
                           thread->butterFlyStats[activeSide][mMask(move)]
-                        + (*pieceStats[0])[mp][dst]
-                        + (*pieceStats[1])[mp][dst]
-                        + (*pieceStats[3])[mp][dst]
+                        + (*pieceStats[0])[mpc][dstSq(move)]
+                        + (*pieceStats[1])[mpc][dstSq(move)]
+                        + (*pieceStats[3])[mpc][dstSq(move)]
                         - 5287;
 
                     // Decrease/Increase reduction by comparing opponent's stat score (~10 Elo)
@@ -1357,11 +1346,13 @@ namespace {
                 if (doLMR
                  && !captureOrPromotion) {
 
-                    auto bonus{ value > alfa ? +statBonus(newDepth) : -statBonus(newDepth) };
+                    auto bonus{ value > alfa ?
+                                    +statBonus(newDepth) :
+                                    -statBonus(newDepth) };
                     if (ss->killerMoves[0] == move) {
                         bonus += bonus / 4;
                     }
-                    updateContinuationStats(ss, mp, dst, bonus);
+                    updateContinuationStats(ss, mpc, dstSq(move), bonus);
                 }
             }
 
@@ -1480,36 +1471,36 @@ namespace {
             if (!pos.captureOrPromotion(bestMove)) {
                 auto const bonus2{ bestValue > beta + VALUE_MG_PAWN ? bonus1 : statBonus(depth) };
 
-                updateQuietStatsRefutationMoves(ss, thread, pos, activeSide, bestMove, bonus2, depth, pmOK, pmPiece, pmDst);
+                updateQuietRefutationStats(ss, pos, bestMove, bonus2, depth);
                 // Decrease all the other played quiet moves
                 for (auto qm : quietMoves) {
-                    updateQuietStats(ss, thread, pos, activeSide, qm, -bonus2);
+                    updateQuietStats(ss, pos, qm, -bonus2);
                 }
             }
             else {
-                thread->captureStats[pos[orgSq(bestMove)]][dstSq(bestMove)][pos.captured(bestMove)] << bonus1;
+                thread->captureStats[pos.movedPiece(bestMove)][dstSq(bestMove)][pos.captured(bestMove)] << bonus1;
             }
 
             // Decrease all the other played capture moves
             for (auto cm : captureMoves) {
-                thread->captureStats[pos[orgSq(cm)]][dstSq(cm)][pos.captured(cm)] << -bonus1;
+                thread->captureStats[pos.movedPiece(cm)][dstSq(cm)][pos.captured(cm)] << -bonus1;
             }
 
             // Extra penalty for a quiet early move that was not a TT move or main killer move in previous ply when it gets refuted
-            if ( pmOK
+            if (isOk((ss-1)->playedMove)
              && !pmCapOrPro
              && ((ss-1)->moveCount == 1 + (ss-1)->ttHit
               || (ss-1)->killerMoves[0] == (ss-1)->playedMove)) {
-                updateContinuationStats(ss-1, pmPiece, pmDst, -bonus1);
+                updateContinuationStats(ss-1, pos.prevMovedPiece((ss-1)->playedMove), dstSq((ss-1)->playedMove), -bonus1);
             }
         }
         else {
             // Bonus for prior quiet move that caused the fail low.
-            if ( pmOK
+            if (isOk((ss-1)->playedMove)
              && !pmCapOrPro
              && (PVNode
               || depth >= 3)) {
-                updateContinuationStats(ss-1, pmPiece, pmDst, statBonus(depth));
+                updateContinuationStats(ss-1, pos.prevMovedPiece((ss-1)->playedMove), dstSq((ss-1)->playedMove), statBonus(depth));
             }
         }
 
@@ -1786,12 +1777,12 @@ void Thread::search() {
                 Threadpool.set(&Thread::pvChanges, { 0 });
                 auto const pvInstability{ 1.00 + 2 * Threadpool.pvChangesSum / Threadpool.size() };
 
-                TimePoint const totalTime(
-                      TimeMgr.optimum()
-                    * (rootMoves.size() != 1 ?
-                        reductionRatio * fallingEval * pvInstability : 0.001));
+                auto const totalTime{
+                    rootMoves.size() != 1 ?
+                        TimeMgr.optimum() * reductionRatio * fallingEval * pvInstability :
+                        std::min(TimeMgr.optimum() * 0.001, 4.0) };
 
-                TimePoint const elapsed{ TimeMgr.elapsed() };
+                auto const elapsed{ double(TimeMgr.elapsed()) };
 
                 if (elapsed > totalTime * 0.58) {
 
@@ -1837,7 +1828,7 @@ void MainThread::search() {
 
     if (Limits.useTimeMgmt()) {
         // Initialize the time manager before searching.
-        TimeMgr.setup(rootPos.activeSide(), rootPos.gamePly());
+        TimeMgr.setup(rootPos.activeSide(), rootPos.plyCount());
     }
 
     TEntry::updateGeneration();
@@ -1885,8 +1876,10 @@ void MainThread::search() {
             Threadpool.pvChangesSum = 0.0;
             Threadpool.bestMove = MOVE_NONE;
             Threadpool.bestDepth = DEPTH_ZERO;
-            Threadpool.iterValues.fill(Threadpool.bestValue);
-            Threadpool.iterIdx = 0;
+            if (Limits.useTimeMgmt()) {
+                Threadpool.iterValues.fill(Threadpool.bestValue != +VALUE_INFINITE ? Threadpool.bestValue : VALUE_ZERO);
+                Threadpool.iterIdx = 0;
+            }
 
             PRNG prng(now());
             double const dbllevel{

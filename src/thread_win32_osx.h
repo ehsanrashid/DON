@@ -8,13 +8,12 @@
 /// The implementation calls pthread_create() with the stack size parameter
 /// equal to the linux 8MB default, on platforms that support it.
 #if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
-    #include <pthread.h>
 
-static constexpr size_t TH_STACK_SIZE{ 8 * 1024 * 1024 };
+#include <pthread.h>
 
-template<typename T, class P = std::pair<T*, void(T::*)()>>
-void* startRoutine(void *arg) {
-    auto *p{ reinterpret_cast<P*>(arg) };
+template<class T, class P = std::pair<T*, void(T::*)()>>
+void* threadRoutine(void *arg) {
+    P *p{ reinterpret_cast<P*>(arg) };
     (p->first->*(p->second))(); // Call member function pointer
     delete p;
     return nullptr;
@@ -24,13 +23,15 @@ class NativeThread {
 
 public:
 
-    template<typename T, class P = std::pair<T*, void (T::*)()>>
+    template<class T, class P = std::pair<T*, void (T::*)()>>
     explicit NativeThread(void(T::*fun)(), T *obj) {
-        pthread_attr_t thread_attr;
-        pthread_attr_init(&thread_attr);
-        pthread_attr_setstacksize(&thread_attr, TH_STACK_SIZE);
+        static constexpr size_t TH_STACK_SIZE{ 8 * 1024 * 1024 };
 
-        pthread_create(&thread, &thread_attr, startRoutine<T>, new P(obj, fun));
+        pthread_attr_t threadAttr;
+        pthread_attr_init(&threadAttr);
+        pthread_attr_setstacksize(&threadAttr, TH_STACK_SIZE);
+        pthread_create(&thread, &threadAttr, threadRoutine<T>, new P(obj, fun));
+        pthread_attr_destroy(&threadAttr);
     }
 
     void join() {

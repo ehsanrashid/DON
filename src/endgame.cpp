@@ -234,10 +234,10 @@ template<> Value Endgame<KQKP>::operator()(Position const &pos) const {
 
     if (relativeRank(weakColor, wpSq) != RANK_7
      || distance(wkSq, wpSq) > 1
-     || contains(FileBB[FILE_B]
-                |FileBB[FILE_D]
-                |FileBB[FILE_E]
-                |FileBB[FILE_G], wpSq)) {
+     || contains(fileBB(FILE_B)
+                |fileBB(FILE_D)
+                |fileBB(FILE_E)
+                |fileBB(FILE_G), wpSq)) {
         value += VALUE_EG_QUEN
                - VALUE_EG_PAWN;
     }
@@ -401,7 +401,7 @@ template<> Scale Endgame<KRPKB>::operator()(Position const &pos) const {
 
     // If rook pawns
     if ((pos.pieces(stngColor, PAWN)
-       & (FileBB[FILE_A]|FileBB[FILE_H])) != 0) {
+       & (fileBB(FILE_A)|fileBB(FILE_H))) != 0) {
         auto const skSq{ pos.square(stngColor|KING) };
         auto const spSq{ pos.square(stngColor|PAWN) };
         auto const wkSq{ pos.square(weakColor|KING) };
@@ -583,8 +583,8 @@ template<> Scale Endgame<KPsK>::operator()(Position const &pos) const {
     Bitboard const sPawns{ pos.pieces(stngColor, PAWN) };
 
     // If all pawns are ahead of the king on a single rook file, it's a draw.
-    if (((sPawns & ~FileBB[FILE_A]) == 0
-      || (sPawns & ~FileBB[FILE_H]) == 0)
+    if (((sPawns & ~fileBB(FILE_A)) == 0
+      || (sPawns & ~fileBB(FILE_H)) == 0)
      && (sPawns & ~pawnPassSpan(weakColor, wkSq)) == 0) {
         return SCALE_DRAW;
     }
@@ -637,8 +637,8 @@ template<> Scale Endgame<KBPsK>::operator()(Position const &pos) const {
     // All pawns of strong side on same A or H file? (rook file)
     // Then potential draw
     Bitboard const sPawns{ pos.pieces(stngColor, PAWN) };
-    if ((sPawns & ~FileBB[FILE_A]) == 0
-     || (sPawns & ~FileBB[FILE_H]) == 0) {
+    if ((sPawns & ~fileBB(FILE_A)) == 0
+     || (sPawns & ~fileBB(FILE_H)) == 0) {
         auto const promoteSq{ relativeSq(stngColor, makeSquare(sFile(scanLSq(sPawns)), RANK_8)) };
 
         // The bishop has the wrong color and the defending king defends the queening square.
@@ -652,8 +652,8 @@ template<> Scale Endgame<KBPsK>::operator()(Position const &pos) const {
     // Then potential draw
     Bitboard const pawns{ pos.pieces(PAWN) };
     Bitboard const wPawns{ pos.pieces(weakColor, PAWN) };
-    if (((pawns & ~FileBB[FILE_B]) == 0
-      || (pawns & ~FileBB[FILE_G]) == 0)
+    if (((pawns & ~fileBB(FILE_B)) == 0
+      || (pawns & ~fileBB(FILE_G)) == 0)
      && pos.nonPawnMaterial(weakColor) == VALUE_ZERO
      && wPawns != 0) {
         // Get weak side pawn that is closest to home rank

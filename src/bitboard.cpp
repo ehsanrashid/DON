@@ -39,7 +39,7 @@ namespace {
         Square const dst{ s + dir };
         return isOk(dst)
             && distance(s, dst) <= d ?
-                SquareBB[dst] : 0;
+                squareBB(dst) : 0;
     }
 
     Bitboard slideAttacks(Square s,  Bitboard occ, Direction const directions[]) {
@@ -106,8 +106,8 @@ namespace {
             Magic &magic{ magics[s] };
 
             // Board edges are not considered in the relevant occupancies
-            Bitboard const edge{ ((FileBB[FILE_A]|FileBB[FILE_H]) & ~fileBB(s))
-                               | ((RankBB[RANK_1]|RankBB[RANK_8]) & ~rankBB(s)) };
+            Bitboard const edge{ ((fileBB(FILE_A)|fileBB(FILE_H)) & ~fileBB(s))
+                               | ((rankBB(RANK_1)|rankBB(RANK_8)) & ~rankBB(s)) };
 
             // Given a square, the mask is the bitboard of sliding attacks from
             // computed on an empty board. The index must be big enough to contain
@@ -215,8 +215,8 @@ namespace Bitboards {
         // Pawn and Pieces Attack Table
         for (Square s = SQ_A1; s <= SQ_H8; ++s) {
 
-            PawnAttacksBB[WHITE][s] = pawnSglAttackBB<WHITE>(SquareBB[s]);
-            PawnAttacksBB[BLACK][s] = pawnSglAttackBB<BLACK>(SquareBB[s]);
+            PawnAttacksBB[WHITE][s] = pawnSglAttackBB<WHITE>(squareBB(s));
+            PawnAttacksBB[BLACK][s] = pawnSglAttackBB<BLACK>(squareBB(s));
             assert(popCount(PawnAttacksBB[WHITE][s]) <= 2
                 && popCount(PawnAttacksBB[BLACK][s]) <= 2);
 

@@ -67,14 +67,14 @@ namespace {
 
         Bitboard const pawns{ pos.pieces(Own, PAWN) };
 
-        Bitboard const r7Pawns{ pawns &  RankBB[relativeRank(Own, RANK_7)] }; // Pawns on 7th Rank only
-        Bitboard const rxPawns{ pawns & ~RankBB[relativeRank(Own, RANK_7)] }; // Pawns not on 7th Rank
+        Bitboard const r7Pawns{ pawns &  rankBB(relativeRank(Own, RANK_7)) }; // Pawns on 7th Rank only
+        Bitboard const rxPawns{ pawns & ~rankBB(relativeRank(Own, RANK_7)) }; // Pawns not on 7th Rank
 
         // Pawn single-push and double-push, no promotions
         if (GT != CAPTURE) {
 
             Bitboard pushs1{ empties & pawnSglPushBB<Own>(rxPawns) };
-            Bitboard pushs2{ empties & pawnSglPushBB<Own>(pushs1 & RankBB[relativeRank(Own, RANK_3)]) };
+            Bitboard pushs2{ empties & pawnSglPushBB<Own>(pushs1 & rankBB(relativeRank(Own, RANK_3))) };
 
             if (GT == EVASION) {
                 // Only blocking squares
@@ -94,7 +94,7 @@ namespace {
                                        & ~fileBB(pos.square(Opp|KING)) };
                 if (dscPawns != 0) {
                     Bitboard const dscPushs1{ empties & pawnSglPushBB<Own>(dscPawns) };
-                    Bitboard const dscPushs2{ empties & pawnSglPushBB<Own>(dscPushs1 & RankBB[relativeRank(Own, RANK_3)]) };
+                    Bitboard const dscPushs2{ empties & pawnSglPushBB<Own>(dscPushs1 & rankBB(relativeRank(Own, RANK_3))) };
                     pushs1 |= dscPushs1;
                     pushs2 |= dscPushs2;
                 }
@@ -211,22 +211,21 @@ template void generate<QUIET>(ValMoves&, Position const&);
 
 /// generate<EVASION>     Generates all pseudo-legal check evasions moves.
 template<> void generate<EVASION>(ValMoves &moves, Position const &pos) {
-    Bitboard const checkers{ pos.checkers() };
-    assert(checkers != 0
-        && popCount(checkers) <= 2);
+    assert(pos.checkers() != 0
+        && popCount(pos.checkers()) <= 2);
 
     // Double-check, only king move can save the day
-    if (!moreThanOne(checkers)) {
+    if (!moreThanOne(pos.checkers())) {
 
         // Generates blocking or captures of the checking piece
-        auto const checkSq{ scanLSq(checkers) };
+        auto const checkSq{ scanLSq(pos.checkers()) };
         Bitboard const targets{ betweenBB(checkSq, pos.square(pos.activeSide()|KING)) | checkSq };
 
         generateMoves<EVASION>(moves, pos, targets);
     }
 
     Bitboard checkAttacks{ attacksBB<KING>(pos.square(~pos.activeSide()|KING)) };
-    Bitboard checkersEx{ checkers & ~pos.pieces(PAWN) };
+    Bitboard checkersEx{ pos.checkers() & ~pos.pieces(PAWN) };
     Bitboard const mocc{ pos.pieces() ^ pos.square(pos.activeSide()|KING) };
     // Squares attacked by slide checkers will remove them from the king evasions
     // so to skip known illegal moves avoiding useless legality check later.
@@ -280,7 +279,7 @@ template<> void generate<LEGAL>(ValMoves &moves, Position const &pos) {
     // Filter illegal moves
     moves.erase(std::remove_if(moves.begin(), moves.end(),
                                 [&](ValMove const &vm) {
-                                    return (pType(pos[orgSq(vm)]) == KING
+                                    return (pType(pos.movedPiece(vm)) == KING
                                          && mType(vm) == SIMPLE
                                          && (pos.attackersTo(dstSq(vm), pos.pieces() ^ pos.square(pos.activeSide()|KING)) & pos.pieces(~pos.activeSide())) != 0)
                                         || ((mType(vm) == CASTLE
@@ -328,7 +327,7 @@ void Perft::classify(Position &pos, Move m) {
     if (pos.giveCheck(m)) {
         ++anyCheck;
         // Discovered Check but not Direct Check
-        if (!contains(pos.checks(mType(m) != PROMOTE ? pType(pos[orgSq(m)]) : promoteType(m)), dstSq(m))) {
+        if (!contains(pos.checks(mType(m) != PROMOTE ? pType(pos.movedPiece(m)) : promoteType(m)), dstSq(m))) {
             if (mType(m) == ENPASSANT) {
                 Bitboard const mocc{ (pos.pieces() ^ orgSq(m) ^ makeSquare(sFile(dstSq(m)), sRank(orgSq(m)))) | dstSq(m) };
                 if ((pos.pieces(pos.activeSide(), BSHP, QUEN)

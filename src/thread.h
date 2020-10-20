@@ -122,7 +122,7 @@ public:
     void clean() final;
     void search() final;
 
-    int16_t tickCount;    
+    int16_t tickCount;
 };
 
 
@@ -166,6 +166,7 @@ public:
     void clean();
 
     void startThinking(Position&, StateListPtr&);
+    void stopThinking();
 
     void wakeUpThreads();
     void waitForThreads();
@@ -173,11 +174,11 @@ public:
     uint16_t pvCount;
 
     std::atomic<bool> stop;     // Stop searching forcefully
-    std::atomic<bool> ponder;   // Search in ponder mode, on ponder move until the "stop"/"ponderhit" command
     std::atomic<bool> stand;    // Stop increasing depth
-    
+
+    std::atomic<bool> ponder;   // Search in ponder mode, on ponder move until the "stop"/"ponderhit" command
     bool    stopPonderhit;      // Stop search on ponderhit
-    
+
     double  pvChangesSum;
     double  timeReduction;
 

@@ -28,14 +28,16 @@ public:
 class ThreadMarker final {
 
 public:
-    ThreadMarker() = delete;
-    ThreadMarker(ThreadMarker const&) = delete;
-    ThreadMarker(ThreadMarker&&) = delete;
-    ThreadMarker& operator=(ThreadMarker const&) = delete;
-    ThreadMarker& operator=(ThreadMarker&&) = delete;
 
     ThreadMarker(Thread const*, Key, int16_t) noexcept;
     ~ThreadMarker() noexcept;
+
+    ThreadMarker() = delete;
+    ThreadMarker(ThreadMarker const&) = delete;
+    ThreadMarker(ThreadMarker&&) = delete;
+
+    ThreadMarker& operator=(ThreadMarker const&) = delete;
+    ThreadMarker& operator=(ThreadMarker&&) = delete;
 
     bool marked;
 
