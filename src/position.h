@@ -25,30 +25,31 @@
 ///  - Bitboards of all checking pieces
 ///  - Pointer to previous StateInfo
 struct StateInfo {
-    // ---Copied when making a move---
+    // ---Copied when making a move
     Key         matlKey;        // Hash key of materials
     Key         pawnKey;        // Hash key of pawns
-    CastleRight castleRights;   // Castling-rights information
-    Square      epSquare;       // Enpassant -> "In passing"
     int16_t     clockPly;       // Number of half moves clock since the last pawn advance or any capture
     int16_t     nullPly;
+    CastleRight castleRights;   // Castling-rights information
+    Square      epSquare;       // Enpassant -> "In passing"
 
-    // ---Not copied when making a move---
+    // ---Not copied when making a move (will be recomputed anyhow)
     Key         posiKey;        // Hash key of position
     Bitboard    checkers;       // Checkers
+    int16_t     repetition;
     PieceType   captured;       // Piece type captured
     bool        promoted;
-    int16_t     repetition;
+    
     // Check info
-    Bitboard kingBlockers[COLORS]; // Absolute and Discover Blockers
-    Bitboard kingCheckers[COLORS]; // Absolute and Discover Checkers
-    Bitboard checks[PIECE_TYPES];
-
-    StateInfo *prevState; // Previous StateInfo pointer
+    Bitboard    kingBlockers[COLORS]; // Absolute and Discover Blockers
+    Bitboard    kingCheckers[COLORS]; // Absolute and Discover Checkers
+    Bitboard    checks[PIECE_TYPES];
 
     // Used by NNUE
     Evaluator::NNUE::Accumulator accumulator;
     MoveInfo moveInfo;
+    
+    StateInfo  *prevState;      // Previous StateInfo pointer
 };
 
 /// A list to keep track of the position states along the setup moves
@@ -277,8 +278,8 @@ inline Square const* Position::squares(Piece p) const noexcept {
     return pieceSquare[p];
 }
 inline Square Position::square(Piece p, uint8_t idx) const noexcept {
-    assert(isOk(p));
-    assert(count(p) > idx);
+    assert(isOk(p)
+        && count(p) > idx);
     return squares(p)[idx];
 }
 

@@ -150,7 +150,7 @@ namespace Evaluator {
             return ostream;
         }
 
-
+        constexpr Bitboard DiagonalBB{ U64(0x8142241818244281) }; // A1..H8 | H1..A8
         constexpr Bitboard CenterBB{ (fileBB(FILE_D)|fileBB(FILE_E)) & (rankBB(RANK_4)|rankBB(RANK_5)) };
 
         constexpr Bitboard LowRankBB[COLORS]{
@@ -178,10 +178,10 @@ namespace Evaluator {
             slotFileBB(CS_KING),
             slotFileBB(CS_KING) ^ fileBB(FILE_E)
         };
-
-        constexpr Bitboard PawnSideBB[COLORS]{
-            rankBB(RANK_2)|rankBB(RANK_3)|rankBB(RANK_4),
-            rankBB(RANK_7)|rankBB(RANK_6)|rankBB(RANK_5)
+        // Center file and pawn side
+        constexpr Bitboard SpaceMaskBB[COLORS]{
+            slotFileBB(CS_CENTRE) & (rankBB(RANK_2)|rankBB(RANK_3)|rankBB(RANK_4)),
+            slotFileBB(CS_CENTRE) & (rankBB(RANK_7)|rankBB(RANK_6)|rankBB(RANK_5))
         };
 
     #define S(mg, eg) makeScore(mg, eg)
@@ -400,6 +400,7 @@ namespace Evaluator {
                     PT == BSHP ? attacksBB<BSHP>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, BSHP) & ~kingBlockers) | pos.pieces(Opp, QUEN))) :
                     PT == ROOK ? attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~kingBlockers) | pos.pieces(Opp, QUEN))) :
                                  attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~kingBlockers))) };
+                assert(popCount(attacks) <= 27);
 
                 if (contains(kingBlockers, s)) {
                     attacks &= lineBB(kSq, s);
@@ -415,12 +416,11 @@ namespace Evaluator {
                     score += BishopOnKingRing;
                 }
                 else if (PT == ROOK
-                      && (kingRing[Opp] & attacksBB<ROOK>(s, pos.pieces(Own, PAWN)) & fileBB(s)) != 0) {
+                      && (kingRing[Opp] & fileBB(s) & attacksBB<ROOK>(s, pos.pieces(Own, PAWN))) != 0) {
                     score += RookOnKingRing;
                 }
 
                 auto const mob{ popCount(attacks & mobArea[Own]) };
-                assert(0 <= mob && mob <= 27);
 
                 // Bonus for piece mobility
                 mobility[Own] += Mobility[PT][mob];
@@ -494,7 +494,8 @@ namespace Evaluator {
                         score -= BishopPawnsXRayed
                                * popCount(pos.pieces(Opp, PAWN) & attacksBB<BSHP>(s));
                         // Bonus for bishop on a long diagonal which can "see" both center squares
-                        if (moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB)) {
+                        if (contains(DiagonalBB, s)
+                         && moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB)) {
                             score += BishopOnDiagonal;
                         }
 
@@ -945,8 +946,7 @@ namespace Evaluator {
 
             // Safe squares for friend pieces inside the area defined by SpaceMask.
             Bitboard const safeSpace{
-                 slotFileBB(CS_CENTRE)
-              &  PawnSideBB[Own]
+                 SpaceMaskBB[Own]
               & ~pos.pieces(Own, PAWN)
               & ~attackedBy[Opp][PAWN] };
             // Find all squares which are at most three squares behind some friend pawn

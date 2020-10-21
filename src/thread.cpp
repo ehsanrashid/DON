@@ -103,11 +103,6 @@ void MainThread::clean() {
     tickCount = 0;
 }
 
-
-ThreadPool::~ThreadPool() {
-    setup(0);
-}
-
 MainThread* ThreadPool::mainThread() const noexcept {
     return static_cast<MainThread*>(front());
 }

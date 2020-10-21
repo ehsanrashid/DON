@@ -627,8 +627,6 @@ class HashTable {
 
 public:
 
-    HashTable() = default;
-
     void clear() {
         table.assign(Size, T{});
     }

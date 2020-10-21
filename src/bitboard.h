@@ -38,14 +38,16 @@ struct Magic {
 };
 
 constexpr Bitboard BoardBB{ U64(0xFFFFFFFFFFFFFFFF) };
-//constexpr Bitboard DiagonalBB{ U64(0x8142241818244281) }; // A1..H8 | H1..A8
 
 constexpr Bitboard SquareBB[SQUARES]{
 #define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
 #define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
 #define S_08(n)      S_04(2*(n)),      S_04(2*(n)+1)
 #define S_16(n)      S_08(2*(n)),      S_08(2*(n)+1)
-    S_16(0), S_16(1), S_16(2), S_16(3),
+    S_16(0),
+    S_16(1),
+    S_16(2),
+    S_16(3),
 #undef S_16
 #undef S_08
 #undef S_04

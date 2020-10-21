@@ -1063,18 +1063,18 @@ void Position::undoMove(Move m) noexcept {
         placePiece(rookOrg, active|ROOK);
     }
     else {
-        auto const mp{ board[dst] };
-        assert(mp != NO_PIECE
-            && pColor(mp) == active);
+        auto const mpc{ board[dst] };
+        assert(mpc != NO_PIECE
+            && pColor(mpc) == active);
 
         if (mType(m) == PROMOTE) {
-            assert(NIHT <= pType(mp) && pType(mp) <= QUEN
+            assert(NIHT <= pType(mpc) && pType(mpc) <= QUEN
                 && relativeRank(active, org) == RANK_7
                 && relativeRank(active, dst) == RANK_8);
 
             removePiece(dst);
             placePiece(dst, active|PAWN);
-            npm[active] -= PieceValues[MG][pType(mp)];
+            npm[active] -= PieceValues[MG][pType(mpc)];
         }
         // Move the piece
         movePiece(dst, org);
@@ -1085,7 +1085,7 @@ void Position::undoMove(Move m) noexcept {
             if (mType(m) == ENPASSANT) {
                 cap -= PawnPush[active];
 
-                assert(pType(mp) == PAWN //&& contains(pieces(active, PAWN), org)
+                assert(pType(mpc) == PAWN //&& contains(pieces(active, PAWN), org)
                     && relativeRank(active, org) == RANK_5
                     && relativeRank(active, dst) == RANK_6
                     && dst == _stateInfo->prevState->epSquare
@@ -1096,7 +1096,7 @@ void Position::undoMove(Move m) noexcept {
             // Restore the captured piece.
             placePiece(cap, ~active|_stateInfo->captured);
 
-            if (_stateInfo->captured > PAWN) {
+            if (_stateInfo->captured != PAWN) {
                 npm[~active] += PieceValues[MG][_stateInfo->captured];
             }
         }
@@ -1116,7 +1116,7 @@ void Position::doNullMove(StateInfo &si) noexcept {
         && _stateInfo->checkers == 0);
 
     if (Evaluator::useNNUE) {
-        std::memcpy(&si, _stateInfo, sizeof (StateInfo));
+        std::memcpy(&si, _stateInfo, offsetof(StateInfo, prevState));
         si.moveInfo.pieceCount = 0;
     }
     else {

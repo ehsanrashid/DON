@@ -24,11 +24,7 @@
 #include "helper/logger.h"
 #include "helper/reporter.h"
 
-using std::string;
-using std::string_view;
-using std::vector;
-using std::istringstream;
-using std::ostringstream;
+using namespace std;
 
 // Engine Name
 string const Name{ "DON" };
@@ -555,8 +551,8 @@ namespace UCI {
             //if (token != "name") return;
             string name;
             // Read option-name (can contain spaces)
-            while (iss >> token) { // Consume "value" token if any
-                if (token == "value") break;
+            while (iss >> token
+                && token != "value") { // Consume "value" token if any
                 name += (name.empty() ? "" : " ") + token;
             }
 
@@ -590,8 +586,8 @@ namespace UCI {
             }
             else
             if (token == "fen") {
-                while (iss >> token) { // Consume "moves" token if any
-                    if (token == "moves") break;
+                while (iss >> token
+                    && token != "moves") { // Consume "moves" token if any
                     fen += token + " ";
                 }
                 //assert(isOk(fen));
@@ -621,8 +617,8 @@ namespace UCI {
             Threadpool.stopThinking();
             Threadpool.ponder = false;
 
-            Limits.clear();
             TimeMgr.startTime = now(); // As early as possible!
+            Limits.clear();
 
             string token;
             while (iss >> token) {

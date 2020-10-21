@@ -25,6 +25,7 @@ class Thread {
 public:
 
     explicit Thread(uint16_t);
+    virtual ~Thread();
 
     Thread() = delete;
     Thread(Thread const&) = delete;
@@ -32,8 +33,6 @@ public:
 
     Thread& operator=(Thread const&) = delete;
     Thread& operator=(Thread&&) = delete;
-
-    virtual ~Thread();
 
     void wakeUp();
     void waitIdle();
@@ -137,8 +136,6 @@ public:
     //using std::vector<Thread*>::vector;
 
     ThreadPool() = default;
-    ~ThreadPool();
-
     ThreadPool(ThreadPool const&) = delete;
 
     ThreadPool& operator=(ThreadPool const&) = delete;

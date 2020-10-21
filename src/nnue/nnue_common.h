@@ -112,12 +112,12 @@ namespace Evaluator::NNUE {
         // Use unsigned arithmetic to convert to machine order
         typename std::make_unsigned<IntType>::type v = 0;
         for (size_t i = 0; i < sizeof (IntType); ++i) {
-            v = (v << 8) | u[sizeof (IntType) - i - 1];
+            v = (v << 8) | u[sizeof (IntType) - 1 - i];
         }
         // Copy the machine-ordered bytes into a potentially signed value
-        IntType w;
-        std::memcpy(&w, &v, sizeof (IntType));
-        return w;
+        IntType result;
+        std::memcpy(&result, &v, sizeof (IntType));
+        return result;
     }
 
 }
