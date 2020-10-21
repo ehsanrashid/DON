@@ -175,28 +175,28 @@ string const compilerInfo() {
 
 namespace UCI {
 
-    Option::Option(OnChange onCng) :
+    Option::Option(OnChange onCng) noexcept :
         type{ "button" },
         onChange{ onCng } {
     }
-    Option::Option(bool v, OnChange onCng) :
+    Option::Option(bool v, OnChange onCng) noexcept :
         type{ "check" },
         onChange{ onCng } {
         defaultVal = currentVal = ::toString(v);
     }
-    Option::Option(string_view v, OnChange onCng) :
+    Option::Option(string_view v, OnChange onCng) noexcept :
         type{ "string" },
         onChange{ onCng } {
         defaultVal = currentVal = v;
     }
-    Option::Option(double v, double minV, double maxV, OnChange onCng) :
+    Option::Option(double v, double minV, double maxV, OnChange onCng) noexcept :
         type{ "spin" },
         minVal{ minV },
         maxVal{ maxV },
         onChange{ onCng } {
         defaultVal = currentVal = std::to_string(v);
     }
-    Option::Option(string_view v, string_view cur, OnChange onCng) :
+    Option::Option(string_view v, string_view cur, OnChange onCng) noexcept :
         type{ "combo" },
         onChange{ onCng } {
         defaultVal = v; currentVal = cur;
@@ -305,7 +305,7 @@ namespace UCI {
     }
 
     /// Option::toString()
-    string Option::toString() const {
+    string Option::toString() const noexcept {
         ostringstream oss;
         oss << " type " << type;
 

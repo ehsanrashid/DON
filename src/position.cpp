@@ -778,6 +778,10 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
     _stateInfo->posiKey = RandZob.computePosiKey(*this);
     _stateInfo->checkers = attackersTo(square(active|KING)) & pieces(~active);
     setCheckInfo();
+
+    _stateInfo->accumulator.state[WHITE] = Evaluator::NNUE::INIT;
+    _stateInfo->accumulator.state[BLACK] = Evaluator::NNUE::INIT;
+
     _thread = th;
 
     assert(ok());
@@ -831,7 +835,9 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
     _stateInfo->promoted = false;
 
     // Used by NNUE
-    _stateInfo->accumulator.accumulationComputed = false;
+    _stateInfo->accumulator.state[WHITE] = Evaluator::NNUE::EMPTY;
+    _stateInfo->accumulator.state[BLACK] = Evaluator::NNUE::EMPTY;
+
     auto &mi{ _stateInfo->moveInfo };
     if (Evaluator::useNNUE) {
         mi.pieceCount = 1;
@@ -1115,13 +1121,7 @@ void Position::doNullMove(StateInfo &si) noexcept {
     assert(&si != _stateInfo
         && _stateInfo->checkers == 0);
 
-    if (Evaluator::useNNUE) {
-        std::memcpy(&si, _stateInfo, offsetof(StateInfo, prevState));
-        si.moveInfo.pieceCount = 0;
-    }
-    else {
-        std::memcpy(&si, _stateInfo, offsetof(StateInfo, accumulator));
-    }
+    std::memcpy(&si, _stateInfo, offsetof(StateInfo, accumulator));
     si.prevState = _stateInfo;
     _stateInfo = &si; // switch to new state
 
@@ -1129,6 +1129,11 @@ void Position::doNullMove(StateInfo &si) noexcept {
     _stateInfo->nullPly = 0;
     _stateInfo->captured = NONE;
     _stateInfo->promoted = false;
+
+    _stateInfo->moveInfo.pieceCount = 0;
+    _stateInfo->moveInfo.piece[0] = NO_PIECE; // Avoid checks in updateAccumulator()
+    _stateInfo->accumulator.state[WHITE] = Evaluator::NNUE::EMPTY;
+    _stateInfo->accumulator.state[BLACK] = Evaluator::NNUE::EMPTY;
 
     // Reset enpassant square
     if (_stateInfo->epSquare != SQ_NONE) {

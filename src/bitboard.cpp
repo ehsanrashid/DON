@@ -35,14 +35,14 @@ namespace {
 
     /// safeDestiny() returns the bitboard of target square for the given step
     /// from the given square. If the step is off the board, returns empty bitboard.
-    Bitboard safeDestiny(Square s, Direction dir, int32_t d = 1) {
+    Bitboard safeDestiny(Square s, Direction dir, int32_t d = 1) noexcept {
         Square const dst{ s + dir };
         return isOk(dst)
             && distance(s, dst) <= d ?
                 squareBB(dst) : 0;
     }
 
-    Bitboard slideAttacks(Square s,  Bitboard occ, Direction const directions[]) {
+    Bitboard slideAttacks(Square s,  Bitboard occ, Direction const directions[]) noexcept {
         Bitboard attacks{ 0 };
         for (int8_t i = 0; i < 4; ++i) {
             auto const dir{ directions[i] };
@@ -59,12 +59,12 @@ namespace {
     Bitboard slideAttacks(Square, Bitboard = 0);
 
     Direction const BDirections[4]{ SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST };
-    template<> Bitboard slideAttacks<BSHP>(Square s, Bitboard occ) {
+    template<> Bitboard slideAttacks<BSHP>(Square s, Bitboard occ) noexcept {
         return slideAttacks(s, occ, BDirections);
     }
 
     Direction const RDirections[4]{ SOUTH, WEST, EAST, NORTH };
-    template<> Bitboard slideAttacks<ROOK>(Square s, Bitboard occ) {
+    template<> Bitboard slideAttacks<ROOK>(Square s, Bitboard occ) noexcept {
         return slideAttacks(s, occ, RDirections);
     }
 
@@ -84,7 +84,7 @@ namespace {
     /// Magic bitboards are used to look up attacks of sliding pieces.
     /// In particular, here we use the so called "fancy" approach.
     template<PieceType PT>
-    void initializeMagic(Bitboard attacks[], Magic magics[]) {
+    void initializeMagic(Bitboard attacks[], Magic magics[]) noexcept {
 
 #if !defined(USE_PEXT)
         constexpr uint16_t MaxIndex{ 0x1000 };
@@ -190,7 +190,7 @@ namespace {
 
 namespace Bitboards {
 
-    void initialize() {
+    void initialize() noexcept {
 
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
             //SquareBB[s1] = Bitboard(1) << s1;
@@ -251,7 +251,7 @@ namespace Bitboards {
 #if !defined(NDEBUG)
     /// Returns an ASCII representation of a bitboard to print on console output
     /// Bitboard in an easily readable format. This is sometimes useful for debugging.
-    std::string toString(Bitboard bb) {
+    std::string toString(Bitboard bb) noexcept {
         std::ostringstream oss;
 
         oss << " /---------------\\\n";
