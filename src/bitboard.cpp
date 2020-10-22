@@ -124,14 +124,11 @@ namespace {
             magic.attacks = (s == SQ_A1) ? attacks : magics[s - 1].attacks + size;
 
 #if !defined(USE_PEXT)
-            uint8_t bits{
     #if defined(IS_64BIT)
-                    64
+            magic.shift = 64 - popCount(magic.mask);
     #else
-                    32
+            magic.shift = 32 - popCount(magic.mask);
     #endif
-            };
-            magic.shift = bits - popCount(magic.mask);
 #endif
 
             size = 0;
@@ -156,7 +153,8 @@ namespace {
             PRNG prng(Seeds[sRank(s)]);
             // Find a magic for square picking up an (almost) random number
             // until found the one that passes the verification test.
-            for (uint16_t i = 0; i < size; ) {
+            uint16_t i{ 0 };
+            while (i < size) {
 
                 magic.magic = 0;
                 while (popCount((magic.mask * magic.magic) >> 56) < 6) {

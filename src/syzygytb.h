@@ -40,10 +40,10 @@ namespace SyzygyTB {
     extern WDLScore probeWDL(Position&, ProbeState&);
     extern int32_t  probeDTZ(Position&, ProbeState&);
 
-    extern bool rootProbeWDL(Position&, RootMoves&);
-    extern bool rootProbeDTZ(Position&, RootMoves&);
+    extern bool rootProbeWDL(Position&, RootMoves&) noexcept;
+    extern bool rootProbeDTZ(Position&, RootMoves&) noexcept;
 
-    extern void rankRootMoves(Position&, RootMoves&);
+    extern void rankRootMoves(Position&, RootMoves&) noexcept;
 
     extern void initialize(std::string_view) noexcept;
 

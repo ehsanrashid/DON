@@ -33,16 +33,17 @@
 
 #if defined(_MSC_VER)
     // Disable some silly and noisy warning from MSVC compiler
-    #pragma warning (disable: 4127)     // Conditional expression is constant
-    #pragma warning (disable: 4146)     // Unary minus operator applied to unsigned type
-    #pragma warning (disable: 4800)     // Forcing value to bool 'true' or 'false'
+    #pragma warning (disable:  4127)    // Conditional expression is constant
+    #pragma warning (disable:  4146)    // Unary minus operator applied to unsigned type
+    #pragma warning (disable:  4800)    // Forcing value to bool 'true' or 'false'
     #pragma warning (disable: 26429)    // USE_NOTNULL: Symbol is never tested for nullness, it can be marked as gsl::not_null
     #pragma warning (disable: 26446)    // Prefer to use gsl::at() instead of unchecked subscript operator (bounds.x)
+    #pragma warning (disable: 26475)    // NO_FUNCTION_STYLE_CASTS: Do not use function style C - casts
     #pragma warning (disable: 26481)    // Don't use pointer arithmetic. Use span instead (bounds.x)
     #pragma warning (disable: 26482)    // Only index into arrays using constant expressions
     #pragma warning (disable: 26485)    // Expression 'array-name': No array to pointer decay (bounds.x)
-    #pragma warning (disable: 26475)    // NO_FUNCTION_STYLE_CASTS: Do not use function style C - casts
     #pragma warning (disable: 26493)    // NO_CSTYLE_CAST: Don't use C-style casts (type.x)
+    #pragma warning (disable: 26812)    // The enum type type-name is unscoped. Prefer 'enum class' over 'enum' (Enum.3)
 
     #if defined(_WIN64)
         #if !defined(IS_64BIT)

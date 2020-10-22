@@ -48,12 +48,12 @@ namespace UCI {
 
         Option& operator=(std::string_view);
 
-        void operator<<(Option const&);
+        void operator<<(Option const&) noexcept;
 
         const std::string& defaultValue() const noexcept;
         std::string toString() const noexcept;
 
-        uint32_t     index{ 0 };
+        uint32_t    index{ 0 };
 
     private:
 

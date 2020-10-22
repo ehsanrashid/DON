@@ -11,7 +11,7 @@ namespace Evaluator::NNUE {
     // accumulator tile by tile such that each tile fits in the CPU's vector registers.
     #define VECTOR
 
-    #ifdef USE_AVX512
+    #if defined(USE_AVX512)
         using vec_t = __m512i;
         #define vec_load(a)     _mm512_loadA_si512(a)
         #define vec_store(a,b)  _mm512_storeA_si512(a,b)
@@ -19,7 +19,7 @@ namespace Evaluator::NNUE {
         #define vec_sub_16(a,b) _mm512_sub_epi16(a,b)
         static constexpr IndexType NumRegs = 8; // only 8 are needed
 
-    #elif USE_AVX2
+    #elif defined(USE_AVX2)
         using vec_t = __m256i;
         #define vec_load(a)     _mm256_loadA_si256(a)
         #define vec_store(a,b)  _mm256_storeA_si256(a,b)
@@ -27,20 +27,20 @@ namespace Evaluator::NNUE {
         #define vec_sub_16(a,b) _mm256_sub_epi16(a,b)
         static constexpr IndexType NumRegs = 16;
 
-    #elif USE_SSE2
+    #elif defined(USE_SSE2)
         using vec_t = __m128i;
         #define vec_load(a)     (*(a))
         #define vec_store(a,b)  *(a)=(b)
         #define vec_add_16(a,b) _mm_add_epi16(a,b)
         #define vec_sub_16(a,b) _mm_sub_epi16(a,b)
-        static constexpr IndexType NumRegs =
+
         #if defined(IS_64BIT)
-            16;
+        static constexpr IndexType NumRegs = 16;
         #else
-            8;
+        static constexpr IndexType NumRegs = 8;
         #endif
 
-    #elif USE_MMX
+    #elif defined(USE_MMX)
         using vec_t = __m64;
         #define vec_load(a)     (*(a))
         #define vec_store(a,b)  *(a)=(b)
@@ -48,7 +48,7 @@ namespace Evaluator::NNUE {
         #define vec_sub_16(a,b) _mm_sub_pi16(a,b)
         static constexpr IndexType NumRegs = 8;
 
-    #elif USE_NEON
+    #elif defined(USE_NEON)
         using vec_t = int16x8_t;
         #define vec_load(a)     (*(a))
         #define vec_store(a,b)  *(a)=(b)
@@ -192,7 +192,7 @@ namespace Evaluator::NNUE {
         // Calculate cumulative value using difference calculation
         void updateAccumulator(Position const &pos, const Color c) const {
 
-        #ifdef VECTOR
+        #if defined(VECTOR)
             // Gcc-10.2 unnecessarily spills AVX2 registers if this array
             // is defined in the VECTOR code below, once in each branch
             vec_t acc[NumRegs];
@@ -230,7 +230,7 @@ namespace Evaluator::NNUE {
                     stack[i]->accumulator.state[c] = COMPUTED;
                 }
 
-            #ifdef VECTOR
+            #if defined(VECTOR)
 
                 for (IndexType j = 0; j < HalfDimensions / TileHeight; ++j) {
                     auto accTile = reinterpret_cast<vec_t*>(&si->accumulator.accumulation[c][0][j * TileHeight]);
@@ -287,6 +287,7 @@ namespace Evaluator::NNUE {
                         }
                     }
                 }
+
             #endif
             }
             else {
@@ -296,7 +297,7 @@ namespace Evaluator::NNUE {
                 Features::IndexList active;
                 Features::HalfKP<Features::Side::FRIEND>::appendActiveIndices(pos, c, &active);
 
-            #ifdef VECTOR
+            #if defined(VECTOR)
                 for (IndexType j = 0; j < HalfDimensions / TileHeight; ++j) {
                     auto biasesTile = reinterpret_cast<const vec_t*>(&biases_[j * TileHeight]);
                     for (IndexType k = 0; k < NumRegs; ++k) {

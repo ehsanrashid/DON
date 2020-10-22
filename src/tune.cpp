@@ -64,28 +64,28 @@ static void make_option(const string &n, int v, const SetRange &r) {
         << std::endl;
 }
 
-template<> void Tune::Entry<int>::init_option() { make_option(name, value, range); }
+template<> void Tune::Entry<int>::init_option() noexcept { make_option(name, value, range); }
 
-template<> void Tune::Entry<int>::read_option() {
+template<> void Tune::Entry<int>::read_option() noexcept {
     if (Options.count(name)) {
         value = int32_t(Options[name]);
     }
 }
 
-template<> void Tune::Entry<Value>::init_option() { make_option(name, value, range); }
+template<> void Tune::Entry<Value>::init_option() noexcept { make_option(name, value, range); }
 
-template<> void Tune::Entry<Value>::read_option() {
+template<> void Tune::Entry<Value>::read_option() noexcept {
     if (Options.count(name)) {
         value = Value(int32_t(Options[name]));
     }
 }
 
-template<> void Tune::Entry<Score>::init_option() {
+template<> void Tune::Entry<Score>::init_option() noexcept {
     make_option("m" + name, mgValue(value), range);
     make_option("e" + name, egValue(value), range);
 }
 
-template<> void Tune::Entry<Score>::read_option() {
+template<> void Tune::Entry<Score>::read_option() noexcept {
     if (Options.count("m" + name)) {
         value = makeScore(int32_t(Options["m" + name]), egValue(value));
     }
@@ -95,14 +95,14 @@ template<> void Tune::Entry<Score>::read_option() {
 }
 
 // Instead of a variable here we have a PostUpdate function: just call it
-template<> void Tune::Entry<Tune::PostUpdate>::init_option() {}
-template<> void Tune::Entry<Tune::PostUpdate>::read_option() { value(); }
+template<> void Tune::Entry<Tune::PostUpdate>::init_option() noexcept {}
+template<> void Tune::Entry<Tune::PostUpdate>::read_option() noexcept { value(); }
 
 
 // Set binary conditions according to a probability that depends
 // on the corresponding parameter value.
 
-void BoolConditions::set() {
+void BoolConditions::set() noexcept {
 
     static PRNG rng(now());
     static bool startup = true; // To workaround fishtest bench
@@ -129,7 +129,7 @@ void BoolConditions::set() {
 
 #include <cmath>
 
-void Tune::read_results() {
+void Tune::read_results() noexcept {
 
     /* ...insert your values here... */
 }

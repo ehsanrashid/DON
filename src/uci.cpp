@@ -293,7 +293,7 @@ namespace UCI {
     }
 
     /// Option::operator<<() inits options and assigns idx in the correct printing order
-    void Option::operator<<(Option const &opt) {
+    void Option::operator<<(Option const &opt) noexcept {
         static uint32_t insertOrder = 0;
 
         *this = opt;

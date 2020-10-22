@@ -395,7 +395,7 @@ ifeq ($(COMP), clang)
 	CXX = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
-	#ifneq ($(filter $(KERNEL), Darwin OpenBSD), )	
+	#ifneq ($(filter $(KERNEL), Darwin OpenBSD), )
 	ifneq ($(KERNEL), Darwin)
 		ifneq ($(KERNEL), OpenBSD)
 			LDFLAGS += -latomic

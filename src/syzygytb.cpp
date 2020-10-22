@@ -74,7 +74,7 @@ namespace {
 
     /// Comparison function to sort leading pawns in ascending MapPawns[] order
     bool mapPawnsCompare(Square s1, Square s2) noexcept { return MapPawns[s1] < MapPawns[s2]; }
-    int32_t offA1H8(Square s) { return int32_t(sRank(s)) - int32_t(sFile(s)); }
+    int32_t offA1H8(Square s) noexcept { return int32_t(sRank(s)) - int32_t(sFile(s)); }
 
     template<typename T, int16_t Half = sizeof (T) / 2, int16_t End = sizeof (T) - 1>
     inline void swapEndian(T &x) noexcept {
@@ -348,7 +348,7 @@ namespace {
             return &items[stm % Sides][hasPawns ? f : 0];
         }
 
-        TBTable() :
+        TBTable() noexcept :
             ready{ false },
             baseAddress{ nullptr },
             map{ nullptr },
@@ -387,13 +387,13 @@ namespace {
         exitLoop:
         // Set the leading color. In case both sides have pawns the leading color
         // is the side with less pawns because this leads to better compression.
-        bool c =
+        bool const c =
              pos.count(B_PAWN) == 0
          || (pos.count(W_PAWN) != 0
           && pos.count(B_PAWN) >= pos.count(W_PAWN));
 
-        pawnCount[0] = uint8_t(pos.count((c ? WHITE : BLACK)|PAWN));
-        pawnCount[1] = uint8_t(pos.count((c ? BLACK : WHITE)|PAWN));
+        pawnCount[0] = uint8_t(pos.count(c ? W_PAWN : B_PAWN));
+        pawnCount[1] = uint8_t(pos.count(c ? B_PAWN : W_PAWN));
 
         matlKey2 = pos.setup(code, BLACK, si).matlKey();
     }
@@ -532,7 +532,7 @@ namespace {
     /// Huffman codes is the same for all blocks in the table. A non-symmetric pawnless TB file
     /// will have one table for wtm and one for btm, a TB file with pawns will have tables per
     /// file a,b,c,d also in this case one set for wtm and one for btm.
-    int32_t decompressPairs(PairsData *d, uint64_t idx) {
+    int32_t decompressPairs(PairsData *d, uint64_t idx) noexcept {
         // Special case where all table positions store the same value
         if ((d->flags & TBFlag::SINGLE_VALUE) != 0) {
             return d->minSymLen;
@@ -564,7 +564,7 @@ namespace {
         //     idx = k * d->span + idx % d->span    (2)
         //
         // So from (1) and (2) we can compute idx - I(K):
-        int32_t diff = int32_t(idx % d->span - d->span / 2);
+        int32_t const diff{ int32_t(idx % d->span - d->span / 2) };
 
         // Sum the above to offset to find the offset corresponding to our idx
         offset += diff;
@@ -630,7 +630,7 @@ namespace {
         // right child symbols until we reach a leaf node where symLen[sym] + 1 == 1
         // that will store the value we need.
         while (d->symLen[sym] != 0) {
-            Symbol left{ d->btree[sym].get<LR::Side::LEFT>() };
+            Symbol const left{ d->btree[sym].get<LR::Side::LEFT>() };
 
             // If a symbol contains 36 sub-symbols (d->symLen[sym] + 1 = 36) and
             // expands in a pair (d->symLen[left] = 23, d->symLen[right] = 11), then
@@ -1542,7 +1542,7 @@ namespace SyzygyTB {
     ///
     /// A return value false indicates that not all probes were successful and that
     /// no moves were filtered out.
-    bool rootProbeWDL(Position &rootPos, RootMoves &rootMoves) {
+    bool rootProbeWDL(Position &rootPos, RootMoves &rootMoves) noexcept {
 
         bool move50Rule{ Options["SyzygyMove50Rule"] };
 
@@ -1575,15 +1575,15 @@ namespace SyzygyTB {
     /// Use the DTZ tables to rank root moves.
     ///
     /// A return value false indicates that not all probes were successful.
-    bool rootProbeDTZ(Position &rootPos, RootMoves &rootMoves) {
+    bool rootProbeDTZ(Position &rootPos, RootMoves &rootMoves) noexcept {
         assert(rootMoves.size() != 0);
 
         // Obtain 50-move counter for the root position
-        auto clockPly{ rootPos.clockPly() };
+        auto const clockPly{ rootPos.clockPly() };
         // Check whether a position was repeated since the last zeroing move.
-        bool repeated{ rootPos.repeated() };
+        bool const repeated{ rootPos.repeated() };
 
-        int16_t bound{ int16_t(Options["SyzygyMove50Rule"] ? 900 : 1) };
+        int16_t bound( Options["SyzygyMove50Rule"] ? 900 : 1 );
         int32_t dtz;
 
         StateInfo si;

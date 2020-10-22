@@ -2007,7 +2007,7 @@ void MainThread::tick() {
 
 namespace SyzygyTB {
 
-    void rankRootMoves(Position &pos, RootMoves &rootMoves) {
+    void rankRootMoves(Position &pos, RootMoves &rootMoves) noexcept {
 
         DepthLimit = Options["SyzygyDepthLimit"];
         PieceLimit = Options["SyzygyPieceLimit"];

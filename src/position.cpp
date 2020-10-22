@@ -870,10 +870,10 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
         /* king*/dst = kingCastleSq(org, rookOrg);
 
         if (Evaluator::useNNUE) {
-            mi.piece[0] = active|KING;
+            mi.piece[0] = (active|KING);
             mi.org[0] = org;
             mi.dst[0] = dst;
-            mi.piece[1] = active|ROOK;
+            mi.piece[1] = (active|ROOK);
             mi.org[1] = rookOrg;
             mi.dst[1] = rookDst;
             mi.pieceCount = 2; // 2 pieces moved
@@ -1065,8 +1065,8 @@ void Position::undoMove(Move m) noexcept {
         removePiece(dst);
         removePiece(rookDst);
         board[dst] = board[rookDst] = NO_PIECE; // Not done by removePiece()
-        placePiece(org    , active|KING);
-        placePiece(rookOrg, active|ROOK);
+        placePiece(org    , (active|KING));
+        placePiece(rookOrg, (active|ROOK));
     }
     else {
         auto const mpc{ board[dst] };
@@ -1079,7 +1079,7 @@ void Position::undoMove(Move m) noexcept {
                 && relativeRank(active, dst) == RANK_8);
 
             removePiece(dst);
-            placePiece(dst, active|PAWN);
+            placePiece(dst, (active|PAWN));
             npm[active] -= PieceValues[MG][pType(mpc)];
         }
         // Move the piece
