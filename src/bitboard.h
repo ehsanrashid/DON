@@ -154,18 +154,18 @@ constexpr bool contains(Bitboard bb, Square s) noexcept { return (bb & squareBB(
 constexpr bool moreThanOne(Bitboard bb) noexcept { return (bb & (bb - 1)) != 0; }
 
 /// Shift the bitboard using delta
-template<Direction> constexpr Bitboard shift(Bitboard) { return 0; }
-template<> constexpr Bitboard shift<NORTH     >(Bitboard bb) { return (bb) <<  8; }
-template<> constexpr Bitboard shift<SOUTH     >(Bitboard bb) { return (bb) >>  8; }
-template<> constexpr Bitboard shift<NORTH_2   >(Bitboard bb) { return (bb) << 16; }
-template<> constexpr Bitboard shift<SOUTH_2   >(Bitboard bb) { return (bb) >> 16; }
+template<Direction> constexpr Bitboard shift(Bitboard) noexcept;
+template<> constexpr Bitboard shift<NORTH     >(Bitboard bb) noexcept { return (bb) <<  8; }
+template<> constexpr Bitboard shift<SOUTH     >(Bitboard bb) noexcept { return (bb) >>  8; }
+template<> constexpr Bitboard shift<NORTH_2   >(Bitboard bb) noexcept { return (bb) << 16; }
+template<> constexpr Bitboard shift<SOUTH_2   >(Bitboard bb) noexcept { return (bb) >> 16; }
 // If (shifting & 7) != 0 then  bound clipping is done (~fileBB(FILE_A) or ~fileBB(FILE_H))
-template<> constexpr Bitboard shift<EAST      >(Bitboard bb) { return (bb & ~fileBB(FILE_H)) << 1; }
-template<> constexpr Bitboard shift<WEST      >(Bitboard bb) { return (bb & ~fileBB(FILE_A)) >> 1; }
-template<> constexpr Bitboard shift<NORTH_EAST>(Bitboard bb) { return (bb & ~fileBB(FILE_H)) << 9; }
-template<> constexpr Bitboard shift<NORTH_WEST>(Bitboard bb) { return (bb & ~fileBB(FILE_A)) << 7; }
-template<> constexpr Bitboard shift<SOUTH_EAST>(Bitboard bb) { return (bb & ~fileBB(FILE_H)) >> 7; }
-template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) { return (bb & ~fileBB(FILE_A)) >> 9; }
+template<> constexpr Bitboard shift<EAST      >(Bitboard bb) noexcept { return (bb & ~fileBB(FILE_H)) << 1; }
+template<> constexpr Bitboard shift<WEST      >(Bitboard bb) noexcept { return (bb & ~fileBB(FILE_A)) >> 1; }
+template<> constexpr Bitboard shift<NORTH_EAST>(Bitboard bb) noexcept { return (bb & ~fileBB(FILE_H)) << 9; }
+template<> constexpr Bitboard shift<NORTH_WEST>(Bitboard bb) noexcept { return (bb & ~fileBB(FILE_A)) << 7; }
+template<> constexpr Bitboard shift<SOUTH_EAST>(Bitboard bb) noexcept { return (bb & ~fileBB(FILE_H)) >> 7; }
+template<> constexpr Bitboard shift<SOUTH_WEST>(Bitboard bb) noexcept { return (bb & ~fileBB(FILE_A)) >> 9; }
 
 constexpr Bitboard adjacentFilesBB(Square s) noexcept {
     return shift<EAST >(fileBB(s))
@@ -220,16 +220,16 @@ template<> inline int32_t distance<Square>(Square s1, Square s2) noexcept {
 }
 
 // Fold file [ABCDEFGH] to file [ABCDDCBA]
-constexpr int32_t edgeDistance(File f) { return std::min(f - FILE_A, FILE_H - f); }
+constexpr int32_t edgeDistance(File f) noexcept { return std::min(f - FILE_A, FILE_H - f); }
 // Fold rank [12345678] to rank [12344321]
-constexpr int32_t edgeDistance(Rank r) { return std::min(r - RANK_1, RANK_8 - r); }
+constexpr int32_t edgeDistance(Rank r) noexcept { return std::min(r - RANK_1, RANK_8 - r); }
 
 constexpr Direction PawnPush[COLORS]{
     NORTH, SOUTH
 };
 
-template<Color C> constexpr Bitboard pawnSglPushBB(Bitboard bb) { return shift<PawnPush[C]>(bb); }
-template<Color C> constexpr Bitboard pawnDblPushBB(Bitboard bb) { return shift<PawnPush[C] * 2>(bb); }
+template<Color C> constexpr Bitboard pawnSglPushBB(Bitboard bb) noexcept { return shift<PawnPush[C]>(bb); }
+template<Color C> constexpr Bitboard pawnDblPushBB(Bitboard bb) noexcept { return shift<PawnPush[C] * 2>(bb); }
 
 constexpr Direction PawnLAtt[COLORS]{
     NORTH_WEST, SOUTH_EAST
@@ -238,10 +238,10 @@ constexpr Direction PawnRAtt[COLORS]{
     NORTH_EAST, SOUTH_WEST
 };
 
-template<Color C> constexpr Bitboard pawnLAttackBB(Bitboard bb) { return shift<PawnLAtt[C]>(bb); }
-template<Color C> constexpr Bitboard pawnRAttackBB(Bitboard bb) { return shift<PawnRAtt[C]>(bb); }
-template<Color C> constexpr Bitboard pawnSglAttackBB(Bitboard bb) { return pawnLAttackBB<C>(bb) | pawnRAttackBB<C>(bb); }
-template<Color C> constexpr Bitboard pawnDblAttackBB(Bitboard bb) { return pawnLAttackBB<C>(bb) & pawnRAttackBB<C>(bb); }
+template<Color C> constexpr Bitboard pawnLAttackBB(Bitboard bb) noexcept { return shift<PawnLAtt[C]>(bb); }
+template<Color C> constexpr Bitboard pawnRAttackBB(Bitboard bb) noexcept { return shift<PawnRAtt[C]>(bb); }
+template<Color C> constexpr Bitboard pawnSglAttackBB(Bitboard bb) noexcept { return pawnLAttackBB<C>(bb) | pawnRAttackBB<C>(bb); }
+template<Color C> constexpr Bitboard pawnDblAttackBB(Bitboard bb) noexcept { return pawnLAttackBB<C>(bb) & pawnRAttackBB<C>(bb); }
 
 inline Bitboard pawnAttacksBB(Color c, Square s) noexcept {
     return PawnAttacksBB[c][s];
@@ -280,12 +280,6 @@ inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) noexcept {
         pt == QUEN ? attacksBB<QUEN>(s, occ) :
       /*pt == KING*/ attacksBB<KING>(s);
 }
-
-//inline Bitboard floodFill(Bitboard b) {
-//    return b
-//         | shift<EAST >(b) | shift<WEST >(b)
-//         | shift<SOUTH>(b) | shift<NORTH>(b);
-//}
 
 /// popCount() counts the number of ones in a bitboard
 inline int32_t popCount(Bitboard bb) noexcept {
@@ -382,16 +376,16 @@ inline Square popLSq(Bitboard &bb) noexcept {
 //inline Square popMSq(Bitboard &bb) noexcept {
 //    assert(bb != 0);
 //    Square const sq{ scanMSq(bb) };
-//    bb &= ~(U64(1) << sq);
+//    bb &= ~sq;
 //    return sq;
 //}
 
 namespace Bitboards {
 
-    extern void initialize();
+    extern void initialize() noexcept;
 
 #if !defined(NDEBUG)
-    extern std::string toString(Bitboard);
+    extern std::string toString(Bitboard) noexcept;
 #endif
 
 }

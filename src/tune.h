@@ -15,16 +15,16 @@ inline Range default_range(int v) {
 
 struct SetRange {
 
-    explicit SetRange(RangeFun f) :
+    explicit SetRange(RangeFun f) noexcept :
         fun(f) {
     }
 
-    SetRange(int min, int max) :
+    SetRange(int min, int max) noexcept :
         fun(nullptr),
         range(min, max) {
     }
 
-    Range operator()(int v) const { return fun ? fun(v) : range; }
+    Range operator()(int v) const noexcept { return fun ? fun(v) : range; }
 
     RangeFun *fun;
     Range range;
@@ -43,7 +43,7 @@ struct SetRange {
 struct BoolConditions {
 
     void init(size_t size) { values.resize(size, defaultValue), binary.resize(size, 0); }
-    void set();
+    void set() noexcept;
 
     std::vector<int> binary, values;
     int defaultValue = 465, variance = 40, threshold = 500;
@@ -52,7 +52,7 @@ struct BoolConditions {
 
 extern BoolConditions Conditions;
 
-inline void set_conditions() { Conditions.set(); }
+inline void set_conditions() noexcept { Conditions.set(); }
 
 
 /// Tune class implements the 'magic' code that makes the setup of a fishtest
@@ -86,19 +86,19 @@ class Tune {
 
     typedef void (PostUpdate)(); // Post-update function
 
-    Tune() { read_results(); }
+    Tune() noexcept { read_results(); }
     Tune(Tune const&) = delete;
     void operator=(Tune const &) = delete;
 
-    void read_results();
+    void read_results() noexcept;
 
-    static Tune& instance() { static Tune t; return t; } // Singleton
+    static Tune& instance() noexcept { static Tune tune; return tune; } // Singleton
 
     // Use polymorphism to accomodate Entry of different types in the same vector
     struct EntryBase {
         virtual ~EntryBase() = default;
-        virtual void init_option() = 0;
-        virtual void read_option() = 0;
+        virtual void init_option() noexcept = 0;
+        virtual void read_option() noexcept = 0;
     };
 
     template<typename T>
@@ -114,8 +114,8 @@ class Tune {
 
         Entry(const std::string &n, T &v, const SetRange &r) : name(n), value(v), range(r) {}
         void operator=(const Entry &) = delete; // Because 'value' is a reference
-        void init_option() override;
-        void read_option() override;
+        void init_option() noexcept override;
+        void read_option() noexcept override;
 
         std::string name;
         T &value;
@@ -127,7 +127,7 @@ class Tune {
     // of a possible different type.
     static std::string next(std::string &names, bool pop = true);
 
-    int add(const SetRange &, std::string &&) { return 0; }
+    int add(const SetRange&, std::string&&) noexcept { return 0; }
 
     template<typename T, typename... Args>
     int add(const SetRange &range, std::string &&names, T &value, Args&&... args) {

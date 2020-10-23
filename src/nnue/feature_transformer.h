@@ -9,9 +9,9 @@ namespace Evaluator::NNUE {
 
     // If vector instructions are enabled, we update and refresh the
     // accumulator tile by tile such that each tile fits in the CPU's vector registers.
-    #define TILING
+    #define VECTOR
 
-    #ifdef USE_AVX512
+    #if defined(USE_AVX512)
         using vec_t = __m512i;
         #define vec_load(a)     _mm512_loadA_si512(a)
         #define vec_store(a,b)  _mm512_storeA_si512(a,b)
@@ -19,7 +19,7 @@ namespace Evaluator::NNUE {
         #define vec_sub_16(a,b) _mm512_sub_epi16(a,b)
         static constexpr IndexType NumRegs = 8; // only 8 are needed
 
-    #elif USE_AVX2
+    #elif defined(USE_AVX2)
         using vec_t = __m256i;
         #define vec_load(a)     _mm256_loadA_si256(a)
         #define vec_store(a,b)  _mm256_storeA_si256(a,b)
@@ -27,20 +27,20 @@ namespace Evaluator::NNUE {
         #define vec_sub_16(a,b) _mm256_sub_epi16(a,b)
         static constexpr IndexType NumRegs = 16;
 
-    #elif USE_SSE2
+    #elif defined(USE_SSE2)
         using vec_t = __m128i;
         #define vec_load(a)     (*(a))
         #define vec_store(a,b)  *(a)=(b)
         #define vec_add_16(a,b) _mm_add_epi16(a,b)
         #define vec_sub_16(a,b) _mm_sub_epi16(a,b)
-        static constexpr IndexType NumRegs =
+
         #if defined(IS_64BIT)
-            16;
+        static constexpr IndexType NumRegs = 16;
         #else
-            8;
+        static constexpr IndexType NumRegs = 8;
         #endif
 
-    #elif USE_MMX
+    #elif defined(USE_MMX)
         using vec_t = __m64;
         #define vec_load(a)     (*(a))
         #define vec_store(a,b)  *(a)=(b)
@@ -48,7 +48,7 @@ namespace Evaluator::NNUE {
         #define vec_sub_16(a,b) _mm_sub_pi16(a,b)
         static constexpr IndexType NumRegs = 8;
 
-    #elif USE_NEON
+    #elif defined(USE_NEON)
         using vec_t = int16x8_t;
         #define vec_load(a)     (*(a))
         #define vec_store(a,b)  *(a)=(b)
@@ -58,7 +58,7 @@ namespace Evaluator::NNUE {
 
     #else
 
-        #undef TILING
+        #undef VECTOR
 
     #endif
 
@@ -69,7 +69,7 @@ namespace Evaluator::NNUE {
         // Number of output dimensions for one side
         static constexpr IndexType HalfDimensions{ TransformedFeatureDimensions };
 
-    #if defined(TILING)
+    #if defined(VECTOR)
         static constexpr IndexType TileHeight = NumRegs * sizeof (vec_t) / 2;
         static_assert (HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
     #endif
@@ -101,35 +101,12 @@ namespace Evaluator::NNUE {
             return !istream.fail();
         }
 
-        // Proceed with the difference calculation if possible
-        bool updateAccumulatorIfPossible(Position const &pos) const {
-            auto const *currState{ pos.state() };
-            if (currState->accumulator.accumulationComputed) {
-                return true;
-            }
-            auto const *prevState{ currState->prevState };
-            if (prevState != nullptr) {
-                if (prevState->accumulator.accumulationComputed) {
-                    updateAccumulator(pos);
-                    return true;
-                }
-                else
-                if (prevState->prevState != nullptr) {
-                    if (prevState->prevState->accumulator.accumulationComputed) {
-                        updateAccumulator(pos);
-                        return true;
-                    }
-                    
-                }
-            }
-            return false;
-        }
-
         // Convert input features
         void transform(Position const &pos, OutputType *output) const {
-            if (!updateAccumulatorIfPossible(pos)) {
-                refreshAccumulator(pos);
-            }
+
+            updateAccumulator(pos, WHITE);
+            updateAccumulator(pos, BLACK);
+
             auto const &accumulation = pos.state()->accumulator.accumulation;
 
         #if defined(USE_AVX2)
@@ -211,158 +188,155 @@ namespace Evaluator::NNUE {
         }
 
     private:
-        // Calculate cumulative value without using difference calculation
-        void refreshAccumulator(Position const &pos) const {
-            auto &accumulator{ pos.state()->accumulator };
-            IndexType i{ 0 };
-            Features::IndexList activeIndices[2];
-            RawFeatures::appendActiveIndices(pos, RefreshTriggers[i], activeIndices);
-            for (Color perspective : { WHITE, BLACK }) {
 
-        #if defined(TILING)
-                for (unsigned j = 0; j < HalfDimensions / TileHeight; ++j) {
+        // Calculate cumulative value using difference calculation
+        void updateAccumulator(Position const &pos, const Color c) const {
 
-                    auto biasesTile = reinterpret_cast<vec_t const*>(&biases_[j * TileHeight]);
-                    auto accTile = reinterpret_cast<vec_t*>(&accumulator.accumulation[perspective][i][j * TileHeight]);
-                    vec_t acc[NumRegs];
+        #if defined(VECTOR)
+            // Gcc-10.2 unnecessarily spills AVX2 registers if this array
+            // is defined in the VECTOR code below, once in each branch
+            vec_t acc[NumRegs];
+        #endif
+            constexpr int MaxSteps = 6;
+            StateInfo *stack[MaxSteps];
+            int step = 0;
+            int gain = popCount(pos.pieces()) - 2;
 
-                    for (unsigned k = 0; k < NumRegs; ++k) {
+            // Look for a usable accumulator of an earlier position at most MaxSteps
+            // back. We keep track of the estimated gain in terms of features to be
+            // added/subtracted and accumulators to be saved.
+            StateInfo *si = pos.state();
+            while (si->accumulator.state[c] == EMPTY
+                && step < MaxSteps) {
+
+                auto &mi = si->moveInfo;
+                if (mi.piece[0] == (c|KING)
+                 || (gain -= mi.pieceCount + 2) <= 0) {
+                    break;
+                }
+                stack[step++] = si;
+                si = si->prevState;
+            }
+
+            if (si->accumulator.state[c] == COMPUTED) {
+                // Update incrementally, including previous accumulators
+
+                // First gather all features to be updated and mark the accumulators
+                // as computed
+                Features::IndexList added[MaxSteps], removed[MaxSteps];
+                for (int i = 0; i < step; ++i) {
+                    auto &mi = stack[i]->moveInfo;
+                    Features::HalfKP<Features::Side::FRIEND>::appendChangedIndices(pos, mi, c, &removed[i], &added[i]);
+                    stack[i]->accumulator.state[c] = COMPUTED;
+                }
+
+            #if defined(VECTOR)
+
+                for (IndexType j = 0; j < HalfDimensions / TileHeight; ++j) {
+                    auto accTile = reinterpret_cast<vec_t*>(&si->accumulator.accumulation[c][0][j * TileHeight]);
+                    for (IndexType k = 0; k < NumRegs; ++k) {
+                        acc[k] = vec_load(&accTile[k]);
+                    }
+                    for (int i = step - 1; i >= 0; --i) {
+                        // Difference calculation for the deactivated features
+                        for (const auto index : removed[i]) {
+                            const IndexType offset = HalfDimensions * index + j * TileHeight;
+                            auto column = reinterpret_cast<const vec_t*>(&weights_[offset]);
+                            for (IndexType k = 0; k < NumRegs; ++k) {
+                                acc[k] = vec_sub_16(acc[k], column[k]);
+                            }
+                        }
+
+                        // Difference calculation for the activated features
+                        for (const auto index : added[i]) {
+                            const IndexType offset = HalfDimensions * index + j * TileHeight;
+                            auto column = reinterpret_cast<const vec_t*>(&weights_[offset]);
+                            for (IndexType k = 0; k < NumRegs; ++k) {
+                                acc[k] = vec_add_16(acc[k], column[k]);
+                            }
+                        }
+
+                        accTile = reinterpret_cast<vec_t*>(&stack[i]->accumulator.accumulation[c][0][j * TileHeight]);
+                        for (IndexType k = 0; k < NumRegs; ++k) {
+                            vec_store(&accTile[k], acc[k]);
+                        }
+                    }
+                }
+
+            #else
+
+                for (int i = step - 1; i >= 0; --i) {
+                    std::memcpy(stack[i]->accumulator.accumulation[c][0], si->accumulator.accumulation[c][0], HalfDimensions * sizeof(BiasType));
+                    si = stack[i];
+
+                    // Difference calculation for the deactivated features
+                    for (const auto index : removed[i]) {
+                        const IndexType offset = HalfDimensions * index;
+
+                        for (IndexType j = 0; j < HalfDimensions; ++j) {
+                            si->accumulator.accumulation[c][0][j] -= weights_[offset + j];
+                        }
+                    }
+
+                    // Difference calculation for the activated features
+                    for (const auto index : added[i]) {
+                        const IndexType offset = HalfDimensions * index;
+
+                        for (IndexType j = 0; j < HalfDimensions; ++j) {
+                            si->accumulator.accumulation[c][0][j] += weights_[offset + j];
+                        }
+                    }
+                }
+
+            #endif
+            }
+            else {
+                // Refresh the accumulator
+                auto& accumulator{ pos.state()->accumulator };
+                accumulator.state[c] = COMPUTED;
+                Features::IndexList active;
+                Features::HalfKP<Features::Side::FRIEND>::appendActiveIndices(pos, c, &active);
+
+            #if defined(VECTOR)
+                for (IndexType j = 0; j < HalfDimensions / TileHeight; ++j) {
+                    auto biasesTile = reinterpret_cast<const vec_t*>(&biases_[j * TileHeight]);
+                    for (IndexType k = 0; k < NumRegs; ++k) {
                         acc[k] = biasesTile[k];
                     }
-                    for (auto const index : activeIndices[perspective]) {
+
+                    for (const auto index : active) {
                         const IndexType offset = HalfDimensions * index + j * TileHeight;
-                        auto column = reinterpret_cast<vec_t const*>(&weights_[offset]);
+                        auto column = reinterpret_cast<const vec_t*>(&weights_[offset]);
 
                         for (unsigned k = 0; k < NumRegs; ++k) {
                             acc[k] = vec_add_16(acc[k], column[k]);
                         }
                     }
 
+                    auto accTile = reinterpret_cast<vec_t*>(&accumulator.accumulation[c][0][j * TileHeight]);
                     for (unsigned k = 0; k < NumRegs; ++k) {
                         vec_store(&accTile[k], acc[k]);
                     }
                 }
-        #else
 
-                std::memcpy(accumulator.accumulation[perspective][i], biases_, HalfDimensions * sizeof (BiasType));
-                for (auto const index : activeIndices[perspective]) {
-                    IndexType const offset{ HalfDimensions * index };
+            #else
+
+                std::memcpy(accumulator.accumulation[c][0], biases_, HalfDimensions * sizeof(BiasType));
+
+                for (const auto index : active) {
+                    const IndexType offset{ HalfDimensions * index };
 
                     for (IndexType j = 0; j < HalfDimensions; ++j) {
-                        accumulator.accumulation[perspective][i][j] += weights_[offset + j];
+                        accumulator.accumulation[c][0][j] += weights_[offset + j];
                     }
                 }
-        #endif
 
+            #endif
             }
+
         #if defined(USE_MMX)
             _mm_empty();
         #endif
-
-            accumulator.accumulationComputed = true;
-        }
-
-        // Calculate cumulative value using difference calculation
-        void updateAccumulator(Position const &pos) const {
-
-            Accumulator *prevAccumulator;
-            assert(pos.state()->prevState != nullptr);
-            if (pos.state()->prevState->accumulator.accumulationComputed) {
-                prevAccumulator = &pos.state()->prevState->accumulator;
-            }
-            else {
-                assert(pos.state()->prevState->prevState != nullptr
-                    && pos.state()->prevState->prevState->accumulator.accumulationComputed);
-                prevAccumulator = &pos.state()->prevState->prevState->accumulator;
-            }
-
-            
-            auto &accumulator{ pos.state()->accumulator };
-            IndexType i{ 0 };
-            Features::IndexList removedIndices[2], addedIndices[2];
-            bool reset[2]{false, false};
-            RawFeatures::appendChangedIndices(pos, RefreshTriggers[i], removedIndices, addedIndices, reset);
-
-        #if defined(TILING)
-            for (IndexType j = 0; j < HalfDimensions / TileHeight; ++j) {
-                for (Color perspective : { WHITE, BLACK }) {
-                    auto accTile = reinterpret_cast<vec_t *>(&accumulator.accumulation[perspective][i][j * TileHeight]);
-                    vec_t acc[NumRegs];
-
-                    if (reset[perspective]) {
-                        auto biasesTile = reinterpret_cast<vec_t const*>(&biases_[j * TileHeight]);
-                        for (unsigned k = 0; k < NumRegs; ++k) {
-                            acc[k] = biasesTile[k];
-                        }
-                    }
-                    else {
-                        auto prevAccTile = reinterpret_cast<vec_t const*>(&prevAccumulator->accumulation[perspective][i][j * TileHeight]);
-                        for (IndexType k = 0; k < NumRegs; ++k) {
-                            acc[k] = vec_load(&prevAccTile[k]);
-                        }
-
-                        // Difference calculation for the deactivated features
-                        for (auto const index : removedIndices[perspective]) {
-                            IndexType const offset = HalfDimensions * index + j * TileHeight;
-                            auto column = reinterpret_cast<vec_t const*>(&weights_[offset]);
-
-                            for (IndexType k = 0; k < NumRegs; ++k) {
-                                acc[k] = vec_sub_16(acc[k], column[k]);
-                            }
-                        }
-                    }
-                    {   // Difference calculation for the activated features
-                        for (auto const index : addedIndices[perspective]) {
-                            IndexType const offset = HalfDimensions * index + j * TileHeight;
-                            auto column = reinterpret_cast<vec_t const*>(&weights_[offset]);
-
-                            for (IndexType k = 0; k < NumRegs; ++k) {
-                                acc[k] = vec_add_16(acc[k], column[k]);
-                            }
-                        }
-                    }
-
-                    for (IndexType k = 0; k < NumRegs; ++k) {
-                        vec_store(&accTile[k], acc[k]);
-                    }
-                }
-            }
-            #if defined(USE_MMX)
-            _mm_empty();
-            #endif
-
-        #else
-
-            for (Color perspective : { WHITE, BLACK }) {
-
-                if (reset[perspective]) {
-                    std::memcpy(accumulator.accumulation[perspective][i], biases_, HalfDimensions * sizeof (BiasType));
-                }
-                else {
-                    std::memcpy(accumulator.accumulation[perspective][i], prevAccumulator->accumulation[perspective][i], HalfDimensions * sizeof (BiasType));
-                    // Difference calculation for the deactivated features
-                    for (auto const index : removedIndices[perspective]) {
-                        IndexType const offset{ HalfDimensions * index };
-
-                        for (IndexType j = 0; j < HalfDimensions; ++j) {
-                            accumulator.accumulation[perspective][i][j] -= weights_[offset + j];
-                        }
-                    }
-                }
-                {   // Difference calculation for the activated features
-                    for (auto const index : addedIndices[perspective]) {
-                        IndexType const offset{ HalfDimensions * index };
-
-                        for (IndexType j = 0; j < HalfDimensions; ++j) {
-                            accumulator.accumulation[perspective][i][j] += weights_[offset + j];
-                        }
-                    }
-                }
-            }
-
-        #endif
-
-            accumulator.accumulationComputed = true;
         }
 
         using BiasType = int16_t;

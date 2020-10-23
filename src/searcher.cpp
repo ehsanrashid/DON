@@ -329,10 +329,8 @@ namespace {
 
         Move move;
         // Transposition table lookup.
-        Key const key     { pos.posiKey() };
-
-        auto *const tte   { TT.probe(key, ss->ttHit) };
-
+        Key const posiKey { pos.posiKey() };
+        auto *const tte   { TT.probe(posiKey, ss->ttHit) };
         auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { ss->ttHit ? tte->move() : MOVE_NONE };
         auto const ttPV   { ss->ttHit && tte->pv() };
@@ -391,7 +389,7 @@ namespace {
                 if (bestValue >= beta) {
 
                     if (!ss->ttHit) {
-                        tte->save(key,
+                        tte->save(posiKey,
                                   MOVE_NONE,
                                   valueToTT(bestValue, ss->ply),
                                   ss->staticEval,
@@ -538,7 +536,7 @@ namespace {
             return matedIn(ss->ply); // Plies to mate from the root
         }
 
-        tte->save(key,
+        tte->save(posiKey,
                   bestMove,
                   valueToTT(bestValue, ss->ply),
                   ss->staticEval,
@@ -556,6 +554,7 @@ namespace {
     Value depthSearch(Position &pos, Stack *const ss, Value alfa, Value beta, Depth depth, bool cutNode) {
 
         bool const rootNode{ PVNode && ss->ply == 0 };
+        Depth const maxDepth{ rootNode ? depth : depth + 1 };
 
         auto *thread{ pos.thread() };
 
@@ -645,14 +644,13 @@ namespace {
         // Don't want the score of a partial search to overwrite
         // a previous full search TT value, so we use a different
         // position key in case of an excluded move.
-        Key const key     { excludedMove == MOVE_NONE ?
+        Key const posiKey { excludedMove == MOVE_NONE ?
                                 pos.posiKey() :
                                 pos.posiKey() ^ makeKey(excludedMove) };
-
-        auto *const tte   { excludedMove == MOVE_NONE ?
-                                TT.probe(key, ss->ttHit) :
-                                TTEx.probe(key, ss->ttHit) };
-
+        //auto *const tte   { excludedMove == MOVE_NONE ?
+        //                        TT.probe(posiKey, ss->ttHit) :
+        //                        TTEx.probe(posiKey, ss->ttHit) };
+        auto *const tte   { TT.probe(posiKey, ss->ttHit) };
         auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { rootNode ? thread->rootMoves[thread->pvCur][0] :
                             ss->ttHit ? tte->move() : MOVE_NONE };
@@ -663,7 +661,6 @@ namespace {
         auto const pastPV { !PVNode && ss->ttPV };
 
         auto const activeSide{ pos.activeSide() };
-
         bool const pmCapOrPro{ pos.captured() != NONE
                             || pos.promoted() };
 
@@ -749,7 +746,7 @@ namespace {
 
                     if ( bound == BOUND_EXACT
                      || (bound == BOUND_LOWER ? beta <= value : value <= alfa)) {
-                        tte->save(key,
+                        tte->save(posiKey,
                                   MOVE_NONE,
                                   valueToTT(value, ss->ply),
                                   VALUE_NONE,
@@ -815,7 +812,7 @@ namespace {
                     (ss-1)->playedMove != MOVE_NULL ?
                         evaluate(pos) : -(ss-1)->staticEval + 2 * VALUE_TEMPO;
 
-                tte->save(key,
+                tte->save(posiKey,
                           MOVE_NONE,
                           VALUE_NONE,
                           eval,
@@ -866,7 +863,7 @@ namespace {
                     depth - ((982 + 85 * depth) / 256 + std::min(int32_t(eval - beta) / 192, 3)) );
 
                 Key const nullMoveKey{
-                    key
+                    posiKey
                   ^ RandZob.side
                   ^ (pos.epSquare() != SQ_NONE ? RandZob.enpassant[sFile(pos.epSquare())] : 0) };
 
@@ -945,6 +942,7 @@ namespace {
                 bool const ttPV{ ss->ttPV };
                 ss->ttPV = false;
 
+                bool captureOrPromotion{ true };
                 uint8_t probCutCount{ 0 };
                 // Initialize move-picker(3) for the current position
                 MovePicker movePicker{
@@ -974,8 +972,7 @@ namespace {
                     prefetch(TT.cluster(pos.movePosiKey(move))->entry);
 
                     ss->playedMove = move;
-                    // ss->inCheck{ false }, captureOrPromotion{ true }
-                    ss->pieceStats = &thread->continuationStats[0][1][pos.movedPiece(move)][dstSq(move)];
+                    ss->pieceStats = &thread->continuationStats[ss->inCheck][captureOrPromotion][pos.movedPiece(move)][dstSq(move)];
 
                     pos.doMove(move, si);
 
@@ -995,7 +992,7 @@ namespace {
                            && ttValue != VALUE_NONE
                            && tte->depth() >= depth - 3)) {
 
-                            tte->save(key,
+                            tte->save(posiKey,
                                       move,
                                       valueToTT(value, ss->ply),
                                       ss->staticEval,
@@ -1023,7 +1020,7 @@ namespace {
         value = bestValue;
 
         // Mark this node as being searched.
-        ThreadMarker threadMarker{ thread, key, ss->ply };
+        ThreadMarker threadMarker{ thread, posiKey, ss->ply };
 
         bool singularQuietLMR{ false };
         bool moveCountPruning{ false };
@@ -1363,7 +1360,7 @@ namespace {
                 (ss+1)->pv = pv;
                 (ss+1)->pv[0] = MOVE_NONE;
 
-                value = -depthSearch<true>(pos, ss+1, -beta, -alfa, newDepth, false);
+                value = -depthSearch<true>(pos, ss+1, -beta, -alfa, std::min(newDepth, maxDepth), false);
             }
 
             // Step 18. Undo the move
@@ -1521,10 +1518,10 @@ namespace {
             }
         }
 
-        if (//excludedMove == MOVE_NONE &&
+        if (excludedMove == MOVE_NONE &&
             !(rootNode && thread->pvCur != 0)) {
 
-            tte->save(key,
+            tte->save(posiKey,
                       bestMove,
                       valueToTT(bestValue, ss->ply),
                       ss->staticEval,
@@ -2007,7 +2004,7 @@ void MainThread::tick() {
 
 namespace SyzygyTB {
 
-    void rankRootMoves(Position &pos, RootMoves &rootMoves) {
+    void rankRootMoves(Position &pos, RootMoves &rootMoves) noexcept {
 
         DepthLimit = Options["SyzygyDepthLimit"];
         PieceLimit = Options["SyzygyPieceLimit"];

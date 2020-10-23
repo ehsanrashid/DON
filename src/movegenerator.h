@@ -41,7 +41,7 @@ public:
 
 struct Perft {
 
-    void classify(Position&, Move);
+    void classify(Position&, Move) noexcept;
 
     void operator+=(Perft const&) noexcept;
     void operator-=(Perft const&) noexcept;
@@ -60,4 +60,4 @@ struct Perft {
 };
 
 template<bool RootNode>
-extern Perft perft(Position&, Depth, bool = false);
+extern Perft perft(Position&, Depth, bool = false) noexcept;

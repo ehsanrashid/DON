@@ -25,11 +25,11 @@ namespace UCI {
 
         using OnChange = void(*)(Option const&);
 
-        Option(OnChange = nullptr);
-        Option(bool, OnChange = nullptr);
-        Option(std::string_view, OnChange = nullptr);
-        Option(double, double, double, OnChange = nullptr);
-        Option(std::string_view, std::string_view, OnChange = nullptr);
+        Option(OnChange = nullptr) noexcept;
+        Option(bool, OnChange = nullptr) noexcept;
+        Option(std::string_view, OnChange = nullptr) noexcept;
+        Option(double, double, double, OnChange = nullptr) noexcept;
+        Option(std::string_view, std::string_view, OnChange = nullptr) noexcept;
         //Option(Option const&) = delete;
         //Option(Option&&) = delete;
 
@@ -48,20 +48,20 @@ namespace UCI {
 
         Option& operator=(std::string_view);
 
-        void operator<<(Option const&);
+        void operator<<(Option const&) noexcept;
 
         const std::string& defaultValue() const noexcept;
-        std::string toString() const;
+        std::string toString() const noexcept;
 
-        uint32_t     index{ 0 };
+        uint32_t    index{ 0 };
 
     private:
 
         std::string type,
                     defaultVal,
                     currentVal;
-        double  minVal{ 0 },
-                maxVal{ 0 };
+        double  minVal{ 0.0 },
+                maxVal{ 0.0 };
 
         OnChange onChange;
     };

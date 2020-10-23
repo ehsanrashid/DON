@@ -719,17 +719,22 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
     iss >> token;
     while ((iss >> token)
         && !isspace(token)) {
-        Color const c{ isupper(token) ? WHITE : BLACK };
-        Piece const rook{ (c|ROOK) };
+        auto const c{ isupper(token) ? WHITE : BLACK };
 
         token = char(tolower(token));
         Square rookOrg;
         if (token == 'k') {
-            for (rookOrg = relativeSq(c, SQ_H1); rook != board[rookOrg] /*&& rookOrg > square(c|KING)*/; --rookOrg) {}
+            rookOrg = relativeSq(c, SQ_H1);
+            while (board[rookOrg] != (c|ROOK) /*&& rookOrg > square(c|KING)*/) {
+                --rookOrg;
+            }
         }
         else
         if (token == 'q') {
-            for (rookOrg = relativeSq(c, SQ_A1); rook != board[rookOrg] /*&& rookOrg < square(c|KING)*/; ++rookOrg) {}
+            rookOrg = relativeSq(c, SQ_A1);
+            while (board[rookOrg] != (c|ROOK) /*&& rookOrg < square(c|KING)*/) {
+                ++rookOrg;
+            }
         }
         else
         if ('a' <= token && token <= 'h') {
@@ -778,6 +783,10 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
     _stateInfo->posiKey = RandZob.computePosiKey(*this);
     _stateInfo->checkers = attackersTo(square(active|KING)) & pieces(~active);
     setCheckInfo();
+
+    _stateInfo->accumulator.state[WHITE] = Evaluator::NNUE::INIT;
+    _stateInfo->accumulator.state[BLACK] = Evaluator::NNUE::INIT;
+
     _thread = th;
 
     assert(ok());
@@ -831,11 +840,9 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
     _stateInfo->promoted = false;
 
     // Used by NNUE
-    _stateInfo->accumulator.accumulationComputed = false;
-    auto &mi{ _stateInfo->moveInfo };
-    if (Evaluator::useNNUE) {
-        mi.pieceCount = 1;
-    }
+    _stateInfo->accumulator.state[WHITE] = Evaluator::NNUE::EMPTY;
+    _stateInfo->accumulator.state[BLACK] = Evaluator::NNUE::EMPTY;
+    _stateInfo->moveInfo.pieceCount = 1;
 
     auto const pasive{ ~active };
 
@@ -863,15 +870,13 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
         auto const rookDst{ rookCastleSq(org, rookOrg) };
         /* king*/dst = kingCastleSq(org, rookOrg);
 
-        if (Evaluator::useNNUE) {
-            mi.piece[0] = active|KING;
-            mi.org[0] = org;
-            mi.dst[0] = dst;
-            mi.piece[1] = active|ROOK;
-            mi.org[1] = rookOrg;
-            mi.dst[1] = rookDst;
-            mi.pieceCount = 2; // 2 pieces moved
-        }
+        _stateInfo->moveInfo.piece[0] = (active|KING);
+        _stateInfo->moveInfo.org[0] = org;
+        _stateInfo->moveInfo.dst[0] = dst;
+        _stateInfo->moveInfo.piece[1] = (active|ROOK);
+        _stateInfo->moveInfo.org[1] = rookOrg;
+        _stateInfo->moveInfo.dst[1] = rookDst;
+        _stateInfo->moveInfo.pieceCount = 2; // 2 pieces moved
 
         // Remove both pieces first since squares could overlap in chess960
         removePiece(org);
@@ -910,12 +915,10 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
             npm[pasive] -= PieceValues[MG][pType(cpc)];
         }
 
-        if (Evaluator::useNNUE) {
-            mi.piece[1] = cpc;
-            mi.org[1] = cap;
-            mi.dst[1] = SQ_NONE;
-            mi.pieceCount = 2; // 1 piece moved, 1 piece captured
-        }
+        _stateInfo->moveInfo.piece[1] = cpc;
+        _stateInfo->moveInfo.org[1] = cap;
+        _stateInfo->moveInfo.dst[1] = SQ_NONE;
+        _stateInfo->moveInfo.pieceCount = 2; // 1 piece moved, 1 piece captured
 
         removePiece(cap);
         if (mType(m) == ENPASSANT) {
@@ -929,12 +932,9 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
 
     // Move the piece. The tricky Chess960 castling is handled earlier
     if (mType(m) != CASTLE) {
-
-        if (Evaluator::useNNUE) {
-            mi.piece[0] = mpc;
-            mi.org[0] = org;
-            mi.dst[0] = dst;
-        }
+        _stateInfo->moveInfo.piece[0] = mpc;
+        _stateInfo->moveInfo.org[0] = org;
+        _stateInfo->moveInfo.dst[0] = dst;
 
         movePiece(org, dst);
     }
@@ -972,18 +972,17 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
                 && relativeRank(active, dst) == RANK_8);
 
             auto const ppc{ active|promoteType(m) };
+
+            // Promoting pawn to SQ_NONE, promoted piece from SQ_NONE
+            _stateInfo->moveInfo.dst[0] = SQ_NONE;
+            _stateInfo->moveInfo.piece[_stateInfo->moveInfo.pieceCount] = ppc;
+            _stateInfo->moveInfo.org[_stateInfo->moveInfo.pieceCount] = SQ_NONE;
+            _stateInfo->moveInfo.dst[_stateInfo->moveInfo.pieceCount] = dst;
+            _stateInfo->moveInfo.pieceCount++;
+
             // Replace the pawn with the promoted piece
             removePiece(dst);
             placePiece(dst, ppc);
-
-            if (Evaluator::useNNUE) {
-                // Promoting pawn to SQ_NONE, promoted piece from SQ_NONE
-                mi.dst[0] = SQ_NONE;
-                mi.piece[mi.pieceCount] = ppc;
-                mi.org[mi.pieceCount] = SQ_NONE;
-                mi.dst[mi.pieceCount] = dst;
-                mi.pieceCount++;
-            }
 
             npm[active] += PieceValues[MG][pType(ppc)];
             pKey ^= RandZob.psq[mpc][dst]
@@ -1059,8 +1058,8 @@ void Position::undoMove(Move m) noexcept {
         removePiece(dst);
         removePiece(rookDst);
         board[dst] = board[rookDst] = NO_PIECE; // Not done by removePiece()
-        placePiece(org    , active|KING);
-        placePiece(rookOrg, active|ROOK);
+        placePiece(org    , (active|KING));
+        placePiece(rookOrg, (active|ROOK));
     }
     else {
         auto const mpc{ board[dst] };
@@ -1073,7 +1072,7 @@ void Position::undoMove(Move m) noexcept {
                 && relativeRank(active, dst) == RANK_8);
 
             removePiece(dst);
-            placePiece(dst, active|PAWN);
+            placePiece(dst, (active|PAWN));
             npm[active] -= PieceValues[MG][pType(mpc)];
         }
         // Move the piece
@@ -1115,13 +1114,7 @@ void Position::doNullMove(StateInfo &si) noexcept {
     assert(&si != _stateInfo
         && _stateInfo->checkers == 0);
 
-    if (Evaluator::useNNUE) {
-        std::memcpy(&si, _stateInfo, offsetof(StateInfo, prevState));
-        si.moveInfo.pieceCount = 0;
-    }
-    else {
-        std::memcpy(&si, _stateInfo, offsetof(StateInfo, accumulator));
-    }
+    std::memcpy(&si, _stateInfo, offsetof(StateInfo, accumulator));
     si.prevState = _stateInfo;
     _stateInfo = &si; // switch to new state
 
@@ -1129,6 +1122,11 @@ void Position::doNullMove(StateInfo &si) noexcept {
     _stateInfo->nullPly = 0;
     _stateInfo->captured = NONE;
     _stateInfo->promoted = false;
+
+    _stateInfo->accumulator.state[WHITE] = Evaluator::NNUE::EMPTY;
+    _stateInfo->accumulator.state[BLACK] = Evaluator::NNUE::EMPTY;
+    _stateInfo->moveInfo.pieceCount = 0;
+    _stateInfo->moveInfo.piece[0] = NO_PIECE; // Avoid checks in updateAccumulator()
 
     // Reset enpassant square
     if (_stateInfo->epSquare != SQ_NONE) {

@@ -168,7 +168,7 @@ public:
     bool see(Move, Value = VALUE_ZERO) const noexcept;
 
     bool pawnPassedAt(Color, Square) const noexcept;
-    Bitboard pawnsOnColor(Color, Color) const noexcept;
+    Bitboard pawnsOnColor(Color, Square) const noexcept;
 
     bool bishopPaired(Color) const noexcept;
     bool bishopOpposed() const noexcept;
@@ -433,7 +433,7 @@ constexpr Piece Position::movedPiece(Move m) const noexcept {
     return board[orgSq(m)];
 }
 constexpr Piece Position::prevMovedPiece(Move m) const noexcept {
-    return mType(m) != CASTLE ? board[dstSq(m)] : ~active|KING;
+    return mType(m) != CASTLE ? board[dstSq(m)] : (~active|KING);
 }
 
 constexpr bool Position::capture(Move m) const noexcept {
@@ -463,8 +463,8 @@ inline bool Position::pawnPassedAt(Color c, Square s) const noexcept {
     return (pieces(~c, PAWN) & pawnPassSpan(c, s)) == 0;
 }
 
-inline Bitboard Position::pawnsOnColor(Color c, Color sqC) const noexcept {
-    return pieces(c, PAWN) & colorBB(sqC);
+inline Bitboard Position::pawnsOnColor(Color c, Square s) const noexcept {
+    return pieces(c, PAWN) & colorBB(sColor(s));
 }
 
 /// Position::bishopPaired() check the side has pair of opposite color bishops

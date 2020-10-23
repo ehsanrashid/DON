@@ -10,7 +10,7 @@ namespace {
 
     /// Generates piece move
     template<bool Checks>
-    void generatePieceMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
+    void generatePieceMoves(ValMoves &moves, Position const &pos, Bitboard targets) noexcept {
 
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
             Square const *ps{ pos.squares(pos.activeSide()|pt) };
@@ -31,7 +31,7 @@ namespace {
 
     /// Generates pawn promotion move
     template<GenType GT>
-    void generatePromotionMoves(ValMoves &moves, Position const &pos, Bitboard promotions, Direction dir) {
+    void generatePromotionMoves(ValMoves &moves, Position const &pos, Bitboard promotions, Direction dir) noexcept {
         while (promotions != 0) {
             auto const dst{ popLSq(promotions) };
             auto const org{ dst - dir };
@@ -59,7 +59,7 @@ namespace {
     }
     /// Generates pawn normal move
     template<GenType GT, Color Own>
-    void generatePawnMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
+    void generatePawnMoves(ValMoves &moves, Position const &pos, Bitboard targets) noexcept {
         constexpr auto Opp{ ~Own };
 
         Bitboard const empties{ ~pos.pieces() };
@@ -148,7 +148,7 @@ namespace {
 
     /// Generates king move
     template<GenType GT>
-    void generateKingMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
+    void generateKingMoves(ValMoves &moves, Position const &pos, Bitboard targets) noexcept {
         assert(pos.checkers() == 0);
 
         Bitboard attacks{  attacksBB<KING>(pos.square( pos.activeSide()|KING))
@@ -173,7 +173,7 @@ namespace {
 
     /// Generates all pseudo-legal moves of color for targets.
     template<GenType GT>
-    void generateMoves(ValMoves &moves, Position const &pos, Bitboard targets) {
+    void generateMoves(ValMoves &moves, Position const &pos, Bitboard targets) noexcept {
         constexpr bool Checks{ GT == QUIET_CHECK };
 
         pos.activeSide() == WHITE ?
@@ -210,7 +210,7 @@ template void generate<CAPTURE>(ValMoves&, Position const&);
 template void generate<QUIET>(ValMoves&, Position const&);
 
 /// generate<EVASION>     Generates all pseudo-legal check evasions moves.
-template<> void generate<EVASION>(ValMoves &moves, Position const &pos) {
+template<> void generate<EVASION>(ValMoves &moves, Position const &pos) noexcept {
     assert(pos.checkers() != 0
         && popCount(pos.checkers()) <= 2);
 
@@ -241,7 +241,7 @@ template<> void generate<EVASION>(ValMoves &moves, Position const &pos) {
 }
 
 /// generate<QUIET_CHECK> Generates all pseudo-legal non-captures and knight under promotions check giving moves.
-template<> void generate<QUIET_CHECK>(ValMoves &moves, Position const &pos) {
+template<> void generate<QUIET_CHECK>(ValMoves &moves, Position const &pos) noexcept {
     assert(pos.checkers() == 0);
 
     Bitboard const targets{ ~pos.pieces() };
@@ -268,7 +268,7 @@ template<> void generate<QUIET_CHECK>(ValMoves &moves, Position const &pos) {
 }
 
 /// generate<LEGAL>       Generates all legal moves.
-template<> void generate<LEGAL>(ValMoves &moves, Position const &pos) {
+template<> void generate<LEGAL>(ValMoves &moves, Position const &pos) noexcept {
 
     moves.reserve(64 - 48 * (pos.checkers() != 0));
 
@@ -315,7 +315,7 @@ void Perft::operator-=(Perft const &perft) noexcept {
     //stalemate -= perft.stalemate;
 }
 
-void Perft::classify(Position &pos, Move m) {
+void Perft::classify(Position &pos, Move m) noexcept {
 
     if (mType(m) == ENPASSANT
      || contains(pos.pieces(~pos.activeSide()), dstSq(m))) {
@@ -378,7 +378,7 @@ void Perft::classify(Position &pos, Move m) {
 /// perft() is utility to verify move generation.
 /// All the leaf nodes up to the given depth are generated, and the accumulate is returned.
 template<bool RootNode>
-Perft perft(Position &pos, Depth depth, bool detail) {
+Perft perft(Position &pos, Depth depth, bool detail) noexcept {
     Perft sumLeaf;
     if (RootNode) {
         std::ostringstream oss;
@@ -398,10 +398,11 @@ Perft perft(Position &pos, Depth depth, bool detail) {
                 //<< std::setw(15) << "Stalemate"
                 ;
         }
-        std::cout << oss.str() << std::endl;
+        std::cout << oss.str() << '\n';
     }
     for (auto const &vm : MoveList<LEGAL>(pos)) {
         Perft leaf;
+
         if (RootNode
          && depth <= 1) {
             ++leaf.any;
@@ -449,7 +450,7 @@ Perft perft(Position &pos, Depth depth, bool detail) {
                     //<< "   " << std::setw(12) << leaf.stalemate
                     ;
             }
-            std::cout << oss.str() << std::endl;
+            std::cout << oss.str() << '\n';
         }
     }
     if (RootNode) {
@@ -469,7 +470,7 @@ Perft perft(Position &pos, Depth depth, bool detail) {
                 //<< " " << std::setw(14) << sumLeaf.stalemate
                 ;
         }
-        std::cout << oss.str() << std::endl;
+        std::cout << oss.str() << '\n';
     }
     return sumLeaf;
 }

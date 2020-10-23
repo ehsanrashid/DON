@@ -122,9 +122,9 @@ namespace Evaluator {
             void write(Term t, Color c, Score s) noexcept {
                 Scores[t][c] = s;
             }
-            void write(Term t, Score sW, Score sB = SCORE_ZERO) noexcept {
-                write(t, WHITE, sW);
-                write(t, BLACK, sB);
+            void write(Term t, Score wS, Score bS = SCORE_ZERO) noexcept {
+                write(t, WHITE, wS);
+                write(t, BLACK, bS);
             }
 
             std::string toString(Term t) {
@@ -487,7 +487,7 @@ namespace Evaluator {
                         // more when the center files are blocked with pawns.
                         Bitboard const blockedPawns{ pos.pieces(Own, PAWN) & pawnSglPushBB<Opp>(pos.pieces()) };
                         score -= BishopPawnsBlocked
-                               * popCount(pos.pawnsOnColor(Own, sColor(s)))
+                               * popCount(pos.pawnsOnColor(Own, s))
                                * (popCount(blockedPawns & slotFileBB(CS_CENTRE))
                                 + !contains(attackedBy[Own][PAWN], s));
                         // Penalty for all enemy pawns x-rayed
@@ -1027,12 +1027,11 @@ namespace Evaluator {
             // Note that the order of evaluation of the terms is left unspecified
             score += pieces<WHITE, NIHT>() - pieces<BLACK, NIHT>()
                    + pieces<WHITE, BSHP>() - pieces<BLACK, BSHP>()
-                   + pieces<WHITE, ROOK>() - pieces<BLACK, ROOK>()
-                   + pieces<WHITE, QUEN>() - pieces<BLACK, QUEN>();
-
+                   + pieces<WHITE, ROOK>() - pieces<BLACK, ROOK>();
+            score += pieces<WHITE, QUEN>() - pieces<BLACK, QUEN>();
+            score += mobility[WHITE] - mobility[BLACK];
             // More complex interactions that require fully populated attack information
-            score += mobility[WHITE]   - mobility[BLACK]
-                   + king    <WHITE>() - king    <BLACK>()
+            score += king    <WHITE>() - king    <BLACK>()
                    + passers <WHITE>() - passers <BLACK>();
 
             if (lazySkip(LazyThreshold2)) {

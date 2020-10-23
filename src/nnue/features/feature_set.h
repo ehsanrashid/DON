@@ -28,83 +28,7 @@ namespace Evaluator::NNUE::Features {
     class FeatureSetBase {
 
     public:
-        // Get a list of indices for active features
-        template<typename IndexListType>
-        static void appendActiveIndices(Position const &pos, TriggerEvent trigger, IndexListType active[COLORS]) {
 
-            for (auto perspective : { WHITE, BLACK }) {
-                Derived::collectActiveIndices(pos, trigger, perspective, &active[perspective]);
-            }
-        }
-
-        // Get a list of indices for recently changed features
-        template<typename PositionType, typename IndexListType>
-        static void appendChangedIndices(PositionType const &pos, TriggerEvent trigger, IndexListType removed[COLORS], IndexListType added[COLORS], bool reset[COLORS]) {
-
-            auto const collectOne = [&](MoveInfo const &mi) {
-                for (Color perspective : { WHITE, BLACK }) {
-                    switch (trigger) {
-                    case TriggerEvent::FRIEND_KING_MOVED:
-                        reset[perspective] = mi.piece[0] == (perspective|KING);
-                        break;
-                    default:
-                        assert(false);
-                        break;
-                    }
-                    if (reset[perspective]) {
-                        Derived::collectActiveIndices(pos, trigger, perspective, &added[perspective]);
-                    }
-                    else {
-                        Derived::collectChangedIndices(pos, mi, trigger, perspective, &removed[perspective], &added[perspective]);
-                    }
-                }
-            };
-
-            auto const collectTwo = [&](MoveInfo const &mi1, MoveInfo const &mi2) {
-                for (Color perspective : { WHITE, BLACK }) {
-                    switch (trigger) {
-                    case TriggerEvent::FRIEND_KING_MOVED:
-                        reset[perspective] = mi1.piece[0] == (perspective|KING)
-                                          || mi2.piece[0] == (perspective|KING);
-                        break;
-                    default:
-                        assert(false);
-                        break;
-                    }
-                    if (reset[perspective]) {
-                        Derived::collectActiveIndices(pos, trigger, perspective, &added[perspective]);
-                    }
-                    else {
-                        Derived::collectChangedIndices(pos, mi1, trigger, perspective, &removed[perspective], &added[perspective]);
-                        Derived::collectChangedIndices(pos, mi2, trigger, perspective, &removed[perspective], &added[perspective]);
-                    }
-                }
-            };
-
-            if (pos.state()->prevState->accumulator.accumulationComputed) {
-                const auto &prevMI = pos.state()->moveInfo;
-                if (prevMI.pieceCount == 0) return;
-                collectOne(prevMI);
-            }
-            else {
-                const auto &prevMI1 = pos.state()->prevState->moveInfo;
-                if (prevMI1.pieceCount == 0) {
-                    const auto &prevMI2 = pos.state()->moveInfo;
-                    if (prevMI2.pieceCount == 0) return;
-                    collectOne(prevMI2);
-                }
-                else {
-                    const auto &prevMI2 = pos.state()->moveInfo;
-                    if (prevMI2.pieceCount == 0) {
-                        collectOne(prevMI1);
-                    }
-                    else {
-                        collectTwo(prevMI1, prevMI2);
-                    }
-                }
-            }
-
-        }
     };
 
     // Class template that represents the feature set
@@ -125,25 +49,7 @@ namespace Evaluator::NNUE::Features {
         static constexpr auto RefreshTriggers{ SortedTriggerSet::Values };
 
     private:
-        // Get a list of indices for active features
-        static void collectActiveIndices(Position const &pos, TriggerEvent const trigger, Color const perspective, IndexList *const active) {
-            if (FeatureType::RefreshTrigger == trigger) {
-                FeatureType::appendActiveIndices(pos, perspective, active);
-            }
-        }
 
-        // Get a list of indices for recently changed features
-        static void collectChangedIndices(Position const &pos, MoveInfo const &mi, TriggerEvent const trigger, Color const perspective, IndexList *const removed, IndexList *const added) {
-            if (FeatureType::RefreshTrigger == trigger) {
-                FeatureType::appendChangedIndices(pos, mi, perspective, removed, added);
-            }
-        }
-
-        // Make the base class and the class template that recursively uses itself a friend
-        friend class FeatureSetBase<FeatureSet>;
-        
-        template<typename... FeatureTypes>
-        friend class FeatureSet;
     };
 
 }

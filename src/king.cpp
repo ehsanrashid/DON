@@ -65,8 +65,8 @@ namespace King {
             auto const d{ edgeDistance(f) };
             safety +=
                 Shelter[d][ownR]
-              - (ownR > RANK_1
-              && oppR == ownR + 1 ?
+              - (ownR != RANK_1
+              && ownR == oppR - 1 ?
                     BlockedStorm[oppR] :
                     UnblockedStorm[d][oppR]);
         }
@@ -97,24 +97,21 @@ namespace King {
                 if ((pawns & attacksBB<KING>(kSq)) != 0) {
                     minPawnDist = 1;
                 }
-                else while (pawns != 0) {
+                else while (pawns != 0
+                         && minPawnDist != 2) {
                     minPawnDist = std::min(distance(kSq, popLSq(pawns)), minPawnDist);
                 }
                 pawnDist[Own] = makeScore(0, 16 * minPawnDist);
             }
 
+            auto const compare{ [](Score s1, Score s2) { return mgValue(s1) < mgValue(s2); } };
+
             auto safety{ evaluateSafetyOn<Own>(pos, kSq) };
             if (cSide[CS_KING]) {
-                safety = std::max(safety, evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_G1)),
-                    [](Score s1, Score s2) {
-                    return mgValue(s1) < mgValue(s2);
-                });
+                safety = std::max(safety, evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_G1)), compare);
             }
             if (cSide[CS_QUEN]) {
-                safety = std::max(safety, evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_C1)),
-                    [](Score s1, Score s2) {
-                    return mgValue(s1) < mgValue(s2);
-                });
+                safety = std::max(safety, evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_C1)), compare);
             }
             pawnSafety[Own] = safety;
 
