@@ -554,6 +554,7 @@ namespace {
     Value depthSearch(Position &pos, Stack *const ss, Value alfa, Value beta, Depth depth, bool cutNode) {
 
         bool const rootNode{ PVNode && ss->ply == 0 };
+        Depth const maxDepth{ rootNode ? depth : depth + 1 };
 
         auto *thread{ pos.thread() };
 
@@ -1359,7 +1360,7 @@ namespace {
                 (ss+1)->pv = pv;
                 (ss+1)->pv[0] = MOVE_NONE;
 
-                value = -depthSearch<true>(pos, ss+1, -beta, -alfa, newDepth, false);
+                value = -depthSearch<true>(pos, ss+1, -beta, -alfa, std::min(newDepth, maxDepth), false);
             }
 
             // Step 18. Undo the move
