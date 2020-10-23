@@ -329,10 +329,8 @@ namespace {
 
         Move move;
         // Transposition table lookup.
-        Key const key     { pos.posiKey() };
-
-        auto *const tte   { TT.probe(key, ss->ttHit) };
-
+        Key const posiKey { pos.posiKey() };
+        auto *const tte   { TT.probe(posiKey, ss->ttHit) };
         auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { ss->ttHit ? tte->move() : MOVE_NONE };
         auto const ttPV   { ss->ttHit && tte->pv() };
@@ -391,7 +389,7 @@ namespace {
                 if (bestValue >= beta) {
 
                     if (!ss->ttHit) {
-                        tte->save(key,
+                        tte->save(posiKey,
                                   MOVE_NONE,
                                   valueToTT(bestValue, ss->ply),
                                   ss->staticEval,
@@ -538,7 +536,7 @@ namespace {
             return matedIn(ss->ply); // Plies to mate from the root
         }
 
-        tte->save(key,
+        tte->save(posiKey,
                   bestMove,
                   valueToTT(bestValue, ss->ply),
                   ss->staticEval,
@@ -645,14 +643,12 @@ namespace {
         // Don't want the score of a partial search to overwrite
         // a previous full search TT value, so we use a different
         // position key in case of an excluded move.
-        Key const key     { excludedMove == MOVE_NONE ?
+        Key const posiKey { excludedMove == MOVE_NONE ?
                                 pos.posiKey() :
                                 pos.posiKey() ^ makeKey(excludedMove) };
-
         auto *const tte   { excludedMove == MOVE_NONE ?
-                                TT.probe(key, ss->ttHit) :
-                                TTEx.probe(key, ss->ttHit) };
-
+                                TT.probe(posiKey, ss->ttHit) :
+                                TTEx.probe(posiKey, ss->ttHit) };
         auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { rootNode ? thread->rootMoves[thread->pvCur][0] :
                             ss->ttHit ? tte->move() : MOVE_NONE };
@@ -663,7 +659,6 @@ namespace {
         auto const pastPV { !PVNode && ss->ttPV };
 
         auto const activeSide{ pos.activeSide() };
-
         bool const pmCapOrPro{ pos.captured() != NONE
                             || pos.promoted() };
 
@@ -749,7 +744,7 @@ namespace {
 
                     if ( bound == BOUND_EXACT
                      || (bound == BOUND_LOWER ? beta <= value : value <= alfa)) {
-                        tte->save(key,
+                        tte->save(posiKey,
                                   MOVE_NONE,
                                   valueToTT(value, ss->ply),
                                   VALUE_NONE,
@@ -815,7 +810,7 @@ namespace {
                     (ss-1)->playedMove != MOVE_NULL ?
                         evaluate(pos) : -(ss-1)->staticEval + 2 * VALUE_TEMPO;
 
-                tte->save(key,
+                tte->save(posiKey,
                           MOVE_NONE,
                           VALUE_NONE,
                           eval,
@@ -866,7 +861,7 @@ namespace {
                     depth - ((982 + 85 * depth) / 256 + std::min(int32_t(eval - beta) / 192, 3)) );
 
                 Key const nullMoveKey{
-                    key
+                    posiKey
                   ^ RandZob.side
                   ^ (pos.epSquare() != SQ_NONE ? RandZob.enpassant[sFile(pos.epSquare())] : 0) };
 
@@ -945,6 +940,7 @@ namespace {
                 bool const ttPV{ ss->ttPV };
                 ss->ttPV = false;
 
+                bool captureOrPromotion{ true };
                 uint8_t probCutCount{ 0 };
                 // Initialize move-picker(3) for the current position
                 MovePicker movePicker{
@@ -974,8 +970,7 @@ namespace {
                     prefetch(TT.cluster(pos.movePosiKey(move))->entry);
 
                     ss->playedMove = move;
-                    // ss->inCheck{ false }, captureOrPromotion{ true }
-                    ss->pieceStats = &thread->continuationStats[0][1][pos.movedPiece(move)][dstSq(move)];
+                    ss->pieceStats = &thread->continuationStats[ss->inCheck][captureOrPromotion][pos.movedPiece(move)][dstSq(move)];
 
                     pos.doMove(move, si);
 
@@ -995,7 +990,7 @@ namespace {
                            && ttValue != VALUE_NONE
                            && tte->depth() >= depth - 3)) {
 
-                            tte->save(key,
+                            tte->save(posiKey,
                                       move,
                                       valueToTT(value, ss->ply),
                                       ss->staticEval,
@@ -1023,7 +1018,7 @@ namespace {
         value = bestValue;
 
         // Mark this node as being searched.
-        ThreadMarker threadMarker{ thread, key, ss->ply };
+        ThreadMarker threadMarker{ thread, posiKey, ss->ply };
 
         bool singularQuietLMR{ false };
         bool moveCountPruning{ false };
@@ -1521,10 +1516,10 @@ namespace {
             }
         }
 
-        if (//excludedMove == MOVE_NONE &&
+        if (excludedMove == MOVE_NONE &&
             !(rootNode && thread->pvCur != 0)) {
 
-            tte->save(key,
+            tte->save(posiKey,
                       bestMove,
                       valueToTT(bestValue, ss->ply),
                       ss->staticEval,

@@ -65,6 +65,7 @@ bool TTable::resize(size_t memSize) {
     free();
 
     clusterCount = (memSize << 20) / sizeof (TCluster);
+    assert(clusterCount % 2 == 0);
     clusterTable = static_cast<TCluster*>(allocAlignedLargePages(clusterCount * sizeof (TCluster)));
     if (clusterTable == nullptr) {
         clusterCount = 0;

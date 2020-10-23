@@ -65,8 +65,8 @@ namespace King {
             auto const d{ edgeDistance(f) };
             safety +=
                 Shelter[d][ownR]
-              - (ownR > RANK_1
-              && oppR == ownR + 1 ?
+              - (ownR != RANK_1
+              && ownR == oppR - 1 ?
                     BlockedStorm[oppR] :
                     UnblockedStorm[d][oppR]);
         }
