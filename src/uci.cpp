@@ -352,7 +352,7 @@ namespace UCI {
 
         void onHash(Option const &o) noexcept {
             TT.autoResize(uint32_t(o));
-            TTEx.autoResize(uint32_t(o) / 4);
+            //TTEx.autoResize(uint32_t(o) / 4);
         }
 
         void onClearHash(Option const&) noexcept {
@@ -985,7 +985,7 @@ namespace UCI {
         Threadpool.stopThinking();
 
         TT.clear();
-        TTEx.clear();
+        //TTEx.clear();
         TimeMgr.clear();
         Threadpool.clean();
 

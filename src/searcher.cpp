@@ -646,9 +646,10 @@ namespace {
         Key const posiKey { excludedMove == MOVE_NONE ?
                                 pos.posiKey() :
                                 pos.posiKey() ^ makeKey(excludedMove) };
-        auto *const tte   { excludedMove == MOVE_NONE ?
-                                TT.probe(posiKey, ss->ttHit) :
-                                TTEx.probe(posiKey, ss->ttHit) };
+        //auto *const tte   { excludedMove == MOVE_NONE ?
+        //                        TT.probe(posiKey, ss->ttHit) :
+        //                        TTEx.probe(posiKey, ss->ttHit) };
+        auto *const tte   { TT.probe(posiKey, ss->ttHit) };
         auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { rootNode ? thread->rootMoves[thread->pvCur][0] :
                             ss->ttHit ? tte->move() : MOVE_NONE };

@@ -175,7 +175,7 @@ void ThreadPool::setup(uint16_t threadCount) {
         // Reallocate the hash with the new threadpool size
         uint32_t hash{ Options["Hash"] };
         TT.autoResize(hash);
-        TTEx.autoResize(hash / 4);
+        //TTEx.autoResize(hash / 4);
         Searcher::initialize();
     }
 }
