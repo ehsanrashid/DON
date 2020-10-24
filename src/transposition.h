@@ -192,4 +192,3 @@ extern std::istream& operator>>(std::istream&, TTable&);
 
 // Global Transposition Table
 extern TTable TT;
-//extern TTable TTEx;

@@ -154,11 +154,9 @@ Thread* ThreadPool::bestThread() const noexcept {
 /// Created and launched threads will immediately go to sleep in threadFunc.
 /// Upon resizing, threads are recreated to allow for binding if necessary.
 void ThreadPool::setup(uint16_t threadCount) {
-    
+    // Destroy any existing thread(s)
     if (!empty()) {
         stopThinking();
-        
-        // Destroy any existing thread(s)
         while (size() > 0) {
             delete back(), pop_back();
         }
@@ -173,9 +171,7 @@ void ThreadPool::setup(uint16_t threadCount) {
 
         clean();
         // Reallocate the hash with the new threadpool size
-        uint32_t hash{ Options["Hash"] };
-        TT.autoResize(hash);
-        //TTEx.autoResize(hash / 4);
+        TT.autoResize(Options["Hash"]);
         Searcher::initialize();
     }
 }

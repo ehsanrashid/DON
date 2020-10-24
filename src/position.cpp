@@ -694,18 +694,21 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
     while ((iss >> token)
         && !isspace(token)) {
 
-        size_t pos;
-        if ('1' <= token && token <= '8') {
-            sq += (token - '0') * EAST;
+        if (isdigit(token)) {
+            if ('1' <= token && token <= '8') {
+                sq += (token - '0') * EAST;
+            }
         }
         else
         if (token == '/') {
             sq += 2 * SOUTH;
         }
-        else
-        if ((pos = PieceChar.find(token)) != std::string::npos) {
-            placePiece(sq, Piece(pos));
-            ++sq;
+        else {
+            Piece pc;
+            if ((pc = toPiece(token)) != NO_PIECE) {
+                placePiece(sq, pc);
+                ++sq;
+            }
         }
     }
     assert(count(W_KING) == 1

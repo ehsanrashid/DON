@@ -20,12 +20,12 @@ namespace Pawns {
         template<Color>
         void evaluate(Position const&);
 
-        Key key;
+        Key     key;
 
         int32_t complexity;
         bool    pawnsOnBothFlank;
 
-        Score score[COLORS];
+        Score   score[COLORS];
 
         Bitboard sglAttacks[COLORS];
         Bitboard dblAttacks[COLORS];

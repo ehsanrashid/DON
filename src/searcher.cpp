@@ -554,7 +554,7 @@ namespace {
     Value depthSearch(Position &pos, Stack *const ss, Value alfa, Value beta, Depth depth, bool cutNode) {
 
         bool const rootNode{ PVNode && ss->ply == 0 };
-        Depth const maxDepth{ rootNode ? depth : depth + 1 };
+        Depth const maxDepth{ rootNode ? depth : Depth(depth + 1) };
 
         auto *thread{ pos.thread() };
 
@@ -647,9 +647,6 @@ namespace {
         Key const posiKey { excludedMove == MOVE_NONE ?
                                 pos.posiKey() :
                                 pos.posiKey() ^ makeKey(excludedMove) };
-        //auto *const tte   { excludedMove == MOVE_NONE ?
-        //                        TT.probe(posiKey, ss->ttHit) :
-        //                        TTEx.probe(posiKey, ss->ttHit) };
         auto *const tte   { TT.probe(posiKey, ss->ttHit) };
         auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { rootNode ? thread->rootMoves[thread->pvCur][0] :
@@ -875,7 +872,7 @@ namespace {
 
                 pos.doNullMove(si);
 
-                auto nullValue{ -depthSearch<false>(pos, ss+1, -beta, -(beta-1), nullDepth, !cutNode) };
+                auto nullValue{ -depthSearch<false>(pos, ss+1, -beta, -beta+1, nullDepth, !cutNode) };
 
                 pos.undoNullMove();
 
@@ -1557,8 +1554,10 @@ namespace Searcher {
 void Thread::search() {
     ttHitAvg = (TTHitAverageResolution / 2) * TTHitAverageWindow;
 
+    int32_t const contemptTime { Options["Contempt Time"] };
+    int32_t const contemptValue{ Options["Contempt Value"] };
+
     int16_t timedContempt{ 0 };
-    int32_t const contemptTime{ Options["Contempt Time"] };
     if (contemptTime != 0
      && Limits.useTimeMgmt()) {
         int64_t const diffTime{
@@ -1653,9 +1652,8 @@ void Thread::search() {
                 alfa = std::max(oldValue - window, -VALUE_INFINITE);
                 beta = std::min(oldValue + window, +VALUE_INFINITE);
 
-                // Dynamic contempt
+                // Dynamic contempt: Adjust contempt based on root move's oldValue
                 auto dc{ bc };
-                int32_t const contemptValue{ Options["Contempt Value"] };
                 if (contemptValue != 0) {
                     dc += ((105 - bc / 2) * oldValue * 100) / ((std::abs(oldValue) + 149) * contemptValue);
                 }
@@ -1871,7 +1869,7 @@ void MainThread::search() {
         if (think) {
 
             Threadpool.pvChangesSum = 0.0;
-            Threadpool.bestMove = MOVE_NONE;
+            Threadpool.bestMove  = MOVE_NONE;
             Threadpool.bestDepth = DEPTH_ZERO;
             if (Limits.useTimeMgmt()) {
                 Threadpool.iterValues.fill(Threadpool.bestValue != +VALUE_INFINITE ? Threadpool.bestValue : VALUE_ZERO);

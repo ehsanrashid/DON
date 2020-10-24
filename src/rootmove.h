@@ -119,14 +119,14 @@ public:
         return std::find(begin() + iBeg, begin() + iEnd, m);
     }
 
-    void stableSort() {
+    void stableSort() noexcept {
         std::stable_sort(begin(), end());
     }
-    void stableSort(uint16_t iBeg, uint16_t iEnd) {
+    void stableSort(uint16_t iBeg, uint16_t iEnd) noexcept {
         std::stable_sort(begin() + iBeg, begin() + iEnd);
     }
     template<class Pred>
-    void stableSort(Pred pred) {
+    void stableSort(Pred pred) noexcept {
         std::stable_sort(begin(), end(), pred);
     }
 

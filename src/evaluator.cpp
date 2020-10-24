@@ -1020,8 +1020,7 @@ namespace Evaluator {
                 Tracer::clear();
             }
 
-            initialize<WHITE>();
-            initialize<BLACK>();
+            initialize<WHITE>(), initialize<BLACK>();
 
             // Pieces should be evaluated first (also populate attack information)
             // Note that the order of evaluation of the terms is left unspecified

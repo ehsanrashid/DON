@@ -35,21 +35,21 @@ namespace King {
             S( 0, 0), S( 0, 0), S( 76, 78), S(-10, 15), S(-7, 10), S(-4, 6), S(-1, 2), S( 0, 0)
         };
 
-        constexpr Score BasicSafety { S( 5, 5) };
+        constexpr Score BasicShelter { S( 5, 5) };
 
     #undef S
 
     }
 
     template<Color Own>
-    Score Entry::evaluateSafetyOn(Position const &pos, Square kSq) noexcept {
+    Score Entry::evaluateShelterOn(Position const &pos, Square kSq) noexcept {
         constexpr auto Opp{ ~Own };
 
         Bitboard const frontPawns   { pos.pieces(PAWN) & ~frontRanksBB(Opp, kSq) };
         Bitboard const ownFrontPawns{ pos.pieces(Own) & frontPawns & ~pawnEntry->sglAttacks[Opp] };
         Bitboard const oppFrontPawns{ pos.pieces(Opp) & frontPawns };
 
-        Score safety{ BasicSafety };
+        Score shelter{ BasicShelter };
 
         auto kF{ std::clamp(sFile(kSq), FILE_B, FILE_G) };
         for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
@@ -63,7 +63,7 @@ namespace King {
                  && oppR == RANK_1));
 
             auto const d{ edgeDistance(f) };
-            safety +=
+            shelter +=
                 Shelter[d][ownR]
               - (ownR != RANK_1
               && ownR == oppR - 1 ?
@@ -71,57 +71,55 @@ namespace King {
                     UnblockedStorm[d][oppR]);
         }
 
-        return safety;
+        return shelter;
     }
     // Explicit template instantiations
-    template Score Entry::evaluateSafetyOn<WHITE>(Position const&, Square);
-    template Score Entry::evaluateSafetyOn<BLACK>(Position const&, Square);
+    template Score Entry::evaluateShelterOn<WHITE>(Position const&, Square);
+    template Score Entry::evaluateShelterOn<BLACK>(Position const&, Square);
 
     template<Color Own>
     Score Entry::evaluateSafety(Position const &pos, Bitboard attacks) noexcept {
 
-        auto const kSq{ pos.square(Own|KING) };
+        auto const sq{ pos.square(Own|KING) };
         bool const cSide[CASTLE_SIDES]{
             pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING) && ((attacks & pos.castleKingPath(Own, CS_KING)) == 0),
             pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN) && ((attacks & pos.castleKingPath(Own, CS_QUEN)) == 0)
         };
 
-        if (kingSq[Own] != kSq
+        if (square[Own] != sq
          || castleSide[Own][CS_KING] != cSide[CS_KING]
          || castleSide[Own][CS_QUEN] != cSide[CS_QUEN]) {
 
-            if (kingSq[Own] != kSq) {
-                // In endgame, king near to closest pawn
-                int32_t minPawnDist{ 6 }; // Max can be 6 because pawn on last rank promotes
-                Bitboard pawns{ pos.pieces(Own, PAWN) };
-                if ((pawns & attacksBB<KING>(kSq)) != 0) {
-                    minPawnDist = 1;
-                }
-                else while (pawns != 0
-                         && minPawnDist != 2) {
-                    minPawnDist = std::min(distance(kSq, popLSq(pawns)), minPawnDist);
-                }
-                pawnDist[Own] = makeScore(0, 16 * minPawnDist);
-            }
-
             auto const compare{ [](Score s1, Score s2) { return mgValue(s1) < mgValue(s2); } };
 
-            auto safety{ evaluateSafetyOn<Own>(pos, kSq) };
+            auto shelter{ evaluateShelterOn<Own>(pos, sq) };
             if (cSide[CS_KING]) {
-                safety = std::max(safety, evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_G1)), compare);
+                shelter = std::max(shelter, evaluateShelterOn<Own>(pos, relativeSq(Own, SQ_G1)), compare);
             }
             if (cSide[CS_QUEN]) {
-                safety = std::max(safety, evaluateSafetyOn<Own>(pos, relativeSq(Own, SQ_C1)), compare);
+                shelter = std::max(shelter, evaluateShelterOn<Own>(pos, relativeSq(Own, SQ_C1)), compare);
             }
-            pawnSafety[Own] = safety;
 
-            kingSq[Own] = kSq;
+            // In endgame, king near to closest pawn
+            int32_t minPawnDist{ 6 }; // Max can be 6 because pawn on last rank promotes
+            Bitboard pawns{ pos.pieces(Own, PAWN) };
+            if ((pawns & attacksBB<KING>(sq)) != 0) {
+                minPawnDist = 1;
+            }
+            else while (pawns != 0
+                     && minPawnDist != 2) {
+                minPawnDist = std::min(minPawnDist, distance(sq, popLSq(pawns)));
+            }
+
+            safety[Own] = shelter - makeScore(0, 16 * minPawnDist);
+
+            square[Own] = sq;
             castleSide[Own][CS_KING] = cSide[CS_KING];
             castleSide[Own][CS_QUEN] = cSide[CS_QUEN];
         }
 
-        assert(kingSq[Own] != SQ_NONE);
-        return (pawnSafety[Own] - pawnDist[Own]);
+        assert(square[Own] != SQ_NONE);
+        return safety[Own];
     }
     // Explicit template instantiations
     template Score Entry::evaluateSafety<WHITE>(Position const&, Bitboard);
@@ -130,7 +128,7 @@ namespace King {
     template<Color Own>
     void Entry::initialize() noexcept {
 
-        kingSq[Own] = SQ_NONE;
+        square[Own] = SQ_NONE;
         castleSide[Own][CS_KING] = false;
         castleSide[Own][CS_QUEN] = false;
     }

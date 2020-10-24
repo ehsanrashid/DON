@@ -15,11 +15,11 @@ namespace Material {
 
         void evaluate(Position const&);
 
-        Key key;
+        Key     key;
         int32_t phase;
-        Score imbalance;
+        Score   imbalance;
 
-        Scale scaleFactor[COLORS];
+        Scale   scaleFactor[COLORS];
         EndgameBase<Value> const *evaluatingFunc;
         EndgameBase<Scale> const *scalingFunc[COLORS];
     };

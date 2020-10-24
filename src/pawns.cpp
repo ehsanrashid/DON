@@ -159,7 +159,7 @@ namespace Pawns {
         e->blockeds = 0;
         e->pawnsOnBothFlank = (pos.pieces(PAWN) & slotFileBB(CS_KING)) != 0
                            && (pos.pieces(PAWN) & slotFileBB(CS_QUEN)) != 0;
-        e->evaluate<WHITE>(pos);
+        e->evaluate<WHITE>(pos),
         e->evaluate<BLACK>(pos);
         e->complexity = 12 * pos.count(PAWN)
                       +  9 * e->passedCount();
