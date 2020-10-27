@@ -266,12 +266,12 @@ enum Scale : uint8_t {
     SCALE_NONE    = 255,
 };
 
-#define BASIC_OPERATORS(T)                                                              \
-    constexpr T operator+(T t)        noexcept { return T(+int32_t(t)); }               \
-    constexpr T operator-(T t)        noexcept { return T(-int32_t(t)); }               \
-    constexpr T operator+(T t1, T t2) noexcept { return T(int32_t(t1) + int32_t(t2)); } \
-    constexpr T operator-(T t1, T t2) noexcept { return T(int32_t(t1) - int32_t(t2)); } \
-    inline T& operator+=(T &t1, T t2) noexcept { return t1 = t1 + t2; }                 \
+#define BASIC_OPERATORS(T)                                                      \
+    constexpr T operator+(T t)        noexcept { return T(+int(t)); }           \
+    constexpr T operator-(T t)        noexcept { return T(-int(t)); }           \
+    constexpr T operator+(T t1, T t2) noexcept { return T(int(t1) + int(t2)); } \
+    constexpr T operator-(T t1, T t2) noexcept { return T(int(t1) - int(t2)); } \
+    inline T& operator+=(T &t1, T t2) noexcept { return t1 = t1 + t2; }         \
     inline T& operator-=(T &t1, T t2) noexcept { return t1 = t1 - t2; }
 
 BASIC_OPERATORS(Direction)
@@ -279,25 +279,25 @@ BASIC_OPERATORS(Value)
 BASIC_OPERATORS(Score)
 #undef BASIC_OPERATORS
 
-#define ARTHMAT_OPERATORS(T)                                                     \
-    constexpr T operator+(T t, int32_t i) noexcept { return T(int32_t(t) + i); } \
-    constexpr T operator-(T t, int32_t i) noexcept { return T(int32_t(t) - i); } \
-    constexpr T operator*(T t, int32_t i) noexcept { return T(int32_t(t) * i); } \
-    constexpr T operator*(int32_t i, T t) noexcept { return T(int32_t(t) * i); } \
-    constexpr T operator/(T t, int32_t i) noexcept { return T(int32_t(t) / i); } \
-    inline T& operator+=(T &t, int32_t i) noexcept { return t = t + i; }         \
-    inline T& operator-=(T &t, int32_t i) noexcept { return t = t - i; }         \
-    inline T& operator*=(T &t, int32_t i) noexcept { return t = t * i; }         \
-    inline T& operator/=(T &t, int32_t i) noexcept { return t = t / i; }
+#define ARTHMAT_OPERATORS(T)                                             \
+    constexpr T operator+(T t, int i) noexcept { return T(int(t) + i); } \
+    constexpr T operator-(T t, int i) noexcept { return T(int(t) - i); } \
+    constexpr T operator*(T t, int i) noexcept { return T(int(t) * i); } \
+    constexpr T operator*(int i, T t) noexcept { return T(int(t) * i); } \
+    constexpr T operator/(T t, int i) noexcept { return T(int(t) / i); } \
+    inline T& operator+=(T &t, int i) noexcept { return t = t + i; }     \
+    inline T& operator-=(T &t, int i) noexcept { return t = t - i; }     \
+    inline T& operator*=(T &t, int i) noexcept { return t = t * i; }     \
+    inline T& operator/=(T &t, int i) noexcept { return t = t / i; }
 
 ARTHMAT_OPERATORS(File)
 ARTHMAT_OPERATORS(Direction)
 ARTHMAT_OPERATORS(Value)
 #undef ARTHMAT_OPERATORS
 
-#define INC_DEC_OPERATORS(T)                                              \
-    inline T& operator++(T &t) noexcept { return t = T(int32_t(t) + 1); } \
-    inline T& operator--(T &t) noexcept { return t = T(int32_t(t) - 1); }
+#define INC_DEC_OPERATORS(T)                                          \
+    inline T& operator++(T &t) noexcept { return t = T(int(t) + 1); } \
+    inline T& operator--(T &t) noexcept { return t = T(int(t) - 1); }
 
 INC_DEC_OPERATORS(File)
 INC_DEC_OPERATORS(Rank)
@@ -307,25 +307,25 @@ INC_DEC_OPERATORS(Piece)
 INC_DEC_OPERATORS(CastleSide)
 #undef INC_DEC_OPERATORS
 
-#define BITWISE_OPERATORS(T)                                                            \
-    constexpr T operator~(T t)        noexcept { return T(~int32_t(t)); }               \
-    constexpr T operator|(T t1, T t2) noexcept { return T(int32_t(t1) | int32_t(t2)); } \
-    constexpr T operator&(T t1, T t2) noexcept { return T(int32_t(t1) & int32_t(t2)); } \
-    constexpr T operator^(T t1, T t2) noexcept { return T(int32_t(t1) ^ int32_t(t2)); } \
-    inline T& operator|=(T &t1, T t2) noexcept { return t1 = t1 | t2; }                 \
-    inline T& operator&=(T &t1, T t2) noexcept { return t1 = t1 & t2; }                 \
+#define BITWISE_OPERATORS(T)                                                    \
+    constexpr T operator~(T t)        noexcept { return T(~int(t)); }           \
+    constexpr T operator|(T t1, T t2) noexcept { return T(int(t1) | int(t2)); } \
+    constexpr T operator&(T t1, T t2) noexcept { return T(int(t1) & int(t2)); } \
+    constexpr T operator^(T t1, T t2) noexcept { return T(int(t1) ^ int(t2)); } \
+    inline T& operator|=(T &t1, T t2) noexcept { return t1 = t1 | t2; }         \
+    inline T& operator&=(T &t1, T t2) noexcept { return t1 = t1 & t2; }         \
     inline T& operator^=(T &t1, T t2) noexcept { return t1 = t1 ^ t2; }
 
 BITWISE_OPERATORS(CastleRight)
 //BITWISE_OPERATORS(Bound)
 #undef BITWISE_OPERATORS
 
-constexpr Square operator+(Square s, Direction d) noexcept { return Square(int32_t(s) + int32_t(d)); }
-constexpr Square operator-(Square s, Direction d) noexcept { return Square(int32_t(s) - int32_t(d)); }
+constexpr Square operator+(Square s, Direction d) noexcept { return Square(int(s) + int(d)); }
+constexpr Square operator-(Square s, Direction d) noexcept { return Square(int(s) - int(d)); }
 inline Square& operator+=(Square &s, Direction d) noexcept { return s = s + d; }
 inline Square& operator-=(Square &s, Direction d) noexcept { return s = s - d; }
 
-constexpr Direction operator-(Square s1, Square s2) noexcept { return Direction(int32_t(s1) - int32_t(s2)); }
+constexpr Direction operator-(Square s1, Square s2) noexcept { return Direction(int(s1) - int(s2)); }
 
 constexpr Score makeScore(int32_t mg, int32_t eg) noexcept {
     return Score(int32_t(uint32_t(eg) << 0x10) + mg);
@@ -360,21 +360,21 @@ constexpr Value egValue(uint32_t s) {
 }
 
 /// Division of a Score must be handled separately for each term
-constexpr Score operator/(Score s, int32_t i) {
+constexpr Score operator/(Score s, int i) {
     return makeScore(mgValue(s) / i, egValue(s) / i);
 }
 /// Multiplication of a Score by an integer. We check for overflow in debug mode.
-//inline Score operator*(Score s, int32_t i) {
-//    Score score{ Score(int32_t(s) * i) };
+//inline Score operator*(Score s, int i) {
+//    Score score{ Score(int(s) * i) };
 //    assert(egValue(score) == (egValue(s) * i));
 //    assert(mgValue(score) == (mgValue(s) * i));
 //    assert((i == 0) || (score / i) == s);
 //    return score;
 //}
-constexpr Score operator*(Score s, int32_t i) { return Score(int32_t(s) * i); }
+constexpr Score operator*(Score s, int i) { return Score(int(s) * i); }
 
-inline Score& operator/=(Score &s, int32_t i) { return s = s / i; }
-inline Score& operator*=(Score &s, int32_t i) { return s = s * i; }
+inline Score& operator/=(Score &s, int i) { return s = s / i; }
+inline Score& operator*=(Score &s, int i) { return s = s * i; }
 /// Multiplication of a Score by a boolean
 constexpr Score operator*(Score s, bool b)    { return b ? s : SCORE_ZERO; }
 
@@ -418,7 +418,7 @@ constexpr Square makeSquare(File f, Rank r) noexcept {
     return Square((r << 3) + f);
 }
 constexpr File sFile(Square s) noexcept {
-    return File(int32_t(s) & 7);
+    return File(int(s) & 7);
 }
 constexpr Rank sRank(Square s) noexcept {
     return Rank(s >> 3);
@@ -430,11 +430,11 @@ constexpr Color sColor(Square s) noexcept {
 template<typename T> constexpr Square flip(Square) noexcept;
 // Flip File: SQ_H1 -> SQ_A1
 template<> constexpr Square flip<File>(Square s) noexcept {
-    return Square(int32_t(s) ^ 0x07);
+    return Square(int(s) ^ 0x07);
 }
 // Flip Rank: SQ_A8 -> SQ_A1
 template<> constexpr Square flip<Rank>(Square s) noexcept {
-    return Square(int32_t(s) ^ 0x38);
+    return Square(int(s) ^ 0x38);
 }
 
 
@@ -446,7 +446,7 @@ constexpr int32_t BaseSquare[COLORS]{
     SQ_A1, SQ_A8
 };
 constexpr Square relativeSq(Color c, Square s) noexcept {
-    return Square(int32_t(s) ^ BaseSquare[c]);
+    return Square(int(s) ^ BaseSquare[c]);
 }
 constexpr Rank relativeRank(Color c, Square s) noexcept {
     return relativeRank(c, sRank(s));
@@ -511,28 +511,30 @@ constexpr uint16_t mMask(Move m) noexcept {
 
 template<MoveType MT>
 constexpr Move makeMove(Square org, Square dst) {
-    return Move(MT + (org << 6) + (dst << 0));
+    return Move(MT + (org << 6) + dst);
 }
-
 constexpr Move makePromoteMove(Square org, Square dst, PieceType pt = QUEN) {
-    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + (dst << 0));
+    return Move(PROMOTE + ((pt - NIHT) << 12) + (org << 6) + dst);
 }
 template<>
 constexpr Move makeMove<PROMOTE>(Square org, Square dst) {
     return makePromoteMove(org, dst);
 }
 
+constexpr Move makeMove(Square org, Square dst) {
+    return Move((org << 6) + dst);
+}
 constexpr Move reverseMove(Move m) {
-    return makeMove<SIMPLE>(dstSq(m), orgSq(m));
+    return makeMove(dstSq(m), orgSq(m));
 }
 
 /// Convert Value to Centipawn
 constexpr double toCP(Value v) {
-    return double(v) / VALUE_EG_PAWN * 100;
+    return double(v) * 100 / VALUE_EG_PAWN;
 }
 /// Convert Centipawn to Value
 constexpr Value toValue(double cp) {
-    return Value(int32_t(cp) / 100 * VALUE_EG_PAWN);
+    return Value(int32_t(cp) * VALUE_EG_PAWN / 100);
 }
 
 constexpr Value matesIn(int32_t ply) {

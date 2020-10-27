@@ -17,6 +17,9 @@ struct Zobrist {
     Key computePawnKey(Position const&) const noexcept;
     Key computePosiKey(Position const&) const noexcept;
 
+
+    Key enpassantKey(Square epSq) const noexcept { return epSq != SQ_NONE ? enpassant[sFile(epSq)] : 0; }
+
     // 15*64 + 16 + 8 + 1 = 985
     // 12*64 + 16 + 8 + 1 = 793
     //                    = 192 extra

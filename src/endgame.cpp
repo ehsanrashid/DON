@@ -12,8 +12,7 @@ namespace {
     constexpr int32_t pushToEdge(Square s) noexcept {
         int32_t const fd = edgeDistance(sFile(s)),
                       rd = edgeDistance(sRank(s));
-        return 90 - (7 * fd*fd / 2
-                   + 7 * rd*rd / 2);
+        return 90 - (7 * fd*fd / 2 + 7 * rd*rd / 2);
     }
     /// Drive a piece towards the corner of the board,
     /// used in KBN vs K to A1H8 corners
@@ -33,13 +32,10 @@ namespace {
     /// Map the square as if stngColor is white and pawn square is on files A-D
     constexpr Square normalize(Square sq, Color stngColor, File spF) noexcept {
 
-        if (stngColor == BLACK) {
-            sq = flip<Rank>(sq);
-        }
         if (spF >= FILE_E) {
             sq = flip<File>(sq);
         }
-        return sq;
+        return stngColor == WHITE ? sq : flip<Rank>(sq);
     }
 
 #if !defined(NDEBUG)

@@ -58,7 +58,7 @@ Key Position::movePosiKey(Move m) const noexcept {
 
     auto pKey{ posiKey()
              ^ RandZob.side
-             ^ (_stateInfo->epSquare != SQ_NONE ? RandZob.enpassant[sFile(_stateInfo->epSquare)] : 0) };
+             ^ RandZob.enpassantKey(_stateInfo->epSquare) };
 
     if (mType(m) == CASTLE) {
         // ROOK
@@ -91,9 +91,7 @@ Key Position::movePosiKey(Move m) const noexcept {
     if (board[dstSq(m)] != NO_PIECE) {
         pKey ^= RandZob.psq[board[dstSq(m)]][dstSq(m)];
     }
-    if (_stateInfo->epSquare != SQ_NONE) {
-        pKey ^= RandZob.enpassant[sFile(_stateInfo->epSquare)];
-    }
+    pKey ^= RandZob.enpassantKey(_stateInfo->epSquare);
     return pKey;
 }
 
@@ -133,7 +131,7 @@ bool Position::cycled(int16_t pp) const noexcept {
         return false;
     }
 
-    Key const pKey{ posiKey() };
+    Key const pKey{ _stateInfo->posiKey };
 
     auto const *psi{ _stateInfo->prevState };
     for (int16_t i = 3; i <= end; i += 2) {
@@ -913,6 +911,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
                     && board[cap] == (pasive|PAWN)); //&& contains(pieces(pasive, PAWN), cap));
             }
             _stateInfo->pawnKey ^= RandZob.psq[cpc][cap];
+            //prefetch(_thread->pawnTable[_stateInfo->pawnKey]);
         }
         else {
             npm[pasive] -= PieceValues[MG][pType(cpc)];
@@ -929,6 +928,8 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
         }
         pKey ^= RandZob.psq[cpc][cap];
         _stateInfo->matlKey ^= RandZob.psq[cpc][pieceCount[cpc]];
+        prefetch(_thread->matlTable[_stateInfo->matlKey]);
+
         // Reset clock ply counter
         _stateInfo->clockPly = 0;
     }
@@ -959,47 +960,57 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
         pKey ^= RandZob.castling[_stateInfo->castleRights];
     }
 
-    if (pType(mpc) == PAWN) {
+    if (pType(mpc) == PAWN
+     || pType(mpc) == KING) {
 
-        // Double push pawn
-        // Set enpassant square if the moved pawn can be captured
-        if ((int(dst) ^ int(org)) == 16 //dst == org + PawnPush[active] * 2
-         && canEnpassant(pasive, org + PawnPush[active])) {
-            _stateInfo->epSquare = org + PawnPush[active];
-            pKey ^= RandZob.enpassant[sFile(_stateInfo->epSquare)];
+        if (pType(mpc) == PAWN) {
+
+            // Double push pawn
+            // Set enpassant square if the moved pawn can be captured
+            if ((int(dst) ^ int(org)) == 16 //dst == org + PawnPush[active] * 2
+             && canEnpassant(pasive, org + PawnPush[active])) {
+                _stateInfo->epSquare = org + PawnPush[active];
+                pKey ^= RandZob.enpassant[sFile(_stateInfo->epSquare)];
+            }
+            else
+            if (mType(m) == PROMOTE) {
+                assert(pType(mpc) == PAWN
+                    && relativeRank(active, org) == RANK_7
+                    && relativeRank(active, dst) == RANK_8);
+
+                auto const ppc{ active|promoteType(m) };
+
+                // Promoting pawn to SQ_NONE, promoted piece from SQ_NONE
+                _stateInfo->moveInfo.dst[0] = SQ_NONE;
+                _stateInfo->moveInfo.piece[_stateInfo->moveInfo.pieceCount] = ppc;
+                _stateInfo->moveInfo.org[_stateInfo->moveInfo.pieceCount] = SQ_NONE;
+                _stateInfo->moveInfo.dst[_stateInfo->moveInfo.pieceCount] = dst;
+                _stateInfo->moveInfo.pieceCount++;
+
+                // Replace the pawn with the promoted piece
+                removePiece(dst);
+                placePiece(dst, ppc);
+
+                npm[active] += PieceValues[MG][pType(ppc)];
+                pKey ^= RandZob.psq[mpc][dst]
+                      ^ RandZob.psq[ppc][dst];
+                _stateInfo->pawnKey ^= RandZob.psq[mpc][dst];
+                _stateInfo->matlKey ^= RandZob.psq[mpc][pieceCount[mpc]]
+                                     ^ RandZob.psq[ppc][pieceCount[ppc] - 1];
+                //prefetch(_thread->matlTable[_stateInfo->matlKey]);
+                _stateInfo->promoted = true;
+            }
+
+            // Reset clock ply counter
+            _stateInfo->clockPly = 0;
+            _stateInfo->pawnKey ^= RandZob.psq[mpc][org]
+                                 ^ RandZob.psq[mpc][dst];
+            prefetch(_thread->pawnTable[_stateInfo->pawnKey]);
         }
-        else
-        if (mType(m) == PROMOTE) {
-            assert(pType(mpc) == PAWN
-                && relativeRank(active, org) == RANK_7
-                && relativeRank(active, dst) == RANK_8);
-
-            auto const ppc{ active|promoteType(m) };
-
-            // Promoting pawn to SQ_NONE, promoted piece from SQ_NONE
-            _stateInfo->moveInfo.dst[0] = SQ_NONE;
-            _stateInfo->moveInfo.piece[_stateInfo->moveInfo.pieceCount] = ppc;
-            _stateInfo->moveInfo.org[_stateInfo->moveInfo.pieceCount] = SQ_NONE;
-            _stateInfo->moveInfo.dst[_stateInfo->moveInfo.pieceCount] = dst;
-            _stateInfo->moveInfo.pieceCount++;
-
-            // Replace the pawn with the promoted piece
-            removePiece(dst);
-            placePiece(dst, ppc);
-
-            npm[active] += PieceValues[MG][pType(ppc)];
-            pKey ^= RandZob.psq[mpc][dst]
-                  ^ RandZob.psq[ppc][dst];
-            _stateInfo->pawnKey ^= RandZob.psq[mpc][dst];
-            _stateInfo->matlKey ^= RandZob.psq[mpc][pieceCount[mpc]]
-                                 ^ RandZob.psq[ppc][pieceCount[ppc] - 1];
-            _stateInfo->promoted = true;
-        }
-
-        // Reset clock ply counter
-        _stateInfo->clockPly = 0;
-        _stateInfo->pawnKey ^= RandZob.psq[mpc][org]
-                             ^ RandZob.psq[mpc][dst];
+    
+        prefetch(_thread->kingTable[_stateInfo->pawnKey
+                                  ^ RandZob.psq[W_KING][square(W_KING)]
+                                  ^ RandZob.psq[B_KING][square(B_KING)]]);
     }
 
     assert((attackersTo(square(active|KING)) & pieces(pasive)) == 0);
@@ -1140,6 +1151,7 @@ void Position::doNullMove(StateInfo &si) noexcept {
     active = ~active;
     _stateInfo->posiKey ^= RandZob.side;
 
+    prefetch(TT.cluster(_stateInfo->posiKey)->entry);
     setCheckInfo();
 
     _stateInfo->repetition = 0;

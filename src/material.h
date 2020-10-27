@@ -14,6 +14,15 @@ namespace Material {
     public:
 
         void evaluate(Position const&);
+        
+        Scale scaleFunc(const Position& pos, Color c) const {
+            Scale const scale { scalingFunc[c] != nullptr ?
+                              (*scalingFunc[c])(pos) : SCALE_NONE };
+            return scale != SCALE_NONE ? scale : scaleFactor[c];
+        }
+
+        bool  evalExists() const noexcept { return evaluatingFunc != nullptr; }
+        Value evaluateFunc(const Position &pos) const { return (*evaluatingFunc)(pos); }
 
         Key     key;
         int32_t phase;

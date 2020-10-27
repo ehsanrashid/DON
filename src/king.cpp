@@ -140,7 +140,7 @@ namespace King {
           ^ RandZob.psq[W_KING][pos.square(W_KING)]
           ^ RandZob.psq[B_KING][pos.square(B_KING)] };
 
-        auto *e{ pos.thread()->kingHash[kingKey] };
+        auto *e{ pos.thread()->kingTable[kingKey] };
 
         if (e->key == kingKey) {
             assert(e->pawnEntry == pe);

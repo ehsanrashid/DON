@@ -421,7 +421,7 @@ namespace UCI {
 
         Options["MultiPV"]            << Option( 1, 1, 500);
 
-        Options["Fixed Contempt"]     << Option(  0, -100, 100);
+        Options["Fixed Contempt"]     << Option( 24, -100, 100);
         Options["Contempt Time"]      << Option( 40,    0, 1000);
         Options["Contempt Value"]     << Option(100,    0, 1000);
         Options["Analysis Contempt"]  << Option(string("Both var Off var White var Black var Both"), string("Both"));

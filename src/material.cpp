@@ -87,7 +87,7 @@ namespace Material {
 
         // Let's look if have a specialized evaluation function for this particular material configuration.
         // First look for a fixed configuration one, then a generic one if previous search failed.
-        if ((evaluatingFunc = EndGame::probe<Value>(pos.matlKey())) != nullptr) {
+        if ((evaluatingFunc = EndGame::probe<Value>(key)) != nullptr) {
             return;
         }
         // Generic evaluation
@@ -101,7 +101,7 @@ namespace Material {
 
         // Didn't find any special evaluation function for the current
         // material configuration. Is there a suitable scaling function?
-        auto const *scalingFn{ EndGame::probe<Scale>(pos.matlKey()) };
+        auto const *scalingFn{ EndGame::probe<Scale>(key) };
         if (scalingFn != nullptr) {
             scalingFunc[scalingFn->stngColor] = scalingFn; // Only strong color assigned
             return;
@@ -187,7 +187,7 @@ namespace Material {
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
     Entry* probe(Position const &pos) {
         Key const matlKey{ pos.matlKey() };
-        auto *e{ pos.thread()->matlHash[matlKey] };
+        auto *e{ pos.thread()->matlTable[matlKey] };
 
         if (e->key == matlKey) {
             return e;

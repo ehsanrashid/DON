@@ -54,7 +54,7 @@ namespace Bitbases {
 
             operator Result() const noexcept { return result; }
 
-            Result classify(KPKPosition kpkArr[]);
+            Result classify(KPKPosition kpkArr[]) noexcept;
 
             Color  active;
             Square wkSq;
@@ -111,7 +111,7 @@ namespace Bitbases {
             }
         }
 
-        Result KPKPosition::classify(KPKPosition kpkArr[]) {
+        Result KPKPosition::classify(KPKPosition kpkArr[]) noexcept {
             // White to Move:
             // If one move leads to a position classified as WIN, the result of the current position is WIN.
             // If all moves lead to positions classified as DRAW, the result of the current position is DRAW

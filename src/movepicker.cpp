@@ -66,21 +66,21 @@ namespace {
 /// MovePicker constructor for the main search
 MovePicker::MovePicker(
     Position const &p,
+    Move ttm, Depth d,
     ButterFlyStatsTable       const *bfStats,
     PlyIndexStatsTable        const *lpStats,
     PieceSquareTypeStatsTable const *cStats,
     PieceSquareStatsTable     const **pStats,
-    Move ttm, Depth d, int16_t sp,
-    Move const *km, Move cm) :
+    int16_t sp, Move const *km, Move cm) noexcept :
     pickQuiets{ true },
     pos{ p },
+    ttMove{ ttm },
+    depth{ d },
     butterFlyStats{ bfStats },
     lowPlyStats{ lpStats },
     captureStats{ cStats },
     pieceStats{ pStats },
-    ttMove { ttm },
-    depth{ d },
-    ply { sp },
+    ply{ sp },
     refutationMoves{ km[0], km[1], cm } {
 
     assert(ttm == MOVE_NONE
@@ -97,16 +97,17 @@ MovePicker::MovePicker(
 /// and other checks (only if depth >= DEPTH_QS_CHECK) will be generated.
 MovePicker::MovePicker(
     Position const &p,
+    Move ttm, Depth d,
     ButterFlyStatsTable       const *bfStats,
     PieceSquareTypeStatsTable const *cStats,
     PieceSquareStatsTable     const **pStats,
-    Move ttm, Depth d, Square rs) :
+    Square rs) noexcept :
     pos{ p },
+    ttMove{ ttm },
+    depth{ d },
     butterFlyStats{ bfStats },
     captureStats{ cStats },
     pieceStats{ pStats },
-    ttMove { ttm },
-    depth{ d },
     recapSq{ rs } {
 
     assert(ttm == MOVE_NONE
@@ -123,12 +124,12 @@ MovePicker::MovePicker(
 /// Generate captures with SEE greater than or equal to the given threshold.
 MovePicker::MovePicker(
     Position const &p,
-    PieceSquareTypeStatsTable const *cStats,
-    Move ttm, Depth d, Value thr) :
+    Move ttm, Value thr,
+    PieceSquareTypeStatsTable const *cStats) noexcept :
     pos{ p },
+    ttMove{ ttm },
+    depth{ DEPTH_ZERO },
     captureStats{ cStats },
-    ttMove { ttm },
-    depth{ d },
     threshold{ thr } {
 
     assert(ttm == MOVE_NONE
@@ -155,11 +156,13 @@ void MovePicker::value() {
     while (vmCur != vmEnd) {
         auto &vm{ *(vmCur++) };
 
-        if (GT == CAPTURE) {
+        switch (GT) {
+        case CAPTURE: {
             vm.value = int32_t(PieceValues[MG][pos.captured(vm)]) * 6
                      + (*captureStats)[pos.movedPiece(vm)][dstSq(vm)][pos.captured(vm)];
         }
-        if (GT == QUIET) {
+            break;
+        case QUIET: {
             vm.value = (*butterFlyStats)[pos.activeSide()][mMask(vm)]
                      + (*pieceStats[0])[pos.movedPiece(vm)][dstSq(vm)] * 2
                      + (*pieceStats[1])[pos.movedPiece(vm)][dstSq(vm)] * 2
@@ -167,14 +170,19 @@ void MovePicker::value() {
                      + (*pieceStats[5])[pos.movedPiece(vm)][dstSq(vm)]
                      + (ply < MAX_LOWPLY ? (*lowPlyStats)[ply][mMask(vm)] * std::min(depth / 3, 4) : 0);
         }
-        if (GT == EVASION) {
-            vm.value = pos.capture(vm) ?
-                        int32_t(PieceValues[MG][pos.captured(vm)])
-                      - pType(pos.movedPiece(vm)) :
-
-                        (*butterFlyStats)[pos.activeSide()][mMask(vm)]
-                      + (*pieceStats[0])[pos.movedPiece(vm)][dstSq(vm)]
-                      - 0x10000000; // 1 << 28
+            break;
+        case EVASION: {
+            if (pos.capture(vm)) {
+                vm.value = int32_t(PieceValues[MG][pos.captured(vm)])
+                         - pType(pos.movedPiece(vm));
+            }
+            else {
+                vm.value = (*butterFlyStats)[pos.activeSide()][mMask(vm)]
+                         + (*pieceStats[0])[pos.movedPiece(vm)][dstSq(vm)]
+                         - 0x10000000; // 1 << 28
+            }
+        }
+            break;
         }
     }
 }
@@ -223,14 +231,7 @@ Move MovePicker::nextMove() {
         generate<CAPTURE>(vmoves, pos);
 
         vmBeg = vmoves.begin();
-        vmEnd = stage == QUIESCENCE_INIT
-             && depth <= DEPTH_QS_RECAP ?
-                    std::remove_if(vmBeg, vmoves.end(),
-                                    [&](ValMove const &vm) {
-                                        return vm == ttMove
-                                            || dstSq(vm) != recapSq;
-                                    }) :
-                ttMove != MOVE_NONE ?
+        vmEnd = ttMove != MOVE_NONE ?
                     std::remove(vmBeg, vmoves.end(), ttMove) : vmoves.end();
 
         value<CAPTURE>();
@@ -246,6 +247,7 @@ Move MovePicker::nextMove() {
                         // Put losing capture to badCaptureMoves to be tried later
                         true : (badCaptureMoves += *vmBeg, false);
             })) {
+            assert(pos.pseudoLegal(*vmBeg));
             return *vmBeg++;
         }
 
@@ -273,17 +275,15 @@ Move MovePicker::nextMove() {
             return *mBeg++;
         }
 
-        //assert(vmBeg == vmEnd);
         if (pickQuiets) {
             vmoves.clear();
-            if (vmoves.capacity() < 64) vmoves.reserve(64);
+            //vmoves.reserve(48);
             generate<QUIET>(vmoves, pos);
-            mBeg = refutationMoves.begin();
             vmBeg = vmoves.begin();
             vmEnd = std::remove_if(vmBeg, vmoves.end(),
                                     [&](ValMove const &vm) {
                                         return vm == ttMove
-                                            || std::find(mBeg, mEnd, vm.move) != mEnd;
+                                            || refutationMoves.contains(vm.move);
                                     });
             value<QUIET>();
             sortPartial(vmBeg, vmEnd, -3000 * depth);
@@ -292,10 +292,9 @@ Move MovePicker::nextMove() {
     }
         [[fallthrough]];
     case NORMAL_QUIETS: {
-        if (vmBeg != vmEnd
-         && (pickQuiets
-          || vmBeg->value == (vmBeg - 1)->value)) {
-            //assert(std::find(mBeg, mEnd, (*vmBeg).move) == mEnd);
+        if ((pickQuiets /*|| vmBeg->value == (vmBeg - 1)->value*/)
+         && vmBeg != vmEnd) {
+            assert(pos.pseudoLegal(*vmBeg));
             return *vmBeg++;
         }
 
@@ -311,8 +310,8 @@ Move MovePicker::nextMove() {
         /* end */
 
     case EVASION_INIT: {
-        vmoves.reserve(32);
         vmoves.clear();
+        vmoves.reserve(32);
         generate<EVASION>(vmoves, pos);
         vmBeg = vmoves.begin();
         vmEnd = ttMove != MOVE_NONE ?
@@ -322,8 +321,12 @@ Move MovePicker::nextMove() {
     }
         [[fallthrough]];
     case EVASION_MOVES: {
-        return pick([]() { return true; }) ?
-                *vmBeg++ : MOVE_NONE;
+        if (pick([&]() { return pos.checkers() == 0
+                             || pos.pseudoLegal(*vmBeg); })) {
+            assert(pos.pseudoLegal(*vmBeg));
+            return *vmBeg++;
+        }
+        return MOVE_NONE;
     }
         /* end */
 
@@ -334,13 +337,14 @@ Move MovePicker::nextMove() {
         /* end */
 
     case QUIESCENCE_CAPTURES: {
-        // No filter required, all done in QUIESCENCE_INIT
-        if (pick([]() { return true; })) {
+        if (pick([&]() { return depth > DEPTH_QS_RECAP
+                             || dstSq(*vmBeg) == recapSq; })) {
+            assert(pos.pseudoLegal(*vmBeg));
             return *vmBeg++;
         }
 
         // If did not find any move then do not try checks, finished.
-        if (depth < DEPTH_QS_CHECK) {
+        if (depth != DEPTH_QS_CHECK) {
             return MOVE_NONE;
         }
 
@@ -353,8 +357,11 @@ Move MovePicker::nextMove() {
     }
         [[fallthrough]];
     case QUIESCENCE_CHECKS: {
-        return vmBeg != vmEnd ?
-                *vmBeg++ : MOVE_NONE;
+        if (vmBeg != vmEnd) {
+            assert(pos.pseudoLegal(*vmBeg));
+            return *vmBeg++;
+        }
+        return MOVE_NONE;
     }
         /* end */
 

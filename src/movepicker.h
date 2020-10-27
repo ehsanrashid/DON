@@ -132,24 +132,25 @@ public:
 
     MovePicker(
         Position const&,
+        Move, Depth,
         ButterFlyStatsTable       const*,
         PlyIndexStatsTable        const*,
         PieceSquareTypeStatsTable const*,
         PieceSquareStatsTable     const**,
-        Move, Depth, int16_t,
-        Move const *, Move);
+        int16_t, Move const *, Move) noexcept;
 
     MovePicker(
         Position const&,
+        Move, Depth,
         ButterFlyStatsTable       const*,
         PieceSquareTypeStatsTable const*,
         PieceSquareStatsTable     const**,
-        Move, Depth, Square);
+        Square) noexcept;
 
     MovePicker(
         Position const&,
-        PieceSquareTypeStatsTable const*,
-        Move, Depth, Value);
+        Move, Value,
+        PieceSquareTypeStatsTable const*) noexcept;
 
     MovePicker() = delete;
     MovePicker(MovePicker const&) = delete;
@@ -172,13 +173,14 @@ private:
 
     Position const &pos;
 
+    Move ttMove{ MOVE_NONE };
+    Depth depth{ DEPTH_ZERO };
+
     ButterFlyStatsTable       const *butterFlyStats{ nullptr };
     PlyIndexStatsTable        const *lowPlyStats{ nullptr };
     PieceSquareTypeStatsTable const *captureStats{ nullptr };
     PieceSquareStatsTable     const **pieceStats{ nullptr };
 
-    Move ttMove{ MOVE_NONE };
-    Depth depth{ DEPTH_ZERO };
     int16_t ply{ 0 };
     Value threshold{ VALUE_ZERO };
     Square recapSq{ SQ_NONE };

@@ -42,6 +42,13 @@ public:
     virtual void clean();
     virtual void search();
 
+    Material::Table matlTable;
+    Pawns   ::Table pawnTable;
+    King    ::Table kingTable;
+
+    //uint16_t pvBeg;
+    uint16_t pvCur;
+    uint16_t pvEnd;
 
     Position  rootPos;
     StateInfo rootState;
@@ -58,13 +65,9 @@ public:
     int16_t nmpMinPly;
     Color   nmpColor;
 
-    uint16_t pvBeg,
-             pvCur,
-             pvEnd;
-
     uint64_t ttHitAvg;
 
-    Score contempt;
+    Score   contempt;
     
     int16_t failHighCount;
 
@@ -87,16 +90,12 @@ public:
     // usually the current one given a previous one. [inCheck][captureOrPromotion]
     ContinuationStatsTable      continuationStats[2][2];
 
-    Material::Table matlHash;
-    Pawns   ::Table pawnHash;
-    King    ::Table kingHash;
-
 private:
 
+    std::mutex mutex;
+    std::condition_variable condition;
     bool dead;
     bool busy;
-    std::mutex mutex;
-    std::condition_variable conditionVar;
     uint16_t index; // indentity
     NativeThread nativeThread;
 };
@@ -114,7 +113,7 @@ public:
     MainThread(MainThread&&) = delete;
 
     MainThread& operator=(MainThread const&) = delete;
-    MainThread& operator=(MainThread &&) = delete;
+    MainThread& operator=(MainThread&&) = delete;
 
     void tick();
 
@@ -165,8 +164,8 @@ public:
     void startThinking(Position&, StateListPtr&);
     void stopThinking();
 
-    void wakeUpThreads();
-    void waitForThreads();
+    void wakeUpAll();
+    void waitIdleAll();
 
     uint16_t pvCount;
 
@@ -192,6 +191,32 @@ private:
 
 // Global ThreadPool
 extern ThreadPool Threadpool;
+
+/// Pre-loads the given address in L1/L2 cache.
+/// This is a non-blocking function that doesn't stall the CPU
+/// waiting for data to be loaded from memory, which can be quite slow.
+#if defined(USE_PREFETCH)
+
+inline void prefetch(void const* addr) noexcept {
+
+#if defined(_MSC_VER) || defined(__INTEL_COMPILER)
+#if defined(__INTEL_COMPILER)
+    // This hack prevents prefetches from being optimized away by
+    // Intel compiler. Both MSVC and gcc seem not be affected by this.
+    __asm__("");
+#endif
+    _mm_prefetch((char const*)(addr), _MM_HINT_T0);
+#else
+    __builtin_prefetch(addr);
+#endif
+}
+
+#else
+
+inline void prefetch(void const*) noexcept {
+}
+
+#endif
 
 enum OutputState : uint8_t {
     OS_LOCK,

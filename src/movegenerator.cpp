@@ -24,7 +24,7 @@ namespace {
                 if (Checks) {
                     attacks &= pos.checks(pt);
                 }
-                while (attacks != 0) { moves += makeMove<SIMPLE>(s, popLSq(attacks)); }
+                while (attacks != 0) { moves += makeMove(s, popLSq(attacks)); }
             }
         }
     }
@@ -100,8 +100,8 @@ namespace {
                 }
             }
 
-            while (pushs1 != 0) { auto const dst{ popLSq(pushs1) }; moves += makeMove<SIMPLE>(dst - PawnPush[Own], dst); }
-            while (pushs2 != 0) { auto const dst{ popLSq(pushs2) }; moves += makeMove<SIMPLE>(dst - PawnPush[Own]*2, dst); }
+            while (pushs1 != 0) { auto const dst{ popLSq(pushs1) }; moves += makeMove(dst - PawnPush[Own], dst); }
+            while (pushs2 != 0) { auto const dst{ popLSq(pushs2) }; moves += makeMove(dst - PawnPush[Own]*2, dst); }
         }
 
         // Promotions (queening and under-promotions)
@@ -127,8 +127,8 @@ namespace {
 
             Bitboard attacksL{ enemies & pawnLAttackBB<Own>(rxPawns) };
             Bitboard attacksR{ enemies & pawnRAttackBB<Own>(rxPawns) };
-            while (attacksL != 0) { auto const dst{ popLSq(attacksL) }; moves += makeMove<SIMPLE>(dst - PawnLAtt[Own], dst); }
-            while (attacksR != 0) { auto const dst{ popLSq(attacksR) }; moves += makeMove<SIMPLE>(dst - PawnRAtt[Own], dst); }
+            while (attacksL != 0) { auto const dst{ popLSq(attacksL) }; moves += makeMove(dst - PawnLAtt[Own], dst); }
+            while (attacksR != 0) { auto const dst{ popLSq(attacksR) }; moves += makeMove(dst - PawnRAtt[Own], dst); }
 
             if (pos.epSquare() != SQ_NONE) {
                 assert(relativeRank(Own, pos.epSquare()) == RANK_6);
@@ -154,7 +154,7 @@ namespace {
         Bitboard attacks{  attacksBB<KING>(pos.square( pos.activeSide()|KING))
                         &  targets
                         & ~attacksBB<KING>(pos.square(~pos.activeSide()|KING)) };
-        while (attacks != 0) { moves += makeMove<SIMPLE>(pos.square(pos.activeSide()|KING), popLSq(attacks)); }
+        while (attacks != 0) { moves += makeMove(pos.square(pos.activeSide()|KING), popLSq(attacks)); }
 
         if (GT == QUIET
          || GT == NORMAL) {
@@ -237,7 +237,7 @@ template<> void generate<EVASION>(ValMoves &moves, Position const &pos) noexcept
     Bitboard attacks{  attacksBB<KING>(pos.square(pos.activeSide()|KING))
                     & ~checkAttacks
                     & ~pos.pieces(pos.activeSide()) };
-    while (attacks != 0) { moves += makeMove<SIMPLE>(pos.square(pos.activeSide()|KING), popLSq(attacks)); }
+    while (attacks != 0) { moves += makeMove(pos.square(pos.activeSide()|KING), popLSq(attacks)); }
 }
 
 /// generate<QUIET_CHECK> Generates all pseudo-legal non-captures and knight under promotions check giving moves.
@@ -261,7 +261,7 @@ template<> void generate<QUIET_CHECK>(ValMoves &moves, Position const &pos) noex
             attacks &= ~attacksBB<QUEN>(pos.square(~pos.activeSide()|KING));
         }
 
-        while (attacks != 0) { moves += makeMove<SIMPLE>(sq, popLSq(attacks)); }
+        while (attacks != 0) { moves += makeMove(sq, popLSq(attacks)); }
     }
 
     generateMoves<QUIET_CHECK>(moves, pos, targets);

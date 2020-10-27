@@ -37,13 +37,13 @@ Thread::~Thread() {
 void Thread::wakeUp() {
     std::lock_guard<std::mutex> lockGuard(mutex);
     busy = true;
-    conditionVar.notify_one(); // Wake up the thread in threadFunc()
+    condition.notify_one(); // Wake up the thread in threadFunc()
 }
 
 /// Thread::waitIdle() blocks on the condition variable while the thread is busy.
 void Thread::waitIdle() {
     std::unique_lock<std::mutex> uniqueLock(mutex);
-    conditionVar.wait(uniqueLock, [&]{ return !busy; });
+    condition.wait(uniqueLock, [this]{ return !busy; });
     //uniqueLock.unlock();
 }
 
@@ -62,13 +62,14 @@ void Thread::threadFunc() {
     while (true) {
 
         std::unique_lock<std::mutex> uniqueLock(mutex);
+        // Sleep down
         busy = false;
-        conditionVar.notify_one(); // Wake up anyone waiting for search finished
-        conditionVar.wait(uniqueLock, [&]{ return busy; });
+        condition.notify_one(); // Wake up anyone waiting for search finished
+        condition.wait(uniqueLock, [this]{ return busy; });
+        uniqueLock.unlock();
         if (dead) {
             return;
         }
-        uniqueLock.unlock();
 
         search();
     }
@@ -90,10 +91,9 @@ void Thread::clean() {
             continuationStats[inCheck][capture][NO_PIECE][0].fill(CounterMovePruneThreshold - 1);
         }
     }
-
-    //kingHash.clear();
-    //matlHash.clear();
-    //pawnHash.clear();
+    //matlTable.clear();
+    //pawnTable.clear();
+    //kingTable.clear();
 }
 
 /// MainThread::clean()
@@ -240,14 +240,14 @@ void ThreadPool::stopThinking() {
     mainThread()->waitIdle();
 }
 
-void ThreadPool::wakeUpThreads() {
+void ThreadPool::wakeUpAll() {
     for (auto *th : *this) {
         if (th != front()) {
             th->wakeUp();
         }
     }
 }
-void ThreadPool::waitForThreads() {
+void ThreadPool::waitIdleAll() {
     for (auto *th : *this) {
         if (th != front()) {
             th->waitIdle();
