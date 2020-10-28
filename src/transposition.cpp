@@ -20,10 +20,12 @@ uint8_t TEntry::Generation{ 0 };
 /// TCluster::probe()
 /// If the position is found, it returns true and a pointer to the found entry.
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
-TEntry* TCluster::probe(uint16_t key16, bool &hit) noexcept {
+TEntry* TCluster::probe(const uint16_t key16, bool &hit) noexcept {
     // Find an entry to be replaced according to the replacement strategy.
-    auto *rte{ entry }; // Default first
-    for (auto *ite{ entry }; ite < entry + EntryPerCluster; ++ite) {
+    auto *ite{ entry };
+    auto *rte{ ite }; // Default first
+    auto const *ete{ entry + EntryPerCluster };
+    for (; ite != ete; ++ite) {
         if (ite->k16 == key16
          || ite->d08 == 0) {
             // Refresh entry
@@ -81,7 +83,7 @@ bool TTable::resize(size_t memSize) {
 void TTable::autoResize(size_t memSize) {
     Threadpool.stopThinking();
 
-    auto mSize = std::clamp(memSize, MinHashSize, MaxHashSize);
+    auto mSize{ std::clamp(memSize, MinHashSize, MaxHashSize) };
     while (mSize >= MinHashSize) {
         if (resize(mSize)) {
             return;
@@ -138,7 +140,8 @@ void TTable::free() noexcept {
 /// hash, are using <x>%. of the state of full.
 uint32_t TTable::hashFull() const noexcept {
     uint32_t entryCount{ 0 };
-    for (auto *itc{ clusterTable }; itc < clusterTable + std::min(clusterCount, 1000ULL); ++itc) {
+    auto const* etc{ clusterTable + std::min(clusterCount, 1000ULL) };
+    for (auto *itc{ clusterTable }; itc != etc; ++itc) {
         entryCount += itc->freshEntryCount();
     }
     return entryCount / TCluster::EntryPerCluster;
@@ -200,7 +203,7 @@ namespace {
 
 std::ostream& operator<<(std::ostream &ostream, TTable const &tt) {
     uint32_t const memSize{ tt.size() };
-    uint8_t dummy{ 0 };
+    uint8_t const dummy{ 0 };
     ostream.write((char const*)(&memSize), sizeof (memSize));
     ostream.write((char const*)(&dummy), sizeof (dummy));
     ostream.write((char const*)(&dummy), sizeof (dummy));

@@ -83,7 +83,7 @@ public:
         assert(std::is_standard_layout<NestedStatsTable>::value);
 
         using Entry = Stats<T, D>;
-        auto *p{ reinterpret_cast<Entry*>(this) };
+        Entry *p{ reinterpret_cast<Entry*>(this) };
         std::fill(p, p + sizeof (*this) / sizeof (Entry), value);
     }
 };
@@ -179,7 +179,7 @@ private:
     ButterFlyStatsTable       const *butterFlyStats{ nullptr };
     PlyIndexStatsTable        const *lowPlyStats{ nullptr };
     PieceSquareTypeStatsTable const *captureStats{ nullptr };
-    PieceSquareStatsTable     const **pieceStats{ nullptr };
+    PieceSquareStatsTable     const **contStats{ nullptr };
 
     int16_t ply{ 0 };
     Value threshold{ VALUE_ZERO };

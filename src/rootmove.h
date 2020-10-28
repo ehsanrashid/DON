@@ -31,17 +31,6 @@ public:
         std::vector<Move>{ 1, m } {
     }
 
-    bool operator<(RootMove const &rm) const noexcept {
-        return (rm.newValue < newValue)
-            || (rm.newValue == newValue
-             && rm.oldValue < oldValue);
-    }
-    bool operator>(RootMove const &rm) const noexcept {
-        return (rm.newValue > newValue)
-            || (rm.newValue == newValue
-             && rm.oldValue > oldValue);
-    }
-
     //bool operator==(RootMove const&) const noexcept;
     //bool operator!=(RootMove const&) const noexcept;
 
@@ -70,6 +59,18 @@ public:
     Value   tbValue{ VALUE_ZERO };
 
 };
+
+// Sort in descending order
+inline bool operator<(RootMove const &rm1, RootMove const &rm2) noexcept {
+    return (rm1.newValue > rm2.newValue)
+        || (rm1.newValue == rm2.newValue
+         && rm1.oldValue > rm2.oldValue);
+}
+//inline bool operator>(RootMove const &rm1, RootMove const &rm2) noexcept {
+//    return (rm1.newValue < rm2.newValue)
+//        || (rm1.newValue == rm2.newValue
+//         && rm1.oldValue < rm2.oldValue);
+//}
 
 extern std::ostream& operator<<(std::ostream&, RootMove const&);
 
@@ -104,19 +105,18 @@ public:
     const_iterator find(uint16_t iBeg, uint16_t iEnd, Move m) const {
         return std::find(begin() + iBeg, begin() + iEnd, m);
     }
+    iterator find(Move m) {
+        return std::find(begin(), end(), m);
+    }
+    iterator find(uint16_t iBeg, uint16_t iEnd, Move m) {
+        return std::find(begin() + iBeg, begin() + iEnd, m);
+    }
 
     bool contains(Move m) const {
         return find(m) != end();
     }
     bool contains(uint16_t iBeg, uint16_t iEnd, Move m) const {
         return find(iBeg, iEnd, m) != (begin() + iEnd);
-    }
-
-    iterator find(Move m) {
-        return std::find(begin(), end(), m);
-    }
-    iterator find(uint16_t iBeg, uint16_t iEnd, Move m) {
-        return std::find(begin() + iBeg, begin() + iEnd, m);
     }
 
     void stableSort() noexcept {

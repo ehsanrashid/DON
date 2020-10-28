@@ -17,9 +17,6 @@ namespace King {
         template<Color>
         Score evaluateSafety(Position const&, Bitboard) noexcept;
 
-        template<Color>
-        void initialize() noexcept;
-
         Key     key;
         Pawns::Entry *pawnEntry;
 

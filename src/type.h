@@ -248,8 +248,8 @@ enum Score : uint32_t {
 
 enum Bound : uint8_t {
     BOUND_NONE,
-    BOUND_UPPER = 1 << 0,
-    BOUND_LOWER = 1 << 1,
+    BOUND_UPPER,
+    BOUND_LOWER,
     BOUND_EXACT = BOUND_UPPER | BOUND_LOWER,
 };
 
@@ -530,7 +530,7 @@ constexpr Move reverseMove(Move m) {
 
 /// Convert Value to Centipawn
 constexpr double toCP(Value v) {
-    return double(v) * 100 / VALUE_EG_PAWN;
+    return double(v * 100 / VALUE_EG_PAWN);
 }
 /// Convert Centipawn to Value
 constexpr Value toValue(double cp) {
@@ -566,15 +566,12 @@ public:
 
 struct ValMove {
 
-    Move    move;
-    int32_t value;
-
     ValMove() noexcept :
         ValMove{ MOVE_NONE } {
     }
-    explicit ValMove(Move m) noexcept :
+    explicit ValMove(Move m, int32_t v = 0) noexcept :
         move{ m },
-        value{ 0 } {
+        value{ v } {
     }
 
     operator Move() const noexcept { return move; }
@@ -585,19 +582,16 @@ struct ValMove {
     operator float() const = delete;
     operator double() const = delete;
 
-    bool operator<(ValMove const &vm) const noexcept {
-        return value < vm.value;
-    }
-    bool operator>(ValMove const &vm) const noexcept {
-        return value > vm.value;
-    }
-    //bool operator<=(ValMove const &vm) const noexcept {
-    //    return value <= vm.value;
-    //}
-    //bool operator>=(ValMove const &vm) const noexcept {
-    //    return value >= vm.value;
-    //}
+    Move    move;
+    int32_t value;
 };
+
+inline bool operator<(ValMove const &vm1, ValMove const &vm2) noexcept {
+    return vm1.value < vm2.value;
+}
+//inline bool operator>(ValMove const &vm1, ValMove const &vm2) noexcept {
+//    return vm1.value > vm2.value;
+//}
 
 class ValMoves :
     public std::vector<ValMove> {
@@ -605,15 +599,12 @@ class ValMoves :
 public:
     using std::vector<ValMove>::vector;
 
-    void operator+=(Move move) { emplace_back(move); }
-    //void operator-=(Move move) { erase(std::find(begin(), end(), move)); }
+    void operator+=(Move move) noexcept { emplace_back(move); }
+    //void operator-=(Move move) noexcept { erase(std::find(begin(), end(), move)); }
 
     bool contains(Move move) const noexcept {
         return std::find(begin(), end(), move) != end();
     }
-    //bool contains(ValMove const &vm) const {
-    //    return std::find(begin(), end(), vm) != end();
-    //}
 };
 
 using TimePoint = std::chrono::milliseconds::rep; // Time in milli-seconds

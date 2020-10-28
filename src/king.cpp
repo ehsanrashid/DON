@@ -125,14 +125,6 @@ namespace King {
     template Score Entry::evaluateSafety<WHITE>(Position const&, Bitboard);
     template Score Entry::evaluateSafety<BLACK>(Position const&, Bitboard);
 
-    template<Color Own>
-    void Entry::initialize() noexcept {
-
-        square[Own] = SQ_NONE;
-        castleSide[Own][CS_KING] = false;
-        castleSide[Own][CS_QUEN] = false;
-    }
-
     Entry* probe(Position const &pos, Pawns::Entry *pe) {
 
         Key const kingKey{
@@ -147,6 +139,7 @@ namespace King {
             return e;
         }
 
+        std::memset(e, 0, sizeof(*e));
         e->key = kingKey;
         e->pawnEntry = pe;
 
@@ -155,8 +148,8 @@ namespace King {
         e->infiltration = sRank(pos.square(W_KING)) > RANK_4
                        || sRank(pos.square(B_KING)) < RANK_5;
 
-        e->initialize<WHITE>(),
-        e->initialize<BLACK>();
+        e->square[WHITE] =
+        e->square[BLACK] = SQ_NONE;
         return e;
     }
 

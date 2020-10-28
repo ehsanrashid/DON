@@ -27,7 +27,7 @@ public:
     Depth        depth() const noexcept { return Depth(d08 + DEPTH_OFFSET); }
 
     uint8_t generation() const noexcept { return uint8_t(g08 & 0xF8); }
-    bool            pv() const noexcept { return bool   (g08 & 0x04); }
+    bool          isPV() const noexcept { return bool   (g08 & 0x04); }
     Bound        bound() const noexcept { return Bound  (g08 & 0x03); }
 
     Value        value() const noexcept { return Value(v16); }
@@ -35,7 +35,7 @@ public:
 
     Move          move() const noexcept { return Move(m16); }
 
-    uint16_t     worth() const noexcept { return d08 - ((0x107 + Generation - g08) & 0xF8); }
+    int32_t      worth() const noexcept { return d08 - ((0x107 + Generation - g08) & 0xF8); }
 
     void       refresh() noexcept { g08 = uint8_t(Generation | (g08 & 0x07)); }
 
@@ -49,7 +49,7 @@ public:
         // Overwrite less valuable entries
         if (b == BOUND_EXACT
          || uint16_t(k) != k16
-         || d - DEPTH_OFFSET + 4 > d08) {
+         || d - DEPTH_OFFSET > d08 - 4) {
 
             assert(d > DEPTH_OFFSET);
             assert(d < MAX_PLY);
@@ -95,7 +95,7 @@ struct TCluster {
             });
     }
 
-    TEntry* probe(uint16_t, bool&) noexcept;
+    TEntry* probe(const uint16_t, bool&) noexcept;
 
     static constexpr uint8_t EntryPerCluster{ 3 };
 
@@ -124,8 +124,6 @@ public:
 
     uint32_t size() const noexcept;
 
-    TCluster* cluster(Key) const noexcept;
-
     bool resize(size_t);
 
     void autoResize(size_t);
@@ -134,7 +132,8 @@ public:
 
     void free() noexcept;
 
-    TEntry* probe(Key, bool&) const noexcept;
+    TCluster* cluster(const Key) const noexcept;
+    TEntry* probe(const Key, bool&) const noexcept;
 
     uint32_t hashFull() const noexcept;
 
@@ -179,11 +178,11 @@ constexpr uint64_t mul_hi64(uint64_t a, uint64_t b) noexcept {
 
 /// TTable::cluster() returns a pointer to the cluster of given a key.
 /// Lower 32 bits of the key are used to get the index of the cluster.
-inline TCluster* TTable::cluster(Key posiKey) const noexcept {
-    return &clusterTable[mul_hi64(posiKey, clusterCount)];
+inline TCluster* TTable::cluster(const Key posiKey) const noexcept {
+    return clusterTable + mul_hi64(posiKey, clusterCount);
 }
 /// TTable::probe() looks up the entry in the transposition table.
-inline TEntry *TTable::probe(Key posiKey, bool &hit) const noexcept {
+inline TEntry* TTable::probe(const Key posiKey, bool &hit) const noexcept {
     return cluster(posiKey)->probe(uint16_t(posiKey), hit);
 }
 

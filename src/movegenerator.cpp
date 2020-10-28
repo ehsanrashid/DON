@@ -36,13 +36,11 @@ namespace {
             auto const dst{ popLSq(promotions) };
             auto const org{ dst - dir };
 
-            bool const knightCheck{ contains(pos.checks(NIHT), dst) };
-
             if (GT == CAPTURE
              || GT == NORMAL
              || GT == EVASION) {
                 moves += makePromoteMove(org, dst, QUEN);
-                if (knightCheck) {
+                if (contains(pos.checks(NIHT), dst)) {
                     moves += makePromoteMove(org, dst, NIHT);
                 }
             }
@@ -51,7 +49,7 @@ namespace {
              || GT == EVASION) {
                 moves += makePromoteMove(org, dst, ROOK);
                 moves += makePromoteMove(org, dst, BSHP);
-                if (!knightCheck) {
+                if (!contains(pos.checks(NIHT), dst)) {
                     moves += makePromoteMove(org, dst, NIHT);
                 }
             }
@@ -456,7 +454,7 @@ Perft perft(Position &pos, Depth depth, bool detail) noexcept {
     if (RootNode) {
         std::ostringstream oss;
         oss << '\n'
-            << "Total Nodes:  " << std::right << std::setfill('.')
+            << "Total:  " << std::right << std::setfill('.')
             << std::setw(18) << sumLeaf.any;
         if (detail) {
             oss << " " << std::setw(16) << sumLeaf.capture

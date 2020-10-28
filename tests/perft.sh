@@ -14,7 +14,7 @@ cat << EOF > perft.exp
  spawn $exeprefix ./DON
  lassign \$argv pos depth result
  send "position \$pos\\nperft \$depth\\n"
- #expect "Total Nodes? \$result" {} timeout {exit 1}
+ #expect "Total? \$result" {} timeout {exit 1}
  send "quit\\n"
  #expect eof
 

@@ -153,7 +153,7 @@ public:
     Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const noexcept;
 
     constexpr Piece movedPiece(Move) const noexcept;
-    constexpr Piece prevMovedPiece(Move) const noexcept;
+    //constexpr Piece prevMovedPiece(Move) const noexcept;
 
     constexpr bool capture(Move) const noexcept;
     constexpr bool captureOrPromotion(Move) const noexcept;
@@ -432,9 +432,9 @@ inline Bitboard Position::attackersTo(Square s) const noexcept {
 constexpr Piece Position::movedPiece(Move m) const noexcept {
     return board[orgSq(m)];
 }
-constexpr Piece Position::prevMovedPiece(Move m) const noexcept {
-    return mType(m) != CASTLE ? board[dstSq(m)] : (~active|KING);
-}
+//constexpr Piece Position::prevMovedPiece(Move m) const noexcept {
+//    return mType(m) != CASTLE ? board[dstSq(m)] : (~active|KING);
+//}
 
 constexpr bool Position::capture(Move m) const noexcept {
     return  mType(m) == ENPASSANT
