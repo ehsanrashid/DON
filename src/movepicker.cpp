@@ -3,7 +3,7 @@
 namespace {
 
     enum Stage : uint8_t {
-        STAGE_NONE = 0,
+        STAGE_NONE,
 
         NORMAL_TT,
         NORMAL_INIT,
@@ -78,8 +78,13 @@ MovePicker::MovePicker(
         || pos.pseudoLegal(ttMove));
     assert(depth > DEPTH_ZERO);
 
-    stage = (pos.checkers() != 0 ? EVASION_TT : NORMAL_TT)
-          + !(ttMove != MOVE_NONE);
+    if (pos.checkers() != 0) {
+        stage = EVASION_TT
+              + !(ttMove != MOVE_NONE);
+    } else {
+        stage = NORMAL_TT
+              + !(ttMove != MOVE_NONE);
+    }
 }
 
 /// MovePicker constructor for quiescence search
@@ -104,11 +109,15 @@ MovePicker::MovePicker(
         || pos.pseudoLegal(ttMove));
     assert(depth <= DEPTH_QS_CHECK);
 
-    stage = (pos.checkers() != 0 ? EVASION_TT : QUIESCENCE_TT)
-          + !(ttMove != MOVE_NONE
-           && (pos.checkers() != 0
-            || depth > DEPTH_QS_RECAP
-            || dstSq(ttMove) == recapSq));
+    if (pos.checkers() != 0) {
+        stage = EVASION_TT
+              + !(ttMove != MOVE_NONE);
+    } else {
+        stage = QUIESCENCE_TT
+              + !(ttMove != MOVE_NONE
+               && (depth > DEPTH_QS_RECAP
+                || dstSq(ttMove) == recapSq));
+    }
 }
 
 /// MovePicker constructor for ProbCut search.
@@ -165,8 +174,7 @@ void MovePicker::value() {
             if (pos.capture(*vm)) {
                 vm->value = int32_t(PieceValues[MG][pos.captured(*vm)])
                          - pType(pos.movedPiece(*vm));
-            }
-            else {
+            } else {
                 vm->value = (*butterFlyStats)[pos.activeSide()][mMask(*vm)]
                           + (*contStats[0])[pos.movedPiece(*vm)][dstSq(*vm)]
                           - 0x10000000; // 1 << 28

@@ -31,8 +31,23 @@ public:
         std::vector<Move>{ 1, m } {
     }
 
-    //bool operator==(RootMove const&) const noexcept;
-    //bool operator!=(RootMove const&) const noexcept;
+    bool operator==(RootMove const &rm) const noexcept {
+        return front() == rm.front();
+    }
+    bool operator!=(RootMove const &rm) const noexcept {
+        return !(*this == rm);
+    }
+    // Sort in descending order
+    bool operator<(RootMove const &rm) const noexcept {
+        return (newValue > rm.newValue)
+            || (newValue == rm.newValue
+             && oldValue > rm.oldValue);
+    }
+    bool operator>(RootMove const &rm) const noexcept {
+        return (newValue < rm.newValue)
+            || (newValue == rm.newValue
+             && oldValue < rm.oldValue);
+    }
 
     bool operator==(Move m) const noexcept {
         return front() == m;
@@ -59,18 +74,6 @@ public:
     Value   tbValue{ VALUE_ZERO };
 
 };
-
-// Sort in descending order
-inline bool operator<(RootMove const &rm1, RootMove const &rm2) noexcept {
-    return (rm1.newValue > rm2.newValue)
-        || (rm1.newValue == rm2.newValue
-         && rm1.oldValue > rm2.oldValue);
-}
-//inline bool operator>(RootMove const &rm1, RootMove const &rm2) noexcept {
-//    return (rm1.newValue < rm2.newValue)
-//        || (rm1.newValue == rm2.newValue
-//         && rm1.oldValue < rm2.oldValue);
-//}
 
 extern std::ostream& operator<<(std::ostream&, RootMove const&);
 

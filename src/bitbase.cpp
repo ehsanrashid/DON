@@ -85,8 +85,7 @@ namespace Bitbases {
              || (active == WHITE
               && contains(pawnAttacksBB(WHITE, wpSq), bkSq))) {
                 result = INVALID;
-            }
-            else
+            } else
             // Win if a pawn can be promoted without getting captured
             if (active == WHITE
              && sRank(wpSq) == RANK_7
@@ -95,8 +94,7 @@ namespace Bitbases {
              && (distance(bkSq, wpSq + NORTH) >= 2
               || distance(wkSq, wpSq + NORTH) == 1)) {
                 result = WIN;
-            }
-            else
+            } else
             // Draw if king captures undefended pawn or is a stalemate
             if (active == BLACK
              && ((distance(bkSq, wpSq) == 1
@@ -104,9 +102,8 @@ namespace Bitbases {
               || (  attacksBB<KING>(bkSq)
                 & ~(attacksBB<KING>(wkSq)|pawnAttacksBB(WHITE, wpSq))) == 0)) {
                 result = DRAW;
-            }
+            } else {
             // Position will be classified later
-            else {
                 result = UNKNOWN;
             }
         }
@@ -145,8 +142,7 @@ namespace Bitbases {
                         r |= kpkArr[index(BLACK, wkSq, bkSq, wpSq + NORTH + NORTH)];
                     }
                 }
-            }
-            else {
+            } else {
                 // if (active == BLACK)
                 Bitboard b{  attacksBB<KING>(bkSq)
                           & ~attacksBB<KING>(wkSq) };

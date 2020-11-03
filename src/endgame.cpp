@@ -160,8 +160,7 @@ template<> Value Endgame<KRKP>::operator()(Position const &pos) const {
       && distance(wkSq, wpSq) >= 3 + (pos.activeSide() == weakColor))) {
         value = VALUE_EG_ROOK
               - distance(skSq, wpSq);
-    }
-    else
+    } else
     // If the pawn is far advanced and supported by the defending king, it's a drawish.
     if (relativeRank(stngColor, wkSq) <= RANK_3
      && distance(wpSq, wkSq) == 1
@@ -169,8 +168,7 @@ template<> Value Endgame<KRKP>::operator()(Position const &pos) const {
      && distance(wpSq, skSq) > 2 + (pos.activeSide() == stngColor)) {
         value = Value(80)
               - 8 * distance(wpSq, skSq);
-    }
-    else {
+    } else {
         value = Value(200)
               - 8 * (distance(skSq, wpSq + PawnPush[weakColor])
                    - distance(wkSq, wpSq + PawnPush[weakColor])
@@ -504,8 +502,7 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
         if (relativeRank(stngColor, sp1Sq) > relativeRank(stngColor, sp2Sq)) {
             block1Sq = sp1Sq + Push;
             block2Sq = makeSquare(sFile(sp2Sq), sRank(sp1Sq));
-        }
-        else {
+        } else {
             block1Sq = sp2Sq + Push;
             block2Sq = makeSquare(sFile(sp1Sq), sRank(sp2Sq));
         }

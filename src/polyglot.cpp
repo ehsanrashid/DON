@@ -92,31 +92,25 @@ bool PolyEntry::operator==(PolyEntry const &pe) const noexcept {
         && weight == pe.weight;
 }
 bool PolyEntry::operator!=(PolyEntry const &pe) const noexcept {
-    return key != pe.key
-        || move != pe.move
-        || weight != pe.weight;
+    return !(*this == pe);
 }
 
 bool PolyEntry::operator>(PolyEntry const &pe) const noexcept {
-    return key != pe.key       ? key > pe.key :
+    return key    != pe.key    ? key    > pe.key :
            weight != pe.weight ? weight > pe.weight :
-                                 move > pe.move;
+                                 move   > pe.move;
 }
 bool PolyEntry::operator<(PolyEntry const &pe) const noexcept {
-    return key != pe.key       ? key < pe.key :
+    return key    != pe.key    ? key    < pe.key :
            weight != pe.weight ? weight < pe.weight :
-                                 move < pe.move;
+                                 move   < pe.move;
 }
 
 bool PolyEntry::operator>=(PolyEntry const &pe) const noexcept {
-    return key != pe.key       ? key >= pe.key :
-           weight != pe.weight ? weight >= pe.weight :
-                                 move >= pe.move;
+    return !(*this < pe);
 }
 bool PolyEntry::operator<=(PolyEntry const &pe) const noexcept {
-    return key != pe.key       ? key <= pe.key :
-           weight != pe.weight ? weight <= pe.weight :
-                                 move <= pe.move;
+    return !(*this > pe);
 }
 
 bool PolyEntry::operator==(Move m) const noexcept { return move == m; }
@@ -171,12 +165,10 @@ int64_t PolyBook::findIndex(Key pgKey) const noexcept {
 
         if (pgKey > entryTable[mid].key) {
             beg = mid;
-        }
-        else
+        } else
         if (pgKey < entryTable[mid].key) {
             end = mid;
-        }
-        else { // pgKey == entry[mid].key
+        } else { // pgKey == entry[mid].key
             beg = std::max(mid - 4, int64_t(0));
             end = std::min(mid + 4, int64_t(entryCount));
         }
@@ -302,8 +294,7 @@ Move PolyBook::probe(Position &pos, int16_t moveCount, bool pickBest) {
             if (maxWeight == entryTable[idx].weight) {
                 pick1Index = idx;
             }
-        }
-        else {
+        } else {
             // Move with a very high score, has a higher probability of being choosen.
             if (sumWeight != 0
              && (prng.rand<uint32_t>() % sumWeight) < entryTable[idx].weight) {

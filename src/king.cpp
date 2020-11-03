@@ -105,12 +105,12 @@ namespace King {
             Bitboard pawns{ pos.pieces(Own, PAWN) };
             if ((pawns & attacksBB<KING>(sq)) != 0) {
                 minPawnDist = 1;
+            } else {
+                while (pawns != 0
+                    && minPawnDist != 2) {
+                    minPawnDist = std::min(minPawnDist, distance(sq, popLSq(pawns)));
+                }
             }
-            else while (pawns != 0
-                     && minPawnDist != 2) {
-                minPawnDist = std::min(minPawnDist, distance(sq, popLSq(pawns)));
-            }
-
             safety[Own] = shelter - makeScore(0, 16 * minPawnDist);
 
             square[Own] = sq;

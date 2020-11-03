@@ -21,6 +21,7 @@
 
 #include <algorithm>
 #include <chrono>
+#include <string>
 #include <vector>
 
 /// Predefined macros hell:
@@ -574,24 +575,29 @@ struct ValMove {
         value{ v } {
     }
 
+    bool operator<(ValMove const &vm) const noexcept {
+        return value < vm.value;
+    }
+    bool operator>(ValMove const &vm) const noexcept {
+        return value > vm.value;
+    }
+
     operator Move() const noexcept { return move; }
-    void operator=(Move m) noexcept { move = m; }
 
     // Inhibit unwanted implicit conversions to Move
     // with an ambiguity that yields to a compile error.
     operator float() const = delete;
     operator double() const = delete;
 
+    void operator=(Move m) noexcept { move = m; }
+
+    std::string toString() const noexcept {
+        return std::to_string(value);
+    }
+
     Move    move;
     int32_t value;
 };
-
-inline bool operator<(ValMove const &vm1, ValMove const &vm2) noexcept {
-    return vm1.value < vm2.value;
-}
-//inline bool operator>(ValMove const &vm1, ValMove const &vm2) noexcept {
-//    return vm1.value > vm2.value;
-//}
 
 class ValMoves :
     public std::vector<ValMove> {

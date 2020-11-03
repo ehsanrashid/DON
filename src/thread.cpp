@@ -127,8 +127,7 @@ Thread* ThreadPool::bestThread() const noexcept {
                && bestTh->finishedDepth < th->finishedDepth))) {
                 bestTh = th;
             }
-        }
-        else {
+        } else {
             // Select the shortest mate for own/longest mate for opp
             if ( bestTh->rootMoves[0].newValue <  th->rootMoves[0].newValue
              || (bestTh->rootMoves[0].newValue == th->rootMoves[0].newValue

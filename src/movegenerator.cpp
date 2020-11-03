@@ -334,8 +334,7 @@ void Perft::classify(Position &pos, Move m) noexcept {
                    & attacksBB<ROOK>(pos.square(~pos.activeSide()|KING), mocc)) != 0) {
                     ++dscCheck;
                 }
-            }
-            else
+            } else
             if (contains(pos.kingBlockers(~pos.activeSide()), orgSq(m))
              /*&& !aligned(orgSq(m), dstSq(m), ekSq)*/) {
                 ++dscCheck;
@@ -407,8 +406,7 @@ Perft perft(Position &pos, Depth depth, bool detail) noexcept {
             if (detail) {
                 leaf.classify(pos, vm);
             }
-        }
-        else {
+        } else {
             StateInfo si;
             pos.doMove(vm, si);
 
@@ -419,8 +417,7 @@ Perft perft(Position &pos, Depth depth, bool detail) noexcept {
                         leaf.classify(pos, ivm);
                     }
                 }
-            }
-            else {
+            } else {
                 leaf = perft<false>(pos, depth - 1, detail);
             }
 

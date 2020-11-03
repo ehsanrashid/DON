@@ -6,16 +6,18 @@
 #include <vector>
 
 #if defined(_WIN32)
+    // Force to include needed API prototypes
     #if (_WIN32_WINNT < 0x0601)
         #undef  _WIN32_WINNT
-        #define _WIN32_WINNT _WIN32_WINNT_WIN7 // Force to include needed API prototypes
+        #define _WIN32_WINNT _WIN32_WINNT_WIN7
     #endif
-
+    // Disable macros min() and max()
     #if !defined(NOMINMAX)
-        #define NOMINMAX // Disable macros min() and max()
+        #define NOMINMAX
     #endif
+    // Excludes APIs such as Cryptography, DDE, RPC, Socket
     #if !defined(WIN32_LEAN_AND_MEAN)
-        #define WIN32_LEAN_AND_MEAN // Excludes APIs such as Cryptography, DDE, RPC, Socket
+        #define WIN32_LEAN_AND_MEAN
     #endif
 
     #include <Windows.h>

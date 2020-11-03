@@ -60,9 +60,8 @@ void TimeManager::setup(Color c, int16_t ply) noexcept {
         optimumScale = std::min(0.2 * Limits.clock[c].time / double(remainTime),
                                 0.0084 + std::pow(ply + 3.0, 0.5) * 0.0042);
         maximumScale = std::min(4.0 + ply / 12.0, 7.0);
-    }
+    } else {
     // x moves in y seconds (+ z increment)
-    else {
         optimumScale = std::min(0.8 * Limits.clock[c].time / double(remainTime),
                                (0.8 + ply / 128.0) / double(maxMovestogo));
         maximumScale = std::min(1.5 + 0.11 * maxMovestogo, 6.3);

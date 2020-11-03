@@ -319,8 +319,7 @@ inline Square scanLSq(Bitboard bb) noexcept {
     #else
     if (uint32_t(bb >> 0) != 0) {
         _BitScanForward(&index, uint32_t(bb >> 0x00));
-    }
-    else {
+    } else {
         _BitScanForward(&index, uint32_t(bb >> 0x20));
         index += 0x20;
     }
@@ -348,8 +347,7 @@ inline Square scanMSq(Bitboard bb) noexcept {
     if (uint32_t(bb >> 0x20) != 0) {
         _BitScanReverse(&index, uint32_t(bb >> 0x20));
         index += 0x20;
-    }
-    else {
+    } else {
         _BitScanReverse(&index, uint32_t(bb >> 0x00));
     }
     #endif

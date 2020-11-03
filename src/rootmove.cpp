@@ -8,13 +8,6 @@
 #include "movegenerator.h"
 #include "notation.h"
 
-//bool RootMove::operator==(RootMove const &rm) const noexcept {
-//    return front() == rm[0];
-//}
-//bool RootMove::operator!=(RootMove const &rm) const noexcept {
-//    return front() != rm[0];
-//}
-
 /// RootMove::toString()
 std::string RootMove::toString() const {
     std::ostringstream oss;

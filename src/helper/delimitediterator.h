@@ -36,8 +36,7 @@ public:
     DelimitedIterator &operator=(T const &t) {
         if (first) {
             first = false;
-        }
-        else {
+        } else {
             if (delimiter) {
                 *os << delimiter;
             }

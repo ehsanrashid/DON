@@ -48,8 +48,7 @@ namespace CommandLine {
         size_t const pos = binaryDirectory.find_last_of("\\/");
         if (pos == std::string::npos) {
             binaryDirectory = "." + pathSeparator;
-        }
-        else {
+        } else {
             binaryDirectory.resize(pos + 1);
         }
 

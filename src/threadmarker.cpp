@@ -25,8 +25,7 @@ ThreadMarker::ThreadMarker(Thread const *thread, Key posiKey, int16_t ply) noexc
         threadMark->store(&ThreadMark::thread, thread);
         threadMark->store(&ThreadMark::posiKey, posiKey);
         owned = true;
-    }
-    else
+    } else
     if (th != thread
      && threadMark->load(&ThreadMark::posiKey) == posiKey) {
         marked = true;

@@ -289,8 +289,7 @@ namespace Evaluator::NNUE {
                 }
 
             #endif
-            }
-            else {
+            } else {
                 // Refresh the accumulator
                 auto& accumulator{ pos.state()->accumulator };
                 accumulator.state[c] = COMPUTED;

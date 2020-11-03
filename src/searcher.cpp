@@ -343,8 +343,7 @@ namespace {
             ss->staticEval = VALUE_NONE;
             // Starting from the worst case which is checkmate
             bestValue = futilityBase = -VALUE_INFINITE;
-        }
-        else {
+        } else {
             if (ss->ttHit) {
                 // Never assume anything on values stored in TT.
                 if ((ss->staticEval = bestValue = tte->eval()) == VALUE_NONE) {
@@ -356,8 +355,7 @@ namespace {
                  && (tte->bound() & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER))) {
                     bestValue = ttValue;
                 }
-            }
-            else {
+            } else {
                 ss->staticEval = bestValue = ((ss-1)->playedMove != MOVE_NULL ? evaluate(pos) : -(ss-1)->staticEval + 2 * VALUE_TEMPO);
             }
 
@@ -458,8 +456,8 @@ namespace {
             }
 
             // CounterMove based pruning
-            if (!ss->inCheck
-             && !captureOrPromotion
+            if (!captureOrPromotion
+             && bestValue > +VALUE_MATE_2_MAX_PLY
              && (*contStats[0])[pos.movedPiece(move)][dstSq(move)] < CounterMovePruneThreshold
              && (*contStats[1])[pos.movedPiece(move)][dstSq(move)] < CounterMovePruneThreshold) {
                 continue;
@@ -499,8 +497,7 @@ namespace {
 
                     if (PVNode && value < beta) {// Update alpha here!
                         alfa = value;
-                    }
-                    else {
+                    } else {
                         break; // Fail high
                     }
                 }
@@ -679,9 +676,9 @@ namespace {
                      && (ss-1)->moveCount <= 2) {
                         updateContinuationStats(ss-1, pos[prevDst], prevDst, -statBonus(depth + 1));
                     }
-                }
+                } else
                 // Penalty for a quiet ttMove that fails low
-                else if (!pos.captureOrPromotion(ttMove)) {
+                if (!pos.captureOrPromotion(ttMove)) {
                     updateQuietStats(ss, pos, ttMove, -statBonus(depth));
                 }
             }
@@ -738,8 +735,7 @@ namespace {
                     if (PVNode) {
                         if (bound == BOUND_LOWER) {
                             bestValue = value, alfa = std::max(alfa, bestValue);
-                        }
-                        else {
+                        } else {
                             maxValue = value;
                         }
                     }
@@ -764,9 +760,8 @@ namespace {
 
             ss->staticEval = eval = VALUE_NONE;
             improving = false;
-        }
+        } else {
         // Early pruning
-        else {
 
             if (ss->ttHit) {
                 // Never assume anything on values stored in TT.
@@ -782,8 +777,7 @@ namespace {
                  && (tte->bound() & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER))) {
                     eval = ttValue;
                 }
-            }
-            else {
+            } else {
                 ss->staticEval = eval = ((ss-1)->playedMove != MOVE_NULL ? evaluate(pos) : -(ss-1)->staticEval + 2 * VALUE_TEMPO);
 
                 tte->save(posiKey,
@@ -799,7 +793,7 @@ namespace {
             if (!rootNode // The RootNode PV handling is not available in qsearch
              && depth == 1
                 // Razor Margin
-             && eval <= alfa - 510) {
+             && eval <= (alfa - 510)) {
                 return quienSearch<PVNode>(pos, ss, alfa, beta);
             }
 
@@ -814,7 +808,7 @@ namespace {
              && depth < 8
              && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
                 // Futility Margin
-             && eval - (223 * (depth - improving)) >= beta
+             && (eval - (223 * (depth - improving))) >= beta
              && Limits.mate == 0) {
                 return eval;
             }
@@ -826,7 +820,7 @@ namespace {
              && excludedMove == MOVE_NONE
              && (ss-1)->playedMove != MOVE_NULL
              && (ss-1)->stats < 22977
-             && ss->staticEval >= beta - 30 * depth - 28 * improving + 84 * ss->ttPV + 182
+             && ss->staticEval >= (beta - 30 * depth - 28 * improving + 84 * ss->ttPV + 182)
              && pos.nonPawnMaterial(activeSide) != VALUE_ZERO
              // Null move pruning disabled for activeSide until ply exceeds nmpPly
              && (ss->ply >= thread->nmpMinPly
@@ -1033,8 +1027,7 @@ namespace {
                 if (!thread->rootMoves.contains(thread->pvCur, thread->pvEnd, move)) {
                     continue;
                 }
-            }
-            else {
+            } else {
                 // Check for legality
                 if (!pos.legal(move)) {
                     continue;
@@ -1095,9 +1088,8 @@ namespace {
                     if (!pos.see(move, Value(-221 * depth))) {
                         continue;
                     }
-                }
-                else {
-                    // Counter moves based pruning: (~20 ELO)
+                } else {
+                    // CounterMove based pruning: (~20 ELO)
                     if (lmrDepth < 4 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1)
                      && (*contStats[0])[mpc][dstSq(move)] < CounterMovePruneThreshold
                      && (*contStats[1])[mpc][dstSq(move)] < CounterMovePruneThreshold) {
@@ -1106,7 +1098,7 @@ namespace {
                     // Futility pruning: parent node. (~5 ELO)
                     if (lmrDepth < 7
                      && !ss->inCheck
-                     && ss->staticEval + 170 * lmrDepth + 283 <= alfa
+                     && (ss->staticEval + 170 * lmrDepth + 283) <= alfa
                      && ((*contStats[0])[mpc][dstSq(move)]
                        + (*contStats[1])[mpc][dstSq(move)]
                        + (*contStats[3])[mpc][dstSq(move)]
@@ -1148,18 +1140,16 @@ namespace {
                 if (value < singularBeta) {
                     extension = 1;
                     singularQuietLMR = !ttmCapture;
-                }
+                } else
                 // Multi-cut pruning
                 // Our ttMove is assumed to fail high, and now failed high also on a reduced
                 // search without the ttMove. So assume this expected Cut-node is not singular,
                 // multiple moves fail high, and can prune the whole subtree by returning the soft bound.
-                else
                 if (singularBeta >= beta) {
                     return singularBeta;
-                }
+                } else
                 // If the eval of ttMove is greater than beta we try also if there is an other move that
                 // pushes it over beta, if so also produce a cutoff
-                else
                 if (ttValue >= beta) {
                     ss->excludedMove = ttMove;
                     value = depthSearch<false>(pos, ss, beta-1, beta, (depth + 3) / 2, cutNode);
@@ -1169,15 +1159,13 @@ namespace {
                         return beta;
                     }
                 }
-            }
-            else
+            } else
             // Check extension (~2 ELO)
             if (giveCheck
              && (contains(pos.kingBlockers(~activeSide), orgSq(move))
               || pos.see(move))) {
                 extension = 1;
-            }
-            else
+            } else
             // Previous capture extension
             if (pos.captured() > PAWN
              && pos.nonPawnMaterial() <= 2 * VALUE_MG_ROOK) {
@@ -1211,7 +1199,7 @@ namespace {
              && (cutNode
               || !captureOrPromotion
               || moveCountPruning
-              || ss->staticEval + PieceValues[EG][pos.captured()] <= alfa
+              || (ss->staticEval + PieceValues[EG][pos.captured()]) <= alfa
                 // If ttHit running average is small
               || thread->ttHitAvg < 427 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/) };
 
@@ -1244,11 +1232,10 @@ namespace {
                     }
                     // Increase reduction for captures/promotions that don't give check if static eval is bad enough
                     if (!giveCheck
-                     && ss->staticEval + PieceValues[EG][pos.captured()] + 213 * depth <= alfa) {
+                     && (ss->staticEval + PieceValues[EG][pos.captured()] + 213 * depth) <= alfa) {
                         reductDepth += 1;
                     }
-                }
-                else {
+                } else {
 
                     // Increase reduction at root for late moves in case of consecutive fail highs
                     if (rootNode) {
@@ -1261,8 +1248,7 @@ namespace {
                     // Increase reduction if cut nodes (~10 ELO)
                     if (cutNode) {
                         reductDepth += 2;
-                    }
-                    else
+                    } else
                     // Decrease reduction if move escapes a capture in no-cut nodes
                     // Filter out castling moves, because they are coded as "king captures rook" and
                     // hence break make_move(). (~2 Elo)
@@ -1281,8 +1267,7 @@ namespace {
                     // Decrease/Increase reduction by comparing opponent's stat score (~10 Elo)
                     if (ss->stats >= -106 && (ss-1)->stats < -104) {
                         reductDepth--;
-                    }
-                    else
+                    } else
                     if ((ss-1)->stats >= -119 && ss->stats < -140) {
                         reductDepth++;
                     }
@@ -1296,8 +1281,7 @@ namespace {
                 value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, d, true);
 
                 doFullSearch = alfa < value && d < newDepth;
-            }
-            else {
+            } else {
                 doFullSearch = !PVNode || moveCount > 1;
             }
 
@@ -1365,8 +1349,7 @@ namespace {
                      && Limits.useTimeMgmt()) {
                         ++thread->pvChanges;
                     }
-                }
-                else {
+                } else {
                     // All other moves but the PV are set to the lowest value, this
                     // is not a problem when sorting because sort is stable and move
                     // position in the list is preserved, just the PV is pushed up.
@@ -1389,8 +1372,7 @@ namespace {
 
                     if (PVNode && value < beta) { // Update alpha! Always alpha < beta
                         alfa = value;
-                    }
-                    else {
+                    } else {
                         assert(value >= beta); // Fail high
                         ss->stats = 0;
                         break;
@@ -1401,8 +1383,7 @@ namespace {
             if (move != bestMove) {
                 if (captureOrPromotion) {
                     captureMoves += move;
-                }
-                else {
+                } else {
                     quietMoves += move;
                 }
             }
@@ -1430,8 +1411,7 @@ namespace {
             bestValue =
                 excludedMove != MOVE_NONE ? alfa :
                 ss->inCheck ? matedIn(ss->ply) : VALUE_DRAW;
-        }
-        else
+        } else
         if (bestMove != MOVE_NONE) {
             auto const bonus1{ statBonus(depth + 1) };
 
@@ -1444,8 +1424,7 @@ namespace {
                 for (auto qm : quietMoves) {
                     updateQuietStats(ss, pos, qm, -bonus2);
                 }
-            }
-            else {
+            } else {
                 thread->captureStats[pos.movedPiece(bestMove)][dstSq(bestMove)][pos.captured(bestMove)] << bonus1;
             }
 
@@ -1460,8 +1439,7 @@ namespace {
               || ((ss-1)->playedMove == (ss-1)->killerMoves[0]))) {
                 updateContinuationStats(ss-1, pos[prevDst], prevDst, -bonus1);
             }
-        }
-        else {
+        } else {
             // Bonus for prior quiet move that caused the fail low.
             if (!pmCapOrPro
              && (PVNode
@@ -1479,10 +1457,9 @@ namespace {
             // opponent move is probably good and the new position is added to the search tree.
             if (bestValue <= alfa) {
                 ss->ttPV = ss->ttPV || (ss-1)->ttPV;
-            }
+            } else {
             // Otherwise, a counter move has been found and if the position is the last leaf
             // in the search tree, remove the position from the search tree.
-            else {
                 ss->ttPV = ss->ttPV && (ss+1)->ttPV;
             }
         }
@@ -1675,17 +1652,15 @@ void Thread::search() {
                     if (mainThread) {
                         Threadpool.stopPonderhit = false;
                     }
-                }
-                else
+                } else
                 // If fail high set new bounds
                 if (bestValue >= beta) {
                     // NOTE:: Don't change alfa = (alfa + beta) / 2
                     beta = std::min(bestValue + window, +VALUE_INFINITE);
 
                     ++failHighCount;
-                }
+                } else {
                 // Otherwise exit the loop
-                else {
                     break;
                 }
 
@@ -1765,8 +1740,7 @@ void Thread::search() {
                         // keep pondering until GUI sends "stop"/"ponderhit".
                         if (!Threadpool.ponder) {
                             Threadpool.stop = true;
-                        }
-                        else {
+                        } else {
                             Threadpool.stopPonderhit = true;
                         }
                     }
@@ -1814,8 +1788,7 @@ void MainThread::search() {
                   << " depth " << 0
                   << " score " << toString(rootPos.checkers() != 0 ? -VALUE_MATE : VALUE_DRAW)
                   << " time "  << 0 << sync_endl;
-    }
-    else {
+    } else {
 
         if ( Options["Use Book"]
          &&  Book.enabled
@@ -2013,8 +1986,7 @@ namespace SyzygyTB {
              || rootMoves[0].tbValue <= VALUE_DRAW) {
                 PieceLimit = 0;
             }
-        }
-        else {
+        } else {
             // Clean up if rootProbeDTZ() and rootProbeWDL() have failed
             for (auto &rm : rootMoves) {
                 rm.tbRank = 0;

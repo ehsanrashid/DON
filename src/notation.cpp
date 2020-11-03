@@ -42,8 +42,7 @@ std::string toString(Value v) {
     std::ostringstream oss;
     if (std::abs(v) < +VALUE_MATE_1_MAX_PLY) {
         oss << "cp " << int32_t(toCP(v));
-    }
-    else {
+    } else {
         oss << "mate " << int16_t(v > 0 ? +VALUE_MATE - v + 1 : -VALUE_MATE - v + 0) / 2;
     }
     return oss.str();
@@ -182,8 +181,7 @@ namespace {
         if (std::abs(v) < +VALUE_MATE_1_MAX_PLY) {
             oss << std::showpos << std::fixed << std::setprecision(2)
                 << toCP(v) / 100;
-        }
-        else {
+        } else {
             oss << std::showpos
                 << "#" << int16_t(v > VALUE_ZERO ?
                             +VALUE_MATE - v + 1 :
@@ -252,8 +250,7 @@ std::string moveToSAN(Move m, Position &pos) {
          && mType(m) == PROMOTE) {
             oss << "=" << (WHITE|promoteType(m));
         }
-    }
-    else {
+    } else {
         oss << (dst > org ? "O-O" : "O-O-O");
     }
 
@@ -288,16 +285,15 @@ std::string prettyInfo(Thread *th) {
         << std::setw( 8) << prettyValue(th->rootMoves[0].newValue)
         << std::setw(12) << prettyTime(TimeMgr.elapsed());
 
-         if (nodes < 10ULL*1000) {
+    if (nodes < 10ULL*1000) {
         oss << std::setw(8) << uint16_t(nodes);
-    }
-    else if (nodes < 10ULL*1000*1000) {
+    } else
+    if (nodes < 10ULL*1000*1000) {
         oss << std::setw(7) << uint16_t(std::round(nodes / 1000.0)) << "K";
-    }
-    else if (nodes < 10ULL*1000*1000*1000) {
+    } else
+    if (nodes < 10ULL*1000*1000*1000) {
         oss << std::setw(7) << uint16_t(std::round(nodes / 1000.0*1000.0)) << "M";
-    }
-    else {
+    } else {
         oss << std::setw(7) << uint16_t(std::round(nodes / 1000.0*1000.0*1000.0)) << "G";
     }
     oss << " ";

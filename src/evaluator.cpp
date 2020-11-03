@@ -99,8 +99,7 @@ namespace Evaluator {
                     std::exit(EXIT_FAILURE);
                 }
                 sync_cout << "info string NNUE evaluation using " << evalFile << " enabled." << sync_endl;
-            }
-            else {
+            } else {
                 sync_cout << "info string classical evaluation enabled." << sync_endl;
             }
         }
@@ -135,8 +134,7 @@ namespace Evaluator {
                  || t == SCALING
                  || t == TOTAL) {
                     oss << " | ------ ------" << " | ------ ------";
-                }
-                else {
+                } else {
                     oss << " | " << Scores[t][WHITE] << " | " << Scores[t][BLACK];
                 }
                 oss << " | " << Scores[t][WHITE] - Scores[t][BLACK] << " |\n";
@@ -410,13 +408,13 @@ namespace Evaluator {
                     kingAttackersCount [Own]++;
                     kingAttackersWeight[Own] += KingAttackerWeight[PT];
                     kingAttacksCount   [Own] += popCount(attacks & attackedBy[Opp][KING]);
-                }
-                else if (PT == BSHP
-                      && (kingRing[Opp] & attacksBB<BSHP>(s, pos.pieces(PAWN))) != 0) {
+                } else
+                if (PT == BSHP
+                 && (kingRing[Opp] & attacksBB<BSHP>(s, pos.pieces(PAWN))) != 0) {
                     score += BishopOnKingRing;
-                }
-                else if (PT == ROOK
-                      && (kingRing[Opp] & fileBB(s) & attacksBB<ROOK>(s, pos.pieces(Own, PAWN))) != 0) {
+                } else
+                if (PT == ROOK
+                 && (kingRing[Opp] & fileBB(s) & attacksBB<ROOK>(s, pos.pieces(Own, PAWN))) != 0) {
                     score += RookOnKingRing;
                 }
 
@@ -457,12 +455,10 @@ namespace Evaluator {
                              && (attacks & targets) == 0
                              && !moreThanOne(targets & (contains(slotFileBB(CS_QUEN), s) ? slotFileBB(CS_QUEN) : slotFileBB(CS_KING)))) {
                                 score += KnightBadOutpost;
-                            }
-                            else {
+                            } else {
                                 score += KnightOutpost;
                             }
-                        }
-                        else {
+                        } else {
                             if ((b & attacks & ~pos.pieces(Own)) != 0) {
                                 score += KnightReachOutpost;
                             }
@@ -470,8 +466,7 @@ namespace Evaluator {
 
                         // Penalty for knight distance from the friend king
                         score -= KnightKingProtect * distance(pos.square(Own|KING), s);
-                    }
-                    else
+                    } else
                     if (PT == BSHP) {
 
                         // Bonus for bishop outpost squares
@@ -515,8 +510,7 @@ namespace Evaluator {
                             }
                         }
                     }
-                }
-                else
+                } else
                 if (PT == ROOK) {
 
                     attackedBy2[Own] |= attackedBy[Own][NONE] & attacks;
@@ -527,8 +521,8 @@ namespace Evaluator {
                         if (pos.semiopenFileOn(Opp, s)) {
                             score += RookOnFullopenFile;
                         }
-                    }
-                    else if (mob <= 3) {
+                    } else
+                    if (mob <= 3) {
                         // Penalty for rook when trapped by the king, even more if the king can't castle
                         if (relativeRank(Own, s) < RANK_4
                          && (pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) != 0) {
@@ -536,13 +530,11 @@ namespace Evaluator {
                              || ((sFile(pos.square(Own|KING)) > FILE_D) && (sFile(s) > sFile(pos.square(Own|KING))))) {
                                 score -= RookTrapped * (1 + !pos.canCastle(Own));
                             }
-                        }
-                        else {
+                        } else {
                             score -= RookTrapped / 2;
                         }
                     }
-                }
-                else
+                } else
                 if (PT == QUEN) {
 
                     b =  pos.pieces(Own)
@@ -624,8 +616,7 @@ namespace Evaluator {
 
             if (rookSafeChecks != 0) {
                 kingDanger += SafeCheckWeight[ROOK][moreThanOne(rookSafeChecks)];
-            }
-            else {
+            } else {
                 unsafeCheck |= rookPins
                              & attackedBy[Opp][ROOK];
             }
@@ -651,8 +642,7 @@ namespace Evaluator {
 
             if (bshpSafeChecks != 0) {
                 kingDanger += SafeCheckWeight[BSHP][moreThanOne(bshpSafeChecks)];
-            }
-            else {
+            } else {
                 unsafeCheck |= bshpPins
                              & attackedBy[Opp][BSHP];
             }
@@ -665,8 +655,7 @@ namespace Evaluator {
 
             if (nihtSafeChecks != 0) {
                 kingDanger += SafeCheckWeight[NIHT][moreThanOne(nihtSafeChecks)];
-            }
-            else {
+            } else {
                 unsafeCheck |= attacksBB<NIHT>(kSq)
                              & attackedBy[Opp][NIHT];
             }
@@ -690,23 +679,23 @@ namespace Evaluator {
             // King Safety:
             Score score{ kingEntry->evaluateSafety<Own>(pos, attackedFull[Opp] & rankBB(relativeRank(Own, RANK_1))) };
 
-            kingDanger +=   1 * kingAttackersCount[Opp] * kingAttackersWeight[Opp]
-                        +  69 * kingAttacksCount[Opp]
-                        + 185 * popCount(kingRing[Own] & weakArea)
-                        + 148 * popCount(unsafeCheck)
-                        +  98 * popCount(pos.kingBlockers(Own))
-                        +   3 * (kingFlankAttack*kingFlankAttack) / 8
+            kingDanger +=   1 * kingAttackersCount[Opp] * kingAttackersWeight[Opp]  // (~10.0 ELO)
+                        + 185 * popCount(kingRing[Own] & weakArea)                  // (~15.0 ELO)
+                        + 148 * popCount(unsafeCheck)                               // (~ 4.0 ELO)
+                        +  98 * popCount(pos.kingBlockers(Own))                     // (~ 2.0 ELO)
+                        +  69 * kingAttacksCount[Opp]                               // (~ 0.5 ELO)
+                        +   3 * (kingFlankAttack*kingFlankAttack) / 8               // (~ 0.5 ELO)
                         // Enemy queen is gone
-                        - 873 * (pos.pieces(Opp, QUEN) == 0)
+                        - 873 * (pos.pieces(Opp, QUEN) == 0)                        // (~24.0 ELO)
                         // Friend knight is near by to defend king
                         - 100 * (( attackedBy[Own][NIHT]
-                                & (attackedBy[Own][KING] | kSq)) != 0)
+                                & (attackedBy[Own][KING] | kSq)) != 0)              // (~ 5.0 ELO)
                         // Mobility
-                        -   1 * (mgValue(mobility[Own] - mobility[Opp]))
-                        -   4 * kingFlankDefense
+                        -   1 * (mgValue(mobility[Own] - mobility[Opp]))            // (~ 0.5 ELO)
+                        -   4 * kingFlankDefense                                    // (~ 5.0 ELO)
                         // Pawn Safety quality
-                        -   3 * mgValue(score) / 4
-                        +  37;
+                        -   3 * mgValue(score) / 4                                  // (~ 8.0 ELO)
+                        +  37;                                                      // (~ 0.5 ELO)
 
             // transform the king danger into a score
             if (kingDanger > 100) {
@@ -1089,8 +1078,7 @@ namespace Evaluator {
                     scale = pos.nonPawnMaterial() == 2 * VALUE_MG_BSHP ?
                                 18 + 4 * popCount(pawnEntry->passeds[strongSide]) :
                                 22 + 3 * pos.count(strongSide);
-                }
-                else
+                } else
                 if (pos.nonPawnMaterial(WHITE) == VALUE_MG_ROOK
                  && pos.nonPawnMaterial(BLACK) == VALUE_MG_ROOK
                  && pos.count( strongSide|PAWN)
@@ -1099,14 +1087,12 @@ namespace Evaluator {
                  != bool(pos.pieces(strongSide, PAWN) & slotFileBB(CS_QUEN))
                  && (attackedBy[~strongSide][KING] & pos.pieces(~strongSide, PAWN)) != 0) {
                     scale = 36;
-                }
-                else
+                } else
                 if (pos.count(QUEN) == 1) {
                     // Opposite queen color
                     auto const queenColor{ ~pColor(pos[scanLSq(pos.pieces(QUEN))]) };
                     scale = 37 + 3 * (pos.count(queenColor|NIHT) + pos.count(queenColor|BSHP));
-                }
-                else {
+                } else {
                     scale = std::min(36 + 7 * pos.count(strongSide|PAWN), scale) - 4 * !pawnEntry->pawnsOnBothFlank;
                 }
 
@@ -1177,12 +1163,10 @@ namespace Evaluator {
                    && (pos.thread()->nodes & 0xB) == 0))) {
                     v = nnueAdjEvaluate();
                 }
-            }
-            else {
+            } else {
                 v = nnueAdjEvaluate();
             }
-        }
-        else {
+        } else {
             v = Evaluation<false>(pos).value();
         }
 

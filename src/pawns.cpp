@@ -107,20 +107,17 @@ namespace Pawns {
                 int32_t const v{ Connected[r] * (2 + 1 * (phalanxes != 0) - 1 * opposed)
                                + 22 * popCount(supporters) };
                 sc += makeScore(v, v * (r - RANK_3) / 4);
-            }
-            else
+            } else
             if (neighbours == 0) {
                 if (opposed
                  && (ownPawns & frontSquaresBB(Opp, s)) != 0
                  && (oppPawns & adjacentFilesBB(s)) == 0) {
                     sc -= WeakDoubled;
-                }
-                else {
+                } else {
                     sc -= Isolated
                         + Unopposed * !opposed;
                 }
-            }
-            else
+            } else
             if (backward) {
                 sc -= Backward
                     + Unopposed * !opposed;

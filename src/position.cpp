@@ -64,12 +64,10 @@ Key Position::movePosiKey(Move m) const noexcept {
         // ROOK
         pKey ^= RandZob.psq[cp][dst]
               ^ RandZob.psq[cp][rookCastleSq(org, dst)];
-    }
-    else {
+    } else {
         if (cp != NO_PIECE) {
             pKey ^= RandZob.psq[cp][mType(m) != ENPASSANT ? dst : dst - PawnPush[active]];
-        }
-        else
+        } else
         if (pType(mp) == PAWN
          && dst == org + PawnPush[active] * 2) {
             auto epSq{ org + PawnPush[active] };
@@ -268,8 +266,7 @@ bool Position::pseudoLegal(Move m) const noexcept {
           || _stateInfo->clockPly != 0)) {
             return false;
         }
-    }
-    else {
+    } else {
         if (mType(m) != SIMPLE
          || !contains(attacksBB(pType(board[org]), org, pieces()), dst)) {
             return false;
@@ -598,31 +595,27 @@ bool Position::see(Move m, Value threshold) const noexcept {
             }
             mocc ^= (org = scanLSq(b));
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
-        }
-        else
+        } else
         if ((b = movAttackers & pieces(NIHT)) != 0) {
             if ((swap = VALUE_MG_NIHT - swap) < res) {
                 break;
             }
             mocc ^= (org = scanLSq(b));
-        }
-        else
+        } else
         if ((b = movAttackers & pieces(BSHP)) != 0) {
             if ((swap = VALUE_MG_BSHP - swap) < res) {
                 break;
             }
             mocc ^= (org = scanLSq(b));
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc));
-        }
-        else
+        } else
         if ((b = movAttackers & pieces(ROOK)) != 0) {
             if ((swap = VALUE_MG_ROOK - swap) < res) {
                 break;
             }
             mocc ^= (org = scanLSq(b));
             attackers |= (pieces(ROOK, QUEN) & attacksBB<ROOK>(dst, mocc));
-        }
-        else
+        } else
         if ((b = movAttackers & pieces(QUEN)) != 0) {
             if ((swap = VALUE_MG_QUEN - swap) < res) {
                 break;
@@ -630,8 +623,7 @@ bool Position::see(Move m, Value threshold) const noexcept {
             mocc ^= (org = scanLSq(b));
             attackers |= (pieces(BSHP, QUEN) & attacksBB<BSHP>(dst, mocc))
                        | (pieces(ROOK, QUEN) & attacksBB<ROOK>(dst, mocc));
-        }
-        else { // KING
+        } else { // KING
             // If we "capture" with the king but opponent still has attackers, reverse the result.
             if ((attackers & pieces(~mov)) != 0) {
                 res ^= 1;
@@ -696,12 +688,10 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
             if ('1' <= token && token <= '8') {
                 sq += (token - '0') * EAST;
             }
-        }
-        else
+        } else
         if (token == '/') {
             sq += 2 * SOUTH;
-        }
-        else {
+        } else {
             Piece pc;
             if ((pc = toPiece(token)) != NO_PIECE) {
                 placePiece(sq, pc);
@@ -729,19 +719,16 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
             while (board[rookOrg] != (c|ROOK) /*&& rookOrg > square(c|KING)*/) {
                 --rookOrg;
             }
-        }
-        else
+        } else
         if (token == 'q') {
             rookOrg = relativeSq(c, SQ_A1);
             while (board[rookOrg] != (c|ROOK) /*&& rookOrg < square(c|KING)*/) {
                 ++rookOrg;
             }
-        }
-        else
+        } else
         if ('a' <= token && token <= 'h') {
             rookOrg = makeSquare(toFile(token), relativeRank(c, RANK_1));
-        }
-        else {
+        } else {
             assert(token == '-');
             continue;
         }
@@ -912,8 +899,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
             }
             _stateInfo->pawnKey ^= RandZob.psq[cpc][cap];
             //prefetch(_thread->pawnTable[_stateInfo->pawnKey]);
-        }
-        else {
+        } else {
             npm[pasive] -= PieceValues[MG][pType(cpc)];
         }
 
@@ -971,8 +957,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
              && canEnpassant(pasive, org + PawnPush[active])) {
                 _stateInfo->epSquare = org + PawnPush[active];
                 pKey ^= RandZob.enpassant[sFile(_stateInfo->epSquare)];
-            }
-            else
+            } else
             if (mType(m) == PROMOTE) {
                 assert(pType(mpc) == PAWN
                     && relativeRank(active, org) == RANK_7
@@ -1074,8 +1059,7 @@ void Position::undoMove(Move m) noexcept {
         board[dst] = board[rookDst] = NO_PIECE; // Not done by removePiece()
         placePiece(org    , (active|KING));
         placePiece(rookOrg, (active|ROOK));
-    }
-    else {
+    } else {
         auto const mpc{ board[dst] };
         assert(mpc != NO_PIECE
             && pColor(mpc) == active);
@@ -1228,8 +1212,7 @@ void Position::mirror() {
             if (Options["UCI_Chess960"]) {
                 assert(isalpha(ch));
                 ch = toChar(~toFile(char(tolower(ch))), islower(ch));
-            }
-            else {
+            } else {
             switch (ch) {
             case 'K': ch = 'Q'; break;
             case 'Q': ch = 'K'; break;
@@ -1289,8 +1272,7 @@ std::string Position::fen(bool full) const {
         if (canCastle(WHITE, CS_QUEN)) { oss << (Options["UCI_Chess960"] ? toChar(sFile(castleRookSq(WHITE, CS_QUEN)), false) : 'Q'); }
         if (canCastle(BLACK, CS_KING)) { oss << (Options["UCI_Chess960"] ? toChar(sFile(castleRookSq(BLACK, CS_KING)),  true) : 'k'); }
         if (canCastle(BLACK, CS_QUEN)) { oss << (Options["UCI_Chess960"] ? toChar(sFile(castleRookSq(BLACK, CS_QUEN)),  true) : 'q'); }
-    }
-    else {
+    } else {
         oss << '-';
     }
 

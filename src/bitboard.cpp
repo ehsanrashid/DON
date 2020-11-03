@@ -174,8 +174,7 @@ namespace {
                         if (magic.attacks[idx] != reference[i]) {
                             break;
                         }
-                    }
-                    else {
+                    } else {
                         epoch[idx] = true;
                         magic.attacks[idx] = reference[i];
                     }

@@ -97,8 +97,7 @@ namespace {
         T v;
         if ((uintptr_t(addr) & (alignof (T) - 1)) != 0) { // Unaligned pointer (very rare)
             memcpy(&v, addr, sizeof (T));
-        }
-        else {
+        } else {
             v = *((T*)addr);
         }
 
@@ -638,8 +637,7 @@ namespace {
             // the left side because in Recursive Pairing child symbols are adjacent.
             if (offset < d->symLen[left] + 1) {
                 sym = left;
-            }
-            else {
+            } else {
                 offset -= d->symLen[left] + 1;
                 sym = d->btree[sym].get<LR::Side::RIGHT>();
             }
@@ -880,29 +878,26 @@ namespace {
                   + MapA1D1D4[squares[0]]       * 63 * 62
                   + (squares[1] - adjust1)           * 62
                   + (squares[2] - adjust2);
-            }
+            } else
             // First piece is on a1-h8 diagonal, second below:
             // map this occurrence to 6 to differentiate from the above case,
             // rank() maps a1-d4 diagonal to 0...3 and
             // finally MapB1H1H7[] maps the b1-h1-h7 triangle to 0..27.
-            else
             if (offA1H8(squares[1]) != 0) {
                 idx =                         6 * 63 * 62
                   + (sRank(squares[0]))         * 28 * 62
                   + MapB1H1H7[squares[1]]            * 62
                   + (squares[2] - adjust2);
-            }
+            } else
             // First two pieces are on a1-h8 diagonal, third below
-            else
             if (offA1H8(squares[2]) != 0) {
                 idx =                         6 * 63 * 62
                   +                           4 * 28 * 62
                   + (sRank(squares[0]))         *  7 * 28
                   + (sRank(squares[1]) - adjust1)    * 28
                   + MapB1H1H7[squares[2]];
-            }
+            } else {
             // All 3 pieces on the diagonal a1-h8
-            else {
                 idx =                         6 * 63 * 62
                   +                           4 * 28 * 62
                   +                           4 *  7 * 28
@@ -910,8 +905,7 @@ namespace {
                   + (sRank(squares[1]) - adjust1)    *  6
                   + (sRank(squares[2]) - adjust2);
             }
-        }
-        else {
+        } else {
             // We don't have at least 3 unique pieces, like in KRRvKBB, just map the kings.
             idx = MapKK[MapA1D1D4[squares[0]]][squares[1]];
         }
@@ -978,8 +972,7 @@ namespace {
             if (--firstLen > 0
              || d->pieces[i] == d->pieces[i - 1]) {
                 d->groupLen[n]++;
-            }
-            else {
+            } else {
                 ++n;
                 d->groupLen[n] = 1;
             }
@@ -1017,15 +1010,13 @@ namespace {
                 d->groupIdx[0] = idx;
                 idx *= e.hasPawns        ? LeadPawnsSize[d->groupLen[0]][f] :
                        e.hasUniquePieces ? 31332 : 462;
-            }
-            else
+            } else
             // Remaining pawns
             if (k == order[1]) {
                 d->groupIdx[1] = idx;
                 idx *= Binomial[d->groupLen[1]][48 - d->groupLen[0]];
-            }
+            } else {
             // Remaining pieces
-            else {
                 d->groupIdx[next] = idx;
                 idx *= Binomial[d->groupLen[next]][emptyCount];
                 emptyCount -= d->groupLen[next];
@@ -1151,8 +1142,7 @@ namespace {
                         e.get(0, f)->mapIdx[i] = uint16_t((uint16_t*)(data) - (uint16_t*)(e.map) + 1);
                         data += 2 * number<uint16_t, true>(data) + 2;
                     }
-                }
-                else {
+                } else {
                     for (int16_t i = 0; i < 4; ++i) {
                         e.get(0, f)->mapIdx[i] = (uint16_t)(data - e.map + 1);
                         data += *data + 1;
@@ -1356,8 +1346,7 @@ namespace {
 
         if (completed) {
             wdlScore = wdlBestScore;
-        }
-        else {
+        } else {
             wdlScore = probeTable<WDL>(pos, state);
             if (state == PS_FAILURE) {
                 return WDL_DRAW;
@@ -1597,8 +1586,7 @@ namespace SyzygyTB {
             if (rootPos.clockPly() == 0) {
                 // In case of a zeroing move, dtz is one of -101/-1/0/+1/+101
                 dtz = beforeZeroingDTZ(-probeWDL(rootPos, state));
-            }
-            else {
+            } else {
                 // Otherwise, take dtz for the new position and correct by 1 ply
                 dtz = -probeDTZ(rootPos, state);
                 dtz = dtz > 0 ? dtz + 1 :
@@ -1661,8 +1649,7 @@ namespace SyzygyTB {
 
                 if (off < 0) {
                     MapA1D1D4[s] = code++;
-                }
-                else
+                } else
                 if (off == 0) {
                     diagonal.push_back(s);
                 }
@@ -1694,8 +1681,7 @@ namespace SyzygyTB {
 
                             if (off1 == 0 && off2 == 0) {
                                 bothOnDiagonal.emplace_back(idx, s2);
-                            }
-                            else {
+                            } else {
                                 MapKK[idx][s2] = code++;
                             }
                         }

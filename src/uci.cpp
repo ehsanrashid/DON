@@ -70,8 +70,7 @@ string const engineInfo() {
         oss << std::setw(2) << yyyy.substr(2)
             << std::setw(2) << month(mmm)
             << std::setw(2) << dd;
-    }
-    else {
+    } else {
         oss << Version;
     }
 #endif
@@ -255,22 +254,23 @@ namespace UCI {
         string val{ v };
         if (type == "check") {
             val = toLower(val);
-            if (val != "true" && val != "false") {
+            if (val != "true"
+             && val != "false") {
                 val = "false";
             }
-        }
-        else if (type == "spin") {
+        } else
+        if (type == "spin") {
             auto const d = std::stod(val);
             if (minVal > d || d > maxVal) {
                 val = std::to_string(int32_t(std::clamp(d, minVal, maxVal)));
             }
-        }
-        else if (type == "string") {
+        } else
+        if (type == "string") {
             if (whiteSpaces(val)) {
                 val.clear();
             }
-        }
-        else if (type == "combo") {
+        } else
+        if (type == "combo") {
             istringstream iss{ defaultVal };
             OptionMap comboMap; // To have case insensitive compare
             string token;
@@ -314,8 +314,8 @@ namespace UCI {
          || type == "combo") {
             oss << " default " << defaultVal;
                 //<< " current " << currentVal;
-        }
-        else if (type == "spin") {
+        } else
+        if (type == "spin") {
             oss << " default " << int32_t(std::stof(defaultVal))
                 << " min " << int32_t(minVal)
                 << " max " << int32_t(maxVal);
@@ -568,8 +568,9 @@ namespace UCI {
                 if (pos.thread() != Threadpool.mainThread()) {
                     pos.thread(Threadpool.mainThread());
                 }
+            } else {
+                sync_cout << "No such option: \'" << name << "\'" << sync_endl;
             }
-            else { sync_cout << "No such option: \'" << name << "\'" << sync_endl; }
         }
 
         /// position() sets up the starting position ("startpos")/("fen <fenstring>") and then
@@ -582,16 +583,16 @@ namespace UCI {
             if (token == "startpos") {
                 fen = StartFEN;
                 iss >> token; // Consume "moves" token if any
-            }
-            else
+            } else
             if (token == "fen") {
                 while (iss >> token
                     && token != "moves") { // Consume "moves" token if any
                     fen += token + " ";
                 }
                 //assert(isOk(fen));
+            } else {
+                return;
             }
-            else { return; }
 
             // Drop old and create a new one
             states = StateListPtr{ new StateList{ 1 } };
@@ -621,19 +622,19 @@ namespace UCI {
 
             string token;
             while (iss >> token) {
-                     if (token == "wtime")     { iss >> Limits.clock[WHITE].time; }
-                else if (token == "btime")     { iss >> Limits.clock[BLACK].time; }
-                else if (token == "winc")      { iss >> Limits.clock[WHITE].inc; }
-                else if (token == "binc")      { iss >> Limits.clock[BLACK].inc; }
-                else if (token == "movestogo") { iss >> Limits.movestogo; }
-                else if (token == "movetime")  { iss >> Limits.moveTime; }
-                else if (token == "depth")     { iss >> Limits.depth; }
-                else if (token == "nodes")     { iss >> Limits.nodes; }
-                else if (token == "mate")      { iss >> Limits.mate; }
-                else if (token == "infinite")  { Limits.infinite = true; }
-                else if (token == "ponder")    { Threadpool.ponder = true; }
+                if (token == "wtime")     { iss >> Limits.clock[WHITE].time; } else
+                if (token == "btime")     { iss >> Limits.clock[BLACK].time; } else
+                if (token == "winc")      { iss >> Limits.clock[WHITE].inc; } else
+                if (token == "binc")      { iss >> Limits.clock[BLACK].inc; } else
+                if (token == "movestogo") { iss >> Limits.movestogo; } else
+                if (token == "movetime")  { iss >> Limits.moveTime; } else
+                if (token == "depth")     { iss >> Limits.depth; } else
+                if (token == "nodes")     { iss >> Limits.nodes; } else
+                if (token == "mate")      { iss >> Limits.mate; } else
+                if (token == "infinite")  { Limits.infinite = true; } else
+                if (token == "ponder")    { Threadpool.ponder = true; } else
                 // Needs to be the last command on the line
-                else if (token == "searchmoves") {
+                if (token == "searchmoves") {
                     // Parse and Validate search-moves (if any)
                     while (iss >> token) {
                         auto const m{ moveOfCAN(token, pos) };
@@ -643,8 +644,8 @@ namespace UCI {
                         }
                         Limits.searchMoves += m;
                     }
-                }
-                else if (token == "ignoremoves") {
+                } else
+                if (token == "ignoremoves") {
                     // Parse and Validate ignore-moves (if any)
                     for (auto const &vm : MoveList<LEGAL>(pos)) {
                         Limits.searchMoves += vm;
@@ -659,10 +660,9 @@ namespace UCI {
                             Limits.searchMoves -= m;
                         }
                     }
+                } else {
+                    //std::cerr << "Unknown token : " << token << '\n';
                 }
-                //else {
-                //    std::cerr << "Unknown token : " << token << '\n';
-                //}
             }
             Threadpool.startThinking(pos, states);
         }
@@ -709,9 +709,12 @@ namespace UCI {
                                    "go " + limit + " " + value };
 
             vector<string> fens;
-                 if (fenFile == "default") { fens = DefaultFens; }
-            else if (fenFile == "current") { fens.push_back(pos.fen()); }
-            else {
+            if (fenFile == "default") {
+                fens = DefaultFens;
+            } else
+            if (fenFile == "current") {
+                fens.push_back(pos.fen());
+            } else {
                 std::ifstream ifstream{ fenFile, std::ios::in };
                 if (ifstream.is_open()) {
                     string fen;
@@ -721,8 +724,7 @@ namespace UCI {
                         }
                     }
                     ifstream.close();
-                }
-                else {
+                } else {
                     std::cerr << "ERROR: unable to open file ... \'" << fenFile << "\'\n";
                 }
             }
@@ -736,8 +738,7 @@ namespace UCI {
 
             if (eval == "classical") {
                 uciCmds.emplace_back("setoption name Use NNUE value false");
-            }
-            else
+            } else
             if (eval == "nnue") {
                 uciCmds.emplace_back("setoption name Use NNUE value true");
             }
@@ -746,8 +747,7 @@ namespace UCI {
             for (auto const &fen : fens) {
                 if (fen.find("setoption") != string::npos) {
                     uciCmds.emplace_back(fen);
-                }
-                else {
+                } else {
                     if (eval == "mixed") {
                         uciCmds.emplace_back(string("setoption name Use NNUE value ") + (posCount % 2 != 0 ? "true" : "false"));
                     }
@@ -789,31 +789,40 @@ namespace UCI {
                 string token;
                 iss >> std::skipws >> token;
 
-                     if (token == "eval"
-                      || token == "perft"
-                      || token == "go") {
+                if (token == "eval"
+                 || token == "perft"
+                 || token == "go") {
 
                     std::cerr << "\n---------------\nPosition: "
                               << std::right << std::setw(2) << ++i << '/' << cmdCount << " (" << std::left << pos.fen() << ")\n";
 
-                         if (token == "eval") {
+                    if (token == "eval") {
                         traceEval(pos);
-                    }
-                    else if (token == "perft") {
+                    } else
+                    if (token == "perft") {
                         Depth depth{ 1 };
                         iss >> depth; depth = std::max(Depth(1), depth);
 
                         perft<true>(pos, depth);
-                    }
-                    else if (token == "go") {
+                    } else
+                    if (token == "go") {
                         go(iss, pos, states);
                         Threadpool.mainThread()->waitIdle();
                         nodes += Threadpool.accumulate(&Thread::nodes);
                     }
+                } else
+                if (token == "setoption") {
+                    setOption(iss, pos);
+                } else
+                if (token == "position") {
+                    position(iss, pos, states);
+                } else
+                if (token == "ucinewgame") {
+                    UCI::clear();
+                    elapsed = now();
+                } else {
+                    //std::cerr << "Unknown token : " << token << '\n';
                 }
-                else if (token == "setoption")  { setOption(iss, pos); }
-                else if (token == "position")   { position(iss, pos, states); }
-                else if (token == "ucinewgame") { UCI::clear(); elapsed = now(); }
             }
 
             elapsed = std::max(now() - elapsed, { 1 }); // Ensure non-zero to avoid a 'divide by zero'
@@ -865,40 +874,66 @@ namespace UCI {
             iss >> std::skipws >> token;
             token = toLower(token);
 
-                 if (token == "quit"
-                  || token == "stop")       { Threadpool.stop = true; }
+            if (token == "quit"
+             || token == "stop") {
+                Threadpool.stop = true;
+            } else
             // GUI sends 'ponderhit' to tell that the opponent has played the expected move.
             // So 'ponderhit' will be sent if told to ponder on the same move the opponent has played.
             // Now should continue searching but switch from pondering to normal search.
-            else if (token == "ponderhit")  { Threadpool.ponder = false; } // Switch to normal search
-            else if (token == "isready")    { sync_cout << "readyok" << sync_endl; }
-            else if (token == "uci")        {
+            if (token == "ponderhit") {
+                Threadpool.ponder = false; // Switch to normal search
+            } else
+            if (token == "isready") {
+                sync_cout << "readyok" << sync_endl;
+            } else
+            if (token == "uci") {
                 sync_cout << "id name "     << Name << " " << engineInfo() << '\n'
                           << "id author "   << Author << '\n'
                           << Options
                           << "uciok" << sync_endl;
-            }
-            else if (token == "ucinewgame") { UCI::clear(); }
-            else if (token == "position")   { position(iss, pos, states); }
-            else if (token == "go")         { go(iss, pos, states); }
-            else if (token == "setoption")  { setOption(iss, pos); }
+            } else
+            if (token == "ucinewgame") {
+                UCI::clear();
+            } else
+            if (token == "position") {
+                position(iss, pos, states);
+            } else
+            if (token == "go") {
+                go(iss, pos, states);
+            } else
+            if (token == "setoption") {
+                setOption(iss, pos);
+            } else
             // Additional custom non-UCI commands, useful for debugging
             // Do not use these commands during a search!
-            else if (token == "bench")      { bench(iss, pos, states); }
-            else if (token == "flip")       { pos.flip(); }
-            else if (token == "mirror")     { pos.mirror(); }
-            else if (token == "compiler")   { sync_cout << compilerInfo() << sync_endl; }
-            else if (token == "show")       { sync_cout << pos << sync_endl; }
-            else if (token == "eval")       { traceEval(pos); }
-            else if (token == "perft")      {
+            if (token == "bench") {
+                bench(iss, pos, states);
+            } else
+            if (token == "flip") {
+                pos.flip();
+            } else
+            if (token == "mirror") {
+                pos.mirror();
+            } else
+            if (token == "compiler") {
+                sync_cout << compilerInfo() << sync_endl;
+            } else
+            if (token == "show") {
+                sync_cout << pos << sync_endl;
+            } else
+            if (token == "eval") {
+                traceEval(pos);
+            } else
+            if (token == "perft") {
                 Depth depth{ 1 };
                 iss >> depth; depth = std::max(Depth(1), depth);
                 bool detail{ false };
                 iss >> std::boolalpha >> detail;
 
                 perft<true>(pos, depth, detail);
-            }
-            else if (token == "keys")       {
+            } else
+            if (token == "keys") {
                 ostringstream oss;
                 oss << "FEN: " << pos.fen() << '\n'
                     << std::hex << std::uppercase << std::setfill('0')
@@ -907,8 +942,8 @@ namespace UCI {
                     << "Pawn key: " << std::setw(16) << pos.pawnKey() << '\n'
                     << "PG key: "   << std::setw(16) << pos.pgKey();
                 sync_cout << oss.str() << sync_endl;
-            }
-            else if (token == "moves")      {
+            } else
+            if (token == "moves") {
                 sync_cout;
                 int32_t moveCount;
                 std::cout << '\n';
@@ -956,8 +991,7 @@ namespace UCI {
                         }
                     }
                     std::cout << "(" << moveCount << ")\n";
-                }
-                else {
+                } else {
                     std::cout << "Evasion moves: ";
                     moveCount = 0;
                     for (auto const &vm : MoveList<EVASION>(pos)) {
@@ -970,8 +1004,7 @@ namespace UCI {
                     std::cout << "(" << moveCount << ")\n";
                 }
                 std::cout << sync_endl;
-            }
-            else {
+            } else {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
             }
 

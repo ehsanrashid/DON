@@ -11,10 +11,17 @@
 
 #include <pthread.h>
 
-template<class T, class P = std::pair<T*, void(T::*)()>>
-void* threadRoutine(void *arg) {
-    P *p{ reinterpret_cast<P*>(arg) };
-    (p->first->*(p->second))(); // Call member function pointer
+template<class T>
+struct RoutineArgument {
+
+    T *obj;
+    void(T::*function)();
+};
+
+template<class T>
+void* startRoutine(void *arg) {
+    RoutineArgument<T> *p{ reinterpret_cast<RoutineArgument<T>*>(arg) };
+    (p->obj->*(p->function))(); // Call member function pointer
     delete p;
     return nullptr;
 }
@@ -23,14 +30,14 @@ class NativeThread {
 
 public:
 
-    template<class T, class P = std::pair<T*, void (T::*)()>>
-    explicit NativeThread(void(T::*fun)(), T *obj) {
+    template<class T>
+    explicit NativeThread(void(T::*function)(), T *obj) {
         static constexpr size_t TH_STACK_SIZE{ 8 * 1024 * 1024 };
 
         pthread_attr_t threadAttr;
         pthread_attr_init(&threadAttr);
         pthread_attr_setstacksize(&threadAttr, TH_STACK_SIZE);
-        pthread_create(&thread, &threadAttr, threadRoutine<T>, new P(obj, fun));
+        pthread_create(&thread, &threadAttr, startRoutine<T>, new RoutineArgument<T>{ obj, function });
         pthread_attr_destroy(&threadAttr);
     }
 
