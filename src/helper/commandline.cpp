@@ -2,10 +2,10 @@
 
 #if defined(_WIN32)
     #include <direct.h>
-    #define GETCWD(buff)  _getcwd(buff, sizeof (buff))
+    #define GETCWD(buff)  _getcwd(buff, sizeof(buff))
 #else
     #include <unistd.h>
-    #define GETCWD(buff)   getcwd(buff, sizeof (buff))
+    #define GETCWD(buff)   getcwd(buff, sizeof(buff))
 #endif
 
 #include <algorithm>

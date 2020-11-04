@@ -76,7 +76,7 @@ namespace {
     bool mapPawnsCompare(Square s1, Square s2) noexcept { return MapPawns[s1] < MapPawns[s2]; }
     int32_t offA1H8(Square s) noexcept { return int32_t(sRank(s)) - int32_t(sFile(s)); }
 
-    template<typename T, int16_t Half = sizeof (T) / 2, int16_t End = sizeof (T) - 1>
+    template<typename T, int16_t Half = sizeof(T) / 2, int16_t End = sizeof(T) - 1>
     inline void swapEndian(T &x) noexcept {
         static_assert (std::is_unsigned<T>::value, "Argument of swapEndian not unsigned");
 
@@ -96,7 +96,7 @@ namespace {
 
         T v;
         if ((uintptr_t(addr) & (alignof (T) - 1)) != 0) { // Unaligned pointer (very rare)
-            memcpy(&v, addr, sizeof (T));
+            memcpy(&v, addr, sizeof(T));
         } else {
             v = *((T*)addr);
         }
@@ -128,7 +128,7 @@ namespace {
         char offset[2];  // Offset within the block
     };
 
-    static_assert (sizeof (SparseEntry) == 6, "SparseEntry size incorrect");
+    static_assert (sizeof(SparseEntry) == 6, "SparseEntry size incorrect");
 
     using Symbol = uint16_t; // Huffman symbol
 
@@ -148,7 +148,7 @@ namespace {
         }
     };
 
-    static_assert (sizeof (LR) == 3, "LR size incorrect");
+    static_assert (sizeof(LR) == 3, "LR size incorrect");
 
 
     // Tablebases data layout is structured as following:
@@ -434,7 +434,7 @@ namespace {
         }
 
         void clear() noexcept {
-            std::memset(entry, 0, sizeof (entry));
+            std::memset(entry, 0, sizeof(entry));
             wdlTable.clear();
             dtzTable.clear();
         }
@@ -1070,7 +1070,7 @@ namespace {
         d->span = uint64_t(1) << *data++;
         d->sparseIndexSize = (tbSize + d->span - 1) / d->span; // Round up
         auto padding = number<uint8_t, true>(data); data += 1;
-        d->numBlocks = number<uint32_t, true>(data); data += sizeof (uint32_t);
+        d->numBlocks = number<uint32_t, true>(data); data += sizeof(uint32_t);
         d->blockLengthSize = d->numBlocks + padding; // Padded to ensure SparseIndex[] does not point out of range.
 
         d->maxSymLen = *data++;
@@ -1103,8 +1103,8 @@ namespace {
             d->base64[i] <<= 64 - i - d->minSymLen; // Right-padding to 64 bits
         }
 
-        data += base64Size * sizeof (Symbol);
-        d->symLen.resize(number<uint16_t, true>(data)); data += sizeof (uint16_t);
+        data += base64Size * sizeof(Symbol);
+        d->symLen.resize(number<uint16_t, true>(data)); data += sizeof(uint16_t);
         d->btree = (LR*)(data);
 
         // The compression scheme used is "Recursive Pairing", that replaces the most
@@ -1120,7 +1120,7 @@ namespace {
         }
 
         return data
-             + d->symLen.size() * sizeof (LR)
+             + d->symLen.size() * sizeof(LR)
              + (d->symLen.size() & 1);
     }
 
@@ -1210,13 +1210,13 @@ namespace {
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (int16_t i = 0; i < sides; ++i) {
                 (d = e.get(i, f))->sparseIndex = (SparseEntry*)(data);
-                data += d->sparseIndexSize * sizeof (SparseEntry);
+                data += d->sparseIndexSize * sizeof(SparseEntry);
             }
         }
         for (File f = FILE_A; f <= maxFile; ++f) {
             for (int16_t i = 0; i < sides; ++i) {
                 (d = e.get(i, f))->blockLength = (uint16_t*)(data);
-                data += d->blockLengthSize * sizeof (uint16_t);
+                data += d->blockLengthSize * sizeof(uint16_t);
             }
         }
         for (File f = FILE_A; f <= maxFile; ++f) {

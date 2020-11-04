@@ -96,7 +96,7 @@ namespace {
             DWORD prevTPLen{ 0 };
             // Try to enable SeLockMemoryPrivilege. Note that even if AdjustTokenPrivileges() succeeds,
             // we still need to query GetLastError() to ensure that the privileges were actually obtained...
-            if (AdjustTokenPrivileges(processHandle, FALSE, &currTP, sizeof (TOKEN_PRIVILEGES), &prevTP, &prevTPLen)) {
+            if (AdjustTokenPrivileges(processHandle, FALSE, &currTP, sizeof(TOKEN_PRIVILEGES), &prevTP, &prevTPLen)) {
                 if (GetLastError() == ERROR_SUCCESS) {
                     // Round up size to full pages and allocate
                     mSize = (mSize + largePageSize - 1) & ~size_t(largePageSize - 1);

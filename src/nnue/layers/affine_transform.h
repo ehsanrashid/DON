@@ -161,6 +161,7 @@ namespace Evaluator::NNUE::Layers {
             };
 
     #endif
+
     #if defined(USE_AVX512)
 
             constexpr IndexType NumChunks512 = PaddedInputDimensions / (SimdWidth * 2);
@@ -272,7 +273,7 @@ namespace Evaluator::NNUE::Layers {
 
     #elif defined(USE_AVX2)
 
-            constexpr IndexType NumChunks = PaddedInputDimensions / SimdWidth;
+            constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
 
             auto const output{ reinterpret_cast<OutputType*>(buffer) };
             auto const input_vector = reinterpret_cast<__m256i const*>(input);
@@ -330,7 +331,7 @@ namespace Evaluator::NNUE::Layers {
 
     #elif defined(USE_SSSE3)
 
-            constexpr IndexType NumChunks = PaddedInputDimensions / SimdWidth;
+            constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
 
             auto output{ reinterpret_cast<OutputType*>(buffer) };
             auto const input_vector = reinterpret_cast<__m128i const*>(input);
@@ -393,20 +394,23 @@ namespace Evaluator::NNUE::Layers {
             auto output{ reinterpret_cast<OutputType*>(buffer) };
 
         #if defined(USE_SSE2)
-            constexpr IndexType NumChunks = PaddedInputDimensions / SimdWidth;
+            constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
             #if !defined(USE_SSSE3)
             __m128i const Zeros = _mm_setzero_si128();
+            #else
+            __m128i const Ones = _mm_set1_epi16(1);
             #endif
             auto const input_vector = reinterpret_cast<__m128i const*>(input);
 
         #elif defined(USE_MMX)
-            constexpr IndexType NumChunks = PaddedInputDimensions / SimdWidth;
+            constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
             __m64 const Zeros = _mm_setzero_si64();
             auto const input_vector = reinterpret_cast<__m64 const*>(input);
 
         #elif defined(USE_NEON)
-            constexpr IndexType NumChunks = PaddedInputDimensions / SimdWidth;
+            constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
             auto const input_vector = reinterpret_cast<int8x8_t const*>(input);
+
         #endif
 
             for (IndexType i = 0; i < OutputDimensions; ++i) {
@@ -473,6 +477,7 @@ namespace Evaluator::NNUE::Layers {
                     sum += weights_[offset + j] * input[j];
                 }
                 output[i] = sum;
+
         #endif
 
             }

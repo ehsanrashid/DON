@@ -55,7 +55,7 @@ TTable::~TTable() noexcept {
 
 /// size() returns hash size in MB
 uint32_t TTable::size() const noexcept {
-    return uint32_t((clusterCount * sizeof (TCluster)) >> 20);
+    return uint32_t((clusterCount * sizeof(TCluster)) >> 20);
 }
 
 /// TTable::resize() sets the size of the transposition table, measured in MB.
@@ -65,9 +65,9 @@ bool TTable::resize(size_t memSize) {
 
     free();
 
-    clusterCount = (memSize << 20) / sizeof (TCluster);
+    clusterCount = (memSize << 20) / sizeof(TCluster);
     assert(clusterCount % 2 == 0);
-    clusterTable = static_cast<TCluster*>(allocAlignedLargePages(clusterCount * sizeof (TCluster)));
+    clusterTable = static_cast<TCluster*>(allocAlignedLargePages(clusterCount * sizeof(TCluster)));
     if (clusterTable == nullptr) {
         clusterCount = 0;
         std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << '\n';
@@ -114,7 +114,7 @@ void TTable::clear() {
                 auto const stride{ clusterCount / threadCount };
                 auto const start{ stride * index };
                 auto const count{ index != threadCount - 1 ? stride : clusterCount - start };
-                std::memset(&clusterTable[start], 0, count * sizeof (TCluster));
+                std::memset(&clusterTable[start], 0, count * sizeof(TCluster));
             });
     }
 
@@ -204,13 +204,13 @@ namespace {
 std::ostream& operator<<(std::ostream &ostream, TTable const &tt) {
     uint32_t const memSize{ tt.size() };
     uint8_t const dummy{ 0 };
-    ostream.write((char const*)(&memSize), sizeof (memSize));
-    ostream.write((char const*)(&dummy), sizeof (dummy));
-    ostream.write((char const*)(&dummy), sizeof (dummy));
-    ostream.write((char const*)(&dummy), sizeof (dummy));
-    ostream.write((char const*)(&TEntry::Generation), sizeof (TEntry::Generation));
+    ostream.write((char const*)(&memSize), sizeof(memSize));
+    ostream.write((char const*)(&dummy), sizeof(dummy));
+    ostream.write((char const*)(&dummy), sizeof(dummy));
+    ostream.write((char const*)(&dummy), sizeof(dummy));
+    ostream.write((char const*)(&TEntry::Generation), sizeof(TEntry::Generation));
     for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
-        ostream.write((char const*)(&tt.clusterTable[i*BufferSize]), sizeof (TCluster)*BufferSize);
+        ostream.write((char const*)(&tt.clusterTable[i*BufferSize]), sizeof(TCluster)*BufferSize);
     }
     return ostream;
 }
@@ -218,14 +218,14 @@ std::ostream& operator<<(std::ostream &ostream, TTable const &tt) {
 std::istream& operator>>(std::istream &istream, TTable       &tt) {
     uint32_t memSize;
     uint8_t dummy;
-    istream.read((char*)(&memSize), sizeof (memSize));
-    istream.read((char*)(&dummy), sizeof (dummy));
-    istream.read((char*)(&dummy), sizeof (dummy));
-    istream.read((char*)(&dummy), sizeof (dummy));
-    istream.read((char*)(&TEntry::Generation), sizeof (TEntry::Generation));
+    istream.read((char*)(&memSize), sizeof(memSize));
+    istream.read((char*)(&dummy), sizeof(dummy));
+    istream.read((char*)(&dummy), sizeof(dummy));
+    istream.read((char*)(&dummy), sizeof(dummy));
+    istream.read((char*)(&TEntry::Generation), sizeof(TEntry::Generation));
     tt.resize(memSize);
     for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
-        istream.read((char*)(&tt.clusterTable[i*BufferSize]), sizeof (TCluster)*BufferSize);
+        istream.read((char*)(&tt.clusterTable[i*BufferSize]), sizeof(TCluster)*BufferSize);
     }
     return istream;
 }

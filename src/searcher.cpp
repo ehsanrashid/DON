@@ -1549,7 +1549,7 @@ void Thread::search() {
     // which accesses its argument at ss-6, also near the root.
     // The latter is needed for stats and killer initialization at ss+2.
     Stack stack[MAX_PLY + 10], *ss = stack+7;
-    std::memset(stack, 0, 10 * sizeof (*stack));
+    std::memset(stack, 0, 10 * sizeof(*stack));
     for (int16_t i = 7; i > 0; --i) {
         (ss-i)->ply = -i;
         (ss-i)->pieceStats = &this->continuationStats[0][0][NO_PIECE][0]; // Use as a sentinel

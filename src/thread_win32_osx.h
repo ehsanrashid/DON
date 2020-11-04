@@ -20,7 +20,7 @@ struct RoutineArgument {
 
 template<class T>
 void* startRoutine(void *arg) {
-    RoutineArgument<T> *p{ reinterpret_cast<RoutineArgument<T>*>(arg) };
+    auto *p{ reinterpret_cast<RoutineArgument<T>*>(arg) };
     (p->obj->*(p->function))(); // Call member function pointer
     delete p;
     return nullptr;

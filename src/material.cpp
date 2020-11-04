@@ -189,7 +189,7 @@ namespace Material {
             return e;
         }
 
-        std::memset(e, 0, sizeof (*e));
+        std::memset(e, 0, sizeof(*e));
         e->key = matlKey;
 
         e->evaluate(pos);

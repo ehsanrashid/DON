@@ -56,9 +56,9 @@ namespace Evaluator::NNUE {
     constexpr size_t CacheLineSize{ 64 };
 
     // SIMD width (in bytes)
-#if defined(USE_AVX2)
+#if defined(USE_AVX2) //|| defined(USE_PEXT) || defined(USE_AVX512)
     constexpr size_t SimdWidth{ 32 };
-#elif defined(USE_SSE2)
+#elif defined(USE_SSE2) //|| defined(USE_SSSE3)
     constexpr size_t SimdWidth{ 16 };
 #elif defined(USE_MMX)
     constexpr size_t SimdWidth{ 8 };
@@ -107,16 +107,16 @@ namespace Evaluator::NNUE {
     inline IntType readLittleEndian(std::istream &istream) {
 
         // Read the relevant bytes from the stream in little-endian order
-        uint8_t u[sizeof (IntType)];
-        istream.read(reinterpret_cast<char*>(u), sizeof (IntType));
+        uint8_t u[sizeof(IntType)];
+        istream.read(reinterpret_cast<char*>(u), sizeof(IntType));
         // Use unsigned arithmetic to convert to machine order
         typename std::make_unsigned<IntType>::type v = 0;
-        for (size_t i = 0; i < sizeof (IntType); ++i) {
-            v = (v << 8) | u[sizeof (IntType) - 1 - i];
+        for (size_t i = 0; i < sizeof(IntType); ++i) {
+            v = (v << 8) | u[sizeof(IntType) - 1 - i];
         }
         // Copy the machine-ordered bytes into a potentially signed value
         IntType result;
-        std::memcpy(&result, &v, sizeof (IntType));
+        std::memcpy(&result, &v, sizeof(IntType));
         return result;
     }
 

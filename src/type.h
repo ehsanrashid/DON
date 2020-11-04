@@ -614,7 +614,7 @@ public:
 };
 
 using TimePoint = std::chrono::milliseconds::rep; // Time in milli-seconds
-static_assert (sizeof (TimePoint) == sizeof (int64_t), "TimePoint should be 64 bits");
+static_assert (sizeof(TimePoint) == sizeof(int64_t), "TimePoint should be 64 bits");
 
 inline TimePoint now() noexcept {
     return std::chrono::duration_cast<std::chrono::milliseconds>

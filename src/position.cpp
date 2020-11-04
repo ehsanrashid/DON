@@ -668,11 +668,11 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
     // 6) Full move number. The number of the full move.
     //    It starts at 1, and is incremented after Black's move.
 
-    std::memset(this, 0, sizeof (*this));
-    std::fill_n(&pieceSquare[0][0], sizeof (pieceSquare) / sizeof (pieceSquare[0][0]), SQ_NONE);
-    std::fill_n(&cslRookSq[0][0], sizeof (cslRookSq) / sizeof (cslRookSq[0][0]), SQ_NONE);
+    std::memset(this, 0, sizeof(*this));
+    std::fill_n(&pieceSquare[0][0], sizeof(pieceSquare) / sizeof(pieceSquare[0][0]), SQ_NONE);
+    std::fill_n(&cslRookSq[0][0], sizeof(cslRookSq) / sizeof(cslRookSq[0][0]), SQ_NONE);
 
-    std::memset(&si, 0, sizeof (si));
+    std::memset(&si, 0, sizeof(si));
     _stateInfo = &si;
 
     std::istringstream iss{ ff.data() };

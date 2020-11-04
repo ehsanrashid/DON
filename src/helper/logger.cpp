@@ -23,7 +23,7 @@ namespace {
         //localtime_s(&local_tm, (time_t const*)&raw_time);
         char const *format{ "%Y.%m.%d-%H.%M.%S" };
         char buffer[32];
-        strftime(buffer, sizeof (buffer), format, (tm const*)&local_tm);
+        strftime(buffer, sizeof(buffer), format, (tm const*)&local_tm);
         str.append(buffer);
         // Append milli-second
         auto ms{ duration_cast<milliseconds>

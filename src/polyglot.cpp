@@ -18,15 +18,15 @@ namespace {
     template<typename T>
     std::ifstream& operator>>(std::ifstream &ifstream, T &t) {
         t = T();
-        for (uint8_t idx = 0; idx < sizeof (T) && ifstream.good(); ++idx) {
+        for (uint8_t idx = 0; idx < sizeof(T) && ifstream.good(); ++idx) {
             t = T((t << 8) + uint8_t(ifstream.get()));
         }
         return ifstream;
     }
     //template<typename T>
     //std::ofstream& operator<<(std::ofstream &ofstream, T const &t) {
-    //    for (uint8_t idx = 0; idx < sizeof (T) && ofstream.good(); ++idx) {
-    //        ofstream.put(uint8_t(t >> (8 * (sizeof (T) - 1 - idx))));
+    //    for (uint8_t idx = 0; idx < sizeof(T) && ofstream.good(); ++idx) {
+    //        ofstream.put(uint8_t(t >> (8 * (sizeof(T) - 1 - idx))));
     //    }
     //    return ofstream;
     //}
@@ -229,7 +229,7 @@ void PolyBook::initialize(std::string_view bookFile) {
     uint64_t const fileSize = ifstream.tellg();
     ifstream.seekg(0, std::ios::beg);
 
-    entryCount = (fileSize - HeaderSize) / sizeof (PolyEntry);
+    entryCount = (fileSize - HeaderSize) / sizeof(PolyEntry);
     entryTable = new PolyEntry[entryCount];
     if (entryTable == nullptr) {
         return;
@@ -238,7 +238,7 @@ void PolyBook::initialize(std::string_view bookFile) {
 
     if (HeaderSize != 0) {
         PolyEntry dummy;
-        for (uint64_t idx = 0; idx < HeaderSize / sizeof (PolyEntry); ++idx) {
+        for (uint64_t idx = 0; idx < HeaderSize / sizeof(PolyEntry); ++idx) {
             ifstream >> dummy;
         }
     }

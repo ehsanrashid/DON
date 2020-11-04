@@ -22,7 +22,7 @@ public:
         assert(std::is_standard_layout<NestedTable>::value);
 
         auto *p{ reinterpret_cast<T*>(this) };
-        std::fill(p, p + sizeof (*this) / sizeof (T), value);
+        std::fill(p, p + sizeof(*this) / sizeof(T), value);
     }
 
 };
@@ -84,7 +84,7 @@ public:
 
         using Entry = Stats<T, D>;
         Entry *p{ reinterpret_cast<Entry*>(this) };
-        std::fill(p, p + sizeof (*this) / sizeof (Entry), value);
+        std::fill(p, p + sizeof(*this) / sizeof(Entry), value);
     }
 };
 template<typename T, int32_t D, size_t Size>

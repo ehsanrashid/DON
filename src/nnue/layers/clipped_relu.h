@@ -20,7 +20,7 @@ namespace Evaluator::NNUE::Layers {
         static constexpr IndexType OutputDimensions{ InputDimensions };
 
         // Size of forward propagation buffer used in this layer
-        static constexpr size_t SelfBufferSize{ ceilToMultiple(OutputDimensions * sizeof (OutputType), CacheLineSize) };
+        static constexpr size_t SelfBufferSize{ ceilToMultiple(OutputDimensions * sizeof(OutputType), CacheLineSize) };
 
         // Size of the forward propagation buffer used from the input layer to this layer
         static constexpr size_t BufferSize{ PreviousLayer::BufferSize + SelfBufferSize };

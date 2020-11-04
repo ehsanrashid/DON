@@ -70,7 +70,7 @@ namespace Evaluator::NNUE {
         static constexpr IndexType HalfDimensions{ TransformedFeatureDimensions };
 
     #if defined(VECTOR)
-        static constexpr IndexType TileHeight = NumRegs * sizeof (vec_t) / 2;
+        static constexpr IndexType TileHeight = NumRegs * sizeof(vec_t) / 2;
         static_assert (HalfDimensions % TileHeight == 0, "TileHeight must divide HalfDimensions");
     #endif
 
@@ -83,7 +83,7 @@ namespace Evaluator::NNUE {
         static constexpr IndexType OutputDimensions{ HalfDimensions * 2 };
 
         // Size of forward propagation buffer
-        static constexpr size_t BufferSize{ OutputDimensions * sizeof (OutputType) };
+        static constexpr size_t BufferSize{ OutputDimensions * sizeof(OutputType) };
 
         // Hash value embedded in the evaluation file
         static constexpr uint32_t getHashValue() {

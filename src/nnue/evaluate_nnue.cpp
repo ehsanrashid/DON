@@ -44,14 +44,14 @@ namespace Evaluator::NNUE {
     /// Initialize the aligned pointer
     template<typename T>
     void alignedStdAllocator(AlignedStdPtr<T> &pointer) noexcept {
-        pointer.reset(reinterpret_cast<T*>(allocAlignedStd(alignof (T), sizeof (T))));
-        std::memset(pointer.get(), 0, sizeof (T));
+        pointer.reset(reinterpret_cast<T*>(allocAlignedStd(alignof (T), sizeof(T))));
+        std::memset(pointer.get(), 0, sizeof(T));
     }
     template<typename T>
     void alignedLargePageAllocator(AlignedLargePagePtr<T> &pointer) noexcept {
         static_assert (alignof(T) <= 4096, "aligned_large_pages_alloc() may fail for such a big alignment requirement of T");
-        pointer.reset(reinterpret_cast<T*>(allocAlignedLargePages(sizeof (T))));
-        std::memset(pointer.get(), 0, sizeof (T));
+        pointer.reset(reinterpret_cast<T*>(allocAlignedLargePages(sizeof(T))));
+        std::memset(pointer.get(), 0, sizeof(T));
     }
 
     namespace {

@@ -114,8 +114,8 @@ namespace Evaluator {
             Score Scores[TERMS][COLORS];
 
             void clear() {
-                //std::fill(&Scores[0][0], &Scores[0][0] + sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);
-                std::fill_n(&Scores[0][0], sizeof (Scores) / sizeof (Scores[0][0]), SCORE_ZERO);
+                //std::fill(&Scores[0][0], &Scores[0][0] + sizeof(Scores) / sizeof(Scores[0][0]), SCORE_ZERO);
+                std::fill_n(&Scores[0][0], sizeof(Scores) / sizeof(Scores[0][0]), SCORE_ZERO);
             }
 
             void write(Term t, Color c, Score s) noexcept {

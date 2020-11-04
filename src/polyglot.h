@@ -34,7 +34,7 @@ struct PolyEntry {
     uint32_t learn;
 };
 
-static_assert (sizeof (PolyEntry) == 16, "Entry size incorrect");
+static_assert (sizeof(PolyEntry) == 16, "Entry size incorrect");
 
 extern std::ostream& operator<<(std::ostream&, PolyEntry const&);
 
@@ -50,7 +50,7 @@ public:
 
     std::string show(Position const&) const;
 
-    static constexpr uint64_t HeaderSize{ 0 * sizeof (PolyEntry) };
+    static constexpr uint64_t HeaderSize{ 0 * sizeof(PolyEntry) };
 
     bool enabled;
 
