@@ -46,7 +46,7 @@ void TimeManager::setup(Color c, int16_t ply) noexcept {
                                  + Limits.clock[c].inc * (maxMovestogo - 1)
                                  - overheadMoveTime    * (maxMovestogo + 2), { 1 }) };
     // A user may scale time usage by setting UCI option "Slow Mover"
-    // Default is 100 and changing this value will probably lose ELO.
+    // Default is 100 and changing this value will probably lose Elo.
     remainTime = remainTime * moveSlowness / 100;
 
     // optimumScale is a percentage of available time to use for the current move.

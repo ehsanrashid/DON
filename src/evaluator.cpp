@@ -679,23 +679,23 @@ namespace Evaluator {
             // King Safety:
             Score score{ kingEntry->evaluateSafety<Own>(pos, attackedFull[Opp] & rankBB(relativeRank(Own, RANK_1))) };
 
-            kingDanger +=   1 * kingAttackersCount[Opp] * kingAttackersWeight[Opp]  // (~10.0 ELO)
-                        + 185 * popCount(kingRing[Own] & weakArea)                  // (~15.0 ELO)
-                        + 148 * popCount(unsafeCheck)                               // (~ 4.0 ELO)
-                        +  98 * popCount(pos.kingBlockers(Own))                     // (~ 2.0 ELO)
-                        +  69 * kingAttacksCount[Opp]                               // (~ 0.5 ELO)
-                        +   3 * (kingFlankAttack*kingFlankAttack) / 8               // (~ 0.5 ELO)
+            kingDanger +=   1 * kingAttackersCount[Opp] * kingAttackersWeight[Opp]  // (~10.0 Elo)
+                        + 185 * popCount(kingRing[Own] & weakArea)                  // (~15.0 Elo)
+                        + 148 * popCount(unsafeCheck)                               // (~ 4.0 Elo)
+                        +  98 * popCount(pos.kingBlockers(Own))                     // (~ 2.0 Elo)
+                        +  69 * kingAttacksCount[Opp]                               // (~ 0.5 Elo)
+                        +   3 * (kingFlankAttack*kingFlankAttack) / 8               // (~ 0.5 Elo)
                         // Enemy queen is gone
-                        - 873 * (pos.pieces(Opp, QUEN) == 0)                        // (~24.0 ELO)
+                        - 873 * (pos.pieces(Opp, QUEN) == 0)                        // (~24.0 Elo)
                         // Friend knight is near by to defend king
                         - 100 * (( attackedBy[Own][NIHT]
-                                & (attackedBy[Own][KING] | kSq)) != 0)              // (~ 5.0 ELO)
+                                & (attackedBy[Own][KING] | kSq)) != 0)              // (~ 5.0 Elo)
                         // Mobility
-                        -   1 * (mgValue(mobility[Own] - mobility[Opp]))            // (~ 0.5 ELO)
-                        -   4 * kingFlankDefense                                    // (~ 5.0 ELO)
+                        -   1 * (mgValue(mobility[Own] - mobility[Opp]))            // (~ 0.5 Elo)
+                        -   4 * kingFlankDefense                                    // (~ 5.0 Elo)
                         // Pawn Safety quality
-                        -   3 * mgValue(score) / 4                                  // (~ 8.0 ELO)
-                        +  37;                                                      // (~ 0.5 ELO)
+                        -   3 * mgValue(score) / 4                                  // (~ 8.0 Elo)
+                        +  37;                                                      // (~ 0.5 Elo)
 
             // transform the king danger into a score
             if (kingDanger > 100) {

@@ -455,14 +455,6 @@ namespace {
                 continue;
             }
 
-            // CounterMove based pruning
-            if (!captureOrPromotion
-             && bestValue > +VALUE_MATE_2_MAX_PLY
-             && (*contStats[0])[pos.movedPiece(move)][dstSq(move)] < CounterMovePruneThreshold
-             && (*contStats[1])[pos.movedPiece(move)][dstSq(move)] < CounterMovePruneThreshold) {
-                continue;
-            }
-
             // Speculative prefetch as early as possible
             prefetch(TT.cluster(pos.movePosiKey(move)));
 
@@ -475,6 +467,14 @@ namespace {
             // Update the current move
             ss->playedMove = move;
             ss->pieceStats = &thread->continuationStats[ss->inCheck][captureOrPromotion][pos.movedPiece(move)][dstSq(move)];
+
+            // CounterMove based pruning
+            if (!captureOrPromotion
+             && bestValue > +VALUE_MATE_2_MAX_PLY
+             && (*contStats[0])[pos.movedPiece(move)][dstSq(move)] < CounterMovePruneThreshold
+             && (*contStats[1])[pos.movedPiece(move)][dstSq(move)] < CounterMovePruneThreshold) {
+                continue;
+            }
 
             // Do the move
             pos.doMove(move, si, giveCheck);
@@ -789,7 +789,7 @@ namespace {
                           ss->ttPV);
             }
 
-            // Step 7. Razoring (~1 ELO)
+            // Step 7. Razoring (~1 Elo)
             if (!rootNode // The RootNode PV handling is not available in qsearch
              && depth == 1
                 // Razor Margin
@@ -801,7 +801,7 @@ namespace {
                         (ss-4)->staticEval != VALUE_NONE ? ss->staticEval > (ss-4)->staticEval :
                         (ss-6)->staticEval != VALUE_NONE ? ss->staticEval > (ss-6)->staticEval : true;
 
-            // Step 8. Futility pruning: child node (~50 ELO)
+            // Step 8. Futility pruning: child node (~50 Elo)
             // Betting that the opponent doesn't have a move that will reduce
             // the score by more than futility margins if do a null move.
             if (!PVNode
@@ -813,7 +813,7 @@ namespace {
                 return eval;
             }
 
-            // Step 9. Null move search with verification search (~40 ELO)
+            // Step 9. Null move search with verification search (~40 Elo)
             if (!PVNode
              && eval >= beta
              && eval >= ss->staticEval
@@ -869,7 +869,7 @@ namespace {
 
             Value const probCutBeta( beta + 176 - 49 * improving );
 
-            // Step 10. ProbCut. (~10 ELO)
+            // Step 10. ProbCut. (~10 Elo)
             // If good enough capture and a reduced search returns a value much above beta,
             // then can (almost) safely prune the previous move.
             // Note: Only enter ProbCut with no TT hit, a too low TT depth, or a good enough TT value.
@@ -1063,7 +1063,7 @@ namespace {
             // Calculate new depth for this move
             Depth newDepth( depth-1 );
 
-            // Step 13. Pruning at shallow depth. (~200 ELO)
+            // Step 13. Pruning at shallow depth. (~200 Elo)
             if (!rootNode
              && bestValue > -VALUE_MATE_2_MAX_PLY
              && pos.nonPawnMaterial(activeSide) != VALUE_ZERO
@@ -1084,18 +1084,18 @@ namespace {
                      && thread->captureStats[mpc][dstSq(move)][pos.captured(move)] < 0) {
                         continue;
                     }
-                    // SEE based pruning: negative SEE (~25 ELO)
+                    // SEE based pruning: negative SEE (~25 Elo)
                     if (!pos.see(move, Value(-221 * depth))) {
                         continue;
                     }
                 } else {
-                    // CounterMove based pruning: (~20 ELO)
+                    // CounterMove based pruning: (~20 Elo)
                     if (lmrDepth < 4 + ((ss-1)->stats > 0 || (ss-1)->moveCount == 1)
                      && (*contStats[0])[mpc][dstSq(move)] < CounterMovePruneThreshold
                      && (*contStats[1])[mpc][dstSq(move)] < CounterMovePruneThreshold) {
                         continue;
                     }
-                    // Futility pruning: parent node. (~5 ELO)
+                    // Futility pruning: parent node. (~5 Elo)
                     if (lmrDepth < 7
                      && !ss->inCheck
                      && (ss->staticEval + 170 * lmrDepth + 283) <= alfa
@@ -1105,17 +1105,17 @@ namespace {
                        + (*contStats[5])[mpc][dstSq(move)] / 2) < 27376) {
                         continue;
                     }
-                    // SEE based pruning: negative SEE (~20 ELO)
+                    // SEE based pruning: negative SEE (~20 Elo)
                     if (!pos.see(move, Value(-(29 - std::min(lmrDepth, { 18 })) * lmrDepth*lmrDepth))) {
                         continue;
                     }
                 }
             }
 
-            // Step 14. Extensions. (~75 ELO)
+            // Step 14. Extensions. (~75 Elo)
             Depth extension{ DEPTH_ZERO };
 
-            // Singular extension (SE) (~70 ELO)
+            // Singular extension (SE) (~70 Elo)
             // Extend the TT move if its value is much better than its siblings.
             // If all moves but one fail low on a search of (alfa-s, beta-s),
             // and just one fails high on (alfa, beta), then that move is singular and should be extended.
@@ -1160,7 +1160,7 @@ namespace {
                     }
                 }
             } else
-            // Check extension (~2 ELO)
+            // Check extension (~2 Elo)
             if (giveCheck
              && (contains(pos.kingBlockers(~activeSide), orgSq(move))
               || pos.see(move))) {
@@ -1204,7 +1204,7 @@ namespace {
               || thread->ttHitAvg < 427 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/) };
 
             bool doFullSearch;
-            // Step 16. Reduced depth search (LMR, ~200 ELO).
+            // Step 16. Reduced depth search (LMR, ~200 Elo).
             // If the move fails high will be re-searched at full depth.
             if (doLMR) {
 
@@ -1217,11 +1217,11 @@ namespace {
                     +1 * (moveCountPruning && !pastPV)
                     // Decrease if the ttHit running average is large
                     -1 * (thread->ttHitAvg > 509 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/)
-                    // Decrease if position is or has been on the PV (~10 ELO)
+                    // Decrease if position is or has been on the PV (~10 Elo)
                     -2 * (ss->ttPV)
-                    // Decrease if move has been singularly extended (~3 ELO)
+                    // Decrease if move has been singularly extended (~3 Elo)
                     -1 * (singularQuietLMR)
-                    // Decrease if opponent's move count is high (~5 ELO)
+                    // Decrease if opponent's move count is high (~5 Elo)
                     -1 * ((ss-1)->moveCount > 13);
 
                 if (captureOrPromotion) {
@@ -1242,10 +1242,10 @@ namespace {
                         reductDepth += thread->failHighCount*thread->failHighCount * moveCount / 512;
                     }
 
-                    // Increase reduction if TT move is a capture (~5 ELO)
+                    // Increase reduction if TT move is a capture (~5 Elo)
                     reductDepth += 1 * ttmCapture;
 
-                    // Increase reduction if cut nodes (~10 ELO)
+                    // Increase reduction if cut nodes (~10 Elo)
                     if (cutNode) {
                         reductDepth += 2;
                     } else
