@@ -8,7 +8,7 @@
 #if defined(_WIN32)
     // Force to include needed API prototypes
     #if (_WIN32_WINNT < 0x0601)
-        #undef  _WIN32_WINNT
+        #undef  _WIN32_WINNT // Prevent redefinition compiler warning
         #define _WIN32_WINNT _WIN32_WINNT_WIN7
     #endif
     // Disable macros min() and max()
@@ -35,7 +35,6 @@
     #define POSIX_ALIGNED_MEM
     #include <cstdlib>
 #endif
-
 
 /// allocAlignedStd() is wrapper for systems where the c++17 implementation
 /// does not guarantee the availability of std::aligned_alloc().
@@ -121,28 +120,30 @@ namespace {
 void* allocAlignedLargePages(size_t mSize) noexcept {
 
 #if defined(_WIN32)
+
     // Try to allocate large pages
     void *mem = allocAlignedLargePagesWin(mSize);
-    //#if !defined(NDEBUG)
-    //if (mem != nullptr) {
-    //    std::cerr << "info string Hash table allocation: Windows large pages used. (" << mSize << ")\n";
-    //}
-    //#endif
     // Fall back to regular, page aligned, allocation if necessary
     if (mem == nullptr) {
         mem = allocAlignedStdWin(mSize);
     }
+    //#if !defined(NDEBUG)
+    //else {
+    //    std::cerr << "info string Hash table allocation: Windows large pages used. (" << mSize << ")\n";
+    //}
+    //#endif
 #else
-    constexpr size_t alignment =
+
     #if defined(__linux__)
-        2 * 1024 * 1024; // assumed 2MB page size
+    constexpr size_t alignment{ 2 * 1024 * 1024 }; // assumed 2MB page size
     #else
-        4096;            // assumed small page size
+    constexpr size_t alignment{ 4096 };            // assumed small page size
     #endif
 
     // Round up to multiples of alignment
     size_t size = ((mSize + alignment - 1) / alignment) * alignment;
     void *mem = allocAlignedStd(alignment, size);
+    ASSERT_ALIGNED(mem, alignment);
     if (mem != nullptr) {
     #if defined(MADV_HUGEPAGE)
         if (madvise(mem, size, MADV_HUGEPAGE) < 0) {
@@ -150,7 +151,9 @@ void* allocAlignedLargePages(size_t mSize) noexcept {
         }
     #endif
     }
+
 #endif
+
     return mem;
 }
 

@@ -538,6 +538,14 @@ ifeq ($(popcnt), yes)
 	endif
 endif
 
+### 3.7 pext
+ifeq ($(pext), yes)
+	CXXFLAGS += -DUSE_PEXT
+	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
+		CXXFLAGS += -mbmi2
+	endif
+endif
+
 ifeq ($(avx2), yes)
 	CXXFLAGS += -DUSE_AVX2
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
@@ -602,14 +610,6 @@ ifeq ($(neon), yes)
 				CXXFLAGS += -mfpu=neon
 			endif
 		endif
-	endif
-endif
-
-### 3.7 pext
-ifeq ($(pext), yes)
-	CXXFLAGS += -DUSE_PEXT
-	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
-		CXXFLAGS += -mbmi2
 	endif
 endif
 

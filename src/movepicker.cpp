@@ -148,7 +148,7 @@ MovePicker::MovePicker(
 /// Quiets are ordered using the histories.
 template<GenType GT>
 void MovePicker::value() {
-    static_assert (GT == CAPTURE
+    static_assert(GT == CAPTURE
                 || GT == QUIET
                 || GT == EVASION, "GT incorrect");
 

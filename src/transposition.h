@@ -82,7 +82,7 @@ private:
     friend struct TCluster;
 };
 /// Size of TEntry (10 bytes)
-static_assert (sizeof(TEntry) == 10, "Entry size incorrect");
+static_assert(sizeof(TEntry) == 10, "Entry size incorrect");
 
 /// Transposition::Cluster needs 32 bytes to be stored
 /// 10 x 3 + 2 = 32
@@ -90,8 +90,8 @@ struct TCluster {
 
     uint32_t freshEntryCount() const noexcept {
         return std::count_if(std::begin(entry), std::end(entry),
-            [](TEntry const &e) noexcept {
-                return e.d08 != 0 && e.generation() == TEntry::Generation;
+            [](TEntry const &te) noexcept {
+                return te.d08 != 0 && te.generation() == TEntry::Generation;
             });
     }
 
@@ -103,7 +103,7 @@ struct TCluster {
     char pad[2]; // Pad to 32 bytes
 };
 /// Size of TCluster (32 bytes)
-static_assert (sizeof(TCluster) == 32, "Cluster size incorrect");
+static_assert(sizeof(TCluster) == 32, "Cluster size incorrect");
 
 /// Transposition::Table is an array of Cluster, of size clusterCount.
 /// Each cluster consists of EntryPerCluster number of TTEntry.

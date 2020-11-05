@@ -13,7 +13,7 @@ namespace Evaluator::NNUE::Layers {
         // Input/output type
         using InputType = typename PreviousLayer::OutputType;
         using OutputType = uint8_t;
-        static_assert (std::is_same<InputType, int32_t>::value, "");
+        static_assert(std::is_same<InputType, int32_t>::value, "");
 
         // Number of input/output dimensions
         static constexpr IndexType InputDimensions{ PreviousLayer::OutputDimensions };
@@ -50,9 +50,9 @@ namespace Evaluator::NNUE::Layers {
             auto const in{ reinterpret_cast<__m256i const*>(input) };
             auto const out{ reinterpret_cast<__m256i*>(output) };
             for (IndexType i = 0; i < NumChunks; ++i) {
-                __m256i const words0{ _mm256_srai_epi16(_mm256_packs_epi32(_mm256_loadA_si256(&in[i * 4 + 0]), _mm256_loadA_si256(&in[i * 4 + 1])), WeightScaleBits) };
-                __m256i const words1{ _mm256_srai_epi16(_mm256_packs_epi32(_mm256_loadA_si256(&in[i * 4 + 2]), _mm256_loadA_si256(&in[i * 4 + 3])), WeightScaleBits) };
-                _mm256_storeA_si256(&out[i], _mm256_permutevar8x32_epi32(_mm256_max_epi8(_mm256_packs_epi16(words0, words1), kZero), kOffsets));
+                __m256i const words0{ _mm256_srai_epi16(_mm256_packs_epi32(_mm256_load_si256(&in[i * 4 + 0]), _mm256_load_si256(&in[i * 4 + 1])), WeightScaleBits) };
+                __m256i const words1{ _mm256_srai_epi16(_mm256_packs_epi32(_mm256_load_si256(&in[i * 4 + 2]), _mm256_load_si256(&in[i * 4 + 3])), WeightScaleBits) };
+                _mm256_store_si256(&out[i], _mm256_permutevar8x32_epi32(_mm256_max_epi8(_mm256_packs_epi16(words0, words1), kZero), kOffsets));
             }
             constexpr IndexType Start{ NumChunks * SimdWidth };
 

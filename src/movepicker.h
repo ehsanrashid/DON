@@ -13,7 +13,7 @@ template<typename T, size_t Size, size_t... Sizes>
 class Table :
     public std::array<Table<T, Sizes...>, Size> {
 
-    static_assert (Size != 0, "Size incorrect");
+    static_assert(Size != 0, "Size incorrect");
 private:
     using NestedTable = Table<T, Size, Sizes...>;
 
@@ -30,7 +30,7 @@ template<typename T, size_t Size>
 class Table<T, Size> :
     public std::array<T, Size> {
 
-    static_assert (Size != 0, "Size incorrect");
+    static_assert(Size != 0, "Size incorrect");
 };
 
 
@@ -52,7 +52,7 @@ public:
     operator T const&() const noexcept { return entry; }
 
     void operator<<(int32_t bonus) noexcept {
-        static_assert (D <= std::numeric_limits<T>::max(), "D overflows T");
+        static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
         assert(std::abs(bonus) <= D); // Ensure range is [-D, +D]
 
         entry += bonus - entry * std::abs(bonus) / D;
@@ -73,7 +73,7 @@ template<typename T, int32_t D, size_t Size, size_t... Sizes>
 class StatsTable :
     public std::array<StatsTable<T, D, Sizes...>, Size> {
 
-    static_assert (Size != 0, "Size incorrect");
+    static_assert(Size != 0, "Size incorrect");
 private:
     using NestedStatsTable = StatsTable<T, D, Size, Sizes...>;
 
@@ -91,7 +91,7 @@ template<typename T, int32_t D, size_t Size>
 class StatsTable<T, D, Size> :
     public std::array<Stats<T, D>, Size> {
 
-    static_assert (Size != 0, "Size incorrect");
+    static_assert(Size != 0, "Size incorrect");
 };
 
 /// ButterFlyStatsTable stores moves history according to color.

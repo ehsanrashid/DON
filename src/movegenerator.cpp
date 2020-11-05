@@ -5,6 +5,7 @@
 
 #include "bitboard.h"
 #include "notation.h"
+#include "helper/memoryhandler.h"
 
 namespace {
 
@@ -184,7 +185,7 @@ namespace {
 
 template<GenType GT>
 void generate(ValMoves &moves, Position const &pos) noexcept {
-    static_assert (GT == CAPTURE
+    static_assert(GT == CAPTURE
                 || GT == QUIET
                 || GT == NORMAL, "GT incorrect");
     assert(pos.checkers() == 0);
@@ -408,6 +409,7 @@ Perft perft(Position &pos, Depth depth, bool detail) noexcept {
             }
         } else {
             StateInfo si;
+            ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
             pos.doMove(vm, si);
 
             if (depth <= 2) {

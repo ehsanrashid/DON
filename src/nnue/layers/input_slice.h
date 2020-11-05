@@ -11,7 +11,7 @@ namespace Evaluator::NNUE::Layers {
 
     public:
         // Need to maintain alignment
-        static_assert (Offset % MaxSimdWidth == 0, "");
+        static_assert(Offset % MaxSimdWidth == 0, "");
 
         // Output type
         using OutputType = TransformedFeatureType;

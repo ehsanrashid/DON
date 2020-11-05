@@ -380,7 +380,7 @@ namespace Evaluator {
         /// pieces() evaluates the pieces of the color and type
         template<bool Trace> template<Color Own, PieceType PT>
         Score Evaluation<Trace>::pieces() {
-            static_assert (NIHT <= PT && PT <= QUEN, "PT incorrect");
+            static_assert(NIHT <= PT && PT <= QUEN, "PT incorrect");
             constexpr auto Opp{ ~Own };
 
             attackedBy[Own][PT] = 0;

@@ -24,6 +24,7 @@
 #include "helper/logger.h"
 #include "helper/prng.h"
 #include "helper/reporter.h"
+#include "helper/memoryhandler.h"
 
 using Evaluator::evaluate;
 
@@ -408,6 +409,7 @@ namespace {
 
         uint16_t moveCount{ 0 };
         StateInfo si;
+        ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
         // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
         while ((move = movePicker.nextMove()) != MOVE_NONE) {
             assert(isOk(move)
@@ -750,6 +752,7 @@ namespace {
         }
 
         StateInfo si;
+        ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
 
         bool improving;
         Value eval;
@@ -1803,6 +1806,7 @@ void MainThread::search() {
                 rootMoves.bringToFront(bbm);
                 rootMoves[0].newValue = VALUE_NONE;
                 StateInfo si;
+                ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
                 rootPos.doMove(bbm, si);
                 auto bpm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
                 if (bpm != MOVE_NONE) {

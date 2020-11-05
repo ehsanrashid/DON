@@ -78,7 +78,7 @@ namespace {
 
     template<typename T, int16_t Half = sizeof(T) / 2, int16_t End = sizeof(T) - 1>
     inline void swapEndian(T &x) noexcept {
-        static_assert (std::is_unsigned<T>::value, "Argument of swapEndian not unsigned");
+        static_assert(std::is_unsigned<T>::value, "Argument of swapEndian not unsigned");
 
         uint8_t *c = (uint8_t*)&x, tmp;
         for (int16_t i = 0; i < Half; ++i) {
@@ -128,7 +128,7 @@ namespace {
         char offset[2];  // Offset within the block
     };
 
-    static_assert (sizeof(SparseEntry) == 6, "SparseEntry size incorrect");
+    static_assert(sizeof(SparseEntry) == 6, "SparseEntry size incorrect");
 
     using Symbol = uint16_t; // Huffman symbol
 
@@ -148,7 +148,7 @@ namespace {
         }
     };
 
-    static_assert (sizeof(LR) == 3, "LR size incorrect");
+    static_assert(sizeof(LR) == 3, "LR size incorrect");
 
 
     // Tablebases data layout is structured as following:

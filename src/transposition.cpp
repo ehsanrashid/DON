@@ -2,6 +2,7 @@
 
 #include <cstdlib>
 #include <cstring> // For memset()
+#include <algorithm>
 #include <fstream>
 #include <iostream>
 #include <thread>
@@ -140,7 +141,7 @@ void TTable::free() noexcept {
 /// hash, are using <x>%. of the state of full.
 uint32_t TTable::hashFull() const noexcept {
     uint32_t entryCount{ 0 };
-    auto const* etc{ clusterTable + std::min(clusterCount, 1000ULL) };
+    auto const *etc{ clusterTable + std::min(clusterCount, 1000ULL) };
     for (auto *itc{ clusterTable }; itc != etc; ++itc) {
         entryCount += itc->freshEntryCount();
     }
@@ -153,6 +154,7 @@ Move TTable::extractNextMove(Position &pos, Move m) const noexcept {
         && MoveList<LEGAL>(pos).contains(m));
 
     StateInfo si;
+    ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
     pos.doMove(m, si);
     bool ttHit;
     auto const *const tte{ probe(pos.posiKey(), ttHit) };

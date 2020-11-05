@@ -1,11 +1,12 @@
 #include "../position.h"
+#include "../uci.h"
+#include "../type.h"
+#include "../helper/memoryhandler.h"
+
 #include "evaluate_nnue.h"
 
 #include <iostream>
 #include <set>
-
-#include "../helper/memoryhandler.h"
-#include "../uci.h"
 
 namespace Evaluator::NNUE {
 
@@ -49,7 +50,7 @@ namespace Evaluator::NNUE {
     }
     template<typename T>
     void alignedLargePageAllocator(AlignedLargePagePtr<T> &pointer) noexcept {
-        static_assert (alignof(T) <= 4096, "aligned_large_pages_alloc() may fail for such a big alignment requirement of T");
+        static_assert(alignof(T) <= 4096, "aligned_large_pages_alloc() may fail for such a big alignment requirement of T");
         pointer.reset(reinterpret_cast<T*>(allocAlignedLargePages(sizeof(T))));
         std::memset(pointer.get(), 0, sizeof(T));
     }
@@ -115,10 +116,26 @@ namespace Evaluator::NNUE {
 
     // Evaluation function. Perform differential calculation.
     Value evaluate(Position const &pos) {
+        // We manually align the arrays on the stack because with gcc < 9.3
+        // overaligning stack variables with alignas() doesn't work correctly.
 
-        alignas(CacheLineSize) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
+        constexpr uint64_t alignment = CacheLineSize;
+
+#if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
+        TransformedFeatureType transformedFeaturesUnaligned[FeatureTransformer::BufferSize + alignment / sizeof(TransformedFeatureType)];
+        char bufferUnaligned[Network::BufferSize + alignment];
+
+        auto *transformedFeatures{ alignUpPtr<alignment>(&transformedFeaturesUnaligned[0]) };
+        auto *buffer{ alignUpPtr<alignment>(&bufferUnaligned[0]) };
+#else
+        alignas(alignment) TransformedFeatureType transformedFeatures[FeatureTransformer::BufferSize];
+        alignas(alignment) char buffer[Network::BufferSize];
+#endif
+
+        ASSERT_ALIGNED(transformedFeatures, alignment);
+        ASSERT_ALIGNED(buffer, alignment);
+
         featureTransformer->transform(pos, transformedFeatures);
-        alignas(CacheLineSize) char buffer[Network::BufferSize];
         auto const output{ network->propagate(transformedFeatures, buffer) };
 
         return static_cast<Value>(output[0] / FVScale);

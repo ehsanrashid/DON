@@ -63,9 +63,7 @@
 #define I64(X) (X ##  LL)
 #define U64(X) (X ## ULL)
 
-// When no Makefile used
-
-#if defined(_WIN64) && defined(_MSC_VER)
+#if defined(_WIN64) && defined(_MSC_VER) // When no Makefile used
     #include <intrin.h>     // Microsoft Header for _BitScanForward64() & _BitScanReverse64()
 #endif
 
@@ -81,6 +79,10 @@
     #include <immintrin.h>  // Header for _pdep_u64() & _pext_u64() intrinsic
   //#define PDEP(b, m)  _pdep_u64(b, m) // Parallel bits deposit
     #define PEXT(b, m)  _pext_u64(b, m) // Parallel bits extract
+#endif
+
+#if defined(__GNUC__ ) && (__GNUC__ < 9 || (__GNUC__ == 9 && __GNUC_MINOR__ <= 2)) && defined(_WIN32) && !defined(__clang__)
+    #define ALIGNAS_ON_STACK_VARIABLES_BROKEN
 #endif
 
 #define XSTRING(x)      #x
@@ -614,7 +616,7 @@ public:
 };
 
 using TimePoint = std::chrono::milliseconds::rep; // Time in milli-seconds
-static_assert (sizeof(TimePoint) == sizeof(int64_t), "TimePoint should be 64 bits");
+static_assert(sizeof(TimePoint) == sizeof(int64_t), "TimePoint should be 64 bits");
 
 inline TimePoint now() noexcept {
     return std::chrono::duration_cast<std::chrono::milliseconds>

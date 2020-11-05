@@ -17,6 +17,7 @@
 #include "uci.h"
 #include "helper/string.h"
 #include "helper/string_view.h"
+#include "helper/memoryhandler.h"
 
 namespace {
 
@@ -1311,10 +1312,17 @@ std::string Position::toString() const {
     }
     if (count() <= SyzygyTB::MaxPieceLimit
      && _stateInfo->castleRights == CR_NONE) {
+
+        StateInfo si;
+        ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
+
+        Position p;
+        p.setup(fen(), si, thread());
+
         SyzygyTB::ProbeState wdlState;
-        auto const wdlScore{ SyzygyTB::probeWDL(*const_cast<Position*>(this), wdlState) };
+        auto const wdlScore{ SyzygyTB::probeWDL(p, wdlState) };
         SyzygyTB::ProbeState dtzState;
-        auto const dtzScore{ SyzygyTB::probeDTZ(*const_cast<Position*>(this), dtzState) };
+        auto const dtzScore{ SyzygyTB::probeDTZ(p, dtzState) };
         oss << "\nTablebases WDL: " << std::setw(4) << wdlScore << " (" << wdlState << ")"
             << "\nTablebases DTZ: " << std::setw(4) << dtzScore << " (" << dtzState << ")";
     }
@@ -1458,6 +1466,7 @@ bool Position::ok() const noexcept {
 bool isOk(std::string_view fen) {
     Position pos;
     StateInfo si;
+    ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
     return !whiteSpaces(fen)
         && pos.setup(fen, si, nullptr).ok();
 }
