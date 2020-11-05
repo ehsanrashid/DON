@@ -58,7 +58,7 @@ namespace Evaluator::NNUE::Layers {
 
     #if defined(USE_AVX512)
 
-            [[maybe_unused]] __m512i const Ones512 = _mm512_set1_epi16(1);
+            [[maybe_unused]] __m512i const One512 = _mm512_set1_epi16(1);
 
             [[maybe_unused]] auto m512_hadd = [](__m512i sum, int bias) -> int {
                 return _mm512_reduce_add_epi32(sum) + bias;
@@ -95,7 +95,7 @@ namespace Evaluator::NNUE::Layers {
                 acc = _mm512_dpbusd_epi32(acc, a, b);
             #else
                 __m512i product0{ _mm512_maddubs_epi16(a, b) };
-                product0 = _mm512_madd_epi16(product0, Ones512);
+                product0 = _mm512_madd_epi16(product0, One512);
                 acc = _mm512_add_epi32(acc, product0);
             #endif
             };
@@ -103,7 +103,7 @@ namespace Evaluator::NNUE::Layers {
     #endif
     #if defined(USE_AVX2)
 
-            [[maybe_unused]] __m256i const Ones256{ _mm256_set1_epi16(1) };
+            [[maybe_unused]] __m256i const One256{ _mm256_set1_epi16(1) };
 
             [[maybe_unused]] auto m256_hadd = [](__m256i sum, int bias) -> int {
                 __m128i sum128{ _mm_add_epi32(_mm256_castsi256_si128(sum), _mm256_extracti128_si256(sum, 1)) };
@@ -129,7 +129,7 @@ namespace Evaluator::NNUE::Layers {
                 acc = _mm256_dpbusd_epi32(acc, a, b);
         #else
                 __m256i product0{ _mm256_maddubs_epi16(a, b) };
-                product0 = _mm256_madd_epi16(product0, Ones256);
+                product0 = _mm256_madd_epi16(product0, One256);
                 acc = _mm256_add_epi32(acc, product0);
         #endif
             };
@@ -137,7 +137,7 @@ namespace Evaluator::NNUE::Layers {
     #endif
     #if defined(USE_SSSE3)
 
-            [[maybe_unused]] __m128i const Ones128{ _mm_set1_epi16(1) };
+            [[maybe_unused]] __m128i const One128{ _mm_set1_epi16(1) };
 
             [[maybe_unused]] auto m128_hadd = [](__m128i sum, int bias) -> int {
                 sum = _mm_add_epi32(sum, _mm_shuffle_epi32(sum, 0x4E)); //_MM_PERM_BADC
@@ -156,7 +156,7 @@ namespace Evaluator::NNUE::Layers {
 
             [[maybe_unused]] auto m128_add_dpbusd_epi32 = [=](__m128i &acc, __m128i a, __m128i b) {
                 __m128i product0{ _mm_maddubs_epi16(a, b) };
-                product0 = _mm_madd_epi16(product0, Ones128);
+                product0 = _mm_madd_epi16(product0, One128);
                 acc = _mm_add_epi32(acc, product0);
             };
 
@@ -396,15 +396,13 @@ namespace Evaluator::NNUE::Layers {
         #if defined(USE_SSE2)
             constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
             #if !defined(USE_SSSE3)
-            __m128i const Zeros = _mm_setzero_si128();
-            #else
-            __m128i const Ones = _mm_set1_epi16(1);
+            __m128i const Zero{ _mm_setzero_si128() };
             #endif
             auto const input_vector{ reinterpret_cast<__m128i const*>(input) };
 
         #elif defined(USE_MMX)
             constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
-            __m64 const Zeros = _mm_setzero_si64();
+            __m64 const Zero = _mm_setzero_si64();
             auto const input_vector{ reinterpret_cast<__m64 const*>(input) };
 
         #elif defined(USE_NEON)
@@ -418,16 +416,16 @@ namespace Evaluator::NNUE::Layers {
 
         #if defined(USE_SSE2)
                 __m128i sum_lo = _mm_cvtsi32_si128(biases_[i]);
-                __m128i sum_hi = Zeros;
+                __m128i sum_hi = Zero;
                 auto const row{ reinterpret_cast<__m128i const*>(&weights_[offset]) };
                 for (IndexType j = 0; j < NumChunks; ++j) {
                     __m128i row_j = _mm_load_si128(&row[j]);
                     __m128i input_j = _mm_load_si128(&input_vector[j]);
-                    __m128i row_signs = _mm_cmpgt_epi8(Zeros, row_j);
+                    __m128i row_signs = _mm_cmpgt_epi8(Zero, row_j);
                     __m128i extended_row_lo = _mm_unpacklo_epi8(row_j, row_signs);
                     __m128i extended_row_hi = _mm_unpackhi_epi8(row_j, row_signs);
-                    __m128i extended_input_lo = _mm_unpacklo_epi8(input_j, Zeros);
-                    __m128i extended_input_hi = _mm_unpackhi_epi8(input_j, Zeros);
+                    __m128i extended_input_lo = _mm_unpacklo_epi8(input_j, Zero);
+                    __m128i extended_input_hi = _mm_unpackhi_epi8(input_j, Zero);
                     __m128i product_lo = _mm_madd_epi16(extended_row_lo, extended_input_lo);
                     __m128i product_hi = _mm_madd_epi16(extended_row_hi, extended_input_hi);
                     sum_lo = _mm_add_epi32(sum_lo, product_lo);
@@ -442,16 +440,16 @@ namespace Evaluator::NNUE::Layers {
 
         #elif defined(USE_MMX)
                 __m64 sum_lo = _mm_cvtsi32_si64(biases_[i]);
-                __m64 sum_hi = Zeros;
+                __m64 sum_hi = Zero;
                 auto const row{ reinterpret_cast<__m64 const*>(&weights_[offset]) };
                 for (IndexType j = 0; j < NumChunks; ++j) {
                     __m64 row_j = row[j];
                     __m64 input_j = input_vector[j];
-                    __m64 row_signs = _mm_cmpgt_pi8(Zeros, row_j);
+                    __m64 row_signs = _mm_cmpgt_pi8(Zero, row_j);
                     __m64 extended_row_lo = _mm_unpacklo_pi8(row_j, row_signs);
                     __m64 extended_row_hi = _mm_unpackhi_pi8(row_j, row_signs);
-                    __m64 extended_input_lo = _mm_unpacklo_pi8(input_j, Zeros);
-                    __m64 extended_input_hi = _mm_unpackhi_pi8(input_j, Zeros);
+                    __m64 extended_input_lo = _mm_unpacklo_pi8(input_j, Zero);
+                    __m64 extended_input_hi = _mm_unpackhi_pi8(input_j, Zero);
                     __m64 product_lo = _mm_madd_pi16(extended_row_lo, extended_input_lo);
                     __m64 product_hi = _mm_madd_pi16(extended_row_hi, extended_input_hi);
                     sum_lo = _mm_add_pi32(sum_lo, product_lo);

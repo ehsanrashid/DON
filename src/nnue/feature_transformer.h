@@ -111,12 +111,11 @@ namespace Evaluator::NNUE {
 
         #if defined(USE_AVX2)
             constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
-            constexpr int Control{ 0b11011000 };
-            __m256i const Zeros{ _mm256_setzero_si256() };
+            __m256i const Zero{ _mm256_setzero_si256() };
         #elif defined(USE_SSE2)
             constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
             #if defined(USE_SSE41)
-            __m128i const Zeros{ _mm_setzero_si128() };
+            __m128i const Zero{ _mm_setzero_si128() };
             #else
             __m128i const k0x80s{ _mm_set1_epi8(-128) };
             #endif
@@ -125,7 +124,7 @@ namespace Evaluator::NNUE {
             __m64 const k0x80s{ _mm_set1_pi8(-128) };
         #elif defined(USE_NEON)
             constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth / 2) };
-            int8x8_t const Zeros{ 0 };
+            int8x8_t const Zero{ 0 };
         #endif
 
             Color const perspectives[2]{ pos.activeSide(), ~pos.activeSide() };
@@ -137,7 +136,7 @@ namespace Evaluator::NNUE {
                 for (IndexType j = 0; j < NumChunks; ++j) {
                     __m256i sum0{ _mm256_load_si256(&reinterpret_cast<__m256i const*>(accumulation[perspectives[p]][0])[j * 2 + 0]) };
                     __m256i sum1{ _mm256_load_si256(&reinterpret_cast<__m256i const*>(accumulation[perspectives[p]][0])[j * 2 + 1]) };
-                    _mm256_store_si256(&out[j], _mm256_permute4x64_epi64(_mm256_max_epi8(_mm256_packs_epi16(sum0, sum1), Zeros), Control));
+                    _mm256_store_si256(&out[j], _mm256_permute4x64_epi64(_mm256_max_epi8(_mm256_packs_epi16(sum0, sum1), Zero), 0b11011000));
                 }
 
         #elif defined(USE_SSE2)
@@ -150,7 +149,7 @@ namespace Evaluator::NNUE {
                     _mm_store_si128(&out[j],
 
             #if defined(USE_SSE41)
-                        _mm_max_epi8(packedbytes, Zeros)
+                        _mm_max_epi8(packedbytes, Zero)
             #else
                         _mm_subs_epi8(_mm_adds_epi8(packedbytes, k0x80s), k0x80s)
             #endif
@@ -171,7 +170,7 @@ namespace Evaluator::NNUE {
                 auto const out{ reinterpret_cast<int8x8_t*>(&output[offset]) };
                 for (IndexType j = 0; j < NumChunks; ++j) {
                     int16x8_t sum{ reinterpret_cast<int16x8_t const*>(accumulation[perspectives[p]][0])[j] };
-                    out[j] = vmax_s8(vqmovn_s16(sum), Zeros);
+                    out[j] = vmax_s8(vqmovn_s16(sum), Zero);
                 }
 
         #else

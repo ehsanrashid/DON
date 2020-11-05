@@ -38,7 +38,7 @@ public:
         return T(rand64());
     }
 
-//#if !defined(USE_PEXT)
+//#if !defined(USE_BMI2)
     /// Special generator used to fast initialize magic numbers.
     /// Output values only have 1/8th of their bits set on average.
     template<typename T>

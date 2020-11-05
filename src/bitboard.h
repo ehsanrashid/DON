@@ -12,7 +12,7 @@ struct Magic {
     // Compute the attack's index using the 'magic bitboards' approach
     uint16_t index(Bitboard occ) const noexcept {
 
-    #if defined(USE_PEXT)
+    #if defined(USE_BMI2)
         return uint16_t( PEXT(occ, mask) );
     #elif defined(IS_64BIT)
         return uint16_t( ((occ & mask) * magic) >> shift );
@@ -30,7 +30,7 @@ struct Magic {
     Bitboard *attacks;
     Bitboard  mask;
 
-#if !defined(USE_PEXT)
+#if !defined(USE_BMI2)
     Bitboard  magic;
     uint8_t   shift;
 #endif

@@ -79,18 +79,18 @@ endif
 # optimize = yes/no    --- (-O3/-fast etc.) --- Enable/Disable optimizations
 # arch     = (name)    --- (-arch)          --- Target architecture
 # bits     = 64/32     --- -DIS_64BIT       --- 64-/32-bit operating system
-# prefetch = yes/no    --- -DUSE_PREFETCH   --- Use prefetch asm-instruction
-# popcnt   = yes/no    --- -DUSE_POPCNT     --- Use popcnt asm-instruction
-# pext     = yes/no    --- -DUSE_PEXT       --- Use pext x86_64 asm-instruction
-# sse      = yes/no    --- -msse            --- Use Intel Streaming SIMD Extensions
-# mmx      = yes/no    --- -mmmx            --- Use Intel MMX instructions
-# sse2     = yes/no    --- -msse2           --- Use Intel Streaming SIMD Extensions 2
-# ssse3    = yes/no    --- -mssse3          --- Use Intel Supplemental Streaming SIMD Extensions 3
-# sse41    = yes/no    --- -msse4.1         --- Use Intel Streaming SIMD Extensions 4.1
-# avx2     = yes/no    --- -mavx2           --- Use Intel Advanced Vector Extensions 2
-# avx512   = yes/no    --- -mavx512bw       --- Use Intel Advanced Vector Extensions 512
-# vnni256 = yes/no     --- -mavx512vnni     --- Use Intel Vector Neural Network Instructions 256
-# vnni512 = yes/no     --- -mavx512vnni     --- Use Intel Vector Neural Network Instructions 512
+# prefetch = yes/no    --- -DUSE_PREFETCH   --- Use Intel prefetch asm-instructions
+# popcnt   = yes/no    --- -DUSE_POPCNT     --- Use Intel popcnt asm-instructions
+# sse      = yes/no    --- -DUSE_PREFETCH   --- Use Intel Streaming SIMD Extensions
+# mmx      = yes/no    --- -DUSE_MMX        --- Use Intel MMX instructions
+# sse2     = yes/no    --- -DUSE_SSE2       --- Use Intel Streaming SIMD Extensions 2
+# ssse3    = yes/no    --- -DUSE_SSSE3      --- Use Intel Supplemental Streaming SIMD Extensions 3
+# sse41    = yes/no    --- -DUSE_SSE41      --- Use Intel Streaming SIMD Extensions 4.1
+# avx2     = yes/no    --- -DUSE_AVX2       --- Use Intel Advanced Vector Extensions 2
+# bmi2     = yes/no    --- -DUSE_BMI2       --- Use Intel bmi2 x86_64 asm-instructions
+# avx512   = yes/no    --- -DUSE_AVX512     --- Use Intel Advanced Vector Extensions 512
+# vnni256  = yes/no    --- -DUSE_VNNI       --- Use Intel Vector Neural Network Instructions 256
+# vnni512  = yes/no    --- -DUSE_VNNI       --- Use Intel Vector Neural Network Instructions 512
 # neon     = yes/no    --- -DUSE_NEON       --- Use ARM SIMD architecture
 #
 # Note that Makefile is space sensitive, so when adding new architectures
@@ -137,13 +137,13 @@ sanitize = no
 bits = 64
 prefetch = no
 popcnt = no
-pext = no
 sse = no
 mmx = no
 sse2 = no
 ssse3 = no
 sse41 = no
 avx2 = no
+bmi2 = no
 avx512 = no
 vnni256 = no
 vnni512 = no
@@ -154,170 +154,170 @@ STRIP = strip
 ### 2.2 Architecture specific
 ifeq ($(findstring x86, $(ARCH)), x86)
 
-# x86-32/64
+	# x86-32/64
 
-ifeq ($(findstring x86-32, $(ARCH)), x86-32)
-	arch = i386
-	bits = 32
-	sse = yes
-	mmx = yes
+	ifeq ($(findstring x86-32, $(ARCH)), x86-32)
+		arch = i386
+		bits = 32
+		sse = yes
+		mmx = yes
+	else
+		arch = x86_64
+		sse = yes
+		sse2 = yes
+	endif
+
+	ifeq ($(findstring -sse, $(ARCH)), -sse)
+		sse = yes
+	endif
+
+	ifeq ($(findstring -popcnt, $(ARCH)), -popcnt)
+		popcnt = yes
+	endif
+
+	ifeq ($(findstring -mmx, $(ARCH)), -mmx)
+		mmx = yes
+	endif
+
+	ifeq ($(findstring -sse2, $(ARCH)), -sse2)
+		sse = yes
+		sse2 = yes
+	endif
+
+	ifeq ($(findstring -ssse3, $(ARCH)), -ssse3)
+		sse = yes
+		sse2 = yes
+		ssse3 = yes
+	endif
+
+	ifeq ($(findstring -sse41, $(ARCH)), -sse41)
+		sse = yes
+		sse2 = yes
+		ssse3 = yes
+		sse41 = yes
+	endif
+
+	ifeq ($(findstring -modern, $(ARCH)), -modern)
+		popcnt = yes
+		sse = yes
+		sse2 = yes
+		ssse3 = yes
+		sse41 = yes
+	endif
+
+	ifeq ($(findstring -avx2, $(ARCH)), -avx2)
+		popcnt = yes
+		sse = yes
+		sse2 = yes
+		ssse3 = yes
+		sse41 = yes
+		avx2 = yes
+	endif
+
+	ifeq ($(findstring -bmi2, $(ARCH)), -bmi2)
+		popcnt = yes
+		sse = yes
+		sse2 = yes
+		ssse3 = yes
+		sse41 = yes
+		avx2 = yes
+		bmi2 = yes
+	endif
+
+	ifeq ($(findstring -avx512, $(ARCH)), -avx512)
+		popcnt = yes
+		sse = yes
+		sse2 = yes
+		ssse3 = yes
+		sse41 = yes
+		avx2 = yes
+		bmi2 = yes
+		avx512 = yes
+	endif
+
+	ifeq ($(findstring -vnni256,$(ARCH)), -vnni256)
+		popcnt = yes
+		sse = yes
+		sse2 = yes
+		ssse3 = yes
+		sse41 = yes
+		avx2 = yes
+		bmi2 = yes
+		vnni256 = yes
+	endif
+
+	ifeq ($(findstring -vnni512,$(ARCH)), -vnni512)
+		popcnt = yes
+		sse = yes
+		sse2 = yes
+		ssse3 = yes
+		sse41 = yes
+		avx2 = yes
+		bmi2 = yes
+		avx512 = yes
+		vnni512 = yes
+	endif
+
+	ifeq ($(sse), yes)
+		prefetch = yes
+	endif
+
+	# 64-bit bmi2 is not available on x86-32
+	ifeq ($(bits), 32)
+		bmi2 = no
+	endif
+
 else
-	arch = x86_64
-	sse = yes
-	sse2 = yes
-endif
 
-ifeq ($(findstring -sse, $(ARCH)), -sse)
-	sse = yes
-endif
+	# all other architectures
 
-ifeq ($(findstring -popcnt, $(ARCH)), -popcnt)
-	popcnt = yes
-endif
+	ifeq ($(ARCH), general-32)
+		arch = any
+		bits = 32
+	endif
 
-ifeq ($(findstring -mmx, $(ARCH)), -mmx)
-	mmx = yes
-endif
+	ifeq ($(ARCH), general-64)
+		arch = any
+	endif
 
-ifeq ($(findstring -sse2, $(ARCH)), -sse2)
-	sse = yes
-	sse2 = yes
-endif
+	ifeq ($(ARCH), armv7)
+		arch = armv7
+		prefetch = yes
+		bits = 32
+	endif
 
-ifeq ($(findstring -ssse3, $(ARCH)), -ssse3)
-	sse = yes
-	sse2 = yes
-	ssse3 = yes
-endif
+	ifeq ($(ARCH), armv7-neon)
+		arch = armv7
+		prefetch = yes
+		popcnt = yes
+		neon = yes
+		bits = 32
+	endif
 
-ifeq ($(findstring -sse41, $(ARCH)), -sse41)
-	sse = yes
-	sse2 = yes
-	ssse3 = yes
-	sse41 = yes
-endif
+	ifeq ($(ARCH), armv8)
+		arch = armv8
+		prefetch = yes
+		popcnt = yes
+		neon = yes
+	endif
 
-ifeq ($(findstring -modern, $(ARCH)), -modern)
-	popcnt = yes
-	sse = yes
-	sse2 = yes
-	ssse3 = yes
-	sse41 = yes
-endif
+	ifeq ($(ARCH), apple-silicon)
+		arch = arm64
+		prefetch = yes
+		popcnt = yes
+		neon = yes
+	endif
 
-ifeq ($(findstring -avx2, $(ARCH)), -avx2)
-	popcnt = yes
-	sse = yes
-	sse2 = yes
-	ssse3 = yes
-	sse41 = yes
-	avx2 = yes
-endif
+	ifeq ($(ARCH), ppc-32)
+		arch = ppc
+		bits = 32
+	endif
 
-ifeq ($(findstring -bmi2, $(ARCH)), -bmi2)
-	popcnt = yes
-	sse = yes
-	sse2 = yes
-	ssse3 = yes
-	sse41 = yes
-	avx2 = yes
-	pext = yes
-endif
-
-ifeq ($(findstring -avx512, $(ARCH)), -avx512)
-	popcnt = yes
-	sse = yes
-	sse2 = yes
-	ssse3 = yes
-	sse41 = yes
-	avx2 = yes
-	pext = yes
-	avx512 = yes
-endif
-
-ifeq ($(findstring -vnni256,$(ARCH)), -vnni256)
-	popcnt = yes
-	sse = yes
-	sse2 = yes
-	ssse3 = yes
-	sse41 = yes
-	avx2 = yes
-	pext = yes
-	vnni256 = yes
-endif
-
-ifeq ($(findstring -vnni512,$(ARCH)), -vnni512)
-	popcnt = yes
-	sse = yes
-	sse2 = yes
-	ssse3 = yes
-	sse41 = yes
-	avx2 = yes
-	pext = yes
-	avx512 = yes
-	vnni512 = yes
-endif
-
-ifeq ($(sse), yes)
-	prefetch = yes
-endif
-
-# 64-bit pext is not available on x86-32
-ifeq ($(bits), 32)
-	pext = no
-endif
-
-else
-
-# all other architectures
-
-ifeq ($(ARCH), general-32)
-	arch = any
-	bits = 32
-endif
-
-ifeq ($(ARCH), general-64)
-	arch = any
-endif
-
-ifeq ($(ARCH), armv7)
-	arch = armv7
-	prefetch = yes
-	bits = 32
-endif
-
-ifeq ($(ARCH), armv7-neon)
-	arch = armv7
-	prefetch = yes
-	popcnt = yes
-	neon = yes
-	bits = 32
-endif
-
-ifeq ($(ARCH), armv8)
-	arch = armv8
-	prefetch = yes
-	popcnt = yes
-	neon = yes
-endif
-
-ifeq ($(ARCH), apple-silicon)
-	arch = arm64
-	prefetch = yes
-	popcnt = yes
-	neon = yes
-endif
-
-ifeq ($(ARCH), ppc-32)
-	arch = ppc
-	bits = 32
-endif
-
-ifeq ($(ARCH), ppc-64)
-	arch = ppc64
-	popcnt = yes
-	prefetch = yes
-endif
+	ifeq ($(ARCH), ppc-64)
+		arch = ppc64
+		popcnt = yes
+		prefetch = yes
+	endif
 
 endif
 
@@ -538,9 +538,9 @@ ifeq ($(popcnt), yes)
 	endif
 endif
 
-### 3.7 pext
-ifeq ($(pext), yes)
-	CXXFLAGS += -DUSE_PEXT
+### 3.7 bmi2
+ifeq ($(bmi2), yes)
+	CXXFLAGS += -DUSE_BMI2
 	ifeq ($(comp), $(filter $(comp), gcc clang mingw))
 		CXXFLAGS += -mbmi2
 	endif
@@ -839,13 +839,13 @@ config-sanity: net
 	@echo "os      : '$(OS)'"
 	@echo "prefetch: '$(prefetch)'"
 	@echo "popcnt  : '$(popcnt)'"
-	@echo "pext    : '$(pext)'"
 	@echo "sse     : '$(sse)'"
 	@echo "mmx     : '$(mmx)'"
 	@echo "sse2    : '$(sse2)'"
 	@echo "ssse3   : '$(ssse3)'"
 	@echo "sse41   : '$(sse41)'"
 	@echo "avx2    : '$(avx2)'"
+	@echo "bmi2    : '$(bmi2)'"
 	@echo "avx512  : '$(avx512)'"
 	@echo "vnni256 : '$(vnni256)'"
 	@echo "vnni512 : '$(vnni512)'"
@@ -869,13 +869,13 @@ config-sanity: net
 	@test "$(bits)" = "32" || test "$(bits)" = "64"
 	@test "$(prefetch)" = "yes" || test "$(prefetch)" = "no"
 	@test "$(popcnt)" = "yes" || test "$(popcnt)" = "no"
-	@test "$(pext)" = "yes" || test "$(pext)" = "no"
 	@test "$(sse)" = "yes" || test "$(sse)" = "no"
 	@test "$(mmx)" = "yes" || test "$(mmx)" = "no"
 	@test "$(sse2)" = "yes" || test "$(sse2)" = "no"
 	@test "$(ssse3)" = "yes" || test "$(ssse3)" = "no"
 	@test "$(sse41)" = "yes" || test "$(sse41)" = "no"
 	@test "$(avx2)" = "yes" || test "$(avx2)" = "no"
+	@test "$(bmi2)" = "yes" || test "$(bmi2)" = "no"
 	@test "$(avx512)" = "yes" || test "$(avx512)" = "no"
 	@test "$(vnni256)" = "yes" || test "$(vnni256)" = "no"
 	@test "$(vnni512)" = "yes" || test "$(vnni512)" = "no"

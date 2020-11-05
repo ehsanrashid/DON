@@ -5,13 +5,13 @@
 /// To get started type 'make help'.
 /// Without Makefile (e.g. with Microsoft Visual Studio) some switches need to be set manually:
 ///
-/// -DNDEBUG    | Disable debugging mode. Always use this for release.
-/// -DPREFETCH  | Enable use of prefetch asm-instruction.
-///             | Don't enable it if want to run on some very old machines.
-/// -DABMI      | Add runtime support for use of USE_POPCNT asm-instruction.
-///             | Works only in 64-bit mode and requires hardware with USE_POPCNT support.
-/// -DBMI2      | Add runtime support for use of USE_PEXT asm-instruction.
-///             | Works only in 64-bit mode and requires hardware with USE_PEXT support.
+/// -DNDEBUG        | Disable debugging mode. Always use this for release.
+/// -DUSE_PREFETCH  | Enable use of prefetch asm-instruction.
+///                 | Don't enable it if want to run on some very old machines.
+/// -DUSE_POPCNT    | Add runtime support for use of USE_POPCNT asm-instruction.
+///                 | Works only in 64-bit mode and requires hardware with USE_POPCNT support.
+/// -DUSE_BMI2      | Add runtime support for use of USE_BMI2 asm-instruction.
+///                 | Works only in 64-bit mode and requires hardware with USE_BMI2 support.
 
 #include <cassert>
 #include <cctype>
@@ -75,7 +75,7 @@
     #include <xmmintrin.h>  // Intel and Microsoft header for _mm_prefetch()
 #endif
 
-#if defined(USE_PEXT)
+#if defined(USE_BMI2)
     #include <immintrin.h>  // Header for _pdep_u64() & _pext_u64() intrinsic
   //#define PDEP(b, m)  _pdep_u64(b, m) // Parallel bits deposit
     #define PEXT(b, m)  _pext_u64(b, m) // Parallel bits extract

@@ -86,7 +86,7 @@ namespace {
     template<PieceType PT>
     void initializeMagic(Bitboard attacks[], Magic magics[]) noexcept {
 
-#if !defined(USE_PEXT)
+#if !defined(USE_BMI2)
         constexpr uint16_t MaxIndex{ 0x1000 };
         Bitboard occupancy[MaxIndex];
         Bitboard reference[MaxIndex];
@@ -123,7 +123,7 @@ namespace {
             // new Bitboard[1 << popCount(magic.mask)];
             magic.attacks = (s == SQ_A1) ? attacks : magics[s - 1].attacks + size;
 
-#if !defined(USE_PEXT)
+#if !defined(USE_BMI2)
     #if defined(IS_64BIT)
             magic.shift = 64 - popCount(magic.mask);
     #else
@@ -137,7 +137,7 @@ namespace {
             Bitboard occ{ 0 };
             do {
 
-#if !defined(USE_PEXT)
+#if !defined(USE_BMI2)
                 occupancy[size] = occ;
                 reference[size] = slideAttacks<PT>(s, occ);
 #else
@@ -149,7 +149,7 @@ namespace {
 
             assert(size == (1 << popCount(magic.mask)));
 
-#if !defined(USE_PEXT)
+#if !defined(USE_BMI2)
             PRNG prng(Seeds[sRank(s)]);
             // Find a magic for square picking up an (almost) random number
             // until found the one that passes the verification test.

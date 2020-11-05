@@ -45,7 +45,7 @@ namespace Evaluator::NNUE {
     constexpr size_t CacheLineSize{ 64 };
 
     // SIMD width (in bytes)
-#if defined(USE_AVX2) //|| defined(USE_PEXT) || defined(USE_AVX512)
+#if defined(USE_AVX2) //|| defined(USE_BMI2) || defined(USE_AVX512)
     constexpr size_t SimdWidth{ 32 };
 #elif defined(USE_SSE2) //|| defined(USE_SSSE3)
     constexpr size_t SimdWidth{ 16 };
