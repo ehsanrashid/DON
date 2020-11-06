@@ -572,8 +572,8 @@ bool Position::see(Move m, Value threshold) const noexcept {
             if (movAttackers == 0) {
                 break;
             }
-        }
-        if (contains(kingBlockers(mov), org)
+        } else
+        if (isDiscoveryCheckOn(mov, org)
          && !aligned(square(mov|KING), org, dst)
          && (kingCheckers(~mov)
            & pieces(~mov)

@@ -133,6 +133,7 @@ public:
     Bitboard kingBlockers(Color) const noexcept;
     Bitboard kingCheckers(Color) const noexcept;
     Bitboard checks(PieceType) const noexcept;
+    bool isDiscoveryCheckOn(Color, Square) const noexcept;
 
     Color activeSide() const noexcept;
     Score psqScore() const noexcept;
@@ -351,6 +352,10 @@ inline Bitboard Position::kingCheckers(Color c) const noexcept {
 }
 inline Bitboard Position::checks(PieceType pt) const noexcept {
     return _stateInfo->checks[pt];
+}
+
+inline bool Position::isDiscoveryCheckOn(Color c, Square s) const noexcept {
+    return contains(kingBlockers(c), s);
 }
 
 inline Color Position::activeSide() const noexcept {

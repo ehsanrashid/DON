@@ -450,7 +450,7 @@ namespace {
             // Don't search moves with negative SEE values
             if (!ss->inCheck
              && !(giveCheck
-               && contains(pos.kingBlockers(~activeSide), orgSq(move)))
+               && pos.isDiscoveryCheckOn(~activeSide, orgSq(move)))
              && !pos.see(move)
              && Limits.mate == 0) {
                 continue;
@@ -1164,7 +1164,7 @@ namespace {
             } else
             // Check extension (~2 Elo)
             if (giveCheck
-             && (contains(pos.kingBlockers(~activeSide), orgSq(move))
+             && (pos.isDiscoveryCheckOn(~activeSide, orgSq(move))
               || pos.see(move))) {
                 extension = 1;
             } else
