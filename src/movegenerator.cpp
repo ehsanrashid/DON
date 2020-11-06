@@ -5,7 +5,6 @@
 
 #include "bitboard.h"
 #include "notation.h"
-#include "helper/memoryhandler.h"
 
 namespace {
 

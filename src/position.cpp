@@ -17,7 +17,6 @@
 #include "uci.h"
 #include "helper/string.h"
 #include "helper/string_view.h"
-#include "helper/memoryhandler.h"
 
 namespace {
 

@@ -24,7 +24,6 @@
 #include "helper/logger.h"
 #include "helper/prng.h"
 #include "helper/reporter.h"
-#include "helper/memoryhandler.h"
 
 using Evaluator::evaluate;
 

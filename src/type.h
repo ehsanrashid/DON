@@ -85,6 +85,8 @@
     #define ALIGNAS_ON_STACK_VARIABLES_BROKEN
 #endif
 
+#define ASSERT_ALIGNED(ptr, alignment) assert(reinterpret_cast<uintptr_t>(ptr) % alignment == 0)
+
 #define XSTRING(x)      #x
 #define STRINGIFY(x)    XSTRING(x)
 

@@ -11,7 +11,7 @@ namespace Evaluator::NNUE::Features {
     };
 
     // Orient a square according to perspective (rotates by 180 for black)
-    inline Square orient(Color perspective, Square s) {
+    inline Square orient(Color perspective, Square s) noexcept {
         return Square(int32_t(s) ^ OrientSquare[perspective]);
     }
 
@@ -23,19 +23,19 @@ namespace Evaluator::NNUE::Features {
 
     // Get a list of indices for active features
     template<Side AssociatedKing>
-    void HalfKP<AssociatedKing>::appendActiveIndices(Position const &pos, Color perspective, IndexList *active) {
+    void HalfKP<AssociatedKing>::appendActiveIndices(Position const &pos, Color perspective, IndexList *activeList) {
 
         Square const kSq{ orient(perspective, pos.square(perspective|KING)) };
         Bitboard bb{ pos.pieces() & ~pos.pieces(KING) };
         while (bb != 0) {
             Square const s{ popLSq(bb) };
-            active->push_back(makeIndex(perspective, s, pos[s], kSq));
+            activeList->push_back(makeIndex(perspective, s, pos[s], kSq));
         }
     }
 
     // Get a list of indices for recently changed features
     template<Side AssociatedKing>
-    void HalfKP<AssociatedKing>::appendChangedIndices(Position const &pos, MoveInfo const &mi, Color perspective, IndexList *removed, IndexList *added) {
+    void HalfKP<AssociatedKing>::appendChangedIndices(Position const &pos, MoveInfo const &mi, Color perspective, IndexList *removedList, IndexList *addedList) {
 
         Square const kSq{ orient(perspective, pos.square(perspective|KING)) };
         for (uint8_t i = 0; i < mi.pieceCount; ++i) {
@@ -43,10 +43,10 @@ namespace Evaluator::NNUE::Features {
                 continue;
             }
             if (mi.org[i] != SQ_NONE) {
-                removed->push_back(makeIndex(perspective, mi.org[i], mi.piece[i], kSq));
+                removedList->push_back(makeIndex(perspective, mi.org[i], mi.piece[i], kSq));
             }
             if (mi.dst[i] != SQ_NONE) {
-                added->push_back(makeIndex(perspective, mi.dst[i], mi.piece[i], kSq));
+                addedList->push_back(makeIndex(perspective, mi.dst[i], mi.piece[i], kSq));
             }
         }
     }

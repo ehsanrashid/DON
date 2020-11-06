@@ -258,6 +258,7 @@ ifeq ($(findstring x86, $(ARCH)), x86)
 		vnni512 = yes
 	endif
 
+	# if sse then enable prefetch
 	ifeq ($(sse), yes)
 		prefetch = yes
 	endif
@@ -338,7 +339,7 @@ endif
 ifeq ($(COMP), gcc)
 	comp = gcc
 	CXX = g++
-	CXXFLAGS += -pedantic -Wextra -Wshadow
+	CXXFLAGS += -Wextra -Wshadow -pedantic
 
 	ifeq ($(arch), $(filter $(arch), armv7 armv8))
 		ifeq ($(OS), Android)
@@ -387,7 +388,7 @@ endif
 ifeq ($(COMP), icc)
 	comp = icc
 	CXX = icpc
-	CXXFLAGS += -diag-disable 1476,10120 -Wcheck -Wabi -Wdeprecated -strict-ansi
+	CXXFLAGS += -Wcheck -Wabi -Wdeprecated -strict-ansi -diag-disable 1476,10120
 endif
 
 ifeq ($(COMP), clang)
@@ -423,8 +424,9 @@ endif
 # In earlier NDK versions, you'll need to pass -fno-addrsig if using GNU binutils.
 # Currently we don't know how to make PGO builds with the NDK yet.
 ifeq ($(COMP), ndk)
-	CXXFLAGS += -stdlib=libc++ -fPIE
 	comp = clang
+	CXXFLAGS += -stdlib=libc++ -fPIE
+
 	ifeq ($(arch), armv7)
 		CXX = armv7a-linux-androideabi16-clang++
 		CXXFLAGS += -mthumb -march=armv7-a -mfloat-abi=softfp -mfpu=neon

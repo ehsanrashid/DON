@@ -2,8 +2,6 @@
 
 #include <cstdint>
 
-#define ASSERT_ALIGNED(ptr, alignment) assert(reinterpret_cast<uintptr_t>(ptr) % alignment == 0)
-
 // `ptr` must point to an array of size at least
 // `sizeof(T) * N + alignment` bytes, where `N` is the
 // number of elements in the array.

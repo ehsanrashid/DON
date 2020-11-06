@@ -220,12 +220,11 @@ namespace Evaluator::NNUE {
             if (si->accumulator.state[c] == COMPUTED) {
                 // Update incrementally, including previous accumulators
 
-                // First gather all features to be updated and mark the accumulators
-                // as computed
-                Features::IndexList added[MaxSteps], removed[MaxSteps];
+                // First gather all features to be updated and mark the accumulators as computed
+                Features::IndexList removedList[MaxSteps], addedList[MaxSteps];
                 for (int i = 0; i < step; ++i) {
                     auto &mi = stack[i]->moveInfo;
-                    Features::HalfKP<Features::Side::FRIEND>::appendChangedIndices(pos, mi, c, &removed[i], &added[i]);
+                    Features::HalfKP<Features::Side::FRIEND>::appendChangedIndices(pos, mi, c, &removedList[i], &addedList[i]);
                     stack[i]->accumulator.state[c] = COMPUTED;
                 }
 
@@ -238,7 +237,7 @@ namespace Evaluator::NNUE {
                     }
                     for (int i = step - 1; i >= 0; --i) {
                         // Difference calculation for the deactivated features
-                        for (const auto index : removed[i]) {
+                        for (const auto index : removedList[i]) {
                             const IndexType offset = HalfDimensions * index + j * TileHeight;
                             auto column = reinterpret_cast<const vec_t*>(&weights_[offset]);
                             for (IndexType k = 0; k < NumRegs; ++k) {
@@ -247,7 +246,7 @@ namespace Evaluator::NNUE {
                         }
 
                         // Difference calculation for the activated features
-                        for (const auto index : added[i]) {
+                        for (const auto index : addedList[i]) {
                             const IndexType offset = HalfDimensions * index + j * TileHeight;
                             auto column = reinterpret_cast<const vec_t*>(&weights_[offset]);
                             for (IndexType k = 0; k < NumRegs; ++k) {
@@ -269,7 +268,7 @@ namespace Evaluator::NNUE {
                     si = stack[i];
 
                     // Difference calculation for the deactivated features
-                    for (const auto index : removed[i]) {
+                    for (const auto index : removedList[i]) {
                         const IndexType offset = HalfDimensions * index;
 
                         for (IndexType j = 0; j < HalfDimensions; ++j) {
@@ -278,7 +277,7 @@ namespace Evaluator::NNUE {
                     }
 
                     // Difference calculation for the activated features
-                    for (const auto index : added[i]) {
+                    for (const auto index : addedList[i]) {
                         const IndexType offset = HalfDimensions * index;
 
                         for (IndexType j = 0; j < HalfDimensions; ++j) {
@@ -290,10 +289,10 @@ namespace Evaluator::NNUE {
             #endif
             } else {
                 // Refresh the accumulator
-                auto& accumulator{ pos.state()->accumulator };
+                auto &accumulator{ pos.state()->accumulator };
                 accumulator.state[c] = COMPUTED;
-                Features::IndexList active;
-                Features::HalfKP<Features::Side::FRIEND>::appendActiveIndices(pos, c, &active);
+                Features::IndexList activeList;
+                Features::HalfKP<Features::Side::FRIEND>::appendActiveIndices(pos, c, &activeList);
 
             #if defined(VECTOR)
                 for (IndexType j = 0; j < HalfDimensions / TileHeight; ++j) {
@@ -302,7 +301,7 @@ namespace Evaluator::NNUE {
                         acc[k] = biasesTile[k];
                     }
 
-                    for (const auto index : active) {
+                    for (const auto index : activeList) {
                         const IndexType offset = HalfDimensions * index + j * TileHeight;
                         auto column = reinterpret_cast<const vec_t*>(&weights_[offset]);
 
@@ -321,7 +320,7 @@ namespace Evaluator::NNUE {
 
                 std::memcpy(accumulator.accumulation[c][0], biases_, HalfDimensions * sizeof(BiasType));
 
-                for (const auto index : active) {
+                for (const auto index : activeList) {
                     const IndexType offset{ HalfDimensions * index };
 
                     for (IndexType j = 0; j < HalfDimensions; ++j) {
