@@ -61,6 +61,12 @@ namespace {
     constexpr uint64_t TTHitAverageWindow{ 4096 };
     constexpr uint64_t TTHitAverageResolution{ 1024 };
 
+    // Razor and futility margins
+    constexpr int32_t RazorMargin{ 510 };
+    constexpr Value futilityMargin(Depth d, bool imp) noexcept {
+        return Value(223 * (d - imp));
+    }
+
     constexpr int32_t MAX_MOVES{ 256 };
     int32_t Reduction[MAX_MOVES];
     inline Depth reduction(Depth d, uint8_t mc, bool imp) noexcept {
@@ -795,7 +801,7 @@ namespace {
             if (!rootNode // The RootNode PV handling is not available in qsearch
              && depth == 1
                 // Razor Margin
-             && eval <= (alfa - 510)) {
+             && (eval + RazorMargin) <= alfa) {
                 return quienSearch<PVNode>(pos, ss, alfa, beta);
             }
 
@@ -809,8 +815,7 @@ namespace {
             if (!PVNode
              && depth < 8
              && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
-                // Futility Margin
-             && (eval - (223 * (depth - improving))) >= beta
+             && (eval - futilityMargin(depth, improving)) >= beta
              && Limits.mate == 0) {
                 return eval;
             }
@@ -994,7 +999,7 @@ namespace {
             nullptr           , (ss-6)->pieceStats
         };
 
-        Move const counterMove( pos.thread()->counterMoves[pos[prevDst]][prevDst] );
+        auto const counterMove{ pos.thread()->counterMoves[pos[prevDst]][prevDst] };
 
         // Initialize move-picker(1) for the current position
         MovePicker movePicker{

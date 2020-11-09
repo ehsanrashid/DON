@@ -58,46 +58,105 @@ namespace Evaluator::NNUE::Layers {
 
     #if defined(USE_AVX512)
 
-            [[maybe_unused]] __m512i const One512 = _mm512_set1_epi16(1);
+            [[maybe_unused]] __m512i const One512{ _mm512_set1_epi16(1) };
 
             [[maybe_unused]] auto m512_hadd = [](__m512i sum, int bias) -> int {
                 return _mm512_reduce_add_epi32(sum) + bias;
             };
 
-            [[maybe_unused]] auto m512_haddx4 = [](__m512i sum0, __m512i sum1, __m512i sum2, __m512i sum3, __m128i bias) -> __m128i {
-                __m512i sum01a{ _mm512_unpacklo_epi32(sum0, sum1) };
-                __m512i sum01b{ _mm512_unpackhi_epi32(sum0, sum1) };
+            // This function takes
+            //   sum0 = [xmm0a, xmm0b, xmm0c, xmm0d]
+            //   sum1 = [xmm1a, xmm1b, xmm1c, xmm1d]
+            //   sum2 = [xmm2a, xmm2b, xmm2c, xmm2d]
+            //   sum3 = [xmm3a, xmm3b, xmm3c, xmm3d]
+            // and returns
+            //   ret = [
+            //     reduce_add_epi32(xmm0a), reduce_add_epi32(xmm1a), reduce_add_epi32(xmm2a), reduce_add_epi32(xmm3a),
+            //     reduce_add_epi32(xmm0b), reduce_add_epi32(xmm1b), reduce_add_epi32(xmm2b), reduce_add_epi32(xmm3b),
+            //     reduce_add_epi32(xmm0c), reduce_add_epi32(xmm1c), reduce_add_epi32(xmm2c), reduce_add_epi32(xmm3c),
+            //     reduce_add_epi32(xmm0d), reduce_add_epi32(xmm1d), reduce_add_epi32(xmm2d), reduce_add_epi32(xmm3d)
+            //   ]
+            [[maybe_unused]] auto m512_hadd128x16_interleave = [](__m512i sum0, __m512i sum1, __m512i sum2, __m512i sum3) -> __m512i {
 
-                __m512i sum23a{ _mm512_unpacklo_epi32(sum2, sum3) };
-                __m512i sum23b{ _mm512_unpackhi_epi32(sum2, sum3) };
+                __m512i const sum01a{ _mm512_unpacklo_epi32(sum0, sum1) };
+                __m512i const sum01b{ _mm512_unpackhi_epi32(sum0, sum1) };
 
-                __m512i sum01{ _mm512_add_epi32(sum01a, sum01b) };
-                __m512i sum23{ _mm512_add_epi32(sum23a, sum23b) };
+                __m512i const sum23a{ _mm512_unpacklo_epi32(sum2, sum3) };
+                __m512i const sum23b{ _mm512_unpackhi_epi32(sum2, sum3) };
 
-                __m512i sum0123a{ _mm512_unpacklo_epi64(sum01, sum23) };
-                __m512i sum0123b{ _mm512_unpackhi_epi64(sum01, sum23) };
+                __m512i const sum01{ _mm512_add_epi32(sum01a, sum01b) };
+                __m512i const sum23{ _mm512_add_epi32(sum23a, sum23b) };
 
-                __m512i sum{ _mm512_add_epi32(sum0123a, sum0123b) };
+                __m512i const sum0123a{ _mm512_unpacklo_epi64(sum01, sum23) };
+                __m512i const sum0123b{ _mm512_unpackhi_epi64(sum01, sum23) };
+
+                return _mm512_add_epi32(sum0123a, sum0123b);
+            };
+
+            [[maybe_unused]] auto m512_haddx4 = [m512_hadd128x16_interleave](__m512i sum0, __m512i sum1, __m512i sum2, __m512i sum3, __m128i bias) -> __m128i {
+
+                __m512i const sum{ m512_hadd128x16_interleave(sum0, sum1, sum2, sum3) };
 
                 __m256i sum256lo{ _mm512_castsi512_si256(sum) };
                 __m256i sum256hi{ _mm512_extracti64x4_epi64(sum, 1) };
 
                 sum256lo = _mm256_add_epi32(sum256lo, sum256hi);
 
-                __m128i sum128lo{ _mm256_castsi256_si128(sum256lo) };
-                __m128i sum128hi{ _mm256_extracti128_si256(sum256lo, 1) };
+                __m128i const sum128lo{ _mm256_castsi256_si128(sum256lo) };
+                __m128i const sum128hi{ _mm256_extracti128_si256(sum256lo, 1) };
 
                 return _mm_add_epi32(_mm_add_epi32(sum128lo, sum128hi), bias);
             };
 
+            [[maybe_unused]] auto m512_haddx8 = [m512_hadd128x16_interleave](__m512i sum0, __m512i sum1, __m512i sum2, __m512i sum3, __m512i sum4, __m512i sum5, __m512i sum6, __m512i sum7, __m256i bias) -> __m256i {
+
+                __m512i const suma{ m512_hadd128x16_interleave(sum0, sum1, sum2, sum3) };
+                __m512i const sumb{ m512_hadd128x16_interleave(sum4, sum5, sum6, sum7) };
+
+                __m512i const indices0{ _mm512_setr_epi64(0, 1, 8, 9, 4, 5, 12, 13) };
+                __m512i const indices1{ _mm512_setr_epi64(2, 3, 10, 11, 6, 7, 14, 15) };
+                __m512i const x{ _mm512_add_epi32(_mm512_permutex2var_epi64(suma, indices0, sumb), _mm512_permutex2var_epi64(suma, indices1, sumb)) };
+
+                __m256i const sum256lo{ _mm512_castsi512_si256(x) };
+                __m256i const sum256hi{ _mm512_extracti64x4_epi64(x, 1) };
+
+                return _mm256_add_epi32(_mm256_add_epi32(sum256lo, sum256hi), bias);
+            };
+
+            [[maybe_unused]] auto m512_hadd256x8 = [m512_hadd128x16_interleave](__m512i sum0, __m512i sum1, __m512i sum2, __m512i sum3, __m256i bias) -> __m256i {
+
+                __m512i sum{ m512_hadd128x16_interleave(sum0, sum1, sum2, sum3) };
+
+                __m512i const indices{ _mm512_setr_epi32(0, 4, 8, 12, 2, 6, 10, 14, 1, 5, 9, 13, 3, 7, 11, 15) };
+                sum = _mm512_permutexvar_epi32(indices, sum);
+
+                __m256i const sum256lo{ _mm512_castsi512_si256(sum) };
+                __m256i const sum256hi{ _mm512_extracti64x4_epi64(sum, 1) };
+
+                return _mm256_add_epi32(_mm256_hadd_epi32(sum256lo, sum256hi), bias);
+            };
+
+            [[maybe_unused]] auto m512_hadd256x16 = [m512_hadd128x16_interleave](__m512i sum0, __m512i sum1, __m512i sum2, __m512i sum3, __m512i sum4, __m512i sum5, __m512i sum6, __m512i sum7, __m512i bias) -> __m512i {
+
+                __m512i const suma{ m512_hadd128x16_interleave(sum0, sum1, sum2, sum3) };
+                __m512i const sumb{ m512_hadd128x16_interleave(sum4, sum5, sum6, sum7) };
+
+                __m512i const indices0{ _mm512_setr_epi64(0, 1, 8, 9, 4, 5, 12, 13) };
+                __m512i const indices1{ _mm512_setr_epi64(2, 3, 10, 11, 6, 7, 14, 15) };
+                __m512i const x{ _mm512_add_epi32(_mm512_permutex2var_epi64(suma, indices0, sumb), _mm512_permutex2var_epi64(suma, indices1, sumb)) };
+
+                __m512i indices{ _mm512_setr_epi32(0, 8, 1, 9, 2, 10, 3, 11, 4, 12, 5, 13, 6, 14, 7, 15) };
+                return _mm512_add_epi32(_mm512_permutexvar_epi32(indices, x), bias);
+            };
+
             [[maybe_unused]] auto m512_add_dpbusd_epi32 = [=](__m512i &acc, __m512i a, __m512i b) {
-            #if defined(USE_VNNI)
+        #if defined (USE_VNNI)
                 acc = _mm512_dpbusd_epi32(acc, a, b);
-            #else
+        #else
                 __m512i product0{ _mm512_maddubs_epi16(a, b) };
                 product0 = _mm512_madd_epi16(product0, One512);
                 acc = _mm512_add_epi32(acc, product0);
-            #endif
+        #endif
             };
 
     #endif
@@ -118,8 +177,8 @@ namespace Evaluator::NNUE::Layers {
 
                 sum0 = _mm256_hadd_epi32(sum0, sum2);
 
-                __m128i sum128lo{ _mm256_castsi256_si128(sum0) };
-                __m128i sum128hi{ _mm256_extracti128_si256(sum0, 1) };
+                __m128i const sum128lo{ _mm256_castsi256_si128(sum0) };
+                __m128i const sum128hi{ _mm256_extracti128_si256(sum0, 1) };
 
                 return _mm_add_epi32(_mm_add_epi32(sum128lo, sum128hi), bias);
             };
@@ -185,6 +244,53 @@ namespace Evaluator::NNUE::Layers {
 
             // OutputDimensions is either 1 or a multiple of SimdWidth
             // because then it is also an input dimension.
+            if constexpr (OutputDimensions % 16 == 0 && NumChunks256 == 1) {
+                for (IndexType i = 0; i < OutputDimensions; i += 16) {
+                    IndexType const offset01a = (i + 0) * PaddedInputDimensions;
+                    IndexType const offset23a = (i + 2) * PaddedInputDimensions;
+                    IndexType const offset45a = (i + 4) * PaddedInputDimensions;
+                    IndexType const offset67a = (i + 6) * PaddedInputDimensions;
+                    IndexType const offset01b = (i + 8) * PaddedInputDimensions;
+                    IndexType const offset23b = (i + 10) * PaddedInputDimensions;
+                    IndexType const offset45b = (i + 12) * PaddedInputDimensions;
+                    IndexType const offset67b = (i + 14) * PaddedInputDimensions;
+
+                    __m512i const bias{ *reinterpret_cast<__m512i const*>(&biases_[i]) };
+                    __m512i *outptr{ reinterpret_cast<__m512i*>(&output[i]) };
+
+                    __m512i sum01a{ _mm512_setzero_si512() };
+                    __m512i sum23a{ _mm512_setzero_si512() };
+                    __m512i sum45a{ _mm512_setzero_si512() };
+                    __m512i sum67a{ _mm512_setzero_si512() };
+                    __m512i sum01b{ _mm512_setzero_si512() };
+                    __m512i sum23b{ _mm512_setzero_si512() };
+                    __m512i sum45b{ _mm512_setzero_si512() };
+                    __m512i sum67b{ _mm512_setzero_si512() };
+
+                    auto const row01a{ *reinterpret_cast<__m512i const*>(&weights_[offset01a]) };
+                    auto const row23a{ *reinterpret_cast<__m512i const*>(&weights_[offset23a]) };
+                    auto const row45a{ *reinterpret_cast<__m512i const*>(&weights_[offset45a]) };
+                    auto const row67a{ *reinterpret_cast<__m512i const*>(&weights_[offset67a]) };
+                    auto const row01b{ *reinterpret_cast<__m512i const*>(&weights_[offset01b]) };
+                    auto const row23b{ *reinterpret_cast<__m512i const*>(&weights_[offset23b]) };
+                    auto const row45b{ *reinterpret_cast<__m512i const*>(&weights_[offset45b]) };
+                    auto const row67b{ *reinterpret_cast<__m512i const*>(&weights_[offset67b]) };
+
+                    __m256i const in256{ input_vector256[0] };
+                    __m512i const in{ _mm512_inserti64x4(_mm512_castsi256_si512(in256), in256, 1) };
+
+                    m512_add_dpbusd_epi32(sum01a, in, row01a);
+                    m512_add_dpbusd_epi32(sum23a, in, row23a);
+                    m512_add_dpbusd_epi32(sum45a, in, row45a);
+                    m512_add_dpbusd_epi32(sum67a, in, row67a);
+                    m512_add_dpbusd_epi32(sum01b, in, row01b);
+                    m512_add_dpbusd_epi32(sum23b, in, row23b);
+                    m512_add_dpbusd_epi32(sum45b, in, row45b);
+                    m512_add_dpbusd_epi32(sum67b, in, row67b);
+
+                    *outptr = m512_hadd256x16(sum01a, sum23a, sum45a, sum67a, sum01b, sum23b, sum45b, sum67b, bias);
+                }
+            } else
             if constexpr (OutputDimensions % 4 == 0) {
                 for (IndexType i = 0; i < OutputDimensions; i += 4) {
                     IndexType const offset0{ (i + 0) * PaddedInputDimensions };
@@ -196,10 +302,10 @@ namespace Evaluator::NNUE::Layers {
                     __m128i *outptr{ reinterpret_cast<__m128i*>(&output[i]) };
 
                     if constexpr (PaddedInputDimensions % (SimdWidth * 2) == 0) {
-                        __m512i sum0 = _mm512_setzero_si512();
-                        __m512i sum1 = _mm512_setzero_si512();
-                        __m512i sum2 = _mm512_setzero_si512();
-                        __m512i sum3 = _mm512_setzero_si512();
+                        __m512i sum0{ _mm512_setzero_si512() };
+                        __m512i sum1{ _mm512_setzero_si512() };
+                        __m512i sum2{ _mm512_setzero_si512() };
+                        __m512i sum3{ _mm512_setzero_si512() };
 
                         auto const row0{ reinterpret_cast<__m512i const*>(&weights_[offset0]) };
                         auto const row1{ reinterpret_cast<__m512i const*>(&weights_[offset1]) };

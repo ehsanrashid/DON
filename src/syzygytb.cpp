@@ -1746,7 +1746,7 @@ namespace SyzygyTB {
 
         TBTables.clear();
         MaxPieceLimit = 0;
-        return; // TODO:: remove me
+
         if (whiteSpaces(paths)) {
             return;
         }

@@ -109,8 +109,14 @@ namespace Evaluator::NNUE {
 
             auto const &accumulation = pos.state()->accumulator.accumulation;
 
-        #if defined(USE_AVX2)
+        #if defined(USE_AVX512)
+            constexpr IndexType NumChunks{ HalfDimensions / (SimdWidth * 2) };
+            static_assert(HalfDimensions % (SimdWidth * 2) == 0);
+            __m512i const Control{ _mm512_setr_epi64(0, 2, 4, 6, 1, 3, 5, 7) };
+            __m512i const Zero{ _mm512_setzero_si512() };
+        #elif defined(USE_AVX2)
             constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
+            constexpr int Control{ 0b11011000 };
             __m256i const Zero{ _mm256_setzero_si256() };
         #elif defined(USE_SSE2)
             constexpr IndexType NumChunks{ HalfDimensions / SimdWidth };
@@ -131,12 +137,20 @@ namespace Evaluator::NNUE {
             for (IndexType p = 0; p < 2; ++p) {
                 IndexType const offset{ HalfDimensions * p };
 
-        #if defined(USE_AVX2)
+        #if defined(USE_AVX512)
+                auto out = reinterpret_cast<__m512i *>(&output[offset]);
+                for (IndexType j = 0; j < NumChunks; ++j) {
+                    __m512i sum0{ _mm512_load_si512(&reinterpret_cast<__m512i const*>(accumulation[perspectives[p]][0])[j * 2 + 0]) };
+                    __m512i sum1{ _mm512_load_si512(&reinterpret_cast<__m512i const*>(accumulation[perspectives[p]][0])[j * 2 + 1]) };
+                    _mm512_store_si512(&out[j], _mm512_permutexvar_epi64(Control, _mm512_max_epi8(_mm512_packs_epi16(sum0, sum1), Zero)));
+            }
+
+        #elif defined(USE_AVX2)
                 auto out{ reinterpret_cast<__m256i*>(&output[offset]) };
                 for (IndexType j = 0; j < NumChunks; ++j) {
                     __m256i sum0{ _mm256_load_si256(&reinterpret_cast<__m256i const*>(accumulation[perspectives[p]][0])[j * 2 + 0]) };
                     __m256i sum1{ _mm256_load_si256(&reinterpret_cast<__m256i const*>(accumulation[perspectives[p]][0])[j * 2 + 1]) };
-                    _mm256_store_si256(&out[j], _mm256_permute4x64_epi64(_mm256_max_epi8(_mm256_packs_epi16(sum0, sum1), Zero), 0b11011000));
+                    _mm256_store_si256(&out[j], _mm256_permute4x64_epi64(_mm256_max_epi8(_mm256_packs_epi16(sum0, sum1), Zero), Control));
                 }
 
         #elif defined(USE_SSE2)
@@ -296,21 +310,21 @@ namespace Evaluator::NNUE {
 
             #if defined(VECTOR)
                 for (IndexType j = 0; j < HalfDimensions / TileHeight; ++j) {
-                    auto biasesTile = reinterpret_cast<const vec_t*>(&biases_[j * TileHeight]);
+                    auto biasesTile{ reinterpret_cast<const vec_t*>(&biases_[j * TileHeight]) };
                     for (IndexType k = 0; k < NumRegs; ++k) {
                         acc[k] = biasesTile[k];
                     }
 
                     for (const auto index : activeList) {
                         const IndexType offset = HalfDimensions * index + j * TileHeight;
-                        auto column = reinterpret_cast<const vec_t*>(&weights_[offset]);
+                        auto column{ reinterpret_cast<const vec_t*>(&weights_[offset]) };
 
                         for (unsigned k = 0; k < NumRegs; ++k) {
                             acc[k] = vec_add_16(acc[k], column[k]);
                         }
                     }
 
-                    auto accTile = reinterpret_cast<vec_t*>(&accumulator.accumulation[c][0][j * TileHeight]);
+                    auto accTile{ reinterpret_cast<vec_t*>(&accumulator.accumulation[c][0][j * TileHeight]) };
                     for (unsigned k = 0; k < NumRegs; ++k) {
                         vec_store(&accTile[k], acc[k]);
                     }

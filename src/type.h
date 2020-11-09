@@ -161,7 +161,8 @@ constexpr Depth DEPTH_OFFSET     { DEPTH_NONE - 1 }; // Used only for TT entry o
 constexpr int32_t MAX_PLY{ 256 + DEPTH_OFFSET - 4 };
 
 enum CastleSide : int8_t {
-    CS_KING, CS_QUEN, CS_CENTRE, CASTLE_SIDES = 2
+    CS_KING, CS_QUEN, CS_CENTRE,
+    CASTLE_SIDES = 2
 };
 
 /// Castle Right defined as in Polyglot book hash key
