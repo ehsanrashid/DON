@@ -15,24 +15,31 @@ namespace King {
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
         // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
         constexpr Score Shelter[FILES/2][RANKS]{
-            { S( -6, 0), S( 81, 0), S( 93, 0), S( 58, 0), S( 39, 0), S( 18, 0), S(  25, 0), S(0, 0) },
-            { S(-43, 0), S( 61, 0), S( 35, 0), S(-49, 0), S(-29, 0), S(-11, 0), S( -63, 0), S(0, 0) },
-            { S(-10, 0), S( 75, 0), S( 23, 0), S( -2, 0), S( 32, 0), S(  3, 0), S( -45, 0), S(0, 0) },
-            { S(-39, 0), S(-13, 0), S(-29, 0), S(-52, 0), S(-48, 0), S(-67, 0), S(-166, 0), S(0, 0) }
+            { S( -5, 0), S( 82, 0), S( 92, 0), S( 54, 0), S( 36, 0), S( 22, 0), S(  28, 0), S(0, 0) },
+            { S(-44, 0), S( 63, 0), S( 33, 0), S(-50, 0), S(-30, 0), S(-12, 0), S( -62, 0), S(0, 0) },
+            { S(-11, 0), S( 77, 0), S( 22, 0), S( -6, 0), S( 31, 0), S(  8, 0), S( -45, 0), S(0, 0) },
+            { S(-39, 0), S(-12, 0), S(-29, 0), S(-50, 0), S(-43, 0), S(-68, 0), S(-164, 0), S(0, 0) }
         };
 
         // Danger of unblocked enemy pawns storm toward our king by [distance from edge][rank].
         // RANK_1 is used for files where the enemy has no pawn, or their pawn is behind our king.
         // [0][1 - 2] accommodate opponent pawn on edge (likely blocked by king)
         constexpr Score UnblockedStorm[FILES/2][RANKS]{
-            { S( 85, 0), S(-289, 0), S(-166, 0), S( 97, 0), S( 50, 0), S( 45, 0), S( 50, 0), S(0, 0) },
-            { S( 46, 0), S( -25, 0), S( 122, 0), S( 45, 0), S( 37, 0), S(-10, 0), S( 20, 0), S(0, 0) },
-            { S( -6, 0), S(  51, 0), S( 168, 0), S( 34, 0), S( -2, 0), S(-22, 0), S(-14, 0), S(0, 0) },
-            { S(-15, 0), S( -11, 0), S( 101, 0), S(  4, 0), S( 11, 0), S(-15, 0), S(-29, 0), S(0, 0) }
+            { S( 87, 0), S(-288, 0), S(-168, 0), S( 96, 0), S( 47, 0), S( 44, 0), S( 46, 0), S(0, 0) },
+            { S( 42, 0), S( -25, 0), S( 120, 0), S( 45, 0), S( 34, 0), S( -9, 0), S( 24, 0), S(0, 0) },
+            { S( -8, 0), S(  51, 0), S( 167, 0), S( 35, 0), S( -4, 0), S(-16, 0), S(-12, 0), S(0, 0) },
+            { S(-17, 0), S( -13, 0), S( 100, 0), S(  4, 0), S(  9, 0), S(-16, 0), S(-31, 0), S(0, 0) }
         };
 
         constexpr Score BlockedStorm[RANKS]{
             S( 0, 0), S( 0, 0), S( 76, 78), S(-10, 15), S(-7, 10), S(-4, 6), S(-1, 2), S( 0, 0)
+        };
+
+        // KingOnFile[semi-open Us][semi-open Them] contains bonuses/penalties
+        // for king when the king is on a semi-open or open file.
+        constexpr Score KingOnFile[2][2]{
+            { S(-19, 12), S(-6,  7) },
+            { S(  0,  2), S( 6, -5) }
         };
 
         constexpr Score BasicShelter { S( 5, 5) };
@@ -42,14 +49,14 @@ namespace King {
     }
 
     template<Color Own>
-    Score Entry::evaluateShelterOn(Position const &pos, Square kSq) noexcept {
+    Score Entry::evaluateBonusOn(Position const &pos, Square kSq) noexcept {
         constexpr auto Opp{ ~Own };
 
         Bitboard const frontPawns   { pos.pieces(PAWN) & ~frontRanksBB(Opp, kSq) };
         Bitboard const ownFrontPawns{ pos.pieces(Own) & frontPawns & ~pawnEntry->sglAttacks[Opp] };
         Bitboard const oppFrontPawns{ pos.pieces(Opp) & frontPawns };
 
-        Score shelter{ BasicShelter };
+        Score bonus{ BasicShelter };
 
         auto kF{ std::clamp(sFile(kSq), FILE_B, FILE_G) };
         for (File f = File(kF - 1); f <= File(kF + 1); ++f) {
@@ -63,7 +70,7 @@ namespace King {
                  && oppR == RANK_1));
 
             auto const d{ edgeDistance(f) };
-            shelter +=
+            bonus +=
                 Shelter[d][ownR]
               - (ownR != RANK_1
               && ownR == oppR - 1 ?
@@ -71,11 +78,14 @@ namespace King {
                     UnblockedStorm[d][oppR]);
         }
 
-        return shelter;
+        // King On File
+        bonus -= KingOnFile[pos.semiopenFileOn(Own, kSq)][pos.semiopenFileOn(Opp, kSq)];
+
+        return bonus;
     }
     // Explicit template instantiations
-    template Score Entry::evaluateShelterOn<WHITE>(Position const&, Square);
-    template Score Entry::evaluateShelterOn<BLACK>(Position const&, Square);
+    template Score Entry::evaluateBonusOn<WHITE>(Position const&, Square);
+    template Score Entry::evaluateBonusOn<BLACK>(Position const&, Square);
 
     template<Color Own>
     Score Entry::evaluateSafety(Position const &pos, Bitboard attacks) noexcept {
@@ -92,12 +102,12 @@ namespace King {
 
             auto const compare{ [](Score s1, Score s2) { return mgValue(s1) < mgValue(s2); } };
 
-            auto shelter{ evaluateShelterOn<Own>(pos, sq) };
+            auto bonus{ evaluateBonusOn<Own>(pos, sq) };
             if (cSide[CS_KING]) {
-                shelter = std::max(shelter, evaluateShelterOn<Own>(pos, relativeSq(Own, SQ_G1)), compare);
+                bonus = std::max(bonus, evaluateBonusOn<Own>(pos, relativeSq(Own, SQ_G1)), compare);
             }
             if (cSide[CS_QUEN]) {
-                shelter = std::max(shelter, evaluateShelterOn<Own>(pos, relativeSq(Own, SQ_C1)), compare);
+                bonus = std::max(bonus, evaluateBonusOn<Own>(pos, relativeSq(Own, SQ_C1)), compare);
             }
 
             // In endgame, king near to closest pawn
@@ -111,7 +121,7 @@ namespace King {
                     minPawnDist = std::min(minPawnDist, distance(sq, popLSq(pawns)));
                 }
             }
-            safety[Own] = shelter - makeScore(0, 16 * minPawnDist);
+            safety[Own] = bonus - makeScore(0, 16 * minPawnDist);
 
             square[Own] = sq;
             castleSide[Own][CS_KING] = cSide[CS_KING];

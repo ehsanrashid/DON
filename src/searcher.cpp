@@ -421,7 +421,7 @@ namespace {
             bool const captureOrPromotion{ pos.captureOrPromotion(move) };
 
             // Futility pruning
-            if (!ss->inCheck
+            if (bestValue > +VALUE_MATE_2_MAX_PLY
              && !giveCheck
              && futilityBase > -VALUE_KNOWN_WIN
              && !pos.advancedPawnPush(move)
@@ -448,9 +448,9 @@ namespace {
             }
 
             // Don't search moves with negative SEE values
-            if (!ss->inCheck
+            if (bestValue > +VALUE_MATE_2_MAX_PLY
              && !(giveCheck
-               && pos.isDiscoveryCheckOn(~activeSide, orgSq(move)))
+               && pos.isKingBlockersOn(~activeSide, orgSq(move)))
              && !pos.see(move)
              && Limits.mate == 0) {
                 continue;
@@ -470,8 +470,8 @@ namespace {
             ss->pieceStats = &thread->continuationStats[ss->inCheck][captureOrPromotion][pos.movedPiece(move)][dstSq(move)];
 
             // CounterMove based pruning
-            if (!captureOrPromotion
-             && bestValue > +VALUE_MATE_2_MAX_PLY
+            if (bestValue > +VALUE_MATE_2_MAX_PLY
+             && !captureOrPromotion
              && (*contStats[0])[pos.movedPiece(move)][dstSq(move)] < CounterMovePruneThreshold
              && (*contStats[1])[pos.movedPiece(move)][dstSq(move)] < CounterMovePruneThreshold) {
                 continue;
@@ -1164,7 +1164,7 @@ namespace {
             } else
             // Check extension (~2 Elo)
             if (giveCheck
-             && (pos.isDiscoveryCheckOn(~activeSide, orgSq(move))
+             && (pos.isKingBlockersOn(~activeSide, orgSq(move))
               || pos.see(move))) {
                 extension = 1;
             } else
@@ -1722,18 +1722,18 @@ void Thread::search() {
                 Threadpool.set(&Thread::pvChanges, { 0 });
                 auto const pvInstability{ 1.00 + 2 * Threadpool.pvChangesSum / Threadpool.size() };
 
-                auto const totalTime{
-                    rootMoves.size() != 1 ?
-                        TimeMgr.optimum() * reductionRatio * fallingEval * pvInstability :
-                        std::min(TimeMgr.optimum() * 0.001, 4.0) };
+                auto totalTime{ TimeMgr.optimum() * reductionRatio * fallingEval * pvInstability };
+                // Cap used time in case of a single legal move for a better viewer experience in tournaments
+                // yielding correct scores and sufficiently fast moves.
+                if (rootMoves.size() == 1) {
+                    totalTime = std::min(500.0, totalTime);
+                }
 
                 auto const elapsed{ double(TimeMgr.elapsed()) };
 
                 if (elapsed > totalTime * 0.58) {
 
-                    if (!Threadpool.ponder) {
-                        Threadpool.stand = true;
-                    }
+                    Threadpool.stand = !Threadpool.ponder;
 
                     // Stop the search if we have exceeded the totalTime (at least 1ms).
                     if (elapsed > totalTime) {

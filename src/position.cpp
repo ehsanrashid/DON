@@ -359,7 +359,7 @@ bool Position::legal(Move m) const noexcept {
             // A non-king move is legal if and only if
             // - not pinned
             // - moving along the ray from the king
-            !contains(kingBlockers(active), org)
+            !isKingBlockersOn(active, org)
          || aligned(square(active|KING), org, dst);
 }
 
@@ -374,7 +374,7 @@ bool Position::giveCheck(Move m) const noexcept {
     if (// Direct check ?
         contains(checks(mType(m) != PROMOTE ? pType(board[org]) : promoteType(m)), dst)
         // Discovered check ?
-     || (contains(kingBlockers(~active), org)
+     || (isKingBlockersOn(~active, org)
       && !aligned(square(~active|KING), org, dst))) {
         return true;
     }
@@ -443,7 +443,7 @@ bool Position::giveDblCheck(Move m) const noexcept {
         // Direct check ?
         contains(checks(mType(m) != PROMOTE ? pType(board[org]) : promoteType(m)), dst)
         // Discovered check ?
-     && (contains(kingBlockers(~active), org)
+     && (isKingBlockersOn(~active, org)
       /*&& !aligned(square(~active|KING), org, dst)*/);
 }
 
@@ -573,7 +573,7 @@ bool Position::see(Move m, Value threshold) const noexcept {
                 break;
             }
         } else
-        if (isDiscoveryCheckOn(mov, org)
+        if (isKingBlockersOn(mov, org)
          && !aligned(square(mov|KING), org, dst)
          && (kingCheckers(~mov)
            & pieces(~mov)

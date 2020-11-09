@@ -302,8 +302,8 @@ namespace Evaluator {
             Bitboard attackedBy[COLORS][PIECE_TYPES];
             // Contains all squares attacked by more than one pieces of a color, possibly via x-ray or by one pawn and one piece.
             Bitboard attackedBy2[COLORS];
-            // Contains all squares from which queen can be attacked
-            Bitboard attackedQueen[COLORS][3];
+            // Contains all squares from which queen can be attacked by Knight, Bishop & Rook
+            Bitboard queenAttacked[COLORS][3];
 
             Bitboard mobArea[COLORS];
             Score   mobility[COLORS];
@@ -341,7 +341,7 @@ namespace Evaluator {
                              | (attackedBy[Own][PAWN]
                               & attackedBy[Own][KING]);
 
-            std::fill_n(attackedQueen[Own], 3, 0);
+            std::fill_n(queenAttacked[Own], 3, 0);
 
             // Mobility area: Exclude followings
             mobArea[Own] = ~(// Squares protected by enemy pawns
@@ -400,7 +400,7 @@ namespace Evaluator {
                                  attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~pos.kingBlockers(Own)))) };
                 assert(popCount(attacks) <= 27);
 
-                if (contains(pos.kingBlockers(Own), s)) {
+                if (pos.isKingBlockersOn(Own, s)) {
                     attacks &= lineBB(pos.square(Own|KING), s);
                 }
 
@@ -541,15 +541,15 @@ namespace Evaluator {
                       & ~pos.kingBlockers(Own);
                     Bitboard xray{ attacksBB<BSHP>(s, pos.pieces() ^ (pos.pieces(BSHP) & b & attacksBB<BSHP>(s)))
                                  | attacksBB<ROOK>(s, pos.pieces() ^ (pos.pieces(ROOK) & b & attacksBB<ROOK>(s))) };
-                    if (contains(pos.kingBlockers(Own), s)) {
+                    if (pos.isKingBlockersOn(Own, s)) {
                         xray &= lineBB(pos.square(Own|KING), s);
                     }
                     attackedBy2[Own] |= attackedBy[Own][NONE]
                                       & (attacks | xray);
 
-                    attackedQueen[Own][0] |= attacksBB<NIHT>(s);
-                    attackedQueen[Own][1] |= attacksBB<BSHP>(s, pos.pieces());
-                    attackedQueen[Own][2] |= attacksBB<ROOK>(s, pos.pieces());
+                    queenAttacked[Own][0] |= attacksBB<NIHT>(s);
+                    queenAttacked[Own][1] |= attacksBB<BSHP>(s, pos.pieces());
+                    queenAttacked[Own][2] |= attacksBB<ROOK>(s, pos.pieces());
 
                     // Penalty for pin or discover attack on the queen
                     // Queen attackers
@@ -833,11 +833,11 @@ namespace Evaluator {
                          & ~defendedArea;
 
                 b = safeArea
-                  & ( attackedBy[Own][NIHT] & attackedQueen[Opp][0]);
+                  & ( attackedBy[Own][NIHT] & queenAttacked[Opp][0]);
                 score += KnightOnQueen * popCount(b) * (1 + queenImbalance);
                 b = safeArea
-                  & ((attackedBy[Own][BSHP] & attackedQueen[Opp][1])
-                   | (attackedBy[Own][ROOK] & attackedQueen[Opp][2]))
+                  & ((attackedBy[Own][BSHP] & queenAttacked[Opp][1])
+                   | (attackedBy[Own][ROOK] & queenAttacked[Opp][2]))
                   & attackedBy2[Own];
                 score += SliderOnQueen * popCount(b) * (1 + queenImbalance);
             }

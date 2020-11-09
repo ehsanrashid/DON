@@ -30,7 +30,7 @@ namespace King {
     private:
 
         template<Color>
-        Score evaluateShelterOn(Position const&, Square) noexcept;
+        Score evaluateBonusOn(Position const&, Square) noexcept;
     };
 
     using Table = HashTable<Entry, 0x10000>;

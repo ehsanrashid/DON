@@ -17,7 +17,7 @@ namespace {
             Square s;
             while ((s = *ps++) != SQ_NONE) {
                 if (Checks
-                 && contains(pos.kingBlockers(~pos.activeSide()), s)) {
+                 && pos.isKingBlockersOn(~pos.activeSide(), s)) {
                     continue;
                 }
                 Bitboard attacks{ attacksBB(pt, s, pos.pieces()) & targets };
@@ -335,7 +335,7 @@ void Perft::classify(Position &pos, Move m) noexcept {
                     ++dscCheck;
                 }
             } else
-            if (contains(pos.kingBlockers(~pos.activeSide()), orgSq(m))
+            if (pos.isKingBlockersOn(~pos.activeSide(), orgSq(m))
              /*&& !aligned(orgSq(m), dstSq(m), ekSq)*/) {
                 ++dscCheck;
             }
