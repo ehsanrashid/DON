@@ -1229,7 +1229,11 @@ namespace {
                     // Decrease if move has been singularly extended (~3 Elo)
                     -1 * (singularQuietLMR)
                     // Decrease if opponent's move count is high (~5 Elo)
-                    -1 * ((ss-1)->moveCount > 13);
+                    -1 * ((ss-1)->moveCount > 13)
+                    // Increase at root and non-PV nodes if the best move does not change frequently
+                    +1 * ( (rootNode || !PVNode)
+                        && depth > 10
+                        && thread->pvChanges <= 2);
 
                 if (captureOrPromotion) {
                     // Increase reduction for captures/promotions at low depth and late move
