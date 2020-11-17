@@ -199,7 +199,7 @@ namespace {
         double const b{ (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3] };
 
         // transform eval to centipawns with limited range
-        double const x{ std::clamp(double(100 * v) / VALUE_EG_PAWN, -1000.0, 1000.0) };
+        double const x{ std::clamp(toCP(v), -1000.0, 1000.0) };
 
         // Return win rate in per mille (rounded to nearest)
         return int16_t( 0.5 + 1000 / (1 + std::exp((a - x) / b)) );

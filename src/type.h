@@ -536,7 +536,7 @@ constexpr Move reverseMove(Move m) {
 
 /// Convert Value to Centipawn
 constexpr double toCP(Value v) {
-    return double(v * 100 / VALUE_EG_PAWN);
+    return double(100 * v) / VALUE_EG_PAWN;
 }
 /// Convert Centipawn to Value
 constexpr Value toValue(double cp) {

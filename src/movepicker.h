@@ -166,10 +166,10 @@ public:
 private:
 
     template<GenType GT>
-    void value();
+    void value() noexcept;
 
     template<typename Pred>
-    bool pick(Pred);
+    bool pick(Pred) noexcept;
 
     Position const &pos;
 

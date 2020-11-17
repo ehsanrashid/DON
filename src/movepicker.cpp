@@ -29,7 +29,7 @@ namespace {
     /// partialSort() sorts (insertion) item in descending order up to and including a given limit.
     /// The order of item smaller than the limit is left unspecified.
     /// Sorts only in range [beg, end]
-    void partialSort(ValMoves::iterator beg, ValMoves::iterator end, int32_t limit) {
+    void partialSort(ValMoves::iterator beg, ValMoves::iterator end, int32_t limit) noexcept {
 
         auto sortedEnd{ beg };
         for (auto unsortedBeg{ sortedEnd + 1 }; unsortedBeg < end; ++unsortedBeg) {
@@ -97,6 +97,7 @@ MovePicker::MovePicker(
     PieceSquareTypeStatsTable const *cpStats,
     PieceSquareStatsTable     const **cStats,
     Square rs) noexcept :
+    pickQuiets{ false },
     pos{ p },
     ttMove{ ttm },
     depth{ d },
@@ -126,6 +127,7 @@ MovePicker::MovePicker(
     Position const &p,
     Move ttm, Value thr,
     PieceSquareTypeStatsTable const *cpStats) noexcept :
+    pickQuiets{ false },
     pos{ p },
     ttMove{ ttm },
     depth{ DEPTH_ZERO },
@@ -147,7 +149,7 @@ MovePicker::MovePicker(
 /// Captures are ordered by Most Valuable Victim (MVV) with using the histories.
 /// Quiets are ordered using the histories.
 template<GenType GT>
-void MovePicker::value() {
+void MovePicker::value() noexcept {
     static_assert(GT == CAPTURE
                 || GT == QUIET
                 || GT == EVASION, "GT incorrect");
@@ -187,7 +189,7 @@ void MovePicker::value() {
 
 /// pick() returns the next move satisfying a predicate function
 template<typename Pred>
-bool MovePicker::pick(Pred filter) {
+bool MovePicker::pick(Pred filter) noexcept {
     while (vmBeg < vmEnd) {
         std::swap(*vmBeg, *std::max_element(vmBeg, vmEnd));
         assert(*vmBeg != MOVE_NONE
