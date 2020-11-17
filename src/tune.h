@@ -9,7 +9,7 @@ typedef std::pair<int, int> Range; // Option's min-max values
 typedef Range(RangeFun) (int);
 
 // Default Range function, to calculate Option's min-max values
-inline Range default_range(int v) {
+inline Range default_range(int v) noexcept {
     return v > 0 ? Range(0, 2 * v) : Range(2 * v, 0);
 }
 
@@ -174,7 +174,7 @@ public:
             read_options();
         }
     }
-    static void read_options() {
+    static void read_options() noexcept {
         for (auto &e : instance().list) {
             e->read_option();
         }
