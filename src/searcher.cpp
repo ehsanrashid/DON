@@ -69,7 +69,7 @@ namespace {
 
     constexpr int32_t MAX_MOVES{ 256 };
     int32_t Reduction[MAX_MOVES];
-    inline Depth reduction(Depth d, uint8_t mc, bool imp) noexcept {
+    inline Depth reduction(Depth d, uint16_t mc, bool imp) noexcept {
         assert(d >= DEPTH_ZERO);
         auto const r{ Reduction[d] * Reduction[mc] };
         return Depth( (r + 509) / 1024 + 1 * (!imp && (r > 894)) );
