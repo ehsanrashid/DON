@@ -60,8 +60,8 @@ namespace Evaluator {
 
                 // "<internal>" embedded eval file
                 if (evalFile == DefaultEvalFile) {
-                    MemoryStreamBuffer buffer(const_cast<char*>(reinterpret_cast<char const*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize));
-                    std::istream istream(&buffer);
+                    MemoryStreamBuffer buffer{ const_cast<char*>(reinterpret_cast<char const*>(gEmbeddedNNUEData)), size_t(gEmbeddedNNUESize) };
+                    std::istream istream{ &buffer };
                     if (NNUE::loadEvalFile(istream)) {
                         loadedEvalFile = evalFile;
                         return;

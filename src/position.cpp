@@ -992,7 +992,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
                                  ^ RandZob.psq[mpc][dst];
             prefetch(_thread->pawnTable[_stateInfo->pawnKey]);
         }
-    
+
         prefetch(_thread->kingTable[_stateInfo->pawnKey
                                   ^ RandZob.psq[W_KING][square(W_KING)]
                                   ^ RandZob.psq[B_KING][square(B_KING)]]);
@@ -1348,7 +1348,7 @@ bool Position::ok() const noexcept {
         assert(false && "Position OK: BASIC");
         return false;
     }
-    for (Color c : { WHITE, BLACK }) {
+    for (Color const c : { WHITE, BLACK }) {
         if (count(c) > 16
          || count(c) != popCount(pieces(c))
          || std::count(board, board + SQUARES, (c|KING)) != 1
