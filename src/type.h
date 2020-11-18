@@ -167,12 +167,12 @@ enum CastleSide : int8_t {
 
 /// Castle Right defined as in Polyglot book hash key
 enum CastleRight : uint8_t {
-    CR_NONE  = 0,       // 0000
+    CR_NONE,
 
-    CR_WKING = 1 << 0,  // 0001
-    CR_WQUEN = 1 << 1,  // 0010
-    CR_BKING = 1 << 2,  // 0100
-    CR_BQUEN = 1 << 3,  // 1000
+    CR_WKING,                  // 0001
+    CR_WQUEN = CR_WKING << 1,  // 0010
+    CR_BKING = CR_WKING << 2,  // 0100
+    CR_BQUEN = CR_WKING << 3,  // 1000
 
     CR_WHITE = CR_WKING | CR_WQUEN, // 0011
     CR_BLACK = CR_BKING | CR_BQUEN, // 1100

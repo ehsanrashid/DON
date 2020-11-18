@@ -502,7 +502,7 @@ namespace {
                         updatePV(ss->pv, move, (ss+1)->pv);
                     }
 
-                    if (PVNode && value < beta) {// Update alpha here!
+                    if (PVNode && value < beta) { // Update alpha here!
                         alfa = value;
                     } else {
                         break; // Fail high
