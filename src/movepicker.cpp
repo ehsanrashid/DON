@@ -278,7 +278,6 @@ Move MovePicker::nextMove() {
         }
 
         if (pickQuiets) {
-            mBeg = refutationMoves.begin();
             vmoves.clear();
             //vmoves.reserve(48);
             generate<QUIET>(vmoves, pos);
@@ -287,7 +286,7 @@ Move MovePicker::nextMove() {
             vmEnd = std::remove_if(vmBeg, vmEnd,
                                     [&](ValMove const &vm) {
                                         return vm == ttMove
-                                            || std::find(mBeg, mEnd, vm) != mEnd; // refutationMoves.contains(vm)
+                                            || refutationMoves.contains(vm);
                                     });
             value<QUIET>();
             partialSort(vmBeg, vmEnd, -3000 * depth);

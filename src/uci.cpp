@@ -370,10 +370,7 @@ namespace UCI {
         }
 
         void onThreads(Option const&) noexcept {
-            auto const threadCount{ optionThreads() };
-            //if (threadCount != Threadpool.size()) {
-            Threadpool.setup(threadCount);
-            //}
+            Threadpool.setup(optionThreads());
         }
 
         void onTimeNodes(Option const&) noexcept {
