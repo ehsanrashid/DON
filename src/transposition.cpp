@@ -206,13 +206,13 @@ namespace {
 std::ostream& operator<<(std::ostream &ostream, TTable const &tt) {
     uint32_t const memSize{ tt.size() };
     uint8_t const dummy{ 0 };
-    ostream.write((char const*)(&memSize), sizeof(memSize));
-    ostream.write((char const*)(&dummy), sizeof(dummy));
-    ostream.write((char const*)(&dummy), sizeof(dummy));
-    ostream.write((char const*)(&dummy), sizeof(dummy));
-    ostream.write((char const*)(&TEntry::Generation), sizeof(TEntry::Generation));
+    ostream.write(reinterpret_cast<char const*>(&memSize), sizeof(memSize));
+    ostream.write(reinterpret_cast<char const*>(&dummy), sizeof(dummy));
+    ostream.write(reinterpret_cast<char const*>(&dummy), sizeof(dummy));
+    ostream.write(reinterpret_cast<char const*>(&dummy), sizeof(dummy));
+    ostream.write(reinterpret_cast<char const*>(&TEntry::Generation), sizeof(TEntry::Generation));
     for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
-        ostream.write((char const*)(&tt.clusterTable[i*BufferSize]), sizeof(TCluster)*BufferSize);
+        ostream.write(reinterpret_cast<char const*>(&tt.clusterTable[i*BufferSize]), sizeof(TCluster)*BufferSize);
     }
     return ostream;
 }
@@ -220,14 +220,14 @@ std::ostream& operator<<(std::ostream &ostream, TTable const &tt) {
 std::istream& operator>>(std::istream &istream, TTable       &tt) {
     uint32_t memSize;
     uint8_t dummy;
-    istream.read((char*)(&memSize), sizeof(memSize));
-    istream.read((char*)(&dummy), sizeof(dummy));
-    istream.read((char*)(&dummy), sizeof(dummy));
-    istream.read((char*)(&dummy), sizeof(dummy));
-    istream.read((char*)(&TEntry::Generation), sizeof(TEntry::Generation));
+    istream.read(reinterpret_cast<char*>(&memSize), sizeof(memSize));
+    istream.read(reinterpret_cast<char*>(&dummy), sizeof(dummy));
+    istream.read(reinterpret_cast<char*>(&dummy), sizeof(dummy));
+    istream.read(reinterpret_cast<char*>(&dummy), sizeof(dummy));
+    istream.read(reinterpret_cast<char*>(&TEntry::Generation), sizeof(TEntry::Generation));
     tt.resize(memSize);
     for (size_t i = 0; i < tt.clusterCount / BufferSize; ++i) {
-        istream.read((char*)(&tt.clusterTable[i*BufferSize]), sizeof(TCluster)*BufferSize);
+        istream.read(reinterpret_cast<char*>(&tt.clusterTable[i*BufferSize]), sizeof(TCluster)*BufferSize);
     }
     return istream;
 }
