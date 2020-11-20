@@ -371,10 +371,8 @@ namespace Evaluator {
             // Remove from kingRing the squares defended by two pawns
             kingRing[Own] &= ~pawnEntry->dblAttacks[Own];
             canCastle[Own] = pos.canCastle(Own)
-                          && ((pos.canCastle(Own, CS_KING)
-                            && pos.castleExpeded(Own, CS_KING))
-                           || (pos.canCastle(Own, CS_QUEN)
-                            && pos.castleExpeded(Own, CS_QUEN)));
+                          && ((pos.canCastle(Own, CS_KING) && pos.castleExpeded(Own, CS_KING))
+                           || (pos.canCastle(Own, CS_QUEN) && pos.castleExpeded(Own, CS_QUEN)));
         }
 
         /// pieces() evaluates the pieces of the color and type
@@ -677,7 +675,7 @@ namespace Evaluator {
                 popCount(b) };                      // Squares attacked by friend in friend king flank
 
             // King Safety:
-            Score score{ kingEntry->evaluateSafety<Own>(pos, attackedFull[Opp] & rankBB(relativeRank(Own, RANK_1))) };
+            Score score{ kingEntry->evaluateSafety<Own>(pos, attackedFull[Opp] /*& rankBB(relativeRank(Own, RANK_1))*/) };
 
             kingDanger +=   1 * kingAttackersCount[Opp] * kingAttackersWeight[Opp]  // (~10.0 Elo)
                         + 185 * popCount(kingRing[Own] & weakArea)                  // (~15.0 Elo)

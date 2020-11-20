@@ -30,9 +30,7 @@ struct Cuckoo final {
             && sq2 == ck.sq2;
     }
     bool operator!=(Cuckoo const &ck) const noexcept {
-        return piece != ck.piece
-            || sq1 != ck.sq1
-            || sq2 != ck.sq2;
+        return !(*this == ck);
     }
 
     Key key() const noexcept {

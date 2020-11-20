@@ -129,8 +129,8 @@ namespace {
     void updateContinuationStats(Stack *ss, Piece pc, Square dst, int32_t bonus) noexcept {
         //assert(isOk(p));
         for (auto i : { 1, 2, 4, 6 }) {
-            if (i > 2
-             && ss->inCheck) {
+            if (ss->inCheck
+             && i > 2) {
                 break;
             }
             if (isOk((ss-i)->playedMove)) {
@@ -208,13 +208,13 @@ namespace {
     /// wdl() report WDL statistics given an evaluation and a game ply, based on
     /// data gathered for fishtest LTC games.
     std::string wdl(Value v, int16_t ply) {
-        std::stringstream ss;
+        std::ostringstream oss;
 
-        int16_t const wdl_w( winRateModel(v, ply) );
+        int16_t const wdl_w( winRateModel(+v, ply) );
         int16_t const wdl_l( winRateModel(-v, ply) );
         int16_t const wdl_d( 1000 - wdl_w - wdl_l );
-        ss << " wdl " << wdl_w << " " << wdl_d << " " << wdl_l;
-        return ss.str();
+        oss << " wdl " << wdl_w << " " << wdl_d << " " << wdl_l;
+        return oss.str();
     }
 
     /// multipvInfo() formats PV information according to UCI protocol.
@@ -230,9 +230,9 @@ namespace {
 
             bool const updated{ th->rootMoves[i].newValue != -VALUE_INFINITE };
 
-            if (i > 0
-             && depth == 1
-             && !updated) {
+            if (depth == 1
+             && !updated
+             && i > 0) {
                 continue;
             }
 
@@ -365,7 +365,6 @@ namespace {
                 ss->staticEval = bestValue = ((ss-1)->playedMove != MOVE_NULL ? evaluate(pos) : -(ss-1)->staticEval + 2 * VALUE_TEMPO);
             }
 
-            
             // Stand pat. Return immediately if static value is at least beta
             if (bestValue >= beta) {
 
@@ -1393,8 +1392,10 @@ namespace {
 
             if (move != bestMove) {
                 if (captureOrPromotion) {
+                    if (captureMoves.size() < 32)
                     captureMoves += move;
                 } else {
+                    if (quietMoves.size() < 64)
                     quietMoves += move;
                 }
             }

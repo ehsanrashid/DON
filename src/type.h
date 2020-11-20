@@ -596,9 +596,9 @@ struct ValMove {
 
     void operator=(Move m) noexcept { move = m; }
 
-    std::string toString() const noexcept {
-        return std::to_string(value);
-    }
+    //std::string toString() const noexcept {
+    //    return std::to_string(value);
+    //}
 
     Move    move;
     int32_t value;

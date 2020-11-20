@@ -49,11 +49,13 @@ public:
              && oldValue < rm.oldValue);
     }
 
+    //operator Move() const noexcept { return front(); }
+
     bool operator==(Move m) const noexcept {
         return front() == m;
     }
     bool operator!=(Move m) const noexcept {
-        return front() != m;
+        return !(*this == m);
     }
 
     void operator+=(Move m) {

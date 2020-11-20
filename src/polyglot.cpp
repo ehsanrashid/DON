@@ -114,7 +114,7 @@ bool PolyEntry::operator<=(PolyEntry const &pe) const noexcept {
 }
 
 bool PolyEntry::operator==(Move m) const noexcept { return move == m; }
-bool PolyEntry::operator!=(Move m) const noexcept { return move != m; }
+bool PolyEntry::operator!=(Move m) const noexcept { return !(*this == m); }
 
 std::string PolyEntry::toString() const {
     std::ostringstream oss;

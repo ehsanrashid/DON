@@ -68,7 +68,7 @@ public:
     uint64_t ttHitAvg;
 
     Score   contempt;
-    
+
     int16_t failHighCount;
 
     // butterFlyStats records how often quiet moves have been successful/unsuccessful

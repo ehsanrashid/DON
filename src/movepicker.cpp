@@ -243,7 +243,7 @@ Move MovePicker::nextMove() {
         goto reStage;
 
     case NORMAL_GOOD_CAPTURES: {
-        if (pick([&]() {
+        if (pick([&]() noexcept {
                 return pos.see(*vmBeg, Value(-69 * vmBeg->value / 1024)) ?
                         // Put losing capture to badCaptureMoves to be tried later
                         true : (badCaptureMoves += *vmBeg, false);
@@ -332,20 +332,20 @@ Move MovePicker::nextMove() {
     }
         [[fallthrough]];
     case EVASION_MOVES: {
-        return pick([&]() { return true; }) ?
+        return pick([&]() noexcept { return true; }) ?
                 *vmBeg++ : MOVE_NONE;
     }
         /* end */
 
     case PROBCUT_CAPTURE: {
-        return pick([&]() { return pos.see(*vmBeg, threshold); }) ?
+        return pick([&]() noexcept { return pos.see(*vmBeg, threshold); }) ?
                 *vmBeg++ : MOVE_NONE;
     }
         /* end */
 
     case QUIESCENCE_CAPTURES: {
-        if (pick([&]() { return depth > DEPTH_QS_RECAP
-                             || dstSq(*vmBeg) == recapSq; })) {
+        if (pick([&]() noexcept { return depth > DEPTH_QS_RECAP
+                                      || dstSq(*vmBeg) == recapSq; })) {
             assert(pos.pseudoLegal(*vmBeg));
             return *vmBeg++;
         }
