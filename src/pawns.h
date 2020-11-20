@@ -36,5 +36,5 @@ namespace Pawns {
 
     using Table = HashTable<Entry, 0x20000>;
 
-    extern Entry* probe(Position const&);
+    extern Entry* probe(Position const&) noexcept;
 }

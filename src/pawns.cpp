@@ -143,7 +143,7 @@ namespace Pawns {
 
     /// Pawns::probe() looks up a current position's pawn configuration in the pawn hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
-    Entry* probe(Position const &pos) {
+    Entry* probe(Position const &pos) noexcept {
         Key const pawnKey{ pos.pawnKey() };
         auto *e{ pos.thread()->pawnTable[pawnKey] };
 

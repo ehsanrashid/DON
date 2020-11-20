@@ -35,6 +35,6 @@ namespace King {
 
     using Table = HashTable<Entry, 0x10000>;
 
-    extern Entry* probe(Position const&, Pawns::Entry*);
+    extern Entry* probe(Position const&, Pawns::Entry*) noexcept;
 
 }

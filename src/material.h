@@ -15,14 +15,14 @@ namespace Material {
 
         void evaluate(Position const&);
         
-        Scale scaleFunc(const Position& pos, Color c) const {
+        Scale scaleFunc(const Position& pos, Color c) const noexcept {
             Scale const scale { scalingFunc[c] != nullptr ?
                               (*scalingFunc[c])(pos) : SCALE_NONE };
             return scale != SCALE_NONE ? scale : scaleFactor[c];
         }
 
         bool  evalExists() const noexcept { return evaluatingFunc != nullptr; }
-        Value evaluateFunc(const Position &pos) const { return (*evaluatingFunc)(pos); }
+        Value evaluateFunc(const Position &pos) const noexcept { return (*evaluatingFunc)(pos); }
 
         Key     key;
         int32_t phase;
@@ -35,5 +35,5 @@ namespace Material {
 
     using Table = HashTable<Entry, 0x2000>;
 
-    extern Entry* probe(Position const&);
+    extern Entry* probe(Position const&) noexcept;
 }

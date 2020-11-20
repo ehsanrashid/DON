@@ -181,7 +181,7 @@ namespace Material {
 
     /// Material::probe() looks up a current position's material configuration in the material hash table
     /// and returns a pointer to it if found, otherwise a new Entry is computed and stored there.
-    Entry* probe(Position const &pos) {
+    Entry* probe(Position const &pos) noexcept {
         Key const matlKey{ pos.matlKey() };
         auto *e{ pos.thread()->matlTable[matlKey] };
 

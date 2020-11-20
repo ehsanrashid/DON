@@ -6,9 +6,9 @@ class Position;
 
 namespace PSQT {
 
-    extern void initialize();
+    extern void initialize() noexcept;
 
-    extern Score computePSQ(Position const&);
+    extern Score computePSQ(Position const&) noexcept;
 }
 
 extern Score PSQ[PIECES][SQUARES];

@@ -135,7 +135,7 @@ namespace King {
     template Score Entry::evaluateSafety<WHITE>(Position const&, Bitboard);
     template Score Entry::evaluateSafety<BLACK>(Position const&, Bitboard);
 
-    Entry* probe(Position const &pos, Pawns::Entry *pe) {
+    Entry* probe(Position const &pos, Pawns::Entry *pe) noexcept {
 
         Key const kingKey{
             pe->key //pos.pawnKey()
