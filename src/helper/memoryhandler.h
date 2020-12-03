@@ -13,11 +13,11 @@ T* alignUpPtr(T *ptr) {
     return reinterpret_cast<T*>(reinterpret_cast<char*>((uintPtr + (Alignment - 1)) / Alignment * Alignment));
 }
 
-void* allocAlignedStd(size_t, size_t) noexcept;
-void  freeAlignedStd(void*) noexcept;
+extern void* allocAlignedStd(size_t, size_t) noexcept;
+extern void  freeAlignedStd(void*) noexcept;
 
-void* allocAlignedLargePages(size_t) noexcept;
-void  freeAlignedLargePages(void*) noexcept;
+extern void* allocAlignedLargePages(size_t) noexcept;
+extern void  freeAlignedLargePages(void*) noexcept;
 
 /// Win Processors Group
 /// Under Windows it is not possible for a process to run on more than one logical processor group.

@@ -48,7 +48,7 @@ struct StateInfo {
     // Used by NNUE
     Evaluator::NNUE::Accumulator accumulator;
     MoveInfo moveInfo;
-    
+
     StateInfo  *prevState;      // Previous StateInfo pointer
 };
 
@@ -84,10 +84,10 @@ public:
     Position& operator=(Position const&) = delete;
     Position& operator=(Position&&) = delete;
 
-    constexpr Piece operator[](Square) const noexcept;
-    constexpr bool empty(Square) const noexcept;
+    Piece operator[](Square) const noexcept;
+    bool empty(Square) const noexcept;
 
-    //Bitboard pieces(Piece) const noexcept;
+    Bitboard pieces(Piece) const noexcept;
     Bitboard pieces(Color) const noexcept;
     Bitboard pieces(PieceType = NONE) const noexcept;
     template<typename... PieceTypes>
@@ -99,8 +99,7 @@ public:
     int32_t count(PieceType) const noexcept;
     int32_t count(Color) const noexcept;
     int32_t count() const noexcept;
-    Square const* squares(Piece) const noexcept;
-    Square square(Piece, uint8_t = 0) const noexcept;
+    Square square(Piece) const noexcept;
 
     Value nonPawnMaterial(Color) const noexcept;
     Value nonPawnMaterial() const noexcept;
@@ -154,13 +153,13 @@ public:
 
     Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const noexcept;
 
-    constexpr Piece movedPiece(Move) const noexcept;
-    //constexpr Piece prevMovedPiece(Move) const noexcept;
+    Piece movedPiece(Move) const noexcept;
+    //Piece prevMovedPiece(Move) const noexcept;
 
-    constexpr bool capture(Move) const noexcept;
-    constexpr bool captureOrPromotion(Move) const noexcept;
-    constexpr bool advancedPawnPush(Move) const noexcept;
-    constexpr PieceType captured(Move) const noexcept;
+    bool capture(Move) const noexcept;
+    bool captureOrPromotion(Move) const noexcept;
+    bool advancedPawnPush(Move) const noexcept;
+    PieceType captured(Move) const noexcept;
 
     bool pseudoLegal(Move) const noexcept;
     bool legal(Move) const noexcept;
@@ -214,8 +213,6 @@ private:
     Bitboard types[PIECE_TYPES];
 
     Piece   board[SQUARES];
-    uint8_t pieceIndex[SQUARES];
-    Square  pieceSquare[PIECES][12];
     uint8_t pieceCount[PIECES];
 
     Value   npm[COLORS];
@@ -235,15 +232,15 @@ private:
     friend std::ostream& operator<<(std::ostream&, Position const&);
 };
 
-constexpr Piece Position::operator[](Square s) const noexcept {
+inline Piece Position::operator[](Square s) const noexcept {
     //assert(isOk(s));
     return board[s];
 }
-constexpr bool Position::empty(Square s) const noexcept {
+inline bool Position::empty(Square s) const noexcept {
     return board[s] == NO_PIECE;
 }
 
-//inline Bitboard Position::pieces(Piece p) const noexcept { return colors[pColor(p)] & types[pType(p)]; }
+inline Bitboard Position::pieces(Piece p) const noexcept { return colors[pColor(p)] & types[pType(p)]; }
 inline Bitboard Position::pieces(Color c) const noexcept {
     return colors[c];
 }
@@ -276,13 +273,10 @@ inline int32_t Position::count() const noexcept {
     return count(WHITE) + count(BLACK);
 }
 
-inline Square const* Position::squares(Piece p) const noexcept {
-    return pieceSquare[p];
-}
-inline Square Position::square(Piece p, uint8_t idx) const noexcept {
+inline Square Position::square(Piece p) const noexcept {
     assert(isOk(p)
-        && count(p) > idx);
-    return squares(p)[idx];
+        && count(p) == 1);
+    return scanLSq(pieces(p));
 }
 
 inline Value Position::nonPawnMaterial(Color c) const noexcept {
@@ -392,9 +386,8 @@ inline void Position::placePiece(Square s, Piece p) noexcept {
     types[pType(p)] |= s;
     colors[pColor(p)] |= s;
     board[s] = p;
-    pieceIndex[s] = pieceCount[p]++;
-    pieceSquare[p][pieceIndex[s]] = s;
-    ++pieceCount[pColor(p)|NONE];
+    ++pieceCount[p];
+    //++pieceCount[pColor(p)|NONE];
     psq += PSQ[p][s];
 }
 inline void Position::removePiece(Square s) noexcept {
@@ -403,11 +396,8 @@ inline void Position::removePiece(Square s) noexcept {
     types[pType(p)] ^= s;
     colors[pColor(p)] ^= s;
     //board[s] = NO_PIECE; // Not needed, overwritten by the capturing one
-    auto const endSq{ pieceSquare[p][--pieceCount[p]] };
-    pieceIndex[endSq] = pieceIndex[s];
-    pieceSquare[p][pieceIndex[endSq]] = endSq;
-    pieceSquare[p][pieceCount[p]] = SQ_NONE;
-    --pieceCount[pColor(p)|NONE];
+    --pieceCount[p];
+    //--pieceCount[pColor(p)|NONE];
     psq -= PSQ[p][s];
 }
 inline void Position::movePiece(Square s1, Square s2) noexcept {
@@ -418,8 +408,6 @@ inline void Position::movePiece(Square s1, Square s2) noexcept {
     colors[pColor(p)] ^= bb;
     board[s2] = p;
     board[s1] = NO_PIECE;
-    pieceIndex[s2] = pieceIndex[s1];
-    pieceSquare[p][pieceIndex[s2]] = s2;
     psq += PSQ[p][s2]
          - PSQ[p][s1];
 }
@@ -438,18 +426,18 @@ inline Bitboard Position::attackersTo(Square s) const noexcept {
     return attackersTo(s, pieces());
 }
 
-constexpr Piece Position::movedPiece(Move m) const noexcept {
+inline Piece Position::movedPiece(Move m) const noexcept {
     return board[orgSq(m)];
 }
-//constexpr Piece Position::prevMovedPiece(Move m) const noexcept {
+//inline Piece Position::prevMovedPiece(Move m) const noexcept {
 //    return mType(m) != CASTLE ? board[dstSq(m)] : (~active|KING);
 //}
 
-constexpr bool Position::capture(Move m) const noexcept {
+inline bool Position::capture(Move m) const noexcept {
     return  mType(m) == ENPASSANT
         || (mType(m) != CASTLE && contains(pieces(~active), dstSq(m)));
 }
-constexpr bool Position::captureOrPromotion(Move m) const noexcept {
+inline bool Position::captureOrPromotion(Move m) const noexcept {
     //return  mType(m) == ENPASSANT
     //    ||  mType(m) == PROMOTE
     //    || (mType(m) == SIMPLE && contains(pieces(~active), dstSq(m)));
@@ -457,12 +445,12 @@ constexpr bool Position::captureOrPromotion(Move m) const noexcept {
             contains(pieces(~active), dstSq(m)) : mType(m) != CASTLE;
 }
 /// Position::advancedPawnPush() check if advanced pawn is push
-constexpr bool Position::advancedPawnPush(Move m) const noexcept {
+inline bool Position::advancedPawnPush(Move m) const noexcept {
     return pType(board[orgSq(m)]) == PAWN
         && relativeRank(active, dstSq(m)) > RANK_5;
 }
 
-constexpr PieceType Position::captured(Move m) const noexcept {
+inline PieceType Position::captured(Move m) const noexcept {
     return mType(m) == ENPASSANT ? PAWN :
            mType(m) != CASTLE    ? pType(board[dstSq(m)]) : NONE;
 }

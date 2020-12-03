@@ -194,8 +194,8 @@ enum PieceType : int8_t {
 /// bit   3: Color of piece { White = 0..., Black = 1... }
 enum Piece : uint8_t {
     NO_PIECE,
-    W_PAWN = 1, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
-    B_PAWN = 9, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
+    W_PAWN = PAWN + 0, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
+    B_PAWN = PAWN + 8, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
     PIECES = 16
 };
 
@@ -548,11 +548,6 @@ constexpr Value matesIn(int32_t ply) {
 }
 constexpr Value matedIn(int32_t ply) {
     return -VALUE_MATE + ply;
-}
-
-/// Based on a congruential pseudo random number generator
-constexpr Key makeKey(uint64_t seed) {
-    return( seed * U64(6364136223846793005) + U64(1442695040888963407) );
 }
 
 class Moves :

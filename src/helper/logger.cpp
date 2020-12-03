@@ -36,11 +36,11 @@ namespace {
         return str;
     }
 
-    std::ostream& operator<<(std::ostream &ostream, system_clock::time_point const &timePoint) {
-        ostream << toString(timePoint);
-        return ostream;
-    }
+}
 
+std::ostream &operator<<(std::ostream &ostream, system_clock::time_point const &timePoint) {
+    ostream << toString(timePoint);
+    return ostream;
 }
 
 Logger::Logger(std::istream &is, std::ostream &os) noexcept :

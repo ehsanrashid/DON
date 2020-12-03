@@ -325,25 +325,26 @@ namespace UCI {
         return oss.str();
     }
 
-    std::ostream& operator<<(std::ostream &ostream, Option const &opt) {
-        ostream << opt.toString();
-        return ostream;
-    }
+}
 
-    /// This is used to print all the options default values in chronological
-    /// insertion order and in the format defined by the UCI protocol.
-    std::ostream& operator<<(std::ostream &ostream, OptionMap const &om) {
-        for (size_t idx = 0; idx < om.size(); ++idx) {
-            for (auto &strOptPair : om) {
-                if (strOptPair.second.index == idx) {
-                    ostream << "option name " << strOptPair.first << strOptPair.second << '\n';
-                }
+std::ostream& operator<<(std::ostream &ostream, UCI::Option const &opt) {
+    ostream << opt.toString();
+    return ostream;
+}
+
+/// This is used to print all the options default values in chronological
+/// insertion order and in the format defined by the UCI protocol.
+std::ostream& operator<<(std::ostream &ostream, UCI::OptionMap const &om) {
+    for (size_t idx = 0; idx < om.size(); ++idx) {
+        for (auto &strOptPair : om) {
+            if (strOptPair.second.index == idx) {
+                ostream << "option name " << strOptPair.first << strOptPair.second << '\n';
             }
         }
-        return ostream;
     }
-
+    return ostream;
 }
+
 namespace UCI {
 
     /// 'On change' actions, triggered by an option's value change
@@ -526,9 +527,7 @@ namespace UCI {
             "setoption name UCI_Chess960 value false"
         };
 
-        // trace_eval() prints the evaluation for the current position, consistent with the UCI
-        // options set so far.
-
+        // trace_eval() prints the evaluation for the current position, consistent with the UCI options set so far.
         void traceEval(Position &pos) {
             StateListPtr states{ new StateList{ 1 } };
             Position cPos;
@@ -861,8 +860,7 @@ namespace UCI {
         do {
             // Block here waiting for input or EOF
             if (argc == 1
-                // Default endline '\n'
-             && !std::getline(std::cin, cmd)) {
+             && !std::getline(std::cin, cmd, '\n')) {
                 cmd = "quit";
             }
 

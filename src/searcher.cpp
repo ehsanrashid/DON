@@ -64,7 +64,7 @@ namespace {
     // Razor and futility margins
     constexpr int32_t RazorMargin{ 510 };
     constexpr Value futilityMargin(Depth d, bool imp) noexcept {
-        return Value(223 * (d - imp));
+        return Value(234 * (d - imp));
     }
 
     constexpr int32_t MAX_MOVES{ 256 };
@@ -72,7 +72,7 @@ namespace {
     inline Depth reduction(Depth d, uint16_t mc, bool imp) noexcept {
         assert(d >= DEPTH_ZERO);
         auto const r{ Reduction[d] * Reduction[mc] };
-        return Depth( (r + 509) / 1024 + 1 * (!imp && (r > 894)) );
+        return Depth( (r + 503) / 1024 + (!imp && (r > 915)) );
     }
 
     /// Futility Move Count
@@ -86,6 +86,11 @@ namespace {
         assert(v != VALUE_NONE);
         return v >= +VALUE_MATE_2_MAX_PLY ? v + ply :
                v <= -VALUE_MATE_2_MAX_PLY ? v - ply : v;
+    }
+
+    /// Based on a congruential pseudo random number generator
+    constexpr Key makeKey(uint64_t seed) {
+        return(seed * U64(6364136223846793005) + U64(1442695040888963407));
     }
 
     /// valueOfTT() adjusts a mate or TB score from the transposition table
@@ -314,8 +319,7 @@ namespace {
 
         Move move;
         // Transposition table lookup.
-        Key const posiKey { pos.posiKey() };
-        auto *const tte   { TT.probe(posiKey, ss->ttHit) };
+        auto *const tte   { TT.probe(pos.posiKey(), ss->ttHit) };
         auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { ss->ttHit ? tte->move() : MOVE_NONE };
         auto const ttPV   { ss->ttHit && tte->isPV() };
@@ -369,7 +373,7 @@ namespace {
             if (bestValue >= beta) {
 
                 if (!ss->ttHit) {
-                    tte->save(posiKey,
+                    tte->save(pos.posiKey(),
                               MOVE_NONE,
                               valueToTT(bestValue, ss->ply),
                               ss->staticEval,
@@ -387,14 +391,12 @@ namespace {
                 alfa = std::max(alfa, bestValue);
             }
 
-            futilityBase = bestValue + 145;
+            futilityBase = bestValue + 155;
         }
 
         auto *thread{ pos.thread() };
 
         auto bestMove{ MOVE_NONE };
-
-        auto const activeSide{ pos.activeSide() };
 
         PieceSquareStatsTable const *contStats[]{
             (ss-1)->pieceStats, (ss-2)->pieceStats,
@@ -454,8 +456,6 @@ namespace {
 
             // Don't search moves with negative SEE values
             if (bestValue > +VALUE_MATE_2_MAX_PLY
-             && !(giveCheck
-               && pos.isKingBlockersOn(~activeSide, orgSq(move)))
              && !pos.see(move)
              && Limits.mate == 0) {
                 continue;
@@ -522,7 +522,7 @@ namespace {
             return matedIn(ss->ply); // Plies to mate from the root
         }
 
-        tte->save(posiKey,
+        tte->save(pos.posiKey(),
                   bestMove,
                   valueToTT(bestValue, ss->ply),
                   ss->staticEval,
@@ -636,7 +636,9 @@ namespace {
         Key const posiKey { excludedMove == MOVE_NONE ?
                                 pos.posiKey() :
                                 pos.posiKey() ^ makeKey(excludedMove) };
-        auto *const tte   { TT.probe(posiKey, ss->ttHit) };
+        auto *const tte   { excludedMove == MOVE_NONE ?
+                                TT.probe(posiKey, ss->ttHit) :
+                                (ss->ttHit = false, nullptr) };
         auto const ttValue{ ss->ttHit ? valueOfTT(tte->value(), ss->ply, pos.clockPly()) : VALUE_NONE };
         auto       ttMove { rootNode ? thread->rootMoves[thread->pvCur][0] :
                             ss->ttHit ? tte->move() : MOVE_NONE };
@@ -728,6 +730,7 @@ namespace {
 
                     if ( bound == BOUND_EXACT
                      || (bound == BOUND_LOWER ? beta <= value : value <= alfa)) {
+                        if (tte)
                         tte->save(posiKey,
                                   MOVE_NONE,
                                   valueToTT(value, ss->ply),
@@ -786,7 +789,7 @@ namespace {
                 }
             } else {
                 ss->staticEval = eval = ((ss-1)->playedMove != MOVE_NULL ? evaluate(pos) : -(ss-1)->staticEval + 2 * VALUE_TEMPO);
-
+                if (tte)
                 tte->save(posiKey,
                           MOVE_NONE,
                           VALUE_NONE,
@@ -826,14 +829,14 @@ namespace {
              && excludedMove == MOVE_NONE
              && (ss-1)->playedMove != MOVE_NULL
              && (ss-1)->stats < 22977
-             && ss->staticEval >= (beta - 30 * depth - 28 * improving + 84 * ss->ttPV + 182)
+             && ss->staticEval >= (beta - 30 * depth - 28 * improving + 84 * ss->ttPV + 168)
              && pos.nonPawnMaterial(activeSide) != VALUE_ZERO
              // Null move pruning disabled for activeSide until ply exceeds nmpPly
              && (ss->ply >= thread->nmpMinPly
               || activeSide != thread->nmpColor)
              && Limits.mate == 0) {
                 // Null move dynamic reduction based on depth and static evaluation.
-                Depth const R( (982 + 85 * depth) / 256 + std::min(int32_t(eval - beta) / 192, 3) );
+                Depth const R( (1015 + 85 * depth) / 256 + std::min(int32_t(eval - beta) / 191, 3) );
                 Depth const nullDepth( depth - R );
 
                 ss->playedMove = MOVE_NULL;
@@ -853,7 +856,7 @@ namespace {
                     }
                     // Skip verification search
                     if (thread->nmpMinPly != 0 // Recursive verification is not allowed
-                     || (depth < 13
+                     || (depth < 14
                       && std::abs(beta) < +VALUE_KNOWN_WIN)) {
                         return nullValue;
                     }
@@ -873,7 +876,7 @@ namespace {
                 }
             }
 
-            Value const probCutBeta( beta + 176 - 49 * improving );
+            Value const probCutBeta( beta + 183 - 49 * improving );
 
             // Step 10. ProbCut. (~10 Elo)
             // If good enough capture and a reduced search returns a value much above beta,
@@ -957,7 +960,7 @@ namespace {
                         if (!(ss->ttHit
                            && ttValue != VALUE_NONE
                            && tte->depth() >= depth - 3)) {
-
+                            if (tte)
                             tte->save(posiKey,
                                       move,
                                       valueToTT(value, ss->ply),
@@ -1091,7 +1094,7 @@ namespace {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~25 Elo)
-                    if (!pos.see(move, Value(-221 * depth))) {
+                    if (!pos.see(move, Value(-213 * depth))) {
                         continue;
                     }
                 } else {
@@ -1104,7 +1107,7 @@ namespace {
                     // Futility pruning: parent node. (~5 Elo)
                     if (lmrDepth < 7
                      && !ss->inCheck
-                     && (ss->staticEval + 170 * lmrDepth + 283) <= alfa
+                     && (ss->staticEval + 170 * lmrDepth + 266) <= alfa
                      && ((*contStats[0])[mpc][dstSq(move)]
                        + (*contStats[1])[mpc][dstSq(move)]
                        + (*contStats[3])[mpc][dstSq(move)]
@@ -1112,7 +1115,7 @@ namespace {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 Elo)
-                    if (!pos.see(move, Value(-(29 - std::min(lmrDepth, { 18 })) * lmrDepth*lmrDepth))) {
+                    if (!pos.see(move, Value(-(30 - std::min(lmrDepth, { 18 })) * lmrDepth*lmrDepth))) {
                         continue;
                     }
                 }
@@ -1207,7 +1210,7 @@ namespace {
               || moveCountPruning
               || (ss->staticEval + PieceValues[EG][pos.captured()]) <= alfa
                 // If ttHit running average is small
-              || thread->ttHitAvg < 427 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/) };
+              || thread->ttHitAvg < 432 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/) };
 
             bool doFullSearch;
             // Step 16. Reduced depth search (LMR, ~200 Elo).
@@ -1222,7 +1225,7 @@ namespace {
                     // Increase if move count pruning
                     +1 * (moveCountPruning && !pastPV)
                     // Decrease if the ttHit running average is large
-                    -1 * (thread->ttHitAvg > 509 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/)
+                    -1 * (thread->ttHitAvg > 537 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/)
                     // Decrease if position is or has been on the PV (~10 Elo)
                     -2 * (ss->ttPV)
                     // Decrease if move has been singularly extended (~3 Elo)
@@ -1235,14 +1238,10 @@ namespace {
                         && thread->pvChanges <= 2);
 
                 if (captureOrPromotion) {
-                    // Increase reduction for captures/promotions at low depth and late move
-                    if (depth < 8
-                     && moveCount > 2) {
-                        reductDepth += 1;
-                    }
+
                     // Increase reduction for captures/promotions that don't give check if static eval is bad enough
                     if (!giveCheck
-                     && (ss->staticEval + PieceValues[EG][pos.captured()] + 213 * depth) <= alfa) {
+                     && (ss->staticEval + PieceValues[EG][pos.captured()] + 210 * depth) <= alfa) {
                         reductDepth += 1;
                     }
                 } else {
@@ -1275,10 +1274,10 @@ namespace {
                         - 5287;
 
                     // Decrease/Increase reduction by comparing opponent's stat score (~10 Elo)
-                    if (ss->stats >= -106 && (ss-1)->stats < -104) {
+                    if (ss->stats >= -105 && (ss-1)->stats < -103) {
                         reductDepth--;
                     } else
-                    if ((ss-1)->stats >= -119 && ss->stats < -140) {
+                    if ((ss-1)->stats >= -122 && ss->stats < -129) {
                         reductDepth++;
                     }
 
@@ -1305,9 +1304,6 @@ namespace {
                     auto bonus{ alfa < value ?
                                     +statBonus(newDepth) :
                                     -statBonus(newDepth) };
-                    if (move == ss->killerMoves[0]) {
-                        bonus += bonus / 4;
-                    }
                     updateContinuationStats(ss, mpc, dstSq(move), bonus);
                 }
             }
@@ -1476,9 +1472,9 @@ namespace {
             }
         }
 
-        if (excludedMove == MOVE_NONE &&
-            !(rootNode && thread->pvCur != 0)) {
-
+        if (excludedMove == MOVE_NONE
+         && !(rootNode && thread->pvCur != 0)) {
+            if (tte)
             tte->save(posiKey,
                       bestMove,
                       valueToTT(bestValue, ss->ply),
@@ -1501,7 +1497,7 @@ namespace Searcher {
 
     void initialize() noexcept {
 
-        double const r{ 22.0 + 2 * std::log(Threadpool.size()) };
+        double const r{ 21.3 + 2 * std::log(Threadpool.size()) };
         Reduction[0] = 0;
         for (int16_t i = 1; i < MAX_MOVES; ++i) {
             Reduction[i] = int32_t(r * std::log(i + 0.25 * std::log(i)));
@@ -1618,7 +1614,7 @@ void Thread::search() {
                 // Dynamic contempt: Adjust contempt based on root move's oldValue
                 auto dc{ bc };
                 if (contemptValue != 0) {
-                    dc += ((105 - dc / 2) * oldValue * 100) / ((std::abs(oldValue) + 149) * contemptValue);
+                    dc += ((113 - dc / 2) * oldValue * 100) / ((std::abs(oldValue) + 147) * contemptValue);
                 }
                 contempt = rootPos.activeSide() == WHITE ?
                             +makeScore(dc, dc / 2) :

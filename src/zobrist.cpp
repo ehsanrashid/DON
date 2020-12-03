@@ -19,10 +19,10 @@ Key Zobrist::computeMatlKey(Position const &pos) const noexcept {
 Key Zobrist::computePawnKey(Position const &pos) const noexcept {
     Key pawnKey{ nopawn };
     for (Piece const p : { W_PAWN, B_PAWN }) {
-        Square const *ps{ pos.squares(p) };
-        Square s;
-        while ((s = *ps++) != SQ_NONE) {
-            pawnKey ^= psq[p][s];
+
+        Bitboard bb{ pos.pieces(p) };
+        while (bb != 0) {
+            pawnKey ^= psq[p][popLSq(bb)];
         }
     }
     return pawnKey;
@@ -31,10 +31,10 @@ Key Zobrist::computePawnKey(Position const &pos) const noexcept {
 Key Zobrist::computePosiKey(Position const &pos) const noexcept {
     Key posiKey{ 0 };
     for (Piece const p : Pieces) {
-        Square const *ps{ pos.squares(p) };
-        Square s;
-        while ((s = *ps++) != SQ_NONE) {
-            posiKey ^= psq[p][s];
+
+        Bitboard bb{ pos.pieces(p) };
+        while (bb != 0) {
+            posiKey ^= psq[p][popLSq(bb)];
         }
     }
     if (pos.activeSide() == WHITE) {
@@ -57,6 +57,9 @@ namespace Zobrists {
 
         PRNG prng(0x105524);
 
+        for (Square s = SQ_A1; s <= SQ_H8; ++s) {
+            RandZob.psq[NO_PIECE][s] = 0;
+        }
         for (Piece p : Pieces) {
             for (Square s = SQ_A1; s <= SQ_H8; ++s) {
                 RandZob.psq[p][s] = prng.rand<Key>();
@@ -71,9 +74,6 @@ namespace Zobrists {
         RandZob.side = prng.rand<Key>();
         RandZob.nopawn = prng.rand<Key>();
 
-        for (Square s = SQ_A1; s <= SQ_H8; ++s) {
-            RandZob.psq[NO_PIECE][s] = 0;
-        }
     }
 
 }

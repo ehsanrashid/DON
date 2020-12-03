@@ -213,7 +213,7 @@ namespace Evaluator::NNUE {
             constexpr int MaxSteps = 6;
             StateInfo *stack[MaxSteps];
             int step = 0;
-            int gain = popCount(pos.pieces()) - 2;
+            int gain = pos.count() - 2;
 
             // Look for a usable accumulator of an earlier position at most MaxSteps
             // back. We keep track of the estimated gain in terms of features to be

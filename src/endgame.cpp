@@ -434,9 +434,10 @@ template<> Scale Endgame<KRPKB>::operator()(Position const &pos) const {
 template<> Scale Endgame<KRPPKRP>::operator()(Position const &pos) const {
     assert(verifyMaterial(pos, stngColor, VALUE_MG_ROOK, 2)
         && verifyMaterial(pos, weakColor, VALUE_MG_ROOK, 1));
-
-    auto const sp1Sq{ pos.square(stngColor|PAWN, 0) };
-    auto const sp2Sq{ pos.square(stngColor|PAWN, 1) };
+    
+    Bitboard stngPawn{ pos.pieces(stngColor, PAWN) };
+    auto const sp1Sq{ popLSq(stngPawn) };
+    auto const sp2Sq{ popLSq(stngPawn) };
     auto const wkSq{ pos.square(weakColor|KING) };
 
     // Does the stronger side have a passed pawn?
@@ -491,8 +492,9 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
     auto const wkSq{ pos.square(weakColor|KING) };
 
     if (colorOpposed(sbSq, wbSq)) {
-        auto const sp1Sq{ pos.square(stngColor|PAWN, 0) };
-        auto const sp2Sq{ pos.square(stngColor|PAWN, 1) };
+        Bitboard stngPawn{ pos.pieces(stngColor, PAWN) };
+        auto const sp1Sq{ popLSq(stngPawn) };
+        auto const sp2Sq{ popLSq(stngPawn) };
 
         auto const Push{ PawnPush[stngColor] };
 

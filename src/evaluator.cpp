@@ -50,7 +50,7 @@ namespace Evaluator {
         /// network may be embedded in the binary), in the active working directory and
         /// in the engine directory. Distro packagers may define the DEFAULT_NNUE_DIRECTORY
         /// variable to have the engine search in a special directory in their distro.
-        void initialize() {
+        void initialize() noexcept {
 
             useNNUE = Options["Use NNUE"];
             auto evalFile{ std::string(Options["Eval File"]) };
@@ -87,7 +87,7 @@ namespace Evaluator {
             }
         }
 
-        void verify() {
+        void verify() noexcept {
 
             auto evalFile{ std::string(Options["Eval File"]) };
             if (useNNUE) {
@@ -232,6 +232,7 @@ namespace Evaluator {
         constexpr Score BishopTrapped     { S( 50, 50) };
         constexpr Score RookOnSemiopenFile{ S( 19,  7) };
         constexpr Score RookOnFullopenFile{ S( 29, 20) };
+        constexpr Score RookOnClosedFile  { S( 10,  5) };
         constexpr Score RookOnKingRing    { S( 16,  0) };
         constexpr Score RookTrapped       { S( 55, 13) };
         constexpr Score QueenAttacked     { S( 56, 15) };
@@ -250,11 +251,11 @@ namespace Evaluator {
     #undef S
 
         // Threshold for lazy and space evaluation
-        constexpr Value LazyThreshold1{ Value( 1400) };
-        constexpr Value LazyThreshold2{ Value( 1300) };
-        constexpr Value SpaceThreshold{ Value(12222) };
-        constexpr Value NNUEThreshold1{   Value(550) };
-        constexpr Value NNUEThreshold2{   Value(150) };
+        constexpr Value LazyThreshold1{ Value( 1565) };
+        constexpr Value LazyThreshold2{ Value( 1102) };
+        constexpr Value SpaceThreshold{ Value(11551) };
+        constexpr Value NNUEThreshold1{   Value(682) };
+        constexpr Value NNUEThreshold2{   Value(176) };
 
         constexpr int32_t SafeCheckWeight[PIECE_TYPES_EX][2]{
             {0,0}, {0,0}, {803, 1292}, {639, 974}, {1087, 1878}, {759, 1132}
@@ -385,9 +386,9 @@ namespace Evaluator {
 
             Score score{ SCORE_ZERO };
 
-            Square const *ps{ pos.squares(Own|PT) };
-            Square s;
-            while ((s = *ps++) != SQ_NONE) {
+            Bitboard bb{ pos.pieces(Own, PT) };
+            while (bb != 0) {
+                auto const s{ popLSq(bb) };
                 assert(pos[s] == (Own|PT));
 
                 // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
@@ -519,17 +520,24 @@ namespace Evaluator {
                         if (pos.semiopenFileOn(Opp, s)) {
                             score += RookOnFullopenFile;
                         }
-                    } else
-                    if (mob <= 3) {
-                        // Penalty for rook when trapped by the king, even more if the king can't castle
-                        if (relativeRank(Own, s) < RANK_4
-                         && (pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) != 0) {
-                            if (((sFile(pos.square(Own|KING)) < FILE_E) && (sFile(s) < sFile(pos.square(Own|KING))))
-                             || ((sFile(pos.square(Own|KING)) > FILE_D) && (sFile(s) > sFile(pos.square(Own|KING))))) {
-                                score -= RookTrapped * (1 + !pos.canCastle(Own));
+                    } else {
+                        // If our pawn on this file is blocked, increase penalty
+                        if ((pos.pieces(Own, PAWN)
+                           & fileBB(s)
+                           & pawnSglPushBB<Opp>(pos.pieces())) != 0) {
+                            score -= RookOnClosedFile;
+                        }
+
+                        if (mob <= 3) {
+                            auto const kf{ sFile(pos.square(Own|KING)) };
+                            // Penalty for rook when trapped by the king, even more if the king can't castle
+                            if ((kf < FILE_E) == (sFile(s) < kf)) {
+                                score -= RookTrapped;
+                                if (!pos.canCastle(Own)
+                                 && (pos.pieces(Own, PAWN) & frontSquaresBB(Own, s)) != 0) {
+                                    score -= RookTrapped;
+                                }
                             }
-                        } else {
-                            score -= RookTrapped / 2;
                         }
                     }
                 } else
@@ -1135,7 +1143,7 @@ namespace Evaluator {
             // Scale and shift NNUE for compatibility with search and classical evaluation
             auto const nnueAdjEvaluate = [&]() {
                 int32_t const mat{ npm + VALUE_MG_PAWN * pos.count(PAWN) };
-                int32_t const scale{ (720 + mat / 32) / 1024 };
+                int32_t const scale{ (679 + mat / 32) / 1024 };
                 return NNUE::evaluate(pos) * scale + VALUE_TEMPO;
             };
 
@@ -1143,10 +1151,15 @@ namespace Evaluator {
             Value   const psq{ Value(std::abs(egValue(pos.psqScore()))) };
             int32_t const r50{ 16 + pos.clockPly() };
             bool    const psqLarge{ psq * 16 > (NNUEThreshold1 + npm / 64) * r50 };
+            bool    const certainEndgames{
+                npm < 2 * VALUE_MG_ROOK
+             && pos.count(PAWN) < 2 };
+
             bool    const classical{
                 psqLarge
-             || ( psq > VALUE_MG_PAWN / 4
-               && (pos.thread()->nodes & 0xB) == 0) };
+             || certainEndgames
+             || (psq > VALUE_MG_PAWN / 4
+              && (pos.thread()->nodes & 0xB) == 0) };
 
             if (classical) {
                 v = Evaluation<false>(pos).value();
@@ -1155,7 +1168,8 @@ namespace Evaluator {
                 // For the case of opposite colored bishops, switch to NNUE eval with
                 // small probability if the classical eval is less than the threshold.
                 if ( psqLarge
-                 && ( std::abs(v) * 16 < NNUEThreshold2 * r50
+                 && !certainEndgames
+                 && (std::abs(v) * 16 < (NNUEThreshold2) * r50
                   || (pos.bishopOpposed()
                    && std::abs(v) * 16 < (NNUEThreshold1 + npm / 64) * r50
                    && (pos.thread()->nodes & 0xB) == 0))) {

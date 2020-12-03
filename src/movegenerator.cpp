@@ -13,9 +13,10 @@ namespace {
     void generatePieceMoves(ValMoves &moves, Position const &pos, Bitboard targets) noexcept {
 
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
-            Square const *ps{ pos.squares(pos.activeSide()|pt) };
-            Square s;
-            while ((s = *ps++) != SQ_NONE) {
+
+            Bitboard bb{ pos.pieces(pos.activeSide(), pt) };
+            while (bb != 0) {
+                auto const s{ popLSq(bb) };
                 if (Checks
                  && pos.isKingBlockersOn(~pos.activeSide(), s)) {
                     continue;

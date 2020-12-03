@@ -109,10 +109,9 @@ namespace PSQT {
         Score psq{ SCORE_ZERO };
 
         for (Piece const p : Pieces) {
-            Square const *ps{ pos.squares(p) };
-            Square s;
-            while ((s = *ps++) != SQ_NONE) {
-                psq += PSQ[p][s];
+            Bitboard bb{ pos.pieces(p) };
+            while (bb != 0) {
+                psq += PSQ[p][popLSq(bb)];
             }
         }
         return psq;

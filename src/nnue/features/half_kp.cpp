@@ -28,7 +28,7 @@ namespace Evaluator::NNUE::Features {
         Square const kSq{ orient(perspective, pos.square(perspective|KING)) };
         Bitboard bb{ pos.pieces() & ~pos.pieces(KING) };
         while (bb != 0) {
-            Square const s{ popLSq(bb) };
+            auto const s{ popLSq(bb) };
             activeList->push_back(makeIndex(perspective, s, pos[s], kSq));
         }
     }

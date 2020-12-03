@@ -48,9 +48,9 @@ namespace Pawns {
         passeds    [Own] = 0;
         score      [Own] = SCORE_ZERO;
 
-        Square const *ps{ pos.squares(Own|PAWN) };
-        Square s;
-        while ((s = *ps++) != SQ_NONE) {
+        Bitboard bb{ pos.pieces(Own, PAWN) };
+        while (bb != 0) {
+            auto const s{ popLSq(bb) };
             assert(pos[s] == (Own|PAWN));
 
             auto const r{ relativeRank(Own, s) };

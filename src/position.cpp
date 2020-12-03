@@ -669,7 +669,6 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
     //    It starts at 1, and is incremented after Black's move.
 
     std::memset(this, 0, sizeof(*this));
-    std::fill_n(&pieceSquare[0][0], sizeof(pieceSquare) / sizeof(pieceSquare[0][0]), SQ_NONE);
     std::fill_n(&cslRookSq[0][0], sizeof(cslRookSq) / sizeof(cslRookSq[0][0]), SQ_NONE);
 
     std::memset(&si, 0, sizeof(si));
@@ -1316,7 +1315,7 @@ std::string Position::toString() const {
         ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
 
         Position p;
-        p.setup(fen(), si, thread());
+        p.setup(fen(), si, _thread);
 
         SyzygyTB::ProbeState wdlState;
         auto const wdlScore{ SyzygyTB::probeWDL(p, wdlState) };
@@ -1341,7 +1340,6 @@ std::ostream& operator<<(std::ostream &ostream, Position const &pos) {
 bool Position::ok() const noexcept {
     constexpr bool Fast{ true };
 
-    // BASIC
     if (!isOk(active)
      || (count() > 32
       || count() != popCount(pieces()))) {
@@ -1351,8 +1349,8 @@ bool Position::ok() const noexcept {
     for (Color const c : { WHITE, BLACK }) {
         if (count(c) > 16
          || count(c) != popCount(pieces(c))
-         || std::count(board, board + SQUARES, (c|KING)) != 1
          || count(c|KING) != 1
+         || std::count(board, board + SQUARES, (c|KING)) != 1
          || !isOk(square(c|KING))
          || board[square(c|KING)] != (c|KING)
          || (        (count(c|PAWN)
@@ -1364,7 +1362,7 @@ bool Position::ok() const noexcept {
             return false;
         }
     }
-    // BITBOARD
+
     if ((pieces(WHITE) & pieces(BLACK)) != 0
      || (pieces(WHITE) | pieces(BLACK)) != pieces()
      || (pieces(WHITE) ^ pieces(BLACK)) != pieces()
@@ -1385,6 +1383,7 @@ bool Position::ok() const noexcept {
             }
         }
     }
+    /*
     for (Color const c : { WHITE, BLACK }) {
         if (popCount(pieces(c, KING)) != 1
          || (        (popCount(pieces(c, PAWN))
@@ -1399,8 +1398,8 @@ bool Position::ok() const noexcept {
             return false;
         }
     }
+    */
 
-    // Non-Pawn material & PSQ
     if (npm[WHITE] != computeNPM<WHITE>(*this)
      || npm[BLACK] != computeNPM<BLACK>(*this)
      || psq != PSQT::computePSQ(*this)) {
@@ -1412,22 +1411,14 @@ bool Position::ok() const noexcept {
         return true;
     }
 
-    // SQUARE_LIST
     for (Piece const p : Pieces) {
-        if (count(p) != popCount(pieces(pColor(p), pType(p)))) {
-            assert(false && "Position OK: SQUARE_LIST");
+        if (count(p) != popCount(pieces(pColor(p), pType(p)))
+         || count(p) != std::count(board, board + SQUARES, p)) {
+            assert(false && "Position OK: PIECES");
             return false;
-        }
-        for (int16_t i = 0; i < pieceCount[p]; ++i) {
-            if (board[pieceSquare[p][i]] != p
-             || pieceIndex[pieceSquare[p][i]] != i) {
-                assert(false && "Position OK: SQUARE_LIST");
-                return false;
-            }
         }
     }
 
-    // CASTLING
     for (Color const c : { WHITE, BLACK }) {
         for (CastleSide const cs : { CS_KING, CS_QUEN }) {
             auto const cr{ makeCastleRight(c, cs) };
@@ -1441,7 +1432,7 @@ bool Position::ok() const noexcept {
             }
         }
     }
-    // STATE_INFO
+
     if (_stateInfo->matlKey != RandZob.computeMatlKey(*this)
      || _stateInfo->pawnKey != RandZob.computePawnKey(*this)
      || _stateInfo->posiKey != RandZob.computePosiKey(*this)

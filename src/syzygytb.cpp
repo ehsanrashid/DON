@@ -174,14 +174,15 @@ namespace {
         std::string filename;
 
         TBFile(std::string_view file) {
+
             filename.clear();
             for (auto &path : Paths) {
-                auto fname{ path + "/" + file.data() }; //appendPath(path, file);
+                auto fname{ path + "/" + file.data() };
                 std::ifstream::open(fname);
                 if (is_open()) {
                     filename = fname;
                     std::ifstream::close();
-                    return;
+                    break;
                 }
             }
         }
@@ -234,7 +235,7 @@ namespace {
                 return nullptr;
             }
 
-            stat statbuf;
+            struct stat statbuf;
             fstat(hFile, &statbuf);
 
             if (statbuf.st_size == 0) {
@@ -267,8 +268,7 @@ namespace {
 
             uint8_t *data = static_cast<uint8_t*>(*baseAddress);
 
-            constexpr uint8_t TB_MAGIC[][4]
-            {
+            constexpr uint8_t TB_MAGIC[][4]{
                 { 0xD7, 0x66, 0x0C, 0xA5 },
                 { 0x71, 0xE8, 0x23, 0x5D }
             };
@@ -420,13 +420,13 @@ namespace {
 
     public:
         template<TBType Type>
-        TBTable<Type>* get(Key matlKey) {
+        TBTable<Type>* get(Key matlKey) noexcept {
             Entry const *e{ &entry[matlKey & (Size - 1)] };
             while (true) {
-                auto type{ e->get<Type>() };
+                auto table{ e->get<Type>() };
                 if (e->key == matlKey
-                 || type == nullptr) {
-                    return type;
+                 || table == nullptr) {
+                    return table;
                 }
                 ++e;
             }
@@ -669,14 +669,14 @@ namespace {
 
     int32_t mapScore(TBTable<DTZ> *entry, File f, int32_t value, WDLScore wdl) noexcept {
 
-        int32_t flags = entry->get(0, f)->flags;
-        uint8_t *map = entry->map;
-        uint16_t* idx = entry->get(0, f)->mapIdx;
+        int32_t const flags{ entry->get(0, f)->flags };
+        uint16_t const *idx{ entry->get(0, f)->mapIdx };
+        uint8_t *map{ entry->map };
 
         if ((flags & TBFlag::MAPPED) != 0) {
             value = (flags & TBFlag::WIDE) != 0 ?
-                    ((uint16_t*)map)[idx[WDLMap[wdl + 2]] + value] :
-                    map[idx[WDLMap[wdl + 2]] + value];
+                        ((uint16_t*)map)[idx[WDLMap[wdl + 2]] + value] :
+                        (           map)[idx[WDLMap[wdl + 2]] + value];
         }
 
         // DTZ tables store distance to zero in number of moves or plies. We
@@ -701,7 +701,7 @@ namespace {
     Ret doProbeTable(Position const &pos, T *entry, WDLScore wdl, ProbeState &state) {
 
         Square squares[TBPIECES];
-        Piece  pieces [TBPIECES];
+        Piece  pieces[TBPIECES];
         int16_t size{ 0 };
 
         bool const fliped{
