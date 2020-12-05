@@ -57,7 +57,8 @@ namespace {
 MovePicker::MovePicker(
     Position const &p,
     Move ttm, Depth d,
-    ButterFlyStatsTable       const *bfStats,
+    ButterFlyStatsTable       const *dStats,
+    ButterFlyStatsTable       const *sStats,
     PlyIndexStatsTable        const *lpStats,
     PieceSquareTypeStatsTable const *cpStats,
     PieceSquareStatsTable     const **cStats,
@@ -66,7 +67,8 @@ MovePicker::MovePicker(
     pos{ p },
     ttMove{ ttm },
     depth{ d },
-    butterFlyStats{ bfStats },
+    dynamicStats{ dStats },
+    staticStats{ sStats },
     lowPlyStats{ lpStats },
     captureStats{ cpStats },
     contStats{ cStats },
@@ -93,7 +95,8 @@ MovePicker::MovePicker(
 MovePicker::MovePicker(
     Position const &p,
     Move ttm, Depth d,
-    ButterFlyStatsTable       const *bfStats,
+    ButterFlyStatsTable       const *dStats,
+    ButterFlyStatsTable       const *sStats,
     PieceSquareTypeStatsTable const *cpStats,
     PieceSquareStatsTable     const **cStats,
     Square rs) noexcept :
@@ -101,7 +104,8 @@ MovePicker::MovePicker(
     pos{ p },
     ttMove{ ttm },
     depth{ d },
-    butterFlyStats{ bfStats },
+    dynamicStats{ dStats },
+    staticStats{ sStats },
     captureStats{ cpStats },
     contStats{ cStats },
     recapSq{ rs } {
@@ -164,7 +168,8 @@ void MovePicker::value() noexcept {
         }
             break;
         case QUIET: {
-            vm->value = (*butterFlyStats)[pos.activeSide()][mMask(*vm)]
+            vm->value = (*dynamicStats)[pos.activeSide()][mMask(*vm)]
+                      + (*staticStats)[pos.activeSide()][mMask(*vm)]
                       + (*contStats[0])[pos.movedPiece(*vm)][dstSq(*vm)] * 2
                       + (*contStats[1])[pos.movedPiece(*vm)][dstSq(*vm)] * 2
                       + (*contStats[3])[pos.movedPiece(*vm)][dstSq(*vm)] * 2
@@ -177,7 +182,7 @@ void MovePicker::value() noexcept {
                 vm->value = int32_t(PieceValues[MG][pos.captured(*vm)])
                          - pType(pos.movedPiece(*vm));
             } else {
-                vm->value = (*butterFlyStats)[pos.activeSide()][mMask(*vm)]
+                vm->value = (*dynamicStats)[pos.activeSide()][mMask(*vm)]
                           + (*contStats[0])[pos.movedPiece(*vm)][dstSq(*vm)]
                           - 0x10000000; // 1 << 28
             }

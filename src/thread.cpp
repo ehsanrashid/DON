@@ -78,7 +78,8 @@ void Thread::threadFunc() {
 /// Thread::clean() clears all the thread related stuff.
 void Thread::clean() {
 
-    butterFlyStats.fill(0);
+    dynamicStats.fill(0);
+    staticStats.fill(0);
     lowPlyStats.fill(0);
 
     captureStats.fill(0);

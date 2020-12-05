@@ -147,7 +147,7 @@ namespace {
     /// updateQuietStats() updates move sorting heuristics when a new quiet best move is found
     void updateQuietStats(Stack *ss, Position const &pos, Move move, int32_t bonus) noexcept {
 
-        pos.thread()->butterFlyStats[pos.activeSide()][mMask(move)] << bonus;
+        pos.thread()->dynamicStats[pos.activeSide()][mMask(move)] << bonus;
         updateContinuationStats(ss, pos.movedPiece(move), dstSq(move), bonus);
     }
 
@@ -156,7 +156,7 @@ namespace {
         updateQuietStats(ss, pos, move, bonus);
 
         if (pType(pos.movedPiece(move)) != PAWN) {
-            pos.thread()->butterFlyStats[pos.activeSide()][mMask(reverseMove(move))] << -bonus;
+            pos.thread()->dynamicStats[pos.activeSide()][mMask(reverseMove(move))] << -bonus;
         }
 
         if (depth > 11
@@ -408,7 +408,8 @@ namespace {
         MovePicker movePicker{
             pos,
             ttMove, depth,
-            &thread->butterFlyStats,
+            &thread->dynamicStats,
+            &thread->staticStats,
             &thread->captureStats,
             contStats,
             prevDst };
@@ -799,6 +800,14 @@ namespace {
                           ss->ttPV);
             }
 
+            // Update static history for previous move
+            if (!(ss-1)->inCheck
+             && isOk((ss-1)->playedMove)
+             && !pmCapOrPro) {
+                int bonus = sign(-(ss-1)->staticEval + 2 * VALUE_TEMPO - ss->staticEval) * statBonus(depth);
+                thread->staticStats[~activeSide][mMask((ss-1)->playedMove)] << bonus;
+            }
+
             // Step 7. Razoring (~1 Elo)
             if (!rootNode // The RootNode PV handling is not available in qsearch
              && depth == 1
@@ -1007,7 +1016,8 @@ namespace {
         MovePicker movePicker{
             pos,
             ttMove, depth,
-            &thread->butterFlyStats,
+            &thread->dynamicStats,
+            &thread->staticStats,
             &thread->lowPlyStats,
             &thread->captureStats,
             contStats,
@@ -1267,7 +1277,7 @@ namespace {
                     }
 
                     ss->stats =
-                          thread->butterFlyStats[activeSide][mMask(move)]
+                          thread->dynamicStats[activeSide][mMask(move)]
                         + (*contStats[0])[mpc][dstSq(move)]
                         + (*contStats[1])[mpc][dstSq(move)]
                         + (*contStats[3])[mpc][dstSq(move)]

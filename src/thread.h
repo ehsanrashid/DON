@@ -71,9 +71,11 @@ public:
 
     int16_t failHighCount;
 
-    // butterFlyStats records how often quiet moves have been successful/unsuccessful
+    // dynamicStats records how often quiet moves have been successful/unsuccessful
     // during the current search, and is used for reduction and move ordering decisions.
-    ButterFlyStatsTable         butterFlyStats;
+    ButterFlyStatsTable         dynamicStats;
+
+    ButterFlyStatsTable         staticStats;
     // lowPlyStats records how often quiet moves have been successful/unsuccessful
     // at higher depths on plies 0 to 3 and in the PV (ttPv)
     // It get cleared with each new search and get filled during iterative deepening
