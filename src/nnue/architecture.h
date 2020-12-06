@@ -3,7 +3,7 @@
 
 #include "../type.h"
 // Defines the network structure
-#include "architectures/HalfKP_256x2-32-32.h"
+#include "architectures/halfkp_256x2-32-32.h"
 
 namespace Evaluator::NNUE {
 

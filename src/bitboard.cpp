@@ -56,7 +56,7 @@ namespace {
     }
 
     template<PieceType>
-    Bitboard slideAttacks(Square, Bitboard = 0);
+    Bitboard slideAttacks(Square, Bitboard = 0) noexcept;
 
     Direction const BDirections[4]{ SOUTH_WEST, SOUTH_EAST, NORTH_WEST, NORTH_EAST };
     template<> Bitboard slideAttacks<BSHP>(Square s, Bitboard occ) noexcept {
