@@ -55,6 +55,11 @@ namespace Evaluator::NNUE {
     constexpr size_t SimdWidth{ 16 };
 #endif
 
+    // Type of input feature after conversion
+    using TransformedFeatureType = uint8_t;
+    using IndexType = uint32_t;
+
+
     constexpr size_t MaxSimdWidth{ 32 };
 
     // Unique number for each piece type on each square
@@ -76,12 +81,28 @@ namespace Evaluator::NNUE {
         PS_END2     = 12 * SQUARES + 1
     };
 
-    // Array for finding the PieceSquare corresponding to the piece on the board
-    extern const PieceSquare PP_BoardIndex[PIECES][COLORS];
+    constexpr PieceSquare BoardPieceSquare[COLORS][PIECES]{
+        // convention: W - us, B - them
+        // viewed from other side, W and B are reversed
+        { PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_W_KING, PS_NONE,
+          PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_B_KING, PS_NONE },
+        { PS_NONE, PS_B_PAWN, PS_B_KNIGHT, PS_B_BISHOP, PS_B_ROOK, PS_B_QUEEN, PS_B_KING, PS_NONE,
+          PS_NONE, PS_W_PAWN, PS_W_KNIGHT, PS_W_BISHOP, PS_W_ROOK, PS_W_QUEEN, PS_W_KING, PS_NONE }
+    };
 
-    // Type of input feature after conversion
-    using TransformedFeatureType = uint8_t;
-    using IndexType = uint32_t;
+    constexpr int32_t OrientSquare[COLORS]{
+        SQ_A1, SQ_H8
+    };
+
+    // Orient a square according to perspective (rotates by 180 for black)
+    inline Square orient(Color perspective, Square s) noexcept {
+        return Square(int32_t(s) ^ OrientSquare[perspective]);
+    }
+
+    // Index of a feature for a given king position and another piece on some square
+    inline IndexType makeIndex(Color perspective, Square s, Piece pc, Square kSq) {
+        return IndexType(orient(perspective, s) + BoardPieceSquare[perspective][pc] + PS_END * kSq);
+    }
 
     // Round n up to be a multiple of base
     template<typename IntType>

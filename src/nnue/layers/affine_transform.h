@@ -149,15 +149,16 @@ namespace Evaluator::NNUE::Layers {
                 return _mm512_add_epi32(_mm512_permutexvar_epi32(indices, x), bias);
             };
 
+        #if defined(USE_VNNI)
             [[maybe_unused]] auto m512_add_dpbusd_epi32 = [=](__m512i &acc, __m512i a, __m512i b) {
-        #if defined (USE_VNNI)
                 acc = _mm512_dpbusd_epi32(acc, a, b);
-        #else
-                __m512i product0{ _mm512_maddubs_epi16(a, b) };
-                product0 = _mm512_madd_epi16(product0, One512);
-                acc = _mm512_add_epi32(acc, product0);
-        #endif
             };
+        #else
+            [[maybe_unused]] auto m512_dpbusd_epi32 = [=](__m512i a, __m512i b) -> __m512i {
+                __m512i product0{ _mm512_maddubs_epi16(a, b) };
+                return _mm512_madd_epi16(product0, One512);
+            };
+        #endif
 
     #endif
     #if defined(USE_AVX2)
@@ -183,15 +184,16 @@ namespace Evaluator::NNUE::Layers {
                 return _mm_add_epi32(_mm_add_epi32(sum128lo, sum128hi), bias);
             };
 
-            [[maybe_unused]] auto m256_add_dpbusd_epi32 = [=](__m256i &acc, __m256i a, __m256i b) {
         #if defined(USE_VNNI)
+            [[maybe_unused]] auto m256_add_dpbusd_epi32 = [=](__m256i &acc, __m256i a, __m256i b) {
                 acc = _mm256_dpbusd_epi32(acc, a, b);
-        #else
-                __m256i product0{ _mm256_maddubs_epi16(a, b) };
-                product0 = _mm256_madd_epi16(product0, One256);
-                acc = _mm256_add_epi32(acc, product0);
-        #endif
             };
+        #else
+            [[maybe_unused]] auto m256_dpbusd_epi32 = [=](__m256i a, __m256i b) -> __m256i {
+                __m256i product0{ _mm256_maddubs_epi16(a, b) };
+                return _mm256_madd_epi16(product0, One256);
+            };
+        #endif
 
     #endif
     #if defined(USE_SSSE3)
@@ -213,10 +215,9 @@ namespace Evaluator::NNUE::Layers {
                 return _mm_add_epi32(sum0, bias);
             };
 
-            [[maybe_unused]] auto m128_add_dpbusd_epi32 = [=](__m128i &acc, __m128i a, __m128i b) {
+            [[maybe_unused]] auto m128_dpbusd_epi32 = [=](__m128i a, __m128i b) -> __m128i {
                 __m128i product0{ _mm_maddubs_epi16(a, b) };
-                product0 = _mm_madd_epi16(product0, One128);
-                acc = _mm_add_epi32(acc, product0);
+                return _mm_madd_epi16(product0, One128);
             };
 
     #endif
@@ -258,15 +259,6 @@ namespace Evaluator::NNUE::Layers {
                     __m512i const bias{ *reinterpret_cast<__m512i const*>(&biases_[i]) };
                     __m512i *outptr{ reinterpret_cast<__m512i*>(&output[i]) };
 
-                    __m512i sum01a{ _mm512_setzero_si512() };
-                    __m512i sum23a{ _mm512_setzero_si512() };
-                    __m512i sum45a{ _mm512_setzero_si512() };
-                    __m512i sum67a{ _mm512_setzero_si512() };
-                    __m512i sum01b{ _mm512_setzero_si512() };
-                    __m512i sum23b{ _mm512_setzero_si512() };
-                    __m512i sum45b{ _mm512_setzero_si512() };
-                    __m512i sum67b{ _mm512_setzero_si512() };
-
                     auto const row01a{ *reinterpret_cast<__m512i const*>(&weights_[offset01a]) };
                     auto const row23a{ *reinterpret_cast<__m512i const*>(&weights_[offset23a]) };
                     auto const row45a{ *reinterpret_cast<__m512i const*>(&weights_[offset45a]) };
@@ -279,6 +271,16 @@ namespace Evaluator::NNUE::Layers {
                     __m256i const in256{ input_vector256[0] };
                     __m512i const in{ _mm512_inserti64x4(_mm512_castsi256_si512(in256), in256, 1) };
 
+                #if defined(USE_VNNI)
+                    __m512i sum01a{ _mm512_setzero_si512() };
+                    __m512i sum23a{ _mm512_setzero_si512() };
+                    __m512i sum45a{ _mm512_setzero_si512() };
+                    __m512i sum67a{ _mm512_setzero_si512() };
+                    __m512i sum01b{ _mm512_setzero_si512() };
+                    __m512i sum23b{ _mm512_setzero_si512() };
+                    __m512i sum45b{ _mm512_setzero_si512() };
+                    __m512i sum67b{ _mm512_setzero_si512() };
+
                     m512_add_dpbusd_epi32(sum01a, in, row01a);
                     m512_add_dpbusd_epi32(sum23a, in, row23a);
                     m512_add_dpbusd_epi32(sum45a, in, row45a);
@@ -287,6 +289,18 @@ namespace Evaluator::NNUE::Layers {
                     m512_add_dpbusd_epi32(sum23b, in, row23b);
                     m512_add_dpbusd_epi32(sum45b, in, row45b);
                     m512_add_dpbusd_epi32(sum67b, in, row67b);
+
+                #else
+                    __m512i sum01a{ m512_dpbusd_epi32(in, row01a) };
+                    __m512i sum23a{ m512_dpbusd_epi32(in, row23a) };
+                    __m512i sum45a{ m512_dpbusd_epi32(in, row45a) };
+                    __m512i sum67a{ m512_dpbusd_epi32(in, row67a) };
+                    __m512i sum01b{ m512_dpbusd_epi32(in, row01b) };
+                    __m512i sum23b{ m512_dpbusd_epi32(in, row23b) };
+                    __m512i sum45b{ m512_dpbusd_epi32(in, row45b) };
+                    __m512i sum67b{ m512_dpbusd_epi32(in, row67b) };
+
+                #endif
 
                     *outptr = m512_hadd256x16(sum01a, sum23a, sum45a, sum67a, sum01b, sum23b, sum45b, sum67b, bias);
                 }
@@ -302,44 +316,78 @@ namespace Evaluator::NNUE::Layers {
                     __m128i *outptr{ reinterpret_cast<__m128i*>(&output[i]) };
 
                     if constexpr (PaddedInputDimensions % (SimdWidth * 2) == 0) {
-                        __m512i sum0{ _mm512_setzero_si512() };
-                        __m512i sum1{ _mm512_setzero_si512() };
-                        __m512i sum2{ _mm512_setzero_si512() };
-                        __m512i sum3{ _mm512_setzero_si512() };
 
                         auto const row0{ reinterpret_cast<__m512i const*>(&weights_[offset0]) };
                         auto const row1{ reinterpret_cast<__m512i const*>(&weights_[offset1]) };
                         auto const row2{ reinterpret_cast<__m512i const*>(&weights_[offset2]) };
                         auto const row3{ reinterpret_cast<__m512i const*>(&weights_[offset3]) };
 
-                        for (IndexType j = 0; j < NumChunks512; ++j) {
+                    #if defined(USE_VNNI)
+                        __m512i sum0{ _mm512_setzero_si512() };
+                        __m512i sum1{ _mm512_setzero_si512() };
+                        __m512i sum2{ _mm512_setzero_si512() };
+                        __m512i sum3{ _mm512_setzero_si512() };
+                        const IndexType Start = 0;
+                    #else
+                        __m512i sum0{ m512_dpbusd_epi32(input_vector512[0], row0[0]) };
+                        __m512i sum1{ m512_dpbusd_epi32(input_vector512[0], row1[0]) };
+                        __m512i sum2{ m512_dpbusd_epi32(input_vector512[0], row2[0]) };
+                        __m512i sum3{ m512_dpbusd_epi32(input_vector512[0], row3[0]) };
+                        const IndexType Start = 1;
+                    #endif
+
+                        for (IndexType j = Start; j < NumChunks512; ++j) {
                             __m512i const in{ input_vector512[j] };
 
+                        #if defined(USE_VNNI)
                             m512_add_dpbusd_epi32(sum0, in, row0[j]);
                             m512_add_dpbusd_epi32(sum1, in, row1[j]);
                             m512_add_dpbusd_epi32(sum2, in, row2[j]);
                             m512_add_dpbusd_epi32(sum3, in, row3[j]);
+                        #else
+                            sum0 = _mm512_add_epi32(sum0, m512_dpbusd_epi32(in, row0[j]));
+                            sum1 = _mm512_add_epi32(sum1, m512_dpbusd_epi32(in, row1[j]));
+                            sum2 = _mm512_add_epi32(sum2, m512_dpbusd_epi32(in, row2[j]));
+                            sum3 = _mm512_add_epi32(sum3, m512_dpbusd_epi32(in, row3[j]));
+                        #endif
                         }
 
                         *outptr = m512_haddx4(sum0, sum1, sum2, sum3, bias);
                     } else {
-                        __m256i sum0{ _mm256_setzero_si256() };
-                        __m256i sum1{ _mm256_setzero_si256() };
-                        __m256i sum2{ _mm256_setzero_si256() };
-                        __m256i sum3{ _mm256_setzero_si256() };
 
                         auto const row0{ reinterpret_cast<__m256i const*>(&weights_[offset0]) };
                         auto const row1{ reinterpret_cast<__m256i const*>(&weights_[offset1]) };
                         auto const row2{ reinterpret_cast<__m256i const*>(&weights_[offset2]) };
                         auto const row3{ reinterpret_cast<__m256i const*>(&weights_[offset3]) };
 
-                        for (IndexType j = 0; j < NumChunks256; ++j) {
+                    #if defined(USE_VNNI)
+                        __m256i sum0{ _mm256_setzero_si256() };
+                        __m256i sum1{ _mm256_setzero_si256() };
+                        __m256i sum2{ _mm256_setzero_si256() };
+                        __m256i sum3{ _mm256_setzero_si256() };
+                        const IndexType Start = 0;
+                    #else
+                        __m256i sum0{ m256_dpbusd_epi32(input_vector256[0], row0[0]) };
+                        __m256i sum1{ m256_dpbusd_epi32(input_vector256[0], row1[0]) };
+                        __m256i sum2{ m256_dpbusd_epi32(input_vector256[0], row2[0]) };
+                        __m256i sum3{ m256_dpbusd_epi32(input_vector256[0], row3[0]) };
+                        const IndexType Start = 1;
+                    #endif
+
+                        for (IndexType j = Start; j < NumChunks256; ++j) {
                             __m256i const in{ input_vector256[j] };
 
+                        #if defined(USE_VNNI)
                             m256_add_dpbusd_epi32(sum0, in, row0[j]);
                             m256_add_dpbusd_epi32(sum1, in, row1[j]);
                             m256_add_dpbusd_epi32(sum2, in, row2[j]);
                             m256_add_dpbusd_epi32(sum3, in, row3[j]);
+                        #else
+                            sum0 = _mm256_add_epi32(sum0, m256_dpbusd_epi32(in, row0[j]));
+                            sum1 = _mm256_add_epi32(sum1, m256_dpbusd_epi32(in, row1[j]));
+                            sum2 = _mm256_add_epi32(sum2, m256_dpbusd_epi32(in, row2[j]));
+                            sum3 = _mm256_add_epi32(sum3, m256_dpbusd_epi32(in, row3[j]));
+                        #endif
                         }
 
                         *outptr = m256_haddx4(sum0, sum1, sum2, sum3, bias);
@@ -351,22 +399,45 @@ namespace Evaluator::NNUE::Layers {
 
                     auto const row0{ reinterpret_cast<__m512i const*>(&weights_[0]) };
 
-                    for (IndexType j = 0; j < NumChunks512; ++j) {
+                #if defined(USE_VNNI)
+                    __m512i sum0{ _mm512_setzero_si512() };
+                    const IndexType Start = 0;
+                #else
+                    __m512i sum0{ m512_dpbusd_epi32(input_vector512[0], row0[0]) };
+                    const IndexType Start = 1;
+                #endif
+
+                    for (IndexType j = Start; j < NumChunks512; ++j) {
                         __m512i const in{ input_vector512[j] };
 
+                    #if defined(USE_VNNI)
                         m512_add_dpbusd_epi32(sum0, in, row0[j]);
+                    #else
+                        sum0 = _mm512_add_epi32(sum0, m512_dpbusd_epi32(in, row0[j]));
+                    #endif
                     }
 
                     output[0] = m512_hadd(sum0, biases_[0]);
                 } else {
-                    __m256i sum0{ _mm256_setzero_si256() };
 
                     auto const row0{ reinterpret_cast<__m256i const*>(&weights_[0]) };
 
-                    for (IndexType j = 0; j < NumChunks256; ++j) {
+                #if defined(USE_VNNI)
+                    __m256i sum0{ _mm256_setzero_si256() };
+                    const IndexType Start = 0;
+                #else
+                    __m256i sum0{ m256_dpbusd_epi32(input_vector256[0], row0[0]) };
+                    const IndexType Start = 1;
+                #endif
+
+                    for (IndexType j = Start; j < NumChunks256; ++j) {
                         __m256i const in{ input_vector256[j] };
 
+                    #if defined(USE_VNNI)
                         m256_add_dpbusd_epi32(sum0, in, row0[j]);
+                    #else
+                        sum0 = _mm256_add_epi32(sum0, m256_dpbusd_epi32(in, row0[j]));
+                    #endif
                     }
 
                     output[0] = m256_hadd(sum0, biases_[0]);
@@ -396,36 +467,63 @@ namespace Evaluator::NNUE::Layers {
                     __m128i const bias{ *reinterpret_cast<__m128i const*>(&biases_[i]) };
                     __m128i *outptr{ reinterpret_cast<__m128i*>(&output[i]) };
 
-                    __m256i sum0{ _mm256_setzero_si256() };
-                    __m256i sum1{ _mm256_setzero_si256() };
-                    __m256i sum2{ _mm256_setzero_si256() };
-                    __m256i sum3{ _mm256_setzero_si256() };
-
                     auto const row0{ reinterpret_cast<__m256i const*>(&weights_[offset0]) };
                     auto const row1{ reinterpret_cast<__m256i const*>(&weights_[offset1]) };
                     auto const row2{ reinterpret_cast<__m256i const*>(&weights_[offset2]) };
                     auto const row3{ reinterpret_cast<__m256i const*>(&weights_[offset3]) };
 
-                    for (IndexType j = 0; j < NumChunks; ++j) {
+                #if defined(USE_VNNI)
+                    __m256i sum0{ _mm256_setzero_si256() };
+                    __m256i sum1{ _mm256_setzero_si256() };
+                    __m256i sum2{ _mm256_setzero_si256() };
+                    __m256i sum3{ _mm256_setzero_si256() };
+                    const IndexType Start = 0;
+                #else
+                    __m256i sum0{ m256_dpbusd_epi32(input_vector[0], row0[0]) };
+                    __m256i sum1{ m256_dpbusd_epi32(input_vector[0], row1[0]) };
+                    __m256i sum2{ m256_dpbusd_epi32(input_vector[0], row2[0]) };
+                    __m256i sum3{ m256_dpbusd_epi32(input_vector[0], row3[0]) };
+                    const IndexType Start = 1;
+                #endif
+
+                    for (IndexType j = Start; j < NumChunks; ++j) {
                         __m256i const in{ input_vector[j] };
 
+                    #if defined(USE_VNNI)
                         m256_add_dpbusd_epi32(sum0, in, row0[j]);
                         m256_add_dpbusd_epi32(sum1, in, row1[j]);
                         m256_add_dpbusd_epi32(sum2, in, row2[j]);
                         m256_add_dpbusd_epi32(sum3, in, row3[j]);
+                    #else
+                        sum0 = _mm256_add_epi32(sum0, m256_dpbusd_epi32(in, row0[j]));
+                        sum1 = _mm256_add_epi32(sum1, m256_dpbusd_epi32(in, row1[j]));
+                        sum2 = _mm256_add_epi32(sum2, m256_dpbusd_epi32(in, row2[j]));
+                        sum3 = _mm256_add_epi32(sum3, m256_dpbusd_epi32(in, row3[j]));
+                    #endif
                     }
 
                     *outptr = m256_haddx4(sum0, sum1, sum2, sum3, bias);
                 }
             } else if constexpr (OutputDimensions == 1) {
-                __m256i sum0{ _mm256_setzero_si256() };
 
                 auto const row0{ reinterpret_cast<__m256i const*>(&weights_[0]) };
 
-                for (IndexType j = 0; j < NumChunks; ++j) {
+            #if defined(USE_VNNI)
+                __m256i sum0{ _mm256_setzero_si256() };
+                const IndexType Start = 0;
+            #else
+                __m256i sum0{ m256_dpbusd_epi32(input_vector[0], row0[0]) };
+                const IndexType Start = 1;
+            #endif
+
+                for (IndexType j = Start; j < NumChunks; ++j) {
                     __m256i const in{ input_vector[j] };
 
+                #if defined(USE_VNNI)
                     m256_add_dpbusd_epi32(sum0, in, row0[j]);
+                #else
+                    sum0 = _mm256_add_epi32(sum0, m256_dpbusd_epi32(in, row0[j]));
+                #endif
                 }
 
                 output[0] = m256_hadd(sum0, biases_[0]);
@@ -454,36 +552,34 @@ namespace Evaluator::NNUE::Layers {
                     __m128i const bias{ *reinterpret_cast<__m128i const*>(&biases_[i]) };
                     __m128i *outptr{ reinterpret_cast<__m128i*>(&output[i]) };
 
-                    __m128i sum0{ _mm_setzero_si128() };
-                    __m128i sum1{ _mm_setzero_si128() };
-                    __m128i sum2{ _mm_setzero_si128() };
-                    __m128i sum3{ _mm_setzero_si128() };
-
                     auto const row0{ reinterpret_cast<__m128i const*>(&weights_[offset0]) };
                     auto const row1{ reinterpret_cast<__m128i const*>(&weights_[offset1]) };
                     auto const row2{ reinterpret_cast<__m128i const*>(&weights_[offset2]) };
                     auto const row3{ reinterpret_cast<__m128i const*>(&weights_[offset3]) };
 
-                    for (int j = 0; j < (int)NumChunks; j += 1) {
+                    __m128i sum0{ _mm_setzero_si128() };
+                    __m128i sum1{ _mm_setzero_si128() };
+                    __m128i sum2{ _mm_setzero_si128() };
+                    __m128i sum3{ _mm_setzero_si128() };
+                    for (int j = 1; j < (int)NumChunks; ++j) {
                         __m128i const in{ input_vector[j] };
 
-                        m128_add_dpbusd_epi32(sum0, in, row0[j]);
-                        m128_add_dpbusd_epi32(sum1, in, row1[j]);
-                        m128_add_dpbusd_epi32(sum2, in, row2[j]);
-                        m128_add_dpbusd_epi32(sum3, in, row3[j]);
+                        sum0 = _mm_add_epi32(sum0, m128_dpbusd_epi32(in, row0[j]));
+                        sum1 = _mm_add_epi32(sum1, m128_dpbusd_epi32(in, row1[j]));
+                        sum2 = _mm_add_epi32(sum2, m128_dpbusd_epi32(in, row2[j]));
+                        sum3 = _mm_add_epi32(sum3, m128_dpbusd_epi32(in, row3[j]));
                     }
 
                     *outptr = m128_haddx4(sum0, sum1, sum2, sum3, bias);
                 }
             } else if constexpr (OutputDimensions == 1) {
-                __m128i sum0{ _mm_setzero_si128() };
 
                 auto const row0{ reinterpret_cast<__m128i const*>(&weights_[0]) };
 
-                for (int j = 0; j < (int)NumChunks; j += 1) {
-                    __m128i const in{ input_vector[j] };
+                __m128i sum0{ _mm_setzero_si128() };
 
-                    m128_add_dpbusd_epi32(sum0, in, row0[j]);
+                for (int j = 1; j < (int)NumChunks; ++j) {
+                    sum0 = _mm_add_epi32(sum0, m128_dpbusd_epi32(input_vector[j], row0[j]));
                 }
 
                 output[0] = m128_hadd(sum0, biases_[0]);

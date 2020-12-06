@@ -141,7 +141,7 @@ void TTable::free() noexcept {
 /// hash, are using <x>%. of the state of full.
 uint32_t TTable::hashFull() const noexcept {
     uint32_t entryCount{ 0 };
-    auto const *etc{ clusterTable + std::min(clusterCount, 1000ULL) };
+    auto const *etc{ clusterTable + std::min((uint64_t)clusterCount, 1000ULL) };
     for (auto *itc{ clusterTable }; itc != etc; ++itc) {
         entryCount += itc->freshEntryCount();
     }
