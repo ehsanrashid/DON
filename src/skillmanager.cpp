@@ -41,8 +41,8 @@ Move SkillManager::pickBestMove() noexcept {
         // One is deterministic with weakness, and one is random with weakness.
         auto const value{
             rootMoves[i].newValue
-            + (weakness * int32_t(rootMoves[0].newValue - rootMoves[i].newValue)
-            + deviance * int32_t(prng.rand<uint32_t>() % weakness)) / VALUE_MG_PAWN };
+          + (weakness * int32_t(rootMoves[0].newValue - rootMoves[i].newValue)
+          +  deviance * int32_t(prng.rand<uint32_t>() % weakness)) / VALUE_MG_PAWN };
         // Then choose the move with the highest value.
         if (bestValue <= value) {
             bestValue = value;

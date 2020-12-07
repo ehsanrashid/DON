@@ -685,14 +685,15 @@ namespace {
                      && (ss-1)->moveCount <= 2) {
                         updateContinuationStats(ss-1, pos[prevDst], prevDst, -statBonus(depth + 1));
                     }
-                } else
-                // Penalty for a quiet ttMove that fails low
-                if (!pos.captureOrPromotion(ttMove)) {
-                    updateQuietStats(ss, pos, ttMove, -statBonus(depth));
+                } else {
+                    // Penalty for a quiet ttMove that fails low
+                    if (!pos.captureOrPromotion(ttMove)) {
+                        updateQuietStats(ss, pos, ttMove, -statBonus(depth));
+                    }
                 }
             }
 
-            if (pos.clockPly() < 90) {
+            if (pos.clockPly() < std::max(2 * int16_t(Options["Draw MoveCount"]) - 10, 10)) {
                 return ttValue;
             }
         }
