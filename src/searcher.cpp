@@ -126,7 +126,7 @@ namespace {
 
     /// Add a small random component to draw evaluations to avoid 3-fold-blindness
     Value drawValue(Thread const* th) noexcept {
-        return VALUE_DRAW + Value(2 * (th->nodes & 1) - 1);
+        return VALUE_DRAW + int32_t(2 * (th->nodes & 1) - 1);
     }
 
     /// updateContinuationStats() updates Stats of the move pairs formed

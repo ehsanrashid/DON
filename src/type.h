@@ -100,17 +100,17 @@ inline constexpr int32_t sign(T const &v) {
     return (T(0) < v) - (v < T(0));
 }
 
-enum Color : int8_t {
+enum Color {
     WHITE, BLACK,
     COLORS = 2
 };
 
-enum File : int8_t {
+enum File : int32_t {
     FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
     FILES = 8
 };
 
-enum Rank : int8_t {
+enum Rank : int32_t {
     RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8,
     RANKS = 8
 };
@@ -118,7 +118,7 @@ enum Rank : int8_t {
 /// Square needs 6-bits to be stored
 /// bit 0-2: File
 /// bit 3-5: Rank
-enum Square : int8_t {
+enum Square : int32_t {
     SQ_A1, SQ_B1, SQ_C1, SQ_D1, SQ_E1, SQ_F1, SQ_G1, SQ_H1,
     SQ_A2, SQ_B2, SQ_C2, SQ_D2, SQ_E2, SQ_F2, SQ_G2, SQ_H2,
     SQ_A3, SQ_B3, SQ_C3, SQ_D3, SQ_E3, SQ_F3, SQ_G3, SQ_H3,
@@ -131,7 +131,7 @@ enum Square : int8_t {
     SQUARES = 64
 };
 
-enum Direction : int8_t {
+enum Direction : int32_t {
     EAST    =  1,
     NORTH   =  8,
     WEST    = -EAST,
@@ -160,13 +160,13 @@ constexpr Depth DEPTH_OFFSET     { DEPTH_NONE - 1 }; // Used only for TT entry o
 // Maximum Depth
 constexpr int32_t MAX_PLY{ 256 + DEPTH_OFFSET - 4 };
 
-enum CastleSide : int8_t {
+enum CastleSide {
     CS_KING, CS_QUEN, CS_CENTRE,
     CASTLE_SIDES = 2
 };
 
 /// Castle Right defined as in Polyglot book hash key
-enum CastleRight : uint8_t {
+enum CastleRight {
     CR_NONE,
 
     CR_WKING,                  // 0001
@@ -183,7 +183,7 @@ enum CastleRight : uint8_t {
     CASTLE_RIGHTS = 16
 };
 
-enum PieceType : int8_t {
+enum PieceType {
     NONE, PAWN, NIHT, BSHP, ROOK, QUEN, KING,
     PIECE_TYPES = 7,
     PIECE_TYPES_EX = PIECE_TYPES - 1 // Exclude King
@@ -192,14 +192,14 @@ enum PieceType : int8_t {
 /// Piece needs 4-bits to be stored
 /// bit 0-2: Type of piece
 /// bit   3: Color of piece { White = 0..., Black = 1... }
-enum Piece : uint8_t {
+enum Piece {
     NO_PIECE,
     W_PAWN = PAWN + 0, W_NIHT, W_BSHP, W_ROOK, W_QUEN, W_KING,
     B_PAWN = PAWN + 8, B_NIHT, B_BSHP, B_ROOK, B_QUEN, B_KING,
     PIECES = 16
 };
 
-enum MoveType : uint16_t {
+enum MoveType {
     SIMPLE    = 0 << 14, // [00]-- ===
     CASTLE    = 1 << 14, // [01]-- ===
     ENPASSANT = 2 << 14, // [10]-- ===
@@ -214,7 +214,7 @@ enum MoveType : uint16_t {
 /// bit 14-15: Move Type
 ///
 /// Special cases are MOVE_NONE and MOVE_NULL.
-enum Move : uint16_t {
+enum Move : int32_t {
     MOVE_NONE = 0x000,
     MOVE_NULL = 0x041,
 };
@@ -248,24 +248,23 @@ enum Value : int32_t {
 /// the lower 16-bits are used to store the midgame value
 /// the upper 16-bits are used to store the endgame value
 /// Take some care to avoid left-shifting a signed int to avoid undefined behavior.
-enum Score : uint32_t {
+enum Score : int32_t {
     SCORE_ZERO = 0,
 };
 
-enum Bound : uint8_t {
+enum Bound {
     BOUND_NONE,
     BOUND_UPPER,
     BOUND_LOWER,
     BOUND_EXACT = BOUND_UPPER | BOUND_LOWER,
 };
 
-enum Phase : uint8_t {
-    MG,
-    EG,
+enum Phase {
+    MG, EG,
     PHASES = 2
 };
 
-enum Scale : uint8_t {
+enum Scale {
     SCALE_DRAW    =   0,
     SCALE_NORMAL  =  64,
     SCALE_MAX     = 128,
