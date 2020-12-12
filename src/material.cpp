@@ -9,27 +9,31 @@ namespace Material {
 
     namespace {
 
+        #define S(mg, eg) makeScore(mg, eg)
+
         // Polynomial material imbalance parameters
-        constexpr int32_t OwnQuadratic[PIECE_TYPES][PIECE_TYPES]{
-            // BP    P    N    B    R    Q
-            {1438                          }, // BP
-            {  40,  38                     }, // P
-            {  32, 255, -62                }, // N
-            {   0, 104,   4,   0           }, // B
-            { -26,  -2,  47, 105,-208      }, // R
-            {-189,  24, 117, 133,-134,  -6 }, // Q
-            {  0,    0,   0,   0,   0,   0 }  // K
+        constexpr Score OwnQuadratic[PIECE_TYPES][PIECE_TYPES]{
+            //            OUR PIECES
+            // Bishop pair    Pawn         Knight      Bishop       Rook         Queen
+            {S(1419, 1455)                                                                  }, // Bishop pair
+            {S( 101,   28), S( 37,  39)                                                     }, // Pawn
+            {S(  57,   64), S(249, 187), S(-49, -62)                                        }, // Knight      OUR PIECES
+            {S(   0,    0), S(118, 137), S( 10,  27), S(  0,   0)                           }, // Bishop
+            {S( -63,  -68), S( -5,   3), S(100,  81), S(132, 118), S(-246, -244)            }, // Rook
+            {S(-210, -211), S( 37,  14), S(147, 141), S(161, 105), S(-158, -174), S(-9,-31) }  // Queen
         };
-        constexpr int32_t OppQuadratic[PIECE_TYPES][PIECE_TYPES]{
-            // BP    P    N    B    R    Q
-            {   0                          }, // BP
-            {  36,   0                     }, // P
-            {   9,  63,   0                }, // N
-            {  59,  65,  42,   0           }, // B
-            {  46,  39,  24, -24,   0      }, // R
-            {  97, 100, -42, 137, 268,   0 }, // Q
-            {  0,    0,   0,   0,   0,   0 }  // K
+        constexpr Score OppQuadratic[PIECE_TYPES][PIECE_TYPES]{
+            //           THEIR PIECES
+            // Bishop pair    Pawn         Knight      Bishop       Rook         Queen
+            {                                                                               }, // Bishop pair
+            {S(  33,  30)                                                                   }, // Pawn
+            {S(  46,  18), S(106,  84)                                                      }, // Knight      OUR PIECES
+            {S(  75,  35), S( 59,  44), S( 60,  15)                                         }, // Bishop
+            {S(  26,  35), S(  6,  22), S( 38,  39), S(-12,  -2)                            }, // Rook
+            {S(  97,  93), S(100, 163), S(-58, -91), S(112, 192), S(276, 225)               }  // Queen
         };
+
+        #undef S
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.
@@ -58,15 +62,15 @@ namespace Material {
         /// imbalance() calculates the imbalance by the piece count of each piece type for both colors.
         /// NOTE:: KING == BISHOP PAIR
         template<Color Own>
-        int32_t computeImbalance(int32_t const pieceCount[][PIECE_TYPES]) {
+        Score computeImbalance(int32_t const pieceCount[][PIECE_TYPES]) {
             constexpr auto Opp{ ~Own };
 
-            int32_t imbalance{ 0 };
+            Score imbalance{ SCORE_ZERO };
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
             for (PieceType pt1 = NONE; pt1 <= QUEN; ++pt1) {
                 if (pieceCount[Own][pt1] != 0) {
-                    int32_t v{ 0 };
+                    Score v{ SCORE_ZERO };
                     for (PieceType pt2 = NONE; pt2 <= pt1; ++pt2) {
                         v += pieceCount[Own][pt2] * OwnQuadratic[pt1][pt2]
                            + pieceCount[Opp][pt2] * OppQuadratic[pt1][pt2];
@@ -173,10 +177,8 @@ namespace Material {
             }
         };
 
-        int32_t const value(
-            (computeImbalance<WHITE>(pieceCount)
-           - computeImbalance<BLACK>(pieceCount)) / 16 ); // Imbalance Resolution
-        imbalance = makeScore(value, value);
+        imbalance = ( computeImbalance<WHITE>(pieceCount)
+                    - computeImbalance<BLACK>(pieceCount)) / 16; // Imbalance Resolution
     }
 
     /// Material::probe() looks up a current position's material configuration in the material hash table

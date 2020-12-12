@@ -686,7 +686,7 @@ namespace Evaluator {
             Score score{ kingEntry->evaluateSafety<Own>(pos, attackedFull[Opp] /*& rankBB(relativeRank(Own, RANK_1))*/) };
 
             kingDanger +=   1 * kingAttackersCount[Opp] * kingAttackersWeight[Opp]  // (~10.0 Elo)
-                        + 185 * popCount(kingRing[Own] & weakArea)                  // (~15.0 Elo)
+                        + 183 * popCount(kingRing[Own] & weakArea)                  // (~15.0 Elo)
                         + 148 * popCount(unsafeCheck)                               // (~ 4.0 Elo)
                         +  98 * popCount(pos.kingBlockers(Own))                     // (~ 2.0 Elo)
                         +  69 * kingAttacksCount[Opp]                               // (~ 0.5 Elo)
