@@ -72,10 +72,10 @@ namespace Material {
                 if (pieceCount[Own][pt1] != 0) {
                     Score v{ SCORE_ZERO };
                     for (PieceType pt2 = NONE; pt2 <= pt1; ++pt2) {
-                        v += pieceCount[Own][pt2] * OwnQuadratic[pt1][pt2]
-                           + pieceCount[Opp][pt2] * OppQuadratic[pt1][pt2];
+                        v += OwnQuadratic[pt1][pt2] * pieceCount[Own][pt2]
+                           + OppQuadratic[pt1][pt2] * pieceCount[Opp][pt2];
                     }
-                    imbalance += pieceCount[Own][pt1] * v;
+                    imbalance += v * pieceCount[Own][pt1];
                 }
             }
             return imbalance;
