@@ -68,10 +68,10 @@ namespace Material {
             Score imbalance{ SCORE_ZERO };
             // "The Evaluation of Material Imbalances in Chess"
             // Second-degree polynomial material imbalance by Tord Romstad
-            for (PieceType pt1 = NONE; pt1 <= QUEN; ++pt1) {
+            for (auto pt1 = NONE; pt1 <= QUEN; ++pt1) {
                 if (pieceCount[Own][pt1] != 0) {
                     Score v{ SCORE_ZERO };
-                    for (PieceType pt2 = NONE; pt2 <= pt1; ++pt2) {
+                    for (auto pt2 = NONE; pt2 < pt1; ++pt2) {
                         v += OwnQuadratic[pt1][pt2] * pieceCount[Own][pt2]
                            + OppQuadratic[pt1][pt2] * pieceCount[Opp][pt2];
                     }
