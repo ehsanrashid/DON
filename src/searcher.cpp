@@ -147,7 +147,7 @@ namespace {
     /// updateQuietStats() updates move sorting heuristics when a new quiet best move is found
     void updateQuietStats(Stack *ss, Position const &pos, Move move, int32_t bonus) noexcept {
 
-        pos.thread()->dynamicStats[pos.activeSide()][mMask(move)] << bonus;
+        pos.thread()->mainStats[pos.activeSide()][mMask(move)] << bonus;
         updateContinuationStats(ss, pos.movedPiece(move), dstSq(move), bonus);
     }
 
@@ -156,7 +156,7 @@ namespace {
         updateQuietStats(ss, pos, move, bonus);
 
         if (pType(pos.movedPiece(move)) != PAWN) {
-            pos.thread()->dynamicStats[pos.activeSide()][mMask(reverseMove(move))] << -bonus;
+            pos.thread()->mainStats[pos.activeSide()][mMask(reverseMove(move))] << -bonus;
         }
 
         if (depth > 11
@@ -408,8 +408,7 @@ namespace {
         MovePicker movePicker{
             pos,
             ttMove, depth,
-            &thread->dynamicStats,
-            &thread->staticStats,
+            &thread->mainStats,
             &thread->captureStats,
             contStats,
             prevDst };
@@ -444,13 +443,13 @@ namespace {
                 // Futility pruning parent node
                 auto const futilityValue{ futilityBase + PieceValues[EG][pos.captured(move)] };
                 if (futilityValue <= alfa) {
-                    bestValue = std::max(bestValue, futilityValue);
+                    bestValue = std::max(futilityValue, bestValue);
                     continue;
                 }
                 // Prune moves with negative or zero SEE
                 if (futilityBase <= alfa
                  && !pos.see(move, VALUE_ZERO + 1)) {
-                    bestValue = std::max(bestValue, futilityBase);
+                    bestValue = std::max(futilityBase, bestValue);
                     continue;
                 }
             }
@@ -802,11 +801,13 @@ namespace {
             }
 
             // Update static history for previous move
-            if (!(ss-1)->inCheck
+            if (depth < 7
+             && !(ss-1)->inCheck
+             &&  (ss-1)->moveCount > 1
              && isOk((ss-1)->playedMove)
              && !pmCapOrPro) {
-                int bonus = sign(-(ss-1)->staticEval + 2 * VALUE_TEMPO - ss->staticEval) * statBonus(depth);
-                thread->staticStats[~activeSide][mMask((ss-1)->playedMove)] << bonus;
+                auto bonus = std::clamp(-(depth + 1) * 2 * int32_t((ss-1)->staticEval + ss->staticEval - 2 * VALUE_TEMPO), -1000, 1000);
+                thread->mainStats[~activeSide][mMask((ss-1)->playedMove)] << bonus;
             }
 
             // Step 7. Razoring (~1 Elo)
@@ -1017,8 +1018,7 @@ namespace {
         MovePicker movePicker{
             pos,
             ttMove, depth,
-            &thread->dynamicStats,
-            &thread->staticStats,
+            &thread->mainStats,
             &thread->lowPlyStats,
             &thread->captureStats,
             contStats,
@@ -1245,7 +1245,7 @@ namespace {
                     -1 * ((ss-1)->moveCount > 13)
                     // Increase at root and non-PV nodes if the best move does not change frequently
                     +1 * ( (rootNode || !PVNode)
-                        && depth > 10
+                        && thread->rootDepth > 10
                         && thread->pvChanges <= 2);
 
                 if (captureOrPromotion) {
@@ -1278,7 +1278,7 @@ namespace {
                     }
 
                     ss->stats =
-                          thread->dynamicStats[activeSide][mMask(move)]
+                          thread->mainStats[activeSide][mMask(move)]
                         + (*contStats[0])[mpc][dstSq(move)]
                         + (*contStats[1])[mpc][dstSq(move)]
                         + (*contStats[3])[mpc][dstSq(move)]
@@ -1286,10 +1286,10 @@ namespace {
 
                     // Decrease/Increase reduction by comparing opponent's stat score (~10 Elo)
                     if (ss->stats >= -105 && (ss-1)->stats < -103) {
-                        reductDepth--;
+                        --reductDepth;
                     } else
                     if ((ss-1)->stats >= -122 && ss->stats < -129) {
-                        reductDepth++;
+                        ++reductDepth;
                     }
 
                     // Decrease/Increase reduction for moves with a good/bad history (~30 Elo)

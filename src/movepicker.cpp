@@ -57,8 +57,7 @@ namespace {
 MovePicker::MovePicker(
     Position const &p,
     Move ttm, Depth d,
-    ButterFlyStatsTable       const *dStats,
-    ButterFlyStatsTable       const *sStats,
+    ButterFlyStatsTable       const *mStats,
     PlyIndexStatsTable        const *lpStats,
     PieceSquareTypeStatsTable const *cpStats,
     PieceSquareStatsTable     const **cStats,
@@ -67,8 +66,7 @@ MovePicker::MovePicker(
     pos{ p },
     ttMove{ ttm },
     depth{ d },
-    dynamicStats{ dStats },
-    staticStats{ sStats },
+    mainStats{ mStats },
     lowPlyStats{ lpStats },
     captureStats{ cpStats },
     contStats{ cStats },
@@ -95,8 +93,7 @@ MovePicker::MovePicker(
 MovePicker::MovePicker(
     Position const &p,
     Move ttm, Depth d,
-    ButterFlyStatsTable       const *dStats,
-    ButterFlyStatsTable       const *sStats,
+    ButterFlyStatsTable       const *mStats,
     PieceSquareTypeStatsTable const *cpStats,
     PieceSquareStatsTable     const **cStats,
     Square rs) noexcept :
@@ -104,8 +101,7 @@ MovePicker::MovePicker(
     pos{ p },
     ttMove{ ttm },
     depth{ d },
-    dynamicStats{ dStats },
-    staticStats{ sStats },
+    mainStats{ mStats },
     captureStats{ cpStats },
     contStats{ cStats },
     recapSq{ rs } {
@@ -168,8 +164,7 @@ void MovePicker::value() noexcept {
         }
             break;
         case QUIET: {
-            vm->value = (*dynamicStats)[pos.activeSide()][mMask(*vm)]
-                      + (*staticStats)[pos.activeSide()][mMask(*vm)]
+            vm->value = (*mainStats)[pos.activeSide()][mMask(*vm)]
                       + (*contStats[0])[pos.movedPiece(*vm)][dstSq(*vm)] * 2
                       + (*contStats[1])[pos.movedPiece(*vm)][dstSq(*vm)] * 2
                       + (*contStats[3])[pos.movedPiece(*vm)][dstSq(*vm)] * 2
@@ -180,9 +175,9 @@ void MovePicker::value() noexcept {
         case EVASION: {
             if (pos.capture(*vm)) {
                 vm->value = int32_t(PieceValues[MG][pos.captured(*vm)])
-                         - pType(pos.movedPiece(*vm));
+                          - pType(pos.movedPiece(*vm));
             } else {
-                vm->value = (*dynamicStats)[pos.activeSide()][mMask(*vm)]
+                vm->value = (*mainStats)[pos.activeSide()][mMask(*vm)]
                           + (*contStats[0])[pos.movedPiece(*vm)][dstSq(*vm)]
                           - 0x10000000; // 1 << 28
             }
@@ -328,8 +323,7 @@ Move MovePicker::nextMove() {
         vmEnd = std::remove_if(vmBeg, vmEnd,
                                     [&](ValMove const &vm) {
                                         return vm == ttMove
-                                            || (pos.checkers() != 0
-                                            && !pos.pseudoLegal(vm));
+                                            || !pos.pseudoLegal(vm);
                                     });
         value<EVASION>();
 

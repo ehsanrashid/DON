@@ -134,7 +134,6 @@ public:
         Position const&,
         Move, Depth,
         ButterFlyStatsTable       const*,
-        ButterFlyStatsTable       const*,
         PlyIndexStatsTable        const*,
         PieceSquareTypeStatsTable const*,
         PieceSquareStatsTable     const**,
@@ -143,7 +142,6 @@ public:
     MovePicker(
         Position const&,
         Move, Depth,
-        ButterFlyStatsTable       const*,
         ButterFlyStatsTable       const*,
         PieceSquareTypeStatsTable const*,
         PieceSquareStatsTable     const**,
@@ -178,8 +176,7 @@ private:
     Move ttMove{ MOVE_NONE };
     Depth depth{ DEPTH_ZERO };
 
-    ButterFlyStatsTable       const *dynamicStats{ nullptr };
-    ButterFlyStatsTable       const *staticStats{ nullptr };
+    ButterFlyStatsTable       const *mainStats{ nullptr };
     PlyIndexStatsTable        const *lowPlyStats{ nullptr };
     PieceSquareTypeStatsTable const *captureStats{ nullptr };
     PieceSquareStatsTable     const **contStats{ nullptr };
