@@ -800,13 +800,11 @@ namespace {
                           ss->ttPV);
             }
 
-            // Update static history for previous move
-            if (depth < 7
+            // Use static evaluation difference to improve quiet move ordering
+            if (isOk((ss-1)->playedMove)
              && !(ss-1)->inCheck
-             &&  (ss-1)->moveCount > 1
-             && isOk((ss-1)->playedMove)
              && !pmCapOrPro) {
-                auto bonus = std::clamp(-(depth + 1) * 2 * int32_t((ss-1)->staticEval + ss->staticEval - 2 * VALUE_TEMPO), -1000, 1000);
+                auto bonus = std::clamp(-depth * 4 * int((ss-1)->staticEval + ss->staticEval - 2 * VALUE_TEMPO), -1000, 1000);
                 thread->mainStats[~activeSide][mMask((ss-1)->playedMove)] << bonus;
             }
 

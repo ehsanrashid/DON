@@ -154,7 +154,7 @@ namespace King {
         e->pawnEntry = pe;
 
         e->outflanking = distance<File>(pos.square(W_KING), pos.square(B_KING))
-                       - distance<Rank>(pos.square(W_KING), pos.square(B_KING));
+                       + int(sRank(pos.square(W_KING)) - sRank(pos.square(B_KING)));
         e->infiltration = sRank(pos.square(W_KING)) > RANK_4
                        || sRank(pos.square(B_KING)) < RANK_5;
 
