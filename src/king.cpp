@@ -32,7 +32,7 @@ namespace King {
         };
 
         constexpr Score BlockedStorm[RANKS]{
-            S( 0, 0), S( 0, 0), S( 76, 78), S(-10, 15), S(-7, 10), S(-4, 6), S(-1, 2), S( 0, 0)
+            S(0, 0), S(0, 0), S(75, 78), S(-8, 16), S(-6, 10), S(-6, 6), S(0, 2), S(0, 0)
         };
 
         // KingOnFile[semi-open Us][semi-open Them] contains bonuses/penalties

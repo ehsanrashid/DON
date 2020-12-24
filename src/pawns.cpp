@@ -24,7 +24,7 @@ namespace Pawns {
 
         // Bonus for blocked pawns at 5th or 6th rank
         constexpr Score BlockedPawn[2]{
-            S(-13, -4), S(-5, 2)
+            S(-15, -3), S(-6, 3)
         };
 
     #undef S

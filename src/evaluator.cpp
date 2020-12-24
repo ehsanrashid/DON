@@ -204,15 +204,15 @@ namespace Evaluator {
 
         // ThreatByMinor[attacked PieceType] contains bonuses for minor according to which piece type attacks which one
         constexpr Score MinorThreat[PIECE_TYPES_EX]{
-            S( 0, 0), S( 5,32), S(55,41), S(77,56), S(89,119), S(79,162)
+            S(0, 0), S( 5, 32), S(55, 41), S(77, 56), S(89, 119), S(79,162)
         };
         // ThreatByMajor[attacked PieceType] contains bonuses for rook according to which piece type attacks which one
         constexpr Score MajorThreat[PIECE_TYPES_EX]{
-            S( 0, 0), S( 3,44), S(37,68), S(42,60), S( 0, 39), S(58, 43)
+            S(0, 0), S( 3, 44), S(37, 68), S(42, 60), S( 0, 39), S(58, 43)
         };
-        // Passer[Rank] contains a bonus according to the rank of a passed pawn
-        constexpr Score Passer[RANKS]{
-            S( 0, 0), S( 9,28), S(15,31), S(17,39), S(64,70), S(171,177), S(277,260), S( 0, 0)
+        // PasserRank[Rank] contains a bonus according to the rank of a passed pawn
+        constexpr Score PasserRank[RANKS]{
+            S(0, 0), S( 7, 27), S(16, 32), S(17, 40), S(64, 71), S(170,174), S(278,262), S(0, 0)
         };
 
         constexpr Score BishopPawns[FILES / 2]{
@@ -230,8 +230,8 @@ namespace Evaluator {
         constexpr Score BishopPawnsXRayed { S(  4,  5) };
         constexpr Score BishopOnKingRing  { S( 24,  0) };
         constexpr Score BishopTrapped     { S( 50, 50) };
-        constexpr Score RookOnSemiopenFile{ S( 19,  7) };
-        constexpr Score RookOnFullopenFile{ S( 29, 20) };
+        constexpr Score RookOnSemiopenFile{ S( 19,  6) };
+        constexpr Score RookOnFullopenFile{ S( 28, 20) };
         constexpr Score RookOnClosedFile  { S( 10,  5) };
         constexpr Score RookOnKingRing    { S( 16,  0) };
         constexpr Score RookTrapped       { S( 55, 13) };
@@ -888,8 +888,8 @@ namespace Evaluator {
                 assert((pos.pieces(Opp, PAWN) & frontSquaresBB(Own, s + PawnPush[Own])) == 0);
 
                 int32_t const r{ relativeRank(Own, s) };
-                // Base bonus depending on rank.
-                Score bonus{ Passer[r] };
+
+                Score bonus{ PasserRank[r] - PasserFile * edgeDistance(sFile(s)) };
 
                 auto const pushSq{ s + PawnPush[Own] };
                 if (r > RANK_3) {
@@ -907,26 +907,34 @@ namespace Evaluator {
                     if (pos.empty(pushSq)) {
                         Bitboard const behindMajors{ frontSquaresBB(Opp, s) & pos.pieces(ROOK, QUEN) };
 
-                        Bitboard attackedSquares{ pawnPassSpan(Own, s) };
-                        if ((behindMajors & pos.pieces(Opp)) == 0) {
-                            attackedSquares &= attackedBy[Opp][NONE];
+                        Bitboard attackedSquares{
+                              pawnPassSpan(Own, s)
+                            & (attackedBy[Opp][NONE] | pos.pieces(Opp)) };
+                        if ((behindMajors & pos.pieces(Opp)) != 0) {
+                            attackedSquares |= frontSquaresBB(Own, s);
                         }
 
-                        int32_t const k{
-                                // Bonus according to attacked squares
-                              + 15 * ((attackedSquares) == 0)
-                              + 11 * ((attackedSquares & frontSquaresBB(Own, s)) == 0)
-                              +  9 * !contains(attackedSquares, pushSq)
-                                // Bonus according to defended squares
-                              +  5 * ((behindMajors & pos.pieces(Own)) != 0
-                                   || contains(attackedBy[Own][NONE], pushSq)) };
+                        // If there are no enemy pieces or attacks on passed pawn span, assign a big bonus.
+                        // Or if there is some, but they are all attacked by our pawns, assign a bit smaller bonus.
+                        // Otherwise assign a smaller bonus if the path to queen is not attacked
+                        // and even smaller bonus if it is attacked but block square is not.
+                        int32_t k{
+                              (attackedSquares) == 0                          ? 36 :
+                              (attackedSquares & ~attackedBy[Own][PAWN]) == 0 ? 30 :
+                              (attackedSquares & frontSquaresBB(Own, s)) == 0 ? 17 :
+                              !contains(attackedSquares, pushSq)              ?  7 : 0 };
+
+                        // Larger bonus if the block square is defended
+                        if ((behindMajors & pos.pieces(Own)) != 0
+                         || contains(attackedBy[Own][NONE], pushSq)) {
+                            k += 5;
+                        }
 
                         bonus += makeScore(k*w, k*w);
                     }
                 }
-                // Pass bonus = Rank bonus + File bonus
-                score += bonus
-                       - PasserFile * edgeDistance(sFile(s));
+
+                score += bonus;
             }
 
             if (Trace) {
