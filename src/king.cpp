@@ -35,14 +35,14 @@ namespace King {
             S(0, 0), S(0, 0), S(75, 78), S(-8, 16), S(-6, 10), S(-6, 6), S(0, 2), S(0, 0)
         };
 
-        // KingOnFile[semi-open Us][semi-open Them] contains bonuses/penalties
+        // KingOnFile[semi-open own][semi-open opp] contains bonuses/penalties
         // for king when the king is on a semi-open or open file.
         constexpr Score KingOnFile[2][2]{
             { S(-19, 12), S(-6,  7) },
             { S(  0,  2), S( 6, -5) }
         };
 
-        constexpr Score BasicShelter { S( 5, 5) };
+        constexpr Score BasicShelter{ S( 5, 5) };
 
     #undef S
 
@@ -138,7 +138,7 @@ namespace King {
     Entry* probe(Position const &pos, Pawns::Entry *pe) noexcept {
 
         Key const kingKey{
-            pe->key //pos.pawnKey()
+            pe->key
           ^ RandZob.psq[W_KING][pos.square(W_KING)]
           ^ RandZob.psq[B_KING][pos.square(B_KING)] };
 
@@ -154,7 +154,8 @@ namespace King {
         e->pawnEntry = pe;
 
         e->outflanking = distance<File>(pos.square(W_KING), pos.square(B_KING))
-                       + int(sRank(pos.square(W_KING)) - sRank(pos.square(B_KING)));
+                       + int(sRank(pos.square(W_KING))
+                           - sRank(pos.square(B_KING)));
         e->infiltration = sRank(pos.square(W_KING)) > RANK_4
                        || sRank(pos.square(B_KING)) < RANK_5;
 
