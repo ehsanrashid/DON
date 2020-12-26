@@ -41,9 +41,6 @@ namespace Evaluator::NNUE {
     constexpr int FVScale{ 16 };
     constexpr int WeightScaleBits{ 6 };
 
-    // Size of cache line (in bytes)
-    constexpr size_t CacheLineSize{ 64 };
-
     // SIMD width (in bytes)
 #if defined(USE_AVX2) //|| defined(USE_BMI2) || defined(USE_AVX512)
     constexpr size_t SimdWidth{ 32 };

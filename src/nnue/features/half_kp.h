@@ -4,6 +4,7 @@
 #include "../../type.h"
 #include "features_common.h"
 
+struct MoveInfo;
 class Position;
 
 namespace Evaluator::NNUE::Features {

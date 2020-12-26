@@ -1312,7 +1312,7 @@ std::string Position::toString() const {
      && _stateInfo->castleRights == CR_NONE) {
 
         StateInfo si;
-        ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
+        ASSERT_ALIGNED(&si, CacheLineSize);
 
         Position p;
         p.setup(fen(), si, _thread);
@@ -1456,7 +1456,7 @@ bool Position::ok() const noexcept {
 bool isOk(std::string_view fen) {
     Position pos;
     StateInfo si;
-    ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
+    ASSERT_ALIGNED(&si, CacheLineSize);
     return !whiteSpaces(fen)
         && pos.setup(fen, si, nullptr).ok();
 }

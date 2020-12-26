@@ -415,7 +415,7 @@ namespace {
 
         uint16_t moveCount{ 0 };
         StateInfo si;
-        ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
+        ASSERT_ALIGNED(&si, CacheLineSize);
         // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
         while ((move = movePicker.nextMove()) != MOVE_NONE) {
             assert(isOk(move)
@@ -646,7 +646,7 @@ namespace {
         if (excludedMove == MOVE_NONE) {
             ss->ttPV = PVNode || (ss->ttHit && tte->isPV());
         }
-        bool const pastPV { !PVNode && ss->ttPV };
+        bool const formerPV{ !PVNode && ss->ttPV };
 
         auto const activeSide{ pos.activeSide() };
         bool const pmCapOrPro{ pos.captured() != NONE
@@ -760,7 +760,7 @@ namespace {
         }
 
         StateInfo si;
-        ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
+        ASSERT_ALIGNED(&si, CacheLineSize);
 
         bool improving;
         Value eval;
@@ -1148,8 +1148,8 @@ namespace {
              && (tte->bound() & BOUND_LOWER)
              &&  tte->depth() >= depth - 3) {
 
-                Value const singularBeta( ttValue - ((4 + pastPV) * depth) / 2 );
-                Depth const singularDepth( (depth + 3 * pastPV - 1) / 2 );
+                Value const singularBeta( ttValue - ((4 + formerPV) * depth) / 2 );
+                Depth const singularDepth( (depth + 3 * formerPV - 1) / 2 );
 
                 ss->excludedMove = ttMove;
                 value = depthSearch<false>(pos, ss, singularBeta-1, singularBeta, singularDepth, cutNode);
@@ -1215,6 +1215,7 @@ namespace {
                 depth >= 3
              && moveCount > 1 + 2 * rootNode
              && (cutNode
+              || (!PVNode && !formerPV)
               || !captureOrPromotion
               || moveCountPruning
               || (ss->staticEval + PieceValues[EG][pos.captured()]) <= alfa
@@ -1232,7 +1233,7 @@ namespace {
                     // Increase if other threads are searching this position.
                     +1 * (threadMarker.marked)
                     // Increase if move count pruning
-                    +1 * (moveCountPruning && !pastPV)
+                    +1 * (moveCountPruning && !formerPV)
                     // Decrease if the ttHit running average is large
                     -1 * (thread->ttHitAvg > 537 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/)
                     // Decrease if position is or has been on the PV (~10 Elo)
@@ -1820,7 +1821,7 @@ void MainThread::search() {
                 rootMoves.bringToFront(bbm);
                 rootMoves[0].newValue = VALUE_NONE;
                 StateInfo si;
-                ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
+                ASSERT_ALIGNED(&si, CacheLineSize);
                 rootPos.doMove(bbm, si);
                 auto bpm{ Book.probe(rootPos, Options["Book Move Num"], Options["Book Pick Best"]) };
                 if (bpm != MOVE_NONE) {

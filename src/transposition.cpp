@@ -154,7 +154,7 @@ Move TTable::extractNextMove(Position &pos, Move m) const noexcept {
         && MoveList<LEGAL>(pos).contains(m));
 
     StateInfo si;
-    ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
+    ASSERT_ALIGNED(&si, CacheLineSize);
     pos.doMove(m, si);
     bool ttHit;
     auto const *const tte{ probe(pos.posiKey(), ttHit) };

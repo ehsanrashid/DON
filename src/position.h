@@ -11,6 +11,23 @@
 #include "type.h"
 #include "nnue/accumulator.h"
 
+// Keep track of what a move changes on the board (used by NNUE)
+struct MoveInfo {
+
+    // Count of changed pieces
+    uint8_t pieceCount;
+
+    // Max 3 pieces can change in one move.
+    // A promotion with capture moves both
+    // the pawn and the captured piece to SQ_NONE
+    // and the piece promoted to from SQ_NONE to the capture square.
+    Piece piece[3];
+
+    // org and dst squares, which may be SQ_NONE
+    Square org[3];
+    Square dst[3];
+};
+
 /// StateInfo stores information needed to restore a Position object to its previous state when we retract a move.
 ///
 ///  - Hash key of the material situation

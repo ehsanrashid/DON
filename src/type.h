@@ -85,6 +85,9 @@
     #define ALIGNAS_ON_STACK_VARIABLES_BROKEN
 #endif
 
+// Size of cache line (in bytes)
+constexpr size_t CacheLineSize{ 64 };
+
 #define ASSERT_ALIGNED(ptr, alignment) assert(reinterpret_cast<uintptr_t>(ptr) % alignment == 0)
 
 #define XSTRING(x)      #x
@@ -336,27 +339,10 @@ constexpr Score makeScore(int32_t mg, int32_t eg) noexcept {
     return Score(int32_t(uint32_t(eg) << 0x10) + mg);
 }
 
-// Keep track of what a move changes on the board (used by NNUE)
-struct MoveInfo {
-
-    // Count of changed pieces
-    uint8_t pieceCount;
-
-    // Max 3 pieces can change in one move.
-    // A promotion with capture moves both
-    // the pawn and the captured piece to SQ_NONE
-    // and the piece promoted to from SQ_NONE to the capture square.
-    Piece piece[3];
-
-    // org and dst squares, which may be SQ_NONE
-    Square org[3];
-    Square dst[3];
-};
-
 /// Extracting the signed lower and upper 16 bits is not so trivial
 /// because according to the standard a simple cast to short is implementation
 /// defined and so is a right shift of a signed integer.
-union Union16 { uint16_t u; int16_t s; };
+union Union16{ uint16_t u; int16_t s; };
 constexpr Value mgValue(uint32_t s) {
     return Value(Union16{ uint16_t(uint32_t(s + 0x0000) >> 0x00) }.s);
 }

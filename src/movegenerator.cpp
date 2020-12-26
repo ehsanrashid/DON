@@ -409,7 +409,7 @@ Perft perft(Position &pos, Depth depth, bool detail) noexcept {
             }
         } else {
             StateInfo si;
-            ASSERT_ALIGNED(&si, Evaluator::NNUE::CacheLineSize);
+            ASSERT_ALIGNED(&si, CacheLineSize);
             pos.doMove(vm, si);
 
             if (depth <= 2) {
