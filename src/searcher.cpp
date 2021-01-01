@@ -61,8 +61,6 @@ namespace {
     constexpr uint64_t TTHitAverageWindow{ 4096 };
     constexpr uint64_t TTHitAverageResolution{ 1024 };
 
-    // Razor and futility margins
-    constexpr int32_t RazorMargin{ 510 };
     constexpr Value futilityMargin(Depth d, bool imp) noexcept {
         return Value(234 * (d - imp));
     }
@@ -808,19 +806,11 @@ namespace {
                 thread->mainStats[~activeSide][mMask((ss-1)->playedMove)] << bonus;
             }
 
-            // Step 7. Razoring (~1 Elo)
-            if (!rootNode // The RootNode PV handling is not available in qsearch
-             && depth == 1
-                // Razor Margin
-             && (eval + RazorMargin) <= alfa) {
-                return quienSearch<PVNode>(pos, ss, alfa, beta);
-            }
-
             improving = (ss-2)->staticEval != VALUE_NONE ? ss->staticEval > (ss-2)->staticEval :
                         (ss-4)->staticEval != VALUE_NONE ? ss->staticEval > (ss-4)->staticEval :
                         (ss-6)->staticEval != VALUE_NONE ? ss->staticEval > (ss-6)->staticEval : true;
 
-            // Step 8. Futility pruning: child node (~50 Elo)
+            // Step 7. Futility pruning: child node (~50 Elo)
             // Betting that the opponent doesn't have a move that will reduce
             // the score by more than futility margins if do a null move.
             if (!PVNode
@@ -831,7 +821,7 @@ namespace {
                 return eval;
             }
 
-            // Step 9. Null move search with verification search (~40 Elo)
+            // Step 8. Null move search with verification search (~40 Elo)
             if (!PVNode
              && eval >= beta
              && eval >= ss->staticEval
@@ -887,7 +877,7 @@ namespace {
 
             Value const probCutBeta( beta + 183 - 49 * improving );
 
-            // Step 10. ProbCut. (~10 Elo)
+            // Step 9. ProbCut. (~10 Elo)
             // If good enough capture and a reduced search returns a value much above beta,
             // then can (almost) safely prune the previous move.
             // Note: Only enter ProbCut with no TT hit, a too low TT depth, or a good enough TT value.
@@ -986,7 +976,7 @@ namespace {
                 ss->ttPV = ttPV;
             }
 
-            // Step 11. If the position is not in TT, decrease depth by 2
+            // Step 10. If the position is not in TT, decrease depth by 2
             if (PVNode
              && depth >= 6
              && ttMove == MOVE_NONE) {
@@ -1026,7 +1016,7 @@ namespace {
         Moves quietMoves;   quietMoves.reserve(32);
         Moves captureMoves; captureMoves.reserve(16);
 
-        // Step 12. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
+        // Step 11. Loop through all pseudo-legal moves until no moves remain or a beta cutoff occurs.
         while ((move = movePicker.nextMove()) != MOVE_NONE) {
             assert(isOk(move)
                 && (//ss->inCheck ||
@@ -1081,7 +1071,7 @@ namespace {
             // Calculate new depth for this move
             Depth newDepth( depth-1 );
 
-            // Step 13. Pruning at shallow depth. (~200 Elo)
+            // Step 12. Pruning at shallow depth. (~200 Elo)
             if (!rootNode
              && bestValue > -VALUE_MATE_2_MAX_PLY
              && pos.nonPawnMaterial(activeSide) != VALUE_ZERO
@@ -1130,7 +1120,7 @@ namespace {
                 }
             }
 
-            // Step 14. Extensions. (~75 Elo)
+            // Step 13. Extensions. (~75 Elo)
             Depth extension{ DEPTH_ZERO };
 
             // Singular extension (SE) (~70 Elo)
@@ -1208,7 +1198,7 @@ namespace {
             ss->playedMove = move;
             ss->pieceStats = &thread->continuationStats[ss->inCheck][captureOrPromotion][mpc][dstSq(move)];
 
-            // Step 15. Do the move
+            // Step 14. Do the move
             pos.doMove(move, si, giveCheck);
 
             bool const doLMR{
@@ -1223,7 +1213,7 @@ namespace {
               || thread->ttHitAvg < 432 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/) };
 
             bool doFullSearch;
-            // Step 16. Reduced depth search (LMR, ~200 Elo).
+            // Step 15. Reduced depth search (LMR, ~200 Elo).
             // If the move fails high will be re-searched at full depth.
             if (doLMR) {
 
@@ -1304,7 +1294,7 @@ namespace {
                 doFullSearch = !PVNode || moveCount > 1;
             }
 
-            // Step 17. Full depth search when LMR is skipped or fails high.
+            // Step 16. Full depth search when LMR is skipped or fails high.
             if (doFullSearch) {
                 value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, newDepth, !cutNode);
 
@@ -1328,12 +1318,12 @@ namespace {
                 value = -depthSearch<true>(pos, ss+1, -beta, -alfa, std::min(newDepth, maxDepth), false);
             }
 
-            // Step 18. Undo the move
+            // Step 17. Undo the move
             pos.undoMove(move);
 
             assert(-VALUE_INFINITE < value && value < +VALUE_INFINITE);
 
-            // Step 19. Check for the new best move.
+            // Step 18. Check for the new best move.
             // Finished searching the move. If a stop or a cutoff occurred,
             // the return value of the search cannot be trusted,
             // and return immediately without updating best move, PV and TT.
@@ -1373,7 +1363,7 @@ namespace {
                 }
             }
 
-            // Step 20. Check best value.
+            // Step 19. Check best value.
             if (bestValue < value) {
                 bestValue = value;
 
@@ -1421,7 +1411,7 @@ namespace {
             || excludedMove != MOVE_NONE
             || MoveList<LEGAL>(pos).size() == 0);
 
-        // Step 21. Check for checkmate and stalemate.
+        // Step 20. Check for checkmate and stalemate.
         // If all possible moves have been searched and if there are no legal moves,
         // If in a singular extension search then return a fail low score (alfa).
         // Otherwise it must be a checkmate or a stalemate, so return value accordingly.
