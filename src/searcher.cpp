@@ -119,7 +119,7 @@ namespace {
 
     /// statBonus() is the bonus, based on depth
     constexpr int32_t statBonus(Depth depth) noexcept {
-        return depth <= 13 ? (17 * depth + 134) * depth - 134 : 29;
+        return depth <= 14 ? (8 * depth + 224) * depth - 215 : 29;
     }
 
     /// Add a small random component to draw evaluations to avoid 3-fold-blindness
@@ -814,7 +814,7 @@ namespace {
             // Betting that the opponent doesn't have a move that will reduce
             // the score by more than futility margins if do a null move.
             if (!PVNode
-             && depth < 8
+             && depth < 9
              && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
              && (eval - futilityMargin(depth, improving)) >= beta
              && Limits.mate == 0) {
@@ -875,7 +875,7 @@ namespace {
                 }
             }
 
-            Value const probCutBeta( beta + 183 - 49 * improving );
+            Value const probCutBeta( beta + 194 - 49 * improving );
 
             // Step 9. ProbCut. (~10 Elo)
             // If good enough capture and a reduced search returns a value much above beta,
@@ -1093,7 +1093,7 @@ namespace {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~25 Elo)
-                    if (!pos.see(move, Value(-213 * depth))) {
+                    if (!pos.see(move, Value(-218 * depth))) {
                         continue;
                     }
                 } else {
@@ -1106,11 +1106,11 @@ namespace {
                     // Futility pruning: parent node. (~5 Elo)
                     if (lmrDepth < 7
                      && !ss->inCheck
-                     && (ss->staticEval + 170 * lmrDepth + 266) <= alfa
+                     && (ss->staticEval + 159 * lmrDepth + 254) <= alfa
                      && ((*contStats[0])[mpc][dstSq(move)]
                        + (*contStats[1])[mpc][dstSq(move)]
                        + (*contStats[3])[mpc][dstSq(move)]
-                       + (*contStats[5])[mpc][dstSq(move)] / 2) < 27376) {
+                       + (*contStats[5])[mpc][dstSq(move)] / 2) < 26394) {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 Elo)
@@ -1180,14 +1180,6 @@ namespace {
                 extension = 1;
             }
 
-            // Late irreversible move extension
-            if (move == ttMove
-             && pos.clockPly() > 80
-             && (captureOrPromotion
-              || pType(mpc) == PAWN)) {
-                extension = 2;
-            }
-
             // Add extension to new depth
             newDepth += extension;
 
@@ -1205,7 +1197,9 @@ namespace {
                 depth >= 3
              && moveCount > 1 + 2 * rootNode
              && (cutNode
-              || (!PVNode && !formerPV)
+              || (!PVNode
+               && !formerPV
+               && thread->captureStats[mpc][dstSq(move)][pos.captured(move)] < 4506)
               || !captureOrPromotion
               || moveCountPruning
               || (ss->staticEval + PieceValues[EG][pos.captured()]) <= alfa

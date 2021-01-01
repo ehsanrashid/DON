@@ -97,7 +97,7 @@ class StatsTable<T, D, Size> :
 /// ButterFlyStatsTable stores moves history according to color.
 /// Used for reduction and move ordering decisions.
 /// indexed by [color][moveMask]
-using ButterFlyStatsTable       = StatsTable<int16_t, 10692, COLORS, SQUARES*SQUARES>;
+using ButterFlyStatsTable       = StatsTable<int16_t, 13365, COLORS, SQUARES*SQUARES>;
 
 /// PlyIndexStatsTable stores moves history according to ply from 0 to MAX_LOWPLY-1
 /// At higher depths it records successful quiet moves near the root
