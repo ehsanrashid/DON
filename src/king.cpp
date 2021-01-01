@@ -38,8 +38,8 @@ namespace King {
         // KingOnFile[semi-open own][semi-open opp] contains bonuses/penalties
         // for king when the king is on a semi-open or open file.
         constexpr Score KingOnFile[2][2]{
-            { S(-19, 12), S(-6,  7) },
-            { S(  0,  2), S( 6, -5) }
+            { S(-21, 10), S(-7,  1) },
+            { S(  0, -3), S( 9, -4) }
         };
 
         constexpr Score BasicShelter{ S( 5, 5) };
