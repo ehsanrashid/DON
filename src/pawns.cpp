@@ -120,7 +120,8 @@ namespace Pawns {
             } else
             if (backward) {
                 sc -= Backward
-                    + Unopposed * !opposed;
+                    + Unopposed * (!opposed
+                                && !contains(fileBB(FILE_A)|fileBB(FILE_H), s));
             }
 
             if (supporters == 0) {
