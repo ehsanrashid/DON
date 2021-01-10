@@ -772,7 +772,7 @@ namespace {
         assert(b != 0);
         do {
             auto s{ popLSq(b) };
-            auto p{ pos[s] };
+            auto p{ pos.pieceOn(s) };
             if (fliped) {
                 s = flip<Rank>(s);
                 p = flipColor(p);

@@ -367,7 +367,7 @@ constexpr Score operator*(Score s, int i) { return Score(int(s) * i); }
 inline Score& operator/=(Score &s, int i) { return s = s / i; }
 inline Score& operator*=(Score &s, int i) { return s = s * i; }
 /// Multiplication of a Score by a boolean
-constexpr Score operator*(Score s, bool b)    { return b ? s : SCORE_ZERO; }
+constexpr Score operator*(Score s, bool b) { return b ? s : SCORE_ZERO; }
 
 /// Don't want to multiply two scores due to a very high risk of overflow.
 /// So user should explicitly convert to integer.

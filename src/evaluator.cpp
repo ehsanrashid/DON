@@ -390,7 +390,7 @@ namespace Evaluator {
             Bitboard bb{ pos.pieces(Own, PT) };
             while (bb != 0) {
                 auto const s{ popLSq(bb) };
-                assert(pos[s] == (Own|PT));
+                assert(pos.pieceOn(s) == (Own|PT));
 
                 // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
                 Bitboard attacks{
@@ -562,7 +562,7 @@ namespace Evaluator {
                     // Queen attackers
                     b =  pos.pieces(Opp, BSHP, ROOK)
                       & ~pos.kingBlockers(Opp);
-                    if ((pos.sliderBlockersAt(s, b, b, b)
+                    if ((pos.sliderBlockersOn(s, b, b, b)
                       & ~(  pos.kingBlockers(Opp)
                         | ( pos.pieces(Opp, PAWN)
                          &  fileBB(s)
@@ -764,7 +764,7 @@ namespace Evaluator {
                   &  (attackedBy[Own][NIHT]
                     | attackedBy[Own][BSHP]);
                 while (b != 0) {
-                    score += MinorThreat[pType(pos[popLSq(b)])];
+                    score += MinorThreat[pType(pos.pieceOn(popLSq(b)))];
                 }
 
                 if (attackedUndefendedEnemies != 0) {
@@ -772,7 +772,7 @@ namespace Evaluator {
                     b =  attackedUndefendedEnemies
                       &  attackedBy[Own][ROOK];
                     while (b != 0) {
-                        score += MajorThreat[pType(pos[popLSq(b)])];
+                        score += MajorThreat[pType(pos.pieceOn(popLSq(b)))];
                     }
 
                     // Enemies attacked by king
@@ -905,7 +905,7 @@ namespace Evaluator {
                     }
 
                     // If the pawn is free to advance.
-                    if (pos.empty(pushSq)) {
+                    if (pos.emptyOn(pushSq)) {
                         Bitboard const behindMajors{ frontSquaresBB(Opp, s) & pos.pieces(ROOK, QUEN) };
 
                         Bitboard attackedSquares{
@@ -1105,7 +1105,7 @@ namespace Evaluator {
                 } else
                 if (pos.count(QUEN) == 1) {
                     // Opposite queen color
-                    auto const queenColor{ ~pColor(pos[scanLSq(pos.pieces(QUEN))]) };
+                    auto const queenColor{ ~pColor(pos.pieceOn(scanLSq(pos.pieces(QUEN)))) };
                     scale = 37 + 3 * (pos.count(queenColor|NIHT) + pos.count(queenColor|BSHP));
                 } else {
                     scale = std::min(36 + 7 * pos.count(strongSide|PAWN), scale) - 4 * !pawnEntry->pawnsOnBothFlank;

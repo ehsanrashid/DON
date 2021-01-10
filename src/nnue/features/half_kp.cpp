@@ -14,7 +14,7 @@ namespace Evaluator::NNUE::Features {
         Bitboard bb{ pos.pieces() & ~pos.pieces(KING) };
         while (bb != 0) {
             auto const s{ popLSq(bb) };
-            activeList->push_back(makeIndex(perspective, s, pos[s], kSq));
+            activeList->push_back(makeIndex(perspective, s, pos.pieceOn(s), kSq));
         }
     }
 

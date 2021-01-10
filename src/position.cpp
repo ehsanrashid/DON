@@ -167,9 +167,9 @@ bool Position::cycled(int16_t pp) const noexcept {
     return false;
 }
 
-/// Position::sliderBlockersAt() returns a bitboard of all the pieces that are blocking attacks on the square.
+/// Position::sliderBlockersOn() returns a bitboard of all the pieces that are blocking attacks on the square.
 /// King-attack piece can be either pinner or hidden piece.
-Bitboard Position::sliderBlockersAt(Square s, Bitboard attackers, Bitboard &pinners, Bitboard &hidders) const noexcept {
+Bitboard Position::sliderBlockersOn(Square s, Bitboard attackers, Bitboard &pinners, Bitboard &hidders) const noexcept {
     Bitboard blockers{ 0 };
 
     Bitboard const defenders{ pieces(pColor(board[s])) };
@@ -238,7 +238,7 @@ bool Position::pseudoLegal(Move m) const noexcept {
             || orgR != RANK_7
             || dstR != RANK_8))
           || dst != org + PawnPush[active]
-          || !empty(dst))
+          || !emptyOn(dst))
             // Normal capture
          && (((mType(m) != SIMPLE
             || RANK_2 > orgR || orgR > RANK_6
@@ -247,22 +247,22 @@ bool Position::pseudoLegal(Move m) const noexcept {
             || orgR != RANK_7
             || dstR != RANK_8))
           || !contains(pawnAttacksBB(active, org), dst)
-          || empty(dst))
+          || emptyOn(dst))
             // Double push
          && (mType(m) != SIMPLE
           || orgR != RANK_2
           || dstR != RANK_4
           || dst != org + PawnPush[active] * 2
-          || !empty(dst)
-          || !empty(dst - PawnPush[active]))
+          || !emptyOn(dst)
+          || !emptyOn(dst - PawnPush[active]))
             // Enpassant capture
          && (mType(m) != ENPASSANT
           || orgR != RANK_5
           || dstR != RANK_6
           || _stateInfo->epSquare != dst
           || !contains(pawnAttacksBB(active, org), dst)
-          || !empty(dst)
-          || empty(dst - PawnPush[active])
+          || !emptyOn(dst)
+          || emptyOn(dst - PawnPush[active])
           || _stateInfo->clockPly != 0)) {
             return false;
         }
@@ -339,7 +339,7 @@ bool Position::legal(Move m) const noexcept {
             && relativeRank(active, dst) == RANK_6
             && _stateInfo->clockPly == 0
             && _stateInfo->epSquare == dst
-            && empty(dst)
+            && emptyOn(dst)
             && board[dst - PawnPush[active]] == (~active|PAWN));
 
         Bitboard const mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
@@ -474,8 +474,8 @@ void Position::setCastle(Color c, Square rookOrg) {
 void Position::setCheckInfo() noexcept {
     _stateInfo->kingCheckers[WHITE] = 0;
     _stateInfo->kingCheckers[BLACK] = 0;
-    _stateInfo->kingBlockers[WHITE] = sliderBlockersAt(square(WHITE|KING), pieces(BLACK), _stateInfo->kingCheckers[WHITE], _stateInfo->kingCheckers[BLACK]);
-    _stateInfo->kingBlockers[BLACK] = sliderBlockersAt(square(BLACK|KING), pieces(WHITE), _stateInfo->kingCheckers[BLACK], _stateInfo->kingCheckers[WHITE]);
+    _stateInfo->kingBlockers[WHITE] = sliderBlockersOn(square(WHITE|KING), pieces(BLACK), _stateInfo->kingCheckers[WHITE], _stateInfo->kingCheckers[BLACK]);
+    _stateInfo->kingBlockers[BLACK] = sliderBlockersOn(square(BLACK|KING), pieces(WHITE), _stateInfo->kingCheckers[BLACK], _stateInfo->kingCheckers[WHITE]);
 
     _stateInfo->checks[PAWN] = pawnAttacksBB(~active, square(~active|KING));
     _stateInfo->checks[NIHT] = attacksBB<NIHT>(square(~active|KING));
@@ -492,8 +492,8 @@ bool Position::canEnpassant(Color c, Square epSq, bool moved) const noexcept {
 
     if (moved
      && !(contains(pieces(~c, PAWN), (epSq + PawnPush[~c]))
-       && empty(epSq)
-       && empty(epSq + PawnPush[c]))) {
+       && emptyOn(epSq)
+       && emptyOn(epSq + PawnPush[c]))) {
         return false;
     }
     // Enpassant attackers
@@ -892,7 +892,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
                     && relativeRank(active, dst) == RANK_6
                     && _stateInfo->clockPly == 1
                     && _stateInfo->epSquare == dst
-                    && empty(dst) //&& !contains(pieces(), dst)
+                    && emptyOn(dst) //&& !contains(pieces(), dst)
                     && cpc == (pasive|PAWN)
                     && board[cap] == (pasive|PAWN)); //&& contains(pieces(pasive, PAWN), cap));
             }
@@ -912,7 +912,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
             board[cap] = NO_PIECE; // Not done by removePiece()
         }
         pKey ^= RandZob.psq[cpc][cap];
-        _stateInfo->matlKey ^= RandZob.psq[cpc][pieceCount[cpc]];
+        _stateInfo->matlKey ^= RandZob.psq[cpc][count(cpc)];
         prefetch(_thread->matlTable[_stateInfo->matlKey]);
 
         // Reset clock ply counter
@@ -979,8 +979,8 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
                 pKey ^= RandZob.psq[mpc][dst]
                       ^ RandZob.psq[ppc][dst];
                 _stateInfo->pawnKey ^= RandZob.psq[mpc][dst];
-                _stateInfo->matlKey ^= RandZob.psq[mpc][pieceCount[mpc]]
-                                     ^ RandZob.psq[ppc][pieceCount[ppc] - 1];
+                _stateInfo->matlKey ^= RandZob.psq[mpc][count(mpc)]
+                                     ^ RandZob.psq[ppc][count(ppc) - 1];
                 //prefetch(_thread->matlTable[_stateInfo->matlKey]);
                 _stateInfo->promoted = true;
             }
@@ -1039,7 +1039,7 @@ void Position::undoMove(Move m) noexcept {
 
     auto const org{ orgSq(m) };
     auto dst{ dstSq(m) };
-    assert(empty(org)
+    assert(emptyOn(org)
         || mType(m) == CASTLE);
     assert(_stateInfo->captured < KING);
 
@@ -1087,7 +1087,7 @@ void Position::undoMove(Move m) noexcept {
                     && dst == _stateInfo->prevState->epSquare
                     && _stateInfo->captured == PAWN);
             }
-            assert(empty(cap));
+            assert(emptyOn(cap));
 
             // Restore the captured piece.
             placePiece(cap, ~active|_stateInfo->captured);
@@ -1248,7 +1248,7 @@ std::string Position::fen(bool full) const {
         for (File f = FILE_A; f <= FILE_H; ++f) {
             int16_t emptyCount = 0;
             while (f <= FILE_H
-                && empty(makeSquare(f, r))) {
+                && emptyOn(makeSquare(f, r))) {
                 ++emptyCount;
                 ++f;
             }

@@ -51,7 +51,7 @@ namespace Pawns {
         Bitboard bb{ pos.pieces(Own, PAWN) };
         while (bb != 0) {
             auto const s{ popLSq(bb) };
-            assert(pos[s] == (Own|PAWN));
+            assert(pos.pieceOn(s) == (Own|PAWN));
 
             auto const r{ relativeRank(Own, s) };
             assert(RANK_2 <= r && r <= RANK_7);

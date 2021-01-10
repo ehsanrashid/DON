@@ -146,7 +146,7 @@ namespace {
 
         auto const org{ orgSq(m) };
         auto const dst{ dstSq(m) };
-        auto const pt{ pType(pos[org]) };
+        auto const pt{ pType(pos.pieceOn(org)) };
         // Disambiguation if have more then one piece with destination
         // note that for pawns is not needed because starting file is explicit.
         Bitboard const piece{
@@ -225,7 +225,7 @@ std::string moveToSAN(Move m, Position &pos) {
     auto const dst{ dstSq(m) };
 
     if (mType(m) != CASTLE) {
-        auto const pt = pType(pos[org]);
+        auto const pt{ pType(pos.pieceOn((org))) };
         if (pt != PAWN) {
             oss << (WHITE|pt);
             if (pt != KING) {

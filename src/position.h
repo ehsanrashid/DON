@@ -92,8 +92,6 @@ class Thread;
 class Position final {
 
 public:
-    //static void initialize();
-
     Position() = default;
     Position(Position const&) = delete;
     Position(Position&&) = delete;
@@ -101,8 +99,8 @@ public:
     Position& operator=(Position const&) = delete;
     Position& operator=(Position&&) = delete;
 
-    Piece operator[](Square) const noexcept;
-    bool empty(Square) const noexcept;
+    Piece pieceOn(Square) const noexcept;
+    bool  emptyOn(Square) const noexcept;
 
     Bitboard pieces(Piece) const noexcept;
     Bitboard pieces(Color) const noexcept;
@@ -168,11 +166,9 @@ public:
     Bitboard attackersTo(Square, Bitboard) const noexcept;
     Bitboard attackersTo(Square) const noexcept;
 
-    Bitboard sliderBlockersAt(Square, Bitboard, Bitboard&, Bitboard&) const noexcept;
+    Bitboard sliderBlockersOn(Square, Bitboard, Bitboard&, Bitboard&) const noexcept;
 
     Piece movedPiece(Move) const noexcept;
-    //Piece prevMovedPiece(Move) const noexcept;
-
     bool capture(Move) const noexcept;
     bool captureOrPromotion(Move) const noexcept;
     bool advancedPawnPush(Move) const noexcept;
@@ -249,11 +245,10 @@ private:
     friend std::ostream& operator<<(std::ostream&, Position const&);
 };
 
-inline Piece Position::operator[](Square s) const noexcept {
-    //assert(isOk(s));
+inline Piece Position::pieceOn(Square s) const noexcept {
     return board[s];
 }
-inline bool Position::empty(Square s) const noexcept {
+inline bool Position::emptyOn(Square s) const noexcept {
     return board[s] == NO_PIECE;
 }
 
@@ -446,9 +441,6 @@ inline Bitboard Position::attackersTo(Square s) const noexcept {
 inline Piece Position::movedPiece(Move m) const noexcept {
     return board[orgSq(m)];
 }
-//inline Piece Position::prevMovedPiece(Move m) const noexcept {
-//    return mType(m) != CASTLE ? board[dstSq(m)] : (~active|KING);
-//}
 
 inline bool Position::capture(Move m) const noexcept {
     return  mType(m) == ENPASSANT

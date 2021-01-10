@@ -171,7 +171,7 @@ namespace {
 
         if (isOk((ss-1)->playedMove)) {
             auto const prevDst{ dstSq((ss-1)->playedMove) };
-            pos.thread()->counterMoves[pos[prevDst]][prevDst] = move;
+            pos.thread()->counterMoves[pos.pieceOn(prevDst)][prevDst] = move;
         }
     }
 
@@ -680,7 +680,7 @@ namespace {
                     // Extra penalty for early quiet moves in previous ply when it gets refuted
                     if (!pmCapOrPro
                      && (ss-1)->moveCount <= 2) {
-                        updateContinuationStats(ss-1, pos[prevDst], prevDst, -statBonus(depth + 1));
+                        updateContinuationStats(ss-1, pos.pieceOn(prevDst), prevDst, -statBonus(depth + 1));
                     }
                 } else {
                     // Penalty for a quiet ttMove that fails low
@@ -798,6 +798,10 @@ namespace {
                           ss->ttPV);
             }
 
+            improving = (ss-2)->staticEval != VALUE_NONE ? ss->staticEval > (ss-2)->staticEval :
+                        (ss-4)->staticEval != VALUE_NONE ? ss->staticEval > (ss-4)->staticEval :
+                        (ss-6)->staticEval != VALUE_NONE ? ss->staticEval > (ss-6)->staticEval : true;
+
             // Use static evaluation difference to improve quiet move ordering
             if (isOk((ss-1)->playedMove)
              && !(ss-1)->inCheck
@@ -806,17 +810,13 @@ namespace {
                 thread->mainStats[~activeSide][mMask((ss-1)->playedMove)] << bonus;
             }
 
-            improving = (ss-2)->staticEval != VALUE_NONE ? ss->staticEval > (ss-2)->staticEval :
-                        (ss-4)->staticEval != VALUE_NONE ? ss->staticEval > (ss-4)->staticEval :
-                        (ss-6)->staticEval != VALUE_NONE ? ss->staticEval > (ss-6)->staticEval : true;
-
             // Step 7. Futility pruning: child node (~50 Elo)
             // Betting that the opponent doesn't have a move that will reduce
             // the score by more than futility margins if do a null move.
             if (!PVNode
              && depth < 9
              && eval < +VALUE_KNOWN_WIN // Don't return unproven wins.
-             && (eval - futilityMargin(depth, improving)) >= beta
+             && eval - futilityMargin(depth, improving) >= beta
              && Limits.mate == 0) {
                 return eval;
             }
@@ -1000,7 +1000,7 @@ namespace {
             nullptr           , (ss-6)->pieceStats
         };
 
-        auto const counterMove{ pos.thread()->counterMoves[pos[prevDst]][prevDst] };
+        auto const counterMove{ pos.thread()->counterMoves[pos.pieceOn(prevDst)][prevDst] };
 
         // Initialize move-picker(1) for the current position
         MovePicker movePicker{
@@ -1197,12 +1197,12 @@ namespace {
                 depth >= 3
              && moveCount > 1 + 2 * rootNode
              && (cutNode
+              || !captureOrPromotion
+              || moveCountPruning
+              || ss->staticEval + PieceValues[EG][pos.captured()] <= alfa
               || (!PVNode
                && !formerPV
                && thread->captureStats[mpc][dstSq(move)][pos.captured(move)] < 4506)
-              || !captureOrPromotion
-              || moveCountPruning
-              || (ss->staticEval + PieceValues[EG][pos.captured()]) <= alfa
                 // If ttHit running average is small
               || thread->ttHitAvg < 432 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/) };
 
@@ -1276,7 +1276,12 @@ namespace {
                     }
 
                     // Decrease/Increase reduction for moves with a good/bad history (~30 Elo)
-                    reductDepth -= ss->stats / 14884;
+                    reductDepth -= ss->inCheck ?
+                                       ( thread->mainStats[activeSide][mMask(move)]
+                                       + (*contStats[0])[mpc][dstSq(move)]
+                                       - 4333) / 16384 :
+                                       ss->stats / 14884;
+
                 }
 
                 Depth const d(std::clamp(newDepth - reductDepth, { 1 }, { newDepth }));
@@ -1439,14 +1444,14 @@ namespace {
             if (!pmCapOrPro
              && (((ss-1)->moveCount == 1 + (ss-1)->ttHit)
               || ((ss-1)->playedMove == (ss-1)->killerMoves[0]))) {
-                updateContinuationStats(ss-1, pos[prevDst], prevDst, -bonus1);
+                updateContinuationStats(ss-1, pos.pieceOn(prevDst), prevDst, -bonus1);
             }
         } else {
             // Bonus for prior quiet move that caused the fail low.
             if (!pmCapOrPro
              && (PVNode
               || depth >= 3)) {
-                updateContinuationStats(ss-1, pos[prevDst], prevDst, statBonus(depth));
+                updateContinuationStats(ss-1, pos.pieceOn(prevDst), prevDst, statBonus(depth));
             }
         }
 

@@ -230,7 +230,7 @@ template<> void generate<EVASION>(ValMoves &moves, Position const &pos) noexcept
     // so to skip known illegal moves avoiding useless legality check later.
     while (checkersEx != 0) {
         auto const sq{ popLSq(checkersEx) };
-        checkAttacks |= attacksBB(pType(pos[sq]), sq, mocc);
+        checkAttacks |= attacksBB(pType(pos.pieceOn(sq)), sq, mocc);
     }
     // Generate evasions for king, capture and non-capture moves
     Bitboard attacks{  attacksBB<KING>(pos.square(pos.activeSide()|KING))
@@ -252,7 +252,7 @@ template<> void generate<QUIET_CHECK>(ValMoves &moves, Position const &pos) noex
     assert((dscBlockersEx & pos.pieces(QUEN)) == 0);
     while (dscBlockersEx != 0) {
         auto const sq{ popLSq(dscBlockersEx) };
-        auto const pt{ pType(pos[sq]) };
+        auto const pt{ pType(pos.pieceOn(sq)) };
 
         Bitboard attacks{ attacksBB(pt, sq, pos.pieces()) & targets };
         if (pt == KING) {
