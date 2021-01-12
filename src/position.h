@@ -56,7 +56,7 @@ struct StateInfo {
     int16_t     repetition;
     PieceType   captured;       // Piece type captured
     bool        promoted;
-    
+
     // Check info
     Bitboard    kingBlockers[COLORS]; // Absolute and Discover Blockers
     Bitboard    kingCheckers[COLORS]; // Absolute and Discover Checkers

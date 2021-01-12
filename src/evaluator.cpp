@@ -217,15 +217,15 @@ namespace Evaluator {
         };
 
         constexpr Score BishopPawns[FILES / 2]{
-            S(3, 8), S(3, 9), S(1, 8), S(3, 7)
+            S(3, 8), S(3, 9), S(2, 8), S(3, 8)
         };
 
         constexpr Score MinorBehindPawn   { S( 18,  3) };
-        constexpr Score KnightOutpost     { S( 56, 34) };
-        constexpr Score KnightBadOutpost  { S( -7, 36) };
+        constexpr Score KnightBadOutpost  { S(  1, 10) };
+        constexpr Score KnightOutpost     { S( 57, 38) };
         constexpr Score KnightReachOutpost{ S( 31, 22) };
         constexpr Score KnightKingProtect { S(  8,  9) };
-        constexpr Score BishopOutpost     { S( 31, 23) };
+        constexpr Score BishopOutpost     { S( 31, 24) };
         constexpr Score BishopKingProtect { S(  6,  9) };
         constexpr Score BishopOnDiagonal  { S( 45,  0) };
         constexpr Score BishopPawnsXRayed { S(  4,  5) };
@@ -447,14 +447,14 @@ namespace Evaluator {
                         // Bonus for knight outpost squares
                         if (contains(b, s)) {
                             
-                            // Reduced bonus for knights (KnightBadOutpost) if few relevant targets
+                            // Bonus for knights if few relevant targets
                             Bitboard const targets{ pos.pieces(Opp) & ~pos.pieces(PAWN) };
                             if (// On a side outpost
                                 !contains(slotFileBB(CS_CENTRE), s)
                                 // No relevant attacks
                              && (attacks & targets) == 0
                              && !moreThanOne(targets & (contains(slotFileBB(CS_QUEN), s) ? slotFileBB(CS_QUEN) : slotFileBB(CS_KING)))) {
-                                score += KnightBadOutpost;
+                                score += KnightBadOutpost * popCount(pos.pieces(PAWN) & (contains(slotFileBB(CS_QUEN), s) ? slotFileBB(CS_QUEN) : slotFileBB(CS_KING)));
                             } else {
                                 score += KnightOutpost;
                             }
