@@ -15,14 +15,14 @@ namespace {
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
 
             Bitboard bb{ pos.pieces(pos.activeSide(), pt) };
+            if (Checks) {
+                bb &= ~pos.kingBlockers(~pos.activeSide());
+            }
             while (bb != 0) {
                 auto const s{ popLSq(bb) };
-                if (Checks
-                 && pos.isKingBlockersOn(~pos.activeSide(), s)) {
-                    continue;
-                }
                 Bitboard attacks{ attacksBB(pt, s, pos.pieces()) & targets };
-                if (Checks) {
+                if (Checks
+                 && pt != NIHT) {
                     attacks &= pos.checks(pt);
                 }
                 while (attacks != 0) { moves += makeMove(s, popLSq(attacks)); }
