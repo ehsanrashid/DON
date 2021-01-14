@@ -14,7 +14,7 @@ namespace Pawns {
             0, 5, 7, 11, 24, 48, 86, 0
         };
 
-    #define S(mg, eg) makeScore(mg, eg)
+        auto constexpr S = makeScore;
 
         constexpr Score Backward      { S( 6, 23) };
         constexpr Score Isolated      { S( 2, 15) };
@@ -26,8 +26,6 @@ namespace Pawns {
         constexpr Score BlockedPawn[2]{
             S(-15, -3), S(-6, 3)
         };
-
-    #undef S
 
     }
 

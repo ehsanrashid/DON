@@ -183,7 +183,7 @@ namespace Evaluator {
             slotFileBB(CS_CENTRE) & (rankBB(RANK_7)|rankBB(RANK_6)|rankBB(RANK_5))
         };
 
-    #define S(mg, eg) makeScore(mg, eg)
+        auto constexpr S = makeScore;
 
         constexpr Score Mobility[PIECE_TYPES_EX][28]{
             {},
@@ -249,7 +249,6 @@ namespace Evaluator {
         constexpr Score KnightOnQueen     { S( 16, 11) };
         constexpr Score SliderOnQueen     { S( 60, 18) };
 
-    #undef S
 
         // Threshold for lazy and space evaluation
         constexpr Value LazyThreshold1{ Value( 1565) };

@@ -8,7 +8,8 @@ Score PSQ[PIECES][SQUARES];
 
 namespace {
 
-#define S(mg, eg) makeScore(mg, eg)
+    auto constexpr S = makeScore;
+
     // PieceScores[piece-type][rank][file/2] contains half Piece-Square scores (symmetric distribution).
     // It is defined for files A..D and white side,
     // It is symmetric for second half of the files and negative for black side.
@@ -79,7 +80,6 @@ namespace {
         { S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0), S(  0,  0) }
     };
 
-#undef S
 }
 
 namespace PSQT {

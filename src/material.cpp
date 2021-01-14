@@ -9,7 +9,7 @@ namespace Material {
 
     namespace {
 
-        #define S(mg, eg) makeScore(mg, eg)
+        auto constexpr S = makeScore;
 
         // Polynomial material imbalance parameters
         constexpr Score OwnQuadratic[PIECE_TYPES][PIECE_TYPES]{
@@ -32,8 +32,6 @@ namespace Material {
             {S(  26,  35), S(  6,  22), S( 38,  39), S(-12,  -2)                            }, // Rook
             {S(  97,  93), S(100, 163), S(-58, -91), S(112, 192), S(276, 225)               }  // Queen
         };
-
-        #undef S
 
         // Endgame evaluation and scaling functions are accessed direcly and not through
         // the function maps because they correspond to more than one material hash key.

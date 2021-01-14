@@ -11,7 +11,8 @@ namespace King {
 
     namespace {
 
-    #define S(mg, eg) makeScore(mg, eg)
+        auto constexpr S = makeScore;
+
         // Safety of friend pawns shelter for our king by [distance from edge][rank].
         // RANK_1 is used for files where we have no pawn, or pawn is behind our king.
         constexpr Score Shelter[FILES/2][RANKS]{
@@ -43,8 +44,6 @@ namespace King {
         };
 
         constexpr Score BasicShelter{ S( 5, 5) };
-
-    #undef S
 
     }
 
