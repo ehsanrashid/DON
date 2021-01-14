@@ -9,7 +9,8 @@
 
 using std::string;
 
-bool Tune::update_on_last;
+bool Tune::updateOnLast;
+
 const UCI::Option *LastOption = nullptr;
 BoolConditions Conditions;
 static std::map<std::string, int> TuneResults;
@@ -35,12 +36,12 @@ string Tune::next(string &names, bool pop) {
 
 static void on_tune(UCI::Option const &o) {
 
-    if (!Tune::update_on_last || LastOption == &o) {
-        Tune::read_options();
+    if (!Tune::updateOnLast || LastOption == &o) {
+        Tune::readOptions();
     }
 }
 
-static void make_option(const string &n, int v, const SetRange &r) {
+static void makeOption(const string &n, int v, const SetRange &r) {
 
     // Do not generate option when there is nothing to tune (ie. min = max)
     if (r(v).first == r(v).second) {
@@ -64,28 +65,28 @@ static void make_option(const string &n, int v, const SetRange &r) {
         << std::endl;
 }
 
-template<> void Tune::Entry<int>::init_option() noexcept { make_option(name, value, range); }
+template<> void Tune::Entry<int>::initOption() noexcept { makeOption(name, value, range); }
 
-template<> void Tune::Entry<int>::read_option() noexcept {
+template<> void Tune::Entry<int>::readOption() noexcept {
     if (Options.count(name)) {
         value = int32_t(Options[name]);
     }
 }
 
-template<> void Tune::Entry<Value>::init_option() noexcept { make_option(name, value, range); }
+template<> void Tune::Entry<Value>::initOption() noexcept { makeOption(name, value, range); }
 
-template<> void Tune::Entry<Value>::read_option() noexcept {
+template<> void Tune::Entry<Value>::readOption() noexcept {
     if (Options.count(name)) {
         value = Value(int32_t(Options[name]));
     }
 }
 
-template<> void Tune::Entry<Score>::init_option() noexcept {
-    make_option("m" + name, mgValue(value), range);
-    make_option("e" + name, egValue(value), range);
+template<> void Tune::Entry<Score>::initOption() noexcept {
+    makeOption("m" + name, mgValue(value), range);
+    makeOption("e" + name, egValue(value), range);
 }
 
-template<> void Tune::Entry<Score>::read_option() noexcept {
+template<> void Tune::Entry<Score>::readOption() noexcept {
     if (Options.count("m" + name)) {
         value = makeScore(int32_t(Options["m" + name]), egValue(value));
     }
@@ -95,8 +96,8 @@ template<> void Tune::Entry<Score>::read_option() noexcept {
 }
 
 // Instead of a variable here we have a PostUpdate function: just call it
-template<> void Tune::Entry<Tune::PostUpdate>::init_option() noexcept {}
-template<> void Tune::Entry<Tune::PostUpdate>::read_option() noexcept { value(); }
+template<> void Tune::Entry<Tune::PostUpdate>::initOption() noexcept {}
+template<> void Tune::Entry<Tune::PostUpdate>::readOption() noexcept { value(); }
 
 
 // Set binary conditions according to a probability that depends
@@ -129,7 +130,7 @@ void BoolConditions::set() noexcept {
 
 #include <cmath>
 
-void Tune::read_results() noexcept {
+void Tune::readResults() noexcept {
 
     /* ...insert your values here... */
 }

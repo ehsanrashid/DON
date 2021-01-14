@@ -9,7 +9,7 @@ typedef std::pair<int, int> Range; // Option's min-max values
 typedef Range(RangeFun) (int);
 
 // Default Range function, to calculate Option's min-max values
-inline Range default_range(int v) noexcept {
+inline Range defaultRange(int v) noexcept {
     return v > 0 ? Range(0, 2 * v) : Range(2 * v, 0);
 }
 
@@ -30,7 +30,7 @@ struct SetRange {
     Range range;
 };
 
-#define SetDefaultRange SetRange(default_range)
+#define SetDefaultRange SetRange(defaultRange)
 
 
 /// BoolConditions struct is used to tune boolean conditions in the
@@ -52,7 +52,7 @@ struct BoolConditions {
 
 extern BoolConditions Conditions;
 
-inline void set_conditions() noexcept { Conditions.set(); }
+inline void setConditions() noexcept { Conditions.set(); }
 
 
 /// Tune class implements the 'magic' code that makes the setup of a fishtest
@@ -86,19 +86,19 @@ class Tune {
 
     typedef void (PostUpdate)(); // Post-update function
 
-    Tune() noexcept { read_results(); }
+    Tune() noexcept { readResults(); }
     Tune(Tune const&) = delete;
     void operator=(Tune const &) = delete;
 
-    void read_results() noexcept;
+    void readResults() noexcept;
 
     static Tune& instance() noexcept { static Tune tune; return tune; } // Singleton
 
     // Use polymorphism to accomodate Entry of different types in the same vector
     struct EntryBase {
         virtual ~EntryBase() = default;
-        virtual void init_option() noexcept = 0;
-        virtual void read_option() noexcept = 0;
+        virtual void initOption() noexcept = 0;
+        virtual void readOption() noexcept = 0;
     };
 
     template<typename T>
@@ -114,8 +114,8 @@ class Tune {
 
         Entry(const std::string &n, T &v, const SetRange &r) : name(n), value(v), range(r) {}
         void operator=(const Entry &) = delete; // Because 'value' is a reference
-        void init_option() noexcept override;
-        void read_option() noexcept override;
+        void initOption() noexcept override;
+        void readOption() noexcept override;
 
         std::string name;
         T &value;
@@ -170,16 +170,16 @@ public:
 
     static void initialize() { // Deferred, due to UCI::Options access
         for (auto &e : instance().list) {
-            e->init_option();
-            read_options();
+            e->initOption();
+            readOptions();
         }
     }
-    static void read_options() noexcept {
+    static void readOptions() noexcept {
         for (auto &e : instance().list) {
-            e->read_option();
+            e->readOption();
         }
     }
-    static bool update_on_last;
+    static bool updateOnLast;
 };
 
 // Some macro magic :-) we define a dummy int variable that compiler initializes calling Tune::add()
@@ -188,10 +188,10 @@ public:
 #define UNIQUE(x, y)    UNIQUE2(x, y) // Two indirection levels to expand __LINE__
 #define TUNE(...)       int UNIQUE(p, __LINE__) = Tune::add(XSTRING((__VA_ARGS__)), __VA_ARGS__)
 
-#define UPDATE_ON_LAST() bool UNIQUE(p, __LINE__) = Tune::update_on_last = true
+#define UPDATE_ON_LAST() bool UNIQUE(p, __LINE__) = Tune::updateOnLast = true
 
 // Some macro to tune toggling of boolean conditions
 #define CONDITION(x) (Conditions.binary[__COUNTER__] || (x))
 #define TUNE_CONDITIONS() int UNIQUE(c, __LINE__) = (Conditions.init(__COUNTER__), 0); \
-                          TUNE(Conditions, set_conditions)
+                          TUNE(Conditions, setConditions)
 
