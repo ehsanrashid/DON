@@ -13,9 +13,6 @@ namespace {
     void generatePieceMoves(ValMoves &moves, Position const &pos, Bitboard targets) noexcept {
 
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
-
-            [[maybe_unused]] Bitboard const checks{ pos.checks(pt) };
-
             Bitboard bb{ pos.pieces(pos.activeSide(), pt) };
             if constexpr (Checks) {
                 bb &= ~pos.kingBlockers(~pos.activeSide());
@@ -24,7 +21,7 @@ namespace {
                 auto const s{ popLSq(bb) };
                 Bitboard attacks{ attacksBB(pt, s, pos.pieces()) & targets };
                 if constexpr (Checks) {
-                    attacks &= checks;
+                    attacks &= pos.checks(pt);
                 }
                 while (attacks != 0) { moves += makeMove(s, popLSq(attacks)); }
             }
@@ -34,6 +31,7 @@ namespace {
     /// Generates pawn promotion move
     template<GenType GT>
     void generatePromotionMoves(ValMoves &moves, Position const &pos, Bitboard promotions, Direction dir) noexcept {
+
         while (promotions != 0) {
             auto const dst{ popLSq(promotions) };
             auto const org{ dst - dir };
