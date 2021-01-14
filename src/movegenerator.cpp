@@ -14,16 +14,17 @@ namespace {
 
         for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
 
+            [[maybe_unused]] Bitboard const checks{ pos.checks(pt) };
+
             Bitboard bb{ pos.pieces(pos.activeSide(), pt) };
-            if (Checks) {
+            if constexpr (Checks) {
                 bb &= ~pos.kingBlockers(~pos.activeSide());
             }
             while (bb != 0) {
                 auto const s{ popLSq(bb) };
                 Bitboard attacks{ attacksBB(pt, s, pos.pieces()) & targets };
-                if (Checks
-                 && pt != NIHT) {
-                    attacks &= pos.checks(pt);
+                if constexpr (Checks) {
+                    attacks &= checks;
                 }
                 while (attacks != 0) { moves += makeMove(s, popLSq(attacks)); }
             }
@@ -173,13 +174,12 @@ namespace {
     /// Generates all pseudo-legal moves of color for targets.
     template<GenType GT>
     void generateMoves(ValMoves &moves, Position const &pos, Bitboard targets) noexcept {
-        constexpr bool Checks{ GT == QUIET_CHECK };
 
         pos.activeSide() == WHITE ?
             generatePawnMoves<GT, WHITE>(moves, pos, targets) :
             generatePawnMoves<GT, BLACK>(moves, pos, targets);
 
-        generatePieceMoves<Checks>(moves, pos, targets);
+        generatePieceMoves<GT == QUIET_CHECK>(moves, pos, targets);
     }
 }
 
