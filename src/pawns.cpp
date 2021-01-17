@@ -19,11 +19,12 @@ namespace Pawns {
         constexpr Score Backward      { S( 6, 23) };
         constexpr Score Isolated      { S( 2, 15) };
         constexpr Score Unopposed     { S(16, 22) };
+        constexpr Score EarlyDoubled  { S(20, 10) };
         constexpr Score WeakDoubled   { S(13, 53) };
         constexpr Score WeakTwiceLever{ S( 5, 57) };
 
         // Bonus for blocked pawns at 5th or 6th rank
-        constexpr Score BlockedPawn[2]{
+        constexpr Score Blocked[2]{
             S(-15, -3), S(-6, 3)
         };
 
@@ -69,6 +70,7 @@ namespace Pawns {
             // on the adjacent files and cannot be safely advanced.
             bool const backward{ (neighbours & frontRanksBB(Opp, s + PawnPush[Own])) == 0
                               && (blocker | sentres) != 0 };
+            bool const doubled{ contains(ownPawns, s - PawnPush[Own]) };
 
             // Compute additional span if pawn is not blocked nor backward
             if (!blocked
@@ -123,14 +125,18 @@ namespace Pawns {
             }
 
             if (supporters == 0) {
-                sc -= WeakDoubled * contains(ownPawns, s - PawnPush[Own])
+                sc -= WeakDoubled * doubled
                     // Attacked twice by enemy pawns
                     + WeakTwiceLever * moreThanOne(levers);
             }
 
             if (blocked
              && r >= RANK_5) {
-                sc += BlockedPawn[r - RANK_5];
+                sc += Blocked[r - RANK_5];
+            }
+            if (doubled
+             && (ownPawns & pawnSglPushBB<Opp>(oppPawns | pawnSglAttackBB<Opp>(oppPawns))) == 0) {
+                sc -= EarlyDoubled;
             }
 
             score[Own] += sc;
