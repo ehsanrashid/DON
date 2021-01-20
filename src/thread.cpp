@@ -18,7 +18,7 @@ ThreadPool Threadpool;
 Thread::Thread(uint16_t idx) :
     dead{ false },
     busy{ true },
-    index(idx),
+    index{ idx },
     nativeThread(&Thread::threadFunc, this) {
 
     waitIdle();

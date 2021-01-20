@@ -384,8 +384,7 @@ bool Position::giveCheck(Move m) const noexcept {
         return false;
     }
     case ENPASSANT: {
-        // Enpassant capture with check?
-        // already handled the case of direct checks and ordinary discovered check,
+        // Already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
         Bitboard const mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
         return (pieces(active, BSHP, QUEN)
@@ -393,26 +392,18 @@ bool Position::giveCheck(Move m) const noexcept {
             || (pieces(active, ROOK, QUEN)
               & attacksBB<ROOK>(square(~active|KING), mocc)) != 0;
     }
-    case CASTLE: {
-        // Castling with check?
-        auto const kingDst{ kingCastleSq(org, dst) };
-        auto const rookDst{ rookCastleSq(org, dst) };
-        Bitboard const mocc{ (pieces() ^ org ^ dst) | kingDst | rookDst };
-        return contains(attacksBB<ROOK>(rookDst, mocc), square(~active|KING));
-    }
-    // case PROMOTE:
-    default: {
-        // Promotion with check?
+    case PROMOTE: {
         auto const ppt{ promoteType(m) };
         Bitboard const mocc{ (pieces() ^ org) | dst };
         return
-         //   ppt > NIHT
-         //&& contains(attacksBB(ppt, dst, mocc), square(~active|KING))
             ((ppt == QUEN || ppt == BSHP)
           && contains(attacksBB<BSHP>(dst, mocc), square(~active|KING)))
          || ((ppt == QUEN || ppt == ROOK)
           && contains(attacksBB<ROOK>(dst, mocc), square(~active|KING)));
     }
+    //case CASTLE:
+    default:
+        return contains(attacksBB<ROOK>(rookCastleSq(org, dst), pieces() ^ org ^ dst), square(~active|KING));
     }
 }
 

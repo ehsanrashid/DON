@@ -276,13 +276,13 @@ template<> void generate<LEGAL>(ValMoves &moves, Position const &pos) noexcept {
     // Filter illegal moves
     moves.erase(std::remove_if(moves.begin(), moves.end(),
                                 [&](ValMove const &vm) {
-                                    return (pType(pos.movedPiece(vm)) == KING
-                                         && mType(vm) == SIMPLE
-                                         && (pos.attackersTo(dstSq(vm), pos.pieces() ^ pos.square(pos.activeSide()|KING)) & pos.pieces(~pos.activeSide())) != 0)
+                                    return (mType(vm) == SIMPLE
+                                         && orgSq(vm) == pos.square(pos.activeSide()|KING)
+                                         && (pos.attackersTo(dstSq(vm), pos.pieces() ^ orgSq(vm)) & pos.pieces(~pos.activeSide())) != 0)
                                         || ((mType(vm) == CASTLE
                                           || mType(vm) == ENPASSANT
                                             // Pinned pieces
-                                          || contains(pos.pieces(pos.activeSide()) & pos.kingBlockers(pos.activeSide()), orgSq(vm)))
+                                          || contains(pos.kingBlockers(pos.activeSide()), orgSq(vm)))
                                          && !pos.legal(vm));
                                 }), moves.end());
 }

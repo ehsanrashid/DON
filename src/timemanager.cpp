@@ -58,7 +58,7 @@ void TimeManager::setup(Color c, int16_t ply) noexcept {
     // game time for the current move, so also cap to 20% of available game time.
     if (Limits.movestogo == 0) {
         optimumScale = std::min(0.2 * Limits.clock[c].time / double(remainTime),
-                                0.0084 + std::pow(ply + 3.0, 0.5) * 0.0042);
+                                0.0084 + 0.0042 * std::pow(ply + 3.0, 0.5));
         maximumScale = std::min(4.0 + ply / 12.0, 7.0);
     } else {
     // x moves in y seconds (+ z increment)
