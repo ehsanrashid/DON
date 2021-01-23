@@ -26,7 +26,7 @@
 //     const unsigned char        gEmbeddedNNUEData[];  // a pointer to the embedded data
 //     const unsigned char *const gEmbeddedNNUEEnd;     // a marker to the end
 //     const unsigned int         gEmbeddedNNUESize;    // the size of the embedded file
-// Note that this does not work in Microsof Visual Studio.
+// Note that this does not work in Microsoft Visual Studio.
 #if !defined(_MSC_VER) && !defined(NNUE_EMBEDDING_OFF)
     INCBIN(EmbeddedNNUE, DefaultEvalFile);
 #else
@@ -43,9 +43,9 @@ namespace Evaluator {
 
     namespace NNUE {
 
-        /// initialize() tries to load a nnue network at startup time, or when the engine
+        /// initialize() tries to load a NNUE network at startup time, or when the engine
         /// receives a UCI command "setoption name EvalFile value nn-[a-z0-9]{12}.nnue"
-        /// The name of the nnue network is always retrieved from the EvalFile option.
+        /// The name of the NNUE network is always retrieved from the EvalFile option.
         /// We search the given network in three locations: internally (the default
         /// network may be embedded in the binary), in the active working directory and
         /// in the engine directory. Distro packagers may define the DEFAULT_NNUE_DIRECTORY

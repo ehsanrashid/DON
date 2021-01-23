@@ -26,7 +26,7 @@ namespace {
     Value computeNPM(Position const &pos) noexcept {
 
         auto npm{ VALUE_ZERO };
-        for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
+        for (PieceType const pt : { NIHT, BSHP, ROOK, QUEN }) {
             npm += PieceValues[MG][pt] * pos.count(Own|pt);
         }
         return npm;
@@ -278,8 +278,8 @@ bool Position::pseudoLegal(Move m) const noexcept {
     if (_stateInfo->checkers != 0) {
         // In case of king moves under check, remove king so to catch
         // as invalid moves like B1A1 when opposite queen is on C1.
-        if (pType(board[org]) == KING) {
-            return (attackersTo(dst, pieces() ^ square(active|KING)) & pieces(~active)) == 0;
+        if (org == square(active|KING)) {
+            return (attackersTo(dst, pieces() ^ org) & pieces(~active)) == 0;
         }
         // Double check? In this case a king move is required
         if (moreThanOne(_stateInfo->checkers)) {
@@ -348,13 +348,13 @@ bool Position::legal(Move m) const noexcept {
     }
 
     return
-        pType(board[org]) == KING ?
+        org == square(active|KING) ?
             // For KING SIMPLE moves
             // Only king moves to non attacked squares, sliding check x-rays the king
             // In case of king moves under check have to remove king so to catch
             // as invalid moves like B1-A1 when opposite queen is on SQ_C1.
             // check whether the destination square is attacked by the opponent.
-            (attackersTo(dst, pieces() ^ square(active|KING)) & pieces(~active)) == 0 :
+            (attackersTo(dst, pieces() ^ org) & pieces(~active)) == 0 :
             // For NON-KING SIMPLE + PROMOTE moves
             // A non-king move is legal if and only if
             // - not pinned

@@ -161,13 +161,11 @@ namespace Evaluator::NNUE {
                     __m128i const packedbytes{ _mm_packs_epi16(sum0, sum1) };
 
                     _mm_store_si128(&out[j],
-
             #if defined(USE_SSE41)
-                        _mm_max_epi8(packedbytes, Zero)
+                                    _mm_max_epi8(packedbytes, Zero)
             #else
-                        _mm_subs_epi8(_mm_adds_epi8(packedbytes, k0x80s), k0x80s)
+                                    _mm_subs_epi8(_mm_adds_epi8(packedbytes, k0x80s), k0x80s)
             #endif
-
                     );
                 }
 

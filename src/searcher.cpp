@@ -248,7 +248,7 @@ namespace {
 
             bool const tb{
                 SyzygyTB::HasRoot
-             && std::abs(v) < +VALUE_MATE_1_MAX_PLY };
+             && std::abs(v) < VALUE_MATE_1_MAX_PLY };
             if (tb) {
                 v = th->rootMoves[i].tbValue;
             }
@@ -856,7 +856,7 @@ namespace {
                     // Skip verification search
                     if (thread->nmpMinPly != 0 // Recursive verification is not allowed
                      || (depth < 14
-                      && std::abs(beta) < +VALUE_KNOWN_WIN)) {
+                      && std::abs(beta) < VALUE_KNOWN_WIN)) {
                         return nullValue;
                     }
 
@@ -883,7 +883,7 @@ namespace {
             // Note: Only enter ProbCut with no TT hit, a too low TT depth, or a good enough TT value.
             if (!PVNode
              && depth > 4
-             && std::abs(beta) < +VALUE_MATE_2_MAX_PLY
+             && std::abs(beta) < VALUE_MATE_2_MAX_PLY
                 // if value from transposition table is lower than probCutBeta, don't attempt probCut
                 // there and in further interactions with transposition table cutoff depth is set to depth - 3
                 // because probCut search has depth set to depth - 4 but we also do a move before it

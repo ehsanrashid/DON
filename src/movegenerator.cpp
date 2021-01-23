@@ -12,7 +12,7 @@ namespace {
     template<bool Checks>
     void generatePieceMoves(ValMoves &moves, Position const &pos, Bitboard targets) noexcept {
 
-        for (PieceType pt = NIHT; pt <= QUEN; ++pt) {
+        for (PieceType const pt : { NIHT, BSHP, ROOK, QUEN }) {
             Bitboard bb{ pos.pieces(pos.activeSide(), pt) };
             if constexpr (Checks) {
                 bb &= ~pos.kingBlockers(~pos.activeSide());
