@@ -166,8 +166,8 @@ void MovePicker::value() noexcept {
         case QUIET: {
             vm->value = (*mainStats)[pos.activeSide()][mMask(*vm)]
                       + (*contStats[0])[pos.movedPiece(*vm)][dstSq(*vm)] * 2
-                      + (*contStats[1])[pos.movedPiece(*vm)][dstSq(*vm)] * 2
-                      + (*contStats[3])[pos.movedPiece(*vm)][dstSq(*vm)] * 2
+                      + (*contStats[1])[pos.movedPiece(*vm)][dstSq(*vm)]
+                      + (*contStats[3])[pos.movedPiece(*vm)][dstSq(*vm)]
                       + (*contStats[5])[pos.movedPiece(*vm)][dstSq(*vm)]
                       + (ply < MAX_LOWPLY ? (*lowPlyStats)[ply][mMask(*vm)] * std::min(depth / 3, 4) : 0);
         }
@@ -178,7 +178,7 @@ void MovePicker::value() noexcept {
                           - pType(pos.movedPiece(*vm));
             } else {
                 vm->value = (*mainStats)[pos.activeSide()][mMask(*vm)]
-                          + (*contStats[0])[pos.movedPiece(*vm)][dstSq(*vm)]
+                          + (*contStats[0])[pos.movedPiece(*vm)][dstSq(*vm)] * 2
                           - 0x10000000; // 1 << 28
             }
         }

@@ -577,7 +577,7 @@ namespace Evaluator {
                 }
             }
 
-            if (Trace) {
+            if constexpr (Trace) {
                 Tracer::write(Term(PT), Own, score);
             }
 
@@ -716,7 +716,7 @@ namespace Evaluator {
             // King tropism: Penalty for slow motion attacks moving towards friend king zone
             score -= KingFlankAttacks * kingFlankAttack;
 
-            if (Trace) {
+            if constexpr (Trace) {
                 Tracer::write(Term(KING), Own, score);
             }
 
@@ -848,7 +848,7 @@ namespace Evaluator {
                 score += SliderOnQueen * popCount(b) * (1 + queenImbalance);
             }
 
-            if (Trace) {
+            if constexpr (Trace) {
                 Tracer::write(THREAT, Own, score);
             }
 
@@ -937,7 +937,7 @@ namespace Evaluator {
                 score += bonus;
             }
 
-            if (Trace) {
+            if constexpr (Trace) {
                 Tracer::write(PASSER, Own, score);
             }
 
@@ -975,7 +975,7 @@ namespace Evaluator {
 
             Score const score{ makeScore(bonus * weight * weight / 16, 0) };
 
-            if (Trace) {
+            if constexpr (Trace) {
                 Tracer::write(SPACE, Own, score);
             }
 
@@ -1024,7 +1024,7 @@ namespace Evaluator {
                 goto makeValue;
             }
 
-            if (Trace) {
+            if constexpr (Trace) {
                 Tracer::clear();
             }
 
@@ -1126,7 +1126,7 @@ namespace Evaluator {
             v = (pos.activeSide() == WHITE ? +v : -v) + VALUE_TEMPO;
 
             // Write remaining evaluation terms
-            if (Trace) {
+            if constexpr (Trace) {
                 Tracer::write(Term(PAWN), pawnEntry->score[WHITE], pawnEntry->score[BLACK]);
                 Tracer::write(MATERIAL  , pos.psqScore());
                 Tracer::write(IMBALANCE , matlEntry->imbalance);

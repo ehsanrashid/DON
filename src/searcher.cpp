@@ -1387,10 +1387,10 @@ namespace {
 
             if (move != bestMove) {
                 if (captureOrPromotion) {
-                    if (captureMoves.size() < 32)
+                    //if (captureMoves.size() < 32)
                     captureMoves += move;
                 } else {
-                    if (quietMoves.size() < 64)
+                    //if (quietMoves.size() < 64)
                     quietMoves += move;
                 }
             }

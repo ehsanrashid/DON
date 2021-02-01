@@ -1242,7 +1242,7 @@ namespace {
             return e.baseAddress; // Could be nullptr if file does not exist
         }
 
-        std::lock_guard<std::mutex> lockGuard(mutex);
+        std::scoped_lock<std::mutex> scopedLock(mutex);
 
         if (e.ready.load(std::memory_order::memory_order_relaxed)) { // Recheck under lock
             return e.baseAddress;
