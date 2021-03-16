@@ -215,8 +215,7 @@ template<> void generate<EVASION>(ValMoves &moves, Position const &pos) noexcept
     if (!moreThanOne(pos.checkers())) {
 
         // Generates blocking or captures of the checking piece
-        auto const checkSq{ scanLSq(pos.checkers()) };
-        Bitboard const targets{ betweenBB(checkSq, pos.square(pos.activeSide()|KING)) | checkSq };
+        Bitboard const targets{ pos.checkers() | betweenBB(pos.square(pos.activeSide()|KING), scanLSq(pos.checkers())) };
 
         generateMoves<EVASION>(moves, pos, targets);
     }
