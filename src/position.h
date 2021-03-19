@@ -428,10 +428,10 @@ inline void Position::movePiece(Square s1, Square s2) noexcept {
 inline Bitboard Position::attackersTo(Square s, Bitboard occ) const noexcept {
     return (pieces(BLACK, PAWN) & pawnAttacksBB(WHITE, s))
          | (pieces(WHITE, PAWN) & pawnAttacksBB(BLACK, s))
-         | (pieces(NIHT)        & attacksBB<NIHT>(s))
+         | (pieces(NIHT)        & attacksBB(NIHT, s))
          | (pieces(BSHP, QUEN)  & attacksBB<BSHP>(s, occ))
          | (pieces(ROOK, QUEN)  & attacksBB<ROOK>(s, occ))
-         | (pieces(KING)        & attacksBB<KING>(s));
+         | (pieces(KING)        & attacksBB(KING, s));
 }
 /// Position::attackersTo() finds attackers to the square.
 inline Bitboard Position::attackersTo(Square s) const noexcept {

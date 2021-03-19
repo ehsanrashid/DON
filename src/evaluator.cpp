@@ -332,7 +332,7 @@ namespace Evaluator {
             auto const kSq{ pos.square(Own|KING) };
 
             attackedBy[Own][PAWN] = pawnEntry->sglAttacks[Own];
-            attackedBy[Own][KING] = attacksBB<KING>(kSq);
+            attackedBy[Own][KING] = attacksBB(KING, kSq);
 
             attackedFull[Own] =
             attackedBy[Own][NONE] = attackedBy[Own][PAWN]
@@ -362,7 +362,7 @@ namespace Evaluator {
             auto const sq{
                 makeSquare(std::clamp(sFile(kSq), FILE_B, FILE_G),
                            std::clamp(sRank(kSq), RANK_2, RANK_7)) };
-            kingRing[Own] = attacksBB<KING>(sq) | sq;
+            kingRing[Own] = attacksBB(KING, sq) | sq;
 
             kingAttackersCount [Opp] = popCount(kingRing[Own]
                                               & pawnEntry->sglAttacks[Opp]);
@@ -393,7 +393,7 @@ namespace Evaluator {
 
                 // Find attacked squares, including x-ray attacks for Bishops, Rooks and Queens
                 Bitboard attacks{
-                    PT == NIHT ? attacksBB<NIHT>(s) :
+                    PT == NIHT ? attacksBB(NIHT, s) :
                     PT == BSHP ? attacksBB<BSHP>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, BSHP) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))) :
                     PT == ROOK ? attacksBB<ROOK>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN, ROOK) & ~pos.kingBlockers(Own)) | pos.pieces(Opp, QUEN))) :
                                  attacksBB<QUEN>(s, pos.pieces() ^ ((pos.pieces(Own, QUEN)       & ~pos.kingBlockers(Own)))) };
@@ -486,7 +486,7 @@ namespace Evaluator {
                                 + !contains(attackedBy[Own][PAWN], s));
                         // Penalty for all enemy pawns x-rayed
                         score -= BishopPawnsXRayed
-                               * popCount(pos.pieces(Opp, PAWN) & attacksBB<BSHP>(s));
+                               * popCount(pos.pieces(Opp, PAWN) & attacksBB(BSHP, s));
                         // Bonus for bishop on a long diagonal which can "see" both center squares
                         if (contains(DiagonalBB, s)
                          && moreThanOne(attacksBB<BSHP>(s, pos.pieces(PAWN)) & CenterBB)) {
@@ -545,15 +545,15 @@ namespace Evaluator {
 
                     b =  pos.pieces(Own)
                       & ~pos.kingBlockers(Own);
-                    Bitboard xray{ attacksBB<BSHP>(s, pos.pieces() ^ (pos.pieces(BSHP) & b & attacksBB<BSHP>(s)))
-                                 | attacksBB<ROOK>(s, pos.pieces() ^ (pos.pieces(ROOK) & b & attacksBB<ROOK>(s))) };
+                    Bitboard xray{ attacksBB<BSHP>(s, pos.pieces() ^ (pos.pieces(BSHP) & b & attacksBB(BSHP, s)))
+                                 | attacksBB<ROOK>(s, pos.pieces() ^ (pos.pieces(ROOK) & b & attacksBB(ROOK, s))) };
                     if (pos.isKingBlockersOn(Own, s)) {
                         xray &= lineBB(pos.square(Own|KING), s);
                     }
                     attackedBy2[Own] |= attackedBy[Own][NONE]
                                       & (attacks | xray);
 
-                    queenAttacked[Own][0] |= attacksBB<NIHT>(s);
+                    queenAttacked[Own][0] |= attacksBB(NIHT, s);
                     queenAttacked[Own][1] |= attacksBB<BSHP>(s, pos.pieces());
                     queenAttacked[Own][2] |= attacksBB<ROOK>(s, pos.pieces());
 
@@ -655,14 +655,14 @@ namespace Evaluator {
 
             // Enemy knights checks
             Bitboard const nihtSafeChecks{
-                attacksBB<NIHT>(kSq)
+                attacksBB(NIHT, kSq)
               & attackedBy[Opp][NIHT]
               & safeArea };
 
             if (nihtSafeChecks != 0) {
                 kingDanger += SafeCheckWeight[NIHT][moreThanOne(nihtSafeChecks)];
             } else {
-                unsafeCheck |= attacksBB<NIHT>(kSq)
+                unsafeCheck |= attacksBB(NIHT, kSq)
                              & attackedBy[Opp][NIHT];
             }
 

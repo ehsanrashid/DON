@@ -422,7 +422,7 @@ template<> Scale Endgame<KRPKB>::operator()(Position const &pos) const {
         if (spR == RANK_6
          && distance(spSq + Push * 2, wkSq) <= 1
          && distance<File>(spSq, wbSq) >= 2
-         && contains(attacksBB<BSHP>(wbSq), spSq + Push)) {
+         && contains(attacksBB(BSHP, wbSq), spSq + Push)) {
             return Scale(8);
         }
     }
@@ -526,12 +526,12 @@ template<> Scale Endgame<KBPPKB>::operator()(Position const &pos) const {
               && colorOpposed(sbSq, wkSq)
               && (wbSq == block2Sq
                || distance<Rank>(sp1Sq, sp2Sq) >= 2
-               || (attacksBB<BSHP>(block2Sq, pos.pieces())
+               || (attacksBB(BSHP, block2Sq, pos.pieces())
                  & pos.pieces(weakColor, BSHP)) != 0))
              || (wkSq == block2Sq
               && colorOpposed(sbSq, wkSq)
               && (wbSq == block1Sq
-               || (attacksBB<BSHP>(block1Sq, pos.pieces())
+               || (attacksBB(BSHP, block1Sq, pos.pieces())
                  & pos.pieces(weakColor, BSHP)) != 0))) {
                 return SCALE_DRAW;
             }
@@ -696,7 +696,7 @@ template<> Scale Endgame<KQKRPs>::operator()(Position const &pos) const {
      && relativeRank(weakColor, skSq) >= RANK_4
      && relativeRank(weakColor, wrSq) == RANK_3
      && (pos.pieces(weakColor, PAWN)
-       & attacksBB<KING>(wkSq)
+       & attacksBB(KING, wkSq)
        & pawnAttacksBB(stngColor, wrSq)) != 0) {
         return SCALE_DRAW;
     }

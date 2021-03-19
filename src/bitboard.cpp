@@ -10,6 +10,7 @@
 uint8_t Distance[SQUARES][SQUARES];
 
 Bitboard LineBB[SQUARES][SQUARES];
+Bitboard BetweenBB[SQUARES][SQUARES];
 
 Bitboard PawnAttacksBB[COLORS][SQUARES];
 Bitboard PieceAttacksBB[PIECE_TYPES][SQUARES];
@@ -234,10 +235,11 @@ namespace Bitboards {
         }
 
         for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1) {
-            for (PieceType const pt : { BSHP, ROOK }) {
-                for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
-                    if (contains(PieceAttacksBB[pt][s1], s2)) {
-                        LineBB[s1][s2] = (PieceAttacksBB[pt][s1] & PieceAttacksBB[pt][s2]) | s1 | s2;
+            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2) {
+                for (PieceType const pt : { BSHP, ROOK }) {
+                    if (contains(attacksBB(pt, s1), s2)) {
+                        LineBB[s1][s2] = (attacksBB(pt, s1) & attacksBB(pt, s2)) | s1 | s2;
+                        BetweenBB[s1][s2] = attacksBB(pt, s1, squareBB(s2)) & attacksBB(pt, s2, squareBB(s1));
                     }
                 }
             }

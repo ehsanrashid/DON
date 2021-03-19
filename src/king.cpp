@@ -112,7 +112,7 @@ namespace King {
             // In endgame, king near to closest pawn
             int32_t minPawnDist{ 6 }; // Max can be 6 because pawn on last rank promotes
             Bitboard pawns{ pos.pieces(Own, PAWN) };
-            if ((pawns & attacksBB<KING>(sq)) != 0) {
+            if ((pawns & attacksBB(KING, sq)) != 0) {
                 minPawnDist = 1;
             } else {
                 while (pawns != 0

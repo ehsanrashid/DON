@@ -37,8 +37,6 @@ struct Magic {
 
 };
 
-constexpr Bitboard BoardBB{ U64(0xFFFFFFFFFFFFFFFF) };
-
 constexpr Bitboard SquareBB[SQUARES]{
 #define S_02(n)  U64(1)<<(2*(n)),  U64(1)<<(2*(n)+1)
 #define S_04(n)      S_02(2*(n)),      S_02(2*(n)+1)
@@ -122,6 +120,7 @@ constexpr Bitboard slotFileBB(CastleSide cs) noexcept { return SlotFileBB[cs]; }
 extern uint8_t Distance[SQUARES][SQUARES];
 
 extern Bitboard LineBB[SQUARES][SQUARES];
+extern Bitboard BetweenBB[SQUARES][SQUARES];
 
 extern Bitboard PawnAttacksBB[COLORS][SQUARES];
 extern Bitboard PieceAttacksBB[PIECE_TYPES][SQUARES];
@@ -185,17 +184,15 @@ constexpr Bitboard pawnPassSpan  (Color c, Square s) noexcept { return frontSqua
 /// If the given squares are not on a same file/rank/diagonal, return 0.
 /// Ex. lineBB(SQ_C4, SQ_F7) returns a bitboard with the A2-G8 diagonal.
 inline Bitboard lineBB(Square s1, Square s2) noexcept {
+    assert(isOk(s1) && isOk(s2));
     return LineBB[s1][s2];
 }
 /// betweenBB() returns squares that are linearly between the given squares
 /// If the given squares are not on a same file/rank/diagonal, return 0.
 /// Ex. betweenBB(SQ_C4, SQ_F7) returns a bitboard with squares D5 and E6.
 inline Bitboard betweenBB(Square s1, Square s2) noexcept {
-    Bitboard const line{
-        lineBB(s1, s2)
-      & ((BoardBB << s1) ^ (BoardBB << s2)) };
-    // Exclude LSB
-    return line & (line - 1); //line & ~std::min(s1, s2);
+    assert(isOk(s1) && isOk(s2));
+    return BetweenBB[s1][s2];
 }
 /// aligned() Check the squares s1, s2 and s3 are aligned on a straight line.
 inline bool aligned(Square s1, Square s2, Square s3) noexcept {
@@ -248,16 +245,16 @@ inline Bitboard pawnAttacksBB(Color c, Square s) noexcept {
 }
 
 /// attacksBB() returns the pseudo-attacks by piece-type assuming an empty board
-template<PieceType PT> inline Bitboard attacksBB(Square s) noexcept {
-    assert(PT != PAWN);
-    return PieceAttacksBB[PT][s];
+inline Bitboard attacksBB(PieceType pt, Square s) noexcept {
+    assert(pt != PAWN);
+    return PieceAttacksBB[pt][s];
 }
 
 /// attacksBB() returns attacks by piece-type from the square on occupancy
 template<PieceType> Bitboard attacksBB(Square, Bitboard) noexcept;
 
 template<> inline Bitboard attacksBB<NIHT>(Square s, Bitboard) noexcept {
-    return PieceAttacksBB[NIHT][s];
+    return attacksBB(NIHT, s);
 }
 template<> inline Bitboard attacksBB<BSHP>(Square s, Bitboard occ) noexcept {
     return BMagics[s].attacksBB(occ);
@@ -274,11 +271,11 @@ template<> inline Bitboard attacksBB<QUEN>(Square s, Bitboard occ) noexcept {
 inline Bitboard attacksBB(PieceType pt, Square s, Bitboard occ) noexcept {
     assert(NIHT <= pt && pt <= KING);
     return
-        pt == NIHT ? attacksBB<NIHT>(s) :
+        pt == NIHT ? attacksBB(NIHT, s) :
         pt == BSHP ? attacksBB<BSHP>(s, occ) :
         pt == ROOK ? attacksBB<ROOK>(s, occ) :
         pt == QUEN ? attacksBB<QUEN>(s, occ) :
-      /*pt == KING*/ attacksBB<KING>(s);
+      /*pt == KING*/ attacksBB(KING, s);
 }
 
 /// popCount() counts the number of ones in a bitboard

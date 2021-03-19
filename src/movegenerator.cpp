@@ -149,9 +149,9 @@ namespace {
     void generateKingMoves(ValMoves &moves, Position const &pos, Bitboard targets) noexcept {
         assert(pos.checkers() == 0);
 
-        Bitboard attacks{  attacksBB<KING>(pos.square( pos.activeSide()|KING))
+        Bitboard attacks{  attacksBB(KING, pos.square( pos.activeSide()|KING))
                         &  targets
-                        & ~attacksBB<KING>(pos.square(~pos.activeSide()|KING)) };
+                        & ~attacksBB(KING, pos.square(~pos.activeSide()|KING)) };
         while (attacks != 0) { moves += makeMove(pos.square(pos.activeSide()|KING), popLSq(attacks)); }
 
         if (GT == QUIET
@@ -220,7 +220,7 @@ template<> void generate<EVASION>(ValMoves &moves, Position const &pos) noexcept
         generateMoves<EVASION>(moves, pos, targets);
     }
 
-    Bitboard checkAttacks{ attacksBB<KING>(pos.square(~pos.activeSide()|KING)) };
+    Bitboard checkAttacks{ attacksBB(KING, pos.square(~pos.activeSide()|KING)) };
     Bitboard checkersEx{ pos.checkers() & ~pos.pieces(PAWN) };
     Bitboard const mocc{ pos.pieces() ^ pos.square(pos.activeSide()|KING) };
     // Squares attacked by slide checkers will remove them from the king evasions
@@ -230,7 +230,7 @@ template<> void generate<EVASION>(ValMoves &moves, Position const &pos) noexcept
         checkAttacks |= attacksBB(pType(pos.pieceOn(sq)), sq, mocc);
     }
     // Generate evasions for king, capture and non-capture moves
-    Bitboard attacks{  attacksBB<KING>(pos.square(pos.activeSide()|KING))
+    Bitboard attacks{  attacksBB(KING, pos.square(pos.activeSide()|KING))
                     & ~checkAttacks
                     & ~pos.pieces(pos.activeSide()) };
     while (attacks != 0) { moves += makeMove(pos.square(pos.activeSide()|KING), popLSq(attacks)); }
@@ -254,7 +254,7 @@ template<> void generate<QUIET_CHECK>(ValMoves &moves, Position const &pos) noex
         Bitboard attacks{ attacksBB(pt, sq, pos.pieces()) & targets };
         if (pt == KING) {
             // Stop king from stepping in the way to check
-            attacks &= ~attacksBB<QUEN>(pos.square(~pos.activeSide()|KING));
+            attacks &= ~attacksBB(QUEN, pos.square(~pos.activeSide()|KING));
         }
 
         while (attacks != 0) { moves += makeMove(sq, popLSq(attacks)); }
