@@ -120,7 +120,7 @@ namespace {
 
     /// statBonus() is the bonus, based on depth
     constexpr int32_t statBonus(Depth depth) noexcept {
-        return depth <= 14 ? (8 * depth + 224) * depth - 215 : 29;
+        return depth <= 14 ? (6 * depth + 231) * depth - 206 : 66;
     }
 
     /// Add a small random component to draw evaluations to avoid 3-fold-blindness
@@ -849,15 +849,15 @@ namespace {
              && eval >= ss->staticEval
              && excludedMove == MOVE_NONE
              && (ss-1)->playedMove != MOVE_NULL
-             && (ss-1)->stats < 22977
-             && ss->staticEval >= (beta - 30 * depth - 28 * improving + 84 * ss->ttPV + 168)
+             && (ss-1)->stats < 24185
+             && ss->staticEval >= (beta - 24 * depth - 34 * improving + 162 * ss->ttPV + 159)
              && pos.nonPawnMaterial(activeSide) != VALUE_ZERO
              // Null move pruning disabled for activeSide until ply exceeds nmpPly
              && (ss->ply >= thread->nmpMinPly
               || activeSide != thread->nmpColor)
              && Limits.mate == 0) {
                 // Null move dynamic reduction based on depth and static evaluation.
-                Depth const R( (1015 + 85 * depth) / 256 + std::min(int32_t(eval - beta) / 191, 3) );
+                Depth const R( (1062 + 68 * depth) / 256 + std::min(int32_t(eval - beta) / 190, 3) );
                 Depth const nullDepth( depth - R );
 
                 ss->playedMove = MOVE_NULL;
@@ -897,7 +897,7 @@ namespace {
                 }
             }
 
-            probCutBeta = beta + 194 - 49 * improving;
+            probCutBeta = beta + 209 - 44 * improving;
 
             // Step 9. ProbCut. (~10 Elo)
             // If good enough capture and a reduced search returns a value much above beta,
@@ -941,7 +941,7 @@ namespace {
                     &thread->captureStats };
                 // Loop through all the pseudo-legal moves until no moves remain or a beta cutoff occurs
                 while ((move = movePicker.nextMove()) != MOVE_NONE
-                    && probCutCount < (2 + 2 * cutNode)) {
+                    && probCutCount < 2 + 2 * cutNode) {
                     assert(isOk(move)
                         && pos.pseudoLegal(move));
 
@@ -949,10 +949,8 @@ namespace {
                     assert(pos.captureOrPromotion(move)
                         && mType(move) != CASTLE);
 
-                    if (move == excludedMove) {
-                        continue;
-                    }
-                    if (!pos.legal(move)) {
+                    if (move == excludedMove
+                     || !pos.legal(move)) {
                         continue;
                     }
 
@@ -1088,6 +1086,14 @@ namespace {
             bool const giveCheck{ pos.giveCheck(move) };
             bool const captureOrPromotion{ pos.captureOrPromotion(move) };
 
+            // Indicate PvNodes that will probably fail low if node was searched with non-PV search 
+            // at depth equal or greater to current depth and result of this search was far below alpha
+            bool likelyFailLow{ PVNode
+                             && ttMove != MOVE_NONE
+                             && (tte->bound() & BOUND_UPPER)
+                             && ttValue < alfa + 200 + 100 * depth
+                             && tte->depth() >= depth };
+
             // Calculate new depth for this move
             Depth newDepth( depth-1 );
 
@@ -1126,11 +1132,11 @@ namespace {
                     // Futility pruning: parent node. (~5 Elo)
                     if (lmrDepth < 7
                      && !ss->inCheck
-                     && (ss->staticEval + 159 * lmrDepth + 254) <= alfa
+                     && (ss->staticEval + 157 * lmrDepth + 174) <= alfa
                      && ((*contStats[0])[mpc][dstSq(move)]
                        + (*contStats[1])[mpc][dstSq(move)]
                        + (*contStats[3])[mpc][dstSq(move)]
-                       + (*contStats[5])[mpc][dstSq(move)] / 2) < 26394) {
+                       + (*contStats[5])[mpc][dstSq(move)] / 2) < 28255) {
                         continue;
                     }
                     // SEE based pruning: negative SEE (~20 Elo)
@@ -1228,7 +1234,7 @@ namespace {
               || ss->staticEval + PieceValues[EG][pos.captured()] <= alfa
               || (!PVNode
                && !formerPV
-               && thread->captureStats[mpc][dstSq(move)][pos.captured(move)] < 4506)
+               && thread->captureStats[mpc][dstSq(move)][pos.captured(move)] < 3678)
                 // If ttHit running average is small
               || thread->ttHitAvg < 432 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/) };
 
@@ -1244,8 +1250,8 @@ namespace {
                     +1 * (moveCountPruning && !formerPV)
                     // Decrease if the ttHit running average is large
                     -1 * (thread->ttHitAvg > 537 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/)
-                    // Decrease if position is or has been on the PV (~10 Elo)
-                    -2 * (ss->ttPV)
+                    // Decrease if position is or has been on the PV and node is not likely to fail low (~10 Elo)
+                    -2 * (ss->ttPV && !likelyFailLow)
                     // Decrease if move has been singularly extended (~3 Elo)
                     -1 * (singularQuietLMR)
                     // Decrease if opponent's move count is high (~5 Elo)
@@ -1289,22 +1295,20 @@ namespace {
                         + (*contStats[0])[mpc][dstSq(move)]
                         + (*contStats[1])[mpc][dstSq(move)]
                         + (*contStats[3])[mpc][dstSq(move)]
-                        - 5287;
+                        - 4741;
 
                     // Decrease/Increase reduction by comparing opponent's stat score (~10 Elo)
-                    if (ss->stats >= -105 && (ss-1)->stats < -103) {
+                    if (ss->stats >= -89 && (ss-1)->stats < -116) {
                         --reductDepth;
                     } else
-                    if ((ss-1)->stats >= -122 && ss->stats < -129) {
+                    if ((ss-1)->stats >= -112 && ss->stats < -100) {
                         ++reductDepth;
                     }
 
                     // Decrease/Increase reduction for moves with a good/bad history (~30 Elo)
                     reductDepth -= ss->inCheck ?
-                                       ( thread->mainStats[activeSide][mMask(move)]
-                                       + (*contStats[0])[mpc][dstSq(move)]
-                                       - 4333) / 16384 :
-                                       ss->stats / 14884;
+                                    (thread->mainStats[activeSide][mMask(move)] + (*contStats[0])[mpc][dstSq(move)] - 3833) / 16384 :
+                                    ss->stats / 14790;
 
                 }
 
@@ -1452,7 +1456,9 @@ namespace {
 
             // Quiet best move: update move sorting heuristics.
             if (!pos.captureOrPromotion(bestMove)) {
-                auto const bonus2{ bestValue > beta + VALUE_MG_PAWN ? bonus1 : statBonus(depth) };
+                auto const bonus2{ bestValue > beta + VALUE_MG_PAWN ?
+                                    bonus1 :                                // large bonus
+                                    std::min(bonus1, statBonus(depth)) };   // small bonus
 
                 updateQuietRefutationStats(ss, pos, bestMove, depth, bonus2);
                 // Decrease all the other played quiet moves

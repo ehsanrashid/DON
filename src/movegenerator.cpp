@@ -183,9 +183,8 @@ namespace {
 
 template<GenType GT>
 void generate(ValMoves &moves, Position const &pos) noexcept {
-    static_assert(GT == CAPTURE
-                || GT == QUIET
-                || GT == NORMAL, "GT incorrect");
+    static_assert(GT != LEGAL, "Unsupported type in generate()");
+
     assert(pos.checkers() == 0);
 
     Bitboard const targets{
@@ -213,7 +212,6 @@ template<> void generate<EVASION>(ValMoves &moves, Position const &pos) noexcept
 
     // Double-check, only king move can save the day
     if (!moreThanOne(pos.checkers())) {
-
         // Generates blocking or captures of the checking piece
         Bitboard const targets{ pos.checkers() | betweenBB(pos.square(pos.activeSide()|KING), scanLSq(pos.checkers())) };
 

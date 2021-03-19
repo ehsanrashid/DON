@@ -325,9 +325,7 @@ bool Position::legal(Move m) const noexcept {
         //// In case of Chess960, verify that when moving the castling rook we do not discover some hidden checker.
         //// For instance an enemy queen in SQ_A1 when castling rook is in SQ_B1.
         //return !Options["UCI_Chess960"]
-        //    || (pieces(~active, ROOK, QUEN)
-        //      & rankBB(org)
-        //      & attacksBB<ROOK>(kingCastleSq(org, dst), mocc)) == 0;
+        //    || !isKingBlockersOn(active, dst);
         return true;
     }
 
@@ -342,9 +340,11 @@ bool Position::legal(Move m) const noexcept {
             && emptyOn(dst)
             && board[dst - PawnPush[active]] == (~active|PAWN));
 
-        Bitboard const mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
-        return (pieces(~active, BSHP, QUEN) & attacksBB<BSHP>(square(active|KING), mocc)) == 0
-            && (pieces(~active, ROOK, QUEN) & attacksBB<ROOK>(square(active|KING), mocc)) == 0;
+        //Bitboard const mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
+        //return (pieces(~active, BSHP, QUEN) & attacksBB<BSHP>(square(active|KING), mocc)) == 0
+        //    && (pieces(~active, ROOK, QUEN) & attacksBB<ROOK>(square(active|KING), mocc)) == 0;
+        return !contains(_stateInfo->prevState->kingBlockers[active], org)
+            || aligned(square(active|KING), org, dst);
     }
 
     return
@@ -386,11 +386,14 @@ bool Position::giveCheck(Move m) const noexcept {
     case ENPASSANT: {
         // Already handled the case of direct checks and ordinary discovered check,
         // the only case need to handle is the unusual case of a discovered check through the captured pawn.
-        Bitboard const mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
-        return (pieces(active, BSHP, QUEN)
-              & attacksBB<BSHP>(square(~active|KING), mocc)) != 0
-            || (pieces(active, ROOK, QUEN)
-              & attacksBB<ROOK>(square(~active|KING), mocc)) != 0;
+        //Bitboard const mocc{ (pieces() ^ org ^ makeSquare(sFile(dst), sRank(org))) | dst };
+        //return (pieces(active, BSHP, QUEN)
+        //      & attacksBB<BSHP>(square(~active|KING), mocc)) != 0
+        //    || (pieces(active, ROOK, QUEN)
+        //      & attacksBB<ROOK>(square(~active|KING), mocc)) != 0;
+        return _stateInfo->prevState->checkers != 0
+            || (sRank(square(~active|KING)) == sRank(org)
+             && contains(_stateInfo->prevState->kingBlockers[~active], org));
     }
     case PROMOTE: {
         auto const ppt{ promoteType(m) };
@@ -402,8 +405,11 @@ bool Position::giveCheck(Move m) const noexcept {
           && contains(attacksBB<ROOK>(dst, mocc), square(~active|KING)));
     }
     //case CASTLE:
-    default:
-        return contains(attacksBB<ROOK>(rookCastleSq(org, dst), pieces() ^ org ^ dst), square(~active|KING));
+    default: {
+        auto const rookDst{ rookCastleSq(org, dst) };
+        return contains(attacksBB(ROOK, rookDst), square(~active|KING)) 
+            && contains(attacksBB<ROOK>(rookDst, pieces() ^ org ^ dst), square(~active|KING));
+    }
     }
 }
 
@@ -735,7 +741,16 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
         _stateInfo->epSquare = makeSquare(toFile(file), toRank(rank));
         enpassant = canEnpassant(active, _stateInfo->epSquare);
     }
-    if (!enpassant) {
+    if (enpassant) {
+        _stateInfo->prevState = new StateInfo();
+        removePiece(_stateInfo->epSquare - PawnPush[active]);
+        placePiece(_stateInfo->epSquare + PawnPush[active], ~active|PAWN);
+        _stateInfo->prevState->checkers = attackersTo(square(~active|KING)) & pieces(active);
+        _stateInfo->prevState->kingBlockers[WHITE] = sliderBlockersOn(square(WHITE|KING), pieces(BLACK), _stateInfo->prevState->kingCheckers[WHITE], _stateInfo->prevState->kingCheckers[BLACK]);
+        _stateInfo->prevState->kingBlockers[BLACK] = sliderBlockersOn(square(BLACK|KING), pieces(WHITE), _stateInfo->prevState->kingCheckers[BLACK], _stateInfo->prevState->kingCheckers[WHITE]);
+        removePiece(_stateInfo->epSquare + PawnPush[active]);
+        placePiece(_stateInfo->epSquare - PawnPush[active], ~active|PAWN);
+    } else {
         _stateInfo->epSquare = SQ_NONE;
     }
 
@@ -1075,7 +1090,7 @@ void Position::undoMove(Move m) noexcept {
                 assert(pType(mpc) == PAWN //&& contains(pieces(active, PAWN), org)
                     && relativeRank(active, org) == RANK_5
                     && relativeRank(active, dst) == RANK_6
-                    && dst == _stateInfo->prevState->epSquare
+                    && _stateInfo->prevState->epSquare == dst
                     && _stateInfo->captured == PAWN);
             }
             assert(emptyOn(cap));

@@ -11,21 +11,21 @@ namespace Pawns {
     namespace {
         // Connected pawn bonus
         constexpr int32_t Connected[RANKS]{
-            0, 5, 7, 11, 24, 48, 86, 0
+            0, 5, 7, 11, 23, 48, 87, 0
         };
 
         auto constexpr S = makeScore;
 
-        constexpr Score Backward      { S( 6, 23) };
-        constexpr Score Isolated      { S( 2, 15) };
-        constexpr Score Unopposed     { S(16, 22) };
-        constexpr Score EarlyDoubled  { S(20, 10) };
-        constexpr Score WeakDoubled   { S(13, 53) };
-        constexpr Score WeakTwiceLever{ S( 5, 57) };
+        constexpr Score Backward      { S( 9, 22) };
+        constexpr Score Isolated      { S( 3, 15) };
+        constexpr Score Unopposed     { S(13, 24) };
+        constexpr Score EarlyDoubled  { S(20,  7) };
+        constexpr Score WeakDoubled   { S(13, 51) };
+        constexpr Score WeakTwiceLever{ S( 4, 58) };
 
         // Bonus for blocked pawns at 5th or 6th rank
         constexpr Score Blocked[2]{
-            S(-15, -3), S(-6, 3)
+            S(-17, -6), S(-9, 2)
         };
 
     }
