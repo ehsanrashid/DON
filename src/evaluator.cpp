@@ -1152,23 +1152,23 @@ namespace Evaluator {
             Color Us = pos.activeSide();
             if (contains(pos.pieces(Us, BSHP), relativeSq(Us, SQ_A1))
              && contains(pos.pieces(Us, PAWN), relativeSq(Us, SQ_B2))) {
-                bAdjust -= !pos.emptyOn(relativeSq(Us, SQ_B3))              ? v1
-                         :  pos.pieceOn(relativeSq(Us, SQ_C3)) == (Us|PAWN) ? v2 : v3;
+                bAdjust -= !pos.emptyOn(relativeSq(Us, SQ_B3))              ? v1 :
+                            pos.pieceOn(relativeSq(Us, SQ_C3)) == (Us|PAWN) ? v2 : v3;
             }
             if (contains(pos.pieces(Us, BSHP), relativeSq(Us, SQ_H1))
              && contains(pos.pieces(Us, PAWN), relativeSq(Us, SQ_G2))) {
-                bAdjust -= !pos.emptyOn(relativeSq(Us, SQ_G3))              ? v1
-                         :  pos.pieceOn(relativeSq(Us, SQ_F3)) == (Us|PAWN) ? v2 : v3;
+                bAdjust -= !pos.emptyOn(relativeSq(Us, SQ_G3))              ? v1 :
+                            pos.pieceOn(relativeSq(Us, SQ_F3)) == (Us|PAWN) ? v2 : v3;
             }
             if (contains(pos.pieces(~Us, BSHP), relativeSq(Us, SQ_A8))
              && contains(pos.pieces(~Us, PAWN), relativeSq(Us, SQ_B7))) {
-                bAdjust += !pos.emptyOn(relativeSq(Us, SQ_B6))               ? v1
-                         :  pos.pieceOn(relativeSq(Us, SQ_C6)) == (~Us|PAWN) ? v2 : v3;
+                bAdjust += !pos.emptyOn(relativeSq(Us, SQ_B6))               ? v1 :
+                            pos.pieceOn(relativeSq(Us, SQ_C6)) == (~Us|PAWN) ? v2 : v3;
             }
             if (contains(pos.pieces(~Us, BSHP), relativeSq(Us, SQ_H8))
              && contains(pos.pieces(~Us, PAWN), relativeSq(Us, SQ_G7))) {
-                bAdjust += !pos.emptyOn(relativeSq(Us, SQ_G6))               ? v1
-                         :  pos.pieceOn(relativeSq(Us, SQ_F6)) == (~Us|PAWN) ? v2 : v3;
+                bAdjust += !pos.emptyOn(relativeSq(Us, SQ_G6))               ? v1 :
+                            pos.pieceOn(relativeSq(Us, SQ_F6)) == (~Us|PAWN) ? v2 : v3;
             }
             return bAdjust;
         }

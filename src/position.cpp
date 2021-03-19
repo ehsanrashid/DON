@@ -742,14 +742,15 @@ Position& Position::setup(std::string_view ff, StateInfo &si, Thread *th) {
         enpassant = canEnpassant(active, _stateInfo->epSquare);
     }
     if (enpassant) {
+        auto const enemyPawn{ ~active|PAWN };
         _stateInfo->prevState = new StateInfo();
         removePiece(_stateInfo->epSquare - PawnPush[active]);
-        placePiece(_stateInfo->epSquare + PawnPush[active], ~active|PAWN);
+        placePiece(_stateInfo->epSquare + PawnPush[active], enemyPawn);
         _stateInfo->prevState->checkers = attackersTo(square(~active|KING)) & pieces(active);
         _stateInfo->prevState->kingBlockers[WHITE] = sliderBlockersOn(square(WHITE|KING), pieces(BLACK), _stateInfo->prevState->kingCheckers[WHITE], _stateInfo->prevState->kingCheckers[BLACK]);
         _stateInfo->prevState->kingBlockers[BLACK] = sliderBlockersOn(square(BLACK|KING), pieces(WHITE), _stateInfo->prevState->kingCheckers[BLACK], _stateInfo->prevState->kingCheckers[WHITE]);
         removePiece(_stateInfo->epSquare + PawnPush[active]);
-        placePiece(_stateInfo->epSquare - PawnPush[active], ~active|PAWN);
+        placePiece(_stateInfo->epSquare - PawnPush[active], enemyPawn);
     } else {
         _stateInfo->epSquare = SQ_NONE;
     }
