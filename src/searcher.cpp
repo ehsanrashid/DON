@@ -780,8 +780,7 @@ namespace {
 
             // A small Probcut idea, when we are in check
             probCutBeta = beta + 400;
-            if (ss->inCheck
-             && !PVNode
+            if (!PVNode
              && depth >= 4
              && ttmCapture
              && (tte->bound() & BOUND_LOWER)
@@ -1309,7 +1308,10 @@ namespace {
 
                 }
 
-                Depth const d(std::clamp(newDepth - reductDepth, { 1 }, { newDepth }));
+                // In general we want to cap the LMR depth search at newDepth. But for nodes
+                // close to the principal variation the cap is at (newDepth + 1), which will
+                // allow these nodes to be searched deeper than the pv (up to 4 plies deeper).
+                Depth const d = std::clamp(newDepth - reductDepth, 1, newDepth + ((ss+1)->distanceFromPV <= 4));
                 assert(d <= newDepth);
                 value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, d, true);
 
