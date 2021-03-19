@@ -87,11 +87,6 @@ namespace {
                v <= -VALUE_MATE_2_MAX_PLY ? v - ply : v;
     }
 
-    /// Based on a congruential pseudo random number generator
-    constexpr Key makeKey(uint64_t seed) {
-        return(seed * U64(6364136223846793005) + U64(1442695040888963407));
-    }
-
     /// valueOfTT() adjusts a mate or TB score from the transposition table
     /// (which refers to the plies to mate/be mated from current position)
     /// to "plies to mate/be mated (TB win/loss) from the root".

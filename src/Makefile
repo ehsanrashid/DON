@@ -396,11 +396,8 @@ ifeq ($(COMP), clang)
 	CXX = clang++
 	CXXFLAGS += -pedantic -Wextra -Wshadow
 
-	#ifneq ($(filter $(KERNEL), Darwin OpenBSD), )
-	ifneq ($(KERNEL), Darwin)
-		ifneq ($(KERNEL), OpenBSD)
-			LDFLAGS += -latomic
-		endif
+	ifneq (, $(filter $(KERNEL), Darwin OpenBSD FreeBSD))
+		LDFLAGS += -latomic
 	endif
 
 	ifeq ($(arch), $(filter $(arch), armv7 armv8))
@@ -513,6 +510,10 @@ ifeq ($(optimize), yes)
 			CXXFLAGS += -mdynamic-no-pic
 		endif
 	endif
+	
+	ifeq ($(comp), clang)
+		CXXFLAGS += -fexperimental-new-pass-manager
+	endif
 endif
 
 ### 3.4 Bits
@@ -621,7 +622,7 @@ endif
 ifeq ($(optimize), yes)
 	ifeq ($(debug), no)
 		ifeq ($(comp), clang)
-			CXXFLAGS += -flto=thin
+			CXXFLAGS += -flto
 			ifneq ($(findstring MINGW, $(KERNEL)), )
 				CXXFLAGS += -fuse-ld=lld
 			else ifneq ($(findstring MSYS, $(KERNEL)), )
@@ -641,7 +642,7 @@ ifeq ($(optimize), yes)
 					LDFLAGS += -save-temps
 				endif
 			else
-				CXXFLAGS += -flto=thin
+				CXXFLAGS += -flto
 				LDFLAGS += $(CXXFLAGS)
 			endif
 
@@ -812,7 +813,7 @@ objclean:
 # Clean auxiliary profiling files
 profileclean:
 	@rm -rf profdir
-	@rm -f bench.txt *.gcda ./nnue/*.gcda ./nnue/features/*.gcda *.gcno *.s
+	@rm -f bench.txt *.s *.gcno *.gcda ./nnue/*.gcda ./nnue/features/*.gcda
 	@rm -f DON.profdata *.profraw
 
 default:

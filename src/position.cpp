@@ -1140,7 +1140,7 @@ void Position::doNullMove(StateInfo &si) noexcept {
     active = ~active;
     _stateInfo->posiKey ^= RandZob.side;
 
-    prefetch(TT.cluster(_stateInfo->posiKey)->entry);
+    prefetch(TT.cluster(posiKey())->entry);
     setCheckInfo();
 
     _stateInfo->repetition = 0;

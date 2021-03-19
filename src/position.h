@@ -335,7 +335,9 @@ inline Key Position::pawnKey() const noexcept {
     return _stateInfo->pawnKey;
 }
 inline Key Position::posiKey() const noexcept {
-    return _stateInfo->posiKey;
+    return _stateInfo->clockPly < 14 ?
+            _stateInfo->posiKey :
+            _stateInfo->posiKey ^ makeKey((_stateInfo->clockPly - 14) / 8);
 }
 inline Bitboard Position::checkers() const noexcept {
     return _stateInfo->checkers;

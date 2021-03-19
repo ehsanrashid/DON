@@ -1137,6 +1137,42 @@ namespace Evaluator {
 
             return v;
         }
+
+
+        // specifically correct for cornered bishops to fix FRC with NNUE.
+        Value fixFRC(Position const &pos) {
+
+            Value bAdjust = Value(0);
+
+            constexpr Value
+                v1 = Value(209),
+                v2 = Value(136),
+                v3 = Value(148);
+
+            Color Us = pos.activeSide();
+            if (contains(pos.pieces(Us, BSHP), relativeSq(Us, SQ_A1))
+             && contains(pos.pieces(Us, PAWN), relativeSq(Us, SQ_B2))) {
+                bAdjust -= !pos.emptyOn(relativeSq(Us, SQ_B3))              ? v1
+                         :  pos.pieceOn(relativeSq(Us, SQ_C3)) == (Us|PAWN) ? v2 : v3;
+            }
+            if (contains(pos.pieces(Us, BSHP), relativeSq(Us, SQ_H1))
+             && contains(pos.pieces(Us, PAWN), relativeSq(Us, SQ_G2))) {
+                bAdjust -= !pos.emptyOn(relativeSq(Us, SQ_G3))              ? v1
+                         :  pos.pieceOn(relativeSq(Us, SQ_F3)) == (Us|PAWN) ? v2 : v3;
+            }
+            if (contains(pos.pieces(~Us, BSHP), relativeSq(Us, SQ_A8))
+             && contains(pos.pieces(~Us, PAWN), relativeSq(Us, SQ_B7))) {
+                bAdjust += !pos.emptyOn(relativeSq(Us, SQ_B6))               ? v1
+                         :  pos.pieceOn(relativeSq(Us, SQ_C6)) == (~Us|PAWN) ? v2 : v3;
+            }
+            if (contains(pos.pieces(~Us, BSHP), relativeSq(Us, SQ_H8))
+             && contains(pos.pieces(~Us, PAWN), relativeSq(Us, SQ_G7))) {
+                bAdjust += !pos.emptyOn(relativeSq(Us, SQ_G6))               ? v1
+                         :  pos.pieceOn(relativeSq(Us, SQ_F6)) == (~Us|PAWN) ? v2 : v3;
+            }
+            return bAdjust;
+        }
+
     }
 
     /// evaluate() returns a static evaluation of the position from the point of view of the side to move.
@@ -1151,21 +1187,26 @@ namespace Evaluator {
             // Scale and shift NNUE for compatibility with search and classical evaluation
             auto const nnueAdjEvaluate = [&]() {
                 int32_t const mat{ npm + VALUE_MG_PAWN * pos.count(PAWN) };
-                int32_t const scale{ (679 + mat / 32) / 1024 };
-                return NNUE::evaluate(pos) * scale + VALUE_TEMPO;
+                int32_t const scale{ (641 + mat / 32 - pos.clockPly()) / 1024 };
+                Value nnueValue = NNUE::evaluate(pos) * scale + VALUE_TEMPO;
+
+                if (Options["UCI_Chess960"]) {
+                    nnueValue += fixFRC(pos);
+                }
+                return nnueValue;
             };
 
             // If there is PSQ imbalance use classical eval, with small probability if it is small
             Value   const psq{ Value(std::abs(egValue(pos.psqScore()))) };
             int32_t const r50{ 16 + pos.clockPly() };
             bool    const psqLarge{ psq * 16 > (NNUEThreshold1 + npm / 64) * r50 };
-            bool    const certainEndgames{
+            bool    const lowEndgames{
                 npm < 2 * VALUE_MG_ROOK
              && pos.count(PAWN) < 2 };
 
             bool    const classical{
                 psqLarge
-             || certainEndgames
+             || lowEndgames
              || (psq > VALUE_MG_PAWN / 4
               && (pos.thread()->nodes & 0xB) == 0) };
 
@@ -1176,7 +1217,7 @@ namespace Evaluator {
                 // For the case of opposite colored bishops, switch to NNUE eval with
                 // small probability if the classical eval is less than the threshold.
                 if ( psqLarge
-                 && !certainEndgames
+                 && !lowEndgames
                  && (std::abs(v) * 16 < (NNUEThreshold2) * r50
                   || (pos.bishopOpposed()
                    && std::abs(v) * 16 < (NNUEThreshold1 + npm / 64) * r50
