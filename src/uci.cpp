@@ -999,7 +999,8 @@ namespace UCI {
                     std::cout << "(" << moveCount << ")\n";
                 }
                 std::cout << sync_endl;
-            } else {
+            } else
+            if (!token.empty() && token[0] != '#') {
                 sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
             }
 

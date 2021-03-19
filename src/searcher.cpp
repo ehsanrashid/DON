@@ -51,6 +51,7 @@ namespace {
         Move        killerMoves[2];
 
         uint16_t    moveCount;
+        uint16_t    distanceFromPV;
         bool        inCheck;
         bool        ttPV;
         bool        ttHit;
@@ -427,11 +428,10 @@ namespace {
 
             // Futility pruning
             if (bestValue > +VALUE_MATE_2_MAX_PLY
-             && !giveCheck
              && futilityBase > -VALUE_KNOWN_WIN
-             && !pos.advancedPawnPush(move)
+             && !giveCheck
+             && mType(move) != PROMOTE
              && Limits.mate == 0) {
-                assert(mType(move) != ENPASSANT); // Due to !pos.advancedPawnPush()
 
                 // Move Count pruning
                 if (moveCount > 2) {
@@ -618,6 +618,10 @@ namespace {
         (ss+1)->excludedMove = MOVE_NONE;
         (ss+2)->killerMoves[0] = (ss+2)->killerMoves[1] = MOVE_NONE;
 
+        if (PVNode) {
+            ss->distanceFromPV = 0;
+        }
+
         Move pv[MAX_PLY + 1];
         Value value;
         auto bestValue{ -VALUE_INFINITE };
@@ -757,18 +761,37 @@ namespace {
             ttMove = MOVE_NONE;
         }
 
+        bool const ttmCapture{ ttMove != MOVE_NONE
+                            && pos.captureOrPromotion(ttMove) };
+
         StateInfo si;
         ASSERT_ALIGNED(&si, CacheLineSize);
 
         bool improving;
         Value eval;
         Move move;
+        Value probCutBeta;
 
         // Step 6. Static evaluation of the position
         if (ss->inCheck) {
 
             ss->staticEval = eval = VALUE_NONE;
             improving = false;
+
+            // A small Probcut idea, when we are in check
+            probCutBeta = beta + 400;
+            if (ss->inCheck
+             && !PVNode
+             && depth >= 4
+             && ttmCapture
+             && (tte->bound() & BOUND_LOWER)
+             && tte->depth() >= depth - 3
+             && ttValue >= probCutBeta
+             && abs(ttValue) <= +VALUE_KNOWN_WIN
+             && abs(beta) <= +VALUE_KNOWN_WIN) {
+                return probCutBeta;
+            }
+
         } else {
         // Early pruning
 
@@ -875,7 +898,7 @@ namespace {
                 }
             }
 
-            Value const probCutBeta( beta + 194 - 49 * improving );
+            probCutBeta = beta + 194 - 49 * improving;
 
             // Step 9. ProbCut. (~10 Elo)
             // If good enough capture and a reduced search returns a value much above beta,
@@ -988,8 +1011,6 @@ namespace {
         value = bestValue;
         bool singularQuietLMR{ false };
         bool moveCountPruning{ false };
-        bool const ttmCapture{ ttMove != MOVE_NONE
-                            && pos.captureOrPromotion(ttMove) };
 
         // Mark this node as being searched
         ThreadMarker threadMarker{ thread, posiKey, ss->ply };
@@ -1193,6 +1214,12 @@ namespace {
             // Step 14. Do the move
             pos.doMove(move, si, giveCheck);
 
+            (ss+1)->distanceFromPV = ss->distanceFromPV + moveCount - 1;
+
+            // Step 15. Late moves reduction / extension (LMR, ~200 Elo)
+            // We use various heuristics for the sons of a node after the first son has
+            // been searched. In general we would like to reduce them, but there are many
+            // cases where we extend a son if it has good chances to be "interesting".
             bool const doLMR{
                 depth >= 3
              && moveCount > 1 + 2 * rootNode
@@ -1207,8 +1234,6 @@ namespace {
               || thread->ttHitAvg < 432 * TTHitAverageWindow /* TTHitAverageResolution / 1024*/) };
 
             bool doFullSearch;
-            // Step 15. Reduced depth search (LMR, ~200 Elo).
-            // If the move fails high will be re-searched at full depth.
             if (doLMR) {
 
                 auto reductDepth{ reduction(depth, moveCount, improving) };
@@ -1288,6 +1313,7 @@ namespace {
                 assert(d <= newDepth);
                 value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, d, true);
 
+                // If the son is reduced and fails high it will be re-searched at full depth
                 doFullSearch = alfa < value && d < newDepth;
             } else {
                 doFullSearch = !PVNode || moveCount > 1;

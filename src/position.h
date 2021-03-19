@@ -171,7 +171,6 @@ public:
     Piece movedPiece(Move) const noexcept;
     bool capture(Move) const noexcept;
     bool captureOrPromotion(Move) const noexcept;
-    bool advancedPawnPush(Move) const noexcept;
     PieceType captured(Move) const noexcept;
 
     bool pseudoLegal(Move) const noexcept;
@@ -452,11 +451,6 @@ inline bool Position::captureOrPromotion(Move m) const noexcept {
     //    || (mType(m) == SIMPLE && contains(pieces(~active), dstSq(m)));
     return mType(m) == SIMPLE ?
             contains(pieces(~active), dstSq(m)) : mType(m) != CASTLE;
-}
-/// Position::advancedPawnPush() check if advanced pawn is push
-inline bool Position::advancedPawnPush(Move m) const noexcept {
-    return pType(board[orgSq(m)]) == PAWN
-        && relativeRank(active, dstSq(m)) > RANK_5;
 }
 
 inline PieceType Position::captured(Move m) const noexcept {

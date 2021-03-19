@@ -375,6 +375,13 @@ inline Square popLSq(Bitboard &bb) noexcept {
 //    return sq;
 //}
 
+/// lsqBB() returns the bitboard of the least significant square of a non-zero bitboard.
+/// It is equivalent to square_bb(lsb(bb)).
+inline Bitboard lsqBB(Bitboard bb) {
+    assert(bb != 0);
+    return bb & -bb;
+}
+
 namespace Bitboards {
 
     extern void initialize() noexcept;

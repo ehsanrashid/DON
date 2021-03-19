@@ -73,6 +73,7 @@ namespace {
         return VirtualAlloc(nullptr, mSize, MEM_RESERVE | MEM_COMMIT, PAGE_READWRITE);
     }
 
+    #if defined(_WIN64)
     void* allocAlignedLargePagesWin(size_t mSize) noexcept {
 
         void *mem{ nullptr };
@@ -112,6 +113,7 @@ namespace {
 
         return mem;
     }
+    #endif
 }
 
 #endif
@@ -120,9 +122,11 @@ namespace {
 void* allocAlignedLargePages(size_t mSize) noexcept {
 
 #if defined(_WIN32)
-
+    void *mem = nullptr;
+    #if defined(_WIN64)
     // Try to allocate large pages
-    void *mem = allocAlignedLargePagesWin(mSize);
+    mem = allocAlignedLargePagesWin(mSize);
+    #endif
     // Fall back to regular, page aligned, allocation if necessary
     if (mem == nullptr) {
         mem = allocAlignedStdWin(mSize);
