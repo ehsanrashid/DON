@@ -235,7 +235,7 @@ namespace {
                 continue;
             }
 
-            auto d{ updated ? depth : std::max(1, depth - 1) };
+            auto d{ updated ? depth : std::max(depth - 1, 1) };
             auto v{ updated ? th->rootMoves[i].newValue : th->rootMoves[i].oldValue };
 
             if (v == -VALUE_INFINITE) {
@@ -437,13 +437,13 @@ namespace {
                 // Futility pruning parent node
                 auto const futilityValue{ futilityBase + PieceValues[EG][pos.captured(move)] };
                 if (futilityValue <= alfa) {
-                    bestValue = std::max(futilityValue, bestValue);
+                    bestValue = std::max(bestValue, futilityValue);
                     continue;
                 }
                 // Prune moves with negative or zero SEE
                 if (futilityBase <= alfa
                  && !pos.see(move, VALUE_ZERO + 1)) {
-                    bestValue = std::max(futilityBase, bestValue);
+                    bestValue = std::max(bestValue, futilityBase);
                     continue;
                 }
             }
@@ -594,8 +594,8 @@ namespace {
             // then there is no need to search further, will never beat current alfa.
             // Same logic but with reversed signs applies also in the opposite condition of
             // being mated instead of giving mate, in this case return a fail-high score.
-            alfa = std::max(matedIn(ss->ply+0), alfa);
-            beta = std::min(matesIn(ss->ply+1), beta);
+            alfa = std::max(alfa, matedIn(ss->ply+0));
+            beta = std::min(beta, matesIn(ss->ply+1));
             if (alfa >= beta) {
                 return alfa;
             }
@@ -739,7 +739,8 @@ namespace {
 
                     if (PVNode) {
                         if (bound == BOUND_LOWER) {
-                            bestValue = value, alfa = std::max(alfa, bestValue);
+                            bestValue = value;
+                            alfa = std::max(alfa, bestValue);
                         } else {
                             maxValue = value;
                         }
@@ -1755,7 +1756,7 @@ void Thread::search() {
                 // Cap used time in case of a single legal move for a better viewer experience in tournaments
                 // yielding correct scores and sufficiently fast moves.
                 if (rootMoves.size() == 1) {
-                    totalTime = std::min(500.0, totalTime);
+                    totalTime = std::min(totalTime, 500.0);
                 }
 
                 auto const elapsed{ double(TimeMgr.elapsed()) };

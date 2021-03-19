@@ -6,6 +6,12 @@
 #include "position.h"
 #include "type.h"
 
+// Constants used to refresh the hash table periodically
+constexpr int USED_BITS         = 3;                          // nb of bits reserved
+constexpr int GENERATION_DELTA  = (1 << USED_BITS);           // increment for generation field
+constexpr int GENERATION_CYCLE  = 0xFF + (1 << USED_BITS);    // cycle length
+constexpr int GENERATION_MASK   = (0xFF << USED_BITS) & 0xFF; // mask to pull out generation number
+
 /// Transposition::Entry needs 16 byte to be stored
 ///
 ///  Key        16 bits
@@ -26,7 +32,7 @@ public:
     //Key            key() const noexcept { return Key(k16); }
     Depth        depth() const noexcept { return Depth(d08 + DEPTH_OFFSET); }
 
-    uint8_t generation() const noexcept { return uint8_t(g08 & 0xF8); }
+    uint8_t generation() const noexcept { return uint8_t(g08 & GENERATION_MASK); }
     bool          isPV() const noexcept { return bool   (g08 & 0x04); }
     Bound        bound() const noexcept { return Bound  (g08 & 0x03); }
 
@@ -35,9 +41,9 @@ public:
 
     Move          move() const noexcept { return Move(m16); }
 
-    int32_t      worth() const noexcept { return d08 - ((0x107 + Generation - g08) & 0xF8); }
+    int32_t      worth() const noexcept { return d08 - ((GENERATION_CYCLE + Generation - g08) & GENERATION_MASK); }
 
-    void       refresh() noexcept { g08 = uint8_t(Generation | (g08 & 0x07)); }
+    void       refresh() noexcept { g08 = uint8_t(Generation | (g08 & (GENERATION_DELTA - 1))); }
 
     void save(Key k, Move m, Value v, Value e, Depth d, Bound b, bool pv) noexcept {
 
@@ -64,7 +70,7 @@ public:
     }
 
     static void updateGeneration() noexcept {
-        Generation += 8;
+        Generation += GENERATION_DELTA;
     }
 
     // "Generation" variable distinguish transposition table entries from different searches.
