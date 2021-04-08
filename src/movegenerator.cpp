@@ -270,7 +270,7 @@ template<> void generate<LEGAL>(ValMoves &moves, Position const &pos) noexcept {
                                         || ((mType(vm) == CASTLE
                                           || mType(vm) == ENPASSANT
                                             // Pinned pieces
-                                          || contains(pos.kingBlockers(pos.activeSide()), orgSq(vm)))
+                                          || pos.isKingBlockersOn(pos.activeSide(), orgSq(vm)))
                                          && !pos.legal(vm));
                                 }), moves.end());
 }

@@ -102,6 +102,7 @@ namespace {
 #endif
 
         uint16_t size{ 0 };
+        //uint16_t cnt{ 0 };
         for (Square s = SQ_A1; s <= SQ_H8; ++s) {
 
             Magic &magic{ magics[s] };
@@ -166,6 +167,7 @@ namespace {
                 // looks up the correct slide attack in the magics[s].attacks database.
                 // Note that build up the database for square as a side effect of verifying the magic.
                 std::vector<bool> epoch(size, false);
+                //++cnt;
                 for (i = 0; i < size; ++i) {
 
                     uint16_t idx{ magic.index(occupancy[i]) };
