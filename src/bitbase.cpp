@@ -2,6 +2,7 @@
 
 #include <cassert>
 #include <bitset>
+#include <vector>
 
 #include "bitboard.h"
 

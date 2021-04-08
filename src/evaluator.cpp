@@ -97,6 +97,7 @@ namespace Evaluator {
                         << "info string ERROR: These network evaluation parameters must be available, and compatible with this version of the code.\n"
                         << "info string ERROR: The UCI option 'Eval File' might need to specify the full path, including the directory/folder name, to the file.\n"
                         << "info string ERROR: The default net can be downloaded from: https://tests.stockfishchess.org/api/nn/" << Options["Eval File"].defaultValue() << sync_endl;
+                    system("pause");
                     std::exit(EXIT_FAILURE);
                 }
                 sync_cout << "info string NNUE evaluation using " << evalFile << " enabled." << sync_endl;
