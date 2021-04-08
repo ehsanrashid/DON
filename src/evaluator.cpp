@@ -183,6 +183,9 @@ namespace Evaluator {
             slotFileBB(CS_CENTRE) & (rankBB(RANK_7)|rankBB(RANK_6)|rankBB(RANK_5))
         };
 
+
+        constexpr Value BishopTrapped = Value(50);
+
         auto constexpr S = makeScore;
 
         constexpr Score Mobility[PIECE_TYPES_EX][28]{
@@ -230,7 +233,6 @@ namespace Evaluator {
         constexpr Score BishopOnDiagonal  { S( 45,  0) };
         constexpr Score BishopPawnsXRayed { S(  4,  5) };
         constexpr Score BishopOnKingRing  { S( 24,  0) };
-        constexpr Score BishopTrapped     { S( 50, 50) };
         constexpr Score RookOnSemiopenFile{ S( 19,  6) };
         constexpr Score RookOnFullopenFile{ S( 28, 20) };
         constexpr Score RookOnClosedFile  { S( 10,  5) };
@@ -409,11 +411,14 @@ namespace Evaluator {
                     kingAttacksCount   [Own] += popCount(attacks & attackedBy[Opp][KING]);
                 } else
                 if (PT == BSHP
-                 && (kingRing[Opp] & attacksBB<BSHP>(s, pos.pieces(PAWN))) != 0) {
+                 && (kingRing[Opp]
+                   & attacksBB<BSHP>(s, pos.pieces(PAWN))) != 0) {
                     score += BishopOnKingRing;
                 } else
                 if (PT == ROOK
-                 && (kingRing[Opp] & fileBB(s) & attacksBB<ROOK>(s, pos.pieces(Own, PAWN))) != 0) {
+                 && (kingRing[Opp]
+                   & fileBB(s)
+                   /*& attacksBB<ROOK>(s, pos.pieces(Own, PAWN))*/) != 0) {
                     score += RookOnKingRing;
                 }
 
@@ -502,10 +507,10 @@ namespace Evaluator {
                           || relativeSq(Own, s) == SQ_H1)) {
 
                             auto const del{ PawnPush[Own] + sign(FILE_E - sFile(s)) * EAST };
-                            if (contains(pos.pieces(Own, PAWN), s + del)) {
-                                score -= BishopTrapped
-                                       * (contains(pos.pieces(), s + del + PawnPush[Own]) ? 4 :
-                                          contains(pos.pieces(Own, PAWN), s + del + del)  ? 2 : 1);
+                            if (pos.pieceOn(s + del) == (Own|PAWN)) {
+                                score -= pos.emptyOn(s + del + PawnPush[Own]) ?
+                                            3 * makeScore(BishopTrapped, BishopTrapped) :
+                                            4 * makeScore(BishopTrapped, BishopTrapped);
                             }
                         }
                     }
@@ -1142,35 +1147,44 @@ namespace Evaluator {
         // specifically correct for cornered bishops to fix FRC with NNUE.
         Value fixFRC(Position const &pos) {
 
-            Value bAdjust = Value(0);
+            constexpr Bitboard Corners = 1ULL << SQ_A1
+                                       | 1ULL << SQ_H1
+                                       | 1ULL << SQ_A8
+                                       | 1ULL << SQ_H8;
 
-            constexpr Value
-                v1 = Value(209),
-                v2 = Value(136),
-                v3 = Value(148);
+            if ((pos.pieces(BSHP) & Corners) == 0) {
+                return VALUE_ZERO;
+            }
 
-            Color Us = pos.activeSide();
-            if (contains(pos.pieces(Us, BSHP), relativeSq(Us, SQ_A1))
-             && contains(pos.pieces(Us, PAWN), relativeSq(Us, SQ_B2))) {
-                bAdjust -= !pos.emptyOn(relativeSq(Us, SQ_B3))              ? v1 :
-                            pos.pieceOn(relativeSq(Us, SQ_C3)) == (Us|PAWN) ? v2 : v3;
+            Value correction = VALUE_ZERO;
+
+            if (pos.pieceOn(SQ_A1) == W_BSHP
+             && pos.pieceOn(SQ_B2) == W_PAWN) {
+                correction -= pos.emptyOn(SQ_B3) ?
+                                3 * BishopTrapped :
+                                4 * BishopTrapped;
             }
-            if (contains(pos.pieces(Us, BSHP), relativeSq(Us, SQ_H1))
-             && contains(pos.pieces(Us, PAWN), relativeSq(Us, SQ_G2))) {
-                bAdjust -= !pos.emptyOn(relativeSq(Us, SQ_G3))              ? v1 :
-                            pos.pieceOn(relativeSq(Us, SQ_F3)) == (Us|PAWN) ? v2 : v3;
+            if (pos.pieceOn(SQ_H1) == W_BSHP
+             && pos.pieceOn(SQ_G2) == W_PAWN) {
+                correction -= pos.emptyOn(SQ_G3) ?
+                                3 * BishopTrapped :
+                                4 * BishopTrapped;
             }
-            if (contains(pos.pieces(~Us, BSHP), relativeSq(Us, SQ_A8))
-             && contains(pos.pieces(~Us, PAWN), relativeSq(Us, SQ_B7))) {
-                bAdjust += !pos.emptyOn(relativeSq(Us, SQ_B6))               ? v1 :
-                            pos.pieceOn(relativeSq(Us, SQ_C6)) == (~Us|PAWN) ? v2 : v3;
+            if (pos.pieceOn(SQ_A8) == B_BSHP
+             && pos.pieceOn(SQ_B7) == B_PAWN) {
+                correction -= pos.emptyOn(SQ_B6) ?
+                                3 * BishopTrapped :
+                                4 * BishopTrapped;
             }
-            if (contains(pos.pieces(~Us, BSHP), relativeSq(Us, SQ_H8))
-             && contains(pos.pieces(~Us, PAWN), relativeSq(Us, SQ_G7))) {
-                bAdjust += !pos.emptyOn(relativeSq(Us, SQ_G6))               ? v1 :
-                            pos.pieceOn(relativeSq(Us, SQ_F6)) == (~Us|PAWN) ? v2 : v3;
+            if (pos.pieceOn(SQ_H8) == B_BSHP
+             && pos.pieceOn(SQ_G7) == B_PAWN) {
+                correction -= pos.emptyOn(SQ_G6) ?
+                                3 * BishopTrapped :
+                                4 * BishopTrapped;
             }
-            return bAdjust;
+
+            return pos.activeSide() == WHITE ?
+                    +correction : -correction;
         }
 
     }
@@ -1186,9 +1200,9 @@ namespace Evaluator {
             auto const npm{ pos.nonPawnMaterial() };
             // Scale and shift NNUE for compatibility with search and classical evaluation
             auto const nnueAdjEvaluate = [&]() {
-                int32_t const mat{ npm + VALUE_MG_PAWN * pos.count(PAWN) };
-                int32_t const scale{ (641 + mat / 32 - pos.clockPly()) / 1024 };
-                Value nnueValue = NNUE::evaluate(pos) * scale + VALUE_TEMPO;
+                int32_t const mat{ npm + 4 * VALUE_MG_PAWN * pos.count(PAWN) };
+                int32_t const scale{ 580 + mat / 32 - 4 * pos.clockPly() };
+                Value nnueValue = NNUE::evaluate(pos) * scale / 1024 + VALUE_TEMPO;
 
                 if (Options["UCI_Chess960"]) {
                     nnueValue += fixFRC(pos);

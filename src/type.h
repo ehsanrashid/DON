@@ -363,6 +363,7 @@ constexpr Score operator/(Score s, int i) {
 //    return score;
 //}
 constexpr Score operator*(Score s, int i) { return Score(int(s) * i); }
+constexpr Score operator*(int i, Score s) { return Score(int(s) * i); }
 
 inline Score& operator/=(Score &s, int i) { return s = s / i; }
 inline Score& operator*=(Score &s, int i) { return s = s * i; }

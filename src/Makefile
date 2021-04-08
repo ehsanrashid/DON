@@ -19,7 +19,11 @@ PREFIX = /usr/local
 BINDIR = $(PREFIX)/bin
 
 ### Built-in benchmark for pgo-builds
-PGOBENCH = ./$(EXE) bench
+ifneq ($(SDE_PATH), )
+	PGOBENCH = $(SDE_PATH) -- ./$(EXE) bench
+else
+	PGOBENCH = ./$(EXE) bench
+endif
 
 ### Source and Object files
 SRCS =  main.cpp \

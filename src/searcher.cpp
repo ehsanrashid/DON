@@ -51,7 +51,6 @@ namespace {
         Move        killerMoves[2];
 
         uint16_t    moveCount;
-        uint16_t    distanceFromPV;
         bool        inCheck;
         bool        ttPV;
         bool        ttHit;
@@ -613,10 +612,6 @@ namespace {
         (ss+1)->ttPV = false;
         (ss+1)->excludedMove = MOVE_NONE;
         (ss+2)->killerMoves[0] = (ss+2)->killerMoves[1] = MOVE_NONE;
-
-        if (PVNode) {
-            ss->distanceFromPV = 0;
-        }
 
         Move pv[MAX_PLY + 1];
         Value value;
@@ -1211,8 +1206,6 @@ namespace {
             // Step 14. Do the move
             pos.doMove(move, si, giveCheck);
 
-            (ss+1)->distanceFromPV = ss->distanceFromPV + moveCount - 1;
-
             // Step 15. Late moves reduction / extension (LMR, ~200 Elo)
             // We use various heuristics for the sons of a node after the first son has
             // been searched. In general we would like to reduce them, but there are many
@@ -1304,10 +1297,10 @@ namespace {
 
                 }
 
-                // In general we want to cap the LMR depth search at newDepth. But for nodes
-                // close to the principal variation the cap is at (newDepth + 1), which will
-                // allow these nodes to be searched deeper than the pv (up to 4 plies deeper).
-                Depth const d = std::clamp(newDepth - reductDepth, 1, newDepth + ((ss+1)->distanceFromPV <= 4));
+                // In general we want to cap the LMR depth search at newDepth. But if
+                // reductions are really negative and movecount is low, we allow this move
+                // to be searched deeper than the first move.
+                Depth const d = std::clamp(newDepth - reductDepth, 1, newDepth + (reductDepth < -1 && moveCount <= 5));
                 assert(d <= newDepth);
                 value = -depthSearch<false>(pos, ss+1, -(alfa+1), -alfa, d, true);
 
