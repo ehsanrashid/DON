@@ -54,7 +54,7 @@ namespace Bitbases {
 
             operator Result() const noexcept { return result; }
 
-            Result classify(KPKPosition kpkArr[]) noexcept;
+            Result classify(std::vector<KPKPosition> const&) noexcept;
 
             Color  active;
             Square wkSq;
@@ -108,7 +108,7 @@ namespace Bitbases {
             }
         }
 
-        Result KPKPosition::classify(KPKPosition kpkArr[]) noexcept {
+        Result KPKPosition::classify(std::vector<KPKPosition> const &kpkDB) noexcept {
             // White to Move:
             // If one move leads to a position classified as WIN, the result of the current position is WIN.
             // If all moves lead to positions classified as DRAW, the result of the current position is DRAW
@@ -128,18 +128,18 @@ namespace Bitbases {
                 Bitboard b{  attacksBB(KING, wkSq)
                           & ~attacksBB(KING, bkSq) };
                 while (b != 0) {
-                    r |= kpkArr[index(BLACK, popLSq(b), bkSq, wpSq)];
+                    r |= kpkDB[index(BLACK, popLSq(b), bkSq, wpSq)];
                 }
 
                 // Pawn Single push
                 if (sRank(wpSq) <= RANK_6) {
-                    r |= kpkArr[index(BLACK, wkSq, bkSq, wpSq + NORTH)];
+                    r |= kpkDB[index(BLACK, wkSq, bkSq, wpSq + NORTH)];
 
                     // Pawn Double push
                     if (sRank(wpSq) == RANK_2
                      && wkSq != wpSq + NORTH    // Front is not own king
                      && bkSq != wpSq + NORTH) { // Front is not opp king
-                        r |= kpkArr[index(BLACK, wkSq, bkSq, wpSq + NORTH + NORTH)];
+                        r |= kpkDB[index(BLACK, wkSq, bkSq, wpSq + NORTH + NORTH)];
                     }
                 }
             } else {
@@ -147,7 +147,7 @@ namespace Bitbases {
                 Bitboard b{  attacksBB(KING, bkSq)
                           & ~attacksBB(KING, wkSq) };
                 while (b != 0) {
-                    r |= kpkArr[index(WHITE, wkSq, popLSq(b), wpSq)];
+                    r |= kpkDB[index(WHITE, wkSq, popLSq(b), wpSq)];
                 }
             }
 
@@ -159,10 +159,10 @@ namespace Bitbases {
 
     void initialize() {
 
-        KPKPosition kpkArr[BaseSize];
-        // Initialize kpkArr with known WIN/DRAW positions
+        std::vector<KPKPosition> kpkDB(BaseSize);
+        // Initialize kpkDB with known WIN/DRAW positions
         for (uint32_t idx = 0; idx < BaseSize; ++idx) {
-            kpkArr[idx] = KPKPosition{ idx };
+            kpkDB[idx] = KPKPosition{ idx };
         }
         // Iterate through the positions until none of the unknown positions
         // can be changed to either WIN/DRAW (15 cycles needed).
@@ -170,13 +170,13 @@ namespace Bitbases {
         while (repeat) {
             repeat = false;
             for (uint32_t idx = 0; idx < BaseSize; ++idx) {
-                repeat |= kpkArr[idx] == UNKNOWN
-                       && kpkArr[idx].classify(kpkArr) != UNKNOWN;
+                repeat |= kpkDB[idx] == UNKNOWN
+                       && kpkDB[idx].classify(kpkDB) != UNKNOWN;
             }
         }
-        // Fill the Bitbase from kpkArr
+        // Fill the Bitbase from kpkDB
         for (uint32_t idx = 0; idx < BaseSize; ++idx) {
-            if (kpkArr[idx] == WIN) {
+            if (kpkDB[idx] == WIN) {
                 KPKBitBase.set(idx);
             }
         }
