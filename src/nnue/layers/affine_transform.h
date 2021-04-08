@@ -323,7 +323,6 @@ namespace Evaluator::NNUE::Layers {
     #else
 
         // Use old implementation for the other architectures.
-
         auto output{ reinterpret_cast<OutputType*>(buffer) };
 
         #if defined(USE_SSE2)

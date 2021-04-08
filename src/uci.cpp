@@ -436,7 +436,7 @@ namespace UCI {
         Options["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
         Options["SyzygyMove50Rule"]   << Option(true);
 
-        Options["Use NNUE"]           << Option(false, onUseNNUE);
+        Options["Use NNUE"]           << Option(true, onUseNNUE);
 
 #if defined(_MSC_VER)
         Options["Eval File"]          << Option(string("src/") + DefaultEvalFile, onEvalFile);
