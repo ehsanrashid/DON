@@ -12,11 +12,11 @@ namespace Bitbases {
 
         // There are 24 possible pawn squares: files A to D and ranks from 2 to 7
         // Positions with the pawn on files E to H will be mirrored before probing.
-        constexpr uint32_t BaseSize{ 24 * 2 * 64 * 64 }; // wpSq * active * wkSq * bkSq
+        constexpr uint32_t KPKSize{ 24 * 2 * 64 * 64 }; // wpSq * active * wkSq * bkSq
 
-        std::bitset<BaseSize> KPKBitBase;
+        std::bitset<KPKSize> KPKSet;
 
-        // A KPK bitbase index is an integer in [0, BaseSize] range
+        // A KPK bitbase index is an integer in [0, KPKSize] range
         //
         // Information is mapped in a way that minimizes the number of iterations:
         //
@@ -66,7 +66,7 @@ namespace Bitbases {
         };
 
         KPKPosition::KPKPosition(uint32_t idx) {
-            assert(idx < BaseSize);
+            assert(idx < KPKSize);
             wkSq   = Square((idx >>  0) & 63);
             bkSq   = Square((idx >>  6) & 63);
             active =  Color((idx >> 12) & 1);
@@ -160,9 +160,9 @@ namespace Bitbases {
 
     void initialize() {
 
-        std::vector<KPKPosition> kpkDB(BaseSize);
+        std::vector<KPKPosition> kpkDB(KPKSize);
         // Initialize kpkDB with known WIN/DRAW positions
-        for (uint32_t idx = 0; idx < BaseSize; ++idx) {
+        for (uint32_t idx = 0; idx < KPKSize; ++idx) {
             kpkDB[idx] = KPKPosition{ idx };
         }
         // Iterate through the positions until none of the unknown positions
@@ -170,26 +170,26 @@ namespace Bitbases {
         bool repeat{ true };
         while (repeat) {
             repeat = false;
-            for (uint32_t idx = 0; idx < BaseSize; ++idx) {
+            for (uint32_t idx = 0; idx < KPKSize; ++idx) {
                 repeat |= kpkDB[idx] == UNKNOWN
                        && kpkDB[idx].classify(kpkDB) != UNKNOWN;
             }
         }
         // Fill the Bitbase from kpkDB
-        for (uint32_t idx = 0; idx < BaseSize; ++idx) {
+        for (uint32_t idx = 0; idx < KPKSize; ++idx) {
             if (kpkDB[idx] == WIN) {
-                KPKBitBase.set(idx);
+                KPKSet.set(idx);
             }
         }
 
-        assert(KPKBitBase.count() == 111282);
+        assert(KPKSet.count() == 111282);
     }
 
     bool probe(bool stngActive, Square skSq, Square wkSq, Square spSq) noexcept {
         // skSq = White King
         // wkSq = Black King
         // spSq = White Pawn
-        return KPKBitBase[index(stngActive ? WHITE : BLACK, skSq, wkSq, spSq)];
+        return KPKSet[index(stngActive ? WHITE : BLACK, skSq, wkSq, spSq)];
     }
 
 }

@@ -47,7 +47,8 @@ TEntry* TCluster::probe(const uint16_t key16, bool &hit) noexcept {
 
 constexpr TTable::TTable() noexcept :
     clusterTable{ nullptr },
-    clusterCount{ 0 } {
+    clusterCount{ 0 },
+    hashfulCount{ 0 } {
 }
 
 TTable::~TTable() noexcept {
@@ -68,6 +69,7 @@ bool TTable::resize(size_t memSize) {
 
     clusterCount = (memSize << 20) / sizeof(TCluster);
     assert(clusterCount % 2 == 0);
+    hashfulCount = std::min(clusterCount, size_t(1000));
     clusterTable = static_cast<TCluster*>(allocAlignedLargePages(clusterCount * sizeof(TCluster)));
     if (clusterTable == nullptr) {
         clusterCount = 0;
@@ -131,6 +133,7 @@ void TTable::free() noexcept {
     freeAlignedLargePages(clusterTable);
     clusterTable = nullptr;
     clusterCount = 0;
+    hashfulCount = 0;
 }
 
 /// TTable::hashFull() returns an approximation of the per-mille of the
@@ -141,8 +144,7 @@ void TTable::free() noexcept {
 /// hash, are using <x>%. of the state of full.
 uint32_t TTable::hashFull() const noexcept {
     uint32_t entryCount{ 0 };
-    auto const *etc{ clusterTable + std::min((uint64_t)clusterCount, 1000ULL) };
-    for (auto *itc{ clusterTable }; itc != etc; ++itc) {
+    for (auto *itc{ clusterTable }; itc != clusterTable + hashfulCount; ++itc) {
         entryCount += itc->freshEntryCount();
     }
     return entryCount / TCluster::EntryPerCluster;

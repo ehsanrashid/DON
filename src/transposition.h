@@ -161,6 +161,7 @@ private:
 
     TCluster *clusterTable;
     size_t    clusterCount;
+    size_t    hashfulCount;
 
     friend std::ostream& operator<<(std::ostream&, TTable const&);
     friend std::istream& operator>>(std::istream&, TTable      &);
