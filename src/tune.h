@@ -81,7 +81,6 @@ inline void setConditions() noexcept { Conditions.set(); }
 /// once, after the engine receives the last UCI option, that is the one defined
 /// and created as the last one, so the GUI should send the options in the same
 /// order in which have been defined.
-
 class Tune {
 
     typedef void (PostUpdate)(); // Post-update function
@@ -92,7 +91,11 @@ class Tune {
 
     void readResults() noexcept;
 
-    static Tune& instance() noexcept { static Tune tune; return tune; } // Singleton
+    // Singleton
+    static Tune& instance() noexcept {
+        static Tune tune;
+        return tune;
+    }
 
     // Use polymorphism to accomodate Entry of different types in the same vector
     struct EntryBase {
