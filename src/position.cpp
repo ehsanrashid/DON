@@ -461,8 +461,7 @@ void Position::setCastle(Color c, Square rookOrg) {
     sqCastleRight[kingOrg]   |= cr;
     sqCastleRight[rookOrg]   |= cr;
 
-    cslKingPath[c][cs] = (betweenBB(kingOrg, kingDst) | kingDst)
-                       & ~(kingOrg);
+    cslKingPath[c][cs] = betweenBB(kingOrg, kingDst) | kingDst;
     cslRookPath[c][cs] = ((betweenBB(kingOrg, kingDst) | kingDst)
                         | (betweenBB(rookOrg, rookDst) | rookDst))
                        & ~(kingOrg | rookOrg);
