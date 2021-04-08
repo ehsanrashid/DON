@@ -847,6 +847,7 @@ namespace Evaluator {
                 b = safeArea
                   & ( attackedBy[Own][NIHT] & queenAttacked[Opp][0]);
                 score += KnightOnQueen * popCount(b) * (1 + queenImbalance);
+
                 b = safeArea
                   & ((attackedBy[Own][BSHP] & queenAttacked[Opp][1])
                    | (attackedBy[Own][ROOK] & queenAttacked[Opp][2]))

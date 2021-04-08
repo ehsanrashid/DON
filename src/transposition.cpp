@@ -24,8 +24,7 @@ uint8_t TEntry::Generation{ 0 };
 TEntry* TCluster::probe(const uint16_t key16, bool &hit) noexcept {
     // Find an entry to be replaced according to the replacement strategy.
     auto *rte{ entry }; // Default first
-    auto const *ete{ entry + EntryPerCluster };
-    for (auto *ite{ entry }; ite != ete; ++ite) {
+    for (auto *ite{ entry }; ite != entry + EntryPerCluster; ++ite) {
         if (ite->k16 == key16
          || ite->d08 == 0) {
             // Refresh entry

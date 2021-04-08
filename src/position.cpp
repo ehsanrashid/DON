@@ -1021,7 +1021,7 @@ void Position::doMove(Move m, StateInfo &si, bool isCheck) noexcept {
     // occurrence of the same position, negative in the 3-fold case, or zero
     // if the position was not repeated.
     _stateInfo->repetition = 0;
-    auto end = std::min(_stateInfo->clockPly, _stateInfo->nullPly);
+    auto end{ std::min(_stateInfo->clockPly, _stateInfo->nullPly) };
     if (end >= 4) {
         auto const *psi{ _stateInfo->prevState->prevState };
         for (int16_t i = 4; i <= end; i += 2) {

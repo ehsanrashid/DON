@@ -1,6 +1,7 @@
 #pragma once
 
 #include <cstdint>
+#include <cstddef>
 
 // `ptr` must point to an array of size at least
 // `sizeof(T) * N + alignment` bytes, where `N` is the
