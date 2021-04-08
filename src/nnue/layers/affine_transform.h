@@ -59,29 +59,32 @@ namespace Evaluator::NNUE::Layers {
 
                 // Determine if eights of weight and input products can be summed using 16bits
                 // without saturation. We assume worst case combinations of 0 and 127 for all inputs.
-                if (OutputDimensions > 1 && !istream.fail()) {
+                if (OutputDimensions > 1
+                 && !istream.fail()) {
+
                     saturation.count = 0;
 
                 #if !defined(USE_VNNI)
                     for (IndexType i = 0; i < PaddedInputDimensions; i += 16) {
                         for (IndexType j = 0; j < OutputDimensions; ++j) {
                             for (int x = 0; x < 2; ++x) {
-                                WeightType *w = &weights_[i * OutputDimensions + j * 4 + x * 2];
+                                WeightType *w{ &weights_[i * OutputDimensions + j * 4 + x * 2] };
                                 int sum[2] = { 0, 0 };
                                 for (int k = 0; k < 8; ++k) {
-                                    IndexType idx = k / 2 * OutputDimensions * 4 + k % 2;
+                                    IndexType idx{ k / 2 * OutputDimensions * 4 + k % 2 };
                                     sum[w[idx] < 0] += w[idx];
                                 }
                                 for (int sign : { -1, 1 }) {
                                     while (sign * sum[sign == -1] > 258) {
-                                        int maxK = 0, maxW = 0;
+                                        int maxK{ 0 }, maxW{ 0 };
                                         for (int k = 0; k < 8; ++k) {
                                             IndexType idx = k / 2 * OutputDimensions * 4 + k % 2;
-                                            if (maxW < sign * w[idx])
+                                            if (maxW < sign * w[idx]) {
                                                 maxK = k, maxW = sign * w[idx];
+                                            }
                                         }
 
-                                        IndexType idx = maxK / 2 * OutputDimensions * 4 + maxK % 2;
+                                        IndexType idx{ maxK / 2 * OutputDimensions * 4 + maxK % 2 };
                                         sum[sign == -1] -= w[idx];
                                         saturation.add(j, i + maxK / 2 * 4 + maxK % 2 + x * 2, w[idx]);
                                         w[idx] = 0;
@@ -92,8 +95,10 @@ namespace Evaluator::NNUE::Layers {
                     }
                     // Non functional optimization for faster more linear access
                     std::sort(saturation.ids, saturation.ids + saturation.count,
-                        [](const typename Saturation::Entry &e1, const typename Saturation::Entry &e2) {
-                            return e1.in == e2.in ? e1.out < e2.out : e1.in < e2.in;
+                        [](const Entry &e1, const Entry &e2) {
+                            return e1.in != e2.in ?
+                                    e1.in < e2.in :
+                                    e1.out < e2.out;
                         });
                 #endif
                 }
@@ -122,8 +127,8 @@ namespace Evaluator::NNUE::Layers {
         #if defined(USE_VNNI)
                 acc = _mm512_dpbusd_epi32(acc, a, b);
         #else
-                __m512i product0 = _mm512_maddubs_epi16(a, b);
-                product0 = _mm512_madd_epi16(product0, kOnes512);
+                __m512i product0{ _mm512_maddubs_epi16(a, b) };
+                product0 = _mm512_madd_epi16(product0, One512);
                 acc = _mm512_add_epi32(acc, product0);
         #endif
             };
@@ -146,7 +151,7 @@ namespace Evaluator::NNUE::Layers {
                 product0 = _mm512_add_epi16(product0, product1);
                 product2 = _mm512_add_epi16(product2, product3);
                 product0 = _mm512_add_epi16(product0, product2);
-                product0 = _mm512_madd_epi16(product0, kOnes512);
+                product0 = _mm512_madd_epi16(product0, One512);
                 acc = _mm512_add_epi32(acc, product0);
         #endif
             };
@@ -167,7 +172,7 @@ namespace Evaluator::NNUE::Layers {
         #if defined(USE_VNNI)
                 acc = _mm256_dpbusd_epi32(acc, a, b);
         #else
-                __m256i product0 = _mm256_maddubs_epi16(a, b);
+                __m256i product0{ _mm256_maddubs_epi16(a, b) };
                 product0 = _mm256_madd_epi16(product0, One256);
                 acc = _mm256_add_epi32(acc, product0);
         #endif
@@ -208,7 +213,7 @@ namespace Evaluator::NNUE::Layers {
             };
 
             [[maybe_unused]] auto m128_add_dpbusd_epi32 = [=](__m128i &acc, __m128i a, __m128i b) {
-                __m128i product0 = _mm_maddubs_epi16(a, b);
+                __m128i product0{ _mm_maddubs_epi16(a, b) };
                 product0 = _mm_madd_epi16(product0, One128);
                 acc = _mm_add_epi32(acc, product0);
             };
@@ -265,21 +270,21 @@ namespace Evaluator::NNUE::Layers {
         // OutputDimensions is either 1 or a multiple of SimdWidth
         // because then it is also an input dimension.
         if constexpr (OutputDimensions % OutputSimdWidth == 0) {
-            constexpr IndexType NumChunks = PaddedInputDimensions / 4;
+            constexpr IndexType NumChunks{ PaddedInputDimensions / 4 };
 
-            auto const input32 = reinterpret_cast<int32_t const*>(input);
-            vec_t *outptr = reinterpret_cast<vec_t*>(output);
+            auto const input32{ reinterpret_cast<int32_t const*>(input) };
+            vec_t *outptr{ reinterpret_cast<vec_t*>(output) };
             std::memcpy(output, biases_, OutputDimensions * sizeof(OutputType));
 
             for (int i = 0; i < (int)NumChunks - 3; i += 4) {
-                const vec_t in0 = vec_set_32(input32[i + 0]);
-                const vec_t in1 = vec_set_32(input32[i + 1]);
-                const vec_t in2 = vec_set_32(input32[i + 2]);
-                const vec_t in3 = vec_set_32(input32[i + 3]);
-                auto const col0 = reinterpret_cast<vec_t const*>(&weights_[(i + 0) * OutputDimensions * 4]);
-                auto const col1 = reinterpret_cast<vec_t const*>(&weights_[(i + 1) * OutputDimensions * 4]);
-                auto const col2 = reinterpret_cast<vec_t const*>(&weights_[(i + 2) * OutputDimensions * 4]);
-                auto const col3 = reinterpret_cast<vec_t const*>(&weights_[(i + 3) * OutputDimensions * 4]);
+                vec_t const in0{ vec_set_32(input32[i + 0]) };
+                vec_t const in1{ vec_set_32(input32[i + 1]) };
+                vec_t const in2{ vec_set_32(input32[i + 2]) };
+                vec_t const in3{ vec_set_32(input32[i + 3]) };
+                auto const col0{ reinterpret_cast<vec_t const*>(&weights_[(i + 0) * OutputDimensions * 4]) };
+                auto const col1{ reinterpret_cast<vec_t const*>(&weights_[(i + 1) * OutputDimensions * 4]) };
+                auto const col2{ reinterpret_cast<vec_t const*>(&weights_[(i + 2) * OutputDimensions * 4]) };
+                auto const col3{ reinterpret_cast<vec_t const*>(&weights_[(i + 3) * OutputDimensions * 4]) };
                 for (int j = 0; j * OutputSimdWidth < OutputDimensions; ++j) {
                     vec_add_dpbusd_32x4(outptr[j], in0, col0[j], in1, col1[j], in2, col2[j], in3, col3[j]);
                 }
@@ -291,14 +296,14 @@ namespace Evaluator::NNUE::Layers {
         if constexpr (OutputDimensions == 1) {
         #if defined(USE_AVX512)
             if constexpr (PaddedInputDimensions % (SimdWidth * 2) != 0) {
-                constexpr IndexType NumChunks = PaddedInputDimensions / SimdWidth;
-                auto const input_vector256 = reinterpret_cast<const __m256i *>(input);
+                constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
+                auto const inputVector256{ reinterpret_cast<__m256i const*>(input) };
 
                 __m256i sum0 = _mm256_setzero_si256();
-                auto const row0 = reinterpret_cast<const __m256i *>(&weights_[0]);
+                auto const row0{ reinterpret_cast<__m256i const*>(&weights_[0]) };
 
                 for (int j = 0; j < (int)NumChunks; ++j) {
-                    const __m256i in = input_vector256[j];
+                    __m256i const in{ inputVector256[j] };
                     m256_add_dpbusd_epi32(sum0, in, row0[j]);
                 }
                 output[0] = m256_hadd(sum0, biases_[0]);
@@ -314,7 +319,7 @@ namespace Evaluator::NNUE::Layers {
                 auto const row0 = reinterpret_cast<vec_t const*>(&weights_[0]);
 
                 for (int j = 0; j < (int)NumChunks; ++j) {
-                    const vec_t in = inputVector[j];
+                    vec_t const in{ inputVector[j] };
                     vec_add_dpbusd_32(sum0, in, row0[j]);
                 }
                 output[0] = vec_hadd(sum0, biases_[0]);
@@ -344,7 +349,7 @@ namespace Evaluator::NNUE::Layers {
         #if defined(USE_SSE2)
             __m128i sum_lo{ _mm_cvtsi32_si128(biases_[i]) };
             __m128i sum_hi{ Zero };
-            auto const row = reinterpret_cast<__m128i const*>(&weights_[offset]);
+            auto const row{ reinterpret_cast<__m128i const*>(&weights_[offset]) };
             for (IndexType j = 0; j < NumChunks; ++j) {
                 __m128i row_j = _mm_load_si128(&row[j]);
                 __m128i input_j = _mm_load_si128(&inputVector[j]);
@@ -367,7 +372,7 @@ namespace Evaluator::NNUE::Layers {
         #elif defined(USE_MMX)
             __m64 sum_lo{ _mm_cvtsi32_si64(biases_[i]) };
             __m64 sum_hi{ Zero };
-            auto const row = reinterpret_cast<__m64 const*>(&weights_[offset]);
+            auto const row{ reinterpret_cast<__m64 const*>(&weights_[offset]) };
             for (IndexType j = 0; j < NumChunks; ++j) {
                 __m64 row_j = row[j];
                 __m64 input_j = inputVector[j];
@@ -388,7 +393,7 @@ namespace Evaluator::NNUE::Layers {
             int32x4_t sum{ biases_[i] };
             auto const row{ reinterpret_cast<int8x8_t const*>(&weights_[offset]) };
             for (IndexType j = 0; j < NumChunks; ++j) {
-                int16x8_t product = vmull_s8(inputVector[j * 2], row[j * 2]);
+                int16x8_t product{ vmull_s8(inputVector[j * 2], row[j * 2]) };
                 product = vmlal_s8(product, inputVector[j * 2 + 1], row[j * 2 + 1]);
                 sum = vpadalq_s16(sum, product);
             }
@@ -421,21 +426,30 @@ namespace Evaluator::NNUE::Layers {
         alignas(CacheLineSize) WeightType weights_[OutputDimensions * PaddedInputDimensions];
 
     #if defined(USE_SSSE3)
-        struct Saturation {
-            int count;
-            struct Entry {
-                uint16_t out;
-                uint16_t in;
-                int8_t w;
-            } ids[PaddedInputDimensions * OutputDimensions * 3 / 4];
 
-            void add(int i, int j, int8_t w) {
-                ids[count].out = i;
-                ids[count].in = j;
+        struct Entry {
+            uint16_t out;
+            uint16_t in;
+            int8_t w;
+        };
+
+        struct Saturation {
+
+            Saturation() :
+                count{ 0 } {
+            }
+
+            void add(uint16_t out, uint16_t in, int8_t w) {
+                ids[count].out = out;
+                ids[count].in = in;
                 ids[count].w = w;
                 ++count;
             }
+
+            int count;
+            Entry ids[PaddedInputDimensions * OutputDimensions * 3 / 4];
         };
+
         Saturation saturation;
     #endif
 
