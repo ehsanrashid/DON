@@ -23,20 +23,16 @@ uint8_t TEntry::Generation{ 0 };
 /// Otherwise, it returns false and a pointer to an empty or least valuable entry to be replaced later.
 TEntry* TCluster::probe(const uint16_t key16, bool &hit) noexcept {
     // Find an entry to be replaced according to the replacement strategy.
-    auto *ite{ entry };
-    auto *rte{ ite }; // Default first
+    auto *rte{ entry }; // Default first
     auto const *ete{ entry + EntryPerCluster };
-    for (; ite != ete; ++ite) {
+    for (auto *ite{ entry }; ite != ete; ++ite) {
         if (ite->k16 == key16
          || ite->d08 == 0) {
             // Refresh entry
             ite->refresh();
             return hit = ite->d08 != 0, ite;
         }
-        // Replacement strategy.
-        // Due to packed storage format for generation and its cyclic nature
-        // add 263 (256 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
-        // to calculate the entry age correctly even after generation overflows into the next cycle.
+        // Replacement strategy
         if (rte->worth() > ite->worth()) {
             rte = ite;
         }

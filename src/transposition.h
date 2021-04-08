@@ -41,6 +41,9 @@ public:
 
     Move          move() const noexcept { return Move(m16); }
 
+    // Due to packed storage format for generation and its cyclic nature
+    // add 263 (256 + 7 [4 + BOUND_EXACT] to keep the unrelated lowest three bits from affecting the result)
+    // to calculate the entry age correctly even after generation overflows into the next cycle.
     int32_t      worth() const noexcept { return d08 - ((GENERATION_CYCLE + Generation - g08) & GENERATION_MASK); }
 
     void       refresh() noexcept { g08 = uint8_t(Generation | (g08 & (GENERATION_DELTA - 1))); }
@@ -97,7 +100,8 @@ struct TCluster {
     uint32_t freshEntryCount() const noexcept {
         return std::count_if(std::begin(entry), std::end(entry),
             [](TEntry const &te) noexcept {
-                return te.d08 != 0 && te.generation() == TEntry::Generation;
+                return te.d08 != 0
+                    && te.generation() == TEntry::Generation;
             });
     }
 

@@ -23,7 +23,7 @@ int main(int argc, char const *const argv[]) {
     // path+name of the executable binary, as given by argv[0]
     CommandLine::initialize(argv[0]);
     UCI::initialize();
-    Tune::initialize();
+    //Tune::initialize();
     Bitboards::initialize();
     Bitbases::initialize();
     PSQT::initialize();
