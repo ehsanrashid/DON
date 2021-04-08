@@ -80,9 +80,9 @@ namespace Bitbases {
                 && index(active, wkSq, bkSq, wpSq) == idx);
 
             // Invalid if two pieces are on the same square or if a king can be captured
-            if (distance(wkSq, bkSq) <= 1
-             || wkSq == wpSq
+            if (wkSq == wpSq
              || bkSq == wpSq
+             || distance(wkSq, bkSq) <= 1
              || (active == WHITE
               && contains(pawnAttacksBB(WHITE, wpSq), bkSq))) {
                 result = INVALID;
