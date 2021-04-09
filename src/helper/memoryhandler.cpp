@@ -120,8 +120,8 @@ namespace {
 
 #endif
 
-/// allocAlignedLargePages() will return suitably aligned memory, if possible using large pages.
-void* allocAlignedLargePages(size_t mSize) noexcept {
+/// allocAlignedLP() will return suitably aligned memory, if possible using large pages.
+void* allocAlignedLP(size_t mSize) noexcept {
 
 #if defined(_WIN32)
     void *mem = nullptr;
@@ -163,8 +163,8 @@ void* allocAlignedLargePages(size_t mSize) noexcept {
     return mem;
 }
 
-/// freeAlignedLargePages() will free the previously allocated ttmem
-void freeAlignedLargePages(void *mem) noexcept {
+/// freeAlignedLP() will free the previously allocated ttmem
+void freeAlignedLP(void *mem) noexcept {
 
     if (mem == nullptr) return;
 #if defined(_WIN32)

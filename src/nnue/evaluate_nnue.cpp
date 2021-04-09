@@ -16,21 +16,21 @@ namespace Evaluator::NNUE {
         freeAlignedStd(static_cast<void*>(ptr));
     }
     template<typename T>
-    inline void AlignedLargePageDeleter<T>::operator()(T *ptr) const noexcept {
+    inline void AlignedLPDeleter<T>::operator()(T *ptr) const noexcept {
         ptr->~T();
-        freeAlignedLargePages(static_cast<void*>(ptr));
+        freeAlignedLP(static_cast<void*>(ptr));
     }
 
     /// Initialize the aligned pointer
     template<typename T>
-    void alignedStdAllocator(AlignedStdPtr<T> &pointer) noexcept {
+    void initializeAllocator(AlignedStdPtr<T> &pointer) noexcept {
         pointer.reset(reinterpret_cast<T*>(allocAlignedStd(alignof (T), sizeof(T))));
         std::memset(pointer.get(), 0, sizeof(T));
     }
     template<typename T>
-    void alignedLargePageAllocator(AlignedLargePagePtr<T> &pointer) noexcept {
+    void initializeAllocator(AlignedLargePagePtr<T> &pointer) noexcept {
         static_assert(alignof(T) <= 4096, "aligned_large_pages_alloc() may fail for such a big alignment requirement of T");
-        pointer.reset(reinterpret_cast<T*>(allocAlignedLargePages(sizeof(T))));
+        pointer.reset(reinterpret_cast<T*>(allocAlignedLP(sizeof(T))));
         std::memset(pointer.get(), 0, sizeof(T));
     }
 
@@ -43,8 +43,8 @@ namespace Evaluator::NNUE {
 
         /// Initialize the evaluation function parameters
         void initializeParameters() {
-            alignedLargePageAllocator(featureTransformer);
-            alignedStdAllocator(network);
+            initializeAllocator(featureTransformer);
+            initializeAllocator(network);
         }
 
         /// Read network header
@@ -66,10 +66,12 @@ namespace Evaluator::NNUE {
         template<typename T>
         bool readParameters(std::istream &istream, T &reference) {
             uint32_t const header{ readLittleEndian<uint32_t>(istream) };
-            return !istream
-                || header != T::getHashValue() ?
-                false :
-                reference.readParameters(istream);
+
+            if (!istream
+             || header != T::getHashValue()) {
+                return false;
+            }
+            return reference.readParameters(istream);
         }
 
         // Read network parameters

@@ -17,8 +17,8 @@ T* alignUpPtr(T *ptr) {
 extern void* allocAlignedStd(size_t, size_t) noexcept;
 extern void  freeAlignedStd(void*) noexcept;
 
-extern void* allocAlignedLargePages(size_t) noexcept;
-extern void  freeAlignedLargePages(void*) noexcept;
+extern void* allocAlignedLP(size_t) noexcept;
+extern void  freeAlignedLP(void*) noexcept;
 
 /// Win Processors Group
 /// Under Windows it is not possible for a process to run on more than one logical processor group.

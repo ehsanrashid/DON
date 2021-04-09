@@ -241,22 +241,22 @@ namespace Evaluator::NNUE::Layers {
 
     #if defined(USE_AVX512)
         using vec_t                 = __m512i;
-        #define vec_setzero _mm512_setzero_si512
-        #define vec_set_32  _mm512_set1_epi32
+        #define vec_setzero         _mm512_setzero_si512
+        #define vec_set_32          _mm512_set1_epi32
         auto &vec_add_dpbusd_32     = m512_add_dpbusd_epi32;
         auto &vec_add_dpbusd_32x4   = m512_add_dpbusd_epi32x4;
         auto &vec_hadd              = m512_hadd;
     #elif defined(USE_AVX2)
         using vec_t                 = __m256i;
-        #define vec_setzero _mm256_setzero_si256
-        #define vec_set_32  _mm256_set1_epi32
+        #define vec_setzero         _mm256_setzero_si256
+        #define vec_set_32          _mm256_set1_epi32
         auto &vec_add_dpbusd_32     = m256_add_dpbusd_epi32;
         auto &vec_add_dpbusd_32x4   = m256_add_dpbusd_epi32x4;
         auto &vec_hadd              = m256_hadd;
     #elif defined(USE_SSSE3)
         using vec_t                 = __m128i;
-        #define vec_setzero _mm_setzero_si128
-        #define vec_set_32  _mm_set1_epi32
+        #define vec_setzero         _mm_setzero_si128
+        #define vec_set_32          _mm_set1_epi32
         auto &vec_add_dpbusd_32     = m128_add_dpbusd_epi32;
         auto &vec_add_dpbusd_32x4   = m128_add_dpbusd_epi32x4;
         auto &vec_hadd              = m128_hadd;

@@ -65,7 +65,7 @@ bool TTable::resize(size_t memSize) {
     clusterCount = (memSize << 20) / sizeof(TCluster);
     assert(clusterCount % 2 == 0);
     hashfulCount = std::min(clusterCount, size_t(1000));
-    clusterTable = static_cast<TCluster*>(allocAlignedLargePages(clusterCount * sizeof(TCluster)));
+    clusterTable = static_cast<TCluster*>(allocAlignedLP(clusterCount * sizeof(TCluster)));
     if (clusterTable == nullptr) {
         clusterCount = 0;
         std::cerr << "ERROR: Hash memory allocation failed for TT " << memSize << " MB" << '\n';
@@ -125,7 +125,7 @@ void TTable::clear() {
 }
 
 void TTable::free() noexcept {
-    freeAlignedLargePages(clusterTable);
+    freeAlignedLP(clusterTable);
     clusterTable = nullptr;
     clusterCount = 0;
     hashfulCount = 0;
