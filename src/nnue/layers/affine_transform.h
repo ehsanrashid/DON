@@ -52,60 +52,63 @@ namespace Evaluator::NNUE::Layers {
                 biases_[i] = readLittleEndian<BiasType>(istream);
             }
             for (size_t i = 0; i < OutputDimensions * PaddedInputDimensions; ++i) {
-            #if defined(USE_SSSE3)
+
+        #if defined(USE_SSSE3)
                 weights_[(i / 4) % (PaddedInputDimensions / 4) * OutputDimensions * 4 +
                           i / PaddedInputDimensions * 4 +
                           i % 4] = readLittleEndian<WeightType>(istream);
+        #else
+                weights_[i] = readLittleEndian<WeightType>(istream);
+        #endif
+            }
 
-                // Determine if eights of weight and input products can be summed using 16bits
-                // without saturation. We assume worst case combinations of 0 and 127 for all inputs.
-                if (OutputDimensions > 1
-                 && !istream.fail()) {
+        #if defined(USE_SSSE3)
+            // Determine if eights of weight and input products can be summed using 16bits
+            // without saturation. We assume worst case combinations of 0 and 127 for all inputs.
+            if (OutputDimensions > 1
+                && !istream.fail()) {
 
-                    saturation.count = 0;
+                saturation.count = 0;
 
-                #if !defined(USE_VNNI)
-                    for (IndexType i = 0; i < PaddedInputDimensions; i += 16) {
-                        for (IndexType j = 0; j < OutputDimensions; ++j) {
-                            for (int x = 0; x < 2; ++x) {
-                                WeightType *w{ &weights_[i * OutputDimensions + j * 4 + x * 2] };
-                                int sum[2] = { 0, 0 };
-                                for (int k = 0; k < 8; ++k) {
-                                    IndexType idx{ k / 2 * OutputDimensions * 4 + k % 2 };
-                                    sum[w[idx] < 0] += w[idx];
-                                }
-                                for (int sign : { -1, 1 }) {
-                                    while (sign * sum[sign == -1] > 258) {
-                                        int maxK{ 0 }, maxW{ 0 };
-                                        for (int k = 0; k < 8; ++k) {
-                                            IndexType idx = k / 2 * OutputDimensions * 4 + k % 2;
-                                            if (maxW < sign * w[idx]) {
-                                                maxK = k, maxW = sign * w[idx];
-                                            }
+            #if !defined(USE_VNNI)
+                for (IndexType i = 0; i < PaddedInputDimensions; i += 16) {
+                    for (IndexType j = 0; j < OutputDimensions; ++j) {
+                        for (int x = 0; x < 2; ++x) {
+                            WeightType *w{ &weights_[i * OutputDimensions + j * 4 + x * 2] };
+                            int sum[2] = { 0, 0 };
+                            for (int k = 0; k < 8; ++k) {
+                                IndexType idx{ k / 2 * OutputDimensions * 4 + k % 2 };
+                                sum[w[idx] < 0] += w[idx];
+                            }
+                            for (int sign : { -1, 1 }) {
+                                while (sign * sum[sign == -1] > 258) {
+                                    int maxK{ 0 }, maxW{ 0 };
+                                    for (int k = 0; k < 8; ++k) {
+                                        IndexType idx = k / 2 * OutputDimensions * 4 + k % 2;
+                                        if (maxW < sign * w[idx]) {
+                                            maxK = k, maxW = sign * w[idx];
                                         }
-
-                                        IndexType idx{ maxK / 2 * OutputDimensions * 4 + maxK % 2 };
-                                        sum[sign == -1] -= w[idx];
-                                        saturation.add(j, i + maxK / 2 * 4 + maxK % 2 + x * 2, w[idx]);
-                                        w[idx] = 0;
                                     }
+
+                                    IndexType idx{ maxK / 2 * OutputDimensions * 4 + maxK % 2 };
+                                    sum[sign == -1] -= w[idx];
+                                    saturation.add(j, i + maxK / 2 * 4 + maxK % 2 + x * 2, w[idx]);
+                                    w[idx] = 0;
                                 }
                             }
                         }
                     }
-                    // Non functional optimization for faster more linear access
-                    std::sort(saturation.ids, saturation.ids + saturation.count,
-                        [](const Entry &e1, const Entry &e2) {
-                            return e1.in != e2.in ?
-                                    e1.in < e2.in :
-                                    e1.out < e2.out;
-                        });
-                #endif
                 }
-            #else
-                weights_[i] = readLittleEndian<WeightType>(istream);
+                // Non functional optimization for faster more linear access
+                std::sort(saturation.ids, saturation.ids + saturation.count,
+                    [](const Entry &e1, const Entry &e2) {
+                        return e1.in != e2.in ?
+                                e1.in < e2.in :
+                                e1.out < e2.out;
+                    });
             #endif
             }
+        #endif
 
             return !istream.fail();
         }
@@ -299,7 +302,7 @@ namespace Evaluator::NNUE::Layers {
                 constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
                 auto const inputVector256{ reinterpret_cast<__m256i const*>(input) };
 
-                __m256i sum0 = _mm256_setzero_si256();
+                __m256i sum0{ _mm256_setzero_si256() };
                 auto const row0{ reinterpret_cast<__m256i const*>(&weights_[0]) };
 
                 for (int j = 0; j < (int)NumChunks; ++j) {
@@ -311,12 +314,12 @@ namespace Evaluator::NNUE::Layers {
         #endif
             {
         #if defined(USE_AVX512)
-                constexpr IndexType NumChunks = PaddedInputDimensions / (SimdWidth * 2);
+                constexpr IndexType NumChunks{ PaddedInputDimensions / (SimdWidth * 2) };
         #else
-                constexpr IndexType NumChunks = PaddedInputDimensions / SimdWidth;
+                constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
         #endif
-                vec_t sum0 = vec_setzero();
-                auto const row0 = reinterpret_cast<vec_t const*>(&weights_[0]);
+                vec_t sum0{ vec_setzero() };
+                auto const row0{ reinterpret_cast<vec_t const*>(&weights_[0]) };
 
                 for (int j = 0; j < (int)NumChunks; ++j) {
                     vec_t const in{ inputVector[j] };
@@ -400,7 +403,7 @@ namespace Evaluator::NNUE::Layers {
             output[i] = sum[0] + sum[1] + sum[2] + sum[3];
 
         #else
-            OutputType sum = biases_[i];
+            OutputType sum{ biases_[i] };
             for (IndexType j = 0; j < InputDimensions; ++j) {
                 sum += weights_[offset + j] * input[j];
             }
