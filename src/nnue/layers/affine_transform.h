@@ -240,26 +240,26 @@ namespace Evaluator::NNUE::Layers {
     #endif
 
     #if defined(USE_AVX512)
-        using vec_t = __m512i;
+        using vec_t                 = __m512i;
         #define vec_setzero _mm512_setzero_si512
-        #define vec_set_32 _mm512_set1_epi32
-        auto &vec_add_dpbusd_32 = m512_add_dpbusd_epi32;
-        auto &vec_add_dpbusd_32x4 = m512_add_dpbusd_epi32x4;
-        auto &vec_hadd = m512_hadd;
+        #define vec_set_32  _mm512_set1_epi32
+        auto &vec_add_dpbusd_32     = m512_add_dpbusd_epi32;
+        auto &vec_add_dpbusd_32x4   = m512_add_dpbusd_epi32x4;
+        auto &vec_hadd              = m512_hadd;
     #elif defined(USE_AVX2)
-        using vec_t = __m256i;
+        using vec_t                 = __m256i;
         #define vec_setzero _mm256_setzero_si256
-        #define vec_set_32 _mm256_set1_epi32
-        auto &vec_add_dpbusd_32 = m256_add_dpbusd_epi32;
-        auto &vec_add_dpbusd_32x4 = m256_add_dpbusd_epi32x4;
-        auto &vec_hadd = m256_hadd;
+        #define vec_set_32  _mm256_set1_epi32
+        auto &vec_add_dpbusd_32     = m256_add_dpbusd_epi32;
+        auto &vec_add_dpbusd_32x4   = m256_add_dpbusd_epi32x4;
+        auto &vec_hadd              = m256_hadd;
     #elif defined(USE_SSSE3)
-        using vec_t = __m128i;
+        using vec_t                 = __m128i;
         #define vec_setzero _mm_setzero_si128
-        #define vec_set_32 _mm_set1_epi32
-        auto &vec_add_dpbusd_32 = m128_add_dpbusd_epi32;
-        auto &vec_add_dpbusd_32x4 = m128_add_dpbusd_epi32x4;
-        auto &vec_hadd = m128_hadd;
+        #define vec_set_32  _mm_set1_epi32
+        auto &vec_add_dpbusd_32     = m128_add_dpbusd_epi32;
+        auto &vec_add_dpbusd_32x4   = m128_add_dpbusd_epi32x4;
+        auto &vec_hadd              = m128_hadd;
     #endif
 
     #if defined(USE_SSSE3)
@@ -279,7 +279,7 @@ namespace Evaluator::NNUE::Layers {
             vec_t *outptr{ reinterpret_cast<vec_t*>(output) };
             std::memcpy(output, biases_, OutputDimensions * sizeof(OutputType));
 
-            for (int i = 0; i < (int)NumChunks - 3; i += 4) {
+            for (IndexType i = 0; i < NumChunks - 3; i += 4) {
                 vec_t const in0{ vec_set_32(input32[i + 0]) };
                 vec_t const in1{ vec_set_32(input32[i + 1]) };
                 vec_t const in2{ vec_set_32(input32[i + 2]) };
@@ -297,6 +297,7 @@ namespace Evaluator::NNUE::Layers {
             }
         } else
         if constexpr (OutputDimensions == 1) {
+
         #if defined(USE_AVX512)
             if constexpr (PaddedInputDimensions % (SimdWidth * 2) != 0) {
                 constexpr IndexType NumChunks{ PaddedInputDimensions / SimdWidth };
@@ -305,7 +306,7 @@ namespace Evaluator::NNUE::Layers {
                 __m256i sum0{ _mm256_setzero_si256() };
                 auto const row0{ reinterpret_cast<__m256i const*>(&weights_[0]) };
 
-                for (int j = 0; j < (int)NumChunks; ++j) {
+                for (IndexType j = 0; j < NumChunks; ++j) {
                     __m256i const in{ inputVector256[j] };
                     m256_add_dpbusd_epi32(sum0, in, row0[j]);
                 }
@@ -321,7 +322,7 @@ namespace Evaluator::NNUE::Layers {
                 vec_t sum0{ vec_setzero() };
                 auto const row0{ reinterpret_cast<vec_t const*>(&weights_[0]) };
 
-                for (int j = 0; j < (int)NumChunks; ++j) {
+                for (IndexType j = 0; j < NumChunks; ++j) {
                     vec_t const in{ inputVector[j] };
                     vec_add_dpbusd_32(sum0, in, row0[j]);
                 }
@@ -365,10 +366,10 @@ namespace Evaluator::NNUE::Layers {
                 sum_lo = _mm_add_epi32(sum_lo, product_lo);
                 sum_hi = _mm_add_epi32(sum_hi, product_hi);
             }
-            __m128i sum = _mm_add_epi32(sum_lo, sum_hi);
-            __m128i sum_high_64 = _mm_shuffle_epi32(sum, _MM_SHUFFLE(1, 0, 3, 2));
+            __m128i sum{ _mm_add_epi32(sum_lo, sum_hi) };
+            __m128i sum_high_64{ _mm_shuffle_epi32(sum, _MM_SHUFFLE(1, 0, 3, 2)) };
             sum = _mm_add_epi32(sum, sum_high_64);
-            __m128i sum_second_32 = _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2));
+            __m128i sum_second_32{ _mm_shufflelo_epi16(sum, _MM_SHUFFLE(1, 0, 3, 2)) };
             sum = _mm_add_epi32(sum, sum_second_32);
             output[i] = _mm_cvtsi128_si32(sum);
 
@@ -388,7 +389,7 @@ namespace Evaluator::NNUE::Layers {
                 sum_lo = _mm_add_pi32(sum_lo, product_lo);
                 sum_hi = _mm_add_pi32(sum_hi, product_hi);
             }
-            __m64 sum = _mm_add_pi32(sum_lo, sum_hi);
+            __m64 sum{ _mm_add_pi32(sum_lo, sum_hi) };
             sum = _mm_add_pi32(sum, _mm_unpackhi_pi32(sum, sum));
             output[i] = _mm_cvtsi64_si32(sum);
 
@@ -420,6 +421,7 @@ namespace Evaluator::NNUE::Layers {
         }
 
     private:
+
         using BiasType = OutputType;
         using WeightType = int8_t;
 

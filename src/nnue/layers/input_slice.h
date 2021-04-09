@@ -30,12 +30,12 @@ namespace Evaluator::NNUE::Layers {
         }
 
         // Read network parameters
-        bool readParameters(std::istream&) {
+        bool readParameters(std::istream& /*istream*/) {
             return true;
         }
 
         // Forward propagation
-        OutputType const* propagate(TransformedFeatureType const *transformedFeatures, char*) const {
+        OutputType const* propagate(TransformedFeatureType const *transformedFeatures, char* /*buffer*/) const {
             return transformedFeatures + Offset;
         }
 

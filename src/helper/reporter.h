@@ -14,4 +14,4 @@ namespace Reporter {
     extern void meanOf(int64_t) noexcept;
 
     extern void print();
-};
+}
