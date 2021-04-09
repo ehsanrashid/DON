@@ -1,12 +1,12 @@
+#include <iostream>
+#include <set>
+
 #include "../position.h"
 #include "../uci.h"
 #include "../type.h"
 #include "../helper/memoryhandler.h"
 
 #include "evaluate_nnue.h"
-
-#include <iostream>
-#include <set>
 
 namespace Evaluator::NNUE {
 
@@ -15,6 +15,7 @@ namespace Evaluator::NNUE {
         ptr->~T();
         freeAlignedStd(static_cast<void*>(ptr));
     }
+
     template<typename T>
     inline void AlignedLPDeleter<T>::operator()(T *ptr) const noexcept {
         ptr->~T();
@@ -27,8 +28,9 @@ namespace Evaluator::NNUE {
         pointer.reset(reinterpret_cast<T*>(allocAlignedStd(alignof (T), sizeof(T))));
         std::memset(pointer.get(), 0, sizeof(T));
     }
+
     template<typename T>
-    void initializeAllocator(AlignedLargePagePtr<T> &pointer) noexcept {
+    void initializeAllocator(AlignedLPPtr<T> &pointer) noexcept {
         static_assert(alignof(T) <= 4096, "aligned_large_pages_alloc() may fail for such a big alignment requirement of T");
         pointer.reset(reinterpret_cast<T*>(allocAlignedLP(sizeof(T))));
         std::memset(pointer.get(), 0, sizeof(T));
@@ -36,7 +38,7 @@ namespace Evaluator::NNUE {
 
     namespace {
         // Input feature converter
-        AlignedLargePagePtr<FeatureTransformer> featureTransformer;
+        AlignedLPPtr<FeatureTransformer> featureTransformer;
 
         // Evaluation function
         AlignedStdPtr<Network> network;
@@ -102,7 +104,7 @@ namespace Evaluator::NNUE {
 
         constexpr uint64_t alignment = CacheLineSize;
 
-#if defined(ALIGNAS_ON_STACK_VARIABLES_BROKEN)
+#if defined(ALIGNAS_ON_STACK_BROKEN)
         TransformedFeatureType transformedFeaturesUnaligned[FeatureTransformer::BufferSize + alignment / sizeof(TransformedFeatureType)];
         char bufferUnaligned[Network::BufferSize + alignment];
 

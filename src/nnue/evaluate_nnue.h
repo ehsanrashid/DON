@@ -15,19 +15,22 @@ namespace Evaluator::NNUE {
     struct AlignedStdDeleter {
         void operator()(T *) const noexcept;
     };
+
     template<typename T>
     struct AlignedLPDeleter {
         void operator()(T *) const noexcept;
     };
 
     template<typename T>
-    using AlignedStdPtr         = std::unique_ptr<T, AlignedStdDeleter<T>>;
+    using AlignedStdPtr = std::unique_ptr<T, AlignedStdDeleter<T>>;
+
     template<typename T>
-    using AlignedLargePagePtr   = std::unique_ptr<T, AlignedLPDeleter<T>>;
+    using AlignedLPPtr  = std::unique_ptr<T, AlignedLPDeleter<T>>;
 
     template<typename T>
     extern void initializeAllocator(AlignedStdPtr<T>&) noexcept;
+
     template<typename T>
-    extern void initializeAllocator(AlignedLargePagePtr<T>&) noexcept;
+    extern void initializeAllocator(AlignedLPPtr<T>&) noexcept;
 
 }

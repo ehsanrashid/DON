@@ -82,7 +82,7 @@
 #endif
 
 #if defined(__GNUC__ ) && (__GNUC__ < 9 || (__GNUC__ == 9 && __GNUC_MINOR__ <= 2)) && defined(_WIN32) && !defined(__clang__)
-    #define ALIGNAS_ON_STACK_VARIABLES_BROKEN
+    #define ALIGNAS_ON_STACK_BROKEN
 #endif
 
 // Size of cache line (in bytes)
