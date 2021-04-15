@@ -70,7 +70,7 @@ namespace Pawns {
             // on the adjacent files and cannot be safely advanced.
             bool const backward{ (neighbours & frontRanksBB(Opp, s + PawnPush[Own])) == 0
                               && (blocker | sentres) != 0 };
-            bool const doubled{ contains(ownPawns, s - PawnPush[Own]) };
+            bool const doubled { contains(ownPawns, s - PawnPush[Own]) };
 
             // Compute additional span if pawn is not blocked nor backward
             if (!blocked
