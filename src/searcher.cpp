@@ -1186,11 +1186,6 @@ namespace {
              && (pos.isKingBlockersOn(~activeSide, orgSq(move))
               || pos.see(move))) {
                 extension = 1;
-            } else
-            // Previous capture extension
-            if (pos.captured() > PAWN
-             && pos.nonPawnMaterial() <= 2 * VALUE_MG_ROOK) {
-                extension = 1;
             }
 
             // Add extension to new depth

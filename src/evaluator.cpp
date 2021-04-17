@@ -1217,8 +1217,8 @@ namespace Evaluator {
             int32_t const r50{ 16 + pos.clockPly() };
             bool    const psqLarge{ psq * 16 > (NNUEThreshold1 + npm / 64) * r50 };
             bool    const lowEndgames{
-                npm < 2 * VALUE_MG_ROOK
-             && pos.count(PAWN) < 2 };
+                (npm == VALUE_MG_BSHP)
+             || (npm < 2 * VALUE_MG_ROOK && pos.count(PAWN) < 2) };
 
             bool    const classical{
                 psqLarge
