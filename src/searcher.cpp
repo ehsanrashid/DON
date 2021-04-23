@@ -1747,21 +1747,21 @@ void Thread::search() {
                     totalTime = std::min(totalTime, 500.0);
                 }
 
-                auto const elapsed{ double(TimeMgr.elapsed()) };
+                auto const elapsed{ TimeMgr.elapsed() * 1.0 };
 
                 if (elapsed > totalTime * 0.58) {
 
                     Threadpool.stand = !Threadpool.ponder;
 
-                    // Stop the search if we have exceeded the totalTime (at least 1ms).
+                    // Stop the search if we have exceeded the totalTime.
                     if (elapsed > totalTime) {
 
                         // If allowed to ponder do not stop the search now but
                         // keep pondering until GUI sends "stop"/"ponderhit".
-                        if (!Threadpool.ponder) {
-                            Threadpool.stop = true;
-                        } else {
+                        if (Threadpool.ponder) {
                             Threadpool.stopPonderhit = true;
+                        } else {
+                            Threadpool.stop = true;
                         }
                     }
                 }
