@@ -1,1030 +1,663 @@
+/*
+  DON, a UCI chess playing engine derived from Glaurung 2.1
+
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include "uci.h"
 
-#include <cassert>
 #include <algorithm>
-#include <iomanip>
+#include <cassert>
+#include <cctype>
+#include <cmath>
+#include <cstdlib>
 #include <optional>
+#include <iostream>
 #include <sstream>
-#include <string>
+#include <vector>
 
-#include "polyglot.h"
+#include "benchmark.h"
+#include "evaluate.h"
+#include "movegen.h"
 #include "position.h"
-#include "evaluator.h"
-#include "movegenerator.h"
-#include "notation.h"
-#include "thread.h"
-#include "timemanager.h"
-#include "transposition.h"
-#include "searcher.h"
-#include "skillmanager.h"
-#include "syzygytb.h"
-#include "helper/string.h"
-#include "helper/string_view.h"
-#include "helper/container.h"
-#include "helper/logger.h"
-#include "helper/reporter.h"
+#include "polybook.h"
+#include "score.h"
+#include "ucioption.h"
+#include "nnue/nnue_common.h"
+#include "syzygy/tbprobe.h"
 
-using namespace std;
-
-// Engine Name
-string const Name{ "DON" };
-// Version number. If version is left empty, then show compile date in the format YY-MM-DD.
-string const Version{ "" };
-// Author Name
-string const Author{ "Ehsan Rashid" };
-
-UCI::OptionMap Options;
-
-std::optional<Logger> StdLogger;
+namespace DON {
 
 namespace {
 
-    string const Months[12] { "Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec" };
+constexpr std::string_view StartFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+constexpr std::string_view PieceChar(" PNBRQK  pnbrqk");
 
-    int32_t month(string const &mmm) {
-        // for (uint32_t m = 0; m < 12; ++m) {
-        //     if (mmm == Months[m]) {
-        //         return m+1;
-        //     }
-        // }
-        // return 0;
-        auto const itr{ std::find(std::begin(Months), std::end(Months), mmm) };
-        return int32_t(itr != std::end(Months) ? std::distance(std::begin(Months), itr) + 1 : 0);
-    }
+constexpr std::uint32_t MaxHash = Is64Bit ? 33554432 : 2048;
+
+template<typename... Ts>
+struct overload: Ts... {
+    using Ts::operator()...;
+};
+
+template<typename... Ts>
+overload(Ts...) -> overload<Ts...>;
+
+}  // namespace
+
+namespace NN = Eval::NNUE;
+
+UCI::UCI(int argc, const char** argv) noexcept :
+    engine(argv[0]),
+    cmdLine(argc, argv) {
+
+    auto& options = engine_options();
+
+    options["Threads"] << Option(1, 1, 1024, [this](const Option&) { engine.resize_threads(); });
+    options["Hash"] << Option(16, 4, MaxHash, [this](const Option& o) { engine.resize_tt(o); });
+    options["Clear Hash"] << Option([this](const Option&) { engine.clear(); });
+    options["Retain Hash"] << Option(false);
+    options["HashFile"] << Option("hash.dat");
+    options["SaveHash"] << Option([this](const Option&) {});
+    options["LoadHash"] << Option([this](const Option&) {});
+    options["Ponder"] << Option(false);
+    options["MultiPV"] << Option(1, 1, MAX_MOVES);
+    options["Skill Level"] << Option(Search::Skill::MaxLevel, 0, Search::Skill::MaxLevel);
+    options["MoveOverhead"] << Option(10, 0, 5000);
+    options["NodesTime"] << Option(0, 0, 10000);
+    options["DrawMoveCount"] << Option(Position::DrawMoveCount, 5, 50,
+                                       [](const Option& o) { Position::DrawMoveCount = o; });
+    options["UCI_Chess960"] << Option(Position::Chess960,
+                                      [](const Option& o) { Position::Chess960 = o; });
+    options["UCI_LimitStrength"] << Option(false);
+    options["UCI_ELO"] << Option(Search::Skill::MinELO, Search::Skill::MinELO,
+                                 Search::Skill::MaxELO);
+    options["UCI_ShowWDL"] << Option(false);
+    options["OwnBook"] << Option(false);
+    options["BookFile"] << Option("book.bin", [](const Option& o) { Polybook.init(o); });
+    options["BookPickBest"] << Option(true);
+    options["BookDepth"] << Option(100, 1, MAX_MOVES);
+    options["SyzygyPath"] << Option("<empty>", [](const Option& o) { Tablebases::init(o); });
+    options["SyzygyProbeLimit"] << Option(7, 0, 7);
+    options["SyzygyProbeDepth"] << Option(1, 1, 100);
+    options["Syzygy50MoveRule"] << Option(true);
+    options["EvalFileBig"] << Option(EvalFileDefaultNameBig,
+                                     [this](const Option& o) { engine.load_big_network(o); });
+    options["EvalFileSmall"] << Option(EvalFileDefaultNameSmall,
+                                       [this](const Option& o) { engine.load_small_network(o); });
+    options["DebugLogFile"] << Option("<empty>", [](const Option& o) { start_logger(o); });
+
+    // clang-format off
+    engine.set_on_update_short([](const auto& info) { on_update_short(info); });
+    engine.set_on_update_full([](const auto& info) { on_update_full(info); });
+    engine.set_on_update_iteration([](const auto& info) { on_update_iteration(info); });
+    engine.set_on_update_bestmove([](const auto& bm, const auto& pm) { on_update_bestmove(bm, pm); });
+    // clang-format on
+
+    engine.load_networks();
+    engine.resize_threads();
+    engine.clear();  // After threads are up
+
+    engine.setup(StartFEN);
 }
 
+void UCI::handle_commands() noexcept {
 
-/// engineInfo() returns a string trying to describe the engine
-string const engineInfo() {
-    ostringstream oss;
+    std::string cmd;
+    for (int i = 1; i < cmdLine.argc; ++i)
+        cmd += std::string(cmdLine.argv[i]) + " ";
 
-    oss << std::setfill('0');
-#if defined(USE_VERSION)
-    oss << USE_VERSION;
-#else
-    if (whiteSpaces(Version)) {
-        // From compiler, format is "Sep 2 1982"
-        istringstream iss{ __DATE__ };
-        string mmm, dd, yyyy;
-        iss >> mmm >> dd >> yyyy;
-        oss << std::setw(2) << yyyy.substr(2)
-            << std::setw(2) << month(mmm)
-            << std::setw(2) << dd;
-    } else {
-        oss << Version;
+    std::string token;
+    do
+    {
+        if (cmdLine.argc == 1
+            // Wait for an input or an end-of-file (EOF) indication
+            && !std::getline(std::cin, cmd))
+            cmd = "quit";
+
+        std::istringstream iss(cmd);
+
+        token.clear();  // Avoid a stale if std::getline() returns nothing or a blank line
+        iss >> std::skipws >> token;
+
+        if (token == "stop" || token == "quit")
+            engine.stop();
+
+        // The GUI sends 'ponderhit' to tell that the user has played the expected move.
+        // So, 'ponderhit' is sent if pondering was done on the same move that the user has played.
+        // The search should continue, but should also switch from pondering to the normal search.
+        else if (token == "ponderhit")
+            engine.ponderhit();
+        else if (token == "position")
+            position(iss);
+        else if (token == "go")
+            go(iss);
+        else if (token == "setoption")
+            setoption(iss);
+        else if (token == "uci")
+            sync_cout << engine_info(true) << '\n'
+                      << engine_options() << '\n'
+                      << "uciok" << sync_endl;
+        else if (token == "ucinewgame")
+            engine.clear();
+        else if (token == "isready")
+            sync_cout << "readyok" << sync_endl;
+
+        // Add custom non-UCI commands, mainly for debugging purposes.
+        // These commands must not be used during a search!
+        else if (token == "bench")
+            bench(iss);
+        else if (token == "show")
+            engine.visualize();
+        else if (token == "eval")
+            engine.trace_eval();
+        else if (token == "flip")
+            engine.flip();
+        else if (token == "compiler")
+            sync_cout << compiler_info() << sync_endl;
+        else if (token == "export_net")
+        {
+            std::pair<std::optional<std::string>, std::string> files[2];
+
+            if (iss >> std::ws >> files[0].second)
+                files[0].first = files[0].second;
+
+            if (iss >> std::ws >> files[1].second)
+                files[1].first = files[1].second;
+
+            engine.save_networks(files);
+        }
+        else if (token == "--help" || token == "help" || token == "--license" || token == "license")
+            sync_cout
+              << "\nDON is a powerful chess engine for playing and analyzing."
+                 "\nIt is released as free software licensed under the GNU GPLv3 License."
+                 "\nDON is normally used with a graphical user interface (GUI) and implements"
+                 "\nthe Universal Chess Interface (UCI) protocol to communicate with a GUI, an API, etc."
+                 "\nFor any further information, visit https://github.com/ehsanrashid/DON#readme"
+                 "\nor read the corresponding README.md and Copying.txt files distributed along with this program.\n"
+              << sync_endl;
+        else if (!token.empty() && token[0] != '#')
+            sync_cout << "Unknown command: '" << cmd << "'. Type help for more information."
+                      << sync_endl;
+
+    } while (cmdLine.argc == 1 && token != "quit");  // The command-line arguments are one-shot
+}
+
+void UCI::position(std::istringstream& iss) noexcept {
+    std::string token, fen;
+
+    iss >> token;
+    if (token == "startpos")
+    {
+        fen = StartFEN;
+        iss >> token;  // Consume the "moves" token, if any
     }
-#endif
-    oss << std::setfill(' ');
+    else if (token == "fen")
+        while ((iss >> token) && token != "moves")
+            fen += token + " ";
+    else
+        return;
+
+    std::vector<std::string> moves;
+    while (iss >> token)
+        moves.push_back(token);
+
+    engine.setup(fen, moves);
+}
+
+void UCI::go(std::istringstream& iss) noexcept {
+    Search::Limits limits;
+
+    limits.startTime = now();  // The search starts as early as possible
+
+    std::string token;
+    while (iss >> token)
+        if (token == "wtime")
+            iss >> limits.clock[WHITE].time;
+        else if (token == "btime")
+            iss >> limits.clock[BLACK].time;
+        else if (token == "winc")
+            iss >> limits.clock[WHITE].inc;
+        else if (token == "binc")
+            iss >> limits.clock[BLACK].inc;
+        else if (token == "movetime")
+            iss >> limits.moveTime;
+        else if (token == "movestogo")
+            iss >> limits.movesToGo;
+        else if (token == "mate")
+            iss >> limits.mate;
+        else if (token == "depth")
+            iss >> limits.depth;
+        else if (token == "nodes")
+            iss >> limits.nodes;
+        else if (token == "infinite")
+            limits.infinite = true;
+        else if (token == "ponder")
+            limits.ponder = true;
+        else if (token == "perft")
+        {
+            limits.perft = true;
+            iss >> limits.depth;
+            iss >> std::boolalpha >> limits.detail;
+        }
+        else if (token == "searchmoves")  // Needs to be the last command on the line
+        {
+            auto pos = iss.tellg();
+            while (iss >> token && token != "ignoremoves")
+            {
+                limits.searchMoves.push_back(token);
+                pos = iss.tellg();
+            }
+            if (token == "ignoremoves")
+                iss.seekg(pos);
+        }
+        else if (token == "ignoremoves")  // Needs to be the last command on the line
+        {
+            auto pos = iss.tellg();
+            while (iss >> token && token != "searchmoves")
+            {
+                limits.ignoreMoves.push_back(token);
+                pos = iss.tellg();
+            }
+            if (token == "searchmoves")
+                iss.seekg(pos);
+        }
+
+    engine.start(limits);
+}
+
+void UCI::setoption(std::istringstream& iss) noexcept {
+    engine.wait_finish();
+
+    std::string token, name, value;
+
+    iss >> token;  // Consume the "name" token
+
+    assert(token == "name");
+    // Read the option name (can contain spaces)
+    while ((iss >> token) && token != "value")
+        name += (name.empty() ? "" : " ") + token;
+
+    assert(token == "value");
+    // Read the option value (can contain spaces)
+    while (iss >> token)
+        value += (value.empty() ? "" : " ") + token;
+
+    engine_options().setoption(name, value);
+}
+
+void UCI::bench(std::istringstream& iss) noexcept {
+
+    std::uint64_t infoNodes = 0;
+    engine.set_on_update_full([&infoNodes](const auto& info) {
+        infoNodes = info.nodes;
+        on_update_full(info);
+    });
+
+    TimePoint elapsedTime = now();
+
+    std::uint64_t nodes = 0;
+
+    const std::vector<std::string> list = setup_bench(iss, engine.fen());
+
+    std::size_t num = std::count_if(list.begin(), list.end(), [](const std::string& cmd) {
+        return cmd.find("go ") == 0 || cmd.find("eval") == 0;
+    });
+
+    std::size_t cnt = 0;
+    for (const std::string& cmd : list)
+    {
+        std::istringstream is(cmd);
+        std::string        token;
+        is >> std::skipws >> token;
+
+        if (token == "go" || token == "eval")
+        {
+            std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")\n";
+            if (token == "go")
+            {
+                go(is);
+                engine.wait_finish();
+                nodes += infoNodes;
+            }
+            else
+            {
+                engine.trace_eval();
+            }
+        }
+        else if (token == "position")
+            position(is);
+        else if (token == "setoption")
+            setoption(is);
+        else if (token == "ucinewgame")
+        {
+            engine.clear();  // May take a while
+            elapsedTime = now();
+        }
+    }
+
+    // Ensure non-zero to avoid a 'divide by zero'
+    elapsedTime = std::max<TimePoint>(now() - elapsedTime, 1);
+
+    dbg_print();
+
+    std::cerr << "\n==========================="
+              << "\nTotal time (ms) : " << elapsedTime  //
+              << "\nTotal Nodes     : " << nodes        //
+              << "\nNodes/second    : " << 1000 * nodes / elapsedTime << '\n';
+
+    // Reset callback, to not capture a dangling reference to infoNodes
+    engine.set_on_update_full([](const auto& info) { on_update_full(info); });
+}
+
+namespace {
+
+struct WinRateParams final {
+    double a;
+    double b;
+};
+
+WinRateParams win_rate_params(const Position& pos) noexcept {
+
+    std::uint16_t material = pos.count<PAWN>() + 3 * pos.count<KNIGHT>() + 3 * pos.count<BISHOP>()
+                           + 5 * pos.count<ROOK>() + 9 * pos.count<QUEEN>();
+
+    // The fitted model only uses data for material counts in [10, 78], and is anchored at count 58.
+    double m = std::clamp<std::uint16_t>(material, 10, 78) / 58.0;
+
+    // Return a = p_a(material) and b = p_b(material).
+    constexpr double as[4]{-185.71965483, 504.85014385, -438.58295743, 474.04604627};
+    constexpr double bs[4]{89.23542728, -137.02141296, 73.28669021, 47.53376190};
+
+    double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
+    double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
+
+    return {a, b};
+}
+
+// The win rate model is 1 / (1 + exp((a - eval) / b)), where a = p_a(material) and b = p_b(material).
+// It fits the LTC fishtest statistics rather accurately.
+int win_rate_model(Value v, const Position& pos) noexcept {
+
+    auto [a, b] = win_rate_params(pos);
+
+    // Return the win rate in per mille units, rounded to the nearest integer.
+    return int(0.5 + 1000.0 / (1.0 + std::exp((a - v) / b)));
+}
+}  // namespace
+
+// Turns a Value to an integer centipawn number,
+// without treatment of mate and similar special scores.
+int UCI::to_cp(Value v, const Position& pos) noexcept {
+
+    // In general, the score can be defined via the the WDL as
+    // (log(1/L - 1) - log(1/W - 1)) / ((log(1/L - 1) + log(1/W - 1))
+    // Based on our win_rate_model, this simply yields v / a.
+
+    auto [a, b] = win_rate_params(pos);
+
+    return std::round(100 * v / a);
+}
+
+std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
+    assert(-VALUE_INFINITE < v && v < +VALUE_INFINITE);
+    std::ostringstream oss;
+
+    auto wdlW = win_rate_model(+v, pos);
+    auto wdlL = win_rate_model(-v, pos);
+    auto wdlD = 1000 - wdlW - wdlL;
+    oss << wdlW << " " << wdlD << " " << wdlL;
 
     return oss.str();
 }
-/// compilerInfo() returns a string trying to describe the compiler used
-string const compilerInfo() {
-    ostringstream oss;
-    oss << "\nCompiled by ";
 
-#define VER_STRING(major, minor, patch) STRINGIFY(major) "." STRINGIFY(minor) "." STRINGIFY(patch)
+std::string UCI::format_score(const Score& score) noexcept {
+    constexpr int TB_CP = 20000;
 
-#if defined(__clang__)
-    oss << "clang++ " << VER_STRING(__clang_major__, __clang_minor__, __clang_patchlevel__);
-#elif defined(__INTEL_COMPILER)
-    oss << "Intel compiler " << "(version " STRINGIFY(__INTEL_COMPILER) " update " STRINGIFY(__INTEL_COMPILER_UPDATE) ")";
-#elif defined(_MSC_VER)
-    oss << "MSVC " << "(version " STRINGIFY(_MSC_FULL_VER) "." STRINGIFY(_MSC_BUILD) ")";
-#elif defined(__GNUC__)
-    oss << "g++ (GNUC) " << VER_STRING(__GNUC__, __GNUC_MINOR__, __GNUC_PATCHLEVEL__);
-#else
-    oss << "Unknown compiler " << "(unknown version)";
-#endif
+    const auto format = overload{
+      [](Score::Mate mate) -> std::string {
+          return "mate " + std::to_string((mate.ply > 0 ? (1 + mate.ply) : (0 + mate.ply)) / 2);
+      },
+      [](Score::Tablebase tb) -> std::string {
+          return "cp " + std::to_string(tb.win ? +TB_CP - tb.ply : -TB_CP - tb.ply);
+      },
+      [](Score::Unit unit) -> std::string { return "cp " + std::to_string(unit.value); }};
 
-#if defined(__APPLE__)
-    oss << " on Apple";
-#elif defined(__CYGWIN__)
-    oss << " on Cygwin";
-#elif defined(__MINGW64__)
-    oss << " on MinGW64";
-#elif defined(__MINGW32__)
-    oss << " on MinGW32";
-#elif defined(_WIN64)
-    oss << " on Microsoft Windows 64-bit";
-#elif defined(_WIN32)
-    oss << " on Microsoft Windows 32-bit";
-#elif defined(__ANDROID__)
-    oss << " on Android";
-#elif defined(__linux__)
-    oss << " on Linux";
-#else
-    oss << " on unknown system";
-#endif
-
-    oss << "\nCompilation settings include: ";
-#if defined(IS_64BIT)
-    oss << " 64bit";
-#else
-    oss << " 32bit";
-#endif
-
-#if defined(USE_VNNI)
-    oss << " VNNI";
-#endif
-#if defined(USE_AVX512)
-    oss << " AVX512";
-#endif
-#if defined(USE_BMI2)
-    oss << " BMI2";
-#endif
-#if defined(USE_AVX2)
-    oss << " AVX2";
-#endif
-#if defined(USE_SSE41)
-    oss << " SSE41";
-#endif
-#if defined(USE_SSSE3)
-    oss << " SSSE3";
-#endif
-#if defined(USE_SSE2)
-    oss << " SSE2";
-#endif
-#if defined(USE_POPCNT)
-    oss << " POPCNT";
-#endif
-#if defined(USE_MMX)
-    oss << " MMX";
-#endif
-#if defined(USE_NEON)
-    oss << " NEON";
-#endif
-
-#if !defined(NDEBUG)
-    oss << " DEBUG";
-#endif
-
-    oss << "\n__VERSION__ macro expands to: ";
-#if defined(__VERSION__)
-    oss << __VERSION__;
-#else
-    oss << "(undefined macro)";
-#endif
-    oss << '\n';
-
-#undef VER_STRING
-
-    return oss.str();
+    return score.visit(format);
 }
 
-namespace UCI {
+char UCI::piece(PieceType pt) noexcept { return is_ok(pt) ? PieceChar[pt] : ' '; }
+char UCI::piece(Piece pc) noexcept { return is_ok(pc) ? PieceChar[pc] : ' '; }
 
-    Option::Option(OnChange onCng) noexcept :
-        type{ "button" },
-        onChange{ onCng } {
-    }
-    Option::Option(bool v, OnChange onCng) noexcept :
-        type{ "check" },
-        onChange{ onCng } {
-        defaultVal = currentVal = ::toString(v);
-    }
-    Option::Option(string_view v, OnChange onCng) noexcept :
-        type{ "string" },
-        onChange{ onCng } {
-        defaultVal = currentVal = v;
-    }
-    Option::Option(double v, double minV, double maxV, OnChange onCng) noexcept :
-        type{ "spin" },
-        minVal{ minV },
-        maxVal{ maxV },
-        onChange{ onCng } {
-        defaultVal = currentVal = std::to_string(v);
-    }
-    Option::Option(string_view v, string_view cur, OnChange onCng) noexcept :
-        type{ "combo" },
-        onChange{ onCng } {
-        defaultVal = v; currentVal = cur;
-    }
-
-    //Option::operator std::string() const {
-    //    assert(type == "string");
-    //    return currentVal;
-    //}
-    Option::operator std::string_view() const noexcept {
-        assert(type == "string");
-        return currentVal;
-    }
-    Option::operator     bool() const noexcept {
-        assert(type == "check");
-        return currentVal == "true";
-    }
-    Option::operator  int16_t() const noexcept {
-        assert(type == "spin");
-        return  int16_t( std::stoi(currentVal) );
-    }
-    Option::operator uint16_t() const noexcept {
-        assert(type == "spin");
-        return uint16_t( std::stoi(currentVal) );
-    }
-    Option::operator  int32_t() const noexcept {
-        assert(type == "spin");
-        return  int32_t( std::stoi(currentVal) );
-    }
-    Option::operator uint32_t() const noexcept {
-        assert(type == "spin");
-        return uint32_t( std::stoi(currentVal) );
-    }
-    Option::operator  int64_t() const noexcept {
-        assert(type == "spin");
-        return  int64_t( std::stoi(currentVal) ); //std::stol(currentVal);
-    }
-    Option::operator uint64_t() const noexcept {
-        assert(type == "spin");
-        return uint64_t( std::stoi(currentVal) ); //std::stol(currentVal);
-    }
-    Option::operator   double() const noexcept {
-        assert(type == "spin");
-        return( std::stod(currentVal) );
-    }
-
-    bool Option::operator==(string_view v) const {
-        assert(type == "combo");
-        return !CaseInsensitiveLessComparer()(currentVal, v)
-            && !CaseInsensitiveLessComparer()(v, currentVal);
-    }
-
-    /// Option::operator=() updates currentValue and triggers onChange() action
-    Option& Option::operator=(string_view v) {
-        assert(!type.empty());
-        string val{ v };
-        if (type == "check") {
-            val = toLower(val);
-            if (val != "true"
-             && val != "false") {
-                val = "false";
-            }
-        } else
-        if (type == "spin") {
-            auto const d = std::stod(val);
-            if (minVal > d || d > maxVal) {
-                val = std::to_string(int32_t(std::clamp(d, minVal, maxVal)));
-            }
-        } else
-        if (type == "string") {
-            if (whiteSpaces(val)) {
-                val.clear();
-            }
-        } else
-        if (type == "combo") {
-            istringstream iss{ defaultVal };
-            OptionMap comboMap; // To have case insensitive compare
-            string token;
-            while (iss >> token) {
-                comboMap[token] << Option();
-            }
-            if (!contains(comboMap, val)
-             || val == "var") {
-                return *this;
-            }
-        }
-
-        if (type != "button") {
-            currentVal = val;
-        }
-        if (onChange != nullptr) {
-            onChange(*this);
-        }
-        return *this;
-    }
-
-    /// Option::operator<<() inits options and assigns idx in the correct printing order
-    void Option::operator<<(Option const &opt) noexcept {
-        static uint32_t insertOrder = 0;
-
-        *this = opt;
-        index = insertOrder++;
-    }
-
-    const string& Option::defaultValue() const noexcept {
-        return defaultVal;
-    }
-
-    /// Option::toString()
-    string Option::toString() const noexcept {
-        ostringstream oss;
-        oss << " type " << type;
-
-        if (type == "string"
-         || type == "check"
-         || type == "combo") {
-            oss << " default " << defaultVal;
-                //<< " current " << currentVal;
-        } else
-        if (type == "spin") {
-            oss << " default " << int32_t(std::stof(defaultVal))
-                << " min " << int32_t(minVal)
-                << " max " << int32_t(maxVal);
-                //<< " current " << int32_t(std::stod(currentVal));
-        }
-
-        return oss.str();
-    }
-
+Piece UCI::piece(char pc) noexcept {
+    auto pos = PieceChar.find(pc);
+    return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
 }
 
-std::ostream& operator<<(std::ostream &ostream, UCI::Option const &opt) {
-    ostream << opt.toString();
-    return ostream;
+char UCI::file(File f, bool caseLower) noexcept { return int(f) + 'A' + 0x20 * caseLower; }
+
+char UCI::rank(Rank r) noexcept { return int(r) + '1'; }
+
+std::string UCI::square(Square s) noexcept {
+    assert(is_ok(s));
+    return std::string{file(file_of(s)), rank(rank_of(s))};
 }
 
-/// This is used to print all the options default values in chronological
-/// insertion order and in the format defined by the UCI protocol.
-std::ostream& operator<<(std::ostream &ostream, UCI::OptionMap const &om) {
-    for (size_t idx = 0; idx < om.size(); ++idx) {
-        for (auto &strOptPair : om) {
-            if (strOptPair.second.index == idx) {
-                ostream << "option name " << strOptPair.first << strOptPair.second << '\n';
-            }
-        }
+std::string UCI::move_to_can(const Move& m) noexcept {
+    if (m == Move::none())
+        return "(none)";
+    if (m == Move::null())
+        return "0000";
+
+    Square org = m.org_sq(), dst = m.dst_sq();
+    if (m.type_of() == CASTLING && !Position::Chess960)
+    {
+        assert(rank_of(org) == rank_of(dst));
+        dst = make_square(org < dst ? FILE_G : FILE_C, rank_of(org));
     }
-    return ostream;
+
+    std::string can = square(org) + square(dst);
+    if (m.type_of() == PROMOTION)
+        can += char(std::tolower(piece(m.promotion_type())));
+
+    return can;
 }
 
-namespace UCI {
+// Converts a string representing a move in coordinate notation
+// (g1f3, a7a8q) to the corresponding legal move, if any.
+Move UCI::can_to_move(const std::string& can, const MoveList<LEGAL>& legalMoves) noexcept {
+    assert(4 <= can.length() && can.length() <= 5);
+    std::string ccan = to_lower(can);
 
-    /// 'On change' actions, triggered by an option's value change
+    for (const auto& m : legalMoves)
+        if (ccan == move_to_can(m))
+            return m;
 
-    namespace {
+    return Move::none();
+}
 
-        void onHash(Option const &o) noexcept {
-            TT.autoResize(o);
-        }
+Move UCI::can_to_move(const std::string& can, const Position& pos) noexcept {
+    return can_to_move(can, MoveList<LEGAL>(pos));
+}
 
-        void onClearHash(Option const&) noexcept {
-            UCI::clear();
-        }
+void UCI::on_update_short(const Search::InfoShort& info) noexcept {
+    std::ostringstream oss;
+    oss << "info"
+        << " depth " << info.depth  //
+        << " score " << format_score(info.score);
+    sync_cout << oss.str() << sync_endl;
+}
 
-        void onSaveHash(Option const&) noexcept {
-            TT.save(Options["Hash File"]);
-        }
-        void onLoadHash(Option const&) noexcept {
-            TT.load(Options["Hash File"]);
-        }
+void UCI::on_update_full(const Search::InfoFull& info) noexcept {
+    std::ostringstream oss;
+    oss << "info"                                  //
+        << " depth " << info.depth                 //
+        << " seldepth " << info.selDepth           //
+        << " multipv " << info.multiPV             //
+        << " score " << format_score(info.score);  //
+    if (!info.bound.empty())
+        oss << " " << info.bound;
+    if (!info.wdl.empty())
+        oss << " wdl " << info.wdl;
+    oss << " time " << info.time          //
+        << " nodes " << info.nodes        //
+        << " nps " << info.nps            //
+        << " tbhits " << info.tbHits      //
+        << " hashfull " << info.hashfull  //
+        << " pv" << info.pv;              //
+    sync_cout << oss.str() << sync_endl;
+}
 
-        void onBookFile(Option const &o) noexcept {
-            Book.initialize(o);
-        }
+void UCI::on_update_iteration(const Search::InfoIteration& info) noexcept {
+    std::ostringstream oss;
+    oss << "info"                                      //
+        << " depth " << info.depth                     //
+        << " currmove " << info.currMove               //
+        << " currmovenumber " << info.currMoveNumber;  //
+    sync_cout << oss.str() << sync_endl;
+}
 
-        void onThreads(Option const&) noexcept {
-            Threadpool.setup(optionThreads());
-        }
+void UCI::on_update_bestmove(std::string_view bestMove, std::string_view ponderMove) noexcept {
+    sync_cout << "bestmove " << bestMove;
+    if (!ponderMove.empty())
+        std::cout << " ponder " << ponderMove;
+    std::cout << sync_endl;
+}
 
-        void onTimeNodes(Option const&) noexcept {
-            TimeMgr.clear();
-        }
+namespace {
 
-        void onLogFile(Option const &o) noexcept {
-            if (!StdLogger) {
-                StdLogger.emplace(std::cin, std::cout); // Tie std::cin and std::cout to a file.
-            }
-            StdLogger.value().setup(o);
-        }
+enum Ambiguity : std::uint8_t {
+    AMB_NONE,
+    AMB_RANK,
+    AMB_FILE,
+    AMB_SQUARE,
+};
 
-        void onSyzygyPath(Option const &o) noexcept {
-            SyzygyTB::initialize(o);
-        }
+// Ambiguity if more then one piece of same type can reach 'to' with a legal move.
+// NOTE: for pawns it is not needed because 'from' file is explicit.
+Ambiguity ambiguity(const Move& m, const Position& pos) noexcept {
+    assert(pos.pseudo_legal(m) && pos.legal(m));
 
-        void onUseNNUE(Option const&) noexcept {
-            Evaluator::NNUE::initialize();
-        }
-        void onEvalFile(Option const&) noexcept {
-            Evaluator::NNUE::initialize();
-        }
+    Color        stm = pos.side_to_move();
+    const Square org = m.org_sq(), dst = m.dst_sq();
+    assert(color_of(pos.piece_on(org)) == stm);
+    PieceType pt = type_of(pos.piece_on(org));
+
+    // Disambiguation if have more then one piece with destination
+    // note that for pawns is not needed because starting file is explicit.
+    Bitboard piece = (attacks_bb(pt, dst, pos.pieces()) & pos.pieces(stm, pt)) ^ org;
+
+    if (!piece)
+        return AMB_NONE;
+
+    Bitboard b = piece;
+    // If pinned piece is considered as ambiguous
+    //& ~pos.blockers(stm);
+    while (b)
+    {
+        Square sq = pop_lsb(b);
+
+        Move mm = Move(sq, dst);
+        if (!(pos.pseudo_legal(mm) && pos.legal(mm)))
+            piece ^= sq;
     }
+    if (!(piece & file_bb(org)))
+        return AMB_RANK;
+    if (!(piece & rank_bb(org)))
+        return AMB_FILE;
 
-    void initialize() noexcept {
+    return AMB_SQUARE;
+}
 
-        Options["Hash"]               << Option(16, TTable::MinHashSize, TTable::MaxHashSize, onHash);
+}  // namespace
 
-        Options["Clear Hash"]         << Option(onClearHash);
-        Options["Retain Hash"]        << Option(false);
+std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
+    if (m == Move::none())
+        return "(none)";
+    if (m == Move::null())
+        return "0000";
+    assert(MoveList<LEGAL>(pos).contains(m));
 
-        Options["Hash File"]          << Option(string("Hash.dat"));
-        Options["Save Hash"]          << Option(onSaveHash);
-        Options["Load Hash"]          << Option(onLoadHash);
+    std::ostringstream oss;
 
-        Options["Use Book"]           << Option(false);
-        Options["Book File"]          << Option(string("Book.bin"), onBookFile);
-        Options["Book Pick Best"]     << Option(true);
-        Options["Book Move Num"]      << Option(20, 0, 100);
+    const Square org = m.org_sq(), dst = m.dst_sq();
+    assert(color_of(pos.piece_on(org)) == pos.side_to_move());
+    PieceType pt = type_of(pos.piece_on(org));
 
-        Options["Threads"]            << Option(1, 0, 512, onThreads);
-
-        Options["Skill Level"]        << Option(MaxLevel,  0, MaxLevel);
-
-        Options["MultiPV"]            << Option( 1, 1, 500);
-
-        Options["Fixed Contempt"]     << Option( 24, -100, 100);
-        Options["Contempt Time"]      << Option( 40,    0, 1000);
-        Options["Contempt Value"]     << Option(100,    0, 1000);
-        Options["Analysis Contempt"]  << Option(string("Both var Off var White var Black var Both"), string("Both"));
-
-        Options["Draw MoveCount"]     << Option(50, 5, 50);
-
-        Options["Overhead MoveTime"]  << Option( 10,  0, 5000);
-        Options["Move Slowness"]      << Option(100, 10, 1000);
-        Options["Ponder"]             << Option(true);
-        Options["Time Nodes"]         << Option( 0,  0, 10000, onTimeNodes);
-
-        Options["SyzygyPath"]         << Option(string(""), onSyzygyPath);
-        Options["SyzygyDepthLimit"]   << Option(1, 1, 100);
-        Options["SyzygyPieceLimit"]   << Option(SyzygyTB::TBPIECES, 0, SyzygyTB::TBPIECES);
-        Options["SyzygyMove50Rule"]   << Option(true);
-
-        Options["Use NNUE"]           << Option(true, onUseNNUE);
-
-#if defined(_MSC_VER)
-        Options["Eval File"]          << Option(string("src/") + DefaultEvalFile, onEvalFile);
-#else
-        Options["Eval File"]          << Option(string("") + DefaultEvalFile, onEvalFile);
-#endif
-
-        Options["Log File"]           << Option(string(""), onLogFile);
-
-        Options["UCI_Chess960"]       << Option(false);
-        Options["UCI_ShowWDL"]        << Option(false);
-        Options["UCI_AnalyseMode"]    << Option(false);
-        Options["UCI_LimitStrength"]  << Option(false);
-        Options["UCI_Elo"]            << Option(1350, 1350, 3100);
-
-    }
-
-    namespace {
-
-        /// Forsyth-Edwards Notation (FEN) is a standard notation for describing a particular board position of a chess game.
-        /// The purpose of FEN is to provide all the necessary information to restart a game from a particular position.
-        string const StartFEN{ "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1" };
-
-        vector<string> const DefaultFens{
-            // ---Chess Normal---
-            "setoption name UCI_Chess960 value false",
-            "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1",
-            "r3k2r/p1ppqpb1/bn2pnp1/3PN3/1p2P3/2N2Q1p/PPPBBPPP/R3K2R w KQkq - 0 10",
-            "8/2p5/3p4/KP5r/1R3p1k/8/4P1P1/8 w - - 0 11",
-            "4rrk1/pp1n3p/3q2pQ/2p1pb2/2PP4/2P3N1/P2B2PP/4RRK1 b - - 7 19",
-            "rq3rk1/ppp2ppp/1bnpb3/3N2B1/3NP3/7P/PPPQ1PP1/2KR3R w - - 7 14 moves d4e6",
-            "r1bq1r1k/1pp1n1pp/1p1p4/4p2Q/4Pp2/1BNP4/PPP2PPP/3R1RK1 w - - 2 14 moves g2g4",
-            "r3r1k1/2p2ppp/p1p1bn2/8/1q2P3/2NPQN2/PPP3PP/R4RK1 b - - 2 15",
-            "r1bbk1nr/pp3p1p/2n5/1N4p1/2Np1B2/8/PPP2PPP/2KR1B1R w kq - 0 13",
-            "r1bq1rk1/ppp1nppp/4n3/3p3Q/3P4/1BP1B3/PP1N2PP/R4RK1 w - - 1 16",
-            "4r1k1/r1q2ppp/ppp2n2/4P3/5Rb1/1N1BQ3/PPP3PP/R5K1 w - - 1 17",
-            "2rqkb1r/ppp2p2/2npb1p1/1N1Nn2p/2P1PP2/8/PP2B1PP/R1BQK2R b KQ - 0 11",
-            "r1bq1r1k/b1p1npp1/p2p3p/1p6/3PP3/1B2NN2/PP3PPP/R2Q1RK1 w - - 1 16",
-            "3r1rk1/p5pp/bpp1pp2/8/q1PP1P2/b3P3/P2NQRPP/1R2B1K1 b - - 6 22",
-            "r1q2rk1/2p1bppp/2Pp4/p6b/Q1PNp3/4B3/PP1R1PPP/2K4R w - - 2 18",
-            "4k2r/1pb2ppp/1p2p3/1R1p4/3P4/2r1PN2/P4PPP/1R4K1 b - - 3 22",
-            "3q2k1/pb3p1p/4pbp1/2r5/PpN2N2/1P2P2P/5PP1/Q2R2K1 b - - 4 26",
-            "6k1/6p1/6Pp/ppp5/3pn2P/1P3K2/1PP2P2/3N4 b - - 0 1",
-            "3b4/5kp1/1p1p1p1p/pP1PpP1P/P1P1P3/3KN3/8/8 w - - 0 1",
-            "2K5/p7/7P/5pR1/8/5k2/r7/8 w - - 0 1 moves g5g6 f3e3 g6g5 e3f3",
-            "8/6pk/1p6/8/PP3p1p/5P2/4KP1q/3Q4 w - - 0 1",
-            "7k/3p2pp/4q3/8/4Q3/5Kp1/P6b/8 w - - 0 1",
-            "8/2p5/8/2kPKp1p/2p4P/2P5/3P4/8 w - - 0 1",
-            "8/1p3pp1/7p/5P1P/2k3P1/8/2K2P2/8 w - - 0 1",
-            "8/pp2r1k1/2p1p3/3pP2p/1P1P1P1P/P5KR/8/8 w - - 0 1",
-            "8/3p4/p1bk3p/Pp6/1Kp1PpPp/2P2P1P/2P5/5B2 b - - 0 1",
-            "5k2/7R/4P2p/5K2/p1r2P1p/8/8/8 b - - 0 1",
-            "6k1/6p1/P6p/r1N5/5p2/7P/1b3PP1/4R1K1 w - - 0 1",
-            "1r3k2/4q3/2Pp3b/3Bp3/2Q2p2/1p1P2P1/1P2KP2/3N4 w - - 0 1",
-            "6k1/4pp1p/3p2p1/P1pPb3/R7/1r2P1PP/3B1P2/6K1 w - - 0 1",
-            "8/3p3B/5p2/5P2/p7/PP5b/k7/6K1 w - - 0 1",
-            "5rk1/q6p/2p3bR/1pPp1rP1/1P1Pp3/P3B1Q1/1K3P2/R7 w - - 93 90",
-            "4rrk1/1p1nq3/p7/2p1P1pp/3P2bp/3Q1Bn1/PPPB4/1K2R1NR w - - 40 21",
-            "r3k2r/3nnpbp/q2pp1p1/p7/Pp1PPPP1/4BNN1/1P5P/R2Q1RK1 w kq - 0 16",
-            "3Qb1k1/1r2ppb1/pN1n2q1/Pp1Pp1Pr/4P2p/4BP2/4B1R1/1R5K b - - 11 40",
-            "4k3/3q1r2/1N2r1b1/3ppN2/2nPP3/1B1R2n1/2R1Q3/3K4 w - - 5 1",
-
-            // 4-man positions
-            "8/6k1/5r2/8/8/8/1K6/Q7 w - - 0 1"        // Kc3 - mate in 27
-
-            // 5-men positions
-            "8/8/8/8/5kp1/P7/8/1K1N4 w - - 0 80",     // Kc2 - Mate
-            "8/8/8/5N2/8/p7/8/2NK3k w - - 0 82",      // Na2 - Mate
-            "8/3k4/8/8/8/4B3/4KB2/2B5 w - - 0 85",    // Draw
-
-            // 6-men positions
-            "8/8/1P6/5pr1/8/4R3/7k/2K5 w - - 0 92",   // Re5 - Mate
-            "8/2p4P/8/kr6/6R1/8/8/1K6 w - - 0 94",    // Ka2 - Mate
-            "8/8/3P3k/8/1p6/8/1P6/1K3n2 b - - 0 90",  // Nd2 - Draw
-
-            // 7-men positions
-            "8/R7/2q5/8/6k1/8/1P5p/K6R w - - 0 124", // Draw
-
-            // Mate and stalemate positions
-            "6k1/3b3r/1p1p4/p1n2p2/1PPNpP1q/P3Q1p1/1R1RB1P1/5K2 b - - 0 1",
-            "r2r1n2/pp2bk2/2p1p2p/3q4/3PN1QP/2P3R1/P4PP1/5RK1 w - - 0 1",
-            "8/8/8/8/8/6k1/6p1/6K1 w - - 0 1",
-            "7k/7P/6K1/8/3B4/8/8/8 b - - 0 1",
-
-            // ---Chess 960---
-            "setoption name UCI_Chess960 value true",
-            "bbqnnrkr/pppppppp/8/8/8/8/PPPPPPPP/BBQNNRKR w HFhf - 0 1 moves g2g3 d7d5 d2d4 c8h3 c1g5 e8d6 g5e7 f7f6",
-            "setoption name UCI_Chess960 value false"
-        };
-
-        // trace_eval() prints the evaluation for the current position, consistent with the UCI options set so far.
-        void traceEval(Position &pos) {
-            StateListPtr states{ new StateList{ 1 } };
-            Position cPos;
-            cPos.setup(pos.fen(), states->back(), Threadpool.mainThread());
-
-            Evaluator::NNUE::verify();
-
-            sync_cout << '\n' << Evaluator::trace(cPos) << sync_endl;
-        }
-
-        /// setoption() updates the UCI option ("name") to the given value ("value").
-        void setOption(istringstream &iss, Position &pos) {
-            string token;
-            iss >> token; // Consume "name" token
-
-            //if (token != "name") return;
-            string name;
-            // Read option-name (can contain spaces)
-            while (iss >> token
-                && token != "value") { // Consume "value" token if any
-                name += (name.empty() ? "" : " ") + token;
-            }
-
-            //if (token != "value") return;
-            string value;
-            // Read option-value (can contain spaces)
-            while (iss >> token) {
-                value += (value.empty() ? "" : " ") + token;
-            }
-
-            if (contains(Options, name)) {
-                Options[name] = value;
-                sync_cout << "info string option " << name << " = " << value << sync_endl;
-                if (pos.thread() != Threadpool.mainThread()) {
-                    pos.thread(Threadpool.mainThread());
-                }
-            } else {
-                sync_cout << "No such option: \'" << name << "\'" << sync_endl;
-            }
-        }
-
-        /// position() sets up the starting position ("startpos")/("fen <fenstring>") and then
-        /// makes the moves given in the move list ("moves") also saving the moves on stack.
-        void position(istringstream &iss, Position &pos, StateListPtr &states) {
-            string token;
-            iss >> token; // Consume "startpos" or "fen" token
-
-            string fen;
-            if (token == "startpos") {
-                fen = StartFEN;
-                iss >> token; // Consume "moves" token if any
-            } else
-            if (token == "fen") {
-                while (iss >> token
-                    && token != "moves") { // Consume "moves" token if any
-                    fen += token + " ";
-                }
-                //assert(isOk(fen));
-            } else {
-                return;
-            }
-
-            // Drop old and create a new one
-            states = StateListPtr{ new StateList{ 1 } };
-            pos.setup(fen, states->back(), Threadpool.mainThread());
-            //assert(pos.fen() == toString(trim(fen)));
-
-            // Parse and validate moves (if any)
-            while (iss >> token) {
-                auto const m{ moveOfCAN(token, pos) };
-                if (m == MOVE_NONE) {
-                    std::cerr << "ERROR: Illegal Move '" << token << "' at " << iss.tellg() << '\n';
+    if (m.type_of() != CASTLING)
+    {
+        if (pt != PAWN)
+        {
+            oss << piece(pt);
+            if (pt != KING)
+            {
+                // Disambiguation if have more then one piece of type 'pt' that can reach 'to' with a legal move.
+                switch (ambiguity(m, pos))
+                {
+                case AMB_RANK :
+                    oss << file(file_of(org));
                     break;
+                case AMB_FILE :
+                    oss << rank(rank_of(org));
+                    break;
+                case AMB_SQUARE :
+                    oss << square(org);
+                    break;
+                default :;
                 }
-
-                states->emplace_back();
-                pos.doMove(m, states->back());
             }
         }
 
-        /// go() sets the thinking time and other parameters from the input string, then starts the search.
-        void go(istringstream &iss, Position &pos, StateListPtr &states) {
-            Threadpool.stopThinking();
-            Threadpool.ponder = false;
-
-            TimeMgr.startTime = now(); // As early as possible!
-            Limits.clear();
-
-            string token;
-            while (iss >> token) {
-                if (token == "wtime")     { iss >> Limits.clock[WHITE].time; } else
-                if (token == "btime")     { iss >> Limits.clock[BLACK].time; } else
-                if (token == "winc")      { iss >> Limits.clock[WHITE].inc; } else
-                if (token == "binc")      { iss >> Limits.clock[BLACK].inc; } else
-                if (token == "movestogo") { iss >> Limits.movestogo; } else
-                if (token == "movetime")  { iss >> Limits.moveTime; } else
-                if (token == "depth")     { iss >> Limits.depth; } else
-                if (token == "nodes")     { iss >> Limits.nodes; } else
-                if (token == "mate")      { iss >> Limits.mate; } else
-                if (token == "infinite")  { Limits.infinite = true; } else
-                if (token == "ponder")    { Threadpool.ponder = true; } else
-                // Needs to be the last command on the line
-                if (token == "searchmoves") {
-                    // Parse and Validate search-moves (if any)
-                    while (iss >> token) {
-                        auto const m{ moveOfCAN(token, pos) };
-                        if (m == MOVE_NONE) {
-                            std::cerr << "ERROR: Illegal Rootmove '" << token << "'\n";
-                            continue;
-                        }
-                        Limits.searchMoves += m;
-                    }
-                } else
-                if (token == "ignoremoves") {
-                    // Parse and Validate ignore-moves (if any)
-                    for (auto const &vm : MoveList<LEGAL>(pos)) {
-                        Limits.searchMoves += vm;
-                    }
-                    while (iss >> token) {
-                        auto const m{ moveOfCAN(token, pos) };
-                        if (m == MOVE_NONE) {
-                            std::cerr << "ERROR: Illegal Rootmove '" << token << "'\n";
-                            continue;
-                        }
-                        if (Limits.searchMoves.contains(m)) {
-                            Limits.searchMoves -= m;
-                        }
-                    }
-                } else {
-                    //std::cerr << "Unknown token : " << token << '\n';
-                }
-            }
-            Threadpool.startThinking(pos, states);
+        if (pos.capture(m))
+        {
+            if (pt == PAWN)
+                oss << file(file_of(org));
+            oss << 'x';
         }
 
-        /// setupBench() builds a list of UCI commands to be run by bench.
-        /// There are five parameters:
-        /// - TT size in MB (default is 16)
-        /// - Threads count(default is 1)
-        /// - limit value (default is 13)
-        /// - limit type:
-        ///     * depth (default)
-        ///     * movetime
-        ///     * nodes
-        ///     * mate
-        ///     * perft
-        /// - FEN positions to be used in FEN format
-        ///     * 'default' for builtin positions (default)
-        ///     * 'current' for current position
-        ///     * '<filename>' for file containing FEN positions
-        /// - Evaluation type
-        ///     * classical (default)
-        ///     * nnue
-        ///     * mixed
-        /// example:
-        /// bench -> search default positions up to depth 13
-        /// bench 256 4 10 depth default classical -> search default positions up to depth 10 using classical evaluation
-        /// bench 64 1 15 -> search default positions up to depth 15 (TT = 64MB)
-        /// bench 64 4 5000 movetime current -> search current position with 4 threads for 5 sec (TT = 64MB)
-        /// bench 64 1 100000 nodes -> search default positions for 100K nodes (TT = 64MB)
-        /// bench 16 1 5 perft -> run perft 5 on default positions
-        vector<string> setupBench(istringstream &iss, Position const &pos) {
-            string token;
-            // Assign default values to missing arguments
-            string    hash{ (iss >> token) && !whiteSpaces(token) ? token : "16" };
-            string threads{ (iss >> token) && !whiteSpaces(token) ? token : "1" };
-            string   value{ (iss >> token) && !whiteSpaces(token) ? token : "13" };
-            string   limit{ (iss >> token) && !whiteSpaces(token) ? toLower(token) : "depth" };
-            string fenFile{ (iss >> token) && !whiteSpaces(token) ? toLower(token) : "default" };
-            string    eval{ (iss >> token) && !whiteSpaces(token) ? toLower(token) : "classical" };
+        oss << square(dst);
 
-            string command{
-                limit == "eval"  ? limit :
-                limit == "perft" ? limit + " " + value :
-                                   "go " + limit + " " + value };
-
-            vector<string> fens;
-            if (fenFile == "default") {
-                fens = DefaultFens;
-            } else
-            if (fenFile == "current") {
-                fens.push_back(pos.fen());
-            } else {
-                std::ifstream ifstream{ fenFile, std::ios::in };
-                if (ifstream.is_open()) {
-                    string fen;
-                    while (std::getline(ifstream, fen, '\n')) {
-                        if (!whiteSpaces(fen)) {
-                            fens.push_back(fen);
-                        }
-                    }
-                    ifstream.close();
-                } else {
-                    std::cerr << "ERROR: unable to open file ... \'" << fenFile << "\'\n";
-                }
-            }
-
-            bool uciChess960{ Options["UCI_Chess960"] };
-
-            vector<string> uciCmds;
-            uciCmds.emplace_back("setoption name Threads value " + threads);
-            uciCmds.emplace_back("setoption name Hash value " + hash);
-            uciCmds.emplace_back("ucinewgame");
-
-            if (eval == "classical") {
-                uciCmds.emplace_back("setoption name Use NNUE value false");
-            } else
-            if (eval == "nnue") {
-                uciCmds.emplace_back("setoption name Use NNUE value true");
-            }
-
-            uint32_t posCount{ 0 };
-            for (auto const &fen : fens) {
-                if (fen.find("setoption") != string::npos) {
-                    uciCmds.emplace_back(fen);
-                } else {
-                    if (eval == "mixed") {
-                        uciCmds.emplace_back(string("setoption name Use NNUE value ") + (posCount % 2 != 0 ? "true" : "false"));
-                    }
-
-                    uciCmds.emplace_back("position fen " + fen);
-                    uciCmds.emplace_back(command);
-
-                    ++posCount;
-                }
-            }
-
-            if (fenFile != "current") {
-                uciCmds.emplace_back("setoption name UCI_Chess960 value " + toString(uciChess960));
-                uciCmds.emplace_back("position fen " + pos.fen());
-            }
-            uciCmds.emplace_back("setoption name Use NNUE value " + Options["Use NNUE"].defaultValue());
-
-            return uciCmds;
-        }
-
-        /// bench() setup list of UCI commands is setup according to bench parameters,
-        /// then it is run one by one printing a summary at the end.
-        void bench(istringstream &isstream, Position &pos, StateListPtr &states) {
-
-            auto const uciCmds{ setupBench(isstream, pos) };
-            auto const cmdCount{ std::count_if(uciCmds.begin(), uciCmds.end(),
-                                            [](string const &s) {
-                                                return s.find("eval") == 0
-                                                    || s.find("perft ") == 0
-                                                    || s.find("go ") == 0;
-                                            }) };
-
-            Reporter::reset();
-            TimePoint elapsed{ now() };
-            uint64_t nodes{ 0 };
-            int32_t i{ 0 };
-            for (auto const &cmd : uciCmds) {
-                istringstream iss{ cmd };
-                string token;
-                iss >> std::skipws >> token;
-
-                if (token == "eval"
-                 || token == "perft"
-                 || token == "go") {
-
-                    std::cerr << "\n---------------\nPosition: "
-                              << std::right << std::setw(2) << ++i << '/' << cmdCount << " (" << std::left << pos.fen() << ")\n";
-
-                    if (token == "eval") {
-                        traceEval(pos);
-                    } else
-                    if (token == "perft") {
-                        Depth depth{ 1 };
-                        iss >> depth; depth = std::max(Depth(1), depth);
-
-                        perft<true>(pos, depth);
-                    } else
-                    if (token == "go") {
-                        go(iss, pos, states);
-                        Threadpool.mainThread()->waitIdle();
-                        nodes += Threadpool.accumulate(&Thread::nodes);
-                    }
-                } else
-                if (token == "setoption") {
-                    setOption(iss, pos);
-                } else
-                if (token == "position") {
-                    position(iss, pos, states);
-                } else
-                if (token == "ucinewgame") {
-                    UCI::clear();
-                    elapsed = now();
-                } else {
-                    //std::cerr << "Unknown token : " << token << '\n';
-                }
-            }
-
-            elapsed = std::max(now() - elapsed, { 1 }); // Ensure non-zero to avoid a 'divide by zero'
-
-            Reporter::print(); // Just before exiting
-
-            ostringstream oss;
-            oss << std::right
-                << "\n=================================\n"
-                << "Total time (ms) :" << std::setw(16) << elapsed << '\n'
-                << "Nodes searched  :" << std::setw(16) << nodes << '\n'
-                << "Nodes/second    :" << std::setw(16) << nodes * 1000 / elapsed
-                << "\n---------------------------------\n";
-            std::cerr << oss.str() << '\n';
-        }
+        if (pt == PAWN && m.type_of() == PROMOTION)
+            oss << '=' << piece(m.promotion_type());
+    }
+    else
+    {
+        assert(pt == KING && rank_of(org) == rank_of(dst));
+        oss << (org < dst ? "O-O" : "O-O-O");
     }
 
-    /// handleCommands() waits for a command from stdin, parses it and calls the appropriate function.
-    /// Also intercepts EOF from stdin to ensure gracefully exiting if the GUI dies unexpectedly.
-    /// Single command line arguments is executed once and returns immediately, e.g. 'bench'.
-    /// In addition to the UCI ones, also some additional commands are supported.
-    void handleCommands(int argc, char const *const argv[]) {
+    // Move marker for check & checkmate
+    if (pos.gives_check(m))
+    {
+        StateInfo st;
+        ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
 
-        Position pos;
-        // Stack to keep track of the position states along the setup moves
-        // (from the start position to the position just before the search starts).
-        // Needed by 'draw by repetition' detection.
-        StateListPtr states{ new StateList{ 1 } };
-        pos.setup(StartFEN, states->back(), Threadpool.mainThread());
-
-        // Join arguments
-        string cmd;
-        for (int i = 1; i < argc; ++i) {
-            cmd += string(argv[i]) + " ";
-        }
-
-        Reporter::reset();
-        string token;
-        do {
-            // Block here waiting for input or EOF
-            if (argc == 1
-             && !std::getline(std::cin, cmd, '\n')) {
-                cmd = "quit";
-            }
-
-            istringstream iss{ cmd };
-            token.clear(); // Avoid a stale if getline() returns empty or blank line
-            iss >> std::skipws >> token;
-            token = toLower(token);
-
-            if (token == "quit"
-             || token == "stop") {
-                Threadpool.stop = true;
-            } else
-            // GUI sends 'ponderhit' to tell that the opponent has played the expected move.
-            // So 'ponderhit' will be sent if told to ponder on the same move the opponent has played.
-            // Now should continue searching but switch from pondering to normal search.
-            if (token == "ponderhit") {
-                Threadpool.ponder = false; // Switch to normal search
-            } else
-            if (token == "isready") {
-                sync_cout << "readyok" << sync_endl;
-            } else
-            if (token == "uci") {
-                sync_cout << "id name "     << Name << " " << engineInfo() << '\n'
-                          << "id author "   << Author << '\n'
-                          << Options
-                          << "uciok" << sync_endl;
-            } else
-            if (token == "ucinewgame") {
-                UCI::clear();
-            } else
-            if (token == "position") {
-                position(iss, pos, states);
-            } else
-            if (token == "go") {
-                go(iss, pos, states);
-            } else
-            if (token == "setoption") {
-                setOption(iss, pos);
-            } else
-            // Additional custom non-UCI commands, useful for debugging
-            // Do not use these commands during a search!
-            if (token == "bench") {
-                bench(iss, pos, states);
-            } else
-            if (token == "flip") {
-                pos.flip();
-            } else
-            if (token == "mirror") {
-                pos.mirror();
-            } else
-            if (token == "compiler") {
-                sync_cout << compilerInfo() << sync_endl;
-            } else
-            if (token == "show") {
-                sync_cout << pos << sync_endl;
-            } else
-            if (token == "eval") {
-                traceEval(pos);
-            } else
-            if (token == "perft") {
-                Depth depth{ 1 };
-                iss >> depth; depth = std::max(Depth(1), depth);
-                bool detail{ false };
-                iss >> std::boolalpha >> detail;
-
-                perft<true>(pos, depth, detail);
-            } else
-            if (token == "keys") {
-                ostringstream oss;
-                oss << "FEN: " << pos.fen() << '\n'
-                    << std::hex << std::uppercase << std::setfill('0')
-                    << "Posi key: " << std::setw(16) << pos.posiKey() << '\n'
-                    << "Matl key: " << std::setw(16) << pos.matlKey() << '\n'
-                    << "Pawn key: " << std::setw(16) << pos.pawnKey() << '\n'
-                    << "PG key: "   << std::setw(16) << pos.pgKey();
-                sync_cout << oss.str() << sync_endl;
-            } else
-            if (token == "moves") {
-                sync_cout;
-                int32_t moveCount;
-                std::cout << '\n';
-                if (pos.checkers() == 0) {
-                    std::cout << "Capture moves: ";
-                    moveCount = 0;
-                    for (auto const &vm : MoveList<CAPTURE>(pos)) {
-                        if (pos.pseudoLegal(vm)
-                         && pos.legal(vm)) {
-                            std::cout << moveToSAN(vm, pos) << " ";
-                            ++moveCount;
-                        }
-                    }
-                    std::cout << "(" << moveCount << ")\n";
-
-                    std::cout << "Quiet moves: ";
-                    moveCount = 0;
-                    for (auto const &vm : MoveList<QUIET>(pos)) {
-                        if (pos.pseudoLegal(vm)
-                         && pos.legal(vm)) {
-                            std::cout << moveToSAN(vm, pos) << " ";
-                            ++moveCount;
-                        }
-                    }
-                    std::cout << "(" << moveCount << ")\n";
-
-                    std::cout << "Quiet Check moves: ";
-                    moveCount = 0;
-                    for (auto const &vm : MoveList<QUIET_CHECK>(pos)) {
-                        if (pos.pseudoLegal(vm)
-                         && pos.legal(vm)) {
-                            std::cout << moveToSAN(vm, pos) << " ";
-                            ++moveCount;
-                        }
-                    }
-                    std::cout << "(" << moveCount << ")\n";
-
-                    std::cout << "Natural moves: ";
-                    moveCount = 0;
-                    for (auto const &vm : MoveList<NORMAL>(pos)) {
-                        if (pos.pseudoLegal(vm)
-                         && pos.legal(vm)) {
-                            std::cout << moveToSAN(vm, pos) << " ";
-                            ++moveCount;
-                        }
-                    }
-                    std::cout << "(" << moveCount << ")\n";
-                } else {
-                    std::cout << "Evasion moves: ";
-                    moveCount = 0;
-                    for (auto const &vm : MoveList<EVASION>(pos)) {
-                        if (pos.pseudoLegal(vm)
-                         && pos.legal(vm)) {
-                            std::cout << moveToSAN(vm, pos) << " ";
-                            ++moveCount;
-                        }
-                    }
-                    std::cout << "(" << moveCount << ")\n";
-                }
-                std::cout << sync_endl;
-            } else
-            if (!token.empty() && token[0] != '#') {
-                sync_cout << "Unknown command: \'" << cmd << "\'" << sync_endl;
-            }
-
-        } while (argc == 1
-              && token != "quit");
+        pos.do_move(m, st, true);
+        oss << (MoveList<LEGAL>(pos).size() != 0 ? '+' : '#');
+        pos.undo_move(m);
     }
 
-    /// clear() clear all stuff
-    void clear() noexcept {
-        Threadpool.stopThinking();
-
-        TT.clear();
-        TimeMgr.clear();
-        Threadpool.clean();
-
-        SyzygyTB::initialize(Options["SyzygyPath"]); // Free up mapped files
-    }
-
+    return oss.str();
 }
 
-uint16_t optionThreads() {
-    uint16_t threadCount{ Options["Threads"] };
-    if (threadCount == 0) {
-        threadCount = uint16_t(std::thread::hardware_concurrency());
-    }
-    return threadCount;
+Move UCI::san_to_move(const std::string& san, Position& pos) noexcept {
+    assert(3 <= san.length() && san.length() <= 9);
+    for (const auto& m : MoveList<LEGAL>(pos))
+        if (san == move_to_san(m, pos))
+            return m;
+
+    return Move::none();
 }
+
+}  // namespace DON

@@ -1,122 +1,102 @@
+/*
+  DON, a UCI chess playing engine derived from Glaurung 2.1
+
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#include "tune.h"
+
 #include <algorithm>
 #include <iostream>
+#include <map>
 #include <sstream>
 
-#include "type.h"
-#include "thread.h"
-#include "uci.h"
-#include "helper/prng.h"
+#include "ucioption.h"
 
-using std::string;
+namespace DON {
 
-bool Tune::updateOnLast;
+const Option* LastOption = nullptr;
 
-const UCI::Option *LastOption = nullptr;
-BoolConditions Conditions;
-static std::map<std::string, int> TuneResults;
+bool        Tune::UpdateOnLast;
+OptionsMap* Tune::Options;
 
-string Tune::next(string &names, bool pop) {
+namespace {
 
-    string name;
+std::map<std::string, int> TuneResults;
 
-    do {
-        string token = names.substr(0, names.find(','));
+void on_tune(const Option& o) noexcept {
+    if (!Tune::UpdateOnLast || LastOption == &o)
+        Tune::read_options();
+}
 
-        if (pop) {
+void make_option(OptionsMap* options, const std::string& n, int v, const SetRange& r) noexcept {
+    // Do not generate option when there is nothing to tune (ie. min = max)
+    if (r(v).first == r(v).second)
+        return;
+
+    if (TuneResults.count(n))
+        v = TuneResults[n];
+
+    (*options)[n] << Option(v, r(v).first, r(v).second, on_tune);
+    LastOption = &((*options)[n]);
+
+    // Print formatted parameters, ready to be copy-pasted in Fishtest
+    std::cout << n << "," << v << "," << r(v).first << "," << r(v).second << ","
+              << (r(v).second - r(v).first) / 20.0 << ","
+              << "0.0020" << '\n';
+}
+
+}  // namespace
+
+std::string Tune::next(std::string& names, bool pop) noexcept {
+    std::string name;
+
+    do
+    {
+        std::string token = names.substr(0, names.find(','));
+
+        if (pop)
             names.erase(0, token.size() + 1);
-        }
-        std::stringstream ws(token);
-        name += (ws >> token, token); // Remove trailing whitespace
 
-    } while (std::count(name.begin(), name.end(), '(')
-        - std::count(name.begin(), name.end(), ')'));
+        std::istringstream iss(token);
+        name += (iss >> token, token);  // Remove trailing whitespace
+
+    } while (std::count(name.begin(), name.end(), '(') - std::count(name.begin(), name.end(), ')'));
 
     return name;
 }
 
-static void on_tune(UCI::Option const &o) {
-
-    if (!Tune::updateOnLast || LastOption == &o) {
-        Tune::readOptions();
-    }
+template<>
+void Tune::Entry<int>::init_option() noexcept {
+    make_option(Options, name, value, range);
 }
 
-static void makeOption(const string &n, int v, const SetRange &r) {
-
-    // Do not generate option when there is nothing to tune (ie. min = max)
-    if (r(v).first == r(v).second) {
-        return;
-    }
-
-    if (TuneResults.count(n)) {
-        v = TuneResults[n];
-    }
-
-    Options[n] << UCI::Option(v, r(v).first, r(v).second, on_tune);
-    LastOption = &Options[n];
-
-    // Print formatted parameters, ready to be copy-pasted in Fishtest
-    std::cout
-        << n << ","
-        << v << ","
-        << r(v).first << "," << r(v).second << ","
-        << (r(v).second - r(v).first) / 20.0 << ","
-        << "0.0020"
-        << std::endl;
-}
-
-template<> void Tune::Entry<int>::initOption() noexcept { makeOption(name, value, range); }
-
-template<> void Tune::Entry<int>::readOption() noexcept {
-    if (Options.count(name)) {
-        value = int32_t(Options[name]);
-    }
-}
-
-template<> void Tune::Entry<Value>::initOption() noexcept { makeOption(name, value, range); }
-
-template<> void Tune::Entry<Value>::readOption() noexcept {
-    if (Options.count(name)) {
-        value = Value(int32_t(Options[name]));
-    }
-}
-
-template<> void Tune::Entry<Score>::initOption() noexcept {
-    makeOption("m" + name, mgValue(value), range);
-    makeOption("e" + name, egValue(value), range);
-}
-
-template<> void Tune::Entry<Score>::readOption() noexcept {
-    if (Options.count("m" + name)) {
-        value = makeScore(int32_t(Options["m" + name]), egValue(value));
-    }
-    if (Options.count("e" + name)) {
-        value = makeScore(mgValue(value), int32_t(Options["e" + name]));
-    }
+template<>
+void Tune::Entry<int>::read_option() noexcept {
+    if (Options->count(name))
+        value = int((*Options)[name]);
 }
 
 // Instead of a variable here we have a PostUpdate function: just call it
-template<> void Tune::Entry<Tune::PostUpdate>::initOption() noexcept {}
-template<> void Tune::Entry<Tune::PostUpdate>::readOption() noexcept { value(); }
-
-
-// Set binary conditions according to a probability that depends
-// on the corresponding parameter value.
-
-void BoolConditions::set() noexcept {
-
-    static PRNG rng(now());
-    static bool startup = true; // To workaround fishtest bench
-
-    for (size_t i = 0; i < binary.size(); ++i) {
-        binary[i] = !startup && (values[i] + int(rng.rand<unsigned>() % variance) > threshold);
-    }
-    startup = false;
-
-    for (size_t i = 0; i < binary.size(); ++i) {
-        sync_cout << binary[i] << sync_endl;
-    }
+template<>
+void Tune::Entry<Tune::PostUpdate>::init_option() noexcept {}
+template<>
+void Tune::Entry<Tune::PostUpdate>::read_option() noexcept {
+    value();
 }
+
+}  // namespace DON
 
 
 // Init options with tuning session results instead of default values. Useful to
@@ -128,9 +108,10 @@ void BoolConditions::set() noexcept {
 //
 // Then paste the output below, as the function body
 
-#include <cmath>
 
-void Tune::readResults() noexcept {
+namespace DON {
 
-    /* ...insert your values here... */
+void Tune::read_results() noexcept { /* ...insert your values here... */
 }
+
+}  // namespace DON

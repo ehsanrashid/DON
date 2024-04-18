@@ -1,44 +1,43 @@
+/*
+  DON, a UCI chess playing engine derived from Glaurung 2.1
+
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <iostream>
 
-#include "bitbase.h"
 #include "bitboard.h"
-#include "cuckoo.h"
-#include "endgame.h"
-#include "evaluator.h"
-#include "polyglot.h"
-#include "psqtable.h"
-#include "searcher.h"
-#include "thread.h"
-#include "timemanager.h"
-#include "transposition.h"
+#include "misc.h"
+#include "position.h"
+#include "types.h"
 #include "uci.h"
-#include "zobrist.h"
-#include "helper/commandline.h"
+#include "tune.h"
 
-int main(int argc, char const *const argv[]) {
+using namespace DON;
 
-    std::cout << Name << " " << engineInfo() << " by " << Author << '\n';
-    std::cout << "info string Processor(s) detected " << std::thread::hardware_concurrency() << '\n';
+int main(int argc, const char** argv) noexcept {
 
-    // path+name of the executable binary, as given by argv[0]
-    CommandLine::initialize(argv[0]);
-    UCI::initialize();
-    //Tune::initialize();
-    Bitboards::initialize();
-    Bitbases::initialize();
-    PSQT::initialize();
-    Zobrists::initialize();
-    Cuckoos::initialize();
-    EndGame::initialize();
-    Book.initialize(Options["Book File"]);
-    Threadpool.setup(optionThreads());
-    Evaluator::NNUE::initialize();
-    UCI::clear();
+    std::cout << engine_info() << '\n';
 
-    UCI::handleCommands(argc, argv);
+    Bitboards::init();
+    Position::init();
 
-    Threadpool.setup(0);
+    UCI uci(argc, argv);
 
-    //std::atexit(clear);
-    return EXIT_SUCCESS;
+    Tune::init(uci.engine_options());
+
+    uci.handle_commands();
+
+    return 0;
 }

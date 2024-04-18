@@ -1,0 +1,98 @@
+/*
+  DON, a UCI chess playing engine derived from Glaurung 2.1
+
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef ENGINE_H_INCLUDED
+#define ENGINE_H_INCLUDED
+
+#include <cstddef>
+#include <iosfwd>
+#include <optional>
+#include <string>
+#include <string_view>
+#include <utility>
+#include <vector>
+
+#include "position.h"
+#include "search.h"
+#include "thread.h"
+#include "tt.h"
+#include "ucioption.h"
+#include "nnue/network.h"
+
+namespace DON {
+
+class Engine final {
+   public:
+    Engine(const std::string& path = "") noexcept;
+    ~Engine() noexcept;
+
+    OptionsMap& get_options() noexcept;
+    std::string fen() const noexcept;
+
+    // Set a new position, moves are in UCI format
+    void setup(std::string_view fen, const std::vector<std::string>& moves = {}) noexcept;
+
+    // Non-blocking call to start searching
+    void start(const Search::Limits& limits) noexcept;
+    // Non-blocking call to stop searching
+    void stop() noexcept;
+
+    void ponderhit() noexcept;
+
+    // Blocking call to wait for search to finish
+    void wait_finish() noexcept;
+
+    void resize_threads() noexcept;
+
+    void resize_tt(std::size_t mbSize) noexcept;
+
+    void clear() noexcept;
+
+    void visualize() const noexcept;
+    void trace_eval() const noexcept;
+    void flip() noexcept;
+
+    // Network related
+    void verify_networks() const noexcept;
+    void load_networks() noexcept;
+    void load_big_network(const std::string& file) noexcept;
+    void load_small_network(const std::string& file) noexcept;
+    void
+    save_networks(const std::pair<std::optional<std::string>, std::string> files[2]) const noexcept;
+
+    void set_on_update_short(Search::OnUpdateShort&& f) noexcept;
+    void set_on_update_full(Search::OnUpdateFull&& f) noexcept;
+    void set_on_update_iteration(Search::OnUpdateIteration&& f) noexcept;
+    void set_on_update_bestmove(Search::OnUpdateBestMove&& f) noexcept;
+
+   private:
+    const std::string binaryDirectory;
+
+    Position     pos;
+    StateListPtr states;
+
+    OptionsMap           options;
+    ThreadPool           threads;
+    TranspositionTable   tt;
+    Eval::NNUE::Networks networks;
+
+    Search::OnUpdate onUpdate;
+};
+
+}  // namespace DON
+
+#endif  // #ifndef ENGINE_H_INCLUDED

@@ -1,57 +1,77 @@
-#pragma once
+/*
+  DON, a UCI chess playing engine derived from Glaurung 2.1
+
+  DON is free software: you can redistribute it and/or modify
+  it under the terms of the GNU General Public License as published by
+  the Free Software Foundation, either version 3 of the License, or
+  (at your option) any later version.
+
+  DON is distributed in the hope that it will be useful,
+  but WITHOUT ANY WARRANTY; without even the implied warranty of
+  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+  GNU General Public License for more details.
+
+  You should have received a copy of the GNU General Public License
+  along with this program. If not, see <http://www.gnu.org/licenses/>.
+*/
+
+#ifndef THREAD_WIN32_OSX_H_INCLUDED
+#define THREAD_WIN32_OSX_H_INCLUDED
 
 #include <thread>
 
-/// On OSX threads other than the main thread are created with a reduced stack
-/// size of 512KB by default, this is too low for deep searches, which require
-/// somewhat more than 1MB stack, so adjust it to TH_STACK_SIZE.
-/// The implementation calls pthread_create() with the stack size parameter
-/// equal to the linux 8MB default, on platforms that support it.
+// On OSX threads other than the main thread are created with a reduced stack
+// size of 512KB by default, this is too low for deep searches, which require
+// somewhat more than 1MB stack, so adjust it to TH_STACK_SIZE.
+// The implementation calls pthread_create() with the stack size parameter
+// equal to the Linux 8MB default, on platforms that support it.
+
 #if defined(__APPLE__) || defined(__MINGW32__) || defined(__MINGW64__) || defined(USE_PTHREADS)
 
-#include <pthread.h>
+    #include <pthread.h>
+    #include <functional>
 
-template<class T>
-struct RoutineArgument {
+namespace DON {
 
-    T *obj;
-    void(T::*function)();
-};
-
-template<class T>
-void* startRoutine(void *arg) {
-    auto *p{ reinterpret_cast<RoutineArgument<T>*>(arg) };
-    (p->obj->*(p->function))(); // Call member function pointer
-    delete p;
-    return nullptr;
-}
-
-class NativeThread {
-
-public:
-
-    template<class T>
-    explicit NativeThread(void(T::*function)(), T *obj) {
-        static constexpr size_t TH_STACK_SIZE{ 8 * 1024 * 1024 };
-
-        pthread_attr_t threadAttr;
-        pthread_attr_init(&threadAttr);
-        pthread_attr_setstacksize(&threadAttr, TH_STACK_SIZE);
-        pthread_create(&thread, &threadAttr, startRoutine<T>, new RoutineArgument<T>{ obj, function });
-        pthread_attr_destroy(&threadAttr);
-    }
-
-    void join() {
-        pthread_join(thread, nullptr);
-    }
-
-private:
-
+class NativeThread final {
     pthread_t thread;
+
+    static constexpr std::size_t TH_STACK_SIZE = 8 * 1024 * 1024;
+
+   public:
+    template<class Function, class... Args>
+    explicit NativeThread(Function&& fun, Args&&... args) noexcept {
+        auto func = new std::function<void()>(
+          std::bind(std::forward<Function>(fun), std::forward<Args>(args)...));
+
+        pthread_attr_t ptAttr, *attr = &ptAttr;
+        pthread_attr_init(attr);
+        pthread_attr_setstacksize(attr, TH_STACK_SIZE);
+
+        auto start_routine = [](void* ptr) noexcept -> void* {
+            auto f = reinterpret_cast<std::function<void()>*>(ptr);
+            // Call the function
+            (*f)();
+            delete f;
+            return nullptr;
+        };
+
+        pthread_create(&thread, attr, start_routine, func);
+    }
+
+    void join() noexcept { pthread_join(thread, nullptr); }
 };
 
-#else // Default case: use STL classes
+}  // namespace DON
+
+#else  // Default case: use STL classes
+
+namespace DON {
 
 using NativeThread = std::thread;
 
+}  // namespace DON
+
 #endif
+
+#endif  // #ifndef THREAD_WIN32_OSX_H_INCLUDED
