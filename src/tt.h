@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -112,7 +112,7 @@ class TranspositionTable final {
     void resize(std::size_t mbSize, std::uint16_t threadCount) noexcept;
     void clear(std::uint16_t threadCount) noexcept;
 
-    TTEntry*      probe(Key key, bool& found) const noexcept;
+    TTEntry*      probe(Key key, bool& ttHit) const noexcept;
     std::uint16_t hashfull() const noexcept;
 
     bool save(const std::string& fname) const noexcept;

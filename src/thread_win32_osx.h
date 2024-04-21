@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -22,7 +22,7 @@
 
 // On OSX threads other than the main thread are created with a reduced stack
 // size of 512KB by default, this is too low for deep searches, which require
-// somewhat more than 1MB stack, so adjust it to TH_STACK_SIZE.
+// somewhat more than 1MB stack, so adjust it to ThreadStackSize.
 // The implementation calls pthread_create() with the stack size parameter
 // equal to the Linux 8MB default, on platforms that support it.
 
@@ -36,17 +36,17 @@ namespace DON {
 class NativeThread final {
     pthread_t thread;
 
-    static constexpr std::size_t TH_STACK_SIZE = 8 * 1024 * 1024;
+    static constexpr std::size_t ThreadStackSize = 8 * 1024 * 1024;
 
    public:
     template<class Function, class... Args>
-    explicit NativeThread(Function&& fun, Args&&... args) noexcept {
-        auto func = new std::function<void()>(
-          std::bind(std::forward<Function>(fun), std::forward<Args>(args)...));
+    explicit NativeThread(Function&& func, Args&&... args) noexcept {
+        auto funcPtr = new std::function<void()>(
+          std::bind(std::forward<Function>(func), std::forward<Args>(args)...));
 
-        pthread_attr_t ptAttr, *attr = &ptAttr;
-        pthread_attr_init(attr);
-        pthread_attr_setstacksize(attr, TH_STACK_SIZE);
+        pthread_attr_t ptAttr, *ptAttrPtr = &ptAttr;
+        pthread_attr_init(ptAttrPtr);
+        pthread_attr_setstacksize(ptAttrPtr, ThreadStackSize);
 
         auto start_routine = [](void* ptr) noexcept -> void* {
             auto f = reinterpret_cast<std::function<void()>*>(ptr);
@@ -56,10 +56,10 @@ class NativeThread final {
             return nullptr;
         };
 
-        pthread_create(&thread, attr, start_routine, func);
+        pthread_create(&thread, ptAttrPtr, start_routine, funcPtr);
     }
 
-    void join() noexcept { pthread_join(thread, nullptr); }
+    void join() const noexcept { pthread_join(thread, nullptr); }
 };
 
 }  // namespace DON

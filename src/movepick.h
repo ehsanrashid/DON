@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -24,7 +24,6 @@
 #include <cmath>
 #include <cstdint>
 #include <cstdlib>
-#include <functional>
 #include <limits>
 #include <type_traits>  // IWYU pragma: keep
 
@@ -53,7 +52,7 @@ constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {
 // be a move or even a nested history. We use a class instead of a naked value
 // to directly call history update operator<<() on the entry so to use stats
 // tables at caller sites as simple multi-dim arrays.
-template<typename T, int D>
+template<typename T, std::int32_t D>
 class StatsEntry final {
     T entry;
 
@@ -63,11 +62,11 @@ class StatsEntry final {
     T*   operator->() noexcept { return &entry; }
     operator const T&() const noexcept { return entry; }
 
-    void operator<<(int bonus) noexcept {
+    void operator<<(std::int32_t bonus) noexcept {
         static_assert(D <= std::numeric_limits<T>::max(), "D overflows T");
 
         // Make sure that bonus is in range [-D, D]
-        int clampedBonus = std::clamp(bonus, -D, +D);
+        std::int32_t clampedBonus = std::clamp(bonus, -D, +D);
         entry += clampedBonus - entry * std::abs(clampedBonus) / D;
 
         assert(std::abs(entry) <= D);
@@ -79,7 +78,7 @@ class StatsEntry final {
 // template parameter D limits the range of updates in [-D, D] when we update
 // values with the << operator, while the last parameters (Size and Sizes)
 // encode the dimensions of the array.
-template<typename T, int D, unsigned Size, unsigned... Sizes>
+template<typename T, std::int32_t D, std::uint32_t Size, std::uint32_t... Sizes>
 struct Stats final: public std::array<Stats<T, D, Sizes...>, Size> {
     using stats = Stats<T, D, Size, Sizes...>;
 
@@ -94,11 +93,11 @@ struct Stats final: public std::array<Stats<T, D, Sizes...>, Size> {
     }
 };
 
-template<typename T, int D, unsigned Size>
+template<typename T, std::int32_t D, std::uint32_t Size>
 struct Stats<T, D, Size> final: public std::array<StatsEntry<T, D>, Size> {};
 
 // In stats table, D=0 means that the template parameter is not used
-constexpr int NOT_USED = 0;
+constexpr std::int32_t NOT_USED = 0;
 
 // ButterflyHistory records how often quiet moves have been successful or unsuccessful
 // during the current search, and is used for reduction and move ordering decisions.
@@ -203,8 +202,10 @@ class MovePicker final {
     template<GenType GT>
     void score() noexcept;
 
-    template<bool PickBest = false>
-    Move select(std::function<bool()>&& filter) noexcept;
+    void partial_sort(int limit) noexcept;
+
+    template<bool PickBest = false, typename Predicate>
+    Move pick(Predicate filter) noexcept;
 
     ExtMove* begin() const noexcept { return cur; }
     ExtMove* end() const noexcept { return endMoves; }

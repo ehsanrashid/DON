@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -240,7 +240,7 @@ void Perft::operator+=(const Perft& perft) noexcept {
 inline void perft(Position& pos, Depth depth, bool detail = false) noexcept {
 
     std::uint64_t nodes = perft<true>(pos, depth, detail).nodes;
-    sync_cout << "\nNodes searched: " << nodes << '\n' << sync_endl;
+    sync_cout << "\nTotal Nodes: " << nodes << '\n' << sync_endl;
 }
 
 }  // namespace DON

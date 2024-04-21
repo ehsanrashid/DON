@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -165,7 +165,7 @@ struct Skill final {
     Move   bestMove = Move::none();
 };
 
-// The UCI stores the uci options, networks, thread pool, and transposition table.
+// The Engine stores the uci options, networks, thread pool, and transposition table.
 // This struct is used to easily forward data to the Search::Worker class.
 struct SharedState final {
     SharedState(const OptionsMap&           optionsMap,
@@ -207,8 +207,8 @@ struct InfoFull: InfoShort {
     TimePoint        time;
     std::uint64_t    nodes;
     std::uint32_t    nps;
-    std::uint64_t    tbHits;
     std::uint16_t    hashfull;
+    std::uint64_t    tbHits;
     std::string_view pv;
 };
 
@@ -223,7 +223,7 @@ using OnUpdateFull      = std::function<void(const InfoFull&)>;
 using OnUpdateIteration = std::function<void(const InfoIteration&)>;
 using OnUpdateBestMove  = std::function<void(std::string_view, std::string_view)>;
 
-struct OnUpdate final {
+struct UpdateContext final {
     OnUpdateShort     onUpdateShort;
     OnUpdateFull      onUpdateFull;
     OnUpdateIteration onUpdateIteration;
@@ -237,23 +237,23 @@ constexpr std::uint8_t IterSize = 4;
 // and storing data strictly related to the main thread.
 class MainSearchManager final: public ISearchManager {
    public:
-    MainSearchManager(const OnUpdate& on_Update) noexcept :
-        onUpdate(on_Update) {}
+    MainSearchManager(const UpdateContext& updateCxt) noexcept :
+        updateContext(updateCxt) {}
 
     void should_abort(const Worker& worker) noexcept;
 
     TimePoint elapsed(const Worker& worker) const noexcept;
 
-    void info_full(const Worker& worker, Depth depth) const noexcept;
+    void info_pv(const Worker& worker, Depth depth) const noexcept;
 
-    const OnUpdate& onUpdate;
+    const UpdateContext& updateContext;
 
     TimeManagement   tm;
     Skill            skill;
     std::int16_t     callsCount;
+    bool             stopOnPonderhit;
     std::atomic_bool ponder;
 
-    bool   stopOnPonderhit;
     Value  prevBestValue;
     Value  prevBestAvgValue;
     double prevTimeReduction;
@@ -272,13 +272,12 @@ class Worker final {
            ISearchManagerPtr  searchManager,
            std::uint16_t      threadId) noexcept;
 
-    // Called at instantiation to initialize Reductions tables
-    // Reset histories, usually before a new game
+    // Called at instantiation to reset histories, usually before a new game
     void clear() noexcept;
 
     // Called when the program receives the UCI 'go' command.
     // It searches from the root position and outputs the "bestmove".
-    void start_searching() noexcept;
+    void start_search() noexcept;
 
     // Public because they need to be updatable by the stats
     CounterMoveHistory                                counterMoves;

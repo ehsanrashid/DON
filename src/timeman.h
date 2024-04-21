@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -41,7 +41,10 @@ class TimeManagement final {
 
     TimePoint optimum() const noexcept;
     TimePoint maximum() const noexcept;
-    TimePoint elapsed(std::function<std::uint64_t()>&& nodes) const noexcept;
+    template<typename Func>
+    TimePoint elapsed(Func nodes) const noexcept {
+        return useNodesTime ? TimePoint(nodes()) : now() - startTime;
+    }
 
     void clear_nodes_time() noexcept;
     void advance_nodes_time(std::uint64_t nodes) noexcept;

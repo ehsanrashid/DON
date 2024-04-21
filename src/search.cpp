@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -116,7 +116,7 @@ Worker::Worker(const SharedState& sharedState,
     clear();
 }
 
-void Worker::start_searching() noexcept {
+void Worker::start_search() noexcept {
     MainSearchManager* mainManager = is_main_worker() ? main_manager() : nullptr;
 
     // Non-main threads go directly to iterative_deepening()
@@ -138,7 +138,7 @@ void Worker::start_searching() noexcept {
     if (rootMoves.empty())
     {
         rootMoves.emplace_back(Move::none());
-        mainManager->onUpdate.onUpdateShort(
+        mainManager->updateContext.onUpdateShort(
           {DEPTH_ZERO, {rootPos.checkers() ? -VALUE_MATE : VALUE_DRAW, rootPos}});
     }
     else
@@ -161,8 +161,8 @@ void Worker::start_searching() noexcept {
         }
         else
         {
-            threads.start_searching();  // start non-main threads
-            iterative_deepening();      // main thread start searching
+            threads.start_search();  // start non-main threads
+            iterative_deepening();   // main thread start searching
         }
     }
 
@@ -188,8 +188,8 @@ void Worker::start_searching() noexcept {
                                            - threads.nodes());
 
     Worker* bestWorker = this;
-    if (limits.depth == DEPTH_ZERO && limits.mate == 0 && int(options["MultiPV"]) == 1
-        && rootMoves[0].pv[0] && !mainManager->skill.enabled())
+    if (limits.mate == 0 && int(options["MultiPV"]) == 1 && rootMoves[0].pv[0]
+        && !mainManager->skill.enabled())
         bestWorker = threads.best_thread()->worker.get();
 
     mainManager->prevBestValue    = bestWorker->rootMoves[0].value;
@@ -197,7 +197,7 @@ void Worker::start_searching() noexcept {
 
     // Send again PV info if we have a new best worker
     if (bestWorker != this)
-        mainManager->info_full(*bestWorker, bestWorker->completedDepth);
+        mainManager->info_pv(*bestWorker, bestWorker->completedDepth);
 
     std::string bestMove = UCI::move_to_can(bestWorker->rootMoves[0].pv[0]);
     std::string ponderMove;
@@ -205,7 +205,7 @@ void Worker::start_searching() noexcept {
         || bestWorker->rootMoves[0].extract_ponder_from_tt(tt, rootPos))
         ponderMove = UCI::move_to_can(bestWorker->rootMoves[0].pv[1]);
 
-    mainManager->onUpdate.onUpdateBestMove(bestMove, ponderMove);
+    mainManager->updateContext.onUpdateBestMove(bestMove, ponderMove);
 }
 
 // Main iterative deepening loop. It calls search()
@@ -328,7 +328,7 @@ void Worker::iterative_deepening() noexcept {
                 // When failing high/low give some update (without cluttering the UI) before a re-search.
                 if (mainManager && multiPV == 1 && (bestValue <= alpha || bestValue >= beta)
                     && mainManager->elapsed(*this) > 3000)
-                    mainManager->info_full(*this, rootDepth);
+                    mainManager->info_pv(*this, rootDepth);
 
                 // In case of failing low/high increase aspiration window and re-search,
                 // otherwise exit the loop.
@@ -364,7 +364,7 @@ void Worker::iterative_deepening() noexcept {
                 // had time to fully search other root-moves. Thus, we suppress this output and
                 // below pick a proven score/PV for this thread (from the previous iteration).
                 && !(threads.aborted && rootMoves[0].uciValue <= VALUE_TB_LOSS_IN_MAX_PLY))
-                mainManager->info_full(*this, rootDepth);
+                mainManager->info_pv(*this, rootDepth);
         }
 
         if (!threads.stop)
@@ -491,6 +491,8 @@ void Worker::clear() noexcept {
             for (auto& pieceTo : continuationHistory[inCheck][isCapture])
                 for (auto& h : pieceTo)
                     h->fill(-65);
+
+    optimism.fill(VALUE_ZERO);
 }
 
 // Main search function for both PV and non-PV nodes.
@@ -928,7 +930,7 @@ moves_loop:  // When in check, search starts here
 
         if (RootNode && is_main_worker() && main_manager()->elapsed(*this) > 3000)
         {
-            main_manager()->onUpdate.onUpdateIteration(
+            main_manager()->updateContext.onUpdateIteration(
               {depth, UCI::move_to_can(move), std::uint16_t(moveCount + pvIndex)});
         }
 
@@ -1075,17 +1077,14 @@ moves_loop:  // When in check, search starts here
                 // If the ttMove is assumed to fail high over current beta (~7 Elo)
                 else if (ttValue >= beta)
                     extension = -3;
-
                 // If we are on a cutNode but the ttMove is not assumed to fail high over current beta (~1 Elo)
                 else if (cutNode)
                     extension = -2;
-
                 // If the ttMove is assumed to fail low over the value of the reduced search (~1 Elo)
                 else if (ttValue <= value)
                     extension = -1;
             }
-
-            // Recapture extensions (~0 Elo on STC, ~1 Elo on LTC)
+            // Extension for capturing the previous moved piece (~0 Elo on STC, ~1 Elo on LTC)
             else if (PvNode && dst == prevDst && move == ttMove
                      && captureHistory[movedPiece][dst][type_of(pos.captured_piece(move))] > 3807)
                 extension = 1;
@@ -1461,7 +1460,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth d
             bestValue = ss->staticEval = to_corrected_static_eval(unadjustedStaticEval, *this, pos);
         }
 
-        // Stand pat. Return immediately if static value is at least beta
+        // Stand pat. Return immediately if bestValue is at least beta
         if (bestValue >= beta)
         {
             if (!ss->ttHit)
@@ -1850,7 +1849,7 @@ void MainSearchManager::should_abort(const Worker& worker) noexcept {
 #endif
     // When using nodes, ensure checking rate is not lower than 0.1% of nodes
     callsCount =
-      worker.limits.nodes != 0 ? std::min<std::uint64_t>(worker.limits.nodes / 1024, 512) : 512;
+      worker.limits.nodes != 0 ? std::min<std::int64_t>(worker.limits.nodes / 1024, 512) : 512;
 
     TimePoint elapsedTime = elapsed(worker);
 #if !defined(NDEBUG)
@@ -1877,15 +1876,15 @@ TimePoint MainSearchManager::elapsed(const Worker& worker) const noexcept {
     return tm.elapsed([&worker]() { return worker.threads.nodes(); });
 }
 
-void MainSearchManager::info_full(const Search::Worker& worker, Depth depth) const noexcept {
+void MainSearchManager::info_pv(const Search::Worker& worker, Depth depth) const noexcept {
 
     const auto& rootPos   = worker.rootPos;
     const auto& rootMoves = worker.rootMoves;
 
     std::uint64_t nodes    = worker.threads.nodes();
     TimePoint     time     = std::max<TimePoint>(tm.elapsed([&nodes]() { return nodes; }), 1);
-    std::uint64_t tbHits   = worker.threads.tbHits() + worker.tbConfig.rootInTB * rootMoves.size();
     std::uint16_t hashfull = worker.tt.hashfull();
+    std::uint64_t tbHits   = worker.threads.tbHits() + worker.tbConfig.rootInTB * rootMoves.size();
     std::uint8_t  multiPV  = std::min<std::uint8_t>(worker.options["MultiPV"], rootMoves.size());
     bool          showWDL  = worker.options["UCI_ShowWDL"];
 
@@ -1908,7 +1907,7 @@ void MainSearchManager::info_full(const Search::Worker& worker, Depth depth) con
 
         std::string bound;
         // tablebase- and previous-scores are exact
-        if (i == worker.pvIndex && !tb && updated)
+        if (updated && !tb && i == worker.pvIndex)
             bound = rootMoves[i].lowerBound ? "lowerbound"
                   : rootMoves[i].upperBound ? "upperbound"
                                             : "";
@@ -1930,11 +1929,11 @@ void MainSearchManager::info_full(const Search::Worker& worker, Depth depth) con
         info.time     = time;
         info.nodes    = nodes;
         info.nps      = 1000 * nodes / time;
-        info.tbHits   = tbHits;
         info.hashfull = hashfull;
+        info.tbHits   = tbHits;
         info.pv       = pv;
 
-        onUpdate.onUpdateFull(info);
+        updateContext.onUpdateFull(info);
     }
 }
 

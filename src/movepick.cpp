@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -25,26 +25,6 @@
 #include "position.h"
 
 namespace DON {
-
-namespace {
-
-// Sort moves in descending order up to and including a given limit.
-// The order of moves smaller than the limit is left unspecified.
-void partial_insertion_sort(ExtMove* begin, ExtMove* end, int limit) noexcept {
-
-    for (ExtMove *sortedEnd = begin, *p = begin + 1; p < end; ++p)
-        if (p->value >= limit)
-        {
-            ExtMove tmp = *p, *q;
-            *p          = *++sortedEnd;
-            for (q = sortedEnd; q != begin && *(q - 1) < tmp; --q)
-                *q = *(q - 1);
-            *q = tmp;
-        }
-}
-
-}  // namespace
-
 
 // Constructors of the MovePicker class. As arguments, we pass information
 // to help it return the (presumably) good moves first, to decide which
@@ -197,10 +177,25 @@ void MovePicker::score() noexcept {
     }
 }
 
-// Returns the next move satisfying a predicate function.
+// Sort moves in descending order up to and including a given limit.
+// The order of moves smaller than the limit is left unspecified.
+void MovePicker::partial_sort(int limit) noexcept {
+
+    for (ExtMove *endSorted = cur, *p = cur + 1; p < endMoves; ++p)
+        if (p->value >= limit)
+        {
+            ExtMove tmp = *p, *q;
+            *p          = *++endSorted;
+            for (q = endSorted; q != cur && *(q - 1) < tmp; --q)
+                *q = *(q - 1);
+            *q = tmp;
+        }
+}
+
+// Returns the next move satisfying a filter function.
 // It never returns the TT move.
-template<bool PickBest>
-Move MovePicker::select(std::function<bool()>&& filter) noexcept {
+template<bool PickBest, typename Predicate>
+Move MovePicker::pick(Predicate filter) noexcept {
 
     while (cur != endMoves)
     {
@@ -239,13 +234,13 @@ top:
         endMoves             = generate<CAPTURES>(pos, cur);
 
         score<CAPTURES>();
-        partial_insertion_sort(cur, endMoves, std::numeric_limits<int>::min());
+        partial_sort(std::numeric_limits<int>::min());
 
         ++stage;
         goto top;
 
     case CAPTURE_GOOD :
-        if (select([this]() noexcept -> bool {
+        if (pick([this]() noexcept -> bool {
                 // Move losing capture to endBadCaptures to be tried later
                 return pos.see_ge(*cur, -cur->value / 18) ? true
                                                           : (*endBadCaptures++ = *cur, false);
@@ -263,7 +258,7 @@ top:
 
         std::replace_if(
           cur, endMoves,
-          [&pos = this->pos](const ExtMove& em) noexcept -> bool {
+          [&pos = pos](const ExtMove& em) noexcept -> bool {
               return em && (pos.capture_stage(em) || !pos.pseudo_legal(em));
           },
           Move::none());
@@ -272,7 +267,7 @@ top:
         [[fallthrough]];
 
     case REFUTATION :
-        if (select([this]() noexcept -> bool { return *cur != Move::none(); }))
+        if (pick([this]() noexcept -> bool { return *cur != Move::none(); }))
             return *(cur - 1);
 
         ++stage;
@@ -285,14 +280,14 @@ top:
             endMoves = beginBadQuiets = endBadQuiets = generate<QUIETS>(pos, cur);
 
             score<QUIETS>();
-            partial_insertion_sort(cur, endMoves, quiet_threshold(depth));
+            partial_sort(quiet_threshold(depth));
         }
 
         ++stage;
         [[fallthrough]];
 
     case QUIET_GOOD :
-        if (pickQuiets && select([this]() noexcept -> bool {
+        if (pickQuiets && pick([this]() noexcept -> bool {
                 return std::find(std::begin(refutations), std::end(refutations), *cur)
                     == std::end(refutations);
             }))
@@ -312,7 +307,7 @@ top:
         [[fallthrough]];
 
     case CAPTURE_BAD :
-        if (select([]() noexcept -> bool { return true; }))
+        if (pick([]() noexcept -> bool { return true; }))
             return *(cur - 1);
 
         // Prepare the pointers to loop over the bad quiets
@@ -324,7 +319,7 @@ top:
 
     case QUIET_BAD :
         if (pickQuiets)
-            return select([this]() noexcept -> bool {
+            return pick([this]() noexcept -> bool {
                 return std::find(std::begin(refutations), std::end(refutations), *cur)
                     == std::end(refutations);
             });
@@ -341,13 +336,13 @@ top:
         [[fallthrough]];
 
     case EVASION :
-        return select<true>([]() noexcept -> bool { return true; });
+        return pick<true>([]() noexcept -> bool { return true; });
 
     case PROBCUT :
-        return select([this]() noexcept -> bool { return pos.see_ge(*cur, threshold); });
+        return pick([this]() noexcept -> bool { return pos.see_ge(*cur, threshold); });
 
     case QCAPTURE :
-        if (select([]() noexcept -> bool { return true; }))
+        if (pick([]() noexcept -> bool { return true; }))
             return *(cur - 1);
 
         // If we did not find any move and we do not try checks, we have finished
@@ -365,7 +360,7 @@ top:
         [[fallthrough]];
 
     case QCHECK :
-        return select([]() noexcept -> bool { return true; });
+        return pick([]() noexcept -> bool { return true; });
 
     case NO_STAGE :;
     }

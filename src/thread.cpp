@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@
 #include "movegen.h"
 #include "timeman.h"
 #include "tt.h"
-#include "types.h"
 #include "uci.h"
 #include "ucioption.h"
 #include "syzygy/tbprobe.h"
@@ -98,7 +97,7 @@ void Thread::idle_func() noexcept {
 
         uniqueLock.unlock();
 
-        worker->start_searching();
+        worker->start_search();
     }
 }
 
@@ -131,14 +130,15 @@ void ThreadPool::clear() noexcept {
         mainManager->tm.clear_nodes_time();
 
     reductions[0] = 0;
-    for (std::size_t i = 1; i < reductions.size(); ++i)
+    for (std::uint16_t i = 1; i < reductions.size(); ++i)
         reductions[i] = (20.14 + 0.5 * std::log(size())) * std::log(i);
 }
 
 // Creates/destroys threads to match the requested number.
 // Created and launched threads will immediately go to sleep in idle_func.
 // Upon resizing, threads are recreated to allow for binding if necessary.
-void ThreadPool::set(Search::SharedState sharedState, const Search::OnUpdate& onUpdate) noexcept {
+void ThreadPool::set(Search::SharedState          sharedState,
+                     const Search::UpdateContext& updateContext) noexcept {
     destroy();
 
     std::uint16_t threadCount = sharedState.options["Threads"];
@@ -151,7 +151,7 @@ void ThreadPool::set(Search::SharedState sharedState, const Search::OnUpdate& on
     {
         assert(empty());
 
-        auto mainManager = std::make_unique<Search::MainSearchManager>(onUpdate);
+        auto mainManager = std::make_unique<Search::MainSearchManager>(updateContext);
         threads.push_back(new Thread(sharedState, std::move(mainManager), size()));
 
         while (size() < threadCount)
@@ -246,10 +246,10 @@ std::uint64_t ThreadPool::tbHits() const noexcept { return accumulate(&Search::W
 
 // Wakes up main thread waiting in idle_func() and returns immediately.
 // Main thread will wake up other threads and start the search.
-void ThreadPool::start_thinking(Position&             pos,
-                                StateListPtr&         states,
-                                const Search::Limits& limits,
-                                const OptionsMap&     options) noexcept {
+void ThreadPool::start(Position&             pos,
+                       StateListPtr&         states,
+                       const Search::Limits& limits,
+                       const OptionsMap&     options) noexcept {
     main_thread()->wait_idle();
 
     stop = aborted = false;
@@ -260,13 +260,11 @@ void ThreadPool::start_thinking(Position&             pos,
     const auto legalMoves = MoveList<LEGAL>(pos);
     for (const std::string& can : limits.searchMoves)
     {
+        if (rootMoves.size() == legalMoves.size())
+            break;
         Move m = UCI::can_to_move(can, legalMoves);
         if (m && std::find(rootMoves.begin(), rootMoves.end(), m) == rootMoves.end())
-        {
             rootMoves.emplace_back(m);
-            if (rootMoves.size() == legalMoves.size())
-                break;
-        }
     }
 
     if (rootMoves.empty())
@@ -275,15 +273,12 @@ void ThreadPool::start_thinking(Position&             pos,
 
     for (const std::string& can : limits.ignoreMoves)
     {
+        if (rootMoves.empty())
+            break;
         Move m = UCI::can_to_move(can, legalMoves);
-        if (m)
-            if (Search::RootMoves::iterator itr;
-                (itr = std::find(rootMoves.begin(), rootMoves.end(), m)) != rootMoves.end())
-            {
-                rootMoves.erase(itr);
-                if (rootMoves.empty())
-                    break;
-            }
+        if (Search::RootMoves::iterator itr;
+            m && (itr = std::find(rootMoves.begin(), rootMoves.end(), m)) != rootMoves.end())
+            rootMoves.erase(itr);
     }
 
     Tablebases::Config tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options);
@@ -295,6 +290,7 @@ void ThreadPool::start_thinking(Position&             pos,
     if (states.get())
         setupStates = std::move(states);  // Ownership transfer, states is now empty
 
+    std::string rootFen = pos.fen();
     // We use Position::set() to set root position across threads. But there are some
     // StateInfo fields (rule50, nullPly, capturedPiece, previous) that cannot be deduced
     // from a fen string, so set() clears them and they are set from setupStates->back() later.
@@ -304,12 +300,11 @@ void ThreadPool::start_thinking(Position&             pos,
         th->worker->nodes = th->worker->tbHits = th->worker->bestMoveChanges = 0;
         th->worker->selDepth = th->worker->nmpMinPly = 0;
         th->worker->rootDepth = th->worker->completedDepth = DEPTH_ZERO;
-        th->worker->rootPos.set(pos.fen(), &th->worker->rootState);
+        th->worker->rootPos.set(rootFen, &th->worker->rootState);
         th->worker->rootState = setupStates->back();
         th->worker->limits    = limits;
         th->worker->rootMoves = rootMoves;
         th->worker->tbConfig  = tbConfig;
-        th->worker->optimism.fill(VALUE_ZERO);
     }
 
     main_thread()->wake_up();
@@ -317,7 +312,7 @@ void ThreadPool::start_thinking(Position&             pos,
 
 // Start non-main threads
 // Will be invoked by main thread after it has started searching
-void ThreadPool::start_searching() const noexcept {
+void ThreadPool::start_search() const noexcept {
 
     for (Thread* th : threads)
         if (th != main_thread())

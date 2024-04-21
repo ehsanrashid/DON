@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -27,7 +27,6 @@
 #include "perft.h"
 #include "types.h"
 #include "uci.h"
-#include "ucioption.h"
 #include "nnue/nnue_common.h"
 #include "syzygy/tbprobe.h"
 
@@ -73,7 +72,7 @@ void Engine::start(const Search::Limits& limits) noexcept {
 
     verify_networks();
 
-    threads.start_thinking(pos, states, limits, options);
+    threads.start(pos, states, limits, options);
 }
 
 void Engine::stop() noexcept { threads.stop = true; }
@@ -90,17 +89,19 @@ void Engine::clear() noexcept {
     Tablebases::init(options["SyzygyPath"]);  // Free mapped files
 }
 
-void Engine::wait_finish() noexcept { threads.main_thread()->wait_idle(); }
+void Engine::wait_finish() const noexcept { threads.main_thread()->wait_idle(); }
 
 
-void Engine::resize_threads() noexcept { threads.set({options, networks, threads, tt}, onUpdate); }
-
-void Engine::resize_tt(std::size_t mbSize) noexcept {
-    wait_finish();
-    tt.resize(mbSize, options["Threads"]);
+void Engine::resize_threads() noexcept {
+    threads.set({options, networks, threads, tt}, updateContext);
 }
 
-void Engine::visualize() const noexcept { sync_cout << pos << sync_endl; }
+void Engine::resize_tt() noexcept {
+    wait_finish();
+    tt.resize(options["Hash"], options["Threads"]);
+}
+
+void Engine::show() const noexcept { sync_cout << pos << sync_endl; }
 
 void Engine::trace_eval() const noexcept {
     StateInfo st;
@@ -142,19 +143,19 @@ void Engine::save_networks(
 }
 
 void Engine::set_on_update_short(Search::OnUpdateShort&& f) noexcept {
-    onUpdate.onUpdateShort = std::move(f);
+    updateContext.onUpdateShort = std::move(f);
 }
 
 void Engine::set_on_update_full(Search::OnUpdateFull&& f) noexcept {
-    onUpdate.onUpdateFull = std::move(f);
+    updateContext.onUpdateFull = std::move(f);
 }
 
 void Engine::set_on_update_iteration(Search::OnUpdateIteration&& f) noexcept {
-    onUpdate.onUpdateIteration = std::move(f);
+    updateContext.onUpdateIteration = std::move(f);
 }
 
 void Engine::set_on_update_bestmove(Search::OnUpdateBestMove&& f) noexcept {
-    onUpdate.onUpdateBestMove = std::move(f);
+    updateContext.onUpdateBestMove = std::move(f);
 }
 
 }  // namespace DON

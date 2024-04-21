@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -54,15 +54,15 @@ class Engine final {
     void ponderhit() noexcept;
 
     // Blocking call to wait for search to finish
-    void wait_finish() noexcept;
+    void wait_finish() const noexcept;
 
     void resize_threads() noexcept;
 
-    void resize_tt(std::size_t mbSize) noexcept;
+    void resize_tt() noexcept;
 
     void clear() noexcept;
 
-    void visualize() const noexcept;
+    void show() const noexcept;
     void trace_eval() const noexcept;
     void flip() noexcept;
 
@@ -86,11 +86,11 @@ class Engine final {
     StateListPtr states;
 
     OptionsMap           options;
+    Eval::NNUE::Networks networks;
     ThreadPool           threads;
     TranspositionTable   tt;
-    Eval::NNUE::Networks networks;
 
-    Search::OnUpdate onUpdate;
+    Search::UpdateContext updateContext;
 };
 
 }  // namespace DON

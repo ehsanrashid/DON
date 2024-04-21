@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -102,7 +102,7 @@ struct NetworkArchitecture final {
             alignas(CacheLineSize) typename decltype(ac_1)::OutputBuffer ac_1_out;
             alignas(CacheLineSize) typename decltype(fc_2)::OutputBuffer fc_2_out;
 
-            Buffer() noexcept { std::memset(this, 0, sizeof(*this)); }
+            Buffer() noexcept { std::memset(this, 0, sizeof(Buffer)); }
         };
 
 #if defined(__clang__) && (__APPLE__)

@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -29,7 +29,6 @@
 
 #include "benchmark.h"
 #include "evaluate.h"
-#include "movegen.h"
 #include "position.h"
 #include "polybook.h"
 #include "score.h"
@@ -65,7 +64,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
     auto& options = engine_options();
 
     options["Threads"] << Option(1, 1, 1024, [this](const Option&) { engine.resize_threads(); });
-    options["Hash"] << Option(16, 4, MaxHash, [this](const Option& o) { engine.resize_tt(o); });
+    options["Hash"] << Option(16, 4, MaxHash, [this](const Option&) { engine.resize_tt(); });
     options["Clear Hash"] << Option([this](const Option&) { engine.clear(); });
     options["Retain Hash"] << Option(false);
     options["HashFile"] << Option("hash.dat");
@@ -98,12 +97,10 @@ UCI::UCI(int argc, const char** argv) noexcept :
                                        [this](const Option& o) { engine.load_small_network(o); });
     options["DebugLogFile"] << Option("<empty>", [](const Option& o) { start_logger(o); });
 
-    // clang-format off
-    engine.set_on_update_short([](const auto& info) { on_update_short(info); });
-    engine.set_on_update_full([](const auto& info) { on_update_full(info); });
-    engine.set_on_update_iteration([](const auto& info) { on_update_iteration(info); });
-    engine.set_on_update_bestmove([](const auto& bm, const auto& pm) { on_update_bestmove(bm, pm); });
-    // clang-format on
+    engine.set_on_update_short(on_update_short);
+    engine.set_on_update_full(on_update_full);
+    engine.set_on_update_iteration(on_update_iteration);
+    engine.set_on_update_bestmove(on_update_bestmove);
 
     engine.load_networks();
     engine.resize_threads();
@@ -159,7 +156,7 @@ void UCI::handle_commands() noexcept {
         else if (token == "bench")
             bench(iss);
         else if (token == "show")
-            engine.visualize();
+            engine.show();
         else if (token == "eval")
             engine.trace_eval();
         else if (token == "flip")
@@ -358,7 +355,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
               << "\nNodes/second    : " << 1000 * nodes / elapsedTime << '\n';
 
     // Reset callback, to not capture a dangling reference to infoNodes
-    engine.set_on_update_full([](const auto& info) { on_update_full(info); });
+    engine.set_on_update_full(on_update_full);
 }
 
 namespace {
@@ -377,8 +374,8 @@ WinRateParams win_rate_params(const Position& pos) noexcept {
     double m = std::clamp<std::uint16_t>(material, 10, 78) / 58.0;
 
     // Return a = p_a(material) and b = p_b(material).
-    constexpr double as[4]{-185.71965483, 504.85014385, -438.58295743, 474.04604627};
-    constexpr double bs[4]{89.23542728, -137.02141296, 73.28669021, 47.53376190};
+    constexpr double as[4]{-150.77043883, 394.96159472, -321.73403766, 406.15850091};
+    constexpr double bs[4]{62.33245393, -91.02264855, 45.88486850, 51.63461272};
 
     double a = (((as[0] * m + as[1]) * m + as[2]) * m) + as[3];
     double b = (((bs[0] * m + bs[1]) * m + bs[2]) * m) + bs[3];
@@ -513,8 +510,8 @@ void UCI::on_update_full(const Search::InfoFull& info) noexcept {
     oss << " time " << info.time          //
         << " nodes " << info.nodes        //
         << " nps " << info.nps            //
-        << " tbhits " << info.tbHits      //
         << " hashfull " << info.hashfull  //
+        << " tbhits " << info.tbHits      //
         << " pv" << info.pv;              //
     sync_cout << oss.str() << sync_endl;
 }
@@ -538,10 +535,10 @@ void UCI::on_update_bestmove(std::string_view bestMove, std::string_view ponderM
 namespace {
 
 enum Ambiguity : std::uint8_t {
-    AMB_NONE,
-    AMB_RANK,
-    AMB_FILE,
-    AMB_SQUARE,
+    AMBIGUITY_NONE,
+    AMBIGUITY_RANK,
+    AMBIGUITY_FILE,
+    AMBIGUITY_SQUARE,
 };
 
 // Ambiguity if more then one piece of same type can reach 'to' with a legal move.
@@ -554,12 +551,16 @@ Ambiguity ambiguity(const Move& m, const Position& pos) noexcept {
     assert(color_of(pos.piece_on(org)) == stm);
     PieceType pt = type_of(pos.piece_on(org));
 
+    // If there is only one piece 'pc' then move cannot be ambiguous
+    if (pos.count(stm, pt) == 1)
+        return AMBIGUITY_NONE;
+
     // Disambiguation if have more then one piece with destination
     // note that for pawns is not needed because starting file is explicit.
     Bitboard piece = (attacks_bb(pt, dst, pos.pieces()) & pos.pieces(stm, pt)) ^ org;
 
     if (!piece)
-        return AMB_NONE;
+        return AMBIGUITY_NONE;
 
     Bitboard b = piece;
     // If pinned piece is considered as ambiguous
@@ -573,11 +574,11 @@ Ambiguity ambiguity(const Move& m, const Position& pos) noexcept {
             piece ^= sq;
     }
     if (!(piece & file_bb(org)))
-        return AMB_RANK;
+        return AMBIGUITY_RANK;
     if (!(piece & rank_bb(org)))
-        return AMB_FILE;
+        return AMBIGUITY_FILE;
 
-    return AMB_SQUARE;
+    return AMBIGUITY_SQUARE;
 }
 
 }  // namespace
@@ -605,13 +606,13 @@ std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
                 // Disambiguation if have more then one piece of type 'pt' that can reach 'to' with a legal move.
                 switch (ambiguity(m, pos))
                 {
-                case AMB_RANK :
+                case AMBIGUITY_RANK :
                     oss << file(file_of(org));
                     break;
-                case AMB_FILE :
+                case AMBIGUITY_FILE :
                     oss << rank(rank_of(org));
                     break;
-                case AMB_SQUARE :
+                case AMBIGUITY_SQUARE :
                     oss << square(org);
                     break;
                 default :;

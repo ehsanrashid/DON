@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -19,6 +19,8 @@
 #define POSITION_H_INCLUDED
 
 #include <cassert>
+#include <cstddef>
+#include <cstdint>
 #include <deque>
 #include <iosfwd>
 #include <memory>
@@ -368,9 +370,10 @@ inline Piece Position::moved_piece(const Move& m) const noexcept { return piece_
 
 inline Piece Position::captured_piece(const Move& m) const noexcept {
     assert(m.is_ok());
-    return m.type_of() == EN_PASSANT && ep_square() == m.dst_sq() ? make_piece(~sideToMove, PAWN)
-         : m.type_of() != CASTLING                                ? piece_on(m.dst_sq())
-                                                                  : NO_PIECE;
+    return m.type_of() == EN_PASSANT && ep_square() == m.dst_sq()
+           ? piece_on(m.dst_sq() - pawn_push(side_to_move()))
+         : m.type_of() != CASTLING ? piece_on(m.dst_sq())
+                                   : NO_PIECE;
 }
 
 inline Piece Position::captured_piece() const noexcept { return st->capturedPiece; }

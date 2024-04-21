@@ -1,5 +1,5 @@
 /*
-  DON, a UCI chess playing engine derived from Glaurung 2.1
+  DON, a UCI chess playing engine derived from Stockfish
 
   DON is free software: you can redistribute it and/or modify
   it under the terms of the GNU General Public License as published by
@@ -301,12 +301,15 @@ ExtMove* generate<LEGAL>(const Position& pos, ExtMove* moves) noexcept {
                    ? generate<EVASIONS>(pos, moves)
                    : generate<NON_EVASIONS>(pos, moves);
     while (cur != moves)
+    {
         if (((pinned & cur->org_sq()) || cur->org_sq() == ksq || cur->type_of() == EN_PASSANT)
             && !pos.legal(*cur))
+        {
             *cur = *(--moves);
-        else
-            ++cur;
-
+            continue;
+        }
+        ++cur;
+    }
     return moves;
 }
 
