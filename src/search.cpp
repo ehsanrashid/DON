@@ -447,13 +447,13 @@ void Worker::iterative_deepening() noexcept {
                     break;
 
                 // When failing high/low give some update (without cluttering the UI) before a re-search.
-                if (mainManager && multiPV == 1 && (value <= alpha || value >= beta)
+                if (mainManager && multiPV == 1 && (alpha >= value || value >= beta)
                     && mainManager->elapsed(*this) > 3000)
                     mainManager->info_pv(*this, rootDepth);
 
                 // In case of failing low/high increase aspiration window and re-search,
                 // otherwise exit the loop.
-                if (value <= alpha)
+                if (alpha >= value)
                 {
                     beta  = (alpha + beta) / 2;
                     alpha = std::max(value - delta, -VALUE_INFINITE);
@@ -778,7 +778,7 @@ Value Worker::search(
                             : wdl > +drawScore ? BOUND_LOWER
                                                : BOUND_EXACT;
 
-                if (bound == BOUND_EXACT || (bound == BOUND_LOWER ? value >= beta : value <= alpha))
+                if (bound == BOUND_EXACT || (bound == BOUND_LOWER ? value >= beta : alpha >= value))
                 {
                     tte->save(key, value_to_tt(value, ss->ply), ss->ttPv, bound,
                               std::min(depth + 6, MAX_PLY - 1), Move::None(), VALUE_NONE,
@@ -1291,7 +1291,7 @@ moves_loop:  // When in check, search starts here
                     value = -search<NonPV>(pos, ss + 1, -(alpha + 1), -alpha, newDepth, !cutNode);
 
                 // Post LMR continuation history updates (~1 Elo)
-                int bonus = value <= alpha ? -stat_malus(newDepth)
+                int bonus = alpha >= value ? -stat_malus(newDepth)
                           : value >= beta  ? +stat_bonus(newDepth)
                                            : 0;
 
@@ -1351,7 +1351,7 @@ moves_loop:  // When in check, search starts here
                     rm.lowerBound = true;
                     rm.uciValue   = beta;
                 }
-                else if (value <= alpha)
+                else if (alpha >= value)
                 {
                     rm.upperBound = true;
                     rm.uciValue   = alpha;
