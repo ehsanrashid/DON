@@ -229,7 +229,7 @@ ExtMove* generate_all(const Position& pos, ExtMove* moves) noexcept {
             }
         }
 
-        Bitboard b = attacks_bb<KING>(ksq) & target & ~pos.attacks(~Stm);
+        Bitboard b = attacks_bb<KING>(ksq) & target;  // & ~pos.attacks_by(~Stm);
         if (Checks)
             b &= ~attacks_bb<QUEEN>(pos.king_square(~Stm));
 
