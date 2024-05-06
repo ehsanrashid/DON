@@ -86,19 +86,19 @@ for args in "eval" \
             "bench 128 $threads 8 default depth" \
             "bench 128 $threads 3 bench_tmp.epd depth" \
             "export_net verify.nnue" \
-            "d" \
+            "show" \
             "compiler" \
             "license" \
             "uci"
 do
 
-   echo "$prefix $exeprefix ./DON $args $postfix"
-   eval "$prefix $exeprefix ./DON $args $postfix"
+   echo "$prefix $exeprefix ./DON.exe $args $postfix"
+   eval "$prefix $exeprefix ./DON.exe $args $postfix"
 
 done
 
 # verify the generated net equals the base net
-network=`./DON uci | grep 'option name EvalFileBig type string default' | awk '{print $NF}'`
+network=`./DON.exe uci | grep 'option name EvalFileBig type string default' | awk '{print $NF}'`
 echo "Comparing $network to the written verify.nnue"
 diff $network verify.nnue
 
@@ -109,7 +109,7 @@ cat << EOF > game.exp
  # expect_before timeout { exit 2 } eof { exit 3 }
  expect_before timeout { exit 2 }
 
- spawn $exeprefix ./DON
+ spawn $exeprefix ./DON.exe
  expect "DON"
 
  send "uci\n"
@@ -253,7 +253,7 @@ cat << EOF > syzygy.exp
  # to correctly catch eof we need the following line
  # expect_before timeout { exit 2 } eof { exit 3 }
  expect_before timeout { exit 2 }
- spawn $exeprefix ./DON
+ spawn $exeprefix ./DON.exe
  expect "DON"
  send "uci\n"
  send "setoption name SyzygyPath value ../tests/syzygy/\n"

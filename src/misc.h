@@ -81,18 +81,6 @@ void dbg_stdev_of(std::int64_t value, std::uint8_t slot = 0) noexcept;
 void dbg_correl_of(std::int64_t value1, std::int64_t value2, std::uint8_t slot = 0) noexcept;
 void dbg_print() noexcept;
 
-using SystemClock  = std::chrono::system_clock;
-using SteadyClock  = std::chrono::steady_clock;
-using MilliSeconds = std::chrono::milliseconds;
-using TimePoint    = MilliSeconds::rep;  // A value in milliseconds
-static_assert(sizeof(TimePoint) == sizeof(std::int64_t), "TimePoint should be 64 bits");
-inline TimePoint now() noexcept {
-    return std::chrono::duration_cast<MilliSeconds>(SteadyClock::now().time_since_epoch()).count();
-}
-
-std::ostream& operator<<(std::ostream&                            os,
-                         [[maybe_unused]] SystemClock::time_point timePoint) noexcept;
-
 enum InOut : std::uint8_t {
     IO_LOCK,
     IO_UNLOCK
@@ -103,6 +91,21 @@ std::ostream& operator<<(std::ostream& os, InOut io) noexcept;
 #define sync_cout std::cout << IO_LOCK
 #define sync_endl std::endl << IO_UNLOCK
 
+using SystemClock  = std::chrono::system_clock;
+using SteadyClock  = std::chrono::steady_clock;
+using MilliSeconds = std::chrono::milliseconds;
+using MicroSeconds = std::chrono::microseconds;
+
+using TimePoint = MilliSeconds::rep;  // A value in milliseconds
+static_assert(sizeof(TimePoint) == sizeof(std::int64_t), "TimePoint should be 64 bits");
+inline TimePoint now() noexcept {
+    return std::chrono::duration_cast<MilliSeconds>(SteadyClock::now().time_since_epoch()).count();
+}
+
+//std::ostream& operator<<(std::ostream&                            os,
+//                         [[maybe_unused]] SystemClock::time_point timePoint) noexcept;
+
+std::string format_time(std::chrono::time_point<SystemClock> timePoint);
 
 // Get the first aligned element of an array.
 // ptr must point to an array of size at least `sizeof(T) * N + alignment` bytes,
@@ -143,7 +146,7 @@ class PRNG final {
 
     std::uint64_t rand64() noexcept {
         s ^= s >> 12, s ^= s << 25, s ^= s >> 27;
-        return s * 2685821657736338717LL;
+        return s * 0x2545F4914F6CDD1DULL;
     }
 
    public:

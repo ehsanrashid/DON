@@ -30,9 +30,10 @@ namespace Eval {
 
 namespace NNUE {
 struct Networks;
-}
+struct AccumulatorCaches;
+}  // namespace NNUE
 
-constexpr inline Value SmallNetThreshold = 1274, PsqtOnlyThreshold = 2389;
+constexpr inline Value SmallNetThreshold = 1274;
 
 // The default net name MUST follow the format nn-[SHA256 first 12 digits].nnue
 // for the build process (profile-build and fishtest) to work. Do not change the
@@ -42,9 +43,10 @@ constexpr inline Value SmallNetThreshold = 1274, PsqtOnlyThreshold = 2389;
 #define EvalFileDefaultNameSmall "nn-baff1ede1f90.nnue"
 
 int   evaluate_simple(const Position& pos) noexcept;
-Value evaluate(const Position&       pos,
-               const NNUE::Networks& networks,
-               Value                 optimism = VALUE_ZERO) noexcept;
+Value evaluate(const Position&          pos,
+               const NNUE::Networks&    networks,
+               NNUE::AccumulatorCaches& accCaches,
+               Value                    optimism = VALUE_ZERO) noexcept;
 
 std::string trace(Position& pos, const NNUE::Networks& networks) noexcept;
 

@@ -37,21 +37,22 @@ enum GenType : std::uint8_t {
     LEGAL
 };
 
-struct ExtMove final: public Move {
-    int value;
+class ExtMove final: public Move {
+   public:
+    void operator=(Move m) noexcept { data = m.raw(); }
 
-    void operator=(const Move& m) noexcept { data = m.raw(); }
-
-    bool operator<(const ExtMove& em) const noexcept { return value < em.value; }
-    bool operator>(const ExtMove& em) const noexcept { return value > em.value; }
+    bool operator<(ExtMove em) const noexcept { return value < em.value; }
+    bool operator>(ExtMove em) const noexcept { return value > em.value; }
 
     // Inhibit unwanted implicit conversions to Move
     // with an ambiguity that yields to a compile error.
     operator float() const noexcept = delete;
+
+    int value;
 };
 
-//inline bool operator<(const ExtMove& em1, const ExtMove& em2) noexcept { return em1.value < em2.value; }
-//inline bool operator>(const ExtMove& em1, const ExtMove& em2) noexcept { return em1.value > em2.value; }
+//inline bool operator<(ExtMove em1, ExtMove em2) noexcept { return em1.value < em2.value; }
+//inline bool operator>(ExtMove em1, ExtMove em2) noexcept { return em1.value > em2.value; }
 
 template<GenType GT>
 ExtMove* generate(const Position& pos, ExtMove* moves) noexcept;
@@ -69,9 +70,7 @@ struct MoveList final {
 
     constexpr std::uint8_t size() const noexcept { return last - moves; }
 
-    constexpr bool contains(const Move& m) const noexcept {
-        return std::find(begin(), end(), m) != end();
-    }
+    constexpr bool contains(Move m) const noexcept { return std::find(begin(), end(), m) != end(); }
 
    private:
     ExtMove moves[MAX_MOVES], *last;

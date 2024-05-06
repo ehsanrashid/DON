@@ -93,7 +93,7 @@ using Key      = std::uint64_t;
 using Bitboard = std::uint64_t;
 
 constexpr inline std::uint16_t MAX_MOVES = 256;
-constexpr inline std::uint16_t MAX_PLY   = 246;
+constexpr inline std::uint16_t MAX_PLY   = 249;
 
 enum Color : std::uint8_t {
     WHITE,
@@ -127,7 +127,9 @@ enum Bound : std::uint8_t {
 // clang-format off
 enum PieceType : std::int8_t {
     NO_PIECE_TYPE, PAWN, KNIGHT, BISHOP, ROOK, QUEEN, KING,
-    ALL_PIECES = NO_PIECE_TYPE,
+    EX_PIECE,
+    ALL_PIECE     = NO_PIECE_TYPE,
+    MINOR         = BISHOP,
     PIECE_TYPE_NB = 8
 };
 
@@ -174,33 +176,20 @@ constexpr inline Value PieceValue[PIECE_NB]{
 using Depth = std::int16_t;
 
 constexpr inline Depth DEPTH_ZERO         = 0;
-constexpr inline Depth DEPTH_QS_CHECKS    = 0;
-constexpr inline Depth DEPTH_QS_NO_CHECKS = -1;
-constexpr inline Depth DEPTH_NONE         = -6;
-constexpr inline Depth DEPTH_OFFSET       = -7;  // value used only for TT entry occupancy check
+constexpr inline Depth DEPTH_QS_CHECKS    = DEPTH_ZERO;
+constexpr inline Depth DEPTH_QS_NO_CHECKS = DEPTH_ZERO - 1;
+constexpr inline Depth DEPTH_NONE         = DEPTH_ZERO - 6;
+// Depth used only for TT entry occupancy check
+constexpr inline Depth DEPTH_OFFSET = DEPTH_NONE - 1;
 
 // clang-format off
 enum File : std::int8_t {
-    FILE_A,
-    FILE_B,
-    FILE_C,
-    FILE_D,
-    FILE_E,
-    FILE_F,
-    FILE_G,
-    FILE_H,
+    FILE_A, FILE_B, FILE_C, FILE_D, FILE_E, FILE_F, FILE_G, FILE_H,
     FILE_NB = 8
 };
 
 enum Rank : std::int8_t {
-    RANK_1,
-    RANK_2,
-    RANK_3,
-    RANK_4,
-    RANK_5,
-    RANK_6,
-    RANK_7,
-    RANK_8,
+    RANK_1, RANK_2, RANK_3, RANK_4, RANK_5, RANK_6, RANK_7, RANK_8,
     RANK_NB = 8
 };
 
@@ -214,9 +203,8 @@ enum Square : std::int8_t {
     SQ_A7, SQ_B7, SQ_C7, SQ_D7, SQ_E7, SQ_F7, SQ_G7, SQ_H7,
     SQ_A8, SQ_B8, SQ_C8, SQ_D8, SQ_E8, SQ_F8, SQ_G8, SQ_H8,
     SQ_NONE,
-
-    SQUARE_ZERO = 0,
-    SQUARE_NB   = 64
+    SQ_ZERO   = SQ_A1,
+    SQUARE_NB = 64
 };
 // clang-format on
 
@@ -279,7 +267,7 @@ inline Square&   operator+=(Square& s, Direction d) noexcept { return s = s + d;
 inline Square&   operator-=(Square& s, Direction d) noexcept { return s = s - d; }
 
 // Toggle color
-constexpr Color operator~(Color c) noexcept { return Color(c ^ BLACK); }
+constexpr Color operator~(Color c) noexcept { return Color((c ^ 1) & 1); }
 
 constexpr bool is_ok(PieceType pt) noexcept { return (PAWN <= pt && pt <= KING); }
 
@@ -287,27 +275,19 @@ constexpr bool is_ok(Piece pc) noexcept {
     return (W_PAWN <= pc && pc <= W_KING) || (B_PAWN <= pc && pc <= B_KING);
 }
 
-constexpr Piece make_piece(Color c, PieceType pt) noexcept { return Piece((c << 3) + pt); }
+constexpr Piece make_piece(Color c, PieceType pt) noexcept { return Piece((c << 3) | int(pt)); }
 
 constexpr PieceType type_of(Piece pc) noexcept { return PieceType(pc & 7); }
 
 constexpr Color color_of(Piece pc) noexcept {
     assert(is_ok(pc));
-    return Color(pc >> 3);
+    return Color((pc >> 3) & 1);
 }
 // Swap color of piece B_KNIGHT <-> W_KNIGHT
 constexpr Piece operator~(Piece pc) noexcept { return Piece(pc ^ 8); }
 
 constexpr CastlingRights operator&(Color c, CastlingRights cr) noexcept {
-    switch (c)
-    {
-    case WHITE :
-        return CastlingRights(WHITE_CASTLING & cr);
-    case BLACK :
-        return CastlingRights(BLACK_CASTLING & cr);
-    default :
-        return NO_CASTLING;
-    }
+    return CastlingRights((c == WHITE ? WHITE_CASTLING : BLACK_CASTLING) & cr);
 }
 
 constexpr Value mates_in(std::int16_t ply) noexcept { return +VALUE_MATE - ply; }
@@ -316,23 +296,22 @@ constexpr Value mated_in(std::int16_t ply) noexcept { return -VALUE_MATE + ply; 
 
 constexpr bool is_ok(Square s) noexcept { return (SQ_A1 <= s && s <= SQ_H8); }
 
-constexpr Square make_square(File f, Rank r) noexcept { return Square((r << 3) + f); }
+constexpr Square make_square(File f, Rank r) noexcept { return Square((r << 3) | int(f)); }
 
-constexpr File file_of(Square s) noexcept { return File(s & 7); }
+constexpr File file_of(Square s) noexcept { return File(s & 0x7); }
 
-constexpr Rank rank_of(Square s) noexcept { return Rank(s >> 3); }
+constexpr Rank rank_of(Square s) noexcept { return Rank((s >> 3) & 0x7); }
 
-// clang-format off
-//constexpr bool opposite_color(Square s1, Square s2) noexcept { return (s1 + rank_of(s1) + s2 + rank_of(s2)) & 1; }
+//constexpr bool opposite_color(Square s1, Square s2) noexcept { return (int(s1) + rank_of(s1) + int(s2) + rank_of(s2)) & 1; }
 
 // Swap A1 <-> H1
-constexpr Square flip_file(Square s) noexcept { return Square(int(s) ^ SQ_H1); }
+constexpr Square flip_file(Square s) noexcept { return Square(int(s) ^ 0x07); }
 // Swap A1 <-> A8
-constexpr Square flip_rank(Square s) noexcept { return Square(int(s) ^ SQ_A8); }
+constexpr Square flip_rank(Square s) noexcept { return Square(int(s) ^ 0x38); }
 
-constexpr Square relative_square(Color c, Square s) noexcept { return Square(int(s) ^ (c * SQ_A8)); }
+constexpr Square relative_square(Color c, Square s) noexcept { return Square(int(s) ^ (c * 0x38)); }
 
-constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c * RANK_8)); }
+constexpr Rank relative_rank(Color c, Rank r) noexcept { return Rank(int(r) ^ (c * 0x7)); }
 
 constexpr Rank relative_rank(Color c, Square s) noexcept { return relative_rank(c, rank_of(s)); }
 
@@ -347,22 +326,25 @@ constexpr Square rook_castle_sq(Color c, Square org, Square dst) noexcept {
     return relative_square(c, org < dst ? SQ_F1 : SQ_D1);
 }
 
-constexpr Direction pawn_push(Color c) noexcept {
-    switch (c)
-    {
-    case WHITE : return NORTH;
-    case BLACK : return SOUTH;
-    default :    return NO_DIRECTION;
-    }
-}
-// clang-format on
+constexpr Direction pawn_spush(Color c) noexcept { return c == WHITE ? NORTH : SOUTH; }
+constexpr Direction pawn_dpush(Color c) noexcept { return c == WHITE ? NORTH_2 : SOUTH_2; }
 
 // Based on a congruential pseudo-random number generator
 constexpr Key make_key(std::uint64_t seed) noexcept {
-    return seed * 6364136223846793005ULL + 1442695040888963407ULL;
+    return 0x14057B7EF767814FULL + 0x5851F42D4C957F2DULL * seed;
 }
 
-
+// A move needs 16 bits to be stored
+//
+// bit  0- 5: destination square (from 0 to 63)
+// bit  6-11: origin square (from 0 to 63)
+// bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
+// bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
+// NOTE: en-passant bit is set only when a pawn can be captured
+//
+// Special cases are Move::None() and Move::Null(). We can sneak these in because in
+// any normal move destination square is always different from origin square
+// while Move::None() and Move::Null() have the same origin and destination square.
 enum MoveType : std::uint16_t {
     NORMAL,
     PROMOTION     = 1 << 14,
@@ -371,17 +353,6 @@ enum MoveType : std::uint16_t {
     MOVETYPE_MASK = CASTLING
 };
 
-// A move needs 16 bits to be stored
-//
-// bit  0- 5: destination square (from 0 to 63)
-// bit  6-11: origin square (from 0 to 63)
-// bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
-// bit 14-15: special move flag: promotion (1), en passant (2), castling (3)
-// NOTE: en passant bit is set only when a pawn can be captured
-//
-// Special cases are Move::none() and Move::null(). We can sneak these in because in
-// any normal move destination square is always different from origin square
-// while Move::none() and Move::null() have the same origin and destination square.
 class Move {
    public:
     Move() = default;
@@ -389,18 +360,18 @@ class Move {
         data(d) {}
 
     constexpr Move(Square org, Square dst) noexcept :
-        data((org << 6) + dst) {}
+        data(NORMAL | (org << 6) | int(dst)) {}
 
     template<MoveType T>
-    static constexpr Move make(Square org, Square dst, PieceType pt = KNIGHT) noexcept {
-        return Move(T + ((pt - KNIGHT) << 12) + (org << 6) + dst);
+    static constexpr Move make(Square org, Square dst, PieceType promo = KNIGHT) noexcept {
+        return Move(T | ((promo - KNIGHT) << 12) | (org << 6) | int(dst));
     }
 
-    constexpr Square org_sq() const noexcept { return Square((data >> 6) & 0x3F); }
+    constexpr Square org_sq() const noexcept { return Square((data >> 6) & 0x3FU); }
 
-    constexpr Square dst_sq() const noexcept { return Square(data & 0x3F); }
+    constexpr Square dst_sq() const noexcept { return Square(data & 0x3FU); }
 
-    constexpr std::uint16_t org_dst() const noexcept { return data & 0xFFF; }
+    constexpr std::uint16_t org_dst() const noexcept { return data & 0xFFFU; }
 
     constexpr MoveType type_of() const noexcept { return MoveType(data & MOVETYPE_MASK); }
 
@@ -408,25 +379,34 @@ class Move {
         return PieceType(((data >> 12) & 0x3) + KNIGHT);
     }
 
-    // Catch Move::none() and Move::null()
+    // Catch Move::None() and Move::Null()
     constexpr bool is_ok() const noexcept { return org_sq() != dst_sq(); }
 
     constexpr Square prev_dst_sq(Color stm) const noexcept {
         return type_of() != CASTLING ? dst_sq() : king_castle_sq(~stm, org_sq(), dst_sq());
     }
 
-    static constexpr Move none() noexcept { return Move(0x00); }
-    static constexpr Move null() noexcept { return Move(0x41); }
+    static constexpr Move None() noexcept { return Move(0x00); }
+    static constexpr Move Null() noexcept { return Move(0x41); }
 
-    constexpr bool operator==(const Move& m) const noexcept { return data == m.data; }
-    constexpr bool operator!=(const Move& m) const noexcept { return !(*this == m); }
+    constexpr bool operator==(Move m) const noexcept { return data == m.data; }
+    constexpr bool operator!=(Move m) const noexcept { return !(*this == m); }
 
     constexpr explicit operator bool() const noexcept { return data != 0; }
 
     constexpr auto raw() const noexcept { return data; }
+    /*
+    constexpr Move mirror() const noexcept { return Move(data ^ 0x0E38U); }
+
+    void set_org_sq(Square org) noexcept { data = (data & 0xF03FU) | (org << 6); }
+    void set_dst_sq(Square dst) noexcept { data = (data & 0xFFC0U) | int(dst); }
+    void set_promotion_type(PieceType promo = KNIGHT) noexcept {
+        data = (data & 0x0FFFU) | PROMOTION | ((promo - KNIGHT) << 12);
+    }
+    */
 
     struct MoveHash final {
-        Key operator()(const Move& m) const { return make_key(m.data); }
+        Key operator()(Move m) const { return make_key(m.data); }
     };
 
    protected:

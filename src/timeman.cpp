@@ -78,22 +78,21 @@ void TimeManagement::init(Search::Limits&   limits,
 
     TimePoint moveOverhead = options["MoveOverhead"];
 
-    std::int16_t gamePly = pos.game_ply();
+    auto gamePly = pos.game_ply();
 
     // Maximum move horizon of 50 moves
-    std::uint16_t mtg = limits.movesToGo != 0
-                        ? std::min<std::uint16_t>(limits.movesToGo, 50)
-                        : std::max<std::uint16_t>(std::ceil(50 - 0.2 * pos.game_move()), 40);
+    auto mtg = limits.movesToGo != 0
+               ? std::min<std::uint8_t>(limits.movesToGo, 50U)
+               : std::max<std::uint8_t>(std::ceil(50U - 0.2 * pos.game_move()), 40U);
 
     // If less than one second, gradually reduce mtg
     if (time < 1000 && mtg > 2)
-        mtg = std::clamp<std::uint16_t>(0.05 * time, 2, mtg);
+        mtg = std::clamp<std::uint8_t>(0.05 * time, 2U, mtg);
 
     assert(mtg != 0);
 
     // Make sure remainingTime is > 0 since we use it as a divisor
-    TimePoint remainingTime =
-      std::max<TimePoint>(time + (mtg - 1) * inc - (mtg + 2) * moveOverhead, 1);
+    TimePoint remainingTime = std::max(time + (-1 + mtg) * inc - (+2 + mtg) * moveOverhead, 1LL);
 
     // optimumScale is a percentage of available time to use for the current move.
     // maximumScale is a multiplier applied to optimumTime.
@@ -111,11 +110,11 @@ void TimeManagement::init(Search::Limits&   limits,
     else
     {
         // Use extra time with larger increments.
-        double optimumExtra = 1.0 + std::min(0.0001 * std::max<TimePoint>(inc - 500, 0), 0.13);
+        auto optimumExtra = 1.0 + std::min(0.05 * std::log10(std::max(inc - 500, 1LL)), 0.14);
 
         // Calculate time constants based on current time left.
-        double optimumConstant = std::min(0.00308 + 0.000319 * std::log10(0.001 * time), 0.00506);
-        double maximumConstant = std::max(3.39 + 3.01 * std::log10(0.001 * time), 2.93);
+        auto optimumConstant = std::min(0.00308 + 0.000319 * std::log10(0.001 * time), 0.00506);
+        auto maximumConstant = std::max(3.39 + 3.01 * std::log10(0.001 * time), 2.93);
 
         optimumScale = std::min(0.0122 + optimumConstant * std::pow(2.95 + gamePly, 0.462),
                                 0.213 * time / remainingTime)
@@ -125,10 +124,10 @@ void TimeManagement::init(Search::Limits&   limits,
 
     // Limit the maximum possible time for this move
     optimumTime = TimePoint(optimumScale * remainingTime);
-    maximumTime = std::max<TimePoint>(
-      mtg > 1 ? std::min(0.825 * time - moveOverhead, maximumScale * optimumTime) - 10
-              : time - moveOverhead - 10,
-      1);
+    maximumTime = TimePoint(
+      std::max(mtg > 1 ? std::min(0.825 * time - moveOverhead, maximumScale * optimumTime) - 10
+                       : time - moveOverhead - 10,
+               1.0));
 
     if (options["Ponder"])
         optimumTime *= 1.25;

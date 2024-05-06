@@ -56,8 +56,10 @@ constexpr inline Bitboard Rank6BB = Rank1BB << (5 * 8);
 constexpr inline Bitboard Rank7BB = Rank1BB << (6 * 8);
 constexpr inline Bitboard Rank8BB = Rank1BB << (7 * 8);
 
-constexpr inline Bitboard PromotionRankBB = Rank1BB | Rank8BB;
+constexpr inline Bitboard EnpassantRankBB = Rank6BB | Rank3BB;
+constexpr inline Bitboard PromotionRankBB = Rank8BB | Rank1BB;
 constexpr inline Bitboard ColorBB[COLOR_NB]{0x55AA55AA55AA55AAULL, 0xAA55AA55AA55AA55ULL};
+constexpr inline Bitboard LowRankBB[COLOR_NB]{Rank2BB | Rank3BB, Rank7BB | Rank6BB};
 
 #if !defined(USE_POPCNT)
 constexpr inline std::uint32_t PopCntSize = 1U << 16;
@@ -96,8 +98,8 @@ struct Magic final {
     }
 };
 
-extern Magic RookMagics[SQUARE_NB];
 extern Magic BishopMagics[SQUARE_NB];
+extern Magic RookMagics[SQUARE_NB];
 
 constexpr Bitboard square_bb(Square s) noexcept {
     assert(is_ok(s));
@@ -109,26 +111,35 @@ constexpr Bitboard square_bb(Square s) noexcept {
 constexpr Bitboard operator&(Bitboard b, Square s) noexcept { return b & square_bb(s); }
 constexpr Bitboard operator|(Bitboard b, Square s) noexcept { return b | square_bb(s); }
 constexpr Bitboard operator^(Bitboard b, Square s) noexcept { return b ^ square_bb(s); }
-inline Bitboard&   operator&=(Bitboard& b, Square s) noexcept { return b = b & s; }
-inline Bitboard&   operator|=(Bitboard& b, Square s) noexcept { return b = b | s; }
-inline Bitboard&   operator^=(Bitboard& b, Square s) noexcept { return b = b ^ s; }
-
 constexpr Bitboard operator&(Square s, Bitboard b) noexcept { return b & s; }
 constexpr Bitboard operator|(Square s, Bitboard b) noexcept { return b | s; }
 constexpr Bitboard operator^(Square s, Bitboard b) noexcept { return b ^ s; }
 
+inline Bitboard& operator&=(Bitboard& b, Square s) noexcept { return b = b & s; }
+inline Bitboard& operator|=(Bitboard& b, Square s) noexcept { return b = b | s; }
+inline Bitboard& operator^=(Bitboard& b, Square s) noexcept { return b = b ^ s; }
+
 constexpr Bitboard operator|(Square s1, Square s2) noexcept { return square_bb(s1) | s2; }
-
-constexpr bool more_than_one(Bitboard b) noexcept { return b & (b - 1); }
-
 
 // Return a bitboard representing all the squares on the given file.
 constexpr Bitboard file_bb(File f) noexcept { return FileABB << (f); }
 constexpr Bitboard file_bb(Square s) noexcept { return file_bb(file_of(s)); }
 
+constexpr Bitboard operator&(Bitboard b, File f) noexcept { return b & file_bb(f); }
+constexpr Bitboard operator|(Bitboard b, File f) noexcept { return b | file_bb(f); }
+constexpr Bitboard operator^(Bitboard b, File f) noexcept { return b ^ file_bb(f); }
+
 // Return a bitboard representing all the squares on the given rank.
 constexpr Bitboard rank_bb(Rank r) noexcept { return Rank1BB << (r * 8); }
 constexpr Bitboard rank_bb(Square s) noexcept { return rank_bb(rank_of(s)); }
+
+constexpr Bitboard operator&(Bitboard b, Rank r) noexcept { return b & rank_bb(r); }
+constexpr Bitboard operator|(Bitboard b, Rank r) noexcept { return b | rank_bb(r); }
+constexpr Bitboard operator^(Bitboard b, Rank r) noexcept { return b ^ rank_bb(r); }
+
+constexpr bool is_ok_ep(Square epSq) noexcept { return epSq != SQ_NONE && EnpassantRankBB & epSq; }
+
+constexpr bool more_than_one(Bitboard b) noexcept { return b & (b - 1); }
 
 // Returns a bitboard representing an entire line (from board edge to board edge)
 // that intersects the two given squares. If the given squares are not on a same
@@ -158,22 +169,22 @@ inline bool aligned(Square s1, Square s2, Square s3) noexcept { return line_bb(s
 // Return the distance between x and y, defined as the
 // number of steps for a king in x to reach y.
 template<typename T = Square>
-inline uint8_t distance(Square s1, Square s2) noexcept;
+inline std::uint8_t distance(Square s1, Square s2) noexcept;
 
 template<>
-constexpr uint8_t distance<File>(Square s1, Square s2) noexcept {
+constexpr std::uint8_t distance<File>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return std::abs(file_of(s1) - file_of(s2));
 }
 
 template<>
-constexpr uint8_t distance<Rank>(Square s1, Square s2) noexcept {
+constexpr std::uint8_t distance<Rank>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return std::abs(rank_of(s1) - rank_of(s2));
 }
 
 template<>
-inline uint8_t distance<Square>(Square s1, Square s2) noexcept {
+inline std::uint8_t distance<Square>(Square s1, Square s2) noexcept {
     assert(is_ok(s1) && is_ok(s2));
     return SquareDistance[s1][s2];
 }
@@ -181,7 +192,7 @@ inline uint8_t distance<Square>(Square s1, Square s2) noexcept {
 constexpr File edge_distance(File f) noexcept { return std::min(f, File(FILE_H - f)); }
 constexpr Rank edge_distance(Rank r) noexcept { return std::min(r, Rank(RANK_8 - r)); }
 
-// Moves a bitboard one or two steps as specified by the direction D
+// Shifts a bitboard one or two steps as specified by the direction D
 template<Direction D>
 constexpr Bitboard shift(Bitboard b) noexcept {
     // clang-format off
@@ -197,24 +208,20 @@ constexpr Bitboard shift(Bitboard b) noexcept {
     case SOUTH_EAST : return (b & ~FileHBB) >> NORTH_WEST;
     case NORTH_EAST : return (b & ~FileHBB) << NORTH_EAST;
     case SOUTH_WEST : return (b & ~FileABB) >> NORTH_EAST;
-    default :         return 0;
+    default :         return b;
     }
     // clang-format on
 }
 
+constexpr Bitboard pawn_push_bb(Color c, Bitboard b) noexcept {
+    return c == WHITE ? shift<NORTH>(b) : shift<SOUTH>(b);
+}
+
 // Returns the squares attacked by pawns of the given color
 // from the squares in the given bitboard.
-template<Color C>
-constexpr Bitboard pawn_attacks_bb(Bitboard b) noexcept {
-    switch (C)
-    {
-    case WHITE :
-        return shift<NORTH_WEST>(b) | shift<NORTH_EAST>(b);
-    case BLACK :
-        return shift<SOUTH_WEST>(b) | shift<SOUTH_EAST>(b);
-    default :
-        return 0;
-    }
+constexpr Bitboard pawn_attacks_bb(Color c, Bitboard b) noexcept {
+    return c == WHITE ? shift<NORTH_WEST>(b) | shift<NORTH_EAST>(b)
+                      : shift<SOUTH_WEST>(b) | shift<SOUTH_EAST>(b);
 }
 
 inline Bitboard pawn_attacks_bb(Color c, Square s) noexcept {

@@ -22,11 +22,11 @@
 #include <string>
 #include <vector>
 
-namespace DON {
+namespace DON::Benchmark {
 
 std::vector<std::string> setup_bench(std::istringstream& iss,
                                      const std::string&  currentFen) noexcept;
 
-}  // namespace DON
+}  // namespace DON::Benchmark
 
 #endif  // #ifndef BENCHMARK_H_INCLUDED

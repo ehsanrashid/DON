@@ -32,8 +32,6 @@
 #include "position.h"
 #include "polybook.h"
 #include "score.h"
-#include "ucioption.h"
-#include "nnue/nnue_common.h"
 #include "syzygy/tbprobe.h"
 
 namespace DON {
@@ -43,7 +41,7 @@ namespace {
 constexpr std::string_view StartFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
 constexpr std::string_view PieceChar(" PNBRQK  pnbrqk");
 
-constexpr std::uint32_t MaxHash = Is64Bit ? 33554432 : 2048;
+constexpr std::uint32_t MaxHash = Is64Bit ? 0x2000000U : 0x800U;
 
 template<typename... Ts>
 struct overload: Ts... {
@@ -53,9 +51,98 @@ struct overload: Ts... {
 template<typename... Ts>
 overload(Ts...) -> overload<Ts...>;
 
-}  // namespace
+Search::Limits parse_limits(std::istringstream& iss) noexcept {
+    Search::Limits limits;
 
-namespace NN = Eval::NNUE;
+    limits.startTime = now();  // The search starts as early as possible
+
+    std::string token;
+    while (iss >> token)
+        if (token == "wtime")
+        {
+            iss >> limits.clock[WHITE].time;
+            limits.clock[WHITE].time = std::max(std::abs(limits.clock[WHITE].time), 1LL);
+        }
+        else if (token == "btime")
+        {
+            iss >> limits.clock[BLACK].time;
+            limits.clock[BLACK].time = std::max(std::abs(limits.clock[BLACK].time), 1LL);
+        }
+        else if (token == "winc")
+        {
+            iss >> limits.clock[WHITE].inc;
+            limits.clock[WHITE].inc = std::abs(limits.clock[WHITE].inc);
+        }
+        else if (token == "binc")
+        {
+            iss >> limits.clock[BLACK].inc;
+            limits.clock[BLACK].inc = std::abs(limits.clock[BLACK].inc);
+        }
+        else if (token == "movetime")
+        {
+            iss >> limits.moveTime;
+            limits.moveTime = std::max(std::abs(limits.moveTime), 1LL);
+        }
+        else if (token == "movestogo")
+        {
+            std::int16_t movesToGo;
+            iss >> movesToGo;
+            limits.movesToGo = std::max(std::abs(movesToGo), 1);
+        }
+        else if (token == "mate")
+        {
+            std::int16_t mate;
+            iss >> mate;
+            limits.mate = std::max(std::abs(mate), 1);
+        }
+        else if (token == "depth")
+        {
+            iss >> limits.depth;
+            limits.depth = std::max<Depth>(std::abs(limits.depth), 1);
+        }
+        else if (token == "nodes")
+        {
+            iss >> limits.nodes;
+            limits.nodes = std::max(limits.nodes, 1ULL);
+        }
+        else if (token == "infinite")
+            limits.infinite = true;
+        else if (token == "ponder")
+            limits.ponder = true;
+        else if (token == "perft")
+        {
+            limits.perft = true;
+            iss >> limits.depth;
+            limits.depth = std::abs(limits.depth);
+            iss >> std::boolalpha >> limits.detail;
+        }
+        else if (token == "searchmoves")  // Needs to be the last command on the line
+        {
+            auto pos = iss.tellg();
+            while (iss >> token && token != "ignoremoves")
+            {
+                limits.searchMoves.push_back(token);
+                pos = iss.tellg();
+            }
+            if (token == "ignoremoves")
+                iss.seekg(pos);
+        }
+        else if (token == "ignoremoves")  // Needs to be the last command on the line
+        {
+            auto pos = iss.tellg();
+            while (iss >> token && token != "searchmoves")
+            {
+                limits.ignoreMoves.push_back(token);
+                pos = iss.tellg();
+            }
+            if (token == "searchmoves")
+                iss.seekg(pos);
+        }
+
+    return limits;
+}
+
+}  // namespace
 
 UCI::UCI(int argc, const char** argv) noexcept :
     engine(argv[0]),
@@ -64,7 +151,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
     auto& options = engine_options();
 
     options["Threads"] << Option(1, 1, 1024, [this](const Option&) { engine.resize_threads(); });
-    options["Hash"] << Option(16, 4, MaxHash, [this](const Option&) { engine.resize_tt(); });
+    options["Hash"] << Option(16, 4, MaxHash, [this](const Option& o) { engine.resize_tt(o); });
     options["Clear Hash"] << Option([this](const Option&) { engine.clear(); });
     options["Retain Hash"] << Option(false);
     options["HashFile"] << Option("hash.dat");
@@ -214,64 +301,12 @@ void UCI::position(std::istringstream& iss) noexcept {
 }
 
 void UCI::go(std::istringstream& iss) noexcept {
-    Search::Limits limits;
+    auto limits = parse_limits(iss);
 
-    limits.startTime = now();  // The search starts as early as possible
-
-    std::string token;
-    while (iss >> token)
-        if (token == "wtime")
-            iss >> limits.clock[WHITE].time;
-        else if (token == "btime")
-            iss >> limits.clock[BLACK].time;
-        else if (token == "winc")
-            iss >> limits.clock[WHITE].inc;
-        else if (token == "binc")
-            iss >> limits.clock[BLACK].inc;
-        else if (token == "movetime")
-            iss >> limits.moveTime;
-        else if (token == "movestogo")
-            iss >> limits.movesToGo;
-        else if (token == "mate")
-            iss >> limits.mate;
-        else if (token == "depth")
-            iss >> limits.depth;
-        else if (token == "nodes")
-            iss >> limits.nodes;
-        else if (token == "infinite")
-            limits.infinite = true;
-        else if (token == "ponder")
-            limits.ponder = true;
-        else if (token == "perft")
-        {
-            limits.perft = true;
-            iss >> limits.depth;
-            iss >> std::boolalpha >> limits.detail;
-        }
-        else if (token == "searchmoves")  // Needs to be the last command on the line
-        {
-            auto pos = iss.tellg();
-            while (iss >> token && token != "ignoremoves")
-            {
-                limits.searchMoves.push_back(token);
-                pos = iss.tellg();
-            }
-            if (token == "ignoremoves")
-                iss.seekg(pos);
-        }
-        else if (token == "ignoremoves")  // Needs to be the last command on the line
-        {
-            auto pos = iss.tellg();
-            while (iss >> token && token != "searchmoves")
-            {
-                limits.ignoreMoves.push_back(token);
-                pos = iss.tellg();
-            }
-            if (token == "searchmoves")
-                iss.seekg(pos);
-        }
-
-    engine.start(limits);
+    if (limits.perft)
+        engine.perft(limits.depth, limits.detail);
+    else
+        engine.start(limits);
 }
 
 void UCI::setoption(std::istringstream& iss) noexcept {
@@ -306,7 +341,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
 
     std::uint64_t nodes = 0;
 
-    const std::vector<std::string> list = setup_bench(iss, engine.fen());
+    const std::vector<std::string> list = Benchmark::setup_bench(iss, engine.fen());
 
     std::size_t num = std::count_if(list.begin(), list.end(), [](const std::string& cmd) {
         return cmd.find("go ") == 0 || cmd.find("eval") == 0;
@@ -324,9 +359,16 @@ void UCI::bench(std::istringstream& iss) noexcept {
             std::cerr << "\nPosition: " << ++cnt << '/' << num << " (" << engine.fen() << ")\n";
             if (token == "go")
             {
-                go(is);
-                engine.wait_finish();
-                nodes += infoNodes;
+                auto limits = parse_limits(is);
+
+                if (limits.perft)
+                    nodes += engine.perft(limits.depth, limits.detail);
+                else
+                {
+                    engine.start(limits);
+                    engine.wait_finish();
+                    nodes += infoNodes;
+                }
             }
             else
             {
@@ -345,7 +387,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
     }
 
     // Ensure non-zero to avoid a 'divide by zero'
-    elapsedTime = std::max<TimePoint>(now() - elapsedTime, 1);
+    elapsedTime = std::max(now() - elapsedTime, 1LL);
 
     dbg_print();
 
@@ -398,7 +440,7 @@ int win_rate_model(Value v, const Position& pos) noexcept {
 // without treatment of mate and similar special scores.
 int UCI::to_cp(Value v, const Position& pos) noexcept {
 
-    // In general, the score can be defined via the the WDL as
+    // In general, the score can be defined via the WDL as
     // (log(1/L - 1) - log(1/W - 1)) / ((log(1/L - 1) + log(1/W - 1))
     // Based on our win_rate_model, this simply yields v / a.
 
@@ -422,14 +464,14 @@ std::string UCI::to_wdl(Value v, const Position& pos) noexcept {
 std::string UCI::format_score(const Score& score) noexcept {
     constexpr int TB_CP = 20000;
 
-    const auto format = overload{
-      [](Score::Mate mate) -> std::string {
-          return "mate " + std::to_string((mate.ply > 0 ? (1 + mate.ply) : (0 + mate.ply)) / 2);
-      },
-      [](Score::Tablebase tb) -> std::string {
-          return "cp " + std::to_string(tb.win ? +TB_CP - tb.ply : -TB_CP - tb.ply);
-      },
-      [](Score::Unit unit) -> std::string { return "cp " + std::to_string(unit.value); }};
+    const auto format =
+      overload{[](Score::Mate mate) -> std::string {
+                   return "mate " + std::to_string(((mate.ply > 0) + mate.ply) / 2);
+               },
+               [](Score::Tablebase tb) -> std::string {
+                   return "cp " + std::to_string((tb.win ? +TB_CP : -TB_CP) - tb.ply);
+               },
+               [](Score::Unit unit) -> std::string { return "cp " + std::to_string(unit.value); }};
 
     return score.visit(format);
 }
@@ -451,10 +493,10 @@ std::string UCI::square(Square s) noexcept {
     return std::string{file(file_of(s)), rank(rank_of(s))};
 }
 
-std::string UCI::move_to_can(const Move& m) noexcept {
-    if (m == Move::none())
+std::string UCI::move_to_can(Move m) noexcept {
+    if (m == Move::None())
         return "(none)";
-    if (m == Move::null())
+    if (m == Move::Null())
         return "0000";
 
     Square org = m.org_sq(), dst = m.dst_sq();
@@ -477,11 +519,11 @@ Move UCI::can_to_move(const std::string& can, const MoveList<LEGAL>& legalMoves)
     assert(4 <= can.length() && can.length() <= 5);
     std::string ccan = to_lower(can);
 
-    for (const auto& m : legalMoves)
+    for (auto m : legalMoves)
         if (ccan == move_to_can(m))
             return m;
 
-    return Move::none();
+    return Move::None();
 }
 
 Move UCI::can_to_move(const std::string& can, const Position& pos) noexcept {
@@ -543,7 +585,7 @@ enum Ambiguity : std::uint8_t {
 
 // Ambiguity if more then one piece of same type can reach 'to' with a legal move.
 // NOTE: for pawns it is not needed because 'from' file is explicit.
-Ambiguity ambiguity(const Move& m, const Position& pos) noexcept {
+Ambiguity ambiguity(Move m, const Position& pos) noexcept {
     assert(pos.pseudo_legal(m) && pos.legal(m));
 
     Color        stm = pos.side_to_move();
@@ -583,10 +625,10 @@ Ambiguity ambiguity(const Move& m, const Position& pos) noexcept {
 
 }  // namespace
 
-std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
-    if (m == Move::none())
+std::string UCI::move_to_san(Move m, Position& pos) noexcept {
+    if (m == Move::None())
         return "(none)";
-    if (m == Move::null())
+    if (m == Move::Null())
         return "0000";
     assert(MoveList<LEGAL>(pos).contains(m));
 
@@ -654,11 +696,11 @@ std::string UCI::move_to_san(const Move& m, Position& pos) noexcept {
 
 Move UCI::san_to_move(const std::string& san, Position& pos) noexcept {
     assert(3 <= san.length() && san.length() <= 9);
-    for (const auto& m : MoveList<LEGAL>(pos))
+    for (auto m : MoveList<LEGAL>(pos))
         if (san == move_to_san(m, pos))
             return m;
 
-    return Move::none();
+    return Move::None();
 }
 
 }  // namespace DON

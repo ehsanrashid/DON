@@ -19,6 +19,7 @@
 #define ENGINE_H_INCLUDED
 
 #include <cstddef>
+#include <cstdint>
 #include <iosfwd>
 #include <optional>
 #include <string>
@@ -30,6 +31,7 @@
 #include "search.h"
 #include "thread.h"
 #include "tt.h"
+#include "types.h"
 #include "ucioption.h"
 #include "nnue/network.h"
 
@@ -46,6 +48,7 @@ class Engine final {
     // Set a new position, moves are in UCI format
     void setup(std::string_view fen, const std::vector<std::string>& moves = {}) noexcept;
 
+    std::uint64_t perft(Depth depth, bool detail = false) noexcept;
     // Non-blocking call to start searching
     void start(const Search::Limits& limits) noexcept;
     // Non-blocking call to stop searching
@@ -58,7 +61,7 @@ class Engine final {
 
     void resize_threads() noexcept;
 
-    void resize_tt() noexcept;
+    void resize_tt(std::size_t mbSize) noexcept;
 
     void clear() noexcept;
 

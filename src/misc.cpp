@@ -127,7 +127,7 @@ class Logger final {
             logger.istream.rdbuf(logger.iTie.buf1);
             logger.ostream.rdbuf(logger.oTie.buf1);
 
-            logger.ofstream << "[" << SystemClock::now() << "] <-\n";
+            logger.ofstream << "[" << format_time(SystemClock::now()) << "] <-\n";
             logger.ofstream.close();
         }
 
@@ -141,7 +141,7 @@ class Logger final {
             std::cerr << "Unable to open debug log file: " << fname << '\n';
             exit(EXIT_FAILURE);
         }
-        logger.ofstream << "[" << SystemClock::now() << "] ->\n";
+        logger.ofstream << "[" << format_time(SystemClock::now()) << "] ->\n";
 
         logger.istream.rdbuf(&logger.iTie);
         logger.ostream.rdbuf(&logger.oTie);
@@ -188,7 +188,7 @@ std::string engine_info(bool uci) noexcept {
 #endif
     }
 
-    oss << (uci ? "\nid author " : " by ") << "Ehsan Rashid & Stockfish developers";
+    oss << (uci ? "\nid author " : " by ") << "Ehsan Rashid";
 
     return oss.str();
 }
@@ -318,11 +318,11 @@ std::string compiler_info() noexcept {
 // Debug functions used mainly to collect run-time statistics
 namespace {
 
-template<std::size_t N>
+template<std::uint8_t N>
 struct DebugInfo {
     std::atomic_int64_t data[N] = {0};
 
-    constexpr inline std::atomic_int64_t& operator[](std::uint16_t index) noexcept {
+    constexpr inline std::atomic_int64_t& operator[](std::uint8_t index) noexcept {
         return data[index];
     }
 };
@@ -400,6 +400,24 @@ void dbg_print() noexcept {
         }
 }
 
+// Used to serialize access to std::cout
+// to avoid multiple threads writing at the same time.
+std::ostream& operator<<(std::ostream& os, InOut io) noexcept {
+    static std::mutex mutex;
+    switch (io)
+    {
+    case IO_LOCK :
+        mutex.lock();
+        break;
+    case IO_UNLOCK :
+        mutex.unlock();
+        break;
+    }
+
+    return os;
+}
+
+/*
 std::ostream& operator<<(std::ostream&                            os,
                          [[maybe_unused]] SystemClock::time_point timePoint) noexcept {
 
@@ -425,22 +443,28 @@ std::ostream& operator<<(std::ostream&                            os,
 
     return os;
 }
+*/
 
-// Used to serialize access to std::cout
-// to avoid multiple threads writing at the same time.
-std::ostream& operator<<(std::ostream& os, InOut io) noexcept {
+std::string format_time(std::chrono::time_point<SystemClock> timePoint) {
+
     static std::mutex mutex;
-    switch (io)
+
+    std::ostringstream oss;
+
+    auto us =
+      std::chrono::duration_cast<MicroSeconds>(timePoint.time_since_epoch()).count() % 1000000;
+    auto time = SystemClock::to_time_t(timePoint);
+    // std::localtime is not thread safe. Since this is the only place
+    // std::localtime is used in the program, guard by mutex.
+    // TODO: replace with std::localtime_r or s once they are properly
+    // standardised. Or some other more c++ like time component thing.
     {
-    case IO_LOCK :
-        mutex.lock();
-        break;
-    case IO_UNLOCK :
-        mutex.unlock();
-        break;
+        std::unique_lock uniqueLock(mutex);
+        oss << std::put_time(std::localtime(&time), "%Y.%m.%d-%H:%M:%S")  //
+            << '.' << std::setfill('0') << std::setw(6) << us;
     }
 
-    return os;
+    return oss.str();
 }
 
 // Trampoline helper to avoid moving Logger to misc.h
@@ -746,6 +770,7 @@ void bind_thread([[maybe_unused]] std::uint16_t idx) noexcept {
     #define GETCWD getcwd
 #endif
 
+// Extract the binary directory path
 std::string CommandLine::get_binary_directory(const std::string& path) noexcept {
 
 #if defined(_WIN32)
@@ -762,7 +787,6 @@ std::string CommandLine::get_binary_directory(const std::string& path) noexcept 
     std::string pathSeparator = "/";
 #endif
 
-    // Extract the binary directory path
     std::string binaryDirectory = path;
 
     std::size_t pos = binaryDirectory.find_last_of("\\/");
@@ -773,16 +797,11 @@ std::string CommandLine::get_binary_directory(const std::string& path) noexcept 
 
     // Pattern replacement: "./" at the start of path is replaced by the working directory
     if (binaryDirectory.find("." + pathSeparator) == 0)
-    {
-        // Extract the working directory
-        std::string workingDirectory = CommandLine::get_working_directory();
-
-        binaryDirectory.replace(0, 1, workingDirectory);
-    }
+        binaryDirectory.replace(0, 1, CommandLine::get_working_directory());
 
     return binaryDirectory;
 }
-
+// Extract the working directory
 std::string CommandLine::get_working_directory() noexcept {
     std::string workingDirectory;
 

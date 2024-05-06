@@ -32,6 +32,7 @@ class Position;
 namespace Eval::NNUE {
 
 struct Networks;
+struct AccumulatorCaches;
 
 struct EvalFile final {
     // Default net name, will use one of the EvalFileDefaultName* macros defined
@@ -51,8 +52,10 @@ struct NnueEvalTrace final {
     std::size_t correctBucket;
 };
 
-void        hint_common_parent_position(const Position& pos, const Networks& networks) noexcept;
-std::string trace(Position& pos, const Networks& networks) noexcept;
+void        hint_common_parent_position(const Position&    pos,
+                                        const Networks&    networks,
+                                        AccumulatorCaches& caches) noexcept;
+std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& caches) noexcept;
 
 }  // namespace Eval::NNUE
 }  // namespace DON

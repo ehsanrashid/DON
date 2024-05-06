@@ -19,10 +19,10 @@
 
 #include "half_ka_v2_hm.h"
 
-#include "../nnue_common.h"
 #include "../../bitboard.h"
 #include "../../position.h"
 #include "../../types.h"
+#include "../nnue_accumulator.h"
 
 namespace DON::Eval::NNUE::Features {
 
@@ -51,6 +51,9 @@ template void HalfKAv2_hm::append_active_indices<WHITE>(const Position& pos,
 template void HalfKAv2_hm::append_active_indices<BLACK>(const Position& pos,
                                                         IndexList&      active) noexcept;
 
+template IndexType HalfKAv2_hm::make_index<WHITE>(Square s, Piece pc, Square ksq) noexcept;
+template IndexType HalfKAv2_hm::make_index<BLACK>(Square s, Piece pc, Square ksq) noexcept;
+
 // Get a list of indices for recently changed features
 template<Color Perspective>
 void HalfKAv2_hm::append_changed_indices(Square            ksq,
@@ -78,7 +81,7 @@ template void HalfKAv2_hm::append_changed_indices<BLACK>(Square            ksq,
 
 int HalfKAv2_hm::update_cost(const StateInfo* st) noexcept { return st->dirtyPiece.dirtyNum; }
 
-int HalfKAv2_hm::refresh_cost(const Position& pos) noexcept { return pos.count<ALL_PIECES>(); }
+int HalfKAv2_hm::refresh_cost(const Position& pos) noexcept { return pos.count<ALL_PIECE>(); }
 
 bool HalfKAv2_hm::requires_refresh(const StateInfo* st, Color perspective) noexcept {
     return st->dirtyPiece.piece[0] == make_piece(perspective, KING);

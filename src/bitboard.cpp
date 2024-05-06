@@ -36,20 +36,20 @@ Bitboard BetweenBB[SQUARE_NB][SQUARE_NB];
 Bitboard PawnAttacks[COLOR_NB][SQUARE_NB];
 Bitboard PseudoAttacks[PIECE_TYPE_NB][SQUARE_NB];
 
-Magic RookMagics[SQUARE_NB];
 Magic BishopMagics[SQUARE_NB];
+Magic RookMagics[SQUARE_NB];
 
 namespace {
 
-Bitboard RookTable[0x19000];   // To store rook attacks
-Bitboard BishopTable[0x1480];  // To store bishop attacks
+Bitboard BishopAttacks[0x1480];  // Stores bishop attacks
+Bitboard RookAttacks[0x19000];   // Stores rook attacks
 
 constexpr Direction BishopDirections[4]{NORTH_EAST, SOUTH_EAST, SOUTH_WEST, NORTH_WEST};
 constexpr Direction RookDirections[4]{NORTH, SOUTH, EAST, WEST};
 
 // Returns the bitboard of target square from the given square for the given step.
 // If the step is off the board, returns empty bitboard.
-Bitboard safe_destination(Square s, Direction step, uint8_t dist = 1) noexcept {
+Bitboard safe_destination(Square s, Direction step, std::uint8_t dist = 1) noexcept {
     Square sq = s + step;
     return is_ok(sq) && distance(s, sq) <= dist ? square_bb(sq) : 0;
 }
@@ -97,8 +97,8 @@ void init_magics() noexcept {
     Bitboard      reference[TableSize];
     std::uint16_t size;
 
-    Bitboard* table  = (PT == BISHOP ? BishopTable : RookTable);
-    Magic*    magics = (PT == BISHOP ? BishopMagics : RookMagics);
+    Bitboard* attacks = (PT == BISHOP ? BishopAttacks : RookAttacks);
+    Magic*    magics  = (PT == BISHOP ? BishopMagics : RookMagics);
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
@@ -116,9 +116,9 @@ void init_magics() noexcept {
 #if !defined(USE_PEXT)
         m.shift = (Is64Bit ? 64 : 32) - popcount(m.mask);
 #endif
-        // Set the offset for the attacks table of the square. We have individual
-        // table sizes for each square with "Fancy Magic Bitboards".
-        m.attacks = (s == SQ_A1) ? table : magics[s - 1].attacks + size;
+        // Set the offset for the attacks table of the square.
+        // We have individual table sizes for each square with "Fancy Magic Bitboards".
+        m.attacks = (s == SQ_A1) ? attacks : magics[s - 1].attacks + size;
 
         // Use Carry-Rippler trick to enumerate all subsets of masks[s] and
         // store the corresponding sliding attack bitboard in reference[].
@@ -172,8 +172,8 @@ void init_magics() noexcept {
 
 namespace Bitboards {
 
-// Initializes various bitboard tables. It is called at
-// startup and relies on global objects to be already zero-initialized.
+// Initializes various bitboard tables.
+// It is called at startup.
 void init() noexcept {
 
 #if !defined(USE_POPCNT)
@@ -187,34 +187,40 @@ void init() noexcept {
     init_magics<BISHOP>();
     init_magics<ROOK>();
 
-    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+    for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        PawnAttacks[WHITE][s1] = pawn_attacks_bb<WHITE>(square_bb(s1));
-        PawnAttacks[BLACK][s1] = pawn_attacks_bb<BLACK>(square_bb(s1));
+        PawnAttacks[WHITE][s] = pawn_attacks_bb(WHITE, square_bb(s));
+        PawnAttacks[BLACK][s] = pawn_attacks_bb(BLACK, square_bb(s));
 
-        for (auto d : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
-            PseudoAttacks[KING][s1] |= safe_destination(s1, d);
+        PseudoAttacks[0][s] = PseudoAttacks[1][s] = PseudoAttacks[7][s] = 0;
 
+        PseudoAttacks[KNIGHT][s] = 0;
         for (auto d : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                        WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
-            PseudoAttacks[KNIGHT][s1] |= safe_destination(s1, d, 2);
+            PseudoAttacks[KNIGHT][s] |= safe_destination(s, d, 2);
+        PseudoAttacks[KING][s] = 0;
+        for (auto d : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
+            PseudoAttacks[KING][s] |= safe_destination(s, d);
 
-        PseudoAttacks[BISHOP][s1] = attacks_bb<BISHOP>(s1, 0);
-        PseudoAttacks[ROOK][s1]   = attacks_bb<ROOK>(s1, 0);
-        PseudoAttacks[QUEEN][s1]  = PseudoAttacks[BISHOP][s1] | PseudoAttacks[ROOK][s1];
-
-        for (PieceType pt : {BISHOP, ROOK})
-            for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+        PseudoAttacks[BISHOP][s] = attacks_bb<BISHOP>(s, 0);
+        PseudoAttacks[ROOK][s]   = attacks_bb<ROOK>(s, 0);
+        PseudoAttacks[QUEEN][s]  = PseudoAttacks[BISHOP][s] | PseudoAttacks[ROOK][s];
+    }
+    for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
+        for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
+        {
+            LineBB[s1][s2] = BetweenBB[s1][s2] = 0;
+            for (PieceType pt : {BISHOP, ROOK})
             {
                 if (PseudoAttacks[pt][s1] & s2)
                 {
-                    LineBB[s1][s2] = (attacks_bb(pt, s1, 0) & attacks_bb(pt, s2, 0)) | s1 | s2;
+                    LineBB[s1][s2] = (PseudoAttacks[pt][s1] & PseudoAttacks[pt][s2]) | s1 | s2;
                     BetweenBB[s1][s2] =
                       (attacks_bb(pt, s1, square_bb(s2)) & attacks_bb(pt, s2, square_bb(s1)));
                 }
                 BetweenBB[s1][s2] |= s2;
             }
-    }
+        }
 }
 
 #if !defined(NDEBUG)

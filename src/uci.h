@@ -18,15 +18,19 @@
 #ifndef UCI_H_INCLUDED
 #define UCI_H_INCLUDED
 
+#include <cstddef>
+#include <cstdint>
 #include <iosfwd>
 #include <string>
 #include <string_view>
+#include <cstdint>
 
 #include "engine.h"
 #include "misc.h"
 #include "movegen.h"
 #include "search.h"
 #include "types.h"
+#include "ucioption.h"
 
 namespace DON {
 
@@ -54,11 +58,11 @@ class UCI final {
 
     static std::string square(Square s) noexcept;
 
-    static std::string move_to_can(const Move& m) noexcept;
+    static std::string move_to_can(Move m) noexcept;
     static Move can_to_move(const std::string& can, const MoveList<LEGAL>& legalMoves) noexcept;
     static Move can_to_move(const std::string& can, const Position& pos) noexcept;
 
-    static std::string move_to_san(const Move& m, Position& pos) noexcept;
+    static std::string move_to_san(Move m, Position& pos) noexcept;
     static Move        san_to_move(const std::string& san, Position& pos) noexcept;
 
    private:

@@ -117,12 +117,13 @@ void ThreadPool::destroy() noexcept {
 
 // Sets threadPool data to initial values
 void ThreadPool::clear() noexcept {
-    assert(!empty());
+    if (empty())
+        return;
+
     for (Thread* th : threads)
         th->worker->clear();
 
     auto mainManager               = main_manager();
-    mainManager->callsCount        = 0;
     mainManager->prevBestValue     = -VALUE_INFINITE;
     mainManager->prevBestAvgValue  = -VALUE_INFINITE;
     mainManager->prevTimeReduction = 1.0;
@@ -131,7 +132,7 @@ void ThreadPool::clear() noexcept {
 
     reductions[0] = 0;
     for (std::uint16_t i = 1; i < reductions.size(); ++i)
-        reductions[i] = (20.14 + 0.5 * std::log(size())) * std::log(i);
+        reductions[i] = (18.93 + 0.5 * std::log(size())) * std::log(i);
 }
 
 // Creates/destroys threads to match the requested number.
@@ -147,7 +148,7 @@ void ThreadPool::set(Search::SharedState          sharedState,
     //    threadCount = std::thread::hardware_concurrency();
 
     // create new thread(s)
-    if (threadCount > 0)
+    if (threadCount != 0)
     {
         assert(empty());
 
@@ -268,7 +269,7 @@ void ThreadPool::start(Position&             pos,
     }
 
     if (rootMoves.empty())
-        for (const auto& m : legalMoves)
+        for (auto m : legalMoves)
             rootMoves.emplace_back(m);
 
     for (const std::string& can : limits.ignoreMoves)
@@ -281,6 +282,8 @@ void ThreadPool::start(Position&             pos,
             rootMoves.erase(itr);
     }
 
+    std::string rootFen = pos.fen();
+
     Tablebases::Config tbConfig = Tablebases::rank_root_moves(pos, rootMoves, options);
 
     // After ownership transfer 'states' becomes empty, so if we stop the search
@@ -290,7 +293,6 @@ void ThreadPool::start(Position&             pos,
     if (states.get())
         setupStates = std::move(states);  // Ownership transfer, states is now empty
 
-    std::string rootFen = pos.fen();
     // We use Position::set() to set root position across threads. But there are some
     // StateInfo fields (rule50, nullPly, capturedPiece, previous) that cannot be deduced
     // from a fen string, so set() clears them and they are set from setupStates->back() later.

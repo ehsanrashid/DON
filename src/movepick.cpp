@@ -33,15 +33,15 @@ namespace DON {
 // move ordering is at the current node.
 
 // MovePicker constructor for the main search
-MovePicker::MovePicker(const Position&              p,
-                       const Move&                  ttm,
-                       Depth                        d,
-                       const ButterflyHistory*      mh,
-                       const CapturePieceToHistory* cph,
-                       const PieceToHistory**       ch,
-                       const PawnHistory*           ph,
-                       const std::array<Move, 2>&   km,
-                       const Move&                  cm) noexcept :
+MovePicker::MovePicker(const Position&               p,
+                       Move                          ttm,
+                       Depth                         d,
+                       const ButterflyHistory*       mh,
+                       const CapturePieceDstHistory* cph,
+                       const PieceDstHistory**       ch,
+                       const PawnHistory*            ph,
+                       std::array<Move, 2>           km,
+                       Move                          cm) noexcept :
     pos(p),
     mainHistory(mh),
     captureHistory(cph),
@@ -57,13 +57,13 @@ MovePicker::MovePicker(const Position&              p,
 }
 
 // Constructor for quiescence search
-MovePicker::MovePicker(const Position&              p,
-                       const Move&                  ttm,
-                       Depth                        d,
-                       const ButterflyHistory*      mh,
-                       const CapturePieceToHistory* cph,
-                       const PieceToHistory**       ch,
-                       const PawnHistory*           ph) noexcept :
+MovePicker::MovePicker(const Position&               p,
+                       Move                          ttm,
+                       Depth                         d,
+                       const ButterflyHistory*       mh,
+                       const CapturePieceDstHistory* cph,
+                       const PieceDstHistory**       ch,
+                       const PawnHistory*            ph) noexcept :
     pos(p),
     mainHistory(mh),
     captureHistory(cph),
@@ -79,10 +79,10 @@ MovePicker::MovePicker(const Position&              p,
 
 // Constructor for ProbCut: we generate captures with SEE greater
 // than or equal to the given threshold.
-MovePicker::MovePicker(const Position&              p,
-                       const Move&                  ttm,
-                       int                          th,
-                       const CapturePieceToHistory* cph) noexcept :
+MovePicker::MovePicker(const Position&               p,
+                       Move                          ttm,
+                       int                           th,
+                       const CapturePieceDstHistory* cph) noexcept :
     pos(p),
     captureHistory(cph),
     ttMove(ttm),
@@ -103,21 +103,6 @@ void MovePicker::score() noexcept {
 
     Color stm = pos.side_to_move();
 
-    [[maybe_unused]] Bitboard threatenedByPawn, threatenedByMinor, threatenedByRook,
-      threatenedPieces;
-    if constexpr (GT == QUIETS)
-    {
-        threatenedByPawn = pos.attacks_by<PAWN>(~stm);
-        threatenedByMinor =
-          pos.attacks_by<KNIGHT>(~stm) | pos.attacks_by<BISHOP>(~stm) | threatenedByPawn;
-        threatenedByRook = pos.attacks_by<ROOK>(~stm) | threatenedByMinor;
-
-        // Pieces threatened by pieces of lesser material value
-        threatenedPieces = (pos.pieces(stm, QUEEN) & threatenedByRook)
-                         | (pos.pieces(stm, ROOK) & threatenedByMinor)
-                         | (pos.pieces(stm, KNIGHT, BISHOP) & threatenedByPawn);
-    }
-
     for (auto& m : *this)
     {
         const Square org = m.org_sq(), dst = m.dst_sq();
@@ -130,7 +115,8 @@ void MovePicker::score() noexcept {
             Piece capturedPiece = pos.captured_piece(m);
 
             m.value = 7 * PieceValue[capturedPiece] - pt
-                    + (*captureHistory)[pc][dst][type_of(capturedPiece)];
+                    + (*captureHistory)[pc][dst][type_of(capturedPiece)]
+                    + (pos.cap_square() == dst) * 256;
         }
 
         else if constexpr (GT == QUIETS)
@@ -148,19 +134,19 @@ void MovePicker::score() noexcept {
             m.value += pos.gives_check(m) * 16384;
 
             // Bonus for escaping from capture
-            m.value += (threatenedPieces & org)
-                       ? (pt == QUEEN && !(dst & threatenedByRook)   ? 51000
-                          : pt == ROOK && !(dst & threatenedByMinor) ? 24950
-                          : !(dst & threatenedByPawn)                ? 14450
-                                                                     : 0)
+            m.value += (pos.threatens(stm) & org)
+                       ? (pt == QUEEN && !(pos.attacks(~stm, ROOK) & dst)   ? 51700
+                          : pt == ROOK && !(pos.attacks(~stm, MINOR) & dst) ? 25600
+                          : !(pos.attacks(~stm, PAWN) & dst)                ? 14450
+                                                                            : 0)
                        : 0;
 
             // Malus for putting piece en-prise
-            m.value -= !(threatenedPieces & org)
-                       ? (pt == QUEEN ? bool(dst & threatenedByRook) * 48150
-                                          + bool(dst & threatenedByMinor) * 10650
-                          : pt == ROOK ? bool(dst & threatenedByMinor) * 24500
-                          : pt != PAWN ? bool(dst & threatenedByPawn) * 14950
+            m.value -= !(pos.threatens(stm) & org)
+                       ? (pt == QUEEN ? bool(pos.attacks(~stm, ROOK) & dst) * 48150
+                                          + bool(pos.attacks(~stm, MINOR) & dst) * 10650
+                          : pt == ROOK ? bool(pos.attacks(~stm, MINOR) & dst) * 24335
+                          : pt != PAWN ? bool(pos.attacks(~stm, PAWN) & dst) * 14950
                                        : 0)
                        : 0;
         }
@@ -207,7 +193,7 @@ Move MovePicker::pick(Predicate filter) noexcept {
 
         ++cur;
     }
-    return Move::none();
+    return Move::None();
 }
 
 // Most important method of the MovePicker class.
@@ -215,7 +201,7 @@ Move MovePicker::pick(Predicate filter) noexcept {
 // moves left, picking the move with the highest score from a list of generated moves.
 Move MovePicker::next_move() noexcept {
 
-    auto quiet_threshold = [](Depth d) noexcept -> int { return -3550 * d; };
+    auto quiet_threshold = [](Depth d) noexcept -> int { return -3560 * d; };
 
 top:
     switch (stage)
@@ -254,20 +240,20 @@ top:
         // If the counterMove is the same as a killerMoves, skip it
         if (refutations[2]
             && (refutations[2] == refutations[0] || refutations[2] == refutations[1]))
-            refutations[2] = Move::none();
+            refutations[2] = Move::None();
 
         std::replace_if(
           cur, endMoves,
-          [&pos = pos](const ExtMove& em) noexcept -> bool {
-              return em && (pos.capture_stage(em) || !pos.pseudo_legal(em));
+          [&pos = pos](Move m) noexcept -> bool {
+              return m && (pos.capture_stage(m) || !pos.pseudo_legal(m));
           },
-          Move::none());
+          Move::None());
 
         ++stage;
         [[fallthrough]];
 
     case REFUTATION :
-        if (pick([this]() noexcept -> bool { return *cur != Move::none(); }))
+        if (pick([this]() noexcept -> bool { return bool(*cur); }))
             return *(cur - 1);
 
         ++stage;
@@ -292,7 +278,7 @@ top:
                     == std::end(refutations);
             }))
         {
-            if ((cur - 1)->value > -8000 || (cur - 1)->value <= quiet_threshold(depth))
+            if ((cur - 1)->value > -7998 || (cur - 1)->value <= quiet_threshold(depth))
                 return *(cur - 1);
 
             // Remaining quiets are bad
@@ -324,7 +310,7 @@ top:
                     == std::end(refutations);
             });
 
-        return Move::none();
+        return Move::None();
 
     case EVASION_INIT :
         cur      = moves;
@@ -347,7 +333,7 @@ top:
 
         // If we did not find any move and we do not try checks, we have finished
         if (depth != DEPTH_QS_CHECKS)
-            return Move::none();
+            return Move::None();
 
         ++stage;
         [[fallthrough]];
@@ -365,7 +351,7 @@ top:
     case NO_STAGE :;
     }
     assert(false);
-    return Move::none();  // Silence warning
+    return Move::None();  // Silence warning
 }
 
 }  // namespace DON

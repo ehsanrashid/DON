@@ -39,29 +39,23 @@ namespace DON {
 // eval value 16 bit
 struct TTEntry final {
 
-    constexpr Move  move() const noexcept { return Move(move16); }
+    constexpr Move  move() const noexcept { return move16; }
     constexpr Depth depth() const noexcept { return Depth(depth8 + DEPTH_OFFSET); }
     constexpr bool  is_pv() const noexcept { return bool(genBound8 & 0x4); }
     constexpr Bound bound() const noexcept { return Bound(genBound8 & 0x3); }
     constexpr Value value() const noexcept { return Value(value16); }
     constexpr Value eval() const noexcept { return Value(eval16); }
 
-    void save(Key          k,
-              Value        v,
-              bool         pv,
-              Bound        b,
-              Depth        d,
-              const Move&  m,
-              Value        ev,
-              std::uint8_t gen) noexcept;
-
+    void
+    save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, std::uint8_t gen) noexcept;
+    // The returned age is a multiple of TranspositionTable::GENERATION_DELTA
     std::uint8_t relative_age(std::uint8_t gen) const noexcept;
 
    private:
     std::uint16_t key16;
     std::uint8_t  depth8;
     std::uint8_t  genBound8;
-    std::uint16_t move16;
+    Move          move16;
     std::int16_t  value16;
     std::int16_t  eval16;
 
@@ -89,19 +83,20 @@ class TranspositionTable final {
     // Number of bits reserved for other things
     static constexpr std::uint8_t GENERATION_BITS = 3;
     // Increment for generation field
-    static constexpr std::uint8_t GENERATION_DELTA = (1 << GENERATION_BITS);
+    static constexpr std::uint8_t GENERATION_DELTA = (1U << GENERATION_BITS);
     // Cycle length
-    static constexpr std::uint16_t GENERATION_CYCLE = 0xFF + GENERATION_DELTA;
+    static constexpr std::uint16_t GENERATION_CYCLE = 0xFFU + GENERATION_DELTA;
     // Mask to pull out generation number
-    static constexpr std::uint8_t GENERATION_MASK = (0xFF << GENERATION_BITS) & 0xFF;
+    static constexpr std::uint8_t GENERATION_MASK = (0xFFU << GENERATION_BITS) & 0xFFU;
 
     TranspositionTable()                                     = default;
     TranspositionTable(const TranspositionTable&)            = delete;
     TranspositionTable& operator=(const TranspositionTable&) = delete;
     ~TranspositionTable() noexcept;
 
-    void set_generation() noexcept { generation8 = GENERATION_DELTA; }
-    void update_generation() noexcept { generation8 += GENERATION_DELTA; }
+    void update_generation(bool infinite = false) noexcept {
+        generation8 = !infinite * generation8 + GENERATION_DELTA;
+    }
 
     constexpr TTEntry* first_entry(Key key) const noexcept {
         return &table[mul_hi64(key, clusterCount)].entry[0];
@@ -110,7 +105,8 @@ class TranspositionTable final {
     constexpr auto generation() const noexcept { return generation8; }
 
     void resize(std::size_t mbSize, std::uint16_t threadCount) noexcept;
-    void clear(std::uint16_t threadCount) noexcept;
+    void resize(std::size_t mbSize) noexcept;
+    void clear() noexcept;
 
     TTEntry*      probe(Key key, bool& ttHit) const noexcept;
     std::uint16_t hashfull() const noexcept;
@@ -121,9 +117,10 @@ class TranspositionTable final {
    private:
     void free() noexcept;
 
-    Cluster*     table        = nullptr;
-    std::size_t  clusterCount = 0;
-    std::uint8_t generation8  = 0;  // Size must be not bigger than TTEntry::genBound8
+    Cluster*      table        = nullptr;
+    std::size_t   clusterCount = 0;
+    std::uint8_t  generation8  = 0;  // Size must be not bigger than TTEntry::genBound8
+    std::uint16_t _threadCount = 1;
 };
 
 }  // namespace DON

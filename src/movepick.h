@@ -22,6 +22,7 @@
 #include <array>
 #include <cassert>
 #include <cmath>
+#include <cstddef>
 #include <cstdint>
 #include <cstdlib>
 #include <limits>
@@ -43,9 +44,11 @@ static_assert((PAWN_HISTORY_SIZE & (PAWN_HISTORY_SIZE - 1)) == 0,
 static_assert((CORRECTION_HISTORY_SIZE & (CORRECTION_HISTORY_SIZE - 1)) == 0,
               "CORRECTION_HISTORY_SIZE has to be a power of 2");
 
-template<bool Correction = false>
 constexpr std::uint16_t pawn_index(Key pawnKey) noexcept {
-    return pawnKey & ((Correction ? CORRECTION_HISTORY_SIZE : PAWN_HISTORY_SIZE) - 1);
+    return std::uint16_t(pawnKey) & (PAWN_HISTORY_SIZE - 1);
+}
+constexpr std::uint16_t correction_index(Key pawnKey) noexcept {
+    return std::uint16_t(pawnKey) & (CORRECTION_HISTORY_SIZE - 1);
 }
 
 // StatsEntry stores the stat table value. It is usually a number but could
@@ -57,7 +60,7 @@ class StatsEntry final {
     T entry;
 
    public:
-    void operator=(const T& v) noexcept { entry = v; }
+    void operator=(const T& e) noexcept { entry = e; }
     T*   operator&() noexcept { return &entry; }
     T*   operator->() noexcept { return &entry; }
     operator const T&() const noexcept { return entry; }
@@ -109,17 +112,17 @@ using ButterflyHistory = Stats<std::int16_t, 7183, COLOR_NB, SQUARE_NB * SQUARE_
 // see www.chessprogramming.org/Countermove_Heuristic
 using CounterMoveHistory = Stats<Move, NOT_USED, PIECE_NB, SQUARE_NB>;
 
-// CapturePieceToHistory is addressed by a move's [piece][to][captured piece type]
-using CapturePieceToHistory = Stats<std::int16_t, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
+// CapturePieceDstHistory is addressed by a move's [piece][to][captured piece type]
+using CapturePieceDstHistory = Stats<std::int16_t, 10692, PIECE_NB, SQUARE_NB, PIECE_TYPE_NB>;
 
-// PieceToHistory is like ButterflyHistory but is addressed by a move's [piece][to]
-using PieceToHistory = Stats<std::int16_t, 29952, PIECE_NB, SQUARE_NB>;
+// PieceDstHistory is like ButterflyHistory but is addressed by a move's [piece][to]
+using PieceDstHistory = Stats<std::int16_t, 29952, PIECE_NB, SQUARE_NB>;
 
 // ContinuationHistory is the combined history of a given pair of moves, usually
 // the current one given a previous one. The nested history table is based on
-// PieceToHistory instead of ButterflyBoards.
+// PieceDstHistory instead of ButterflyBoards.
 // (~63 Elo)
-using ContinuationHistory = Stats<PieceToHistory, NOT_USED, PIECE_NB, SQUARE_NB>;
+using ContinuationHistory = Stats<PieceDstHistory, NOT_USED, PIECE_NB, SQUARE_NB>;
 
 // PawnHistory is addressed by the pawn structure and a move's [piece][to]
 using PawnHistory = Stats<std::int16_t, 8192, PAWN_HISTORY_SIZE, PIECE_NB, SQUARE_NB>;
@@ -168,7 +171,7 @@ inline Stage&   operator--(Stage& s) noexcept { return s = s - 1; }
 // MovePicker class is used to pick one pseudo-legal move at a time from the
 // current position. The most important method is next_move(), which returns a
 // new pseudo-legal move each time it is called, until there are no moves left,
-// when Move::none() is returned. In order to improve the efficiency of the
+// when Move::None() is returned. In order to improve the efficiency of the
 // alpha-beta algorithm, MovePicker attempts to return the moves which are most
 // likely to get a cut-off first.
 class MovePicker final {
@@ -176,22 +179,22 @@ class MovePicker final {
     MovePicker(const MovePicker&)            = delete;
     MovePicker& operator=(const MovePicker&) = delete;
     MovePicker(const Position&,
-               const Move&,
+               Move,
                Depth,
                const ButterflyHistory*,
-               const CapturePieceToHistory*,
-               const PieceToHistory**,
+               const CapturePieceDstHistory*,
+               const PieceDstHistory**,
                const PawnHistory*,
-               const std::array<Move, 2>&,
-               const Move&) noexcept;
+               std::array<Move, 2>,
+               Move) noexcept;
     MovePicker(const Position&,
-               const Move&,
+               Move,
                Depth,
                const ButterflyHistory*,
-               const CapturePieceToHistory*,
-               const PieceToHistory**,
+               const CapturePieceDstHistory*,
+               const PieceDstHistory**,
                const PawnHistory*) noexcept;
-    MovePicker(const Position&, const Move&, int, const CapturePieceToHistory*) noexcept;
+    MovePicker(const Position&, Move, int, const CapturePieceDstHistory*) noexcept;
 
     Move next_move() noexcept;
 
@@ -210,14 +213,16 @@ class MovePicker final {
     ExtMove* begin() const noexcept { return cur; }
     ExtMove* end() const noexcept { return endMoves; }
 
-    const Position&              pos;
-    const ButterflyHistory*      mainHistory;
-    const CapturePieceToHistory* captureHistory;
-    const PieceToHistory**       continuationHistory;
-    const PawnHistory*           pawnHistory;
-    const Move&                  ttMove;
-    Depth                        depth;
-    int                          threshold;
+    constexpr std::uint8_t size() const noexcept { return endMoves - cur; }
+
+    const Position&               pos;
+    const ButterflyHistory*       mainHistory;
+    const CapturePieceDstHistory* captureHistory;
+    const PieceDstHistory**       continuationHistory;
+    const PawnHistory*            pawnHistory;
+    Move                          ttMove;
+    Depth                         depth;
+    int                           threshold;
 
     ExtMove *cur, *endMoves, *endBadCaptures, *beginBadQuiets, *endBadQuiets;
     ExtMove  refutations[3];

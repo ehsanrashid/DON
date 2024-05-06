@@ -17,6 +17,7 @@
 
 #include "engine.h"
 
+#include <cassert>
 #include <memory>
 #include <ostream>
 #include <utility>
@@ -25,7 +26,6 @@
 #include "evaluate.h"
 #include "misc.h"
 #include "perft.h"
-#include "types.h"
 #include "uci.h"
 #include "nnue/nnue_common.h"
 #include "syzygy/tbprobe.h"
@@ -62,13 +62,12 @@ void Engine::setup(std::string_view fen, const std::vector<std::string>& moves) 
     }
 }
 
-void Engine::start(const Search::Limits& limits) noexcept {
+std::uint64_t Engine::perft(Depth depth, bool detail) noexcept {
+    return Benchmark::perft(pos, depth, options["Hash"], options["Threads"], detail);
+}
 
-    if (limits.perft)
-    {
-        perft(pos, limits.depth, limits.detail);
-        return;
-    }
+void Engine::start(const Search::Limits& limits) noexcept {
+    assert(!limits.perft);
 
     verify_networks();
 
@@ -84,7 +83,7 @@ void Engine::clear() noexcept {
         return;
     wait_finish();
     threads.clear();
-    tt.clear(options["Threads"]);
+    tt.clear();
     // @TODO wont work with multiple instances
     Tablebases::init(options["SyzygyPath"]);  // Free mapped files
 }
@@ -96,9 +95,9 @@ void Engine::resize_threads() noexcept {
     threads.set({options, networks, threads, tt}, updateContext);
 }
 
-void Engine::resize_tt() noexcept {
+void Engine::resize_tt(std::size_t mbSize) noexcept {
     wait_finish();
-    tt.resize(options["Hash"], options["Threads"]);
+    tt.resize(mbSize);
 }
 
 void Engine::show() const noexcept { sync_cout << pos << sync_endl; }
@@ -130,10 +129,12 @@ void Engine::load_networks() noexcept {
 
 void Engine::load_big_network(const std::string& file) noexcept {
     networks.big.load(binaryDirectory, file);
+    threads.clear();
 }
 
 void Engine::load_small_network(const std::string& file) noexcept {
     networks.small.load(binaryDirectory, file);
+    threads.clear();
 }
 
 void Engine::save_networks(

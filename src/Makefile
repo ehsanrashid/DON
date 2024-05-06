@@ -52,7 +52,7 @@ PGOBENCH = $(WINE_PATH) ./$(EXE) bench
 
 ### Source and object files
 SRCS = benchmark.cpp bitboard.cpp engine.cpp evaluate.cpp main.cpp misc.cpp \
-	movegen.cpp movepick.cpp polybook.cpp position.cpp search.cpp score.cpp \
+	movegen.cpp movepick.cpp perft.cpp polybook.cpp position.cpp search.cpp score.cpp \
 	thread.cpp timeman.cpp tt.cpp uci.cpp ucioption.cpp tune.cpp nnue/nnue_misc.cpp \
 	nnue/network.cpp nnue/features/half_ka_v2_hm.cpp syzygy/tbprobe.cpp
 

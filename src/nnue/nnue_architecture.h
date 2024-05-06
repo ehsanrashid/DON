@@ -37,13 +37,13 @@ namespace DON::Eval::NNUE {
 using FeatureSet = Features::HalfKAv2_hm;
 
 // Number of input feature dimensions after conversion
-constexpr IndexType TransformedFeatureDimensionsBig = 3072;
-constexpr int       L2Big                           = 15;
-constexpr int       L3Big                           = 32;
+constexpr IndexType BigTransformedFeatureDimensions = 3072;
+constexpr int       BigL2                           = 15;
+constexpr int       BigL3                           = 32;
 
-constexpr IndexType TransformedFeatureDimensionsSmall = 128;
-constexpr int       L2Small                           = 15;
-constexpr int       L3Small                           = 32;
+constexpr IndexType SmallTransformedFeatureDimensions = 128;
+constexpr int       SmallL2                           = 15;
+constexpr int       SmallL3                           = 32;
 
 constexpr IndexType PSQTBuckets = 8;
 constexpr IndexType LayerStacks = 8;
@@ -92,7 +92,6 @@ struct NetworkArchitecture final {
 
     // Forward propagation
     std::int32_t propagate(const TransformedFeatureType* transformedFeatures) noexcept {
-
         struct alignas(CacheLineSize) Buffer final {
             alignas(CacheLineSize) typename decltype(fc_0)::OutputBuffer fc_0_out;
             alignas(CacheLineSize) typename decltype(ac_sqr_0)::OutputType

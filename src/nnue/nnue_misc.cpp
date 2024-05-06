@@ -37,13 +37,15 @@ namespace DON {
 
 namespace Eval::NNUE {
 
-void hint_common_parent_position(const Position& pos, const Networks& networks) noexcept {
+void hint_common_parent_position(const Position&    pos,
+                                 const Networks&    networks,
+                                 AccumulatorCaches& caches) noexcept {
 
     int simpleEvalAbs = std::abs(evaluate_simple(pos));
     if (simpleEvalAbs > SmallNetThreshold)
-        networks.small.hint_common_access(pos, simpleEvalAbs > PsqtOnlyThreshold);
+        networks.small.hint_common_access(pos, &caches.small);
     else
-        networks.big.hint_common_access(pos, false);
+        networks.big.hint_common_access(pos, &caches.big);
 }
 
 namespace {
@@ -96,7 +98,7 @@ void format_cp_aligned_dot(Value v, const Position& pos, std::ostringstream& oss
 
 // Returns a string with the value of each piece on a board,
 // and a table for (PSQT, Layers) values bucket by bucket.
-std::string trace(Position& pos, const Networks& networks) noexcept {
+std::string trace(Position& pos, const Networks& networks, AccumulatorCaches& caches) noexcept {
     std::ostringstream oss;
 
     char board[3 * 8 + 1][8 * 8 + 2];
@@ -121,7 +123,7 @@ std::string trace(Position& pos, const Networks& networks) noexcept {
 
     // We estimate the value of each piece by doing a differential evaluation from
     // the current base eval, simulating the removal of the piece from its square.
-    Value base = networks.big.evaluate(pos);
+    Value base = networks.big.evaluate(pos, &caches.big);
     base       = pos.side_to_move() == WHITE ? +base : -base;
 
     for (File f = FILE_A; f <= FILE_H; ++f)
@@ -136,18 +138,14 @@ std::string trace(Position& pos, const Networks& networks) noexcept {
                 auto st = pos.state();
 
                 pos.remove_piece(sq);
-                st->accumulatorBig.computed[WHITE]       = st->accumulatorBig.computed[BLACK] =
-                  st->accumulatorBig.computedPSQT[WHITE] = st->accumulatorBig.computedPSQT[BLACK] =
-                    false;
+                st->bigAccumulator.computed[WHITE] = st->bigAccumulator.computed[BLACK] = false;
 
-                Value eval = networks.big.evaluate(pos);
+                Value eval = networks.big.evaluate(pos, &caches.big);
                 eval       = pos.side_to_move() == WHITE ? +eval : -eval;
                 v          = base - eval;
 
                 pos.put_piece(pc, sq);
-                st->accumulatorBig.computed[WHITE]       = st->accumulatorBig.computed[BLACK] =
-                  st->accumulatorBig.computedPSQT[WHITE] = st->accumulatorBig.computedPSQT[BLACK] =
-                    false;
+                st->bigAccumulator.computed[WHITE] = st->bigAccumulator.computed[BLACK] = false;
             }
 
             writeSquare(f, r, pc, v);
@@ -158,7 +156,7 @@ std::string trace(Position& pos, const Networks& networks) noexcept {
         oss << row << '\n';
     oss << '\n';
 
-    auto trace = networks.big.trace_evaluate(pos);
+    auto trace = networks.big.trace_evaluate(pos, &caches.big);
 
     oss << " NNUE network contributions "
         << (pos.side_to_move() == WHITE ? "(White to move)" : "(Black to move)") << '\n'

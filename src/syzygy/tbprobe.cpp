@@ -157,9 +157,9 @@ struct LR final {
         Right
     };
 
-    uint8_t lr[3];  // The first 12 bits is the left-hand symbol, the second 12
-                    // bits is the right-hand symbol. If the symbol has length 1,
-                    // then the left-hand symbol is the stored value.
+    std::uint8_t lr[3];  // The first 12 bits is the left-hand symbol, the second 12
+                         // bits is the right-hand symbol. If the symbol has length 1,
+                         // then the left-hand symbol is the stored value.
     template<Side S>
     Sym get() const noexcept {
         return S == Left  ? ((lr[1] & 0xF) << 8) | lr[0]
@@ -382,7 +382,7 @@ TBTable<WDL>::TBTable(const std::string& code) noexcept :
     Position pos;
 
     key[WHITE] = pos.set(code, WHITE, &st).material_key();
-    pieceCount = pos.count<ALL_PIECES>();
+    pieceCount = pos.count<ALL_PIECE>();
     hasPawns   = pos.count<PAWN>();
 
     hasUniquePieces = false;
@@ -1229,7 +1229,7 @@ void* mapped(TBTable<Type>& entry, const Position& pos) noexcept {
 template<TBType Type, typename Ret = typename TBTable<Type>::Ret>
 Ret probe_table(const Position& pos, ProbeState* result, WDLScore wdl = WDLDraw) noexcept {
 
-    if (pos.count<ALL_PIECES>() == 2)  // KvK
+    if (pos.count<ALL_PIECE>() == 2)  // KvK
         return Ret(WDLDraw);
 
     TBTable<Type>* entry = TBTables.get<Type>(pos.material_key());
@@ -1264,7 +1264,7 @@ WDLScore search(Position& pos, ProbeState* result) noexcept {
     const auto   legalMoves = MoveList<LEGAL>(pos);
     std::uint8_t legalCount = legalMoves.size(), moveCount = 0;
 
-    for (const auto& m : legalMoves)
+    for (auto m : legalMoves)
     {
         if (!pos.capture(m) && (!CheckZeroingMoves || type_of(pos.moved_piece(m)) != PAWN))
             continue;
@@ -1544,7 +1544,7 @@ int probe_dtz(Position& pos, ProbeState* result) noexcept {
 
     int minDTZ = 0xFFFF;
 
-    for (const auto& m : MoveList<LEGAL>(pos))
+    for (auto m : MoveList<LEGAL>(pos))
     {
         bool zeroing = pos.capture(m) || type_of(pos.moved_piece(m)) == PAWN;
 
@@ -1705,7 +1705,7 @@ rank_root_moves(Position& pos, Search::RootMoves& rootMoves, const OptionsMap& o
         config.probeDepth  = DEPTH_ZERO;
     }
 
-    if (config.cardinality >= pos.count<ALL_PIECES>() && !pos.can_castle(ANY_CASTLING))
+    if (config.cardinality >= pos.count<ALL_PIECE>() && !pos.can_castle(ANY_CASTLING))
     {
         // Rank moves using DTZ tables
         config.rootInTB = root_probe(pos, rootMoves, config.useRule50);

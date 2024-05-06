@@ -35,8 +35,8 @@ struct PolyHash final {
     bool operator<(const PolyHash& ph) const noexcept;
     bool operator>(const PolyHash& ph) const noexcept;
 
-    bool operator==(const Move& m) const noexcept;
-    bool operator!=(const Move& m) const noexcept;
+    bool operator==(Move m) const noexcept;
+    bool operator!=(Move m) const noexcept;
 
     friend std::ostream& operator<<(std::ostream& os, const PolyHash& ph) noexcept;
 

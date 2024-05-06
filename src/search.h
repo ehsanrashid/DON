@@ -35,6 +35,7 @@
 #include "score.h"
 #include "timeman.h"
 #include "types.h"
+#include "nnue/nnue_accumulator.h"
 #include "syzygy/tbprobe.h"
 
 namespace DON {
@@ -61,10 +62,9 @@ enum NodeType : std::uint8_t {
 // its own array of Stack objects, indexed by the current ply.
 struct Stack final {
     Move*               pv;
-    PieceToHistory*     continuationHistory;
+    PieceDstHistory*    continuationHistory;
     std::int16_t        ply;
     Move                currentMove;
-    Move                excludedMove;
     std::array<Move, 2> killerMoves;
     Value               staticEval;
     int                 statScore;
@@ -72,7 +72,6 @@ struct Stack final {
     bool                ttHit;
     bool                ttPv;
     std::uint8_t        moveCount;
-    std::uint8_t        multipleExtensions;
     std::uint8_t        cutoffCount;
 };
 
@@ -83,17 +82,17 @@ using Moves = std::vector<Move>;
 // fail low). Score is normally set at -VALUE_INFINITE for all non-pv moves.
 struct RootMove final {
 
-    explicit RootMove(const Move& m) noexcept :
+    explicit RootMove(Move m) noexcept :
         pv(1, m) {}
 
-    bool operator==(const Move& m) const noexcept { return pv[0] == m; }
-    bool operator!=(const Move& m) const noexcept { return !(*this == m); }
+    bool operator==(Move m) const noexcept { return pv[0] == m; }
+    bool operator!=(Move m) const noexcept { return !(*this == m); }
     // Sort in descending order
     bool operator<(const RootMove& rm) const noexcept {
         return value != rm.value ? value > rm.value : prevValue > rm.prevValue;
     }
 
-    bool extract_ponder_from_tt(const TranspositionTable& tt, Position& pos) noexcept;
+    bool extract_ponder_from_tt(Position& pos, const TranspositionTable& tt) noexcept;
 
     Value         value      = -VALUE_INFINITE;
     Value         prevValue  = -VALUE_INFINITE;
@@ -129,7 +128,7 @@ struct Limits final {
     TimePoint                   startTime = 0;
     std::array<Clock, COLOR_NB> clock{};
     TimePoint                   moveTime  = 0;
-    std::uint16_t               movesToGo = 0, mate = 0;
+    std::uint8_t                movesToGo = 0, mate = 0;
     Depth                       depth    = DEPTH_ZERO;
     std::uint64_t               nodes    = 0;
     bool                        infinite = false;
@@ -162,7 +161,7 @@ struct Skill final {
     static constexpr std::uint16_t MaxELO   = 3190;
 
     double level    = MaxLevel;
-    Move   bestMove = Move::none();
+    Move   bestMove = Move::None();
 };
 
 // The Engine stores the uci options, networks, thread pool, and transposition table.
@@ -189,7 +188,8 @@ class Worker;
 // A Null Object will be given to non-mainthread workers.
 class ISearchManager {
    public:
-    virtual ~ISearchManager() = default;
+    virtual ~ISearchManager()                         = default;
+    virtual void should_abort(const Worker&) noexcept = 0;
 };
 
 using ISearchManagerPtr = std::unique_ptr<ISearchManager>;
@@ -230,8 +230,6 @@ struct UpdateContext final {
     OnUpdateBestMove  onUpdateBestMove;
 };
 
-constexpr std::uint8_t IterSize = 4;
-
 // MainSearchManager manages the search from the main thread.
 // It is responsible for keeping track of the time,
 // and storing data strictly related to the main thread.
@@ -240,7 +238,7 @@ class MainSearchManager final: public ISearchManager {
     MainSearchManager(const UpdateContext& updateCxt) noexcept :
         updateContext(updateCxt) {}
 
-    void should_abort(const Worker& worker) noexcept;
+    void should_abort(const Worker& worker) noexcept override;
 
     TimePoint elapsed(const Worker& worker) const noexcept;
 
@@ -258,10 +256,13 @@ class MainSearchManager final: public ISearchManager {
     Value  prevBestAvgValue;
     double prevTimeReduction;
 
-    std::array<Value, IterSize> iterValue;
+    std::array<Value, 4> iterValue;
 };
 
-class NullSearchManager final: public ISearchManager {};
+class NullSearchManager final: public ISearchManager {
+   public:
+    void should_abort(const Worker&) noexcept override {}
+};
 
 // Worker is the class that does the actual search.
 // It is instantiated once per thread, and it is responsible for keeping track
@@ -282,7 +283,7 @@ class Worker final {
     // Public because they need to be updatable by the stats
     CounterMoveHistory                                counterMoves;
     ButterflyHistory                                  mainHistory;
-    CapturePieceToHistory                             captureHistory;
+    CapturePieceDstHistory                            captureHistory;
     std::array<std::array<ContinuationHistory, 2>, 2> continuationHistory;
     PawnHistory                                       pawnHistory;
     CorrectionHistory                                 correctionHistory;
@@ -292,8 +293,10 @@ class Worker final {
 
     // Main search function for both PV and non-PV nodes
     template<NodeType NT>
+    // clang-format off
     Value
-    search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode) noexcept;
+    search(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth, bool cutNode, Move excludedMove = Move::None()) noexcept;
+    // clang-format on
 
     // Quiescence search function, which is called by the main search
     template<NodeType NT>
@@ -317,7 +320,8 @@ class Worker final {
     std::uint16_t selDepth;
     std::uint16_t nmpMinPly;
 
-    std::atomic_uint64_t nodes, tbHits, bestMoveChanges;
+    std::atomic_uint64_t nodes, tbHits;
+    std::atomic_uint32_t bestMoveChanges;
 
     Position  rootPos;
     StateInfo rootState;
@@ -328,14 +332,18 @@ class Worker final {
     Tablebases::Config tbConfig;
 
     std::array<Value, COLOR_NB> optimism;
+
+    const std::uint16_t threadIdx;
+
     // The main thread has a MainSearchManager, the others have a NullSearchManager
     ISearchManagerPtr manager;
 
-    const std::uint16_t         threadIdx;
     const OptionsMap&           options;
     const Eval::NNUE::Networks& networks;
     ThreadPool&                 threads;
     TranspositionTable&         tt;
+    // Used by NNUE
+    Eval::NNUE::AccumulatorCaches accCaches;
 
     friend class DON::ThreadPool;
     friend class MainSearchManager;

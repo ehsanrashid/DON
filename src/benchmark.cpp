@@ -23,7 +23,7 @@
 #include <iostream>
 #include <sstream>
 
-namespace DON {
+namespace DON::Benchmark {
 
 namespace {
 
@@ -164,4 +164,4 @@ std::vector<std::string> setup_bench(std::istringstream& iss,
     return list;
 }
 
-}  // namespace DON
+}  // namespace DON::Benchmark

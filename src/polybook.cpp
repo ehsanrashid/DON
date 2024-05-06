@@ -39,7 +39,7 @@ const union /*PolyGlot*/ {
 
     struct {
         Key psq[12][SQUARE_NB];  // [piece][square]
-        Key castleright[4];      // [castle-right]
+        Key castling[4];         // [castle-right]
         Key enpassant[FILE_NB];  // [file]
         Key side;
     } Zobrist;
@@ -313,16 +313,16 @@ Key polyglot_key(const Position& pos) noexcept {
     if (pos.can_castle(ANY_CASTLING))
     {
         if (pos.can_castle(WHITE_OO))
-            key ^= PG.Zobrist.castleright[0];
+            key ^= PG.Zobrist.castling[0];
         if (pos.can_castle(WHITE_OOO))
-            key ^= PG.Zobrist.castleright[1];
+            key ^= PG.Zobrist.castling[1];
         if (pos.can_castle(BLACK_OO))
-            key ^= PG.Zobrist.castleright[2];
+            key ^= PG.Zobrist.castling[2];
         if (pos.can_castle(BLACK_OOO))
-            key ^= PG.Zobrist.castleright[3];
+            key ^= PG.Zobrist.castling[3];
     }
 
-    if (is_ok(pos.ep_square()))
+    if (is_ok_ep(pos.ep_square()))
         key ^= PG.Zobrist.enpassant[file_of(pos.ep_square())];
 
     if (pos.side_to_move() == WHITE)
@@ -331,7 +331,7 @@ Key polyglot_key(const Position& pos) noexcept {
     return key;
 }
 
-Move fix_promotion(const Move& move) noexcept {
+Move fix_promotion(Move move) noexcept {
     if (int pt = (move.raw() >> 12) & 7)
         return Move::make<PROMOTION>(move.org_sq(), move.dst_sq(), PieceType(pt + 1));
     return move;
@@ -352,22 +352,22 @@ Move fix_promotion(const Move& move) noexcept {
 // bit  0- 5: destination square (from 0 to 63)
 // bit  6-11: origin square (from 0 to 63)
 // bit 12-13: promotion piece type - 2 (from KNIGHT-2 to QUEEN-2)
-// bit 14-15: special move flag: promotion (1), en passant (2), castling (3)
+// bit 14-15: special move flag: promotion (1), en-passant (2), castling (3)
 Move pg_to_move(std::uint16_t pg_move, const Position& pos) noexcept {
 
     Move move = fix_promotion(Move(pg_move));
 
     std::uint16_t moveRaw = move.raw() & ~MOVETYPE_MASK;
     // Add 'Special move' flags and verify it is legal
-    for (const auto& m : MoveList<LEGAL>(pos))
+    for (auto m : MoveList<LEGAL>(pos))
         // Compare with MoveType (bit 14-15) Masked-out
         if ((m.raw() & ~MOVETYPE_MASK) == moveRaw)
             return m;
 
-    return Move::none();
+    return Move::None();
 }
 
-bool is_draw(Position& pos, const Move& m) noexcept {
+bool is_draw(Position& pos, Move m) noexcept {
     StateInfo st;
     ASSERT_ALIGNED(&st, Eval::NNUE::CacheLineSize);
 
@@ -392,10 +392,8 @@ bool PolyHash::operator>(const PolyHash& ph) const noexcept {
     return key != ph.key ? key > ph.key : weight != ph.weight ? weight > ph.weight : move > ph.move;
 }
 
-bool PolyHash::operator==(const Move& m) const noexcept {
-    return move == (m.raw() & ~MOVETYPE_MASK);
-}
-bool PolyHash::operator!=(const Move& m) const noexcept { return !(*this == m); }
+bool PolyHash::operator==(Move m) const noexcept { return move == (m.raw() & ~MOVETYPE_MASK); }
+bool PolyHash::operator!=(Move m) const noexcept { return !(*this == m); }
 
 std::ostream& operator<<(std::ostream& os, const PolyHash& ph) noexcept {
     // clang-format off
@@ -474,12 +472,12 @@ Move PolyBook::probe(Position& pos, bool pickBest) noexcept {
 
     Key key = polyglot_key(pos);
     if (!can_probe(pos, key))
-        return Move::none();
+        return Move::None();
     int n = find_first_key(key);
     if (n <= 0)
     {
         ++failCount;
-        return Move::none();
+        return Move::None();
     }
 #if !defined(NDEBUG)
     sync_cout << show(n) << sync_endl;
@@ -509,12 +507,12 @@ Move PolyBook::probe(Position& pos, bool pickBest) noexcept {
         }
     }
 
-    return Move::none();
+    return Move::None();
 }
 
 bool PolyBook::can_probe(const Position& pos, Key key) noexcept {
 
-    if (popcount(pieces ^ pos.pieces()) > 6 || popcount(pieces) > pos.count<ALL_PIECES>() + 2
+    if (popcount(pieces ^ pos.pieces()) > 6 || popcount(pieces) > pos.count<ALL_PIECE>() + 2
         || key == 0x463B96181691FC9CULL)
         failCount = 0;
 

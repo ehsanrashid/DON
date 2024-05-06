@@ -49,7 +49,7 @@ alignas(CacheLineSize) static inline const
       return v;
   }();
 
-// Find indices of nonzero numbers in an int32_t array
+// Find indices of nonzero numbers in an std::int32_t array
 template<const IndexType InputDimensions>
 void find_nnz(const std::int32_t* input, std::uint16_t* out, IndexType& count_out) noexcept {
     #if defined(USE_SSSE3)

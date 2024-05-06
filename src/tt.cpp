@@ -31,22 +31,22 @@ namespace DON {
 // Populates the TTEntry with a new node's data, possibly
 // overwriting an old position. The update is not atomic and can be racy.
 void TTEntry::save(
-  Key k, Value v, bool pv, Bound b, Depth d, const Move& m, Value ev, std::uint8_t gen) noexcept {
+  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, std::uint8_t gen) noexcept {
 
     // Preserve any existing move
     if (m)
-        move16 = m.raw();
+        move16 = m;
 
     // Overwrite less valuable entries (cheapest checks first)
-    if (b == BOUND_EXACT || std::uint16_t(k) != key16 || d - DEPTH_OFFSET + 2 * pv > depth8 - 4
-        || relative_age(gen))
+    if (b == BOUND_EXACT || std::uint16_t(k) != key16
+        || d - DEPTH_OFFSET + (std::uint8_t(pv) << 1) > depth8 - 4 || relative_age(gen))
     {
         assert(d > DEPTH_OFFSET);
         assert(d <= std::numeric_limits<std::uint8_t>::max() + DEPTH_OFFSET);
 
         key16     = std::uint16_t(k);
         depth8    = std::uint8_t(d - DEPTH_OFFSET);
-        genBound8 = std::uint8_t(gen | std::uint8_t(pv) << 2 | b);
+        genBound8 = std::uint8_t(gen | (std::uint8_t(pv) << 2) | b);
         value16   = std::int16_t(v);
         eval16    = std::int16_t(ev);
     }
@@ -77,9 +77,9 @@ void TranspositionTable::free() noexcept {
 // each cluster consists of EntryCount number of TTEntry.
 void TranspositionTable::resize(std::size_t mbSize, std::uint16_t threadCount) noexcept {
     free();
-
     clusterCount = mbSize * 1024 * 1024 / sizeof(Cluster);
     assert(clusterCount % 2 == 0);
+    _threadCount = threadCount;
 
     table = static_cast<Cluster*>(aligned_large_pages_alloc(clusterCount * sizeof(Cluster)));
     if (!table)
@@ -88,25 +88,26 @@ void TranspositionTable::resize(std::size_t mbSize, std::uint16_t threadCount) n
         exit(EXIT_FAILURE);
     }
 
-    clear(threadCount);
+    clear();
 }
 
-// Initializes the entire transposition table to zero,
-// in a multi-threaded way.
-void TranspositionTable::clear(std::uint16_t threadCount) noexcept {
+void TranspositionTable::resize(std::size_t mbSize) noexcept { resize(mbSize, _threadCount); }
+
+// Initializes the entire transposition table to zero, in a multi-threaded way.
+void TranspositionTable::clear() noexcept {
     std::vector<std::thread> threads;
 
-    for (std::uint16_t idx = 0; idx < threadCount; ++idx)
+    for (std::uint16_t idx = 0; idx < _threadCount; ++idx)
     {
-        threads.emplace_back([this, idx, threadCount]() {
+        threads.emplace_back([this, idx]() {
             // Thread binding gives faster search on systems with a first-touch policy
-            if (threadCount > 8)
+            if (_threadCount > 8)
                 WinProcGroup::bind_thread(idx);
 
             // Each thread will zero its part of the hash table
-            std::size_t stride = clusterCount / threadCount;
+            std::size_t stride = clusterCount / _threadCount;
             std::size_t start  = stride * idx;
-            std::size_t count  = idx != threadCount - 1 ? stride : clusterCount - start;
+            std::size_t count  = (idx + 1) != _threadCount ? stride : clusterCount - start;
 
             std::memset(static_cast<void*>(&table[start]), 0, count * sizeof(Cluster));
         });
@@ -125,27 +126,26 @@ void TranspositionTable::clear(std::uint16_t threadCount) noexcept {
 TTEntry* TranspositionTable::probe(Key key, bool& ttHit) const noexcept {
 
     TTEntry* const tte = first_entry(key);
-    // Use the low 16 bits as key inside the cluster
-    const auto key16 = std::uint16_t(key);
 
     for (std::uint8_t i = 0; i < EntryCount; ++i)
-        if (tte[i].key16 == key16 || !tte[i].depth8)
+        // Use the low 16 bits as key inside the cluster
+        if (tte[i].key16 == std::uint16_t(key) || !tte[i].depth8)
             return ttHit = tte[i].depth8, &tte[i];
 
     // Find an entry to be replaced according to the replacement strategy
-    TTEntry*     replace  = tte;
-    std::int16_t minWorth = tte->depth8 - 2 * tte->relative_age(generation8);
+    TTEntry*     rte    = tte;
+    std::int16_t rWorth = rte->depth8 - 2 * rte->relative_age(generation8);
     for (std::uint8_t i = 1; i < EntryCount; ++i)
     {
-        std::int16_t worth = tte[i].depth8 - 2 * tte[i].relative_age(generation8);
-        if (minWorth > worth)
+        std::int16_t tWorth = tte[i].depth8 - 2 * tte[i].relative_age(generation8);
+        if (rWorth > tWorth)
         {
-            minWorth = worth;
-            replace  = &tte[i];
+            rWorth = tWorth;
+            rte    = &tte[i];
         }
     }
 
-    return ttHit = false, replace;
+    return ttHit = false, rte;
 }
 
 // Returns an approximation of the hashtable occupation during a search.
@@ -175,7 +175,7 @@ bool TranspositionTable::load(const std::string& fname) noexcept {
         std::streamsize fileSize = ifstream.tellg();
         ifstream.seekg(0, std::ios_base::beg);
         std::size_t mbSize = fileSize / (1024 * 1024);
-        resize(mbSize, 4);
+        resize(mbSize);
         ifstream.read(reinterpret_cast<char*>(table), clusterCount * sizeof(Cluster));
     }
     return ifstream.good();
