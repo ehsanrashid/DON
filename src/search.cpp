@@ -837,7 +837,7 @@ Value Worker::search(
 
         eval = ss->staticEval = to_corrected_static_eval(unadjustedStaticEval, *this, pos);
 
-        // ttValue can be used as a better position evaluation (~7 Elo)
+        // Can ttValue be used as a better position evaluation (~7 Elo)
         if (ttValue != VALUE_NONE && (tte->bound() & (ttValue > eval ? BOUND_LOWER : BOUND_UPPER)))
             eval = ttValue;
     }
@@ -1576,7 +1576,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth d
                 unadjustedStaticEval = evaluate(pos, networks, accCaches, optimism[stm]);
             bestValue = ss->staticEval = to_corrected_static_eval(unadjustedStaticEval, *this, pos);
 
-            // ttValue can be used as a better position evaluation (~13 Elo)
+            // Can ttValue be used as a better position evaluation (~13 Elo)
             if (ttValue != VALUE_NONE
                 && (tte->bound() & (ttValue > bestValue ? BOUND_LOWER : BOUND_UPPER)))
                 bestValue = ttValue;
@@ -1647,24 +1647,21 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth d
 
                 Value futilityValue = futilityBase + PieceValue[pos.captured_piece(move)];
 
-                // If static eval + value of piece we are going to capture is much lower
-                // than alpha we can prune this move. (~2 Elo)
+                // Static eval + value of piece going to capture is much lower than alpha prune this move. (~2 Elo)
                 if (futilityValue <= alpha)
                 {
                     bestValue = std::max(futilityValue, bestValue);
                     continue;
                 }
 
-                // If static eval is much lower than alpha and move is not winning material
-                // we can prune this move. (~2 Elo)
+                // Static eval is much lower than alpha and move is not winning material prune this move. (~2 Elo)
                 if (futilityBase <= alpha && !pos.see_ge(move, 1))
                 {
                     bestValue = std::max(futilityBase, bestValue);
                     continue;
                 }
 
-                // If static exchange evaluation is much worse than what is needed to not
-                // fall below alpha we can prune this move.
+                // Static exchange evaluation is much worse than what is needed to not fall below alpha prune this move.  (~1 Elo)
                 if (futilityBase > alpha && !pos.see_ge(move, 4 * (alpha - futilityBase)))
                 {
                     bestValue = alpha;
@@ -1672,7 +1669,7 @@ Value Worker::qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth d
                 }
             }
 
-            // We prune after the second quiet check evasion move, where being 'in check' is
+            // Prune after the second quiet check evasion move, where being 'in check' is
             // implicitly checked through the counter, and being a 'quiet move' apart from
             // being a tt move is assumed after an increment because captures are pushed ahead.
             if (quietCheckEvasions > 1)
