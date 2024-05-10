@@ -112,7 +112,11 @@ using psqt_vec_t = __m128i;
     #define vec_add_psqt_32(a, b) _mm_add_epi32(a, b)
     #define vec_sub_psqt_32(a, b) _mm_sub_epi32(a, b)
     #define vec_zero_psqt() _mm_setzero_si128()
-    #define NumRegistersSIMD (Is64Bit ? 16 : 8)
+    #if defined(IS_64BIT)
+        #define NumRegistersSIMD 16
+    #else
+        #define NumRegistersSIMD 8
+    #endif
     #define MaxChunkSize 16
 
 #elif defined(USE_NEON)

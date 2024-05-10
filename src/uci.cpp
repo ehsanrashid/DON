@@ -24,13 +24,13 @@
 #include <cstdlib>
 #include <optional>
 #include <iostream>
+#include <limits>
 #include <sstream>
 #include <vector>
 
 #include "benchmark.h"
 #include "evaluate.h"
 #include "position.h"
-#include "polybook.h"
 #include "score.h"
 #include "syzygy/tbprobe.h"
 
@@ -38,10 +38,15 @@ namespace DON {
 
 namespace {
 
-constexpr std::string_view StartFEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
-constexpr std::string_view PieceChar(" PNBRQK  pnbrqk");
+constexpr std::string_view START_FEN("rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1");
+constexpr std::string_view PIECE_CHAR(" PNBRQK  pnbrqk");
 
-constexpr std::uint32_t MaxHash = Is64Bit ? 0x2000000U : 0x800U;
+constexpr std::uint32_t MAX_HASH =
+#if defined(IS_64BIT)
+  0x2000000U;
+#else
+  0x800U;
+#endif
 
 template<typename... Ts>
 struct overload: Ts... {
@@ -58,6 +63,8 @@ Search::Limits parse_limits(std::istringstream& iss) noexcept {
 
     std::string token;
     while (iss >> token)
+    {
+        token = to_lower(token);
         if (token == "wtime")
         {
             iss >> limits.clock[WHITE].time;
@@ -87,13 +94,13 @@ Search::Limits parse_limits(std::istringstream& iss) noexcept {
         {
             std::int16_t movesToGo;
             iss >> movesToGo;
-            limits.movesToGo = std::max(std::abs(movesToGo), 1);
+            limits.movesToGo = std::max<std::uint8_t>(std::abs(movesToGo), 1);
         }
         else if (token == "mate")
         {
             std::int16_t mate;
             iss >> mate;
-            limits.mate = std::max(std::abs(mate), 1);
+            limits.mate = std::max<std::uint8_t>(std::abs(mate), 1);
         }
         else if (token == "depth")
         {
@@ -104,6 +111,8 @@ Search::Limits parse_limits(std::istringstream& iss) noexcept {
         {
             iss >> limits.nodes;
             limits.nodes = std::max(limits.nodes, 1ULL);
+            // When using nodes, ensure checking rate is not lower than 0.1% of nodes
+            limits.hitRate = std::min(1.0 + std::ceil(limits.nodes / 1024.0), 0.0 + limits.hitRate);
         }
         else if (token == "infinite")
             limits.infinite = true;
@@ -119,7 +128,7 @@ Search::Limits parse_limits(std::istringstream& iss) noexcept {
         else if (token == "searchmoves")  // Needs to be the last command on the line
         {
             auto pos = iss.tellg();
-            while (iss >> token && token != "ignoremoves")
+            while (iss >> token && (token = to_lower(token)) != "ignoremoves")
             {
                 limits.searchMoves.push_back(token);
                 pos = iss.tellg();
@@ -130,7 +139,7 @@ Search::Limits parse_limits(std::istringstream& iss) noexcept {
         else if (token == "ignoremoves")  // Needs to be the last command on the line
         {
             auto pos = iss.tellg();
-            while (iss >> token && token != "searchmoves")
+            while (iss >> token && (token = to_lower(token)) != "searchmoves")
             {
                 limits.ignoreMoves.push_back(token);
                 pos = iss.tellg();
@@ -138,7 +147,7 @@ Search::Limits parse_limits(std::istringstream& iss) noexcept {
             if (token == "searchmoves")
                 iss.seekg(pos);
         }
-
+    }
     return limits;
 }
 
@@ -151,14 +160,14 @@ UCI::UCI(int argc, const char** argv) noexcept :
     auto& options = engine_options();
 
     options["Threads"] << Option(1, 1, 1024, [this](const Option&) { engine.resize_threads(); });
-    options["Hash"] << Option(16, 4, MaxHash, [this](const Option& o) { engine.resize_tt(o); });
+    options["Hash"] << Option(16, 4, MAX_HASH, [this](const Option& o) { engine.resize_tt(o); });
     options["Clear Hash"] << Option([this](const Option&) { engine.clear(); });
     options["Retain Hash"] << Option(false);
     options["HashFile"] << Option("hash.dat");
     options["SaveHash"] << Option([this](const Option&) {});
     options["LoadHash"] << Option([this](const Option&) {});
     options["Ponder"] << Option(false);
-    options["MultiPV"] << Option(1, 1, MAX_MOVES);
+    options["MultiPV"] << Option(1, 1, std::numeric_limits<std::uint8_t>::max());
     options["Skill Level"] << Option(Search::Skill::MaxLevel, 0, Search::Skill::MaxLevel);
     options["MoveOverhead"] << Option(10, 0, 5000);
     options["NodesTime"] << Option(0, 0, 10000);
@@ -171,7 +180,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
                                  Search::Skill::MaxELO);
     options["UCI_ShowWDL"] << Option(false);
     options["OwnBook"] << Option(false);
-    options["BookFile"] << Option("book.bin", [](const Option& o) { Polybook.init(o); });
+    options["BookFile"] << Option("book.bin", [this](const Option& o) { engine.init_book(o); });
     options["BookPickBest"] << Option(true);
     options["BookDepth"] << Option(100, 1, MAX_MOVES);
     options["SyzygyPath"] << Option("<empty>", [](const Option& o) { Tablebases::init(o); });
@@ -182,6 +191,8 @@ UCI::UCI(int argc, const char** argv) noexcept :
                                      [this](const Option& o) { engine.load_big_network(o); });
     options["EvalFileSmall"] << Option(EvalFileDefaultNameSmall,
                                        [this](const Option& o) { engine.load_small_network(o); });
+    options["MinimalReport"] << Option(false,
+                                       [this](const Option& o) { engine.set_minimalreport(o); });
     options["DebugLogFile"] << Option("<empty>", [](const Option& o) { start_logger(o); });
 
     engine.set_on_update_short(on_update_short);
@@ -193,7 +204,7 @@ UCI::UCI(int argc, const char** argv) noexcept :
     engine.resize_threads();
     engine.clear();  // After threads are up
 
-    engine.setup(StartFEN);
+    engine.setup(START_FEN);
 }
 
 void UCI::handle_commands() noexcept {
@@ -214,6 +225,7 @@ void UCI::handle_commands() noexcept {
 
         token.clear();  // Avoid a stale if std::getline() returns nothing or a blank line
         iss >> std::skipws >> token;
+        token = to_lower(token);
 
         if (token == "stop" || token == "quit")
             engine.stop();
@@ -282,13 +294,14 @@ void UCI::position(std::istringstream& iss) noexcept {
     std::string token, fen;
 
     iss >> token;
+    token = to_lower(token);
     if (token == "startpos")
     {
-        fen = StartFEN;
+        fen = START_FEN;
         iss >> token;  // Consume the "moves" token, if any
     }
     else if (token == "fen")
-        while ((iss >> token) && token != "moves")
+        while (iss >> token && to_lower(token) != "moves")
             fen += token + " ";
     else
         return;
@@ -310,17 +323,16 @@ void UCI::go(std::istringstream& iss) noexcept {
 }
 
 void UCI::setoption(std::istringstream& iss) noexcept {
-    engine.wait_finish();
+    //engine.wait_finish();
 
     std::string token, name, value;
 
     iss >> token;  // Consume the "name" token
-
+    token = to_lower(token);
     assert(token == "name");
     // Read the option name (can contain spaces)
-    while ((iss >> token) && token != "value")
+    while (iss >> token && (token = to_lower(token)) != "value")
         name += (name.empty() ? "" : " ") + token;
-
     assert(token == "value");
     // Read the option value (can contain spaces)
     while (iss >> token)
@@ -353,6 +365,7 @@ void UCI::bench(std::istringstream& iss) noexcept {
         std::istringstream is(cmd);
         std::string        token;
         is >> std::skipws >> token;
+        token = to_lower(token);
 
         if (token == "go" || token == "eval")
         {
@@ -476,11 +489,11 @@ std::string UCI::format_score(const Score& score) noexcept {
     return score.visit(format);
 }
 
-char UCI::piece(PieceType pt) noexcept { return is_ok(pt) ? PieceChar[pt] : ' '; }
-char UCI::piece(Piece pc) noexcept { return is_ok(pc) ? PieceChar[pc] : ' '; }
+char UCI::piece(PieceType pt) noexcept { return is_ok(pt) ? PIECE_CHAR[pt] : ' '; }
+char UCI::piece(Piece pc) noexcept { return is_ok(pc) ? PIECE_CHAR[pc] : ' '; }
 
 Piece UCI::piece(char pc) noexcept {
-    auto pos = PieceChar.find(pc);
+    auto pos = PIECE_CHAR.find(pc);
     return pos != std::string_view::npos ? Piece(pos) : NO_PIECE;
 }
 

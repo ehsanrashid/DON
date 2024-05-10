@@ -114,7 +114,13 @@ void init_magics() noexcept {
 
         m.mask = sliding_attack<PT>(s, 0) & ~edges;
 #if !defined(USE_PEXT)
-        m.shift = (Is64Bit ? 64 : 32) - popcount(m.mask);
+        m.shift =
+    #if defined(IS_64BIT)
+          64
+    #else
+          32
+    #endif
+          - popcount(m.mask);
 #endif
         // Set the offset for the attacks table of the square.
         // We have individual table sizes for each square with "Fancy Magic Bitboards".
@@ -177,7 +183,7 @@ namespace Bitboards {
 void init() noexcept {
 
 #if !defined(USE_POPCNT)
-    for (std::uint32_t i = 0; i < PopCntSize; ++i)
+    for (std::uint32_t i = 0U; i < PopCntSize; ++i)
         PopCnt16[i] = std::uint8_t(std::bitset<16>(i).count());
 #endif
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
@@ -189,27 +195,27 @@ void init() noexcept {
 
     for (Square s = SQ_A1; s <= SQ_H8; ++s)
     {
-        PawnAttacks[WHITE][s] = pawn_attacks_bb(WHITE, square_bb(s));
-        PawnAttacks[BLACK][s] = pawn_attacks_bb(BLACK, square_bb(s));
+        for (Color c : {WHITE, BLACK})
+            PawnAttacks[c][s] = pawn_attacks_bb(c, square_bb(s));
 
-        PseudoAttacks[0][s] = PseudoAttacks[1][s] = PseudoAttacks[7][s] = 0;
+        PseudoAttacks[0][s] = PseudoAttacks[1][s] = PseudoAttacks[7][s] = 0ULL;
 
-        PseudoAttacks[KNIGHT][s] = 0;
+        PseudoAttacks[KNIGHT][s] = 0ULL;
         for (auto d : {SOUTH_2 + WEST, SOUTH_2 + EAST, WEST_2 + SOUTH, EAST_2 + SOUTH,
                        WEST_2 + NORTH, EAST_2 + NORTH, NORTH_2 + WEST, NORTH_2 + EAST})
             PseudoAttacks[KNIGHT][s] |= safe_destination(s, d, 2);
-        PseudoAttacks[KING][s] = 0;
+        PseudoAttacks[KING][s] = 0ULL;
         for (auto d : {SOUTH_WEST, SOUTH, SOUTH_EAST, WEST, EAST, NORTH_WEST, NORTH, NORTH_EAST})
             PseudoAttacks[KING][s] |= safe_destination(s, d);
 
-        PseudoAttacks[BISHOP][s] = attacks_bb<BISHOP>(s, 0);
-        PseudoAttacks[ROOK][s]   = attacks_bb<ROOK>(s, 0);
+        PseudoAttacks[BISHOP][s] = attacks_bb<BISHOP>(s, 0ULL);
+        PseudoAttacks[ROOK][s]   = attacks_bb<ROOK>(s, 0ULL);
         PseudoAttacks[QUEEN][s]  = PseudoAttacks[BISHOP][s] | PseudoAttacks[ROOK][s];
     }
     for (Square s1 = SQ_A1; s1 <= SQ_H8; ++s1)
         for (Square s2 = SQ_A1; s2 <= SQ_H8; ++s2)
         {
-            LineBB[s1][s2] = BetweenBB[s1][s2] = 0;
+            LineBB[s1][s2] = BetweenBB[s1][s2] = 0ULL;
             for (PieceType pt : {BISHOP, ROOK})
             {
                 if (PseudoAttacks[pt][s1] & s2)

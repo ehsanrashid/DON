@@ -77,9 +77,9 @@ void Perft::classify(Position& pos, Move m) noexcept {
             {
                 const Bitboard occupied =
                   (pos.pieces() ^ org ^ make_square(file_of(dst), rank_of(org))) | dst;
-                if ((pos.pieces(stm, BISHOP, QUEEN)
+                if ((pos.pieces(stm, QUEEN, BISHOP)
                      & attacks_bb<BISHOP>(pos.king_square(~stm), occupied))
-                    | (pos.pieces(stm, ROOK, QUEEN)
+                    | (pos.pieces(stm, QUEEN, ROOK)
                        & attacks_bb<ROOK>(pos.king_square(~stm), occupied)))
                     ++dscCheck;
             }
@@ -144,7 +144,7 @@ class HashTable final {
     struct Entry final {
 
         void save(Key k, Depth d, std::uint64_t n) noexcept {
-            if (key32 == std::uint32_t(k) && depth > d)
+            if (key32 == std::uint32_t(k) && depth >= d)
                 return;
             key32 = std::uint32_t(k);
             depth = d;

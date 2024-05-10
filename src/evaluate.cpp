@@ -76,9 +76,9 @@ Value evaluate(const Position&          pos,
              + optimism * (npm + optConstant))
           / evalDiv;
 
-        v += 4 * (pos.mobility(stm) - pos.mobility(~stm));
-        v += 10 * (pos.bishop_paired(stm) - pos.bishop_paired(~stm));
-        v += 30
+        v += (pos.mobility(stm) - pos.mobility(~stm));
+        v += 20 * (pos.bishop_paired(stm) - pos.bishop_paired(~stm));
+        v += 40
            * ((pos.can_castle(stm & ANY_CASTLING) || pos.has_castled(stm))
               - (pos.can_castle(~stm & ANY_CASTLING) || pos.has_castled(~stm)));
 

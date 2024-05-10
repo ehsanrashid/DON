@@ -94,11 +94,10 @@ int LeadPawnsSize[6][FILE_NB / 2];  // [leadPawnsCnt][FILE_A..FILE_D]
 bool pawns_comp(Square s1, Square s2) noexcept { return MapPawns[s1] < MapPawns[s2]; }
 
 constexpr int off_A1H8(Square s) noexcept { return int(rank_of(s)) - int(file_of(s)); }
-
+// clang-format off
 constexpr std::int32_t WDLToRank[5]{-MAX_DTZ, -MAX_DTZ + 101, 0, MAX_DTZ - 101, MAX_DTZ};
-constexpr Value WDLToValue[5]{-VALUE_MATE + MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2,
-                              +VALUE_MATE - MAX_PLY - 1};
-
+constexpr Value WDLToValue[5]{-VALUE_MATE + MAX_PLY + 1, VALUE_DRAW - 2, VALUE_DRAW, VALUE_DRAW + 2, +VALUE_MATE - MAX_PLY - 1};
+// clang-format on
 template<typename T, int Half = sizeof(T) / 2, int End = sizeof(T) - 1>
 inline void swap_endian(T& x) noexcept {
     static_assert(std::is_unsigned_v<T>, "Argument of swap_endian not unsigned");

@@ -83,17 +83,11 @@
 
 namespace DON {
 
-    #if defined(IS_64BIT)
-constexpr inline bool Is64Bit = true;
-    #else
-constexpr inline bool Is64Bit = false;
-    #endif
-
 using Key      = std::uint64_t;
 using Bitboard = std::uint64_t;
 
 constexpr inline std::uint16_t MAX_MOVES = 256;
-constexpr inline std::uint16_t MAX_PLY   = 249;
+constexpr inline std::uint16_t MAX_PLY   = 253;
 
 enum Color : std::uint8_t {
     WHITE,
@@ -175,10 +169,10 @@ constexpr inline Value PieceValue[PIECE_NB]{
 
 using Depth = std::int16_t;
 
-constexpr inline Depth DEPTH_ZERO         = 0;
-constexpr inline Depth DEPTH_QS_CHECKS    = DEPTH_ZERO;
-constexpr inline Depth DEPTH_QS_NO_CHECKS = DEPTH_ZERO - 1;
-constexpr inline Depth DEPTH_NONE         = DEPTH_ZERO - 6;
+constexpr inline Depth DEPTH_ZERO      = 0;
+constexpr inline Depth DEPTH_QS_CHECKS = 0;
+constexpr inline Depth DEPTH_QS_NORMAL = -1;
+constexpr inline Depth DEPTH_NONE      = -2;
 // Depth used only for TT entry occupancy check
 constexpr inline Depth DEPTH_OFFSET = DEPTH_NONE - 1;
 

@@ -221,11 +221,11 @@ ExtMove* generate_all(const Position& pos, ExtMove* moves) noexcept {
         {
             target = ~pos.pieces(Stm);
 
-            Bitboard exCheckers = pos.checkers() & ~pos.pieces(PAWN, KNIGHT);
-            while (exCheckers)
+            Bitboard sliders = pos.checkers() & ~pos.pieces(PAWN, KNIGHT);
+            while (sliders)
             {
-                Square exChecker = pop_lsb(exCheckers);
-                target &= ~line_bb(ksq, exChecker) | exChecker;
+                Square slider = pop_lsb(sliders);
+                target &= ~line_bb(ksq, slider) | slider;
             }
         }
 

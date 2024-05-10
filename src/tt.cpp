@@ -31,7 +31,7 @@ namespace DON {
 // Populates the TTEntry with a new node's data, possibly
 // overwriting an old position. The update is not atomic and can be racy.
 void TTEntry::save(
-  Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, std::uint8_t gen) noexcept {
+  Key k, Depth d, bool pv, Bound b, Move m, Value v, Value ev, std::uint8_t gen) noexcept {
 
     // Preserve any existing move
     if (m)
@@ -39,7 +39,7 @@ void TTEntry::save(
 
     // Overwrite less valuable entries (cheapest checks first)
     if (b == BOUND_EXACT || std::uint16_t(k) != key16
-        || d - DEPTH_OFFSET + (std::uint8_t(pv) << 1) > depth8 - 4 || relative_age(gen))
+        || d + (std::uint8_t(pv) << 1) - DEPTH_OFFSET > depth8 - 4 || relative_age(gen))
     {
         assert(d > DEPTH_OFFSET);
         assert(d <= std::numeric_limits<std::uint8_t>::max() + DEPTH_OFFSET);

@@ -40,13 +40,12 @@ class TimeManagement final {
 
     TimePoint optimum() const noexcept;
     TimePoint maximum() const noexcept;
+    TimePoint elapsed() const noexcept;
     template<typename Func>
-    TimePoint elapsed(Func nodes) const noexcept {
-        return useNodesTime ? TimePoint(nodes()) : now() - startTime;
-    }
+    TimePoint elapsed(Func nodes) const noexcept;
 
     void clear_nodes_time() noexcept;
-    void advance_nodes_time(std::uint64_t nodes) noexcept;
+    void advance_nodes_time(std::int64_t diffNodes) noexcept;
 
     bool useNodesTime = false;  // True if we are in 'Nodes as Time' mode
 
@@ -55,8 +54,19 @@ class TimeManagement final {
     TimePoint optimumTime;
     TimePoint maximumTime;
 
-    std::uint64_t availableNodes = 0;  // When in 'Nodes as Time' mode
+    std::int64_t totalNodes = -1LL;  // When in 'Nodes as Time' mode
 };
+
+inline TimePoint TimeManagement::optimum() const noexcept { return optimumTime; }
+
+inline TimePoint TimeManagement::maximum() const noexcept { return maximumTime; }
+
+inline TimePoint TimeManagement::elapsed() const noexcept { return now() - startTime; }
+
+template<typename Func>
+inline TimePoint TimeManagement::elapsed(Func nodes) const noexcept {
+    return useNodesTime ? TimePoint(nodes()) : elapsed();
+}
 
 }  // namespace DON
 

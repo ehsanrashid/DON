@@ -267,7 +267,11 @@ std::string compiler_info() noexcept {
 #endif
 
     compiler += "\nCompilation settings       : ";
-    compiler += (Is64Bit ? "64bit" : "32bit");
+#if defined(IS_64BIT)
+    compiler += "64bit";
+#else
+    compiler += "32bit";
+#endif
 #if defined(USE_VNNI)
     compiler += " VNNI";
 #endif

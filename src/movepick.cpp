@@ -101,7 +101,8 @@ void MovePicker::score() noexcept {
 
     static_assert(GT == CAPTURES || GT == QUIETS || GT == EVASIONS, "Wrong type");
 
-    Color stm = pos.side_to_move();
+    Color stm  = pos.side_to_move();
+    Color xstm = ~stm;
 
     for (auto& m : *this)
     {
@@ -135,18 +136,18 @@ void MovePicker::score() noexcept {
 
             // Bonus for escaping from capture
             m.value += (pos.threatens(stm) & org)
-                       ? (pt == QUEEN && !(pos.attacks(~stm, ROOK) & dst)   ? 51700
-                          : pt == ROOK && !(pos.attacks(~stm, MINOR) & dst) ? 25600
-                          : !(pos.attacks(~stm, PAWN) & dst)                ? 14450
+                       ? (pt == QUEEN && !(pos.attacks(xstm, ROOK) & dst)   ? 51700
+                          : pt == ROOK && !(pos.attacks(xstm, MINOR) & dst) ? 25600
+                          : !(pos.attacks(xstm, PAWN) & dst)                ? 14450
                                                                             : 0)
                        : 0;
 
             // Malus for putting piece en-prise
             m.value -= !(pos.threatens(stm) & org)
-                       ? (pt == QUEEN ? bool(pos.attacks(~stm, ROOK) & dst) * 48150
-                                          + bool(pos.attacks(~stm, MINOR) & dst) * 10650
-                          : pt == ROOK ? bool(pos.attacks(~stm, MINOR) & dst) * 24335
-                          : pt != PAWN ? bool(pos.attacks(~stm, PAWN) & dst) * 14950
+                       ? (pt == QUEEN ? bool(pos.attacks(xstm, ROOK) & dst) * 48150
+                                          + bool(pos.attacks(xstm, MINOR) & dst) * 10650
+                          : pt == ROOK ? bool(pos.attacks(xstm, MINOR) & dst) * 24335
+                          : pt != PAWN ? bool(pos.attacks(xstm, PAWN) & dst) * 14950
                                        : 0)
                        : 0;
         }
@@ -331,8 +332,8 @@ top:
         if (pick([]() noexcept -> bool { return true; }))
             return *(cur - 1);
 
-        // If we did not find any move and we do not try checks, we have finished
-        if (depth != DEPTH_QS_CHECKS)
+        // If did not find any move and the depth is too low to try checks, then finished
+        if (depth <= DEPTH_QS_NORMAL)
             return Move::None();
 
         ++stage;

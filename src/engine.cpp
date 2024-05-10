@@ -26,6 +26,7 @@
 #include "evaluate.h"
 #include "misc.h"
 #include "perft.h"
+#include "polybook.h"
 #include "uci.h"
 #include "nnue/nnue_common.h"
 #include "syzygy/tbprobe.h"
@@ -100,6 +101,15 @@ void Engine::resize_tt(std::size_t mbSize) noexcept {
     tt.resize(mbSize);
 }
 
+void Engine::init_book(const std::string& bookFile) noexcept {
+    wait_finish();
+    threads.main_manager()->polyBook.init(bookFile);
+}
+
+void Engine::set_minimalreport(bool minimalReport) noexcept {
+    threads.main_manager()->minimalReport = minimalReport;
+}
+
 void Engine::show() const noexcept { sync_cout << pos << sync_endl; }
 
 void Engine::trace_eval() const noexcept {
@@ -127,13 +137,13 @@ void Engine::load_networks() noexcept {
     load_small_network(options["EvalFileSmall"]);
 }
 
-void Engine::load_big_network(const std::string& file) noexcept {
-    networks.big.load(binaryDirectory, file);
+void Engine::load_big_network(const std::string& bigFile) noexcept {
+    networks.big.load(binaryDirectory, bigFile);
     threads.clear();
 }
 
-void Engine::load_small_network(const std::string& file) noexcept {
-    networks.small.load(binaryDirectory, file);
+void Engine::load_small_network(const std::string& smallFile) noexcept {
+    networks.small.load(binaryDirectory, smallFile);
     threads.clear();
 }
 

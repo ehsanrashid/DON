@@ -31,6 +31,7 @@
 
 #include "misc.h"
 #include "movepick.h"
+#include "polybook.h"
 #include "position.h"
 #include "score.h"
 #include "timeman.h"
@@ -67,7 +68,7 @@ struct Stack final {
     Move                currentMove;
     std::array<Move, 2> killerMoves;
     Value               staticEval;
-    int                 statScore;
+    int                 history;
     bool                inCheck;
     bool                ttHit;
     bool                ttPv;
@@ -92,7 +93,14 @@ struct RootMove final {
         return value != rm.value ? value > rm.value : prevValue > rm.prevValue;
     }
 
+    void push(Move m) noexcept { pv.push_back(m); }
+
     bool extract_ponder_from_tt(Position& pos, const TranspositionTable& tt) noexcept;
+
+    auto  size() const noexcept { return pv.size(); }
+    auto  empty() const noexcept { return pv.empty(); }
+    Move  operator[](std::uint8_t idx) const noexcept { return pv[idx]; }
+    Move& operator[](std::uint8_t idx) noexcept { return pv[idx]; }
 
     Value         value      = -VALUE_INFINITE;
     Value         prevValue  = -VALUE_INFINITE;
@@ -131,6 +139,7 @@ struct Limits final {
     std::uint8_t                movesToGo = 0, mate = 0;
     Depth                       depth    = DEPTH_ZERO;
     std::uint64_t               nodes    = 0;
+    std::uint16_t               hitRate  = 512;
     bool                        infinite = false;
     bool                        ponder   = false;
     bool                        perft    = false;
@@ -240,27 +249,32 @@ class MainSearchManager final: public ISearchManager {
 
     void should_abort(const Worker& worker) noexcept override;
 
+    void clear(std::uint16_t threadCount) noexcept;
+
+    TimePoint elapsed() const noexcept;
     TimePoint elapsed(const Worker& worker) const noexcept;
 
     void info_pv(const Worker& worker, Depth depth) const noexcept;
 
     const UpdateContext& updateContext;
 
-    TimeManagement   tm;
-    Skill            skill;
-    std::int16_t     callsCount;
-    bool             stopOnPonderhit;
-    std::atomic_bool ponder;
+    TimeManagement       tm;
+    Skill                skill;
+    PolyBook             polyBook;
+    std::int16_t         callsCount;
+    bool                 ponderhitStop;
+    std::atomic_bool     ponder;
+    bool                 minimalReport = false;
+    std::array<Value, 4> iterValue;
 
     Value  prevBestValue;
     Value  prevBestAvgValue;
     double prevTimeReduction;
-
-    std::array<Value, 4> iterValue;
 };
 
 class NullSearchManager final: public ISearchManager {
    public:
+    NullSearchManager() = default;
     void should_abort(const Worker&) noexcept override {}
 };
 
@@ -303,8 +317,6 @@ class Worker final {
     Value
     qsearch(Position& pos, Stack* ss, Value alpha, Value beta, Depth depth = DEPTH_ZERO) noexcept;
 
-    Depth reduction(Depth depth, std::uint8_t moveCount, int delta, bool improving) const noexcept;
-
     bool is_main_worker() const noexcept { return threadIdx == 0; }
 
     // Get a pointer to the search manager,
@@ -323,11 +335,11 @@ class Worker final {
     std::atomic_uint64_t nodes, tbHits;
     std::atomic_uint32_t bestMoveChanges;
 
-    Position  rootPos;
-    StateInfo rootState;
-    RootMoves rootMoves;
-    Depth     rootDepth, completedDepth;
-    int       rootDelta;
+    Position      rootPos;
+    StateInfo     rootState;
+    RootMoves     rootMoves;
+    Depth         rootDepth, completedDepth;
+    std::uint16_t rootDelta;
 
     Tablebases::Config tbConfig;
 

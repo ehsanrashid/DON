@@ -18,7 +18,6 @@
 #ifndef THREAD_H_INCLUDED
 #define THREAD_H_INCLUDED
 
-#include <array>
 #include <atomic>
 #include <condition_variable>
 #include <cstddef>
@@ -109,9 +108,7 @@ class ThreadPool final {
     auto size() const noexcept { return threads.size(); }
     auto empty() const noexcept { return threads.empty(); }
 
-    std::atomic_bool stop, aborted, depthIncrease;
-    // Reductions lookup table initialized at startup
-    std::array<std::uint32_t, MAX_MOVES> reductions;  // [depth or moveCount]
+    std::atomic_bool stop, abort, research;
 
    private:
     //template<typename T>

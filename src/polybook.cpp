@@ -29,8 +29,6 @@
 
 namespace DON {
 
-PolyBook Polybook;
-
 namespace {
 
 // Random numbers from PolyGlot, used to compute book hash keys

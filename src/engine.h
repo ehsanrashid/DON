@@ -63,6 +63,10 @@ class Engine final {
 
     void resize_tt(std::size_t mbSize) noexcept;
 
+    void init_book(const std::string& bookFile) noexcept;
+
+    void set_minimalreport(bool minimalReport) noexcept;
+
     void clear() noexcept;
 
     void show() const noexcept;
@@ -72,8 +76,8 @@ class Engine final {
     // Network related
     void verify_networks() const noexcept;
     void load_networks() noexcept;
-    void load_big_network(const std::string& file) noexcept;
-    void load_small_network(const std::string& file) noexcept;
+    void load_big_network(const std::string& bigFile) noexcept;
+    void load_small_network(const std::string& smallFile) noexcept;
     void
     save_networks(const std::pair<std::optional<std::string>, std::string> files[2]) const noexcept;
 

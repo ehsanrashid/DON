@@ -47,7 +47,7 @@ struct TTEntry final {
     constexpr Value eval() const noexcept { return Value(eval16); }
 
     void
-    save(Key k, Value v, bool pv, Bound b, Depth d, Move m, Value ev, std::uint8_t gen) noexcept;
+    save(Key k, Depth d, bool pv, Bound b, Move m, Value v, Value ev, std::uint8_t gen) noexcept;
     // The returned age is a multiple of TranspositionTable::GENERATION_DELTA
     std::uint8_t relative_age(std::uint8_t gen) const noexcept;
 

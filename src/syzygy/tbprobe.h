@@ -53,7 +53,7 @@ enum ProbeState : std::int8_t {
     ZEROING_BEST_MOVE = +2   // Best move zeroes DTZ (capture or pawn move)
 };
 
-struct Config {
+struct Config final {
     bool         rootInTB    = false;
     std::uint8_t cardinality = 0;
     Depth        probeDepth  = DEPTH_ZERO;

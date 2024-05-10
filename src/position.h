@@ -133,11 +133,13 @@ class Position final {
     Bitboard attacks(Color c, PieceType pt = ALL_PIECE) const noexcept;
     Bitboard threatens(Color c) const noexcept;
 
-    std::uint16_t mobility(Color c) const noexcept;
-
     // Attacks to a given square
     Bitboard attackers_to(Square s, Bitboard occupied) const noexcept;
     Bitboard attackers_to(Square s) const noexcept;
+
+    std::uint16_t mobility(Color c) const noexcept;
+
+   private:
     // Attacks from a piece type
     template<PieceType PT>
     Bitboard attacks_by(Color c, Bitboard target = ~0ULL, Bitboard occupied = 0ULL) const noexcept;
@@ -145,6 +147,7 @@ class Position final {
     //Bitboard attacks_by(Color c) const noexcept;
     //Bitboard attacks_by(Color c) const noexcept;
 
+   public:
     // Properties of moves
     bool  legal(Move m) const noexcept;
     bool  pseudo_legal(Move m) const noexcept;
@@ -206,14 +209,14 @@ class Position final {
     // Initialization helpers (used while setting up a position)
     void set_castling_rights(Color c, Square rorg) noexcept;
     void set_state() noexcept;
-    void set_attackers() noexcept;
+    void set_ext_state() noexcept;
     bool can_enpassant(Color c, Square epSq, bool before = false) const noexcept;
 
     // Other helpers
     void move_piece(Square org, Square dst) noexcept;
     template<bool Do>
     void do_castling(Color c, Square org, Square& dst, Square& rorg, Square& rdst) noexcept;
-    Key  adjust_key50(Key k, bool before = false) const noexcept;
+    Key  adjust_key(Key k, bool before = false) const noexcept;
 
     // Data members
     Piece        board[SQUARE_NB];
@@ -285,7 +288,7 @@ inline bool Position::can_castle(CastlingRights cr) const noexcept {
 
 inline bool Position::castling_impeded(CastlingRights cr) const noexcept {
     assert(cr == WHITE_OO || cr == WHITE_OOO || cr == BLACK_OO || cr == BLACK_OOO);
-    return pieces() & castlingPath[lsb(cr)];
+    return pieces() & PromotionRankBB & castlingPath[lsb(cr)];
 }
 
 inline Square Position::castling_rook_square(CastlingRights cr) const noexcept {
@@ -295,33 +298,6 @@ inline Square Position::castling_rook_square(CastlingRights cr) const noexcept {
 
 inline Bitboard Position::attackers_to(Square s) const noexcept {
     return attackers_to(s, pieces());
-}
-
-template<PieceType PT>
-inline Bitboard Position::attacks_by(Color c, Bitboard target, Bitboard occupied) const noexcept {
-
-    Bitboard attacks;
-    if constexpr (PT == PAWN)
-    {
-        attacks = pawn_attacks_bb(c, pieces(c, PAWN));
-        st->mobility[c] += popcount(attacks & pieces(~c));
-    }
-    else
-    {
-        attacks = 0;
-
-        Bitboard attackers = pieces(c, PT);
-        while (attackers)
-        {
-            Square   org  = pop_lsb(attackers);
-            Bitboard atks = attacks_bb<PT>(org, occupied);
-            if (blockers(c) & org)
-                atks &= line_bb(king_square(c), org);
-            st->mobility[c] += popcount(atks & target);
-            attacks |= atks;
-        }
-    }
-    return attacks;
 }
 
 // template<PieceType PT>
@@ -345,15 +321,15 @@ inline Bitboard Position::blockers(Color c) const noexcept { return st->blockers
 // clang-format off
 inline Bitboard Position::attacks(Color c, PieceType pt) const noexcept { return st->attacks[c][pt]; }
 // clang-format on
-inline Bitboard Position::threatens(Color c) const noexcept { return st->attacks[~c][EX_PIECE]; }
+inline Bitboard Position::threatens(Color c) const noexcept { return st->attacks[c][EX_PIECE]; }
 
 inline std::uint16_t Position::mobility(Color c) const noexcept { return st->mobility[c]; }
 
-inline Key Position::adjust_key50(Key k, bool before) const noexcept {
+inline Key Position::adjust_key(Key k, bool before) const noexcept {
     return st->rule50 < 14 - before ? k : k ^ make_key((st->rule50 - (14 - before)) / 8);
 }
 
-inline Key Position::key() const noexcept { return adjust_key50(st->key); }
+inline Key Position::key() const noexcept { return adjust_key(st->key); }
 
 inline Key Position::pawn_key() const noexcept { return st->pawnKey; }
 

@@ -27,17 +27,15 @@
 
 namespace DON {
 
-TimePoint TimeManagement::optimum() const noexcept { return optimumTime; }
-TimePoint TimeManagement::maximum() const noexcept { return maximumTime; }
-
 // When in 'Nodes as Time' mode
 void TimeManagement::clear_nodes_time() noexcept {
     assert(useNodesTime);
-    availableNodes = 0;
+    totalNodes = -1LL;
 }
-void TimeManagement::advance_nodes_time(std::uint64_t nodes) noexcept {
+// When in 'Nodes as Time' mode
+void TimeManagement::advance_nodes_time(std::int64_t diffNodes) noexcept {
     assert(useNodesTime);
-    availableNodes += nodes;
+    totalNodes = std::max(totalNodes - diffNodes, 0LL);
 }
 
 // Called at the beginning of the search and calculates
@@ -47,9 +45,11 @@ void TimeManagement::advance_nodes_time(std::uint64_t nodes) noexcept {
 void TimeManagement::init(Search::Limits&   limits,
                           const Position&   pos,
                           const OptionsMap& options) noexcept {
-    // If we have no time, no need to initialize TM, except for the start time,
-    // which is used by movetime.
-    startTime = limits.startTime;
+    // If we have no time, no need to fully initialize TM.
+    // startTime is used by movetime and useNodesTime is used in elapsed calls.
+    startTime           = limits.startTime;
+    TimePoint nodesTime = options["NodesTime"];
+    useNodesTime        = nodesTime != 0;
 
     Color stm         = pos.side_to_move();
     auto& [time, inc] = limits.clock[stm];
@@ -57,26 +57,32 @@ void TimeManagement::init(Search::Limits&   limits,
     {
         optimumTime = 0;
         maximumTime = 0;
+        //totalNodes  = 0;
         return;
     }
+
+    TimePoint moveOverhead = options["MoveOverhead"];
 
     // If we have to play in 'Nodes as Time' mode, then convert from time to nodes,
     // and use resulting values in time management formulas.
     // WARNING: to avoid time losses, the given nodesTime (nodes per millisecond)
     // must be much lower than the real engine speed.
-    if (TimePoint nodesTime = options["NodesTime"])
+    if (useNodesTime)
     {
-        useNodesTime = true;
-
-        if (availableNodes == 0)                // Only once at game start
-            availableNodes = time * nodesTime;  // Time is in msec
+        if (totalNodes == -1LL)             // Only once at game start
+            totalNodes = time * nodesTime;  // Time is in msec
 
         // Convert from milliseconds to nodes
-        time = TimePoint(availableNodes);
+        time = totalNodes;
         inc *= nodesTime;
+        moveOverhead *= nodesTime;
     }
 
-    TimePoint moveOverhead = options["MoveOverhead"];
+    // These numbers are used where multiplications, divisions or comparisons
+    // with constants are involved.
+    const uint64_t  scaleFactor = useNodesTime ? nodesTime : 1ULL;
+    const TimePoint scaledTime  = time / scaleFactor;
+    const TimePoint scaledInc   = inc / scaleFactor;
 
     auto gamePly = pos.game_ply();
 
@@ -86,8 +92,8 @@ void TimeManagement::init(Search::Limits&   limits,
                : std::max<std::uint8_t>(std::ceil(50U - 0.2 * pos.game_move()), 40U);
 
     // If less than one second, gradually reduce mtg
-    if (time < 1000 && mtg > 2)
-        mtg = std::clamp<std::uint8_t>(0.05 * time, 2U, mtg);
+    if (scaledTime < 1000 && mtg > 2)
+        mtg = std::clamp<std::uint8_t>(0.05 * scaledTime, 2U, mtg);
 
     assert(mtg != 0);
 
@@ -110,11 +116,12 @@ void TimeManagement::init(Search::Limits&   limits,
     else
     {
         // Use extra time with larger increments.
-        auto optimumExtra = 1.0 + std::min(0.05 * std::log10(std::max(inc - 500, 1LL)), 0.14);
+        auto optimumExtra = 1.0 + std::min(0.05 * std::log10(std::max(scaledInc - 500, 1LL)), 0.14);
 
         // Calculate time constants based on current time left.
-        auto optimumConstant = std::min(0.00308 + 0.000319 * std::log10(0.001 * time), 0.00506);
-        auto maximumConstant = std::max(3.39 + 3.01 * std::log10(0.001 * time), 2.93);
+        auto log10TimeInSec  = std::log10(0.001 * scaledTime);
+        auto optimumConstant = std::min(0.00308 + 0.000319 * log10TimeInSec, 0.00506);
+        auto maximumConstant = std::max(3.39 + 3.01 * log10TimeInSec, 2.93);
 
         optimumScale = std::min(0.0122 + optimumConstant * std::pow(2.95 + gamePly, 0.462),
                                 0.213 * time / remainingTime)

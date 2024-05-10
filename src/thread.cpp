@@ -123,16 +123,7 @@ void ThreadPool::clear() noexcept {
     for (Thread* th : threads)
         th->worker->clear();
 
-    auto mainManager               = main_manager();
-    mainManager->prevBestValue     = -VALUE_INFINITE;
-    mainManager->prevBestAvgValue  = -VALUE_INFINITE;
-    mainManager->prevTimeReduction = 1.0;
-    if (mainManager->tm.useNodesTime)
-        mainManager->tm.clear_nodes_time();
-
-    reductions[0] = 0;
-    for (std::uint16_t i = 1; i < reductions.size(); ++i)
-        reductions[i] = (18.93 + 0.5 * std::log(size())) * std::log(i);
+    main_manager()->clear(size());
 }
 
 // Creates/destroys threads to match the requested number.
@@ -162,8 +153,6 @@ void ThreadPool::set(Search::SharedState          sharedState,
         }
 
         clear();
-
-        main_thread()->wait_idle();
         // Reallocate the hash with the new thread-pool size
         sharedState.tt.resize(sharedState.options["Hash"], threadCount);
     }
@@ -229,8 +218,9 @@ Thread* ThreadPool::best_thread() const noexcept {
               && (newThreadMoveVote > bestThreadMoveVote
                   || (newThreadMoveVote == bestThreadMoveVote
                       // Note that we make sure not to pick a thread with truncated-PV for better viewer experience.
-                      && thread_voting_value(th) * (newThreadPV.size() > 2)
-                           > thread_voting_value(bestThread) * (bestThreadPV.size() > 2)))))
+                      && (thread_voting_value(th) > thread_voting_value(bestThread)
+                          || (thread_voting_value(th) == thread_voting_value(bestThread)
+                              && newThreadPV.size() > bestThreadPV.size()))))))
             bestThread = th;
     }
 
@@ -253,8 +243,7 @@ void ThreadPool::start(Position&             pos,
                        const OptionsMap&     options) noexcept {
     main_thread()->wait_idle();
 
-    stop = aborted = false;
-    depthIncrease  = true;
+    stop = abort = research = false;
 
     Search::RootMoves rootMoves;
 
@@ -299,12 +288,12 @@ void ThreadPool::start(Position&             pos,
     // The rootState is per thread, earlier states are shared since they are read-only.
     for (Thread* th : threads)
     {
+        th->worker->limits = limits;
         th->worker->nodes = th->worker->tbHits = th->worker->bestMoveChanges = 0;
         th->worker->selDepth = th->worker->nmpMinPly = 0;
         th->worker->rootDepth = th->worker->completedDepth = DEPTH_ZERO;
         th->worker->rootPos.set(rootFen, &th->worker->rootState);
         th->worker->rootState = setupStates->back();
-        th->worker->limits    = limits;
         th->worker->rootMoves = rootMoves;
         th->worker->tbConfig  = tbConfig;
     }

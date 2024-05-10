@@ -77,8 +77,6 @@ class PolyBook final {
     int keyWeightSum;
 };
 
-extern PolyBook Polybook;
-
 }  // namespace DON
 
 #endif  // #ifndef POLYBOOK_H_INCLUDED
